@@ -1,0 +1,11 @@
+# System special desktop services
+.DS_Store
+desktop.ini
+Thumbs.db
+
+# Hide some auto-generating files
+compiled/
+
+# Hide some free snapshots
+grand-theft-wumpus.png
+grand-theft-wumpus-path.png
