@@ -6,8 +6,8 @@ How to build a digital world? Okay, we don't start with the _File Island_, but w
 
 ## Subprojects
 
-> **Note** Project or Subprojects are organized as the `digimon`s within [**village**](village).
-> **Note** Each project may be separated into several repositories within [**island**](island), [**tamer**](tamer), respectively. 
+**Note** Project or Subprojects are organized as the `digimon`s within [**village**](village). 
+Each project may be separated into several repositories within [**island**](island), [**tamer**](tamer), respectively. 
 
 + [**Sakuyamon**](village/sakuyamon) is in charge of this **Digital World**.
 
@@ -20,5 +20,4 @@ How to build a digital world? Okay, we don't start with the _File Island_, but w
 + [**island**](island) is the living environment of _Children_ `digimon`s. Namely it works like `share` or `collection`.
   - _nature_ defines your `digimon`'s look and feel.
 + [**tamer**](tamer) is the interface for developers to train the _Baby_ `digimon`. Namely it works like `test`.
-
 
