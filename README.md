@@ -2,7 +2,7 @@
 
 **Discipline** is the act of intentionally restricting your design choices so that you can work more productively at a higher level of abstraction.
 
-![brainstorm](.book/readme.png)
+![brainstorm](.book/readme/brainstorm.png)
 
 ## Project Hierarchy
 

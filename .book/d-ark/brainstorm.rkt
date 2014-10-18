@@ -41,5 +41,5 @@
     (pin-over (blank (- bsright bsleft) (- bsbottom bstop)) (abs bsleft) (abs bstop) bsfg)})
 
 (let ([brainstorm (brainstorm-layout (~pict '{Interdiscipline}) mastering-skills 0 (* pi 2) #false)])
-  (send (pict->bitmap brainstorm) save-file "../readme.png" 'png)
+  (send (pict->bitmap brainstorm) save-file "../nature/readme/brainstorm.png" 'png)
   brainstorm)
