@@ -1,6 +1,7 @@
-# Nanomon
+# The Book
 
-Digging data from Chaos such as iPhone Backups
+Here is the **Extra Dimensional Space** built for developers to set up
+all the prerequistes of the project itself.
 
 ## Project Conventions
 
@@ -19,6 +20,7 @@ Digging data from Chaos such as iPhone Backups
 * **tamer** is the interface for developers to train the `digimon`.
   Namely it works like `test`.
 
-## Subprojects
-* [**Tencent**](village/tencent): Digging data from Tencent Caches
-* [**iPhone**](village/iphone): Digging data from iPhone Backups
+## The **D-Ark** Scripts
+* [**prerequisites.sh**](prerequisites.sh): Build the latest Racket from
+  source.
+* [**makemd.rkt**](makemd.rkt): Make all the `readme.md`s if updated.
