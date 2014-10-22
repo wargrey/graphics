@@ -4,7 +4,6 @@ Here is the **Extra Dimensional Space** built for developers to set up
 all the prerequistes of the project itself.
 
 ## Project Conventions
-
 * **dot book** is a mystery that sets up all the prerequistes of the
   world. Sounds like `local`.
 * **d-ark** is the interface for users to talk with `digimon`s. Namely

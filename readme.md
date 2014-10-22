@@ -3,7 +3,6 @@
 Digging data from Chaos such as iPhone Backups
 
 ## Project Conventions
-
 * **dot book** is a mystery that sets up all the prerequistes of the
   world. Sounds like `local`.
 * **d-ark** is the interface for users to talk with `digimon`s. Namely
