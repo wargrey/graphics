@@ -16,21 +16,21 @@ How to build a _Digital World_? Okay, we don't start with the _File
 Island_, but we own some concepts from the _Digimon Series_.
 * **dot book** is a mystery that sets up all the prerequistes of the
   world. Sounds like `local`.
-* **d-ark** is the interface for users to talk with _digimon_s. Namely
+* **d-ark** is the interface for users to talk with _digimons_. Namely
   it works like `bin`.
-* **village** is the birth place of _digimon_s. Namely it works like
+* **village** is the birth place of _digimons_. Namely it works like
   `src`.
-* **digitama** is the egg of _digimon_s. Namely it works like
+* **digitama** is the egg of _digimons_. Namely it works like
   `libraries` or `frameworks`.
-* **island** is the living environment of _digimon_. Namely it works
+* **island** is the living environment of _digimons_. Namely it works
   like `share` or `collection`.
-  * _nature_ defines _digimon_'s look and feel.
+  * _nature_ defines _digimons_' look and feel.
   * _rosetta_ stores the ancient sources to be translated.
-* **tamer** is the interface for developers to train the _digimon_.
+* **tamer** is the interface for developers to train the _digimons_.
   Namely it works like `test`.
 
 ### Version
 
-Obviousely, our _digimon_s have their own life cycle.
-* **Baby I** is the first stage of _digimon_ evolution straight from
-  hers _digitama_. Namely it's the `Alpha Version`.
+Obviousely, our _digimons_ have their own life cycle.
+* **Baby I** is the first stage of _digimons_ evolution straight from
+  her _digitama_. Namely it's the `Alpha Version`.
