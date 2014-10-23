@@ -25,34 +25,23 @@ cd $(dirname $0) && exec racket $(basename $0);
                     (path-replace-suffix (file-name-from-path md) #"") dentry))
     (with-output-to-file target #:exists 'replace
       {thunk (define awkout (current-thread))
-             (define awk-indent (thread {thunk (define pipen awkout)
-                                             (let awk ()
-                                               (define line (thread-receive))
-                                               (with-handlers ([exn:fail:contract? {lambda [eof!] (thread-send pipen eof)}])
-                                                 (cond [(regexp-match? #px"^\\* >\\s+>" line) (thread-send pipen (regexp-replace #px"^\\* >(\\s+)>" line "\\1- "))]
+             (define awk-format (thread {thunk (define pipen awkout)
+                                               (let awk ()
+                                                 (define line (thread-receive))
+                                                 (cond [(eof-object? line) (thread-send pipen eof)]
+                                                       [(regexp-match? #px"^#+ (\\d+\\.)+" line) (thread-send pipen (regexp-replace #px"^(#+) (\\d+\\.)+" line "\\1"))]
+                                                       [(regexp-match? #px"^\\s*$" line) (let ([next (thread-receive)])
+                                                                                           (cond [(and (not (eof-object? next))
+                                                                                                       (regexp-match? #px"(^\\* )|(^\\s*$)" next)) 'Skip-Empty-Line]
+                                                                                                 [else (thread-send pipen line)])
+                                                                                           (thread-rewind-receive (list next)))]
+                                                       [(regexp-match? #px"^\\* >\\s+>" line) (thread-send pipen (regexp-replace #px"^\\* >(\\s+)>" line "\\1- "))]
                                                        [else (thread-send pipen line)])
-                                                 (awk)))}))
-             (define awk-lines (thread {thunk (define pipen awk-indent)
-                                              (let awk ()
-                                                (define line (thread-receive))
-                                                (cond [(eof-object? line) (thread-send pipen eof)]
-                                                      [(regexp-match? #px"^\\s*$" line) (let ([next (thread-receive)])
-                                                                                          (cond [(eof-object? next) (thread-send pipen line) (thread-send pipen eof)]
-                                                                                                [(regexp-match? #px"^\\* " next) (thread-send pipen next)]
-                                                                                                [(regexp-match? #px"^\\s*$" next) (thread-rewind-receive (list next))]
-                                                                                                [else (thread-send pipen line) (thread-send pipen next)])
-                                                                                          (unless (eof-object? next) (awk)))]
-                                                      [else (thread-send pipen line) (awk)]))}))
-             (define awk-title (thread {thunk (define pipen awk-lines)
-                                              (let awk ()
-                                                (define line (thread-receive))
-                                                (with-handlers ([exn:fail:contract? {lambda [eof!] (thread-send pipen eof)}])
-                                                  (cond [(regexp-match? #px"^#+ (\\d+\\.)+" line) (thread-send pipen (regexp-replace #px"^(#+) (\\d+\\.)+" line "\\1"))]
-                                                        [else (thread-send pipen line)])
-                                                  (awk)))}))
+                                                 (unless (eof-object? line)
+                                                   (awk)))}))
              (call-with-input-file md
                {lambda [markdown.md]
-                 (define pipe0 awk-title)
+                 (define pipe0 awk-format)
                  (let awk-readme ([waitees (list markdown.md (thread-receive-evt))])
                    (define which (apply sync waitees))
                    (cond [(eq? markdown.md which) (let ([line (read-line markdown.md)])
