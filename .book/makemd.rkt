@@ -8,27 +8,28 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (require make)
 
+(require pict)
+(require racket/draw)
+(require images/flomap)
+
 (define rootdir (simplify-path (build-path 'up)))
 (define bookdir (path->complete-path (current-directory)))
 (define rsttdir (build-path bookdir "island" "rosetta"))
-(define stnedir (build-path rsttdir "stone"))
 (define makemd (build-path bookdir "makemd.rkt"))
 
-(make-print-checking #false)
-
 (define make-markdown
-  {lambda [ds t]
+  {lambda [target dentry]
     (define md (make-temporary-file "~a.md"))
-    (system (format "~a --markdown --dest ~a --dest-name ~a ~a > /dev/null"
+    (system (format "~a --markdown --dest ~a --dest-name ~a ~a"
                     (find-executable-path "scribble") (path-only md)
-                    (path-replace-suffix (file-name-from-path md) #"") (first ds)))
-    (with-output-to-file t #:exists 'replace
+                    (path-replace-suffix (file-name-from-path md) #"") dentry))
+    (with-output-to-file target #:exists 'replace
       {thunk (define awkout (current-thread))
              (define awk-indent (thread {thunk (define pipen awkout)
                                              (let awk ()
                                                (define line (thread-receive))
                                                (with-handlers ([exn:fail:contract? {lambda [eof!] (thread-send pipen eof)}])
-                                                 (cond [(regexp-match? #px"^\\* _" line) (thread-send pipen (string-append "  " line))]
+                                                 (cond [(regexp-match? #px"^\\* >\\s+>" line) (thread-send pipen (regexp-replace #px"^\\* >(\\s+)>" line "\\1- "))]
                                                        [else (thread-send pipen line)])
                                                  (awk)))}))
              (define awk-lines (thread {thunk (define pipen awk-indent)
@@ -46,8 +47,7 @@ cd $(dirname $0) && exec racket $(basename $0);
                                               (let awk ()
                                                 (define line (thread-receive))
                                                 (with-handlers ([exn:fail:contract? {lambda [eof!] (thread-send pipen eof)}])
-                                                  (cond [(regexp-match? #px"^#+ (\\d+\\.)+$" line) 'Skip-Unnamed-Title]
-                                                        [(regexp-match? #px"^#+ (\\d+\\.)+" line) (thread-send pipen (regexp-replace #px"^(#+) (\\d+\\.)+" line "\\1"))]
+                                                  (cond [(regexp-match? #px"^#+ (\\d+\\.)+" line) (thread-send pipen (regexp-replace #px"^(#+) (\\d+\\.)+" line "\\1"))]
                                                         [else (thread-send pipen line)])
                                                   (awk)))}))
              (call-with-input-file md
@@ -64,37 +64,33 @@ cd $(dirname $0) && exec racket $(basename $0);
                                                                (awk-readme waitees)))]))})})})
 
 (define make-png
-  {lambda [ds d]
-    (void)})
-
-(define make-rule
-  {lambda [t ds maker]
-    (list t ds {thunk (maker ds t)})})
+  {lambda [target dentry]
+    (dynamic-require dentry #false)
+    (define name (string->symbol (path->string (path-replace-suffix (file-name-from-path target) ""))))
+    (parameterize ([current-namespace (module->namespace dentry)])
+      (namespace-set-variable-value! 'edge 300)
+      (define img ((namespace-variable-value name #false)))
+      (make-directory* (path-only target))
+      (send (cond [(pict? img) (pict->bitmap img)] [(flomap? img) (flomap->bitmap img)] [else img])
+            save-file target 'png))})
 
 (define smart-dependencies
-  {lambda [scrbl [memory null]]
+  {lambda [entry [memory null]]
     (foldl {lambda [subpath memory]
-             (define subscrbl (build-path rsttdir (~a subpath)))
+             (define subscrbl (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
              (cond [(member subscrbl memory) memory]
                    [else (smart-dependencies subscrbl memory)])}
-           (cons scrbl memory)
-           (call-with-input-file scrbl (curry regexp-match* #px"(?<=@include-section\\{)[^\\}]+(?=\\})")))})
+           (cons entry memory)
+           (call-with-input-file entry (curry regexp-match* (case (filename-extension entry)
+                                                              [{#"scrbl"} #px"(?<=@include-section\\{)[^\\}]+(?=\\})"]
+                                                              [{#"rkt"} @pregexp{(?<=(require\s+"[^"]+(?=")}]))))})
 
-(define rules (filter list? (foldl append null (for/list ([scrbl (in-directory rsttdir (const #false))] #:when (equal? #"scrbl" (filename-extension scrbl)))
-                                                 (with-handlers ([exn:fail:contract? (const null)])
-                                                   (define modeline (first (call-with-input-file scrbl (curry regexp-match #px"(?<=@;\\{)[^\\}]+(?=\\})"))))
-                                                   (define sds (remove-duplicates (cons scrbl (smart-dependencies scrbl))))
-                                                   (map {lambda [rule]
-                                                          (with-handlers ([exn:fail:contract? void])
-                                                            (define t (symbol->string (car rule)))
-                                                            (define ds (cons makemd (map (curry build-path rsttdir) (map symbol->string (cdr rule)))))
-                                                            (case (filename-extension t)
-                                                              [{#"md"} (make-rule (if (absolute-path? t) (reroot-path t rootdir) (build-path bookdir t)) (append sds ds) make-markdown)]
-                                                              [{#"png"} (make-rule (build-path stnedir t) ds make-png)]))}
-                                                        (with-input-from-bytes modeline {thunk (let read-next ()
-                                                                                                 (define rule (read))
-                                                                                                 (cond [(eof-object? rule) null]
-                                                                                                       [else (cons rule (read-next))]))})))))))
+(define readmes (filter list? (for/list ([readme.scrbl (in-directory rsttdir)]
+                                         #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
+                                (with-handlers ([exn:fail:contract? {lambda [efc] (fprintf (current-error-port) "~a" efc)}])
+                                  (define t (reroot-path (substring (path->string (path-replace-suffix readme.scrbl #".md")) (string-length (path->string rsttdir))) rootdir))
+                                  (define ds (cons readme.scrbl (remove readme.scrbl (smart-dependencies readme.scrbl))))
+                                  (list t ds {thunk (make-markdown t readme.scrbl)})))))
 
-(unless (null? rules)
-  (make/proc rules (map car rules)))
+(unless (null? readmes)
+  (make/proc readmes (map car readmes)))

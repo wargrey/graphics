@@ -1,9 +1,5 @@
 #lang scribble/base
 
-@;{ ; mode line for makemd.rkt with format: (target dependent ...)
-   (/readme.md)
-}
-
 @title{Nanomon}
 Digging data from Chaos such as iPhone Backups
 
@@ -11,5 +7,6 @@ Digging data from Chaos such as iPhone Backups
 @(itemlist @item{[@bold{Tencent}](village/tencent): Digging data from Tencent Caches}
            @item{[@bold{iPhone}](village/iphone): Digging data from iPhone Backups})
 
-@section{Project Conventions}
+@section{Referenced Illustrated Handbook}
+
 @include-section{convention.scrbl}
