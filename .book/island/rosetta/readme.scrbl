@@ -8,5 +8,6 @@ Digging data from Chaos such as iPhone Backups
            @item{[@bold{iPhone}](village/iphone): Digging data from iPhone Backups})
 
 @section{Referenced Illustrated Handbook}
+![](~/nanomon.png)
 
 @include-section{convention.scrbl}

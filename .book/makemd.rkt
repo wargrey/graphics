@@ -23,10 +23,9 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (define make-markdown
   {lambda [target dentry]
-    (define md (make-temporary-file "~a.md"))
+    (define mdname (gensym 'readme))
     (system (format "~a --markdown --dest ~a --dest-name ~a ~a"
-                    (find-executable-path "scribble") (path-only md)
-                    (path-replace-suffix (file-name-from-path md) #"") dentry))
+                    (find-executable-path "scribble") (find-system-path 'temp-dir) mdname dentry))
     (with-output-to-file target #:exists 'replace
       {thunk (define awkout (current-thread))
              (define awk-format (thread {thunk (let awk ([pipen awkout])
@@ -43,7 +42,7 @@ cd $(dirname $0) && exec racket $(basename $0);
                                                                [_ in]))
                                                  (when (string? out) (thread-send pipen out))
                                                  (if (eof-object? out) (thread-send pipen eof) (awk pipen)))}))
-             (with-input-from-file md
+             (with-input-from-file (format "~a/~a.md" (find-system-path 'temp-dir) mdname)
                {thunk (let awk-readme ([pipe0 awk-format] [waitees (list (current-input-port) (thread-receive-evt))])
                         (define waiteen (if (input-port? (apply sync waitees))
                                             (match (read-line)
@@ -61,7 +60,6 @@ cd $(dirname $0) && exec racket $(basename $0);
     (dynamic-require dentry #false)
     (define name (string->symbol (path->string (path-replace-suffix (file-name-from-path target) ""))))
     (parameterize ([current-namespace (module->namespace dentry)])
-      (namespace-set-variable-value! 'edge 300)
       (define img (namespace-variable-value name #false))
       (make-directory* (path-only target))
       (send (cond [(pict? img) (pict->bitmap img)] [(flomap? img) (flomap->bitmap img)] [else img])
