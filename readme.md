@@ -6,7 +6,7 @@ Digging data from Chaos such as iPhone Backups
 * [**Tencent**](village/tencent): Digging data from Tencent Caches
 * [**iPhone**](village/iphone): Digging data from iPhone Backups
 
-## Referenced Illustrated Handbook
+## Digimon Syndrome
 
 ## Project Conventions
 
@@ -25,7 +25,7 @@ Island_, but we own some concepts from the _Digimon Series_.
 * **island** is the living environment of _digimons_. Namely it works
   like `share` or `collection`.
   - _nature_ defines _digimons_' look and feel.
-  - _rosetta_ stores the ancient sources to be translated.
+  - _stone_ stores the ancient sources to be translated.
 * **tamer** is the interface for developers to train the _digimons_.
   Namely it works like `test`.
 

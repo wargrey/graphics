@@ -7,7 +7,7 @@ Digging data from Chaos such as iPhone Backups
 @(itemlist @item{[@bold{Tencent}](village/tencent): Digging data from Tencent Caches}
            @item{[@bold{iPhone}](village/iphone): Digging data from iPhone Backups})
 
-@section{Referenced Illustrated Handbook}
-![](~/nanomon.png)
+@section{Digimon Syndrome}
+@; ![](~/nanomon.png)
 
 @include-section{convention.scrbl}

@@ -18,7 +18,7 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (define rootdir (simplify-path (build-path 'up)))
 (define bookdir (path->complete-path (current-directory)))
-(define rsttdir (build-path bookdir "island" "rosetta"))
+(define stnsdir (build-path bookdir "island" "stone"))
 (define make.md (list (build-path bookdir "makemd.rkt")))
 
 (define make-markdown
@@ -33,7 +33,7 @@ cd $(dirname $0) && exec racket $(basename $0);
                                                  (define out (match in
                                                                [{pregexp #px"^#+ (\\d+\\.)+"} (regexp-replace #px"^(#+) (\\d+\\.)+" in "\\1")]
                                                                [{pregexp #px"^\\* >\\s+>"} (regexp-replace #px"^\\* >(\\s+)>" in "\\1- ")]
-                                                               [{pregexp #px"\\]\\(~/"} (string-replace in "~" (substring (~a rsttdir) (sub1 (string-length (~a rootdir)))))]
+                                                               [{pregexp #px"\\]\\(~/"} (string-replace in "~" (substring (~a stnsdir) (sub1 (string-length (~a rootdir)))))]
                                                                [{pregexp #px"^\\s*$"} (let ([next (thread-receive)])
                                                                                         (cond [(and (not (eof-object? next))
                                                                                                     (regexp-match? #px"(^\\* )|(^\\s*$)" next)) 'Skip-Empty-Line]
@@ -76,14 +76,14 @@ cd $(dirname $0) && exec racket $(basename $0);
                                                               [{#"scrbl"} #px"(?<=@include-section\\{)[^\\}]+(?=\\})"]
                                                               [{#"rkt"} #px"(?<=\\(require \").+\\.rkt(?=\"\\))"]))))})
 
-(define readmes (filter list? (for/list ([readme.scrbl (in-directory rsttdir)]
+(define readmes (filter list? (for/list ([readme.scrbl (in-directory stnsdir)]
                                          #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
-                                (define t (reroot-path (substring (path->string (path-replace-suffix readme.scrbl #".md")) (string-length (path->string rsttdir))) rootdir))
+                                (define t (reroot-path (substring (path->string (path-replace-suffix readme.scrbl #".md")) (string-length (path->string stnsdir))) rootdir))
                                 (define ds (append (smart-dependencies readme.scrbl) make.md))
                                 (list t ds {thunk (make-markdown t readme.scrbl)}))))
 
 (define images (filter-map {lambda [image]
-                             (define t (build-path rsttdir (bytes->string/utf-8 image)))
+                             (define t (build-path stnsdir (bytes->string/utf-8 image)))
                              (define image.rkt (path-replace-suffix t #".rkt"))
                              (define ds (append (smart-dependencies image.rkt) make.md))
                              (list t ds {thunk (make-image t image.rkt)})}
