@@ -6,23 +6,23 @@
 (require pict)
 (require plot)
 (require racket/draw)
+
 (require math/flonum)
 (require images/flomap)
+(require images/icons/symbol)
 
 (provide (all-defined-out))
 
-(define max-size 320)
+(define wikimon.net (http-conn-open "wikimon.net"))
 
 (define recv-digimon
   {lambda [digimon]
     (with-handlers ([exn? {lambda [e]
-                            (lt-superimpose (with-input-from-string (exn-message e) {thunk (foldr vl-append (blank 0 0)
-                                                                                                  {let l->p ()
-                                                                                                    (match (read-line)
-                                                                                                      [{? eof-object?} null]
-                                                                                                      [{var line} (cons (desc line max-size) (l->p))])})})
-                                            (blank max-size max-size))}])
-      (define-values {status headers pipe} (http-conn-sendrecv! (http-conn-open "wikimon.net") digimon #:close? #true #:content-decode '{gzip}))
+                            (lt-superimpose (make-flomap 4 (plot-width) (exact-round (/ (plot-width) 0.618)))
+                                            (for/fold ([flmp #false]) ([line (in-list (with-input-from-string (exn-message e) {thunk (port->lines)}))])
+                                              (define fline (desc line (plot-width) #:color "Red"))
+                                              (if flmp (vl-append flmp fline) fline)))}])
+      (define-values {status headers pipe} (http-conn-sendrecv! wikimon.net digimon #:close? #true #:content-decode '{gzip}))
       (if (regexp-match? #px"\\s200\\sOK" status)
         (bitmap->flomap (make-object bitmap% pipe))
         (error (bytes->string/utf-8 status))))})
@@ -31,15 +31,16 @@
   {lambda [digimon0]
     (define digimon (flomap-flip-vertical digimon0))
     (define get-pixel {lambda [x y] (let ([flv (flomap-ref* digimon x y)]) (rgb->hsv (flvector-ref flv 1) (flvector-ref flv 2) (flvector-ref flv 3)))})
-    (plot3d-pict (list (contour-intervals3d {lambda [x y] (let-values ([{v who cares} (get-pixel x y)]) v)}
+    (plot3d-pict #:height (exact-round (/ (plot-width) 0.618))
+                 (list (contour-intervals3d {lambda [x y] (let-values ([{v who cares} (get-pixel x y)]) (* v 1.618))}
                                             0 (flomap-width digimon) 0 (flomap-height digimon)
-                                            #:alphas (make-list 5 0.16))
+                                            #:alphas (make-list 5 0.04))
                        (contour-intervals3d {lambda [x y] (let-values ([{who v cares} (get-pixel x y)]) v)}
                                             0 (flomap-width digimon) 0 (flomap-height digimon)
                                             #:alphas (make-list 5 0.08))
                        (contour-intervals3d {lambda [x y] (let-values ([{who cares v} (get-pixel x y)]) v)}
                                             0 (flomap-width digimon) 0 (flomap-height digimon)
-                                            #:alphas (make-list 5 0.04))))})
+                                            #:alphas (make-list 5 0.08))))})
 
 (define digimon-ark
   {lambda [digimon0 #:lightness [threshold 0.64] #:rallies [rallies0 null] #:show? [show? #true] #:bgcolor [bgcolor (make-object color% "Gray")]]
@@ -98,41 +99,43 @@
 (define info
   {lambda [items #:font-size [size 12] #:style [fstyle null]]
     (define seps (exact-round (* size 1/2)))
-    (define rows (map {lambda [item] (cons (text (format "~a: " (car item)) fstyle size) (text (symbol->string (cdr item)) fstyle size))} items))
-    (define col (let ([item (argmax (compose1 pict-width car) rows)]) (blank (+ (pict-width (car item)) seps) (+ (pict-height (car item)) seps))))
-    (table 2 (flatten (map {lambda [row] (list (rc-superimpose col (car row)) (lc-superimpose col (cdr row)))} rows))
-           cc-superimpose cc-superimpose seps 0)})
+    (define rows (map {lambda [item] (cons (car item) (text (symbol->string (cdr item)) fstyle size))} items))
+    (define col (let ([item (argmax (compose1 pict-width cdr) rows)]) (blank (+ (pict-width (cdr item)) seps) (+ (pict-height (cdr item)) seps))))
+    (vl-append (cdar rows) (table (sub1 (length items)) (map {lambda [row] (lc-superimpose col (cdr row))} (cdr rows)) cc-superimpose cc-superimpose seps 0))})
 
 (define desc
-  {lambda [txt width #:font-size [size 12] #:head [head (blank 0 0)] #:style [fstyle null]]
-    (define {desc0 txt size width fstyle}
-      (call-with-current-continuation
-       {lambda [return]
-         (when (or (< width size) (zero? (string-length txt))) (return (list (blank 0 0) txt)))
-         (define hit (min (string-length txt) (exact-floor (/ width size))))
-         (define hpict (text (substring txt 0 hit) fstyle size))
-         (define final (desc0 (substring txt hit) size (- width (pict-width hpict)) fstyle))
-         (list (hc-append hpict (first final)) (second final))}))
-    (define smart (desc0 txt size width fstyle))
-    (vl-append head (cond [(zero? (string-length (second smart))) (first smart)]
-                          [else (desc (second smart) width #:font-size size #:head (first smart) #:style fstyle)]))})
+  {lambda [content width #:font [font (make-font)] #:color [color "white"] #:head [head0 #false]]
+    (define seps (if (list? content) (send (text-icon " " font #:color color #:trim? #false) get-width) 0))
+    (define smart (let desc0 ([words content] [room width])
+                    (with-handlers ([exn:fail:contract? (const (list (blank 0 0) words))])
+                      (define ptxt (bitmap (text-icon (~a (sequence-ref words 0)) font #:color color #:trim? #false)))
+                      (if (< room (pict-width ptxt))
+                          (raise-range-error 'desc "words" "ending " (pict-width ptxt) words 0 room width)
+                          (let ([final (desc0 (sequence-tail words 1) (- room (pict-width ptxt)))])
+                            (list (hc-append seps ptxt (first final)) (second final)))))))
+    (define headn (cond [(zero? (sequence-length (second smart))) (first smart)]
+                        [else (desc (second smart) width #:font font #:color color #:head (first smart))]))
+    (if head0 (vl-append head0 headn) headn)})
 
 (define item
   {lambda [items #:font-size [size 12] #:style [fstyle null]]
     (for/fold ([skills (text "Skills:" fstyle size)]) ([skill (in-list items)])
-      (vl-append skills (hc-append (arrowhead (exact-round (* size 2/3)) 0) (blank (exact-round (* size 1/2)) 0)
+      (vl-append skills (hc-append (exact-round (* size 1/2)) (arrowhead (exact-round (* size 2/3)) 0)
                                    (text (string-join (map symbol->string skill)) fstyle size))))})
 
 (define rgb->hsv
   {lambda [r g b]
     (define-values {max0 min0} (values (max r g b) (min r g b)))
     (define chroma (- max0 min0))
-    (values chroma
+    (values chroma #|(* 1/3 pi (cond [(zero? chroma) 0]
+                                     [(= max0 r) (+ (/ (- g b) chroma) (if (< g b) 6 0))]
+                                     [(= max0 g) (+ (/ (- b r) chroma) 2)]
+                                     [(= max0 b) (+ (/ (- r g) chroma) 4)]))|#
             (cond [(zero? max0) 0]
                   [else (/ chroma max0)])
             max0)})
 
-(define ~desc
+(define ~words
   {lambda [src]
     (define/match (~str chars capital? literal?)
       [{(? null?) _ _} null]
@@ -142,4 +145,4 @@
       [{(list head tail ...) _ #true} (cons head (~str tail #false #true))]
       [{(list head tail ...) #true _} (cons (char-upcase head) (~str tail #false literal?))]
       [{(list head tail ...) _ _} (cons (char-downcase head) (~str tail #false #false))])
-    (list->string (~str (string->list (string-trim (format "~s" src) @pregexp{[()]})) #true #false))})
+    (string-split (list->string (~str (string->list (string-trim (format "~s" src) @pregexp{[()]})) #true #false)))})
