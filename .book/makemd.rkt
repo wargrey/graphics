@@ -12,6 +12,8 @@ cd $(dirname $0) && exec racket $(basename $0);
 (require racket/draw)
 (require images/flomap)
 
+(require (only-in "island/stone/composition.rkt" wikimon-recv!))
+
 (make-print-dep-no-line #true)
 (make-print-checking #true)
 (make-print-reasons #true)
@@ -19,13 +21,28 @@ cd $(dirname $0) && exec racket $(basename $0);
 (define rootdir (simplify-path (build-path 'up)))
 (define bookdir (path->complete-path (current-directory)))
 (define stnsdir (build-path bookdir "island" "stone"))
+(define mojidir (build-path stnsdir ".book" "stone"))
 (define make.md (list (build-path bookdir "makemd.rkt")))
+
+(define kanas (hash 'ア 'a 'イ 'i 'ウ 'u 'エ 'e 'オ 'o 'ヤ 'ya 'ユ 'yu 'ヨ 'yo 'ワ 'wa 'ヲ 'wo 'ン 'n 'ー 'chouon2
+                    'カ 'ka 'キ 'ki 'ク 'ku 'ケ 'ke 'コ 'ko 'ガ 'ga 'ギ 'gi 'グ 'gu 'ゲ 'ge 'ゴ 'go
+                    'サ 'sa 'シ 'shi 'ス 'su 'セ 'se 'ソ 'so 'ザ 'za 'ジ 'ji 'ズ 'zu 'ゼ 'ze 'ゾ 'zo
+                    'タ 'ta2 'チ 'chi 'ツ 'tsu 'テ 'te 'ト 'to 'ダ 'da 'デ 'de 'ド 'do
+                    'ナ 'na 'ニ 'ni 'ヌ 'nu 'ネ 'ne 'ノ 'no
+                    'ハ 'ha 'ヒ 'hi 'フ 'fu 'へ 'he 'ホ 'ho 'バ 'ba 'ビ 'bi 'ブ 'bu 'ベ 'be 'ボ 'bo 'パ 'pa 'ピ 'pi 'プ 'pu 'ペ 'pe 'ポ 'po
+                    'マ 'ma 'ミ 'mi 'ム 'mu 'メ 'me 'モ 'mo
+                    'ラ 'ra 'リ 'ri 'ル 'ru 'レ 're 'ロ 'ro))
 
 (define make-markdown
   {lambda [target dentry]
     (define mdname (gensym 'readme))
+    (define scribble (find-executable-path "scribble"))
     (system (format "~a --markdown --dest ~a --dest-name ~a ~a"
-                    (find-executable-path "scribble") (find-system-path 'temp-dir) mdname dentry))
+                    (if scribble scribble
+                        (simplify-path (build-path (path-only (find-system-path 'exec-file))
+                                                   (path-only (find-system-path 'collects-dir))
+                                                   "bin/scribble")))
+                    (find-system-path 'temp-dir) mdname dentry))
     (with-output-to-file target #:exists 'replace
       {thunk (define awkout (current-thread))
              (define awk-format (thread {thunk (let awk ([pipen awkout])
@@ -55,6 +72,15 @@ cd $(dirname $0) && exec racket $(basename $0);
                         (when (list? waiteen)
                           (awk-readme pipe0 waiteen)))})})})
 
+(define make-digimoji
+  {lambda [target name pattern]
+    (unless (directory-exists? (path-only target)) (make-directory* (path-only target)))
+    (with-output-to-file target #:exists 'replace
+      {thunk (define file (format (string-append "/File:" pattern) name))
+             (define pxpng (pregexp (format (format "(?<=href..)/images[^>]+~a(?=.>)" pattern) name)))
+             (define png (port->bytes (third (wikimon-recv! (car (regexp-match* pxpng (third (wikimon-recv! file))))))))
+             (write-bytes png)})})
+
 (define make-image
   {lambda [target dentry]
     (dynamic-require dentry #false)
@@ -82,14 +108,23 @@ cd $(dirname $0) && exec racket $(basename $0);
                                 (define ds (append (smart-dependencies readme.scrbl) make.md))
                                 (list t ds {thunk (make-markdown t readme.scrbl)}))))
 
-(define images (filter-map {lambda [image]
-                             (define t (build-path stnsdir (bytes->string/utf-8 image)))
-                             (define image.rkt (path-replace-suffix t #".rkt"))
-                             (define ds (append (smart-dependencies image.rkt) make.md))
-                             (list t ds {thunk (make-image t image.rkt)})}
-                           (foldl append null (map (curryr call-with-input-file (curry regexp-match* #px"(?<=\\]\\(~/)[^)]+(?=\\))"))
-                                                   (map caadr readmes)))))
+(define digimojies (append (hash-map kanas {lambda [kana romaji]
+                                             (define t (build-path mojidir (format "~a.png" kana)))
+                                             (list t null {thunk (make-digimoji t romaji "Dc~a_w.png")})})
+                           (for/list ([index (in-range (char->integer #\a) (add1 (char->integer #\z)))])
+                             (define letter (string-downcase (string (integer->char index))))
+                             (define t (build-path mojidir (format "~a.png" letter)))
+                             (list t null {thunk (make-digimoji t letter "Dc~a_r_w.png")}))))
 
-(let ([rules (append readmes images)])
+(define images (filter list? (map {lambda [image]
+                                    (define t (build-path stnsdir (bytes->string/utf-8 image)))
+                                    (define image.rkt (path-replace-suffix t #".rkt"))
+                                    (when (file-exists? image.rkt)
+                                      (define ds (append (smart-dependencies image.rkt) make.md))
+                                      (list t ds {thunk (make-image t image.rkt)}))}
+                                  (foldl append null (map (curryr call-with-input-file (curry regexp-match* #px"(?<=\\]\\(~/)[^)]+(?=\\))"))
+                                                          (map caadr readmes))))))
+
+(let ([rules (append readmes digimojies images)])
   (unless (null? rules)
     (make/proc rules (map car rules))))
