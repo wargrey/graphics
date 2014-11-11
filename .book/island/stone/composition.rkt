@@ -1,7 +1,6 @@
 #lang at-exp racket/gui
 
 (require net/http-client)
-(require net/head)
 
 (require pict)
 (require plot)
@@ -10,22 +9,26 @@
 (require math/flonum)
 (require images/flomap)
 (require images/icons/symbol)
+(require images/icons/style)
 
 (provide (all-defined-out))
 
-(define wikimon.net (http-conn-open "wikimon.net"))
+(define wikimon-recv!
+  {lambda [uri]
+    (define-values {status headers pipe} (http-sendrecv "wikimon.net" uri #:content-decode null))
+    (unless (regexp-match? #px"\\s200\\sOK" status) (error (bytes->string/utf-8 status)))
+    (list status headers pipe)})
 
 (define recv-digimon
   {lambda [digimon]
     (with-handlers ([exn? {lambda [e]
-                            (lt-superimpose (make-flomap 4 (plot-width) (exact-round (/ (plot-width) 0.618)))
+                            (lt-superimpose (blank (plot-width) (exact-round (/ (plot-width) 0.618)))
                                             (for/fold ([flmp #false]) ([line (in-list (with-input-from-string (exn-message e) {thunk (port->lines)}))])
-                                              (define fline (desc line (plot-width) #:color "Red"))
+                                              (define fline (desc line (plot-width) #:color "Firebrick"))
                                               (if flmp (vl-append flmp fline) fline)))}])
-      (define-values {status headers pipe} (http-conn-sendrecv! wikimon.net digimon #:close? #true #:content-decode '{gzip}))
-      (if (regexp-match? #px"\\s200\\sOK" status)
-        (bitmap->flomap (make-object bitmap% pipe))
-        (error (bytes->string/utf-8 status))))})
+      (define name (string-titlecase (~a digimon)))
+      (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (car (regexp-match* (pregexp (format "(?<=href..)/images[^>]+~a.jpg(?=.>)" name))
+                                                                                     (third (wikimon-recv! (format "/File:~a.jpg" name))))))))))})
 
 (define digimon-visualize
   {lambda [digimon0]
@@ -103,19 +106,72 @@
     (define col (let ([item (argmax (compose1 pict-width cdr) rows)]) (blank (+ (pict-width (cdr item)) seps) (+ (pict-height (cdr item)) seps))))
     (vl-append (cdar rows) (table (sub1 (length items)) (map {lambda [row] (lc-superimpose col (cdr row))} (cdr rows)) cc-superimpose cc-superimpose seps 0))})
 
+(define digimoji
+  {lambda [content #:height [size (default-icon-height)] #:color [color "black"] #:trim? [trim? #true]]
+    (define flcolor (let ([clr (if (is-a? color color%) color (make-object color% (~a color)))])
+                                                   (map {lambda [val] (exact->inexact (/ val #xFF))}
+                                                        (list (send clr red) (send clr green) (send clr blue)))))
+    (define background (blank size size))
+    (define {translate moji0 mojin}
+      (define moji (cond [(char=? moji0 #\-) #\ー]
+                         [(member moji0 '{#\ゕ #\ヵ}) (box #\カ)]
+                         [(member moji0 '{#\ゖ #\ヶ}) (box #\ケ)]
+                         [(member moji0 '{#\ぢ #\ヂ}) (list #\デ (box #\イ))]
+                         [(member moji0 '{#\づ #\ヅ}) (list #\ド (box #\ウ))]
+                         [(member moji0 '{#\ゐ #\ヰ}) (list #\ウ (box #\イ))]
+                         [(member moji0 '{#\ゑ #\ヱ}) (list #\ウ (box #\エ))]
+                         [(member moji0 '{#\ぁ #\ぃ #\ぅ #\ぇ #\ぉ #\っ #\ゃ #\ゅ #\ょ #\ゎ}) (box (integer->char (+ (char->integer moji0) 96 1)))]
+                         [(member moji0 '{#\ァ #\ィ #\ゥ #\ェ #\ォ #\ッ #\ャ #\ュ #\ョ #\ヮ}) (box (integer->char (add1 (char->integer moji0))))]
+                         [(char<=? #\あ moji0 #\ゔ) (integer->char (+ (char->integer moji0) 96))]
+                         [(char<=? #\A moji0 #\Z) (char-downcase moji0)]
+                         [else moji0]))
+      (if (list? moji) (append moji mojin) (cons moji mojin)))
+    (for/fold ([dgmj #false]) ([moji (in-list (foldl translate null (string->list (~a content))))])
+      (define fmoji (format ".book/stone/~a.png" (if (box? moji) (unbox moji) moji)))
+      (define pmoji (cond [(file-exists? fmoji) (let*-values ([{flng} (flomap-trim (bitmap->flomap (make-object bitmap% fmoji 'png/alpha)))]
+                                                              [{width0 height0} (flomap-size flng)]
+                                                              [{scale%} (/ (- size 2) (max width0 height0))])
+                                                  (for* ([x (in-range width0)] [y (in-range height0)])
+                                                    (define pos (* (+ x (* y width0)) 4))
+                                                    (unless (zero? (flvector-ref (flomap-values flng) pos))
+                                                      (for-each {lambda [offset val] (flvector-set! (flomap-values flng) (+ pos offset) val)}
+                                                                '{1 2 3} flcolor)))
+                                                  (if (box? moji)
+                                                      (cb-superimpose background (bitmap (flomap->bitmap (flomap-scale flng 2/3))))
+                                                      (cc-superimpose background (bitmap (flomap->bitmap (flomap-scale flng scale%))))))]
+                          [(char=? moji #\space) background]
+                          [else (cc-superimpose background (bitmap (text-icon (~a moji) #:trim? trim? #:color color #:height size)))]))
+      (if dgmj (hc-append dgmj pmoji) pmoji))})
+
 (define desc
-  {lambda [content width #:font [font (make-font)] #:color [color "white"] #:head [head0 #false]]
-    (define seps (if (list? content) (send (text-icon " " font #:color color #:trim? #false) get-width) 0))
-    (define smart (let desc0 ([words content] [room width])
-                    (with-handlers ([exn:fail:contract? (const (list (blank 0 0) words))])
-                      (define ptxt (bitmap (text-icon (~a (sequence-ref words 0)) font #:color color #:trim? #false)))
-                      (if (< room (pict-width ptxt))
-                          (raise-range-error 'desc "words" "ending " (pict-width ptxt) words 0 room width)
-                          (let ([final (desc0 (sequence-tail words 1) (- room (pict-width ptxt)))])
-                            (list (hc-append seps ptxt (first final)) (second final)))))))
-    (define headn (cond [(zero? (sequence-length (second smart))) (first smart)]
-                        [else (desc (second smart) width #:font font #:color color #:head (first smart))]))
-    (if head0 (vl-append head0 headn) headn)})
+  {lambda [content width #:ftext [ftext0 digimoji] #:height [size (default-icon-height)] #:color [color "black"]]
+    (define {ftext str}
+      (define txt (ftext0 str #:height size #:color color #:trim? #false))
+      (cond [(flomap? txt) (bitmap (flomap->bitmap txt))]
+            [(is-a? txt bitmap%) (bitmap txt)]
+            [else txt]))
+    (define {~words src}
+      (define/match (~str chars capital? literal?)
+        [{(? null?) _ _} null]
+        [{(list #\space tail ...) _ _} (cons #\space (~str tail capital? literal?))]
+        [{(list (or #\! #\? #\.) tail ...) _ _} (cons (car chars) (~str tail #true literal?))]
+        [{(list #\" tail ...) _ _} (~str tail capital? (not literal?))]
+        [{(list head tail ...) _ #true} (cons head (~str tail #false #true))]
+        [{(list head tail ...) #true _} (cons (char-upcase head) (~str tail #false literal?))]
+        [{(list head tail ...) _ _} (cons (char-downcase head) (~str tail #false #false))])
+      (string-split (list->string (~str (string->list (string-trim (format "~s" src) @pregexp{[()]})) #true #false))))
+    (define seps (if (list? content) (pict-width (ftext " ")) 0))
+    (let desc-row ([content (if (list? content) (~words content) (~a content))] [head0 #false])
+      (define smart (let desc-col ([words content] [room width])
+                      (with-handlers ([exn:fail:contract? (const (list (blank 0 0) words))])
+                        (define ptxt (ftext (~a (sequence-ref words 0))))
+                        (if (< room (pict-width ptxt))
+                            (raise-range-error 'desc "words" "ending " (pict-width ptxt) words 0 room width)
+                            (let ([final (desc-col (sequence-tail words 1) (- room (pict-width ptxt)))])
+                              (list (hc-append seps ptxt (first final)) (second final)))))))
+      (define headn (cond [(zero? (sequence-length (second smart))) (first smart)]
+                          [else (desc-row (second smart) (first smart))]))
+      (if head0 (vl-append head0 headn) headn))})
 
 (define item
   {lambda [items #:font-size [size 12] #:style [fstyle null]]
@@ -134,15 +190,3 @@
             (cond [(zero? max0) 0]
                   [else (/ chroma max0)])
             max0)})
-
-(define ~words
-  {lambda [src]
-    (define/match (~str chars capital? literal?)
-      [{(? null?) _ _} null]
-      [{(list #\space tail ...) _ _} (cons #\space (~str tail capital? literal?))]
-      [{(list (or #\! #\? #\.) tail ...) _ _} (cons (car chars) (~str tail #true literal?))]
-      [{(list #\" tail ...) _ _} (~str tail capital? (not literal?))]
-      [{(list head tail ...) _ #true} (cons head (~str tail #false #true))]
-      [{(list head tail ...) #true _} (cons (char-upcase head) (~str tail #false literal?))]
-      [{(list head tail ...) _ _} (cons (char-downcase head) (~str tail #false #false))])
-    (string-split (list->string (~str (string->list (string-trim (format "~s" src) @pregexp{[()]})) #true #false)))})
