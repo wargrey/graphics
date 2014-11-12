@@ -126,19 +126,17 @@
                          [(char<=? #\A moji0 #\Z) (char-downcase moji0)]
                          [else moji0]))
       (if (list? moji) (append moji mojin) (cons moji mojin)))
-    (for/fold ([dgmj #false]) ([moji (in-list (foldl translate null (string->list (~a content))))])
+    (for/fold ([dgmj #false]) ([moji (in-list (foldr translate null (string->list (~a content))))])
       (define fmoji (format ".book/stone/~a.png" (if (box? moji) (unbox moji) moji)))
       (define pmoji (cond [(file-exists? fmoji) (let*-values ([{flng} (flomap-trim (bitmap->flomap (make-object bitmap% fmoji 'png/alpha)))]
                                                               [{width0 height0} (flomap-size flng)]
-                                                              [{scale%} (/ (- size 2) (max width0 height0))])
+                                                              [{scale%} (if (box? moji) 3/5 (/ (- size 2) (max width0 height0)))])
                                                   (for* ([x (in-range width0)] [y (in-range height0)])
                                                     (define pos (* (+ x (* y width0)) 4))
                                                     (unless (zero? (flvector-ref (flomap-values flng) pos))
                                                       (for-each {lambda [offset val] (flvector-set! (flomap-values flng) (+ pos offset) val)}
                                                                 '{1 2 3} flcolor)))
-                                                  (if (box? moji)
-                                                      (cb-superimpose background (bitmap (flomap->bitmap (flomap-scale flng 2/3))))
-                                                      (cc-superimpose background (bitmap (flomap->bitmap (flomap-scale flng scale%))))))]
+                                                  ((if (box? moji) cb-superimpose cc-superimpose) background (bitmap (flomap->bitmap (flomap-scale flng scale%)))))]
                           [(char=? moji #\space) background]
                           [else (cc-superimpose background (bitmap (text-icon (~a moji) #:trim? trim? #:color color #:height size)))]))
       (if dgmj (hc-append dgmj pmoji) pmoji))})
