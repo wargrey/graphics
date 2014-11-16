@@ -4,12 +4,17 @@
 
 (require pict)
 (require plot)
+(require (only-in plot/utils
+                  color-seq*
+                  ->brush-color))
 (require racket/draw)
 
 (require math/flonum)
 (require images/flomap)
+(require images/icons/control)
 (require images/icons/symbol)
 (require images/icons/style)
+(require images/icons/misc)
 
 (provide (all-defined-out))
 
@@ -21,29 +26,38 @@
 
 (define recv-digimon
   {lambda [digimon]
-    (with-handlers ([exn? {lambda [e]
-                            (lt-superimpose (blank (plot-width) (exact-round (/ (plot-width) 0.618)))
-                                            (for/fold ([flmp #false]) ([line (in-list (with-input-from-string (exn-message e) {thunk (port->lines)}))])
-                                              (define fline (desc line (plot-width) #:color "Firebrick"))
-                                              (if flmp (vl-append flmp fline) fline)))}])
-      (define name (string-titlecase (~a digimon)))
-      (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (car (regexp-match* (pregexp (format "(?<=href..)/images[^>]+~a.jpg(?=.>)" name))
-                                                                                     (third (wikimon-recv! (format "/File:~a.jpg" name))))))))))})
+    (define name (string-titlecase (~a digimon)))
+    (list* (with-handlers ([exn? {lambda [e]
+                                   (lt-superimpose (blank (plot-width) (plot-width))
+                                                   (for/fold ([flmp #false]) ([line (in-list (with-input-from-string (exn-message e) {thunk (port->lines)}))])
+                                                     (define fline (desc line (plot-width) #:color "Firebrick"))
+                                                     (if flmp (vl-append flmp fline) fline)))}])
+             (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (car (regexp-match* (pregexp (format "(?<=href..)/images[^>]+~a.jpg(?=.>)" name))
+                                                                                            (third (wikimon-recv! (format "/File:~a.jpg" name)))))))
+                               'jpeg/alpha)))
+           (with-handlers ([exn? (const null)])
+             (filter-map {lambda [field-uri] (with-handlers ([exn? (const #false)]) (bitmap (make-object bitmap% (third (wikimon-recv! field-uri)) 'png/alpha)))}
+                         (remove-duplicates (regexp-match* (pregexp "(?<=, )/images/thumb[^ ]+.png/100px-[^ ]+.png(?= 2x)")
+                                                           (third (wikimon-recv! (format "/~a" name))))))))})
 
 (define digimon-visualize
   {lambda [digimon0]
     (define digimon (flomap-flip-vertical digimon0))
     (define get-pixel {lambda [x y] (let ([flv (flomap-ref* digimon x y)]) (rgb->hsv (flvector-ref flv 1) (flvector-ref flv 2) (flvector-ref flv 3)))})
-    (plot3d-pict #:height (exact-round (/ (plot-width) 0.618))
-                 (list (contour-intervals3d {lambda [x y] (let-values ([{v who cares} (get-pixel x y)]) (* v 1.618))}
+    (define prop (/ (plot-height) (plot-width)))
+    (define count 5)
+    (plot3d-pict (list (contour-intervals3d {lambda [x y] (let-values ([{v who cares} (get-pixel x y)]) (* v prop))}
                                             0 (flomap-width digimon) 0 (flomap-height digimon)
-                                            #:alphas (make-list 5 0.04))
-                       (contour-intervals3d {lambda [x y] (let-values ([{who v cares} (get-pixel x y)]) v)}
+                                            #:colors (color-seq* (list dark-metal-icon-color metal-icon-color light-metal-icon-color) count)
+                                            #:alphas (make-list count 0.04))
+                       (contour-intervals3d {lambda [x y] (let-values ([{who v cares} (get-pixel x y)]) (* v prop))}
                                             0 (flomap-width digimon) 0 (flomap-height digimon)
-                                            #:alphas (make-list 5 0.08))
-                       (contour-intervals3d {lambda [x y] (let-values ([{who cares v} (get-pixel x y)]) v)}
+                                            ;#:colors (color-seq* (list dark-metal-icon-color metal-icon-color light-metal-icon-color) count)
+                                            #:alphas (make-list count 0.08))
+                       (contour-intervals3d {lambda [x y] (let-values ([{who cares v} (get-pixel x y)]) (* v prop))}
                                             0 (flomap-width digimon) 0 (flomap-height digimon)
-                                            #:alphas (make-list 5 0.08))))})
+                                            ;#:colors (color-seq* (list dark-metal-icon-color metal-icon-color light-metal-icon-color) count)
+                                            #:alphas (make-list count 0.08))))})
 
 (define digimon-ark
   {lambda [digimon0 #:lightness [threshold 0.64] #:rallies [rallies0 null] #:show? [show? #true] #:bgcolor [bgcolor (make-object color% "Gray")]]
@@ -99,18 +113,16 @@
       (send d-ark show #false)
       (bitmap (flomap->bitmap (flomap-trim digimon #true))))})
 
-(define info
-  {lambda [items #:font-size [size 12] #:style [fstyle null]]
-    (define seps (exact-round (* size 1/2)))
-    (define rows (map {lambda [item] (cons (car item) (text (symbol->string (cdr item)) fstyle size))} items))
-    (define col (let ([item (argmax (compose1 pict-width cdr) rows)]) (blank (+ (pict-width (cdr item)) seps) (+ (pict-height (cdr item)) seps))))
-    (vl-append (cdar rows) (table (sub1 (length items)) (map {lambda [row] (lc-superimpose col (cdr row))} (cdr rows)) cc-superimpose cc-superimpose seps 0))})
+(define color->flvector
+  {lambda [color #:alpha [alpha #false]]
+    (define clr (if (is-a? color color%) color (make-object color% (~a color))))
+    (list->flvector (cons (if alpha alpha (send clr alpha))
+                          (map {lambda [val] (exact->inexact (/ val #xFF))}
+                               (list (send clr red) (send clr green) (send clr blue)))))})
 
 (define digimoji
-  {lambda [content #:height [size (default-icon-height)] #:color [color "black"] #:trim? [trim? #true]]
-    (define flcolor (let ([clr (if (is-a? color color%) color (make-object color% (~a color)))])
-                                                   (map {lambda [val] (exact->inexact (/ val #xFF))}
-                                                        (list (send clr red) (send clr green) (send clr blue)))))
+  {lambda [content #:height [size (default-icon-height)] #:color [color dark-metal-icon-color]]
+    (define flcolor (color->flvector color))
     (define background (blank size size))
     (define {translate moji0 mojin}
       (define moji (cond [(char=? moji0 #\-) #\ー]
@@ -134,17 +146,19 @@
                                                   (for* ([x (in-range width0)] [y (in-range height0)])
                                                     (define pos (* (+ x (* y width0)) 4))
                                                     (unless (zero? (flvector-ref (flomap-values flng) pos))
-                                                      (for-each {lambda [offset val] (flvector-set! (flomap-values flng) (+ pos offset) val)}
-                                                                '{1 2 3} flcolor)))
+                                                      (for ([offset (in-range 1 4)])
+                                                        (flvector-set! (flomap-values flng) (+ pos offset) (flvector-ref flcolor offset)))))
                                                   ((if (box? moji) cb-superimpose cc-superimpose) background (bitmap (flomap->bitmap (flomap-scale flng scale%)))))]
                           [(char=? moji #\space) background]
-                          [else (cc-superimpose background (bitmap (text-icon (~a moji) #:trim? trim? #:color color #:height size)))]))
+                          [else (cc-superimpose background (text (~a moji) (cons color null) size))]))
       (if dgmj (hc-append dgmj pmoji) pmoji))})
 
 (define desc
-  {lambda [content width #:ftext [ftext0 digimoji] #:height [size (default-icon-height)] #:color [color "black"]]
+  {lambda [content0 width #:ftext [ftext0 digimoji] #:height [size (default-icon-height)] #:color [color dark-metal-icon-color]]
     (define {ftext str}
-      (define txt (ftext0 str #:height size #:color color #:trim? #false))
+      (define txt (cond [(equal? ftext0 text-icon) (text-icon str #:height size #:color color #:trim? #false)]
+                        [(equal? ftext0 text) (text str (cons (make-object color% color) null) size)]
+                        [else (ftext0 str #:height size #:color color)]))
       (cond [(flomap? txt) (bitmap (flomap->bitmap txt))]
             [(is-a? txt bitmap%) (bitmap txt)]
             [else txt]))
@@ -158,8 +172,8 @@
         [{(list head tail ...) #true _} (cons (char-upcase head) (~str tail #false literal?))]
         [{(list head tail ...) _ _} (cons (char-downcase head) (~str tail #false #false))])
       (string-split (list->string (~str (string->list (string-trim (format "~s" src) @pregexp{[()]})) #true #false))))
-    (define seps (if (list? content) (pict-width (ftext " ")) 0))
-    (let desc-row ([content (if (list? content) (~words content) (~a content))] [head0 #false])
+    (define seps (if (list? content0) (pict-width (ftext " ")) 0))
+    (let desc-row ([content (if (list? content0) (~words content0) (~a content0))] [head0 #false])
       (define smart (let desc-col ([words content] [room width])
                       (with-handlers ([exn:fail:contract? (const (list (blank 0 0) words))])
                         (define ptxt (ftext (~a (sequence-ref words 0))))
@@ -171,11 +185,24 @@
                           [else (desc-row (second smart) (first smart))]))
       (if head0 (vl-append head0 headn) headn))})
 
-(define item
-  {lambda [items #:font-size [size 12] #:style [fstyle null]]
-    (for/fold ([skills (text "Skills:" fstyle size)]) ([skill (in-list items)])
-      (vl-append skills (hc-append (exact-round (* size 1/2)) (arrowhead (exact-round (* size 2/3)) 0)
-                                   (text (string-join (map symbol->string skill)) fstyle size))))})
+(define head
+  {lambda [name #:height [size (default-icon-height)]]
+    (define hbar (ghost (bitmap (bar-icon #:height size #:color metal-icon-color))))
+    (define fdigimoji {lambda [txt] (digimoji (~a txt) #:height size #:color light-metal-icon-color)})
+    (define cntt (vc-append (pict-width hbar) (fdigimoji "Digital Monster") (fdigimoji name)))
+    (define-values {width height} (values (plot-width) (+ size (pict-height cntt))))
+    (define flcolor (color->flvector metal-icon-color))
+    (cc-superimpose (cellophane (bitmap (flomap->bitmap (flomap-shadow (make-flomap* width height flcolor) size flcolor))) 1.00) cntt)})
+
+(define body
+  {lambda [details skills #:height [size (default-icon-height)]]
+    (define hbar (ghost (bitmap (bar-icon #:height size #:color metal-icon-color))))
+    (define fdigimoji {lambda [txt] (digimoji (~a txt) #:height size #:color light-metal-icon-color)})
+    (define skill (apply vl-append (pict-width hbar) (map {lambda [skill] (hc-append (bitmap (bomb-icon #:height size)) hbar (fdigimoji skill))} skills)))
+    (define cntt (vl-append (desc details (pict-width skill) #:ftext text #:height size #:color light-metal-icon-color) hbar skill))
+    (define-values {width height} (values (exact-round (+ size (pict-width cntt))) (exact-round (+ size (pict-height cntt)))))
+    (define flcolor (color->flvector metal-icon-color))
+    (cc-superimpose (cellophane (bitmap (flomap->bitmap (flomap-shadow (make-flomap* width height flcolor) size flcolor))) 1.00) cntt)})
 
 (define rgb->hsv
   {lambda [r g b]
