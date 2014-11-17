@@ -8,6 +8,11 @@ Digging data from Chaos such as iPhone Backups
 
 ## Digimon Syndrome
 
+_Nanomon_ is a small machine _digimon_ whose original duty is repairing.
+It dose not fight as proficient as technical hack, nevertheless it can
+destroy strong _digimons’ digicore_ directly.
+<center>![](/.book/island/stone/nanomon.png)</center>
+
 ## Project Conventions
 
 ### Hierarchy

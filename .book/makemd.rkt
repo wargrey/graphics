@@ -12,7 +12,7 @@ cd $(dirname $0) && exec racket $(basename $0);
 (require racket/draw)
 (require images/flomap)
 
-(require (only-in "island/stone/composition.rkt" wikimon-recv!))
+(require "island/stone/composition.rkt")
 
 (make-print-dep-no-line #true)
 (make-print-checking #true)
@@ -35,8 +35,10 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (define alphabets (hash #\q 'q2))
 
-(define fields (hash 'NSp 'Naturespirits 'DS 'Deepsavers 'NSo 'Nightmaresoldiers 'WD 'Windguardians
+(define fields (hash 'NSp 'Naturespirits 'DS 'Deepsavers 'NSo 'Nightmaresoldiers 'WG 'Windguardians
                      'ME 'Metalempire 'VB 'Virusbusters 'DR 'Dragonsroar 'JT 'Jungletroopers))
+
+(rosetta-stone-dir mojidir)
 
 (define make-markdown
   {lambda [target dentry]

@@ -12,7 +12,7 @@ How to build a @italic{Digital World}? Okay, we don@literal{'}t start with the @
            @item{@bold{digitama} is the egg of @italic{digimons}. Namely it works like @tt{libraries} or @tt{frameworks}.}
            @item{@bold{island} is the living environment of @italic{digimons}. Namely it works like @tt{share} or @tt{collection}.}
            @item{>  >@italic{nature} defines @italic{digimons}@literal{'} look and feel.}
-           @item{>  >@italic{rosetta} stores the ancient sources to be translated.}
+           @item{>  >@italic{stone} stores the ancient sources to be translated.}
            @item{@bold{tamer} is the interface for developers to train the @italic{digimons}. Namely it works like @tt{test}.})
 
 @section{Version}

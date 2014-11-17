@@ -18,27 +18,39 @@
 
 (provide (all-defined-out))
 
+(define rosetta-stone-dir (make-parameter ".book/stone"))
+
 (define wikimon-recv!
   {lambda [uri]
     (define-values {status headers pipe} (http-sendrecv "wikimon.net" uri #:content-decode null))
     (unless (regexp-match? #px"\\s200\\sOK" status) (error (bytes->string/utf-8 status)))
     (list status headers pipe)})
 
+(struct digimon {name figure stage type attribute fields})
+
 (define recv-digimon
-  {lambda [digimon]
-    (define name (string-titlecase (~a digimon)))
-    (list* (with-handlers ([exn? {lambda [e]
-                                   (lt-superimpose (blank (plot-width) (plot-width))
-                                                   (for/fold ([flmp #false]) ([line (in-list (with-input-from-string (exn-message e) {thunk (port->lines)}))])
-                                                     (define fline (desc line (plot-width) #:color "Firebrick"))
-                                                     (if flmp (vl-append flmp fline) fline)))}])
-             (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (car (regexp-match* (pregexp (format "(?<=href..)/images[^>]+~a.jpg(?=.>)" name))
-                                                                                            (third (wikimon-recv! (format "/File:~a.jpg" name)))))))
-                               'jpeg/alpha)))
-           (with-handlers ([exn? (const null)])
-             (filter-map {lambda [field-uri] (with-handlers ([exn? (const #false)]) (bitmap (make-object bitmap% (third (wikimon-recv! field-uri)) 'png/alpha)))}
-                         (remove-duplicates (regexp-match* (pregexp "(?<=, )/images/thumb[^ ]+.png/100px-[^ ]+.png(?= 2x)")
-                                                           (third (wikimon-recv! (format "/~a" name))))))))})
+  {lambda [diginame]
+    (with-handlers ([exn? {lambda [e] (lt-superimpose (blank (plot-width) (plot-height))
+                                                      (for/fold ([flmp #false]) ([line (in-list (with-input-from-string (exn-message e) {thunk (port->lines)}))])
+                                                        (define fline (desc line (plot-width) #:color "Firebrick"))
+                                                        (if flmp (vl-append flmp fline) fline)))}])
+      (define metainfo (regexp-match (pregexp (string-append "<img alt=.([ァ-ヺ]+). src=.(/images/.+?jpg)."
+                                                             ".+?レベル</font>.+?.white.>(.+?)</font>"
+                                                             ".+?型（タイプ）</font>.+?.white.>(.+?)</font>"
+                                                             ".+?属性</font>.+?.white.>(.+?)</font>"
+                                                             ".+?>フィールド</font>(.+?)List of Digimon"))
+                                     (third (wikimon-recv! (string-append "/" (string-titlecase (~a diginame)))))))
+      (digimon (bytes->string/utf-8 (second metainfo))
+               (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (third metainfo)))))
+               (bytes->string/utf-8 (fourth metainfo))
+               (bytes->string/utf-8 (fifth metainfo))
+               (bytes->string/utf-8 (sixth metainfo))
+               (filter-map {lambda [field] (let ([png (format "~a/~a.png" (rosetta-stone-dir)
+                                                              (build-string (string-length field)
+                                                                            {lambda [i] (integer->char (- (char->integer (string-ref field i))
+                                                                                                          (- (char->integer #\Ａ) (char->integer #\A))))}))])
+                                             (if (file-exists? png) (bitmap->flomap (make-object bitmap% png 'png/alpha)) #false))}
+                    (regexp-match* #px"[Ａ-Ｚ]{2}[ａ-ｚ]?" (bytes->string/utf-8 (seventh metainfo))))))})
 
 (define digimon-visualize
   {lambda [digimon0]
@@ -121,7 +133,7 @@
                                (list (send clr red) (send clr green) (send clr blue)))))})
 
 (define digimoji
-  {lambda [content #:height [size (default-icon-height)] #:color [color dark-metal-icon-color]]
+  {lambda [content #:height [size (plot-font-size)] #:color [color dark-metal-icon-color]]
     (define flcolor (color->flvector color))
     (define background (blank size size))
     (define {translate moji0 mojin}
@@ -139,7 +151,7 @@
                          [else moji0]))
       (if (list? moji) (append moji mojin) (cons moji mojin)))
     (for/fold ([dgmj #false]) ([moji (in-list (foldr translate null (string->list (~a content))))])
-      (define fmoji (format ".book/stone/~a.png" (if (box? moji) (unbox moji) moji)))
+      (define fmoji (format "~a/~a.png" (rosetta-stone-dir) (if (box? moji) (unbox moji) moji)))
       (define pmoji (cond [(file-exists? fmoji) (let*-values ([{flng} (flomap-trim (bitmap->flomap (make-object bitmap% fmoji 'png/alpha)))]
                                                               [{width0 height0} (flomap-size flng)]
                                                               [{scale%} (if (box? moji) 3/5 (/ (- size 2) (max width0 height0)))])
@@ -149,8 +161,8 @@
                                                       (for ([offset (in-range 1 4)])
                                                         (flvector-set! (flomap-values flng) (+ pos offset) (flvector-ref flcolor offset)))))
                                                   ((if (box? moji) cb-superimpose cc-superimpose) background (bitmap (flomap->bitmap (flomap-scale flng scale%)))))]
-                          [(char=? moji #\space) background]
-                          [else (cc-superimpose background (text (~a moji) (cons color null) size))]))
+                          [(equal? moji #\space) background]
+                          [else (cc-superimpose background (text (~a moji) (cons (make-object color% color) null) size))]))
       (if dgmj (hc-append dgmj pmoji) pmoji))})
 
 (define desc
@@ -162,47 +174,36 @@
       (cond [(flomap? txt) (bitmap (flomap->bitmap txt))]
             [(is-a? txt bitmap%) (bitmap txt)]
             [else txt]))
-    (define {~words src}
-      (define/match (~str chars capital? literal?)
-        [{(? null?) _ _} null]
-        [{(list #\space tail ...) _ _} (cons #\space (~str tail capital? literal?))]
-        [{(list (or #\! #\? #\.) tail ...) _ _} (cons (car chars) (~str tail #true literal?))]
-        [{(list #\" tail ...) _ _} (~str tail capital? (not literal?))]
-        [{(list head tail ...) _ #true} (cons head (~str tail #false #true))]
-        [{(list head tail ...) #true _} (cons (char-upcase head) (~str tail #false literal?))]
-        [{(list head tail ...) _ _} (cons (char-downcase head) (~str tail #false #false))])
-      (string-split (list->string (~str (string->list (string-trim (format "~s" src) @pregexp{[()]})) #true #false))))
-    (define seps (if (list? content0) (pict-width (ftext " ")) 0))
-    (let desc-row ([content (if (list? content0) (~words content0) (~a content0))] [head0 #false])
+    (let desc-row ([content (~a content0)] [head0 #false])
       (define smart (let desc-col ([words content] [room width])
                       (with-handlers ([exn:fail:contract? (const (list (blank 0 0) words))])
                         (define ptxt (ftext (~a (sequence-ref words 0))))
                         (if (< room (pict-width ptxt))
                             (raise-range-error 'desc "words" "ending " (pict-width ptxt) words 0 room width)
                             (let ([final (desc-col (sequence-tail words 1) (- room (pict-width ptxt)))])
-                              (list (hc-append seps ptxt (first final)) (second final)))))))
+                              (list (hc-append ptxt (first final)) (second final)))))))
       (define headn (cond [(zero? (sequence-length (second smart))) (first smart)]
                           [else (desc-row (second smart) (first smart))]))
       (if head0 (vl-append head0 headn) headn))})
 
-(define head
-  {lambda [name #:height [size (default-icon-height)]]
-    (define hbar (ghost (bitmap (bar-icon #:height size #:color metal-icon-color))))
-    (define fdigimoji {lambda [txt] (digimoji (~a txt) #:height size #:color light-metal-icon-color)})
-    (define cntt (vc-append (pict-width hbar) (fdigimoji "Digital Monster") (fdigimoji name)))
-    (define-values {width height} (values (plot-width) (+ size (pict-height cntt))))
+(define profile
+  {lambda [monster details skills]
+    (define fsize (plot-font-size))
     (define flcolor (color->flvector metal-icon-color))
-    (cc-superimpose (cellophane (bitmap (flomap->bitmap (flomap-shadow (make-flomap* width height flcolor) size flcolor))) 1.00) cntt)})
-
-(define body
-  {lambda [details skills #:height [size (default-icon-height)]]
-    (define hbar (ghost (bitmap (bar-icon #:height size #:color metal-icon-color))))
-    (define fdigimoji {lambda [txt] (digimoji (~a txt) #:height size #:color light-metal-icon-color)})
-    (define skill (apply vl-append (pict-width hbar) (map {lambda [skill] (hc-append (bitmap (bomb-icon #:height size)) hbar (fdigimoji skill))} skills)))
-    (define cntt (vl-append (desc details (pict-width skill) #:ftext text #:height size #:color light-metal-icon-color) hbar skill))
-    (define-values {width height} (values (exact-round (+ size (pict-width cntt))) (exact-round (+ size (pict-height cntt)))))
-    (define flcolor (color->flvector metal-icon-color))
-    (cc-superimpose (cellophane (bitmap (flomap->bitmap (flomap-shadow (make-flomap* width height flcolor) size flcolor))) 1.00) cntt)})
+    (define hbar (ghost (bitmap (bar-icon #:height fsize #:color metal-icon-color))))
+    (define {fdigimoji txt} (digimoji (~a txt) #:height fsize #:color light-metal-icon-color))
+    (define {fbg fg [wdth #false]} (let ([width (if wdth wdth (exact-round (+ fsize (pict-width fg))))]
+                                         [height (exact-round (+ fsize (pict-height fg)))])
+                                     (cc-superimpose (cellophane (bitmap (flomap->bitmap (flomap-shadow (make-flomap* width height flcolor) fsize flcolor))) 1.00) fg)))
+    (define head (apply vr-append
+                        (fbg (vc-append (pict-width hbar) (fdigimoji "Digital Monster") (fdigimoji (digimon-name monster))) (plot-width))
+                        (map {lambda [emblem] (let ([% (/ (default-icon-height) (flomap-width emblem))])
+                                                (cellophane (bitmap (flomap->bitmap (flomap-scale emblem %))) %))}
+                             (digimon-fields monster))))
+    (define body (let ([skill (apply vl-append (pict-width hbar) (map {lambda [skill] (hc-append (bitmap (bomb-icon #:height fsize)) hbar (fdigimoji skill))} skills))])
+                   (fbg (vl-append (desc details (pict-width skill) #:ftext text #:height fsize #:color light-metal-icon-color) hbar skill))))
+    (define watermark (vr-append (fdigimoji "wargrey") (rotate hbar (/ pi 2))))
+    (rb-superimpose (rt-superimpose (lb-superimpose (blank (plot-width) (plot-height)) body) head) watermark)})
 
 (define rgb->hsv
   {lambda [r g b]
