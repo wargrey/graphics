@@ -35,6 +35,9 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (define alphabets (hash #\q 'q2))
 
+(define fields (hash 'NSp 'Naturespirits 'DS 'Deepsavers 'NSo 'Nightmaresoldiers 'WD 'Windguardians
+                     'ME 'Metalempire 'VB 'Virusbusters 'DR 'Dragonsroar 'JT 'Jungletroopers))
+
 (define make-markdown
   {lambda [target dentry]
     (define mdname (gensym 'readme))
@@ -80,10 +83,17 @@ cd $(dirname $0) && exec racket $(basename $0);
                           [(member name '{ma2}) "Dc~a.png"] ; Their mistake
                           [(symbol? name) "Dc~a_w.png"]
                           [(string? name) "Dc~a_r_w.png"]))
-    (define file (format (string-append "/File:" pattern) name))
+    (define rfile (format (string-append "/File:" pattern) name))
     (define pxpng (pregexp (format (format "(?<=href..)/images[^>]+~a(?=.>)" pattern) name)))
     (unless (directory-exists? (path-only target)) (make-directory* (path-only target)))
-    (send (make-object bitmap% (third (wikimon-recv! (car (regexp-match* pxpng (third (wikimon-recv! file)))))) 'png/alpha)
+    (send (make-object bitmap% (third (wikimon-recv! (car (regexp-match* pxpng (third (wikimon-recv! rfile)))))) 'png/alpha)
+          save-file target 'png)})
+
+(define make-digifield
+  {lambda [target emblem]
+    (define pxpng (pregexp (format "/images/thumb[^ ]+100px-~a_emblem.png" emblem)))
+    (unless (directory-exists? (path-only target)) (make-directory* (path-only target)))
+    (send (make-object bitmap% (third (wikimon-recv! (car (regexp-match* pxpng (third (wikimon-recv! "/Field")))))) 'png/alpha)
           save-file target 'png)})
 
 (define make-image
@@ -121,6 +131,10 @@ cd $(dirname $0) && exec racket $(basename $0);
                              (define t (build-path mojidir (format "~a.png" letter)))
                              (list t null {thunk (make-digimoji t (~a (hash-ref alphabets letter letter)))}))))
 
+(define digifields (append (hash-map fields {lambda [abbr emblem]
+                                             (define t (build-path mojidir (format "~a.png" abbr)))
+                                             (list t null {thunk (make-digifield t emblem)})})))
+
 (define images (filter list? (map {lambda [image]
                                     (define t (build-path stnsdir (bytes->string/utf-8 image)))
                                     (define image.rkt (path-replace-suffix t #".rkt"))
@@ -130,6 +144,6 @@ cd $(dirname $0) && exec racket $(basename $0);
                                   (foldl append null (map (curryr call-with-input-file (curry regexp-match* #px"(?<=\\]\\(~/)[^)]+(?=\\))"))
                                                           (map caadr readmes))))))
 
-(let ([rules (append readmes digimojies images)])
+(let ([rules (append readmes digimojies digifields images)])
   (unless (null? rules)
     (make/proc rules (map car rules))))
