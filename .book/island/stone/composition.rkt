@@ -191,7 +191,7 @@
     (define fsize (plot-font-size))
     (define flcolor (color->flvector metal-icon-color))
     (define hbar (ghost (bitmap (bar-icon #:height fsize #:color metal-icon-color))))
-    (define {fdigimoji txt} (digimoji (~a txt) #:height fsize #:color light-metal-icon-color))
+    (define {fdigimoji txt [color light-metal-icon-color]} (digimoji (~a txt) #:height fsize #:color color))
     (define {fbg fg [wdth #false]} (let ([width (if wdth wdth (exact-round (+ fsize (pict-width fg))))]
                                          [height (exact-round (+ fsize (pict-height fg)))])
                                      (cc-superimpose (cellophane (bitmap (flomap->bitmap (flomap-shadow (make-flomap* width height flcolor) fsize flcolor))) 1.00) fg)))
@@ -202,7 +202,7 @@
                              (digimon-fields monster))))
     (define body (let ([skill (apply vl-append (pict-width hbar) (map {lambda [skill] (hc-append (bitmap (bomb-icon #:height fsize)) hbar (fdigimoji skill))} skills))])
                    (fbg (vl-append (desc details (pict-width skill) #:ftext text #:height fsize #:color light-metal-icon-color) hbar skill))))
-    (define watermark (vr-append (fdigimoji "wargrey") (rotate hbar (/ pi 2))))
+    (define watermark (vr-append (fdigimoji "wargrey" metal-icon-color) (rotate hbar (/ pi 2))))
     (rb-superimpose (rt-superimpose (lb-superimpose (blank (plot-width) (plot-height)) body) head) watermark)})
 
 (define rgb->hsv
