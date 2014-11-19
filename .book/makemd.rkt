@@ -57,7 +57,7 @@ cd $(dirname $0) && exec racket $(basename $0);
                                                  (define out (match in
                                                                [{pregexp #px"^#+ (\\d+\\.)+"} (regexp-replace #px"^(#+) (\\d+\\.)+" in "\\1")]
                                                                [{pregexp #px"^\\* >\\s+>"} (regexp-replace #px"^\\* >(\\s+)>" in "\\1- ")]
-                                                               [{pregexp #px"\\]\\(~/"} (string-replace in "~" (substring (~a stnsdir) (sub1 (string-length (~a rootdir)))))]
+                                                               [{pregexp #px"~/"} (string-replace in "~" (substring (~a stnsdir) (sub1 (string-length (~a rootdir)))))]
                                                                [{pregexp #px"^\\s*$"} (let ([next (thread-receive)])
                                                                                         (cond [(and (not (eof-object? next))
                                                                                                     (regexp-match? #px"(^\\* )|(^\\s*$)" next)) 'Skip-Empty-Line]

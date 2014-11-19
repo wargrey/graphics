@@ -11,7 +11,7 @@ Digging data from Chaos such as iPhone Backups
 _Nanomon_ is a small machine _digimon_ whose original duty is repairing.
 It dose not fight as proficient as technical hack, nevertheless it can
 destroy strong _digimons’ digicore_ directly. <p align="center"> <img
-src="~/nanomon.png" /> </p>
+src="/.book/island/stone/nanomon.png" /> </p>
 
 ## Project Conventions
 
