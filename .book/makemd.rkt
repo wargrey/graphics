@@ -143,7 +143,7 @@ cd $(dirname $0) && exec racket $(basename $0);
                                     (when (file-exists? image.rkt)
                                       (define ds (append (smart-dependencies image.rkt) (list make.md)))
                                       (list t ds {thunk (make-image t image.rkt)}))}
-                                  (foldl append null (map (curryr call-with-input-file (curry regexp-match* #px"(?<=\\]\\(~/)[^)]+(?=\\))"))
+                                  (foldl append null (map (curryr call-with-input-file (curry regexp-match* #px"(?<=~/).+?.png"))
                                                           (map caadr readmes))))))
 
 (let ([rules (append readmes digimojies digifields images)])
