@@ -10,6 +10,8 @@ Digging data from Chaos such as iPhone Backups
 @section{Digimon Syndrome}
 @italic{Nanomon} is a small machine @italic{digimon} whose original duty is repairing.
 It dose not fight as proficient as technical hack, nevertheless it can destroy strong @italic{digimons' digicore} directly.
-<center>![](~/nanomon.png)</center>
+<p align="center">
+<img src="~/nanomon.png" />
+</p>
 
 @include-section{convention.scrbl}
