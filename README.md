@@ -32,6 +32,7 @@ Obviousely, our _digimons_ have their own life cycle.
   from her _digitama_. Namely it's the `Alpha Version`.
 
 ## Subprojects
-* [**Sakuyamon**](village/sakuyamon) is in charge of gyoudmon.org
-* [**Nanomon**](village/nanomon) is a cyberpunk that digging data from
-  Chaos
+* [**Sakuyamon**](https://github.com/digital-world/sakuyamon) is in
+  charge of gyoudmon.org
+* [**Nanomon**](https://github.com/digital-world/nanomon) is a cyberpunk
+  that digging data from Chaos
