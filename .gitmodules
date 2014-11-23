@@ -1,0 +1,6 @@
+[submodule "village/nanomon"]
+	path = village/nanomon
+	url = github.com:digital-world/nanomon.git
+[submodule "village/sakuyamon"]
+	path = village/sakuyamon
+	url = github.com:digital-world/sakuyamon.git
