@@ -4,7 +4,7 @@
 (require pict)
 (require plot)
 
-(require "composition.rkt")
+(require "../../composition.rkt")
 
 (plot-decorations? #false)
 

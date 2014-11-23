@@ -1,4 +1,3 @@
-#!/usr/bin/env racket
 #lang at-exp racket
 
 (require pict)
@@ -40,6 +39,4 @@
                 (min bsx cx) (min bsy cy) (max bsr (+ cx cw)) (max bsb (+ cy ch)))))
     (pin-over (blank (- bsright bsleft) (- bsbottom bstop)) (abs bsleft) (abs bstop) bsfg)})
 
-(let ([brainstorm (brainstorm-layout (~pict '{Interdiscipline}) mastering-skills 0 (* pi 2) #false)])
-  (send (pict->bitmap brainstorm) save-file "../nature/readme/brainstorm.png" 'png)
-  brainstorm)
+(define brainstorm (brainstorm-layout (~pict '{Interdiscipline}) mastering-skills 0 (* pi 2) #false))

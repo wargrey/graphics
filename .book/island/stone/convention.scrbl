@@ -2,9 +2,12 @@
 
 @title{Project Conventions}
 
+How to build a @italic{Digital World}? Okay, we don@literal{'}t start with the @italic{File Island}, but we own some concepts from the @italic{Digimon Series}.
+
 @section{Hierarchy}
 
-How to build a @italic{Digital World}? Okay, we don@literal{'}t start with the @italic{File Island}, but we own some concepts from the @italic{Digimon Series}.
+@bold{Note} Project or Subprojects are organized as the @italic{digimons} within @bold{village}. 
+Each project may be separated into several repositories within @bold{island}, @bold{tamer}, and so on. 
 
 @(itemlist @item{@bold{dot book} is a mystery that sets up all the prerequistes of the world. Sounds like @tt{local}.}
            @item{@bold{d-ark} is the interface for users to talk with @italic{digimons}. Namely it works like @tt{bin}.}

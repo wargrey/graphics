@@ -1,17 +1,10 @@
 #lang scribble/base
 
-@title{Nanomon}
-Digging data from Chaos such as iPhone Backups
-
-@section{Subprojects}
-@(itemlist @item{[@bold{Tencent}](village/tencent): Digging data from Tencent Caches}
-           @item{[@bold{iPhone}](village/iphone): Digging data from iPhone Backups})
-
-@section{Digimon Syndrome}
-@italic{Nanomon} is a small machine @italic{digimon} whose original duty is repairing.
-It dose not fight as proficient as technical hack, nevertheless it can destroy strong @italic{digimons' digicore} directly.
-<p align="center">
-<img src="~/nanomon.png" />
-</p>
+@title{Digital World}
 
 @include-section{convention.scrbl}
+
+@section{Subprojects}
+@(itemlist @item{[@bold{Sakuyamon}](village/sakuyamon) is in charge of gyoudmon.org}
+           @item{[@bold{Nanomon}](village/nanomon) is a cyberpunk that digging data from Chaos})
+

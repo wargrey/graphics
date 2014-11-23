@@ -20,6 +20,7 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (define rootdir (simplify-path (build-path 'up)))
 (define bookdir (path->complete-path (current-directory)))
+(define vllgdir (build-path rootdir "village"))
 (define stnsdir (build-path bookdir "island" "stone"))
 (define mojidir (build-path stnsdir ".book" "stone"))
 (define make.md (build-path bookdir "makemd.rkt"))
@@ -57,7 +58,10 @@ cd $(dirname $0) && exec racket $(basename $0);
                                                  (define out (match in
                                                                [{pregexp #px"^#+ (\\d+\\.)+"} (regexp-replace #px"^(#+) (\\d+\\.)+" in "\\1")]
                                                                [{pregexp #px"^\\* >\\s+>"} (regexp-replace #px"^\\* >(\\s+)>" in "\\1- ")]
-                                                               [{pregexp #px"~/"} (string-replace in "~" (substring (~a stnsdir) (sub1 (string-length (~a rootdir)))))]
+                                                               [{pregexp #px"~/"} (string-replace in "~" (let ([drop-vllg (regexp-replace (pregexp (format "^~a/" vllgdir)) (path->string target) "")])
+                                                                                                           (if (string=? (path->string target) drop-vllg)
+                                                                                                               (substring (~a stnsdir) (sub1 (string-length (~a rootdir))))
+                                                                                                               (substring (path->string stnsdir) (sub1 (string-length (path->string bookdir)))))))]
                                                                [{pregexp #px"^\\s*$"} (let ([next (thread-receive)])
                                                                                         (cond [(and (not (eof-object? next))
                                                                                                     (regexp-match? #px"(^\\* )|(^\\s*$)" next)) 'Skip-Empty-Line]
@@ -137,15 +141,23 @@ cd $(dirname $0) && exec racket $(basename $0);
                                              (define t (build-path mojidir (format "~a.png" abbr)))
                                              (list t null {thunk (make-digifield t emblem)})})))
 
-(define images (filter list? (map {lambda [image]
-                                    (define t (build-path stnsdir (bytes->string/utf-8 image)))
-                                    (define image.rkt (path-replace-suffix t #".rkt"))
-                                    (when (file-exists? image.rkt)
-                                      (define ds (append (smart-dependencies image.rkt) (list make.md)))
-                                      (list t ds {thunk (make-image t image.rkt)}))}
-                                  (foldl append null (map (curryr call-with-input-file (curry regexp-match* #px"(?<=~/).+?.png"))
-                                                          (map caadr readmes))))))
+(define images (filter list? (for/fold ([images null]) ([readme (in-list (map caadr readmes))])
+                               (define-values {~dir rktdir} (let ([/village/ (pregexp (format "^/~a/" (last (explode-path vllgdir))))]
+                                                                  [stone (substring (path->string stnsdir) (string-length (path->string bookdir)))]
+                                                                  [filedir (substring (path->string (path-only readme)) (string-length (path->string stnsdir)))])
+                                                              (if (regexp-match? /village/ filedir)
+                                                                  (values (build-path (reroot-path filedir rootdir) stone)
+                                                                          (build-path stnsdir (regexp-replace #px"/([^/]+/[^/]+)/.*" filedir "\\1")))
+                                                                  (values stnsdir stnsdir))))
+                               (append images
+                                       (map {lambda [image]
+                                              (define t (build-path ~dir image))
+                                              (define image.rkt (path-replace-suffix (build-path rktdir image) #".rkt"))
+                                              (when (file-exists? image.rkt)
+                                                (define ds (smart-dependencies image.rkt))
+                                                (list t ds {thunk (make-image t image.rkt)}))}
+                                            (map bytes->string/utf-8 (call-with-input-file readme (curry regexp-match* #px"(?<=~/).+?.png"))))))))
 
-(let ([rules (append readmes digimojies digifields images)])
+(let ([rules (append digimojies digifields images readmes)])
   (unless (null? rules)
     (make/proc rules (map car rules))))
