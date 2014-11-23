@@ -50,7 +50,7 @@ cd $(dirname $0) && exec racket $(basename $0);
                                                    (path-only (find-system-path 'collects-dir))
                                                    "bin/scribble")))
                     (find-system-path 'temp-dir) mdname dentry))
-    (with-output-to-file target #:exists 'replace
+    (with-output-to-file (build-path (path-only target) "README.md") #:exists 'replace
       {thunk (define awkout (current-thread))
              (define awk-format (thread {thunk (let awk ([pipen awkout])
                                                  (define in (thread-receive))
