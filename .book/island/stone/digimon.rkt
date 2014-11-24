@@ -17,7 +17,7 @@
 
 (define rosetta-stone-dir (make-parameter ".book/stone"))
 
-(struct digimon {name figure stage type attribute fields})
+(struct digimon {name figure stage type attribute fields} #:transparent)
 
 (define wikimon-recv!
   {lambda [uri]
@@ -38,7 +38,7 @@
                                                              ".+?>フィールド</font>(.+?)List of Digimon"))
                                      (third (wikimon-recv! (string-append "/" (string-titlecase (~a diginame)))))))
       (digimon (bytes->string/utf-8 (second metainfo))
-               (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (third metainfo)))))
+               (make-object bitmap% (third (wikimon-recv! (third metainfo))))
                (bytes->string/utf-8 (fourth metainfo))
                (bytes->string/utf-8 (fifth metainfo))
                (bytes->string/utf-8 (sixth metainfo))

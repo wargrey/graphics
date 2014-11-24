@@ -63,8 +63,9 @@
 
 (define nanomon (let ([nanomon (recv-digimon 'Nanomon)])
                   (if (digimon? nanomon)
-                      (let ([figure (digimon-ark (digimon-figure nanomon) #:lightness 0.84 #:rallies rallies)]
-                            [background (visualize (digimon-figure nanomon))]
-                            [foreground (profile nanomon '機械の修理にかけてはピカイチのマシーン型デジモンだ '{プラグボム ナノクラッシュ カウンタートラップ})])
+                      (let* ([figure0 (bitmap->flomap (digimon-figure nanomon))]
+                             [figure (digimon-ark figure0 #:lightness 0.84 #:rallies rallies)]
+                             [background (visualize figure0)]
+                             [foreground (profile nanomon '機械の修理にかけてはピカイチのマシーン型デジモンだ '{プラグボム ナノクラッシュ カウンタートラップ})])
                         (cc-superimpose background foreground figure))
                       nanomon)))
