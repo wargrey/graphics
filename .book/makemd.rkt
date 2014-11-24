@@ -61,7 +61,7 @@ cd $(dirname $0) && exec racket $(basename $0);
                                                                [{pregexp #px"~/"} (string-replace in "~" (let ([drop-vllg (regexp-replace (pregexp (format "^~a/" vllgdir)) (path->string target) "")])
                                                                                                            (if (string=? (path->string target) drop-vllg)
                                                                                                                (substring (~a stnsdir) (sub1 (string-length (~a rootdir))))
-                                                                                                               (substring (path->string stnsdir) (sub1 (string-length (path->string bookdir)))))))]
+                                                                                                               (substring (path->string stnsdir) (sub1 (string-length (path->string rootdir)))))))]
                                                                [{pregexp #px"^\\s*$"} (let ([next (thread-receive)])
                                                                                         (cond [(and (not (eof-object? next))
                                                                                                     (regexp-match? #px"(^\\* )|(^\\s*$)" next)) 'Skip-Empty-Line]
@@ -143,7 +143,7 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (define images (filter list? (for/fold ([images null]) ([readme (in-list (map caadr readmes))])
                                (define-values {~dir rktdir} (let ([/village/ (pregexp (format "^/~a/" (last (explode-path vllgdir))))]
-                                                                  [stone (substring (path->string stnsdir) (string-length (path->string bookdir)))]
+                                                                  [stone (substring (path->string stnsdir) (string-length (path->string rootdir)))]
                                                                   [filedir (substring (path->string (path-only readme)) (string-length (path->string stnsdir)))])
                                                               (if (regexp-match? /village/ filedir)
                                                                   (values (build-path (reroot-path filedir rootdir) stone)
