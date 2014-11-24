@@ -1,8 +1,8 @@
 #lang at-exp racket/gui
 
-(require images/icons/style)
-(require pict)
-(require plot)
+(require images/icons/control)
+(require images/icons/misc)
+(require (only-in plot/utils color-seq*))
 
 (require "../../composition.rkt")
 
@@ -23,10 +23,48 @@
                       (cons 200 156)
                       (cons 56 135)))
 
+(define visualize
+  {lambda [digimon0]
+    (define digimon (flomap-flip-vertical digimon0))
+    (define get-pixel {lambda [x y] (let ([flv (flomap-ref* digimon x y)]) (rgb->hsv (flvector-ref flv 1) (flvector-ref flv 2) (flvector-ref flv 3)))})
+    (define prop (/ (plot-height) (plot-width)))
+    (define count 5)
+    (plot3d-pict (list (contour-intervals3d {lambda [x y] (let-values ([{v who cares} (get-pixel x y)]) (* v prop))}
+                                            0 (flomap-width digimon) 0 (flomap-height digimon)
+                                            #:colors (color-seq* (list dark-metal-icon-color metal-icon-color light-metal-icon-color) count)
+                                            #:alphas (make-list count 0.04))
+                       (contour-intervals3d {lambda [x y] (let-values ([{who v cares} (get-pixel x y)]) (* v prop))}
+                                            0 (flomap-width digimon) 0 (flomap-height digimon)
+                                            ;#:colors (color-seq* (list dark-metal-icon-color metal-icon-color light-metal-icon-color) count)
+                                            #:alphas (make-list count 0.08))
+                       (contour-intervals3d {lambda [x y] (let-values ([{who cares v} (get-pixel x y)]) (* v prop))}
+                                            0 (flomap-width digimon) 0 (flomap-height digimon)
+                                            ;#:colors (color-seq* (list dark-metal-icon-color metal-icon-color light-metal-icon-color) count)
+                                            #:alphas (make-list count 0.08))))})
+
+(define profile
+  {lambda [monster details skills]
+    (define fsize (plot-font-size))
+    (define flcolor (color->flvector metal-icon-color))
+    (define hbar (ghost (bitmap (bar-icon #:height fsize #:color metal-icon-color))))
+    (define {fdigimoji txt [color light-metal-icon-color]} (digimoji (~a txt) #:height fsize #:color color))
+    (define {fbg fg [wdth #false]} (let ([width (if wdth wdth (exact-round (+ fsize (pict-width fg))))]
+                                         [height (exact-round (+ fsize (pict-height fg)))])
+                                     (cc-superimpose (cellophane (bitmap (flomap->bitmap (flomap-shadow (make-flomap* width height flcolor) fsize flcolor))) 1.00) fg)))
+    (define head (apply vr-append
+                        (fbg (vc-append (pict-width hbar) (fdigimoji "Digital Monster") (fdigimoji (digimon-name monster))) (plot-width))
+                        (map {lambda [emblem] (let ([% (/ (default-icon-height) (flomap-width emblem))])
+                                                (cellophane (bitmap (flomap->bitmap (flomap-scale emblem %))) %))}
+                             (digimon-fields monster))))
+    (define body (let ([skill (apply vl-append (pict-width hbar) (map {lambda [skill] (hc-append (bitmap (bomb-icon #:height fsize)) hbar (fdigimoji skill))} skills))])
+                   (fbg (vl-append (desc details (pict-width skill) #:ftext text #:height fsize #:color light-metal-icon-color) hbar skill))))
+    (define watermark (vr-append (fdigimoji "wargrey" metal-icon-color) (rotate hbar (/ pi 2))))
+    (rb-superimpose (rt-superimpose (lb-superimpose (blank (plot-width) (plot-height)) body) head) watermark)})
+
 (define nanomon (let ([nanomon (recv-digimon 'Nanomon)])
                   (if (digimon? nanomon)
                       (let ([figure (digimon-ark (digimon-figure nanomon) #:lightness 0.84 #:rallies rallies)]
-                            [background (digimon-visualize (digimon-figure nanomon))]
+                            [background (visualize (digimon-figure nanomon))]
                             [foreground (profile nanomon '機械の修理にかけてはピカイチのマシーン型デジモンだ '{プラグボム ナノクラッシュ カウンタートラップ})])
                         (cc-superimpose background foreground figure))
                       nanomon)))
