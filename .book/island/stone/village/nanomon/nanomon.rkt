@@ -24,21 +24,21 @@
                       (cons 56 135)))
 
 (define visualize
-  {lambda [digimon0]
-    (define digimon (flomap-flip-vertical digimon0))
-    (define get-pixel {lambda [x y] (let ([flv (flomap-ref* digimon x y)]) (rgb->hsv (flvector-ref flv 1) (flvector-ref flv 2) (flvector-ref flv 3)))})
+  {lambda [monster]
+    (define figure (flomap-flip-vertical (digimon-figure monster)))
+    (define get-pixel {lambda [x y] (let ([flv (flomap-ref* figure x y)]) (rgb->hsv (flvector-ref flv 1) (flvector-ref flv 2) (flvector-ref flv 3)))})
     (define prop (/ (plot-height) (plot-width)))
     (define count 5)
     (plot3d-pict (list (contour-intervals3d {lambda [x y] (let-values ([{v who cares} (get-pixel x y)]) (* v prop))}
-                                            0 (flomap-width digimon) 0 (flomap-height digimon)
+                                            0 (flomap-width figure) 0 (flomap-height figure)
                                             #:colors (color-seq* (list dark-metal-icon-color metal-icon-color light-metal-icon-color) count)
                                             #:alphas (make-list count 0.04))
                        (contour-intervals3d {lambda [x y] (let-values ([{who v cares} (get-pixel x y)]) (* v prop))}
-                                            0 (flomap-width digimon) 0 (flomap-height digimon)
+                                            0 (flomap-width figure) 0 (flomap-height figure)
                                             ;#:colors (color-seq* (list dark-metal-icon-color metal-icon-color light-metal-icon-color) count)
                                             #:alphas (make-list count 0.08))
                        (contour-intervals3d {lambda [x y] (let-values ([{who cares v} (get-pixel x y)]) (* v prop))}
-                                            0 (flomap-width digimon) 0 (flomap-height digimon)
+                                            0 (flomap-width figure) 0 (flomap-height figure)
                                             ;#:colors (color-seq* (list dark-metal-icon-color metal-icon-color light-metal-icon-color) count)
                                             #:alphas (make-list count 0.08))))})
 
@@ -63,9 +63,8 @@
 
 (define nanomon (let ([nanomon (recv-digimon 'Nanomon)])
                   (if (digimon? nanomon)
-                      (let* ([figure0 (bitmap->flomap (digimon-figure nanomon))]
-                             [figure (digimon-ark figure0 #:lightness 0.84 #:rallies rallies)]
-                             [background (visualize figure0)]
+                      (let* ([figure (digimon-ark nanomon #:lightness 0.84 #:rallies rallies)]
+                             [background (visualize nanomon)]
                              [foreground (profile nanomon '機械の修理にかけてはピカイチのマシーン型デジモンだ '{プラグボム ナノクラッシュ カウンタートラップ})])
                         (cc-superimpose background foreground figure))
                       nanomon)))

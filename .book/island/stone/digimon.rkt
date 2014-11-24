@@ -17,13 +17,19 @@
 
 (define rosetta-stone-dir (make-parameter ".book/stone"))
 
-(struct digimon {name figure stage type attribute fields} #:transparent)
+(struct digimon {name figure stage type attribute fields})
 
 (define wikimon-recv!
   {lambda [uri]
     (define-values {status headers pipe} (http-sendrecv "wikimon.net" uri #:content-decode null))
     (unless (regexp-match? #px"\\s200\\sOK" status) (error (bytes->string/utf-8 status)))
     (list status headers pipe)})
+
+(define recv-image
+  {lambda [filename]
+    (define rfile (format "/File:~a" filename))
+    (define pxpng (pregexp (format "(?<=href..)/images[^>]+~a(?=.>)" filename)))
+    (make-object bitmap% (third (wikimon-recv! (car (regexp-match* pxpng (third (wikimon-recv! rfile)))))) 'unknown/alpha)})
 
 (define recv-digimon
   {lambda [diginame]
@@ -38,7 +44,7 @@
                                                              ".+?>フィールド</font>(.+?)List of Digimon"))
                                      (third (wikimon-recv! (string-append "/" (string-titlecase (~a diginame)))))))
       (digimon (bytes->string/utf-8 (second metainfo))
-               (make-object bitmap% (third (wikimon-recv! (third metainfo))))
+               (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (third metainfo)))))
                (bytes->string/utf-8 (fourth metainfo))
                (bytes->string/utf-8 (fifth metainfo))
                (bytes->string/utf-8 (sixth metainfo))
@@ -50,12 +56,12 @@
                     (regexp-match* #px"[Ａ-Ｚ]{2}[ａ-ｚ]?" (bytes->string/utf-8 (seventh metainfo))))))})
 
 (define digimon-ark
-  {lambda [digimon0 #:lightness [threshold 0.64] #:rallies [rallies0 null] #:show? [show? #true] #:bgcolor [bgcolor (make-object color% "Gray")]]
-    (define-values {width0 height0} (flomap-size digimon0))
-    (define digimon (flomap-copy digimon0 0 0 width0 height0))
+  {lambda [monster #:lightness [threshold 0.64] #:rallies [rallies0 null] #:show? [show? #true] #:bgcolor [bgcolor (make-object color% "Gray")]]
+    (define-values {width0 height0} (flomap-size (digimon-figure monster)))
+    (define figure (flomap-copy (digimon-figure monster) 0 0 width0 height0))
     (define d-ark (new {class frame% (super-new [label "Digimon Analyzer"] [min-width width0] [min-height height0])
                          (field [rallies null])
-                         (field [vark (new canvas% [parent this] [paint-callback {lambda [who-cares painter] (send painter draw-bitmap (flomap->bitmap digimon) 0 0)}])])
+                         (field [vark (new canvas% [parent this] [paint-callback {lambda [who-cares painter] (send painter draw-bitmap (flomap->bitmap figure) 0 0)}])])
                          (field [dark (let ([arc (send vark get-dc)])
                                         (send vark set-canvas-background bgcolor)
                                         (send arc set-pen (make-pen #:color bgcolor))
@@ -68,7 +74,7 @@
                            (unless ? (let ([~r4 (curry ~r #:precision '{= 4})])
                                        (for-each {lambda [sally]
                                                    (define-values {x y} (values (car sally) (cdr sally)))
-                                                   (define flv (flomap-ref* digimon x y))
+                                                   (define flv (flomap-ref* figure x y))
                                                    (define-values {h s v} (rgb->hsv (flvector-ref flv 1) (flvector-ref flv 2) (flvector-ref flv 3)))
                                                    (printf "XY(~a, ~a):: HSV(~a, ~a, ~a)~n" x y (~r4 h) (~r4 s) (~r4 v))}
                                                  rallies))))
@@ -84,12 +90,12 @@
                          (define/private {erase x y}
                            (define xy (* 4 (+ x (* y width0))))
                            (when (and (< -1 x width0) (< -1 y height0)
-                                      (> (flvector-ref (flomap-values digimon) xy) 0.0)
-                                      (let-values ([{h s l} (rgb->hsv (flvector-ref (flomap-values digimon) (+ 1 xy))
-                                                                      (flvector-ref (flomap-values digimon) (+ 2 xy))
-                                                                      (flvector-ref (flomap-values digimon) (+ 3 xy)))])
+                                      (> (flvector-ref (flomap-values figure) xy) 0.0)
+                                      (let-values ([{h s l} (rgb->hsv (flvector-ref (flomap-values figure) (+ 1 xy))
+                                                                      (flvector-ref (flomap-values figure) (+ 2 xy))
+                                                                      (flvector-ref (flomap-values figure) (+ 3 xy)))])
                                         (> l threshold)))
-                             (flvector-set! (flomap-values digimon) xy 0.0)
+                             (flvector-set! (flomap-values figure) xy 0.0)
                              (send dark draw-point x y)
                              (erase (sub1 x) y)
                              (erase (add1 x) y)
@@ -101,7 +107,7 @@
       (send d-ark auto-erase)
       (sleep 1)
       (send d-ark show #false)
-      (bitmap (flomap->bitmap (flomap-trim digimon #true))))})
+      (bitmap (flomap->bitmap (flomap-trim figure #true))))})
 
 (define digimoji
   {lambda [content #:height [size (plot-font-size)] #:color [color dark-metal-icon-color]]
