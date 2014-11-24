@@ -12,7 +12,7 @@ cd $(dirname $0) && exec racket $(basename $0);
 (require racket/draw)
 (require images/flomap)
 
-(require "island/stone/composition.rkt")
+(require "island/stone/digimon.rkt")
 
 (make-print-dep-no-line #true)
 (make-print-checking #true)

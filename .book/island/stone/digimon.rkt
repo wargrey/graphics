@@ -17,13 +17,13 @@
 
 (define rosetta-stone-dir (make-parameter ".book/stone"))
 
+(struct digimon {name figure stage type attribute fields})
+
 (define wikimon-recv!
   {lambda [uri]
     (define-values {status headers pipe} (http-sendrecv "wikimon.net" uri #:content-decode null))
     (unless (regexp-match? #px"\\s200\\sOK" status) (error (bytes->string/utf-8 status)))
     (list status headers pipe)})
-
-(struct digimon {name figure stage type attribute fields})
 
 (define recv-digimon
   {lambda [diginame]
@@ -103,13 +103,6 @@
       (send d-ark show #false)
       (bitmap (flomap->bitmap (flomap-trim digimon #true))))})
 
-(define color->flvector
-  {lambda [color #:alpha [alpha #false]]
-    (define clr (if (is-a? color color%) color (make-object color% (~a color))))
-    (list->flvector (cons (if alpha alpha (send clr alpha))
-                          (map {lambda [val] (exact->inexact (/ val #xFF))}
-                               (list (send clr red) (send clr green) (send clr blue)))))})
-
 (define digimoji
   {lambda [content #:height [size (plot-font-size)] #:color [color dark-metal-icon-color]]
     (define flcolor (color->flvector color))
@@ -163,6 +156,13 @@
       (define headn (cond [(zero? (sequence-length (second smart))) (first smart)]
                           [else (desc-row (second smart) (first smart))]))
       (if head0 (vl-append head0 headn) headn))})
+
+(define color->flvector
+  {lambda [color #:alpha [alpha #false]]
+    (define clr (if (is-a? color color%) color (make-object color% (~a color))))
+    (list->flvector (cons (if alpha alpha (send clr alpha))
+                          (map {lambda [val] (exact->inexact (/ val #xFF))}
+                               (list (send clr red) (send clr green) (send clr blue)))))})
 
 (define rgb->hsv
   {lambda [r g b]

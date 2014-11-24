@@ -4,7 +4,7 @@
 (require images/icons/misc)
 (require (only-in plot/utils color-seq*))
 
-(require "../../composition.rkt")
+(require "../../digimon.rkt")
 
 (plot-decorations? #false)
 
