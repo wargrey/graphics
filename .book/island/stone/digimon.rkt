@@ -103,7 +103,10 @@
           (erase x (add1 y) hook))
         (list h s v)))
     (define {auto-erase [erase-hook void]}
-      (for-each {lambda [rally] (erase (car rally) (cdr rally) erase-hook)} (append rallies0 (list (cons 0 0)))))
+      (for-each {lambda [rally]
+                  (when (void? (erase (car rally) (cdr rally) erase-hook))
+                    (printf "WARNING: (cons ~a ~a) is reduntant~n" (car rally) (cdr rally)))}
+                (cons (cons 0 0) rallies0)))
     (define d-ark (new {class dialog% (super-new [label "Digimon Analyzer"] [style '{close-button}] [min-width width0] [min-height height0])
                          (field [rallies null] [ltxy #false])
                          (field [vark (new canvas% [parent this] [paint-callback {lambda [who-cares painter] (send painter draw-bitmap (flomap->bitmap figure) 0 0)}])])
