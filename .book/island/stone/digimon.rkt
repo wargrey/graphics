@@ -18,29 +18,27 @@
 
 (define rosetta-stone-dir (make-parameter ".book/stone"))
 
-(struct digimon {name figure stage type attribute fields details attacks}
+(struct digimon {name figure stage type attribute fields profile attacks}
   #:property prop:pict-convertible
   {lambda [this]
     (define fdesc {lambda [txt width] (desc txt width #:ftext text #:height 12 #:color "black")})
     (define space (text " "))
     (define figure (bitmap (flomap->bitmap (digimon-figure this))))
     (define name (let ([pname (fdesc (digimon-name this) (pict-width figure))]) (cc-superimpose (rounded-rectangle (pict-width figure) (+ (pict-height pname) 4) -0.4) pname)))
-    (define profile (apply vl-append (hash-map (hash 'レベル (digimon-stage this) 'タイプ (digimon-type this) '属性 (digimon-attribute this)
-                                                     'フィールド (digimon-fields this) '必殺技 (digimon-attacks this) '特徴 (digimon-details this))
-                                             {lambda [k v]
-                                               (define k-width (exact-round (* (pict-width figure) 0.24)))
-                                               (define v-width (- (pict-width figure) k-width))
-                                               (define pvalue (if (equal? v (digimon-fields this))
-                                                                  (apply hc-append (map (compose1 bitmap flomap->bitmap (curryr flomap-scale 0.50)) v))
-                                                                  (apply vl-append 2 (map (curryr fdesc v-width) (if (list? v) v (list v))))))
-                                               (define r-height (+ (pict-height pvalue) 4))
-                                               (lb-superimpose (hc-append (rc-superimpose (colorize (filled-rectangle k-width r-height #:draw-border? #false) "Gray")
-                                                                                          (hc-append (fdesc k k-width) space))
-                                                                          (lc-superimpose (blank v-width r-height) (hc-append (vline 1 r-height) space pvalue)))
-                                                               (colorize (hline (pict-width figure) 1) "Black"))})))
-    (define card (vc-append 2 name figure profile))
-    (cc-superimpose (colorize (filled-rectangle (+ (pict-width card) 2) (+ (pict-height card) 2)) "White")
-                    card)})
+    (define profile (apply vl-append (map {match-lambda [(cons k v) (let* ([k-width (exact-round (* (pict-width figure) 0.24))]
+                                                                           [v-width (- (pict-width figure) k-width)])
+                                                                      (define pvalue (if (equal? v (digimon-fields this))
+                                                                                         (apply hc-append (map (compose1 bitmap flomap->bitmap (curryr flomap-scale 0.50)) v))
+                                                                                         (apply vl-append 2 (map (curryr fdesc v-width) (if (list? v) v (list v))))))
+                                                                      (define r-height (+ (pict-height pvalue) 2))
+                                                                      (lb-superimpose (hc-append (rc-superimpose (colorize (filled-rectangle k-width r-height #:draw-border? #false) "Gray")
+                                                                                                                 (hc-append (fdesc k k-width) space))
+                                                                                                 (lc-superimpose (blank v-width r-height) (hc-append (vline 1 r-height) space pvalue)))
+                                                                                      (colorize (hline (pict-width figure) 1) "Black")))]}
+                                          (list (cons 'レベル (digimon-stage this)) (cons 'タイプ (digimon-type this)) (cons '属性 (digimon-attribute this))
+                                                (cons 'フィールド (digimon-fields this)) (cons '必殺技 (digimon-attacks this)) (cons '特徴 (digimon-profile this))))))
+    (define zukan (vc-append 2 name figure profile))
+    (scale (cc-superimpose (colorize (filled-rectangle (+ (pict-width zukan) 2) (+ (pict-height zukan) 2)) "White") zukan) 0.64)})
 
 (define wikimon-recv!
   {lambda [uri]
