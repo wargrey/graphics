@@ -2,8 +2,9 @@
 
 (require net/http-client)
 
-(require pict)
 (require plot)
+(require pict)
+(require pict/convert)
 (require racket/draw)
 
 (require math/flonum)
@@ -17,7 +18,29 @@
 
 (define rosetta-stone-dir (make-parameter ".book/stone"))
 
-(struct digimon {name figure stage type attribute fields})
+(struct digimon {name figure stage type attribute fields details attacks}
+  #:property prop:pict-convertible
+  {lambda [this]
+    (define fdesc {lambda [txt width] (desc txt width #:ftext text #:height 12 #:color "black")})
+    (define space (text " "))
+    (define figure (bitmap (flomap->bitmap (digimon-figure this))))
+    (define name (let ([pname (fdesc (digimon-name this) (pict-width figure))]) (cc-superimpose (rounded-rectangle (pict-width figure) (+ (pict-height pname) 4) -0.4) pname)))
+    (define profile (apply vl-append (hash-map (hash 'レベル (digimon-stage this) 'タイプ (digimon-type this) '属性 (digimon-attribute this)
+                                                     'フィールド (digimon-fields this) '必殺技 (digimon-attacks this) '特徴 (digimon-details this))
+                                             {lambda [k v]
+                                               (define k-width (exact-round (* (pict-width figure) 0.24)))
+                                               (define v-width (- (pict-width figure) k-width))
+                                               (define pvalue (if (equal? v (digimon-fields this))
+                                                                  (apply hc-append (map (compose1 bitmap flomap->bitmap (curryr flomap-scale 0.50)) v))
+                                                                  (apply vl-append 2 (map (curryr fdesc v-width) (if (list? v) v (list v))))))
+                                               (define r-height (+ (pict-height pvalue) 4))
+                                               (lb-superimpose (hc-append (rc-superimpose (colorize (filled-rectangle k-width r-height #:draw-border? #false) "Gray")
+                                                                                          (hc-append (fdesc k k-width) space))
+                                                                          (lc-superimpose (blank v-width r-height) (hc-append (vline 1 r-height) space pvalue)))
+                                                               (colorize (hline (pict-width figure) 1) "Black"))})))
+    (define card (vc-append 2 name figure profile))
+    (cc-superimpose (colorize (filled-rectangle (+ (pict-width card) 2) (+ (pict-height card) 2)) "White")
+                    card)})
 
 (define wikimon-recv!
   {lambda [uri]
@@ -32,17 +55,20 @@
     (make-object bitmap% (third (wikimon-recv! (car (regexp-match* pxpng (third (wikimon-recv! rfile)))))) 'unknown/alpha)})
 
 (define recv-digimon
-  {lambda [diginame]
+  {lambda [diginame [details #false] [attacks #false]]
+    ;;; Known Bug: Culumon cannot be recevied.
     (with-handlers ([exn? {lambda [e] (lt-superimpose (blank (plot-width) (plot-height))
                                                       (for/fold ([flmp #false]) ([line (in-list (with-input-from-string (exn-message e) {thunk (port->lines)}))])
                                                         (define fline (desc line (plot-width) #:color "Firebrick"))
                                                         (if flmp (vl-append flmp fline) fline)))}])
-      (define metainfo (regexp-match (pregexp (string-append "<img alt=.([ァ-ヺ]+). src=.(/images/.+?jpg)."
-                                                             ".+?レベル</font>.+?.white.>(.+?)</font>"
-                                                             ".+?型（タイプ）</font>.+?.white.>(.+?)</font>"
-                                                             ".+?属性</font>.+?.white.>(.+?)</font>"
-                                                             ".+?>フィールド</font>(.+?)List of Digimon"))
-                                     (third (wikimon-recv! (string-append "/" (string-titlecase (~a diginame)))))))
+      (define metainfo (cdr (regexp-match (pregexp (string-append "⇨ English.+?<br\\s*/?>(.+?)\\s*</td>\\s*</tr>"
+                                                                  ".+?<img alt=.([ァ-ヺ]+). src=.(/images/.+?jpg)."
+                                                                  ".+?レベル</font>.+?.white.>(.+?)</font>"
+                                                                  ".+?型（タイプ）</font>.+?.white.>(.+?)</font>"
+                                                                  ".+?属性</font>.+?.white.>(.+?)</font>"
+                                                                  ".+?>フィールド</font>(.+?)List of Digimon"
+                                                                  ".+?Attack Techniques</span></h1>(.+?)<h1>"))
+                                          (third (wikimon-recv! (string-append "/" (string-titlecase (~a diginame))))))))
       (digimon (bytes->string/utf-8 (second metainfo))
                (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (third metainfo)))))
                (bytes->string/utf-8 (fourth metainfo))
@@ -53,61 +79,70 @@
                                                                             {lambda [i] (integer->char (- (char->integer (string-ref field i))
                                                                                                           (- (char->integer #\Ａ) (char->integer #\A))))}))])
                                              (if (file-exists? png) (bitmap->flomap (make-object bitmap% png 'png/alpha)) #false))}
-                    (regexp-match* #px"[Ａ-Ｚ]{2}[ａ-ｚ]?" (bytes->string/utf-8 (seventh metainfo))))))})
+                           (regexp-match* #px"[Ａ-Ｚ]{2}[ａ-ｚ]?" (bytes->string/utf-8 (seventh metainfo))))
+               (if details (~a details) (regexp-replace* #px"</?font.*?>" (bytes->string/utf-8 (first metainfo)) ""))
+               (if (list? attacks) (map ~a attacks) (regexp-match* #px"[ァ-ヺ㐀-䶵一-鿋豈-頻ー・]+" (bytes->string/utf-8 (eighth metainfo))))))})
 
 (define digimon-ark
-  {lambda [monster #:lightness [threshold 0.64] #:rallies [rallies0 null] #:show? [show? #true] #:bgcolor [bgcolor (make-object color% "Gray")]]
+  {lambda [monster #:lightness [threshold 0.64] #:rallies [rallies0 null] #:show? [show? #true] #:close? [close? #true] #:bgcolor [bgcolor (get-panel-background)]]
     (define-values {width0 height0} (flomap-size (digimon-figure monster)))
     (define figure (flomap-copy (digimon-figure monster) 0 0 width0 height0))
-    (define d-ark (new {class frame% (super-new [label "Digimon Analyzer"] [min-width width0] [min-height height0])
-                         (field [rallies null])
+    (define {erase x y [hook void]}
+      (define xy (* 4 (+ x (* y width0))))
+      (when (and (< -1 x width0) (< -1 y height0)
+                 (> (flvector-ref (flomap-values figure) xy) 0.0))
+        (define-values {h s v} (rgb->hsv (flvector-ref (flomap-values figure) (+ 1 xy))
+                                         (flvector-ref (flomap-values figure) (+ 2 xy))
+                                         (flvector-ref (flomap-values figure) (+ 3 xy))))
+        (when (> v threshold)
+          (flvector-set! (flomap-values figure) xy 0.0)
+          (hook x y)
+          (erase (sub1 x) y hook)
+          (erase x (sub1 y) hook)
+          (erase (add1 x) y hook)
+          (erase x (add1 y) hook))
+        (list h s v)))
+    (define {auto-erase [erase-hook void]}
+      (for-each {lambda [rally] (erase (car rally) (cdr rally) erase-hook)} (append rallies0 (list (cons 0 0)))))
+    (define d-ark (new {class dialog% (super-new [label "Digimon Analyzer"] [style '{close-button}] [min-width width0] [min-height height0])
+                         (field [rallies null] [ltxy #false])
                          (field [vark (new canvas% [parent this] [paint-callback {lambda [who-cares painter] (send painter draw-bitmap (flomap->bitmap figure) 0 0)}])])
                          (field [dark (let ([arc (send vark get-dc)])
                                         (send vark set-canvas-background bgcolor)
                                         (send arc set-pen (make-pen #:color bgcolor))
                                         arc)])
                          
-                         (define/public {auto-erase}
-                           (for-each {lambda [rally] (erase (car rally) (cdr rally))} (cons (cons 0 0) rallies0)))
-                          
                          (define/override {on-superwindow-show ?}
-                           (unless ? (let ([~r4 (curry ~r #:precision '{= 4})])
-                                       (for-each {lambda [sally]
-                                                   (define-values {x y} (values (car sally) (cdr sally)))
-                                                   (define flv (flomap-ref* figure x y))
-                                                   (define-values {h s v} (rgb->hsv (flvector-ref flv 1) (flvector-ref flv 2) (flvector-ref flv 3)))
-                                                   (printf "XY(~a, ~a):: HSV(~a, ~a, ~a)~n" x y (~r4 h) (~r4 s) (~r4 v))}
-                                                 rallies))))
+                           (cond [? (auto-erase {lambda [x y] (send dark draw-point x y)})
+                                    (send vark refresh-now)
+                                    (when close?
+                                      (sleep 1)
+                                      (send this show #false))]
+                                 [else (for-each {lambda [sally] (printf "(cons ~a ~a)~n" (car sally) (cdr sally))} rallies)]))
 
                          (define/override (on-subwindow-event who mouse)
-                           (define-values {x y} (values (send mouse get-x) (send mouse get-y)))
-                           (when (and (equal? vark who) (null? rallies0))
+                           (when (equal? vark who)
+                             (define-values {x0 y0} (values (send mouse get-x) (send mouse get-y)))
                              (case (send mouse get-event-type)
-                               [{left-up} {begin (set! rallies (cons (cons x y) rallies))
-                                                 (printf "(cons ~a ~a)~n" x y)
-                                                 (erase x y)}])))
-                         
-                         (define/private {erase x y}
-                           (define xy (* 4 (+ x (* y width0))))
-                           (when (and (< -1 x width0) (< -1 y height0)
-                                      (> (flvector-ref (flomap-values figure) xy) 0.0)
-                                      (let-values ([{h s l} (rgb->hsv (flvector-ref (flomap-values figure) (+ 1 xy))
-                                                                      (flvector-ref (flomap-values figure) (+ 2 xy))
-                                                                      (flvector-ref (flomap-values figure) (+ 3 xy)))])
-                                        (> l threshold)))
-                             (flvector-set! (flomap-values figure) xy 0.0)
-                             (send dark draw-point x y)
-                             (erase (sub1 x) y)
-                             (erase (add1 x) y)
-                             (erase x (sub1 y))
-                             (erase x (add1 y))))}))
-    (send d-ark show (if (null? rallies0) #true show?))
-    (send d-ark center)
-    (unless (null? rallies0)
-      (send d-ark auto-erase)
-      (sleep 1)
-      (send d-ark show #false)
-      (bitmap (flomap->bitmap (flomap-trim figure #true))))})
+                               [{left-down} (set! ltxy (cons x0 y0))]
+                               [{left-up} (let ([lt (if (cons? ltxy) ltxy (cons x0 y0))])
+                                            (when (cons? ltxy)
+                                              (set! ltxy #false)
+                                              (newline))
+                                            (for* ([x (in-range (min (car lt) (add1 x0)) (max (car lt) (add1 x0)))]
+                                                   [y (in-range (min (cdr lt) (add1 y0)) (max (cdr lt) (add1 y0)))])
+                                              (define v (erase x y))
+                                              (send vark refresh-now)
+                                              (if (void? v)
+                                                  (printf "Ø XY(~a, ~a)~n" x y)
+                                                  (let* ([~r4 (curry ~r #:precision '{= 4})]
+                                                         [~print (curryr printf x y (~r4 (first v)) (~r4 (second v)) (~r4 (third v)))])
+                                                    (if (> (third v) threshold)
+                                                        {begin (set! rallies (append rallies (list (cons x y))))
+                                                               (~print "√ XY(~a, ~a):: HSV(~a, ~a, ~a)~n")}
+                                                        (~print "† XY(~a, ~a):: HSV(~a, ~a, ~a)~n"))))))])))}))
+    (if show? (send d-ark show #true) (auto-erase))
+    (bitmap (flomap->bitmap (flomap-trim figure #true)))})
 
 (define digimoji
   {lambda [content #:height [size (plot-font-size)] #:color [color dark-metal-icon-color]]
