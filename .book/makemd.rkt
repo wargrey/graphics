@@ -8,10 +8,6 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (require make)
 
-(require pict)
-(require racket/draw)
-(require images/flomap)
-
 (require "island/stone/digimon.rkt")
 
 (make-print-dep-no-line #true)
@@ -34,6 +30,7 @@ cd $(dirname $0) && exec racket $(basename $0);
                     'マ 'ma2 'ミ 'mi 'ム 'mu 'メ 'me 'モ 'mo
                     'ラ 'ra 'リ 'ri 'ル 'ru2 'レ 're 'ロ 'ro))
 
+(define theirfaults '{ma2})
 (define alphabets (hash #\q 'q2))
 
 (define fields (hash 'NSp 'Naturespirits 'DS 'Deepsavers 'NSo 'Nightmaresoldiers 'WG 'Windguardians
@@ -85,15 +82,13 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (define make-digimoji
   {lambda [target name]
-    (define pattern (cond [(regexp-match? #px"^Test" (~a name)) "~a.png"]
-                          [(member name '{ma2}) "Dc~a.png"] ; Their mistake
-                          [(symbol? name) "Dc~a_w.png"]
-                          [(string? name) "Dc~a_r_w.png"]))
-    (define rfile (format (string-append "/File:" pattern) name))
-    (define pxpng (pregexp (format (format "(?<=href..)/images[^>]+~a(?=.>)" pattern) name)))
+    (define png (format (cond [(regexp-match? #px"^Test" (~a name)) "~a.png"]
+                              [(member name theirfaults) "Dc~a.png"]
+                              [(symbol? name) "Dc~a_w.png"]
+                              [(string? name) "Dc~a_r_w.png"])
+                        name))
     (unless (directory-exists? (path-only target)) (make-directory* (path-only target)))
-    (send (make-object bitmap% (third (wikimon-recv! (car (regexp-match* pxpng (third (wikimon-recv! rfile)))))) 'png/alpha)
-          save-file target 'png)})
+    (send (recv-image png) save-file target 'png)})
 
 (define make-digifield
   {lambda [target emblem]
