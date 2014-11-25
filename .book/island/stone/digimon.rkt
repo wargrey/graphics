@@ -81,7 +81,7 @@
                                              (if (file-exists? png) (bitmap->flomap (make-object bitmap% png 'png/alpha)) #false))}
                            (regexp-match* #px"[Ａ-Ｚ]{2}[ａ-ｚ]?" (bytes->string/utf-8 (seventh metainfo))))
                (if details (~a details) (regexp-replace* #px"</?font.*?>" (bytes->string/utf-8 (first metainfo)) ""))
-               (if (list? attacks) (map ~a attacks) (regexp-match* #px"[ァ-ヺ㐀-䶵一-鿋豈-頻ー・]+" (bytes->string/utf-8 (eighth metainfo))))))})
+               (if (list? attacks) (map ~a attacks) (regexp-match* #px"[ぁ-ゖァ-ー㐀-䶵一-鿋豈-頻]+" (bytes->string/utf-8 (eighth metainfo))))))})
 
 (define digimon-ark
   {lambda [monster #:lightness [threshold 0.64] #:rallies [rallies0 null] #:show? [show? #true] #:close? [close? #true] #:bgcolor [bgcolor (get-panel-background)]]
