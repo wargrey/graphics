@@ -18,27 +18,33 @@
 
 (define rosetta-stone-dir (make-parameter ".book/stone"))
 
-(struct digimon {name figure stage type attribute fields profile attacks}
-  #:property prop:pict-convertible
-  {lambda [this]
+(define digimon-illustration
+  {lambda [monster #:width [width 400]]
     (define fdesc {lambda [txt width] (desc txt width #:ftext text #:height 12 #:color "black")})
-    (define space (text " "))
-    (define figure (bitmap (flomap->bitmap (digimon-figure this))))
-    (define name (let ([pname (fdesc (digimon-name this) (pict-width figure))]) (cc-superimpose (rounded-rectangle (pict-width figure) (+ (pict-height pname) 4) -0.4) pname)))
-    (define profile (apply vl-append (map {match-lambda [(cons k v) (let* ([k-width (exact-round (* (pict-width figure) 0.24))]
-                                                                           [v-width (- (pict-width figure) k-width)])
-                                                                      (define pvalue (if (equal? v (digimon-fields this))
-                                                                                         (apply hc-append (map (compose1 bitmap flomap->bitmap (curryr flomap-scale 0.50)) v))
-                                                                                         (apply vl-append 2 (map (curryr fdesc v-width) (if (list? v) v (list v))))))
-                                                                      (define r-height (+ (pict-height pvalue) 2))
-                                                                      (lb-superimpose (hc-append (rc-superimpose (colorize (filled-rectangle k-width r-height #:draw-border? #false) "Gray")
-                                                                                                                 (hc-append (fdesc k k-width) space))
-                                                                                                 (lc-superimpose (blank v-width r-height) (hc-append (vline 1 r-height) space pvalue)))
-                                                                                      (colorize (hline (pict-width figure) 1) "Black")))]}
-                                          (list (cons 'レベル (digimon-stage this)) (cons 'タイプ (digimon-type this)) (cons '属性 (digimon-attribute this))
-                                                (cons 'フィールド (digimon-fields this)) (cons '必殺技 (digimon-attacks this)) (cons '特徴 (digimon-profile this))))))
+    (define space (fdesc " " width))
+    (define figure (bitmap (flomap->bitmap (flomap-resize (digimon-figure monster) width #false))))
+    (define name (let ([pname (fdesc (digimon-name monster) (pict-width figure))]) (cc-superimpose (rounded-rectangle (pict-width figure) (+ (pict-height pname) 4) -0.4) pname)))
+    (define profile (let* ([kvs (filter-map {match-lambda [(cons k v) (if (null? v) #false (cons (hc-append (fdesc k width) space) v))]}
+                                            (list (cons 'レベル (digimon-stage monster)) (cons 'タイプ (digimon-type monster)) (cons '属性 (digimon-attribute monster))
+                                                  (cons 'フィールド (digimon-fields monster)) (cons 'グループ (digimon-group monster))
+                                                  (cons '必殺技 (digimon-attacks monster)) (cons '特徴 (digimon-profile monster))))]
+                           [k-width (+ (pict-width (car (argmax (compose1 pict-width car) kvs))) (* (pict-width space) 3))]
+                           [v-width (- (pict-width figure) k-width)])
+                      (for/fold ([p (blank 0 0)]) ([kv (in-list kvs)])
+                        (define pvalue (if (and (list? (cdr kv)) (flomap? (cadr kv)))
+                                           (apply hc-append (map (compose1 bitmap flomap->bitmap (curryr flomap-scale 0.50)) (cdr kv)))
+                                           (apply vl-append 2 (map (curryr fdesc v-width) (if (list? (cdr kv)) (cdr kv) (list (cdr kv)))))))
+                        (define r-height (+ (pict-height pvalue) 2))
+                        (vl-append p (lb-superimpose (hc-append (rc-superimpose (colorize (filled-rectangle k-width r-height #:draw-border? #false) "Gray") (car kv))
+                                                                (lc-superimpose (blank v-width r-height) (hc-append (vline 1 r-height) space pvalue)))
+                                                     (colorize (hline (pict-width figure) 1) "Black"))))))
     (define zukan (vc-append 2 name figure profile))
-    (scale (cc-superimpose (colorize (filled-rectangle (+ (pict-width zukan) 2) (+ (pict-height zukan) 2)) "White") zukan) 0.64)})
+    (cc-superimpose (colorize (filled-rectangle (+ (pict-width zukan) 2) (+ (pict-height zukan) 2)) "White") zukan)})
+
+(struct digimon {name figure stage type attribute fields group profile attacks}
+  #:property prop:pict-convertible {lambda [this] (let* ([p (digimon-illustration this)]
+                                                         [% (/ 600 (pict-height p))])
+                                                    (if (< % 1) (scale p %) p))})
 
 (define wikimon-recv!
   {lambda [uri]
@@ -53,33 +59,32 @@
     (make-object bitmap% (third (wikimon-recv! (car (regexp-match* pxpng (third (wikimon-recv! rfile)))))) 'unknown/alpha)})
 
 (define recv-digimon
-  {lambda [diginame [details #false] [attacks #false]]
-    ;;; Known Bug: Culumon cannot be recevied.
+  {lambda [diginame #:figure [filename #false] #:profile [details #false] #:attacks [attacks #false]]
     (with-handlers ([exn? {lambda [e] (lt-superimpose (blank (plot-width) (plot-height))
                                                       (for/fold ([flmp #false]) ([line (in-list (with-input-from-string (exn-message e) {thunk (port->lines)}))])
                                                         (define fline (desc line (plot-width) #:color "Firebrick"))
                                                         (if flmp (vl-append flmp fline) fline)))}])
-      (define metainfo (cdr (regexp-match (pregexp (string-append "⇨ English.+?<br\\s*/?>(.+?)\\s*</td>\\s*</tr>"
-                                                                  ".+?<img alt=.([ァ-ヺ]+). src=.(/images/.+?jpg)."
-                                                                  ".+?レベル</font>.+?.white.>(.+?)</font>"
-                                                                  ".+?型（タイプ）</font>.+?.white.>(.+?)</font>"
-                                                                  ".+?属性</font>.+?.white.>(.+?)</font>"
-                                                                  ".+?>フィールド</font>(.+?)List of Digimon"
-                                                                  ".+?Attack Techniques</span></h1>(.+?)<h1>"))
-                                          (third (wikimon-recv! (string-append "/" (string-titlecase (~a diginame))))))))
-      (digimon (bytes->string/utf-8 (second metainfo))
-               (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (third metainfo)))))
-               (bytes->string/utf-8 (fourth metainfo))
-               (bytes->string/utf-8 (fifth metainfo))
-               (bytes->string/utf-8 (sixth metainfo))
+      (define pxjp #px"[ぁ-ゖァ-ー㐀-䶵一-鿋豈-頻（）]+")
+      (define metainfo (map bytes->string/utf-8
+                            (cdr (regexp-match (pregexp (string-append "⇨ English.+?<br\\s*/?>(.+?)\\s*</td>\\s*</tr>"
+                                                                       ".+?<img alt=.([ァ-ー]+). src=.(/images/.+?jpg)"
+                                                                       ".+?レベル(.+?)型（タイプ）(.+?)属性(.+?)List of Digimon"
+                                                                       ".+?Attack Techniques</span></h1>(.+?)<h1>"))
+                                               (third (wikimon-recv! (string-append "/" (string-titlecase (~a diginame)))))))))
+      (digimon (second metainfo)
+               (if filename (recv-image filename) (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (third metainfo))))))
+               (regexp-match* pxjp (fourth metainfo))
+               (regexp-match* pxjp (fifth metainfo))
+               (regexp-match* #px"ワクチン|データ|ウィルス|フリー|バリアブル|ヴァリアブル|不明" (sixth metainfo))
                (filter-map {lambda [field] (let ([png (format "~a/~a.png" (rosetta-stone-dir)
                                                               (build-string (string-length field)
                                                                             {lambda [i] (integer->char (- (char->integer (string-ref field i))
                                                                                                           (- (char->integer #\Ａ) (char->integer #\A))))}))])
                                              (if (file-exists? png) (bitmap->flomap (make-object bitmap% png 'png/alpha)) #false))}
-                           (regexp-match* #px"[Ａ-Ｚ]{2}[ａ-ｚ]?" (bytes->string/utf-8 (seventh metainfo))))
-               (if details (~a details) (regexp-replace* #px"</?font.*?>" (bytes->string/utf-8 (first metainfo)) ""))
-               (if (list? attacks) (map ~a attacks) (regexp-match* #px"[ぁ-ゖァ-ー㐀-䶵一-鿋豈-頻]+" (bytes->string/utf-8 (eighth metainfo))))))})
+                           (regexp-match* #px"[Ａ-Ｚ]{2}[ａ-ｚ]?" (sixth metainfo)))
+               (regexp-match* #px"四聖獣|十二神将|ロイヤルナイツ|七大魔王|三大天使|オリンポス十二神|四大竜|十闘士|クラックチーム|D-ブリガード|「BAN-TYO」|三銃士|ビッグデスターズ" (sixth metainfo))
+               (if details (~a details) (regexp-replace* #px"</?font.*?>" (first metainfo) ""))
+               (if (list? attacks) (map ~a attacks) (regexp-match* pxjp (seventh metainfo)))))})
 
 (define digimon-ark
   {lambda [monster #:lightness [threshold 0.64] #:rallies [rallies0 null] #:show? [show? #true] #:close? [close? #true] #:bgcolor [bgcolor (get-panel-background)]]
