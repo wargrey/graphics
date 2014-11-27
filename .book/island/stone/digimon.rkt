@@ -19,11 +19,11 @@
 (define rosetta-stone-dir (make-parameter ".book/stone"))
 
 (define digimon-illustration
-  {lambda [monster #:width [width 400]]
+  {lambda [monster #:max-width [width 400] #:max-height [height 600]]
     (define fdesc {lambda [txt width] (desc txt width #:ftext text #:height 12 #:color "black")})
     (define space (fdesc " " width))
-    (define figure (bitmap (flomap->bitmap (flomap-resize (digimon-figure monster) width #false))))
-    (define name (let ([pname (fdesc (digimon-name monster) (pict-width figure))]) (cc-superimpose (rounded-rectangle (pict-width figure) (+ (pict-height pname) 4) -0.4) pname)))
+    (define figure (bitmap (flomap->bitmap (flomap-resize (cdr (digimon-figure monster)) width #false))))
+    (define name (let ([pname (fdesc (digimon-kana monster) (pict-width figure))]) (cc-superimpose (rounded-rectangle (pict-width figure) (+ (pict-height pname) 4) -0.4) pname)))
     (define profile (let* ([kvs (filter-map {match-lambda [(cons k v) (if (null? v) #false (cons (hc-append (fdesc k width) space) v))]}
                                             (list (cons 'レベル (digimon-stage monster)) (cons 'タイプ (digimon-type monster)) (cons '属性 (digimon-attribute monster))
                                                   (cons 'フィールド (digimon-fields monster)) (cons 'グループ (digimon-group monster))
@@ -31,20 +31,30 @@
                            [k-width (+ (pict-width (car (argmax (compose1 pict-width car) kvs))) (* (pict-width space) 3))]
                            [v-width (- (pict-width figure) k-width)])
                       (for/fold ([p (blank 0 0)]) ([kv (in-list kvs)])
-                        (define pvalue (if (and (list? (cdr kv)) (flomap? (cadr kv)))
-                                           (apply hc-append (map (compose1 bitmap flomap->bitmap (curryr flomap-scale 0.50)) (cdr kv)))
+                        (define pvalue (if (and (list? (cdr kv)) (cons? (cadr kv)))
+                                           (apply hc-append (map (compose1 bitmap flomap->bitmap (curryr flomap-scale 0.50) cdr) (cdr kv)))
                                            (apply vl-append 2 (map (curryr fdesc v-width) (if (list? (cdr kv)) (cdr kv) (list (cdr kv)))))))
                         (define r-height (+ (pict-height pvalue) 2))
                         (vl-append p (lb-superimpose (hc-append (rc-superimpose (colorize (filled-rectangle k-width r-height #:draw-border? #false) "Gray") (car kv))
                                                                 (lc-superimpose (blank v-width r-height) (hc-append (vline 1 r-height) space pvalue)))
                                                      (colorize (hline (pict-width figure) 1) "Black"))))))
-    (define zukan (vc-append 2 name figure profile))
-    (cc-superimpose (colorize (filled-rectangle (+ (pict-width zukan) 2) (+ (pict-height zukan) 2)) "White") zukan)})
+    (define zukan (let* ([zk (vc-append 2 name figure profile)])
+                    (cc-superimpose (colorize (filled-rectangle (+ (pict-width zk) 2) (+ (pict-height zk) 2)) "White") zk)))
+    (define % (/ height (pict-height zukan)))
+    (if (< % 1) (scale zukan %) zukan)})
 
-(struct digimon {name figure stage type attribute fields group profile attacks}
-  #:property prop:pict-convertible {lambda [this] (let* ([p (digimon-illustration this)]
-                                                         [% (/ 600 (pict-height p))])
-                                                    (if (< % 1) (scale p %) p))})
+(struct digimon {name kana figure stage type attribute fields group profile attacks}
+  #:transparent
+  #:property prop:pict-convertible digimon-illustration
+  #:methods gen:custom-write
+  [(define write-proc {lambda [this out mode]
+                        ;(define rprint (case mode [{#true} write] [{#false} display] [{0 1} {lambda [val out] (print val out mode)}]))
+                        (for ([field (in-vector (struct->vector this))])
+                          (cond [(symbol? field) (fprintf out "#s(~a" (object-name this))]
+                                [(list? field) (fprintf out " ~a" (map {lambda [val] (if (cons? val) (car val) val)} field))]
+                                [(cons? field) (fprintf out " ~a" (car field))]
+                                [else (fprintf out " ~a" field)]))
+                        (fprintf out ")")})])
 
 (define wikimon-recv!
   {lambda [uri]
@@ -64,23 +74,24 @@
                                                       (for/fold ([flmp #false]) ([line (in-list (with-input-from-string (exn-message e) {thunk (port->lines)}))])
                                                         (define fline (desc line (plot-width) #:color "Firebrick"))
                                                         (if flmp (vl-append flmp fline) fline)))}])
+      (define namemon (string-titlecase (~a diginame)))
       (define pxjp #px"[ぁ-ゖァ-ー㐀-䶵一-鿋豈-頻（）]+")
       (define metainfo (map bytes->string/utf-8
                             (cdr (regexp-match (pregexp (string-append "⇨ English.+?<br\\s*/?>(.+?)\\s*</td>\\s*</tr>"
                                                                        ".+?<img alt=.([ァ-ー]+). src=.(/images/.+?jpg)"
                                                                        ".+?レベル(.+?)型（タイプ）(.+?)属性(.+?)List of Digimon"
                                                                        ".+?Attack Techniques</span></h1>(.+?)<h1>"))
-                                               (third (wikimon-recv! (string-append "/" (string-titlecase (~a diginame)))))))))
-      (digimon (second metainfo)
-               (if filename (recv-image filename) (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (third metainfo))))))
+                                               (third (wikimon-recv! (string-append "/" namemon)))))))
+      (digimon namemon
+               (second metainfo)
+               (cond [(false? filename) (cons (third metainfo) (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (third metainfo))))))]
+                     [else (cons filename (recv-image filename))])
                (regexp-match* pxjp (fourth metainfo))
                (regexp-match* pxjp (fifth metainfo))
                (regexp-match* #px"ワクチン|データ|ウィルス|フリー|バリアブル|ヴァリアブル|不明" (sixth metainfo))
-               (filter-map {lambda [field] (let ([png (format "~a/~a.png" (rosetta-stone-dir)
-                                                              (build-string (string-length field)
-                                                                            {lambda [i] (integer->char (- (char->integer (string-ref field i))
-                                                                                                          (- (char->integer #\Ａ) (char->integer #\A))))}))])
-                                             (if (file-exists? png) (bitmap->flomap (make-object bitmap% png 'png/alpha)) #false))}
+               (filter-map {lambda [f] (let* ([field (list->string (for/list ([fc (in-string f)]) (integer->char (- (char->integer fc) #xFEE0))))]
+                                              [png (format "~a/~a.png" (rosetta-stone-dir) field)])
+                                         (if (file-exists? png) (cons field (bitmap->flomap (make-object bitmap% png 'png/alpha))) #false))}
                            (regexp-match* #px"[Ａ-Ｚ]{2}[ａ-ｚ]?" (sixth metainfo)))
                (regexp-match* #px"四聖獣|十二神将|ロイヤルナイツ|七大魔王|三大天使|オリンポス十二神|四大竜|十闘士|クラックチーム|D-ブリガード|「BAN-TYO」|三銃士|ビッグデスターズ" (sixth metainfo))
                (if details (~a details) (regexp-replace* #px"</?font.*?>" (first metainfo) ""))
@@ -88,8 +99,8 @@
 
 (define digimon-ark
   {lambda [monster #:lightness [threshold 0.64] #:rallies [rallies0 null] #:show? [show? #true] #:close? [close? #true] #:bgcolor [bgcolor (get-panel-background)]]
-    (define-values {width0 height0} (flomap-size (digimon-figure monster)))
-    (define figure (flomap-copy (digimon-figure monster) 0 0 width0 height0))
+    (define-values {width0 height0} (flomap-size (cdr (digimon-figure monster))))
+    (define figure (flomap-copy (cdr (digimon-figure monster)) 0 0 width0 height0))
     (define {erase x y [hook void]}
       (define xy (* 4 (+ x (* y width0))))
       (when (and (< -1 x width0) (< -1 y height0)
@@ -222,3 +233,7 @@
             (cond [(zero? max0) 0]
                   [else (/ chroma max0)])
             max0)})
+
+(define sakuyamon (recv-digimon 'Sakuyamon))
+(displayln sakuyamon)
+(frame (digimon-qrcode sakuyamon #:version 16 #:module-size 4))

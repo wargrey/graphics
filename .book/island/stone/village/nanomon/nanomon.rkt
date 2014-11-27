@@ -25,7 +25,7 @@
 
 (define visualize
   {lambda [monster]
-    (define figure (flomap-flip-vertical (digimon-figure monster)))
+    (define figure (flomap-flip-vertical (cdr (digimon-figure monster))))
     (define get-pixel {lambda [x y] (let ([flv (flomap-ref* figure x y)]) (rgb->hsv (flvector-ref flv 1) (flvector-ref flv 2) (flvector-ref flv 3)))})
     (define prop (/ (plot-height) (plot-width)))
     (define count 5)
@@ -52,9 +52,9 @@
                                          [height (exact-round (+ fsize (pict-height fg)))])
                                      (cc-superimpose (cellophane (bitmap (flomap->bitmap (flomap-shadow (make-flomap* width height flcolor) fsize flcolor))) 1.00) fg)))
     (define head (apply vr-append
-                        (fbg (vc-append (pict-width hbar) (fdigimoji "Digital Monster") (fdigimoji (digimon-name monster))) (plot-width))
-                        (map {lambda [emblem] (let ([% (/ (default-icon-height) (flomap-width emblem))])
-                                                (cellophane (bitmap (flomap->bitmap (flomap-scale emblem %))) %))}
+                        (fbg (vc-append (pict-width hbar) (fdigimoji "Digital Monster") (fdigimoji (digimon-kana monster))) (plot-width))
+                        (map {lambda [emblem] (let ([% (/ (default-icon-height) (flomap-width (cdr emblem)))])
+                                                (cellophane (bitmap (flomap->bitmap (flomap-scale (cdr emblem) %))) %))}
                              (digimon-fields monster))))
     (define body (let ([skill (apply vl-append (pict-width hbar) (map {lambda [skill] (hc-append (bitmap (bomb-icon #:height fsize)) hbar (fdigimoji skill))} skills))])
                    (fbg (vl-append (desc details (pict-width skill) #:ftext text #:height fsize #:color light-metal-icon-color) hbar skill))))
@@ -68,3 +68,5 @@
                              [foreground (profile nanomon '機械の修理にかけてはピカイチのマシーン型デジモンだ '{プラグボム ナノクラッシュ カウンタートラップ})])
                         (cc-superimpose background foreground figure))
                       nanomon)))
+
+nanomon
