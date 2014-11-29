@@ -37,8 +37,6 @@ racket_pkgs := math html make images
 racket_config_darwin := --enable-macprefix
 racket_config_linux :=
 
-$(error $(findstring 0,$(words $(shell which racket))))
-
 prolog_dir := GYDMprolog
 prolog_bin0 := $(shell `which swipl`)
 prolog_bin := $(if $(findstring 0,$(words $(prolog_bin0))),$(Prefix)/$(prolog_dir)/bin/swipl,$(prolog_bin0))
