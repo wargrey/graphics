@@ -29,15 +29,19 @@ Prefix := /opt
 VerRegExp := \([0-9]\+\.\)\+[0-9]\+
 
 racket_dir := GYDMracket
-racket_bin := $(shell racket_bin=`which racket`; test $$? && echo $${racket_bin} || echo $(Prefix)/$(racket_dir)/bin/racket)
+racket_bin0 := $(shell `which racket`)
+racket_bin := $(if $(findstring 0,$(words $(racket_bin0))),$(Prefix)/$(racket_dir)/bin/racket,$(racket_bin0))
 racket_verion := $(shell curl --compressed http://download.racket-lang.org/all-versions.html | grep -m 1 -o 'racket-minimal-v$(VerRegExp)' | tr -d a-z-)
 racket_src := racket-minimal-$(racket_verion)-src-builtpkgs.tgz
 racket_pkgs := math html make images
 racket_config_darwin := --enable-macprefix
 racket_config_linux :=
 
+$(error $(findstring 0,$(words $(shell which racket))))
+
 prolog_dir := GYDMprolog
-prolog_bin := $(shell swipl_bin=`which swipl`; test $$? && echo $${swipl_bin} || echo $(Prefix)/$(prolog_dir)/bin/swipl)
+prolog_bin0 := $(shell `which swipl`)
+prolog_bin := $(if $(findstring 0,$(words $(prolog_bin0))),$(Prefix)/$(prolog_dir)/bin/swipl,$(prolog_bin0))
 prolog_version := $(shell curl http://www.swi-prolog.org/download/devel | grep -m 1 -o 'download/devel/src/pl-$(VerRegExp)' | tr -d 'a-z-/')
 prolog_src := pl-$(prolog_version).tar.gz
 prolog_skipped_pkgs := R odbc xpce jpl PDT jasmine
@@ -51,7 +55,7 @@ $(Prefix)/$(racket_dir)/bin/racket: $(racket_src)
 	cd racket-$(racket_verion)/src && $(MAKE) -j$(CPUS)
 	cd racket-$(racket_verion)/src && sudo $(MAKE) install
 
-racket: | $(racket_bin)
+racket: $(if $(findstring 0,$(words $(racket_bin0))),$(racket_bin))
 	sudo $(addprefix $(dir $(racket_bin)),raco) pkg install --skip-installed --scope installation --deps search-auto $(racket_pkgs)
 	$(racket_bin) -l racket/base -e '(printf "We have Racket ~a.~n" (version))'
 
@@ -65,7 +69,7 @@ $(Prefix)/$(prolog_dir)/bin/swipl: $(prolog_src)
 	cd pl-$(prolog_version) && $(MAKE) -j$(CPUS)
 	cd pl-$(prolog_version) && sudo $(MAKE) install
 
-swipl: | $(prolog_bin)
+swipl: $(if $(findstring 0,$(words $(prolog_bin0))),$(prolog_bin))
 	echo "main :-" > display-version.pl
 	echo " 	current_prolog_flag(version_data, swi(M, I, P, []))," >> display-version.pl
 	echo " 	format('We have SWI-Prolog ~w.~w.~w.\n', [M, I, P])." >> display-version.pl
