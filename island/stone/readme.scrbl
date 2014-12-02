@@ -2,8 +2,6 @@
 
 @title{Digital World}
 
-@include-section{convention.scrbl}
-
 @section{The Book Project}
 This, the toplevel project itself, is the @bold{Extra Dimensional Space} built for developers to set up all the prerequistes of all subprojects.
 @bold{Namely all subprojects can and should be built on their own.}
@@ -15,3 +13,5 @@ This, the toplevel project itself, is the @bold{Extra Dimensional Space} built f
 @section{Subprojects}
 @(itemlist @item{[@bold{Sakuyamon}](https://github.com/digital-world/sakuyamon) is in charge of gyoudmon.org}
            @item{[@bold{Nanomon}](https://github.com/digital-world/nanomon) is a cyberpunk that digging data from Chaos})
+
+@include-section{convention.scrbl}

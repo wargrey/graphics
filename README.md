@@ -1,5 +1,23 @@
 # Digital World
 
+## The Book Project
+
+This, the toplevel project itself, is the **Extra Dimensional Space**
+built for developers to set up all the prerequistes of all subprojects.
+**Namely all subprojects can and should be built on their own.**
+
+## Building Scripts
+* [**prerequisites.sh**](prerequisites.sh): Build the latest Racket and
+  Swi-Prolog from offical source.
+* [**makefile.rkt**](makefile.rkt): As its name shows, it is the
+  alternative to Makefile.
+
+## Subprojects
+* [**Sakuyamon**](https://github.com/digital-world/sakuyamon) is in
+  charge of gyoudmon.org
+* [**Nanomon**](https://github.com/digital-world/nanomon) is a cyberpunk
+  that digging data from Chaos
+
 ## Project Conventions
 
 How to build a _Digital World_? Okay, we don't start with the _File
@@ -59,21 +77,3 @@ These conventions are borrowed from the GUN Make.
   after installing.
 * **installdirs**: Creating the directories where files are installed,
   and their parent directories.
-
-## The Book Project
-
-This, the toplevel project itself, is the **Extra Dimensional Space**
-built for developers to set up all the prerequistes of all subprojects.
-**Namely all subprojects can and should be built on their own.**
-
-## Building Scripts
-* [**prerequisites.sh**](prerequisites.sh): Build the latest Racket and
-  Swi-Prolog from offical source.
-* [**makefile.rkt**](makefile.rkt): As its name shows, it is the
-  alternative to Makefile.
-
-## Subprojects
-* [**Sakuyamon**](https://github.com/digital-world/sakuyamon) is in
-  charge of gyoudmon.org
-* [**Nanomon**](https://github.com/digital-world/nanomon) is a cyberpunk
-  that digging data from Chaos
