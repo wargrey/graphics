@@ -16,7 +16,7 @@
 (provide (all-from-out pict plot racket/draw))
 (provide (all-from-out math/flonum images/flomap images/icons/symbol images/icons/style))
 
-(define rosetta-stone-dir (make-parameter ".book/stone"))
+(define rosetta-stone-dir (make-parameter (current-directory)))
 
 (define digimon-illustration
   {lambda [monster #:max-width [width 400] #:max-height [height 600]]
@@ -42,6 +42,23 @@
                     (cc-superimpose (colorize (filled-rectangle (+ (pict-width zk) 2) (+ (pict-height zk) 2)) "White") zk)))
     (define % (/ height (pict-height zukan)))
     (if (< % 1) (scale zukan %) zukan)})
+
+(define digimon-qrcode
+  {lambda [monster #:version [version 32] #:module-size [size 2]]
+    (define content (let ([utf8->jisx0208 (bytes-open-converter "UTF-8" "JIS_X0208")])
+                      (define-values {jis size status} (bytes-convert utf8->jisx0208 (string->bytes/utf-8 (digimon-profile monster))))
+                      (bytes-close-converter utf8->jisx0208)
+                      (build-list (/ size 2) {lambda [i] (let ([bi (* i 2)]) (integer-bytes->integer (subbytes jis bi (+ bi 2)) #false))})))
+    (for-each (lambda [c] (unless (or (<= #x8140 c #x9FFC) (<= #xE040 c #xEBBF)) (printf "~x~n" c)))  content)
+    (define-values {qrsize tsize} (let ([m+ (* version 4)]) (values (+ 17 m+) (add1 m+))))
+    (define {square l [c "Black"]} (colorize (filled-rectangle l l #:draw-border? #false) c))
+    (define {diag-fold pict0} (lt-superimpose pict0 (rotate pict0 (/ pi -2))))
+    (define quiet-zone (cc-superimpose (square (+ qrsize 2) "White") (square qrsize "Gray")))
+    (define finder (let ([fd (cc-superimpose (square 9 "White") (square 7) (square 5 "White") (square 3))]) (diag-fold (hc-append fd (blank tsize 9) fd))))
+    (define timing (diag-fold (apply hc-append (make-list (/ (+ tsize 3) 2) (hc-append (square 1) (square 1 "White"))))))
+    (define alignment (cc-superimpose (square 5) (square 3 "White") (square 1)))
+    (define qrcode (pin-over (lt-superimpose quiet-zone finder) 7 7 timing))
+    (scale qrcode size)})
 
 (struct digimon {name kana figure stage type attribute fields group profile attacks}
   #:transparent
@@ -75,7 +92,7 @@
                                                         (define fline (desc line (plot-width) #:color "Firebrick"))
                                                         (if flmp (vl-append flmp fline) fline)))}])
       (define namemon (string-titlecase (~a diginame)))
-      (define pxjp #px"[ぁ-ゖァ-ー㐀-䶵一-鿋豈-頻（）]+")
+      (define pxjp #px"[ぁ-ゖ゠-ヿ㐀-䶵一-鿋豈-頻（）]+")
       (define metainfo (map bytes->string/utf-8
                             (cdr (regexp-match (pregexp (string-append "⇨ English.+?<br\\s*/?>(.+?)\\s*</td>\\s*</tr>"
                                                                        ".+?<img alt=.([ァ-ー]+). src=.(/images/.+?jpg)"
@@ -234,6 +251,4 @@
                   [else (/ chroma max0)])
             max0)})
 
-(define sakuyamon (recv-digimon 'Sakuyamon))
-(displayln sakuyamon)
-(frame (digimon-qrcode sakuyamon #:version 16 #:module-size 4))
+;(frame (digimon-qrcode (recv-digimon 'Sakuyamon) #:version 16 #:module-size 4))
