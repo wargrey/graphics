@@ -61,12 +61,10 @@
     (define watermark (vr-append (fdigimoji "wargrey" metal-icon-color) (rotate hbar (/ pi 2))))
     (rb-superimpose (rt-superimpose (lb-superimpose (blank (plot-width) (plot-height)) body) head) watermark)})
 
-(define nanomon (let ([nanomon (recv-digimon 'Nanomon)])
-                  (if (digimon? nanomon)
-                      (let* ([figure (digimon-ark nanomon #:lightness 0.84 #:rallies rallies)]
-                             [background (visualize nanomon)]
-                             [foreground (profile nanomon '機械の修理にかけてはピカイチのマシーン型デジモンだ '{プラグボム ナノクラッシュ カウンタートラップ})])
-                        (cc-superimpose background foreground figure))
-                      nanomon)))
-
-nanomon
+(let ([nanomon (recv-digimon 'Nanomon)])
+  (if (digimon? nanomon)
+      (let* ([figure (digimon-ark nanomon #:lightness 0.84 #:rallies rallies)]
+             [background (visualize nanomon)]
+             [foreground (profile nanomon '機械の修理にかけてはピカイチのマシーン型デジモンだ '{プラグボム ナノクラッシュ カウンタートラップ})])
+        (cc-superimpose background foreground figure))
+      nanomon))

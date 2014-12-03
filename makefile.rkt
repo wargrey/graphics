@@ -4,19 +4,18 @@
 cd $(dirname $0) && exec racket $(basename $0);
 |#
 
-#lang racket
+#lang racket/gui
 
 (require make)
 
 (require "island/stone/digimon.rkt")
 
-(make-print-dep-no-line #true)
-(make-print-checking #true)
-(make-print-reasons #true)
+(define-namespace-anchor makefile)
+(define #%digimon (#%variable-reference digimon?))
 
 (define rootdir (path->complete-path (current-directory)))
 (define vllgdir (build-path rootdir "village"))
-(define stnsdir (build-path rootdir "island" "stone"))
+(define stnsdir (path-only (variable-reference->module-source #%digimon)))
 (define makefiles (list (build-path rootdir "makefile.rkt")))
 
 (define kanas (hash 'ア 'a 'イ 'Test3 'ウ 'u 'エ 'e 'オ 'o 'ヤ 'ya 'ユ 'yu 'ヨ 'yo 'ワ 'wa 'ヲ 'wo 'ン 'Test4a 'ー 'chouon2 'ヴ 'vu
@@ -33,6 +32,10 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (define fields (hash 'NSp 'Naturespirits 'DS 'Deepsavers 'NSo 'Nightmaresoldiers 'WG 'Windguardians
                      'ME 'Metalempire 'VB 'Virusbusters 'DR 'Dragonsroar 'JT 'Jungletroopers))
+
+(make-print-dep-no-line #true)
+(make-print-checking #true)
+(make-print-reasons #true)
 
 (rosetta-stone-dir stnsdir)
 
@@ -53,7 +56,7 @@ cd $(dirname $0) && exec racket $(basename $0);
                                                  (define out (match in
                                                                [{pregexp #px"^#+ (\\d+\\.)+"} (regexp-replace #px"^(#+) (\\d+\\.)+" in "\\1")]
                                                                [{pregexp #px"^\\* >\\s+>"} (regexp-replace #px"^\\* >(\\s+)>" in "\\1- ")]
-                                                               [{pregexp #px"~/"} (string-replace in "~" (substring (path->string stnsdir) (sub1 (string-length (path->string rootdir)))))]
+                                                               [{pregexp #px"~/"} (string-replace in "~" (format "/~a" (find-relative-path rootdir stnsdir)))]
                                                                [{pregexp #px"^\\s*$"} (let ([next (thread-receive)])
                                                                                         (cond [(and (not (eof-object? next))
                                                                                                     (regexp-match? #px"(^\\* )|(^\\s*$)" next)) 'Skip-Empty-Line]
@@ -94,13 +97,17 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (define make-image
   {lambda [target dentry]
-    (dynamic-require dentry #false)
-    (define name (string->symbol (path->string (path-replace-suffix (file-name-from-path target) ""))))
-    (parameterize ([current-namespace (module->namespace dentry)])
-      (define img (namespace-variable-value name #false))
-      (make-directory* (path-only target))
-      (send (cond [(pict? img) (pict->bitmap img)] [(flomap? img) (flomap->bitmap img)] [else img])
-            save-file target 'png))})
+    (define img (with-input-from-file dentry #:mode 'text
+                  {thunk (parameterize ([current-directory (path-only dentry)]
+                                        [current-namespace (make-gui-namespace) #| Avoid re-instantiating `racket/gui/base' |#])
+                           (read-language) ; Do nothing
+                           (namespace-require 'racket/gui)
+                           (let repl ([last-result (void)])
+                             (define sexp (read))
+                             (if (eof-object? sexp) last-result (repl (eval sexp)))))}))
+    (make-directory* (path-only target))
+    (send (cond [(pict? img) (pict->bitmap img)] [(flomap? img) (flomap->bitmap img)] [else img])
+          save-file target 'png)})
 
 (define smart-dependencies
   {lambda [entry [memory null]]
@@ -115,7 +122,7 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (define readmes (filter list? (for/list ([readme.scrbl (in-directory stnsdir)]
                                          #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
-                                (define t (reroot-path (substring (path->string (path-replace-suffix readme.scrbl #".md")) (string-length (path->string stnsdir))) rootdir))
+                                (define t (reroot-path (find-relative-path stnsdir (path-replace-suffix readme.scrbl #".md")) rootdir))
                                 (define ds (append (smart-dependencies readme.scrbl) makefiles))
                                 (list t ds {thunk (make-markdown t readme.scrbl)}))))
 
@@ -133,7 +140,7 @@ cd $(dirname $0) && exec racket $(basename $0);
 
 (define images (filter list? (for/fold ([images null]) ([readme (in-list (map caadr readmes))])
                                (define village (let ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme)]) (if village? (car village?) "")))
-                               (define stone (substring (path->string stnsdir) (string-length (path->string rootdir))))
+                               (define stone (find-relative-path rootdir stnsdir))
                                (append images (map {lambda [image]
                                                      (define t (build-path rootdir village stone image))
                                                      (define image.rkt (path-replace-suffix (build-path rootdir stone village image) #".rkt"))
