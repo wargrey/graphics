@@ -17,7 +17,7 @@ cd $(dirname $0) && exec racket $(basename $0);
 (define rootdir (path->complete-path (current-directory)))
 (define vllgdir (build-path rootdir "village"))
 (define stnsdir (build-path rootdir "island" "stone"))
-(define make.md (build-path rootdir "makefile.rkt"))
+(define makefiles (list (build-path rootdir "makefile.rkt")))
 
 (define kanas (hash 'ア 'a 'イ 'Test3 'ウ 'u 'エ 'e 'オ 'o 'ヤ 'ya 'ユ 'yu 'ヨ 'yo 'ワ 'wa 'ヲ 'wo 'ン 'Test4a 'ー 'chouon2 'ヴ 'vu
                     'カ 'ka3 'キ 'ki 'ク 'ku2 'ケ 'ke 'コ 'ko 'ガ 'ga 'ギ 'gi 'グ 'gu 'ゲ 'ge 'ゴ 'go
@@ -116,7 +116,7 @@ cd $(dirname $0) && exec racket $(basename $0);
 (define readmes (filter list? (for/list ([readme.scrbl (in-directory stnsdir)]
                                          #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
                                 (define t (reroot-path (substring (path->string (path-replace-suffix readme.scrbl #".md")) (string-length (path->string stnsdir))) rootdir))
-                                (define ds (append (smart-dependencies readme.scrbl) (list make.md)))
+                                (define ds (append (smart-dependencies readme.scrbl) makefiles))
                                 (list t ds {thunk (make-markdown t readme.scrbl)}))))
 
 (define digimojies (append (hash-map kanas {lambda [kana romaji]
