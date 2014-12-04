@@ -1,9 +1,11 @@
 #lang scribble/base
 
+@(require "scribble.rkt")
+
 @title{Digital World}
 
-@section{The Book Project}
-This, the toplevel project itself, is the @bold{Extra Dimensional Space} built for developers to set up all the prerequistes of all subprojects.
+@section{@(info-ref 'collection)}
+@(info-ref 'pkg-desc)
 @bold{Namely all subprojects can and should be built on their own.}
 
 @subsection{The @bold{D-ark} Scripts}

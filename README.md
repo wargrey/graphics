@@ -2,9 +2,9 @@
 
 ## The Book Project
 
-This, the toplevel project itself, is the **Extra Dimensional Space**
-built for developers to set up all the prerequistes of all subprojects.
-**Namely all subprojects can and should be built on their own.**
+This, the project of subprojects, is the Extra Dimensional Space built
+for developers to set up all essentials. **Namely all subprojects can
+and should be built on their own.**
 
 ### The **D-ark** Scripts
 * [**prerequisites.sh**](prerequisites.sh): Build the latest Racket and
@@ -28,8 +28,8 @@ Island_, but we own some concepts from the _Digimon Series_.
 **Note** Project or Subprojects are organized as the _digimons_ within
 **village**. Each project may be separated into several repositories
 within **island**, **tamer**, and so on.
-* **The Toplevel Project itself** is a mystery that sets up all the
-  prerequistes of the world.
+* **The Book Project** is a mystery that sets up all essentials of the
+  world.
 * **village** is the birth place of _digimons_. Namely it works like
   `src`.
 * **digitama** is the egg of _digimons_. Namely it works like
@@ -46,34 +46,40 @@ within **island**, **tamer**, and so on.
 ### Version
 
 Obviousely, our _digimons_ have their own life cycle.
-* [X] **Baby I** is the first stage of _digimons_ evolution straight
+* **Baby I**: The 1st stage of _digimon evolution_ hatching straighty
   from her _digitama_. Namely it's the `Alpha Version`.
+* [ ] **Baby II**: The 2nd stage of _digimon evolution_ evolving quickly
+  from **Baby I**. Namely it's the `Beta Version`.
+* [ ] **Child**: The 3rd stage of _digimon evolution_ evolving from
+  **Baby II**. At the time _digimons_ are strong enough to live on their
+  own.
 
 ### Make Targets
 
 These conventions are borrowed from the GUN Make.
-* **all**: Building the entire program without generating documentation.
-  This should be the default target.
-* **install**: Building and installing the program with three
+* [X] **all**: Building the entire program without generating
+  documentation. This should be the default target.
+* [ ] **install**: Building and installing the program with three
   categories: normal ones, pre-installation commands and
   post-installation commands.
-* **install-docs**: Generating and installing documentation.
-* **uninstall**: Delete all the installed files and documentation with
-  three categories, just like the installation commands.
-* **mostlyclean**: Delete all files except that people normally don’t
-  want to reconstruct.
-* **clean**: Delete all files that are normally created by running make.
-* **distclean**: Delete all files that are not included in the
+* [ ] **install-docs**: Generating and installing documentation.
+* [ ] **uninstall**: Delete all the installed files and documentation
+  with three categories, just like the installation commands.
+* [ ] **mostlyclean**: Delete all files except that people normally
+  don't want to reconstruct.
+* [ ] **clean**: Delete all files that are normally created by running
+  make.
+* [ ] **distclean**: Delete all files that are not included in the
   distribution, even if the makefile itself cannot create these files.
-* **maintainer-clean**: Delete all files that can be reconstructed,
-  including sources produced by Source Generator such as ’ctangle’ and
-  ’cweave’.
-* **docs**: Generating documentation. User must manually invoke it.
-* **dist**: Creating a distribution file of the source files.
-* **test**: Performing unit tests on the source file after building.
-* **check**: Performing self tests on the program this makefile builds
-  after installing.
-* **installcheck**: Performing installation tests on the target system
-  after installing.
-* **installdirs**: Creating the directories where files are installed,
-  and their parent directories.
+* [ ] **maintainer-clean**: Delete all files that can be reconstructed,
+  including sources produced by Source Generator such as `ctangle` and
+  `cweave`.
+* [ ] **docs**: Generating documentation. User must manually invoke it.
+* [ ] **dist**: Creating a distribution file of the source files.
+* [ ] **test**: Performing unit tests on the source file after building.
+* [ ] **check**: Performing self tests on the program this makefile
+  builds after installing.
+* [ ] **installcheck**: Performing installation tests on the target
+  system after installing.
+* [ ] **installdirs**: Creating the directories where files are
+  installed, and their parent directories.

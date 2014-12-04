@@ -7,7 +7,6 @@ cd $(dirname $0) && exec racket $(basename $0);
 #lang racket/gui
 
 (require make)
-
 (require "island/stone/digimon.rkt")
 
 (define-namespace-anchor makefile)
@@ -43,11 +42,13 @@ cd $(dirname $0) && exec racket $(basename $0);
   {lambda [target dentry]
     (define mdname (gensym 'readme))
     (define scribble (find-executable-path "scribble"))
-    (system (format "~a --markdown --dest ~a --dest-name ~a ~a"
+    (system (format "~a ++arg ~a --markdown --dest ~a --dest-name ~a ~a"
                     (if scribble scribble
                         (simplify-path (build-path (path-only (find-system-path 'exec-file))
                                                    (path-only (find-system-path 'collects-dir))
                                                    "bin/scribble")))
+                    (let ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) dentry)])
+                      (if village? (build-path rootdir (car village?)) rootdir))
                     (find-system-path 'temp-dir) mdname dentry))
     (with-output-to-file (build-path (path-only target) "README.md") #:exists 'replace
       {thunk (define awkout (current-thread))
@@ -116,13 +117,11 @@ cd $(dirname $0) && exec racket $(basename $0);
              (cond [(member subscrbl memory) memory]
                    [else (smart-dependencies subscrbl memory)])}
            (append memory (list entry))
-           (call-with-input-file entry (curry regexp-match* (case (filename-extension entry)
-                                                              [{#"scrbl"} #px"(?<=@include-section\\{)[^\\}]+(?=\\})"]
-                                                              [{#"rkt"} #px"(?<=\\(require \").+\\.rkt(?=\"\\))"]))))})
+           (call-with-input-file entry (curry regexp-match* #px"(?<=(@include-section\\{)|(\\(require \")).+?.(scrbl|rkt)(?=(\\})|(\"\\)))")))})
 
 (define readmes (filter list? (for/list ([readme.scrbl (in-directory stnsdir)]
                                          #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
-                                (define t (reroot-path (find-relative-path stnsdir (path-replace-suffix readme.scrbl #".md")) rootdir))
+                                (define t (build-path rootdir (find-relative-path stnsdir (build-path (path-only readme.scrbl) "README.md"))))
                                 (define ds (append (smart-dependencies readme.scrbl) makefiles))
                                 (list t ds {thunk (make-markdown t readme.scrbl)}))))
 
