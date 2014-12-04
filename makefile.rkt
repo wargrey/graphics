@@ -122,7 +122,10 @@ cd $(dirname $0) && exec racket $(basename $0);
 (define readmes (filter list? (for/list ([readme.scrbl (in-directory stnsdir)]
                                          #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
                                 (define t (build-path rootdir (find-relative-path stnsdir (build-path (path-only readme.scrbl) "README.md"))))
-                                (define ds (append (smart-dependencies readme.scrbl) makefiles))
+                                (define ds (append (smart-dependencies readme.scrbl) makefiles
+                                                   (let* ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme.scrbl)]
+                                                          [info.rkt (if village? (build-path rootdir (car village?) "info.rkt") (build-path rootdir "info.rkt"))])
+                                                     (if (file-exists? info.rkt) (list info.rkt) null))))
                                 (list t ds {thunk (make-markdown t readme.scrbl)}))))
 
 (define digimojies (append (hash-map kanas {lambda [kana romaji]
