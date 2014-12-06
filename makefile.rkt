@@ -156,13 +156,29 @@
     (define rules (append digimojies digifields images readmes))
     (unless (null? rules) (make/proc rules (map car rules)))})
 
+(define make~mostlyclean:
+  {lambda []
+    (for ([readme (in-list (map car readmes))])
+      (delete-file readme)
+      (printf "Deleted ~a~n" readme))})
+
 (define make~clean:
   {lambda []
-    'clean})
+    (make~mostlyclean:)
+    (for ([image (in-list (map car images))])
+      (delete-file image)
+      (printf "Deleted ~a~n" image))})
+
+(define make~distclean:
+  {lambda []
+    (make~clean:)
+    (for ([digipng (in-list (map car (append digimojies digifields)))])
+      (delete-file digipng)
+      (printf "Deleted ~a~n" digipng))})
 
 (define make~maintainer-clean:
   {lambda []
-    'maintainer})
+    (make~distclean:)})
 
 (define ~targets (parameterize ([current-namespace (namespace-anchor->namespace makefile)])
                    (filter cons? (map {lambda [sym]
@@ -194,8 +210,9 @@
               ["++installcheck" => flag->maker '{"Performing installation tests on the target system after installing."}]
               ["++installdirs" => flag->maker '{"Creating the directories where files are installed, and their parent directories."}]
               #:handlers
-              {lambda [makers . whocares] (cond [(zero? (vector-length (current-command-line-arguments))) (void (make~all:))]
-                                                [else (for ([make~phony: (in-list makers)]) (make~phony:))])}
+              {lambda [makers . whocares] (for ([make~phony: (in-list (if (zero? (vector-length (current-command-line-arguments))) (list make~all:) makers))])
+                                            (printf "~a~n" make~phony:)
+                                            (make~phony:))}
               '{"phony-target"}
               {lambda [help-info] (let* ([helps (with-input-from-string help-info {thunk (port->lines)})]
                                          [phonies (filter (curry regexp-match #px"^\\s+[+][+]") helps)])
