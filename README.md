@@ -53,33 +53,3 @@ Obviousely, our _digimons_ have their own life cycle.
 * [ ] **Child**: The 3rd stage of _digimon evolution_ evolving from
   **Baby II**. At the time _digimons_ are strong enough to live on their
   own.
-
-### Make Targets
-
-These conventions are borrowed from the GUN Make.
-* [X] **all**: Building the entire program without generating
-  documentation. This should be the default target.
-* [ ] **install**: Building and installing the program with three
-  categories: normal ones, pre-installation commands and
-  post-installation commands.
-* [ ] **install-docs**: Generating and installing documentation.
-* [ ] **uninstall**: Delete all the installed files and documentation
-  with three categories, just like the installation commands.
-* [ ] **mostlyclean**: Delete all files except that people normally
-  don't want to reconstruct.
-* [ ] **clean**: Delete all files that are normally created by running
-  make.
-* [ ] **distclean**: Delete all files that are not included in the
-  distribution, even if the makefile itself cannot create these files.
-* [ ] **maintainer-clean**: Delete all files that can be reconstructed,
-  including sources produced by Source Generator such as `ctangle` and
-  `cweave`.
-* [ ] **docs**: Generating documentation. User must manually invoke it.
-* [ ] **dist**: Creating a distribution file of the source files.
-* [ ] **test**: Performing unit tests on the source file after building.
-* [ ] **check**: Performing self tests on the program this makefile
-  builds after installing.
-* [ ] **installcheck**: Performing installation tests on the target
-  system after installing.
-* [ ] **installdirs**: Creating the directories where files are
-  installed, and their parent directories.
