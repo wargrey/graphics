@@ -1,9 +1,4 @@
-#!/bin/sh
-
-#|
-cd $(dirname $0) && exec racket $(basename $0);
-|#
-
+#!/usr/bin/env racket
 #lang racket/gui
 
 (require make)
@@ -12,10 +7,11 @@ cd $(dirname $0) && exec racket $(basename $0);
 (define-namespace-anchor makefile)
 (define #%digimon (#%variable-reference digimon?))
 
-(define rootdir (path->complete-path (current-directory)))
-(define vllgdir (build-path rootdir "village"))
+(define makefiles (list (with-handlers ([exn:fail:contract? (const (build-path (current-directory) "makefile.rkt"))])
+                          (build-path (find-system-path 'orig-dir) (find-system-path 'run-file)))))
+(define rootdir (path-only (car makefiles)))
 (define stnsdir (path-only (variable-reference->module-source #%digimon)))
-(define makefiles (list (build-path rootdir "makefile.rkt")))
+(define vllgdir (build-path rootdir "village"))
 
 (define kanas (hash 'ア 'a 'イ 'Test3 'ウ 'u 'エ 'e 'オ 'o 'ヤ 'ya 'ユ 'yu 'ヨ 'yo 'ワ 'wa 'ヲ 'wo 'ン 'Test4a 'ー 'chouon2 'ヴ 'vu
                     'カ 'ka3 'キ 'ki 'ク 'ku2 'ケ 'ke 'コ 'ko 'ガ 'ga 'ギ 'gi 'グ 'gu 'ゲ 'ge 'ゴ 'go
@@ -119,38 +115,93 @@ cd $(dirname $0) && exec racket $(basename $0);
            (append memory (list entry))
            (call-with-input-file entry (curry regexp-match* #px"(?<=(@include-section\\{)|(\\(require \")).+?.(scrbl|rkt)(?=(\\})|(\"\\)))")))})
 
-(define readmes (filter list? (for/list ([readme.scrbl (in-directory stnsdir)]
-                                         #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
-                                (define t (build-path rootdir (find-relative-path stnsdir (build-path (path-only readme.scrbl) "README.md"))))
-                                (define ds (append (smart-dependencies readme.scrbl) makefiles
-                                                   (let* ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme.scrbl)]
-                                                          [info.rkt (if village? (build-path rootdir (car village?) "info.rkt") (build-path rootdir "info.rkt"))])
-                                                     (if (file-exists? info.rkt) (list info.rkt) null))))
-                                (list t ds {thunk (make-markdown t readme.scrbl)}))))
+(define readmes (for/list ([readme.scrbl (in-directory stnsdir)]
+                               #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
+                      (define t (build-path rootdir (find-relative-path stnsdir (build-path (path-only readme.scrbl) "README.md"))))
+                      (define ds (append (smart-dependencies readme.scrbl) makefiles
+                                         (let* ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme.scrbl)]
+                                                [info.rkt (if village? (build-path rootdir (car village?) "info.rkt") (build-path rootdir "info.rkt"))])
+                                           (if (file-exists? info.rkt) (list info.rkt) null))))
+                      (list t ds {thunk (make-markdown t readme.scrbl)})))
 
 (define digimojies (append (hash-map kanas {lambda [kana romaji]
-                                             (define t (build-path stnsdir (format "~a.png" kana)))
-                                             (list t null {thunk (make-digimoji t romaji)})})
-                           (for/list ([index (in-range (char->integer #\a) (add1 (char->integer #\z)))])
-                             (define letter (integer->char index))
-                             (define t (build-path stnsdir (format "~a.png" letter)))
-                             (list t null {thunk (make-digimoji t (~a (hash-ref alphabets letter letter)))}))))
+                                                 (define t (build-path stnsdir (format "~a.png" kana)))
+                                                 (list t null {thunk (make-digimoji t romaji)})})
+                               (for/list ([index (in-range (char->integer #\a) (add1 (char->integer #\z)))])
+                                 (define letter (integer->char index))
+                                 (define t (build-path stnsdir (format "~a.png" letter)))
+                                 (list t null {thunk (make-digimoji t (~a (hash-ref alphabets letter letter)))}))))
 
-(define digifields (append (hash-map fields {lambda [abbr emblem]
-                                             (define t (build-path stnsdir (format "~a.png" abbr)))
-                                             (list t null {thunk (make-digifield t emblem)})})))
+(define digifields (hash-map fields {lambda [abbr emblem]
+                                          (define t (build-path stnsdir (format "~a.png" abbr)))
+                                          (list t null {thunk (make-digifield t emblem)})}))
 
-(define images (filter list? (for/fold ([images null]) ([readme (in-list (map caadr readmes))])
-                               (define village (let ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme)]) (if village? (car village?) "")))
-                               (define stone (find-relative-path rootdir stnsdir))
-                               (append images (map {lambda [image]
-                                                     (define t (build-path rootdir village stone image))
-                                                     (define image.rkt (path-replace-suffix (build-path rootdir stone village image) #".rkt"))
-                                                     (when (file-exists? image.rkt)
-                                                       (define ds (smart-dependencies image.rkt))
-                                                       (list t ds {thunk (make-image t image.rkt)}))}
-                                                   (map bytes->string/utf-8 (call-with-input-file readme (curry regexp-match* #px"(?<=~/).+?.png"))))))))
+(define images (for/fold ([images null]) ([readme (in-list (map caadr readmes))])
+                     (define village (let ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme)]) (if village? (car village?) "")))
+                     (define stone (find-relative-path rootdir stnsdir))
+                     (append images (map {lambda [image]
+                                           (define t (build-path rootdir village stone image))
+                                           (define image.rkt (path-replace-suffix (build-path rootdir stone village image) #".rkt"))
+                                           (if (file-exists? image.rkt) (list t (smart-dependencies image.rkt) {thunk (make-image t image.rkt)}) null)}
+                                         (map bytes->string/utf-8 (call-with-input-file readme (curry regexp-match* #px"(?<=~/).+?.png")))))))
 
-(let ([rules (append digimojies digifields images readmes)])
-  (unless (null? rules)
-    (make/proc rules (map car rules))))
+(define make-default:
+  {lambda [unknown]
+    (if (regexp-match #px"^[+][+]" unknown)
+        (printf "I don't know how to make ~a!~n" (substring unknown 2))
+        (printf "I don't know what does ~a mean!~n" unknown))})
+
+(define make~all:
+  {lambda []
+    (define rules (append digimojies digifields images readmes))
+    (unless (null? rules) (make/proc rules (map car rules)))})
+
+(define make~clean:
+  {lambda []
+    'clean})
+
+(define make~maintainer-clean:
+  {lambda []
+    'maintainer})
+
+(define ~targets (parameterize ([current-namespace (namespace-anchor->namespace makefile)])
+                   (filter cons? (map {lambda [sym]
+                                        (define phony (regexp-match #px"(?<=make~).+?(?=:)" (symbol->string sym)))
+                                        (define maker (when (list? phony) (namespace-variable-value sym #false (const #false))))
+                                        (when (procedure? maker) (cons (car phony) maker))}
+                                      (namespace-mapped-symbols)))))
+
+(define flag->maker
+  {lambda [flag]
+    (define target (assoc (substring flag 2) ~targets))
+    (if (cons? target) (cdr target) (curry make-default: flag))})
+
+(command-line #:program (file-name-from-path (car makefiles))
+              #:argv (vector-map {lambda [arg] (if (regexp-match #px"^[-+]" arg) arg (format "++~a" arg))} (current-command-line-arguments))
+              #:once-each
+              ["++all" => flag->maker '{"Building the entire program without generating documentation. This is also the default target."}]
+              ["++install" => flag->maker '{"Building and installing the program with three categories: normal ones, pre-installation commands and post-installation commands."}]
+              ["++install-docs" => flag->maker '{"Generating and installing documentation."}]
+              ["++uninstall" => flag->maker '{"Delete all the installed files and documentation with three categories, just like the installation commands."}]
+              ["++mostlyclean" => flag->maker '{"Delete all files except that people normally don't want to reconstruct."}]
+              ["++clean" => flag->maker '{"Delete all files that are normally created by running make."}]
+              ["++distclean" => flag->maker '{"Delete all files that are not included in the distribution, even if the makefile itself cannot create these files."}]
+              ["++maintainer-clean" => flag->maker '{"Delete all files that can be reconstructed, including sources produced by Source Generator."}]
+              ["++docs" => flag->maker '{"Generating documentation. User must manually invoke it."}]
+              ["++dist" => flag->maker '{"Creating a distribution file of the source files."}]
+              ["++test" => flag->maker '{"Performing unit tests on the source file after building."}]
+              ["++check" => flag->maker '{"Performing self tests on the program this makefile builds after installing."}]
+              ["++installcheck" => flag->maker '{"Performing installation tests on the target system after installing."}]
+              ["++installdirs" => flag->maker '{"Creating the directories where files are installed, and their parent directories."}]
+              #:handlers
+              {lambda [makers . whocares] (cond [(zero? (vector-length (current-command-line-arguments))) (void (make~all:))]
+                                                [else (for ([make~phony: (in-list makers)]) (make~phony:))])}
+              '{"phony-target"}
+              {lambda [help-info] (let* ([helps (with-input-from-string help-info {thunk (port->lines)})]
+                                         [phonies (filter (curry regexp-match #px"^\\s+[+][+]") helps)])
+                                    (for-each (curry printf "~a~n")
+                                              (append (remove* phonies helps)
+                                                      (list (format "~nwhere <phony-target> is one of the followings that follow the conventions of the GUN Make."))
+                                                      (filter {lambda [phony] (assoc (car (regexp-match #px"(?<=^\\s\\s).+?(?=\\s:\\s)" phony)) ~targets)}
+                                                              (map {lambda [phony] (regexp-replace #px"\\+\\+" phony "")} phonies)))))}
+              make-default:)
