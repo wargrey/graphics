@@ -120,40 +120,40 @@
             [else (send (cond [(pict? img) (pict->bitmap img)] [(flomap? img) (flomap->bitmap img)] [else img]) save-file target 'png)]))})
 
 (define readmes (for/list ([readme.scrbl (in-directory stnsdir)]
-                               #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
-                      (define t (build-path rootdir (find-relative-path stnsdir (build-path (path-only readme.scrbl) "README.md"))))
-                      (define ds (append (smart-dependencies readme.scrbl) makefiles
-                                         (let* ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme.scrbl)]
-                                                [info.rkt (if village? (build-path rootdir (car village?) "info.rkt") (build-path rootdir "info.rkt"))])
-                                           (if (file-exists? info.rkt) (list info.rkt) null))))
-                      (list t ds {thunk (make-markdown t readme.scrbl)})))
+                           #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
+                  (define t (build-path rootdir (find-relative-path stnsdir (build-path (path-only readme.scrbl) "README.md"))))
+                  (define ds (append (smart-dependencies readme.scrbl) makefiles
+                                     (let* ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme.scrbl)]
+                                            [info.rkt (if village? (build-path rootdir (car village?) "info.rkt") (build-path rootdir "info.rkt"))])
+                                       (if (file-exists? info.rkt) (list info.rkt) null))))
+                  (list t ds {thunk (make-markdown t readme.scrbl)})))
 
 (define digimojies (append (hash-map kanas {lambda [kana romaji]
-                                                 (define t (build-path stnsdir (format "~a.png" kana)))
-                                                 (list t null {thunk (make-digimoji t romaji)})})
-                               (for/list ([index (in-range (char->integer #\a) (add1 (char->integer #\z)))])
-                                 (define letter (integer->char index))
-                                 (define t (build-path stnsdir (format "~a.png" letter)))
-                                 (list t null {thunk (make-digimoji t (~a (hash-ref alphabets letter letter)))}))))
+                                             (define t (build-path stnsdir (format "~a.png" kana)))
+                                             (list t null {thunk (make-digimoji t romaji)})})
+                           (for/list ([index (in-range (char->integer #\a) (add1 (char->integer #\z)))])
+                             (define letter (integer->char index))
+                             (define t (build-path stnsdir (format "~a.png" letter)))
+                             (list t null {thunk (make-digimoji t (~a (hash-ref alphabets letter letter)))}))))
 
 (define digifields (hash-map fields {lambda [abbr emblem]
-                                          (define t (build-path stnsdir (format "~a.png" abbr)))
-                                          (list t null {thunk (make-digifield t emblem)})}))
+                                      (define t (build-path stnsdir (format "~a.png" abbr)))
+                                      (list t null {thunk (make-digifield t emblem)})}))
 
 (define images (for/fold ([images null]) ([readme (in-list (map caadr readmes))])
-                     (define village (let ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme)]) (if village? (car village?) "")))
-                     (define stone (find-relative-path rootdir stnsdir))
-                     (append images (map {lambda [image]
-                                           (define t (build-path rootdir village stone image))
-                                           (define image.rkt (path-replace-suffix (build-path rootdir stone village image) #".rkt"))
-                                           (if (file-exists? image.rkt) (list t (smart-dependencies image.rkt) {thunk (make-image t image.rkt)}) null)}
-                                         (map bytes->string/utf-8 (call-with-input-file readme (curry regexp-match* #px"(?<=~/).+?.png")))))))
+                 (define village (let ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme)]) (if village? (car village?) "")))
+                 (define stone (find-relative-path rootdir stnsdir))
+                 (append images (map {lambda [image]
+                                       (define t (build-path rootdir village stone image))
+                                       (define image.rkt (path-replace-suffix (build-path rootdir stone village image) #".rkt"))
+                                       (if (file-exists? image.rkt) (list t (smart-dependencies image.rkt) {thunk (make-image t image.rkt)}) null)}
+                                     (map bytes->string/utf-8 (call-with-input-file readme (curry regexp-match* #px"(?<=~/).+?.png")))))))
 
 (define make-default:
   {lambda [unknown]
     (if (regexp-match #px"^[+][+]" unknown)
-        (printf "I don't know how to make ~a!~n" (substring unknown 2))
-        (printf "I don't know what does ~a mean!~n" unknown))})
+        (printf "make: I don't know how to make ~a!~n" (substring unknown 2))
+        (printf "make: I don't know what does ~a mean!~n" unknown))})
 
 (define make~all:
   {lambda []
