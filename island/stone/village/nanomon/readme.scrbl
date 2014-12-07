@@ -1,7 +1,9 @@
 #lang scribble/base
 
-@title{Nanomon}
-Digging data from Chaos such as iPhone Backups
+@(require "../../scribble.rkt")
+
+@title{@(info-ref 'collection)}
+@(info-ref 'pkg-desc)
 
 @section{Subprojects}
 @(itemlist @item{[@bold{Tencent}](village/tencent): Digging data from Tencent Caches}

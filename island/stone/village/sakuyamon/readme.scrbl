@@ -1,7 +1,9 @@
 #lang scribble/base
 
-@title{Sakuyamon}
-Be in charge of @tt{gyoudmon.org}.
+@(require "../../scribble.rkt")
+
+@title{@(info-ref 'collection)}
+@(info-ref 'pkg-desc)
 <p align="center">
 <img src="~/brainstorm.png" />
 </p>
