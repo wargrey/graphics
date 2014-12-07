@@ -164,15 +164,12 @@
 
 (define make~clean:
   {lambda []
-    (make~mostlyclean:)
-    (for ([image (in-list (map car images))])
-      (delete-file image)
-      (printf "Deleted ~a~n" image))})
+    (make~mostlyclean:)})
 
 (define make~distclean:
   {lambda []
     (make~clean:)
-    (for ([digipng (in-list (map car (append digimojies digifields)))])
+    (for ([digipng (in-list (map car (append images digimojies digifields)))])
       (delete-file digipng)
       (printf "Deleted ~a~n" digipng))})
 
