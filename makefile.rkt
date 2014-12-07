@@ -1,5 +1,5 @@
 #!/usr/bin/env racket
-#lang racket/gui
+#lang racket
 
 (require make)
 (require "island/stone/digimon.rkt")
@@ -12,6 +12,13 @@
 (define rootdir (path-only (car makefiles)))
 (define stnsdir (path-only (variable-reference->module-source #%digimon)))
 (define vllgdir (build-path rootdir "village"))
+
+(define make-dry-run (make-parameter #false))
+(make-print-dep-no-line #false)
+(make-print-checking #false)
+(make-print-reasons #false)
+
+(rosetta-stone-dir stnsdir)
 
 (define kanas (hash 'ア 'a 'イ 'Test3 'ウ 'u 'エ 'e 'オ 'o 'ヤ 'ya 'ユ 'yu 'ヨ 'yo 'ワ 'wa 'ヲ 'wo 'ン 'Test4a 'ー 'chouon2 'ヴ 'vu
                     'カ 'ka3 'キ 'ki 'ク 'ku2 'ケ 'ke 'コ 'ko 'ガ 'ga 'ギ 'gi 'グ 'gu 'ゲ 'ge 'ゴ 'go
@@ -28,11 +35,14 @@
 (define fields (hash 'NSp 'Naturespirits 'DS 'Deepsavers 'NSo 'Nightmaresoldiers 'WG 'Windguardians
                      'ME 'Metalempire 'VB 'Virusbusters 'DR 'Dragonsroar 'JT 'Jungletroopers))
 
-(make-print-dep-no-line #true)
-(make-print-checking #true)
-(make-print-reasons #true)
-
-(rosetta-stone-dir stnsdir)
+(define smart-dependencies
+  {lambda [entry [memory null]]
+    (foldl {lambda [subpath memory]
+             (define subscrbl (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
+             (cond [(member subscrbl memory) memory]
+                   [else (smart-dependencies subscrbl memory)])}
+           (append memory (list entry))
+           (call-with-input-file entry (curry regexp-match* #px"(?<=(@include-section\\{)|(\\(require \")).+?.(scrbl|rkt)(?=(\\})|(\"\\)))")))})
 
 (define make-markdown
   {lambda [target dentry]
@@ -46,7 +56,7 @@
                     (let ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) dentry)])
                       (if village? (build-path rootdir (car village?)) rootdir))
                     (find-system-path 'temp-dir) mdname dentry))
-    (with-output-to-file (build-path (path-only target) "README.md") #:exists 'replace
+    (define update-target
       {thunk (define awkout (current-thread))
              (define awk-format (thread {thunk (let awk ([pipen awkout])
                                                  (define in (thread-receive))
@@ -73,7 +83,9 @@
                                                 (displayln line)
                                                 waitees))))
                         (when (list? waiteen)
-                          (awk-readme pipe0 waiteen)))})})})
+                          (awk-readme pipe0 waiteen)))})})
+    (cond [(make-dry-run) (update-target)]
+          [else (with-output-to-file (build-path (path-only target) "README.md") update-target #:exists 'replace)])})
 
 (define make-digimoji
   {lambda [target name]
@@ -94,26 +106,18 @@
 
 (define make-image
   {lambda [target dentry]
-    (define img (with-input-from-file dentry #:mode 'text
-                  {thunk (parameterize ([current-directory (path-only dentry)]
-                                        [current-namespace (make-gui-namespace) #| Avoid re-instantiating `racket/gui/base' |#])
-                           (read-language) ; Do nothing
-                           (namespace-require 'racket/gui)
+    (parameterize ([current-directory (path-only dentry)]
+                   [current-namespace (make-empty-namespace)])
+      (namespace-attach-module (variable-reference->namespace #%digimon) (variable-reference->module-source #%digimon))
+      (namespace-require 'racket)
+      (define img (with-input-from-file dentry #:mode 'text
+                    {thunk (read-language) ; Do nothing
                            (let repl ([last-result (void)])
                              (define sexp (read))
-                             (if (eof-object? sexp) last-result (repl (eval sexp)))))}))
-    (make-directory* (path-only target))
-    (send (cond [(pict? img) (pict->bitmap img)] [(flomap? img) (flomap->bitmap img)] [else img])
-          save-file target 'png)})
-
-(define smart-dependencies
-  {lambda [entry [memory null]]
-    (foldl {lambda [subpath memory]
-             (define subscrbl (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
-             (cond [(member subscrbl memory) memory]
-                   [else (smart-dependencies subscrbl memory)])}
-           (append memory (list entry))
-           (call-with-input-file entry (curry regexp-match* #px"(?<=(@include-section\\{)|(\\(require \")).+?.(scrbl|rkt)(?=(\\})|(\"\\)))")))})
+                             (if (eof-object? sexp) last-result (repl (eval sexp))))}))
+      (make-directory* (path-only target))
+      (cond [(make-dry-run) (show-pict (cond [(is-a? img bitmap%) (bitmap img)] [(flomap? img) (bitmap (flomap->bitmap img))] [else img]))]
+            [else (send (cond [(pict? img) (pict->bitmap img)] [(flomap? img) (flomap->bitmap img)] [else img]) save-file target 'png)]))})
 
 (define readmes (for/list ([readme.scrbl (in-directory stnsdir)]
                                #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
@@ -160,7 +164,7 @@
   {lambda []
     (for ([readme (in-list (map car readmes))])
       (delete-file readme)
-      (printf "Deleted ~a~n" readme))})
+      (printf "make: removed ~a~n" readme))})
 
 (define make~clean:
   {lambda []
@@ -171,7 +175,7 @@
     (make~clean:)
     (for ([digipng (in-list (map car (append images digimojies digifields)))])
       (delete-file digipng)
-      (printf "Deleted ~a~n" digipng))})
+      (printf "make: removed ~a~n" digipng))})
 
 (define make~maintainer-clean:
   {lambda []
@@ -191,7 +195,10 @@
 
 (command-line #:program (file-name-from-path (car makefiles))
               #:argv (vector-map {lambda [arg] (if (regexp-match #px"^[-+]" arg) arg (format "++~a" arg))} (current-command-line-arguments))
+              #:once-any
+              [{"-v" "--verbose"} "Building with verbose messages." (void (make-print-dep-no-line #true) (make-print-checking #true) (make-print-reasons #true))]
               #:once-each
+              [{"-n" "--test" "--dry-run"} "Do not actually update targets, just display their content." (make-dry-run #true)]
               ["++all" => flag->maker '{"Building the entire program without generating documentation. This is also the default target."}]
               ["++install" => flag->maker '{"Building and installing the program with three categories: normal ones, pre-installation commands and post-installation commands."}]
               ["++install-docs" => flag->maker '{"Generating and installing documentation."}]
@@ -207,9 +214,10 @@
               ["++installcheck" => flag->maker '{"Performing installation tests on the target system after installing."}]
               ["++installdirs" => flag->maker '{"Creating the directories where files are installed, and their parent directories."}]
               #:handlers
-              {lambda [makers . whocares] (for ([make~phony: (in-list (if (zero? (vector-length (current-command-line-arguments))) (list make~all:) makers))])
-                                            (printf "~a~n" make~phony:)
-                                            (make~phony:))}
+              {lambda [makers . whocares] (let ([argv (vector-filter-not (curry regexp-match #px"^[-+]") (current-command-line-arguments))])
+                                            (for ([make~phony: (in-list (if (zero? (vector-length argv)) (list make~all:) makers))])
+                                              (printf "~a~n" make~phony:)
+                                              (make~phony:)))}
               '{"phony-target"}
               {lambda [help-info] (let* ([helps (with-input-from-string help-info {thunk (port->lines)})]
                                          [phonies (filter (curry regexp-match #px"^\\s+[+][+]") helps)])
