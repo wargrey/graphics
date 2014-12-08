@@ -158,8 +158,8 @@
 (define make~default:
   {lambda [unknown]
     (if (regexp-match #px"^[+][+]" unknown)
-        (printf "make: I don't know how to make ~a!~n" (substring unknown 2))
-        (printf "make: I don't know what does ~a mean!~n" unknown))})
+        (printf "make: I don't know how to make `~a`!~n" (substring unknown 2))
+        (printf "make: I don't know what does `~a` mean!~n" unknown))})
 
 (define make~ifdefined:
   {lambda [fsymbols]
@@ -204,7 +204,10 @@
                                    [{files phonies} (partition filename-extension (if (null? targets) (list "all") targets))])
                        (append options (map (curry string-append "++") phonies) (list "--") files))
               #:usage-help "Be careful our conventions are not exactly the same as those of GNU Make."
-              #:help-labels "[<option>s start with `++` are also <phony-target>s.]"
+              #:help-labels
+              "[<option>s start with `++` are also <phony-target>s.]"
+              "[You are free to drop off the leading `++` when typing phony targets.]"
+              ; #:ps label can cause unknown exception, maybe it's a bug of Racket
               #:once-each
               [{"++all"} "Building the entire software without generating documentation. [default]"
                          (make~all: 'all)]
@@ -236,7 +239,6 @@
                                 (make-just-touch #true)]
               [{"-v" "--verbose"} "Building with verbose messages."
                                   (void (make-print-dep-no-line #true) (make-print-checking #true) (make-print-reasons #true))]
-              #:ps "[You are free to drop off the leading `++` when typing phony targets.]"
               #:handlers
               {lambda [non-void-flags . filenames] (make~all: (map {lambda [f] (if (relative-path? f) (build-path rootdir f) f)} filenames))}
               (list "phony-target|file-path")
