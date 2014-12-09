@@ -119,7 +119,11 @@
                       {thunk (read-language) ; Do nothing
                              (let repl ([last-result (void)])
                                (define sexp (read))
-                               (if (eof-object? sexp) last-result (repl (eval sexp))))}))
+                               (cond [(eof-object? sexp) last-result]
+                                     [(and (symbol=? (first sexp) 'require)
+                                           (list? (cadr sexp)) (symbol=? (caadr sexp) 'file)
+                                           (regexp-match #px"d-ark.rkt$" (cadadr sexp))) (repl (eval `(require (file ,(path->string (variable-reference->module-source #%digimon))))))]
+                                     [else (repl (eval sexp))]))}))
         (make-parent-directory* target)
         (send (cond [(pict? img) (pict->bitmap img)] [(flomap? img) (flomap->bitmap img)] [else img]) save-file target 'png))})
   
@@ -155,6 +159,12 @@
 
 (require 'makefile)
 
+(define hack-target
+  {lambda [t]
+    (if (make-dry-run)
+        (build-path hackdir (find-relative-path rootdir t))
+        t)})
+
 (define make~default:
   {lambda [unknown]
     (if (regexp-match #px"^[+][+]" unknown)
@@ -173,7 +183,7 @@
       (cond [(symbol? level) (for-each (compose1 make~clean: symbol->string) (reverse (member level '{maintainer dist clean mostly})))]
             [else (for ([var (namespace-mapped-symbols)])
                     (when (regexp-match? (pregexp (format "^~a:.+:$" level)) (symbol->string var))
-                      (for ([file (in-list (map car (namespace-variable-value var #false (const #false))))])
+                      (for ([file (in-list (map (compose1 hack-target car) (namespace-variable-value var #false (const #false))))])
                         (when (file-exists? file) (delete-file file))
                         (printf "make: deleted ~a.~n" file))))]))})
 
@@ -181,7 +191,6 @@
   {lambda [targets]
     (parameterize ([current-namespace (module->namespace ''makefile)])
       (file-or-directory-modify-seconds hackdir (current-seconds) {thunk (make-directory* hackdir)})
-      (define {hack-target t} (if (make-dry-run) (build-path hackdir (find-relative-path rootdir t)) t))
       (define {hack-depends ds} (if (make-always-run) (cons hackdir ds) ds))
       (define {hack-rule r}
         (define t (hack-target (first r)))

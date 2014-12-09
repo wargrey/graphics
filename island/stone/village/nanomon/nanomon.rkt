@@ -1,10 +1,12 @@
-#lang at-exp racket/gui
+#lang at-exp racket
 
 (require images/icons/control)
 (require images/icons/misc)
 (require (only-in plot/utils color-seq*))
 
-(require "../../digimon.rkt")
+;;; These two lines can fool makefile.rkt, which is the expected dependent file.
+;(require "../../digimon.rkt")
+(require (file "../../d-ark.rkt"))
 
 (plot-decorations? #false)
 
