@@ -12,9 +12,7 @@
 (define make-just-touch (make-parameter #false))
 
 (module makefile racket
-  (require pict)
   (require racket/draw)
-  (require images/flomap)
   
   (require "island/stone/wikimon.rkt")
   
@@ -100,20 +98,17 @@
     {lambda [target dentry]
       (parameterize ([current-directory (path-only dentry)]
                      [current-namespace (make-empty-namespace)])
-        (namespace-attach-module (namespace-anchor->namespace makefile) 'images/flomap)
         (namespace-attach-module (namespace-anchor->namespace makefile) 'racket/draw)
-        (namespace-attach-module (namespace-anchor->namespace makefile) 'pict)
         (namespace-require 'racket)
-        (define img (with-input-from-file dentry #:mode 'text
-                      {thunk (read-language) ; Do nothing
-                             (let repl ([last-result (void)])
-                               (match (read)
-                                 [(? eof-object? sexp) last-result]
-                                 [{list 'require {list 'file {pregexp #px"d-ark.rkt$"}}} {begin (eval `(require (file ,(format "~adigimon.rkt" stnsdir))))
-                                                                                                (repl (eval `(wikimon-dir ,(wikimon-dir))))}]
-                                 [{var sexp} (repl (eval sexp))]))}))
-        (make-parent-directory* target)
-        (send (cond [(pict? img) (pict->bitmap img)] [(flomap? img) (flomap->bitmap img)] [else img]) save-file target 'png))})
+        (with-input-from-file dentry #:mode 'text
+          {thunk (read-language) ; Do nothing
+                 (let repl ([?img (void)])
+                   (match (read)
+                     [(? eof-object? sexp) {begin (eval `(make-parent-directory* ,target))
+                                                  (eval `(send ,?img save-file ,target 'png))}]
+                     [{list 'require {list 'file {pregexp #px"d-ark.rkt$"}}} {begin (eval `(require (file ,(format "~adigimon.rkt" stnsdir))))
+                                                                                    (repl (eval `(wikimon-dir ,(wikimon-dir))))}]
+                     [{var sexp} (repl (eval sexp))]))}))})
   
   (define dist:digipngs: (append (hash-map kanas {lambda [kana romaji]
                                                      (define t (build-path (wikimon-dir) (format "~a.png" kana)))

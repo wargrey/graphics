@@ -39,4 +39,4 @@
                 (min bsx cx) (min bsy cy) (max bsr (+ cx cw)) (max bsb (+ cy ch)))))
     (pin-over (blank (- bsright bsleft) (- bsbottom bstop)) (abs bsleft) (abs bstop) bsfg)})
 
-(define brainstorm (brainstorm-layout (~pict '{Interdiscipline}) mastering-skills 0 (* pi 2) #false))
+(pict->bitmap (brainstorm-layout (~pict '{Interdiscipline}) mastering-skills 0 (* pi 2) #false))
