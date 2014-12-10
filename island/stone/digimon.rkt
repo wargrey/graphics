@@ -1,6 +1,6 @@
 #lang at-exp racket
 
-(require net/http-client)
+(require "wikimon.rkt")
 
 (require plot)
 (require pict)
@@ -12,11 +12,9 @@
 (require images/icons/symbol)
 (require images/icons/style)
 
-(provide (all-defined-out))
+(provide (all-defined-out) (all-from-out "wikimon.rkt"))
 (provide (all-from-out pict plot racket/draw))
 (provide (all-from-out math/flonum images/flomap images/icons/symbol images/icons/style))
-
-(define rosetta-stone-dir (make-parameter (current-directory)))
 
 (define digimon-illustration
   {lambda [monster #:max-width [width 400] #:max-height [height 600]]
@@ -73,46 +71,27 @@
                                 [else (fprintf out " ~a" field)]))
                         (fprintf out ")")})])
 
-(define wikimon-recv!
-  {lambda [uri]
-    (define-values {status headers pipe} (http-sendrecv "wikimon.net" uri #:content-decode null))
-    (unless (regexp-match? #px"\\s200\\sOK" status) (error (bytes->string/utf-8 status)))
-    (list status headers pipe)})
-
-(define recv-image
-  {lambda [filename]
-    (define rfile (format "/File:~a" filename))
-    (define pxpng (pregexp (format "(?<=href..)/images[^>]+~a(?=.>)" filename)))
-    (make-object bitmap% (third (wikimon-recv! (car (regexp-match* pxpng (third (wikimon-recv! rfile)))))) 'unknown/alpha)})
-
 (define recv-digimon
   {lambda [diginame #:figure [filename #false] #:profile [details #false] #:attacks [attacks #false]]
     (with-handlers ([exn? {lambda [e] (lt-superimpose (blank (plot-width) (plot-height))
                                                       (for/fold ([flmp #false]) ([line (in-list (with-input-from-string (exn-message e) {thunk (port->lines)}))])
                                                         (define fline (desc line (plot-width) #:color "Firebrick"))
                                                         (if flmp (vl-append flmp fline) fline)))}])
-      (define namemon (string-titlecase (~a diginame)))
-      (define pxjp #px"[ぁ-ゖ゠-ヿ㐀-䶵一-鿋豈-頻（）]+")
-      (define metainfo (map bytes->string/utf-8
-                            (cdr (regexp-match (pregexp (string-append "⇨ English.+?<br\\s*/?>(.+?)\\s*</td>\\s*</tr>"
-                                                                       ".+?<img alt=.([ァ-ー]+). src=.(/images/.+?jpg)"
-                                                                       ".+?レベル(.+?)型（タイプ）(.+?)属性(.+?)List of Digimon"
-                                                                       ".+?Attack Techniques</span></h1>(.+?)<h1>"))
-                                               (third (wikimon-recv! (string-append "/" namemon)))))))
-      (digimon namemon
+      (define metainfo (wikimon-reference diginame))
+      (digimon (first metainfo)
                (second metainfo)
                (cond [(false? filename) (cons (third metainfo) (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (third metainfo))))))]
-                     [else (cons filename (recv-image filename))])
-               (regexp-match* pxjp (fourth metainfo))
-               (regexp-match* pxjp (fifth metainfo))
-               (regexp-match* #px"ワクチン|データ|ウィルス|フリー|バリアブル|ヴァリアブル|不明" (sixth metainfo))
+                     [else (cons filename (bitmap->flomap (wikimon-image filename)))])
+               (fourth metainfo)
+               (fifth metainfo)
+               (sixth metainfo)
                (filter-map {lambda [f] (let* ([field (list->string (for/list ([fc (in-string f)]) (integer->char (- (char->integer fc) #xFEE0))))]
-                                              [png (format "~a/~a.png" (rosetta-stone-dir) field)])
+                                              [png (format "~a/~a.png" (wikimon-dir) field)])
                                          (if (file-exists? png) (cons field (bitmap->flomap (make-object bitmap% png 'png/alpha))) #false))}
-                           (regexp-match* #px"[Ａ-Ｚ]{2}[ａ-ｚ]?" (sixth metainfo)))
-               (regexp-match* #px"四聖獣|十二神将|ロイヤルナイツ|七大魔王|三大天使|オリンポス十二神|四大竜|十闘士|クラックチーム|D-ブリガード|「BAN-TYO」|三銃士|ビッグデスターズ" (sixth metainfo))
-               (if details (~a details) (regexp-replace* #px"</?font.*?>" (first metainfo) ""))
-               (if (list? attacks) (map ~a attacks) (regexp-match* pxjp (seventh metainfo)))))})
+                           (seventh metainfo))
+               (eighth metainfo)
+               (if details (~a details) (ninth metainfo))
+               (if (list? attacks) (map ~a attacks) (tenth metainfo))))})
 
 (define digimon-ark
   {lambda [monster #:lightness [threshold 0.64] #:rallies [rallies0 null]]
@@ -153,7 +132,7 @@
                          [else moji0]))
       (if (list? moji) (append moji mojin) (cons moji mojin)))
     (for/fold ([dgmj #false]) ([moji (in-list (foldr translate null (string->list (~a content))))])
-      (define fmoji (format "~a/~a.png" (rosetta-stone-dir) (if (box? moji) (unbox moji) moji)))
+      (define fmoji (format "~a/~a.png" (wikimon-dir) (if (box? moji) (unbox moji) moji)))
       (define pmoji (cond [(file-exists? fmoji) (let*-values ([{flng} (flomap-trim (bitmap->flomap (make-object bitmap% fmoji 'png/alpha)))]
                                                               [{width0 height0} (flomap-size flng)]
                                                               [{scale%} (if (box? moji) 3/5 (/ (- size 2) (max width0 height0)))])

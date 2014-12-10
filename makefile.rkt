@@ -12,35 +12,25 @@
 (define make-just-touch (make-parameter #false))
 
 (module makefile racket
-  (require "island/stone/digimon.rkt")
+  (require pict)
+  (require racket/draw)
+  (require images/flomap)
+  
+  (require "island/stone/wikimon.rkt")
   
   (provide makefiles rootdir stnsdir hackdir)
   
-  (define #%digimon (#%variable-reference digimon?))
+  (define-namespace-anchor makefile)
+  (define #%wikimon (#%variable-reference wikimon-dir))
   (define makefiles (list (with-handlers ([exn:fail:contract? (const (build-path (current-directory) "makefile.rkt"))])
                           (build-path (find-system-path 'orig-dir) (find-system-path 'run-file)))))
   (define rootdir (path-only (car makefiles)))
-  (define stnsdir (path-only (variable-reference->module-source #%digimon)))
+  (define stnsdir (path-only (variable-reference->module-source #%wikimon)))
   (define vllgdir (build-path rootdir "village"))
   (define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
   (define px.village (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))))
-
-  (rosetta-stone-dir stnsdir)
   
-  (define kanas (hash 'ア 'a 'イ 'Test3 'ウ 'u 'エ 'e 'オ 'o 'ヤ 'ya 'ユ 'yu 'ヨ 'yo 'ワ 'wa 'ヲ 'wo 'ン 'Test4a 'ー 'chouon2 'ヴ 'vu
-                      'カ 'ka3 'キ 'ki 'ク 'ku2 'ケ 'ke 'コ 'ko 'ガ 'ga 'ギ 'gi 'グ 'gu 'ゲ 'ge 'ゴ 'go
-                      'サ 'sa 'シ 'shi 'ス 'su 'セ 'se 'ソ 'so 'ザ 'za 'ジ 'ji 'ズ 'zu 'ゼ 'ze 'ゾ 'zo
-                      'タ 'ta2 'チ 'chi 'ツ 'tsu 'テ 'te 'ト 'to 'ダ 'da 'デ 'de 'ド 'do
-                      'ナ 'na 'ニ 'ni 'ヌ 'nu 'ネ 'ne 'ノ 'no
-                      'ハ 'ha 'ヒ 'hi3 'フ 'fu 'ヘ 'he 'ホ 'ho 'バ 'ba 'ビ 'bi 'ブ 'bu 'ベ 'be 'ボ 'bo 'パ 'pa 'ピ 'pi3 'プ 'pu 'ペ 'pe 'ポ 'po
-                      'マ 'ma2 'ミ 'mi 'ム 'mu 'メ 'me 'モ 'mo
-                      'ラ 'ra 'リ 'ri 'ル 'ru2 'レ 're 'ロ 'ro))
-  
-  (define theirfaults '{ma2})
-  (define alphabets (hash #\q 'q2))
-  
-  (define fields (hash 'NSp 'Naturespirits 'DS 'Deepsavers 'NSo 'Nightmaresoldiers 'WG 'Windguardians
-                       'ME 'Metalempire 'VB 'Virusbusters 'DR 'Dragonsroar 'JT 'Jungletroopers))
+  (wikimon-dir (build-path stnsdir (wikimon-dir)))
   
   (define smart-dependencies
     {lambda [entry [memory null]]
@@ -56,12 +46,8 @@
       (define mdname (gensym 'readme))
       (define scribble (find-executable-path "scribble"))
       (system (format "~a ++arg ~a --markdown --dest ~a --dest-name ~a ~a"
-                      (if scribble scribble
-                          (simplify-path (build-path (path-only (find-system-path 'exec-file))
-                                                     (path-only (find-system-path 'collects-dir))
-                                                     "bin/scribble")))
-                      (let ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) dentry)])
-                        (if village? (build-path rootdir (car village?)) rootdir))
+                      (if scribble scribble (simplify-path (build-path (path-only (find-system-path 'collects-dir)) "bin/scribble")))
+                      (let ([village? (regexp-match px.village dentry)]) (if village? (build-path rootdir (car village?)) rootdir))
                       hackdir mdname dentry))
       (make-parent-directory* target)
       (with-output-to-file (build-path (path-only target) "README.md") #:exists 'replace
@@ -101,7 +87,7 @@
                                 [(string? name) "Dc~a_r_w.png"])
                           name))
       (make-parent-directory* target)
-      (send (recv-image png) save-file target 'png)})
+      (send (wikimon-image png) save-file target 'png)})
   
   (define make-digifield
     {lambda [target emblem]
@@ -114,30 +100,30 @@
     {lambda [target dentry]
       (parameterize ([current-directory (path-only dentry)]
                      [current-namespace (make-empty-namespace)])
-        (define d-source (path->string (variable-reference->module-source #%digimon)))
-        (namespace-attach-module (variable-reference->namespace #%digimon) d-source)
+        (namespace-attach-module (namespace-anchor->namespace makefile) 'images/flomap)
+        (namespace-attach-module (namespace-anchor->namespace makefile) 'racket/draw)
+        (namespace-attach-module (namespace-anchor->namespace makefile) 'pict)
         (namespace-require 'racket)
         (define img (with-input-from-file dentry #:mode 'text
                       {thunk (read-language) ; Do nothing
                              (let repl ([last-result (void)])
-                               (define sexp (read))
-                               (cond [(eof-object? sexp) last-result]
-                                     [(and (symbol=? (first sexp) 'require)
-                                           (list? (cadr sexp)) (symbol=? (caadr sexp) 'file)
-                                           (regexp-match #px"d-ark.rkt$" (cadadr sexp))) (repl (eval `(require (file ,d-source))))]
-                                     [else (repl (eval sexp))]))}))
+                               (match (read)
+                                 [(? eof-object? sexp) last-result]
+                                 [{list 'require {list 'file {pregexp #px"d-ark.rkt$"}}} {begin (eval `(require (file ,(format "~adigimon.rkt" stnsdir))))
+                                                                                                (repl (eval `(wikimon-dir ,(wikimon-dir))))}]
+                                 [{var sexp} (repl (eval sexp))]))}))
         (make-parent-directory* target)
         (send (cond [(pict? img) (pict->bitmap img)] [(flomap? img) (flomap->bitmap img)] [else img]) save-file target 'png))})
   
   (define dist:digipngs: (append (hash-map kanas {lambda [kana romaji]
-                                                     (define t (build-path stnsdir (format "~a.png" kana)))
+                                                     (define t (build-path (wikimon-dir) (format "~a.png" kana)))
                                                      (list t null {thunk (make-digimoji t romaji)})})
                                    (for/list ([index (in-range (char->integer #\a) (add1 (char->integer #\z)))])
                                      (define letter (integer->char index))
-                                     (define t (build-path stnsdir (format "~a.png" letter)))
+                                     (define t (build-path (wikimon-dir) (format "~a.png" letter)))
                                      (list t null (curryr make-digimoji (~a (hash-ref alphabets letter letter)))))
                                    (hash-map fields {lambda [abbr emblem]
-                                                      (define t (build-path stnsdir (format "~a.png" abbr)))
+                                                      (define t (build-path (wikimon-dir) (format "~a.png" abbr)))
                                                       (list t null (curryr make-digifield emblem))})))
   
   (define mostly:readmes: (for/list ([readme.scrbl (in-directory stnsdir)]
