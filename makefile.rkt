@@ -108,6 +108,7 @@
                                                   (eval `(send ,?img save-file ,target 'png))}]
                      [{list 'require {list 'file {pregexp #px"d-ark.rkt$"}}} {begin (eval `(require (file ,(format "~adigimon.rkt" stnsdir))))
                                                                                     (repl (eval `(wikimon-dir ,(wikimon-dir))))}]
+                     [{list 'wikimon-dir whocares} (repl (eval `(wikimon-dir ,(wikimon-dir))))]
                      [{var sexp} (repl (eval sexp))]))}))})
   
   (define dist:digipngs: (append (hash-map kanas {lambda [kana romaji]

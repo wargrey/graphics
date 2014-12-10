@@ -4,9 +4,11 @@
 (require images/icons/misc)
 (require (only-in plot/utils color-seq*))
 
-;;; These two lines can fool makefile.rkt, which is the expected dependent file.
+;;; These two lines can fool makefile.rkt, which is the expected dependency.
 ;(require "../../digimon.rkt")
 (require (file "../../d-ark.rkt"))
+
+(wikimon-dir "../../wikimon")
 
 (plot-decorations? #false)
 
