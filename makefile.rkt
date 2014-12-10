@@ -23,6 +23,7 @@
   (define stnsdir (path-only (variable-reference->module-source #%digimon)))
   (define vllgdir (build-path rootdir "village"))
   (define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
+  (define px.village (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))))
 
   (rosetta-stone-dir stnsdir)
   
@@ -113,7 +114,8 @@
     {lambda [target dentry]
       (parameterize ([current-directory (path-only dentry)]
                      [current-namespace (make-empty-namespace)])
-        (namespace-attach-module (variable-reference->namespace #%digimon) (variable-reference->module-source #%digimon))
+        (define d-source (path->string (variable-reference->module-source #%digimon)))
+        (namespace-attach-module (variable-reference->namespace #%digimon) d-source)
         (namespace-require 'racket)
         (define img (with-input-from-file dentry #:mode 'text
                       {thunk (read-language) ; Do nothing
@@ -122,7 +124,7 @@
                                (cond [(eof-object? sexp) last-result]
                                      [(and (symbol=? (first sexp) 'require)
                                            (list? (cadr sexp)) (symbol=? (caadr sexp) 'file)
-                                           (regexp-match #px"d-ark.rkt$" (cadadr sexp))) (repl (eval `(require (file ,(path->string (variable-reference->module-source #%digimon))))))]
+                                           (regexp-match #px"d-ark.rkt$" (cadadr sexp))) (repl (eval `(require (file ,d-source))))]
                                      [else (repl (eval sexp))]))}))
         (make-parent-directory* target)
         (send (cond [(pict? img) (pict->bitmap img)] [(flomap? img) (flomap->bitmap img)] [else img]) save-file target 'png))})
@@ -142,13 +144,13 @@
                                      #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
                             (define t (build-path rootdir (find-relative-path stnsdir (build-path (path-only readme.scrbl) "README.md"))))
                             (define ds (append (smart-dependencies readme.scrbl) makefiles
-                                               (let* ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme.scrbl)]
+                                               (let* ([village? (regexp-match px.village readme.scrbl)]
                                                       [info.rkt (if village? (build-path rootdir (car village?) "info.rkt") (build-path rootdir "info.rkt"))])
                                                  (if (file-exists? info.rkt) (list info.rkt) null))))
                             (list t ds (curryr make-markdown readme.scrbl))))
   
   (define dist:images: (for/fold ([images null]) ([readme (in-list (map caadr mostly:readmes:))])
-                         (define village (let ([village? (regexp-match (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))) readme)]) (if village? (car village?) "")))
+                         (define village (let ([village? (regexp-match px.village readme)]) (if village? (car village?) "")))
                          (define stone (find-relative-path rootdir stnsdir))
                          (append images (map {lambda [image]
                                                (define t (build-path rootdir village stone image))
