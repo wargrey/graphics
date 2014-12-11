@@ -1,5 +1,5 @@
 #!/usr/bin/env racket
-#lang racket/load
+#lang racket
 
 (require make)
 
@@ -11,7 +11,7 @@
 (define make-always-run (make-parameter #false))
 (define make-just-touch (make-parameter #false))
 
-(module makefile racket
+{module makefile racket
   (require racket/draw)
   
   (require "island/stone/wikimon.rkt")
@@ -21,7 +21,7 @@
   (define-namespace-anchor makefile)
   (define #%wikimon (#%variable-reference wikimon-dir))
   (define makefiles (list (with-handlers ([exn:fail:contract? (const (build-path (current-directory) "makefile.rkt"))])
-                          (build-path (find-system-path 'orig-dir) (find-system-path 'run-file)))))
+                            (build-path (find-system-path 'orig-dir) (find-system-path 'run-file)))))
   (define rootdir (path-only (car makefiles)))
   (define stnsdir (path-only (variable-reference->module-source #%wikimon)))
   (define vllgdir (build-path rootdir "village"))
@@ -112,15 +112,15 @@
                      [{var sexp} (repl (eval sexp))]))}))})
   
   (define dist:digipngs: (append (hash-map kanas {lambda [kana romaji]
-                                                     (define t (build-path (wikimon-dir) (format "~a.png" kana)))
-                                                     (list t null {thunk (make-digimoji t romaji)})})
-                                   (for/list ([index (in-range (char->integer #\a) (add1 (char->integer #\z)))])
-                                     (define letter (integer->char index))
-                                     (define t (build-path (wikimon-dir) (format "~a.png" letter)))
-                                     (list t null (curryr make-digimoji (~a (hash-ref alphabets letter letter)))))
-                                   (hash-map fields {lambda [abbr emblem]
-                                                      (define t (build-path (wikimon-dir) (format "~a.png" abbr)))
-                                                      (list t null (curryr make-digifield emblem))})))
+                                                   (define t (build-path (wikimon-dir) (format "~a.png" kana)))
+                                                   (list t null {thunk (make-digimoji t romaji)})})
+                                 (for/list ([index (in-range (char->integer #\a) (add1 (char->integer #\z)))])
+                                   (define letter (integer->char index))
+                                   (define t (build-path (wikimon-dir) (format "~a.png" letter)))
+                                   (list t null (curryr make-digimoji (~a (hash-ref alphabets letter letter)))))
+                                 (hash-map fields {lambda [abbr emblem]
+                                                    (define t (build-path (wikimon-dir) (format "~a.png" abbr)))
+                                                    (list t null (curryr make-digifield emblem))})))
   
   (define mostly:readmes: (for/list ([readme.scrbl (in-directory stnsdir)]
                                      #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
@@ -139,103 +139,105 @@
                                                (define image.rkt (path-replace-suffix (build-path rootdir stone village image) #".rkt"))
                                                (define ds (append (smart-dependencies image.rkt) (map car dist:digipngs:)))
                                                (if (file-exists? image.rkt) (list t ds (curryr make-image image.rkt)) null)}
-                                             (map bytes->string/utf-8 (call-with-input-file readme (curry regexp-match* #px"(?<=~/).+?.png"))))))))
+                                             (map bytes->string/utf-8 (call-with-input-file readme (curry regexp-match* #px"(?<=~/).+?.png")))))))}
 
-(require 'makefile)
-
-(define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
-
-(define hack-target
-  {lambda [t]
-    (if (make-dry-run)
-        (build-path hackdir (find-relative-path rootdir t))
-        t)})
-
-(define make~default:
-  {lambda [unknown]
-    (if (regexp-match #px"^[+][+]" unknown)
-        (printf "make: I don't know how to make `~a`!~n" (substring unknown 2))
-        (printf "make: I don't know what does `~a` mean!~n" unknown))})
-
-(define make~ifdefined:
-  {lambda [fsymbols]
-    (for-each {lambda [make-install:] (make-install:)}
-              (filter {lambda [?] (and (procedure? ?) (procedure-arity-includes? ? 0))}
-                      (map (curryr namespace-variable-value #false (const #false)) fsymbols)))})
-
-(define make~clean:
-  {lambda [level]
-    (parameterize ([current-namespace (module->namespace ''makefile)])
-      (cond [(symbol? level) (for-each (compose1 make~clean: symbol->string) (reverse (member level '{maintainer dist clean mostly})))]
-            [else (for ([var (namespace-mapped-symbols)])
-                    (when (regexp-match? (pregexp (format "^~a:.+:$" level)) (symbol->string var))
-                      (for ([file (in-list (map (compose1 hack-target car) (namespace-variable-value var #false (const #false))))])
-                        (when (file-exists? file) (delete-file file))
-                        (printf "make: deleted ~a.~n" file))))]))})
-
-(define make~all:
-  {lambda [targets]
-    (parameterize ([current-namespace (module->namespace ''makefile)])
-      (file-or-directory-modify-seconds hackdir (current-seconds) {thunk (make-directory* hackdir)})
-      (define {hack-depends ds} (if (make-always-run) (cons hackdir ds) ds))
-      (define {hack-rule r}
-        (define t (hack-target (first r)))
-        (define f {thunk ((third r) t)})
-        (list t (hack-depends (second r))
-              (if (make-just-touch) {thunk (file-or-directory-modify-seconds t (current-seconds) f)} f)))
-      (define rules (map hack-rule (foldr append null (filter {lambda [val]
-                                                                (with-handlers ([exn? (const #false)])
-                                                                  (andmap {lambda [?] (and (andmap path-string? (cons (first ?) (second ?)))
-                                                                                           (procedure-arity-includes? (third ?) 1))} val))}
-                                                              (filter-map (compose1 (curryr namespace-variable-value #false) string->symbol second)
-                                                                          (filter-map (curry regexp-match #px"^\\s\\s.define\\s+(.+?:)\\s+")
-                                                                                      (with-input-from-file "makefile.rkt" port->lines)))))))
-      (make/proc (cons (list (car makefiles) null (const 'I-am-here-just-for-fun)) rules)
-                 (if (list? targets) (map hack-target targets) (map car rules))))})
-
-(command-line #:program (file-name-from-path (car makefiles))
-              #:argv (let*-values ([{options targets} (partition (curry regexp-match? #px"^[-+]")
-                                                                 (remove-duplicates (remove "--" (vector->list (current-command-line-arguments)))))]
-                                   [{files phonies} (partition filename-extension (if (null? targets) (list "all") targets))])
-                       (append options (map (curry string-append "++") phonies) (list "--") files))
-              #:usage-help "Be careful our conventions are not exactly the same as those of GNU Make."
-              #:help-labels
-              "[<option>s start with `++` are also <phony-target>s.]"
-              "[You are free to drop off the leading `++` when typing phony targets.]"
-              ; #:ps label can cause unknown exception, maybe it's a bug of Racket
-              #:once-each
-              [{"++all"} "Building the entire software without generating documentation. [default]"
-                         (make~all: 'all)]
-              [{"++install"} "Installing the software, then running test if testcases exist."
-                             (make~ifdefined: '{make~preinstall: make~install: make~postinstall: make~installcheck:})]
-              [{"++uninstall"} "Delete all the installed files and documentation."
-                               (make~ifdefined: '{make~preuninstall: make~uninstall: make~postuninstall:})]
-              [{"++mostlyclean"} "Delete all files except that people normally don't want to reconstruct."
-                                 (make~clean: 'mostly)]
-              [{"++clean"} "Delete all files except that records the configuration."
-                           (make~clean: 'clean)]
-              [{"++distclean"} "Delete all files that are not included in the distribution."
-                               (make~clean: 'dist)]
-              [{"++maintainer-clean"} "Delete all files that can be reconstructed. Just leave this one to maintainers."
-                                      (make~clean: 'maintainer)]
-              [{"++docs"} "Generating documentation."
-                          (make~ifdefined: '{make~docs:})]
-              [{"++dist"} "Creating a distribution file of the source files."
-                          (make~ifdefined: '{make~dist:})]
-              [{"++check"} "Performing self tests on the program this makefile builds before building."
-                           (make~ifdefined: '{make~check:})]
-              [{"++installcheck"} "Performing installation tests on the target system after installing."
-                                  (make~ifdefined: '{make~installcheck:})]
-              [{"-B" "--always-make"} "Unconditionally make all need-to-update targets."
-                                      (make-always-run #true)]
-              [{"-n" "--test" "--dry-run"} "Do not actually update targets, just make and display their resulting content."
-                                           (make-dry-run #true)]
-              [{"-t" "--touch"} "Touch targets instead of remaking them if the target already exists."
-                                (make-just-touch #true)]
-              [{"-v" "--verbose"} "Building with verbose messages."
-                                  (void (make-print-dep-no-line #true) (make-print-checking #true) (make-print-reasons #true))]
-              #:handlers
-              {lambda [non-void-flags . filenames] (make~all: (map {lambda [f] (if (relative-path? f) (build-path rootdir f) f)} filenames))}
-              (list "phony-target|file-path")
-              (compose1 exit (const 0) display (curryr string-replace #px"  -- : .+?-h --'." ""))
-              make~default:)
+{module+ main
+  (require (submod ".." makefile))
+  
+  (define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
+  (define #%makefile (#%variable-reference rootdir))
+  
+  (define hack-target
+    {lambda [t]
+      (if (make-dry-run)
+          (build-path hackdir (find-relative-path rootdir t))
+          t)})
+  
+  (define make~default:
+    {lambda [unknown]
+      (if (regexp-match #px"^[+][+]" unknown)
+          (printf "make: I don't know how to make `~a`!~n" (substring unknown 2))
+          (printf "make: I don't know what does `~a` mean!~n" unknown))})
+  
+  (define make~ifdefined:
+    {lambda [fsymbols]
+      (for-each {lambda [make-install:] (make-install:)}
+                (filter {lambda [?] (and (procedure? ?) (procedure-arity-includes? ? 0))}
+                        (map (curryr namespace-variable-value #false (const #false)) fsymbols)))})
+  
+  (define make~clean:
+    {lambda [level]
+      (parameterize ([current-namespace (variable-reference->namespace #%makefile)])
+        (cond [(symbol? level) (for-each (compose1 make~clean: symbol->string) (reverse (member level '{maintainer dist clean mostly})))]
+              [else (for ([var (namespace-mapped-symbols)])
+                      (when (regexp-match? (pregexp (format "^~a:.+:$" level)) (symbol->string var))
+                        (for ([file (in-list (map (compose1 hack-target car) (namespace-variable-value var #false (const #false))))])
+                          (when (file-exists? file) (delete-file file))
+                          (printf "make: deleted ~a.~n" file))))]))})
+  
+  (define make~all:
+    {lambda [targets]
+      (parameterize ([current-namespace (variable-reference->namespace #%makefile)])
+        (file-or-directory-modify-seconds hackdir (current-seconds) {thunk (make-directory* hackdir)})
+        (define {hack-depends ds} (if (make-always-run) (cons hackdir ds) ds))
+        (define {hack-rule r}
+          (define t (hack-target (first r)))
+          (define f {thunk ((third r) t)})
+          (list t (hack-depends (second r))
+                (if (make-just-touch) {thunk (file-or-directory-modify-seconds t (current-seconds) f)} f)))
+        (define rules (map hack-rule (foldr append null (filter {lambda [val]
+                                                                  (with-handlers ([exn? (const #false)])
+                                                                    (andmap {lambda [?] (and (andmap path-string? (cons (first ?) (second ?)))
+                                                                                             (procedure-arity-includes? (third ?) 1))} val))}
+                                                                (filter-map (compose1 (curryr namespace-variable-value #false) string->symbol second)
+                                                                            (filter-map (curry regexp-match #px"^\\s\\s.define\\s+(.+?:)\\s+")
+                                                                                        (with-input-from-file "makefile.rkt" port->lines)))))))
+        (make/proc (cons (list (car makefiles) null (const 'I-am-here-just-for-fun)) rules)
+                   (if (list? targets) (map hack-target targets) (map car rules))))})
+  
+  (command-line #:program (file-name-from-path (car makefiles))
+                #:argv (let*-values ([{options targets} (partition (curry regexp-match? #px"^[-+]")
+                                                                   (remove-duplicates (remove "--" (vector->list (current-command-line-arguments)))))]
+                                     [{files phonies} (partition filename-extension (if (null? targets) (list "all") targets))])
+                         (append options (map (curry string-append "++") phonies) (list "--") files))
+                #:usage-help 
+                "<option>s start with `++` are also <phony-target>s."
+                "You are free to drop off the leading `++` when typing phony targets."
+                #:help-labels " [Carefully our conventions are not exactly the same as those of GNU Make.]"
+                ; #:ps label can cause unknown exception, maybe it's a bug of Racket
+                #:once-each
+                [{"++all"} "Building the entire software without generating documentation. [default]"
+                           (make~all: 'all)]
+                [{"++install"} "Installing the software, then running test if testcases exist."
+                               (make~ifdefined: '{make~preinstall: make~install: make~postinstall: make~installcheck:})]
+                [{"++uninstall"} "Delete all the installed files and documentation."
+                                 (make~ifdefined: '{make~preuninstall: make~uninstall: make~postuninstall:})]
+                [{"++mostlyclean"} "Delete all files except that people normally don't want to reconstruct."
+                                   (make~clean: 'mostly)]
+                [{"++clean"} "Delete all files except that records the configuration."
+                             (make~clean: 'clean)]
+                [{"++distclean"} "Delete all files that are not included in the distribution."
+                                 (make~clean: 'dist)]
+                [{"++maintainer-clean"} "Delete all files that can be reconstructed. Just leave this one to maintainers."
+                                        (make~clean: 'maintainer)]
+                [{"++docs"} "Generating documentation."
+                            (make~ifdefined: '{make~docs:})]
+                [{"++dist"} "Creating a distribution file of the source files."
+                            (make~ifdefined: '{make~dist:})]
+                [{"++check"} "Performing self tests on the program this makefile builds before building."
+                             (make~ifdefined: '{make~check:})]
+                [{"++installcheck"} "Performing installation tests on the target system after installing."
+                                    (make~ifdefined: '{make~installcheck:})]
+                [{"-B" "--always-make"} "Unconditionally make all need-to-update targets."
+                                        (make-always-run #true)]
+                [{"-n" "--test" "--dry-run"} "Do not actually update targets, just make and display their resulting content."
+                                             (make-dry-run #true)]
+                [{"-t" "--touch"} "Touch targets instead of remaking them if the target already exists."
+                                  (make-just-touch #true)]
+                [{"-v" "--verbose"} "Building with verbose messages."
+                                    (void (make-print-dep-no-line #true) (make-print-checking #true) (make-print-reasons #true))]
+                #:handlers
+                {lambda [non-void-flags . filenames] (make~all: (map {lambda [f] (if (relative-path? f) (build-path rootdir f) f)} filenames))}
+                (list "phony-target|file-path")
+                (compose1 exit (const 0) display (curryr string-replace #px"  -- : .+?-h --'." ""))
+                make~default:)}
