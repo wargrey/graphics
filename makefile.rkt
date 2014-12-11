@@ -16,7 +16,7 @@
   
   (require "island/stone/wikimon.rkt")
   
-  (provide makefiles rootdir stnsdir hackdir)
+  (provide makefiles rootdir stnsdir)
   
   (define-namespace-anchor makefile)
   (define #%wikimon (#%variable-reference wikimon-dir))
@@ -142,6 +142,8 @@
                                              (map bytes->string/utf-8 (call-with-input-file readme (curry regexp-match* #px"(?<=~/).+?.png"))))))))
 
 (require 'makefile)
+
+(define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
 
 (define hack-target
   {lambda [t]
