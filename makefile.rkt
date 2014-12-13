@@ -146,6 +146,7 @@
   
   (define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
   (define #%makefile (#%variable-reference rootdir))
+  (current-namespace (variable-reference->namespace #%makefile))
   
   (define hack-target
     {lambda [t]
@@ -153,11 +154,25 @@
           (build-path hackdir (find-relative-path rootdir t))
           t)})
   
+  (define hack-depends
+    {lambda [ds]
+      (if (make-always-run)
+          (cons hackdir ds)
+          ds)})
+  
+  (define hack-rule
+    {lambda [r]
+      (define t (hack-target (first r)))
+      (define f {thunk ((third r) t)})
+      (list t (hack-depends (second r))
+            (if (make-just-touch) {thunk (file-or-directory-modify-seconds t (current-seconds) f)} f))})
+  
   (define make~default:
     {lambda [unknown]
       (if (regexp-match #px"^[+][+]" unknown)
           (printf "make: I don't know how to make `~a`!~n" (substring unknown 2))
-          (printf "make: I don't know what does `~a` mean!~n" unknown))})
+          (printf "make: I don't know what does `~a` mean!~n" unknown))
+      (exit 1)})
   
   (define make~ifdefined:
     {lambda [fsymbols]
@@ -167,37 +182,34 @@
   
   (define make~clean:
     {lambda [level]
-      (parameterize ([current-namespace (variable-reference->namespace #%makefile)])
-        (cond [(symbol? level) (for-each (compose1 make~clean: symbol->string) (reverse (member level '{maintainer dist clean mostly})))]
-              [else (for ([var (namespace-mapped-symbols)])
-                      (when (regexp-match? (pregexp (format "^~a:.+:$" level)) (symbol->string var))
-                        (for ([file (in-list (map (compose1 hack-target car) (namespace-variable-value var #false (const #false))))])
-                          (when (file-exists? file) (delete-file file))
-                          (printf "make: deleted ~a.~n" file))))]))})
+      (cond [(symbol? level) (for-each (compose1 make~clean: symbol->string) (reverse (member level '{maintainer dist clean mostly})))]
+            [else (for ([var (namespace-mapped-symbols)])
+                    (when (regexp-match? (pregexp (format "^~a:.+:$" level)) (symbol->string var))
+                      (for ([file (in-list (map (compose1 hack-target car) (namespace-variable-value var #false (const #false))))])
+                        (when (file-exists? file) (delete-file file))
+                        (printf "make: deleted ~a.~n" file))))])})
   
   (define make~all:
     {lambda [targets]
-      (parameterize ([current-namespace (variable-reference->namespace #%makefile)])
-        (file-or-directory-modify-seconds hackdir (current-seconds) {thunk (make-directory* hackdir)})
-        (define {hack-depends ds} (if (make-always-run) (cons hackdir ds) ds))
-        (define {hack-rule r}
-          (define t (hack-target (first r)))
-          (define f {thunk ((third r) t)})
-          (list t (hack-depends (second r))
-                (if (make-just-touch) {thunk (file-or-directory-modify-seconds t (current-seconds) f)} f)))
-        (define rules (map hack-rule (foldr append null (filter {lambda [val]
-                                                                  (with-handlers ([exn? (const #false)])
-                                                                    (andmap {lambda [?] (and (andmap path-string? (cons (first ?) (second ?)))
-                                                                                             (procedure-arity-includes? (third ?) 1))} val))}
-                                                                (filter-map (compose1 (curryr namespace-variable-value #false) string->symbol second)
-                                                                            (filter-map (curry regexp-match #px"^\\s\\s.define\\s+(.+?:)\\s+")
-                                                                                        (with-input-from-file "makefile.rkt" port->lines)))))))
-        (make/proc (cons (list (car makefiles) null (const 'I-am-here-just-for-fun)) rules)
-                   (if (list? targets) (map hack-target targets) (map car rules))))})
+      (file-or-directory-modify-seconds hackdir (current-seconds) {thunk (make-directory* hackdir)})
+      (define rules (map hack-rule (foldr append null (filter {lambda [val]
+                                                                (with-handlers ([exn? (const #false)])
+                                                                  (andmap {lambda [?] (and (andmap path-string? (cons (first ?) (second ?)))
+                                                                                           (procedure-arity-includes? (third ?) 1))} val))}
+                                                              (filter-map (compose1 (curryr namespace-variable-value #false) string->symbol second)
+                                                                          (filter-map (curry regexp-match #px"^\\s\\s.define\\s+(.+?:)\\s+")
+                                                                                      (with-input-from-file (car makefiles) port->lines)))))))
+      (make/proc (cons (list (car makefiles) null (const 'I-am-here-just-for-fun)) rules)
+                 (if (list? targets) (map hack-target targets) (map car rules)))})
   
   (command-line #:program (file-name-from-path (car makefiles))
-                #:argv (let*-values ([{options targets} (partition (curry regexp-match? #px"^[-+]")
-                                                                   (remove-duplicates (remove "--" (vector->list (current-command-line-arguments)))))]
+                #:argv (let*-values ([{argv0} (remove-duplicates (remove "--" (vector->list (current-command-line-arguments))))]
+                                     [{options} (let fopt ([argv argv0])
+                                                  (match argv
+                                                    [{? null?} null]
+                                                    [{list-rest {pregexp #px"^[^-+]"} targets} null]
+                                                    [{list-rest {pregexp #px"^[-+]"} argvn} (cons (car argv) (fopt argvn))]))]
+                                     [{targets} (remove* options argv0)]
                                      [{files phonies} (partition filename-extension (if (null? targets) (list "all") targets))])
                          (append options (map (curry string-append "++") phonies) (list "--") files))
                 #:usage-help 
@@ -232,12 +244,14 @@
                                         (make-always-run #true)]
                 [{"-n" "--test" "--dry-run"} "Do not actually update targets, just make and display their resulting content."
                                              (make-dry-run #true)]
+                [{"-s" "--silent" "--quiet"} "Just run commands but output nothing."
+                                             (current-output-port (open-output-nowhere '/dev/null #true))]
                 [{"-t" "--touch"} "Touch targets instead of remaking them if the target already exists."
                                   (make-just-touch #true)]
                 [{"-v" "--verbose"} "Building with verbose messages."
                                     (void (make-print-dep-no-line #true) (make-print-checking #true) (make-print-reasons #true))]
                 #:handlers
-                {lambda [non-void-flags . filenames] (make~all: (map {lambda [f] (if (relative-path? f) (build-path rootdir f) f)} filenames))}
+                {lambda [!voids . fns] (unless (null? fns) (make~all: (map {lambda [f] (if (relative-path? f) (build-path rootdir f) f)} fns)))}
                 (list "phony-target|file-path")
                 (compose1 exit (const 0) display (curryr string-replace #px"  -- : .+?-h --'." ""))
                 make~default:)}
