@@ -36,7 +36,8 @@ within **island**, **tamer**, and so on.
   `libraries` or `frameworks`.
 * **island** is the living environment of _digimons_. Namely it works
   like `share` or `collection`.
-  - _nature_ defines _digimons_' look and feel.
+  - _board_ writes the task instructions that a _digimon_ should
+  follow. Sounds like `etc` for configuration files.
   - _stone_ stores the ancient sources to be translated.
 * **d-ark** is the interface for users to talk with _digimons_. Namely
   it works like `bin`.
