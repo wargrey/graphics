@@ -28,7 +28,7 @@ Island_, but we own some concepts from the _Digimon Series_.
 **Note** Project or Subprojects are organized as the _digimons_ within
 **village**. Each project may be separated into several repositories
 within **island**, **tamer**, and so on.
-* **The Book Project** is a mystery that sets up all essentials of the
+* **The Root Directory** is a mystery that sets up all essentials of the
   world.
 * **village** is the birth place of _digimons_. Namely it works like
   `src`.
@@ -39,8 +39,8 @@ within **island**, **tamer**, and so on.
   - _board_ writes the task instructions that a _digimon_ should
   follow. Sounds like `etc` for configuration files.
   - _stone_ stores the ancient sources to be translated.
-* **d-ark** is the interface for users to talk with _digimons_. Namely
-  it works like `bin`.
+* **digivice** is the interface for users to talk with _digimons_.
+  Namely it works like `bin`.
 * **tamer** is the interface for developers to train the _digimons_.
   Namely it works like `test`.
 
