@@ -1,12 +1,11 @@
 # Digital World
 
-## The Book Project
+## DigiGnome
 
-This, the project of subprojects, is the Extra Dimensional Space built
-for developers to set up all essentials. **Namely all subprojects can
-and should be built on their own.**
+This project itself is built for developers to set up all essentials.
+**Namely all subprojects can and should be built on their own.**
 
-### The **D-ark** Scripts
+### The **Digivice** Scripts
 * [**prerequisites.sh**](prerequisites.sh): Build the latest Racket and
   Swi-Prolog from offical source.
 * [**makefile.rkt**](makefile.rkt): As its name shows, it is the
@@ -28,8 +27,6 @@ Island_, but we own some concepts from the _Digimon Series_.
 **Note** Project or Subprojects are organized as the _digimons_ within
 **village**. Each project may be separated into several repositories
 within **island**, **tamer**, and so on.
-* **The Root Directory** is a mystery that sets up all essentials of the
-  world.
 * **village** is the birth place of _digimons_. Namely it works like
   `src`.
 * **digitama** is the egg of _digimons_. Namely it works like

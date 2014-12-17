@@ -8,7 +8,7 @@
 @(info-ref 'pkg-desc)
 @bold{Namely all subprojects can and should be built on their own.}
 
-@subsection{The @bold{D-ark} Scripts}
+@subsection{The @bold{Digivice} Scripts}
 @(itemlist @item{[@bold{prerequisites.sh}](prerequisites.sh): Build the latest Racket and Swi-Prolog from offical source.}
            @item{[@bold{makefile.rkt}](makefile.rkt): As its name shows, it is the alternative to Makefile.})
 

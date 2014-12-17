@@ -1,9 +1,9 @@
 #lang info
 
-(define collection "The Book Project")
+(define collection "DigiGnome")
 
 (define version "Baby I")
 
-(define build-deps '{"scribble-lib"})
+(define build-deps '{"base" "at-exp-lib" "scribble-lib"})
 
-(define pkg-desc "This, the project of subprojects, is the Extra Dimensional Space built for developers to set up all essentials.")
+(define pkg-desc "This project itself is built for developers to set up all essentials.")

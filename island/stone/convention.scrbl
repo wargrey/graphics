@@ -9,8 +9,7 @@ How to build a @italic{Digital World}? Okay, we don@literal{'}t start with the @
 @bold{Note} Project or Subprojects are organized as the @italic{digimons} within @bold{village}. 
 Each project may be separated into several repositories within @bold{island}, @bold{tamer}, and so on. 
 
-@(itemlist @item{@bold{The Root Directory} is a mystery that sets up all essentials of the world.}
-           @item{@bold{village} is the birth place of @italic{digimons}. Namely it works like @tt{src}.}
+@(itemlist @item{@bold{village} is the birth place of @italic{digimons}. Namely it works like @tt{src}.}
            @item{@bold{digitama} is the egg of @italic{digimons}. Namely it works like @tt{libraries} or @tt{frameworks}.}
            @item{@bold{island} is the living environment of @italic{digimons}. Namely it works like @tt{share} or @tt{collection}.}
            @item{>  >@italic{board} writes the task instructions that a @italic{digimon} should follow. Sounds like @tt{etc} for configuration files.}
