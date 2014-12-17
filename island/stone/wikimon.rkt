@@ -43,16 +43,18 @@
     (define metainfo (map bytes->string/utf-8
                           (cdr (regexp-match (pregexp (string-append "⇨ English.+?<br\\s*/?>(.+?)\\s*</td>\\s*</tr>"
                                                                      ".+?<img alt=.([ァ-ー]+). src=.(/images/.+?jpg)"
-                                                                     ".+?レベル(.+?)型（タイプ）(.+?)属性(.+?)List of Digimon"
+                                                                     "(.+?)List of Digimon"
                                                                      ".+?Attack Techniques</span></h1>(.+?)<h1>"))
                                              (third (wikimon-recv! (string-append "/" namemon)))))))
+    (define basicinfo (string-split (fourth metainfo) #px"レベル|型（タイプ）|属性|フィールド|グループ"))
+    (define take-info {lambda [i] (if (< i (length basicinfo)) (list-ref basicinfo i) "")})
     (list namemon
           (second metainfo)
           (third metainfo)
-          (regexp-match* pxjp (fourth metainfo))
-          (regexp-match* pxjp (fifth metainfo))
-          (regexp-match* #px"ワクチン|データ|ウィルス|フリー|バリアブル|ヴァリアブル|不明" (sixth metainfo))
-          (regexp-match* #px"[Ａ-Ｚ]{2}[ａ-ｚ]?" (sixth metainfo))
-          (regexp-match* #px"四聖獣|十二神将|ロイヤルナイツ|七大魔王|三大天使|オリンポス十二神|四大竜|十闘士|クラックチーム|D-ブリガード|「BAN-TYO」|三銃士|ビッグデスターズ" (sixth metainfo))
+          (regexp-match* pxjp (take-info 1))
+          (regexp-match* pxjp (take-info 2))
+          (regexp-match* #px"ワクチン|データ|ウィルス|フリー|バリアブル|ヴァリアブル|不明" (take-info 3))
+          (regexp-match* #px"[Ａ-Ｚ]{2}[ａ-ｚ]?" (take-info 4))
+          (regexp-match* #px"四聖獣|十二神将|ロイヤルナイツ|七大魔王|三大天使|オリンポス十二神|四大竜|十闘士|クラックチーム|D-ブリガード|「BAN-TYO」|三銃士|ビッグデスターズ" (take-info 5))
           (regexp-replace* #px"</?font.*?>" (first metainfo) "")
-          (regexp-match* pxjp (seventh metainfo)))})
+          (regexp-match* pxjp (fifth metainfo)))})
