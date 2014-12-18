@@ -4,7 +4,12 @@
 (require images/icons/misc)
 (require (only-in plot/utils color-seq*))
 
-(require "../../digimon.rkt")
+;;; These two lines can fool makefile.rkt, which is the expected dependency.
+;(require "../../../../village/sakuyamon/digitama/digimon.rkt")
+(require (file "../../d-ark.rkt"))
+
+;;; This line is fixed automatically when building.
+(wikimon-dir "../../wikimon")
 
 (plot-decorations? #false)
 
@@ -49,11 +54,9 @@
     (define watermark (vr-append (fdigimoji "wargrey" metal-icon-color) (rotate hbar (/ pi 2))))
     (rb-superimpose (rt-superimpose (lb-superimpose (blank (plot-width) (plot-height)) body) head) watermark)})
 
-(define sakuyamon (let ([sakuya (recv-digimon 'Sakuyamon)])
-                    (cond [(digimon? sakuya) (let* ([figure (digimon-ark sakuya #:lightness 0.64 #:rallies rallies)]
-                                                    [background (miko-mode sakuya)]
-                                                    [foreground (profile sakuya)])
-                                               (cc-superimpose background foreground figure))]
-                          [else sakuya])))
-
-sakuyamon
+(let ([sakuya (recv-digimon 'Sakuyamon)])
+  (cond [(digimon? sakuya) (let* ([figure (digimon-ark sakuya #:lightness 0.64 #:rallies rallies)]
+                                  [background (miko-mode sakuya)]
+                                  [foreground (profile sakuya)])
+                             (cc-superimpose background foreground figure))]
+        [else sakuya]))

@@ -14,7 +14,7 @@
 {module makefile racket
   (require racket/draw)
   
-  (require "island/stone/wikimon.rkt")
+  (require "village/sakuyamon/digitama/wikimon.rkt")
   
   (provide makefiles rootdir stnsdir)
   
@@ -23,10 +23,11 @@
   (define makefiles (list (with-handlers ([exn:fail:contract? (const (build-path (current-directory) "makefile.rkt"))])
                             (build-path (find-system-path 'orig-dir) (find-system-path 'run-file)))))
   (define rootdir (path-only (car makefiles)))
-  (define stnsdir (path-only (variable-reference->module-source #%wikimon)))
+  (define stnsdir (build-path rootdir "island" "stone"))
   (define vllgdir (build-path rootdir "village"))
   (define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
   (define px.village (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))))
+  (define digimon.rkt (build-path (path-only (variable-reference->module-source #%wikimon)) "digimon.rkt"))
   
   (wikimon-dir (build-path stnsdir (wikimon-dir)))
   
@@ -106,7 +107,7 @@
                    (match (read)
                      [(? eof-object? sexp) {begin (eval `(make-parent-directory* ,target))
                                                   (eval `(send ,?img save-file ,target 'png))}]
-                     [{list 'require {list 'file {pregexp #px"d-ark.rkt$"}}} {begin (eval `(require (file ,(format "~adigimon.rkt" stnsdir))))
+                     [{list 'require {list 'file {pregexp #px"d-ark.rkt$"}}} {begin (eval `(require (file ,(path->string digimon.rkt))))
                                                                                     (repl (eval `(wikimon-dir ,(wikimon-dir))))}]
                      [{list 'wikimon-dir whocares} (repl (eval `(wikimon-dir ,(wikimon-dir))))]
                      [{var sexp} (repl (eval sexp))]))}))})
