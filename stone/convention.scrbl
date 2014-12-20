@@ -14,12 +14,12 @@ How to build a @italic{Digital World}? Okay, we don@literal{'}t start with the @
            @item{@bold{tamer} is the interface for developers to train the @italic{digimons}. Namely it works like @tt{test}.}
            @item{@bold{island} manages guilds of @italic{digimons}. Hmm... Sounds weird, nonetheless, try @tt{htdocs} or @tt{webroot}:stuck_out_tongue_winking_eye:.}
            @item{@bold{board} stores the configuration instructions that a @italic{digimon} should follow. Sounds like @tt{etc}.}
-           @item{@bold{stone} stores the immutable meta-information or ancient sources to be translated. Yes, it@literal{'} the @italic{Rosetta Stone}.})
+           @item{@bold{stone} stores immutable meta-information or ancient sources to be translated. Yes, it@literal{'}s the @italic{Rosetta Stone}.})
 
 @section{Version}
 Obviousely, our @italic{digimons} have their own life cycle.
 
 @(let ([smart-stage (curry smart-radiobox (car (regexp-match #px"[^-]+" (info-ref 'version))))])
-   @(itemlist @smart-stage["Baby I"]{The 1st stage of @italic{digimon evolution} hatching straighty from her @italic{digitama}. Namely it@literal{'}s the @tt{Alpha Version}.}
+   @(itemlist @smart-stage["Baby I"]{The 1st stage of @italic{digimon evolution} hatching straightly from her @italic{digitama}. Namely it@literal{'}s the @tt{Alpha Version}.}
               @smart-stage["Baby II"]{The 2nd stage of @italic{digimon evolution} evolving quickly from @bold{Baby I}. Namely it@literal{'}s the @tt{Beta Version}.}
               @smart-stage["Child"]{The 3rd stage of @italic{digimon evolution} evolving from @bold{Baby II}. At the time @italic{digimons} are strong enough to live on their own.}))

@@ -39,13 +39,13 @@ each of them may be separated into several repositories.
   `webroot`:stuck\_out\_tongue\_winking\_eye:.
 * **board** stores the configuration instructions that a _digimon_
   should follow. Sounds like `etc`.
-* **stone** stores the immutable meta-information or ancient sources to
-  be translated. Yes, it' the _Rosetta Stone_.
+* **stone** stores immutable meta-information or ancient sources to be
+  translated. Yes, it's the _Rosetta Stone_.
 
 ### Version
 
 Obviousely, our _digimons_ have their own life cycle.
-* **Baby I**: The 1st stage of _digimon evolution_ hatching straighty
+* **Baby I**: The 1st stage of _digimon evolution_ hatching straightly
   from her _digitama_. Namely it's the `Alpha Version`.
 * [ ] **Baby II**: The 2nd stage of _digimon evolution_ evolving quickly
   from **Baby I**. Namely it's the `Beta Version`.
