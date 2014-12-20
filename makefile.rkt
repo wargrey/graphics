@@ -23,7 +23,7 @@
   (define makefiles (list (with-handlers ([exn:fail:contract? (const (build-path (current-directory) "makefile.rkt"))])
                             (build-path (find-system-path 'orig-dir) (find-system-path 'run-file)))))
   (define rootdir (path-only (car makefiles)))
-  (define stnsdir (build-path rootdir "island" "stone"))
+  (define stnsdir (build-path rootdir "stone"))
   (define vllgdir (build-path rootdir "village"))
   (define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
   (define px.village (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))))

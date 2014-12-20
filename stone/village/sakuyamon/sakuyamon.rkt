@@ -5,7 +5,7 @@
 (require (only-in plot/utils color-seq*))
 
 ;;; These two lines can fool makefile.rkt, which is the expected dependency.
-;(require "../../../../village/sakuyamon/digitama/digimon.rkt")
+;(require "../../../village/sakuyamon/digitama/digimon.rkt")
 (require (file "../../d-ark.rkt"))
 
 ;;; This line is fixed automatically when building.
@@ -32,7 +32,7 @@
 (define miko-mode
   {lambda [sakuyamon]
     (define figure 'Sakuyamon_miko.jpg)
-    (digimon-ark (struct-copy digimon sakuyamon [figure (cons figure (bitmap->flomap (recv-image figure)))])
+    (digimon-ark (struct-copy digimon sakuyamon [figure (cons figure (bitmap->flomap (wikimon-image figure)))])
                  #:lightness 0.85 #:rallies (list (cons 111 150) (cons 124 161) (cons 125 160) (cons 127 160)))})
 
 (define profile

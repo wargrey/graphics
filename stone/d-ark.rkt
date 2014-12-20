@@ -1,9 +1,9 @@
 #lang at-exp racket/gui
 
-(require (except-in "../../village/sakuyamon/digitama/digimon.rkt" digimon-ark))
+(require (except-in "../village/sakuyamon/digitama/digimon.rkt" digimon-ark))
 
 (provide digimon-ark)
-(provide (all-from-out "../../village/sakuyamon/digitama/digimon.rkt"))
+(provide (all-from-out "../village/sakuyamon/digitama/digimon.rkt"))
 
 (define digimon-ark
   {lambda [monster #:lightness [threshold 0.64] #:rallies [rallies0 null] #:close [close? 0]]

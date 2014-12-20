@@ -24,9 +24,8 @@ Island_, but we own some concepts from the _Digimon Series_.
 
 ### Hierarchy
 
-**Note** Project or Subprojects are organized as the _digimons_ within
-**village**. Each project may be separated into several repositories
-within **island**, **tamer**, and so on.
+**Note** Project or Subprojects are organized as the _digimons_, and
+each of them may be separated into several repositories.
 * **village** is the birth place of _digimons_. Namely it works like
   `src`.
 * **digitama** is the egg of _digimons_. Namely it works like
@@ -35,15 +34,13 @@ within **island**, **tamer**, and so on.
   Namely it works like `bin`.
 * **tamer** is the interface for developers to train the _digimons_.
   Namely it works like `test`.
-* **island** is the living environment of _digimons_. Namely it works
-  like `share` or `collection`.
-  - **_guild_** manages societies of _digimons_ and _human beings_.
-  Hmm... Sounds weird, nonetheless, try `htdocs` or
+* **island** manages guilds of _digimons_. Hmm... Sounds weird,
+  nonetheless, try `htdocs` or
   `webroot`:stuck\_out\_tongue\_winking\_eye:.
-  - **_board_** stores the configuration instructions that a _digimon_
+* **board** stores the configuration instructions that a _digimon_
   should follow. Sounds like `etc`.
-  - **_stone_** stores the immutable meta-information or ancient
-  sources to be translated. Yes, it' the _Rosetta Stone_.
+* **stone** stores the immutable meta-information or ancient sources to
+  be translated. Yes, it' the _Rosetta Stone_.
 
 ### Version
 
