@@ -31,15 +31,21 @@ within **island**, **tamer**, and so on.
   `src`.
 * **digitama** is the egg of _digimons_. Namely it works like
   `libraries` or `frameworks`.
-* **island** is the living environment of _digimons_. Namely it works
-  like `share` or `collection`.
-  - _board_ writes the task instructions that a _digimon_ should
-  follow. Sounds like `etc` for configuration files.
-  - _stone_ stores the ancient sources to be translated.
 * **digivice** is the interface for users to talk with _digimons_.
   Namely it works like `bin`.
 * **tamer** is the interface for developers to train the _digimons_.
   Namely it works like `test`.
+* **island** is the living environment of _digimons_. Namely it works
+  like `share` or `collection`.
+  - **_zone_** manages **subislands**. Thus they share following
+  conventions either.
+  - **_guild_** manages societies of _digimons_ and _human beings_.
+  Hmm... Sounds weird, nonetheless, try `htdocs` or
+  `webroot`:stuck\_out\_tongue\_winking\_eye:.
+  - **_board_** stores the configuration instructions that a _digimon_
+  should follow. Sounds like `etc`.
+  - **_stone_** stores the immutable meta-information or ancient
+  sources to be translated. Yes, it' the _Rosetta Stone_.
 
 ### Version
 
