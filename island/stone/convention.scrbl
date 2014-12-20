@@ -14,7 +14,6 @@ Each project may be separated into several repositories within @bold{island}, @b
            @item{@bold{digivice} is the interface for users to talk with @italic{digimons}. Namely it works like @tt{bin}.}
            @item{@bold{tamer} is the interface for developers to train the @italic{digimons}. Namely it works like @tt{test}.}
            @item{@bold{island} is the living environment of @italic{digimons}. Namely it works like @tt{share} or @tt{collection}.}
-           @item{>  >@bold{@italic{zone}} manages @bold{subislands}. Thus they share following conventions either.}
            @item{>  >@bold{@italic{guild}} manages societies of @italic{digimons} and @italic{human beings}. Hmm... Sounds weird, nonetheless, try @tt{htdocs} or @tt{webroot}:stuck_out_tongue_winking_eye:.}
            @item{>  >@bold{@italic{board}} stores the configuration instructions that a @italic{digimon} should follow. Sounds like @tt{etc}.}
            @item{>  >@bold{@italic{stone}} stores the immutable meta-information or ancient sources to be translated. Yes, it@literal{'} the @italic{Rosetta Stone}.})

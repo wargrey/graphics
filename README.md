@@ -37,8 +37,6 @@ within **island**, **tamer**, and so on.
   Namely it works like `test`.
 * **island** is the living environment of _digimons_. Namely it works
   like `share` or `collection`.
-  - **_zone_** manages **subislands**. Thus they share following
-  conventions either.
   - **_guild_** manages societies of _digimons_ and _human beings_.
   Hmm... Sounds weird, nonetheless, try `htdocs` or
   `webroot`:stuck\_out\_tongue\_winking\_eye:.
