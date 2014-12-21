@@ -19,15 +19,15 @@
   (provide makefiles rootdir stnsdir)
   
   (define-namespace-anchor makefile)
-  (define #%wikimon (#%variable-reference wikimon-dir))
   (define makefiles (list (with-handlers ([exn:fail:contract? (const (build-path (current-directory) "makefile.rkt"))])
                             (build-path (find-system-path 'orig-dir) (find-system-path 'run-file)))))
   (define rootdir (path-only (car makefiles)))
   (define stnsdir (build-path rootdir "stone"))
+  (define dgtmdir (build-path rootdir "digitama"))
   (define vllgdir (build-path rootdir "village"))
   (define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
   (define px.village (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))))
-  (define digimon.rkt (build-path (path-only (variable-reference->module-source #%wikimon)) "digimon.rkt"))
+  (define digimon.rkt (build-path dgtmdir "digimon.rkt"))
   
   (define smart-dependencies
     {lambda [entry [memory null]]
@@ -42,11 +42,12 @@
   (define make-markdown
     {lambda [target dentry]
       (define mdname (gensym 'readme))
-      (define scribble (find-executable-path "scribble"))
-      (system (format "~a ++arg ~a --markdown --dest ~a --dest-name ~a ~a"
-                      (if scribble scribble (simplify-path (build-path (path-only (find-system-path 'collects-dir)) "bin/scribble")))
-                      (let ([village? (regexp-match px.village dentry)]) (if village? (build-path rootdir (car village?)) rootdir))
-                      hackdir mdname dentry))
+      (parameterize ([current-directory (let ([village? (regexp-match px.village dentry)]) (if village? (build-path rootdir (car village?)) rootdir))]
+                     [current-namespace (make-base-namespace)])
+        (namespace-require 'scribble/render)
+        (eval '(require (prefix-in markdown: scribble/markdown-render)))
+        (eval `(render (list ,(dynamic-require dentry 'doc)) (list ,(symbol->string mdname))
+                #:dest-dir ,hackdir #:render-mixin markdown:render-mixin #:quiet? #false)))
       (make-parent-directory* target)
       (with-output-to-file (build-path (path-only target) "README.md") #:exists 'replace
         {thunk (define awkout (current-thread))

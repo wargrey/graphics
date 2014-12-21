@@ -1,12 +1,11 @@
-#lang at-exp racket
+#lang at-exp racket/base
 
 (require scribble/base)
 (require setup/getinfo)
 
 (provide (all-defined-out))
-(provide (all-from-out racket))
 
-(define info-ref (get-info/full (vector-ref (current-command-line-arguments) 0)))
+(define info-ref (get-info/full (current-directory)))
 
 (define smart-radiobox
   {lambda [selected stage . desc]

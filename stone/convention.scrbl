@@ -1,5 +1,7 @@
 #lang scribble/base
 
+@(require racket/function)
+
 @(require "scribble.rkt")
 
 @title{Project Conventions}
