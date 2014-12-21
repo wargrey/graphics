@@ -80,13 +80,12 @@
       (define metainfo (wikimon-reference diginame))
       (digimon (first metainfo)
                (second metainfo)
-               (cond [(false? filename) (cons (third metainfo) (bitmap->flomap (make-object bitmap% (third (wikimon-recv! (third metainfo))))))]
-                     [else (cons filename (bitmap->flomap (wikimon-image filename)))])
+               (let ([fn (if (false? filename) (third metainfo) filename)]) (cons fn (bitmap->flomap (wikimon-image fn))))
                (fourth metainfo)
                (fifth metainfo)
                (sixth metainfo)
                (filter-map {lambda [f] (let* ([field (list->string (for/list ([fc (in-string f)]) (integer->char (- (char->integer fc) #xFEE0))))]
-                                              [png (format "~a/~a.png" (wikimon-dir) field)])
+                                              [png (format "~a/~a.png" wikimon-dir field)])
                                          (if (file-exists? png) (cons field (bitmap->flomap (make-object bitmap% png 'png/alpha))) #false))}
                            (seventh metainfo))
                (eighth metainfo)
@@ -132,7 +131,7 @@
                          [else moji0]))
       (if (list? moji) (append moji mojin) (cons moji mojin)))
     (for/fold ([dgmj #false]) ([moji (in-list (foldr translate null (string->list (~a content))))])
-      (define fmoji (format "~a/~a.png" (wikimon-dir) (if (box? moji) (unbox moji) moji)))
+      (define fmoji (format "~a/~a.png" wikimon-dir (if (box? moji) (unbox moji) moji)))
       (define pmoji (cond [(file-exists? fmoji) (let*-values ([{flng} (flomap-trim (bitmap->flomap (make-object bitmap% fmoji 'png/alpha)))]
                                                               [{width0 height0} (flomap-size flng)]
                                                               [{scale%} (if (box? moji) 3/5 (/ (- size 2) (max width0 height0)))])

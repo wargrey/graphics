@@ -1,8 +1,11 @@
-#lang at-exp racket
+#lang racket/base
 
 (require net/http-client)
 
+(require racket/list)
 (require racket/draw)
+(require racket/class)
+(require racket/string)
 (require racket/runtime-path)
 
 (provide (all-defined-out))
@@ -33,13 +36,15 @@
 
 (define wikimon-image
   {lambda [filename]
-    (define rfile (format "/File:~a" filename))
-    (define pxpng (pregexp (format "(?<=href..)/images[^>]+~a(?=.>)" filename)))
-    (make-object bitmap% (third (wikimon-recv! (car (regexp-match* pxpng (third (wikimon-recv! rfile)))))) 'unknown/alpha)})
+    (define image-uri (cond [(regexp-match? #px"^/" (format "~a" filename)) (format "~a" filename)]
+                            [else (let ([rfile (format "/File:~a" filename)]
+                                        [pxpng (pregexp (format "(?<=href..)/images[^>]+~a(?=.>)" filename))])
+                                    (car (regexp-match* pxpng (third (wikimon-recv! rfile)))))]))
+    (make-object bitmap% (third (wikimon-recv! image-uri)) 'unknown/alpha)})
 
 (define wikimon-reference
   {lambda [diginame]
-    (define namemon (string-titlecase (~a diginame)))
+    (define namemon (string-titlecase (format "~a" diginame)))
     (define pxjp #px"[ぁ-ゖ゠-ヿ㐀-䶵一-鿋豈-頻（）]+")
     (define metainfo (map bytes->string/utf-8
                           (cdr (regexp-match (pregexp (string-append "⇨ English.+?<br\\s*/?>(.+?)\\s*</td>\\s*</tr>"
