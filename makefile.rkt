@@ -14,7 +14,7 @@
 {module makefile racket
   (require racket/draw)
   
-  (require "village/sakuyamon/digitama/wikimon.rkt")
+  (require "digitama/wikimon.rkt")
   
   (provide makefiles rootdir stnsdir)
   
@@ -29,14 +29,13 @@
   (define px.village (pregexp (format "(?<=/)~a/[^/]+" (last (explode-path vllgdir)))))
   (define digimon.rkt (build-path (path-only (variable-reference->module-source #%wikimon)) "digimon.rkt"))
   
-  (wikimon-dir (build-path stnsdir (wikimon-dir)))
-  
   (define smart-dependencies
     {lambda [entry [memory null]]
       (foldl {lambda [subpath memory]
-               (define subscrbl (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
-               (cond [(member subscrbl memory) memory]
-                     [else (smart-dependencies subscrbl memory)])}
+               (define subsrc (cond [(regexp-match? #px"d-ark.rkt$" subpath) digimon.rkt]
+                                    [else (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath)))]))
+               (cond [(member subsrc memory) memory]
+                     [else (smart-dependencies subsrc memory)])}
              (append memory (list entry))
              (call-with-input-file entry (curry regexp-match* #px"(?<=(@include-section\\{)|(\\(require \")).+?.(scrbl|rkt)(?=(\\})|(\"\\)))")))})
   
@@ -107,20 +106,18 @@
                    (match (read)
                      [(? eof-object? sexp) {begin (eval `(make-parent-directory* ,target))
                                                   (eval `(send ,?img save-file ,target 'png))}]
-                     [{list 'require {list 'file {pregexp #px"d-ark.rkt$"}}} {begin (eval `(require (file ,(path->string digimon.rkt))))
-                                                                                    (repl (eval `(wikimon-dir ,(wikimon-dir))))}]
-                     [{list 'wikimon-dir whocares} (repl (eval `(wikimon-dir ,(wikimon-dir))))]
+                     [{list 'require {pregexp #px"d-ark.rkt$"}} (repl (eval `(require (file ,(path->string digimon.rkt)))))]
                      [{var sexp} (repl (eval sexp))]))}))})
   
   (define dist:digipngs: (append (hash-map kanas {lambda [kana romaji]
-                                                   (define t (build-path (wikimon-dir) (format "~a.png" kana)))
+                                                   (define t (build-path wikimon-dir (format "~a.png" kana)))
                                                    (list t null {thunk (make-digimoji t romaji)})})
                                  (for/list ([index (in-range (char->integer #\a) (add1 (char->integer #\z)))])
                                    (define letter (integer->char index))
-                                   (define t (build-path (wikimon-dir) (format "~a.png" letter)))
+                                   (define t (build-path wikimon-dir (format "~a.png" letter)))
                                    (list t null (curryr make-digimoji (~a (hash-ref alphabets letter letter)))))
                                  (hash-map fields {lambda [abbr emblem]
-                                                    (define t (build-path (wikimon-dir) (format "~a.png" abbr)))
+                                                    (define t (build-path wikimon-dir (format "~a.png" abbr)))
                                                     (list t null (curryr make-digifield emblem))})))
   
   (define mostly:readmes: (for/list ([readme.scrbl (in-directory stnsdir)]

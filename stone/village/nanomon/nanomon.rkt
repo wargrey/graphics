@@ -4,12 +4,7 @@
 (require images/icons/misc)
 (require (only-in plot/utils color-seq*))
 
-;;; These two lines can fool makefile.rkt, which is the expected dependency.
-;(require "../../../village/sakuyamon/digitama/digimon.rkt")
-(require (file "../../d-ark.rkt"))
-
-;;; This line is fixed automatically when building.
-(wikimon-dir "../../wikimon")
+(require "../../d-ark.rkt")
 
 (plot-decorations? #false)
 
