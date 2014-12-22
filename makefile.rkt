@@ -62,7 +62,7 @@
                      [else (smart-dependencies subsrc memory)])}
              (append memory (list entry))
              (call-with-input-file entry (curry regexp-match* #px"(?<=(@include-section\\{)|(\\(require \")).+?.(scrbl|rkt)(?=(\\})|(\"\\)))")))})
-  
+
   (define make-markdown
     {lambda [target dentry]
       (define mdname (gensym 'readme))
@@ -163,7 +163,7 @@
                                                (define image.rkt (path-replace-suffix (build-path rootdir stone village image) #".rkt"))
                                                (define ds (append (smart-dependencies image.rkt) (map car dist:digipngs:)))
                                                (if (file-exists? image.rkt) (list t ds (curryr make-image image.rkt)) null)}
-                                             (map bytes->string/utf-8 (call-with-input-file readme (curry regexp-match* #px"(?<=~/).+?.png")))))))}
+                                             (regexp-match* #px"(?<=~/).+?.png" (format "~a" (dynamic-require readme 'doc)))))))}
 
 {module make:all: racket
   (require (submod ".." makefile))
@@ -181,9 +181,8 @@
                                                               (with-handlers ([exn? (const #false)])
                                                                 (andmap {lambda [?] (and (andmap path-string? (cons (first ?) (second ?)))
                                                                                          (procedure-arity-includes? (third ?) 1))} val))}
-                                                            (filter-map (compose1 (curryr namespace-variable-value #false) string->symbol second)
-                                                                        (filter-map (curry regexp-match #px"^\\s\\s.define\\s+(.+?:)\\s+")
-                                                                                    (with-input-from-file (car makefiles) port->lines)))))))
+                                                            (filter-map {lambda [var] (namespace-variable-value var #false {lambda [] #false})}
+                                                                        (namespace-mapped-symbols))))))
     (make/proc (cons (list (car makefiles) null (const 'I-am-here-just-for-fun)) rules)
                (if (null? (current-real-targets)) (map car rules) (map hack-target (current-real-targets))))}}
 
