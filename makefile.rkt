@@ -20,9 +20,12 @@
   
   (define makefiles (list (syntax-source #'makefile)))
   (define rootdir (path-only (car makefiles)))
-  (define stnsdir (build-path rootdir "stone"))
-  (define dgtmdir (build-path rootdir "digitama"))
+  (define dgvcdir (build-path rootdir "digivice"))
   (define vllgdir (build-path rootdir "village"))
+  (define stnsdir (build-path rootdir "stone"))
+  (define optdirs {hash 'digitama (build-path rootdir "digitama")
+                        'tamer (build-path rootdir "tamer")
+                        'island (build-path rootdir "island")})
   (define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
   
   (define hack-target
@@ -51,7 +54,7 @@
   (require "digitama/wikimon.rkt")
   
   (define px.village (pregexp (format "(?<=/)~a/[^/]+" (file-name-from-path vllgdir))))
-  (define digimon.rkt (build-path dgtmdir "digimon.rkt"))
+  (define digimon.rkt (build-path (hash-ref optdirs 'digitama) "digimon.rkt"))
   
   (define smart-dependencies
     {lambda [entry [memory null]]
@@ -135,6 +138,13 @@
                      [{list 'require {pregexp #px"d-ark.rkt$"}} (repl (eval `(require (file ,(path->string digimon.rkt)))))]
                      [{var sexp} (repl (eval sexp))]))}))})
   
+  (define make-digivice
+    {lambda [target dentry]
+      (with-output-to-file target #:exists 'replace
+        {thunk (parameterize ([current-command-line-arguments (vector (path->string (file-name-from-path target)))])
+                 (dynamic-require dentry #false))})
+      (file-or-directory-permissions target (bitwise-ior (file-or-directory-permissions target 'bits) #o111))}) 
+  
   (define dist:digipngs: (append (hash-map kanas {lambda [kana romaji]
                                                    (define t (build-path wikimon-dir (format "~a.png" kana)))
                                                    (list t null {thunk (make-digimoji t romaji)})})
@@ -146,8 +156,7 @@
                                                     (define t (build-path wikimon-dir (format "~a.png" abbr)))
                                                     (list t null (curryr make-digifield emblem))})))
   
-  (define mostly:readmes: (for/list ([readme.scrbl (in-directory stnsdir)]
-                                     #:when (string=? (path->string (file-name-from-path readme.scrbl)) "readme.scrbl"))
+  (define mostly:readmes: (for/list ([readme.scrbl (in-list (find-files (curry regexp-match? #px"/readme.scrbl$") stnsdir))])
                             (define t (build-path rootdir (find-relative-path stnsdir (build-path (path-only readme.scrbl) "README.md"))))
                             (define ds (append (smart-dependencies readme.scrbl) makefiles
                                                (let* ([village? (regexp-match px.village readme.scrbl)]
@@ -163,12 +172,20 @@
                                                (define image.rkt (path-replace-suffix (build-path rootdir stone village image) #".rkt"))
                                                (define ds (append (smart-dependencies image.rkt) (map car dist:digipngs:)))
                                                (if (file-exists? image.rkt) (list t ds (curryr make-image image.rkt)) null)}
-                                             (regexp-match* #px"(?<=~/).+?.png" (format "~a" (dynamic-require readme 'doc)))))))}
+                                             (regexp-match* #px"(?<=~/).+?.png" (format "~a" (dynamic-require readme 'doc)))))))
+  
+  (define dist:digivices: (let ([px.exclude (pregexp (string-join #:before-first (format "/(compiled|\\.git|~a|" (file-name-from-path stnsdir))
+                                                                  (map symbol->string (hash-keys optdirs)) "|" #:after-last ")$"))])
+                            (for/list ([d-ark (in-directory vllgdir (negate (curry regexp-match? px.exclude)))]
+                                       #:when (regexp-match? #px"/digivice/.+?-ark$" d-ark))
+                              (define t (build-path (path-only d-ark) (regexp-replace #px".+/(.+?)-ark$" (path->string d-ark) "\\1")))
+                              (define ds (list (build-path stnsdir "digivice.rkt.sh")))
+                              (list t ds (curryr make-digivice (car ds))))))}
 
 {module make:all: racket
   (require (submod ".." makefile))
   
-  (define --help "Building the entire software without generating documentation. [default]")
+  (define desc "Building the entire software without generating documentation. [default]")
   
   {module+ make
     (define modfiles `(submod ,(syntax-source #'makefile) make:files))
@@ -240,7 +257,7 @@
                                                                  (let ([sub `(submod ,(syntax-source #'makefile) ,(string->symbol (format "make:~a:" phony)))])
                                                                    (when (module-declared? sub)
                                                                      (dynamic-require sub #false)
-                                                                     (format "  ~a : ~a~n" phony (namespace-variable-value '--help #false void (module->namespace sub))))))}
+                                                                     (format "  ~a : ~a~n" phony (namespace-variable-value 'desc #false void (module->namespace sub))))))}
                                              (list 'all 'install 'uninstall 'clean 'docs 'dist 'check 'installcheck))))
                         (exit 0)}
                       {lambda [unknown]
