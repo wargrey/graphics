@@ -37,8 +37,6 @@ each of them may be separated into several repositories.
 * **island** manages guilds of _digimons_. Hmm... Sounds weird,
   nonetheless, try `htdocs` or
   `webroot`:stuck\_out\_tongue\_winking\_eye:.
-* **board** stores the configuration instructions that a _digimon_
-  should follow. Sounds like `etc`.
 * **stone** stores immutable meta-information or ancient sources to be
   translated. Yes, it's the _Rosetta Stone_.
 
