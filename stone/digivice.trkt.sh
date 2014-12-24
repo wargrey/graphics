@@ -30,8 +30,8 @@ exec racket ${F} ${1+"$@|#\@|"}
     (for ([cmd : String (in-list cmds)])
       (printf0 "  ~a ~a~n" (~a (regexp-replace #px"^(.+).rkt$" cmd "\\1") #:min-width width)
                (car ((inst call-with-values (Listof Any))
-                     {lambda [] (dynamic-require (cast (build-path "@|digivice|-tark" cmd) Module-Path)
-                                                 (cast 'desc Symbol) {lambda [] : Any "[Mission Description]"})} list))))
+                     {lambda [] (dynamic-require (format "@|digivice|-tark/~a" cmd) (cast 'desc Symbol)
+                                                 {lambda [] : Any "[Mission Description]"})} list))))
     (when error-command
       (printf0 "~n~a: Unrecognized command: ~a~n"
                (build-path (find-system-path 'orig-dir) (find-system-path 'run-file)) error-command))

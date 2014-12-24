@@ -179,7 +179,7 @@
                             (for/list ([d-ark (in-directory vllgdir (negate (curry regexp-match? px.exclude)))]
                                        #:when (regexp-match? #px"/digivice/.+?-t?ark$" d-ark))
                               (define t (build-path (path-only d-ark) (regexp-replace #px".+/(.+?)-t?ark$" (path->string d-ark) "\\1")))
-                              (define ds (list (build-path stnsdir (if (regexp-match? #px"-tark$" d-ark) "digivice.trkt.sh" "digivice.rkt.sh"))))
+                              (define ds (list (build-path stnsdir (if (regexp-match? #px"-tark$" d-ark) "digivice.trkt.sh" "digivice.rkt.sh")) d-ark))
                               (list t ds (curryr make-digivice (car ds))))))}
 
 {module make:all: racket
