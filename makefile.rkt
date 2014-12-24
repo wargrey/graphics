@@ -142,8 +142,7 @@
     {lambda [target dentry]
       (with-output-to-file target #:exists 'replace
         {thunk (parameterize ([current-command-line-arguments (vector (path->string (file-name-from-path target)))])
-                 (dynamic-require dentry #false))})
-      (file-or-directory-permissions target (bitwise-ior (file-or-directory-permissions target 'bits) #o111))}) 
+                 (dynamic-require dentry #false))})}) 
   
   (define dist:digipngs: (append (hash-map kanas {lambda [kana romaji]
                                                    (define t (build-path wikimon-dir (format "~a.png" kana)))
@@ -177,9 +176,9 @@
   (define dist:digivices: (let ([px.exclude (pregexp (string-join #:before-first (format "/(compiled|\\.git|~a|" (file-name-from-path stnsdir))
                                                                   (map symbol->string (hash-keys optdirs)) "|" #:after-last ")$"))])
                             (for/list ([d-ark (in-directory vllgdir (negate (curry regexp-match? px.exclude)))]
-                                       #:when (regexp-match? #px"/digivice/.+?-t?ark$" d-ark))
-                              (define t (build-path (path-only d-ark) (regexp-replace #px".+/(.+?)-t?ark$" (path->string d-ark) "\\1")))
-                              (define ds (list (build-path stnsdir (if (regexp-match? #px"-tark$" d-ark) "digivice.trkt.sh" "digivice.rkt.sh")) d-ark))
+                                       #:when (regexp-match? #px"/digivice/.+?-ark$" d-ark))
+                              (define t (path-add-suffix (build-path d-ark (regexp-replace #px".+/(.+?)-ark$" (path->string d-ark) "\\1")) #".rktl"))
+                              (define ds (list (build-path stnsdir "digivice.rktl")))
                               (list t ds (curryr make-digivice (car ds))))))}
 
 {module make:all: racket
