@@ -1,9 +1,7 @@
 #!/usr/bin/env racket
 #lang racket
 
-{module makefile racket/base
-  (require racket/path)
-  
+{module makefile racket
   (require make)
   
   (provide (all-defined-out))
@@ -26,25 +24,17 @@
   (define optdirs {hash 'digitama (build-path rootdir "digitama")
                         'tamer (build-path rootdir "tamer")
                         'island (build-path rootdir "island")})
-  (define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
-  
-  (define hack-target
-    {lambda [t]
-      (if (make-dry-run)
-          (build-path hackdir (find-relative-path rootdir t))
-          t)})
-  
-  (define hack-depends
-    {lambda [ds]
-      (if (make-always-run)
-          (cons hackdir ds)
-          ds)})
   
   (define hack-rule
     {lambda [r]
-      (define t (hack-target (car r)))
-      (define f {lambda [] ((caddr r) t)})
-      (list t (hack-depends (cadr r))
+      (define t (car r))
+      (define ds (cadr r))
+      (define f {lambda [] (with-handlers ([symbol? void])
+                             (call-with-atomic-output-file t {lambda [temp-port port-filename]
+                                                               (close-output-port temp-port)
+                                                               ((caddr r) port-filename)
+                                                               (when (make-dry-run) (raise 'make-dry-run #true))}))})
+      (list (car r) (if (make-always-run) (cons rootdir ds) ds)
             (if (make-just-touch) {lambda [] (file-or-directory-modify-seconds t (current-seconds) f)} f))})}
 
 {module make:files racket
@@ -52,6 +42,8 @@
   (require racket/draw)
   
   (require "digitama/wikimon.rkt")
+  
+  (define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
   
   (define px.village (pregexp (format "(?<=/)~a/[^/]+" (file-name-from-path vllgdir))))
   (define px.dgvc-ark (pregexp (format "/~a/.+?-ark$" (file-name-from-path dgvcdir))))
@@ -78,7 +70,7 @@
         (eval `(render (list ,(dynamic-require dentry 'doc)) (list ,(symbol->string mdname))
                 #:dest-dir ,hackdir #:render-mixin markdown:render-mixin #:quiet? #false)))
       (make-parent-directory* target)
-      (with-output-to-file (build-path (path-only target) "README.md") #:exists 'replace
+      (with-output-to-file target #:exists 'replace
         {thunk (define awkout (current-thread))
                (define awk-format (thread {thunk (let awk ([pipen awkout])
                                                    (define in (thread-receive))
@@ -194,7 +186,7 @@
     (dynamic-require modfiles #false)
     (current-namespace (module->namespace modfiles))
     
-    (file-or-directory-modify-seconds hackdir (current-seconds) {thunk (make-directory* hackdir)})
+    (file-or-directory-modify-seconds rootdir (current-seconds))
     (define rules (map hack-rule (foldr append null (filter {lambda [val]
                                                               (with-handlers ([exn? (const #false)])
                                                                 (andmap {lambda [?] (and (andmap path-string? (cons (first ?) (second ?)))
@@ -202,7 +194,7 @@
                                                             (filter-map {lambda [var] (namespace-variable-value var #false {lambda [] #false})}
                                                                         (namespace-mapped-symbols))))))
     (make/proc (cons (list (car makefiles) null (const 'I-am-here-just-for-fun)) rules)
-               (if (null? (current-real-targets)) (map car rules) (map hack-target (current-real-targets))))}}
+               (if (null? (current-real-targets)) (map car rules) (current-real-targets)))}}
 
 {module+ main
   (require (submod ".." makefile))
@@ -236,7 +228,7 @@
                                   (dynamic-require modpath #false)
                                   (for ([var (in-list (namespace-mapped-symbols (module->namespace modpath)))])
                                     (when (regexp-match? pxclean (symbol->string var))
-                                      (for ([file (in-list (map {lambda [val] (hack-target (if (list? val) (car val) val))}
+                                      (for ([file (in-list (map {lambda [val] (if (list? val) (car val) val)}
                                                                 (namespace-variable-value var #false {lambda [] null} (module->namespace modpath))))])
                                         (when (file-exists? file) (delete-file file))
                                         (printf "make: deleted ~a.~n" (simplify-path file))))))
