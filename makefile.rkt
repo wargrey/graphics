@@ -54,6 +54,8 @@
   (require "digitama/wikimon.rkt")
   
   (define px.village (pregexp (format "(?<=/)~a/[^/]+" (file-name-from-path vllgdir))))
+  (define px.dgvc-ark (pregexp (format "/~a/.+?-ark$" (file-name-from-path dgvcdir))))
+  (define px.d-ark.rkt #px"d-ark.rkt$")
   (define digimon.rkt (build-path (hash-ref optdirs 'digitama) "digimon.rkt"))
   
   (define smart-dependencies
@@ -135,7 +137,7 @@
                    (match (read)
                      [(? eof-object? sexp) {begin (eval `(make-parent-directory* ,target))
                                                   (eval `(send ,?img save-file ,target 'png))}]
-                     [{list 'require {pregexp #px"d-ark.rkt$"}} (repl (eval `(require (file ,(path->string digimon.rkt)))))]
+                     [{list 'require {pregexp px.d-ark.rkt}} (repl (eval `(require (file ,(path->string digimon.rkt)))))]
                      [{var sexp} (repl (eval sexp))]))}))})
   
   (define make-digivice
@@ -176,7 +178,7 @@
   (define dist:digivices: (let ([px.exclude (pregexp (string-join #:before-first (format "/(compiled|\\.git|~a|" (file-name-from-path stnsdir))
                                                                   (map symbol->string (hash-keys optdirs)) "|" #:after-last ")$"))])
                             (for/list ([d-ark (in-directory vllgdir (negate (curry regexp-match? px.exclude)))]
-                                       #:when (regexp-match? #px"/digivice/.+?-ark$" d-ark))
+                                       #:when (regexp-match? px.dgvc-ark d-ark))
                               (define t (path-add-suffix (build-path d-ark (regexp-replace #px".+/(.+?)-ark$" (path->string d-ark) "\\1")) #".rktl"))
                               (define ds (list (build-path stnsdir "digivice.rktl")))
                               (list t ds (curryr make-digivice (car ds))))))}
