@@ -167,8 +167,11 @@
                                                (if (file-exists? image.rkt) (list t ds (curryr make-image image.rkt)) null)}
                                              (regexp-match* #px"(?<=~/).+?.png" (format "~a" (dynamic-require readme 'doc)))))))
   
-  (define dist:digivices: (let ([px.exclude (pregexp (string-join #:before-first (format "/(compiled|\\.git|~a|" (file-name-from-path stnsdir))
-                                                                  (map symbol->string (hash-keys optdirs)) "|" #:after-last ")$"))])
+  (define dist:digivices: (let ([px.exclude (pregexp (string-join #:before-first "/(\\.git|" #:after-last ")$"
+                                                                  (remove-duplicates (append (map symbol->string (hash-keys optdirs))
+                                                                                             (map (compose1 path->string file-name-from-path)
+                                                                                                  (cons stnsdir (use-compiled-file-paths))))) "|"))])
+                            (displayln px.exclude)
                             (for/list ([d-ark (in-directory vllgdir (negate (curry regexp-match? px.exclude)))]
                                        #:when (regexp-match? px.dgvc-ark d-ark))
                               (define t (path-add-suffix (build-path d-ark (regexp-replace #px".+/(.+?)-ark$" (path->string d-ark) "\\1")) #".rktl"))
