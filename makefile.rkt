@@ -3,9 +3,10 @@
 
 {module makefile racket
   (require make)
+  (require compiler/cm)
   
   (provide (all-defined-out))
-  (provide (all-from-out make))
+  (provide (all-from-out make compiler/cm))
   
   (define make-dry-run (make-parameter #false))
   (define make-always-run (make-parameter #false))
@@ -17,7 +18,7 @@
   (make-print-reasons #false)
   
   (define makefiles (list (syntax-source #'makefile)))
-  (define rootdir (path-only (car makefiles)))
+  (define rootdir (path-only (car makefiles))) ;;; Warning, this path is /-suffixed.
   (define dgvcdir (build-path rootdir "digivice"))
   (define vllgdir (build-path rootdir "village"))
   (define stnsdir (build-path rootdir "stone"))
@@ -30,10 +31,11 @@
       (define t (car r))
       (define ds (cadr r))
       (define f {lambda [] (with-handlers ([symbol? void])
-                             (call-with-atomic-output-file t {lambda [temp-port port-filename]
-                                                               (close-output-port temp-port)
-                                                               ((caddr r) port-filename)
-                                                               (when (make-dry-run) (raise 'make-dry-run #true))}))})
+                             (make-parent-directory* t)
+                             (with-compile-output t {lambda [whocares pseudo-t]
+                                                      (close-output-port whocares)
+                                                      ((caddr r) pseudo-t)
+                                                      (when (make-dry-run) (raise 'make-dry-run #true))}))})
       (list (car r) (if (make-always-run) (cons rootdir ds) ds)
             (if (make-just-touch) {lambda [] (file-or-directory-modify-seconds t (current-seconds) f)} f))})}
 
@@ -210,7 +212,7 @@
                           {"Unconditionally make all need-to-update targets."}]
                          [{"-n" "--test" "--dry-run"}
                           ,{lambda [flag] (make-dry-run #true)}
-                          {"Do not actually update targets, just make and display their resulting content."}]
+                          {"Do not actually update targets, just make. [This option cannot be guaranteed so]"}]
                          [{"-s" "--silent" "--quiet"}
                           ,{lambda [flag] (current-output-port (open-output-nowhere '/dev/null #true))}
                           {"Just run commands but output nothing."}]
@@ -233,8 +235,9 @@
                                     (when (regexp-match? pxclean (symbol->string var))
                                       (for ([file (in-list (map {lambda [val] (if (list? val) (car val) val)}
                                                                 (namespace-variable-value var #false {lambda [] null} (module->namespace modpath))))])
-                                        (when (file-exists? file) (delete-file file))
-                                        (printf "make: deleted ~a.~n" (simplify-path file))))))
+                                        (when (file-exists? file)
+                                          (delete-file file)
+                                          (printf "make: deleted ~a.~n" (simplify-path file)))))))
                                 (let ([modmain `(submod ,(syntax-source #'makefile) ,(string->symbol (format "make:~a:" phony)) make)])
                                   (if (module-declared? modmain)
                                       (dynamic-require modmain #false)
