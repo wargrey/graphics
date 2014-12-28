@@ -3,15 +3,15 @@
 
 {module makefile racket
   (require make)
-  (require compiler/cm)
   
   (provide (all-defined-out))
-  (provide (all-from-out make compiler/cm))
+  (provide (all-from-out make))
   
   (define make-dry-run (make-parameter #false))
   (define make-always-run (make-parameter #false))
   (define make-just-touch (make-parameter #false))
   (define current-real-targets (make-parameter null))
+  (define current-make-goal (make-parameter #false))
   
   (make-print-dep-no-line #false)
   (make-print-checking #false)
@@ -32,10 +32,11 @@
       (define ds (cadr r))
       (define f {lambda [] (with-handlers ([symbol? void])
                              (make-parent-directory* t)
-                             (with-compile-output t {lambda [whocares pseudo-t]
-                                                      (close-output-port whocares)
-                                                      ((caddr r) pseudo-t)
-                                                      (when (make-dry-run) (raise 'make-dry-run #true))}))})
+                             (call-with-atomic-output-file t {lambda [whocares pseudo-t]
+                                                               (close-output-port whocares)
+                                                               ((caddr r) pseudo-t)
+                                                               (when (make-dry-run)
+                                                                 (raise 'make-dry-run #true))}))})
       (list (car r) (if (make-always-run) (cons rootdir ds) ds)
             (if (make-just-touch) {lambda [] (file-or-directory-modify-seconds t (current-seconds) f)} f))})}
 
@@ -182,42 +183,64 @@
                                              (list t ds (curryr make-digivice (car ds))))
                                            (let ([t (simplify-path (build-path d-ark 'up digivice))]
                                                  [ds (list (build-path stnsdir "digivice.sh"))])
-                                             (list t ds (curryr make-digivice (car ds)))))))))
-  
-  {module+ clobber
-    (define px.exclude (pregexp (format "/(\\.git|~a)$" (path->string (file-name-from-path vllgdir)))))
-    (define px.include #px"/compiled/?")
-    (define dirties (sequence->list (sequence-filter (curry regexp-match? px.include)
-                                                     (in-directory rootdir (negate (curry regexp-match? px.exclude))))))
-    (for-each {lambda [dirty]
-                (when (file-exists? dirty) (delete-file dirty))
-                (when (directory-exists? dirty) (delete-directory dirty))
-                (printf "make: deleted ~a.~n" (simplify-path dirty))}
-              (reverse dirties))}}
-
-{module make:all: racket
-  (require (submod ".." makefile))
-  
-  (define desc "Building the entire software without generating documentation. [default]")
-  
-  {module+ make
-    (define modfiles `(submod ,(syntax-source #'makefile) make:files))
-    
-    (dynamic-require modfiles #false)
-    (current-namespace (module->namespace modfiles))
-    
-    (file-or-directory-modify-seconds rootdir (current-seconds))
-    (define rules (map hack-rule (foldr append null (filter {lambda [val]
-                                                              (with-handlers ([exn? (const #false)])
-                                                                (andmap {lambda [?] (and (andmap path-string? (cons (first ?) (second ?)))
-                                                                                         (procedure-arity-includes? (third ?) 1))} val))}
-                                                            (filter-map {lambda [var] (namespace-variable-value var #false {lambda [] #false})}
-                                                                        (namespace-mapped-symbols))))))
-    (make/proc (cons (list (car makefiles) null (const 'I-am-here-just-for-fun)) rules)
-               (if (null? (current-real-targets)) (map car rules) (current-real-targets)))}}
+                                             (list t ds (curryr make-digivice (car ds)))))))))}
 
 {module+ main
   (require (submod ".." makefile))
+  (require setup/getinfo)
+  (require compiler/compiler)
+  
+  (define make-all
+    {lambda []
+      (compile-directory-zos rootdir (get-info/full rootdir) #:verbose #true #:skip-doc-sources? #true)
+      
+      (let ([modpath `(submod ,(syntax-source #'makefile) make:files)])
+        (when (module-declared? modpath)
+          (dynamic-require modpath #false)
+          (parameterize ([current-namespace (module->namespace modpath)])
+            (file-or-directory-modify-seconds rootdir (current-seconds))
+            (define rules (map hack-rule (foldr append null
+                                                (filter {lambda [val]
+                                                          (with-handlers ([exn? (const #false)])
+                                                            (andmap {lambda [?] (and (andmap path-string? (cons (first ?) (second ?)))
+                                                                                     (procedure-arity-includes? (third ?) 1))} val))}
+                                                        (filter-map {lambda [var] (namespace-variable-value var #false {lambda [] #false})}
+                                                                    (namespace-mapped-symbols))))))
+            (make/proc (cons (list (car makefiles) null (const 'I-am-here-just-for-fun)) rules)
+                       (if (null? (current-real-targets)) (map car rules) (current-real-targets))))))
+    
+      (let ([modpath `(submod ,(syntax-source #'makefile) make:files make)])
+        (when (module-declared? modpath)
+          (dynamic-require modpath #false)))})
+  
+  (define make-clean
+    {lambda []
+      (define fclean {lambda [dirty]
+                       (when (file-exists? dirty) (delete-file dirty))
+                       (when (directory-exists? dirty) (delete-directory dirty))
+                       (printf "make: deleted ~a.~n" (simplify-path dirty))})
+      
+      (let ([clbpath `(submod ,(syntax-source #'makefile) make:files clobber)])
+        (when (and (member (current-make-goal) '{"distclean" "maintainer-clean"}) (module-declared? clbpath))
+          (dynamic-require clbpath #false)))
+      
+      (let ([modpath `(submod ,(syntax-source #'makefile) make:files)])
+        (when (module-declared? modpath)
+          (dynamic-require modpath #false)
+          (parameterize ([current-namespace (module->namespace modpath)])
+            (define px.filter (pregexp (string-join #:before-first "^(.+?:)?" #:after-last ":.+:"
+                                                     (member (string-replace (current-make-goal) #px"(?<!^)-?clean" "")
+                                                             '{"maintainer" "dist" "clean" "mostly"}) "|")))
+            (for ([var (in-list (namespace-mapped-symbols))]
+                  #:when (regexp-match? px.filter (symbol->string var)))
+              (for-each fclean (map {lambda [val] (if (list? val) (car val) val)}
+                                    (namespace-variable-value var #false (const null))))))))
+      
+      (let ([px.exclude (pregexp (format "/(\\.git|~a)$" (path->string (file-name-from-path vllgdir))))]
+            [px.include #px"/compiled/?"])
+        (for-each fclean (reverse (filter (curry regexp-match? px.include)
+                                          (sequence->list (in-directory rootdir (negate (curry regexp-match? px.exclude))))))))})
+  
   (parse-command-line (file-name-from-path (syntax-source #'program))
                       (current-command-line-arguments)
                       `{{usage-help ,(format "Carefully our conventions are not exactly the same as those of GNU Make.~n")}
@@ -227,7 +250,7 @@
                           {"Unconditionally make all need-to-update targets."}]
                          [{"-n" "--test" "--dry-run"}
                           ,{lambda [flag] (make-dry-run #true)}
-                          {"Do not actually update targets, just make. [This option cannot be guaranteed so]"}]
+                          {"Do not actually update targets, just make. [Except Racket Sources]"}]
                          [{"-s" "--silent" "--quiet"}
                           ,{lambda [flag] (current-output-port (open-output-nowhere '/dev/null #true))}
                           {"Just run commands but output nothing."}]
@@ -238,44 +261,38 @@
                           ,{lambda [flag] (make-print-dep-no-line #true) (make-print-checking #true) (make-print-reasons #true)}
                           {"Building with verbose messages."}]}}
                       {lambda [!voids . targets]
+                        ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
+                        ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
+                        (use-compiled-file-paths (list (build-path "compiled")))
                         (define-values {files phonies} (partition filename-extension targets))
                         (parameterize ([current-real-targets (map {lambda [f] (if (relative-path? f) (build-path rootdir f) f)} files)])
                           (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
-                            (if (regexp-match? #px"clean$" phony)
-                                (let ([modpath `(submod ,(syntax-source #'makefile) make:files)]
-                                      [clbpath `(submod ,(syntax-source #'makefile) make:files clobber)]
-                                      [pxclean (pregexp (format "^(.+?:)?~a:.+:" (string-join (member (string-replace phony #px"(?<!^)-?clean" "")
-                                                                                                      '{"maintainer" "dist" "clean" "mostly"}) "|")))])
-                                  (dynamic-require modpath #false)
-                                  (for ([var (in-list (namespace-mapped-symbols (module->namespace modpath)))])
-                                    (when (regexp-match? pxclean (symbol->string var))
-                                      (for ([dirty (in-list (map {lambda [val] (if (list? val) (car val) val)}
-                                                                (namespace-variable-value var #false {lambda [] null} (module->namespace modpath))))])
-                                        (when (file-exists? dirty)
-                                          (delete-file dirty)
-                                          (printf "make: deleted ~a.~n" (simplify-path dirty))))))
-                                  (when (and (member phony '{"distclean" "maintainer-clean"}) (module-declared? clbpath))
-                                      (dynamic-require clbpath #false)))
-                                (let ([modmain `(submod ,(syntax-source #'makefile) ,(string->symbol (format "make:~a:" phony)) make)])
-                                  (if (module-declared? modmain)
-                                      (dynamic-require modmain #false)
-                                      (eprintf "make: I don't know how to make `~a`!~n" phony))))))}
+                            (parameterize ([current-make-goal phony])
+                              (cond [(string=? phony "all") (make-all)]
+                                    [(regexp-match? #px"clean$" phony) (make-clean)]
+                                    [else (let ([modpath `(submod ,(syntax-source #'makefile) ,(string->symbol (format "make:~a:" phony)))])
+                                            (if (module-declared? modpath)
+                                                (dynamic-require modpath #false)
+                                                (eprintf "make: I don't know how to make `~a`!~n" phony)))]))))}
                       (list "phony-target|file-path")
                       {lambda [--help]
                         (display (foldl {lambda [-h --help] (if (string? -h) (string-append --help -h) --help)}
-                                        (string-replace --help #px"  -- : .+?-h --'." (format "~n where <phony-target> is one of~n"))
-                                        (map {lambda [phony] (if (symbol=? phony 'clean)
-                                                                 (string-join #:before-first "  " #:after-last (format "~n")
-                                                                              '{"mostlyclean : Delete all files except that people normally don't want to reconstruct."
-                                                                                "clean : Delete all files except that records the configuration."
-                                                                                "distclean : Delete all files that are not included in the distribution."
-                                                                                "maintainer-clean : Delete all files that can be reconstructed. [Maintainers Only]"}
-                                                                              (format "~n  "))
-                                                                 (let ([sub `(submod ,(syntax-source #'makefile) ,(string->symbol (format "make:~a:" phony)))])
-                                                                   (when (module-declared? sub)
-                                                                     (dynamic-require sub #false)
-                                                                     (format "  ~a : ~a~n" phony (namespace-variable-value 'desc #false void (module->namespace sub))))))}
-                                             (list 'all 'install 'uninstall 'clean 'docs 'dist 'check 'installcheck))))
+                                        (string-replace --help #px"  -- : .+?-h --'."
+                                                        (string-join #:before-first (format "~n where <phony-target> is one of~n  ") #:after-last (format "~n")
+                                                                     '{"all : Building the entire software without generating documentation. [default]"
+                                                                       "mostlyclean : Delete all files except that people normally don't want to reconstruct."
+                                                                       "clean : Delete all files except that records the configuration."
+                                                                       "distclean : Delete all files that are not included in the distribution."
+                                                                       "maintainer-clean : Delete all files that can be reconstructed. [Maintainers Only]"}
+                                                                     (format "~n  ")))
+                                        (map {lambda [phony] (let ([sub `(submod ,(syntax-source #'makefile) ,(string->symbol (format "make:~a:" (car phony))))])
+                                                               (when (module-declared? sub) (format "  ~a : ~a~n" (car phony) (cdr phony))))}
+                                             (list (cons 'install "Installing the software, then running test if testcases exist.")
+                                                   (cons 'uninstall "Delete all the installed files and documentation.")
+                                                   (cons 'docs "Generating documentation.")
+                                                   (cons 'dist "Creating a distribution file of the source files.")
+                                                   (cons 'check "Performing self tests on the program this makefile builds before building.")
+                                                   (cons 'installcheck "Performing installation tests on the target system after installing.")))))
                         (exit 0)}
                       {lambda [unknown]
                         (eprintf "make: I don't know what does `~a` mean!~n" unknown)
