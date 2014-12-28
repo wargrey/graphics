@@ -177,8 +177,8 @@
                                            {thunk (parameterize ([current-command-line-arguments (vector digivice)])
                                                     (dynamic-require dentry #false))})
                                          (file-or-directory-permissions target (bitwise-ior (file-or-directory-permissions target 'bits) #o111))})
-                                     (list (let ([t (path-add-suffix (build-path d-ark digivice) #".rktl")]
-                                                 [ds (list (build-path stnsdir "digivice.rktl"))])
+                                     (list (let ([t (path-add-suffix (build-path d-ark digivice) #".rkt")]
+                                                 [ds (list (build-path stnsdir "digivice.rkt"))])
                                              (list t ds (curryr make-digivice (car ds))))
                                            (let ([t (simplify-path (build-path d-ark 'up digivice))]
                                                  [ds (list (build-path stnsdir "digivice.sh"))])
