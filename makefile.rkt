@@ -182,7 +182,18 @@
                                              (list t ds (curryr make-digivice (car ds))))
                                            (let ([t (simplify-path (build-path d-ark 'up digivice))]
                                                  [ds (list (build-path stnsdir "digivice.sh"))])
-                                             (list t ds (curryr make-digivice (car ds)))))))))}
+                                             (list t ds (curryr make-digivice (car ds)))))))))
+  
+  {module+ clobber
+    (define px.exclude (pregexp (format "/(\\.git|~a)$" (path->string (file-name-from-path vllgdir)))))
+    (define px.include #px"/compiled/?")
+    (define dirties (sequence->list (sequence-filter (curry regexp-match? px.include)
+                                                     (in-directory rootdir (negate (curry regexp-match? px.exclude))))))
+    (for-each {lambda [dirty]
+                (when (file-exists? dirty) (delete-file dirty))
+                (when (directory-exists? dirty) (delete-directory dirty))
+                (printf "make: deleted ~a.~n" (simplify-path dirty))}
+              (reverse dirties))}}
 
 {module make:all: racket
   (require (submod ".." makefile))
@@ -232,16 +243,19 @@
                           (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
                             (if (regexp-match? #px"clean$" phony)
                                 (let ([modpath `(submod ,(syntax-source #'makefile) make:files)]
+                                      [clbpath `(submod ,(syntax-source #'makefile) make:files clobber)]
                                       [pxclean (pregexp (format "^(.+?:)?~a:.+:" (string-join (member (string-replace phony #px"(?<!^)-?clean" "")
                                                                                                       '{"maintainer" "dist" "clean" "mostly"}) "|")))])
                                   (dynamic-require modpath #false)
                                   (for ([var (in-list (namespace-mapped-symbols (module->namespace modpath)))])
                                     (when (regexp-match? pxclean (symbol->string var))
-                                      (for ([file (in-list (map {lambda [val] (if (list? val) (car val) val)}
+                                      (for ([dirty (in-list (map {lambda [val] (if (list? val) (car val) val)}
                                                                 (namespace-variable-value var #false {lambda [] null} (module->namespace modpath))))])
-                                        (when (file-exists? file)
-                                          (delete-file file)
-                                          (printf "make: deleted ~a.~n" (simplify-path file)))))))
+                                        (when (file-exists? dirty)
+                                          (delete-file dirty)
+                                          (printf "make: deleted ~a.~n" (simplify-path dirty))))))
+                                  (when (and (member phony '{"distclean" "maintainer-clean"}) (module-declared? clbpath))
+                                      (dynamic-require clbpath #false)))
                                 (let ([modmain `(submod ,(syntax-source #'makefile) ,(string->symbol (format "make:~a:" phony)) make)])
                                   (if (module-declared? modmain)
                                       (dynamic-require modmain #false)
@@ -255,7 +269,7 @@
                                                                               '{"mostlyclean : Delete all files except that people normally don't want to reconstruct."
                                                                                 "clean : Delete all files except that records the configuration."
                                                                                 "distclean : Delete all files that are not included in the distribution."
-                                                                                "maintainer-clean : Delete all files that can be reconstructed."}
+                                                                                "maintainer-clean : Delete all files that can be reconstructed. [Maintainers Only]"}
                                                                               (format "~n  "))
                                                                  (let ([sub `(submod ,(syntax-source #'makefile) ,(string->symbol (format "make:~a:" phony)))])
                                                                    (when (module-declared? sub)
