@@ -3,6 +3,7 @@
 
 {module makefile racket
   (require make)
+  (require setup/getinfo)
   
   (provide (all-defined-out))
   (provide (all-from-out make))
@@ -10,6 +11,7 @@
   (define make-dry-run (make-parameter #false))
   (define make-always-run (make-parameter #false))
   (define make-just-touch (make-parameter #false))
+  (define make-no-submakes (make-parameter #false))
   (define current-real-targets (make-parameter null))
   (define current-make-goal (make-parameter #false))
   
@@ -17,14 +19,19 @@
   (make-print-checking #false)
   (make-print-reasons #false)
   
-  (define makefiles (list (syntax-source #'makefile)))
-  (define rootdir (path-only (car makefiles))) ;;; Warning, this path is /-suffixed.
+  (define rootdir (path-only (syntax-source #'makefile))) ;;; Warning, this path is /-suffixed.
   (define dgvcdir (build-path rootdir "digivice"))
+  (define dgtmdir (build-path rootdir "digitama"))
   (define vllgdir (build-path rootdir "village"))
   (define stnsdir (build-path rootdir "stone"))
-  (define optdirs {hash 'digitama (build-path rootdir "digitama")
-                        'tamer (build-path rootdir "tamer")
-                        'island (build-path rootdir "island")})
+  (define tmrsdir (build-path rootdir "tamer"))
+  (define islndir (build-path rootdir "island"))
+  
+  (define info-ref (get-info/full rootdir))
+  (define makefiles (filter file-exists?
+                            (map (curryr build-path (file-name-from-path (syntax-source #'makefile)))
+                                 (cons rootdir (with-handlers ([exn? (const null)])
+                                                 (directory-list vllgdir #:build? #true))))))
   
   (define hack-rule
     {lambda [r]
@@ -51,7 +58,7 @@
   (define px.village (pregexp (format "(?<=/)~a/[^/]+" (file-name-from-path vllgdir))))
   (define px.dgvc-ark (pregexp (format "/~a/.+?-ark$" (file-name-from-path dgvcdir))))
   (define px.d-ark.rkt #px"d-ark.rkt$")
-  (define digimon.rkt (build-path (hash-ref optdirs 'digitama) "digimon.rkt"))
+  (define digimon.rkt (build-path dgtmdir "digimon.rkt"))
   
   (define smart-dependencies
     {lambda [entry [memory null]]
@@ -148,7 +155,7 @@
   
   (define mostly:readmes: (for/list ([readme.scrbl (in-list (find-files (curry regexp-match? #px"/readme.scrbl$") stnsdir))])
                             (define t (build-path rootdir (find-relative-path stnsdir (build-path (path-only readme.scrbl) "README.md"))))
-                            (define ds (append (smart-dependencies readme.scrbl) makefiles
+                            (define ds (append (smart-dependencies readme.scrbl) (list (syntax-source #'makefile))
                                                (let* ([village? (regexp-match px.village readme.scrbl)]
                                                       [info.rkt (if village? (build-path rootdir (car village?) "info.rkt") (build-path rootdir "info.rkt"))])
                                                  (if (file-exists? info.rkt) (list info.rkt) null))))
@@ -165,9 +172,9 @@
                                              (regexp-match* #px"(?<=~/).+?.png" (format "~a" (dynamic-require readme 'doc)))))))
   
   (define dist:digivices: (let ([px.exclude (pregexp (string-join #:before-first "/(\\.git|" #:after-last ")$"
-                                                                  (remove-duplicates (append (map symbol->string (hash-keys optdirs))
-                                                                                             (map (compose1 path->string file-name-from-path)
-                                                                                                  (cons stnsdir (use-compiled-file-paths))))) "|"))])
+                                                                  (remove-duplicates (map (compose1 path->string file-name-from-path)
+                                                                                          (append (list stnsdir dgtmdir tmrsdir islndir)
+                                                                                                  (use-compiled-file-paths)))) "|"))])
                             (foldl append null
                                    (for/list ([d-ark (in-directory vllgdir (negate (curry regexp-match? px.exclude)))]
                                               #:when (regexp-match? px.dgvc-ark d-ark))
@@ -187,12 +194,11 @@
 
 {module+ main
   (require (submod ".." makefile))
-  (require setup/getinfo)
   (require compiler/compiler)
   
   (define make-all
     {lambda []
-      (compile-directory-zos rootdir (get-info/full rootdir) #:verbose #true #:skip-doc-sources? #true)
+      (compile-directory-zos rootdir info-ref #:verbose #true)
       
       (let ([modpath `(submod ,(syntax-source #'makefile) make:files)])
         (when (module-declared? modpath)
@@ -206,7 +212,7 @@
                                                                                      (procedure-arity-includes? (third ?) 1))} val))}
                                                         (filter-map {lambda [var] (namespace-variable-value var #false {lambda [] #false})}
                                                                     (namespace-mapped-symbols))))))
-            (make/proc (cons (list (car makefiles) null (const 'I-am-here-just-for-fun)) rules)
+            (make/proc (cons (list (syntax-source #'I-am-here-just-for-fun) null void) rules)
                        (if (null? (current-real-targets)) (map car rules) (current-real-targets))))))
     
       (let ([modpath `(submod ,(syntax-source #'makefile) make:files make)])
@@ -251,6 +257,9 @@
                          [{"-n" "--test" "--dry-run"}
                           ,{lambda [flag] (make-dry-run #true)}
                           {"Do not actually update targets, just make. [Except Racket Sources]"}]
+                         [{"-r" "--no-submakes"}
+                          ,{lambda [flag] (make-no-submakes #true)}
+                          {"Do not run submakes even if there is only phony targets."}]
                          [{"-s" "--silent" "--quiet"}
                           ,{lambda [flag] (current-output-port (open-output-nowhere '/dev/null #true))}
                           {"Just run commands but output nothing."}]
@@ -273,13 +282,20 @@
                                     [else (let ([modpath `(submod ,(syntax-source #'makefile) ,(string->symbol (format "make:~a:" phony)))])
                                             (if (module-declared? modpath)
                                                 (dynamic-require modpath #false)
-                                                (eprintf "make: I don't know how to make `~a`!~n" phony)))]))))}
+                                                (eprintf "make: I don't know how to make `~a`!~n" phony)))]))))
+                        (when (and (null? files) (false? (make-no-submakes)))
+                          (for ([submake (in-list (cdr makefiles))])
+                            (printf "make: submake: ~a~n" submake)
+                            (define mkpath `(submod ,submake main))
+                            (if (module-declared? mkpath)
+                                (dynamic-require mkpath #false)
+                                (dynamic-require submake #false))))}
                       (list "phony-target|file-path")
                       {lambda [--help]
                         (display (foldl {lambda [-h --help] (if (string? -h) (string-append --help -h) --help)}
                                         (string-replace --help #px"  -- : .+?-h --'."
                                                         (string-join #:before-first (format "~n where <phony-target> is one of~n  ") #:after-last (format "~n")
-                                                                     '{"all : Building the entire software without generating documentation. [default]"
+                                                                     '{"all : Building the entire software with generating documentation. [default]"
                                                                        "mostlyclean : Delete all files except that people normally don't want to reconstruct."
                                                                        "clean : Delete all files except that records the configuration."
                                                                        "distclean : Delete all files that are not included in the distribution."
@@ -289,7 +305,6 @@
                                                                (when (module-declared? sub) (format "  ~a : ~a~n" (car phony) (cdr phony))))}
                                              (list (cons 'install "Installing the software, then running test if testcases exist.")
                                                    (cons 'uninstall "Delete all the installed files and documentation.")
-                                                   (cons 'docs "Generating documentation.")
                                                    (cons 'dist "Creating a distribution file of the source files.")
                                                    (cons 'check "Performing self tests on the program this makefile builds before building.")
                                                    (cons 'installcheck "Performing installation tests on the target system after installing.")))))

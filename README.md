@@ -26,10 +26,8 @@ Island_, but we own some concepts from the _Digimon Series_.
 
 **Note** Project or Subprojects are organized as the _digimons_, and
 each of them may be separated into several repositories.
-* **village** is the birth place of _digimons_. Namely it works like
-  `src`.
-* **digitama** is the egg of _digimons_. Namely it works like
-  `libraries` or `frameworks`.
+* **digitama** is the egg of _digimons_. Namely it works like `src`
+  **and** `libraries`/`frameworks`.
 * **digivice** is the interface for users to talk with _digimons_.
   Namely it works like `bin`.
 * **tamer** is the interface for developers to train the _digimons_.
@@ -39,6 +37,8 @@ each of them may be separated into several repositories.
   `webroot`:stuck\_out\_tongue\_winking\_eye:.
 * **stone** stores immutable meta-information or ancient sources to be
   translated. Yes, it's the _Rosetta Stone_.
+* **village** is the playground of _digimon_ friends. Each directory
+  within it is a subproject.
 
 ### Version
 
