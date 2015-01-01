@@ -286,10 +286,9 @@
                         (when (and (null? files) (false? (make-no-submakes)))
                           (for ([submake (in-list (cdr makefiles))])
                             (printf "make: submake: ~a~n" submake)
-                            (define mkpath `(submod ,submake main))
-                            (if (module-declared? mkpath)
-                                (dynamic-require mkpath #false)
-                                (dynamic-require submake #false))))}
+                            (define submain `(submod ,submake main))
+                            (dynamic-require (if (module-declared? submain #true) submain submake) #false)
+                            (printf "make: submade: ~a~n" submake)))}
                       (list "phony-target|file-path")
                       {lambda [--help]
                         (display (foldl {lambda [-h --help] (if (string? -h) (string-append --help -h) --help)}

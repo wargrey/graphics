@@ -16,8 +16,7 @@
                (car ((inst call-with-values (Listof Any))
                      {lambda [] (dynamic-require (format "@|digivice|-ark/~a" cmd) (cast 'desc Symbol) {lambda [] : Any "[Mission Description]"})} list))))
     (when error-command
-      (printf0 "~n@|digivice|: Unrecognized command: ~a~n"
-               (build-path (find-system-path 'orig-dir) (find-system-path 'run-file)) error-command))
+      (printf0 "~n@|digivice|: Unrecognized command: ~a~n" error-command))
     (void (unless (zero? exitcode)
             (exit exitcode)))})
 
@@ -26,6 +25,6 @@
       [else (let ([cmd (vector-ref (current-command-line-arguments) 0)])
               (parameterize ([current-command-line-arguments (vector-drop (current-command-line-arguments) 1)]
                              [current-namespace (make-base-namespace)])
-                (define cmd.rkt (format "~a.rkt" cmd))
+                (define cmd.rkt (format "@|digivice|-ark/~a.rkt" cmd))
                 (cond [(file-exists? cmd.rkt) (eval `(require (submod ,cmd.rkt @|digivice|)))]
                       [else (show-help-and-exit #:exitcode 1 #:errcmd cmd)])))])
