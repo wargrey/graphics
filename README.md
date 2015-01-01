@@ -32,6 +32,10 @@ each of them may be separated into several repositories.
   Namely it works like `bin`.
 * **tamer** is the interface for developers to train the _digimons_.
   Namely it works like `test`.
+  - **behavior** shares the same name and concepts as in _Behavior
+  Driven Development_.
+  - **combat** occurs in real world after _digimons_ start their own
+  lives.
 * **island** manages guilds of _digimons_. Hmm... Sounds weird,
   nonetheless, try `htdocs` or
   `webroot`:stuck\_out\_tongue\_winking\_eye:.
