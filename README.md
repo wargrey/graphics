@@ -20,29 +20,33 @@ This project itself is built for developers to set up all essentials.
 ## Project Conventions
 
 How to build a _Digital World_? Okay, we don't start with the _File
-Island_, but we own some concepts from the _Digimon Series_.
+Island_, but we own some concepts from the [Digital
+Monsters](http://en.wikipedia.org/wiki/Digimon).
 
 ### Hierarchy
 
-**Note** Project or Subprojects are organized as the _digimons_, and
-each of them may be separated into several repositories.
+> Project or Subprojects are organized as the _digimons_, and each of them
+> may be separated into several repositories.
 * **digitama** is the egg of _digimons_. Namely it works like `src`
   **and** `libraries`/`frameworks`.
 * **digivice** is the interface for users to talk with _digimons_.
   Namely it works like `bin`.
 * **tamer** is the interface for developers to train the _digimons_.
   Namely it works like `test`.
-  - **behavior** shares the same name and concepts as in _Behavior
-  Driven Development_.
-  - **combat** occurs in real world after _digimons_ start their own
-  lives.
+
+  * _**behavior**_ shares the same name and concepts as in  [Behavior
+    Driven
+    Development](http://en.wikipedia.org/wiki/Behavior-driven\_development).
+
+  * _**combat**_ occurs in real world after _digimons_ start their own
+    lives.
 * **island** manages guilds of _digimons_. Hmm... Sounds weird,
   nonetheless, try `htdocs` or
   `webroot`:stuck\_out\_tongue\_winking\_eye:.
 * **stone** stores immutable meta-information or ancient sources to be
   translated. Yes, it's the _Rosetta Stone_.
-* **village** is the playground of _digimon_ friends. Each directory
-  within it is a subproject.
+* **village** is the playground of _digimon_ friends. Directories within
+  it are mapped to subprojects.
 
 ### Version
 

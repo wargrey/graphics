@@ -86,7 +86,6 @@
                                                    (define in (thread-receive))
                                                    (define out (match in
                                                                  [{pregexp #px"^#+ (\\d+\\.)+"} (regexp-replace #px"^(#+) (\\d+\\.)+" in "\\1")]
-                                                                 [{pregexp #px"^\\* >\\s+>"} (regexp-replace #px"^\\* >(\\s+)>" in "\\1- ")]
                                                                  [{pregexp #px"~/"} (string-replace in "~" (format "/~a" (find-relative-path rootdir stnsdir)))]
                                                                  [{pregexp #px"^\\s*$"} (let ([next (thread-receive)])
                                                                                           (cond [(and (not (eof-object? next))
@@ -197,7 +196,8 @@
   
   (for ([handbook (in-list (map {lambda [type] (build-path tmrsdir type "handbook.scrbl")} (list "behavior")))]
         #:when (file-exists? handbook))
-    (parameterize ([current-namespace (make-base-namespace)])
+    (parameterize ([current-directory (path-only handbook)]
+                   [current-namespace (make-base-namespace)])
         (namespace-require 'scribble/render)
         (eval '(require (prefix-in html: scribble/html-render)))
         (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
