@@ -192,13 +192,27 @@
                                                  [ds (list (build-path stnsdir "digivice.sh"))])
                                              (list t ds (curryr make-digivice (car ds)))))))))}
 
+{module make:check: racket
+  (require (submod ".." makefile))
+  
+  (for ([handbook (in-list (map {lambda [type] (build-path tmrsdir type "handbook.scrbl")} (list "behavior")))]
+        #:when (file-exists? handbook))
+    (parameterize ([current-namespace (make-base-namespace)])
+        (namespace-require 'scribble/render)
+        (eval '(require (prefix-in html: scribble/html-render)))
+        (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
+                       #:render-mixin {lambda [%] (html:render-multi-mixin (html:render-mixin %))}
+                       #:dest-dir ,(path-only handbook) #:quiet? #false))))}
+
 {module+ main
   (require (submod ".." makefile))
   (require compiler/compiler)
   
+  (define make:goal: {lambda [phony] (string->symbol (format "make:~a:" phony))})
+  
   (define make-all
     {lambda []
-      (compile-directory-zos rootdir info-ref #:verbose #true)
+      (compile-directory-zos rootdir info-ref #:verbose #true #:skip-doc-sources? #true)
       
       (let ([modpath `(submod ,(syntax-source #'makefile) make:files)])
         (when (module-declared? modpath)
@@ -279,7 +293,7 @@
                             (parameterize ([current-make-goal phony])
                               (cond [(string=? phony "all") (make-all)]
                                     [(regexp-match? #px"clean$" phony) (make-clean)]
-                                    [else (let ([modpath `(submod ,(syntax-source #'makefile) ,(string->symbol (format "make:~a:" phony)))])
+                                    [else (let ([modpath `(submod ,(syntax-source #'makefile) ,(make:goal: phony))])
                                             (if (module-declared? modpath)
                                                 (dynamic-require modpath #false)
                                                 (eprintf "make: I don't know how to make `~a`!~n" phony)))]))))
@@ -300,7 +314,7 @@
                                                                        "distclean : Delete all files that are not included in the distribution."
                                                                        "maintainer-clean : Delete all files that can be reconstructed. [Maintainers Only]"}
                                                                      (format "~n  ")))
-                                        (map {lambda [phony] (let ([sub `(submod ,(syntax-source #'makefile) ,(string->symbol (format "make:~a:" (car phony))))])
+                                        (map {lambda [phony] (let ([sub `(submod ,(syntax-source #'makefile) ,(make:goal: (car phony)))])
                                                                (when (module-declared? sub) (format "  ~a : ~a~n" (car phony) (cdr phony))))}
                                              (list (cons 'install "Installing the software, then running test if testcases exist.")
                                                    (cons 'uninstall "Delete all the installed files and documentation.")

@@ -7,5 +7,6 @@
 (define build-deps '{"base" "at-exp-lib" "scribble-lib"})
 
 (define compile-omit-paths 'all)
+(define test-omit-paths 'all)
 
 (define pkg-desc "This project itself is built for developers to set up all essentials.")
