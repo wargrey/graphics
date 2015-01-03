@@ -195,6 +195,11 @@
   
   (for ([handbook (in-list (map {lambda [type] (build-path tmrsdir type "handbook.scrbl")} (list "behavior")))]
         #:when (file-exists? handbook))
+    (define handbook.dir (path-replace-suffix handbook #""))
+    (when (directory-exists? handbook.dir)
+      (for ([html (in-list (directory-list handbook.dir #:build? #true))]
+            #:when (regexp-match? #px"(?<!index)\\.html$" html))
+        (delete-file html)))
     (parameterize ([current-directory (path-only handbook)]
                    [current-namespace (make-base-namespace)])
         (namespace-require 'scribble/render)
