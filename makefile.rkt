@@ -85,11 +85,10 @@
                (define awk-format (thread {thunk (let awk ([pipen awkout])
                                                    (define in (thread-receive))
                                                    (define out (match in
-                                                                 [{pregexp #px"^#+ (\\d+\\.)+"} (regexp-replace #px"^(#+) (\\d+\\.)+" in "\\1")]
                                                                  [{pregexp #px"~/"} (string-replace in "~" (format "/~a" (find-relative-path rootdir stnsdir)))]
                                                                  [{pregexp #px"^\\s*$"} (let ([next (thread-receive)])
                                                                                           (cond [(and (not (eof-object? next))
-                                                                                                      (regexp-match? #px"(^\\* )|(^\\s*$)" next)) 'Skip-Empty-Line]
+                                                                                                      (regexp-match? #px"(^\\s*\\* )|(^\\s*$)" next)) 'Skip-Empty-Line]
                                                                                                 [else (thread-send pipen "")])
                                                                                           (thread-rewind-receive (list next)))]
                                                                  [_ in]))

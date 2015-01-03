@@ -6,7 +6,8 @@
 @(info-ref 'pkg-desc)
 
 @section{Subprojects}
-@(itemlist @item{[@bold{Tencent}](village/tencent): Digging data from Tencent Caches}
+@(itemlist #:style 'compact
+           @item{[@bold{Tencent}](village/tencent): Digging data from Tencent Caches}
            @item{[@bold{iPhone}](village/iphone): Digging data from iPhone Backups})
 
 @section{Digimon Syndrome}
