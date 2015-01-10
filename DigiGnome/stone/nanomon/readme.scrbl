@@ -1,6 +1,6 @@
 #lang scribble/base
 
-@(require "../../scribble.rkt")
+@(require "../markdown.rkt")
 
 @title{@(info-ref 'collection)}
 @(info-ref 'pkg-desc)
@@ -17,4 +17,4 @@
                                                 "nevertheless it can destroy strong digimons' digicore directly.")" />
 </p>
 
-@include-section{../../convention.scrbl}
+@include-section{../readme.scrbl}

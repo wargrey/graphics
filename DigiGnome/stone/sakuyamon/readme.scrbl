@@ -1,6 +1,6 @@
 #lang scribble/base
 
-@(require "../../scribble.rkt")
+@(require "../markdown.rkt")
 
 @title{@(info-ref 'collection)}
 @(info-ref 'pkg-desc)
@@ -8,4 +8,4 @@
 <img src="~/brainstorm.png" />
 </p>
 
-@include-section{../../convention.scrbl}
+@include-section{../readme.scrbl}

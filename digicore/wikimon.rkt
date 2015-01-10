@@ -6,11 +6,8 @@
 (require racket/draw)
 (require racket/class)
 (require racket/string)
-(require racket/runtime-path)
 
 (provide (all-defined-out))
-
-(define-runtime-path wikimon-dir "../stone/wikimon")
 
 (define kanas (hash 'ア 'a 'イ 'Test3 'ウ 'u 'エ 'e 'オ 'o 'ヤ 'ya 'ユ 'yu 'ヨ 'yo 'ワ 'wa 'ヲ 'wo 'ン 'Test4a 'ー 'chouon2 'ヴ 'vu
                     'カ 'ka3 'キ 'ki 'ク 'ku2 'ケ 'ke 'コ 'ko 'ガ 'ga 'ギ 'gi 'グ 'gu 'ゲ 'ge 'ゴ 'go

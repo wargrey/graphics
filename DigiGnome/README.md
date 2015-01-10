@@ -1,10 +1,24 @@
-# Project Conventions
+# Digital World
+
+## 1. Digimon-Gnome
+
+DigiGnome itself is built for developers to set up all essentials.
+
+## 2. Subprojects
+
+* [**Sakuyamon**](https://github.com/digital-world/sakuyamon) is in
+  charge of gyoudmon.org
+
+* [**Nanomon**](https://github.com/digital-world/nanomon) is a cyberpunk
+  that digging data from Chaos
+
+## 3. Project Conventions
 
 How to build a _Digital World_? Okay, we don't start with the _File
 Island_, but we own some concepts from the [Digital
 Monsters](http://en.wikipedia.org/wiki/Digimon).
 
-## 1. Building Scripts
+### 3.1. Building Scripts
 
 * [**prerequisites.sh**](DigiGnome/prerequisites.sh): Build the latest
   Racket and Swi-Prolog from offical source.
@@ -15,7 +29,7 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
 * [**submake.rkt**](DigiGnome/submake.rkt): As its name shows, it is the
   sub makefile that should exist in every _digimon_ directory.
 
-## 2. Hierarchy
+### 3.2. Hierarchy
 
 For the sake of consistency and better architecture, we follow the
 concept of [Racket Multi-collection
@@ -56,7 +70,7 @@ repositories.
     nonetheless, try `htdocs` or
     `webroot`:stuck\_out\_tongue\_winking\_eye:.
 
-## 3. Version
+### 3.3. Version
 
 Obviousely, our _digimons_ have their own life cycle.
 

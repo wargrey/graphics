@@ -1,0 +1,8 @@
+#!/bin/sh
+# This script was created by make-mzscheme-launcher
+
+# {{{ bindir
+bindir="/opt/GYDMracket/bin"
+# }}} bindir
+
+exec "${bindir}/racket" -N "$0" '--search' '/Users/wargrey/DigitalWorld' '--lib' 'sakuyamon/digivice/sakuyamon.rkt'  ${1+"$@"}
