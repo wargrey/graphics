@@ -157,16 +157,20 @@ exec racket -tm $0 ${1+"$@"}
 
 (define make~check:
   {lambda [submake d-info]
-    (when (directory-exists? (getenv "digimon-tamer"))
-      (for ([handbook (in-list (map (curryr build-path "handbook.scrbl") (directory-list (getenv "digimon-tamer") #:build? #true)))]
-            #:when (file-exists? handbook))
+    (for ([handbook (in-list (cond [(false? (null? (current-make-real-targets))) (filter {lambda [hb.scrbl] (unless (regexp-match? #px"\\.scrbl$" hb.scrbl)
+                                                                                                              ((negate eprintf) "make: skip non-scribble file `~a`.~n" hb.scrbl))}
+                                                                                         (current-make-real-targets))]
+                                   [(directory-exists? (getenv "digimon-tamer")) (filter file-exists?
+                                                                                         (map (curryr build-path "handbook.scrbl")
+                                                                                              (directory-list (getenv "digimon-tamer") #:build? #true)))]
+                                   [else null]))])
         (parameterize ([current-directory (path-only handbook)]
                        [current-namespace (make-base-namespace)])
           (namespace-require 'scribble/render)
           (eval '(require (prefix-in html: scribble/html-render)))
           (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
                          #:render-mixin {lambda [%] (html:render-multi-mixin (html:render-mixin %))}
-                         #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths))) #:quiet? #false)))))})
+                         #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths))) #:quiet? #false))))})
 
 (define main
   {lambda who-cares
@@ -200,11 +204,11 @@ exec racket -tm $0 ${1+"$@"}
                           (putenv "digimon-world" digimon-world)
                           (putenv "digimon-gnome" digimon-gnome)
                           (define-values {files phonies} (partition filename-extension targets))
-                          (parameterize ([current-make-real-targets (map {lambda [f] (if (relative-path? f) (build-path (getenv "digimon-world") f) f)} files)])
+                          (parameterize ([current-make-real-targets (map path->complete-path files)])
                             (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
                               (parameterize ([current-make-phony-goal phony])
-                                (for ([digimon (in-list (cons digimon-gnome (cond [(null? (current-make-collects)) (info-ref 'setup-collects (const null))]
-                                                                                  [else (current-make-collects)])))])
+                                (for ([digimon (in-list (remove-duplicates (cons digimon-gnome (cond [(null? (current-make-collects)) (info-ref 'setup-collects (const null))]
+                                                                                                     [else (current-make-collects)]))))])
                                   (putenv "digimon-zone" (path->string (build-path digimon-world digimon)))
                                   (define digimon-info (get-info/full (getenv "digimon-zone")))
                                   (cond [(false? digimon-info) (eprintf "make: [warning] ignored digimon `~a` because `info.rkt` not found.~n" digimon)]
