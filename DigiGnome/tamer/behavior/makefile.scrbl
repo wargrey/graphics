@@ -1,37 +1,35 @@
 #lang scribble/manual
 
+@(require racket)
 @(require scribble/lp-include)
 
 @(require setup/getinfo)
 
 @(define info-ref (get-info/full (getenv "digimon-zone")))
+@(define subdir (path->string (find-relative-path (getenv "digimon-zone")
+                                                  (path-only (syntax-source #'handbook)))))
 
-@title[#:style (list 'non-toc) #:version (format "~a[~a]" (version) (info-ref 'version))]{Tamer's Handbook for makefile.rkt}
+@title[#:style (list 'non-toc) #:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{Tamer@literal{'}s Handbook}}
 
-@margin-note{It's reasonable to suppose that you have already know the project conventions.
+@margin-note{It@literal{'}s reasonable to suppose that you have already know the project conventions.
              But if you reach here through a strange way, you still have the
              @hyperlink["https://github.com/digital-world/DigiGnome"]{README} page.}
-This is a special handbook that defines the behavior of
-@hyperlink[(collection-file-path "makefile.rkt" (getenv "digimon-gnome"))]{the building system} itself.
+This handbook is the sample of applying
+@hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Behavior Driven Development(BDD)} with
+@hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Literate Programming} via testing
+@hyperlink[(collection-file-path "makefile.rkt" (getenv "digimon-gnome"))]{makefile.rkt} itself
+that the entire project should follow since the BDD plays an important role in my personal software engineering process.
 
-@;{
-@filebox[@italic{Behavioral Specification}]{
-                                            @bold{Title: The story should have a clear, explicit title.}
-                                             
-                                             @bold{Narrative}
-                                             
-                                             A short, introductory section that specifies
-                                             @(itemlist #:style 'compact
-                                                        @item{who is the driver or primary stakeholder of the story}
-                                                        @item{which effect the stakeholder wants the story to have}
-                                                        @item{what business value the stakeholder will derive from this effect})
-                                             
-                                             @bold{Acceptance criteria or scenarios}
-                                             
-                                             a description of each specific case of the narrative. Such a scenario has the following structure:
-                                             @(itemlist #:style 'compact
-                                                        @item{It starts by specifying the initial condition that is assumed to be true at the beginning of the scenario.
-                                                              This may consist of a single clause, or several.}
-                                                        @item{It then states which event triggers the start of the scenario.}
-                                                        @item{Finally, it states the expected outcome, in one or more clauses.})}
-}
+The suggested BDD specifications are always written in some forms share the concept of @italic{ubiquitous languages}, but I don@literal{'}t think
+it@literal{'}s a good idea, especially in the situation that I@literal{'}m an indenpendent developer and communicating costs almost nothing.
+So I make the decision on my risks, to write specification in both natural lanugage and formal language in the same file with
+the @italic{Literate Programming} skill. Nevertheless, I@literal{'}d like to borrow the structure from the
+@hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development#Behavioural_specifications"]{User Story Specification}.
+
+This handbook is also executable,
+however checking the @italic{makefile.rkt} always makes nonsense but costs high. So it is designated to execute manually:
+@nested[#:style 'code-inset]{@(itemlist #:style 'compact
+                                        @item{@exec{cd @(getenv "digimon-zone")}}
+                                        @item{@exec{makefile.rkt +o @(getenv "digimon-gnome") check @(format "~a/makefile.scrbl" subdir)}})}
+
+@lp-include{makefile.rkt}

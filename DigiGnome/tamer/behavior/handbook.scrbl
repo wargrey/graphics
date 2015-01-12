@@ -3,23 +3,19 @@
 @(require racket)
 
 @(require scribble/core)
-@(require scribble/html-properties)
-@(require scribble/lp-include)
 
 @(require setup/getinfo)
 
 @(define info-ref (get-info/full (getenv "digimon-zone")))
-@(define subdir (path->string (find-relative-path (getenv "digimon-zone")
-                                                  (path-only (syntax-source #'handbook)))))
 
 @(define part->blocks
    {lambda [psection header-level]
      (define blocks (foldl {lambda [sp bs] (append bs sp)}
                            (cons (para #:style (make-style "boxed" null)
-                                       ((cond [(zero? header-level) larger]
-                                              [else (apply compose1 (make-list (sub1 header-level) smaller))])
+                                       (larger ((cond [(zero? header-level) larger]
+                                                      [else (apply compose1 (make-list (sub1 header-level) smaller))])
                                         (elem #:style (make-style (format "h~a" (add1 header-level)) null)
-                                              (part-title-content psection))))
+                                              (part-title-content psection)))))
                                  (part-blocks psection))
                            (map {lambda [sub] (part->blocks sub (add1 header-level))}
                                 (part-parts psection))))
@@ -30,28 +26,30 @@
                                            (format "v.~a" (document-version-text (car dver))))
                                      blocks)]))])})
 
-@title[#:version (format "~a[~a]" (version) (info-ref 'version))]{Tamer's Handbook}
+@title[#:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{Making the @italic{Tamer@literal{'}s Handbook} as a story}}
 
-@margin-note{It's reasonable to suppose that you have already know the project conventions.
-             But if you reach here through a strange way, you still have the
-             @hyperlink["https://github.com/digital-world/DigiGnome"]{README} page.}
-This handbook makes a standard example of applying
-@hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Behavior Driven Development} with
-@hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Literate Programming} that the entire project should follow
-since the BDD plays an important role in my personal software engineering process.
+@nested[#:style 'code-inset]{@racketoutput{@bold{Story:} Make a @italic{Tamer@literal{'}s Handbook} to Show the Sample}
+                             
+                              @racketoutput{@bold{In order to} standardize my development process and to make life joyful}@linebreak[]
+                              @racketoutput{@bold{As an} indenpendent developer}@linebreak[]
+                              @racketoutput{@bold{I want to} write the @italic{handbook} with @italic{Literate Programming} skill}
+                              
+                              @racketoutput{@bold{Scenario 1:} The project should provide @filepath{tamer/behavior/makefile.scrbl}}@linebreak[]
+                              @racketoutput{@bold{Given} the project have been launched and ready for developing}@linebreak[]
+                              @racketoutput{@bold{And} I currently have not found any appropriate specification templates}@linebreak[]
+                              @racketoutput{@bold{When} I do some researching and architect a template}@linebreak[]
+                              @racketoutput{@bold{Then} I should see the @filepath{makefile.scrbl} in @filepath{tamer/behavior}}
+                              
+                              @racketoutput{@bold{Scenario 2:} The project should provide @filepath{tamer/behavior/handbook.scrbl}}@linebreak[]
+                              @racketoutput{@bold{Given} the building script checks @filepath{handbook.scrbl} to generate reports}@linebreak[]
+                              @racketoutput{@bold{And} the behavior of the project is all about the building process itself}@linebreak[]
+                              @racketoutput{@bold{And} the build process should be checked manually}@linebreak[]
+                              @racketoutput{@bold{When} I play a trick on the building script to follow its rule}@linebreak[]
+                              @racketoutput{@bold{Then} I should see the @filepath{handbook.scrbl} in @filepath{tamer/behavior}}
+                              
+                              @racketerror{Hmm... the @italic{Gherkin language}, sounds abnormal and verbose.}}
 
-The suggested BDD specifications are always written in some forms share the concept of ubiquitous languages, but I don't think it is a good idea,
-especially in the situation that I am an indenpendent developer and communicating costs almost nothing. So I make the decision on my risks, to write
-specification in both natural lanugage and programming language at the same file with the so-called @italic{Literate Programming} skill. Nevertheless,
-I would like to borrow the structure from the
-@hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development#Behavioural_specifications"]{@italic{User Story Specification}}.
-
-@table-of-contents[]
-
-@section[#:style 'unnumbered]{Makefile: I am the guider}
-In order to behave my development process and to make life joyful, I write the test specification below to test
-@hyperlink[(collection-file-path "makefile.rkt" (getenv "digimon-gnome"))]{makefile.rkt} itself. Yes, it is an executable specification,
-however checking the @italic{makefile.rkt} is always making nonsense but cost high. So it is designated to execute manually with command
-@commandline{makefile.rkt ++only @(getenv "digimon-gnome") check @(format "~a/makefile.scrbl" subdir)}
-
-@filebox[@hyperlink[(format "~a/~a/makefile.rkt" (getenv "digimon-zone") subdir)]{@italic{@|subdir|/makefile.rkt}}]{@(part->blocks (dynamic-require "makefile.scrbl" 'doc) 0)}
+@nested[#:style (make-style "boxed" null)]{@(let* ([makefile.scrbl (path->string (build-path (path-only (syntax-source #'handbook)) "makefile.scrbl"))]
+                                                   [makefile-name (path->string (find-relative-path (getenv "digimon-zone") makefile.scrbl))]
+                                                   [makedoc (part->blocks (dynamic-require `(file ,makefile.scrbl) 'doc) 0)])
+                                              @filebox[@hyperlink[@|makefile.scrbl|]{@italic{@|makefile-name|}}]{@|makedoc|})}
