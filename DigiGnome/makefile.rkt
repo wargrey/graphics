@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #|
-exec racket -tm $0 ${1+"$@"} 
+exec racket --require "$0" --main -- ${1+"$@"} 
 |#
 
 #lang racket
@@ -11,16 +11,9 @@ exec racket -tm $0 ${1+"$@"}
 (require compiler/compiler)
 (require launcher/launcher)
 
+(require "digitama/runtimepath.rkt")
+
 (provide main)
-
-(define-values {digimon-world digimon-gnome}
-  (let ([dir (path->string (path-only (syntax-source #'makefile)))])
-    (if (file-exists? (build-path dir "submake.rkt"))
-        (let ([px.split (regexp-match #px"(.+)/([^/]+?)/?$" dir)])
-          (values (second px.split) (third px.split)))
-        (values (string-replace dir #px"/?$" "") "DigiGnome"))))
-
-(current-library-collection-paths (cons digimon-world (current-library-collection-paths)))
 
 (define info-ref (get-info/full digimon-world))
 
@@ -49,10 +42,6 @@ exec racket -tm $0 ${1+"$@"}
                                                                (raise 'make-dry-run #true))}))})
     (list (car r) (if (make-always-run) (cons (getenv "digimon-zone") ds) ds)
           (if (make-just-touch) {lambda [] (file-or-directory-modify-seconds t (current-seconds) f)} f))})
-
-(define digimon-path
-  {lambda [pathname #:digimon [diginame digimon-gnome]]
-    (build-path digimon-world diginame pathname)})
 
 (define name->make~goal: {lambda [phony] (string->symbol (format "make~~~a:" phony))})
 
@@ -173,9 +162,8 @@ exec racket -tm $0 ${1+"$@"}
                          #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths))) #:quiet? #false))))})
 
 (define main
-  {lambda who-cares
-    (parse-command-line (file-name-from-path (syntax-source #'program))
-                        (current-command-line-arguments)
+  {lambda arglist
+    (parse-command-line (file-name-from-path (syntax-source #'program)) arglist
                         `{{usage-help ,(format "Carefully our conventions are not exactly the same as those of GNU Make.~n")}
                           {once-each
                            [{"-B" "--always-make"}
@@ -201,22 +189,18 @@ exec racket -tm $0 ${1+"$@"}
                           ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
                           ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
                           (use-compiled-file-paths (list (build-path "compiled")))
-                          (putenv "digimon-world" digimon-world)
-                          (putenv "digimon-gnome" digimon-gnome)
                           (define-values {files phonies} (partition filename-extension targets))
                           (parameterize ([current-make-real-targets (map path->complete-path files)])
                             (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
                               (parameterize ([current-make-phony-goal phony])
                                 (for ([digimon (in-list (remove-duplicates (cons digimon-gnome (cond [(null? (current-make-collects)) (info-ref 'setup-collects (const null))]
                                                                                                      [else (current-make-collects)]))))])
-                                  (putenv "digimon-zone" (path->string (build-path digimon-world digimon)))
+                                  (digimon-setenv digimon)
                                   (define digimon-info (get-info/full (getenv "digimon-zone")))
                                   (cond [(false? digimon-info) (eprintf "make: [warning] ignored digimon `~a` because `info.rkt` not found.~n" digimon)]
                                         [else (let ([submake (build-path (getenv "digimon-zone") "submake.rkt")])
                                                 (eprintf "#======> Digimon Zone `~a`. <======#~n" digimon)
                                                 (putenv "makefiles" (format "~a:~a" (syntax-source #'makefile) submake))
-                                                (for ([pathname (in-list (list "digivice" "digitam" "tamer" "stone"))])
-                                                  (putenv (format "digimon-~a" pathname) (path->string (digimon-path pathname #:digimon digimon))))
                                                 (cond [(string=? phony "all") (make~all: submake digimon-info)]
                                                       [(regexp-match? #px"clean$" phony) (make~clean: submake digimon-info)]
                                                       [else (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
