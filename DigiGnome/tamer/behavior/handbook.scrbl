@@ -47,7 +47,8 @@
                               @racketoutput{@bold{When} I play a trick on the building script to follow its rule}@linebreak[]
                               @racketoutput{@bold{Then} I should see the @filepath{handbook.scrbl} in @filepath{tamer/behavior}}
                               
-                              @racketerror{Hmm... the @italic{Gherkin language}, sounds abnormal and verbose.}}
+                              @racketerror{Hmm@|._|@|._|@|._| the @italic{Gherkin language}, sounds abnormal and verbose.}@linebreak[]
+                              @racketerror{Some test programers must get headache and stomachache.}}
 
 @nested[#:style (make-style "boxed" null)]{@(let* ([makefile.scrbl (path->string (build-path (path-only (syntax-source #'handbook)) "makefile.scrbl"))]
                                                    [makefile-name (path->string (find-relative-path (getenv "digimon-zone") makefile.scrbl))]
