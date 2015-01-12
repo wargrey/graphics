@@ -43,6 +43,23 @@ exec racket --require "$0" --main -- ${1+"$@"}
     (list (car r) (if (make-always-run) (cons (getenv "digimon-zone") ds) ds)
           (if (make-just-touch) {lambda [] (file-or-directory-modify-seconds t (current-seconds) f)} f))})
 
+(define compile-directory
+  {lambda [rootdir finfo]
+    (define-values {pin pout} (make-pipe #false 'filter-checking 'verbose-message))
+    (define px.inside-world (pregexp digimon-world))
+    (define verbose-awk (thread {thunk (let awk ()
+                                         (define v (read-line pin))
+                                         (unless (eof-object? v)
+                                           (cond [(regexp-match? px.inside-world v) (printf "~a~n" v)]
+                                                 [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" v) 'Skip-Others-Packages]
+                                                 [else (printf "~a~n" v)])
+                                           (awk)))}))
+    (parameterize ([current-output-port pout])
+      (compile-directory-zos rootdir finfo #:verbose #true #:skip-doc-sources? #true))
+    (close-output-port pout)
+    (thread-wait verbose-awk)
+    (close-input-port pin)})
+
 (define name->make~goal: {lambda [phony] (string->symbol (format "make~~~a:" phony))})
 
 (define make~all:
@@ -72,20 +89,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                 (d-info 'racket-launcher-libraries (const null)))))])
       (unless (null? digivices) (make/proc digivices (map car digivices))))
     
-    (let-values ([{pin pout} (make-pipe #false 'filter-checking 'verbose-message)]
-                 [{px.inside-world} (pregexp digimon-world)])
-      (define verbose-awk (thread {thunk (let awk ()
-                                           (define v (read-line pin))
-                                           (unless (eof-object? v)
-                                             (cond [(regexp-match? px.inside-world v) (printf "~a~n" v)]
-                                                   [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" v) 'Skip-Others-Packages]
-                                                   [else (printf "~a~n" v)])
-                                             (awk)))}))
-      (parameterize ([current-output-port pout])
-        (compile-directory-zos (getenv "digimon-zone") d-info #:verbose #true #:skip-doc-sources? #true))
-      (close-output-port pout)
-      (thread-wait verbose-awk)
-      (close-input-port pin))
+    (compile-directory (getenv "digimon-zone") d-info)
     
     (let ([modpath `(submod ,submake make:files)])
       (when (module-declared? modpath #true)
@@ -146,6 +150,9 @@ exec racket --require "$0" --main -- ${1+"$@"}
 
 (define make~check:
   {lambda [submake d-info]
+    (let ([tamer-info {lambda [key fdefault] (fdefault)}])
+      (compile-directory (getenv "digimon-tamer") tamer-info))
+    
     (for ([handbook (in-list (cond [(false? (null? (current-make-real-targets))) (filter {lambda [hb.scrbl] (unless (regexp-match? #px"\\.scrbl$" hb.scrbl)
                                                                                                               ((negate eprintf) "make: skip non-scribble file `~a`.~n" hb.scrbl))}
                                                                                          (current-make-real-targets))]
@@ -199,14 +206,14 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                   (define digimon-info (get-info/full (getenv "digimon-zone")))
                                   (cond [(false? digimon-info) (eprintf "make: [warning] ignored digimon `~a` because `info.rkt` not found.~n" digimon)]
                                         [else (let ([submake (build-path (getenv "digimon-zone") "submake.rkt")])
-                                                (eprintf "#======> Digimon Zone `~a`. <======#~n" digimon)
+                                                (eprintf "Enter Digimon Zone: ~a.~n" digimon)
                                                 (putenv "makefiles" (format "~a:~a" (syntax-source #'makefile) submake))
                                                 (cond [(string=? phony "all") (make~all: submake digimon-info)]
                                                       [(regexp-match? #px"clean$" phony) (make~clean: submake digimon-info)]
                                                       [else (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
                                                               (with-handlers ([exn:fail:contract:variable? {lambda [who-cares] (eprintf "make: I don't know how to make `~a`!~n" phony)}])
                                                                 ((namespace-variable-value (name->make~goal: phony) #false) submake digimon-info)))])
-                                                (eprintf "make: made digimon `~a`.~n" digimon))])))))}
+                                                (eprintf "Leave Digimon Zone: ~a.~n" digimon))])))))}
                         (list "phony-target|file-path")
                         {lambda [--help]
                           (display (foldl {lambda [-h --help] (if (string? -h) (string-append --help -h) --help)}

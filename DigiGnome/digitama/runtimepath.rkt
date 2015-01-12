@@ -1,9 +1,13 @@
 #lang racket
 
-(provide (all-defined-out))
+(require racket/runtime-path)
+
+(provide (except-out (all-defined-out) compiled-syntax-source-directory))
+
+(define-runtime-path compiled-syntax-source-directory ".")
 
 (define-values {digimon-world digimon-gnome}
-  (let* ([dir (path->string (path-only (syntax-source #'runtimepath)))]
+  (let* ([dir (path->string (simplify-path compiled-syntax-source-directory))]
          [px.split (regexp-match #px"(.+)/([^/]+?)/[^/]+?/?$" dir)])
     (values (second px.split) (third px.split))))
 
