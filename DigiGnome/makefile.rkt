@@ -152,21 +152,28 @@ exec racket --require "$0" --main -- ${1+"$@"}
   {lambda [submake d-info]
     (let ([tamer-info {lambda [key fdefault] (fdefault)}])
       (compile-directory (getenv "digimon-tamer") tamer-info))
-    
+
     (for ([handbook (in-list (cond [(false? (null? (current-make-real-targets))) (filter {lambda [hb.scrbl] (unless (regexp-match? #px"\\.scrbl$" hb.scrbl)
-                                                                                                              ((negate eprintf) "make: skip non-scribble file `~a`.~n" hb.scrbl))}
-                                                                                         (current-make-real-targets))]
-                                   [(directory-exists? (getenv "digimon-tamer")) (filter file-exists?
-                                                                                         (map (curryr build-path "handbook.scrbl")
-                                                                                              (directory-list (getenv "digimon-tamer") #:build? #true)))]
-                                   [else null]))])
-        (parameterize ([current-directory (path-only handbook)]
-                       [current-namespace (make-base-namespace)])
-          (namespace-require 'scribble/render)
-          (eval '(require (prefix-in html: scribble/html-render)))
-          (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
-                         #:render-mixin {lambda [%] (html:render-multi-mixin (html:render-mixin %))}
-                         #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths))) #:quiet? #false))))})
+                                                                                                               ((negate eprintf) "make: skip non-scribble file `~a`.~n" hb.scrbl))}
+                                                                                          (current-make-real-targets))]
+                                    [(directory-exists? (getenv "digimon-tamer")) (filter file-exists?
+                                                                                          (map (curryr build-path "handbook.scrbl")
+                                                                                               (directory-list (getenv "digimon-tamer") #:build? #true)))]
+                                    [else null]))])
+      (define dest-dir (build-path (path-only handbook) (car (use-compiled-file-paths))))
+      (define dest-file (build-path dest-dir (path-replace-suffix (file-name-from-path handbook) "") "index.html"))
+      (define original-modify-seconds (file-or-directory-modify-seconds dest-file #false (const 0)))
+      (parameterize ([current-directory (path-only handbook)]
+                     [current-namespace (make-base-namespace)]
+                     [exit-handler {lambda [whocares] (when (>= original-modify-seconds
+                                                                (file-or-directory-modify-seconds dest-file #false (const 0)))
+                                                        (error 'make "[error] something strange makes the render fail!"))}])
+        (namespace-require 'scribble/render)
+        (eval '(require (prefix-in html: scribble/html-render)))
+        (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
+                       #:render-mixin {lambda [%] (html:render-multi-mixin (html:render-mixin %))}
+                       #:dest-dir ,dest-dir #:quiet? #false #:warn-undefined? #false))
+        (exit 'check-if-render-fails)))})
 
 (define main
   {lambda arglist
