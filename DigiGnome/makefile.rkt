@@ -153,30 +153,24 @@ exec racket --require "$0" --main -- ${1+"$@"}
     (let ([tamer-info {lambda [key fdefault] (fdefault)}])
       (compile-directory (getenv "digimon-tamer") tamer-info))
 
-    (for ([handbook (in-list (cond [(false? (null? (current-make-real-targets))) (filter {lambda [hb.scrbl] (unless (regexp-match? #px"\\.scrbl$" hb.scrbl)
-                                                                                                               ((negate eprintf) "make: skip non-scribble file `~a`.~n" hb.scrbl))}
-                                                                                          (current-make-real-targets))]
-                                    [(directory-exists? (getenv "digimon-tamer")) (filter file-exists?
-                                                                                          (map (curryr build-path "handbook.scrbl")
-                                                                                               (directory-list (getenv "digimon-tamer") #:build? #true)))]
-                                    [else null]))])
-      (define dest-dir (build-path (path-only handbook) (car (use-compiled-file-paths))))
-      (define dest-file (build-path dest-dir (path-replace-suffix (file-name-from-path handbook) "") "index.html"))
-      (define original-modify-seconds (file-or-directory-modify-seconds dest-file #false (const 0)))
+    (for ([handbook (in-list (cond [(null? (current-make-real-targets)) (filter file-exists? (list (build-path (getenv "digimon-tamer") "handbook.scrbl")))]
+                                   [else (filter {lambda [hb.scrbl] (unless (regexp-match? #px"\\.scrbl$" hb.scrbl)
+                                                                      ((negate eprintf) "make: skip non-scribble file `~a`.~n" hb.scrbl))}
+                                                 (current-make-real-targets))]))])
       (parameterize ([current-directory (path-only handbook)]
                      [current-namespace (make-base-namespace)]
-                     [exit-handler {lambda [whocares] (when (>= original-modify-seconds
-                                                                (file-or-directory-modify-seconds dest-file #false (const 0)))
-                                                        (error 'make "[error] something strange makes the render fail!"))}])
+                     [exit-handler {lambda [whocares] (error 'make "[error] `Scribble` exits unintentionally! ~a"
+                                                             "Maybe a proper `exit-handler` is required.")}])
         (namespace-require 'scribble/render)
         (eval '(require (prefix-in html: scribble/html-render)))
         (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
                        #:render-mixin {lambda [%] (html:render-multi-mixin (html:render-mixin %))}
-                       #:dest-dir ,dest-dir #:quiet? #false #:warn-undefined? #false))
-        (exit 'check-if-render-fails)))})
+                       #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
+                       #:quiet? #false #:warn-undefined? #false))))})
 
 (define main
   {lambda arglist
+    (define make-exit-code (make-parameter +inf.0))
     (parse-command-line (file-name-from-path (syntax-source #'program)) arglist
                         `{{usage-help ,(format "Carefully our conventions are not exactly the same as those of GNU Make.~n")}
                           {once-each
@@ -200,6 +194,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
                             ,{lambda (++only digimon) (current-make-collects (cons digimon (current-make-collects)))}
                             {"Ignore info.rkt, build only <digimon>s." "digimon"}]}}
                         {lambda [!voids . targets]
+                          (unless (infinite? (make-exit-code))
+                            (exit (make-exit-code)))
                           ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
                           ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
                           (use-compiled-file-paths (list (build-path "compiled")))
@@ -238,10 +234,9 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                  (list (cons 'install "Installing the software, then running test if testcases exist.")
                                                        (cons 'uninstall "Delete all the installed files and documentation.")
                                                        (cons 'dist "Creating a distribution file of the source files.")
-                                                       (cons 'check "Performing self tests on the program this makefile builds before building.")
-                                                       (cons 'installcheck "Performing installation tests on the target system after installing."))))))
-                          (exit 0)}
+                                                       (cons 'check "Performing tests on the program this makefile builds."))))))
+                          (make-exit-code 0)}
                         {lambda [unknown]
                           (eprintf "make: I don't know what does `~a` mean!~n" unknown)
-                          (exit 1)})})
+                          (make-exit-code 1)})})
     

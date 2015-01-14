@@ -57,18 +57,12 @@ repositories.
     called by wrappers from `bin`.
 
   * **tamer** is the interface for developers to train the _digimons_.
-    Namely it works like `test`.
-
-    * _**behavior**_ shares the same name and concepts as in  [Behavior
-      Driven
-      Development](http://en.wikipedia.org/wiki/Behavior-driven\_development).
-
-    * _**combat**_ occurs in real world after _digimons_ start their own
-      lives.
+    Namely it works like `test` that follows  the principles of
+    [Behavior Driven
+    Development](http://en.wikipedia.org/wiki/Behavior-driven\_development).
 
   * **terminus** manages guilds of _digimons_. Hmm... Sounds weird,
-    nonetheless, try `htdocs` or
-    `webroot`:stuck\_out\_tongue\_winking\_eye:.
+    nonetheless, try `htdocs` or `webroot`.
 
 ### 3.3. Version
 
