@@ -26,7 +26,7 @@
                                            (format "v.~a" (document-version-text (car dver))))
                                      blocks)]))])})
 
-@title[#:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{Making the @italic{Tamer@literal{'}s Handbook} as a story}}
+@title[#:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{@italic{The Story} as a story}}
 
 @nested[#:style 'code-inset]{@racketoutput{@bold{Story:} Make a @italic{Tamer@literal{'}s Handbook} to Show the Sample}
                              
@@ -44,11 +44,11 @@
                               @racketoutput{@bold{Given} the building script checks @filepath{handbook.scrbl} to generate reports}@linebreak[]
                               @racketoutput{@bold{And} the behavior of the project is all about the building process itself}@linebreak[]
                               @racketoutput{@bold{And} the build process should be checked manually}@linebreak[]
-                              @racketoutput{@bold{When} I play a trick on the building script to follow its rule}@linebreak[]
+                              @racketoutput{@bold{When} I play a trick on the building script to avoid breaking its rule}@linebreak[]
                               @racketoutput{@bold{Then} I should see the @filepath{handbook.scrbl} in @filepath{tamer/behavior}}
                               
-                              @racketerror{Hmm@|._|@|._|@|._| the @italic{Gherkin language}, sounds abnormal and verbose.}@linebreak[]
-                              @racketerror{Some test programers must get headache and stomachache.}}
+                              @racketerror{Hmm@|._|@|._|@|._| the @italic{Gherkin language}, semiformal and elegant.@linebreak[]
+                                              Nevertheless, it@literal{'}s not my cup of tea@|._|@|._|@|._|}}
 
 @nested[#:style (make-style "boxed" null)]{@(let* ([makefile.scrbl (path->string (build-path (path-only (syntax-source #'handbook)) "makefile.scrbl"))]
                                                    [makefile-name (path->string (find-relative-path (getenv "digimon-zone") makefile.scrbl))]
