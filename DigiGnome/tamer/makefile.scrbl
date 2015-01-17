@@ -21,6 +21,11 @@ This handbook is the sample of applying
    @hyperlink[mkfile]{makefile.rkt}) itself
 that the entire project should follow since the @italic{Behavior Driven Development} plays an important role in my personal software engineering process.
 
+
+@racketcommentfont{Intentionally the @italic{handbook} itself also plays a role of the test reporter
+                                     (open @filepath{@italic{<dirname>}/@(path->string (car (use-compiled-file-paths)))/@italic{<basename>}/index.html})
+                                     as well as the specifications.}
+
 @italic{Translating is the most complex human action in the Universe.}
 
 The @italic{Behavior Driven Development} doesn@literal{'}t have any formal requirements for exactly how to write it down,
@@ -29,12 +34,5 @@ between Developers and Bussiness Stakeholders. While I@literal{'}m an indenpende
 So I make the decision on my risk to write specification in both natural lanugage and formal language in the same file with
 the @italic{Literate Programming} skill. Nevertheless, I@literal{'}d like to borrow the structure from the
 @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development#Behavioural_specifications"]{User Story Specification}.
-
-@racketcommentfont{Thank the powerful @bold{Scribble} that @bold{Racket} gives us.
-                                      Equipping with it, writing the @italic{handbook} becomes fantastic.
-                                      Intentionally the @italic{handbook} itself also plays a role of the test reporter
-                                      (with the path @filepath{@italic{<dirname>}/@(path->string (car (use-compiled-file-paths)))/@italic{<basename>}/index.html})
-                                      as well as the specifications.}
-
 
 @lp-include{makefile.rkt}

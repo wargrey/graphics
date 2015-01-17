@@ -11,7 +11,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
 (require compiler/compiler)
 (require launcher/launcher)
 
-(require "digitama/runtimepath.rkt")
+(require "digicore/digitama/runtime-path.rkt")
 
 (provide main)
 
@@ -159,8 +159,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                  (current-make-real-targets))]))])
       (parameterize ([current-directory (path-only handbook)]
                      [current-namespace (make-base-namespace)]
-                     [exit-handler {lambda [whocares] (error 'make "[error] `Scribble` exits unintentionally! ~a"
-                                                             "Maybe a proper `exit-handler` is required.")}])
+                     [exit-handler {lambda [whocares] (error 'make "[error] `Scribble` needs a proper `exit-handler`!")}])
         (namespace-require 'scribble/render)
         (eval '(require (prefix-in html: scribble/html-render)))
         (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
@@ -170,63 +169,65 @@ exec racket --require "$0" --main -- ${1+"$@"}
 
 (define main
   {lambda arglist
-    (define make-exit-code (make-parameter +inf.0))
+    (define exit-handler-may-void-me (make-parameter #false))
     (parse-command-line (file-name-from-path (syntax-source #'program)) arglist
-                        `{{usage-help ,(format "Carefully our conventions are not exactly the same as those of GNU Make.~n")}
+                        `{{usage-help ,(format "Carefully options are not exactly the same as those of GNU Make.~n")}
                           {once-each
                            [{"-B" "--always-make"}
                             ,{lambda [flag] (make-always-run #true)}
-                            {"Unconditionally make all need-to-update targets."}]
-                           [{"-n" "--test" "--dry-run"}
+                            {"Unconditionally make all targets."}]
+                           [{"-n" "--dry-run"}
                             ,{lambda [flag] (make-dry-run #true)}
-                            {"Do not actually update targets, just make. [Except Racket Sources]"}]
-                           [{"-s" "--silent" "--quiet"}
+                            {"Just make without updating targets. [Except *.rkts]"}]
+                           [{"-s" "--silent"}
                             ,{lambda [flag] (let ([/dev/null (open-output-nowhere '/dev/null #true)]) (current-output-port /dev/null))}
-                            {"Just run commands but output nothing."}]
+                            {"Just run commands but output nothing if no errors."}]
                            [{"-t" "--touch"}
                             ,{lambda [flag] (make-just-touch #true)}
-                            {"Touch targets instead of remaking them if the target already exists."}]
+                            {"Touch targets instead of remaking them if it exists."}]
                            [{"-v" "--verbose"}
                             ,{lambda [flag] (make-print-dep-no-line #true) (make-print-checking #true) (make-print-reasons #true)}
                             {"Build with verbose messages."}]}
                           {multi
                            [{"+o" "++only"}
                             ,{lambda (++only digimon) (current-make-collects (cons digimon (current-make-collects)))}
-                            {"Ignore info.rkt, build only <digimon>s." "digimon"}]}}
+                            {"Only build <digimon>s." "digimon"}]}}
                         {lambda [!voids . targets]
-                          (unless (infinite? (make-exit-code))
-                            (exit (make-exit-code)))
-                          ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
-                          ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
-                          (use-compiled-file-paths (list (build-path "compiled")))
-                          (define-values {files phonies} (partition filename-extension targets))
-                          (parameterize ([current-make-real-targets (map path->complete-path files)])
-                            (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
-                              (parameterize ([current-make-phony-goal phony])
-                                (for ([digimon (in-list (remove-duplicates (cons digimon-gnome (cond [(null? (current-make-collects)) (info-ref 'setup-collects (const null))]
-                                                                                                     [else (current-make-collects)]))))])
-                                  (digimon-setenv digimon)
-                                  (define digimon-info (get-info/full (getenv "digimon-zone")))
-                                  (cond [(false? digimon-info) (eprintf "make: [warning] ignored digimon `~a` because `info.rkt` not found.~n" digimon)]
-                                        [else (let ([submake (build-path (getenv "digimon-zone") "submake.rkt")])
-                                                (eprintf "Enter Digimon Zone: ~a.~n" digimon)
-                                                (putenv "makefiles" (format "~a:~a" (syntax-source #'makefile) submake))
-                                                (cond [(string=? phony "all") (make~all: submake digimon-info)]
-                                                      [(regexp-match? #px"clean$" phony) (make~clean: submake digimon-info)]
-                                                      [else (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
-                                                              (with-handlers ([exn:fail:contract:variable? {lambda [who-cares] (eprintf "make: I don't know how to make `~a`!~n" phony)}])
-                                                                ((namespace-variable-value (name->make~goal: phony) #false) submake digimon-info)))])
-                                                (eprintf "Leave Digimon Zone: ~a.~n" digimon))])))))}
+                          (unless (void? (exit-handler-may-void-me))
+                            ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
+                            ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
+                            (use-compiled-file-paths (list (build-path "compiled")))
+                            (define-values {files phonies} (partition filename-extension targets))
+                            (parameterize ([current-make-real-targets (map path->complete-path files)])
+                              (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
+                                (parameterize ([current-make-phony-goal phony])
+                                  (for ([digimon (in-list (remove-duplicates (cond [(null? (current-make-collects)) (append (list digimon-gnome digimon-kernel)
+                                                                                                                            (info-ref 'setup-collects (const (directory-list digimon-world))))]
+                                                                                   [else (current-make-collects)])))])
+                                    (digimon-setenv digimon)
+                                    (define digimon-info (get-info/full (getenv "digimon-zone")))
+                                    (cond [(false? digimon-info) (eprintf "make: [warning] ignored digimon `~a` because `info.rkt` not found.~n" digimon)]
+                                          [else (let ([submake (build-path (getenv "digimon-zone") "submake.rkt")])
+                                                  (dynamic-wind {thunk (printf "Enter Digimon Zone: ~a.~n" digimon)}
+                                                                {thunk (putenv "makefiles" (format "~a:~a" (syntax-source #'makefile) submake))
+                                                                       (cond [(string=? phony "all") (make~all: submake digimon-info)]
+                                                                             [(regexp-match? #px"clean$" phony) (make~clean: submake digimon-info)]
+                                                                             [else (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
+                                                                                     (define fmake (namespace-variable-value (name->make~goal: phony) #false (const #false)))
+                                                                                     (cond [(false? fmake) {begin (eprintf "make: I don't know how to make `~a`!~n" phony)
+                                                                                                                  (exit-handler-may-void-me (exit -1))}]
+                                                                                           [else (fmake submake digimon-info)]))])}
+                                                                {thunk (printf "Leave Digimon Zone: ~a.~n" digimon)}))]))))))}
                         (list "phony-target|file-path")
                         {lambda [--help]
                           (display (foldl {lambda [-h --help] (if (string? -h) (string-append --help -h) --help)}
                                           (string-replace --help #px"  -- : .+?-h --'."
                                                           (string-join #:before-first (format "~n where <phony-target> is one of~n  ") #:after-last (format "~n")
-                                                                       '{"all : Building the entire software with generating documentation. [default]"
-                                                                         "mostlyclean : Delete all files except that people normally don't want to reconstruct."
-                                                                         "clean : Delete all files except that records the configuration."
-                                                                         "distclean : Delete all files that are not included in the distribution."
-                                                                         "maintainer-clean : Delete all files that can be reconstructed. [Maintainers Only]"}
+                                                                       '{"all : Build the entire software with documentation. [default]"
+                                                                         "mostlyclean : Delete all except when remaking costs high."
+                                                                         "clean : Delete all except those record the configuration."
+                                                                         "distclean : Delete all that are excluded in the distribution."
+                                                                         "maintainer-clean : Delete all that can be remade. [For Maintainers]"}
                                                                        (format "~n  ")))
                                           (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
                                             (map {lambda [phony] (when (procedure? (namespace-variable-value (name->make~goal: (car phony)) #false void))
@@ -235,8 +236,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                        (cons 'uninstall "Delete all the installed files and documentation.")
                                                        (cons 'dist "Creating a distribution file of the source files.")
                                                        (cons 'check "Performing tests on the program this makefile builds."))))))
-                          (make-exit-code 0)}
+                          (exit-handler-may-void-me (exit 0))}
                         {lambda [unknown]
                           (eprintf "make: I don't know what does `~a` mean!~n" unknown)
-                          (make-exit-code 1)})})
+                          (exit-handler-may-void-me (exit 1))})})
     
