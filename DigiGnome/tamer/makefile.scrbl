@@ -30,4 +30,11 @@ So I make the decision on my risk to write specification in both natural lanugag
 the @italic{Literate Programming} skill. Nevertheless, I@literal{'}d like to borrow the structure from the
 @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development#Behavioural_specifications"]{User Story Specification}.
 
+@racketcommentfont{Thank the powerful @bold{Scribble} that @bold{Racket} gives us.
+                                      Equipping with it, writing the @italic{handbook} becomes fantastic.
+                                      Intentionally the @italic{handbook} itself also plays a role of the test reporter
+                                      (with the path @filepath{@italic{<dirname>}/@(path->string (car (use-compiled-file-paths)))/@italic{<basename>}/index.html})
+                                      as well as the specifications.}
+
+
 @lp-include{makefile.rkt}

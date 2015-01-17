@@ -34,18 +34,18 @@
                               @racketoutput{@bold{As an} indenpendent developer}@linebreak[]
                               @racketoutput{@bold{I want to} write the @italic{handbook} with @italic{Literate Programming} skill}
                               
-                              @racketoutput{@bold{Scenario 1:} The project should provide @filepath{tamer/behavior/makefile.scrbl}}@linebreak[]
+                              @racketoutput{@bold{Scenario 1:} The project should provide @filepath{tamer/makefile.scrbl}}@linebreak[]
                               @racketoutput{@bold{Given} the project have been launched and ready for developing}@linebreak[]
                               @racketoutput{@bold{And} I currently have not found any appropriate specification templates}@linebreak[]
                               @racketoutput{@bold{When} I do some researching and architect a template}@linebreak[]
-                              @racketoutput{@bold{Then} I should see the @filepath{makefile.scrbl} in @filepath{tamer/behavior}}
+                              @racketoutput{@bold{Then} I should see the @filepath{makefile.scrbl} in @filepath{tamer}}
                               
-                              @racketoutput{@bold{Scenario 2:} The project should provide @filepath{tamer/behavior/handbook.scrbl}}@linebreak[]
+                              @racketoutput{@bold{Scenario 2:} The project should provide @filepath{tamer/handbook.scrbl}}@linebreak[]
                               @racketoutput{@bold{Given} the building script checks @filepath{handbook.scrbl} to generate reports}@linebreak[]
                               @racketoutput{@bold{And} the behavior of the project is all about the building process itself}@linebreak[]
                               @racketoutput{@bold{And} the build process should be checked manually}@linebreak[]
                               @racketoutput{@bold{When} I play a trick on the building script to avoid breaking its rule}@linebreak[]
-                              @racketoutput{@bold{Then} I should see the @filepath{handbook.scrbl} in @filepath{tamer/behavior}}
+                              @racketoutput{@bold{Then} I should see the @filepath{handbook.scrbl} in @filepath{tamer}}
                               
                               @racketerror{Hmm@|._|@|._|@|._| the @italic{Gherkin language}, semiformal and elegant.@linebreak[]
                                               Nevertheless, it@literal{'}s not my cup of tea@|._|@|._|@|._|}}
