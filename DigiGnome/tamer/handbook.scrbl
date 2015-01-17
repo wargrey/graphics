@@ -37,7 +37,7 @@
                                        (part-title-content psection)))))
                   (part-blocks psection))
             (map {lambda [sub] (sample->blocks sub (add1 header-level))}
-                 ;;; Only the first scenario is required which defined in subsubsection
+                 ;;; Only the first scenario is required which defined in subsection follows title and section
                  (let ([pps (part-parts psection)])
                    (cond [(= header-level 2) (take pps (min 1 (length pps)))]
                          [else pps]))))})
