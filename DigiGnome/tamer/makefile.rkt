@@ -39,22 +39,22 @@ Now it@literal{'}s time to interact with @chunk[<ready?-help!>
                                                 (require "tamer.rkt")
                                                 (require (submod "tamer.rkt" makefile))
                                                
-                                                (define main (dynamic-require tamer-partner 'main (const #false)))
+                                                (define make (dynamic-require tamer-partner 'main (const #false)))
                                           
                                                 (define option-ready?
                                                   (test-suite "makefile.rkt [maybe option]"
                                                               (test-case "should exit normally"
-                                                                         (check-$? {thunk (main "--help")} 0))
+                                                                         (check-$? {thunk (make "--help")} 0))
                                                               (test-case "should abort if facing unknown option"
-                                                                         (check-$? {thunk (main "--undef")} 1))
+                                                                         (check-$? {thunk (make "--undef")} 1))
                                                               (test-case "should say nothing unless errors ocurr"
                                                                          (let ([stdout (open-output-string 'stdout)]
                                                                                [stderr (open-output-string 'stderr)])
                                                                            (parameterize ([current-output-port stdout]
                                                                                           [current-error-port stderr]
                                                                                           [exit-handler void])
-                                                                             (main "--silent" "--help")
-                                                                             (main "--silent" "--undefined"))
+                                                                             (make "--silent" "--help")
+                                                                             (make "--silent" "--undefined"))
                                                                            (let ([strout (get-output-string stdout)]
                                                                                  [strerr (get-output-string stderr)])
                                                                              (check-equal? strout "")
@@ -63,7 +63,7 @@ Now it@literal{'}s time to interact with @chunk[<ready?-help!>
                                                 (define goal-not-ready!
                                                   (test-suite "makefile.rkt [maybe target]"
                                                               (test-case "should abort if using default exit-handler"
-                                                                         (check-not-exn {thunk (main "love")}
+                                                                         (check-not-exn {thunk (make "love")}
                                                                                         "Scribble is killed!"))))]
 to look deep into the specification templates:
 

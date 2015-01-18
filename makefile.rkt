@@ -167,10 +167,10 @@ exec racket --require "$0" --main -- ${1+"$@"}
                        #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
                        #:quiet? #false #:warn-undefined? #false))))})
 
-(define main
-  {lambda arglist
-    (define exit-handler-may-void-me (make-parameter #false))
-    (parse-command-line (file-name-from-path (syntax-source #'program)) arglist
+(define main0
+  {lambda [return]
+    (parse-command-line (file-name-from-path (syntax-source #'program))
+                        (current-command-line-arguments)
                         `{{usage-help ,(format "Carefully options are not exactly the same as those of GNU Make.~n")}
                           {once-each
                            [{"-B" "--always-make"}
@@ -193,31 +193,31 @@ exec racket --require "$0" --main -- ${1+"$@"}
                             ,{lambda (++only digimon) (current-make-collects (cons digimon (current-make-collects)))}
                             {"Only build <digimon>s." "digimon"}]}}
                         {lambda [!voids . targets]
-                          (unless (void? (exit-handler-may-void-me))
-                            ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
-                            ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
-                            (use-compiled-file-paths (list (build-path "compiled")))
-                            (define-values {files phonies} (partition filename-extension targets))
-                            (parameterize ([current-make-real-targets (map path->complete-path files)])
-                              (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
-                                (parameterize ([current-make-phony-goal phony])
-                                  (for ([digimon (in-list (remove-duplicates (cond [(null? (current-make-collects)) (append (list digimon-gnome digimon-kernel)
-                                                                                                                            (info-ref 'setup-collects (const (directory-list digimon-world))))]
-                                                                                   [else (current-make-collects)])))])
-                                    (digimon-setenv digimon)
-                                    (define digimon-info (get-info/full (getenv "digimon-zone")))
-                                    (cond [(false? digimon-info) (eprintf "make: [warning] ignored digimon `~a` because `info.rkt` not found.~n" digimon)]
-                                          [else (let ([submake (build-path (getenv "digimon-zone") "submake.rkt")])
-                                                  (dynamic-wind {thunk (printf "Enter Digimon Zone: ~a.~n" digimon)}
-                                                                {thunk (putenv "makefiles" (format "~a:~a" (syntax-source #'makefile) submake))
-                                                                       (cond [(string=? phony "all") (make~all: submake digimon-info)]
-                                                                             [(regexp-match? #px"clean$" phony) (make~clean: submake digimon-info)]
-                                                                             [else (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
-                                                                                     (define fmake (namespace-variable-value (name->make~goal: phony) #false (const #false)))
-                                                                                     (cond [(false? fmake) {begin (eprintf "make: I don't know how to make `~a`!~n" phony)
-                                                                                                                  (exit-handler-may-void-me (exit -1))}]
-                                                                                           [else (fmake submake digimon-info)]))])}
-                                                                {thunk (printf "Leave Digimon Zone: ~a.~n" digimon)}))]))))))}
+                          ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
+                          ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
+                          (use-compiled-file-paths (list (build-path "compiled")))
+                          (define-values {files phonies} (partition filename-extension targets))
+                          (parameterize ([current-make-real-targets (map path->complete-path files)])
+                            (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
+                              (parameterize ([current-make-phony-goal phony])
+                                (for ([digimon (in-list (remove-duplicates (cond [(not (null? (current-make-collects))) (current-make-collects)]
+                                                                                 [else (append (list digimon-gnome digimon-kernel)
+                                                                                               (info-ref 'setup-collects {thunk (directory-list digimon-world)}))])))])
+                                  (digimon-setenv digimon)
+                                  (define digimon-info (get-info/full (getenv "digimon-zone")))
+                                  (cond [(false? digimon-info) (eprintf "make: [warning] ignored digimon `~a` because `info.rkt` not found.~n" digimon)]
+                                        [else (let ([submake (build-path (getenv "digimon-zone") "submake.rkt")])
+                                                (dynamic-wind {thunk (printf "Enter Digimon Zone: ~a.~n" digimon)}
+                                                              {thunk (putenv "makefiles" (format "~a:~a" (syntax-source #'makefile) submake))
+                                                                     (cond [(string=? phony "all") (make~all: submake digimon-info)]
+                                                                           [(regexp-match? #px"clean$" phony) (make~clean: submake digimon-info)]
+                                                                           [else (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
+                                                                                   (define fmake (namespace-variable-value (name->make~goal: phony) #false (const #false)))
+                                                                                   (when (false? fmake)
+                                                                                     (eprintf "make: I don't know how to make `~a`!~n" phony)
+                                                                                     (return 1))
+                                                                                   (fmake submake digimon-info))])}
+                                                              {thunk (printf "Leave Digimon Zone: ~a.~n" digimon)}))])))))}
                         (list "phony-target|file-path")
                         {lambda [--help]
                           (display (foldl {lambda [-h --help] (if (string? -h) (string-append --help -h) --help)}
@@ -236,8 +236,15 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                        (cons 'uninstall "Delete all the installed files and documentation.")
                                                        (cons 'dist "Creating a distribution file of the source files.")
                                                        (cons 'check "Performing tests on the program this makefile builds."))))))
-                          (exit-handler-may-void-me (exit 0))}
+                          (return 0)}
                         {lambda [unknown]
                           (eprintf "make: I don't know what does `~a` mean!~n" unknown)
-                          (exit-handler-may-void-me (exit 1))})})
+                          (return 1)})})
+
+(define main
+  {lambda arglist
+    (parameterize ([current-command-line-arguments (list->vector arglist)])
+      (define status (call-with-current-continuation main0))
+      (cond [(integer? status) (exit status)]
+            [else (exit 0)]))})
     
