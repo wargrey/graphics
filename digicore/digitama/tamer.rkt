@@ -25,10 +25,15 @@
   (syntax-case stx []
     [{_ s-exps ...} (syntax/loc stx (interaction #:eval (current-tamer-zone) s-exps ...))]))
 
-(define-syntax {tamer-eval stx}
+(define-syntax {tamer-require stx}
   (syntax-case stx []
     [{_ bindname} #'(dynamic-require/expose (current-tamer-story) bindname)]
     [_ #'(values curry dynamic-require/expose (current-tamer-story))]))
+
+(define-syntax {tamer-script stx}
+  (syntax-case stx []
+    [{_ bindname} #'(void (run-tests (tamer-require bindname)))]
+    [_ #'(values compose1 run-tests #'tamer-require)]))
 
 (define tamer-story->libpath
   {lambda [story-path]
@@ -59,7 +64,7 @@
                    [current-error-port /dev/null])
       (define briefs (for/fold ([briefs null]) ([suite (in-list suites)])
                        (define status (with-handlers ([exn? (const 'undef)])
-                                        (run-tests (tamer-eval suite) 'quiet)))
+                                        (run-tests (tamer-require suite) 'quiet)))
                        (append briefs (list (racketkeywordfont (format "~a: " suite))
                                             (cond [(symbol? status) (racketcommentfont (symbol->string status))]
                                                   [(zero? status) (racketvalfont (format "~a" #true))]

@@ -27,15 +27,22 @@ works as you wish.
                                                                                              @item{Event Triggers}
                                                                                              @item{Expected Outcome})}
 
+Although normal @bold{Racket} script doesn@literal{'}t require the so-called @racketidfont{main} routine,
+I still prefer to start with the @racketidfont{main} in production. So the @italic{makefile.rkt} should
+provide the @racketidfont{main} as its entry.
+
+@defproc[{main [argument string?] ...} void?]
+
 You may be already familiar with the @hyperlink["http://en.wikipedia.org/wiki/Make_(software)"]{GNU Make},
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
 @exec{@|-~-|h} or @exec{@|-~-|@|-~-|help} option:
 
-@tamer-action[((tamer-eval 'main) "--help")
-              (code:comment "See, makefile complains that the Scribble is killed by accident.")
-              (code:comment "Meanwhile parallel building is not supported.")]
+@tamer-action[(code:comment @#,t{@racketcommentfont{@exec{alias make=main}}.})
+              ((tamer-require 'make) "--help")
+              (code:comment @#,t{See, @racketcommentfont{@italic{makefile}} complains that @racketcommentfont{@bold{Scribble}} is killed by accident.})
+              (code:comment @#,t{Meanwhile parallel building is not supported.})]
 
-Now it@literal{'}s time to interact with @chunk[<ready?-help!>
+Now it@literal{'}s time to interact with @CHUNK[<ready?-help!>
                                                 (require "tamer.rkt")
                                                 (require (submod "tamer.rkt" makefile))
                                                
@@ -69,11 +76,12 @@ to look deep into the specification templates:
 
 @tamer-note['option-ready? 'goal-not-ready! 'Iam-invisible!]
 @tamer-action[tamer-partner
-              tamer-eval
-              (run-tests (tamer-eval 'option-ready?))
-              (run-tests (tamer-eval 'goal-not-ready!))
-              (code:comment "See. Racket/Scribble has no idea about the broken lines.")
-              (run-tests (tamer-eval 'I-am-invisible!))]
+              tamer-require
+              tamer-script
+              (tamer-script 'option-ready?)
+              (tamer-script 'goal-not-ready!)
+              (code:comment @#,t{See. @racketcommentfont{@bold{Racket/Scribble}} has no idea about the broken lines.})
+              (tamer-script 'I-am-invisible!)]
 
 Equipping with the powerful @bold{Scribble} that @bold{Racket} gives us,
 writing the @italic{handbook} becomes fantastic. We can @racket[eval] the code while
