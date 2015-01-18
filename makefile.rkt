@@ -202,7 +202,10 @@ exec racket --require "$0" --main -- ${1+"$@"}
                               (parameterize ([current-make-phony-goal phony])
                                 (for ([digimon (in-list (remove-duplicates (cond [(not (null? (current-make-collects))) (current-make-collects)]
                                                                                  [else (append (list digimon-gnome digimon-kernel)
-                                                                                               (info-ref 'setup-collects {thunk (directory-list digimon-world)}))])))])
+                                                                                               (info-ref 'setup-collects
+                                                                                                         {thunk (filter {lambda [subdir] (and (directory-exists? subdir)
+                                                                                                                                              (regexp-match? #px"^[^.]" subdir))}
+                                                                                                                        (directory-list digimon-world))}))])))])
                                   (digimon-setenv digimon)
                                   (define digimon-info (get-info/full (getenv "digimon-zone")))
                                   (cond [(false? digimon-info) (eprintf "make: [warning] ignored digimon `~a` because `info.rkt` not found.~n" digimon)]
