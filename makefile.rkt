@@ -160,11 +160,13 @@ exec racket --require "$0" --main -- ${1+"$@"}
       (parameterize ([current-directory (path-only handbook)]
                      [current-namespace (make-base-namespace)]
                      [exit-handler {lambda [whocares] (error 'make "[error] `Scribble` needs a proper `exit-handler`!")}])
+        (namespace-require 'setup/xref)
         (namespace-require 'scribble/render)
         (eval '(require (prefix-in html: scribble/html-render)))
         (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
                        #:render-mixin {lambda [%] (html:render-multi-mixin (html:render-mixin %))}
                        #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
+                       #:xrefs (list (load-collections-xref))
                        #:quiet? #false #:warn-undefined? #false))))})
 
 (define main0
