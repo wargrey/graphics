@@ -65,12 +65,16 @@
       (define briefs (for/fold ([briefs null]) ([suite (in-list suites)])
                        (define status (with-handlers ([exn? (const 'undef)])
                                         (run-tests (tamer-require suite) 'quiet)))
-                       (append briefs (list (racketkeywordfont (format "~a: " suite))
+                       (append briefs (list (racketidfont (symbol->string suite))
+                                            ": "
                                             (cond [(symbol? status) (racketcommentfont (symbol->string status))]
                                                   [(zero? status) (racketvalfont (format "~a" #true))]
                                                   [else (racketerror (format "~a" #false))])
                                             (linebreak)))))
-      (apply margin-note (bold "Testsuite Briefs") (linebreak) briefs))})
+      (apply margin-note (case (length suites)
+                           [{0} (list (italic "??Testsuite Brief??"))]
+                           [{1} (list* (bold "Testsuite Brief") (linebreak) briefs)]
+                           [else (list* (bold "Testsuite Briefs") (linebreak) briefs)])))})
 
 (define-binary-check {check-$? routine expected}
   (let ([status +NaN.0])
