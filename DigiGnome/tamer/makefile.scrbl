@@ -29,4 +29,7 @@ between Developers and Bussiness Stakeholders. While I@literal{'}m an indenpende
 So I make decision at my risk to write behavior specification and test suites apart from the production code with the @italic{Literate Programming} skill
 so that the @italic{handbook} can also plays a role of the test reporter as well as the design documents.
 
+@italic{@bold{Principal} This sample should be (rather than must be) followed due to the complexity of the real world problems.
+         In fact it@literal{'}s all right to forget it after reading. You get it, are you?}
+
 @lp-include{makefile.rkt}
