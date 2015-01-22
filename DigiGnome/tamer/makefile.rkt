@@ -18,30 +18,20 @@ So I@literal{'}m glad to help you to ensure that the
                             [{list 'file file} (simplify-path (build-path (path-only (syntax-source #'makefile)) file))]))]{makefile.rkt}
 works as you wish.
 
-Although normal @bold{Racket} script doesn@literal{'}t require the so-called @racketidfont{main} routine,
-I still prefer to start with @defproc[{main [argument string?] ...} void?]
-
-and the story starts with @chunk[<*:outline>
-                                 {module story racket
-                                   <tamer-routine>
-                                   
-                                   <ready?-help!>
-                                   <hello-rules!>}
+@chunk[<*>
+       {module story racket
+         <import-tamer-handbook>
+         <tamer-routine>
+         
+         <ready?-help!>
+         <hello-rules!>}
                                                   
-                                 <tamer-spec>]
+       <tamer-battle-via-racket>
+       <tamer-battle-via-raco>]
 
-where @chunk[<tamer-routine>
+where @chunk[<import-tamer-handbook>
              (require "tamer.rkt")
-             (require (submod "tamer.rkt" makefile))
-           
-             (define make (dynamic-require tamer-partner 'main (const #false)))]
-
-and @chunk[<tamer-spec>
-           {module test racket
-             (require "tamer.rkt")
-             (require (submod "tamer.rkt" makefile))
-             
-             (tamer-spec)}]
+             (require (submod "tamer.rkt" makefile))]
 
 @margin-note{@racket[subsection]s: Each of them describes a scenario.}
 @subsection{Scenario: Ready? Let@literal{'}s have a try!}
@@ -55,6 +45,17 @@ and @chunk[<tamer-spec>
        <testsuite:option-ready?>
        <testsuite:goal-not-ready!>]
 
+Although normal @bold{Racket} script doesn@literal{'}t require the so-called @racketidfont{main} routine,
+I still prefer to start with @defproc[{main [argument string?] ...} void?]
+
+@chunk[<tamer-routine>
+       (define modpath (if (symbol=? (car tamer-partner) 'file)
+                           (build-path (getenv "digimon-world")
+                                       (cadadr (current-tamer-story)) 'up
+                                       (cadr tamer-partner))
+                           tamer-partner))
+       (define make (dynamic-require modpath 'main (const #false)))]
+
 You may be already familiar with the @hyperlink["http://en.wikipedia.org/wiki/Make_(software)"]{GNU Make},
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
 @exec{@|-~-|h} or @exec{@|-~-|@|-~-|help} option:
@@ -62,27 +63,59 @@ nonetheless you are still free to check the options first. Normal @bold{Racket} 
 @tamer-action[tamer-require
               ((tamer-require 'make) "--help")
               (code:comment @#,t{See, @racketcommentfont{@italic{makefile}} complains that @racketcommentfont{@bold{Scribble}} is killed by accident.})
-              (code:comment @#,t{Meanwhile parallel building is not supported.})]
+              (code:comment @#,t{Meanwhile @racketcommentfont{@italic{parallel building}} is not supported.})]
 
 Now it@literal{'}s time to look deep into the specification examples of
 @itemlist{@item{a testsuite that should pass and do pass:}}
 @tamer-note['option-ready?]
 @chunk[<testsuite:option-ready?>
+       (define-values {out err $?}
+         (values (open-output-bytes 'stdout)
+                 (open-output-bytes 'stderr)
+                 (make-parameter +NaN.0)))
+       
+       (define setup
+         {lambda argv
+           {thunk (parameterize ([current-output-port out]
+                                 [current-error-port err]
+                                 [exit-handler $?])
+                    (apply make argv))}})
+       
+       (define teardown
+         {thunk (get-output-bytes out #true)
+                (get-output-bytes err #true)
+                ($? +NaN.0)})
+       
        (define option-ready?
          (test-suite "make [option]"
                      (test-suite "make --help"
-                                 (test-$? "should exit normally"
-                                          {thunk (make "--help")} 0))
-                     (test-suite "make [unknown option]"
-                                 (test-$? "should abort"
-                                          {thunk (make "--unknown")} 1))
-                     (let ([words (stdpipe->cons {thunk (make "-s" "--help")
-                                                        (make "-s" "--say")})])
-                       (test-suite "make --silent"
-                                   (test-case "should say nothing but errors"
-                                              (check-regexp-match
-                                               #rx"^\\( \\. .+?\\)$"
-                                               (format "~a" words)))))))]
+                                 #:before (setup "--help")
+                                 #:after teardown
+                                 (test-pred "should exit normally"
+                                            zero? ($?))
+                                 (test-pred "should no error"
+                                            zero? (file-position err))
+                                 (test-pred "should say something"
+                                            positive? (file-position out)))
+                     (test-suite "make --unknown"
+                                 #:before (setup "--unknown")
+                                 #:after teardown
+                                 (test-false "should abort"
+                                             (zero? ($?)))
+                                 (test-pred "should tell me wrong"
+                                            positive? (file-position err)))
+                     (test-suite "make --silent --help"
+                                 #:before (setup "--silent" "--help")
+                                 #:after teardown
+                                 (test-pred "should say nothing"
+                                            zero? (file-position out)))
+                     (test-suite "make --silent --unknown"
+                                 #:before (setup "--silent" "--unknown")
+                                 #:after teardown
+                                 (test-pred "should say nothing but errors"
+                                            positive?
+                                            (file-position err)))))]
+
 @tamer-action[tamer-script
               (tamer-script 'option-ready?)]
 
@@ -91,9 +124,9 @@ Now it@literal{'}s time to look deep into the specification examples of
 @chunk[<testsuite:goal-not-ready!>
        (define goal-not-ready!
          (test-suite "make [phony target]"
-                     (test-suite "make love"
-                                 (test-not-exn "should catch a fatal to regain control"
-                                               {thunk (make "love")}))))]
+                     (test-suite "make it"
+                                 (test-not-exn "CONFRONT THE INTENDED FATAL"
+                                               {thunk (make "it")}))))]
 @tamer-action[(tamer-script 'goal-not-ready!)]
 
 @itemlist{@item{a typo that should never happen:}}
@@ -141,9 +174,27 @@ rules, and this story is all about building system. So apart from conventions, w
                           (map {lambda [digimon]
                                  (define info-ref (get-info/full (build-path rootdir digimon)))
                                  (test-suite (format "Look inside the `/~a/info.rkt`" digimon)
-                                             (test-case (format "'collection should be string" digimon)
+                                             (test-case "'collection should be string"
                                                         (check-not-false info-ref)
                                                         (check-pred string? (info-ref 'collection))))}
                                digimons)))]
 
 @tamer-action[(tamer-script 'rule-2)]
+
+@subsection{Scenario: What if the @italic{handbook} is unavaliable?}
+
+Furthermore, the @italic{handbook} itself is the standard test reporter, but it@literal{'}s still reasonable
+to check the system in some more convenient ways. Thus two styles, @italic{Test::Harness-like} and
+@italic{RSpec-like}, are designated for @exec{racket} and @exec{raco test} respectively.
+
+@chunk[<tamer-battle-via-racket>
+       {module main racket
+         <import-tamer-handbook>
+         
+         (tamer-harness)}]
+
+and @chunk[<tamer-battle-via-raco>
+           {module test racket
+             <import-tamer-handbook>
+             
+             (tamer-spec)}]

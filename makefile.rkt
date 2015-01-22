@@ -180,7 +180,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                             {"Unconditionally make all targets."}]
                            [{"-n" "--dry-run"}
                             ,{lambda [flag] (make-dry-run #true)}
-                            {"Just make without updating targets. [Except *.rkts]"}]
+                            {"Just make without updating targets. [Except *.rkt]"}]
                            [{"-s" "--silent"}
                             ,{lambda [flag] (let ([/dev/null (open-output-nowhere '/dev/null #true)]) (current-output-port /dev/null))}
                             {"Just run commands but output nothing if no errors."}]
