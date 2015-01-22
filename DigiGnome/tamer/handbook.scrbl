@@ -63,7 +63,7 @@
                               @racketoutput{@bold{When} I play a trick on the building script to avoid breaking its rule}@linebreak[]
                               @racketoutput{@bold{Then} I should see the @filepath{handbook.scrbl} in @filepath{tamer}}
                               
-                              @racketerror{Hmm@|._|@|._|@|._| the @italic{Gherkin language}, semiformal and elegant.@linebreak[]
+                              @racketerror{Hmm@|._|@|._|@|._| the @italic{Gherkin language}, semiformal and elegant, or maybe stupid.@linebreak[]
                                               Nevertheless, it@literal{'}s not my cup of tea@|._|@|._|@|._|}}
 
 @nested[#:style (make-style "boxed" null)]{@(let* ([makefile.scrbl (path->string (build-path (path-only (syntax-source #'handbook)) "makefile.scrbl"))]
@@ -80,6 +80,6 @@
                                                                                However you are still free to render the full version manually:}
                                  @linebreak[]
                                  @linebreak[]
-                                 @exec{% cd @italic{<Project Root>}@|subrootdir|;}@linebreak[]
+                                 @exec{% cd @italic{«@smaller{Project Root}»}@|subrootdir|;}@linebreak[]
                                  @exec{% makefile.rkt +o @(getenv "digimon-gnome") check @|makefile.scrbl|;}
                                  @commandline{Enjoy it! Bye!}})
