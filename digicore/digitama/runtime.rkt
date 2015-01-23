@@ -1,23 +1,26 @@
 #lang racket/base
 
 (require racket/path)
+(require racket/port)
 (require racket/runtime-path)
 
 (provide (except-out (all-defined-out) compiled-syntax-source-directory))
 
 (define-runtime-path compiled-syntax-source-directory ".")
 
+(define /dev/null (open-output-nowhere '/dev/null #true))
+
 (define-values {digimon-world digimon-kernel digimon-gnome}
   (let* ([dir (path->string (simplify-path compiled-syntax-source-directory))]
          [px.split (regexp-match #px"(.+)/([^/]+?)/[^/]+?/?$" dir)])
     (values (cadr px.split) (caddr px.split) "DigiGnome")))
 
-(unless (member digimon-world (current-library-collection-paths))
-  (current-library-collection-paths (cons digimon-world (current-library-collection-paths))))
-
-(void (putenv "digimon-world" digimon-world)
-      (putenv "digimon-gnome" digimon-gnome)
-      (putenv "digimon-kernel" digimon-kernel))
+(void (unless (member digimon-world (current-library-collection-paths))
+        (current-library-collection-paths (cons digimon-world (current-library-collection-paths)))
+  
+        (putenv "digimon-world" digimon-world)
+        (putenv "digimon-gnome" digimon-gnome)
+        (putenv "digimon-kernel" digimon-kernel)))
 
 (define digimon-setenv
   {lambda [digimon]

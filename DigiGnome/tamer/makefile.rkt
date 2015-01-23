@@ -49,12 +49,14 @@ Although normal @bold{Racket} script doesn@literal{'}t require the so-called @ra
 I still prefer to start with @defproc[{main [argument string?] ...} void?]
 
 @chunk[<tamer-routine>
-       (define modpath (if (symbol=? (car tamer-partner) 'file)
-                           (build-path (getenv "digimon-world")
-                                       (cadadr (current-tamer-story)) 'up
-                                       (cadr tamer-partner))
-                           tamer-partner))
-       (define make (dynamic-require modpath 'main (const #false)))]
+       (current-directory (build-path (getenv "digimon-world")
+                                      (cadadr (current-tamer-story)) 'up))
+       
+       (define-values {make out err $?}
+         (values (dynamic-require tamer-partner 'main (const #false))
+                 (open-output-bytes 'stdout)
+                 (open-output-bytes 'stderr)
+                 (make-parameter +NaN.0)))]
 
 You may be already familiar with the @hyperlink["http://en.wikipedia.org/wiki/Make_(software)"]{GNU Make},
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
@@ -69,11 +71,6 @@ Now it@literal{'}s time to look deep into the specification examples of
 @itemlist{@item{a testsuite that should pass and do pass:}}
 @tamer-note['option-ready?]
 @chunk[<testsuite:option-ready?>
-       (define-values {out err $?}
-         (values (open-output-bytes 'stdout)
-                 (open-output-bytes 'stderr)
-                 (make-parameter +NaN.0)))
-       
        (define setup
          {lambda argv
            {thunk (parameterize ([current-output-port out]
@@ -97,13 +94,17 @@ Now it@literal{'}s time to look deep into the specification examples of
                                             zero? (file-position err))
                                  (test-pred "should say something"
                                             positive? (file-position out)))
+                     (test-pred "should flush stdout"
+                                zero? (file-position out))
                      (test-suite "make --unknown"
                                  #:before (setup "--unknown")
                                  #:after teardown
                                  (test-false "should abort"
                                              (zero? ($?)))
-                                 (test-pred "should tell me wrong"
+                                 (test-pred "should say something wrong"
                                             positive? (file-position err)))
+                     (test-pred "should flush stderr"
+                                zero? (file-position err))
                      (test-suite "make --silent --help"
                                  #:before (setup "--silent" "--help")
                                  #:after teardown
@@ -184,17 +185,19 @@ rules, and this story is all about building system. So apart from conventions, w
 @subsection{Scenario: What if the @italic{handbook} is unavaliable?}
 
 Furthermore, the @italic{handbook} itself is the standard test reporter, but it@literal{'}s still reasonable
-to check the system in some more convenient ways. Thus two styles, @italic{Test::Harness-like} and
-@italic{RSpec-like}, are designated for @exec{racket} and @exec{raco test} respectively.
+to check the system in some more convenient ways. Thus two styles, 
+@hyperlink["http://en.wikipedia.org/wiki/Test::More"]{@italic{TAP::Harness-like}} and
+@hyperlink["http://hspec.github.io"]{@italic{hspec-like}},
+are designated for @exec{raco test} and @exec{racket} respectively.
 
 @chunk[<tamer-battle-via-racket>
        {module main racket
          <import-tamer-handbook>
          
-         (tamer-harness)}]
+         (tamer-spec)}]
 
 and @chunk[<tamer-battle-via-raco>
            {module test racket
              <import-tamer-handbook>
              
-             (tamer-spec)}]
+             (tamer-harness)}]

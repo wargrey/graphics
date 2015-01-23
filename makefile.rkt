@@ -11,7 +11,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
 (require compiler/compiler)
 (require launcher/launcher)
 
-(require "digicore/digitama/runtime-path.rkt")
+(require "digicore/digitama/runtime.rkt")
 
 (provide main)
 
@@ -182,7 +182,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                             ,{lambda [flag] (make-dry-run #true)}
                             {"Just make without updating targets. [Except *.rkt]"}]
                            [{"-s" "--silent"}
-                            ,{lambda [flag] (let ([/dev/null (open-output-nowhere '/dev/null #true)]) (current-output-port /dev/null))}
+                            ,{lambda [flag] (current-output-port /dev/null)}
                             {"Just run commands but output nothing if no errors."}]
                            [{"-t" "--touch"}
                             ,{lambda [flag] (make-just-touch #true)}

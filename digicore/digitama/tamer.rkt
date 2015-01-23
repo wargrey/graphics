@@ -7,13 +7,13 @@
 (require scribble/eval)
 (require scribble/manual)
 
-(require "runtime-path.rkt")
+(require "runtime.rkt")
 (require "tamer/prove.rkt")
 
 (provide /dev/null)
 (provide (all-defined-out))
 
-(provide (all-from-out racket "runtime-path.rkt" rackunit))
+(provide (all-from-out racket "runtime.rkt" rackunit))
 (provide (all-from-out scribble/manual scribble/eval))
 
 (define current-tamer-story (make-parameter #false))
@@ -53,37 +53,34 @@
 
 (define tamer-script
   {lambda suites
-    (for ([suite (in-list suites)])
-      (prove-harness (tamer-require suite)))})
+    ;(define smry (foldl summary** (summary 0 0 0 0 0 0)
+     ;                   (map prove-harness suites)
+      ;                  (define smry0 (prove-harness (tamer-require suite))))
+    (void)})
 
 (define tamer-harness
   {lambda []
     (dynamic-require (current-tamer-story) #false)
     (parameterize ([current-namespace (module->namespace (current-tamer-story))])
-      (for-each prove-harness (filter test-suite?
-                                      (filter-map {lambda [var] (namespace-variable-value var #false {lambda [] #false})}
-                                                  (namespace-mapped-symbols)))))})
+      (printf "~n~a~n" (foldl summary** (summary 0 0 0 0 0 0)
+                            (map prove-harness (filter test-suite? (filter-map (curryr namespace-variable-value #false (const #false))
+                                                                               (namespace-mapped-symbols)))))))})
 
 (define tamer-spec
   {lambda []
     (dynamic-require (current-tamer-story) #false)
     (parameterize ([current-namespace (module->namespace (current-tamer-story))])
-      (void (prove-spec (make-test-suite (path->string (build-path (cadadr (current-tamer-story))))
-                                         (filter test-suite?
-                                                 (filter-map {lambda [var] (namespace-variable-value var #false {lambda [] #false})}
-                                                             (namespace-mapped-symbols)))))))})
+      (printf "~a~n" (prove-spec (make-test-suite (path->string (build-path (cadadr (current-tamer-story))))
+                                                  (filter test-suite? (filter-map (curryr namespace-variable-value #false (const #false))
+                                                                                  (namespace-mapped-symbols)))))))})
 
 (define tamer-note
   {lambda suites
     (apply margin-note
            (for/fold ([briefs null]) ([suite (in-list suites)])
              (append briefs (with-handlers ([exn? {lambda [e] (list (racketerror (exn-message e)))}])
-                              (cdr (foldts-test-suite {lambda [testsuite name pre-action post-action briefs]
-                                                        (pre-action)
-                                                        briefs}
-                                                      {lambda [testsuite name pre-action post-action seed briefs]
-                                                        (post-action)
-                                                        briefs}
+                              (cdr (foldts-test-suite default-fdown
+                                                      default-fup
                                                       {lambda [testcase name action count.briefs]
                                                         (define validated (tamer-record-handbook name action))
                                                         (define result (validation-result validated))
