@@ -7,19 +7,8 @@
 (provide (all-defined-out))
 
 (struct validation {result cpu real gc})
-(struct summary {success failure error cpu real gc}
-  #:methods gen:custom-write
-  [(define write-proc
-     {lambda [smry port mode]
-       (define plural-suffix {lambda [count] (if (> count 1) "s" "")})
-       (define-values {success failure error cpu real gc}
-         (apply values (summary-success smry) (summary-failure smry) (summary-error smry)
-                (map (curryr / 1000.0) (list (summary-cpu smry) (summary-real smry) (summary-gc smry)))))
-       (define population (+ success failure error))
-       (cond [(zero? population) (printf "No example, do not try to fool me!")]
-             [else (fprintf port "Finished in ~a wallclock seconds (~a task + ~a gc = ~a CPU)~n~a example~a, ~a failure~a, ~a error~a, ~a% Okay."
-                            real (- cpu gc) gc cpu population (plural-suffix population) failure (plural-suffix failure) error (plural-suffix error)
-                            (~r (/ (* success 100) population) #:precision '(= 2)))])})])
+(struct summary {success failure error cpu real gc})
+(define initial-summary (summary 0 0 0 0 0 0))
 (define summary++
   {lambda [summary0 record]
     (define result (validation-result record))
@@ -48,7 +37,7 @@
                      [current-error-port (open-output-string 'stderr)]
                      [exit-handler {lambda [status]
                                      (let* ([errsize (file-position (current-error-port))]
-                                            [errmsg (cond [(positive? errsize) (get-output-string (current-error-port))]
+                                            [errmsg (cond [(positive? errsize) (string-trim (get-output-string (current-error-port)))]
                                                           [else (format "Racket exits with status ~a!" status)])])
                                        (set! restored (run-test-case (rackunit-test-case-name testcase)
                                                                      {thunk (fail errmsg)})))}])
@@ -64,10 +53,25 @@
       (hash-set! indents count (make-string (* count times) #\space)))
     (hash-ref indents count)})
 
+(define plural-suffix
+  {lambda [count]
+    (if (> count 1) "s" "")})
+
 (define ~time
   {lambda times
     (define-values {cpu real gc} (apply values (map (curryr / 1000.0) times)))
-    (format "[~a wallclock ms (~a task + ~a gc = ~a CPU)]" real (- cpu gc) gc cpu)})
+    (format "[~a wallclock seconds (~a task + ~a gc = ~a CPU)]" real (- cpu gc) gc cpu)})
+
+(define ~result
+  {lambda [result]
+    (cond [(test-error? result) "#?"]
+          [else (format "~a" (test-success? result))])})
+
+(define exn->test-suite
+  {lambda [e]
+    (test-suite (format "»Maybe ~a«" (object-name e))
+                (test-case (symbol->string (object-name e))
+                           (raise-user-error (exn-message e))))})
 
 (define display-failure
   {lambda [result #:indent [leader-space ""]]
@@ -77,16 +81,21 @@
                leader-space
                (check-info-name info)
                (if (symbol=? 'location (check-info-name info))
-                   (cons (find-relative-path (getenv "digimon-world")
-                                             (car (check-info-value info)))
+                   (cons (build-path "/" (find-relative-path (getenv "digimon-world")
+                                                             (car (check-info-value info))))
                          (cdr (check-info-value info)))
                    (check-info-value info))))})
 
 (define display-error
-  {lambda [result #:indent [leader-space ""]]
+  {lambda [result #:indent [leader-space0 ""]]
     (define errobj (test-error-result result))
-    (eprintf "~a» ERROR » ~a~n" leader-space (test-result-test-case-name result))
-    (eprintf "~a»» ~a: ~a~n" leader-space (object-name errobj) (exn-message errobj))})
+    (define headline (format " ~a: " (object-name errobj)))
+    (define leader-space (~indent (string-length headline) #:times 1))
+    (define messages (call-with-input-string (string-replace (exn-message errobj) (getenv "digimon-world") "") port->lines))
+    (eprintf "~a» FATAL » ~a~n" leader-space0 (test-result-test-case-name result))
+    (unless (null? messages)
+      (eprintf "~a»»~a~a~n" leader-space0 headline (car messages))
+      (for-each (curry eprintf "~a»»~a~a~n" leader-space0 leader-space) (cdr messages)))})
 
 (define default-fdown
   {lambda [testsuite name pre-action post-action seed]
@@ -100,7 +109,6 @@
 
 (define prove-spec
   {lambda [suite]
-    (define initial-summary (summary 0 0 0 0 0 0))
     (define smry (cdr (foldts-test-suite {lambda [testsuite name pre-action post-action seed]
                                            (pre-action)
                                            (printf "~a~a~n" (~indent (length (car seed))) name)
@@ -111,9 +119,9 @@
                                          {lambda [testcase name action seed]
                                            (define record (tamer-record-handbook testcase))
                                            (define result (validation-result record))
-                                           (define leader-headline (format "~a~a ~a - " (~indent (length (car seed))) (test-success? result) (caar seed)))
-                                           (define leader-space (~indent (string-length leader-headline) #:times 1))
-                                           (printf "~a~a~n" leader-headline (test-result-test-case-name result))
+                                           (define headline (format "~a~a ~a - " (~indent (length (car seed))) (~result result) (caar seed)))
+                                           (define leader-space (~indent (string-length headline) #:times 1))
+                                           (printf "~a~a~n" headline (test-result-test-case-name result))
                                            (cond [(test-success? result) (void)]
                                                  [(test-failure? result) (display-failure result #:indent leader-space)]
                                                  [(test-error? result) (display-error result #:indent leader-space)]
@@ -127,19 +135,25 @@
 
 (define prove-harness
   {lambda [suite]
-    (define summary≠0 (foldts-test-suite default-fdown
-                                         default-fup
-                                         {lambda [testcase name action seed]
-                                           (define record (tamer-record-handbook testcase))
-                                           (define result (validation-result record))
-                                           (cons (if (test-success? result) (car seed) (cons result (car seed)))
-                                                 (summary++ (cdr seed) record))}
-                                         (cons null (summary 0 0 0 0 0 0))
-                                         suite))
+    (define-values {$?=0 $?≠0 smry}
+      (let*-values ([{smry} (foldts-test-suite default-fdown
+                                               default-fup
+                                               {lambda [testcase name action seed]
+                                                 (define record (tamer-record-handbook testcase))
+                                                 (define result (validation-result record))
+                                                 (cons (cons result (car seed))
+                                                       (summary++ (cdr seed) record))}
+                                               (cons null initial-summary)
+                                               suite)]
+                    [{$0 $?} (partition test-success? (car smry))])
+        (values $0 $? (cdr smry))))
     (printf "~a~a~n" (~a #:width 62 #:pad-string "." #:limit-marker "..." (rackunit-test-suite-name suite))
-            (zero? (+ (summary-failure (cdr summary≠0)) (summary-error (cdr summary≠0)))))
-    (for ([result (in-list (reverse (car summary≠0)))])
+            (cond [(false? (null? $?≠0)) (~result (with-handlers ([exn:fail:contract? (const (car $?≠0))]) (car (filter test-error? $?≠0))))]
+                  [(false? (null? $?=0)) (~result (car $?=0))]
+                  [else #true]))
+    (for ([result (in-list (reverse $?≠0))])
       (cond [(test-failure? result) (display-failure result)]
             [(test-error? result) (display-error result)]
             [else (error "RackUnit has new test result type added!")]))
-    (cdr summary≠0)})
+    (printf "~a~n" (~time (summary-cpu smry) (summary-real smry) (summary-gc smry)))
+    smry})

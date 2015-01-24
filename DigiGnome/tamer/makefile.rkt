@@ -21,7 +21,7 @@ works as you wish.
 @chunk[<*>
        {module story racket
          <import-tamer-handbook>
-         <tamer-routine>
+         <tamer-discipline>
          
          <ready?-help!>
          <hello-rules!>}
@@ -48,7 +48,7 @@ where @chunk[<import-tamer-handbook>
 Although normal @bold{Racket} script doesn@literal{'}t require the so-called @racketidfont{main} routine,
 I still prefer to start with @defproc[{main [argument string?] ...} void?]
 
-@chunk[<tamer-routine>
+@chunk[<tamer-discipline>
        (current-directory (build-path (getenv "digimon-world")
                                       (cadadr (current-tamer-story)) 'up))
        
@@ -69,7 +69,7 @@ nonetheless you are still free to check the options first. Normal @bold{Racket} 
 
 Now it@literal{'}s time to look deep into the specification examples of
 @itemlist{@item{a testsuite that should pass and do pass:}}
-@tamer-note['option-ready?]
+
 @chunk[<testsuite:option-ready?>
        (define setup
          {lambda argv
@@ -117,22 +117,24 @@ Now it@literal{'}s time to look deep into the specification examples of
                                             positive?
                                             (file-position err)))))]
 
-@tamer-action[tamer-script
-              (tamer-script 'option-ready?)]
+@tamer-note['option-ready?]
+@tamer-action[(tamer-prove 'option-ready?)]
 
 @itemlist{@item{a testsuite that should pass but do fail:}}
-@tamer-note['goal-not-ready!]
+
 @chunk[<testsuite:goal-not-ready!>
        (define goal-not-ready!
          (test-suite "make [phony target]"
                      (test-suite "make it"
                                  (test-not-exn "CONFRONT THE INTENDED FATAL"
                                                {thunk (make "it")}))))]
-@tamer-action[(tamer-script 'goal-not-ready!)]
+
+@tamer-note['goal-not-ready!]
+@tamer-action[(tamer-prove 'goal-not-ready!)]
 
 @itemlist{@item{a typo that should never happen:}}
 @tamer-note['maybe-typo!]
-@tamer-action[(tamer-script 'maybe-typo!)]
+@tamer-action[(tamer-prove 'maybe-typo!)]
 
 Equipping with the powerful @bold{Scribble} that @bold{Racket} gives us,
 writing the @italic{handbook} becomes fantastic. We can @racket[eval] the code while
@@ -140,6 +142,30 @@ writing the @italic{handbook} becomes fantastic. We can @racket[eval] the code w
 via @racket[margin-note](@racket[tamer-note]) and via @racket[interaction](@racket[tamer-action]),
 are just duplicate work, there is no need to run them at the same @italic{handbook}.
 I just show you the effects of the two ways, then you can choose your favor.
+
+@subsection{Scenario: What if the @italic{handbook} is unavaliable?}
+
+Furthermore, the @italic{handbook} itself is the standard test reporter, but it@literal{'}s still reasonable
+to check the system in some more convenient ways. Thus two styles, 
+@hyperlink["http://en.wikipedia.org/wiki/Test::More"]{@italic{TAP::Harness-like}} and
+@hyperlink["http://hspec.github.io"]{@italic{hspec-like}},
+are designated for @exec{raco test} and @exec{racket}, respectively.
+
+@chunk[<tamer-battle-via-racket>
+       {module main racket
+         <import-tamer-handbook>
+         
+         (exit (tamer-spec))}]
+
+@tamer-action[(tamer-spec)]
+
+and @chunk[<tamer-battle-via-raco>
+           {module test racket
+             <import-tamer-handbook>
+             
+             (exit (tamer-harness))}]
+
+@tamer-action[(tamer-harness)]
 
 @subsection{Scenario: The rules serve you!}
 
@@ -156,7 +182,6 @@ rules, and this story is all about building system. So apart from conventions, w
            @item{@bold{Rule 2}: The subproject should have an explicit name,
                   although the name can be the same as its directory name.})
 
-@tamer-note['rule-1 'rule-2]
 @chunk[<project-hierarchy>
        (require setup/getinfo)
        
@@ -180,24 +205,5 @@ rules, and this story is all about building system. So apart from conventions, w
                                                         (check-pred string? (info-ref 'collection))))}
                                digimons)))]
 
-@tamer-action[(tamer-script 'rule-2)]
-
-@subsection{Scenario: What if the @italic{handbook} is unavaliable?}
-
-Furthermore, the @italic{handbook} itself is the standard test reporter, but it@literal{'}s still reasonable
-to check the system in some more convenient ways. Thus two styles, 
-@hyperlink["http://en.wikipedia.org/wiki/Test::More"]{@italic{TAP::Harness-like}} and
-@hyperlink["http://hspec.github.io"]{@italic{hspec-like}},
-are designated for @exec{raco test} and @exec{racket} respectively.
-
-@chunk[<tamer-battle-via-racket>
-       {module main racket
-         <import-tamer-handbook>
-         
-         (tamer-spec)}]
-
-and @chunk[<tamer-battle-via-raco>
-           {module test racket
-             <import-tamer-handbook>
-             
-             (tamer-harness)}]
+@tamer-note['rule-1 'rule-2]
+@tamer-action[(tamer-prove 'rule-2)]
