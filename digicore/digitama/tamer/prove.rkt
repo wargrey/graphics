@@ -6,6 +6,7 @@
 
 (provide (all-defined-out))
 
+(struct tamer-seed {datum brief name-path})
 (struct validation {result cpu real gc})
 (struct summary {success failure error cpu real gc})
 (define initial-summary (summary 0 0 0 0 0 0))
@@ -30,8 +31,10 @@
 
 (define handbook (make-hash))
 (define tamer-record-handbook
-  {lambda [testcase]
-    (unless (hash-has-key? handbook testcase)
+  {lambda [name:case«suites action]
+    (define short-name (car name:case«suites))
+    (define long-name (string-join name:case«suites " « "))
+    (unless (hash-has-key? handbook long-name)
       (define restored #false)
       (parameterize ([current-output-port /dev/null]
                      [current-error-port (open-output-string 'stderr)]
@@ -39,19 +42,19 @@
                                      (let* ([errsize (file-position (current-error-port))]
                                             [errmsg (cond [(positive? errsize) (string-trim (get-output-string (current-error-port)))]
                                                           [else (format "Racket exits with status ~a!" status)])])
-                                       (set! restored (run-test-case (rackunit-test-case-name testcase)
-                                                                     {thunk (fail errmsg)})))}])
+                                       (set! restored (run-test-case short-name {thunk (fail errmsg)})))}])
         (define-values {results cpu real gc}
-          (time-apply {thunk (car (run-test testcase))} null))
-        (hash-set! handbook testcase (validation (or restored (car results)) cpu real gc))))
-    (hash-ref handbook testcase)})
+          (time-apply {thunk (run-test-case short-name action)} null))
+        (hash-set! handbook long-name (validation (or restored (car results)) cpu real gc))))
+    (hash-ref handbook long-name)})
 
 (define indents (make-hash))
 (define ~indent
-  {lambda [count #:times [times 2]]
-    (unless (hash-has-key? indents count)
-      (hash-set! indents count (make-string (* count times) #\space)))
-    (hash-ref indents count)})
+  {lambda [count #:times [times 2] #:padchar [padding #\space]]
+    (define key (format "~a~a" count padding))
+    (unless (hash-has-key? indents key)
+      (hash-set! indents key (make-string (* count times) padding)))
+    (hash-ref indents key)})
 
 (define plural-suffix
   {lambda [count]
@@ -64,96 +67,119 @@
 
 (define ~result
   {lambda [result]
-    (cond [(test-error? result) "#?"]
-          [else (format "~a" (test-success? result))])})
+    (define indicators (hash (object-name struct:test-error) "#?"
+                             (object-name struct:test-success) "#t"
+                             (object-name struct:test-failure) "#f"))
+    (hash-ref indicators (object-name result))})
 
 (define exn->test-suite
   {lambda [e]
-    (test-suite (format "»Maybe ~a«" (object-name e))
+    (test-suite (format "Maybe (⧴ ~a)" (object-name e))
                 (test-case (symbol->string (object-name e))
+                           ;;; We just avoid `thunk` to make a test-error object.
                            (raise-user-error (exn-message e))))})
 
 (define display-failure
-  {lambda [result #:indent [leader-space ""]]
-    (eprintf "~a» FAILURE » ~a~n" leader-space (test-result-test-case-name result))
+  {lambda [result #:indent [headspace ""]]
+    (eechof #:fgcolor 'red #:effects '{light} "~a⧴ FAILURE » ~a~n" headspace (test-result-test-case-name result))
     (for ([info (in-list (exn:test:check-stack (test-failure-result result)))])
-      (eprintf "~a»» ~a: ~s~n"
-               leader-space
-               (check-info-name info)
-               (if (symbol=? 'location (check-info-name info))
-                   (cons (build-path "/" (find-relative-path (getenv "digimon-world")
-                                                             (car (check-info-value info))))
-                         (cdr (check-info-value info)))
-                   (check-info-value info))))})
+      (eechof #:fgcolor 'red #:effects '{light}
+            "~a»» ~a: ~s~n" headspace (check-info-name info)
+            (if (symbol=? 'location (check-info-name info))
+                (cons (build-path "/" (find-relative-path (getenv "digimon-world") (car (check-info-value info))))
+                      (cdr (check-info-value info)))
+                (check-info-value info))))})
 
 (define display-error
-  {lambda [result #:indent [leader-space0 ""]]
+  {lambda [result #:indent [headspace0 ""]]
     (define errobj (test-error-result result))
     (define headline (format " ~a: " (object-name errobj)))
-    (define leader-space (~indent (string-length headline) #:times 1))
+    (define headspace (~indent (string-length headline) #:times 1))
     (define messages (call-with-input-string (string-replace (exn-message errobj) (getenv "digimon-world") "") port->lines))
-    (eprintf "~a» FATAL » ~a~n" leader-space0 (test-result-test-case-name result))
+    (eechof #:bgcolor 'red "~a⧴ FATAL » ~a~n" headspace0 (test-result-test-case-name result))
     (unless (null? messages)
-      (eprintf "~a»»~a~a~n" leader-space0 headline (car messages))
-      (for-each (curry eprintf "~a»»~a~a~n" leader-space0 leader-space) (cdr messages)))})
+      (eechof #:bgcolor 'red "~a»»~a~a~n" headspace0 headline (car messages))
+      (for-each (curry eechof #:bgcolor 'red "~a»»~a~a~n" headspace0 headspace) (cdr messages)))
+    (for ([stack (in-list (continuation-mark-set->context (exn-continuation-marks errobj)))])
+      (unless (false? (cdr stack))
+        (define srcinfo (srcloc->string (cdr stack)))
+        (when (and (string? srcinfo) (relative-path? srcinfo))
+          (eechof #:fgcolor 'black #:effects '{light} "~a»»»» ~a: ~a~n"
+                  headspace0 (string-replace srcinfo (getenv "digimon-world") "") (or (car stack) 'λ)))))})
 
-(define default-fdown
-  {lambda [testsuite name pre-action post-action seed]
-    (pre-action)
-    seed})
+(define default-fseed
+  {lambda last-is-seed
+    (last last-is-seed)})
   
-(define default-fup
-  {lambda [testsuite name pre-action post-action seed children-seed]
-    (post-action)
-    children-seed})
+(define fold-test-suite
+  {lambda [seed:datum testsuite #:fdown [fdown default-fseed] #:fup [fup default-fseed] #:fhere [fhere default-fseed]]
+    (define folded-seed
+      (foldts-test-suite {lambda [testsuite name pre-action post-action seed]
+                           (pre-action)
+                           (tamer-seed (fdown name (tamer-seed-datum seed))
+                                       (tamer-seed-brief seed )
+                                       (cons name (tamer-seed-name-path seed)))}
+                         {lambda [testsuite name pre-action post-action seed children-seed]
+                           (post-action)
+                           (tamer-seed (fup name (tamer-seed-datum seed) (tamer-seed-datum children-seed))
+                                       (tamer-seed-brief children-seed)
+                                       (tamer-seed-name-path seed))}
+                         {lambda [testcase name action seed]
+                           (define name-path (cons name (tamer-seed-name-path seed)))
+                           (define record (tamer-record-handbook name-path action))
+                           (tamer-seed (fhere record (tamer-seed-datum seed))
+                                       (summary++ (tamer-seed-brief seed) record)
+                                       name-path)}
+                         (tamer-seed seed:datum initial-summary null)
+                         testsuite))
+    (values (tamer-seed-datum folded-seed)
+            (tamer-seed-brief folded-seed))})
 
 (define prove-spec
   {lambda [suite]
-    (define smry (cdr (foldts-test-suite {lambda [testsuite name pre-action post-action seed]
-                                           (pre-action)
-                                           (printf "~a~a~n" (~indent (length (car seed))) name)
-                                           (cons (cons 1 (car seed)) (cdr seed))}
-                                         {lambda [testsuite name pre-action post-action seed children-seed]
-                                           (post-action)
-                                           (cons (cdar children-seed) (cdr children-seed))}
-                                         {lambda [testcase name action seed]
-                                           (define record (tamer-record-handbook testcase))
-                                           (define result (validation-result record))
-                                           (define headline (format "~a~a ~a - " (~indent (length (car seed))) (~result result) (caar seed)))
-                                           (define leader-space (~indent (string-length headline) #:times 1))
-                                           (printf "~a~a~n" headline (test-result-test-case-name result))
-                                           (cond [(test-success? result) (void)]
-                                                 [(test-failure? result) (display-failure result #:indent leader-space)]
-                                                 [(test-error? result) (display-error result #:indent leader-space)]
-                                                 [else (error "RackUnit has new test result type added!")])
-                                           (cons (cons (add1 (caar seed)) (cdar seed))
-                                                 (summary++ (cdr seed) record))}
-                                         (cons null initial-summary)
-                                         suite)))
-    (printf "~a~n" (~time (summary-cpu smry) (summary-real smry) (summary-gc smry)))
-    smry})
+    (define-values {whocares brief}
+      (fold-test-suite #:fdown {lambda [name seed:ordered]
+                                 (if (null? seed:ordered)
+                                     (echof #:effects '{inverse} "~a~a~n" (~indent (length seed:ordered)) name)
+                                     (echof "~aλ~a ~a~n" (~indent (length seed:ordered)) (string-join (map number->string (reverse seed:ordered)) ".") name))
+                                 (cons 1 seed:ordered)}
+                       #:fup {lambda [name seed:ordered children:ordered]
+                               (cond [(null? seed:ordered) null]
+                                     [else (cons (add1 (car seed:ordered))
+                                                 (cdr seed:ordered))])}
+                       #:fhere {lambda [record seed:ordered]
+                                 (define result (validation-result record))
+                                 (define headline (format "~a~a ~a - " (~indent (length seed:ordered)) (~result result) (car seed:ordered)))
+                                 (define headspace (~indent (string-length headline) #:times 1))
+                                 (cond [(test-success? result) (echof #:fgcolor 'green "~a~a [~ams]~n"
+                                                                      headline (test-result-test-case-name result) (validation-real record))]
+                                       [(test-failure? result) (void (echof #:fgcolor 'red "~a~a~n" headline (test-result-test-case-name result))
+                                                                     (display-failure result #:indent headspace))]
+                                       [(test-error? result) (void (echof #:fgcolor 'red "~a~a~n" headline (test-result-test-case-name result))
+                                                                   (display-error result #:indent headspace))]
+                                       [else (error "RackUnit has new test result type added!")])
+                                 (cons (add1 (car seed:ordered)) (cdr seed:ordered))}
+                       null
+                       suite))
+    brief})
 
 (define prove-harness
   {lambda [suite]
-    (define-values {$?=0 $?≠0 smry}
-      (let*-values ([{smry} (foldts-test-suite default-fdown
-                                               default-fup
-                                               {lambda [testcase name action seed]
-                                                 (define record (tamer-record-handbook testcase))
-                                                 (define result (validation-result record))
-                                                 (cons (cons result (car seed))
-                                                       (summary++ (cdr seed) record))}
-                                               (cons null initial-summary)
-                                               suite)]
-                    [{$0 $?} (partition test-success? (car smry))])
-        (values $0 $? (cdr smry))))
-    (printf "~a~a~n" (~a #:width 62 #:pad-string "." #:limit-marker "..." (rackunit-test-suite-name suite))
-            (cond [(false? (null? $?≠0)) (~result (with-handlers ([exn:fail:contract? (const (car $?≠0))]) (car (filter test-error? $?≠0))))]
-                  [(false? (null? $?=0)) (~result (car $?=0))]
-                  [else #true]))
+    (define-values {$?≠0 brief}
+      (fold-test-suite #:fhere {lambda [record seed:$?≠0]
+                                 (define result (validation-result record))
+                                 (cond [(test-success? result) seed:$?≠0]
+                                       [else (cons result seed:$?≠0)])}
+                       null
+                       suite))
+    (printf "~a" (~a #:width 64 #:pad-string "." #:limit-marker "..." (rackunit-test-suite-name suite)))
+    (cond [(positive? (summary-error brief)) (echof #:fgcolor 'red "~a~n" (~result struct:test-error))]
+          [(positive? (summary-failure brief)) (echof #:fgcolor 'red #:effects '{light} "~a~n" (~result struct:test-failure))]
+          [(positive? (summary-success brief)) (echof #:fgcolor 'green "~a~n" (~result struct:test-success))]
+          [else #| No testcase |# (echof #:fgcolor 'green #:effects '{light} "~a~n" #true)])
     (for ([result (in-list (reverse $?≠0))])
       (cond [(test-failure? result) (display-failure result)]
             [(test-error? result) (display-error result)]
             [else (error "RackUnit has new test result type added!")]))
-    (printf "~a~n" (~time (summary-cpu smry) (summary-real smry) (summary-gc smry)))
-    smry})
+    (echof #:fgcolor 'black #:effects '{light} "~a~n" (~time (summary-cpu brief) (summary-real brief) (summary-gc brief)))
+    brief})

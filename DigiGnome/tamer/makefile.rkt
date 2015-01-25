@@ -43,7 +43,8 @@ where @chunk[<import-tamer-handbook>
 
 @chunk[<ready?-help!>
        <testsuite:option-ready?>
-       <testsuite:goal-not-ready!>]
+       <testsuite:goal-not-ready!>
+       <testsuite:fatal-ocurrs!>]
 
 Although normal @bold{Racket} script doesn@literal{'}t require the so-called @racketidfont{main} routine,
 I still prefer to start with @defproc[{main [argument string?] ...} void?]
@@ -64,12 +65,12 @@ nonetheless you are still free to check the options first. Normal @bold{Racket} 
 
 @tamer-action[tamer-require
               ((tamer-require 'make) "--help")
-              (code:comment @#,t{See, @racketcommentfont{@italic{makefile}} complains that @racketcommentfont{@bold{Scribble}} is killed by accident.})
-              (code:comment @#,t{Meanwhile @racketcommentfont{@italic{parallel building}} is not supported.})]
+              (code:comment @#,t{See, @racketcommentfont{@italic{makefile}} complains that @racketcommentfont{@bold{Scribble}} is killed by accident.})]
 
 Now it@literal{'}s time to look deep into the specification examples of
 @itemlist{@item{a testsuite that should pass and do pass:}}
 
+@tamer-note['option-ready?]
 @chunk[<testsuite:option-ready?>
        (define setup
          {lambda argv
@@ -94,8 +95,6 @@ Now it@literal{'}s time to look deep into the specification examples of
                                             zero? (file-position err))
                                  (test-pred "should say something"
                                             positive? (file-position out)))
-                     (test-pred "should flush stdout"
-                                zero? (file-position out))
                      (test-suite "make --unknown"
                                  #:before (setup "--unknown")
                                  #:after teardown
@@ -103,8 +102,6 @@ Now it@literal{'}s time to look deep into the specification examples of
                                              (zero? ($?)))
                                  (test-pred "should say something wrong"
                                             positive? (file-position err)))
-                     (test-pred "should flush stderr"
-                                zero? (file-position err))
                      (test-suite "make --silent --help"
                                  #:before (setup "--silent" "--help")
                                  #:after teardown
@@ -117,24 +114,31 @@ Now it@literal{'}s time to look deep into the specification examples of
                                             positive?
                                             (file-position err)))))]
 
-@tamer-note['option-ready?]
 @tamer-action[(tamer-prove 'option-ready?)]
 
 @itemlist{@item{a testsuite that should pass but do fail:}}
 
+@tamer-note['goal-not-ready!]
 @chunk[<testsuite:goal-not-ready!>
        (define goal-not-ready!
-         (test-suite "make [phony target]"
-                     (test-suite "make it"
-                                 (test-not-exn "CONFRONT THE INTENDED FATAL"
-                                               {thunk (make "it")}))))]
+         (test-suite "make [phony goal]"
+                     (test-not-exn "EXAMPLE of FAILURE"
+                                   {thunk (make "it")})))]
 
-@tamer-note['goal-not-ready!]
 @tamer-action[(tamer-prove 'goal-not-ready!)]
 
-@itemlist{@item{a typo that should never happen:}}
-@tamer-note['maybe-typo!]
-@tamer-action[(tamer-prove 'maybe-typo!)]
+@itemlist{@item{an error that should never happen:}}
+
+@tamer-note['fatal-ocurrs!]
+@chunk[<testsuite:fatal-ocurrs!>
+       (define fatal-ocurrs!
+         (test-suite "Maybe (⧴ test-error?)"
+                     (test-case "EXAMPLE of FATAL"
+                                (check-exn exn:fail:user?
+                                           (raise-user-error
+                                            "A thunk is required!")))))]
+
+@tamer-action[(tamer-prove 'fatal-ocurrs!)]
 
 Equipping with the powerful @bold{Scribble} that @bold{Racket} gives us,
 writing the @italic{handbook} becomes fantastic. We can @racket[eval] the code while
@@ -177,11 +181,14 @@ what exactly should be tested and how would the tests be performed correct. The 
 rules, and this story is all about building system. So apart from conventions, we need a sort of rules that the @italic{makefile.rkt}
 (and systems it builds) should satisfy.
 
+@margin-note{Meanwhile @italic{parallel building} is not supported.}
+
 @(itemlist @item{@bold{Rule 1}: The entire project is a @italic{multi-collection package},
                   and (nonhidden) directories within it are considered as subprojects.}
            @item{@bold{Rule 2}: The subproject should have an explicit name,
                   although the name can be the same as its directory name.})
 
+@tamer-note['rule-1 'rule-2]
 @chunk[<project-hierarchy>
        (require setup/getinfo)
        
@@ -205,5 +212,4 @@ rules, and this story is all about building system. So apart from conventions, w
                                                         (check-pred string? (info-ref 'collection))))}
                                digimons)))]
 
-@tamer-note['rule-1 'rule-2]
 @tamer-action[(tamer-prove 'rule-2)]

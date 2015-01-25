@@ -37,9 +37,9 @@
                                        (part-title-content psection)))))
                   (part-blocks psection))
             (map {lambda [sub] (sample->blocks sub (add1 header-level))}
-                 ;;; Only the first scenario is required which defined in subsection follows title and section
+                 ;;; Only the first two scenarios is required which defined in subsection follows title and section
                  (let ([pps (part-parts psection)])
-                   (cond [(= header-level 2) (take pps (min 1 (length pps)))]
+                   (cond [(= header-level 2) (take pps (min 2 (length pps)))]
                          [else pps]))))})
 
 @title[#:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{@italic{The Story} as a story}}

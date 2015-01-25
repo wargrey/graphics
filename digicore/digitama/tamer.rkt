@@ -59,15 +59,15 @@
 
 (define tamer-prove
   {lambda suites
-    (define smry (foldl summary** initial-summary (map tamer-run-suite suites)))
+    (define brief (foldl summary** initial-summary (map tamer-run-suite suites)))
     (define-values {success failure error cpu real gc}
-      (apply values (summary-success smry) (summary-failure smry) (summary-error smry)
-             (map (curryr / 1000.0) (list (summary-cpu smry) (summary-real smry) (summary-gc smry)))))
+      (apply values (summary-success brief) (summary-failure brief) (summary-error brief)
+             (map (curryr / 1000.0) (list (summary-cpu brief) (summary-real brief) (summary-gc brief)))))
     (define population (+ success failure error))
     (cond [(zero? population) (printf "~nNo testcase, do not try to fool me!~n")]
           [else (printf "~nTestsuite~a = ~a, Testcase~a = ~a, Failure~a = ~a, Error~a = ~a, ~a% Okay.~n~a wallclock seconds (~a task + ~a gc = ~a CPU).~n"
                         (plural-suffix (length suites)) (length suites) (plural-suffix population) population
-                        (plural-suffix (+ failure error)) (+ failure error) (plural-suffix error) error
+                        (plural-suffix failure) error (plural-suffix error) error
                         (~r (/ (* success 100) population) #:precision '(= 2)) real (- cpu gc) gc cpu)])
     (+ failure error)})
 
@@ -98,29 +98,41 @@
 
 (define tamer-note
   {lambda suites
+    (define note-width 24)
+    (define ~desc {lambda [fmt #:max [max-width note-width] . vals] (~a (apply format fmt vals) #:max-width max-width #:limit-marker "...")})
+    (define note-fdown {lambda [name seed]
+                         (cons (cons (add1 (caar seed)) (cdar seed))
+                               (append (cdr seed)
+                                       (list (racketparenfont (~desc "~a ~a" (~indent (caar seed) #:times 1 #:padchar #\λ) name #:max (+ note-width 4)))
+                                             (linebreak))))})
+    (define note-fup {lambda [name seed children-seed]
+                       (cons (cons (caar seed) (cdar children-seed))
+                             (cdr children-seed))})
+    (define note-fhere {lambda [validated seed]
+                         (define result (validation-result validated))
+                         (define-values {cpu real gc}
+                           (values (validation-cpu validated) (validation-real validated) (validation-gc validated)))
+                         (define count (cdar seed))
+                         (cons (cons (caar seed) (add1 count))
+                               (append (cdr seed)
+                                       (cond [(test-success? result) (list* (racketvalfont (format "~a " (~result result)))
+                                                                            (racketvarfont (format "~a " count))
+                                                                            (let ([tms (format "~ams" real)])
+                                                                              (list (racketresultfont (format "~a " tms))
+                                                                                    (racketcommentfont (~desc #:max (- note-width (string-length tms) 1)
+                                                                                                              (test-result-test-case-name result))))))]
+                                             [(test-failure? result) (list (racketerror (format "~a " (~result result)))
+                                                                           (racketvarfont (format "~a " count))
+                                                                           (racketcommentfont (~desc (test-result-test-case-name result))))]
+                                             [else (let ([err (test-error-result result)])
+                                                     (list (racketerror (format "~a " (~result result)))
+                                                           (racketvarfont (format "~a " count))
+                                                           (racketcommentfont (~desc (with-input-from-string (exn-message err) {thunk (read-line)})))))])
+                                       (list (linebreak))))})
     (apply margin-note
            (for/fold ([briefs null]) ([suite (in-list suites)])
-             (append briefs (cdr (foldts-test-suite default-fdown
-                                                    default-fup
-                                                    {lambda [testcase name action count.briefs]
-                                                      (define validated (tamer-record-handbook testcase))
-                                                      (define result (validation-result validated))
-                                                      (define-values {cpu real gc}
-                                                        (values (validation-cpu validated) (validation-real validated) (validation-gc validated)))
-                                                      (define count (car count.briefs))
-                                                      (cons (add1 count)
-                                                            (append (cdr count.briefs)
-                                                                    (cond [(test-success? result) (list (racketvalfont (format "~a " (~result result)))
-                                                                                                        (racketvarfont (format "~a " count))
-                                                                                                        (racketcommentfont (format "~a wallclock ms" real)))]
-                                                                          [(test-failure? result) (list (racketerror (format "~a " (~result result)))
-                                                                                                        (racketvarfont (format "~a " count))
-                                                                                                        (racketcommentfont name))]
-                                                                          [else (let ([err (test-error-result result)])
-                                                                                  (list (racketerror (format "~a " (~result result)))
-                                                                                        (racketvarfont (format "~a " count))
-                                                                                        (racketcommentfont (with-input-from-string (exn-message err) {thunk (read-line)}))))])
-                                                                    (list (linebreak))))}
-                                                    (cons 1 (list (racketidfont (format "~a" suite)) (linebreak)))
-                                                    (with-handlers ([exn? exn->test-suite])
-                                                      (tamer-require suite)))))))})
+             (define-values {seed whocares}
+               (fold-test-suite #:fdown note-fdown #:fup note-fup #:fhere note-fhere
+                                (cons (cons 1 1) (list (racketidfont (~desc "> ~a" suite)) (linebreak)))
+                                (with-handlers ([exn? exn->test-suite]) (tamer-require suite))))
+             (append briefs (cdr seed))))})
