@@ -83,20 +83,55 @@
   {lambda []
     (dynamic-require (current-tamer-story) #false)
     (parameterize ([current-namespace (module->namespace (current-tamer-story))])
-      (define smry (prove-spec (make-test-suite (path->string (build-path (cadadr (current-tamer-story))))
-                                                (filter test-suite? (filter-map (curryr namespace-variable-value #false (const #false))
-                                                                                (namespace-mapped-symbols))))))
+      (define brief (prove-spec (make-test-suite (path->string (build-path (cadadr (current-tamer-story))))
+                                                 (filter test-suite? (filter-map (curryr namespace-variable-value #false (const #false))
+                                                                                 (namespace-mapped-symbols))))))
       (define-values {success failure error cpu real gc}
-        (apply values (summary-success smry) (summary-failure smry) (summary-error smry)
-               (map (curryr / 1000.0) (list (summary-cpu smry) (summary-real smry) (summary-gc smry)))))
+        (apply values (summary-success brief) (summary-failure brief) (summary-error brief)
+               (map (curryr / 1000.0) (list (summary-cpu brief) (summary-real brief) (summary-gc brief)))))
       (define population (+ success failure error))
       (cond [(zero? population) (printf "~nNo example, do not try to fool me!~n")]
             [else (printf "~nFinished in ~a wallclock seconds (~a task + ~a gc = ~a CPU)~n~a example~a, ~a failure~a, ~a error~a, ~a% Okay.~n"
                           real (- cpu gc) gc cpu population (plural-suffix population) failure (plural-suffix failure) error (plural-suffix error)
-                          (~r (/ (* success 100) population) #:precision '(= 2)))])
+                          (~r (/ (* success 100) population) #:precision '{= 2}))])
       (+ failure error))})
 
 (define tamer-note
+  {lambda suites
+    (define note-width 24)
+    (define ~desc {lambda [fmt #:max [max-width note-width] . vals] (~a (apply format fmt vals) #:max-width max-width #:limit-marker "...")})
+    (define-values {hspec-in hspec-out} (make-pipe #false 'hspec-in 'hspec-out))
+    (define tamer-spec (thread {thunk (parameterize ([current-output-port hspec-out]
+                                                     [current-error-port hspec-out])
+                                        (for ([suite (in-list suites)])
+                                          (prove-spec (with-handlers ([exn? exn->test-suite])
+                                                        (tamer-require suite))))
+                                        (close-output-port hspec-out))}))
+    (apply margin-note
+           (let awk ([No. 0])
+             (define line (read-line hspec-in))
+             (cond [(eof-object? line) null]
+                   [(regexp-match? #px"^\\S.+" line)
+                    => {lambda [whocares]
+                         (echof #:fgcolor 202 #:attributes '{underline} "~a~n" line)
+                         (list* (racketidfont (~desc (format "> ~a" (list-ref suites No.)))) (linebreak)
+                                (racketparenfont (~desc "λ ~a" line #:max (+ note-width 4)))
+                                (linebreak) (awk (add1 No.)))}]
+                   [(regexp-match #px"^\\s+(λ\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
+                    => {lambda [pieces]
+                         (echof #:fgcolor 202 "~a~n" line)
+                         (list* (racketparenfont (~desc "~a ~a" (string-replace (list-ref pieces 1) #px"\\d+(\\.|$)" "λ") (list-ref pieces 3) #:max (+ note-width 4)))
+                                (linebreak) (awk No.))}]
+                   [(regexp-match #px"^\\s+(.+?) (\\d+) - (.+?) [(.+?)]\\s*$" line)
+                    => {lambda [pieces]
+                         (echof #:fgcolor 'green "~a~n" line)
+                         (list* (racketvalfont (list-ref pieces 1)) (racketvarfont (list-ref pieces 2)) (racketresultfont (list-ref pieces 4))
+                                (racketcommentfont (~desc #:max (- note-width (string-length (list-ref pieces 4)) 1) ((list-ref pieces 3))))
+                                (linebreak) (awk No.))}]
+                   [else (displayln line) (awk No.)])))
+    (apply tamer-note0 suites)})
+
+(define tamer-note0
   {lambda suites
     (define note-width 24)
     (define ~desc {lambda [fmt #:max [max-width note-width] . vals] (~a (apply format fmt vals) #:max-width max-width #:limit-marker "...")})

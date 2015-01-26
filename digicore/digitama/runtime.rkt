@@ -41,40 +41,58 @@
     (if (symbol? subname) `(submod (lib ,fname) ,subname) `(lib ,fname))})
 
 (define term-colorize
-  {lambda [fg bg effects content]
-    (let* ([colors (hash "black" "0" "red" "1" "green" "2" "yellow" "3" "blue" "4" "magenta" "5" "cyan" "6" "white" "7")]
-           [fgcode (hash-ref colors (string-downcase (format "~a" fg)) #false)]
-           [bgcode (hash-ref colors (string-downcase (format "~a" bg)) #false)])
-      (regexp-replace #px"^(\\s*)(.+?)(\\s*)$" content
-                      (format "\\1\033[~a~a\\2\033[m\\3"
-                              (for/fold ([effects ""]) ([fmt (in-list effects)])
-                                (case (string-downcase (format "~a" fmt))
-                                  [{"off"} (string-append effects "0;")]
-                                  [{"light"} (string-append effects "1;")]
-                                  [{"underline"} (string-append effects "4;")]
-                                  [{"blink"} (string-append effects "5;")]
-                                  [{"reverse" "inverse"} (string-append effects "7;")]
-                                  [{"invisible"} (string-append effects "8;")]
-                                  [else effects]))
-                              (cond [(and (false? fgcode) (false? bgcode)) "m"]
-                                    [(false? fgcode) (string-append "4" bgcode "m")]
-                                    [(false? bgcode) (string-append "3" fgcode "m")]
-                                    [else (string-append "3" fgcode ";4" bgcode "m")]))))})
+  {lambda [fg bg attrs content]
+    (define color-code
+      {lambda [color #:bgcolor? [bg? #false]]
+        (define colors (hash "black" 0 "red" 1 "green" 2 "yellow" 3 "blue" 4 "magenta" 5 "cyan" 6 "white" 7
+                             "lightblack" 8 "lightred" 9 "lightgreen" 10 "lightyellow" 11 "lightblue" 12
+                             "lightmagenta" 13 "lightcyan" 14 "lightwhite" 15))
+        (format "~a8;5;~a" (if bg? 4 3)
+                (cond [(regexp-match? #px"\\d+" color) color]
+                      [else (hash-ref colors color)]))})
+    (regexp-replace #px"^(\\s*)(.+?)(\\s*)$" content
+                    (format "\\1\033[~a;~a;~am\\2\033[0m\\3"
+                            (string-replace (for/fold ([effects ""]) ([attr (in-list attrs)])
+                                              (case (string-downcase (format "~a" attr))
+                                                [{"bold" "bright"} (string-append effects ";1")]
+                                                [{"dim"} (string-append effects ";2")]
+                                                [{"underline"} (string-append effects ";4")]
+                                                [{"blink"} (string-append effects ";5")]
+                                                [{"reverse" "inverse"} (string-append effects ";7")]
+                                                [{"hidden" "password"} (string-append effects ";8")]
+                                                [else (error 'tarminal-colorize "Unsupported Terminal Attribute: ~a" attr)]))
+                                            "^;" "" #:all? #false)
+                            (if (false? fg) 39 (color-code (string-downcase (format "~a" fg))))
+                            (if (false? bg) 49 (color-code (string-downcase (format "~a" bg)) #:bgcolor? #true))))})
 
 (define echof
-  {lambda [#:fgcolor [fg #false] #:bgcolor [bg #false] #:effects [effects null] msgfmt . vals]
+  {lambda [#:fgcolor [fg #false] #:bgcolor [bg #false] #:attributes [attrs null] msgfmt . vals]
     (define rawmsg (apply format msgfmt vals))
-    (printf "~a" (if (terminal-port? (current-output-port)) (term-colorize fg bg effects rawmsg) rawmsg))})
+    (printf "~a" (if (terminal-port? (current-output-port)) (term-colorize fg bg attrs rawmsg) rawmsg))})
 
 (define eechof
-  {lambda [#:fgcolor [fg #false] #:bgcolor [bg #false] #:effects [effects null] msgfmt . vals]
+  {lambda [#:fgcolor [fg #false] #:bgcolor [bg #false] #:attributes [attrs null] msgfmt . vals]
     (define rawmsg (apply format msgfmt vals))
-    (eprintf "~a" (if (terminal-port? (current-error-port)) (term-colorize fg bg effects rawmsg) rawmsg))})
+    (eprintf "~a" (if (terminal-port? (current-error-port)) (term-colorize fg bg attrs rawmsg) rawmsg))})
 
 {module+ test
-  (echof "»»» ~a test~n" 'color)
+  (require racket/format)
+  
   (for ([color (in-list '{black red green blue yellow magenta cyan white})])
-    (for ([effect (in-list '{light underline blink reverse bold})])
-      (echof #:fgcolor color #:effects (list effect) "fg:~a:~a " color effect)
-      (eechof #:bgcolor color #:effects (list effect) "bg:~a:~a " color effect))
-    (newline))}
+    (echof "»»» 8/16 colors test:")
+    (echof #:fgcolor color " ~a" color)
+    (echof #:fgcolor (format "light~a" color) " light~a" color)
+    (echof #:bgcolor color " ~a" color)
+    (echof #:bgcolor (format "light~a" color) " light~a~n" color)
+    (for ([effect (in-list '{bright dim underline blink reverse password})])
+      (echof #:fgcolor color #:attributes (list effect) "~a " effect)
+      (echof #:fgcolor (format "light~a" color) #:attributes (list effect) "light:~a " effect))
+    (newline))
+  
+  (echof "»»» 256 colors test:~n")
+  (for ([color (in-range 1 257)])
+    (define caption (~a (sub1 color) #:width 4 #:align 'right))
+    (echof #:fgcolor (sub1 color) caption)
+    (echof #:bgcolor (sub1 color) caption)
+    (when (zero? (remainder color 16))
+      (newline)))}

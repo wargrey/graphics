@@ -81,9 +81,9 @@
 
 (define display-failure
   {lambda [result #:indent [headspace ""]]
-    (eechof #:fgcolor 'red #:effects '{light} "~a⧴ FAILURE » ~a~n" headspace (test-result-test-case-name result))
+    (eechof #:fgcolor 'lightred "~a⧴ FAILURE » ~a~n" headspace (test-result-test-case-name result))
     (for ([info (in-list (exn:test:check-stack (test-failure-result result)))])
-      (eechof #:fgcolor 'red #:effects '{light}
+      (eechof #:fgcolor 'lightred
             "~a»» ~a: ~s~n" headspace (check-info-name info)
             (if (symbol=? 'location (check-info-name info))
                 (cons (build-path "/" (find-relative-path (getenv "digimon-world") (car (check-info-value info))))
@@ -104,7 +104,7 @@
       (unless (false? (cdr stack))
         (define srcinfo (srcloc->string (cdr stack)))
         (when (and (string? srcinfo) (relative-path? srcinfo))
-          (eechof #:fgcolor 'black #:effects '{light} "~a»»»» ~a: ~a~n"
+          (eechof #:fgcolor 245 "~a»»»» ~a: ~a~n"
                   headspace0 (string-replace srcinfo (getenv "digimon-world") "") (or (car stack) 'λ)))))})
 
 (define default-fseed
@@ -140,7 +140,7 @@
     (define-values {whocares brief}
       (fold-test-suite #:fdown {lambda [name seed:ordered]
                                  (if (null? seed:ordered)
-                                     (echof #:effects '{inverse} "~a~a~n" (~indent (length seed:ordered)) name)
+                                     (echof #:fgcolor 202 #:attributes '{underline} "~a~a~n" (~indent (length seed:ordered)) name)
                                      (echof "~aλ~a ~a~n" (~indent (length seed:ordered)) (string-join (map number->string (reverse seed:ordered)) ".") name))
                                  (cons 1 seed:ordered)}
                        #:fup {lambda [name seed:ordered children:ordered]
@@ -151,8 +151,7 @@
                                  (define result (validation-result record))
                                  (define headline (format "~a~a ~a - " (~indent (length seed:ordered)) (~result result) (car seed:ordered)))
                                  (define headspace (~indent (string-length headline) #:times 1))
-                                 (cond [(test-success? result) (echof #:fgcolor 'green "~a~a [~ams]~n"
-                                                                      headline (test-result-test-case-name result) (validation-real record))]
+                                 (cond [(test-success? result) (echof #:fgcolor 'green "~a~a [~ams]~n" headline (test-result-test-case-name result) (validation-real record))]
                                        [(test-failure? result) (void (echof #:fgcolor 'red "~a~a~n" headline (test-result-test-case-name result))
                                                                      (display-failure result #:indent headspace))]
                                        [(test-error? result) (void (echof #:fgcolor 'red "~a~a~n" headline (test-result-test-case-name result))
@@ -174,12 +173,12 @@
                        suite))
     (printf "~a" (~a #:width 64 #:pad-string "." #:limit-marker "..." (rackunit-test-suite-name suite)))
     (cond [(positive? (summary-error brief)) (echof #:fgcolor 'red "~a~n" (~result struct:test-error))]
-          [(positive? (summary-failure brief)) (echof #:fgcolor 'red #:effects '{light} "~a~n" (~result struct:test-failure))]
+          [(positive? (summary-failure brief)) (echof #:fgcolor 'lightred "~a~n" (~result struct:test-failure))]
           [(positive? (summary-success brief)) (echof #:fgcolor 'green "~a~n" (~result struct:test-success))]
-          [else #| No testcase |# (echof #:fgcolor 'green #:effects '{light} "~a~n" #true)])
+          [else #| No testcase |# (echof #:fgcolor 'lightgreen "~a~n" #true)])
     (for ([result (in-list (reverse $?≠0))])
       (cond [(test-failure? result) (display-failure result)]
             [(test-error? result) (display-error result)]
             [else (error "RackUnit has new test result type added!")]))
-    (echof #:fgcolor 'black #:effects '{light} "~a~n" (~time (summary-cpu brief) (summary-real brief) (summary-gc brief)))
+    (when (null? $?≠0) (echof #:fgcolor 245 "~a~n" (~time (summary-cpu brief) (summary-real brief) (summary-gc brief))))
     brief})
