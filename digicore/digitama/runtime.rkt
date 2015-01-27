@@ -93,6 +93,11 @@
   (for ([color (in-range 1 257)])
     (define caption (~a (sub1 color) #:width 4 #:align 'right))
     (echof #:fgcolor (sub1 color) caption)
+    (when (zero? (remainder color 32))
+      (newline)))
+  
+  (for ([color (in-range 1 257)])
+    (define caption (~a (sub1 color) #:width 4 #:align 'right))
     (echof #:bgcolor (sub1 color) caption)
-    (when (zero? (remainder color 16))
+    (when (zero? (remainder color 32))
       (newline)))}
