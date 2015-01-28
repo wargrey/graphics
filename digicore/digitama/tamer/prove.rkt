@@ -35,17 +35,17 @@
     (define short-name (car name:case«suites))
     (define long-name (string-join name:case«suites " « "))
     (unless (hash-has-key? handbook long-name)
-      (define restored #false)
-      (parameterize ([current-output-port /dev/null]
-                     [current-error-port (open-output-string 'stderr)]
-                     [exit-handler {lambda [status]
-                                     (let* ([errsize (file-position (current-error-port))]
-                                            [errmsg (cond [(positive? errsize) (string-trim (get-output-string (current-error-port)))]
-                                                          [else (format "Racket exits with status ~a!" status)])])
-                                       (set! restored (run-test-case short-name {thunk (fail errmsg)})))}])
-        (define-values {results cpu real gc}
-          (time-apply {thunk (run-test-case short-name action)} null))
-        (hash-set! handbook long-name (validation (or restored (car results)) cpu real gc))))
+      (define-values {results cpu real gc}
+        (time-apply {λ _ (call-with-escape-continuation
+                          {λ [return] (parameterize ([current-output-port /dev/null]
+                                                     [current-error-port (open-output-string 'stderr)]
+                                                     [exit-handler {λ [status] ;;; Todo: `raco test` doesnt need too much time
+                                                                     (let* ([errsize (file-position (current-error-port))]
+                                                                            [errmsg (cond [(positive? errsize) (string-trim (get-output-string (current-error-port)))]
+                                                                                          [else (format "Racket exits with status ~a!" status)])])
+                                                                       (return (run-test-case short-name {λ _ (fail errmsg)})))}])
+                                        (return (run-test-case short-name action)))})} null))
+        (hash-set! handbook long-name (validation (car results) cpu real gc)))
     (hash-ref handbook long-name)})
 
 (define indents (make-hash))
@@ -82,12 +82,14 @@
 (define display-failure
   {lambda [result #:indent [headspace ""]]
     (eechof #:fgcolor 'red "~a⧴ FAILURE » ~a~n" headspace (test-result-test-case-name result))
-    (for ([info (in-list (exn:test:check-stack (test-failure-result result)))])
-      (eechof #:fgcolor 'red
-            "~a»» ~a: ~s~n" headspace (check-info-name info)
-            (if (symbol=? 'location (check-info-name info))
-                (srcloc->string (apply srcloc (check-info-value info)))
-                (check-info-value info))))})
+    (let loop ([infos (exn:test:check-stack (test-failure-result result))] [message? #false])
+      (cond [(and (null? infos) (false? message?)) (loop (list (make-check-message (test-result-test-case-name result))) message?)]
+            [(false? (null? infos)) (let* ([info (car infos)] [message? (or message? (symbol=? 'message (check-info-name info)))])
+                                      (eechof #:fgcolor 'red "~a»» ~a: ~s~n" headspace (check-info-name info)
+                                              (if (symbol=? 'location (check-info-name info))
+                                                  (srcloc->string (apply srcloc (check-info-value info)))
+                                                  (check-info-value info)))
+                                      (loop (cdr infos) message?))]))})
 
 (define display-error
   {lambda [result #:indent [headspace0 ""]]
@@ -116,18 +118,23 @@
   {lambda [seed:datum testsuite #:fdown [fdown default-fseed] #:fup [fup default-fseed] #:fhere [fhere default-fseed]]
     (define-values {seed-box cpu real gc}
       (parameterize ([current-custodian (make-custodian)])
-        (time-apply foldts-test-suite (list {lambda [testsuite name pre-action post-action seed]
+        (time-apply foldts-test-suite (list {λ [testsuite name pre-action post-action seed]
                                               (pre-action)
                                               (tamer-seed (fdown name (tamer-seed-datum seed))
                                                           (tamer-seed-brief seed )
                                                           (cons name (tamer-seed-name-path seed)))}
-                                            {lambda [testsuite name pre-action post-action seed children-seed]
+                                            {λ [testsuite name pre-action post-action seed children-seed]
                                               (post-action)
                                               (tamer-seed (fup name (tamer-seed-datum seed) (tamer-seed-datum children-seed))
                                                           (tamer-seed-brief children-seed)
                                                           (tamer-seed-name-path seed))}
-                                            {lambda [testcase name action seed]
-                                              (define name-path (cons name (tamer-seed-name-path seed)))
+                                            {λ [testcase name action0 seed]
+                                              (define-values {name-path action}
+                                                (if (false? name)
+                                                    (values (cons (format "Maybe (⧴ ~a)" (object-name exn:fail:user))
+                                                                  (tamer-seed-name-path seed))
+                                                            {λ _ (raise-user-error "Test case must have a name")})
+                                                    (values (cons name (tamer-seed-name-path seed)) action0)))
                                               (define record (tamer-record-handbook name-path action))
                                               (tamer-seed (fhere record (tamer-seed-datum seed))
                                                           (summary++ (tamer-seed-brief seed) record)
@@ -141,16 +148,16 @@
 (define prove-spec
   {lambda [suite]
     (define-values {whocares brief cpu real gc}
-      (fold-test-suite #:fdown {lambda [name seed:ordered]
+      (fold-test-suite #:fdown {λ [name seed:ordered]
                                  (if (null? seed:ordered)
-                                     (echof #:fgcolor 202 #:attributes '{underline} "~a~a~n" (~indent (length seed:ordered)) name)
-                                     (echof #:fgcolor 208 "~aλ~a ~a~n" (~indent (length seed:ordered)) (string-join (map number->string (reverse seed:ordered)) ".") name))
+                                     (echof #:fgcolor 202 #:attributes '{underline} "λ ~a~a~n" (~indent (length seed:ordered)) name)
+                                     (echof "~aλ~a ~a~n" (~indent (length seed:ordered)) (string-join (map number->string (reverse seed:ordered)) ".") name))
                                  (cons 1 seed:ordered)}
-                       #:fup {lambda [name seed:ordered children:ordered]
+                       #:fup {λ [name seed:ordered children:ordered]
                                (cond [(null? seed:ordered) null]
                                      [else (cons (add1 (car seed:ordered))
                                                  (cdr seed:ordered))])}
-                       #:fhere {lambda [record seed:ordered]
+                       #:fhere {λ [record seed:ordered]
                                  (define result (validation-result record))
                                  (define headline (format "~a~a ~a - " (~indent (length seed:ordered)) (~result result) (car seed:ordered)))
                                  (define headspace (~indent (string-length headline) #:times 1))
@@ -169,7 +176,7 @@
 (define prove-harness
   {lambda [suite]
     (define-values {$?≠0 brief cpu real gc}
-      (fold-test-suite #:fhere {lambda [record seed:$?≠0]
+      (fold-test-suite #:fhere {λ [record seed:$?≠0]
                                  (define result (validation-result record))
                                  (cond [(test-success? result) seed:$?≠0]
                                        [else (cons result seed:$?≠0)])}
