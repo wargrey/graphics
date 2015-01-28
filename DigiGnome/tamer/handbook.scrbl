@@ -11,14 +11,14 @@
 
 @(define part->blocks
    {lambda [psection [header-level 0]]
-     (define blocks (foldl {lambda [sp bs] (append bs sp)}
+     (define blocks (foldl {λ [sp bs] (append bs sp)}
                            (cons (para #:style (make-style "boxed" null)
                                        (larger ((cond [(zero? header-level) larger]
                                                       [else (apply compose1 (make-list (sub1 header-level) smaller))])
                                         (elem #:style (make-style (format "h~a" (add1 header-level)) null)
                                               (part-title-content psection)))))
                                  (part-blocks psection))
-                           (map {lambda [sub] (part->blocks sub (add1 header-level))}
+                           (map {λ [sub] (part->blocks sub (add1 header-level))}
                                 (part-parts psection))))
      (cond [(> header-level 0) blocks]
            [else (let ([dver (filter document-version? (style-properties (part-style psection)))])
@@ -29,14 +29,14 @@
 
 @(define sample->blocks
    {lambda [psection [header-level 1]]
-     (foldl {lambda [sp bs] (append bs sp)}
+     (foldl {λ [sp bs] (append bs sp)}
             (cons (para #:style (make-style "boxed" null)
                         (larger ((cond [(zero? header-level) larger]
                                        [else (apply compose1 (make-list (sub1 header-level) smaller))])
                                  (elem #:style (make-style (format "h~a" (add1 header-level)) null)
                                        (part-title-content psection)))))
                   (part-blocks psection))
-            (map {lambda [sub] (sample->blocks sub (add1 header-level))}
+            (map {λ [sub] (sample->blocks sub (add1 header-level))}
                  ;;; Only the first two scenarios is required which defined in subsection follows title and section
                  (let ([pps (part-parts psection)])
                    (cond [(= header-level 2) (take pps (min 2 (length pps)))]
@@ -81,5 +81,5 @@
                                  @linebreak[]
                                  @linebreak[]
                                  @exec{% cd @italic{«@smaller{Project Root}»}@|subrootdir|;}@linebreak[]
-                                 @exec{% makefile.rkt +o @(getenv "digimon-gnome") check @|makefile.scrbl|;}
+                                 @exec{% makefile.rkt +o @(getenv "digimon-gnome") docs @|makefile.scrbl|;}
                                  @commandline{Enjoy it! Bye!}})
