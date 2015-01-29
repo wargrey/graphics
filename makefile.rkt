@@ -148,47 +148,43 @@ exec racket --require "$0" --main -- ${1+"$@"}
       (for-each fclean (reverse (filter (curry regexp-match? px.include)
                                         (sequence->list (in-directory (getenv "digimon-zone") (negate (curry regexp-match? px.exclude))))))))})
 
-(define make~docs:
-  {lambda [submake d-info]
-    (when (directory-exists? (getenv "digimon-tamer"))
-      (let ([tamer-info {λ [key fdefault] (fdefault)}])
-        (compile-directory (getenv "digimon-tamer") tamer-info))
-    
-      (for ([handbook (in-list (cond [(null? (current-make-real-targets)) (filter file-exists? (list (build-path (getenv "digimon-tamer") "handbook.scrbl")))]
-                                     [else (filter {λ [hb.scrbl] (unless (regexp-match? #px"\\.scrbl$" hb.scrbl)
-                                                                   ((negate eprintf) "make: skip non-scribble file `~a`.~n" hb.scrbl))}
-                                                   (current-make-real-targets))]))])
-        (parameterize ([current-directory (path-only handbook)]
-                       [current-namespace (make-base-namespace)]
-                       [exit-handler {λ [whocares] (error 'make "[error] `Scribble` needs a proper `exit-handler`!")}])
-          (namespace-require 'setup/xref)
-          (namespace-require 'scribble/render)
-          (eval '(require (prefix-in html: scribble/html-render)))
-          (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
-                         #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
-                         #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
-                         #:xrefs (list (load-collections-xref))
-                         #:quiet? #false #:warn-undefined? #false)))))})
-
 (define make~check:
   {lambda [submake d-info]
     (when (directory-exists? (getenv "digimon-tamer"))
       (let ([tamer-info {λ [key fdefault] (fdefault)}])
         (compile-directory (getenv "digimon-tamer") tamer-info))
-    
-      (apply tamer-prove (let* ([px.tamer.rkt (pregexp (format "^~a.+?\\.rkt" (getenv "digimon-tamer")))]
-                                [harnesses (remove-duplicates
-                                            (filter list? (map {λ [f] (when (and (file-exists? f) (regexp-match? px.tamer.rkt f))
-                                                                        (define story-path `(submod (file ,(path->string f)) story))
-                                                                        (when (module-declared? story-path #true)
-                                                                          (dynamic-require story-path #false)
-                                                                          (parameterize ([current-namespace (module->namespace story-path)])
-                                                                            (cons (path->string (find-relative-path (getenv "digimon-zone") f))
-                                                                                  (filter test-suite? (filter-map (curryr namespace-variable-value #false {λ _ #false})
-                                                                                                                  (namespace-mapped-symbols)))))))}
-                                                               (pathlist-closure (cons (getenv "digimon-tamer") (current-make-real-targets))))))])
-                           (cond [(= (length harnesses) 1) (cdar harnesses)]
-                                 [else (map {λ [ts] (make-test-suite (car ts) (cdr ts))} harnesses)]))))})
+      
+      (define-values {real-directories real-files} (partition directory-exists? (current-make-real-targets)))
+      (if (null? real-directories)
+          (for ([handbook (in-list (cond [(null? real-files) (filter file-exists? (list (build-path (getenv "digimon-tamer") "handbook.scrbl")))]
+                                         [else (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.scrbl" (getenv "digimon-tamer")))])
+                                                 (filter {λ [hb.scrbl] (unless (regexp-match? px.tamer.scrbl hb.scrbl)
+                                                                         ((negate eprintf) "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl))}
+                                                         (real-files)))]))])
+            (parameterize ([current-directory (path-only handbook)]
+                           [current-namespace (make-base-namespace)]
+                           [exit-handler {λ [whocares] (error 'make "[error] `Scribble` needs a proper `exit-handler`!")}])
+              (namespace-require 'setup/xref)
+              (namespace-require 'scribble/render)
+              (eval '(require (prefix-in html: scribble/html-render)))
+              (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
+                             #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
+                             #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
+                             #:xrefs (list (load-collections-xref))
+                             #:quiet? #false #:warn-undefined? #false))))
+          (apply tamer-prove (let* ([px.tamer.rkt (pregexp (format "^~a.+?\\.rkt" (getenv "digimon-tamer")))]
+                                    [harnesses (remove-duplicates
+                                                (filter list? (map {λ [f] (when (and (file-exists? f) (regexp-match? px.tamer.rkt f))
+                                                                            (define story-path `(submod (file ,(path->string f)) story))
+                                                                            (when (module-declared? story-path #true)
+                                                                              (dynamic-require story-path #false)
+                                                                              (parameterize ([current-namespace (module->namespace story-path)])
+                                                                                (cons (path->string (find-relative-path (getenv "digimon-zone") f))
+                                                                                      (filter test-suite? (filter-map (curryr namespace-variable-value #false {λ _ #false})
+                                                                                                                      (namespace-mapped-symbols)))))))}
+                                                                   (pathlist-closure real-directories))))])
+                               (cond [(= (length harnesses) 1) (cdar harnesses)]
+                                     [else (map {λ [ts] (make-test-suite (car ts) (cdr ts))} harnesses)])))))})
 
 (define main0
   {lambda [return]
@@ -219,8 +215,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
                           ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
                           ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
                           (use-compiled-file-paths (list (build-path "compiled")))
-                          (define-values {files phonies} (partition filename-extension targets))
-                          (parameterize ([current-make-real-targets (map path->complete-path files)])
+                          (define-values {reals phonies} (partition {λ [t] (or (filename-extension t) (directory-exists? t))} targets))
+                          (parameterize ([current-make-real-targets (map path->complete-path reals)])
                             (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
                               (parameterize ([current-make-phony-goal phony])
                                 (for ([digimon (in-list (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
@@ -249,7 +245,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                           (display (foldl {λ [-h --help] (if (string? -h) (string-append --help -h) --help)}
                                           (string-replace --help #px"  -- : .+?-h --'."
                                                           (string-join #:before-first (format "~n where <phony-target> is one of~n  ") #:after-last (format "~n")
-                                                                       '{"all : Build the entire software without documentation. [default]"
+                                                                       '{"all : Build the entire software with documentation. [default]"
                                                                          "mostlyclean : Delete all except when remaking costs high."
                                                                          "clean : Delete all except those record the configuration."
                                                                          "distclean : Delete all that are excluded in the distribution."
@@ -260,9 +256,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                               (format "  ~a : ~a~n" (car phony) (cdr phony)))}
                                                  (list (cons 'install "Installing the software, then running test if testcases exist.")
                                                        (cons 'uninstall "Delete all the installed files and documentation.")
-                                                       (cons 'docs "Generating the documents as well as the test report.")
                                                        (cons 'dist "Creating a distribution file of the source files.")
-                                                       (cons 'check "Performing tests on the program this makefile builds."))))))
+                                                       (cons 'check "Performing tests and generating test report."))))))
                           (return 0)}
                         {λ [unknown]
                           (eprintf "make: I don't know what does `~a` mean!~n" unknown)

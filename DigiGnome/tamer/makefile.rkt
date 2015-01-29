@@ -10,20 +10,19 @@
 @margin-note{The brief specifies: @(itemlist @item{Primary Drivers}
                                              @item{Story Effects}
                                              @item{Effects@literal{'} Value}
-                                             @item{Scenarios Outline})}
-Every hacker needs a @italic{makefile.rkt} to make life simple, and the @italic{makefile.rkt} should always be on its best behavior.
-So I@literal{'}m glad to help you to ensure that the
-@hyperlink[@(path->string (match tamer-partner
-                            [{list 'lib lib} (build-path rootdir lib)]
-                            [{list 'file file} (simplify-path (build-path (path-only (syntax-source #'makefile)) file))]))]{makefile.rkt}
-works as you wish.
+                                             @item{Scenarios Outline}
+                                             @item{Scenarios Summary})}
+Every hacker needs a @hyperlink[@(path->string (match tamer-partner
+                                                 [{list 'lib lib} (build-path rootdir lib)]
+                                                 [{list 'file file} (simplify-path (build-path (path-only (syntax-source #'makefile)) file))]))]{@italic{makefile.rkt}}
+to make life simple. However testing building routines always makes nonsense but costs high,
+thus besides the simplest examples, I will check whether the subprojects satisfy the @seclink["rules"]{rules}.
 
 @chunk[<*>
        {module story racket
          |<import tamer handbook>|
          |<tamer discipline>|
          
-         (define-namespace-anchor here)
          |<ready? help!>|
          |<hello rules!>|}
                                                   
@@ -33,13 +32,10 @@ where @chunk[|<import tamer handbook>|
              (require "tamer.rkt")
              (require (submod "tamer.rkt" makefile))]
 
+@tamer-summary[]
+
 @margin-note{@racket[subsection]s: Each of them describes a scenario.}
 @subsection{Scenario: Ready? Let@literal{'}s have a try!}
-
-@margin-note{The structure and testsuites follow the
-             @hyperlink["http://en.wikipedia.org/wiki/Hoare_logic"]{Hoare Logic}: @(itemlist @item{Initial Conditions}
-                                                                                             @item{Event Triggers}
-                                                                                             @item{Expected Outcome})}
 
 @chunk[|<ready? help!>|
        (define spec-examples
@@ -50,6 +46,11 @@ where @chunk[|<import tamer handbook>|
 
 Although normal @bold{Racket} script doesn@literal{'}t require the so-called @racketidfont{main} routine,
 I still prefer to start with @defproc[{main [argument string?] ...} void?]
+
+@margin-note{The structure and testsuites follow the
+             @hyperlink["http://en.wikipedia.org/wiki/Hoare_logic"]{Hoare Logic}: @(itemlist @item{Initial Conditions}
+                                                                                             @item{Event Triggers}
+                                                                                             @item{Expected Outcome})}
 
 @chunk[|<tamer discipline>|
        (current-directory (build-path (getenv "digimon-world")
@@ -81,31 +82,17 @@ Now it@literal{'}s time to look deep into the specification examples of
 @tamer-note['spec-examples]
 @chunk[|<testsuite: should pass and do pass.>|
        (test-suite "make [option]"
-                   (test-suite "make --help"
-                               #:before (setup "--help")
-                               #:after teardown
-                               (test-pred "should exit normally"
-                                          zero? ($?))
-                               (test-pred "should no error"
-                                          zero? (file-position err))
-                               (test-pred "should say something"
-                                          positive? (file-position out)))
-                   (test-suite "make --unknown"
-                               #:before (setup "--unknown")
-                               #:after teardown
-                               (test-false "should abort"
-                                           (zero? ($?)))
-                               (test-pred "should say something wrong"
-                                          positive? (file-position err)))
                    (test-suite "make --silent --help"
                                #:before (setup "--silent" "--help")
                                #:after teardown
-                               (test-pred "should say nothing"
+                               (test-pred "should exit normally" zero? ($?))
+                               (test-pred "should have to quiet"
                                           zero? (file-position out)))
                    (test-suite "make --silent --unknown"
                                #:before (setup "--silent" "--unknown")
                                #:after teardown
-                               (test-pred "should say nothing but errors"
+                               (test-false "should abort" (zero? ($?)))
+                               (test-pred "should report errors"
                                           positive? (file-position err))))]
 
 @chunk[|<testsuite: should pass but do fail!>|
@@ -113,7 +100,7 @@ Now it@literal{'}s time to look deep into the specification examples of
                    (test-not-exn "EXAMPLE of FAILURE" {λ _ (make "it")}))]
 
 @chunk[|<testsuite: fatal should never happen!>|
-       (test-suite "EXMAPLE of FATAL"
+       (test-suite "EXAMPLE DO NEED A NAME"
                    (test-begin (fail "None of my bussiness!")))]
 
 @tamer-action[(tamer-prove 'spec-examples)]
@@ -124,26 +111,7 @@ writing the @italic{handbook} becomes fantastic. We can @racket[eval] the code w
 via @racket[margin-note](@racket[tamer-note]) and via @racket[interaction](@racket[tamer-action]),
 are just duplicate work, there is no need to run them at the same @italic{handbook}.
 
-@subsection{Scenario: What if the @italic{handbook} is unavaliable?}
-
-Furthermore, the @italic{handbook} itself is the standard test reporter, but it@literal{'}s still reasonable
-to check the system in some more convenient ways. Thus two styles, 
-@hyperlink["http://en.wikipedia.org/wiki/Test::More"]{@italic{TAP::Harness-style}} and
-@hyperlink["http://hspec.github.io"]{@italic{hspec-style}},
-are designated for @exec{makefile.rkt check} and @exec{racket}, respectively.
-Technically speaking, @exec{raco test --submodule main} is always there,
-although that way is not recommended, and is omitted by @filepath{info.rkt}.
-
-@chunk[|<tamer battle>|
-       {module main racket
-         |<import tamer handbook>|
-         
-         (exit (tamer-spec))}]
-
-@tamer-action[(tamer-harness)
-              (tamer-spec)]
-
-@subsection{Scenario: The rules serve you!}
+@subsection[#:tag "rules"]{Scenario: The rules serve you!}
 
 @chunk[|<hello rules!>|
        |<rule: info.rkt>|]
@@ -157,7 +125,6 @@ rules, and this story is all about building system. So apart from conventions, w
 
 @subsubsection{Rules on project organization}
 
-@tamer-note['rules:info.rkt]
 @chunk[|<rule: info.rkt>|
        (require setup/getinfo)
        
@@ -176,6 +143,7 @@ rules, and this story is all about building system. So apart from conventions, w
                                   (test-suite (format "with /~a/info.rkt" digimon)
                                               |<rules: ROOT/.../info.rkt>|)))))]
 
+@tamer-note['rules:info.rkt]
 @(itemlist @item{@bold{Rule 1} The entire project is a multi-collection package,
                   non-hidden directories within it are considered as the subprojects.}
            @item{@bold{Rule 2} The subproject should have an explicit name,
@@ -226,3 +194,22 @@ rules, and this story is all about building system. So apart from conventions, w
                                       "'test-omit-paths not defined!")
                      (check-equal? test-omit-paths 'all
                                    "'test-omit-paths should be 'all!"))))]
+
+@subsection{Scenario: What if the @italic{handbook} is unavaliable?}
+
+Furthermore, the @italic{handbook} itself is the standard test report, but it@literal{'}s still reasonable
+to check the system in some more convenient ways. Thus two styles are designated:
+
+@(itemlist @item{@hyperlink["http://en.wikipedia.org/wiki/Test::More"]{@italic{TAP::Harness-like}}
+                  for @exec{makefile.rkt check «@smaller{tamer dir/subdir}»}}
+           @item{@hyperlink["http://hspec.github.io"]{@italic{hspec-like}}
+                  for @exec{racket «@smaller{tamer files}»}})
+
+Technically speaking, @exec{raco test --submodule main} is always there,
+although that way is not recommended, and is omitted by @filepath{info.rkt}.
+
+@chunk[|<tamer battle>|
+       {module main racket
+         |<import tamer handbook>|
+         
+         (exit (tamer-spec))}]

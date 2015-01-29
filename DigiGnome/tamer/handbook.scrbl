@@ -4,6 +4,7 @@
 @(require (submod "tamer.rkt" makefile))
 
 @(require scribble/core)
+@(require scribble/lp-include)
 
 @(require setup/getinfo)
 
@@ -27,22 +28,21 @@
                                            (format "v.~a" (document-version-text (car dver))))
                                      blocks)]))])})
 
-@(define sample->blocks
-   {lambda [psection [header-level 1]]
-     (foldl {λ [sp bs] (append bs sp)}
-            (cons (para #:style (make-style "boxed" null)
-                        (larger ((cond [(zero? header-level) larger]
-                                       [else (apply compose1 (make-list (sub1 header-level) smaller))])
-                                 (elem #:style (make-style (format "h~a" (add1 header-level)) null)
-                                       (part-title-content psection)))))
-                  (part-blocks psection))
-            (map {λ [sub] (sample->blocks sub (add1 header-level))}
-                 ;;; Only the first two scenarios is required which defined in subsection follows title and section
-                 (let ([pps (part-parts psection)])
-                   (cond [(= header-level 2) (take pps (min 2 (length pps)))]
-                         [else pps]))))})
+@title[#:style (list 'non-toc) #:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{Tamer@literal{'}s Handbook}}
 
-@title[#:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{@italic{The Story} as a story}}
+@margin-note{It@literal{'}s reasonable to suppose that you have already know the project conventions.
+             But if you reach here through a strange way, you still have the
+             @hyperlink["https://github.com/digital-world/DigiGnome"]{README} page.}
+This handbook is the sample of applying
+@hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Behavior Driven Development} with
+@hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Literate Programming} via testing
+@(for/first ([mkfile (in-list (list (collection-file-path "makefile.rkt" (getenv "digimon-gnome"))
+                                    (build-path (getenv "digimon-world") "makefile.rkt")))]
+             #:when (file-exists? mkfile))
+   @hyperlink[mkfile]{makefile.rkt}) itself
+that the entire project should follow since the @italic{Behavior Driven Development} plays an important role in my personal software development process.
+
+@italic{Translating is the most complex human action in the Universe.}
 
 @nested[#:style 'code-inset]{@racketoutput{@bold{Story:} Make a @italic{Tamer@literal{'}s Handbook} to Show the Sample}
                              
@@ -50,36 +50,21 @@
                               @racketoutput{@bold{As an} indenpendent developer}@linebreak[]
                               @racketoutput{@bold{I want to} write the @italic{handbook} with @italic{Literate Programming} skill}
                               
-                              @racketoutput{@bold{Scenario 1:} The project should provide @filepath{tamer/makefile.scrbl}}@linebreak[]
+                              @racketoutput{@bold{Scenario 1:} The project should provide @filepath{tamer/handbook.scrbl}}@linebreak[]
                               @racketoutput{@bold{Given} the project have been launched and ready for developing}@linebreak[]
                               @racketoutput{@bold{And} I currently have not found any appropriate specification templates}@linebreak[]
                               @racketoutput{@bold{When} I do some researching and architect a template}@linebreak[]
-                              @racketoutput{@bold{Then} I should see the @filepath{makefile.scrbl} in @filepath{tamer}}
-                              
-                              @racketoutput{@bold{Scenario 2:} The project should provide @filepath{tamer/handbook.scrbl}}@linebreak[]
-                              @racketoutput{@bold{Given} the building script checks @filepath{handbook.scrbl} to generate reports}@linebreak[]
-                              @racketoutput{@bold{And} the behavior of the project is all about the building process itself}@linebreak[]
-                              @racketoutput{@bold{And} the build process should be checked manually}@linebreak[]
-                              @racketoutput{@bold{When} I play a trick on the building script to avoid breaking its rule}@linebreak[]
                               @racketoutput{@bold{Then} I should see the @filepath{handbook.scrbl} in @filepath{tamer}}
                               
                               @racketerror{Hmm@|._|@|._|@|._| the @italic{Gherkin language}, semiformal and elegant, or maybe stupid.@linebreak[]
                                               Nevertheless, it@literal{'}s not my cup of tea@|._|@|._|@|._|}}
 
-@nested[#:style (make-style "boxed" null)]{@(let* ([makefile.scrbl (path->string (build-path (path-only (syntax-source #'handbook)) "makefile.scrbl"))]
-                                                   [makefile-name (path->string (find-relative-path (getenv "digimon-zone") makefile.scrbl))]
-                                                   [makedoc (sample->blocks (dynamic-require `(file ,makefile.scrbl) 'doc))])
-                                              @filebox[@hyperlink[@|makefile.scrbl|]{@italic{@|makefile-name|}}]{@|makedoc|})}
+The suggested @italic{Behavioral Specification}s are always written as the @italic{ubiquitous language}s, trying to avoid the communication breakdowns
+between Developers and Bussiness Stakeholders. While I@literal{'}m an indenpendent developer and communicating costs almost nothing.
+So I make decision at my risk to write @italic{behavioral specification} and test suites apart from the production code with the @italic{Literate Programming} skill
+so that the @italic{handbook} can also plays a role of the test report as well as the design documents.
 
-@(let* ([dirname (path->string (path-only (match tamer-partner
-                                            [{list 'lib lib} (build-path rootdir lib)]
-                                            [{list 'file file} (simplify-path (build-path (path-only (syntax-source #'makefile)) file))])))]
-        [subrootdir (string-replace (string-replace dirname #px"/$" "") rootdir "")]
-        [makefile.scrbl (string-replace (path->string (path-replace-suffix (syntax-source #'makefile) ".scrbl")) dirname "")])
-   @nested[#:style 'code-inset]{@racketcommentfont{So much here since checking @italic{makefile.rkt} makes nonsense but costs high.@linebreak[]
-                                                                               However you are still free to render the full version manually:}
-                                 @linebreak[]
-                                 @linebreak[]
-                                 @exec{% cd @italic{«@smaller{Project Root}»}@|subrootdir|;}@linebreak[]
-                                 @exec{% makefile.rkt +o @(getenv "digimon-gnome") docs @|makefile.scrbl|;}
-                                 @commandline{Enjoy it! Bye!}})
+@italic{@bold{Principal} This sample should be (rather than must be) followed due to the complexity of the real world problems.
+         In fact it@literal{'}s all right to forget it after reading.}
+
+@lp-include{makefile.rkt}

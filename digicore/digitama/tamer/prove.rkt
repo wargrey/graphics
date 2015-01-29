@@ -82,14 +82,11 @@
 (define display-failure
   {lambda [result #:indent [headspace ""]]
     (eechof #:fgcolor 'red "~a⧴ FAILURE » ~a~n" headspace (test-result-test-case-name result))
-    (let loop ([infos (exn:test:check-stack (test-failure-result result))] [message? #false])
-      (cond [(and (null? infos) (false? message?)) (loop (list (make-check-message (test-result-test-case-name result))) message?)]
-            [(false? (null? infos)) (let* ([info (car infos)] [message? (or message? (symbol=? 'message (check-info-name info)))])
-                                      (eechof #:fgcolor 'red "~a»» ~a: ~s~n" headspace (check-info-name info)
-                                              (if (symbol=? 'location (check-info-name info))
-                                                  (srcloc->string (apply srcloc (check-info-value info)))
-                                                  (check-info-value info)))
-                                      (loop (cdr infos) message?))]))})
+    (for ([info (in-list (exn:test:check-stack (test-failure-result result)))])
+      (eechof #:fgcolor 'red "~a»» ~a: ~s~n" headspace (check-info-name info)
+              (if (symbol=? 'location (check-info-name info))
+                  (srcloc->string (apply srcloc (check-info-value info)))
+                  (check-info-value info))))})
 
 (define display-error
   {lambda [result #:indent [headspace0 ""]]
