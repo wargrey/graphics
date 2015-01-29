@@ -146,7 +146,7 @@ rules, and this story is all about building system. So apart from conventions, w
 @tamer-note['rules:info.rkt]
 @(itemlist @item{@bold{Rule 1} The entire project is a multi-collection package,
                   non-hidden directories within it are considered as the subprojects.}
-           @item{@bold{Rule 2} The subproject should have an explicit name,
+           @item{@bold{Rule 2} Each subproject should have an explicit name,
                   even if the name is the same as its directory.}
            @item{@bold{Rule 3} @racket[compile-collection-zos] and friends should never touch these files or directories:
                   @filepath{makefile.rkt}, @filepath{submake.rkt}, @filepath{info.rkt},

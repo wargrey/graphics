@@ -74,7 +74,7 @@
 
 (define exn->test-suite
   {lambda [e]
-    (test-suite (format "Maybe (⧴ ~a)" (object-name e))
+    (test-suite (format "(⧴ ~a)" (object-name e))
                 (test-case (symbol->string (object-name e))
                            ;;; We just avoid `thunk` to make a test-error object.
                            (raise-user-error (exn-message e))))})
@@ -128,7 +128,7 @@
                                             {λ [testcase name action0 seed]
                                               (define-values {name-path action}
                                                 (if (false? name)
-                                                    (values (cons (format "Maybe (⧴ ~a)" (object-name exn:fail:user))
+                                                    (values (cons (format "(⧴ ~a)" (object-name exn:fail:user))
                                                                   (tamer-seed-name-path seed))
                                                             {λ _ (raise-user-error "Test case must have a name")})
                                                     (values (cons name (tamer-seed-name-path seed)) action0)))

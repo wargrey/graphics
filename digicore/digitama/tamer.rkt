@@ -131,24 +131,30 @@
     (define tamer-spec (thread {λ _ (parameterize ([current-output-port hspec-out]
                                                    [current-error-port hspec-out])
                                       (for ([suite (in-list suite-vars)])
-                                        (prove-spec (with-handlers ([exn? exn->test-suite])
-                                                      (tamer-require suite))))
+                                        (define-values {brief cpu real gc}
+                                          (prove-spec (with-handlers ([exn? exn->test-suite])
+                                                        (tamer-require suite))))
+                                        (define-values {success failure error}
+                                          (values (summary-success brief) (summary-failure brief) (summary-error brief)))
+                                        (unless (zero? (+ failure error))
+                                          (printf "~n~a failure~a ~a error~a~n"
+                                                  failure (plural-suffix failure)
+                                                  error (plural-suffix error))))
                                       (close-output-port hspec-out))}))
     (apply margin-note
-           (let awk ([No. 0] [status 0]) ;;; status: =0 => sucess; >0 => failure; <0 => error
+           (let awk ([status 0]) ;;; status: =0 => sucess; >0 => failure; <0 => error; NaN => summary comes
              (define line (read-line hspec-in))
              (cond [(eof-object? line) null]
                    [(regexp-match #px"^(λ)\\s+(.+)" line)
                     => {λ [pieces]
                          (echof #:fgcolor 202 #:attributes '{underline} "~a~n" line)
-                         (list* (racketmetafont (format "> ~a" (list-ref suite-vars No.)))
-                                (linebreak) (racketparenfont (list-ref pieces 1) ~ (literal (list-ref pieces 2)))
-                                (linebreak) (awk (add1 No.) 0))}]
+                         (list* (racketmetafont (list-ref pieces 1) ~ (literal (list-ref pieces 2)))
+                                (linebreak) (awk 0))}]
                    [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
                     => {λ [pieces]
                          (echof "~a~n" line)
-                         (list* (racketoutput (list-ref pieces 1)) (racketcommentfont ~ (literal (list-ref pieces 3)))
-                                (linebreak) (awk No. 0))}]
+                         (list* (racketparenfont (list-ref pieces 1)) (racketcommentfont ~ (literal (list-ref pieces 3)))
+                                (linebreak) (awk 0))}]
                    [(regexp-match #px"^\\s+(.+?) (\\d+) - (.+?)( \\[(.+?)\\])?\\s*$" line)
                     => {λ [pieces]
                          (echof #:fgcolor 'green "~a~n" line)
@@ -157,22 +163,26 @@
                                    (let ([tm (list-ref pieces 5)]) (if tm tm "-"))))
                          (list* ((if (string=? stts (~result struct:test-success)) racketvalfont racketerror) stts)
                                 (racketvarfont ~ indx) (racketresultfont ~ tm) (racketcommentfont ~ (literal (list-ref pieces 3)))
-                                (linebreak) (awk No. 0))}]
+                                (linebreak) (awk 0))}]
                    [(regexp-match #px"^\\s+⧴ (FAILURE|FATAL) » .+?\\s*$" line)
                     => {λ [pieces]
                          (case (list-ref pieces 1)
-                           [{"FAILURE"} (eechof #:fgcolor 'red "~a~n" line) (awk No. +inf.0)]
-                           [{"FATAL"} (eechof #:fgcolor 'red #:attributes '{inverse} "~a~n" line) (awk No. -inf.0)])}]
+                           [{"FAILURE"} (eechof #:fgcolor 'red "~a~n" line) (awk +inf.0)]
+                           [{"FATAL"} (eechof #:fgcolor 'red #:attributes '{inverse} "~a~n" line) (awk -inf.0)])}]
                    [(regexp-match #px"^\\s+»» (.+?)?:?\\s+\"?(.+?)\"?\\s*$" line)
                     => {λ [pieces]
                          (eechof #:fgcolor 'red #:attributes (if (< status 0) '{inverse} null) "~a~n" line)
                          (append (if (equal? (list-ref pieces 1) "message")
                                      (list (racketcommentfont (italic "»»" ~ (literal (list-ref pieces 2)))) (linebreak))
                                      null)
-                                 (awk No. status))}]
+                                 (awk status))}]
                    [(regexp-match #px"^\\s+»»»» .+$" line)
                     => {λ [whocares]
                          (eechof #:fgcolor 245 "~a~n" line)
-                         (awk No. status)}]
+                         (awk status)}]
+                   [(regexp-match #px"^$" line)
+                    => {λ [whocares]
+                         (awk +NaN.0)}]
                    [else (eechof "~a~n" line)
-                         (awk No. status)])))})
+                         (append (if (nan? status) (list (racketoutput line) (linebreak)) null)
+                                 (awk status))])))})
