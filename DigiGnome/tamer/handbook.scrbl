@@ -42,7 +42,7 @@ This handbook is the sample of applying
    @hyperlink[mkfile]{makefile.rkt}) itself
 that the entire project should follow since the @italic{Behavior Driven Development} plays an important role in my personal software development process.
 
-@italic{Translating is the most complex human action in the Universe.}
+@italic{Translating is the most complex human activity in the Universe.}
 
 @nested[#:style 'code-inset]{@racketoutput{@bold{Story:} Make a @italic{Tamer@literal{'}s Handbook} to Show the Sample}
                              
