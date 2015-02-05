@@ -46,7 +46,8 @@
   {lambda [#:submodule [submod #false]]
     (define tamer.rkt (path->string (build-path (getenv "digimon-tamer") "tamer.rkt")))
     (define tamer-submod (if submod submod (string->symbol (regexp-replace #px".+/(.+?).rkt" (cadadr (current-tamer-story)) "\\1"))))
-    (parameterize ([sandbox-output 'string]
+    (parameterize ([sandbox-namespace-specs (append (sandbox-namespace-specs) `{(file ,tamer.rkt)})]
+                   [sandbox-output 'string]
                    [sandbox-error-output 'string])
       ((make-eval-factory (list `(file ,tamer.rkt)
                                 `(submod (file ,tamer.rkt) ,tamer-submod)
@@ -64,15 +65,15 @@
   {lambda suite-vars
     (define-values {brief-box cpu0 real0 gc0}
       (time-apply {λ _ (foldl summary** initial-summary (map tamer-run-suite suite-vars))} null))
-    (define-values {success failure error cpu real gc}
+    (define-values {success failure error real cpu-gc gc cpu}
       (apply values (summary-success (car brief-box)) (summary-failure (car brief-box)) (summary-error (car brief-box))
-             (map (curryr / 1000.0) (list cpu0 real0 gc0))))
+             (map {λ [t] (~r (/ t 1000.0) #:precision '{= 3})} (list real0 (- cpu0 gc0) gc0 cpu0))))
     (define population (+ success failure error))
     (cond [(zero? population) (printf "~nNo testcase, do not try to fool me!~n")]
           [else (printf "~n~a% tests successful.~nTestsuite~a = ~a, Testcase~a = ~a, Failure~a = ~a, Error~a = ~a.~n~a wallclock seconds (~a task + ~a gc = ~a CPU).~n"
                         (~r (/ (* success 100) population) #:precision '(= 2))
                         (plural-suffix (length suite-vars)) (length suite-vars) (plural-suffix population) population
-                        (plural-suffix failure) failure (plural-suffix error) error real (- cpu gc) gc cpu)])
+                        (plural-suffix failure) failure (plural-suffix error) error real cpu-gc gc cpu)])
     (+ failure error)})
 
 (define tamer-spec
@@ -83,13 +84,13 @@
         (prove-spec (make-test-suite (path->string (build-path (cadadr (current-tamer-story))))
                                      (filter test-suite? (filter-map (curryr namespace-variable-value #false {λ _ #false})
                                                                      (namespace-mapped-symbols))))))
-      (define-values {success failure error cpu real gc}
+      (define-values {success failure error real cpu-gc gc cpu}
         (apply values (summary-success brief) (summary-failure brief) (summary-error brief)
-               (map (curryr / 1000.0) (list cpu0 real0 gc0))))
+               (map {λ [t] (~r (/ t 1000.0) #:precision '{= 3})} (list real0 (- cpu0 gc0) gc0 cpu0))))
       (define population (+ success failure error))
       (cond [(zero? population) (printf "~nNo example, do not try to fool me!~n")]
             [else (printf "~nFinished in ~a wallclock seconds (~a task + ~a gc = ~a CPU)~n~a example~a, ~a failure~a, ~a error~a, ~a% Okay.~n"
-                          real (- cpu gc) gc cpu population (plural-suffix population) failure (plural-suffix failure) error (plural-suffix error)
+                          real cpu-gc gc cpu population (plural-suffix population) failure (plural-suffix failure) error (plural-suffix error)
                           (~r (/ (* success 100) population) #:precision '{= 2}))])
       (+ failure error))})
 
@@ -153,7 +154,7 @@
                    [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
                     => {λ [pieces]
                          (echof "~a~n" line)
-                         (list* (racketparenfont (list-ref pieces 1)) (racketcommentfont ~ (literal (list-ref pieces 3)))
+                         (list* (racketparenfont (list-ref pieces 1) ~ (literal (list-ref pieces 3)))
                                 (linebreak) (awk 0))}]
                    [(regexp-match #px"^\\s+(.+?) (\\d+) - (.+?)( \\[(.+?)\\])?\\s*$" line)
                     => {λ [pieces]

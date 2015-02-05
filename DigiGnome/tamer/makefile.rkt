@@ -97,7 +97,7 @@ Now it@literal{'}s time to look deep into the specification examples of
 
 @chunk[|<testsuite: should pass but do fail!>|
        (test-suite "make [phony goal]"
-                   (test-not-exn "EXAMPLE of FAILURE" {λ _ (make "it")}))]
+                   (test-not-exn "EXAMPLE of FAILURE" {λ _ (make "love")}))]
 
 @chunk[|<testsuite: fatal should never happen!>|
        (test-suite "EXAMPLE DO NEED A NAME"
@@ -109,7 +109,7 @@ Equipping with the powerful @bold{Scribble} that @bold{Racket} gives us,
 writing the @italic{handbook} becomes fantastic. We can @racket[eval] the code while
 @racket[render]ing the documents along with it. Since the two ways,
 via @racket[margin-note](@racket[tamer-note]) and via @racket[interaction](@racket[tamer-action]),
-are just duplicate work, there is no need to run them at the same @italic{handbook}.
+are just duplicate work(with results cached), there is no need to run them in one production @italic{handbook}.
 
 @subsection[#:tag "rules"]{Scenario: The rules serve you!}
 
@@ -152,7 +152,7 @@ rules, and this story is all about building system. So apart from conventions, w
                   @filepath{makefile.rkt}, @filepath{submake.rkt}, @filepath{info.rkt},
                   @filepath[(path->string (file-name-from-path (getenv "digimon-stone")))] and
                   @filepath[(path->string (file-name-from-path (getenv "digimon-tamer")))].}
-           @item{@bold{Rule 4} @exec{raco test} should do nothing since we would do it
+           @item{@bold{Rule 4} @exec{raco test} should do nothing since we would do testing
                   in a more controllable way.})
 
 @chunk[|<rules: ROOT/info.rkt>|
@@ -201,9 +201,9 @@ Furthermore, the @italic{handbook} itself is the standard test report, but it@li
 to check the system in some more convenient ways. Thus two styles are designated:
 
 @(itemlist @item{@hyperlink["http://en.wikipedia.org/wiki/Test::More"]{@italic{TAP::Harness-like}}
-                  for @exec{makefile.rkt check «@smaller{tamer dir/subdir}»}}
+                  via @exec{makefile.rkt ++only «@smaller{subproj}» test «@smaller{tamer dir/subdir}»}}
            @item{@hyperlink["http://hspec.github.io"]{@italic{hspec-like}}
-                  for @exec{racket «@smaller{tamer files}»}})
+                  via @exec{racket «@smaller{tamer files}»}})
 
 Technically speaking, @exec{raco test --submodule main} is always there,
 although that way is not recommended, and is omitted by @filepath{info.rkt}.
