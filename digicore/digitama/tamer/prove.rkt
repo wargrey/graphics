@@ -39,11 +39,10 @@
         (time-apply {λ _ (call-with-escape-continuation
                           {λ [return] (parameterize ([current-output-port /dev/null]
                                                      [current-error-port (open-output-string 'stderr)]
-                                                     [exit-handler {λ [status] ;;; Todo: `raco test` doesnt need too much time
-                                                                     (let* ([errsize (file-position (current-error-port))]
-                                                                            [errmsg (cond [(positive? errsize) (string-trim (get-output-string (current-error-port)))]
-                                                                                          [else (format "Racket exits with status ~a!" status)])])
-                                                                       (return (run-test-case short-name {λ _ (fail errmsg)})))}])
+                                                     [exit-handler {λ [status]
+                                                                     (let ([errmsg (string-trim (get-output-string (current-error-port)))])
+                                                                       (return (run-test-case short-name (with-check-info {{'exitcode status}}
+                                                                                                                          {λ _ (fail errmsg)}))))}])
                                         (return (run-test-case short-name action)))})} null))
         (hash-set! handbook long-name (validation (car results) cpu real gc)))
     (hash-ref handbook long-name)})
@@ -63,7 +62,9 @@
 (define ~time
   {lambda times
     (define-values {cpu real gc} (apply values (map (curryr / 1000.0) times)))
-    (format "[~a wallclock seconds (~a task + ~a gc = ~a CPU)]" real (- cpu gc) gc cpu)})
+    (apply format "[~a wallclock seconds (~a task + ~a gc = ~a CPU)]"
+           (map (curry ~r #:precision '{= 3})
+                (list real (- cpu gc) gc cpu)))})
 
 (define ~result
   {lambda [result]
@@ -130,7 +131,7 @@
                                                 (if (false? name)
                                                     (values (cons (format "(⧴ ~a)" (object-name exn:fail:user))
                                                                   (tamer-seed-name-path seed))
-                                                            {λ _ (raise-user-error "Test case must have a name")})
+                                                            {λ _ (raise-user-error "Testcase should have a name")})
                                                     (values (cons name (tamer-seed-name-path seed)) action0)))
                                               (define record (tamer-record-handbook name-path action))
                                               (tamer-seed (fhere record (tamer-seed-datum seed))
