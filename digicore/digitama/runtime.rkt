@@ -1,6 +1,5 @@
 #lang racket/base
 
-(require racket/list)
 (require racket/path)
 (require racket/port)
 (require racket/bool)
@@ -28,7 +27,7 @@
 (define digimon-setenv
   {lambda [digimon]
     (putenv "digimon-zone" (path->string (build-path digimon-world digimon)))
-    (for ([pathname (in-list (list "digivice" "digitam" "tamer" "stone"))])
+    (for ([pathname (in-list (list "digivice" "digitam" "tamer" "stone" "terminus"))])
       (putenv (format "digimon-~a" pathname) (path->string (digimon-path pathname #:digimon digimon))))})
 
 (define digimon-path
@@ -43,7 +42,7 @@
 (define term-colorize
   {lambda [fg bg attrs content]
     (define color-code
-      {lambda [color #:bgcolor? [bg? #false]]
+      {λ [color #:bgcolor? [bg? #false]]
         (define colors (hash "black" 0 "red" 1 "green" 2 "yellow" 3 "blue" 4 "magenta" 5 "cyan" 6 "white" 7
                              "lightblack" 8 "lightred" 9 "lightgreen" 10 "lightyellow" 11 "lightblue" 12
                              "lightmagenta" 13 "lightcyan" 14 "lightwhite" 15))
