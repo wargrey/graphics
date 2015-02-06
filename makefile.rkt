@@ -154,37 +154,41 @@ exec racket --require "$0" --main -- ${1+"$@"}
       (let ([tamer-info {λ [key fdefault] (fdefault)}])
         (compile-directory (getenv "digimon-tamer") tamer-info))
       
-      (define-values {real-directories real-files} (partition directory-exists? (current-make-real-targets)))
-      (if (null? real-directories)
-          (for ([handbook (in-list (cond [(null? real-files) (filter file-exists? (list (build-path (getenv "digimon-tamer") "handbook.scrbl")))]
-                                         [else (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.scrbl" (getenv "digimon-tamer")))])
-                                                 (filter {λ [hb.scrbl] (unless (regexp-match? px.tamer.scrbl hb.scrbl)
-                                                                         ((negate eprintf) "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl))}
-                                                         (real-files)))]))])
-            (parameterize ([current-directory (path-only handbook)]
-                           [current-namespace (make-base-namespace)]
-                           [exit-handler {λ [whocares] (error 'make "[error] `Scribble` needs a proper `exit-handler`!")}])
-              (namespace-require 'setup/xref)
-              (namespace-require 'scribble/render)
-              (eval '(require (prefix-in html: scribble/html-render)))
-              (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
-                             #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
-                             #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
-                             #:xrefs (list (load-collections-xref))
-                             #:quiet? #false #:warn-undefined? #false))))
-          (apply tamer-prove (let* ([px.tamer.rkt (pregexp (format "^~a.+?\\.rkt" (getenv "digimon-tamer")))]
-                                    [harnesses (remove-duplicates
-                                                (filter list? (map {λ [f] (when (and (file-exists? f) (regexp-match? px.tamer.rkt f))
-                                                                            (define story-path `(submod (file ,(path->string f)) story))
-                                                                            (when (module-declared? story-path #true)
-                                                                              (dynamic-require story-path #false)
-                                                                              (parameterize ([current-namespace (module->namespace story-path)])
-                                                                                (cons (path->string (find-relative-path (getenv "digimon-zone") f))
-                                                                                      (filter test-suite? (filter-map (curryr namespace-variable-value #false {λ _ #false})
-                                                                                                                      (namespace-mapped-symbols)))))))}
-                                                                   (pathlist-closure real-directories))))])
-                               (cond [(= (length harnesses) 1) (cdar harnesses)]
-                                     [else (map {λ [ts] (make-test-suite (car ts) (cdr ts))} harnesses)])))))})
+      (for ([handbook (in-list (cond [(null? (current-make-real-targets)) (filter file-exists? (list (build-path (getenv "digimon-tamer") "handbook.scrbl")))]
+                                     [else (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.scrbl" (getenv "digimon-tamer")))])
+                                             (filter {λ [hb.scrbl] (unless (regexp-match? px.tamer.scrbl hb.scrbl)
+                                                                     ((negate eprintf) "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl))}
+                                                     (current-make-real-targets)))]))])
+        (parameterize ([current-directory (path-only handbook)]
+                       [current-namespace (make-base-namespace)]
+                       [exit-handler {λ [whocares] (error 'make "[error] `Scribble` needs a proper `exit-handler`!")}])
+          (namespace-require 'setup/xref)
+          (namespace-require 'scribble/render)
+          (eval '(require (prefix-in html: scribble/html-render)))
+          (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
+                         #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
+                         #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
+                         #:xrefs (list (load-collections-xref))
+                         #:quiet? #false #:warn-undefined? #false)))))})
+      
+(define make~test:
+  {lambda [submake d-info]
+    (when (directory-exists? (getenv "digimon-tamer"))
+      (let ([tamer-info {λ [key fdefault] (fdefault)}])
+        (compile-directory (getenv "digimon-tamer") tamer-info))
+      
+      (apply tamer-prove (let* ([px.tamer.rkt (pregexp (format "^~a.+?\\.rkt" (getenv "digimon-tamer")))]
+                                [harnesses (filter list? (map {λ [f] (when (and (file-exists? f) (regexp-match? px.tamer.rkt f))
+                                                                       (define story-path `(submod (file ,(path->string f)) story))
+                                                                       (when (module-declared? story-path #true)
+                                                                         (dynamic-require story-path #false)
+                                                                         (parameterize ([current-namespace (module->namespace story-path)])
+                                                                           (cons (path->string (find-relative-path (getenv "digimon-zone") f))
+                                                                                 (filter test-suite? (filter-map (curryr namespace-variable-value #false {λ _ #false})
+                                                                                                                 (namespace-mapped-symbols)))))))}
+                                                              (remove-duplicates (pathlist-closure (cons (getenv "digimon-tamer") (current-make-real-targets))))))])
+                           (cond [(= (length harnesses) 1) (cdar harnesses)]
+                                 [else (map {λ [ts] (make-test-suite (car ts) (cdr ts))} harnesses)]))))})
 
 (define main0
   {lambda [return]
@@ -257,7 +261,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                  (list (cons 'install "Installing the software, then running test if testcases exist.")
                                                        (cons 'uninstall "Delete all the installed files and documentation.")
                                                        (cons 'dist "Creating a distribution file of the source files.")
-                                                       (cons 'check "Performing tests and generating test report."))))))
+                                                       (cons 'check "Performing tests with generating test report.")
+                                                       (cons 'test "Performing tests without generating test report."))))))
                           (return 0)}
                         {λ [unknown]
                           (eprintf "make: I don't know what does `~a` mean!~n" unknown)
