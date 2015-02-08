@@ -24,12 +24,9 @@ Projects/subcollections listed in the root directory are organized as
 the _digimons_, and each of them may be separated into several
 repositories.
 
-* **DigiGnome** is the reserved _digimon_ who's duty is making things
-  easy for developers.
-
-* **digicore** is also reserved as the _kernel_ (rather than _digimon_)
-  shared by all _digimons_.  Namely it works like `src` **and**
-  `libraries`/`frameworks`, just the same as _digimons_.
+* **DigiGnome** is the reserved _digimon_ who's duties are making life
+  easy for developers and sharing code base for other _digimons_.
+  Namely _digimon_ works like `src` **and** `libraries`/`frameworks`.
 
   * **stone** stores immutable meta-information or ancient sources to be
     translated. Yes, it's the _Rosetta Stone_.

@@ -7,11 +7,12 @@ exec racket --require "$0" --main -- ${1+"$@"}
 #lang racket
 
 (require make)
+(require rackunit)
 (require setup/getinfo)
 (require compiler/compiler)
 (require launcher/launcher)
 
-(require "digicore/digitama/tamer.rkt")
+(require "DigiGnome/digitama/runtime.rkt")
 
 (provide main)
 
@@ -77,7 +78,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                                              (dynamic-require (car ds) #false)})
                                                                          (let ([chmod (file-or-directory-permissions target 'bits)])
                                                                            (file-or-directory-permissions target (bitwise-ior chmod #o111)))})))
-                                                        (let ([t (simplify-path (build-path digimon-world digimon-gnome digivice))]
+                                                        (let ([t (simplify-path (build-path digimon-world digimon-gnome (car (use-compiled-file-paths)) digivice))]
                                                               [ds (list (syntax-source #'makefile))])
                                                           (list t ds {λ [dest]
                                                                        (make-racket-launcher (list "--search" digimon-world 
@@ -170,25 +171,26 @@ exec racket --require "$0" --main -- ${1+"$@"}
                          #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
                          #:xrefs (list (load-collections-xref))
                          #:quiet? #false #:warn-undefined? #false)))))})
-      
+
 (define make~test:
   {lambda [submake d-info]
     (when (directory-exists? (getenv "digimon-tamer"))
       (let ([tamer-info {λ [key fdefault] (fdefault)}])
         (compile-directory (getenv "digimon-tamer") tamer-info))
       
-      (apply tamer-prove (let* ([px.tamer.rkt (pregexp (format "^~a.+?\\.rkt" (getenv "digimon-tamer")))]
-                                [harnesses (filter list? (map {λ [f] (when (and (file-exists? f) (regexp-match? px.tamer.rkt f))
-                                                                       (define story-path `(submod (file ,(path->string f)) story))
-                                                                       (when (module-declared? story-path #true)
-                                                                         (dynamic-require story-path #false)
-                                                                         (parameterize ([current-namespace (module->namespace story-path)])
-                                                                           (cons (path->string (find-relative-path (getenv "digimon-zone") f))
-                                                                                 (filter test-suite? (filter-map (curryr namespace-variable-value #false {λ _ #false})
-                                                                                                                 (namespace-mapped-symbols)))))))}
-                                                              (remove-duplicates (pathlist-closure (cons (getenv "digimon-tamer") (current-make-real-targets))))))])
-                           (cond [(= (length harnesses) 1) (cdar harnesses)]
-                                 [else (map {λ [ts] (make-test-suite (car ts) (cdr ts))} harnesses)]))))})
+      (apply (dynamic-require "DigiGnome/digitama/tamer.rkt" 'tamer-prove)
+             (let* ([px.tamer.rkt (pregexp (format "^~a.+?\\.rkt" (getenv "digimon-tamer")))]
+                    [harnesses (filter list? (map {λ [f] (when (and (file-exists? f) (regexp-match? px.tamer.rkt f))
+                                                           (define story-path `(submod (file ,(path->string f)) story))
+                                                           (when (module-declared? story-path #true)
+                                                             (dynamic-require story-path #false)
+                                                             (parameterize ([current-namespace (module->namespace story-path)])
+                                                               (cons (path->string (find-relative-path (getenv "digimon-zone") f))
+                                                                     (filter test-suite? (filter-map (curryr namespace-variable-value #false {λ _ #false})
+                                                                                                     (namespace-mapped-symbols)))))))}
+                                                  (remove-duplicates (pathlist-closure (cons (getenv "digimon-tamer") (current-make-real-targets))))))])
+               (cond [(= (length harnesses) 1) (cdar harnesses)]
+                     [else (map {λ [ts] (make-test-suite (car ts) (cdr ts))} harnesses)]))))})
 
 (define main0
   {lambda [return]
@@ -224,11 +226,11 @@ exec racket --require "$0" --main -- ${1+"$@"}
                             (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
                               (parameterize ([current-make-phony-goal phony])
                                 (for ([digimon (in-list (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
-                                                                                 [else (append (list digimon-gnome digimon-kernel)
-                                                                                               (info-ref 'setup-collects
-                                                                                                         {λ _ (filter {λ [subdir] (and (directory-exists? subdir)
-                                                                                                                                       (regexp-match? #px"^[^.]" subdir))}
-                                                                                                                      (directory-list digimon-world))}))])))])
+                                                                                 [else (cons (build-path digimon-gnome)
+                                                                                             (info-ref 'setup-collects
+                                                                                                       {λ _ (filter {λ [subdir] (and (directory-exists? subdir)
+                                                                                                                                     (regexp-match? #px"^[^.]" subdir))}
+                                                                                                                    (directory-list digimon-world))}))])))])
                                   (digimon-setenv digimon)
                                   (define digimon-info (get-info/full (getenv "digimon-zone")))
                                   (cond [(false? digimon-info) (eprintf "make: [warning] ignored digimon `~a` because `info.rkt` not found.~n" digimon)]
@@ -258,11 +260,11 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                           (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
                                             (map {λ [phony] (when (procedure? (namespace-variable-value (name->make~goal: (car phony)) #false void))
                                                               (format "  ~a : ~a~n" (car phony) (cdr phony)))}
-                                                 (list (cons 'install "Installing the software, then running test if testcases exist.")
+                                                 (list (cons 'install "Install this software and documentation.")
                                                        (cons 'uninstall "Delete all the installed files and documentation.")
-                                                       (cons 'dist "Creating a distribution file of the source files.")
-                                                       (cons 'check "Performing tests with generating test report.")
-                                                       (cons 'test "Performing tests without generating test report."))))))
+                                                       (cons 'dist "Create a distribution file of the source files.")
+                                                       (cons 'check "Perform tests with generating test report.")
+                                                       (cons 'test "Perform tests without generating test report."))))))
                           (return 0)}
                         {λ [unknown]
                           (eprintf "make: I don't know what does `~a` mean!~n" unknown)

@@ -1,9 +1,9 @@
 #lang at-exp racket/gui
 
-(require (except-in (lib "digicore/digimon.rkt") digimon-ark))
+(require (except-in "digimon.rkt" digimon-ark))
 
 (provide digimon-ark)
-(provide (all-from-out (lib "digicore/digimon.rkt")))
+(provide (all-from-out "digimon.rkt"))
 
 (define digimon-ark
   {lambda [monster #:lightness [threshold 0.64] #:rallies [rallies0 null] #:close [close? 0]]

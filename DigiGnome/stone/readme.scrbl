@@ -20,9 +20,8 @@ For the sake of consistency and better architecture, we follow the concept of
 Projects/subcollections listed in the root directory are organized as the @italic{digimons}, and each of them may be separated into several repositories.
 
 @(itemlist #:style 'compact
-           @item{@bold{DigiGnome} is the reserved @italic{digimon} who@literal{'}s duty is making things easy for developers.}
-           @nested{@bold{digicore} is also reserved as the @italic{kernel} (rather than @italic{digimon}) shared by all @italic{digimons}.
-                    Namely it works like @tt{src} @bold{and} @tt{libraries}/@tt{frameworks}, just the same as @italic{digimons}.
+           @nested{@bold{DigiGnome} is the reserved @italic{digimon} who@literal{'}s duties are making life easy for developers and sharing code base for other @italic{digimons}.
+                    Namely @italic{digimon} works like @tt{src} @bold{and} @tt{libraries}/@tt{frameworks}.
                     @(itemlist #:style 'compact
                                @item{@bold{stone} stores immutable meta-information or ancient sources to be translated. Yes, it@literal{'}s the @italic{Rosetta Stone}.}
                                @item{@bold{digitama} is the egg of @italic{digimons}.

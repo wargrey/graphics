@@ -3,17 +3,16 @@
 {module make:files racket
   (require racket/draw)
   
-  (require (lib "digicore/wikimon"))
+  (require "digitama/wikimon.rkt")
   
   (define hackdir (build-path (find-system-path 'temp-dir) (symbol->string (gensym "rktmk.hack"))))
-  (define rootdir (getenv "digimon-world"))
-  (define zonedir (getenv "digimon-zone"))
-  (define dgvcdir (getenv "digimon-digivice"))
-  (define stondir (getenv "digimon-stone"))
+  (define-values {rootdir zonedir dgvcdir dgtmdir stondir}
+    (apply values (map (compose1 getenv (curry format "digimon-~a"))
+                       (list "world" "zone" "digivice" "digitama" "stone"))))
   
   (define px.depends #px"(?<=(@include-section\\{)|(\\(require (\\(lib )?\")).+?.(scrbl|rkt)(?=(\\})|(\"\\)\\)?))")
   (define px.d-ark.rkt #px"d-ark.rkt$")
-  (define digimon.rkt (build-path rootdir "digicore" "digimon.rkt"))
+  (define digimon.rkt (build-path dgtmdir "digimon.rkt"))
   
   (void (putenv "wikimon-dir" (format "~a/wikimon" stondir)))
   

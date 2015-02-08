@@ -1,9 +1,9 @@
 #lang racket/base
 
-(require "../../digicore/digitama/tamer.rkt")
+(require "../digitama/tamer.rkt")
 
 (provide (all-defined-out))
-(provide (all-from-out "../../digicore/digitama/tamer.rkt"))
+(provide (all-from-out "../digitama/tamer.rkt"))
 
 (digimon-setenv digimon-gnome)
 

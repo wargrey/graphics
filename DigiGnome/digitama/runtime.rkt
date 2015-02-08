@@ -12,22 +12,21 @@
 
 (define /dev/null (open-output-nowhere '/dev/null #true))
 
-(define-values {digimon-world digimon-kernel digimon-gnome}
+(define-values {digimon-world digimon-gnome}
   (let* ([dir (path->string (simplify-path compiled-syntax-source-directory))]
          [px.split (regexp-match #px"(.+)/([^/]+?)/[^/]+?/?$" dir)])
-    (values (cadr px.split) (caddr px.split) "DigiGnome")))
+    (values (cadr px.split) (caddr px.split))))
 
 (void (unless (member digimon-world (current-library-collection-paths))
         (current-library-collection-paths (cons digimon-world (current-library-collection-paths)))
   
         (putenv "digimon-world" digimon-world)
-        (putenv "digimon-gnome" digimon-gnome)
-        (putenv "digimon-kernel" digimon-kernel)))
+        (putenv "digimon-gnome" digimon-gnome)))
 
 (define digimon-setenv
   {lambda [digimon]
     (putenv "digimon-zone" (path->string (build-path digimon-world digimon)))
-    (for ([pathname (in-list (list "digivice" "digitam" "tamer" "stone" "terminus"))])
+    (for ([pathname (in-list (list "digivice" "digitama" "tamer" "stone" "terminus"))])
       (putenv (format "digimon-~a" pathname) (path->string (digimon-path pathname #:digimon digimon))))})
 
 (define digimon-path
