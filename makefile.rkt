@@ -74,7 +74,6 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                             (list t ds {λ [target]
                                                                          (with-output-to-file target #:exists 'replace
                                                                            {λ _ (putenv "current-digivice" digivice)
-                                                                             (putenv "current-subdigivices" (path->string t.dir))
                                                                              (dynamic-require (car ds) #false)})
                                                                          (let ([chmod (file-or-directory-permissions target 'bits)])
                                                                            (file-or-directory-permissions target (bitwise-ior chmod #o111)))})))
