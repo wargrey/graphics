@@ -63,32 +63,30 @@ exec racket --require "$0" --main -- ${1+"$@"}
 
 (define name->make~goal: {λ [phony] (string->symbol (format "make~~~a:" phony))})
 
+(define make-digivice
+  {lambda [digimon d-info]
+    (define digivices (map hack-rule (foldl {λ [n r] (append (filter list? n) r)} null
+                                            (map {λ [digivice d-ark.rkt]
+                                                   (list (let* ([t (build-path (getenv "digimon-zone") d-ark.rkt)]
+                                                                [t.dir (path-replace-suffix t #"")]
+                                                                [ds (list (build-path (digimon-path "stone") "digivice.rkt"))])
+                                                           (when (directory-exists? t.dir)
+                                                             (list t ds {λ [target]
+                                                                          (with-output-to-file target #:exists 'replace
+                                                                            {λ _ (putenv "current-digivice" digivice)
+                                                                              (dynamic-require (car ds) #false)})
+                                                                          (let ([chmod (file-or-directory-permissions target 'bits)])
+                                                                            (file-or-directory-permissions target (bitwise-ior chmod #o111)))})))
+                                                         (let ([t (simplify-path (build-path digimon-world digimon-gnome (car (use-compiled-file-paths)) digivice))]
+                                                               [ds (list (syntax-source #'makefile))])
+                                                           (list t ds (curry make-racket-launcher (list "--search" digimon-world "--lib" digimon d-ark.rkt) dest))))}
+                                                 (d-info 'racket-launcher-names {λ _ null})
+                                                 (d-info 'racket-launcher-libraries {λ _ null})))))
+    (unless (null? digivices) (make/proc digivices (map car digivices)))})
+
 (define make~all:
   {lambda [submake d-info]
-    (let ([digivices (map hack-rule (foldl {λ [n r] (append (filter list? n) r)} null
-                                           (map {λ [digivice d-ark.rkt]
-                                                  (list (let* ([t (build-path (getenv "digimon-zone") d-ark.rkt)]
-                                                               [t.dir (path-replace-suffix t #"")]
-                                                               [ds (list (build-path (digimon-path "stone") "digivice.rkt"))])
-                                                          (when (directory-exists? t.dir)
-                                                            (list t ds {λ [target]
-                                                                         (with-output-to-file target #:exists 'replace
-                                                                           {λ _ (putenv "current-digivice" digivice)
-                                                                             (dynamic-require (car ds) #false)})
-                                                                         (let ([chmod (file-or-directory-permissions target 'bits)])
-                                                                           (file-or-directory-permissions target (bitwise-ior chmod #o111)))})))
-                                                        (let ([t (simplify-path (build-path digimon-world digimon-gnome (car (use-compiled-file-paths)) digivice))]
-                                                              [ds (list (syntax-source #'makefile))])
-                                                          (list t ds {λ [dest]
-                                                                       (make-racket-launcher (list "--search" digimon-world 
-                                                                                                   "--lib" (regexp-replace #px".+/(.+?)/.+$"
-                                                                                                                           (path->string submake)
-                                                                                                                           (format "\\1/~a" d-ark.rkt)))
-                                                                                             dest)})))}
-                                                (d-info 'racket-launcher-names {λ _ null})
-                                                (d-info 'racket-launcher-libraries {λ _ null}))))])
-      (unless (null? digivices) (make/proc digivices (map car digivices))))
-    
+    (make-digivice (getenv "digimon") d-info)
     (compile-directory (getenv "digimon-zone") d-info)
     
     (let ([modpath `(submod ,submake make:files)])

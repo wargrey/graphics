@@ -25,6 +25,7 @@
 
 (define digimon-setenv
   {lambda [digimon]
+    (putenv "digimon" digimon)
     (putenv "digimon-zone" (path->string (build-path digimon-world digimon)))
     (for ([pathname (in-list (list "digivice" "digitama" "tamer" "stone" "terminus"))])
       (putenv (format "digimon-~a" pathname) (path->string (digimon-path pathname #:digimon digimon))))})
