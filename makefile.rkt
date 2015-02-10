@@ -79,7 +79,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                                             (file-or-directory-permissions target (bitwise-ior chmod #o111)))})))
                                                          (let ([t (simplify-path (build-path digimon-world digimon-gnome (car (use-compiled-file-paths)) digivice))]
                                                                [ds (list (syntax-source #'makefile))])
-                                                           (list t ds (curry make-racket-launcher (list "--search" digimon-world "--lib" digimon d-ark.rkt) dest))))}
+                                                           (list t ds (curry make-racket-launcher (list "--search" digimon-world "--lib" digimon d-ark.rkt)))))}
                                                  (d-info 'racket-launcher-names {λ _ null})
                                                  (d-info 'racket-launcher-libraries {λ _ null})))))
     (unless (null? digivices) (make/proc digivices (map car digivices)))})

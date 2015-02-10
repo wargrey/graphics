@@ -53,8 +53,8 @@ I still prefer to start with @defproc[{main [argument string?] ...} void?]
                                                                                              @item{Expected Outcome})}
 
 @chunk[|<tamer discipline>|
-       (current-directory (build-path (getenv "digimon-world")
-                                      (cadadr (current-tamer-story)) 'up))
+       (current-directory (let ([story (cadadr (current-tamer-story))])
+                            (path-only (build-path rootdir story))))
        
        (define-values {make out err $? setup teardown}
          (values (dynamic-require tamer-partner 'main {λ _ #false})
@@ -114,7 +114,12 @@ are just duplicate work(with results cached), there is no need to run them in on
 @subsection[#:tag "rules"]{Scenario: The rules serve you!}
 
 @chunk[|<hello rules!>|
-       |<rule: info.rkt>|]
+       (define digidirs (filter {λ [sub] (and (directory-exists? sub)
+                                              (regexp-match? #px"/[^.][^/.]+$" sub))}
+                                (directory-list rootdir #:build? #true)))
+       
+       |<rule: info.rkt>|
+       |<rule: cooperation>|]
 
 Since @italic{Behavior Driven Development} is the evolution of @italic{Test Driven Development} which does not define
 what exactly should be tested and how would the tests be performed correct. The term @italic{Architecture} is all about designing
@@ -128,20 +133,17 @@ rules, and this story is all about building system. So apart from conventions, w
 @chunk[|<rule: info.rkt>|
        (require setup/getinfo)
        
-       (define digidirs (filter {λ [sub] (and (directory-exists? sub)
-                                              (regexp-match? #px"/[^.][^/.]+$" sub))}
-                                (directory-list rootdir #:build? #true)))
        (define info-root (get-info/full rootdir))
        
        (define rules:info.rkt
-         (make-test-suite "Rules: Exploring info.rkt settings"
+         (make-test-suite "Rules: info.rkt settings"
                           (cons (test-suite "with /info.rkt"
                                             |<rules: ROOT/info.rkt>|)
                                 (for/list ([digidir (in-list digidirs)])
                                   (define digimon (file-name-from-path digidir))
                                   (define info-ref (get-info/full digidir))
                                   (test-suite (format "with /~a/info.rkt" digimon)
-                                              |<rules: ROOT/.../info.rkt>|)))))]
+                                              |<rules: DIGIMON/info.rkt>|)))))]
 
 @tamer-note['rules:info.rkt]
 @(itemlist @item{@bold{Rule 1} The entire project is a multi-collection package,
@@ -150,16 +152,20 @@ rules, and this story is all about building system. So apart from conventions, w
                   even if the name is the same as its directory.}
            @item{@bold{Rule 3} @racket[compile-collection-zos] and friends should never touch these files or directories:
                   @filepath{makefile.rkt}, @filepath{submake.rkt}, @filepath{info.rkt},
-                  @filepath[(path->string (file-name-from-path (getenv "digimon-stone")))] and
-                  @filepath[(path->string (file-name-from-path (getenv "digimon-tamer")))].}
+                  @filepath[(path->string (file-name-from-path stonedir))] and
+                  @filepath[(path->string (file-name-from-path tamerdir))].}
            @item{@bold{Rule 4} @exec{raco test} should do nothing since we would do testing
                   in a more controllable way.})
 
 @chunk[|<rules: ROOT/info.rkt>|
-       (test-case "Rule 1"
+       (test-case "Rule 1: multi"
                   (check-not-false info-root "/info.rkt not found!")
                   (check-equal? (info-root 'collection) 'multi
-                                "'collection should be 'multi"))
+                                "'collection should be 'multi")
+                  (check-equal? (info-root 'compile-omit-paths) 'all
+                                "'compile-omit-paths should be 'all")
+                  (check-equal? (info-root 'test-omit-paths) 'all
+                                "'test-omit-paths should be 'all"))
        (test-case "Subprojects should have their own info.rkt"
                   (check-pred positive? (length digidirs) "No project found!")
                   (for ([digidir (in-list digidirs)])
@@ -167,7 +173,7 @@ rules, and this story is all about building system. So apart from conventions, w
                                 (format "/~a/info.rkt not found!"
                                         (file-name-from-path digidir)))))]
 
-@chunk[|<rules: ROOT/.../info.rkt>|
+@chunk[|<rules: DIGIMON/info.rkt>|
        (test-case "Rule 2: collection"
                   (with-check-info
                    {{'info.rkt (build-path digimon "info.rkt")}}
@@ -194,6 +200,31 @@ rules, and this story is all about building system. So apart from conventions, w
                                       "'test-omit-paths not defined!")
                      (check-equal? test-omit-paths 'all
                                    "'test-omit-paths should be 'all!"))))]
+
+@subsubsection{Rules on cooperating with other system}
+
+@chunk[|<rule: cooperation>|
+       (define /stone (find-relative-path zonedir stonedir))
+       
+       (define rules:cooperation
+         (make-test-suite "Rules: Cooperations"
+                          (for/list ([digidir (in-list digidirs)])
+                            (define digimon (file-name-from-path digidir))
+                            (define stndir (build-path digimon /stone))
+                            (test-suite (format "with ~a" stndir)
+                                        |<rules: DIGIMON/cooperations>|))))]
+
+@tamer-note['rules:cooperation]
+@(itemlist @item{@bold{Rule 5} Each project should have a
+                  @filepath[(path->string (build-path (find-relative-path zonedir stonedir) "readme.scrbl"))].})
+
+@chunk[|<rules: DIGIMON/cooperations>|
+       (test-case "Rule 5: readme.scrbl"
+                  (with-check-info
+                   {{'stonedir stndir}}
+                   (check-pred file-exists?
+                               (build-path rootdir stndir "readme.scrbl")
+                               "readme.scrbl should exists!")))]
 
 @subsection{Scenario: What if the @italic{handbook} is unavaliable?}
 
