@@ -4,10 +4,10 @@
 
 #lang typed/racket
 
-(require racket/runtime-path)
-  
-(define-runtime-path compiled-syntax-source-directory ".")
-(current-directory compiled-syntax-source-directory)
+(require "@(path->string (path-replace-suffix (getenv "rtpath") ".typed.rkt"))")
+
+(digimon-setenv "@(getenv "digimon")")
+(current-directory (string->path (cast (getenv "digimon-digivice") String)))
 
 (define show-help-and-exit : {[#:exitcode Integer] [#:errcmd (Option String)] -> Void}
   {lambda [#:exitcode [exitcode 0] #:errcmd [error-command #false]]

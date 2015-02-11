@@ -13,6 +13,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
 (require launcher/launcher)
 
 (require "DigiGnome/digitama/runtime.rkt")
+(define #%digimon-world (#%variable-reference digimon-world))
 
 (provide main)
 
@@ -67,19 +68,22 @@ exec racket --require "$0" --main -- ${1+"$@"}
   {lambda [digimon d-info]
     (define digivices (map hack-rule (foldl {λ [n r] (append (filter list? n) r)} null
                                             (map {λ [digivice d-ark.rkt]
+                                                   (define d-ark (path->string (build-path digimon-world digimon d-ark.rkt)))
+                                                   (define rtpath (resolved-module-path-name (variable-reference->resolved-module-path #%digimon-world)))
                                                    (list (let* ([t (build-path (getenv "digimon-zone") d-ark.rkt)]
                                                                 [t.dir (path-replace-suffix t #"")]
-                                                                [ds (list (build-path (digimon-path "stone") "digivice.rkt"))])
+                                                                [ds (list (build-path (digimon-path "stone") "digivice.rkt") (syntax-source #'makefile))])
                                                            (when (directory-exists? t.dir)
                                                              (list t ds {λ [target]
                                                                           (with-output-to-file target #:exists 'replace
-                                                                            {λ _ (putenv "current-digivice" digivice)
-                                                                              (dynamic-require (car ds) #false)})
+                                                                            {λ _ (void (putenv "current-digivice" digivice)
+                                                                                       (putenv "rtpath" (path->string (find-relative-path (path-only d-ark) rtpath)))
+                                                                                       (dynamic-require (car ds) #false))})
                                                                           (let ([chmod (file-or-directory-permissions target 'bits)])
                                                                             (file-or-directory-permissions target (bitwise-ior chmod #o111)))})))
                                                          (let ([t (simplify-path (build-path digimon-world digimon-gnome (car (use-compiled-file-paths)) digivice))]
                                                                [ds (list (syntax-source #'makefile))])
-                                                           (list t ds (curry make-racket-launcher (list "--search" digimon-world "--lib" digimon d-ark.rkt)))))}
+                                                           (list t ds (curry make-racket-launcher (list "-t-" d-ark)))))}
                                                  (d-info 'racket-launcher-names {λ _ null})
                                                  (d-info 'racket-launcher-libraries {λ _ null})))))
     (unless (null? digivices) (make/proc digivices (map car digivices)))})
@@ -233,15 +237,15 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                   (cond [(false? digimon-info) (eprintf "make: [warning] ignored digimon `~a` because `info.rkt` not found.~n" digimon)]
                                         [else (let ([submake (build-path (getenv "digimon-zone") "submake.rkt")])
                                                 (dynamic-wind {λ _ (printf "Enter Digimon Zone: ~a.~n" digimon)}
-                                                              {λ _ (putenv "makefiles" (format "~a:~a" (syntax-source #'makefile) submake))
-                                                                (cond [(string=? phony "all") (make~all: submake digimon-info)]
-                                                                      [(regexp-match? #px"clean$" phony) (make~clean: submake digimon-info)]
-                                                                      [else (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
-                                                                              (define fmake (namespace-variable-value (name->make~goal: phony) #false {λ _ #false}))
-                                                                              (when (false? fmake)
-                                                                                (eprintf "make: I don't know how to make `~a`!~n" phony)
-                                                                                (return 1))
-                                                                              (fmake submake digimon-info))])}
+                                                              {λ _ (void (putenv "makefiles" (format "~a:~a" (syntax-source #'makefile) submake))
+                                                                         (cond [(string=? phony "all") (make~all: submake digimon-info)]
+                                                                               [(regexp-match? #px"clean$" phony) (make~clean: submake digimon-info)]
+                                                                               [else (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
+                                                                                       (define fmake (namespace-variable-value (name->make~goal: phony) #false {λ _ #false}))
+                                                                                       (when (false? fmake)
+                                                                                         (eprintf "make: I don't know how to make `~a`!~n" phony)
+                                                                                         (return 1))
+                                                                                       (fmake submake digimon-info))]))}
                                                               {λ _ (printf "Leave Digimon Zone: ~a.~n" digimon)}))])))))}
                         (list "phony-target|file-path")
                         {λ [--help]
