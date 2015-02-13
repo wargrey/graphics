@@ -158,10 +158,10 @@
                                 (linebreak) (awk 0))}]
                    [(regexp-match #px"^\\s+(.+?) (\\d+) - (.+?)( \\[(.+?)\\])?\\s*$" line)
                     => {λ [pieces]
-                         (echof #:fgcolor 'green "~a~n" line)
                          (define-values {stts indx tm}
                            (values (list-ref pieces 1) (list-ref pieces 2)
                                    (let ([tm (list-ref pieces 5)]) (if tm tm "-"))))
+                         (echof #:fgcolor (if (string=? stts (~result struct:test-success)) 'green 'lightred) "~a~n" line)
                          (list* ((if (string=? stts (~result struct:test-success)) racketvalfont racketerror) stts)
                                 (racketvarfont ~ indx) (racketresultfont ~ tm) (racketcommentfont ~ (literal (list-ref pieces 3)))
                                 (linebreak) (awk 0))}]
