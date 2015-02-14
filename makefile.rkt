@@ -93,6 +93,19 @@ exec racket --require "$0" --main -- ${1+"$@"}
     (make-digivice (getenv "digimon") d-info)
     (compile-directory (getenv "digimon-zone") d-info)
     
+    (for ([readme.scrbl (in-list (filter file-exists? (map (curry build-path (getenv "digimon-stone"))
+                                                           (filter string? (list "readme.scrbl" (when (equal? (getenv "digimon") digimon-gnome)
+                                                                                                  "index.scrbl"))))))])
+      (parameterize ([current-directory (getenv "digimon-zone")]
+                     [current-namespace (make-base-namespace)]
+                     [exit-handler {λ [whocares] (error 'make "[error] /~a needs a proper `exit-handler`!"
+                                                        (find-relative-path (getenv "digimon-world") readme.scrbl))}])
+        (namespace-require 'scribble/render)
+        (eval '(require (prefix-in markdown: scribble/markdown-render)))
+        (eval `(render (list ,(dynamic-require readme.scrbl 'doc)) (list "README")
+                       #:render-mixin markdown:render-mixin #:quiet? #false
+                       #:dest-dir ,(if (regexp-match? #px"/index.scrbl$" readme.scrbl) (getenv "digimon-world") (getenv "digimon-zone"))))))
+    
     (let ([modpath `(submod ,submake make:files)])
       (when (module-declared? modpath #true)
         (dynamic-require modpath #false)
@@ -148,7 +161,12 @@ exec racket --require "$0" --main -- ${1+"$@"}
     (let ([px.exclude (pregexp (string-join #:before-first "/(\\.git|" #:after-last ")$" (map (compose1 path->string file-name-from-path) null) "|"))]
           [px.include #px"/(compiled)(?!\\.)/?"])
       (for-each fclean (reverse (filter (curry regexp-match? px.include)
-                                        (sequence->list (in-directory (getenv "digimon-zone") (negate (curry regexp-match? px.exclude))))))))})
+                                        (sequence->list (in-directory (getenv "digimon-zone") (negate (curry regexp-match? px.exclude))))))))
+    
+    (for-each fclean (filter file-exists? (map (curryr build-path "README.md")
+                                               (filter-not void? (list (getenv "digimon-zone")
+                                                                       (when (equal? (getenv "digimon") digimon-gnome)
+                                                                         (getenv "digimon-world")))))))})
 
 (define make~check:
   {lambda [submake d-info]
@@ -163,7 +181,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                      (current-make-real-targets)))]))])
         (parameterize ([current-directory (path-only handbook)]
                        [current-namespace (make-base-namespace)]
-                       [exit-handler {λ [whocares] (error 'make "[error] `Scribble` needs a proper `exit-handler`!")}])
+                       [exit-handler {λ [whocares] (error 'make "[error] /~a needs a proper `exit-handler`!"
+                                                          (find-relative-path (getenv "digimon-world") handbook))}])
           (namespace-require 'setup/xref)
           (namespace-require 'scribble/render)
           (eval '(require (prefix-in html: scribble/html-render)))
