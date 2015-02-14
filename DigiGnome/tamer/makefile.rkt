@@ -119,7 +119,7 @@ are just duplicate work(with results cached), there is no need to run them in on
                                 (directory-list rootdir #:build? #true)))
        
        |<rule: info.rkt>|
-       |<rule: cooperation>|]
+       |<rule: readme.md>|]
 
 Since @italic{Behavior Driven Development} is the evolution of @italic{Test Driven Development} which does not define
 what exactly should be tested and how would the tests be performed correct. The term @italic{Architecture} is all about designing
@@ -201,25 +201,34 @@ rules, and this story is all about building system. So apart from conventions, w
                      (check-equal? test-omit-paths 'all
                                    "'test-omit-paths should be 'all!"))))]
 
-@subsubsection{Rules on cooperating with other system}
+@margin-note{Documents are deployed in @hyperlink["gyoudmon/org"]{my website} with @bold{Scribble},
+                                       while sources are hosted in @hyperlink["github.com/digital-world"]{Github} with @bold{Markdown}.}
+@subsubsection{Rules on project Documents}
 
-@chunk[|<rule: cooperation>|
+@chunk[|<rule: readme.md>|
        (define /stone (find-relative-path zonedir stonedir))
        
-       (define rules:cooperation
-         (make-test-suite "Rules: Cooperations"
-                          (for/list ([digidir (in-list digidirs)])
-                            (define digimon (file-name-from-path digidir))
-                            (define stndir (build-path digimon /stone))
-                            (test-suite (format "with ~a" stndir)
-                                        |<rules: DIGIMON/cooperations>|))))]
+       (define rules:readme.md
+         (make-test-suite "Rules: readme.md readers"
+                          (cons (test-suite "/index.scrbl"
+                                            |<rules: ROOT/readme.md>|)
+                                (for/list ([digidir (in-list digidirs)])
+                                  (define digimon (file-name-from-path digidir))
+                                  (define stndir (build-path digimon /stone))
+                                  (test-suite (format "with ~a" stndir)
+                                              |<rules: DIGIMON/readme.md>|)))))]
 
-@tamer-note['rules:cooperation]
-@(itemlist @item{@bold{Rule 5} Each project should have a
-                  @filepath[(path->string (build-path (find-relative-path zonedir stonedir) "readme.scrbl"))].})
+@tamer-note['rules:readme.md]
+@(itemlist @item{@bold{Rule 5} The project's toplevel @italic{README.md} is designated as the @italic{main-toc} of @bold{Scribble}.}
+           @item{@bold{Rule 6} Each subproject's @italic{README.md} is designated as its own content table.})
 
-@chunk[|<rules: DIGIMON/cooperations>|
-       (test-case "Rule 5: readme.scrbl"
+@chunk[|<rules: ROOT/readme.md>|
+       (test-case (format "Rule 5: ~a/~a/index.scrbl" digimon-gnome /stone)
+                  (check-pred file-exists? (build-path stonedir "index.scrbl")
+                              "index.scrbl should exists!"))]
+
+@chunk[|<rules: DIGIMON/readme.md>|
+       (test-case "Rule 6: readme.scrbl"
                   (with-check-info
                    {{'stonedir stndir}}
                    (check-pred file-exists?
