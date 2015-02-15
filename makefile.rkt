@@ -64,47 +64,59 @@ exec racket --require "$0" --main -- ${1+"$@"}
 
 (define name->make~goal: {λ [phony] (string->symbol (format "make~~~a:" phony))})
 
-(define make-digivice
+(define make-implicit-rules
   {lambda [digimon d-info]
-    (define digivices (map hack-rule (foldl {λ [n r] (append (filter list? n) r)} null
-                                            (map {λ [digivice d-ark.rkt]
-                                                   (define d-ark (path->string (build-path digimon-world digimon d-ark.rkt)))
-                                                   (define rtpath (resolved-module-path-name (variable-reference->resolved-module-path #%digimon-world)))
-                                                   (list (let* ([t (build-path (getenv "digimon-zone") d-ark.rkt)]
-                                                                [t.dir (path-replace-suffix t #"")]
-                                                                [ds (list (build-path (digimon-path "stone") "digivice.rkt") (syntax-source #'makefile))])
-                                                           (when (directory-exists? t.dir)
-                                                             (list t ds {λ [target]
-                                                                          (with-output-to-file target #:exists 'replace
-                                                                            {λ _ (void (putenv "current-digivice" digivice)
-                                                                                       (putenv "rtpath" (path->string (find-relative-path (path-only d-ark) rtpath)))
-                                                                                       (dynamic-require (car ds) #false))})
-                                                                          (let ([chmod (file-or-directory-permissions target 'bits)])
-                                                                            (file-or-directory-permissions target (bitwise-ior chmod #o111)))})))
-                                                         (let ([t (simplify-path (build-path digimon-world digimon-gnome (car (use-compiled-file-paths)) digivice))]
-                                                               [ds (list (syntax-source #'makefile))])
-                                                           (list t ds (curry make-racket-launcher (list "-t-" d-ark)))))}
-                                                 (d-info 'racket-launcher-names {λ _ null})
-                                                 (d-info 'racket-launcher-libraries {λ _ null})))))
-    (unless (null? digivices) (make/proc digivices (map car digivices)))})
+    (append (foldl {λ [n r] (append (filter list? n) r)} null
+                   (map {λ [digivice d-ark.rkt]
+                          (define d-ark (path->string (build-path digimon-world digimon d-ark.rkt)))
+                          (define rtpath (resolved-module-path-name (variable-reference->resolved-module-path #%digimon-world)))
+                          (list (let* ([t (build-path (getenv "digimon-zone") d-ark.rkt)]
+                                       [t.dir (path-replace-suffix t #"")]
+                                       [ds (list (build-path (digimon-path "stone") "digivice.rkt") (syntax-source #'makefile))])
+                                  (when (directory-exists? t.dir)
+                                    (list t ds {λ [target]
+                                                 (with-output-to-file target #:exists 'replace
+                                                   {λ _ (void (putenv "current-digivice" digivice)
+                                                              (putenv "rtpath" (path->string (find-relative-path (path-only d-ark) rtpath)))
+                                                              (dynamic-require (car ds) #false))})
+                                                 (let ([chmod (file-or-directory-permissions target 'bits)])
+                                                   (file-or-directory-permissions target (bitwise-ior chmod #o111)))})))
+                                (let ([t (simplify-path (build-path digimon-world digimon-gnome (car (use-compiled-file-paths)) digivice))]
+                                      [ds (list (syntax-source #'makefile))])
+                                  (list t ds (curry make-racket-launcher (list "-t-" d-ark)))))}
+                        (d-info 'racket-launcher-names {λ _ null})
+                        (d-info 'racket-launcher-libraries {λ _ null})))
+            (map {λ [readme.scrbl]
+                   ;;; For the sake of simplicity, I do not check `readme.scrbl`s' (require ...)s.
+                   ;;; Under this circumstance, (require ...)s always make nonsense.
+                   ;;; See Rule 5 and Rule 6 in /DigiGnome/tamer/makefile.rkt.
+                   (define-values {t ds} (if (regexp-match? #px"/index.scrbl$" readme.scrbl)
+                                             (values (build-path digimon-world "README.md")
+                                                     (list* readme.scrbl (syntax-source #'makefile)
+                                                            (filter file-exists? (map (curryr build-path "info.rkt") (directory-list digimon-world #:build? #true)))))
+                                             (values (build-path (getenv "digimon-zone") "README.md")
+                                                     (list readme.scrbl (syntax-source #'makefile)))))
+                   (list t ds {λ [target]
+                                (parameterize ([current-directory (getenv "digimon-zone")]
+                                               [current-namespace (make-base-namespace)]
+                                               [exit-handler {λ [whocares] (error 'make "[error] /~a needs a proper `exit-handler`!"
+                                                                                  (find-relative-path digimon-world readme.scrbl))}])
+                                  (namespace-require 'scribble/render)
+                                  (eval '(require (prefix-in markdown: scribble/markdown-render)))
+                                  (eval `(render (list ,(dynamic-require readme.scrbl 'doc)) (list ,(file-name-from-path target))
+                                                 #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #true))
+                                  (let ([tmp.md (path-add-suffix target #".md")])
+                                    (display-lines-to-file (file->lines tmp.md) target #:exists 'replace)
+                                    (printf "  [Output to ~a]~n" target)
+                                    (delete-file tmp.md)))})}
+                 (filter file-exists? (map (curry build-path (getenv "digimon-stone"))
+                                           (filter string? (list "readme.scrbl" (when (equal? digimon digimon-gnome) "index.scrbl")))))))})
 
 (define make~all:
   {lambda [submake d-info]
-    (make-digivice (getenv "digimon") d-info)
+    (let ([implicit-rules (map hack-rule (make-implicit-rules (getenv "digimon") d-info))])
+      (unless (null? implicit-rules) (make/proc implicit-rules (map car implicit-rules))))
     (compile-directory (getenv "digimon-zone") d-info)
-    
-    (for ([readme.scrbl (in-list (filter file-exists? (map (curry build-path (getenv "digimon-stone"))
-                                                           (filter string? (list "readme.scrbl" (when (equal? (getenv "digimon") digimon-gnome)
-                                                                                                  "index.scrbl"))))))])
-      (parameterize ([current-directory (getenv "digimon-zone")]
-                     [current-namespace (make-base-namespace)]
-                     [exit-handler {λ [whocares] (error 'make "[error] /~a needs a proper `exit-handler`!"
-                                                        (find-relative-path (getenv "digimon-world") readme.scrbl))}])
-        (namespace-require 'scribble/render)
-        (eval '(require (prefix-in markdown: scribble/markdown-render)))
-        (eval `(render (list ,(dynamic-require readme.scrbl 'doc)) (list "README")
-                       #:render-mixin markdown:render-mixin #:quiet? #false
-                       #:dest-dir ,(if (regexp-match? #px"/index.scrbl$" readme.scrbl) (getenv "digimon-world") (getenv "digimon-zone"))))))
     
     (let ([modpath `(submod ,submake make:files)])
       (when (module-declared? modpath #true)
@@ -133,15 +145,6 @@ exec racket --require "$0" --main -- ${1+"$@"}
                      (printf "make: deleted ~a.~n" (simplify-path dirty))})
     
     (when (member (current-make-phony-goal) '{"distclean" "maintainer-clean"})
-      (for-each {λ [digivice d-ark.rkt]
-                  (define t.lib (build-path (getenv "digimon-zone") d-ark.rkt))
-                  (define t.bin (simplify-path (build-path digimon-world digimon-gnome digivice)))
-                  (when (directory-exists? (path-replace-suffix t.lib #""))
-                    (fclean t.bin))
-                  (fclean t.lib)}
-                (d-info 'racket-launcher-names {λ _ null})
-                (d-info 'racket-launcher-libraries {λ _ null}))
-      
       (let ([clbpath `(submod ,submake make:files clobber)])
         (when (module-declared? clbpath #true)
           (dynamic-require clbpath #false))))
@@ -163,10 +166,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
       (for-each fclean (reverse (filter (curry regexp-match? px.include)
                                         (sequence->list (in-directory (getenv "digimon-zone") (negate (curry regexp-match? px.exclude))))))))
     
-    (for-each fclean (filter file-exists? (map (curryr build-path "README.md")
-                                               (filter-not void? (list (getenv "digimon-zone")
-                                                                       (when (equal? (getenv "digimon") digimon-gnome)
-                                                                         (getenv "digimon-world")))))))})
+    (for-each {λ [target] (fclean target)}
+              (make-implicit-rules (getenv "digimon") d-info))})
 
 (define make~check:
   {lambda [submake d-info]
@@ -181,8 +182,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                      (current-make-real-targets)))]))])
         (parameterize ([current-directory (path-only handbook)]
                        [current-namespace (make-base-namespace)]
-                       [exit-handler {λ [whocares] (error 'make "[error] /~a needs a proper `exit-handler`!"
-                                                          (find-relative-path (getenv "digimon-world") handbook))}])
+                       [exit-handler {λ [whocares] (error 'make "[error] /~a needs a proper `exit-handler`!" (find-relative-path digimon-world handbook))}])
           (namespace-require 'setup/xref)
           (namespace-require 'scribble/render)
           (eval '(require (prefix-in html: scribble/html-render)))

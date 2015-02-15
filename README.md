@@ -1,21 +1,34 @@
-# Project Conventions
+# Digital World
 
-How to build a _Digital World_? Okay, we don't start with the _File
+How to construct a _Digital World_? Okay, we don't start with the _File
 Island_, but we own some concepts from the [Digital
 Monsters](http://en.wikipedia.org/wiki/Digimon).
 
-## 1. Building Scripts
+## 1. Living Digimons
 
-* [**prerequisites.sh**](DigiGnome/prerequisites.sh): Build the latest
-  Racket and Swi-Prolog from offical source.
+* [Digimon-Gnome: The Meta-Project built for developers to make life
+  simple](digignome.gyoudmon.org)
 
-* [**makefile.rkt**](DigiGnome/makefile.rkt): As its name shows, it is
-  the replacement of Makefile, and it's the toplevel one.
+* [Nanomon: Digging data from Chaos such as iPhone
+  Backups.](nanomon.gyoudmon.org)
 
-* [**submake.rkt**](DigiGnome/submake.rkt): As its name shows, it is the
-  sub makefile that should exist in every _digimon_ directory.
+* [Sakuyamon: Be in charge of
+  [gyoudmon.org](http://gyoudmon.org).](sakuyamon.gyoudmon.org)
 
-## 2. Hierarchy
+## 2. Project Conventions
+
+### 2.1. Building Scripts
+
+* **prerequisites.sh**: Build the latest Racket and Swi-Prolog from
+  offical source.
+
+* **makefile.rkt**: As its name shows, it is the replacement of
+  Makefile, and it's the toplevel one.
+
+* **submake.rkt**: As its name shows, it is the sub makefile that may
+  exist in every _digimon_ directory.
+
+### 2.2. Hierarchy
 
 For the sake of consistency and better architecture, we follow the
 concept of [Racket Multi-collection
@@ -47,7 +60,7 @@ repositories.
   * **terminus** manages guilds of _digimons_. Hmm... Sounds weird,
     nonetheless, try `htdocs` or `webroot`.
 
-## 3. Version
+### 2.3. Version
 
 Obviousely, our _digimons_ have their own life cycle.
 
@@ -57,9 +70,9 @@ Obviousely, our _digimons_ have their own life cycle.
 * **Baby**: The 1st stage of _digimon evolution_ hatching straightly
   from her _digitama_. Namely it's the `Alpha Version`.
 
-* [ ] **Child**: The 2nd stage of _digimon evolution_ evolving quickly
-  from **Baby**. Namely it's the `Beta Version`.
+* **Child**: The 2nd stage of _digimon evolution_ evolving quickly from
+  **Baby**. Namely it's the `Beta Version`.
 
-* [ ] **Adult**: The 3rd stage of _digimon evolution_ evolving from
+* **Adult**: The 3rd stage of _digimon evolution_ evolving from
   **Child**. At this stage _digimons_ are strong enough to live on their
   own.
