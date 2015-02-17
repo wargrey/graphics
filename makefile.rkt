@@ -242,49 +242,46 @@ exec racket --require "$0" --main -- ${1+"$@"}
                           ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
                           (use-compiled-file-paths (list (build-path "compiled")))
                           (define-values {reals phonies} (partition {λ [t] (or (filename-extension t) (directory-exists? t))} targets))
-                          (parameterize ([current-make-real-targets (map path->complete-path reals)])
+                          (parameterize ([current-directory digimon-world]
+                                         [current-make-real-targets (map path->complete-path reals)])
                             (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
                               (parameterize ([current-make-phony-goal phony])
-                                (for ([digimon (in-list (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
-                                                                                 [else (cons (build-path digimon-gnome)
-                                                                                             (info-ref 'setup-collects
-                                                                                                       {λ _ (filter {λ [subdir] (and (directory-exists? subdir)
-                                                                                                                                     (regexp-match? #px"^[^.]" subdir))}
-                                                                                                                    (directory-list digimon-world))}))])))])
-                                  (digimon-setenv digimon)
-                                  (define digimon-info (get-info/full (getenv "digimon-zone")))
-                                  (cond [(false? digimon-info) (eprintf "make: [warning] ignored digimon `~a` because `info.rkt` not found.~n" digimon)]
-                                        [else (let ([submake (build-path (getenv "digimon-zone") "submake.rkt")])
-                                                (dynamic-wind {λ _ (printf "Enter Digimon Zone: ~a.~n" digimon)}
-                                                              {λ _ (void (putenv "makefiles" (format "~a:~a" (syntax-source #'makefile) submake))
-                                                                         (cond [(string=? phony "all") (make~all: submake digimon-info)]
-                                                                               [(regexp-match? #px"clean$" phony) (make~clean: submake digimon-info)]
-                                                                               [else (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
-                                                                                       (define fmake (namespace-variable-value (name->make~goal: phony) #false {λ _ #false}))
-                                                                                       (when (false? fmake)
-                                                                                         (eprintf "make: I don't know how to make `~a`!~n" phony)
-                                                                                         (return 1))
-                                                                                       (fmake submake digimon-info))]))}
-                                                              {λ _ (printf "Leave Digimon Zone: ~a.~n" digimon)}))])))))}
+                                (for-each {λ [digimon]
+                                            (digimon-setenv digimon)
+                                            (define digimon-info (get-info/full (getenv "digimon-zone")))
+                                            (define submake (build-path (getenv "digimon-zone") "submake.rkt"))
+                                            (dynamic-wind {λ _ (printf "Enter Digimon Zone: ~a.~n" digimon)}
+                                                          {λ _ (void (putenv "makefiles" (format "~a:~a" (syntax-source #'makefile) submake))
+                                                                     (cond [(string=? phony "all") (make~all: submake digimon-info)]
+                                                                           [(regexp-match? #px"clean$" phony) (make~clean: submake digimon-info)]
+                                                                           [else (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
+                                                                                   (define fmake (namespace-variable-value (name->make~goal: phony) #false {λ _ #false}))
+                                                                                   (when (false? fmake)
+                                                                                     (eprintf "make: I don't know how to make `~a`!~n" phony)
+                                                                                     (return 1))
+                                                                                   (fmake submake digimon-info))]))}
+                                                          {λ _ (printf "Leave Digimon Zone: ~a.~n" digimon)})}
+                                          (filter {λ [mon] (get-info/full (build-path digimon-world mon))}
+                                                  (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
+                                                                           [else (cons digimon-gnome (info-ref 'setup-collects {λ _ (directory-list)}))])))))))}
                         (list "phony-target|file-path")
                         {λ [--help]
-                          (display (foldl {λ [-h --help] (if (string? -h) (string-append --help -h) --help)}
-                                          (string-replace --help #px"  -- : .+?-h --'."
-                                                          (string-join #:before-first (format "~n where <phony-target> is one of~n  ") #:after-last (format "~n")
-                                                                       '{"all : Build the entire software with documentation. [default]"
-                                                                         "mostlyclean : Delete all except when remaking costs high."
-                                                                         "clean : Delete all except those record the configuration."
-                                                                         "distclean : Delete all that are excluded in the distribution."
-                                                                         "maintainer-clean : Delete all that can be remade. [For Maintainers]"}
-                                                                       (format "~n  ")))
-                                          (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
-                                            (map {λ [phony] (when (procedure? (namespace-variable-value (name->make~goal: (car phony)) #false void))
-                                                              (format "  ~a : ~a~n" (car phony) (cdr phony)))}
-                                                 (list (cons 'install "Install this software and documentation.")
-                                                       (cons 'uninstall "Delete all the installed files and documentation.")
-                                                       (cons 'dist "Create a distribution file of the source files.")
-                                                       (cons 'check "Perform tests with generating test report.")
-                                                       (cons 'test "Perform tests without generating test report."))))))
+                          (display (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
+                                     (foldl {λ [phony --help] (cond [(void? (namespace-variable-value (name->make~goal: (car phony)) #false void)) --help]
+                                                                    [else (format "~a  ~a : ~a~n" --help (car phony) (cdr phony))])}
+                                            (string-replace --help #px"  -- : .+?-h --'."
+                                                            (string-join #:before-first (format "~n where <phony-target> is one of~n  ") #:after-last (format "~n")
+                                                                         '{"all : Build the entire software with documentation. [default]"
+                                                                           "mostlyclean : Delete all except when remaking costs high."
+                                                                           "clean : Delete all except those record the configuration."
+                                                                           "distclean : Delete all that are excluded in the distribution."
+                                                                           "maintainer-clean : Delete all that can be remade. [For Maintainers]"}
+                                                                         (format "~n  ")))
+                                            (list (cons 'install "Install this software and documentation.")
+                                                  (cons 'uninstall "Delete all the installed files and documentation.")
+                                                  (cons 'dist "Create a distribution file of the source files.")
+                                                  (cons 'check "Perform tests with generating test report.")
+                                                  (cons 'test "Perform tests without generating test report.")))))
                           (return 0)}
                         {λ [unknown]
                           (eprintf "make: I don't know what does `~a` mean!~n" unknown)
@@ -293,6 +290,4 @@ exec racket --require "$0" --main -- ${1+"$@"}
 (define main
   {lambda arglist
     (parameterize ([current-command-line-arguments (list->vector arglist)])
-      (define status (call-with-current-continuation main0))
-      (cond [(integer? status) (exit status)]
-            [else (exit 0)]))})
+      (exit (call-with-current-continuation main0)))})
