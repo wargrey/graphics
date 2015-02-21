@@ -95,18 +95,30 @@
       (+ failure error))})
 
 (define tamer-summary
-  {lambda []
-    (dynamic-require (current-tamer-story) #false)
+  {lambda [#:filter [prove? {λ [tamer.rkt] #true}]]
     (define-values {harness-in harness-out} (make-pipe #false 'hspec-in 'hspec-out))
-    (define tamer-spec (thread {λ _ (parameterize ([current-output-port harness-out]
-                                                   [current-error-port harness-out]
-                                                   [current-namespace (module->namespace (current-tamer-story))])
-                                      (apply tamer-prove (filter {λ [val] (ormap (curryr apply val null) (list test-suite? test-case?))}
-                                                                 (filter-map (curryr namespace-variable-value #false {λ _ #false})
-                                                                             (namespace-mapped-symbols))))
-                                      (close-output-port harness-out))}))
+    (define-values {story->testsuites story->testname}
+      (values {λ [modstry] (and (module-declared? modstry #true)
+                                (dynamic-require modstry #false) ; <= void? also makes #true
+                                (parameterize ([current-namespace (module->namespace modstry)])
+                                  (cons modstry (filter {λ [v] (ormap {λ [?] (? v)} (list test-suite? test-case?))}
+                                                        (map (curryr namespace-variable-value #false void)
+                                                             (namespace-mapped-symbols))))))}
+              {λ [modstry] (path->string (find-relative-path (getenv "digimon-zone") (cadadr modstry)))}))
+    (define tamer-spec (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
+                                                  {λ _ (parameterize ([current-error-port harness-out]
+                                                                      [current-output-port harness-out])
+                                                         (apply tamer-prove
+                                                                (cond [(equal? prove? 'local) (cdr (story->testsuites (current-tamer-story)))]
+                                                                      [else (map {λ [ts] (make-test-suite (story->testname (car ts)) (cdr ts))}
+                                                                                 (filter-map story->testsuites
+                                                                                             (map {λ [f] `(submod (file ,(path->string f)) story)}
+                                                                                                  (find-digimon-files {λ [f] (and (file-exists? f) (prove? f))}
+                                                                                                                      (getenv "digimon-tamer")))))])))}
+                                                  {λ _ (close-output-port harness-out)})}))
     (nested #:style (make-style "boxed" null)
-            (apply filebox (italic (format "~a" (cadadr (current-tamer-story))))
+            (apply filebox (cond [(equal? prove? 'local) (italic (format "~a" (cadadr (current-tamer-story))))]
+                                 [else (italic (format "Summary of ~a" (find-relative-path (getenv "digimon-world") (getenv "digimon-tamer"))))])
                    (let awk ([summary? #false]) ;;; status: =0 => sucess; >0 => failure; <0 => error
                      (define line (read-line harness-in))
                      (cond [(eof-object? line) null]
@@ -129,19 +141,20 @@
 (define tamer-note
   {lambda suite-vars
     (define-values {hspec-in hspec-out} (make-pipe #false 'hspec-in 'hspec-out))
-    (define tamer-spec (thread {λ _ (parameterize ([current-output-port hspec-out]
-                                                   [current-error-port hspec-out])
-                                      (for ([suite (in-list suite-vars)])
-                                        (define-values {brief cpu real gc}
-                                          (prove-spec (with-handlers ([exn? exn->test-suite])
-                                                        (tamer-require suite))))
-                                        (define-values {success failure error}
-                                          (values (summary-success brief) (summary-failure brief) (summary-error brief)))
-                                        (unless (zero? (+ failure error))
-                                          (printf "~n~a failure~a ~a error~a~n"
-                                                  failure (plural-suffix failure)
-                                                  error (plural-suffix error))))
-                                      (close-output-port hspec-out))}))
+    (define tamer-spec (thread {λ _ (dynamic-wind void
+                                                  {λ _ (parameterize ([current-output-port hspec-out]
+                                                                      [current-error-port hspec-out])
+                                                         (for ([suite (in-list suite-vars)])
+                                                           (define-values {brief cpu real gc}
+                                                             (prove-spec (with-handlers ([exn? exn->test-suite])
+                                                                           (tamer-require suite))))
+                                                           (define-values {success failure error}
+                                                             (values (summary-success brief) (summary-failure brief) (summary-error brief)))
+                                                           (unless (zero? (+ failure error))
+                                                             (printf "~n~a failure~a ~a error~a~n"
+                                                                     failure (plural-suffix failure)
+                                                                     error (plural-suffix error)))))}
+                                                  {λ _ (close-output-port hspec-out)})}))
     (apply margin-note
            (let awk ([status 0]) ;;; status: =0 => sucess; >0 => failure; <0 => error; NaN => summary comes
              (define line (read-line hspec-in))

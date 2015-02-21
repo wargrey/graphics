@@ -39,6 +39,12 @@
     (define fname (path->string (find-relative-path digimon-world (simplify-path pathname))))
     (if (symbol? subname) `(submod (lib ,fname) ,subname) `(lib ,fname))})
 
+(define find-digimon-files
+  {lambda [predicate start-path]
+    (define px.exclude (pregexp (string-join #:before-first "/(\\.git|" #:after-last ")$" (map (compose1 path->string file-name-from-path) (use-compiled-file-paths)) "|")))
+    (for/fold ([ps null]) ([p (in-directory start-path {λ [p] (not (regexp-match? px.exclude p))})])
+      (if (predicate p) (append ps (list p)) ps))})
+
 (define term-colorize
   {lambda [fg bg attrs content]
     (define color-code

@@ -162,7 +162,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                   (namespace-variable-value var #false {λ _ null})))))))
     
     (let ([px.exclude (pregexp (string-join #:before-first "/(\\.git|" #:after-last ")$" (map (compose1 path->string file-name-from-path) null) "|"))]
-          [px.include #px"/(compiled)(?!\\.)/?"])
+          [px.include (pregexp (format "/(~a)(?!\\.)/?" (car (use-compiled-file-paths))))])
       (for-each fclean (reverse (filter (curry regexp-match? px.include)
                                         (sequence->list (in-directory (getenv "digimon-zone") (negate (curry regexp-match? px.exclude))))))))
     
@@ -191,26 +191,6 @@ exec racket --require "$0" --main -- ${1+"$@"}
                          #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
                          #:xrefs (list (load-collections-xref))
                          #:quiet? #false #:warn-undefined? #false)))))})
-
-(define make~test:
-  {lambda [submake d-info]
-    (when (directory-exists? (getenv "digimon-tamer"))
-      (let ([tamer-info {λ [key fdefault] (fdefault)}])
-        (compile-directory (getenv "digimon-tamer") tamer-info))
-      
-      (apply (dynamic-require "DigiGnome/digitama/tamer.rkt" 'tamer-prove)
-             (let* ([px.tamer.rkt (pregexp (format "^~a.+?\\.rkt" (getenv "digimon-tamer")))]
-                    [harnesses (filter list? (map {λ [f] (when (and (file-exists? f) (regexp-match? px.tamer.rkt f))
-                                                           (define story-path `(submod (file ,(path->string f)) story))
-                                                           (when (module-declared? story-path #true)
-                                                             (dynamic-require story-path #false)
-                                                             (parameterize ([current-namespace (module->namespace story-path)])
-                                                               (cons (path->string (find-relative-path (getenv "digimon-zone") f))
-                                                                     (filter test-suite? (filter-map (curryr namespace-variable-value #false {λ _ #false})
-                                                                                                     (namespace-mapped-symbols)))))))}
-                                                  (remove-duplicates (pathlist-closure (cons (getenv "digimon-tamer") (current-make-real-targets))))))])
-               (cond [(= (length harnesses) 1) (cdar harnesses)]
-                     [else (map {λ [ts] (make-test-suite (car ts) (cdr ts))} harnesses)]))))})
 
 (define main0
   {lambda [return]
@@ -280,8 +260,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                             (list (cons 'install "Install this software and documentation.")
                                                   (cons 'uninstall "Delete all the installed files and documentation.")
                                                   (cons 'dist "Create a distribution file of the source files.")
-                                                  (cons 'check "Perform tests with generating test report.")
-                                                  (cons 'test "Perform tests without generating test report.")))))
+                                                  (cons 'check "Perform tests with generating test report.")))))
                           (return 0)}
                         {λ [unknown]
                           (eprintf "make: I don't know what does `~a` mean!~n" unknown)

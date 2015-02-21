@@ -32,7 +32,7 @@ where @chunk[|<import tamer handbook>|
              (require "tamer.rkt")
              (require (submod "tamer.rkt" makefile))]
 
-@tamer-summary[]
+@tamer-summary[#:filter 'local]
 
 @margin-note{@racket[subsection]s: Each of them describes a scenario.}
 @subsection{Scenario: Ready? Let@literal{'}s have a try!}
@@ -238,18 +238,13 @@ rules, and this story is all about building system. So apart from conventions, w
 @subsection{Scenario: What if the @italic{handbook} is unavaliable?}
 
 Furthermore, the @italic{handbook} itself is the standard test report, but it@literal{'}s still reasonable
-to check the system in some more convenient ways. Thus two styles are designated:
+to check the system in some more convenient ways. Hence we have @chunk[|<tamer battle>|
+                                                                       {module main racket
+                                                                         |<import tamer handbook>|
+                                                                         
+                                                                         (exit (tamer-spec))}]
 
-@(itemlist @item{@hyperlink["http://en.wikipedia.org/wiki/Test::More"]{@italic{TAP::Harness-like}}
-                  via @exec{makefile.rkt ++only «@smaller{subproj}» test «@smaller{tamer dir/subdir}»}}
-           @item{@hyperlink["http://hspec.github.io"]{@italic{hspec-like}}
-                  via @exec{racket «@smaller{tamer files}»}})
+Run @exec{racket «@smaller{tamer files}»} we will get @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report.
 
 Technically speaking, @exec{raco test --submodule main} is always there,
 although that way is not recommended, and is omitted by @filepath{info.rkt}.
-
-@chunk[|<tamer battle>|
-       {module main racket
-         |<import tamer handbook>|
-         
-         (exit (tamer-spec))}]

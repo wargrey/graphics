@@ -67,4 +67,6 @@ so that the @italic{handbook} can also plays a role of the test report as well a
 @italic{@bold{Principal} This sample should be (rather than must be) followed due to the complexity of the real world problems.
          In fact it@literal{'}s all right to forget it after reading.}
 
+@tamer-summary[]
+
 @lp-include{makefile.rkt}
