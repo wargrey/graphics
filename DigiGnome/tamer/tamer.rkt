@@ -5,11 +5,7 @@
 (provide (all-defined-out))
 (provide (all-from-out "../digitama/tamer.rkt"))
 
-(digimon-setenv digimon-gnome)
-
-(define-values {rootdir zonedir dgvcdir stonedir tamerdir}
-  (apply values (map (compose1 getenv (curry format "digimon-~a"))
-                     (list "world" "zone" "digivice" "stone" "tamer"))))
+(current-digimon (digimon-gnome))
 
 {module+ makefile
   (provide (all-defined-out))

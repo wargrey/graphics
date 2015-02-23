@@ -13,7 +13,7 @@
                                              @item{Scenarios Outline}
                                              @item{Scenarios Summary})}
 Every hacker needs a @hyperlink[@(path->string (match tamer-partner
-                                                 [{list 'lib lib} (build-path rootdir lib)]
+                                                 [{list 'lib lib} (build-path (digimon-world) lib)]
                                                  [{list 'file file} (simplify-path (build-path (path-only (syntax-source #'makefile)) file))]))]{@italic{makefile.rkt}}
 to make life simple. However testing building routines always makes nonsense but costs high,
 thus besides the simplest examples, I will check whether the subprojects satisfy the @seclink["rules"]{rules}.
@@ -54,7 +54,7 @@ I still prefer to start with @defproc[{main [argument string?] ...} void?]
 
 @chunk[|<tamer discipline>|
        (current-directory (let ([story (cadadr (current-tamer-story))])
-                            (path-only (build-path rootdir story))))
+                            (path-only (build-path (digimon-world) story))))
        
        (define-values {make out err $? setup teardown}
          (values (dynamic-require tamer-partner 'main {λ _ #false})
@@ -116,7 +116,7 @@ are just duplicate work(with results cached), there is no need to run them in on
 @chunk[|<hello rules!>|
        (define digidirs (filter {λ [sub] (and (directory-exists? sub)
                                               (regexp-match? #px"/[^.][^/.]+$" sub))}
-                                (directory-list rootdir #:build? #true)))
+                                (directory-list (digimon-world) #:build? #true)))
        
        |<rule: info.rkt>|
        |<rule: readme.md>|]
@@ -133,7 +133,7 @@ rules, and this story is all about building system. So apart from conventions, w
 @chunk[|<rule: info.rkt>|
        (require setup/getinfo)
        
-       (define info-root (get-info/full rootdir))
+       (define info-root (get-info/full (digimon-world)))
        
        (define rules:info.rkt
          (make-test-suite "Rules: info.rkt settings"
@@ -152,8 +152,8 @@ rules, and this story is all about building system. So apart from conventions, w
                   even if the name is the same as its directory.}
            @item{@bold{Rule 3} @racket[compile-collection-zos] and friends should never touch these files or directories:
                   @filepath{makefile.rkt}, @filepath{submake.rkt}, @filepath{info.rkt},
-                  @filepath[(path->string (file-name-from-path stonedir))] and
-                  @filepath[(path->string (file-name-from-path tamerdir))].}
+                  @filepath[(path->string (file-name-from-path (digimon-stone)))] and
+                  @filepath[(path->string (file-name-from-path (digimon-tamer)))].}
            @item{@bold{Rule 4} @exec{raco test} should do nothing since we would do testing
                   in a more controllable way.})
 
@@ -206,7 +206,7 @@ rules, and this story is all about building system. So apart from conventions, w
 @subsubsection{Rules on project Documents}
 
 @chunk[|<rule: readme.md>|
-       (define /stone (find-relative-path zonedir stonedir))
+       (define /stone (find-relative-path (digimon-zone) (digimon-stone)))
        
        (define rules:readme.md
          (make-test-suite "Rules: readme.md readers"
@@ -214,8 +214,8 @@ rules, and this story is all about building system. So apart from conventions, w
                                             |<rules: ROOT/readme.md>|)
                                 (for/list ([digidir (in-list digidirs)])
                                   (define digimon (file-name-from-path digidir))
-                                  (define stndir (build-path digimon /stone))
-                                  (test-suite (format "with ~a" stndir)
+                                  (define stonedir (build-path digimon /stone))
+                                  (test-suite (format "with ~a" stonedir)
                                               |<rules: DIGIMON/readme.md>|)))))]
 
 @tamer-note['rules:readme.md]
@@ -223,16 +223,17 @@ rules, and this story is all about building system. So apart from conventions, w
            @item{@bold{Rule 6} Each subproject's @italic{README.md} is designated as its own content table.})
 
 @chunk[|<rules: ROOT/readme.md>|
-       (test-case (format "Rule 5: ~a/~a/index.scrbl" digimon-gnome /stone)
-                  (check-pred file-exists? (build-path stonedir "index.scrbl")
+       (test-case (format "Rule 5: ~a/~a/index.scrbl" (digimon-gnome) /stone)
+                  (check-pred file-exists?
+                              (build-path (digimon-stone) "index.scrbl")
                               "index.scrbl should exists!"))]
 
 @chunk[|<rules: DIGIMON/readme.md>|
        (test-case "Rule 6: readme.scrbl"
                   (with-check-info
-                   {{'stonedir stndir}}
+                   {{'stonedir stonedir}}
                    (check-pred file-exists?
-                               (build-path rootdir stndir "readme.scrbl")
+                               (build-path digidir /stone "readme.scrbl")
                                "readme.scrbl should exists!")))]
 
 @subsection{Scenario: What if the @italic{handbook} is unavaliable?}

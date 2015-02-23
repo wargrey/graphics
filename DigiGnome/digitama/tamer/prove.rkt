@@ -92,7 +92,7 @@
 (define display-error
   {lambda [result #:indent [headspace0 ""]]
     (define errobj (test-error-result result))
-    (define messages (call-with-input-string (string-replace (exn-message errobj) (getenv "digimon-world") "") port->lines))
+    (define messages (call-with-input-string (string-replace (exn-message errobj) (digimon-world) "") port->lines))
     (eechof #:fgcolor 'red #:attributes '{inverse} "~a⧴ FATAL » ~a~n" headspace0 (test-result-test-case-name result))
     (eechof #:fgcolor 'red #:attributes '{inverse} "~a»» name: ~a~n" headspace0 (object-name errobj))
     (unless (null? messages)
@@ -105,7 +105,7 @@
         (define srcinfo (srcloc->string (cdr stack)))
         (unless (or (false? srcinfo) (absolute-path? srcinfo))
           (eechof #:fgcolor 245 "~a»»»» ~a: ~a~n" headspace0
-                  (string-replace srcinfo (getenv "digimon-world") "")
+                  (string-replace srcinfo (digimon-world) "")
                   (or (car stack) 'λ)))))})
 
 (define default-fseed

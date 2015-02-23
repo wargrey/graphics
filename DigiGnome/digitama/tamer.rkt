@@ -31,20 +31,20 @@
 
 (define tamer-story->libpath
   {lambda [story-path]
-    (path->digimon-libpath (build-path (getenv "digimon-tamer") story-path) #:submodule 'story)})
+    (path->digimon-libpath (build-path (digimon-tamer) story-path) 'story)})
 
 (define tamer-partner->libpath
   {lambda [partner-path]
-    (path->digimon-libpath (build-path (getenv "digimon-zone") partner-path))})
+    (path->digimon-libpath (build-path (digimon-zone) partner-path))})
 
 (define tamer-partner->filepath
   {lambda [partner-path #:subtamer [subtamer 'same]]
-    `(file ,(path->string (find-relative-path (simplify-path (build-path (getenv "digimon-tamer") subtamer))
-                                              (simplify-path (build-path (getenv "digimon-zone") partner-path)))))})
+    `(file ,(path->string (find-relative-path (simplify-path (build-path (digimon-tamer) subtamer))
+                                              (simplify-path (build-path (digimon-zone) partner-path)))))})
 
 (define tamer-zone
   {lambda [#:submodule [submod #false]]
-    (define tamer.rkt (path->string (build-path (getenv "digimon-tamer") "tamer.rkt")))
+    (define tamer.rkt (path->string (build-path (digimon-tamer) "tamer.rkt")))
     (define tamer-submod (if submod submod (string->symbol (regexp-replace #px".+/(.+?).rkt" (cadadr (current-tamer-story)) "\\1"))))
     (parameterize ([sandbox-namespace-specs (append (sandbox-namespace-specs) `{(file ,tamer.rkt)})]
                    [sandbox-output 'string]
@@ -104,7 +104,7 @@
                                   (cons modstry (filter {λ [v] (ormap {λ [?] (? v)} (list test-suite? test-case?))}
                                                         (map (curryr namespace-variable-value #false void)
                                                              (namespace-mapped-symbols))))))}
-              {λ [modstry] (path->string (find-relative-path (getenv "digimon-zone") (cadadr modstry)))}))
+              {λ [modstry] (path->string (find-relative-path (digimon-zone) (cadadr modstry)))}))
     (define tamer-spec (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
                                                   {λ _ (parameterize ([current-error-port harness-out]
                                                                       [current-output-port harness-out])
@@ -114,11 +114,11 @@
                                                                                  (filter-map story->testsuites
                                                                                              (map {λ [f] `(submod (file ,(path->string f)) story)}
                                                                                                   (find-digimon-files {λ [f] (and (file-exists? f) (prove? f))}
-                                                                                                                      (getenv "digimon-tamer")))))])))}
+                                                                                                                      (digimon-tamer)))))])))}
                                                   {λ _ (close-output-port harness-out)})}))
     (nested #:style (make-style "boxed" null)
             (apply filebox (cond [(equal? prove? 'local) (italic (format "~a" (cadadr (current-tamer-story))))]
-                                 [else (italic (format "Summary of ~a" (find-relative-path (getenv "digimon-world") (getenv "digimon-tamer"))))])
+                                 [else (italic (format "Summary of ~a" (find-relative-path (digimon-world) (digimon-tamer))))])
                    (let awk ([summary? #false]) ;;; status: =0 => sucess; >0 => failure; <0 => error
                      (define line (read-line harness-in))
                      (cond [(eof-object? line) null]

@@ -1,13 +1,15 @@
 #lang scribble/text
 
+@(require "../digitama/runtime.rkt")
+
 @(define digivice (getenv "current-digivice"))
 
 #lang typed/racket
 
-(require "@(path->string (path-replace-suffix (getenv "rtpath") ".typed.rkt"))")
+(require "@(path->string (path-replace-suffix (getenv "runtime-path") ".typed.rkt"))")
 
-(digimon-setenv "@(getenv "digimon")")
-(current-directory (string->path (cast (getenv "digimon-digivice") String)))
+(current-digimon "@(current-digimon)")
+(current-directory (digimon-digivice))
 
 (define show-help-and-exit : {[#:exitcode Integer] [#:errcmd (Option String)] -> Void}
   {lambda [#:exitcode [exitcode 0] #:errcmd [error-command #false]]

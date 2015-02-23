@@ -8,7 +8,7 @@
 
 @(require setup/getinfo)
 
-@(define info-ref (get-info/full (getenv "digimon-zone")))
+@(define info-ref (get-info/full (digimon-zone)))
 
 @(define part->blocks
    {lambda [psection [header-level 0]]
@@ -30,11 +30,17 @@
 
 @title[#:style (list 'non-toc) #:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{Tamer@literal{'}s Handbook}}
 
-This handbook is the sample of my @italic{Programming Methodology} via testing
-@(for/first ([mkfile (in-list (list (collection-file-path "makefile.rkt" (digimon-gnome)) (build-path (digimon-world) "makefile.rkt")))]
-             #:when (file-exists? mkfile))
-   @hyperlink[mkfile]{makefile.rkt}) itself (and implies the
-@hyperlink[@(build-path (digimon-digitama) "runtime.rkt")]{minimal common code base}) that the entire project should follow.
+@margin-note{This handbook shows my @italic{Programming Methodology} via testing
+                                    @(for/first ([mkfile (in-list (list (collection-file-path "makefile.rkt" (digimon-gnome))
+                                                                        (build-path (digimon-world) "makefile.rkt")))]
+                                                 #:when (file-exists? mkfile))
+                                       @hyperlink[mkfile]{makefile.rkt}) itself (implies the
+                                                                        @hyperlink[@(build-path (digimon-digitama) "runtime.rkt")]{minimal common code base})
+                                                                        that the entire project should follow.
+                                                                        
+                                                                        @italic{@bold{Principal} This sample should be (rather than must be)
+                                                                                 followed due to the complexity of the real world problems.
+                                                                                 In fact it@literal{'}s all right to forget it after reading.}}
 
 @italic{Translating is the most complex human activity in the Universe.}
 
@@ -56,13 +62,10 @@ This handbook is the sample of my @italic{Programming Methodology} via testing
 Since I@literal{'}m an indenpendent developer and communicating costs almost nothing, I make decision at my risk to
 model software system in @hyperlink["http://en.wikipedia.org/wiki/Formal_methods"]{Formal Methods} and
 document it with the @hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Iterate Programming} approach.
-After all this @italic{handbook} is both
-the test report of @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Behaviours} and
-the design document of @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Contracts}
-so that the producation code could keep elegant.
-
-@italic{@bold{Principal} This sample should be (rather than must be) followed due to the complexity of the real world problems.
-         In fact it@literal{'}s all right to forget it after reading.}
+After all this @italic{handbook} plays the role of
+the @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Test Report} as well as
+the @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Design Documentation}
+so that the production code could keep elegant.
 
 @tamer-summary[]
 
