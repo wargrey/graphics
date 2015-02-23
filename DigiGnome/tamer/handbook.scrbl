@@ -30,17 +30,11 @@
 
 @title[#:style (list 'non-toc) #:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{Tamer@literal{'}s Handbook}}
 
-@margin-note{It@literal{'}s reasonable to suppose that you have already know the project conventions.
-             But if you reach here through a strange way, you still have the
-             @hyperlink["https://github.com/digital-world/DigiGnome"]{README} page.}
-This handbook is the sample of applying
-@hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Behavior Driven Development} with
-@hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Literate Programming} via testing
-@(for/first ([mkfile (in-list (list (collection-file-path "makefile.rkt" (getenv "digimon-gnome"))
-                                    (build-path (getenv "digimon-world") "makefile.rkt")))]
+This handbook is the sample of my @italic{Programming Methodology} via testing
+@(for/first ([mkfile (in-list (list (collection-file-path "makefile.rkt" (digimon-gnome)) (build-path (digimon-world) "makefile.rkt")))]
              #:when (file-exists? mkfile))
-   @hyperlink[mkfile]{makefile.rkt}) itself
-that the entire project should follow since the @italic{Behavior Driven Development} plays an important role in my personal software development process.
+   @hyperlink[mkfile]{makefile.rkt}) itself (and implies the
+@hyperlink[@(build-path (digimon-digitama) "runtime.rkt")]{minimal common code base}) that the entire project should follow.
 
 @italic{Translating is the most complex human activity in the Universe.}
 
@@ -59,10 +53,13 @@ that the entire project should follow since the @italic{Behavior Driven Developm
                               @racketerror{Hmm@|._|@|._|@|._| the @italic{Gherkin language}, semiformal and elegant, or maybe stupid.@linebreak[]
                                               Nevertheless, it@literal{'}s not my cup of tea@|._|@|._|@|._|}}
 
-The suggested @italic{Behavioral Specification}s are always written as the @italic{ubiquitous language}s, trying to avoid the communication breakdowns
-between Developers and Bussiness Stakeholders. While I@literal{'}m an indenpendent developer and communicating costs almost nothing.
-So I make decision at my risk to write @italic{behavioral specification} and test suites apart from the production code with the @italic{Literate Programming} skill
-so that the @italic{handbook} can also plays a role of the test report as well as the design documents.
+Since I@literal{'}m an indenpendent developer and communicating costs almost nothing, I make decision at my risk to
+model software system in @hyperlink["http://en.wikipedia.org/wiki/Formal_methods"]{Formal Methods} and
+document it with the @hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Iterate Programming} approach.
+After all this @italic{handbook} is both
+the test report of @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Behaviours} and
+the design document of @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Contracts}
+so that the producation code could keep elegant.
 
 @italic{@bold{Principal} This sample should be (rather than must be) followed due to the complexity of the real world problems.
          In fact it@literal{'}s all right to forget it after reading.}
