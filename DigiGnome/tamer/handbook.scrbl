@@ -61,7 +61,7 @@
 
 Since I@literal{'}m an indenpendent developer and communicating costs almost nothing, I make decision at my risk to
 model software system in @hyperlink["http://en.wikipedia.org/wiki/Formal_methods"]{Formal Methods} and
-document it with the @hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Iterate Programming} approach.
+document it with the @hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Literate Programming} approach.
 After all this @italic{handbook} plays the role of
 the @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Test Report} as well as
 the @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Design Documentation}
