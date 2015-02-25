@@ -16,28 +16,33 @@
 (provide (all-from-out racket "runtime.rkt" rackunit))
 (provide (all-from-out scribble/core scribble/manual scribble/eval))
 
-(define current-tamer-story (make-parameter #false))
-(define current-tamer-zone (make-parameter #false))
+(define tamer-story (make-parameter #false))
+(define tamer-partner (make-parameter #false))
+(define tamer-zone (make-parameter #false))
 
 (define-syntax {tamer-action stx}
   (syntax-case stx []
-    [{_ s-exps ...} (syntax/loc stx (interaction #:eval (current-tamer-zone) s-exps ...))]))
+    [{_ s-exps ...} (syntax/loc stx (interaction #:eval (tamer-zone) s-exps ...))]))
 
 (define-syntax {define-tamer-suite stx}
   (syntax-case stx []
     [{_ suite-varid suite-name suite-sexp}
      #'{begin (let* ([story (cons 'suite-varid (make-test-suite suite-name suite-sexp))]
-                     [hselector (cadadr (current-tamer-story))]
-                     [harness (hash-ref handbook-stories hselector null)])
+                     [htag (tamer-story->tag (tamer-story))]
+                     [harness (hash-ref handbook-stories htag null)])
                 (unless (assoc 'suite-varid harness)
-                  (hash-set! handbook-stories hselector (cons story harness))))}]))
+                  (hash-set! handbook-stories htag (cons story harness))))}]))
 
 (define tamer-require
   {lambda [suite-name]
-    (define story (assoc suite-name (hash-ref handbook-stories (cadadr (current-tamer-story)))))
+    (define story (assoc suite-name (hash-ref handbook-stories (tamer-story->tag (tamer-story)))))
     (cond [(pair? story) (cdr story)]
           [else (with-handlers ([exn? exn->test-suite])
                   (raise-user-error 'tamer-require "'~a has not yet defined." suite-name))])})
+
+(define tamer-story->tag
+  {lambda [story]
+    (path->string (find-relative-path (digimon-tamer) (build-path (digimon-world) (cadadr story))))})
 
 (define tamer-story->libpath
   {lambda [story-path]
@@ -52,23 +57,21 @@
     `(file ,(path->string (find-relative-path (simplify-path (build-path (digimon-tamer) subtamer))
                                               (simplify-path (build-path (digimon-zone) partner-path)))))})
 
-(define tamer-zone
-  {lambda [#:submodule [submod #false]]
+(define make-tamer-zone
+  {lambda []
     (define tamer.rkt (path->string (build-path (digimon-tamer) "tamer.rkt")))
-    (define tamer-submod (if submod submod (string->symbol (regexp-replace #px".+/(.+?).rkt" (cadadr (current-tamer-story)) "\\1"))))
     (parameterize ([sandbox-namespace-specs (append (sandbox-namespace-specs) `{(file ,tamer.rkt)})]
                    [sandbox-output 'string]
                    [sandbox-error-output 'string])
       ((make-eval-factory (list `(file ,tamer.rkt)
-                                `(submod (file ,tamer.rkt) ,tamer-submod)
-                                (current-tamer-story)))))})
+                                (tamer-story)))))})
 
 (define tamer-spec
   {lambda []
-    (dynamic-require (current-tamer-story) #false)
-    (define selector (cadadr (current-tamer-story)))
+    (dynamic-require (tamer-story) #false)
+    (define htag (tamer-story->tag (tamer-story)))
     (define-values {brief cpu0 real0 gc0}
-      (prove-spec (make-test-suite selector (reverse (map cdr (hash-ref handbook-stories selector (cons 'placeholder null)))))))
+      (prove-spec (make-test-suite htag (reverse (map cdr (hash-ref handbook-stories htag (cons '_ null)))))))
     (define-values {success failure error real cpu-gc gc cpu}
       (apply values (summary-success brief) (summary-failure brief) (summary-error brief)
              (map {λ [t] (~r (/ t 1000.0) #:precision '{= 3})} (list real0 (- cpu0 gc0) gc0 cpu0))))
@@ -80,13 +83,13 @@
     (+ failure error)})
 
 (define tamer-harness
-  {lambda [#:local? [local? #false]]
+  {lambda [#:story [snapshot #false]]
     (define-values {brief-box cpu0 real0 gc0}
       (time-apply {λ suites (for/fold ([brief initial-summary] [count 0]) ([suite (in-list suites)])
                               (define-values {brief0 cpu real gc} (prove-harness suite))
                               (values (summary** brief brief0) (add1 count)))}
-                  (cond [local? (reverse (map cdr (hash-ref handbook-stories (cadadr (current-tamer-story)) (cons void null))))]
-                        [else (hash-map handbook-stories {λ [harness stories] (make-test-suite harness (reverse (map cdr stories)))})])))
+                  (cond [(false? snapshot) (hash-map handbook-stories {λ [harness stories] (make-test-suite harness (reverse (map cdr stories)))})]
+                        [(module-path? snapshot) (reverse (map cdr (hash-ref handbook-stories (tamer-story->tag snapshot) (cons '_ null))))])))
     (define-values {success failure error real cpu-gc gc cpu}
       (apply values (summary-success (car brief-box)) (summary-failure (car brief-box)) (summary-error (car brief-box))
              (map {λ [t] (~r (/ t 1000.0) #:precision '{= 3})} (list real0 (- cpu0 gc0) gc0 cpu0))))
@@ -98,29 +101,30 @@
                         (plural-suffix failure) failure (plural-suffix error) error real cpu-gc gc cpu)])
     (+ failure error)})
 
-(define tamer-summary
-  {lambda [#:local? [local? #false]]
-    (define story-snapshot (current-tamer-story))
+(define tamer-smart-summary
+  {lambda []
+    (define story-snapshot (tamer-story))
     (make-delayed-block
      {λ _ (let-values ([{harness-in harness-out} (make-pipe #false 'hspec-in 'hspec-out)])
-            (printf "========>~a<========~n" story-snapshot)
             (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
                                        {λ _ (parameterize ([current-error-port harness-out]
                                                            [current-output-port harness-out])
-                                              (tamer-harness #:local? local?))}
+                                              (tamer-harness #:story story-snapshot))}
                                        {λ _ (close-output-port harness-out)})})
             (nested #:style (make-style "boxed" null)
-                    (apply filebox (cond [local? (italic (format "~a" (cadadr (current-tamer-story))))]
-                                         [else (italic (format "Summary of ~a" (find-relative-path (digimon-world) (digimon-tamer))))])
+                    (apply filebox (cond [(false? story-snapshot) (italic (format "Harness Summary of ~a" (find-relative-path (digimon-world) (digimon-tamer))))]
+                                         [(module-path? story-snapshot) (italic (cadadr story-snapshot))])
                            (let awk ([summary? #false]) ;;; status: =0 => sucess; >0 => failure; <0 => error
                              (define line (read-line harness-in))
                              (cond [(eof-object? line) null]
-                                   [(regexp-match #px"^(.+?\\.{3,})(.+)$" line)
+                                   [(regexp-match #px"^(.+?)(\\.{3,})(.+)$" line)
                                     => {λ [pieces]
-                                         (list* (racketkeywordfont (literal (list-ref pieces 1)))
-                                                (let ([status (list-ref pieces 2)])
-                                                  ((if (string=? status (~result struct:test-success)) racketvalfont racketerror) status))
-                                                (linebreak) (awk #false))}]
+                                         (define story (racketkeywordfont (literal (list-ref pieces 1) (list-ref pieces 2))))
+                                         (define result (let ([status (list-ref pieces 3)]
+                                                              [label (~result struct:test-success)])
+                                                          ((if (string=? status label) racketvalfont racketerror) status)))
+                                         (cond [(false? story-snapshot) (list* (seclink (list-ref pieces 1) story result) (linebreak) (awk #false))]
+                                               [(module-path? story-snapshot) (list* story result (linebreak) (awk #false))])}]
                                    [(regexp-match #px"^⧴ (FAILURE|FATAL) » .+?\\s*$" line)
                                     => {λ [whocares]
                                          (list* (racketcommentfont line) (linebreak) (awk #false))}]
@@ -192,6 +196,16 @@
                    [else (eechof "~a~n" line)
                          (append (if (nan? status) (list (racketoutput line) (linebreak)) null)
                                  (awk status))])))})
+
+(define handbook-story
+  {lambda [#:style [style #false] . pre-contents]
+    (apply section #:tag (tamer-story->tag (tamer-story)) #:style style
+           "Story: " pre-contents)})
+
+(define handbook-scenario
+  {lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
+    (apply subsection #:tag tag #:style style
+           "Scenario: " pre-contents)})
 
 {module digitama racket
   (require rackunit)

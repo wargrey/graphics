@@ -1,13 +1,14 @@
 #lang scribble/lp
 
 @(require "tamer.rkt")
-@(require (submod "tamer.rkt" makefile))
 
-@(current-tamer-zone (tamer-zone))
+@(tamer-story (tamer-story->libpath "makefile.rkt"))
+@(tamer-partner (tamer-partner->filepath "../makefile.rkt"))
+@(tamer-zone (make-tamer-zone))
 
-@section{Story: Hello, Hacker Hero!}
+@handbook-story{Hello, Hacker Hero!}
 
-Every hacker needs a @hyperlink[@(path->string (match tamer-partner
+Every hacker needs a @hyperlink[@(path->string (match (tamer-partner)
                                                  [{list 'lib lib} (build-path (digimon-world) lib)]
                                                  [{list 'file file} (simplify-path (build-path (path-only (syntax-source #'makefile)) file))]))]{@italic{makefile.rkt}}
 to make life simple. However testing building routines always makes nonsense but costs high,
@@ -15,27 +16,29 @@ thus besides the simplest examples, I will check whether the subprojects satisfy
 
 @chunk[<makefile>
        {module story racket
-         |<import tamer handbook>|
+         |<makefile taming start>|
          
          |<ready? help!>|
          |<hello rules!>|}
                                                   
        |<tamer battle>|]
 
-where @chunk[|<import tamer handbook>|
+where @chunk[|<makefile taming start>|
              (require "tamer.rkt")
-             (require (submod "tamer.rkt" makefile))]
+             
+             (tamer-story (tamer-story->libpath "makefile.rkt"))
+             (tamer-partner (tamer-partner->filepath "../makefile.rkt"))]
 
-@tamer-summary[#:local? #true]
+@tamer-smart-summary[]
 
-@subsection{Scenario: Ready? Let@literal{'}s have a try!}
+@handbook-scenario{Ready? Let@literal{'}s have a try!}
 
 @chunk[|<ready? help!>|
-       (current-directory (let ([story (cadadr (current-tamer-story))])
+       (current-directory (let ([story (cadadr (tamer-story))])
                             (path-only (build-path (digimon-world) story))))
        
        (define-values {make out err $? setup teardown}
-         (values (dynamic-require tamer-partner 'main {λ _ #false})
+         (values (dynamic-require (tamer-partner) 'main {λ _ #false})
                  (open-output-bytes 'stdout)
                  (open-output-bytes 'stderr)
                  (make-parameter +NaN.0)
@@ -59,7 +62,7 @@ You may have already familiar with the @hyperlink["http://en.wikipedia.org/wiki/
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
 @exec{@|-~-|h} or @exec{@|-~-|@|-~-|help} option:
 
-@tamer-action[((dynamic-require tamer-partner 'main) "--help")
+@tamer-action[((dynamic-require/expose (tamer-story) 'make) "--help")
               (code:comment @#,t{See, @racketcommentfont{@italic{makefile}} complains that @racketcommentfont{@bold{Scribble}} is killed by accident.})]
 
 Now it@literal{'}s time to look deep into the specification examples of
@@ -87,14 +90,6 @@ Now it@literal{'}s time to look deep into the specification examples of
 @chunk[|<testsuite: fatal should never happen!>|
        (test-suite "EXAMPLE DO NEED A NAME"
                    (test-begin (fail "None of my bussiness!")))]
-
-@tamer-action[(tamer-prove 'spec-examples)]
-
-Equipping with the powerful @bold{Scribble} that @bold{Racket} gives us,
-writing the @italic{handbook} becomes fantastic. We can @racket[eval] the code while
-@racket[render]ing the documents along with it. Since the two ways,
-via @racket[margin-note](@racket[tamer-note]) and via @racket[interaction](@racket[tamer-action]),
-are just duplicate work(with results cached), there is no need to run them in one production @italic{handbook}.
 
 @subsection[#:tag "rules"]{Scenario: The rules serve you!}
 
@@ -185,9 +180,9 @@ rules, and this story is all about building system. So apart from conventions, w
                      (check-equal? test-omit-paths 'all
                                    "'test-omit-paths should be 'all!"))))]
 
-@margin-note{Documents are deployed in @hyperlink["gyoudmon/org"]{my website} with @bold{Scribble},
-                                       while sources are hosted in @hyperlink["github.com/digital-world"]{Github} with @bold{Markdown}.}
-@subsubsection{Rules on project Documents}
+@margin-note{Documentation are deployed in @hyperlink["gyoudmon/org"]{my website} with @bold{Scribble},
+                                           while sources are hosted in @hyperlink["github.com/digital-world"]{Github} with @bold{Markdown}.}
+@subsubsection{Rules on project documentation}
 
 @chunk[|<rule: readme.md>|
        (define /stone (find-relative-path (digimon-zone) (digimon-stone)))
@@ -219,12 +214,12 @@ rules, and this story is all about building system. So apart from conventions, w
                                (build-path digidir /stone "readme.scrbl")
                                "readme.scrbl should exists!")))]
 
-@subsection{Scenario: What if the @italic{handbook} is unavaliable?}
+@handbook-scenario{What if the @italic{handbook} is unavaliable?}
 
 Furthermore, the @italic{handbook} itself is the standard test report, but it@literal{'}s still reasonable
 to check the system in some more convenient ways. Hence we have @chunk[|<tamer battle>|
                                                                        {module main racket
-                                                                         |<import tamer handbook>|
+                                                                         |<makefile taming start>|
                                                                          
                                                                          (exit (tamer-spec))}]
 

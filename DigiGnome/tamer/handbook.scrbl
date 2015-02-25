@@ -1,7 +1,6 @@
 #lang scribble/manual
 
 @(require "tamer.rkt")
-@;(require (submod "tamer.rkt" makefile))
 
 @(require scribble/core)
 @(require scribble/lp-include)
@@ -67,9 +66,7 @@ the @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Test 
 the @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Design Documentation}
 so that the production code could keep elegant.
 
-@tamer-summary[]
-@(printf "++++++++++++++++~a++++++++++++++++++++++~n" (current-tamer-story))
+@tamer-smart-summary[]
 @table-of-contents[]
 
 @lp-include{makefile.rkt}
-@lp-include{runtime.rkt}
