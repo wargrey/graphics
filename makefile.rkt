@@ -61,8 +61,6 @@ exec racket --require "$0" --main -- ${1+"$@"}
     (thread-wait verbose-awk)
     (close-input-port pin)})
 
-(define name->make~goal: {λ [phony] (string->symbol (format "make~~~a:" phony))})
-
 (define make-implicit-rules
   {lambda []
     (define d-info (get-info/full (digimon-zone)))
@@ -111,88 +109,87 @@ exec racket --require "$0" --main -- ${1+"$@"}
                  (filter file-exists? (map (curry build-path (digimon-stone))
                                            (filter string? (list "readme.scrbl" (when (equal? (current-digimon) (digimon-gnome)) "index.scrbl")))))))})
 
-(define make~all:
-  {lambda []
-    (define submake (build-path (digimon-zone) "submake.rkt"))
+{module+ make~all:
+  (define submake (build-path (digimon-zone) "submake.rkt"))
     
-    (let ([implicit-rules (map hack-rule (make-implicit-rules))])
-      (unless (null? implicit-rules) (make/proc implicit-rules (map car implicit-rules))))
-    (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
+  (let ([implicit-rules (map hack-rule (make-implicit-rules))])
+    (unless (null? implicit-rules) (make/proc implicit-rules (map car implicit-rules))))
+  (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
     
-    (let ([modpath `(submod ,submake make:files)])
-      (when (module-declared? modpath #true)
-        (dynamic-require modpath #false)
-        (parameterize ([current-namespace (module->namespace modpath)])
-          (file-or-directory-modify-seconds (digimon-zone) (current-seconds))
-          (define rules (map hack-rule (foldr append null
-                                              (filter {λ [val] (with-handlers ([exn? {λ _ #false}])
-                                                                 (andmap {λ [?] (and (andmap path-string? (cons (first ?) (second ?)))
-                                                                                     (procedure-arity-includes? (third ?) 1))} val))}
-                                                      (filter-map {λ [var] (namespace-variable-value var #false {λ _ #false})}
-                                                                  (namespace-mapped-symbols))))))
-          (make/proc (cons (list (syntax-source #'I-am-here-just-for-fun) null void) rules)
-                     (if (null? (current-make-real-targets)) (map car rules) (current-make-real-targets))))))
-    
-    (let ([modpath `(submod ,submake make:files make)])
-      (when (module-declared? modpath #true)
-        (dynamic-require modpath #false)))})
+  (let ([modpath `(submod ,submake make:files)])
+    (when (module-declared? modpath #true)
+      (dynamic-require modpath #false)
+      (parameterize ([current-namespace (module->namespace modpath)])
+        (file-or-directory-modify-seconds (digimon-zone) (current-seconds))
+        (define rules (map hack-rule (foldr append null
+                                            (filter {λ [val] (with-handlers ([exn? {λ _ #false}])
+                                                               (andmap {λ [?] (and (andmap path-string? (cons (first ?) (second ?)))
+                                                                                   (procedure-arity-includes? (third ?) 1))} val))}
+                                                    (filter-map {λ [var] (namespace-variable-value var #false {λ _ #false})}
+                                                                (namespace-mapped-symbols))))))
+        (make/proc (cons (list (syntax-source #'I-am-here-just-for-fun) null void) rules)
+                   (if (null? (current-make-real-targets)) (map car rules) (current-make-real-targets))))))
+  
+  (let ([modpath `(submod ,submake make:files make)])
+    (when (module-declared? modpath #true)
+      (dynamic-require modpath #false)))}
 
-(define make~clean:
-  {lambda []
-    (define submake (build-path (digimon-zone) "submake.rkt"))
-    (define fclean {λ [dirty] (void (when (file-exists? dirty) (delete-file dirty))
-                                    (when (directory-exists? dirty) (delete-directory dirty))
-                                    (printf "make: deleted ~a.~n" (simplify-path dirty)))})
-    
-    (when (member (current-make-phony-goal) '{"distclean" "maintainer-clean"})
-      (let ([clbpath `(submod ,submake make:files clobber)])
-        (when (module-declared? clbpath #true)
-          (dynamic-require clbpath #false))))
-    
-    (let ([modpath `(submod ,submake make:files)])
-      (when (module-declared? modpath #true)
-        (dynamic-require modpath #false)
-        (parameterize ([current-namespace (module->namespace modpath)])
-          (define px.filter (pregexp (string-join #:before-first "^(.+?:)?" #:after-last ":.+:"
-                                                  (member (string-replace (current-make-phony-goal) #px"(?<!^)-?clean" "")
-                                                          '{"maintainer" "dist" "clean" "mostly"}) "|")))
-          (for ([var (in-list (namespace-mapped-symbols))]
-                #:when (regexp-match? px.filter (symbol->string var)))
-            (for-each fclean (map {λ [val] (if (list? val) (car val) val)}
-                                  (namespace-variable-value var #false {λ _ null})))))))
-    
-    (let ([px.exclude (pregexp (string-join #:before-first "/(\\.git|" #:after-last ")$" (map (compose1 path->string file-name-from-path) null) "|"))]
-          [px.include (pregexp (format "/(~a)(?!\\.)/?" (car (use-compiled-file-paths))))])
-      (for-each fclean (reverse (filter (curry regexp-match? px.include)
-                                        (sequence->list (in-directory (digimon-zone) (negate (curry regexp-match? px.exclude))))))))
-    
-    (for-each {λ [target] (fclean target)} (make-implicit-rules))})
+{module+ make~clean:
+  (define submake (build-path (digimon-zone) "submake.rkt"))
+  (define fclean {λ [dirty] (void (when (file-exists? dirty) (delete-file dirty))
+                                  (when (directory-exists? dirty) (delete-directory dirty))
+                                  (printf "make: deleted ~a.~n" (simplify-path dirty)))})
+  
+  (when (member (current-make-phony-goal) '{"distclean" "maintainer-clean"})
+    (let ([clbpath `(submod ,submake make:files clobber)])
+      (when (module-declared? clbpath #true)
+        (dynamic-require clbpath #false))))
+  
+  (let ([modpath `(submod ,submake make:files)])
+    (when (module-declared? modpath #true)
+      (dynamic-require modpath #false)
+      (parameterize ([current-namespace (module->namespace modpath)])
+        (define px.filter (pregexp (string-join #:before-first "^(.+?:)?" #:after-last ":.+:"
+                                                (member (string-replace (current-make-phony-goal) #px"(?<!^)-?clean" "")
+                                                        '{"maintainer" "dist" "clean" "mostly"}) "|")))
+        (for ([var (in-list (namespace-mapped-symbols))]
+              #:when (regexp-match? px.filter (symbol->string var)))
+          (for-each fclean (map {λ [val] (if (list? val) (car val) val)}
+                                (namespace-variable-value var #false {λ _ null})))))))
+  
+  (let ([px.exclude (pregexp (string-join #:before-first "/(\\.git|" #:after-last ")$" (map (compose1 path->string file-name-from-path) null) "|"))]
+        [px.include (pregexp (format "/(~a)(?!\\.)/?" (car (use-compiled-file-paths))))])
+    (for-each fclean (reverse (filter (curry regexp-match? px.include)
+                                      (sequence->list (in-directory (digimon-zone) (negate (curry regexp-match? px.exclude))))))))
+  
+  (for-each {λ [target] (fclean target)} (make-implicit-rules))}
 
-(define make~check:
-  {lambda []
-    (when (directory-exists? (digimon-tamer))
-      (let ([tamer-info {λ [key fdefault] (fdefault)}])
-        (compile-directory (digimon-tamer) tamer-info))
-      
-      (for ([handbook (in-list (cond [(null? (current-make-real-targets)) (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))]
-                                     [else (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.scrbl" (digimon-tamer)))])
-                                             (filter {λ [hb.scrbl] (or (regexp-match? px.tamer.scrbl hb.scrbl)
-                                                                       ((negate eprintf) "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl))}
-                                                     (current-make-real-targets)))]))])
-        (parameterize ([current-directory (path-only handbook)]
-                       [current-namespace (make-base-namespace)]
-                       [exit-handler {λ [whocares] (error 'make "[error] /~a needs a proper `exit-handler`!" (find-relative-path (digimon-world) handbook))}])
-          (namespace-require 'setup/xref)
-          (namespace-require 'scribble/render)
-          (eval '(require (prefix-in html: scribble/html-render)))
-          (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
-                         #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
-                         #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
-                         #:xrefs (list (load-collections-xref))
-                         #:quiet? #false #:warn-undefined? #false)))))})
+{module+ make~check:
+  (when (directory-exists? (digimon-tamer))
+    (let ([tamer-info {λ [key fdefault] (fdefault)}])
+      (compile-directory (digimon-tamer) tamer-info))
+    
+    (for ([handbook (in-list (cond [(null? (current-make-real-targets)) (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))]
+                                   [else (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.scrbl" (digimon-tamer)))])
+                                           (filter {λ [hb.scrbl] (or (regexp-match? px.tamer.scrbl hb.scrbl)
+                                                                     ((negate eprintf) "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl))}
+                                                   (current-make-real-targets)))]))])
+      (parameterize ([current-directory (path-only handbook)]
+                     [current-namespace (make-base-namespace)]
+                     [exit-handler {λ [whocares] (error 'make "[error] /~a needs a proper `exit-handler`!" (find-relative-path (digimon-world) handbook))}])
+        (namespace-require 'setup/xref)
+        (namespace-require 'scribble/render)
+        (eval '(require (prefix-in html: scribble/html-render)))
+        (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
+                       #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
+                       #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
+                       #:xrefs (list (load-collections-xref))
+                       #:quiet? #false #:warn-undefined? #false)))))}
 
 (define main0
   {lambda [return]
+    (define name->modpath {λ [phony] (let ([modpath `(submod (file ,(path->string (syntax-source #'makefile))) ,(string->symbol (format "make~~~a:" phony)))])
+                                       (and (module-declared? modpath) modpath))})
     (parse-command-line (file-name-from-path (syntax-source #'program))
                         (current-command-line-arguments)
                         `{{usage-help ,(format "Carefully options are not exactly the same as those of GNU Make.~n")}
@@ -227,11 +224,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
                               (parameterize ([current-make-phony-goal phony])
                                 (for-each {λ [digimon] (parameterize ([current-digimon digimon])
                                                          (dynamic-wind {λ _ (printf "Enter Digimon Zone: ~a.~n" digimon)}
-                                                                       {λ _ (cond [(string=? phony "all") (make~all:)]
-                                                                                  [(regexp-match? #px"clean$" phony) (make~clean:)]
-                                                                                  [(parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
-                                                                                     (namespace-variable-value (name->make~goal: phony) #false {λ _ #false}))
-                                                                                   => {λ [fmake] (fmake)}]
+                                                                       {λ _ (cond [(regexp-match? #px"clean$" phony) (dynamic-require (name->modpath "clean") #false)]
+                                                                                  [(name->modpath phony) => (curryr dynamic-require #false)]
                                                                                   [else (and (eprintf "make: I don't know how to make `~a`!~n" phony)
                                                                                              (return 1))])}
                                                                        {λ _ (printf "Leave Digimon Zone: ~a.~n" digimon)}))}
@@ -240,21 +234,19 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                                            [else (cons (digimon-gnome) (info-ref 'setup-collects {λ _ (directory-list)}))])))))))}
                         (list "phony-target|file-path")
                         {λ [--help]
-                          (display (parameterize ([current-namespace (module->namespace (syntax-source #'makefile))])
-                                     (foldl {λ [phony --help] (cond [(void? (namespace-variable-value (name->make~goal: (car phony)) #false void)) --help]
-                                                                    [else (format "~a  ~a : ~a~n" --help (car phony) (cdr phony))])}
-                                            (string-replace --help #px"  -- : .+?-h --'."
-                                                            (string-join #:before-first (format "~n where <phony-target> is one of~n  ") #:after-last (format "~n")
-                                                                         '{"all : Build the entire software without documentation. [default]"
-                                                                           "mostlyclean : Delete all except when remaking costs high."
-                                                                           "clean : Delete all except those record the configuration."
-                                                                           "distclean : Delete all that are excluded in the distribution."
-                                                                           "maintainer-clean : Delete all that can be remade. [For Maintainers]"}
-                                                                         (format "~n  ")))
-                                            (list (cons 'install "Install this software and documentation.")
-                                                  (cons 'uninstall "Delete all the installed files and documentation.")
-                                                  (cons 'dist "Create a distribution file of the source files.")
-                                                  (cons 'check "Validate and generate test report as well as documentation.")))))
+                          (display (foldl {λ [phony --help] (if (name->modpath (car phony)) (format "~a  ~a : ~a~n" --help (car phony) (cdr phony)) --help)}
+                                          (string-replace --help #px"  -- : .+?-h --'."
+                                                          (string-join #:before-first (format "~n where <phony-target> is one of~n  ") #:after-last (format "~n")
+                                                                       '{"all : Build the entire software without documentation. [default]"
+                                                                         "mostlyclean : Delete all except when remaking costs high."
+                                                                         "clean : Delete all except those record the configuration."
+                                                                         "distclean : Delete all that are excluded in the distribution."
+                                                                         "maintainer-clean : Delete all that can be remade. [For Maintainers]"}
+                                                                       (format "~n  ")))
+                                          (list (cons 'install "Install this software and documentation.")
+                                                (cons 'uninstall "Delete all the installed files and documentation.")
+                                                (cons 'dist "Create a distribution file of the source files.")
+                                                (cons 'check "Validate and generate test report along with documentation."))))
                           (return 0)}
                         {λ [unknown]
                           (eprintf "make: I don't know what does `~a` mean!~n" unknown)
