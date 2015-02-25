@@ -1,27 +1,21 @@
 #lang scribble/lp
 
-@(require "tamer.rkt" (submod "tamer.rkt" makefile))
+@(require "tamer.rkt")
+@(require (submod "tamer.rkt" makefile))
 
 @(current-tamer-zone (tamer-zone))
 
-@margin-note{@racket[section]: The story should have a clear, explicit title.}
 @section{Story: Hello, Hacker Hero!}
 
-@margin-note{The brief specifies: @(itemlist @item{Primary Drivers}
-                                             @item{Story Effects}
-                                             @item{Effects@literal{'} Value}
-                                             @item{Scenarios Outline}
-                                             @item{Scenarios Summary})}
 Every hacker needs a @hyperlink[@(path->string (match tamer-partner
                                                  [{list 'lib lib} (build-path (digimon-world) lib)]
                                                  [{list 'file file} (simplify-path (build-path (path-only (syntax-source #'makefile)) file))]))]{@italic{makefile.rkt}}
 to make life simple. However testing building routines always makes nonsense but costs high,
 thus besides the simplest examples, I will check whether the subprojects satisfy the @seclink["rules"]{rules}.
 
-@chunk[<*>
+@chunk[<makefile>
        {module story racket
          |<import tamer handbook>|
-         |<tamer discipline>|
          
          |<ready? help!>|
          |<hello rules!>|}
@@ -32,27 +26,11 @@ where @chunk[|<import tamer handbook>|
              (require "tamer.rkt")
              (require (submod "tamer.rkt" makefile))]
 
-@tamer-summary[#:filter 'local]
+@tamer-summary[#:local? #true]
 
-@margin-note{@racket[subsection]s: Each of them describes a scenario.}
 @subsection{Scenario: Ready? Let@literal{'}s have a try!}
 
 @chunk[|<ready? help!>|
-       (define spec-examples
-         (test-suite "Behavioral Specification Examples"
-                     |<testsuite: should pass and do pass.>|
-                     |<testsuite: should pass but do fail!>|
-                     |<testsuite: fatal should never happen!>|))]
-
-Although normal @bold{Racket} script doesn@literal{'}t require the so-called @racketidfont{main} routine,
-I still prefer to start with @defproc[{main [argument string?] ...} void?]
-
-@margin-note{The structure and testsuites follow the
-             @hyperlink["http://en.wikipedia.org/wiki/Hoare_logic"]{Hoare Logic}: @(itemlist @item{Initial Conditions}
-                                                                                             @item{Event Triggers}
-                                                                                             @item{Expected Outcome})}
-
-@chunk[|<tamer discipline>|
        (current-directory (let ([story (cadadr (current-tamer-story))])
                             (path-only (build-path (digimon-world) story))))
        
@@ -67,14 +45,21 @@ I still prefer to start with @defproc[{main [argument string?] ...} void?]
                                 (apply make argv))}}
                  {λ _ (void (get-output-bytes out #true)
                             (get-output-bytes err #true)
-                            ($? +NaN.0))}))]
+                            ($? +NaN.0))}))
+       
+       (define-tamer-suite spec-examples "Behavioral Specification Examples"
+         (list |<testsuite: should pass and do pass.>|
+               |<testsuite: should pass but do fail!>|
+               |<testsuite: fatal should never happen!>|))]
+
+Although normal @bold{Racket} script doesn@literal{'}t require the so-called @racketidfont{main} routine,
+I still prefer to start with @defproc[{main [argument string?] ...} void?]
 
 You may have already familiar with the @hyperlink["http://en.wikipedia.org/wiki/Make_(software)"]{GNU Make},
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
 @exec{@|-~-|h} or @exec{@|-~-|@|-~-|help} option:
 
-@tamer-action[tamer-require
-              ((tamer-require 'make) "--help")
+@tamer-action[((dynamic-require tamer-partner 'main) "--help")
               (code:comment @#,t{See, @racketcommentfont{@italic{makefile}} complains that @racketcommentfont{@bold{Scribble}} is killed by accident.})]
 
 Now it@literal{'}s time to look deep into the specification examples of
@@ -135,15 +120,14 @@ rules, and this story is all about building system. So apart from conventions, w
        
        (define info-root (get-info/full (digimon-world)))
        
-       (define rules:info.rkt
-         (make-test-suite "Rules: info.rkt settings"
-                          (cons (test-suite "with /info.rkt"
-                                            |<rules: ROOT/info.rkt>|)
-                                (for/list ([digidir (in-list digidirs)])
-                                  (define digimon (file-name-from-path digidir))
-                                  (define info-ref (get-info/full digidir))
-                                  (test-suite (format "with /~a/info.rkt" digimon)
-                                              |<rules: DIGIMON/info.rkt>|)))))]
+       (define-tamer-suite rules:info.rkt "Rules: info.rkt settings"
+         (cons (test-suite "with /info.rkt"
+                           |<rules: ROOT/info.rkt>|)
+               (for/list ([digidir (in-list digidirs)])
+                 (define digimon (file-name-from-path digidir))
+                 (define info-ref (get-info/full digidir))
+                 (test-suite (format "with /~a/info.rkt" digimon)
+                             |<rules: DIGIMON/info.rkt>|))))]
 
 @tamer-note['rules:info.rkt]
 @(itemlist @item{@bold{Rule 1} The entire project is a multi-collection package,
@@ -208,15 +192,14 @@ rules, and this story is all about building system. So apart from conventions, w
 @chunk[|<rule: readme.md>|
        (define /stone (find-relative-path (digimon-zone) (digimon-stone)))
        
-       (define rules:readme.md
-         (make-test-suite "Rules: readme.md readers"
-                          (cons (test-suite "/index.scrbl"
-                                            |<rules: ROOT/readme.md>|)
-                                (for/list ([digidir (in-list digidirs)])
-                                  (define digimon (file-name-from-path digidir))
-                                  (define stonedir (build-path digimon /stone))
-                                  (test-suite (format "with ~a" stonedir)
-                                              |<rules: DIGIMON/readme.md>|)))))]
+       (define-tamer-suite rules:readme.md "Rules: readme.md readers"
+         (cons (test-suite "/index.scrbl"
+                           |<rules: ROOT/readme.md>|)
+               (for/list ([digidir (in-list digidirs)])
+                 (define digimon (file-name-from-path digidir))
+                 (define stonedir (build-path digimon /stone))
+                 (test-suite (format "with ~a" stonedir)
+                             |<rules: DIGIMON/readme.md>|))))]
 
 @tamer-note['rules:readme.md]
 @(itemlist @item{@bold{Rule 5} The project's toplevel @italic{README.md} is designated as the @italic{main-toc} of @bold{Scribble}.}

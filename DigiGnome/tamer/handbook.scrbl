@@ -1,7 +1,7 @@
 #lang scribble/manual
 
 @(require "tamer.rkt")
-@(require (submod "tamer.rkt" makefile))
+@;(require (submod "tamer.rkt" makefile))
 
 @(require scribble/core)
 @(require scribble/lp-include)
@@ -28,7 +28,7 @@
                                            (format "v.~a" (document-version-text (car dver))))
                                      blocks)]))])})
 
-@title[#:style (list 'non-toc) #:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{Tamer@literal{'}s Handbook}}
+@title[#:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{Tamer@literal{'}s Handbook}}
 
 @margin-note{This handbook shows my @italic{Programming Methodology} via testing
                                     @(for/first ([mkfile (in-list (list (collection-file-path "makefile.rkt" (digimon-gnome))
@@ -63,10 +63,13 @@ Since I@literal{'}m an indenpendent developer and communicating costs almost not
 model software system in @hyperlink["http://en.wikipedia.org/wiki/Formal_methods"]{Formal Methods} and
 document it with the @hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Literate Programming} approach.
 After all this @italic{handbook} plays the role of
-the @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Test Report} as well as
+the @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Test Report} along with
 the @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Design Documentation}
 so that the production code could keep elegant.
 
 @tamer-summary[]
+@(printf "++++++++++++++++~a++++++++++++++++++++++~n" (current-tamer-story))
+@table-of-contents[]
 
 @lp-include{makefile.rkt}
+@lp-include{runtime.rkt}
