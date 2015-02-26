@@ -61,6 +61,27 @@ exec racket --require "$0" --main -- ${1+"$@"}
     (thread-wait verbose-awk)
     (close-input-port pin)})
 
+#|
+(local-require scribble/base)
+(local-require scribble/core)
+(define handbook->readme
+   {lambda [psection [header-level 0]]
+     (define blocks (foldl {λ [sp bs] (append bs sp)}
+                           (cons (para #:style (make-style "boxed" null)
+                                       (larger ((cond [(zero? header-level) larger]
+                                                      [else (apply compose1 (make-list (sub1 header-level) smaller))])
+                                        (elem #:style (make-style (format "h~a" (add1 header-level)) null)
+                                              (part-title-content psection)))))
+                                 (part-blocks psection))
+                           (map {λ [sub] (handbook->readme sub (add1 header-level))}
+                                (part-parts psection))))
+     (cond [(> header-level 0) blocks]
+           [else (let ([dver (filter document-version? (style-properties (part-style psection)))])
+                   (cond [(or (null? dver) (zero? (string-length (document-version-text (car dver))))) blocks]
+                         [else (cons (elem #:style (make-style "tocsubtitle" null)
+                                           (format "v.~a" (document-version-text (car dver))))
+                                     blocks)]))])})|#
+
 (define make-implicit-rules
   {lambda []
     (define d-info (get-info/full (digimon-zone)))
@@ -87,12 +108,13 @@ exec racket --require "$0" --main -- ${1+"$@"}
                    ;;; For the sake of simplicity, I do not check `readme.scrbl`s' (require ...)s.
                    ;;; Under this circumstance, (require ...)s always make nonsense.
                    ;;; See Rule 5 and Rule 6 in /DigiGnome/tamer/makefile.rkt.
-                   (define-values {t ds} (if (regexp-match? #px"/index.scrbl$" readme.scrbl)
+                   (define-values {t ds} (if (regexp-match? #px"/readme.scrbl$" readme.scrbl)
                                              (values (build-path (digimon-world) "README.md")
                                                      (list* readme.scrbl (syntax-source #'makefile)
                                                             (filter file-exists? (map (curryr build-path "info.rkt") (directory-list (digimon-world) #:build? #true)))))
                                              (values (build-path (digimon-zone) "README.md")
-                                                     (list readme.scrbl (syntax-source #'makefile)))))
+                                                     (list* readme.scrbl (syntax-source #'makefile)
+                                                            (filter file-exists? (list (build-path (digimon-zone) "info.rkt")))))))
                    (list t ds {λ [target]
                                 (parameterize ([current-directory (digimon-zone)]
                                                [current-namespace (make-base-namespace)]
@@ -106,8 +128,10 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                     (display-lines-to-file (file->lines tmp.md) target #:exists 'replace)
                                     (printf "  [Output to ~a]~n" target)
                                     (delete-file tmp.md)))})}
-                 (filter file-exists? (map (curry build-path (digimon-stone))
-                                           (filter string? (list "readme.scrbl" (when (equal? (current-digimon) (digimon-gnome)) "index.scrbl")))))))})
+                 (filter {λ [scrbl] (and (path? scrbl) (file-exists? scrbl))}
+                         (list (build-path (digimon-tamer) "handbook.scrbl")
+                               (when (equal? (current-digimon) (digimon-gnome))
+                                 (build-path (digimon-stone) "readme.scrbl"))))))})
 
 {module+ make~all:
   (define submake (build-path (digimon-zone) "submake.rkt"))
