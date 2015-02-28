@@ -15,21 +15,21 @@ templates`   `**When** I do some researching and architect a template`
 Nevertheless, it's not my cup of tea...`
 
 Since I'm an indenpendent developer and communicating costs almost
-nothing, I make decision at my risk to model software system in _Formal
-Methods_ and document it with the _Literate Programming_ approach. After
-all this _handbook_ plays the role of the [Test
+nothing, I make decision at my risk to model software system in _[Formal
+Methods](http://en.wikipedia.org/wiki/Formal\_methods)_ and document it
+with the _[Literate
+Programming](http://en.wikipedia.org/wiki/Literate\_programming)_
+approach. After all this _handbook_ plays the role of the [Test
 Report](http://en.wikipedia.org/wiki/Behavior-driven\_development) along
 with the [Design
 Documentation](http://en.wikipedia.org/wiki/Design\_by\_contract) so
 that the production code could keep elegant.
 
-:book: Features and
-Behaviors<br>:scroll:makefile.rkt....................................................:bug:<br>:pushpin:⧴
-FAILURE » EXAMPLE of FAILURE<br>:pushpin:⧴ FATAL » (⧴
-exn:fail:user)<br>:pushpin:⧴ FAILURE » Rule 6:
-nanomon/tamer/handbook.scrbl<br> <br>:memo:85.71% tests
-successful.<br>:memo:Testsuite = 1, Testcases = 21, Failures = 2, Error
-= 1.<br>:memo:0.027 wallclock seconds (0.027 task + 0.000 gc = 0.027
-CPU).
+> ---
 
+> :book: **Behaviors and Features**<br>:broken\_heart:
+> [makefile.rkt](http://digignome.gyoudmon.org/makefile.rkt)<br> <br>_85.71%
+> tests successful._<br>_Testsuite = 1, Testcases = 21, Failures = 2,
+> Error = 1._
 
+[:house\_with\_garden::cat2:](http://digignome.gyoudmon.org)

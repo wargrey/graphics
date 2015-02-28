@@ -102,20 +102,16 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                [current-namespace (make-base-namespace)]
                                                [exit-handler {λ _ (error 'make "[error] /~a needs a proper `exit-handler`!"
                                                                          (find-relative-path (digimon-world) dependent.scrbl))}])
+                                  (namespace-require 'scribble/core)
                                   (namespace-require 'scribble/render)
-                                  (eval `(require (submod (file ,(path->string (syntax-source #'makefile))) markdown)))
                                   (eval '(require (prefix-in markdown: scribble/markdown-render)))
                                   (eval `(define markdown:doc (let ([handbook:doc (dynamic-require ,dependent.scrbl 'doc)])
                                                                 (cond [(regexp-match? #px"/readme.scrbl$" ,dependent.scrbl) handbook:doc] 
-                                                                      [else (handbook->markdown handbook:doc)]))))
+                                                                      [else (struct-copy part handbook:doc [parts null])]))))
                                   (eval `(render (list markdown:doc) (list ,(file-name-from-path target))
                                                  #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #true))
-                                  (let ([tmp.md (path-add-suffix target #".md")])
-                                    (dynamic-wind void
-                                                  {λ _ (with-output-to-file target #:exists 'replace
-                                                         {λ _ (displayln (eval `(markdown->string ,tmp.md)))})}
-                                                  {λ _ (delete-file tmp.md)})
-                                    (printf "  [Output to ~a]~n" target)))})}
+                                  (rename-file-or-directory (path-add-suffix target #".md") target #true)
+                                  (printf "  [Output to ~a]~n" target))})}
                  (filter {λ [dependent.scrbl] (and (path? dependent.scrbl) (file-exists? dependent.scrbl))}
                          (list (build-path (digimon-tamer) "handbook.scrbl")
                                (when (equal? (current-digimon) (digimon-gnome))
@@ -268,25 +264,3 @@ exec racket --require "$0" --main -- ${1+"$@"}
   {lambda arglist
     (parameterize ([current-command-line-arguments (list->vector arglist)])
       (exit (call-with-current-continuation main0)))})
-
-{module markdown racket
-  (require racket/path)
-  (require racket/file)
-  (require racket/function)
-  
-  (require scribble/core)
-  (require scribble/base)
-  
-  (provide (all-defined-out))
-  
-  (define handbook->markdown
-    {lambda [handbook]
-      (define tables (let parts->blocks ([ps (part-parts handbook)] [indexes (list 1)])
-                       (for/fold ([tables null]) ([i (in-naturals (car indexes))] [p (in-list ps)])
-                         (append tables (part-tags p) (parts->blocks (part-parts p) (cons 1 indexes))))))
-      (struct-copy part handbook
-                   [parts null])})
-  
-  (define markdown->string
-    {lambda [tmp.md]
-      (file->string tmp.md)})}

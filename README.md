@@ -76,4 +76,3 @@ Obviousely, our _digimons_ have their own life cycle.
 * **Adult**: The 3rd stage of _digimon evolution_ evolving from
   **Child**. At this stage _digimons_ are strong enough to live on their
   own.
-

@@ -100,15 +100,15 @@
   {lambda []
     (define story-snapshot (tamer-story))
     (make-delayed-block
-     {λ [get set]
+     {λ [render% pthis _]
        (define-values {harness-in harness-out} (make-pipe #false 'hspec-in 'hspec-out))
        (parameterize ([tamer-story story-snapshot]
                       [current-input-port harness-in]
                       [current-error-port harness-out]
                       [current-output-port harness-out])
          (define summary? (make-parameter #false))
-         (define readme? (member 'markdown (get 'scribble:current-render-mode '{html})))
-         (define ->block (cond [readme? {λ [blocks] (margin-note (para (literal "---")) ":book: " (bold "Features and Behaviors") "<br>"
+         (define readme? (member 'markdown (send render% current-render-mode)))
+         (define ->block (cond [readme? {λ [blocks] (margin-note (para (literal "---")) ":book: " (bold "Behaviors and Features") "<br>"
                                                                  (add-between (filter-not void? blocks) "<br>"))}]
                                [else {λ [blocks] (filebox (italic (cond [(false? story-snapshot) (format "Features of ~a" (current-digimon))]
                                                                         [(module-path? story-snapshot) (format "Features of ~a" (cadadr story-snapshot))]))
@@ -122,75 +122,79 @@
                                    => {λ [pieces] (match-let ([{list _ story padding status} pieces])
                                                     (define remote-url (format "http://~a.gyoudmon.org/~a" (string-downcase (current-digimon)) story))
                                                     (define result (let ([success? (string=? status (~result struct:test-success))])
-                                                                     (cond [readme? (if success? ":heart:" ":broken_heart:")]
+                                                                     (cond [readme? (if success? ":heart: " ":broken_heart: ")]
                                                                            [else ((if success? racketvalfont racketerror) status)])))
                                                     (define label (racketkeywordfont (literal story padding)))
-                                                    (cond [readme? (literal (format "~a [~a](~a)" result story remote-url))]
+                                                    (cond [readme? (elem result (hyperlink remote-url story))]
                                                           [(false? story-snapshot) (seclink story label result)]
                                                           [(module-path? story-snapshot) (elem label result)]))}]
                                   [(regexp-match? #px"^⧴ (FAILURE|FATAL) » .+?\\s*$" line)
                                    => {λ _ (unless readme? (racketcommentfont line))}]
                                   [(regexp-match? #px"^\\s*$" line)
                                    => {λ _ (and (summary? #true) ~)}]
-                                  [(and (summary?) readme?) (unless (regexp-match? #px"wallclock" line) (elem ":memo: " (italic (literal line))))]
+                                  [(and (summary?) readme?) (unless (regexp-match? #px"wallclock" line) (italic (literal line)))]
                                   [(summary?) (racketoutput line)])))))})})
 
 (define tamer-note
   {lambda suite-vars
     (define story-snapshot (tamer-story))
-    (make-traverse-block
-     {λ [get set]
-       (parameterize ([tamer-story story-snapshot])
-         (define-values {hspec-in hspec-out} (make-pipe #false 'hspec-in 'hspec-out))
+    (make-delayed-block
+     {λ [render% pthis _]
+       (define-values {hspec-in hspec-out} (make-pipe #false 'hspec-in 'hspec-out))
+       (parameterize ([tamer-story story-snapshot]
+                      [current-input-port hspec-in])
+         (define status (make-parameter 0)) ;;; status: =0 => success; >0 => failure; <0 => error; NaN => summary comes
          (thread {λ _ (dynamic-wind void
-                                    {λ _ (parameterize ([current-output-port hspec-out]
-                                                        [current-error-port hspec-out])
+                                    {λ _ (parameterize ([current-error-port hspec-out]
+                                                        [current-output-port hspec-out])
                                            (for ([suite (in-list suite-vars)])
-                                             (define-values {brief cpu real gc}
-                                               (prove-spec (tamer-require suite)))
-                                             (define-values {success failure error}
-                                               (values (summary-success brief) (summary-failure brief) (summary-error brief)))
+                                             (define-values {brief cpu real gc} (prove-spec (tamer-require suite)))
+                                             (define-values {failure error} (values (summary-failure brief) (summary-error brief)))
                                              (unless (zero? (+ failure error))
                                                (printf "~n~a failure~a ~a error~a~n"
                                                        failure (plural-suffix failure)
                                                        error (plural-suffix error)))))}
                                     {λ _ (close-output-port hspec-out)})})
-         (margin-note (let awk ([status 0]) ;;; status: =0 => sucess; >0 => failure; <0 => error; NaN => summary comes
-                        (define line (read-line hspec-in))
-                        (cond [(eof-object? line) null]
-                              [(regexp-match #px"^(λ)\\s+(.+)" line)
-                               => {λ [pieces] (and (echof #:fgcolor 202 #:attributes '{underline} "~a~n" line)
-                                                   (list* (racketmetafont (list-ref pieces 1) ~ (literal (list-ref pieces 2)))
-                                                          (linebreak) (awk 0)))}]
-                              [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
-                               => {λ [pieces] (and (echof "~a~n" line)
-                                                   (list* (racketparenfont (list-ref pieces 1) ~ (literal (list-ref pieces 3)))
-                                                          (linebreak) (awk 0)))}]
-                              [(regexp-match #px"^\\s+(.+?) (\\d+) - (.+?)( \\[(.+?)\\])?\\s*$" line)
-                               => {λ [pieces] (let-values ([{stts indx tm} (values (list-ref pieces 1) (list-ref pieces 2)
-                                                                                   (let ([tm (list-ref pieces 5)]) (if tm tm "-")))])
-                                                (echof #:fgcolor (if (string=? stts (~result struct:test-success)) 'green 'lightred) "~a~n" line)
-                                                (list* ((if (string=? stts (~result struct:test-success)) racketvalfont racketerror) stts)
-                                                       (racketvarfont ~ indx) (racketresultfont ~ tm) (racketcommentfont ~ (literal (list-ref pieces 3)))
-                                                       (linebreak) (awk 0)))}]
-                              [(regexp-match #px"^\\s*⧴ (FAILURE|FATAL) » .+?\\s*$" line)
-                               => {λ [pieces] (case (list-ref pieces 1)
-                                                [{"FAILURE"} (eechof #:fgcolor 'red "~a~n" line) (awk +inf.0)]
-                                                [{"FATAL"} (eechof #:fgcolor 'red #:attributes '{inverse} "~a~n" line) (awk -inf.0)])}]
-                              [(regexp-match #px"^\\s*»» (.+?)?:?\\s+\"?(.+?)\"?\\s*$" line)
-                               => {λ [pieces] (and (eechof #:fgcolor 'red #:attributes (if (< status 0) '{inverse} null) "~a~n" line)
-                                                   (append (if (equal? (list-ref pieces 1) "message")
-                                                               (list (racketcommentfont (italic "»»" ~ (literal (list-ref pieces 2)))) (linebreak))
-                                                               null)
-                                                           (awk status)))}]
-                              [(regexp-match #px"^\\s*»»»» .+$" line)
-                               => {λ _ (and (eechof #:fgcolor 245 "~a~n" line)
-                                            (awk status))}]
-                              [(regexp-match #px"^$" line)
-                               => {λ _ (awk +NaN.0)}]
-                              [else (eechof "~a~n" line)
-                                    (append (if (nan? status) (list (racketoutput line) (linebreak)) null)
-                                            (awk status))]))))})})
+         (margin-note (let ([bs (for/list ([line (in-port read-line)])
+                                  (cond [(regexp-match #px"^(λ)\\s+(.+)" line)
+                                         => {λ [pieces] (and (status 0)
+                                                             (echof #:fgcolor 202 #:attributes '{underline} "~a~n" line)
+                                                             (racketmetafont (list-ref pieces 1) ~ (literal (list-ref pieces 2))))}]
+                                        [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
+                                         => {λ [pieces] (and (status 0)
+                                                             (echof "~a~n" line)
+                                                             (racketparenfont (list-ref pieces 1) ~ (literal (list-ref pieces 3))))}]
+                                        [(regexp-match #px"^\\s+(.+?) (\\d+) - (.+?)( \\[(.+?)\\])?\\s*$" line)
+                                         => {λ [pieces] (let*-values ([{stts indx tm} (values (list-ref pieces 1) (list-ref pieces 2) (or (list-ref pieces 5) "-"))]
+                                                                      [{color font} (if (string=? stts (~result struct:test-success))
+                                                                                        (values 'green racketvalfont) (values 'lightred racketerror))])
+                                                          (status 0)
+                                                          (echof #:fgcolor color "~a~n" line)
+                                                          (elem (font stts) (racketvarfont ~ indx) (racketresultfont ~ tm)
+                                                                (racketcommentfont ~ (literal (list-ref pieces 3)))))}]
+                                        [(regexp-match #px"^\\s*⧴ (FAILURE|FATAL) » .+?\\s*$" line)
+                                         => {λ [pieces] (case (list-ref pieces 1)
+                                                          [{"FAILURE"} (eechof #:fgcolor 'red "~a~n" line) (status +inf.0)]
+                                                          [{"FATAL"} (eechof #:fgcolor 'red #:attributes '{inverse} "~a~n" line) (status -inf.0)])}]
+                                        [(regexp-match #px"^\\s*»» (.+?)?:?\\s+\"?(.+?)\"?\\s*$" line)
+                                         => {λ [pieces] (and (eechof #:fgcolor 'red #:attributes (if (< (status) 0) '{inverse} null) "~a~n" line)
+                                                             (when (equal? (list-ref pieces 1) "message")
+                                                               (racketcommentfont (italic "»»" ~ (literal (list-ref pieces 2))))))}]
+                                        [(regexp-match #px"^\\s*»»»» .+$" line)
+                                         => {λ _ (eechof #:fgcolor 245 "~a~n" line)}]
+                                        [(regexp-match #px"^$" line)
+                                         => {λ _ (status +NaN.0)}]
+                                        [else (eechof "~a~n" line)
+                                              (when (nan? (status)) (racketoutput line))]))])
+                        (add-between (filter-not void? bs) (linebreak)))))})})
+
+(define handbook-smart-table
+  {lambda []
+    (make-traverse-block
+     {λ [get set]
+       (define readme? (member 'markdown (get 'scribble:current-render-mode '{html})))
+       (cond [(false? readme?) (table-of-contents)]
+             [else (para (hyperlink "http://digignome.gyoudmon.org" ":house_with_garden::cat2:"))])})})
 
 (define handbook-story
   {lambda [#:style [style #false] . pre-contents]
