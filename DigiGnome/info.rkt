@@ -9,4 +9,4 @@
 (define compile-omit-paths (list "makefile.rkt" "submake.rkt" "info.rkt" "stone" "tamer"))
 (define test-omit-paths 'all)
 
-(define pkg-desc "DigiGnome is built for developers to make life simple.")
+(define pkg-desc "The Meta-Project built for developers to make life simple")

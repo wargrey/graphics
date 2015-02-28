@@ -3,14 +3,20 @@
 @(require "tamer.rkt")
 
 @(tamer-story (tamer-story->libpath "makefile.rkt"))
-@(tamer-partner (tamer-partner->filepath "../makefile.rkt"))
+@(tamer-partner `(file ,(path->string (car (filter file-exists? (list (collection-file-path "makefile.rkt" (digimon-gnome))
+                                                                      (build-path (digimon-world) "makefile.rkt")))))))
 @(tamer-zone (make-tamer-zone))
 
 @handbook-story{Hello, Hacker Hero!}
 
-Every hacker needs a @hyperlink[@(path->string (match (tamer-partner)
-                                                 [{list 'lib lib} (build-path (digimon-world) lib)]
-                                                 [{list 'file file} (simplify-path (build-path (path-only (syntax-source #'makefile)) file))]))]{@italic{makefile.rkt}}
+@margin-note{This @italic{story} shows my @italic{Programming Methodology} that the entire project should follow.
+                                                      
+                  @italic{@bold{Principal} This sample should be (rather than must be)
+                           followed due to the complexity of the real world problems.
+                           In fact it@literal{'}s all right to forget it after reading.}}
+
+Every hacker needs a @hyperlink[@(cadr(tamer-partner))]{@italic{makefile.rkt}} (and some
+@hyperlink[@(collection-file-path "digitama/runtime.rkt" (digimon-gnome))]{minimal common code base})
 to make life simple. However testing building routines always makes nonsense but costs high,
 thus besides the simplest examples, I will check whether the subprojects satisfy the @seclink["rules"]{rules}.
 
@@ -27,16 +33,13 @@ where @chunk[|<makefile taming start>|
              (require "tamer.rkt")
              
              (tamer-story (tamer-story->libpath "makefile.rkt"))
-             (tamer-partner (tamer-partner->filepath "../makefile.rkt"))]
+             (tamer-partner `(file ,(format "~a/makefile.rkt" (digimon-world))))]
 
 @tamer-smart-summary[]
 
 @handbook-scenario{Ready? Let@literal{'}s have a try!}
 
 @chunk[|<ready? help!>|
-       (current-directory (let ([story (cadadr (tamer-story))])
-                            (path-only (build-path (digimon-world) story))))
-       
        (define-values {make out err $? setup teardown}
          (values (dynamic-require (tamer-partner) 'main {λ _ #false})
                  (open-output-bytes 'stdout)
@@ -185,34 +188,30 @@ rules, and this story is all about building system. So apart from conventions, w
 @subsubsection{Rules on project documentation}
 
 @chunk[|<rule: readme.md>|
-       (define /stone (find-relative-path (digimon-zone) (digimon-stone)))
+       (match-define {list top.scrbl sub.scrbl}
+         (map (compose1 (curry find-relative-path (digimon-zone)) build-path)
+              (list (digimon-stone) (digimon-tamer))
+              (list "readme.scrbl" "handbook.scrbl")))
        
-       (define-tamer-suite rules:readme.md "Rules: readme.md readers"
-         (cons (test-suite "/index.scrbl"
+       (define-tamer-suite rules:readme.md "Rules: README.md dependent"
+         (cons (test-suite "for /README.md"
                            |<rules: ROOT/readme.md>|)
                (for/list ([digidir (in-list digidirs)])
                  (define digimon (file-name-from-path digidir))
-                 (define stonedir (build-path digimon /stone))
-                 (test-suite (format "with ~a" stonedir)
+                 (test-suite (format "for /~a/README.md" digimon)
                              |<rules: DIGIMON/readme.md>|))))]
 
 @tamer-note['rules:readme.md]
-@(itemlist @item{@bold{Rule 5} The project's toplevel @italic{README.md} is designated as the @italic{main-toc} of @bold{Scribble}.}
-           @item{@bold{Rule 6} Each subproject's @italic{README.md} is designated as its own content table.})
+@(itemlist @item{@bold{Rule 5} The project@literal{'}s toplevel @italic{README.md} is designated as the @italic{main-toc} of @bold{Scribble}.}
+           @item{@bold{Rule 6} Each subproject@literal{'}s @italic{README.md} follows its @italic{handbook}@literal{'}s index page.})
 
 @chunk[|<rules: ROOT/readme.md>|
-       (test-case (format "Rule 5: ~a/~a/index.scrbl" (digimon-gnome) /stone)
-                  (check-pred file-exists?
-                              (build-path (digimon-stone) "index.scrbl")
-                              "index.scrbl should exists!"))]
+       (test-pred (format "Rule 5: ~a/~a" (digimon-gnome) top.scrbl)
+                  file-exists? (build-path (digimon-zone) top.scrbl))]
 
 @chunk[|<rules: DIGIMON/readme.md>|
-       (test-case "Rule 6: readme.scrbl"
-                  (with-check-info
-                   {{'stonedir stonedir}}
-                   (check-pred file-exists?
-                               (build-path digidir /stone "readme.scrbl")
-                               "readme.scrbl should exists!")))]
+       (test-pred (format "Rule 6: ~a/~a" digimon sub.scrbl)
+                  file-exists? (build-path digidir sub.scrbl))]
 
 @handbook-scenario{What if the @italic{handbook} is unavaliable?}
 

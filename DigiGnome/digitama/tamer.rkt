@@ -52,11 +52,6 @@
   {lambda [partner-path]
     (path->digimon-libpath (build-path (digimon-zone) partner-path))})
 
-(define tamer-partner->filepath
-  {lambda [partner-path #:subtamer [subtamer 'same]]
-    `(file ,(path->string (find-relative-path (simplify-path (build-path (digimon-tamer) subtamer))
-                                              (simplify-path (build-path (digimon-zone) partner-path)))))})
-
 (define make-tamer-zone
   {lambda []
     (define tamer.rkt (path->string (build-path (digimon-tamer) "tamer.rkt")))
@@ -83,13 +78,13 @@
     (+ failure error)})
 
 (define tamer-harness
-  {lambda [#:story [snapshot #false]]
+  {lambda []
     (define-values {brief-box cpu0 real0 gc0}
       (time-apply {λ suites (for/fold ([brief initial-summary] [count 0]) ([suite (in-list suites)])
                               (define-values {brief0 cpu real gc} (prove-harness suite))
                               (values (summary** brief brief0) (add1 count)))}
-                  (cond [(false? snapshot) (hash-map handbook-stories {λ [harness stories] (make-test-suite harness (reverse (map cdr stories)))})]
-                        [(module-path? snapshot) (reverse (map cdr (hash-ref handbook-stories (tamer-story->tag snapshot) (cons '_ null))))])))
+                  (cond [(false? (tamer-story)) (hash-map handbook-stories {λ [harness stories] (make-test-suite harness (reverse (map cdr stories)))})]
+                        [(module-path? (tamer-story)) (reverse (map cdr (hash-ref handbook-stories (tamer-story->tag (tamer-story)) (cons '_ null))))])))
     (define-values {success failure error real cpu-gc gc cpu}
       (apply values (summary-success (car brief-box)) (summary-failure (car brief-box)) (summary-error (car brief-box))
              (map {λ [t] (~r (/ t 1000.0) #:precision '{= 3})} (list real0 (- cpu0 gc0) gc0 cpu0))))
@@ -104,98 +99,98 @@
 (define tamer-smart-summary
   {lambda []
     (define story-snapshot (tamer-story))
-    (make-delayed-block
-     {λ _ (let-values ([{harness-in harness-out} (make-pipe #false 'hspec-in 'hspec-out)])
-            (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
-                                       {λ _ (parameterize ([current-error-port harness-out]
-                                                           [current-output-port harness-out])
-                                              (tamer-harness #:story story-snapshot))}
-                                       {λ _ (close-output-port harness-out)})})
-            (nested #:style (make-style "boxed" null)
-                    (apply filebox (cond [(false? story-snapshot) (italic (format "Harness Summary of ~a" (find-relative-path (digimon-world) (digimon-tamer))))]
-                                         [(module-path? story-snapshot) (italic (cadadr story-snapshot))])
-                           (let awk ([summary? #false]) ;;; status: =0 => sucess; >0 => failure; <0 => error
-                             (define line (read-line harness-in))
-                             (cond [(eof-object? line) null]
-                                   [(regexp-match #px"^(.+?)(\\.{3,})(.+)$" line)
-                                    => {λ [pieces]
-                                         (define story (racketkeywordfont (literal (list-ref pieces 1) (list-ref pieces 2))))
-                                         (define result (let ([status (list-ref pieces 3)]
-                                                              [label (~result struct:test-success)])
-                                                          ((if (string=? status label) racketvalfont racketerror) status)))
-                                         (cond [(false? story-snapshot) (list* (seclink (list-ref pieces 1) story result) (linebreak) (awk #false))]
-                                               [(module-path? story-snapshot) (list* story result (linebreak) (awk #false))])}]
-                                   [(regexp-match #px"^⧴ (FAILURE|FATAL) » .+?\\s*$" line)
-                                    => {λ [whocares]
-                                         (list* (racketcommentfont line) (linebreak) (awk #false))}]
-                                   [(regexp-match #px"^\\s*$" line)
-                                    => {λ [whocares]
-                                         (list* (linebreak) (awk #true))}]
-                                   [else (cond [(false? summary?) (awk summary?)]
-                                               [else (list* (racketoutput line)
-                                                            (linebreak) (awk summary?))])])))))})})
+    (make-traverse-block
+     {λ [get set]
+       (define-values {harness-in harness-out} (make-pipe #false 'hspec-in 'hspec-out))
+       (parameterize ([tamer-story story-snapshot]
+                      [current-input-port harness-in]
+                      [current-error-port harness-out]
+                      [current-output-port harness-out])
+         (define summary? (make-parameter #false))
+         (define readme? (member 'markdown (get 'scribble:current-render-mode '{html})))
+         (define ->block (cond [readme? {λ [blocks] (elem (add-between (cons ":book: Features and Behaviors" (filter-not void? blocks)) "<br>"))}]
+                               [else {λ [blocks] (filebox (italic (cond [(false? story-snapshot) (format "Features of ~a" (current-digimon))]
+                                                                        [(module-path? story-snapshot) (format "Features of ~a" (cadadr story-snapshot))]))
+                                                          (add-between (filter-not void? blocks) (linebreak)))}]))
+         (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
+                                    {λ _ (tamer-harness)}
+                                    {λ _ (close-output-port harness-out)})})
+         (nested #:style (make-style "boxed" null)
+                 (->block (for/list ([line (in-port read-line)])
+                            (cond [(regexp-match #px"^(.+?)(\\.{3,})(.+)$" line)
+                                   => {λ [pieces] (match-let ([{list _ story padding status} pieces])
+                                                    (define remote-url (format "~a.gyoudmon.org/~a" (string-downcase (current-digimon)) story))
+                                                    (define label (literal story padding))
+                                                    (define result (let ([success? (string=? status (~result struct:test-success))])
+                                                                     (cond [readme? (if success? ":heart:" ":bug:")]
+                                                                           [else ((if success? racketvalfont racketerror) status)])))
+                                                    (cond [readme? (elem ":scroll:" (hyperlink remote-url label result))]
+                                                          [(false? story-snapshot) (seclink story (racketkeywordfont label) result)]
+                                                          [(module-path? story-snapshot) (elem (racketkeywordfont label) result)]))}]
+                                  [(regexp-match? #px"^⧴ (FAILURE|FATAL) » .+?\\s*$" line)
+                                   => {λ _ (cond [readme? (elem ":pushpin:" (literal line))]
+                                                 [else (racketcommentfont line)])}]
+                                  [(regexp-match? #px"^\\s*$" line)
+                                   => {λ _ (and (summary? #true) ~)}]
+                                  [(and (summary?) readme?) (elem ":memo:" (literal line))]
+                                  [(summary?) (racketoutput line)])))))})})
 
 (define tamer-note
   {lambda suite-vars
-    (define-values {hspec-in hspec-out} (make-pipe #false 'hspec-in 'hspec-out))
-    (thread {λ _ (dynamic-wind void
-                               {λ _ (parameterize ([current-output-port hspec-out]
-                                                   [current-error-port hspec-out])
-                                      (for ([suite (in-list suite-vars)])
-                                        (define-values {brief cpu real gc}
-                                          (prove-spec (tamer-require suite)))
-                                        (define-values {success failure error}
-                                          (values (summary-success brief) (summary-failure brief) (summary-error brief)))
-                                        (unless (zero? (+ failure error))
-                                          (printf "~n~a failure~a ~a error~a~n"
-                                                  failure (plural-suffix failure)
-                                                  error (plural-suffix error)))))}
-                               {λ _ (close-output-port hspec-out)})})
-    (apply margin-note
-           (let awk ([status 0]) ;;; status: =0 => sucess; >0 => failure; <0 => error; NaN => summary comes
-             (define line (read-line hspec-in))
-             (cond [(eof-object? line) null]
-                   [(regexp-match #px"^(λ)\\s+(.+)" line)
-                    => {λ [pieces]
-                         (echof #:fgcolor 202 #:attributes '{underline} "~a~n" line)
-                         (list* (racketmetafont (list-ref pieces 1) ~ (literal (list-ref pieces 2)))
-                                (linebreak) (awk 0))}]
-                   [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
-                    => {λ [pieces]
-                         (echof "~a~n" line)
-                         (list* (racketparenfont (list-ref pieces 1) ~ (literal (list-ref pieces 3)))
-                                (linebreak) (awk 0))}]
-                   [(regexp-match #px"^\\s+(.+?) (\\d+) - (.+?)( \\[(.+?)\\])?\\s*$" line)
-                    => {λ [pieces]
-                         (define-values {stts indx tm}
-                           (values (list-ref pieces 1) (list-ref pieces 2)
-                                   (let ([tm (list-ref pieces 5)]) (if tm tm "-"))))
-                         (echof #:fgcolor (if (string=? stts (~result struct:test-success)) 'green 'lightred) "~a~n" line)
-                         (list* ((if (string=? stts (~result struct:test-success)) racketvalfont racketerror) stts)
-                                (racketvarfont ~ indx) (racketresultfont ~ tm) (racketcommentfont ~ (literal (list-ref pieces 3)))
-                                (linebreak) (awk 0))}]
-                   [(regexp-match #px"^\\s*⧴ (FAILURE|FATAL) » .+?\\s*$" line)
-                    => {λ [pieces]
-                         (case (list-ref pieces 1)
-                           [{"FAILURE"} (eechof #:fgcolor 'red "~a~n" line) (awk +inf.0)]
-                           [{"FATAL"} (eechof #:fgcolor 'red #:attributes '{inverse} "~a~n" line) (awk -inf.0)])}]
-                   [(regexp-match #px"^\\s*»» (.+?)?:?\\s+\"?(.+?)\"?\\s*$" line)
-                    => {λ [pieces]
-                         (eechof #:fgcolor 'red #:attributes (if (< status 0) '{inverse} null) "~a~n" line)
-                         (append (if (equal? (list-ref pieces 1) "message")
-                                     (list (racketcommentfont (italic "»»" ~ (literal (list-ref pieces 2)))) (linebreak))
-                                     null)
-                                 (awk status))}]
-                   [(regexp-match #px"^\\s*»»»» .+$" line)
-                    => {λ [whocares]
-                         (eechof #:fgcolor 245 "~a~n" line)
-                         (awk status)}]
-                   [(regexp-match #px"^$" line)
-                    => {λ [whocares]
-                         (awk +NaN.0)}]
-                   [else (eechof "~a~n" line)
-                         (append (if (nan? status) (list (racketoutput line) (linebreak)) null)
-                                 (awk status))])))})
+    (define story-snapshot (tamer-story))
+    (make-traverse-block
+     {λ [get set]
+       (parameterize ([tamer-story story-snapshot])
+         (define-values {hspec-in hspec-out} (make-pipe #false 'hspec-in 'hspec-out))
+         (thread {λ _ (dynamic-wind void
+                                    {λ _ (parameterize ([current-output-port hspec-out]
+                                                        [current-error-port hspec-out])
+                                           (for ([suite (in-list suite-vars)])
+                                             (define-values {brief cpu real gc}
+                                               (prove-spec (tamer-require suite)))
+                                             (define-values {success failure error}
+                                               (values (summary-success brief) (summary-failure brief) (summary-error brief)))
+                                             (unless (zero? (+ failure error))
+                                               (printf "~n~a failure~a ~a error~a~n"
+                                                       failure (plural-suffix failure)
+                                                       error (plural-suffix error)))))}
+                                    {λ _ (close-output-port hspec-out)})})
+         (margin-note (let awk ([status 0]) ;;; status: =0 => sucess; >0 => failure; <0 => error; NaN => summary comes
+                        (define line (read-line hspec-in))
+                        (cond [(eof-object? line) null]
+                              [(regexp-match #px"^(λ)\\s+(.+)" line)
+                               => {λ [pieces] (and (echof #:fgcolor 202 #:attributes '{underline} "~a~n" line)
+                                                   (list* (racketmetafont (list-ref pieces 1) ~ (literal (list-ref pieces 2)))
+                                                          (linebreak) (awk 0)))}]
+                              [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
+                               => {λ [pieces] (and (echof "~a~n" line)
+                                                   (list* (racketparenfont (list-ref pieces 1) ~ (literal (list-ref pieces 3)))
+                                                          (linebreak) (awk 0)))}]
+                              [(regexp-match #px"^\\s+(.+?) (\\d+) - (.+?)( \\[(.+?)\\])?\\s*$" line)
+                               => {λ [pieces] (let-values ([{stts indx tm} (values (list-ref pieces 1) (list-ref pieces 2)
+                                                                                   (let ([tm (list-ref pieces 5)]) (if tm tm "-")))])
+                                                (echof #:fgcolor (if (string=? stts (~result struct:test-success)) 'green 'lightred) "~a~n" line)
+                                                (list* ((if (string=? stts (~result struct:test-success)) racketvalfont racketerror) stts)
+                                                       (racketvarfont ~ indx) (racketresultfont ~ tm) (racketcommentfont ~ (literal (list-ref pieces 3)))
+                                                       (linebreak) (awk 0)))}]
+                              [(regexp-match #px"^\\s*⧴ (FAILURE|FATAL) » .+?\\s*$" line)
+                               => {λ [pieces] (case (list-ref pieces 1)
+                                                [{"FAILURE"} (eechof #:fgcolor 'red "~a~n" line) (awk +inf.0)]
+                                                [{"FATAL"} (eechof #:fgcolor 'red #:attributes '{inverse} "~a~n" line) (awk -inf.0)])}]
+                              [(regexp-match #px"^\\s*»» (.+?)?:?\\s+\"?(.+?)\"?\\s*$" line)
+                               => {λ [pieces] (and (eechof #:fgcolor 'red #:attributes (if (< status 0) '{inverse} null) "~a~n" line)
+                                                   (append (if (equal? (list-ref pieces 1) "message")
+                                                               (list (racketcommentfont (italic "»»" ~ (literal (list-ref pieces 2)))) (linebreak))
+                                                               null)
+                                                           (awk status)))}]
+                              [(regexp-match #px"^\\s*»»»» .+$" line)
+                               => {λ _ (and (eechof #:fgcolor 245 "~a~n" line)
+                                            (awk status))}]
+                              [(regexp-match #px"^$" line)
+                               => {λ _ (awk +NaN.0)}]
+                              [else (eechof "~a~n" line)
+                                    (append (if (nan? status) (list (racketoutput line) (linebreak)) null)
+                                            (awk status))]))))})})
 
 (define handbook-story
   {lambda [#:style [style #false] . pre-contents]
@@ -247,10 +242,9 @@
           (time-apply {λ _ (call-with-escape-continuation
                             {λ [return] (parameterize ([current-output-port /dev/null]
                                                        [current-error-port (open-output-string 'stderr)]
-                                                       [exit-handler {λ [status]
-                                                                       (let ([errmsg (string-trim (get-output-string (current-error-port)))])
-                                                                         (return (run-test-case short-name (with-check-info {{'exitcode status}}
-                                                                                                                            {λ _ (fail errmsg)}))))}])
+                                                       [exit-handler {λ [status] (let ([errmsg (string-trim (get-output-string (current-error-port)))])
+                                                                                   (return (run-test-case short-name (with-check-info {{'exitcode status}}
+                                                                                                                                      {λ _ (fail errmsg)}))))}])
                                           (return (run-test-case short-name action)))})} null))
         (hash-set! handbook-records long-name (validation (car results) cpu real gc)))
       (hash-ref handbook-records long-name)})

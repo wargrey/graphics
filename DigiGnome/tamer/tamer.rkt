@@ -1,6 +1,7 @@
-#lang racket/base
+#lang at-exp racket/base
 
-(require "../digitama/tamer.rkt")
+;;; To force makefile.rkt counting the required file
+@require{../digitama/tamer.rkt}
 
 (provide (all-defined-out))
 (provide (all-from-out "../digitama/tamer.rkt"))

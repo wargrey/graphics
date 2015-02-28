@@ -48,39 +48,23 @@ exec racket --require "$0" --main -- ${1+"$@"}
   {lambda [rootdir finfo]
     (define-values {pin pout} (make-pipe #false 'filter-checking 'verbose-message))
     (define px.inside-world (pregexp (digimon-world)))
-    (define verbose-awk (thread {λ _ (let awk ()
-                                       (define v (read-line pin))
-                                       (unless (eof-object? v)
-                                         (cond [(regexp-match? px.inside-world v) (printf "~a~n" v)]
-                                               [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" v) 'Skip-Others-Packages]
-                                               [else (printf "~a~n" v)])
-                                         (awk)))}))
-    (parameterize ([current-output-port pout])
-      (compile-directory-zos rootdir finfo #:verbose #true #:skip-doc-sources? #true)
-      (close-output-port pout))
-    (thread-wait verbose-awk)
-    (close-input-port pin)})
+    (thread {λ _ (dynamic-wind void
+                               {λ _ (parameterize ([current-output-port pout])
+                                      (compile-directory-zos rootdir finfo #:verbose #true #:skip-doc-sources? #true))}
+                               {λ _ (close-output-port pout)})})
+    (for ([line (in-port read-line pin)])
+      (cond [(regexp-match? px.inside-world line) (printf "~a~n" line)]
+            [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" line) 'Skip-Others-Packages]
+            [else (printf "~a~n" line)]))})
 
-#|
-(local-require scribble/base)
-(local-require scribble/core)
-(define handbook->readme
-   {lambda [psection [header-level 0]]
-     (define blocks (foldl {λ [sp bs] (append bs sp)}
-                           (cons (para #:style (make-style "boxed" null)
-                                       (larger ((cond [(zero? header-level) larger]
-                                                      [else (apply compose1 (make-list (sub1 header-level) smaller))])
-                                        (elem #:style (make-style (format "h~a" (add1 header-level)) null)
-                                              (part-title-content psection)))))
-                                 (part-blocks psection))
-                           (map {λ [sub] (handbook->readme sub (add1 header-level))}
-                                (part-parts psection))))
-     (cond [(> header-level 0) blocks]
-           [else (let ([dver (filter document-version? (style-properties (part-style psection)))])
-                   (cond [(or (null? dver) (zero? (string-length (document-version-text (car dver))))) blocks]
-                         [else (cons (elem #:style (make-style "tocsubtitle" null)
-                                           (format "v.~a" (document-version-text (car dver))))
-                                     blocks)]))])})|#
+(define smart-dependencies
+    {lambda [entry [memory null]]
+      (foldl {lambda [subpath memory]
+               (define subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
+               (cond [(member subsrc memory) memory]
+                     [else (smart-dependencies subsrc memory)])}
+             (append memory (list entry))
+             (call-with-input-file entry (curry regexp-match* #px"(?<=@(include-section|lp-include|require)\\{).+?.(scrbl|rkt)(?=\\})")))})
 
 (define make-implicit-rules
   {lambda []
@@ -104,38 +88,42 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                   (list t ds (curry make-racket-launcher (list "-t-" d-ark)))))}
                         (d-info 'racket-launcher-names {λ _ null})
                         (d-info 'racket-launcher-libraries {λ _ null})))
-            (map {λ [readme.scrbl]
-                   ;;; For the sake of simplicity, I do not check `readme.scrbl`s' (require ...)s.
-                   ;;; Under this circumstance, (require ...)s always make nonsense.
-                   ;;; See Rule 5 and Rule 6 in /DigiGnome/tamer/makefile.rkt.
-                   (define-values {t ds} (if (regexp-match? #px"/readme.scrbl$" readme.scrbl)
+            (map {λ [dependent.scrbl]
+                   (define-values {t ds} (if (regexp-match? #px"/readme.scrbl$" dependent.scrbl)
                                              (values (build-path (digimon-world) "README.md")
-                                                     (list* readme.scrbl (syntax-source #'makefile)
-                                                            (filter file-exists? (map (curryr build-path "info.rkt") (directory-list (digimon-world) #:build? #true)))))
+                                                     (list* dependent.scrbl (syntax-source #'makefile)
+                                                            (filter file-exists? (map (curryr build-path "info.rkt")
+                                                                                      (directory-list (digimon-world) #:build? #true)))))
                                              (values (build-path (digimon-zone) "README.md")
-                                                     (list* readme.scrbl (syntax-source #'makefile)
-                                                            (filter file-exists? (list (build-path (digimon-zone) "info.rkt")))))))
+                                                     (filter file-exists? (list* (syntax-source #'makefile) (build-path (digimon-zone) "info.rkt")
+                                                                                 (smart-dependencies dependent.scrbl))))))
                    (list t ds {λ [target]
                                 (parameterize ([current-directory (digimon-zone)]
                                                [current-namespace (make-base-namespace)]
-                                               [exit-handler {λ [whocares] (error 'make "[error] /~a needs a proper `exit-handler`!"
-                                                                                  (find-relative-path (digimon-world) readme.scrbl))}])
+                                               [exit-handler {λ _ (error 'make "[error] /~a needs a proper `exit-handler`!"
+                                                                         (find-relative-path (digimon-world) dependent.scrbl))}])
                                   (namespace-require 'scribble/render)
+                                  (eval `(require (submod (file ,(path->string (syntax-source #'makefile))) markdown)))
                                   (eval '(require (prefix-in markdown: scribble/markdown-render)))
-                                  (eval `(render (list ,(dynamic-require readme.scrbl 'doc)) (list ,(file-name-from-path target))
+                                  (eval `(define markdown:doc (let ([handbook:doc (dynamic-require ,dependent.scrbl 'doc)])
+                                                                (cond [(regexp-match? #px"/readme.scrbl$" ,dependent.scrbl) handbook:doc] 
+                                                                      [else (handbook->markdown handbook:doc)]))))
+                                  (eval `(render (list markdown:doc) (list ,(file-name-from-path target))
                                                  #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #true))
                                   (let ([tmp.md (path-add-suffix target #".md")])
-                                    (display-lines-to-file (file->lines tmp.md) target #:exists 'replace)
-                                    (printf "  [Output to ~a]~n" target)
-                                    (delete-file tmp.md)))})}
-                 (filter {λ [scrbl] (and (path? scrbl) (file-exists? scrbl))}
+                                    (dynamic-wind void
+                                                  {λ _ (with-output-to-file target #:exists 'replace
+                                                         {λ _ (displayln (eval `(markdown->string ,tmp.md)))})}
+                                                  {λ _ (delete-file tmp.md)})
+                                    (printf "  [Output to ~a]~n" target)))})}
+                 (filter {λ [dependent.scrbl] (and (path? dependent.scrbl) (file-exists? dependent.scrbl))}
                          (list (build-path (digimon-tamer) "handbook.scrbl")
                                (when (equal? (current-digimon) (digimon-gnome))
                                  (build-path (digimon-stone) "readme.scrbl"))))))})
 
 {module+ make~all:
   (define submake (build-path (digimon-zone) "submake.rkt"))
-    
+  
   (let ([implicit-rules (map hack-rule (make-implicit-rules))])
     (unless (null? implicit-rules) (make/proc implicit-rules (map car implicit-rules))))
   (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
@@ -200,7 +188,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                    (current-make-real-targets)))]))])
       (parameterize ([current-directory (path-only handbook)]
                      [current-namespace (make-base-namespace)]
-                     [exit-handler {λ [whocares] (error 'make "[error] /~a needs a proper `exit-handler`!" (find-relative-path (digimon-world) handbook))}])
+                     [exit-handler {λ _ (error 'make "[error] /~a needs a proper `exit-handler`!" (find-relative-path (digimon-world) handbook))}])
         (namespace-require 'setup/xref)
         (namespace-require 'scribble/render)
         (eval '(require (prefix-in html: scribble/html-render)))
@@ -280,3 +268,25 @@ exec racket --require "$0" --main -- ${1+"$@"}
   {lambda arglist
     (parameterize ([current-command-line-arguments (list->vector arglist)])
       (exit (call-with-current-continuation main0)))})
+
+{module markdown racket
+  (require racket/path)
+  (require racket/file)
+  (require racket/function)
+  
+  (require scribble/core)
+  (require scribble/base)
+  
+  (provide (all-defined-out))
+  
+  (define handbook->markdown
+    {lambda [handbook]
+      (define tables (let parts->blocks ([ps (part-parts handbook)] [indexes (list 1)])
+                       (for/fold ([tables null]) ([i (in-naturals (car indexes))] [p (in-list ps)])
+                         (append tables (part-tags p) (parts->blocks (part-parts p) (cons 1 indexes))))))
+      (struct-copy part handbook
+                   [parts null])})
+  
+  (define markdown->string
+    {lambda [tmp.md]
+      (file->string tmp.md)})}
