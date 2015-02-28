@@ -6,8 +6,8 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
 
 ## 1. Living Digimons
 
-* [Digimon-Gnome: The Meta-Project built for developers to make life
-  simple](digignome.gyoudmon.org)
+* **[Digimon-Gnome: The Meta-Project built for developers to make life
+  simple](digignome.gyoudmon.org)**
 
 * [Nanomon: Digging data from Chaos such as iPhone
   Backups.](nanomon.gyoudmon.org)
@@ -19,11 +19,11 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
 
 ### 2.1. Building Scripts
 
-* **prerequisites.sh**: Build the latest Racket and Swi-Prolog from
-  offical source.
+* **[prerequisites.sh](/DigiGnome/prerequisites.sh)**: Build the latest
+  Racket and Swi-Prolog from offical source.
 
-* **makefile.rkt**: As its name shows, it is the replacement of
-  Makefile, and it's the toplevel one.
+* **[makefile.rkt](/makefile.rkt)**: As its name shows, it is the
+  replacement of Makefile, and it's the toplevel one.
 
 * **submake.rkt**: As its name shows, it is the sub makefile that may
   exist in every _digimon_ directory.

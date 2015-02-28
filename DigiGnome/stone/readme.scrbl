@@ -2,7 +2,12 @@
 
 @(require "../digitama/runtime.rkt")
 @(require racket/list)
+@(require racket/path)
 @(require setup/getinfo)
+
+@(define githublink
+   {lambda [target]
+     (hyperlink target (path->string (file-name-from-path target)))})
 
 @title{Digital World}
 How to construct a @italic{Digital World}? Okay, we don@literal{'}t start with the @italic{File Island}, but we own some concepts from the
@@ -11,16 +16,17 @@ How to construct a @italic{Digital World}? Okay, we don@literal{'}t start with t
 @section{Living Digimons}
 @(itemlist #:style 'compact
            (filter-not void? (for/list ([digimon (in-list (directory-list (digimon-world) #:build? #false))])
-                               (define info-ref (get-info/full (build-path (digimon-world) digimon)))
+                               (define homepage (if (string=? (path->string digimon) (digimon-gnome)) (compose1 bold hyperlink) hyperlink))
+                               (define info-ref (get-info/full (build-path (digimon-world) digimon))) 
                                (when (procedure? info-ref)
-                                 (item (hyperlink (format "~a.gyoudmon.org" (string-downcase (path->string digimon)))
-                                                  (format "~a: ~a" (info-ref 'collection) (info-ref 'pkg-desc))))))))
+                                 (item (homepage (format "~a.gyoudmon.org" (string-downcase (path->string digimon)))
+                                                 (format "~a: ~a" (info-ref 'collection) (info-ref 'pkg-desc))))))))
 
 @section{Project Conventions}
 @subsection{Building Scripts}
 @(itemlist #:style 'compact
-           @item{@bold{prerequisites.sh}: Build the latest Racket and Swi-Prolog from offical source.}
-           @item{@bold{makefile.rkt}: As its name shows, it is the replacement of Makefile, and it@literal{'}s the toplevel one.}
+           @item{@bold{@githublink[@(format "/~a/prerequisites.sh" (digimon-gnome))]}: Build the latest Racket and Swi-Prolog from offical source.}
+           @item{@bold{@githublink{/makefile.rkt}}: As its name shows, it is the replacement of Makefile, and it@literal{'}s the toplevel one.}
            @item{@bold{submake.rkt}: As its name shows, it is the sub makefile that may exist in every @italic{digimon} directory.})
 
 @subsection{Hierarchy}
