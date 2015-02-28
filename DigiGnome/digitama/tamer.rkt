@@ -99,7 +99,7 @@
 (define tamer-smart-summary
   {lambda []
     (define story-snapshot (tamer-story))
-    (make-traverse-block
+    (make-delayed-block
      {λ [get set]
        (define-values {harness-in harness-out} (make-pipe #false 'hspec-in 'hspec-out))
        (parameterize ([tamer-story story-snapshot]
@@ -108,7 +108,8 @@
                       [current-output-port harness-out])
          (define summary? (make-parameter #false))
          (define readme? (member 'markdown (get 'scribble:current-render-mode '{html})))
-         (define ->block (cond [readme? {λ [blocks] (elem (add-between (cons ":book: Features and Behaviors" (filter-not void? blocks)) "<br>"))}]
+         (define ->block (cond [readme? {λ [blocks] (margin-note (para (literal "---")) ":book: " (bold "Features and Behaviors") "<br>"
+                                                                 (add-between (filter-not void? blocks) "<br>"))}]
                                [else {λ [blocks] (filebox (italic (cond [(false? story-snapshot) (format "Features of ~a" (current-digimon))]
                                                                         [(module-path? story-snapshot) (format "Features of ~a" (cadadr story-snapshot))]))
                                                           (add-between (filter-not void? blocks) (linebreak)))}]))
@@ -119,20 +120,19 @@
                  (->block (for/list ([line (in-port read-line)])
                             (cond [(regexp-match #px"^(.+?)(\\.{3,})(.+)$" line)
                                    => {λ [pieces] (match-let ([{list _ story padding status} pieces])
-                                                    (define remote-url (format "~a.gyoudmon.org/~a" (string-downcase (current-digimon)) story))
-                                                    (define label (literal story padding))
+                                                    (define remote-url (format "http://~a.gyoudmon.org/~a" (string-downcase (current-digimon)) story))
                                                     (define result (let ([success? (string=? status (~result struct:test-success))])
-                                                                     (cond [readme? (if success? ":heart:" ":bug:")]
+                                                                     (cond [readme? (if success? ":heart:" ":broken_heart:")]
                                                                            [else ((if success? racketvalfont racketerror) status)])))
-                                                    (cond [readme? (elem ":scroll:" (hyperlink remote-url label result))]
-                                                          [(false? story-snapshot) (seclink story (racketkeywordfont label) result)]
-                                                          [(module-path? story-snapshot) (elem (racketkeywordfont label) result)]))}]
+                                                    (define label (racketkeywordfont (literal story padding)))
+                                                    (cond [readme? (literal (format "~a [~a](~a)" result story remote-url))]
+                                                          [(false? story-snapshot) (seclink story label result)]
+                                                          [(module-path? story-snapshot) (elem label result)]))}]
                                   [(regexp-match? #px"^⧴ (FAILURE|FATAL) » .+?\\s*$" line)
-                                   => {λ _ (cond [readme? (elem ":pushpin:" (literal line))]
-                                                 [else (racketcommentfont line)])}]
+                                   => {λ _ (unless readme? (racketcommentfont line))}]
                                   [(regexp-match? #px"^\\s*$" line)
                                    => {λ _ (and (summary? #true) ~)}]
-                                  [(and (summary?) readme?) (elem ":memo:" (literal line))]
+                                  [(and (summary?) readme?) (unless (regexp-match? #px"wallclock" line) (elem ":memo: " (italic (literal line))))]
                                   [(summary?) (racketoutput line)])))))})})
 
 (define tamer-note
