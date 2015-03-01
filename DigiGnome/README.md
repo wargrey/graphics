@@ -18,4 +18,4 @@ Good Luck!
 > tests successful._<br>_Testsuite = 1, Testcases = 19, Failure = 1, Error
 > = 0._
 
-[:house\_with\_garden::cat2:](http://digignome.gyoudmon.org)
+[:ghost::cat2::paw\_prints::paw\_prints::paw\_prints::paw\_prints:](http://digignome.gyoudmon.org)
