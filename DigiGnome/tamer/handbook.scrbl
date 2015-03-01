@@ -1,6 +1,5 @@
 #lang scribble/manual
 
-@(require scribble/core)
 @(require scribble/lp-include)
 
 @(require setup/getinfo)
@@ -11,32 +10,18 @@
 
 @title[#:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{Tamer@literal{'}s Handbook}}
 
-@italic{Translating is the most complex human activity in the Universe.}
+@margin-note{@italic{Translating is the most complex human activity in the Universe.}}
 
-@nested[#:style 'code-inset]{@racketoutput{@bold{Story:} Make a @italic{Tamer@literal{'}s Handbook} to Show the Sample}
-                             
-                              @racketoutput{@bold{In order to} standardize my development process and to make life joyful}@linebreak[]
-                              @racketoutput{@bold{As an} indenpendent developer}@linebreak[]
-                              @racketoutput{@bold{I want to} write the @italic{handbook} with @italic{Literate Programming} skill}
-                              
-                              @racketoutput{@bold{Scenario 1:} The project should provide @filepath{tamer/handbook.scrbl}}@linebreak[]
-                              @racketoutput{@bold{Given} the project have been launched and ready for developing}@linebreak[]
-                              @racketoutput{@bold{And} I currently have not found any appropriate specification templates}@linebreak[]
-                              @racketoutput{@bold{When} I do some researching and architect a template}@linebreak[]
-                              @racketoutput{@bold{Then} I should see the @filepath{handbook.scrbl} in @filepath{tamer}}
-                              
-                              @racketerror{Hmm@|._|@|._|@|._| the @italic{Gherkin language}, semiformal and elegant, or maybe stupid.@linebreak[]
-                                              Nevertheless, it@literal{'}s not my cup of tea@|._|@|._|@|._|}}
+This @italic{handbook} shows my
+@italic{@hyperlink["https://github.com/digital-world/DigiGnome"]{Programming Methodology}}
+that the entire project should follow.
 
-Since I@literal{'}m an indenpendent developer and communicating costs almost nothing, I make decision at my risk to
-model software system in @italic{@hyperlink["http://en.wikipedia.org/wiki/Formal_methods"]{Formal Methods}} and
-document it with the @italic{@hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Literate Programming}} approach.
-After all this @italic{handbook} plays the role of
-the @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Test Report} along with
-the @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Design Documentation}
-so that the production code could keep elegant.
+Hmm... nonetheless, in fact it@literal{'}s all right to forget this sample after reading
+due to the complexity of the real world problems.
+
+Good Luck!
 
 @tamer-smart-summary[]
 @handbook-smart-table[]
 
-@lp-include{makefile.rkt}
+@lp-include{infrastructure.rkt}

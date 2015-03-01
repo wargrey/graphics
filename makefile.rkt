@@ -89,25 +89,29 @@ exec racket --require "$0" --main -- ${1+"$@"}
                         (d-info 'racket-launcher-names {λ _ null})
                         (d-info 'racket-launcher-libraries {λ _ null})))
             (map {λ [dependent.scrbl]
-                   (define-values {t ds} (if (regexp-match? #px"/readme.scrbl$" dependent.scrbl)
-                                             (values (build-path (digimon-world) "README.md")
-                                                     (list* dependent.scrbl (syntax-source #'makefile)
-                                                            (filter file-exists? (map (curryr build-path "info.rkt")
-                                                                                      (directory-list (digimon-world) #:build? #true)))))
-                                             (values (build-path (digimon-zone) "README.md")
-                                                     (filter file-exists? (list* (syntax-source #'makefile) (build-path (digimon-zone) "info.rkt")
-                                                                                 (smart-dependencies dependent.scrbl))))))
+                   (define top? (regexp-match? #px"/readme.scrbl$" dependent.scrbl))
+                   (define homepage (format "http://~a.gyoudmon.org" (string-downcase (current-digimon))))
+                   (define-values {t ds} (cond [top? (values (build-path (digimon-world) "README.md")
+                                                             (list* dependent.scrbl (syntax-source #'makefile)
+                                                                    (filter file-exists? (map (curryr build-path "info.rkt")
+                                                                                              (directory-list (digimon-world) #:build? #true)))))]
+                                               [else (values (build-path (digimon-zone) "README.md")
+                                                             (filter file-exists? (list* (syntax-source #'makefile) (build-path (digimon-zone) "info.rkt")
+                                                                                         (smart-dependencies dependent.scrbl))))]))
                    (list t ds {λ [target]
                                 (parameterize ([current-directory (digimon-zone)]
                                                [current-namespace (make-base-namespace)]
                                                [exit-handler {λ _ (error 'make "[error] /~a needs a proper `exit-handler`!"
                                                                          (find-relative-path (digimon-world) dependent.scrbl))}])
                                   (namespace-require 'scribble/core)
+                                  (namespace-require 'scribble/base)
                                   (namespace-require 'scribble/render)
                                   (eval '(require (prefix-in markdown: scribble/markdown-render)))
-                                  (eval `(define markdown:doc (let ([handbook:doc (dynamic-require ,dependent.scrbl 'doc)])
-                                                                (cond [(regexp-match? #px"/readme.scrbl$" ,dependent.scrbl) handbook:doc] 
-                                                                      [else (struct-copy part handbook:doc [parts null])]))))
+                                  (eval `(define markdown:doc (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
+                                                                (struct-copy part scribble:doc 
+                                                                             [title-content (cons (hyperlink ,homepage ":house_with_garden::cat2: ")
+                                                                                                  (part-title-content scribble:doc))]
+                                                                             [parts (if ,top? (part-parts scribble:doc) null)]))))
                                   (eval `(render (list markdown:doc) (list ,(file-name-from-path target))
                                                  #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #true))
                                   (rename-file-or-directory (path-add-suffix target #".md") target #true)

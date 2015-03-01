@@ -17,7 +17,6 @@
 (provide (all-from-out scribble/manual scribble/eval))
 
 (define tamer-story (make-parameter #false))
-(define tamer-partner (make-parameter #false))
 (define tamer-zone (make-parameter #false))
 
 (define-syntax {tamer-action stx}
@@ -46,11 +45,30 @@
 
 (define tamer-story->libpath
   {lambda [story-path]
-    (path->digimon-libpath (build-path (digimon-tamer) story-path) 'story)})
+    (path->digimon-libpath (if (absolute-path? story-path) story-path (build-path (digimon-tamer) story-path)) 'story)})
 
 (define tamer-partner->libpath
   {lambda [partner-path]
-    (path->digimon-libpath (build-path (digimon-zone) partner-path))})
+    (path->digimon-libpath (if (absolute-path? partner-path) partner-path (build-path (digimon-zone) partner-path)))})
+
+(define handbook-smart-table
+  {lambda []
+    (make-traverse-block
+     {λ [get set]
+       (define readme? (member 'markdown (get 'scribble:current-render-mode '{html})))
+       (cond [(false? readme?) (table-of-contents)]
+             [else (para (hyperlink (format "http://~a.gyoudmon.org" (string-downcase (current-digimon)))
+                                    ":house_with_garden::cat2:"))])})})
+
+(define handbook-story
+  {lambda [#:style [style #false] . pre-contents]
+    (apply section #:tag (tamer-story->tag (tamer-story)) #:style style
+           "Story: " pre-contents)})
+
+(define handbook-scenario
+  {lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
+    (apply subsection #:tag tag #:style style
+           "Scenario: " pre-contents)})
 
 (define make-tamer-zone
   {lambda []
@@ -58,8 +76,7 @@
     (parameterize ([sandbox-namespace-specs (append (sandbox-namespace-specs) `{(file ,tamer.rkt)})]
                    [sandbox-output 'string]
                    [sandbox-error-output 'string])
-      ((make-eval-factory (list `(file ,tamer.rkt)
-                                (tamer-story)))))})
+      ((make-eval-factory (list `(file ,tamer.rkt) (tamer-story)))))})
 
 (define tamer-spec
   {lambda []
@@ -187,24 +204,6 @@
                                         [else (eechof "~a~n" line)
                                               (when (nan? (status)) (racketoutput line))]))])
                         (add-between (filter-not void? bs) (linebreak)))))})})
-
-(define handbook-smart-table
-  {lambda []
-    (make-traverse-block
-     {λ [get set]
-       (define readme? (member 'markdown (get 'scribble:current-render-mode '{html})))
-       (cond [(false? readme?) (table-of-contents)]
-             [else (para (hyperlink "http://digignome.gyoudmon.org" ":house_with_garden::cat2:"))])})})
-
-(define handbook-story
-  {lambda [#:style [style #false] . pre-contents]
-    (apply section #:tag (tamer-story->tag (tamer-story)) #:style style
-           "Story: " pre-contents)})
-
-(define handbook-scenario
-  {lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
-    (apply subsection #:tag tag #:style style
-           "Scenario: " pre-contents)})
 
 {module digitama racket
   (require rackunit)

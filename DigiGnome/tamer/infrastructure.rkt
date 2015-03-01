@@ -1,24 +1,18 @@
-#lang scribble/lp
+#lang scribble/lp2
 
 @(require "tamer.rkt")
 
-@(tamer-story (tamer-story->libpath "makefile.rkt"))
-@(tamer-partner `(file ,(path->string (car (filter file-exists? (list (collection-file-path "makefile.rkt" (digimon-gnome))
-                                                                      (build-path (digimon-world) "makefile.rkt")))))))
+@(tamer-story (tamer-story->libpath "infrastructure.rkt"))
+@(define partner `(file ,(path->string (car (filter file-exists? (list (collection-file-path "makefile.rkt" (digimon-gnome))
+                                                                       (build-path (digimon-world) "makefile.rkt")))))))
 @(tamer-zone (make-tamer-zone))
 
 @handbook-story{Hello, Hacker Hero!}
 
-@margin-note{This @italic{story} shows my @italic{Programming Methodology} that the entire project should follow.
-                                                      
-                  @italic{@bold{Principal} This sample should be (rather than must be)
-                           followed due to the complexity of the real world problems.
-                           In fact it@literal{'}s all right to forget it after reading.}}
-
-Every hacker needs a @hyperlink[@(cadr(tamer-partner))]{@italic{makefile.rkt}} (and some
+Every hacker needs a @hyperlink[@(cadr partner)]{@italic{makefile.rkt}} (and some
 @hyperlink[@(collection-file-path "digitama/runtime.rkt" (digimon-gnome))]{minimal common code base})
 to make life simple. However testing building routines always makes nonsense but costs high,
-thus besides the simplest examples, I will check whether the subprojects satisfy the @seclink["rules"]{rules}.
+thus I will focus on the @seclink["rules"]{project organization rules}.
 
 @chunk[<makefile>
        {module story racket
@@ -32,8 +26,8 @@ thus besides the simplest examples, I will check whether the subprojects satisfy
 where @chunk[|<makefile taming start>|
              (require "tamer.rkt")
              
-             (tamer-story (tamer-story->libpath "makefile.rkt"))
-             (tamer-partner `(file ,(format "~a/makefile.rkt" (digimon-world))))]
+             (tamer-story (tamer-story->libpath "infrastructure.rkt"))
+             (define partner `(file ,(format "~a/makefile.rkt" (digimon-world))))]
 
 @tamer-smart-summary[]
 
@@ -41,7 +35,7 @@ where @chunk[|<makefile taming start>|
 
 @chunk[|<ready? help!>|
        (define-values {make out err $? setup teardown}
-         (values (dynamic-require (tamer-partner) 'main {λ _ #false})
+         (values (dynamic-require partner 'main {λ _ #false})
                  (open-output-bytes 'stdout)
                  (open-output-bytes 'stderr)
                  (make-parameter +NaN.0)
@@ -53,10 +47,8 @@ where @chunk[|<makefile taming start>|
                             (get-output-bytes err #true)
                             ($? +NaN.0))}))
        
-       (define-tamer-suite spec-examples "Behavioral Specification Examples"
-         (list |<testsuite: should pass and do pass.>|
-               |<testsuite: should pass but do fail!>|
-               |<testsuite: fatal should never happen!>|))]
+       (define-tamer-suite spec-examples "Ready? It works!"
+         (list |<testsuite: Okay, it works!>|))]
 
 Although normal @bold{Racket} script doesn@literal{'}t require the so-called @racketidfont{main} routine,
 I still prefer to start with @defproc[{main [argument string?] ...} void?]
@@ -68,31 +60,23 @@ nonetheless you are still free to check the options first. Normal @bold{Racket} 
 @tamer-action[((dynamic-require/expose (tamer-story) 'make) "--help")
               (code:comment @#,t{See, @racketcommentfont{@italic{makefile}} complains that @racketcommentfont{@bold{Scribble}} is killed by accident.})]
 
-Now it@literal{'}s time to look deep into the specification examples of
+Now it@literal{'}s time to check the testing system itself 
 
 @tamer-note['spec-examples]
-@chunk[|<testsuite: should pass and do pass.>|
-       (test-suite "make [option]"
+@chunk[|<testsuite: Okay, it works!>|
+       (test-suite "makefile.rkt usage"
                    (test-suite "make --silent --help"
                                #:before (setup "--silent" "--help")
                                #:after teardown
                                (test-pred "should exit normally" zero? ($?))
                                (test-pred "should have to quiet"
                                           zero? (file-position out)))
-                   (test-suite "make --silent --unknown"
-                               #:before (setup "--silent" "--unknown")
+                   (test-suite "make --silent love"
+                               #:before (setup "--silent" "love")
                                #:after teardown
                                (test-false "should abort" (zero? ($?)))
                                (test-pred "should report errors"
                                           positive? (file-position err))))]
-
-@chunk[|<testsuite: should pass but do fail!>|
-       (test-suite "make [phony goal]"
-                   (test-not-exn "EXAMPLE of FAILURE" {λ _ (make "love")}))]
-
-@chunk[|<testsuite: fatal should never happen!>|
-       (test-suite "EXAMPLE DO NEED A NAME"
-                   (test-begin (fail "None of my bussiness!")))]
 
 @subsection[#:tag "rules"]{Scenario: The rules serve you!}
 

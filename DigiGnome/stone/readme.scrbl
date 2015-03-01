@@ -23,6 +23,11 @@ How to construct a @italic{Digital World}? Okay, we don@literal{'}t start with t
                                                  (format "~a: ~a" (info-ref 'collection) (info-ref 'pkg-desc))))))))
 
 @section{Project Conventions}
+
+Since I@literal{'}m an indenpendent developer and communicating costs almost nothing, I make decision at my risk to
+model software system in @italic{@hyperlink["http://en.wikipedia.org/wiki/Formal_methods"]{Formal Methods}} and
+document it with the @italic{@hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Literate Programming}} approach.
+
 @subsection{Building Scripts}
 @(itemlist #:style 'compact
            @item{@bold{@githublink[@(format "/~a/prerequisites.sh" (digimon-gnome))]}: Build the latest Racket and Swi-Prolog from offical source.}
@@ -35,16 +40,19 @@ For the sake of consistency and better architecture, we follow the concept of
 Projects/subcollections listed in the root directory are organized as the @italic{digimons}, and each of them may be separated into several repositories.
 
 @(itemlist #:style 'compact
-           @nested{@bold{DigiGnome} is the reserved @italic{digimon} who@literal{'}s duties are making life easy for developers and sharing code base for other @italic{digimons}.
-                    Namely @italic{digimon} works like @tt{src} @bold{and} @tt{libraries}/@tt{frameworks}.
+           @nested{@bold{@githublink{/DigiGnome}} is the reserved @italic{digimon} who@literal{'}s duties are making life easy for developers and
+                    sharing code base for other @italic{digimons}. Namely @italic{digimon} works like @tt{src} @bold{and} @tt{libraries}/@tt{frameworks}.
                     @(itemlist #:style 'compact
                                @item{@bold{stone} stores immutable meta-information or ancient sources to be translated. Yes, it@literal{'}s the @italic{Rosetta Stone}.}
                                @item{@bold{digitama} is the egg of @italic{digimons}.
                                       Namely sources within it are @bold{hidden} to others. @bold{Compatibility will not be maintained and Use at your own risk!}}
                                @item{@bold{digivice} is the interface for users to talk with @italic{digimons}.
                                       Namely sources within it implement executable tools that will be called by wrappers from @tt{bin}.}
-                               @item{@bold{tamer} is the interface for developers to train the @italic{digimons}. Namely it works like @tt{test} that follows
-                                      the principles of @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Behavior Driven Development}.}
+                               @item{@bold{tamer} is the interface for developers to train the @italic{digimons}. Namely it works like @tt{test}.
+                                      After all the @italic{tamer/handbook.scrbl} plays the role of
+                                      the @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Test Report} along with
+                                      the @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Design Documentation}
+                                      so that the production code could keep elegant.}
                                @item{@bold{terminus} manages guilds of @italic{digimons}. Hmm... Sounds weird, nonetheless, try @tt{htdocs} or @tt{webroot}.})})
 
 @subsection{Version}

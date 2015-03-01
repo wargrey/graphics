@@ -1,4 +1,4 @@
-# Digital World
+# [:house\_with\_garden::cat2: ](http://digignome.gyoudmon.org)Digital World
 
 How to construct a _Digital World_? Okay, we don't start with the _File
 Island_, but we own some concepts from the [Digital
@@ -16,6 +16,13 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
   [gyoudmon.org](http://gyoudmon.org).](sakuyamon.gyoudmon.org)
 
 ## 2. Project Conventions
+
+Since I'm an indenpendent developer and communicating costs almost
+nothing, I make decision at my risk to model software system in _[Formal
+Methods](http://en.wikipedia.org/wiki/Formal\_methods)_ and document it
+with the _[Literate
+Programming](http://en.wikipedia.org/wiki/Literate\_programming)_
+approach.
 
 ### 2.1. Building Scripts
 
@@ -37,9 +44,10 @@ Projects/subcollections listed in the root directory are organized as
 the _digimons_, and each of them may be separated into several
 repositories.
 
-* **DigiGnome** is the reserved _digimon_ who's duties are making life
-  easy for developers and sharing code base for other _digimons_.
-  Namely _digimon_ works like `src` **and** `libraries`/`frameworks`.
+* **[DigiGnome](/DigiGnome)** is the reserved _digimon_ who's duties are
+  making life easy for developers and  sharing code base for other
+  _digimons_. Namely _digimon_ works like `src` **and**
+  `libraries`/`frameworks`.
 
   * **stone** stores immutable meta-information or ancient sources to be
     translated. Yes, it's the _Rosetta Stone_.
@@ -53,9 +61,12 @@ repositories.
     called by wrappers from `bin`.
 
   * **tamer** is the interface for developers to train the _digimons_.
-    Namely it works like `test` that follows  the principles of
-    [Behavior Driven
-    Development](http://en.wikipedia.org/wiki/Behavior-driven\_development).
+    Namely it works like `test`.  After all the _tamer/handbook.scrbl_
+    plays the role of  the [Test
+    Report](http://en.wikipedia.org/wiki/Behavior-driven\_development)
+    along with  the [Design
+    Documentation](http://en.wikipedia.org/wiki/Design\_by\_contract)
+    so that the production code could keep elegant.
 
   * **terminus** manages guilds of _digimons_. Hmm... Sounds weird,
     nonetheless, try `htdocs` or `webroot`.
