@@ -1,4 +1,4 @@
-# [:house\_with\_garden::cat2: ](http://digignome.gyoudmon.org)Digital World
+# [:house\_with\_garden::cat2:](http://digignome.gyoudmon.org)Digital World
 
 How to construct a _Digital World_? Okay, we don't start with the _File
 Island_, but we own some concepts from the [Digital

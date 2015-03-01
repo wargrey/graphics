@@ -109,7 +109,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                   (eval '(require (prefix-in markdown: scribble/markdown-render)))
                                   (eval `(define markdown:doc (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
                                                                 (struct-copy part scribble:doc 
-                                                                             [title-content (cons (hyperlink ,homepage ":house_with_garden::cat2: ")
+                                                                             [title-content (cons (hyperlink ,homepage ":house_with_garden::cat2:")
                                                                                                   (part-title-content scribble:doc))]
                                                                              [parts (if ,top? (part-parts scribble:doc) null)]))))
                                   (eval `(render (list markdown:doc) (list ,(file-name-from-path target))
