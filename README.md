@@ -7,13 +7,13 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
 ## 1. Living Digimons
 
 * **[Digimon-Gnome: The Meta-Project built for developers to make life
-  simple](digignome.gyoudmon.org)**
+  simple](http://digignome.gyoudmon.org)**
 
 * [Nanomon: Digging data from Chaos such as iPhone
-  Backups.](nanomon.gyoudmon.org)
+  Backups.](http://nanomon.gyoudmon.org)
 
 * [Sakuyamon: Be in charge of
-  [gyoudmon.org](http://gyoudmon.org).](sakuyamon.gyoudmon.org)
+  [gyoudmon.org](http://gyoudmon.org).](http://sakuyamon.gyoudmon.org)
 
 ## 2. Project Conventions
 
