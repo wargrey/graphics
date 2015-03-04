@@ -45,13 +45,14 @@ exec racket --require "$0" --main -- ${1+"$@"}
           (if (make-just-touch) {λ _ (file-or-directory-modify-seconds t (current-seconds) f)} f))})
 
 (define compile-directory
-  {lambda [rootdir finfo]
+  {lambda [cmpdir finfo]
     (define-values {pin pout} (make-pipe #false 'filter-checking 'verbose-message))
     (define px.inside-world (pregexp (digimon-world)))
-    (thread {λ _ (dynamic-wind void
-                               {λ _ (parameterize ([current-output-port pout])
-                                      (compile-directory-zos rootdir finfo #:verbose #true #:skip-doc-sources? #true))}
-                               {λ _ (close-output-port pout)})})
+    (thread {λ _  (dynamic-wind void
+                                {λ _ (parameterize ([current-output-port pout]
+                                                    [current-error-port pout])
+                                       (compile-directory-zos cmpdir finfo #:verbose #true #:skip-doc-sources? #true))}
+                                {λ _ (close-output-port pout)})})
     (for ([line (in-port read-line pin)])
       (cond [(regexp-match? px.inside-world line) (printf "~a~n" line)]
             [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" line) 'Skip-Others-Packages]
@@ -108,8 +109,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                   (namespace-require 'scribble/render)
                                   (eval '(require (prefix-in markdown: scribble/markdown-render)))
                                   (eval `(define markdown:doc (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
-                                                                (struct-copy part scribble:doc 
-                                                                             [title-content (cons (hyperlink ,homepage ":house_with_garden::cat2:")
+                                                                (struct-copy part scribble:doc
+                                                                             [title-content (cons (hyperlink ,homepage ,(string :house-garden: :cat:))
                                                                                                   (part-title-content scribble:doc))]
                                                                              [parts (if ,top? (part-parts scribble:doc) null)]))))
                                   (eval `(render (list markdown:doc) (list ,(file-name-from-path target))
@@ -174,7 +175,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
     (for-each fclean (reverse (filter (curry regexp-match? px.include)
                                       (sequence->list (in-directory (digimon-zone) (negate (curry regexp-match? px.exclude))))))))
   
-  (for-each {λ [target] (fclean target)} (make-implicit-rules))}
+  (for-each {λ [target] (fclean target)} (map car (make-implicit-rules)))}
 
 {module+ make~check:
   (when (directory-exists? (digimon-tamer))
@@ -243,7 +244,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                                        {λ _ (printf "Leave Digimon Zone: ~a.~n" digimon)}))}
                                           (filter get-info/full
                                                   (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
-                                                                           [else (cons (digimon-gnome) (info-ref 'setup-collects {λ _ (directory-list)}))])))))))}
+                                                                           [else (cons (digimon-gnome) (info-ref 'setup-collects
+                                                                                                                 {λ _ (map path->string (directory-list))}))])))))))}
                         (list "phony-target|file-path")
                         {λ [--help]
                           (display (foldl {λ [phony --help] (if (name->modpath (car phony)) (format "~a  ~a : ~a~n" --help (car phony) (cdr phony)) --help)}

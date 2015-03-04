@@ -58,17 +58,22 @@
        (define readme? (member 'markdown (get 'scribble:current-render-mode '{html})))
        (cond [(false? readme?) (table-of-contents)]
              [else (para (hyperlink (format "http://~a.gyoudmon.org" (string-downcase (current-digimon)))
-                                    ":ghost::cat2::paw_prints::paw_prints::paw_prints::paw_prints:"))])})})
+                                    (string :cat: :paw: :paw: :paw:)))])})})
+
+(define handbook-title
+  {lambda pre-contents
+    (title (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection)) pre-contents)
+           #:version (format "~a[~a]" (version) (info-ref 'version)))})
 
 (define handbook-story
   {lambda [#:style [style #false] . pre-contents]
-    (apply section #:tag (tamer-story->tag (tamer-story)) #:style style
-           "Story: " pre-contents)})
+    (section #:tag (tamer-story->tag (tamer-story)) #:style style
+             "Story: " pre-contents)})
 
 (define handbook-scenario
   {lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
-    (apply subsection #:tag tag #:style style
-           "Scenario: " pre-contents)})
+    (subsection #:tag tag #:style style
+                "Scenario: " pre-contents)})
 
 (define make-tamer-zone
   {lambda []
@@ -125,10 +130,10 @@
                       [current-output-port harness-out])
          (define summary? (make-parameter #false))
          (define readme? (member 'markdown (send render% current-render-mode)))
-         (define ->block (cond [readme? {λ [blocks] (margin-note (para (literal "---")) ":book: " (bold "Behaviors and Features") "<br>"
+         (define ->block (cond [readme? {λ [blocks] (margin-note (para (literal "---")) (string :book: #\space) (bold "Behaviors and Features") "<br>"
                                                                  (add-between (filter-not void? blocks) "<br>"))}]
-                               [else {λ [blocks] (filebox (italic (cond [(false? story-snapshot) (format "Features of ~a" (current-digimon))]
-                                                                        [(module-path? story-snapshot) (format "Features of ~a" (cadadr story-snapshot))]))
+                               [else {λ [blocks] (filebox (italic (cond [(false? story-snapshot) (format "Behaviors of ~a" (info-ref 'collection))]
+                                                                        [(module-path? story-snapshot) (format "Behaviors of ~a" (cadadr story-snapshot))]))
                                                           (add-between (filter-not void? blocks) (linebreak)))}]))
          (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
                                     {λ _ (tamer-harness)}
@@ -138,11 +143,11 @@
                             (cond [(regexp-match #px"^(.+?)(\\.{3,})(.+)$" line)
                                    => {λ [pieces] (match-let ([{list _ story padding status} pieces])
                                                     (define remote-url (format "http://~a.gyoudmon.org/~a" (string-downcase (current-digimon)) story))
-                                                    (define result (let ([success? (string=? status (~result struct:test-success))])
-                                                                     (cond [readme? (if success? ":heart: " ":broken_heart: ")]
-                                                                           [else ((if success? racketvalfont racketerror) status)])))
+                                                    (define result (string (cond [(string=? status (~result struct:test-success)) :heart:]
+                                                                                 [(string=? status (~result struct:test-failure)) :broken-heart:]
+                                                                                 [else :collision:])))
                                                     (define label (racketkeywordfont (literal story padding)))
-                                                    (cond [readme? (elem result (hyperlink remote-url story))]
+                                                    (cond [readme? (elem result ~ (hyperlink remote-url story))]
                                                           [(false? story-snapshot) (seclink story label result)]
                                                           [(module-path? story-snapshot) (elem label result)]))}]
                                   [(regexp-match? #px"^⧴ (FAILURE|FATAL) » .+?\\s*$" line)
@@ -176,18 +181,18 @@
                                   (cond [(regexp-match #px"^(λ)\\s+(.+)" line)
                                          => {λ [pieces] (and (status 0)
                                                              (echof #:fgcolor 202 #:attributes '{underline} "~a~n" line)
-                                                             (racketmetafont (list-ref pieces 1) ~ (literal (list-ref pieces 2))))}]
+                                                             (racketmetafont (string :book:) ~ (literal (list-ref pieces 2))))}]
                                         [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
                                          => {λ [pieces] (and (status 0)
                                                              (echof "~a~n" line)
-                                                             (racketparenfont (list-ref pieces 1) ~ (literal (list-ref pieces 3))))}]
+                                                             (racketparenfont (string :bookmark:) ~ (literal (list-ref pieces 3))))}]
                                         [(regexp-match #px"^\\s+(.+?) (\\d+) - (.+?)( \\[(.+?)\\])?\\s*$" line)
                                          => {λ [pieces] (let*-values ([{stts indx tm} (values (list-ref pieces 1) (list-ref pieces 2) (or (list-ref pieces 5) "-"))]
-                                                                      [{color font} (if (string=? stts (~result struct:test-success))
-                                                                                        (values 'green racketvalfont) (values 'lightred racketerror))])
+                                                                      [{color :stts:} (if (string=? stts (~result struct:test-success))
+                                                                                        (values 'green :heart:) (values 'lightred :broken-heart:))])
                                                           (status 0)
                                                           (echof #:fgcolor color "~a~n" line)
-                                                          (elem (font stts) (racketvarfont ~ indx) (racketresultfont ~ tm)
+                                                          (elem (string :stts:) (racketvarfont ~ indx) (racketresultfont ~ tm)
                                                                 (racketcommentfont ~ (literal (list-ref pieces 3)))))}]
                                         [(regexp-match #px"^\\s*⧴ (FAILURE|FATAL) » .+?\\s*$" line)
                                          => {λ [pieces] (case (list-ref pieces 1)
@@ -196,21 +201,25 @@
                                         [(regexp-match #px"^\\s*»» (.+?)?:?\\s+\"?(.+?)\"?\\s*$" line)
                                          => {λ [pieces] (and (eechof #:fgcolor 'red #:attributes (if (< (status) 0) '{inverse} null) "~a~n" line)
                                                              (when (equal? (list-ref pieces 1) "message")
-                                                               (racketcommentfont (italic "»»" ~ (literal (list-ref pieces 2))))))}]
+                                                               (elem :backhand: ~ (racketcommentfont (italic (literal (list-ref pieces 2)))))))}]
                                         [(regexp-match #px"^\\s*»»»» .+$" line)
                                          => {λ _ (eechof #:fgcolor 245 "~a~n" line)}]
                                         [(regexp-match #px"^$" line)
                                          => {λ _ (status +NaN.0)}]
                                         [else (eechof "~a~n" line)
-                                              (when (nan? (status)) (racketoutput line))]))])
+                                              (when (nan? (status)) (elem (string :pin:) ~ (racketoutput line)))]))])
                         (add-between (filter-not void? bs) (linebreak)))))})})
 
 {module digitama racket
   (require rackunit)
   
+  (require setup/getinfo)
+
   (require "runtime.rkt")
   
   (provide (all-defined-out))
+  
+  (define info-ref (get-info/full (digimon-zone)))
   
   (struct tamer-seed {datum brief name-path})
   (struct validation {result cpu real gc})

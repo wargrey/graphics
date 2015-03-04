@@ -1,4 +1,4 @@
-# [:house\_with\_garden::cat2:](http://digignome.gyoudmon.org)**Tamer's Handbook**
+# [🏡🐈](http://digignome.gyoudmon.org)Tamer's Handbook: Digimon-Gnome
 
 > _Translating is the most complex human activity in the Universe._
 
@@ -13,9 +13,9 @@ Good Luck!
 
 > ---
 
-> :book: **Behaviors and Features**<br>:broken\_heart:
-> [infrastructure.rkt](http://digignome.gyoudmon.org/infrastructure.rkt)<br> <br>_94.74%
+> 📖 **Behaviors and
+> Features**<br>💔 [infrastructure.rkt](http://digignome.gyoudmon.org/infrastructure.rkt)<br> <br>_94.74%
 > tests successful._<br>_Testsuite = 1, Testcases = 19, Failure = 1, Error
 > = 0._
 
-[:ghost::cat2::paw\_prints::paw\_prints::paw\_prints::paw\_prints:](http://digignome.gyoudmon.org)
+[🐈🐾🐾🐾](http://digignome.gyoudmon.org)

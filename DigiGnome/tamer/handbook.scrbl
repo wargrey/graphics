@@ -2,13 +2,9 @@
 
 @(require scribble/lp-include)
 
-@(require setup/getinfo)
-
 @require{tamer.rkt}
 
-@(define info-ref (get-info/full (digimon-zone)))
-
-@title[#:version (format "~a[~a]" (version) (info-ref 'version))]{@bold{Tamer@literal{'}s Handbook}}
+@handbook-title[]
 
 @margin-note{@italic{Translating is the most complex human activity in the Universe.}}
 
