@@ -1,4 +1,4 @@
-# [🏡🐈](http://digignome.gyoudmon.org)Tamer's Handbook: Digimon-Gnome
+# [🏡<sub>🐈</sub>](http://digignome.gyoudmon.org)Tamer's Handbook: Digimon-Gnome
 
 > _Translating is the most complex human activity in the Universe._
 
@@ -18,4 +18,4 @@ Good Luck!
 > tests successful._<br>_Testsuite = 1, Testcases = 19, Failure = 1, Error
 > = 0._
 
-[🐈🐾🐾🐾](http://digignome.gyoudmon.org)
+[🐈<sub>🐾🐾🐾</sub>](http://digignome.gyoudmon.org)

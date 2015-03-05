@@ -58,7 +58,7 @@
        (define readme? (member 'markdown (get 'scribble:current-render-mode '{html})))
        (cond [(false? readme?) (table-of-contents)]
              [else (para (hyperlink (format "http://~a.gyoudmon.org" (string-downcase (current-digimon)))
-                                    (string :cat: :paw: :paw: :paw:)))])})})
+                                    (format "~a<sub>~a~a~a</sub>" :cat: :paw: :paw: :paw:)))])})})
 
 (define handbook-title
   {lambda pre-contents
