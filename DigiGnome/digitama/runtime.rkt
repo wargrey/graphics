@@ -1,25 +1,18 @@
 #lang at-exp racket
 
-(require racket/runtime-path)
-
-(require scribble/srcdoc)
-
 (require (for-syntax racket/syntax))
 
-(require (for-doc scribble/manual))
+(require racket/runtime-path)
 
-(provide digimon-runtime-source echof eechof)
+(provide (all-defined-out))
 
-(generate-delayed-documents)
 (define-runtime-path digimon-runtime-source (simplify-path "runtime.rkt"))
 
-(provide [thing-doc /dev/null output-port? @{An instance of @racket[open-output-nowhere].}])
+(define-values {:house-garden: :cat: :paw: :book: :bookmark: :heart: :broken-heart: :collision: :pin: :backhand:}
+  (values #\U1F3E1 #\U1F408 #\U1F43E #\U1F4D6 #\U1F4D1 #\U1F49A #\U1F494 #\U1F4A5 #\U1F4CC #\U1F449))
+
 (define /dev/null (open-output-nowhere '/dev/null #true))
 
-(provide [parameter-doc digimon-world (parameter/c (or/c path? path-string?)) dir-path @{The root directory of the project.}]
-         [parameter-doc digimon-gnome (parameter/c path-string?) dir-name @{The meta subproject name of the project.}]
-         [parameter-doc current-digimon (parameter/c path-string?) dir-name @{The name of current subproject.}]
-         [parameter-doc digimon-zone (parameter/c (or/c path? path-string?)) dir-path @{The root directory of current subproject.}])
 (define-values {digimon-world digimon-gnome}
   (let* ([dir (path->string digimon-runtime-source)]
          [px.split (regexp-match #px"(.+)/([^/]+?)/[^/]+?/[^/]+?$" dir)])
@@ -34,27 +27,19 @@
 
 (define-syntax {define-digimon-dirpath stx}
   (syntax-case stx []
-    [{_ id {desc-expr ...}}
-     (with-syntax ([digimon-id (format-id #'id "digimon-~a" (syntax-e #'id))])
-       #'{begin (provide [parameter-doc digimon-id (parameter/c (or/c path? path-string?)) dir-path {desc-expr ...}])
-                (define digimon-id (make-derived-parameter digimon-zone (immutable-guard 'digimon-id)
-                                                           {λ [zonedir] (build-path zonedir (symbol->string 'id))}))})]))
+    [{_ id ...}
+     (with-syntax ([{digimon-id ...} (map {λ [var] (with-syntax ([id var]) (format-id #'id "digimon-~a" (syntax-e #'id)))} (syntax->list #'{id ...}))])
+       #'{begin (define digimon-id (make-derived-parameter digimon-zone (immutable-guard 'digimon-id)
+                                                           {λ [zonedir] (build-path zonedir (symbol->string 'id))}))
+                ...})]))
 
-(define-digimon-dirpath stone @{The @bold{stone} directory of current subproject})
-(define-digimon-dirpath digitama @{The @italic{digitama} directory of current subproject.})
-(define-digimon-dirpath digivice @{The @italic{digivice} directory of current subproject.})
-(define-digimon-dirpath tamer @{The @italic{tamer} directory of current subproject.})
-(define-digimon-dirpath terminus @{The @italic{terminus} directory of current subproject.})
+(define-digimon-dirpath stone digitama digivice tamer terminus)
 
-(provide [proc-doc/names path->digimon-libpath (->* {(or/c path? path-string?)} {(or/c symbol? #false)} module-path?) {{modpath} {{submodule #false}}}
-                         @{Produces a @racket[lib]-form to the @italic{modpath} installed in this collection.}])
 (define path->digimon-libpath
   {lambda [modpath [submodule #false]]
     (define fname (path->string (find-relative-path (digimon-world) (simplify-path modpath))))
     (if (symbol? submodule) `(submod (lib ,fname) ,submodule) `(lib ,fname))})
 
-(provide (contract-out 
-          [find-digimon-files (-> (-> (or/c path? path-string?) boolean?) (or/c path? path-string?) (listof (or/c path? path-string?)))]))
 (define find-digimon-files
   {lambda [predicate start-path]
     (define px.exclude (pregexp (string-join #:before-first "/(\\.git|" #:after-last ")$"
@@ -62,13 +47,11 @@
     (for/fold ([ps null]) ([p (in-directory start-path {λ [p] (not (regexp-match? px.exclude p))})])
       (if (predicate p) (append ps (list p)) ps))})
 
-(provide echof)
 (define echof
   {lambda [msgfmt #:fgcolor [fg #false] #:bgcolor [bg #false] #:attributes [attrs null] . vals]
     (define rawmsg (apply format msgfmt vals))
     (printf "~a" (if (terminal-port? (current-output-port)) (term-colorize fg bg attrs rawmsg) rawmsg))})
 
-(provide eechof)
 (define eechof
   {lambda [msgfmt #:fgcolor [fg #false] #:bgcolor [bg #false] #:attributes [attrs null] . vals]
     (define rawmsg (apply format msgfmt vals))
@@ -76,6 +59,9 @@
 
 {module digitama racket
   (provide (all-defined-out))
+  
+  (define digimon-pathname/c (parameter/c path-string?))
+  (define digimon-path/c (parameter/c (or/c path? path-string?)))
   
   (define immutable-guard
     {lambda [pname]

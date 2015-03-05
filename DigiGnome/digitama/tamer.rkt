@@ -130,9 +130,10 @@
                       [current-output-port harness-out])
          (define summary? (make-parameter #false))
          (define readme? (member 'markdown (send render% current-render-mode)))
-         (define ->block (cond [readme? {λ [blocks] (margin-note (para (literal "---")) (string :book: #\space) (bold "Behaviors and Features") "<br>"
-                                                                 (add-between (filter-not void? blocks) "<br>"))}]
-                               [else {λ [blocks] (filebox (italic (cond [(false? story-snapshot) (format "Behaviors of ~a" (info-ref 'collection))]
+         (define ->block (cond [readme? {λ [blocks] (margin-note (para (literal "---")) (italic (string :book:)) ~ (bold "Behaviors and Features")
+                                                                 "<br>" (add-between (filter-not void? blocks) "<br>"))}]
+                               [else {λ [blocks] (filebox (italic (string :book:) ~
+                                                                  (cond [(false? story-snapshot) (format "Behaviors of ~a" (info-ref 'collection))]
                                                                         [(module-path? story-snapshot) (format "Behaviors of ~a" (cadadr story-snapshot))]))
                                                           (add-between (filter-not void? blocks) (linebreak)))}]))
          (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
@@ -181,11 +182,11 @@
                                   (cond [(regexp-match #px"^(λ)\\s+(.+)" line)
                                          => {λ [pieces] (and (status 0)
                                                              (echof #:fgcolor 202 #:attributes '{underline} "~a~n" line)
-                                                             (racketmetafont (string :book:) ~ (literal (list-ref pieces 2))))}]
+                                                             (racketmetafont (italic (string :book:)) ~ (literal (list-ref pieces 2))))}]
                                         [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
                                          => {λ [pieces] (and (status 0)
                                                              (echof "~a~n" line)
-                                                             (racketparenfont (string :bookmark:) ~ (literal (list-ref pieces 3))))}]
+                                                             (racketparenfont (italic (string :bookmark:)) ~ (literal (list-ref pieces 3))))}]
                                         [(regexp-match #px"^\\s+(.+?) (\\d+) - (.+?)( \\[(.+?)\\])?\\s*$" line)
                                          => {λ [pieces] (let*-values ([{stts indx tm} (values (list-ref pieces 1) (list-ref pieces 2) (or (list-ref pieces 5) "-"))]
                                                                       [{color :stts:} (if (string=? stts (~result struct:test-success))
