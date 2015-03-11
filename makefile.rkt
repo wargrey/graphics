@@ -196,6 +196,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
         (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
                        #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
                        #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
+                       #:redirect "http://docs.racket-lang.org" #:redirect-main "http://docs.racket-lang.org"
                        #:xrefs (list (load-collections-xref))
                        #:quiet? #false #:warn-undefined? #false)))))}
 
