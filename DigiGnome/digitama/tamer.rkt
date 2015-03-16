@@ -1,6 +1,7 @@
 #lang racket
 
 (require rackunit)
+(require racklog)
 
 (require racket/sandbox)
 
@@ -13,7 +14,7 @@
 (provide /dev/null)
 (provide (all-defined-out))
 
-(provide (all-from-out racket "runtime.rkt" rackunit))
+(provide (all-from-out "runtime.rkt" rackunit racklog))
 (provide (all-from-out scribble/manual scribble/eval))
 
 (define tamer-story (make-parameter #false))
@@ -34,10 +35,14 @@
 
 (define tamer-require
   {lambda [suite-name]
-    (define story (assoc suite-name (hash-ref handbook-stories (tamer-story->tag (tamer-story)))))
-    (cond [(pair? story) (cdr story)]
-          [else (with-handlers ([exn? exn->test-suite])
-                  (raise-user-error 'tamer-require "'~a has not yet defined." suite-name))])})
+    (define htag (tamer-story->tag (tamer-story)))
+    (define harness (hash-ref handbook-stories htag))
+    (with-handlers ([exn? {λ [e] (let ([story (exn->test-suite 'tamer-require e)])
+                                   (hash-set! handbook-stories htag (cons (cons suite-name story) harness))
+                                   story)}])
+      (with-handlers ([exn:fail:contract? {λ [efc] (raise (make-exn:fail:contract:variable (format "'~a has not yet defined!" suite-name)
+                                                                                           (exn-continuation-marks efc) suite-name))}])
+        (cdr (assoc suite-name harness))))})
 
 (define tamer-story->tag
   {lambda [story]
@@ -74,6 +79,10 @@
   {lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
     (subsection #:tag tag #:style style
                 "Scenario: " pre-contents)})
+
+(define handbook-rule
+  {lambda [id . pre-flow]
+    (itemlist (item (bold (format "Rule ~a " id)) pre-flow))})
 
 (define make-tamer-zone
   {lambda []
@@ -160,8 +169,8 @@
 (define tamer-note
   {lambda suite-vars
     (define story-snapshot (tamer-story))
-    (make-delayed-block
-     {λ [render% pthis _]
+    (make-traverse-block
+     {λ [get set]
        (define-values {hspec-in hspec-out} (make-pipe #false 'hspec-in 'hspec-out))
        (parameterize ([tamer-story story-snapshot]
                       [current-input-port hspec-in])
@@ -200,7 +209,7 @@
                                         [(regexp-match #px"^\\s*»» (.+?)?:?\\s+\"?(.+?)\"?\\s*$" line)
                                          => {λ [pieces] (and (eechof #:fgcolor 'red #:attributes (if (< (status) 0) '{inverse} null) "~a~n" line)
                                                              (when (equal? (list-ref pieces 1) "message")
-                                                               (elem :backhand: ~ (racketcommentfont (italic (literal (list-ref pieces 2)))))))}]
+                                                               (elem (string :backhand:) ~ (racketcommentfont (italic (literal (list-ref pieces 2)))))))}]
                                         [(regexp-match #px"^\\s*»»»» .+$" line)
                                          => {λ _ (eechof #:fgcolor 245 "~a~n" line)}]
                                         [(regexp-match #px"^$" line)
@@ -271,11 +280,9 @@
       (hash-ref indicators (object-name result))})
   
   (define exn->test-suite
-    {lambda [e]
+    {lambda [name e]
       (test-suite (format "(⧴ ~a)" (object-name e))
-                  (test-case (symbol->string (object-name e))
-                             ;;; We just avoid `thunk` to make a test-error object.
-                             (raise-user-error (exn-message e))))})
+                  (test-case (format "~a" name) #| make-test-error |# (raise e)))})
   
   (define display-failure
     {lambda [result #:indent [headspace ""]]
