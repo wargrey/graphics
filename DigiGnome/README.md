@@ -4,14 +4,9 @@
 
 This _handbook_ shows my _[Programming
 Methodology](https://github.com/digital-world/DigiGnome)_ that the
-entire project should follow.
-
-Hmm... nonetheless, in fact it's all right to forget this sample after
-reading due to the complexity of the real world problems.
-
-Last, documentation are deployed in [my website](gyoudmon/org) with
-**Scribble**, while sources are hosted in
-[Github](github.com/digital-world) with **Markdown**.
+entire project should follow. Hmm... nonetheless, in fact it's all right
+to forget this sample after reading due to the complexity of the real
+world problems.
 
 Good Luck!
 
