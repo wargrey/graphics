@@ -15,6 +15,9 @@ that the entire project should follow.
 Hmm... nonetheless, in fact it@literal{'}s all right to forget this sample after reading
 due to the complexity of the real world problems.
 
+Last, documentation are deployed in @hyperlink["gyoudmon/org"]{my website} with @bold{Scribble},
+while sources are hosted in @hyperlink["github.com/digital-world"]{Github} with @bold{Markdown}.
+
 Good Luck!
 
 @tamer-smart-summary[]

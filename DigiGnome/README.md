@@ -9,13 +9,17 @@ entire project should follow.
 Hmm... nonetheless, in fact it's all right to forget this sample after
 reading due to the complexity of the real world problems.
 
+Last, documentation are deployed in [my website](gyoudmon/org) with
+**Scribble**, while sources are hosted in
+[Github](github.com/digital-world) with **Markdown**.
+
 Good Luck!
 
 > ---
 
 > _📖_ **Behaviors and
-> Features**<br>💔 [infrastructure.rkt](http://digignome.gyoudmon.org/infrastructure.rkt)<br> <br>_94.74%
-> tests successful._<br>_Testsuite = 1, Testcases = 19, Failure = 1, Error
+> Features**<br>💔 [infrastructure.rkt](http://digignome.gyoudmon.org/infrastructure.rkt)<br> <br>_94.44%
+> tests successful._<br>_Testsuite = 1, Testcases = 18, Failure = 1, Error
 > = 0._
 
 [🐈<sub>🐾🐾🐾</sub>](http://digignome.gyoudmon.org)
