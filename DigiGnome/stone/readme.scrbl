@@ -36,7 +36,7 @@ document it with the @italic{@hyperlink["http://en.wikipedia.org/wiki/Literate_p
 
 @subsection{Hierarchy}
 For the sake of consistency and better architecture, we follow the concept of
-@hyperlink["http://docs.racket-lang.org/pkg/Package_Concepts.html#%28tech._multi._collection._package%29"]{Racket Multi-collection Package}.
+@italic{@hyperlink["http://docs.racket-lang.org/pkg/Package_Concepts.html#%28tech._multi._collection._package%29"]{Racket Multi-collection Package}}.
 Projects/subcollections listed in the root directory are organized as the @italic{digimons}, and each of them may be separated into several repositories.
 
 @(itemlist #:style 'compact

@@ -38,8 +38,8 @@ approach.
 ### 2.2. Hierarchy
 
 For the sake of consistency and better architecture, we follow the
-concept of [Racket Multi-collection
-Package](http://docs.racket-lang.org/pkg/Package\_Concepts.html\#%28tech.\_multi.\_collection.\_package%29).
+concept of _[Racket Multi-collection
+Package](http://docs.racket-lang.org/pkg/Package\_Concepts.html\#%28tech.\_multi.\_collection.\_package%29)_.
 Projects/subcollections listed in the root directory are organized as
 the _digimons_, and each of them may be separated into several
 repositories.
