@@ -1,6 +1,7 @@
 #!/bin/sh
 
 #|
+test "$1" = "clean" && find . -name "runtime_rkt.zo" -exec rm -fr {} ';';
 exec racket --require "$0" --main -- ${1+"$@"} 
 |#
 
