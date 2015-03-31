@@ -1,7 +1,8 @@
 #lang scribble/lp2
 
-@(require racket/path)
 @(require "tamer.rkt")
+
+@(require (for-syntax "tamer.rkt"))
 
 @(tamer-story (tamer-story->libpath "infrastructure.rkt"))
 @(define partner `(file ,(path->string (car (filter file-exists? (list (collection-file-path "makefile.rkt" (digimon-gnome))
@@ -35,24 +36,18 @@ where @chunk[|<infrastructure taming start>|
 @handbook-scenario[#:tag @(digimon-gnome)]{Ready? Let@literal{'}s have a try!}
 
 @chunk[|<ready? help!>|
-       (define-values {make out err $? setup teardown}
+       (namespace-require partner)
+       (define-values {make out err $?}
          (values (dynamic-require partner 'main {λ _ #false})
                  (open-output-bytes 'stdout)
                  (open-output-bytes 'stderr)
-                 (make-parameter +NaN.0)
-                 {λ argv {λ _ (parameterize ([current-output-port out]
-                                             [current-error-port err]
-                                             [exit-handler $?])
-                                (apply make argv))}}
-                 {λ _ (void (get-output-bytes out #true)
-                            (get-output-bytes err #true)
-                            ($? +NaN.0))}))
-       
-       (define-tamer-suite spec-examples "Ready? It works!"
-         (list |<testsuite: Okay, it works!>|))]
+                 (make-parameter +NaN.0)))
 
-Although normal @bold{Racket} script doesn@literal{'}t require the so-called @racketidfont{main} routine,
-I still prefer to start with @defproc[{main [argument string?] ...} void?]
+       |<setup and teardown timidly>|
+
+       (define-tamer-suite spec-examples "Ready? It works!"
+         (list (test-suite "makefile.rkt options"
+                           |<testsuite: make options>|)))]
 
 You may have already familiar with the @hyperlink["http://en.wikipedia.org/wiki/Make_(software)"]{GNU Make},
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
@@ -61,23 +56,56 @@ nonetheless you are still free to check the options first. Normal @bold{Racket} 
 @tamer-action[((dynamic-require/expose (tamer-story) 'make) "--help")
               (code:comment @#,t{See, @racketcommentfont{@italic{makefile}} complains that @racketcommentfont{@bold{Scribble}} is killed by accident.})]
 
-Now it@literal{'}s time to check the testing system itself 
+Be careful here, the buggy implementation may keep invoking another test routine endlessly in which case
+this @italic{handbook} itself may be depended by some other files.
+Kill those unexpected routines crudely is unreasonable since they will run in their own namespace and may have side effects.
+
+@chunk[|<setup and teardown timidly>|
+       (define ENV (current-environment-variables))
+       (when (environment-variables-ref ENV #"taming")
+         (error 'make "[fatal] Unexpected subroutine stops here!"))
+
+       (define {{setup . argv}}
+         (dynamic-wind {λ _ (environment-variables-set! ENV #"taming" #"true")}
+                       {λ _ (parameterize ([current-output-port out]
+                                           [current-error-port err]
+                                           [exit-handler $?])
+                              (apply make argv))}
+                       {λ _ (environment-variables-set! ENV #"taming" #false)}))
+
+       (define {teardown}
+         (get-output-bytes out #true)
+         (get-output-bytes err #true)
+         ($? +NaN.0))]
+
+Now let@literal{'}s try to make thing done:
 
 @tamer-note['spec-examples]
-@chunk[|<testsuite: Okay, it works!>|
-       (test-suite "makefile.rkt usage"
-                   (test-suite "make --silent --help"
-                               #:before (setup "--silent" "--help")
-                               #:after teardown
-                               (test-pred "should exit normally" zero? ($?))
-                               (test-pred "should have to quiet"
-                                          zero? (file-position out)))
-                   (test-suite "make --silent love"
-                               #:before (setup "--silent" "love")
-                               #:after teardown
-                               (test-false "should abort" (zero? ($?)))
-                               (test-pred "should report errors"
-                                          positive? (file-position err))))]
+@chunk[|<testsuite: make options>|
+       (test-suite "make --silent --help"
+                   #:before (setup "--silent" "--help") #:after teardown
+                   (test-pred "should exit normally" zero? ($?))
+                   (test-pred "should keep quiet" zero? (file-position out)))
+       (test-suite "make --silent love"
+                   #:before (setup "--silent" "love") #:after teardown
+                   (test-true "should abort" ((negate zero?) ($?)))
+                   (test-pred "should report errors" positive? (file-position err)))
+       (let* ([goal-md (build-path (digimon-world) "README.md")]
+              [make-md (list "--always-make" "--touch" "++only" (digimon-gnome)
+                             (path->string (file-name-from-path goal-md)))])
+         (test-suite (string-join (cons "make" make-md))
+                     #:before (apply setup make-md) #:after teardown
+                     (let* ([src (get-output-bytes out #false)]
+                            [times {λ [pat] (length (regexp-match* pat src))}])
+                       (test-case "should no errors"
+                                  (check-pred zero? ($?))
+                                  (check-pred zero? (file-position err)))
+                       (test-eq? "should only enter one zone"
+                                 (times #px#"Enter Digimon Zone") 1)
+                       (test-eq? "should always update one file"
+                                 (times (format "make: made ~a" goal-md)) 1)
+                       (test-eq? "should just touch rather than remake"
+                                 (times #px#"Output to") 0))))]
 
 @subsection[#:tag "rules"]{Scenario: The rules serve you!}
 
