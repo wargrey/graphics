@@ -13,8 +13,8 @@ Good Luck!
 > ---
 
 > _📖_ **Behaviors and
-> Features**<br>💔 [infrastructure.rkt](http://digignome.gyoudmon.org/infrastructure.rkt)<br> <br>_94.44%
-> tests successful._<br>_Testsuite = 1, Testcases = 18, Failure = 1, Error
+> Features**<br>💔 [infrastructure.rkt](http://digignome.gyoudmon.org/infrastructure.rkt)<br> <br>_95.45%
+> tests successful._<br>_Testsuite = 1, Testcases = 22, Failure = 1, Error
 > = 0._
 
 [🐈<sub>🐾🐾🐾</sub>](http://digignome.gyoudmon.org)

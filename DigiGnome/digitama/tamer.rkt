@@ -13,7 +13,7 @@
 (provide /dev/null)
 (provide (all-defined-out))
 
-(provide (all-from-out "runtime.rkt" rackunit))
+(provide (all-from-out racket "runtime.rkt" rackunit))
 (provide (all-from-out scribble/manual scribble/eval))
 
 (define tamer-story (make-parameter #false))

@@ -36,7 +36,6 @@ where @chunk[|<infrastructure taming start>|
 @handbook-scenario[#:tag @(digimon-gnome)]{Ready? Let@literal{'}s have a try!}
 
 @chunk[|<ready? help!>|
-       (namespace-require partner)
        (define-values {make out err $?}
          (values (dynamic-require partner 'main {λ _ #false})
                  (open-output-bytes 'stdout)
@@ -67,7 +66,8 @@ Kill those unexpected routines crudely is unreasonable since they will run in th
 
        (define {{setup . argv}}
          (dynamic-wind {λ _ (environment-variables-set! ENV #"taming" #"true")}
-                       {λ _ (parameterize ([current-output-port out]
+                       {λ _ (parameterize ([current-directory (digimon-world)]
+                                           [current-output-port out]
                                            [current-error-port err]
                                            [exit-handler $?])
                               (apply make argv))}
@@ -95,17 +95,18 @@ Now let@literal{'}s try to make thing done:
                              (path->string (file-name-from-path goal-md)))])
          (test-suite (string-join (cons "make" make-md))
                      #:before (apply setup make-md) #:after teardown
-                     (let* ([src (get-output-bytes out #false)]
-                            [times {λ [pat] (length (regexp-match* pat src))}])
+                     (let* ([stdout (get-output-string out)]
+                            [stderr (get-output-string err)]
+                            [times {λ [pat] (length (regexp-match* pat stdout))}])
                        (test-case "should no errors"
-                                  (check-pred zero? ($?))
-                                  (check-pred zero? (file-position err)))
+                                  (check-pred zero? ($?) stderr)
+                                  (check-pred zero? (file-position err) stderr))
                        (test-eq? "should only enter one zone"
-                                 (times #px#"Enter Digimon Zone") 1)
+                                 (times #px"Enter Digimon Zone") 1)
                        (test-eq? "should always update one file"
                                  (times (format "make: made ~a" goal-md)) 1)
                        (test-eq? "should just touch rather than remake"
-                                 (times #px#"Output to") 0))))]
+                                 (times #px"Output to") 0))))]
 
 @subsection[#:tag "rules"]{Scenario: The rules serve you!}
 
