@@ -4,6 +4,17 @@
 
 (require/typed/provide "runtime.rkt"
                        [/dev/null Output-Port]
+                       [:house-garden: Char]
+                       [:cat: Char]
+                       [:paw: Char]
+                       [:book: Char]
+                       [:bookmark: Char]
+                       [:heart: Char]
+                       [:broken-heart: Char]
+                       [:collision: Char]
+                       [:pin: Char]
+                       [:backhand: Char]
+                       
                        [current-digimon (Parameterof Path-String)]
                        [digimon-world (Parameterof Path-String)]
                        [digimon-gnome (Parameterof Path-String)]
