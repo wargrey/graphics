@@ -31,6 +31,13 @@
                 (unless (assoc 'suite-varid harness)
                   (hash-set! handbook-stories htag (cons story harness))))}]))
 
+(define-syntax {test-spec stx}
+  (syntax-case stx []
+    [{_ test-name #:do setup #:~do teardown checks ...} (syntax/loc stx (test-case test-name (around (setup) checks ... (teardown))))]
+    [{_ test-name #:do setup checks ...} (syntax/loc stx (test-spec test-name #:do setup #:~do void checks ...))]
+    [{_ test-name #:~do teardown checks ...} (syntax/loc stx (test-spec test-name #:do void #:~do teardown checks ...))]
+    [{_ test-name checks ...} (syntax/loc stx (test-spec test-name #:do void #:~do void checks ...))]))
+
 (define tamer-require
   {lambda [suite-name]
     (define htag (tamer-story->tag (tamer-story)))

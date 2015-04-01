@@ -45,8 +45,10 @@ where @chunk[|<infrastructure taming start>|
        |<setup and teardown timidly>|
 
        (define-tamer-suite spec-examples "Ready? It works!"
-         (list (test-suite "makefile.rkt options"
-                           |<testsuite: make options>|)))]
+         (list (test-suite "make: simple options"
+                           |<testsuite: simple options>|)
+               (test-suite "make: complex options"
+                           |<testcase: complex options>|)))]
 
 You may have already familiar with the @hyperlink["http://en.wikipedia.org/wiki/Make_(software)"]{GNU Make},
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
@@ -81,7 +83,7 @@ Kill those unexpected routines crudely is unreasonable since they will run in th
 Now let@literal{'}s try to make thing done:
 
 @tamer-note['spec-examples]
-@chunk[|<testsuite: make options>|
+@chunk[|<testsuite: simple options>|
        (test-suite "make --silent --help"
                    #:before (setup "--silent" "--help") #:after teardown
                    (test-pred "should exit normally" zero? ($?))
@@ -89,26 +91,35 @@ Now let@literal{'}s try to make thing done:
        (test-suite "make --silent love"
                    #:before (setup "--silent" "love") #:after teardown
                    (test-true "should abort" ((negate zero?) ($?)))
-                   (test-pred "should report errors" positive? (file-position err)))
+                   (test-pred "should report errors" positive? (file-position err)))]
+
+It seems that it works very well, and so it does.
+But the @italic{before} and @italic{after} routines are out of testcase
+in which case the following call for the same testsuite may waste too much time
+since only the results of testcases are cached during the process of rendering the @italic{handbook}.
+
+So, a testcase with the additional work sealed inside would be better: 
+
+@chunk[|<testcase: complex options>|
        (let* ([goal-md (build-path (digimon-world) "README.md")]
               [make-md (list "--always-make" "--touch" "++only" (digimon-gnome)
                              (path->string (file-name-from-path "README.md")))])
-         (test-suite (string-join (cons "make" make-md))
-                     #:before (apply setup make-md) #:after teardown
-                     (let* ([stdout (get-output-string out)]
-                            [stderr (get-output-string err)]
-                            [times (compose1 length (curryr regexp-match* stdout))]
-                            [msecs file-or-directory-modify-seconds])
-                       (test-case "should no errors"
-                                  (check-pred zero? ($?) stderr)
-                                  (check-pred zero? (file-position err) stderr))
-                       (test-eq? "should work in one zone"
-                                 (times #px"Leave Digimon Zone") 1)
-                       (test-eq? "should make single file"
-                                 (times #px"make: made") 1)
-                       (test-case "should touch rather than remake"
-                                  (check <= (msecs (digimon-zone)) (msecs goal-md))
-                                  (check-pred zero? (times #px"Output to"))))))]
+         (test-spec (string-join (cons "make" make-md))
+                    #:do (apply setup make-md) #:~do teardown
+                    (let* ([stdout (get-output-string out)]
+                           [stderr (get-output-string err)]
+                           [times (compose1 length (curryr regexp-match* stdout))]
+                           [msecs file-or-directory-modify-seconds])
+                      (check-pred zero? ($?) stderr)
+                      (check-pred zero? (file-position err) stderr)
+                      (check-eq? (times #px"Leave Digimon Zone") 1
+                                 "worked in wrong digimon zone!")
+                      (check-eq? (times #px"make: made") 1
+                                 "too many files are made!")
+                      (check <= (msecs (digimon-zone)) (msecs goal-md)
+                             "target file has not updated!")
+                      (check-pred zero? (times #px"Output to")
+                                  "touching is okay, not remaking!"))))]
 
 @subsection[#:tag "rules"]{Scenario: The rules serve you!}
 
