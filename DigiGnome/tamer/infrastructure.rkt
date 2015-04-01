@@ -92,21 +92,25 @@ Now let@literal{'}s try to make thing done:
                    (test-pred "should report errors" positive? (file-position err)))
        (let* ([goal-md (build-path (digimon-world) "README.md")]
               [make-md (list "--always-make" "--touch" "++only" (digimon-gnome)
-                             (path->string (file-name-from-path goal-md)))])
+                             (path->string (file-name-from-path "README.md")))])
          (test-suite (string-join (cons "make" make-md))
                      #:before (apply setup make-md) #:after teardown
                      (let* ([stdout (get-output-string out)]
                             [stderr (get-output-string err)]
-                            [times {λ [pat] (length (regexp-match* pat stdout))}])
+                            [times (compose1 length (curryr regexp-match* stdout))]
+                            [msecs file-or-directory-modify-seconds])
                        (test-case "should no errors"
+                                  (with-output-to-file (build-path (digimon-world) "test.txt")
+                                    #:exists 'append {thunk (displayln 'test)})
                                   (check-pred zero? ($?) stderr)
                                   (check-pred zero? (file-position err) stderr))
-                       (test-eq? "should only enter one zone"
-                                 (times #px"Enter Digimon Zone") 1)
-                       (test-eq? "should always update one file"
-                                 (times (format "make: made ~a" goal-md)) 1)
-                       (test-eq? "should just touch rather than remake"
-                                 (times #px"Output to") 0))))]
+                       (test-eq? "should work in one zone"
+                                 (times #px"Leave Digimon Zone") 1)
+                       (test-eq? "should make single file"
+                                 (times #px"make: made") 1)
+                       (test-case "should touch rather than remake"
+                                  (check <= (msecs (digimon-zone)) (msecs goal-md))
+                                  (check-pred zero? (times #px"Output to"))))))]
 
 @subsection[#:tag "rules"]{Scenario: The rules serve you!}
 
@@ -176,7 +180,7 @@ we need a sort of rules that the @italic{makefile.rkt} (and systems it builds) s
               (list (digimon-stone) (digimon-tamer))
               (list "readme.scrbl" "handbook.scrbl")))
        
-       (define-tamer-suite rules:readme.md "Rules: README.md dependent"
+       (define-tamer-suite rules:readme.md "Rules: README.md dependencies"
          (cons (test-suite "/README.md" (test-case |<facts: rule 5>|))
                (for/list ([digimon (in-list digimons)])
                  (test-suite (format "/~a/readme.md" digimon)
@@ -200,7 +204,7 @@ to check the system in some more convenient ways. Hence we have @chunk[|<tamer b
                                                                        {module main racket
                                                                          |<infrastructure taming start>|
                                                                          
-                                                                         (exit (tamer-spec))}]
+                                                                         (exit-with-code (tamer-spec))}]
 
 Run @exec{racket «@smaller{tamer files}»} we will get @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report.
 

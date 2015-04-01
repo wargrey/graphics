@@ -26,5 +26,6 @@
                        [digimon-terminus (Parameterof Path-String)]
                        
                        [find-digimon-files {{Path-String -> Boolean} Path-String -> (Listof Path-String)}]
+                       [exit-with-code {Any -> Void}]
                        [echof {String [#:fgcolor Term-Color-Exp] [#:bgcolor Term-Color-Exp] [#:attributes (Listof Symbol)] Any * -> Void}]
                        [eechof {String [#:fgcolor Term-Color-Exp] [#:bgcolor Term-Color-Exp] [#:attributes (Listof Symbol)] Any * -> Void}])

@@ -281,6 +281,4 @@ exec racket --require "$0" --main -- ${1+"$@"}
 (define main
   {lambda arglist
     (parameterize ([current-command-line-arguments (list->vector arglist)])
-      (define retcode (call-with-current-continuation main0))
-      (cond [(and (exact-integer? retcode) (< 0 retcode 256)) (exit retcode)]
-            [else (exit 0)]))})
+      (exit-with-code (call-with-current-continuation main0)))})
