@@ -100,8 +100,6 @@ Now let@literal{'}s try to make thing done:
                             [times (compose1 length (curryr regexp-match* stdout))]
                             [msecs file-or-directory-modify-seconds])
                        (test-case "should no errors"
-                                  (with-output-to-file (build-path (digimon-world) "test.txt")
-                                    #:exists 'append {thunk (displayln 'test)})
                                   (check-pred zero? ($?) stderr)
                                   (check-pred zero? (file-position err) stderr))
                        (test-eq? "should work in one zone"

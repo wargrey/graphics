@@ -10,13 +10,12 @@
 
 (require "runtime.rkt")
 
-(provide /dev/null)
+(provide /dev/null tamer-story)
 (provide (all-defined-out))
 
 (provide (all-from-out racket "runtime.rkt" rackunit))
 (provide (all-from-out scribble/manual scribble/eval))
 
-(define tamer-story (make-parameter #false))
 (define tamer-zone (make-parameter #false))
 
 (define-syntax {tamer-action stx}
@@ -42,10 +41,6 @@
       (with-handlers ([exn:fail:contract? {λ [efc] (raise (make-exn:fail:contract:variable (format "'~a has not yet defined!" suite-name)
                                                                                            (exn-continuation-marks efc) suite-name))}])
         (cdr (assoc suite-name harness))))})
-
-(define tamer-story->tag
-  {lambda [story]
-    (path->string (find-relative-path (digimon-tamer) (build-path (digimon-world) (cadadr story))))})
 
 (define tamer-story->libpath
   {lambda [story-path]
@@ -92,7 +87,7 @@
       ((make-eval-factory (list `(file ,tamer.rkt) (tamer-story)))))})
 
 (define tamer-spec
-  {lambda []
+  {lambda [] ;;; Design for testing via racket.
     (dynamic-require (tamer-story) #false)
     (define htag (tamer-story->tag (tamer-story)))
     (define-values {brief-box cpu0 real0 gc0}
@@ -108,7 +103,7 @@
     (+ failure error)})
 
 (define tamer-harness
-  {lambda []
+  {lambda [] ;;; Design for testing with documentation
     (define-values {brief-box cpu0 real0 gc0}
       (time-apply {λ suites (for/fold ([brief initial-summary] [count 0]) ([suite (in-list suites)])
                               (values (summary** brief (prove-harness suite)) (add1 count)))}
@@ -140,8 +135,8 @@
          (define ->block (cond [readme? {λ [blocks] (margin-note (para (literal "---")) (italic (string :book:)) ~ (bold "Behaviors and Features")
                                                                  "<br>" (add-between (filter-not void? blocks) "<br>"))}]
                                [else {λ [blocks] (filebox (italic (string :book:) ~
-                                                                  (cond [(false? story-snapshot) (format "Behaviors of ~a" (info-ref 'collection))]
-                                                                        [(module-path? story-snapshot) (format "Behaviors of ~a" (cadadr story-snapshot))]))
+                                                                  (cond [(false? (tamer-story)) (format "Behaviors of ~a" (info-ref 'collection))]
+                                                                        [(module-path? (tamer-story)) (format "Behaviors of ~a" (cadadr (tamer-story)))]))
                                                           (add-between (filter-not void? blocks) (linebreak)))}]))
          (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
                                     {λ _ (tamer-harness)}
@@ -156,8 +151,8 @@
                                                                                  [else :collision:])))
                                                     (define label (racketkeywordfont (literal story padding)))
                                                     (cond [readme? (elem result ~ (hyperlink remote-url story))]
-                                                          [(false? story-snapshot) (seclink story label result)]
-                                                          [(module-path? story-snapshot) (elem label result)]))}]
+                                                          [(false? (tamer-story)) (seclink story label result)]
+                                                          [(module-path? (tamer-story)) (elem label result)]))}]
                                   [(regexp-match? #px"^⧴ (FAILURE|FATAL) » .+?\\s*$" line)
                                    => {λ _ (unless readme? (racketcommentfont line))}]
                                   [(regexp-match? #px"^\\s*$" line)
@@ -227,6 +222,13 @@
   (provide (all-defined-out))
   
   (define info-ref (get-info/full (digimon-zone)))
+
+  (define tamer-story (make-parameter #false))
+
+  (define tamer-story->tag
+    {lambda [story]
+      (with-handlers ([exn? {λ [e] (exn-message e)}])
+        (path->string (find-relative-path (digimon-tamer) (build-path (digimon-world) (cadadr story)))))})
   
   (struct tamer-seed {datum brief name-path})
   (struct summary {success failure error})
@@ -247,7 +249,9 @@
   (define tamer-record-handbook
     {lambda [name:case«suites action]
       (define short-name (car name:case«suites))
-      (define long-name (string-join name:case«suites " « "))
+      (define long-name (let ([name (string-join name:case«suites " « ")])
+                          (cond [(false? (tamer-story)) name]
+                                [(module-path? (tamer-story)) (string-append name " « " (tamer-story->tag (tamer-story)))])))
       (unless (hash-has-key? handbook-records long-name)
         (hash-set! handbook-records long-name
                    (call-with-escape-continuation
