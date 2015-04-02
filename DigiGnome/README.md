@@ -14,7 +14,7 @@ Good Luck!
 
 > _📖_ **Behaviors and
 > Features**<br>💚 [infrastructure.rkt](http://digignome.gyoudmon.org/infrastructure.rkt)<br> <br>_100.00%
-> tests successful._<br>_Testsuite = 1, Testcases = 22, Failure = 0, Error
+> tests successful._<br>_Testsuite = 1, Testcases = 19, Failure = 0, Error
 > = 0._
 
 [🐈<sub>🐾🐾🐾</sub>](http://digignome.gyoudmon.org)

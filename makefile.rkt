@@ -185,8 +185,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
 (define make~check:
   {lambda []
     (when (directory-exists? (digimon-tamer))
-      (let ([tamer-info {λ [key fdefault] (fdefault)}])
-        (compile-directory (digimon-tamer) tamer-info))
+      (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
     
       (for ([handbook (in-list (cond [(null? (current-make-real-targets)) (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))]
                                      [else (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.scrbl" (digimon-tamer)))])
@@ -281,4 +280,4 @@ exec racket --require "$0" --main -- ${1+"$@"}
 (define main
   {lambda arglist
     (parameterize ([current-command-line-arguments (list->vector arglist)])
-      (exit-with-code (call-with-current-continuation main0)))})
+      (exit-with-fixed-code (call-with-current-continuation main0)))})

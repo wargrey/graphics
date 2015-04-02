@@ -168,9 +168,7 @@ we need a sort of rules that the @italic{makefile.rkt} (and systems it builds) s
 @handbook-rule[3]{@racket[compile-collection-zos] and friends should never touch special paths.}
 @chunk[|<facts: rule 3>|
        "Rule 3: compile-omit-paths"
-       (for ([omit (in-list (list* "makefile.rkt" "submake.rkt" "info.rkt"
-                                   (map (compose1 path->string file-name-from-path)
-                                        (list (digimon-stone) (digimon-tamer)))))])
+       (for ([omit (in-list (list (path->string (file-name-from-path (digimon-stone)))))])
          (check-not-false (let ([maybe-omits (info-ref 'compile-omit-paths)])
                             (or (equal? maybe-omits 'all) (member omit maybe-omits)))
                           (format "'compile-omit-paths should contain ~a!" omit)))]
@@ -213,7 +211,7 @@ to check the system in some more convenient ways. Hence we have @chunk[|<tamer b
                                                                        {module main racket
                                                                          |<infrastructure taming start>|
                                                                          
-                                                                         (exit-with-code (tamer-spec))}]
+                                                                         (exit-with-fixed-code (tamer-spec))}]
 
 Run @exec{racket «@smaller{tamer files}»} we will get @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report.
 
