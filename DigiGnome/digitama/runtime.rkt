@@ -50,7 +50,7 @@
     (for/fold ([ps null]) ([p (in-directory start-path {λ [p] (not (regexp-match? px.exclude p))})])
       (if (predicate p) (append ps (list p)) ps))})
 
-(define exit-with-code
+(define exit-with-fixed-code
   {lambda [retcode]
     (exit (if (exact-nonnegative-integer? retcode) (min retcode 255) 0))})
 

@@ -30,7 +30,7 @@
                        [digimon-terminus (Parameterof Path-String)]
                        
                        [find-digimon-files {{Path-String -> Boolean} Path-String -> (Listof Path-String)}]
-                       [exit-with-code {Any -> Void}]
+                       [exit-with-fixed-code {Any -> Void}]
                        [~n_w {Nonnegative-Integer String -> String}]
                        [~w=n {Nonnegative-Integer String -> String}]
                        [echof {String [#:fgcolor Term-Color-Exp] [#:bgcolor Term-Color-Exp] [#:attributes (Listof Symbol)] Any * -> Void}]
