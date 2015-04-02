@@ -1,6 +1,9 @@
 #lang typed/racket
 
+(provide (all-defined-out))
+
 (define-type Term-Color-Exp (Option (U String Byte)))
+(define-type Racket-Main {String * -> Void})
 
 (require/typed/provide "runtime.rkt"
                        [:house-garden: Char]
