@@ -11,6 +11,9 @@
 (define-values {:house-garden: :cat: :paw: :book: :bookmark: :heart: :broken-heart: :collision: :pin: :backhand:}
   (values #\U1F3E1 #\U1F408 #\U1F43E #\U1F4D6 #\U1F4D1 #\U1F49A #\U1F494 #\U1F4A5 #\U1F4CC #\U1F449))
 
+(define /dev/stdin (current-input-port))
+(define /dev/stdout (current-output-port))
+(define /dev/stderr (current-error-port))
 (define /dev/null (open-output-nowhere '/dev/null #true))
 
 (define-values {digimon-world digimon-gnome}
@@ -50,6 +53,14 @@
 (define exit-with-code
   {lambda [retcode]
     (exit (if (exact-nonnegative-integer? retcode) (min retcode 255) 0))})
+
+(define ~n_w
+  {lambda [count word]
+    (format "~a ~a~a" count word (if (> count 1) "s" ""))})
+
+(define ~w=n
+  {lambda [count word]
+    (format "~a~a = ~a" word (if (> count 1) "s" "") count)})
 
 (define echof
   {lambda [msgfmt #:fgcolor [fg #false] #:bgcolor [bg #false] #:attributes [attrs null] . vals]

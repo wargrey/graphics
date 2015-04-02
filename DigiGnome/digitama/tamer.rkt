@@ -1,4 +1,4 @@
-#lang racket
+#lang at-exp racket
 
 (require rackunit)
 
@@ -104,8 +104,8 @@
              (map {λ [t] (~r (/ t 1000.0) #:precision '{= 3})} (list real0 (- cpu0 gc0) gc0 cpu0))))
     (define population (+ success failure error))
     (cond [(zero? population) (printf "~nNo example, do not try to fool me!~n")]
-          [else (printf "~nFinished in ~a wallclock seconds (~a task + ~a gc = ~a CPU)~n~a example~a, ~a failure~a, ~a error~a, ~a% Okay.~n"
-                        real cpu-gc gc cpu population (plural-suffix population) failure (plural-suffix failure) error (plural-suffix error)
+          [else (printf "~nFinished in ~a wallclock seconds (~a task + ~a gc = ~a CPU)~n~a, ~a, ~a, ~a% Okay.~n"
+                        real cpu-gc gc cpu @~n_w[population]{example} @~n_w[failure]{failure} @~n_w[error]{error}
                         (~r (/ (* success 100) population) #:precision '{= 2}))])
     (+ failure error)})
 
@@ -116,15 +116,19 @@
                               (values (summary** brief (prove-harness suite)) (add1 count)))}
                   (cond [(false? (tamer-story)) (hash-map handbook-stories {λ [harness stories] (make-test-suite harness (reverse (map cdr stories)))})]
                         [(module-path? (tamer-story)) (reverse (map cdr (hash-ref handbook-stories (tamer-story->tag (tamer-story)) (cons '_ null))))])))
+    (define-values {reals gcs cpus}
+      (apply values (map (if (tamer-story) (curryr hash-ref (tamer-story) 0) (compose1 (curry foldl + 0) hash-values))
+                         (list story-reals story-gcs story-cpus))))
     (define-values {success failure error real cpu-gc gc cpu}
       (apply values (summary-success (car brief-box)) (summary-failure (car brief-box)) (summary-error (car brief-box))
-             (map {λ [t] (~r (/ t 1000.0) #:precision '{= 3})} (list real0 (- cpu0 gc0) gc0 cpu0))))
+             (map {λ [t0 ts] (~r (/ (+ t0 ts) 1000.0) #:precision '{= 3})}
+                  (list real0 (- cpu0 gc0) gc0 cpu0) (list reals (- cpus gcs) gcs cpus))))
     (define population (+ success failure error))
     (cond [(zero? population) (printf "~nNo testcase, do not try to fool me!~n")]
-          [else (printf "~n~a% tests successful.~nTestsuite~a = ~a, Testcase~a = ~a, Failure~a = ~a, Error~a = ~a.~n~a wallclock seconds (~a task + ~a gc = ~a CPU).~n"
+          [else (printf "~n~a% tests successful.~n~a, ~a, ~a, ~a.~n~a wallclock seconds (~a task + ~a gc = ~a CPU).~n"
                         (~r (/ (* success 100) population) #:precision '(= 2))
-                        (plural-suffix (cadr brief-box)) (cadr brief-box) (plural-suffix population) population
-                        (plural-suffix failure) failure (plural-suffix error) error real cpu-gc gc cpu)])
+                        @~w=n[(cadr brief-box)]{Testsuite} @~w=n[population]{Testcase} @~w=n[failure]{Failure} @~w=n[error]{Error}
+                        real cpu-gc gc cpu)])
     (+ failure error)})
 
 (define tamer-smart-summary
@@ -146,7 +150,8 @@
                                                                         [(module-path? (tamer-story)) (format "Behaviors of ~a" (cadadr (tamer-story)))]))
                                                           (add-between (filter-not void? blocks) (linebreak)))}]))
          (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
-                                    {λ _ (tamer-harness)}
+                                    {λ _ (with-handlers ([exn? {λ [e] (fprintf /dev/stdout "~a~n" e)}])
+                                           (tamer-harness))}
                                     {λ _ (close-output-port harness-out)})})
          (nested #:style (make-style "boxed" null)
                  (->block (for/list ([line (in-port read-line)])
@@ -176,16 +181,17 @@
        (parameterize ([tamer-story story-snapshot]
                       [current-input-port hspec-in])
          (define status (make-parameter 0)) ;;; status: =0 => success; >0 => failure; <0 => error; NaN => summary comes
-         (thread {λ _ (dynamic-wind void
+         (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
                                     {λ _ (parameterize ([current-error-port hspec-out]
                                                         [current-output-port hspec-out])
                                            (for ([suite (in-list suite-vars)])
-                                             (define brief (prove-spec (tamer-require suite)))
-                                             (define-values {failure error} (values (summary-failure brief) (summary-error brief)))
-                                             (unless (zero? (+ failure error))
-                                               (printf "~n~a failure~a ~a error~a~n"
-                                                       failure (plural-suffix failure)
-                                                       error (plural-suffix error)))))}
+                                             (define-values {brief cpu real gc} (time-apply prove-spec (list (tamer-require suite))))
+                                             (define-values {failure error} (values (summary-failure (car brief)) (summary-error (car brief))))
+                                             (hash-set! story-cpus (tamer-story) (+ cpu (hash-ref story-cpus (tamer-story) 0)))
+                                             (hash-set! story-reals (tamer-story) (+ real (hash-ref story-reals (tamer-story) 0)))
+                                             (hash-set! story-gcs (tamer-story) (+ gc (hash-ref story-gcs (tamer-story) 0)))
+                                             (cond [(zero? (+ failure error)) (printf "~n~a wallclock seconds" (~r (/ real 1000.0) #:precision '{= 3}))]
+                                                   [else (printf "~n~a ~a~n" @~n_w[failure]{failure} @~n_w[error]{error})])))}
                                     {λ _ (close-output-port hspec-out)})})
          (margin-note (let ([bs (for/list ([line (in-port read-line)])
                                   (cond [(regexp-match #px"^(λ)\\s+(.+)" line)
@@ -215,7 +221,7 @@
                                          => {λ _ (eechof #:fgcolor 245 "~a~n" line)}]
                                         [(regexp-match #px"^$" line)
                                          => {λ _ (status +NaN.0)}]
-                                        [else (eechof "~a~n" line)
+                                        [else (eechof #:fgcolor 'yellow "~a~n" line)
                                               (when (nan? (status)) (elem (string :pin:) ~ (racketoutput line)))]))])
                         (add-between (filter-not void? bs) (linebreak)))))})})
 
@@ -250,9 +256,9 @@
       (summary (+ (summary-success summary1) (summary-success summary2))
                (+ (summary-failure summary1) (summary-failure summary2))
                (+ (summary-error summary1) (summary-error summary2)))})
-  
-  (define handbook-stories (make-hash))
-  (define handbook-records (make-hash))
+
+  (define-values {handbook-stories handbook-records story-cpus story-reals story-gcs}
+    (values (make-hash) (make-hash) (make-hash) (make-hash) (make-hash)))
   (define tamer-record-handbook
     {lambda [name:case«suites action]
       (define short-name (car name:case«suites))
@@ -277,11 +283,7 @@
       (unless (hash-has-key? indents key)
         (hash-set! indents key (make-string (* count times) padding)))
       (hash-ref indents key)})
-  
-  (define plural-suffix
-    {lambda [count]
-      (if (> count 1) "s" "")})
-  
+    
   (define ~result
     {lambda [result]
       (define indicators (hash (object-name struct:test-error) "#?"
