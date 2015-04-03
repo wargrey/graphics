@@ -37,7 +37,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
     (define ds (cadr r))
     (define f {λ _ (with-handlers ([symbol? void])
                      (make-parent-directory* t)
-                     (call-with-atomic-output-file t {λ [whocares pseudo-t]
+                     (call-with-atomic-output-file t {λ [whocares pseudo-t] #| pseudo-t is in the same dir|#
                                                        (close-output-port whocares)
                                                        ((caddr r) pseudo-t)
                                                        (when (make-dry-run)
@@ -51,15 +51,24 @@ exec racket --require "$0" --main -- ${1+"$@"}
   {lambda [cmpdir finfo]
     (define-values {pin pout} (make-pipe #false 'filter-checking 'verbose-message))
     (define px.inside-world (pregexp (digimon-world)))
-    (thread {λ _  (dynamic-wind void
-                                {λ _ (parameterize ([current-output-port pout]
-                                                    [current-error-port pout])
-                                       (compile-directory-zos cmpdir finfo #:verbose #true #:skip-doc-sources? #true))}
-                                {λ _ (close-output-port pout)})})
-    (for ([line (in-port read-line pin)])
-      (cond [(regexp-match? px.inside-world line) (printf "~a~n" line)]
-            [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" line) 'Skip-Others-Packages]
-            [else (printf "~a~n" line)]))})
+    (thread {λ _ (for ([line (in-port read-line pin)])
+                   (cond [(regexp-match? px.inside-world line) (printf "~a~n" line)]
+                         [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" line) 'Skip-Others-Packages]
+                         [else (printf "~a~n" line)]))})
+    (dynamic-wind {λ _ '{compiling in the main thread is good for breaking when exception occures}}
+                  {λ _ (parameterize ([current-output-port pout]
+                                      [current-error-port pout])
+                         (compile-directory-zos cmpdir finfo #:verbose #true #:skip-doc-sources? #true))}
+                  {λ _ (close-output-port pout)})})
+
+(define make-digivice
+  {lambda [template dgvc-name dgvc.rkt]
+    (with-output-to-file dgvc.rkt #:exists 'replace
+      {λ _ (void (putenv "current-digivice" dgvc-name)
+                 (putenv "runtime-path" (path->string (find-relative-path (path-only dgvc.rkt) digimon-runtime-source)))
+                 (dynamic-require template #false))})
+    (let ([chmod (file-or-directory-permissions dgvc.rkt 'bits)])
+      (file-or-directory-permissions dgvc.rkt (bitwise-ior chmod #o111)))})
 
 (define smart-dependencies
     {lambda [entry [memory null]]
@@ -75,21 +84,15 @@ exec racket --require "$0" --main -- ${1+"$@"}
     (define d-info (get-info/full (digimon-zone)))
     (define stone/digivice.rkt (parameterize ([current-digimon (digimon-gnome)]) (build-path (digimon-stone) "digivice.rkt")))
     (append (foldl {λ [n r] (append (filter list? n) r)} null
-                   (map {λ [digivice d-ark.rkt]
-                          (define d-ark (path->string (build-path (digimon-world) (current-digimon) d-ark.rkt)))
-                          (list (let* ([t (build-path (digimon-zone) d-ark.rkt)]
-                                       [t.dir (path-replace-suffix t #"")]
-                                       [ds (list stone/digivice.rkt (syntax-source #'makefile))])
+                   (map {λ [dgvc-name dgvc-lib]
+                          (define dgvc.rkt (path->string (build-path (digimon-zone) dgvc-lib)))
+                          (list (let ([t.dir (path-replace-suffix dgvc.rkt #"")]
+                                      [ds (list stone/digivice.rkt (syntax-source #'makefile))])
                                   (when (directory-exists? t.dir)
-                                    (list t ds {λ [target] (with-output-to-file target #:exists 'replace
-                                                             {λ _ (void (putenv "current-digivice" digivice)
-                                                                        (putenv "runtime-path" (path->string (find-relative-path (path-only d-ark) digimon-runtime-source)))
-                                                                        (dynamic-require (car ds) #false))})
-                                                 (let ([chmod (file-or-directory-permissions target 'bits)])
-                                                   (file-or-directory-permissions target (bitwise-ior chmod #o111)))})))
-                                (let ([t (simplify-path (build-path (digimon-world) (digimon-gnome) (car (use-compiled-file-paths)) digivice))]
+                                    (list dgvc.rkt ds (curry make-digivice (car ds) dgvc-name))))
+                                (let ([t (simplify-path (build-path (digimon-world) (digimon-gnome) (car (use-compiled-file-paths)) dgvc-name))]
                                       [ds (list (syntax-source #'makefile))])
-                                  (list t ds (curry make-racket-launcher (list "-t-" d-ark)))))}
+                                  (list t ds (curry make-racket-launcher (list "-t-" dgvc.rkt)))))}
                         (d-info 'racket-launcher-names {λ _ null})
                         (d-info 'racket-launcher-libraries {λ _ null})))
             (map {λ [dependent.scrbl]
@@ -154,8 +157,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
 (define make~clean:
   {lambda []
     (define submake (build-path (digimon-zone) "submake.rkt"))
-    (define fclean {λ [dirty] (void (when (file-exists? dirty) (delete-file dirty))
-                                    (when (directory-exists? dirty) (delete-directory dirty))
+    (define fclean {λ [dirty] (void (cond [(file-exists? dirty) (delete-file dirty)]
+                                          [(directory-exists? dirty) (delete-directory dirty)])
                                     (printf "make: deleted ~a.~n" (simplify-path dirty)))})
   
     (when (member (current-make-phony-goal) '{"distclean" "maintainer-clean"})
@@ -175,12 +178,9 @@ exec racket --require "$0" --main -- ${1+"$@"}
             (for-each fclean (map {λ [val] (if (list? val) (car val) val)}
                                   (namespace-variable-value var #false {λ _ null})))))))
     
-    (let ([px.exclude (pregexp (string-join #:before-first "/(\\.git|" #:after-last ")$" (map (compose1 path->string file-name-from-path) null) "|"))]
-          [px.include (pregexp (format "/(~a)(?!\\.)/?" (car (use-compiled-file-paths))))])
-      (for-each fclean (reverse (filter (curry regexp-match? px.include)
-                                        (sequence->list (in-directory (digimon-zone) (negate (curry regexp-match? px.exclude))))))))
-  
-    (for-each {λ [target] (fclean target)} (map car (make-implicit-rules)))})
+    (for-each fclean (map car (make-implicit-rules)))
+    (for-each fclean (find-digimon-files (curry regexp-match? (pregexp (format "/~a(?![^/])/?" (car (use-compiled-file-paths)))))
+                                         (digimon-zone) #:search-compiled? #true))})
 
 (define make~check:
   {lambda []
@@ -216,7 +216,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                    (namespace-variable-value var #false))))))
     (parse-command-line (file-name-from-path (syntax-source #'program))
                         (current-command-line-arguments)
-                        `{{usage-help ,(format "Carefully options are not exactly the same as those of GNU Make.~n")}
+                        `{{usage-help ,(format "Carefully options are not exactly the same as those of GNU Make.~n")} ; make "~n" work
                           {once-each
                            [{"-B" "--always-make"}
                             ,{λ [flag] (make-always-run #true)}
@@ -238,9 +238,6 @@ exec racket --require "$0" --main -- ${1+"$@"}
                             ,{λ (++only digimon) (current-make-collects (cons digimon (current-make-collects)))}
                             {"Only build <digimon>s." "digimon"}]}}
                         {λ [!voids . targets]
-                          ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
-                          ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
-                          (use-compiled-file-paths (list (build-path "compiled")))
                           (define-values {reals phonies} (partition filename-extension targets))
                           (parameterize ([current-make-real-targets (map path->complete-path reals)])
                             (for ([digimon (in-list (let ([fsetup-collects {λ _ (map path->string (directory-list (digimon-world)))}])
