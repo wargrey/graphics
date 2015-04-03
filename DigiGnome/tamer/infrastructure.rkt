@@ -5,8 +5,7 @@
 @(require (for-syntax "tamer.rkt"))
 
 @(tamer-story (tamer-story->libpath "infrastructure.rkt"))
-@(define partner `(file ,(path->string (car (filter file-exists? (list (collection-file-path "makefile.rkt" (digimon-gnome))
-                                                                       (build-path (digimon-world) "makefile.rkt")))))))
+@(define partner `(file ,(format "~a/makefile.rkt" (digimon-world))))
 @(tamer-zone (make-tamer-zone))
 
 @handbook-story{Hello, Hacker Hero!}
@@ -24,27 +23,24 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
        
        |<tamer battle>|]
 
-where @chunk[|<infrastructure taming start>|
-             (require "tamer.rkt")
-             (require setup/getinfo)
+where
+@chunk[|<infrastructure taming start>|
+       (require "tamer.rkt")
+       (require setup/getinfo)
              
-             (tamer-story (tamer-story->libpath "infrastructure.rkt"))
-             (define partner `(file ,(format "~a/makefile.rkt" (digimon-world))))]
+       (tamer-story (tamer-story->libpath "infrastructure.rkt"))
+       (define partner `(file ,(format "~a/makefile.rkt" (digimon-world))))]
 
 @tamer-smart-summary[]
 
 @handbook-scenario[#:tag @(digimon-gnome)]{Ready? Let@literal{'}s have a try!}
 
 @chunk[|<ready? help!>|
-       (define-values {make out err $?}
-         (values (dynamic-require partner 'main {λ _ #false})
-                 (open-output-bytes 'stdout)
-                 (open-output-bytes 'stderr)
-                 (make-parameter +NaN.0)))
+       (define make (dynamic-require partner 'main {λ _ #false}))
 
        |<setup and teardown timidly>|
 
-       (define-tamer-suite spec-examples "Ready? It works!"
+       (define-tamer-suite make-option "Ready? It works!"
          (list (test-suite "make: simple options"
                            |<testsuite: simple options>|)
                (test-suite "make: complex options"
@@ -69,29 +65,29 @@ Kill those unexpected routines crudely is unreasonable since they will run in th
        (define {{setup . argv}}
          (dynamic-wind {λ _ (environment-variables-set! ENV #"taming" #"true")}
                        {λ _ (parameterize ([current-directory (digimon-world)]
-                                           [current-output-port out]
-                                           [current-error-port err]
+                                           [current-output-port strout]
+                                           [current-error-port strerr]
                                            [exit-handler $?])
                               (apply make argv))}
                        {λ _ (environment-variables-set! ENV #"taming" #false)}))
 
        (define {teardown}
-         (get-output-bytes out #true)
-         (get-output-bytes err #true)
+         (get-output-bytes strout #true)
+         (get-output-bytes strerr #true)
          ($? +NaN.0))]
 
 Now let@literal{'}s try to make thing done:
 
-@tamer-note['spec-examples]
+@tamer-note['make-option]
 @chunk[|<testsuite: simple options>|
        (test-suite "make --silent --help"
                    #:before (setup "--silent" "--help") #:after teardown
                    (test-pred "should exit normally" zero? ($?))
-                   (test-pred "should keep quiet" zero? (file-position out)))
+                   (test-pred "should keep quiet" zero? (file-position strout)))
        (test-suite "make --silent love"
                    #:before (setup "--silent" "love") #:after teardown
                    (test-true "should abort" ((negate zero?) ($?)))
-                   (test-pred "should report errors" positive? (file-position err)))]
+                   (test-check "should report errors" < 0 (file-position strerr)))]
 
 It seems that it works very well, and so it does.
 But the @italic{before} and @italic{after} routines are out of testcase
@@ -106,12 +102,12 @@ So, a testcase with the additional work sealed inside would be better:
                              (path->string (file-name-from-path "README.md")))])
          (test-spec (string-join (cons "make" make-md))
                     #:do (apply setup make-md) #:~do teardown
-                    (let* ([stdout (get-output-string out)]
-                           [stderr (get-output-string err)]
+                    (let* ([stdout (get-output-string strout)]
+                           [stderr (get-output-string strerr)]
                            [times (compose1 length (curryr regexp-match* stdout))]
                            [msecs file-or-directory-modify-seconds])
                       (check-pred zero? ($?) stderr)
-                      (check-pred zero? (file-position err) stderr)
+                      (check-pred zero? (file-position strerr) stderr)
                       (check-eq? (times #px"Leave Digimon Zone") 1
                                  "worked in wrong digimon zone!")
                       (check-eq? (times #px"make: made") 1

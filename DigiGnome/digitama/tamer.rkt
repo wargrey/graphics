@@ -215,7 +215,7 @@
                                                           [{"FATAL"} (eechof #:fgcolor 'red #:attributes '{inverse} "~a~n" line) (status -inf.0)])}]
                                         [(regexp-match #px"^\\s*»» (.+?)?:?\\s+\"?(.+?)\"?\\s*$" line)
                                          => {λ [pieces] (and (eechof #:fgcolor 'red #:attributes (if (< (status) 0) '{inverse} null) "~a~n" line)
-                                                             (when (equal? (list-ref pieces 1) "message")
+                                                             (when (regexp-match? #px"message$" (list-ref pieces 1))
                                                                (elem (string :backhand:) ~ (racketcommentfont (italic (literal (list-ref pieces 2)))))))}]
                                         [(regexp-match #px"^\\s*»»»» .+$" line)
                                          => {λ _ (eechof #:fgcolor 245 "~a~n" line)}]
