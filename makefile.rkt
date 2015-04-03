@@ -186,24 +186,32 @@ exec racket --require "$0" --main -- ${1+"$@"}
   {lambda []
     (when (directory-exists? (digimon-tamer))
       (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
-    
+
       (for ([handbook (in-list (cond [(null? (current-make-real-targets)) (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))]
-                                     [else (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.scrbl" (digimon-tamer)))])
+                                     [else (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.(scrbl|rkt)" (digimon-tamer)))])
                                              (filter {λ [hb.scrbl] (or (regexp-match? px.tamer.scrbl hb.scrbl)
                                                                        ((negate eprintf) "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl))}
                                                      (current-make-real-targets)))]))])
-        (parameterize ([current-directory (path-only handbook)]
-                       [current-namespace (make-base-namespace)]
-                       [exit-handler {λ _ (error 'make "[fatal] /~a needs a proper `exit-handler`!" (find-relative-path (digimon-world) handbook))}])
-          (namespace-require 'setup/xref)
-          (namespace-require 'scribble/render)
-          (eval '(require (prefix-in html: scribble/html-render)))
-          (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
-                         #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
-                         #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
-                         #:redirect "http://docs.racket-lang.org" #:redirect-main "http://docs.racket-lang.org"
-                         #:xrefs (list (load-collections-xref))
-                         #:quiet? #false #:warn-undefined? #false)))))})
+        (if (regexp-match? #px"\\.rkt$" handbook)
+            (parameterize ([current-directory (path-only handbook)]
+                           [current-namespace (make-base-namespace)]
+                           [exit-handler {λ [retcode] (when (and (integer? retcode) (<= 1 retcode 255))
+                                                        (error 'make "[error] /~a breaks ~a testcases!"
+                                                               (find-relative-path (digimon-world) handbook) retcode))}])
+              (dynamic-require `(submod ,handbook main) #false))
+            (parameterize ([current-directory (path-only handbook)]
+                           [current-namespace (make-base-namespace)]
+                           [exit-handler {λ _ (error 'make "[fatal] /~a needs a proper `exit-handler`!"
+                                                     (find-relative-path (digimon-world) handbook))}])
+              (namespace-require 'setup/xref)
+              (namespace-require 'scribble/render)
+              (eval '(require (prefix-in html: scribble/html-render)))
+              (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
+                             #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
+                             #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
+                             #:redirect "http://docs.racket-lang.org" #:redirect-main "http://docs.racket-lang.org"
+                             #:xrefs (list (load-collections-xref))
+                             #:quiet? #false #:warn-undefined? #false))))))})
 
 (define main0
   {lambda [return]
