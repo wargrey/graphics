@@ -155,7 +155,7 @@
                                     {λ _ (close-output-port harness-out)})})
          (nested #:style (make-style "boxed" null)
                  (->block (for/list ([line (in-port read-line)])
-                            (cond [(regexp-match #px"^(.+?)(\\.{3,})(.+)$" line)
+                            (cond [(regexp-match #px"^(.+?)(\\.{6,})(.+)$" line)
                                    => {λ [pieces] (match-let ([{list _ story padding status} pieces])
                                                     (define remote-url (format "http://~a.gyoudmon.org/~a" (string-downcase (current-digimon)) story))
                                                     (define result (string (cond [(string=? status (~result struct:test-success)) :heart:]
@@ -295,20 +295,24 @@
     {lambda [name e]
       (test-suite (format "(⧴ ~a)" (object-name e))
                   (test-case (format "~a" name) #| make-test-error |# (raise e)))})
+
+  (define tr-d (curryr string-replace (digimon-world) ""))
   
   (define display-failure
     {lambda [result #:indent [headspace ""]]
       (eechof #:fgcolor 'red "~a⧴ FAILURE » ~a~n" headspace (test-result-test-case-name result))
       (for ([info (in-list (exn:test:check-stack (test-failure-result result)))])
         (eechof #:fgcolor 'red "~a»» ~a: ~s~n" headspace (check-info-name info)
-                (if (symbol=? 'location (check-info-name info))
-                    (srcloc->string (apply srcloc (check-info-value info)))
-                    (check-info-value info))))})
+                (case (check-info-name info)
+                  [{location} (tr-d (srcloc->string (apply srcloc (check-info-value info))))]
+                  [{exception-message} (tr-d (check-info-value info))]
+                  [{exception} (object-name (check-info-value info))]
+                  [else (check-info-value info)])))})
   
   (define display-error
     {lambda [result #:indent [headspace0 ""]]
       (define errobj (test-error-result result))
-      (define messages (call-with-input-string (string-replace (exn-message errobj) (digimon-world) "") port->lines))
+      (define messages (call-with-input-string (tr-d (exn-message errobj)) port->lines))
       (eechof #:fgcolor 'red #:attributes '{inverse} "~a⧴ FATAL » ~a~n" headspace0 (test-result-test-case-name result))
       (eechof #:fgcolor 'red #:attributes '{inverse} "~a»» name: ~a~n" headspace0 (object-name errobj))
       (unless (null? messages)
@@ -321,8 +325,7 @@
           (define srcinfo (srcloc->string (cdr stack)))
           (unless (or (false? srcinfo) (absolute-path? srcinfo))
             (eechof #:fgcolor 245 "~a»»»» ~a: ~a~n" headspace0
-                    (string-replace srcinfo (digimon-world) "")
-                    (or (car stack) 'λ)))))})
+                    (tr-d srcinfo) (or (car stack) 'λ)))))})
   
   (define default-fseed
     {lambda last-is-seed
@@ -393,7 +396,7 @@
       (define-values {$?≠0 brief}
         (fold-test-suite null suite #:fhere {λ [result seed:$?≠0] (cond [(test-success? result) seed:$?≠0]
                                                                         [else (cons result seed:$?≠0)])}))
-      (echof "~a" (~a #:width 64 #:pad-string "." #:limit-marker "..." (rackunit-test-suite-name suite)))
+      (echof "~a" (~a #:width 64 #:pad-string "." #:limit-marker "......" (rackunit-test-suite-name suite)))
       (cond [(positive? (summary-error brief)) (echof #:fgcolor 'red "~a~n" (~result struct:test-error))]
             [(positive? (summary-failure brief)) (echof #:fgcolor 'lightred "~a~n" (~result struct:test-failure))]
             [(positive? (summary-success brief)) (echof #:fgcolor 'green "~a~n" (~result struct:test-success))]
