@@ -26,7 +26,11 @@
 (define digimon-zone (make-derived-parameter current-digimon (immutable-guard 'digimon-zone) {λ [name] (build-path (digimon-world) name)}))
 
 (void (unless (member (digimon-world) (current-library-collection-paths))
-        (current-library-collection-paths (cons (digimon-world) (current-library-collection-paths)))))
+        (current-library-collection-paths (cons (digimon-world) (current-library-collection-paths)))
+        
+        ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
+        ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
+        (use-compiled-file-paths (list (build-path "compiled")))))
 
 (define-syntax {define-digimon-dirpath stx}
   (syntax-case stx []
@@ -44,11 +48,13 @@
     (if (symbol? submodule) `(submod (lib ,fname) ,submodule) `(lib ,fname))})
 
 (define find-digimon-files
-  {lambda [predicate start-path]
-    (define px.exclude (pregexp (string-join #:before-first "/(\\.git|" #:after-last ")$"
-                                             (map (compose1 path->string file-name-from-path) (use-compiled-file-paths)) "|")))
+  {lambda [predicate start-path #:search-compiled? [search-compiled? #false]]
+    (define px.exclude (pregexp (string-join #:before-first "/(\\." #:after-last ")$"
+                                             (cons "git" (cond [search-compiled? null]
+                                                               [else (remove-duplicates (map (compose1 path->string file-name-from-path)
+                                                                                             (use-compiled-file-paths)))])) "|")))
     (for/fold ([ps null]) ([p (in-directory start-path {λ [p] (not (regexp-match? px.exclude p))})])
-      (if (predicate p) (append ps (list p)) ps))})
+      (if (predicate p) (cons p ps) ps))})
 
 (define exit-with-fixed-code
   {lambda [retcode]
