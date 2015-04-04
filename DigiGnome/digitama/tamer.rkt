@@ -46,7 +46,7 @@
 (define tamer-require
   {lambda [name]
     (define htag (tamer-story->tag (tamer-story)))
-    (define unit (hash-ref handbook-stories htag))
+    (define unit (hash-ref handbook-stories htag null))
     (with-handlers ([exn? {λ [e] (let ([story (exn->test-case 'tamer-require e)])
                                    (hash-set! handbook-stories htag (cons (cons name story) unit))
                                    story)}])
@@ -102,39 +102,39 @@
   {lambda [] ;;; Design for testing via racket.
     (dynamic-require (tamer-story) #false)
     (define htag (tamer-story->tag (tamer-story)))
-    (define-values {brief-box cpu0 real0 gc0}
-      (time-apply prove-spec (list (make-test-suite htag (reverse (map cdr (hash-ref handbook-stories htag (cons '_ null))))))))
-    (define-values {success failure error real cpu-gc gc cpu}
-      (apply values (summary-success (car brief-box)) (summary-failure (car brief-box)) (summary-error (car brief-box))
-             (map {λ [t] (~r (/ t 1000.0) #:precision '{= 3})} (list real0 (- cpu0 gc0) gc0 cpu0))))
-    (define population (+ success failure error))
-    (cond [(zero? population) (printf "~nNo example, do not try to fool me!~n")]
-          [else (printf "~nFinished in ~a wallclock seconds (~a task + ~a gc = ~a CPU)~n~a, ~a, ~a, ~a% Okay.~n"
-                        real cpu-gc gc cpu @~n_w[population]{example} @~n_w[failure]{failure} @~n_w[error]{error}
-                        (~r (/ (* success 100) population) #:precision '{= 2}))])
-    (+ failure error)})
+    (cond [(false? (hash-has-key? handbook-stories htag)) ({λ _ 0} (echof #:fgcolor 'yellow "~nNo particular example!~n"))]
+          [else (let ([suite (make-test-suite htag (reverse (map cdr (hash-ref handbook-stories htag))))])
+                  (define-values {brief-box cpu0 real0 gc0} (time-apply prove-spec (list suite)))
+                  (define-values {success failure error real cpu-gc gc cpu}
+                    (apply values (summary-success (car brief-box)) (summary-failure (car brief-box)) (summary-error (car brief-box))
+                           (map {λ [t] (~r (/ t 1000.0) #:precision '{= 3})} (list real0 (- cpu0 gc0) gc0 cpu0))))
+                  (define population (+ success failure error))
+                  (printf "~nFinished in ~a wallclock seconds (~a task + ~a gc = ~a CPU)~n~a, ~a, ~a, ~a% Okay.~n"
+                          real cpu-gc gc cpu @~n_w[population]{example} @~n_w[failure]{failure} @~n_w[error]{error}
+                          (~r (/ (* success 100) population) #:precision '{= 2}))
+                  (+ failure error))])})
 
 (define tamer-harness
   {lambda [] ;;; Design for testing with documentation
-    (define-values {brief-box cpu0 real0 gc0}
-      (time-apply {λ suites (for/fold ([brief initial-summary] [count 0]) ([suite (in-list suites)])
-                              (values (summary** brief (prove-harness suite)) (add1 count)))}
-                  (cond [(false? (tamer-story)) (hash-map handbook-stories {λ [harness stories] (make-test-suite harness (reverse (map cdr stories)))})]
-                        [(module-path? (tamer-story)) (reverse (map cdr (hash-ref handbook-stories (tamer-story->tag (tamer-story)) (cons '_ null))))])))
-    (define-values {reals gcs cpus}
-      (apply values (map (if (tamer-story) (curryr hash-ref (tamer-story) 0) (compose1 (curry foldl + 0) hash-values))
-                         (list story-reals story-gcs story-cpus))))
-    (define-values {success failure error real cpu-gc gc cpu}
-      (apply values (summary-success (car brief-box)) (summary-failure (car brief-box)) (summary-error (car brief-box))
-             (map {λ [t0 ts] (~r (/ (+ t0 ts) 1000.0) #:precision '{= 3})}
-                  (list real0 (- cpu0 gc0) gc0 cpu0) (list reals (- cpus gcs) gcs cpus))))
-    (define population (+ success failure error))
-    (cond [(zero? population) (printf "~nNo testcase, do not try to fool me!~n")]
-          [else (printf "~n~a% tests successful.~n~a, ~a, ~a, ~a.~n~a wallclock seconds (~a task + ~a gc = ~a CPU).~n"
-                        (~r (/ (* success 100) population) #:precision '(= 2))
-                        @~w=n[(cadr brief-box)]{Testunit} @~w=n[population]{Testcase} @~w=n[failure]{Failure} @~w=n[error]{Error}
-                        real cpu-gc gc cpu)])
-    (+ failure error)})
+    (define suites (cond [(false? (tamer-story)) (hash-map handbook-stories {λ [harness stories] (make-test-suite harness (reverse (map cdr stories)))})]
+                         [(module-path? (tamer-story)) (reverse (map cdr (hash-ref handbook-stories (tamer-story->tag (tamer-story)) null)))]))
+    (cond [(null? suites) ({λ _ 0} (printf "~nNo particular testcase!~n"))]
+          [else (let ([prove {λ _ (for/fold ([brief initial-summary] [count 0]) ([suite (in-list suites)])
+                                    (values (summary** brief (prove-harness suite)) (add1 count)))}])
+                  (define-values {brief-box cpu0 real0 gc0} (time-apply prove null))
+                  (define-values {reals gcs cpus}
+                    (apply values (map (if (tamer-story) (curryr hash-ref (tamer-story) 0) (compose1 (curry foldl + 0) hash-values))
+                                       (list story-reals story-gcs story-cpus))))
+                  (define-values {success failure error real cpu-gc gc cpu}
+                    (apply values (summary-success (car brief-box)) (summary-failure (car brief-box)) (summary-error (car brief-box))
+                           (map {λ [t0 ts] (~r (/ (+ t0 ts) 1000.0) #:precision '{= 3})}
+                                (list real0 (- cpu0 gc0) gc0 cpu0) (list reals (- cpus gcs) gcs cpus))))
+                  (define population (+ success failure error))
+                  (printf "~n~a% tests successful.~n~a, ~a, ~a, ~a.~n~a wallclock seconds (~a task + ~a gc = ~a CPU).~n"
+                          (~r (/ (* success 100) population) #:precision '(= 2))
+                          @~w=n[(cadr brief-box)]{Testunit} @~w=n[population]{Testcase} @~w=n[failure]{Failure} @~w=n[error]{Error}
+                          real cpu-gc gc cpu)
+                  (+ failure error))])})
 
 (define tamer-smart-summary
   {lambda []
@@ -155,8 +155,7 @@
                                                                         [(module-path? (tamer-story)) (format "Behaviors of ~a" (cadadr (tamer-story)))]))
                                                           (add-between (filter-not void? blocks) (linebreak)))}]))
          (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
-                                    {λ _ (with-handlers ([exn? {λ [e] (fprintf /dev/stdout "~a~n" e)}])
-                                           (tamer-harness))}
+                                    {λ _ (tamer-harness)}
                                     {λ _ (close-output-port harness-out)})})
          (nested #:style (make-style "boxed" null)
                  (->block (for/list ([line (in-port read-line)])
