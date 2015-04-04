@@ -54,7 +54,7 @@ nonetheless you are still free to check the options first. Normal @bold{Racket} 
 
 Be careful here, the buggy implementation may keep invoking another test routine endlessly in which case
 this @italic{handbook} itself may be depended by some other files.
-Kill those unexpected routines crudely is unreasonable since they will run in their own namespace and may have side effects.
+Kill those unexpected routines crudely is unreasonable since there maight be side effects.
 
 @chunk[|<setup and teardown timidly>|
        (define ENV (current-environment-variables))
@@ -88,12 +88,10 @@ Now let@literal{'}s try to make thing done:
                    (test-true "should abort" ((negate zero?) ($?)))
                    (test-check "should report errors" < 0 (file-position strerr)))]
 
-It seems that it works very well, and so it does.
-But the @italic{before} and @italic{after} routines are out of testcase
-in which case the following call for the same testsuite may waste too much time
-since only the results of testcases are cached during the process of rendering the @italic{handbook}.
-
-So, a testcase with the additional work sealed inside would be better: 
+It seems that it works very well, and so it does. But the @italic{before} and @italic{after} routines are out of testcase
+in which case they would be invoked at least three times during the process of rendering the @italic{handbook}, one for
+normal turn, another for local @racket[tamer-smart-summary], and the other for the global @racket[tamer-smart-summary].
+So, a testcase with the additional work sealed inside would be better since we can cache the result by nature. 
 
 @chunk[|<testcase: complex options>|
        (let* ([goal-md (build-path (digimon-world) "README.md")]
@@ -202,13 +200,18 @@ we need a sort of rules that the @italic{makefile.rkt} (and systems it builds) s
 @handbook-scenario{What if the @italic{handbook} is unavaliable?}
 
 Furthermore, the @italic{handbook} itself is the standard test report, but it@literal{'}s still reasonable
-to check the system in some more convenient ways. Hence we have @chunk[|<tamer battle>|
-                                                                       {module main racket
-                                                                         |<infrastructure taming start>|
-                                                                         
-                                                                         (call-as-normal-termination {λ _ (tamer-spec)})}]
+to check the system in some more convenient ways. Hence we have
 
-Run @exec{racket «@smaller{tamer files}»} we will get @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report.
+@chunk[|<tamer battle>|
+       {module main racket
+         |<infrastructure taming start>|
+         
+         (call-as-normal-termination {λ _ (tamer-spec)})}]
+
+It will give us the @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report via
+@(itemlist #:style 'compact
+           @item{@exec{racket «@smaller{tamer files}»}}
+           @item{@exec{makefile ++only «@smaller{digimon}» check «@smaller{tamer files}»}})
 
 Technically speaking, @exec{raco test --submodule main} is always there,
 although that way is not recommended, and is omitted by @filepath{info.rkt}.
