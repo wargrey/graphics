@@ -24,30 +24,35 @@
 
 (define-syntax {define-tamer-suite stx}
   (syntax-case stx []
-    [{_ suite-varid suite-name suite-sexp}
-     #'{begin (let* ([story (cons 'suite-varid (make-test-suite suite-name suite-sexp))]
-                     [htag (tamer-story->tag (tamer-story))]
-                     [harness (hash-ref handbook-stories htag null)])
-                (unless (assoc 'suite-varid harness)
-                  (hash-set! handbook-stories htag (cons story harness))))}]))
+    [{_ varid name #:before setup #:after teardown units ...} #'(tamer-record-story 'varid (test-suite name #:before setup #:after teardown units ...))]
+    [{_ varid name #:before setup units ...} (syntax/loc stx (define-tamer-suite varid name #:before setup #:after void units ...))]
+    [{_ varid name #:after teardown units ...} (syntax/loc stx (define-tamer-suite varid name #:before void #:after teardown units ...))]
+    [{_ varid name units ...} (syntax/loc stx (define-tamer-suite varid name #:before void #:after void units ...))]))
+
+(define-syntax {define-tamer-case stx}
+  (syntax-case stx []
+    [{_ varid name #:before setup #:after teardown checks ...} #'(tamer-record-story 'varid (delay-test (test-spec name #:before setup #:after teardown checks ...)))]
+    [{_ varid name #:before setup checks ...} (syntax/loc stx (define-tamer-case varid name #:before setup #:after void checks ...))]
+    [{_ varid name #:after teardown checks ...} (syntax/loc stx (define-tamer-case varid name #:before void #:after teardown checks ...))]
+    [{_ varid name checks ...} (syntax/loc stx (define-tamer-case varid name #:before void #:after void checks ...))]))
 
 (define-syntax {test-spec stx}
   (syntax-case stx []
-    [{_ test-name #:do setup #:~do teardown checks ...} (syntax/loc stx (test-case test-name (around (setup) checks ... (teardown))))]
-    [{_ test-name #:do setup checks ...} (syntax/loc stx (test-spec test-name #:do setup #:~do void checks ...))]
-    [{_ test-name #:~do teardown checks ...} (syntax/loc stx (test-spec test-name #:do void #:~do teardown checks ...))]
-    [{_ test-name checks ...} (syntax/loc stx (test-spec test-name #:do void #:~do void checks ...))]))
+    [{_ name #:before setup #:after teardown checks ...} (syntax/loc stx (test-case name (around (setup) checks ... (teardown))))]
+    [{_ name #:before setup checks ...} (syntax/loc stx (test-spec name #:before setup #:after void checks ...))]
+    [{_ name #:after teardown checks ...} (syntax/loc stx (test-spec name #:before void #:after teardown checks ...))]
+    [{_ name checks ...} (syntax/loc stx (test-spec name #:before void #:after void checks ...))]))
 
 (define tamer-require
-  {lambda [suite-name]
+  {lambda [name]
     (define htag (tamer-story->tag (tamer-story)))
-    (define harness (hash-ref handbook-stories htag))
-    (with-handlers ([exn? {λ [e] (let ([story (exn->test-suite 'tamer-require e)])
-                                   (hash-set! handbook-stories htag (cons (cons suite-name story) harness))
+    (define unit (hash-ref handbook-stories htag))
+    (with-handlers ([exn? {λ [e] (let ([story (exn->test-case 'tamer-require e)])
+                                   (hash-set! handbook-stories htag (cons (cons name story) unit))
                                    story)}])
-      (with-handlers ([exn:fail:contract? {λ [efc] (raise (make-exn:fail:contract:variable (format "'~a has not yet defined!" suite-name)
-                                                                                           (exn-continuation-marks efc) suite-name))}])
-        (cdr (assoc suite-name harness))))})
+      (with-handlers ([exn:fail:contract? {λ [efc] (raise (make-exn:fail:contract:variable (format "'~a has not yet defined!" name)
+                                                                                           (exn-continuation-marks efc) name))}])
+        (cdr (assoc name unit))))})
 
 (define tamer-story->libpath
   {lambda [story-path]
@@ -127,7 +132,7 @@
     (cond [(zero? population) (printf "~nNo testcase, do not try to fool me!~n")]
           [else (printf "~n~a% tests successful.~n~a, ~a, ~a, ~a.~n~a wallclock seconds (~a task + ~a gc = ~a CPU).~n"
                         (~r (/ (* success 100) population) #:precision '(= 2))
-                        @~w=n[(cadr brief-box)]{Testsuite} @~w=n[population]{Testcase} @~w=n[failure]{Failure} @~w=n[error]{Error}
+                        @~w=n[(cadr brief-box)]{Testunit} @~w=n[population]{Testcase} @~w=n[failure]{Failure} @~w=n[error]{Error}
                         real cpu-gc gc cpu)])
     (+ failure error)})
 
@@ -190,7 +195,7 @@
                                              (hash-set! story-cpus (tamer-story) (+ cpu (hash-ref story-cpus (tamer-story) 0)))
                                              (hash-set! story-reals (tamer-story) (+ real (hash-ref story-reals (tamer-story) 0)))
                                              (hash-set! story-gcs (tamer-story) (+ gc (hash-ref story-gcs (tamer-story) 0)))
-                                             (cond [(zero? (+ failure error)) (printf "~n~a wallclock seconds" (~r (/ real 1000.0) #:precision '{= 3}))]
+                                             (cond [(zero? (+ failure error)) (printf "~n~a wallclock seconds~n" (~r (/ real 1000.0) #:precision '{= 3}))]
                                                    [else (printf "~n~a ~a~n" @~n_w[failure]{failure} @~n_w[error]{error})])))}
                                     {λ _ (close-output-port hspec-out)})})
          (margin-note (let ([bs (for/list ([line (in-port read-line)])
@@ -202,7 +207,7 @@
                                          => {λ [pieces] (and (status 0)
                                                              (echof "~a~n" line)
                                                              (racketparenfont (italic (string :bookmark:)) ~ (literal (list-ref pieces 3))))}]
-                                        [(regexp-match #px"^\\s+(.+?) (\\d+) - (.+?)\\s*$" line)
+                                        [(regexp-match #px"^\\s*(.+?) (\\d+) - (.+?)\\s*$" line)
                                          => {λ [pieces] (let*-values ([{color :stts:} (if (string=? (list-ref pieces 1) (~result struct:test-success))
                                                                                         (values 'green :heart:) (values 'lightred :broken-heart:))])
                                                           (status 0)
@@ -259,6 +264,12 @@
 
   (define-values {handbook-stories handbook-records story-cpus story-reals story-gcs}
     (values (make-hash) (make-hash) (make-hash) (make-hash) (make-hash)))
+  (define tamer-record-story
+    {lambda [name unit]
+      (define htag (tamer-story->tag (tamer-story)))
+      (define units (hash-ref handbook-stories htag null))
+      (unless (assoc name units)
+        (hash-set! handbook-stories htag (cons (cons name unit) units)))})
   (define tamer-record-handbook
     {lambda [name:case«suites action]
       (define short-name (car name:case«suites))
@@ -291,10 +302,10 @@
                                (object-name struct:test-failure) "#f"))
       (hash-ref indicators (object-name result))})
   
-  (define exn->test-suite
+  (define exn->test-case
     {lambda [name e]
-      (test-suite (format "(⧴ ~a)" (object-name e))
-                  (test-case (format "~a" name) #| make-test-error |# (raise e)))})
+      (delay-test (test-case (format "(~a ⧴ ~a)" name (object-name e))
+                             #| no thunk, make test-error |# (raise e)))})
 
   (define tr-d (curryr string-replace (digimon-world) ""))
   
@@ -366,19 +377,19 @@
       (values (tamer-seed-datum seed) (tamer-seed-brief seed))})
   
   (define prove-spec
-    {lambda [suite]
+    {lambda [unit]
       (define-values {whocares brief}
         (fold-test-suite #:fdown {λ [name seed:ordered]
-                                   (if (null? seed:ordered)
-                                       (echof #:fgcolor 202 #:attributes '{underline} "λ ~a~a~n" (~indent (length seed:ordered)) name)
-                                       (echof "~aλ~a ~a~n" (~indent (length seed:ordered)) (string-join (map number->string (reverse seed:ordered)) ".") name))
+                                   (cond [(null? seed:ordered) (echof #:fgcolor 202 #:attributes '{underline} "λ ~a~a~n" (~indent 0) name)]
+                                         [else (echof "~aλ~a ~a~n" (~indent (length seed:ordered)) (string-join (map number->string (reverse seed:ordered)) ".") name)])
                                    (cons 1 seed:ordered)}
                          #:fup {λ [name seed:ordered children:ordered]
                                  (cond [(null? seed:ordered) null]
                                        [else (cons (add1 (car seed:ordered))
                                                    (cdr seed:ordered))])}
                          #:fhere {λ [result seed:ordered]
-                                   (define headline (format "~a~a ~a - " (~indent (length seed:ordered)) (~result result) (car seed:ordered)))
+                                   (define headline (format "~a~a ~a - " (~indent (length seed:ordered)) (~result result)
+                                                            (if (null? seed:ordered) 1 (car seed:ordered))))
                                    (define headspace (~indent (string-length headline) #:times 1))
                                    (cond [(test-success? result) (void (echof #:fgcolor 'green "~a~a~n" headline (test-result-test-case-name result)))]
                                          [(test-failure? result) (void (echof #:fgcolor 'lightred "~a~a~n" headline (test-result-test-case-name result))
@@ -386,17 +397,18 @@
                                          [(test-error? result) (void (echof #:fgcolor 'red "~a~a~n" headline (test-result-test-case-name result))
                                                                      (display-error result #:indent headspace))]
                                          [else (error "RackUnit has new test result type added!")])
-                                   (cons (add1 (car seed:ordered)) (cdr seed:ordered))}
+                                   (if (null? seed:ordered) null (cons (add1 (car seed:ordered)) (cdr seed:ordered)))}
                          null
-                         suite))
+                         unit))
       (values brief)})
   
   (define prove-harness
-    {lambda [suite]
+    {lambda [unit]
       (define-values {$?≠0 brief}
-        (fold-test-suite null suite #:fhere {λ [result seed:$?≠0] (cond [(test-success? result) seed:$?≠0]
+        (fold-test-suite null unit #:fhere {λ [result seed:$?≠0] (cond [(test-success? result) seed:$?≠0]
                                                                         [else (cons result seed:$?≠0)])}))
-      (echof "~a" (~a #:width 64 #:pad-string "." #:limit-marker "......" (rackunit-test-suite-name suite)))
+      (echof "~a" (~a #:width 64 #:pad-string "." #:limit-marker "......" (cond [(test-suite? unit) (rackunit-test-suite-name unit)]
+                                                                                [(test-case? unit) (rackunit-test-case-name unit)])))
       (cond [(positive? (summary-error brief)) (echof #:fgcolor 'red "~a~n" (~result struct:test-error))]
             [(positive? (summary-failure brief)) (echof #:fgcolor 'lightred "~a~n" (~result struct:test-failure))]
             [(positive? (summary-success brief)) (echof #:fgcolor 'green "~a~n" (~result struct:test-success))]

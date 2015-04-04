@@ -9,7 +9,7 @@
 (define-runtime-path digimon-runtime-source (simplify-path "runtime.rkt"))
 
 (define-values {:house-garden: :cat: :paw: :book: :bookmark: :heart: :broken-heart: :collision: :pin: :backhand:}
-  (values #\U1F3E1 #\U1F408 #\U1F43E #\U1F4D6 #\U1F4D1 #\U1F49A #\U1F494 #\U1F4A5 #\U1F4CC #\U1F449))
+  (values #\U1F3E1 #\U1F408 #\U1F43E #\U1F4D6 #\U1F4D1 #\U1F49A #\U1F494 #\U1F4A5 #\U1F4CD #\U1F449))
 
 (define /dev/stdin (current-input-port))
 (define /dev/stdout (current-output-port))
@@ -56,9 +56,10 @@
     (for/fold ([ps null]) ([p (in-directory start-path {λ [p] (not (regexp-match? px.exclude p))})])
       (if (predicate p) (cons p ps) ps))})
 
-(define exit-with-fixed-code
-  {lambda [retcode]
-    (exit (if (exact-nonnegative-integer? retcode) (min retcode 255) 0))})
+(define call-as-normal-termination
+  {lambda [main/0]
+    (define status (call/cc {λ [$?] (parameterize ([exit-handler $?]) (exit (main/0)))}))
+    (exit (if (exact-nonnegative-integer? status) (min status 255) 0))})
 
 (define ~n_w
   {lambda [count word]

@@ -17,13 +17,14 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
 @chunk[|<infrastructure story>|
        {module story racket
          |<infrastructure taming start>|
-         
+
          |<ready? help!>|
          |<hello rules!>|}
        
        |<tamer battle>|]
 
 where
+
 @chunk[|<infrastructure taming start>|
        (require "tamer.rkt")
        (require setup/getinfo)
@@ -41,10 +42,8 @@ where
        |<setup and teardown timidly>|
 
        (define-tamer-suite make-option "Ready? It works!"
-         (list (test-suite "make: simple options"
-                           |<testsuite: simple options>|)
-               (test-suite "make: complex options"
-                           |<testcase: complex options>|)))]
+         (test-suite "make: simple options" |<testsuite: simple options>|)
+         (test-suite "make: complex options" |<testcase: complex options>|))]
 
 You may have already familiar with the @hyperlink["http://en.wikipedia.org/wiki/Make_(software)"]{GNU Make},
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
@@ -101,7 +100,7 @@ So, a testcase with the additional work sealed inside would be better:
               [make-md (list "--always-make" "--touch" "++only" (digimon-gnome)
                              (path->string (file-name-from-path "README.md")))])
          (test-spec (string-join (cons "make" make-md))
-                    #:do (apply setup make-md) #:~do teardown
+                    #:before (apply setup make-md) #:after teardown
                     (let* ([stdout (get-output-string strout)]
                            [stderr (get-output-string strerr)]
                            [times (compose1 length (curryr regexp-match* stdout))]
@@ -137,14 +136,14 @@ we need a sort of rules that the @italic{makefile.rkt} (and systems it builds) s
 
 @chunk[|<rules: info.rkt>|
        (define-tamer-suite rules:info.rkt "Rules: info.rkt settings"
-         (cons (let ([info-ref (get-info/full (digimon-world))])
-                 (test-suite "/info.rkt" (test-case |<facts: rule 1>|)))
-               (for/list ([digimon (in-list digimons)])
-                 (define info-ref (get-info/full (build-path (digimon-world) digimon)))
-                 (test-suite (format "/~a/info.rkt" digimon)
-                             (test-case |<facts: rule 2>|)
-                             (test-case |<facts: rule 3>|)
-                             (test-case |<facts: rule 4>|)))))]
+         (let ([info-ref (get-info/full (digimon-world))])
+           (test-suite "/info.rkt" (test-case |<facts: rule 1>|)))
+         (for/list ([digimon (in-list digimons)])
+           (define info-ref (get-info/full (build-path (digimon-world) digimon)))
+           (test-suite (format "/~a/info.rkt" digimon)
+                       (test-case |<facts: rule 2>|)
+                       (test-case |<facts: rule 3>|)
+                       (test-case |<facts: rule 4>|))))]
 
 @tamer-note['rules:info.rkt]
 @handbook-rule[1]{The entire project is a multi-collection package, non-hidden directories within it are considered as the subprojects.}
@@ -184,10 +183,10 @@ we need a sort of rules that the @italic{makefile.rkt} (and systems it builds) s
               (list "readme.scrbl" "handbook.scrbl")))
        
        (define-tamer-suite rules:readme.md "Rules: README.md dependencies"
-         (cons (test-suite "/README.md" (test-case |<facts: rule 5>|))
-               (for/list ([digimon (in-list digimons)])
-                 (test-suite (format "/~a/readme.md" digimon)
-                             (test-case |<facts: rule 6>|)))))]
+         (test-suite "/README.md" (test-case |<facts: rule 5>|))
+         (for/list ([digimon (in-list digimons)])
+           (test-suite (format "/~a/readme.md" digimon)
+                       (test-case |<facts: rule 6>|))))]
 
 @tamer-note['rules:readme.md]
 @handbook-rule[5]{The project@literal{'}s toplevel @italic{README.md} is designated as the @italic{main-toc} of @bold{Scribble}.}
@@ -207,7 +206,7 @@ to check the system in some more convenient ways. Hence we have @chunk[|<tamer b
                                                                        {module main racket
                                                                          |<infrastructure taming start>|
                                                                          
-                                                                         (exit-with-fixed-code (tamer-spec))}]
+                                                                         (call-as-normal-termination {λ _ (tamer-spec)})}]
 
 Run @exec{racket «@smaller{tamer files}»} we will get @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report.
 
