@@ -126,37 +126,34 @@ we need a sort of rules that the @italic{makefile.rkt} (and systems it builds) s
                                      #:when (directory-exists? dirname)
                                      #:when (regexp-match? #px"^[^.]" dirname))
                             dirname)))
-       
-       |<rules: info.rkt>|
-       |<rules: readme.md>|]
+
+       (define-tamer-suite rules "Rules serve you!"
+         (test-suite "info.rkt settings" |<rules: info.rkt>|)
+         (test-suite "README.md dependencies" |<rules: readme.md>|))]
 
 @subsubsection{Rules on project organization}
 
 @chunk[|<rules: info.rkt>|
-       (define-tamer-suite rules:info.rkt "Rules: info.rkt settings"
-         (let ([info-ref (get-info/full (digimon-world))])
-           (test-suite "/info.rkt" (test-case |<facts: rule 1>|)))
-         (for/list ([digimon (in-list digimons)])
-           (define info-ref (get-info/full (build-path (digimon-world) digimon)))
-           (test-suite (format "/~a/info.rkt" digimon)
-                       (test-case |<facts: rule 2>|)
-                       (test-case |<facts: rule 3>|)
-                       (test-case |<facts: rule 4>|))))]
+       (let ([info-ref (get-info/full (digimon-world))])
+         (test-suite "/info.rkt" (test-case |<facts: rule 1>|)))
+       (for/list ([digimon (in-list digimons)])
+         (define info-ref (get-info/full (build-path (digimon-world) digimon)))
+         (test-suite (format "/~a/info.rkt" digimon)
+                     (test-case |<facts: rule 2>|)
+                     (test-case |<facts: rule 3>|)
+                     (test-case |<facts: rule 4>|)))]
 
-@tamer-note['rules:info.rkt]
+@tamer-note['rules]
 @handbook-rule[1]{The entire project is a multi-collection package, non-hidden directories within it are considered as the subprojects.}
 @chunk[|<facts: rule 1>|
        "Rule 1: multi"
-       (check-equal? (info-ref 'collection) 'multi
-                     "'collection should be 'multi!")
-       (check-pred positive? (length digimons)
-                   "No real project found!")]
+       (check-equal? (info-ref 'collection) 'multi "'collection should be 'multi!")
+       (check-pred positive? (length digimons) "No real project found!")]
 
 @handbook-rule[2]{Each subproject should have an explicit name, even if the name is the same as its directory.}
 @chunk[|<facts: rule 2>|
        "Rule 2: collection"
-       (check-pred string? (info-ref 'collection)
-                   "'collection should be string!")]
+       (check-pred string? (info-ref 'collection) "'collection should be string!")]
 
 @handbook-rule[3]{@racket[compile-collection-zos] and friends should never touch special paths.}
 @chunk[|<facts: rule 3>|
@@ -169,24 +166,19 @@ we need a sort of rules that the @italic{makefile.rkt} (and systems it builds) s
 @handbook-rule[4]{@exec{raco test} should do nothing since we would do testing in a more controllable way.}
 @chunk[|<facts: rule 4>|
        "Rule 4: test-omit-paths"
-       (check-equal? (info-ref 'test-omit-paths) 'all
-                     "'test-omit-paths should be 'all!")]
+       (check-equal? (info-ref 'test-omit-paths) 'all "'test-omit-paths should be 'all!")]
 
 @subsubsection{Rules on project documentation}
 
 @chunk[|<rules: readme.md>|
-       (match-define {list top.scrbl sub.scrbl}
-         (map (compose1 (curry find-relative-path (digimon-zone)) build-path)
-              (list (digimon-stone) (digimon-tamer))
-              (list "readme.scrbl" "handbook.scrbl")))
-       
-       (define-tamer-suite rules:readme.md "Rules: README.md dependencies"
-         (test-suite "/README.md" (test-case |<facts: rule 5>|))
-         (for/list ([digimon (in-list digimons)])
-           (test-suite (format "/~a/readme.md" digimon)
-                       (test-case |<facts: rule 6>|))))]
+       (let* ([~scrbl (compose1 (curry find-relative-path (digimon-zone)) build-path)]
+              [top.scrbl (~scrbl (digimon-stone) "readme.scrbl")]
+              [sub.scrbl (~scrbl (digimon-tamer) "handbook.scrbl")])
+         (cons (test-suite "/README.md" (test-case |<facts: rule 5>|))
+               (for/list ([digimon (in-list digimons)])
+                 (test-suite (format "/~a/readme.md" digimon)
+                             (test-case |<facts: rule 6>|)))))]
 
-@tamer-note['rules:readme.md]
 @handbook-rule[5]{The project@literal{'}s toplevel @italic{README.md} is designated as the @italic{main-toc} of @bold{Scribble}.}
 @chunk[|<facts: rule 5>|
        (format "Rule 5: ~a/~a" (digimon-gnome) top.scrbl)
