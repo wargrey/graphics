@@ -18,10 +18,6 @@
 
 (define tamer-zone (make-parameter #false))
 
-(define-syntax {tamer-action stx}
-  (syntax-case stx []
-    [{_ s-exps ...} (syntax/loc stx (interaction #:eval (tamer-zone) s-exps ...))]))
-
 (define-syntax {define-tamer-suite stx}
   (syntax-case stx []
     [{_ varid name #:before setup #:after teardown units ...} #'(tamer-record-story 'varid (test-suite name #:before setup #:after teardown units ...))]
@@ -43,6 +39,14 @@
     [{_ name #:after teardown checks ...} (syntax/loc stx (test-spec name #:before void #:after teardown checks ...))]
     [{_ name checks ...} (syntax/loc stx (test-spec name #:before void #:after void checks ...))]))
 
+(define-syntax {tamer-action stx}
+  (syntax-case stx []
+    [{_ s-exps ...} (syntax/loc stx (interaction #:eval (tamer-zone) s-exps ...))]))
+
+(define-syntax {tamer-termio stx}
+  (syntax-case stx []
+    [{_ s-exps ...} (syntax/loc stx (interaction #:eval (tamer-zone) s-exps ...))]))
+
 (define tamer-require
   {lambda [name]
     (define htag (tamer-story->tag (tamer-story)))
@@ -61,15 +65,6 @@
 (define tamer-partner->libpath
   {lambda [partner-path]
     (path->digimon-libpath (if (absolute-path? partner-path) partner-path (build-path (digimon-zone) partner-path)))})
-
-(define handbook-smart-table
-  {lambda []
-    (make-traverse-block
-     {λ [get set]
-       (define readme? (member 'markdown (get 'scribble:current-render-mode '{html})))
-       (cond [(false? readme?) (table-of-contents)]
-             [else (para (hyperlink (format "http://~a.gyoudmon.org" (string-downcase (current-digimon)))
-                                    (format "~a<sub>~a~a~a</sub>" :cat: :paw: :paw: :paw:)))])})})
 
 (define handbook-title
   {lambda pre-contents
@@ -99,12 +94,18 @@
       ((make-eval-factory (list `(file ,tamer.rkt) (tamer-story)))))})
 
 (define tamer-spec
-  {lambda [] ;;; Design for testing via racket.
-    (dynamic-require (tamer-story) #false)
-    (define htag (tamer-story->tag (tamer-story)))
-    (cond [(false? (hash-has-key? handbook-stories htag)) ({λ _ 0} (echof #:fgcolor 'yellow "~nNo particular example!~n"))]
-          [else (let ([suite (make-test-suite htag (reverse (map cdr (hash-ref handbook-stories htag))))])
-                  (define-values {brief-box cpu0 real0 gc0} (time-apply prove-spec (list suite)))
+  {lambda []
+    (define suite (cond [(false? (tamer-story)) (or (zero? (hash-count handbook-stories)) ; if there is no story, then there is no :book:
+                                                    (let ([href (curry hash-ref handbook-stories)])
+                                                      (make-test-suite "Behaviors and Features"
+                                                                       (reverse (map {λ [unit] (make-test-suite unit (reverse (map cdr (href unit))))}
+                                                                                     (href :book:))))))]
+                        [(module-path? (tamer-story)) (let ([htag (tamer-story->tag (tamer-story))])
+                                                        (and (unless (module-declared? (tamer-story)) (dynamic-require (tamer-story) #false))
+                                                             (hash-has-key? handbook-stories htag)
+                                                             (make-test-suite htag (reverse (map cdr (hash-ref handbook-stories htag))))))]))
+    (cond [(false? (test-suite? suite)) ({λ _ 0} (echof #:fgcolor 'yellow "~nNo particular example!~n"))]
+          [else (let-values ([{brief-box cpu0 real0 gc0} (time-apply prove-spec (list suite))])
                   (define-values {success failure error real cpu-gc gc cpu}
                     (apply values (summary-success (car brief-box)) (summary-failure (car brief-box)) (summary-error (car brief-box))
                            (map {λ [t] (~r (/ t 1000.0) #:precision '{= 3})} (list real0 (- cpu0 gc0) gc0 cpu0))))
@@ -114,9 +115,10 @@
                           (~r (/ (* success 100) population) #:precision '{= 2}))
                   (+ failure error))])})
 
-(define tamer-harness
-  {lambda [] ;;; Design for testing with documentation
-    (define suites (cond [(false? (tamer-story)) (hash-map handbook-stories {λ [harness stories] (make-test-suite harness (reverse (map cdr stories)))})]
+(define tamer-prove
+  {lambda []
+    (define suites (cond [(false? (tamer-story)) (reverse (map {λ [unit] (make-test-suite unit (reverse (map cdr (hash-ref handbook-stories unit))))}
+                                                               (hash-ref handbook-stories :book: null)))]
                          [(module-path? (tamer-story)) (reverse (map cdr (hash-ref handbook-stories (tamer-story->tag (tamer-story)) null)))]))
     (cond [(null? suites) ({λ _ 0} (printf "~nNo particular testcase!~n"))]
           [else (let ([prove {λ _ (for/fold ([brief initial-summary] [count 0]) ([suite (in-list suites)])
@@ -141,40 +143,71 @@
     (define story-snapshot (tamer-story))
     (make-delayed-block
      {λ [render% pthis _]
-       (define-values {harness-in harness-out} (make-pipe #false 'hspec-in 'hspec-out))
-       (parameterize ([tamer-story story-snapshot]
-                      [current-input-port harness-in]
-                      [current-error-port harness-out]
-                      [current-output-port harness-out])
-         (define summary? (make-parameter #false))
-         (define readme? (member 'markdown (send render% current-render-mode)))
-         (define ->block (cond [readme? {λ [blocks] (margin-note (para (literal "---")) (italic (string :book:)) ~ (bold "Behaviors and Features")
-                                                                 "<br>" (add-between (filter-not void? blocks) "<br>"))}]
-                               [else {λ [blocks] (filebox (italic (string :book:) ~
-                                                                  (cond [(false? (tamer-story)) (format "Behaviors of ~a" (info-ref 'collection))]
+       (cond [(member 'markdown (send render% current-render-mode)) (para (literal "---"))]
+             [else (let-values ([{prove-in prove-out} (make-pipe #false 'prove-in 'prove-out)])
+                     (parameterize ([tamer-story story-snapshot]
+                                    [current-input-port prove-in]
+                                    [current-error-port prove-out]
+                                    [current-output-port prove-out])
+                       (define summary? (make-parameter #false))
+                       (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
+                                                  {λ _ (tamer-prove)}
+                                                  {λ _ (close-output-port prove-out)})})
+                       (nested #:style (make-style "boxed" null)
+                               (filebox (italic (string :book:) ~ (cond [(false? (tamer-story)) (format "Behaviors of ~a" (info-ref 'collection))]
                                                                         [(module-path? (tamer-story)) (format "Behaviors of ~a" (cadadr (tamer-story)))]))
-                                                          (add-between (filter-not void? blocks) (linebreak)))}]))
-         (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
-                                    {λ _ (tamer-harness)}
-                                    {λ _ (close-output-port harness-out)})})
-         (nested #:style (make-style "boxed" null)
-                 (->block (for/list ([line (in-port read-line)])
-                            (cond [(regexp-match #px"^(.+?)(\\.{6,})(.+)$" line)
-                                   => {λ [pieces] (match-let ([{list _ story padding status} pieces])
-                                                    (define remote-url (format "http://~a.gyoudmon.org/~a" (string-downcase (current-digimon)) story))
-                                                    (define result (string (cond [(string=? status (~result struct:test-success)) :heart:]
-                                                                                 [(string=? status (~result struct:test-failure)) :broken-heart:]
-                                                                                 [else :collision:])))
-                                                    (define label (racketkeywordfont (literal story padding)))
-                                                    (cond [readme? (elem result ~ (hyperlink remote-url story))]
-                                                          [(false? (tamer-story)) (seclink story label result)]
-                                                          [(module-path? (tamer-story)) (elem label result)]))}]
-                                  [(regexp-match? #px"^⧴ (FAILURE|FATAL) » .+?\\s*$" line)
-                                   => {λ _ (unless readme? (racketcommentfont line))}]
-                                  [(regexp-match? #px"^\\s*$" line)
-                                   => {λ _ (and (summary? #true) ~)}]
-                                  [(and (summary?) readme?) (unless (regexp-match? #px"wallclock" line) (italic (literal line)))]
-                                  [(summary?) (racketoutput line)])))))})})
+                                        (let ([bs (for/list ([line (in-port read-line)])
+                                                    (cond [(regexp-match #px"^(.+?)(\\.{6,})(.+)$" line)
+                                                           => {λ [pieces] (match-let ([{list _ story padding status} pieces])
+                                                                            (define result (cond [(string=? status (~result struct:test-success)) :heart:]
+                                                                                                 [(string=? status (~result struct:test-failure)) :broken-heart:]
+                                                                                                 [else :collision:]))
+                                                                            (define label (racketkeywordfont (literal story padding)))
+                                                                            (cond [(false? (tamer-story)) (seclink story label (string result))]
+                                                                                  [(module-path? (tamer-story)) (elem label (string result))]))}]
+                                                          [(regexp-match? #px"^⧴ (FAILURE|FATAL) » .+?\\s*$" line) (racketcommentfont line)]
+                                                          [(regexp-match? #px"^\\s*$" line) (and (summary? #true) ~)]
+                                                          [(summary?) (racketoutput line)]))])
+                                          (add-between (filter-not void? bs) (linebreak)))))))])})})
+
+(define handbook-smart-table
+  {lambda []
+    (make-traverse-block
+     {λ [get set]
+       (cond [(false? (member 'markdown (get 'scribble:current-render-mode '{html}))) (table-of-contents)]
+             [else (make-delayed-block
+                    {λ [render% pthis _]
+                      (define-values {prove-in prove-out} (make-pipe #false 'prove-in 'prove-out))
+                      (parameterize ([current-input-port prove-in]
+                                     [current-error-port prove-out]
+                                     [current-output-port prove-out]
+                                     [tamer-story #false])
+                        (define subdomain (string-downcase (current-digimon)))
+                        (define summary? (make-parameter #false))
+                        (thread {λ _ (dynamic-wind {λ _ (collect-garbage)}
+                                                   {λ _ (tamer-spec)}
+                                                   {λ _ (close-output-port prove-out)})})
+                        (para (filter-map {λ [line] (and (not (void? line)) (map (compose1 literal ~line) (if (list? line) line (list line))))}
+                                          (for/list ([line (in-port read-line)])
+                                            (cond [(regexp-match #px"^λ\\s+(.+)" line) (format "> + ~a" line)]
+                                                  [(regexp-match #px"^(\\s+)λ\\d+\\s+(.+?.rkt)\\s*$" line)
+                                                   => {λ [pieces] (match-let ([{list _ indt ctxt} pieces]) ; markdown list needs at least 1 char after "+ "
+                                                                    (list (format ">   ~a+ ~a" indt :book:)  ; before breaking line
+                                                                          (format "[~a](http://~a.gyoudmon.org/~a)" ctxt subdomain ctxt)))}]
+                                                  [(regexp-match #px"^(\\s+)λ\\d+(.\\d)*\\s+(.+?)\\s*$" line)
+                                                   => {λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) :bookmark: (list-ref pieces 3))}]
+                                                  [(regexp-match #px"^(\\s*)(.+?) (\\d+) - (.+?)\\s*$" line)
+                                                   => {λ [pieces] (format ">   ~a- ~a ~a - ~a" (list-ref pieces 1)
+                                                                          (cond [(string=? (list-ref pieces 2) (~result struct:test-success)) :heart:]
+                                                                                [(string=? (list-ref pieces 2) (~result struct:test-failure)) :broken-heart:]
+                                                                                [else :collision:])
+                                                                          (list-ref pieces 3) (list-ref pieces 4))}]
+                                                  [(regexp-match #px"^$" line) (summary? #true)]
+                                                  [(regexp-match #px"wallclock" line) "> "]
+                                                  [(summary?) (list (format "> ~a~a<br>" :pin: line)
+                                                                    (format "> [~a<sub>~a</sub>](http://~a.gyoudmon.org)"
+                                                                            :cat: (make-string (quotient (string-length line) 2) :paw:)
+                                                                            subdomain))])))))})])})})
 
 (define tamer-note
   {lambda suite-vars
@@ -198,10 +231,10 @@
                                                    [else (printf "~n~a ~a~n" @~n_w[failure]{failure} @~n_w[error]{error})])))}
                                     {λ _ (close-output-port hspec-out)})})
          (margin-note (let ([bs (for/list ([line (in-port read-line)])
-                                  (cond [(regexp-match #px"^(λ)\\s+(.+)" line)
+                                  (cond [(regexp-match #px"^λ\\s+(.+)" line)
                                          => {λ [pieces] (and (status 0)
                                                              (echof #:fgcolor 202 #:attributes '{underline} "~a~n" line)
-                                                             (racketmetafont (italic (string :book:)) ~ (literal (list-ref pieces 2))))}]
+                                                             (racketmetafont (italic (string :book:)) ~ (literal (list-ref pieces 1))))}]
                                         [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
                                          => {λ [pieces] (and (status 0)
                                                              (echof "~a~n" line)
@@ -250,11 +283,13 @@
   (struct tamer-seed {datum brief name-path})
   (struct summary {success failure error})
   (define initial-summary (summary 0 0 0))
+  
   (define summary++
     {lambda [summary0 result]
       (summary (+ (summary-success summary0) (if (test-success? result) 1 0))
                (+ (summary-failure summary0) (if (test-failure? result) 1 0))
                (+ (summary-error summary0) (if (test-error? result) 1 0)))})
+
   (define summary**
     {lambda [summary1 summary2]
       (summary (+ (summary-success summary1) (summary-success summary2))
@@ -263,12 +298,18 @@
 
   (define-values {handbook-stories handbook-records story-cpus story-reals story-gcs}
     (values (make-hash) (make-hash) (make-hash) (make-hash) (make-hash)))
+
   (define tamer-record-story
     {lambda [name unit]
       (define htag (tamer-story->tag (tamer-story)))
       (define units (hash-ref handbook-stories htag null))
       (unless (assoc name units)
-        (hash-set! handbook-stories htag (cons (cons name unit) units)))})
+        (hash-set! handbook-stories htag
+                   (cons (cons name unit) units)))
+      (when (null? units)
+        (hash-set! handbook-stories :book:
+                   (cons htag (hash-ref handbook-stories :book: null))))})
+
   (define tamer-record-handbook
     {lambda [name:case«suites action]
       (define short-name (car name:case«suites))
@@ -300,6 +341,10 @@
                                (object-name struct:test-success) "#t"
                                (object-name struct:test-failure) "#f"))
       (hash-ref indicators (object-name result))})
+
+  (define ~line
+    {lambda [line]
+      (format "~a~a" line (make-string (- 72 (remainder (string-length line) 72)) #\space))})
   
   (define exn->test-case
     {lambda [name e]
