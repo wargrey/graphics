@@ -81,6 +81,12 @@
     (subsection #:tag tag #:style style
                 "Scenario: " pre-contents)})
 
+(define handbook-appendix
+  {lambda [#:style [style #false] . pre-contents]
+    (subsection #:style style
+                (string-titlecase (format "~a Auxiliaries" (path-replace-suffix (tamer-story->tag (tamer-story)) "")))
+                pre-contents)})
+
 (define handbook-rule
   {lambda [id . pre-flow]
     (itemlist (item (bold (format "Rule ~a " id)) pre-flow))})
@@ -110,33 +116,35 @@
                     (apply values (summary-success (car brief-box)) (summary-failure (car brief-box)) (summary-error (car brief-box))
                            (map {λ [t] (~r (/ t 1000.0) #:precision '{= 3})} (list real0 (- cpu0 gc0) gc0 cpu0))))
                   (define population (+ success failure error))
-                  (printf "~nFinished in ~a wallclock seconds (~a task + ~a gc = ~a CPU)~n~a, ~a, ~a, ~a% Okay.~n"
-                          real cpu-gc gc cpu @~n_w[population]{example} @~n_w[failure]{failure} @~n_w[error]{error}
-                          (~r (/ (* success 100) population) #:precision '{= 2}))
+                  (echof #:fgcolor 'lightcyan "~nFinished in ~a wallclock seconds (~a task + ~a gc = ~a CPU).~n~a, ~a, ~a, ~a% Okay.~n"
+                         real cpu-gc gc cpu @~n_w[population]{example} @~n_w[failure]{failure} @~n_w[error]{error}
+                         (~r (/ (* success 100) population) #:precision '{= 2}))
                   (+ failure error))])})
 
 (define tamer-smart-summary
   {lambda []
     (define story-snapshot (tamer-story))
-    (define story-ref {λ [htag] (map {λ [scnr] (hash-ref (hash-ref handbook-scenarios htag {λ _ (make-hash)}) (cdr scnr) null)}
-                                     (reverse (hash-ref handbook-stories htag null)))})
     (make-traverse-block
      {λ [get set]
        (cond [(member 'markdown (get 'scribble:current-render-mode '{html})) (para (literal "---"))]
              [else (make-delayed-block
                     {λ [render% pthis infobase]
+                      (define get (curry hash-ref (collect-info-fp (resolve-info-ci infobase))))
+                      (define story-ref {λ [htag] (filter-map {λ [scnr] (hash-ref (hash-ref (get 'scenario {λ _ (make-hash)}) htag {λ _ (make-hash)}) (cdr scnr) #false)}
+                                                              (reverse (hash-ref handbook-stories htag null)))})
                       (nested #:style (make-style "boxed" null)
                               (filebox (cond [(false? story-snapshot) (italic (string :books:) ~ (format "Behaviors of ~a" (info-ref 'collection)))]
                                              [(module-path? story-snapshot) (italic (string :book:) ~ (format "Behaviors in ~a" (cadadr story-snapshot)))])
-                                       (let ([base (cond [(false? story-snapshot) (map {λ [story] (cons story (apply append (map cdr (story-ref story))))}
-                                                                                       (reverse (hash-ref handbook-stories :books: null)))]
+                                       (let ([base (cond [(false? story-snapshot) (for/list ([story (in-list (reverse (hash-ref handbook-stories :books: null)))])
+                                                                                    (cons story (with-handlers ([exn:fail:contract? {λ _ null}])
+                                                                                                  (apply append (map cdr (story-ref story))))))]
                                                          [(module-path? story-snapshot) (story-ref (tamer-story->tag story-snapshot))])])
                                          (define items (for/list ([spec (in-list base)])
                                                          ;;; see (tamer-note) to check type conventions
                                                          (define-values {:local: desc} (cond [(string? (car spec)) (values :bookmark: (car spec))]
                                                                                              [else (values :page: (unbox (car spec)))]))
                                                          (define-values {status color :status:}
-                                                           (cond [(null? (cdr spec)) (values (~result struct:test-success) 'green :heart:)]
+                                                           (cond [(null? (cdr spec)) (values (~result struct:test-success) 'lightgreen :heart:)]
                                                                  [(ormap box? (cdr spec)) (values (~result struct:test-error) 'red :collision:)]
                                                                  [else (values (~result struct:test-failure) 'lightred :broken-heart:)]))
                                                          (define item (~a #:width 61 #:pad-string "." #:limit-marker "......" desc))
@@ -150,23 +158,25 @@
                                                                    [(string? (car spec)) (eechof #:fgcolor 'lightred "~a~n" msg)])))
                                                          (cond [(false? story-snapshot) (seclink (car spec) (italic (string :book:)) ~ label)]
                                                                [(module-path? story-snapshot) (elemref desc (italic (string :local:)) ~ label)])))
-                                         (define-values {success failure error reals gcs cpus}
-                                           (apply values (map {λ [meta] (let ([pool (hash-ref story-data++ meta {λ _ (make-hash)})])
-                                                                          (if story-snapshot (hash-ref pool story-snapshot 0) (foldl + 0 (hash-values pool))))}
-                                                              (list 'success 'failure 'error 'real 'gc 'cpu))))
-                                         (define-values {real cpu-gc gc cpu}
-                                           (apply values (map {λ [ts] (~r (/ ts 1000.0) #:precision '{= 3})} (list reals (- cpus gcs) gcs cpus))))
+                                         (match-define {list success failure error reals gcs cpus}
+                                           (for/list ([meta (in-list (list 'success 'failure 'error 'real 'gc 'cpu))])
+                                             (define pool (get meta {λ _ (make-hash)}))
+                                             (if story-snapshot (hash-ref pool story-snapshot 0) (foldl + 0 (hash-values pool)))))
+                                         (match-define {list real cpu-gc gc cpu}
+                                           (map {λ [ts] (~r (/ ts 1000.0) #:precision '{= 3})} (list reals (- cpus gcs) gcs cpus)))
                                          (define summaries (let ([population (+ success failure error)])
                                                              (cond [(zero? population) (list "No particular test!")]
                                                                    [else (list (format "~a% tests successful." (~r (/ (* success 100) population) #:precision '(= 2)))
                                                                                (format "~a, ~a, ~a, ~a."
                                                                                        @~w=n[(length base) (if (false? story-snapshot) "Story" "Scenario")]
-                                                                                       @~w=n[population]{Verification} @~w=n[failure]{Failure} @~w=n[error]{Error})
+                                                                                       @~w=n[population]{Test} @~w=n[failure]{Failure} @~w=n[error]{Error})
                                                                                (format "~a wallclock seconds (~a task + ~a gc = ~a CPU)." real cpu-gc gc cpu))])))
                                          (when (false? story-snapshot)
                                            (newline)
                                            (for-each {λ [summary] (echof #:fgcolor 'lightcyan "~a~n" summary)} summaries))
-                                         (add-between (append items (cons ~ (map racketoutput summaries))) (linebreak)))))})])})})
+                                         (let ([lb (list (linebreak))])
+                                           (append (if (null? items) null (add-between #:after-last lb #:splice? #true items lb))
+                                                   (add-between #:before-first lb #:splice? #true (map racketoutput summaries) lb))))))})])})})
 
 (define handbook-smart-table
   {lambda []
@@ -213,7 +223,11 @@
     (define story-snapshot (tamer-story))
     (make-traverse-block
      {λ [get set]
-       (define scenarios (hash-ref! handbook-scenarios (tamer-story->tag story-snapshot) {λ _ (make-hash)}))
+       (define htag (tamer-story->tag story-snapshot))
+       (unless (get 'scenario #false) (set 'scenario (make-hash)))
+       (let ([books (hash-ref handbook-stories :books: null)])
+         (unless (member htag books) (hash-set! handbook-stories :books: (cons htag books))))
+       (define scenarios (hash-ref! (get 'scenario {λ _ (make-hash)}) htag {λ _ (make-hash)}))
        (margin-note (for/list ([unit-var (in-list unit-vars)])
                       (define-values {hspec-in hspec-out} (make-pipe #false 'hspec-in 'hspec-out))
                       (parameterize ([tamer-story story-snapshot]
@@ -226,10 +240,11 @@
                                                           (define-values {brief cpu real gc} (time-apply prove (list unit)))
                                                           (define-values {success failure error}
                                                             (values (summary-success (car brief)) (summary-failure (car brief)) (summary-error (car brief))))
-                                                          (for-each {λ [meta delta] (let ([pool (hash-ref! story-data++ meta {λ _ (make-hash)})])
-                                                                                      (hash-set! pool (tamer-story) (+ (hash-ref pool (tamer-story) 0) delta)))}
-                                                                    (list 'cpu 'real 'gc 'success 'failure 'error)
-                                                                    (list cpu real gc success failure error))
+                                                          (for ([meta (in-list (list 'cpu 'real 'gc 'success 'failure 'error))]
+                                                                [delta (in-list (list cpu real gc success failure error))])
+                                                            (unless (get meta #false) (set meta (make-hash)))
+                                                            (define pool (get meta {λ _ (make-hash)}))
+                                                            (hash-set! pool (tamer-story) (+ (hash-ref pool (tamer-story) 0) delta)))
                                                           (cond [(zero? (+ failure error)) (printf "~n~a wallclock seconds~n" (~r (/ real 1000.0) #:precision '{= 3}))]
                                                                 [else (printf "~n~a ~a~n" @~n_w[failure]{failure} @~n_w[error]{error})]))}
                                                    {λ _ (close-output-port hspec-out)})})
@@ -291,8 +306,7 @@
                (+ (summary-failure summary1) (summary-failure summary2))
                (+ (summary-error summary1) (summary-error summary2)))})
 
-  (match-define {list handbook-stories handbook-scenarios handbook-records story-data++}
-    (build-list 4 {λ _ (make-hash)}))
+  (define-values {handbook-stories handbook-records} (values (make-hash) (make-hash)))
 
   (define tamer-record-story
     {lambda [name unit]
@@ -300,10 +314,7 @@
       (define units (hash-ref handbook-stories htag null))
       (unless (assoc name units)
         (hash-set! handbook-stories htag
-                   (cons (cons name unit) units)))
-      (when (null? units)
-        (hash-set! handbook-stories :books:
-                   (cons htag (hash-ref handbook-stories :books: null))))})
+                   (cons (cons name unit) units)))})
 
   (define tamer-record-handbook
     {lambda [name:case«suites action]
@@ -429,7 +440,7 @@
                                    (define headline (format "~a~a ~a - " (~indent (length seed:ordered)) (~result result)
                                                             (if (null? seed:ordered) 1 (car seed:ordered))))
                                    (define headspace (~indent (string-length headline) #:times 1))
-                                   (cond [(test-success? result) (void (echof #:fgcolor 'green "~a~a~n" headline (tr-d (test-result-test-case-name result))))]
+                                   (cond [(test-success? result) (void (echof #:fgcolor 'lightgreen "~a~a~n" headline (tr-d (test-result-test-case-name result))))]
                                          [(test-failure? result) (void (echof #:fgcolor 'lightred "~a~a~n" headline (tr-d (test-result-test-case-name result)))
                                                                        (display-failure result #:indent headspace))]
                                          [(test-error? result) (void (echof #:fgcolor 'red "~a~a~n" headline (tr-d (test-result-test-case-name result)))

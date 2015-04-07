@@ -16,23 +16,14 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
 
 @tamer-smart-summary[]
 
-@chunk[|<infrastructure story>|
-       {module story racket
-         |<infrastructure taming start>|
-
-         |<ready? help!>|
-         |<hello rules!>|}
-       
-       |<tamer battle>|]
-
-where
-
 @chunk[|<infrastructure taming start>|
        (require "tamer.rkt")
        (require setup/getinfo)
              
        (tamer-story (tamer-story->libpath "infrastructure.rkt"))
-       (define partner `(file ,(format "~a/makefile.rkt" (digimon-world))))]
+       (define partner `(file ,(format "~a/makefile.rkt" (digimon-world))))
+
+       |<infrastructure:*>|]
 
 @handbook-scenario[#:tag @(digimon-gnome)]{Ready? Let@literal{'}s have a try!}
 
@@ -195,9 +186,7 @@ Furthermore, the @italic{handbook} itself is the standard test report, but it@li
 to check the system in some more convenient ways. Hence we have
 
 @chunk[|<tamer battle>|
-       {module main racket
-         |<infrastructure taming start>|
-         
+       {module+ main
          (call-as-normal-termination tamer-prove)}]
 
 It will give us the @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report via
@@ -207,3 +196,14 @@ It will give us the @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} re
 
 Technically speaking, @exec{raco test --submodule main} is always there,
 although that way is not recommended, and is omitted by @filepath{info.rkt}.
+
+@handbook-appendix[]
+
+In order to avoid polluting your eyes, any less important things are moved here.
+
+@chunk[|<infrastructure:*>|
+       |<tamer battle>|
+       
+       {module+ story
+         |<ready? help!>|
+         |<hello rules!>|}]
