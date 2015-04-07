@@ -10,6 +10,8 @@
                        [:cat: Char]
                        [:paw: Char]
                        [:book: Char]
+                       [:books: Char]
+                       [:page: Char]
                        [:bookmark: Char]
                        [:heart: Char]
                        [:broken-heart: Char]

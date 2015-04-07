@@ -8,8 +8,8 @@
 
 (define-runtime-path digimon-runtime-source (simplify-path "runtime.rkt"))
 
-(define-values {:house-garden: :cat: :paw: :book: :bookmark: :heart: :broken-heart: :collision: :pin: :backhand:}
-  (values #\U1F3E1 #\U1F408 #\U1F43E #\U1F4D6 #\U1F4D1 #\U1F49A #\U1F494 #\U1F4A5 #\U1F4CD #\U1F449))
+(define-values {:house-garden: :cat: :paw: :book: :books: :page: :bookmark: :heart: :broken-heart: :collision: :pin: :backhand:}
+  (values #\U1F3E1 #\U1F408 #\U1F43E #\U1F4D6 #\U1F4DA #\U1F4C4 #\U1F4D1 #\U1F49A #\U1F494 #\U1F4A5 #\U1F4CD #\U1F449))
 
 (define /dev/stdin (current-input-port))
 (define /dev/stdout (current-output-port))
@@ -63,11 +63,11 @@
 
 (define ~n_w
   {lambda [count word]
-    (format "~a ~a~a" count word (if (> count 1) "s" ""))})
+    (format "~a ~a" count (plural count word))})
 
 (define ~w=n
   {lambda [count word]
-    (format "~a~a = ~a" word (if (> count 1) "s" "") count)})
+    (format "~a = ~a" (plural count word) count)})
 
 (define echof
   {lambda [msgfmt #:fgcolor [fg #false] #:bgcolor [bg #false] #:attributes [attrs null] . vals]
@@ -112,7 +112,13 @@
                                                   [else (error 'tarminal-colorize "Unsupported Terminal Attribute: ~a" attr)]))
                                               "^;" "" #:all? #false)
                               (if (false? fg) 39 (color-code (string-downcase (format "~a" fg))))
-                              (if (false? bg) 49 (color-code (string-downcase (format "~a" bg)) #:bgcolor? #true))))})}
+                              (if (false? bg) 49 (color-code (string-downcase (format "~a" bg)) #:bgcolor? #true))))})
+
+  (define plural
+    {lambda [n word]
+      (define dict #hash{{"story" . "stories"} {"Story" . "Stories"}})
+      (cond [(= n 1) word]
+            [else (hash-ref dict word (string-append word "s"))])})}
 
 (require (submod "." digitama))
 

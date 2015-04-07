@@ -14,6 +14,8 @@ Every hacker needs a robust developing infrastructure, more clearly meanwhile I 
 to make life simple. However testing the building routines on the entire project always makes nonsense but costs high,
 thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome)} and @seclink["rules"]{project organization rules}.
 
+@tamer-smart-summary[]
+
 @chunk[|<infrastructure story>|
        {module story racket
          |<infrastructure taming start>|
@@ -31,8 +33,6 @@ where
              
        (tamer-story (tamer-story->libpath "infrastructure.rkt"))
        (define partner `(file ,(format "~a/makefile.rkt" (digimon-world))))]
-
-@tamer-smart-summary[]
 
 @handbook-scenario[#:tag @(digimon-gnome)]{Ready? Let@literal{'}s have a try!}
 
@@ -89,9 +89,9 @@ Now let@literal{'}s try to make thing done:
                    (test-check "should report errors" < 0 (file-position strerr)))]
 
 It seems that it works very well, and so it does. But the @italic{before} and @italic{after} routines are out of testcase
-in which case they would be invoked at least three times during the process of rendering the @italic{handbook}, one for
-normal turn, another for local @racket[tamer-smart-summary], and the other for the global @racket[tamer-smart-summary].
-So, a testcase with the additional work sealed inside would be better since we can cache the result by nature. 
+in which case the following proving of the same testsuite would lead to the duplicate and meaningless work during
+the process of rendering the @italic{handbook}.  So, a testcase with additional work sealed inside would be better
+since we can cache the result by nature. 
 
 @chunk[|<testcase: complex options>|
        (let* ([goal-md (build-path (digimon-world) "README.md")]
@@ -198,7 +198,7 @@ to check the system in some more convenient ways. Hence we have
        {module main racket
          |<infrastructure taming start>|
          
-         (call-as-normal-termination {λ _ (tamer-spec)})}]
+         (call-as-normal-termination tamer-prove)}]
 
 It will give us the @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report via
 @(itemlist #:style 'compact
