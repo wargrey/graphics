@@ -202,8 +202,8 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
 In order to avoid polluting your eyes, any less important things are moved here.
 
 @chunk[|<infrastructure:*>|
-       |<tamer battle>|
-       
        {module+ story
          |<ready? help!>|
-         |<hello rules!>|}]
+         |<hello rules!>|}
+
+       |<tamer battle>|]

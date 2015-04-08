@@ -41,11 +41,11 @@
 
 (define-syntax {tamer-action stx}
   (syntax-case stx []
-    [{_ s-exps ...} (syntax/loc stx (interaction #:eval (tamer-zone) s-exps ...))]))
-
-(define-syntax {tamer-termio stx}
-  (syntax-case stx []
-    [{_ s-exps ...} (syntax/loc stx (interaction #:eval (tamer-zone) s-exps ...))]))
+    [{_ s-exps ...} #'(let ([story-snapshot (tamer-story)]
+                            [zone-snapshot (tamer-zone)])
+                        (make-traverse-block {λ _ (parameterize ([tamer-story story-snapshot]
+                                                                 [tamer-zone zone-snapshot])
+                                                    (interaction #:eval (tamer-zone) s-exps ...))}))]))
 
 (define tamer-require
   {lambda [name]
