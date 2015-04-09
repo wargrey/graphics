@@ -10,7 +10,7 @@
 
 @handbook-story{Hello, Hacker Hero!}
 
-Every hacker needs a robust developing infrastructure, more clearly meanwhile I mean @hyperlink[@(cadr partner)]{@italic{makefile.rkt}}
+Every hacker needs a robust developing infrastructure, more clearly meanwhile I mean @deftech{@hyperlink[@(cadr partner)]{makefile.rkt}}
 to make life simple. However testing the building routines on the entire project always makes nonsense but costs high,
 thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome)} and @seclink["rules"]{project organization rules}.
 
@@ -43,7 +43,7 @@ nonetheless you are still free to check the options first. Normal @bold{Racket} 
                 ((dynamic-require/expose (tamer-story) 'make) "--help"))]
 
 Be careful here, the buggy implementation may keep invoking another test routine endlessly in which case
-this @italic{handbook} itself may be depended by some other files.
+this @itech{handbook} itself may be depended by some other files.
 Kill those unexpected routines crudely is unreasonable since there maight be side effects.
 
 @chunk[|<setup and teardown timidly>|
@@ -72,7 +72,7 @@ Now let@literal{'}s try to make thing done:
 
 It seems that it works very well, and so it does. But the @italic{before} and @italic{after} routines are out of testcase
 in which case the following proving of the same testsuite would lead to the duplicate and meaningless work during
-the process of rendering the @italic{handbook}.  So, a testcase with additional work sealed inside would be better
+the process of rendering the @itech{handbook}. So, a testcase with additional work sealed inside would be better
 since we can cache the result by nature. 
 
 @chunk[|<testcase: complex options>|
@@ -98,9 +98,9 @@ since we can cache the result by nature.
 
 @subsection[#:tag "rules"]{Scenario: The rules serve you!}
 
-Since the term @italic{Architecture} is all about designing rules, and this story is all about building system.
+Since the term @deftech{Architecture} is all about designing rules, and this story is all about building system.
 So apart from @italic{@hyperlink["https://github.com/digital-world/DigiGnome"]{conventions}},
-we need a sort of rules that the @italic{makefile.rkt} (and systems it builds) should satisfy.
+we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) should satisfy.
 
 @chunk[|<hello rules!>|
        (define digimons (parameterize ([current-directory (digimon-world)])
@@ -166,14 +166,14 @@ we need a sort of rules that the @italic{makefile.rkt} (and systems it builds) s
        (format "Rule 5: ~a/~a" (digimon-gnome) top.scrbl)
        (check-pred file-exists? (build-path (digimon-zone) top.scrbl))]
 
-@handbook-rule[6]{Each subproject@literal{'}s @italic{README.md} follows its @italic{handbook}@literal{'}s index page.}
+@handbook-rule[6]{Each subproject@literal{'}s @italic{README.md} follows its @itech{handbook}@literal{'}s index page.}
 @chunk[|<facts: rule 6>|
        (format "Rule 6: ~a/~a" digimon sub.scrbl)
        (check-pred file-exists? (build-path (digimon-world) digimon sub.scrbl))]
 
-@handbook-scenario{What if the @italic{handbook} is unavaliable?}
+@handbook-scenario{What if the @itech{handbook} is unavaliable?}
 
-Furthermore, the @italic{handbook} itself is the standard test report, but it@literal{'}s still reasonable
+Furthermore, the @itech{handbook} itself is the standard test report, but it@literal{'}s still reasonable
 to check the system in some more convenient ways. Hence we have
 
 @chunk[|<tamer battle>|

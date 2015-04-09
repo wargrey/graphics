@@ -7,7 +7,3 @@
 (provide (all-from-out "../digitama/tamer.rkt"))
 
 (current-digimon (digimon-gnome))
-
-(define strout (open-output-bytes 'stdout))
-(define strerr (open-output-bytes 'stderr))
-(define $? (make-parameter +NaN.0))

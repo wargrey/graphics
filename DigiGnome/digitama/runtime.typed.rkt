@@ -11,6 +11,8 @@
                        [:paw: Char]
                        [:book: Char]
                        [:books: Char]
+                       [:open-book: Char]
+                       [:memo: Char]
                        [:page: Char]
                        [:bookmark: Char]
                        [:heart: Char]
@@ -18,6 +20,8 @@
                        [:collision: Char]
                        [:pin: Char]
                        [:backhand: Char]
+                       [:macroscope: Char]
+                       [:telescope: Char]
                        
                        [/dev/stdin Input-Port]
                        [/dev/stdout Output-Port]

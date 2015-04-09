@@ -49,24 +49,25 @@ exec racket --require "$0" --main -- ${1+"$@"}
 
 (define compile-directory
   {lambda [cmpdir finfo]
-    (define-values {pin pout} (make-pipe #false 'filter-checking 'verbose-message))
-    (define px.inside-world (pregexp (digimon-world)))
-    (thread {λ _ (for ([line (in-port read-line pin)])
-                   (cond [(regexp-match? px.inside-world line) (printf "~a~n" line)]
+    (define-values {/dev/make/stdin /dev/make/stdout} (make-pipe #false 'filter-checking 'verbose-message))
+    (define px.inside (pregexp (if (make-print-checking) (digimon-world) (path->string (digimon-zone)))))
+    (thread {λ _ (for ([line (in-port read-line /dev/make/stdin)])
+                   (cond [(regexp-match? px.inside line) (printf "~a~n" line)]
                          [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" line) 'Skip-Others-Packages]
                          [else (printf "~a~n" line)]))})
-    (dynamic-wind {λ _ '{compiling in the main thread is good for breaking when exception occures}}
-                  {λ _ (parameterize ([current-output-port pout]
-                                      [current-error-port pout])
-                         (compile-directory-zos cmpdir finfo #:verbose #true #:skip-doc-sources? #true))}
-                  {λ _ (close-output-port pout)})})
+    (dynamic-wind {λ _ (void #| compiling in the main thread is good for breaking when exception occures |#)}
+                  {λ _ (parameterize ([current-output-port /dev/make/stdout]
+                                      [current-error-port /dev/make/stdout])
+                         (with-handlers ([exn? (compose1 (curry error 'make "[error] ~a") exn-message)])
+                           (compile-directory-zos cmpdir finfo #:verbose #true #:skip-doc-sources? #true)))}
+                  {λ _ (close-output-port /dev/make/stdout)})})
 
 (define make-digivice
-  {lambda [template dgvc-name dgvc.rkt]
+  {lambda [template.rkt dgvc-name dgvc.rkt]
     (with-output-to-file dgvc.rkt #:exists 'replace
       {λ _ (void (putenv "current-digivice" dgvc-name)
                  (putenv "runtime-path" (path->string (find-relative-path (path-only dgvc.rkt) digimon-runtime-source)))
-                 (dynamic-require template #false))})
+                 (dynamic-require template.rkt #false))})
     (let ([chmod (file-or-directory-permissions dgvc.rkt 'bits)])
       (file-or-directory-permissions dgvc.rkt (bitwise-ior chmod #o111)))})
 
@@ -196,8 +197,8 @@ exec racket --require "$0" --main -- ${1+"$@"}
             (parameterize ([current-directory (path-only handbook)]
                            [current-namespace (make-base-namespace)]
                            [exit-handler {λ [retcode] (when (and (integer? retcode) (<= 1 retcode 255))
-                                                        (error 'make "[error] /~a breaks ~a testcases!"
-                                                               (find-relative-path (digimon-world) handbook) retcode))}])
+                                                        (error 'make "[error] /~a breaks ~a!"
+                                                               (find-relative-path (digimon-world) handbook) (~n_w retcode "testcase")))}])
               (dynamic-require `(submod ,handbook main) #false))
             (parameterize ([current-directory (path-only handbook)]
                            [current-namespace (make-base-namespace)]
@@ -209,12 +210,12 @@ exec racket --require "$0" --main -- ${1+"$@"}
               (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
                              #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
                              #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
-                             #:redirect "http://docs.racket-lang.org" #:redirect-main "http://docs.racket-lang.org"
+                             ;#:redirect "http://docs.racket-lang.org" #:redirect-main "http://docs.racket-lang.org"
                              #:xrefs (list (load-collections-xref))
                              #:quiet? #false #:warn-undefined? #false))))))})
 
-(define main0
-  {lambda [return]
+(define main
+  {lambda argument-list
     (define fphonies (parameterize ([current-namespace (namespace-anchor->namespace makefile)])
                        (let ([px~fmake: #px"^make~(.+?):$"])
                          (for/hash ([var (in-list (namespace-mapped-symbols))]
@@ -222,67 +223,52 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                     #:when (regexp-match? px~fmake: (symbol->string var)))
                            (values (list-ref (regexp-match px~fmake: (symbol->string var)) 1)
                                    (namespace-variable-value var #false))))))
-    (parse-command-line (file-name-from-path (syntax-source #'program))
-                        (current-command-line-arguments)
-                        `{{usage-help ,(format "Carefully options are not exactly the same as those of GNU Make.~n")} ; make "~n" work
-                          {once-each
-                           [{"-B" "--always-make"}
-                            ,{λ [flag] (make-always-run #true)}
-                            {"Unconditionally make all targets."}]
-                           [{"-n" "--dry-run"}
-                            ,{λ [flag] (make-dry-run #true)}
-                            {"Just make without updating targets. [Except *.rkt]"}]
-                           [{"-s" "--silent"}
-                            ,{λ [flag] (current-output-port /dev/null)}
-                            {"Just run commands but output nothing if no errors."}]
-                           [{"-t" "--touch"}
-                            ,{λ [flag] (make-just-touch #true)}
-                            {"Touch targets instead of remaking them if it exists."}]
-                           [{"-v" "--verbose"}
-                            ,{λ [flag] (make-print-dep-no-line #true) (make-print-checking #true) (make-print-reasons #true)}
-                            {"Build with verbose messages."}]}
-                          {multi
-                           [{"+o" "++only"}
-                            ,{λ (++only digimon) (current-make-collects (cons digimon (current-make-collects)))}
-                            {"Only build <digimon>s." "digimon"}]}}
-                        {λ [!voids . targets]
-                          (define-values {reals phonies} (partition filename-extension targets))
-                          (parameterize ([current-make-real-targets (map path->complete-path reals)])
-                            (for ([digimon (in-list (let ([fsetup-collects {λ _ (map path->string (directory-list (digimon-world)))}])
-                                                      (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
-                                                                               [else (cons (digimon-gnome) (info-ref 'setup-collects fsetup-collects))]))))]
-                                  #:when (get-info/full (build-path (digimon-world) digimon)))
-                              (parameterize ([current-digimon digimon])
-                                (dynamic-wind {λ _ (and (file-or-directory-modify-seconds (digimon-zone) (current-seconds))
-                                                        (printf "Enter Digimon Zone: ~a.~n" digimon))}
-                                              {λ _ (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
-                                                     (parameterize ([current-make-phony-goal phony])
-                                                       (with-handlers ([exn? {λ [e] (and (eprintf "~a~n" (exn-message e)) (return 1))}])
-                                                         (cond [(regexp-match? #px"clean$" phony) ((hash-ref fphonies "clean"))]
-                                                               [(hash-has-key? fphonies phony) ((hash-ref fphonies phony))]
-                                                               [else (error 'make "I don't know how to make `~a`!" phony)]))))}
-                                              {λ _ (printf "Leave Digimon Zone: ~a.~n" digimon)}))))}
-                        (list "phony-target|file-path")
-                        {λ [--help]
-                          (display (foldl {λ [phony --help] (if (hash-has-key? fphonies (car phony)) (format "~a  ~a : ~a~n" --help (car phony) (cdr phony)) --help)}
-                                          (string-replace --help #px"  -- : .+?-h --'."
-                                                          (string-join #:before-first (format "~n where <phony-target> is one of~n  ") #:after-last (format "~n")
-                                                                       '{"all : Build the entire software without documentation. [default]"
-                                                                         "mostlyclean : Delete all except when remaking costs high."
-                                                                         "clean : Delete all except those record the configuration."
-                                                                         "distclean : Delete all that are excluded in the distribution."
-                                                                         "maintainer-clean : Delete all that can be remade. [For Maintainers]"}
-                                                                       (format "~n  ")))
-                                          (list (cons "install" "Install this software and documentation.")
-                                                (cons "uninstall" "Delete all the installed files and documentation.")
-                                                (cons "dist" "Create a distribution file of the source files.")
-                                                (cons "check" "Validate and generate test report along with documentation."))))
-                          (return 0)}
-                        {λ [unknown]
-                          (eprintf "make: I don't know what does `~a` mean!~n" unknown)
-                          (return 1)})})
-
-(define main
-  {lambda arglist
-    (parameterize ([current-command-line-arguments (list->vector arglist)])
-      (exit-with-fixed-code (call-with-current-continuation main0)))})
+    (define-values {flag-table --help --unknown}
+      (values `{{usage-help ,(format "Carefully options are not exactly the same as those of GNU Make.~n")} ; make "~n" work
+                {once-each [{"-B" "--always-make"} ,{λ [flag] (make-always-run #true)} {"Unconditionally make all targets."}]
+                           [{"-n" "--dry-run"} ,{λ [flag] (make-dry-run #true)} {"Just make without updating targets. [Except *.rkt]"}]
+                           [{"-s" "--silent"} ,{λ [flag] (current-output-port /dev/null)} {"Just run commands but output nothing if no errors."}]
+                           [{"-t" "--touch"} ,{λ [flag] (make-just-touch #true)} {"Touch targets instead of remaking them if it exists."}]
+                           [{"-v" "--verbose"} ,{λ [flag] (make-print-dep-no-line #true) (make-print-checking #true) (make-print-reasons #true)}
+                                               {"Build with verbose messages."}]}
+                {multi [{"+o" "++only"} ,{λ [++only digimon] (current-make-collects (cons digimon (current-make-collects)))}
+                                        {"Only build <digimon>s." "digimon"}]}}
+              {λ [-h] (foldl {λ [phony -h] (if (hash-has-key? fphonies (car phony)) (format "~a  ~a : ~a~n" -h (car phony) (cdr phony)) -h)}
+                             (string-replace -h #px"  -- : .+?-h --'."
+                                             (string-join #:before-first (format "~n where <phony-target> is one of~n  ") #:after-last (format "~n")
+                                                          '{"all : Build the entire software without documentation. [default]"
+                                                            "mostlyclean : Delete all except when remaking costs high."
+                                                            "clean : Delete all except those record the configuration."
+                                                            "distclean : Delete all that are excluded in the distribution."
+                                                            "maintainer-clean : Delete all that can be remade. [For Maintainers]"}
+                                                          (format "~n  ")))
+                             (list (cons "install" "Install this software and documentation.")
+                                   (cons "uninstall" "Delete all the installed files and documentation.")
+                                   (cons "dist" "Create a distribution file of the source files.")
+                                   (cons "check" "Validate and generate test report along with documentation.")))}
+              (curry eprintf "make: I don't know what does `~a` mean!~n")))
+    (define {main0 targets}
+      (define-values {reals phonies} (partition filename-extension targets))
+      (parameterize ([current-make-real-targets (map path->complete-path reals)])
+        (for ([digimon (in-list (let ([fsetup-collects {λ _ (map path->string (directory-list (digimon-world)))}])
+                                  (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
+                                                           [else (cons (digimon-gnome) (info-ref 'setup-collects fsetup-collects))]))))]
+              #:when (get-info/full (build-path (digimon-world) digimon)))
+          (parameterize ([current-digimon digimon])
+            (dynamic-wind {λ _ (and (file-or-directory-modify-seconds (digimon-zone) (current-seconds))
+                                    (printf "Enter Digimon Zone: ~a.~n" digimon))}
+                          {λ _ (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
+                                 (parameterize ([current-make-phony-goal phony])
+                                   (with-handlers ([exn? {λ [e] (exit ({λ _ 1} (eprintf "~a~n" (exn-message e))))}])
+                                     (cond [(regexp-match? #px"clean$" phony) ((hash-ref fphonies "clean"))]
+                                           [(hash-has-key? fphonies phony) ((hash-ref fphonies phony))]
+                                           [else (error 'make "I don't know how to make `~a`!" phony)]))))}
+                          {λ _ (printf "Leave Digimon Zone: ~a.~n" digimon)})))))
+    (call-as-normal-termination
+     {λ _ (parse-command-line (file-name-from-path (syntax-source #'program))
+                              argument-list
+                              flag-table
+                              {λ [!voids . targets] (exit (main0 targets))}
+                              '{"phony-target|file-path"}
+                              (compose1 exit display --help)
+                              (compose1 exit {λ _ 1} --unknown))})})

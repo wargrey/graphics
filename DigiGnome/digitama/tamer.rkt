@@ -36,6 +36,11 @@
     (get-output-bytes $err #true)
     ($? +NaN.0)})
 
+(define call-with-fresh-$
+  {lambda [routine . arglist]
+    (refresh-$)
+    (apply call-with-$ routine arglist)})
+
 (define make-tamer-zone
   {lambda []
     (define tamer.rkt (path->string (build-path (digimon-tamer) "tamer.rkt")))
@@ -96,7 +101,8 @@
   {lambda pre-contents
     (define info-ref (get-info/full (digimon-zone)))
     (title (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection)) pre-contents)
-           #:version (format "~a[~a]" (version) (info-ref 'version)))})
+           #:version (format "~a[~a]" (version) (info-ref 'version))
+           #:tag "tamerbook")})
 
 (define handbook-story
   {lambda [#:style [style #false] . pre-contents]
@@ -118,9 +124,13 @@
   {lambda [id . pre-flow]
     (itemlist (item (bold (format "Rule ~a " id)) pre-flow))})
 
+(define itech
+  {lambda pre-contents
+    (tech (italic pre-contents))})
+
 (define tamer-prove
   {lambda []
-    (define suite (cond [(false? (tamer-story)) (or (zero? (hash-count handbook-stories)) ; no story ==> no :book:
+    (define suite (cond [(false? (tamer-story)) (or (zero? (hash-count handbook-stories)) ; no story ==> no :books:
                                                     (let ([href (curry hash-ref handbook-stories)])
                                                       (make-test-suite "Behaviors and Features"
                                                                        (map {λ [unit] (make-test-suite unit (reverse (map cdr (href unit))))}
@@ -154,7 +164,8 @@
                                                               (reverse (hash-ref handbook-stories htag null)))})
                       (nested #:style (make-style "boxed" null)
                               (filebox (cond [(false? story-snapshot) (italic (string :books:) ~ (format "Behaviors of ~a" (info-ref 'collection)))]
-                                             [(module-path? story-snapshot) (italic (string :book:) ~ (format "Behaviors in ~a" (cadadr story-snapshot)))])
+                                             [(module-path? story-snapshot) (italic (seclink "tamerbook" (string :open-book:))
+                                                                                    ~ (format "Behaviors in ~a" (cadadr story-snapshot)))])
                                        (let ([base (cond [(false? story-snapshot) (for/list ([story (in-list (reverse (hash-ref handbook-stories :books: null)))])
                                                                                     (cons story (with-handlers ([exn:fail:contract? {λ _ null}])
                                                                                                   (apply append (map cdr (story-ref story))))))]
@@ -220,7 +231,7 @@
                                                    => {λ [pieces] (format "> + ~a~a" :books: (list-ref pieces 1))}]
                                                   [(regexp-match #px"^(\\s+)λ\\d+\\s+(.+?.rkt)\\s*$" line)
                                                    => {λ [pieces] (match-let ([{list _ indt ctxt} pieces]) ; (markdown list needs at least 1 char after "+ "
-                                                                    (list (format ">   ~a+ ~a" indt :book:)  ; before breaking line if "[~a](~a)" is
+                                                                    (list (format ">   ~a+ ~a" indt :open-book:)  ; before breaking line if "[~a](~a)" is
                                                                           (format "[~a](http://~a.gyoudmon.org/~a)" ctxt ; longer then 72 chars.)
                                                                                   (string-downcase (current-digimon)) ctxt)))}]
                                                   [(regexp-match #px"^(\\s+)λ\\d+(.\\d)*\\s+(.+?)\\s*$" line)
@@ -245,8 +256,6 @@
      {λ [get set]
        (define htag (tamer-story->tag story-snapshot))
        (unless (get 'scenario #false) (set 'scenario (make-hash)))
-       (let ([books (hash-ref handbook-stories :books: null)])
-         (unless (member htag books) (hash-set! handbook-stories :books: (cons htag books))))
        (define scenarios (hash-ref! (get 'scenario {λ _ (make-hash)}) htag {λ _ (make-hash)}))
        (margin-note (for/list ([unit-var (in-list unit-vars)])
                       (define-values {/dev/tamer/stdin /dev/tamer/stdout} (make-pipe #false '/dev/tamer/stdin '/dev/tamer/stdout))
@@ -273,7 +282,7 @@
                            (cond [(regexp-match #px"^λ\\s+(.+)" line)
                                   => {λ [pieces] (let ([ctxt (list-ref pieces 1)])
                                                    (unit-spec (list ctxt)) ; Testsuite
-                                                   (racketmetafont (italic (string :book:)) ~ (elemtag ctxt (literal ctxt))))}]
+                                                   (racketmetafont (italic (string :open-book:)) ~ (elemtag ctxt (literal ctxt))))}]
                                  [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
                                   => {λ [pieces] (racketparenfont (italic (string :bookmark:)) ~ (literal (list-ref pieces 3)))}]
                                  [(regexp-match #px"^(\\s*)(.+?) (\\d+) - (.+?)\\s*$" line)
@@ -286,15 +295,16 @@
                                                    ((if (string=? spc "") (curry elemtag ctxt) elem)
                                                     (string :stts:) (racketvarfont ~ idx) (racketcommentfont ~ (literal ctxt))))}]
                                  [(regexp-match #px"^\\s*»» (.+?)?:?\\s+\"?(.+?)\"?\\s*$" line)
-                                  => {λ [pieces] (and (unit-spec (cons (string-trim line) (unit-spec)))
-                                                      (cond [(regexp-match? #px"message$" (list-ref pieces 1))
-                                                             => {λ _ (elem (string :backhand:) ~ (racketcommentfont (italic (literal (list-ref pieces 2)))))}]
-                                                            [(string=? (list-ref pieces 1) "params")
-                                                             => {λ _ ((curryr add-between (linebreak))
-                                                                      (for/list ([para (in-list (read (open-input-string (list-ref pieces 2))))])
-                                                                        (elem (string :paw:) ~ (racketcommentfont (italic (literal (format "~a" para)))))))}]))}]
+                                  => {λ [pieces] (let ([key (list-ref pieces 1)])
+                                                   (unit-spec (cons (string-trim line) (unit-spec)))
+                                                   (define :type: (cond [(regexp-match? #px"message$" key) :backhand:]
+                                                                        [(regexp-match? #px"param:\\d" key) :macroscope:]))
+                                                   (unless (void? :type:)
+                                                     (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
+                                                           (string :type:) ~ (italic (literal (list-ref pieces 2))))))}]
                                  [(regexp-match #px"^$" line) (hash-set! scenarios unit (reverse (unit-spec)))]
-                                 [else (when (hash-has-key? scenarios unit) (elem (string :pin:) ~ (racketoutput line)))]))))))})})
+                                 [else (when (hash-has-key? scenarios unit) (elem (string :pin:) ~ (racketoutput line)
+                                                                                  ~ (seclink (tamer-story->tag (tamer-story)) (string :telescope:))))]))))))})})
 
 (define tamer-racketbox
   {lambda [path]
@@ -303,7 +313,7 @@
      {λ _ (parameterize ([tamer-story story-snapshot])
             (define /path/file (simplify-path (if (symbol? path) (dynamic-require/expose (tamer-story) path) path)))
             (nested #:style (make-style "boxed" null)
-                    (filebox (hyperlink /path/file (italic (path->string (tr-if-path /path/file))))
+                    (filebox (hyperlink /path/file (italic (string :memo:) ~ (path->string (tr-if-path /path/file))))
                              (codeblock #:line-numbers 0 #:keep-lang-line? #false
                                         (file->string /path/file)))))})})
 
@@ -346,7 +356,9 @@
       (define units (hash-ref handbook-stories htag null))
       (unless (assoc name units)
         (hash-set! handbook-stories htag
-                   (cons (cons name unit) units)))})
+                   (cons (cons name unit) units)))
+      (let ([books (hash-ref handbook-stories :books: null)])  ;;; Readme.md needs it stay here
+        (unless (member htag books) (hash-set! handbook-stories :books: (cons htag books))))})
 
   (define tamer-record-handbook
     {lambda [name:case«suites action]
@@ -386,14 +398,16 @@
   
   (define display-failure
     {lambda [result #:indent [headspace ""]]
+      (define echo {λ [key val] (eechof #:fgcolor 'red "~a»» ~a: ~s~n" headspace key val)})
       (for ([info (in-list (exn:test:check-stack (test-failure-result result)))])
-        (eechof #:fgcolor 'red "~a»» ~a: ~s~n" headspace (check-info-name info)
-                (case (check-info-name info)
-                  [{location} (tr-d (srcloc->string (apply srcloc (check-info-value info))))]
-                  [{exception-message} (tr-d (check-info-value info))]
-                  [{exception} (object-name (check-info-value info))]
-                  [{params} (map tr-if-path (check-info-value info))]
-                  [else (tr-if-path (check-info-value info))])))})
+        (cond [(symbol=? (check-info-name info) 'params) (for ([param (in-list (map tr-if-path (check-info-value info)))]
+                                                               [index (in-naturals 1)])
+                                                           (echo (format "param:~a" index) param))]
+              [else (echo (check-info-name info) (case (check-info-name info)
+                                                   [{location} (tr-d (srcloc->string (apply srcloc (check-info-value info))))]
+                                                   [{exception-message} (tr-d (check-info-value info))]
+                                                   [{exception} (object-name (check-info-value info))]
+                                                   [else (tr-if-path (check-info-value info))]))]))})
   
   (define display-error
     {lambda [result #:indent [headspace0 ""]]
