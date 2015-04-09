@@ -18,7 +18,6 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
 
 @chunk[|<infrastructure taming start>|
        (require "tamer.rkt")
-       (require setup/getinfo)
              
        (tamer-story (tamer-story->libpath "infrastructure.rkt"))
        (define partner `(file ,(format "~a/makefile.rkt" (digimon-world))))
@@ -40,8 +39,8 @@ You may have already familiar with the @hyperlink["http://en.wikipedia.org/wiki/
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
 @exec{@|-~-|h} or @exec{@|-~-|@|-~-|help} option:
 
-@tamer-action[((dynamic-require/expose (tamer-story) 'make) "--help")
-              (code:comment @#,t{See, @racketcommentfont{@italic{makefile}} complains that @racketcommentfont{@bold{Scribble}} is killed by accident.})]
+@tamer-action[(parameterize ([exit-handler void])
+                ((dynamic-require/expose (tamer-story) 'make) "--help"))]
 
 Be careful here, the buggy implementation may keep invoking another test routine endlessly in which case
 this @italic{handbook} itself may be depended by some other files.
@@ -54,30 +53,22 @@ Kill those unexpected routines crudely is unreasonable since there maight be sid
 
        (define {{setup . argv}}
          (dynamic-wind {λ _ (environment-variables-set! ENV #"taming" #"true")}
-                       {λ _ (parameterize ([current-directory (digimon-world)]
-                                           [current-output-port strout]
-                                           [current-error-port strerr]
-                                           [exit-handler $?])
-                              (apply make argv))}
-                       {λ _ (environment-variables-set! ENV #"taming" #false)}))
-
-       (define {teardown}
-         (get-output-bytes strout #true)
-         (get-output-bytes strerr #true)
-         ($? +NaN.0))]
+                       {λ _ (parameterize ([current-directory (digimon-world)])
+                              (call-with-$ (curry apply make argv)))}
+                       {λ _ (environment-variables-set! ENV #"taming" #false)}))]
 
 Now let@literal{'}s try to make thing done:
 
 @tamer-note['make-option]
 @chunk[|<testsuite: simple options>|
        (test-suite "make --silent --help"
-                   #:before (setup "--silent" "--help") #:after teardown
+                   #:before (setup "--silent" "--help") #:after refresh-$
                    (test-pred "should exit normally" zero? ($?))
-                   (test-pred "should keep quiet" zero? (file-position strout)))
+                   (test-pred "should keep quiet" zero? (file-position $out)))
        (test-suite "make --silent love"
-                   #:before (setup "--silent" "love") #:after teardown
-                   (test-true "should abort" ((negate zero?) ($?)))
-                   (test-check "should report errors" < 0 (file-position strerr)))]
+                   #:before (setup "--silent" "love") #:after refresh-$
+                   (test-pred "should exit abnormally" (negate zero?) ($?))
+                   (test-check "should report errors" < 0 (file-position $err)))]
 
 It seems that it works very well, and so it does. But the @italic{before} and @italic{after} routines are out of testcase
 in which case the following proving of the same testsuite would lead to the duplicate and meaningless work during
@@ -89,13 +80,13 @@ since we can cache the result by nature.
               [make-md (list "--always-make" "--touch" "++only" (digimon-gnome)
                              (path->string (file-name-from-path "README.md")))])
          (test-spec (string-join (cons "make" make-md))
-                    #:before (apply setup make-md) #:after teardown
-                    (let* ([stdout (get-output-string strout)]
-                           [stderr (get-output-string strerr)]
-                           [times (compose1 length (curryr regexp-match* stdout))]
+                    #:before (apply setup make-md) #:after refresh-$
+                    (let* ([strout (get-output-string $out)]
+                           [strerr (get-output-string $err)]
+                           [times (compose1 length (curryr regexp-match* strout))]
                            [msecs file-or-directory-modify-seconds])
-                      (check-pred zero? ($?) stderr)
-                      (check-pred zero? (file-position strerr) stderr)
+                      (check-pred zero? ($?) strerr)
+                      (check-pred zero? (file-position $err) $err)
                       (check-eq? (times #px"Leave Digimon Zone") 1
                                  "worked in wrong digimon zone!")
                       (check-eq? (times #px"make: made") 1
