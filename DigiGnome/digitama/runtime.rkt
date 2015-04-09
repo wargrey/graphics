@@ -58,7 +58,9 @@
 
 (define call-as-normal-termination
   {lambda [main/0]
-    (define status (call/cc {λ [$?] (parameterize ([exit-handler $?]) (exit (main/0)))}))
+    (define status (call/cc {λ [$?] (parameterize ([exit-handler $?])
+                                      (with-handlers ([exn? {λ [e] (exit ({λ _ 1} (eprintf "~a~n" (exn-message e))))}])
+                                        (exit (main/0))))}))
     (exit (if (exact-nonnegative-integer? status) (min status 255) 0))})
 
 (define ~n_w
