@@ -176,7 +176,7 @@
                                                                                              [else (values :page: (unbox (car spec)))]))
                                                          (define-values {status color :status:}
                                                            (cond [(null? (cdr spec)) (values (~result struct:test-success) 'lightgreen :heart:)]
-                                                                 [(ormap box? (cdr spec)) (values (~result struct:test-error) 'red :collision:)]
+                                                                 [(ormap box? (cdr spec)) (values (~result struct:test-error) 'red :bomb:)]
                                                                  [else (values (~result struct:test-failure) 'lightred :broken-heart:)]))
                                                          (define item (~a #:width 61 #:pad-string "." #:limit-marker "......" desc))
                                                          (define label (racketkeywordfont (literal item) (string :status:)))
@@ -240,7 +240,7 @@
                                                    => {λ [pieces] (format ">   ~a- ~a ~a - ~a" (list-ref pieces 1)
                                                                           (cond [(string=? (list-ref pieces 2) (~result struct:test-success)) :heart:]
                                                                                 [(string=? (list-ref pieces 2) (~result struct:test-failure)) :broken-heart:]
-                                                                                [else :collision:])
+                                                                                [else :bomb:])
                                                                           (list-ref pieces 3) (list-ref pieces 4))}]
                                                   [(regexp-match #px"^$" line) (summary? #true)]
                                                   [(regexp-match #px"wallclock" line) "> "]
@@ -274,7 +274,7 @@
                                                             (unless (get meta #false) (set meta (make-hash)))
                                                             (define pool (get meta {λ _ (make-hash)}))
                                                             (hash-set! pool (tamer-story) (+ (hash-ref pool (tamer-story) 0) delta)))
-                                                          (cond [(zero? (+ failure error)) (printf "~n~a wallclock seconds~n" (~r (/ real 1000.0) #:precision '{= 3}))]
+                                                          (cond [(zero? (+ failure error)) (printf "~n~a wall seconds~n" (~r (/ real 1000.0) #:precision '{= 3}))]
                                                                 [else (printf "~n~a ~a~n" @~n_w[failure]{failure} @~n_w[error]{error})]))}
                                                    {λ _ (close-output-port /dev/tamer/stdout)})})
                         ((compose1 (curryr add-between (linebreak)) (curry filter-not void?))
@@ -289,7 +289,7 @@
                                   => {λ [pieces] (match-let ([{list _ spc stts idx ctxt} pieces])
                                                    (when (string=? spc "") (unit-spec (list (box ctxt)))) ; Toplevel testcase
                                                    (define-values {:stts: ftype} (cond [(string=? stts (~result struct:test-success)) (values :heart: #false)]
-                                                   #| follows error type conventions|# [(string=? stts (~result struct:test-error)) (values :collision: box)]
+                                                   #| follows error type conventions|# [(string=? stts (~result struct:test-error)) (values :bomb: box)]
                                                                                        [else (values :broken-heart: values)]))
                                                    (when (procedure? ftype) (unit-spec (cons (ftype ctxt) (unit-spec))))
                                                    ((if (string=? spc "") (curry elemtag ctxt) elem)
@@ -298,13 +298,14 @@
                                   => {λ [pieces] (let ([key (list-ref pieces 1)])
                                                    (unit-spec (cons (string-trim line) (unit-spec)))
                                                    (define :type: (cond [(regexp-match? #px"message$" key) :backhand:]
-                                                                        [(regexp-match? #px"param:\\d" key) :macroscope:]))
+                                                                        [(regexp-match? #px"param:\\d" key) :crystal-ball:]))
                                                    (unless (void? :type:)
                                                      (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
                                                            (string :type:) ~ (italic (literal (list-ref pieces 2))))))}]
                                  [(regexp-match #px"^$" line) (hash-set! scenarios unit (reverse (unit-spec)))]
                                  [else (when (hash-has-key? scenarios unit) (elem (string :pin:) ~ (racketoutput line)
-                                                                                  ~ (seclink (tamer-story->tag (tamer-story)) (string :telescope:))))]))))))})})
+                                                                                  ~ (seclink (tamer-story->tag (tamer-story))
+                                                                                             ~ (string :house-garden:) (smaller (string :cat:)))))]))))))})})
 
 (define tamer-racketbox
   {lambda [path]

@@ -10,7 +10,7 @@
 
 (define-values {:house-garden: :cat: :paw: :macroscope: :telescope:} (values #\U1F3E1 #\U1F408 #\U1F43E #\U1F52C #\U1F52D))
 (define-values {:book: :books: :open-book: :memo: :page: :bookmark:} (values #\U1F4D4 #\U1F4DA #\U1F4D6 #\U1F4DD #\U1F4C4 #\U1F4D1))
-(define-values {:heart: :broken-heart: :collision: :pin: :backhand:} (values #\U1F49A #\U1F494 #\U1F4A5 #\U1F4CC #\U1F449))
+(define-values {:heart: :broken-heart: :bomb: :collision: :pin: :crystal-ball: :backhand:} (values #\U1F49A #\U1F494 #\U1F4A3 #\U1F4A5 #\U1F4CC #\U1F52E #\U1F449))
 
 (define /dev/stdin (current-input-port))
 (define /dev/stdout (current-output-port))
