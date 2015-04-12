@@ -28,8 +28,8 @@
 (define main : Racket-Main
   {lambda arglist
     (call-as-normal-termination
-     {λ _ (parameterize ([current-digimon "@(current-digimon)"]
-                         [current-directory (digimon-digivice)])
+     {λ _ (parameterize* ([current-digimon "@(current-digimon)"]
+                          [current-directory (digimon-digivice)])
             (cond [(or (null? arglist) (string=? "help" (car arglist))) (show-help-and-exit)]
                   [else (parameterize ([current-command-line-arguments (list->vector (cdr arglist))]
                                        [current-namespace (make-base-namespace)])
