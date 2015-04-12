@@ -74,13 +74,13 @@ Quite simple, is it?
 
 @chunk[|<testcase: make digivice>|
        (let ([msecs file-or-directory-modify-seconds])
-         (test-spec (format "~a should be updated!" dgvc.rkt)
+         (test-spec "<digivice> should be updated!"
                     (check-pred file-exists? dgvc.rkt)
                     (check <= (msecs dgvc.rktl) (msecs dgvc.rkt)))
-         (test-spec (format "~a should be updated!" action.rkt)
+         (test-spec "<action> should be updated!"
                     (check-pred file-exists? action.rkt)
                     (check <= (msecs action.rktl) (msecs action.rkt)))
-         (test-spec (format "exec racket ~a" dgvc.rkt)
+         (test-spec "exec racket <digivice>"
                     #:before {λ _ (parameterize ([current-command-line-arguments (vector)])
                                     (call-with-$ dynamic-require dgvc.rkt #false))}
                     #:after refresh-$
@@ -109,17 +109,17 @@ Okay, the @itech{digivice} demo is ready! Now what?
 @tamer-note['dgvc-option]
 
 @chunk[|<testcase: dgvc action>|
-       (test-spec "dgvc help ['help' can be omitted if you want]"
+       (test-spec "digivice help ['help' can be omitted if you want]"
                   #:before {λ _ (call-with-fresh-$ dgvc "help")}
                   (check-pred zero? ($?) (get-output-string $err))
                   (check-regexp-match #px"Usage:.+?where <action>(\\s+\\S+){3,}"
                                       (get-output-string $out)))
-       (test-spec "dgvc --help [this is a kind of mistyped action]"
+       (test-spec "digivice --help [this is a kind of mistyped action]"
                   #:before {λ _ (call-with-fresh-$ dgvc "--help")}
                   (check-pred (procedure-rename (negate zero?) 'nonzero?) ($?))
                   (check-regexp-match #px"Usage:.+?where <action>.+?Unrecognized"
                                       (get-output-string $err)))
-       (test-spec "dgvc action [mission start]"
+       (test-spec "digivice action [mission start]"
                   #:before {λ _ (call-with-fresh-$ dgvc "action")}
                   (check-pred zero? ($?) (get-output-string $err)))]
 
@@ -128,20 +128,20 @@ nothing can be done to guarantee that real implementation @bold{is} taking care
 the commandline arguments even though it is suggested to.
 
 @chunk[|<testcase: dgvc action option>|
-       (test-spec "dgvc action --help [pass option to action]"
+       (test-spec "digivice action --help [pass option to action]"
                   #:before {λ _ (call-with-fresh-$ dgvc "action" "--help")}
                   (check-pred zero? ($?) (get-output-string $err))
                   (check-regexp-match #px"where <option>(\\s+\\S+){3,}"
                                       (get-output-string $out)))
-       (test-spec "dgvc action --version [show version information]"
+       (test-spec "digivice action --version [show version information]"
                   #:before {λ _ (call-with-fresh-$ dgvc "action" "--version")}
                   (check-pred zero? ($?) (get-output-string $err))
                   (check-regexp-match #px"version:" (get-output-string $out)))
-       (test-spec "dgvc action ver sion [collect non-option arguments]"
+       (test-spec "digivice action ver sion [collect non-option arguments]"
                   #:before {λ _ (call-with-fresh-$ dgvc "action" "ver" "sion")}
                   (check-pred zero? ($?) (get-output-string $err))
                   (check-regexp-match #px"(ver sion)" (get-output-string $out)))
-       (test-spec "dgvc action --unknown [a kind of mistyped option]"
+       (test-spec "digivice action --unknown [a kind of mistyped option]"
                   #:before {λ _ (call-with-fresh-$ dgvc "action" "--unknown")}
                   (check-pred (procedure-rename (negate zero?) 'nonzero?) ($?))
                   (check-regexp-match #px"unknown switch" (get-output-string $err)))]
@@ -174,13 +174,13 @@ but I@literal{'}d like to watch the @italic{teardown} routine in order to ensure
 @chunk[|<testcase: destroy digivice>|
        (let ([exn:dnf? exn:fail:filesystem:errno?]
              [errno (compose1 car exn:fail:filesystem:errno-errno)])
-         (test-spec (format "~a should be deleted!" dgvc.rkt)
-                    (check-false (file-exists? dgvc.rkt)))
-         (test-spec (format "~a should be deleted recursively!" dgvc.dir)
+         (test-spec "<digivice> should be deleted!"
+                    (check-false (file-exists? dgvc.rkt))
+         (test-spec "<action>s directory should be deleted recursively!"
                     (check-false (directory-exists? action.rkt)))
          (test-spec (format "~a should be deleted if empty!" (digimon-digivice))
                     (with-handlers ([exn:dnf? {λ [e] (check-equal? 2 (errno e))}])
-                      (check-not-eq? (directory-list (digimon-digivice)) null))))]
+                      (check-not-eq? (directory-list (digimon-digivice)) null)))))]
 
 @handbook-appendix[]
 

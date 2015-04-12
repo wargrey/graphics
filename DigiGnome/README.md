@@ -54,25 +54,26 @@ README.md
 >     + 📖
 [digivice.rkt](http://digignome.gyoudmon.org/digivice.rkt)
 >       + 📑Instantiate Demo Sources
->         - 💚 1 - /DigiGnome/digivice/dgvc336.rkt should be updated!
->         - 💚 2 - /DigiGnome/digivice/dgvc336/action.rkt should be
-updated!
->         - 💚 3 - exec racket /DigiGnome/digivice/dgvc336.rkt
+>         - 💚 1 - <digivice> should be updated!
+>         - 💚 2 - <action> should be updated!
+>         - 💚 3 - exec racket <digivice>
 >       + 📑Ready! Now what?
 >         + 📑dgvc [action]
->           - 💚 1 - dgvc help ['help' can be omitted if you want]
->           - 💚 2 - dgvc --help [this is a kind of mistyped action]
->           - 💚 3 - dgvc action [mission start]
+>           - 💚 1 - digivice help ['help' can be omitted if you want]
+>           - 💚 2 - digivice --help [this is a kind of mistyped action]
+>           - 💚 3 - digivice action [mission start]
 >         + 📑dgvc action [option]
->           - 💚 1 - dgvc action --help [pass option to action]
->           - 💚 2 - dgvc action --version [show version information]
->           - 💚 3 - dgvc action ver sion [collect non-option arguments]
->           - 💚 4 - dgvc action --unknown [a kind of mistyped option]
+>           - 💚 1 - digivice action --help [pass option to action]
+>           - 💚 2 - digivice action --version [show version information]
+>           - 💚 3 - digivice action ver sion [collect non-option
+arguments]
+>           - 💚 4 - digivice action --unknown [a kind of mistyped
+option]
 >       + 📑Remove Demo Sources
->         - 💚 1 - /DigiGnome/digivice/dgvc336.rkt should be deleted!
->         - 💚 2 - /DigiGnome/digivice/dgvc336 should be deleted
-recursively!
->         - 💚 3 - /DigiGnome/digivice should be deleted if empty!
+>         - 💚 1 - <action>s directory should be deleted recursively!
+>         - 💚 2 - /DigiGnome/digivice should be deleted if empty!
+>         - 💚 1 - <digivice> should be deleted!
 >
-> 📌32 examples, 0 failures, 0 errors, 100.00% Okay.<br>
+> 📌30 examples, 0 failures, 0 errors, 100.00% Okay.
+>
 > [🐈<sub>🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾</sub>](http://digignome.gyoudmon.org)

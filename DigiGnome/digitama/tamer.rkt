@@ -244,7 +244,7 @@
                                                                           (list-ref pieces 3) (list-ref pieces 4))}]
                                                   [(regexp-match #px"^$" line) (summary? #true)]
                                                   [(regexp-match #px"wallclock" line) "> "]
-                                                  [(summary?) (list (format "> ~a~a<br>" :pin: line)
+                                                  [(summary?) (list (format "> ~a~a" :pin: line) "> "
                                                                     (format "> [~a<sub>~a</sub>](http://~a.gyoudmon.org)"
                                                                             :cat: (make-string (quotient (string-length line) 2) :paw:)
                                                                             (string-downcase (current-digimon))))])))))})])})})
