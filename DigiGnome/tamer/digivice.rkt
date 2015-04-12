@@ -74,13 +74,13 @@ Quite simple, is it?
 
 @chunk[|<testcase: make digivice>|
        (let ([msecs file-or-directory-modify-seconds])
-         (test-spec "<digivice> should be updated!"
+         (test-spec "digivice should be updated!"
                     (check-pred file-exists? dgvc.rkt)
                     (check <= (msecs dgvc.rktl) (msecs dgvc.rkt)))
-         (test-spec "<action> should be updated!"
+         (test-spec "action should be updated!"
                     (check-pred file-exists? action.rkt)
                     (check <= (msecs action.rktl) (msecs action.rkt)))
-         (test-spec "exec racket <digivice>"
+         (test-spec "exec racket digivice"
                     #:before {λ _ (parameterize ([current-command-line-arguments (vector)])
                                     (call-with-$ dynamic-require dgvc.rkt #false))}
                     #:after refresh-$
@@ -96,8 +96,8 @@ or @exec{raco setup}. But the launcher is just a shell script that starts the @i
 
        (define-tamer-suite dgvc-option "Ready! Now what?"
          (let ([dgvc (force digivice)])
-           (list (test-suite "dgvc [action]" |<testcase: dgvc action>|)
-                 (test-suite "dgvc action [option]" |<testcase: dgvc action option>|))))]
+           (list (test-suite "digivice [action]" |<testcase: dgvc action>|)
+                 (test-suite "digivice action [option]" |<testcase: dgvc action option>|))))]
 
 Okay, the @itech{digivice} demo is ready! Now what?
 
@@ -174,13 +174,13 @@ but I@literal{'}d like to watch the @italic{teardown} routine in order to ensure
 @chunk[|<testcase: destroy digivice>|
        (let ([exn:dnf? exn:fail:filesystem:errno?]
              [errno (compose1 car exn:fail:filesystem:errno-errno)])
-         (test-spec "<digivice> should be deleted!"
-                    (check-false (file-exists? dgvc.rkt))
-         (test-spec "<action>s directory should be deleted recursively!"
-                    (check-false (directory-exists? action.rkt)))
+         (test-spec "digivice should be deleted!"
+                    (check-pred (negate file-exists?) dgvc.rkt))
+         (test-spec "actions directory should be deleted recursively!"
+                    (check-pred (negate directory-exists?) action.rkt))
          (test-spec (format "~a should be deleted if empty!" (digimon-digivice))
                     (with-handlers ([exn:dnf? {λ [e] (check-equal? 2 (errno e))}])
-                      (check-not-eq? (directory-list (digimon-digivice)) null)))))]
+                      (check-pred (negate null?) (directory-list (digimon-digivice))))))]
 
 @handbook-appendix[]
 
