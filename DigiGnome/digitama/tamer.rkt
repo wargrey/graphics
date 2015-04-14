@@ -3,6 +3,7 @@
 (require rackunit)
 
 (require racket/sandbox)
+(require racket/syntax)
 (require setup/getinfo)
 
 (require scribble/core)
@@ -100,8 +101,8 @@
 (define handbook-title
   {lambda pre-contents
     (define info-ref (get-info/full (digimon-zone)))
-    (title (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection)) pre-contents)
-           #:version (format "~a[~a]" (version) (info-ref 'version))
+    (title (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection {λ _ (current-digimon)})) pre-contents)
+           #:version (format "~a[~a]" (version) (info-ref 'version {λ _ "Baby"}))
            #:tag "tamerbook")})
 
 (define handbook-story
@@ -122,7 +123,8 @@
 
 (define handbook-rule
   {lambda [id . pre-flow]
-    (itemlist (item (bold (format "Rule ~a " id)) pre-flow))})
+    (define tag (format "rule ~a" id))
+    (itemlist (item (elemtag tag (bold (format "~a " (string-titlecase tag)))) pre-flow))})
 
 (define itech
   {lambda pre-contents
@@ -163,7 +165,7 @@
                       (define story-ref {λ [htag] (filter-map {λ [scnr] (hash-ref (hash-ref (get 'scenario {λ _ (make-hash)}) htag {λ _ (make-hash)}) (cdr scnr) #false)}
                                                               (reverse (hash-ref handbook-stories htag null)))})
                       (nested #:style (make-style "boxed" null)
-                              (filebox (cond [(false? story-snapshot) (italic (string :books:) ~ (format "Behaviors of ~a" (info-ref 'collection)))]
+                              (filebox (cond [(false? story-snapshot) (italic (string :books:) ~ (format "Behaviors of ~a" (info-ref 'collection {λ _ (current-digimon)})))]
                                              [(module-path? story-snapshot) (italic (seclink "tamerbook" (string :open-book:))
                                                                                     ~ (format "Behaviors in ~a" (cadadr story-snapshot)))])
                                        (let ([base (cond [(false? story-snapshot) (for/list ([story (in-list (reverse (hash-ref handbook-stories :books: null)))])

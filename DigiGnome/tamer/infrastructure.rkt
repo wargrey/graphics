@@ -123,7 +123,8 @@ we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) sh
          (test-suite (format "/~a/info.rkt" digimon)
                      (test-case |<facts: rule 2>|)
                      (test-case |<facts: rule 3>|)
-                     (test-case |<facts: rule 4>|)))]
+                     (test-case |<facts: rule 4>|)
+                     (test-case |<facts: rule 5>|)))]
 
 @tamer-note['rules]
 @handbook-rule[1]{The entire project is a multi-collection package, non-hidden directories within it are considered as the subprojects.}
@@ -132,22 +133,28 @@ we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) sh
        (check-equal? (info-ref 'collection) 'multi "'collection should be 'multi!")
        (check-pred positive? (length digimons) "No real project found!")]
 
-@handbook-rule[2]{Each subproject should have an explicit name, even if the name is the same as its directory.}
+@handbook-rule[2]{Each subproject has a @italic{stage}-like version name rather than the numeric one.}
 @chunk[|<facts: rule 2>|
-       "Rule 2: collection"
+       "Rule 2: version"
+       (check member (info-ref 'version) '{"Baby" "Child" "Adult"}
+              "'version should be one of evolution stages!")]
+
+@handbook-rule[3]{Each subproject should have an explicit name, even if the name is the same as its directory.}
+@chunk[|<facts: rule 3>|
+       "Rule 3: collection"
        (check-pred string? (info-ref 'collection) "'collection should be string!")]
 
-@handbook-rule[3]{@racket[compile-collection-zos] and friends should never touch special paths.}
-@chunk[|<facts: rule 3>|
-       "Rule 3: compile-omit-paths"
+@handbook-rule[4]{@racket[compile-collection-zos] and friends should never touch special paths.}
+@chunk[|<facts: rule 4>|
+       "Rule 4: compile-omit-paths"
        (for ([omit (in-list (list (path->string (file-name-from-path (digimon-stone)))))])
          (check-not-false (let ([maybe-omits (info-ref 'compile-omit-paths)])
                             (or (equal? maybe-omits 'all) (member omit maybe-omits)))
                           (format "'compile-omit-paths should contain ~a!" omit)))]
 
-@handbook-rule[4]{@exec{raco test} should do nothing since we would do testing in a more controllable way.}
-@chunk[|<facts: rule 4>|
-       "Rule 4: test-omit-paths"
+@handbook-rule[5]{@exec{raco test} should do nothing since we would do testing in a more controllable way.}
+@chunk[|<facts: rule 5>|
+       "Rule 5: test-omit-paths"
        (check-equal? (info-ref 'test-omit-paths) 'all "'test-omit-paths should be 'all!")]
 
 @subsubsection{Rules on project documentation}
@@ -156,19 +163,19 @@ we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) sh
        (let* ([~scrbl (compose1 (curry find-relative-path (digimon-zone)) build-path)]
               [top.scrbl (~scrbl (digimon-stone) "readme.scrbl")]
               [sub.scrbl (~scrbl (digimon-tamer) "handbook.scrbl")])
-         (cons (test-suite "/README.md" (test-case |<facts: rule 5>|))
+         (cons (test-suite "/README.md" (test-case |<facts: rule 6>|))
                (for/list ([digimon (in-list digimons)])
                  (test-suite (format "/~a/readme.md" digimon)
-                             (test-case |<facts: rule 6>|)))))]
+                             (test-case |<facts: rule 7>|)))))]
 
-@handbook-rule[5]{The project@literal{'}s toplevel @italic{README.md} is designated as the @italic{main-toc} of @bold{Scribble}.}
-@chunk[|<facts: rule 5>|
-       (format "Rule 5: ~a/~a" (digimon-gnome) top.scrbl)
+@handbook-rule[6]{The project@literal{'}s toplevel @italic{README.md} is designated as the @italic{main-toc} of @bold{Scribble}.}
+@chunk[|<facts: rule 6>|
+       (format "Rule 6: ~a/~a" (digimon-gnome) top.scrbl)
        (check-pred file-exists? (build-path (digimon-zone) top.scrbl))]
 
-@handbook-rule[6]{Each subproject@literal{'}s @italic{README.md} follows its @itech{handbook}@literal{'}s index page.}
-@chunk[|<facts: rule 6>|
-       (format "Rule 6: ~a/~a" digimon sub.scrbl)
+@handbook-rule[7]{Each subproject@literal{'}s @italic{README.md} follows its @itech{handbook}@literal{'}s index page.}
+@chunk[|<facts: rule 7>|
+       (format "Rule 7: ~a/~a" digimon sub.scrbl)
        (check-pred file-exists? (build-path (digimon-world) digimon sub.scrbl))]
 
 @handbook-scenario{What if the @itech{handbook} is unavaliable?}

@@ -31,26 +31,29 @@ README.md
 >           + 📑/info.rkt
 >             - 💚 1 - Rule 1: multi
 >           + 📑/DigiGnome/info.rkt
->             - 💚 1 - Rule 2: collection
->             - 💚 2 - Rule 3: compile-omit-paths
->             - 💚 3 - Rule 4: test-omit-paths
+>             - 💚 1 - Rule 2: version
+>             - 💚 2 - Rule 3: collection
+>             - 💚 3 - Rule 4: compile-omit-paths
+>             - 💚 4 - Rule 5: test-omit-paths
 >           + 📑/nanomon/info.rkt
->             - 💚 1 - Rule 2: collection
->             - 💚 2 - Rule 3: compile-omit-paths
->             - 💚 3 - Rule 4: test-omit-paths
+>             - 💚 1 - Rule 2: version
+>             - 💚 2 - Rule 3: collection
+>             - 💚 3 - Rule 4: compile-omit-paths
+>             - 💚 4 - Rule 5: test-omit-paths
 >           + 📑/sakuyamon/info.rkt
->             - 💚 1 - Rule 2: collection
->             - 💚 2 - Rule 3: compile-omit-paths
->             - 💚 3 - Rule 4: test-omit-paths
+>             - 💚 1 - Rule 2: version
+>             - 💚 2 - Rule 3: collection
+>             - 💚 3 - Rule 4: compile-omit-paths
+>             - 💚 4 - Rule 5: test-omit-paths
 >         + 📑README.md dependencies
 >           + 📑/README.md
->             - 💚 1 - Rule 5: DigiGnome/stone/readme.scrbl
+>             - 💚 1 - Rule 6: DigiGnome/stone/readme.scrbl
 >           + 📑/DigiGnome/readme.md
->             - 💚 1 - Rule 6: DigiGnome/tamer/handbook.scrbl
+>             - 💚 1 - Rule 7: DigiGnome/tamer/handbook.scrbl
 >           + 📑/nanomon/readme.md
->             - 💚 1 - Rule 6: nanomon/tamer/handbook.scrbl
+>             - 💚 1 - Rule 7: nanomon/tamer/handbook.scrbl
 >           + 📑/sakuyamon/readme.md
->             - 💚 1 - Rule 6: sakuyamon/tamer/handbook.scrbl
+>             - 💚 1 - Rule 7: sakuyamon/tamer/handbook.scrbl
 >     + 📖
 [digivice.rkt](http://digignome.gyoudmon.org/digivice.rkt)
 >       + 📑Instantiate Demo Sources
@@ -74,6 +77,6 @@ option]
 >         - 💚 2 - actions directory should be deleted recursively!
 >         - 💚 3 - /DigiGnome/digivice should be deleted if empty!
 >
-> 📌32 examples, 0 failures, 0 errors, 100.00% Okay.
+> 📌35 examples, 0 failures, 0 errors, 100.00% Okay.
 >
 > [🐈<sub>🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾</sub>](http://digignome.gyoudmon.org)
