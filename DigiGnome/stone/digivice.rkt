@@ -1,12 +1,12 @@
 #lang scribble/text
 
-@(require "../digitama/runtime.rkt")
+@(require "../digitama/digicore.rkt")
 
 @(define digivice (getenv "current-digivice"))
 
 #lang typed/racket
 
-(require "@(path->string (path-replace-suffix (getenv "runtime-path") ".typed.rkt"))")
+(require "@(path->string (path-replace-suffix (getenv "digicore.rkt") ".typed.rkt"))")
 
 (define show-help-and-exit : {[#:erract (Option String)] -> Void}
   {lambda [#:erract [error-action #false]]

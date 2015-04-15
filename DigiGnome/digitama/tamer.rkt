@@ -10,12 +10,12 @@
 (require scribble/eval)
 (require scribble/manual)
 
-(require "runtime.rkt")
+(require "digicore.rkt")
 
 (provide tamer-story)
 (provide (all-defined-out))
 
-(provide (all-from-out racket "runtime.rkt" rackunit setup/getinfo))
+(provide (all-from-out racket "digicore.rkt" rackunit setup/getinfo))
 (provide (all-from-out scribble/manual scribble/eval))
 
 (define tamer-zone (make-parameter #false))
@@ -324,7 +324,7 @@
   (require rackunit)
   (require racket/undefined)
 
-  (require "runtime.rkt")
+  (require "digicore.rkt")
   
   (provide (all-defined-out))
   

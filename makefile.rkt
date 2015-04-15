@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #|
-test "$1" = "clean" && find . -name "runtime_rkt.zo" -exec rm -fr {} ';';
+test "$1" = "clean" && find . -name "digicore_rkt.zo" -exec rm -fr {} ';';
 exec racket --require "$0" --main -- ${1+"$@"} 
 |#
 
@@ -12,7 +12,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
 (require compiler/compiler)
 (require launcher/launcher)
 
-(require "DigiGnome/digitama/runtime.rkt")
+(require "DigiGnome/digitama/digicore.rkt")
 
 (provide main)
 
@@ -66,7 +66,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
   {lambda [template.rkt dgvc-name dgvc.rkt]
     (with-output-to-file dgvc.rkt #:exists 'replace
       {λ _ (void (putenv "current-digivice" dgvc-name)
-                 (putenv "runtime-path" (path->string (find-relative-path (path-only dgvc.rkt) digimon-runtime-source)))
+                 (putenv "digicore.rkt" (path->string (find-relative-path (path-only dgvc.rkt) digicore.rkt)))
                  (dynamic-require template.rkt #false))})
     (let ([chmod (file-or-directory-permissions dgvc.rkt 'bits)])
       (file-or-directory-permissions dgvc.rkt (bitwise-ior chmod #o111)))})

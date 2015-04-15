@@ -6,7 +6,7 @@
 
 (provide (all-defined-out))
 
-(define-runtime-path digimon-runtime-source (simplify-path "runtime.rkt"))
+(define-runtime-path digicore.rkt (simplify-path "digicore.rkt"))
 
 (define-values {:house-garden: :cat: :paw: :macroscope: :telescope:} (values #\U1F3E1 #\U1F408 #\U1F43E #\U1F52C #\U1F52D))
 (define-values {:book: :books: :open-book: :memo: :page: :bookmark:} (values #\U1F4D4 #\U1F4DA #\U1F4D6 #\U1F4DD #\U1F4C4 #\U1F4D1))
@@ -17,8 +17,12 @@
 (define /dev/stderr (current-error-port))
 (define /dev/null (open-output-nowhere '/dev/null #true))
 
+(define immutable-guard
+  {lambda [pname]
+    (curry error pname "Immutable Parameter: ~a")})
+
 (define-values {digimon-world digimon-gnome}
-  (let* ([dir (path->string digimon-runtime-source)]
+  (let* ([dir (path->string digicore.rkt)]
          [px.split (regexp-match #px"(.+)/([^/]+?)/[^/]+?/[^/]+?$" dir)])
     (values (make-parameter (cadr px.split) (immutable-guard 'digimon-world))
             (make-parameter (caddr px.split) (immutable-guard 'digimon-gnome)))))
@@ -87,10 +91,6 @@
   
   (define digimon-pathname/c (parameter/c path-string?))
   (define digimon-path/c (parameter/c (or/c path? path-string?)))
-  
-  (define immutable-guard
-    {lambda [pname]
-      (curry error pname "Immutable Parameter: ~a")})
   
   (define term-colorize
     {lambda [fg bg attrs content]

@@ -1,6 +1,6 @@
 #lang scribble/base
 
-@(require "../digitama/runtime.rkt")
+@(require "../digitama/digicore.rkt")
 @(require racket/list)
 @(require racket/path)
 @(require setup/getinfo)

@@ -5,7 +5,7 @@
 (define-type Term-Color-Exp (Option (U String Byte)))
 (define-type Racket-Main {String * -> Void})
 
-(require/typed/provide "runtime.rkt"
+(require/typed/provide "digicore.rkt"
                        [:house-garden: Char]
                        [:cat: Char]
                        [:paw: Char]
