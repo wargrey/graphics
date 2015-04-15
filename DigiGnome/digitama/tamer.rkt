@@ -435,8 +435,7 @@
   
   (define fold-test-suite
     {lambda [seed:datum testsuite #:fdown [fdown default-fseed] #:fup [fup default-fseed] #:fhere [fhere default-fseed]]
-      (define seed (parameterize ([current-custodian (make-custodian)])
-                     (define $exn (make-parameter undefined))
+      (define seed (let ([$exn (make-parameter undefined)])
                      (foldts-test-suite {λ [testsuite name pre-action post-action seed]
                                           (with-handlers ([exn? $exn])
                                             (pre-action))
