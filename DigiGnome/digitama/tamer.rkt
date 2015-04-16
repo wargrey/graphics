@@ -397,7 +397,7 @@
                              (raise e) #| no thunk, make test-error |#))})
 
   (define tr-d (curryr string-replace (digimon-world) ""))
-  (define tr-if-path {λ [p] (if (path-string? p) (build-path (tr-d (format "~a" p))) p)})
+  (define tr-if-path {λ [p] (if (path? p) (build-path (tr-d (format "~a" p))) p)})
   
   (define display-failure
     {lambda [result #:indent [headspace ""]]
