@@ -234,7 +234,7 @@
                                                   [(regexp-match #px"^(\\s+)λ\\d+\\s+(.+?.rkt)\\s*$" line)
                                                    => {λ [pieces] (match-let ([{list _ indt ctxt} pieces]) ; (markdown list needs at least 1 char after "+ "
                                                                     (list (format ">   ~a+ ~a" indt :open-book:)  ; before breaking line if "[~a](~a)" is
-                                                                          (format "[~a](http://~a.gyoudmon.org/~a)" ctxt ; longer then 72 chars.)
+                                                                          (format "[~a](http://gyoudmon.org/:~a/~a)" ctxt ; longer then 72 chars.)
                                                                                   (string-downcase (current-digimon)) ctxt)))}]
                                                   [(regexp-match #px"^(\\s+)λ\\d+(.\\d)*\\s+(.+?)\\s*$" line)
                                                    => {λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) :bookmark: (list-ref pieces 3))}]
@@ -247,7 +247,7 @@
                                                   [(regexp-match #px"^$" line) (summary? #true)]
                                                   [(regexp-match #px"wallclock" line) "> "]
                                                   [(summary?) (list (format "> ~a~a" :pin: line) "> "
-                                                                    (format "> [~a<sub>~a</sub>](http://~a.gyoudmon.org)"
+                                                                    (format "> [~a<sub>~a</sub>](http://gyoudmon.org/:~a)"
                                                                             :cat: (make-string (quotient (string-length line) 2) :paw:)
                                                                             (string-downcase (current-digimon))))])))))})])})})
 

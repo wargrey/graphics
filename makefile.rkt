@@ -98,7 +98,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                         (d-info 'racket-launcher-libraries {λ _ null})))
             (map {λ [dependent.scrbl]
                    (define top? (regexp-match? #px"/readme.scrbl$" dependent.scrbl))
-                   (define homepage (format "http://~a.gyoudmon.org" (string-downcase (current-digimon))))
+                   (define homepage (format "http://gyoudmon.org/:~a" (string-downcase (current-digimon))))
                    (define-values {t ds} (cond [top? (values (build-path (digimon-world) "README.md")
                                                              (list* dependent.scrbl (syntax-source #'makefile)
                                                                     (filter file-exists? (map (curryr build-path "info.rkt")
