@@ -1,4 +1,4 @@
-# [🏡<sub>🐈</sub>](http://digignome.gyoudmon.org)Digital World
+# [🏡<sub>🐈</sub>](http://gyoudmon.org/~wargrey/.digignome)Digital World
 
 How to construct a _Digital World_? Okay, we don't start with the _File
 Island_, but we own some concepts from the [Digital

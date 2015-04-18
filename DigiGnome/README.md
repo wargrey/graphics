@@ -1,4 +1,4 @@
-# [🏡<sub>🐈</sub>](http://gyoudmon.org/:digignome)[🏡<sub>🐈</sub>](http://gyoudmon.org/:digignome) Tamer's Handbook: Digimon-Gnome
+# [🏡<sub>🐈</sub>](http://gyoudmon.org/~wargrey/.digignome)Tamer's Handbook: Digimon-Gnome
 
 > _Translating is the most complex human activity in the Universe._
 
@@ -14,7 +14,7 @@ Good Luck!
 
 > + 📚Behaviors and Features
 >     + 📖
-[infrastructure.rkt](http://gyoudmon.org/:digignome/infrastructure.rkt)
+[infrastructure.rkt](http://gyoudmon.org/~wargrey/.digignome/infrastructure.rkt)
 >       + 📑Ready? It works!
 >         + 📑make: simple options
 >           + 📑make --silent --help
@@ -55,7 +55,7 @@ README.md
 >           + 📑/sakuyamon/readme.md
 >             - 💚 1 - Rule 7: sakuyamon/tamer/handbook.scrbl
 >     + 📖
-[digivice.rkt](http://gyoudmon.org/:digignome/digivice.rkt)
+[digivice.rkt](http://gyoudmon.org/~wargrey/.digignome/digivice.rkt)
 >       + 📑Instantiate Demo Sources
 >         - 💚 1 - digivice should be updated!
 >         - 💚 2 - action should be updated!
@@ -79,4 +79,5 @@ option]
 >
 > 📌35 examples, 0 failures, 0 errors, 100.00% Okay.
 >
-> [🐈<sub>🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾</sub>](http://gyoudmon.org/:digignome)
+>
+[🐈<sub>🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾</sub>](http://gyoudmon.org/~wargrey/.digignome)

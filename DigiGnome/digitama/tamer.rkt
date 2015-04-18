@@ -234,8 +234,8 @@
                                                   [(regexp-match #px"^(\\s+)λ\\d+\\s+(.+?.rkt)\\s*$" line)
                                                    => {λ [pieces] (match-let ([{list _ indt ctxt} pieces]) ; (markdown list needs at least 1 char after "+ "
                                                                     (list (format ">   ~a+ ~a" indt :open-book:)  ; before breaking line if "[~a](~a)" is
-                                                                          (format "[~a](http://gyoudmon.org/:~a/~a)" ctxt ; longer then 72 chars.)
-                                                                                  (string-downcase (current-digimon)) ctxt)))}]
+                                                                          (format "[~a](http://gyoudmon.org/~~~a/.~a/~a)" ctxt ; longer then 72 chars.)
+                                                                                  (getenv "USER") (string-downcase (current-digimon)) ctxt)))}]
                                                   [(regexp-match #px"^(\\s+)λ\\d+(.\\d)*\\s+(.+?)\\s*$" line)
                                                    => {λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) :bookmark: (list-ref pieces 3))}]
                                                   [(regexp-match #px"^(\\s*)(.+?) (\\d+) - (.+?)\\s*$" line)
@@ -247,9 +247,9 @@
                                                   [(regexp-match #px"^$" line) (summary? #true)]
                                                   [(regexp-match #px"wallclock" line) "> "]
                                                   [(summary?) (list (format "> ~a~a" :pin: line) "> "
-                                                                    (format "> [~a<sub>~a</sub>](http://gyoudmon.org/:~a)"
+                                                                    (format "> [~a<sub>~a</sub>](http://gyoudmon.org/~~~a/.~a)"
                                                                             :cat: (make-string (quotient (string-length line) 2) :paw:)
-                                                                            (string-downcase (current-digimon))))])))))})])})})
+                                                                            (getenv "USER") (string-downcase (current-digimon))))])))))})])})})
 
 (define tamer-note
   {lambda unit-vars
