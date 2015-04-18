@@ -19,7 +19,7 @@ How to construct a @italic{Digital World}? Okay, we don@literal{'}t start with t
                                (define homepage (if (string=? (path->string digimon) (digimon-gnome)) (compose1 bold hyperlink) hyperlink))
                                (define info-ref (get-info/full (build-path (digimon-world) digimon))) 
                                (when (procedure? info-ref)
-                                 (item (homepage (format "http://~a.gyoudmon.org" (string-downcase (path->string digimon)))
+                                 (item (homepage (format "http://gyoudmon.org/~~~a/.~a" (getenv "USER") (string-downcase (path->string digimon)))
                                                  (format "~a: ~a" (info-ref 'collection) (info-ref 'pkg-desc))))))))
 
 @section{Project Conventions}
