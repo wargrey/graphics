@@ -98,7 +98,6 @@ exec racket --require "$0" --main -- ${1+"$@"}
                         (d-info 'racket-launcher-libraries {λ _ null})))
             (map {λ [dependent.scrbl]
                    (define top? (regexp-match? #px"/readme.scrbl$" dependent.scrbl))
-                   (define homepage (format "http://gyoudmon.org/~~~a/.~a" (getenv "USER") (string-downcase (current-digimon))))
                    (define-values {t ds} (cond [top? (values (build-path (digimon-world) "README.md")
                                                              (list* dependent.scrbl (syntax-source #'makefile)
                                                                     (filter file-exists? (map (curryr build-path "info.rkt")
@@ -109,17 +108,14 @@ exec racket --require "$0" --main -- ${1+"$@"}
                    (list t ds {λ [target]
                                 (parameterize ([current-directory (digimon-zone)]
                                                [current-namespace (make-base-namespace)]
+                                               [current-input-port (open-input-bytes #"WORKAROUND" 'stupid-markdown)]
                                                [exit-handler {λ _ (error 'make "[fatal] /~a needs a proper `exit-handler`!"
                                                                          (find-relative-path (digimon-world) dependent.scrbl))}])
                                   (namespace-require 'scribble/core)
-                                  (namespace-require 'scribble/base)
                                   (namespace-require 'scribble/render)
                                   (eval '(require (prefix-in markdown: scribble/markdown-render)))
                                   (eval `(define markdown:doc (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
-                                                                (struct-copy part scribble:doc
-                                                                             [title-content (cons (hyperlink ,homepage ,(format "~a<sub>~a</sub>" :house-garden: :cat:))
-                                                                                                  (part-title-content scribble:doc))]
-                                                                             [parts (if ,top? (part-parts scribble:doc) null)]))))
+                                                                (struct-copy part scribble:doc [parts (if ,top? (part-parts scribble:doc) null)]))))
                                   (eval `(render (list markdown:doc) (list ,(file-name-from-path target))
                                                  #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #true))
                                   (rename-file-or-directory (path-add-suffix target #".md") target #true)

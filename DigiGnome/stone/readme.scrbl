@@ -1,6 +1,8 @@
 #lang scribble/base
 
 @(require "../digitama/digicore.rkt")
+@(require (submod "../digitama/tamer.rkt" digitama))
+
 @(require racket/list)
 @(require racket/path)
 @(require setup/getinfo)
@@ -9,7 +11,7 @@
    {lambda [target]
      (hyperlink target (path->string (file-name-from-path target)))})
 
-@title{Digital World}
+@title{@(hyperlink (~url (current-digimon)) (format "~a<sub>~a</sub>" :house-garden: :cat:))Digital World}
 How to construct a @italic{Digital World}? Okay, we don@literal{'}t start with the @italic{File Island}, but we own some concepts from the
 @hyperlink["http://en.wikipedia.org/wiki/Digimon"]{Digital Monsters}.
 
@@ -19,8 +21,7 @@ How to construct a @italic{Digital World}? Okay, we don@literal{'}t start with t
                                (define homepage (if (string=? (path->string digimon) (digimon-gnome)) (compose1 bold hyperlink) hyperlink))
                                (define info-ref (get-info/full (build-path (digimon-world) digimon))) 
                                (when (procedure? info-ref)
-                                 (item (homepage (format "http://gyoudmon.org/~~~a/.~a" (getenv "USER") (string-downcase (path->string digimon)))
-                                                 (format "~a: ~a" (info-ref 'collection) (info-ref 'pkg-desc))))))))
+                                 (item (homepage (~url (path->string digimon)) (format "~a: ~a" (info-ref 'collection) (info-ref 'pkg-desc))))))))
 
 @section{Project Conventions}
 

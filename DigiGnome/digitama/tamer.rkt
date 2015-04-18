@@ -101,7 +101,9 @@
 (define handbook-title
   {lambda pre-contents
     (define info-ref (get-info/full (digimon-zone)))
-    (title (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection {λ _ (current-digimon)})) pre-contents)
+    (title (append (cond [(false? (symbol=? (object-name (current-input-port)) 'stupid-markdown)) null]
+                         [else (list (hyperlink (~url (current-digimon)) (format "~a<sub>~a</sub>" :house-garden: :cat:)))])
+                   (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection {λ _ (current-digimon)})) pre-contents))
            #:version (format "~a[~a]" (version) (info-ref 'version {λ _ "Baby"}))
            #:tag "tamerbook")})
 
@@ -390,6 +392,10 @@
   (define ~line
     {lambda [line]
       (format "~a~a" line (make-string (- 72 (remainder (string-length line) 72)) #\space))})
+
+  (define ~url
+    {lambda [projname]
+      (format "http://gyoudmon.org/~~~a/.~a" (getenv "USER") (string-downcase projname))})
   
   (define exn->test-case
     {lambda [name e]
