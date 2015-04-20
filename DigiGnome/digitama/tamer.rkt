@@ -368,7 +368,8 @@
   (define tamer-record-handbook
     {lambda [name:case«suites action]
       (define case-name (car name:case«suites))
-      (hash-ref! handbook-records (string-join name:case«suites " « ")
+      (hash-ref! (hash-ref! handbook-records (tamer-story) (make-hash))
+                 (string-join name:case«suites " « ")
                  {λ _ (call-with-escape-continuation
                        {λ [return] (parameterize ([current-error-port (open-output-string '/dev/case/stderr)]
                                                   [exit-handler {λ [v] (let* ([errmsg (string-trim (get-output-string (current-error-port)))]
