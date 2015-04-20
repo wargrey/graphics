@@ -119,9 +119,13 @@
 
 (define handbook-appendix
   {lambda [#:style [style #false] . pre-contents]
-    (subsection #:style style
-                (string-titlecase (format "~a Auxiliaries" (path-replace-suffix (tamer-story->tag (tamer-story)) "")))
-                pre-contents)})
+    (list (subsection #:style style
+                      (string-titlecase (format "Appendix: ~a Auxiliaries" (path-replace-suffix (tamer-story->tag (tamer-story)) "")))
+                      pre-contents)
+          (para (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
+                      @italic{In order to avoid polluting your eyes,
+                              any less important things are moved here.
+                              You can simply ignore them as you wish.})))})
 
 (define handbook-rule
   {lambda [id . pre-flow]

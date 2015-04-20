@@ -21,19 +21,11 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
              
        (tamer-story (tamer-story->libpath "infrastructure.rkt"))
        (define partner `(file ,(format "~a/makefile.rkt" (digimon-world))))
+       (define make (dynamic-require partner 'main {λ _ #false}))
 
        |<infrastructure:*>|]
 
 @handbook-scenario[#:tag @(digimon-gnome)]{Ready? Let@literal{'}s have a try!}
-
-@chunk[|<ready? help!>|
-       (define make (dynamic-require partner 'main {λ _ #false}))
-
-       |<setup and teardown timidly>|
-
-       (define-tamer-suite make-option "Ready? It works!"
-         (test-suite "make: simple options" |<testsuite: simple options>|)
-         (test-suite "make: complex options" |<testcase: complex options>|))]
 
 You may have already familiar with the @hyperlink["http://en.wikipedia.org/wiki/Make_(software)"]{GNU Make},
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
@@ -42,9 +34,9 @@ nonetheless you are still free to check the options first. Normal @bold{Racket} 
 @tamer-action[(parameterize ([exit-handler void])
                 ((dynamic-require/expose (tamer-story) 'make) "--help"))]
 
-Be careful here, the buggy implementation may keep invoking another test routine endlessly in which case
+Watch out! The buggy implementation may keep invoking another test routine endlessly in which case
 this @itech{handbook} itself may be depended by some other files.
-Kill those unexpected routines crudely is unreasonable since there maight be side effects.
+Kill those unexpected routines crudely is unreasonable since there might be side effects.
 
 @chunk[|<setup and teardown timidly>|
        (define ENV (current-environment-variables))
@@ -96,42 +88,20 @@ since we can cache the result by nature.
                       (check-pred zero? (times #px"Output to")
                                   "touching is okay, not remaking!"))))]
 
-@subsection[#:tag "rules"]{Scenario: The rules serve you!}
+@handbook-scenario[#:tag "rules"]{The rules serve you!}
 
 Since the term @deftech{Architecture} is all about designing rules, and this story is all about building system.
 So apart from @italic{@hyperlink["https://github.com/digital-world/DigiGnome"]{conventions}},
 we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) should satisfy.
 
-@chunk[|<hello rules!>|
-       (define digimons (parameterize ([current-directory (digimon-world)])
-                          (for/list ([dirname (in-list (directory-list))]
-                                     #:when (directory-exists? dirname)
-                                     #:when (regexp-match? #px"^[^.]" dirname))
-                            dirname)))
-
-       (define-tamer-suite rules "Rules serve you!"
-         (test-suite "info.rkt settings" |<rules: info.rkt>|)
-         (test-suite "README.md dependencies" |<rules: readme.md>|))]
-
 @subsubsection{Rules on project organization}
-
-@chunk[|<rules: info.rkt>|
-       (let ([info-ref (get-info/full (digimon-world))])
-         (test-suite "/info.rkt" (test-case |<facts: rule 1>|)))
-       (for/list ([digimon (in-list digimons)])
-         (define info-ref (get-info/full (build-path (digimon-world) digimon)))
-         (test-suite (format "/~a/info.rkt" digimon)
-                     (test-case |<facts: rule 2>|)
-                     (test-case |<facts: rule 3>|)
-                     (test-case |<facts: rule 4>|)
-                     (test-case |<facts: rule 5>|)))]
 
 @tamer-note['rules]
 @handbook-rule[1]{The entire project is a multi-collection package, non-hidden directories within it are considered as the subprojects.}
 @chunk[|<facts: rule 1>|
        "Rule 1: multi"
        (check-equal? (info-ref 'collection) 'multi "'collection should be 'multi!")
-       (check-pred positive? (length digimons) "No real project found!")]
+       (check-pred positive? (length (force digimons)) "No real project found!")]
 
 @handbook-rule[2]{Each subproject has a @italic{stage}-like version name rather than the numeric one.}
 @chunk[|<facts: rule 2>|
@@ -158,15 +128,6 @@ we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) sh
        (check-equal? (info-ref 'test-omit-paths) 'all "'test-omit-paths should be 'all!")]
 
 @subsubsection{Rules on project documentation}
-
-@chunk[|<rules: readme.md>|
-       (let* ([~scrbl (compose1 (curry find-relative-path (digimon-zone)) build-path)]
-              [top.scrbl (~scrbl (digimon-stone) "readme.scrbl")]
-              [sub.scrbl (~scrbl (digimon-tamer) "handbook.scrbl")])
-         (cons (test-suite "/README.md" (test-case |<facts: rule 6>|))
-               (for/list ([digimon (in-list digimons)])
-                 (test-suite (format "/~a/readme.md" digimon)
-                             (test-case |<facts: rule 7>|)))))]
 
 @handbook-rule[6]{The project@literal{'}s toplevel @italic{README.md} is designated as the @italic{main-toc} of @bold{Scribble}.}
 @chunk[|<facts: rule 6>|
@@ -197,11 +158,43 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
 
 @handbook-appendix[]
 
-In order to avoid polluting your eyes, any less important things are moved here.
-
 @chunk[|<infrastructure:*>|
+       |<tamer battle>|
        {module+ story
-         |<ready? help!>|
-         |<hello rules!>|}
+         |<setup and teardown timidly>|
+         (define-tamer-suite make-option "Ready? It works!"
+           (test-suite "make: simple options" |<testsuite: simple options>|)
+           (test-suite "make: complex options" |<testcase: complex options>|))
 
-       |<tamer battle>|]
+         (define digimons (lazy (parameterize ([current-directory (digimon-world)])
+                                  (for/list ([dirname (in-list (directory-list))]
+                                             #:when (directory-exists? dirname)
+                                             #:when (regexp-match? #px"^[^.]" dirname))
+                                    dirname))))
+
+         (define-tamer-suite rules "Rules serve you!"
+           (test-suite "info.rkt settings" |<rules: info.rkt>|)
+           (test-suite "README.md dependencies" |<rules: readme.md>|))}]
+
+@chunk[|<rules: info.rkt>|
+       (let ([info-ref (get-info/full (digimon-world))])
+         (test-suite "/info.rkt" (test-case |<facts: rule 1>|)))
+       (for/list ([digimon (in-list (force digimons))])
+         (define info-ref (get-info/full (build-path (digimon-world) digimon)))
+         (test-suite (format "/~a/info.rkt" digimon)
+                     (test-case |<facts: rule 2>|)
+                     (test-case |<facts: rule 3>|)
+                     (test-case |<facts: rule 4>|)
+                     (test-case |<facts: rule 5>|)))]
+
+@chunk[|<rules: readme.md>|
+       (let* ([~scrbl (compose1 (curry find-relative-path (digimon-zone)) build-path)]
+              [top.scrbl (~scrbl (digimon-stone) "readme.scrbl")]
+              [sub.scrbl (~scrbl (digimon-tamer) "handbook.scrbl")])
+         (cons (test-suite "/README.md" (test-case |<facts: rule 6>|))
+               (for/list ([digimon (in-list (force digimons))])
+                 (test-suite (format "/~a/readme.md" digimon)
+                             (test-case |<facts: rule 7>|)))))]
+
+
+
