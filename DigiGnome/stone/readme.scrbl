@@ -32,7 +32,7 @@ document it with the @italic{@hyperlink["http://en.wikipedia.org/wiki/Literate_p
 @subsection{Building Scripts}
 @(itemlist #:style 'compact
            @item{@bold{@githublink[@(format "/~a/prerequisites.sh" (digimon-gnome))]}: Build the latest Racket and Swi-Prolog from offical source.}
-           @item{@bold{@githublink{/makefile.rkt}}: As its name shows, it is the replacement of Makefile, and it@literal{'}s the toplevel one.}
+           @item{@bold{@githublink[@(format "/~a/makefile.rkt" (digimon-gnome))]}: As its name shows, it is the replacement of Makefile, and it@literal{'}s the toplevel one.}
            @item{@bold{submake.rkt}: As its name shows, it is the sub makefile that may exist in every @italic{digimon} directory.})
 
 @subsection{Hierarchy}

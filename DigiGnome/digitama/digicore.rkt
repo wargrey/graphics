@@ -2,11 +2,12 @@
 
 (require (for-syntax racket/syntax))
 
-(require racket/runtime-path)
+(require syntax/location)
 
 (provide (all-defined-out))
+(provide (all-from-out syntax/location))
 
-(define-runtime-path digicore.rkt (simplify-path "digicore.rkt"))
+(define digicore.rkt (quote-module-path))
 
 (define-values {:house-garden: :cat: :paw: :macroscope: :telescope:} (values #\U1F3E1 #\U1F408 #\U1F43E #\U1F52C #\U1F52D))
 (define-values {:book: :books: :open-book: :memo: :page: :bookmark:} (values #\U1F4D4 #\U1F4DA #\U1F4D6 #\U1F4DD #\U1F4C4 #\U1F4D1))

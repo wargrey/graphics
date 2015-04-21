@@ -1,6 +1,9 @@
 #lang typed/racket
 
+(require syntax/location)
+
 (provide (all-defined-out))
+(provide (all-from-out syntax/location))
 
 (define-type Term-Color-Exp (Option (U String Byte)))
 (define-type Racket-Main {String * -> Void})

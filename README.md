@@ -29,8 +29,8 @@ approach.
 * **[prerequisites.sh](/DigiGnome/prerequisites.sh)**: Build the latest
   Racket and Swi-Prolog from offical source.
 
-* **[makefile.rkt](/makefile.rkt)**: As its name shows, it is the
-  replacement of Makefile, and it's the toplevel one.
+* **[makefile.rkt](/DigiGnome/makefile.rkt)**: As its name shows, it is
+  the replacement of Makefile, and it's the toplevel one.
 
 * **submake.rkt**: As its name shows, it is the sub makefile that may
   exist in every _digimon_ directory.

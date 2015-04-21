@@ -11,7 +11,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 (require compiler/compiler)
 (require launcher/launcher)
 
-(require "DigiGnome/digitama/digicore.typed.rkt")
+(require "digitama/digicore.typed.rkt")
 
 (provide main)
 
@@ -85,22 +85,22 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                    (map {λ [dgvc-name dgvc-lib]
                           (define dgvc.rkt (path->string (build-path (digimon-zone) dgvc-lib)))
                           (list (let ([t.dir (path-replace-suffix dgvc.rkt #"")]
-                                      [ds (list stone/digivice.rkt (syntax-source #'makefile))])
+                                      [ds (list stone/digivice.rkt (quote-module-path))])
                                   (when (directory-exists? t.dir)
                                     (list dgvc.rkt ds (curry make-digivice (car ds) dgvc-name))))
                                 (let ([t (simplify-path (build-path (digimon-world) (digimon-gnome) (car (use-compiled-file-paths)) dgvc-name))]
-                                      [ds (list (syntax-source #'makefile))])
+                                      [ds (list (quote-module-path))])
                                   (list t ds (curry make-racket-launcher (list "-t-" dgvc.rkt)))))}
                         (d-info 'racket-launcher-names {λ _ null})
                         (d-info 'racket-launcher-libraries {λ _ null})))
             (map {λ [dependent.scrbl]
                    (define top? (regexp-match? #px"/readme.scrbl$" dependent.scrbl))
                    (define-values {t ds} (cond [top? (values (build-path (digimon-world) "README.md")
-                                                             (list* dependent.scrbl (syntax-source #'makefile)
+                                                             (list* dependent.scrbl (quote-module-path)
                                                                     (filter file-exists? (map (curryr build-path "info.rkt")
                                                                                               (directory-list (digimon-world) #:build? #true)))))]
                                                [else (values (build-path (digimon-zone) "README.md")
-                                                             (filter file-exists? (list* (syntax-source #'makefile) (build-path (digimon-zone) "info.rkt")
+                                                             (filter file-exists? (list* (quote-module-path) (build-path (digimon-zone) "info.rkt")
                                                                                          (smart-dependencies dependent.scrbl))))]))
                    (list t ds {λ [target]
                                 (parameterize ([current-directory (digimon-zone)]
@@ -128,11 +128,10 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
     (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
     (let ([implicit-rules (map hack-rule (make-implicit-rules))])
-      (make/proc (cons (list (syntax-source #'I-am-here-just-for-fun) null void) implicit-rules)
-                 (if (null? (current-make-real-targets)) (map car implicit-rules) (current-make-real-targets)))
+      (unless (null? implicit-rules)
+        (make/proc implicit-rules (if (null? (current-make-real-targets)) (map car implicit-rules) (current-make-real-targets))))
       (when (directory-exists? (digimon-digivice))
         (compile-directory (digimon-digivice) (get-info/full (digimon-zone)))))
-    
     
     (let ([modpath `(submod ,submake make:files)])
       (when (module-declared? modpath #true)
@@ -144,8 +143,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                                                      (procedure-arity-includes? (third ?) 1))} val))}
                                                       (filter-map {λ [var] (namespace-variable-value var #false {λ _ #false})}
                                                                   (namespace-mapped-symbols))))))
-          (make/proc (cons (list (syntax-source #'I-am-here-just-for-fun) null void) rules)
-                     (if (null? (current-make-real-targets)) (map car rules) (current-make-real-targets))))))
+          (unless (null? rules) (make/proc rules (if (null? (current-make-real-targets)) (map car rules) (current-make-real-targets)))))))
     
     (let ([modpath `(submod ,submake make:files make)])
       (when (module-declared? modpath #true)
@@ -278,7 +276,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                            [else (error 'make "I don't know how to make `~a`!" phony)]))))}
                           {λ _ (printf "Leave Digimon Zone: ~a.~n" digimon)})))))
     (call-as-normal-termination
-     {λ _ (parse-command-line (file-name-from-path (syntax-source #'program))
+     {λ _ (parse-command-line (file-name-from-path (quote-module-path))
                               argument-list
                               flag-table
                               {λ [!voids . targets] (exit (main0 targets))}

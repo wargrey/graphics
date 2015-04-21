@@ -5,7 +5,7 @@
 @(require (for-syntax "tamer.rkt"))
 
 @(tamer-story (tamer-story->libpath "infrastructure.rkt"))
-@(define partner `(file ,(format "~a/makefile.rkt" (digimon-world))))
+@(define partner (tamer-partner->libpath "makefile.rkt"))
 @(tamer-zone (make-tamer-zone))
 
 @handbook-story{Hello, Hacker Hero!}
@@ -20,7 +20,7 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
        (require "tamer.rkt")
              
        (tamer-story (tamer-story->libpath "infrastructure.rkt"))
-       (define partner `(file ,(format "~a/makefile.rkt" (digimon-world))))
+       (define partner (tamer-partner->libpath "makefile.rkt"))
        (define make (dynamic-require partner 'main {λ _ #false}))
 
        |<infrastructure:*>|]
