@@ -4,6 +4,10 @@
 
 (define-type Term-Color-Exp (Option (U String Byte)))
 (define-type Racket-Main {String * -> Void})
+(define-type Info-Ref (->* {Symbol} {{-> Any}} Any))
+
+(require/typed/provide setup/getinfo
+                       [get-info/full {Path-String -> (Option Info-Ref)}])
 
 (require/typed/provide "digicore.rkt"
                        [:house-garden: Char]
@@ -29,6 +33,8 @@
                        [/dev/stdout Output-Port]
                        [/dev/stderr Output-Port]
                        [/dev/null Output-Port]
+
+                       [digicore.rkt Path-String]
                        
                        [current-digimon (Parameterof Path-String)]
                        [digimon-world (Parameterof Path-String)]
@@ -40,7 +46,8 @@
                        [digimon-tamer (Parameterof Path-String)]
                        [digimon-terminus (Parameterof Path-String)]
                        
-                       [find-digimon-files {{Path-String -> Boolean} Path-String -> (Listof Path-String)}]
+                       [find-digimon-files {{Path-String -> Boolean} Path-String [#:search-compiled? Boolean] -> (Listof Path-String)}]
+                       [path->digimon-libpath (->* {Path-String} {Symbol} (U Module-Path (List 'submod Module-Path Symbol)))]
                        [call-as-normal-termination {{-> Any} -> Void}]
                        [~n_w {Nonnegative-Integer String -> String}]
                        [~w=n {Nonnegative-Integer String -> String}]

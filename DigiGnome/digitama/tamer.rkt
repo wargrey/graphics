@@ -4,18 +4,17 @@
 
 (require racket/sandbox)
 (require racket/syntax)
-(require setup/getinfo)
 
 (require scribble/core)
 (require scribble/eval)
 (require scribble/manual)
 
-(require "digicore.rkt")
+(require "digicore.typed.rkt")
 
 (provide tamer-story)
 (provide (all-defined-out))
 
-(provide (all-from-out racket "digicore.rkt" rackunit setup/getinfo))
+(provide (all-from-out racket "digicore.typed.rkt" rackunit))
 (provide (all-from-out scribble/manual scribble/eval))
 
 (define tamer-zone (make-parameter #false))
@@ -24,23 +23,15 @@
 (define $err (open-output-bytes '/dev/tamer/stderr))
 (define $? (make-parameter +NaN.0))
 
-(define call-with-$
+(define call-with-fresh-$
   {lambda [routine . arglist]
+    (get-output-bytes $out #true)
+    (get-output-bytes $err #true)
+    ($? +NaN.0)
     (parameterize ([current-output-port $out]
                    [current-error-port $err]
                    [exit-handler $?])
       (apply routine arglist))})
-
-(define refresh-$
-  {lambda []
-    (get-output-bytes $out #true)
-    (get-output-bytes $err #true)
-    ($? +NaN.0)})
-
-(define call-with-fresh-$
-  {lambda [routine . arglist]
-    (refresh-$)
-    (apply call-with-$ routine arglist)})
 
 (define make-tamer-zone
   {lambda []
@@ -330,7 +321,7 @@
   (require rackunit)
   (require racket/undefined)
 
-  (require "digicore.rkt")
+  (require "digicore.typed.rkt")
   
   (provide (all-defined-out))
   
@@ -421,7 +412,7 @@
                                                    [{location} (tr-d (srcloc->string (apply srcloc (check-info-value info))))]
                                                    [{exception-message} (tr-d (check-info-value info))]
                                                    [{exception} (object-name (check-info-value info))]
-                                                   [else (tr-if-path (check-info-value info))]))]))})
+                                                   [else ((if (string? (check-info-value info)) tr-d tr-if-path) (check-info-value info))]))]))})
   
   (define display-error
     {lambda [result #:indent [headspace0 ""]]

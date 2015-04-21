@@ -43,10 +43,10 @@ Kill those unexpected routines crudely is unreasonable since there might be side
        (when (environment-variables-ref ENV #"taming")
          (error 'make "[fatal] Unexpected subroutine stops here!"))
 
-       (define {{setup . argv}}
+       (define {{setup . arglist}}
          (dynamic-wind {λ _ (environment-variables-set! ENV #"taming" #"true")}
                        {λ _ (parameterize ([current-directory (digimon-world)])
-                              (call-with-$ (curry apply make argv)))}
+                              (call-with-fresh-$ (curry apply make arglist)))}
                        {λ _ (environment-variables-set! ENV #"taming" #false)}))]
 
 Now let@literal{'}s try to make thing done:
@@ -54,11 +54,11 @@ Now let@literal{'}s try to make thing done:
 @tamer-note['make-option]
 @chunk[|<testsuite: simple options>|
        (test-suite "make --silent --help"
-                   #:before (setup "--silent" "--help") #:after refresh-$
+                   #:before (setup "--silent" "--help")
                    (test-pred "should exit normally" zero? ($?))
                    (test-pred "should keep quiet" zero? (file-position $out)))
        (test-suite "make --silent love"
-                   #:before (setup "--silent" "love") #:after refresh-$
+                   #:before (setup "--silent" "love")
                    (test-pred "should exit abnormally" (negate zero?) ($?))
                    (test-check "should report errors" < 0 (file-position $err)))]
 
@@ -70,23 +70,23 @@ since we can cache the result by nature.
 @chunk[|<testcase: complex options>|
        (let* ([goal-md (build-path (digimon-world) "README.md")]
               [make-md (list "--always-make" "--touch" "++only" (digimon-gnome)
-                             (path->string (file-name-from-path "README.md")))])
+                             (path->string (file-name-from-path goal-md)))])
          (test-spec (string-join (cons "make" make-md))
-                    #:before (apply setup make-md) #:after refresh-$
-                    (let* ([strout (get-output-string $out)]
-                           [strerr (get-output-string $err)]
-                           [times (compose1 length (curryr regexp-match* strout))]
-                           [msecs file-or-directory-modify-seconds])
-                      (check-pred zero? ($?) strerr)
-                      (check-pred zero? (file-position $err) $err)
-                      (check-eq? (times #px"Leave Digimon Zone") 1
-                                 "worked in wrong digimon zone!")
-                      (check-eq? (times #px"make: made") 1
-                                 "too many files are made!")
-                      (check <= (msecs (digimon-zone)) (msecs goal-md)
-                             "target file has not updated!")
-                      (check-pred zero? (times #px"Output to")
-                                  "touching is okay, not remaking!"))))]
+                    #:before (apply setup make-md)
+                    |<check status and stderr>|
+                    (check = (times #px"Leave Digimon Zone") 1 "has zone crossed!")
+                    (check = (times #px"make: made") 1 "has too many files made!")
+                    (check <= (msecs (digimon-zone)) (msecs goal-md) "goal not updated!")
+                    (check = (times #px"Output to") 0 "touching is okay!")))
+       (let ([goal-md (build-path (digimon-world) gnome "README.md")]
+             [make-zone (list "--dry-run" "--touch" "++only" gnome)])
+         (test-spec (string-join (cons "make" make-zone))
+                    #:before {λ _ (parameterize ([current-input-port (open-input-string "Gnome")])
+                                    ((apply setup make-zone)))}
+                    |<check status and stderr>|
+                    (check = (times #px"Leave Digimon Zone") 1 "has zone crossed!")
+                    (check = (times #px"Output to") 1 "touching via making when goal not found!")
+                    (check-pred (negate file-exists?) goal-md "goal should not exists!")))]
 
 @handbook-scenario[#:tag "rules"]{The rules serve you!}
 
@@ -101,7 +101,7 @@ we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) sh
 @chunk[|<facts: rule 1>|
        "Rule 1: multi"
        (check-equal? (info-ref 'collection) 'multi "'collection should be 'multi!")
-       (check-pred positive? (length (force digimons)) "No real project found!")]
+       (check < 1 (length (force digimons)) "No real project found!")]
 
 @handbook-rule[2]{Each subproject has a @italic{stage}-like version name rather than the numeric one.}
 @chunk[|<facts: rule 2>|
@@ -161,18 +161,22 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
 @chunk[|<infrastructure:*>|
        |<tamer battle>|
        {module+ story
+         (define msecs file-or-directory-modify-seconds)
+         (define times {λ [px] (length (regexp-match* px (get-output-string $out)))})
+         (define gnome (symbol->string (gensym "gnome")))
+         
          |<setup and teardown timidly>|
          (define-tamer-suite make-option "Ready? It works!"
            (test-suite "make: simple options" |<testsuite: simple options>|)
            (test-suite "make: complex options" |<testcase: complex options>|))
 
          (define digimons (lazy (parameterize ([current-directory (digimon-world)])
-                                  (for/list ([dirname (in-list (directory-list))]
-                                             #:when (directory-exists? dirname)
-                                             #:when (regexp-match? #px"^[^.]" dirname))
-                                    dirname))))
+                                  (filter (curry regexp-match? #px"^[^.]")
+                                          (filter directory-exists?
+                                                  (directory-list))))))
 
          (define-tamer-suite rules "Rules serve you!"
+           #:after {λ _ (delete-directory/files (build-path (digimon-world) gnome))}
            (test-suite "info.rkt settings" |<rules: info.rkt>|)
            (test-suite "README.md dependencies" |<rules: readme.md>|))}]
 
@@ -196,5 +200,8 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
                  (test-suite (format "/~a/readme.md" digimon)
                              (test-case |<facts: rule 7>|)))))]
 
-
+@chunk[|<check status and stderr>|
+       (let ([strerr (get-output-string $err)])
+         (check-pred zero? ($?) strerr)
+         (check-pred zero? (file-position $err) strerr))]
 

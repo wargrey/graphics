@@ -2,30 +2,28 @@
 
 #|
 test "$1" = "clean" && find . -name "digicore_rkt.zo" -exec rm -fr {} ';';
-exec racket --require "$0" --main -- ${1+"$@"} 
+exec racket --name "$0" --require "$0" --main -- ${1+"$@"} 
 |#
 
 #lang racket
 
 (require make)
-(require setup/getinfo)
 (require compiler/compiler)
 (require launcher/launcher)
 
-(require "DigiGnome/digitama/digicore.rkt")
+(require "DigiGnome/digitama/digicore.typed.rkt")
 
 (provide main)
 
 (define-namespace-anchor makefile)
 (define info-ref (get-info/full (digimon-world)))
 
+(define current-make-real-targets (make-parameter null))
+(define current-make-phony-goal (make-parameter #false))
+
 (define make-dry-run (make-parameter #false))
 (define make-always-run (make-parameter #false))
 (define make-just-touch (make-parameter #false))
-
-(define current-make-collects (make-parameter null))
-(define current-make-real-targets (make-parameter null))
-(define current-make-phony-goal (make-parameter #false))
 
 (make-print-dep-no-line #false)
 (make-print-checking #false)
@@ -44,7 +42,6 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                                          (raise 'make-dry-run #true))}))})
     (list (car r) (if (make-always-run) (cons (digimon-zone) ds) ds)
           (cond [(false? (make-just-touch)) f]
-                [(make-dry-run) void]
                 [else {λ _ (file-or-directory-modify-seconds t (current-seconds) f)}]))})
 
 (define compile-directory
@@ -129,10 +126,13 @@ exec racket --require "$0" --main -- ${1+"$@"}
   {lambda []
     (define submake (build-path (digimon-zone) "submake.rkt"))
 
+    (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
     (let ([implicit-rules (map hack-rule (make-implicit-rules))])
       (make/proc (cons (list (syntax-source #'I-am-here-just-for-fun) null void) implicit-rules)
-                 (if (null? (current-make-real-targets)) (map car implicit-rules) (current-make-real-targets))))
-    (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
+                 (if (null? (current-make-real-targets)) (map car implicit-rules) (current-make-real-targets)))
+      (when (directory-exists? (digimon-digivice))
+        (compile-directory (digimon-digivice) (get-info/full (digimon-zone)))))
+    
     
     (let ([modpath `(submod ,submake make:files)])
       (when (module-declared? modpath #true)
@@ -189,29 +189,44 @@ exec racket --require "$0" --main -- ${1+"$@"}
                                              (filter {λ [hb.scrbl] (or (regexp-match? px.tamer.scrbl hb.scrbl)
                                                                        ((negate eprintf) "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl))}
                                                      (current-make-real-targets)))]))])
-        (if (regexp-match? #px"\\.rkt$" handbook)
-            (parameterize ([current-directory (path-only handbook)]
-                           [current-namespace (make-base-namespace)]
-                           [exit-handler {λ [retcode] (when (and (integer? retcode) (<= 1 retcode 255))
-                                                        (error 'make "[error] /~a breaks ~a!"
-                                                               (find-relative-path (digimon-world) handbook) (~n_w retcode "testcase")))}])
-              (dynamic-require `(submod ,handbook main) #false))
-            (parameterize ([current-directory (path-only handbook)]
-                           [current-namespace (make-base-namespace)]
-                           [exit-handler {λ _ (error 'make "[fatal] /~a needs a proper `exit-handler`!"
-                                                     (find-relative-path (digimon-world) handbook))}])
-              (namespace-require 'setup/xref)
-              (namespace-require 'scribble/render)
-              (eval '(require (prefix-in html: scribble/html-render)))
-              (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
-                             #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
-                             #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
-                             ;#:redirect "http://docs.racket-lang.org" #:redirect-main "http://docs.racket-lang.org"
-                             #:xrefs (list (load-collections-xref))
-                             #:quiet? #false #:warn-undefined? #false))))))})
+        (parameterize ([current-directory (path-only handbook)]
+                       [current-namespace (make-base-namespace)])
+          (define ./handbook (find-relative-path (digimon-world) handbook))
+          (if (regexp-match? #px"\\.rkt$" handbook)
+              (parameterize ([exit-handler {λ [retcode] (when (and (integer? retcode) (<= 1 retcode 255))
+                                                          (error 'make "[error] /~a breaks ~a!" ./handbook (~n_w retcode "testcase")))}])
+                (dynamic-require `(submod ,handbook main) #false))
+              (parameterize ([exit-handler {λ _ (error 'make "[fatal] /~a needs a proper `exit-handler`!" ./handbook)}])
+                (namespace-require 'setup/xref)
+                (namespace-require 'scribble/render)
+                (eval '(require (prefix-in html: scribble/html-render)))
+                (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
+                               #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
+                               #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
+                               ;#:redirect "http://docs.racket-lang.org" #:redirect-main "http://docs.racket-lang.org"
+                               #:xrefs (list (load-collections-xref))
+                               #:quiet? #false #:warn-undefined? #false)))))))})
+
+(define create-zone
+  {lambda []
+    (define stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
+    (for ([prompt (in-list (list "collection" "pkg-desc"))]
+          [defval (in-list (list (current-digimon) "[Missing Description]"))])
+      (echof #:fgcolor 'green "info.rkt: Please input the '~a [~a]: " prompt defval)
+      (putenv (format "info.~a" prompt)
+              (let ([line (read-line)])
+                (cond [(or (eof-object? line) (regexp-match? #px"^\\s*$" line)) defval]
+                      [else (string-trim line)]))))
+    (for ([src (in-list (list "info.rkt" "digicore.rkt" "handbook.scrbl" "tamer.rkt"))]
+          [dest (in-list (list (digimon-zone) (digimon-digitama) (digimon-tamer) (digimon-tamer)))])
+      (make-directory* dest)
+      (putenv "digicore.rkt" (path->string (find-relative-path dest digicore.rkt)))
+      (with-output-to-file (build-path dest src) #:exists 'error
+        {λ _ (dynamic-require (build-path stone src) #false)}))})
 
 (define main
   {lambda argument-list
+    (define current-make-collects (make-parameter null))
     (define fphonies (parameterize ([current-namespace (namespace-anchor->namespace makefile)])
                        (let ([px~fmake: #px"^make~(.+?):$"])
                          (for/hash ([var (in-list (namespace-mapped-symbols))]
@@ -228,7 +243,7 @@ exec racket --require "$0" --main -- ${1+"$@"}
                            [{"-v" "--verbose"} ,{λ [flag] (make-print-dep-no-line #true) (make-print-checking #true) (make-print-reasons #true)}
                                                {"Build with verbose messages."}]}
                 {multi [{"+o" "++only"} ,{λ [++only digimon] (current-make-collects (cons digimon (current-make-collects)))}
-                                        {"Only build <digimon>s." "digimon"}]}}
+                                        {{"Only build <digimon>s." "[interactively create <digimon> first if it does not exists.]"} "digimon"}]}}
               {λ [-h] (foldl {λ [phony -h] (if (hash-has-key? fphonies (car phony)) (format "~a  ~a : ~a~n" -h (car phony) (cdr phony)) -h)}
                              (string-replace -h #px"  -- : .+?-h --'."
                                              (string-join #:before-first (format "~n where <phony-target> is one of~n  ") #:after-last (format "~n")
@@ -241,21 +256,23 @@ exec racket --require "$0" --main -- ${1+"$@"}
                              (list (cons "install" "Install this software and documentation.")
                                    (cons "uninstall" "Delete all the installed files and documentation.")
                                    (cons "dist" "Create a distribution file of the source files.")
-                                   (cons "check" "Validate and generate test report along with documentation.")))}
+                                   (cons "check" "Validate and generate test report along with documentation.")
+                                   (cons "new" " a digimon zone that satisfy the rules.")))}
               (curry eprintf "make: I don't know what does `~a` mean!~n")))
     (define {main0 targets}
       (define-values {reals phonies} (partition filename-extension targets))
       (parameterize ([current-make-real-targets (map path->complete-path reals)])
-        (for ([digimon (in-list (let ([fsetup-collects {λ _ (map path->string (directory-list (digimon-world)))}])
+        (for ([digimon (in-list (let ([fsetup-collects {λ _ (map path->string (filter get-info/full (directory-list (digimon-world))))}])
                                   (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
-                                                           [else (cons (digimon-gnome) (info-ref 'setup-collects fsetup-collects))]))))]
-              #:when (get-info/full (build-path (digimon-world) digimon)))
+                                                           [(regexp-match #px"^\\w+" (find-relative-path (digimon-world) (current-directory))) => values]
+                                                           [else (cons (digimon-gnome) (info-ref 'setup-collects fsetup-collects))]))))])
           (parameterize ([current-digimon digimon])
-            (dynamic-wind {λ _ (and (file-or-directory-modify-seconds (digimon-zone) (current-seconds))
-                                    (printf "Enter Digimon Zone: ~a.~n" digimon))}
+            (dynamic-wind {λ _ (printf "Enter Digimon Zone: ~a.~n" digimon)}
                           {λ _ (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
                                  (parameterize ([current-make-phony-goal phony])
                                    (with-handlers ([exn? {λ [e] (exit ({λ _ 1} (eprintf "~a~n" (exn-message e))))}])
+                                     (cond [(false? (directory-exists? (digimon-zone))) (create-zone)]
+                                           [else (file-or-directory-modify-seconds (digimon-zone) (current-seconds))])
                                      (cond [(regexp-match? #px"clean$" phony) ((hash-ref fphonies "clean"))]
                                            [(hash-has-key? fphonies phony) ((hash-ref fphonies phony))]
                                            [else (error 'make "I don't know how to make `~a`!" phony)]))))}
@@ -267,4 +284,4 @@ exec racket --require "$0" --main -- ${1+"$@"}
                               {λ [!voids . targets] (exit (main0 targets))}
                               '{"phony-target|file-path"}
                               (compose1 exit display --help)
-                              (compose1 exit {λ _ 1} --unknown))})})
+                              (compose1 exit {λ _ 1} --unknown (curryr string-trim #px"[()]") (curry format "~a") {λ _ _}))})})
