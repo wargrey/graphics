@@ -26,7 +26,7 @@ Good Luck!
 >         + 📑make: complex options
 >           - 💚 1 - make --always-make --touch ++only DigiGnome
 README.md
->           - 💚 2 - make --dry-run --touch ++only gnome137
+>           - 💚 2 - make --dry-run --touch ++only gnome1228
 >       + 📑Rules serve you!
 >         + 📑info.rkt settings
 >           + 📑/info.rkt
@@ -36,7 +36,7 @@ README.md
 >             - 💚 2 - Rule 3: collection
 >             - 💚 3 - Rule 4: compile-omit-paths
 >             - 💚 4 - Rule 5: test-omit-paths
->           + 📑/gnome137/info.rkt
+>           + 📑/gnome1228/info.rkt
 >             - 💚 1 - Rule 2: version
 >             - 💚 2 - Rule 3: collection
 >             - 💚 3 - Rule 4: compile-omit-paths
@@ -56,8 +56,8 @@ README.md
 >             - 💚 1 - Rule 6: DigiGnome/stone/readme.scrbl
 >           + 📑/DigiGnome/readme.md
 >             - 💚 1 - Rule 7: DigiGnome/tamer/handbook.scrbl
->           + 📑/gnome137/readme.md
->             - 💚 1 - Rule 7: gnome137/tamer/handbook.scrbl
+>           + 📑/gnome1228/readme.md
+>             - 💚 1 - Rule 7: gnome1228/tamer/handbook.scrbl
 >           + 📑/nanomon/readme.md
 >             - 💚 1 - Rule 7: nanomon/tamer/handbook.scrbl
 >           + 📑/sakuyamon/readme.md
