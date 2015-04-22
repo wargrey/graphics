@@ -97,7 +97,7 @@ Okay, the @itech{digivice} demo is ready! Now what?
                   (check-pred zero? ($?) (get-output-string $err))
                   (check-regexp-match #px"Usage:.+?where <action>(\\s+\\S+){3,}"
                                       (get-output-string $out)))
-       (test-spec "digivice --help [this is a kind of mistyped action]"
+       (test-spec "digivice --help [a kind of mistyped action]"
                   #:before {λ _ (call-with-fresh-$ dgvc "--help")}
                   (check-pred (procedure-rename (negate zero?) 'nonzero?) ($?))
                   (check-regexp-match #px"Usage:.+?where <action>.+?Unrecognized"

@@ -8,10 +8,12 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 #lang racket
 
 (require make)
+
+(require syntax/location)
 (require compiler/compiler)
 (require launcher/launcher)
 
-(require "digitama/digicore.typed.rkt")
+(require "digitama/digicore.rkt")
 
 (provide main)
 
@@ -62,9 +64,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 (define make-digivice
   {lambda [template.rkt dgvc-name dgvc.rkt]
     (with-output-to-file dgvc.rkt #:exists 'replace
-      {λ _ (void (putenv "current-digivice" dgvc-name)
-                 (putenv "digicore.rkt" (path->string (find-relative-path (path-only dgvc.rkt) digicore.rkt)))
-                 (dynamic-require template.rkt #false))})
+      {λ _ (dynamic-require template.rkt #false)})
     (let ([chmod (file-or-directory-permissions dgvc.rkt 'bits)])
       (file-or-directory-permissions dgvc.rkt (bitwise-ior chmod #o111)))})
 

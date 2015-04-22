@@ -5,13 +5,12 @@
 
 @(require racket/list)
 @(require racket/path)
-@(require setup/getinfo)
 
 @(define githublink
    {lambda [target]
      (hyperlink target (path->string (file-name-from-path target)))})
 
-@title{@(hyperlink (~url (current-digimon)) (format "~a<sub>~a</sub>" :house-garden: :cat:))Digital World}
+@title{@(hyperlink (~url (current-digimon)) (format "~a<sub>~a</sub>" house-garden# cat#))Digital World}
 How to construct a @italic{Digital World}? Okay, we don@literal{'}t start with the @italic{File Island}, but we own some concepts from the
 @hyperlink["http://en.wikipedia.org/wiki/Digimon"]{Digital Monsters}.
 

@@ -4,9 +4,9 @@
 
 #lang typed/racket
 
-(require "@(path->string (path-replace-suffix (getenv "digicore.rkt") ".typed.rkt"))")
+(require "@(getenv "digicore.rkt")")
 
 (provide (all-defined-out))
-(provide (all-from-out "@(path->string (path-replace-suffix (getenv "digicore.rkt") ".typed.rkt"))"))
+(provide (all-from-out "@(getenv "digicore.rkt")"))
 
 (current-digimon "@(current-digimon)")

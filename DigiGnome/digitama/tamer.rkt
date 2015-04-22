@@ -9,12 +9,12 @@
 (require scribble/eval)
 (require scribble/manual)
 
-(require "digicore.typed.rkt")
+(require "digicore.rkt")
 
 (provide tamer-story)
 (provide (all-defined-out))
 
-(provide (all-from-out racket "digicore.typed.rkt" rackunit))
+(provide (all-from-out racket "digicore.rkt" rackunit))
 (provide (all-from-out scribble/manual scribble/eval))
 
 (define tamer-zone (make-parameter #false))
@@ -93,7 +93,7 @@
   {lambda pre-contents
     (define info-ref (get-info/full (digimon-zone)))
     (title (append (cond [(false? (symbol=? (object-name (current-input-port)) 'stupid-markdown)) null]
-                         [else (list (hyperlink (~url (current-digimon)) (format "~a<sub>~a</sub>" :house-garden: :cat:)))])
+                         [else (list (hyperlink (~url (current-digimon)) (format "~a<sub>~a</sub>" house-garden# cat#)))])
                    (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection {λ _ (current-digimon)})) pre-contents))
            #:version (format "~a[~a]" (version) (info-ref 'version {λ _ "Baby"}))
            #:tag "tamerbook")})
@@ -133,7 +133,7 @@
                                                     (let ([href (curry hash-ref handbook-stories)])
                                                       (make-test-suite "Behaviors and Features"
                                                                        (map {λ [unit] (make-test-suite unit (reverse (map cdr (href unit))))}
-                                                                            (reverse (href :books:))))))]
+                                                                            (reverse (href books#))))))]
                         [(module-path? (tamer-story)) (let ([htag (tamer-story->tag (tamer-story))])
                                                         (and (unless (module-declared? (tamer-story)) (dynamic-require (tamer-story) #false))
                                                              (hash-has-key? handbook-stories htag)
@@ -162,23 +162,23 @@
                       (define story-ref {λ [htag] (filter-map {λ [scnr] (hash-ref (hash-ref (get 'scenario {λ _ (make-hash)}) htag {λ _ (make-hash)}) (cdr scnr) #false)}
                                                               (reverse (hash-ref handbook-stories htag null)))})
                       (nested #:style (make-style "boxed" null)
-                              (filebox (cond [(false? story-snapshot) (italic (string :books:) ~ (format "Behaviors of ~a" (info-ref 'collection {λ _ (current-digimon)})))]
-                                             [(module-path? story-snapshot) (italic (seclink "tamerbook" (string :open-book:))
+                              (filebox (cond [(false? story-snapshot) (italic (string books#) ~ (format "Behaviors of ~a" (info-ref 'collection {λ _ (current-digimon)})))]
+                                             [(module-path? story-snapshot) (italic (seclink "tamerbook" (string open-book#))
                                                                                     ~ (format "Behaviors in ~a" (cadadr story-snapshot)))])
-                                       (let ([base (cond [(false? story-snapshot) (for/list ([story (in-list (reverse (hash-ref handbook-stories :books: null)))])
+                                       (let ([base (cond [(false? story-snapshot) (for/list ([story (in-list (reverse (hash-ref handbook-stories books# null)))])
                                                                                     (cons story (with-handlers ([exn:fail:contract? {λ _ null}])
                                                                                                   (apply append (map cdr (story-ref story))))))]
                                                          [(module-path? story-snapshot) (story-ref (tamer-story->tag story-snapshot))])])
                                          (define items (for/list ([spec (in-list base)])
                                                          ;;; see (tamer-note) to check type conventions
-                                                         (define-values {:local: desc} (cond [(string? (car spec)) (values :bookmark: (car spec))]
-                                                                                             [else (values :page: (unbox (car spec)))]))
-                                                         (define-values {status color :status:}
-                                                           (cond [(null? (cdr spec)) (values (~result struct:test-success) 'lightgreen :heart:)]
-                                                                 [(ormap box? (cdr spec)) (values (~result struct:test-error) 'red :bomb:)]
-                                                                 [else (values (~result struct:test-failure) 'lightred :broken-heart:)]))
+                                                         (define-values {local# desc} (cond [(string? (car spec)) (values bookmark# (car spec))]
+                                                                                             [else (values page# (unbox (car spec)))]))
+                                                         (define-values {status color status#}
+                                                           (cond [(null? (cdr spec)) (values (~result struct:test-success) 'lightgreen heart#)]
+                                                                 [(ormap box? (cdr spec)) (values (~result struct:test-error) 'red bomb#)]
+                                                                 [else (values (~result struct:test-failure) 'lightred broken-heart#)]))
                                                          (define item (~a #:width 61 #:pad-string "." #:limit-marker "......" desc))
-                                                         (define label (racketkeywordfont (literal item) (string :status:)))
+                                                         (define label (racketkeywordfont (literal item) (string status#)))
                                                          (when (false? story-snapshot)
                                                            (echof #:fgcolor 'lightyellow item)
                                                            (echof #:fgcolor color "~a~n" status)
@@ -186,8 +186,8 @@
                                                              (cond [(box? msg) (eechof #:fgcolor 'red #:attributes '{inverse} "~a~n" (unbox msg))]
                                                                    [(regexp-match #px"»»" msg) (eechof #:fgcolor 245 "~a~n" msg)]
                                                                    [(string? (car spec)) (eechof #:fgcolor 'lightred "~a~n" msg)])))
-                                                         (cond [(false? story-snapshot) (seclink (car spec) (italic (string :book:)) ~ label)]
-                                                               [(module-path? story-snapshot) (elemref desc (italic (string :local:)) ~ label)])))
+                                                         (cond [(false? story-snapshot) (seclink (car spec) (italic (string book#)) ~ label)]
+                                                               [(module-path? story-snapshot) (elemref desc (italic (string local#)) ~ label)])))
                                          (match-define {list success failure error reals gcs cpus}
                                            (for/list ([meta (in-list (list 'success 'failure 'error 'real 'gc 'cpu))])
                                              (define pool (get meta {λ _ (make-hash)}))
@@ -227,25 +227,25 @@
                         (para (filter-map {λ [line] (and (not (void? line)) (map (compose1 literal ~line) (if (list? line) line (list line))))}
                                           (for/list ([line (in-port read-line)])
                                             (cond [(regexp-match #px"^λ\\s+(.+)" line)
-                                                   => {λ [pieces] (format "> + ~a~a" :books: (list-ref pieces 1))}]
+                                                   => {λ [pieces] (format "> + ~a~a" books# (list-ref pieces 1))}]
                                                   [(regexp-match #px"^(\\s+)λ\\d+\\s+(.+?.rkt)\\s*$" line)
                                                    => {λ [pieces] (match-let ([{list _ indt ctxt} pieces]) ; (markdown list needs at least 1 char after "+ "
-                                                                    (list (format ">   ~a+ ~a" indt :open-book:)  ; before breaking line if "[~a](~a)" is
+                                                                    (list (format ">   ~a+ ~a" indt open-book#)  ; before breaking line if "[~a](~a)" is
                                                                           (format "[~a](http://gyoudmon.org/~~~a/.~a/~a)" ctxt ; longer then 72 chars.)
                                                                                   (getenv "USER") (string-downcase (current-digimon)) ctxt)))}]
                                                   [(regexp-match #px"^(\\s+)λ\\d+(.\\d)*\\s+(.+?)\\s*$" line)
-                                                   => {λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) :bookmark: (list-ref pieces 3))}]
+                                                   => {λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) bookmark# (list-ref pieces 3))}]
                                                   [(regexp-match #px"^(\\s*)(.+?) (\\d+) - (.+?)\\s*$" line)
                                                    => {λ [pieces] (format ">   ~a- ~a ~a - ~a" (list-ref pieces 1)
-                                                                          (cond [(string=? (list-ref pieces 2) (~result struct:test-success)) :heart:]
-                                                                                [(string=? (list-ref pieces 2) (~result struct:test-failure)) :broken-heart:]
-                                                                                [else :bomb:])
+                                                                          (cond [(string=? (list-ref pieces 2) (~result struct:test-success)) heart#]
+                                                                                [(string=? (list-ref pieces 2) (~result struct:test-failure)) broken-heart#]
+                                                                                [else bomb#])
                                                                           (list-ref pieces 3) (list-ref pieces 4))}]
                                                   [(regexp-match #px"^$" line) (summary? #true)]
                                                   [(regexp-match #px"wallclock" line) "> "]
-                                                  [(summary?) (list (format "> ~a~a" :pin: line) "> "
+                                                  [(summary?) (list (format "> ~a~a" pin# line) "> "
                                                                     (format "> [~a<sub>~a</sub>](http://gyoudmon.org/~~~a/.~a)"
-                                                                            :cat: (make-string (quotient (string-length line) 2) :paw:)
+                                                                            cat# (make-string (quotient (string-length line) 2) paw#)
                                                                             (getenv "USER") (string-downcase (current-digimon))))])))))})])})})
 
 (define tamer-note
@@ -281,30 +281,30 @@
                            (cond [(regexp-match #px"^λ\\s+(.+)" line)
                                   => {λ [pieces] (let ([ctxt (list-ref pieces 1)])
                                                    (unit-spec (list ctxt)) ; Testsuite
-                                                   (racketmetafont (italic (string :open-book:)) ~ (elemtag ctxt (literal ctxt))))}]
+                                                   (racketmetafont (italic (string open-book#)) ~ (elemtag ctxt (literal ctxt))))}]
                                  [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
-                                  => {λ [pieces] (racketparenfont (italic (string :bookmark:)) ~ (literal (list-ref pieces 3)))}]
+                                  => {λ [pieces] (racketparenfont (italic (string bookmark#)) ~ (literal (list-ref pieces 3)))}]
                                  [(regexp-match #px"^(\\s*)(.+?) (\\d+) - (.+?)\\s*$" line)
                                   => {λ [pieces] (match-let ([{list _ spc stts idx ctxt} pieces])
                                                    (when (string=? spc "") (unit-spec (list (box ctxt)))) ; Toplevel testcase
-                                                   (define-values {:stts: ftype} (cond [(string=? stts (~result struct:test-success)) (values :heart: #false)]
-                                                   #| follows error type conventions|# [(string=? stts (~result struct:test-error)) (values :bomb: box)]
-                                                                                       [else (values :broken-heart: values)]))
+                                                   (define-values {stts# ftype} (cond [(string=? stts (~result struct:test-success)) (values heart# #false)]
+                                                   #| follows error type conventions|# [(string=? stts (~result struct:test-error)) (values bomb# box)]
+                                                                                       [else (values broken-heart# values)]))
                                                    (when (procedure? ftype) (unit-spec (cons (ftype ctxt) (unit-spec))))
                                                    ((if (string=? spc "") (curry elemtag ctxt) elem)
-                                                    (string :stts:) (racketvarfont ~ idx) (racketcommentfont ~ (literal ctxt))))}]
+                                                    (string stts#) (racketvarfont ~ idx) (racketcommentfont ~ (literal ctxt))))}]
                                  [(regexp-match #px"^\\s*»» (.+?)?:?\\s+\"?(.+?)\"?\\s*$" line)
                                   => {λ [pieces] (let ([key (list-ref pieces 1)])
                                                    (unit-spec (cons (string-trim line) (unit-spec)))
-                                                   (define :type: (cond [(regexp-match? #px"message$" key) :backhand:]
-                                                                        [(regexp-match? #px"param:\\d" key) :crystal-ball:]))
-                                                   (unless (void? :type:)
+                                                   (define type# (cond [(regexp-match? #px"message$" key) backhand#]
+                                                                        [(regexp-match? #px"param:\\d" key) crystal-ball#]))
+                                                   (unless (void? type#)
                                                      (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
-                                                           (string :type:) ~ (italic (literal (list-ref pieces 2))))))}]
+                                                           (string type#) ~ (italic (literal (list-ref pieces 2))))))}]
                                  [(regexp-match #px"^$" line) (hash-set! scenarios unit (reverse (unit-spec)))]
-                                 [else (when (hash-has-key? scenarios unit) (elem (string :pin:) ~ (racketoutput line)
+                                 [else (when (hash-has-key? scenarios unit) (elem (string pin#) ~ (racketoutput line)
                                                                                   ~ (seclink (tamer-story->tag (tamer-story))
-                                                                                             ~ (string :house-garden:) (smaller (string :cat:)))))]))))))})})
+                                                                                             ~ (string house-garden#) (smaller (string cat#)))))]))))))})})
 
 (define tamer-racketbox
   {lambda [path]
@@ -313,7 +313,7 @@
      {λ _ (parameterize ([tamer-story story-snapshot])
             (define /path/file (simplify-path (if (symbol? path) (dynamic-require/expose (tamer-story) path) path)))
             (nested #:style (make-style "boxed" null)
-                    (filebox (hyperlink /path/file (italic (string :memo:) ~ (path->string (tr-if-path /path/file))))
+                    (filebox (hyperlink /path/file (italic (string memo#) ~ (path->string (tr-if-path /path/file))))
                              (codeblock #:line-numbers 0 #:keep-lang-line? #false
                                         (file->string /path/file)))))})})
 
@@ -321,7 +321,7 @@
   (require rackunit)
   (require racket/undefined)
 
-  (require "digicore.typed.rkt")
+  (require "digicore.rkt")
   
   (provide (all-defined-out))
   
@@ -357,8 +357,8 @@
       (unless (assoc name units)
         (hash-set! handbook-stories htag
                    (cons (cons name unit) units)))
-      (let ([books (hash-ref handbook-stories :books: null)])  ;;; Readme.md needs it stay here
-        (unless (member htag books) (hash-set! handbook-stories :books: (cons htag books))))})
+      (let ([books (hash-ref handbook-stories books# null)])  ;;; Readme.md needs it stay here
+        (unless (member htag books) (hash-set! handbook-stories books# (cons htag books))))})
 
   (define tamer-record-handbook
     {lambda [name:case«suites action]

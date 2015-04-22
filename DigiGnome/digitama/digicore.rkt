@@ -1,38 +1,63 @@
-#lang at-exp racket
+#lang at-exp typed/racket
 
 (require (for-syntax racket/syntax))
 
-(require syntax/location)
+(provide (except-out (all-defined-out)
+                     #%full-module))
 
-(provide (all-defined-out))
-(provide (all-from-out syntax/location))
+(define-type Term-Color (Option (U String Symbol Byte)))
+(define-type Racket-Main (-> String * Void))
+(define-type Info-Ref (->* {Symbol} {(-> Any)} Any))
 
-(define digicore.rkt (quote-module-path))
+(require/typed/provide setup/getinfo
+                       [get-info/full {Path-String -> (Option Info-Ref)}])
 
-(define-values {:house-garden: :cat: :paw: :macroscope: :telescope:} (values #\U1F3E1 #\U1F408 #\U1F43E #\U1F52C #\U1F52D))
-(define-values {:book: :books: :open-book: :memo: :page: :bookmark:} (values #\U1F4D4 #\U1F4DA #\U1F4D6 #\U1F4DD #\U1F4C4 #\U1F4D1))
-(define-values {:heart: :broken-heart: :bomb: :collision: :pin: :crystal-ball: :backhand:} (values #\U1F49A #\U1F494 #\U1F4A3 #\U1F4A5 #\U1F4CC #\U1F52E #\U1F449))
+(define-syntax {#%full-module stx}
+  #'(let ([rmp (variable-reference->resolved-module-path (#%variable-reference))])
+      (resolved-module-path-name (cast rmp Resolved-Module-Path))))
 
-(define /dev/stdin (current-input-port))
-(define /dev/stdout (current-output-port))
-(define /dev/stderr (current-error-port))
-(define /dev/null (open-output-nowhere '/dev/null #true))
+(define-syntax {#%file stx}
+  #'(let ([full (ann (#%full-module) (U Symbol Path))])
+      (cond [(path? full) full]
+            [else (with-handlers ([exn:fail:contract? {λ _ (current-directory)}])
+                    ((inst car Path (Listof Symbol)) (cast full (Pairof Path (Listof Symbol)))))])))
 
-(define immutable-guard
+(define-syntax {#%module stx}
+  #'(let ([full (ann (#%full-module) (U Symbol Path))])
+      (cond [(path? full) (string->symbol (path->string (path-replace-suffix (cast (file-name-from-path full) Path) "")))]
+            [else (with-handlers ([exn:fail:contract? {λ _ '<anonymous>}])
+                    (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
+
+(define digicore.rkt : Path (#%file))
+
+(define-values {#{house-garden# : Char} #{cat# : Char} #{paw# : Char}} (values #\U1F3E1 #\U1F408 #\U1F43E))
+(define-values {#{macroscope# : Char} #{telescope# : Char}} (values #\U1F52C #\U1F52D))
+(define-values {#{book# : Char} #{books# : Char} #{open-book# : Char}} (values #\U1F4D4 #\U1F4DA #\U1F4D6))
+(define-values {#{memo# : Char} #{page# : Char} #{bookmark# : Char}} (values #\U1F4DD #\U1F4C4 #\U1F4D1))
+(define-values {#{heart# : Char} #{broken-heart# : Char} #{bomb# : Char} #{collision# : Char}} (values #\U1F49A #\U1F494 #\U1F4A3 #\U1F4A5))
+(define-values {#{pin# : Char} #{crystal-ball# : Char} #{backhand# : Char}} (values #\U1F4CC #\U1F52E #\U1F449))
+
+(define /dev/stdin : Input-Port (current-input-port))
+(define /dev/stdout : Output-Port (current-output-port))
+(define /dev/stderr : Output-Port (current-error-port))
+(define /dev/null : Output-Port (open-output-nowhere))
+
+(define immutable-guard : (-> Symbol (Path-String -> Nothing))
   {lambda [pname]
-    (curry error pname "Immutable Parameter: ~a")})
+    {λ [pval] (error pname "Immutable Parameter: ~a" pval)}})
 
-(define-values {digimon-world digimon-gnome}
-  (let* ([dir (path->string digicore.rkt)]
-         [px.split (regexp-match #px"(.+)/([^/]+?)/[^/]+?/[^/]+?$" dir)])
-    (values (make-parameter (cadr px.split) (immutable-guard 'digimon-world))
-            (make-parameter (caddr px.split) (immutable-guard 'digimon-gnome)))))
+(define-values {#{digimon-world : (Parameterof Nothing String)} #{digimon-gnome : (Parameterof Nothing String)}}
+  (let* ([file (path->string digicore.rkt)]
+         [px.split (regexp-match #px"(.+)/([^/]+?)/[^/]+?/[^/]+?$" file)])
+    (values (make-parameter (cadr (cast px.split (Listof String))) (immutable-guard 'digimon-world))
+            (make-parameter (caddr (cast px.split (Listof String))) (immutable-guard 'digimon-gnome)))))
 
-(define current-digimon (make-parameter (digimon-gnome)))
-(define digimon-zone (make-derived-parameter current-digimon (immutable-guard 'digimon-zone) {λ [name] (build-path (digimon-world) name)}))
+(define current-digimon : (Parameterof String String) (make-parameter (digimon-gnome)))
+(define digimon-zone : (Parameterof Nothing Path)
+  (make-derived-parameter current-digimon (immutable-guard 'digimon-zone) {λ [[name : String]] (build-path (digimon-world) name)}))
 
 (void (unless (member (digimon-world) (current-library-collection-paths))
-        (current-library-collection-paths (cons (digimon-world) (current-library-collection-paths)))
+        (current-library-collection-paths (cons (build-path (digimon-world)) (current-library-collection-paths)))
         
         ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
         ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
@@ -42,91 +67,84 @@
   (syntax-case stx []
     [{_ id ...}
      (with-syntax ([{digimon-id ...} (map {λ [var] (with-syntax ([id var]) (format-id #'id "digimon-~a" (syntax-e #'id)))} (syntax->list #'{id ...}))])
-       #'{begin (define digimon-id (make-derived-parameter digimon-zone (immutable-guard 'digimon-id)
-                                                           {λ [zonedir] (build-path zonedir (symbol->string 'id))}))
+       #'{begin (define digimon-id : (Parameterof Nothing Path)
+                  (make-derived-parameter digimon-zone (immutable-guard 'digimon-id)
+                                          {λ [[zonedir : Path]] (build-path zonedir (symbol->string 'id))}))
                 ...})]))
 
 (define-digimon-dirpath stone digitama digivice tamer terminus)
 
-(define path->digimon-libpath
+(define path->digimon-libpath : (->* {Path-String} {Symbol} (U Module-Path (List 'submod Module-Path Symbol)))
   {lambda [modpath [submodule #false]]
-    (define fname (path->string (find-relative-path (digimon-world) (simplify-path modpath))))
+    (define fname : String (path->string (cast (find-relative-path (digimon-world) (simplify-path modpath)) Path)))
     (if (symbol? submodule) `(submod (lib ,fname) ,submodule) `(lib ,fname))})
 
-(define find-digimon-files
+(define find-digimon-files : (-> (-> Path-String Boolean) Path-String [#:search-compiled? Boolean] (Listof Path-String))
   {lambda [predicate start-path #:search-compiled? [search-compiled? #false]]
-    (define px.exclude (pregexp (string-join #:before-first "/(\\." #:after-last ")$"
-                                             (cons "git" (cond [search-compiled? null]
-                                                               [else (remove-duplicates (map (compose1 path->string file-name-from-path)
-                                                                                             (use-compiled-file-paths)))])) "|")))
-    (for/fold ([ps null]) ([p (in-directory start-path {λ [p] (not (regexp-match? px.exclude p))})])
-      (if (predicate p) (cons p ps) ps))})
+    (define px.exclude : Regexp
+      (let ([cmpls ((inst map String Path) {λ [p] (path->string (cast (file-name-from-path p) Path))} (use-compiled-file-paths))])
+        (pregexp (string-join #:before-first "/(\\.git" (if search-compiled? null (remove-duplicates cmpls)) "|" #:after-last ")$"))))
+    ((inst sequence-fold Path (Listof Path-String)) {λ [ps p] (if (predicate p) (cons p ps) ps)} null
+                                                    (in-directory start-path {λ [p] (not (regexp-match? px.exclude p))}))})
 
-(define call-as-normal-termination
+(define call-as-normal-termination : (-> (-> Any) Void)
   {lambda [main/0]
-    (define status (call/ec {λ [$?] (parameterize ([exit-handler $?])
-                                      (with-handlers ([exn? {λ [e] (exit ({λ _ 1} (eprintf "~a~n" (exn-message e))))}])
-                                        (exit (main/0))))}))
+    (define status : Any (call/ec {λ [$?] (parameterize ([exit-handler (cast $? (-> Any Any))])
+                                            (with-handlers ([exn? {λ [[e : exn]] (exit ({λ _ 1} (eprintf "~a~n" (exn-message e))))}])
+                                              (exit (main/0))))}))
     (exit (if (exact-nonnegative-integer? status) (min status 255) 0))})
 
-(define ~n_w
+(define ~n_w : (-> Nonnegative-Integer String String)
   {lambda [count word]
     (format "~a ~a" count (plural count word))})
 
-(define ~w=n
+(define ~w=n : (-> Nonnegative-Integer String String)
   {lambda [count word]
     (format "~a = ~a" (plural count word) count)})
 
-(define echof
+(define echof : (-> String [#:fgcolor Term-Color] [#:bgcolor Term-Color] [#:attributes (Listof Symbol)] Any * Void)
   {lambda [msgfmt #:fgcolor [fg #false] #:bgcolor [bg #false] #:attributes [attrs null] . vals]
     (define rawmsg (apply format msgfmt vals))
     (printf "~a" (if (terminal-port? (current-output-port)) (term-colorize fg bg attrs rawmsg) rawmsg))})
 
-(define eechof
+(define eechof : (-> String [#:fgcolor Term-Color] [#:bgcolor Term-Color] [#:attributes (Listof Symbol)] Any * Void)
   {lambda [msgfmt #:fgcolor [fg #false] #:bgcolor [bg #false] #:attributes [attrs null] . vals]
     (define rawmsg (apply format msgfmt vals))
     (eprintf "~a" (if (terminal-port? (current-error-port)) (term-colorize fg bg attrs rawmsg) rawmsg))})
 
-{module digitama racket
-  (provide (all-defined-out))
+(define term-colorize : (-> Term-Color Term-Color (Listof Symbol) String String)
+  {lambda [fg bg attrs content]
+    (define color-code : (-> String [#:bgcolor? Boolean] String)
+      {λ [color #:bgcolor? [bg? #false]]
+        (define colors : (HashTable String Byte)
+          #hash{{"black" . 0} {"red" . 1} {"green" . 2} {"yellow" . 3} {"blue" . 4} {"magenta" . 5} {"cyan" . 6} {"white" . 7}
+                              {"lightblack" . 8} {"lightred" . 9} {"lightgreen" . 10} {"lightyellow" . 11} {"lightblue" . 12}
+                              {"lightmagenta" . 13} {"lightcyan" . 14} {"lightwhite" . 15}})
+        (format "~a8;5;~a" (if bg? 4 3) (if (regexp-match? #px"\\d+" color) color (hash-ref colors color)))})
+    (regexp-replace #px"^(\\s*)(.+?)(\\s*)$" content
+                    (format "\\1\033[~a;~a;~am\\2\033[0m\\3"
+                            (string-replace (for/fold : String ([effects ""]) ([attr : Symbol (in-list attrs)])
+                                              (case (string-downcase (format "~a" attr))
+                                                [{"bold" "bright"} (string-append effects ";1")]
+                                                [{"dim"} (string-append effects ";2")]
+                                                [{"underline"} (string-append effects ";4")]
+                                                [{"blink"} (string-append effects ";5")]
+                                                [{"reverse" "inverse"} (string-append effects ";7")]
+                                                [{"hidden" "password"} (string-append effects ";8")]
+                                                [else (error 'tarminal-colorize "Unsupported Terminal Attribute: ~a" attr)]))
+                                            "^;" "" #:all? #false)
+                            (if (false? fg) 39 (color-code (string-downcase (format "~a" fg))))
+                            (if (false? bg) 49 (color-code (string-downcase (format "~a" bg)) #:bgcolor? #true))))})
+
+(define plural : (-> Nonnegative-Integer String String)
+  {lambda [n word]
+    (define dict : (HashTable String String) #hash{{"story" . "stories"} {"Story" . "Stories"}})
+    (cond [(= n 1) word]
+          [else (hash-ref dict word {λ _ (string-append word "s")})])})
+
+{module* test racket
+  (require (submod ".."))
   
-  (define digimon-pathname/c (parameter/c path-string?))
-  (define digimon-path/c (parameter/c (or/c path? path-string?)))
-  
-  (define term-colorize
-    {lambda [fg bg attrs content]
-      (define color-code
-        {λ [color #:bgcolor? [bg? #false]]
-          (define colors (hash "black" 0 "red" 1 "green" 2 "yellow" 3 "blue" 4 "magenta" 5 "cyan" 6 "white" 7
-                               "lightblack" 8 "lightred" 9 "lightgreen" 10 "lightyellow" 11 "lightblue" 12
-                               "lightmagenta" 13 "lightcyan" 14 "lightwhite" 15))
-          (format "~a8;5;~a" (if bg? 4 3)
-                  (cond [(regexp-match? #px"\\d+" color) color]
-                        [else (hash-ref colors color)]))})
-      (regexp-replace #px"^(\\s*)(.+?)(\\s*)$" content
-                      (format "\\1\033[~a;~a;~am\\2\033[0m\\3"
-                              (string-replace (for/fold ([effects ""]) ([attr (in-list attrs)])
-                                                (case (string-downcase (format "~a" attr))
-                                                  [{"bold" "bright"} (string-append effects ";1")]
-                                                  [{"dim"} (string-append effects ";2")]
-                                                  [{"underline"} (string-append effects ";4")]
-                                                  [{"blink"} (string-append effects ";5")]
-                                                  [{"reverse" "inverse"} (string-append effects ";7")]
-                                                  [{"hidden" "password"} (string-append effects ";8")]
-                                                  [else (error 'tarminal-colorize "Unsupported Terminal Attribute: ~a" attr)]))
-                                              "^;" "" #:all? #false)
-                              (if (false? fg) 39 (color-code (string-downcase (format "~a" fg))))
-                              (if (false? bg) 49 (color-code (string-downcase (format "~a" bg)) #:bgcolor? #true))))})
-
-  (define plural
-    {lambda [n word]
-      (define dict #hash{{"story" . "stories"} {"Story" . "Stories"}})
-      (cond [(= n 1) word]
-            [else (hash-ref dict word (string-append word "s"))])})}
-
-(require (submod "." digitama))
-
-{module+ test
   (for ([color (in-list '{black red green blue yellow magenta cyan white})])
     (echof "»»» 8/16 colors test:")
     (echof #:fgcolor color " ~a" color)
