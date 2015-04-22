@@ -4,9 +4,7 @@
 
 @(require (for-syntax "tamer.rkt"))
 
-@(tamer-story (tamer-story->libpath "infrastructure.rkt"))
 @(define partner (tamer-partner->libpath "makefile.rkt"))
-@(tamer-zone (make-tamer-zone))
 
 @handbook-story{Hello, Hacker Hero!}
 
@@ -18,8 +16,8 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
 
 @chunk[|<infrastructure taming start>|
        (require "tamer.rkt")
-             
-       (tamer-story (tamer-story->libpath "infrastructure.rkt"))
+
+       (tamer-taming-start)
        (define partner (tamer-partner->libpath "makefile.rkt"))
        (define make (dynamic-require partner 'main {λ _ #false}))
 
@@ -69,15 +67,14 @@ since we can cache the result by nature.
 
 @chunk[|<testcase: complex options>|
        (let* ([goal-md (build-path (digimon-world) "README.md")]
-              [make-md (list "--always-make" "--touch" "++only" (digimon-gnome)
+              [make-md (list "--always-make" "++only" (digimon-gnome)
                              (path->string (file-name-from-path goal-md)))])
          (test-spec (string-join (cons "make" make-md))
                     #:before (apply setup make-md)
                     |<check status and stderr>|
                     (check = (times #px"Leave Digimon Zone") 1 "has zone crossed!")
                     (check = (times #px"make: made") 1 "has too many files made!")
-                    (check <= (msecs (digimon-zone)) (msecs goal-md) "goal not updated!")
-                    (check = (times #px"Output to") 0 "touching is okay!")))
+                    (check <= (msecs (digimon-zone)) (msecs goal-md) "goal not updated!")))
        (let ([goal-md (build-path (digimon-world) gnome "README.md")]
              [make-zone (list "--dry-run" "--touch" "++only" gnome)])
          (test-spec (string-join (cons "make" make-zone))
@@ -94,7 +91,7 @@ Since the term @deftech{Architecture} is all about designing rules, and this sto
 So apart from @italic{@hyperlink["https://github.com/digital-world/DigiGnome"]{conventions}},
 we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) should satisfy.
 
-@subsubsection{Rules on project organization}
+@subsection{Rules on project organization}
 
 @tamer-note['rules]
 @handbook-rule[1]{The entire project is a multi-collection package, non-hidden directories within it are considered as the subprojects.}
@@ -127,7 +124,7 @@ we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) sh
        "Rule 5: test-omit-paths"
        (check-equal? (info-ref 'test-omit-paths) 'all "'test-omit-paths should be 'all!")]
 
-@subsubsection{Rules on project documentation}
+@subsection{Rules on project documentation}
 
 @handbook-rule[6]{The project@literal{'}s toplevel @italic{README.md} is designated as the @italic{main-toc} of @bold{Scribble}.}
 @chunk[|<facts: rule 6>|

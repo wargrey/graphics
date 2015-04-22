@@ -3,7 +3,6 @@
 (require rackunit)
 
 (require racket/sandbox)
-(require racket/syntax)
 
 (require scribble/core)
 (require scribble/eval)
@@ -11,8 +10,7 @@
 
 (require "digicore.rkt")
 
-(provide tamer-story)
-(provide (all-defined-out))
+(provide (all-defined-out) tamer-story)
 
 (provide (all-from-out racket "digicore.rkt" rackunit))
 (provide (all-from-out scribble/manual scribble/eval))
@@ -40,6 +38,17 @@
                    [sandbox-output 'string]
                    [sandbox-error-output 'string])
       ((make-eval-factory (list `(file ,tamer.rkt) (tamer-story)))))})
+
+(define-syntax {tamer-taming-start stx}
+  #'(let ([modpath (quote-module-path)])
+      (cond [(path? modpath) (tamer-story (tamer-story->libpath modpath))]
+            [else (and (tamer-story (tamer-story->libpath (cadr modpath)))
+                       (tamer-zone (make-tamer-zone)))])))
+
+(define-syntax {handbook-story stx}
+  (syntax-case stx []
+    [{_ #:style style contents ...} #'(list (tamer-taming-start) (title #:tag (tamer-story->tag (tamer-story)) #:style style "Story: " contents ...))]
+    [{_ pre-contents ...} (syntax/loc stx (handbook-story #:style #false pre-contents ...))]))
 
 (define-syntax {define-tamer-suite stx}
   (syntax-case stx []
@@ -98,25 +107,21 @@
            #:version (format "~a[~a]" (version) (info-ref 'version {λ _ "Baby"}))
            #:tag "tamerbook")})
 
-(define handbook-story
-  {lambda [#:style [style #false] . pre-contents]
-    (section #:tag (tamer-story->tag (tamer-story)) #:style style
-             "Story: " pre-contents)})
-
 (define handbook-scenario
   {lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
-    (subsection #:tag tag #:style style
-                "Scenario: " pre-contents)})
+    (section #:tag tag #:style style
+             "Scenario: " pre-contents)})
 
 (define handbook-appendix
   {lambda [#:style [style #false] . pre-contents]
-    (list (subsection #:style style
-                      (string-titlecase (format "Appendix: ~a Auxiliaries" (path-replace-suffix (tamer-story->tag (tamer-story)) "")))
-                      pre-contents)
+    (list (section #:style style
+                   (string-titlecase (format "Appendix: ~a Auxiliaries" (path-replace-suffix (tamer-story->tag (tamer-story)) "")))
+                   pre-contents)
           (para (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
                       @italic{In order to avoid polluting your eyes,
                               any less important things are moved here.
-                              You can simply ignore them as you wish.})))})
+                              You can simply ignore them as you wish.}))
+          (tamer-story #false))})
 
 (define handbook-rule
   {lambda [id . pre-flow]
@@ -320,10 +325,11 @@
 {module digitama racket
   (require rackunit)
   (require racket/undefined)
+  (require syntax/location)
 
   (require "digicore.rkt")
   
-  (provide (all-defined-out))
+  (provide (all-defined-out) quote-module-path)
   
   (define tamer-story (make-parameter #false))
 

@@ -78,7 +78,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                (cond [(member subsrc memory) memory]
                      [else (smart-dependencies subsrc memory)])}
              (append memory (list entry))
-             (call-with-input-file entry (curry regexp-match* #px"(?<=@(include-section|lp-include|require)\\{).+?.(scrbl|rkt)(?=\\})")))})
+             (call-with-input-file entry (curry regexp-match* #px"(?<=@(include-section|require)[{[](\\(submod \")?).+?.(scrbl|rkt)(?=[\"}])")))})
 
 (define make-implicit-rules
   {lambda []
@@ -110,9 +110,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                [current-input-port (open-input-bytes #"WORKAROUND" 'stupid-markdown)]
                                                [exit-handler {λ _ (error 'make "[fatal] /~a needs a proper `exit-handler`!"
                                                                          (find-relative-path (digimon-world) dependent.scrbl))}])
-                                  (namespace-require 'scribble/core)
-                                  (namespace-require 'scribble/render)
-                                  (eval '(require (prefix-in markdown: scribble/markdown-render)))
+                                  (eval '(require (prefix-in markdown: scribble/markdown-render) scribble/core scribble/render))
                                   (eval `(define markdown:doc (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
                                                                 (struct-copy part scribble:doc [parts (if ,top? (part-parts scribble:doc) null)]))))
                                   (eval `(render (list markdown:doc) (list ,(file-name-from-path target))
@@ -197,15 +195,12 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                           (error 'make "[error] /~a breaks ~a!" ./handbook (~n_w retcode "testcase")))}])
                 (dynamic-require `(submod ,handbook main) #false))
               (parameterize ([exit-handler {λ _ (error 'make "[fatal] /~a needs a proper `exit-handler`!" ./handbook)}])
-                (namespace-require 'setup/xref)
-                (namespace-require 'scribble/render)
-                (eval '(require (prefix-in html: scribble/html-render)))
+                (eval '(require (prefix-in html: scribble/html-render) setup/xref scribble/render))
                 (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
                                #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
                                #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
                                ;#:redirect "http://docs.racket-lang.org" #:redirect-main "http://docs.racket-lang.org"
-                               #:xrefs (list (load-collections-xref))
-                               #:quiet? #false #:warn-undefined? #false)))))))})
+                               #:xrefs (list (load-collections-xref)) #:quiet? #false #:warn-undefined? #false)))))))})
 
 (define create-zone
   {lambda []

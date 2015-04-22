@@ -2,8 +2,7 @@
 
 (require (for-syntax racket/syntax))
 
-(provide (except-out (all-defined-out)
-                     #%full-module))
+(provide (except-out (all-defined-out) #%full-module plural term-colorize))
 
 (define-type Term-Color (Option (U String Symbol Byte)))
 (define-type Racket-Main (-> String * Void))

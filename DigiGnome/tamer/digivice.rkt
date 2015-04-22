@@ -4,10 +4,6 @@
 
 @(require (for-syntax "tamer.rkt"))
 
-@(tamer-story (tamer-story->libpath "digivice.rkt"))
-@(define partner (tamer-partner->libpath "makefile.rkt"))
-@(tamer-zone (make-tamer-zone))
-
 @handbook-story{Hello, Brave End-Hero!}
 
 @margin-note{This is an additional part of @secref{infrastructure.rkt}}
@@ -21,12 +17,10 @@ which is friendly to @italic{test harness} so that I could finish the core parts
 
 @chunk[|<digivice taming start>|
        (require "tamer.rkt")
-       
-       (tamer-story (tamer-story->libpath "digivice.rkt"))
+
+       (tamer-taming-start)
        (define partner (tamer-partner->libpath "makefile.rkt"))
        (define make-digivice (dynamic-require/expose partner 'make-digivice))
-       (define dgvc.rktl (build-path (digimon-stone) "digivice.rkt"))
-       (define action.rktl (build-path (digimon-stone) "action.rkt"))
 
        |<digivice:*>|]
 
@@ -120,7 +114,7 @@ the commandline arguments even though it is suggested to.
                   #:before {λ _ (call-with-fresh-$ dgvc "action" "--version")}
                   (check-pred zero? ($?) (get-output-string $err))
                   (check-regexp-match #px"version:" (get-output-string $out)))
-       (test-spec "digivice action ver sion [collect non-option arguments]"
+       (test-spec "digivice action ver sion [normal running]"
                   #:before {λ _ (call-with-fresh-$ dgvc "action" "ver" "sion")}
                   (check-pred zero? ($?) (get-output-string $err))
                   (check-regexp-match #px"(ver sion)" (get-output-string $out)))
@@ -166,6 +160,9 @@ but I@literal{'}d like to watch the @italic{teardown} routine in order to ensure
 @chunk[|<digivice:*>|
        {module+ main (call-as-normal-termination tamer-prove)}
        {module+ story
+         (define dgvc.rktl (build-path (digimon-stone) "digivice.rkt"))
+         (define action.rktl (build-path (digimon-stone) "action.rkt"))
+
          |<define digivice hierarchy>|
          (define-tamer-suite make-demo "Make the demo from scratch"
            #:before setup-demo

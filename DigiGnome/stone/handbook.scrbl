@@ -2,8 +2,6 @@
 
 #lang scribble/manual
 
-@|#\@|(require scribble/lp-include)
-
 @|#\@|require{tamer.rkt}
 
 @|#\@|handbook-title[]

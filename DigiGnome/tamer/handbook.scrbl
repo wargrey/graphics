@@ -1,7 +1,5 @@
 #lang scribble/manual
 
-@(require scribble/lp-include)
-
 @require{tamer.rkt}
 
 @handbook-title[]
@@ -18,5 +16,5 @@ Good Luck!
 @tamer-smart-summary[]
 @handbook-smart-table[]
 
-@lp-include{infrastructure.rkt}
-@lp-include{digivice.rkt}
+@include-section[(submod "infrastructure.rkt" doc)]
+@include-section[(submod "digivice.rkt" doc)]
