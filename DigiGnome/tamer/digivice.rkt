@@ -39,7 +39,7 @@ which are set in @filepath{info.rkt} and match the hierarchy in @racket[digimon-
        (define {setup-demo}
          (make-directory* dgvc.dir)
          |<instantiating from the template>|
-         (make-digivice dgvc.rktl dgvc-name dgvc.rkt))]
+         (make-digivice dgvc.rktl dgvc.rkt))]
 
 which means user @deftech{action}s (also unknown as @deftech{subcommand}s) are stored in the subdirectory
 whose name double the basename of @racketvarfont{dgvc.rkt}.
@@ -114,14 +114,14 @@ the commandline arguments even though it is suggested to.
                   #:before {λ _ (call-with-fresh-$ dgvc "action" "--version")}
                   (check-pred zero? ($?) (get-output-string $err))
                   (check-regexp-match #px"version:" (get-output-string $out)))
-       (test-spec "digivice action ver sion [normal running]"
-                  #:before {λ _ (call-with-fresh-$ dgvc "action" "ver" "sion")}
-                  (check-pred zero? ($?) (get-output-string $err))
-                  (check-regexp-match #px"(ver sion)" (get-output-string $out)))
        (test-spec "digivice action --unknown [a kind of mistyped option]"
                   #:before {λ _ (call-with-fresh-$ dgvc "action" "--unknown")}
                   (check-pred (procedure-rename (negate zero?) 'nonzero?) ($?))
-                  (check-regexp-match #px"unknown switch" (get-output-string $err)))]
+                  (check-regexp-match #px"unknown switch" (get-output-string $err)))
+       (test-spec "digivice action job done"
+                  #:before {λ _ (call-with-fresh-$ dgvc "action" "job" "done")}
+                  (check-pred zero? ($?) (get-output-string $err))
+                  (check-regexp-match #px"(job done)" (get-output-string $out)))]
 
 @handbook-scenario{Don@literal{'}t forget to restore the filesystem!}
 

@@ -3,7 +3,7 @@
 #|
 dir="`dirname $0`/digitama"; fn="digicore";
 dzo="${dir}/compiled/${fn}_rkt.zo";
-mzo="`dirname $0`/compiled/makefile_rkt.zo";
+mzo="`dirname $0`/compiled/`basename $0 .rkt`_rkt.zo";
 test "${dzo}" -ot "${dir}/${fn}.rkt" && rm -fr ${mzo};
 test "$1" = "clean" && rm -fr "${dzo}" "${mzo}";
 exec racket --name "$0" --require "$0" --main -- ${1+"$@"} 
@@ -14,14 +14,10 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 (require make)
 
 (require compiler/compiler)
-(require launcher/launcher)
 
 (require "digitama/digicore.rkt")
 
 (provide main)
-
-(define-namespace-anchor makefile)
-(define info-ref (get-info/full (digimon-world)))
 
 (define current-make-real-targets (make-parameter null))
 (define current-make-phony-goal (make-parameter #false))
@@ -65,7 +61,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                   {λ _ (close-output-port /dev/make/stdout)})})
 
 (define make-digivice
-  {lambda [template.rkt dgvc-name dgvc.rkt]
+  {lambda [template.rkt dgvc.rkt]
     (with-output-to-file dgvc.rkt #:exists 'replace
       {λ _ (dynamic-require template.rkt #false)})
     (let ([chmod (file-or-directory-permissions dgvc.rkt 'bits)])
@@ -84,17 +80,10 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
   {lambda []
     (define d-info (get-info/full (digimon-zone)))
     (define stone/digivice.rkt (parameterize ([current-digimon (digimon-gnome)]) (build-path (digimon-stone) "digivice.rkt")))
-    (append (foldl {λ [n r] (append (filter list? n) r)} null
-                   (map {λ [dgvc-name dgvc-lib]
-                          (define dgvc.rkt (path->string (build-path (digimon-zone) dgvc-lib)))
-                          (list (let ([t.dir (path-replace-suffix dgvc.rkt #"")]
-                                      [ds (list stone/digivice.rkt)])
-                                  (when (directory-exists? t.dir)
-                                    (list dgvc.rkt ds (curry make-digivice (car ds) dgvc-name))))
-                                (let ([t (simplify-path (build-path (digimon-world) (digimon-gnome) (car (use-compiled-file-paths)) dgvc-name))])
-                                  (list t null (curry make-racket-launcher (list "-t-" dgvc.rkt)))))}
-                        (d-info 'racket-launcher-names {λ _ null})
-                        (d-info 'racket-launcher-libraries {λ _ null})))
+    (append (filter-map {λ [dgvc] (let ([dgvc.rkt (path->string (build-path (digimon-zone) dgvc))])
+                                    (and (directory-exists? (path-replace-suffix dgvc.rkt #""))
+                                         (list dgvc.rkt (list stone/digivice.rkt) (curry make-digivice stone/digivice.rkt))))}
+                        (d-info 'racket-launcher-libraries {λ _ null}))
             (map {λ [dependent.scrbl]
                    (define top? (regexp-match? #px"/readme.scrbl$" dependent.scrbl))
                    (define-values {t ds} (cond [top? (values (build-path (digimon-world) "README.md")
@@ -222,7 +211,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 (define main
   {lambda argument-list
     (define current-make-collects (make-parameter null))
-    (define fphonies (parameterize ([current-namespace (namespace-anchor->namespace makefile)])
+    (define fphonies (parameterize ([current-namespace (variable-reference->namespace (#%variable-reference))])
                        (let ([px~fmake: #px"^make~(.+?):$"])
                          (for/hash ([var (in-list (namespace-mapped-symbols))]
                                     #:when (namespace-variable-value var #false {λ _ #false})
@@ -257,7 +246,8 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
     (define {main0 targets}
       (define-values {reals phonies} (partition filename-extension targets))
       (parameterize ([current-make-real-targets (map path->complete-path reals)])
-        (for ([digimon (in-list (let ([fsetup-collects {λ _ (map path->string (filter get-info/full (directory-list (digimon-world))))}])
+        (for ([digimon (in-list (let ([info-ref (get-info/full (digimon-world))]
+                                      [fsetup-collects {λ _ (map path->string (filter get-info/full (directory-list (digimon-world))))}])
                                   (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
                                                            [(regexp-match #px"^\\w+" (find-relative-path (digimon-world) (current-directory))) => values]
                                                            [else (cons (digimon-gnome) (info-ref 'setup-collects fsetup-collects))]))))])

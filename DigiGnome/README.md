@@ -25,7 +25,7 @@ Good Luck!
 >             - 💚 2 - should report errors
 >         + 📑make: complex options
 >           - 💚 1 - make --always-make ++only DigiGnome README.md
->           - 💚 2 - make --dry-run --touch ++only gnome307
+>           - 💚 2 - make --dry-run --touch ++only gnome299
 >       + 📑Rules serve you!
 >         + 📑info.rkt settings
 >           + 📑/info.rkt
@@ -35,7 +35,7 @@ Good Luck!
 >             - 💚 2 - Rule 3: collection
 >             - 💚 3 - Rule 4: compile-omit-paths
 >             - 💚 4 - Rule 5: test-omit-paths
->           + 📑/gnome307/info.rkt
+>           + 📑/gnome299/info.rkt
 >             - 💚 1 - Rule 2: version
 >             - 💚 2 - Rule 3: collection
 >             - 💚 3 - Rule 4: compile-omit-paths
@@ -55,8 +55,8 @@ Good Luck!
 >             - 💚 1 - Rule 6: DigiGnome/stone/readme.scrbl
 >           + 📑/DigiGnome/readme.md
 >             - 💚 1 - Rule 7: DigiGnome/tamer/handbook.scrbl
->           + 📑/gnome307/readme.md
->             - 💚 1 - Rule 7: gnome307/tamer/handbook.scrbl
+>           + 📑/gnome299/readme.md
+>             - 💚 1 - Rule 7: gnome299/tamer/handbook.scrbl
 >           + 📑/nanomon/readme.md
 >             - 💚 1 - Rule 7: nanomon/tamer/handbook.scrbl
 >           + 📑/sakuyamon/readme.md
@@ -75,9 +75,9 @@ Good Luck!
 >         + 📑digivice action [option]
 >           - 💚 1 - digivice action --help [pass option to action]
 >           - 💚 2 - digivice action --version [show version information]
->           - 💚 3 - digivice action ver sion [normal running]
->           - 💚 4 - digivice action --unknown [a kind of mistyped
+>           - 💚 3 - digivice action --unknown [a kind of mistyped
 option]
+>           - 💚 4 - digivice action job done
 >       + 📑Restore the filesystem
 >         - 💚 1 - digivice should be deleted!
 >         - 💚 2 - actions directory should be deleted recursively!
