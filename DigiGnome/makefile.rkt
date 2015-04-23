@@ -193,7 +193,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (define create-zone
   {lambda []
-    (define stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
+    (define gnome-stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
     (for ([prompt (in-list (list "collection" "pkg-desc"))]
           [defval (in-list (list (current-digimon) "[Missing Description]"))])
       (echof #:fgcolor 'green "info.rkt: Please input the '~a [~a]: " prompt defval)
@@ -206,7 +206,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
       (make-directory* dest)
       (putenv "digicore.rkt" (path->string (find-relative-path dest digicore.rkt)))
       (with-output-to-file (build-path dest src) #:exists 'error
-        {λ _ (dynamic-require (build-path stone src) #false)}))})
+        {λ _ (dynamic-require (build-path gnome-stone src) #false)}))})
 
 (define main
   {lambda argument-list

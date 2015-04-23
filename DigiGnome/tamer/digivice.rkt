@@ -94,8 +94,7 @@ Okay, the @itech{digivice} demo is ready! Now what?
        (test-spec "digivice --help [a kind of mistyped action]"
                   #:before {λ _ (call-with-fresh-$ dgvc "--help")}
                   (check-pred (procedure-rename (negate zero?) 'nonzero?) ($?))
-                  (check-regexp-match #px"Usage:.+?where <action>.+?Unrecognized"
-                                      (get-output-string $err)))
+                  (check-regexp-match #px".+?<action>.+?Unrecognized" (get-output-string $err)))
        (test-spec "digivice action [mission start]"
                   #:before {λ _ (call-with-fresh-$ dgvc "action")}
                   (check-pred zero? ($?) (get-output-string $err)))]
@@ -108,8 +107,7 @@ the commandline arguments even though it is suggested to.
        (test-spec "digivice action --help [pass option to action]"
                   #:before {λ _ (call-with-fresh-$ dgvc "action" "--help")}
                   (check-pred zero? ($?) (get-output-string $err))
-                  (check-regexp-match #px"where <option>(\\s+\\S+){3,}"
-                                      (get-output-string $out)))
+                  (check-regexp-match #px"where <option>(\\s+\\S+){3,}" (get-output-string $out)))
        (test-spec "digivice action --version [show version information]"
                   #:before {λ _ (call-with-fresh-$ dgvc "action" "--version")}
                   (check-pred zero? ($?) (get-output-string $err))

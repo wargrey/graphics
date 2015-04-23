@@ -7,13 +7,14 @@
 (require scribble/core)
 (require scribble/eval)
 (require scribble/manual)
+(require scribble/html-properties)
 
 (require "digicore.rkt")
 
 (provide (all-defined-out) tamer-story)
 
 (provide (all-from-out racket "digicore.rkt" rackunit))
-(provide (all-from-out scribble/manual scribble/eval))
+(provide (all-from-out scribble/manual scribble/eval scribble/html-properties))
 
 (define tamer-zone (make-parameter #false))
 
@@ -101,11 +102,13 @@
 (define handbook-title
   {lambda pre-contents
     (define info-ref (get-info/full (digimon-zone)))
+    (define gnome-stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
     (title (append (cond [(false? (symbol=? (object-name (current-input-port)) 'stupid-markdown)) null]
                          [else (list (hyperlink (~url (current-digimon)) (format "~a<sub>~a</sub>" house-garden# cat#)))])
                    (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection {λ _ (current-digimon)})) pre-contents))
-           #:version (format "~a[~a]" (version) (info-ref 'version {λ _ "Baby"}))
-           #:tag "tamerbook")})
+           #:style (let ([candidates (remove-duplicates (list (digimon-stone) gnome-stone))])
+                     (make-style #false (map make-css-addition (filter file-exists? (map (curryr build-path "tamer.css") candidates)))))
+           #:tag "tamerbook" #:version (format "~a[~a]" (version) (info-ref 'version {λ _ "Baby"})))})
 
 (define handbook-scenario
   {lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
