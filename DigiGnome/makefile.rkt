@@ -96,7 +96,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                    (list t ds {λ [target]
                                 (parameterize ([current-directory (digimon-zone)]
                                                [current-namespace (make-base-namespace)]
-                                               [current-input-port (open-input-bytes #"WORKAROUND" 'stupid-markdown)]
+                                               [current-input-port /dev/eof] ; workaround, to tell scribble this is rendering to markdown
                                                [exit-handler {λ _ (error 'make "[fatal] /~a needs a proper `exit-handler`!"
                                                                          (find-relative-path (digimon-world) dependent.scrbl))}])
                                   (eval '(require (prefix-in markdown: scribble/markdown-render) scribble/core scribble/render))

@@ -103,7 +103,7 @@
   {lambda pre-contents
     (define info-ref (get-info/full (digimon-zone)))
     (define gnome-stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
-    (title (append (cond [(false? (symbol=? (object-name (current-input-port)) 'stupid-markdown)) null]
+    (title (append (cond [(false? (equal? (current-input-port) /dev/eof)) null]
                          [else (list (hyperlink (~url (current-digimon)) (format "~a<sub>~a</sub>" house-garden# cat#)))])
                    (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection {λ _ (current-digimon)})) pre-contents))
            #:style (let ([candidates (remove-duplicates (list (digimon-stone) gnome-stone))])
