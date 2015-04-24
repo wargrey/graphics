@@ -13,6 +13,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (require make)
 
+(require compiler/cm)
 (require compiler/compiler)
 
 (require "digitama/digicore.rkt")
@@ -47,18 +48,18 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (define compile-directory
   {lambda [cmpdir finfo]
-    (define-values {/dev/make/stdin /dev/make/stdout} (make-pipe #false 'filter-checking 'verbose-message))
-    (define px.inside (pregexp (if (make-print-checking) (digimon-world) (path->string (digimon-zone)))))
-    (thread {λ _ (for ([line (in-port read-line /dev/make/stdin)])
-                   (cond [(regexp-match? px.inside line) (printf "~a~n" line)]
-                         [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" line) 'Skip-Others-Packages]
-                         [else (printf "~a~n" line)]))})
-    (dynamic-wind {λ _ (void #| compiling in the main thread is good for breaking when exception occures |#)}
-                  {λ _ (parameterize ([current-output-port /dev/make/stdout]
-                                      [current-error-port /dev/make/stdout])
-                         (with-handlers ([exn? (compose1 (curry error 'make "[error] ~a") exn-message)])
-                           (compile-directory-zos cmpdir finfo #:verbose #true #:skip-doc-sources? #true)))}
-                  {λ _ (close-output-port /dev/make/stdout)})})
+    (define px.within (pregexp (if (make-print-checking) (digimon-world) (path->string (digimon-zone)))))
+    (define traceln (curry printf "compiler: ~a~n"))
+    (define filter-inside {λ [info] (cond [(regexp-match? #px"checking:" info) (when (make-print-checking) (traceln info))]
+                                          [(regexp-match? #px"(compil|process|skipp)ing:" info) (traceln info)])})
+    (define filter-verbose {λ [info] (cond [(regexp-match? #px"(newer src...|end compile|done:)" info) '|Skip Task Endline|]
+                                           [(regexp-match? #px"newer:" info) (when (make-print-reasons) (traceln info))]
+                                           [(regexp-match? px.within info) (filter-inside info)]
+                                           [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" info) '|Skip Other's Packages|]
+                                           [else (traceln info)])})
+    (with-handlers ([exn? (compose1 (curry error 'make "[error] ~a") exn-message)])
+      (parameterize ([manager-trace-handler filter-verbose])
+        (compile-directory-zos cmpdir finfo #:verbose #false #:skip-doc-sources? #true)))})
 
 (define make-digivice
   {lambda [template.rkt dgvc.rkt]

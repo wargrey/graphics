@@ -9,7 +9,7 @@
 (define-type Info-Ref (->* {Symbol} {(-> Any)} Any))
 
 (require/typed/provide setup/getinfo
-                       [get-info/full {Path-String -> (Option Info-Ref)}])
+                       [get-info/full {Path-String [#:namespace (Option Namespace)] [#:bootstrap? Any] -> (Option Info-Ref)}])
 
 (define-syntax {#%full-module stx}
   #'(let ([rmp (variable-reference->resolved-module-path (#%variable-reference))])

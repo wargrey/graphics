@@ -9,7 +9,7 @@
 (require scribble/manual)
 (require scribble/html-properties)
 
-(require "digicore.rkt")
+@require{digicore.rkt}
 
 (provide (all-defined-out) tamer-story)
 
