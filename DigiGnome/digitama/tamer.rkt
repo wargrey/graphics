@@ -299,14 +299,14 @@
                                                    (when (procedure? ftype) (unit-spec (cons (ftype ctxt) (unit-spec))))
                                                    ((if (string=? spc "") (curry elemtag ctxt) elem)
                                                     (string stts#) (racketkeywordfont ~ (italic idx)) (racketcommentfont ~ (literal ctxt))))}]
-                                 [(regexp-match #px"^\\s*»» (.+?)?:?\\s+\"?(.+?)\"?\\s*$" line)
+                                 [(regexp-match #px"^\\s*»» (.+?)?:?\\s+(.+?)\\s*$" line)
                                   => {λ [pieces] (let ([key (list-ref pieces 1)])
                                                    (unit-spec (cons (string-trim line) (unit-spec)))
                                                    (define type# (cond [(regexp-match? #px"message$" key) backhand#]
                                                                        [(regexp-match? #px"param:\\d" key) crystal-ball#]))
                                                    (unless (void? type#)
                                                      (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
-                                                           (string type#) ~ (italic (literal (list-ref pieces 2))))))}]
+                                                           (string type#) ~ (italic (literal (format "~a" (read (open-input-string (list-ref pieces 2)))))))))}]
                                  [(regexp-match #px"^$" line) (hash-set! scenarios unit (reverse (unit-spec)))]
                                  [(hash-has-key? scenarios unit) (elem (string pin#) ~ ((if (regexp-match? #px"error" line) racketerror racketresultfont) line)
                                                                        ~ (seclink (tamer-story->tag (tamer-story))
