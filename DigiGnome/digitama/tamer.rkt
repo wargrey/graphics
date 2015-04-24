@@ -305,8 +305,10 @@
                                                    (define type# (cond [(regexp-match? #px"message$" key) backhand#]
                                                                        [(regexp-match? #px"param:\\d" key) crystal-ball#]))
                                                    (unless (void? type#)
-                                                     (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
-                                                           (string type#) ~ (italic (literal (format "~a" (read (open-input-string (list-ref pieces 2)))))))))}]
+                                                     (let ([val (read (open-input-string (list-ref pieces 2)))])
+                                                       (cond [(eq? type# crystal-ball#) (elem (racketvalfont (string type#)) ~ (racket #,val))]
+                                                             [else (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
+                                                                         (string type#) ~ (italic (literal val)))]))))}]
                                  [(regexp-match #px"^$" line) (hash-set! scenarios unit (reverse (unit-spec)))]
                                  [(hash-has-key? scenarios unit) (elem (string pin#) ~ ((if (regexp-match? #px"error" line) racketerror racketresultfont) line)
                                                                        ~ (seclink (tamer-story->tag (tamer-story))
