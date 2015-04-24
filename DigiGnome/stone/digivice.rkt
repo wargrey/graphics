@@ -16,6 +16,8 @@ exec racket --name "`basename $0 .rkt`" --require "$0" -- ${1+"$@|#\@|"}
 
 (define digivice : Symbol (#%module))
 
+(provide main)
+
 (define show-help-and-exit : {[#:erract (Option String)] -> Void}
   {lambda [#:erract [error-action #false]]
     (define printf0 : {String Any * -> Void} (if error-action eprintf printf))
