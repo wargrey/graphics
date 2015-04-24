@@ -115,18 +115,16 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 (define make~all:
   {lambda []
     (define submake (build-path (digimon-zone) "submake.rkt"))
-    (define meta? (equal? (current-digimon) (digimon-gnome)))
     (define do-make {λ [rules0] (unless (null? rules0)
                                   (define-values {imts exts} (partition (curryr assoc rules0) (current-make-real-targets)))
                                   (let ([rules (map hack-rule rules0)])
                                     (make/proc rules (if (null? (current-make-real-targets)) (map car rules) imts)))
                                   (current-make-real-targets exts))})
 
-    (when meta? (compile-directory (digimon-zone) (get-info/full (digimon-zone))))
+    (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
     (do-make (make-implicit-rules))
-    (when (and meta? (directory-exists? (digimon-digivice)))
+    (when (directory-exists? (digimon-digivice))
       (compile-directory (digimon-digivice) (get-info/full (digimon-zone))))
-    (unless meta? (compile-directory (digimon-zone) (get-info/full (digimon-zone))))
     
     (let ([modpath `(submod ,submake make:files)])
       (when (module-declared? modpath #true)
@@ -253,7 +251,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
               (curry eprintf "make: I don't know what does `~a` mean!~n")))
     (define {main0 targets}
       (define-values {reals phonies} (partition filename-extension targets))
-      (parameterize ([current-make-real-targets (map simplify-path reals)])
+      (parameterize ([current-make-real-targets (map (compose1 simplify-path path->complete-path) reals)])
         (for ([digimon (in-list (let ([info-ref (get-info/full (digimon-world))]
                                       [fsetup-collects {λ _ (map path->string (filter get-info/full (directory-list (digimon-world))))}])
                                   (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
