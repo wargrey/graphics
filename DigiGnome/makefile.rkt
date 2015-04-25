@@ -261,7 +261,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
             (dynamic-wind {λ _ (printf "Enter Digimon Zone: ~a.~n" digimon)}
                           {λ _ (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
                                  (parameterize ([current-make-phony-goal phony])
-                                   (with-handlers ([exn? {λ [e] (exit ({λ _ 1} (eprintf "~a~n" (exn-message e))))}])
+                                   (with-handlers ([exn? (compose1 exit {λ _ 1} (curry eprintf "~a~n") exn-message)])
                                      (cond [(false? (directory-exists? (digimon-zone))) (create-zone)]
                                            [else (file-or-directory-modify-seconds (digimon-zone) (current-seconds))])
                                      (cond [(regexp-match? #px"clean$" phony) ((hash-ref fphonies "clean"))]
