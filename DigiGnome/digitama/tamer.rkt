@@ -300,15 +300,13 @@
                                                    ((if (string=? spc "") (curry elemtag ctxt) elem)
                                                     (string stts#) (racketkeywordfont ~ (italic idx)) (racketcommentfont ~ (literal ctxt))))}]
                                  [(regexp-match #px"^\\s*»» (.+?)?:?\\s+(.+?)\\s*$" line)
-                                  => {λ [pieces] (let ([key (list-ref pieces 1)])
+                                  => {λ [pieces] (match-let ([{list _ key val} pieces])
                                                    (unit-spec (cons (string-trim line) (unit-spec)))
-                                                   (define type# (cond [(regexp-match? #px"message$" key) backhand#]
-                                                                       [(regexp-match? #px"param:\\d" key) crystal-ball#]))
-                                                   (unless (void? type#)
-                                                     (let ([val (read (open-input-string (list-ref pieces 2)))])
-                                                       (cond [(eq? type# crystal-ball#) (elem (racketvalfont (string type#)) ~ (racket #,val))]
-                                                             [else (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
-                                                                         (string type#) ~ (italic (literal val)))]))))}]
+                                                   (cond [(regexp-match? #px"message$" key) (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
+                                                                                                  (string backhand#) ~ (italic (literal val)))]
+                                                         [(regexp-match? #px"param:\\d" key) (elem (racketvalfont (string crystal-ball#)) ~
+                                                                                                   (parameterize ([current-readtable readwrotten])
+                                                                                                     (racket #,(fix (read (open-input-string val))))))]))}]
                                  [(regexp-match #px"^$" line) (hash-set! scenarios unit (reverse (unit-spec)))]
                                  [(hash-has-key? scenarios unit) (elem (string pin#) ~ ((if (regexp-match? #px"error" line) racketerror racketresultfont) line)
                                                                        ~ (seclink (tamer-story->tag (tamer-story))
@@ -329,6 +327,9 @@
   (require rackunit)
   (require racket/undefined)
   (require syntax/location)
+  (require setup/xref)
+  (require scribble/xref)
+  (require scribble/manual)
 
   (require "digicore.rkt")
   
@@ -409,7 +410,36 @@
 
   (define tr-d (curryr string-replace (digimon-world) ""))
   (define tr-if-path {λ [p] (if (path? p) (build-path (tr-d (format "~a" p))) p)})
-  
+
+  (define readwrotten (make-readtable (current-readtable)
+                                      #\< 'dispatch-macro
+                                      {λ [< port [src #false] [line #false] [col #false] [pos #false]]
+                                        (fix (match (regexp-match #px"<?(procedure)?(:)?(.+?)?>" port)
+                                               [{list _ _ #false #false} '{lambda _ ...}]
+                                               [{list _ #false #false name} (string->symbol (format "#<~a>" name))]
+                                               [{list _ _ _ {pregexp #px"function\\.rkt"}} (cons negate (string->symbol "#<procedure:?>"))]
+                                               [{list _ _ _ #"composed"} '{compose λ ...}]
+                                               [{list _ _ _ #"curried"} '{curry λ ...}]
+                                               [{list _ _ _ name} (with-handlers ([exn? {λ [ev] (list procedure-rename 'λ (exn:fail:contract:variable-id ev))}])
+                                                                    (eval (string->symbol (bytes->string/utf-8 name))
+                                                                          (let ([mod (build-path (digimon-tamer) "tamer.rkt")])
+                                                                            (dynamic-require mod #false)
+                                                                            (module->namespace mod))))]))}))
+
+  (define fix
+    {lambda [val]
+      (or (and (or (procedure? val) (symbol? val))
+               (let*-values ([{modpath export} (values (build-path (digimon-tamer) "tamer.rkt") (or (object-name val) val))]
+                             [{xref} (load-collections-xref)]
+                             [{tag} (xref-binding->definition-tag xref (list modpath export) #false)]
+                             [{path anchor} (with-handlers ([exn? {λ _ (values #false #false)}])
+                                              (xref-tag->path+anchor xref tag #:external-root-url #false))])
+                 (and (and path anchor)
+                      (racketvalfont (hyperlink (format "~a#~a" path anchor) (symbol->string export))))))
+            (and (pair? val) (cons (fix (car val)) (fix (cdr val))))
+            val)})
+
+
   (define display-failure
     {lambda [result #:indent [headspace ""]]
       (define echo (curry eechof #:fgcolor 'red "~a»» ~a: ~s~n" headspace))
