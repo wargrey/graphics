@@ -25,7 +25,7 @@ Good Luck!
 >             - 💚 2 - should report errors
 >         + 📑make: complex options
 >           - 💚 1 - make --always-make ++only DigiGnome README.md
->           - 💚 2 - make --dry-run --touch ++only gnome767
+>           - 💚 2 - make --dry-run --touch ++only gnome325
 >       + 📑Rules serve you!
 >         + 📑info.rkt settings
 >           + 📑/info.rkt
@@ -35,7 +35,7 @@ Good Luck!
 >             - 💚 2 - Rule 3: collection
 >             - 💚 3 - Rule 4: compile-omit-paths
 >             - 💚 4 - Rule 5: test-omit-paths
->           + 📑/gnome767/info.rkt
+>           + 📑/gnome325/info.rkt
 >             - 💚 1 - Rule 2: version
 >             - 💚 2 - Rule 3: collection
 >             - 💚 3 - Rule 4: compile-omit-paths
@@ -55,8 +55,8 @@ Good Luck!
 >             - 💚 1 - Rule 6: DigiGnome/stone/readme.scrbl
 >           + 📑/DigiGnome/readme.md
 >             - 💚 1 - Rule 7: DigiGnome/tamer/handbook.scrbl
->           + 📑/gnome767/readme.md
->             - 💚 1 - Rule 7: gnome767/tamer/handbook.scrbl
+>           + 📑/gnome325/readme.md
+>             - 💚 1 - Rule 7: gnome325/tamer/handbook.scrbl
 >           + 📑/nanomon/readme.md
 >             - 💚 1 - Rule 7: nanomon/tamer/handbook.scrbl
 >           + 📑/sakuyamon/readme.md

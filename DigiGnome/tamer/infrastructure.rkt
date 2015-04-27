@@ -29,8 +29,7 @@ You may have already familiar with the @hyperlink["http://en.wikipedia.org/wiki/
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
 @exec{@|-~-|h} or @exec{@|-~-|@|-~-|help} option:
 
-@tamer-action[(parameterize ([exit-handler void])
-                ((dynamic-require/expose (tamer-story) 'make) "--help"))]
+@tamer-action[(parameterize ([exit-handler void]) (make "--help"))]
 
 Watch out! The buggy implementation may keep invoking another test routine endlessly in which case
 this @itech{handbook} itself may be depended by some other files.

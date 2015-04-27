@@ -65,12 +65,12 @@
 
 (define-syntax {define-digimon-dirpath stx}
   (syntax-case stx []
-    [{_ id ...}
-     (with-syntax ([{digimon-id ...} (map {λ [var] (with-syntax ([id var]) (format-id #'id "digimon-~a" (syntax-e #'id)))} (syntax->list #'{id ...}))])
-       #'{begin (define digimon-id : (Parameterof Nothing Path)
-                  (make-derived-parameter digimon-zone (immutable-guard 'digimon-id)
-                                          {λ [[zonedir : Path]] (build-path zonedir (symbol->string 'id))}))
-                ...})]))
+    [{_ id ...} (with-syntax ([{digimon-id ...} (map {λ [var] (with-syntax ([id var]) (format-id #'id "digimon-~a" (syntax-e #'id)))}
+                                                     (syntax->list #'{id ...}))])
+                  #'{begin (define digimon-id : (Parameterof Nothing Path)
+                             (make-derived-parameter digimon-zone (immutable-guard 'digimon-id)
+                                                     {λ [[zonedir : Path]] (build-path zonedir (symbol->string 'id))}))
+                           ...})]))
 
 (define-digimon-dirpath stone digitama digivice tamer terminus)
 

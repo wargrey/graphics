@@ -34,11 +34,11 @@
 
 (define make-tamer-zone
   {lambda []
-    (define tamer.rkt (path->string (build-path (digimon-tamer) "tamer.rkt")))
-    (parameterize ([sandbox-namespace-specs (append (sandbox-namespace-specs) `{(file ,tamer.rkt)})]
-                   [sandbox-output 'string]
-                   [sandbox-error-output 'string])
-      ((make-eval-factory (list `(file ,tamer.rkt) (tamer-story)))))})
+    (define tamer.rkt (build-path (digimon-tamer) "tamer.rkt"))
+    (dynamic-require (tamer-story) #false)
+    (define tamer-namespace (module->namespace (tamer-story)))
+    (parameterize ([sandbox-namespace-specs (cons {λ _ tamer-namespace} null)])
+      (make-base-eval #:pretty-print? #true))})
 
 (define-syntax {tamer-taming-start stx}
   #'(let ([modpath (quote-module-path)])
@@ -120,10 +120,12 @@
     (list (section #:style style
                    (string-titlecase (format "Appendix: ~a Auxiliaries" (path-replace-suffix (tamer-story->tag (tamer-story)) "")))
                    pre-contents)
-          (para (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
-                      @italic{In order to avoid polluting your eyes,
-                              any less important things are moved here.
-                              You can simply ignore them as you wish.}))
+          (let ([zone-snapshot (tamer-zone)])
+            (make-traverse-block {λ _ (dynamic-wind {λ _ (void)}
+                                                    {λ _ (para (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
+                                                                     @italic{In order to avoid polluting your eyes,
+                                                                             any less important things are moved here.}))}
+                                                    {λ _ (close-eval zone-snapshot)})}))
           (tamer-story #false))})
 
 (define handbook-rule

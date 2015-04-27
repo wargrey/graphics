@@ -78,8 +78,7 @@ or @exec{raco setup}. But the launcher is just a shell script that starts the @i
 
 Okay, the @itech{digivice} demo is ready! Now what?
 
-@tamer-action[(parameterize ([exit-handler void])
-                (force (dynamic-require/expose (tamer-story) 'digivice)))
+@tamer-action[(parameterize ([exit-handler void]) ((force digivice)))
               (code:comment @#,t{So we have got the entrance.})
               (code:comment @#,t{Please do not ask me why it talks without being invoked, bleme @racketcommentfont{@exec{raco setup}}.})]
 
