@@ -9,6 +9,8 @@
 (require scribble/manual)
 (require scribble/html-properties)
 
+(require (for-syntax syntax/parse))
+
 @require{digicore.rkt}
 
 (provide (all-defined-out) tamer-story)
@@ -47,30 +49,25 @@
                        (tamer-zone (make-tamer-zone)))])))
 
 (define-syntax {handbook-story stx}
-  (syntax-case stx []
-    [{_ #:style style contents ...} #'(list (tamer-taming-start) (title #:tag (tamer-story->tag (tamer-story)) #:style style "Story: " contents ...))]
-    [{_ pre-contents ...} (syntax/loc stx (handbook-story #:style #false pre-contents ...))]))
+  (syntax-parse stx #:literals []
+    [{_ (~optional (~seq #:style s:expr)) contents ...}
+     #`(list (tamer-taming-start)
+             (title #:tag (tamer-story->tag (tamer-story)) #:style #,(attribute s) "Story: " contents ...))]))
 
 (define-syntax {define-tamer-suite stx}
-  (syntax-case stx []
-    [{_ varid name #:before setup #:after teardown units ...} #'(tamer-record-story 'varid (test-suite name #:before setup #:after teardown units ...))]
-    [{_ varid name #:before setup units ...} (syntax/loc stx (define-tamer-suite varid name #:before setup #:after void units ...))]
-    [{_ varid name #:after teardown units ...} (syntax/loc stx (define-tamer-suite varid name #:before void #:after teardown units ...))]
-    [{_ varid name units ...} (syntax/loc stx (define-tamer-suite varid name #:before void #:after void units ...))]))
+  (syntax-parse stx
+    [{_ varid name (~optional (~seq #:before setup:expr)) (~optional (~seq #:after teardown:expr)) units ...}
+     #`(tamer-record-story 'varid (test-suite name #:before #,(or (attribute setup) #'void) #:after #,(or (attribute teardown) #'void) units ...))]))
 
 (define-syntax {define-tamer-case stx}
-  (syntax-case stx []
-    [{_ varid name #:before setup #:after teardown checks ...} #'(tamer-record-story 'varid (delay-test (test-spec name #:before setup #:after teardown checks ...)))]
-    [{_ varid name #:before setup checks ...} (syntax/loc stx (define-tamer-case varid name #:before setup #:after void checks ...))]
-    [{_ varid name #:after teardown checks ...} (syntax/loc stx (define-tamer-case varid name #:before void #:after teardown checks ...))]
-    [{_ varid name checks ...} (syntax/loc stx (define-tamer-case varid name #:before void #:after void checks ...))]))
+  (syntax-parse stx
+    [{_ varid name (~optional (~seq #:before setup:expr)) (~optional (~seq #:after teardown:expr)) checks ...}
+     #'(tamer-record-story 'varid (delay-test (test-spec name #:before setup checks ... #:after teardown)))]))
 
 (define-syntax {test-spec stx}
-  (syntax-case stx []
-    [{_ name #:before setup #:after teardown checks ...} #'(test-case name (around (setup) checks ... (teardown)))]
-    [{_ name #:before setup checks ...} (syntax/loc stx (test-spec name #:before setup #:after void checks ...))]
-    [{_ name #:after teardown checks ...} (syntax/loc stx (test-spec name #:before void #:after teardown checks ...))]
-    [{_ name checks ...} (syntax/loc stx (test-spec name #:before void #:after void checks ...))]))
+  (syntax-parse stx
+    [{_ name (~optional (~seq #:before setup:expr)) (~optional (~seq #:after teardown:expr)) checks ...}
+     #`(test-case name (around (#,(or (attribute setup) #'void)) checks ... (#,(or (attribute teardown) #'void))))]))
 
 (define-syntax {tamer-action stx}
   (syntax-case stx []
@@ -83,13 +80,12 @@
 (define tamer-require
   {lambda [name]
     (define htag (tamer-story->tag (tamer-story)))
-    (define unit (hash-ref handbook-stories htag null))
+    (define units (hash-ref handbook-stories htag null))
     (with-handlers ([exn? {λ [e] (let ([story (exn->test-case 'tamer-require e)])
-                                   (hash-set! handbook-stories htag (cons (cons name story) unit))
+                                   (hash-set! handbook-stories htag (cons (cons name story) units))
                                    story)}])
-      (with-handlers ([exn:fail:contract? {λ [efc] (raise (make-exn:fail:contract:variable (format "'~a has not yet defined!" name)
-                                                                                           (exn-continuation-marks efc) name))}])
-        (cdr (assoc name unit))))})
+      (dict-ref units name {λ _ (raise (make-exn:fail:contract:variable (format "'~a has not yet defined!" name)
+                                                                        (current-continuation-marks) name))}))})
 
 (define tamer-story->libpath
   {lambda [story-path]
@@ -366,7 +362,7 @@
     {lambda [name unit]
       (define htag (tamer-story->tag (tamer-story)))
       (define units (hash-ref handbook-stories htag null))
-      (unless (assoc name units)
+      (unless (dict-has-key? units name)
         (hash-set! handbook-stories htag
                    (cons (cons name unit) units)))
       (let ([books (hash-ref handbook-stories books# null)])  ;;; Readme.md needs it stay here
