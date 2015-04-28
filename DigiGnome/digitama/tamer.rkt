@@ -420,8 +420,8 @@
                                       {λ [< port [src #false] [line #false] [col #false] [pos #false]]
                                         (fix (match (regexp-match #px"<?(procedure)?(:)?(.+?)?>" port)
                                                [{list _ _ #false #false} '{lambda _ ...}]
-                                               [{list _ #false #false name} (string->symbol (format "#<~a>" name))]
-                                               [{list _ _ _ {pregexp #px"function\\.rkt"}} (cons negate (string->symbol "#<procedure:?>"))]
+                                               [{list _ #false #false <something-type/value>} (string->symbol (format "~a?" <something-type/value>))]
+                                               [{list _ _ _ {pregexp #px"function\\.rkt"}} (cons negate 'λ)]
                                                [{list _ _ _ #"composed"} '{compose λ ...}]
                                                [{list _ _ _ #"curried"} '{curry λ ...}]
                                                [{list _ _ _ name} (with-handlers ([exn? {λ [ev] (list procedure-rename 'λ (exn:fail:contract:variable-id ev))}])
@@ -432,19 +432,16 @@
 
   (define fix
     {lambda [val]
-      (or (and (or (procedure? val) (symbol? val))
-               (let*-values ([{modpath export} (values (build-path (digimon-tamer) "tamer.rkt") (or (object-name val) val))]
-                             [{xref} (load-collections-xref)]
-                             [{tag} (xref-binding->definition-tag xref (list modpath export) #false)]
-                             [{path anchor} (with-handlers ([exn? {λ _ (values #false #false)}])
-                                              (xref-tag->path+anchor xref tag #:external-root-url #false))])
-                 (and (and path anchor)
-                      (racketvalfont (hyperlink (format "~a#~a" path anchor) (symbol->string export))))))
-          (and (vector? val) ; also for structures
-               (vector-map fix val))
-          (and (pair? val) ; also for lists
-               (cons (fix (car val)) (fix (cdr val))))
-          val)})
+      (cond [(or (procedure? val) (symbol? val)) (let*-values ([{modpath} (build-path (digimon-tamer) "tamer.rkt")]
+                                                               [{export} (or (object-name val) val)]
+                                                               [{xref} (load-collections-xref)]
+                                                               [{tag} (xref-binding->definition-tag xref (list modpath export) #false)]
+                                                               [{path anchor} (with-handlers ([exn? {λ _ (values #false #false)}])
+                                                                                (xref-tag->path+anchor xref tag #:external-root-url #false))])
+                                                   (or (and path anchor (racketvalfont (hyperlink (format "~a#~a" path anchor) (symbol->string export)))) val))]
+            [(vector? val) #| also for (struct? val) |# (vector-map fix val)]
+            [(pair? val) #| also for lists |# (cons (fix (car val)) (fix (cdr val)))]
+            [else val])})
 
 
   (define display-failure

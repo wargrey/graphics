@@ -58,6 +58,7 @@
 
 (void (unless (member (digimon-world) (current-library-collection-paths))
         (current-library-collection-paths (cons (build-path (digimon-world)) (current-library-collection-paths)))
+        (print-boolean-long-form #true)
         
         ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
         ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
