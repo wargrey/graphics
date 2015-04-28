@@ -25,42 +25,42 @@ Good Luck!
 >             - 💚 2 - should report errors
 >         + 📑make: complex options
 >           - 💚 1 - make --always-make ++only DigiGnome README.md
->           - 💚 2 - make --dry-run --touch ++only gnome325
+>           - 💚 2 - make --dry-run --touch ++only gnome717
 >       + 📑Rules serve you!
 >         + 📑info.rkt settings
 >           + 📑/info.rkt
->             - 💚 1 - Rule 1: multi
+>             - 💚 1 - multi
 >           + 📑/DigiGnome/info.rkt
->             - 💚 1 - Rule 2: version
->             - 💚 2 - Rule 3: collection
->             - 💚 3 - Rule 4: compile-omit-paths
->             - 💚 4 - Rule 5: test-omit-paths
->           + 📑/gnome325/info.rkt
->             - 💚 1 - Rule 2: version
->             - 💚 2 - Rule 3: collection
->             - 💚 3 - Rule 4: compile-omit-paths
->             - 💚 4 - Rule 5: test-omit-paths
+>             - 💚 1 - version
+>             - 💚 2 - collection
+>             - 💚 3 - compile-omit-paths
+>             - 💚 4 - test-omit-paths
+>           + 📑/gnome717/info.rkt
+>             - 💚 1 - version
+>             - 💚 2 - collection
+>             - 💚 3 - compile-omit-paths
+>             - 💚 4 - test-omit-paths
 >           + 📑/nanomon/info.rkt
->             - 💚 1 - Rule 2: version
->             - 💚 2 - Rule 3: collection
->             - 💚 3 - Rule 4: compile-omit-paths
->             - 💚 4 - Rule 5: test-omit-paths
+>             - 💚 1 - version
+>             - 💚 2 - collection
+>             - 💚 3 - compile-omit-paths
+>             - 💚 4 - test-omit-paths
 >           + 📑/sakuyamon/info.rkt
->             - 💚 1 - Rule 2: version
->             - 💚 2 - Rule 3: collection
->             - 💚 3 - Rule 4: compile-omit-paths
->             - 💚 4 - Rule 5: test-omit-paths
+>             - 💚 1 - version
+>             - 💚 2 - collection
+>             - 💚 3 - compile-omit-paths
+>             - 💚 4 - test-omit-paths
 >         + 📑README.md dependencies
 >           + 📑/README.md
->             - 💚 1 - Rule 6: DigiGnome/stone/readme.scrbl
+>             - 💚 1 - DigiGnome/stone/readme.scrbl
 >           + 📑/DigiGnome/readme.md
->             - 💚 1 - Rule 7: DigiGnome/tamer/handbook.scrbl
->           + 📑/gnome325/readme.md
->             - 💚 1 - Rule 7: gnome325/tamer/handbook.scrbl
+>             - 💚 1 - DigiGnome/tamer/handbook.scrbl
+>           + 📑/gnome717/readme.md
+>             - 💚 1 - gnome717/tamer/handbook.scrbl
 >           + 📑/nanomon/readme.md
->             - 💚 1 - Rule 7: nanomon/tamer/handbook.scrbl
+>             - 💚 1 - nanomon/tamer/handbook.scrbl
 >           + 📑/sakuyamon/readme.md
->             - 💚 1 - Rule 7: sakuyamon/tamer/handbook.scrbl
+>             - 💚 1 - sakuyamon/tamer/handbook.scrbl
 >     + 📖
 [digivice.rkt](http://gyoudmon.org/~wargrey/.digignome/digivice.rkt)
 >       + 📑Make the demo from scratch

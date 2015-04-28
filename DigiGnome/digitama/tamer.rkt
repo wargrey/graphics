@@ -303,8 +303,11 @@
                                  [(regexp-match #px"^\\s*»» (.+?)?:?\\s+(.+?)\\s*$" line)
                                   => {λ [pieces] (match-let ([{list _ key val} pieces])
                                                    (unit-spec (cons (string-trim line) (unit-spec)))
-                                                   (cond [(regexp-match? #px"message$" key) (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
-                                                                                                  (string backhand#) ~ (italic (literal val)))]
+                                                   (cond [(string=? "message" key) (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
+                                                                                                 (string backhand#) ~ (italic (literal val)))]
+                                                         [(string=? "exn" key) (elem (racketvalfont (string macroscope#)) ~
+                                                                                     (parameterize ([current-readtable readwrotten])
+                                                                                       (racket #,(fix (read (open-input-string val))))))]
                                                          [(regexp-match? #px"param:\\d" key) (elem (racketvalfont (string crystal-ball#)) ~
                                                                                                    (parameterize ([current-readtable readwrotten])
                                                                                                      (racket #,(fix (read (open-input-string val))))))]))}]
@@ -437,8 +440,11 @@
                                               (xref-tag->path+anchor xref tag #:external-root-url #false))])
                  (and (and path anchor)
                       (racketvalfont (hyperlink (format "~a#~a" path anchor) (symbol->string export))))))
-            (and (pair? val) (cons (fix (car val)) (fix (cdr val))))
-            val)})
+          (and (vector? val) ; also for structures
+               (vector-map fix val))
+          (and (pair? val) ; also for lists
+               (cons (fix (car val)) (fix (cdr val))))
+          val)})
 
 
   (define display-failure
