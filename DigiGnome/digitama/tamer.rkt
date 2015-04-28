@@ -3,6 +3,7 @@
 (require rackunit)
 
 (require racket/sandbox)
+(require racket/generator)
 
 (require scribble/core)
 (require scribble/eval)
@@ -125,9 +126,11 @@
           (tamer-story #false))})
 
 (define handbook-rule
-  {lambda [id . pre-flow]
-    (define tag (format "rule ~a" id))
-    (itemlist (item (elemtag tag (bold (format "~a " (string-titlecase tag)))) pre-flow))})
+  {generator pre-flow
+    (let loop ([id (in-naturals 1)])
+      (yield (let ([index (stream-first id)])
+               (itemlist (item (bold (deftech (format "Rule #~a" index))) ~ pre-flow))))
+      (loop (stream-rest id)))})
 
 (define itech
   {lambda pre-contents
@@ -332,7 +335,7 @@
   (require "digicore.rkt")
   
   (provide (all-defined-out) quote-module-path)
-  
+
   (define tamer-story (make-parameter #false))
 
   (define tamer-story->tag
@@ -379,7 +382,7 @@
                                                                               [routine {λ _ (with-check-info {{'exitcode v}} (fail errmsg))}])
                                                                          (return (run-test-case case-name routine)))}])
                                      (return (run-test-case case-name action)))})})})
-  
+
   (define indents (make-hash))
   (define ~indent
     {lambda [count #:times [times 2] #:padchar [padding #\space]]
