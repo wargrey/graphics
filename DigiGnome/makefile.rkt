@@ -251,7 +251,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
               (curry eprintf "make: I don't know what does `~a` mean!~n")))
     (define {main0 targets}
       (define-values {reals phonies} (partition filename-extension targets))
-      (parameterize ([current-make-real-targets (map (compose1 simplify-path path->complete-path) reals)])
+      (parameterize ([current-make-real-targets (map simple-form-path reals)])
         (for ([digimon (in-list (let ([info-ref (get-info/full (digimon-world))]
                                       [fsetup-collects {λ _ (map path->string (filter get-info/full (directory-list (digimon-world))))}])
                                   (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]

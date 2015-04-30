@@ -133,8 +133,8 @@
       (loop (stream-rest id)))})
 
 (define itech
-  {lambda pre-contents
-    (tech (italic pre-contents))})
+  {lambda [#:key [key #false] . pre-contents]
+    (tech (italic pre-contents) #:key key)})
 
 (define tamer-prove
   {lambda []
@@ -266,6 +266,7 @@
        (margin-note (for/list ([unit-var (in-list unit-vars)])
                       (define-values {/dev/tamer/stdin /dev/tamer/stdout} (make-pipe #false '/dev/tamer/stdin '/dev/tamer/stdout))
                       (parameterize ([tamer-story story-snapshot]
+                                     [current-readtable readwrotten]
                                      [current-input-port /dev/tamer/stdin])
                         (define unit (tamer-require unit-var))
                         (define unit-spec (make-parameter null))
@@ -304,13 +305,14 @@
                                   => {λ [pieces] (match-let ([{list _ key val} pieces])
                                                    (unit-spec (cons (string-trim line) (unit-spec)))
                                                    (cond [(string=? "message" key) (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
-                                                                                                 (string backhand#) ~ (italic (literal val)))]
-                                                         [(string=? "exn" key) (elem (racketvalfont (string macroscope#)) ~
-                                                                                     (parameterize ([current-readtable readwrotten])
-                                                                                       (racket #,(fix (read (open-input-string val))))))]
-                                                         [(regexp-match? #px"param:\\d" key) (elem (racketvalfont (string crystal-ball#)) ~
-                                                                                                   (parameterize ([current-readtable readwrotten])
-                                                                                                     (racket #,(fix (read (open-input-string val))))))]))}]
+                                                                                         (string backhand#) ~ (italic (literal val)))]
+                                                         [(member key '{"exn" "exception"}) (elem (racketvalfont (string macroscope#)) ~
+                                                                                                  (racket #,(fix (read (open-input-string val)))))]
+                                                         [(regexp-match? #px"param:\\d+" key) (elem (racketvalfont (string crystal-ball#)) ~
+                                                                                                    (racket #,(fix (read (open-input-string val)))))]))}]
+                                 [(regexp-match #px"^\\s*»»» \\s+(expected|given|received):\\s+(.+?)\\s*$" line) ; only for errors those have multilined messages.
+                                  => {λ [pieces] (and (unit-spec (cons (string-trim line) (unit-spec)))
+                                                      (elem (racketvalfont (string paw#)) ~ (racket #,(fix (read (open-input-string (list-ref pieces 2)))))))}]
                                  [(regexp-match #px"^$" line) (hash-set! scenarios unit (reverse (unit-spec)))]
                                  [(hash-has-key? scenarios unit) (elem (string pin#) ~ ((if (regexp-match? #px"error" line) racketerror racketresultfont) line)
                                                                        ~ (seclink (tamer-story->tag (tamer-story))
@@ -448,14 +450,14 @@
     {lambda [result #:indent [headspace ""]]
       (define echo (curry eechof #:fgcolor 'red "~a»» ~a: ~s~n" headspace))
       (for ([info (in-list (exn:test:check-stack (test-failure-result result)))])
-        (cond [(symbol=? (check-info-name info) 'params) (for ([param (in-list (map tr-if-path (check-info-value info)))]
-                                                               [index (in-naturals 1)])
-                                                           (echo (format "param:~a" index) param))]
-              [else (echo (check-info-name info) (case (check-info-name info)
-                                                   [{location} (tr-d (srcloc->string (apply srcloc (check-info-value info))))]
-                                                   [{exception-message} (tr-d (check-info-value info))]
-                                                   [{exception} (object-name (check-info-value info))]
-                                                   [else ((if (string? (check-info-value info)) tr-d tr-if-path) (check-info-value info))]))]))})
+        (case (check-info-name info)
+          [{params} (for ([param (in-list (map tr-if-path (check-info-value info)))]
+                          [index (in-naturals 1)])
+                      (echo (format "param:~a" index) param))]
+          [else (echo (check-info-name info) (case (check-info-name info)
+                                               [{location} (tr-d (srcloc->string (apply srcloc (check-info-value info))))]
+                                               [{exception-message} (tr-d (check-info-value info))]
+                                               [else ((if (string? (check-info-value info)) tr-d tr-if-path) (check-info-value info))]))]))})
   
   (define display-error
     {lambda [result #:indent [headspace0 ""]]
@@ -464,9 +466,9 @@
       (eechof #:fgcolor 'red #:attributes '{inverse} "~a»» name: ~a~n" headspace0 (object-name errobj))
       (unless (null? messages)
         (define msghead " message: ")
-        (define msgspace (~indent (string-length msghead) #:times 1))
+        (define msgspace (~indent (sub1 (string-length msghead)) #:times 1))
         (eechof #:fgcolor 'red #:attributes '{inverse} "~a»»~a~a~n" headspace0 msghead (car messages))
-        (for-each (curry eechof #:fgcolor 'red #:attributes '{inverse} "~a»»~a~a~n" headspace0 msgspace) (cdr messages)))
+        (for-each (curry eechof #:fgcolor 'red #:attributes '{inverse} "~a»»»~a~a~n" headspace0 msgspace) (cdr messages)))
       (for ([stack (in-list (continuation-mark-set->context (exn-continuation-marks errobj)))])
         (when (cdr stack)
           (define srcinfo (srcloc->string (cdr stack)))

@@ -27,7 +27,7 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
 
 You may have already familiar with the @hyperlink["http://en.wikipedia.org/wiki/Make_(software)"]{GNU Make},
 nonetheless you are still free to check the options first. Normal @bold{Racket} program always knows
-@exec{@|-~-|h} or @exec{@|-~-|@|-~-|help} option:
+@Flag{h} or @DFlag{help} option:
 
 @tamer-action[(parameterize ([exit-handler void]) (make "--help"))]
 
