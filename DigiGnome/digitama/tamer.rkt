@@ -3,7 +3,6 @@
 (require rackunit)
 
 (require racket/sandbox)
-(require racket/generator)
 
 (require scribble/core)
 (require scribble/eval)
@@ -126,11 +125,8 @@
           (tamer-story #false))})
 
 (define handbook-rule
-  {generator pre-flow
-    (let loop ([id (in-naturals 1)])
-      (yield (let ([index (stream-first id)])
-               (itemlist (item (bold (deftech (format "Rule #~a" index))) ~ pre-flow))))
-      (loop (stream-rest id)))})
+  {lambda pre-flow
+    (itemlist (item (bold (deftech (format "Rule #~a" (rule-index)))) ~ pre-flow))})
 
 (define itech
   {lambda [#:key [key #false] . pre-contents]
@@ -307,7 +303,9 @@
                                                    (cond [(string=? "message" key) (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
                                                                                          (string backhand#) ~ (italic (literal val)))]
                                                          [(member key '{"exn" "exception"}) (elem (racketvalfont (string macroscope#)) ~
-                                                                                                  (racket #,(fix (read (open-input-string val)))))]
+                                                                                                  (racket #,(let ([ev (fix (read (open-input-string val)))]
+                                                                                                                  [tr (curryr call-with-input-string read-line)])
+                                                                                                              (vector-set! ev 1 (tr (vector-ref ev 1))) ev)))]
                                                          [(regexp-match? #px"param:\\d+" key) (elem (racketvalfont (string crystal-ball#)) ~
                                                                                                     (racket #,(fix (read (open-input-string val)))))]))}]
                                  [(regexp-match #px"^\\s*»»» \\s+(expected|given|received):\\s+(.+?)\\s*$" line) ; only for errors those have multilined messages.
@@ -331,6 +329,7 @@
 
 {module digitama racket
   (require rackunit)
+  (require racket/generator)
   (require racket/undefined)
   (require syntax/location)
   (require setup/xref)
@@ -388,6 +387,12 @@
                                                                          (return (run-test-case case-name routine)))}])
                                      (return (run-test-case case-name action)))})})})
 
+  (define rule-index
+    {generator []
+      (let loop ([id (in-naturals 1)])
+        (yield (stream-first id))
+        (loop (stream-rest id)))})
+  
   (define indents (make-hash))
   (define ~indent
     {lambda [count #:times [times 2] #:padchar [padding #\space]]
