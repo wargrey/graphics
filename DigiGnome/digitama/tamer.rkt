@@ -99,12 +99,13 @@
   {lambda pre-contents
     (define info-ref (get-info/full (digimon-zone)))
     (define gnome-stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
-    (title (append (cond [(false? (symbol=? (object-name (current-input-port)) '/dev/null)) null]
-                         [else (list (hyperlink (~url (current-digimon)) (format "~a<sub>~a</sub>" house-garden# cat#)))])
-                   (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection {λ _ (current-digimon)})) pre-contents))
-           #:style (let ([candidates (remove-duplicates (list (digimon-stone) gnome-stone))])
+    (title #:style (let ([candidates (remove-duplicates (list (digimon-stone) gnome-stone))])
                      (make-style #false (map make-css-addition (filter file-exists? (map (curryr build-path "tamer.css") candidates)))))
-           #:tag "tamerbook" #:version (format "~a[~a]" (version) (info-ref 'version {λ _ "Baby"})))})
+           #:tag "tamerbook" #:version (format "~a[~a]" (version) (info-ref 'version {λ _ "Baby"}))
+           (if (symbol=? (object-name (current-input-port)) '/dev/null)
+               (hyperlink (~url (current-digimon)) (format "~a<sub>~a</sub>" house-garden# cat#))
+               (hyperlink (format "https://github.com/digital-world/~a" (current-digimon)) (string house-garden#) (subscript (string cat#))))
+           (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection {λ _ (current-digimon)})) pre-contents))})
 
 (define handbook-scenario
   {lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
