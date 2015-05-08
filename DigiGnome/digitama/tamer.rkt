@@ -451,15 +451,18 @@
             [(pair? val) #| also for lists |# (cons (fix (car val)) (fix (cdr val)))]
             [else val])})
 
-
   (define display-failure
     {lambda [result #:indent [headspace ""]]
       (define echo (curry eechof #:fgcolor 'red "~a»» ~a: ~s~n" headspace))
+      (define recho (curry eechof #:fgcolor 'red "~a»»» ~a~a~n" headspace))
       (for ([info (in-list (exn:test:check-stack (test-failure-result result)))])
         (case (check-info-name info)
           [{params} (for ([param (in-list (map tr-if-path (check-info-value info)))]
                           [index (in-naturals 1)])
                       (echo (format "param:~a" index) param))]
+          [{message} (let ([messages (call-with-input-string (tr-d (check-info-value info)) port->lines)])
+                       (echo "message" (car messages))
+                       (for-each (curry recho (~indent 8 #:times 1)) (cdr messages)))]
           [else (echo (check-info-name info) (case (check-info-name info)
                                                [{location} (tr-d (srcloc->string (apply srcloc (check-info-value info))))]
                                                [{exception-message} (tr-d (check-info-value info))]
@@ -478,7 +481,7 @@
       (for ([stack (in-list (continuation-mark-set->context (exn-continuation-marks errobj)))])
         (when (cdr stack)
           (define srcinfo (srcloc->string (cdr stack)))
-          (unless (or (false? srcinfo) (absolute-path? srcinfo))
+          (unless (or (false? srcinfo) (regexp-match? #px"^/" srcinfo))
             (eechof #:fgcolor 245 "~a»»»» ~a: ~a~n" headspace0
                     (tr-d srcinfo) (or (car stack) 'λ)))))})
   
