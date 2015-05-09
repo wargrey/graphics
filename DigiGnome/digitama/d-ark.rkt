@@ -42,7 +42,7 @@
                                     (when (and (real? close?) (>= close? 0))
                                       (sleep close?)
                                       (send this show #false))]
-                                 [else (for-each {lambda [sally] (printf "(cons ~a ~a)~n" (car sally) (cdr sally))} rallies)]))
+                                 [else (for-each {lambda [sally] (printf "(cons ~a ~a)~n" (car sally) (cdr sally))} (reverse rallies))]))
 
                          (define/override (on-subwindow-event who mouse)
                            (when (equal? vark who)
@@ -62,7 +62,7 @@
                                                   (let* ([~r4 (curry ~r #:precision '{= 4})]
                                                          [~print (curryr printf x y (~r4 (first v)) (~r4 (second v)) (~r4 (third v)))])
                                                     (if (> (third v) threshold)
-                                                        {begin (set! rallies (append rallies (list (cons x y))))
+                                                        {begin (set! rallies (cons (cons x y) rallies))
                                                                (~print "√ XY(~a, ~a):: HSV(~a, ~a, ~a)~n")}
                                                         (~print "† XY(~a, ~a):: HSV(~a, ~a, ~a)~n"))))))])))}))
     (send d-ark show #true)
