@@ -508,7 +508,7 @@
                                                       (tamer-seed-name-path seed))}
                                         {λ [testcase name action seed]
                                           (define-values {fixed-name fixed-action}
-                                            (cond [(false? (eq? ($exn) undefined)) (values (format "Preaction[~a]" name) {λ _ (raise ($exn))})]
+                                            (cond [(false? (eq? ($exn) undefined)) (values (format "#:before ~a" name) {λ _ (raise ($exn))})]
                                                   [(false? name) (values (format "(⧴ ~a)" (object-name struct:exn:fail:user))
                                                                          {λ _ (raise-user-error "Testcase must have a name!")})]
                                                   [else (values name action)]))
