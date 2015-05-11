@@ -6,7 +6,7 @@
 
 @handbook-story{Hello, Brave End-Hero!}
 
-@margin-note{This is an additional part of @secref{infrastructure.rkt}}
+@margin-note{This is an additional part of @secref{infrastructure.rktl}}
 
 Every end user needs a @deftech{digivice} which usually exists as a commandline or graphical interface to operate the system.
 The point is making a more user-friendly system is an endless work, that@literal{'}s why I call you the brave end-hero.
@@ -34,12 +34,12 @@ which are set in @filepath{info.rkt} and match the hierarchy in @racket[digimon-
        (define dgvc-name (symbol->string (gensym "dgvc")))
        (define dgvc.dir (build-path (digimon-digivice) dgvc-name))
        (define dgvc.rkt (path-add-suffix dgvc.dir ".rkt"))
-       (define action.rkt (build-path dgvc.dir (file-name-from-path action.rktl)))
+       (define action.rkt (build-path dgvc.dir (file-name-from-path action.scrbl)))
 
        (define {setup-demo}
          (make-directory* dgvc.dir)
          |<instantiating from the template>|
-         (make-digivice dgvc.rktl dgvc.rkt))]
+         (make-digivice dgvc.scrbl dgvc.rkt))]
 
 which means user @deftech{action}s (also unknown as @deftech{subcommand}s) are stored in the subdirectory
 whose name double the basename of @racketvarfont{dgvc.rkt}.
@@ -48,9 +48,9 @@ whose name double the basename of @racketvarfont{dgvc.rkt}.
        (putenv "digivice-name" dgvc-name)
        (putenv "digivice-desc" "Digivice Demonstration")
        (with-output-to-file action.rkt #:exists 'replace
-         {λ _ (dynamic-require action.rktl #false)})]
+         {λ _ (dynamic-require action.scrbl #false)})]
 
-@tamer-racketbox['action.rktl]
+@tamer-racketbox['action.scrbl]
 
 The most interesting things are just a description @envvar{desc}
 and a @racket[module] named after the @itech{digivice}.
@@ -62,10 +62,10 @@ Quite simple, is it?
        (let ([msecs file-or-directory-modify-seconds])
          (test-spec "digivice should be updated!"
                     (check-pred file-exists? dgvc.rkt)
-                    (check <= (msecs dgvc.rktl) (msecs dgvc.rkt)))
+                    (check <= (msecs dgvc.scrbl) (msecs dgvc.rkt)))
          (test-spec "action should be updated!"
                     (check-pred file-exists? action.rkt)
-                    (check <= (msecs action.rktl) (msecs action.rkt)))
+                    (check <= (msecs action.scrbl) (msecs action.rkt)))
          (test-spec "exec racket digivice"
                     #:before {λ _ (parameterize ([current-command-line-arguments (vector)])
                                     (call-with-fresh-$ dynamic-require dgvc.rkt #false))}
@@ -157,8 +157,8 @@ but I@literal{'}d like to watch the @italic{teardown} routine in order to ensure
 @chunk[|<digivice:*>|
        {module+ main (call-as-normal-termination tamer-prove)}
        {module+ story
-         (define dgvc.rktl (build-path (digimon-stone) "digivice.rkt"))
-         (define action.rktl (build-path (digimon-stone) "action.rkt"))
+         (define dgvc.scrbl (build-path (digimon-stone) "digivice.rkt"))
+         (define action.scrbl (build-path (digimon-stone) "action.rkt"))
 
          |<define digivice hierarchy>|
          (define-tamer-suite make-demo "Make the demo from scratch"

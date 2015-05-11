@@ -60,7 +60,7 @@ repositories.
     Namely sources within it implement executable tools that will be
     called by wrappers from `bin`.
 
-  * **tamer** is the interface for developers to train the _digimons_.
+  * **tamer** is the interface for developers to tame the _digimons_.
     Namely it works like `test`.  After all the _tamer/handbook.scrbl_
     plays the role of  the [Test
     Report](http://en.wikipedia.org/wiki/Behavior-driven\_development)
@@ -69,7 +69,7 @@ repositories.
     so that the production code could keep elegant.
 
   * **terminus** manages guilds of _digimons_. Hmm... Sounds weird,
-    nonetheless, try `htdocs` or `webroot`.
+    nonetheless, try `htdocs`.
 
 ### 2.3. Version
 

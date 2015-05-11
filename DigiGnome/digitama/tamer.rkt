@@ -232,7 +232,7 @@
                                           (for/list ([line (in-port read-line)])
                                             (cond [(regexp-match #px"^λ\\s+(.+)" line)
                                                    => {λ [pieces] (format "> + ~a~a" books# (list-ref pieces 1))}]
-                                                  [(regexp-match #px"^(\\s+)λ\\d+\\s+(.+?.rkt)\\s*$" line)
+                                                  [(regexp-match #px"^(\\s+)λ\\d+\\s+(.+?.rktl)\\s*$" line)
                                                    => {λ [pieces] (match-let ([{list _ indt ctxt} pieces]) ; (markdown list needs at least 1 char after "+ "
                                                                     (list (format ">   ~a+ ~a" indt open-book#)  ; before breaking line if "[~a](~a)" is
                                                                           (format "[~a](http://gyoudmon.org/~~~a/.~a/~a)" ctxt ; longer then 72 chars.)

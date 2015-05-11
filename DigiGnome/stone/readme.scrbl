@@ -48,12 +48,12 @@ Projects/subcollections listed in the root directory are organized as the @itali
                                       Namely sources within it are @bold{hidden} to others. @bold{Compatibility will not be maintained and Use at your own risk!}}
                                @item{@bold{digivice} is the interface for users to talk with @italic{digimons}.
                                       Namely sources within it implement executable tools that will be called by wrappers from @tt{bin}.}
-                               @item{@bold{tamer} is the interface for developers to train the @italic{digimons}. Namely it works like @tt{test}.
+                               @item{@bold{tamer} is the interface for developers to tame the @italic{digimons}. Namely it works like @tt{test}.
                                       After all the @italic{tamer/handbook.scrbl} plays the role of
                                       the @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Test Report} along with
                                       the @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Design Documentation}
                                       so that the production code could keep elegant.}
-                               @item{@bold{terminus} manages guilds of @italic{digimons}. Hmm... Sounds weird, nonetheless, try @tt{htdocs} or @tt{webroot}.})})
+                               @item{@bold{terminus} manages guilds of @italic{digimons}. Hmm... Sounds weird, nonetheless, try @tt{htdocs}.})})
 
 @subsection{Version}
 Obviousely, our @italic{digimons} have their own life cycle.

@@ -14,7 +14,7 @@ Good Luck!
 
 > + 📚Behaviors and Features
 >     + 📖
-[infrastructure.rkt](http://gyoudmon.org/~wargrey/.digignome/infrastructure.rkt)
+[infrastructure.rktl](http://gyoudmon.org/~wargrey/.digignome/infrastructure.rktl)
 >       + 📑Ready? It works!
 >         + 📑make: simple options
 >           + 📑make --silent --help
@@ -25,7 +25,7 @@ Good Luck!
 >             - 💚 2 - should report errors
 >         + 📑make: complex options
 >           - 💚 1 - make --always-make ++only DigiGnome README.md
->           - 💚 2 - make --dry-run --touch ++only gnome101
+>           - 💚 2 - make --dry-run --touch ++only gnome540
 >       + 📑Rules serve you!
 >         + 📑info.rkt settings
 >           + 📑/info.rkt
@@ -35,7 +35,7 @@ Good Luck!
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
 >             - 💚 4 - test-omit-paths
->           + 📑/gnome101/info.rkt
+>           + 📑/gnome540/info.rkt
 >             - 💚 1 - version
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
@@ -55,14 +55,14 @@ Good Luck!
 >             - 💚 1 - DigiGnome/stone/readme.scrbl
 >           + 📑/DigiGnome/readme.md
 >             - 💚 1 - DigiGnome/tamer/handbook.scrbl
->           + 📑/gnome101/readme.md
->             - 💚 1 - gnome101/tamer/handbook.scrbl
+>           + 📑/gnome540/readme.md
+>             - 💚 1 - gnome540/tamer/handbook.scrbl
 >           + 📑/nanomon/readme.md
 >             - 💚 1 - nanomon/tamer/handbook.scrbl
 >           + 📑/sakuyamon/readme.md
 >             - 💚 1 - sakuyamon/tamer/handbook.scrbl
 >     + 📖
-[digivice.rkt](http://gyoudmon.org/~wargrey/.digignome/digivice.rkt)
+[digivice.rktl](http://gyoudmon.org/~wargrey/.digignome/digivice.rktl)
 >       + 📑Make the demo from scratch
 >         - 💚 1 - digivice should be updated!
 >         - 💚 2 - action should be updated!

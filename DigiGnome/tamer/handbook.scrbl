@@ -16,5 +16,5 @@ Good Luck!
 @tamer-smart-summary[]
 @handbook-smart-table[]
 
-@include-section[(submod "infrastructure.rkt" doc)]
-@include-section[(submod "digivice.rkt" doc)]
+@include-section[(submod "infrastructure.rktl" doc)]
+@include-section[(submod "digivice.rktl" doc)]
