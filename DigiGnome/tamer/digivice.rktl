@@ -19,7 +19,7 @@ which is friendly to @italic{test harness} so that I could finish the core parts
        (require "tamer.rkt")
 
        (tamer-taming-start)
-       (define partner (tamer-partner->libpath "makefile.rkt"))
+       (define partner (tamer-partner->modpath "makefile.rkt"))
        (define make-digivice (dynamic-require/expose partner 'make-digivice))
 
        |<digivice:*>|]

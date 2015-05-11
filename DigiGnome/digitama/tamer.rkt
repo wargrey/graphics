@@ -44,8 +44,8 @@
 
 (define-syntax {tamer-taming-start stx}
   #'(let ([modpath (quote-module-path)])
-      (cond [(path? modpath) (tamer-story (tamer-story->libpath modpath))]
-            [else (and (tamer-story (tamer-story->libpath (cadr modpath)))
+      (cond [(path? modpath) (tamer-story (tamer-story->modpath modpath))]
+            [else (and (tamer-story (tamer-story->modpath (cadr modpath)))
                        (tamer-zone (make-tamer-zone)))])))
 
 (define-syntax {handbook-story stx}
@@ -87,13 +87,13 @@
       (dict-ref units name {λ _ (raise (make-exn:fail:contract:variable (format "'~a has not yet defined!" name)
                                                                         (current-continuation-marks) name))}))})
 
-(define tamer-story->libpath
+(define tamer-story->modpath
   {lambda [story-path]
-    (path->digimon-libpath (if (absolute-path? story-path) story-path (build-path (digimon-tamer) story-path)) 'story)})
+    `(submod ,story-path story)})
 
-(define tamer-partner->libpath
+(define tamer-partner->modpath
   {lambda [partner-path]
-    (path->digimon-libpath (if (absolute-path? partner-path) partner-path (build-path (digimon-zone) partner-path)))})
+    (path->digimon-modpath (if (absolute-path? partner-path) partner-path (build-path (digimon-zone) partner-path)))})
 
 (define handbook-title
   {lambda pre-contents
@@ -141,7 +141,7 @@
                                                                        (map {λ [unit] (make-test-suite unit (reverse (map cdr (href unit))))}
                                                                             (reverse (href books#))))))]
                         [(module-path? (tamer-story)) (let ([htag (tamer-story->tag (tamer-story))])
-                                                        (and (unless (module-declared? (tamer-story)) (dynamic-require (tamer-story) #false))
+                                                        (and (dynamic-require (tamer-story) #false)
                                                              (hash-has-key? handbook-stories htag)
                                                              (make-test-suite htag (reverse (map cdr (hash-ref handbook-stories htag))))))]))
     (cond [(false? (test-suite? suite)) ({λ _ 0} (echof #:fgcolor 'yellow "~nNo particular example!~n"))]
@@ -170,7 +170,7 @@
                       (nested #:style (make-style "boxed" null)
                               (filebox (cond [(false? story-snapshot) (italic (string books#) ~ (format "Behaviors of ~a" (info-ref 'collection {λ _ (current-digimon)})))]
                                              [(module-path? story-snapshot) (italic (seclink "tamerbook" (string open-book#))
-                                                                                    ~ (format "Behaviors in ~a" (cadadr story-snapshot)))])
+                                                                                    ~ (format "Behaviors in ~a" (tamer-story->tag story-snapshot)))])
                                        (let ([base (cond [(false? story-snapshot) (for/list ([story (in-list (reverse (hash-ref handbook-stories books# null)))])
                                                                                     (cons story (with-handlers ([exn:fail:contract? {λ _ null}])
                                                                                                   (apply append (map cdr (story-ref story))))))]
@@ -342,11 +342,11 @@
   (provide (all-defined-out) quote-module-path)
 
   (define tamer-story (make-parameter #false))
-
+  
   (define tamer-story->tag
     {lambda [story]
       (with-handlers ([exn? exn-message])
-        (path->string (find-relative-path (digimon-tamer) (build-path (digimon-world) (cadadr story)))))})
+        (path->string (find-relative-path (digimon-tamer) (cadr story))))})
   
   (struct tamer-seed {datum brief name-path})
   (struct summary {success failure error})
@@ -426,7 +426,8 @@
   (define readwrotten (make-readtable (current-readtable)
                                       #\< 'dispatch-macro
                                       {λ [< port [src #false] [line #false] [col #false] [pos #false]]
-                                        (fix (match (regexp-match #px"<?(procedure)?(:)?(.+?)?>" port)
+                                        (fix (match (regexp-match #px"<?(procedure|path)?(:)?(.+?)?>" port)
+                                               [{list _ #"path" _ fname} (string->path (bytes->string/utf-8 fname))]
                                                [{list _ _ #false #false} '{lambda _ ...}]
                                                [{list _ #false #false <something-type/value>} (string->symbol (format "~a?" <something-type/value>))]
                                                [{list _ _ _ {pregexp #px"function\\.rkt"}} (cons negate 'λ)]

@@ -4,7 +4,7 @@
 
 @(require (for-syntax "tamer.rkt"))
 
-@(define partner (tamer-partner->libpath "makefile.rkt"))
+@(define partner (tamer-partner->modpath "makefile.rkt"))
 
 @handbook-story{Hello, Hacker Hero!}
 
@@ -18,7 +18,7 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
        (require "tamer.rkt")
 
        (tamer-taming-start)
-       (define partner (tamer-partner->libpath "makefile.rkt"))
+       (define partner (tamer-partner->modpath "makefile.rkt"))
        (define make (dynamic-require partner 'main {λ _ #false}))
 
        |<infrastructure:*>|]

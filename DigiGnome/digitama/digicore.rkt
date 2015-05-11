@@ -75,10 +75,12 @@
 
 (define-digimon-dirpath stone digitama digivice tamer terminus)
 
-(define path->digimon-libpath : (->* {Path-String} {Symbol} (U Module-Path (List 'submod Module-Path Symbol)))
-  {lambda [modpath [submodule #false]]
-    (define fname : String (path->string (cast (find-relative-path (digimon-world) (simplify-path modpath)) Path)))
-    (if (symbol? submodule) `(submod (lib ,fname) ,submodule) `(lib ,fname))})
+(define path->digimon-modpath : (->* {Path-String} {Symbol} (U Module-Path (List 'submod Module-Path Symbol)))
+  {lambda [modfile [submodule #false]]
+    (define modpath : Module-Path (let ([modfile (simplify-path modfile)])
+                                     (cond [(false? (regexp-match? #px"\\.rkt$" modfile)) modfile]
+                                           [else `(lib ,(path->string (cast (find-relative-path (digimon-world) modfile) Path)))])))
+    (if (symbol? submodule) `(submod ,modpath ,submodule) modpath)})
 
 (define find-digimon-files : (-> (-> Path-String Boolean) Path-String [#:search-compiled? Boolean] (Listof Path-String))
   {lambda [predicate start-path #:search-compiled? [search-compiled? #false]]
