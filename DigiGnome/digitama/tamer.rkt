@@ -119,9 +119,9 @@
                    pre-contents)
           (let ([zone-snapshot (tamer-zone)])
             (make-traverse-block {λ _ (dynamic-wind {λ _ (void)}
-                                                    {λ _ (para (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
-                                                                     @italic{In order to avoid polluting your eyes,
-                                                                             any less important things are moved here.}))}
+                                                    {λ _ (para #:style "GYDMComment"
+                                                               "In order to avoid polluting your eyes, "
+                                                               "any less important things are moved here.")}
                                                     {λ _ (close-eval zone-snapshot)})}))
           (tamer-story #false))})
 
