@@ -90,10 +90,19 @@
 
 (define call-as-normal-termination : (-> (-> Any) Void)
   {lambda [main/0]
-    (define status : Any (call/ec {λ [$?] (parameterize ([exit-handler (cast $? (-> Any Any))])
-                                            (with-handlers ([exn? {λ [[e : exn]] (exit ({λ _ 1} (eprintf "~a~n" (exn-message e))))}])
-                                              (exit (main/0))))}))
+    (define status : Any (let/ec $?
+                           (parameterize ([exit-handler (cast $? (-> Any Any))])
+                             (with-handlers ([exn? {λ [[e : exn]] (exit ({λ _ 1} (eprintf "~a~n" (exn-message e))))}])
+                               (exit (main/0))))))
     (exit (if (exact-nonnegative-integer? status) (min status 255) 0))})
+
+(define car.eval : (->* (Any) (Namespace) Any)
+  {lambda [sexp [ns (current-namespace)]]
+    ((inst car Any Any) (cast ((inst call-with-values Any) {λ _ (eval sexp ns)} list) (Listof Any)))})
+
+(define void.eval : (->* (Any) (Namespace) Void)
+  {lambda [sexp [ns (current-namespace)]]
+    (call-with-values {λ _ (eval sexp ns)} void)})
 
 (define ~n_w : (-> Nonnegative-Integer String String)
   {lambda [count word]

@@ -45,7 +45,7 @@ exec racket --name "`basename $0 .rkt`" --require "$0" -- ${1+"$@|#\@|"}
                                        [current-namespace (make-base-namespace)])
                           (define act.rkt : Path-String (format "~a/~a.rkt" digivice (car arglist)))
                           (if (file-exists? act.rkt)
-                              (call-with-values {λ _ (eval `(require (submod (file ,act.rkt) ,digivice)))} void)
+                              (void.eval `(require (submod (file ,act.rkt) ,digivice)))
                               (show-help-and-exit #:erract (car arglist))))]))})})
 
 ;;; `raco setup` makes it hard to set --main option when making launcher
