@@ -27,8 +27,9 @@ blockquote.SCodeFlow {
 }
 
 .GYDMComment {
-    color: #613A00;
-	text-align: center;
+    color: #666666;
+	font-size: small;
+	padding-left: 0.84rem;
     background-color: #d3d3d3;
     background: -moz-linear-gradient(#d3d3d3, #d3d3d3);
     background: -webkit-linear-gradient(#d3d3d3, #d3d3d3);
@@ -39,6 +40,8 @@ blockquote.SCodeFlow {
 /* These come from Github */
 .GYDMWarning {
     color: #613A00;
+	font-size: smaller;
+	padding-left: 0.84rem;
     background-color: #ffe3c8;
     background: -moz-linear-gradient(#ffe3c8, #f5dac0);
     background: -webkit-linear-gradient(#ffe3c8, #f5dac0);
@@ -48,6 +51,8 @@ blockquote.SCodeFlow {
 
 .GYDMError {
     color: #9c2400;
+	font-size: larger;
+	padding-left: 0.84rem;
     background-color: #f8d8d8;
     background: -moz-linear-gradient(#f8d8d8, #efd0d0);
     background: -webkit-linear-gradient(#f8d8d8, #efd0d0);
