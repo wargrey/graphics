@@ -94,7 +94,8 @@
   {lambda [main/0]
     (define status : Any (let/ec $?
                            (parameterize ([exit-handler (cast $? (-> Any Any))])
-                             (with-handlers ([exn? {λ [[e : exn]] (exit ({λ _ 1} (eprintf "~a~n" (exn-message e))))}])
+                             (with-handlers ([exn? {λ [[e : exn]] (exit ({λ _ 1} (eprintf "~a~n" (exn-message e))))}]
+                                             [void {λ [[e : Any]] (exit ({λ _ 1} (eprintf "(uncaught-exception-handler) => ~a~n" e)))}])
                                (exit (main/0))))))
     (exit (if (exact-nonnegative-integer? status) (min status 255) 0))})
 

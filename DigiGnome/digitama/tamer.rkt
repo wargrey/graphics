@@ -317,14 +317,15 @@
                                                                                   ~ (string house-garden#) (smaller (string cat#))))]))))))})})
 
 (define tamer-racketbox
-  {lambda [path]
+  {lambda [path #:keep-first-line [keep-first? #false]]
     (define story-snapshot (tamer-story))
     (make-traverse-block
      {λ _ (parameterize ([tamer-story story-snapshot])
             (define /path/file (simplify-path (if (symbol? path) (dynamic-require/expose (tamer-story) path) path)))
             (nested #:style (make-style "boxed" null)
                     (filebox (hyperlink /path/file (italic (string memo#) ~ (path->string (tr-if-path /path/file))))
-                             (codeblock #:line-numbers 0 #:keep-lang-line? #false
+                             (codeblock #:line-numbers (if keep-first? 1 0)
+                                        #:keep-lang-line? keep-first?
                                         (file->string /path/file)))))})})
 
 {module digitama racket
@@ -392,12 +393,6 @@
       (let loop ([id (in-naturals 1)])
         (yield (stream-first id))
         (loop (stream-rest id)))})
-  
-  (define indents (make-hash))
-  (define ~indent
-    {lambda [count #:times [times 2] #:padchar [padding #\space]]
-      (define key (format "~a~a" count padding))
-      (hash-ref! indents key {λ _ (make-string (* count times) padding)})})
     
   (define ~result
     {lambda [result]
@@ -462,7 +457,7 @@
                       (echo (format "param:~a" index) param))]
           [{message} (let ([messages (call-with-input-string (tr-d (check-info-value info)) port->lines)])
                        (echo "message" (car messages))
-                       (for-each (curry recho (~indent 8 #:times 1)) (cdr messages)))]
+                       (for-each (curry recho (~a #:min-width 8)) (cdr messages)))]
           [else (echo (check-info-name info) (case (check-info-name info)
                                                [{location} (tr-d (srcloc->string (apply srcloc (check-info-value info))))]
                                                [{exception-message} (tr-d (check-info-value info))]
@@ -475,7 +470,7 @@
       (eechof #:fgcolor 'red #:attributes '{inverse} "~a»» name: ~a~n" headspace0 (object-name errobj))
       (unless (null? messages)
         (define msghead " message: ")
-        (define msgspace (~indent (sub1 (string-length msghead)) #:times 1))
+        (define msgspace (~a #:min-width (sub1 (string-length msghead))))
         (eechof #:fgcolor 'red #:attributes '{inverse} "~a»»~a~a~n" headspace0 msghead (car messages))
         (for-each (curry eechof #:fgcolor 'red #:attributes '{inverse} "~a»»»~a~a~n" headspace0 msgspace) (cdr messages)))
       (for ([stack (in-list (continuation-mark-set->context (exn-continuation-marks errobj)))])
@@ -525,8 +520,8 @@
     {lambda [unit]
       (define-values {whocares brief}
         (fold-test-suite #:fdown {λ [name seed:ordered]
-                                   (cond [(null? seed:ordered) (echof #:fgcolor 202 #:attributes '{underline} "λ ~a~a~n" (~indent 0) (tr-d name))]
-                                         [else (echof "~aλ~a ~a~n" (~indent (length seed:ordered))
+                                   (cond [(null? seed:ordered) (echof #:fgcolor 202 #:attributes '{underline} "λ ~a~n" (tr-d name))]
+                                         [else (echof "~aλ~a ~a~n" (~a #:min-width (* (length seed:ordered) 2))
                                                       (string-join (map number->string (reverse seed:ordered)) ".") (tr-d name))])
                                    (cons 1 seed:ordered)}
                          #:fup {λ [name seed:ordered children:ordered]
@@ -534,9 +529,9 @@
                                        [else (cons (add1 (car seed:ordered))
                                                    (cdr seed:ordered))])}
                          #:fhere {λ [result seed:ordered]
-                                   (define headline (format "~a~a ~a - " (~indent (length seed:ordered)) (~result result)
+                                   (define headline (format "~a~a ~a - " (~a #:min-width (* (length seed:ordered) 2)) (~result result)
                                                             (if (null? seed:ordered) 1 (car seed:ordered))))
-                                   (define headspace (~indent (string-length headline) #:times 1))
+                                   (define headspace (~a #:min-width (string-length headline)))
                                    (cond [(test-success? result) (void (echof #:fgcolor 'lightgreen "~a~a~n" headline (tr-d (test-result-test-case-name result))))]
                                          [(test-failure? result) (void (echof #:fgcolor 'lightred "~a~a~n" headline (tr-d (test-result-test-case-name result)))
                                                                        (display-failure result #:indent headspace))]
