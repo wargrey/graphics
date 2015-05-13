@@ -233,10 +233,9 @@
                                             (cond [(regexp-match #px"^λ\\s+(.+)" line)
                                                    => {λ [pieces] (format "> + ~a~a" books# (list-ref pieces 1))}]
                                                   [(regexp-match #px"^(\\s+)λ\\d+\\s+(.+?.rktl)\\s*$" line)
-                                                   => {λ [pieces] (match-let ([{list _ indt ctxt} pieces]) ; (markdown list needs at least 1 char after "+ "
-                                                                    (list (format ">   ~a+ ~a" indt open-book#)  ; before breaking line if "[~a](~a)" is
-                                                                          (format "[~a](http://gyoudmon.org/~~~a/.~a/~a)" ctxt ; longer then 72 chars.)
-                                                                                  (getenv "USER") (string-downcase (current-digimon)) ctxt)))}]
+                                                   => {λ [pieces] (match-let ([{list _ indt ctxt} pieces]) ; (markdown listitem needs at least 1 char after "+ "
+                                                                    (list (format ">   ~a+ ~a" indt open-book#)  ; before breaking line if "[~a](~a)" is longer
+                                                                          (format "[~a](~a/~a)" ctxt (~url (current-digimon)) ctxt)))}] ; then 72 chars.)
                                                   [(regexp-match #px"^(\\s+)λ\\d+(.\\d)*\\s+(.+?)\\s*$" line)
                                                    => {λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) bookmark# (list-ref pieces 3))}]
                                                   [(regexp-match #px"^(\\s*)(.+?) (\\d+) - (.+?)\\s*$" line)
@@ -248,9 +247,9 @@
                                                   [(regexp-match #px"^$" line) (summary? #true)]
                                                   [(regexp-match #px"wallclock" line) "> "]
                                                   [(summary?) (list (format "> ~a~a" pin# line) "> "
-                                                                    (format "> [~a<sub>~a</sub>](http://gyoudmon.org/~~~a/.~a)"
+                                                                    (format "> [~a<sub>~a</sub>](~a)"
                                                                             cat# (make-string (quotient (string-length line) 2) paw#)
-                                                                            (getenv "USER") (string-downcase (current-digimon))))])))))})])})})
+                                                                            (~url (current-digimon))))])))))})])})})
 
 (define tamer-note
   {lambda unit-vars
@@ -413,7 +412,7 @@
 
   (define ~url
     {lambda [projname]
-      (format "http://gyoudmon.org/~~~a/.~a" (getenv "USER") (string-downcase projname))})
+      (format "http://gyoudmon.org/~~~a:~a" (getenv "USER") (string-downcase projname))})
   
   (define exn->test-case
     {lambda [name e]

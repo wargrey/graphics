@@ -1,4 +1,4 @@
-# [🏡<sub>🐈</sub>](http://gyoudmon.org/~wargrey/.digignome)Digital World
+# [🏡<sub>🐈</sub>](http://gyoudmon.org/~wargrey:digignome)Digital World
 
 How to construct a _Digital World_? Okay, we don't start with the _File
 Island_, but we own some concepts from the [Digital
@@ -7,13 +7,13 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
 ## 1. Living Digimons
 
 * **[Digimon-Gnome: The Meta-Project built for developers to make life
-  simple](http://gyoudmon.org/~wargrey/.digignome)**
+  simple](http://gyoudmon.org/~wargrey:digignome)**
 
 * [Nanomon: Digging data from Chaos such as iPhone
-  Backups.](http://gyoudmon.org/~wargrey/.nanomon)
+  Backups.](http://gyoudmon.org/~wargrey:nanomon)
 
 * [Sakuyamon: Manage and protect
-  http://gyoudmon.org.](http://gyoudmon.org/~wargrey/.sakuyamon)
+  http://gyoudmon.org.](http://gyoudmon.org/~wargrey:sakuyamon)
 
 ## 2. Project Conventions
 
