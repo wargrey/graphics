@@ -317,15 +317,14 @@
                                                                                   ~ (string house-garden#) (smaller (string cat#))))]))))))})})
 
 (define tamer-racketbox
-  {lambda [path #:keep-first-line [keep-first? #false]]
+  {lambda [path #:line-start-with [line0 0]]
     (define story-snapshot (tamer-story))
     (make-traverse-block
      {λ _ (parameterize ([tamer-story story-snapshot])
             (define /path/file (simplify-path (if (symbol? path) (dynamic-require/expose (tamer-story) path) path)))
             (nested #:style (make-style "boxed" null)
                     (filebox (hyperlink /path/file (italic (string memo#) ~ (path->string (tr-if-path /path/file))))
-                             (codeblock #:line-numbers (if keep-first? 1 0)
-                                        #:keep-lang-line? keep-first?
+                             (codeblock #:line-numbers line0 #:keep-lang-line? (false? (zero? line0))
                                         (file->string /path/file)))))})})
 
 {module digitama racket
