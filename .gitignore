@@ -5,4 +5,7 @@ Thumbs.db
 
 # Hide some auto-generating files
 compiled/
+*.log
 
+# Hide authentication data file
+.realm.rktd

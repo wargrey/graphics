@@ -103,8 +103,10 @@
                      (make-style #false (map make-css-addition (filter file-exists? (map (curryr build-path "tamer.css") candidates)))))
            #:tag "tamerbook" #:version (format "~a[~a]" (version) (info-ref 'version {λ _ "Baby"}))
            (if (symbol=? (object-name (current-input-port)) '/dev/null)
-               (hyperlink (~url (current-digimon)) (format "~a<sub>~a</sub>" house-garden# cat#))
-               (hyperlink (format "https://github.com/digital-world/~a" (current-digimon)) (string house-garden#) (subscript (string cat#))))
+               (list (hyperlink (~url (current-digimon)) (string house-garden#))
+                     (hyperlink (~url (digimon-gnome)) (format "<sub>~a</sub>" cat#)))
+               (list (hyperlink (~github (current-digimon)) (string house-garden#))
+                     (hyperlink (~github (digimon-gnome)) (subscript (string cat#)))))
            (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection {λ _ (current-digimon)})) pre-contents))})
 
 (define handbook-scenario
@@ -407,6 +409,10 @@
   (define ~url
     {lambda [projname]
       (format "http://gyoudmon.org/~~~a:~a" (getenv "USER") (string-downcase projname))})
+
+  (define ~github
+    {lambda [projname]
+      (format "https://github.com/digital-world/~a" projname)})
   
   (define exn->test-case
     {lambda [name e]
