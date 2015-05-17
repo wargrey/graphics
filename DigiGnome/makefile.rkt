@@ -212,7 +212,21 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
       (make-directory* dest)
       (putenv "digicore.rkt" (path->string (find-relative-path dest digicore.rkt)))
       (with-output-to-file (build-path dest src) #:exists 'error
-        {λ _ (dynamic-require (build-path gnome-stone src) #false)}))})
+        {λ _ (dynamic-require (build-path gnome-stone src) #false)}))
+    (unless (getenv "taming")
+      (echof #:fgcolor 'green "github: Please input the repository name [~a]: " (current-digimon))
+      (define repo-name (let ([line (read-line)])
+                          (cond [(or (eof-object? line) (regexp-match? #px"^\\s*$" line)) (current-digimon)]
+                                [else (string-trim line)])))
+      (copy-file (build-path (digimon-world) ".gitignore") (build-path (digimon-zone) ".gitignore") #true)
+      (and (for/and ([gitcmd (in-list (list "init"
+                                            "add ."
+                                            "commit -m 'Mission Start'"
+                                            (format "remote add origin git@github.com:digital-world/~a.git" repo-name)
+                                            "push -u origin master"))])
+             (system (format "cd ~a && git ~a" (digimon-zone) gitcmd)))
+           (system "cd ~a && git submodule add ~a" (digimon-world) (digimon-zone))
+           (system "cd ~a && git submodule" (digimon-world))))})
 
 (define main
   {lambda argument-list

@@ -4,3 +4,6 @@
 [submodule "sakuyamon"]
 	path = sakuyamon
 	url = github.com:digital-world/sakuyamon.git
+[submodule "Kuzuhamon"]
+	path = Kuzuhamon
+	url = /Users/wargrey/DigitalWorld/Kuzuhamon
