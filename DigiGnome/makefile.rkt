@@ -216,17 +216,18 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
     (copy-file (build-path gnome-stone "robots.txt") (build-path (digimon-tamer) "robots.txt") #true)
     (unless (getenv "taming")
       (echof #:fgcolor 'green "github: Please input the repository name [~a]: " (current-digimon))
-      (define repo-name (let ([line (read-line)])
-                          (cond [(or (eof-object? line) (regexp-match? #px"^\\s*$" line)) (current-digimon)]
-                                [else (string-trim line)])))
+      (define remote (format "git@github.com:digital-world/~a.git" (let ([line (read-line)])
+                                                                     (cond [(eof-object? line) (current-digimon)]
+                                                                           [(regexp-match? #px"^\\s*$" line) (current-digimon)]
+                                                                           [else (string-trim line)]))))
       (copy-file (build-path (digimon-world) ".gitignore") (build-path (digimon-zone) ".gitignore") #true)
       (and (for/and ([gitcmd (in-list (list "init"
                                             "add ."
                                             "commit -m 'Mission Start'"
-                                            (format "remote add origin git@github.com:digital-world/~a.git" repo-name)
+                                            (format "remote add origin ~a" remote)
                                             "push -u origin master"))])
              (system (format "cd ~a && git ~a" (digimon-zone) gitcmd)))
-           (system "cd ~a && git submodule add ~a" (digimon-world) (digimon-zone))
+           (system "cd ~a && git submodule add ~a ~a" (digimon-world) remote (digimon-zone))
            (system "cd ~a && git submodule" (digimon-world))))})
 
 (define main

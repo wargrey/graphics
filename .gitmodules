@@ -6,4 +6,4 @@
 	url = github.com:digital-world/sakuyamon.git
 [submodule "Kuzuhamon"]
 	path = Kuzuhamon
-	url = /Users/wargrey/DigitalWorld/Kuzuhamon
+	url = git@github.com:digital-world/Kuzuhamon.git
