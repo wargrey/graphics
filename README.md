@@ -9,11 +9,14 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
 * **[Digimon-Gnome: The Meta-Project built for developers to make life
   simple](http://gyoudmon.org/~wargrey:digignome)**
 
+* [Kuzuhamon: An instance of Per-Tamer Terminus serves in
+  gyoudmon.org.](http://gyoudmon.org/~wargrey:kuzuhamon)
+
 * [Nanomon: Digging data from Chaos such as iPhone
   Backups.](http://gyoudmon.org/~wargrey:nanomon)
 
-* [Sakuyamon: Manage and protect
-  http://gyoudmon.org.](http://gyoudmon.org/~wargrey:sakuyamon)
+* [Sakuyamon: Manage and protect http://gyoudmon.org as well as the
+  digital world.](http://gyoudmon.org/~wargrey:sakuyamon)
 
 ## 2. Project Conventions
 
@@ -37,6 +40,10 @@ approach.
 
 ### 2.2. Hierarchy
 
+> The _Digital World_ itself as a whole is usually placed within your
+> `$HOME` directory     if you want to take advantages of the
+> infrastructures.
+
 For the sake of consistency and better architecture, we follow the
 concept of _[Racket Multi-collection
 Package](http://docs.racket-lang.org/pkg/Package\_Concepts.html\#%28tech.\_multi.\_collection.\_package%29)_.
@@ -44,9 +51,9 @@ Projects/subcollections listed in the root directory are organized as
 the _digimons_, and each of them may be separated into several
 repositories.
 
-* **[DigiGnome](/DigiGnome)** is the reserved _digimon_ who's duties are
+* **[DigiGnome](/DigiGnome)** is the reserved _digimon_ whose duties are
   making life easy for developers and  sharing code base for other
-  _digimons_. Namely _digimon_ works like `src` **and**
+  _digimons_. Namely _digimon_ works like `src` **as well as**
   `libraries`/`frameworks`.
 
   * **stone** stores immutable meta-information or ancient sources to be
@@ -67,6 +74,10 @@ repositories.
     along with  the [Design
     Documentation](http://en.wikipedia.org/wiki/Design\_by\_contract)
     so that the production code could keep elegant.
+
+* **[Kuzuhamon](/Kuzuhamon)** is another reserved _digimon_ who works as
+  the _Per-User Website_ if [sakuyamon](/sakuyamon) is deployed  in the
+  same machine.
 
   * **terminus** manages guilds of _digimons_. Hmm... Sounds weird,
     nonetheless, try `htdocs`.

@@ -213,6 +213,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
       (putenv "digicore.rkt" (path->string (find-relative-path dest digicore.rkt)))
       (with-output-to-file (build-path dest src) #:exists 'error
         {λ _ (dynamic-require (build-path gnome-stone src) #false)}))
+    (copy-file (build-path gnome-stone "robots.txt") (build-path (digimon-tamer) "robots.txt") #true)
     (unless (getenv "taming")
       (echof #:fgcolor 'green "github: Please input the repository name [~a]: " (current-digimon))
       (define repo-name (let ([line (read-line)])

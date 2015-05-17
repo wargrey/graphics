@@ -1,4 +1,4 @@
-# [🏡<sub>🐈</sub>](http://gyoudmon.org/~wargrey:digignome)Tamer's Handbook: Digimon-Gnome
+# [🏡](http://gyoudmon.org/~wargrey:digignome)[<sub>🐈</sub>](http://gyoudmon.org/~wargrey:digignome)Tamer's Handbook: Digimon-Gnome
 
 > _Translating is the most complex human activity in the Universe._
 
@@ -25,7 +25,7 @@ Good Luck!
 >             - 💚 2 - should report errors
 >         + 📑make: complex options
 >           - 💚 1 - make --always-make ++only DigiGnome README.md
->           - 💚 2 - make --dry-run --touch ++only gnome2836
+>           - 💚 2 - make --dry-run --touch ++only gnome717
 >       + 📑Rules serve you!
 >         + 📑info.rkt settings
 >           + 📑/info.rkt
@@ -35,7 +35,12 @@ Good Luck!
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
 >             - 💚 4 - test-omit-paths
->           + 📑/gnome2836/info.rkt
+>           + 📑/Kuzuhamon/info.rkt
+>             - 💚 1 - version
+>             - 💚 2 - collection
+>             - 💚 3 - compile-omit-paths
+>             - 💚 4 - test-omit-paths
+>           + 📑/gnome717/info.rkt
 >             - 💚 1 - version
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
@@ -55,12 +60,25 @@ Good Luck!
 >             - 💚 1 - DigiGnome/stone/readme.scrbl
 >           + 📑/DigiGnome/readme.md
 >             - 💚 1 - DigiGnome/tamer/handbook.scrbl
->           + 📑/gnome2836/readme.md
->             - 💚 1 - gnome2836/tamer/handbook.scrbl
+>           + 📑/Kuzuhamon/readme.md
+>             - 💚 1 - Kuzuhamon/tamer/handbook.scrbl
+>           + 📑/gnome717/readme.md
+>             - 💚 1 - gnome717/tamer/handbook.scrbl
 >           + 📑/nanomon/readme.md
 >             - 💚 1 - nanomon/tamer/handbook.scrbl
 >           + 📑/sakuyamon/readme.md
 >             - 💚 1 - sakuyamon/tamer/handbook.scrbl
+>         + 📑infrastructure specifications
+>           + 📑/DigiGnome/tamer
+>             - 💚 1 - ./robots.txt
+>           + 📑/Kuzuhamon/tamer
+>             - 💚 1 - ./robots.txt
+>           + 📑/gnome717/tamer
+>             - 💚 1 - ./robots.txt
+>           + 📑/nanomon/tamer
+>             - 💚 1 - ./robots.txt
+>           + 📑/sakuyamon/tamer
+>             - 💚 1 - ./robots.txt
 >     + 📖
 [digivice.rktl](http://gyoudmon.org/~wargrey:digignome/digivice.rktl)
 >       + 📑Make the demo from scratch
@@ -83,7 +101,7 @@ option]
 >         - 💚 2 - actions directory should be deleted recursively!
 >         - 💚 3 - /DigiGnome/digivice should be deleted if empty!
 >
-> 📌41 examples, 0 failures, 0 errors, 100.00% Okay.
+> 📌51 examples, 0 failures, 0 errors, 100.00% Okay.
 >
 >
 [🐈<sub>🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾</sub>](http://gyoudmon.org/~wargrey:digignome)

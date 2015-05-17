@@ -1,4 +1,4 @@
-#lang scribble/base
+#lang scribble/manual
 
 @(require "../digitama/digicore.rkt")
 @(require (submod "../digitama/tamer.rkt" digitama))
@@ -35,13 +35,16 @@ document it with the @italic{@hyperlink["http://en.wikipedia.org/wiki/Literate_p
            @item{@bold{submake.rkt}: As its name shows, it is the sub makefile that may exist in every @italic{digimon} directory.})
 
 @subsection{Hierarchy}
+@margin-note{The @italic{Digital World} itself as a whole is usually placed within your @litchar{$HOME} directory
+                 if you want to take advantages of the infrastructures.}
+
 For the sake of consistency and better architecture, we follow the concept of
 @italic{@hyperlink["http://docs.racket-lang.org/pkg/Package_Concepts.html#%28tech._multi._collection._package%29"]{Racket Multi-collection Package}}.
 Projects/subcollections listed in the root directory are organized as the @italic{digimons}, and each of them may be separated into several repositories.
 
 @(itemlist #:style 'compact
-           @nested{@bold{@githublink{/DigiGnome}} is the reserved @italic{digimon} who@literal{'}s duties are making life easy for developers and
-                    sharing code base for other @italic{digimons}. Namely @italic{digimon} works like @tt{src} @bold{and} @tt{libraries}/@tt{frameworks}.
+           @nested{@bold{@githublink{/DigiGnome}} is the reserved @italic{digimon} whose duties are making life easy for developers and
+                    sharing code base for other @italic{digimons}. Namely @italic{digimon} works like @tt{src} @bold{as well as} @tt{libraries}/@tt{frameworks}.
                     @(itemlist #:style 'compact
                                @item{@bold{stone} stores immutable meta-information or ancient sources to be translated. Yes, it@literal{'}s the @italic{Rosetta Stone}.}
                                @item{@bold{digitama} is the egg of @italic{digimons}.
@@ -52,7 +55,10 @@ Projects/subcollections listed in the root directory are organized as the @itali
                                       After all the @italic{tamer/handbook.scrbl} plays the role of
                                       the @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Test Report} along with
                                       the @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Design Documentation}
-                                      so that the production code could keep elegant.}
+                                      so that the production code could keep elegant.})}
+           @nested{@bold{@githublink{/Kuzuhamon}} is another reserved @italic{digimon} who works as the @italic{Per-User Website} if @githublink{/sakuyamon} is deployed
+                    in the same machine.
+                    @(itemlist #:style 'compact
                                @item{@bold{terminus} manages guilds of @italic{digimons}. Hmm... Sounds weird, nonetheless, try @tt{htdocs}.})})
 
 @subsection{Version}

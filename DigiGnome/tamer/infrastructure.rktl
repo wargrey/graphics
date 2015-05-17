@@ -135,6 +135,13 @@ we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) sh
        (format "~a/~a" digimon sub.scrbl)
        (check-pred file-exists? (build-path (digimon-world) digimon sub.scrbl))]
 
+@subsection{Rules for the infrastructure itself}
+
+@handbook-rule{Each subproject should have a robots.txt in their @racket[racket-tamer] for SEO.}
+@chunk[|<facts: robots.txt>|
+       "./robots.txt"
+       (check-pred file-exists? (build-path (digimon-tamer) "robots.txt"))]
+
 @handbook-scenario{What if the @itech{handbook} is unavaliable?}
 
 Furthermore, the @itech{handbook} itself is the standard test report, but it@literal{'}s still reasonable
@@ -174,7 +181,8 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
          (define-tamer-suite rules "Rules serve you!"
            #:after {λ _ (delete-directory/files (build-path (digimon-world) gnome))}
            (test-suite "info.rkt settings" |<rules: info.rkt>|)
-           (test-suite "README.md dependencies" |<rules: readme.md>|))}]
+           (test-suite "README.md dependencies" |<rules: readme.md>|)
+           (test-suite "infrastructure specifications" |<rules: infrastructure>|))}]
 
 @chunk[|<rules: info.rkt>|
        (let ([info-ref (get-info/full (digimon-world))])
@@ -195,6 +203,11 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
                (for/list ([digimon (in-list (force digimons))])
                  (test-suite (format "/~a/readme.md" digimon)
                              (test-case |<facts: handbook.scrbl>|)))))]
+
+@chunk[|<rules: infrastructure>|
+       (for/list ([digimon (in-list (force digimons))])
+         (test-suite (format "/~a/tamer" digimon)
+                     (test-case |<facts: robots.txt>|)))]
 
 @chunk[|<check status and stderr>|
        (let ([strerr (get-output-string $err)])
