@@ -9,7 +9,7 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
 * **[Digimon-Gnome: The Meta-Project built for developers to make life
   simple](http://gyoudmon.org/~wargrey:digignome)**
 
-* [Kuzuhamon: An instance of Per-Tamer Terminus serves in
+* [Kuzuhamon: An instance of Per-Tamer Terminus as the part of
   gyoudmon.org.](http://gyoudmon.org/~wargrey:kuzuhamon)
 
 * [Nanomon: Digging data from Chaos such as iPhone
