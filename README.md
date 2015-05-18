@@ -76,7 +76,7 @@ repositories.
     so that the production code could keep elegant.
 
 * **[Kuzuhamon](https://github.com/digital-world/Kuzuhamon)** is another
-  reserved _digimon_ who works as the _Per-User Website_  if
+  reserved _digimon_ who works as the _Per-Tamer Website_  if
   [sakuyamon](https://github.com/digital-world/sakuyamon) is deployed in
   the same machine.
 
