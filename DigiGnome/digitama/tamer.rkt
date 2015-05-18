@@ -107,7 +107,8 @@
                      (hyperlink (~url (digimon-gnome)) (format "<sub>~a</sub>" cat#)))
                (list (hyperlink (~github (current-digimon)) (string house-garden#))
                      (hyperlink (~github (digimon-gnome)) (subscript (string cat#)))))
-           (if (null? pre-contents) (list (literal "Tamer's Handbook:") ~ (info-ref 'collection {λ _ (current-digimon)})) pre-contents))})
+           (cond [(false? (null? pre-contents)) pre-contents]
+                 [else (list (literal "Tamer's Handbook:") ~ (info-ref 'collection {λ _ (current-digimon)}))]))})
 
 (define handbook-scenario
   {lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
@@ -117,13 +118,14 @@
 (define handbook-appendix
   {lambda [#:style [style #false] . pre-contents]
     (list (section #:style style
-                   (string-titlecase (format "Appendix: ~a Auxiliaries" (path-replace-suffix (tamer-story->tag (tamer-story)) "")))
-                   pre-contents)
+                   (cond [(false? (null? pre-contents)) (cons "Appendix: " pre-contents)]
+                         [else (string-titlecase (format "Appendix: ~a Auxiliaries" (path-replace-suffix (tamer-story->tag (tamer-story)) "")))]))
           (let ([zone-snapshot (tamer-zone)])
             (make-traverse-block {λ _ (dynamic-wind {λ _ (void)}
                                                     {λ _ (para #:style "GYDMComment"
                                                                "In order to avoid polluting your eyes, "
-                                                               "any less important things are moved here.")}
+                                                               "any less important things are moved here. "
+                                                               "(also see " @hyperlink[(format "~a/tamer.rkt" (digimon-tamer))]{tamer.rkt} ")")}
                                                     {λ _ (close-eval zone-snapshot)})}))
           (tamer-story #false))})
 
