@@ -15,8 +15,8 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
 * [Nanomon: Digging data from Chaos such as iPhone
   Backups.](http://gyoudmon.org/~wargrey:nanomon)
 
-* [Sakuyamon: Manage and protect http://gyoudmon.org as well as the
-  digital world.](http://gyoudmon.org/~wargrey:sakuyamon)
+* [Sakuyamon: Manage and protect gyoudmon.org as well as the digital
+  world.](http://gyoudmon.org/~wargrey:sakuyamon)
 
 ## 2. Project Conventions
 
