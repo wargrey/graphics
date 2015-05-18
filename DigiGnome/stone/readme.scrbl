@@ -56,8 +56,8 @@ Projects/subcollections listed in the root directory are organized as the @itali
                                       the @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Test Report} along with
                                       the @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Design Documentation}
                                       so that the production code could keep elegant.})}
-           @nested{@bold{@githublink{/Kuzuhamon}} is another reserved @italic{digimon} who works as the @italic{Per-User Website} if @githublink{/sakuyamon} is deployed
-                    in the same machine.
+           @nested{@bold{@hyperlink["https://github.com/digital-world/Kuzuhamon"]{Kuzuhamon}} is another reserved @italic{digimon} who works as the @italic{Per-User Website}
+                    if @hyperlink["https://github.com/digital-world/sakuyamon"]{sakuyamon} is deployed in the same machine.
                     @(itemlist #:style 'compact
                                @item{@bold{terminus} manages guilds of @italic{digimons}. Hmm... Sounds weird, nonetheless, try @tt{htdocs}.})})
 

@@ -75,9 +75,10 @@ repositories.
     Documentation](http://en.wikipedia.org/wiki/Design\_by\_contract)
     so that the production code could keep elegant.
 
-* **[Kuzuhamon](/Kuzuhamon)** is another reserved _digimon_ who works as
-  the _Per-User Website_ if [sakuyamon](/sakuyamon) is deployed  in the
-  same machine.
+* **[Kuzuhamon](https://github.com/digital-world/Kuzuhamon)** is another
+  reserved _digimon_ who works as the _Per-User Website_  if
+  [sakuyamon](https://github.com/digital-world/sakuyamon) is deployed in
+  the same machine.
 
   * **terminus** manages guilds of _digimons_. Hmm... Sounds weird,
     nonetheless, try `htdocs`.
