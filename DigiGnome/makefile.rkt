@@ -147,6 +147,10 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                     (make/proc rules (if (null? (current-make-real-targets)) (map car rules) imts)))
                                   (current-make-real-targets exts))})
 
+    (let ([modpath `(submod ,submake make:files make)])
+      (when (module-declared? modpath #true)
+        (dynamic-require modpath #false)))
+    
     (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
     (do-make (make-implicit-rules))
     (do-make (make-native-library-rules))
@@ -165,11 +169,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                               (namespace-mapped-symbols))))))))
 
     (make/proc (list (list (digimon-zone) null {λ _ '|I don't know how to make all these fucking files|}))
-               (current-make-real-targets))
-    
-    (let ([modpath `(submod ,submake make:files make)])
-      (when (module-declared? modpath #true)
-        (dynamic-require modpath #false)))})
+               (current-make-real-targets))})
 
 (define make~clean:
   {lambda []
