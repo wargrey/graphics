@@ -174,9 +174,7 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
            (test-suite "make: complex options" |<testcase: complex options>|))
 
          (define digimons (lazy (parameterize ([current-directory (digimon-world)])
-                                  (filter (curry regexp-match? #px"^[^.]")
-                                          (filter directory-exists?
-                                                  (directory-list))))))
+                                  (filter get-info/full (directory-list)))))
 
          (define-tamer-suite rules "Rules serve you!"
            #:after {λ _ (delete-directory/files (build-path (digimon-world) gnome))}
