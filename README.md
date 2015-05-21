@@ -32,17 +32,17 @@ approach.
 * **[prerequisites.sh](/DigiGnome/prerequisites.sh)**: Build the latest
   Racket and Swi-Prolog from offical source.
 
-* **[makefile.rkt](/DigiGnome/makefile.rkt)**: As its name shows, it is
-  the replacement of Makefile, and it's the toplevel one.
+* **[makefile.rkt](/DigiGnome/makefile.rkt)**: It is the replacement of
+  Makefile, and it's the toplevel one.
 
-* **submake.rkt**: As its name shows, it is the sub makefile that may
-  exist in every _digimon_ directory.
+* **submake.rkt**: It is the sub makefile that might exist in every
+  _digimon_ directory.
 
 ### 2.2. Hierarchy
 
 > The _Digital World_ itself as a whole is usually placed within your
-> `$HOME` directory     if you want to take advantages of the
-> infrastructures.
+> `$HOME` directory     named `DigitalWorld` if you want to take
+> advantages of the infrastructures.
 
 For the sake of consistency and better architecture, we follow the
 concept of _[Racket Multi-collection

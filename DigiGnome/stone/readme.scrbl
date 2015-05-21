@@ -31,12 +31,12 @@ document it with the @italic{@hyperlink["http://en.wikipedia.org/wiki/Literate_p
 @subsection{Building Scripts}
 @(itemlist #:style 'compact
            @item{@bold{@githublink[@(format "/~a/prerequisites.sh" (digimon-gnome))]}: Build the latest Racket and Swi-Prolog from offical source.}
-           @item{@bold{@githublink[@(format "/~a/makefile.rkt" (digimon-gnome))]}: As its name shows, it is the replacement of Makefile, and it@literal{'}s the toplevel one.}
-           @item{@bold{submake.rkt}: As its name shows, it is the sub makefile that may exist in every @italic{digimon} directory.})
+           @item{@bold{@githublink[@(format "/~a/makefile.rkt" (digimon-gnome))]}: It is the replacement of Makefile, and it@literal{'}s the toplevel one.}
+           @item{@bold{submake.rkt}: It is the sub makefile that might exist in every @italic{digimon} directory.})
 
 @subsection{Hierarchy}
 @margin-note{The @italic{Digital World} itself as a whole is usually placed within your @litchar{$HOME} directory
-                 if you want to take advantages of the infrastructures.}
+                 named @litchar{DigitalWorld} if you want to take advantages of the infrastructures.}
 
 For the sake of consistency and better architecture, we follow the concept of
 @italic{@hyperlink["http://docs.racket-lang.org/pkg/Package_Concepts.html#%28tech._multi._collection._package%29"]{Racket Multi-collection Package}}.

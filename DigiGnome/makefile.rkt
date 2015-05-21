@@ -16,6 +16,9 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 (require compiler/cm)
 (require compiler/compiler)
 
+(require dynext/compile)
+(require dynext/link)
+
 (require "digitama/digicore.rkt")
 
 (provide main)
@@ -69,13 +72,13 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
       (file-or-directory-permissions dgvc.rkt (bitwise-ior chmod #o111)))})
 
 (define smart-dependencies
-    {lambda [entry [memory null]]
-      (foldl {lambda [subpath memory]
-               (define subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
-               (cond [(member subsrc memory) memory]
-                     [else (smart-dependencies subsrc memory)])}
-             (append memory (list entry))
-             (call-with-input-file entry (curry regexp-match* #px"(?<=@(include-section|require)[{[](\\(submod \")?).+?.(scrbl|rktl?)(?=[\"}])")))})
+  {lambda [entry [memory null]]
+    (foldl {lambda [subpath memory]
+             (define subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
+             (cond [(member subsrc memory) memory]
+                   [else (smart-dependencies subsrc memory)])}
+           (append memory (list entry))
+           (call-with-input-file entry (curry regexp-match* #px"(?<=@(include-section|require)[{[](\\(submod \")?).+?.(scrbl|rktl?)(?=[\"}])")))})
 
 (define make-implicit-rules
   {lambda []
@@ -112,6 +115,29 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                (when (equal? (current-digimon) (digimon-gnome))
                                  (build-path (digimon-stone) "readme.scrbl"))))))})
 
+(define make-native-library-rules
+  {lambda []
+    ;;; simple implementation
+    (define include.h {λ [entry [memory null]] (foldl {lambda [subpath memory]
+                                                        (define subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
+                                                        (cond [(member subsrc memory) memory]
+                                                              [else (include.h subsrc memory)])}
+                                                      (append memory (list entry))
+                                                      (call-with-input-file entry (curry regexp-match* #px"(?<=#include \").+?.h(?=\")")))})
+    (foldl append null (map {λ [c] (let-values ([{tobj t} (values (build-path (path-only c) (car (use-compiled-file-paths))
+                                                                              "precompiled" (system-library-subpath #false)
+                                                                              (path-replace-suffix (file-name-from-path c) #".o"))
+                                                                  (build-path (path-only c) (car (use-compiled-file-paths))
+                                                                              "native" (system-library-subpath #false)
+                                                                              (path-replace-suffix (file-name-from-path c) (system-type 'so-suffix))))])
+                                     (list (list tobj (include.h c) {λ [target] (and (printf "cc: compiling: ~a~n" c)
+                                                                                     (compile-extension 'quiet c target (list (digimon-zone))))})
+                                           (list t (list tobj) {λ [target] (parameterize ([current-extension-linker-flags (list "-shared")]
+                                                                                          [current-standard-link-libraries null])
+                                                                             (printf "cc: linking: ~a~n" tobj)
+                                                                             (link-extension 'quiet (list tobj) target))})))}
+                            (find-digimon-files (curry regexp-match? #px"\\.c$") (digimon-zone))))})
+
 (define make~all:
   {lambda []
     (define submake (build-path (digimon-zone) "submake.rkt"))
@@ -123,6 +149,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
     (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
     (do-make (make-implicit-rules))
+    (do-make (make-native-library-rules))
     (when (directory-exists? (digimon-digivice))
       (compile-directory (digimon-digivice) (get-info/full (digimon-zone))))
     
@@ -175,6 +202,8 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 (define make~check:
   {lambda []
     (when (directory-exists? (digimon-tamer))
+      (let ([rules (map hack-rule (make-native-library-rules))])
+        (unless (null? rules) (make/proc rules (map car rules))))
       (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
 
       (for ([handbook (in-list (cond [(null? (current-make-real-targets)) (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))]
