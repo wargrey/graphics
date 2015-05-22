@@ -110,10 +110,11 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                  #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #true))
                                   (rename-file-or-directory (path-add-suffix target #".md") target #true)
                                   (printf "  [Output to ~a]~n" target))})}
-                 (filter {λ [dependent.scrbl] (and (path? dependent.scrbl) (file-exists? dependent.scrbl))}
-                         (list (build-path (digimon-tamer) "handbook.scrbl")
-                               (when (equal? (current-digimon) (digimon-gnome))
-                                 (build-path (digimon-stone) "readme.scrbl"))))))})
+                 (cond [(string=? (getenv "USER") "root") null]
+                       [else (filter {λ [dependent.scrbl] (and (path? dependent.scrbl) (file-exists? dependent.scrbl))}
+                                     (list (build-path (digimon-tamer) "handbook.scrbl")
+                                           (when (equal? (current-digimon) (digimon-gnome))
+                                             (build-path (digimon-stone) "readme.scrbl"))))])))})
 
 (define make-native-library-rules
   {lambda []
@@ -152,8 +153,8 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
         (dynamic-require modpath #false)))
     
     (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
-    (do-make (make-implicit-rules))
     (do-make (make-native-library-rules))
+    (do-make (make-implicit-rules))
     (when (directory-exists? (digimon-digivice))
       (compile-directory (digimon-digivice) (get-info/full (digimon-zone))))
     
@@ -201,7 +202,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (define make~check:
   {lambda []
-    (when (directory-exists? (digimon-tamer))
+    (when (and (false? (string=? (getenv "USER") "root")) (directory-exists? (digimon-tamer)))
       (let ([rules (map hack-rule (make-native-library-rules))])
         (unless (null? rules) (make/proc rules (map car rules))))
       (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
