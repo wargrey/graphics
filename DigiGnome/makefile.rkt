@@ -148,7 +148,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                     (make/proc rules (if (null? (current-make-real-targets)) (map car rules) imts)))
                                   (current-make-real-targets exts))})
 
-    (let ([modpath `(submod ,submake make:files make)])
+    (let ([modpath `(submod ,submake premake)])
       (when (module-declared? modpath #true)
         (dynamic-require modpath #false)))
     
@@ -169,8 +169,16 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                   (filter-map {λ [var] (namespace-variable-value var #false {λ _ #false})}
                                               (namespace-mapped-symbols))))))))
 
+    (let ([modpath `(submod ,submake make:files make)])
+      (when (module-declared? modpath #true)
+        (dynamic-require modpath #false)))
+
     (make/proc (list (list (digimon-zone) null {λ _ '|I don't know how to make all these fucking files|}))
-               (current-make-real-targets))})
+               (current-make-real-targets))
+
+    (let ([modpath `(submod ,submake postmake)])
+      (when (module-declared? modpath #true)
+        (dynamic-require modpath #false)))})
 
 (define make~clean:
   {lambda []
@@ -202,7 +210,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (define make~check:
   {lambda []
-    (cond [(string=? (getenv "USER") "root") (printf "make: [warning] meanwhile there is no testsuite for ROOT!")]
+    (cond [(string=? (getenv "USER") "root") (printf "make: [warning] meanwhile there is no testsuite for ROOT!~n")]
           [else (when (directory-exists? (digimon-tamer))
                   (let ([rules (map hack-rule (make-native-library-rules))])
                     (unless (null? rules) (make/proc rules (map car rules))))
