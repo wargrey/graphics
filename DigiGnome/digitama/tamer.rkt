@@ -314,7 +314,10 @@
                                                                                                     (racket #,(fix (read (open-input-string val)))))]))}]
                                  [(regexp-match #px"^\\s*»»» \\s+(expected|given|received):\\s+(.+?)\\s*$" line) ; only for errors those have multilined messages.
                                   => {λ [pieces] (and (unit-spec (cons (string-trim line) (unit-spec)))
-                                                      (elem (racketvalfont (string paw#)) ~ (racket #,(fix (read (open-input-string (list-ref pieces 2)))))))}]
+                                                      (elem (racketvalfont (string paw#)) ~
+                                                            (let ([message (list-ref pieces 2)])
+                                                              (racket #,(fix (with-handlers ([exn? {λ _ message}])
+                                                                               (read (open-input-string message))))))))}]
                                  [(regexp-match #px"^$" line) (hash-set! scenarios unit (reverse (unit-spec)))]
                                  [(hash-has-key? scenarios unit) (elem (string pin#) ~ ((if (regexp-match? #px"error" line) racketerror racketresultfont) line)
                                                                        ~ (seclink (tamer-story->tag (tamer-story))
