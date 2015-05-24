@@ -19,6 +19,8 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 (require dynext/compile)
 (require dynext/link)
 
+(require net/http-client)
+
 (require "digitama/digicore.rkt")
 
 (provide main)
@@ -215,7 +217,12 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                   (let ([rules (map hack-rule (make-native-library-rules))])
                     (unless (null? rules) (make/proc rules (map car rules))))
                   (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
-                  
+
+                  (define redirected (with-handlers ([exn? {λ _ #false}])
+                                       (match-define-values {_ {list-no-order #"Terminus: Per-Digimon" _ ...} _}
+                                                            (http-sendrecv "localhost" #:method "OPTIONS"
+                                                                           (format "/~~~a:~a" (getenv "USER") (current-digimon))))
+                                       "/"))
                   (for ([handbook (in-list (cond [(null? (current-make-real-targets)) (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))]
                                                  [else (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.(scrbl|rktl)" (digimon-tamer)))])
                                                          (filter {λ [hb.scrbl] (or (regexp-match? px.tamer.scrbl hb.scrbl)
@@ -233,7 +240,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                             (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
                                            #:render-mixin {λ [%] (html:render-multi-mixin (html:render-mixin %))}
                                            #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
-                                           ;#:redirect "http://docs.racket-lang.org" #:redirect-main "http://docs.racket-lang.org"
+                                           #:redirect ,redirected #:redirect-main ,redirected
                                            #:xrefs (list (load-collections-xref)) #:quiet? #false #:warn-undefined? #false)))))))])})
 
 (define create-zone
