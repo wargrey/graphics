@@ -90,6 +90,12 @@
     ((inst sequence-fold Path (Listof Path-String)) {λ [ps p] (if (predicate p) (cons p ps) ps)} null
                                                     (in-directory start-path {λ [p] (not (regexp-match? px.exclude p))}))})
 
+(define file-readable? : (-> Path-String Boolean)
+  {lambda [p]
+    (and (file-exists? p)
+         (memq 'read (file-or-directory-permissions p))
+         #true)})
+
 (define call-as-normal-termination : (-> (-> Any) Void)
   {lambda [main/0]
     (define status : Any (let/ec $?
