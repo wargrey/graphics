@@ -14,6 +14,9 @@ exec racket --name "`basename $0 .rkt`" --require "$0" -- ${1+"$@|#\@|"}
 
 (require "../digitama/digicore.rkt")
 
+(require/typed racket/base
+               [#:opaque SIGHUP exn:break:hang-up?])
+
 (define digivice : Symbol (#%module))
 
 (provide main)
@@ -45,7 +48,14 @@ exec racket --name "`basename $0 .rkt`" --require "$0" -- ${1+"$@|#\@|"}
                                        [current-namespace (make-base-namespace)])
                           (define act.rkt : Path-String (format "~a/~a.rkt" digivice (car arglist)))
                           (if (file-exists? act.rkt)
-                              (void.eval `(require (submod (file ,act.rkt) ,digivice)))
+                              (let ([SIGHUP! : (Parameterof Boolean) (make-parameter #false)])
+                                ;;; Don't do relaunching in `signal-handler`, or it won't catch signals any more.
+                                (let launch ()
+                                  (SIGHUP! #false)
+                                  (parameterize ([current-namespace (make-base-namespace)])
+                                    (with-handlers ([exn:break:hang-up? {λ _ (SIGHUP! #true)}])
+                                      (void.eval `(require (submod (file ,act.rkt) ,digivice)))))
+                                  (when (SIGHUP!) (launch))))
                               (show-help-and-exit #:erract (car arglist))))]))})})
 
 ;;; `raco setup` makes it hard to set --main option when making launcher
