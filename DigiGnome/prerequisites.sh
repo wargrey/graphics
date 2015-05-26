@@ -29,17 +29,17 @@ Prefix := /opt
 VerRegExp := \([0-9]\+\.\)\+[0-9]\+
 
 racket_dir := GYDMracket
-racket_bin0 := $(shell `which racket`)
+racket_bin0 := $(shell which racket)
 racket_bin := $(if $(findstring 0,$(words $(racket_bin0))),$(Prefix)/$(racket_dir)/bin/racket,$(racket_bin0))
 racket_verion := $(shell curl --compressed http://download.racket-lang.org/all-versions.html | grep -m 1 -o 'racket-minimal-v$(VerRegExp)' | tr -d a-z-)
 racket_src := racket-minimal-$(racket_verion)-src-builtpkgs.tgz
 racket_pkgs_linux := libfontconfig libcairo2 libpango1.0 libjpeg62 freeglut3
-racket_pkgs := math html make images racklog pict3d
+racket_pkgs := math html make images pict3d
 racket_config_darwin := --enable-macprefix
 racket_config_linux :=
 
 prolog_dir := GYDMprolog
-prolog_bin0 := $(shell `which swipl`)
+prolog_bin0 := $(shell which swipl)
 prolog_bin := $(if $(findstring 0,$(words $(prolog_bin0))),$(Prefix)/$(prolog_dir)/bin/swipl,$(prolog_bin0))
 prolog_version := $(shell curl http://www.swi-prolog.org/download/devel | grep -m 1 -o 'download/devel/src/pl-$(VerRegExp)' | tr -d 'a-z-/')
 prolog_src := pl-$(prolog_version).tar.gz
@@ -55,7 +55,7 @@ $(Prefix)/$(racket_dir)/bin/racket: $(racket_src)
 	cd racket-$(racket_verion)/src && sudo $(MAKE) install
 
 racket: $(if $(findstring 0,$(words $(racket_bin0))),$(racket_bin))
-	test -n "$(racket_pkgs_$(OSNAME))" && sudo apt install $(racket_pkgs_$(OSNAME))
+	test -n "$(racket_pkgs_$(OSNAME))" && sudo apt-get install --yes $(racket_pkgs_$(OSNAME))
 	sudo $(addprefix $(dir $(racket_bin)),raco) pkg install --skip-installed --scope installation --deps search-auto $(racket_pkgs)
 	$(racket_bin) -l racket/base -e '(printf "We have Racket ~a.~n" (version))'
 
