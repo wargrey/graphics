@@ -6,7 +6,7 @@ exit $?;
 
 ######################## Makefile #######################
 SHELL := $(shell which bash) -c -x
-.ALLPHONY := racket swipl
+.ALLPHONY := racket # swipl
 
 export OSTYPE := $(shell uname -s)
 export OSNAME := $(shell perl -e 'print $$^O;')
