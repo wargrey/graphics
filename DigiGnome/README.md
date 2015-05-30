@@ -25,7 +25,7 @@ Good Luck!
 >             - 💚 2 - should report errors
 >         + 📑make: complex options
 >           - 💚 1 - make --always-make ++only DigiGnome README.md
->           - 💚 2 - make --dry-run --touch ++only gnome758
+>           - 💚 2 - make --dry-run --touch ++only gnome549
 >       + 📑Rules serve you!
 >         + 📑info.rkt settings
 >           + 📑/info.rkt
@@ -40,7 +40,7 @@ Good Luck!
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
 >             - 💚 4 - test-omit-paths
->           + 📑/gnome758/info.rkt
+>           + 📑/gnome549/info.rkt
 >             - 💚 1 - version
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
@@ -62,8 +62,8 @@ Good Luck!
 >             - 💚 1 - DigiGnome/tamer/handbook.scrbl
 >           + 📑/Kuzuhamon/readme.md
 >             - 💚 1 - Kuzuhamon/tamer/handbook.scrbl
->           + 📑/gnome758/readme.md
->             - 💚 1 - gnome758/tamer/handbook.scrbl
+>           + 📑/gnome549/readme.md
+>             - 💚 1 - gnome549/tamer/handbook.scrbl
 >           + 📑/nanomon/readme.md
 >             - 💚 1 - nanomon/tamer/handbook.scrbl
 >           + 📑/sakuyamon/readme.md
@@ -73,7 +73,7 @@ Good Luck!
 >             - 💚 1 - ./robots.txt
 >           + 📑/Kuzuhamon/tamer
 >             - 💚 1 - ./robots.txt
->           + 📑/gnome758/tamer
+>           + 📑/gnome549/tamer
 >             - 💚 1 - ./robots.txt
 >           + 📑/nanomon/tamer
 >             - 💚 1 - ./robots.txt
@@ -86,15 +86,16 @@ Good Luck!
 >         - 💚 2 - action should be updated!
 >         - 💚 3 - exec racket digivice
 >       + 📑That's it, Help!
->         + 📑digivice [action]
->           - 💚 1 - digivice help ['help' can be omitted if you want]
->           - 💚 2 - digivice --help [a kind of mistyped action]
->           - 💚 3 - digivice action [mission start]
->         + 📑digivice action [option]
->           - 💚 1 - digivice action --help [pass option to action]
->           - 💚 2 - digivice action --version [show version information]
->           - 💚 3 - digivice action --unknown [a kind of mistyped
-option]
+>         + 📑digivice \[action\]
+>           - 💚 1 - digivice help \['help' can be omitted if you want\]
+>           - 💚 2 - digivice --help \[a kind of mistyped action\]
+>           - 💚 3 - digivice action \[mission start\]
+>         + 📑digivice action \[option\]
+>           - 💚 1 - digivice action --help \[pass option to action\]
+>           - 💚 2 - digivice action --version \[show version
+information\]
+>           - 💚 3 - digivice action --unknown \[a kind of mistyped
+option\]
 >           - 💚 4 - digivice action job done
 >       + 📑Restore the filesystem
 >         - 💚 1 - digivice should be deleted!
@@ -102,6 +103,3 @@ option]
 >         - 💚 3 - /DigiGnome/digivice should be deleted if empty!
 >
 > 📌51 examples, 0 failures, 0 errors, 100.00% Okay.
->
->
-[🐈<sub>🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾</sub>](http://gyoudmon.org/~wargrey:digignome)

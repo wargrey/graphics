@@ -232,14 +232,14 @@
                                      [tamer-story #false])
                         (define summary? (make-parameter #false))
                         (thread {λ _ (dynamic-wind collect-garbage tamer-prove {λ _ (close-output-port /dev/tamer/stdout)})})
-                        (para (filter-map {λ [line] (and (not (void? line)) (map (compose1 literal ~line) (if (list? line) line (list line))))}
+                        (para (filter-map {λ [line] (and (not (void? line)) (map ~markdown (if (list? line) line (list line))))}
                                           (for/list ([line (in-port read-line)])
                                             (cond [(regexp-match #px"^λ\\s+(.+)" line)
                                                    => {λ [pieces] (format "> + ~a~a" books# (list-ref pieces 1))}]
                                                   [(regexp-match #px"^(\\s+)λ\\d+\\s+(.+?.rktl)\\s*$" line)
                                                    => {λ [pieces] (match-let ([{list _ indt ctxt} pieces]) ; (markdown listitem needs at least 1 char after "+ "
                                                                     (list (format ">   ~a+ ~a" indt open-book#)  ; before breaking line if "[~a](~a)" is longer
-                                                                          (format "[~a](~a/~a)" ctxt (~url (current-digimon)) ctxt)))}] ; then 72 chars.)
+                                                                          (hyperlink (format "~a/~a" (~url (current-digimon)) ctxt) ctxt)))}] ; then 72 chars.)
                                                   [(regexp-match #px"^(\\s+)λ\\d+(.\\d)*\\s+(.+?)\\s*$" line)
                                                    => {λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) bookmark# (list-ref pieces 3))}]
                                                   [(regexp-match #px"^(\\s*)(.+?) (\\d+) - (.+?)\\s*$" line)
@@ -250,10 +250,7 @@
                                                                           (list-ref pieces 3) (list-ref pieces 4))}]
                                                   [(regexp-match #px"^$" line) (summary? #true)]
                                                   [(regexp-match #px"wallclock" line) "> "]
-                                                  [(summary?) (list (format "> ~a~a" pin# line) "> "
-                                                                    (format "> [~a<sub>~a</sub>](~a)"
-                                                                            cat# (make-string (quotient (string-length line) 2) paw#)
-                                                                            (~url (current-digimon))))])))))})])})})
+                                                  [(summary?) (format "> ~a~a" pin# line)])))))})])})})
 
 (define tamer-note
   {lambda unit-vars
@@ -340,6 +337,7 @@
   (require racket/undefined)
   (require syntax/location)
   (require setup/xref)
+  (require scribble/core)
   (require scribble/xref)
   (require scribble/manual)
 
@@ -407,9 +405,11 @@
                                (object-name struct:test-failure) "#f"))
       (hash-ref indicators (object-name result))})
 
-  (define ~line
+  (define ~markdown
     {lambda [line]
-      (format "~a~a" line (make-string (- 72 (remainder (string-length line) 72)) #\space))})
+      (define padding {λ [line] (make-string (- 72 (remainder (string-length (format "~a" line)) 72)) #\space)})
+      (cond [(string? line) (literal (format "~a~a" line (padding line)))]
+            [else (list line (literal (padding (car (element-content line)))))])})
 
   (define ~url
     {lambda [projname]

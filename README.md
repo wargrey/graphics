@@ -22,9 +22,9 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
 
 Since I'm an indenpendent developer and communicating costs almost
 nothing, I make decision at my risk to model software system in _[Formal
-Methods](http://en.wikipedia.org/wiki/Formal\_methods)_ and document it
+Methods](http://en.wikipedia.org/wiki/Formal_methods)_ and document it
 with the _[Literate
-Programming](http://en.wikipedia.org/wiki/Literate\_programming)_
+Programming](http://en.wikipedia.org/wiki/Literate_programming)_
 approach.
 
 ### 2.1. Building Scripts
@@ -46,7 +46,7 @@ approach.
 
 For the sake of consistency and better architecture, we follow the
 concept of _[Racket Multi-collection
-Package](http://docs.racket-lang.org/pkg/Package\_Concepts.html\#%28tech.\_multi.\_collection.\_package%29)_.
+Package](http://docs.racket-lang.org/pkg/Package_Concepts.html#%28tech._multi._collection._package%29)_.
 Projects/subcollections listed in the root directory are organized as
 the _digimons_, and each of them may be separated into several
 repositories.
@@ -70,10 +70,10 @@ repositories.
   * **tamer** is the interface for developers to tame the _digimons_.
     Namely it works like `test`.  After all the _tamer/handbook.scrbl_
     plays the role of  the [Test
-    Report](http://en.wikipedia.org/wiki/Behavior-driven\_development)
+    Report](http://en.wikipedia.org/wiki/Behavior-driven_development)
     along with  the [Design
-    Documentation](http://en.wikipedia.org/wiki/Design\_by\_contract)
-    so that the production code could keep elegant.
+    Documentation](http://en.wikipedia.org/wiki/Design_by_contract)  so
+    that the production code could keep elegant.
 
 * **[Kuzuhamon](https://github.com/digital-world/Kuzuhamon)** is another
   reserved _digimon_ who works as the _Per-Tamer Website_  if
@@ -82,6 +82,10 @@ repositories.
 
   * **terminus** manages guilds of _digimons_. Hmm... Sounds weird,
     nonetheless, try `htdocs`.
+
+  * **village** stands for _the primary village_, the start point of
+    _digimon_s.  Namely sources within it should be translated into
+    proper contents, say `html`, `js`, `css` and so on.
 
 ### 2.3. Version
 

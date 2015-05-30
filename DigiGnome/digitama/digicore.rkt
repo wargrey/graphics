@@ -73,7 +73,7 @@
                                                      {λ [[zonedir : Path]] (build-path zonedir (symbol->string 'id))}))
                            ...})]))
 
-(define-digimon-dirpath stone digitama digivice tamer terminus)
+(define-digimon-dirpath stone digitama digivice tamer village terminus)
 
 (define path->digimon-modpath : (->* {Path-String} {Symbol} (U Module-Path (List 'submod Module-Path Symbol)))
   {lambda [modfile [submodule #false]]
@@ -87,8 +87,7 @@
     (define px.exclude : Regexp
       (let ([cmpls ((inst map String Path) {λ [p] (path->string (cast (file-name-from-path p) Path))} (use-compiled-file-paths))])
         (pregexp (string-join #:before-first "/(\\.git" (if search-compiled? null (remove-duplicates cmpls)) "|" #:after-last ")$"))))
-    ((inst sequence-fold Path (Listof Path-String)) {λ [ps p] (if (predicate p) (cons p ps) ps)} null
-                                                    (in-directory start-path {λ [p] (not (regexp-match? px.exclude p))}))})
+    (filter predicate (sequence->list (in-directory start-path {λ [[p : Path-String]] (not (regexp-match? px.exclude p))})))})
 
 (define file-readable? : (-> Path-String Boolean)
   {lambda [p]

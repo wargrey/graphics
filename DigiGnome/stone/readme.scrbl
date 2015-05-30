@@ -59,7 +59,9 @@ Projects/subcollections listed in the root directory are organized as the @itali
            @nested{@bold{@hyperlink["https://github.com/digital-world/Kuzuhamon"]{Kuzuhamon}} is another reserved @italic{digimon} who works as the @italic{Per-Tamer Website}
                     if @hyperlink["https://github.com/digital-world/sakuyamon"]{sakuyamon} is deployed in the same machine.
                     @(itemlist #:style 'compact
-                               @item{@bold{terminus} manages guilds of @italic{digimons}. Hmm... Sounds weird, nonetheless, try @tt{htdocs}.})})
+                               @item{@bold{terminus} manages guilds of @italic{digimons}. Hmm... Sounds weird, nonetheless, try @tt{htdocs}.}
+                               @item{@bold{village} stands for @italic{the primary village}, the start point of @italic{digimon}s.
+                                      Namely sources within it should be translated into proper contents, say @tt{html}, @tt{js}, @tt{css} and so on.})})
 
 @subsection{Version}
 Obviousely, our @italic{digimons} have their own life cycle.

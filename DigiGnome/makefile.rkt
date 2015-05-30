@@ -5,7 +5,10 @@ dir="`dirname $0`/digitama"; fn="digicore";
 dzo="${dir}/compiled/${fn}_rkt.zo";
 mzo="`dirname $0`/compiled/`basename $0 .rkt`_rkt.zo";
 test "${dzo}" -ot "${dir}/${fn}.rkt" && rm -fr ${mzo};
-test "$1" = "clean" && rm -fr "${dzo}" "${mzo}";
+if test "$1" = "clean"; then
+   find "`dirname $0`/.." -name "*.zo" -exec rm -f {} ';'
+   rm -fr "${dzo}" "${mzo}";
+fi
 exec racket --name "$0" --require "$0" --main -- ${1+"$@"} 
 |#
 
@@ -207,8 +210,8 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                   (namespace-variable-value var #false {λ _ null})))))))
     
     (for-each fclean (map car (make-implicit-rules)))
-    (for-each fclean (find-digimon-files (curry regexp-match? (pregexp (format "/~a(?![^/])/?" (car (use-compiled-file-paths)))))
-                                         (digimon-zone) #:search-compiled? #true))})
+    (for-each fclean (reverse (find-digimon-files (curry regexp-match? (pregexp (format "/~a(?![^/])/?" (car (use-compiled-file-paths)))))
+                                                  (digimon-zone) #:search-compiled? #true)))})
 
 (define make~check:
   {lambda []
