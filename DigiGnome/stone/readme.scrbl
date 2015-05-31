@@ -60,7 +60,7 @@ Projects/subcollections listed in the root directory are organized as the @itali
                     if @hyperlink["https://github.com/digital-world/sakuyamon"]{sakuyamon} is deployed in the same machine.
                     @(itemlist #:style 'compact
                                @item{@bold{terminus} manages guilds of @italic{digimons}. Hmm... Sounds weird, nonetheless, try @tt{htdocs}.}
-                               @item{@bold{village} stands for @italic{the primary village}, the start point of @italic{digimon}s.
+                               @item{@bold{village} stands for @italic{the primary village}, the start point of @italic{digimons}.
                                       Namely sources within it should be translated into proper contents, say @tt{html}, @tt{js}, @tt{css} and so on.})})
 
 @subsection{Version}

@@ -84,7 +84,7 @@ repositories.
     nonetheless, try `htdocs`.
 
   * **village** stands for _the primary village_, the start point of
-    _digimon_s.  Namely sources within it should be translated into
+    _digimons_.  Namely sources within it should be translated into
     proper contents, say `html`, `js`, `css` and so on.
 
 ### 2.3. Version
