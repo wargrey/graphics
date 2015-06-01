@@ -59,8 +59,8 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
     (define px.within (pregexp (if (make-print-checking) (digimon-world) (path->string (digimon-zone)))))
     (define traceln (curry printf "compiler: ~a~n"))
     (define filter-inside {λ [info] (cond [(regexp-match? #px"checking:" info) (when (make-print-checking) (traceln info))]
-                                          [(regexp-match? #px"(compil|process|skipp)ing:" info) (traceln info)])})
-    (define filter-verbose {λ [info] (cond [(regexp-match? #px"(newer src...|end compile|done:)" info) '|Skip Task Endline|]
+                                          [(regexp-match? #px"(compil|process)ing:" info) (traceln info)])})
+    (define filter-verbose {λ [info] (cond [(regexp-match? #px"(newer src...|end compile|skipping|done:)" info) '|Skip Task Endline|]
                                            [(regexp-match? #px"newer:" info) (when (make-print-reasons) (traceln info))]
                                            [(regexp-match? px.within info) (filter-inside info)]
                                            [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" info) '|Skip Other's Packages|]
@@ -136,11 +136,11 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                                   (build-path (path-only c) (car (use-compiled-file-paths))
                                                                               "native" (system-library-subpath #false)
                                                                               (path-replace-suffix (file-name-from-path c) (system-type 'so-suffix))))])
-                                     (list (list tobj (include.h c) {λ [target] (and (printf "cc: compiling: ~a~n" c)
+                                     (list (list tobj (include.h c) {λ [target] (and (printf "cc: ~a: ~a~n" (current-extension-compiler) c)
                                                                                      (compile-extension 'quiet c target (list (digimon-zone))))})
                                            (list t (list tobj) {λ [target] (parameterize ([current-extension-linker-flags (list "-shared")]
                                                                                           [current-standard-link-libraries null])
-                                                                             (printf "cc: linking: ~a~n" tobj)
+                                                                             (printf "ld: ~a: ~a~n" (current-extension-linker) tobj)
                                                                              (link-extension 'quiet (list tobj) target))})))}
                             (find-digimon-files (curry regexp-match? #px"\\.c$") (digimon-zone))))})
 
