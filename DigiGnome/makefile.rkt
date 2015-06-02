@@ -115,7 +115,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                  #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #true))
                                   (rename-file-or-directory (path-add-suffix target #".md") target #true)
                                   (printf "  [Output to ~a]~n" target))})}
-                 (cond [(string=? (getenv "USER") "root") null]
+                 (cond [(string=? (current-tamer) "root") null]
                        [else (filter {λ [dependent.scrbl] (and (path? dependent.scrbl) (file-exists? dependent.scrbl))}
                                      (list (build-path (digimon-tamer) "handbook.scrbl")
                                            (when (equal? (current-digimon) (digimon-gnome))
@@ -215,7 +215,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (define make~check:
   {lambda []
-    (cond [(string=? (getenv "USER") "root") (printf "make: [warning] meanwhile there is no testsuite for ROOT!~n")]
+    (cond [(string=? (current-tamer) "root") (printf "make: [warning] meanwhile there is no testsuite for ROOT!~n")]
           [else (when (directory-exists? (digimon-tamer))
                   (let ([rules (map hack-rule (make-native-library-rules))])
                     (unless (null? rules) (make/proc rules (map car rules))))

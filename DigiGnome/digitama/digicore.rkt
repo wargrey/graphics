@@ -58,6 +58,8 @@
                     [_ (system-type 'os)])))
 
 (define current-digimon : (Parameterof String String) (make-parameter (digimon-gnome)))
+(define current-tamer : (Parameterof Nothing String) (make-parameter (or (getenv "USER") (getenv "LOGNAME") "nobody")))
+
 (define digimon-zone : (Parameterof Nothing Path)
   (make-derived-parameter current-digimon (immutable-guard 'digimon-zone) {λ [[name : String]] (build-path (digimon-world) name)}))
 

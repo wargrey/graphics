@@ -412,8 +412,8 @@
             [else (list line (literal (padding (car (element-content line)))))])})
 
   (define ~url
-    {lambda [projname]
-      (format "http://gyoudmon.org/~~~a:~a" (getenv "USER") (string-downcase projname))})
+    {lambda [digimon]
+      (format "http://gyoudmon.org/~~~a:~a" (current-tamer) (string-downcase digimon))})
 
   (define ~github
     {lambda [projname]
