@@ -14,7 +14,7 @@ Good Luck!
 
 > + 📚Behaviors and Features
 >     + 📖
-[infrastructure.rktl](http://gyoudmon.org/~wargrey:digignome/infrastructure.rktl)
+[infrastructure.rkt](http://gyoudmon.org/~wargrey:digignome/infrastructure.rkt)
 >       + 📑Ready? It works!
 >         + 📑make: simple options
 >           + 📑make --silent --help
@@ -25,7 +25,7 @@ Good Luck!
 >             - 💚 2 - should report errors
 >         + 📑make: complex options
 >           - 💚 1 - make --always-make ++only DigiGnome README.md
->           - 💚 2 - make --dry-run --touch ++only gnome758
+>           - 💚 2 - make --dry-run --touch ++only gnome727
 >       + 📑Rules serve you!
 >         + 📑info.rkt settings
 >           + 📑/info.rkt
@@ -40,7 +40,7 @@ Good Luck!
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
 >             - 💚 4 - test-omit-paths
->           + 📑/gnome758/info.rkt
+>           + 📑/gnome727/info.rkt
 >             - 💚 1 - version
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
@@ -62,8 +62,8 @@ Good Luck!
 >             - 💚 1 - DigiGnome/tamer/handbook.scrbl
 >           + 📑/Kuzuhamon/readme.md
 >             - 💚 1 - Kuzuhamon/tamer/handbook.scrbl
->           + 📑/gnome758/readme.md
->             - 💚 1 - gnome758/tamer/handbook.scrbl
+>           + 📑/gnome727/readme.md
+>             - 💚 1 - gnome727/tamer/handbook.scrbl
 >           + 📑/nanomon/readme.md
 >             - 💚 1 - nanomon/tamer/handbook.scrbl
 >           + 📑/sakuyamon/readme.md
@@ -73,14 +73,14 @@ Good Luck!
 >             - 💚 1 - ./robots.txt
 >           + 📑/Kuzuhamon/tamer
 >             - 💚 1 - ./robots.txt
->           + 📑/gnome758/tamer
+>           + 📑/gnome727/tamer
 >             - 💚 1 - ./robots.txt
 >           + 📑/nanomon/tamer
 >             - 💚 1 - ./robots.txt
 >           + 📑/sakuyamon/tamer
 >             - 💚 1 - ./robots.txt
 >     + 📖
-[digivice.rktl](http://gyoudmon.org/~wargrey:digignome/digivice.rktl)
+[digivice.rkt](http://gyoudmon.org/~wargrey:digignome/digivice.rkt)
 >       + 📑Make the demo from scratch
 >         - 💚 1 - digivice should be updated!
 >         - 💚 2 - action should be updated!
