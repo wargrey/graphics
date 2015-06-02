@@ -222,14 +222,14 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                   (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
 
                   (for ([handbook (in-list (cond [(null? (current-make-real-targets)) (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))]
-                                                 [else (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.(scrbl|rktl)" (digimon-tamer)))])
+                                                 [else (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.(scrbl|rkt)" (digimon-tamer)))])
                                                          (filter {λ [hb.scrbl] (or (regexp-match? px.tamer.scrbl hb.scrbl)
                                                                                    ((negate eprintf) "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl))}
                                                                  (current-make-real-targets)))]))])
                     (parameterize ([current-directory (path-only handbook)]
                                    [current-namespace (make-base-namespace)])
                       (define ./handbook (find-relative-path (digimon-world) handbook))
-                      (if (regexp-match? #px"\\.rktl$" handbook)
+                      (if (regexp-match? #px"\\.rkt$" handbook)
                           (parameterize ([exit-handler {λ [retcode] (when (and (integer? retcode) (<= 1 retcode 255))
                                                                       (error 'make "[error] /~a breaks ~a!" ./handbook (~n_w retcode "testcase")))}])
                             (dynamic-require `(submod ,handbook main) #false))
