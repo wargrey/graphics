@@ -52,6 +52,11 @@
     (values (make-parameter (cadr (cast px.split (Listof String))) (immutable-guard 'digimon-world))
             (make-parameter (caddr (cast px.split (Listof String))) (immutable-guard 'digimon-gnome)))))
 
+(define digimon-system : (Parameterof Nothing Symbol)
+  (make-parameter (match (path->string (system-library-subpath #false)) ;;; (system-type 'machine) leads to "forbidden exec /bin/uname" 
+                    [{pregexp #px"solaris"} 'solaris]
+                    [_ (system-type 'os)])))
+
 (define current-digimon : (Parameterof String String) (make-parameter (digimon-gnome)))
 (define digimon-zone : (Parameterof Nothing Path)
   (make-derived-parameter current-digimon (immutable-guard 'digimon-zone) {λ [[name : String]] (build-path (digimon-world) name)}))
@@ -97,12 +102,24 @@
 
 (define call-as-normal-termination : (-> (-> Any) Void)
   {lambda [main/0]
+    (define-type SERVICE-EXIT (-> Any (Option Byte)))
     (define status : Any (let/ec $?
                            (parameterize ([exit-handler (cast $? (-> Any Any))])
-                             (with-handlers ([exn? {λ [[e : exn]] (exit ({λ _ 1} (eprintf "~a~n" (exn-message e))))}]
-                                             [void {λ [[e : Any]] (exit ({λ _ 1} (eprintf "(uncaught-exception-handler) => ~a~n" e)))}])
+                             (with-handlers ([exn? {λ [[e : exn]] (exit ({λ _ 'FATAL} (eprintf "~a~n" (exn-message e))))}]
+                                             [void {λ [[e : Any]] (exit ({λ _ 'FATAL} (eprintf "(uncaught-exception-handler) => ~a~n" e)))}])
                                (exit (main/0))))))
-    (exit (if (exact-nonnegative-integer? status) (min status 255) 0))})
+    (define perror (curry eprintf "~a~n"))
+    (define svc.startd : SERVICE-EXIT
+      (match-lambda
+        ['FATAL (and (perror 'SMF-EXIT-ERR-FATAL) 95)]
+        ['ECONFIG (and (perror 'SMF-EXIT-ERR-CONFIG) 96)]
+        ['ENOSERVICE (and (perror 'SMF-EXIT-ERR-NOSMF) 99)]
+        ['EPERM (and (perror 'SMF-EXIT-ERR-PERM) 100)]
+        [_ #false]))
+      
+    (cond [(exact-nonnegative-integer? status) (exit (min status 255))]
+          [(and (symbol=? (digimon-system) 'solaris) (svc.startd status)) => exit]
+          [else (exit 0)])})
 
 (define car.eval : (->* (Any) (Namespace) Any)
   {lambda [sexp [ns (current-namespace)]]
