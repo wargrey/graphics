@@ -10,13 +10,13 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
   simple](http://gyoudmon.org/~wargrey:digignome)**
 
 * [Kuzuhamon: An instance of Per-Tamer Terminus as the part of
-  gyoudmon.org.](http://gyoudmon.org/~wargrey:kuzuhamon)
+  gyoudmon.org](http://gyoudmon.org/~wargrey:kuzuhamon)
 
 * [Nanomon: Digging data from Chaos such as iPhone
-  Backups.](http://gyoudmon.org/~wargrey:nanomon)
+  Backups](http://gyoudmon.org/~wargrey:nanomon)
 
-* [Sakuyamon: Manage and protect gyoudmon.org as well as the digital
-  world.](http://gyoudmon.org/~wargrey:sakuyamon)
+* [Sakuyamon: A Lightweight HTTP Server that supports
+  gyoudmon.org](http://gyoudmon.org/~wargrey:sakuyamon)
 
 ## 2. Project Conventions
 
