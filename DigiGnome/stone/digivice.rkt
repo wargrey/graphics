@@ -53,7 +53,8 @@ exec racket --name "`basename $0 .rkt`" --require "$0" -- ${1+"$@|#\@|"}
                                 (let launch ()
                                   (SIGHUP! #false)
                                   (parameterize ([current-namespace (make-base-namespace)])
-                                    (with-handlers ([exn:break:hang-up? {λ _ (SIGHUP! #true)}])
+                                    (with-handlers ([exn:break:hang-up? {λ _ (SIGHUP! #true)}]
+                                                    [exn:break? void])
                                       (void.eval `(require (submod (file ,act.rkt) ,digivice)))))
                                   (when (SIGHUP!) (launch))))
                               (show-help-and-exit #:erract (car arglist))))]))})})
