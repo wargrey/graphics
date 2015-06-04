@@ -136,9 +136,11 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                                   (build-path (path-only c) (car (use-compiled-file-paths))
                                                                               "native" (system-library-subpath #false)
                                                                               (path-replace-suffix (file-name-from-path c) (system-type 'so-suffix))))])
-                                     (list (list tobj (include.h c) {λ [target] (and (printf "cc: ~a: ~a~n" (current-extension-compiler) c)
-                                                                                     (compile-extension 'quiet c target (list (digimon-zone))))})
-                                           (list t (list tobj) {λ [target] (parameterize ([current-extension-linker-flags (list "-shared")]
+                                     (list (list tobj (include.h c) {λ [target] (let ([cflags (current-extension-compiler-flags)])
+                                                                                  (parameterize ([current-extension-compiler-flags (cons "-m64" cflags)])
+                                                                                    (printf "cc: ~a: ~a~n" (current-extension-compiler) c)
+                                                                                    (compile-extension 'quiet c target (list (digimon-zone)))))})
+                                           (list t (list tobj) {λ [target] (parameterize ([current-extension-linker-flags (list "-m64" "-shared")]
                                                                                           [current-standard-link-libraries null])
                                                                              (printf "ld: ~a: ~a~n" (current-extension-linker) tobj)
                                                                              (link-extension 'quiet (list tobj) target))})))}
