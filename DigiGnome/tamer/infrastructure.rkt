@@ -19,7 +19,7 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
 
        (tamer-taming-start)
        (define partner (tamer-partner->modpath "makefile.rkt"))
-       (define make (dynamic-require partner 'main {λ _ #false}))
+       (define make (dynamic-require partner 'main (const #false)))
 
        |<infrastructure:*>|]
 
@@ -41,10 +41,10 @@ Kill those unexpected routines crudely is unreasonable since there might be side
          (error 'make "[fatal] Unexpected subroutine stops here!"))
 
        (define {{setup . arglist}}
-         (dynamic-wind {λ _ (environment-variables-set! ENV #"taming" #"true")}
-                       {λ _ (parameterize ([current-directory (digimon-world)])
-                              (call-with-fresh-$ (curry apply make arglist)))}
-                       {λ _ (environment-variables-set! ENV #"taming" #false)}))]
+         (dynamic-wind (thunk (environment-variables-set! ENV #"taming" #"true"))
+                       (thunk (parameterize ([current-directory (digimon-world)])
+                              (call-with-fresh-$ (curry apply make arglist))))
+                       (thunk (environment-variables-set! ENV #"taming" #false))))]
 
 Now let@literal{'}s try to make thing done:
 
@@ -77,8 +77,8 @@ since we can cache the result by nature.
        (let ([goal-md (build-path (digimon-world) gnome "README.md")]
              [make-zone (list "--dry-run" "--touch" "++only" gnome)])
          (test-spec (string-join (cons "make" make-zone))
-                    #:before {λ _ (parameterize ([current-input-port (open-input-string "Gnome")])
-                                    ((apply setup make-zone)))}
+                    #:before (thunk (parameterize ([current-input-port (open-input-string "Gnome")])
+                                      ((apply setup make-zone))))
                     |<check status and stderr>|
                     (check = (times #px"Leave Digimon Zone") 1 "has zone crossed!")
                     (check = (times #px"Output to") 1 "touching via making when goal not found!")
@@ -148,8 +148,8 @@ Furthermore, the @itech{handbook} itself is the standard test report, but it@lit
 to check the system in some more convenient ways. Hence we have
 
 @chunk[|<tamer battle>|
-       {module+ main
-         (call-as-normal-termination tamer-prove)}]
+       (module+ main
+         (call-as-normal-termination tamer-prove))]
 
 It will give us the @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report via
 @(itemlist #:style 'compact
@@ -163,7 +163,7 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
 
 @chunk[|<infrastructure:*>|
        |<tamer battle>|
-       {module+ story
+       (module+ story
          (define msecs file-or-directory-modify-seconds)
          (define times {λ [px] (length (regexp-match* px (get-output-string $out)))})
          (define gnome (symbol->string (gensym "gnome")))
@@ -177,10 +177,10 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
                                   (filter get-info/full (directory-list)))))
 
          (define-tamer-suite rules "Rules serve you!"
-           #:after {λ _ (delete-directory/files (build-path (digimon-world) gnome))}
+           #:after (thunk (delete-directory/files (build-path (digimon-world) gnome)))
            (test-suite "info.rkt settings" |<rules: info.rkt>|)
            (test-suite "README.md dependencies" |<rules: readme.md>|)
-           (test-suite "infrastructure specifications" |<rules: infrastructure>|))}]
+           (test-suite "infrastructure specifications" |<rules: infrastructure>|)))]
 
 @chunk[|<rules: info.rkt>|
        (let ([info-ref (get-info/full (digimon-world))])
