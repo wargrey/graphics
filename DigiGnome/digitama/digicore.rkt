@@ -58,7 +58,7 @@
 
 (define-values {#{current-digimon : (Parameterof String String)} #{current-tamer : (Parameterof Nothing String)}}
   (values (make-parameter (digimon-gnome))
-          (make-parameter (or (getenv "USER") (getenv "LOGNAME") "nobody"))))
+          (make-parameter (or (getenv "USER") (getenv "LOGNAME") #| daemon |# "root"))))
 
 (define digimon-system : (Parameterof Nothing Symbol)
   (make-parameter (match (path->string (system-library-subpath #false))
