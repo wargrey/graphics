@@ -62,8 +62,9 @@
 
 (define digimon-system : (Parameterof Nothing Symbol)
   (make-parameter (match (path->string (system-library-subpath #false))
-                    ;;; (system-type 'machine) leads to "forbidden exec /bin/uname" 
+                    ;;; (system-type 'machine) maight lead to "forbidden exec /bin/uname" 
                     [{pregexp #px"solaris"} 'solaris]
+                    [{pregexp #px"linux"} 'linux]
                     [_ (system-type 'os)])))
 
 (define digimon-zone : (Parameterof Nothing Path)
@@ -133,9 +134,25 @@
         ['ENOSERVICE (and (perror 'SMF-EXIT-ERR-NOSMF) 99)]
         ['EPERM (and (perror 'SMF-EXIT-ERR-PERM) 100)]
         [_ #false]))
+    (define launchd : SERVICE-EXIT
+      (match-lambda
+        ['FATAL (and 1)]
+        ['ECONFIG (and (perror 'SMF-EXIT-ERR-CONFIG) 96)]
+        ['ENOSERVICE (and (perror 'SMF-EXIT-ERR-NOSMF) 99)]
+        ['EPERM (and (perror 'SMF-EXIT-ERR-PERM) 100)]
+        [_ #false]))
+    (define systemd : SERVICE-EXIT
+      (match-lambda
+        ['FATAL (and (perror 'SMF-EXIT-ERR-FATAL) 95)]
+        ['ECONFIG (and (perror 'SMF-EXIT-ERR-CONFIG) 96)]
+        ['ENOSERVICE (and (perror 'SMF-EXIT-ERR-NOSMF) 99)]
+        ['EPERM (and (perror 'SMF-EXIT-ERR-PERM) 100)]
+        [_ #false]))
       
     (cond [(exact-nonnegative-integer? status) (exit (min status 255))]
           [(and (symbol=? (digimon-system) 'solaris) (svc.startd status)) => exit]
+          [(and (symbol=? (digimon-system) 'macosx) (launchd status)) => exit]
+          [(and (symbol=? (digimon-system) 'linux) (systemd status)) => exit]
           [else (exit 0)])))
 
 (define car.eval : (->* (Any) (Namespace) Any)
