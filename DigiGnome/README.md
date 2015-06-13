@@ -25,7 +25,7 @@ Good Luck!
 >             - 💚 2 - should report errors
 >         + 📑make: complex options
 >           - 💚 1 - make --always-make ++only DigiGnome README.md
->           - 💚 2 - make --dry-run --touch ++only gnome727
+>           - 💚 2 - make --dry-run --touch ++only gnome739
 >       + 📑Rules serve you!
 >         + 📑info.rkt settings
 >           + 📑/info.rkt
@@ -40,7 +40,7 @@ Good Luck!
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
 >             - 💚 4 - test-omit-paths
->           + 📑/gnome727/info.rkt
+>           + 📑/gnome739/info.rkt
 >             - 💚 1 - version
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
@@ -62,8 +62,8 @@ Good Luck!
 >             - 💚 1 - DigiGnome/tamer/handbook.scrbl
 >           + 📑/Kuzuhamon/readme.md
 >             - 💚 1 - Kuzuhamon/tamer/handbook.scrbl
->           + 📑/gnome727/readme.md
->             - 💚 1 - gnome727/tamer/handbook.scrbl
+>           + 📑/gnome739/readme.md
+>             - 💚 1 - gnome739/tamer/handbook.scrbl
 >           + 📑/nanomon/readme.md
 >             - 💚 1 - nanomon/tamer/handbook.scrbl
 >           + 📑/sakuyamon/readme.md
@@ -73,7 +73,7 @@ Good Luck!
 >             - 💚 1 - ./robots.txt
 >           + 📑/Kuzuhamon/tamer
 >             - 💚 1 - ./robots.txt
->           + 📑/gnome727/tamer
+>           + 📑/gnome739/tamer
 >             - 💚 1 - ./robots.txt
 >           + 📑/nanomon/tamer
 >             - 💚 1 - ./robots.txt
