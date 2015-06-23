@@ -21,11 +21,8 @@ Monsters](http://en.wikipedia.org/wiki/Digimon).
 ## 2. Project Conventions
 
 Since I'm an indenpendent developer and communicating costs almost
-nothing, I make decision at my risk to model software system in _[Formal
-Methods](http://en.wikipedia.org/wiki/Formal_methods)_ and document it
-with the _[Literate
-Programming](http://en.wikipedia.org/wiki/Literate_programming)_
-approach.
+nothing, I make decision at my risk to model software system in _Formal
+Methods_ and document it with the _Literate Programming_ approach.
 
 ### 2.1. Building Scripts
 
@@ -44,12 +41,10 @@ approach.
 > `$HOME` directory     named `DigitalWorld` if you want to take
 > advantages of the infrastructures.
 
-For the sake of consistency and better architecture, we follow the
-concept of _[Racket Multi-collection
-Package](http://docs.racket-lang.org/pkg/Package_Concepts.html#%28tech._multi._collection._package%29)_.
-Projects/subcollections listed in the root directory are organized as
-the _digimons_, and each of them may be separated into several
-repositories.
+For the sake of consistency and better architecture, I follow the
+concept of _Racket Multi-collection Package_. Projects/subcollections
+listed in the root directory are organized as the _digimons_, and each
+of them may be separated into several repositories.
 
 * **[DigiGnome](/DigiGnome)** is the reserved _digimon_ whose duties are
   making life easy for developers and  sharing code base for other
@@ -69,11 +64,8 @@ repositories.
 
   * **tamer** is the interface for developers to tame the _digimons_.
     Namely it works like `test`.  After all the _tamer/handbook.scrbl_
-    plays the role of  the [Test
-    Report](http://en.wikipedia.org/wiki/Behavior-driven_development)
-    along with  the [Design
-    Documentation](http://en.wikipedia.org/wiki/Design_by_contract)  so
-    that the production code could keep elegant.
+    plays the role of the Test Report along with the Design
+    Documentation  so that the production code could keep elegant.
 
 * **[Kuzuhamon](https://github.com/digital-world/Kuzuhamon)** is another
   reserved _digimon_ who works as the _Per-Tamer Website_  if

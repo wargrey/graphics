@@ -25,8 +25,7 @@ How to construct a @italic{Digital World}? Okay, we don@literal{'}t start with t
 @section{Project Conventions}
 
 Since I@literal{'}m an indenpendent developer and communicating costs almost nothing, I make decision at my risk to
-model software system in @italic{@hyperlink["http://en.wikipedia.org/wiki/Formal_methods"]{Formal Methods}} and
-document it with the @italic{@hyperlink["http://en.wikipedia.org/wiki/Literate_programming"]{Literate Programming}} approach.
+model software system in @italic{Formal Methods} and document it with the @italic{Literate Programming} approach.
 
 @subsection{Building Scripts}
 @(itemlist #:style 'compact
@@ -38,8 +37,7 @@ document it with the @italic{@hyperlink["http://en.wikipedia.org/wiki/Literate_p
 @margin-note{The @italic{Digital World} itself as a whole is usually placed within your @litchar{$HOME} directory
                  named @litchar{DigitalWorld} if you want to take advantages of the infrastructures.}
 
-For the sake of consistency and better architecture, we follow the concept of
-@italic{@hyperlink["http://docs.racket-lang.org/pkg/Package_Concepts.html#%28tech._multi._collection._package%29"]{Racket Multi-collection Package}}.
+For the sake of consistency and better architecture, I follow the concept of @italic{Racket Multi-collection Package}.
 Projects/subcollections listed in the root directory are organized as the @italic{digimons}, and each of them may be separated into several repositories.
 
 @(itemlist #:style 'compact
@@ -52,9 +50,7 @@ Projects/subcollections listed in the root directory are organized as the @itali
                                @item{@bold{digivice} is the interface for users to talk with @italic{digimons}.
                                       Namely sources within it implement executable tools that will be called by wrappers from @tt{bin}.}
                                @item{@bold{tamer} is the interface for developers to tame the @italic{digimons}. Namely it works like @tt{test}.
-                                      After all the @italic{tamer/handbook.scrbl} plays the role of
-                                      the @hyperlink["http://en.wikipedia.org/wiki/Behavior-driven_development"]{Test Report} along with
-                                      the @hyperlink["http://en.wikipedia.org/wiki/Design_by_contract"]{Design Documentation}
+                                      After all the @italic{tamer/handbook.scrbl} plays the role of the Test Report along with the Design Documentation
                                       so that the production code could keep elegant.})}
            @nested{@bold{@hyperlink["https://github.com/digital-world/Kuzuhamon"]{Kuzuhamon}} is another reserved @italic{digimon} who works as the @italic{Per-Tamer Website}
                     if @hyperlink["https://github.com/digital-world/sakuyamon"]{sakuyamon} is deployed in the same machine.
