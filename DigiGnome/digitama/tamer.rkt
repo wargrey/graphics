@@ -463,7 +463,7 @@
 
   (define ~url
     (lambda [digimon]
-      (format "http://gyoudmon.org/~~~a:~a" (current-tamer) (string-downcase digimon))))
+      (format "http://gyoudmon.org/~~~a:~a" (current-tamer) digimon)))
 
   (define ~github
     (lambda [projname]

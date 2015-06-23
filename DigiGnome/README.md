@@ -1,4 +1,4 @@
-# [🏡](http://gyoudmon.org/~wargrey:digignome)[<sub>🐈</sub>](http://gyoudmon.org/~wargrey:digignome)Tamer's Handbook: Digimon-Gnome
+# [🏡](http://gyoudmon.org/~wargrey:DigiGnome)[<sub>🐈</sub>](http://gyoudmon.org/~wargrey:DigiGnome)Tamer's Handbook: Digimon-Gnome
 
 > _Translating is the most complex human activity in the Universe._
 
@@ -14,7 +14,7 @@ Good Luck!
 
 > + 📚Behaviors and Features
 >     + 📖
-[infrastructure.rkt](http://gyoudmon.org/~wargrey:digignome/infrastructure.rkt)
+[infrastructure.rkt](http://gyoudmon.org/~wargrey:DigiGnome/infrastructure.rkt)
 >       + 📑Ready? It works!
 >         + 📑make: simple options
 >           + 📑make --silent --help
@@ -25,7 +25,7 @@ Good Luck!
 >             - 💚 2 - should report errors
 >         + 📑make: complex options
 >           - 💚 1 - make --always-make ++only DigiGnome README.md
->           - 💚 2 - make --dry-run --touch ++only gnome739
+>           - 💚 2 - make --dry-run --touch ++only gnome
 >       + 📑Rules serve you!
 >         + 📑info.rkt settings
 >           + 📑/info.rkt
@@ -40,7 +40,7 @@ Good Luck!
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
 >             - 💚 4 - test-omit-paths
->           + 📑/gnome739/info.rkt
+>           + 📑/gnome/info.rkt
 >             - 💚 1 - version
 >             - 💚 2 - collection
 >             - 💚 3 - compile-omit-paths
@@ -62,8 +62,8 @@ Good Luck!
 >             - 💚 1 - DigiGnome/tamer/handbook.scrbl
 >           + 📑/Kuzuhamon/readme.md
 >             - 💚 1 - Kuzuhamon/tamer/handbook.scrbl
->           + 📑/gnome739/readme.md
->             - 💚 1 - gnome739/tamer/handbook.scrbl
+>           + 📑/gnome/readme.md
+>             - 💚 1 - gnome/tamer/handbook.scrbl
 >           + 📑/nanomon/readme.md
 >             - 💚 1 - nanomon/tamer/handbook.scrbl
 >           + 📑/sakuyamon/readme.md
@@ -73,14 +73,14 @@ Good Luck!
 >             - 💚 1 - ./robots.txt
 >           + 📑/Kuzuhamon/tamer
 >             - 💚 1 - ./robots.txt
->           + 📑/gnome739/tamer
+>           + 📑/gnome/tamer
 >             - 💚 1 - ./robots.txt
 >           + 📑/nanomon/tamer
 >             - 💚 1 - ./robots.txt
 >           + 📑/sakuyamon/tamer
 >             - 💚 1 - ./robots.txt
 >     + 📖
-[digivice.rkt](http://gyoudmon.org/~wargrey:digignome/digivice.rkt)
+[digivice.rkt](http://gyoudmon.org/~wargrey:DigiGnome/digivice.rkt)
 >       + 📑Make the demo from scratch
 >         - 💚 1 - digivice should be updated!
 >         - 💚 2 - action should be updated!

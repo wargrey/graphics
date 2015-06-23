@@ -166,7 +166,7 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
        (module+ story
          (define msecs file-or-directory-modify-seconds)
          (define times {λ [px] (length (regexp-match* px (get-output-string $out)))})
-         (define gnome (symbol->string (gensym "gnome")))
+         (define gnome "gnome")
          
          |<setup and teardown timidly>|
          (define-tamer-suite make-option "Ready? It works!"
