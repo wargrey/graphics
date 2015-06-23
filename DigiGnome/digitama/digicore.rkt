@@ -119,7 +119,6 @@
 
 (define call-as-normal-termination : (-> (-> Any) Void)
   (lambda [main/0]
-    (define-type SERVICE-EXIT (-> Any (Option Byte)))
     (define status : Any
       (let/ec $?
         (parameterize ([exit-handler (cast $? (-> Any Any))])
@@ -127,21 +126,7 @@
                                 [void (λ [e] (and (eprintf "(uncaught-exception-handler) => ~a~n" e) 'FATAL))])
                   (main/0))))))
     (define perror (curry eprintf "~a~n"))
-    (define svc.startd : SERVICE-EXIT
-      (match-lambda
-        ['FATAL (and (perror 'SMF-EXIT-ERR-FATAL) 95)]
-        ['ECONFIG (and (perror 'SMF-EXIT-ERR-CONFIG) 96)]
-        ['ENOSERVICE (and (perror 'SMF-EXIT-ERR-NOSMF) 99)]
-        ['EPERM (and (perror 'SMF-EXIT-ERR-PERM) 100)]
-        [_ #false]))
-    (define launchd : SERVICE-EXIT
-      (match-lambda
-        ['FATAL (and 1)]
-        ['ECONFIG (and (perror 'SMF-EXIT-ERR-CONFIG) 96)]
-        ['ENOSERVICE (and (perror 'SMF-EXIT-ERR-NOSMF) 99)]
-        ['EPERM (and (perror 'SMF-EXIT-ERR-PERM) 100)]
-        [_ #false]))
-    (define systemd : SERVICE-EXIT
+    (define service-exit : (-> Any (Option Byte))
       (match-lambda
         ['FATAL (and (perror 'SMF-EXIT-ERR-FATAL) 95)]
         ['ECONFIG (and (perror 'SMF-EXIT-ERR-CONFIG) 96)]
@@ -150,9 +135,7 @@
         [_ #false]))
       
     (cond [(exact-nonnegative-integer? status) (exit (min status 255))]
-          [(and (symbol=? (digimon-system) 'solaris) (svc.startd status)) => exit]
-          [(and (symbol=? (digimon-system) 'macosx) (launchd status)) => exit]
-          [(and (symbol=? (digimon-system) 'linux) (systemd status)) => exit]
+          [(service-exit status) => exit]
           [else (exit 0)])))
 
 (define car.eval : (->* (Any) (Namespace) Any)
