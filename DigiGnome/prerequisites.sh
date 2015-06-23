@@ -51,6 +51,7 @@ $(Prefix)/$(racket_dir)/bin/racket: $(racket_src)
 racket: $(if $(findstring 0,$(words $(racket_bin0))),$(racket_bin))
 	test -n "$(racket_pkgs_$(OSNAME))" && sudo apt-get install --yes $(racket_pkgs_$(OSNAME))
 	sudo $(addprefix $(dir $(racket_bin)),raco) pkg install --skip-installed --scope installation --deps search-auto $(racket_pkgs)
+	sudo $(addprefix $(dir $(racket_bin)),raco) pkg install --jobs 1 --skip-installed --scope installation --deps search-auto whalesong
 	$(racket_bin) -l racket/base -e '(printf "We have Racket ~a.~n" (version))'
 
 ### vim:ft=make
