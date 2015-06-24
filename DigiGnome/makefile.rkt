@@ -253,8 +253,8 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                 (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
                                #:render-mixin (λ [%] (html:render-multi-mixin (html:render-mixin %)))
                                #:dest-dir ,(build-path (path-only handbook) (car (use-compiled-file-paths)))
-                               #:redirect ,(path->string (find-doc-dir)) #:redirect-main ,(path->string (find-doc-dir))
-                               #:xrefs (list (load-collections-xref)) #:quiet? #false #:warn-undefined? #false)))))))))
+                               #:redirect "/~:/" #:redirect-main "/~:/" #:xrefs (list (load-collections-xref))
+                               #:quiet? #false #:warn-undefined? #false)))))))))
 
 (define create-zone
   (lambda []
