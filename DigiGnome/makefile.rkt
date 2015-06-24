@@ -22,8 +22,6 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 (require dynext/compile)
 (require dynext/link)
 
-(require setup/dirs)
-
 (require "digitama/digicore.rkt")
 
 (provide main)
