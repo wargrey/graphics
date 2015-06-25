@@ -3,10 +3,10 @@
 > _Translating is the most complex human activity in the Universe._
 
 This _handbook_ shows my _[Programming
-Methodology](https://github.com/digital-world/DigiGnome)_ that the
-entire project should follow. Hmm... nonetheless, in fact it's all right
-to forget this sample after reading due to the complexity of the real
-world problems.
+Methodology](https://github.com/digital-world/wargrey)_ that the entire
+project should follow. Hmm... nonetheless, in fact it's all right to
+forget this sample after reading due to the complexity of the real world
+problems.
 
 Good Luck!
 

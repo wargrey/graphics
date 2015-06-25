@@ -119,7 +119,7 @@
                (list (hyperlink (~url (current-digimon)) (string house-garden#))
                      (hyperlink (~url (digimon-gnome)) (format "<sub>~a</sub>" cat#)))
                (list (hyperlink (~github (current-digimon)) (string house-garden#))
-                     (hyperlink (~github (digimon-gnome)) (subscript (string cat#)))))
+                     (hyperlink (~github (current-tamer)) (subscript (string cat#)))))
            (cond [(false? (null? pre-contents)) pre-contents]
                  [else (list (literal "Tamer's Handbook:") ~ (info-ref 'collection (const (current-digimon))))]))))
 
