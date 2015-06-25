@@ -1,9 +1,0 @@
-[submodule "nanomon"]
-	path = nanomon
-	url = github.com:digital-world/nanomon.git
-[submodule "sakuyamon"]
-	path = sakuyamon
-	url = github.com:digital-world/sakuyamon.git
-[submodule "Kuzuhamon"]
-	path = Kuzuhamon
-	url = git@github.com:digital-world/Kuzuhamon.git

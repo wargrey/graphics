@@ -1,8 +1,12 @@
 #lang info
 
-(define collection 'multi)
+(define collection "Digimon-Gnome")
 
-(define compile-omit-paths 'all)
+(define version "Baby")
+
+(define build-deps '{"base" "typed-racket-lib" "scribble-lib"})
+
+(define compile-omit-paths (list "stone"))
 (define test-omit-paths 'all)
 
-(define build-deps '{"base" "typed-racket-lib" "dynext-lib" "scribble-lib" "web-server-lib"})
+(define pkg-desc "The Meta-Project built for developers to make life simple")
