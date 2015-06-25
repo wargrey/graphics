@@ -99,7 +99,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
   (lambda []
     (for/list ([dependent.scrbl (in-list (cond [(string=? (current-tamer) "root") null]
                                                [else (list (build-path (digimon-tamer) "handbook.scrbl")
-                                                           (when (equal? (current-digimon) (digimon-gnome))
+                                                           (when (equal? (current-digimon) (digimon-kuzuhamon))
                                                              (build-path (digimon-stone) "readme.scrbl")))]))]
                #:when (and (path? dependent.scrbl) (file-exists? dependent.scrbl)))
       (define top? (regexp-match? #px"/readme.scrbl$" dependent.scrbl))

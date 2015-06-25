@@ -56,6 +56,8 @@
     (values (make-parameter (cadr (cast px.split (Listof String))) (immutable-guard 'digimon-world))
             (make-parameter (caddr (cast px.split (Listof String))) (immutable-guard 'digimon-gnome)))))
 
+(define digimon-kuzuhamon : (Parameterof Nothing String) (make-parameter "Kuzuhamon" (immutable-guard 'digimon-kuzuhamon)))
+
 (define-values {#{current-digimon : (Parameterof String String)} #{current-tamer : (Parameterof Nothing String)}}
   (values (make-parameter (digimon-gnome))
           (make-parameter (or (getenv "USER") (getenv "LOGNAME") #| daemon |# "root"))))
