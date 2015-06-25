@@ -159,9 +159,9 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
       (when (module-declared? modpath #true)
         (dynamic-require modpath #false)))
 
+    (do-make (make-native-library-rules))
     (do-make (make-implicit-rkt-rules))
     (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
-    (do-make (make-native-library-rules))
     (do-make (make-implicit-datum-rules))
     
     (let ([modpath `(submod ,submake make:files)])
@@ -322,7 +322,8 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                       [fsetup-collects (thunk (map path->string (filter get-info/full (directory-list (digimon-world)))))])
                                   (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
                                                            [(regexp-match #px"^\\w+" (find-relative-path (digimon-world) (current-directory))) => values]
-                                                           [else (cons (digimon-gnome) (info-ref 'setup-collects fsetup-collects))]))))])
+                                                           [else (cons (digimon-gnome) (cond [(false? info-ref) (fsetup-collects)]
+                                                                                             [else (info-ref 'setup-collects fsetup-collects)]))]))))])
           (parameterize ([current-digimon digimon])
             (dynamic-wind (thunk (printf "Enter Digimon Zone: ~a.~n" digimon))
                           (thunk (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
