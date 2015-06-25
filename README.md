@@ -24,7 +24,7 @@ Good Luck!
 >             - 💚 1 - should exit abnormally
 >             - 💚 2 - should report errors
 >         + 📑make: complex options
->           - 💔 1 - make --always-make ++only DigiGnome README.md
+>           - 💚 1 - make --always-make ++only DigiGnome README.md
 >           - 💚 2 - make --dry-run --touch ++only gnome
 >       + 📑Rules serve you!
 >         + 📑info.rkt settings
@@ -100,4 +100,4 @@ option\]
 >         - 💚 2 - actions directory should be deleted recursively!
 >         - 💚 3 - /DigiGnome/digivice should be deleted if empty!
 >
-> 📌50 examples, 1 failure, 0 errors, 98.00% Okay.
+> 📌50 examples, 0 failures, 0 errors, 100.00% Okay.

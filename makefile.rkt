@@ -108,9 +108,9 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                   [exit-handler (thunk* (error 'make "[fatal] /~a needs a proper `exit-handler`!"
                                                                (find-relative-path (digimon-world) dependent.scrbl)))])
                      (eval '(require (prefix-in markdown: scribble/markdown-render) scribble/core scribble/render))
-                     (eval `(define markdown:doc (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
-                                                   (struct-copy part scribble:doc [parts null]))))
-                     (eval `(render (list markdown:doc) (list ,(file-name-from-path target))
+                     (eval `(render (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
+                                      (list (struct-copy part scribble:doc [parts null])))
+                                    (list ,(file-name-from-path target))
                                     #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #true))
                      (rename-file-or-directory (path-add-suffix target #".md") target #true)
                      (printf "  [Output to ~a]~n" target)))))))
