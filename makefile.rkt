@@ -97,20 +97,10 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (define make-implicit-datum-rules
   (lambda []
-    (for/list ([dependent.scrbl (in-list (cond [(string=? (current-tamer) "root") null]
-                                               [else (list (build-path (digimon-tamer) "handbook.scrbl")
-                                                           (when (equal? (current-digimon) (digimon-kuzuhamon))
-                                                             (build-path (digimon-stone) "readme.scrbl")))]))]
-               #:when (and (path? dependent.scrbl) (file-exists? dependent.scrbl)))
-      (define top? (regexp-match? #px"/readme.scrbl$" dependent.scrbl))
-      (define-values {t ds}
-        (cond [top? (values (build-path (digimon-world) "README.md")
-                            (append (smart-dependencies dependent.scrbl)
-                                    (filter file-exists? (map (curryr build-path "info.rkt")
-                                                              (directory-list (digimon-world) #:build? #true)))))]
-              [else (values (build-path (digimon-zone) "README.md")
-                            (filter file-exists? (list* (build-path (digimon-zone) "info.rkt")
-                                                        (smart-dependencies dependent.scrbl))))]))
+    (for/list ([dependent.scrbl (in-list (if (string=? (current-tamer) "root") null (list (build-path (digimon-tamer) "handbook.scrbl"))))]
+               #:when (file-exists? dependent.scrbl))
+      (define t (build-path (digimon-zone) "README.md"))
+      (define ds (filter file-exists? (list* (build-path (digimon-zone) "info.rkt") (smart-dependencies dependent.scrbl))))
       (list t ds (λ [target]
                    (parameterize ([current-directory (digimon-zone)]
                                   [current-namespace (make-base-namespace)]
@@ -119,7 +109,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                                (find-relative-path (digimon-world) dependent.scrbl)))])
                      (eval '(require (prefix-in markdown: scribble/markdown-render) scribble/core scribble/render))
                      (eval `(define markdown:doc (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
-                                                   (struct-copy part scribble:doc [parts (if ,top? (part-parts scribble:doc) null)]))))
+                                                   (struct-copy part scribble:doc [parts null]))))
                      (eval `(render (list markdown:doc) (list ,(file-name-from-path target))
                                     #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #true))
                      (rename-file-or-directory (path-add-suffix target #".md") target #true)

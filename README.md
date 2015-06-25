@@ -56,8 +56,6 @@ Good Luck!
 >             - 💚 3 - compile-omit-paths
 >             - 💚 4 - test-omit-paths
 >         + 📑README.md dependencies
->           + 📑/README.md
->             - 💔 1 - DigiGnome/stone/readme.scrbl
 >           + 📑/DigiGnome/readme.md
 >             - 💚 1 - DigiGnome/tamer/handbook.scrbl
 >           + 📑/Kuzuhamon/readme.md
@@ -102,4 +100,4 @@ option\]
 >         - 💚 2 - actions directory should be deleted recursively!
 >         - 💚 3 - /DigiGnome/digivice should be deleted if empty!
 >
-> 📌51 examples, 2 failures, 0 errors, 96.08% Okay.
+> 📌50 examples, 1 failure, 0 errors, 98.00% Okay.

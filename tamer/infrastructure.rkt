@@ -70,16 +70,17 @@ since we can cache the result by nature.
                              (path->string (file-name-from-path goal-md)))])
          (test-spec (string-join (cons "make" make-md))
                     #:before (apply setup make-md)
-                    |<check status and stderr>|
+                    (check-pred positive? ($?) "make should be invoked recursively!")
                     (check = (times #px"Leave Digimon Zone") 1 "has zone crossed!")
-                    (check = (times #px"make: made") 1 "has too many files made!")
-                    (check <= (msecs (digimon-zone)) (msecs goal-md) "goal not updated!")))
+                    (check-regexp-match #px"subroutine stops here" (get-output-string $err))))
        (let ([goal-md (build-path (digimon-world) gnome "README.md")]
              [make-zone (list "--dry-run" "--touch" "++only" gnome)])
          (test-spec (string-join (cons "make" make-zone))
                     #:before (thunk (parameterize ([current-input-port (open-input-string "Gnome")])
                                       ((apply setup make-zone))))
-                    |<check status and stderr>|
+                    (let ([strerr (get-output-string $err)])
+                      (check-pred zero? ($?) strerr)
+                      (check-pred zero? (file-position $err) strerr))
                     (check = (times #px"Leave Digimon Zone") 1 "has zone crossed!")
                     (check = (times #px"Output to") 1 "touching via making when goal not found!")
                     (check-pred (negate file-exists?) goal-md "goal should not exists!")))]
@@ -124,11 +125,6 @@ we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) sh
        (check-equal? (info-ref 'test-omit-paths) 'all "'test-omit-paths should be 'all!")]
 
 @subsection{Rules on project documentation}
-
-@handbook-rule{The project@literal{'}s toplevel @italic{README.md} is designated as the @italic{main-toc} of @bold{Scribble}.}
-@chunk[|<facts: readme.scrbl>|
-       (format "~a/~a" (digimon-gnome) top.scrbl)
-       (check-pred file-exists? (build-path (digimon-zone) top.scrbl))]
 
 @handbook-rule{Each subproject@literal{'}s @italic{README.md} follows its @itech{handbook}@literal{'}s index page.}
 @chunk[|<facts: handbook.scrbl>|
@@ -194,22 +190,14 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
                      (test-case |<facts: test-omit-paths>|)))]
 
 @chunk[|<rules: readme.md>|
-       (let* ([~scrbl (compose1 (curry find-relative-path (digimon-zone)) build-path)]
-              [top.scrbl (~scrbl (digimon-stone) "readme.scrbl")]
-              [sub.scrbl (~scrbl (digimon-tamer) "handbook.scrbl")])
-         (cons (test-suite "/README.md" (test-case |<facts: readme.scrbl>|))
-               (for/list ([digimon (in-list (force digimons))])
-                 (test-suite (format "/~a/readme.md" digimon)
-                             (test-case |<facts: handbook.scrbl>|)))))]
+       (let ([sub.scrbl ((curry find-relative-path (digimon-zone))
+                         (build-path (digimon-tamer) "handbook.scrbl"))])
+         (for/list ([digimon (in-list (force digimons))])
+           (test-suite (format "/~a/readme.md" digimon)
+                       (test-case |<facts: handbook.scrbl>|))))]
 
 @chunk[|<rules: infrastructure>|
        (let ([./tamer (find-relative-path (digimon-zone) (digimon-tamer))])
          (for/list ([digimon (in-list (force digimons))])
            (test-suite (format "/~a/tamer" digimon)
                        (test-case |<facts: robots.txt>|))))]
-
-@chunk[|<check status and stderr>|
-       (let ([strerr (get-output-string $err)])
-         (check-pred zero? ($?) strerr)
-         (check-pred zero? (file-position $err) strerr))]
-
