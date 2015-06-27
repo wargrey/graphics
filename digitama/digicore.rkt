@@ -14,6 +14,11 @@
                                           [#:bootstrap? Any]
                                           (Option Info-Ref))])
 
+(require/typed/provide racket/fasl
+                       [s-exp->fasl (case-> [-> Any Bytes]
+                                            [-> Any Output-Port Void])]
+                       [fasl->s-exp (-> (U Input-Port Bytes) Any)])
+
 (define-syntax {#%full-module stx}
   #'(let ([rmp (variable-reference->resolved-module-path (#%variable-reference))])
       (resolved-module-path-name (cast rmp Resolved-Module-Path))))
