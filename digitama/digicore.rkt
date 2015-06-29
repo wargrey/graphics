@@ -45,6 +45,7 @@
 (define-values {#{memo# : Char} #{page# : Char} #{bookmark# : Char}} (values #\U1F4DD #\U1F4C4 #\U1F4D1))
 (define-values {#{heart# : Char} #{broken-heart# : Char} #{bomb# : Char}} (values #\U1F49A #\U1F494 #\U1F4A3))
 (define-values {#{pin# : Char} #{backhand# : Char} #{collision# : Char}} (values #\U1F4CC #\U1F449 #\U1F4A5))
+(define-values {#{beating-heart# : Char} #{arrow-heart# : Char}} (values #\U1F493 #\U1F498))
 
 (define /dev/stdin : Input-Port (current-input-port))
 (define /dev/stdout : Output-Port (current-output-port))

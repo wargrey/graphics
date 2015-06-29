@@ -54,12 +54,14 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                 [else (thunk (file-or-directory-modify-seconds t (current-seconds) f))]))))
 
 (define compile-directory
-  (lambda [cmpdir finfo]
+  (lambda [cmpdir finfo [round 0]]
+    (define again? (make-parameter #false))
+    (define round-desc '{1st 2nd 3rd 4th 5th 6th 7th 8th})
     (define px.within (pregexp (if (make-print-checking) (digimon-world) (path->string (digimon-zone)))))
-    (define traceln (curry printf "compiler: ~a~n"))
+    (define traceln (curry printf "raco[~a]: ~a~n" (list-ref round-desc round)))
     (define {filter-inside info}
       (cond [(regexp-match? #px"checking:" info) (when (make-print-checking) (traceln info))]
-            [(regexp-match? #px"(compil|process)ing:" info) (traceln info)]))
+            [(regexp-match? #px"(compil|process)ing:" info) (and (traceln info) (again? #true))]))
     (define {filter-verbose info}
       (cond [(regexp-match? #px"(newer src...|end compile|skipping|done:)" info) '|Skip Task Endline|]
             [(regexp-match? #px"newer:" info) (when (make-print-reasons) (traceln info))]
@@ -68,7 +70,8 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
             [else (traceln info)]))
     (with-handlers ([exn? (compose1 (curry error 'make "[error] ~a") exn-message)])
       (parameterize ([manager-trace-handler filter-verbose])
-        (compile-directory-zos cmpdir finfo #:verbose #false #:skip-doc-sources? #true)))))
+        (compile-directory-zos cmpdir finfo #:verbose #false #:skip-doc-sources? #true)))
+    (when (again?) (compile-directory cmpdir finfo (add1 round)))))
 
 (define make-digivice
   (lambda [template.rkt dgvc.rkt]
