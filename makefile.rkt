@@ -54,11 +54,10 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                 [else (thunk (file-or-directory-modify-seconds t (current-seconds) f))]))))
 
 (define compile-directory
-  (lambda [cmpdir finfo [round 0]]
+  (lambda [cmpdir finfo [round 1]]
     (define again? (make-parameter #false))
-    (define round-desc '{1st 2nd 3rd 4th 5th 6th 7th 8th})
     (define px.within (pregexp (if (make-print-checking) (digimon-world) (path->string (digimon-zone)))))
-    (define traceln (curry printf "raco[~a]: ~a~n" (list-ref round-desc round)))
+    (define traceln (curry printf "pass[~a]: ~a~n" round))
     (define {filter-inside info}
       (cond [(regexp-match? #px"checking:" info) (when (make-print-checking) (traceln info))]
             [(regexp-match? #px"(compil|process)ing:" info) (and (traceln info) (again? #true))]))

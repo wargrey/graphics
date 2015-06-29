@@ -42,7 +42,7 @@ exec racket --name "`basename $0 .rkt`" --require "$0" -- ${1+"$@|#\@|"}
   (lambda arglist
     (call-as-normal-termination
      (thunk (parameterize* ([current-digimon "@(current-digimon)"]
-                          [current-directory (digimon-digivice)])
+                            [current-directory (digimon-digivice)])
               (if (or (null? arglist) (string=? "help" (car arglist)))
                   (show-help-and-exit)
                   (parameterize ([current-command-line-arguments (list->vector (cdr arglist))]
