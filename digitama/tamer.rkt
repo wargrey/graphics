@@ -180,9 +180,9 @@
           (define echo (curry echof #:fgcolor 'lightcyan))
           (echo "~nFinished in ~a wallclock seconds (~a task + ~a gc = ~a CPU)." real cpu-gc gc cpu)
           (echo "~n~a, ~a, ~a, ~a, ~a, ~a% Okay.~n"
-                @~n_w[population]{example} @~n_w[failure]{failure} @~n_w[error]{error} @~n_w[skip]{skip} @~n_w[todo]{todo}
+                @~n_w[population]{example} @~n_w[failure]{failure} @~n_w[error]{error} @~n_w[skip]{skip} @~n_w[todo]{TODO}
                 (~r (/ (* (+ success skip) 100) population) #:precision '{= 2}))
-          (+ failure error todo)))))
+          (+ failure error)))))
 
 (define tamer-smart-summary
   (lambda []
@@ -253,7 +253,7 @@
                                                (format "~a, ~a, ~a, ~a, ~a, ~a."
                                                        @~w=n[(length base) (if story-snapshot "Scenario" "Story")]
                                                        @~w=n[population]{Test} @~w=n[failure]{Failure} @~w=n[error]{Error}
-                                                       @~w=n[skip]{Skip} @~w=n[todo]{Todo})
+                                                       @~w=n[skip]{Skip} @~w=n[todo]{TODO})
                                                (format "~a wallclock seconds (~a task + ~a gc = ~a CPU)."
                                                        real cpu-gc gc cpu)))))
                                  (unless (module-path? story-snapshot)
@@ -330,10 +330,8 @@
                                                               (define pool (get meta make-hash))
                                                               (hash-set! pool (tamer-story) (+ (hash-ref pool (tamer-story) 0) delta)))
                                                             (if (zero? (+ failure error))
-                                                                (printf "~n~a wall seconds~n" (~r (/ real 1000.0) #:precision '{= 3}))
-                                                                (printf "~n~a ~a ~a ~a~n"
-                                                                        @~n_w[failure]{failure} @~n_w[error]{error}
-                                                                        @~n_w[skip]{skip} @~n_w[todo]{todo}))))
+                                                                (printf "~n~a wall seconds.~n" (~r (/ real 1000.0) #:precision '{= 3}))
+                                                                (printf "~n~a ~a~n" @~n_w[failure]{failure} @~n_w[error]{error}))))
                                                    (thunk (close-output-port /dev/tamer/stdout)))))
                         ((compose1 (curryr add-between (linebreak)) (curry filter-not void?))
                          (for/list ([line (in-port read-line)])
@@ -343,7 +341,7 @@
                                                    (racketmetafont (italic (string open-book#)) ~ (elemtag ctxt (literal ctxt)))))]
                                  [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
                                   => (λ [pieces] (racketoutput (italic (string bookmark#)) ~ (literal (list-ref pieces 3))))]
-                                 [(regexp-match #px"^(\\s*)(.+?) (\\d+) - (.+?)\\s*$" line)
+                                 [(regexp-match #px"^(\\s*)(.+?)\\s+(\\d+) - (.+?)\\s*$" line)
                                   => (λ [pieces] (match-let ([{list _ spc stts idx ctxt} pieces])
                                                    (when (string=? spc "") (unit-spec (list (box ctxt)))) ; Toplevel testcase
                                                    (unless (string=? stts (~result struct:test-success))
@@ -356,9 +354,9 @@
                                                    (cond [(member key '{"message"})
                                                           (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
                                                                 (string backhand#) ~ (italic (literal val)))]
-                                                         [(member key '{"skip" "todo"})
-                                                          (elem #:style (make-style #false (list (make-color-property "yellow")))
-                                                                (string backhand#) ~ (italic (string-upcase key) ":" ~ (literal val)))]
+                                                         [(member key '{"SKIP" "TODO"})
+                                                          (elem #:style (make-style #false (list (make-color-property (list 128 128 128))))
+                                                                (string backhand#) ~ (racketparenfont key ":") ~ (italic (literal val)))]
                                                          [(member key '{"exn" "exception"})
                                                           (elem (racketvalfont (string macroscope#)) ~
                                                                 (racket #,(let ([ev (fix (read (open-input-string val)))]
@@ -368,7 +366,7 @@
                                                           (elem (racketvalfont (string crystal-ball#)) ~
                                                                 (racket #,(fix (read (open-input-string val)))))])))]
                                  [(regexp-match #px"^\\s*»»» \\s+(expected|given|received):\\s+(.+?)\\s*$" line)
-                                  ; only for errors those have multilined messages.
+                                  ; only for errors that have multilined messages.
                                   => (λ [pieces] (and (unit-spec (cons (string-trim line) (unit-spec)))
                                                       (elem (racketvalfont (string paw#)) ~
                                                             (let ([message (list-ref pieces 2)])
@@ -596,7 +594,7 @@
       (define reason (test-skip-result result))
       (define messages (call-with-input-string (tr-d reason) port->lines))
       (unless (null? messages)
-        (define msghead " skip: ")
+        (define msghead " SKIP: ")
         (define msgspace (~a #:min-width (sub1 (string-length msghead))))
         (eechof #:fgcolor color "~a»»~a~a~n" headspace0 msghead (car messages))
         (for-each (curry eechof #:fgcolor color "~a»»»~a~a~n" headspace0 msgspace) (cdr messages)))))
@@ -606,7 +604,7 @@
       (define reason (test-todo-result result))
       (define messages (call-with-input-string (tr-d reason) port->lines))
       (unless (null? messages)
-        (define msghead " todo: ")
+        (define msghead " TODO: ")
         (define msgspace (~a #:min-width (sub1 (string-length msghead))))
         (eechof #:fgcolor color "~a»»~a~a~n" headspace0 msghead (car messages))
         (for-each (curry eechof #:fgcolor color "~a»»»~a~a~n" headspace0 msgspace) (cdr messages)))))
@@ -660,7 +658,7 @@
                                        [else (cons (add1 (car seed:ordered))
                                                    (cdr seed:ordered))]))
                          #:fhere (λ [result seed:ordered]
-                                   (define headline (format "~a~a ~a - " (~a #:min-width (* (length seed:ordered) 2))
+                                   (define headline (format "~a~a  ~a - " (~a #:min-width (* (length seed:ordered) 2))
                                                             (~result result) (if (null? seed:ordered) 1 (car seed:ordered))))
                                    (define headspace (~a #:min-width (string-length headline)))
                                    (echof #:fgcolor (~fgcolor result) "~a~a~n" headline (tr-d (test-result-test-case-name result)))

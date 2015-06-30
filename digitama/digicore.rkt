@@ -161,7 +161,7 @@
 
 (define ~w=n : (-> Nonnegative-Integer String String)
   (lambda [count word]
-    (format "~a = ~a" (plural count word) count)))
+    (format "~a=~a" (plural count word) count)))
 
 (define echof : (-> String [#:fgcolor Term-Color] [#:bgcolor Term-Color] [#:attributes (Listof Symbol)] Any * Void)
   (lambda [msgfmt #:fgcolor [fg #false] #:bgcolor [bg #false] #:attributes [attrs null] . vals]
