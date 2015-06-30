@@ -97,7 +97,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                  (list dgvc.rkt (list stone/digivice.rkt) (curry make-digivice stone/digivice.rkt)))))
                 (d-info 'racket-launcher-libraries (const null)))))
 
-(define make-implicit-datum-rules
+(define make-implicit-dist-rules
   (lambda []
     (for/list ([dependent.scrbl (in-list (if (string=? (current-tamer) "root") null (list (build-path (digimon-tamer) "handbook.scrbl"))))]
                #:when (file-exists? dependent.scrbl))
@@ -164,7 +164,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
     (do-make (make-native-library-rules))
     (do-make (make-implicit-rkt-rules))
     (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
-    (do-make (make-implicit-datum-rules))
+    (do-make (make-implicit-dist-rules))
     
     (let ([modpath `(submod ,submake make:files)])
       (when (module-declared? modpath #true)
@@ -214,14 +214,14 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                   (namespace-variable-value var #false (thunk null))))))))
 
     (for-each fclean (map car (make-implicit-rkt-rules)))
-    (for-each fclean (map car (make-implicit-datum-rules)))
+    (for-each fclean (map car (make-implicit-dist-rules)))
     (for-each fclean (reverse (find-digimon-files (curry regexp-match? (pregexp (format "/~a(?![^/])/?" (car (use-compiled-file-paths)))))
                                                   (digimon-zone) #:search-compiled? #true)))))
 
 (define make~check:
   (lambda []
     (when (directory-exists? (digimon-tamer))
-      (let ([rules (map hack-rule (make-native-library-rules))])
+      (let ([rules (map hack-rule (append (make-native-library-rules) (make-implicit-rkt-rules)))])
         (unless (null? rules) (make/proc rules (map car rules))))
       (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
       

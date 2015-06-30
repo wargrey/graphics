@@ -100,4 +100,4 @@ option\]
 >         - 💚 2 - actions directory should be deleted recursively!
 >         - 💚 3 - /DigiGnome/digivice should be deleted if empty!
 >
-> 📌50 examples, 0 failures, 0 errors, 100.00% Okay.
+> 📌50 examples, 0 failures, 0 errors, 0 skips, 0 todos, 100.00% Okay.
