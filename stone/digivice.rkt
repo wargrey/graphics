@@ -7,7 +7,7 @@
 #|
 # `raco setup` makes it hard to set other options,
 # I have to keep the launch command simple.
-exec racket --name "`basename $0 .rkt`" --require "$0" -- ${1+"$@|#\@|"}
+exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
 |#
 
 #lang typed/racket
