@@ -134,17 +134,20 @@
           (exit (with-handlers ([exn? (λ [[e : exn]] (and (eprintf "~a~n" (exn-message e)) 'FATAL))]
                                 [void (λ [e] (and (eprintf "(uncaught-exception-handler) => ~a~n" e) 'FATAL))])
                   (main/0))))))
-    (define perror (curry eprintf "~a~n"))
     (define service-exit : (-> Any (Option Byte))
       (match-lambda
-        ['FATAL (and (perror 'SMF-EXIT-ERR-FATAL) 95)]
-        ['ECONFIG (and (perror 'SMF-EXIT-ERR-CONFIG) 96)]
-        ['ENOSERVICE (and (perror 'SMF-EXIT-ERR-NOSMF) 99)]
-        ['EPERM (and (perror 'SMF-EXIT-ERR-PERM) 100)]
+        ['FATAL 95]
+        ['ECONFIG 96]
+        ['ENOSERVICE 99]
+        ['EPERM 100]
         [_ #false]))
       
     (cond [(exact-nonnegative-integer? status) (exit (min status 255))]
-          [(service-exit status) => exit]
+          [(service-exit status)
+           => (lambda [[code : Byte]]
+                (with-handlers ([exn? void])
+                  (eprintf "(error '~a)~n" status))
+                (exit code))]
           [else (exit 0)])))
 
 (define car.eval : (->* (Any) (Namespace) Any)
