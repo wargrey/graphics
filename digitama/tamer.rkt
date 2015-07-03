@@ -279,6 +279,7 @@
                              [current-error-port /dev/tamer/stdout]
                              [current-output-port /dev/tamer/stdout]
                              [tamer-story #false])
+                (define summary? (make-parameter #false))
                 (thread (thunk (dynamic-wind collect-garbage
                                              tamer-prove
                                              (thunk (close-output-port /dev/tamer/stdout)))))
@@ -291,7 +292,10 @@
                                                             (list (format ">   ~a+ ~a" indt open-book#)  ; before breaking line if "[~a](~a)" is longer
                                                                   (hyperlink (format "~a/~a" (~url (current-digimon)) ctxt) ctxt))))] ; then 72 chars.)
                                           [(regexp-match #px"^(\\s+)λ\\d+(.\\d)*\\s+(.+?)\\s*$" line)
-                                           => (λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) bookmark# (list-ref pieces 3)))]))))))))))))
+                                           => (λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) bookmark# (list-ref pieces 3)))]
+                                          [(regexp-match #px"^$" line) (summary? #true)]
+                                          [(summary?) (parameterize ([current-output-port /dev/stdout])
+                                                        (echof #:fgcolor 'lightcyan  "~a~n" line))]))))))))))))
 
 (define tamer-note
   (lambda unit-vars
