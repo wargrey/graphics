@@ -13,7 +13,7 @@
 
 @require{digicore.rkt}
 
-(provide (all-defined-out) tamer-story)
+(provide (all-defined-out) tamer-story skip todo)
 
 (provide (all-from-out racket "digicore.rkt" rackunit))
 (provide (all-from-out scribble/manual scribble/eval scribble/html-properties))
@@ -279,7 +279,6 @@
                              [current-error-port /dev/tamer/stdout]
                              [current-output-port /dev/tamer/stdout]
                              [tamer-story #false])
-                (define summary? (make-parameter #false))
                 (thread (thunk (dynamic-wind collect-garbage
                                              tamer-prove
                                              (thunk (close-output-port /dev/tamer/stdout)))))
@@ -292,12 +291,7 @@
                                                             (list (format ">   ~a+ ~a" indt open-book#)  ; before breaking line if "[~a](~a)" is longer
                                                                   (hyperlink (format "~a/~a" (~url (current-digimon)) ctxt) ctxt))))] ; then 72 chars.)
                                           [(regexp-match #px"^(\\s+)λ\\d+(.\\d)*\\s+(.+?)\\s*$" line)
-                                           => (λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) bookmark# (list-ref pieces 3)))]
-                                          [(regexp-match #px"^(\\s*)(.+?) (\\d+) - (.+?)\\s*$" line)
-                                           => (λ [pieces] (apply format ">   ~a- ~a ~a - ~a" (cdr pieces)))]
-                                          [(regexp-match #px"^$" line) (summary? #true)]
-                                          [(regexp-match #px"wallclock" line) "> "]
-                                          [(summary?) (format "> ~a~a" pin# line)]))))))))))))
+                                           => (λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) bookmark# (list-ref pieces 3)))]))))))))))))
 
 (define tamer-note
   (lambda unit-vars
@@ -390,14 +384,6 @@
                                 (codeblock #:line-numbers line0 #:keep-lang-line? (false? (zero? line0))
                                            (file->string /path/file)))))))))
 
-(define skip
-  (lambda [fmt . arglist]
-    (raise (exn:test:skip (apply format fmt arglist)))))
-
-(define todo
-  (lambda [fmt . arglist]
-    (raise (exn:test:todo (apply format fmt arglist)))))
-
 (module digitama racket
   (require rackunit)
   (require racket/generator)
@@ -418,6 +404,14 @@
   
   (struct test-skip test-result {result})
   (struct test-todo test-result {result})
+
+  (define skip
+    (lambda [fmt . arglist]
+      (raise (exn:test:skip (apply format fmt arglist)))))
+
+  (define todo
+    (lambda [fmt . arglist]
+      (raise (exn:test:todo (apply format fmt arglist)))))
   
   (define tamer-story (make-parameter #false))
   
@@ -615,7 +609,7 @@
   
   (define fold-test-suite
     (lambda [seed:datum testsuite #:fdown [fdown default-fseed] #:fup [fup default-fseed] #:fhere [fhere default-fseed]]
-      (define seed (parameterize ([current-custodian (make-custodian)]) ;;; Prevent test routines happen to shutdown the custodian by creating am empty subone.
+      (define seed (parameterize ([current-custodian (make-custodian)]) ;;; Prevent test routines happen to shutdown the custodian.
                      (define $exn (make-parameter undefined))
                      (foldts-test-suite (λ [testsuite name pre-action post-action seed]
                                           (with-handlers ([exn? $exn])
@@ -632,9 +626,9 @@
                                                       (tamer-seed-name-path seed)))
                                         (λ [testcase name action seed]
                                           (define-values {fixed-name fixed-action}
-                                            (cond [(false? (eq? ($exn) undefined)) (values (format "#:before ~a" name) (λ _ (raise ($exn))))]
+                                            (cond [(false? (eq? ($exn) undefined)) (values (format "#:before ~a" name) (thunk (raise ($exn))))]
                                                   [(false? name) (values (format "(⧴ ~a)" (object-name struct:exn:fail:user))
-                                                                         (λ _ (raise-user-error "Testcase must have a name!")))]
+                                                                         (thunk (raise-user-error "Testcase must have a name!")))]
                                                   [else (values name action)]))
                                           (define fixed-namepath (cons fixed-name (tamer-seed-name-path seed)))
                                           (define record (tamer-record-handbook fixed-namepath fixed-action))
