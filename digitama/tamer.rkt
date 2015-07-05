@@ -424,7 +424,7 @@
       (with-handlers ([exn? exn-message])
         (path->string (find-relative-path (digimon-tamer) (cadr story))))))
   
-  (struct tamer-seed {datum brief name-path})
+  (struct tamer-seed {datum brief name-path exns})
   (struct summary {success failure error skip todo})
   (define initial-summary (summary 0 0 0 0 0))
   
@@ -614,32 +614,36 @@
   (define fold-test-suite
     (lambda [seed:datum testsuite #:fdown [fdown default-fseed] #:fup [fup default-fseed] #:fhere [fhere default-fseed]]
       (define seed (parameterize ([current-custodian (make-custodian)]) ;;; Prevent test routines happen to shutdown the custodian.
-                     (define $exn (make-parameter undefined))
                      (foldts-test-suite (λ [testsuite name pre-action post-action seed]
-                                          (with-handlers ([exn? $exn])
+                                          (define $exn (make-parameter undefined))
+                                          (with-handlers ([void $exn]) ;;; catch all for exn:test:skip and exn:test:todo
                                             (call-with-values pre-action void))
                                           (tamer-seed (fdown name (tamer-seed-datum seed))
                                                       (tamer-seed-brief seed )
-                                                      (cons name (tamer-seed-name-path seed))))
+                                                      (cons name (tamer-seed-name-path seed))
+                                                      (cons ($exn) (tamer-seed-exns seed))))
                                         (λ [testsuite name pre-action post-action seed children-seed]
-                                          (with-handlers ([exn? (compose1 display-error (curry make-test-error (format "Postaction[~a]" name)))])
+                                          (with-handlers ([exn? (compose1 display-error (curry make-test-error (format "#:after ~a" name)))])
                                             (call-with-values post-action void))
-                                          ($exn undefined)
                                           (tamer-seed (fup name (tamer-seed-datum seed) (tamer-seed-datum children-seed))
                                                       (tamer-seed-brief children-seed)
-                                                      (tamer-seed-name-path seed)))
+                                                      (tamer-seed-name-path seed)
+                                                      (tamer-seed-exns seed)))
                                         (λ [testcase name action seed]
                                           (define-values {fixed-name fixed-action}
-                                            (cond [(false? (eq? ($exn) undefined)) (values (format "#:before ~a" name) (thunk (raise ($exn))))]
-                                                  [(false? name) (values (format "(⧴ ~a)" (object-name struct:exn:fail:user))
-                                                                         (thunk (raise-user-error "Testcase must have a name!")))]
+                                            (cond [(findf (lambda [e] (not (eq? e undefined))) (tamer-seed-exns seed))
+                                                   => (lambda [e] (values (format "#:before ~a" name) (thunk (raise e))))]
+                                                  [(false? name)
+                                                   (values (format "(⧴ ~a)" (object-name struct:exn:fail:user))
+                                                           (thunk (raise-user-error "Testcase must have a name!")))]
                                                   [else (values name action)]))
                                           (define fixed-namepath (cons fixed-name (tamer-seed-name-path seed)))
                                           (define record (tamer-record-handbook fixed-namepath fixed-action))
                                           (tamer-seed (fhere record (tamer-seed-datum seed))
                                                       (summary++ (tamer-seed-brief seed) record)
-                                                      fixed-namepath))
-                                        (tamer-seed seed:datum initial-summary null)
+                                                      fixed-namepath
+                                                      (tamer-seed-exns seed)))
+                                        (tamer-seed seed:datum initial-summary null null)
                                         testsuite)))
       (values (tamer-seed-datum seed) (tamer-seed-brief seed))))
   
