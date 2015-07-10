@@ -22,6 +22,8 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 (require dynext/compile)
 (require dynext/link)
 
+(require setup/dirs)
+
 (require "digitama/digicore.rkt")
 
 (provide main)
@@ -140,10 +142,14 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                          (λ [target] (let ([cflags (current-extension-compiler-flags)])
                                        (parameterize ([current-extension-compiler-flags (cons "-m64" cflags)])
                                          (printf "cc: ~a: ~a~n" (current-extension-compiler) c)
-                                         (compile-extension 'quiet c target (list (digimon-zone)))))))
+                                         (compile-extension 'quiet c target (list (digimon-zone) "/usr/local/include"))))))
                    (list t (list tobj)
-                         (λ [target] (parameterize ([current-extension-linker-flags (list "-m64" "-shared")]
-                                                    [current-standard-link-libraries null])
+                         (λ [target] (parameterize ([current-extension-linker-flags (list* "-m64" "-shared" "-lssh2"
+                                                                                           (case (system-type)
+                                                                                             [{macosx} (list "-L/usr/local/lib"
+                                                                                                             (~a "-F" (find-lib-dir))
+                                                                                                             "-framework" "Racket")]
+                                                                                             [else null]))])
                                        (printf "ld: ~a: ~a~n" (current-extension-linker) tobj)
                                        (link-extension 'quiet (list tobj) target)))))))))
 
