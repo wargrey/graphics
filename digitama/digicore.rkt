@@ -49,6 +49,7 @@
 (define pin# : Char #\U1F4CC)
 (define backhand# : Char #\U1F449)
 (define collision# : Char #\U1F4A5)
+(define bomb# : Char #\U1F4A3)
 
 (define book# : Char #\U1F4D4)
 (define books# : Char #\U1F4DA)
@@ -57,12 +58,16 @@
 (define page# : Char #\U1F4C4)
 (define bookmark# : Char #\U1F4D1)
 
-(define green-heart# : Char #\U1F49A)
-(define broken-heart# : Char  #\U1F494)
-(define bomb# : Char #\U1F4A3)
 (define beating-heart# : Char #\U1F493)
-(define arrow-heart# : Char #\U1F498)
+(define broken-heart# : Char  #\U1F494)
+(define two-heart# : Char #\U1F495)
+(define sparkling-heart# : Char #\U1F496)
 (define growing-heart# : Char #\U1F497)
+(define arrow-heart# : Char #\U1F498)
+(define blue-heart# : Char #\U1F499)
+(define green-heart# : Char #\U1F49A)
+(define yellow-heart# : Char #\U1F49B)
+(define purple-heart# : Char #\U1F49C)
 
 (define /dev/stdin : Input-Port (current-input-port))
 (define /dev/stdout : Output-Port (current-output-port))
