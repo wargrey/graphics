@@ -53,6 +53,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                           ;;; Don't do relaunching in `signal`, or it won't catch signals any more.
                           (let launch ()
                             (SIGHUP! #false)
+                            (collect-garbage)
                             (parameterize ([current-namespace (make-base-namespace)])
                               (with-handlers ([exn:break:hang-up? (cast SIGHUP! (-> SIGHUP Any))]
                                               [exn:break? void])
