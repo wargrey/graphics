@@ -165,11 +165,7 @@
         [_ #false]))
       
     (cond [(exact-nonnegative-integer? status) (exit (min status 255))]
-          [(service-exit status)
-           => (lambda [[code : Byte]]
-                (with-handlers ([exn? void])
-                  (eprintf "(error '~a)~n" status))
-                (exit code))]
+          [(service-exit status) => exit]
           [else (exit 0)])))
 
 (define car.eval : (->* (Any) (Namespace) Any)
