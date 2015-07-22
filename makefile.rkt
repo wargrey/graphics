@@ -145,7 +145,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                          (compile-extension 'quiet c target (list (digimon-zone) "/usr/local/include"))))))
                    (list t (list tobj)
                          (λ [target] (parameterize ([current-standard-link-libraries null]
-                                                    [current-extension-linker-flags (list* "-m64" "-shared" "-lssh2"
+                                                    [current-extension-linker-flags (list* "-m64" "-shared" "-lssh2" "-lncurses"
                                                                                            (case (system-type)
                                                                                              [{macosx} (list "-L/usr/local/lib"
                                                                                                              (~a "-F" (find-lib-dir))
