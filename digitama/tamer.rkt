@@ -166,7 +166,7 @@
                                              (for/list ([unit (in-list (reverse (href books#)))])
                                                (make-test-suite unit (reverse (map cdr (href unit))))))))))
     (if (false? (test-suite? suite))
-        (and (echof #:fgcolor 'cyan "~nNo particular example!~n") 0)
+        (and (echof #:fgcolor 'darkcyan "~nNo particular example!~n") 0)
         (let-values ([{brief-box cpu0 real0 gc0} (time-apply prove (list suite))])
           (define-values {success failure error skip todo real cpu-gc gc cpu}
             (apply values (list* (summary-success (car brief-box))
@@ -227,7 +227,7 @@
                                                                  (cond [(and (member msg statuses) msg)
                                                                         => stts]
                                                                        [(and (regexp-match? #px"»»" msg) msg)
-                                                                        => (curry eechof #:fgcolor 245 "~a~n")]
+                                                                        => (curry eechof #:fgcolor 'lightgrey "~a~n")]
                                                                        [(and (string? (car spec)) msg)
                                                                         => (curry eechof  "~a~n"
                                                                                   #:fgcolor (~fgcolor (stts))
@@ -491,7 +491,7 @@
   (define ~fgcolor
     (lambda [result]
       (define rslt (if (string? result) result (~result result)))
-      (cond [(string=? rslt (~result test-error)) 'red]
+      (cond [(string=? rslt (~result test-error)) 'darkred]
             [(string=? rslt (~result test-success)) 'lightgreen]
             [(string=? rslt (~result test-failure)) 'lightred]
             [(string=? rslt (~result test-skip)) 'lightblue]
@@ -553,7 +553,7 @@
             [else val])))
 
   (define display-failure
-    (lambda [result [color 'red] #:indent [headspace ""]]
+    (lambda [result [color 'darkred] #:indent [headspace ""]]
       (define echo (curry eechof #:fgcolor color "~a»» ~a: ~s~n" headspace))
       (define recho (curry eechof #:fgcolor color "~a»»» ~a~a~n" headspace))
       (for ([info (in-list (exn:test:check-stack (test-failure-result result)))])
@@ -571,7 +571,7 @@
                         [else ((if (string? (check-info-value info)) tr-d tr-if-path) (check-info-value info))]))]))))
   
   (define display-error
-    (lambda [result [color 'red] #:indent [headspace0 ""]]
+    (lambda [result [color 'darkred] #:indent [headspace0 ""]]
       (define errobj (test-error-result result))
       (define messages (call-with-input-string (tr-d (exn-message errobj)) port->lines))
       (eechof #:fgcolor color #:attributes '{inverse} "~a»» name: ~a~n" headspace0 (object-name errobj))
@@ -584,11 +584,11 @@
         (when (cdr stack)
           (define srcinfo (srcloc->string (cdr stack)))
           (unless (or (false? srcinfo) (regexp-match? #px"^/" srcinfo))
-            (eechof #:fgcolor 245 "~a»»»» ~a: ~a~n" headspace0
+            (eechof #:fgcolor 'lightgrey "~a»»»» ~a: ~a~n" headspace0
                     (tr-d srcinfo) (or (car stack) 'λ)))))))
 
   (define display-skip
-    (lambda [result [color 'blue] #:indent [headspace0 ""]]
+    (lambda [result [color 'darkblue] #:indent [headspace0 ""]]
       (define reason (test-skip-result result))
       (define messages (call-with-input-string (tr-d reason) port->lines))
       (unless (null? messages)
@@ -598,7 +598,7 @@
         (for-each (curry eechof #:fgcolor color "~a»»»~a~a~n" headspace0 msgspace) (cdr messages)))))
 
   (define display-todo
-    (lambda [result [color 'magenta] #:indent [headspace0 ""]]
+    (lambda [result [color 'darkmagenta] #:indent [headspace0 ""]]
       (define reason (test-todo-result result))
       (define messages (call-with-input-string (tr-d reason) port->lines))
       (unless (null? messages)
@@ -651,7 +651,7 @@
     (lambda [unit]
       (define-values {whocares brief}
         (fold-test-suite #:fdown (λ [name seed:ordered]
-                                   (cond [(null? seed:ordered) (echof #:fgcolor 202 #:attributes '{underline} "λ ~a~n" (tr-d name))]
+                                   (cond [(null? seed:ordered) (echof #:fgcolor 'darkgreen #:attributes '{dim underline} "λ ~a~n" (tr-d name))]
                                          [else (echof "~aλ~a ~a~n" (~a #:min-width (* (length seed:ordered) 2))
                                                       (string-join (map number->string (reverse seed:ordered)) ".") (tr-d name))])
                                    (cons 1 seed:ordered))

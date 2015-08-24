@@ -194,22 +194,24 @@
     (define rawmsg (apply format msgfmt vals))
     (eprintf "~a" (if (terminal-port? (current-error-port)) (term-colorize fg bg attrs rawmsg) rawmsg))))
 
+(define vim-colors : (HashTable String Byte)
+  #hash(("black" . 0) ("darkgray" . 8) ("darkgrey" . 8) ("lightgray" . 7) ("lightgrey" . 7) ("gray" . 7) ("grey" . 7) ("white" . 15)
+                      ("darkred" . 1) ("darkgreen" . 2) ("darkyellow" . 3) ("darkblue" . 4) ("brown" . 5) ("darkmagenta" . 5) ("darkcyan" . 6)
+                      ("red" . 9) ("lightred" . 9) ("green" . 10) ("lightgreen" . 10) ("yellow" . 11) ("lightyellow" . 11)
+                      ("blue" . 12) ("lightblue" . 12) ("magenta" . 13) ("lightmagenta" . 13) ("cyan" . 14) ("lightcyan" . 14)))
+
 (define term-colorize : (-> Term-Color Term-Color (Listof Symbol) String String)
   (lambda [fg bg attrs content]
     (define color-code : (-> String [#:bgcolor? Boolean] String)
-      {λ [color #:bgcolor? [bg? #false]]
-        (define colors : (HashTable String Byte)
-          #hash{{"black" . 0} {"red" . 1} {"green" . 2} {"yellow" . 3} {"blue" . 4} {"magenta" . 5} {"cyan" . 6} {"white" . 7}
-                              {"lightblack" . 8} {"lightred" . 9} {"lightgreen" . 10} {"lightyellow" . 11} {"lightblue" . 12}
-                              {"lightmagenta" . 13} {"lightcyan" . 14} {"lightwhite" . 15}})
-        (format "~a8;5;~a" (if bg? 4 3) (if (regexp-match? #px"\\d+" color) color (hash-ref colors color)))})
+      (lambda [color #:bgcolor? [bg? #false]]
+        (format "~a8;5;~a" (if bg? 4 3) (if (regexp-match? #px"\\d+" color) color (hash-ref vim-colors color)))))
     (regexp-replace #px"^(\\s*)(.+?)(\\s*)$" content
                     (format "\\1\033[~a;~a;~am\\2\033[0m\\3"
                             (string-replace (for/fold : String ([effects ""]) ([attr : Symbol (in-list attrs)])
                                               (case (string-downcase (format "~a" attr))
                                                 [{"bold" "bright"} (string-append effects ";1")]
                                                 [{"dim"} (string-append effects ";2")]
-                                                [{"underline"} (string-append effects ";4")]
+                                                [{"underline" "undercurl"} (string-append effects ";4")]
                                                 [{"blink"} (string-append effects ";5")]
                                                 [{"reverse" "inverse"} (string-append effects ";7")]
                                                 [{"hidden" "password"} (string-append effects ";8")]
@@ -227,15 +229,18 @@
 {module* test racket
   (require (submod ".."))
   
-  (for ([color (in-list '{black red green blue yellow magenta cyan white})])
+  (for ([color (in-list '{grey red green blue yellow magenta cyan})])
+    (define-values [darkcolor lightcolor] (values (format "dark~a" color) (format "light~a" color)))
     (echof "»»» 8/16 colors test:")
     (echof #:fgcolor color " ~a" color)
-    (echof #:fgcolor (format "light~a" color) " light~a" color)
+    (echof #:fgcolor darkcolor " ~a" darkcolor)
+    (echof #:fgcolor lightcolor " ~a" lightcolor)
     (echof #:bgcolor color " ~a" color)
-    (echof #:bgcolor (format "light~a" color) " light~a~n" color)
+    (echof #:bgcolor darkcolor " ~a" darkcolor)
+    (echof #:bgcolor lightcolor " ~a~n" lightcolor)
     (for ([effect (in-list '{bright dim underline blink reverse password})])
-      (echof #:fgcolor color #:attributes (list effect) "~a " effect)
-      (echof #:fgcolor (format "light~a" color) #:attributes (list effect) "light:~a " effect))
+      (echof #:fgcolor darkcolor #:attributes (list effect) "dark:~a " effect)
+      (echof #:fgcolor lightcolor #:attributes (list effect) "light:~a " effect))
     (newline))
   
   (echof "»»» 256 colors test:~n")
