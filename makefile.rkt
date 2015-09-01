@@ -163,14 +163,18 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
         (let ([rules (map hack-rule rules0)])
           (make/proc rules (if (null? (current-make-real-targets)) (map car rules) imts)))
         (current-make-real-targets exts)))
-
-    (let ([modpath `(submod ,submake premake)])
-      (when (module-declared? modpath #true)
-        (dynamic-require modpath #false)))
-
+    
     (do-make (make-native-library-rules))
     (do-make (make-implicit-rkt-rules))
     (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
+
+    (let ([modpath `(submod ,submake premake)])
+      (when (module-declared? modpath #true)
+        (dynamic-require modpath #false)
+        ;;; the next two lines always useless but who knows
+        (do-make (make-native-library-rules))
+        (compile-directory (digimon-zone) (get-info/full (digimon-zone)))))
+
     (do-make (make-implicit-dist-rules))
     
     (let ([modpath `(submod ,submake make:files)])
