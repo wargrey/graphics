@@ -129,19 +129,19 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
              (append memory (list entry))
              (call-with-input-file entry (curry regexp-match* #px"(?<=#include \").+?.h(?=\")"))))
     (define [dynamic-ldflags c]
-      (for/fold ([ldflags (list* "-m64" "-shared"
-                                 (cond [(false? (symbol=? (digimon-system) 'macosx)) null]
-                                       [else (list "-L/usr/local/lib" (~a "-F" (find-lib-dir)) "-framework" "Racket")]))])
-                ([line (in-list (file->lines c))]
-                 #:when (regexp-match? #px"#include <" line))
-        (match (regexp-match #px".+ld:([^*]+)(\\*/)?$" line) ;;; Here is intented to raise exception if it's not list provided.
-          [(? false?) ldflags]                               ;;; why are you trying to trouble yourself.
-          [(list _ ld _) ((curry with-input-from-string ld)  ;;; In the future it will add support for -L and `pkg-config`.
-                          (thunk (for/fold ([ld-++ ldflags])
-                                           ([flags (in-port read (open-input-string ld))]
-                                            #:when (list? flags))
-                                   (with-handlers ([exn? (const ld-++)])
-                                     (append ld-++ (map (curry ~a "-l") flags))))))])))
+      (remove-duplicates (for/fold ([ldflags (list* "-m64" "-shared"
+                                                    (cond [(false? (symbol=? (digimon-system) 'macosx)) null]
+                                                          [else (list "-L/usr/local/lib" (~a "-F" (find-lib-dir)) "-framework" "Racket")]))])
+                                   ([line (in-list (file->lines c))]
+                                    #:when (regexp-match? #px"#include <" line))
+                           (match (regexp-match #px".+ld:([^*]+)(\\*/)?$" line) ;;; Here is intented to raise exception if it's not list provided.
+                             [(? false?) ldflags]                               ;;; why are you trying to trouble yourself.
+                             [(list _ ld _) ((curry with-input-from-string ld)  ;;; In the future it will add support for -L and `pkg-config`.
+                                             (thunk (for/fold ([ld-++ ldflags])
+                                                              ([flags (in-port read (open-input-string ld))]
+                                                               #:when (list? flags))
+                                                      (with-handlers ([exn? (const ld-++)])
+                                                        (append ld-++ (map (curry ~a "-l") flags))))))]))))
     (foldl append null
            (for/list ([c (in-list (find-digimon-files (curry regexp-match? #px"\\.c$") (digimon-zone)))])
              (define-values [tobj t]
