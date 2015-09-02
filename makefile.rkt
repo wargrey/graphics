@@ -121,7 +121,6 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (define make-native-library-rules
   (lambda []
-    ;;; simple implementation
     (define [include.h entry [memory null]]
       (foldl (lambda [subpath memory]
                (define subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
@@ -129,12 +128,20 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                      [else (include.h subsrc memory)]))
              (append memory (list entry))
              (call-with-input-file entry (curry regexp-match* #px"(?<=#include \").+?.h(?=\")"))))
-    (define-values [cflags ldflags]
-      (values (current-extension-compiler-flags)
-              (list* "-m64" "-shared" "-lssh2" "-lncurses" "-lpanel" "-lmenu" "-lform"
-                     (case (system-type)
-                       [[macosx] (list "-L/usr/local/lib" (~a "-F" (find-lib-dir)) "-framework" "Racket")]
-                       [else null]))))
+    (define [dynamic-ldflags c]
+      (for/fold ([ldflags (list* "-m64" "-shared"
+                                 (cond [(false? (symbol=? (digimon-system) 'macosx)) null]
+                                       [else (list "-L/usr/local/lib" (~a "-F" (find-lib-dir)) "-framework" "Racket")]))])
+                ([line (in-list (file->lines c))]
+                 #:when (regexp-match? #px"#include <" line))
+        (match (regexp-match #px".+ld:([^*]+)(\\*/)?$" line) ;;; Here is intented to raise exception if it's not list provided.
+          [(? false?) ldflags]                               ;;; why are you trying to trouble yourself.
+          [(list _ ld _) ((curry with-input-from-string ld)  ;;; In the future it will add support for -L and `pkg-config`.
+                          (thunk (for/fold ([ld-++ ldflags])
+                                           ([flags (in-port read (open-input-string ld))]
+                                            #:when (list? flags))
+                                   (with-handlers ([exn? (const ld-++)])
+                                     (append ld-++ (map (curry ~a "-l") flags))))))])))
     (foldl append null
            (for/list ([c (in-list (find-digimon-files (curry regexp-match? #px"\\.c$") (digimon-zone)))])
              (define-values [tobj t]
@@ -145,14 +152,16 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                    "native" (system-library-subpath #false)
                                    (path-replace-suffix (file-name-from-path c) (system-type 'so-suffix)))))
              (list (list tobj (include.h c)
-                         (lambda [target] (parameterize ([current-extension-compiler-flags (cons "-m64" cflags)])
-                                            (printf "cc: ~a: ~a~n" (current-extension-compiler) c)
-                                            (compile-extension 'quiet c target (list (digimon-zone) "/usr/local/include")))))
+                         (lambda [target] (let ([cflags (current-extension-compiler-flags)])
+                                            (parameterize ([current-extension-compiler-flags (cons "-m64" cflags)])
+                                              (printf "cc: ~a: ~a~n" (current-extension-compiler) c)
+                                              (compile-extension 'quiet c target (list (digimon-zone) "/usr/local/include"))))))
                    (list t (list tobj)
-                         (lambda [target] (parameterize ([current-standard-link-libraries null]
-                                                         [current-extension-linker-flags ldflags])
-                                            (printf "ld: ~a: ~a~n" (current-extension-linker) tobj)
-                                            (link-extension 'quiet (list tobj) target)))))))))
+                         (lambda [target] (let ([ldflags (dynamic-ldflags c)])
+                                            (parameterize ([current-standard-link-libraries null]
+                                                           [current-extension-linker-flags ldflags])
+                                              (printf "ld: ~a ~a~n" (current-extension-linker) tobj)
+                                              (link-extension 'quiet (list tobj) target))))))))))
 
 (define make~all:
   (lambda []
