@@ -28,12 +28,12 @@ export CPPFLAGS := -I/usr/cal/opt/readline/include -I/usr/local/opt/gmp/include
 Prefix := /opt
 VerRegExp := \([0-9]\+\.\)\+[0-9]\+
 
-racket_dir := GYDMracket
+racket_dir := PLTracket
 racket_bin0 := $(shell which racket)
 racket_bin := $(if $(findstring 0,$(words $(racket_bin0))),$(Prefix)/$(racket_dir)/bin/racket,$(racket_bin0))
 racket_verion := $(shell curl --compressed http://download.racket-lang.org/all-versions.html | grep -m 1 -o 'racket-minimal-v$(VerRegExp)' | tr -d a-z-)
 racket_src := racket-minimal-$(racket_verion)-src-builtpkgs.tgz
-racket_pkgs_linux := libfontconfig libcairo2 libpango1.0 libjpeg62 freeglut3
+racket_pkgs_linux := libfontconfig libcairo2 libpango1.0 libjpeg62 freeglut3 libncurses5-dev
 racket_pkgs := math html make images pict3d net-cookies
 racket_config_solaris := --enable-places --enable-futures --disable-libffi
 racket_config_darwin := --enable-macprefix
@@ -55,4 +55,3 @@ racket: $(if $(findstring 0,$(words $(racket_bin0))),$(racket_bin))
 	$(racket_bin) -l racket/base -e '(printf "We have Racket ~a.~n" (version))'
 
 ### vim:ft=make
-
