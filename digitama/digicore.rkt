@@ -7,6 +7,8 @@
 (define-type Info-Ref (->* {Symbol} {(-> Any)} Any))
 (define-type Term-Color (Option (U String Symbol Byte)))
 (define-type Racket-Main (-> String * Void))
+(define-type Place-Main (-> Place-Channel Any))
+(define-type Place-ArgHash (HashTable Symbol Any))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
 
 (require/typed/provide setup/getinfo
