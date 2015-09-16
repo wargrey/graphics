@@ -39,17 +39,21 @@
             [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
                     (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
 
-(define-syntax (define/extract stx)
+(define-syntax (define/extract-symtable stx)
   (syntax-case stx []
+    [(_ (symtable-sexp ...) defines ...)
+     (with-syntax ([symtable (format-id #'symtable "~a" (gensym 'place-symtable-))])
+       #'(begin (define symtable : Place-SymTable (cast (symtable-sexp ...) Place-SymTable))
+                (define/extract symtable defines ...)))]
     [(_ symtable defines ...)
-     (with-syntax ([(defexp ...)
+     (with-syntax ([(extract ...)
                     (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
                       (syntax-case def-idl [: =]
                         [(id : Type)
-                         #'(define id : Type (cast (hash-ref (cast symtable Place-SymTable) 'id) Type))]
+                         #'(define id : Type (cast (hash-ref symtable 'id) Type))]
                         [(id : Type = def-exp)
-                         #'(define id : Type (cast (hash-ref (cast symtable Place-SymTable) 'id (thunk def-exp)) Type))]))])
-       #'(begin defexp ...))]))
+                         #'(define id : Type (cast (hash-ref symtable 'id (thunk def-exp)) Type))]))])
+       #'(begin extract ...))]))
 
 (define digicore.rkt : Path (#%file))
 
@@ -128,14 +132,15 @@
 (define-syntax (define-digimon-dirpath stx)
   (syntax-case stx []
     [(_ id ...)
-     (with-syntax ([(digimon-id ...) (for/list ([var (in-list (syntax->list #'(id ...)))])
-                                       (with-syntax ([id var]) (format-id #'id "digimon-~a" (syntax-e #'id))))])
-                  #'(begin (define digimon-id : (Parameterof Nothing Path)
-                             (make-derived-parameter digimon-zone
-                                                     (immutable-guard 'digimon-id)
-                                                     (λ [[zonedir : Path]]
-                                                       (build-path zonedir (symbol->string 'id)))))
-                           ...))]))
+     (with-syntax ([(digimon-id ...)
+                    (for/list ([var (in-list (syntax->list #'(id ...)))])
+                      (with-syntax ([id var]) (format-id #'id "digimon-~a" (syntax-e #'id))))])
+       #'(begin (define digimon-id : (Parameterof Nothing Path)
+                  (make-derived-parameter digimon-zone
+                                          (immutable-guard 'digimon-id)
+                                          (λ [[zonedir : Path]]
+                                            (build-path zonedir (symbol->string 'id)))))
+                ...))]))
 
 (define-digimon-dirpath stone digitama digivice tamer village terminus)
 
