@@ -4,11 +4,11 @@
 
 (provide (except-out (all-defined-out) #%full-module plural term-colorize))
 
-(define-type Info-Ref (->* {Symbol} {(-> Any)} Any))
+(define-type Info-Ref (->* [Symbol] [(-> Any)] Any))
 (define-type Term-Color (Option (U String Symbol Byte)))
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Any))
-(define-type Place-ArgHash (HashTable Symbol Any))
+(define-type Place-SymTable (HashTable Symbol Any))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
 
 (require/typed/provide setup/getinfo
@@ -22,22 +22,34 @@
                                             [-> Any Output-Port Void])]
                        [fasl->s-exp (-> (U Input-Port Bytes) Any)])
 
-(define-syntax {#%full-module stx}
+(define-syntax (#%full-module stx)
   #'(let ([rmp (variable-reference->resolved-module-path (#%variable-reference))])
       (resolved-module-path-name (cast rmp Resolved-Module-Path))))
 
-(define-syntax {#%file stx}
+(define-syntax (#%file stx)
   #'(let ([full (ann (#%full-module) (U Symbol Path))])
       (cond [(path? full) full]
             [else (with-handlers ([exn:fail:contract? (const (current-directory))])
                     ((inst car Path (Listof Symbol)) (cast full (Pairof Path (Listof Symbol)))))])))
 
-(define-syntax {#%module stx}
+(define-syntax (#%module stx)
   #'(let ([full (ann (#%full-module) (U Symbol Path))])
       (cond [(path? full) ((compose1 string->symbol path->string)
                            (path-replace-suffix (cast (file-name-from-path full) Path) ""))]
-            [else (with-handlers ([exn:fail:contract? {λ _ '<anonymous>}])
+            [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
                     (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
+
+(define-syntax (define/extract stx)
+  (syntax-case stx []
+    [(_ symtable defines ...)
+     (with-syntax ([(defexp ...)
+                    (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
+                      (syntax-case def-idl [: =]
+                        [(id : Type)
+                         #'(define id : Type (cast (hash-ref (cast symtable Place-SymTable) 'id) Type))]
+                        [(id : Type = def-exp)
+                         #'(define id : Type (cast (hash-ref (cast symtable Place-SymTable) 'id (thunk def-exp)) Type))]))])
+       #'(begin defexp ...))]))
 
 (define digicore.rkt : Path (#%file))
 
@@ -78,10 +90,10 @@
 (define /dev/null : Output-Port ((cast open-output-nowhere (-> Symbol Output-Port)) '/dev/null))
 
 (define immutable-guard : (-> Symbol (Path-String -> Nothing))
-  {lambda [pname]
-    {λ [pval] (error pname "Immutable Parameter: ~a" pval)}})
+  (lambda [pname]
+    (λ [pval] (error pname "Immutable Parameter: ~a" pval))))
 
-(define-values {#{digimon-world : (Parameterof Nothing String)} #{digimon-gnome : (Parameterof Nothing String)}}
+(define-values (#{digimon-world : (Parameterof Nothing String)} #{digimon-gnome : (Parameterof Nothing String)})
   (let* ([file (path->string digicore.rkt)]
          [px.split (regexp-match #px"(.+)/([^/]+?)/[^/]+?/[^/]+?$" file)])
     (values (make-parameter (cadr (cast px.split (Listof String))) (immutable-guard 'digimon-world))
@@ -89,15 +101,15 @@
 
 (define digimon-kuzuhamon : (Parameterof Nothing String) (make-parameter "Kuzuhamon" (immutable-guard 'digimon-kuzuhamon)))
 
-(define-values {#{current-digimon : (Parameterof String String)} #{current-tamer : (Parameterof Nothing String)}}
+(define-values (#{current-digimon : (Parameterof String String)} #{current-tamer : (Parameterof Nothing String)})
   (values (make-parameter (digimon-gnome))
           (make-parameter (or (getenv "USER") (getenv "LOGNAME") #| daemon |# "root"))))
 
 (define digimon-system : (Parameterof Nothing Symbol)
   (make-parameter (match (path->string (system-library-subpath #false))
                     ;;; (system-type 'machine) maight lead to "forbidden exec /bin/uname" 
-                    [{pregexp #px"solaris"} 'solaris]
-                    [{pregexp #px"linux"} 'linux]
+                    [(pregexp #px"solaris") 'solaris]
+                    [(pregexp #px"linux") 'linux]
                     [_ (system-type 'os)])))
 
 (define digimon-zone : (Parameterof Nothing Path)
@@ -113,10 +125,10 @@
         ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
         (use-compiled-file-paths (list (build-path "compiled")))))
 
-(define-syntax {define-digimon-dirpath stx}
+(define-syntax (define-digimon-dirpath stx)
   (syntax-case stx []
-    [{_ id ...}
-     (with-syntax ([{digimon-id ...} (for/list ([var (in-list (syntax->list #'{id ...}))])
+    [(_ id ...)
+     (with-syntax ([(digimon-id ...) (for/list ([var (in-list (syntax->list #'(id ...)))])
                                        (with-syntax ([id var]) (format-id #'id "digimon-~a" (syntax-e #'id))))])
                   #'(begin (define digimon-id : (Parameterof Nothing Path)
                              (make-derived-parameter digimon-zone
@@ -127,7 +139,7 @@
 
 (define-digimon-dirpath stone digitama digivice tamer village terminus)
 
-(define path->digimon-modpath : (->* {Path-String} {Symbol} (U Module-Path (List 'submod Module-Path Symbol)))
+(define path->digimon-modpath : (->* [Path-String] [Symbol] (U Module-Path (List 'submod Module-Path Symbol)))
   (lambda [modfile [submodule #false]]
     (define modpath : Module-Path
       (let ([modfile (simplify-path modfile)])
@@ -224,14 +236,14 @@
 
 (define plural : (-> Nonnegative-Integer String String)
   (lambda [n word]
-    (define dict : (HashTable String String) #hash{{"story" . "stories"} {"Story" . "Stories"}})
+    (define dict : (HashTable String String) #hash(("story" . "stories") ("Story" . "Stories")))
     (cond [(= n 1) word]
-          [else (hash-ref dict word {λ _ (string-append word "s")})])))
+          [else (hash-ref dict word (λ _ (string-append word "s")))])))
 
-{module* test racket
+(module* test racket
   (require (submod ".."))
   
-  (for ([color (in-list '{grey red green blue yellow magenta cyan})])
+  (for ([color (in-list '(grey red green blue yellow magenta cyan))])
     (define-values [darkcolor lightcolor] (values (format "dark~a" color) (format "light~a" color)))
     (echof "»»» 8/16 colors test:")
     (echof #:fgcolor color " ~a" color)
@@ -240,7 +252,7 @@
     (echof #:bgcolor color " ~a" color)
     (echof #:bgcolor darkcolor " ~a" darkcolor)
     (echof #:bgcolor lightcolor " ~a~n" lightcolor)
-    (for ([effect (in-list '{bright dim underline blink reverse password})])
+    (for ([effect (in-list '(bright dim underline blink reverse password))])
       (echof #:fgcolor darkcolor #:attributes (list effect) "dark:~a " effect)
       (echof #:fgcolor lightcolor #:attributes (list effect) "light:~a " effect))
     (newline))
@@ -256,4 +268,4 @@
     (define caption (~a (sub1 color) #:width 4 #:align 'right))
     (echof #:bgcolor (sub1 color) caption)
     (when (zero? (remainder color 32))
-      (newline)))}
+      (newline))))
