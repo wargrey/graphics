@@ -44,7 +44,7 @@
     [(_ (symtable-sexp ...) defines ...)
      (with-syntax ([symtable (format-id #'symtable "~a" (gensym 'place-symtable-))])
        #'(begin (define symtable : Place-SymTable (cast (symtable-sexp ...) Place-SymTable))
-                (define/extract symtable defines ...)))]
+                (define/extract-symtable symtable defines ...)))]
     [(_ symtable defines ...)
      (with-syntax ([(extract ...)
                     (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
