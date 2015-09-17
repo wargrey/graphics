@@ -4,6 +4,7 @@
 
 (provide (except-out (all-defined-out) #%full-module plural term-colorize))
 
+(define-type Exn exn)
 (define-type Info-Ref (->* [Symbol] [(-> Any)] Any))
 (define-type Term-Color (Option (U String Symbol Byte)))
 (define-type Racket-Main (-> String * Void))
