@@ -246,6 +246,12 @@
     (cond [(= n 1) word]
           [else (hash-ref dict word (λ _ (string-append word "s")))])))
 
+(define timer-thread : (-> (-> Natural Any) Positive-Real [#:adjustment Real] Thread)
+  (lambda [on-timer interval #:adjustment [adjustment -0.001]]
+    (thread (thunk (for ([times (in-naturals)])
+                     (sync/timeout/enable-break (max (+ interval adjustment) 0) never-evt)
+                     (on-timer (cast times Natural)))))))
+
 (module* test racket
   (require (submod ".."))
   
