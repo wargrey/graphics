@@ -9,7 +9,7 @@
 (define-type Term-Color (Option (U String Symbol Byte)))
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
-(define-type Place-SymTable (HashTable Symbol Any))
+(define-type SymbolTable (HashTable Symbol Any))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
 
 (require/typed/provide setup/getinfo
