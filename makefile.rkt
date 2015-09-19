@@ -276,8 +276,8 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
               (let ([line (read-line)])
                 (cond [(or (eof-object? line) (regexp-match? #px"^\\s*$" line)) defval]
                       [else (string-trim line)]))))
-    (for ([src (in-list (list "info.rkt" "digicore.rkt" "handbook.scrbl" "tamer.rkt"))]
-          [dest (in-list (list (digimon-zone) (digimon-digitama) (digimon-tamer) (digimon-tamer)))])
+    (for ([src (in-list (list  "info.rkt"     "digicore.rkt"     "posix.rkt"        "handbook.scrbl" "tamer.rkt"))]
+          [dest (in-list (list (digimon-zone) (digimon-digitama) (digimon-digitama) (digimon-tamer)  (digimon-tamer)))])
       (make-directory* dest)
       (putenv "digicore.rkt" (path->string (find-relative-path dest digicore.rkt)))
       (with-output-to-file (build-path dest src) #:exists 'error
