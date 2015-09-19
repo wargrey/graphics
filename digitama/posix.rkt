@@ -62,12 +62,12 @@
 
 ;;; Users and Groups
 
+(define-posix getppid (_fun -> _int32))
+(define-posix getpid (_fun -> _int32))
 (define-posix getuid (_fun -> _uint32))
 (define-posix getgid (_fun -> _uint32))
 (define-posix geteuid (_fun -> _uint32))
 (define-posix getegid (_fun -> _uint32))
-(define-posix getppid (_fun -> _int32))
-(define-posix getpid (_fun -> _int32))
 
 (define-posix setuid
   (_fun #:save-errno 'posix
@@ -168,10 +168,15 @@
   (require/typed/provide (submod "..")
                          [#:opaque CPointer cvoid*?]
                          [#:struct (exn:foreign exn:fail) ([errno : Integer])]
-                         [c-extern (-> (U String Bytes Symbol) CType Any)])
+                         [c-extern (-> (U String Bytes Symbol) CType Any)]
+                         [_logflags CType]
+                         [_facility CType]
+                         [_severity CType])
   
   (require/typed/provide (submod "..")
                          [strerror (-> Natural String)]
+                         [getppid (-> Natural)]
+                         [getpid (-> Natural)]
                          [getuid (-> Natural)]
                          [getgid (-> Natural)]
                          [geteuid (-> Natural)]
