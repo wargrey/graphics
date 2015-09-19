@@ -7,12 +7,22 @@
 
 @require{digicore.rkt}
 
+(require syntax/location)
+(require (for-syntax syntax/parse))
+
 (require ffi/unsafe)
 (require ffi/unsafe/define)
 (require ffi/unsafe/alloc)
 (require (only-in '#%foreign ctype-basetype ctype-c->scheme ctype-scheme->c))
 
 (struct exn:foreign exn:fail (errno))
+
+(define-syntax (digimon-ffi-lib stx)
+  (syntax-parse stx #:literals []
+    [(_ libname (~optional (~seq #:global? ?:expr)))
+     #`(ffi-lib #:global? (not (not #,(attribute ?)))
+                (build-path (path-only (resolved-module-path-name (variable-reference->resolved-module-path (#%variable-reference))))
+                            (car (use-compiled-file-paths)) "native" (system-library-subpath #false) libname))]))
 
 (define cvoid*?
   (lambda [v]
@@ -40,9 +50,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-ffi-definer define-posix (ffi-lib #false))
-(define-ffi-definer define-digitama
-  (ffi-lib (build-path (parameterize ([current-digimon (digimon-gnome)]) (digimon-digitama))
-                       (car (use-compiled-file-paths)) "native" (system-library-subpath #false) "posix")))
+(define-ffi-definer define-digitama (digimon-ffi-lib "posix" #:global? #true))
 
 (define-posix strerror
   (_fun [errno : _int]
