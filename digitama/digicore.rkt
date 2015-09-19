@@ -43,8 +43,8 @@
 (define-syntax (define/extract-symtable stx)
   (syntax-case stx []
     [(_ (symtable-sexp ...) defines ...)
-     (with-syntax ([symtable (format-id #'symtable "~a" (gensym 'place-symtable-))])
-       #'(begin (define symtable : Place-SymTable (cast (symtable-sexp ...) Place-SymTable))
+     (with-syntax ([symtable (format-id #'symtable "~a" (gensym 'symboltable))])
+       #'(begin (define symtable : SymbolTable (cast (symtable-sexp ...) SymbolTable))
                 (define/extract-symtable symtable defines ...)))]
     [(_ symtable defines ...)
      (with-syntax ([(extract ...)
