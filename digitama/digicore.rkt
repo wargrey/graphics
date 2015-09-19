@@ -40,6 +40,28 @@
             [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
                     (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
 
+(define-syntax (define-symdict stx)
+  (syntax-case stx [:]
+    [(_ id : Type)
+     #'(define-symdict id : Type null)]
+    [(_ id : Type init-vals)
+     (with-syntax ([?id  (format-id #'id "?~a"  (syntax-e #'id))]
+                   [:id  (format-id #'id ":~a"  (syntax-e #'id))]
+                   [:id+ (format-id #'id ":~a+" (syntax-e #'id))]
+                   [!id+ (format-id #'id "!~a+" (syntax-e #'id))]
+                   [!id- (format-id #'id "!~a-" (syntax-e #'id))])
+       #'(begin (define id : (HashTable Symbol Type) ((inst make-hasheq Symbol Type) init-vals))
+                (define (?id [key : Symbol]) : Boolean (hash-has-key? id key))
+                (define (!id+ [key : Symbol] [val : Type]) : Void ((inst hash-set! Symbol Type) id key val))
+                (define (!id- [key : Symbol]) : Void ((inst hash-remove! Symbol Type) id key))
+                (define :id+ : (-> Symbol (U Type (-> Type)) Type)
+                  (lambda [key setval]
+                    ((inst hash-ref! Symbol Type) id key (if (procedure? setval) setval (thunk setval)))))
+                (define :id : (case-> [Symbol -> Type] [Symbol (U Type (-> Type)) -> Type])
+                  (case-lambda
+                    [(key) ((inst hash-ref Symbol Type Type) id key)]
+                    [(key defval) ((inst hash-ref Symbol Type Type) id key (if (procedure? defval) defval (thunk defval)))]))))]))
+
 (define-syntax (define/extract-symtable stx)
   (syntax-case stx []
     [(_ (symtable-sexp ...) defines ...)
