@@ -4,7 +4,6 @@
 
 (provide (except-out (all-defined-out) #%full-module plural term-colorize))
 
-(define-type Exn exn)
 (define-type Info-Ref (->* [Symbol] [(-> Any)] Any))
 (define-type Term-Color (Option (U String Symbol Byte)))
 (define-type Racket-Main (-> String * Void))
@@ -40,27 +39,63 @@
             [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
                     (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
 
+(define-syntax (define-strdict stx)
+  (syntax-case stx [:]
+    [(_ id : Type)
+     #'(define-strdict id : Type null)]
+    [(_ id : Type init-vals)
+     (with-syntax ([%id  (format-id #'id "%~a"  (syntax-e #'id))]  ; make-hash
+                   [?id  (format-id #'id "?~a"  (syntax-e #'id))]  ; hash-has-key?
+                   [$id  (format-id #'id "$~a"  (syntax-e #'id))]  ; hash-ref
+                   [$id# (format-id #'id "$~a#" (syntax-e #'id))]  ; hash-count
+                   [$id@ (format-id #'id "$~a@" (syntax-e #'id))]  ; hash-keys
+                   [$id* (format-id #'id "$~a*" (syntax-e #'id))]  ; hash-values
+                   [$id+ (format-id #'id "$~a+" (syntax-e #'id))]  ; hash-ref!
+                   [!id+ (format-id #'id "!~a+" (syntax-e #'id))]  ; hash-set!
+                   [!id- (format-id #'id "!~a-" (syntax-e #'id))]) ; hash-remove!
+       #'(begin (define %id : (HashTable String Type) ((inst make-hash String Type) init-vals))
+                (define ($id@) : (Listof String) ((inst hash-keys String Type) %id))
+                (define ($id*) : (Listof Type) ((inst hash-values String Type) %id))
+                (define ($id#) : Index ((inst hash-count String Type) %id))
+                (define (?id [key : String]) : Boolean (hash-has-key? %id key))
+                (define (!id+ [key : String] [val : Type]) : Void ((inst hash-set! String Type) %id key val))
+                (define (!id- [key : String]) : Void ((inst hash-remove! String Type) %id key))
+                (define $id+ : (-> String (U Type (-> Type)) Type)
+                  (lambda [key setval]
+                    ((inst hash-ref! String Type) %id key (if (procedure? setval) setval (thunk setval)))))
+                (define $id : (case-> [String -> Type] [String (U Type (-> Type)) -> Type])
+                  (case-lambda
+                    [(key) ((inst hash-ref String Type Type) %id key)]
+                    [(key defval) ((inst hash-ref String Type Type) %id key (if (procedure? defval) defval (thunk defval)))]))))]))
+
 (define-syntax (define-symdict stx)
   (syntax-case stx [:]
     [(_ id : Type)
      #'(define-symdict id : Type null)]
     [(_ id : Type init-vals)
-     (with-syntax ([?id  (format-id #'id "?~a"  (syntax-e #'id))]
-                   [:id  (format-id #'id ":~a"  (syntax-e #'id))]
-                   [:id+ (format-id #'id ":~a+" (syntax-e #'id))]
-                   [!id+ (format-id #'id "!~a+" (syntax-e #'id))]
-                   [!id- (format-id #'id "!~a-" (syntax-e #'id))])
-       #'(begin (define id : (HashTable Symbol Type) ((inst make-hasheq Symbol Type) init-vals))
-                (define (?id [key : Symbol]) : Boolean (hash-has-key? id key))
-                (define (!id+ [key : Symbol] [val : Type]) : Void ((inst hash-set! Symbol Type) id key val))
-                (define (!id- [key : Symbol]) : Void ((inst hash-remove! Symbol Type) id key))
-                (define :id+ : (-> Symbol (U Type (-> Type)) Type)
+     (with-syntax ([%id  (format-id #'id "%~a"  (syntax-e #'id))]  ; make-hasheq
+                   [?id  (format-id #'id "?~a"  (syntax-e #'id))]  ; hash-has-key?
+                   [$id  (format-id #'id "$~a"  (syntax-e #'id))]  ; hash-ref
+                   [$id# (format-id #'id "$~a#" (syntax-e #'id))]  ; hash-count
+                   [$id@ (format-id #'id "$~a@" (syntax-e #'id))]  ; hash-keys
+                   [$id* (format-id #'id "$~a*" (syntax-e #'id))]  ; hash-values
+                   [$id+ (format-id #'id "$~a+" (syntax-e #'id))]  ; hash-ref!
+                   [!id+ (format-id #'id "!~a+" (syntax-e #'id))]  ; hash-set!
+                   [!id- (format-id #'id "!~a-" (syntax-e #'id))]) ; hash-remove!
+       #'(begin (define %id : (HashTable Symbol Type) ((inst make-hasheq Symbol Type) init-vals))
+                (define ($id@) : (Listof Symbol) ((inst hash-keys Symbol Type) %id))
+                (define ($id*) : (Listof Type) ((inst hash-values Symbol Type) %id))
+                (define ($id#) : Index ((inst hash-count Symbol Type) %id))
+                (define (?id [key : Symbol]) : Boolean (hash-has-key? %id key))
+                (define (!id+ [key : Symbol] [val : Type]) : Void ((inst hash-set! Symbol Type) %id key val))
+                (define (!id- [key : Symbol]) : Void ((inst hash-remove! Symbol Type) %id key))
+                (define $id+ : (-> Symbol (U Type (-> Type)) Type)
                   (lambda [key setval]
-                    ((inst hash-ref! Symbol Type) id key (if (procedure? setval) setval (thunk setval)))))
-                (define :id : (case-> [Symbol -> Type] [Symbol (U Type (-> Type)) -> Type])
+                    ((inst hash-ref! Symbol Type) %id key (if (procedure? setval) setval (thunk setval)))))
+                (define $id : (case-> [Symbol -> Type] [Symbol (U Type (-> Type)) -> Type])
                   (case-lambda
-                    [(key) ((inst hash-ref Symbol Type Type) id key)]
-                    [(key defval) ((inst hash-ref Symbol Type Type) id key (if (procedure? defval) defval (thunk defval)))]))))]))
+                    [(key) ((inst hash-ref Symbol Type Type) %id key)]
+                    [(key defval) ((inst hash-ref Symbol Type Type) %id key (if (procedure? defval) defval (thunk defval)))]))))]))
 
 (define-syntax (define/extract-symtable stx)
   (syntax-case stx []
@@ -75,7 +110,11 @@
                         [(id : Type)
                          #'(define id : Type (cast (hash-ref symtable 'id) Type))]
                         [(id : Type = def-exp)
-                         #'(define id : Type (cast (hash-ref symtable 'id (thunk def-exp)) Type))]))])
+                         #'(define id : Type (cast (hash-ref symtable 'id (thunk def-exp)) Type))]
+                        [([renamed-id key] : Type)
+                         #'(define renamed-id : Type (cast (hash-ref symtable 'key) Type))]
+                        [([renamed-id key] : Type = def-exp)
+                         #'(define renamed-id : Type (cast (hash-ref symtable 'key (thunk def-exp)) Type))]))])
        #'(begin extract ...))]))
 
 (define digicore.rkt : Path (#%file))
