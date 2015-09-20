@@ -144,20 +144,6 @@
        #'(begin (require/typed/provide (submod "..")
                                        [ctype CType])
                 ...)]))
-
-
-  (require/typed/provide/ctypes _uintmax _byte _sint32 _string*/utf-8 _void
-                                _int8 _uint8 _int16 _uint16 _int32 _uint32 _int64 _uint64
-                                _fixint _ufixint _fixnum _ufixnum _float _double _longdouble
-                                _double* _bool _stdbool _string/ucs-4 _string/utf-16 _path
-                                _symbol _pointer _gcpointer _scheme _fpointer _racket _ssize
-                                _size _uword _word _sbyte _string*/latin-1 _bytes/eof _file
-                                _intmax _ptrdiff _sintptr _intptr _sllong _ullong _llong
-                                _slong _ulong _long _sint _uint _int _sshort _ushort _short
-                                _ubyte _sint64 _sint16 _sint8 _string*/locale _string/latin-1
-                                _string/locale _string/utf-8 _uintptr _sword)
-  
-  (require/typed/provide/ctypes _logflags _facility _severity)
   
   (require/typed/provide (submod "..")
                          [#:opaque CPointer/Null cpointer?]
@@ -184,6 +170,19 @@
 
   (define-type CBitmask-C->Racket (-> CBitmask RBitmask))
   (define-type CBitmask-Racket->C (-> RBitmask CBitmask))
+
+  (require/typed/provide/ctypes _uintmax _byte _sint32 _string*/utf-8 _void
+                                _int8 _uint8 _int16 _uint16 _int32 _uint32 _int64 _uint64
+                                _fixint _ufixint _fixnum _ufixnum _float _double _longdouble
+                                _double* _bool _stdbool _string/ucs-4 _string/utf-16 _path
+                                _symbol _pointer _gcpointer _scheme _fpointer _racket _ssize
+                                _size _uword _word _sbyte _string*/latin-1 _bytes/eof _file
+                                _intmax _ptrdiff _sintptr _intptr _sllong _ullong _llong
+                                _slong _ulong _long _sint _uint _int _sshort _ushort _short
+                                _ubyte _sint64 _sint16 _sint8 _string*/locale _string/latin-1
+                                _string/locale _string/utf-8 _uintptr _sword)
+  
+  (require/typed/provide/ctypes _logflags _facility _severity)
   
   (require/typed/provide (submod "..")
                          [#:opaque CPointer cvoid*?]
