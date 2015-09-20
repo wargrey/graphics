@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include <pwd.h>
 #include <grp.h>
+#include <scheme.h>
 
 /* Quote Headers */
 
@@ -86,41 +87,41 @@ exit_with_errno:
 
 /** syslog **/
 /* Facility Constants  */
-uintptr_t KERNEL = LOG_KERN;        /* kernel messages */
-uintptr_t USER = LOG_USER;         /* random user-level messages */
-uintptr_t MAIL = LOG_MAIL;         /* mail system */
-uintptr_t DAEMON = LOG_DAEMON;     /* system daemons */
-uintptr_t AUTH = LOG_AUTH;         /* security/authorization messages */
-uintptr_t SYSLOG = LOG_SYSLOG;     /* messages generated internally by syslogd */
-uintptr_t LPR = LOG_LPR;           /* line printer subsystem */
-uintptr_t NEWS = LOG_NEWS;         /* netnews subsystem */
-uintptr_t UUCP = LOG_UUCP;         /* uucp subsystem */
-uintptr_t ALTCRON = LOG_ALTCRON;   /* BSD cron/at subsystem */
-uintptr_t AUTHPRIV = LOG_AUTHPRIV; /* BSD security/authorization messages */
-uintptr_t FTP = LOG_FTP;           /* file transfer subsystem */
-uintptr_t NTP = LOG_NTP;           /* network time subsystem */
-uintptr_t AUDIT = LOG_AUDIT;       /* audit subsystem */
-uintptr_t CONSOLE = LOG_CONSOLE;   /* BSD console messages */
-uintptr_t CRON = LOG_CRON;         /* cron/at subsystem */
-uintptr_t LOCAL0 = LOG_LOCAL0;     /* reserved for local use */
-uintptr_t LOCAL1 = LOG_LOCAL1;     /* reserved for local use */
-uintptr_t LOCAL2 = LOG_LOCAL2;     /* reserved for local use */
-uintptr_t LOCAL3 = LOG_LOCAL3;     /* reserved for local use */
-uintptr_t LOCAL4 = LOG_LOCAL4;     /* reserved for local use */
-uintptr_t LOCAL5 = LOG_LOCAL5;     /* reserved for local use */
-uintptr_t LOCAL6 = LOG_LOCAL6;     /* reserved for local use */
-uintptr_t LOCAL7 = LOG_LOCAL7;     /* reserved for local use */
+const uintptr_t KERNEL = LOG_KERN;        /* kernel messages */
+const uintptr_t USER = LOG_USER;         /* random user-level messages */
+const uintptr_t MAIL = LOG_MAIL;         /* mail system */
+const uintptr_t DAEMON = LOG_DAEMON;     /* system daemons */
+const uintptr_t AUTH = LOG_AUTH;         /* security/authorization messages */
+const uintptr_t SYSLOG = LOG_SYSLOG;     /* messages generated internally by syslogd */
+const uintptr_t LPR = LOG_LPR;           /* line printer subsystem */
+const uintptr_t NEWS = LOG_NEWS;         /* netnews subsystem */
+const uintptr_t UUCP = LOG_UUCP;         /* uucp subsystem */
+const uintptr_t ALTCRON = LOG_ALTCRON;   /* BSD cron/at subsystem */
+const uintptr_t AUTHPRIV = LOG_AUTHPRIV; /* BSD security/authorization messages */
+const uintptr_t FTP = LOG_FTP;           /* file transfer subsystem */
+const uintptr_t NTP = LOG_NTP;           /* network time subsystem */
+const uintptr_t AUDIT = LOG_AUDIT;       /* audit subsystem */
+const uintptr_t CONSOLE = LOG_CONSOLE;   /* BSD console messages */
+const uintptr_t CRON = LOG_CRON;         /* cron/at subsystem */
+const uintptr_t LOCAL0 = LOG_LOCAL0;     /* reserved for local use */
+const uintptr_t LOCAL1 = LOG_LOCAL1;     /* reserved for local use */
+const uintptr_t LOCAL2 = LOG_LOCAL2;     /* reserved for local use */
+const uintptr_t LOCAL3 = LOG_LOCAL3;     /* reserved for local use */
+const uintptr_t LOCAL4 = LOG_LOCAL4;     /* reserved for local use */
+const uintptr_t LOCAL5 = LOG_LOCAL5;     /* reserved for local use */
+const uintptr_t LOCAL6 = LOG_LOCAL6;     /* reserved for local use */
+const uintptr_t LOCAL7 = LOG_LOCAL7;     /* reserved for local use */
 
 /* Priorities Constants */ 
-uintptr_t EMERG = LOG_EMERG;       /* system is unusable */
-uintptr_t ALERT = LOG_ALERT;       /* action must be taken immediately */
-uintptr_t CRIT = LOG_CRIT;         /* critical conditions */
-uintptr_t FATAL = LOG_CRIT;        /* critical conditions (racket only) */
-uintptr_t ERROR = LOG_ERR;         /* error conditions */
-uintptr_t WARNING = LOG_WARNING;   /* warning conditions */
-uintptr_t NOTICE = LOG_NOTICE;     /* normal but signification condition */
-uintptr_t INFO = LOG_INFO;         /* informational */
-uintptr_t DEBUG = LOG_DEBUG;       /* debug-level messages */
+const uintptr_t EMERG = LOG_EMERG;       /* system is unusable */
+const uintptr_t ALERT = LOG_ALERT;       /* action must be taken immediately */
+const uintptr_t CRIT = LOG_CRIT;         /* critical conditions */
+const uintptr_t FATAL = LOG_CRIT;        /* critical conditions (racket only) */
+const uintptr_t ERROR = LOG_ERR;         /* error conditions */
+const uintptr_t WARNING = LOG_WARNING;   /* warning conditions */
+const uintptr_t NOTICE = LOG_NOTICE;     /* normal but signification condition */
+const uintptr_t INFO = LOG_INFO;         /* informational */
+const uintptr_t DEBUG = LOG_DEBUG;       /* debug-level messages */
 
 /* Log Options */
 uintptr_t PID = LOG_PID;            /* log the pid with each message */
@@ -129,16 +130,13 @@ uintptr_t ODELAY = LOG_ODELAY;      /* delay open until syslog() is called */
 uintptr_t NDELAY = LOG_NDELAY;      /* don't delay open */
 uintptr_t NOWAIT = LOG_NOWAIT;      /* if forking to log on console, don't wait() */
 
-inline void setlogmask_one(uintptr_t maskpri) {
+void setlogmask_one(uintptr_t maskpri) {
     setlogmask(LOG_MASK(maskpri));
 }
 
-inline void setlogmask_upto(uintptr_t maskpri) {
+void setlogmask_upto(uintptr_t maskpri) {
     setlogmask(LOG_UPTO(maskpri));
 }
-
-/** System Monitor **/
-double sysloadavg[3];
 
 /* 
  * Begin ViM Modeline

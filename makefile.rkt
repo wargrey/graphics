@@ -22,6 +22,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (require dynext/compile)
 (require dynext/link)
+(require dynext/file)
 
 (require setup/dirs)
 
@@ -122,13 +123,19 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (define make-native-library-rules
   (lambda []
-    (define (include.h entry [memory null])
-      (foldl (lambda [subpath memory]
-               (define subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
-               (cond [(member subsrc memory) memory]
-                     [else (include.h subsrc memory)]))
+    (define (include.h entry scheme? [memory null])
+      (foldl (lambda [include memory]
+               (cond [(regexp-match #px#"<.+?>" include)
+                      => (lambda [header]
+                           (when (member #"<scheme.h>" header) (scheme? #true))
+                           memory)]
+                     [(regexp-match #px#"\"(.+?)\"")
+                      => (lambda [header]
+                           (let ([subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 (cadr header))))])
+                             (cond [(member subsrc memory) memory]
+                                   [else (include.h subsrc scheme? memory)])))]))
              (append memory (list entry))
-             (call-with-input-file entry (curry regexp-match* #px"(?<=#include \").+?.h(?=\")"))))
+             (call-with-input-file entry (curry regexp-match* #px"(?<=#include )[<\"].+?.h[\">]"))))
     (define (dynamic-ldflags c)
       (remove-duplicates (for/fold ([ldflags (list* "-m64" "-shared"
                                                     (cond [(false? (symbol=? (digimon-system) 'macosx)) null]
@@ -161,18 +168,20 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
            (for/list ([c (in-list (find-digimon-files (curry regexp-match? #px"\\.c$") (digimon-zone)))])
              (define-values [tobj t]
                (values (build-path (path-only c) (car (use-compiled-file-paths))
-                                   "precompiled" (system-library-subpath #false)
-                                   (path-replace-suffix (file-name-from-path c) #".o"))
+                                   "native" (system-library-subpath #false)
+                                   (append-object-suffix (extract-base-filename/c (file-name-from-path c))))
                        (build-path (path-only c) (car (use-compiled-file-paths))
                                    "native" (system-library-subpath #false)
                                    (path-replace-suffix (file-name-from-path c) (system-type 'so-suffix)))))
-             (list (list tobj (include.h c)
+             (define xform? (make-parameter #false))
+             (list (list tobj (include.h c xform?)
                          (build-with-output-filter
                           (lambda [target] (parameterize ([current-extension-compiler-flags (cons "-m64" (current-extension-compiler-flags))])
-                                             (define xform.c (build-path (path-only target) (file-name-from-path c)))
                                              (define -Is (list (digimon-zone) "/usr/local/include"))
-                                             (xform #false c xform.c -Is #:keep-lines? #true) ; #:keep-lines? for gcc
-                                             (compile-extension #false xform.c target -Is)))))
+                                             (cond [(false? (xform?)) (compile-extension #false c target -Is)]
+                                                   [else (let ([xform.c (build-path (path-only target) (file-name-from-path c))]) ; gcc knows .c
+                                                           (xform #false c xform.c -Is #:keep-lines? #true) ; gcc knows file lines
+                                                           (compile-extension #false xform.c target -Is))])))))
                    (list t (list tobj)
                          (build-with-output-filter
                           (lambda [target] (let ([ldflags (dynamic-ldflags c)])
