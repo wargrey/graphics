@@ -219,8 +219,8 @@
     (define px.exclude : Regexp
       (let ([cmpls (for/list : (Listof String) ([p : Path (in-list (use-compiled-file-paths))])
                      (path->string (cast (file-name-from-path p) Path)))])
-        (pregexp (string-join #:before-first "/(\\.git"  #:after-last ")$"
-                              (if search-compiled? null (remove-duplicates cmpls)) "|"))))
+        (pregexp (if search-compiled? "/\\.git$"
+                     (string-join #:before-first "/(\\.git|" #:after-last ")$" (remove-duplicates cmpls) "|")))))
     (filter predicate (sequence->list (in-directory start-path (curry (negate regexp-match?) px.exclude))))))
 
 (define file-readable? : (-> Path-String Boolean)
