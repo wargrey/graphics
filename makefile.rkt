@@ -17,6 +17,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 (require make)
 
 (require compiler/cm)
+(require compiler/xform)
 (require compiler/compiler)
 
 (require dynext/compile)
@@ -121,20 +122,20 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (define make-native-library-rules
   (lambda []
-    (define [include.h entry [memory null]]
+    (define (include.h entry [memory null])
       (foldl (lambda [subpath memory]
                (define subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
                (cond [(member subsrc memory) memory]
                      [else (include.h subsrc memory)]))
              (append memory (list entry))
              (call-with-input-file entry (curry regexp-match* #px"(?<=#include \").+?.h(?=\")"))))
-    (define [dynamic-ldflags c]
+    (define (dynamic-ldflags c)
       (remove-duplicates (for/fold ([ldflags (list* "-m64" "-shared"
                                                     (cond [(false? (symbol=? (digimon-system) 'macosx)) null]
                                                           [else (list "-L/usr/local/lib" (~a "-F" (find-lib-dir)) "-framework" "Racket")]))])
                                    ([line (in-list (file->lines c))]
                                     #:when (regexp-match? #px"#include <" line))
-                           (match (regexp-match #px".+ld:([^*]+)(\\*/)?$" line) ;;; Here is intented to raise exception if it's not list provided.
+                           (match (regexp-match #px".+ld:([^*]+)(\\*/)?$" line) ;;; Here is intented to raise an exception if it's not a list.
                              [(? false?) ldflags]                               ;;; why are you trying to trouble yourself.
                              [(list _ ld _) ((curry with-input-from-string ld)  ;;; In the future it will add support for -L and `pkg-config`.
                                              (thunk (for/fold ([ld-++ ldflags])
@@ -142,6 +143,20 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                                #:when (list? flags))
                                                       (with-handlers ([exn? (const ld-++)])
                                                         (append ld-++ (map (curry ~a "-l") flags))))))]))))
+    (define ((build-with-output-filter build/1) target)
+      (define-values (/dev/ctool/stdin /dev/ctool/stdout) (make-pipe))
+      (thread (thunk (for ([line (in-lines /dev/ctool/stdin)])
+                       (if (not (regexp-match? #px"^(xform-cpp|compile-extension|link-extension):" line)) (displayln line)
+                           (displayln (regexp-replaces line (list (list #px"^xform-cpp:\\s+"         "cpp: ")
+                                                                  (list #px"^compile-extension:\\s+" "cc:  ")
+                                                                  (list #px"^link-extension:\\s+"    "ld:  ")
+                                                                  (list (path->string (digimon-zone)) ".")
+                                                                  (list #px" -o [^ )]+" ""))))))))
+      (dynamic-wind (thunk (void '(if build/1 runs in thread then make will not be stopped by the failure)))
+                    (thunk (parameterize ([current-output-port /dev/ctool/stdout]
+                                          [current-error-port /dev/ctool/stdout])
+                             (build/1 target)))
+                    (thunk (close-output-port /dev/ctool/stdout))))
     (foldl append null
            (for/list ([c (in-list (find-digimon-files (curry regexp-match? #px"\\.c$") (digimon-zone)))])
              (define-values [tobj t]
@@ -152,16 +167,18 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                    "native" (system-library-subpath #false)
                                    (path-replace-suffix (file-name-from-path c) (system-type 'so-suffix)))))
              (list (list tobj (include.h c)
-                         (lambda [target] (let ([cflags (current-extension-compiler-flags)])
-                                            (parameterize ([current-extension-compiler-flags (cons "-m64" cflags)])
-                                              (printf "cc: ~a: ~a~n" (current-extension-compiler) c)
-                                              (compile-extension 'quiet c target (list (digimon-zone) "/usr/local/include"))))))
+                         (build-with-output-filter
+                          (lambda [target] (parameterize ([current-extension-compiler-flags (cons "-m64" (current-extension-compiler-flags))])
+                                             (define xform.c (build-path (path-only target) (file-name-from-path c)))
+                                             (define -Is (list (digimon-zone) "/usr/local/include"))
+                                             (xform #false c xform.c -Is #:keep-lines? #true) ; #:keep-lines? for gcc
+                                             (compile-extension #false xform.c target -Is)))))
                    (list t (list tobj)
-                         (lambda [target] (let ([ldflags (dynamic-ldflags c)])
-                                            (parameterize ([current-standard-link-libraries null]
-                                                           [current-extension-linker-flags ldflags])
-                                              (printf "ld: ~a ~a~n" (current-extension-linker) tobj)
-                                              (link-extension 'quiet (list tobj) target))))))))))
+                         (build-with-output-filter
+                          (lambda [target] (let ([ldflags (dynamic-ldflags c)])
+                                             (parameterize ([current-standard-link-libraries null]
+                                                            [current-extension-linker-flags ldflags])
+                                               (link-extension #false (list tobj) target)))))))))))
 
 (define make~all:
   (lambda []
