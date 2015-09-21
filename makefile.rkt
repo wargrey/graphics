@@ -150,22 +150,26 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                                #:when (list? flags))
                                                       (with-handlers ([exn? (const ld-++)])
                                                         (append ld-++ (map (curry ~a "-l") flags))))))]))))
-    (define ((build-with-output-filter build/1) target)
+    (define (build-with-output-filter build/0)
       (define-values (/dev/ctool/stdin /dev/ctool/stdout) (make-pipe))
-      (thread (thunk (for ([line (in-lines /dev/ctool/stdin)])
-                       (if (not (regexp-match? #px"^(xform-cpp|compile-extension|link-extension):" line)) (displayln line)
-                           (displayln (regexp-replaces line (list (list #px"^xform-cpp:\\s+\\("         "cpp: ")
-                                                                  (list #px"^compile-extension:\\s+\\(" "cc:  ")
-                                                                  (list #px"^link-extension:\\s+\\("    "ld:  ")
-                                                                  (list (path->string (digimon-zone)) ".")
-                                                                  (list #px"( -o .+?( |$))|(\\)$)" ""))))))))
-      (dynamic-wind (thunk (void '(if build/1 runs in thread then make will not be stopped by the failure)))
+      (define rewriter (thread (thunk (for ([line (in-lines /dev/ctool/stdin)])
+                                        (if (regexp-match? #px"^(xform-cpp|compile-extension|link-extension):" line)
+                                            (displayln (regexp-replaces line (list (list #px"^xform-cpp:\\s+\\("         "cpp: ")
+                                                                                   (list #px"^compile-extension:\\s+\\(" "cc:  ")
+                                                                                   (list #px"^link-extension:\\s+\\("    "ld:  ")
+                                                                                   (list (path->string (digimon-zone)) ".")
+                                                                                   (list #px"( -o .+?( |$))|(\\)$)" ""))))
+                                            (eprintf "~a~n" line))))))
+      (dynamic-wind (thunk (void '(if build/0 runs in thread then make will not be stopped by the failure)))
                     (thunk (parameterize ([current-output-port /dev/ctool/stdout]
                                           [current-error-port /dev/ctool/stdout])
-                             (build/1 target)))
-                    (thunk (close-output-port /dev/ctool/stdout))))
+                               (build/0)))
+                    (thunk (void (flush-output /dev/ctool/stdout)
+                                 (close-output-port /dev/ctool/stdout)
+                                 (thread-wait rewriter)))))
     (foldl append null
            (for/list ([c (in-list (find-digimon-files (curry regexp-match? #px"\\.c$") (digimon-zone)))])
+             (define xform? (make-parameter #false))
              (define-values [tobj t]
                (values (build-path (path-only c) (car (use-compiled-file-paths))
                                    "native" (system-library-subpath #false)
@@ -173,21 +177,23 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                        (build-path (path-only c) (car (use-compiled-file-paths))
                                    "native" (system-library-subpath #false)
                                    (path-replace-suffix (file-name-from-path c) (system-type 'so-suffix)))))
-             (define xform? (make-parameter #false))
              (list (list tobj (include.h c xform?)
-                         (build-with-output-filter
-                          (lambda [target] (parameterize ([current-extension-compiler-flags (cons "-m64" (current-extension-compiler-flags))])
-                                             (define -Is (list (digimon-zone) "/usr/local/include"))
-                                             (cond [(false? (xform?)) (compile-extension #false c target -Is)]
-                                                   [else (let ([xform.c (build-path (path-only target) (file-name-from-path c))]) ; gcc knows .c
-                                                           (xform #false c xform.c -Is #:keep-lines? #true) ; gcc knows file lines
-                                                           (compile-extension #false xform.c target -Is))])))))
+                         (lambda [target]
+                           (build-with-output-filter
+                            (thunk (parameterize ([current-extension-compiler-flags (cons "-m64" (current-extension-compiler-flags))]
+                                                  [current-extension-preprocess-flags (cons "-m64" (current-extension-preprocess-flags))])
+                                     (define xform.c (box (build-path (path-only target) (file-name-from-path c))))
+                                     (define -Is (list (digimon-zone) "/usr/local/include"))
+                                     (cond [(false? (xform?)) (set-box! xform.c c)]
+                                           [else (xform #false c (unbox xform.c) -Is #:keep-lines? #true)]) ; gcc knows file lines
+                                     (compile-extension #false (unbox xform.c) target -Is))))))
                    (list t (list tobj)
-                         (build-with-output-filter
-                          (lambda [target] (let ([ldflags (dynamic-ldflags c)])
-                                             (parameterize ([current-standard-link-libraries null]
-                                                            [current-extension-linker-flags ldflags])
-                                               (link-extension #false (list tobj) target)))))))))))
+                         (lambda [target]
+                           (build-with-output-filter
+                            (thunk (let ([ldflags (dynamic-ldflags c)])
+                                     (parameterize ([current-standard-link-libraries null]
+                                                    [current-extension-linker-flags ldflags])
+                                       (link-extension #false (list tobj) target))))))))))))
 
 (define make~all:
   (lambda []
@@ -376,7 +382,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
             (dynamic-wind (thunk (printf "Enter Digimon Zone: ~a.~n" digimon))
                           (thunk (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
                                    (parameterize ([current-make-phony-goal phony])
-                                     (with-handlers ([exn? (compose1 exit (const 1) (curry eprintf "~a~n") exn-message)])
+                                     (with-handlers ([exn? (compose1 exit (const 1) (curry eprintf "~a~n") string-trim exn-message)])
                                        (cond [(false? (directory-exists? (digimon-zone))) (create-zone)]
                                              [else (file-or-directory-modify-seconds (digimon-zone) (current-seconds))])
                                        (cond [(regexp-match? #px"clean$" phony) ((hash-ref fphonies "clean"))]
