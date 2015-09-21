@@ -179,6 +179,7 @@
   
   (require/typed/provide (submod "..")
                          [#:opaque CPointer/Null cpointer?]
+                         [#:opaque CPointer/GCable cpointer-gcable?]
                          [#:opaque CType ctype?]
                          [#:opaque Array array?]
                          [ctype-basetype (-> CType (U False Symbol CType (Listof CType)))]
