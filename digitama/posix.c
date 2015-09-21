@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include <pwd.h>
 #include <grp.h>
+
 #include <scheme.h>
 
 /* Quote Headers */
@@ -87,7 +88,7 @@ exit_with_errno:
 
 /** syslog **/
 /* Facility Constants  */
-const uintptr_t KERNEL = LOG_KERN;        /* kernel messages */
+const uintptr_t KERNEL = LOG_KERN;       /* kernel messages */
 const uintptr_t USER = LOG_USER;         /* random user-level messages */
 const uintptr_t MAIL = LOG_MAIL;         /* mail system */
 const uintptr_t DAEMON = LOG_DAEMON;     /* system daemons */
@@ -123,12 +124,14 @@ const uintptr_t NOTICE = LOG_NOTICE;     /* normal but signification condition *
 const uintptr_t INFO = LOG_INFO;         /* informational */
 const uintptr_t DEBUG = LOG_DEBUG;       /* debug-level messages */
 
+XFORM_START_SKIP; /* weird, xform eats these constants. */
 /* Log Options */
-uintptr_t PID = LOG_PID;            /* log the pid with each message */
-uintptr_t CONS = LOG_CONS;          /* log on the console if errors in sending */
-uintptr_t ODELAY = LOG_ODELAY;      /* delay open until syslog() is called */
-uintptr_t NDELAY = LOG_NDELAY;      /* don't delay open */
-uintptr_t NOWAIT = LOG_NOWAIT;      /* if forking to log on console, don't wait() */
+const uintptr_t PID = LOG_PID;           /* log the pid with each message */
+const uintptr_t CONS = LOG_CONS;         /* log on the console if errors in sending */
+const uintptr_t ODELAY = LOG_ODELAY;     /* delay open until syslog() is called */
+const uintptr_t NDELAY = LOG_NDELAY;     /* don't delay open */
+const uintptr_t NOWAIT = LOG_NOWAIT;     /* if forking to log on console, don't wait() */
+XFORM_END_SKIP;
 
 void setlogmask_one(uintptr_t maskpri) {
     setlogmask(LOG_MASK(maskpri));

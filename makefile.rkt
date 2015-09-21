@@ -123,17 +123,17 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (define make-native-library-rules
   (lambda []
-    (define (include.h entry scheme? [memory null])
+    (define (include.h entry xform? [memory null])
       (foldl (lambda [include memory]
                (cond [(regexp-match #px#"<.+?>" include)
                       => (lambda [header]
-                           (when (member #"<scheme.h>" header) (scheme? #true))
+                           (when (member #"<scheme.h>" header) (xform? #true))
                            memory)]
                      [(regexp-match #px#"\"(.+?)\"")
                       => (lambda [header]
                            (let ([subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 (cadr header))))])
                              (cond [(member subsrc memory) memory]
-                                   [else (include.h subsrc scheme? memory)])))]))
+                                   [else (include.h subsrc xform? memory)])))]))
              (append memory (list entry))
              (call-with-input-file entry (curry regexp-match* #px"(?<=#include )[<\"].+?.h[\">]"))))
     (define (dynamic-ldflags c)
@@ -154,11 +154,11 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
       (define-values (/dev/ctool/stdin /dev/ctool/stdout) (make-pipe))
       (thread (thunk (for ([line (in-lines /dev/ctool/stdin)])
                        (if (not (regexp-match? #px"^(xform-cpp|compile-extension|link-extension):" line)) (displayln line)
-                           (displayln (regexp-replaces line (list (list #px"^xform-cpp:\\s+"         "cpp: ")
-                                                                  (list #px"^compile-extension:\\s+" "cc:  ")
-                                                                  (list #px"^link-extension:\\s+"    "ld:  ")
+                           (displayln (regexp-replaces line (list (list #px"^xform-cpp:\\s+\\("         "cpp: ")
+                                                                  (list #px"^compile-extension:\\s+\\(" "cc:  ")
+                                                                  (list #px"^link-extension:\\s+\\("    "ld:  ")
                                                                   (list (path->string (digimon-zone)) ".")
-                                                                  (list #px" -o [^ )]+" ""))))))))
+                                                                  (list #px"( -o .+?( |$))|(\\)$)" ""))))))))
       (dynamic-wind (thunk (void '(if build/1 runs in thread then make will not be stopped by the failure)))
                     (thunk (parameterize ([current-output-port /dev/ctool/stdout]
                                           [current-error-port /dev/ctool/stdout])
