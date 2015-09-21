@@ -138,12 +138,44 @@
 (module* typed/ffi typed/racket
   (provide (all-defined-out))
 
+  (require (for-syntax racket/syntax))
+  (require (for-syntax racket/string))
+
+  (define-syntax (require/typed/provide/pointers stx)
+    (syntax-case stx []
+      [(_ Pointers/Opaques ...)
+       (with-syntax ([([opaques ctypes ctype/nulls definetypes] ...)
+                      (for/list ([Pointer/Opqaques (in-list (syntax->list #'(Pointers/Opaques ...)))])
+                        (syntax-case Pointer/Opqaques []
+                          [(Pointer pointer?)
+                           (with-syntax ([Pointer/Null (format-id #'Pointer "~a/Null" (syntax-e #'Pointer))]
+                                         [_ctype (format-id #'pointer? "_~a" (string-trim (symbol->string (syntax-e #'pointer?)) #px"\\?$"))]
+                                         [_ctype/null (format-id #'pointer? "_~a/null" (string-trim (symbol->string (syntax-e #'pointer?)) #px"\\?$"))])
+                             #'[[#:opaque Pointer pointer?]
+                                [_ctype CType]
+                                [_ctype/null CType]
+                                (define-type Pointer/Null (Option Pointer))])]
+                          [Pointer
+                           (with-syntax ([pointer? (format-id #'Pointer "~a?" (string-downcase (symbol->string (syntax-e #'Pointer))))]
+                                         [Pointer/Null (format-id #'Pointer "~a/Null" (syntax-e #'Pointer))]
+                                         [_ctype (format-id #'pointer? "_~a" (string-downcase (symbol->string (syntax-e #'Pointer))))]
+                                         [_ctype/null (format-id #'pointer? "_~a/null" (string-downcase (symbol->string (syntax-e #'Pointer))))])
+                             #'[[#:opaque Pointer pointer?]
+                                [_ctype CType]
+                                [_ctype/null CType]
+                                (define-type Pointer/Null (Option Pointer))])]))])
+         #'(begin (require/typed/provide (submod "..")
+                                         opaques ...
+                                         ctypes ...
+                                         ctype/nulls ...)
+                  definetypes ...))]))
+  
   (define-syntax (require/typed/provide/ctypes stx)
     (syntax-case stx []
-      [[_ ctype ...]
-       #'(begin (require/typed/provide (submod "..")
-                                       [ctype CType])
-                ...)]))
+      [(_ _ctype ...)
+       #'(require/typed/provide (submod "..")
+                                [_ctype CType]
+                                ...)]))
   
   (require/typed/provide (submod "..")
                          [#:opaque CPointer/Null cpointer?]
@@ -160,16 +192,11 @@
                                              [Array Index Index Any -> Void]
                                              [Array Index Index Index Any -> Void])])
   
-  (define-type CEnum Integer)
-  (define-type REnum Symbol)
-  (define-type CBitmask Integer)
-  (define-type RBitmask (Listof Symbol))
-  
-  (define-type CEnum-C->Racket (-> CEnum REnum))
-  (define-type CEnum-Racket->C (-> REnum CEnum))
+  (define-type CEnum-C->Racket (-> Integer Symbol))
+  (define-type CEnum-Racket->C (-> Symbol Integer))
 
-  (define-type CBitmask-C->Racket (-> CBitmask RBitmask))
-  (define-type CBitmask-Racket->C (-> RBitmask CBitmask))
+  (define-type CBitmask-C->Racket (-> Integer (Listof Symbol)))
+  (define-type CBitmask-Racket->C (-> (Listof Symbol) Integer))
 
   (require/typed/provide/ctypes _uintmax _byte _sint32 _string*/utf-8 _void
                                 _int8 _uint8 _int16 _uint16 _int32 _uint32 _int64 _uint64
@@ -202,7 +229,7 @@
                          [fetch_tamer_ids (-> Bytes (Values Natural Natural))]
                          [fetch_tamer_name (-> Natural Bytes)]
                          [fetch_tamer_group (-> Natural Bytes)]
-                         [openlog (-> String RBitmask REnum Void)]
+                         [openlog (-> String (Listof Symbol) Symbol Void)]
                          [syslog (-> Symbol String Void)]
                          [setlogmask_one (-> Symbol Void)]
                          [setlogmask_upto (-> Symbol Void)]

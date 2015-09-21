@@ -110,14 +110,14 @@
      (with-syntax ([(extract ...)
                     (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
                       (syntax-case def-idl [: =]
-                        [(id : Type)
-                         #'(define id : Type (cast (hash-ref symtable 'id) Type))]
-                        [(id : Type = def-exp)
-                         #'(define id : Type (cast (hash-ref symtable 'id (thunk def-exp)) Type))]
                         [([renamed-id key] : Type)
                          #'(define renamed-id : Type (cast (hash-ref symtable 'key) Type))]
                         [([renamed-id key] : Type = def-exp)
-                         #'(define renamed-id : Type (cast (hash-ref symtable 'key (thunk def-exp)) Type))]))])
+                         #'(define renamed-id : Type (cast (hash-ref symtable 'key (thunk def-exp)) Type))]
+                        [(id : Type)
+                         #'(define id : Type (cast (hash-ref symtable 'id) Type))]
+                        [(id : Type = def-exp)
+                         #'(define id : Type (cast (hash-ref symtable 'id (thunk def-exp)) Type))]))])
        #'(begin extract ...))]))
 
 (define digicore.rkt : Path (#%file))
