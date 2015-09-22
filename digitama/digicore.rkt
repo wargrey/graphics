@@ -48,21 +48,19 @@
      #'(define-strdict id : Type null)]
     [(_ id : Type init-vals)
      (with-syntax ([%id  (format-id #'id "%~a"  (syntax-e #'id))]  ; make-hash
-                   [?id  (format-id #'id "?~a"  (syntax-e #'id))]  ; hash-has-key?
                    [$id  (format-id #'id "$~a"  (syntax-e #'id))]  ; hash-ref
+                   [$id? (format-id #'id "?~a"  (syntax-e #'id))]  ; hash-has-key?
                    [$id# (format-id #'id "$~a#" (syntax-e #'id))]  ; hash-count
                    [$id@ (format-id #'id "$~a@" (syntax-e #'id))]  ; hash-keys
                    [$id* (format-id #'id "$~a*" (syntax-e #'id))]  ; hash-values
                    [$id+ (format-id #'id "$~a+" (syntax-e #'id))]  ; hash-ref!
-                   [!id+ (format-id #'id "!~a+" (syntax-e #'id))]  ; hash-set!
-                   [!id- (format-id #'id "!~a-" (syntax-e #'id))]) ; hash-remove!
+                   [$id- (format-id #'id "!~a-" (syntax-e #'id))]) ; hash-remove!
        #'(begin (define %id : (HashTable String Type) ((inst make-hash String Type) init-vals))
                 (define ($id@) : (Listof String) ((inst hash-keys String Type) %id))
                 (define ($id*) : (Listof Type) ((inst hash-values String Type) %id))
                 (define ($id#) : Index ((inst hash-count String Type) %id))
-                (define (?id [key : String]) : Boolean (hash-has-key? %id key))
-                (define (!id+ [key : String] [val : Type]) : Void ((inst hash-set! String Type) %id key val))
-                (define (!id- [key : String]) : Void ((inst hash-remove! String Type) %id key))
+                (define ($id? [key : String]) : Boolean (hash-has-key? %id key))
+                (define ($id- [key : String]) : Void ((inst hash-remove! String Type) %id key))
                 (define $id+ : (-> String (U Type (-> Type)) Type)
                   (lambda [key setval]
                     ((inst hash-ref! String Type) %id key (if (procedure? setval) setval (thunk setval)))))
@@ -77,21 +75,20 @@
      #'(define-symdict id : Type null)]
     [(_ id : Type init-vals)
      (with-syntax ([%id  (format-id #'id "%~a"  (syntax-e #'id))]  ; make-hasheq
-                   [?id  (format-id #'id "?~a"  (syntax-e #'id))]  ; hash-has-key?
                    [$id  (format-id #'id "$~a"  (syntax-e #'id))]  ; hash-ref
+                   [$id? (format-id #'id "?~a"  (syntax-e #'id))]  ; hash-has-key?
                    [$id# (format-id #'id "$~a#" (syntax-e #'id))]  ; hash-count
                    [$id@ (format-id #'id "$~a@" (syntax-e #'id))]  ; hash-keys
                    [$id* (format-id #'id "$~a*" (syntax-e #'id))]  ; hash-values
                    [$id+ (format-id #'id "$~a+" (syntax-e #'id))]  ; hash-ref!
-                   [!id+ (format-id #'id "!~a+" (syntax-e #'id))]  ; hash-set!
-                   [!id- (format-id #'id "!~a-" (syntax-e #'id))]) ; hash-remove!
+                   [$id- (format-id #'id "!~a-" (syntax-e #'id))]) ; hash-remove!
        #'(begin (define %id : (HashTable Symbol Type) ((inst make-hasheq Symbol Type) init-vals))
                 (define ($id@) : (Listof Symbol) ((inst hash-keys Symbol Type) %id))
                 (define ($id*) : (Listof Type) ((inst hash-values Symbol Type) %id))
                 (define ($id#) : Index ((inst hash-count Symbol Type) %id))
-                (define (?id [key : Symbol]) : Boolean (hash-has-key? %id key))
+                (define ($id? [key : Symbol]) : Boolean (hash-has-key? %id key))
                 (define (!id+ [key : Symbol] [val : Type]) : Void ((inst hash-set! Symbol Type) %id key val))
-                (define (!id- [key : Symbol]) : Void ((inst hash-remove! Symbol Type) %id key))
+                (define ($id- [key : Symbol]) : Void ((inst hash-remove! Symbol Type) %id key))
                 (define $id+ : (-> Symbol (U Type (-> Type)) Type)
                   (lambda [key setval]
                     ((inst hash-ref! Symbol Type) %id key (if (procedure? setval) setval (thunk setval)))))
