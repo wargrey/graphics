@@ -15,6 +15,7 @@
 (require (only-in '#%foreign ctype-basetype ctype-c->scheme ctype-scheme->c))
 
 (struct exn:foreign exn:fail (errno))
+(struct exn:break:signal exn:break (signo))
 
 (define-syntax (digimon-ffi-lib stx)
   (syntax-parse stx #:literals []
@@ -47,6 +48,15 @@
                         (current-continuation-marks)
                         errno))))
 
+(define raise-signal-error
+  (lambda [signo]
+    (let/ec collapse
+      (raise (match signo
+               [(or #false 1) (exn:break:signal (strsignal 1) (current-continuation-marks) collapse 1)]
+               [(or 'hang-up 2) (exn:break:signal (strsignal 2) (current-continuation-marks) collapse 2)]
+               [(or 'terminate 15) (exn:break:signal (strsignal 15) (current-continuation-marks) collapse 15)]
+               [_ (exn:break:signal (format "~a" (strsignal signo)) (current-continuation-marks) collapse signo)])))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-ffi-definer define-posix (ffi-lib #false))
 (define-ffi-definer define-digitama (digimon-ffi-lib "posix" #:global? #true))
@@ -58,6 +68,10 @@
         -> _int
         -> (bytes->string/utf-8 (car (regexp-match #px"^[^\u0]*" buffer))))
   #:c-id strerror_r)
+
+(define-posix strsignal
+  (_fun [signo : _int]
+        -> _string))
 
 ;;; Users and Groups
 
@@ -246,10 +260,14 @@
   (require/typed/provide (submod "..")
                          [#:opaque CPointer cvoid*?]
                          [#:struct (exn:foreign exn:fail) ([errno : Integer])]
-                         [c-extern (-> (U String Bytes Symbol) CType Any)])
+                         [#:struct (exn:break:signal exn:break) ([signo : Positive-Integer])]
+                         [c-extern (-> (U String Bytes Symbol) CType Any)]
+                         [raise-foreign-error (-> Any Natural [#:strerror (-> Natural String)] exn:foreign)]
+                         [raise-signal-error (-> (U #false 'hang-up 'terminate Positive-Integer) exn:break:signal)])
   
   (require/typed/provide (submod "..")
                          [strerror (-> Natural String)]
+                         [strsignal (-> Positive-Integer String)]
                          [getppid (-> Natural)]
                          [getpid (-> Natural)]
                          [getuid (-> Natural)]
