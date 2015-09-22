@@ -141,6 +141,42 @@
   (require (for-syntax racket/syntax))
   (require (for-syntax racket/string))
 
+  (define-syntax (require/typed/provide/enums stx)
+    (syntax-case stx []
+      [(_ enums ...)
+       (with-syntax ([([_etypes define/c->rackets define/racket->cs] ...)
+                      (for/list ([elem (in-list (syntax->list #'(enums ...)))])
+                        (syntax-case elem []
+                          [enum (with-syntax ([_etype (format-id #'enum "_~a" (syntax-e #'enum))]
+                                              [c->racket (format-id #'enum "~a-c->racket" (syntax-e #'enum))]
+                                              [racket->c (format-id #'enum "~a-racket->c" (syntax-e #'enum))])
+                                  #'[_etype
+                                     (define (c->racket [c : Integer]) : Symbol (cast ((ctype-c->scheme _etype) c) Symbol))
+                                     (define (racket->c [r : Symbol]) : Integer (cast ((ctype-scheme->c _etype) r) Integer))])]))])
+         #'(begin (require/typed/provide (submod "..")
+                                         [_etypes CType]
+                                         ...)
+                  define/c->rackets ...
+                  define/racket->cs ...))]))
+
+  (define-syntax (require/typed/provide/bitmasks stx)
+    (syntax-case stx []
+      [(_ bitmasks ...)
+       (with-syntax ([([_btypes define/c->rackets define/racket->cs] ...)
+                      (for/list ([elem (in-list (syntax->list #'(bitmasks ...)))])
+                        (syntax-case elem []
+                          [bitmask (with-syntax ([_btype (format-id #'bitmask "_~a" (syntax-e #'bitmask))]
+                                                 [c->racket (format-id #'bitmask "~a-c->racket" (syntax-e #'bitmask))]
+                                                 [racket->c (format-id #'bitmask "~a-racket->c" (syntax-e #'bitmask))])
+                                     #'[_btype
+                                        (define (c->racket [c : Natural]) : (Listof Symbol) (cast ((ctype-c->scheme _btype) c) (Listof Symbol)))
+                                        (define (racket->c [r : (Listof Symbol)]) : Natural (cast ((ctype-scheme->c _btype) r) Natural))])]))])
+         #'(begin (require/typed/provide (submod "..")
+                                         [_btypes CType]
+                                         ...)
+                  define/c->rackets ...
+                  define/racket->cs ...))]))
+  
   (define-syntax (require/typed/provide/pointers stx)
     (syntax-case stx []
       [(_ Pointers/Opaques ...)
@@ -183,8 +219,8 @@
                          [#:opaque CType ctype?]
                          [#:opaque Array array?]
                          [ctype-basetype (-> CType (U False Symbol CType (Listof CType)))]
-                         [ctype-c->scheme (-> CType (All [c r] (-> c r)))]
-                         [ctype-scheme->c (-> CType (All [c r] (-> r c)))]
+                         [ctype-c->scheme (-> CType (-> Any Any))]
+                         [ctype-scheme->c (-> CType (-> Any Any))]
                          [array-type (-> Array CType)]
                          [array-length (-> Array Index)]
                          [in-array (->* [Array] [Positive-Index (Option Positive-Index) Positive-Integer] (Sequenceof Any))]
@@ -192,12 +228,6 @@
                          [array-set! (case-> [Array Index Any -> Void]
                                              [Array Index Index Any -> Void]
                                              [Array Index Index Index Any -> Void])])
-  
-  (define-type CEnum-C->Racket (-> Integer Symbol))
-  (define-type CEnum-Racket->C (-> Symbol Integer))
-
-  (define-type CBitmask-C->Racket (-> Integer (Listof Symbol)))
-  (define-type CBitmask-Racket->C (-> (Listof Symbol) Integer))
 
   (require/typed/provide/ctypes _uintmax _byte _sint32 _string*/utf-8 _void
                                 _int8 _uint8 _int16 _uint16 _int32 _uint32 _int64 _uint64
@@ -210,7 +240,8 @@
                                 _ubyte _sint64 _sint16 _sint8 _string*/locale _string/latin-1
                                 _string/locale _string/utf-8 _uintptr _sword)
   
-  (require/typed/provide/ctypes _logflags _facility _severity)
+  (require/typed/provide/enums facility severity)
+  (require/typed/provide/bitmasks logflags)
   
   (require/typed/provide (submod "..")
                          [#:opaque CPointer cvoid*?]
