@@ -49,13 +49,15 @@
                         errno))))
 
 (define raise-signal-error
-  (lambda [signo]
+  (lambda [signame/no]
+    ;;; TODO: make signo portable
+    (define named-signals (hasheq 'SIGHUP 1 'SIGINT 2 'SIGQUIT 3 'SIGILL 4 'SIGTRAP 5 'SIGABRT 6 'SIGEMT 7 'SIGFPE 8
+                                  'SIGKILL 9 'SIGBUS 10 'SIGSEGV 11 'SIGSYS 12 'SIGPIPE 13 'SIGALRM 14 'SIGTERM 15))
+    (define signo (if (integer? signame/no) signame/no (hash-ref named-signals signame/no)))
     (let/ec collapse
-      (raise (match signo
-               [(or #false 1) (exn:break:signal (strsignal 1) (current-continuation-marks) collapse 1)]
-               [(or 'hang-up 2) (exn:break:signal (strsignal 2) (current-continuation-marks) collapse 2)]
-               [(or 'terminate 15) (exn:break:signal (strsignal 15) (current-continuation-marks) collapse 15)]
-               [_ (exn:break:signal (format "~a" (strsignal signo)) (current-continuation-marks) collapse signo)])))))
+      (raise (exn:break:signal (format "~a" (strsignal signo))
+                               (current-continuation-marks)
+                               collapse signo)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-ffi-definer define-posix (ffi-lib #false))
@@ -263,7 +265,7 @@
                          [#:struct (exn:break:signal exn:break) ([signo : Positive-Integer])]
                          [c-extern (-> (U String Bytes Symbol) CType Any)]
                          [raise-foreign-error (-> Any Natural [#:strerror (-> Natural String)] exn:foreign)]
-                         [raise-signal-error (-> (U #false 'hang-up 'terminate Positive-Integer) exn:break:signal)])
+                         [raise-signal-error (-> (U Symbol Positive-Integer) exn:break:signal)])
   
   (require/typed/provide (submod "..")
                          [strerror (-> Natural String)]
