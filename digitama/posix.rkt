@@ -71,6 +71,10 @@
         -> (bytes->string/utf-8 (car (regexp-match #px"^[^\u0]*" buffer))))
   #:c-id strerror_r)
 
+(define-posix gai_strerror
+  (_fun [signo : _int]
+        -> _string))
+
 (define-posix strsignal
   (_fun [signo : _int]
         -> _string))
@@ -269,6 +273,7 @@
   
   (require/typed/provide (submod "..")
                          [strerror (-> Natural String)]
+                         [gai_strerror (-> Positive-Integer String)]
                          [strsignal (-> Positive-Integer String)]
                          [getppid (-> Natural)]
                          [getpid (-> Natural)]
