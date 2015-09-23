@@ -14,7 +14,7 @@
 (require ffi/unsafe/alloc)
 (require (only-in '#%foreign ctype-basetype ctype-c->scheme ctype-scheme->c))
 
-(struct exn:foreign exn:fail (errno))
+(struct exn:foreign exn:fail (errno strerror))
 (struct exn:break:signal exn:break (signo))
 
 (define-syntax (digimon-ffi-lib stx)
@@ -43,10 +43,10 @@
     (_bitmask (foldl (lambda [c Bs] (list* (string->symbol (symmap (~a c))) '= (get-ffi-obj c #false _uint) Bs)) null symbols))))
 
 (define raise-foreign-error
-  (lambda [src errno #:strerror [error->string strerror]]
-    (raise (exn:foreign (format "~a: ~a; errno = ~a." src (error->string errno) errno)
+  (lambda [src errno #:strerror [errno->string strerror]]
+    (raise (exn:foreign (format "~a: ~a; errno = ~a." src (errno->string errno) errno)
                         (current-continuation-marks)
-                        errno))))
+                        errno errno->string))))
 
 (define raise-signal-error
   (lambda [signame/no]
@@ -265,10 +265,10 @@
   
   (require/typed/provide (submod "..")
                          [#:opaque CPointer cvoid*?]
-                         [#:struct (exn:foreign exn:fail) ([errno : Integer])]
+                         [#:struct (exn:foreign exn:fail) ([errno : Integer] [strerror : (-> Integer String)])]
                          [#:struct (exn:break:signal exn:break) ([signo : Positive-Integer])]
                          [c-extern (-> (U String Bytes Symbol) CType Any)]
-                         [raise-foreign-error (-> Any Natural [#:strerror (-> Natural String)] exn:foreign)]
+                         [raise-foreign-error (-> Any Natural [#:strerror (-> Integer String)] exn:foreign)]
                          [raise-signal-error (-> (U Symbol Positive-Integer) exn:break:signal)])
   
   (require/typed/provide (submod "..")
