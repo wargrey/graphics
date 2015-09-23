@@ -182,11 +182,12 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                            (build-with-output-filter
                             (thunk (parameterize ([current-extension-compiler-flags (cons "-m64" (current-extension-compiler-flags))]
                                                   [current-extension-preprocess-flags (cons "-m64" (current-extension-preprocess-flags))])
-                                     (define xform.c (box (build-path (path-only target) (file-name-from-path c))))
+                                     ; meanwhile `xform` is buggy
+                                     ;(define xform.c (box (build-path (path-only target) (file-name-from-path c))))
                                      (define -Is (list (digimon-zone) "/usr/local/include"))
-                                     (cond [(false? (xform?)) (set-box! xform.c c)]
-                                           [else (xform #false c (unbox xform.c) -Is #:keep-lines? #true)]) ; gcc knows file lines
-                                     (compile-extension #false (unbox xform.c) target -Is))))))
+                                     ;(cond [(false? (xform?)) (set-box! xform.c c)]
+                                     ;      [else (xform #false c (unbox xform.c) -Is #:keep-lines? #true)]) ; gcc knows file lines
+                                     (compile-extension #false c target -Is))))))
                    (list t (list tobj)
                          (lambda [target]
                            (build-with-output-filter
