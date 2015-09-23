@@ -4,6 +4,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -85,49 +86,12 @@ exit_with_errno:
 }
 
 /** syslog **/
-/* Facility Constants  */
-const uintptr_t KERNEL = LOG_KERN;       /* kernel messages */
-const uintptr_t USER = LOG_USER;         /* random user-level messages */
-const uintptr_t MAIL = LOG_MAIL;         /* mail system */
-const uintptr_t DAEMON = LOG_DAEMON;     /* system daemons */
-const uintptr_t AUTH = LOG_AUTH;         /* security/authorization messages */
-const uintptr_t SYSLOG = LOG_SYSLOG;     /* messages generated internally by syslogd */
-const uintptr_t LPR = LOG_LPR;           /* line printer subsystem */
-const uintptr_t NEWS = LOG_NEWS;         /* netnews subsystem */
-const uintptr_t UUCP = LOG_UUCP;         /* uucp subsystem */
-const uintptr_t ALTCRON = LOG_ALTCRON;   /* BSD cron/at subsystem */
-const uintptr_t AUTHPRIV = LOG_AUTHPRIV; /* BSD security/authorization messages */
-const uintptr_t FTP = LOG_FTP;           /* file transfer subsystem */
-const uintptr_t NTP = LOG_NTP;           /* network time subsystem */
-const uintptr_t AUDIT = LOG_AUDIT;       /* audit subsystem */
-const uintptr_t CONSOLE = LOG_CONSOLE;   /* BSD console messages */
-const uintptr_t CRON = LOG_CRON;         /* cron/at subsystem */
-const uintptr_t LOCAL0 = LOG_LOCAL0;     /* reserved for local use */
-const uintptr_t LOCAL1 = LOG_LOCAL1;     /* reserved for local use */
-const uintptr_t LOCAL2 = LOG_LOCAL2;     /* reserved for local use */
-const uintptr_t LOCAL3 = LOG_LOCAL3;     /* reserved for local use */
-const uintptr_t LOCAL4 = LOG_LOCAL4;     /* reserved for local use */
-const uintptr_t LOCAL5 = LOG_LOCAL5;     /* reserved for local use */
-const uintptr_t LOCAL6 = LOG_LOCAL6;     /* reserved for local use */
-const uintptr_t LOCAL7 = LOG_LOCAL7;     /* reserved for local use */
-
-/* Priorities Constants */ 
-const uintptr_t EMERG = LOG_EMERG;       /* system is unusable */
-const uintptr_t ALERT = LOG_ALERT;       /* action must be taken immediately */
-const uintptr_t CRIT = LOG_CRIT;         /* critical conditions */
-const uintptr_t FATAL = LOG_CRIT;        /* critical conditions (racket only) */
-const uintptr_t ERROR = LOG_ERR;         /* error conditions */
-const uintptr_t WARNING = LOG_WARNING;   /* warning conditions */
-const uintptr_t NOTICE = LOG_NOTICE;     /* normal but signification condition */
-const uintptr_t INFO = LOG_INFO;         /* informational */
-const uintptr_t DEBUG = LOG_DEBUG;       /* debug-level messages */
-
 /* Log Options */
-const uintptr_t PID = LOG_PID;           /* log the pid with each message */
-const uintptr_t CONS = LOG_CONS;         /* log on the console if errors in sending */
-const uintptr_t ODELAY = LOG_ODELAY;     /* delay open until syslog() is called */
-const uintptr_t NDELAY = LOG_NDELAY;     /* don't delay open */
-const uintptr_t NOWAIT = LOG_NOWAIT;     /* if forking to log on console, don't wait() */
+const intptr_t PID = LOG_PID;           /* log the pid with each message */
+const intptr_t CONS = LOG_CONS;         /* log on the console if errors in sending */
+const intptr_t NDELAY = LOG_NDELAY;     /* don't delay open */
+const intptr_t NOWAIT = LOG_NOWAIT;     /* if forking to log on console, don't wait() */
+/* LOG_ODELAY is the default and does nothing */
 
 void setlogmask_one(uintptr_t maskpri) {
     setlogmask(LOG_MASK(maskpri));

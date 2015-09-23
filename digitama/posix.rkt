@@ -142,11 +142,42 @@
                  [else (raise-foreign-error 'fetch_group_name $?)])))
 
 ;;; syslog
-(define _logflags (c-extern/bitmask (list 'PID 'CONS 'ODELAY 'NDELAY 'NOWAIT)))
-(define _severity (c-extern/enum (list 'EMERG 'ALERT 'FATAL 'ERROR 'WARNING 'NOTICE 'INFO 'DEBUG)))
-(define _facility (c-extern/enum (list 'KERNEL 'USER 'MAIL 'DAEMON 'AUTH 'SYSLOG 'LPR 'NEWS
-                                       'UUCP 'ALTCRON 'AUTHPRIV 'FTP 'NTP 'AUDIT 'CONSOLE 'CRON
-                                       'LOCAL0 'LOCAL1 'LOCAL2 'LOCAL3 'LOCAL4 'LOCAL5 'LOCAL6 'LOCAL7)))
+(define _logflags (c-extern/bitmask (list 'PID 'CONS 'NDELAY 'NOWAIT)))
+
+; these are defined in RFC5424, facility names are system denpendent.
+(define _facility (_enum (list 'kernel   '= (arithmetic-shift 00 3) #| kernel messages |#
+                               'user     '= (arithmetic-shift 01 3) #| random user-level messages |#
+                               'mail     '= (arithmetic-shift 02 3) #| mail system |#
+                               'daemon   '= (arithmetic-shift 03 3) #| system daemons |#
+                               'auth     '= (arithmetic-shift 04 3) #| security/authorization messages |#
+                               'syslog   '= (arithmetic-shift 05 3) #| messages generated internally by syslogd |#
+                               'lpr      '= (arithmetic-shift 06 3) #| line printer subsystem |#
+                               'news     '= (arithmetic-shift 07 3) #| netnews subsystem |#
+                               'uucp     '= (arithmetic-shift 08 3) #| uucp subsystem |#
+                               'altcron  '= (arithmetic-shift 09 3) #| BSD cron/at subsystem |#
+                               'authpriv '= (arithmetic-shift 10 3) #| BSD security/authorization messages |#
+                               'ftp      '= (arithmetic-shift 11 3) #| file transfer subsystem |#
+                               'ntp      '= (arithmetic-shift 12 3) #| network time subsystem |#
+                               'audit    '= (arithmetic-shift 13 3) #| audit subsystem |#
+                               'console  '= (arithmetic-shift 14 3) #| BSD console messages |#
+                               'cron     '= (arithmetic-shift 15 3) #| cron/at subsystem |#
+                               'local0   '= (arithmetic-shift 16 3) #| reserved for local use |#
+                               'local1   '= (arithmetic-shift 17 3) #| reserved for local use |#
+                               'local2   '= (arithmetic-shift 18 3) #| reserved for local use |#
+                               'local3   '= (arithmetic-shift 19 3) #| reserved for local use |#
+                               'local4   '= (arithmetic-shift 20 3) #| reserved for local use |#
+                               'local5   '= (arithmetic-shift 21 3) #| reserved for local use |#
+                               'local6   '= (arithmetic-shift 22 3) #| reserved for local use |#
+                               'local7   '= (arithmetic-shift 23 3) #| reserved for local use |#)))
+
+(define _severity (_enum (list 'emerg   '= 0 #| system is unusable |#
+                               'alert   '= 1 #| action must be taken immediately |#
+                               'fatal   '= 2 #| critical conditions |#
+                               'error   '= 3 #| error conditions |#
+                               'warning '= 4 #| warning conditions |#
+                               'notice  '= 5 #| normal but significant condition |#
+                               'info    '= 6 #| informational |#
+                               'debug   '= 7 #| debug-level messages |#)))
 
 (define-posix openlog (_fun [identity :  _string] _logflags _facility -> _void))
 (define-posix syslog (_fun _severity [message : _string] -> _void))
