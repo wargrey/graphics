@@ -144,7 +144,7 @@
 ;;; syslog
 (define _logflags (c-extern/bitmask (list 'PID 'CONS 'NDELAY 'NOWAIT)))
 
-; these are defined in RFC5424, facility names are system denpendent.
+; these are defined in RFC5424, facility names are system dependent.
 (define _facility (_enum (list 'kernel   '= (arithmetic-shift 00 3) #| kernel messages |#
                                'user     '= (arithmetic-shift 01 3) #| random user-level messages |#
                                'mail     '= (arithmetic-shift 02 3) #| mail system |#
