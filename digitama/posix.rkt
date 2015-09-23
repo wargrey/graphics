@@ -1,6 +1,7 @@
 #lang at-exp racket
 
-(provide (all-defined-out) ctype-basetype ctype-c->scheme ctype-scheme->c)
+(provide (except-out (all-defined-out) define-posix define-digitama))
+(provide ctype-basetype ctype-c->scheme ctype-scheme->c)
 (provide (all-from-out ffi/unsafe))
 (provide (all-from-out ffi/unsafe/define))
 (provide (all-from-out ffi/unsafe/alloc))
