@@ -22,9 +22,6 @@
                                             [-> Any Output-Port Void])]
                        [fasl->s-exp (-> (U Input-Port Bytes) Any)])
 
-(require/typed/provide racket/exn
-                       [exn->string (-> exn String)])
-
 (define-syntax (#%full-module stx)
   #'(let ([rmp (variable-reference->resolved-module-path (#%variable-reference))])
       (resolved-module-path-name (cast rmp Resolved-Module-Path))))
