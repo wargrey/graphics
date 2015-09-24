@@ -104,15 +104,29 @@
      (with-syntax ([(extract ...)
                     (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
                       (syntax-case def-idl [: =]
-                        [([renamed-id key] : Type)
-                         #'(define renamed-id : Type (cast (hash-ref symtable 'key) Type))]
                         [([renamed-id key] : Type = def-exp)
                          #'(define renamed-id : Type (cast (hash-ref symtable 'key (thunk def-exp)) Type))]
-                        [(id : Type)
-                         #'(define id : Type (cast (hash-ref symtable 'id) Type))]
                         [(id : Type = def-exp)
                          #'(define id : Type (cast (hash-ref symtable 'id (thunk def-exp)) Type))]))])
        #'(begin extract ...))]))
+
+(define-syntax (define-parameter/extract-info stx)
+  (syntax-case stx []
+    [(_ infodir defines ...)
+     (with-syntax* ([info-ref (format-id #'info-ref "~a" (gensym 'inforef))]
+                    [(extract ...)
+                     (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
+                       (syntax-case def-idl [: =]
+                         [([renamed-id key] : Type)
+                          #'(define renamed-id : (Parameterof Type) (make-parameter (cast (info-ref 'key) Type)))]
+                         [([renamed-id key] : Type = def-exp)
+                          #'(define renamed-id : (Parameterof Type) (make-parameter (cast (info-ref 'key (thunk def-exp)) Type)))]
+                         [(id : Type)
+                          #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id) Type)))]
+                         [(id : Type = def-exp)
+                          #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id (thunk def-exp)) Type)))]))])
+       #'(begin (define info-ref : Info-Ref (cast (get-info/full infodir) Info-Ref))
+                extract ...))]))
 
 (define digicore.rkt : Path (#%file))
 
