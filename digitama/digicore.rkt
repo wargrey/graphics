@@ -51,7 +51,7 @@
                    [$id@ (format-id #'id "$~a@" (syntax-e #'id))]  ; hash-keys
                    [$id* (format-id #'id "$~a*" (syntax-e #'id))]  ; hash-values
                    [$id+ (format-id #'id "$~a+" (syntax-e #'id))]  ; hash-ref!
-                   [$id- (format-id #'id "!~a-" (syntax-e #'id))]) ; hash-remove!
+                   [$id- (format-id #'id "$~a-" (syntax-e #'id))]) ; hash-remove!
        #'(begin (define %id : (HashTable String Type) ((inst make-hash String Type) init-vals))
                 (define ($id@) : (Listof String) ((inst hash-keys String Type) %id))
                 (define ($id*) : (Listof Type) ((inst hash-values String Type) %id))
@@ -78,7 +78,7 @@
                    [$id@ (format-id #'id "$~a@" (syntax-e #'id))]  ; hash-keys
                    [$id* (format-id #'id "$~a*" (syntax-e #'id))]  ; hash-values
                    [$id+ (format-id #'id "$~a+" (syntax-e #'id))]  ; hash-ref!
-                   [$id- (format-id #'id "!~a-" (syntax-e #'id))]) ; hash-remove!
+                   [$id- (format-id #'id "$~a-" (syntax-e #'id))]) ; hash-remove!
        #'(begin (define %id : (HashTable Symbol Type) ((inst make-hasheq Symbol Type) init-vals))
                 (define ($id@) : (Listof Symbol) ((inst hash-keys Symbol Type) %id))
                 (define ($id*) : (Listof Type) ((inst hash-values Symbol Type) %id))
@@ -240,14 +240,18 @@
          (memq 'read (file-or-directory-permissions p))
          #true)))
 
-(define call-as-normal-termination : (-> (-> Any) Void)
-  (lambda [main/0]
+(define call-as-normal-termination : (-> (-> Any) [#:atexit (-> Any)] Void)
+  (lambda [main/0 #:atexit [atexit/0 void]]
     (define status : Any
       (let/ec $?
         (parameterize ([exit-handler (cast $? (-> Any Any))])
           (exit (with-handlers ([exn? (λ [[e : exn]] (and (eprintf "~a~n" (exn-message e)) 'FATAL))]
                                 [void (λ [e] (and (eprintf "(uncaught-exception-handler) => ~a~n" e) 'FATAL))])
                   (main/0))))))
+
+    (with-handlers ([void void])
+      (atexit/0))
+    
     (define service-exit : (-> Any (Option Byte))
       (match-lambda
         ['FATAL 95]
