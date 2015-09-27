@@ -240,17 +240,17 @@
          (memq 'read (file-or-directory-permissions p))
          #true)))
 
-(define call-as-normal-termination : (-> (-> Any) [#:atexit (-> Any)] Void)
-  (lambda [main/0 #:atexit [atexit/0 void]]
+(define call-as-normal-termination : (-> (-> Any) [#:atinit (-> Any)] [#:atexit (-> Any)] Void)
+  (lambda [#:atinit [atinit/0 void] main/0 #:atexit [atexit/0 void]]
     (define status : Any
       (let/ec $?
         (parameterize ([exit-handler (cast $? (-> Any Any))])
-          (exit (with-handlers ([exn? (λ [[e : exn]] (and (eprintf "~a~n" (exn-message e)) 'FATAL))]
-                                [void (λ [e] (and (eprintf "(uncaught-exception-handler) => ~a~n" e) 'FATAL))])
-                  (main/0))))))
-
-    (with-handlers ([void void])
-      (atexit/0))
+          (exit (with-handlers ([exn? (lambda [[e : exn]] (and (eprintf "~a~n" (exn-message e)) 'FATAL))]
+                                [void (lambda [e] (and (eprintf "(uncaught-exception-handler) => ~a~n" e) 'FATAL))])
+                  (dynamic-wind (thunk (with-handlers ([exn? (lambda [[e : exn]] (atexit/0) (raise e))])
+                                         (atinit/0)))
+                                (thunk (main/0))
+                                (thunk (atexit/0))))))))
     
     (define service-exit : (-> Any (Option Byte))
       (match-lambda
