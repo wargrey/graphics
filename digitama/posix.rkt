@@ -186,6 +186,25 @@
 (define-posix setlogmask_upto (_fun _severity -> _void))
 (define-posix closelog (_fun -> _void))
 
+;;; system monitor
+(define _sysconf (c-extern/enum #:map-symbol values (list 'NPROCESSORS_CONF 'NPROCESSORS_ONLN)))
+
+(define sysloadavg (c-extern 'sysloadavg (_array _double 3)))
+(define-posix getloadavg
+  (_fun #:save-errno 'posix
+        [(_array _double 3) = sysloadavg]
+        [_size = (array-length sysloadavg)]
+        -> [$? : _int]
+        -> (cond [($? . >= . 0) sysloadavg]
+                 [else (raise-foreign-error 'getloadavg (saved-errno))])))
+
+(define-posix sysconf
+  (_fun #:save-errno 'posix
+        _sysconf
+        -> [$? : _long]
+        -> (cond [($? . >= . 0) sysloadavg]
+                 [else (raise-foreign-error 'sysconf (saved-errno))])))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* typed/ffi typed/racket
   (provide (all-defined-out))
@@ -322,4 +341,6 @@
                          [syslog (-> Symbol String Void)]
                          [setlogmask_one (-> Symbol Void)]
                          [setlogmask_upto (-> Symbol Void)]
-                         [closelog (-> Void)]))
+                         [closelog (-> Void)]
+                         [sysloadavg Array]
+                         [getloadavg (-> Array)]))
