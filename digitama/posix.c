@@ -105,7 +105,6 @@ void setlogmask_upto(uintptr_t maskpri) {
 double sysloadavg[3];
 
 /* sysconf names */
-const intptr_t NPROCESSORS_MAX = _SC_NPROCESSORS_MAX;
 const intptr_t NPROCESSORS_CONF = _SC_NPROCESSORS_CONF;
 const intptr_t NPROCESSORS_ONLN = _SC_NPROCESSORS_ONLN;
 
