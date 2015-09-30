@@ -142,14 +142,17 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                           [else (list "-L/usr/local/lib" (~a "-F" (find-lib-dir)) "-framework" "Racket")]))])
                                    ([line (in-list (file->lines c))]
                                     #:when (regexp-match? #px"#include <" line))
-                           (match (regexp-match #px".+ld:([^*]+)(\\*/)?$" line) ;;; Here is intented to raise an exception if it's not a list.
-                             [(? false?) ldflags]                               ;;; why are you trying to trouble yourself.
-                             [(list _ ld _) ((curry with-input-from-string ld)  ;;; In the future it will add support for -L and `pkg-config`.
+                           (match (regexp-match #px".+ld:([^*]+)(\\*/)?$" line) 
+                             [(? false?) ldflags] ;;; In the future it will support "-L" and `pkg-config`. 
+                             [(list _ ld _) ((curry with-input-from-string ld)
                                              (thunk (for/fold ([ld-++ ldflags])
-                                                              ([flags (in-port read (open-input-string ld))]
-                                                               #:when (list? flags))
+                                                              ([flags/raw (in-port read (open-input-string ld))]
+                                                               #:when (pair? flags/raw) #| filter out empty list |#)
                                                       (with-handlers ([exn? (const ld-++)])
-                                                        (append ld-++ (map (curry ~a "-l") flags))))))]))))
+                                                        (append ld-++ (map (curry ~a "-l") ; e.g. (ssh2) or ([solaris] . (kstat))
+                                                                           (cond [(not (list? (car flags/raw))) flags/raw]
+                                                                                 [(not (memq (digimon-system) (car flags/raw))) null]
+                                                                                 [else (cdr flags/raw)])))))))]))))
     (define (build-with-output-filter build/0)
       (define-values (/dev/ctool/stdin /dev/ctool/stdout) (make-pipe))
       (define rewriter (thread (thunk (for ([line (in-lines /dev/ctool/stdin)])
