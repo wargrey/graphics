@@ -3,6 +3,10 @@
 #define _POSIX_PTHREAD_SEMANTICS
 #endif
 
+#ifdef __linux__
+#define _BSD_SOURCE
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -13,6 +17,7 @@
 #include <stdarg.h>
 #include <pwd.h>
 #include <grp.h>
+#include <sys/types.h>
 
 /* Quote Headers */
 
