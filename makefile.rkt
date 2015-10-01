@@ -180,11 +180,12 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                        (build-path (path-only c) (car (use-compiled-file-paths))
                                    "native" (system-library-subpath #false)
                                    (path-replace-suffix (file-name-from-path c) (system-type 'so-suffix)))))
+             (define cflags (list "-std=c1x" "-m64"))
              (list (list tobj (include.h c xform?)
                          (lambda [target]
                            (build-with-output-filter
-                            (thunk (parameterize ([current-extension-compiler-flags (cons "-m64" (current-extension-compiler-flags))]
-                                                  [current-extension-preprocess-flags (cons "-m64" (current-extension-preprocess-flags))])
+                            (thunk (parameterize ([current-extension-compiler-flags (append cflags (current-extension-compiler-flags))]
+                                                  [current-extension-preprocess-flags (append cflags (current-extension-preprocess-flags))])
                                      ; meanwhile `xform` is buggy
                                      ;(define xform.c (box (build-path (path-only target) (file-name-from-path c))))
                                      (define -Is (list (digimon-zone) "/usr/local/include"))
