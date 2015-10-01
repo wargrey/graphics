@@ -123,17 +123,17 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
 
 (define make-native-library-rules
   (lambda []
-    (define (include.h entry xform? [memory null])
+    (define (include.h entry racket? [memory null])
       (foldl (lambda [include memory]
                (cond [(regexp-match #px#"<.+?>" include)
                       => (lambda [header]
-                           (when (member #"<scheme.h>" header) (xform? #true))
+                           (when (member #"<scheme.h>" header) (racket? #true))
                            memory)]
                      [(regexp-match #px#"\"(.+?)\"")
                       => (lambda [header]
                            (let ([subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 (cadr header))))])
                              (cond [(member subsrc memory) memory]
-                                   [else (include.h subsrc xform? memory)])))]))
+                                   [else (include.h subsrc racket? memory)])))]))
              (append memory (list entry))
              (call-with-input-file entry (curry regexp-match* #px"(?<=#include )[<\"].+?.h[\">]"))))
     (define (dynamic-ldflags c)
@@ -172,7 +172,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                  (thread-wait rewriter)))))
     (foldl append null
            (for/list ([c (in-list (find-digimon-files (curry regexp-match? #px"\\.c$") (digimon-zone)))])
-             (define xform? (make-parameter #false))
+             (define racket? (make-parameter #false))
              (define-values [tobj t]
                (values (build-path (path-only c) (car (use-compiled-file-paths))
                                    "native" (system-library-subpath #false)
@@ -180,18 +180,18 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                        (build-path (path-only c) (car (use-compiled-file-paths))
                                    "native" (system-library-subpath #false)
                                    (path-replace-suffix (file-name-from-path c) (system-type 'so-suffix)))))
-             (define cflags (list "-std=c1x" "-m64" (format "-D__~a__" (digimon-system))))
-             (list (list tobj (include.h c xform?)
+             (list (list tobj (include.h c racket?)
                          (lambda [target]
                            (build-with-output-filter
-                            (thunk (parameterize ([current-extension-compiler-flags (append cflags (current-extension-compiler-flags))]
-                                                  [current-extension-preprocess-flags (append cflags (current-extension-preprocess-flags))])
-                                     ; meanwhile `xform` is buggy
-                                     ;(define xform.c (box (build-path (path-only target) (file-name-from-path c))))
-                                     (define -Is (list (digimon-zone) "/usr/local/include"))
-                                     ;(cond [(false? (xform?)) (set-box! xform.c c)]
-                                     ;      [else (xform #false c (unbox xform.c) -Is #:keep-lines? #true)]) ; gcc knows file lines
-                                     (compile-extension #false c target -Is))))))
+                            (thunk (let ([cflags (list (format "-std=~a11" (if (racket?) "gnu" "c")) "-m64" (format "-D__~a__" (digimon-system)))])
+                                     (parameterize ([current-extension-compiler-flags (append cflags (current-extension-compiler-flags))]
+                                                    [current-extension-preprocess-flags (append cflags (current-extension-preprocess-flags))])
+                                       ; meanwhile `xform` is buggy
+                                       ;(define xform.c (box (build-path (path-only target) (file-name-from-path c))))
+                                       (define -Is (list (digimon-zone) "/usr/local/include"))
+                                       ;(cond [(false? (racket?)) (set-box! xform.c c)]
+                                       ;      [else (xform #false c (unbox xform.c) -Is #:keep-lines? #true)]) ; gcc knows file lines
+                                       (compile-extension #false c target -Is)))))))
                    (list t (list tobj)
                          (lambda [target]
                            (build-with-output-filter
