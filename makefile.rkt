@@ -149,7 +149,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                                                               ([flags/raw (in-port read (open-input-string ld))]
                                                                #:when (pair? flags/raw) #| filter out empty list |#)
                                                       (with-handlers ([exn? (const ld-++)])
-                                                        (append ld-++ (map (curry ~a "-l") ; e.g. (ssh2) or ([solaris] . (kstat))
+                                                        (append ld-++ (map (curry ~a "-l") ; e.g. (ssh2) or ([illumos] . (kstat))
                                                                            (cond [(not (list? (car flags/raw))) flags/raw]
                                                                                  [(not (memq (digimon-system) (car flags/raw))) null]
                                                                                  [else (cdr flags/raw)])))))))]))))
@@ -180,7 +180,7 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
                        (build-path (path-only c) (car (use-compiled-file-paths))
                                    "native" (system-library-subpath #false)
                                    (path-replace-suffix (file-name-from-path c) (system-type 'so-suffix)))))
-             (define cflags (list "-std=c1x" "-m64"))
+             (define cflags (list "-std=c1x" "-m64" (format "-D__~a__" (digimon-system))))
              (list (list tobj (include.h c xform?)
                          (lambda [target]
                            (build-with-output-filter

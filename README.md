@@ -44,6 +44,6 @@ Good Luck!
 [digivice.rkt](http://gyoudmon.org/~wargrey:DigiGnome/digivice.rkt)
 >       + 📑Make the demo from scratch
 >       + 📑That's it, Help!
->         + 📑digivice [action]
->         + 📑digivice action [option]
+>         + 📑digivice \[action\]
+>         + 📑digivice action \[option\]
 >       + 📑Restore the filesystem

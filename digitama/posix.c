@@ -1,6 +1,6 @@
 /* System Headers */
-#if defined(__sun) && defined(__SVR4)
-#define _POSIX_C_SOURCE 199506L
+#ifdef __illumos__
+#define _POSIX_PTHREAD_SEMANTICS
 #endif
 
 #include <stdio.h>

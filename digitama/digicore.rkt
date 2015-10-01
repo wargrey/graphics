@@ -185,7 +185,7 @@
 (define digimon-system : (Parameterof Nothing Symbol)
   (make-parameter (match (path->string (system-library-subpath #false))
                     ;;; (system-type 'machine) maight lead to "forbidden exec /bin/uname" 
-                    [(pregexp #px"solaris") 'solaris]
+                    [(pregexp #px"solaris") 'illumos]
                     [(pregexp #px"linux") 'linux]
                     [_ (system-type 'os)])))
 
