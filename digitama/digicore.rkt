@@ -123,8 +123,12 @@
                        (syntax-case def-idl [: =]
                          [([renamed-id key] : Type = def-exp)
                           #'(define renamed-id : (Parameterof Type) (make-parameter (cast (info-ref 'key (thunk def-exp)) Type)))]
+                         [([renamed-id key] : Type)
+                          #'(define renamed-id : (Parameterof Type) (make-parameter (cast (info-ref 'key) Type)))]
                          [(id : Type = def-exp)
-                          #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id (thunk def-exp)) Type)))]))])
+                          #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id (thunk def-exp)) Type)))]
+                         [(id : Type)
+                          #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id) Type)))]))])
        #'(begin (define info-ref : Info-Ref (cast (get-info/full infodir) Info-Ref))
                 extract ...))]))
 
@@ -240,6 +244,12 @@
          (memq 'read (file-or-directory-permissions p))
          #true)))
 
+(define timer-thread : (-> Positive-Real (-> Natural Any) [#:adjustment Real] Thread)
+  (lambda [interval on-timer #:adjustment [adjustment -0.001]]
+    (thread (thunk (for ([times (in-naturals)])
+                     (sync/timeout/enable-break (max (+ interval adjustment) 0) never-evt)
+                     (on-timer (cast times Natural)))))))
+
 (define call-as-normal-termination : (-> (-> Any) [#:atinit (-> Any)] [#:atexit (-> Any)] Void)
   (lambda [#:atinit [atinit/0 void] main/0 #:atexit [atexit/0 void]]
     (define status : Any
@@ -322,12 +332,7 @@
     (cond [(= n 1) word]
           [else (hash-ref dict word (λ _ (string-append word "s")))])))
 
-(define timer-thread : (-> Positive-Real (-> Natural Any) [#:adjustment Real] Thread)
-  (lambda [interval on-timer #:adjustment [adjustment -0.001]]
-    (thread (thunk (for ([times (in-naturals)])
-                     (sync/timeout/enable-break (max (+ interval adjustment) 0) never-evt)
-                     (on-timer (cast times Natural)))))))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* test racket
   (require (submod ".."))
   
