@@ -246,9 +246,9 @@
 
 (define timer-thread : (-> Positive-Real (-> Natural Any) [#:adjustment Real] Thread)
   (lambda [interval on-timer #:adjustment [adjustment -0.001]]
-    (thread (thunk (for ([times (in-naturals)])
+    (thread (thunk (for ([times : Natural (in-naturals)])
                      (sync/timeout/enable-break (max (+ interval adjustment) 0) never-evt)
-                     (on-timer (cast times Natural)))))))
+                     (on-timer times))))))
 
 (define call-as-normal-termination : (-> (-> Any) [#:atinit (-> Any)] [#:atexit (-> Any)] Void)
   (lambda [#:atinit [atinit/0 void] main/0 #:atexit [atexit/0 void]]
