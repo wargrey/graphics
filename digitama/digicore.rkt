@@ -244,11 +244,13 @@
          (memq 'read (file-or-directory-permissions p))
          #true)))
 
-(define timer-thread : (-> Positive-Real (-> Natural Any) [#:adjustment Real] Thread)
-  (lambda [interval on-timer #:adjustment [adjustment -0.001]]
-    (thread (thunk (for ([times : Natural (in-naturals)])
-                     (sync/timeout/enable-break (max (+ interval adjustment) 0) never-evt)
-                     (on-timer times))))))
+(define timer-thread : (-> Positive-Real (-> Natural Any) Thread)
+  (lambda [interval on-timer/do-task]
+    (thread (thunk (let* ([i-ms : Integer (exact-round (* interval 1000.0))]
+                          [first-time : Real (+ (current-inexact-milliseconds) i-ms)])
+                     (for ([times : Natural (in-naturals)])
+                       (sync/enable-break (alarm-evt (+ (* times i-ms) first-time)))
+                       (on-timer/do-task times)))))))
 
 (define call-as-normal-termination : (-> (-> Any) [#:atinit (-> Any)] [#:atexit (-> Any)] Void)
   (lambda [#:atinit [atinit/0 void] main/0 #:atexit [atexit/0 void]]
