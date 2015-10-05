@@ -137,22 +137,23 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
              (append memory (list entry))
              (call-with-input-file entry (curry regexp-match* #px"(?<=#include )[<\"].+?.h[\">]"))))
     (define (dynamic-ldflags c)
-      (remove-duplicates (for/fold ([ldflags (list* "-m64" "-shared"
-                                                    (cond [(false? (symbol=? (digimon-system) 'macosx)) null]
-                                                          [else (list "-L/usr/local/lib" (~a "-F" (find-lib-dir)) "-framework" "Racket")]))])
-                                   ([line (in-list (file->lines c))]
-                                    #:when (regexp-match? #px"#include <" line))
-                           (match (regexp-match #px".+ld:([^*]+)(\\*/)?$" line) 
-                             [(? false?) ldflags] ;;; In the future it will support "-L" and `pkg-config`. 
-                             [(list _ ld _) ((curry with-input-from-string ld)
-                                             (thunk (for/fold ([ld-++ ldflags])
-                                                              ([flags/raw (in-port read (open-input-string ld))]
-                                                               #:when (pair? flags/raw) #| filter out empty list |#)
-                                                      (with-handlers ([exn? (const ld-++)])
-                                                        (append ld-++ (map (curry ~a "-l") ; e.g. (ssh2) or ([illumos] . (kstat))
-                                                                           (cond [(not (list? (car flags/raw))) flags/raw]
-                                                                                 [(not (memq (digimon-system) (car flags/raw))) null]
-                                                                                 [else (cdr flags/raw)])))))))]))))
+      (for/fold ([ldflags (list* "-m64" "-shared"
+                                 (cond [(false? (symbol=? (digimon-system) 'macosx)) null]
+                                       [else (list "-L/usr/local/lib" (~a "-F" (find-lib-dir)) "-framework" "Racket")]))])
+                ([line (in-list (file->lines c))]
+                 #:when (regexp-match? #px"#include <" line))
+        (define modeline (regexp-match #px".+ld:(\\w+)?:?([^*]+)(\\*/)?$" line))
+        (cond [(false? modeline) ldflags #| In the future it will support "-L" and `pkg-config` |#]
+              [else (match-let ([(list _ hint ld _) modeline])
+                      (for/fold ([ld-++ ldflags])
+                                ([flags (in-port read (open-input-string ld))]
+                                 #:when (pair? flags) #| filter out empty list |#)
+                        (match (cons (digimon-system) (and hint (map string->symbol (string-split hint ":"))))
+                          [(list 'macosx 'framework) ; /* ld:framework: (IOKit) */
+                           (append ld-++ (let ([-fw (list (~a #\- hint))]) (add-between (map ~a flags) -fw #:splice? #true #:before-first -fw)))]
+                          [(cons _ (or (? false?) (? (curry memq (digimon-system))))) ; /* ld: (ssh2) or ld:illumos: (kstat) */
+                           (append ld-++ (map (curry ~a "-l") flags))]
+                          [_ ldflags])))])))
     (define (build-with-output-filter build/0)
       (define-values (/dev/ctool/stdin /dev/ctool/stdout) (make-pipe))
       (define rewriter (thread (thunk (for ([line (in-lines /dev/ctool/stdin)])
