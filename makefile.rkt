@@ -88,9 +88,10 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
     (foldl (lambda [subpath memory]
              (define subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 subpath))))
              (cond [(member subsrc memory) memory]
+                   [(member (filename-extension subsrc) (list #"c")) (append memory (list subsrc))]
                    [else (smart-dependencies subsrc memory)]))
            (append memory (list entry))
-           (call-with-input-file entry (curry regexp-match* #px"(?<=@(include-section|require)[{[](\\(submod \")?).+?.(scrbl|rktl?)(?=[\"}])")))))
+           (call-with-input-file entry (curry regexp-match* #px"(?<=@(include-section|require(-prefab-cstruct)?)[{[](\\(submod \")?).+?.(scrbl|rktl?|c)(?=[\"}])")))))
 
 (define make-implicit-rkt-rules
   (lambda []
