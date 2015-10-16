@@ -2,6 +2,7 @@
 
 (provide (except-out (all-defined-out) define-posix define-digitama))
 (provide ctype-basetype ctype-c->scheme ctype-scheme->c)
+
 (provide (all-from-out ffi/unsafe))
 (provide (all-from-out ffi/unsafe/define))
 (provide (all-from-out ffi/unsafe/alloc))
@@ -9,10 +10,16 @@
 @require{digicore.rkt}
 
 (require (for-syntax syntax/parse))
+(require (for-syntax racket/syntax))
+(require (for-syntax racket/path))
+(require (for-syntax racket/match))
+(require (for-syntax racket/string))
+(require (for-syntax racket/sequence))
 
 (require ffi/unsafe)
 (require ffi/unsafe/define)
 (require ffi/unsafe/alloc)
+
 (require (only-in '#%foreign ctype-basetype ctype-c->scheme ctype-scheme->c))
 
 (struct exn:foreign exn:fail (errno strerror))
@@ -24,6 +31,83 @@
      #`(ffi-lib #:global? (not (not #,(attribute ?)))
                 (build-path (path-only (resolved-module-path-name (variable-reference->resolved-module-path (#%variable-reference))))
                             (car (use-compiled-file-paths)) "native" (system-library-subpath #false) libname))]))
+
+(define-syntax (require-prefab-cstruct stx)
+  (syntax-case stx []
+    [(_ src.c) #| TODO: to see if we still have to provide all cstruct ids |#
+     (with-syntax ([mod.c (format-id #'src.c "prefab:~a" (path->string (file-name-from-path (syntax-e #'src.c))))]
+                   [([id id/bzero &id/bzero *id &id _!id ([field-id type-expr Type defvalue] ...) !id->list list->!id !id? id* id_t*] ...)
+                    (for/list ([cstruct (in-list (let ([px.cstruct #px#"typedef\\s+struct\\s+ffi_prefab_\\w+.+?\\}\\s*\\w+\\s*(?=;)"])
+                                                   (for/list ([src (in-list (parameterize ([current-directory (current-load-relative-directory)])
+                                                                              (call-with-input-file (syntax-e #'src.c)
+                                                                                (lambda [cin] (regexp-match* px.cstruct cin)))))])
+                                                     (sequence->list (in-port read (open-input-bytes (regexp-replaces src
+                                                                                                                      '([#px"ffi_prefab_" ""]
+                                                                                                                        [#px"\\{" " (("]
+                                                                                                                        [#px";\\s+(?!\\})" ") ("]
+                                                                                                                        [#px";\\s+\\}" ")) "]))))))))])
+                      (define cstruct-id (format "!~a" (list-ref cstruct 2))) ; for the prefab cstruct, this id is not useful as well as normal cstruct
+                      (define pointer_t* (format "~a*" (list-ref cstruct 4))) ; for the prefab cstruct, this id should take the place of _id-pointer 
+                      (define rstruct-id (format "~a" (list-ref cstruct 2)))  ; for the prefab cstruct, this id should take the first place
+                      (with-syntax ([csid (format-id #'csid "~a" rstruct-id)]
+                                    [csid/bzero (format-id #'csid/bzero "~a/bzero" rstruct-id)]
+                                    [&csid/bzero (format-id #'&csid/bzero "&~a/bzero" rstruct-id)]
+                                    [*csid (format-id #'*csid "*~a" rstruct-id)] ; in C, (*p) means get the value that p points to.
+                                    [&csid (format-id #'&csid "&~a" rstruct-id)] ; in C, &v mean get the storage address of v
+                                    [_csid (format-id #'_csid "_~a" cstruct-id)]
+                                    [csid->list (format-id #'csid->list "~a->list" cstruct-id)]
+                                    [list->csid (format-id #'list->csid "list->~a" cstruct-id)]
+                                    [csid? (format-id #'csid? "~a?" cstruct-id)]
+                                    [csid* (format-id #'csid* "_~a-pointer" cstruct-id)]
+                                    [id_t* (format-id #'id_t* "~a" pointer_t*)]
+                                    [([field-id _type Type defval] ...)
+                                     (for/list ([definition (in-list (list-ref cstruct 3))])
+                                       (define unsigned? (and (memq 'unsigned definition) #true))
+                                       (match (remq* '(signed unsigned int) definition)
+                                         [(list 'char field) #`(#,field (if #,unsigned? _ubyte _byte) Byte 0)]
+                                         [(list field) #`(#,field (if #,unsigned? _uint _int) (if #,unsigned? Nonnegative-Fixnum Fixnum) 0)]
+                                         [(list 'short field) #`(#,field (if #,unsigned? _ushort _short) (if #,unsigned? Index Fixnum) 0)]
+                                         [(list 'intptr_t field) #`(#,field _intptr Integer 0)]
+                                         [(list 'uintptr_t field) #`(#,field _uintptr Natural 0)]
+                                         [(list 'long field) #`(#,field (if #,unsigned? _ulong _long) (if #,unsigned? Natural Integer) 0)]
+                                         [(list 'long 'long field) #`(#,field (if #,unsigned? _ullong _llong) (if #,unsigned? Natural Integer) 0)]
+                                         [(list 'float field) #`(#,field _float Single-Flonum 0.0)]
+                                         [(list 'double field) #`(#,field _double Flonum 0.0)]
+                                         [(list 'long 'double field) #`(#,field _longdouble Real 0.0)]
+                                         [(list 'intmax_t field) #`(#,field _intmax Integer 0)]
+                                         [(list 'uintmax_t field) #`(#,field _uintmax Natural 0)]
+                                         [(list 'size_t field) #`(#,field _size Natural 0)]
+                                         [(list 'ssize_t field) #`(#,field _ssize Integer 0)]
+                                         [(list 'time_t field) #`(#,field _ullong Natural 0)]
+                                         [(list 'ptrdiff_t field) #`(#,field _ptrdiff Integer 0)]
+                                         [_ (raise-syntax-error 'require-prefab-cstruct (format "unknown ctype in ~a" definition) cstruct)]))])
+                        #'[csid csid/bzero &csid/bzero *csid &csid _csid ([field-id _type Type defval] ...) csid->list list->csid csid? csid* id_t*]))])
+       #'(module mod.c racket/base
+           (provide (all-defined-out))
+           
+           (require ffi/unsafe)
+           
+           (define-cstruct _!id ([field-id type-expr] ...)) ...
+           (define id_t* id*) ...
+           
+           (struct id ([field-id] ...) #:prefab) ...
+           (define id/bzero (lambda [] (id defvalue ...))) ...
+
+           (define *id (lambda [p] (apply id (!id->list p)))) ...
+           (define &id (lambda [s] (list->!id (cdr (vector->list (struct->vector s)))))) ...
+           (define &id/bzero (lambda [] (&id (id defvalue ...)))) ...
+
+           (module* typed/ffi typed/racket/base
+             (provide (except-out (all-defined-out) id_t* ...))
+
+             (require/typed (submod "..")
+                            [#:opaque id_t* !id?] ...)
+             
+             (require/typed/provide (submod "..")
+                                    [#:struct id ([field-id : Type] ...)] ...
+                                    [*id (-> id_t* id)] ...
+                                    [&id (-> id id_t*)] ...
+                                    [&id/bzero (-> id_t*)] ...))))]))
 
 (define cvoid*?
   (lambda [v]
