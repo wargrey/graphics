@@ -32,7 +32,7 @@
                 (build-path (path-only (resolved-module-path-name (variable-reference->resolved-module-path (#%variable-reference))))
                             (car (use-compiled-file-paths)) "native" (system-library-subpath #false) libname))]))
 
-(define-syntax (require-prefab-cstruct stx)
+(define-syntax (module-prefab:cstruct/no-auto-update stx)
   (syntax-case stx []
     [(_ src.c) #| TODO: to see if we still have to provide all cstruct ids |#
      (with-syntax ([mod.c (format-id #'src.c "prefab:~a" (path->string (file-name-from-path (syntax-e #'src.c))))]
