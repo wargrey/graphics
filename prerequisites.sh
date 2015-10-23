@@ -37,7 +37,7 @@ racket_config_darwin := --enable-macprefix
 racket_config_linux :=
 
 $(racket_dir):
-	cd /tmp && git clone github.com:wargrey/racket.git $(racket_dir)
+	git clone github.com:wargrey/racket.git $(racket_dir)
 
 $(Prefix)/$(racket_dir)/bin/racket: $(racket_dir)
 	cd $(racket_verion)/racket/src && ./configure --prefix=$(Prefix)/$(racket_dir) --enable-origtree $(racket_config_$(OSNAME))
