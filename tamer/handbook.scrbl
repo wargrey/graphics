@@ -18,3 +18,4 @@ Good Luck!
 
 @include-section[(submod "infrastructure.rkt" doc)]
 @include-section[(submod "digivice.rkt" doc)]
+@include-section[(submod "sshmon.rkt" doc)]

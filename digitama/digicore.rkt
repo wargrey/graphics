@@ -1,8 +1,11 @@
 #lang at-exp typed/racket
 
+(provide (except-out (all-defined-out) #%full-module plural term-colorize))
+(provide (all-from-out "sshmon.rkt"))
+
 (require (for-syntax racket/syntax))
 
-(provide (except-out (all-defined-out) #%full-module plural term-colorize))
+(require "sshmon.rkt")
 
 (define-type Info-Ref (->* [Symbol] [(-> Any)] Any))
 (define-type Term-Color (Option (U String Symbol Byte)))

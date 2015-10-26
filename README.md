@@ -47,3 +47,8 @@ Good Luck!
 >         + 📑digivice \[action\]
 >         + 📑digivice action \[option\]
 >       + 📑Restore the filesystem
+>     + 📖
+[sshmon.rkt](http://gyoudmon.org/~wargrey:DigiGnome/sshmon.rkt)
+>       + 📑The Transport Layer
+>       + 📑The User Authentication Layer
+>       + 📑The Connection Layer
