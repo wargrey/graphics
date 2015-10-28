@@ -31,6 +31,7 @@ racket_dir := PLTracket
 racket_bin0 := $(shell which racket >/dev/null 2>/dev/null && which racket)
 racket_bin := $(if $(findstring 0,$(words $(racket_bin0))),$(Prefix)/$(racket_dir)/bin/racket,$(racket_bin0))
 racket_src := https://github.com/wargrey/racket/archive/master.zip
+racket_pkgs_solaris := cairo pango jpeg-turbo freeglut
 racket_pkgs_linux := libfontconfig libcairo2 libpango1.0 libjpeg62 freeglut3 libncurses5-dev
 racket_pkgs := math html make images pict3d net-cookies
 racket_config_solaris := --enable-places --enable-futures --disable-libffi
