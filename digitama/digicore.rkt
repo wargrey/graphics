@@ -1,11 +1,11 @@
 #lang at-exp typed/racket
 
-(provide (except-out (all-defined-out) #%full-module plural term-colorize))
-(provide (all-from-out "sshmon.rkt"))
+(provide (except-out (all-defined-out) plural term-colorize))
+(provide (all-from-out "syntax.rkt"))
 
 (require (for-syntax racket/syntax))
 
-(require "sshmon.rkt")
+(require "syntax.rkt")
 
 (define-type Info-Ref (->* [Symbol] [(-> Any)] Any))
 (define-type Term-Color (Option (U String Symbol Byte)))
@@ -24,98 +24,6 @@
                        [s-exp->fasl (case-> [-> Any Bytes]
                                             [-> Any Output-Port Void])]
                        [fasl->s-exp (-> (U Input-Port Bytes) Any)])
-
-(define-syntax (#%full-module stx)
-  #'(let ([rmp (variable-reference->resolved-module-path (#%variable-reference))])
-      (resolved-module-path-name (cast rmp Resolved-Module-Path))))
-
-(define-syntax (#%file stx)
-  #'(let ([full (ann (#%full-module) (U Symbol Path))])
-      (cond [(path? full) full]
-            [else (with-handlers ([exn:fail:contract? (const (current-directory))])
-                    ((inst car Path (Listof Symbol)) (cast full (Pairof Path (Listof Symbol)))))])))
-
-(define-syntax (#%module stx)
-  #'(let ([full (ann (#%full-module) (U Symbol Path))])
-      (cond [(path? full) ((compose1 string->symbol path->string)
-                           (path-replace-suffix (cast (file-name-from-path full) Path) ""))]
-            [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
-                    (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
-
-(define-syntax (define-strdict stx)
-  (syntax-case stx [:]
-    [(_ id : Type)
-     #'(define-strdict id : Type null)]
-    [(_ id : Type init-vals)
-     (with-syntax ([%id  (format-id #'id "%~a"  (syntax-e #'id))]  ; make-hash
-                   [$id  (format-id #'id "$~a"  (syntax-e #'id))]  ; hash-ref
-                   [$id? (format-id #'id "?~a"  (syntax-e #'id))]  ; hash-has-key?
-                   [$id# (format-id #'id "$~a#" (syntax-e #'id))]  ; hash-count
-                   [$id@ (format-id #'id "$~a@" (syntax-e #'id))]  ; hash-keys
-                   [$id* (format-id #'id "$~a*" (syntax-e #'id))]  ; hash-values
-                   [$id+ (format-id #'id "$~a+" (syntax-e #'id))]  ; hash-ref!
-                   [$id- (format-id #'id "$~a-" (syntax-e #'id))]) ; hash-remove!
-       #'(begin (define %id : (HashTable String Type) ((inst make-hash String Type) init-vals))
-                (define ($id@) : (Listof String) ((inst hash-keys String Type) %id))
-                (define ($id*) : (Listof Type) ((inst hash-values String Type) %id))
-                (define ($id#) : Index ((inst hash-count String Type) %id))
-                (define ($id? [key : String]) : Boolean (hash-has-key? %id key))
-                (define ($id- [key : String]) : Void ((inst hash-remove! String Type) %id key))
-                (define $id+ : (-> String (U Type (-> Type)) Type)
-                  (lambda [key setval]
-                    ((inst hash-ref! String Type) %id key (if (procedure? setval) setval (thunk setval)))))
-                (define $id : (case-> [String -> Type] [String (U Type (-> Type)) -> Type])
-                  (case-lambda
-                    [(key) ((inst hash-ref String Type Type) %id key)]
-                    [(key defval) ((inst hash-ref String Type Type) %id key (if (procedure? defval) defval (thunk defval)))]))))]))
-
-(define-syntax (define-symdict stx)
-  (syntax-case stx [:]
-    [(_ id : Type)
-     #'(define-symdict id : Type null)]
-    [(_ id : Type init-vals)
-     (with-syntax ([%id  (format-id #'id "%~a"  (syntax-e #'id))]  ; make-hasheq
-                   [$id  (format-id #'id "$~a"  (syntax-e #'id))]  ; hash-ref
-                   [$id? (format-id #'id "?~a"  (syntax-e #'id))]  ; hash-has-key?
-                   [$id# (format-id #'id "$~a#" (syntax-e #'id))]  ; hash-count
-                   [$id@ (format-id #'id "$~a@" (syntax-e #'id))]  ; hash-keys
-                   [$id* (format-id #'id "$~a*" (syntax-e #'id))]  ; hash-values
-                   [$id+ (format-id #'id "$~a+" (syntax-e #'id))]  ; hash-ref!
-                   [$id- (format-id #'id "$~a-" (syntax-e #'id))]) ; hash-remove!
-       #'(begin (define %id : (HashTable Symbol Type) ((inst make-hasheq Symbol Type) init-vals))
-                (define ($id@) : (Listof Symbol) ((inst hash-keys Symbol Type) %id))
-                (define ($id*) : (Listof Type) ((inst hash-values Symbol Type) %id))
-                (define ($id#) : Index ((inst hash-count Symbol Type) %id))
-                (define ($id? [key : Symbol]) : Boolean (hash-has-key? %id key))
-                (define (!id+ [key : Symbol] [val : Type]) : Void ((inst hash-set! Symbol Type) %id key val))
-                (define ($id- [key : Symbol]) : Void ((inst hash-remove! Symbol Type) %id key))
-                (define $id+ : (-> Symbol (U Type (-> Type)) Type)
-                  (lambda [key setval]
-                    ((inst hash-ref! Symbol Type) %id key (if (procedure? setval) setval (thunk setval)))))
-                (define $id : (case-> [Symbol -> Type] [Symbol (U Type (-> Type)) -> Type])
-                  (case-lambda
-                    [(key) ((inst hash-ref Symbol Type Type) %id key)]
-                    [(key defval) ((inst hash-ref Symbol Type Type) %id key (if (procedure? defval) defval (thunk defval)))]))))]))
-
-(define-syntax (define/extract-symtable stx)
-  (syntax-case stx []
-    [(_ (symtable-sexp ...) defines ...)
-     (with-syntax ([symtable (format-id #'symtable "~a" (gensym 'symboltable))])
-       #'(begin (define symtable : SymbolTable (cast (symtable-sexp ...) SymbolTable))
-                (define/extract-symtable symtable defines ...)))]
-    [(_ symtable defines ...)
-     (with-syntax ([(extract ...)
-                    (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
-                      (syntax-case def-idl [: =]
-                        [([renamed-id key] : Type)
-                         #'(define renamed-id : Type (cast (hash-ref symtable 'key) Type))]
-                        [([renamed-id key] : Type = def-exp)
-                         #'(define renamed-id : Type (cast (hash-ref symtable 'key (thunk def-exp)) Type))]
-                        [(id : Type)
-                         #'(define id : Type (cast (hash-ref symtable 'id) Type))]
-                        [(id : Type = def-exp)
-                         #'(define id : Type (cast (hash-ref symtable 'id (thunk def-exp)) Type))]))])
-       #'(begin extract ...))]))
 
 (define-syntax (define-parameter/extract-info stx)
   (syntax-case stx []
@@ -137,35 +45,36 @@
 
 (define digicore.rkt : Path (#%file))
 
-(define house-garden# : Char #\U1F3E1)
-(define cat# : Char #\U1F408)
-(define paw# : Char #\U1F43E)
-
-(define macroscope# : Char #\U1F52C)
-(define telescope# : Char #\U1F52D)
-(define crystal-ball# : Char #\U1F52E)
-(define pin# : Char #\U1F4CC)
-(define backhand# : Char #\U1F449)
-(define collision# : Char #\U1F4A5)
-(define bomb# : Char #\U1F4A3)
-
-(define book# : Char #\U1F4D4)
-(define books# : Char #\U1F4DA)
-(define open-book# : Char #\U1F4D6)
-(define memo# : Char #\U1F4DD)
-(define page# : Char #\U1F4C4)
-(define bookmark# : Char #\U1F4D1)
-
-(define beating-heart# : Char #\U1F493)
-(define broken-heart# : Char  #\U1F494)
-(define two-heart# : Char #\U1F495)
-(define sparkling-heart# : Char #\U1F496)
-(define growing-heart# : Char #\U1F497)
-(define arrow-heart# : Char #\U1F498)
-(define blue-heart# : Char #\U1F499)
-(define green-heart# : Char #\U1F49A)
-(define yellow-heart# : Char #\U1F49B)
-(define purple-heart# : Char #\U1F49C)
+(defconsts/type Char
+  [house-garden# #\U1F3E1]
+  [cat# #\U1F408]
+  [paw# #\U1F43E]
+  
+  [macroscope# #\U1F52C]
+  [telescope# #\U1F52D]
+  [crystal-ball# #\U1F52E]
+  [pin# #\U1F4CC]
+  [backhand# #\U1F449]
+  [collision# #\U1F4A5]
+  [bomb# #\U1F4A3]
+  
+  [book# #\U1F4D4]
+  [books# #\U1F4DA]
+  [open-book# #\U1F4D6]
+  [memo# #\U1F4DD]
+  [page# #\U1F4C4]
+  [bookmark# #\U1F4D1]
+  
+  [beating-heart# #\U1F493]
+  [broken-heart#  #\U1F494]
+  [two-heart# #\U1F495]
+  [sparkling-heart# #\U1F496]
+  [growing-heart# #\U1F497]
+  [arrow-heart# #\U1F498]
+  [blue-heart# #\U1F499]
+  [green-heart# #\U1F49A]
+  [yellow-heart# #\U1F49B]
+  [purple-heart# #\U1F49C])
 
 (define /dev/stdin : Input-Port (current-input-port))
 (define /dev/stdout : Output-Port (current-output-port))
