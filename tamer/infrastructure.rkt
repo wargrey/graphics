@@ -40,7 +40,7 @@ Kill those unexpected routines crudely is unreasonable since there might be side
        (when (environment-variables-ref ENV #"taming")
          (error 'make "[fatal] Unexpected subroutine stops here!"))
 
-       (define {{setup . arglist}}
+       (define ((setup . arglist))
          (dynamic-wind (thunk (environment-variables-set! ENV #"taming" #"true"))
                        (thunk (parameterize ([current-directory (digimon-world)])
                               (call-with-fresh-$ (curry apply make arglist))))

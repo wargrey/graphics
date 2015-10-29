@@ -5,7 +5,7 @@
 
 (define desc "@getenv{digivice-desc}")
 
-{module @getenv{digivice-name} racket/base
+(module @getenv{digivice-name} racket/base
   (require syntax/location)
   (require racket/cmdline)
   (require racket/path)
@@ -15,4 +15,4 @@
    #:once-each
    [("-v" "--version") "Print version information"
                        (displayln "version: 0.618.")]
-   #:args rest-argv (displayln rest-argv))}
+   #:args rest-argv (displayln rest-argv)))

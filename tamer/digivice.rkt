@@ -36,7 +36,7 @@ which are set in @filepath{info.rkt} and match the hierarchy in @racket[digimon-
        (define dgvc.rkt (path-add-suffix dgvc.dir ".rkt"))
        (define action.rkt (build-path dgvc.dir (file-name-from-path action.scrbl)))
 
-       (define {setup-demo}
+       (define (setup-demo)
          (make-directory* dgvc.dir)
          |<instantiating from the template>|
          (make-digivice dgvc.scrbl dgvc.rkt))]
@@ -127,7 +127,7 @@ But wait! we might have forgotten something. This demo does affect the filesyste
 that @exec{racket} process could not manager automatically.
 
 @chunk[|<destroy the demo zone>|
-       (define {teardown-demo}
+       (define (teardown-demo)
          (define px.dgvc (pregexp (string-replace dgvc-name #px"\\d+" "\\d+")))
          (for ([dgvc (in-list (directory-list (path-only dgvc.rkt)))]
                #:when (or (member dgvc (use-compiled-file-paths))
