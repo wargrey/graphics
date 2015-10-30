@@ -22,8 +22,9 @@ span.RktCmt, span.RktOut, span.RktErr, span.RktRes {
 
 blockquote.SCodeFlow {
 	padding-left: 0.64rem;
-    white-space: nowrap;
+        white-space: nowrap;
 	line-height: 1.5;
+	overflow-x: scroll;
 }
 
 .GYDMComment {
