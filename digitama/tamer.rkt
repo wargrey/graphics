@@ -42,6 +42,10 @@
           [(string? val) (hexstring (string->bytes/utf-8 val))]
           [(boolean? val) (hexstring (if val 1 0))])))
 
+(define symb0x->number
+  (lambda [hex]
+    (string->number (string-replace (symbol->string hex) "0x" "") 16)))
+
 (define make-tamer-zone
   (lambda []
     (define tamer.rkt (build-path (digimon-tamer) "tamer.rkt"))

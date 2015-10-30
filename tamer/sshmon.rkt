@@ -33,80 +33,40 @@ It performs server host authentication, key exchange, encryption, and integrity 
 It also derives a unique session id that may be used by higher-level protocols
 such as @itech{SSH-USERAUTH} and @itech{SSH-CONNECT}.
 
+@subsection{Datatype Representations}
+
 The primitive datatypes and their representations are defined in
 @hyperlink["http://tools.ietf.org/html/rfc4251#section-5"]{RFC 4251}.
 
 @tamer-note['ssh-datatype]
 @chunk[|<testsuite: ssh datatype: byte and boolean>|
-       (let-values ([(bt bf b1 b0) (values (bytes 1) (bytes 0) #"1" #"0")])
-         (test-suite "octet"
-                     (test-case "boolean is byte with value 1 or 0"
-                                (check bytes=? (ssh-boolean->bytes #true) bt)
-                                (check bytes=? (ssh-boolean->bytes #false) bf)
-                                (check-true (ssh-bytes->boolean bt))
-                                (check-false (ssh-bytes->boolean bf)))
-                     (test-case "boolean should not be stored other than 1 or 0"
-                                (check-true (ssh-bytes->boolean b1))
-                                (check-true (ssh-bytes->boolean b0)))))]
+       (test boolean "octet"
+             [#true  => [0x01] "#t is represented as byte 1"]
+             [#false => [0x00] "#f is represented as byte 0"])]
 
 @chunk[|<testsuite: ssh datatype: unsigned integer>|
-       (let-values ([(u32 b32) (values #x29b7f4aa (bytes #x29 #xb7 #xf4 #xaa))]
-                    [(u64 b64) (values #x9a378f9b2e332a7 (bytes #x09 #xa3 #x78 #xf9 #xb2 #xe3 #x32 #xa7))])
-         (test-suite "unsigned integer"
-                     (test-case "32bit unsigned integer"
-                                (check bytes=? (ssh-uint32->bytes u32) b32)
-                                (check = (ssh-bytes->uint32 b32) u32))
-                     (test-case "64bit unsigned integer"
-                                (check bytes=? (ssh-uint64->bytes u64) b64)
-                                (check = (ssh-bytes->uint64 b64) u64))))]
+       (test "unsigned integer"
+             [0x29b7f4aa        : uint32 => [0x29 0xb7 0xf4 0xaa] "32-bit unsigned integer"]
+             [0x9a378f9b2e332a7 : uint64 => [0x09 0xa3 0x78 0xf9 0xb2 0xe3 0x32 0xa7] "64-bit unsigned integer"])]
 
 @chunk[|<testsuite: ssh datatype: string and text>|
-       (let-values ([(str0 bstr0) (values "" (bytes #x0 #x0 #x0 #x0))]
-                    [(txt btxt) (values "λ" (bytes #x00 #x00 #x00 #x02 #xce #xbb))])
-         (test-suite "unicode string"
-                     (test-case "empty string"
-                                (check bytes=? (ssh-string->bytes str0) bstr0)
-                                (check string=? (ssh-bytes->string bstr0) str0))
-                     (test-case "unicode text"
-                                (check bytes=? (ssh-string->bytes txt) btxt)
-                                (check string=? (ssh-bytes->string btxt) txt))))]
+       (test string "unicode string"
+             [""  => [0x00 0x00 0x00 0x00] "empty string"]
+             ["λ" => [0x00 0x00 0x00 0x02 0xce 0xbb] "unicode text"])]
 
 @chunk[|<testsuite: ssh datatype: multiple precision integer>|
-       (let-values ([(0mpi b0mpi) (values #x0 (bytes #x00 #x00 #x00 #x00))]
-                    [(1mpi b1mpi) (values #x80 (bytes #x00 #x00 #x00 #x02 #x00 #x80))]
-                    [(+mpi +bmpi) (values #x9a378f9b2e332a7 (bytes #x00 #x00 #x00 #x08 #x09 #xa3 #x78 #xf9 #xb2 #xe3 #x32 #xa7))]
-                    [(-mps -bmps) (values (- #x1234) (bytes #x00 #x00 #x00 #x02 #xed #xcc))]
-                    [(-mpl -bmpl) (values (- #xdeadbeef) (bytes #x00 #x00 #x00 #x05 #xff #x21 #x52 #x41 #x11))])
-         (test-suite "multiple precision integer"
-                     (test-case "#b00..0"
-                                (check bytes=? (ssh-mpint->bytes 0mpi) b0mpi)
-                                (check = (ssh-bytes->mpint b0mpi) 0mpi))
-                     (test-case "#b10..0"
-                                (check bytes=? (ssh-mpint->bytes 1mpi) b1mpi)
-                                (check = (ssh-bytes->mpint b1mpi) 1mpi))
-                     (test-case "positive integer"
-                                (check bytes=? (ssh-mpint->bytes +mpi) +bmpi)
-                                (check = (ssh-bytes->mpint +bmpi) +mpi))
-                     (test-case "negative integer"
-                                (check bytes=? (ssh-mpint->bytes -mps) -bmps)
-                                (check = (ssh-bytes->mpint -bmps) -mps)
-                                (check bytes=? (ssh-mpint->bytes -mpl) -bmpl)
-                                (check = (ssh-bytes->mpint -bmpl) -mpl))))]
+       (test mpint "multiple precision integer"
+             [0x0               => [0x00 0x00 0x00 0x00] "zero"]
+             [0x9a378f9b2e332a7 => [0x00 0x00 0x00 0x08 0x09 0xa3 0x78 0xf9 0xb2 0xe3 0x32 0xa7] "positive integer"]
+             [0x80              => [0x00 0x00 0x00 0x02 0x00 0x80] "positive integer [sign bit preceded]"]
+             [-0x1234           => [0x00 0x00 0x00 0x02 0xed 0xcc] "negative integer"]
+             [-0xdeadbeef       => [0x00 0x00 0x00 0x05 0xff 0x21 0x52 0x41 0x11] "negative integer [sign bit preceded]"])]
 
 @chunk[|<testsuite: ssh datatype: name list>|
-       (let-values ([(str0 bstr0) (values '() (bytes #x0 #x0 #x0 #x0))]
-                    [(str1 bstr1) (values '(zlib) (bytes #x00 #x00 #x00 #x04 #x7a #x6c #x69 #x62))]
-                    [(strn bstrn) (values '(zlib none) (bytes #x00 #x00 #x00 #x09 #x7a #x6c #x69 #x62 #x2c #x6e #x6f #x6e #x65))])
-         (test-suite "ascii name list"
-                     (test-case "empty list"
-                                (check bytes=? (ssh-namelist->bytes str0) bstr0)
-                                (check equal? (ssh-bytes->namelist bstr0) str0))
-                     (test-case "one element list is just an ascii string"
-                                (check bytes=? (ssh-namelist->bytes str1) bstr1)
-                                (check equal? (ssh-bytes->namelist bstr1) str1))
-                     (test-case "comma-separated list"
-                                (check bytes=? (ssh-namelist->bytes strn) bstrn)
-                                (check equal? (ssh-bytes->namelist bstrn) strn))))]
+       (test namelist "ascii name list"
+             ['()          => [0x00 0x00 0x00 0x00] "empty list"]
+             ['(zlib)      => [0x00 0x00 0x00 0x04 0x7a 0x6c 0x69 0x62] "one element list is just an ascii string"]
+             ['(zlib none) => [0x00 0x00 0x00 0x09 0x7a 0x6c 0x69 0x62 0x2c 0x6e 0x6f 0x6e 0x65] "comma-separated list"])]
 
 @handbook-scenario{The User Authentication Protocol}
 
@@ -133,6 +93,28 @@ The SSH client requests a server-side port to be forwarded using a global reques
 @chunk[|<sshmon:*>|
        (module+ main (call-as-normal-termination tamer-prove))
        (module+ story
+         (require (for-syntax "tamer.rkt"))
+         
+         (define-syntax (test stx)
+           (syntax-case stx [=> :]
+             [(_ datatype suite-desc [rsrc => [0x ...] case-desc] ...)
+              #'(test suite-desc [rsrc : datatype => [0x ...] case-desc] ...)]
+             [(_ suite-desc [rsrc : datatype => [0x ...] case-desc] ...)
+              (with-syntax ([([datatype->bytes bytes->datatype dtval octets] ...)
+                             (for/list ([dtsrc (in-list (syntax->list #'(rsrc ...)))]
+                                        [subtype (in-list (syntax->list #'(datatype ...)))]
+                                        [octetls (in-list (syntax->list #'([0x ...] ...)))])
+                               (with-syntax ([dt->bs (string->symbol (format "ssh-~a->bytes" (syntax-e subtype)))]
+                                             [bs->dt (string->symbol (format "ssh-bytes->~a" (syntax-e subtype)))]
+                                             [dtval (if (identifier? dtsrc) (symb0x->number (syntax-e dtsrc)) dtsrc)]
+                                             [octets (list->bytes (map (compose1 symb0x->number syntax-e) (syntax->list octetls)))])
+                                 #'(dt->bs bs->dt dtval octets)))])
+                #'(test-suite suite-desc
+                              (test-case case-desc
+                                         (check bytes=? (datatype->bytes dtval) octets)
+                                         (check equal? (bytes->datatype octets) dtval))
+                              ...))]))
+         
          (define-tamer-suite ssh-datatype "The Primitive Datatype Representation"
            |<testsuite: ssh datatype: byte and boolean>|
            |<testsuite: ssh datatype: unsigned integer>|
