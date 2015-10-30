@@ -1,8 +1,14 @@
 #lang at-exp racket
 
+(provide (all-defined-out) tamer-story skip todo)
+
+(provide (all-from-out racket "digicore.rkt" rackunit))
+(provide (all-from-out scribble/manual scribble/eval scribble/html-properties))
+
 (require rackunit)
 
 (require racket/sandbox)
+(require file/sha1)
 
 (require scribble/core)
 (require scribble/eval)
@@ -12,11 +18,6 @@
 (require (for-syntax syntax/parse))
 
 @require{digicore.rkt}
-
-(provide (all-defined-out) tamer-story skip todo)
-
-(provide (all-from-out racket "digicore.rkt" rackunit))
-(provide (all-from-out scribble/manual scribble/eval scribble/html-properties))
 
 (define tamer-zone (make-parameter #false))
 
@@ -33,6 +34,13 @@
                    [current-error-port $err]
                    [exit-handler $?])
       (apply routine arglist))))
+
+(define hexstring
+  (lambda [val]
+    (cond [(integer? val) (~r val #:base 16)]
+          [(bytes? val) (format "~a" (regexp-match* #px".." (bytes->hex-string val)))]
+          [(string? val) (hexstring (string->bytes/utf-8 val))]
+          [(boolean? val) (hexstring (if val 1 0))])))
 
 (define make-tamer-zone
   (lambda []
@@ -227,7 +235,7 @@
                                                                  (cond [(and (member msg statuses) msg)
                                                                         => stts]
                                                                        [(and (regexp-match? #px"»»" msg) msg)
-                                                                        => (curry eechof #:fgcolor 'lightgrey "~a~n")]
+                                                                        => (curry eechof #:fgcolor 'darkgrey "~a~n")]
                                                                        [(and (string? (car spec)) msg)
                                                                         => (curry eechof  "~a~n"
                                                                                   #:fgcolor (~fgcolor (stts))
@@ -584,7 +592,7 @@
         (when (cdr stack)
           (define srcinfo (srcloc->string (cdr stack)))
           (unless (or (false? srcinfo) (regexp-match? #px"^/" srcinfo))
-            (eechof #:fgcolor 'lightgrey "~a»»»» ~a: ~a~n" headspace0
+            (eechof #:fgcolor 'darkgrey "~a»»»» ~a: ~a~n" headspace0
                     (tr-d srcinfo) (or (car stack) 'λ)))))))
 
   (define display-skip

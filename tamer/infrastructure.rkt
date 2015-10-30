@@ -161,7 +161,7 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
        |<tamer battle>|
        (module+ story
          (define msecs file-or-directory-modify-seconds)
-         (define times {λ [px] (length (regexp-match* px (get-output-string $out)))})
+         (define times (λ [px] (length (regexp-match* px (get-output-string $out)))))
          (define gnome "gnome")
          
          |<setup and teardown timidly>|

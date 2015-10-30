@@ -49,6 +49,12 @@ Good Luck!
 >       + 📑Restore the filesystem
 >     + 📖
 [sshmon.rkt](http://gyoudmon.org/~wargrey:DigiGnome/sshmon.rkt)
->       + 📑The Transport Layer
->       + 📑The User Authentication Layer
->       + 📑The Connection Layer
+>       + 📑The Primitive Datatype Representation
+>         + 📑octet
+>         + 📑unsigned integer
+>         + 📑unicode string
+>         + 📑multiple precision integer
+>         + 📑ascii name list
+>       + 📑The Transport Layer Protocol
+>       + 📑The User Authentication Protocol
+>       + 📑The Connection Protocol
