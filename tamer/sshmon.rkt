@@ -35,38 +35,37 @@ such as @itech{SSH-USERAUTH} and @itech{SSH-CONNECT}.
 
 @subsection{Datatype Representations}
 
-The primitive datatypes and their representations are defined in
-@hyperlink["http://tools.ietf.org/html/rfc4251#section-5"]{RFC 4251}.
+The primitive datatypes are defined in @hyperlink["http://tools.ietf.org/html/rfc4251#section-5"]{RFC 4251}.
 
 @tamer-note['ssh-datatype]
 @chunk[|<testsuite: ssh datatype: byte and boolean>|
-       (test boolean "octet"
-             [#true  => [0x01] "#t is represented as byte 1"]
-             [#false => [0x00] "#f is represented as byte 0"])]
+       (prove "octet" : boolean
+              [#true  => [0x01] "#t is represented as byte 1"]
+              [#false => [0x00] "#f is represented as byte 0"])]
 
 @chunk[|<testsuite: ssh datatype: unsigned integer>|
-       (test "unsigned integer"
-             [0x29b7f4aa        : uint32 => [0x29 0xb7 0xf4 0xaa] "32-bit unsigned integer"]
-             [0x9a378f9b2e332a7 : uint64 => [0x09 0xa3 0x78 0xf9 0xb2 0xe3 0x32 0xa7] "64-bit unsigned integer"])]
+       (prove "unsigned integer"
+              [0x29b7f4aa        : uint32 => [0x29 0xb7 0xf4 0xaa] "32-bit unsigned integer"]
+              [0x9a378f9b2e332a7 : uint64 => [0x09 0xa3 0x78 0xf9 0xb2 0xe3 0x32 0xa7] "64-bit unsigned integer"])]
 
 @chunk[|<testsuite: ssh datatype: string and text>|
-       (test string "unicode string"
-             [""  => [0x00 0x00 0x00 0x00] "empty string"]
-             ["λ" => [0x00 0x00 0x00 0x02 0xce 0xbb] "unicode text"])]
+       (prove "unicode string" : string
+              [""  => [0x00 0x00 0x00 0x00] "empty string"]
+              ["λ" => [0x00 0x00 0x00 0x02 0xce 0xbb] "unicode text"])]
 
 @chunk[|<testsuite: ssh datatype: multiple precision integer>|
-       (test mpint "multiple precision integer"
-             [0x0               => [0x00 0x00 0x00 0x00] "zero"]
-             [0x9a378f9b2e332a7 => [0x00 0x00 0x00 0x08 0x09 0xa3 0x78 0xf9 0xb2 0xe3 0x32 0xa7] "positive integer"]
-             [0x80              => [0x00 0x00 0x00 0x02 0x00 0x80] "positive integer [sign bit preceded]"]
-             [-0x1234           => [0x00 0x00 0x00 0x02 0xed 0xcc] "negative integer"]
-             [-0xdeadbeef       => [0x00 0x00 0x00 0x05 0xff 0x21 0x52 0x41 0x11] "negative integer [sign bit preceded]"])]
+       (prove "multiple precision integer" : mpint
+              [0x0               => [0x00 0x00 0x00 0x00] "zero"]
+              [0x9a378f9b2e332a7 => [0x00 0x00 0x00 0x08 0x09 0xa3 0x78 0xf9 0xb2 0xe3 0x32 0xa7] "positive integer"]
+              [0x80              => [0x00 0x00 0x00 0x02 0x00 0x80] "positive integer [sign bit preceded]"]
+              [-0x1234           => [0x00 0x00 0x00 0x02 0xed 0xcc] "negative integer"]
+              [-0xdeadbeef       => [0x00 0x00 0x00 0x05 0xff 0x21 0x52 0x41 0x11] "negative integer [sign bit preceded]"])]
 
 @chunk[|<testsuite: ssh datatype: name list>|
-       (test namelist "ascii name list"
-             ['()          => [0x00 0x00 0x00 0x00] "empty list"]
-             ['(zlib)      => [0x00 0x00 0x00 0x04 0x7a 0x6c 0x69 0x62] "one element list is just an ascii string"]
-             ['(zlib none) => [0x00 0x00 0x00 0x09 0x7a 0x6c 0x69 0x62 0x2c 0x6e 0x6f 0x6e 0x65] "comma-separated list"])]
+       (prove "ascii name list" : namelist
+              ['()          => [0x00 0x00 0x00 0x00] "empty list"]
+              ['(zlib)      => [0x00 0x00 0x00 0x04 0x7a 0x6c 0x69 0x62] "one element list is just an ascii string"]
+              ['(zlib none) => [0x00 0x00 0x00 0x09 0x7a 0x6c 0x69 0x62 0x2c 0x6e 0x6f 0x6e 0x65] "comma-separated list"])]
 
 @handbook-scenario{The User Authentication Protocol}
 
@@ -95,10 +94,10 @@ The SSH client requests a server-side port to be forwarded using a global reques
        (module+ story
          (require (for-syntax "tamer.rkt"))
          
-         (define-syntax (test stx)
+         (define-syntax (prove stx)
            (syntax-case stx [=> :]
-             [(_ datatype suite-desc [rsrc => [0x ...] case-desc] ...)
-              #'(test suite-desc [rsrc : datatype => [0x ...] case-desc] ...)]
+             [(_ suite-desc : datatype [rsrc => [0x ...] case-desc] ...)
+              #'(prove suite-desc [rsrc : datatype => [0x ...] case-desc] ...)]
              [(_ suite-desc [rsrc : datatype => [0x ...] case-desc] ...)
               (with-syntax ([([datatype->bytes bytes->datatype dtval octets] ...)
                              (for/list ([dtsrc (in-list (syntax->list #'(rsrc ...)))]
