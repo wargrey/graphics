@@ -45,7 +45,7 @@
 
 (define digicore.rkt : Path (#%file))
 
-(defconsts/type Char
+(defconsts : Char
   [house-garden# #\U1F3E1]
   [cat# #\U1F408]
   [paw# #\U1F43E]

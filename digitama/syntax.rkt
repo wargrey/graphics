@@ -5,24 +5,7 @@
 (require (for-syntax racket/string))
 (require (for-syntax racket/syntax))
 
-(define-syntax (define-type/enum stx)
-  (syntax-case stx [:]
-    [(_ enum : Enum sym ...)
-     #'(begin (define-type Enum (U sym ...))
-              (define enum : (Listof Enum) (list sym ...)))]))
-
-(define-syntax (defconsts/type stx)
-  (syntax-case stx []
-    [(_  Type (id val comments ...) ...)
-     #'(begin (define id : Type val) ...)]))
-
-(define-syntax (defconsts:s/_/-/g stx)
-  (syntax-case stx []
-    [(_ (c_style bvalue comments ...) ...)
-     (with-syntax ([(r-name ...)
-                    (for/list ([c_name (in-list (syntax->list #'(c_style ...)))])
-                      (datum->syntax c_name (string->symbol (string-replace (symbol->string (syntax-e c_name)) "_" "-"))))])
-       #'(begin (define r-name : Byte bvalue) ...))]))
+(define on-error-do : (Parameter (-> Any)) (make-parameter void))
 
 (define-syntax (#%full-module stx)
   #'(let ([rmp (variable-reference->resolved-module-path (#%variable-reference))])
@@ -40,6 +23,50 @@
                            (path-replace-suffix (cast (file-name-from-path full) Path) ""))]
             [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
                     (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
+
+(define-syntax (throw stx)
+  (syntax-case stx []
+    [(_ st-id f-id [msgfmt fmtargl ...] st-argl ...)
+     #'(let* ([msg (format (string-append "~a: " msgfmt) f-id fmtargl ...)]
+              [obj (st-id msg (current-continuation-marks) st-argl ...)]
+              [logger (current-logger)])
+         ((on-error-do))
+         (log-message logger 'debug (logger-name logger) msg obj)
+         (raise obj))]
+    [(_ st-id f-id message st-argl ...)
+     #'(throw st-id f-id ["~a" message] st-argl ...)]))
+
+(define-syntax (rethrow stx)
+  (syntax-case stx []
+    [(_ st-id f-id fmt argl ...)
+     #'(lambda [[src : exn]]
+         (define event : String (format fmt argl ...))
+         (throw st-id f-id ["~a: ~a" event (exn-message src)]))]))
+
+(define-syntax (defconsts stx)
+  (syntax-case stx [:]
+    [(_ : Type [id val] ...)
+     #'(begin (define id : Type val)
+              ...)]))
+
+(define-syntax (define-type/enum stx)
+  (syntax-case stx [: quote]
+    [(_ id : TypeU (quote enum) ...)
+     #'(define-type/enum id : TypeU enum ...)]
+    [(_ id : TypeU [enum comments ...] ...)
+     #'(define-type/enum id : TypeU enum ...)]
+    [(_ id : TypeU enum ...)
+     #'(begin (define-type TypeU (U 'enum ...))
+              (define id : (Listof TypeU) (list 'enum ...)))]))
+
+(define-syntax (define-type/consts stx)
+  (syntax-case stx [: as]
+    [(_ cs : TypeU of Type (enum val comments ...) ...)
+     (with-syntax ([$#cs  (format-id #'cs "$#~a" (syntax-e #'cs))])
+       #'(begin (define-type TypeU (U 'enum ...))
+                (define $#cs : (-> TypeU Type)
+                  (let ([cs : (HashTable TypeU Type) ((inst make-immutable-hasheq TypeU Type) (list (cons 'enum val) ...))])
+                    (lambda [key] ((inst hash-ref TypeU Type Type) cs key))))))]))
 
 (define-syntax (define-strdict stx)
   (syntax-case stx [:]
