@@ -62,11 +62,15 @@
 (define-syntax (define-type/consts stx)
   (syntax-case stx [: as]
     [(_ cs : TypeU of Type (enum val comments ...) ...)
-     (with-syntax ([$#cs  (format-id #'cs "$#~a" (syntax-e #'cs))])
+     (with-syntax ([$%cs (format-id #'cs "$%~a" (syntax-e #'cs))]
+                   [$#cs (format-id #'cs "$#~a" (syntax-e #'cs))])
        #'(begin (define-type TypeU (U 'enum ...))
                 (define $#cs : (-> TypeU Type)
                   (let ([cs : (HashTable TypeU Type) ((inst make-immutable-hasheq TypeU Type) (list (cons 'enum val) ...))])
-                    (lambda [key] ((inst hash-ref TypeU Type Type) cs key))))))]))
+                    (lambda [sym] ((inst hash-ref TypeU Type Type) cs sym))))
+                (define $%cs : (-> Type TypeU)
+                  (let ([cs : (HashTable Type TypeU) ((inst make-immutable-hash Type TypeU) (list (cons val 'enum) ...))])
+                    (lambda [v] ((inst hash-ref Type TypeU TypeU) cs v))))))]))
 
 (define-syntax (define-strdict stx)
   (syntax-case stx [:]

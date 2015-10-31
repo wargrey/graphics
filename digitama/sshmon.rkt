@@ -16,9 +16,10 @@
 
 (require "syntax.rkt")
 
-(define ssh-custodian : Custodian (make-custodian))
+(define ssh-niospace : Custodian (make-custodian))
 
 (struct exn:ssh exn:fail ())
+(struct exn:ssh:again exn:ssh ())
 (struct exn:ssh:unsupported exn:ssh ())
 
 (define-type/enum ssh-protocols : SSH-Protocol 2.0)
@@ -70,6 +71,9 @@
   [SSH_DISCONNECT_ILLEGAL_USER_NAME                   15])
 
 ;;; SSH Datatype Representations <http://tools.ietf.org/html/rfc4251#section-5>
+(struct uint32 ([ref : Nonnegative-Fixnum]) #:mutable #:prefab)
+(struct uint64 ([ref : Natural]) #:mutable #:prefab)
+
 (define ssh-boolean->bytes : (-> Any Bytes)
   (lambda [bool]
     (if bool (bytes 1) (bytes 0))))
@@ -195,12 +199,12 @@
           [enable-break? #true]
           [on-debug void])
 
-    (define portspace : Custodian (make-custodian ssh-custodian))
+    (define niospace : Custodian (make-custodian ssh-niospace))
 
     (define topic : Symbol (string->symbol (format "#<~a:~a:~a>" (object-name this) host port)))
     (define logger : Logger (make-logger topic #false))
     (define logging : Thread
-      (parameterize ([current-custodian ssh-custodian])
+      (parameterize ([current-custodian ssh-niospace])
         (thread (thunk (let sync-handle-loop ([event (make-log-receiver logger 'debug)])
                          (match (sync event)
                            [(vector _ _ 'collapse _) 'job-done]
@@ -215,17 +219,19 @@
 
     ;;; WARNING: (define-values) and (match-define) annoy typed racket here
     (define /dev/sshio : (Vector (Option Input-Port) (Option Output-Port)) (vector #false #false))
+    (make-dev-sshio! enable-break?)
+    ;;; End WARNING
+
     (define cipher-blocksize : (Boxof (Option Byte)) (box #false))
     (define message-authsize : (Boxof (Option Byte)) (box #false))
     (define compression : (Boxof SSH-Algorithm/Compression) (box 'none))
 
     (parameterize ([current-logger logger]
-                   [current-custodian portspace]
-                   [on-error-do (thunk (custodian-shutdown-all portspace))])
+                   [current-custodian niospace]
+                   [on-error-do (thunk (custodian-shutdown-all niospace))])
       ;; initializing and handshaking
       (exchange-identification enable-break?)
       (exchange-key))
-    ;;; End WARNING
 
     (define/public (session-name)
       topic)
@@ -236,88 +242,118 @@
       (log-message logger 'fatal "don't panic" 'collapse)
       (thread-wait logging))
 
-    (define/private (transport-send [id : SSH-Message-Type] . [payloads : Bytes *]) : Void
+    (define/private (make-dev-sshio! [enable-break? : Boolean]) : Void
+      (define-values (sshin sshout) ((if enable-break? tcp-connect/enable-break tcp-connect) hostname portno))
+      
       ; http://tools.ietf.org/html/rfc4253#section-6
       #|  uint32    packet_length  (the next 3 fields)               -
           byte      padding_length (in the range of [4, 255])         \ the size of these 4 fields should be multiple of
           byte[n1]  payload; n1 = packet_length - padding_length - 1  / 8 or cipher-blocksize whichever is larger
           byte[n2]  random padding; n2 = padding_length              -
           byte[m]   mac (Message Authentication Code - MAC); m = mac_length |#
-      (define sshout : Output-Port (cast (vector-ref /dev/sshio 1) Output-Port))
+      (define transport-send : (-> Any Boolean Boolean (U Boolean (Evtof Any)))
+        (lambda [raw always-nonblock-by-me-due-to-disabled-break break-always-disabled-by-racket]
+          (define id : SSH-Message-Type
+            (with-handlers ([exn? (rethrow exn:ssh 'transport-send "invalid packet")])
+              (cast (car (cast raw (Listof Any))) SSH-Message-Type)))
+          
+          (define payload-raw : Bytes
+            (for/fold ([payload (bytes ($#sm id))])
+                      ([content (in-list (cdr (cast raw (Listof Any))))])
+              (bytes-append payload (match content
+                                      [(? byte? b) (bytes b)]
+                                      [(? bytes? bstr) bstr]
+                                      [(? boolean? b) (ssh-boolean->bytes b)]
+                                      [(uint32 fx) (ssh-uint32->bytes fx)]
+                                      [(uint64 n) (ssh-uint64->bytes n)]
+                                      [(? string? str) (ssh-string->bytes str)]
+                                      [(? exact-integer? mpi) (ssh-mpint->bytes mpi)]
+                                      [(list (? symbol? names) ...) (ssh-namelist->bytes (cast names (Listof Symbol)))]
+                                      [_ (throw exn:ssh:unsupported 'transport-send ["unknown datatype: ~s" content])]))))
+        
+          (when (> (bytes-length payload-raw) 32768)
+            (throw exn:ssh:unsupported 'transport-send "packet is too large to send."))
+          
+          (define payload : Bytes payload-raw)
+          ; TODO: compress
+          (define payload-length : Integer (bytes-length payload))
 
-      (define payload-length : Integer (foldl + 1 #| the message id takes one byte |# (map bytes-length payloads)))
-      (when (> payload-length 32768)
-        (throw exn:ssh:unsupported 'transport-send "packet is too large to send."))
-      
-      (define payload : Bytes (foldl bytes-append (bytes ($#sm id)) payloads))
-      (define-values (packet-length padding-length)
-        (let* ([idsize : Byte (max 8 (or (unbox cipher-blocksize) 0))]
-               [packet-draft : Integer (+ 4 1 payload-length)]
-               [padding-draft : Integer (- idsize (remainder packet-draft idsize))]
-               [padding-draft : Integer (if (< padding-draft 4) (+ padding-draft idsize) padding-draft)]
-               [capacity : Integer (quotient (- #xFF padding-draft) (add1 idsize))] ; for thwarting traffic analysis
-               [random-length : Integer (+ padding-draft (if (< capacity 1) 0 (* idsize (random capacity))))])
-          (values (cast (+ packet-draft random-length -4) Nonnegative-Fixnum) random-length)))
-      
-      (define random-padding : Bytes (make-bytes padding-length))
-      (for ([i (in-range padding-length)])
-        (bytes-set! random-padding i (bytes-ref payload (random payload-length))))
+          (define-values (packet-length padding-length)
+            (let* ([idsize : Byte (max 8 (or (unbox cipher-blocksize) 0))]
+                   [packet-draft : Integer (+ 4 1 payload-length)]
+                   [padding-draft : Integer (- idsize (remainder packet-draft idsize))]
+                   [padding-draft : Integer (if (< padding-draft 4) (+ padding-draft idsize) padding-draft)]
+                   [capacity : Integer (quotient (- #xFF padding-draft) (add1 idsize))] ; for thwarting traffic analysis
+                   [random-length : Integer (+ padding-draft (if (< capacity 1) 0 (* idsize (random capacity))))])
+              (values (cast (+ packet-draft random-length -4) Nonnegative-Fixnum) random-length)))
 
-      (define mac-length : Integer (or (unbox message-authsize) 0))
-      (define mac : Bytes (make-bytes mac-length))
+          (define random-padding : Bytes (make-bytes padding-length))
+          (for ([i (in-range padding-length)])
+            (bytes-set! random-padding i (bytes-ref payload (random payload-length))))
+          
+          (define mac-length : Integer (or (unbox message-authsize) 0))
+          (define mac : Bytes (make-bytes mac-length))
+          
+          (with-handlers ([exn? (rethrow exn:ssh 'transport-send "failed send packet ~a" id)])
+            (define packet : Bytes (bytes-append (ssh-uint32->bytes packet-length) (bytes padding-length) payload random-padding mac))
+            (define total : Index (bytes-length packet))
+            (log-debug "sending packet ~a of ~a bytes (+ 4 1 ~a ~a ~a)" id total payload-length padding-length mac-length)
+            (define sent : (Option Index) (write-bytes-avail* packet sshout 0 total))
+            (cond [(false? sent) (throw exn:ssh:again 'transport-send "network is busy")]
+                  [else (log-debug "~a: sent ~a bytes, ~a% done" id sent (~r (* 100 (/ sent total)) #:precision '(= 2)))]))
+          #true))
 
-      (with-handlers ([exn? (rethrow exn:ssh 'transport-send "failed send packet: ~a" id)])
-        (define packet : Bytes (bytes-append (ssh-uint32->bytes packet-length) (bytes padding-length) payload random-padding mac))
-        (define total : Index (bytes-length packet))
-        (log-debug "sending packet ~a of ~a bytes (+ 4 1 ~a ~a ~a)" id total payload-length padding-length mac-length)
-        (define sent : Natural (write-bytes-avail/enable-break packet sshout 0 total))
-        (log-debug "~a: sent ~a bytes, ~a% done" id sent (~r (* 100 (/ sent total)) #:precision '(= 2)))))
-  
+      (vector-set! /dev/sshio 0 sshin)
+      (vector-set! /dev/sshio 1 (make-output-port (string->symbol (format "ssh:~a" hostname))
+                                                  (cast sshout (Evtof Output-Port))
+                                                  sshout
+                                                  (thunk (tcp-abandon-port sshout))
+                                                  transport-send)))
+
+    
     (define/private (exchange-identification [enable-break? : Boolean]) : Void ; <http://tools.ietf.org/html/rfc4253#section-4.2>
-      (define-values (sshin sshout) ((if enable-break? tcp-connect/enable-break tcp-connect) hostname portno))
+      (define sshin : Input-Port (cast (vector-ref /dev/sshio 0) Input-Port))
+      (define sshout : Output-Port (cast (vector-ref /dev/sshio 1) Output-Port))
       (define rfc-banner : String (~a banner #:max-width 253))
         
-      (with-handlers ([exn:fail? (rethrow exn:ssh 'ssh-handshake "failed sending identification")])
+      (with-handlers ([exn:fail? (rethrow exn:ssh 'exchange-identification "failed sending identification")])
         ; NOTE: RFC does not define the order who initaites the exchange process,
         ;       nonetheless, the client sends first is always not bad.
         (fprintf sshout "~a~a~a" rfc-banner #\return #\linefeed)
-        (log-debug "sending identification: ~a" rfc-banner))
+        (log-debug "sent identification: ~a" rfc-banner))
       
       (unless (sync/timeout/enable-break 1.618 sshin)
         (throw exn:ssh 'ssh-handshake "failed getting identification: timed out"))
         
-      (let/cc break : Any
-        (for ([line (in-port (lambda [[in : Input-Port]] (read-line in 'linefeed)) sshin)])
-          (cond [(false? (and (string? line) (regexp-match? #px"^SSH-" line))) (log-debug (string-trim line))] ; TODO: filter terminal control chars
-                [else (match-let ([(list-rest _ protoversion softwareversion comments) (string-split line #px"-|\\s")])
-                        (unless (member protoversion (list "1.99" "2.0"))
-                          ; NOTE: if server is older then client, then client should close connection
-                          ;       and reconnect with the old protocol. It seems that the rules checking
-                          ;       compatibility mode is not guaranteed.
-                          (throw exn:ssh:unsupported 'ssh-handshake ["unknown SSH protocol: ~a" (string-trim line)]))
-                        (log-debug "received identification: ~a" (string-trim line))
-                        (break 'I-do-not-see-servers-that-send-data-after-this-process))])))
-      
-      (vector-set! /dev/sshio 0 sshin)
-      (vector-set! /dev/sshio 1 sshout))
+      (let check-next-line : Void ()
+        (define line : (U String EOF) (read-line sshin 'linefeed))
+        (cond [(eof-object? line)
+               (throw exn:ssh 'exchange-identification ["connection closed by ~a" hostname])]
+              [(false? (regexp-match? #px"^SSH-" line))
+               ; TODO: RFC says control chars should be filtered
+               (log-debug (string-trim line))
+               (check-next-line)]
+              [else (match-let ([(list-rest _ protoversion softwareversion comments) (string-split line #px"-|\\s")])
+                      (unless (member protoversion (list "1.99" "2.0"))
+                        ; NOTE: if server is older then client, then client should close connection
+                        ;       and reconnect with the old protocol. It seems that the rules checking
+                        ;       compatibility mode is not guaranteed.
+                        (throw exn:ssh:unsupported 'ssh-handshake ["unknown SSH protocol: ~a" (string-trim line)]))
+                      (log-debug "received identification: ~a" (string-trim line)))])))
   
     (define/private (exchange-key) : Void ; <http://tools.ietf.org/html/rfc4253#section-7.1>
-      (define crypt : Bytes (ssh-namelist->bytes ssh-algorithms/cipher))
-      (define mac : Bytes (ssh-namelist->bytes ssh-algorithms/mac))
-      (define compression : Bytes (ssh-namelist->bytes ssh-algorithms/compression))
-      (define languages : Bytes (ssh-namelist->bytes null))
-
-      (transport-send 'SSH_MSG_KEXINIT
-                      (call-with-input-string (number->string (current-inexact-milliseconds)) md5-bytes) ; cookie
-                      (ssh-namelist->bytes ssh-algorithms/kex)
-                      (ssh-namelist->bytes ssh-algorithms/publickey)
-                      crypt #| local |# crypt #| remote |#
-                      mac #| local |# mac #| remote |#
-                      compression #| local |# compression #| remote |#
-                      languages #| local |# languages #| remote |#
-                      (ssh-boolean->bytes #false) #| whether a guessed key exchange packet follows |#
-                      (ssh-uint32->bytes 0) #| reserved, always 0 |#)
-      )))
+      (write-special (list 'SSH_MSG_KEXINIT
+                           (call-with-input-string (number->string (current-inexact-milliseconds)) md5-bytes) ; cookie
+                           ssh-algorithms/kex
+                           ssh-algorithms/publickey
+                           ssh-algorithms/cipher #| local |# ssh-algorithms/cipher #| remote |#
+                           ssh-algorithms/mac #| local |# ssh-algorithms/mac #| remote |#
+                           ssh-algorithms/compression #| local |# ssh-algorithms/compression #| remote |#
+                           null #| language local |# null #| language remote |#
+                           #false #| whether a guessed key exchange packet follows |#
+                           (uint32 0) #| reserved, always 0 |#)
+                     (cast (vector-ref /dev/sshio 1) Output-Port))
+      (void))))
 
 (module* main racket
   (require (submod ".."))
