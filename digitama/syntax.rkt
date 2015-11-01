@@ -26,22 +26,29 @@
 
 (define-syntax (throw stx)
   (syntax-case stx []
-    [(_ st-id f-id [msgfmt fmtargl ...] st-argl ...)
-     #'(let* ([msg (format (string-append "~a: " msgfmt) f-id fmtargl ...)]
-              [obj (st-id msg (current-continuation-marks) st-argl ...)]
+    [(_ [st-id st-argl ...] msgfmt fmtargl ...)
+     #'(let* ([px.this (regexp (regexp-quote (path->string (#%file))))]
+              [ccm (current-continuation-marks)]
               [logger (current-logger)])
+         (define msg (format (string-append "~a: " msgfmt)
+                             (let find-first-named-function-in ([stack (continuation-mark-set->context ccm)])
+                               (or (and (regexp-match? px.this (~a (cdar stack))) (caar stack))
+                                   (find-first-named-function-in (cdr stack))))
+                             fmtargl ...))
+         (define e (st-id msg ccm st-argl ...))
          ((on-error-do))
-         (log-message logger 'debug (logger-name logger) msg obj)
-         (raise obj))]
-    [(_ st-id f-id message st-argl ...)
-     #'(throw st-id f-id ["~a" message] st-argl ...)]))
+         (log-message logger 'debug (logger-name logger) msg e)
+         (raise e))]
+    [(_ st-id msgfmt message ...)
+     #'(throw [st-id] msgfmt message ...)]))
 
 (define-syntax (rethrow stx)
   (syntax-case stx []
-    [(_ st-id f-id fmt argl ...)
+    [(_ [st-id st-argl ...] fmt argl ...)
      #'(lambda [[src : exn]]
-         (define event : String (format fmt argl ...))
-         (throw st-id f-id ["~a: ~a" event (exn-message src)]))]))
+         (throw [st-id st-argl ...] "~a: ~a" (format fmt argl ...) (exn-message src)))]
+    [(_ st-id fmt argl ...)
+     #'(rethrow [st-id] fmt argl ...)]))
 
 (define-syntax (defconsts stx)
   (syntax-case stx [:]
