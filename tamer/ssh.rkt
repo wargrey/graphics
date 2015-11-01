@@ -19,7 +19,7 @@ This is an implementation of @deftech{@hyperlink["https://en.wikipedia.org/wiki/
 
 @chunk[|<sshmon taming start>|
        (require "tamer.rkt")
-       (require "../digitama/sshmon.rkt")
+       (require "../digitama/ssh.rkt")
 
        (tamer-taming-start)
 
