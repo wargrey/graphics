@@ -5,8 +5,6 @@
 (require (for-syntax racket/string))
 (require (for-syntax racket/syntax))
 
-(define on-error-do : (Parameter (-> Any)) (make-parameter void))
-
 (define-syntax (#%full-module stx)
   #'(let ([rmp (variable-reference->resolved-module-path (#%variable-reference))])
       (resolved-module-path-name (cast rmp Resolved-Module-Path))))
@@ -26,29 +24,34 @@
 
 (define-syntax (throw stx)
   (syntax-case stx []
-    [(_ [st-id st-argl ...] msgfmt fmtargl ...)
+    [(_ [st-id st-argl ...] message)
      #'(let* ([px.this (regexp (regexp-quote (path->string (#%file))))]
-              [ccm (current-continuation-marks)]
-              [logger (current-logger)])
-         (define msg (format (string-append "~a: " msgfmt)
-                             (let find-first-named-function-in ([stack (continuation-mark-set->context ccm)])
+              [ccm (current-continuation-marks)])
+         (define msg (~a (let find-first-named-function-in ([stack (continuation-mark-set->context ccm)])
                                (or (and (regexp-match? px.this (~a (cdar stack))) (caar stack))
                                    (find-first-named-function-in (cdr stack))))
-                             fmtargl ...))
+                         #\: #\space message))
          (define e (st-id msg ccm st-argl ...))
-         ((on-error-do))
-         (log-message logger 'debug (logger-name logger) msg e)
+         (log-message (current-logger) 'debug #false msg e)
          (raise e))]
+    [(_ [st-id st-argl ...] msgfmt fmtargl ...)
+     #'(throw [st-id st-argl ...] (format msgfmt fmtargl ...))]
+    [(_ st-id message)
+     #'(throw [st-id] message)]
     [(_ st-id msgfmt message ...)
-     #'(throw [st-id] msgfmt message ...)]))
+     #'(throw [st-id] (format msgfmt message ...))]))
 
 (define-syntax (rethrow stx)
   (syntax-case stx []
-    [(_ [st-id st-argl ...] fmt argl ...)
+    [(_ [st-id st-argl ...] message)
      #'(lambda [[src : exn]]
-         (throw [st-id st-argl ...] "~a: ~a" (format fmt argl ...) (exn-message src)))]
+         (throw [st-id st-argl ...] (~a message #\: #\space (exn-message src))))]
+    [(_ [st-id st-argl ...] fmt argl ...)
+     #'(rethrow [st-id st-argl ...] (format fmt argl ...))]
+    [(_ st-id fmt message)
+     #'(rethrow [st-id] message)]
     [(_ st-id fmt argl ...)
-     #'(rethrow [st-id] fmt argl ...)]))
+     #'(rethrow [st-id] (format fmt argl ...))]))
 
 (define-syntax (defconsts stx)
   (syntax-case stx [:]

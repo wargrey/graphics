@@ -25,6 +25,8 @@ This is an implementation of @deftech{@hyperlink["https://en.wikipedia.org/wiki/
 
        |<sshmon:*>|]
 
+@tamer-action[(hello-ssh/handshake "gyoudmon.org")]
+
 @handbook-scenario{The Transport Layer Protocol}
 
 @deftech[#:key "SSH-TRANS"]{@hyperlink["https://tools.ietf.org/html/rfc4253"]{The Transport Layer Protocol}}
@@ -127,4 +129,12 @@ The SSH client requests a server-side port to be forwarded using a global reques
            )
          
          (define-tamer-suite ssh-connection "The Connection Protocol"
-           ))]
+           )
+
+         (define (hello-ssh/handshake host)
+           (define (trace level message attachment session)
+             (if (exn? attachment)
+                 (fprintf (current-error-port) "[~a] ~a~n" level (exn-message attachment))
+                 (fprintf (current-output-port) "[~a] ~a~n" level message)))
+           (define ssh-client (new ssh-session% [host "gyoudmon.org"] [port 22] [on-debug trace]))
+           (send ssh-client collapse "demonstration done" 'SSH_DISCONNECT_BY_APPLICATION)))]
