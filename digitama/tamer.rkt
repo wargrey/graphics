@@ -18,6 +18,7 @@
 (require (for-syntax syntax/parse))
 
 @require{digicore.rkt}
+@require{emoji.rkt}
 
 (define tamer-zone (make-parameter #false))
 
@@ -411,6 +412,7 @@
   (require scribble/manual)
 
   (require "digicore.rkt")
+  (require "emoji.rkt")
   
   (provide (all-defined-out) quote-module-path)
 
