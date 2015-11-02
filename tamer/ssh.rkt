@@ -132,9 +132,9 @@ The SSH client requests a server-side port to be forwarded using a global reques
            )
 
          (define (hello-ssh/handshake host)
-           (define (trace level message attachment session)
-             (if (exn? attachment)
-                 (fprintf (current-error-port) "[~a] ~a~n" level (exn-message attachment))
+           (define (trace level message extra session)
+             (if (exn? extra)
+                 (fprintf (current-error-port) "[~a] ~a~n" level (exn-message extra))
                  (fprintf (current-output-port) "[~a] ~a~n" level message)))
            (define ssh-client (new ssh-session% [host "gyoudmon.org"] [port 22] [on-debug trace]))
            (send ssh-client collapse "demonstration done" 'SSH_DISCONNECT_BY_APPLICATION)))]

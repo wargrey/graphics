@@ -17,6 +17,7 @@
 (require "syntax.rkt")
 
 (require/typed racket/base
+               [string-port? (-> Port Boolean)]
                [port-progress-evt (-> Input-Port (Option (-> (Evtof Input-Port))))])
 
 (define ssh-custodian : Custodian (make-custodian))
@@ -209,21 +210,20 @@
 
     (define topic : Symbol (string->symbol (format "#<~a:~a:~a>" (object-name this) host port)))
     (define sshlog : Logger (make-logger topic #false))
-    (define-syntax (log-ssh stx)
-      (syntax-case stx []
-        [(_ level message)
-         #'(log-message (current-logger) level #false message (current-continuation-marks))]
-        [(_ level fmt argl ...)
-         #'(log-ssh level (format fmt argl ...))]))
+
+    (define log-ssh : (-> Log-Level String [#:extra Any] Any * Void)
+      (lambda [level #:extra [extra (current-continuation-marks)] maybe-fmt . argl]
+        (log-message sshlog level #false (if (null? argl) maybe-fmt (apply format maybe-fmt argl)) extra)))
+    
     (define logging : Thread
       (parameterize ([current-custodian ssh-custodian])
         (thread (thunk (let sync-match-trigger-loop ([event (make-log-receiver sshlog 'debug)])
                          (match (sync/timeout/enable-break 0.1 event)
                            [(? false?) (sync-match-trigger-loop event)]
-                           [(vector level message (and bandata (cons (? eof-object?) _)) _)
-                            (on-debug level message bandata topic)]
-                           [(vector level message bandata _)
-                            (void (on-debug level message bandata topic)
+                           [(vector level message (and extra (vector 'SSH_MSG_DISCONNECT _)) _)
+                            (on-debug level message extra topic)]
+                           [(vector level message extra _)
+                            (void (on-debug level message extra topic)
                                   (sync-match-trigger-loop event))]))))))
 
     (define hostname : String host)
@@ -233,17 +233,17 @@
     (define/public session-name (lambda [] topic))
     
     ;;; WARNING: (define-values) and (match-define) annoy typed racket here
-    (define /dev/sshin  : Input-Port  (current-input-port))
-    (define /dev/sshout : Output-Port (current-output-port))
+    (define /dev/sshin  : Input-Port  (open-input-bytes #""))
+    (define /dev/sshout : Output-Port (open-output-nowhere))
     ;;; End WARNING
 
     (define cipher-blocksize : Byte 0)
     (define message-authsize : Byte 0)
     (define compression : SSH-Algorithm/Compression 'none)
 
-    (with-handlers ([exn:ssh:eof? (lambda [[e : exn:ssh:eof]] (raise (and (collapse (exn-message e) (exn:ssh:eof-reason e)) e)))])
-      (parameterize ([current-logger sshlog]
-                     [current-custodian watchcat])
+    (with-handlers ([exn:ssh:eof? (lambda [[e : exn:ssh:eof]] (raise (and (collapse (exn-message e) (exn:ssh:eof-reason e)) e)))]
+                    [exn? (lambda [[e : exn]] (raise (and (collapse (exn-message e)) e)))])
+      (parameterize ([current-custodian watchcat])
         ;; initializing and handshaking
         (define-values (tcpin tcpout) ((if breakable? tcp-connect/enable-break tcp-connect) hostname portno))
         (define rfc-banner : String (~a banner #:max-width 253))
@@ -259,14 +259,14 @@
         (unless (sync/timeout/enable-break 1.618 tcpin)
           (throw [exn:ssh:eof 'SSH_DISCONNECT_CONNECTION_LOST] "fail to get identification: timed out"))
         
-        (let check-identification : Void ()
+        (let handshake : Void ()
           (define line : (U String EOF) (read-line tcpin 'linefeed))
           (cond [(eof-object? line)
                  (throw [exn:ssh:eof 'SSH_DISCONNECT_CONNECTION_LOST] "did not receive identification string from ~a" hostname)]
                 [(false? (regexp-match? #px"^SSH-" line))
                  ; TODO: RFC says control chars should be filtered
                  (log-ssh 'debug (string-trim line))
-                 (check-identification)]
+                 (handshake)]
                 [else (match-let ([(list-rest _ protoversion softwareversion comments) (string-split line #px"-|\\s")])
                         (set!-values (/dev/sshin /dev/sshout) (make-/dev/sshio tcpin tcpout))
                         (unless (member protoversion (list "1.99" "2.0"))
@@ -274,31 +274,16 @@
                           ;       and reconnect with the old protocol. It seems that the rules checking
                           ;       compatibility mode is not guaranteed.
                           (throw [exn:ssh:eof 'SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED] "unsupported protocol: ~a" (string-trim line)))
-                        (log-ssh 'debug "received identification: ~a" (string-trim line)))]))
-        
-        
-        ; <http://tools.ietf.org/html/rfc4253#section-7.1>
-        ;(unless (input-port? (sync/timeout 0 /dev/sshin))
-         ; (log-ssh 'debug "we send SSH_MSG_KEXINIT first"))
-      
-        (transport-send 'SSH_MSG_KEXINIT
-                        (call-with-input-string (number->string (current-inexact-milliseconds)) md5-bytes) ; cookie
-                        ssh-algorithms/kex
-                        ssh-algorithms/publickey
-                        ssh-algorithms/cipher #| local |# ssh-algorithms/cipher #| remote |#
-                        ssh-algorithms/mac #| local |# ssh-algorithms/mac #| remote |#
-                        ssh-algorithms/compression #| local |# ssh-algorithms/compression #| remote |#
-                        null #| language local |# null #| language remote |#
-                        #false #| whether a guessed key exchange packet follows |#
-                        (uint32 0) #| reserved, always 0 |#)))
+                        (log-ssh 'debug "received identification: ~a" (string-trim line))
+                        (exchange-key))]))))
     
     (define/public (collapse [description "job done"] [reason 'SSH_DISCONNECT_BY_APPLICATION])
-      (when (and (regexp-match #px"^ssh:" (~a (object-name /dev/sshout))) (not (port-closed? /dev/sshout)))
-        (with-handlers ([exn? (rethrow exn:ssh "failed to send packet SSH_MSG_DISCONNECT")])
-          (transport-send 'SSH_MSG_DISCONNECT (uint32 ($#sd reason)) description "")))
-      (close-input-port /dev/sshin)
-      (close-output-port /dev/sshout)
-      (log-message sshlog 'debug #false description (cons eof reason))
+      (unless (or (string-port? /dev/sshin) (port-closed? /dev/sshout))
+        (with-handlers ([exn? (lambda [[e : exn]] (void 'already 'logged 'by 'transport-send))])
+          (transport-send 'SSH_MSG_DISCONNECT (uint32 ($#sd reason)) description ""))
+        (close-input-port /dev/sshin)
+        (close-output-port /dev/sshout))
+      (log-ssh 'debug description #:extra (vector 'SSH_MSG_DISCONNECT reason))
       (thread-wait logging)
       (custodian-shutdown-all watchcat))
     
@@ -326,19 +311,22 @@
       (define transport-send-packet : (-> Any Boolean Boolean True #| Details see the Racket Reference (make-output-port) |#)
         (lambda [raw always-nonblock-by-me-due-to-disabled-break break-always-disabled-by-racket]
           (define-values (id payload-raw) 
-            (cond [(false? (packet? raw)) (values ($#sm 'SSH_MSG_IGNORE) (string->bytes/utf-8 (~s raw)))]
-                  [else (values (packet-type raw)
-                                (for/fold ([payload : Bytes (bytes ($#sm (packet-type raw)))])
-                                          ([content : SSH-DataType (in-list (packet-payloads raw))])
-                                  (bytes-append payload (match content
-                                                          [(? byte? b) (bytes b)]
-                                                          [(? bytes? bstr) bstr]
-                                                          [(? boolean? b) (ssh-boolean->bytes b)]
-                                                          [(uint32 fx) (ssh-uint32->bytes fx)]
-                                                          [(uint64 n) (ssh-uint64->bytes n)]
-                                                          [(? string? str) (ssh-string->bytes str)]
-                                                          [(? exact-integer? mpi) (ssh-mpint->bytes mpi)]
-                                                          [(? list?) (ssh-namelist->bytes (cast content (Listof Symbol)))]))))]))
+            (if (false? (packet? raw))
+                (values 'SSH_MSG_IGNORE
+                        (bytes-append (bytes ($#sm 'SSH_MSG_IGNORE))
+                                      (string->bytes/utf-8 (~s raw))))
+                (values (packet-type raw)
+                        (for/fold ([payload : Bytes (bytes ($#sm (packet-type raw)))])
+                                  ([content : SSH-DataType (in-list (packet-payloads raw))])
+                          (bytes-append payload (match content
+                                                  [(? byte? b) (bytes b)]
+                                                  [(? bytes? bstr) bstr]
+                                                  [(? boolean? b) (ssh-boolean->bytes b)]
+                                                  [(uint32 fx) (ssh-uint32->bytes fx)]
+                                                  [(uint64 n) (ssh-uint64->bytes n)]
+                                                  [(? string? str) (ssh-string->bytes str)]
+                                                  [(? exact-integer? mpi) (ssh-mpint->bytes mpi)]
+                                                  [(? list?) (ssh-namelist->bytes (cast content (Listof Symbol)))]))))))
         
           (when (> (bytes-length payload-raw) 32768)
             (throw exn:ssh "packet is too large to send."))
@@ -365,10 +353,11 @@
           (with-handlers ([exn? (rethrow exn:ssh "failed to send packet ~a" id)])
             (define packet : Bytes (bytes-append (ssh-uint32->bytes packet-length) (bytes padding-length) payload random-padding mac))
             (define total : Index (bytes-length packet))
-            (log-ssh 'info "sending ~a of ~a bytes (+ 4 1 ~a ~a ~a)" id total payload-length padding-length message-authsize)
+            (log-ssh 'debug "sending ~a of ~a bytes (+ 4 1 ~a ~a ~a)" id total payload-length padding-length message-authsize)
             (define sent : (Option Index) (write-bytes-avail* packet tcpout 0 total))
             (cond [(false? sent) (throw exn:ssh:again "network is busy")]
-                  [else (log-ssh 'info "sent ~a: ~a bytes, ~a% done" id sent (~r (* 100 (/ sent total)) #:precision '(= 2)))]))
+                  [else (log-ssh 'info #:extra (vector id sent total)
+                                 "sent ~a: ~a bytes, ~a% done" id sent (~r (* 100 (/ sent total)) #:precision '(= 2)))]))
           #true))
 
       (values (make-input-port (string->symbol (format "ssh:~a" hostname))
@@ -379,6 +368,22 @@
                                 tcpout (thunk (tcp-abandon-port tcpout))
                                 transport-send-packet)))
 
+    (define/private (exchange-key) : Void
+      ; <http://tools.ietf.org/html/rfc4253#section-7.1>
+      ;(unless (input-port? (sync/timeout 0 /dev/sshin))
+      ; (log-ssh 'debug "we send SSH_MSG_KEXINIT first"))
+        
+      (transport-send 'SSH_MSG_KEXINIT
+                      (call-with-input-string (number->string (current-inexact-milliseconds)) md5-bytes) ; cookie
+                      ssh-algorithms/kex
+                      ssh-algorithms/publickey
+                      ssh-algorithms/cipher #| local |# ssh-algorithms/cipher #| remote |#
+                      ssh-algorithms/mac #| local |# ssh-algorithms/mac #| remote |#
+                      ssh-algorithms/compression #| local |# ssh-algorithms/compression #| remote |#
+                      null #| language local |# null #| language remote |#
+                      #false #| whether a guessed key exchange packet follows |#
+                      (uint32 0) #| reserved, always 0 |#))
+      
     (define/private (transport-send [id : SSH-Message-Type] . [payloads : SSH-DataType *]) : Void
       (void (write-special (packet id payloads) /dev/sshout)))))
 
@@ -386,9 +391,9 @@
   (require (submod ".."))
 
   (define show-debuginfo
-    (lambda [level message bandata session]
-      (if (exn? bandata)
-          (fprintf (current-error-port) "[~a] ~a: ~a~n" (object-name bandata) session (exn-message bandata))
+    (lambda [level message extra session]
+      (if (exn? extra)
+          (fprintf (current-error-port) "[~a] ~a: ~a~n" (object-name extra) session (exn-message extra))
           (fprintf (current-output-port) "[~a] ~a: ~a~n" level session message))))
   
   (for ([host (in-list (list "localhost" "gyoudmon.org"))])

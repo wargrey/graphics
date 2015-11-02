@@ -26,14 +26,12 @@
   (syntax-case stx []
     [(_ [st-id st-argl ...] message)
      #'(let* ([px.this (regexp (regexp-quote (path->string (#%file))))]
-              [ccm (current-continuation-marks)])
-         (define msg (~a (let find-first-named-function-in ([stack (continuation-mark-set->context ccm)])
-                               (or (and (regexp-match? px.this (~a (cdar stack))) (caar stack))
-                                   (find-first-named-function-in (cdr stack))))
-                         #\: #\space message))
-         (define e (st-id msg ccm st-argl ...))
-         (log-message (current-logger) 'debug #false msg e)
-         (raise e))]
+              [ccm (current-continuation-marks)]
+              [msg (~a (let find-first-named-function-in ([stack (continuation-mark-set->context ccm)])
+                         (or (and (regexp-match? px.this (~a (cdar stack))) (caar stack))
+                             (find-first-named-function-in (cdr stack))))
+                       #\: #\space message)])
+         (raise (st-id msg ccm st-argl ...)))]
     [(_ [st-id st-argl ...] msgfmt fmtargl ...)
      #'(throw [st-id st-argl ...] (format msgfmt fmtargl ...))]
     [(_ st-id message)
