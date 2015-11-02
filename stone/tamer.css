@@ -6,31 +6,31 @@ a.RktValDef, a.RktValLink, a.RktStxDef, a.RktStxLink, a.RktSymDef,
 span.RktValDef, span.RktValLink, span.RktStxDef, span.RktStxLink,
 span.RktSymDef, span.RktSym, span.RktVal, span.RktPn,
 span.stt, span.hspace {
- 	font-family: 'Courier', monospace;
-	font-size: small; /* 0.84rem */
+    font-family: 'Courier', monospace;
+    font-size: small; /* 0.84rem */
 }
 
 a.plainlink {
-	font-size: small;
+    font-size: small;
 }
 
 
 a.RktCmt, a.RktOut, a.RktErr, a.RktRes
 span.RktCmt, span.RktOut, span.RktErr, span.RktRes {
- 	font-size: 0.90rem;
+    font-size: 0.90rem;
 }
 
 blockquote.SCodeFlow {
-	padding-left: 0.64rem;
-        white-space: nowrap;
-	line-height: 1.5;
-	overflow-x: scroll;
+    padding-left: 0.64rem;
+    white-space: nowrap;
+    line-height: 1.5;
+    overflow-x: scroll;
 }
 
 .GYDMComment {
     color: #666666;
-	font-size: small;
-	padding-left: 0.84rem;
+    font-size: small;
+    padding-left: 0.84rem;
     background-color: #d3d3d3;
     background: -moz-linear-gradient(#d3d3d3, #d3d3d3);
     background: -webkit-linear-gradient(#d3d3d3, #d3d3d3);
@@ -41,8 +41,8 @@ blockquote.SCodeFlow {
 /* These come from Github */
 .GYDMWarning {
     color: #613A00;
-	font-size: smaller;
-	padding-left: 0.84rem;
+    font-size: smaller;
+    padding-left: 0.84rem;
     background-color: #ffe3c8;
     background: -moz-linear-gradient(#ffe3c8, #f5dac0);
     background: -webkit-linear-gradient(#ffe3c8, #f5dac0);
@@ -52,11 +52,12 @@ blockquote.SCodeFlow {
 
 .GYDMError {
     color: #9c2400;
-	font-size: larger;
-	padding-left: 0.84rem;
+    font-size: larger;
+    padding-left: 0.84rem;
     background-color: #f8d8d8;
     background: -moz-linear-gradient(#f8d8d8, #efd0d0);
     background: -webkit-linear-gradient(#f8d8d8, #efd0d0);
     -ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr='#f8d8d8', endColorstr='#efd0d0')";
     border: 1px solid #da9797
 }
+
