@@ -1,8 +1,8 @@
-#lang typed/racket
+#lang at-exp typed/racket
 
 (provide (all-defined-out))
 
-(require "syntax.rkt")
+@require{syntax.rkt}
 
 (defconsts : Char
   [house-garden# #\U1F3E1]
