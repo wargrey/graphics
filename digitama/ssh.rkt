@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang at-exp typed/racket
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://tools.ietf.org/html/rfc4250, The Secure Shell Protocol Assigned Numbers              ;;;
@@ -14,7 +14,7 @@
 
 (require typed/openssl/md5)
 
-(require "syntax.rkt")
+@require{syntax.rkt}
 
 (require/typed racket/base
                [string-port? (-> Port Boolean)]

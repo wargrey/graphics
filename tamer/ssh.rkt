@@ -19,23 +19,13 @@ This is an implementation of @deftech{@hyperlink["https://en.wikipedia.org/wiki/
 
 @chunk[|<sshmon taming start>|
        (require "tamer.rkt")
-       (require "../digitama/ssh.rkt")
+       @require{../digitama/ssh.rkt}
 
        (tamer-taming-start)
 
        |<sshmon:*>|]
 
-@tamer-action[(hello-ssh/handshake "gyoudmon.org")]
-
-@handbook-scenario{The Transport Layer Protocol}
-
-@deftech[#:key "SSH-TRANS"]{@hyperlink["https://tools.ietf.org/html/rfc4253"]{The Transport Layer Protocol}}
-provides a confidential channel over an insecure network.
-It performs server host authentication, key exchange, encryption, and integrity protection.
-It also derives a unique session id that may be used by higher-level protocols
-such as @itech{SSH-USERAUTH} and @itech{SSH-CONNECT}.
-
-@subsection{Datatype Representations}
+@handbook-scenario{Datatype Representations}
 
 The primitive datatypes are defined in @hyperlink["http://tools.ietf.org/html/rfc4251#section-5"]{RFC 4251}.
 
@@ -68,6 +58,16 @@ The primitive datatypes are defined in @hyperlink["http://tools.ietf.org/html/rf
               ['()          => [0x00 0x00 0x00 0x00] "empty list"]
               ['(zlib)      => [0x00 0x00 0x00 0x04 0x7a 0x6c 0x69 0x62] "one element list is just an ascii string"]
               ['(zlib none) => [0x00 0x00 0x00 0x09 0x7a 0x6c 0x69 0x62 0x2c 0x6e 0x6f 0x6e 0x65] "comma-separated list"])]
+
+@handbook-scenario{The Transport Layer Protocol}
+
+@deftech[#:key "SSH-TRANS"]{@hyperlink["https://tools.ietf.org/html/rfc4253"]{The Transport Layer Protocol}}
+provides a confidential channel over an insecure network.
+It performs server host authentication, key exchange, encryption, and integrity protection.
+It also derives a unique session id that may be used by higher-level protocols
+such as @itech{SSH-USERAUTH} and @itech{SSH-CONNECT}.
+
+@tamer-action[(hello-ssh/handshake "gyoudmon.org")]
 
 @handbook-scenario{The User Authentication Protocol}
 

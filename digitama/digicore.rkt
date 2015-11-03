@@ -5,7 +5,7 @@
 
 (require (for-syntax racket/syntax))
 
-(require "syntax.rkt")
+@require{syntax.rkt}
 
 (define-type Info-Ref (->* [Symbol] [(-> Any)] Any))
 (define-type Term-Color (Option (U String Symbol Byte)))
