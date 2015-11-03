@@ -51,12 +51,6 @@
     [(_ st-id fmt argl ...)
      #'(rethrow [st-id] (format fmt argl ...))]))
 
-(define-syntax (defconsts stx)
-  (syntax-case stx [:]
-    [(_ : Type [id val] ...)
-     #'(begin (define id : Type val)
-              ...)]))
-
 (define-syntax (define-type/enum stx)
   (syntax-case stx [: quote]
     [(_ id : TypeU (quote enum) ...)
@@ -69,25 +63,27 @@
 
 (define-syntax (define-type/consts stx)
   (syntax-case stx [: of as]
-    [(_ cs : TypeU of Type (enum val comments ...) ...)
+    [(_ cs : TypeU of Type (const val comments ...) ...)
      (with-syntax ([$%cs (format-id #'cs "$%~a" (syntax-e #'cs))]
                    [$#cs (format-id #'cs "$#~a" (syntax-e #'cs))])
-       #'(begin (define-type TypeU (U 'enum ...))
+       #'(begin (define-type TypeU (U 'const ...))
                 (define $#cs : (-> TypeU Type)
-                  (let ([cs : (HashTable TypeU Type) ((inst make-immutable-hasheq TypeU Type) (list (cons 'enum val) ...))])
+                  (let ([cs : (HashTable TypeU Type) ((inst make-immutable-hasheq TypeU Type) (list (cons 'const val) ...))])
                     (lambda [sym] ((inst hash-ref TypeU Type Type) cs sym))))
                 (define $%cs : (-> Type TypeU)
-                  (let ([cs : (HashTable Type TypeU) ((inst make-immutable-hash Type TypeU) (list (cons val 'enum) ...))])
+                  (let ([cs : (HashTable Type TypeU) ((inst make-immutable-hasheq Type TypeU) (list (cons val 'const) ...))])
                     (lambda [v] ((inst hash-ref Type TypeU TypeU) cs v))))))]
-    [(_ cs : TypeU of Type as parent (enum val ([field : SSH-Datatype] ...)) ...)
-     (with-syntax ([$:cs (format-id #'cs "$:~a" (syntax-e #'cs))])
-       #'(begin (define-type/consts cs : TypeU of Type (enum val) ...)
+    [(_ cs : TypeU of Type as parent (const val ([field : DataType] ...)) ...)
+     (with-syntax ([$:cs (format-id #'cs "$:~a" (syntax-e #'cs))]
+                   [(structured ...) (for/list ([s (in-list (syntax->list #'(const ...)))])
+                                       (format-id s "~a" (string-downcase (string-replace (symbol->string (syntax-e s)) #px"[_-]" ":"))))])
+       #'(begin (define-type/consts cs : TypeU of Type (structured val) ... (const val) ...)
                 (struct parent () #:prefab)
-                (struct enum parent ([field : SSH-Datatype] ...) #:prefab) ...
+                (struct structured parent ([field : DataType] ...) #:prefab) ...
                 (define $:cs : (-> TypeU (Listof (U Symbol (Listof Symbol))))
                   (let ([cs : (HashTable TypeU (Listof (U Symbol (Listof Symbol))))
                          ((inst make-immutable-hasheq TypeU (Listof (U Symbol (Listof Symbol))))
-                          (list (cons 'enum (list 'SSH-Datatype ...)) ...))])
+                          (list (cons 'const (list 'DataType ...)) ...))])
                     (lambda [sym] ((inst hash-ref TypeU (Listof (U Symbol (Listof Symbol))) (Listof (U Symbol (Listof Symbol))))
                                    cs sym))))))]))
 

@@ -2,7 +2,7 @@
 
 (provide (all-defined-out) tamer-story skip todo)
 
-(provide (all-from-out racket "digicore.rkt" rackunit))
+(provide (all-from-out racket "digicore.rkt" "emoji.rkt" rackunit))
 (provide (all-from-out scribble/manual scribble/eval scribble/html-properties))
 
 (require rackunit)
