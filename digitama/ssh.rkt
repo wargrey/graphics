@@ -29,33 +29,48 @@
 (define-type/enum ssh-protocols : SSH-Protocol 2.0)
 
 ;;; Message Constants <http://tools.ietf.org/html/rfc4250#section-4.1>
-(define-type/consts sm : SSH-Message-Type of Byte 
-  [SSH_MSG_DISCONNECT                       1     [SSH-TRANS]]
-  [SSH_MSG_IGNORE                           2     [SSH-TRANS]]
-  [SSH_MSG_UNIMPLEMENTED                    3     [SSH-TRANS]]
-  [SSH_MSG_DEBUG                            4     [SSH-TRANS]]
-  [SSH_MSG_SERVICE_REQUEST                  5     [SSH-TRANS]]
-  [SSH_MSG_SERVICE_ACCEPT                   6     [SSH-TRANS]]
-  [SSH_MSG_KEXINIT                         20     [SSH-TRANS]]
-  [SSH_MSG_NEWKEYS                         21     [SSH-TRANS]]
-  [SSH_MSG_USERAUTH_REQUEST                50     [SSH-USERAUTH]]
-  [SSH_MSG_USERAUTH_FAILURE                51     [SSH-USERAUTH]]
-  [SSH_MSG_USERAUTH_SUCCESS                52     [SSH-USERAUTH]]
-  [SSH_MSG_USERAUTH_BANNER                 53     [SSH-USERAUTH]]
-  [SSH_MSG_GLOBAL_REQUEST                  80     [SSH-CONNECT]]
-  [SSH_MSG_REQUEST_SUCCESS                 81     [SSH-CONNECT]]
-  [SSH_MSG_REQUEST_FAILURE                 82     [SSH-CONNECT]]
-  [SSH_MSG_CHANNEL_OPEN                    90     [SSH-CONNECT]]
-  [SSH_MSG_CHANNEL_OPEN_CONFIRMATION       91     [SSH-CONNECT]]
-  [SSH_MSG_CHANNEL_OPEN_FAILURE            92     [SSH-CONNECT]]
-  [SSH_MSG_CHANNEL_WINDOW_ADJUST           93     [SSH-CONNECT]]
-  [SSH_MSG_CHANNEL_DATA                    94     [SSH-CONNECT]]
-  [SSH_MSG_CHANNEL_EXTENDED_DATA           95     [SSH-CONNECT]]
-  [SSH_MSG_CHANNEL_EOF                     96     [SSH-CONNECT]]
-  [SSH_MSG_CHANNEL_CLOSE                   97     [SSH-CONNECT]]
-  [SSH_MSG_CHANNEL_REQUEST                 98     [SSH-CONNECT]]
-  [SSH_MSG_CHANNEL_SUCCESS                 99     [SSH-CONNECT]]
-  [SSH_MSG_CHANNEL_FAILURE                100     [SSH-CONNECT]])
+(define-type/consts sm : SSH-Message-Type of Byte as packet:ssh
+  ; for http://tools.ietf.org/html/rfc4253
+  [SSH_MSG_DISCONNECT                 1 ([reason : uint32] [description : String] [language : String])]
+  [SSH_MSG_IGNORE                     2 ([data : String])]
+  [SSH_MSG_UNIMPLEMENTED              3 ([seq : uint32])]
+  [SSH_MSG_DEBUG                      4 ([display? : Boolean] [message : String] [language : String])]
+  [SSH_MSG_SERVICE_REQUEST            5 ([name : Symbol])]
+  [SSH_MSG_SERVICE_ACCEPT             6 ([name : Symbol])]
+  [SSH_MSG_KEXINIT                   20 ([cookie : Bytes]
+                                         [kex : (Listof SSH-Algorithm/Kex)]
+                                         [publickey : (Listof SSH-Algorithm/Publickey)]
+                                         [cipher/local : (Listof SSH-Algorithm/Cipher)]
+                                         [cipher/remote : (Listof SSH-Algorithm/Cipher)]
+                                         [mac/local : (Listof SSH-Algorithm/MAC)]
+                                         [mac/remote : (Listof SSH-Algorithm/MAC)]
+                                         [compression/local : (Listof SSH-Algorithm/Compression)]
+                                         [compression/remote : (Listof SSH-Algorithm/Compression)]
+                                         [language/local : (Listof Symbol)]
+                                         [language/remote : (Listof Symbol)]
+                                         [guessing-follow? : Boolean]
+                                         [reserved/zero : uint32])]
+  [SSH_MSG_NEWKEYS                   21 ()]
+  ; for http://tools.ietf.org/html/rfc4252
+  [SSH_MSG_USERAUTH_REQUEST          50 ([username : Symbol] [service : Symbol] [method : Symbol] [extra : Bytes])]
+  [SSH_MSG_USERAUTH_FAILURE          51 ([methods : (Listof Symbol)] [partially? : Boolean])]
+  [SSH_MSG_USERAUTH_SUCCESS          52 ()]
+  [SSH_MSG_USERAUTH_BANNER           53 ([message : String] [language : String])]
+  ; for http://tools.ietf.org/html/rfc4254
+  [SSH_MSG_GLOBAL_REQUEST            80 ([name : Symbol] [replay? : Boolean] [extra : Bytes])]
+  [SSH_MSG_REQUEST_SUCCESS           81 ([extra : Bytes])]
+  [SSH_MSG_REQUEST_FAILURE           82 ()]
+  [SSH_MSG_CHANNEL_OPEN              90 ([type : Symbol] [partner : uint32] [window-size : uint32] [packet-upsize : uint32] [extra : Bytes])]
+  [SSH_MSG_CHANNEL_OPEN_CONFIRMATION 91 ([channel : uint32] [partner : uint32] [window-size : uint32] [packet-upsize : uint32]  [extra : Bytes])]
+  [SSH_MSG_CHANNEL_OPEN_FAILURE      92 ([channel : uint32] [reason : uint32] [descripion : String] [language : String])]
+  [SSH_MSG_CHANNEL_WINDOW_ADJUST     93 ([channel : uint32] [size : uint32])]
+  [SSH_MSG_CHANNEL_DATA              94 ([channel : uint32] [data : String])]
+  [SSH_MSG_CHANNEL_EXTENDED_DATA     95 ([channel : uint32] [type : uint32] [data : String])]
+  [SSH_MSG_CHANNEL_EOF               96 ([channel : uint32])]
+  [SSH_MSG_CHANNEL_CLOSE             97 ([channel : uint32])]
+  [SSH_MSG_CHANNEL_REQUEST           98 ([channel : uint32] [type : Symbol] [reply? : Boolean] [extra : Bytes])]
+  [SSH_MSG_CHANNEL_SUCCESS           99 ([channel : uint32])]
+  [SSH_MSG_CHANNEL_FAILURE          100 ([channel : uint32])])
 
 (define-type/consts sd : SSH-Disconnection-Reason of Nonnegative-Fixnum 
   [SSH_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT          1]
@@ -74,12 +89,18 @@
   [SSH_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE      14]
   [SSH_DISCONNECT_ILLEGAL_USER_NAME                   15])
 
-;;; SSH Datatype Representations <http://tools.ietf.org/html/rfc4251#section-5>
-(define-type SSH-DataType (U Boolean Byte Bytes uint32 uint64 String Integer (Listof Symbol)))
+(define-type/consts sc : SSH-Channel-Failure-Reason of Nonnegative-Fixnum 
+  [SSH_OPEN_ADMINISTRATIVELY_PROHIBITED                1]
+  [SSH_OPEN_CONNECT_FAILED                             2]
+  [SSH_OPEN_UNKNOWN_CHANNEL_TYPE                       3]
+  [SSH_OPEN_RESOURCE_SHORTAGE                          4])
 
+(define-type/consts se : SSH-Channel-Data-Type of Nonnegative-Fixnum 
+  [SSH_EXTENDED_DATA_STDERR                            1])
+
+;;; SSH Datatype Representations <http://tools.ietf.org/html/rfc4251#section-5>
 (struct uint32 ([ref : Nonnegative-Fixnum]) #:mutable #:prefab)
 (struct uint64 ([ref : Natural]) #:mutable #:prefab)
-(struct packet ([type : SSH-Message-Type] [payloads : (Listof SSH-DataType)]))
 
 (define ssh-boolean->bytes : (-> Any Bytes)
   (lambda [bool]
@@ -113,6 +134,15 @@
 (define ssh-bytes->string : (-> Bytes [#:offset Index] String)
   (lambda [butf8 #:offset [offset 0]]
     (bytes->string/utf-8 butf8 #false (+ offset 4) (+ offset 4 (ssh-bytes->uint32 butf8 #:offset offset)))))
+
+(define ssh-symbol->bytes : (-> Symbol Bytes)
+  (lambda [sym]
+    (define ascii : String (symbol->string sym))
+    (bytes-append (ssh-uint32->bytes (string-length ascii)) (string->bytes/utf-8 ascii))))
+
+(define ssh-bytes->symbol : (-> Bytes [#:offset Index] Symbol)
+  (lambda [bascii #:offset [offset 0]]
+    (string->symbol (ssh-bytes->string bascii #:offset offset))))
 
 (define ssh-mpint->bytes : (-> Integer Bytes)
   (lambda [mpi]
@@ -214,6 +244,12 @@
     (define log-ssh : (-> Log-Level String [#:extra Any] Any * Void)
       (lambda [level #:extra [extra (current-continuation-marks)] maybe-fmt . argl]
         (log-message sshlog level #false (if (null? argl) maybe-fmt (apply format maybe-fmt argl)) extra)))
+
+    (define-syntax (throw/log stx)
+      (syntax-case stx []
+        [(_ argl ...)
+         #'(with-handlers ([exn? (lambda [[e : exn]] (raise (and (log-ssh 'debug (exn-message e)) e)))])
+             (throw argl ...))]))
     
     (define logging : Thread
       (parameterize ([current-custodian ssh-custodian])
@@ -280,7 +316,7 @@
     (define/public (collapse [description "job done"] [reason 'SSH_DISCONNECT_BY_APPLICATION])
       (unless (or (string-port? /dev/sshin) (port-closed? /dev/sshout))
         (with-handlers ([exn? (lambda [[e : exn]] (void 'already 'logged 'by 'transport-send))])
-          (transport-send 'SSH_MSG_DISCONNECT (uint32 ($#sd reason)) description ""))
+          (transport-send (SSH_MSG_DISCONNECT (uint32 ($#sd reason)) description "")))
         (close-input-port /dev/sshin)
         (close-output-port /dev/sshout))
       (log-ssh 'debug description #:extra (vector 'SSH_MSG_DISCONNECT reason))
@@ -288,7 +324,9 @@
       (custodian-shutdown-all watchcat))
     
     (define/private (make-/dev/sshio [tcpin : Input-Port] [tcpout : Output-Port]) : (Values Input-Port Output-Port)
-      (define largest-packet-buffer : Bytes (make-bytes 35000))
+      (define largest-size : Positive-Integer 35000)
+      (define largest-packet-buffer : Bytes (make-bytes largest-size))
+      (define packet-queue : (Listof Bytes) null)
 
       ; http://tools.ietf.org/html/rfc4253#section-6
       #| uint32    packet_length  (the next 3 fields)               -
@@ -298,33 +336,53 @@
          byte[m]   mac (Message Authentication Code - MAC); m = mac_length |#
       (define transport-recv-packet : (-> Bytes (U Nonnegative-Integer EOF Procedure))
         (lambda [userland] ;;; WARNING: This is not thread safe!
-          ; SSH will never return EOF in normal case, API clients should catch the exception on their own.
-          (with-handlers ([(curry eq? 'exn:ssh:again) (const 0)]) 
+          (define (transport-read-packet-block [start : Index] [size : Positive-Integer]) : Nonnegative-Integer
+            ; SSH will never return EOF in normal case, API clients should catch the exception on their own.
+            (define read (read-bytes-avail!* largest-packet-buffer tcpin start size))
+            (cond [(eof-object? read) (throw [exn:ssh:eof 'SSH_DISCONNECT_CONNECTION_LOST] "connection closed by ~a" hostname)]
+                  [(procedure? read) (throw exn:ssh:again "special value cannot be here!")]
+                  [(zero? read) (throw exn:ssh:again "more bytes is required!")]
+                  [else read]))
+
+          (define (transport-recv-as-special [valid-size : Any]) : (U Zero Procedure)
+            0)
+          
+          (with-handlers ([exn:ssh:again? transport-recv-as-special]) 
             (define packet-length : Natural
-              (let ([read (read-bytes-avail!* largest-packet-buffer tcpin 0 (max cipher-blocksize 4))])
-                (cond [(eof-object? read) (throw [exn:ssh:eof 'SSH_DISCONNECT_CONNECTION_LOST] "connection closed by ~a" hostname)]
-                      [(procedure? read) (throw exn:ssh "special value cannot be here!")]
-                      [(zero? read) (throw exn:ssh:again "no message is on boat!")]
-                      [else (ssh-bytes->uint32 largest-packet-buffer)])))
-              packet-length)))
+              (let ([read (transport-read-packet-block 0 (max cipher-blocksize 4))])
+                (ssh-bytes->uint32 largest-packet-buffer)))
+
+            (cond [(> packet-length (- largest-size 4 message-authsize))
+                   (let attack>>/dev/null ([total 0])
+                     (define read (read-bytes-avail!* largest-packet-buffer tcpin))
+                     (cond [(eof-object? read) (throw/log [exn:ssh:eof 'SSH_DISCONNECT_CONNECTION_LOST] "attack is over, ~a bytes in total" total)]
+                           [(procedure? read) (attack>>/dev/null total)]
+                           [(zero? read) (throw/log exn:ssh:again "attack has been defeated, ~a bytes in total" total)]
+                           [else (attack>>/dev/null (+ total read))]))]
+                  [(zero? packet-length) (throw/log exn:ssh:again "ignored a zero length packet")]
+                  [else (transport-read-packet-block 4 (+ packet-length message-authsize))])
+
+            (define padding-length : Byte (bytes-ref largest-packet-buffer 4))
+            (transport-recv-as-special (- packet-length padding-length)))))
 
       (define transport-send-packet : (-> Any Boolean Boolean True #| Details see the Racket Reference (make-output-port) |#)
         (lambda [raw always-nonblock-by-me-due-to-disabled-break break-always-disabled-by-racket]
           (define-values (id payload-raw) 
-            (if (false? (packet? raw))
+            (if (false? (packet:ssh? raw))
                 (values 'SSH_MSG_IGNORE
                         (bytes-append (bytes ($#sm 'SSH_MSG_IGNORE))
                                       (string->bytes/utf-8 (~s raw))))
-                (values (packet-type raw)
-                        (for/fold ([payload : Bytes (bytes ($#sm (packet-type raw)))])
-                                  ([content : SSH-DataType (in-list (packet-payloads raw))])
+                (values (cast (object-name raw) SSH-Message-Type)
+                        (for/fold ([payload : Bytes (bytes ($#sm (cast (object-name raw) SSH-Message-Type)))])
+                                  ([content (in-vector (vector-drop (struct->vector raw) 1))])
                           (bytes-append payload (match content
                                                   [(? byte? b) (bytes b)]
                                                   [(? bytes? bstr) bstr]
                                                   [(? boolean? b) (ssh-boolean->bytes b)]
                                                   [(uint32 fx) (ssh-uint32->bytes fx)]
                                                   [(uint64 n) (ssh-uint64->bytes n)]
-                                                  [(? string? str) (ssh-string->bytes str)]
+                                                  [(? string? utf8) (ssh-string->bytes utf8)]
+                                                  [(? symbol? ascii) (ssh-symbol->bytes ascii)]
                                                   [(? exact-integer? mpi) (ssh-mpint->bytes mpi)]
                                                   [(? list?) (ssh-namelist->bytes (cast content (Listof Symbol)))]))))))
         
@@ -370,22 +428,22 @@
 
     (define/private (exchange-key) : Void
       ; <http://tools.ietf.org/html/rfc4253#section-7.1>
-      ;(unless (input-port? (sync/timeout 0 /dev/sshin))
-      ; (log-ssh 'debug "we send SSH_MSG_KEXINIT first"))
+      (unless (input-port? (sync/timeout 0 /dev/sshin))
+        (log-ssh 'debug "we send SSH_MSG_KEXINIT first"))
         
-      (transport-send 'SSH_MSG_KEXINIT
-                      (call-with-input-string (number->string (current-inexact-milliseconds)) md5-bytes) ; cookie
-                      ssh-algorithms/kex
-                      ssh-algorithms/publickey
-                      ssh-algorithms/cipher #| local |# ssh-algorithms/cipher #| remote |#
-                      ssh-algorithms/mac #| local |# ssh-algorithms/mac #| remote |#
-                      ssh-algorithms/compression #| local |# ssh-algorithms/compression #| remote |#
-                      null #| language local |# null #| language remote |#
-                      #false #| whether a guessed key exchange packet follows |#
-                      (uint32 0) #| reserved, always 0 |#))
-      
-    (define/private (transport-send [id : SSH-Message-Type] . [payloads : SSH-DataType *]) : Void
-      (void (write-special (packet id payloads) /dev/sshout)))))
+      (transport-send (SSH_MSG_KEXINIT
+                       (call-with-input-string (number->string (current-inexact-milliseconds)) md5-bytes) ; cookie
+                       ssh-algorithms/kex
+                       ssh-algorithms/publickey
+                       ssh-algorithms/cipher #| local |# ssh-algorithms/cipher #| remote |#
+                       ssh-algorithms/mac #| local |# ssh-algorithms/mac #| remote |#
+                       ssh-algorithms/compression #| local |# ssh-algorithms/compression #| remote |#
+                       null #| language local |# null #| language remote |#
+                       #false #| whether a guessed key exchange packet follows |#
+                       (uint32 0) #| reserved, always 0 |#)))
+
+    (define/private (transport-send [packet : Any]) : Void
+      (void (write-special packet /dev/sshout)))))
 
 (module* main racket
   (require (submod ".."))

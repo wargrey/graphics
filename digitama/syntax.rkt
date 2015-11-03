@@ -68,7 +68,7 @@
               (define id : (Listof TypeU) (list 'enum ...)))]))
 
 (define-syntax (define-type/consts stx)
-  (syntax-case stx [: as]
+  (syntax-case stx [: of as]
     [(_ cs : TypeU of Type (enum val comments ...) ...)
      (with-syntax ([$%cs (format-id #'cs "$%~a" (syntax-e #'cs))]
                    [$#cs (format-id #'cs "$#~a" (syntax-e #'cs))])
@@ -78,7 +78,18 @@
                     (lambda [sym] ((inst hash-ref TypeU Type Type) cs sym))))
                 (define $%cs : (-> Type TypeU)
                   (let ([cs : (HashTable Type TypeU) ((inst make-immutable-hash Type TypeU) (list (cons val 'enum) ...))])
-                    (lambda [v] ((inst hash-ref Type TypeU TypeU) cs v))))))]))
+                    (lambda [v] ((inst hash-ref Type TypeU TypeU) cs v))))))]
+    [(_ cs : TypeU of Type as parent (enum val ([field : SSH-Datatype] ...)) ...)
+     (with-syntax ([$:cs (format-id #'cs "$:~a" (syntax-e #'cs))])
+       #'(begin (define-type/consts cs : TypeU of Type (enum val) ...)
+                (struct parent () #:prefab)
+                (struct enum parent ([field : SSH-Datatype] ...) #:prefab) ...
+                (define $:cs : (-> TypeU (Listof (U Symbol (Listof Symbol))))
+                  (let ([cs : (HashTable TypeU (Listof (U Symbol (Listof Symbol))))
+                         ((inst make-immutable-hasheq TypeU (Listof (U Symbol (Listof Symbol))))
+                          (list (cons 'enum (list 'SSH-Datatype ...)) ...))])
+                    (lambda [sym] ((inst hash-ref TypeU (Listof (U Symbol (Listof Symbol))) (Listof (U Symbol (Listof Symbol))))
+                                   cs sym))))))]))
 
 (define-syntax (define-strdict stx)
   (syntax-case stx [:]
