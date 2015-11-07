@@ -22,16 +22,21 @@
             [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
                     (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
 
+(define-syntax (format/src stx)
+  (syntax-case stx []
+    [(_ message)
+     #'(let ([px.this (regexp (regexp-quote (path->string (#%file))))])
+         (~a (let find-first-named-function-in ([stack (continuation-mark-set->context (current-continuation-marks))])
+               (or (and (regexp-match? px.this (~a (cdar stack))) (caar stack))
+                   (find-first-named-function-in (cdr stack))))
+             #\: #\space message))]
+    [(_ msgfmt message ...)
+     #'(format/src (format msgfmt message ...))]))
+
 (define-syntax (throw stx)
   (syntax-case stx []
     [(_ [st-id st-argl ...] message)
-     #'(let* ([px.this (regexp (regexp-quote (path->string (#%file))))]
-              [ccm (current-continuation-marks)]
-              [msg (~a (let find-first-named-function-in ([stack (continuation-mark-set->context ccm)])
-                         (or (and (regexp-match? px.this (~a (cdar stack))) (caar stack))
-                             (find-first-named-function-in (cdr stack))))
-                       #\: #\space message)])
-         (raise (st-id msg ccm st-argl ...)))]
+     #'(raise (st-id (format/src message) (current-continuation-marks) st-argl ...))]
     [(_ [st-id st-argl ...] msgfmt fmtargl ...)
      #'(throw [st-id st-argl ...] (format msgfmt fmtargl ...))]
     [(_ st-id message)
@@ -70,22 +75,21 @@
                 (define $#cs : (-> TypeU Type)
                   (let ([cs : (HashTable TypeU Type) ((inst make-immutable-hasheq TypeU Type) (list (cons 'const val) ...))])
                     (lambda [sym] ((inst hash-ref TypeU Type Type) cs sym))))
-                (define $%cs : (-> Type TypeU)
+                (define $%cs : (-> Type (Option TypeU))
                   (let ([cs : (HashTable Type TypeU) ((inst make-immutable-hasheq Type TypeU) (list (cons val 'const) ...))])
-                    (lambda [v] ((inst hash-ref Type TypeU TypeU) cs v))))))]
+                    (lambda [v] ((inst hash-ref Type TypeU False) cs v (lambda [] #false)))))))]
     [(_ cs : TypeU of Type as parent (const val ([field : DataType] ...)) ...)
-     (with-syntax ([$:cs (format-id #'cs "$:~a" (syntax-e #'cs))]
-                   [(structured ...) (for/list ([s (in-list (syntax->list #'(const ...)))])
-                                       (format-id s "~a" (string-downcase (string-replace (symbol->string (syntax-e s)) #px"[_-]" ":"))))])
-       #'(begin (define-type/consts cs : TypeU of Type (structured val) ... (const val) ...)
+     (with-syntax* ([$:cs (format-id #'cs "$:~a" (syntax-e #'cs))]
+                    [(s ...) (for/list ([s (in-list (syntax->list #'(const ...)))])
+                                       (format-id s "~a" (string-downcase (string-replace (symbol->string (syntax-e s)) #px"[_-]" ":"))))]
+                    [(apply-s ...) (for/list ([s (in-list (syntax->list #'(s ...)))])
+                                       (format-id s "apply-~a" (syntax-e s)))])
+       #'(begin (define-type/consts cs : TypeU of Type (s val) ... (const val) ...)
                 (struct parent () #:prefab)
-                (struct structured parent ([field : DataType] ...) #:prefab) ...
-                (define $:cs : (-> TypeU (Listof (U Symbol (Listof Symbol))))
-                  (let ([cs : (HashTable TypeU (Listof (U Symbol (Listof Symbol))))
-                         ((inst make-immutable-hasheq TypeU (Listof (U Symbol (Listof Symbol))))
-                          (list (cons 'const (list 'DataType ...)) ...))])
-                    (lambda [sym] ((inst hash-ref TypeU (Listof (U Symbol (Listof Symbol))) (Listof (U Symbol (Listof Symbol))))
-                                   cs sym))))))]))
+                (struct s parent ([field : DataType] ...) #:prefab) ...
+                (define (apply-s [argl : (Listof Any)]) : s (apply s (cast argl (List DataType ...)))) ...
+                (define $:cs : (case-> ['const -> (-> (Listof Any) s)] ...)
+                  (lambda [sym] (case sym [(const) apply-s] ...)))))]))
 
 (define-syntax (define-strdict stx)
   (syntax-case stx [:]
