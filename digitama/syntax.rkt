@@ -79,17 +79,22 @@
                   (let ([cs : (HashTable Type TypeU) ((inst make-immutable-hasheq Type TypeU) (list (cons val 'const) ...))])
                     (lambda [v] ((inst hash-ref Type TypeU False) cs v (lambda [] #false)))))))]
     [(_ cs : TypeU of Type as parent (const val ([field : DataType] ...)) ...)
-     (with-syntax* ([$:cs (format-id #'cs "$:~a" (syntax-e #'cs))]
+     (with-syntax* ([$*cs (format-id #'cs "$*~a" (syntax-e #'cs))]
+                    [$:cs (format-id #'cs "$:~a" (syntax-e #'cs))]
                     [(s ...) (for/list ([s (in-list (syntax->list #'(const ...)))])
-                                       (format-id s "~a" (string-downcase (string-replace (symbol->string (syntax-e s)) #px"[_-]" ":"))))]
-                    [(apply-s ...) (for/list ([s (in-list (syntax->list #'(s ...)))])
-                                       (format-id s "apply-~a" (syntax-e s)))])
+                               (format-id s "~a" (string-downcase (string-replace (symbol->string (syntax-e s)) #px"[_-]" ":"))))])
        #'(begin (define-type/consts cs : TypeU of Type (s val) ... (const val) ...)
                 (struct parent () #:prefab)
                 (struct s parent ([field : DataType] ...) #:prefab) ...
-                (define (apply-s [argl : (Listof Any)]) : s (apply s (cast argl (List DataType ...)))) ...
-                (define $:cs : (case-> ['const -> (-> (Listof Any) s)] ...)
-                  (lambda [sym] (case sym [(const) apply-s] ...)))))]))
+                (define $*cs : (case-> ['const (Listof Any) -> s] ...)
+                  ;;; use `val` instead of `const` does not work.
+                  (lambda [sym argl] (case sym [(const) (apply s (cast argl (List DataType ...)))] ...)))
+                (define $:cs : (-> TypeU (Listof (U Symbol (Listof Symbol))))
+                  (let ([cs : (HashTable TypeU (Listof (U Symbol (Listof Symbol))))
+                         ((inst make-immutable-hasheq TypeU (Listof (U Symbol (Listof Symbol))))
+                          (list (cons 'const (list 'DataType ...)) ...))])
+                    (lambda [sym] ((inst hash-ref TypeU (Listof (U Symbol (Listof Symbol))) (Listof (U Symbol (Listof Symbol))))
+                                   cs sym))))))]))
 
 (define-syntax (define-strdict stx)
   (syntax-case stx [:]
