@@ -2,10 +2,7 @@
 
 (provide (all-defined-out))
 
-(define-syntax (defconsts stx)
-  (syntax-case stx [:]
-    [(_ : Type [id val] ...)
-     #'(begin (define id : Type val) ...)]))
+@require{syntax.rkt}
 
 (defconsts : Char
   [house-garden# #\U1F3E1]

@@ -1,13 +1,15 @@
 #!/bin/sh
 
 #|
-dir="`dirname $0`/digitama"; fn="digicore";
-dzo="${dir}/compiled/${fn}_rkt.zo";
+dir="`dirname $0`/digitama";
 mzo="`dirname $0`/compiled/`basename $0 .rkt`_rkt.zo";
-test "${dzo}" -ot "${dir}/${fn}.rkt" && rm -fr ${mzo};
+for fn in digicore syntax; do
+    dzo="${dir}/compiled/${fn}_rkt.zo";
+    test "${dzo}" -ot "${dir}/${fn}.rkt" && rm -fr ${mzo};
+done
 if test "$1" = "clean"; then
-   find "`dirname $0`/.." -name "*.zo" -exec rm -f {} ';'
-   rm -fr "${dzo}" "${mzo}";
+    find "`dirname $0`/.." -name "*.zo" -exec rm -f {} ';'
+    rm -fr "${dzo}" "${mzo}";
 fi
 exec racket --name "$0" --require "$0" --main -- ${1+"$@"} 
 |#

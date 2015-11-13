@@ -56,6 +56,11 @@
     [(_ st-id fmt argl ...)
      #'(rethrow [st-id] (format fmt argl ...))]))
 
+(define-syntax (defconsts stx)
+  (syntax-case stx [:]
+    [(_ : Type [id val] ...)
+     #'(begin (define id : Type val) ...)]))
+
 (define-syntax (define-type/enum stx)
   (syntax-case stx [: quote]
     [(_ id : TypeU (quote enum) ...)
