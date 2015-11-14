@@ -86,18 +86,18 @@
     [(_ cs : TypeU of Type as parent (const val ([field : DataType] ...)) ...)
      (with-syntax* ([$*cs (format-id #'cs "$*~a" (syntax-e #'cs))]
                     [$:cs (format-id #'cs "$:~a" (syntax-e #'cs))]
-                    [(s ...) (for/list ([s (in-list (syntax->list #'(const ...)))])
+                    [(alias ...) (for/list ([s (in-list (syntax->list #'(const ...)))])
                                (format-id s "~a" (string-downcase (string-replace (symbol->string (syntax-e s)) #px"[_-]" ":"))))])
-       #'(begin (define-type/consts cs : TypeU of Type (s val) ... (const val) ...)
+       #'(begin (define-type/consts cs : TypeU of Type (alias val) ... (const val) ...)
                 (struct parent () #:prefab)
-                (struct s parent ([field : DataType] ...) #:prefab) ...
-                (define $*cs : (case-> ['const (Listof Any) -> s] ...)
+                (struct alias parent ([field : DataType] ...) #:prefab) ...
+                (define $*cs : (-> TypeU (Listof Any) parent)
                   ;;; use `val` instead of `const` does not work.
-                  (lambda [sym argl] (case sym [(const) (apply s (cast argl (List DataType ...)))] ...)))
+                  (lambda [sym argl] (case sym [(const alias) (apply alias (cast argl (List DataType ...)))] ... [else (parent)])))
                 (define $:cs : (-> TypeU (Listof (U Symbol (Listof Symbol))))
                   (let ([cs : (HashTable TypeU (Listof (U Symbol (Listof Symbol))))
                          ((inst make-immutable-hasheq TypeU (Listof (U Symbol (Listof Symbol))))
-                          (list (cons 'const (list 'DataType ...)) ...))])
+                          (list (cons 'const (list 'DataType ...)) ... (cons 'alias (list 'DataType ...)) ...))])
                     (lambda [sym] ((inst hash-ref TypeU (Listof (U Symbol (Listof Symbol))) (Listof (U Symbol (Listof Symbol))))
                                    cs sym))))))]))
 

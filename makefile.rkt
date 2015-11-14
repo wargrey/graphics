@@ -3,9 +3,13 @@
 #|
 dir="`dirname $0`/digitama";
 mzo="`dirname $0`/compiled/`basename $0 .rkt`_rkt.zo";
-for fn in digicore syntax; do
+for fn in digicore syntax emoji tamer; do
     dzo="${dir}/compiled/${fn}_rkt.zo";
-    test "${dzo}" -ot "${dir}/${fn}.rkt" && rm -fr ${mzo};
+    if test "${dzo}" -ot "${dir}/${fn}.rkt"; then
+        echo "${fn}.rkt has changed, remaking myself...";
+        raco make $0;
+        break;
+    fi
 done
 if test "$1" = "clean"; then
     find "`dirname $0`/.." -name "*.zo" -exec rm -f {} ';'
