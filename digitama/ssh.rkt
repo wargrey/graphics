@@ -309,13 +309,13 @@
                  (log-ssh 'debug (string-trim line))
                  (handshake)]
                 [else (match-let ([(list-rest _ protoversion softwareversion comments) (string-split line #px"-|\\s")])
-                        (set!-values (/dev/sshin /dev/sshout) (make-/dev/sshio tcpin tcpout))
                         (unless (member protoversion (list "1.99" "2.0"))
                           ; NOTE: if server is older then client, then client should close connection
                           ;       and reconnect with the old protocol. It seems that the rules checking
                           ;       compatibility mode is not guaranteed.
                           (throw [exn:ssh:eof 'SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED] "unsupported protocol: ~a" (string-trim line)))
                         (log-ssh 'debug "received identification: ~a" (string-trim line))
+                        (set!-values (/dev/sshin /dev/sshout) (make-/dev/sshio tcpin tcpout))
                         (exchange-key))]))))
     
     (define/public (collapse [description "job done"] [reason 'SSH_DISCONNECT_BY_APPLICATION])
@@ -359,10 +359,10 @@
                                                     [(? symbol? ascii) (ssh-string->bytes (symbol->string ascii))]
                                                     [(? list?) (ssh-namelist->bytes (cast content (Listof Symbol)))]
                                                     [(? exact-integer? n) (match datatype
-                                                                            ['Byte (bytes n)]
                                                                             ['UInt32 (ssh-uint32->bytes (cast n UInt32))]
                                                                             ['UInt64 (ssh-uint64->bytes (cast n UInt64))]
-                                                                            [else (ssh-mpint->bytes n)])])))))))
+                                                                            ['MPInteger (ssh-mpint->bytes n)]
+                                                                            [else (bytes n)])])))))))
         
           (when (> (bytes-length payload-raw) 32768)
             (throw exn:ssh "packet is too large to send."))
@@ -432,12 +432,12 @@
                         (define payload-length : Integer (- total-length message-authsize padding-length 1))
                         (define max-position : Integer (+ payload-length 5))
                         (cond [(< bufused (max cipher-blocksize 4))
-                               (try-again/log (max bufused 0) "more bytes is required to extract the packet length.")]
+                               (try-again/log (max bufused 0) "~a of ~a bytes are not enough to extract packet length" bufused (max cipher-blocksize 4))]
                               [(> total-length packet-upsize)
                                (throw/log [exn:ssh:eof 'SSH_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT] 
                                           "bufferoverflow attack??? ~a bytes! packet is too large!" total-length)]
                               [(> total-length (- bufused 4))
-                               (try-again/log bufused "more bytes is required.")]
+                               (try-again/log bufused "~a of ~a bytes, packet is partially received" (- bufused 4) total-length)]
                               [else (let* ([message-type : Byte (bytes-ref packet-buffer 5)]
                                            [id : (Option SSH-Message-Type) ($%sm message-type)])
                                       (with-handlers ([exn? void])
