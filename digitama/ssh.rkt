@@ -400,17 +400,17 @@
       (define packet-buffer : Bytes (make-bytes packet-upsize))
       (define-values (/dev/ssh/usrin /dev/ssh/usrout) (make-pipe-with-specials packet-upsize '/dev/ssh/usrin '/dev/ssh/usrout))
 
-      (define (curry-recv [start : Natural] [discarding : Natural]) : SSH-Transport-Recv-Callback
-        (lambda [chlouts] (transport-recv-packet start discarding chlouts)))
+      (define (curry-recv [start : Natural]) : SSH-Transport-Recv-Callback
+        (lambda [chlouts] (transport-recv-packet start chlouts)))
       
       (define-syntax (try-again/log stx)
         (syntax-case stx []
-          [(_ start discarding argl ...)
+          [(_ start argl ...)
            #'(begin (log-ssh 'debug argl ...)
-                    (curry-recv start discarding))]))
+                    (curry-recv start))]))
 
-      (define transport-recv-packet : (-> Natural Natural (HashTable Natural Output-Port) SSH-Transport-Recv-Callback)
-        (lambda [start discarding /dev/channel/usrout] ; WARNING: This procedure will run in separate thread(fiber)
+      (define transport-recv-packet : (-> Natural (HashTable Natural Output-Port) SSH-Transport-Recv-Callback)
+        (lambda [start /dev/channel/usrout] ; WARNING: This procedure will run in separate thread(fiber)
           (define received (with-handlers ([exn:fail:network? (lambda [[e : exn:fail:network]] e)])
                              (read-bytes-avail!* packet-buffer tcpin start packet-upsize)))
           (cond [(eof-object? received)
@@ -420,15 +420,11 @@
                  (close-output-port /dev/ssh/usrout)
                  (throw/log [exn:ssh:eof 'SSH_DISCONNECT_CONNECTION_LOST] (exn-message received))]
                 [(procedure? received)
-                 (try-again/log start discarding "special value cannot be here!")]
-                [(<= received discarding)
-                 (try-again/log 0 (max (- discarding received) 0) "    discarded ~a bytes!" received)]
-                [else (let extract-next ([discarding? (positive? discarding)]
-                                         [bufstart discarding]
-                                         [bufused (if (positive? discarding) (- received discarding) (+ start received))])
+                 (try-again/log start "special value cannot be here!")]
+                [else (let extract-next ([bufstart 0]
+                                         [bufused (+ start received)])
                         (when (positive? bufstart)
-                          (bytes-copy! packet-buffer 0 packet-buffer bufstart (+ bufstart bufused))
-                          (when discarding? (log-ssh 'debug "    discarded ~a bytes, 100% done." bufstart)))
+                          (bytes-copy! packet-buffer 0 packet-buffer bufstart (+ bufstart bufused)))
                         ;;; These identifiers may bind to dirty values if received bytes are not enough,
                         ;;; nonetheless, they must be valid in their own condition.
                         (define total-length : Natural (+ (ssh-bytes->uint32 packet-buffer) message-authsize))
@@ -436,12 +432,12 @@
                         (define payload-length : Integer (- total-length message-authsize padding-length 1))
                         (define max-position : Integer (+ payload-length 5))
                         (cond [(< bufused (max cipher-blocksize 4))
-                               (try-again/log (max bufused 0) 0 "more bytes is required to extract the packet length.")]
+                               (try-again/log (max bufused 0) "more bytes is required to extract the packet length.")]
                               [(> total-length packet-upsize)
-                               (try-again/log 0 (max (- total-length bufused) 0)
-                                              "bufferoverflow attack??? ~a bytes! packet is too large!" total-length)]
+                               (throw/log [exn:ssh:eof 'SSH_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT] 
+                                          "bufferoverflow attack??? ~a bytes! packet is too large!" total-length)]
                               [(> total-length (- bufused 4))
-                               (try-again/log bufused 0 "more bytes is required!" total-length)]
+                               (try-again/log bufused "more bytes is required.")]
                               [else (let* ([message-type : Byte (bytes-ref packet-buffer 5)]
                                            [id : (Option SSH-Message-Type) ($%sm message-type)])
                                       (with-handlers ([exn? void])
@@ -499,9 +495,9 @@
                                                              "received packet ~a, ~a bytes in total (+ 4 1 ~a ~a ~a)."
                                                              id padding-length payload-length message-authsize)
                                                     (write-special packet /dev/ssh/usrout))]))
-                                      (extract-next #false (+ bufstart 4 total-length) (- bufused total-length 4)))]))])))
+                                      (extract-next (+ bufstart 4 total-length) (- bufused total-length 4)))]))])))
     
-      (log-ssh 'info #:urgent (cons tcpin (curry-recv 0 0)) "ssh ports are ready!")
+      (log-ssh 'info #:urgent (cons tcpin (curry-recv 0)) "ssh ports are ready!")
       
       (values (make-input-port (string->symbol (format "ssh:~a" hostname))
                                /dev/ssh/usrin /dev/ssh/usrin
@@ -527,7 +523,7 @@
                        #false #| whether a guessed key exchange packet follows |#
                        0 #| reserved, always 0 |#))
       
-      (unless (input-port? (sync/timeout 0 /dev/sshin))
+      (unless (input-port? (sync/timeout 3.14 /dev/sshin))
         (log-ssh 'debug "did not receive peek kexinit")))
 
     (define/private (transport-send [packet : Any]) : Void
