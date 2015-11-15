@@ -27,8 +27,9 @@
     [(_ message)
      #'(let ([px.this (regexp (regexp-quote (path->string (#%file))))])
          (~a (let find-first-named-function-in ([stack (continuation-mark-set->context (current-continuation-marks))])
-               (or (and (regexp-match? px.this (~a (cdar stack))) (caar stack))
-                   (find-first-named-function-in (cdr stack))))
+               (and (not (null? stack))
+                    (or (and (regexp-match? px.this (~a (cdar stack))) (caar stack))
+                        (find-first-named-function-in (cdr stack)))))
              #\: #\space message))]
     [(_ msgfmt message ...)
      #'(format/src (format msgfmt message ...))]))
