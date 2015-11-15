@@ -71,6 +71,15 @@
      #'(begin (define-type TypeU (U 'enum ...))
               (define id : (Listof TypeU) (list 'enum ...)))]))
 
+;; prefab structure cannot be converted to contract in typed racket;
+;; transparented structure are not allowed as place message.
+(define-type UInt32 Nonnegative-Fixnum)  ; this is a bit smaller than uint32
+(define-type UInt64 Nonnegative-Integer) ; this is larger than uint64
+(define-type MPInteger Integer)
+(define-type (nBytes n) Bytes)
+
+(define-type Primitive-Type (Rec PT (U Symbol (List 'Listof PT) (List 'nBytes Natural))))
+
 (define-syntax (define-type/consts stx)
   (syntax-case stx [: of as]
     [(_ cs : TypeU of Type (const val comments ...) ...)
@@ -94,12 +103,11 @@
                 (define $*cs : (-> TypeU (Listof Any) parent)
                   ;;; use `val` instead of `const` does not work.
                   (lambda [sym argl] (case sym [(const alias) (apply alias (cast argl (List DataType ...)))] ... [else (parent)])))
-                (define $:cs : (-> TypeU (Listof (U Symbol (Listof Symbol))))
-                  (let ([cs : (HashTable TypeU (Listof (U Symbol (Listof Symbol))))
-                         ((inst make-immutable-hasheq TypeU (Listof (U Symbol (Listof Symbol))))
+                (define $:cs : (-> TypeU (Listof Primitive-Type))
+                  (let ([cs : (HashTable TypeU (Listof Primitive-Type))
+                         ((inst make-immutable-hasheq TypeU (Listof Primitive-Type))
                           (list (cons 'const (list 'DataType ...)) ... (cons 'alias (list 'DataType ...)) ...))])
-                    (lambda [sym] ((inst hash-ref TypeU (Listof (U Symbol (Listof Symbol))) (Listof (U Symbol (Listof Symbol))))
-                                   cs sym))))))]))
+                    (lambda [sym] ((inst hash-ref TypeU (Listof Primitive-Type) (Listof Primitive-Type)) cs sym))))))]))
 
 (define-syntax (define-strdict stx)
   (syntax-case stx [:]
