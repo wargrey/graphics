@@ -25,6 +25,10 @@
                                             [-> Any Output-Port Void])]
                        [fasl->s-exp (-> (U Input-Port Bytes) Any)])
 
+(require/typed/provide racket/base
+                       [#:opaque SIGUP exn:break:hang-up?]
+                       [#:opaque SIGTERM exn:break:terminate?])
+
 (define-syntax (define-parameter/extract-info stx)
   (syntax-case stx []
     [(_ infodir defines ...)

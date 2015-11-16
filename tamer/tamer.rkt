@@ -4,4 +4,5 @@
 @require{../digitama/tamer.rkt}
 
 (provide (all-defined-out))
-(provide (all-from-out "../digitama/tamer.rkt"))
+(provide (except-out (all-from-out "../digitama/tamer.rkt")
+                     exn:break:hang-up? exn:break:terminate?))
