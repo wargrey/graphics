@@ -40,16 +40,11 @@
   [SSH_MSG_SERVICE_REQUEST            5 ([name : Symbol])]
   [SSH_MSG_SERVICE_ACCEPT             6 ([name : Symbol])]
   [SSH_MSG_KEXINIT                   20 ([cookie : (nBytes 16)]
-                                         [kex : (Listof SSH-Algorithm/Kex)]
-                                         [publickey : (Listof SSH-Algorithm/Publickey)]
-                                         [cipher/local : (Listof SSH-Algorithm/Cipher)]
-                                         [cipher/remote : (Listof SSH-Algorithm/Cipher)]
-                                         [mac/local : (Listof SSH-Algorithm/MAC)]
-                                         [mac/remote : (Listof SSH-Algorithm/MAC)]
-                                         [compression/local : (Listof SSH-Algorithm/Compression)]
-                                         [compression/remote : (Listof SSH-Algorithm/Compression)]
-                                         [language/local : (Listof Symbol)]
-                                         [language/remote : (Listof Symbol)]
+                                         [kex : (Listof Symbol)] [publickey : (Listof Symbol)]
+                                         [cipher/local : (Listof Symbol)] [cipher/remote : (Listof Symbol)]
+                                         [mac/local : (Listof Symbol)] [mac/remote : (Listof Symbol)]
+                                         [compression/local : (Listof Symbol)] [compression/remote : (Listof Symbol)]
+                                         [language/local : (Listof Symbol)] [language/remote : (Listof Symbol)]
                                          [guessing-follow? : Boolean]
                                          [reserved/zero : UInt32])]
   [SSH_MSG_NEWKEYS                   21 ()]
@@ -260,7 +255,8 @@
                             (dispatch /dev/tcpin /dev/log (hash-set /dev/ssh/stdout chid chlout) on-recv)]
                            [(vector 'info message (cons (? input-port? /dev/ssh/stdin) (? procedure? recv)) _)
                             (on-debug 'info message 'make-ssh-port topic)
-                            (dispatch /dev/ssh/stdin /dev/log /dev/ssh/stdout (cast recv SSH-Transport-Recv-Callback))]
+                            (dispatch /dev/ssh/stdin /dev/log /dev/ssh/stdout
+                                      ((cast recv SSH-Transport-Recv-Callback) /dev/ssh/stdout))]
                            [(vector 'info message (and event (vector 'SSH_MSG_DISCONNECT _)) _)
                             (on-debug 'info message event topic)]
                            [(vector level message urgent _)
@@ -330,7 +326,7 @@
     
     (define/private (make-/dev/sshio [tcpin : Input-Port] [tcpout : Output-Port]) : (Values Input-Port Output-Port)
       ;;; WARNING: receiving and sending in this case are asymmetrical.
-
+      
       ; http://tools.ietf.org/html/rfc4253#section-6
       #| uint32    packet_length  (the next 3 fields)               -
          byte      padding_length (in the range of [4, 255])         \ the size of these 4 fields should be multiple of
@@ -386,14 +382,15 @@
           
           (define mac : Bytes (make-bytes message-authsize))
 
-          (with-handlers ([exn? (rethrow exn:ssh "failed to send packet ~a" id)])
+          (with-handlers ([exn? (rethrow exn:ssh "failed to send ~a" id)])
             (define packet : Bytes (bytes-append (ssh-uint32->bytes packet-length) (bytes padding-length) payload random-padding mac))
             (define total : Index (bytes-length packet))
             (log-ssh 'debug "sending ~a of ~a bytes (+ 4 1 ~a ~a ~a)" id total payload-length padding-length message-authsize)
             (define sent : (Option Index) (write-bytes-avail* packet tcpout 0 total))
             (cond [(false? sent) (throw exn:ssh:again "network is busy")]
                   [else (log-ssh 'info #:urgent (vector id sent total)
-                                 "sent ~a: ~a bytes, ~a% done" id sent (~r (* 100 (/ sent total)) #:precision '(= 2)))]))
+                                 "sent ~a: ~a bytes, ~a% done" id sent (~r (* 100 (/ sent total)) #:precision '(= 2)))])
+            (flush-output tcpout))
           #true))
 
       (define packet-upsize : Positive-Integer 35000)
@@ -412,7 +409,7 @@
       (define transport-recv-packet : (-> Natural (HashTable Natural Output-Port) SSH-Transport-Recv-Callback)
         (lambda [start /dev/channel/usrout] ; WARNING: This procedure will run in separate thread(fiber)
           (define received (with-handlers ([exn:fail:network? (lambda [[e : exn:fail:network]] e)])
-                             (read-bytes-avail!* packet-buffer tcpin start packet-upsize)))
+                             (read-bytes-avail! packet-buffer tcpin start packet-upsize)))
           (cond [(eof-object? received)
                  (close-output-port /dev/ssh/usrout)
                  (throw/log [exn:ssh:eof 'SSH_DISCONNECT_CONNECTION_LOST] "connection closed by ~a" hostname)]
@@ -421,35 +418,38 @@
                  (throw/log [exn:ssh:eof 'SSH_DISCONNECT_CONNECTION_LOST] (exn-message received))]
                 [(procedure? received)
                  (try-again/log start "special value cannot be here!")]
-                [else (let extract-next ([bufstart 0]
-                                         [bufused (+ start received)])
+                [else (let extract-packet ([bufstart : Natural 0]
+                                           [bufused : Natural (+ start received)])
                         (when (positive? bufstart)
                           (bytes-copy! packet-buffer 0 packet-buffer bufstart (+ bufstart bufused)))
                         ;;; These identifiers may bind to dirty values if received bytes are not enough,
                         ;;; nonetheless, they must be valid in their own condition.
-                        (define total-length : Natural (+ (ssh-bytes->uint32 packet-buffer) message-authsize))
+                        (define total-length : Natural (+ 4 (ssh-bytes->uint32 packet-buffer) message-authsize))
                         (define padding-length : Byte (bytes-ref packet-buffer 4))
-                        (define payload-length : Integer (- total-length message-authsize padding-length 1))
+                        (define payload-length : Integer (- total-length message-authsize padding-length 1 4))
                         (define max-position : Integer (+ payload-length 5))
-                        (cond [(< bufused (max cipher-blocksize 4))
-                               (try-again/log (max bufused 0) "~a of ~a bytes are not enough to extract packet length" bufused (max cipher-blocksize 4))]
+                        (cond [(zero? bufused) (curry-recv 0)]
+                              [(< bufused (max cipher-blocksize 4))
+                               (try-again/log bufused "~a/~a bytes are not enough to extract packet length" bufused (max cipher-blocksize 4))]
                               [(> total-length packet-upsize)
+                               ; Clients of the API would collapse this session, here I do not close tcp ports.
                                (throw/log [exn:ssh:eof 'SSH_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT] 
                                           "bufferoverflow attack??? ~a bytes! packet is too large!" total-length)]
-                              [(> total-length (- bufused 4))
-                               (try-again/log bufused "~a of ~a bytes, packet is partially received" (- bufused 4) total-length)]
+                              [(> total-length bufused)
+                               (try-again/log bufused "receiving packet: ~a bytes, ~a% done" bufused (~r (* 100 (/ bufused total-length)) #:precision '(= 2)))]
                               [else (let* ([message-type : Byte (bytes-ref packet-buffer 5)]
                                            [id : (Option SSH-Message-Type) ($%sm message-type)])
-                                      (with-handlers ([exn? void])
-                                        (cond [(false? id) (throw/log exn:ssh "ignored packet: unknown type ~a" message-type)]
+                                      (with-handlers ([exn:ssh? void]
+                                                      [exn? (lambda [[e : exn]] (log-ssh 'debug #:urgent e (exn-message e)))])
+                                        (cond [(false? id) (throw/log exn:ssh "ignored packet: unknown type ~a, ~a bytes" message-type total-length)]
                                               [(let extract : (Listof Any) ([sdaolyap : (Listof Any) null] [pos : Natural 6] [types ($:sm id)])
                                                  (match types
                                                    [(? null?)
                                                     (cond [(= pos max-position) (reverse sdaolyap)]
-                                                          [else (throw/log exn:ssh "ignored packet[~a]: inconsist length (~a/~a)" id pos max-position)])]
+                                                          [else (throw/log exn:ssh "ignored ~a: inconsistent size (~a/~a)" id pos max-position)])]
                                                    [(list 'Bytes) ; this packet has special datum.
                                                     (if (> pos max-position)
-                                                        (throw/log exn:ssh "ignored packet[~a]: inconsist length (~a > ~a)" id pos max-position)
+                                                        (throw/log exn:ssh "ignored ~a: inconsistent size (~a > ~a)" id pos max-position)
                                                         (reverse (cons (subbytes packet-buffer pos max-position) sdaolyap)))]
                                                    [(list 'Byte rest ...)
                                                     (extract (cons (bytes-ref packet-buffer pos) sdaolyap) (add1 pos) rest)]
@@ -464,39 +464,39 @@
                                                    [(list 'String rest ...)
                                                     (let ([str-length : UInt32 (ssh-bytes->uint32 packet-buffer #:offset pos)])
                                                       (when (> str-length payload-length)
-                                                        (throw/log exn:ssh "ignored packet[~a]: inconsist length string (~a > ~a)"
+                                                        (throw/log exn:ssh "ignored ~a: bad string size (~a > ~a)"
                                                                    id str-length payload-length))
                                                       (extract (cons (ssh-bytes->string packet-buffer #:offset pos) sdaolyap)
                                                                (+ pos str-length 4) rest))]
                                                    [(list 'Symbol rest ...)
                                                     (let ([sym-length : UInt32 (ssh-bytes->uint32 packet-buffer #:offset pos)])
                                                       (when (> sym-length payload-length)
-                                                        (throw/log exn:ssh "ignored packet[~a]: inconsist length symbol (~a > ~a)"
+                                                        (throw/log exn:ssh "ignored ~a: bad symbol size (~a > ~a)"
                                                                    id sym-length payload-length))
                                                       (extract (cons (string->symbol (ssh-bytes->string packet-buffer #:offset pos)) sdaolyap)
                                                                (+ pos sym-length 4) rest))]
                                                    [(list 'MPInteger rest ...)
                                                     (let ([mpint-length : UInt32 (ssh-bytes->uint32 packet-buffer #:offset pos)])
                                                       (when (> mpint-length payload-length)
-                                                        (throw/log exn:ssh "ignored packet[~a]: inconsist length mpint (~a > ~a)"
+                                                        (throw/log exn:ssh "ignored ~a: bad mpint size (~a > ~a)"
                                                                    id mpint-length payload-length))
                                                       (extract (cons (ssh-bytes->mpint packet-buffer #:offset pos) sdaolyap)
                                                                (+ pos mpint-length 4) rest))]
                                                    [(list (list 'Listof _) rest ...)
                                                     (let ([names-length : UInt32 (ssh-bytes->uint32 packet-buffer #:offset pos)])
                                                       (when (> names-length payload-length)
-                                                        (throw/log exn:ssh "ignored packet[~a]: inconsist length name list (~a > ~a)"
+                                                        (throw/log exn:ssh "ignored ~a: bad name list size (~a > ~a)"
                                                                    id names-length payload-length))
                                                       (extract (cons (ssh-bytes->namelist packet-buffer #:offset pos) sdaolyap)
                                                                (+ pos names-length 4) rest))]))
                                                => (lambda [[payloads : (Listof Any)]]
                                                     (define packet : packet:ssh ($*sm id payloads))
-                                                    (log-ssh 'info #:urgent (vector id (+ total-length 4))
-                                                             "received packet ~a, ~a bytes in total (+ 4 1 ~a ~a ~a)."
-                                                             id padding-length payload-length message-authsize)
+                                                    (log-ssh 'info #:urgent (vector id total-length)
+                                                             "received ~a, ~a bytes in total (+ 4 1 ~a ~a ~a)"
+                                                             id total-length padding-length payload-length message-authsize)
                                                     (write-special packet /dev/ssh/usrout))]))
-                                      (extract-next (+ bufstart 4 total-length) (- bufused total-length 4)))]))])))
-    
+                                      (extract-packet total-length (max (- bufused total-length) 0)))]))])))
+
       (log-ssh 'info #:urgent (cons tcpin (curry-recv 0)) "ssh ports are ready!")
       
       (values (make-input-port (string->symbol (format "ssh:~a" hostname))
@@ -509,7 +509,7 @@
 
     (define/private (exchange-key) : Void
       ; <http://tools.ietf.org/html/rfc4253#section-7.1>
-      (unless (input-port? (sync/timeout 0 /dev/sshin))
+      (unless (input-port? (sync/timeout 3.14 /dev/sshin))
         (log-ssh 'debug "we send SSH_MSG_KEXINIT first"))
 
       (transport-send (ssh:msg:kexinit
@@ -523,8 +523,8 @@
                        #false #| whether a guessed key exchange packet follows |#
                        0 #| reserved, always 0 |#))
       
-      (unless (input-port? (sync/timeout 3.14 /dev/sshin))
-        (log-ssh 'debug "did not receive peek kexinit")))
+      (unless (input-port? (sync/timeout 0 /dev/sshin))
+        (log-ssh 'debug "algorithm negotiation failed")))
 
     (define/private (transport-send [packet : Any]) : Void
       (void (write-special packet /dev/sshout)))))
@@ -538,7 +538,8 @@
           (fprintf (current-error-port) "[~a] ~a: ~a~n" (object-name extra) session (exn-message extra))
           (fprintf (current-output-port) "[~a] ~a: ~a~n" level session message))))
   
-  (for ([host (in-list (list "localhost" "gyoudmon.org"))])
+  (for ([host (in-list (list "localhost" "gyoudmon.org"))]
+        [port (in-list (list 8080 22))])
     (with-handlers ([exn? void])
-      (define ssh (new ssh-session% [host host] [port 22] [on-debug show-debuginfo]))
+      (define ssh (new ssh-session% [host host] [port port] [on-debug show-debuginfo]))
       (send ssh collapse "demonstration done" 'SSH_DISCONNECT_BY_APPLICATION))))
