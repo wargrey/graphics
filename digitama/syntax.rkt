@@ -24,15 +24,19 @@
 
 (define-syntax (format/src stx)
   (syntax-case stx []
-    [(_ message)
+    [(_ #:stack ccmarks message)
      #'(let ([px.this (regexp (regexp-quote (path->string (#%file))))])
-         (~a (let find-first-named-function-in ([stack (continuation-mark-set->context (current-continuation-marks))])
+         (~a (let find-first-named-function-in ([stack (continuation-mark-set->context ccmarks)])
                (cond [(null? stack) 'main]
                      [else (or (and (regexp-match? px.this (~a (cdar stack))) (caar stack))
                                (find-first-named-function-in (cdr stack)))]))
              #\: #\space message))]
+    [(_ #:stack ccmarks msgfmt message ...)
+     #'(format/src #:stack ccmarks (format msgfmt message ...))]
+    [(_ message)
+     #'(format/src #:stack (current-continuation-marks) message)]
     [(_ msgfmt message ...)
-     #'(format/src (format msgfmt message ...))]))
+     #'(format/src #:stack (current-continuation-marks) (format msgfmt message ...))]))
 
 (define-syntax (throw stx)
   (syntax-case stx []
