@@ -22,26 +22,10 @@
             [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
                     (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
 
-(define-syntax (format/src stx)
-  (syntax-case stx []
-    [(_ #:stack ccmarks message)
-     #'(let ([px.this (regexp (regexp-quote (path->string (#%file))))])
-         (~a (let find-first-named-function-in ([stack (continuation-mark-set->context ccmarks)])
-               (cond [(null? stack) 'main]
-                     [else (or (and (regexp-match? px.this (~a (cdar stack))) (caar stack))
-                               (find-first-named-function-in (cdr stack)))]))
-             #\: #\space message))]
-    [(_ #:stack ccmarks msgfmt message ...)
-     #'(format/src #:stack ccmarks (format msgfmt message ...))]
-    [(_ message)
-     #'(format/src #:stack (current-continuation-marks) message)]
-    [(_ msgfmt message ...)
-     #'(format/src #:stack (current-continuation-marks) (format msgfmt message ...))]))
-
 (define-syntax (throw stx)
   (syntax-case stx []
     [(_ [st-id st-argl ...] message)
-     #'(raise (st-id (format/src message) (current-continuation-marks) st-argl ...))]
+     #'(raise (st-id message (current-continuation-marks) st-argl ...))]
     [(_ [st-id st-argl ...] msgfmt fmtargl ...)
      #'(throw [st-id st-argl ...] (format msgfmt fmtargl ...))]
     [(_ st-id message)
@@ -100,19 +84,22 @@
     [(_ cs : TypeU of Type as parent (const val ([field : DataType] ...)) ...)
      (with-syntax* ([$*cs (format-id #'cs "$*~a" (syntax-e #'cs))]
                     [$:cs (format-id #'cs "$:~a" (syntax-e #'cs))]
+                    [?parent (format-id #'parent "?~a" (syntax-e #'parent))]
                     [(alias ...) (for/list ([s (in-list (syntax->list #'(const ...)))])
                                (format-id s "~a" (string-downcase (string-replace (symbol->string (syntax-e s)) #px"[_-]" ":"))))])
        #'(begin (define-type/consts cs : TypeU of Type (alias val) ... (const val) ...)
                 (struct parent () #:prefab)
+                (struct ?parent parent ([id : Type]) #:prefab)
                 (struct alias parent ([field : DataType] ...) #:prefab) ...
                 (define $*cs : (-> TypeU (Listof Any) parent)
                   ;;; use `val` instead of `const` does not work.
-                  (lambda [sym argl] (case sym [(const alias) (apply alias (cast argl (List DataType ...)))] ... [else (parent)])))
-                (define $:cs : (-> TypeU (Listof Primitive-Type))
+                  (lambda [sym argl] (case sym [(const alias) (apply alias (cast argl (List DataType ...)))] ...
+                                       [else (parent) #| this will never happen, has to make type system happy |#])))
+                (define $:cs : (-> TypeU (Option (Listof Primitive-Type)))
                   (let ([cs : (HashTable TypeU (Listof Primitive-Type))
                          ((inst make-immutable-hasheq TypeU (Listof Primitive-Type))
                           (list (cons 'const (list 'DataType ...)) ... (cons 'alias (list 'DataType ...)) ...))])
-                    (lambda [sym] ((inst hash-ref TypeU (Listof Primitive-Type) (Listof Primitive-Type)) cs sym))))))]))
+                    (lambda [sym] ((inst hash-ref TypeU (Listof Primitive-Type) False) cs sym (lambda [] #false)))))))]))
 
 (define-syntax (define-strdict stx)
   (syntax-case stx [:]
