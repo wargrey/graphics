@@ -86,20 +86,19 @@
                     [$:cs (format-id #'cs "$:~a" (syntax-e #'cs))]
                     [?parent (format-id #'parent "?~a" (syntax-e #'parent))]
                     [(alias ...) (for/list ([s (in-list (syntax->list #'(const ...)))])
-                               (format-id s "~a" (string-downcase (string-replace (symbol->string (syntax-e s)) #px"[_-]" ":"))))])
+                                   (format-id s "~a" (string-downcase (string-replace (symbol->string (syntax-e s)) #px"[_-]" ":"))))])
        #'(begin (define-type/consts cs : TypeU of Type (alias val) ... (const val) ...)
                 (struct parent () #:prefab)
                 (struct ?parent parent ([id : Type]) #:prefab)
                 (struct alias parent ([field : DataType] ...) #:prefab) ...
-                (define $*cs : (-> TypeU (Listof Any) parent)
+                (define $*cs : (-> (U TypeU Type) (Listof Any) parent)
                   ;;; use `val` instead of `const` does not work.
-                  (lambda [sym argl] (case sym [(const alias) (apply alias (cast argl (List DataType ...)))] ...
-                                       [else (parent) #| this will never happen, has to make type system happy |#])))
-                (define $:cs : (-> TypeU (Option (Listof Primitive-Type)))
+                  (lambda [sym argl] (case sym [(const alias) (apply alias (cast argl (List DataType ...)))] ... [else (?parent (cast sym Type))])))
+                (define $:cs : (-> TypeU (Listof Primitive-Type))
                   (let ([cs : (HashTable TypeU (Listof Primitive-Type))
                          ((inst make-immutable-hasheq TypeU (Listof Primitive-Type))
                           (list (cons 'const (list 'DataType ...)) ... (cons 'alias (list 'DataType ...)) ...))])
-                    (lambda [sym] ((inst hash-ref TypeU (Listof Primitive-Type) False) cs sym (lambda [] #false)))))))]))
+                    (lambda [sym] ((inst hash-ref TypeU (Listof Primitive-Type) (Listof Primitive-Type)) cs sym))))))]))
 
 (define-syntax (define-strdict stx)
   (syntax-case stx [:]
