@@ -65,9 +65,9 @@
 (define-type UInt32 Nonnegative-Fixnum)  ; this is a bit smaller than uint32
 (define-type UInt64 Nonnegative-Integer) ; this is larger than uint64
 (define-type MPInteger Integer)
-(define-type (nBytes n) Bytes)
+(define-type (nBytes n) Bytes)           ; the length is prefixed when n is String
 
-(define-type Primitive-Type (Rec PT (U Symbol (List 'Listof PT) (List 'nBytes Natural))))
+(define-type Primitive-Type (Rec PT (U Symbol (List 'Listof PT) (List 'nBytes Natural) (List 'nBytes 'String))))
 
 (define-syntax (define-type/consts stx)
   (syntax-case stx [: of as]
@@ -84,20 +84,18 @@
     [(_ cs : TypeU of Type as parent (const val ([field : DataType] ...)) ...)
      (with-syntax* ([$*cs (format-id #'cs "$*~a" (syntax-e #'cs))]
                     [$:cs (format-id #'cs "$:~a" (syntax-e #'cs))]
-                    [?parent (format-id #'parent "?~a" (syntax-e #'parent))]
-                    [(alias ...) (for/list ([s (in-list (syntax->list #'(const ...)))])
-                                   (format-id s "~a" (string-downcase (string-replace (symbol->string (syntax-e s)) #px"[_-]" ":"))))])
-       #'(begin (define-type/consts cs : TypeU of Type (alias val) ... (const val) ...)
+                    [?parent (format-id #'parent "?~a" (syntax-e #'parent))])
+       #'(begin (define-type/consts cs : TypeU of Type (const val) ...)
                 (struct parent () #:prefab)
                 (struct ?parent parent ([id : Type]) #:prefab)
-                (struct alias parent ([field : DataType] ...) #:prefab) ...
+                (struct const parent ([field : DataType] ...) #:prefab) ...
                 (define $*cs : (-> (U TypeU Type) (Listof Any) parent)
                   ;;; use `val` instead of `const` does not work.
-                  (lambda [sym argl] (case sym [(const alias) (apply alias (cast argl (List DataType ...)))] ... [else (?parent (cast sym Type))])))
+                  (lambda [sym argl] (case sym [(const) (apply const (cast argl (List DataType ...)))] ... [else (?parent (cast sym Type))])))
                 (define $:cs : (-> TypeU (Listof Primitive-Type))
                   (let ([cs : (HashTable TypeU (Listof Primitive-Type))
                          ((inst make-immutable-hasheq TypeU (Listof Primitive-Type))
-                          (list (cons 'const (list 'DataType ...)) ... (cons 'alias (list 'DataType ...)) ...))])
+                          (list (cons 'const (list 'DataType ...)) ...))])
                     (lambda [sym] ((inst hash-ref TypeU (Listof Primitive-Type) (Listof Primitive-Type)) cs sym))))))]))
 
 (define-syntax (define-strdict stx)
