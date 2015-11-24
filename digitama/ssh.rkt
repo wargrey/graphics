@@ -42,7 +42,7 @@
   [SSH_MSG_KEXINIT                   20 ([cookie : (nBytes 16)]
                                          [kex : (Listof Symbol)] [publickey : (Listof Symbol)]
                                          [cipher->s : (Listof Symbol)] [cipher->c : (Listof Symbol)]
-                                         [mac->s : (Listof Symbol)] [mac->c : (Listof Symbol)]
+                                         [integrity->s : (Listof Symbol)] [integrity->c : (Listof Symbol)]
                                          [compression->s : (Listof Symbol)] [compression->c : (Listof Symbol)]
                                          [language->s : (Listof Symbol)] [language->c : (Listof Symbol)]
                                          [guessing-followed? : Boolean]
@@ -137,13 +137,16 @@
 
 (define ssh-mpint->bytes : (-> Integer Bytes)
   (lambda [mpi]
-    (define ceiling : Integer (exact-ceiling (/ (integer-length mpi) 8)))
-    (let mpint->bytes : Bytes ([blist : (Listof Byte) null])
-      (define n : Index (length blist))
-      (cond [(< n ceiling) (mpint->bytes (cons (bitwise-and (arithmetic-shift mpi (* n -8)) #xFF) blist))]
-            [(and (positive? mpi) (= (car blist) #b10000000)) (mpint->bytes (cons #x00 blist))]
-            [(and (negative? mpi) (false? (bitwise-bit-set? (car blist) 7))) (mpint->bytes (cons #xFF blist))]
-            [else (bytes-append (ssh-uint32->bytes n) (list->bytes blist))]))))
+    (cond [(zero? mpi) (ssh-uint32->bytes 0)]
+          [else (let* ([buffer : Bytes (make-bytes (quotient (+ (integer-length mpi) 7) 8))]
+                       [size : Index (bytes-length buffer)])
+                  (for ([idx : Integer (in-range size)])
+                    (bytes-set! buffer idx (bitwise-and (arithmetic-shift mpi (* (- size idx 1) -8)) #xFF)))
+                  (cond [(and (positive? mpi) (= (bytes-ref buffer 0) #b10000000))
+                         (bytes-append (ssh-uint32->bytes (add1 size)) (bytes #x00) buffer)]
+                        [(and (negative? mpi) (false? (bitwise-bit-set? (bytes-ref buffer 0) 7)))
+                         (bytes-append (ssh-uint32->bytes (add1 size)) (bytes #xFF) buffer)]
+                        [else (bytes-append (ssh-uint32->bytes size) buffer)]))])))
 
 (define ssh-bytes->mpint : (-> Bytes [#:offset Natural] Integer)
   (lambda [bmpi #:offset [offset 0]]
@@ -249,21 +252,20 @@
   [serpent128-cbc   OPTIONAL          Serpent with a 128-bit key]
   [arcfour          OPTIONAL          the ARCFOUR stream cipher with a 128-bit key]
   [idea-cbc         OPTIONAL          IDEA in CBC mode]
-  [cast128-cbc      OPTIONAL          CAST-128 in CBC mode]
-  [none             OPTIONAL          no encryption])
+  [cast128-cbc      OPTIONAL          CAST-128 in CBC mode])
 
 ;; https://tools.ietf.org/html/rfc4253#section-6.4
-(define-type/enum ssh-algorithms/mac : SSH-Algorithm/MAC
+(define-type/enum ssh-algorithms/integrity : SSH-Algorithm/Integrity
   [hmac-sha1-96 RECOMMENDED     first 96 bits of HMAC-SHA1 (digest length = 12, key length = 20)]
   [hmac-sha1    REQUIRED        HMAC-SHA1 (digest length = key length = 20)]
   [hmac-md5-96  OPTIONAL        first 96 bits of HMAC-MD5 (digest length = 12, key length = 16)]
-  [hmac-md5     OPTIONAL        HMAC-MD5 (digest length = key length = 16)]
-  [none         OPTIONAL        no MAC])
+  [hmac-md5     OPTIONAL        HMAC-MD5 (digest length = key length = 16)])
 
 ;; https://tools.ietf.org/html/rfc4253#section-6.6
 (define-type/enum ssh-algorithms/publickey : SSH-Algorithm/Publickey
   [ssh-rsa           RECOMMENDED  sign   Raw RSA Key]
   [ssh-dss           REQUIRED     sign   Raw DSS Key]
+  #;[null              OPTIONAL     sign   Kerberos instead of SSH way]
   #;[pgp-sign-rsa      OPTIONAL     sign   OpenPGP certificates (RSA key)]
   #;[pgp-sign-dss      OPTIONAL     sign   OpenPGP certificates (DSS key)])
 
@@ -279,6 +281,7 @@
                [breakable? Boolean #:optional])
          (init-field [on-debug (-> Symbol String Any Symbol Any) #:optional])
          [session-name (-> Symbol)]
+         [collapsed-evt (-> (Evtof 'collapsed))]
          [collapse (->* () (String SSH-Disconnection-Reason) Void)]))
 
 (define-type SSH-Channel<%>
@@ -310,7 +313,9 @@
     (define portno : Integer port)
     (define sshversion : SSH-Protocol protocol)
     (define identification : String (~a #:max-width 253 (format "SSH-~a-WarGrey_SSHmon_0.6 Racket-~a" sshversion (version))))
+
     (define/public session-name (lambda [] topic))
+    (define/public collapsed-evt (lambda [] (wrap-evt (thread-dead-evt ghostcat) (lambda [e] 'collapsed))))
     
     (define cipher-blocksize : Byte 0)
     (define message-authsize : Byte 0)
@@ -320,7 +325,7 @@
     (define/public (collapse [description "disconnected by user"] [reason 'SSH_DISCONNECT_BY_APPLICATION])
       (with-handlers ([exn? void])
         (transport-send (SSH_MSG_DISCONNECT ($#sd reason) (string-replace description (string #\newline) (string #\space)) ""))
-        (sync/enable-break (thread-dead-evt ghostcat))
+        (sync/enable-break (collapsed-evt))
         (thread-wait ghostcat))
       (custodian-shutdown-all watchcat))
 
@@ -356,12 +361,12 @@
       (define send-buffer : Bytes (make-bytes packet-upsize))
       (define recv-buffer : Bytes (make-bytes packet-upsize))
 
-      (define algorithms/old : (Vector SSH-Algorithm/Kex SSH-Algorithm/Publickey SSH-Algorithm/Cipher SSH-Algorithm/MAC SSH-Algorithm/Compression)
-        (vector (first ssh-algorithms/kex) (last ssh-algorithms/publickey)
-                (last ssh-algorithms/cipher) (last ssh-algorithms/mac) (last ssh-algorithms/compression)))
-      (define algorithms : (Vector SSH-Algorithm/Kex SSH-Algorithm/Publickey SSH-Algorithm/Cipher SSH-Algorithm/MAC SSH-Algorithm/Compression)
-        (vector (first ssh-algorithms/kex) (last ssh-algorithms/publickey)
-                (last ssh-algorithms/cipher) (last ssh-algorithms/mac) (last ssh-algorithms/compression)))
+      (define algorithms/old : (Vector SSH-Algorithm/Kex SSH-Algorithm/Publickey SSH-Algorithm/Cipher SSH-Algorithm/Integrity SSH-Algorithm/Compression)
+        (vector (first ssh-algorithms/kex) (first ssh-algorithms/publickey)
+                (first ssh-algorithms/cipher) (first ssh-algorithms/integrity) (first ssh-algorithms/compression)))
+      (define algorithms : (Vector SSH-Algorithm/Kex SSH-Algorithm/Publickey SSH-Algorithm/Cipher SSH-Algorithm/Integrity SSH-Algorithm/Compression)
+        (vector (first ssh-algorithms/kex) (first ssh-algorithms/publickey)
+                (first ssh-algorithms/cipher) (first ssh-algorithms/integrity) (first ssh-algorithms/compression)))
       
       (define kexdh-gex : (Vector String String Bytes  Bytes  Bytes UInt32 UInt32 UInt32 MPInteger MPInteger MPInteger MPInteger MPInteger)
         (vector                   "V_C"  "V_S"  #"I_C" #"I_S" #"K_S"1024   0 #|n|#8196   0 #|p|#   0 #|g|#   0 #|e|#   0 #|f|#   0 #|x or K|#))
@@ -386,7 +391,7 @@
          byte      padding_length (in the range of [4, 255])         \ the size of these 4 fields should be multiple of
          byte[n1]  payload; n1 = packet_length - padding_length - 1  / 8 or cipher-blocksize whichever is larger
          byte[n2]  random padding; n2 = padding_length              -
-         byte[m]   mac (Message Authentication Code - MAC); m = mac_length |#
+         byte[m]   MAC (Message Authentication Code); m = mac_length |#
 
       ; TODO: do not send specific packets during the process of negotiating algorithms
       (define transport-send-packet : (-> Output-Port packet:ssh (U 'cleared (List Natural Natural Natural)) Boolean Void)
@@ -488,19 +493,19 @@
       (define transport-handle-packet : (-> packet:ssh Any)
         (lambda [packet]
           (match packet
-            [(SSH_MSG_KEXINIT _ peer-kex peer-publickey cipher/ctos _ mac/ctos _ compression/ctos _ lang/ctos _ guessing-followed? _)
+            [(SSH_MSG_KEXINIT _ peer-kex peer-publickey cipher/ctos _ integrity/ctos _ compression/ctos _ lang/ctos _ guessing-followed? _)
              (define/negotiate-algorithms kex : SSH-Algorithm/Kex ssh-algorithms/kex peer-kex 0)
              (define/negotiate-algorithms publickey : SSH-Algorithm/Publickey ssh-algorithms/publickey peer-publickey 1)
              (define/negotiate-algorithms cipher : SSH-Algorithm/Cipher ssh-algorithms/cipher cipher/ctos 2)
-             (define/negotiate-algorithms mac : SSH-Algorithm/MAC ssh-algorithms/mac mac/ctos 3)
+             (define/negotiate-algorithms integrity : SSH-Algorithm/Integrity ssh-algorithms/integrity integrity/ctos 3)
              (define/negotiate-algorithms compression : SSH-Algorithm/Compression ssh-algorithms/compression compression/ctos 4)
              (ssh-log 'debug #:urgent 'SSH_MSG_KEXINIT "peer proposed langtags: ~a" lang/ctos)
              (when guessing-followed? ; https://tools.ietf.org/html/rfc4253#section-7.1
                (ssh-log 'error #:urgent 'SSH_MSG_KEXINIT "peer has guessed key exchange packet followed, we have to handle it."))
-             (ssh-log 'debug #:urgent (list kex publickey cipher mac compression) "we preferred algorithms: ~a"
-                      (list (car kex) (car publickey) (car cipher) (car mac) (car compression)))
+             (ssh-log 'debug #:urgent (list kex publickey cipher integrity compression) "we preferred algorithms: ~a"
+                      (list (car kex) (car publickey) (car cipher) (car integrity) (car compression)))
              (list (SSH_MSG_KEXINIT (call-with-input-string (number->string (current-inexact-milliseconds)) md5-bytes)
-                                    kex publickey cipher cipher mac mac compression compression null null #false 0)
+                                    kex publickey cipher cipher integrity integrity compression compression null null #false 0)
                    (case (car kex)
                      [(diffie-hellman-group-exchange-sha1) ; https://tools.ietf.org/html/rfc4419#section-3
                       (define minbits : UInt32 (vector-ref kexdh-gex 5))
@@ -537,7 +542,7 @@
                                                   '(String String (nBytes String) (nBytes String) (nBytes String)
                                                            UInt32 UInt32 UInt32 MPInteger MPInteger MPInteger MPInteger MPInteger)))
              (unless (bytes=? s (call-with-input-bytes H HASH))
-               (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED] "Hmm... signature is not match"))
+               (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED] "Hmmm... signature is not match, are we under attack?"))
              ;; https://tools.ietf.org/html/rfc4253#section-6.6
              ; client can also accept the key(K_S) without verification <https://tools.ietf.org/html/rfc4419#section-3>
              (define keyname : String (ssh-bytes->string K_S))
@@ -644,7 +649,7 @@
                       ;       compatibility mode is not guaranteed.
                       (throw [exn:ssh:eof 'SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED]
                              "unsupported protocol: ~a" identification))
-                    (vector-set! kexdh-gex 1 identification)
+                    (vector-set! kexdh-gex 1 identification) ; that why the identification should not be trimed
                     (ssh-log 'info "peer protocol version ~a, software ~a" protocol software)
                     (match software
                       [(regexp #px"^[Oo]pen[Ss][Ss][Hh]")
@@ -711,5 +716,6 @@
     (printf ">> ssh -p ~a ~a~n" port host)
     (with-handlers ([exn? void])
       (define ssh (new ssh-session% [host host] [port port] [on-debug show-debuginfo]))
+      (printf "================> ~a~n" (sync/timeout 0 (send ssh collapsed-evt)))
       (send ssh collapse "demonstration done" 'SSH_DISCONNECT_BY_APPLICATION))
     (newline)))
