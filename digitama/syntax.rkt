@@ -67,7 +67,7 @@
 (define-type MPInteger Integer)
 (define-type (nBytes n) Bytes)           ; the length is prefixed when n is String
 
-(define-type Primitive-Type (Rec PT (U Symbol (List 'Listof PT) (List 'nBytes Natural) (List 'nBytes 'String))))
+(define-type Primitive-Type (Rec PT (U Symbol (List 'Listof PT) (List 'nBytes (U Natural 'String 'Bytes)))))
 
 (define-syntax (define-type/consts stx)
   (syntax-case stx [: of as]

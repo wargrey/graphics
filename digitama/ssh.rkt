@@ -7,12 +7,15 @@
 ;;; https://tools.ietf.org/html/rfc4253, The Secure Shell Transport Layer Protocol               ;;;
 ;;; https://tools.ietf.org/html/rfc4254, The Secure Shell Connection Protocol                    ;;;
 ;;;                                                                                              ;;;
+;;; https://tools.ietf.org/html/rfc3447, Public Key Cryptography[RSA]                            ;;;
 ;;; https://tools.ietf.org/html/rfc4419, Diffie-Hellman Group Exchange                           ;;;
+;;; https://tools.ietf.org/html/rfc4716, Public Key File Format                                  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide (all-defined-out))
 
 (require typed/openssl/md5)
+(require typed/openssl/sha1)
 
 (require math/base)
 (require math/number-theory)
@@ -27,9 +30,9 @@
 
 (define-type/enum ssh-protocols : SSH-Protocol 2.0)
 
-;;; Message Constants http://tools.ietf.org/html/rfc4250#section-4.1
+;;; Message Constants https://tools.ietf.org/html/rfc4250#section-4.1
 (define-type/consts sm : SSH-Message-Type of Byte as packet:ssh
-  ;; for http://tools.ietf.org/html/rfc4253
+  ;; for https://tools.ietf.org/html/rfc4253
   [SSH_MSG_DISCONNECT                 1 ([reason : UInt32] [description : String] [language : String])]
   [SSH_MSG_IGNORE                     2 ([data : String])]
   [SSH_MSG_UNIMPLEMENTED              3 ([seq : UInt32])]
@@ -45,30 +48,30 @@
                                          [guessing-followed? : Boolean]
                                          [reserved/zero : UInt32])]
   [SSH_MSG_NEWKEYS                   21 ()]
-  ;; http://tools.ietf.org/html/rfc4419#section-5
+  ;; https://tools.ietf.org/html/rfc4419#section-5
   ; TODO: The numbers 30-49 are key exchange specific and may be redefined by other kex methods
   [SSH_MSG_KEX_DH_GEX_REQUEST        34 ([minbits : UInt32] [nbits : UInt32] [maxbits : UInt32])]
   [SSH_MSG_KEX_DH_GEX_GROUP          31 ([large-safe-prime : MPInteger] [generator : MPInteger])]
   [SSH_MSG_KEX_DH_GEX_INIT           32 ([e : MPInteger])]
   [SSH_MSG_KEX_DH_GEX_REPLY          33 ([hostkey : (nBytes String)] [f : MPInteger] [s : (nBytes String)])]
-  ;; for http://tools.ietf.org/html/rfc4252
-  [SSH_MSG_USERAUTH_REQUEST          50 ([username : Symbol] [service : Symbol] [method : Symbol] [extra : Bytes])]
+  ;; for https://tools.ietf.org/html/rfc4252
+  [SSH_MSG_USERAUTH_REQUEST          50 ([username : Symbol] [service : Symbol] [method : Symbol] [extra : (nBytes Bytes)])]
   [SSH_MSG_USERAUTH_FAILURE          51 ([methods : (Listof Symbol)] [partially? : Boolean])]
   [SSH_MSG_USERAUTH_SUCCESS          52 ()]
   [SSH_MSG_USERAUTH_BANNER           53 ([message : String] [language : String])]
-  ;; for http://tools.ietf.org/html/rfc4254
-  [SSH_MSG_GLOBAL_REQUEST            80 ([name : Symbol] [replay? : Boolean] [extra : Bytes])]
-  [SSH_MSG_REQUEST_SUCCESS           81 ([extra : Bytes])]
+  ;; for https://tools.ietf.org/html/rfc4254
+  [SSH_MSG_GLOBAL_REQUEST            80 ([name : Symbol] [replay? : Boolean] [extra : (nBytes Bytes)])]
+  [SSH_MSG_REQUEST_SUCCESS           81 ([extra : (nBytes Bytes)])]
   [SSH_MSG_REQUEST_FAILURE           82 ()]
-  [SSH_MSG_CHANNEL_OPEN              90 ([type : Symbol] [partner : UInt32] [window-size : UInt32] [packet-upsize : UInt32] [extra : Bytes])]
-  [SSH_MSG_CHANNEL_OPEN_CONFIRMATION 91 ([channel : UInt32] [partner : UInt32] [window-size : UInt32] [packet-upsize : UInt32] [extra : Bytes])]
+  [SSH_MSG_CHANNEL_OPEN              90 ([type : Symbol] [partner : UInt32] [window-size : UInt32] [packet-upsize : UInt32] [extra : (nBytes Bytes)])]
+  [SSH_MSG_CHANNEL_OPEN_CONFIRMATION 91 ([channel : UInt32] [partner : UInt32] [window-size : UInt32] [packet-upsize : UInt32] [extra : (nBytes Bytes)])]
   [SSH_MSG_CHANNEL_OPEN_FAILURE      92 ([channel : UInt32] [reason : UInt32] [descripion : String] [language : String])]
   [SSH_MSG_CHANNEL_WINDOW_ADJUST     93 ([channel : UInt32] [size : UInt32])]
   [SSH_MSG_CHANNEL_DATA              94 ([channel : UInt32] [data : String])]
   [SSH_MSG_CHANNEL_EXTENDED_DATA     95 ([channel : UInt32] [type : UInt32] [data : String])]
   [SSH_MSG_CHANNEL_EOF               96 ([channel : UInt32])]
   [SSH_MSG_CHANNEL_CLOSE             97 ([channel : UInt32])]
-  [SSH_MSG_CHANNEL_REQUEST           98 ([channel : UInt32] [type : Symbol] [reply? : Boolean] [extra : Bytes])]
+  [SSH_MSG_CHANNEL_REQUEST           98 ([channel : UInt32] [type : Symbol] [reply? : Boolean] [extra : (nBytes Bytes)])]
   [SSH_MSG_CHANNEL_SUCCESS           99 ([channel : UInt32])]
   [SSH_MSG_CHANNEL_FAILURE          100 ([channel : UInt32])])
 
@@ -98,7 +101,7 @@
 (define-type/consts se : SSH-Channel-Data-Type of UInt32 
   [SSH_EXTENDED_DATA_STDERR                            1])
 
-;;; SSH Datatype Representations http://tools.ietf.org/html/rfc4251#section-5
+;;; SSH Datatype Representations https://tools.ietf.org/html/rfc4251#section-5
 (define ssh-boolean->bytes : (-> Any Bytes)
   (lambda [bool]
     (if bool (bytes 1) (bytes 0))))
@@ -162,7 +165,7 @@
   (lambda [bascii #:offset [offset 0]]
     (map string->symbol (string-split (ssh-bytes->string bascii #:offset offset) ","))))
 
-; Raw memory area for those CStrings that cannot be converted to UTF-8 Strings
+; Raw memory area for those Byte Strings that also have internal structure
 (define ssh-raw->bytes : (-> (nBytes String) Bytes)
   (lambda [raw]
     (bytes-append (ssh-uint32->bytes (bytes-length raw)) raw)))
@@ -170,16 +173,67 @@
 (define ssh-bytes->raw : (-> Bytes [#:offset Natural] (nBytes String))
   (lambda [raw #:offset [offset 0]]
     (subbytes raw (+ offset 4) (+ offset 4 (ssh-bytes->uint32 raw #:offset offset)))))
+
+; here comes "The Internal Structure"
+(define ssh-struct->bytes : (-> (Sequenceof Any) (Listof Primitive-Type) [#:prefix Bytes] Bytes)
+  (lambda [data types #:prefix [payload0 #""]]
+    (for/fold ([payload : Bytes payload0]) ([datum data] [type (in-list types)])
+      (bytes-append payload (match datum
+                              [(? boolean? b) (ssh-boolean->bytes b)]
+                              [(? string? utf8) (ssh-string->bytes utf8)]
+                              [(? symbol? ascii) (ssh-string->bytes (symbol->string ascii))]
+                              [(? list?) (ssh-namelist->bytes (cast datum (Listof Symbol)))]
+                              [(? bytes? bstr) (if (equal? type (list 'nBytes 'String)) (ssh-raw->bytes bstr) bstr)]
+                              [(? exact-integer? n)
+                               (case type
+                                 [(UInt32) (ssh-uint32->bytes (cast n UInt32))]
+                                 [(UInt64) (ssh-uint64->bytes (cast n UInt64))]
+                                 [(MPInteger) (ssh-mpint->bytes n)]
+                                 [else (bytes n)])])))))
+
+(define ssh-bytes->struct : (->* (Bytes (Listof Primitive-Type)) (Index (Option Integer)) (Vectorof Any))
+  (lambda [payload types [start 0] [end #false]]
+    (define payload-end : Integer (min (or end (bytes-length payload)) (bytes-length payload)))
+    (define payload-length : Integer (- payload-end start))
+    (define payloads : (Vectorof Any) (make-vector (length types)))
+    (define position : Natural
+      (for/fold : Natural ([position : Natural start]) ([idx : Integer (in-range (vector-length payloads))]) 
+        (define-values (delta val)
+          (match (list-ref types idx)
+            ['Byte (values 1 (bytes-ref payload position))]
+            ['Boolean (values 1 (ssh-bytes->boolean payload #:offset position))]
+            ['UInt32 (values 4 (ssh-bytes->uint32 payload #:offset position))]
+            ['UInt64 (values 8 (ssh-bytes->uint64 payload #:offset position))]
+            [(list 'nBytes (? exact-nonnegative-integer? n)) (values n (subbytes payload position (+ position n)))]
+            [(list 'nBytes 'Bytes)
+             (with-handlers ([exn? (lambda [e] (throw exn:ssh "corrupt size (extra : ~a > ~a)" position payload-end))])
+               (values (cast (- payload-end position) Natural)
+                       (subbytes payload position payload-end)))]
+            [size+type
+             (define size : UInt32 (ssh-bytes->uint32 payload #:offset position))
+             (when (> size payload-length)
+               (throw exn:ssh "corrupt size (~a: ~a > ~a)" size+type size payload-length))
+             (values (+ size 4)
+                     (match size+type
+                       ['String (ssh-bytes->string payload #:offset position)]
+                       ['Symbol (string->symbol (ssh-bytes->string payload #:offset position))]
+                       ['MPInteger (ssh-bytes->mpint payload #:offset position)]
+                       [(list 'Listof _) (ssh-bytes->namelist payload #:offset position)]
+                       [(list 'nBytes 'String) (ssh-bytes->raw payload #:offset position)]))]))
+        (vector-set! payloads idx val)
+        (+ position delta)))
+    (cond [(= position payload-end) payloads]
+          [else (throw exn:ssh "corrupt size (total: ~a ≠ ~a)" position payload-end)])))
 ;;; End SSH Datatype
 
-;;; http://tools.ietf.org/html/rfc4250#section-4.11
-;;; http://tools.ietf.org/html/rfc4251#section-9.3.8 [order ajusted]
-;; http://tools.ietf.org/html/rfc4253#section-6.2
+;;; https://tools.ietf.org/html/rfc4250#section-4.11
+;;; https://tools.ietf.org/html/rfc4251#section-9.3.8 [order ajusted]
+;; https://tools.ietf.org/html/rfc4253#section-6.2
 (define-type/enum ssh-algorithms/compression : SSH-Algorithm/Compression
   [none     REQUIRED        no compression]
   #;[zlib     OPTIONAL        ZLIB (LZ77) compression])
 
-;; http://tools.ietf.org/html/rfc4253#section-6.3
+;; https://tools.ietf.org/html/rfc4253#section-6.3
 (define-type/enum ssh-algorithms/cipher : SSH-Algorithm/Cipher
   [3des-cbc         REQUIRED          three-key 3DES in CBC mode]
   [blowfish-cbc     OPTIONAL          Blowfish in CBC mode]
@@ -198,7 +252,7 @@
   [cast128-cbc      OPTIONAL          CAST-128 in CBC mode]
   [none             OPTIONAL          no encryption])
 
-;; http://tools.ietf.org/html/rfc4253#section-6.4
+;; https://tools.ietf.org/html/rfc4253#section-6.4
 (define-type/enum ssh-algorithms/mac : SSH-Algorithm/MAC
   [hmac-sha1-96 RECOMMENDED     first 96 bits of HMAC-SHA1 (digest length = 12, key length = 20)]
   [hmac-sha1    REQUIRED        HMAC-SHA1 (digest length = key length = 20)]
@@ -206,14 +260,14 @@
   [hmac-md5     OPTIONAL        HMAC-MD5 (digest length = key length = 16)]
   [none         OPTIONAL        no MAC])
 
-;; http://tools.ietf.org/html/rfc4253#section-6.6
+;; https://tools.ietf.org/html/rfc4253#section-6.6
 (define-type/enum ssh-algorithms/publickey : SSH-Algorithm/Publickey
   [ssh-rsa           RECOMMENDED  sign   Raw RSA Key]
   [ssh-dss           REQUIRED     sign   Raw DSS Key]
   #;[pgp-sign-rsa      OPTIONAL     sign   OpenPGP certificates (RSA key)]
   #;[pgp-sign-dss      OPTIONAL     sign   OpenPGP certificates (DSS key)])
 
-;; http://tools.ietf.org/html/rfc4419#section-3
+;; https://tools.ietf.org/html/rfc4419#section-3
 (define-type/enum ssh-algorithms/kex : SSH-Algorithm/Kex
   [diffie-hellman-group-exchange-sha1 REQUIRED]
   #;[diffie-hellman-group-exchange-sha256 RECOMMENDED])
@@ -230,7 +284,7 @@
 (define-type SSH-Channel<%>
   (Class (init [name Symbol])))
 
-(define ssh-client% : SSH-Session<%>
+(define ssh-session% : SSH-Session<%>
   (class object% (super-new)
     (init host)
     (init [port 22]
@@ -260,7 +314,6 @@
     
     (define cipher-blocksize : Byte 0)
     (define message-authsize : Byte 0)
-    (define compression : SSH-Algorithm/Compression 'none)
 
     (define (~% [current : Real] [total : Real]) : String (~r (* 100 (/ current total)) #:precision '(= 2)))
     
@@ -303,22 +356,32 @@
       (define send-buffer : Bytes (make-bytes packet-upsize))
       (define recv-buffer : Bytes (make-bytes packet-upsize))
 
-      (define dh-gex : (Vector String String Bytes  Bytes  Bytes   UInt32 UInt32 UInt32 MPInteger MPInteger MPInteger MPInteger MPInteger)
-        (vector                "V_C"  "V_S"  #"I_C" #"I_S" #"K_S"  1024   0 #|n|#8196   0 #|p|#   0 #|g|#   0 #|e|#   0 #|f|#   0 #|x or K|#))
-
-      (define negotiate-algorithms : (-> (Listof Symbol) (Listof Symbol) Symbol (Listof Symbol))
-        (lambda [candidates proposed hint]
-          ;; naming convention: http://tools.ietf.org/html/rfc4251#section-6
-          ; TODO: deal with 'name@domainname'
-          (define agreed : (Listof Symbol)
-            ((inst filter-map Symbol Symbol)
-             (lambda [[alg : Symbol]] (and (member alg proposed) alg))
-             candidates))
-          (when (null? agreed)
-            (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED] "no more ~a algorithm available" hint))
-          agreed))
+      (define algorithms/old : (Vector SSH-Algorithm/Kex SSH-Algorithm/Publickey SSH-Algorithm/Cipher SSH-Algorithm/MAC SSH-Algorithm/Compression)
+        (vector (first ssh-algorithms/kex) (last ssh-algorithms/publickey)
+                (last ssh-algorithms/cipher) (last ssh-algorithms/mac) (last ssh-algorithms/compression)))
+      (define algorithms : (Vector SSH-Algorithm/Kex SSH-Algorithm/Publickey SSH-Algorithm/Cipher SSH-Algorithm/MAC SSH-Algorithm/Compression)
+        (vector (first ssh-algorithms/kex) (last ssh-algorithms/publickey)
+                (last ssh-algorithms/cipher) (last ssh-algorithms/mac) (last ssh-algorithms/compression)))
       
-      ; http://tools.ietf.org/html/rfc4253#section-6
+      (define kexdh-gex : (Vector String String Bytes  Bytes  Bytes UInt32 UInt32 UInt32 MPInteger MPInteger MPInteger MPInteger MPInteger)
+        (vector                   "V_C"  "V_S"  #"I_C" #"I_S" #"K_S"1024   0 #|n|#8196   0 #|p|#   0 #|g|#   0 #|e|#   0 #|f|#   0 #|x or K|#))
+
+      (define-syntax (define/negotiate-algorithms stx)
+        (syntax-case stx [:]
+          [(_ binding : SSH-Algorithm candidates proposed idx)
+           ;; naming convention: https://tools.ietf.org/html/rfc4251#section-6
+           ; TODO: deal with 'name@domainname'
+           #'(begin (ssh-log 'debug #:urgent 'SSH_MSG_KEXINIT "peer proposed ~a algorithms: ~a" 'binding proposed)
+                    (define binding : (Listof SSH-Algorithm)
+                      ((inst filter-map SSH-Algorithm SSH-Algorithm)
+                       (lambda [[alg : SSH-Algorithm]] (and (member alg proposed) alg))
+                       candidates))
+                    (when (null? binding)
+                      (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED] "no more ~a algorithm available" 'binding))
+                    (vector-set! algorithms/old idx (vector-ref algorithms idx))
+                    (vector-set! algorithms idx (car binding)))]))
+ 
+      ; https://tools.ietf.org/html/rfc4253#section-6
       #| uint32    packet_length  (the next 3 fields)               -
          byte      padding_length (in the range of [4, 255])         \ the size of these 4 fields should be multiple of
          byte[n1]  payload; n1 = packet_length - padding_length - 1  / 8 or cipher-blocksize whichever is larger
@@ -326,37 +389,24 @@
          byte[m]   mac (Message Authentication Code - MAC); m = mac_length |#
 
       ; TODO: do not send specific packets during the process of negotiating algorithms
-      (define transport-send-packet : (-> Output-Port packet:ssh (U 'cleared (List Natural Natural Natural)) Void)
-        (lambda [tcpout packet continuation]
+      (define transport-send-packet : (-> Output-Port packet:ssh (U 'cleared (List Natural Natural Natural)) Boolean Void)
+        (lambda [tcpout packet continuation newkeys?]
           (define SSH_MSG_ID : SSH-Message-Type (cast (object-name packet) SSH-Message-Type))
           (define-values (offset total-length payload-length padding-length)
             (match continuation
               [(list offset total padding)
                (values offset total (- total padding message-authsize 4 1) padding)]
-              [_ (let ([payload : Bytes (for/fold ([payload : Bytes (bytes ($#sm SSH_MSG_ID))])
-                                                  ([content (in-vector (vector-drop (struct->vector packet) 1))]
-                                                   [datatype (in-list ($:sm SSH_MSG_ID))])
-                                          (bytes-append payload (match content
-                                                                  [(? boolean? b) (ssh-boolean->bytes b)]
-                                                                  [(? string? utf8) (ssh-string->bytes utf8)]
-                                                                  [(? symbol? ascii) (ssh-string->bytes (symbol->string ascii))]
-                                                                  [(? list?) (ssh-namelist->bytes (cast content (Listof Symbol)))]
-                                                                  [(? bytes? bstr) (match datatype
-                                                                                          [(list 'nBytes 'Strng) (ssh-raw->bytes bstr)]
-                                                                                          [else bstr])]
-                                                                  [(? exact-integer? n) (match datatype
-                                                                                          ['UInt32 (ssh-uint32->bytes (cast n UInt32))]
-                                                                                          ['UInt64 (ssh-uint64->bytes (cast n UInt64))]
-                                                                                          ['MPInteger (ssh-mpint->bytes n)]
-                                                                                          [else (bytes n)])])))])
+              [_ (let ([payload : Bytes (ssh-struct->bytes #:prefix (bytes ($#sm SSH_MSG_ID))
+                                                         (in-vector (vector-drop (struct->vector packet) 1))
+                                                         ($:sm SSH_MSG_ID))])
                    (when (> (bytes-length payload) 32768)
                      (throw exn:ssh "packet is too large to send."))
           
                    ;;; TODO: Compression
 
                    (when (SSH_MSG_KEXINIT? packet)
-                     ; http://tools.ietf.org/html/rfc4419#section-3
-                     (vector-set! dh-gex 2 payload))
+                     ; https://tools.ietf.org/html/rfc4419#section-3
+                     (vector-set! kexdh-gex 2 payload))
 
                    (define payload-length : Natural (bytes-length payload))
                    (define-values (packet-length padding-length)
@@ -364,7 +414,7 @@
                             [packet-draft : Integer (+ 5 payload-length)]
                             [padding-draft : Integer (- idsize (remainder packet-draft idsize))]
                             [padding-draft : Integer (if (< padding-draft 4) (+ padding-draft idsize) padding-draft)]
-                            [capacity : Integer (quotient (- #xFF padding-draft) (add1 idsize))] ; for thwarting traffic analysis
+                            [capacity : Integer (quotient (- #xFF padding-draft) (add1 idsize))] ; thwart traffic analysis
                             [random-length : Integer (+ padding-draft (if (< capacity 1) 0 (* idsize (random capacity))))])
                        (values (cast (+ packet-draft random-length -4) UInt32) random-length)))
 
@@ -390,8 +440,8 @@
                                      "sent ~a, ~a bytes in total (+ 4 1 ~a ~a ~a)"
                                      SSH_MSG_ID total-length payload-length padding-length message-authsize)))])))
 
-      (define transport-recv-packet : (-> Input-Port Natural Nothing)
-        (lambda [tcpin start]
+      (define transport-recv-packet : (-> Input-Port Natural Boolean Nothing)
+        (lambda [tcpin start newkeys?]
           (define received (with-handlers ([exn:fail:network? (lambda [[e : exn:fail:network]] e)])
                              (read-bytes-avail! recv-buffer tcpin start packet-upsize)))
           (cond [(eof-object? received)
@@ -420,119 +470,98 @@
                         (when (> total-length bufused)
                           (throw [exn:ssh:again bufused]
                                  "receiving ~a, ~a bytes, ~a% done" (or SSH_MSG_ID message-id) bufused (~% bufused total-length)))
-                        (with-handlers ([exn? (lambda [[e : exn]] (ssh-log 'debug #:urgent e "extracting ~a: ~a" (or SSH_MSG_ID message-id) (exn-message e)))])
-                          (define payloads : (Listof Any)
-                            (let extract : (Listof Any) ([sdaolyap : (Listof Any) null] [pos : Natural 6] [types (if SSH_MSG_ID ($:sm SSH_MSG_ID) null)])
-                              (match types
-                                [(? null?)
-                                 (cond [(= pos payload-end) (reverse sdaolyap)]
-                                       [else (throw exn:ssh "ignored ~a: corrupt size (~a/~a)" SSH_MSG_ID pos payload-end)])]
-                                [(list 'Bytes) ; this packet has special datum.
-                                 (cond [(<= pos payload-end) (reverse (cons (subbytes recv-buffer pos payload-end) sdaolyap))]
-                                       [else (throw exn:ssh "ignored ~a: corrupt size (~a > ~a)" SSH_MSG_ID pos payload-end)])]
-                                [(list 'Byte rest ...)
-                                 (extract (cons (bytes-ref recv-buffer pos) sdaolyap) (add1 pos) rest)]
-                                [(list 'Boolean rest ...)
-                                 (extract (cons (ssh-bytes->boolean recv-buffer #:offset pos) sdaolyap) (add1 pos) rest)]
-                                [(list (list 'nBytes (? exact-positive-integer? n)) rest ...)
-                                 (extract (cons (subbytes recv-buffer pos (+ pos n)) sdaolyap) (+ pos n) rest)]
-                                [(list 'UInt32 rest ...)
-                                 (extract (cons (ssh-bytes->uint32 recv-buffer #:offset pos) sdaolyap) (+ pos 4) rest)]
-                                [(list 'UInt64 rest ...)
-                                 (extract (cons (ssh-bytes->uint64 recv-buffer #:offset pos) sdaolyap) (+ pos 8) rest)]
-                                [(list 'String rest ...)
-                                 (let ([strsize : UInt32 (ssh-bytes->uint32 recv-buffer #:offset pos)])
-                                   (when (> strsize payload-length)
-                                     (throw exn:ssh "ignored ~a: corrupt string size (~a > ~a)" SSH_MSG_ID strsize payload-length))
-                                   (extract (cons (ssh-bytes->string recv-buffer #:offset pos) sdaolyap) (+ pos strsize 4) rest))]
-                                [(list 'Symbol rest ...)
-                                 (let ([symsize : UInt32 (ssh-bytes->uint32 recv-buffer #:offset pos)])
-                                   (when (> symsize payload-length)
-                                     (throw exn:ssh "ignored ~a: corrupt symbol size (~a > ~a)" SSH_MSG_ID symsize payload-length))
-                                   (extract (cons (string->symbol (ssh-bytes->string recv-buffer #:offset pos)) sdaolyap) (+ pos symsize 4) rest))]
-                                [(list 'MPInteger rest ...)
-                                 (let ([mpsize : UInt32 (ssh-bytes->uint32 recv-buffer #:offset pos)])
-                                   (when (> mpsize payload-length)
-                                     (throw exn:ssh "ignored ~a: corrupt mpint size (~a > ~a)" SSH_MSG_ID mpsize payload-length))
-                                   (extract (cons (ssh-bytes->mpint recv-buffer #:offset pos) sdaolyap) (+ pos mpsize 4) rest))]
-                                [(list (list 'Listof _) rest ...)
-                                 (let ([namesize : UInt32 (ssh-bytes->uint32 recv-buffer #:offset pos)])
-                                   (when (> namesize payload-length)
-                                     (throw exn:ssh "ignored ~a: corrupt namelist size (~a > ~a)" SSH_MSG_ID namesize payload-length))
-                                   (extract (cons (ssh-bytes->namelist recv-buffer #:offset pos) sdaolyap) (+ pos namesize 4) rest))]
-                                [(list (list 'nBytes 'String) rest ...)
-                                 (let ([rawsize : UInt32 (ssh-bytes->uint32 recv-buffer #:offset pos)])
-                                   (when (> rawsize payload-length)
-                                     (throw exn:ssh "ignored ~a: corrupt raw memory area size (~a > ~a)" SSH_MSG_ID rawsize payload-length))
-                                   (extract (cons (ssh-bytes->raw recv-buffer #:offset pos) sdaolyap) (+ pos rawsize 4) rest))])))
-                          ; http://tools.ietf.org/html/rfc4253#section-11.4
-                          (define packet : packet:ssh ($*sm (or SSH_MSG_ID message-id) payloads))
+                        (with-handlers ([exn? (lambda [[e : exn]] (ssh-log 'debug #:urgent e
+                                                                           "ignored ~a: extracting error: ~a"
+                                                                           (or SSH_MSG_ID message-id) (exn-message e)))])
+                          ; https://tools.ietf.org/html/rfc4253#section-11.4
+                          (define packet : packet:ssh
+                            (cond [(false? SSH_MSG_ID) ($*sm message-id null)] ;; TODO
+                                  [else ($*sm SSH_MSG_ID (vector->list (ssh-bytes->struct recv-buffer ($:sm SSH_MSG_ID) 6 payload-end)))]))
                           (ssh-log 'info #:urgent (vector total-length packet)
                                    "received ~a, ~a bytes in total (+ 4 1 ~a ~a ~a)"
                                    (or SSH_MSG_ID message-id) total-length payload-length padding-length message-authsize)
                           (when (SSH_MSG_KEXINIT? packet)
-                            ; http://tools.ietf.org/html/rfc4419#section-3
-                            (vector-set! dh-gex 3 (subbytes recv-buffer 5 payload-end))))
+                            ; https://tools.ietf.org/html/rfc4419#section-3
+                            (vector-set! kexdh-gex 3 (subbytes recv-buffer 5 payload-end))))
                         (extract-packet total-length (max (- bufused total-length) 0)))])))
 
       (define transport-handle-packet : (-> packet:ssh Any)
         (lambda [packet]
           (match packet
             [(SSH_MSG_KEXINIT _ peer-kex peer-publickey cipher/ctos _ mac/ctos _ compression/ctos _ lang/ctos _ guessing-followed? _)
-             (ssh-log 'debug #:urgent 'SSH_MSG_KEXINIT "peer proposed hostkey types: ~a" peer-publickey)
-             (ssh-log 'debug #:urgent 'SSH_MSG_KEXINIT "peer proposed key exchange algorithms: ~a" peer-kex)
-             (ssh-log 'debug #:urgent 'SSH_MSG_KEXINIT "peer proposed encryption algorithms: ~a" cipher/ctos)
-             (ssh-log 'debug #:urgent 'SSH_MSG_KEXINIT "peer proposed mac algorithms: ~a" mac/ctos)
-             (ssh-log 'debug #:urgent 'SSH_MSG_KEXINIT "peer proposed compression algorithms: ~a" compression/ctos)
+             (define/negotiate-algorithms kex : SSH-Algorithm/Kex ssh-algorithms/kex peer-kex 0)
+             (define/negotiate-algorithms publickey : SSH-Algorithm/Publickey ssh-algorithms/publickey peer-publickey 1)
+             (define/negotiate-algorithms cipher : SSH-Algorithm/Cipher ssh-algorithms/cipher cipher/ctos 2)
+             (define/negotiate-algorithms mac : SSH-Algorithm/MAC ssh-algorithms/mac mac/ctos 3)
+             (define/negotiate-algorithms compression : SSH-Algorithm/Compression ssh-algorithms/compression compression/ctos 4)
              (ssh-log 'debug #:urgent 'SSH_MSG_KEXINIT "peer proposed langtags: ~a" lang/ctos)
              (when guessing-followed? ; https://tools.ietf.org/html/rfc4253#section-7.1
                (ssh-log 'error #:urgent 'SSH_MSG_KEXINIT "peer has guessed key exchange packet followed, we have to handle it."))
-             (match-define (list kex publickey cipher mac compression)
-               (map negotiate-algorithms
-                    (list ssh-algorithms/kex ssh-algorithms/publickey ssh-algorithms/cipher ssh-algorithms/mac ssh-algorithms/compression)
-                    (list peer-kex peer-publickey cipher/ctos mac/ctos compression/ctos)
-                    (list 'kex 'publickey 'encryption 'MAC 'compression)))
-             (ssh-log 'debug #:urgent 'SSH_MSG_KEXINIT "we preferred algorithms: ~a"
-                      ((inst map Symbol (Listof Symbol)) car (list kex publickey cipher mac compression)))
+             (ssh-log 'debug #:urgent (list kex publickey cipher mac compression) "we preferred algorithms: ~a"
+                      (list (car kex) (car publickey) (car cipher) (car mac) (car compression)))
              (list (SSH_MSG_KEXINIT (call-with-input-string (number->string (current-inexact-milliseconds)) md5-bytes)
                                     kex publickey cipher cipher mac mac compression compression null null #false 0)
                    (case (car kex)
-                     [(diffie-hellman-group-exchange-sha1) ; http://tools.ietf.org/html/rfc4419#section-3
-                      (define minbits : UInt32 (vector-ref dh-gex 5))
-                      (define maxbits : UInt32 (vector-ref dh-gex 7))
+                     [(diffie-hellman-group-exchange-sha1) ; https://tools.ietf.org/html/rfc4419#section-3
+                      (define minbits : UInt32 (vector-ref kexdh-gex 5))
+                      (define maxbits : UInt32 (vector-ref kexdh-gex 7))
                       (define nbits : UInt32 (cast (random-integer minbits maxbits) UInt32))
-                      (vector-set! dh-gex 6 nbits)
+                      (vector-set! kexdh-gex 6 nbits)
                       (SSH_MSG_KEX_DH_GEX_REQUEST minbits nbits maxbits)]))]
-            [(SSH_MSG_KEX_DH_GEX_GROUP p g) ; http://tools.ietf.org/html/rfc4419#section-3
+            [(SSH_MSG_KEX_DH_GEX_GROUP p g) ; https://tools.ietf.org/html/rfc4419#section-3
              (define x : MPInteger (random-integer 2 (arithmetic-shift (sub1 p) -1)))
              (define e : MPInteger (modular-expt g x p))
-             (vector-set! dh-gex 8 p)
-             (vector-set! dh-gex 9 g)
-             (vector-set! dh-gex 10 e)
-             (vector-set! dh-gex 12 x)
-             ;; TODO: sometimes OpenSSH will not reply, complain this:
-             ;          buffer_get_bignum2_ret: negative numbers not supported [preauth]
-             ;          buffer_get_bignum2: buffer error [preauth]
+             (vector-set! kexdh-gex 8 p)
+             (vector-set! kexdh-gex 9 g)
+             (vector-set! kexdh-gex 10 e)
+             (vector-set! kexdh-gex 12 x)
              (list (SSH_MSG_KEX_DH_GEX_INIT e))]
-            [(SSH_MSG_KEX_DH_GEX_REPLY K_S f s) ; http://tools.ietf.org/html/rfc4419#section-3
-             ; TODO: client can also accept the key(K_S) without verification for practical reason.
-             (define p : MPInteger (vector-ref dh-gex 8))
-             (define x : MPInteger (vector-ref dh-gex 12))
+            [(SSH_MSG_KEX_DH_GEX_REPLY K_S f s)
+             (define p : MPInteger (vector-ref kexdh-gex 8))
+             (define x : MPInteger (vector-ref kexdh-gex 12))
              (define K : MPInteger (modular-expt f x p))
              (unless (<= 1 f (sub1 p))
                (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED]
                       "exchange value is not in range [1, p - 1]"))
-             (vector-set! dh-gex 4 K_S)
-             (vector-set! dh-gex 11 f)
-             (vector-set! dh-gex 12 K)
-             (void)]
+             (vector-set! kexdh-gex 4 K_S)
+             (vector-set! kexdh-gex 11 f)
+             (vector-set! kexdh-gex 12 K)
+             ;;;https://tools.ietf.org/html/rfc4419#section-3
+             ;; verify the signature of H
+             (define HASH : (-> Input-Port Bytes)
+               (case (vector-ref algorithms 0)
+                 [(diffie-hellman-group-exchange-sha1) sha1-bytes]
+                 [else (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED]
+                              "~a algorithm has not been implemented yet" (vector-ref algorithms 0))]))
+             (define H : Bytes (ssh-struct->bytes (in-vector kexdh-gex)
+                                                  '(String String (nBytes String) (nBytes String) (nBytes String)
+                                                           UInt32 UInt32 UInt32 MPInteger MPInteger MPInteger MPInteger MPInteger)))
+             (unless (bytes=? s (call-with-input-bytes H HASH))
+               (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED] "Hmm... signature is not match"))
+             ;; https://tools.ietf.org/html/rfc4253#section-6.6
+             ; client can also accept the key(K_S) without verification <https://tools.ietf.org/html/rfc4419#section-3>
+             (define keyname : String (ssh-bytes->string K_S))
+             (unless (symbol=? (string->symbol keyname) (vector-ref algorithms 1))
+               (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED]
+                      "Hey, you use ~a instead of the negotiated asymmetrical algorithm" keyname))
+             (case keyname
+               [("ssh-rsa")
+                (displayln keyname)]
+               [else (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED]
+                            "~a algorithm has not been implemented yet" keyname)])
+             ;; https://tools.ietf.org/html/rfc4253#section-7.2
+             ]
             [(? SSH_MSG_NEWKEYS? key-exchange-done) (void (list key-exchange-done))]
 
             ; https://tools.ietf.org/html/rfc4253#section-11
-            [(SSH_MSG_IGNORE thwart-traffic-analysis) (ssh-log 'debug #:urgent 'SSH_MSG_IGNORE thwart-traffic-analysis)]
-            [(SSH_MSG_DEBUG show? message language) (ssh-log 'debug #:urgent (vector 'SSH_MSG_DEBUG show? language) message)]
-            [(? SSH_MSG_DISCONNECT? peer-disconnected) peer-disconnected]
-            [(?packet:ssh message-id) (list (SSH_MSG_UNIMPLEMENTED message-id))])))
+            [(SSH_MSG_IGNORE thwart-traffic-analysis)
+             (ssh-log 'debug #:urgent 'SSH_MSG_IGNORE thwart-traffic-analysis)]
+            [(SSH_MSG_DEBUG show? message language)
+             (ssh-log 'debug #:urgent (vector 'SSH_MSG_DEBUG show? language) message)]
+            [(and (SSH_MSG_DISCONNECT reason description language) disconnect)
+             (ssh-log 'info #:urgent (cons disconnect 0) "received disconnect from ~a: ~a: ~a" hostname reason description)]
+            [(?packet:ssh message-id)
+             (list (SSH_MSG_UNIMPLEMENTED message-id))])))
       
       (define/private transport:sync-match-handle-loop : (-> Any)
         (lambda []
@@ -547,34 +576,37 @@
                          [$in : (U 'plain Natural EOF) 'plain]                         ;   their original status, so that they can be closed
                          [/dev/tcpout : Output-Port (open-output-nowhere)]             ;   by one piece of code.
                          [$out : (U 'cleared (List Natural Natural Natural) EOF) eof]  ; even if output port is blocking,
-                         [packet-evt : (Evtof Any) /dev/pkt])                          ;   mailbox still should be checked to trigger the destructor
+                         [packet-evt : (Evtof Any) /dev/pkt]                           ;   mailbox still should be checked to trigger the destructor
+                         [newkeys? : Boolean #false])
             (match (sync/enable-break /dev/log (if (eof-object? $in) never-evt /dev/tcpin) packet-evt)
               [(vector (? symbol? level) (? string? message) urgent _)
                (match (vector level message urgent)
-                 [(vector 'info message (vector (? exact-positive-integer? traffic) (? packet:ssh? packet)))
+                 [(vector 'info message (vector (? integer? traffic) (? packet:ssh? packet)))
                   (on-debug 'info message (cons 'received traffic) topic)
                   (match (with-handlers ([exn? values]) (transport-handle-packet packet))
                     [(list (? packet:ssh? kexbacks) ...)
                      (thread-rewind-receive (map (lambda [kexback] (cons kexback #false)) (reverse kexbacks)))
-                     (dispatch /dev/tcpin 0 /dev/tcpout $out packet-evt)]
+                     (dispatch /dev/tcpin 0 /dev/tcpout $out packet-evt newkeys?)]
                     [(or (? exn? e) ; we disconnect and give SSH_MSG_DISCONNECT a chance to be sent if exn:ssh:eof?
                          (? SSH_MSG_DISCONNECT? e)) ; peer disconnect, no packet will be sent, but still deals with log events
                      (ssh-sendmail 'recvback e)
-                     (dispatch /dev/tcpin eof /dev/tcpout (if (SSH_MSG_DISCONNECT? e) eof $out) /dev/pkt)]
-                    [_ (dispatch /dev/tcpin 0 /dev/tcpout $out packet-evt)])]
-                 [(vector 'info message (vector (? packet:ssh? packet) (? exact-positive-integer? traffic)))
-                  (on-debug 'info message (cons 'sent traffic) topic)
+                     (dispatch /dev/tcpin eof /dev/tcpout (if (SSH_MSG_DISCONNECT? e) eof $out) /dev/pkt newkeys?)]
+                    [_ (dispatch /dev/tcpin 0 /dev/tcpout $out packet-evt newkeys?)])]
+                 [(vector 'info message (vector (? packet:ssh? packet) (? integer? traffic)))
+                  (when (positive? traffic) ; zero traffic is possible when received packets(such as SSH_MSG_DISCONNECT) are dispatched here.
+                    (on-debug 'info message (cons 'sent traffic) topic))
                   (if (false? (SSH_MSG_DISCONNECT? packet))
-                      (dispatch /dev/tcpin $in /dev/tcpout $out packet-evt)
+                      (dispatch /dev/tcpin $in /dev/tcpout $out packet-evt newkeys?)
                       (with-handlers ([exn? void])
                         #| Destructor |#
                         ; TODO: check if there are more log events
-                        (on-debug 'info (SSH_MSG_DISCONNECT-description packet) 'SSH_MSG_DISCONNECT topic)
+                        (cond [(zero? traffic) (on-debug 'info message 'SSH_MSG_DISCONNECT topic)] ; peer disconnect the session
+                              [else (on-debug 'info (SSH_MSG_DISCONNECT-description packet) 'SSH_MSG_DISCONNECT topic)])
                         (when (tcp-port? /dev/tcpin) (tcp-abandon-port /dev/tcpin))
                         (when (tcp-port? /dev/tcpout) (tcp-abandon-port /dev/tcpout))))]
                  [(vector 'info message (vector (? string? our-identification) (? input-port? tcpin) (? output-port? tcpout)))
                   (on-debug 'info message our-identification topic)
-                  (vector-set! dh-gex 0 our-identification)
+                  (vector-set! kexdh-gex 0 our-identification)
                   (match (with-handlers ([exn? values])
                            (fprintf tcpout "~a~a~a" our-identification #\return #\linefeed)
                            (flush-output tcpout))
@@ -582,56 +614,69 @@
                      (ssh-sendmail 'sendback
                                    (exn:ssh:eof (string-append "failed to send identification: " message)
                                                 ccmark 'SSH_DISCONNECT_CONNECTION_LOST))
-                     (dispatch tcpin eof tcpout eof /dev/pkt)]
-                    [else (dispatch tcpin 'plain tcpout 'cleared packet-evt)])]
+                     (dispatch tcpin eof tcpout eof /dev/pkt newkeys?)]
+                    [else (dispatch tcpin 'plain tcpout 'cleared packet-evt newkeys?)])]
                  [as-always
                   (on-debug level message urgent topic)
-                  (dispatch /dev/tcpin $in /dev/tcpout $out packet-evt)])]
+                  (dispatch /dev/tcpin $in /dev/tcpout $out packet-evt newkeys?)])]
               [(? input-port? tcpin)
                (match (with-handlers ([exn? values])
                         (cond [(exact-nonnegative-integer? $in)
-                               (transport-recv-packet tcpin $in)]
-                              [(read-line tcpin 'linefeed)
+                               (transport-recv-packet tcpin $in newkeys?)]
+                              [(read-line tcpin)
                                => (lambda [[line/dont-trim : (U String EOF)]] : String
                                     (cond [(string? line/dont-trim) line/dont-trim]
                                           [else (throw [exn:ssh:eof 'SSH_DISCONNECT_CONNECTION_LOST]
                                                        "did not receive identification string from ~a" hostname)]))]))
                  [(and (exn:ssh:again _ _ (? exact-nonnegative-integer? received)) eagain)
                   (unless (zero? received) (ssh-log 'debug #:urgent eagain (exn-message eagain)))
-                  (dispatch /dev/tcpin (exn:ssh:again-continuation eagain) /dev/tcpout $out packet-evt)]
+                  (dispatch /dev/tcpin (exn:ssh:again-continuation eagain) /dev/tcpout $out packet-evt newkeys?)]
                  [(? exn? e) ; (read-line) would cause other exceptions besides exn:ssh:eof.
                   (ssh-log 'debug #:urgent e (exn-message e))
                   (ssh-sendmail 'recvback e)
-                  (dispatch /dev/tcpin eof /dev/tcpout $out /dev/pkt)]
-                 [(and (? string?) (pregexp #px"^SSH-([^-]+)-(\\S+)(.*)$" (list identification\r protocol software comment\r)))
-                  ; http://tools.ietf.org/html/rfc4253#section-4.2
-                  (vector-set! dh-gex 1 (string-trim identification\r))
-                  (ssh-sendmail 'recvback (list (vector-ref dh-gex 1) protocol software (string-trim (~a comment\r))))
-                  (sync/timeout 0 never-evt) ; make sure client handles identification before receiving SSH_MSG_KEXINIT in localhost
-                  (dispatch /dev/tcpin 0 /dev/tcpout $out /dev/pkt)]
+                  (dispatch /dev/tcpin eof /dev/tcpout $out /dev/pkt newkeys?)]
+                 [(and (? string?) (pregexp #px"^SSH-([^-]+)-(\\S+)(.*)$" (list identification protocol software comment)))
+                  ; https://tools.ietf.org/html/rfc4253#section-4.2
+                  (with-handlers ([exn? (lambda [e] (ssh-sendmail 'recvback e))])
+                    (unless (member protocol (list "1.99" "2.0"))
+                      ; NOTE: if server is older then client, then client should close connection
+                      ;       and reconnect with the old protocol. It seems that the rules checking
+                      ;       compatibility mode is not guaranteed.
+                      (throw [exn:ssh:eof 'SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED]
+                             "unsupported protocol: ~a" identification))
+                    (vector-set! kexdh-gex 1 identification)
+                    (ssh-log 'info "peer protocol version ~a, software ~a" protocol software)
+                    (match software
+                      [(regexp #px"^[Oo]pen[Ss][Ss][Hh]")
+                       (ssh-log 'warning "matched ~a: ~a ~a ~a" software
+                                "sometimes it fails and complains"
+                                "'negative numbers not supported'"
+                                "when exchanging key")]
+                      [_ (ssh-log 'debug "no match: ~a" identification)]))
+                  (dispatch /dev/tcpin 0 /dev/tcpout $out /dev/pkt newkeys?)]
                  [(? string? line)
                   ; TODO: RFC says control chars should be filtered
                   (on-debug 'debug (string-trim line) (void) topic)
-                  (dispatch /dev/tcpin 'plain /dev/tcpout $out /dev/pkt)])]
+                  (dispatch /dev/tcpin 'plain /dev/tcpout $out /dev/pkt newkeys?)])]
               [(cons (? packet:ssh? packet) (? boolean? block?))
                (match (unless (eof-object? $out)
                         (with-handlers ([exn? values])
-                          (transport-send-packet /dev/tcpout packet $out)))
+                          (transport-send-packet /dev/tcpout packet $out newkeys?)))
                  [(and (exn:ssh:again _ _ (and (list sent total padded) continuation)) eagain)
                   (ssh-log 'debug #:urgent eagain (exn-message eagain))
                   (thread-rewind-receive (list (cons packet block?)))
                   (dispatch /dev/tcpin (if (SSH_MSG_DISCONNECT? packet) eof $in) ; Manually make TCP no longer reading
-                            /dev/tcpout continuation (make-pullout-evt /dev/tcpout))]
+                            /dev/tcpout continuation (make-pullout-evt /dev/tcpout) newkeys?)]
                  [status ; TODO: handle network errors
                   (when (exn? status) (ssh-log 'debug #:urgent status "sending ~a: ~a" (object-name packet) (exn-message status)))
                   (when block? (ssh-sendmail 'sendback status))
-                  (if (SSH_MSG_DISCONNECT? packet)
-                      ; no more packets should be sent or received, but still deals with log events
-                      (dispatch /dev/tcpin eof /dev/tcpout eof never-evt)
-                      (dispatch /dev/tcpin $in /dev/tcpout 'cleared /dev/pkt))])]
+                  (cond [(SSH_MSG_DISCONNECT? packet) (dispatch /dev/tcpin eof /dev/tcpout eof never-evt newkeys?)]
+                        [(SSH_MSG_KEXINIT? packet) (dispatch /dev/tcpin $in /dev/tcpout $out packet-evt #false)]
+                        [(SSH_MSG_NEWKEYS? packet) (dispatch /dev/tcpin $in /dev/tcpout $out packet-evt #true)]
+                        [else (dispatch /dev/tcpin $in /dev/tcpout 'cleared /dev/pkt newkeys?)])])]
               [unknown
                (thread-rewind-receive (list (cons (SSH_MSG_IGNORE (~s unknown)) #false)))
-               (dispatch /dev/tcpin $in /dev/tcpout $out packet-evt)])))))
+               (dispatch /dev/tcpin $in /dev/tcpout $out packet-evt newkeys?)])))))
 
     ;;; Constructing
     (with-handlers ([exn:ssh:eof? (lambda [[e : exn:ssh:eof]] (collapse (exn-message e) (exn:ssh:eof-reason e)) (raise e))]
@@ -641,29 +686,16 @@
         ;; initializing and handshaking
         (define-values (tcpin tcpout) ((if breakable? tcp-connect/enable-break tcp-connect) hostname portno))
 
-        ; http://tools.ietf.org/html/rfc4253#section-4.2
+        ; https://tools.ietf.org/html/rfc4253#section-4.2
         ; NOTE: RFC does not define the order who initaites the exchange process,
         ;       nonetheless, the client sends first is always not bad.
-        (define message : String (string-append "sent identification: " identification))
+        (define message : String (string-append "local identity string " identification))
         (ssh-log 'info #:urgent (vector identification tcpin tcpout) message)
 
         (let handshake : Void ()
           (match (sync/timeout/enable-break euler.0 /var/mail/send /var/mail/recv)
             [(? false?) (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED] "key exchange timeout")]
-            [(vector _ _ (? exn? e) _) (raise e)]
-            [(vector _ _ (list identification protoversion softwareversion comment) _)
-             (unless (member protoversion (list "1.99" "2.0"))
-               ; NOTE: if server is older then client, then client should close connection
-               ;       and reconnect with the old protocol. It seems that the rules checking
-               ;       compatibility mode is not guaranteed.
-               (throw [exn:ssh:eof 'SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED]
-                      "unsupported protocol: ~a" identification))
-             (ssh-log 'info "received identification: ~a" identification)
-             (void (handshake))]
-            [(vector _ _ (SSH_MSG_DISCONNECT reason description language) _)
-             (throw [exn:ssh:eof 'SSH_DISCONNECT_BY_APPLICATION]
-                    "received disconnect from ~a: ~a: ~a"
-                    hostname reason description)]))))))
+            [(vector _ _ (? exn? e) _) (raise e)]))))))
 
 (module* main racket
   (require (submod ".."))
@@ -671,11 +703,13 @@
   (define show-debuginfo
     (lambda [level message extra session]
       (if (exn? extra)
-          (fprintf (current-error-port) "[~a] ~a: ~a~n" (object-name extra) session message)
-          (fprintf (current-output-port) "[~a] ~a: ~a~n" level session message))))
+          (fprintf (current-error-port) "[~a] ~a~n" (object-name extra) message)
+          (fprintf (current-output-port) "[~a] ~a~n" level message))))
   
   (for ([host (in-list (list "localhost" "172.16.1.9"))]
         [port (in-list (list 8080 8080))])
+    (printf ">> ssh -p ~a ~a~n" port host)
     (with-handlers ([exn? void])
-      (define ssh (new ssh-client% [host host] [port port] [on-debug show-debuginfo]))
-      (send ssh collapse "demonstration done" 'SSH_DISCONNECT_BY_APPLICATION))))
+      (define ssh (new ssh-session% [host host] [port port] [on-debug show-debuginfo]))
+      (send ssh collapse "demonstration done" 'SSH_DISCONNECT_BY_APPLICATION))
+    (newline)))
