@@ -1,8 +1,11 @@
 #!/bin/sh
 
 #|
-dir="`dirname $0`/digitama";
-mzo="`dirname $0`/compiled/`basename $0 .rkt`_rkt.zo";
+digimon="`basename $(pwd)`";
+cd `dirname $0`;
+makefile="`basename $0`";
+dir="digitama";
+mzo="compiled/`basename $0 .rkt`_rkt.zo";
 for fn in digicore syntax emoji tamer; do
     dzo="${dir}/compiled/${fn}_rkt.zo";
     if test "${dzo}" -ot "${dir}/${fn}.rkt"; then
@@ -12,10 +15,10 @@ for fn in digicore syntax emoji tamer; do
     fi
 done
 if test "$1" = "clean"; then
-    find "`dirname $0`/.." -name "*.zo" -exec rm -f {} ';'
+    find ".." -name "*.zo" -exec rm -f {} ';'
     rm -fr "${dzo}" "${mzo}";
 fi
-exec racket --name "$0" --require "$0" --main -- ${1+"$@"} 
+exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"} 
 |#
 
 #lang racket
@@ -383,13 +386,16 @@ exec racket --name "$0" --require "$0" --main -- ${1+"$@"}
               (curry eprintf "make: I don't know what does `~a` mean!~n")))
     (define [main0 targets]
       (define-values [reals phonies] (partition filename-extension targets))
-      (parameterize ([current-make-real-targets (map simple-form-path reals)])
-        (for ([digimon (in-list (let ([info-ref (get-info/full (digimon-world))]
-                                      [fsetup-collects (thunk (map path->string (filter get-info/full (directory-list (digimon-world)))))])
-                                  (remove-duplicates (cond [(not (null? (current-make-collects))) (reverse (current-make-collects))]
-                                                           [(regexp-match #px"^\\w+" (find-relative-path (digimon-world) (current-directory))) => values]
-                                                           [else (cons (digimon-gnome) (cond [(false? info-ref) (fsetup-collects)]
-                                                                                             [else (info-ref 'setup-collects fsetup-collects)]))]))))])
+      (parameterize ([current-make-real-targets (map simple-form-path reals)]
+                     [current-directory (digimon-world)])
+        (for ([digimon (in-list (let* ([current-zone (path->string (find-system-path 'run-file))]
+                                       [info-ref (lazy (get-info/full (digimon-world)))]
+                                       [fsetup-collects (thunk (map path->string (filter get-info/full (directory-list))))]
+                                       [all (lazy (if (force info-ref) ((force info-ref) 'setup-collects fsetup-collects) (fsetup-collects)))])
+                                  (remove-duplicates (cond [(member "ALL" (current-make-collects)) (cons (digimon-gnome) (force all))]
+                                                           [(not (null? (current-make-collects))) (reverse (current-make-collects))]
+                                                           [(directory-exists? current-zone) (list current-zone)]
+                                                           [else (cons (digimon-gnome) (force all))]))))])
           (parameterize ([current-digimon digimon])
             (dynamic-wind (thunk (printf "Enter Digimon Zone: ~a.~n" digimon))
                           (thunk (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
