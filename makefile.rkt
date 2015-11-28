@@ -148,7 +148,7 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
     (define (dynamic-ldflags c)
       (for/fold ([ldflags (list* "-m64" "-shared"
                                  (cond [(false? (symbol=? (digimon-system) 'macosx)) null]
-                                       [else (list "-L/usr/local/lib" (~a "-F" (find-lib-dir)) "-framework" "Racket")]))])
+                                       [else (list "-L/usr/local/lib")]))])
                 ([line (in-list (file->lines c))]
                  #:when (regexp-match? #px"#include <" line))
         (define modeline (regexp-match #px".+ld:(\\w+)?:?([^*]+)(\\*/)?$" line))
