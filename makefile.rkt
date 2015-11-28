@@ -15,7 +15,7 @@ for fn in digicore syntax emoji tamer; do
     fi
 done
 if test "$1" = "clean"; then
-    find ".." -name "*.zo" -exec rm -f {} ';'
+    find "." -name "*.zo" -exec rm -f {} ';'
     rm -fr "${dzo}" "${mzo}";
 fi
 exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"} 
@@ -54,14 +54,12 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
   (lambda [r]
     (define t (car r))
     (define ds (cadr r))
-    (define f (thunk (with-handlers ([symbol? void])
-                       (make-parent-directory* t)
-                       ((curry call-with-atomic-output-file t)
-                        (lambda [whocares pseudo-t] #| pseudo-t is in the same dir|#
-                          (close-output-port whocares)
-                          ((caddr r) pseudo-t)
-                          (when (make-dry-run)
-                            (raise 'make-dry-run #true)))))))
+    (define f (thunk (let* ([t-exists? (file-exists? t)]
+                            [tmp (make-temporary-file (~a (file-name-from-path t) ".~a") (and t-exists? t))])
+                       (dynamic-wind (thunk (make-parent-directory* t))
+                                     (thunk ((caddr r) t))
+                                     (thunk (cond [(and (make-dry-run) (false? t-exists?)) (delete-file t)]
+                                                  [(make-dry-run) (rename-file-or-directory tmp t #true)]))))))
     (list (car r) (if (make-always-run) (cons (digimon-zone) ds) ds)
           (cond [(false? (make-just-touch)) f]
                 [else (thunk (file-or-directory-modify-seconds t (current-seconds) f))]))))
@@ -126,9 +124,7 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
                      (eval `(render (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
                                       (list (struct-copy part scribble:doc [parts null])))
                                     (list ,(file-name-from-path target))
-                                    #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #true))
-                     (rename-file-or-directory (path-add-suffix target #".md") target #true)
-                     (printf "  [Output to ~a]~n" target)))))))
+                                    #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #false))))))))
 
 (define make-native-library-rules
   (lambda []
@@ -148,7 +144,7 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
     (define (dynamic-ldflags c)
       (for/fold ([ldflags (list* "-m64" "-shared"
                                  (cond [(false? (symbol=? (digimon-system) 'macosx)) null]
-                                       [else (list "-L/usr/local/lib")]))])
+                                       [else (list "-L/usr/local/lib" (~a "-F" (find-lib-dir)) "-framework" "Racket")]))])
                 ([line (in-list (file->lines c))]
                  #:when (regexp-match? #px"#include <" line))
         (define modeline (regexp-match #px".+ld:(\\w+)?:?([^*]+)(\\*/)?$" line))
