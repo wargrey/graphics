@@ -6,17 +6,21 @@ cd `dirname $0`;
 makefile="`basename $0`";
 dir="digitama";
 mzo="compiled/`basename $0 .rkt`_rkt.zo";
-for fn in digicore syntax emoji tamer; do
-    dzo="${dir}/compiled/${fn}_rkt.zo";
-    if test "${dzo}" -ot "${dir}/${fn}.rkt"; then
-        echo "${fn}.rkt has changed, remaking myself...";
-        raco make $0;
-        break;
-    fi
-done
-if test "$1" = "clean"; then
-    find "." -name "*.zo" -exec rm -f {} ';'
-    rm -fr "${dzo}" "${mzo}";
+dep="compiled/`basename $0 .rkt`_rkt.dep";
+
+grep `racket -v | grep -o '\d.*.' | sed s/.$//` ${dep} > /dev/null 2>/dev/null;
+if test $? -ne 0; then
+    echo "Racket has updated, remaking myself...";
+    raco make $0;
+else
+    for fn in digicore syntax emoji tamer; do
+        dzo="${dir}/compiled/${fn}_rkt.zo";
+        if test "${dzo}" -ot "${dir}/${fn}.rkt"; then
+            echo "${fn}.rkt has changed, remaking myself...";
+            raco make $0;
+            break;
+        fi
+    done
 fi
 exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"} 
 |#
@@ -79,7 +83,8 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
             [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" info) '|Skip Other's Packages|]
             [else (traceln info)]))
     (with-handlers ([exn? (compose1 (curry error 'make "[error] ~a") exn-message)])
-      (parameterize ([manager-trace-handler filter-verbose])
+      (parameterize ([manager-trace-handler filter-verbose]
+                     [error-display-handler (lambda [s e] (printf ">> ~a~n" s))])
         (compile-directory-zos cmpdir finfo #:verbose #false #:skip-doc-sources? #true)))
     (when (again?) (compile-directory cmpdir finfo (add1 round)))))
 
@@ -411,7 +416,7 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
                                              [else (error 'make "I don't know how to make `~a`!" phony)])))))
                           (thunk (printf "Leave Digimon Zone: ~a.~n" digimon)))))))
     (call-as-normal-termination
-     (thunk (parse-command-line (file-name-from-path (find-system-path 'run-file))
+     (thunk (parse-command-line "makefile.rkt"
                                 argument-list
                                 flag-table
                                 (lambda [!voids . targets] (exit (main0 targets)))
