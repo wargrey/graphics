@@ -73,7 +73,7 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
       (cond [(regexp-match? #px"checking:" info) (when (make-print-checking) (traceln info))]
             [(regexp-match? #px"(compil|process)ing:" info) (and (traceln info) (again? #true))]))
     (define [filter-verbose info]
-      (cond [(regexp-match? #px"(newer src...|end compile|skipping|done:)" info) '|Skip Task Endline|]
+      (cond [(regexp-match? #px"(newer|end compile|skipping|done:)" info) '|Skip Task Endline|]
             [(regexp-match? #px"newer:" info) (when (make-print-reasons) (traceln info))]
             [(regexp-match? px.within info) (filter-inside info)]
             [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" info) '|Skip Other's Packages|]
@@ -162,10 +162,11 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
     (define (build-with-output-filter build/0)
       (define-values (/dev/ctool/stdin /dev/ctool/stdout) (make-pipe))
       (define rewriter (thread (thunk (for ([line (in-lines /dev/ctool/stdin)])
-                                        (if (regexp-match? #px"^(xform-cpp|compile-extension|link-extension):" line)
+                                        (if (regexp-match? #px"^(xform-cpp|compile-extension|link-extension|change-runtime-path):" line)
                                             (displayln (regexp-replaces line (list (list #px"^xform-cpp:\\s+\\("         "cpp: ")
                                                                                    (list #px"^compile-extension:\\s+\\(" "cc:  ")
                                                                                    (list #px"^link-extension:\\s+\\("    "ld:  ")
+                                                                                   (list #px"^change-runtime-path:\\s+"  "dyn: ")
                                                                                    (list (path->string (digimon-zone)) ".")
                                                                                    (list #px"( -o .+?( |$))|(\\)$)" ""))))
                                             (eprintf "~a~n" line))))))
@@ -204,7 +205,13 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
                             (thunk (let ([ldflags (dynamic-ldflags c)])
                                      (parameterize ([current-standard-link-libraries null]
                                                     [current-extension-linker-flags ldflags])
-                                       (link-extension #false (list tobj) target))))))))))))
+                                       (link-extension #false (list tobj) target)
+                                       (case (system-type 'os)
+                                         [(macosx) (let ([image (format "Racket.framework/Versions/~a_~a/Racket" (version) (system-type 'gc))])
+                                                     (define change-path (format "~a -change ~a ~a ~a" (find-executable-path "install_name_tool")
+                                                                                 image (format "~a/~a" (find-lib-dir) image) t))
+                                                     (printf "change-runtime-path: ~a~n" change-path)
+                                                     (system change-path))]))))))))))))
 
 (define make~all:
   (lambda []
