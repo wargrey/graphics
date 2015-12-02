@@ -8,7 +8,7 @@ dir="digitama";
 mzo="compiled/`basename $0 .rkt`_rkt.zo";
 dep="compiled/`basename $0 .rkt`_rkt.dep";
 
-grep `racket -v | grep -o '\d.*.' | sed s/.$//` ${dep} > /dev/null 2>/dev/null;
+grep `racket -v | tr -d 'a-zA-Z ' | sed s/.$//` ${dep} > /dev/null 2>/dev/null;
 if test $? -ne 0; then
     echo "Racket has updated, remaking myself...";
     raco make $0;
