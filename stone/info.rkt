@@ -15,3 +15,4 @@
 
 (define racket-launcher-names (list "@(current-digimon)"))
 (define racket-launcher-libraries (list "digivice/@(current-digimon).rkt"))
+

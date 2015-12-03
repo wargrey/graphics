@@ -56,3 +56,4 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
 
 ;;; `raco setup` makes it hard to set --main option when making launcher
 (apply main (vector->list (current-command-line-arguments)))
+
