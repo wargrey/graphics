@@ -9,7 +9,7 @@ mzo="compiled/`basename $0 .rkt`_rkt.zo";
 dep="compiled/`basename $0 .rkt`_rkt.dep";
 
 if test -f ${mzo}; then
-    grep `racket -v | grep -o '\d.*.' | sed s/.$//` ${dep} > /dev/null 2>/dev/null;
+    grep `racket -v | tr -d 'a-zA-Z ' | sed s/.$//` ${dep} > /dev/null 2>/dev/null;
     if test $? -eq 0; then
         for fn in digicore syntax emoji tamer; do
             dzo="${dir}/compiled/${fn}_rkt.zo";
