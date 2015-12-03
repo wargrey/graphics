@@ -10,3 +10,4 @@
 (require "@(getenv "digicore.rkt")")
 
 (current-digimon "@(current-digimon)")
+
