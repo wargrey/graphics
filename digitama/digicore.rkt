@@ -82,6 +82,16 @@
                           (immutable-guard 'digimon-zone)
                           (curry build-path (digimon-world))))
 
+(define all-digimons : (Listof String)
+  (filter string? (let* ([top-ref : (Option Info-Ref) (get-info/full (digimon-world))]
+                         [candidates : (U (Listof String) 'All) (cond [(false? top-ref) null]
+                                                                      [else (cast (top-ref 'setup-collects (λ _ 'all)) (U (Listof String) 'All))])])
+                    (for/list : (Listof (Option String)) ([digimon (in-list (map path->string (directory-list (digimon-world) #:build? #false)))])
+                      (define info-ref (get-info/full (build-path (digimon-world) digimon))) 
+                      (and (procedure? info-ref)
+                           (or (equal? candidates 'All) (member digimon candidates))
+                           digimon)))))
+
 (void (unless (member (digimon-world) (current-library-collection-paths))
         (current-library-collection-paths (cons (build-path (digimon-world)) (current-library-collection-paths)))
         (print-boolean-long-form #true)
