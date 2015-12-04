@@ -220,7 +220,11 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
 
 (define make~all:
   (lambda []
-    (define submake (build-path (digimon-zone) "submake.rkt"))
+    (define submakes
+      (let ([submake (build-path (digimon-zone) "submake.rkt")]
+            [.submake (build-path (digimon-world) ".submake.rkt")])
+        (if (string=? (current-digimon) (digimon-gnome)) (list submake .submake) (list submake))))
+
     (define [do-make rules0]
       (unless (null? rules0)
         (define-values [imts exts] (partition (curryr assoc rules0) (current-make-real-targets)))
@@ -231,8 +235,9 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
     (do-make (make-native-library-rules))
     (do-make (make-implicit-rkt-rules))
     (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
-    
-    (let ([modpath `(submod ,submake premake)])
+
+    (for ([submake (in-list submakes)])
+      (define modpath `(submod ,submake premake))
       (when (module-declared? modpath #true)
         (dynamic-require modpath #false)
         ;;; the next two lines always useless but who knows
@@ -240,8 +245,9 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
         (compile-directory (digimon-zone) (get-info/full (digimon-zone)))))
     
     (do-make (make-implicit-dist-rules))
-    
-    (let ([modpath `(submod ,submake make:files)])
+
+    (for ([submake (in-list submakes)])
+      (define modpath `(submod ,submake make:files))
       (when (module-declared? modpath #true)
         (dynamic-require modpath #false)
         (parameterize ([current-namespace (module->namespace modpath)])
@@ -251,32 +257,40 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
                                                                            (procedure-arity-includes? (third ?) 1))) val)))
                                   (filter-map (lambda [var] (namespace-variable-value var #false (const #false)))
                                               (namespace-mapped-symbols))))))))
-    
-    (let ([modpath `(submod ,submake make:files make)])
+
+    (for ([submake (in-list submakes)])
+      (define modpath `(submod ,submake make:files make))
       (when (module-declared? modpath #true)
         (dynamic-require modpath #false)))
     
     (make/proc (list (list (digimon-zone) null (thunk '|I don't know how to make all these fucking files|)))
                (current-make-real-targets))
-    
-    (let ([modpath `(submod ,submake postmake)])
+
+    (for ([submake (in-list submakes)])
+      (define modpath `(submod ,submake postmake))
       (when (module-declared? modpath #true)
         (dynamic-require modpath #false)))))
 
 (define make~clean:
   (lambda []
-    (define submake (build-path (digimon-zone) "submake.rkt"))
+    (define submakes
+      (let ([submake (build-path (digimon-zone) "submake.rkt")]
+            [.submake (build-path (digimon-world) ".submake.rkt")])
+        (if (string=? (current-digimon) (digimon-gnome)) (list submake .submake) (list submake))))
+
     (define [fclean dirty]
       (void (cond [(file-exists? dirty) (delete-file dirty)]
                   [(directory-exists? dirty) (delete-directory dirty)])
             (printf "make: deleted ~a.~n" (simplify-path dirty))))
     
     (when (member (current-make-phony-goal) '["distclean" "maintainer-clean"])
-      (let ([clbpath `(submod ,submake make:files clobber)])
+      (for ([submake (in-list submakes)])
+        (define clbpath `(submod ,submake make:files clobber))
         (when (module-declared? clbpath #true)
           (dynamic-require clbpath #false))))
-    
-    (let ([modpath `(submod ,submake make:files)])
+
+    (for ([submake (in-list submakes)])
+      (define modpath `(submod ,submake make:files))
       (when (module-declared? modpath #true)
         (dynamic-require modpath #false)
         (parameterize ([current-namespace (module->namespace modpath)])
