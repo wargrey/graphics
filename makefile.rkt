@@ -8,24 +8,31 @@ dir="digitama";
 mzo="compiled/`basename $0 .rkt`_rkt.zo";
 dep="compiled/`basename $0 .rkt`_rkt.dep";
 
-grep `racket -v | tr -d 'a-zA-Z ' | sed s/.$//` ${dep} > /dev/null 2>/dev/null;
-if test $? -ne 0; then
-    echo "Racket has updated, remaking myself...";
-    raco make $0;
+if test -f ${mzo}; then
+    grep `racket -v | tr -d 'a-zA-Z ' | sed s/.$//` ${dep} > /dev/null 2>/dev/null;
+    if test $? -eq 0; then
+        for fn in digicore syntax emoji tamer; do
+            dzo="${dir}/compiled/${fn}_rkt.zo";
+            if test "${dzo}" -ot "${dir}/${fn}.rkt"; then
+                echo "${fn}.rkt has changed, remaking myself...";
+                raco make ${makefile};
+                break;
+            fi
+        done
+    else
+        echo "Racket has updated, remaking myself...";
+        raco make ${makefile};
+    fi
 else
-    for fn in digicore syntax emoji tamer; do
-        dzo="${dir}/compiled/${fn}_rkt.zo";
-        if test "${dzo}" -ot "${dir}/${fn}.rkt"; then
-            echo "${fn}.rkt has changed, remaking myself...";
-            raco make $0;
-            break;
-        fi
-    done
+    echo "remaking myself...";
+    raco make ${makefile};
 fi
 exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"} 
 |#
 
 #lang racket
+
+(provide main)
 
 (require make)
 
@@ -40,8 +47,6 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
 (require setup/dirs)
 
 (require "digitama/digicore.rkt")
-
-(provide main)
 
 (define current-make-real-targets (make-parameter null))
 (define current-make-phony-goal (make-parameter #false))
@@ -282,7 +287,7 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
       (void (cond [(file-exists? dirty) (delete-file dirty)]
                   [(directory-exists? dirty) (delete-directory dirty)])
             (printf "make: deleted ~a.~n" (simplify-path dirty))))
-    
+
     (when (member (current-make-phony-goal) '["distclean" "maintainer-clean"])
       (for ([submake (in-list submakes)])
         (define clbpath `(submod ,submake make:files clobber))
