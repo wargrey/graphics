@@ -227,8 +227,8 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
   (lambda []
     (define submakes
       (let ([submake (build-path (digimon-zone) "submake.rkt")]
-            [.submake (build-path (digimon-world) ".submake.rkt")])
-        (if (string=? (current-digimon) (digimon-gnome)) (list submake .submake) (list submake))))
+            [topmake (build-path (digimon-world) ".submake.rkt")])
+        (filter file-exists? (if (string=? (current-digimon) (digimon-gnome)) (list submake topmake) (list submake)))))
 
     (define [do-make rules0]
       (unless (null? rules0)
@@ -280,8 +280,8 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
   (lambda []
     (define submakes
       (let ([submake (build-path (digimon-zone) "submake.rkt")]
-            [.submake (build-path (digimon-world) ".submake.rkt")])
-        (if (string=? (current-digimon) (digimon-gnome)) (list submake .submake) (list submake))))
+            [topmake (build-path (digimon-world) ".submake.rkt")])
+        (filter file-exists? (if (string=? (current-digimon) (digimon-gnome)) (list submake topmake) (list submake)))))
 
     (define [fclean dirty]
       (void (cond [(file-exists? dirty) (delete-file dirty)]
@@ -415,14 +415,11 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
       (define-values [reals phonies] (partition filename-extension targets))
       (parameterize ([current-make-real-targets (map simple-form-path reals)]
                      [current-directory (digimon-world)])
-        (for ([digimon (in-list (let* ([current-zone (path->string (find-system-path 'run-file))]
-                                       [info-ref (lazy (get-info/full (digimon-world)))]
-                                       [fsetup-collects (thunk (map path->string (filter get-info/full (directory-list))))]
-                                       [all (lazy (if (force info-ref) ((force info-ref) 'setup-collects fsetup-collects) (fsetup-collects)))])
-                                  (remove-duplicates (cond [(member "ALL" (current-make-collects)) (cons (digimon-gnome) (force all))]
+        (for ([digimon (in-list (let* ([current-zone (path->string (find-system-path 'run-file))])
+                                  (remove-duplicates (cond [(member "ALL" (current-make-collects)) (cons (digimon-gnome) all-digimons)]
                                                            [(not (null? (current-make-collects))) (reverse (current-make-collects))]
                                                            [(directory-exists? current-zone) (list current-zone)]
-                                                           [else (cons (digimon-gnome) (force all))]))))])
+                                                           [else (cons (digimon-gnome) all-digimons)]))))])
           (parameterize ([current-digimon digimon])
             (dynamic-wind (thunk (printf "Enter Digimon Zone: ~a.~n" digimon))
                           (thunk (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
