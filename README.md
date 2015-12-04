@@ -20,26 +20,6 @@ Good Luck!
 >           + 📑make --silent --help
 >           + 📑make --silent love
 >         + 📑make: complex options
->       + 📑Rules serve you!
->         + 📑info.rkt settings
->           + 📑/info.rkt
->           + 📑/DigiGnome/info.rkt
->           + 📑/Kuzuhamon/info.rkt
->           + 📑/gnome/info.rkt
->           + 📑/nanomon/info.rkt
->           + 📑/sakuyamon/info.rkt
->         + 📑README.md dependencies
->           + 📑/DigiGnome/readme.md
->           + 📑/Kuzuhamon/readme.md
->           + 📑/gnome/readme.md
->           + 📑/nanomon/readme.md
->           + 📑/sakuyamon/readme.md
->         + 📑infrastructure specifications
->           + 📑/DigiGnome/tamer
->           + 📑/Kuzuhamon/tamer
->           + 📑/gnome/tamer
->           + 📑/nanomon/tamer
->           + 📑/sakuyamon/tamer
 >     + 📖
 [digivice.rkt](http://gyoudmon.org/~wargrey:DigiGnome/digivice.rkt)
 >       + 📑Make the demo from scratch

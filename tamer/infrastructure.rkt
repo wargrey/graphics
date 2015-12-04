@@ -10,7 +10,7 @@
 
 Every hacker needs a robust developing infrastructure, more clearly meanwhile I mean @deftech{@hyperlink[@(cadr partner)]{makefile.rkt}}
 to make life simple. However testing the building routines on the entire project always makes nonsense but costs high,
-thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome)} and @seclink["rules"]{project organization rules}.
+thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome)}.
 
 @tamer-smart-summary[]
 
@@ -85,59 +85,6 @@ since we can cache the result by nature.
                     (check = (times #px"Output to") 1 "touching via making when goal not found!")
                     (check-pred (negate file-exists?) goal-md "goal should not exists!")))]
 
-@handbook-scenario[#:tag "rules"]{The rules serve you!}
-
-Since the term @deftech{Architecture} is all about designing rules, and this story is all about building system.
-So apart from @italic{@hyperlink["https://github.com/digital-world/DigiGnome"]{conventions}},
-we need a sort of rules that the @itech{makefile.rkt} (and systems it builds) should satisfy.
-
-@subsection{Rules on project organization}
-
-@tamer-note['rules]
-@handbook-rule{The entire project is a multi-collection package, non-hidden directories within it are considered as the subprojects.}
-@chunk[|<facts: multi>|
-       "multi"
-       (check-equal? (info-ref 'collection) 'multi "'collection should be 'multi!")
-       (check < 1 (length (force digimons)) "No real project found!")]
-
-@handbook-rule{Each subproject has a @italic{stage}-like version name rather than the numeric one.}
-@chunk[|<facts: version>|
-       "version"
-       (check member (info-ref 'version) '{"Baby" "Child" "Adult"}
-              "'version should be one of evolution stages!")]
-
-@handbook-rule{Each subproject should have an explicit name, even if the name is the same as its directory.}
-@chunk[|<facts: collection>|
-       "collection"
-       (check-pred string? (info-ref 'collection) "'collection should be string!")]
-
-@handbook-rule{@racket[compile-collection-zos] and friends should never touch special paths.}
-@chunk[|<facts: compile-omit-paths>|
-       "compile-omit-paths"
-       (for ([omit (in-list (list (path->string (file-name-from-path (digimon-stone)))))])
-         (check-not-false (let ([maybe-omits (info-ref 'compile-omit-paths)])
-                            (or (equal? maybe-omits 'all) (member omit maybe-omits)))
-                          (format "'compile-omit-paths should contain ~a!" omit)))]
-
-@handbook-rule{@exec{raco test} should do nothing since we would do testing in a more controllable way.}
-@chunk[|<facts: test-omit-paths>|
-       "test-omit-paths"
-       (check-equal? (info-ref 'test-omit-paths) 'all "'test-omit-paths should be 'all!")]
-
-@subsection{Rules on project documentation}
-
-@handbook-rule{Each subproject@literal{'}s @italic{README.md} follows its @itech{handbook}@literal{'}s index page.}
-@chunk[|<facts: handbook.scrbl>|
-       (format "~a/~a" digimon sub.scrbl)
-       (check-pred file-exists? (build-path (digimon-world) digimon sub.scrbl))]
-
-@subsection{Rules for the infrastructure itself}
-
-@handbook-rule{Each subproject should have a robots.txt in their @racket[racket-tamer] for SEO.}
-@chunk[|<facts: robots.txt>|
-       "./robots.txt"
-       (check-pred file-exists? (build-path (digimon-world) digimon ./tamer "robots.txt"))]
-
 @handbook-scenario{What if the @itech{handbook} is unavaliable?}
 
 Furthermore, the @itech{handbook} itself is the standard test report, but it@literal{'}s still reasonable
@@ -166,38 +113,6 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
          
          |<setup and teardown timidly>|
          (define-tamer-suite make-option "Ready? It works!"
-           (test-suite "make: simple options" |<testsuite: simple options>|)
-           (test-suite "make: complex options" |<testcase: complex options>|))
-
-         (define digimons (lazy (parameterize ([current-directory (digimon-world)])
-                                  (filter get-info/full (directory-list)))))
-
-         (define-tamer-suite rules "Rules serve you!"
            #:after (thunk (delete-directory/files (build-path (digimon-world) gnome)))
-           (test-suite "info.rkt settings" |<rules: info.rkt>|)
-           (test-suite "README.md dependencies" |<rules: readme.md>|)
-           (test-suite "infrastructure specifications" |<rules: infrastructure>|)))]
-
-@chunk[|<rules: info.rkt>|
-       (let ([info-ref (get-info/full (digimon-world))])
-         (test-suite "/info.rkt" (test-case |<facts: multi>|)))
-       (for/list ([digimon (in-list (force digimons))])
-         (define info-ref (get-info/full (build-path (digimon-world) digimon)))
-         (test-suite (format "/~a/info.rkt" digimon)
-                     (test-case |<facts: version>|)
-                     (test-case |<facts: collection>|)
-                     (test-case |<facts: compile-omit-paths>|)
-                     (test-case |<facts: test-omit-paths>|)))]
-
-@chunk[|<rules: readme.md>|
-       (let ([sub.scrbl ((curry find-relative-path (digimon-zone))
-                         (build-path (digimon-tamer) "handbook.scrbl"))])
-         (for/list ([digimon (in-list (force digimons))])
-           (test-suite (format "/~a/readme.md" digimon)
-                       (test-case |<facts: handbook.scrbl>|))))]
-
-@chunk[|<rules: infrastructure>|
-       (let ([./tamer (find-relative-path (digimon-zone) (digimon-tamer))])
-         (for/list ([digimon (in-list (force digimons))])
-           (test-suite (format "/~a/tamer" digimon)
-                       (test-case |<facts: robots.txt>|))))]
+           (test-suite "make: simple options" |<testsuite: simple options>|)
+           (test-suite "make: complex options" |<testcase: complex options>|)))]
