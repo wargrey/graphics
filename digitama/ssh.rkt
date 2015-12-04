@@ -14,12 +14,10 @@
 
 (provide (all-defined-out))
 
-(require typed/openssl/md5)
-(require typed/openssl/sha1)
-
 (require math/base)
 (require math/number-theory)
 
+@require{openssl.rkt}
 @require{syntax.rkt}
 
 (define ssh-custodian : Custodian (make-custodian))
@@ -272,7 +270,7 @@
 ;; https://tools.ietf.org/html/rfc4419#section-3
 (define-type/enum ssh-algorithms/kex : SSH-Algorithm/Kex
   [diffie-hellman-group-exchange-sha1 REQUIRED]
-  #;[diffie-hellman-group-exchange-sha256 RECOMMENDED])
+  [diffie-hellman-group-exchange-sha256 RECOMMENDED])
 
 (define-type SSH-Session<%>
   (Class (init [host String]
@@ -394,6 +392,7 @@
          byte[m]   MAC (Message Authentication Code); m = mac_length |#
 
       ; TODO: do not send specific packets during the process of negotiating algorithms
+      ; TODO: do not recv unexpected packets during the process of negotiating algorithms
       (define transport-send-packet : (-> Output-Port packet:ssh (U 'cleared (List Natural Natural Natural)) Boolean Void)
         (lambda [tcpout packet continuation newkeys?]
           (define SSH_MSG_ID : SSH-Message-Type (cast (object-name packet) SSH-Message-Type))
@@ -504,10 +503,10 @@
                (ssh-log 'error #:urgent 'SSH_MSG_KEXINIT "peer has guessed key exchange packet followed, we have to handle it."))
              (ssh-log 'debug #:urgent (list kex publickey cipher integrity compression) "we preferred algorithms: ~a"
                       (list (car kex) (car publickey) (car cipher) (car integrity) (car compression)))
-             (list (SSH_MSG_KEXINIT (call-with-input-string (number->string (current-inexact-milliseconds)) md5-bytes)
+             (list (SSH_MSG_KEXINIT (md5 (number->string (current-inexact-milliseconds)))
                                     kex publickey cipher cipher integrity integrity compression compression null null #false 0)
                    (case (car kex)
-                     [(diffie-hellman-group-exchange-sha1) ; https://tools.ietf.org/html/rfc4419#section-3
+                     [(diffie-hellman-group-exchange-sha1 diffie-hellman-group-exchange-sha256) ; https://tools.ietf.org/html/rfc4419#section-3
                       (define minbits : UInt32 (vector-ref kexdh-gex 5))
                       (define maxbits : UInt32 (vector-ref kexdh-gex 7))
                       (define nbits : UInt32 (cast (random-integer minbits maxbits) UInt32))
@@ -536,13 +535,13 @@
              (define HASH : (-> Input-Port Bytes)
                (case (vector-ref algorithms 0)
                  [(diffie-hellman-group-exchange-sha1) sha1-bytes]
+                 [(diffie-hellman-group-exchange-sha256) sha1-bytes]
                  [else (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED]
                               "~a algorithm has not been implemented yet" (vector-ref algorithms 0))]))
              (define H : Bytes (ssh-struct->bytes (in-vector kexdh-gex)
                                                   '(String String (nBytes String) (nBytes String) (nBytes String)
                                                            UInt32 UInt32 UInt32 MPInteger MPInteger MPInteger MPInteger MPInteger)))
-             (unless (bytes=? s (call-with-input-bytes H HASH))
-               (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED] "Hmmm... signature is not match, are we under attack?"))
+             
              ;; https://tools.ietf.org/html/rfc4253#section-6.6
              ; client can also accept the key(K_S) without verification <https://tools.ietf.org/html/rfc4419#section-3>
              (define keyname : String (ssh-bytes->string K_S))
@@ -551,9 +550,13 @@
                       "Hey, you use ~a instead of the negotiated asymmetrical algorithm" keyname))
              (case keyname
                [("ssh-rsa")
-                (displayln keyname)]
+                (define sigblob : String (ssh-bytes->string K_S #:offset (+ 4 7)))
+                (printf "sigblob size = ~a~n" (string-length sigblob))]
                [else (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED]
                             "~a algorithm has not been implemented yet" keyname)])
+             ;(unless (bytes=? s (HASH H))
+              ; (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED] "Hmmm... signature is not match, are we under attack?"))
+
              ;; https://tools.ietf.org/html/rfc4253#section-7.2
              ]
             [(? SSH_MSG_NEWKEYS? key-exchange-done) (void (list key-exchange-done))]
