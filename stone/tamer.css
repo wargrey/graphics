@@ -27,6 +27,10 @@ blockquote.SCodeFlow {
     overflow-x: scroll;
 }
 
+blockquote.Rfilebox {
+    overflow-x: scroll;
+}
+
 .GYDMComment {
     color: #666666;
     font-size: small;
