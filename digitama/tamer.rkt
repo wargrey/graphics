@@ -391,15 +391,41 @@
                                                  (smaller (string cat#))))]))))))))))
 
 (define tamer-racketbox
-  (lambda [path #:line-start-with [line0 0]]
+  (lambda [path #:line-start-with [line0 1]]
     (define story-snapshot (tamer-story))
     (make-traverse-block
      (thunk* (parameterize ([tamer-story story-snapshot])
                (define /path/file (simplify-path (if (symbol? path) (dynamic-require/expose (tamer-story) path) path)))
                (nested #:style (make-style "boxed" null)
                        (filebox (hyperlink /path/file (italic (string memo#) ~ (path->string (tr-if-path /path/file))))
-                                (codeblock #:line-numbers line0 #:keep-lang-line? (false? (zero? line0))
-                                           (file->string /path/file)))))))))
+                                (codeblock #:line-numbers line0 #:keep-lang-line? (> line0 0) ; make sure line number starts from 1
+                                           (string-trim (file->string /path/file) #:left? #false #:right? #true)))))))))
+
+(define tamer-racketbox/region
+  (lambda [path #:pxstart [start #px"^[^#][^l][^a][^n][^g]"] #:pxend [end #false] #:greedy? [greedy? #true]]
+    (define story-snapshot (tamer-story))
+    (make-traverse-block
+     (thunk* (parameterize ([tamer-story story-snapshot])
+               (define /path/file (simplify-path (if (symbol? path) (dynamic-require/expose (tamer-story) path) path)))
+               (define source (file->lines /path/file))
+               (define-values (region line0)
+                 (let find ([idx 0])
+                   (cond [(>= idx (length source)) (values #false 1)]
+                         [(regexp-match? start (list-ref source idx)) (values (drop source idx) (add1 idx))]
+                         [else (find (add1 idx))])))
+               (define contents (cond [(false? region) null]
+                                      [(false? end) region]
+                                      [(not (false? greedy?))
+                                       (let ([dne (memf (curry regexp-match? end) (reverse region))])
+                                         (if (list? dne) (reverse (cdr dne)) region))]
+                                      [else (let find ([idx 1])
+                                              (cond [(>= idx (length region)) region]
+                                                    [(regexp-match? end (list-ref region idx)) (take region idx)]
+                                                    [else (find (add1 idx))]))]))
+               (nested #:style (make-style "boxed" null)
+                       (filebox (hyperlink /path/file (italic (string memo#) ~ (path->string (tr-if-path /path/file))))
+                                (codeblock #:line-numbers line0 #:keep-lang-line? #true ; keep the first line
+                                           (string-join contents (string #\newline))))))))))
 
 (module digitama racket
   (require rackunit)
