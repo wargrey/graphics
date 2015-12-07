@@ -60,8 +60,8 @@
      #'(begin (define-type TypeU (U 'enum ...))
               (define id : (Listof TypeU) (list 'enum ...)))]))
 
-;; prefab structure cannot be converted to contract in typed racket;
-;; transparented structure are not allowed as place message.
+;; prefab structures cannot be converted to contract in typed racket;
+;; transparent structures are not allowed as place message.
 (define-type UInt32 Nonnegative-Fixnum)  ; this is a bit smaller than uint32
 (define-type UInt64 Nonnegative-Integer) ; this is larger than uint64
 (define-type MPInteger Integer)
