@@ -2,7 +2,7 @@
 
 (provide (all-defined-out) tamer-story skip todo)
 
-(provide (all-from-out racket "digicore.rkt" "emoji.rkt" rackunit))
+(provide (all-from-out racket "digicore.rkt" "emoji.rkt" "i18n.rkt" rackunit))
 (provide (all-from-out scribble/manual scribble/eval scribble/html-properties))
 
 (require rackunit)
@@ -19,6 +19,7 @@
 
 @require{digicore.rkt}
 @require{emoji.rkt}
+@require{i18n.rkt}
 
 (define tamer-zone (make-parameter #false))
 
@@ -67,7 +68,7 @@
      #`(list (tamer-taming-start)
              (title #:tag (tamer-story->tag (tamer-story))
                     #:style #,(attribute s)
-                    "Story: " contents ...))]))
+                    (literal (speak 'handbook-story) ":") ~ contents ...))]))
 
 (define-syntax {define-tamer-suite stx}
   (syntax-parse stx
@@ -134,33 +135,30 @@
                (list (hyperlink (~github (current-digimon)) (string house-garden#))
                      (hyperlink (~github (current-tamer)) (subscript (string cat#)))))
            (cond [(false? (null? pre-contents)) pre-contents]
-                 [else (list (literal "Tamer's Handbook:") ~ (info-ref 'collection (const (current-digimon))))]))))
+                 [else (list (literal (speak 'tamer-handbook) ":") ~ (info-ref 'collection (const (current-digimon))))]))))
 
 (define handbook-scenario
   (lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
     (section #:tag tag #:style style
-             "Scenario: " pre-contents)))
+             (literal (speak 'handbook-scenario) ":") ~ pre-contents)))
 
 (define handbook-appendix
   (lambda [#:style [style #false] . pre-contents]
     (list (section #:style style
-                   (cond [(false? (null? pre-contents)) (cons "Appendix: " pre-contents)]
-                         [else (string-titlecase (format "Appendix: ~a Auxiliaries"
+                   (cond [(false? (null? pre-contents)) (cons (string-append (speak 'handbook-appendix) ": ") pre-contents)]
+                         [else (string-titlecase (format (format "~a: ~a" (speak 'handbook-appendix) (speak 'handbook-auxiliary))
                                                          (path-replace-suffix (tamer-story->tag (tamer-story)) "")))]))
           (let ([zone-snapshot (tamer-zone)])
             (make-traverse-block (thunk* ((curry dynamic-wind void)
-                                          (thunk (para #:style "GYDMComment"
-                                                       "In order to avoid polluting your eyes, "
-                                                       "any less important things are moved here. "
-                                                       "(also see "
-                                                       (hyperlink (~a (digimon-tamer) "/tamer.rkt") "tamer.rkt")
-                                                       ")"))
+                                          (thunk (apply para #:style "GYDMComment"
+                                                        (add-between (string-split (speak 'handbook-appendix-disclaim) "~a")
+                                                                     (hyperlink (~a (digimon-tamer) "/tamer.rkt") "tamer.rkt"))))
                                           (thunk (close-eval zone-snapshot))))))
           (tamer-story #false))))
 
 (define handbook-rule
   (lambda pre-flow
-    (itemlist (item (bold (deftech (format "Rule #~a" (rule-index)))) ~ pre-flow))))
+    (itemlist (item (bold (deftech (format "~a #~a" (speak 'handbook-rule) (rule-index)))) ~ pre-flow))))
 
 (define itech
   (lambda [#:key [key #false] . pre-contents]

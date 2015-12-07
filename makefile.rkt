@@ -11,7 +11,7 @@ dep="compiled/`basename $0 .rkt`_rkt.dep";
 if test -f ${mzo}; then
     grep `racket -v | tr -d 'a-zA-Z ' | sed s/.$//` ${dep} > /dev/null 2>/dev/null;
     if test $? -eq 0; then
-        for fn in digicore syntax emoji tamer; do
+        for fn in digicore syntax emoji tamer i18n; do
             dzo="${dir}/compiled/${fn}_rkt.zo";
             if test "${dzo}" -ot "${dir}/${fn}.rkt"; then
                 echo "${fn}.rkt has changed, remaking myself...";
@@ -107,7 +107,7 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
              (cond [(member subsrc memory) memory]
                    [else (smart-dependencies subsrc memory)]))
            (append memory (list entry))
-           (call-with-input-file entry (curry regexp-match* #px"(?<=@(include-section|require)[{[](\\(submod \")?).+?.(scrbl|rktl?)(?=[\"}])")))))
+           (call-with-input-file* entry (curry regexp-match* #px"(?<=@(include-section|require)[{[](\\(submod \")?).+?.(scrbl|rktl?)(?=[\"}])")))))
 
 (define make-implicit-rkt-rules
   (lambda []
@@ -150,7 +150,7 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
                              (cond [(member subsrc memory) memory]
                                    [else (include.h subsrc racket? memory)])))]))
              (append memory (list entry))
-             (call-with-input-file entry (curry regexp-match* #px"(?<=#include )[<\"].+?.h[\">]"))))
+             (call-with-input-file* entry (curry regexp-match* #px"(?<=#include )[<\"].+?.h[\">]"))))
     (define (dynamic-ldflags c)
       (for/fold ([ldflags (list* "-m64" "-shared"
                                  (cond [(false? (symbol=? (digimon-system) 'macosx)) null]

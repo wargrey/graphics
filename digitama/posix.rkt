@@ -39,7 +39,7 @@
                    [([id id/bzero &id/bzero *id &id _!id ([field-id type-expr Type defvalue] ...) !id->list list->!id !id? id* id_t*] ...)
                     (for/list ([cstruct (in-list (let ([px.cstruct #px#"typedef\\s+struct\\s+ffi_prefab_\\w+.+?\\}\\s*\\w+\\s*(?=;)"])
                                                    (for/list ([src (in-list (parameterize ([current-directory (current-load-relative-directory)])
-                                                                              (call-with-input-file (syntax-e #'src.c)
+                                                                              (call-with-input-file* (syntax-e #'src.c)
                                                                                 (lambda [cin] (regexp-match* px.cstruct cin)))))])
                                                      (sequence->list (in-port read (open-input-bytes (regexp-replaces src
                                                                                                                       '([#px"ffi_prefab_" ""]

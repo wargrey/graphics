@@ -50,7 +50,7 @@ whose name double the basename of @racketvarfont{dgvc.rkt}.
        (with-output-to-file action.rkt #:exists 'replace
          (thunk (dynamic-require action.scrbl #false)))]
 
-@tamer-racketbox['action.scrbl]
+@tamer-racketbox[#:line-start-with 0 'action.scrbl]
 
 The most interesting things are just a description @envvar{desc}
 and a @racket[module] named after the @itech{digivice}.
@@ -80,7 +80,7 @@ Okay, the @itech{digivice} demo is ready! Now what?
 
 @tamer-action[(parameterize ([exit-handler void]) ((force digivice)))
               (code:comment @#,t{So we have got the entrance.})
-              (code:comment @#,t{Please do not ask me why it talks without being invoked, bleme @racketcommentfont{@exec{raco setup}}.})]
+              (code:comment @#,t{Please do not ask me why it talks without being invoked, blame @racketcommentfont{@exec{raco setup}}.})]
 
 @tamer-note['dgvc-option]
 

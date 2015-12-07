@@ -115,6 +115,13 @@
 
 (define-digimon-dirpath stone digitama digivice tamer village terminus)
 
+(define digimon-tongue : (Parameterof Nothing Path)
+  (make-derived-parameter digimon-stone
+                          (immutable-guard 'digimon-tongue)
+                          (λ [[stonedir : Path]]
+                            (build-path stonedir "tongue"))))
+
+
 (define path->digimon-modpath : (->* [Path-String] [Symbol] (U Module-Path (List 'submod Module-Path Symbol)))
   (lambda [modfile [submodule #false]]
     (define modpath : Module-Path

@@ -1,0 +1,7 @@
+((tamer-handbook . "驯兽师手册")
+ (handbook-rule . "规则")
+ (handbook-story . "故事")
+ (handbook-scenario . "场景")
+ (handbook-appendix . "附录")
+ (handbook-auxiliary . "~a 辅助设施")
+ (handbook-appendix-disclaim . "附录包含运行测试所需的全部辅助代码，可以忽略. (更多内容参见 ~a)") #| ~a: links to tamer.rkt |#)
