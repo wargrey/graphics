@@ -22,6 +22,7 @@
 @require{i18n.rkt}
 
 (define tamer-zone (make-parameter #false))
+(define partner-zone (make-parameter #false))
 
 (define $out (open-output-bytes '/dev/tamer/stdout))
 (define $err (open-output-bytes '/dev/tamer/stderr))
@@ -56,11 +57,20 @@
     (parameterize ([sandbox-namespace-specs (cons (thunk tamer-namespace) null)])
       (make-base-eval #:pretty-print? #true))))
 
+(define make-partner-zone
+  (lambda []
+    (define partner `(submod ,(cadr (tamer-story)) partner))
+    (cond [(false? (module-declared? partner #true)) #false]
+          [else (let ([partner-namespace (and (dynamic-require partner #false) (module->namespace partner))])
+                  (parameterize ([sandbox-namespace-specs (cons (thunk partner-namespace) null)])
+                    (make-base-eval #:pretty-print? #true)))])))
+
 (define-syntax {tamer-taming-start stx}
   #'(let ([modpath (quote-module-path)])
       (cond [(path? modpath) (tamer-story (tamer-story->modpath modpath))]
             [else (and (tamer-story (tamer-story->modpath (cadr modpath)))
-                       (tamer-zone (make-tamer-zone)))])))
+                       (tamer-zone (make-tamer-zone))
+                       (partner-zone (make-partner-zone)))])))
 
 (define-syntax {handbook-story stx}
   (syntax-parse stx #:literals []
@@ -102,6 +112,18 @@
           (thunk* (parameterize ([tamer-story story-snapshot]
                                  [tamer-zone zone-snapshot])
                     (interaction #:eval (tamer-zone) s-exps ...)))))]))
+
+(define-syntax {partner-action stx}
+  (syntax-case stx []
+    [{_ s-exps ...}
+     #'(let ([story-snapshot (tamer-story)]
+             [zone-snapshot (partner-zone)])
+         (unless (false? zone-snapshot)
+           (make-traverse-block
+            (thunk* (parameterize ([tamer-story story-snapshot]
+                                   [partner-zone zone-snapshot])
+                      (interaction #:eval (partner-zone) s-exps ...))))))]))
+
 
 (define tamer-require
   (lambda [name]
@@ -148,12 +170,12 @@
                    (cond [(false? (null? pre-contents)) (cons (string-append (speak 'handbook-appendix) ": ") pre-contents)]
                          [else (string-titlecase (format (format "~a: ~a" (speak 'handbook-appendix) (speak 'handbook-appendix-~a-auxiliary))
                                                          (path-replace-suffix (tamer-story->tag (tamer-story)) "")))]))
-          (let ([zone-snapshot (tamer-zone)])
+          (let ([zone-snapshots (filter-not false? (list (tamer-zone) (partner-zone)))])
             (make-traverse-block (thunk* ((curry dynamic-wind void)
                                           (thunk (apply para #:style "GYDMComment"
                                                         (add-between (string-split (speak 'handbook-appendix-disclaim-~a) "~a")
                                                                      (hyperlink (~a (digimon-tamer) "/tamer.rkt") "tamer.rkt"))))
-                                          (thunk (close-eval zone-snapshot))))))
+                                          (thunk (for-each close-eval zone-snapshots))))))
           (tamer-story #false))))
 
 (define handbook-rule
