@@ -146,12 +146,12 @@
   (lambda [#:style [style #false] . pre-contents]
     (list (section #:style style
                    (cond [(false? (null? pre-contents)) (cons (string-append (speak 'handbook-appendix) ": ") pre-contents)]
-                         [else (string-titlecase (format (format "~a: ~a" (speak 'handbook-appendix) (speak 'handbook-auxiliary))
+                         [else (string-titlecase (format (format "~a: ~a" (speak 'handbook-appendix) (speak 'handbook-appendix-~a-auxiliary))
                                                          (path-replace-suffix (tamer-story->tag (tamer-story)) "")))]))
           (let ([zone-snapshot (tamer-zone)])
             (make-traverse-block (thunk* ((curry dynamic-wind void)
                                           (thunk (apply para #:style "GYDMComment"
-                                                        (add-between (string-split (speak 'handbook-appendix-disclaim) "~a")
+                                                        (add-between (string-split (speak 'handbook-appendix-disclaim-~a) "~a")
                                                                      (hyperlink (~a (digimon-tamer) "/tamer.rkt") "tamer.rkt"))))
                                           (thunk (close-eval zone-snapshot))))))
           (tamer-story #false))))
@@ -228,24 +228,25 @@
                                                          [else (values page# (unbox (car spec)))])) ;;; toplevel testcase
                                                  (define status (car (or (ormap (curryr member (cdr spec)) statuses)
                                                                          (list (~result struct:test-success)))))
-                                                 (define item (~a #:width 61 #:pad-string "." #:limit-marker "......" desc))
-                                                 (define label (racketkeywordfont (literal item) status))
-                                                 (cond [(module-path? story-snapshot) (elemref desc (italic (string local#)) ~ label)]
-                                                       [else (let ([stts (make-parameter status)])
-                                                               (echof #:fgcolor 'lightyellow item)
-                                                               (echof #:fgcolor (~fgcolor status) "~a~n" status)
-                                                               (for ([msg (in-list (cdr spec))])
-                                                                 (cond [(and (member msg statuses) msg)
-                                                                        => stts]
-                                                                       [(and (regexp-match? #px"»»" msg) msg)
-                                                                        => (curry eechof #:fgcolor 'darkgrey "~a~n")]
-                                                                       [(and (string? (car spec)) msg)
-                                                                        => (curry eechof  "~a~n"
-                                                                                  #:fgcolor (~fgcolor (stts))
-                                                                                  #:attributes (cond [(string=? (stts) (~result test-error))
-                                                                                                      '{inverse}]
-                                                                                                     [else null]))]))
-                                                               (seclink (car spec) (italic (string book#)) ~ label))])))
+                                                 (if (module-path? story-snapshot)
+                                                     (list (elem (italic (string local#)) ~
+                                                                 (elemref desc (racketkeywordfont (literal desc))))
+                                                           status)
+                                                     (let ([stts (make-parameter status)])
+                                                       (echof #:fgcolor 'lightyellow (~a desc #:width 64 #:pad-string "." #:limit-marker "......"))
+                                                       (echof #:fgcolor (~fgcolor status) "~a~n" status)
+                                                       (for ([msg (in-list (cdr spec))])
+                                                         (cond [(and (member msg statuses) msg)
+                                                                => stts]
+                                                               [(and (regexp-match? #px"»»" msg) msg)
+                                                                => (curry eechof #:fgcolor 'darkgrey "~a~n")]
+                                                               [(and (string? (car spec)) msg)
+                                                                => (curry eechof  "~a~n"
+                                                                          #:fgcolor (~fgcolor (stts))
+                                                                          #:attributes (cond [(string=? (stts) (~result test-error))
+                                                                                              '{inverse}]
+                                                                                             [else null]))]))
+                                                       (list (elem (italic (string book#)) ~ (secref (car spec))) status)))))
                                  (match-define {list success failure error skip todo reals gcs cpus}
                                    (for/list ([meta (in-list (list 'success 'failure 'error 'skip 'todo 'real 'gc 'cpu))])
                                      (define pool (get meta make-hash))
@@ -268,14 +269,12 @@
                                                (format "~a wallclock seconds (~a task + ~a gc = ~a CPU)."
                                                        real cpu-gc gc cpu)))))
                                  (unless (module-path? story-snapshot)
-                                   (newline)
-                                   (for ([brief (in-list briefs)])
+                                   (for ([brief (in-list (cons "" briefs))])
                                      (echof #:fgcolor 'lightcyan "~a~n" brief)))
-                                 (let ([lb (list (linebreak))])
-                                   (append (cond [(null? items) null]
-                                                 [else (add-between #:after-last lb #:splice? #true items lb)])
-                                           (add-between #:before-first lb #:splice? #true
-                                                        (map racketoutput briefs) lb)))))))))))))
+                                 (let ([summaries (add-between (map racketoutput briefs) (linebreak))])
+                                   (cond [(null? items) summaries]
+                                         [else (cons (tabular items #:style 'boxed #:column-properties '(left right))
+                                                     summaries)]))))))))))))
 
 (define handbook-smart-table
   (lambda []

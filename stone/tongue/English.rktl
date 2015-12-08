@@ -3,5 +3,5 @@
  (handbook-story . "Story")
  (handbook-scenario . "Scenario")
  (handbook-appendix . "Appendix")
- (handbook-auxiliary . "~a Auxiliaries")
- (handbook-appendix-disclaim . "In order to avoid polluting your eyes, any less important things are moved here. (also see ~a)") #| ~a: links to tamer.rkt |#)
+ (handbook-appendix-~a-auxiliary . "~a Auxiliaries")
+ (handbook-appendix-disclaim-~a . "In order to avoid polluting your eyes, any less important things are moved here. (also see ~a)") #| ~a: links to tamer.rkt |#)
