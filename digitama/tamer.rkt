@@ -1,9 +1,9 @@
 #lang at-exp racket
 
-(provide (all-defined-out) tamer-story skip todo)
+(provide (all-defined-out) skip todo)
 
 (provide (all-from-out racket "digicore.rkt" "emoji.rkt" "i18n.rkt" rackunit))
-(provide (all-from-out scribble/manual scribble/eval scribble/html-properties))
+(provide (all-from-out scribble/core scribble/manual scribble/eval scribble/html-properties))
 
 (require rackunit)
 
@@ -21,9 +21,6 @@
 @require{emoji.rkt}
 @require{i18n.rkt}
 
-(define tamer-zone (make-parameter #false))
-(define partner-zone (make-parameter #false))
-
 (define $out (open-output-bytes '/dev/tamer/stdout))
 (define $err (open-output-bytes '/dev/tamer/stderr))
 (define $? (make-parameter +NaN.0))
@@ -36,7 +33,7 @@
     (parameterize ([current-output-port $out]
                    [current-error-port $err]
                    [exit-handler $?])
-      (apply routine arglist))))
+      (void (apply routine arglist)))))
 
 (define hexstring
   (lambda [val]
@@ -49,33 +46,21 @@
   (lambda [hex]
     (string->number (string-replace (symbol->string hex) "0x" "") 16)))
 
-(define make-tamer-zone
-  (lambda []
-    (define tamer.rkt (build-path (digimon-tamer) "tamer.rkt"))
-    (dynamic-require (tamer-story) #false)
-    (define tamer-namespace (module->namespace (tamer-story)))
-    (parameterize ([sandbox-namespace-specs (cons (thunk tamer-namespace) null)])
-      (make-base-eval #:pretty-print? #true))))
-
-(define make-partner-zone
-  (lambda []
-    (define partner `(submod ,(cadr (tamer-story)) partner))
-    (cond [(false? (module-declared? partner #true)) #false]
-          [else (let ([partner-namespace (and (dynamic-require partner #false) (module->namespace partner))])
-                  (parameterize ([sandbox-namespace-specs (cons (thunk partner-namespace) null)])
-                    (make-base-eval #:pretty-print? #true)))])))
-
-(define-syntax {tamer-taming-start stx}
-  #'(let ([modpath (quote-module-path)])
-      (cond [(path? modpath) (tamer-story (tamer-story->modpath modpath))]
-            [else (and (tamer-story (tamer-story->modpath (cadr modpath)))
-                       (tamer-zone (make-tamer-zone))
-                       (partner-zone (make-partner-zone)))])))
+(define-syntax (tamer-taming-start stx)
+  (syntax-case stx [scribble +]
+    [(_ scribble)
+     #'(let ([modpath (quote-module-path)])
+         (cond [(path? modpath) (tamer-story (tamer-story->modpath modpath))]
+               [else (and (tamer-story (tamer-story->modpath (cadr modpath)))
+                          (tamer-zone (make-tamer-zone)))]))]
+    [(_)
+     #'(begin (tamer-taming-start scribble)
+              (module+ main (call-as-normal-termination tamer-prove)))]))
 
 (define-syntax {handbook-story stx}
   (syntax-parse stx #:literals []
     [{_ (~optional (~seq #:style s:expr)) contents ...}
-     #`(list (tamer-taming-start)
+     #`(list (tamer-taming-start scribble)
              (title #:tag (tamer-story->tag (tamer-story))
                     #:style #,(attribute s)
                     (literal (speak 'handbook-story) ":") ~ contents ...))]))
@@ -113,18 +98,6 @@
                                  [tamer-zone zone-snapshot])
                     (interaction #:eval (tamer-zone) s-exps ...)))))]))
 
-(define-syntax {partner-action stx}
-  (syntax-case stx []
-    [{_ s-exps ...}
-     #'(let ([story-snapshot (tamer-story)]
-             [zone-snapshot (partner-zone)])
-         (unless (false? zone-snapshot)
-           (make-traverse-block
-            (thunk* (parameterize ([tamer-story story-snapshot]
-                                   [partner-zone zone-snapshot])
-                      (interaction #:eval (partner-zone) s-exps ...))))))]))
-
-
 (define tamer-require
   (lambda [name]
     (define htag (tamer-story->tag (tamer-story)))
@@ -134,10 +107,6 @@
                                    story))])
       (dict-ref units name (thunk (raise (make-exn:fail:contract:variable (format "'~a has not yet defined!" name)
                                                                           (current-continuation-marks) name)))))))
-
-(define tamer-story->modpath
-  (lambda [story-path]
-    `(submod ,story-path story)))
 
 (define tamer-partner->modpath
   (lambda [partner-path]
@@ -170,7 +139,7 @@
                    (cond [(false? (null? pre-contents)) (cons (string-append (speak 'handbook-appendix) ": ") pre-contents)]
                          [else (string-titlecase (format (format "~a: ~a" (speak 'handbook-appendix) (speak 'handbook-appendix-~a-auxiliary))
                                                          (path-replace-suffix (tamer-story->tag (tamer-story)) "")))]))
-          (let ([zone-snapshots (filter-not false? (list (tamer-zone) (partner-zone)))])
+          (let ([zone-snapshots (filter-not false? (list (tamer-zone)))])
             (make-traverse-block (thunk* ((curry dynamic-wind void)
                                           (thunk (apply para #:style "GYDMComment"
                                                         (add-between (string-split (speak 'handbook-appendix-disclaim-~a) "~a")
@@ -447,19 +416,38 @@
                                            (string-join contents (string #\newline))))))))))
 
 (module digitama racket
+  (provide (all-defined-out) quote-module-path)
+  
   (require rackunit)
+  (require racket/sandbox)
   (require racket/generator)
   (require racket/undefined)
   (require syntax/location)
   (require setup/xref)
   (require scribble/core)
+  (require scribble/eval)
   (require scribble/xref)
   (require scribble/manual)
 
   (require "digicore.rkt")
   (require "emoji.rkt")
+
+  (require (rename-in rackunit/private/monad
+                      [compose* >>=]
+                      [sequence* >=>]))
+
+  (define tamer-zone (make-parameter #false))
   
-  (provide (all-defined-out) quote-module-path)
+  (define make-tamer-zone
+    (lambda []
+      (dynamic-require (tamer-story) #false)
+      (define tamer-namespace (module->namespace (tamer-story)))
+      (parameterize ([sandbox-namespace-specs (cons (thunk tamer-namespace) null)])
+        (make-base-eval #:pretty-print? #true))))
+  
+  (define tamer-story->modpath
+    (lambda [story-path]
+      `(submod ,story-path tamer story)))
 
   ;;; These are intended to not inherit exn? or exn:test?
   (struct exn:test:skip {reason})
@@ -482,11 +470,9 @@
     (lambda [story]
       (with-handlers ([exn? exn-message])
         (path->string (find-relative-path (digimon-tamer) (cadr story))))))
-  
-  (struct tamer-seed {datum brief name-path exns})
-  (struct summary {success failure error skip todo})
-  (define initial-summary (summary 0 0 0 0 0))
-  
+
+  (struct summary {success failure error skip todo} #:prefab)
+
   (define summary++
     (lambda [summary0 result]
       (summary (+ (summary-success summary0) (if (test-success? result) 1 0))
@@ -494,14 +480,30 @@
                (+ (summary-error summary0) (if (test-error? result) 1 0))
                (+ (summary-skip summary0) (if (test-skip? result) 1 0))
                (+ (summary-todo summary0) (if (test-todo? result) 1 0)))))
+  
+  ;;; Tamer Monad
+  (struct tamer-seed {datum brief namepath exns} #:mutable)
 
-  (define summary**
-    (lambda [summary1 summary2]
-      (summary (+ (summary-success summary1) (summary-success summary2))
-               (+ (summary-failure summary1) (summary-failure summary2))
-               (+ (summary-error summary1) (summary-error summary2))
-               (+ (summary-skip summary1) (summary-skip summary2))
-               (+ (summary-todo summary1) (summary-todo summary2)))))
+  (define make-tamer-monad
+    (lambda []
+      (monad (void) (tamer-seed (void) (summary 0 0 0 0 0) null null))))
+
+  (define (monad-return value)
+    (lambda [tamer-monad]
+      (set-monad-value! tamer-monad value)
+      tamer-monad))
+
+  (define (monad-put seed-set! val)
+    (lambda [tamer-monad]
+      (seed-set! (monad-state tamer-monad) val)
+      tamer-monad))
+
+  (define (monad-get seed-ref)
+    (lambda [tamer-monad]
+      (let ([val (seed-ref (monad-state tamer-monad))])
+        (set-monad-value! tamer-monad val)
+        tamer-monad)))
+  ;;; End Tamer Monad
 
   (define-values {handbook-stories handbook-records} (values (make-hash) (make-hash)))
 
@@ -510,8 +512,7 @@
       (define htag (tamer-story->tag (tamer-story)))
       (define units (hash-ref handbook-stories htag null))
       (unless (dict-has-key? units name)
-        (hash-set! handbook-stories htag
-                   (cons (cons name unit) units)))
+        (hash-set! handbook-stories htag (cons (cons name unit) units)))
       (let ([books (hash-ref handbook-stories books# null)])  ;;; Readme.md needs it stay here
         (unless (member htag books) (hash-set! handbook-stories books# (cons htag books))))))
 
@@ -666,72 +667,126 @@
         (eechof #:fgcolor color "~a»»~a~a~n" headspace0 msghead (car messages))
         (for-each (curry eechof #:fgcolor color "~a»»»~a~a~n" headspace0 msgspace) (cdr messages)))))
   
-  (define default-fseed
-    (lambda last-is-seed
-      (last last-is-seed)))
-  
   (define fold-test-suite
-    (lambda [seed:datum testsuite #:fdown [fdown default-fseed] #:fup [fup default-fseed] #:fhere [fhere default-fseed]]
-      (define seed (parameterize ([current-custodian (make-custodian)]) ;;; Prevent test routines happen to shutdown the custodian.
-                     (foldts-test-suite (λ [testsuite name pre-action post-action seed]
-                                          (define $exn (make-parameter undefined))
-                                          (with-handlers ([void $exn]) ;;; catch all for exn:test:skip and exn:test:todo
-                                            (call-with-values pre-action void))
-                                          (tamer-seed (fdown name (tamer-seed-datum seed))
-                                                      (tamer-seed-brief seed )
-                                                      (cons name (tamer-seed-name-path seed))
-                                                      (cons ($exn) (tamer-seed-exns seed))))
-                                        (λ [testsuite name pre-action post-action seed children-seed]
-                                          (with-handlers ([exn? (compose1 display-error (curry make-test-error (format "#:after ~a" name)))])
-                                            (call-with-values post-action void))
-                                          (tamer-seed (fup name (tamer-seed-datum seed) (tamer-seed-datum children-seed))
-                                                      (tamer-seed-brief children-seed)
-                                                      (tamer-seed-name-path seed)
-                                                      (tamer-seed-exns seed)))
-                                        (λ [testcase name action seed]
-                                          (define-values {fixed-name fixed-action}
-                                            (cond [(findf (lambda [e] (not (eq? e undefined))) (tamer-seed-exns seed))
-                                                   => (lambda [e] (values (format "#:before ~a" name) (thunk (raise e))))]
-                                                  [(false? name)
-                                                   (values (format "(⧴ ~a)" (object-name struct:exn:fail:user))
-                                                           (thunk (raise-user-error "Testcase must have a name!")))]
-                                                  [else (values name action)]))
-                                          (define fixed-namepath (cons fixed-name (tamer-seed-name-path seed)))
-                                          (define record (tamer-record-handbook fixed-namepath fixed-action))
-                                          (tamer-seed (fhere record (tamer-seed-datum seed))
-                                                      (summary++ (tamer-seed-brief seed) record)
-                                                      fixed-namepath
-                                                      (tamer-seed-exns seed)))
-                                        (tamer-seed seed:datum initial-summary null null)
-                                        testsuite)))
-      (values (tamer-seed-datum seed) (tamer-seed-brief seed))))
+    (lambda [seed:datum testsuite #:fdown fdown #:fup fup #:fhere fhere]
+      (parameterize ([current-custodian (make-custodian)]) ;;; Prevent test routines happen to shutdown the custodian.
+        (monad-value ((monad-get tamer-seed-brief)
+                      (foldts-test-suite (λ [testsuite name pre-action post-action seed]
+                                           (define $exn (make-parameter undefined))
+                                           (with-handlers ([void $exn]) ;;; catch all, including exn:test:skip and exn:test:todo
+                                             (call-with-values pre-action void))
+                                           ((>=> (>>= (monad-get tamer-seed-datum)
+                                                      (λ [seed:datum] (monad-put set-tamer-seed-datum! (fdown name seed:datum))))
+                                                 (>>= (monad-get tamer-seed-namepath)
+                                                      (λ [seed:namepath] (monad-put set-tamer-seed-namepath! (cons name seed:namepath))))
+                                                 (>>= (monad-get tamer-seed-exns)
+                                                      (λ [seed:exns] (monad-put set-tamer-seed-exns! (cons ($exn) seed:exns)))))
+                                            seed))
+                                         (λ [testsuite name pre-action post-action seed children-seed]
+                                           (with-handlers ([exn? (compose1 display-error (curry make-test-error (format "#:after ~a" name)))])
+                                             (call-with-values post-action void))
+                                           ((>=> (>>= (monad-get tamer-seed-datum)
+                                                      (λ [children:datum] (monad-put set-tamer-seed-datum! (fup name children:datum children:datum))))
+                                                 (>>= (monad-get tamer-seed-namepath)
+                                                      (λ [children:namepath] (monad-put set-tamer-seed-namepath! (cdr children:namepath))))
+                                                 (>>= (monad-get tamer-seed-exns)
+                                                      (λ [children:exns] (monad-put set-tamer-seed-exns! (cdr children:exns)))))
+                                            children-seed #| monad is a stateful structure, so seed === children-seed|#))
+                                         (λ [testcase name action seed]
+                                           (define-values (fixed-name fixed-action)
+                                             (cond [(findf (lambda [e] (not (eq? e undefined))) (monad-value ((monad-get tamer-seed-exns) seed)))
+                                                    => (lambda [e] (cons (format "#:before ~a" name) (thunk (raise e))))]
+                                                   [(false? name)
+                                                    (values (format "(⧴ ~a)" (object-name struct:exn:fail:user))
+                                                            (thunk (raise-user-error "Testcase must have a name!")))]
+                                                   [else (values name action)]))
+                                           (define fixed-namepath (cons fixed-name (monad-value ((monad-get tamer-seed-namepath) seed))))
+                                           (define record (tamer-record-handbook fixed-namepath fixed-action))
+                                           ((>=> (>>= (monad-get tamer-seed-datum)
+                                                      (λ [seed:datum] (monad-put set-tamer-seed-datum! (fhere record seed:datum))))
+                                                 (>>= (monad-get tamer-seed-brief)
+                                                      (λ [seed:summary] (monad-put set-tamer-seed-brief! (summary++ seed:summary record))))
+                                                 (monad-put set-tamer-seed-namepath! fixed-namepath))
+                                            seed))
+                                         ((monad-put set-tamer-seed-datum! seed:datum)
+                                          (make-tamer-monad))
+                                         testsuite))))))
   
   (define prove
     (lambda [unit]
-      (define-values {whocares brief}
-        (fold-test-suite #:fdown (λ [name seed:ordered]
-                                   (cond [(null? seed:ordered) (echof #:fgcolor 'darkgreen #:attributes '{dim underline} "λ ~a~n" (tr-d name))]
-                                         [else (echof "~aλ~a ~a~n" (~a #:min-width (* (length seed:ordered) 2))
-                                                      (string-join (map number->string (reverse seed:ordered)) ".") (tr-d name))])
-                                   (cons 1 seed:ordered))
-                         #:fup (λ [name seed:ordered children:ordered]
-                                 (cond [(null? seed:ordered) null]
-                                       [else (cons (add1 (car seed:ordered))
-                                                   (cdr seed:ordered))]))
-                         #:fhere (λ [result seed:ordered]
-                                   (define headline (format "~a~a  ~a - " (~a #:min-width (* (length seed:ordered) 2))
-                                                            (~result result) (if (null? seed:ordered) 1 (car seed:ordered))))
-                                   (define headspace (~a #:min-width (string-length headline)))
-                                   (echof #:fgcolor (~fgcolor result) "~a~a~n" headline (tr-d (test-result-test-case-name result)))
-                                   (cond [(test-success? result) (void)]
-                                         [(test-failure? result) (display-failure result #:indent headspace)]
-                                         [(test-error? result) (display-error result #:indent headspace)]
-                                         [(test-skip? result) (display-skip result #:indent headspace)]
-                                         [(test-todo? result) (display-todo result #:indent headspace)]
-                                         [else (error "RackUnit has new test result type added!")])
-                                   (if (null? seed:ordered) null (cons (add1 (car seed:ordered)) (cdr seed:ordered))))
-                         null
-                         unit))
-      (values brief))))
+      (fold-test-suite #:fdown (λ [name seed:ordered]
+                                 (cond [(null? seed:ordered) (echof #:fgcolor 'darkgreen #:attributes '{dim underline} "λ ~a~n" (tr-d name))]
+                                       [else (echof "~aλ~a ~a~n" (~a #:min-width (* (length seed:ordered) 2))
+                                                    (string-join (map number->string (reverse seed:ordered)) ".") (tr-d name))])
+                                 (cons 1 seed:ordered))
+                       #:fup   (λ [name maybe-children-if-monad children:ordered]
+                                 (cond [(< (length children:ordered) 2) null]
+                                       [else (cons (add1 (cadr children:ordered))
+                                                   (cddr children:ordered))]))
+                       #:fhere (λ [result seed:ordered]
+                                 (define headline (format "~a~a  ~a - " (~a #:min-width (* (length seed:ordered) 2))
+                                                          (~result result) (if (null? seed:ordered) 1 (car seed:ordered))))
+                                 (define headspace (~a #:min-width (string-length headline)))
+                                 (echof #:fgcolor (~fgcolor result) "~a~a~n" headline (tr-d (test-result-test-case-name result)))
+                                 (cond [(test-success? result) (void)]
+                                       [(test-failure? result) (display-failure result #:indent headspace)]
+                                       [(test-error? result) (display-error result #:indent headspace)]
+                                       [(test-skip? result) (display-skip result #:indent headspace)]
+                                       [(test-todo? result) (display-todo result #:indent headspace)]
+                                       [else (error "RackUnit has new test result type added!")])
+                                 (if (null? seed:ordered) null (cons (add1 (car seed:ordered)) (cdr seed:ordered))))
+                       null ; seed:datum
+                       unit))))
 
 (require (submod "." digitama))
+
+(module* typed typed/racket
+  (provide (all-defined-out))
+  (provide (all-from-out "digicore.rkt" "emoji.rkt" "i18n.rkt" typed/rackunit))
+
+  (require typed/rackunit)
+  
+  (require (for-syntax syntax/parse))
+
+  (require "digicore.rkt")
+  (require "emoji.rkt")
+  (require "i18n.rkt")
+
+  (require/typed/provide (submod "..")
+                         [$out Output-Port]
+                         [$err Output-Port]
+                         [$? (Parameterof Any)]
+                         [call-with-fresh-$ (-> (-> Any * Void) Any * Void)]
+                         [hexstring (-> Any String)]
+                         [symb0x->number (-> Symbol Integer)]
+                         [tamer-partner->modpath (-> Path-String (U Module-Path (List 'submod Module-Path Symbol)))]
+                         [tamer-prove (-> Natural)]
+                         [todo (-> String Any * Nothing)]
+                         [skip (-> String Any * Nothing)])
+
+  (require/typed (submod ".." digitama)
+                 [tamer-record-story (-> Symbol Test Void)])
+
+  ;;; adapted from (submod "..")
+  (define-syntax {define-tamer-suite stx}
+    (syntax-parse stx
+      [{_ varid name (~optional (~seq #:before setup:expr)) (~optional (~seq #:after teardown:expr)) units ...}
+       #`(tamer-record-story 'varid (test-suite name
+                                                #:before #,(or (attribute setup) #'void)
+                                                #:after #,(or (attribute teardown) #'void)
+                                                units ...))]))
+  
+  (define-syntax {define-tamer-case stx}
+    (syntax-parse stx
+      [{_ varid name (~optional (~seq #:before setup:expr)) (~optional (~seq #:after teardown:expr)) checks ...}
+       #'(tamer-record-story 'varid (delay-test (test-spec name
+                                                           #:before setup
+                                                           checks ...
+                                                           #:after teardown)))]))
+  
+  (define-syntax {test-spec stx}
+    (syntax-parse stx
+      [{_ name (~optional (~seq #:before setup:expr)) (~optional (~seq #:after teardown:expr)) checks ...}
+       #`(test-case name (around (#,(or (attribute setup) #'void))
+                                 checks ...
+                                 (#,(or (attribute teardown) #'void))))])))

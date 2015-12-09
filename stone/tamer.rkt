@@ -10,3 +10,10 @@
 @|#\@|require{../digitama/digicore.rkt}
 @|#\@|require{../../DigiGnome/digitama/tamer.rkt}
 
+(current-tongue 'English)
+
+(module typed typed/racket
+  (provide (all-defined-out))
+  (provide (all-from-out (submod "../../DigiGnome/digitama/tamer.rkt" typed)))
+  
+  (require (submod "../../DigiGnome/digitama/tamer.rkt" typed)))

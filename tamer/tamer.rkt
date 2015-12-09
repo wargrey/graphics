@@ -6,7 +6,11 @@
 
 ;;; To force makefile.rkt counting the required file
 @require{../digitama/tamer.rkt}
-@require{../digitama/i18n.rkt}
 
 (current-tongue 'English)
 
+(module typed typed/racket
+  (provide (all-defined-out))
+  (provide (all-from-out (submod "../digitama/tamer.rkt" typed)))
+  
+  (require (submod "../digitama/tamer.rkt" typed)))

@@ -19,11 +19,13 @@ This is an implementation of @deftech{@hyperlink["https://en.wikipedia.org/wiki/
 
 @chunk[|<sshmon taming start>|
        (require "tamer.rkt")
-       @require{../digitama/ssh.rkt}
-
        (tamer-taming-start)
 
-       |<sshmon:*>|]
+       (module tamer typed/racket
+         (require (submod "tamer.rkt" typed))
+         (require "../digitama/ssh.rkt")
+         
+         |<sshmon:*>|)]
 
 @handbook-scenario{Datatype Representations}
 
@@ -67,7 +69,11 @@ It performs server host authentication, key exchange, encryption, and integrity 
 It also derives a unique session id that may be used by higher-level protocols
 such as @itech{SSH-USERAUTH} and @itech{SSH-CONNECT}.
 
-@tamer-action[(hello-ssh/handshake "gyoudmon.org")]
+@tamer-action[(define (trace level message urgent session)
+                (cond [(false? (exn? urgent)) (fprintf (current-output-port) "[~a] ~a~n" level message)]
+                      [else (fprintf (current-error-port) "[~a] ~a~n" level (exn-message urgent))]))
+              (define ssh-client (new ssh-session% [host "localhost"] [port 22] [on-debug trace]))
+              (send ssh-client collapse "demonstration done" 'SSH_DISCONNECT_BY_APPLICATION)]
 
 @handbook-scenario{The User Authentication Protocol}
 
@@ -92,9 +98,8 @@ The SSH client requests a server-side port to be forwarded using a global reques
 @handbook-appendix{SSHmon Auxiliaries}
 
 @chunk[|<sshmon:*>|
-       (module+ main (call-as-normal-termination tamer-prove))
        (module+ story
-         (require (for-syntax "tamer.rkt"))
+         (require (for-syntax (submod "tamer.rkt" typed)))
          
          (define-syntax (prove stx)
            (syntax-case stx [=> :]
@@ -129,12 +134,4 @@ The SSH client requests a server-side port to be forwarded using a global reques
            )
          
          (define-tamer-suite ssh-connection "The Connection Protocol"
-           )
-
-         (define (hello-ssh/handshake host)
-           (define (trace level message extra session)
-             (if (exn? extra)
-                 (fprintf (current-error-port) "[~a] ~a~n" level (exn-message extra))
-                 (fprintf (current-output-port) "[~a] ~a~n" level message)))
-           (define ssh-client (new ssh-session% [host "localhost"] [port 22] [on-debug trace]))
-           (send ssh-client collapse "demonstration done" 'SSH_DISCONNECT_BY_APPLICATION)))]
+           ))]

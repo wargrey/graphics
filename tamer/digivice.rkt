@@ -17,12 +17,13 @@ which is friendly to @italic{test harness} so that I could finish the core parts
 
 @chunk[|<digivice taming start>|
        (require "tamer.rkt")
-
        (tamer-taming-start)
-       (define partner (tamer-partner->modpath "makefile.rkt"))
-       (define make-digivice (dynamic-require/expose partner 'make-digivice))
 
-       |<digivice:*>|]
+       (module+ tamer
+         (define partner (tamer-partner->modpath "makefile.rkt"))
+         (define make-digivice (dynamic-require/expose partner 'make-digivice))
+
+         |<digivice:*>|)]
 
 @handbook-scenario{Create a digivice demo from scratch!}
 
@@ -79,8 +80,7 @@ or @exec{raco setup}. But the launcher is just a shell script that starts the @i
 Okay, the @itech{digivice} demo is ready! Now what?
 
 @tamer-action[(parameterize ([exit-handler void]) ((force digivice)))
-              (code:comment @#,t{So we have got the entrance.})
-              (code:comment @#,t{Please do not ask me why it talks without being invoked, blame @racketcommentfont{@exec{raco setup}}.})]
+              (code:comment @#,t{So we have got the entrance.})]
 
 @tamer-note['dgvc-option]
 
@@ -155,7 +155,6 @@ but I@literal{'}d like to watch the @italic{teardown} routine in order to ensure
 @handbook-appendix[]
 
 @chunk[|<digivice:*>|
-       (module+ main (call-as-normal-termination tamer-prove))
        (module+ story
          (define dgvc.scrbl (build-path (digimon-stone) "digivice.rkt"))
          (define action.scrbl (build-path (digimon-stone) "action.rkt"))

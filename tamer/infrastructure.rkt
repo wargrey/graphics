@@ -14,14 +14,16 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
 
 @tamer-smart-summary[]
 
+@margin-note{Want a typed example? see @secref{ssh.rkt}}
 @chunk[|<infrastructure taming start>|
        (require "tamer.rkt")
-
        (tamer-taming-start)
-       (define partner (tamer-partner->modpath "makefile.rkt"))
-       (define make (dynamic-require partner 'main (const #false)))
 
-       |<infrastructure:*>|]
+       (module+ tamer
+        (define partner (tamer-partner->modpath "makefile.rkt"))
+        (define make (dynamic-require partner 'main (const #false)))
+
+        |<infrastructure:*>|)]
 
 @handbook-scenario[#:tag @(digimon-gnome)]{Ready? Let@literal{'}s have a try!}
 
@@ -89,23 +91,16 @@ since we can cache the result by nature.
 
 Furthermore, the @itech{handbook} itself is the standard test report, but it@literal{'}s still reasonable
 to check the system in some more convenient ways. Hence we have
-
-@chunk[|<tamer battle>|
-       (module+ main
-         (call-as-normal-termination tamer-prove))]
-
-It will give us the @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report via
+the @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report via
 @(itemlist #:style 'compact
            @item{@exec{racket «@smaller{tamer files}»}}
            @item{@exec{makefile ++only «@smaller{digimon}» check «@smaller{tamer files}»}})
-
 Technically speaking, @exec{raco test --submodule main} is always there,
 although that way is not recommended, and is omitted by @filepath{info.rkt}.
 
 @handbook-appendix[]
 
 @chunk[|<infrastructure:*>|
-       |<tamer battle>|
        (module+ story
          (define msecs file-or-directory-modify-seconds)
          (define times (λ [px] (length (regexp-match* px (get-output-string $out)))))
