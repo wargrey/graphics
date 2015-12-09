@@ -6,8 +6,6 @@
 (provide (all-from-out scribble/core scribble/manual scribble/eval scribble/html-properties))
 
 (require rackunit)
-
-(require racket/sandbox)
 (require file/sha1)
 
 (require scribble/core)
@@ -223,7 +221,7 @@
                                                  (if (module-path? story-snapshot)
                                                      (list (elem (italic (string local#)) ~
                                                                  (elemref desc (racketkeywordfont (literal desc))))
-                                                           status)
+                                                           (elemref desc status #:underline? #false))
                                                      (let ([stts (make-parameter status)])
                                                        (echof #:fgcolor 'lightyellow (~a desc #:width 64 #:pad-string "." #:limit-marker "......"))
                                                        (echof #:fgcolor (~fgcolor status) "~a~n" status)
@@ -238,7 +236,8 @@
                                                                           #:attributes (cond [(string=? (stts) (~result test-error))
                                                                                               '{inverse}]
                                                                                              [else null]))]))
-                                                       (list (elem (italic (string book#)) ~ (secref (car spec))) status)))))
+                                                       (list (elem (italic (string book#)) ~ (secref (car spec)))
+                                                             (seclink (car spec) status #:underline? #false))))))
                                  (match-define {list success failure error skip todo reals gcs cpus}
                                    (for/list ([meta (in-list (list 'success 'failure 'error 'skip 'todo 'real 'gc 'cpu))])
                                      (define pool (get meta make-hash))
