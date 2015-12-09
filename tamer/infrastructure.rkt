@@ -2,7 +2,7 @@
 
 @(require "tamer.rkt")
 
-@(require (for-syntax "tamer.rkt"))
+@(require (for-label "tamer.rkt"))
 
 @(define partner (tamer-partner->modpath "makefile.rkt"))
 
