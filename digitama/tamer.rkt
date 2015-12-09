@@ -167,24 +167,25 @@
                             (make-test-suite "Behaviors and Features"
                                              (for/list ([unit (in-list (reverse (href books#)))])
                                                (make-test-suite unit (reverse (map cdr (href unit))))))))))
-    (if (false? (test-suite? suite))
-        (and (echof #:fgcolor 'darkcyan "~nNo particular example!~n") 0)
-        (let-values ([{brief-box cpu0 real0 gc0} (time-apply prove (list suite))])
-          (define-values {success failure error skip todo real cpu-gc gc cpu}
-            (apply values (list* (summary-success (car brief-box))
-                                 (summary-failure (car brief-box))
-                                 (summary-error (car brief-box))
-                                 (summary-skip (car brief-box))
-                                 (summary-todo (car brief-box))
-                                 (map (compose1 (curry ~r #:precision '{= 3}) (curry * 0.001))
-                                      (list real0 (- cpu0 gc0) gc0 cpu0)))))
-          (define population (+ success failure error skip todo))
-          (define echo (curry echof #:fgcolor 'lightcyan))
-          (echo "~nFinished in ~a wallclock seconds (~a task + ~a gc = ~a CPU)." real cpu-gc gc cpu)
-          (echo "~n~a, ~a, ~a, ~a, ~a, ~a% Okay.~n"
-                @~n_w[population]{example} @~n_w[failure]{failure} @~n_w[error]{error} @~n_w[skip]{skip} @~n_w[todo]{TODO}
-                (~r (/ (* (+ success skip) 100) population) #:precision '{= 2}))
-          (+ failure error)))))
+    (or (and (test-suite? suite)
+             (let-values ([{brief-box cpu0 real0 gc0} (time-apply prove (list suite))])
+               (define-values {success failure error skip todo real cpu-gc gc cpu}
+                 (apply values (list* (summary-success (car brief-box))
+                                      (summary-failure (car brief-box))
+                                      (summary-error (car brief-box))
+                                      (summary-skip (car brief-box))
+                                      (summary-todo (car brief-box))
+                                      (map (compose1 (curry ~r #:precision '{= 3}) (curry * 0.001))
+                                           (list real0 (- cpu0 gc0) gc0 cpu0)))))
+               (define population (+ success failure error skip todo))
+               (and (positive? population)
+                    (let ([echo (curry echof #:fgcolor 'lightcyan)])
+                      (echo "~nFinished in ~a wallclock seconds (~a task + ~a gc = ~a CPU)." real cpu-gc gc cpu)
+                      (echo "~n~a, ~a, ~a, ~a, ~a, ~a% Okay.~n" @~n_w[population]{example} @~n_w[failure]{failure}
+                            @~n_w[error]{error} @~n_w[skip]{skip} @~n_w[todo]{TODO}
+                            (~r  #:precision '{= 2} (/ (* (+ success skip) 100) population)))
+                      (+ failure error)))))
+        (and (echof #:fgcolor 'darkcyan "~nNo particular example!~n") 0))))
 
 (define tamer-smart-summary
   (lambda []

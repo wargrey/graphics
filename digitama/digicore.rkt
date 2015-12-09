@@ -58,21 +58,20 @@
   (lambda [pname]
     (λ [pval] (error pname "Immutable Parameter: ~a" pval))))
 
-(define-values (#{digimon-world : (Parameterof Nothing String)} #{digimon-gnome : (Parameterof Nothing String)})
-  (let* ([file (path->string digicore.rkt)]
-         [px.split (regexp-match #px"(.+)/([^/]+?)/[^/]+?/[^/]+?$" file)])
-    (values (make-parameter (cadr (cast px.split (Listof String))) (immutable-guard 'digimon-world))
-            (make-parameter (caddr (cast px.split (Listof String))) (immutable-guard 'digimon-gnome)))))
+(define digimon-world : (Parameterof Nothing String)
+  (make-parameter (path->string (simple-form-path (build-path digicore.rkt 'up 'up 'up)))
+                  (immutable-guard 'digimon-world)))
+
+(define digimon-gnome : (Parameterof Nothing String)
+  (make-parameter (path->string (last (drop-right (filter path? (explode-path digicore.rkt)) 2)))
+                  (immutable-guard 'digimon-gnome)))
 
 (define digimon-kuzuhamon : (Parameterof Nothing String) (make-parameter "Kuzuhamon" (immutable-guard 'digimon-kuzuhamon)))
-
-(define-values (#{current-digimon : (Parameterof String String)} #{current-tamer : (Parameterof Nothing String)})
-  (values (make-parameter (digimon-gnome))
-          (make-parameter (or (getenv "USER") (getenv "LOGNAME") #| daemon |# "root"))))
-
+(define current-digimon : (Parameterof String String) (make-parameter (digimon-gnome)))
+(define current-tamer : (Parameterof Nothing String) (make-parameter (or (getenv "USER") (getenv "LOGNAME") #| daemon |# "root")))
 (define digimon-system : (Parameterof Nothing Symbol)
   (make-parameter (match (path->string (system-library-subpath #false))
-                    ;;; (system-type 'machine) maight lead to "forbidden exec /bin/uname" 
+                    ;;; (system-type 'machine) might lead to "forbidden exec /bin/uname" 
                     [(pregexp #px"solaris") 'illumos]
                     [(pregexp #px"linux") 'linux]
                     [_ (system-type 'os)])))

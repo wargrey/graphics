@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #|
-digimon="`basename $(pwd)`";
+origdir="`pwd`"
 cd `dirname $0`;
 makefile="`basename $0`";
 dir="digitama";
@@ -27,7 +27,8 @@ else
     echo "remaking myself...";
     raco make ${makefile};
 fi
-exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"} 
+cd ${origdir};
+exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"} 
 |#
 
 #lang racket
@@ -321,9 +322,9 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
       
       (for ([handbook (in-list (if (null? (current-make-real-targets))
                                    (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))
-                                   (let ([px.tamer.scrbl (pregexp (format "^~a.+?\\.(scrbl|rkt)" (digimon-tamer)))])
-                                     (filter (lambda [hb.scrbl] (or (regexp-match? px.tamer.scrbl hb.scrbl)
-                                                                    ((negate eprintf) "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl)))
+                                   (let ([px.tamer.scrbl (pregexp (format "^~a/.+?\\.(scrbl|rkt)" (digimon-tamer)))])
+                                     (filter (λ [hb.scrbl] (or (regexp-match? px.tamer.scrbl hb.scrbl)
+                                                               ((negate eprintf) "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl)))
                                              (current-make-real-targets)))))])
         (parameterize ([current-directory (path-only handbook)]
                        [current-namespace (make-base-namespace)])
@@ -415,7 +416,7 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
       (define-values [reals phonies] (partition filename-extension targets))
       (parameterize ([current-make-real-targets (map simple-form-path reals)]
                      [current-directory (digimon-world)])
-        (for ([digimon (in-list (let* ([current-zone (path->string (find-system-path 'run-file))])
+        (for ([digimon (in-list (let ([current-zone (path->string (last (explode-path (find-system-path 'orig-dir))))])
                                   (remove-duplicates (cond [(member "ALL" (current-make-collects)) (cons (digimon-gnome) all-digimons)]
                                                            [(not (null? (current-make-collects))) (reverse (current-make-collects))]
                                                            [(directory-exists? current-zone) (list current-zone)]
@@ -432,7 +433,7 @@ exec racket --name "${digimon}" --require "${makefile}" --main -- ${1+"$@"}
                                              [else (error 'make "I don't know how to make `~a`!" phony)])))))
                           (thunk (printf "Leave Digimon Zone: ~a.~n" digimon)))))))
     (call-as-normal-termination
-     (thunk (parse-command-line "makefile.rkt"
+     (thunk (parse-command-line (path->string (find-system-path 'run-file))
                                 argument-list
                                 flag-table
                                 (lambda [!voids . targets] (exit (main0 targets)))
