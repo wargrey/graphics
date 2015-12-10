@@ -1,11 +1,11 @@
 #lang at-exp typed/racket
 
 (provide (all-defined-out) Term-Color vim-colors)
-(provide (all-from-out "syntax.rkt"))
+(provide (all-from-out "sugar.rkt"))
 
 (require (for-syntax racket/syntax))
 
-@require{syntax.rkt}
+@require{sugar.rkt}
 
 (define-type Info-Ref (->* [Symbol] [(-> Any)] Any))
 (define-type Racket-Main (-> String * Void))

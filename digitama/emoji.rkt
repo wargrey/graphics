@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-@require{syntax.rkt}
+@require{sugar.rkt}
 
 (defconsts : Char
   [house-garden# #\U1F3E1]

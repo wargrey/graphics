@@ -11,7 +11,7 @@ dep="compiled/`basename $0 .rkt`_rkt.dep";
 if test -f ${mzo}; then
     grep `racket -v | tr -d 'a-zA-Z ' | sed s/.$//` ${dep} > /dev/null 2>/dev/null;
     if test $? -eq 0; then
-        for fn in digicore syntax emoji tamer i18n; do
+        for fn in digicore sugar emoji tamer i18n; do
             dzo="${dir}/compiled/${fn}_rkt.zo";
             if test "${dzo}" -ot "${dir}/${fn}.rkt"; then
                 echo "${fn}.rkt has changed, remaking myself...";

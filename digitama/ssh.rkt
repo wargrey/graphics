@@ -18,7 +18,7 @@
 (require math/number-theory)
 
 @require{openssl.rkt}
-@require{syntax.rkt}
+@require{sugar.rkt}
 
 (define ssh-custodian : Custodian (make-custodian))
 
