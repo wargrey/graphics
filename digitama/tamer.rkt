@@ -390,30 +390,38 @@
                                            (string-trim (file->string /path/file) #:left? #false #:right? #true)))))))))
 
 (define tamer-racketbox/region
-  (lambda [path #:pxstart [start #px"^[^#][^l][^a][^n][^g]"] #:pxend [end #false] #:greedy? [greedy? #true]]
+  (lambda [path #:pxstart [pxstart #px"\\S+"] #:pxend [pxend #false] #:greedy? [greedy? #false]]
     (define story-snapshot (tamer-story))
     (make-traverse-block
      (thunk* (parameterize ([tamer-story story-snapshot])
                (define /path/file (simplify-path (if (symbol? path) (dynamic-require/expose (tamer-story) path) path)))
-               (define source (file->lines /path/file))
-               (define-values (region line0)
-                 (let find ([idx 0])
-                   (cond [(>= idx (length source)) (values #false 1)]
-                         [(regexp-match? start (list-ref source idx)) (values (drop source idx) (add1 idx))]
-                         [else (find (add1 idx))])))
-               (define contents (cond [(false? region) null]
-                                      [(false? end) region]
-                                      [(not (false? greedy?))
-                                       (let ([dne (memf (curry regexp-match? end) (reverse region))])
-                                         (if (list? dne) (reverse (cdr dne)) region))]
-                                      [else (let find ([idx 1])
-                                              (cond [(>= idx (length region)) region]
-                                                    [(regexp-match? end (list-ref region idx)) (take region idx)]
-                                                    [else (find (add1 idx))]))]))
+               (define-values (line0 contents)
+                 (call-with-input-file* /path/file
+                   (lambda [in.rkt]
+                     (let read-next ([lang #false] [line0 0] [contents null] [end 0])
+                       (define line (read-line in.rkt))
+                       (cond [(eof-object? line)
+                              (if (zero? end)
+                                  (values line0 (cons lang (reverse contents)))
+                                  (values line0 (cons lang (take (reverse contents) end))))]
+                             [(and (regexp? pxend) (false? (null? contents)) (regexp-match? pxend line))
+                              ; end line itself is excluded
+                              (if (false? greedy?)
+                                  (values line0 (cons lang (reverse contents)))
+                                  (read-next lang line0 (cons line contents) (length contents)))]
+                             [(regexp-match? #px"^#lang .+$" line)
+                              (read-next line (add1 line0) contents end)]
+                             [(and (string? lang) (null? contents) (regexp-match pxstart line))
+                              (read-next lang line0 (list line) end)]
+                             [(false? (null? contents)) ; still search the end line greedily
+                              (read-next lang line0 (cons line contents) end)]
+                             [else ; still search for the first line
+                              (read-next lang (add1 line0) contents end)])))))
                (nested #:style (make-style "boxed" null)
                        (filebox (hyperlink /path/file (italic (string memo#) ~ (path->string (tr-if-path /path/file))))
-                                (codeblock #:line-numbers line0 #:keep-lang-line? #true ; keep the first line
-                                           (string-join contents (string #\newline))))))))))
+                                (codeblock #:line-numbers line0 #:keep-lang-line? #false
+                                           (string-trim #:left? #false #:right? #true ; remove tail blank lines 
+                                                        (string-join contents (string #\newline)))))))))))
 
 (module digitama racket
   (provide (all-defined-out) quote-module-path)
