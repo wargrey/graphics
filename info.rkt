@@ -4,7 +4,7 @@
 
 (define version "Baby")
 
-(define build-deps '{"base" "math-lib" "typed-racket-lib" "scribble-lib"})
+(define build-deps '{"base" "math-lib" "typed-racket-lib" "scribble-lib" "dynext-lib"})
 
 (define compile-omit-paths (list "stone"))
 (define test-omit-paths 'all)
