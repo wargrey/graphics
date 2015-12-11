@@ -1,13 +1,10 @@
 #lang at-exp racket
 
-(provide (all-defined-out) skip todo)
-
+(provide (all-defined-out) (all-from-out (submod "." typed/digitama)) skip todo)
 (provide (all-from-out racket "digicore.rkt" "emoji.rkt" "i18n.rkt" rackunit))
 (provide (all-from-out scribble/core scribble/manual scribble/eval scribble/html-properties))
 
 (require rackunit)
-(require file/sha1)
-
 (require scribble/core)
 (require scribble/eval)
 (require scribble/manual)
@@ -23,7 +20,7 @@
 (define $err (open-output-bytes '/dev/tamer/stderr))
 (define $? (make-parameter +NaN.0))
 
-(define call-with-fresh-$
+(define call-with-fresh-$ ; TODO: if moving this into typed/digitama, then (parameterize) does not work. 
   (lambda [routine . arglist]
     (get-output-bytes $out #true)
     (get-output-bytes $err #true)
@@ -31,18 +28,7 @@
     (parameterize ([current-output-port $out]
                    [current-error-port $err]
                    [exit-handler $?])
-      (void (apply routine arglist)))))
-
-(define hexstring
-  (lambda [val]
-    (cond [(integer? val) (~r val #:base 16)]
-          [(bytes? val) (format "~a" (regexp-match* #px".." (bytes->hex-string val)))]
-          [(string? val) (hexstring (string->bytes/utf-8 val))]
-          [(boolean? val) (hexstring (if val 1 0))])))
-
-(define symb0x->number
-  (lambda [hex]
-    (string->number (string-replace (symbol->string hex) "0x" "") 16)))
+      (apply routine arglist))))
 
 (define-syntax (tamer-taming-start stx)
   (syntax-case stx [scribble +]
@@ -746,13 +732,32 @@
                        null ; seed:datum
                        unit))))
 
+(module typed/digitama typed/racket
+  (provide (all-defined-out))
+
+  (require/typed file/sha1
+                 [bytes->hex-string (-> Bytes String)])
+
+  (define hexstring : (-> Any String)
+    (lambda [val]
+      (cond [(integer? val) (~r val #:base 16)]
+            [(bytes? val) (format "~a" (regexp-match* #px".." (bytes->hex-string val)))]
+            [(boolean? val) (hexstring (if val 1 0))]
+            [else (hexstring (string->bytes/utf-8 (~a val)))])))
+
+  (define symb0x->number : (-> Symbol (Option Number))
+    (lambda [hex]
+      (string->number (string-replace (symbol->string hex) "0x" "") 16))))
+
 (require (submod "." digitama))
+(require (submod "." typed/digitama))
 
 (module* typed typed/racket
-  (provide (all-defined-out))
+  (provide (all-defined-out) (all-from-out (submod ".." typed/digitama)))
   (provide (all-from-out "digicore.rkt" "emoji.rkt" "i18n.rkt" typed/rackunit))
 
   (require typed/rackunit)
+  (require (submod ".." typed/digitama))
   
   (require (for-syntax syntax/parse))
 
@@ -764,9 +769,7 @@
                          [$out Output-Port]
                          [$err Output-Port]
                          [$? (Parameterof Any)]
-                         [call-with-fresh-$ (-> (-> Any * Void) Any * Void)]
-                         [hexstring (-> Any String)]
-                         [symb0x->number (-> Symbol Integer)]
+                         [call-with-fresh-$ (-> (-> Any * Void) Any * Any)]
                          [tamer-partner->modpath (-> Path-String (U Module-Path (List 'submod Module-Path Symbol)))]
                          [tamer-prove (-> Natural)]
                          [todo (-> String Any * Nothing)]

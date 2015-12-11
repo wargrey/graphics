@@ -88,8 +88,7 @@ Okay, the @itech{digivice} demo is ready! Now what?
        (test-spec "digivice help ['help' can be omitted if you want]"
                   #:before (thunk (call-with-fresh-$ dgvc "help"))
                   (check-pred zero? ($?) (get-output-string $err))
-                  (check-regexp-match #px"Usage:.+?where <action>(\\s+\\S+){3,}"
-                                      (get-output-string $out)))
+                  (check-regexp-match #px"Usage:.+?where <action>(\\s+\\S+){3,}" (get-output-string $out)))
        (test-spec "digivice --help [a kind of mistyped action]"
                   #:before (thunk (call-with-fresh-$ dgvc "--help"))
                   (check-pred (procedure-rename (negate zero?) 'nonzero?) ($?))

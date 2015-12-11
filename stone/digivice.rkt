@@ -18,19 +18,17 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
 
 (provide main)
 
-(define show-help-and-exit : {[#:erract (Option String)] -> Void}
+(define show-help-and-exit : ([#:erract (Option String)] -> Void)
   (lambda [#:erract [error-action #false]]
-    (define printf0 : {String Any * -> Void} (if error-action eprintf printf))
-    (define acts : (Listof String) (#{filter-map @|#\@| String Path}
-                                    {λ [act] (and (regexp-match? #px"\\.rkt$" act) (path->string act))}
+    (define printf0 : (String Any * -> Void) (if error-action eprintf printf))
+    (define acts : (Listof String) ((inst filter-map String Path)
+                                    (λ [act] (and (regexp-match? #px"\\.rkt$" act) (path->string act)))
                                     (directory-list (symbol->string digivice))))
     (define width : Natural (string-length (argmax string-length acts)))
     (printf0 "Usage: ~a <action> [<option> ...] [<arg> ...]~n~nwhere <action> is one of~n" digivice)
     (for ([act : String (in-list acts)])
       (printf0 "  ~a ~a~n" (~a (regexp-replace #px"^(.+).rkt$" act "\\1") #:min-width width)
-               (car.eval `(dynamic-require ,(format "~a/~a" digivice act)
-                                           'desc
-                                           {λ [] "[Missing Description]"}))))
+               (car.eval `(dynamic-require ,(format "~a/~a" digivice act) 'desc (λ _ "[Missing Description]")))))
     (when (string? error-action)
       (printf0 "~n")
       (raise-user-error digivice "Unrecognized action: ~a" error-action))))
@@ -39,21 +37,20 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
   (lambda arglist
     (call-as-normal-termination
      (thunk (parameterize* ([current-digimon "@(current-digimon)"]
-                            [current-directory (digimon-digivice)])
+                            [current-directory (digimon-digivice)]
+                            [current-namespace (make-base-namespace)])
               (if (or (null? arglist) (string=? "help" (car arglist)))
                   (show-help-and-exit)
-                  (parameterize ([current-command-line-arguments (list->vector (cdr arglist))]
-                                 [current-namespace (make-base-namespace)])
-                    (define act.rkt : Path-String (format "~a/~a.rkt" digivice (car arglist)))
-                    (if (file-exists? act.rkt)
-                        (let launch ()
-                          (collect-garbage)
-                          (parameterize ([current-namespace (make-base-namespace)])
-                            (when (exn:break:hang-up? (with-handlers ([exn:break? (lambda [[e : exn:break]] e)])
+                  (let ([act.rkt : Path-String (format "~a/~a.rkt" digivice (car arglist))])
+                    (if (false? (file-exists? act.rkt))
+                        (show-help-and-exit #:erract (car arglist))
+                        (let launch ([zone (current-namespace)])
+                          (parameterize ([current-namespace zone]
+                                         [current-command-line-arguments (list->vector (cdr arglist))])
+                            (when (exn:break:hang-up? (with-handlers ([exn:break? values]) ; don't relaunch in signal handler
                                                         (void.eval `(require (submod (file ,act.rkt) ,digivice)))))
-                              (launch))))
-                        (show-help-and-exit #:erract (car arglist))))))))))
+                              (collect-garbage)
+                              (launch (make-base-namespace)))))))))))))
 
 ;;; `raco setup` makes it hard to set --main option when making launcher
 (apply main (vector->list (current-command-line-arguments)))
-
