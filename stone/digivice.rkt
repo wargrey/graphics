@@ -44,13 +44,13 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                   (let ([act.rkt : Path-String (format "~a/~a.rkt" digivice (car arglist))])
                     (if (false? (file-exists? act.rkt))
                         (show-help-and-exit #:erract (car arglist))
-                        (let launch ([zone (current-namespace)])
-                          (parameterize ([current-namespace zone]
+                        (let launch ()
+                          (parameterize ([current-namespace (make-base-namespace)]
                                          [current-command-line-arguments (list->vector (cdr arglist))])
                             (when (exn:break:hang-up? (with-handlers ([exn:break? values]) ; don't relaunch in signal handler
                                                         (void.eval `(require (submod (file ,act.rkt) ,digivice)))))
                               (collect-garbage)
-                              (launch (make-base-namespace)))))))))))))
+                              (launch))))))))))))
 
 ;;; `raco setup` makes it hard to set --main option when making launcher
 (apply main (vector->list (current-command-line-arguments)))
