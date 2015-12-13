@@ -4,7 +4,9 @@
 (provide (all-from-out racket "digicore.rkt" "emoji.rkt" "i18n.rkt" rackunit))
 (provide (all-from-out scribble/core scribble/manual scribble/eval scribble/html-properties))
 
+(require racket/sandbox)
 (require rackunit)
+
 (require scribble/core)
 (require scribble/eval)
 (require scribble/manual)
@@ -30,13 +32,20 @@
                    [exit-handler $?])
       (apply routine arglist))))
 
+(define make-tamer-zone
+  (lambda [tamer-module]
+    (dynamic-require tamer-module #false)
+    (parameterize ([sandbox-namespace-specs (cons (thunk (module->namespace tamer-module)) null)])
+      (make-base-eval #:pretty-print? #true))))
+
 (define-syntax (tamer-taming-start stx)
   (syntax-case stx [scribble +]
     [(_ scribble)
      #'(let ([modpath (quote-module-path)])
          (cond [(path? modpath) (tamer-story (tamer-story->modpath modpath))]
-               [else (and (tamer-story (tamer-story->modpath (cadr modpath)))
-                          (tamer-zone (make-tamer-zone)))]))]
+               [else (let ([story (tamer-story->modpath (cadr modpath))])
+                       (tamer-story story)
+                       (tamer-zone (make-tamer-zone story)))]))]
     [(_)
      #'(begin (tamer-taming-start scribble)
               (module+ main (call-as-normal-termination tamer-prove)))]))
@@ -413,13 +422,11 @@
   (provide (all-defined-out) quote-module-path)
   
   (require rackunit)
-  (require racket/sandbox)
   (require racket/generator)
   (require racket/undefined)
   (require syntax/location)
   (require setup/xref)
   (require scribble/core)
-  (require scribble/eval)
   (require scribble/xref)
   (require scribble/manual)
 
@@ -431,13 +438,6 @@
                       [sequence* >=>]))
 
   (define tamer-zone (make-parameter #false))
-  
-  (define make-tamer-zone
-    (lambda []
-      (dynamic-require (tamer-story) #false)
-      (define tamer-namespace (module->namespace (tamer-story)))
-      (parameterize ([sandbox-namespace-specs (cons (thunk tamer-namespace) null)])
-        (make-base-eval #:pretty-print? #true))))
   
   (define tamer-story->modpath
     (lambda [story-path]
