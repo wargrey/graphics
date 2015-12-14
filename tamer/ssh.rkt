@@ -6,8 +6,6 @@
 
 @handbook-story{The Era of Plaintext Transmission is Over!}
 
-@margin-note{This is an additional part of @secref{infrastructure.rkt}}
-
 This is an implementation of @deftech{@hyperlink["https://en.wikipedia.org/wiki/Secure_Shell#Version_2.x"]{SSH}}-2 protocol which has an
 @hyperlink["https://tools.ietf.org/html/rfc4251"]{internal architecture} with well-separated layers:
 @itemlist[#:style 'compact
