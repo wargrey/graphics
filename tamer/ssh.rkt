@@ -93,7 +93,7 @@ The SSH client requests a server-side port to be forwarded using a global reques
           @item{direct-tcpip for client-to-server forwarded connections}
           @item{forwarded-tcpip for server-to-client forwarded connections}]
 
-@handbook-appendix{SSHmon Auxiliaries}
+@handbook-bibliography[]
 
 @chunk[|<sshmon:*>|
        (module+ story

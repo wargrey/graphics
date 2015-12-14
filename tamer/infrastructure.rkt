@@ -98,7 +98,7 @@ the @hyperlink["http://hspec.github.io"]{@italic{hspec-like}} report via
 Technically speaking, @exec{raco test --submodule main} is always there,
 although that way is not recommended, and is omitted by @filepath{info.rkt}.
 
-@handbook-appendix[]
+@handbook-bibliography[]
 
 @chunk[|<infrastructure:*>|
        (module+ story

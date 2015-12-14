@@ -2,7 +2,7 @@
 
 (provide (all-defined-out) (all-from-out (submod "." typed/digitama)) skip todo)
 (provide (all-from-out racket "digicore.rkt" "emoji.rkt" "i18n.rkt" rackunit))
-(provide (all-from-out scribble/core scribble/manual scribble/eval scribble/html-properties))
+(provide (all-from-out scribble/core scribble/manual scriblib/autobib scribble/eval scribble/html-properties))
 
 (require racket/sandbox)
 (require rackunit)
@@ -10,6 +10,7 @@
 (require scribble/core)
 (require scribble/eval)
 (require scribble/manual)
+(require scriblib/autobib)
 (require scribble/html-properties)
 
 (require (for-syntax syntax/parse))
@@ -53,10 +54,15 @@
 (define-syntax (handbook-story stx)
   (syntax-parse stx #:literals []
     [(_ (~optional (~seq #:style s:expr)) contents ...)
-     #`(list (tamer-taming-start scribble)
-             (title #:tag (tamer-story->tag (tamer-story))
-                    #:style #,(attribute s)
-                    (literal (speak 'handbook-story) ":") ~ contents ...))]))
+     #`(begin (tamer-taming-start scribble)
+              (define-cite ~cite ~citet ~bibliography
+                #:style number-style)
+              (tamer-bibliography ~bibliography)
+              (tamer-citet ~citet)
+              (tamer-cite ~cite)
+              (title #:tag (tamer-story->tag (tamer-story))
+                     #:style #,(attribute s)
+                     (literal (speak 'handbook-story) ":") ~ contents ...))]))
 
 (define-syntax (define-tamer-suite stx)
   (syntax-parse stx
@@ -126,18 +132,18 @@
     (section #:tag tag #:style style
              (literal (speak 'handbook-scenario) ":") ~ pre-contents)))
 
-(define handbook-appendix
-  (lambda [#:style [style #false] . pre-contents]
-    (list (section #:style style
-                   (cond [(false? (null? pre-contents)) (cons (string-append (speak 'handbook-appendix) ": ") pre-contents)]
-                         [else (string-titlecase (format (format "~a: ~a" (speak 'handbook-appendix) (speak 'handbook-appendix-~a-auxiliary))
-                                                         (path-replace-suffix (tamer-story->tag (tamer-story)) "")))]))
+(define ~cite
+  (lambda [bib #:same-authors? [same? #false] . bibs]
+    (if (false? same?)
+        (apply (tamer-citet) bib bibs)
+        (apply (tamer-cite) bib bibs))))
+
+(define handbook-bibliography
+  (lambda []
+    (list ((tamer-bibliography) #:tag (format "~a-bibliography" (path-replace-suffix (tamer-story->tag (tamer-story)) ""))
+                                #:sec-title (speak 'handbook-bibliography))
           (let ([zone-snapshots (filter-not false? (list (tamer-zone)))])
-            (make-traverse-block (thunk* ((curry dynamic-wind void)
-                                          (thunk (apply para #:style "GYDMComment"
-                                                        (add-between (string-split (speak 'handbook-appendix-disclaim-~a) "~a")
-                                                                     (hyperlink (~a (digimon-tamer) "/tamer.rkt") "tamer.rkt"))))
-                                          (thunk (for-each close-eval zone-snapshots))))))
+            (make-traverse-block (thunk* (for-each close-eval zone-snapshots))))
           (tamer-story #false))))
 
 (define handbook-rule
@@ -457,6 +463,9 @@
       (raise (exn:test:todo (apply format fmt arglist)))))
   
   (define tamer-story (make-parameter #false))
+  (define tamer-cite (make-parameter void))
+  (define tamer-citet (make-parameter void))
+  (define tamer-bibliography (make-parameter void))
   
   (define tamer-story->tag
     (lambda [story]

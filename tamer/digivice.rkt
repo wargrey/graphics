@@ -151,7 +151,7 @@ but I@literal{'}d like to watch the @italic{teardown} routine in order to ensure
                     (with-handlers ([exn:dnf? (λ [e] (check-equal? 2 (errno e)))])
                       (check-pred (negate null?) (directory-list (digimon-digivice))))))]
 
-@handbook-appendix[]
+@handbook-bibliography[]
 
 @chunk[|<digivice:*>|
        (module+ story

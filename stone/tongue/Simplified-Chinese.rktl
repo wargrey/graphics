@@ -2,6 +2,4 @@
  (handbook-rule . "规则")
  (handbook-story . "故事")
  (handbook-scenario . "场景")
- (handbook-appendix . "附录")
- (handbook-appendix-~a-auxiliary . "~a 辅助设施")
- (handbook-appendix-disclaim-~a . "附录包含运行测试所需的全部辅助代码，可以忽略. (更多辅助代码参见 ~a)") #| ~a: links to tamer.rkt |#)
+ (handbook-bibliography . "参考文献"))

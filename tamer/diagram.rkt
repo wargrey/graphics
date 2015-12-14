@@ -4,18 +4,24 @@
 
 @(require (for-label "tamer.rkt"))
 
-@handbook-story{Data Modeling and Visualization}
+@handbook-story{Information Modeling and Visualization}
 
-This module is designed for data modeling in a way like
+This module is designed for information modeling in a way like
 @deftech{@hyperlink["https://en.wikipedia.org/wiki/datalog"]{datalog}} and
 @deftech{@hyperlink["https://en.wikipedia.org/wiki/Graphviz"]{graphviz}},
 but it is not @itech{datalog} and @itech{graphviz} after all.
 
-Generally speaking, you can make data model by writing declarative code,
+Generally speaking, you can make schema by writing declarative code,
 after that you get all the definitions that can be used in @bold{Racket}
-and their diagrams that can be rendered in @bold{Scribble}.
-No duplicate work, and no other software engineering tools are required either. 
-   
+and their diagrams that can be rendered in @bold{Scribble}. No duplicate
+work, nor other software engineering tools. 
+
+@(define ORM2 (make-bib #:title    "'ORM 2', On the Move to Meaningful Internet Systems"
+                        #:author   (author-name "Terry" "Halpin")
+                        #:date     2005
+                        #:location (dissertation-location #:institution "Neumont University")
+                        #:url      "http://www.orm.net/pdf/ORM2.pdf"))
+
 @tamer-smart-summary[]
 
 @chunk[|<diagram taming start>|
@@ -28,10 +34,11 @@ No duplicate work, and no other software engineering tools are required either.
          
          |<diagram:*>|)]
 
-@handbook-scenario{Conceptual Data Model}
+@handbook-scenario{Conceptual Schema}
 
-@handbook-appendix{}
+All graphical notations at conceptual level in this @itech{handbook} are introduced by @~cite[ORM2].
+
+@handbook-bibliography[]
 
 @chunk[|<diagram:*>|
-       (module+ story
-         )]
+       (module+ story)]
