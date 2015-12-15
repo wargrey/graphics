@@ -2,8 +2,6 @@
 
 @(require "tamer.rkt")
 
-@(require (for-label "tamer.rkt"))
-
 @handbook-story{The Era of Plaintext Transmission is Over!}
 
 This is an implementation of @deftech{@hyperlink["https://en.wikipedia.org/wiki/Secure_Shell#Version_2.x"]{SSH}}-2 protocol which has an
@@ -16,14 +14,14 @@ This is an implementation of @deftech{@hyperlink["https://en.wikipedia.org/wiki/
 @tamer-smart-summary[]
 
 @chunk[|<sshmon taming start>|
-       (require "tamer.rkt")
+       (require (only-in "tamer.rkt" tamer-taming-start))
        (tamer-taming-start)
 
        (module tamer typed/racket
          (require (submod "tamer.rkt" typed))
          (require "../digitama/ssh.rkt")
-         
-         |<sshmon:*>|)]
+
+         (module+ story |<sshmon:*>|))]
 
 @handbook-scenario{Datatype Representations}
 
@@ -96,40 +94,39 @@ The SSH client requests a server-side port to be forwarded using a global reques
 @handbook-bibliography[]
 
 @chunk[|<sshmon:*>|
-       (module+ story
-         (require (for-syntax (submod "tamer.rkt" typed)))
-         
-         (define-syntax (prove stx)
-           (syntax-case stx [=> :]
-             [(_ suite-desc : datatype [rsrc => [0x ...] case-desc] ...)
-              #'(prove suite-desc [rsrc : datatype => [0x ...] case-desc] ...)]
-             [(_ suite-desc [rsrc : datatype => [0x ...] case-desc] ...)
-              (with-syntax ([([datatype->bytes bytes->datatype dtval octets] ...)
-                             (for/list ([dtsrc (in-list (syntax->list #'(rsrc ...)))]
-                                        [subtype (in-list (syntax->list #'(datatype ...)))]
-                                        [octetls (in-list (syntax->list #'([0x ...] ...)))])
-                               (with-syntax ([dt->bs (string->symbol (format "ssh-~a->bytes" (syntax-e subtype)))]
-                                             [bs->dt (string->symbol (format "ssh-bytes->~a" (syntax-e subtype)))]
-                                             [dtval (if (identifier? dtsrc) (symb0x->number (syntax-e dtsrc)) dtsrc)]
-                                             [octets (list->bytes (map (compose1 symb0x->number syntax-e) (syntax->list octetls)))])
-                                 #'(dt->bs bs->dt dtval octets)))])
-                #'(test-suite suite-desc
-                              (test-case case-desc
-                                         (check bytes=? (datatype->bytes dtval) octets)
-                                         (check equal? (bytes->datatype octets) dtval))
-                              ...))]))
-         
-         (define-tamer-suite ssh-datatype "The Primitive Datatype Representation"
-           |<testsuite: ssh datatype: byte and boolean>|
-           |<testsuite: ssh datatype: unsigned integer>|
-           |<testsuite: ssh datatype: string and text>|
-           |<testsuite: ssh datatype: multiple precision integer>|
-           |<testsuite: ssh datatype: name list>|)
-         
-         (define-tamer-suite ssh-transport "The Transport Layer Protocol")
-
-         (define-tamer-suite ssh-authentication "The User Authentication Protocol"
-           )
-         
-         (define-tamer-suite ssh-connection "The Connection Protocol"
-           ))]
+       (require (for-syntax (submod "tamer.rkt" typed)))
+       
+       (define-syntax (prove stx)
+         (syntax-case stx [=> :]
+           [(_ suite-desc : datatype [rsrc => [0x ...] case-desc] ...)
+            #'(prove suite-desc [rsrc : datatype => [0x ...] case-desc] ...)]
+           [(_ suite-desc [rsrc : datatype => [0x ...] case-desc] ...)
+            (with-syntax ([([datatype->bytes bytes->datatype dtval octets] ...)
+                           (for/list ([dtsrc (in-list (syntax->list #'(rsrc ...)))]
+                                      [subtype (in-list (syntax->list #'(datatype ...)))]
+                                      [octetls (in-list (syntax->list #'([0x ...] ...)))])
+                             (with-syntax ([dt->bs (string->symbol (format "ssh-~a->bytes" (syntax-e subtype)))]
+                                           [bs->dt (string->symbol (format "ssh-bytes->~a" (syntax-e subtype)))]
+                                           [dtval (if (identifier? dtsrc) (symb0x->number (syntax-e dtsrc)) dtsrc)]
+                                           [octets (list->bytes (map (compose1 symb0x->number syntax-e) (syntax->list octetls)))])
+                               #'(dt->bs bs->dt dtval octets)))])
+              #'(test-suite suite-desc
+                            (test-case case-desc
+                                       (check bytes=? (datatype->bytes dtval) octets)
+                                       (check equal? (bytes->datatype octets) dtval))
+                            ...))]))
+       
+       (define-tamer-suite ssh-datatype "The Primitive Datatype Representation"
+         |<testsuite: ssh datatype: byte and boolean>|
+         |<testsuite: ssh datatype: unsigned integer>|
+         |<testsuite: ssh datatype: string and text>|
+         |<testsuite: ssh datatype: multiple precision integer>|
+         |<testsuite: ssh datatype: name list>|)
+       
+       (define-tamer-suite ssh-transport "The Transport Layer Protocol")
+       
+       (define-tamer-suite ssh-authentication "The User Authentication Protocol"
+         )
+       
+       (define-tamer-suite ssh-connection "The Connection Protocol"
+         )]

@@ -2,8 +2,6 @@
 
 @(require "tamer.rkt")
 
-@(require (for-label "tamer.rkt"))
-
 @handbook-story{Hello, Brave End-Hero!}
 
 @margin-note{This is an additional part of @secref{infrastructure.rkt}}
@@ -23,7 +21,7 @@ which is friendly to @italic{test harness} so that I could finish the core parts
          (define partner (tamer-partner->modpath "makefile.rkt"))
          (define make-digivice (dynamic-require/expose partner 'make-digivice))
 
-         |<digivice:*>|)]
+         (module+ story |<digivice:*>|))]
 
 @handbook-scenario{Create a digivice demo from scratch!}
 
@@ -154,22 +152,21 @@ but I@literal{'}d like to watch the @italic{teardown} routine in order to ensure
 @handbook-bibliography[]
 
 @chunk[|<digivice:*>|
-       (module+ story
-         (define dgvc.scrbl (build-path (digimon-stone) "digivice.rkt"))
-         (define action.scrbl (build-path (digimon-stone) "action.rkt"))
+       (define dgvc.scrbl (build-path (digimon-stone) "digivice.rkt"))
+       (define action.scrbl (build-path (digimon-stone) "action.rkt"))
 
-         |<define digivice hierarchy>|
-         (define-tamer-suite make-demo "Make the demo from scratch"
-           #:before setup-demo
-           |<testcase: make digivice>|)
+       |<define digivice hierarchy>|
+       (define-tamer-suite make-demo "Make the demo from scratch"
+         #:before setup-demo
+         |<testcase: make digivice>|)
 
-         (define digivice (lazy (dynamic-require/expose dgvc.rkt 'main)))
-         (define-tamer-suite dgvc-option "That's it, Help!"
-           (let ([dgvc (force digivice)])
-             (list (test-suite "digivice [action]" |<testcase: dgvc action>|)
-                   (test-suite "digivice action [option]" |<testcase: dgvc action option>|))))
-         
-         |<destroy the demo zone>|
-         (define-tamer-suite clean-demo "Restore the filesystem"
-           #:before teardown-demo
-           |<testcase: destroy digivice>|))]
+       (define digivice (lazy (dynamic-require/expose dgvc.rkt 'main)))
+       (define-tamer-suite dgvc-option "That's it, Help!"
+         (let ([dgvc (force digivice)])
+           (list (test-suite "digivice [action]" |<testcase: dgvc action>|)
+                 (test-suite "digivice action [option]" |<testcase: dgvc action option>|))))
+       
+       |<destroy the demo zone>|
+       (define-tamer-suite clean-demo "Restore the filesystem"
+         #:before teardown-demo
+         |<testcase: destroy digivice>|)]

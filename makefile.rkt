@@ -11,10 +11,10 @@ dep="compiled/`basename $0 .rkt`_rkt.dep";
 if test -f ${mzo}; then
     grep `racket -v | tr -d 'a-zA-Z ' | sed s/.$//` ${dep} > /dev/null 2>/dev/null;
     if test $? -eq 0; then
-        for fn in digicore sugar emoji tamer i18n; do
-            dzo="${dir}/compiled/${fn}_rkt.zo";
-            if test "${dzo}" -ot "${dir}/${fn}.rkt"; then
-                echo "${fn}.rkt has changed, remaking myself...";
+        for rkt in `ls ${dir}/*.rkt`; do
+            dzo="${dir}/compiled/`basename ${rkt} .rkt`_rkt.zo";
+            if test "${dzo}" -ot "${rkt}"; then
+                echo "${rkt}.rkt has changed, remaking myself...";
                 raco make ${makefile};
                 break;
             fi
@@ -332,7 +332,9 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
           (if (regexp-match? #px"\\.rkt$" handbook)
               (parameterize ([exit-handler (lambda [retcode] (when (and (integer? retcode) (<= 1 retcode 255))
                                                                (error 'make "[error] /~a breaks ~a!" ./handbook (~n_w retcode "testcase"))))])
-                (dynamic-require `(submod ,handbook main) #false))
+                (define modpath `(submod ,handbook main))
+                (when (module-declared? modpath #true)
+                  (dynamic-require `(submod ,handbook main) #false)))
               (parameterize ([exit-handler (thunk* (error 'make "[fatal] /~a needs a proper `exit-handler`!" ./handbook))])
                 (eval '(require (prefix-in html: scribble/html-render) setup/xref scribble/render))
                 (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))

@@ -2,8 +2,6 @@
 
 @(require "tamer.rkt")
 
-@(require (for-label "tamer.rkt"))
-
 @(define partner (tamer-partner->modpath "makefile.rkt"))
 
 @handbook-story{Hello, Hacker Hero!}
@@ -23,7 +21,7 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
         (define partner (tamer-partner->modpath "makefile.rkt"))
         (define make (dynamic-require partner 'main (const #false)))
 
-        |<infrastructure:*>|)]
+        (module+ story |<infrastructure:*>|))]
 
 @handbook-scenario[#:tag @(digimon-gnome)]{Ready? Let@literal{'}s have a try!}
 
@@ -101,13 +99,12 @@ although that way is not recommended, and is omitted by @filepath{info.rkt}.
 @handbook-bibliography[]
 
 @chunk[|<infrastructure:*>|
-       (module+ story
-         (define msecs file-or-directory-modify-seconds)
-         (define times (λ [px] (length (regexp-match* px (get-output-string $out)))))
-         (define gnome "gnome")
+       (define msecs file-or-directory-modify-seconds)
+       (define times (λ [px] (length (regexp-match* px (get-output-string $out)))))
+       (define gnome "gnome")
          
-         |<setup and teardown timidly>|
-         (define-tamer-suite make-option "Ready? It works!"
-           #:after (thunk (delete-directory/files (build-path (digimon-world) gnome)))
-           (test-suite "make: simple options" |<testsuite: simple options>|)
-           (test-suite "make: complex options" |<testcase: complex options>|)))]
+       |<setup and teardown timidly>|
+       (define-tamer-suite make-option "Ready? It works!"
+         #:after (thunk (delete-directory/files (build-path (digimon-world) gnome)))
+         (test-suite "make: simple options" |<testsuite: simple options>|)
+         (test-suite "make: complex options" |<testcase: complex options>|))]

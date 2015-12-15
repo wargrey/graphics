@@ -34,7 +34,8 @@
       (apply routine arglist))))
 
 (define make-tamer-zone
-  (lambda [tamer-module]
+  (lambda [zone]
+    (define tamer-module (if (module-declared? zone #true) zone (build-path (digimon-tamer) "tamer.rkt")))
     (dynamic-require tamer-module #false)
     (parameterize ([sandbox-namespace-specs (cons (thunk (module->namespace tamer-module)) null)])
       (make-base-eval #:pretty-print? #true))))
@@ -106,6 +107,10 @@
                                    story))])
       (dict-ref units name (thunk (raise (make-exn:fail:contract:variable (format "'~a has not yet defined!" name)
                                                                           (current-continuation-marks) name)))))))
+
+(define tamer-story->modpath
+  (lambda [story-path]
+    `(submod ,story-path tamer story)))
 
 (define tamer-partner->modpath
   (lambda [partner-path]
@@ -295,7 +300,14 @@
                                            => (λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) bookmark# (list-ref pieces 3)))]
                                           [(regexp-match #px"^$" line) (summary? #true)]
                                           [(summary?) (parameterize ([current-output-port /dev/stdout])
-                                                        (echof #:fgcolor 'lightcyan  "~a~n" line))]))))))))))))
+                                                        (echof "~a~n" line
+                                                               #:fgcolor (match line
+                                                                           [(regexp #px" 100.00% Okay") 'lightgreen]
+                                                                           [(regexp #px" [^0] error") 'darkred]
+                                                                           [(regexp #px" [^0] failure") 'lightred]
+                                                                           [(regexp #px" [^0] TODO") 'lightmagenta]
+                                                                           [(regexp #px" [^0] skip") 'lightblue]
+                                                                           [_ 'lightcyan])))]))))))))))))
 
 (define tamer-note
   (lambda unit-vars
@@ -442,10 +454,6 @@
                       [sequence* >=>]))
 
   (define tamer-zone (make-parameter #false))
-  
-  (define tamer-story->modpath
-    (lambda [story-path]
-      `(submod ,story-path tamer story)))
 
   ;;; These are intended to not inherit exn? or exn:test?
   (struct exn:test:skip (reason))
@@ -467,10 +475,11 @@
   (define tamer-citet (make-parameter void))
   (define tamer-bibliography (make-parameter void))
   
-  (define tamer-story->tag
-    (lambda [story]
-      (with-handlers ([exn? exn-message])
-        (path->string (find-relative-path (digimon-tamer) (cadr story))))))
+  (define-syntax (tamer-story->tag stx)
+    (syntax-case stx []
+      [(_ story-sexp)
+       #'(let ([modpath (with-handlers ([exn? (const (quote-source-file))]) (cadr story-sexp))])
+           (path->string (find-relative-path (digimon-tamer) modpath)))]))
 
   (struct summary (success failure error skip todo) #:prefab)
 
@@ -777,6 +786,7 @@
                          [$err Output-Port]
                          [$? (Parameterof Any)]
                          [call-with-fresh-$ (-> (-> Any * Void) Any * Any)]
+                         [tamer-story->modpath (-> Path-String (U Module-Path (List* 'submod Module-Path (Listof Symbol))))]
                          [tamer-partner->modpath (-> Path-String (U Module-Path (List 'submod Module-Path Symbol)))]
                          [tamer-prove (-> Natural)]
                          [todo (-> String Any * Nothing)]
