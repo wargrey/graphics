@@ -6,7 +6,7 @@ cd `dirname $0`;
 makefile="`basename $0`";
 dir="digitama";
 mzo="compiled/`basename $0 .rkt`_rkt.zo";
-dep="compiled/`basename $0 .rkt`_rkt.dep";
+dep="digitama/compiled/digivice_rkt.dep";
 
 if test -f ${mzo}; then
     grep `racket -v | tr -d 'a-zA-Z ' | sed s/.$//` ${dep} > /dev/null 2>/dev/null;
@@ -14,14 +14,17 @@ if test -f ${mzo}; then
         for rkt in `ls ${dir}/*.rkt`; do
             dzo="${dir}/compiled/`basename ${rkt} .rkt`_rkt.zo";
             if test "${dzo}" -ot "${rkt}"; then
-                echo "${rkt}.rkt has changed, remaking myself...";
+                echo "${rkt} has changed, remaking myself...";
                 raco make ${makefile};
                 break;
             fi
         done
     else
-        echo "Racket has updated, remaking myself...";
+        echo "Racket has updated, cleanning old version first..."; # foreign code need recompile two
         raco make ${makefile};
+        cd ${origdir};
+        racket --name "${makefile}" --require "$0" --main -- clean;
+        echo "Now it's your order...";
     fi
 else
     echo "remaking myself...";

@@ -56,8 +56,7 @@
   (syntax-parse stx #:literals []
     [(_ (~optional (~seq #:style s:expr)) contents ...)
      #`(begin (tamer-taming-start scribble)
-              (define-cite ~cite ~citet ~bibliography
-                #:style number-style)
+              (define-cite ~cite ~citet ~bibliography #:style number-style)
               (tamer-bibliography ~bibliography)
               (tamer-citet ~citet)
               (tamer-cite ~cite)

@@ -5,8 +5,14 @@
 
 @(require (for-label "tamer.rkt"))
 
-@(define tamer-diagram-zone (make-tamer-zone (path->digimon-modpath (quote-source-file) 'diagram)))
-@(define tamer-schema-zone (make-tamer-zone (path->digimon-modpath (quote-source-file) 'schema)))
+@;(define tamer-diagram-zone (make-tamer-zone (path->digimon-modpath (quote-source-file) 'tamer)))
+@;(define tamer-schema-zone (make-tamer-zone (path->digimon-modpath (quote-source-file) 'tamer 'typed)))
+
+@(define ORM  (make-bib #:title "Object Role Modeling: an overview"
+                        #:author   (author-name "Terry" "Halpin")
+                        #:date     2001
+                        #:location "Microsoft Corporation"
+                        #:url      "http://www.orm.net/pdf/ORMwhitePaper.pdf"))
 
 @(define ORM2 (make-bib #:title    "'ORM 2', On the Move to Meaningful Internet Systems"
                         #:author   (author-name "Terry" "Halpin")
@@ -29,26 +35,33 @@ work, nor other software engineering tools.
 @tamer-smart-summary[]
 
 @chunk[|<diagram taming start>|
-       (require "tamer.rkt")
-       (require "../digitama/schema.rkt")
+       (module tamer racket
+         (require "../digitama/schema.rkt")
 
-       <schema:*>]
-
-@handbook-scenario{Schema Language}
-
-This @itech{tamer}
+         <schema:*>)]
 
 @handbook-scenario{Conceptual Schema}
+
+@deftech{Conceptual Schema} plays a critical role on designing high quality information system, and
+I prefer @~cite[ORM] at first place to help ensure correctness, clarity, adaptability and productivity.
 
 All graphical notations at conceptual level in this @itech{handbook} are introduced by @~cite[ORM2].
 For the simplicity, the old-school style is no longer taken into account.
 
 @chunk[|<conceptual schema>|
-       (module:schema Activity)]
+       #;(define-schema schema
+         (define-table press as 出版社信息
+           ([name       : String                 % 藏语名称]
+            [name/zh    : (Option String)        % 汉语名称]
+            [name/en    : (Option String)        % 英语名称]
+            [address    : String                 % 出版社地址]
+            [url        : String                 % 出版社网址]
+            [profile    : String                 % 出版社简介])))
+       (void)]
 
-@interaction[#:eval tamer-diagram-zone
+@interaction[;#:eval tamer-diagram-zone
              (code:comment @#,t{All text is in 12 pixels.})
-              object-role-diagram]
+             'object-role-diagram]
 
 @handbook-bibliography[]
 
