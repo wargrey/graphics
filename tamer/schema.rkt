@@ -4,9 +4,11 @@
 @(require "tamer.rkt")
 
 @(require (for-label "tamer.rkt"))
+@(require (for-label "../digitama/schema.rkt"))
+@(require (for-label (submod "../digitama/schema.rkt" diagram)))
 
-@;(define tamer-diagram-zone (make-tamer-zone (path->digimon-modpath (quote-source-file) 'tamer)))
-@;(define tamer-schema-zone (make-tamer-zone (path->digimon-modpath (quote-source-file) 'tamer 'typed)))
+@(define tamer-diagram-zone (make-tamer-zone (tamer-partner->modpath "digitama/schema.rkt" 'diagram)))
+@(define tamer-schema-zone (make-tamer-zone (path->digimon-modpath (quote-source-file) 'tamer)))
 
 @(define ORM  (make-bib #:title "Object Role Modeling: an overview"
                         #:author   (author-name "Terry" "Halpin")
@@ -35,10 +37,11 @@ work, nor other software engineering tools.
 @tamer-smart-summary[]
 
 @chunk[|<diagram taming start>|
-       (module tamer racket
+       (module tamer typed/racket
          (require "../digitama/schema.rkt")
+         (module+ story <schema:*>))]
 
-         <schema:*>)]
+@racketcommentfont{submodule @racketmodfont{story} is not required if there is no taming tasks.}
 
 @handbook-scenario{Conceptual Schema}
 
@@ -49,19 +52,19 @@ All graphical notations at conceptual level in this @itech{handbook} are introdu
 For the simplicity, the old-school style is no longer taken into account.
 
 @chunk[|<conceptual schema>|
-       #;(define-schema schema
+       (define-schema schema
          (define-table press as 出版社信息
            ([name       : String                 % 藏语名称]
             [name/zh    : (Option String)        % 汉语名称]
             [name/en    : (Option String)        % 英语名称]
             [address    : String                 % 出版社地址]
             [url        : String                 % 出版社网址]
-            [profile    : String                 % 出版社简介])))
-       (void)]
+            [profile    : String                 % 出版社简介])))]
 
-@interaction[;#:eval tamer-diagram-zone
-             (code:comment @#,t{All text is in 12 pixels.})
-             'object-role-diagram]
+@interaction[#:eval tamer-diagram-zone
+             (code:comment @#,t{All text is in 12 pixels.})]
+
+@tamer-action[press]
 
 @handbook-bibliography[]
 

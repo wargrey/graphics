@@ -18,10 +18,12 @@ thus I will focus on @seclink[@(digimon-gnome)]{the meta-project @(digimon-gnome
        (tamer-taming-start)
 
        (module+ tamer
-        (define partner (tamer-partner->modpath "makefile.rkt"))
-        (define make (dynamic-require partner 'main (const #false)))
+         (define partner (tamer-partner->modpath "makefile.rkt"))
+         (define make (dynamic-require partner 'main (const #false)))
+         (module+ story |<infrastructure:*>|))]
 
-        (module+ story |<infrastructure:*>|))]
+@racketcommentfont{The entry <infrastructure:*> is placed in the unnumber section Bibliography
+                     so that those auxiliaries will not pollute your eyes.}
 
 @handbook-scenario[#:tag @(digimon-gnome)]{Ready? Let@literal{'}s have a try!}
 

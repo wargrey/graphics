@@ -112,8 +112,9 @@
     `(submod ,story-path tamer story)))
 
 (define tamer-partner->modpath
-  (lambda [partner-path]
-    (path->digimon-modpath (if (absolute-path? partner-path) partner-path (build-path (digimon-zone) partner-path)))))
+  (lambda [partner-path [submodule #false]]
+    (path->digimon-modpath (if (absolute-path? partner-path) partner-path (build-path (digimon-zone) partner-path))
+                           submodule)))
 
 (define handbook-title
   (lambda pre-contents
@@ -786,7 +787,7 @@
                          [$? (Parameterof Any)]
                          [call-with-fresh-$ (-> (-> Any * Void) Any * Any)]
                          [tamer-story->modpath (-> Path-String (U Module-Path (List* 'submod Module-Path (Listof Symbol))))]
-                         [tamer-partner->modpath (-> Path-String (U Module-Path (List 'submod Module-Path Symbol)))]
+                         [tamer-partner->modpath (->* (Path-String) ((Option Symbol)) (U Module-Path (List 'submod Module-Path Symbol)))]
                          [tamer-prove (-> Natural)]
                          [todo (-> String Any * Nothing)]
                          [skip (-> String Any * Nothing)])

@@ -14,13 +14,12 @@ This is an implementation of @deftech{@hyperlink["https://en.wikipedia.org/wiki/
 @tamer-smart-summary[]
 
 @chunk[|<sshmon taming start>|
-       (require (only-in "tamer.rkt" tamer-taming-start))
+       (require "tamer.rkt")
        (tamer-taming-start)
 
        (module tamer typed/racket
          (require (submod "tamer.rkt" typed))
          (require "../digitama/ssh.rkt")
-
          (module+ story |<sshmon:*>|))]
 
 @handbook-scenario{Datatype Representations}
@@ -94,7 +93,7 @@ The SSH client requests a server-side port to be forwarded using a global reques
 @handbook-bibliography[]
 
 @chunk[|<sshmon:*>|
-       (require (for-syntax (submod "tamer.rkt" typed)))
+       (require (for-syntax (only-in (submod "tamer.rkt" typed) symb0x->number)))
        
        (define-syntax (prove stx)
          (syntax-case stx [=> :]

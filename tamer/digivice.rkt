@@ -20,7 +20,6 @@ which is friendly to @italic{test harness} so that I could finish the core parts
        (module+ tamer
          (define partner (tamer-partner->modpath "makefile.rkt"))
          (define make-digivice (dynamic-require/expose partner 'make-digivice))
-
          (module+ story |<digivice:*>|))]
 
 @handbook-scenario{Create a digivice demo from scratch!}

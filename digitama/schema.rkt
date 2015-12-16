@@ -1,12 +1,8 @@
-#lang racket
+#lang typed/racket
 
-(provide (except-out (all-defined-out) module:datalog))
+(provide define-schema)
 
 (require (for-syntax racket/list))
-
-(define object-role-diagram
-  (lambda [schema]
-    (entity schema)))
 
 (define-syntax (module:datalog stx)
   (syntax-case stx []
@@ -38,11 +34,7 @@
                                     [(define-fact fact ...) #false]))
                                 (syntax->list #'(statements ...)))])
      #'(begin (module:datalog model statements ...)
-              (struct table (fields ...) #:prefab) ...
-              
-              (module* typed typed/racket/base
-                (require/typed/provide (submod "..")
-                                       [#:struct table ([fields : Types] ...)] ...))))]))
+              (struct table ([fields : Types] ...) #:prefab) ...))]))
 
 (module digitama racket
   (provide (all-defined-out))
@@ -58,12 +50,19 @@
                                          #:border-color color-border #:border-width 1)
                       (if (false? color-text) content (colorize content color-text))))))
 
-(require (submod "." digitama))
+(module diagram racket/base
+  (provide (all-defined-out))
+  (require (submod ".." digitama))
 
-#;(define-schema digimon
+  (define object-role-diagram
+    (lambda [schema]
+      (entity schema))))
+
+
+(define-schema digimon
   (define-fact [has press unid % "每一个出版社都有一个唯一代码，此代码是书号的一部分"])
   (define-table digimon as 数码宝贝资料卡
     ([name           : String                 % 日文名称]
      [name/en        : (Option String)        % 英文名称]
      [description    : String                 % 详细资料])))
-;(require (submod "." theory))
+(require (submod "." theory))

@@ -121,7 +121,7 @@
                             (build-path stonedir "tongue"))))
 
 
-(define path->digimon-modpath : (->* [Path-String] [Symbol] (U Module-Path (List 'submod Module-Path Symbol)))
+(define path->digimon-modpath : (->* [Path-String] [(Option Symbol)] (U Module-Path (List 'submod Module-Path Symbol)))
   (lambda [modfile [submodule #false]]
     (define modpath : Module-Path
       (let ([modfile (simplify-path modfile)])
