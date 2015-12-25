@@ -7,7 +7,11 @@
 (provide (all-from-out ffi/unsafe/define))
 (provide (all-from-out ffi/unsafe/alloc))
 
-@require{digicore.rkt}
+#|
+This unused one causes the mystery bug: `self` index has no resolution.
+It troubled me more than two weeks.
+(require "digicore.rkt")
+|#
 
 (require (for-syntax syntax/parse))
 (require (for-syntax racket/syntax))
@@ -97,7 +101,7 @@
              
            (module* typed/ffi typed/racket
              (provide (all-defined-out))
-             
+
              (require/typed/provide (submod "..")
                                     [#:opaque id_t* !id?] ...
                                     [#:struct id ([field-id : Type] ...)] ...
