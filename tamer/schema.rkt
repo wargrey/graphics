@@ -39,9 +39,7 @@ work, nor other software engineering tools.
 @chunk[|<diagram taming start>|
        (module tamer typed/racket
          (require "../digitama/schema.rkt")
-         (module+ story <schema:*>))]
-
-@racketcommentfont{submodule @racketmodfont{story} is not required if there is no taming tasks.}
+         <schema:*>)]
 
 @handbook-scenario{Conceptual Schema}
 
@@ -64,7 +62,8 @@ For the simplicity, the old-school style is no longer taken into account.
 @interaction[#:eval tamer-diagram-zone
              (code:comment @#,t{All text is in 12 pixels.})]
 
-@tamer-action[press]
+@interaction[#:eval tamer-schema-zone
+             press]
 
 @handbook-bibliography[]
 

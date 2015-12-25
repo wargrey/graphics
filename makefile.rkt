@@ -24,7 +24,7 @@ if test -f ${dep}; then
         raco make ${makefile};
         cd ${origdir};
         racket --name "${makefile}" --require "$0" --main -- clean;
-        echo "Now it's your order...";
+        racket -v;
     fi
 else
     echo "remaking myself...";
@@ -67,12 +67,13 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
   (lambda [r]
     (define t (car r))
     (define ds (cadr r))
-    (define f (thunk (let* ([t-exists? (file-exists? t)]
-                            [tmp (make-temporary-file (~a (file-name-from-path t) ".~a") (and t-exists? t))])
+    (define f (thunk (let* ([t-already-exists? (file-exists? t)]
+                            [tmp (make-temporary-file (~a (file-name-from-path t) ".~a") (and t-already-exists? t))])
                        (dynamic-wind (thunk (make-parent-directory* t))
                                      (thunk ((caddr r) t))
-                                     (thunk (cond [(and (make-dry-run) (false? t-exists?)) (delete-file t)]
-                                                  [(make-dry-run) (rename-file-or-directory tmp t #true)]))))))
+                                     (thunk (when (make-dry-run)
+                                              (cond [t-already-exists? (rename-file-or-directory tmp t #true)]
+                                                    [(file-exists? t) #| now exists |# (delete-file t)])))))))
     (list (car r) (if (make-always-run) (cons (digimon-zone) ds) ds)
           (cond [(false? (make-just-touch)) f]
                 [else (thunk (file-or-directory-modify-seconds t (current-seconds) f))]))))
@@ -414,8 +415,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                                   (list (cons "install" "Install this software and documentation.")
                                         (cons "uninstall" "Delete all the installed files and documentation.")
                                         (cons "dist" "Create a distribution file of the source files.")
-                                        (cons "check" "Validate and generate test report along with documentation.")
-                                        (cons "new" " a digimon zone that satisfy the rules."))))
+                                        (cons "check" "Validate and generate test report along with documentation."))))
               (curry eprintf "make: I don't know what does `~a` mean!~n")))
     (define [main0 targets]
       (define-values [reals phonies] (partition filename-extension targets))

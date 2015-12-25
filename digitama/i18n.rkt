@@ -52,10 +52,12 @@
         (define this-tongue.rktl (build-path (digimon-tongue) (~a tongue #".rktl")))
         (define dictionary : (Listof (Pairof Symbol String))
           (append (with-handlers ([exn:fail:filesystem? (λ _ null)]
+                                  [exn:fail:contract? (λ _ null)]
                                   [exn:fail:read? (λ _ (error 'tongue "~a is The God's Script!" gnome-tongue.rktl))]
                                   [exn:fail:contract? (λ _ (error 'tongue "~a is not a dictionary!" gnome-tongue.rktl))])
                     (cast (with-input-from-file gnome-tongue.rktl read) (Listof (Pairof Symbol String))))
-                  (with-handlers ([exn:fail:filesystem? (λ _ (error 'tongue "~a is not learned!" tongue))]
+                  (with-handlers ([exn:fail:filesystem? (λ _ null)]
+                                  [exn:fail:contract? (λ _ null)]
                                   [exn:fail:read? (λ _ (error 'tongue "~a is The God's Script!" this-tongue.rktl))]
                                   [exn:fail:contract? (λ _ (error 'tongue "~a is not a dictionary!" this-tongue.rktl))])
                     (cast (with-input-from-file this-tongue.rktl read) (Listof (Pairof Symbol String))))))
