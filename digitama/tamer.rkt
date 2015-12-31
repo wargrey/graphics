@@ -2,13 +2,13 @@
 
 (provide (all-defined-out) (all-from-out (submod "." typed/digitama)) skip todo)
 (provide (all-from-out racket "digicore.rkt" "emoji.rkt" "i18n.rkt" rackunit))
-(provide (all-from-out scribble/core scribble/manual scriblib/autobib scribble/eval scribble/html-properties))
+(provide (all-from-out scribble/core scribble/manual scriblib/autobib scribble/example scribble/html-properties))
 
 (require racket/sandbox)
 (require rackunit)
 
 (require scribble/core)
-(require scribble/eval)
+(require scribble/example)
 (require scribble/manual)
 (require scriblib/autobib)
 (require scribble/html-properties)
@@ -95,7 +95,9 @@
          (make-traverse-block
           (thunk* (parameterize ([tamer-story story-snapshot]
                                  [tamer-zone zone-snapshot])
-                    (interaction #:eval (tamer-zone) s-exps ...)))))]))
+                    (examples #:label #false
+                              #:eval (tamer-zone)
+                              s-exps ...)))))]))
 
 (define tamer-require
   (lambda [name]
