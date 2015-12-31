@@ -152,6 +152,28 @@
                        (sync/enable-break (alarm-evt (+ (* times i-ms) first-time)))
                        (on-timer/do-task times)))))))
 
+(define tcp-server : (-> Index (Input-Port Output-Port -> Any) [#:timeout (Option Positive-Real)]
+                         [#:with-handler (exn -> Any)] [#:max-allow-wait Natural] Void)
+  (lambda [port on-connection #:timeout [timeout #false] #:with-handler [on-error void] #:max-allow-wait [maxwait 5]]
+    (define /dev/tcp : TCP-Listener (tcp-listen port maxwait #true))
+    (define saved-params-incaseof-transferring-continuation : Parameterization (current-parameterization))
+    (define (wait-accept-handle-loop) : Void
+      (with-handlers ([exn:fail:network? on-error])
+        (define session (make-custodian))
+        (parameterize ([current-custodian session])
+          (define-values (/dev/tcpin /dev/tcpout) (tcp-accept/enable-break /dev/tcp))
+          (thread (thunk (dynamic-wind (thunk (unless (false? timeout)
+                                                (define server : Thread (current-thread))
+                                                (timer-thread timeout (λ [times] (cond [(zero? times) (break-thread server)]
+                                                                                       [else (custodian-shutdown-all session)])))))
+                                       (thunk (call-with-parameterization
+                                               saved-params-incaseof-transferring-continuation
+                                               (thunk (parameterize ([current-custodian (make-custodian session)])
+                                                        (on-connection /dev/tcpin /dev/tcpout)))))
+                                       (thunk (custodian-shutdown-all session)))))))
+      (wait-accept-handle-loop))
+    (dynamic-wind void wait-accept-handle-loop (thunk (tcp-close /dev/tcp)))))
+
 (define call-as-normal-termination : (-> (-> Any) [#:atinit (-> Any)] [#:atexit (-> Any)] Void)
   (lambda [#:atinit [atinit/0 void] main/0 #:atexit [atexit/0 void]]
     (define status : Any
