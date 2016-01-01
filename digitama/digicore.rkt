@@ -152,27 +152,35 @@
                        (sync/enable-break (alarm-evt (+ (* times i-ms) first-time)))
                        (on-timer/do-task times)))))))
 
-(define tcp-server : (-> Index (Input-Port Output-Port -> Any) [#:timeout (Option Positive-Real)]
-                         [#:with-handler (exn -> Any)] [#:max-allow-wait Natural] Void)
-  (lambda [port on-connection #:timeout [timeout #false] #:with-handler [on-error void] #:max-allow-wait [maxwait 5]]
-    (define /dev/tcp : TCP-Listener (tcp-listen port maxwait #true))
-    (define saved-params-incaseof-transferring-continuation : Parameterization (current-parameterization))
-    (define (wait-accept-handle-loop) : Void
-      (with-handlers ([exn:fail:network? on-error])
-        (define session (make-custodian))
-        (parameterize ([current-custodian session])
-          (define-values (/dev/tcpin /dev/tcpout) (tcp-accept/enable-break /dev/tcp))
-          (thread (thunk (dynamic-wind (thunk (unless (false? timeout)
-                                                (define server : Thread (current-thread))
-                                                (timer-thread timeout (λ [times] (cond [(zero? times) (break-thread server)]
-                                                                                       [else (custodian-shutdown-all session)])))))
-                                       (thunk (call-with-parameterization
-                                               saved-params-incaseof-transferring-continuation
-                                               (thunk (parameterize ([current-custodian (make-custodian session)])
-                                                        (on-connection /dev/tcpin /dev/tcpout)))))
-                                       (thunk (custodian-shutdown-all session)))))))
-      (wait-accept-handle-loop))
-    (dynamic-wind void wait-accept-handle-loop (thunk (tcp-close /dev/tcp)))))
+(define tcp-server : (-> Index (Input-Port Output-Port Positive-Index -> Any) [#:max-allow-wait Natural] [#:localhost (Option String)]
+                         [#:timeout (Option Positive-Real)] [#:on-error (exn -> Any)] [#:custodian Custodian]
+                         (Values (-> Void) Positive-Index))
+  (lambda [port-hit on-connection #:max-allow-wait [maxwait (processor-count)] #:localhost [ip #false]
+           #:timeout [timeout #false] #:on-error [on-error void] #:custodian [server-custodian (make-custodian)]]
+    (parameterize ([current-custodian server-custodian])
+      (define /dev/tcp : TCP-Listener (tcp-listen port-hit maxwait #true ip))
+      (define-values (localhost portno remote rport)
+        ((cast tcp-addresses (-> TCP-Listener Boolean (Values String Positive-Index String Index)))
+         /dev/tcp #true))
+      (define saved-params-incaseof-transferring-continuation : Parameterization (current-parameterization))
+      (define (wait-accept-handle-loop) : Void
+        (parameterize ([current-custodian (make-custodian server-custodian)])
+          (define close-session : (-> Void) (thunk (custodian-shutdown-all (current-custodian))))
+          (with-handlers ([exn:fail:network? (λ [[e : exn]] (on-error e) (close-session))])
+            (define-values (/dev/tcpin /dev/tcpout) (tcp-accept/enable-break /dev/tcp))
+            (thread (thunk ((inst dynamic-wind Any)
+                            (thunk (unless (false? timeout)
+                                     (define server : Thread (current-thread))
+                                     (timer-thread timeout (λ [times] (if (zero? times) (break-thread server) (close-session))))))
+                            (thunk (call-with-parameterization
+                                    saved-params-incaseof-transferring-continuation
+                                    (thunk (parameterize ([current-custodian (make-custodian)])
+                                             (with-handlers ([exn? on-error])
+                                               (on-connection /dev/tcpin /dev/tcpout portno))))))
+                            (thunk (close-session)))))))
+        (wait-accept-handle-loop))
+      (thread wait-accept-handle-loop)
+      (values (thunk (custodian-shutdown-all server-custodian)) portno))))
 
 (define call-as-normal-termination : (-> (-> Any) [#:atinit (-> Any)] [#:atexit (-> Any)] Void)
   (lambda [#:atinit [atinit/0 void] main/0 #:atexit [atexit/0 void]]
