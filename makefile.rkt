@@ -441,7 +441,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
      (thunk (parse-command-line (path->string (find-system-path 'run-file))
                                 argument-list
                                 flag-table
-                                (lambda [!voids . targets] (exit (main0 targets)))
+                                (lambda [!voids . targets] (main0 targets))
                                 '["phony-target|file-path"]
                                 (compose1 exit display --help)
                                 (compose1 exit (const 1) --unknown (curryr string-trim #px"[()]") (curry format "~a") values))))))
