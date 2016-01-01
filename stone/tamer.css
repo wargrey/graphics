@@ -30,3 +30,7 @@ blockquote.SCodeFlow {
 blockquote.Rfilebox {
     overflow-x: scroll;
 }
+
+blockquote.refcontent {
+    overflow-x: scroll;
+}

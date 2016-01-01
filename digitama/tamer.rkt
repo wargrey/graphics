@@ -350,16 +350,16 @@
                            (cond [(regexp-match #px"^λ\\s+(.+)" line)
                                   => (λ [pieces] (let ([ctxt (list-ref pieces 1)])
                                                    (unit-spec (list ctxt)) ; Testsuite
-                                                   (racketmetafont (italic (string open-book#)) ~ (elemtag ctxt (literal ctxt)))))]
+                                                   (nonbreaking (racketmetafont (italic (string open-book#)) ~ (elemtag ctxt (literal ctxt))))))]
                                  [(regexp-match #px"^\\s+λ(\\d+(.\\d)*)\\s+(.+?)\\s*$" line)
-                                  => (λ [pieces] (racketoutput (italic (string bookmark#)) ~ (literal (list-ref pieces 3))))]
+                                  => (λ [pieces] (nonbreaking (racketoutput (italic (string bookmark#)) ~ (larger (literal (list-ref pieces 3))))))]
                                  [(regexp-match #px"^(\\s*)(.+?)\\s+(\\d+) - (.+?)\\s*$" line)
                                   => (λ [pieces] (match-let ([(list _ spc stts idx ctxt) pieces])
                                                    (when (string=? spc "") (unit-spec (list (box ctxt)))) ; Toplevel testcase
                                                    (unless (string=? stts (~result struct:test-success))
                                                      (unit-spec (cons ctxt (cons stts (unit-spec)))))
-                                                   ((if (string=? spc "") (curry elemtag ctxt) elem)
-                                                    stts (racketkeywordfont ~ (italic idx)) (racketcommentfont ~ (literal ctxt)))))]
+                                                   (nonbreaking ((if (string=? spc "") (curry elemtag ctxt) elem)
+                                                                 stts (racketkeywordfont ~ (italic idx)) (racketcommentfont ~ (literal ctxt))))))]
                                  [(regexp-match #px"^\\s*»» (.+?)?:?\\s+(.+?)\\s*$" line)
                                   => (λ [pieces] (match-let ([(list _ key val) pieces])
                                                    (unit-spec (cons (string-trim line) (unit-spec)))
@@ -386,10 +386,10 @@
                                                                                (read (open-input-string message)))))))))]
                                  [(regexp-match #px"^$" line) (hash-set! scenarios unit (reverse (unit-spec)))]
                                  [(hash-has-key? scenarios unit)
-                                  (elem (string pin#) ~ ((if (regexp-match? #px"error" line) racketerror racketresultfont) line) ~
-                                        (seclink (tamer-story->tag (tamer-story)) ~
-                                                 (string house-garden#)
-                                                 (smaller (string cat#))))]))))))))))
+                                  (nonbreaking (elem (string pin#) ~ ((if (regexp-match? #px"error" line) racketerror racketresultfont) line) ~
+                                                     (seclink (tamer-story->tag (tamer-story)) ~
+                                                              (string house-garden#)
+                                                              (smaller (string cat#)))))]))))))))))
 
 (define tamer-racketbox
   (lambda [path #:line-start-with [line0 1]]
