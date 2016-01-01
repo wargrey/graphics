@@ -59,11 +59,11 @@ For the simplicity, the old-school style is no longer taken into account.
             [url        : String                 % 出版社网址]
             [profile    : String                 % 出版社简介])))]
 
-@interaction[#:eval tamer-diagram-zone
-             (code:comment @#,t{All text is in 12 pixels.})]
+@examples[#:eval tamer-diagram-zone #:label #false
+          (code:comment @#,t{All text is in 12 pixels.})]
 
-@interaction[#:eval tamer-schema-zone
-             press]
+@examples[#:eval tamer-schema-zone #:label #false
+          press]
 
 @handbook-bibliography[]
 

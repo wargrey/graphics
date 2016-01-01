@@ -23,7 +23,7 @@
 (define $err (open-output-bytes '/dev/tamer/stderr))
 (define $? (make-parameter +NaN.0))
 
-(define call-with-fresh-$ ; TODO: if moving this into typed/digitama, then (parameterize) does not work. 
+(define $shell
   (lambda [routine . arglist]
     (get-output-bytes $out #true)
     (get-output-bytes $err #true)
@@ -787,7 +787,7 @@
                          [$out Output-Port]
                          [$err Output-Port]
                          [$? (Parameterof Any)]
-                         [call-with-fresh-$ (-> (-> Any * Void) Any * Any)]
+                         [$shell (-> (-> Any * Void) Any * Any)]
                          [tamer-story->modpath (-> Path-String (U Module-Path (List* 'submod Module-Path (Listof Symbol))))]
                          [tamer-partner->modpath (->* (Path-String) ((Option Symbol)) (U Module-Path (List 'submod Module-Path Symbol)))]
                          [tamer-prove (-> Natural)]

@@ -67,8 +67,8 @@ such as @itech{SSH-USERAUTH} and @itech{SSH-CONNECT}.
 @tamer-action[(define (trace level message urgent session)
                 (cond [(false? (exn? urgent)) (fprintf (current-output-port) "[~a] ~a~n" level message)]
                       [else (fprintf (current-error-port) "[~a] ~a~n" level (exn-message urgent))]))
-              (define ssh-client (new ssh-session% [host "localhost"] [port 22] [on-debug trace]))
-              (send ssh-client collapse "demonstration done" 'SSH_DISCONNECT_BY_APPLICATION)]
+              (eval:error (define ssh-client (new ssh-session% [host "localhost"] [port 22] [on-debug trace])))
+              (eval:error (send ssh-client collapse "demonstration done" 'SSH_DISCONNECT_BY_APPLICATION))]
 
 @handbook-scenario{The User Authentication Protocol}
 

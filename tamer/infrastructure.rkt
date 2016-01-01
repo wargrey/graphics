@@ -45,7 +45,7 @@ Kill those unexpected routines crudely is unreasonable since there might be side
        (define ((setup . arglist))
          (dynamic-wind (thunk (environment-variables-set! ENV #"taming" #"true"))
                        (thunk (parameterize ([current-directory (digimon-world)])
-                              (call-with-fresh-$ (curry apply make arglist))))
+                              ($shell (curry apply make arglist))))
                        (thunk (environment-variables-set! ENV #"taming" #false))))]
 
 Now let@literal{'}s try to make thing done:
