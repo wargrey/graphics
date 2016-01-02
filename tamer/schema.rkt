@@ -51,19 +51,16 @@ For the simplicity, the old-school style is no longer taken into account.
 
 @chunk[|<conceptual schema>|
        (define-schema schema
-         (define-table press as 出版社信息
-           ([name       : String                 % 藏语名称]
-            [name/zh    : (Option String)        % 汉语名称]
+         (define-table digimon as 数码宝贝
+           ([name       : String                 % 日文名称]
             [name/en    : (Option String)        % 英语名称]
-            [address    : String                 % 出版社地址]
-            [url        : String                 % 出版社网址]
-            [profile    : String                 % 出版社简介])))]
+            [artwork    : (Listof Bytes)         % 角色图片])))]
 
 @examples[#:eval tamer-diagram-zone #:label #false
           (code:comment @#,t{All text is in 12 pixels.})]
 
 @examples[#:eval tamer-schema-zone #:label #false
-          press]
+          digimon]
 
 @handbook-bibliography[]
 

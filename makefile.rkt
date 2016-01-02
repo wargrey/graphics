@@ -407,9 +407,9 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                                    ((curryr string-join (format "~n  ")
                                             #:before-first (format "~n where <phony-target> is one of~n  ")
                                             #:after-last (format "~n"))
-                                    '["all : Build the entire software without documentation. [default]"
-                                      "mostlyclean : Delete all except when remaking costs high."
-                                      "clean : Delete all except those record the configuration."
+                                    '["all : Build the entire project without documentation. [default]"
+                                      "mostlyclean : Delete all except that can be however hard to be remade."
+                                      "clean : Delete all except that record the configuration."
                                       "distclean : Delete all that are excluded in the distribution."
                                       "maintainer-clean : Delete all that can be remade. [For Maintainers]"]))
                                   (list (cons "install" "Install this software and documentation.")
