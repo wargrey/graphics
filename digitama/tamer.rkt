@@ -457,20 +457,16 @@
 
   (define tamer-zone (make-parameter #false))
 
-  ;;; These are intended to not inherit exn? or exn:test?
-  (struct exn:test:skip (reason))
-  (struct exn:test:todo (reason))
-  
-  (struct test-skip test-result (result))
-  (struct test-todo test-result (result))
+  (struct test-skip test-result (result #| : String |#))
+  (struct test-todo test-result (result #| : String |#))
 
   (define skip
     (lambda [fmt . arglist]
-      (raise (exn:test:skip (apply format fmt arglist)))))
+      (raise (exn:fail:unsupported (apply format fmt arglist)))))
 
   (define todo
     (lambda [fmt . arglist]
-      (raise (exn:test:todo (apply format fmt arglist)))))
+      (raise (exn:fail:unsupported (apply format fmt arglist)))))
   
   (define tamer-story (make-parameter #false))
   (define tamer-cite (make-parameter void))
@@ -540,9 +536,11 @@
                                                                 (return (run-test-case case-name routine))))])
                             (return (let ([result (run-test-case case-name action)])
                                       (cond [(and (test-error? result) (test-error-result result))
-                                             => (λ [?] (cond [(exn:test:skip? ?) (test-skip case-name (exn:test:skip-reason ?))]
-                                                             [(exn:test:todo? ?) (test-todo case-name (exn:test:todo-reason ?))]
-                                                             [else result]))]
+                                             => (λ [?] (cond [(false? (exn:fail:unsupported? ?)) result]
+                                                             [(let ([stack (continuation-mark-set->context (exn-continuation-marks ?))])
+                                                                (and (false? (null? stack)) (eq? (caar stack) 'todo)))
+                                                              (test-todo case-name (exn-message ?))]
+                                                             [else (test-skip case-name (exn-message ?))]))]
                                             [else result])))))))))
 
   (define rule-index
@@ -685,7 +683,7 @@
         (monad-value ((monad-get tamer-seed-brief)
                       (foldts-test-suite (λ [testsuite name pre-action post-action seed]
                                            (define $exn (make-parameter undefined))
-                                           (with-handlers ([void $exn]) ;;; catch all, including exn:test:skip and exn:test:todo
+                                           (with-handlers ([void $exn]) ;; catch all
                                              (call-with-values pre-action void))
                                            ((>=> (>>= (monad-get tamer-seed-datum)
                                                       (λ [seed:datum] (monad-put set-tamer-seed-datum! (fdown name seed:datum))))
@@ -703,14 +701,14 @@
                                                       (λ [children:namepath] (monad-put set-tamer-seed-namepath! (cdr children:namepath))))
                                                  (>>= (monad-get tamer-seed-exns)
                                                       (λ [children:exns] (monad-put set-tamer-seed-exns! (cdr children:exns)))))
-                                            children-seed #| monad is a stateful structure, so seed === children-seed|#))
+                                            children-seed #| monad is a stateful structure, so seed === children-seed |#))
                                          (λ [testcase name action seed]
                                            (define-values (fixed-name fixed-action)
                                              (cond [(findf (lambda [e] (not (eq? e undefined))) (monad-value ((monad-get tamer-seed-exns) seed)))
                                                     => (lambda [e] (cons (format "#:before ~a" name) (thunk (raise e))))]
                                                    [(false? name)
                                                     (values (format "(⧴ ~a)" (object-name struct:exn:fail:user))
-                                                            (thunk (raise-user-error "Testcase must have a name!")))]
+                                                            (thunk (raise-user-error "Unnamed Testcase!")))]
                                                    [else (values name action)]))
                                            (define fixed-namepath (cons fixed-name (monad-value ((monad-get tamer-seed-namepath) seed))))
                                            (define record (tamer-record-handbook fixed-namepath fixed-action))
@@ -745,7 +743,7 @@
                                        [(test-error? result) (display-error result #:indent headspace)]
                                        [(test-skip? result) (display-skip result #:indent headspace)]
                                        [(test-todo? result) (display-todo result #:indent headspace)]
-                                       [else (error "RackUnit has new test result type added!")])
+                                       [else (error "RackUnit has new test result type supported!")])
                                  (if (null? seed:ordered) null (cons (add1 (car seed:ordered)) (cdr seed:ordered))))
                        null ; seed:datum
                        unit))))
