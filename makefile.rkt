@@ -88,7 +88,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
             [(regexp-match? #px"(compil|process)ing:" info) (and (traceln info) (again? #true))]))
     (define [filter-verbose info]
       (cond [(regexp-match? #px"(newer|end compile|skipping|done:)" info) '|Skip Task Endline|]
-            [(regexp-match? #px"newer:" info) (when (make-print-reasons) (traceln info))]
+            [(regexp-match? #px"(newer:|does not exist)" info) (when (make-print-reasons) (traceln info))]
             [(regexp-match? px.within info) (filter-inside info)]
             [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" info) '|Skip Other's Packages|]
             [else (traceln info)]))
@@ -116,7 +116,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
 
 (define make-implicit-rkt-rules
   (lambda []
-    (define d-info (get-info/full (digimon-zone)))
+    (define d-info (get-info/full #:bootstrap? #true (digimon-zone)))
     (define stone/digivice.rkt (parameterize ([current-digimon (digimon-gnome)]) (build-path (digimon-stone) "digivice.rkt")))
     (filter-map (lambda [dgvc] (let ([dgvc.rkt (path->string (build-path (digimon-zone) dgvc))])
                                  (and (directory-exists? (path-replace-suffix dgvc.rkt #""))
@@ -128,16 +128,19 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
     (for/list ([dependent.scrbl (in-list (if (string=? (current-tamer) "root") null (list (build-path (digimon-tamer) "handbook.scrbl"))))]
                #:when (file-exists? dependent.scrbl))
       (define t (build-path (digimon-zone) "README.md"))
-      (define ds (filter file-exists? (list* (build-path (digimon-zone) "info.rkt") (smart-dependencies dependent.scrbl))))
+      (define ds (filter file-exists? (list* (build-path (digimon-world) "info.rkt")
+                                             (build-path (digimon-zone) "info.rkt")
+                                             (smart-dependencies dependent.scrbl))))
       (list t ds (lambda [target]
                    (parameterize ([current-directory (digimon-zone)]
                                   [current-namespace (make-base-namespace)]
                                   [current-input-port /dev/eof] ; workaround, to tell scribble this is rendering to markdown
                                   [exit-handler (thunk* (error 'make "[fatal] /~a needs a proper `exit-handler`!"
                                                                (find-relative-path (digimon-world) dependent.scrbl)))])
-                     (eval '(require (prefix-in markdown: scribble/markdown-render) scribble/core scribble/render))
+                     (eval `(require (prefix-in markdown: scribble/markdown-render) scribble/render
+                                     (file ,(path->string (build-path (digimon-tamer) "tamer.rkt")))))
                      (eval `(render (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
-                                      (list (struct-copy part scribble:doc [parts null])))
+                                      (list (struct-copy part scribble:doc [parts (handbook-appendix #:index? #false)])))
                                     (list ,(file-name-from-path target))
                                     #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #false))))))))
 
@@ -244,7 +247,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
     
     (do-make (make-native-library-rules))
     (do-make (make-implicit-rkt-rules))
-    (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
+    (compile-directory (digimon-zone) (get-info/full #:bootstrap? #true (digimon-zone)))
 
     (for ([submake (in-list submakes)])
       (define modpath `(submod ,submake premake))
@@ -252,7 +255,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
         (dynamic-require modpath #false)
         ;;; the next two lines always useless but who knows
         (do-make (make-native-library-rules))
-        (compile-directory (digimon-zone) (get-info/full (digimon-zone)))))
+        (compile-directory (digimon-zone) (get-info/full #:bootstrap? #true (digimon-zone)))))
     
     (do-make (make-implicit-dist-rules))
 
@@ -322,7 +325,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
     (when (directory-exists? (digimon-tamer))
       (let ([rules (map hack-rule (append (make-native-library-rules) (make-implicit-rkt-rules)))])
         (unless (null? rules) (make/proc rules (map car rules))))
-      (compile-directory (digimon-zone) (get-info/full (digimon-zone)))
+      (compile-directory (digimon-zone) (get-info/full #:bootstrap? #true (digimon-zone)))
       
       (for ([handbook (in-list (if (null? (current-make-real-targets))
                                    (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))
@@ -350,8 +353,8 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
 (define create-zone
   (lambda []
     (define gnome-stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
-    (for ([prompt (in-list (list "collection" "pkg-desc"))]
-          [defval (in-list (list (current-digimon) "[Missing Description]"))])
+    (for ([prompt (in-list (list "collection"      "pkg-desc"              "pkg-authors"))]
+          [defval (in-list (list (current-digimon) "[Missing Description]" "\"WarGrey Ju\""))])
       (echof #:fgcolor 'green "info.rkt: Please input the '~a [~a]: " prompt defval)
       (putenv (format "info.~a" prompt)
               (let ([line (read-line)])
@@ -365,11 +368,12 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
         (thunk (dynamic-require (build-path gnome-stone src) #false))))
     (copy-file (build-path gnome-stone "robots.txt") (build-path (digimon-tamer) "robots.txt") #true)
     (unless (getenv "taming")
-      (echof #:fgcolor 'green "github: Please input the repository name [~a]: " (current-digimon))
-      (define remote (format "git@github.com:digital-world/~a.git"
+      (define reponame (format "digital-world/~a" (current-digimon)))
+      (echof #:fgcolor 'green "github: Please input the full repository name [~a]: " reponame)
+      (define remote (format "git@github.com:~a.git"
                              (let ([line (read-line)])
-                               (cond [(eof-object? line) (current-digimon)]
-                                     [(regexp-match? #px"^\\s*$" line) (current-digimon)]
+                               (cond [(eof-object? line) reponame]
+                                     [(regexp-match? #px"^\\s*$" line) reponame]
                                      [else (string-trim line)]))))
       (copy-file (build-path (digimon-world) ".gitignore") (build-path (digimon-zone) ".gitignore") #true)
       (and (for/and ([gitcmd (in-list (list "init"
@@ -422,10 +426,10 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
       (parameterize ([current-make-real-targets (map simple-form-path reals)]
                      [current-directory (digimon-world)])
         (for ([digimon (in-list (let ([current-zone (path->string (last (explode-path (find-system-path 'orig-dir))))])
-                                  (remove-duplicates (cond [(member "ALL" (current-make-collects)) (cons (digimon-gnome) all-digimons)]
+                                  (remove-duplicates (cond [(member "ALL" (current-make-collects)) all-digimons]
                                                            [(not (null? (current-make-collects))) (reverse (current-make-collects))]
                                                            [(directory-exists? current-zone) (list current-zone)]
-                                                           [else (cons (digimon-gnome) all-digimons)]))))])
+                                                           [else all-digimons]))))])
           (parameterize ([current-digimon digimon])
             (dynamic-wind (thunk (printf "Enter Digimon Zone: ~a.~n" digimon))
                           (thunk (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
