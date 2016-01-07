@@ -21,6 +21,7 @@
 
 (define #%info (get-info/full (digimon-zone)))
 (define #%digimon (let ([name (#%info 'collection)]) (if (symbol? name) (current-digimon) name)))
+(define #%handbook (seclink "tamer-book" (italic "handbook")))
 
 (define $out (open-output-bytes '/dev/tamer/stdout))
 (define $err (open-output-bytes '/dev/tamer/stderr))
@@ -60,6 +61,32 @@
     [(_ id bib-args ...)
      #'(define id (in-bib (make-bib bib-args ...) (format ":~a" 'id)))]))
 
+(define ~cite
+  (lambda [bib #:same-author? [same? #false] . bibs]
+    (if (false? same?)
+        (apply (tamer-cites) bib bibs)
+        (apply (tamer-cite) bib bibs))))
+  
+(define itech
+  (lambda [#:key [key #false] . pre-contents]
+    (tech (italic pre-contents) #:key key)))
+
+(define handbook-title
+  (lambda pre-contents
+    (define gnome-stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
+    (list (title #:style (let* ([stones (remove-duplicates (list (digimon-stone) gnome-stone))]
+                                [css (filter file-exists? (map (curryr build-path "tamer.css") stones))])
+                           (make-style #false (map make-css-addition css)))
+                 #:tag "tamer-book" #:version (format "~a[~a]" (version) (#%info 'version (const "Baby")))
+                 (if (symbol=? (object-name (current-input-port)) '/dev/null)
+                     (list (hyperlink (~url (current-digimon)) (string house-garden#))
+                           (hyperlink (~url (digimon-gnome)) (format "<sub>~a</sub>" cat#)))
+                     (list (hyperlink (~github (current-digimon)) (string house-garden#))
+                           (hyperlink (~github (digimon-gnome)) (subscript (string cat#)))))
+                 (cond [(false? (null? pre-contents)) pre-contents]
+                       [else (list (literal (speak 'tamer-handbook) ":") ~ #%digimon)]))
+          (apply author (#%info 'pkg-authors (const (list (pkg-idun))))))))
+
 (define-syntax (handbook-story stx)
   (syntax-parse stx #:literals []
     [(_ (~optional (~seq #:style s:expr)) contents ...)
@@ -71,6 +98,108 @@
               (title #:tag (tamer-story->tag (tamer-story))
                      #:style #,(attribute s)
                      (literal (speak 'handbook-story) ":") ~ contents ...))]))
+
+(define handbook-scenario
+  (lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
+    (section #:tag tag #:style style
+             (literal (speak 'handbook-scenario) ":") ~ pre-contents)))
+
+(define handbook-reference
+  (lambda []
+    (list ((tamer-reference) #:tag (format "~a-reference" (path-replace-suffix (tamer-story->tag (tamer-story)) ""))
+                                #:sec-title (speak 'handbook-reference))
+          (let ([zone-snapshots (filter-not false? (list (tamer-zone)))])
+            (make-traverse-block (thunk* (for-each close-eval zone-snapshots))))
+          (tamer-story #false))))
+
+(define handbook-appendix
+  (let ([digimons (itemlist #:style "HBdigimon"
+                            (for/list ([digimon (in-list all-digimons)])
+                              (parameterize ([current-directory (build-path (digimon-world) digimon)]
+                                             [current-namespace (make-base-namespace)])
+                                (define info-ref (get-info/full (current-directory) #:bootstrap? #true #:namespace (current-namespace)))
+                                (define titlelem (if (string=? digimon (digimon-gnome)) bold elem))
+                                (define diginame (let ([c (info-ref 'collection)]) (if (symbol? c) digimon c)))
+                                (define devs (content->string (element-content (apply authors (info-ref 'pkg-authors (const `(,(pkg-idun))))))))
+                                (define altext (let ([org (pkg-institution)]) (if org (~a org #\( devs #\)) devs)))
+                                (item (deftech #:key diginame (string paw#) ~
+                                        (hyperlink #:style (make-style #false (list (hover-property (~a "by " altext))))
+                                                   (~url digimon) (titlelem diginame ":" ~ (info-ref 'pkg-desc))))))))]
+        [entries (list (bib-entry #:key      "Racket"
+                                  #:title    "Reference: Racket"
+                                  #:author   (authors "Matthew Flatt" "PLT")
+                                  #:date     "2010"
+                                  #:location (techrpt-location #:institution "PLT Design Inc." #:number "PLT-TR-2010-1")
+                                  #:url      "http://racket-lang.org/tr1")
+                       (bib-entry #:key      "Scribble"
+                                  #:title    "The Racket Documentation Tool"
+                                  #:author   (authors "Matthew Flatt" "Eli Barzilay")
+                                  #:url      "http://docs.racket-lang.org/scribble/index.html")
+                       (bib-entry #:key      "Rackunit"
+                                  #:title    "Rackunit: Unit Testing"
+                                  #:author   (authors "Noel Welsh" "Ryan Culpepper")
+                                  #:url      "http://docs.racket-lang.org/rackunit/index.html")
+                       (bib-entry #:key      "LP:WEB"
+                                  #:title    "Literate Programming"
+                                  #:author   (authors "Donald E. Knuth")
+                                  #:date     "1984"
+                                  #:location (journal-location "The Computer Journal"  #:pages '(1 15) #:number "10.1093/comjnl/27.2.97")
+                                  #:url      "http://www.literateprogramming.com/knuthweb.pdf")
+                       (bib-entry #:key      "LP:Issues"
+                                  #:title    "Literate Programming - Issues and Problems"
+                                  #:author   (authors "Kurt Nørmark")
+                                  #:date     "1998"
+                                  #:location (dissertation-location #:institution "Department of Computer Science Aalborg University" #:degree "Lektor")
+                                  #:url      "http://people.cs.aau.dk/~normark/litpro/issues-and-problems.html"))])
+    (lambda [#:index? [index? #true] . bibentries]
+      (define appendix-style (make-style 'index '(grouper)))
+      ((curry filter-not void?)
+       (list (part #false '((part "handbook-appendix")) (list (speak 'handbook-appendix)) (make-style 'index '(unnumbered reverl)) null null
+                   (list (part #f '((part "handbook-digimon")) (list (speak 'handbook-digimon)) appendix-style null (list digimons) null)
+                         (struct-copy part (apply bibliography #:tag "handbook-bibliography" (append entries bibentries))
+                                      [style appendix-style]
+                                      [title-content (list (speak 'handbook-bibliography))])))
+             (unless (false? index?)
+               (struct-copy part (index-section #:tag "handbook-index")
+                            [title-content (list (speak 'handbook-index))])))))))
+
+(define handbook-smart-table
+  (lambda []
+    (make-traverse-block
+     (λ [get set]
+       (if (false? (member 'markdown (get 'scribble:current-render-mode '(html))))
+           (table-of-contents)
+           (make-delayed-block
+            (λ [render% pthis _]
+              (define-values (/dev/tamer/stdin /dev/tamer/stdout) (make-pipe #false '/dev/tamer/stdin '/dev/tamer/stdout))
+              (parameterize ([current-input-port /dev/tamer/stdin]
+                             [current-error-port /dev/tamer/stdout]
+                             [current-output-port /dev/tamer/stdout]
+                             [tamer-story #false])
+                (define summary? (make-parameter #false))
+                (thread (thunk (dynamic-wind collect-garbage
+                                             tamer-prove
+                                             (thunk (close-output-port /dev/tamer/stdout)))))
+                (para (filter-map (λ [line] (and (not (void? line)) (map ~markdown (if (list? line) line (list line)))))
+                                  (for/list ([line (in-port read-line)])
+                                    (cond [(regexp-match #px"^λ\\s+(.+)" line)
+                                           => (λ [pieces] (format "> + ~a~a" books# (list-ref pieces 1)))]
+                                          [(regexp-match #px"^(\\s+)λ\\d+\\s+(.+?.rktl?)\\s*$" line)
+                                           => (λ [pieces] (match-let ([(list _ indt ctxt) pieces]) ; (markdown listitem needs at least 1 char after "+ "
+                                                            (list (format ">   ~a+ ~a" indt open-book#)  ; before breaking line if "[~a](~a)" is longer
+                                                                  (hyperlink (format "~a/~a" (~url (current-digimon)) ctxt) ctxt))))] ; then 72 chars.)
+                                          [(regexp-match #px"^(\\s+)λ\\d+(.\\d)*\\s+(.+?)\\s*$" line)
+                                           => (λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) bookmark# (list-ref pieces 3)))]
+                                          [(regexp-match #px"^$" line) (summary? #true)]
+                                          [(summary?) (parameterize ([current-output-port /dev/stdout])
+                                                        (echof "~a~n" line
+                                                               #:fgcolor (match line
+                                                                           [(regexp #px" 100.00% Okay") 'lightgreen]
+                                                                           [(regexp #px" [^0] error") 'darkred]
+                                                                           [(regexp #px" [^0] failure") 'lightred]
+                                                                           [(regexp #px" [^0] TODO") 'lightmagenta]
+                                                                           [(regexp #px" [^0] skip") 'lightblue]
+                                                                           [_ 'lightcyan])))]))))))))))))
 
 (define-syntax (define-tamer-suite stx)
   (syntax-parse stx
@@ -125,93 +254,6 @@
   (lambda [partner-path [submodule #false]]
     (path->digimon-modpath (if (absolute-path? partner-path) partner-path (build-path (digimon-zone) partner-path))
                            submodule)))
-
-(define handbook-title
-  (lambda pre-contents
-    (define gnome-stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
-    (list (title #:style (let* ([stones (remove-duplicates (list (digimon-stone) gnome-stone))]
-                                [css (filter file-exists? (map (curryr build-path "tamer.css") stones))])
-                           (make-style #false (map make-css-addition css)))
-                 #:tag "tamer-handbook" #:version (format "~a[~a]" (version) (#%info 'version (const "Baby")))
-                 (if (symbol=? (object-name (current-input-port)) '/dev/null)
-                     (list (hyperlink (~url (current-digimon)) (string house-garden#))
-                           (hyperlink (~url (digimon-gnome)) (format "<sub>~a</sub>" cat#)))
-                     (list (hyperlink (~github (current-digimon)) (string house-garden#))
-                           (hyperlink (~github (digimon-gnome)) (subscript (string cat#)))))
-                 (cond [(false? (null? pre-contents)) pre-contents]
-                       [else (list (literal (speak 'tamer-handbook) ":") ~ #%digimon)]))
-          (apply author (#%info 'pkg-authors (const (list (pkg-idun))))))))
-
-(define handbook-scenario
-  (lambda [#:tag [tag #false] #:style [style #false] . pre-contents]
-    (section #:tag tag #:style style
-             (literal (speak 'handbook-scenario) ":") ~ pre-contents)))
-
-(define ~cite
-  (lambda [bib #:same-author? [same? #false] . bibs]
-    (if (false? same?)
-        (apply (tamer-cites) bib bibs)
-        (apply (tamer-cite) bib bibs))))
-
-(define handbook-reference
-  (lambda []
-    (list ((tamer-reference) #:tag (format "~a-reference" (path-replace-suffix (tamer-story->tag (tamer-story)) ""))
-                                #:sec-title (speak 'handbook-reference))
-          (let ([zone-snapshots (filter-not false? (list (tamer-zone)))])
-            (make-traverse-block (thunk* (for-each close-eval zone-snapshots))))
-          (tamer-story #false))))
-
-(define handbook-appendix
-  (let ([digimons (for/list ([digimon (in-list all-digimons)])
-                    (parameterize ([current-directory (build-path (digimon-world) digimon)]
-                                   [current-namespace (make-base-namespace)])
-                      (define info-ref (get-info/full (current-directory) #:bootstrap? #true #:namespace (current-namespace)))
-                      (define titlelem (if (string=? digimon (digimon-gnome)) bold elem))
-                      (define collection (info-ref 'collection))
-                      (bib-entry #:key      (if (symbol? collection) digimon collection)
-                                 #:title    (hyperlink (~url digimon) (titlelem (info-ref 'pkg-desc)))
-                                 #:author   (apply authors (info-ref 'pkg-authors (const (list (pkg-idun)))))
-                                 #:location (pkg-institution)
-                                 #:is-book? #true)))]
-        [inners (list (bib-entry #:key      "Racket"
-                                 #:title    "Reference: Racket"
-                                 #:author   (authors "Matthew Flatt" "PLT")
-                                 #:date     "2010"
-                                 #:location (techrpt-location #:institution "PLT Design Inc." #:number "PLT-TR-2010-1")
-                                 #:url      "http://racket-lang.org/tr1")
-                      (bib-entry #:key      "Scribble"
-                                 #:title    "The Racket Documentation Tool"
-                                 #:author   (authors "Matthew Flatt" "Eli Barzilay")
-                                 #:url      "http://docs.racket-lang.org/scribble/index.html")
-                      (bib-entry #:key      "Rackunit"
-                                 #:title    "Rackunit: Unit Testing"
-                                 #:author   (authors "Noel Welsh" "Ryan Culpepper")
-                                 #:url      "http://docs.racket-lang.org/rackunit/index.html")
-                      (bib-entry #:key      "LP:WEB"
-                                 #:title    "Literate Programming"
-                                 #:author   (authors "Donald E. Knuth")
-                                 #:date     "1984"
-                                 #:location (journal-location "The Computer Journal"  #:pages '(1 15) #:number "10.1093/comjnl/27.2.97")
-                                 #:url      "http://www.literateprogramming.com/knuthweb.pdf")
-                      (bib-entry #:key      "LP:Issues"
-                                 #:title    "Literate Programming - Issues and Problems"
-                                 #:author   (authors "Kurt Nørmark")
-                                 #:date     "1998"
-                                 #:location (dissertation-location #:institution "Department of Computer Science Aalborg University" #:degree "Lektor")
-                                 #:url      "http://people.cs.aau.dk/~normark/litpro/issues-and-problems.html"))])
-    (lambda [#:index? [index? #true] . bibentries]
-      (filter part?
-              (list (struct-copy part (apply bibliography #:tag "handbook-digimon" digimons)
-                                 [title-content (list (speak 'handbook-digimon))])
-                    (struct-copy part (apply bibliography #:tag "handbook-bibliography" (append inners bibentries))
-                                 [title-content (list (speak 'handbook-bibliography))])
-                    (unless (false? index?)
-                      (struct-copy part (index-section #:tag "handbook-index")
-                                   [title-content (list (speak 'handbook-index))])))))))
-  
-(define itech
-  (lambda [#:key [key #false] . pre-contents]
-    (tech (italic pre-contents) #:key key)))
 
 (define tamer-prove
   (lambda []
@@ -325,44 +367,6 @@
                                    (cond [(null? items) summaries]
                                          [else (cons (tabular items #:style 'boxed #:column-properties '(left right))
                                                      summaries)]))))))))))))
-
-(define handbook-smart-table
-  (lambda []
-    (make-traverse-block
-     (λ [get set]
-       (if (false? (member 'markdown (get 'scribble:current-render-mode '(html))))
-           (table-of-contents)
-           (make-delayed-block
-            (λ [render% pthis _]
-              (define-values (/dev/tamer/stdin /dev/tamer/stdout) (make-pipe #false '/dev/tamer/stdin '/dev/tamer/stdout))
-              (parameterize ([current-input-port /dev/tamer/stdin]
-                             [current-error-port /dev/tamer/stdout]
-                             [current-output-port /dev/tamer/stdout]
-                             [tamer-story #false])
-                (define summary? (make-parameter #false))
-                (thread (thunk (dynamic-wind collect-garbage
-                                             tamer-prove
-                                             (thunk (close-output-port /dev/tamer/stdout)))))
-                (para (filter-map (λ [line] (and (not (void? line)) (map ~markdown (if (list? line) line (list line)))))
-                                  (for/list ([line (in-port read-line)])
-                                    (cond [(regexp-match #px"^λ\\s+(.+)" line)
-                                           => (λ [pieces] (format "> + ~a~a" books# (list-ref pieces 1)))]
-                                          [(regexp-match #px"^(\\s+)λ\\d+\\s+(.+?.rktl?)\\s*$" line)
-                                           => (λ [pieces] (match-let ([(list _ indt ctxt) pieces]) ; (markdown listitem needs at least 1 char after "+ "
-                                                            (list (format ">   ~a+ ~a" indt open-book#)  ; before breaking line if "[~a](~a)" is longer
-                                                                  (hyperlink (format "~a/~a" (~url (current-digimon)) ctxt) ctxt))))] ; then 72 chars.)
-                                          [(regexp-match #px"^(\\s+)λ\\d+(.\\d)*\\s+(.+?)\\s*$" line)
-                                           => (λ [pieces] (format ">   ~a+ ~a~a" (list-ref pieces 1) bookmark# (list-ref pieces 3)))]
-                                          [(regexp-match #px"^$" line) (summary? #true)]
-                                          [(summary?) (parameterize ([current-output-port /dev/stdout])
-                                                        (echof "~a~n" line
-                                                               #:fgcolor (match line
-                                                                           [(regexp #px" 100.00% Okay") 'lightgreen]
-                                                                           [(regexp #px" [^0] error") 'darkred]
-                                                                           [(regexp #px" [^0] failure") 'lightred]
-                                                                           [(regexp #px" [^0] TODO") 'lightmagenta]
-                                                                           [(regexp #px" [^0] skip") 'lightblue]
-                                                                           [_ 'lightcyan])))]))))))))))))
 
 (define tamer-note
   (lambda [unit-vars . notes]

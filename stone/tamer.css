@@ -34,3 +34,8 @@ blockquote.Rfilebox {
 blockquote.refcontent {
     overflow-x: scroll;
 }
+
+ul.HBdigimon, li.HBdigimonItem {
+	list-style-type: none;
+	margin-left: 0;
+}
