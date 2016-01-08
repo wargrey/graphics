@@ -59,9 +59,18 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
 (define make-always-run (make-parameter #false))
 (define make-just-touch (make-parameter #false))
 
-(make-print-dep-no-line #false)
-(make-print-checking #false)
-(make-print-reasons #false)
+(define make-restore-options!
+  (lambda []
+    ;;; useful for any one who invokes (main) programmatically
+    (make-print-dep-no-line #false)
+    (make-print-checking #false)
+    (make-print-reasons #false)
+
+    (make-dry-run #false)
+    (make-always-run #false)
+    (make-just-touch #false)))
+
+(make-restore-options!)
 
 (define hack-rule
   (lambda [r]
@@ -121,7 +130,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
     (filter-map (lambda [dgvc] (let ([dgvc.rkt (path->string (build-path (digimon-zone) dgvc))])
                                  (and (directory-exists? (path-replace-suffix dgvc.rkt #""))
                                       (list dgvc.rkt (list stone/digivice.rkt) (curry make-digivice stone/digivice.rkt)))))
-                (d-info 'racket-launcher-libraries (const null)))))
+                (d-info 'racket-launcher-libraries (thunk null)))))
 
 (define make-implicit-dist-rules
   (lambda []
@@ -368,7 +377,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
       (putenv "digicore.rkt" (path->string (find-relative-path dest digicore.rkt)))
       (with-output-to-file (build-path dest src) #:exists 'error
         (thunk (dynamic-require (build-path gnome-stone src) #false))))
-    (copy-file (build-path gnome-stone "robots.txt") (build-path (digimon-tamer) "robots.txt") #true)
+    (copy-file (build-path gnome-stone "robots.txt") (build-path (digimon-tamer) "robots.txt") #false)
     (unless (getenv "taming")
       (define reponame (format "digital-world/~a" (current-digimon)))
       (echof #:fgcolor 'green "github: Please input the full repository name [~a]: " reponame)
@@ -437,7 +446,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                           (thunk (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
                                    (parameterize ([current-make-phony-goal phony])
                                      (with-handlers ([exn? (compose1 exit (const 1) (curry eprintf "~a~n") string-trim exn-message)])
-                                       (cond [(false? (directory-exists? (digimon-zone))) (create-zone)]
+                                       (cond [(false? (file-exists? (build-path (digimon-zone) "info.rkt"))) (create-zone)]
                                              [else (file-or-directory-modify-seconds (digimon-zone) (current-seconds))])
                                        (cond [(regexp-match? #px"clean$" phony) ((hash-ref fphonies "clean"))]
                                              [(hash-has-key? fphonies phony) ((hash-ref fphonies phony))]
@@ -447,7 +456,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
      (thunk (parse-command-line (path->string (find-system-path 'run-file))
                                 argument-list
                                 flag-table
-                                (lambda [!voids . targets] (main0 targets))
+                                (lambda [!voids . targets] (dynamic-wind void (thunk (main0 targets)) make-restore-options!))
                                 '["phony-target|file-path"]
                                 (compose1 exit display --help)
                                 (compose1 exit (const 1) --unknown (curryr string-trim #px"[()]") (curry format "~a") values))))))

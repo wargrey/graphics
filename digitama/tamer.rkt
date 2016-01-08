@@ -1,13 +1,17 @@
 #lang at-exp racket
 
-(provide (all-defined-out) (all-from-out (submod "." typed/digitama)) skip todo)
-(provide (all-from-out racket "digicore.rkt" "emoji.rkt" "i18n.rkt" rackunit))
+(provide (all-defined-out) (all-from-out (submod "." typed/digitama)) skip todo the-color-database)
+(provide (all-from-out racket "digicore.rkt" "emoji.rkt" "i18n.rkt" rackunit pict pict/code))
 (provide (all-from-out scribble/core scribble/manual scriblib/autobib scribble/example scribble/html-properties))
 
+(require (only-in racket/draw the-color-database))
 (require racket/sandbox)
 (require rackunit)
 
-(require scribble/core)
+(require pict)
+(require (prefix-in pict: pict/code))
+
+(require (except-in scribble/core table))
 (require scribble/example)
 (require scribble/manual)
 (require scriblib/autobib)
@@ -21,7 +25,7 @@
 
 (define #%info (get-info/full (digimon-zone)))
 (define #%digimon (let ([name (#%info 'collection)]) (if (symbol? name) (current-digimon) name)))
-(define #%handbook (seclink "tamer-book" (italic "handbook")))
+(define #%handbook (seclink "tamer-book" (italic "Handbook")))
 
 (define $out (open-output-bytes '/dev/tamer/stdout))
 (define $err (open-output-bytes '/dev/tamer/stderr))
@@ -302,12 +306,10 @@
                             (reverse (hash-ref handbook-stories htag null))))
               (nested #:style (make-style "boxed" null)
                       (filebox (if (module-path? story-snapshot)
-                                   (italic (elemref (~a (current-digimon) "-summary") (string open-book#)) ~
-                                           (elemtag (~a (tamer-story->tag story-snapshot) "-summary")
-                                                    (~a "Behaviors in " (tamer-story->tag story-snapshot))))
+                                   (italic (seclink "tamer-book" (string open-book#)) ~
+                                           (~a "Behaviors in " (tamer-story->tag story-snapshot)))
                                    (italic (string books#) ~
-                                           (elemtag (~a (current-digimon) "-summary")
-                                                    (~a "Behaviors of " #%digimon))))
+                                           (~a "Behaviors of " #%digimon)))
                                (let ([base (if (module-path? story-snapshot)
                                                (story-ref (tamer-story->tag story-snapshot))
                                                (for/list ([story (in-list (reverse (hash-ref handbook-stories books# null)))])
@@ -376,7 +378,7 @@
        (define htag (tamer-story->tag story-snapshot))
        (unless (get 'scenario #false) (set 'scenario (make-hash)))
        (define scenarios (hash-ref! (get 'scenario make-hash) htag make-hash))
-       (margin-note (unless (null? notes) (append notes (list (linebreak))))
+       (margin-note (unless (null? notes) (append notes (list (linebreak) (linebreak))))
                     (for/list ([unit-var (in-list (if (list? unit-vars) unit-vars (list unit-vars)))])
                       (define-values (/dev/tamer/stdin /dev/tamer/stdout) (make-pipe #false '/dev/tamer/stdin '/dev/tamer/stdout))
                       (parameterize ([tamer-story story-snapshot]
@@ -445,7 +447,7 @@
                                  [(regexp-match #px"^$" line) (hash-set! scenarios unit (reverse (unit-spec)))]
                                  [(hash-has-key? scenarios unit)
                                   (nonbreaking (elem (string pin#) ~ ((if (regexp-match? #px"error" line) racketerror racketresultfont) line) ~
-                                                     (elemref (~a (tamer-story->tag story-snapshot) "-summary") ~
+                                                     (seclink (tamer-story->tag (tamer-story)) ~
                                                               (string house-garden#) (smaller (string cat#)))))]))))))))))
 
 (define tamer-racketbox
@@ -455,7 +457,7 @@
      (thunk* (parameterize ([tamer-story story-snapshot])
                (define /path/file (simplify-path (if (symbol? path) (dynamic-require/expose (tamer-story) path) path)))
                (nested #:style (make-style "boxed" null)
-                       (filebox (hyperlink /path/file (italic (string memo#) ~ (path->string (tr-if-path /path/file))))
+                       (filebox (italic (string memo#) ~ (path->string (tr-if-path /path/file)))
                                 (codeblock #:line-numbers line0 #:keep-lang-line? (> line0 0) ; make sure line number starts from 1
                                            (string-trim (file->string /path/file) #:left? #false #:right? #true)))))))))
 
@@ -488,18 +490,48 @@
                              [else ; still search for the first line
                               (read-next lang (add1 line0) contents end)])))))
                (nested #:style (make-style "boxed" null)
-                       (filebox (hyperlink /path/file (italic (string memo#) ~ (path->string (tr-if-path /path/file))))
+                       (filebox (italic (string memo#) ~ (path->string (tr-if-path /path/file)))
                                 (codeblock #:line-numbers line0 #:keep-lang-line? #false
                                            (string-trim #:left? #false #:right? #true ; remove tail blank lines 
                                                         (string-join contents (string #\newline)))))))))))
 
+(define filesystem-tree
+  (let ([hint (pict-height (text ""))] [ghost (blank 0)] [text->pict (compose1 text ~a)])
+    (lambda [forest #:pict [ptext text->pict] #:padding-space [gapsize 8] #:padding-x [offset 12] #:padding-box [delta 8]
+                    #:dir-color [cdir 'LightSkyBlue] #:file-color [cfile 'Ghostwhite] #:line-color [cline 'Gainsboro]]
+      (define yoffset (* 0.5 (+ delta hint)))
+      (define xy-find (lambda [p f] (let-values ([(x y) (lt-find p f)]) (values (+ x offset) (+ y yoffset)))))
+      (define (node->pict v color)
+        (define content (ptext v))
+        ((curryr cc-superimpose content)
+         (filled-rounded-rectangle #:border-color (~a cline) #:color (~a color)
+                                   (+ delta delta (pict-width content))
+                                   (+ delta (pict-height content)))))
+      (define (tree->pict nodes)
+        (for/fold ([head (node->pict (car nodes) cdir)])
+                  ([node (in-list (cdr nodes))])
+          (define body (filesystem-tree node #:padding-space gapsize #:padding-x offset #:padding-box delta
+                                        #:pict ptext #:dir-color cdir #:file-color cfile #:line-color cline))
+          (define child (pin-line #:under? #true #:color (~a cline)
+                                  (ht-append (* 4 gapsize) ghost body)
+                                  ghost xy-find body xy-find))
+          (pin-line #:under? #true #:color (~a cline)
+                    (vl-append gapsize head child)
+                    head xy-find child xy-find)))
+      (cond [(null? forest) ghost]
+            [(list? forest) (tree->pict forest)]
+            [else (node->pict forest cfile)]))))
+
+
+
 (module digitama racket
   (provide (all-defined-out) quote-module-path)
-  
+
   (require rackunit)
   (require racket/undefined)
   (require syntax/location)
   (require setup/xref)
+  (require setup/dirs)
   (require scribble/core)
   (require scribble/xref)
   (require scribble/manual)
@@ -665,7 +697,9 @@
                            [(tag) (xref-binding->definition-tag xref (list modpath export) #false)]
                            [(path anchor) (with-handlers ([exn? (λ _ (values #false #false))])
                                             (xref-tag->path+anchor xref tag #:external-root-url #false))])
-               (or (and path anchor (racketvalfont (hyperlink (format "~a#~a" path anchor) (symbol->string export)))) val))]
+               (or (and path anchor (racketvalfont (hyperlink (format "/~~:/~a#~a" (find-relative-path (find-doc-dir) path) anchor)
+                                                              (symbol->string export))))
+                   val))]
             [(vector? val) #| also for (struct? val) |#
              (vector-map fix val)]
             [(pair? val) #| also for lists |#
@@ -755,7 +789,8 @@
                                          (λ [testcase name action seed]
                                            (define-values (fixed-name fixed-action)
                                              (cond [(findf (lambda [e] (not (eq? e undefined))) (monad-value ((monad-get tamer-seed-exns) seed)))
-                                                    => (lambda [e] (cons (format "#:before ~a" name) (thunk (raise e))))]
+                                                    => (lambda [e] (values (format "#:before ~a" name)
+                                                                           (thunk (raise e))))]
                                                    [(false? name)
                                                     (values (format "(⧴ ~a)" (object-name struct:exn:fail:user))
                                                             (thunk (raise-user-error "Unnamed Testcase!")))]
