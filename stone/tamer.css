@@ -14,10 +14,13 @@ a.plainlink {
     font-size: small;
 }
 
-
 a.RktCmt, a.RktOut, a.RktErr, a.RktRes
 span.RktCmt, span.RktOut, span.RktErr, span.RktRes {
     font-size: small;
+}
+
+span.techinside {
+	font-style: italic;
 }
 
 blockquote.SCodeFlow {

@@ -71,10 +71,6 @@
         (apply (tamer-cites) bib bibs)
         (apply (tamer-cite) bib bibs))))
   
-(define itech
-  (lambda [#:key [key #false] . pre-contents]
-    (tech (italic pre-contents) #:key key)))
-
 (define handbook-title
   (lambda pre-contents
     (define gnome-stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
