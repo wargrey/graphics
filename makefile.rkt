@@ -149,9 +149,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                      (eval `(require (prefix-in markdown: scribble/markdown-render) scribble/render
                                      (file ,(path->string (build-path (digimon-tamer) "tamer.rkt")))))
                      (eval `(render (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
-                                      (list (struct-copy part scribble:doc
-                                                         [blocks (append (part-blocks scribble:doc) (list (para (literal "---"))))]
-                                                         [parts (handbook-appendix #:index? #false)])))
+                                      (list (struct-copy part scribble:doc [parts null])))
                                     (list ,(file-name-from-path target))
                                     #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #false))))))))
 

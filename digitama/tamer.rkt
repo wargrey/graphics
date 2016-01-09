@@ -139,15 +139,15 @@
                                   #:author   (authors "Matthew Flatt" "PLT")
                                   #:date     "2010"
                                   #:location (techrpt-location #:institution "PLT Design Inc." #:number "PLT-TR-2010-1")
-                                  #:url      "http://racket-lang.org/tr1")
+                                  #:url      "https://racket-lang.org/tr1")
                        (bib-entry #:key      "Scribble"
                                   #:title    "The Racket Documentation Tool"
                                   #:author   (authors "Matthew Flatt" "Eli Barzilay")
-                                  #:url      "http://docs.racket-lang.org/scribble/index.html")
+                                  #:url      "https://docs.racket-lang.org/scribble/index.html")
                        (bib-entry #:key      "Rackunit"
                                   #:title    "Rackunit: Unit Testing"
                                   #:author   (authors "Noel Welsh" "Ryan Culpepper")
-                                  #:url      "http://docs.racket-lang.org/rackunit/index.html")
+                                  #:url      "https://docs.racket-lang.org/rackunit/index.html")
                        (bib-entry #:key      "LP:WEB"
                                   #:title    "Literate Programming"
                                   #:author   (authors "Donald E. Knuth")

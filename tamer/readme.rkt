@@ -255,7 +255,9 @@ are just a description @envvar{desc} and a @racket[module] named after the @tech
 
 Okay, everything is ready. Now you may want to know the @tech{digimon} in details:
 
-@margin-note*{This one is not interesting except those three @litchar{pkg-*}s defined for generating @secref{handbook-digimon}.}
+@margin-note*{This one is not interesting except those three @litchar{pkg-*}s defined for generating @secref{handbook-digimon}.
+ They affects the URLs in the generated @racketvarfont{README.md}, in order to shut the @exec{git} up, you should keep them
+ consistent among all your clones. Perhaps I need to figure out a better solution for this.}
 @tamer-racketbox[(build-path (digimon-world) "info.rkt")]
 @tamer-racketbox['info.rkt]
 
