@@ -151,7 +151,8 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                      (eval `(render (let ([scribble:doc (dynamic-require ,dependent.scrbl 'doc)])
                                       (list (struct-copy part scribble:doc [parts null])))
                                     (list ,(file-name-from-path target))
-                                    #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin #:quiet? #false))))))))
+                                    #:dest-dir ,(path-only target) #:render-mixin markdown:render-mixin
+                                    #:quiet? #false #:warn-undefined? #false))))))))
 
 (define make-native-library-rules
   (lambda []
