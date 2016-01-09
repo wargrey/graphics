@@ -144,7 +144,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                    (parameterize ([current-directory (digimon-zone)]
                                   [current-namespace (make-base-namespace)]
                                   [current-input-port /dev/eof] ; workaround, to tell scribble this is rendering to markdown
-                                  [exit-handler (thunk* (error 'make "[fatal] /~a needs a proper `exit-handler`!"
+                                  [exit-handler (thunk* (error 'make "[fatal] ~a needs a proper `exit-handler`!"
                                                                (find-relative-path (digimon-world) dependent.scrbl)))])
                      (eval `(require (prefix-in markdown: scribble/markdown-render) scribble/render
                                      (file ,(path->string (build-path (digimon-tamer) "tamer.rkt")))))
@@ -347,11 +347,11 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
           (define ./handbook (find-relative-path (digimon-world) handbook))
           (if (regexp-match? #px"\\.rkt$" handbook)
               (parameterize ([exit-handler (lambda [retcode] (when (and (integer? retcode) (<= 1 retcode 255))
-                                                               (error 'make "[error] /~a breaks ~a!" ./handbook (~n_w retcode "testcase"))))])
+                                                               (error 'make "[error] ~a breaks ~a!" ./handbook (~n_w retcode "testcase"))))])
                 (define modpath `(submod ,handbook main))
                 (when (module-declared? modpath #true)
                   (dynamic-require `(submod ,handbook main) #false)))
-              (parameterize ([exit-handler (thunk* (error 'make "[fatal] /~a needs a proper `exit-handler`!" ./handbook))])
+              (parameterize ([exit-handler (thunk* (error 'make "[fatal] ~a needs a proper `exit-handler`!" ./handbook))])
                 (eval '(require (prefix-in html: scribble/html-render) setup/xref scribble/render))
                 (eval `(render (list ,(dynamic-require handbook 'doc)) (list ,(file-name-from-path handbook))
                                #:render-mixin (lambda [%] (html:render-multi-mixin (html:render-mixin %)))
