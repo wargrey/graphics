@@ -27,7 +27,7 @@
 This module is designed for information modeling in a way like
 @deftech{@hyperlink["https://en.wikipedia.org/wiki/datalog"]{datalog}} and
 @deftech{@hyperlink["https://en.wikipedia.org/wiki/Graphviz"]{graphviz}},
-but it is not @itech{datalog} and @itech{graphviz} after all.
+but it is not @tech{datalog} and @tech{graphviz} after all.
 
 Generally speaking, you can make schema by writing declarative code,
 after that you get all the definitions that can be used in @bold{Racket}
@@ -46,7 +46,7 @@ work, nor other software engineering tools.
 @deftech{Conceptual Schema} plays a critical role on designing high quality information system, and
 I prefer @~cite[ORM] at first place to help ensure correctness, clarity, adaptability and productivity.
 
-All graphical notations at conceptual level in this @itech{handbook} are introduced by @~cite[ORM2].
+All graphical notations at conceptual level in this @tech{handbook} are introduced by @~cite[ORM2].
 For the simplicity, the old-school style is no longer taken into account.
 
 @chunk[|<conceptual schema>|
@@ -62,7 +62,7 @@ For the simplicity, the old-school style is no longer taken into account.
 @examples[#:eval tamer-schema-zone #:label #false
           digimon]
 
-@handbook-bibliography[]
+@handbook-reference[]
 
 @chunk[<schema:*>
        |<conceptual schema>|]

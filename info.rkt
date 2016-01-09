@@ -1,13 +1,12 @@
 #lang info
 
-(define collection "Digimon-Gnome")
-
+(define collection "Wisemon")
 (define version "Baby")
 
-(define build-deps '{"base" "math-lib" "typed-racket-lib" "scribble-lib" "dynext-lib"})
+(define pkg-desc "The Development Environment of the Digital World")
+(define pkg-authors '("WarGrey Ju"))
 
-(define compile-omit-paths (list "stone" "info.rkt"))
+(define compile-omit-paths (list "stone"))
 (define test-omit-paths 'all)
 
-(define pkg-desc "The Meta-Project built for developers to make life simple")
-
+(define build-deps '("base" "math-lib" "typed-racket-lib" "scribble-lib" "dynext-lib"))

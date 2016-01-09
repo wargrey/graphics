@@ -7,9 +7,9 @@
 This is an implementation of @deftech{@hyperlink["https://en.wikipedia.org/wiki/Secure_Shell#Version_2.x"]{SSH}}-2 protocol which has an
 @hyperlink["https://tools.ietf.org/html/rfc4251"]{internal architecture} with well-separated layers:
 @itemlist[#:style 'compact
-          @item{@itech[#:key "SSH-TRANS"]{The Transport Layer Protocol} provides server authentication, confidentiality, and integrity with perfect forward secrecy.}
-          @item{@itech[#:key "SSH-USERAUTH"]{The User Authentication Protocol} authenticates the client to the server.}
-          @item{@itech[#:key "SSH-CONNECT"]{The Connection Protocol} multiplexes the encrypted tunnel into several logical channels.}]
+          @item{@tech[#:key "SSH-TRANS"]{The Transport Layer Protocol} provides server authentication, confidentiality, and integrity with perfect forward secrecy.}
+          @item{@tech[#:key "SSH-USERAUTH"]{The User Authentication Protocol} authenticates the client to the server.}
+          @item{@tech[#:key "SSH-CONNECT"]{The Connection Protocol} multiplexes the encrypted tunnel into several logical channels.}]
    
 @tamer-smart-summary[]
 
@@ -62,7 +62,7 @@ The primitive datatypes are defined in @hyperlink["http://tools.ietf.org/html/rf
 provides a confidential channel over an insecure network.
 It performs server host authentication, key exchange, encryption, and integrity protection.
 It also derives a unique session id that may be used by higher-level protocols
-such as @itech{SSH-USERAUTH} and @itech{SSH-CONNECT}.
+such as @tech{SSH-USERAUTH} and @tech{SSH-CONNECT}.
 
 @tamer-action[(define (trace level message urgent session)
                 (cond [(false? (exn? urgent)) (fprintf (current-output-port) "[~a] ~a~n" level message)]
@@ -74,8 +74,8 @@ such as @itech{SSH-USERAUTH} and @itech{SSH-CONNECT}.
 
 @deftech[#:key "SSH-USERAUTH"]{@hyperlink["https://tools.ietf.org/html/rfc4252"]{The User Authentication Protocol}}
 provides a suite of mechanisms that can be used to authenticate the client user to the server.
-Individual mechanisms specified in the authentication protocol use the session id provided by the @itech{SSH-TRANS}
-and/or depend on the security and integrity guarantees of the @itech{SSH-TRANS}.
+Individual mechanisms specified in the authentication protocol use the session id provided by the @tech{SSH-TRANS}
+and/or depend on the security and integrity guarantees of the @tech{SSH-TRANS}.
 
 @handbook-scenario{The Connection Protocol}
 
@@ -90,7 +90,7 @@ The SSH client requests a server-side port to be forwarded using a global reques
           @item{direct-tcpip for client-to-server forwarded connections}
           @item{forwarded-tcpip for server-to-client forwarded connections}]
 
-@handbook-bibliography[]
+@handbook-reference[]
 
 @chunk[|<sshmon:*>|
        (require (for-syntax (only-in (submod "tamer.rkt" typed) symb0x->number)))

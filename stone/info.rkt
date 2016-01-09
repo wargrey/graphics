@@ -5,10 +5,10 @@
 #lang info
 
 (define collection "@(getenv "info.collection")")
-
 (define version "Baby")
 
 (define pkg-desc "@(getenv "info.pkg-desc")")
+(define pkg-authors '(@(getenv "info.pkg-authors")))
 
 (define compile-omit-paths (list "stone"))
 (define test-omit-paths 'all)
@@ -16,3 +16,4 @@
 (define racket-launcher-names (list "@(current-digimon)"))
 (define racket-launcher-libraries (list "digivice/@(current-digimon).rkt"))
 
+(define build-deps '("base" "math-lib" "typed-racket-lib" "scribble-lib" "dynext-lib"))

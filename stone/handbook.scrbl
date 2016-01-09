@@ -9,3 +9,4 @@
 @|#\@|tamer-smart-summary[]
 @|#\@|handbook-smart-table[]
 
+@|#\@|handbook-appendix[#:index? #true]

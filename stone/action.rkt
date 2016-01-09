@@ -13,5 +13,5 @@
   (command-line
    #:program (file-name-from-path (cadr (quote-module-path)))
    #:once-each
-   [("-v" "--version") "Print version information" (displayln "version: 0.618.")]
+   [("-v" "--version") "Print version information" (displayln "version: Baby.")]
    #:args rest-argv (displayln rest-argv)))

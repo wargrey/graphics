@@ -19,6 +19,8 @@
 
 (require (for-syntax syntax/parse))
 
+(require (for-label racket))
+
 @require{digicore.rkt}
 @require{emoji.rkt}
 @require{i18n.rkt}
@@ -70,7 +72,14 @@
     (if (false? same?)
         (apply (tamer-cites) bib bibs)
         (apply (tamer-cite) bib bibs))))
-  
+
+(define register-handbook-finalizer
+  (lambda [atexit/0]
+    (void ((curry plumber-add-flush! (current-plumber))
+           (λ [this] (with-handlers ([void void])
+                       (plumber-flush-handle-remove! this)
+                       (void (atexit/0))))))))
+
 (define handbook-title
   (lambda pre-contents
     (define gnome-stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
@@ -211,11 +220,8 @@
 
 (define-syntax (define-tamer-case stx)
   (syntax-parse stx
-    [(_ varid name (~optional (~seq #:before setup:expr)) (~optional (~seq #:after teardown:expr)) checks ...)
-     #'(tamer-record-story 'varid (delay-test (test-spec name
-                                                         #:before setup
-                                                         checks ...
-                                                         #:after teardown)))]))
+    [(_ varid name bodys ...)
+     #'(tamer-record-story 'varid (delay-test (test-spec name bodys ...)))]))
 
 (define-syntax (test-spec stx)
   (syntax-parse stx
@@ -868,6 +874,7 @@
                          [$err Output-Port]
                          [$? (Parameterof Any)]
                          [$shell (-> (-> Any * Void) Any * Any)]
+                         [register-handbook-finalizer (-> (-> Any) Void)]
                          [tamer-story->modpath (-> Path-String (U Module-Path (List* 'submod Module-Path (Listof Symbol))))]
                          [tamer-partner->modpath (->* (Path-String) ((Option Symbol)) (U Module-Path (List 'submod Module-Path Symbol)))]
                          [tamer-prove (-> Natural)]
@@ -888,12 +895,9 @@
   
   (define-syntax (define-tamer-case stx)
     (syntax-parse stx
-      [(_ varid name (~optional (~seq #:before setup:expr)) (~optional (~seq #:after teardown:expr)) checks ...)
-       #'(tamer-record-story 'varid (delay-test (test-spec name
-                                                           #:before setup
-                                                           checks ...
-                                                           #:after teardown)))]))
-  
+      [(_ varid name bodys ...)
+       #'(tamer-record-story 'varid (delay-test (test-spec name bodys ...)))]))
+
   (define-syntax (test-spec stx)
     (syntax-parse stx
       [(_ name (~optional (~seq #:before setup:expr)) (~optional (~seq #:after teardown:expr)) checks ...)

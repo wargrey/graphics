@@ -7,44 +7,19 @@
 
 @require{sugar.rkt}
 
-(define-type Info-Ref (->* [Symbol] [(-> Any)] Any))
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
 (define-type SymbolTable (HashTable Symbol Any))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
-
-(require/typed/provide setup/getinfo
-                       [get-info/full (-> Path-String
-                                          [#:namespace (Option Namespace)]
-                                          [#:bootstrap? Any]
-                                          (Option Info-Ref))])
 
 (require/typed/provide racket/fasl
                        [s-exp->fasl (case-> [-> Any Bytes]
                                             [-> Any Output-Port Void])]
                        [fasl->s-exp (-> (U Input-Port Bytes) Any)])
 
-(require/typed/provide racket/base
+(require/typed/provide racket
                        [#:opaque SIGUP exn:break:hang-up?]
                        [#:opaque SIGTERM exn:break:terminate?])
-
-(define-syntax (define-parameter/extract-info stx)
-  (syntax-case stx []
-    [(_ infodir defines ...)
-     (with-syntax* ([info-ref (format-id #'info-ref "~a" (gensym 'inforef))]
-                    [(extract ...)
-                     (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
-                       (syntax-case def-idl [: =]
-                         [([renamed-id key] : Type = def-exp)
-                          #'(define renamed-id : (Parameterof Type) (make-parameter (cast (info-ref 'key (thunk def-exp)) Type)))]
-                         [([renamed-id key] : Type)
-                          #'(define renamed-id : (Parameterof Type) (make-parameter (cast (info-ref 'key) Type)))]
-                         [(id : Type = def-exp)
-                          #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id (thunk def-exp)) Type)))]
-                         [(id : Type)
-                          #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id) Type)))]))])
-       #'(begin (define info-ref : Info-Ref (cast (get-info/full infodir) Info-Ref))
-                extract ...))]))
 
 (define digicore.rkt : Path (#%file))
 
@@ -66,7 +41,7 @@
   (make-parameter (path->string (last (drop-right (filter path? (explode-path digicore.rkt)) 2)))
                   (immutable-guard 'digimon-gnome)))
 
-(define digimon-kuzuhamon : (Parameterof Nothing String) (make-parameter "Kuzuhamon" (immutable-guard 'digimon-kuzuhamon)))
+(define digimon-kuzuhamon : (Parameterof Nothing String) (make-parameter "kuzuhamon" (immutable-guard 'digimon-kuzuhamon)))
 (define current-digimon : (Parameterof String String) (make-parameter (digimon-gnome)))
 (define current-tamer : (Parameterof Nothing String) (make-parameter (or (getenv "USER") (getenv "LOGNAME") #| daemon |# "root")))
 (define digimon-system : (Parameterof Nothing Symbol)
@@ -81,15 +56,19 @@
                           (immutable-guard 'digimon-zone)
                           (curry build-path (digimon-world))))
 
+(define-parameter/extract-info (digimon-world)
+  [pkg-institution : (Option String) = #false]
+  [pkg-domain : String = "gyoudmon.org"]
+  [pkg-idun : String = (current-tamer)])
+
 (define all-digimons : (Listof String)
-  (filter string? (let* ([top-ref : (Option Info-Ref) (get-info/full (digimon-world))]
-                         [candidates : (U (Listof String) 'All) (cond [(false? top-ref) null]
-                                                                      [else (cast (top-ref 'setup-collects (λ _ 'all)) (U (Listof String) 'All))])])
-                    (for/list : (Listof (Option String)) ([digimon (in-list (map path->string (directory-list (digimon-world) #:build? #false)))])
-                      (define info-ref (get-info/full (build-path (digimon-world) digimon))) 
-                      (and (procedure? info-ref)
-                           (or (equal? candidates 'All) (member digimon candidates))
-                           digimon)))))
+  (let* ([dirnames : (Listof String) (map path->string (directory-list (digimon-world) #:build? #false))]
+         [top-ref : (Option Info-Ref) (get-info/full (digimon-world))]
+         [candidates : (Listof String) (cond [(false? top-ref) null]
+                                             [else (cast (top-ref 'setup-collects (λ _ dirnames)) (Listof String))])])
+    (remove-duplicates (filter string? (for/list : (Listof (Option String)) ([digimon (in-list (cons (digimon-gnome) candidates))])
+                                         (define info-ref (get-info/full (build-path (digimon-world) digimon) #:bootstrap? #true)) 
+                                         (and (procedure? info-ref) digimon))))))
 
 (void (unless (member (digimon-world) (current-library-collection-paths))
         (current-library-collection-paths (cons (build-path (digimon-world)) (current-library-collection-paths)))

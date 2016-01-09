@@ -39,7 +39,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
      (thunk (parameterize* ([current-digimon "@(current-digimon)"]
                             [current-directory (digimon-digivice)]
                             [current-namespace (make-base-namespace)])
-              (if (or (null? arglist) (string=? "help" (car arglist)))
+              (if (null? arglist)
                   (show-help-and-exit)
                   (let ([act.rkt : Path-String (format "~a/~a.rkt" digivice (car arglist))])
                     (if (false? (file-exists? act.rkt))
