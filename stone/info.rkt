@@ -16,4 +16,4 @@
 (define racket-launcher-names (list "@(current-digimon)"))
 (define racket-launcher-libraries (list "digivice/@(current-digimon).rkt"))
 
-(define build-deps '("base" "math-lib" "typed-racket-lib" "scribble-lib" "dynext-lib"))
+(define build-deps '("base" "math-lib" "typed-racket-lib" "scribble-lib" "rackunit-lib"))

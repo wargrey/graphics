@@ -9,4 +9,4 @@
 (define compile-omit-paths (list "stone"))
 (define test-omit-paths 'all)
 
-(define build-deps '("base" "math-lib" "typed-racket-lib" "scribble-lib" "dynext-lib"))
+(define build-deps '("base" "math-lib" "typed-racket-lib" "scribble-lib" "rackunit-lib" "dynext-lib"))
