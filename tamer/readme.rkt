@@ -228,7 +228,7 @@ the @tech{baby} @tech{digimon}.}
 This is the template of the user @deftech{action}, or @deftech{subcommand}. The most interesting things
 are just a description @envvar{desc} and a @racket[module] named after the @tech{digivice}.
 
-@tamer-note['birth-digimon]{The @tech[#:key "digimon zone"]{@bold{zone hierarchy}} @|what-a-pity|}
+@tamer-note['birth-digimon]{The @tech[#:key "digimon zone"]{@bold{zone hierarchy}} @|what-a-pity|.}
 @chunk[|<testsuite: birth a baby digimon>|
        (test-suite (format "make ++only ~a --dry-run --touch" babymon-name)
                    #:before (thunk ((curry with-input-from-string "Babymon")
@@ -253,12 +253,21 @@ are just a description @envvar{desc} and a @racket[module] named after the @tech
 
 @handbook-scenario{Talk with Your @tech{Baby} @tech{Digimon}}
 
-Okay, everything is ready. Now you may want to know the @tech{digimon} in details:
+Okay, everything is ready. Now you may want to know the @tech{Digital World} and @tech{digimon} in details:
 
-@margin-note*{This one is not interesting except those three @litchar{pkg-*}s defined for generating @secref{handbook-digimon}.
- They affects the URLs in the generated @racketvarfont{README.md}, in order to shut the @exec{git} up, you should keep them
- consistent among all your clones. Perhaps I need to figure out a better solution for this.}
 @tamer-racketbox[(build-path (digimon-world) "info.rkt")]
+
+@margin-note*{Although @~cite[(in-bib racket-doc ", info.rkt")] is @bold{not} designed as a general purpose configuration file per se.
+ Nonetheless, its highly constrained form makes it a great out-of-box solution. You know @cite{Racket} is homoiconic in natural,
+ loading an unconstrained @racket[module] directly is dangerous.}
+@itemlist[
+ @nested{Notes about the @~cite[(in-bib racket-doc ", info.rkt")] of a @tech{digital world}
+  @itemlist[
+ @item{Those three @litchar{pkg-*}s are defined for generating @secref{handbook-digimon}. @linebreak[]
+    @smaller{They also affects the URLs in the generated @racketvarfont{README.md}, in order to shut the @exec{git} up, you should keep them
+     consistent among all your clones. Perhaps I need to figure out a better solution for this.}}
+ @item{It may contain custom settings for @tech{digimons} since @tech{digimon} as a component can be shared by other @tech{digital world}.}]}]
+
 @tamer-racketbox['info.rkt]
 
 @margin-note{These @tech{@bold{rules}} @|what-a-pity|.}
