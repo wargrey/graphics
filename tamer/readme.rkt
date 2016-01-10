@@ -203,21 +203,9 @@ Then we have its @deftech[#:key "digimon zone"]{zone hierarchy}:
                                                         (tamer #(handbook.scrbl "[important, or you will blind to your work]" Red)
                                                                #(tamer.rkt "[important, it re-exports all you need for handbook.scrbl]" OrangeRed)
                                                                (robots.txt . "[for online handbook, leave it there even if it is empty]"))
-                                                        (stone (#(tongue "[optional]") English.rktl
-                                                                                       Simplified-Chinese.rktl)))))
-                           #:pict (let ([substyle '(subscript large-script)]
-                                        [ftext (lambda [t [s null] [c #false]]
-                                                 (define color (send the-color-database find-color (~a c)))
-                                                 (text (~a t) (if color (cons color s) s) 12))])
-                                    (letrec ([value->pict (match-lambda
-                                                            [(or (box filename) (vector filename))
-                                                             (ftext filename '(italic))]
-                                                            [(or (cons filename info) (vector filename info))
-                                                             (hc-append 4 (value->pict filename) (ftext info substyle 'ForestGreen))]
-                                                            [(vector filename info color)
-                                                             (ht-append 4 (value->pict filename) (ftext info substyle color))]
-                                                            [val (ftext val)])])
-                                      value->pict)))]
+                                                        (stone (#(tongue "[optional]")
+                                                                English.rktl
+                                                                Simplified-Chinese.rktl))))))]
 
 Since all non-italic filenames and dirnames are significant, only @racketvarfont{babymon/action.rkt} is our goal here,
 then hence the @racketvarfont{babymon.rkt}. @bold{Note that in this example the target @tech{digivice} is named after

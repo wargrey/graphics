@@ -4,7 +4,6 @@
 (provide (all-from-out racket "digicore.rkt" "emoji.rkt" "i18n.rkt" rackunit pict pict/code))
 (provide (all-from-out scribble/core scribble/manual scriblib/autobib scribble/example scribble/html-properties))
 
-(require (only-in racket/draw the-color-database))
 (require racket/sandbox)
 (require rackunit)
 
@@ -499,46 +498,51 @@
                                                         (string-join contents (string #\newline)))))))))))
 
 (define filesystem-tree
-  (let ([hint (pict-height (text ""))] [ghost (blank 0)] [text->pict (compose1 text ~a)])
-    (lambda [forest #:pict [ptext text->pict] #:padding-space [gapsize 8] #:padding-x [offset 12] #:padding-box [delta 8]
-                    #:dir-color [cdir 'LightSkyBlue] #:file-color [cfile 'Ghostwhite] #:line-color [cline 'Gainsboro]]
+  (let ([hint (pict-height (text ""))] [phantom (blank 0)])
+    (lambda [tree #:value-pict [value->pict filesystem-value->pict]
+             #:padding-space [gapsize 8] #:padding-x [offset 12] #:padding-box [delta 8]
+             #:dir-color [cdir 'LightSkyBlue] #:file-color [cfile 'Ghostwhite] #:line-color [cline 'Gainsboro]]
       (define yoffset (* 0.5 (+ delta hint)))
       (define xy-find (lambda [p f] (let-values ([(x y) (lt-find p f)]) (values (+ x offset) (+ y yoffset)))))
-      (define (node->pict v color)
-        (define content (ptext v))
+      (define (leaf->pict v color)
+        (define content (value->pict v))
         ((curryr cc-superimpose content)
          (filled-rounded-rectangle #:border-color (~a cline) #:color (~a color)
                                    (+ delta delta (pict-width content))
                                    (+ delta (pict-height content)))))
-      (define (tree->pict nodes)
-        (for/fold ([head (node->pict (car nodes) cdir)])
-                  ([node (in-list (cdr nodes))])
-          (define body (filesystem-tree node #:padding-space gapsize #:padding-x offset #:padding-box delta
-                                        #:pict ptext #:dir-color cdir #:file-color cfile #:line-color cline))
+      (define (branch->pict nodes)
+        (for/fold ([root (leaf->pict (car nodes) cdir)])
+                  ([subtree (in-list (cdr nodes))])
+          (define body (filesystem-tree subtree #:value-pict value->pict
+                                        #:padding-space gapsize #:padding-x offset #:padding-box delta
+                                        #:dir-color cdir #:file-color cfile #:line-color cline))
           (define child (pin-line #:under? #true #:color (~a cline)
-                                  (ht-append (* 4 gapsize) ghost body)
-                                  ghost xy-find body xy-find))
+                                  (ht-append (* 4 gapsize) phantom body)
+                                  phantom xy-find body xy-find))
           (pin-line #:under? #true #:color (~a cline)
-                    (vl-append gapsize head child)
-                    head xy-find child xy-find)))
-      (cond [(null? forest) ghost]
-            [(list? forest) (tree->pict forest)]
-            [else (node->pict forest cfile)]))))
+                    (vl-append gapsize root child)
+                    root xy-find child xy-find)))
+      (cond [(null? tree) phantom]
+            [(list? tree) (branch->pict tree)]
+            [else (leaf->pict tree cfile)]))))
 
 
 
 (module digitama racket
-  (provide (all-defined-out) quote-module-path)
-
+  (provide (all-defined-out) quote-module-path the-color-database)
+  
   (require rackunit)
   (require racket/undefined)
   (require syntax/location)
   (require setup/xref)
   (require setup/dirs)
-  (require scribble/core)
   (require scribble/xref)
   (require scribble/manual)
+  (require (except-in scribble/core table))
 
+  (require pict)
+  (require (only-in racket/draw the-color-database))
+  
   (require "digicore.rkt")
   (require "emoji.rkt")
 
@@ -709,6 +713,21 @@
              (cons (fix (car val)) (fix (cdr val)))]
             [else val])))
 
+  (define filesystem-value->pict
+    (let ([substyle '(subscript large-script)]
+          [ftext (lambda [t [s null] [c #false]]
+                   (define color (send the-color-database find-color (~a c)))
+                   (text (~a t) (if color (cons color s) s) 12))])
+      (letrec ([value->pict (match-lambda
+                              [(or (box filename) (vector filename))
+                               (ftext filename '(italic))]
+                              [(or (cons filename info) (vector filename info))
+                               (hc-append 4 (value->pict filename) (ftext info substyle 'ForestGreen))]
+                              [(vector filename info color)
+                               (ht-append 4 (value->pict filename) (ftext info substyle color))]
+                              [val (ftext val)])])
+        value->pict)))
+  
   (define display-failure
     (lambda [result [color 'darkred] #:indent [headspace ""]]
       (define echo (curry eechof #:fgcolor color "~a»» ~a: ~s~n" headspace))
