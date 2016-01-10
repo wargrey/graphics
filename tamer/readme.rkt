@@ -255,7 +255,7 @@ are just a description @envvar{desc} and a @racket[module] named after the @tech
 
 Okay, everything is ready. Now you may want to know the @tech{Digital World} and @tech{digimon} in details:
 
-@tamer-racketbox[(build-path (digimon-world) "info.rkt")]
+@tamer-racketbox/region[(build-path (digimon-world) "info.rkt") #:pxend #px"Preferences for digimons"]
 
 @margin-note*{Although @~cite[(in-bib racket-doc ", info.rkt")] is @bold{not} designed as a general purpose configuration file per se.
  Nonetheless, its highly constrained form makes it a great out-of-box solution. You know @cite{Racket} is homoiconic in natural,

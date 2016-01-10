@@ -116,7 +116,7 @@
 (define handbook-reference
   (lambda []
     (list ((tamer-reference) #:tag (format "~a-reference" (path-replace-suffix (tamer-story->tag (tamer-story)) ""))
-                                #:sec-title (speak 'handbook-reference))
+                             #:sec-title (speak 'handbook-reference))
           (let ([zone-snapshots (filter-not false? (list (tamer-zone)))])
             (make-traverse-block (thunk* (for-each close-eval zone-snapshots))))
           (tamer-story #false))))
@@ -474,6 +474,7 @@
                    (lambda [in.rkt]
                      (let read-next ([lang #false] [line0 0] [contents null] [end 0])
                        (define line (read-line in.rkt))
+                       ; if it does not work, please check whether your pxstart and pxend are pregexps first.
                        (cond [(eof-object? line)
                               (if (zero? end)
                                   (values line0 (cons lang (reverse contents)))
