@@ -68,7 +68,22 @@
                                              [else (cast (top-ref 'setup-collects (λ _ dirnames)) (Listof String))])])
     (remove-duplicates (filter string? (for/list : (Listof (Option String)) ([digimon (in-list (cons (digimon-gnome) candidates))])
                                          (define info-ref (get-info/full (build-path (digimon-world) digimon) #:bootstrap? #true)) 
-                                         (and (procedure? info-ref) digimon))))))
+                                         (and (procedure? info-ref)
+                                              ($info+ digimon (thunk info-ref))
+                                              digimon))))))
+
+(define #%info : (->* (Symbol) ((Option (-> Any)) #:digimon String) Any)
+  (lambda [key [defval #false] #:digimon [digimon (current-digimon)]]
+    (define (try-setinfo)
+      (define info-ref (get-info/full (build-path (digimon-world) digimon) #:bootstrap? #true))
+      (if (procedure? info-ref) info-ref (error '#%info "on info.rkt found for ~a" digimon)))
+    (define info-ref : Info-Ref ($info+ digimon try-setinfo))
+    (info-ref key (or defval (thunk (error '#%info "no info for ~a" key))))))
+
+(define #%digimon : (->* () (String) String)
+  (lambda [[digimon (current-digimon)]]
+    (define name (#%info 'collection #:digimon digimon))
+    (if (string? name) name digimon)))
 
 (void (unless (member (digimon-world) (current-library-collection-paths))
         (current-library-collection-paths (cons (build-path (digimon-world)) (current-library-collection-paths)))
@@ -214,8 +229,12 @@
 (module digitama typed/racket
   (provide (all-defined-out))
 
+  (require "sugar.rkt")
+  
   (define-type Term-Color (Option (U String Symbol Byte)))
 
+  (define-strdict info : Info-Ref)
+  
   (define vim-colors : (HashTable String Byte)
     #hash(("black" . 0) ("darkgray" . 8) ("darkgrey" . 8) ("lightgray" . 7) ("lightgrey" . 7) ("gray" . 7) ("grey" . 7) ("white" . 15)
                         ("darkred" . 1) ("darkgreen" . 2) ("darkyellow" . 3) ("darkblue" . 4) ("brown" . 5) ("darkmagenta" . 5) ("darkcyan" . 6)

@@ -127,13 +127,13 @@
                 (define ($id#) : Index ((inst hash-count String Type) %id))
                 (define ($id? [key : String]) : Boolean (hash-has-key? %id key))
                 (define ($id- [key : String]) : Void ((inst hash-remove! String Type) %id key))
-                (define $id+ : (-> String (U Type (-> Type)) Type)
+                (define $id+ : (-> String (-> Type) Type)
                   (lambda [key setval]
-                    ((inst hash-ref! String Type) %id key (if (procedure? setval) setval (thunk setval)))))
-                (define $id : (case-> [String -> Type] [String (U Type (-> Type)) -> Type])
+                    ((inst hash-ref! String Type) %id key setval)))
+                (define $id : (case-> [String -> Type] [String (-> Type) -> Type])
                   (case-lambda
                     [(key) ((inst hash-ref String Type Type) %id key)]
-                    [(key defval) ((inst hash-ref String Type Type) %id key (if (procedure? defval) defval (thunk defval)))]))))]))
+                    [(key defval) ((inst hash-ref String Type Type) %id key defval)]))))]))
 
 (define-syntax (define-symdict stx)
   (syntax-case stx [:]
@@ -155,13 +155,13 @@
                 (define ($id? [key : Symbol]) : Boolean (hash-has-key? %id key))
                 (define (!id+ [key : Symbol] [val : Type]) : Void ((inst hash-set! Symbol Type) %id key val))
                 (define ($id- [key : Symbol]) : Void ((inst hash-remove! Symbol Type) %id key))
-                (define $id+ : (-> Symbol (U Type (-> Type)) Type)
+                (define $id+ : (-> Symbol (-> Type) Type)
                   (lambda [key setval]
-                    ((inst hash-ref! Symbol Type) %id key (if (procedure? setval) setval (thunk setval)))))
-                (define $id : (case-> [Symbol -> Type] [Symbol (U Type (-> Type)) -> Type])
+                    ((inst hash-ref! Symbol Type) %id key setval)))
+                (define $id : (case-> [Symbol -> Type] [Symbol (-> Type) -> Type])
                   (case-lambda
                     [(key) ((inst hash-ref Symbol Type Type) %id key)]
-                    [(key defval) ((inst hash-ref Symbol Type Type) %id key (if (procedure? defval) defval (thunk defval)))]))))]))
+                    [(key defval) ((inst hash-ref Symbol Type Type) %id key defval)]))))]))
 
 (define-syntax (define/extract-symtable stx)
   (syntax-case stx []
@@ -198,5 +198,7 @@
                           #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id (thunk def-exp)) Type)))]
                          [(id : Type)
                           #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id) Type)))]))])
-       #'(begin (define info-ref : Info-Ref (cast (get-info/full infodir) Info-Ref))
+       #'(begin (define info-ref : Info-Ref
+                  (let ([ref (get-info/full infodir)])
+                    (if (false? ref) (throw [exn:fail:filesystem] "info.rkt not found in ~a" infodir) ref)))
                 extract ...))]))

@@ -51,6 +51,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
 (require setup/dirs)
 
 (require "digitama/digicore.rkt")
+(require (submod "digitama/digicore.rkt" digitama))
 
 (define current-make-real-targets (make-parameter null))
 (define current-make-phony-goal (make-parameter #false))
@@ -125,12 +126,11 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
 
 (define make-implicit-rkt-rules
   (lambda []
-    (define d-info (get-info/full #:bootstrap? #true (digimon-zone)))
     (define stone/digivice.rkt (parameterize ([current-digimon (digimon-gnome)]) (build-path (digimon-stone) "digivice.rkt")))
     (filter-map (lambda [dgvc] (let ([dgvc.rkt (path->string (build-path (digimon-zone) dgvc))])
                                  (and (directory-exists? (path-replace-suffix dgvc.rkt #""))
                                       (list dgvc.rkt (list stone/digivice.rkt) (curry make-digivice stone/digivice.rkt)))))
-                (d-info 'racket-launcher-libraries (thunk null)))))
+                (#%info 'racket-launcher-libraries (thunk null)))))
 
 (define make-implicit-dist-rules
   (lambda []
@@ -257,7 +257,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
     
     (do-make (make-native-library-rules))
     (do-make (make-implicit-rkt-rules))
-    (compile-directory (digimon-zone) (get-info/full #:bootstrap? #true (digimon-zone)))
+    (compile-directory (digimon-zone) ($info (current-digimon)))
 
     (for ([submake (in-list submakes)])
       (define modpath `(submod ,submake premake))
@@ -265,7 +265,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
         (dynamic-require modpath #false)
         ;;; the next two lines always useless but who knows
         (do-make (make-native-library-rules))
-        (compile-directory (digimon-zone) (get-info/full #:bootstrap? #true (digimon-zone)))))
+        (compile-directory (digimon-zone) ($info (current-digimon)))))
     
     (do-make (make-implicit-dist-rules))
 
@@ -286,7 +286,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
       (when (module-declared? modpath #true)
         (dynamic-require modpath #false)))
     
-    (make/proc (list (list (digimon-zone) null (thunk '|I don't know how to make all these fucking files|)))
+    (make/proc (list (list (digimon-zone) null (thunk '|I don't know how to make all these files|)))
                (current-make-real-targets))
 
     (for ([submake (in-list submakes)])
@@ -335,7 +335,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
     (when (directory-exists? (digimon-tamer))
       (let ([rules (map hack-rule (append (make-native-library-rules) (make-implicit-rkt-rules)))])
         (unless (null? rules) (make/proc rules (map car rules))))
-      (compile-directory (digimon-zone) (get-info/full #:bootstrap? #true (digimon-zone)))
+      (compile-directory (digimon-zone) ($info (current-digimon)))
       
       (for ([handbook (in-list (if (null? (current-make-real-targets))
                                    (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))
@@ -363,9 +363,9 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
 (define create-zone
   (lambda []
     (define gnome-stone (parameterize ([current-digimon (digimon-gnome)]) (digimon-stone)))
-    (for ([prompt (in-list (list "collection"      "pkg-desc"              "pkg-authors"))]
+    (for ([prompt (in-list (list 'collection       'pkg-desc               'pkg-authors))]
           [defval (in-list (list (current-digimon) "[Missing Description]" "\"WarGrey Ju\""))])
-      (echof #:fgcolor 'green "info.rkt: Please input the '~a [~a]: " prompt defval)
+      (echof #:fgcolor 'green "info.rkt: Please input the ~v [~a]: " prompt defval)
       (putenv (format "info.~a" prompt)
               (let ([line (read-line)])
                 (cond [(or (eof-object? line) (regexp-match? #px"^\\s*$" line)) defval]
@@ -377,6 +377,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
       (with-output-to-file (build-path dest src) #:exists 'error
         (thunk (dynamic-require (build-path gnome-stone src) #false))))
     (copy-file (build-path gnome-stone "robots.txt") (build-path (digimon-tamer) "robots.txt") #false)
+    (#%info 'collection) ; cause this new digimon to be saved into the info database mannually
     (unless (getenv "taming")
       (define reponame (format "digital-world/~a" (current-digimon)))
       (echof #:fgcolor 'green "github: Please input the full repository name [~a]: " reponame)

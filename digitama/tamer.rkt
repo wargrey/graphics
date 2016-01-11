@@ -24,8 +24,6 @@
 @require{emoji.rkt}
 @require{i18n.rkt}
 
-(define #%info (get-info/full (digimon-zone)))
-(define #%digimon (let ([name (#%info 'collection)]) (if (symbol? name) (current-digimon) name)))
 (define #%handbook (seclink "tamer-book" (italic "Handbook")))
 
 (define $out (open-output-bytes '/dev/tamer/stdout))
@@ -92,7 +90,7 @@
                      (list (hyperlink (~github (current-digimon)) (string house-garden#))
                            (hyperlink (~github (digimon-gnome)) (subscript (string cat#)))))
                  (cond [(false? (null? pre-contents)) pre-contents]
-                       [else (list (literal (speak 'tamer-handbook) ":") ~ #%digimon)]))
+                       [else (list (literal (speak 'tamer-handbook) ":") ~ (#%digimon))]))
           (apply author (#%info 'pkg-authors (const (list (pkg-idun))))))))
 
 (define-syntax (handbook-story stx)
@@ -123,16 +121,13 @@
 (define handbook-appendix
   (let ([digimons (itemlist #:style "HBdigimon"
                             (for/list ([digimon (in-list all-digimons)])
-                              (parameterize ([current-directory (build-path (digimon-world) digimon)]
-                                             [current-namespace (make-base-namespace)])
-                                (define info-ref (get-info/full (current-directory) #:bootstrap? #true #:namespace (current-namespace)))
+                              (parameterize ([current-digimon digimon])
                                 (define titlelem (if (string=? digimon (digimon-gnome)) bold elem))
-                                (define diginame (let ([c (info-ref 'collection)]) (if (symbol? c) digimon c)))
-                                (define devs (content->string (element-content (apply authors (info-ref 'pkg-authors (const `(,(pkg-idun))))))))
+                                (define devs (content->string (element-content (apply authors (#%info 'pkg-authors (thunk `(,(pkg-idun))))))))
                                 (define altext (let ([org (pkg-institution)]) (if org (~a org #\( devs #\)) devs)))
-                                (item (deftech #:key diginame (string paw#) ~
+                                (item (deftech #:key (#%digimon) (string paw#) ~
                                         (hyperlink #:style (make-style #false (list (hover-property (~a "by " altext))))
-                                                   (~url digimon) (titlelem diginame ":" ~ (info-ref 'pkg-desc))))))))]
+                                                   (~url digimon) (titlelem (#%digimon) ":" ~ (#%info 'pkg-desc))))))))]
         [entries (list (bib-entry #:key      "Racket"
                                   #:title    "Reference: Racket"
                                   #:author   (authors "Matthew Flatt" "PLT")
@@ -310,7 +305,7 @@
                                    (italic (seclink "tamer-book" (string open-book#)) ~
                                            (~a "Behaviors in " (tamer-story->tag story-snapshot)))
                                    (italic (string books#) ~
-                                           (~a "Behaviors of " #%digimon)))
+                                           (~a "Behaviors of " (#%digimon))))
                                (let ([base (if (module-path? story-snapshot)
                                                (story-ref (tamer-story->tag story-snapshot))
                                                (for/list ([story (in-list (reverse (hash-ref handbook-stories books# null)))])
@@ -889,7 +884,6 @@
   (require "i18n.rkt")
 
   (require/typed/provide (submod "..")
-                         [#%info Info-Ref]
                          [$out Output-Port]
                          [$err Output-Port]
                          [$? (Parameterof Any)]

@@ -53,10 +53,10 @@ Welcome to the @deftech{@italic{@hyperlink["https://github.com/digital-world"]{D
  @item{@deftech{@bold{tamer}} holds the @|#%handbook|. Namely, it works like @tt{test}.}
  @item{@deftech{@bold{digitama}} is the egg of @tech{digimons}. Namely, sources within it are @bold{private} to others.}
  @nested{@deftech{@bold{stone}} stores immutable metadata files, configuration files and ancient sources to be translated.
-    Yes, it@literal{'}s the @italic{Rosetta Stone} and works like @tt{etc}.
+    Yes, it@literal{'}s the @italic{Rosetta Stone} and works like @tt{share}.
     @itemlist[@item{@deftech{@bold{tongue}} stores internationalization resources.}]}]}]
 
-This is @tech[#%digimon], a @tech{digimon} whose duty is helping developers construct the @tech{Digital World};
+This is @tech[(#%digimon)], a @tech{digimon} whose duty is helping developers construct the @tech{Digital World};
 The term @deftech{@bold{Architecture}} is all about designing rules. Therefore, I am going to introduce the killer features,
 conventions and @tech{rules} to you hacker heroes via checking the @deftech{building system} itself.
 
@@ -246,7 +246,7 @@ Okay, everything is ready. Now you may want to know the @tech{Digital World} and
 @tamer-racketbox/region[(build-path (digimon-world) "info.rkt") #:pxend #px"Preferences for digimons"]
 
 @margin-note*{Although @~cite[(in-bib racket-doc ", info.rkt")] is @bold{not} designed as a general purpose configuration file per se.
- Nonetheless, its highly constrained form makes it a great out-of-box solution. You know @cite{Racket} is homoiconic in natural,
+ Nonetheless, its highly constrained form makes it a great out-of-box solution. You know @cite{Racket} is homoiconic by nature,
  loading an unconstrained @racket[module] directly is dangerous.}
 @itemlist[
  @nested{Notes about the @~cite[(in-bib racket-doc ", info.rkt")] of a @tech{digital world}
@@ -263,7 +263,7 @@ Okay, everything is ready. Now you may want to know the @tech{Digital World} and
 @itemlist[
  @nested{@deftech{Rules} in @~cite[(in-bib racket-doc ", info.rkt")] of a @tech{digimon} in the @tech{Digital World}
   @itemlist[
- @item{@tech{digimon} should have an explicit name, even if the name is the same as its directory.}
+ @item{@tech{digimon} should have an name explicitly, even if the name is the same as its directory.}
  @nested{@tech{digimon} should have a @deftech{stage}-like version name rather than the numeric one.
     @itemlist[@item{@bold{@deftech{Baby}}: The 1st stage of @italic{digimon evolution} hatching straightly from her @tech{digitama}.
                    Sounds like @tt{Alpha Version}.}
@@ -332,7 +332,7 @@ the @cite{LP:Issues}.
  @racket[test-suite], then it will do cleaning before performing the tests, hence the unexpected terminating
  of building this @bold{@|#%handbook|}. However this terrible termination will never show up with these two alternatives.}
 
-Finally, the @#%handbook itself is also constructed by @tech[#%digimon], which means it may fail and
+Finally, the @#%handbook itself is also constructed by @tech[(#%digimon)], which means it may fail and
 hence two more options both of which produces the @~cite[hspec] style report:
 
 @(itemlist #:style 'compact
