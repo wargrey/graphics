@@ -16,7 +16,9 @@
 
 (module typed typed/racket
   (provide (all-defined-out))
+  (provide (all-from-out "../digitama/digicore.rkt"))
   (provide (all-from-out (submod "../../@(digimon-gnome)/digitama/tamer.rkt" typed)))
-  
+
+  (require "../digitama/digicore.rkt")
   (require (submod "../../@(digimon-gnome)/digitama/tamer.rkt" typed)))
 

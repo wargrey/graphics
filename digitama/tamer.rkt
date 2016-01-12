@@ -552,11 +552,11 @@
 
   (define skip
     (lambda [fmt . arglist]
-      (raise (exn:fail:unsupported (apply format fmt arglist)))))
+      (raise (exn:fail:unsupported (apply format fmt arglist) (current-continuation-marks)))))
 
   (define todo
     (lambda [fmt . arglist]
-      (raise (exn:fail:unsupported (apply format fmt arglist)))))
+      (raise (exn:fail:unsupported (apply format fmt arglist) (current-continuation-marks)))))
   
   (define tamer-story (make-parameter #false))
   (define tamer-cite (make-parameter void))
