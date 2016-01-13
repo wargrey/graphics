@@ -146,7 +146,7 @@
                                   #:title    "Literate Programming"
                                   #:author   (authors "Donald E. Knuth")
                                   #:date     "1984"
-                                  #:location (journal-location "The Computer Journal"  #:pages '(1 15) #:number "10.1093/comjnl/27.2.97")
+                                  #:location (journal-location "The Computer Journal" #:number "10.1093/comjnl/27.2.97")
                                   #:url      "http://www.literateprogramming.com/knuthweb.pdf")
                        (bib-entry #:key      "LP:Issues"
                                   #:title    "Literate Programming - Issues and Problems"
