@@ -189,11 +189,23 @@
      (with-syntax* ([info-ref (format-id #'info-ref "~a" (gensym 'inforef))]
                     [(extract ...)
                      (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
-                       (syntax-case def-idl [: =]
+                       (syntax-case def-idl [: = =>]
+                         [([renamed-id key] : Type = def-exp => [fvalue ...])
+                          #'(define renamed-id : (Parameterof Type) (make-parameter (match (info-ref 'key (thunk def-exp)) fvalue ...)))]
+                         [([renamed-id key] : Type => [fvalue ...] = def-exp)
+                          #'(define renamed-id : (Parameterof Type) (make-parameter (match (info-ref 'key void) fvalue ... [(? void?) def-exp])))]
+                         [([renamed-id key] : Type => [fvalue ...])
+                          #'(define renamed-id : (Parameterof Type) (make-parameter (match (info-ref 'key void) fvalue ...)))]
                          [([renamed-id key] : Type = def-exp)
                           #'(define renamed-id : (Parameterof Type) (make-parameter (cast (info-ref 'key (thunk def-exp)) Type)))]
                          [([renamed-id key] : Type)
                           #'(define renamed-id : (Parameterof Type) (make-parameter (cast (info-ref 'key) Type)))]
+                         [(id : Type = def-exp => [fvalue ...])
+                          #'(define id : (Parameterof Type) (make-parameter (match (info-ref 'id (thunk def-exp)) fvalue ...)))]
+                         [(id : Type => [fvalue ...] = def-exp)
+                          #'(define id : (Parameterof Type) (make-parameter (match (info-ref 'id void) fvalue ... [(? void?) def-exp])))]
+                         [(id : Type => [fvalue ...])
+                          #'(define id : (Parameterof Type) (make-parameter (match (info-ref 'id void) fvalue ...)))]
                          [(id : Type = def-exp)
                           #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id (thunk def-exp)) Type)))]
                          [(id : Type)
