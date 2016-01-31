@@ -34,6 +34,7 @@
 (define /dev/stdin : Input-Port (current-input-port))
 (define /dev/stdout : Output-Port (current-output-port))
 (define /dev/stderr : Output-Port (current-error-port))
+(define /dev/log : Logger (current-logger))
 (define /dev/eof : Input-Port ((cast open-input-bytes (-> Bytes Symbol Input-Port)) #"" '/dev/null))
 (define /dev/null : Output-Port ((cast open-output-nowhere (-> Symbol Output-Port)) '/dev/null))
 
