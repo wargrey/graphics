@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 (provide (except-out (all-from-out "../digitama/tamer.rkt")
-                     exn:break:hang-up? exn:break:terminate?))
+                     exn:break:hang-up? exn:break:terminate? vector-set-performance-stats!))
 
 ;;; To force makefile.rkt counting the required file
 @require{../digitama/tamer.rkt}

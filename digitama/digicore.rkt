@@ -1,15 +1,17 @@
 #lang at-exp typed/racket
 
 (provide (all-defined-out) Term-Color vim-colors)
-(provide (all-from-out "sugar.rkt"))
+(provide (all-from-out "sugar.rkt" "format.rkt"))
 
 (require (for-syntax racket/syntax))
 
 @require{sugar.rkt}
+@require{format.rkt}
 
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
 (define-type SymbolTable (HashTable Symbol Any))
+(define-type Racket-Place-Status (Vector Fixnum Fixnum Fixnum Natural Natural Natural Natural Natural Fixnum Fixnum Natural Natural))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
 
 (require/typed/provide racket/fasl
@@ -19,7 +21,13 @@
 
 (require/typed/provide racket
                        [#:opaque SIGUP exn:break:hang-up?]
-                       [#:opaque SIGTERM exn:break:terminate?])
+                       [#:opaque SIGTERM exn:break:terminate?]
+                       [vector-set-performance-stats! (-> Racket-Place-Status (Option Thread) Void)])
+
+(require/typed/provide racket/date
+                       [current-date (-> date)] ;;; should be date*
+                       [date-display-format (Parameterof Symbol)]
+                       [date->string (-> date Boolean String)])
 
 (define digicore.rkt : Path (#%file))
 
@@ -208,14 +216,6 @@
   (lambda [sexp [ns (current-namespace)]]
     (call-with-values (thunk (eval sexp ns)) void)))
 
-(define ~n_w : (-> Nonnegative-Integer String String)
-  (lambda [count word]
-    (format "~a ~a" count (plural count word))))
-
-(define ~w=n : (-> Nonnegative-Integer String String)
-  (lambda [count word]
-    (format "~a=~a" (plural count word) count)))
-
 (define echof : (-> String [#:fgcolor Term-Color] [#:bgcolor Term-Color] [#:attributes (Listof Symbol)] Any * Void)
   (lambda [msgfmt #:fgcolor [fg #false] #:bgcolor [bg #false] #:attributes [attrs null] . vals]
     (define rawmsg (apply format msgfmt vals))
@@ -259,13 +259,7 @@
                                                   [else (error 'tarminal-colorize "Unsupported Terminal Attribute: ~a" attr)]))
                                               "^;" "" #:all? #false)
                               (if (false? fg) 39 (color-code (string-downcase (format "~a" fg))))
-                              (if (false? bg) 49 (color-code (string-downcase (format "~a" bg)) #:bgcolor? #true))))))
-  
-  (define plural : (-> Nonnegative-Integer String String)
-    (lambda [n word]
-      (define dict : (HashTable String String) #hash(("story" . "stories") ("Story" . "Stories")))
-      (cond [(= n 1) word]
-            [else (hash-ref dict word (λ _ (string-append word "s")))]))))
+                              (if (false? bg) 49 (color-code (string-downcase (format "~a" bg)) #:bgcolor? #true)))))))
 
 (require (submod "." digitama))
 
