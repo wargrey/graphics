@@ -20,7 +20,7 @@
   (lambda [% #:precision [prcs '(= 2)]]
     (string-append (~r (fl* 100.0 %) #:precision prcs) "%")))
 
-(define ~uptime : (-> Positive-Fixnum String)
+(define ~uptime : (-> Nonnegative-Fixnum String)
   (let ([~t : (-> Natural String) (λ [n] (if (< n 10) (string-append "0" (number->string n)) (number->string n)))])
     (lambda [s]
       (let*-values ([(d s) (quotient/remainder s 86400)]
