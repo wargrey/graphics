@@ -1,44 +1,49 @@
 #lang at-exp typed/racket
 
 (provide (all-defined-out))
+(provide (all-from-out racket/flonum racket/fixnum))
 
 @require{sugar.rkt}
 
-(define ~n_w : (-> Nonnegative-Integer String String)
+(require racket/flonum)
+(require racket/fixnum)
+
+(define ~n_w : (-> Natural String String)
   (lambda [count word]
     (format "~a ~a" count (plural count word))))
 
-(define ~w=n : (-> Nonnegative-Integer String String)
+(define ~w=n : (-> Natural String String)
   (lambda [count word]
     (format "~a=~a" (plural count word) count)))
 
-(define ~t : (-> Natural Natural String)
-  (lambda [n w]
-    (~r #:min-width w #:pad-string "0" n)))
-
 (define ~% : (-> Flonum [#:precision (U Integer (List '= Integer))] String)
   (lambda [% #:precision [prcs '(= 2)]]
-    (~r (* 100.0 (max 0 %)) #:precision prcs)))
+    (string-append (~r (fl* 100.0 %) #:precision prcs) "%")))
 
-(define ~uptime : (-> Natural String)
-  (lambda [s]
-    (let*-values ([(d s) (quotient/remainder s 86400)]
-                  [(h s) (quotient/remainder s 3600)]
-                  [(m s) (quotient/remainder s 60)])
-      (format "~a+~a:~a:~a" d (~t h 2) (~t m 2) (~t s 2)))))
+(define ~uptime : (-> Positive-Fixnum String)
+  (let ([~t : (-> Natural String) (λ [n] (if (< n 10) (string-append "0" (number->string n)) (number->string n)))])
+    (lambda [s]
+      (let*-values ([(d s) (quotient/remainder s 86400)]
+                    [(h s) (quotient/remainder s 3600)]
+                    [(m s) (quotient/remainder s 60)])
+        (format "~a+~a:~a:~a" d (~t h) (~t m) (~t s))))))
 
-(define ~size : (-> Nonnegative-Real Symbol [#:precision (U Integer (List '= Integer))] String)
+(define-type/enum units : Unit 'KB 'MB 'GB 'TB)
+(define ~size : (case-> [Natural 'Bytes [#:precision (U Integer (List '= Integer))] -> String]
+                        [Flonum Unit [#:precision (U Integer (List '= Integer))] -> String])
   (lambda [size unit #:precision [prcs '(= 3)]]
-    (define-type/enum units : Unit 'Bytes 'KB 'MB 'GB 'TB)
-    (let try-next-unit : String ([s size] [us (cast (member unit units) (Listof Unit))])
-      (cond [(and (symbol=? (car us) 'Bytes) (< s 1024.0)) (~n_w (cast s Nonnegative-Integer) "Byte")]
-            [(or (< s 1024.0) (zero? (sub1 (length us)))) (format "~a~a" (~r s #:precision prcs) (car us))]
-            [else (try-next-unit (/ s 1024.0) ((inst cdr Unit Unit) us))]))))
+    (if (symbol=? unit 'Bytes)
+        (cond [(< size 1024) (~n_w size "Byte")]
+              [else (~size (fl/ (real->double-flonum size) 1024.0) 'KB #:precision prcs)])
+        (let try-next-unit : String ([s : Flonum size] [us : (Option Unit*) (member unit units)])
+          (cond [(false? us) "Typed Racket is buggy if you see this message"]
+                [(or (fl< s 1024.0) (null? (cdr us))) (string-append (~r s #:precision prcs) (symbol->string (car us)))]
+                [else (try-next-unit (fl/ s 1024.0) (cdr us))])))))
 
 (module digitama typed/racket
   (provide (all-defined-out))
 
-  (define plural : (-> Nonnegative-Integer String String)
+  (define plural : (-> Natural String String)
     (lambda [n word]
       (define dict : (HashTable String String) #hash(("story" . "stories") ("Story" . "Stories")))
       (cond [(= n 1) word]
