@@ -8,6 +8,7 @@
 @require{sugar.rkt}
 @require{format.rkt}
 
+(define-type EvtSelf (Rec E (Evtof E)))
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
 (define-type SymbolTable (HashTable Symbol Any))
