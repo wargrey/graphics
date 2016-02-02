@@ -26,7 +26,15 @@
       (let*-values ([(d s) (quotient/remainder s 86400)]
                     [(h s) (quotient/remainder s 3600)]
                     [(m s) (quotient/remainder s 60)])
-        (format "~a+~a:~a:~a" d (~t h) (~t m) (~t s))))))
+        (cond [(zero? d) (format "~a:~a:~a" (~t h) (~t m) (~t s))]
+              [else (format "~a+~a:~a:~a" d (~t h) (~t m) (~t s))])))))
+
+(define ~gctime : (-> Nonnegative-Fixnum String)
+  (lambda [ms]
+    (let*-values ([(s ms) (quotient/remainder ms 1000)]
+                  [(m s) (quotient/remainder s 60)])
+      (cond [(zero? m) (format "~a.~a" s ms)]
+            [else (format "~a:~a.~a" m s ms)]))))
 
 (define-type/enum units : Unit 'KB 'MB 'GB 'TB)
 (define ~size : (case-> [Natural 'Bytes [#:precision (U Integer (List '= Integer))] -> String]
