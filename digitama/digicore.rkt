@@ -147,12 +147,11 @@
          (memq 'read (file-or-directory-permissions p))
          #true)))
 
-(define timer-thread : (-> Positive-Real (-> Natural Any) Thread)
-  (lambda [interval on-timer/do-task]
-    (thread (thunk (let* ([i-ms : Integer (exact-round (* interval 1000.0))]
-                          [first-time : Real (+ (current-inexact-milliseconds) i-ms)])
-                     (for ([times : Natural (in-naturals)])
-                       (sync/enable-break (alarm-evt (+ (* times i-ms) first-time)))
+(define timer-thread : (-> Positive-Real (-> Natural Any) [#:basetime Fixnum] Thread)
+  (lambda [interval on-timer/do-task #:basetime [base (current-inexact-milliseconds)]]
+    (thread (thunk (let ([i-ms : Integer (exact-round (* interval 1000.0))])
+                     (for ([times : Natural (in-naturals 1)])
+                       (sync/enable-break (alarm-evt (+ (* times i-ms) base)))
                        (on-timer/do-task times)))))))
 
 (define tcp-server : (-> Index (Input-Port Output-Port Positive-Index -> Any) [#:max-allow-wait Natural] [#:localhost (Option String)]
