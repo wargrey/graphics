@@ -30,6 +30,13 @@
             [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
                     (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
 
+(define-syntax (require/typed/provide/batch stx)
+  (syntax-case stx [id:]
+    [(_ modpath [id: id ...] type-definition)
+     #'(require/typed/provide/batch modpath [id ...] type-definition)]
+    [(_ modpath [id ...] type-definition)
+     #'(require/typed/provide modpath [id type-definition] ...)]))
+
 (define-syntax (throw stx)
   (syntax-case stx []
     [(_ [st-id st-argl ...] message)
