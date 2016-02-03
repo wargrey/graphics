@@ -2,6 +2,9 @@
 
 (provide (all-defined-out) Term-Color vim-colors)
 (provide (all-from-out "sugar.rkt" "format.rkt"))
+(provide (all-from-out typed/racket/date))
+
+(require typed/racket/date)
 
 (require (for-syntax racket/syntax))
 
@@ -24,11 +27,6 @@
                        [#:opaque SIGUP exn:break:hang-up?]
                        [#:opaque SIGTERM exn:break:terminate?]
                        [vector-set-performance-stats! (-> Racket-Place-Status (Option Thread) Void)])
-
-(require/typed/provide racket/date
-                       [current-date (-> date)] ;;; should be date*
-                       [date-display-format (Parameterof Symbol)]
-                       [date->string (-> date Boolean String)])
 
 (define digicore.rkt : Path (#%file))
 
