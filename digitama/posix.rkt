@@ -293,6 +293,8 @@ It troubled me more than two weeks.
 (module* typed/ffi typed/racket
   (provide (all-defined-out))
 
+  (require "sugar.rkt")
+  
   (require (for-syntax racket/syntax))
   (require (for-syntax racket/string))
 
@@ -361,13 +363,6 @@ It troubled me more than two weeks.
                                          ctype/nulls ...)
                   definetypes ...))]))
   
-  (define-syntax (require/typed/provide/ctypes stx)
-    (syntax-case stx []
-      [(_ _ctype ...)
-       #'(require/typed/provide (submod "..")
-                                [_ctype CType]
-                                ...)]))
-  
   (require/typed/provide (submod "..")
                          [#:opaque CPointer/Null cpointer?]
                          [#:opaque CPointer/GCable cpointer-gcable?]
@@ -384,16 +379,18 @@ It troubled me more than two weeks.
                                              [Array Index Index Any -> Void]
                                              [Array Index Index Index Any -> Void])])
 
-  (require/typed/provide/ctypes _uintmax _byte _sint32 _string*/utf-8 _void
-                                _int8 _uint8 _int16 _uint16 _int32 _uint32 _int64 _uint64
-                                _fixint _ufixint _fixnum _ufixnum _float _double _longdouble
-                                _double* _bool _stdbool _string/ucs-4 _string/utf-16 _path
-                                _symbol _pointer _gcpointer _scheme _fpointer _racket _ssize
-                                _size _uword _word _sbyte _string*/latin-1 _bytes/eof _file
-                                _intmax _ptrdiff _sintptr _intptr _sllong _ullong _llong
-                                _slong _ulong _long _sint _uint _int _sshort _ushort _short
-                                _ubyte _sint64 _sint16 _sint8 _string*/locale _string/latin-1
-                                _string/locale _string/utf-8 _uintptr _sword)
+  (require/typed/provide/batch (submod "..")
+                               (id: _uintmax _byte _sint32 _string*/utf-8 _void
+                                    _int8 _uint8 _int16 _uint16 _int32 _uint32 _int64 _uint64
+                                    _fixint _ufixint _fixnum _ufixnum _float _double _longdouble
+                                    _double* _bool _stdbool _string/ucs-4 _string/utf-16 _path
+                                    _symbol _pointer _gcpointer _scheme _fpointer _racket _ssize
+                                    _size _uword _word _sbyte _string*/latin-1 _bytes/eof _file
+                                    _intmax _ptrdiff _sintptr _intptr _sllong _ullong _llong
+                                    _slong _ulong _long _sint _uint _int _sshort _ushort _short
+                                    _ubyte _sint64 _sint16 _sint8 _string*/locale _string/latin-1
+                                    _string/locale _string/utf-8 _uintptr _sword)
+                               CType)
   
   (require/typed/provide/enums facility severity)
   (require/typed/provide/bitmasks logflags)

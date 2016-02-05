@@ -257,7 +257,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
     
     (do-make (make-native-library-rules))
     (do-make (make-implicit-rkt-rules))
-    (compile-directory (digimon-zone) ($info (current-digimon)))
+    (compile-directory (digimon-zone) (hash-ref infobase (current-digimon)))
 
     (for ([submake (in-list submakes)])
       (define modpath `(submod ,submake premake))
@@ -265,7 +265,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
         (dynamic-require modpath #false)
         ;;; the next two lines always useless but who knows
         (do-make (make-native-library-rules))
-        (compile-directory (digimon-zone) ($info (current-digimon)))))
+        (compile-directory (digimon-zone) (hash-ref infobase (current-digimon)))))
     
     (do-make (make-implicit-dist-rules))
 
@@ -335,7 +335,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
     (when (directory-exists? (digimon-tamer))
       (let ([rules (map hack-rule (append (make-native-library-rules) (make-implicit-rkt-rules)))])
         (unless (null? rules) (make/proc rules (map car rules))))
-      (compile-directory (digimon-zone) ($info (current-digimon)))
+      (compile-directory (digimon-zone) (hash-ref infobase (current-digimon)))
       
       (for ([handbook (in-list (if (null? (current-make-real-targets))
                                    (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))

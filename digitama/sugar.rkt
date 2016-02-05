@@ -1,6 +1,6 @@
 #lang at-exp typed/racket
 
-(provide (except-out (all-defined-out) #%full-module))
+(provide (all-defined-out))
 
 (require (for-syntax racket/string))
 (require (for-syntax racket/syntax))
@@ -12,6 +12,13 @@
                                           [#:namespace (Option Namespace)]
                                           [#:bootstrap? Any]
                                           (Option Info-Ref))])
+
+(define-syntax (require/typed/provide/batch stx)
+  (syntax-case stx [id:]
+    [(_ modpath [id: id ...] type-definition)
+     #'(require/typed/provide/batch modpath [id ...] type-definition)]
+    [(_ modpath [id ...] type-definition)
+     #'(require/typed/provide modpath [id type-definition] ...)]))
 
 (define-syntax (#%full-module stx)
   #'(let ([rmp (variable-reference->resolved-module-path (#%variable-reference))])
@@ -29,13 +36,6 @@
                            (path-replace-suffix (cast (file-name-from-path full) Path) ""))]
             [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
                     (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
-
-(define-syntax (require/typed/provide/batch stx)
-  (syntax-case stx [id:]
-    [(_ modpath [id: id ...] type-definition)
-     #'(require/typed/provide/batch modpath [id ...] type-definition)]
-    [(_ modpath [id ...] type-definition)
-     #'(require/typed/provide modpath [id type-definition] ...)]))
 
 (define-syntax (throw stx)
   (syntax-case stx []
@@ -114,61 +114,6 @@
                          ((inst make-immutable-hasheq TypeU (Listof Primitive-Type))
                           (list (cons 'const (list 'DataType ...)) ...))])
                     (lambda [sym] ((inst hash-ref TypeU (Listof Primitive-Type) (Listof Primitive-Type)) cs sym))))))]))
-
-(define-syntax (define-strdict stx)
-  (syntax-case stx [:]
-    [(_ id : Type)
-     #'(define-strdict id : Type null)]
-    [(_ id : Type init-vals)
-     (with-syntax ([%id  (format-id #'id "%~a"  (syntax-e #'id))]  ; make-hash
-                   [$id  (format-id #'id "$~a"  (syntax-e #'id))]  ; hash-ref
-                   [$id? (format-id #'id "?~a"  (syntax-e #'id))]  ; hash-has-key?
-                   [$id# (format-id #'id "$~a#" (syntax-e #'id))]  ; hash-count
-                   [$id@ (format-id #'id "$~a@" (syntax-e #'id))]  ; hash-keys
-                   [$id* (format-id #'id "$~a*" (syntax-e #'id))]  ; hash-values
-                   [$id+ (format-id #'id "$~a+" (syntax-e #'id))]  ; hash-ref!
-                   [$id- (format-id #'id "$~a-" (syntax-e #'id))]) ; hash-remove!
-       #'(begin (define %id : (HashTable String Type) ((inst make-hash String Type) init-vals))
-                (define ($id@) : (Listof String) ((inst hash-keys String Type) %id))
-                (define ($id*) : (Listof Type) ((inst hash-values String Type) %id))
-                (define ($id#) : Index ((inst hash-count String Type) %id))
-                (define ($id? [key : String]) : Boolean (hash-has-key? %id key))
-                (define ($id- [key : String]) : Void ((inst hash-remove! String Type) %id key))
-                (define $id+ : (-> String (-> Type) Type)
-                  (lambda [key setval]
-                    ((inst hash-ref! String Type) %id key setval)))
-                (define $id : (case-> [String -> Type] [String (-> Type) -> Type])
-                  (case-lambda
-                    [(key) ((inst hash-ref String Type Type) %id key)]
-                    [(key defval) ((inst hash-ref String Type Type) %id key defval)]))))]))
-
-(define-syntax (define-symdict stx)
-  (syntax-case stx [:]
-    [(_ id : Type)
-     #'(define-symdict id : Type null)]
-    [(_ id : Type init-vals)
-     (with-syntax ([%id  (format-id #'id "%~a"  (syntax-e #'id))]  ; make-hasheq
-                   [$id  (format-id #'id "$~a"  (syntax-e #'id))]  ; hash-ref
-                   [$id? (format-id #'id "?~a"  (syntax-e #'id))]  ; hash-has-key?
-                   [$id# (format-id #'id "$~a#" (syntax-e #'id))]  ; hash-count
-                   [$id@ (format-id #'id "$~a@" (syntax-e #'id))]  ; hash-keys
-                   [$id* (format-id #'id "$~a*" (syntax-e #'id))]  ; hash-values
-                   [$id+ (format-id #'id "$~a+" (syntax-e #'id))]  ; hash-ref!
-                   [$id- (format-id #'id "$~a-" (syntax-e #'id))]) ; hash-remove!
-       #'(begin (define %id : (HashTable Symbol Type) ((inst make-hasheq Symbol Type) init-vals))
-                (define ($id@) : (Listof Symbol) ((inst hash-keys Symbol Type) %id))
-                (define ($id*) : (Listof Type) ((inst hash-values Symbol Type) %id))
-                (define ($id#) : Index ((inst hash-count Symbol Type) %id))
-                (define ($id? [key : Symbol]) : Boolean (hash-has-key? %id key))
-                (define (!id+ [key : Symbol] [val : Type]) : Void ((inst hash-set! Symbol Type) %id key val))
-                (define ($id- [key : Symbol]) : Void ((inst hash-remove! Symbol Type) %id key))
-                (define $id+ : (-> Symbol (-> Type) Type)
-                  (lambda [key setval]
-                    ((inst hash-ref! Symbol Type) %id key setval)))
-                (define $id : (case-> [Symbol -> Type] [Symbol (-> Type) -> Type])
-                  (case-lambda
-                    [(key) ((inst hash-ref Symbol Type Type) %id key)]
-                    [(key defval) ((inst hash-ref Symbol Type Type) %id key defval)]))))]))
 
 (define-syntax (define/extract-symtable stx)
   (syntax-case stx []

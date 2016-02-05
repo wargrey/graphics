@@ -2,21 +2,20 @@
 
 (provide (all-defined-out) Term-Color vim-colors)
 (provide (all-from-out "sugar.rkt" "format.rkt"))
-(provide (all-from-out typed/racket/date))
-
-(require typed/racket/date)
 
 (require (for-syntax racket/syntax))
 
 @require{sugar.rkt}
 @require{format.rkt}
 
-(define-type EvtSelf (Rec E (Evtof E)))
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
 (define-type SymbolTable (HashTable Symbol Any))
 (define-type Racket-Place-Status (Vector Fixnum Fixnum Fixnum Natural Natural Natural Natural Natural Fixnum Fixnum Natural Natural))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
+
+(define-type EvtSelf (Rec Evt (Evtof Evt)))
+(define-type Timer-EvtSelf (Rec Timer-Evt (Evtof (Boxof Timer-Evt))))
 
 (require/typed/provide racket/fasl
                        [s-exp->fasl (case-> [-> Any Bytes]
@@ -28,8 +27,6 @@
                        [#:opaque SIGTERM exn:break:terminate?]
                        [vector-set-performance-stats! (-> Racket-Place-Status (Option Thread) Void)])
 
-(define digicore.rkt : Path (#%file))
-
 (define /dev/stdin : Input-Port (current-input-port))
 (define /dev/stdout : Output-Port (current-output-port))
 (define /dev/stderr : Output-Port (current-error-port))
@@ -37,9 +34,7 @@
 (define /dev/eof : Input-Port ((cast open-input-bytes (-> Bytes Symbol Input-Port)) #"" '/dev/null))
 (define /dev/null : Output-Port ((cast open-output-nowhere (-> Symbol Output-Port)) '/dev/null))
 
-(define immutable-guard : (-> Symbol (Path-String -> Nothing))
-  (lambda [pname]
-    (λ [pval] (error pname "Immutable Parameter: ~a" pval))))
+(define digicore.rkt : Path (#%file))
 
 (define digimon-world : (Parameterof Nothing String)
   (make-parameter (path->string (simple-form-path (build-path digicore.rkt 'up 'up 'up)))
@@ -52,6 +47,7 @@
 (define digimon-kuzuhamon : (Parameterof Nothing String) (make-parameter "kuzuhamon" (immutable-guard 'digimon-kuzuhamon)))
 (define current-digimon : (Parameterof String String) (make-parameter (digimon-gnome)))
 (define current-tamer : (Parameterof Nothing String) (make-parameter (or (getenv "USER") (getenv "LOGNAME") #| daemon |# "root")))
+
 (define digimon-system : (Parameterof Nothing Symbol)
   (make-parameter (match (path->string (system-library-subpath #false))
                     ;;; (system-type 'machine) might lead to "forbidden exec /bin/uname" 
@@ -77,15 +73,15 @@
     (remove-duplicates (filter string? (for/list : (Listof (Option String)) ([digimon (in-list (cons (digimon-gnome) candidates))])
                                          (define info-ref (get-info/full (build-path (digimon-world) digimon) #:bootstrap? #true)) 
                                          (and (procedure? info-ref)
-                                              ($info+ digimon (thunk info-ref))
-                                              digimon))))))
+                                              (hash-ref! infobase digimon (thunk info-ref))
+                                                digimon))))))
 
 (define #%info : (->* (Symbol) ((Option (-> Any)) #:digimon String) Any)
   (lambda [key [defval #false] #:digimon [digimon (current-digimon)]]
     (define (try-setinfo)
       (define info-ref (get-info/full (build-path (digimon-world) digimon) #:bootstrap? #true))
       (if (procedure? info-ref) info-ref (error '#%info "on info.rkt found for ~a" digimon)))
-    (define info-ref : Info-Ref ($info+ digimon try-setinfo))
+    (define info-ref : Info-Ref (hash-ref! infobase digimon try-setinfo))
     (info-ref key (or defval (thunk (error '#%info "no info for ~a" key))))))
 
 (define #%digimon : (->* () (String) String)
@@ -102,17 +98,17 @@
         (use-compiled-file-paths (list (build-path "compiled")))))
 
 (define-syntax (define-digimon-dirpath stx)
-  (syntax-case stx []
-    [(_ id ...)
-     (with-syntax ([(digimon-id ...)
-                    (for/list ([var (in-list (syntax->list #'(id ...)))])
-                      (with-syntax ([id var]) (format-id #'id "digimon-~a" (syntax-e #'id))))])
-       #'(begin (define digimon-id : (Parameterof Nothing Path)
-                  (make-derived-parameter digimon-zone
-                                          (immutable-guard 'digimon-id)
-                                          (λ [[zonedir : Path]]
-                                            (build-path zonedir (symbol->string 'id)))))
-                ...))]))
+    (syntax-case stx []
+      [(_ id ...)
+       (with-syntax ([(digimon-id ...)
+                      (for/list ([var (in-list (syntax->list #'(id ...)))])
+                        (with-syntax ([id var]) (format-id #'id "digimon-~a" (syntax-e #'id))))])
+         #'(begin (define digimon-id : (Parameterof Nothing Path)
+                    (make-derived-parameter digimon-zone
+                                            (immutable-guard 'digimon-id)
+                                            (λ [[zonedir : Path]]
+                                              (build-path zonedir (symbol->string 'id)))))
+                  ...))]))
 
 (define-digimon-dirpath stone digitama digivice tamer village terminus)
 
@@ -121,7 +117,6 @@
                           (immutable-guard 'digimon-tongue)
                           (λ [[stonedir : Path]]
                             (build-path stonedir "tongue"))))
-
 
 (define path->digimon-modpath : (->* [Path-String] [(Option Symbol)] (U Module-Path (List 'submod Module-Path Symbol)))
   (lambda [modfile [submodule #false]]
@@ -146,15 +141,24 @@
          (memq 'read (file-or-directory-permissions p))
          #true)))
 
-(define timer-thread : (-> Positive-Real (-> Natural Any) [#:basetime Fixnum] Thread)
-  (lambda [interval on-timer/do-task #:basetime [base (current-inexact-milliseconds)]]
-    (thread (thunk (let ([i-ms : Integer (exact-round (* interval 1000.0))])
-                     (for ([times : Natural (in-naturals 1)])
-                       (sync/enable-break (alarm-evt (+ (* times i-ms) base)))
-                       (on-timer/do-task times)))))))
+(define timer-evt : (->* (Fixnum) (Fixnum) Timer-EvtSelf)
+  (lambda [interval [basetime (current-milliseconds)]]
+    (wrap-evt (alarm-evt (fx+ basetime interval))
+              (λ _ (box (timer-evt interval))))))
 
-(define tcp-server : (-> Index (Input-Port Output-Port Positive-Index -> Any) [#:max-allow-wait Natural] [#:localhost (Option String)]
-                         [#:timeout (Option Positive-Real)] [#:on-error (exn -> Any)] [#:custodian Custodian]
+(define timer-thread : (-> Fixnum (-> Thread Natural Any) [#:basetime Fixnum] Thread)
+  (lambda [interval on-timer #:basetime [basetime (current-milliseconds)]]
+    (define thdsrc : Thread (current-thread))
+    (thread (thunk (let wait-dotask-loop ([evt (timer-evt interval basetime)]
+                                          [idx : Natural 1])
+                     (match (sync/enable-break evt)
+                       [(box (? evt? next-alarm))
+                        (on-timer thdsrc idx)
+                        (wait-dotask-loop next-alarm (add1 idx))]))))))
+
+(define tcp-server : (-> Index (Input-Port Output-Port Positive-Index -> Any)
+                         [#:max-allow-wait Natural] [#:localhost (Option String)]
+                         [#:timeout (Option Fixnum)] [#:on-error (exn -> Any)] [#:custodian Custodian]
                          (Values (-> Void) Positive-Index))
   (lambda [port-hit on-connection #:max-allow-wait [maxwait (processor-count)] #:localhost [ip #false]
            #:timeout [timeout #false] #:on-error [on-error void] #:custodian [server-custodian (make-custodian)]]
@@ -171,8 +175,8 @@
             (define-values (/dev/tcpin /dev/tcpout) (tcp-accept/enable-break /dev/tcp))
             (thread (thunk ((inst dynamic-wind Any)
                             (thunk (unless (false? timeout)
-                                     (define server : Thread (current-thread))
-                                     (timer-thread timeout (λ [times] (if (zero? times) (break-thread server) (close-session))))))
+                                     (timer-thread timeout (λ [server times] ; give the task a chance to live longer
+                                                             (if (= times 1) (break-thread server) (close-session))))))
                             (thunk (call-with-parameterization
                                     saved-params-incaseof-transferring-continuation
                                     (thunk (parameterize ([current-custodian (make-custodian)])
@@ -231,8 +235,12 @@
   (require "sugar.rkt")
   
   (define-type Term-Color (Option (U String Symbol Byte)))
+  
+  (define infobase : (HashTable String Info-Ref) (make-hash))
 
-  (define-strdict info : Info-Ref)
+  (define immutable-guard : (-> Symbol (Path-String -> Nothing))
+    (lambda [pname]
+      (λ [pval] (error pname "Immutable Parameter: ~a" pval))))
   
   (define vim-colors : (HashTable String Byte)
     #hash(("black" . 0) ("darkgray" . 8) ("darkgrey" . 8) ("lightgray" . 7) ("lightgrey" . 7) ("gray" . 7) ("grey" . 7) ("white" . 15)
@@ -261,7 +269,6 @@
                               (if (false? bg) 49 (color-code (string-downcase (format "~a" bg)) #:bgcolor? #true)))))))
 
 (require (submod "." digitama))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* test racket

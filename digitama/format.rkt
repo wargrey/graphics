@@ -1,12 +1,14 @@
 #lang at-exp typed/racket
 
 (provide (all-defined-out))
-(provide (all-from-out racket/flonum racket/fixnum))
+(provide (all-from-out racket/flonum racket/fixnum typed/racket/date))
 
 @require{sugar.rkt}
 
 (require racket/flonum)
 (require racket/fixnum)
+
+(require typed/racket/date)
 
 (define ~n_w : (-> Natural String String)
   (lambda [count word]
