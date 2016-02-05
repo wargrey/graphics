@@ -34,6 +34,9 @@
 (define /dev/eof : Input-Port ((cast open-input-bytes (-> Bytes Symbol Input-Port)) #"" '/dev/null))
 (define /dev/null : Output-Port ((cast open-output-nowhere (-> Symbol Output-Port)) '/dev/null))
 
+(define uptime/base : Fixnum (current-milliseconds))
+(define pr+gctime/base : Fixnum (current-process-milliseconds))
+
 (define digicore.rkt : Path (#%file))
 
 (define digimon-world : (Parameterof Nothing String)
