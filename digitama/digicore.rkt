@@ -15,7 +15,7 @@
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
 
 (define-type EvtSelf (Rec Evt (Evtof Evt)))
-(define-type Timer-EvtSelf (Rec Timer-Evt (Evtof (Boxof Timer-Evt))))
+(define-type Timer-EvtSelf (Rec Timer-Evt (Evtof (Vector Timer-EvtSelf Fixnum))))
 
 (require/typed/provide racket/fasl
                        [s-exp->fasl (case-> [-> Any Bytes]
@@ -143,18 +143,19 @@
 
 (define timer-evt : (->* (Fixnum) (Fixnum) Timer-EvtSelf)
   (lambda [interval [basetime (current-milliseconds)]]
-    (wrap-evt (alarm-evt (fx+ basetime interval))
-              (λ _ (box (timer-evt interval))))))
+    (define alarm-time : Fixnum (fx+ basetime interval))
+    ((inst wrap-evt Any (Vector Timer-EvtSelf Fixnum))
+     (alarm-evt alarm-time)
+     (λ [alarm] (vector (timer-evt interval alarm-time) alarm-time)))))
 
-(define timer-thread : (-> Fixnum (-> Thread Natural Any) [#:basetime Fixnum] Thread)
+(define timer-thread : (-> Fixnum (-> Thread Fixnum Any) [#:basetime Fixnum] Thread)
   (lambda [interval on-timer #:basetime [basetime (current-milliseconds)]]
     (define thdsrc : Thread (current-thread))
-    (thread (thunk (let wait-dotask-loop ([evt (timer-evt interval basetime)]
-                                          [idx : Natural 1])
+    (thread (thunk (let wait-dotask-loop ([evt (timer-evt interval basetime)])
                      (match (sync/enable-break evt)
-                       [(box (? evt? next-alarm))
-                        (on-timer thdsrc idx)
-                        (wait-dotask-loop next-alarm (add1 idx))]))))))
+                       [(vector (? evt? next-alarm) (? fixnum? alarm-time))
+                        (on-timer thdsrc (fxquotient (fx- alarm-time basetime) interval))
+                        (wait-dotask-loop next-alarm)]))))))
 
 (define tcp-server : (-> Index (Input-Port Output-Port Positive-Index -> Any)
                          [#:max-allow-wait Natural] [#:localhost (Option String)]
@@ -176,7 +177,7 @@
             (thread (thunk ((inst dynamic-wind Any)
                             (thunk (unless (false? timeout)
                                      (timer-thread timeout (λ [server times] ; give the task a chance to live longer
-                                                             (if (= times 1) (break-thread server) (close-session))))))
+                                                             (if (fx= times 1) (break-thread server) (close-session))))))
                             (thunk (call-with-parameterization
                                     saved-params-incaseof-transferring-continuation
                                     (thunk (parameterize ([current-custodian (make-custodian)])
