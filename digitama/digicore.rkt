@@ -61,7 +61,7 @@
                           (immutable-guard 'digimon-zone)
                           (curry build-path (digimon-world))))
 
-(define-parameter/extract-info (digimon-world)
+(define/extract-info (digimon-world) :- (make-parameter Parameterof)
   [pkg-institution : (Option String) = #false]
   [pkg-domain : String = "gyoudmon.org"]
   [pkg-idun : String = (current-tamer)])

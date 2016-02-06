@@ -198,10 +198,10 @@
                                                         (echof "~a~n" line
                                                                #:fgcolor (match line
                                                                            [(regexp #px" 100.00% Okay") 'lightgreen]
-                                                                           [(regexp #px" [^0] error") 'darkred]
-                                                                           [(regexp #px" [^0] failure") 'lightred]
-                                                                           [(regexp #px" [^0] TODO") 'lightmagenta]
-                                                                           [(regexp #px" [^0] skip") 'lightblue]
+                                                                           [(regexp #px"[^0] error") 'darkred]
+                                                                           [(regexp #px"[^0] failure") 'lightred]
+                                                                           [(regexp #px"[^0] TODO") 'lightmagenta]
+                                                                           [(regexp #px"[^0] skip") 'lightblue]
                                                                            [_ 'lightcyan])))]))))))))))))
 
 (define-syntax (define-tamer-suite stx)

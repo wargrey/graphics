@@ -5,6 +5,7 @@
 (require (for-syntax racket/string))
 (require (for-syntax racket/syntax))
 
+(define-type (Identity Type) Type)
 (define-type Info-Ref (->* [Symbol] [(-> Any)] Any))
 
 (require/typed/provide setup/getinfo
@@ -119,50 +120,48 @@
   (syntax-case stx []
     [(_ (symtable-sexp ...) defines ...)
      (with-syntax ([symtable (format-id #'symtable "~a" (gensym 'symboltable))])
-       #'(begin (define symtable : (HashTable Symbol Any) (cast (symtable-sexp ...) (HashTable Symbol Any)))
+       #'(begin (define symtable : (HashTable Symbol Any) (symtable-sexp ...))
                 (define/extract-symtable symtable defines ...)))]
     [(_ symtable defines ...)
      (with-syntax ([(extract ...)
                     (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
                       (syntax-case def-idl [: =]
-                        [([renamed-id key] : Type)
-                         #'(define renamed-id : Type (cast (hash-ref symtable 'key) Type))]
                         [([renamed-id key] : Type = def-exp)
-                         #'(define renamed-id : Type (cast (hash-ref symtable 'key (thunk def-exp)) Type))]
-                        [(id : Type)
-                         #'(define id : Type (cast (hash-ref symtable 'id) Type))]
+                         #'(define renamed-id : Type ((inst hash-ref Symbol Type Type) symtable 'key (thunk def-exp)))]
                         [(id : Type = def-exp)
-                         #'(define id : Type (cast (hash-ref symtable 'id (thunk def-exp)) Type))]))])
+                         #'(define id : Type ((inst hash-ref Symbol Type Type) (hash-ref symtable 'id (thunk def-exp))))]))])
        #'(begin extract ...))]))
 
-(define-syntax (define-parameter/extract-info stx)
-  (syntax-case stx []
-    [(_ infodir defines ...)
+(define-syntax (define/extract-info stx)
+  (syntax-case stx [:-]
+    [(_ infodir :- (make Typeof) defines ...)
      (with-syntax* ([info-ref (format-id #'info-ref "~a" (gensym 'inforef))]
                     [(extract ...)
                      (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
                        (syntax-case def-idl [: = =>]
                          [([renamed-id key] : Type = def-exp => [fvalue ...])
-                          #'(define renamed-id : (Parameterof Type) (make-parameter (match (info-ref 'key (thunk def-exp)) fvalue ...)))]
+                          #'(define renamed-id : (Typeof Type) (make (match (info-ref 'key (thunk def-exp)) fvalue ...)))]
                          [([renamed-id key] : Type => [fvalue ...] = def-exp)
-                          #'(define renamed-id : (Parameterof Type) (make-parameter (match (info-ref 'key void) fvalue ... [(? void?) def-exp])))]
+                          #'(define renamed-id : (Typeof Type) (make (match (info-ref 'key void) fvalue ... [(? void?) def-exp])))]
                          [([renamed-id key] : Type => [fvalue ...])
-                          #'(define renamed-id : (Parameterof Type) (make-parameter (match (info-ref 'key void) fvalue ...)))]
+                          #'(define renamed-id : (Typeof Type) (make (match (info-ref 'key void) fvalue ...)))]
                          [([renamed-id key] : Type = def-exp)
-                          #'(define renamed-id : (Parameterof Type) (make-parameter (cast (info-ref 'key (thunk def-exp)) Type)))]
+                          #'(define renamed-id : (Typeof Type) (make (cast (info-ref 'key (thunk def-exp)) Type)))]
                          [([renamed-id key] : Type)
-                          #'(define renamed-id : (Parameterof Type) (make-parameter (cast (info-ref 'key) Type)))]
+                          #'(define renamed-id : (Typeof Type) (make (cast (info-ref 'key) Type)))]
                          [(id : Type = def-exp => [fvalue ...])
-                          #'(define id : (Parameterof Type) (make-parameter (match (info-ref 'id (thunk def-exp)) fvalue ...)))]
+                          #'(define id : (Typeof Type) (make (match (info-ref 'id (thunk def-exp)) fvalue ...)))]
                          [(id : Type => [fvalue ...] = def-exp)
-                          #'(define id : (Parameterof Type) (make-parameter (match (info-ref 'id void) fvalue ... [(? void?) def-exp])))]
+                          #'(define id : (Typeof Type) (make (match (info-ref 'id void) fvalue ... [(? void?) def-exp])))]
                          [(id : Type => [fvalue ...])
-                          #'(define id : (Parameterof Type) (make-parameter (match (info-ref 'id void) fvalue ...)))]
+                          #'(define id : (Typeof Type) (make (match (info-ref 'id void) fvalue ...)))]
                          [(id : Type = def-exp)
-                          #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id (thunk def-exp)) Type)))]
+                          #'(define id : (Typeof Type) (make (cast (info-ref 'id (thunk def-exp)) Type)))]
                          [(id : Type)
-                          #'(define id : (Parameterof Type) (make-parameter (cast (info-ref 'id) Type)))]))])
+                          #'(define id : (Typeof Type) (make (cast (info-ref 'id) Type)))]))])
        #'(begin (define info-ref : Info-Ref
                   (let ([ref (get-info/full infodir)])
                     (if (false? ref) (throw [exn:fail:filesystem] "info.rkt not found in ~a" infodir) ref)))
-                extract ...))]))
+                extract ...))]
+    [(_ infodir defines ...)
+     #'(define/extract-info infodir :- (values Identity) defines ...)]))

@@ -11,7 +11,7 @@
 
 (current-digimon "@(current-digimon)")
 
-(define-parameter/extract-info (digimon-zone)
+(define/extract-info (digimon-zone) :- (make-parameter Parameterof)
   [[info-collection collection] : String]
   [[info-version version] : String]
   [[info-pkg-desc pkg-desc] : String])
