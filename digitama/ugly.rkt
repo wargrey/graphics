@@ -15,4 +15,4 @@
 
 (unsafe-require/typed
  (submod "." ugly)
- [make-is-a? (All (C) (-> Any ClassTop Boolean : #:+ (Instance C)))])
+ [make-is-a? (All (%) (-> % (-> Any Boolean : #:+ (Instance %))))])
