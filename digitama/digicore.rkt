@@ -1,12 +1,13 @@
 #lang at-exp typed/racket
 
 (provide (all-defined-out) Term-Color vim-colors)
-(provide (all-from-out "sugar.rkt" "format.rkt"))
+(provide (all-from-out "sugar.rkt" "format.rkt" "ugly.rkt"))
 
 (require (for-syntax racket/syntax))
 
 @require{sugar.rkt}
 @require{format.rkt}
+@require{ugly.rkt}
 
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
