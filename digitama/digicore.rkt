@@ -31,7 +31,7 @@
 (define /dev/stdin : Input-Port (current-input-port))
 (define /dev/stdout : Output-Port (current-output-port))
 (define /dev/stderr : Output-Port (current-error-port))
-(define /dev/log : Logger (current-logger))
+(define /dev/log : Logger (make-logger 'digital-world #false))
 (define /dev/eof : Input-Port ((cast open-input-bytes (-> Bytes Symbol Input-Port)) #"" '/dev/null))
 (define /dev/null : Output-Port ((cast open-output-nowhere (-> Symbol Output-Port)) '/dev/null))
 (define boot-time : Fixnum (current-milliseconds))
@@ -94,6 +94,7 @@
 (void (unless (member (digimon-world) (current-library-collection-paths))
         (current-library-collection-paths (cons (build-path (digimon-world)) (current-library-collection-paths)))
         (print-boolean-long-form #true)
+        (current-logger /dev/log)
         
         ;;; Do not change the name of compiled file path, here we only escapes from DrRacket's convention.
         ;;; Since compiler will check the bytecodes in the core collection which have already been compiled into <path:compiled/>.
