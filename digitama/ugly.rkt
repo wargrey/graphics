@@ -1,8 +1,12 @@
-#lang typed/racket/base
-
-(provide make-is-a?)
+#lang typed/racket
 
 (require typed/racket/unsafe)
+
+(define-syntax (unsafe-require/typed/provide stx)
+  (syntax-case stx []
+    [(_ modpath [id Type] ...)
+     #'(begin (provide id ...)
+              (unsafe-require/typed modpath [id Type] ...))]))
 
 (module ugly racket/base
   (provide (all-defined-out))
@@ -11,8 +15,13 @@
   
   (define make-is-a?
     (lambda [c]
-      (λ [v] (is-a? v c)))))
+      (λ [v] (is-a? v c))))
 
-(unsafe-require/typed
+  (define make-subclass?
+    (lambda [c]
+      (λ [v] (subclass? v c)))))
+
+(unsafe-require/typed/provide
  (submod "." ugly)
- [make-is-a? (All (%) (-> % (-> Any Boolean : #:+ (Instance %))))])
+ [make-is-a? (All (%) (-> % (-> Any Boolean : #:+ (Instance %))))]
+ [make-subclass? (All (%) (-> % (-> Any Boolean : #:+ %)))])
