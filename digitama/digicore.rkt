@@ -102,24 +102,17 @@
 
 (define-syntax (define-digimon-dirpath stx)
     (syntax-case stx []
-      [(_ id ...)
+      [(_ parent [id ...])
        (with-syntax ([(digimon-id ...)
                       (for/list ([var (in-list (syntax->list #'(id ...)))])
                         (with-syntax ([id var]) (format-id #'id "digimon-~a" (syntax-e #'id))))])
          #'(begin (define digimon-id : (Parameterof Nothing Path)
-                    (make-derived-parameter digimon-zone
-                                            (immutable-guard 'digimon-id)
-                                            (λ [[zonedir : Path]]
-                                              (build-path zonedir (symbol->string 'id)))))
+                    (make-derived-parameter parent (immutable-guard 'digimon-id)
+                                            (λ [[dir : Path]] (build-path dir (symbol->string 'id)))))
                   ...))]))
 
-(define-digimon-dirpath stone digitama digivice tamer village terminus)
-
-(define digimon-tongue : (Parameterof Nothing Path)
-  (make-derived-parameter digimon-stone
-                          (immutable-guard 'digimon-tongue)
-                          (λ [[stonedir : Path]]
-                            (build-path stonedir "tongue"))))
+(define-digimon-dirpath digimon-zone [stone digitama digivice tamer village terminus])
+(define-digimon-dirpath digimon-stone [tongue icon])
 
 (define path->digimon-modpath : (->* [Path-String] [(Option Symbol)] (U Module-Path (List 'submod Module-Path Symbol)))
   (lambda [modfile [submodule #false]]
