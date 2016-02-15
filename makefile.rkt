@@ -126,11 +126,18 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
 
 (define make-implicit-rkt-rules
   (lambda []
-    (define stone/digivice.rkt (parameterize ([current-digimon (digimon-gnome)]) (build-path (digimon-stone) "digivice.rkt")))
-    (filter-map (lambda [dgvc] (let ([dgvc.rkt (path->string (build-path (digimon-zone) dgvc))])
+    (define-values (stone/digivice.rkt stone/gdigivice.rkt)
+      (parameterize ([current-digimon (digimon-gnome)])
+        (values (build-path (digimon-stone) "digivice.rkt")
+                (build-path (digimon-stone) "gdigivice.rkt"))))
+    (append (filter-map (lambda [dgvc] (let ([dgvc.rkt (path->string (build-path (digimon-zone) dgvc))])
+                                         (and (directory-exists? (path-replace-suffix dgvc.rkt #""))
+                                              (list dgvc.rkt (list stone/digivice.rkt) (curry make-digivice stone/digivice.rkt)))))
+                        (#%info 'racket-launcher-libraries (thunk null)))
+            (filter-map (lambda [dgvc] (let ([dgvc.rkt (path->string (build-path (digimon-zone) dgvc))])
                                  (and (directory-exists? (path-replace-suffix dgvc.rkt #""))
-                                      (list dgvc.rkt (list stone/digivice.rkt) (curry make-digivice stone/digivice.rkt)))))
-                (#%info 'racket-launcher-libraries (thunk null)))))
+                                      (list dgvc.rkt (list stone/gdigivice.rkt) (curry make-digivice stone/gdigivice.rkt)))))
+                (#%info 'gracket-launcher-libraries (thunk null))))))
 
 (define make-implicit-dist-rules
   (lambda []
