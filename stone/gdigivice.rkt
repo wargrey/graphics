@@ -99,11 +99,11 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
    (define splash : (Instance Canvas%)
      (instantiate canvas% (this '(no-focus))
        [paint-callback (λ [[sketch : (Instance Canvas%)] [painter : (Instance DC<%>)]]
+                         (define splash-man-y : Real (+ splash-width splash-margin))
                          (define splash-man-offset : Real (+ (pict-width progress-icons) splash-margin))
-                         (define splash-text-offset : Real (+ splash-man-offset (pict-width progress-man) splash-margin))
-                         (draw-pict progress-icons painter 0 (+ splash-width splash-margin))
-                         (draw-pict progress-man painter splash-man-offset (+ splash-width splash-margin))
-                         (draw-pict progress-text painter splash-text-offset splash-width)
+                         (draw-pict progress-text painter 0 splash-width)
+                         (draw-pict progress-icons painter 0 splash-man-y)
+                         (draw-pict progress-man painter splash-man-offset splash-man-y)
                          (draw-splash painter 0 0))]))
 
    (define progress-update! : (-> [#:icon (Option pict)] [#:error? Boolean] pict * Void)
@@ -118,17 +118,18 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
          (unless (null? picts)
            (define message : pict (apply vl-append progress-text picts))
            (define drop-size : Real (- (pict-height message) (pict-height progress-man)))
-           (set! progress-text (if (positive? drop-size) (clip-descent (lift-above-baseline message drop-size)) message)))
+           (set! progress-text (clip-descent (lift-above-baseline message (max 0 drop-size)))))
          (send splash refresh-now))))
    
    (define ghostcat : Thread
      (thread (thunk (let ([log-evt : Log-Receiver (make-log-receiver splash-logger 'debug)]
                           [color-error : (Instance Color%) (make-object color% "Crimson")]
-                          [color-warning : (Instance Color%) (make-object color% "Yellow")])
+                          [color-warning : (Instance Color%) (make-object color% "Yellow")]
+                          [color-info : (Instance Color%) (make-object color% "ForestGreen")])
                       (let dtrace : Void ()
                         (match (sync/enable-break log-evt)
                           [(vector 'info (? string? message) urgent 'splash)
-                           (progress-update! #:icon (and (pict? urgent) urgent) (text message))
+                           (progress-update! #:icon (and (pict? urgent) urgent) (text message (list color-info)))
                            (dtrace)]
                           [(vector 'warning (? string? message) _ 'splash)
                            (progress-update! (text message (list color-warning)))
@@ -149,7 +150,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
              [(cons modname (list-rest #false submods)) (~a submods)]
              [_ #false]))
          (when (string? modname)
-           (progress-update! (text (string-append "loading " modname) (list color-debug))))
+           (progress-update! (text (string-append "splash: loading " modname) (list color-debug))))
          (origin-load modpath submods))))
    
    (define/override (on-subwindow-char _ keyborad)
