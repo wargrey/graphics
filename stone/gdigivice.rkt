@@ -62,7 +62,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
    (define logo.png : Path (build-path (digimon-icon) (string-append (#%digimon) ".png")))
 
    (define splash-image : pict
-     (let ([splash.png : Path (build-path (digimon-icon) (string-append (symbol->string digivice) ".png"))])
+     (let ([splash.png : Path (build-path (digimon-stone) (string-append (symbol->string digivice) ".png"))])
        (if (file-readable? splash.png) (bitmap splash.png)
            (let* ([margin : Integer (exact-round (/ (pict-height default-image) 32))] ; default images/icons' height is 32
                   [customer : String (or (pkg-institution) (pkg-domain))]
