@@ -83,8 +83,8 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
 
    (define-values (width height) (get-display-size))
    (define splash-width : Natural (max 0 (exact-round (pict-width splash-image))))
-   (define splash-height : Natural (max 0 (exact-round (+ (pict-height splash-image) (pict-height splash-stickman)))))
    (define splash-margin : Real (/ splash-width 32))
+   (define splash-height : Natural (max 0 (exact-round (+ (pict-height splash-image) (pict-height splash-stickman) splash-margin))))
    (define draw-splash : (-> (Instance DC<%>) Real Real Void) (make-pict-drawer splash-image))
    
    (super-make-object (#%digimon) #false splash-width splash-height
@@ -101,8 +101,8 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
        [paint-callback (λ [[sketch : (Instance Canvas%)] [painter : (Instance DC<%>)]]
                          (define splash-man-offset : Real (+ (pict-width progress-icons) splash-margin))
                          (define splash-text-offset : Real (+ splash-man-offset (pict-width progress-man) splash-margin))
-                         (draw-pict progress-icons painter 0 splash-width)
-                         (draw-pict progress-man painter splash-man-offset splash-width)
+                         (draw-pict progress-icons painter 0 (+ splash-width splash-margin))
+                         (draw-pict progress-man painter splash-man-offset (+ splash-width splash-margin))
                          (draw-pict progress-text painter splash-text-offset splash-width)
                          (draw-splash painter 0 0))]))
 
