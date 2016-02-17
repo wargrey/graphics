@@ -66,13 +66,15 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
        (if (file-readable? splash.png) (bitmap splash.png)
            (let* ([margin : Integer (exact-round (/ (pict-height default-image) 32))] ; default images/icons' height is 32
                   [customer : String (or (pkg-institution) (pkg-domain))]
+                  [title-font : (Instance Font%) (make-font #:size 32 #:face "Helvetica, Bold" #:underlined? #true)]
+                  [title-color : (Instance Color%) (make-object color% "Snow")]
                   [text-color : (Instance Color%) (make-object color% "Gray")])
              (cc-superimpose default-image
                              (ct-superimpose (blank (- (pict-height default-image) margin margin))
                                              (if (file-readable? logo.png) (bitmap logo.png) default-logo))
                              (lb-superimpose (blank (- (pict-height default-image) margin margin margin margin))
-                                             (vl-append (text (#%digimon) (make-font #:size 32 #:face "Helvetica, Bold" #:underlined? #true))
-                                                        (text (format "Version: ~a" (#%info 'version)) normal-control-font)
+                                             (vl-append (text (#%digimon) (cons title-color title-font))
+                                                        (text (format "Version: ~a" (#%info 'version)) (cons title-color normal-control-font))
                                                         (ghost (text "newline"))
                                                         (text (string-append "Created for " customer) (cons text-color tiny-control-font))
                                                         (text (match (#%info 'pkg-authors void)
