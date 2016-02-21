@@ -12,7 +12,6 @@
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
 (define-type SymbolTable (HashTable Symbol Any))
-(define-type Racket-Place-Status (Vector Fixnum Fixnum Fixnum Natural Natural Natural Natural Natural Fixnum Fixnum Natural Natural))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
 
 (define-type EvtSelf (Rec Evt (Evtof Evt)))
@@ -22,11 +21,6 @@
                        [s-exp->fasl (case-> [-> Any Bytes]
                                             [-> Any Output-Port Void])]
                        [fasl->s-exp (-> (U Input-Port Bytes) Any)])
-
-(require/typed/provide racket
-                       [#:opaque SIGUP exn:break:hang-up?]
-                       [#:opaque SIGTERM exn:break:terminate?]
-                       [vector-set-performance-stats! (-> Racket-Place-Status (Option Thread) Void)])
 
 (define /dev/stdin : Input-Port (current-input-port))
 (define /dev/stdout : Output-Port (current-output-port))

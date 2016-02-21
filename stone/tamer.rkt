@@ -5,8 +5,7 @@
 #lang at-exp racket/base
 
 (provide (all-defined-out))
-(provide (except-out (all-from-out "../digitama/digicore.rkt" "../../@(digimon-gnome)/digitama/tamer.rkt")
-                     exn:break:hang-up? exn:break:terminate? vector-set-performance-stats!))
+(provide (all-from-out "../digitama/digicore.rkt" "../../@(digimon-gnome)/digitama/tamer.rkt"))
 
 ;;; To force makefile.rkt counting the required file
 @|#\@|require{../digitama/digicore.rkt}
