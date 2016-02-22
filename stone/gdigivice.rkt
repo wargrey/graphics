@@ -110,6 +110,23 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                          (draw-pict progress-man painter splash-man-offset splash-man-y)
                          (unless error? (draw-splash painter 0 0)))]))
 
+   (define (desc [words : String] [width : Real] [ftext : (-> String pict)]) : pict
+     (define phantom : pict (blank 0 (pict-height (ftext ""))))
+     (define terminal-position : Integer (string-length words))
+     (let desc-row : pict ([offset : Integer 0] [head0 : pict (blank)])
+       (define-values (headn current-position)
+         (let desc-col : (Values pict Integer) ([position : Integer offset] [room : Integer (exact-round width)])
+           (cond [(= position terminal-position) (values phantom position)]
+                 [(char=? (string-ref words position) #\newline) (values phantom (add1 position))]
+                 [else (let* ([pchar : pict (ftext (substring words position (add1 position)))]
+                              [pwidth : Integer (exact-round (pict-width pchar))])
+                         (cond [(< width pwidth) (values phantom terminal-position)]
+                               [(< room pwidth) (values phantom position)]
+                               [else (let-values ([(pnext current-position) (desc-col (add1 position) (- room pwidth))])
+                                       (values (hc-append pchar pnext) current-position))]))])))
+       (cond [(= current-position terminal-position) (vl-append head0 headn)]
+             [else (vl-append head0 (desc-row current-position headn))])))
+
    (define progress-update! : (-> (U pict (Listof pict)) [#:icon (Option pict)] Void)
      (let ([total : Index (length splash-stickmen)]
            [sprite-frame : Index 0])
@@ -128,19 +145,20 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
    
    (define ghostcat : Thread
      (thread (thunk (let ([log-evt : Log-Receiver (make-log-receiver splash-logger 'debug)]
-                          [color-error : (Instance Color%) (make-object color% "Crimson")]
-                          [color-warning : (Instance Color%) (make-object color% "Yellow")]
-                          [color-info : (Instance Color%) (make-object color% "ForestGreen")])
+                          [ecolor : (Instance Color%) (make-object color% "Crimson")]
+                          [wcolor : (Instance Color%) (make-object color% "Yellow")]
+                          [icolor : (Instance Color%) (make-object color% "ForestGreen")])
                       (let dtrace : Void ()
                         (match (sync/enable-break log-evt)
                           [(vector 'info (? string? message) urgent 'splash)
-                           (progress-update! #:icon (and (pict? urgent) urgent) (text message (list color-info)))
+                           (progress-update! #:icon (and (pict? urgent) urgent) (text message (list icolor)))
                            (dtrace)]
                           [(vector 'warning (? string? message) _ 'splash)
-                           (progress-update! (text message (list color-warning)))
+                           (progress-update! (text message (list wcolor)))
                            (dtrace)]
                           [(vector (or 'fatal 'error) (? string? message) _ 'splash)
-                           (progress-update! (list (text message (list color-error 'italic))
+                           (progress-update! (list (desc message (- splash-width (* splash-margin 1/2))
+                                                         (λ [[c : String]] (text c (list ecolor 'italic))))
                                                    (text "Press any key to exit..." (cons 'bold 'modern))))]
                           [_ (dtrace)]))))))
 
