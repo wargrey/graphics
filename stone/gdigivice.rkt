@@ -101,24 +101,27 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
    (define splash : (Instance Canvas%)
      (instantiate canvas% (this '(no-focus))
        [paint-callback (λ [[sketch : (Instance Canvas%)] [painter : (Instance DC<%>)]]
+                         (define error? : Boolean (eq? progress-man splash-stickman))
                          (define splash-man-y : Real (+ splash-width splash-margin))
                          (define splash-man-offset : Real (+ (pict-width progress-icons) splash-margin))
+                         (when error? (draw-splash painter 0 0))
                          (draw-pict progress-text painter 0 splash-width)
                          (draw-pict progress-icons painter 0 splash-man-y)
                          (draw-pict progress-man painter splash-man-offset splash-man-y)
-                         (draw-splash painter 0 0))]))
+                         (unless error? (draw-splash painter 0 0)))]))
 
-   (define progress-update! : (-> [#:icon (Option pict)] [#:error? Boolean] pict * Void)
+   (define progress-update! : (-> (U pict (Listof pict)) [#:icon (Option pict)] Void)
      (let ([total : Index (length splash-stickmen)]
            [sprite-frame : Index 0])
-       (lambda [#:icon [icon #false] #:error? [error? #false] . picts]
-         (when (false? error?) (set! sprite-frame (remainder (add1 sprite-frame) total)))
+       (lambda [picts #:icon [icon #false]]
+         (define error? : Boolean (list? picts))
+         (unless error? (set! sprite-frame (remainder (add1 sprite-frame) total)))
          (set! progress-man (if error? splash-stickman (list-ref splash-stickmen sprite-frame)))
          (when (pict? icon)
            (define icon-size : Real (pict-width progress-man))
            (set! progress-icons (hc-append splash-margin progress-icons (scale-to-fit icon icon-size icon-size))))
          (unless (null? picts)
-           (define message : pict (apply vl-append progress-text picts))
+           (define message : pict (if (list? picts) (apply vl-append picts) (vl-append progress-text picts)))
            (define drop-size : Real (- (pict-height message) (pict-height progress-man)))
            (set! progress-text (clip-descent (lift-above-baseline message (max 0 drop-size)))))
          (send splash refresh-now))))
@@ -137,9 +140,8 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                            (progress-update! (text message (list color-warning)))
                            (dtrace)]
                           [(vector (or 'fatal 'error) (? string? message) _ 'splash)
-                           (progress-update! #:error? #true
-                                             (text message (list color-error 'italic))
-                                             (text "Press any key to exit..." (cons 'bold 'modern)))]
+                           (progress-update! (list (text message (list color-error 'italic))
+                                                   (text "Press any key to exit..." (cons 'bold 'modern))))]
                           [_ (dtrace)]))))))
 
    (define splash-load : (-> Path (Option Symbol) AnyValues)
