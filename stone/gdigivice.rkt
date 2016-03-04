@@ -55,8 +55,8 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                    [current-command-line-arguments (vector)])
      (send (make-object splash%) show #true)))
  (class frame% (inherit show)
-   (define is-frame%? ((inst make-subclass? Frame%) frame%))
-   (define is-frame? ((inst make-is-a? Frame%) frame%))
+   (define subframe%? ((inst make-subclass? Frame%) frame%))
+   (define bitmap%? ((inst make-is-a? Bitmap%) bitmap%))
 
    (define splash-logger (make-logger 'splash /dev/log))
    (define logo.png : Path (build-path (digimon-icon) (string-append (#%digimon) ".png")))
@@ -151,7 +151,10 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                       (let dtrace : Void ()
                         (match (sync/enable-break log-evt)
                           [(vector 'info (? string? message) urgent 'splash)
-                           (progress-update! #:icon (and (pict? urgent) urgent) (text message (list icolor)))
+                           (progress-update! (text message (list icolor))
+                                             #:icon (cond [(bitmap%? urgent) (bitmap urgent)]
+                                                          [(pict? urgent) urgent]
+                                                          [else #false]))
                            (dtrace)]
                           [(vector 'warning (? string? message) _ 'splash)
                            (progress-update! (text message (list wcolor)))
@@ -188,7 +191,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
            (define modpath : Path (build-path (digimon-digivice) modname (string-append modname ".rkt")))
            (unless (file-readable? modpath) (error digivice "application not found!"))
            (define digivice% (dynamic-require modpath 'digivice% (thunk (error digivice "digivice% not found!"))))
-           (cond [(false? (is-frame%? digivice%)) (error digivice "digivice% should be a frame%!")]
+           (cond [(false? (subframe%? digivice%)) (error digivice "digivice% should be a frame%!")]
                  [else (let ([d-ark (new digivice% [label (string-titlecase modname)])])
                          (send* d-ark 
                            (set-icon (make-object bitmap% logo.png 'unknown/alpha))
