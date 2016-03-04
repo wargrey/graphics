@@ -116,64 +116,66 @@
                           (list (cons 'const (list 'DataType ...)) ...))])
                     (lambda [sym] ((inst hash-ref TypeU (Listof Primitive-Type) (Listof Primitive-Type)) cs sym))))))]))
 
-(define-syntax (define/extract-symtable stx)
-  (syntax-case stx []
-    [(_ (symtable-sexp ...) defines ...)
-     (with-syntax ([symtable (format-id #'symtable "~a" (gensym 'symboltable))])
-       #'(begin (define symtable : (HashTable Symbol Any) (symtable-sexp ...))
-                (define/extract-symtable symtable defines ...)))]
-    [(_ symtable defines ...)
+(define-syntax (define/extract-λref stx)
+  (syntax-case stx [:-]
+    [(_ ref :- (make Typeof) defines ...)
      (with-syntax ([(extract ...)
                     (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
-                      (syntax-case def-idl [: =]
+                      (syntax-case def-idl [: = =>]
+                        [([renamed-id key] : Type = def-exp => [fvalue ...])
+                         #'(define renamed-id : (Typeof Type)
+                             (make (match (ref 'key (thunk def-exp)) fvalue ...)))]
+                        [([renamed-id key] : Type => [fvalue ...] = def-exp)
+                         #'(define renamed-id : (Typeof Type)
+                             (make (with-handlers ([exn:misc:match? (const def-exp)])
+                                     (match (ref 'key void) fvalue ...))))]
+                        [([renamed-id key] : Type => [fvalue ...])
+                         #'(define renamed-id : (Typeof Type)
+                             (make (match (ref 'key void) fvalue ...)))]
                         [([renamed-id key] : Type = def-exp)
-                         #'(define renamed-id : Type ((inst hash-ref Symbol Type Type) symtable 'key (thunk def-exp)))]
+                         #'(define renamed-id : (Typeof Type)
+                             (make (cast (ref 'key (thunk def-exp)) Type)))]
+                        [([renamed-id key] : Type)
+                         #'(define renamed-id : (Typeof Type)
+                             (make (cast (ref 'key) Type)))]
+                        [(id : Type = def-exp => [fvalue ...])
+                         #'(define id : (Typeof Type)
+                             (make (match (ref 'id (thunk def-exp)) fvalue ...)))]
+                        [(id : Type => [fvalue ...] = def-exp)
+                         #'(define id : (Typeof Type)
+                             (make (with-handlers ([exn:misc:match? (const def-exp)])
+                                     (match (ref 'key void) fvalue ...))))]
+                        [(id : Type => [fvalue ...])
+                         #'(define id : (Typeof Type)
+                             (make (match (ref 'id void) fvalue ...)))]
                         [(id : Type = def-exp)
-                         #'(define id : Type ((inst hash-ref Symbol Type Type) (hash-ref symtable 'id (thunk def-exp))))]))])
-       #'(begin extract ...))]))
+                         #'(define id : (Typeof Type)
+                             (make (cast (ref 'id (thunk def-exp)) Type)))]
+                        [(id : Type)
+                         #'(define id : (Typeof Type)
+                             (make (cast (ref 'id) Type)))]))])
+       #'(begin extract ...))]
+    [(_ ref defines ...)
+     #'(define/extract-λref ref :- (values Identity) defines ...)]))
+
+(define-syntax (define/extract-symtable stx)
+  (syntax-case stx []
+    [(_ (symtable-sexp ...) rest ...)
+     (with-syntax ([symtable (format-id #'symtable "~a" (gensym 'symboltable))])
+       #'(begin (define symtable : (HashTable Symbol Any) (symtable-sexp ...))
+                (define/extract-symtable symtable rest ...)))]
+    [(_ symtable rest ...)
+     (with-syntax ([table-ref (format-id #'symtable "~a" (gensym 'symtable))])
+       #'(begin (define table-ref : (->* (Symbol) ((Option (-> Any))) Any)
+                  (lambda [key [defval #false]]
+                    (hash-ref symtable key (or defval (thunk (error 'table-ref "no such key found in this symbol table: ~a" key))))))
+                (define/extract-λref table-ref rest ...)))]))
 
 (define-syntax (define/extract-info stx)
-  (syntax-case stx [:-]
-    [(_ infodir :- (make Typeof) defines ...)
-     (with-syntax* ([info-ref (format-id #'info-ref "~a" (gensym 'inforef))]
-                    [(extract ...)
-                     (for/list ([def-idl (in-list (syntax->list #'(defines ...)))])
-                       (syntax-case def-idl [: = =>]
-                         [([renamed-id key] : Type = def-exp => [fvalue ...])
-                          #'(define renamed-id : (Typeof Type)
-                              (make (match (info-ref 'key (thunk def-exp)) fvalue ...)))]
-                         [([renamed-id key] : Type => [fvalue ...] = def-exp)
-                          #'(define renamed-id : (Typeof Type)
-                              (make (with-handlers ([exn:misc:match? (const def-exp)])
-                                      (match (info-ref 'key void) fvalue ...))))]
-                         [([renamed-id key] : Type => [fvalue ...])
-                          #'(define renamed-id : (Typeof Type)
-                              (make (match (info-ref 'key void) fvalue ...)))]
-                         [([renamed-id key] : Type = def-exp)
-                          #'(define renamed-id : (Typeof Type)
-                              (make (cast (info-ref 'key (thunk def-exp)) Type)))]
-                         [([renamed-id key] : Type)
-                          #'(define renamed-id : (Typeof Type)
-                              (make (cast (info-ref 'key) Type)))]
-                         [(id : Type = def-exp => [fvalue ...])
-                          #'(define id : (Typeof Type)
-                              (make (match (info-ref 'id (thunk def-exp)) fvalue ...)))]
-                         [(id : Type => [fvalue ...] = def-exp)
-                          #'(define id : (Typeof Type)
-                              (make (with-handlers ([exn:misc:match? (const def-exp)])
-                                      (match (info-ref 'key void) fvalue ...))))]
-                         [(id : Type => [fvalue ...])
-                          #'(define id : (Typeof Type)
-                              (make (match (info-ref 'id void) fvalue ...)))]
-                         [(id : Type = def-exp)
-                          #'(define id : (Typeof Type)
-                              (make (cast (info-ref 'id (thunk def-exp)) Type)))]
-                         [(id : Type)
-                          #'(define id : (Typeof Type)
-                              (make (cast (info-ref 'id) Type)))]))])
+  (syntax-case stx []
+    [(_ infodir rest ...)
+     (with-syntax ([info-ref (format-id #'info-ref "~a" (gensym 'inforef))])
        #'(begin (define info-ref : Info-Ref
                   (let ([ref (get-info/full infodir)])
                     (if (false? ref) (throw [exn:fail:filesystem] "info.rkt not found in ~a" infodir) ref)))
-                extract ...))]
-    [(_ infodir defines ...)
-     #'(define/extract-info infodir :- (values Identity) defines ...)]))
+                (define/extract-λref info-ref rest ...)))]))
