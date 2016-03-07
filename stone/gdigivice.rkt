@@ -12,17 +12,19 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
 
 #lang at-exp typed/racket/gui
 
-(require typed/pict)
-
 (require "../digitama/digicore.rkt")
 
 (define digivice : Symbol (#%module))
 
+(define-type Bitmap (Instance Bitmap%))
+
 (module digitama racket
   (provide (all-defined-out))
 
-  (require pict)
   (require images/compile-time)
+
+  (require (for-syntax racket/draw))
+  (require (for-syntax racket/class))
   
   (require (for-syntax images/logos))
   (require (for-syntax images/icons/misc))
@@ -33,21 +35,108 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
   (define-for-syntax sprite-height 32)
 
   (define-values (default-logo default-image)
-    (values (cc-superimpose (bitmap (compiled-bitmap (lambda-icon #:height (* 3/8 splash-width))))
-                            (cellophane (bitmap (compiled-bitmap (planet-logo #:height (* 1/2 splash-width)))) 0.64))
-            (bitmap (compiled-bitmap (regular-polygon-icon 4 #:color "LightSkyBlue" #:height splash-width)))))
-  
-  (define-values (splash-stickman splash-stickmen)
-    (values (bitmap (compiled-bitmap (standing-stickman-icon #:body-color "Crimson" #:head-color "Crimson" #:height sprite-height)))
-            (map bitmap (compiled-bitmap-list (for/list ([step (in-range 0.0 1.0 1/12)])
-                                                (running-stickman-icon step #:height sprite-height)))))))
+    (values (compiled-bitmap (let ([lambda.icon (lambda-icon #:height (* 3/8 splash-width))]
+                                   [planet.icon (planet-logo #:height (* 1/2 splash-width))])
+                               (define-values (lw lh) (values (send lambda.icon get-width) (send lambda.icon get-height)))
+                               (define-values (pw ph) (values (send planet.icon get-width) (send planet.icon get-height)))
+                               (define-values (w h) (values (max lw pw) (max pw ph)))
+                               (define dc (make-object bitmap-dc% (make-bitmap w h #:backing-scale (send planet.icon get-backing-scale))))
+                               (send dc draw-bitmap planet.icon (/ (- w pw) 2) (/ (- h ph) 2))
+                               (send dc set-alpha 0.64)
+                               (send dc draw-bitmap lambda.icon (/ (- w lw) 2) (/ (- h lh) 2))
+                               (send dc get-bitmap)))
+            (compiled-bitmap (regular-polygon-icon 4 #:color "LightSkyBlue" #:height splash-width))))
+
+  (define-values (splash-fault-man splash-running-men)
+    (values (compiled-bitmap (standing-stickman-icon #:body-color "Crimson" #:head-color "Crimson" #:height sprite-height))
+            (compiled-bitmap-list (for/list ([step (in-range 0.0 1.0 1/12)])
+                                    (running-stickman-icon step #:height sprite-height))))))
 
 (require/typed
  (submod "." digitama)
- [default-logo pict]
- [default-image pict]
- [splash-stickman pict]
- [splash-stickmen (Listof pict)])
+ [default-logo Bitmap]
+ [default-image Bitmap]
+ [splash-fault-man Bitmap]
+ [splash-running-men (Listof Bitmap)])
+
+(define display-scale : Nonnegative-Real (or (get-display-backing-scale) 1.0))
+(define blank-bitmap : Bitmap (make-bitmap 1 1 #:backing-scale display-scale))
+
+(define title-color : (Instance Color%) (make-object color% "Snow"))
+(define text-color : (Instance Color%) (make-object color% "Gray"))
+(define error-color : (Instance Color%) (make-object color% "Crimson"))
+(define warning-color : (Instance Color%) (make-object color% "Yellow"))
+(define info-color : (Instance Color%) (make-object color% "ForestGreen"))
+(define debug-color : (Instance Color%) (make-object color% "Gray"))
+
+(define title-font : (Instance Font%) (make-font #:size 32 #:face "Helvetica, Bold" #:underlined? #true))
+(define terminal-font : (Instance Font%) (make-font #:weight 'bold #:family 'modern))
+(define error-font : (Instance Font%) (make-font #:style 'italic))
+
+(define bitmap : (-> Path-String Bitmap Bitmap)
+  (lambda [src.png default]
+    (with-handlers ([exn:fail? (const default)])
+      (read-bitmap src.png #:try-@|#\@|2x? #true))))
+
+(define bitmap-blank : (->* () (Nonnegative-Real (Option Nonnegative-Real) #:backing-scale Nonnegative-Real) Bitmap)
+  (lambda [[w 0] [h #false] #:backing-scale [backing-scale display-scale]]
+    (define width : Positive-Integer (max 1 (exact-ceiling w)))
+    (define height : Positive-Integer (max 1 (exact-ceiling (or h w))))
+    (make-bitmap width height #:backing-scale backing-scale)))
+
+(define bitmap-text : (->* (String) ((U False String (Instance Color%)) (Instance Font%)) Bitmap)
+  (lambda [content [fgcolor #false] [font (make-font)]]
+    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% blank-bitmap))
+    (define-values (width height descent ascent) (send dc get-text-extent content font #true))
+    (send dc set-bitmap (bitmap-blank width height))
+    (send dc set-font font)
+    (when fgcolor (send dc set-text-foreground fgcolor))
+    (send dc draw-text content 0 0 #true)
+    (or (send dc get-bitmap) blank-bitmap)))
+
+(define bitmap-desc : (->* (String Positive-Real) ((U False String (Instance Color%)) (Instance Font%)) Bitmap)
+  (lambda [description max-width.0 [fgcolor #false] [font (make-font)]]
+    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% blank-bitmap))
+    (define max-width : Positive-Integer (exact-ceiling max-width.0))
+    (define desc-extent : (-> String Integer Integer (Values String Natural Nonnegative-Real))
+      (lambda [desc start end]
+        (define subdesc : String (substring desc start end))
+        (define-values (width height descent ascent) (send dc get-text-extent subdesc font #true))
+        (values subdesc (exact-ceiling width) height)))
+
+    (match-define-values (_ char-width phantom-height) (desc-extent " " 0 1))
+    (define-values (descs ys width height)
+      (if (> char-width max-width)
+          (values null null max-width phantom-height)
+          (for/fold ([descs : (Listof String) null] [ys : (Listof Real) null] [width : Natural 0] [height : Real 0])
+                    ([desc : String (in-list (string-split description (string #\newline)))])
+            (define terminal : Index (string-length desc))
+            (let desc-row : (Values (Listof String) (Listof Real) Natural Real)
+              ([idx0 : Natural 0] [descs : (Listof String) descs] [ys : (Listof Real) ys]
+                                  [Widthn : Natural width] [yn : Real height])
+              (define-values (descn widthn heightn idx)
+                (let desc-col-expt : (Values String Natural Real Natural)
+                  ([start : Natural idx0] [end : Natural (min terminal (add1 idx0))])
+                  (define-values (line width height) (desc-extent desc idx0 end))
+                  (cond [(or (= terminal end) (= width max-width)) (values line width height end)]
+                        [(< width max-width) (desc-col-expt end (min terminal (* end 2)))]
+                        [else (let desc-col-biny : (Values String Natural Real Natural)
+                                ([start : Natural start] [end : Natural end])
+                                (define mid : Natural (+ (quotient (max 0 (- end start)) 2) start))
+                                (define-values (line width height) (desc-extent desc idx0 mid))
+                                (cond [(<= (- max-width char-width -1) width max-width) (values line width height mid)]
+                                      [(< width max-width) (desc-col-biny (min (add1 mid) end) end)]
+                                      [else (desc-col-biny start (max start (sub1 mid)))]))])))
+              (if (fx= idx terminal)
+                  (values (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn))
+                  (desc-row idx (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn)))))))
+    
+    (send dc set-bitmap (bitmap-blank (max 1 width) (max 1 phantom-height height)))
+    (send dc set-font font)
+    (when fgcolor (send dc set-text-foreground fgcolor))
+    (for ([desc (in-list (reverse descs))] [y (in-list (reverse ys))])
+      (send dc draw-text desc 0 y #true))
+    (or (send dc get-bitmap) blank-bitmap)))
 
 ((lambda [[splash% : (Class #:implements Frame%)]]
    (parameterize* ([current-digimon "@(current-digimon)"]
@@ -61,113 +150,124 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
    (define splash-logger (make-logger 'splash /dev/log))
    (define logo.png : Path (build-path (digimon-icon) (string-append (#%digimon) ".png")))
 
-   (define splash-image : pict
-     (let ([splash.png : Path (build-path (digimon-stone) (string-append (symbol->string digivice) ".png"))])
-       (if (file-readable? splash.png) (bitmap splash.png)
-           (let* ([margin : Integer (exact-round (/ (pict-height default-image) 32))] ; default images/icons' height is 32
-                  [customer : String (or (pkg-institution) (pkg-domain))]
-                  [title-font : (Instance Font%) (make-font #:size 32 #:face "Helvetica, Bold" #:underlined? #true)]
-                  [title-color : (Instance Color%) (make-object color% "Snow")]
-                  [text-color : (Instance Color%) (make-object color% "Gray")])
-             (cc-superimpose default-image
-                             (ct-superimpose (blank (- (pict-height default-image) margin margin))
-                                             (if (file-readable? logo.png) (bitmap logo.png) default-logo))
-                             (lb-superimpose (blank (- (pict-height default-image) margin margin margin margin))
-                                             (vl-append (text (#%digimon) (cons title-color title-font))
-                                                        (text (format "Version: ~a" (#%info 'version)) (cons title-color normal-control-font))
-                                                        (ghost (text "newline"))
-                                                        (text (string-append "Created for " customer) (cons text-color tiny-control-font))
-                                                        (text (match (#%info 'pkg-authors void)
-                                                                [(list 1st 2nd others ...) (format "By ~a, et al." 1st)]
-                                                                [(list author) (format "By ~a" author)]
-                                                                [else "By WarGrey Ju"])
-                                                              (cons text-color tiny-control-font)))))))))
+   (define splash.bmp : Bitmap
+     (bitmap (build-path (digimon-stone) (string-append (symbol->string digivice) ".png"))
+             (let ([painter : (Instance Bitmap-DC%) (send default-image make-dc)])
+               (define-values (title version customer author)
+                 (values (#%digimon) (format "Version: ~a" (#%info 'version))
+                         (string-append "Created for " (or (pkg-institution) (pkg-domain)))
+                         (match (#%info 'pkg-authors void)
+                           [(list 1st 2nd others ...) (format "By ~a, et al." 1st)]
+                           [(list author) (format "By ~a" author)]
+                           [else "By WarGrey Ju"])))
+               
+               (define-values (width height) (send painter get-size))
+               (define inset : Integer (* (exact-round (/ height (or 32 'default 'height 'in '(images/icons)))) 2))
+               
+               (define logo.icon : Bitmap (bitmap logo.png default-logo))
+               (send painter set-smoothing 'aligned)
+               (send painter draw-bitmap logo.icon (/ (- width (send logo.icon get-width)) 2) inset)
+
+               (match-define-values (_ ghost-height _ _) (send painter get-text-extent ""))
+               (match-define-values (_ title-height _ _) (send painter get-text-extent title title-font))
+               (match-define-values (_ version-height _ _) (send painter get-text-extent version normal-control-font))
+               (match-define-values (_ customer-height _ _) (send painter get-text-extent customer tiny-control-font))
+               (match-define-values (_ author-height _ _) (send painter get-text-extent author tiny-control-font))
+               
+               (define customer-y : Real (- height inset author-height customer-height))
+               (define title-y : Real (- customer-y ghost-height version-height title-height))
+               (send* painter
+                 (set-text-foreground title-color)
+                 (set-font title-font)
+                 (draw-text title inset title-y)
+                 (set-font normal-control-font)
+                 (draw-text version inset (+ title-y title-height))
+                 (set-text-foreground text-color)
+                 (set-font tiny-control-font)
+                 (draw-text customer inset customer-y)
+                 (draw-text author inset (+ customer-y customer-height)))
+               (or (send painter get-bitmap) default-image))))
 
    (define-values (width height) (get-display-size))
-   (define splash-width : Natural (max 0 (exact-round (pict-width splash-image))))
-   (define splash-margin : Real (/ splash-width 32))
-   (define splash-height : Natural (max 0 (exact-round (+ (pict-height splash-image) (pict-height splash-stickman) splash-margin))))
-   (define draw-splash : (-> (Instance DC<%>) Real Real Void) (make-pict-drawer splash-image))
-   
+   (define splash-width : Natural (send splash.bmp get-width))
+   (define splash-margin : Natural (exact-ceiling (/ splash-width 32)))
+   (define splash-height : Natural (+ (send splash.bmp get-height) (send splash-fault-man get-height) splash-margin))
+   (define splash-icon+gap : Positive-Integer (+ splash-margin (send splash-fault-man get-width)))
+
    (super-make-object (#%digimon) #false splash-width splash-height
                       (and width (exact-round (* 1/2 (- width splash-width))))
                       (and height (exact-round (* 1/2 (- height splash-height))))
                       '(no-resize-border no-caption no-system-menu hide-menu-bar float)
                       #true 0 0 '(left top) splash-width splash-height #false #false)
 
-   (define progress-icons : pict (blank 0 0))
-   (define progress-man : pict (last splash-stickmen))
-   (define progress-text : pict (blank 0 0))
+   (define progress-messages : (Listof Bitmap) null)
+   (define progress-icons : (Listof Bitmap) null)
+   (define progress-man : Bitmap (last splash-running-men))
+   
    (define splash : (Instance Canvas%)
      (instantiate canvas% (this '(no-focus))
        [paint-callback (λ [[sketch : (Instance Canvas%)] [painter : (Instance DC<%>)]]
-                         (define error? : Boolean (eq? progress-man splash-stickman))
-                         (define splash-man-y : Real (+ splash-width splash-margin))
-                         (define splash-man-offset : Real (+ (pict-width progress-icons) splash-margin))
-                         (when error? (draw-splash painter 0 0))
-                         (draw-pict progress-text painter 0 splash-width)
-                         (draw-pict progress-icons painter 0 splash-man-y)
-                         (draw-pict progress-man painter splash-man-offset splash-man-y)
-                         (unless error? (draw-splash painter 0 0)))]))
+                         (define text-top : Integer (if (eq? progress-man splash-fault-man) 0 splash-width))
+                         (send painter draw-bitmap splash.bmp 0 0)
+                         (let draw-message : Void ([messages : (Listof Bitmap) progress-messages]
+                                                   [bottom : Integer splash-height])
+                           (unless (or (null? messages) (<= bottom text-top))
+                             (define info : Bitmap (car messages))
+                             (define height : Positive-Integer (send info get-height))
+                             (define hinfo : Positive-Integer (min (max 1 (- bottom text-top)) height))
+                             (send painter draw-bitmap-section info
+                                   0 (- bottom hinfo) 0 (- height hinfo) splash-width hinfo)
+                             (draw-message (cdr messages) (- bottom hinfo))))
+                         (for ([icon (in-list (reverse (cons progress-man progress-icons)))]
+                               [idx (in-naturals)])
+                           (send painter draw-bitmap icon
+                                 (+ (* splash-icon+gap idx) splash-margin)
+                                 (+ splash-width splash-margin))))]))
 
-   (define (desc [words : String] [width : Real] [ftext : (-> String pict)]) : pict
-     (define phantom : pict (blank 0 (pict-height (ftext ""))))
-     (define terminal-position : Integer (string-length words))
-     (let desc-row : pict ([offset : Integer 0] [head0 : pict (blank)])
-       (define-values (headn current-position)
-         (let desc-col : (Values pict Integer) ([position : Integer offset] [room : Integer (exact-round width)])
-           (cond [(= position terminal-position) (values phantom position)]
-                 [(char=? (string-ref words position) #\newline) (values phantom (add1 position))]
-                 [else (let* ([pchar : pict (ftext (substring words position (add1 position)))]
-                              [pwidth : Integer (exact-round (pict-width pchar))])
-                         (cond [(< width pwidth) (values phantom terminal-position)]
-                               [(< room pwidth) (values phantom position)]
-                               [else (let-values ([(pnext current-position) (desc-col (add1 position) (- room pwidth))])
-                                       (values (hc-append pchar pnext) current-position))]))])))
-       (cond [(= current-position terminal-position) (vl-append head0 headn)]
-             [else (vl-append head0 (desc-row current-position headn))])))
-
-   (define progress-update! : (-> (U pict (Listof pict)) [#:icon (Option pict)] Void)
-     (let ([total : Index (length splash-stickmen)]
+   (define progress-update! : (-> Bitmap [#:icon (Option Bitmap)] [#:error (Option Bitmap)] Void)
+     (let ([total : Index (length splash-running-men)]
            [sprite-frame : Index 0])
-       (lambda [picts #:icon [icon #false]]
-         (define error? : Boolean (list? picts))
-         (unless error? (set! sprite-frame (remainder (add1 sprite-frame) total)))
-         (set! progress-man (if error? splash-stickman (list-ref splash-stickmen sprite-frame)))
-         (when (pict? icon)
-           (define icon-size : Real (pict-width progress-man))
-           (set! progress-icons (hc-append splash-margin progress-icons (scale-to-fit icon icon-size icon-size))))
-         (unless (null? picts)
-           (define message : pict (if (list? picts) (apply vl-append picts) (vl-append progress-text picts)))
-           (define drop-size : Real (- (pict-height message) (pict-height progress-man)))
-           (set! progress-text (clip-descent (lift-above-baseline message (max 0 drop-size)))))
+       (lambda [message #:icon [icon #false] #:error [error #false]]
+         (set! progress-messages (cons message progress-messages))
+         (when (bitmap%? icon)
+           (define icon-size : Positive-Integer (max 1 (- splash-icon+gap splash-margin)))
+           (define scale-x : Real (/ icon-size (send icon get-width) 1.0))
+           (define scale-y : Real (/ icon-size (send icon get-height) 1.0))
+           (define scaled-icon : Bitmap
+             (cond [(and (= scale-x 1.0) (= scale-y 1.0)) icon]
+                   [else (let ([scaled-bmp : Bitmap (bitmap-blank icon-size icon-size)])
+                           (define dc : (Instance Bitmap-DC%) (send scaled-bmp make-dc))
+                           (send dc set-smoothing 'aligned)
+                           (send dc set-scale scale-x scale-y)
+                           (send dc draw-bitmap icon 0 0)
+                           scaled-bmp)]))
+           (set! progress-icons (cons scaled-icon progress-icons)))
+         (when (false? error)
+           (set! sprite-frame (remainder (add1 sprite-frame) total))
+           (set! progress-man (list-ref splash-running-men sprite-frame)))
+         (when (bitmap%? error)
+           (set! progress-man splash-fault-man)
+           (set! progress-messages (cons error progress-messages)))
          (send splash refresh-now))))
-   
+
    (define ghostcat : Thread
-     (thread (thunk (let ([log-evt : Log-Receiver (make-log-receiver splash-logger 'debug)]
-                          [ecolor : (Instance Color%) (make-object color% "Crimson")]
-                          [wcolor : (Instance Color%) (make-object color% "Yellow")]
-                          [icolor : (Instance Color%) (make-object color% "ForestGreen")])
+     (thread (thunk (let ([log-evt : Log-Receiver (make-log-receiver splash-logger 'debug)])
                       (let dtrace : Void ()
                         (match (sync/enable-break log-evt)
                           [(vector 'info (? string? message) urgent 'splash)
-                           (progress-update! (text message (list icolor))
-                                             #:icon (cond [(bitmap%? urgent) (bitmap urgent)]
-                                                          [(pict? urgent) urgent]
-                                                          [else #false]))
+                           (progress-update! (bitmap-text message info-color) #:icon (and (bitmap%? urgent) urgent))
                            (dtrace)]
                           [(vector 'warning (? string? message) _ 'splash)
-                           (progress-update! (text message (list wcolor)))
+                           (progress-update! (bitmap-text message warning-color))
                            (dtrace)]
                           [(vector (or 'fatal 'error) (? string? message) _ 'splash)
-                           (progress-update! (list (desc message (- splash-width (* splash-margin 1/2))
-                                                         (λ [[c : String]] (text c (list ecolor 'italic))))
-                                                   (text "Press any key to exit..." (cons 'bold 'modern))))]
+                           (progress-update! #:error (bitmap-text "      Press any key to exit..." #false terminal-font)
+                                             (bitmap-desc message (max 1 (- splash-width (* splash-margin 1/2)))
+                                                          error-color error-font))]
                           [_ (dtrace)]))))))
 
    (define splash-load : (-> Path (Option Symbol) AnyValues)
-     (let ([origin-load (current-load)]
-           [color-debug : (Instance Color%) (make-object color% "Gray")])
+     (let ([origin-load (current-load)])
        (lambda [modpath submods]
          (define modname : (Option String)
            (match (cons (file-name-from-path modpath) submods)
@@ -175,9 +275,9 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
              [(cons modname (list-rest #false submods)) (~a submods)]
              [_ #false]))
          (when (string? modname)
-           (progress-update! (text (string-append "splash: loading " modname) (list color-debug))))
+           (progress-update! (bitmap-text (string-append "splash: loading " modname) debug-color)))
          (origin-load modpath submods))))
-   
+
    (define/override (on-subwindow-char _ keyborad)
      (cond [(thread-running? ghostcat) #false]
            [else (and (show #false) #true)]))
@@ -193,7 +293,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
            (define digivice% (dynamic-require modpath 'digivice% (thunk (error digivice "digivice% not found!"))))
            (cond [(false? (subframe%? digivice%)) (error digivice "digivice% should be a frame%!")]
                  [else (let ([d-ark (new digivice% [label (string-titlecase modname)])])
-                         (send* d-ark 
+                         (send* d-ark
                            (set-icon (make-object bitmap% logo.png 'unknown/alpha))
                            (show #true)
                            (center 'both)
