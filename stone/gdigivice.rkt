@@ -226,15 +226,18 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
          (set! progress-messages (cons message progress-messages))
          (when (bitmap%? icon)
            (define icon-size : Positive-Integer (max 1 (- splash-icon+gap splash-margin)))
-           (define scale-x : Real (/ icon-size (send icon get-width) 1.0))
-           (define scale-y : Real (/ icon-size (send icon get-height) 1.0))
+           (define icon-w : Positive-Integer (send icon get-width))
+           (define icon-h : Positive-Integer (send icon get-height))
+           (define icon-scale : Real (/ icon-size (max icon-w icon-h) 1.0))
            (define scaled-icon : Bitmap
-             (cond [(and (= scale-x 1.0) (= scale-y 1.0)) icon]
+             (cond [(= icon-scale 1.0) icon]
                    [else (let ([scaled-bmp : Bitmap (bitmap-blank icon-size icon-size)])
                            (define dc : (Instance Bitmap-DC%) (send scaled-bmp make-dc))
                            (send dc set-smoothing 'aligned)
-                           (send dc set-scale scale-x scale-y)
-                           (send dc draw-bitmap icon 0 0)
+                           (send dc set-scale icon-scale icon-scale)
+                           (send dc draw-bitmap icon
+                                 (/ (- icon-size (* icon-w icon-scale)) 2)
+                                 (/ (- icon-size (* icon-h icon-scale)) 2))
                            scaled-bmp)]))
            (set! progress-icons (cons scaled-icon progress-icons)))
          (when (false? error)
