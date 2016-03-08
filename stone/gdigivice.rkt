@@ -116,17 +116,12 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                                   [Widthn : Natural width] [yn : Real height])
               (define-values (descn widthn heightn idx)
                 (let desc-col-expt : (Values String Natural Real Natural)
-                  ([start : Natural idx0] [end : Natural (min terminal (add1 idx0))])
-                  (define-values (line width height) (desc-extent desc idx0 end))
-                  (cond [(or (= terminal end) (= width max-width)) (values line width height end)]
-                        [(< width max-width) (desc-col-expt end (min terminal (* end 2)))]
-                        [else (let desc-col-biny : (Values String Natural Real Natural)
-                                ([start : Natural start] [end : Natural end])
-                                (define mid : Natural (+ (quotient (max 0 (- end start)) 2) start))
-                                (define-values (line width height) (desc-extent desc idx0 mid))
-                                (cond [(<= (- max-width char-width -1) width max-width) (values line width height mid)]
-                                      [(< width max-width) (desc-col-biny (min (add1 mid) end) end)]
-                                      [else (desc-col-biny start (max start (sub1 mid)))]))])))
+                  ([start : Natural idx0] [end : Natural terminal] [interval : Natural 1])
+                  (define idx : Natural (min end (+ start interval)))
+                  (define-values (line width height) (desc-extent desc idx0 idx))
+                  (cond [(> width max-width) (desc-col-expt (max 0 (+ start (quotient interval 2))) idx 1)]
+                        [(or (= end idx) (<= width max-width (+ width char-width -1))) (values line width height idx)]
+                        [else (desc-col-expt start end (* interval 2))])))
               (if (fx= idx terminal)
                   (values (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn))
                   (desc-row idx (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn)))))))
