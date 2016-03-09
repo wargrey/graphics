@@ -62,6 +62,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
 (define display-scale : Nonnegative-Real (or (get-display-backing-scale) 1.0))
 (define blank-bitmap : Bitmap (make-bitmap 1 1 #:backing-scale display-scale))
 
+(define canvas-color : (Instance Color%) (make-object color% "Azure"))
 (define title-color : (Instance Color%) (make-object color% "Snow"))
 (define text-color : (Instance Color%) (make-object color% "Gray"))
 (define error-color : (Instance Color%) (make-object color% "Crimson"))
@@ -94,9 +95,9 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
     (send dc draw-text content 0 0 #true)
     (or (send dc get-bitmap) blank-bitmap)))
 
-(define bitmap-desc : (->* (String Positive-Real) ((U False String (Instance Color%)) (Instance Font%)) Bitmap)
-  (lambda [description max-width.0 [fgcolor #false] [font (make-font)]]
-    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% blank-bitmap))
+(define bitmap-desc : (-> String Positive-Real (U String (Instance Color%)) (Instance Font%) Bitmap)
+  (lambda [description max-width.0 fgcolor font]
+    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank)))
     (define max-width : Positive-Integer (exact-ceiling max-width.0))
     (define desc-extent : (-> String Integer Integer (Values String Natural Nonnegative-Real))
       (lambda [desc start end]
@@ -106,32 +107,35 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
 
     (match-define-values (_ char-width phantom-height) (desc-extent " " 0 1))
     (define-values (descs ys width height)
-      (if (> char-width max-width)
-          (values null null max-width phantom-height)
-          (for/fold ([descs : (Listof String) null] [ys : (Listof Real) null] [width : Natural 0] [height : Real 0])
-                    ([desc : String (in-list (string-split description (string #\newline)))])
-            (define terminal : Index (string-length desc))
-            (let desc-row : (Values (Listof String) (Listof Real) Natural Real)
-              ([idx0 : Natural 0] [descs : (Listof String) descs] [ys : (Listof Real) ys]
-                                  [Widthn : Natural width] [yn : Real height])
-              (define-values (descn widthn heightn idx)
-                (let desc-col-expt : (Values String Natural Real Natural)
-                  ([start : Natural idx0] [end : Natural terminal] [interval : Natural 1])
-                  (define idx : Natural (min end (+ start interval)))
-                  (define-values (line width height) (desc-extent desc idx0 idx))
-                  (cond [(> width max-width) (desc-col-expt (max 0 (+ start (quotient interval 2))) idx 1)]
-                        [(or (= end idx) (<= width max-width (+ width char-width -1))) (values line width height idx)]
-                        [else (desc-col-expt start end (* interval 2))])))
-              (if (fx= idx terminal)
-                  (values (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn))
-                  (desc-row idx (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn)))))))
+      (for/fold ([descs : (Listof String) null] [ys : (Listof Real) null] [width : Natural 0] [height : Real 0])
+                ([desc : String (in-list (string-split description (string #\newline)))])
+        (define terminal : Index (string-length desc))
+        (let desc-row : (Values (Listof String) (Listof Real) Natural Real)
+          ([idx0 : Natural 0] [descs : (Listof String) descs] [ys : (Listof Real) ys]
+                              [Widthn : Natural width] [yn : Real height])
+          (define-values (descn widthn heightn idx)
+            (let desc-col-expt : (Values String Natural Real Natural)
+              ([interval : Natural 1] [open : Natural idx0] [close : Natural terminal]
+                                      [backtracking : String ""] ; char-width is bad for forecasting the next width 
+                                      [back-width : Natural max-width] [back-height : Nonnegative-Real phantom-height])
+              (define idx : Natural (min close (+ open interval)))
+              (define next-open : Natural (+ open (quotient interval 2)))
+              (define-values (line width height) (desc-extent desc idx0 idx))
+              (define found? : Boolean (and (> width max-width) (= interval 1) (<= back-width max-width)))
+              (cond [found? (values backtracking back-width back-height (if (zero? open) terminal (max 0 (sub1 idx))))]
+                    [(> width max-width) (desc-col-expt 1 next-open idx backtracking back-width back-height)]
+                    [(= close idx) (values line width height idx)]
+                    [else (desc-col-expt (arithmetic-shift interval 1) open close line width height)])))
+          (if (fx= idx terminal)
+              (values (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn))
+              (desc-row idx (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn))))))
     
     (send dc set-bitmap (bitmap-blank (max 1 width) (max 1 phantom-height height)))
     (send dc set-font font)
-    (when fgcolor (send dc set-text-foreground fgcolor))
+    (send dc set-text-foreground fgcolor)
     (for ([desc (in-list (reverse descs))] [y (in-list (reverse ys))])
       (send dc draw-text desc 0 y #true))
-    (or (send dc get-bitmap) blank-bitmap)))
+    (or (send dc get-bitmap) (bitmap-blank))))
 
 ((lambda [[splash% : (Class #:implements Frame%)]]
    (parameterize* ([current-digimon "@(current-digimon)"]
@@ -202,7 +206,10 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
    (define splash : (Instance Canvas%)
      (instantiate canvas% (this '(no-focus))
        [paint-callback (λ [[sketch : (Instance Canvas%)] [painter : (Instance DC<%>)]]
-                         (define text-top : Integer (if (eq? progress-man splash-fault-man) 0 splash-width))
+                         (define-values (text-top icon-alpha)
+                           (cond [(eq? progress-man splash-fault-man) (values 0 0.24)]
+                                 [else (values splash-width 1.0)]))
+                         (send painter set-alpha 1.0)
                          (send painter draw-bitmap splash.bmp 0 0)
                          (let draw-message : Void ([messages : (Listof Bitmap) progress-messages]
                                                    [bottom : Integer splash-height])
@@ -211,8 +218,10 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                              (define height : Positive-Integer (send info get-height))
                              (define hinfo : Positive-Integer (min (max 1 (- bottom text-top)) height))
                              (send painter draw-bitmap-section info
-                                   0 (- bottom hinfo) 0 (- height hinfo) splash-width hinfo)
+                                   splash-margin (- bottom hinfo) 0 (- height hinfo)
+                                   (max 0 (- splash-width splash-margin splash-margin)) hinfo)
                              (draw-message (cdr messages) (- bottom hinfo))))
+                         (send painter set-alpha icon-alpha)
                          (for ([icon (in-list (reverse (cons progress-man progress-icons)))]
                                [idx (in-naturals)])
                            (send painter draw-bitmap icon
@@ -259,8 +268,8 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                            (progress-update! (bitmap-text message warning-color))
                            (dtrace)]
                           [(vector (or 'fatal 'error) (? string? message) _ 'splash)
-                           (progress-update! #:error (bitmap-text "      Press any key to exit..." #false terminal-font)
-                                             (bitmap-desc message (max 1 (- splash-width (* splash-margin 1/2)))
+                           (progress-update! #:error (bitmap-text "Press any key to exit..." #false terminal-font)
+                                             (bitmap-desc message (max 1 (- splash-width splash-margin splash-margin))
                                                           error-color error-font))]
                           [_ (dtrace)]))))))
 
@@ -282,6 +291,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
 
    (define/override (on-superwindow-show show?)
      (unless (false? show?)
+       (send splash set-canvas-background canvas-color) 
        (with-handlers ([exn? (λ [[e : exn]] (log-message splash-logger 'error (exn-message e) (exn-continuation-marks e)))])
          (parameterize ([current-load splash-load]
                         [current-logger splash-logger])
