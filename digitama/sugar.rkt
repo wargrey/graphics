@@ -176,6 +176,6 @@
     [(_ infodir rest ...)
      (with-syntax ([info-ref (format-id #'info-ref "~a" (gensym 'inforef))])
        #'(begin (define info-ref : Info-Ref
-                  (let ([ref (get-info/full infodir)])
+                  (let ([ref (get-info/full infodir #:bootstrap? #true)])
                     (if (false? ref) (throw [exn:fail:filesystem] "info.rkt not found in ~a" infodir) ref)))
                 (define/extract-λref info-ref rest ...)))]))
