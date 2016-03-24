@@ -66,7 +66,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
 (define title-color : (Instance Color%) (make-object color% "Snow"))
 (define text-color : (Instance Color%) (make-object color% "Gray"))
 (define error-color : (Instance Color%) (make-object color% "Crimson"))
-(define warning-color : (Instance Color%) (make-object color% "Yellow"))
+(define warning-color : (Instance Color%) (make-object color% "Gold"))
 (define info-color : (Instance Color%) (make-object color% "ForestGreen"))
 (define debug-color : (Instance Color%) (make-object color% "Gray"))
 
