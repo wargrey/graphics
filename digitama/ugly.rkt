@@ -19,11 +19,16 @@
   
   (define make-is-a?
     (lambda [c]
-      (λ [v] (is-a? v c)))))
+      (λ [v] (is-a? v c))))
+
+  (define make-subclass?
+    (lambda [c]
+      (λ [v] (subclass? v c)))))
 
 (unsafe-require/typed/provide
  (submod "." ugly)
- [make-is-a? (All (%) (-> % (-> Any Boolean : #:+ (Instance %))))])
+ [make-is-a? (All (%) (-> % (-> Any Boolean : #:+ (Instance %))))]
+ [make-subclass? (All (%) (-> % (-> Any Boolean : #:+ %)))])
 
 (define-syntax (define/make-is-a? stx)
   (syntax-case stx [: class]
