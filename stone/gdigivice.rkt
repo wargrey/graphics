@@ -72,6 +72,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
 
 (define title-font : (Instance Font%) (make-font #:size 32 #:face "Helvetica, Bold" #:underlined? #true))
 (define terminal-font : (Instance Font%) (make-font #:weight 'bold #:family 'modern))
+(define warning-font : (Instance Font%) (make-font))
 (define error-font : (Instance Font%) (make-font #:style 'italic))
 
 (define bitmap : (-> Path-String Bitmap Bitmap)
@@ -265,7 +266,8 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                            (progress-update! (bitmap-text message info-color) #:icon (and (bitmap%? urgent) urgent))
                            (dtrace)]
                           [(vector 'warning (? string? message) _ 'splash)
-                           (progress-update! (bitmap-text message warning-color))
+                           (progress-update! (bitmap-desc message (max 1 (- splash-width splash-margin splash-margin))
+                                                          warning-color warning-font))
                            (dtrace)]
                           [(vector (or 'fatal 'error) (? string? message) _ 'splash)
                            (progress-update! #:error (bitmap-text "Press any key to exit..." #false terminal-font)
