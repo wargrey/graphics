@@ -56,17 +56,19 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
 (define current-make-real-targets (make-parameter null))
 (define current-make-phony-goal (make-parameter #false))
 
+(define make-print-debug-info (make-parameter #false))
 (define make-dry-run (make-parameter #false))
 (define make-always-run (make-parameter #false))
 (define make-just-touch (make-parameter #false))
 
 (define make-restore-options!
   (lambda []
-    ;;; useful for any one who invokes (main) programmatically
+    ;;; for invoking (main) programmatically
     (make-print-dep-no-line #false)
     (make-print-checking #false)
     (make-print-reasons #false)
 
+    (make-print-debug-info #false)
     (make-dry-run #false)
     (make-always-run #false)
     (make-just-touch #false)))
@@ -88,23 +90,38 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
           (cond [(false? (make-just-touch)) f]
                 [else (thunk (file-or-directory-modify-seconds t (current-seconds) f))]))))
 
+(define trace-log
+  (let ([/dev/log (make-log-receiver (current-logger) 'debug)])
+    (lambda []
+      (unless (eof-object? (match (sync/enable-break /dev/log)
+                             [(vector level message urgent 'racket/contract) (void)]
+                             [(vector 'warning message urgent topic)
+                              (unless (regexp-match? #px"Typed Racket has detected unreachable code" message)
+                                (eechof #:fgcolor 'yellow "racket[~a]: ~a~n" (or topic 'warning) message))]
+                             [(vector 'debug message urgent topic)
+                              (when (make-print-debug-info) ; TODO: why this is not work
+                                (echof #:fgcolor 248 "make: [~a]: ~a~n" (or topic 'debug) message))]
+                             [(vector _ _ urgent _) (when (eof-object? urgent) urgent)]
+                             [_ (void)]))
+        (trace-log)))))
+
 (define compile-directory
   (lambda [cmpdir finfo [round 1]]
     (define again? (make-parameter #false))
     (define px.within (pregexp (if (make-print-checking) (digimon-world) (path->string (digimon-zone)))))
     (define traceln (curry printf "pass[~a]: ~a~n" round))
-    (define [filter-inside info]
-      (cond [(regexp-match? #px"checking:" info) (when (make-print-checking) (traceln info))]
-            [(regexp-match? #px"(compil|process)ing:" info) (and (traceln info) (again? #true))]))
-    (define [filter-verbose info]
-      (cond [(regexp-match? #px"(newer|end compile|skipping|done:)" info) '|Skip Task Endline|]
-            [(regexp-match? #px"(newer:|does not exist)" info) (when (make-print-reasons) (traceln info))]
-            [(regexp-match? px.within info) (filter-inside info)]
-            [(regexp-match? #px":\\s+.+?\\.rkt(\\s|$)" info) '|Skip Other's Packages|]
-            [else (traceln info)]))
+    (define (filter-verbose info)
+      (match info
+        [(pregexp #px"checking:") (when (make-print-checking) (traceln info))]
+        [(pregexp #px"compiling ") (again? #true)]
+        [(pregexp #px"processing:") (when (regexp-match? px.within info) (traceln info) (again? #true))]
+        [(pregexp #px"maybe-compile-zo starting") (traceln (string-replace info "maybe-compile-zo starting" "compiling"))]
+        [(pregexp #px"(wrote|compiled|done:|maybe-compile-zo finished)") '|Skip Task Endline|]
+        [(pregexp #px"(newer|skipping:)") (when (make-print-reasons) (traceln info))]
+        [_ (traceln info)]))
     (with-handlers ([exn? (compose1 (curry error 'make "[error] ~a") exn-message)])
       (parameterize ([manager-trace-handler filter-verbose]
-                     [error-display-handler (lambda [s e] (printf ">> ~a~n" s))])
+                     [error-display-handler (lambda [s e] (eechof #:fgcolor 'red ">> ~a~n" s))])
         (compile-directory-zos cmpdir finfo #:verbose #false #:skip-doc-sources? #true)))
     (when (again?) (compile-directory cmpdir finfo (add1 round)))))
 
@@ -169,7 +186,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                       => (lambda [header]
                            (when (member #"<scheme.h>" header) (racket? #true))
                            memory)]
-                     [(regexp-match #px#"\"(.+?)\"")
+                     [(regexp-match #px#"\"(.+?)\"" include)
                       => (lambda [header]
                            (let ([subsrc (simplify-path (build-path (path-only entry) (bytes->string/utf-8 (cadr header))))])
                              (cond [(member subsrc memory) memory]
@@ -198,13 +215,14 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
       (define-values (/dev/ctool/stdin /dev/ctool/stdout) (make-pipe))
       (define rewriter (thread (thunk (for ([line (in-lines /dev/ctool/stdin)])
                                         (if (regexp-match? #px"^(xform-cpp|compile-extension|link-extension|change-runtime-path):" line)
-                                            (displayln (regexp-replaces line (list (list #px"^xform-cpp:\\s+\\("         "cpp: ")
-                                                                                   (list #px"^compile-extension:\\s+\\(" "cc:  ")
-                                                                                   (list #px"^link-extension:\\s+\\("    "ld:  ")
-                                                                                   (list #px"^change-runtime-path:\\s+"  "dyn: ")
-                                                                                   (list (path->string (digimon-zone)) ".")
-                                                                                   (list #px"( -o .+?( |$))|(\\)$)" ""))))
-                                            (eprintf "~a~n" line))))))
+                                            (echof #:fgcolor 'cyan "~a~n"
+                                                   (regexp-replaces line (list (list #px"^xform-cpp:\\s+\\("         "cpp: ")
+                                                                               (list #px"^compile-extension:\\s+\\(" "cc:  ")
+                                                                               (list #px"^link-extension:\\s+\\("    "ld:  ")
+                                                                               (list #px"^change-runtime-path:\\s+"  "dyn: ")
+                                                                               (list (path->string (digimon-zone)) ".")
+                                                                               (list #px"( -o .+?( |$))|(\\)$)" ""))))
+                                            (eechof #:fgcolor 'yellow "~a~n" line))))))
       (dynamic-wind (thunk (void '(if build/0 runs in thread then make will not be stopped by the failure)))
                     (thunk (parameterize ([current-output-port /dev/ctool/stdout]
                                           [current-error-port /dev/ctool/stdout])
@@ -245,7 +263,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                                          [(macosx) (let ([image (format "Racket.framework/Versions/~a_~a/Racket" (version) (system-type 'gc))])
                                                      (define change-path (format "~a -change ~a ~a ~a" (find-executable-path "install_name_tool")
                                                                                  image (format "~a/~a" (find-lib-dir) image) t))
-                                                     (printf "change-runtime-path: ~a~n" change-path)
+                                                     (printf "change-runtime-path: ~a~n" change-path) ; this will be redirected
                                                      (system change-path))]))))))))))))
 
 (define make~all:
@@ -348,7 +366,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                                    (filter file-exists? (list (build-path (digimon-tamer) "handbook.scrbl")))
                                    (let ([px.tamer.scrbl (pregexp (format "^~a/.+?\\.(scrbl|rkt)" (digimon-tamer)))])
                                      (filter (λ [hb.scrbl] (or (regexp-match? px.tamer.scrbl hb.scrbl)
-                                                               ((negate eprintf) "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl)))
+                                                               ((negate eechof) #:fgcolor 'yellow "make: skip non-tamer-scribble file `~a`.~n" hb.scrbl)))
                                              (current-make-real-targets)))))])
         (parameterize ([current-directory (path-only handbook)]
                        [current-namespace (make-base-namespace)])
@@ -400,8 +418,8 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                                             (format "remote add origin ~a" remote)
                                             "push -u origin master"))])
              (system (format "cd ~a && git ~a" (digimon-zone) gitcmd)))
-           (system "cd ~a && git submodule add ~a ~a" (digimon-world) remote (digimon-zone))
-           (system "cd ~a && git submodule" (digimon-world))))))
+           (system (format "cd ~a && git submodule add ~a ~a" (digimon-world) remote (digimon-zone)))
+           (system (format "cd ~a && git submodule" (digimon-world)))))))
 
 (define main
   (lambda argument-list
@@ -420,7 +438,9 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                            [["-n" "--dry-run"] ,(lambda [flag] (make-dry-run #true)) ["Just make without updating targets. [Except *.rkt]"]]
                            [["-s" "--silent"] ,(lambda [flag] (current-output-port /dev/null)) ["Just run commands but output nothing if no errors."]]
                            [["-t" "--touch"] ,(lambda [flag] (make-just-touch #true)) ["Touch targets instead of remaking them if it exists."]]
-                           [["-v" "--verbose"] ,(lambda [flag] (make-print-dep-no-line #true) (make-print-checking #true) (make-print-reasons #true))
+                           [["-v" "--verbose"] ,(lambda [flag] (for-each (λ [make-print] (make-print #true))
+                                                                         (list make-print-debug-info make-print-dep-no-line
+                                                                               make-print-checking make-print-reasons)))
                                                ["Build with verbose messages."]]]
                 [multi [["+o" "++only"] ,(lambda [++only digimon] (current-make-collects (cons digimon (current-make-collects))))
                                         [["Only build <digimon>s." "[interactively create <digimon> first if it does not exists.]"] "digimon"]]]]
@@ -438,7 +458,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                                         (cons "uninstall" "Delete all the installed files and documentation.")
                                         (cons "dist" "Create a distribution file of the source files.")
                                         (cons "check" "Validate and generate test report along with documentation."))))
-              (curry eprintf "make: I don't know what does `~a` mean!~n")))
+              (curry eechof #:fgcolor 'lightred "make: I don't know what does `~a` mean!~n")))
     (define [main0 targets]
       (define-values [reals phonies] (partition filename-extension targets))
       (parameterize ([current-make-real-targets (map simple-form-path reals)]
@@ -449,17 +469,19 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                                                            [(directory-exists? current-zone) (list current-zone)]
                                                            [else all-digimons]))))])
           (parameterize ([current-digimon digimon])
-            (dynamic-wind (thunk (printf "Enter Digimon Zone: ~a.~n" digimon))
+            (dynamic-wind (thunk (echof #:fgcolor 'green "Enter Digimon Zone: ~a.~n" digimon))
                           (thunk (for ([phony (in-list (if (null? phonies) (list "all") phonies))])
                                    (parameterize ([current-make-phony-goal phony])
-                                     (with-handlers ([exn? (compose1 exit (const 1) (curry eprintf "~a~n") string-trim exn-message)])
+                                     (with-handlers ([exn? (compose1 exit (const 1) (curry eechof #:fgcolor 'red "~a~n") string-trim exn-message)])
                                        (cond [(false? (file-exists? (build-path (digimon-zone) "info.rkt"))) (create-zone)]
                                              [else (file-or-directory-modify-seconds (digimon-zone) (current-seconds))])
                                        (cond [(regexp-match? #px"clean$" phony) ((hash-ref fphonies "clean"))]
                                              [(hash-has-key? fphonies phony) ((hash-ref fphonies phony))]
                                              [else (error 'make "I don't know how to make `~a`!" phony)])))))
-                          (thunk (printf "Leave Digimon Zone: ~a.~n" digimon)))))))
+                          (thunk (echof #:fgcolor 'green "Leave Digimon Zone: ~a.~n" digimon)))))))
     (call-as-normal-termination
+     #:atinit (thunk (thread trace-log))
+     #:atexit (thunk (log-message (current-logger) 'info 'make "job done" eof))
      (thunk (parse-command-line (path->string (find-system-path 'run-file))
                                 argument-list
                                 flag-table

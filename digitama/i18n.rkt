@@ -11,30 +11,29 @@
 ;; All regexps are compared to the result of (system-language+country).
 (define-type Language-Table (Listof (List Symbol Regexp Regexp)))
 (define default-table : Language-Table
-    '((English             #rx"^en_"        #rx"^English_")
-      (Spanish             #rx"^es_"        #rx"^Espanol_")
-      (German              #rx"^de_"        #rx"^German_")
-      (French              #rx"^fr_"        #rx"French_")
-      (Dutch               #rx"nl_"         #rx"^Netherlands_")
-      (Danish              #rx"^da_DK"      #rx"^Danish_")
-      (Portuguese          #rx"^pt_"        #rx"Portuguese_")
-      (Japanese            #rx"^ja_"        #rx"^Japan_")
-      (Traditional-Chinese #rx"^zh_(HK|TW)" #rx"Chinese_(Hong|Taiwan)")
-      (Simplified-Chinese  #rx"^zh_CN"      #rx"Chinese_China")
-      (Russian             #rx"^ru_"        #rx"^Russian_")
-      (Ukrainian           #rx"^uk_"        #rx"^Ukrainian_")
-      (Korean              #rx"^ko_"        #rx"^Korean_")))
+  '((English             #rx"^en_"        #rx"^English_")
+    (Spanish             #rx"^es_"        #rx"^Espanol_")
+    (German              #rx"^de_"        #rx"^German_")
+    (French              #rx"^fr_"        #rx"French_")
+    (Dutch               #rx"nl_"         #rx"^Netherlands_")
+    (Danish              #rx"^da_DK"      #rx"^Danish_")
+    (Portuguese          #rx"^pt_"        #rx"Portuguese_")
+    (Japanese            #rx"^ja_"        #rx"^Japan_")
+    (Traditional-Chinese #rx"^zh_(HK|TW)" #rx"Chinese_(Hong|Taiwan)")
+    (Simplified-Chinese  #rx"^zh_CN"      #rx"Chinese_China")
+    (Russian             #rx"^ru_"        #rx"^Russian_")
+    (Ukrainian           #rx"^uk_"        #rx"^Ukrainian_")
+    (Korean              #rx"^ko_"        #rx"^Korean_")))
 
 (define default-language : (-> Symbol)
   (lambda []
     (let ([system-lang (system-language+country)])
-      (let check-next ([table : Language-Table default-table])
-        (cond [(null? table) 'English]
-              [else (match (car table)
-                      [(list lang win unix)
-                       (cond [(regexp-match win system-lang) lang]
-                             [(regexp-match unix system-lang) lang]
-                             [else (check-next (cdr table))])])])))))
+      (let check-next : Symbol ([table : Language-Table default-table])
+        (match-define (list (list lang win unix) table/rest ...) table)
+        (cond [(regexp-match win system-lang) lang]
+              [(regexp-match unix system-lang) lang]
+              [(null? table/rest) 'English]
+              [else (check-next table/rest)])))))
 
 (define current-tongue : (Parameterof Symbol) (make-parameter (default-language)))
 
