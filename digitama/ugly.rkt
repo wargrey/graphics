@@ -31,8 +31,9 @@
  [make-subclass? (All (%) (-> % (-> Any Boolean : #:+ %)))])
 
 (define-syntax (define/make-is-a? stx)
-  (syntax-case stx [: class]
-    [(_ % : Type% (class s-exp ...))
+  (syntax-case stx [:]
+    [(_ % : Type% class-definition)
      (with-syntax ([%? (format-id #'% "~a?" (syntax-e #'%))])
-       #'(begin (define % : Type% (class s-exp ...))
-                (define %? ((inst make-is-a? Type%) %))))]))
+       #'(begin (define % : Type% class-definition)
+                (define %? (cond [(class? %) ((inst make-is-a? Type%) %)]
+                                 [else (raise-result-error 'define/make-is-a? "class?" %)]))))]))

@@ -97,10 +97,10 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                              [(vector level message urgent 'racket/contract) (void)]
                              [(vector 'warning message urgent topic)
                               (unless (regexp-match? #px"Typed Racket has detected unreachable code" message)
-                                (eechof #:fgcolor 'yellow "racket[~a]: ~a~n" (or topic 'warning) message))]
+                                (eechof #:fgcolor 'yellow "racket[~a]: ~a~n" topic message))]
                              [(vector 'debug message urgent topic)
                               (when (make-print-debug-info) ; TODO: why this is not work
-                                (echof #:fgcolor 248 "make: [~a]: ~a~n" (or topic 'debug) message))]
+                                (echof #:fgcolor 248 "make: [~a]: ~a~n" topic message))]
                              [(vector _ _ urgent _) (when (eof-object? urgent) urgent)]
                              [_ (void)]))
         (trace-log)))))
@@ -112,11 +112,11 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
     (define traceln (curry printf "pass[~a]: ~a~n" round))
     (define (filter-verbose info)
       (match info
-        [(pregexp #px"checking:") (when (make-print-checking) (traceln info))]
+        [(pregexp #px"checking:") (when (and (make-print-checking) (regexp-match? px.within info)) (traceln info))]
         [(pregexp #px"compiling ") (again? #true)]
-        [(pregexp #px"processing:") (when (regexp-match? px.within info) (traceln info) (again? #true))]
+        [(pregexp #px"done:") (when (regexp-match? px.within info) (traceln (string-replace info "done:" "processed")) (again? #true))]
         [(pregexp #px"maybe-compile-zo starting") (traceln (string-replace info "maybe-compile-zo starting" "compiling"))]
-        [(pregexp #px"(wrote|compiled|done:|maybe-compile-zo finished)") '|Skip Task Endline|]
+        [(pregexp #px"(wrote|compiled|processing:|maybe-compile-zo finished)") '|Skip Task Endline|]
         [(pregexp #px"(newer|skipping:)") (when (make-print-reasons) (traceln info))]
         [_ (traceln info)]))
     (with-handlers ([exn? (compose1 (curry error 'make "[error] ~a") exn-message)])
