@@ -204,7 +204,8 @@
 
 (define car.eval : (->* (Any) (Namespace) Any)
   (lambda [sexp [ns (current-namespace)]]
-    ((inst car Any Any) (cast ((inst call-with-values Any) (thunk (eval sexp ns)) list) (Listof Any)))))
+    (call-with-values (thunk (eval sexp ns))
+                      (λ result (car result)))))
 
 (define void.eval : (->* (Any) (Namespace) Void)
   (lambda [sexp [ns (current-namespace)]]
