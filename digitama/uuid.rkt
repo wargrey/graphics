@@ -4,7 +4,7 @@
 ;;; https://tools.ietf.org/html/rfc4122, A Universally Unique IDentifier (UUID) URN Namespace    ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(provide uuid:timestamp)
+(provide uuid:timestamp uuid:random)
 
 (define clock-sequence-semaphore : Semaphore (make-semaphore 1))
 
