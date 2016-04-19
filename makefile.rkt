@@ -31,7 +31,7 @@ else
     raco make ${makefile};
 fi
 cd ${origdir};
-exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"} 
+exec racket --syslog debug --name "${makefile}" --require "$0" --main -- ${1+"$@"} 
 |#
 
 #lang racket
@@ -56,10 +56,10 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
 (define current-make-real-targets (make-parameter null))
 (define current-make-phony-goal (make-parameter #false))
 
-(define make-print-debug-info (make-parameter #false))
 (define make-dry-run (make-parameter #false))
 (define make-always-run (make-parameter #false))
 (define make-just-touch (make-parameter #false))
+(define make-trace-log (make-parameter #false))
 
 (define make-restore-options!
   (lambda []
@@ -68,7 +68,7 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
     (make-print-checking #false)
     (make-print-reasons #false)
 
-    (make-print-debug-info #false)
+    (make-trace-log #false)
     (make-dry-run #false)
     (make-always-run #false)
     (make-just-touch #false)))
@@ -93,17 +93,16 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
 (define trace-log
   (let ([/dev/log (make-log-receiver (current-logger) 'debug)])
     (lambda []
-      (unless (eof-object? (match (sync/enable-break /dev/log)
-                             [(vector level message urgent 'racket/contract) (void)]
-                             [(vector 'warning message urgent topic)
-                              (unless (regexp-match? #px"Typed Racket has detected unreachable code" message)
-                                (eechof #:fgcolor 'yellow "racket[~a]: ~a~n" topic message))]
-                             [(vector 'debug message urgent topic)
-                              (when (make-print-debug-info) ; TODO: why this is not work
-                                (echof #:fgcolor 248 "make: [~a]: ~a~n" topic message))]
-                             [(vector _ _ urgent _) (when (eof-object? urgent) urgent)]
-                             [_ (void)]))
-        (trace-log)))))
+      (define log (sync/enable-break /dev/log))
+      (cond [(and (vector? log) (eof-object? (vector-ref log 2))) (make-restore-options!)]
+            [else (when (make-trace-log)
+                    (match log  
+                      [(vector level message urgent 'racket/contract) (void)]
+                      [(vector 'debug message _ _) (echof #:fgcolor 248 "racket: ~a~n" message)]
+                      [(vector 'info message _ _) (echof #:fgcolor 'cyan "racket: ~a~n" message)]
+                      [(vector 'warning message _ _) (echof #:fgcolor 'yellow "racket: ~a~n" message)]
+                      [_ (void)]))
+                  (trace-log)]))))
 
 (define compile-directory
   (lambda [cmpdir finfo [round 1]]
@@ -438,9 +437,9 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                            [["-n" "--dry-run"] ,(lambda [flag] (make-dry-run #true)) ["Just make without updating targets. [Except *.rkt]"]]
                            [["-s" "--silent"] ,(lambda [flag] (current-output-port /dev/null)) ["Just run commands but output nothing if no errors."]]
                            [["-t" "--touch"] ,(lambda [flag] (make-just-touch #true)) ["Touch targets instead of remaking them if it exists."]]
-                           [["-v" "--verbose"] ,(lambda [flag] (for-each (λ [make-print] (make-print #true))
-                                                                         (list make-print-debug-info make-print-dep-no-line
-                                                                               make-print-checking make-print-reasons)))
+                           [["-d" "--debug"] ,(lambda [flag] (make-trace-log #true)) ["Print lots of debug information."]]
+                           [["-v" "--verbose"] ,(lambda [flag] (for-each (λ [make-verbose] (make-verbose #true))
+                                                                         (list make-print-dep-no-line make-print-checking make-print-reasons make-trace-log)))
                                                ["Build with verbose messages."]]]
                 [multi [["+o" "++only"] ,(lambda [++only digimon] (current-make-collects (cons digimon (current-make-collects))))
                                         [["Only build <digimon>s." "[interactively create <digimon> first if it does not exists.]"] "digimon"]]]]
@@ -480,12 +479,12 @@ exec racket --name "${makefile}" --require "$0" --main -- ${1+"$@"}
                                              [else (error 'make "I don't know how to make `~a`!" phony)])))))
                           (thunk (echof #:fgcolor 'green "Leave Digimon Zone: ~a.~n" digimon)))))))
     (call-as-normal-termination
-     #:atinit (thunk (thread trace-log))
-     #:atexit (thunk (log-message (current-logger) 'info 'make "job done" eof))
      (thunk (parse-command-line (path->string (find-system-path 'run-file))
                                 argument-list
                                 flag-table
-                                (lambda [!voids . targets] (dynamic-wind void (thunk (main0 targets)) make-restore-options!))
+                                (lambda [!voids . targets] (dynamic-wind (thunk (thread trace-log))
+                                                                         (thunk (main0 targets))
+                                                                         (thunk (log-message (current-logger) 'info 'make "Job Done!" eof))))
                                 '["phony-target|file-path"]
                                 (compose1 exit display --help)
                                 (compose1 exit (const 1) --unknown (curryr string-trim #px"[()]") (curry format "~a") values))))))
