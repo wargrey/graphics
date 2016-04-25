@@ -4,16 +4,10 @@
 ;;; https://tools.ietf.org/html/rfc4122, A Universally Unique IDentifier (UUID) URN Namespace    ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(provide uuid:timestamp uuid:random)
+(provide (all-defined-out))
+(provide (all-from-out typed/racket/random))
 
-(define clock-sequence-semaphore : Semaphore (make-semaphore 1))
-
-(define variant+clock-sequence : (-> Natural)
-  (lambda []
-    (dynamic-wind (thunk (semaphore-wait clock-sequence-semaphore))
-                  (thunk (+ #b1000000000000000 #| ensure the N is 8, 9, A, or B |#
-                            (remainder (current-memory-use) #b11111111111111)))
-                  (thunk (semaphore-post clock-sequence-semaphore)))))
+(require typed/racket/random)
 
 (define uuid:timestamp : (-> String)
   (lambda []
@@ -36,19 +30,29 @@
 (define uuid:random : (-> String)
   (lambda []
     (define version : Byte 4)
-    (define pr+gc : Fixnum (current-process-milliseconds))
-    (define gc : Fixnum (current-gc-milliseconds))
     (define utc:us : Natural (max (exact-round (* (current-inexact-milliseconds) 1000)) 0))
-    (define random:ns : Natural (+ (* utc:us 1000) (remainder (max pr+gc 0) 1000)))
-    (define ts : String (~a #:align 'right #:width 15 #:left-pad-string "0" (format "~x" random:ns)))
+    (define ts : String (~a #:align 'right #:width 15 #:left-pad-string "0" (format "~x" utc:us)))
     (define time-low : String (substring ts 7 15))
     (define time-mid : String (substring ts 3 7))
     (define time-high : String (substring ts 0 3))
-    (format "~a-~a-~a~a-~x-~a~a" time-low time-mid version time-high (variant+clock-sequence)
-            (~a #:align 'right #:width 5 #:left-pad-string "0"
-                (format "~x" (bitwise-and #xfffff gc)))
-            (~a #:align 'right #:width 7 #:left-pad-string "0"
-                (format "~x" (bitwise-and #xfffffff pr+gc))))))
+    (format "~a-~a-~a~a-~x-~a" time-low time-mid version time-high (variant+clock-sequence)
+            (apply string-append (for/list : (Listof String) ([i (in-range 6)])
+                                   (define b : Byte (bytes-ref (crypto-random-bytes 1) 0))
+                                   (format (if (<= b #x0F) "0~x" "~x") b))))))
+
+(module digitama typed/racket
+  (provide (all-defined-out))
+  
+  (define clock-sequence-semaphore : Semaphore (make-semaphore 1))
+
+  (define variant+clock-sequence : (-> Natural)
+    (lambda []
+      (dynamic-wind (thunk (semaphore-wait clock-sequence-semaphore))
+                    (thunk (+ #b1000000000000000 #| ensure the N is 8, 9, A, or B |#
+                              (remainder (current-memory-use) #b11111111111111)))
+                    (thunk (semaphore-post clock-sequence-semaphore))))))
+
+(require (submod "." digitama))
 
 
 

@@ -179,3 +179,10 @@
                   (let ([ref (get-info/full infodir #:bootstrap? #true)])
                     (if (false? ref) (throw [exn:fail:filesystem] "info.rkt not found in ~a" infodir) ref)))
                 (define/extract-λref info-ref rest ...)))]))
+
+(define-syntax (match/handlers stx)
+  (syntax-case stx [:]
+    [(_ s-exp : type? match-clause ...)
+     #'(match (with-handlers ([exn? values]) s-exp)
+         match-clause ...
+         [(? type? no-error-value) no-error-value])]))

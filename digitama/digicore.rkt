@@ -1,13 +1,16 @@
 #lang at-exp typed/racket
 
 (provide (all-defined-out) Term-Color vim-colors)
-(provide (all-from-out "sugar.rkt" "format.rkt" "ugly.rkt"))
+(provide (all-from-out "sugar.rkt" "format.rkt" "ugly.rkt" "uuid.rkt"))
 
 (require (for-syntax racket/syntax))
+
+(define boot-time : Fixnum (current-milliseconds))
 
 @require{sugar.rkt}
 @require{format.rkt}
 @require{ugly.rkt}
+@require{uuid.rkt}
 
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
@@ -28,7 +31,14 @@
 (define /dev/log : Logger (make-logger 'digital-world #false))
 (define /dev/eof : Input-Port ((cast open-input-bytes (-> Bytes Symbol Input-Port)) #"" '/dev/null))
 (define /dev/null : Output-Port ((cast open-output-nowhere (-> Symbol Output-Port)) '/dev/null))
-(define boot-time : Fixnum (current-milliseconds))
+(define /dev/urandom : Input-Port
+  (make-input-port '/dev/urandom
+                   (λ [[bs : Bytes]]
+                     (let ([bsize (bytes-length bs)])
+                       (bytes-copy! bs 0 (crypto-random-bytes bsize))
+                       bsize))
+                   #false
+                   void))
 
 (define digicore.rkt : Path (#%file))
 
