@@ -185,4 +185,8 @@
     [(_ s-exp : type? match-clause ...)
      #'(match (with-handlers ([exn? values]) s-exp)
          match-clause ...
-         [(? type? no-error-value) no-error-value])]))
+         [(? type? no-error-value) no-error-value])]
+    [(_ s-exp match-clause ...)
+     #'(match (with-handlers ([exn? values]) s-exp)
+         match-clause ...
+         [escaped-value escaped-value])]))
