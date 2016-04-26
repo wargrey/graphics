@@ -78,9 +78,9 @@
 (define-crypto HMAC
   (_fun [type : _EVP_MD*]
         [key : _bytes]
-        [key-size : _int = (bytes-length key)]
+        [key-size : _size = (bytes-length key)]
         [data : _bytes]
-        [data-size : _int = (bytes-length data)]
+        [data-size : _size = (bytes-length data)]
         [mac : (_bytes o EVP-SIZE-UPTO-SHA512)]
         [size : (_ptr o _uint)]
         -> _bytes
@@ -120,10 +120,16 @@
                          [HMAC (-> EVP_MD* Bytes Bytes Bytes)])
 
   (define openctx : EVP_MD_CTX* (make-EVP_MD_CTX))
-  (define HASH : (-> EVP_MD* Bytes Bytes)
-    (lambda [md message]
+  (define HASH : (-> EVP_MD* Any * Bytes)
+    (lambda [md . messages]
       (EVP_DigestInit_ex openctx md)
-      (EVP_DigestUpdate openctx message)
+      (for ([datum (in-list messages)])
+        (define message : Bytes
+          (cond [(bytes? datum) datum]
+                [(string? datum) (string->bytes/utf-8 datum)]
+                [(input-port? datum) (port->bytes datum)]
+                [else (with-output-to-bytes (thunk (write datum)))]))
+        (EVP_DigestUpdate openctx message))
       (EVP_DigestFinal_ex openctx))))
 
 
