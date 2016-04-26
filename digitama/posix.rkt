@@ -33,7 +33,7 @@ It troubled me more than two weeks.
     [(_ libname (~optional (~seq #:global? ?:expr)))
      #`(ffi-lib #:global? (not (not #,(attribute ?)))
                 (build-path (path-only (resolved-module-path-name (variable-reference->resolved-module-path (#%variable-reference))))
-                            (car (use-compiled-file-paths)) "native" (system-library-subpath #false) libname))]))
+                            "compiled" "native" (system-library-subpath #false) libname))]))
 
 (define-syntax (module-prefab:cstruct/no-auto-update stx)
   (syntax-case stx []

@@ -1,4 +1,4 @@
-# [🏡](http://gyoudmon.org/~wargrey:wisemon)[<sub>🐈</sub>](http://gyoudmon.org/~wargrey:wisemon)Tamer's Handbook: Wisemon
+# [🏡](http://zuglag.com/~wargrey:wisemon)[<sub>🐈</sub>](http://zuglag.com/~wargrey:wisemon)Tamer's Handbook: Wisemon
 
 WarGrey Ju
 
@@ -12,7 +12,7 @@ WarGrey Ju
 
 > + 📚Behaviors and Features
 >     + 📖
-[readme.rkt](http://gyoudmon.org/~wargrey:wisemon/readme.rkt)
+[readme.rkt](http://zuglag.com/~wargrey:wisemon/readme.rkt)
 >       + 📑Ready? It works!
 >         + 📑make: simple options
 >           + 📑make --silent --help
@@ -25,7 +25,7 @@ WarGrey Ju
 >         + 📑digivice \[action\]
 >         + 📑digivice action \[option\]
 >     + 📖
-[ssh.rkt](http://gyoudmon.org/~wargrey:wisemon/ssh.rkt)
+[ssh.rkt](http://zuglag.com/~wargrey:wisemon/ssh.rkt)
 >       + 📑The Primitive Datatype Representation
 >         + 📑octet
 >         + 📑unsigned integer

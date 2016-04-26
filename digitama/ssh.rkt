@@ -17,8 +17,8 @@
 (require math/base)
 (require math/number-theory)
 
-@require{openssl.rkt}
 @require{sugar.rkt}
+@require[(submod "openssl.rkt" typed/ffi)]
 
 (define ssh-custodian : Custodian (make-custodian))
 
@@ -503,7 +503,7 @@
                (ssh-log 'error #:urgent 'SSH_MSG_KEXINIT "peer has guessed key exchange packet followed, we have to handle it."))
              (ssh-log 'debug #:urgent (list kex publickey cipher integrity compression) "we preferred algorithms: ~a"
                       (list (car kex) (car publickey) (car cipher) (car integrity) (car compression)))
-             (list (SSH_MSG_KEXINIT (md5 (number->string (current-inexact-milliseconds)))
+             (list (SSH_MSG_KEXINIT (HASH md5 (string->bytes/utf-8 (number->string (current-inexact-milliseconds))))
                                     kex publickey cipher cipher integrity integrity compression compression null null #false 0)
                    (case (car kex)
                      [(diffie-hellman-group-exchange-sha1 diffie-hellman-group-exchange-sha256) ; https://tools.ietf.org/html/rfc4419#section-3
@@ -532,10 +532,10 @@
              (vector-set! kexdh-gex 12 K)
              ;;;https://tools.ietf.org/html/rfc4419#section-3
              ;; verify the signature of H
-             (define HASH : (-> Input-Port Bytes)
+             (define hashmd : EVP_MD*
                (case (vector-ref algorithms 0)
-                 [(diffie-hellman-group-exchange-sha1) sha1-bytes]
-                 [(diffie-hellman-group-exchange-sha256) sha1-bytes]
+                 [(diffie-hellman-group-exchange-sha1) sha1]
+                 [(diffie-hellman-group-exchange-sha256) sha256]
                  [else (throw [exn:ssh:eof 'SSH_DISCONNECT_KEY_EXCHANGE_FAILED]
                               "~a algorithm has not been implemented yet" (vector-ref algorithms 0))]))
              (define H : Bytes (ssh-struct->bytes (in-vector kexdh-gex)

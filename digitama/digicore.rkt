@@ -2,6 +2,7 @@
 
 (provide (all-defined-out) Term-Color vim-colors)
 (provide (all-from-out "sugar.rkt" "format.rkt" "ugly.rkt" "uuid.rkt"))
+(provide (all-from-out (submod "openssl.rkt" typed/ffi)))
 
 (require (for-syntax racket/syntax))
 
@@ -11,6 +12,7 @@
 @require{format.rkt}
 @require{ugly.rkt}
 @require{uuid.rkt}
+@require[(submod "openssl.rkt" typed/ffi)]
 
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
