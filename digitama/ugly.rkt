@@ -18,17 +18,23 @@
   (require racket/class)
   
   (define make-is-a?
-    (lambda [c]
-      (λ [v] (is-a? v c))))
+    (lambda [c%]
+      (λ [v] (is-a? v c%))))
 
   (define make-subclass?
-    (lambda [c]
-      (λ [v] (subclass? v c)))))
+    (lambda [c%]
+      (λ [v] (subclass? v c%))))
+
+  (define make-procedure?
+    (lambda [arity [ok? #false]]
+      (λ [v] (and (procedure? v)
+                  (procedure-arity-includes? v arity ok?))))))
 
 (unsafe-require/typed/provide
  (submod "." ugly)
  [make-is-a? (All (%) (-> % (-> Any Boolean : #:+ (Instance %))))]
- [make-subclass? (All (%) (-> % (-> Any Boolean : #:+ %)))])
+ [make-subclass? (All (%) (-> % (-> Any Boolean : #:+ %)))]
+ [make-procedure? (All (P) (->* (Byte) (Boolean) (-> Any Boolean : #:+ P)))])
 
 (define-syntax (define/make-is-a? stx)
   (syntax-case stx [:]
