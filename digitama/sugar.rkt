@@ -14,6 +14,10 @@
                                           [#:bootstrap? Any]
                                           (Option Info-Ref))])
 
+(require/typed racket/class
+               [#:struct (exn:fail:object exn:fail) ()
+                #:extra-constructor-name make-exn:fail:object])
+
 (define-syntax (require/typed/provide/batch stx)
   (syntax-case stx [id:]
     [(_ modpath [id: id ...] type-definition)
@@ -184,11 +188,10 @@
   (syntax-case stx []
     [(_ (method-id args ...))
      #'(define/public (method-id args ...)
-         (define object-info (object->vector this))
-         (throw exn:fail:unsupported
-                "~a@~a an abstract method!"
+         (throw exn:fail:object
+                "~a@~a is an abstract method!"
                 'method-id
-                (vector-ref object-info 0)))]))
+                (object-name this)))]))
 
 (define-syntax (match/handlers stx)
   (syntax-case stx [:]
