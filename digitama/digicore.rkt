@@ -17,6 +17,7 @@
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
 (define-type SymbolTable (HashTable Symbol Any))
+(define-type Racket-Place-Status (Vector Fixnum Fixnum Fixnum Natural Natural Natural Natural Natural Fixnum Fixnum Natural Natural))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
 
 (define-type EvtSelf (Rec Evt (Evtof Evt)))
