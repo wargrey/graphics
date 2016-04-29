@@ -180,6 +180,16 @@
                     (if (false? ref) (throw [exn:fail:filesystem] "info.rkt not found in ~a" infodir) ref)))
                 (define/extract-λref info-ref rest ...)))]))
 
+(define-syntax (define/abstract stx)
+  (syntax-case stx []
+    [(_ (method-id args ...))
+     #'(define/public (method-id args ...)
+         (define object-info (object->vector this))
+         (throw exn:fail:unsupported
+                "~a@~a an abstract method!"
+                'method-id
+                (vector-ref object-info 0)))]))
+
 (define-syntax (match/handlers stx)
   (syntax-case stx [:]
     [(_ s-exp : type? match-clause ...)
