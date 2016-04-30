@@ -229,11 +229,12 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                                  (+ (* splash-icon+gap idx) splash-margin)
                                  (+ splash-width splash-margin))))]))
 
-   (define progress-update! : (-> Bitmap [#:icon (Option Bitmap)] [#:error (Option Bitmap)] Void)
+   (define progress-update! : (-> (Option Bitmap) [#:icon (Option Bitmap)] [#:error (Option Bitmap)] Void)
      (let ([total : Index (length splash-running-men)]
            [sprite-frame : Index 0])
        (lambda [message #:icon [icon #false] #:error [error #false]]
-         (set! progress-messages (cons message progress-messages))
+         (when (bitmap%? message)
+           (set! progress-messages (cons message progress-messages)))
          (when (bitmap%? icon)
            (define icon-size : Positive-Integer (max 1 (- splash-icon+gap splash-margin)))
            (define icon-w : Positive-Integer (send icon get-width))
@@ -260,20 +261,24 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
 
    (define ghostcat : Thread
      (thread (thunk (let ([log-evt : Log-Receiver (make-log-receiver splash-logger 'debug)])
-                      (let dtrace : Void ()
-                        (match (sync/enable-break log-evt)
-                          [(vector 'info (? string? message) urgent 'splash)
-                           (progress-update! (bitmap-text message info-color) #:icon (and (bitmap%? urgent) urgent))
-                           (dtrace)]
-                          [(vector 'warning (? string? message) _ 'splash)
-                           (progress-update! (bitmap-desc message (max 1 (- splash-width splash-margin splash-margin))
-                                                          warning-color warning-font))
-                           (dtrace)]
-                          [(vector (or 'fatal 'error) (? string? message) _ 'splash)
-                           (progress-update! #:error (bitmap-text "Press any key to exit..." #false terminal-font)
-                                             (bitmap-desc message (max 1 (- splash-width splash-margin splash-margin))
-                                                          error-color error-font))]
-                          [_ (dtrace)]))))))
+                      (with-handlers ([exn? void])
+                        (let stickman-run : Void ()
+                          (match (sync/enable-break log-evt)
+                            [(vector 'debug (? string? message) hint 'splash)
+                             (cond [(eq? hint 'silent-stickman) (progress-update! #false)]
+                                   [else (progress-update! (bitmap-text message debug-color))])]
+                            [(vector 'info (? string? message) urgent 'splash)
+                             (progress-update! (bitmap-text message info-color) #:icon (and (bitmap%? urgent) urgent))]
+                            [(vector 'warning (? string? message) _ 'splash)
+                             (progress-update! (bitmap-desc message (max 1 (- splash-width splash-margin splash-margin))
+                                                            warning-color warning-font))]
+                            [(vector (or 'fatal 'error) (? string? message) _ 'splash)
+                             (progress-update! #:error (bitmap-text "Press any key to exit..." #false terminal-font)
+                                               (bitmap-desc message (max 1 (- splash-width splash-margin splash-margin))
+                                                            error-color error-font))
+                             (error 'self-breaking)]
+                            [_ (progress-update! #false)])
+                          (stickman-run)))))))
 
    (define splash-load : (-> Path (Option Symbol) AnyValues)
      (let ([origin-load (current-load)])
@@ -284,7 +289,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
              [(cons modname (list-rest #false submods)) (~a submods)]
              [_ #false]))
          (when (string? modname)
-           (progress-update! (bitmap-text (string-append "splash: loading " modname) debug-color)))
+           (log-message (current-logger) 'debug (string-append "splash: loading " modname) #false))
          (origin-load modpath submods))))
 
    (define/override (on-subwindow-char _ keyborad)
@@ -302,13 +307,13 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
            (unless (file-readable? modpath) (error digivice "application not found!"))
            (define digivice% (dynamic-require modpath 'digivice% (thunk (error digivice "digivice% not found!"))))
            (cond [(false? (subframe%? digivice%)) (error digivice "digivice% should be a frame%!")]
-                 [else (let ([d-ark (new digivice% [label (string-titlecase modname)])])
-                         (send* d-ark
-                           (set-icon (make-object bitmap% logo.png 'unknown/alpha))
-                           (show #true)
-                           (center 'both)
-                           (maximize #true))
-                         (show #false))]))))
+                 [(thread-running? ghostcat) (let ([d-ark (new digivice% [label (string-titlecase modname)])])
+                                               (send* d-ark
+                                                 (set-icon (make-object bitmap% logo.png 'unknown/alpha))
+                                                 (show #true)
+                                                 (center 'both)
+                                                 (maximize #true))
+                                               (show #false))]))))
      (when (false? show?)
        (current-logger /dev/log)
        (unless (thread-dead? ghostcat) (kill-thread ghostcat))))))
