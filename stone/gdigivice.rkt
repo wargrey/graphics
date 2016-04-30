@@ -288,8 +288,9 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
              [(cons _ (? symbol? modname)) (symbol->string modname)]
              [(cons modname (list-rest #false submods)) (~a submods)]
              [_ #false]))
-         (when (string? modname)
-           (log-message (current-logger) 'debug (string-append "splash: loading " modname) #false))
+         (log-message (current-logger) 'debug
+                      (format "splash: loading ~a" modname)
+                      (or (string? modname) 'silent-stickman))
          (origin-load modpath submods))))
 
    (define/override (on-subwindow-char _ keyborad)

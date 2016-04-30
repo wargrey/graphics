@@ -35,8 +35,9 @@
   (lambda [ms]
     (let*-values ([(s ms) (quotient/remainder ms 1000)]
                   [(m s) (quotient/remainder s 60)])
-      (cond [(zero? m) (format "~a.~a" s ms)]
-            [else (format "~a:~a.~a" m s ms)]))))
+      (define padding : String (cond [(< ms 10) "00"] [(< ms 100) "0"] [else ""]))
+      (cond [(zero? m) (format "~a.~a~a" s padding ms)]
+            [else (format "~a:~a.~a~a" m s padding ms)]))))
 
 (define-type/enum units : Unit 'KB 'MB 'GB 'TB)
 (define ~size : (case-> [Natural 'Bytes [#:precision (U Integer (List '= Integer))] -> String]
