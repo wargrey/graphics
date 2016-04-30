@@ -26,7 +26,7 @@
           [Racket-Thread-Status Thread -> Void]))
 
 (define-type EvtSelf (Rec Evt (Evtof Evt)))
-(define-type Timer-EvtSelf (Rec Timer-Evt (Evtof (Vector Timer-EvtSelf Fixnum))))
+(define-type Timer-EvtSelf (Rec Timer-Evt (Evtof (Vector Timer-EvtSelf Fixnum Fixnum))))
 
 (require/typed/provide racket/fasl
                        [s-exp->fasl (case-> [-> Any Bytes]
@@ -152,9 +152,9 @@
 (define timer-evt : (->* (Fixnum) (Fixnum) Timer-EvtSelf)
   (lambda [interval [basetime (current-milliseconds)]]
     (define alarm-time : Fixnum (fx+ basetime interval))
-    ((inst wrap-evt Any (Vector Timer-EvtSelf Fixnum))
+    ((inst wrap-evt Any (Vector Timer-EvtSelf Fixnum Fixnum))
      (alarm-evt alarm-time)
-     (λ [alarm] (vector (timer-evt interval alarm-time) alarm-time)))))
+     (λ [alarm] (vector (timer-evt interval alarm-time) interval alarm-time)))))
 
 (define timer-thread : (-> Fixnum (-> Thread Fixnum Any) [#:basetime Fixnum] Thread)
   (lambda [interval on-timer #:basetime [basetime (current-milliseconds)]]
