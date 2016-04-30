@@ -17,8 +17,13 @@
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
 (define-type SymbolTable (HashTable Symbol Any))
-(define-type Racket-Place-Status (Vector Fixnum Fixnum Fixnum Natural Natural Natural Natural Natural Fixnum Fixnum Natural Natural))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
+
+(define-type Racket-Place-Status (Vector Fixnum Fixnum Fixnum Natural Natural Natural Natural Natural Fixnum Fixnum Natural Natural))
+(define-type Racket-Thread-Status (Vector Boolean Boolean Boolean Natural))
+(define-type Vector-Set-Performance-Statistics
+  (case-> [Racket-Place-Status -> Void]
+          [Racket-Thread-Status Thread -> Void]))
 
 (define-type EvtSelf (Rec Evt (Evtof Evt)))
 (define-type Timer-EvtSelf (Rec Timer-Evt (Evtof (Vector Timer-EvtSelf Fixnum))))
