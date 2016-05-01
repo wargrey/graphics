@@ -149,6 +149,16 @@
          (memq 'read (file-or-directory-permissions p))
          #true)))
 
+(define object-name/symbol : (-> Any Symbol)
+  (lambda [v]
+    (define name (object-name v))
+    (or (and (symbol? name) name)
+        (string->symbol (format "<object-name:~a>" name)))))
+
+(define current-macroseconds : (-> Fixnum)
+  (lambda []
+    (fl->fx (real->double-flonum (* (current-inexact-milliseconds) 1000)))))
+
 (define timer-evt : (->* (Fixnum) (Fixnum) Timer-EvtSelf)
   (lambda [interval [basetime (current-milliseconds)]]
     (define alarm-time : Fixnum (fx+ basetime interval))
