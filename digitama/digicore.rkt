@@ -149,6 +149,19 @@
          (memq 'read (file-or-directory-permissions p))
          #true)))
 
+(define dtrace-send : (-> Any Symbol String Any Void)
+  (lambda [topic level message urgent]
+    (define log-level : Log-Level (case level [(debug info warning error fatal) level] [else 'debug]))
+    (cond [(logger? topic) (log-message topic log-level message urgent)]
+          [(symbol? topic) (log-message (current-logger) log-level topic message urgent)]
+          [else (log-message (current-logger) log-level (string->symbol (~a topic)) message urgent)])))
+
+(define-values (dtrace-debug dtrace-info dtrace-warning dtrace-error dtrace-fatal)
+  (let ([dtrace (lambda [[level : Symbol]] : (->* (String) (#:topic Any #:urgent Any) #:rest Any Void)
+                  (lambda [#:topic [topic (current-logger)] #:urgent [urgent (current-continuation-marks)] msgfmt . messages]
+                    (dtrace-send topic level (if (null? messages) msgfmt (apply format msgfmt messages)) urgent)))])
+    (values (dtrace 'debug) (dtrace 'info) (dtrace 'warning) (dtrace 'error) (dtrace 'fatal))))
+
 (define object-name/symbol : (-> Any Symbol)
   (lambda [v]
     (define name (object-name v))
