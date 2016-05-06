@@ -237,6 +237,10 @@
     (place-channel-send channel datum)
     (place-channel-recv channel #:timeout s)))
 
+(define thread-mailbox-evt : (-> (Evtof Any))
+  (lambda []
+    (wrap-evt (thread-receive-evt) (λ _ (thread-receive)))))
+
 (define call-as-normal-termination : (-> (-> Any) [#:atinit (-> Any)] [#:atexit (-> Any)] Void)
   (lambda [#:atinit [atinit/0 void] main/0 #:atexit [atexit/0 void]]
     (define status : Any
