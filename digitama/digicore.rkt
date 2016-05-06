@@ -219,6 +219,21 @@
       (thread wait-accept-handle-loop)
       (values (thunk (custodian-shutdown-all server-custodian)) portno))))
 
+(define place-channel-send : (-> (U Place Place-Channel) Any Void)
+  (lambda [dest datum]
+    (cond [(place-message-allowed? datum) (place-channel-put dest datum)]
+          [else (place-channel-put dest (s-exp->fasl datum))])))
+
+(define place-channel-evt : (-> (U Place Place-Channel) (Evtof Any))
+  (lambda [source-evt]
+    (wrap-evt source-evt
+              (λ [datum] (if (bytes? datum) (fasl->s-exp datum) datum)))))
+
+(define place-channel-send/recv : (-> (U Place Place-Channel) Any Any)
+  (lambda [dest datum]
+    (place-channel-send dest datum)
+    (sync/enable-break (place-channel-evt dest))))
+
 (define call-as-normal-termination : (-> (-> Any) [#:atinit (-> Any)] [#:atexit (-> Any)] Void)
   (lambda [#:atinit [atinit/0 void] main/0 #:atexit [atexit/0 void]]
     (define status : Any
