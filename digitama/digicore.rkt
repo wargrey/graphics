@@ -229,14 +229,14 @@
     (wrap-evt source-evt
               (λ [datum] (if (bytes? datum) (fasl->s-exp datum) datum)))))
 
-(define place-channel-recv : (-> (U Place Place-Channel) Any)
-  (lambda [channel]
-    (sync/enable-break (place-channel-evt channel))))
+(define place-channel-recv : (-> (U Place Place-Channel) [#:timeout Nonnegative-Real] Any)
+  (lambda [channel #:timeout [s +inf.0]]
+    (sync/timeout/enable-break s (place-channel-evt channel))))
 
-(define place-channel-send/recv : (-> (U Place Place-Channel) Any Any)
-  (lambda [channel datum]
+(define place-channel-send/recv : (-> (U Place Place-Channel) Any [#:timeout Nonnegative-Real] Any)
+  (lambda [channel datum #:timeout [s +inf.0]]
     (place-channel-send channel datum)
-    (place-channel-recv channel)))
+    (place-channel-recv channel #:timeout s)))
 
 (define call-as-normal-termination : (-> (-> Any) [#:atinit (-> Any)] [#:atexit (-> Any)] Void)
   (lambda [#:atinit [atinit/0 void] main/0 #:atexit [atexit/0 void]]
