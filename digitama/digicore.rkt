@@ -226,8 +226,7 @@
 
 (define place-channel-evt : (-> (U Place Place-Channel) (Evtof Any))
   (lambda [source-evt]
-    (wrap-evt source-evt
-              (λ [datum] (if (bytes? datum) (fasl->s-exp datum) datum)))))
+    (wrap-evt source-evt (λ [datum] (if (bytes? datum) (fasl->s-exp datum) datum)))))
 
 (define place-channel-recv : (-> (U Place Place-Channel) [#:timeout Nonnegative-Real] Any)
   (lambda [channel #:timeout [s +inf.0]]
