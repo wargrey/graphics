@@ -16,7 +16,6 @@
 
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
-(define-type Place-Endpoint (U Place Place-Channel))
 (define-type SymbolTable (HashTable Symbol Any))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
 
@@ -220,32 +219,33 @@
       (thread wait-accept-handle-loop)
       (values (thunk (custodian-shutdown-all server-custodian)) portno))))
 
-(define current-place-endpoint/evt : (Parameterof (Option Place-Endpoint)) (make-parameter #false))
-(define place-channel-evt : (-> Place-Endpoint [#:endpoint-hint (Parameterof (Option Place-Endpoint))] (Evtof Any))
-  (lambda [source-evt #:endpoint-hint [hint current-place-endpoint/evt]]
-    (current-place-endpoint/evt #false)
-    (wrap-evt source-evt
-              (lambda [datum]
-                (current-place-endpoint/evt source-evt)
-                (if (bytes? datum) (fasl->s-exp datum) datum)))))
+(define the-synced-place-channel : (Parameterof (Option Place-Channel)) (make-parameter #false))
+(define place-channel-evt : (-> Place-Channel [#:hint (Parameterof (Option Place-Channel))] (Evtof Any))
+  (lambda [source-evt #:hint [hint the-synced-place-channel]]
+    (choice-evt (wrap-evt (guard-evt (thunk (hint #false) source-evt))
+                          (λ [datum] (hint source-evt) (if (bytes? datum) (fasl->s-exp datum) datum)))
+                (cond [(place-channel? source-evt) never-evt]
+                      [else (wrap-evt (place-dead-evt source-evt)
+                                      (λ _ (cons source-evt (place-wait source-evt))))]))))
 
-(define place-channel-send : (-> (U Place Place-Channel) Any Void)
+(define place-channel-send : (-> Place-Channel Any Void)
   (lambda [dest datum]
     (cond [(place-message-allowed? datum) (place-channel-put dest datum)]
           [else (place-channel-put dest (s-exp->fasl datum))])))
 
-(define place-channel-recv : (-> (U Place Place-Channel) [#:timeout Nonnegative-Real] Any)
-  (lambda [channel #:timeout [s +inf.0]]
-    (sync/timeout/enable-break s (place-channel-evt channel))))
+(define place-channel-recv : (-> Place-Channel [#:timeout Nonnegative-Real] [#:hint (Parameterof (Option Place-Channel))] Any)
+  (lambda [channel #:timeout [s +inf.0] #:hint [hint the-synced-place-channel]]
+    (sync/timeout/enable-break s (place-channel-evt channel #:hint hint))))
 
-(define place-channel-send/recv : (-> (U Place Place-Channel) Any [#:timeout Nonnegative-Real] Any)
-  (lambda [channel datum #:timeout [s +inf.0]]
+(define place-channel-send/recv : (-> Place-Channel Any [#:timeout Nonnegative-Real] [#:hint (Parameterof (Option Place-Channel))] Any)
+  (lambda [channel datum #:timeout [s +inf.0] #:hint [hint the-synced-place-channel]]
     (place-channel-send channel datum)
-    (place-channel-recv channel #:timeout s)))
+    (place-channel-recv channel #:timeout s #:hint hint)))
 
 (define thread-mailbox-evt : (-> (Evtof Any))
   (lambda []
-    (wrap-evt (thread-receive-evt) (λ _ (thread-receive)))))
+    (wrap-evt (thread-receive-evt)
+              (λ _ (thread-receive)))))
 
 (define call-as-normal-termination : (-> (-> Any) [#:atinit (-> Any)] [#:atexit (-> Any)] Void)
   (lambda [#:atinit [atinit/0 void] main/0 #:atexit [atexit/0 void]]
