@@ -26,7 +26,8 @@
           [Racket-Thread-Status Thread -> Void]))
 
 (define-type EvtSelf (Rec Evt (Evtof Evt)))
-(define-type Timer-EvtSelf (Rec Timer-Evt (Evtof (Vector Timer-EvtSelf Fixnum Fixnum))))
+(define-type Place-EvtExit (Evtof (Pairof Place Integer)))
+(define-type Timer-EvtSelf (Rec Timer-Evt (Evtof (Vector Timer-Evt Fixnum Fixnum))))
 
 (require/typed/provide racket/fasl
                        [s-exp->fasl (case-> [-> Any Bytes]
@@ -222,11 +223,8 @@
 (define the-synced-place-channel : (Parameterof (Option Place-Channel)) (make-parameter #false))
 (define place-channel-evt : (-> Place-Channel [#:hint (Parameterof (Option Place-Channel))] (Evtof Any))
   (lambda [source-evt #:hint [hint the-synced-place-channel]]
-    (choice-evt (wrap-evt (guard-evt (thunk (hint #false) source-evt))
-                          (λ [datum] (hint source-evt) (if (bytes? datum) (fasl->s-exp datum) datum)))
-                (cond [(not (place? source-evt)) never-evt] ; place is also a place-channel
-                      [else (wrap-evt (place-dead-evt source-evt)
-                                      (λ _ (cons source-evt (place-wait source-evt))))]))))
+    (wrap-evt (guard-evt (thunk (hint #false) source-evt))
+              (λ [datum] (hint source-evt) (if (bytes? datum) (fasl->s-exp datum) datum)))))
 
 (define place-channel-send : (-> Place-Channel Any Void)
   (lambda [dest datum]
@@ -247,6 +245,11 @@
     (match (sync/timeout 0 (place-dead-evt p))
       [(? false?) 'running]
       [_ (place-wait p)])))
+
+(define place-wait-evt : (-> Place Place-EvtExit)
+  (lambda [p]
+    (wrap-evt (place-dead-evt p)
+              (λ _ (cons p (place-wait p))))))
 
 (define thread-mailbox-evt : (-> (Evtof Any))
   (lambda []
