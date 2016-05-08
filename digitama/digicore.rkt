@@ -224,7 +224,7 @@
   (lambda [source-evt #:hint [hint the-synced-place-channel]]
     (choice-evt (wrap-evt (guard-evt (thunk (hint #false) source-evt))
                           (λ [datum] (hint source-evt) (if (bytes? datum) (fasl->s-exp datum) datum)))
-                (cond [(place-channel? source-evt) never-evt]
+                (cond [(not (place? source-evt)) never-evt] ; place is also a place-channel
                       [else (wrap-evt (place-dead-evt source-evt)
                                       (λ _ (cons source-evt (place-wait source-evt))))]))))
 
@@ -241,6 +241,12 @@
   (lambda [channel datum #:timeout [s +inf.0] #:hint [hint the-synced-place-channel]]
     (place-channel-send channel datum)
     (place-channel-recv channel #:timeout s #:hint hint)))
+
+(define place-status : (-> Place (U 'running Integer))
+  (lambda [p]
+    (match (sync/timeout 0 (place-dead-evt p))
+      [(? false?) 'running]
+      [_ (place-wait p)])))
 
 (define thread-mailbox-evt : (-> (Evtof Any))
   (lambda []
