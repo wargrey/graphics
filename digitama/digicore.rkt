@@ -16,6 +16,7 @@
 
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
+(define-type Place-Endpoint (U Place Place-Channel))
 (define-type SymbolTable (HashTable Symbol Any))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
 
@@ -219,14 +220,19 @@
       (thread wait-accept-handle-loop)
       (values (thunk (custodian-shutdown-all server-custodian)) portno))))
 
+(define current-place-endpoint/evt : (Parameterof (Option Place-Endpoint)) (make-parameter #false))
+(define place-channel-evt : (-> Place-Endpoint [#:endpoint-hint (Parameterof (Option Place-Endpoint))] (Evtof Any))
+  (lambda [source-evt #:endpoint-hint [hint current-place-endpoint/evt]]
+    (current-place-endpoint/evt #false)
+    (wrap-evt source-evt
+              (lambda [datum]
+                (current-place-endpoint/evt source-evt)
+                (if (bytes? datum) (fasl->s-exp datum) datum)))))
+
 (define place-channel-send : (-> (U Place Place-Channel) Any Void)
   (lambda [dest datum]
     (cond [(place-message-allowed? datum) (place-channel-put dest datum)]
           [else (place-channel-put dest (s-exp->fasl datum))])))
-
-(define place-channel-evt : (-> (U Place Place-Channel) (Evtof Any))
-  (lambda [source-evt]
-    (wrap-evt source-evt (λ [datum] (if (bytes? datum) (fasl->s-exp datum) datum)))))
 
 (define place-channel-recv : (-> (U Place Place-Channel) [#:timeout Nonnegative-Real] Any)
   (lambda [channel #:timeout [s +inf.0]]
