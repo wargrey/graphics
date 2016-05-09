@@ -1,6 +1,6 @@
 #lang at-exp typed/racket
 
-(provide (all-defined-out) Term-Color vim-colors)
+(provide (all-defined-out) Term-Color vim-colors Racket-Place-Status Racket-Thread-Status)
 (provide (all-from-out "sugar.rkt" "format.rkt" "ugly.rkt" "uuid.rkt"))
 (provide (all-from-out (submod "openssl.rkt" typed/ffi)))
 
@@ -18,12 +18,6 @@
 (define-type Place-Main (-> Place-Channel Void))
 (define-type SymbolTable (HashTable Symbol Any))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
-
-(define-type Racket-Place-Status (Vector Fixnum Fixnum Fixnum Natural Natural Natural Natural Natural Fixnum Fixnum Natural Natural))
-(define-type Racket-Thread-Status (Vector Boolean Boolean Boolean Natural))
-(define-type Vector-Set-Performance-Statistics
-  (case-> [Racket-Place-Status -> Void]
-          [Racket-Thread-Status Thread -> Void]))
 
 (define-type EvtSelf (Rec Evt (Evtof Evt)))
 (define-type Place-EvtExit (Evtof (Pairof Place Integer)))
@@ -280,6 +274,15 @@
           [(service-exit status) => exit]
           [else (exit 0)])))
 
+(define vector-set-place-statistics! : (-> Racket-Place-Status Void)
+  (lambda [stat]
+    (vector-set-performance-stats! stat)
+    (vector-set! stat 10 (+ (vector-ref stat 10) (current-memory-use)))))
+
+(define vector-set-thread-statistics! : (-> Racket-Thread-Status Thread Void)
+  (lambda [stat thd]
+    (vector-set-performance-stats! stat thd)))
+
 (define car.eval : (->* (Any) (Namespace) Any)
   (lambda [sexp [ns (current-namespace)]]
     (call-with-values (thunk (eval sexp ns))
@@ -299,6 +302,8 @@
     (define rawmsg (apply format msgfmt vals))
     (eprintf "~a" (if (terminal-port? (current-error-port)) (term-colorize fg bg attrs rawmsg) rawmsg))))
 
+
+
 (module digitama typed/racket
   (provide (all-defined-out))
 
@@ -306,8 +311,15 @@
   
   (define-type Term-Color (Option (U String Symbol Byte)))
   
-  (define infobase : (HashTable String Info-Ref) (make-hash))
+  (define-type Racket-Place-Status (Vector Fixnum Fixnum Fixnum Natural Natural Natural Natural Natural Fixnum Fixnum Natural Natural))
+  (define-type Racket-Thread-Status (Vector Boolean Boolean Boolean Natural))
+  (define-type Vector-Set-Performance-Stats! (case-> [Racket-Place-Status -> Void]
+                                                     [Racket-Thread-Status Thread -> Void]))
+  
+  (require/typed/provide racket [vector-set-performance-stats! Vector-Set-Performance-Stats!])
 
+  (define infobase : (HashTable String Info-Ref) (make-hash))
+  
   (define immutable-guard : (-> Symbol (Path-String -> Nothing))
     (lambda [pname]
       (λ [pval] (error pname "Immutable Parameter: ~a" pval))))

@@ -28,13 +28,18 @@
   (define make-procedure?
     (lambda [arity [ok? #false]]
       (λ [v] (and (procedure? v)
-                  (procedure-arity-includes? v arity ok?))))))
+                  (procedure-arity-includes? v arity ok?)))))
+  
+  (define make-cheat-opaque?
+    (lambda [?]
+      (λ [v] (and (? v) #true)))))
 
 (unsafe-require/typed/provide
  (submod "." ugly)
  [make-is-a? (All (%) (-> % (-> Any Boolean : #:+ (Instance %))))]
  [make-subclass? (All (%) (-> % (-> Any Boolean : #:+ %)))]
- [make-procedure? (All (P) (->* (Byte) (Boolean) (-> Any Boolean : #:+ P)))])
+ [make-procedure? (All (P) (->* (Byte) (Boolean) (-> Any Boolean : #:+ P)))]
+ [make-cheat-opaque? (All (FT) (-> (-> Any Boolean) (-> Any Boolean : #:+ FT)))])
 
 (define-syntax (define/make-is-a? stx)
   (syntax-case stx [:]
