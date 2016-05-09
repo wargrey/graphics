@@ -76,7 +76,7 @@
 
 (define all-digimons : (Listof String)
   (let* ([dirnames : (Listof String) (map path->string (directory-list (digimon-world) #:build? #false))]
-         [top-ref : (Option Info-Ref) (get-info/full (digimon-world))]
+         [top-ref : (Option Info-Ref) (get-info/full (digimon-world) #:bootstrap? #true)]
          [candidates : (Listof String) (cond [(false? top-ref) null]
                                              [else (cast (top-ref 'setup-collects (λ _ dirnames)) (Listof String))])])
     (remove-duplicates (filter string? (for/list : (Listof (Option String)) ([digimon (in-list (cons (digimon-gnome) candidates))])

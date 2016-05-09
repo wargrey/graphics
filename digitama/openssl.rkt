@@ -13,7 +13,7 @@
 ;;; TODO: man EVP_EncryptInit for two way cryption                                               ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-@require{posix.rkt}
+@require{ffi.rkt}
 
 (require openssl)
 (require openssl/libcrypto)
@@ -92,11 +92,10 @@
   (provide (all-defined-out) bytes->hex-string hex-string->bytes)
   (provide (all-from-out typed/openssl))
 
+  (require (submod "ffi.rkt" typed))
+
   (require typed/openssl)
   (require (only-in typed/openssl/sha1 bytes->hex-string hex-string->bytes))
-
-  (require (submod "posix.rkt" typed/ffi))
-  (require "sugar.rkt")
 
   (require/typed/provide/pointers
    [EVP_MD_CTX* EVP_MD_CTX*?]
