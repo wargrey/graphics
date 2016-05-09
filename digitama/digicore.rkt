@@ -153,7 +153,7 @@
 
 (define-values (dtrace-debug dtrace-info dtrace-warning dtrace-error dtrace-fatal)
   (let ([dtrace (lambda [[level : Symbol]] : (->* (String) (#:topic Any #:urgent Any) #:rest Any Void)
-                  (lambda [#:topic [topic (current-logger)] #:urgent [urgent (current-continuation-marks)] msgfmt . messages]
+                  (lambda [#:topic [topic (current-logger)] #:urgent [urgent (void)] msgfmt . messages]
                     (dtrace-send topic level (if (null? messages) msgfmt (apply format msgfmt messages)) urgent)))])
     (values (dtrace 'debug) (dtrace 'info) (dtrace 'warning) (dtrace 'error) (dtrace 'fatal))))
 
@@ -223,7 +223,7 @@
 (define place-channel-send : (-> Place-Channel Any Void)
   (lambda [dest datum]
     (cond [(place-message-allowed? datum) (place-channel-put dest datum)]
-          [else (place-channel-put dest (s-exp->fasl datum))])))
+          [else (place-channel-put dest (match/handlers (s-exp->fasl datum) [(exn message _) message]))])))
 
 (define place-channel-recv : (-> Place-Channel [#:timeout Nonnegative-Real] [#:hint (Parameterof (Option Place-Channel))] Any)
   (lambda [channel #:timeout [s +inf.0] #:hint [hint the-synced-place-channel]]

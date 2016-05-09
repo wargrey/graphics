@@ -297,7 +297,7 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
              [(cons modname (list-rest #false submods)) (~a submods)]
              [_ #false]))
          (log-message (current-logger) 'debug
-                      (format "splash: loading ~a" modname)
+                      (format "loading ~a" modname)
                       (or (string? modname) 'silent-stickman))
          (origin-load modpath submods))))
 
