@@ -262,23 +262,31 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
    (define ghostcat : Thread
      (thread (thunk (let ([log-evt : Log-Receiver (make-log-receiver splash-logger 'debug)])
                       (with-handlers ([exn? void])
-                        (let stickman-run : Void ()
-                          (match (sync/enable-break log-evt)
+                        (let stickman-run : Void ([ok? : Boolean #true])
+                          (match (sync/enable-break log-evt (wrap-evt (thread-receive-evt) (λ _ (thread-receive))))
                             [(vector 'debug (? string? message) hint 'splash)
-                             (cond [(eq? hint 'silent-stickman) (progress-update! #false)]
-                                   [else (progress-update! (bitmap-text message debug-color))])]
+                             (when ok?
+                               (cond [(eq? hint 'silent-stickman) (progress-update! #false)]
+                                     [else (progress-update! (bitmap-text message debug-color))]))
+                             (stickman-run ok?)]
                             [(vector 'info (? string? message) urgent 'splash)
-                             (progress-update! (bitmap-text message info-color) #:icon (and (bitmap%? urgent) urgent))]
+                             (when ok?
+                               (progress-update! (bitmap-text message info-color) #:icon (and (bitmap%? urgent) urgent)))
+                             (stickman-run ok?)]
                             [(vector 'warning (? string? message) _ 'splash)
-                             (progress-update! (bitmap-desc message (max 1 (- splash-width splash-margin splash-margin))
-                                                            warning-color warning-font))]
+                             (when ok?
+                               (progress-update! (bitmap-desc message (max 1 (- splash-width splash-margin splash-margin))
+                                                              warning-color warning-font)))
+                             (stickman-run ok?)]
                             [(vector (or 'fatal 'error) (? string? message) _ 'splash)
                              (progress-update! #:error (bitmap-text "Press any key to exit..." #false terminal-font)
                                                (bitmap-desc message (max 1 (- splash-width splash-margin splash-margin))
                                                             error-color error-font))
-                             (error 'self-breaking)]
-                            [_ (progress-update! #false)])
-                          (stickman-run)))))))
+                             (stickman-run #false)]
+                            [whatever
+                             (when (thread? whatever) (thread-send whatever ok?))
+                             (when ok? (progress-update! #false))
+                             (stickman-run ok?)])))))))
 
    (define splash-load : (-> Path (Option Symbol) AnyValues)
      (let ([origin-load (current-load)])
@@ -293,9 +301,15 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                       (or (string? modname) 'silent-stickman))
          (origin-load modpath submods))))
 
+   (define is-okay? : (-> Boolean)
+     (lambda []
+       (and (thread-send ghostcat (current-thread) #false)
+            (thread-receive)
+            #true)))
+   
    (define/override (on-subwindow-char _ keyborad)
-     (cond [(thread-running? ghostcat) #false]
-           [else (and (show #false) #true)]))
+     (show (is-okay?))
+     #true)
 
    (define/override (on-superwindow-show show?)
      (unless (false? show?)
@@ -308,13 +322,13 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
            (unless (file-readable? modpath) (error digivice "application not found!"))
            (define digivice% (dynamic-require modpath 'digivice% (thunk (error digivice "digivice% not found!"))))
            (cond [(false? (subframe%? digivice%)) (error digivice "digivice% should be a frame%!")]
-                 [(thread-running? ghostcat) (let ([d-ark (new digivice% [label (string-titlecase modname)])])
-                                               (send* d-ark
-                                                 (set-icon (make-object bitmap% logo.png 'unknown/alpha))
-                                                 (show #true)
-                                                 (center 'both)
-                                                 (maximize #true))
-                                               (show #false))]))))
+                 [(is-okay?) (let ([d-ark (new digivice% [label (string-titlecase modname)])])
+                               (send* d-ark
+                                 (set-icon (make-object bitmap% logo.png 'unknown/alpha))
+                                 (show #true)
+                                 (center 'both)
+                                 (maximize #true))
+                               (show #false))]))))
      (when (false? show?)
        (current-logger /dev/log)
        (unless (thread-dead? ghostcat) (kill-thread ghostcat))))))
