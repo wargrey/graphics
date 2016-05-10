@@ -283,6 +283,24 @@
   (lambda [stat thd]
     (vector-set-performance-stats! stat thd)))
 
+(define continutaion-mark->stack-hints : (->* () ((U Continuation-Mark-Set Thread))
+                                              (Listof (Pairof Symbol (Option (Vector (U String Symbol) Integer Integer)))))
+  (lambda [[cm (current-continuation-marks)]]
+    ((inst map (Pairof Symbol (Option (Vector (U String Symbol) Integer Integer))) (Pairof (Option Symbol) Any))
+     (λ [[stack : (Pairof (Option Symbol) Any)]]
+       (define maybe-name (car stack))
+       (define maybe-srcinfo (cdr stack))
+       (cons (or maybe-name 'λ)
+             (and (srcloc? maybe-srcinfo)
+                  (let ([src (srcloc-source maybe-srcinfo)]
+                        [line (srcloc-line maybe-srcinfo)]
+                        [column (srcloc-column maybe-srcinfo)])
+                    (vector (if (symbol? src) src (~a src))
+                            (or line -1)
+                            (or column -1))))))
+     (cond [(continuation-mark-set? cm) (continuation-mark-set->context cm)]
+           [else (continuation-mark-set->context (continuation-marks cm))]))))
+
 (define car.eval : (->* (Any) (Namespace) Any)
   (lambda [sexp [ns (current-namespace)]]
     (call-with-values (thunk (eval sexp ns))
