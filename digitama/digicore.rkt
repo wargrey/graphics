@@ -154,7 +154,7 @@
 
 (define-values (dtrace-debug dtrace-info dtrace-warning dtrace-error dtrace-fatal)
   (let ([dtrace (lambda [[level : Symbol]] : (->* (String) (#:topic Any #:urgent Any) #:rest Any Void)
-                  (lambda [#:topic [topic (current-logger)] #:urgent [urgent (void)] msgfmt . messages]
+                  (lambda [#:topic [topic (current-logger)] #:urgent [urgent (current-continuation-marks)] msgfmt . messages]
                     (dtrace-send topic level (if (null? messages) msgfmt (apply format msgfmt messages)) urgent)))])
     (values (dtrace 'debug) (dtrace 'info) (dtrace 'warning) (dtrace 'error) (dtrace 'fatal))))
 
@@ -215,6 +215,30 @@
       (thread wait-accept-handle-loop)
       (values (thunk (custodian-shutdown-all server-custodian)) portno))))
 
+(define continuation-mark->stack-hints : (->* () ((U Continuation-Mark-Set Thread)) (Listof Stack-Hint))
+  (lambda [[cm (current-continuation-marks)]]
+    ((inst map (Pairof Symbol (Option (Vector (U String Symbol) Integer Integer))) (Pairof (Option Symbol) Any))
+     (λ [[stack : (Pairof (Option Symbol) Any)]]
+       (define maybe-name (car stack))
+       (define maybe-srcinfo (cdr stack))
+       (cons (or maybe-name 'λ)
+             (and (srcloc? maybe-srcinfo)
+                  (let ([src (srcloc-source maybe-srcinfo)]
+                        [line (srcloc-line maybe-srcinfo)]
+                        [column (srcloc-column maybe-srcinfo)])
+                    (vector (if (symbol? src) src (~a src))
+                            (or line -1)
+                            (or column -1))))))
+     (cond [(continuation-mark-set? cm) (continuation-mark-set->context cm)]
+           [else (continuation-mark-set->context (continuation-marks cm))]))))
+
+(define exn->place-message : (-> exn (Vector 'error String (Listof Stack-Hint) Symbol))
+  (lambda [e]
+    (vector 'error
+            (exn-message e)
+            (continuation-mark->stack-hints (exn-continuation-marks e))
+            (object-name/symbol e))))
+
 (define the-synced-place-channel : (Parameterof (Option Place-Channel)) (make-parameter #false))
 (define place-channel-evt : (-> Place-Channel [#:hint (Parameterof (Option Place-Channel))] (Evtof Any))
   (lambda [source-evt #:hint [hint the-synced-place-channel]]
@@ -223,8 +247,10 @@
 
 (define place-channel-send : (-> Place-Channel Any Void)
   (lambda [dest datum]
-    (cond [(place-message-allowed? datum) (place-channel-put dest datum)]
-          [else (place-channel-put dest (match/handlers (s-exp->fasl datum) [(exn message _) message]))])))
+    (cond [(exn? datum) (place-channel-put dest (exn->place-message datum))]
+          [(place-message-allowed? datum) (place-channel-put dest datum)]
+          [else (place-channel-put dest (match/handlers (s-exp->fasl datum)
+                                          [(? exn? e) (place-channel-send dest e)]))])))
 
 (define place-channel-recv : (-> Place-Channel [#:timeout Nonnegative-Real] [#:hint (Parameterof (Option Place-Channel))] Any)
   (lambda [channel #:timeout [s +inf.0] #:hint [hint the-synced-place-channel]]
@@ -283,23 +309,6 @@
 (define vector-set-thread-statistics! : (-> Racket-Thread-Status Thread Void)
   (lambda [stat thd]
     (vector-set-performance-stats! stat thd)))
-
-(define continutaion-mark->stack-hints : (->* () ((U Continuation-Mark-Set Thread)) (Listof Stack-Hint))
-  (lambda [[cm (current-continuation-marks)]]
-    ((inst map (Pairof Symbol (Option (Vector (U String Symbol) Integer Integer))) (Pairof (Option Symbol) Any))
-     (λ [[stack : (Pairof (Option Symbol) Any)]]
-       (define maybe-name (car stack))
-       (define maybe-srcinfo (cdr stack))
-       (cons (or maybe-name 'λ)
-             (and (srcloc? maybe-srcinfo)
-                  (let ([src (srcloc-source maybe-srcinfo)]
-                        [line (srcloc-line maybe-srcinfo)]
-                        [column (srcloc-column maybe-srcinfo)])
-                    (vector (if (symbol? src) src (~a src))
-                            (or line -1)
-                            (or column -1))))))
-     (cond [(continuation-mark-set? cm) (continuation-mark-set->context cm)]
-           [else (continuation-mark-set->context (continuation-marks cm))]))))
 
 (define car.eval : (->* (Any) (Namespace) Any)
   (lambda [sexp [ns (current-namespace)]]
