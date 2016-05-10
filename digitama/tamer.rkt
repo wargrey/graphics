@@ -112,7 +112,7 @@
 
 (define handbook-reference
   (lambda []
-    (list ((tamer-reference) #:tag (format "~a-reference" (path-replace-suffix (tamer-story->tag (tamer-story)) ""))
+    (list ((tamer-reference) #:tag (format "~a-reference" (path-replace-extension (tamer-story->tag (tamer-story)) ""))
                              #:sec-title (speak 'handbook-reference))
           (let ([zone-snapshots (filter-not false? (list (tamer-zone)))])
             (make-traverse-block (thunk* (for-each close-eval zone-snapshots))))

@@ -178,7 +178,7 @@ Before we continue, we should name the @tech{baby} @tech{digimon}, say @racketid
        (define robots.txt (build-path baby-tamer "robots.txt"))
       
        (define babymon (build-path baby-digivice babymon-name))
-       (define babymon.rkt (path-add-suffix babymon ".rkt"))
+       (define babymon.rkt (path-add-extension babymon #".rkt"))
        (define action.rkt (build-path babymon "action.rkt"))
 
        (define babymon-main

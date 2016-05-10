@@ -147,11 +147,11 @@ exec racket --syslog debug --name "${makefile}" --require "$0" --main -- ${1+"$@
         (values (build-path (digimon-stone) "digivice.rkt")
                 (build-path (digimon-stone) "gdigivice.rkt"))))
     (append (filter-map (lambda [dgvc] (let ([dgvc.rkt (path->string (build-path (digimon-zone) dgvc))])
-                                         (and (directory-exists? (path-replace-suffix dgvc.rkt #""))
+                                         (and (directory-exists? (path-replace-extension dgvc.rkt #""))
                                               (list dgvc.rkt (list stone/digivice.rkt) (curry make-digivice stone/digivice.rkt)))))
                         (#%info 'racket-launcher-libraries (thunk null)))
             (filter-map (lambda [dgvc] (let ([dgvc.rkt (path->string (build-path (digimon-zone) dgvc))])
-                                 (and (directory-exists? (path-replace-suffix dgvc.rkt #""))
+                                 (and (directory-exists? (path-replace-extension dgvc.rkt #""))
                                       (list dgvc.rkt (list stone/gdigivice.rkt) (curry make-digivice stone/gdigivice.rkt)))))
                 (#%info 'gracket-launcher-libraries (thunk null))))))
 
@@ -238,7 +238,7 @@ exec racket --syslog debug --name "${makefile}" --require "$0" --main -- ${1+"$@
                                    (append-object-suffix (extract-base-filename/c (file-name-from-path c))))
                        (build-path (path-only c) (car (use-compiled-file-paths))
                                    "native" (system-library-subpath #false)
-                                   (path-replace-suffix (file-name-from-path c) (system-type 'so-suffix)))))
+                                   (path-replace-extension (file-name-from-path c) (system-type 'so-suffix)))))
              (list (list tobj (include.h c racket?)
                          (lambda [target]
                            (build-with-output-filter

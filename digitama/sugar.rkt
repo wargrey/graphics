@@ -38,7 +38,7 @@
 (define-syntax (#%module stx)
   #'(let ([full (ann (#%full-module) (U Symbol Path))])
       (cond [(path? full) ((compose1 string->symbol path->string)
-                           (path-replace-suffix (cast (file-name-from-path full) Path) ""))]
+                           (path-replace-extension (cast (file-name-from-path full) Path) ""))]
             [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
                     (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
 
