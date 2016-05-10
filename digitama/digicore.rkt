@@ -17,6 +17,7 @@
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
 (define-type SymbolTable (HashTable Symbol Any))
+(define-type Stack-Hint (Pairof Symbol (Option (Vector (U String Symbol) Integer Integer))))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
 
 (define-type EvtSelf (Rec Evt (Evtof Evt)))
@@ -283,8 +284,7 @@
   (lambda [stat thd]
     (vector-set-performance-stats! stat thd)))
 
-(define continutaion-mark->stack-hints : (->* () ((U Continuation-Mark-Set Thread))
-                                              (Listof (Pairof Symbol (Option (Vector (U String Symbol) Integer Integer)))))
+(define continutaion-mark->stack-hints : (->* () ((U Continuation-Mark-Set Thread)) (Listof Stack-Hint))
   (lambda [[cm (current-continuation-marks)]]
     ((inst map (Pairof Symbol (Option (Vector (U String Symbol) Integer Integer))) (Pairof (Option Symbol) Any))
      (λ [[stack : (Pairof (Option Symbol) Any)]]
