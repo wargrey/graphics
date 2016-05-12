@@ -5,9 +5,8 @@
 
 @(require (for-label "tamer.rkt"))
 @(require (for-label "../digitama/schema.rkt"))
-@(require (for-label (submod "../digitama/schema.rkt" diagram)))
 
-@(define tamer-diagram-zone (make-tamer-zone (tamer-partner->modpath "digitama/schema.rkt" 'diagram)))
+@;(define tamer-diagram-zone (make-tamer-zone (tamer-partner->modpath "digitama/schema.rkt" 'diagram)))
 @(define tamer-schema-zone (make-tamer-zone (path->digimon-modpath (quote-source-file) 'tamer)))
 
 @(define ORM  (make-bib #:title "Object Role Modeling: an overview"
@@ -50,17 +49,15 @@ All graphical notations at conceptual level in this @tech{handbook} are introduc
 For the simplicity, the old-school style is no longer taken into account.
 
 @chunk[|<conceptual schema>|
-       (define-schema schema
-         (define-table digimon as 数码宝贝
-           ([name       : String                 % 日文名称]
-            [name/en    : (Option String)        % 英语名称]
-            [artwork    : (Listof Bytes)         % 角色图片])))]
+       (define-table digimon as 数码宝贝
+         ([name       : String                 % 日文名称]
+          [name/en    : (Option String)        % 英语名称]
+          [artwork    : (Listof Bytes)         % 角色图片]))]
 
-@examples[#:eval tamer-diagram-zone #:label #false
-          (code:comment @#,t{All text is in 12 pixels.})]
+@;examples[#:eval tamer-diagram-zone #:label #false]
 
 @examples[#:eval tamer-schema-zone #:label #false
-          digimon]
+          make-digimon]
 
 @handbook-reference[]
 
