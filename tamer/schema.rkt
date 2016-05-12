@@ -57,7 +57,7 @@ For the simplicity, the old-school style is no longer taken into account.
 @;examples[#:eval tamer-diagram-zone #:label #false]
 
 @examples[#:eval tamer-schema-zone #:label #false
-          make-digimon]
+          create-digimon]
 
 @handbook-reference[]
 

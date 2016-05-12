@@ -22,7 +22,7 @@
 (struct exn:schema:record:mac exn:schema:record ())
 
 (struct exn:schema:constraint exn:schema ([table : Struct-TypeTop] [constraint : (Listof Any)] [given : (HashTable Symbol Any)]))
-(struct exn:schema:constraint:unique exn:schema:constraint ())
+(struct exn:schema:constraint:unique exn:schema:constraint ([key-type : (U 'Natural 'Surrogate)]))
 
 (define raise-schema-constraint-error : (-> Symbol Struct-TypeTop (Listof Any) (Listof (Pairof Symbol Any)) Nothing)
   (lambda [source table constraints given]
@@ -33,17 +33,17 @@
            (string-join ((inst map String (Pairof Symbol Any)) (λ [kv] (format "(~a . ~s)" (car kv) (cdr kv))) (reverse given))
                         (format "~n~a " (make-string 8 #\space))))))
 
-(define raise-schema-unique-constraint-error : (-> Symbol Struct-TypeTop (Listof (Pairof Symbol Any)) Nothing)
-  (lambda [source table given]
+(define raise-schema-unique-constraint-error : (-> Symbol Struct-TypeTop (Listof (Pairof Symbol Any)) [#:type (U 'Natural 'Surrogate)] Nothing)
+  (lambda [source table given #:type [key-type 'Natural]]
     (define entry : (HashTable Symbol Any) (make-hash given))
-    (throw [exn:schema:constraint:unique table `(UNIQUE ,(hash-keys entry)) entry]
+    (throw [exn:schema:constraint:unique table `(UNIQUE ,(hash-keys entry)) entry key-type]
            "~a: constraint violation~n  table: ~a~n  constraint: @Unique{~a}~n  given: {~a}"
            source (object-name table)
            (string-join (map symbol->string (hash-keys entry)) ", ")
            (string-join (hash-map entry (λ [k v] (format "~a: ~s" k v)))
                         (format "~n~a " (make-string 9 #\space))))))
 
-(struct msg:schema msg ([table : (Option Symbol)] [manipaltion : (Option Symbol)] [uuid : (Option String)])
+(struct msg:schema msg ([table : Symbol] [manipaltion : Symbol] [uuid : String])
   #:prefab #:type-name Schema-Message)
 
 (define make-schema-message : (->* (Struct-TypeTop Symbol String Any) (#:level Log-Level #:topic (Option Symbol) String) #:rest Any Schema-Message)
@@ -52,11 +52,11 @@
     (msg:schema (or topic table-name) level (if (null? argl) message (apply format message argl)) urgent
                 table-name maniplation uuid)))
 
-(define exn:schema->schema-message : (-> exn [#:level Log-Level] Prefab-Message)
-  (lambda [e #:level [level 'error]]
+(define exn:schema->schema-message : (-> exn [#:level (Option Log-Level)] Prefab-Message)
+  (lambda [e #:level [level #false]]
     (cond [(not (exn:schema:record? e)) (exn->prefab-message e)]
           [else (msg:schema (object-name/symbol e)
-                            level
+                            (or level (match e [(exn:schema:constraint:unique _ _ _ _ _ 'Natural) 'warning] [_ 'error]))
                             (exn-message e)
                             (continuation-mark->stack-hints (exn-continuation-marks e))
                             (object-name/symbol (exn:schema:record-table e))
@@ -69,7 +69,7 @@
      (with-syntax* ([check-fields (datum->syntax #'table (gensym 'schema))]
                     [struct:table (format-id #'table "struct:~a" (syntax-e #'table))]
                     [unsafe-table (format-id #'table "unsafe-~a" (syntax-e #'table))]
-                    [make-table (format-id #'table "make-~a" (syntax-e #'table))]
+                    [create-table (format-id #'table "create-~a" (syntax-e #'table))]
                     [update-table (format-id #'table "update-~a" (syntax-e #'table))]
                     [delete-table (format-id #'table "delete-~a" (syntax-e #'table))]
                     [select-table (format-id #'table "select-~a" (syntax-e #'table))]
@@ -117,8 +117,8 @@
                                      [else (values fields checks)])))
                            (raise-schema-constraint-error id struct:table (if table-failure (cons 'constraint checks) checks) givens)))]))
                 
-                (define (make-table #:unsafe? [unsafe? : Boolean #false] #:UUID [uuid : (Option (UUID String)) #false] args ...) : Table
-                  (when (not unsafe?) (check-fields 'make-table field ...))
+                (define (create-table #:unsafe? [unsafe? : Boolean #false] #:UUID [uuid : (Option (UUID String)) #false] args ...) : Table
+                  (when (not unsafe?) (check-fields 'create-table field ...))
                   (define now : Fixnum (current-macroseconds))
                   (unsafe-table (or uuid (uuid:timestamp)) now now #false #false field ...))
   

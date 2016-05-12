@@ -237,10 +237,10 @@
 (struct msg ([topic : Symbol] [level : Log-Level] [brief : String] [detail : Any])
   #:prefab #:constructor-name make-prefab-message)
 
-(define exn->prefab-message : (-> exn Prefab-Message)
-  (lambda [e]
+(define exn->prefab-message : (-> exn [#:level Log-Level] Prefab-Message)
+  (lambda [e #:level [level 'error]]
     (make-prefab-message (object-name/symbol e)
-                         'error
+                         level
                          (exn-message e)
                          (continuation-mark->stack-hints (exn-continuation-marks e)))))
 
