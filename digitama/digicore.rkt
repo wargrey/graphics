@@ -150,6 +150,7 @@
     (define log-level : Log-Level (case level [(debug info warning error fatal) level] [else 'debug]))
     (cond [(logger? topic) (log-message topic log-level message urgent)]
           [(symbol? topic) (log-message (current-logger) log-level topic message urgent)]
+          [(symbol? (object-name topic)) (log-message (current-logger) log-level (object-name/symbol topic) message urgent)]
           [else (log-message (current-logger) log-level (string->symbol (~a topic)) message urgent)])))
 
 (define-values (dtrace-debug dtrace-info dtrace-warning dtrace-error dtrace-fatal)
