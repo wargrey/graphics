@@ -42,6 +42,12 @@
             [else (with-handlers ([exn:fail:contract? (λ _ '<anonymous>)])
                     (last (cdr (cast full (Pairof (U Path Symbol) (Listof Symbol))))))])))
 
+(define-syntax (#%function stx)
+  #'(let use-next-id : Symbol ([stacks (continuation-mark-set->context (current-continuation-marks))])
+      (if (null? stacks) 'λ
+          (or (caar stacks)
+              (use-next-id (cdr stacks))))))
+
 (define-syntax (throw stx)
   (syntax-case stx []
     [(_ [st-id st-argl ...] message)
