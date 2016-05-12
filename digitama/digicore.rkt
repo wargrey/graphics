@@ -233,8 +233,8 @@
      (cond [(continuation-mark-set? cm) (continuation-mark-set->context cm)]
            [else (continuation-mark-set->context (continuation-marks cm))]))))
 
-(define-type Prefab-Message msg:prefab)
-(struct msg:prefab ([topic : Symbol] [level : Log-Level] [brief : String] [detail : Any])
+(define-type Prefab-Message msg)
+(struct msg ([topic : Symbol] [level : Log-Level] [brief : String] [detail : Any])
   #:prefab #:constructor-name make-prefab-message)
 
 (define exn->prefab-message : (-> exn Prefab-Message)
