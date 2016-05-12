@@ -232,12 +232,16 @@
      (cond [(continuation-mark-set? cm) (continuation-mark-set->context cm)]
            [else (continuation-mark-set->context (continuation-marks cm))]))))
 
-(define exn->place-message : (-> exn (Vector 'error String (Listof Stack-Hint) Symbol))
+(define-type Prefab-Message msg:prefab)
+(struct msg:prefab ([topic : Symbol] [level : Log-Level] [brief : String] [detail : Any])
+  #:prefab #:constructor-name make-prefab-message)
+
+(define exn->prefab-message : (-> exn Prefab-Message)
   (lambda [e]
-    (vector 'error
-            (exn-message e)
-            (continuation-mark->stack-hints (exn-continuation-marks e))
-            (object-name/symbol e))))
+    (make-prefab-message (object-name/symbol e)
+                         'error
+                         (exn-message e)
+                         (continuation-mark->stack-hints (exn-continuation-marks e)))))
 
 (define the-synced-place-channel : (Parameterof (Option Place-Channel)) (make-parameter #false))
 (define place-channel-evt : (-> Place-Channel [#:hint (Parameterof (Option Place-Channel))] (Evtof Any))
@@ -247,7 +251,7 @@
 
 (define place-channel-send : (-> Place-Channel Any Void)
   (lambda [dest datum]
-    (cond [(exn? datum) (place-channel-put dest (exn->place-message datum))]
+    (cond [(exn? datum) (place-channel-put dest (exn->prefab-message datum))]
           [(place-message-allowed? datum) (place-channel-put dest datum)]
           [else (place-channel-put dest (match/handlers (s-exp->fasl datum)
                                           [(? exn? e) (place-channel-send dest e)]))])))

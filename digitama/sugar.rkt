@@ -55,13 +55,13 @@
 
 (define-syntax (rethrow stx)
   (syntax-case stx []
-    [(_ [st-id st-argl ...] message)
+    [(_ [st-id st-argl ...] prefix)
      #'(lambda [[src : exn]]
-         (throw [st-id st-argl ...] (~a message #\: #\space (exn-message src))))]
+         (throw [st-id st-argl ...] (~a prefix #\: #\space (exn-message src))))]
     [(_ [st-id st-argl ...] fmt argl ...)
      #'(rethrow [st-id st-argl ...] (format fmt argl ...))]
-    [(_ st-id fmt message)
-     #'(rethrow [st-id] message)]
+    [(_ st-id prefix)
+     #'(rethrow [st-id] prefix)]
     [(_ st-id fmt argl ...)
      #'(rethrow [st-id] (format fmt argl ...))]))
 
