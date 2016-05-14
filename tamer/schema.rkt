@@ -49,7 +49,7 @@ All graphical notations at conceptual level in this @tech{handbook} are introduc
 For the simplicity, the old-school style is no longer taken into account.
 
 @chunk[|<conceptual schema>|
-       (define-table digimon as 数码宝贝
+       (define-table digimon as Digimon
          ([name       : String                 % 日文名称]
           [name/en    : (Option String)        % 英语名称]
           [artwork    : (Listof Bytes)         % 角色图片]))]

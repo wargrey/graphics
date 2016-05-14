@@ -153,7 +153,7 @@ exec racket --syslog debug --name "${makefile}" --require "$0" --main -- ${1+"$@
             (filter-map (lambda [dgvc] (let ([dgvc.rkt (path->string (build-path (digimon-zone) dgvc))])
                                  (and (directory-exists? (path-replace-extension dgvc.rkt #""))
                                       (list dgvc.rkt (list stone/gdigivice.rkt) (curry make-digivice stone/gdigivice.rkt)))))
-                (#%info 'gracket-launcher-libraries (thunk null))))))
+                        (#%info 'gracket-launcher-libraries (thunk null))))))
 
 (define make-implicit-dist-rules
   (lambda []

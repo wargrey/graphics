@@ -12,6 +12,7 @@
 @require{format.rkt}
 @require{ugly.rkt}
 @require{uuid.rkt}
+
 @require[(submod "openssl.rkt" typed/ffi)]
 
 (define-type Racket-Main (-> String * Void))
@@ -145,20 +146,6 @@
          (memq 'read (file-or-directory-permissions p))
          #true)))
 
-(define dtrace-send : (-> Any Symbol String Any Void)
-  (lambda [topic level message urgent]
-    (define log-level : Log-Level (case level [(debug info warning error fatal) level] [else 'debug]))
-    (cond [(logger? topic) (log-message topic log-level message urgent)]
-          [(symbol? topic) (log-message (current-logger) log-level topic message urgent)]
-          [(symbol? (object-name topic)) (log-message (current-logger) log-level (object-name/symbol topic) message urgent)]
-          [else (log-message (current-logger) log-level (string->symbol (~a topic)) message urgent)])))
-
-(define-values (dtrace-debug dtrace-info dtrace-warning dtrace-error dtrace-fatal)
-  (let ([dtrace (lambda [[level : Symbol]] : (->* (String) (#:topic Any #:urgent Any) #:rest Any Void)
-                  (lambda [#:topic [topic (current-logger)] #:urgent [urgent (current-continuation-marks)] msgfmt . messages]
-                    (dtrace-send topic level (if (null? messages) msgfmt (apply format msgfmt messages)) urgent)))])
-    (values (dtrace 'debug) (dtrace 'info) (dtrace 'warning) (dtrace 'error) (dtrace 'fatal))))
-
 (define object-name/symbol : (-> Any Symbol)
   (lambda [v]
     (define name (object-name v))
@@ -233,16 +220,34 @@
      (cond [(continuation-mark-set? cm) (continuation-mark-set->context cm)]
            [else (continuation-mark-set->context (continuation-marks cm))]))))
 
-(define-type Prefab-Message msg)
-(struct msg ([topic : Symbol] [level : Log-Level] [brief : String] [detail : Any])
+(define-type Prefab-Message msg:log)
+(struct msg:log ([level : Log-Level] [brief : String] [details : Any] [topic : Symbol])
   #:prefab #:constructor-name make-prefab-message)
+
+(define dtrace-send : (-> Any Symbol String Any Void)
+  (lambda [topic level message urgent]
+    (define log-level : Log-Level (case level [(debug info warning error fatal) level] [else 'debug]))
+    (cond [(logger? topic) (log-message topic log-level message urgent)]
+          [(symbol? topic) (log-message (current-logger) log-level topic message urgent)]
+          [else (log-message (current-logger) log-level (object-name/symbol topic) message urgent)])))
+
+(define-values (dtrace-debug dtrace-info dtrace-warning dtrace-error dtrace-fatal)
+  (let ([dtrace (lambda [[level : Symbol]] : (->* (String) (#:topic Any #:urgent Any) #:rest Any Void)
+                  (lambda [#:topic [topic (current-logger)] #:urgent [urgent (current-continuation-marks)] msgfmt . messages]
+                    (dtrace-send topic level (if (null? messages) msgfmt (apply format msgfmt messages)) urgent)))])
+    (values (dtrace 'debug) (dtrace 'info) (dtrace 'warning) (dtrace 'error) (dtrace 'fatal))))
+
+(define dtrace-message : (-> Prefab-Message [#:logger Logger] [#:detail-only? Boolean] Void)
+  (lambda [info #:logger [logger (current-logger)] #:detail-only? [detail-only? #false]]
+    (log-message logger (msg:log-level info) (msg:log-topic info) (msg:log-brief info)
+                 (if detail-only? (msg:log-details info) info))))
 
 (define exn->prefab-message : (-> exn [#:level Log-Level] Prefab-Message)
   (lambda [e #:level [level 'error]]
-    (make-prefab-message (object-name/symbol e)
-                         level
+    (make-prefab-message level
                          (exn-message e)
-                         (continuation-mark->stack-hints (exn-continuation-marks e)))))
+                         (continuation-mark->stack-hints (exn-continuation-marks e))
+                         (object-name/symbol e))))
 
 (define the-synced-place-channel : (Parameterof (Option Place-Channel)) (make-parameter #false))
 (define place-channel-evt : (-> Place-Channel [#:hint (Parameterof (Option Place-Channel))] (Evtof Any))
