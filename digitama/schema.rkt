@@ -81,6 +81,49 @@
           (rename-file-or-directory path.ext path.rstn (and 'exists-ok? #false)))))
     path.rstn))
 
+(define schema-digest : (-> Schema-Record String)
+  (let* ([evp-hashes : (Vectorof EVP_MD*) (vector sha224 sha256 sha384 sha512)]
+         [hash-count : Index (vector-length evp-hashes)])
+    (lambda [shadow]
+      (define message : Bytes (string->bytes/utf-8 (~s shadow)))
+      (define evp-hash : EVP_MD* (vector-ref evp-hashes (remainder (bytes-length message) hash-count)))
+      (define salt-for-fun : Bytes
+        (let ([seed : Integer (* (schema-record-mtime shadow) (if (schema-record-deleted? shadow) -1 1))]
+              [size->bytes : (-> Integer Bytes) (λ [size] (integer->integer-bytes size 4 #false #true))])
+          (define buffer : Bytes (make-bytes (quotient (+ (integer-length seed) 7) 8)))
+          (define size : Index (bytes-length buffer))
+          (for ([idx : Integer (in-range size)])
+            (bytes-set! buffer idx (bitwise-and (arithmetic-shift seed (* (- size idx 1) -8)) #xFF)))
+          (cond [(and (positive? seed) (= (bytes-ref buffer 0) #b10000000))
+                 (bytes-append (size->bytes (add1 size)) (bytes #x00) buffer)]
+                [(and (negative? seed) (false? (bitwise-bit-set? (bytes-ref buffer 0) 7)))
+                 (bytes-append (size->bytes (add1 size)) (bytes #xFF) buffer)]
+                [else (bytes-append (size->bytes size) buffer)])))
+      (bytes->hex-string (HMAC evp-hash salt-for-fun message)))))
+
+(define schema-write-to-file/unsafe : (-> Schema-Record Path-String Bytes (Listof Bytes) Void)
+  (lambda [occurrence path-hint .rstn old-exts]
+    (parameterize ([current-custodian (make-custodian)])
+      (dynamic-wind
+       (thunk (let ([dirname : (Option Path) (path-only path-hint)])
+                (and dirname (unless (directory-exists? dirname) (make-directory* dirname)))))
+       (thunk (parameterize ([current-output-port (let ([s.dat (schema-file/rename-old-file path-hint .rstn old-exts)])
+                                                    (open-output-file s.dat #:exists 'truncate/replace))])
+                (write occurrence)
+                (newline)))
+       (thunk (custodian-shutdown-all (current-custodian)))))))
+
+(define schema-read-from-file/unsafe : (-> Path-String Bytes (Listof Bytes) Any)
+  (lambda [path-hint .rstn old-exts]
+    (parameterize ([current-custodian (make-custodian)])
+      (dynamic-wind
+       (thunk (let ([dirname : (Option Path) (path-only path-hint)])
+                (when (and dirname (null? (directory-list dirname)))
+                  (with-handlers ([exn:fail:filesystem? void])
+                    (delete-directory dirname)))))
+       (thunk (read (open-input-file (schema-file/rename-old-file path-hint .rstn old-exts))))
+       (thunk (custodian-shutdown-all (current-custodian)))))))
+  
 (define-syntax (define-table stx)
   (syntax-parse stx #:datum-literals [as :]
     [(_ table as Table ([field : DataType info ...] ...) (~optional (~seq #:check constraint:expr) #:defaults ([constraint #'true])))
@@ -143,7 +186,7 @@
                   (when (not unsafe?) (check-fields 'create-table field ...))
                   (define now : Fixnum (current-macroseconds))
                   (unsafe-table (or uuid (uuid:timestamp)) now now #false #false field ...))
-  
+                
                 (define (update-table [occurrence : Table] #:update-uuid? [update-uuid? : Boolean #false] args! ...) : Table
                   ; Maybe: (void) will never be an valid value that will be inserted into database.
                   (let ([field (if (void? field) (table-field occurrence) field)] ...)
@@ -151,71 +194,40 @@
                     (unsafe-table (if update-uuid? (uuid:timestamp) (schema-record-uuid occurrence))
                                   (schema-record-ctime occurrence) (current-macroseconds)
                                   #false #false field ...)))
-
+                
                 (define (delete-table [occurrence : Table]) : Table
                   (unsafe-table (schema-record-uuid occurrence) (schema-record-ctime occurrence) (current-macroseconds)
                                 #true #false (table-field occurrence) ...))
-
-                (define digest-table : (-> Table [#:verify? Boolean] Table)
-                  (let* ([evp-hashes : (Vectorof EVP_MD*) (vector sha224 sha256 sha384 sha512)]
-                         [hash-count : Index (vector-length evp-hashes)])
-                    (lambda [occurrence #:verify? [verify? #false]]
-                      (define oldsum : (Option String) (schema-record-mac occurrence))
-                      (when (and verify? (false? oldsum))
-                        (throw [exn:schema:record:mac struct:table 'verify (schema-record-uuid occurrence)]
-                               "Occurrence has not digested!"))
-                      (define shadow : Table (struct-copy table occurrence [mac #:parent schema-record #false]))
-                      (define message : Bytes (string->bytes/utf-8 (~s shadow)))
-                      (define evp-hash : EVP_MD* (vector-ref evp-hashes (remainder (bytes-length message) hash-count)))
-                      (define salt : Bytes
-                        (let ([seed : Integer (* (schema-record-mtime occurrence) (if (schema-record-deleted? occurrence) -1 1))]
-                              [size->bytes : (-> Integer Bytes) (λ [size] (integer->integer-bytes size 4 #false #true))])
-                          (define buffer : Bytes (make-bytes (quotient (+ (integer-length seed) 7) 8)))
-                          (define size : Index (bytes-length buffer))
-                          (for ([idx : Integer (in-range size)])
-                            (bytes-set! buffer idx (bitwise-and (arithmetic-shift seed (* (- size idx 1) -8)) #xFF)))
-                          (cond [(and (positive? seed) (= (bytes-ref buffer 0) #b10000000))
-                                 (bytes-append (size->bytes (add1 size)) (bytes #x00) buffer)]
-                                [(and (negative? seed) (false? (bitwise-bit-set? (bytes-ref buffer 0) 7)))
-                                 (bytes-append (size->bytes (add1 size)) (bytes #xFF) buffer)]
-                                [else (bytes-append (size->bytes size) buffer)])))
-                      (define checksum : String (bytes->hex-string (HMAC evp-hash salt message)))
-                      (cond [(and (string? oldsum) (string=? oldsum checksum)) occurrence]
-                            [(not verify?) (struct-copy table occurrence [mac #:parent schema-record checksum])]
-                            [else (throw [exn:schema:record:mac struct:table 'verify (schema-record-uuid occurrence)] "MAC Mismatch!")]))))
-
+                
+                (define (digest-table [occurrence : Table] #:verify? [verify? : Boolean #false]) : Table
+                  (define oldsum : (Option String) (schema-record-mac occurrence))
+                  (when (and verify? (false? oldsum))
+                    (throw [exn:schema:record:mac struct:table 'verify (schema-record-uuid occurrence)] "occurrence has not digested"))
+                  (define shadow : Table (struct-copy table occurrence [mac #:parent schema-record #false]))
+                  (define digest : String (schema-digest shadow))
+                  (cond [(and (string? oldsum) (string=? oldsum digest)) occurrence]
+                        [(not verify?) (struct-copy table occurrence [mac #:parent schema-record digest])]
+                        [else (throw [exn:schema:record:mac struct:table 'verify (schema-record-uuid occurrence)] "digest mismatch")]))
+                
                 (define (write-table [occurrence : Table] [out : (U Output-Port Path-String) (current-output-port)]
-                                     #:suffix [.rstn : Bytes #".rstn"]
-                                     #:old-suffixess [old-exts : (Listof Bytes) (list #".rkt")]) : Void
-                  (define schema-custodian : Custodian (make-custodian))
-                  (dynamic-wind
-                   (thunk (unless (output-port? out)
-                            (define dirname : (Option Path) (path-only out))
-                            (and dirname (unless (directory-exists? dirname) (make-directory* dirname)))))
-                   (thunk (parameterize ([current-custodian schema-custodian])                                                  
-                            (write (digest-table occurrence #:verify? #false)
-                                   (cond [(output-port? out) out]
-                                         [else (open-output-file #:exists 'truncate/replace
-                                                                    (schema-file/rename-old-file out .rstn old-exts))]))))
-                   (thunk (custodian-shutdown-all schema-custodian))))
-                  
-                (define read-table : (->* () ((U Input-Port Path-String) #:suffix Bytes #:old-suffixess (Listof Bytes)) Table)
-                  (let ([px.head : PRegexp (pregexp (string-append "^\\s*#s\\(\\(" (regexp-quote (symbol->string 'table)) " "))])
-                    (lambda [[in (current-input-port)] #:suffix [.rstn #".rstn"] #:old-suffixess [old-exts (list #".rktl")]]
-                      (define schema-custodian : Custodian (make-custodian))
-                      (dynamic-wind
-                       (thunk (unless (input-port? in)
-                                (define dirname : (Option Path) (path-only in))
-                                (when (and dirname (null? (directory-list dirname)))
-                                  (with-handlers ([exn:fail:filesystem? void])
-                                    (delete-directory dirname)))))
-                       (thunk (parameterize ([current-custodian schema-custodian])
-                                (define src : Input-Port
-                                  (cond [(input-port? in) in]
-                                        [else (open-input-file (schema-file/rename-old-file in .rstn old-exts))]))
-                                (match/handlers (and (regexp-match-peek px.head src) (read src))
-                                  [(? table? occurrence) (digest-table occurrence #:verify? #true)]
-                                  ;[(? eof-object?) (throw exn:schema "~a: empty stream" 'read-table)]
-                                  ;[(exn message _) (throw exn:schema "~a: ~a" 'read-table message)]
-                                  [_ (throw exn:schema "~a: no such occurrence found" 'read-table)])))
-                       (thunk (custodian-shutdown-all schema-custodian))))))))]))
+                                     #:suffix [.rstn : Bytes #".rstn"] #:old-suffixess [old-exts : (Listof Bytes) (list #".rkt")]) : Void
+                  (define digested-one : Table (digest-table occurrence #:verify? #false))
+                  (cond [(output-port? out) (write digested-one out)]
+                        [else (schema-write-to-file/unsafe digested-one out .rstn old-exts)]))
+                
+                (define (read-table [in : (U Input-Port Path-String) (current-input-port)]
+                                    #:suffix [.rstn : Bytes #".rstn"] #:old-suffixess [old-exts : (Listof Bytes) (list #".rktl")]) : Table
+                  (define peeked : Natural 0)
+                  (match/handlers (cond [(not (input-port? in)) (schema-read-from-file/unsafe in .rstn old-exts)]
+                                        [(read (make-input-port 'peek-schema-record
+                                                                (λ [[s : Bytes]]
+                                                                  (let ([r (peek-bytes! s peeked in)])
+                                                                    (set! peeked (+ peeked (if (number? r) r 1))) r))
+                                                                #false
+                                                                void))
+                                         => (λ [whatever] (when (table? whatever) (read-bytes peeked in)) whatever)])
+                    [(? table? occurrence) (digest-table occurrence #:verify? #true)]
+                    [(? schema-record? record) (throw exn:schema "~a: unexpected record type: ~a" 'read-table (object-name record))]
+                    [(? eof-object?) (throw exn:schema "~a: unexpected end of stream" 'read-table)]
+                    [(exn message _) (throw exn:schema "~a: ~a" 'read-table message)]
+                    [_ (throw exn:schema "~a: not a stream of schema occurrence" 'read-table)]))))]))
