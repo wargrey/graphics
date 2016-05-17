@@ -63,7 +63,7 @@
 
 (define exn:schema->schema-message : (-> exn:schema [#:level (Option Log-Level)] Prefab-Message)
   (lambda [e #:level [level #false]]
-    (cond [(not (exn:schema:record? e)) (exn->prefab-message e)]
+    (cond [(not (exn:schema:record? e)) (exn->prefab-message e #:level (or level 'error))]
           [else (msg:schema (or level (match e [(exn:schema:constraint:unique _ _ _ _ _ 'Natural) 'warning] [_ 'error]))
                             (exn-message e)
                             (continuation-mark->stack-hints (exn-continuation-marks e))
@@ -124,6 +124,18 @@
                     (delete-directory dirname)))))
        (thunk (read (open-input-file (schema-file/rename-old-file path-hint .rstn old-exts))))
        (thunk (custodian-shutdown-all (current-custodian)))))))
+
+(define schema-name->struct:schema : (-> Symbol Struct-TypeTop)
+  (let ([unknown-schema-tables : (HashTable Symbol Struct-TypeTop) (make-hasheq)])
+    (lambda [record-name]
+      (hash-ref schema-tables record-name
+                (thunk (hash-ref! unknown-schema-tables record-name
+                                  (thunk (let-values ([(struct:unknown make-unknown unknown? unknown-ref unknown-set!)
+                                                       (make-struct-type record-name struct:schema-record 0 0
+                                                                         'manually-serialization null 'prefab
+                                                                         #false null (and 'prefab-has-not-guard #false)
+                                                                         #false)])
+                                           struct:unknown))))))))
   
 (define-syntax (define-table stx)
   (syntax-parse stx #:datum-literals [as :]
@@ -211,13 +223,13 @@
                         [else (throw [exn:schema:record:mac struct:table 'verify (schema-record-uuid occurrence)] "digest mismatch")]))
                 
                 (define (write-table [occurrence : Table] [out : (U Output-Port Path-String) (current-output-port)]
-                                     #:suffix [.rstn : Bytes #".rstn"] #:old-suffixess [old-exts : (Listof Bytes) (list #".rkt")]) : Void
+                                     #:suffix [.rstn : Bytes #".rstn"] #:old-suffixes [old-exts : (Listof Bytes) (list #".rkt")]) : Void
                   (define digested-one : Table (digest-table occurrence #:verify? #false))
                   (cond [(output-port? out) (write digested-one out)]
                         [else (schema-write-to-file/unsafe digested-one out .rstn old-exts)]))
                 
-                (define (read-table [in : (U Input-Port Path-String) (current-input-port)]
-                                    #:suffix [.rstn : Bytes #".rstn"] #:old-suffixess [old-exts : (Listof Bytes) (list #".rktl")]) : Table
+                (define (read-table [in : (U Input-Port Path-String) /dev/zero]
+                                    #:suffix [.rstn : Bytes #".rstn"] #:old-suffixes [old-exts : (Listof Bytes) (list #".rktl")]) : Table
                   (define peeked : (Boxof Natural) (box 0))
                   (match/handlers (cond [(not (input-port? in)) (schema-read-from-file/unsafe in .rstn old-exts)]
                                         [(read (make-peek-port in peeked)) => (λ [v] (when (table? v) (read-bytes (unbox peeked) in)) v)])
@@ -226,3 +238,29 @@
                     [(? eof-object?) (throw [exn:schema:read eof] "~a: unexpected end of stream" 'read-table)]
                     [(? exn? e) (throw [exn:schema:read e] "~a: ~a" 'read-table (exn-message e))]
                     [_ (throw [exn:schema:read #false] "~a: not a stream of schema occurrence" 'read-table)]))))]))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(module+ test
+  (define-table p as P
+    ([number     : String                 % 出版社编号 #:check (regexp-match? #px"^\\d+$" number)]
+     [names      : (Option String)        % 出版社名称]
+     [address    : (Option String)        % 出版社地址]
+     [url        : (Option String)        % 出版社官网]
+     [about      : (Option String)        % 出版社简介]))
+  
+  (define-table s as S
+    ([titles     : (Listof String)        % 丛书标题 '("བོད་ཀྱི་བཅུ་ཕྲག་རིག་མཛོད་ཆེན་མོ" "藏族十明文化传世经典丛书")]
+     [type       : Symbol                 % 丛书类型]))
+  
+  (define-values (i o) (make-pipe))
+  (write-p (create-p #:number "123") o)
+  (write-s (create-s #:titles (list "བོད་ཀྱི་བཅུ་ཕྲག་རིག་མཛོད་ཆེན་མོ") #:type 'Tibetan) o)
+  
+  (with-handlers ([exn? displayln]) (read-s i))
+  (read-p i)
+  (read-s i)
+  
+  (close-output-port o)
+  (read i))
