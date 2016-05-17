@@ -19,6 +19,7 @@
   #:constructor-name abstract-schema-record)
 
 (struct exn:schema exn:fail ())
+(struct exn:schema:read exn:schema ([reason : (U EOF Schema-Record exn False)]))
 
 (struct exn:schema:record exn:schema ([table : Struct-TypeTop] [maniplation : Symbol] [uuid : String]))
 (struct exn:schema:record:mac exn:schema:record ())
@@ -217,17 +218,11 @@
                 
                 (define (read-table [in : (U Input-Port Path-String) (current-input-port)]
                                     #:suffix [.rstn : Bytes #".rstn"] #:old-suffixess [old-exts : (Listof Bytes) (list #".rktl")]) : Table
-                  (define peeked : Natural 0)
+                  (define peeked : (Boxof Natural) (box 0))
                   (match/handlers (cond [(not (input-port? in)) (schema-read-from-file/unsafe in .rstn old-exts)]
-                                        [(read (make-input-port 'peek-schema-record
-                                                                (λ [[s : Bytes]]
-                                                                  (let ([r (peek-bytes! s peeked in)])
-                                                                    (set! peeked (+ peeked (if (number? r) r 1))) r))
-                                                                #false
-                                                                void))
-                                         => (λ [whatever] (when (table? whatever) (read-bytes peeked in)) whatever)])
+                                        [(read (make-peek-port in peeked)) => (λ [v] (when (table? v) (read-bytes (unbox peeked) in)) v)])
                     [(? table? occurrence) (digest-table occurrence #:verify? #true)]
-                    [(? schema-record? record) (throw exn:schema "~a: unexpected record type: ~a" 'read-table (object-name record))]
-                    [(? eof-object?) (throw exn:schema "~a: unexpected end of stream" 'read-table)]
-                    [(exn message _) (throw exn:schema "~a: ~a" 'read-table message)]
-                    [_ (throw exn:schema "~a: not a stream of schema occurrence" 'read-table)]))))]))
+                    [(? schema-record? record) (throw [exn:schema:read record] "~a: unexpected record type: ~a" 'read-table (object-name record))]
+                    [(? eof-object?) (throw [exn:schema:read eof] "~a: unexpected end of stream" 'read-table)]
+                    [(? exn? e) (throw [exn:schema:read e] "~a: ~a" 'read-table (exn-message e))]
+                    [_ (throw [exn:schema:read #false] "~a: not a stream of schema occurrence" 'read-table)]))))]))

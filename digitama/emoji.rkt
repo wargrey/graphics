@@ -34,4 +34,3 @@
   [green-heart# #\U1F49A]
   [yellow-heart# #\U1F49B]
   [purple-heart# #\U1F49C])
-

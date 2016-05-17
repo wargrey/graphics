@@ -320,6 +320,16 @@
   (lambda [stat thd]
     (vector-set-performance-stats! stat thd)))
 
+(define make-peek-port : (->* (Input-Port) ((Boxof Natural) Symbol) Input-Port)
+  (lambda [/dev/srcin [iobox ((inst box Natural) 0)] [name '/dev/tmpeek]]
+    (make-input-port name
+                     (λ [[s : Bytes]] : (U EOF Exact-Positive-Integer)
+                       (define peeked : Natural (unbox iobox))
+                       (define r (peek-bytes! s peeked /dev/srcin))
+                       (set-box! iobox (+ peeked (if (number? r) r 1))) r)
+                     #false
+                     void)))
+
 (define car.eval : (->* (Any) (Namespace) Any)
   (lambda [sexp [ns (current-namespace)]]
     (call-with-values (thunk (eval sexp ns))
