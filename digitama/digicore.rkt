@@ -1,12 +1,15 @@
 #lang at-exp typed/racket
 
+(define boot-time : Fixnum (current-milliseconds))
+
 (provide (all-defined-out) Term-Color vim-colors Racket-Place-Status Racket-Thread-Status)
 (provide (all-from-out "sugar.rkt" "format.rkt" "ugly.rkt" "uuid.rkt"))
 (provide (all-from-out (submod "openssl.rkt" typed/ffi)))
+(provide (all-from-out typed/racket/fasl))
+
+(require typed/racket/fasl)
 
 (require (for-syntax racket/syntax))
-
-(define boot-time : Fixnum (current-milliseconds))
 
 @require{sugar.rkt}
 @require{format.rkt}
@@ -25,17 +28,21 @@
 (define-type Place-EvtExit (Evtof (Pairof Place Integer)))
 (define-type Timer-EvtSelf (Rec Timer-Evt (Evtof (Vector Timer-Evt Fixnum Fixnum))))
 
-(require/typed/provide racket/fasl
-                       [s-exp->fasl (case-> [-> Any Bytes]
-                                            [-> Any Output-Port Void])]
-                       [fasl->s-exp (-> (U Input-Port Bytes) Any)])
-
 (define /dev/stdin : Input-Port (current-input-port))
 (define /dev/stdout : Output-Port (current-output-port))
 (define /dev/stderr : Output-Port (current-error-port))
 (define /dev/log : Logger (make-logger 'digital-world #false))
-(define /dev/eof : Input-Port ((cast open-input-bytes (-> Bytes Symbol Input-Port)) #"" '/dev/null))
-(define /dev/null : Output-Port ((cast open-output-nowhere (-> Symbol Output-Port)) '/dev/null))
+(define /dev/eof : Input-Port (open-input-bytes #"" '/dev/null))
+(define /dev/null : Output-Port (open-output-nowhere '/dev/null))
+
+(define /dev/zero : Input-Port
+  (make-input-port '/dev/zero
+                   (λ [[bs : Bytes]]
+                     (bytes-fill! bs #x00)
+                     (bytes-length bs))
+                   #false
+                   void))
+
 (define /dev/urandom : Input-Port
   (make-input-port '/dev/urandom
                    (λ [[bs : Bytes]]
@@ -146,6 +153,11 @@
          (memq 'read (file-or-directory-permissions p))
          #true)))
 
+(define string-null? : (-> Any Boolean : #:+ String)
+  (lambda [str]
+    (and (string? str)
+         (string=? str ""))))
+
 (define object-name/symbol : (-> Any Symbol)
   (lambda [v]
     (define name (object-name v))
@@ -172,17 +184,15 @@
                         (on-timer thdsrc (fxquotient (fx- alarm-time basetime) interval))
                         (wait-dotask-loop next-alarm)]))))))
 
-(define tcp-server : (-> Index (Input-Port Output-Port Positive-Index -> Any)
+(define tcp-server : (-> Index (Input-Port Output-Port Index -> Any)
                          [#:max-allow-wait Natural] [#:localhost (Option String)]
                          [#:timeout (Option Fixnum)] [#:on-error (exn -> Any)] [#:custodian Custodian]
-                         (Values (-> Void) Positive-Index))
+                         (Values (-> Void) Index))
   (lambda [port-hit on-connection #:max-allow-wait [maxwait (processor-count)] #:localhost [ip #false]
            #:timeout [timeout #false] #:on-error [on-error void] #:custodian [server-custodian (make-custodian)]]
     (parameterize ([current-custodian server-custodian])
       (define /dev/tcp : TCP-Listener (tcp-listen port-hit maxwait #true ip))
-      (define-values (localhost portno remote rport)
-        ((cast tcp-addresses (-> TCP-Listener Boolean (Values String Positive-Index String Index)))
-         /dev/tcp #true))
+      (define-values (localhost portno remote rport) (tcp-addresses /dev/tcp #true))
       (define saved-params-incaseof-transferring-continuation : Parameterization (current-parameterization))
       (define (wait-accept-handle-loop) : Void
         (parameterize ([current-custodian (make-custodian server-custodian)])
@@ -237,9 +247,9 @@
                     (dtrace-send topic level (if (null? messages) msgfmt (apply format msgfmt messages)) urgent)))])
     (values (dtrace 'debug) (dtrace 'info) (dtrace 'warning) (dtrace 'error) (dtrace 'fatal))))
 
-(define dtrace-message : (-> Prefab-Message [#:logger Logger] [#:detail-only? Boolean] Void)
-  (lambda [info #:logger [logger (current-logger)] #:detail-only? [detail-only? #false]]
-    (log-message logger (msg:log-level info) (msg:log-topic info) (msg:log-brief info)
+(define dtrace-message : (-> Prefab-Message [#:topic Any] [#:detail-only? Boolean] Void)
+  (lambda [info #:topic [topic (current-logger)] #:detail-only? [detail-only? #false]]
+    (dtrace-send topic (msg:log-level info) (msg:log-brief info)
                  (if detail-only? (msg:log-details info) info))))
 
 (define exn->prefab-message : (-> exn [#:level Log-Level] Prefab-Message)
