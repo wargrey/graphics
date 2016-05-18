@@ -247,9 +247,9 @@
                     (dtrace-send topic level (if (null? messages) msgfmt (apply format msgfmt messages)) urgent)))])
     (values (dtrace 'debug) (dtrace 'info) (dtrace 'warning) (dtrace 'error) (dtrace 'fatal))))
 
-(define dtrace-message : (-> Prefab-Message [#:topic Any] [#:detail-only? Boolean] Void)
-  (lambda [info #:topic [topic (current-logger)] #:detail-only? [detail-only? #false]]
-    (dtrace-send topic (msg:log-level info) (msg:log-brief info)
+(define dtrace-message : (-> Prefab-Message [#:logger Logger] [#:detail-only? Boolean] Void)
+  (lambda [info #:logger [logger (current-logger)] #:detail-only? [detail-only? #false]]
+    (log-message logger (msg:log-level info) (msg:log-topic info) (msg:log-brief info)
                  (if detail-only? (msg:log-details info) info))))
 
 (define exn->prefab-message : (-> exn [#:level Log-Level] Prefab-Message)
