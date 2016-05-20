@@ -72,16 +72,19 @@
                             (exn:schema:record-maniplation e)
                             (exn:schema:record-uuid e))])))
 
-(define schema-file/rename-old-file : (-> Path-String Bytes (Listof Bytes) Path-String)
-  (lambda [path-hint .rstn old-exts]
-    (define path.rstn : Path-String (path-replace-extension (simple-form-path path-hint) .rstn))
-    (with-handlers ([exn:fail:filesystem? void])
-      (for ([.ext : Bytes (in-list old-exts)])
-        (define path.ext : Path-String (path-replace-extension path-hint .ext))
-        (when (file-exists? path.ext)
-          (rename-file-or-directory path.ext path.rstn (and 'exists-ok? #false)))))
-    path.rstn))
+(define schema-name->struct:schema : (-> Symbol Struct-TypeTop)
+  (let ([unknown-schema-tables : (HashTable Symbol Struct-TypeTop) (make-hasheq)])
+    (lambda [record-name]
+      (hash-ref schema-tables record-name
+                (thunk (hash-ref! unknown-schema-tables record-name
+                                  (thunk (let-values ([(struct:unknown make-unknown unknown? unknown-ref unknown-set!)
+                                                       (make-struct-type record-name struct:schema-record 0 0
+                                                                         'manually-serialization null 'prefab
+                                                                         #false null (and 'prefab-has-not-guard #false)
+                                                                         #false)])
+                                           struct:unknown))))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define schema-digest : (-> Schema-Record String)
   (let* ([evp-hashes : (Vectorof EVP_MD*) (vector sha224 sha256 sha384 sha512)]
          [hash-count : Index (vector-length evp-hashes)])
@@ -101,6 +104,16 @@
                  (bytes-append (size->bytes (add1 size)) (bytes #xFF) buffer)]
                 [else (bytes-append (size->bytes size) buffer)])))
       (bytes->hex-string (HMAC evp-hash salt-for-fun message)))))
+
+(define schema-file/rename-old-file : (-> Path-String Bytes (Listof Bytes) Path-String)
+  (lambda [path-hint .rstn old-exts]
+    (define path.rstn : Path-String (path-replace-extension (simple-form-path path-hint) .rstn))
+    (with-handlers ([exn:fail:filesystem? void])
+      (for ([.ext : Bytes (in-list old-exts)])
+        (define path.ext : Path-String (path-replace-extension path-hint .ext))
+        (when (file-exists? path.ext)
+          (rename-file-or-directory path.ext path.rstn (and 'exists-ok? #false)))))
+    path.rstn))
 
 (define schema-write-to-file/unsafe : (-> Schema-Record Path-String Bytes (Listof Bytes) Void)
   (lambda [occurrence path-hint .rstn old-exts]
@@ -125,18 +138,7 @@
        (thunk (read (open-input-file (schema-file/rename-old-file path-hint .rstn old-exts))))
        (thunk (custodian-shutdown-all (current-custodian)))))))
 
-(define schema-name->struct:schema : (-> Symbol Struct-TypeTop)
-  (let ([unknown-schema-tables : (HashTable Symbol Struct-TypeTop) (make-hasheq)])
-    (lambda [record-name]
-      (hash-ref schema-tables record-name
-                (thunk (hash-ref! unknown-schema-tables record-name
-                                  (thunk (let-values ([(struct:unknown make-unknown unknown? unknown-ref unknown-set!)
-                                                       (make-struct-type record-name struct:schema-record 0 0
-                                                                         'manually-serialization null 'prefab
-                                                                         #false null (and 'prefab-has-not-guard #false)
-                                                                         #false)])
-                                           struct:unknown))))))))
-  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-table stx)
   (syntax-parse stx #:datum-literals [as :]
     [(_ table as Table ([field : DataType info ...] ...) (~optional (~seq #:check constraint:expr) #:defaults ([constraint #'true])))
@@ -200,13 +202,14 @@
                   (define now : Fixnum (current-macroseconds))
                   (unsafe-table (or uuid (uuid:timestamp)) now now #false #false field ...))
                 
-                (define (update-table [occurrence : Table] #:update-uuid? [update-uuid? : Boolean #false] args! ...) : Table
+                (define (update-table [occurrence : Table] #:pretend-creation? [create? : Boolean #false] args! ...) : Table
                   ; Maybe: (void) will never be an valid value that will be inserted into database.
                   (let ([field (if (void? field) (table-field occurrence) field)] ...)
                     (check-fields 'update-table field ...)
-                    (unsafe-table (if update-uuid? (uuid:timestamp) (schema-record-uuid occurrence))
-                                  (schema-record-ctime occurrence) (current-macroseconds)
-                                  #false #false field ...)))
+                    (define now : Fixnum (current-macroseconds))
+                    (unsafe-table (if create? (uuid:timestamp) (schema-record-uuid occurrence))
+                                  (if create? now (schema-record-ctime occurrence))
+                                  now #false #false field ...)))
                 
                 (define (delete-table [occurrence : Table]) : Table
                   (unsafe-table (schema-record-uuid occurrence) (schema-record-ctime occurrence) (current-macroseconds)
