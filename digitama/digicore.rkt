@@ -247,10 +247,10 @@
                     (dtrace-send topic level (if (null? messages) msgfmt (apply format msgfmt messages)) urgent)))])
     (values (dtrace 'debug) (dtrace 'info) (dtrace 'warning) (dtrace 'error) (dtrace 'fatal))))
 
-(define dtrace-message : (-> Prefab-Message [#:logger Logger] [#:detail-only? Boolean] Void)
-  (lambda [info #:logger [logger (current-logger)] #:detail-only? [detail-only? #false]]
-    (log-message logger (msg:log-level info) (msg:log-topic info) (msg:log-brief info)
-                 (if detail-only? (msg:log-details info) info))))
+(define dtrace-message : (-> Prefab-Message [#:logger Logger] [#:alter-topic (Option Symbol)] [#:detail-only? Boolean] Void)
+  (lambda [info #:logger [logger (current-logger)] #:alter-topic [topic #false] #:detail-only? [detail-only? #false]]
+    (log-message logger (msg:log-level info) (or topic (msg:log-topic info))
+                 (msg:log-brief info) (if detail-only? (msg:log-details info) info))))
 
 (define exn->prefab-message : (-> exn [#:level Log-Level] Prefab-Message)
   (lambda [e #:level [level 'error]]
@@ -361,6 +361,7 @@
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module digitama typed/racket
   (provide (all-defined-out))
 
