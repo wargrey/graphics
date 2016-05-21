@@ -262,7 +262,8 @@
 (define the-synced-place-channel : (Parameterof (Option Place-Channel)) (make-parameter #false))
 (define place-channel-evt : (-> Place-Channel [#:hint (Parameterof (Option Place-Channel))] (Evtof Any))
   (lambda [source-evt #:hint [hint the-synced-place-channel]]
-    (wrap-evt (guard-evt (thunk (hint #false) source-evt))
+    (hint #false)
+    (wrap-evt source-evt ; do not work with guard evt since the maker may not be invoked
               (λ [datum] (hint source-evt) (if (bytes? datum) (fasl->s-exp datum) datum)))))
 
 (define place-channel-send : (-> Place-Channel Any Void)
