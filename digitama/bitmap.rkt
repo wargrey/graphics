@@ -71,22 +71,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define make-font+ : (->* () ((Instance Font%)
-                              #:size (Option Real) #:face (Option String) #:family (Option Font-Family)
+                              #:size Real #:face (Option String) #:family (Option Font-Family)
                               #:style (Option Font-Style) #:weight (Option Font-Weight) #:hinting (Option Font-Hinting)
                               #:underlined? (U 'default Boolean) #:size-in-pixels? (U 'default Boolean)) (Instance Font%))
   (let ([default-font : (Instance Font%) (make-font)])
-    (lambda [[basefont default-font] #:size [size #false] #:face [face #false] #:family [family #false]
+    (lambda [[basefont default-font] #:size [size -1.0] #:face [face #false] #:family [family #false]
              #:style [style #false] #:weight [weight #false] #:hinting [hinting #false]
              #:underlined? [underlined 'default] #:size-in-pixels? [size-in-pixels? 'default]]
       (define maybe-face : (Option String) (or face (send basefont get-face)))
       (define underlined? : Boolean (if (boolean? underlined) underlined (send basefont get-underlined)))
       (define pixels? : Boolean (if (boolean? size-in-pixels?) size-in-pixels? (send basefont get-size-in-pixels)))
+      (define fontsize : Real (let ([default-size (send basefont get-size)])
+                                (cond [(positive? size) size]
+                                      [(zero? size) default-size]
+                                      [else (* -1 size default-size)])))
       (if (string? maybe-face)
-          (send the-font-list find-or-create-font (or size (send basefont get-size)) maybe-face
+          (send the-font-list find-or-create-font fontsize maybe-face
                 (or family (send basefont get-family)) (or style (send basefont get-style))
                 (or weight (send basefont get-weight)) underlined? 'smoothed pixels?
                 (or hinting (send basefont get-hinting)))
-          (send the-font-list find-or-create-font (or size (send basefont get-size))
+          (send the-font-list find-or-create-font fontsize
                 (or family (send basefont get-family)) (or style (send basefont get-style))
                 (or weight (send basefont get-weight)) underlined? 'smoothed pixels?
                 (or hinting (send basefont get-hinting)))))))
