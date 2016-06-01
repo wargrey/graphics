@@ -14,34 +14,32 @@
 
 (define-type Schema-Record schema-record)
 
-(struct schema-record ([uuid : String] [ctime : Fixnum] [mtime : Fixnum] [deleted? : Boolean] [mac : (Option String)])
+(struct schema-record ([uuid : (UUID String)] [ctime : Fixnum] [mtime : Fixnum] [deleted? : Boolean] [mac : (Option String)])
   #:prefab ;#:type-name Schema ; this break the type checking if it is inherited 
   #:constructor-name abstract-schema-record)
 
-(struct exn:schema exn:fail ())
+(struct exn:schema exn:fail ([table : Struct-TypeTop] [maniplation : Symbol] [uuid : (UUID String)]))
 (struct exn:schema:read exn:schema ([reason : (U EOF Schema-Record exn False)]))
+(struct exn:schema:mac exn:schema ())
 
-(struct exn:schema:record exn:schema ([table : Struct-TypeTop] [maniplation : Symbol] [uuid : String]))
-(struct exn:schema:record:mac exn:schema:record ())
-
-(struct exn:schema:constraint exn:schema ([table : Struct-TypeTop] [constraint : (Listof Any)] [given : (HashTable Symbol Any)]))
+(struct exn:schema:constraint exn:schema ([constraint : (Listof Any)] [given : (HashTable Symbol Any)]))
 (struct exn:schema:constraint:unique exn:schema:constraint ([key-type : (U 'Natural 'Surrogate)]))
 
-(define raise-schema-constraint-error : (-> Symbol Struct-TypeTop (Listof Any) (Listof (Pairof Symbol Any)) Nothing)
-  (lambda [source table constraints given]
-    (throw [exn:schema:constraint table (reverse constraints) (make-hash given)]
-           "~a: constraint violation~n  table: ~a~n  constraint: @~a~n  given: ~a" source table
+(define raise-schema-constraint-error : (-> Struct-TypeTop Symbol (UUID String) (Listof Any) (Listof (Pairof Symbol Any)) Nothing)
+  (lambda [table maniplation uuid constraints given]
+    (throw [exn:schema:constraint table maniplation uuid (reverse constraints) (make-hash given)]
+           "~a: constraint violation~n  table: ~a~n  constraint: @~a~n  given: ~a" maniplation table
            (string-join ((inst map String Any) ~s (reverse constraints))
                         (format "~n~a@" (make-string 14 #\space)))
            (string-join ((inst map String (Pairof Symbol Any)) (λ [kv] (format "(~a . ~s)" (car kv) (cdr kv))) (reverse given))
                         (format "~n~a " (make-string 8 #\space))))))
 
-(define raise-schema-unique-constraint-error : (-> Symbol Struct-TypeTop (Listof (Pairof Symbol Any)) [#:type (U 'Natural 'Surrogate)] Nothing)
-  (lambda [source table given #:type [key-type 'Natural]]
+(define raise-schema-unique-constraint-error : (-> Struct-TypeTop Symbol (UUID String) (Listof (Pairof Symbol Any)) [#:type (U 'Natural 'Surrogate)] Nothing)
+  (lambda [table maniplation uuid given #:type [key-type 'Natural]]
     (define entry : (HashTable Symbol Any) (make-hash given))
-    (throw [exn:schema:constraint:unique table `(UNIQUE ,(hash-keys entry)) entry key-type]
+    (throw [exn:schema:constraint:unique table maniplation uuid `(UNIQUE ,(hash-keys entry)) entry key-type]
            "~a: constraint violation~n  table: ~a~n  constraint: @Unique{~a}~n  given: {~a}"
-           source (object-name table)
+           maniplation (object-name table)
            (string-join (map symbol->string (hash-keys entry)) ", ")
            (string-join (hash-map entry (λ [k v] (format "~a: ~s" k v)))
                         (format "~n~a " (make-string 9 #\space))))))
@@ -61,16 +59,23 @@
     (msg:schema level (if (null? argl) message (apply format message argl)) urgent log-topic
                 table-name maniplation uuid)))
 
-(define exn:schema->schema-message : (-> exn:schema [#:level (Option Log-Level)] Prefab-Message)
-  (lambda [e #:level [level #false]]
-    (cond [(not (exn:schema:record? e)) (exn->prefab-message e #:level (or level 'error))]
-          [else (msg:schema (or level (match e [(exn:schema:constraint:unique _ _ _ _ _ 'Natural) 'warning] [_ 'error]))
-                            (exn-message e)
-                            (continuation-mark->stack-hints (exn-continuation-marks e))
-                            (object-name/symbol e)
-                            (object-name/symbol (exn:schema:record-table e))
-                            (exn:schema:record-maniplation e)
-                            (exn:schema:record-uuid e))])))
+(define exn->schema-message : (-> exn [#:level (Option Log-Level)] [#:exn-table Struct-TypeTop] [#:exn-maniplation Symbol] [#:exn-uuid String] Schema-Message)
+  (lambda [e #:level [level #false] #:exn-table [missed-table struct:schema-record] #:exn-maniplation [missed-maniplation 'unknown] #:exn-uuid [missed-uuid ""]]
+    (if (exn:schema? e)
+        (msg:schema (or level (match e [(exn:schema:constraint:unique _ _ _ _ _ _ _ 'Natural) 'warning] [_ 'error]))
+                    (exn-message e)
+                    (continuation-mark->stack-hints (exn-continuation-marks e))
+                    (object-name/symbol e)
+                    (object-name/symbol (exn:schema-table e))
+                    (exn:schema-maniplation e)
+                    (exn:schema-uuid e))
+        (msg:schema (or level 'error)
+                    (exn-message e)
+                    (continuation-mark->stack-hints (exn-continuation-marks e))
+                    (object-name/symbol e)
+                    (object-name/symbol missed-table)
+                    missed-maniplation
+                    missed-uuid))))
 
 (define schema-name->struct:schema : (-> Symbol Struct-TypeTop)
   (let ([unknown-schema-tables : (HashTable Symbol Struct-TypeTop) (make-hasheq)])
@@ -181,7 +186,7 @@
                 
                 (define-syntax (check-fields stx)
                   (syntax-case stx []
-                    [(_ id field ...)
+                    [(_ src uuid field ...)
                      #'(let ([failures (list (false? field-constraint) ...)]
                              [table-failure (false? constraint)])
                          (when (or (memq #true failures) table-failure)
@@ -195,17 +200,17 @@
                                (cond [failure (values (cons (cons target given) fields) (cons check checks))]
                                      [(and table-failure (memq target maybe-fields)) (values (cons (cons target given) fields) checks)]
                                      [else (values fields checks)])))
-                           (raise-schema-constraint-error id struct:table (if table-failure (cons 'constraint checks) checks) givens)))]))
+                           (raise-schema-constraint-error struct:table src uuid (if table-failure (cons 'constraint checks) checks) givens)))]))
                 
-                (define (create-table #:unsafe? [unsafe? : Boolean #false] #:UUID [uuid : (Option (UUID String)) #false] args ...) : Table
-                  (when (not unsafe?) (check-fields 'create-table field ...))
+                (define (create-table #:unsafe? [unsafe? : Boolean #false] #:UUID [uuid : (UUID String) ""] args ...) : Table
+                  (when (not unsafe?) (check-fields 'create "" field ...))
                   (define now : Fixnum (current-macroseconds))
-                  (unsafe-table (or uuid (uuid:timestamp)) now now #false #false field ...))
+                  (unsafe-table (if (string-null? uuid) (uuid:timestamp) uuid) now now #false #false field ...))
                 
                 (define (update-table [occurrence : Table] #:pretend-creation? [create? : Boolean #false] args! ...) : Table
                   ; Maybe: (void) will never be an valid value that will be inserted into database.
                   (let ([field (if (void? field) (table-field occurrence) field)] ...)
-                    (check-fields 'update-table field ...)
+                    (check-fields 'update (schema-record-uuid occurrence) field ...)
                     (define now : Fixnum (current-macroseconds))
                     (unsafe-table (if create? (uuid:timestamp) (schema-record-uuid occurrence))
                                   (if create? now (schema-record-ctime occurrence))
@@ -218,12 +223,12 @@
                 (define (digest-table [occurrence : Table] #:verify? [verify? : Boolean #false]) : Table
                   (define oldsum : (Option String) (schema-record-mac occurrence))
                   (when (and verify? (false? oldsum))
-                    (throw [exn:schema:record:mac struct:table 'verify (schema-record-uuid occurrence)] "occurrence has not digested"))
+                    (throw [exn:schema:mac struct:table 'verify (schema-record-uuid occurrence)] "occurrence has not digested"))
                   (define shadow : Table (struct-copy table occurrence [mac #:parent schema-record #false]))
                   (define digest : String (schema-digest shadow))
                   (cond [(and (string? oldsum) (string=? oldsum digest)) occurrence]
                         [(not verify?) (struct-copy table occurrence [mac #:parent schema-record digest])]
-                        [else (throw [exn:schema:record:mac struct:table 'verify (schema-record-uuid occurrence)] "digest mismatch")]))
+                        [else (throw [exn:schema:mac struct:table 'verify (schema-record-uuid occurrence)] "digest mismatch")]))
                 
                 (define (write-table [occurrence : Table] [out : (U Output-Port Path-String) (current-output-port)]
                                      #:suffix [.rstn : Bytes #".rstn"] #:old-suffixes [old-exts : (Listof Bytes) (list #".rkt")]) : Void
@@ -237,10 +242,10 @@
                   (match/handlers (cond [(not (input-port? in)) (schema-read-from-file/unsafe in .rstn old-exts)]
                                         [(read (make-peek-port in peeked)) => (λ [v] (when (table? v) (read-bytes (unbox peeked) in)) v)])
                     [(? table? occurrence) (digest-table occurrence #:verify? #true)]
-                    [(? schema-record? record) (throw [exn:schema:read record] "~a: unexpected record type: ~a" 'read-table (object-name record))]
-                    [(? eof-object?) (throw [exn:schema:read eof] "~a: unexpected end of stream" 'read-table)]
-                    [(? exn? e) (throw [exn:schema:read e] "~a: ~a" 'read-table (exn-message e))]
-                    [_ (throw [exn:schema:read #false] "~a: not a stream of schema occurrence" 'read-table)]))))]))
+                    [(? schema-record? record) (throw [exn:schema:read struct:table 'read "" record] "read-~a: unexpected record type: ~a" 'table (object-name record))]
+                    [(? eof-object?) (throw [exn:schema:read struct:table 'read "" eof] "read-~a: unexpected end of stream" 'table)]
+                    [(? exn? e) (throw [exn:schema:read struct:table 'read "" e] "read-~a: ~a" 'table (exn-message e))]
+                    [_ (throw [exn:schema:read struct:table 'read "" #false] "read-~a: not a stream of schema occurrence" 'table)]))))]))
 
 
 
