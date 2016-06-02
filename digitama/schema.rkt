@@ -28,7 +28,7 @@
 (define raise-schema-constraint-error : (-> Struct-TypeTop Symbol (UUID String) (Listof Any) (Listof (Pairof Symbol Any)) Nothing)
   (lambda [table maniplation uuid constraints given]
     (throw [exn:schema:constraint table maniplation uuid (reverse constraints) (make-hash given)]
-           "~a: constraint violation~n  table: ~a~n  constraint: @~a~n  given: ~a" maniplation table
+           "~a: constraint violation~n  table: ~a~n  constraint: @~a~n  given: ~a~n" maniplation table
            (string-join ((inst map String Any) ~s (reverse constraints))
                         (format "~n~a@" (make-string 14 #\space)))
            (string-join ((inst map String (Pairof Symbol Any)) (λ [kv] (format "(~a . ~s)" (car kv) (cdr kv))) (reverse given))
@@ -38,7 +38,7 @@
   (lambda [table maniplation uuid given #:type [key-type 'Natural]]
     (define entry : (HashTable Symbol Any) (make-hash given))
     (throw [exn:schema:constraint:unique table maniplation uuid `(UNIQUE ,(hash-keys entry)) entry key-type]
-           "~a: constraint violation~n  table: ~a~n  constraint: @Unique{~a}~n  given: {~a}"
+           "~a: constraint violation~n  table: ~a~n  constraint: @Unique{~a}~n  given: {~a}~n"
            maniplation (object-name table)
            (string-join (map symbol->string (hash-keys entry)) ", ")
            (string-join (hash-map entry (λ [k v] (format "~a: ~s" k v)))
