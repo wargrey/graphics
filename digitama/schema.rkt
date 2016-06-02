@@ -17,23 +17,21 @@
   #:prefab #:type-name Schema-Message)
 
 (define make-schema-message : (->* (Schema-Maniplation Struct-TypeTop String Any)
-                                   (#:log-level Log-Level #:log-topic Any String)
+                                   (#:level (Option Log-Level) #:flatten-exn? Boolean String)
                                    #:rest Any Schema-Message)
-  (lambda [maniplation table uuid urgent #:log-level [level 'info] #:log-topic [topic #false] [message ""] . argl]
-    (define table-name : Symbol (object-name/symbol table))
-    (define log-topic : Symbol
-      (cond [(symbol? topic) topic]
-            [else (let ([name (object-name topic)])
-                    (if (symbol? name) name table-name))]))
-    (msg:schema level (if (null? argl) message (apply format message argl)) urgent log-topic
-                maniplation table-name uuid)))
+  (lambda [maniplation struct:table uuid urgent #:level [level #false] #:flatten-exn? [flatten? #true] [message ""] . argl]
+    (cond [(exn:schema? urgent) (exn:schema->schema-message urgent #:level level)]
+          [(exn? urgent) (exn:schema->schema-message (exn->exn:schema urgent maniplation struct:table uuid) #:level level)]
+          [else (let ([table : Symbol (object-name/symbol struct:table)]
+                      [message : String (if (null? argl) message (apply format message argl))])
+                  (msg:schema (or level 'info) message urgent table maniplation table uuid))])))
 
 (define-type Schema-Record schema-record)
 (struct schema-record ([uuid : (UUID String)] [ctime : Fixnum] [mtime : Fixnum] [deleted? : Boolean] [mac : (Option String)])
   #:prefab ;#:type-name Schema ; this break the type checking if it is inherited 
   #:constructor-name abstract-schema-record)
 
-(struct exn:schema exn:fail ([table : Struct-TypeTop] [uuid : (UUID String)]))
+(struct exn:schema exn:fail ([struct:table : Struct-TypeTop] [uuid : (UUID String)]))
 (struct exn:schema:read exn:schema ([reason : (U EOF Schema-Record exn False)]))
 (struct exn:schema:write exn:schema ([reason : exn]))
 (struct exn:schema:index exn:schema ())
@@ -46,20 +44,20 @@
 (struct exn:schema:constraint:unique exn:schema:constraint ([key-type : (U 'Natural 'Surrogate)]))
 
 (define raise-schema-constraint-error : (-> Symbol Struct-TypeTop (UUID String) (Listof Any) (Listof (Pairof Symbol Any)) Nothing)
-  (lambda [source table uuid constraints given]
-    (throw [exn:schema:constraint table uuid (reverse constraints) (make-hash given)]
-           "~a: constraint violation~n  table: ~a~n  constraint: @~a~n  given: ~a~n" source table
+  (lambda [source struct:table uuid constraints given]
+    (throw [exn:schema:constraint struct:table uuid (reverse constraints) (make-hash given)]
+           "~a: constraint violation~n  table: ~a~n  constraint: @~a~n  given: ~a~n" source struct:table
            (string-join ((inst map String Any) ~s (reverse constraints))
                         (format "~n~a@" (make-string 14 #\space)))
            (string-join ((inst map String (Pairof Symbol Any)) (λ [kv] (format "(~a . ~s)" (car kv) (cdr kv))) (reverse given))
                         (format "~n~a " (make-string 8 #\space))))))
 
 (define raise-schema-unique-constraint-error : (-> Symbol Struct-TypeTop (UUID String) (Listof (Pairof Symbol Any)) [#:type (U 'Natural 'Surrogate)] Nothing)
-  (lambda [source table uuid given #:type [key-type 'Natural]]
+  (lambda [source struct:table uuid given #:type [key-type 'Natural]]
     (define entry : (HashTable Symbol Any) (make-hash given))
-    (throw [exn:schema:constraint:unique table uuid `(UNIQUE ,(hash-keys entry)) entry key-type]
+    (throw [exn:schema:constraint:unique struct:table uuid `(UNIQUE ,(hash-keys entry)) entry key-type]
            "~a: constraint violation~n  table: ~a~n  constraint: @Unique{~a}~n  given: {~a}~n"
-           source (object-name table)
+           source (object-name struct:table)
            (string-join (map symbol->string (hash-keys entry)) ", ")
            (string-join (hash-map entry (λ [k v] (format "~a: ~s" k v)))
                         (format "~n~a " (make-string 9 #\space))))))
@@ -92,7 +90,7 @@
                       [(exn:schema:verify? e) 'verify]
                       [(exn:schema:index? e) 'index]
                       [else 'unknown])
-                (object-name/symbol (exn:schema-table e))
+                (object-name/symbol (exn:schema-struct:table e))
                 (exn:schema-uuid e))))
 
 (define schema-name->struct:schema : (-> Symbol Struct-TypeTop)
