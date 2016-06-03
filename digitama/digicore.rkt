@@ -272,7 +272,7 @@
     (match datum
       [(? place-message-allowed?) (place-channel-put dest datum)]
       [(? exn?) (place-channel-put dest (exn->prefab-message datum))]
-      [(box (? place-message-allowed? datum)) (place-channel-put dest (place-message-box datum))]
+      [(box (and (not (? bytes? v)) (? place-message-allowed? v))) (place-channel-put dest (place-message-box v))]
       [_ (place-channel-put dest (place-message-box (with-output-to-bytes (thunk (write datum)))))])))
 
 (define place-channel-recv : (-> Place-Channel [#:timeout Nonnegative-Real] [#:hint (Parameterof (Option Place-Channel))] Any)
