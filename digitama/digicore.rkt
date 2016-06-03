@@ -5,9 +5,6 @@
 (provide (all-defined-out) Term-Color vim-colors Racket-Place-Status Racket-Thread-Status)
 (provide (all-from-out "sugar.rkt" "format.rkt" "ugly.rkt" "uuid.rkt"))
 (provide (all-from-out (submod "openssl.rkt" typed/ffi)))
-(provide (all-from-out typed/racket/fasl))
-
-(require typed/racket/fasl)
 
 (require (for-syntax racket/syntax))
 
@@ -252,11 +249,11 @@
     (log-message logger (msg:log-level info) (or topic (msg:log-topic info))
                  (msg:log-brief info) (if detail-only? (msg:log-details info) info))))
 
-(define exn->prefab-message : (-> exn [#:level Log-Level] Prefab-Message)
-  (lambda [e #:level [level 'error]]
+(define exn->prefab-message : (-> exn [#:level Log-Level] [#:exn->detail (-> exn Any)] Prefab-Message)
+  (lambda [e #:level [level 'error] #:exn->detail [exn->detail (λ [[e : exn]] (continuation-mark->stack-hints (exn-continuation-marks e)))]]
     (make-prefab-message level
                          (exn-message e)
-                         (continuation-mark->stack-hints (exn-continuation-marks e))
+                         (exn->detail e)
                          (object-name/symbol e))))
 
 (define the-synced-place-channel : (Parameterof (Option Place-Channel)) (make-parameter #false))
@@ -264,17 +261,23 @@
   (lambda [source-evt #:hint [hint the-synced-place-channel]]
     (hint #false)
     (wrap-evt source-evt ; do not work with guard evt since the maker may not be invoked
-              (λ [datum] (hint source-evt) (if (bytes? datum) (fasl->s-exp datum) datum)))))
+              (λ [datum] (hint source-evt)
+                (cond [(not (place-message-box? datum)) datum]
+                      [else (let ([stream (place-message-box-stream datum)])
+                              (match/handlers (if (bytes? stream) (with-input-from-bytes stream read) (box stream))
+                                [(? exn:fail:read? e) (exn->prefab-message e #:level 'fatal #:exn->detail (λ _ stream))]))])))))
 
 (define place-channel-send : (-> Place-Channel Any Void)
   (lambda [dest datum]
-    (cond [(exn? datum) (place-channel-put dest (exn->prefab-message datum))]
-          [(place-message-allowed? datum) (place-channel-put dest datum)]
-          [else (place-channel-put dest (match/handlers (s-exp->fasl datum)
-                                          [(? exn? e) (place-channel-send dest e)]))])))
+    (match datum
+      [(? place-message-allowed?) (place-channel-put dest datum)]
+      [(? exn?) (place-channel-put dest (exn->prefab-message datum))]
+      [(box (? place-message-allowed? datum)) (place-channel-put dest (place-message-box datum))]
+      [_ (place-channel-put dest (place-message-box (with-output-to-bytes (thunk (write datum)))))])))
 
 (define place-channel-recv : (-> Place-Channel [#:timeout Nonnegative-Real] [#:hint (Parameterof (Option Place-Channel))] Any)
   (lambda [channel #:timeout [s +inf.0] #:hint [hint the-synced-place-channel]]
+    ; Note: the `hint` can also be used to determine whether it is timeout or receiving #false
     (sync/timeout/enable-break s (place-channel-evt channel #:hint hint))))
 
 (define place-channel-send/recv : (-> Place-Channel Any [#:timeout Nonnegative-Real] [#:hint (Parameterof (Option Place-Channel))] Any)
@@ -377,6 +380,7 @@
   
   (require/typed/provide racket [vector-set-performance-stats! Vector-Set-Performance-Stats!])
 
+  (struct place-message-box ([stream : Any]) #:prefab)
   (define infobase : (HashTable String Info-Ref) (make-hash))
   
   (define immutable-guard : (-> Symbol (Path-String -> Nothing))
