@@ -1,6 +1,6 @@
-/* shrink the font-size of chunks
-   a. means <a/>
-   span. means plaintext or broken <a/>
+/* shrink the font-size of chunks:
+     a. means <a/>
+     span. means plaintext or broken <a/>
 */
 a.RktValDef, a.RktValLink, a.RktStxDef, a.RktStxLink, a.RktSymDef,
 span.RktValDef, span.RktValLink, span.RktStxDef, span.RktStxLink,
