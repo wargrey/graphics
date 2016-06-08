@@ -117,13 +117,14 @@
              (css-consume-unicode-range-token srcloc)]
             [else (let ([name : String (css-consume-name css (if (eof-object? ch1) (list id0) (list ch1 id0)))])
                     (define ch : (U EOF Char) (peek-char css))
-                    (cond [(and (char? ch) (char=? ch #\()) (read-char css)
-                           (cond [(string-ci=? name "url") (css-consume-url-token srcloc)]
-                                 [else (make-token srcloc css:function (string->symbol name))])]
-                          [else (make-token srcloc css:ident (string->symbol name))]))])))
+                    (cond [(or (eof-object? ch) (not (char=? ch #\()))
+                           (make-token srcloc css:ident (string->symbol name))]
+                          [(or (not (string-ci=? name "url")) (regexp-match-peek #px"^.\\s*[\"']" css))
+                           (read-char css) (make-token srcloc css:function (string->symbol name))]
+                          [else (read-char css) (css-consume-url-token srcloc)]))])))
       
   (define css-consume-string-token : (-> CSS-Source Char (Listof Char) (U css:string css:bad))
-    ;;; https://drafts.csswg.org/css-syntax/#consume-a-string-token0
+    ;;; https://drafts.csswg.org/css-syntax/#consume-a-string-token
     (lambda [srcloc quotation prefix]
       (define css : Input-Port (css-srcloc-in srcloc))
       (let consume-string-token : (U css:string css:bad) ([chars prefix])
