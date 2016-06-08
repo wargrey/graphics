@@ -303,16 +303,7 @@
 
 (define call-as-normal-termination : (-> (-> Any) [#:atinit (-> Any)] [#:atexit (-> Any)] Void)
   (lambda [#:atinit [atinit/0 void] main/0 #:atexit [atexit/0 void]]
-    (define status : Any
-      (let/ec $?
-        (parameterize ([exit-handler (cast $? (-> Any Any))])
-          (exit (with-handlers ([exn? (lambda [[e : exn]] (and (eprintf "~a~n" (exn-message e)) 'FATAL))]
-                                [void (lambda [e] (and (eprintf "(uncaught-exception-handler) => ~a~n" e) 'FATAL))])
-                  (dynamic-wind (thunk (with-handlers ([exn? (lambda [[e : exn]] (atexit/0) (raise e))])
-                                         (atinit/0)))
-                                (thunk (main/0))
-                                (thunk (atexit/0))))))))
-    
+    (define exit-racket : (-> Any AnyValues) (exit-handler))
     (define service-exit : (-> Any (Option Byte))
       (match-lambda
         ['FATAL 95]
@@ -320,10 +311,20 @@
         ['ENOSERVICE 99]
         ['EPERM 100]
         [_ #false]))
-      
-    (cond [(exact-nonnegative-integer? status) (exit (min status 255))]
-          [(service-exit status) => exit]
-          [else (exit 0)])))
+
+    (define (terminate [status : Any]) : Any
+      (parameterize ([exit-handler exit-racket])
+        (cond [(exact-nonnegative-integer? status) (exit (min status 255))]
+              [(service-exit status) => exit]
+              [else (exit 0)])))
+    
+    (parameterize ([exit-handler terminate])
+      (exit (with-handlers ([exn? (lambda [[e : exn]] (and (eprintf "~a~n" (exn-message e)) 'FATAL))]
+                            [void (lambda [e] (and (eprintf "(uncaught-exception-handler) => ~a~n" e) 'FATAL))])
+              (dynamic-wind (thunk (with-handlers ([exn? (lambda [[e : exn]] (atexit/0) (raise e))])
+                                     (atinit/0)))
+                            (thunk (main/0))
+                            (thunk (atexit/0))))))))
 
 (define vector-set-place-statistics! : (-> Racket-Place-Status Void)
   (lambda [stat]
