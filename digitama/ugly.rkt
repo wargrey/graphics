@@ -48,3 +48,8 @@
        #'(begin (define % : Type% class-definition)
                 (define %? (cond [(class? %) ((inst make-is-a? Type%) %)]
                                  [else (raise-result-error 'define/make-is-a? "class?" %)]))))]))
+
+(define-syntax (define/cheat-opaque? stx)
+  (syntax-case stx [: -> Any Boolean]
+    [(_ id : (-> Any Boolean : #:+ FT) def-expr)
+     #'(define id ((inst make-cheat-opaque? FT) def-expr))]))
