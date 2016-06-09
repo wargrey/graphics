@@ -48,15 +48,15 @@
   
   (struct: css:ident : CSS:Ident css-token ([datum : Symbol]))
   (struct: css:function : CSS:Function css-token ([datum : Symbol]))
-  (struct: css:keyword : CSS:Keyword css-token ([datum : Keyword]))
-  (struct: css:hash : CSS:Hash css-token ([datum : Symbol] [type : (U 'id 'unrestricted)]))
+  (struct: css:@keyword : CSS:@Keyword css-token ([datum : Keyword]))
+  (struct: css:hash : CSS:Hash css-token ([datum : Keyword] [type : (U 'id 'unrestricted)]))
   (struct: css:delim : CSS:Delim css-token ([datum : Char]))
   (struct: css:numeric : CSS:Numeric css-token ([representation : String] [datum : Real]))
   (struct: css:dimension : CSS:Dimension css:numeric ([unit : Symbol]))
   (struct: css:string : CSS:String css-token ([datum : String]))
   (struct: css:url : CSS:URL css-token ([datum : String]))
   (struct: css:match : CSS:Match css-token ([datum : Char]))
-  (struct: css:u+range : CSS:U+Range css-token ([start : Integer] [end : Integer]))
+  (struct: css:urange : CSS:URange css-token ([start : Integer] [end : Integer]))
 
   (define-syntax (make-token stx)
     (syntax-case stx []
@@ -111,9 +111,9 @@
                     [(#\null) (make-token srcloc css:delim #\uFFFD)]
                     [else (make-token srcloc css:delim codepoint)])])))
   
-  (define css-consume-ident-token : (-> CSS-Srcloc Char (U CSS:Ident CSS:Function CSS:URL CSS:U+Range CSS:Bad))
-    ;;; https://drafts.csswg.org/css-syntax/#consume-a-unicode-range-token0
-    ;;; https://drafts.csswg.org/css-syntax/#consume-an-ident-like-token0
+  (define css-consume-ident-token : (-> CSS-Srcloc Char (U CSS:Ident CSS:Function CSS:URL CSS:URange CSS:Bad))
+    ;;; https://drafts.csswg.org/css-syntax/#consume-an-ident-like-token
+    ;;; https://drafts.csswg.org/css-syntax/#urange-syntax
     (lambda [srcloc id0]
       (define css : Input-Port (css-srcloc-in srcloc))
       (define ch1 : (U EOF Char) (read-char css))
@@ -194,26 +194,28 @@
                    (css-consume-bad-url-remnants css (make-token srcloc css:bad 'url (format "invalid char: ~s" next)))]
                   [else (consume-url-token (cons next chars))])))))
 
-  (define css-consume-unicode-range-token : (-> CSS-Srcloc CSS:U+Range)
+  (define css-consume-unicode-range-token : (-> CSS-Srcloc (U CSS:URange CSS:Bad))
+    ;;; https://drafts.csswg.org/css-syntax/#urange-syntax
     (lambda [srcloc]
       (define css : Input-Port (css-srcloc-in srcloc))
       (define-values (n rest) (css-consume-hexadecimal (css-srcloc-in srcloc) 6))
-      (define-values (start end)
-        (let consume-? : (Values Integer Integer) ([s : Integer n]
-                                                   [e : Integer n]
-                                                   [? : Integer rest])
+      (define-values (start0 end0)
+        (let consume-? : (Values Integer Integer) ([s : Integer n] [e : Integer n] [? : Integer rest])
           (cond [(zero? ?) (values s e)]
                 [else (let ([ch : (U EOF Char) (peek-char css)])
                         (cond [(or (eof-object? ch) (not (char=? ch #\?))) (values s e)]
                               [else (read-char css) (consume-? (* s 16) (+ (* e 16) (char->hexadecimal #\f)) (sub1 ?))]))])))
-      (cond [(not (= start end)) (make-token srcloc css:u+range start end)]
-            [else (let ([ch1 (peek-char css 0)]
-                        [ch2 (peek-char css 1)])
-                    (cond [(and (char? ch1) (char=? ch1 #\-) (char-hexdigit? ch2))
-                           (read-char css)
-                           (define-values (end _) (css-consume-hexadecimal (css-srcloc-in srcloc) 6))
-                           (make-token srcloc css:u+range start end)]
-                          [else (make-token srcloc css:u+range start start)]))])))
+      (define-values (start end)
+        (cond [(not (= start0 end0)) (values start0 end0)]
+              [else (let ([ch1 (peek-char css 0)]
+                          [ch2 (peek-char css 1)])
+                      (cond [(and (char? ch1) (char=? ch1 #\-) (char-hexdigit? ch2)) (read-char css)
+                             (define-values (end _) (css-consume-hexadecimal (css-srcloc-in srcloc) 6))
+                             (values start0 end)]
+                            [else (values start0 start0)]))]))
+      (cond [(> end #x10FFFF) (make-token srcloc css:bad 'urange (format "end value out of the unicode range: ~x" end))]
+            [(> start end) (make-token srcloc css:bad 'urange (format "invalid unicode range: #x~x > #x~x" start end))]
+            [else (make-token srcloc css:urange start end)])))
 
   (define css-consume-hash-token : (-> CSS-Srcloc (U CSS:Hash CSS:Delim))
     ;;; https://drafts.csswg.org/css-syntax/#hash-token-diagram
@@ -224,11 +226,11 @@
       (define ch3 : (U EOF Char) (peek-char css 2))
       (if (or (css-char-name? ch1) (css-valid-escape? ch1 ch2))
           (make-token srcloc css:hash
-                      (string->symbol (css-consume-name (css-srcloc-in srcloc) (list #\#)))
+                      (string->keyword (css-consume-name (css-srcloc-in srcloc) (list #\#)))
                       (if (css-identifier-prefix? ch1 ch2 ch3) 'id 'unrestricted))
           (make-token srcloc css:delim #\#))))
 
-  (define css-consume-keyword-token : (-> CSS-Srcloc (U CSS:Keyword CSS:Delim))
+  (define css-consume-keyword-token : (-> CSS-Srcloc (U CSS:@Keyword CSS:Delim))
     ;;; https://drafts.csswg.org/css-syntax/#at-keyword-token-diagram
     (lambda [srcloc]
       (define css : Input-Port (css-srcloc-in srcloc))
@@ -236,7 +238,7 @@
       (define ch2 : (U EOF Char) (peek-char css 1))
       (define ch3 : (U EOF Char) (peek-char css 2))
       (if (css-identifier-prefix? ch1 ch2 ch3)
-          (make-token srcloc css:keyword (string->keyword (css-consume-name (css-srcloc-in srcloc) (list #\@))))
+          (make-token srcloc css:@keyword (string->keyword (css-consume-name (css-srcloc-in srcloc) (list #\@))))
           (make-token srcloc css:delim #\@))))
 
   (define css-consume-match-token : (-> CSS-Srcloc Char (U CSS:Match CSS:Delim CSS:Column))
@@ -421,6 +423,12 @@
            (char=? ch1 #\.)
            (char<=? #\0 ch2 #\9))))
 
+  (define css-fallback-charset : (-> String String)
+    (lambda [from]
+      (define CHARSET : String (string-upcase from))
+      (cond [(member CHARSET '("UTF-16BE" "UTF-16LE")) "UTF-8"]
+            [else CHARSET])))
+  
   (define css-fallback-encode-input-port : (-> Input-Port Input-Port)
     ;;; https://drafts.csswg.org/css-syntax/#input-byte-stream
     ;;; https://drafts.csswg.org/css-syntax/#charset-rule
@@ -428,8 +436,8 @@
       (define magic : (U EOF String) (peek-string 1024 0 /dev/rawin))
       (cond [(eof-object? magic) /dev/rawin]
             [(let ([charset? (regexp-match #px"^@charset \"(.*?)\";" magic)]) (and charset? (cadr charset?)))
-             => (λ [v] (let ([charset (string-downcase v)])
-                         (cond [(member charset '("utf-8" "utf-16be" "utf-16le")) /dev/rawin]
+             => (λ [v] (let ([charset (css-fallback-charset v)])
+                         (cond [(string-ci=? charset "UTF-8") /dev/rawin]
                                [else (with-handlers ([exn? (const /dev/rawin)])
                                        (reencode-input-port /dev/rawin charset
                                                             (string->bytes/utf-8 (format "@charset \u22~a\u22;" v))
@@ -442,17 +450,17 @@
   (require (submod ".." digitama/tokenizer))
 
   (define-type CSS-Syntax-Error exn:fail:syntax)
-  (define-type CSS-Rule (U css-style-rule css-at-rule))
+  (define-type CSS-Rule (U CSS-Qualified-Rule CSS-@Rule))
   (define-type CSS-Component-Value (U CSS-Token CSS-Simple-Block CSS-Function))
 
   (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [important? : Boolean] [values : (Listof CSS-Component-Value)]))
   (struct: css-simple-block : CSS-Simple-Block ([open : CSS:Delim] [components : (Listof CSS-Component-Value)] [close : CSS:Delim]))
   (struct: css-function : CSS-Function ([name : CSS:Function] [arguments : (Listof CSS-Component-Value)]))
   
-  (struct: css-style-rule : CSS-Style-Rule ([prelude : (Listof Any)] [block : CSS-Simple-Block]))
-  (struct: css-at-rule : CSS-@Rule ([name : CSS:Keyword] [prelude : (Listof Any)] [block : (Option CSS-Simple-Block)]))
+  (struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : (Listof CSS-Component-Value)] [block : CSS-Simple-Block]))
+  (struct: css-@rule : CSS-@Rule ([name : CSS:@Keyword] [prelude : (Listof CSS-Component-Value)] [block : (Option CSS-Simple-Block)]))
 
-  (struct: css-stylesheet : CSS-Stylesheet ([source : Any] [rules : (Listof CSS-Rule)])
+  (struct: css-stylesheet : CSS-Stylesheet ([source : Any] [charset : String] [rules : (Listof CSS-Rule)])
     #:extra-constructor-name make-css-stylesheet)
 
   (define css-make-syntax-error : (-> (U EOF CSS-Token (Listof CSS-Token)) String Any * CSS-Syntax-Error)
@@ -477,18 +485,20 @@
     (lambda [item items]
       (cond [(exn? item) items]
             [else (cons item items)])))
-
+  
   ;;; https://drafts.csswg.org/css-syntax/#parser-entry-points
   (define css-parse-stylesheet : (-> Input-Port CSS-Stylesheet)
     ;;; https://drafts.csswg.org/css-syntax/#parse-a-stylesheet
     (lambda [/dev/rawin]
       (define datasource : Any (object-name /dev/rawin))
       (define rules : (Listof CSS-Rule) (css-parse-rules /dev/rawin #:top-level? #true))
-      (cond [(null? rules) (make-css-stylesheet datasource null)]
+      (cond [(null? rules) (make-css-stylesheet datasource "UTF-8" null)]
             [else (let ([rule : CSS-Rule (car rules)])
-                    (if (and (css-at-rule? rule) (css:keyword-datum=? (css-at-rule-name rule) '#:@charset))
-                        (make-css-stylesheet datasource (cdr rules))
-                        (make-css-stylesheet datasource rules)))])))
+                    (if (and (css-@rule? rule) (css:@keyword-datum=? (css-@rule-name rule) '#:@charset))
+                        (let* ([token (car (css-@rule-prelude rule))]
+                               [name (if (css:string? token) (css:string-datum token) "UTF-8")])
+                          (make-css-stylesheet datasource (css-fallback-charset name) (cdr rules)))
+                        (make-css-stylesheet datasource "UTF-8" rules)))])))
 
   (define css-parse-rules : (-> Input-Port [#:top-level? Boolean] (Listof CSS-Rule))
     ;;; https://drafts.csswg.org/css-syntax/#parse-a-list-of-rules
@@ -505,7 +515,7 @@
       (define token (css-consume-token/skip-whitespace /dev/cssin))
       (define retval : (U CSS-Rule CSS-Syntax-Error)
         (cond [(eof-object? token) (css-make-syntax-error token "unexpected end of stream")]
-              [(css:keyword? token) (css-consume-at-rule /dev/cssin token)]
+              [(css:@keyword? token) (css-consume-at-rule /dev/cssin token)]
               [else (css-consume-qualified-rule /dev/cssin token)]))
       (define next (css-consume-token /dev/cssin))
       (cond [(or (eof-object? next) (exn? retval)) retval]
@@ -557,6 +567,15 @@
               [else (consume-component (cons (css-consume-component-value /dev/cssin token)
                                              components))]))))
 
+  (define css-parse-component-valueses : (-> Input-Port [#:stop-char (Option Char)] (Listof (Listof CSS-Component-Value)))
+    ;;; https://drafts.csswg.org/css-syntax/#parse-comma-separated-list-of-component-values
+    (lambda [/dev/cssin #:stop-char [stop-char #false]]
+      (let consume-components : (Listof (Listof CSS-Component-Value))
+        ([componentses : (Listof (Listof CSS-Component-Value)) null])
+        (define ch (peek-char /dev/cssin))
+        (cond [(eof-object? ch) (reverse componentses)]
+              [else (consume-components (cons (css-parse-component-values /dev/cssin #:stop-char #\,) componentses))]))))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-consume-rules : (-> Input-Port Boolean (Listof CSS-Rule) (Listof CSS-Rule))
     ;;; https://drafts.csswg.org/css-syntax/#consume-list-of-rules
@@ -565,22 +584,22 @@
         (define token (css-consume-token css))
         (cond [(eof-object? token) (reverse rules)]
               [(css:whitespace? token) (consume-rules rules)]
-              [(css:keyword? token) (consume-rules (css-cons (css-consume-at-rule css token) rules))]
+              [(css:@keyword? token) (consume-rules (css-cons (css-consume-at-rule css token) rules))]
               [(css-CDO/CDC? token) (consume-rules (if toplevel? rules (css-cons (css-consume-qualified-rule css token) rules)))]
               [else (consume-rules (css-cons (css-consume-qualified-rule css token) rules))]))))
 
-  (define css-consume-at-rule : (-> Input-Port CSS:Keyword CSS-@Rule)
+  (define css-consume-at-rule : (-> Input-Port CSS:@Keyword CSS-@Rule)
     ;;; https://drafts.csswg.org/css-syntax/#at-rule
     ;;; https://drafts.csswg.org/css-syntax/#consume-an-at-rule
     (lambda [css reconsumed-at-token]
       (define-values (prelude maybe-block) (css-consume-rule-item css #:@rule? #true))
-      (css-at-rule reconsumed-at-token prelude maybe-block)))
+      (css-@rule reconsumed-at-token prelude maybe-block)))
 
   (define css-consume-qualified-rule : (-> Input-Port CSS-Token (U CSS-Rule CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-syntax/#qualified-rule
     (lambda [css reconsumed-token]
       (define-values (prelude maybe-block) (css-consume-rule-item css #:@rule? #false))
-      (cond [(css-simple-block? maybe-block) (css-style-rule (cons reconsumed-token prelude) maybe-block)]
+      (cond [(css-simple-block? maybe-block) (css-qualified-rule (cons reconsumed-token prelude) maybe-block)]
             [else (css-make-syntax-error (list reconsumed-token) "qualified rule should have a simple block")])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -663,11 +682,11 @@
                (string-ci=? (symbol->string (css:function-datum token))
                             (symbol->string id))))))
 
-  (define css:keyword-datum=? : (-> Any Keyword Boolean : #:+ CSS:Keyword)
+  (define css:@keyword-datum=? : (-> Any Keyword Boolean : #:+ CSS:@Keyword)
     (lambda [token meta-id]
-      (and (css:keyword? token)
-           (or (eq? (css:keyword-datum token) meta-id)
-               (string-ci=? (keyword->string (css:keyword-datum token))
+      (and (css:@keyword? token)
+           (or (eq? (css:@keyword-datum token) meta-id)
+               (string-ci=? (keyword->string (css:@keyword-datum token))
                             (keyword->string meta-id))))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
