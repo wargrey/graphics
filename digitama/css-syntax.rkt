@@ -187,9 +187,9 @@
   (define-type CSS-Syntax-Rule (U CSS-Qualified-Rule CSS-@Rule))
   (define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule))
 
-  (define css-qualified-rule?/fast ((inst make-cheat-exclusive-opaque? CSS-Qualified-Rule CSS-@Rule) (λ [r] (= (vector-length r) 2))))
-  (define css-style-rule?/fast ((inst make-cheat-exclusive-opaque? CSS-Style-Rule CSS-@Rule) (λ [r] (= (vector-length r) 2))))
-  (define css-declaration?/fast ((inst make-cheat-exclusive-opaque? CSS-Declaration CSS-@Rule) (λ [v] (css:ident? (vector-ref v 0)))))
+  (define css-qualified-rule?/fast ((inst make-cheat-exclusive-opaque? CSS-Qualified-Rule CSS-@Rule) pair?))
+  (define css-style-rule?/fast ((inst make-cheat-exclusive-opaque? CSS-Style-Rule CSS-@Rule) pair?))
+  (define css-declaration?/fast ((inst make-cheat-exclusive-opaque? CSS-Declaration CSS-@Rule) pair?))
 
   ;;  https://drafts.csswg.org/css-syntax/#component-value
   (define-type CSS-Component-Value (U CSS-Token CSS-Simple-Block CSS-Function))
@@ -206,10 +206,12 @@
   (define css-function? : (-> Any Boolean : #:+ CSS-Function)
     ((inst make-cheat-opaque? CSS-Function)
      (lambda [v]
-       (and (list? v)
-            (not (null? v))
+       (and (pair? v)
             (css:function? (car v))
-            (andmap css-component-value? (cdr v))))))
+            (let ([arguments (cdr v)])
+              (and (list? v)
+                   (andmap css-component-value?
+                           arguments)))))))
 
   (define make-css-function : (-> CSS:Function CSS-Component-Values CSS-Function)
     (lambda [name arguments]
@@ -221,13 +223,15 @@
   (define css-simple-block? : (-> Any Boolean : #:+ CSS-Simple-Block)
     ((inst make-cheat-opaque? CSS-Simple-Block)
      (lambda [v]
-       (and (list? v)
-            (not (null? v))
-            (let ([open (car v)])
-              (or (css:delim=:=? open #\()
-                  (css:delim=:=? open #\[)
-                  (css:delim=:=? open #\{)))
-            (andmap css-component-value? (cdr v))))))
+       (and (pair? v)
+            (let ([open (car v)]
+                  [components (cdr v)])
+              (and (or (css:delim=:=? open #\()
+                       (css:delim=:=? open #\[)
+                       (css:delim=:=? open #\{))
+                   (and (list? components)
+                        (andmap css-component-value?
+                                components))))))))
 
   (define make-css-simple-block : (-> CSS:Delim CSS-Component-Values CSS-Simple-Block)
     (lambda [open components]
@@ -236,86 +240,82 @@
   (define (css-simple-block-open [block : CSS-Simple-Block]) : CSS:Delim (car block))
   (define (css-simple-block-components [block : CSS-Simple-Block]) : CSS-Component-Values (cdr block))
   
-  (define-type CSS-@Rule (Vector CSS:@Keyword CSS-Component-Values (Option CSS-Simple-Block)))
-  (define-type CSS-Qualified-Rule (Vector CSS-Component-Values CSS-Simple-Block))
+  (define-type CSS-@Rule (List CSS:@Keyword CSS-Component-Values (Option CSS-Simple-Block)))
+  (define-type CSS-Qualified-Rule (Pairof CSS-Component-Values CSS-Simple-Block))
 
   (define css-@rule? : (-> Any Boolean : #:+ CSS-@Rule)
     ((inst make-cheat-opaque? CSS-@Rule)
      (lambda [v]
-       (and (vector? v)
-            (= (vector-length v) 3)
-            (css:@keyword? (vector-ref v 0))
-            (let ([prelude (vector-ref v 1)]
-                  [block (vector-ref v 2)])
+       (and (list? v)
+            (= (length v) 3)
+            (css:@keyword? (car v))
+            (let ([prelude (cadr v)]
+                  [block (caddr v)])
               (and (list? prelude) (andmap css-component-value? prelude)
                    (implies block (css-simple-block? block))))))))
 
   (define make-css-@rule : (-> CSS:@Keyword CSS-Component-Values (Option CSS-Simple-Block) CSS-@Rule)
     (lambda [name prelude maybe-block]
-      (vector-immutable name prelude maybe-block)))
+      (list name prelude maybe-block)))
   
-  (define (css-@rule-name [rule : CSS-@Rule]) : CSS:@Keyword (vector-ref rule 0))
-  (define (css-@rule-prelude [rule : CSS-@Rule]) : CSS-Component-Values (vector-ref rule 1))
-  (define (css-@rule-block [rule : CSS-@Rule]) : (Option CSS-Simple-Block) (vector-ref rule 2))
+  (define (css-@rule-name [rule : CSS-@Rule]) : CSS:@Keyword (car rule))
+  (define (css-@rule-prelude [rule : CSS-@Rule]) : CSS-Component-Values (cadr rule))
+  (define (css-@rule-block [rule : CSS-@Rule]) : (Option CSS-Simple-Block) (caddr rule))
 
   (define css-qualified-rule? : (-> Any Boolean : #:+ CSS-Qualified-Rule)
     ((inst make-cheat-opaque? CSS-Qualified-Rule)
      (lambda [v]
-       (and (vector? v)
-            (= (vector-length v) 2)
-            (let ([prelude (vector-ref v 0)])
+       (and (pair? v)
+            (let ([prelude (car v)])
               (and (list? prelude) (andmap css-component-value? prelude)))
-            (css-simple-block? (vector-ref v 1))))))
+            (css-simple-block? (cdr v))))))
 
   (define make-css-qualified-rule : (-> CSS-Component-Values CSS-Simple-Block CSS-Qualified-Rule)
     (lambda [prelude maybe-block]
-      (vector-immutable prelude maybe-block)))
+      (cons prelude maybe-block)))
   
-  (define (css-qualified-rule-prelude [rule : CSS-Qualified-Rule]) : CSS-Component-Values (vector-ref rule 0))
-  (define (css-qualified-rule-block [rule : CSS-Qualified-Rule]) : CSS-Simple-Block (vector-ref rule 1))
+  (define (css-qualified-rule-prelude [rule : CSS-Qualified-Rule]) : CSS-Component-Values (car rule))
+  (define (css-qualified-rule-block [rule : CSS-Qualified-Rule]) : CSS-Simple-Block (cdr rule))
 
   ;; https://drafts.csswg.org/css-syntax/#css-stylesheets
-  (define-type CSS-Declaration (Vector CSS:Ident CSS-Component-Values Boolean))
-  (define-type CSS-Style-Rule (Vector CSS-Component-Values (Listof CSS-Declaration)))
+  (define-type CSS-Declaration (Pairof (Pairof CSS:Ident Boolean) CSS-Component-Values))
+  (define-type CSS-Style-Rule (Pairof CSS-Component-Values (Listof CSS-Declaration)))
   (define-type CSS-StyleSheet (Listof CSS-Grammar-Rule))
 
   (define css-declaration? : (-> Any Boolean : #:+ CSS-Declaration)
     ((inst make-cheat-opaque? CSS-Declaration)
      (lambda [v]
-       (and (vector? v)
-            (= (vector-length v) 3)
-            (let ([id (vector-ref v 0)]
-                  [argl (vector-ref v 1)]
-                  [flag (vector-ref v 2)])
-              (and (css:ident? id)
+       (and (pair? v)
+            (let ([id.flag (car v)]
+                  [argl (cdr v)])
+              (and (pair? id.flag)
+                   (css:ident? (car id.flag))
                    (list? argl)
-                   (andmap css-component-value? argl)
-                   (boolean? flag)))))))
+                   (andmap css-component-value? argl)))))))
 
   (define make-css-declaration : (-> CSS:Ident Boolean CSS-Component-Values CSS-Declaration)
     (lambda [id important? arguments]
-      (vector-immutable id arguments important?)))
+      (cons (cons id important?) arguments)))
 
-  (define (css-declaration-name [declare : CSS-Declaration]) : CSS:Ident (vector-ref declare 0))
-  (define (css-declaration-arguments [declare : CSS-Declaration]) : CSS-Component-Values (vector-ref declare 1))
-  (define (css-declaration-important? [declare : CSS-Declaration]) : Boolean (vector-ref declare 2))
+  (define (css-declaration-name [declare : CSS-Declaration]) : CSS:Ident (caar declare))
+  (define (css-declaration-arguments [declare : CSS-Declaration]) : CSS-Component-Values (cdr declare))
+  (define (css-declaration-important? [declare : CSS-Declaration]) : Boolean (cdar declare))
 
   (define css-style-rule? : (-> Any Boolean : #:+ CSS-Style-Rule)
     ((inst make-cheat-opaque? CSS-Style-Rule)
      (lambda [v]
-       (and (vector? v)
-            (= (vector-length v) 2)
-            (let ([selectors (vector-ref v 0)]
-                  [declarations (vector-ref v 1)])
+       (and (pair? v)
+            (let ([selectors (car v)]
+                  [declarations (cdr v)])
               (and (list? selectors) (andmap css-component-value? selectors)
                    (list? declarations) (andmap css-declaration? declarations)))))))
 
   (define make-css-style-rule : (-> CSS-Component-Values (Listof CSS-Declaration) CSS-Style-Rule)
     (lambda [selectors declarations]
-      (vector-immutable selectors declarations)))
+      (cons selectors declarations)))
 
-  (define (css-style-rule-selectors [rule : CSS-Style-Rule]) : CSS-Component-Values (vector-ref rule 0))
-  (define (css-style-rule-declarations [rule : CSS-Style-Rule]) : (Listof CSS-Declaration) (vector-ref rule 1))
+  (define (css-style-rule-selectors [rule : CSS-Style-Rule]) : CSS-Component-Values (car rule))
+  (define (css-style-rule-declarations [rule : CSS-Style-Rule]) : (Listof CSS-Declaration) (cdr rule))
 
   (define css-stylesheet? : (-> Any Boolean : #:+ CSS-StyleSheet)
     ((inst make-cheat-opaque? CSS-StyleSheet)
@@ -757,7 +757,8 @@
     (lambda [/dev/rawin]
       (define magic : (U EOF String) (peek-string 1024 0 /dev/rawin))
       (cond [(eof-object? magic) /dev/rawin]
-            [(let ([charset? (regexp-match #px"^@charset \"(.*?)\";" magic)]) (and charset? (cadr charset?)))
+            [(let ([charset? (regexp-match #px"^@charset \"(.*?)\";" magic)])
+               (and charset? (let ([name (cdr charset?)]) (and (pair? name) (car name)))))
              => (λ [v] (let ([charset (css-fallback-charset v)])
                          (cond [(string-ci=? charset "UTF-8") /dev/rawin]
                                [else (with-handlers ([exn? (const /dev/rawin)])
@@ -793,14 +794,15 @@
         (let syntax->grammar : (Listof CSS-Grammar-Rule)
           ([selur : (Listof CSS-Grammar-Rule) null]
            [rules : (Listof CSS-Syntax-Rule) (css-consume-rules /dev/cssin #true)])
-          (define rule : (Option CSS-Syntax-Rule) (and (not (null? rules)) (car rules)))
-          (cond [(false? rule) (reverse selur)]
-                [(css-qualified-rule?/fast rule) (syntax->grammar (cons (css-qualified-rule->style-rule rule) selur) (cdr rules))]
-                [else (if (css:@keyword=:=? (css-@rule-name rule) '#:@charset)
-                          (cond [(null? selur) (syntax->grammar selur (cdr rules))]
-                                [else (css-make-syntax-error exn:css:unrecognized (css-@rule-name rule))
-                                      (syntax->grammar selur (cdr rules))])
-                          (syntax->grammar (cons rule selur) (cdr rules)))])))
+          (if (null? rules) (reverse selur)
+              (let-values ([(rule rest) (values (car rules) (cdr rules))])
+                (if (css-qualified-rule?/fast rule)
+                    (syntax->grammar (cons (css-qualified-rule->style-rule rule) selur) rest)
+                    (if (css:@keyword=:=? (css-@rule-name rule) '#:@charset)
+                        (cond [(null? selur) (syntax->grammar selur rest)]
+                              [else (css-make-syntax-error exn:css:unrecognized (css-@rule-name rule))
+                                    (syntax->grammar selur rest)])
+                        (syntax->grammar (cons rule selur) rest)))))))
       (make-css-stylesheet rules)))
 
   (define-css-parser-entry css-parse-rules :-> (Listof CSS-Syntax-Rule)
