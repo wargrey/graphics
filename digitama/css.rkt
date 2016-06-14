@@ -47,8 +47,8 @@
                   (define id=:=? : (-> Any Racket-Type Boolean : #:+ ID)
                     (lambda [token racket-value]
                       (and (id? token)
-                           (type=? (id-datum token)
-                                   racket-value))))))]))
+                           (let ([css-value : Racket-Type (id-datum token)])
+                             (type=? css-value racket-value)))))))]))
 
   (define-syntax (define-tokens stx)
     (syntax-case stx []
@@ -88,9 +88,9 @@
     [css:delim #:+ CSS:Delim #:-> css-token #:as Char]
     [css:urange #:+ CSS:URange #:-> css-token #:as (Pairof Index Index)]
     [css:integer #:+ CSS:Integer #:-> css:numeric #:as Integer]
-    [css:number #:+ CSS:Number #:-> css:numeric #:as Real]
-    [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Real]
-    [css:dimension #:+ CSS:Dimension #:-> css:numeric #:as (Pairof Real Symbol)
+    [css:number #:+ CSS:Number #:-> css:numeric #:as Float]
+    [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Float #:=? (λ [f1 f2] (= (* f1 0.01) f2))]
+    [css:dimension #:+ CSS:Dimension #:-> css:numeric #:as (Pairof Float Symbol)
                    #:=? (λ [d1 d2] (and (= (car d1) (car d2)) (symbol-ci=? (cdr d1) (cdr d2))))]
     [css:whitespace #:+ CSS:WhiteSpace #:-> css-token #:as (U Bytes Char)
                     #:=? (λ [ws1 ws2] (cond [(and (char? ws1) (char? ws2)) (char=? ws1 ws2 #\space)]  ; whitespace
@@ -163,7 +163,7 @@
   ;; https://drafts.csswg.org/css-syntax/#css-stylesheets
   (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [important? : Boolean] [arguments : CSS-Component-Values]))
   (struct: css-style-rule : CSS-Style-Rule ([selectors : CSS-Component-Values] [properties : (Listof CSS-Declaration)]))
-  (struct: css-stylesheet : CSS-StyleSheet ([datasource : Any] [rules : (Listof CSS-Grammar-Rule)]))
+  (struct: css-stylesheet : CSS-StyleSheet ([location : Any] [rules : (Listof CSS-Grammar-Rule)]))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define symbol-ci=? : (-> Symbol Symbol Boolean)
@@ -319,11 +319,11 @@
                           [ch3 : (U EOF Char) (peek-char css 2)])
                       (cond [(css-identifier-prefix? ch1 ch2 ch3)
                              (define unit : Symbol (string->symbol (string-downcase (css-consume-name css null))))
-                             (make-token srcloc css:dimension representation (cons n unit))]
+                             (make-token srcloc css:dimension representation (cons (real->double-flonum n) unit))]
                             [(and (char? ch1) (char=? ch1 #\%)) (read-char css)
-                             (make-token srcloc css:percentage representation n)]
+                             (make-token srcloc css:percentage representation (real->double-flonum n))]
                             [(exact-integer? n) (make-token srcloc css:integer representation n)]
-                            [else (make-token srcloc css:number representation n)])))])))
+                            [else (make-token srcloc css:number representation (real->double-flonum n))])))])))
 
   (define css-consume-url-token : (-> CSS-Srcloc (U CSS:URL CSS:Bad))
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-url-token
@@ -788,7 +788,7 @@
     ;;; https://drafts.csswg.org/css-cascade/#importance
     (lambda [id-token components]
       (define :components : (Option CSS-Component-Values) (memf (negate css:whitespace?) components))
-      (cond [(or (false? :components) (not (css:delim=:=? (car :components) #\:)))
+      (cond [(or (false? :components) (null? :components) (not (css:delim=:=? (car :components) #\:)))
              (css-make-syntax-error exn:css:missing-colon id-token)]
             [else (let ([stnenopmoc (reverse (filter-not css:whitespace? (cdr :components)))])
                     (define important? : Boolean
