@@ -1031,22 +1031,29 @@
                                (λ _ (cond [(>= (+ skip cursor) total) eof]
                                           [else (list-ref /dev/stdin (+ skip cursor))])))
                              void))
-          (let ([/dev/rawin (cond [(string? /dev/stdin) (open-input-string /dev/stdin '/dev/cssin)]
-                                  [(byte? /dev/stdin) (open-input-bytes /dev/stdin '/dev/cssin)]
-                                  [(port? /dev/stdin) /dev/stdin]
-                                  [else (current-input-port)])])
-            ; (make-input-port/read-to-peek) is (less than 1.5 times) slower than (make-input-port),
-            ; but this cost is too subtle to becoming the performance killer even for large datasource.
-            (define /dev/cssin : Input-Port (css-fallback-encode-input-port /dev/rawin))
-            (make-input-port/read-to-peek (or (object-name /dev/rawin) '/dev/cssin)
-                                          (λ _ (λ _ (css-consume-token /dev/cssin)))
-                                          #false ; so we have the (peek) been implemented.
-                                          (thunk (unless (eq? /dev/rawin /dev/cssin)
-                                                   (close-input-port /dev/cssin))
-                                                 (unless (eq? /dev/rawin /dev/stdin)
-                                                   (close-input-port /dev/rawin)))
-                                          (thunk (port-next-location /dev/cssin))
-                                          (thunk (port-count-lines! /dev/cssin)))))))
+          (let* ([peek-pool : (Listof Any) null]
+                 [/dev/rawin (cond [(string? /dev/stdin) (open-input-string /dev/stdin '/dev/cssin)]
+                                   [(byte? /dev/stdin) (open-input-bytes /dev/stdin '/dev/cssin)]
+                                   [(port? /dev/stdin) /dev/stdin]
+                                   [else (current-input-port)])]
+                 [/dev/cssin : Input-Port (css-fallback-encode-input-port /dev/rawin)])
+            (make-input-port (or (object-name /dev/rawin) '/dev/cssin)
+                             (λ [[buf : Bytes]]
+                               (λ _ (cond [(null? peek-pool) (css-consume-token /dev/cssin)]
+                                          [else (let ([peeked (last peek-pool)])
+                                                  (set! peek-pool (drop-right peek-pool 1))
+                                                  peeked)])))
+                             (λ [[buf : Bytes] [skip : Nonnegative-Integer] [evt : Any]]
+                               (λ _ (for ([idx (in-range (length peek-pool) (add1 skip))])
+                                      (set! peek-pool (cons (css-consume-token /dev/cssin) peek-pool)))
+                                 (list-ref peek-pool (- (length peek-pool) skip 1))))
+                             (thunk (unless (eq? /dev/rawin /dev/cssin)
+                                      (close-input-port /dev/cssin))
+                                    (unless (eq? /dev/rawin /dev/stdin)
+                                      (close-input-port /dev/rawin)))
+                             #false #false
+                             (thunk (port-next-location /dev/cssin))
+                             (thunk (port-count-lines! /dev/cssin)))))))
   
   (define css-read-syntax : (-> Input-Port CSS-Syntax-Any)
     (lambda [css]
