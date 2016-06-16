@@ -771,14 +771,12 @@
     ;;; https://drafts.csswg.org/css-syntax/#block
     ;;; https://drafts.csswg.org/css-syntax/#consume-simple-block
     (lambda [css open-char close-char]
-      (define-values (components close-token) (css-consume-block-body css close-char))
-      (make-css-simple-block open-char components)))
+      (make-css-simple-block open-char (css-consume-block-body css close-char))))
 
   (define css-consume-function : (-> Input-Port CSS:Function CSS-Function)
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-function
     (lambda [css name-token]
-      (define-values (arguments _) (css-consume-block-body css #\)))
-      (make-css-function name-token arguments)))
+      (make-css-function name-token (css-consume-block-body css #\)))))
 
   (define css-consume-component-value : (-> Input-Port CSS-Component-Value CSS-Component-Value)
     ;;; https://drafts.csswg.org/css-syntax/#component-value
@@ -806,17 +804,14 @@
               [(and (css-simple-block? token) (css:delim=:=? (css-simple-block-open token) #\{)) (values (reverse prelude) token)]
               [else (consume-item (cons (css-consume-component-value css token) prelude) simple-block)]))))
 
-  (define css-consume-block-body : (-> Input-Port Char (Values CSS-Component-Values CSS:Delim))
+  (define css-consume-block-body : (-> Input-Port Char CSS-Component-Values)
     ;;; https://drafts.csswg.org/css-syntax/#consume-simple-block
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-function
     (lambda [css close-char]
-      (let consume-body : (Values CSS-Component-Values CSS:Delim) ([components : CSS-Component-Values null])
+      (let consume-body : CSS-Component-Values ([components : CSS-Component-Values null])
         (define token (css-read-syntax css))
-        (cond [(eof-object? token)
-               (css-make-syntax-error exn:css:eof token)
-               (values (reverse components) (make-token (css-srcloc css #false #false #false) css:delim close-char))]
-              [(css:delim=:=? token close-char)
-               (values (reverse components) token)]
+        (cond [(eof-object? token) (css-make-syntax-error exn:css:eof token) (reverse components)]
+              [(css:delim=:=? token close-char) (reverse components)]
               [else (consume-body (cons (css-consume-component-value css token) components))]))))
   
   (define css-consume-components : (->* (Input-Port (Option Char)) ((Option CSS-Component-Value)) CSS-Component-Values)
@@ -918,9 +913,13 @@
              (define next2 (if element? (css-read-syntax css) next))
              (cond [(css:ident? next2) (make-css-pseudo-selector next2 null element?)]
                    [(css-function? next2) (make-css-pseudo-selector (css-function-name next2) (css-function-arguments next2) element?)]
+                   [(css:function? next2) (make-css-pseudo-selector next2 (css-consume-block-body css #\)) element?)]
                    [else (raise (css-make-syntax-error exn:css:non-identifier next))])]
             [(and (css-simple-block? reconsumed-token) (css:delim=:=? (css-simple-block-open reconsumed-token) #\[))
              (css-components->attribute-selector (css-simple-block-open reconsumed-token) (css-simple-block-components reconsumed-token))]
+            [(css:delim=:=? reconsumed-token #\[)
+             (define block (css-consume-simple-block css reconsumed-token #\]))
+             (css-components->attribute-selector (css-simple-block-open block) (css-simple-block-components block))]
             [else (raise (css-make-syntax-error exn:css:unrecognized reconsumed-token))])))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
