@@ -229,7 +229,7 @@
                                0)
                            datum ...))]))
 
-  (define-syntax (make-token* stx)
+  (define-syntax (remake-token stx)
     (syntax-case stx []
       [(_ here-token make-css:token datum ...)
        #'(make-css:token (css-token-source here-token)
@@ -874,7 +874,7 @@
                (list (css-consume-elemental-selector css reconsumed-token))]
               [(or (css:delim? reconsumed-token) (css:hash? reconsumed-token))
                (list (css-consume-simple-selector css reconsumed-token)
-                     (make-css-type-selector (make-token* reconsumed-token css:delim #\*) #true))]
+                     (make-css-type-selector (remake-token reconsumed-token css:delim #\*) #true))]
               [else (raise (css-make-syntax-error exn:css:unrecognized reconsumed-token))]))
       (let consume-simple-selector : (Values CSS-Compound-Selector CSS-Syntax-Any) ([srotceles selectors0])
         (define token (css-read-syntax css))
@@ -995,7 +995,7 @@
         (cond [(and (css:delim=:=? operator #\=) (or (css:ident? value) (css:string? value)))
                (make-css-attribute=selector attr namespace operator value)]
               [(and (css:match? operator) (or (css:ident? value) (css:string? value)))
-               (make-css-attribute=selector attr namespace (make-token* operator css:delim (css:match-datum operator)) value)]
+               (make-css-attribute=selector attr namespace (remake-token operator css:delim (css:match-datum operator)) value)]
               [else (make-css-attribute-selector attr namespace)])))
 
   (define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (U CSS-Style-Rule CSS-Syntax-Error))
