@@ -767,25 +767,16 @@
       (cond [(css-simple-block? maybe-block) (make-css-qualified-rule (cons reconsumed-token prelude) maybe-block)]
             [else (css-make-syntax-error exn:css:missing-block reconsumed-token)])))
 
-  (define css-consume-simple-block : (-> Input-Port CSS:Delim Char CSS-Simple-Block)
-    ;;; https://drafts.csswg.org/css-syntax/#block
-    ;;; https://drafts.csswg.org/css-syntax/#consume-simple-block
-    (lambda [css open-char close-char]
-      (make-css-simple-block open-char (css-consume-block-body css close-char))))
-
-  (define css-consume-function : (-> Input-Port CSS:Function CSS-Function)
-    ;;; https://drafts.csswg.org/css-syntax/#consume-a-function
-    (lambda [css name-token]
-      (make-css-function name-token (css-consume-block-body css #\)))))
-
   (define css-consume-component-value : (-> Input-Port CSS-Component-Value CSS-Component-Value)
     ;;; https://drafts.csswg.org/css-syntax/#component-value
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-component-value
+    ;;; https://drafts.csswg.org/css-syntax/#consume-a-function
+    ;;; https://drafts.csswg.org/css-syntax/#consume-simple-block
     (lambda [css reconsumed-token]
-      (cond [(css:delim=:=? reconsumed-token #\{) (css-consume-simple-block css reconsumed-token #\})]
-            [(css:delim=:=? reconsumed-token #\[) (css-consume-simple-block css reconsumed-token #\])]
-            [(css:delim=:=? reconsumed-token #\() (css-consume-simple-block css reconsumed-token #\))]
-            [(css:function? reconsumed-token) (css-consume-function css reconsumed-token)]
+      (cond [(css:delim=:=? reconsumed-token #\{) (make-css-simple-block reconsumed-token (css-consume-block-body css #\}))]
+            [(css:delim=:=? reconsumed-token #\[) (make-css-simple-block reconsumed-token (css-consume-block-body css #\]))]
+            [(css:delim=:=? reconsumed-token #\() (make-css-simple-block reconsumed-token (css-consume-block-body css #\)))]
+            [(css:function? reconsumed-token) (make-css-function reconsumed-token (css-consume-block-body css #\)))]
             [else reconsumed-token])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -800,7 +791,7 @@
         (cond [(or (eof-object? token) (and at-rule? (css:delim=:=? token #\;)))
                (when (eof-object? token) (css-make-syntax-error exn:css:eof (if (null? prelude) eof (car prelude))))
                (values (reverse prelude) simple-block)]
-              [(css:delim=:=? token #\{) (values (reverse prelude) (css-consume-simple-block css token #\}))]
+              [(css:delim=:=? token #\{) (values (reverse prelude) (make-css-simple-block token (css-consume-block-body css #\})))]
               [(and (css-simple-block? token) (css:delim=:=? (css-simple-block-open token) #\{)) (values (reverse prelude) token)]
               [else (consume-item (cons (css-consume-component-value css token) prelude) simple-block)]))))
 
@@ -918,8 +909,7 @@
             [(and (css-simple-block? reconsumed-token) (css:delim=:=? (css-simple-block-open reconsumed-token) #\[))
              (css-components->attribute-selector (css-simple-block-open reconsumed-token) (css-simple-block-components reconsumed-token))]
             [(css:delim=:=? reconsumed-token #\[)
-             (define block (css-consume-simple-block css reconsumed-token #\]))
-             (css-components->attribute-selector (css-simple-block-open block) (css-simple-block-components block))]
+             (css-components->attribute-selector reconsumed-token (css-consume-block-body css #\]))]
             [else (raise (css-make-syntax-error exn:css:unrecognized reconsumed-token))])))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1031,22 +1021,22 @@
                                (λ _ (cond [(>= (+ skip cursor) total) eof]
                                           [else (list-ref /dev/stdin (+ skip cursor))])))
                              void))
-          (let* ([peek-pool : (Listof Any) null]
-                 [/dev/rawin (cond [(string? /dev/stdin) (open-input-string /dev/stdin '/dev/cssin)]
+          (let* ([/dev/rawin (cond [(string? /dev/stdin) (open-input-string /dev/stdin '/dev/cssin)]
                                    [(byte? /dev/stdin) (open-input-bytes /dev/stdin '/dev/cssin)]
                                    [(port? /dev/stdin) /dev/stdin]
                                    [else (current-input-port)])]
-                 [/dev/cssin : Input-Port (css-fallback-encode-input-port /dev/rawin)])
+                 [/dev/cssin : Input-Port (css-fallback-encode-input-port /dev/rawin)]
+                 [peek-pool : (Listof Any) null])
             (make-input-port (or (object-name /dev/rawin) '/dev/cssin)
                              (λ [[buf : Bytes]]
                                (λ _ (cond [(null? peek-pool) (css-consume-token /dev/cssin)]
-                                          [else (let ([peeked (last peek-pool)])
-                                                  (set! peek-pool (drop-right peek-pool 1))
-                                                  peeked)])))
+                                          [else (let-values ([(rest peeked) (split-at-right peek-pool 1)])
+                                                  (set! peek-pool rest)
+                                                  (car peeked))])))
                              (λ [[buf : Bytes] [skip : Nonnegative-Integer] [evt : Any]]
-                               (λ _ (for ([idx (in-range (length peek-pool) (add1 skip))])
-                                      (set! peek-pool (cons (css-consume-token /dev/cssin) peek-pool)))
-                                 (list-ref peek-pool (- (length peek-pool) skip 1))))
+                               (λ _ (and (for ([idx (in-range (length peek-pool) (add1 skip))])
+                                           (set! peek-pool (cons (css-consume-token /dev/cssin) peek-pool)))
+                                         (list-ref peek-pool (- (length peek-pool) skip 1)))))
                              (thunk (unless (eq? /dev/rawin /dev/cssin)
                                       (close-input-port /dev/cssin))
                                     (unless (eq? /dev/rawin /dev/stdin)
