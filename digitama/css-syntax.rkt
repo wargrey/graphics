@@ -1083,6 +1083,32 @@
 (module* test typed/racket
   (require (submod ".."))
 
+  (require racket/flonum)
+
+  (define-type Unit (U 'KB 'MB 'GB 'TB))
+  (define-type Unit* (Listof Unit))
+  (define units : Unit* '(KB MB GB TB))
+  (define ~size : (case-> [Integer 'Bytes [#:precision (U Integer (List '= Integer))] -> String]
+                          [Flonum Unit [#:precision (U Integer (List '= Integer))] -> String])
+    (lambda [size unit #:precision [prcs '(= 3)]]
+      (if (symbol=? unit 'Bytes)
+          (cond [(< (abs size) 1024) (format "~aBytes" size)]
+                [else (~size (fl/ (real->double-flonum size) 1024.0) 'KB #:precision prcs)])
+          (let try-next-unit : String ([s : Flonum size] [us : (Option Unit*) (member unit units)])
+            (cond [(false? us) "Typed Racket is buggy if you see this message"]
+                  [(or (fl< (abs s) 1024.0) (null? (cdr us))) (string-append (~r s #:precision prcs) (symbol->string (car us)))]
+                  [else (try-next-unit (fl/ s 1024.0) (cdr us))])))))
+  
+  (define-syntax (time-run stx)
+    (syntax-case stx []
+      [(_ sexp ...)
+       #'(let ([momery0 : Natural (current-memory-use)])
+           (define-values (result cpu real gc) ((inst time-apply Any) (thunk sexp ...) null))
+           (printf "memory: ~a cpu time: ~a real time: ~a gc time: ~a~n"
+                    (~size (- (current-memory-use) momery0) 'Bytes)
+                    cpu real gc)
+           (car result))]))
+  
   (define-values (in out) (make-pipe))
   (define css-logger (make-logger 'css #false))
   (define css (thread (thunk (let forever ([/dev/log (make-log-receiver css-logger 'debug)])
@@ -1090,15 +1116,16 @@
                                  [(vector _ message urgent _)
                                   (cond [(eof-object? urgent) (close-output-port out)]
                                         [else (displayln message out) (forever /dev/log)])])))))
-  
+
+  (collect-garbage)
   (define tamer.css (simplify-path (build-path (current-directory) 'up "tamer" "test.css")))
   (parameterize ([current-logger css-logger])
-    (time (with-input-from-file tamer.css (thunk (read-css-stylesheet)))))
+    (time-run (with-input-from-file tamer.css (thunk (read-css-stylesheet)))))
 
   (collect-garbage)
   (for ([t (in-range 32)])
-    (time (with-input-from-file tamer.css
-            (thunk (void (read-css-stylesheet))))))
+    (time-run (with-input-from-file tamer.css
+                (thunk (void (read-css-stylesheet))))))
 
   (log-message css-logger 'debug "exit" eof)
   (copy-port in (current-output-port)))
