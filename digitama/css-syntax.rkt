@@ -8,6 +8,7 @@
 ;;; https://drafts.csswg.org/css-cascade                                                        ;;;
 ;;; https://drafts.csswg.org/selectors                                                          ;;;
 ;;; https://drafts.csswg.org/css-namespaces                                                     ;;;
+;;; https://drafts.csswg.org/css-variables                                                      ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide (all-defined-out))
@@ -24,40 +25,10 @@
          css-parse-component-valueses
          css-parse-selectors)
 
-(define read-css-stylesheet : (->* () (CSS-StdIn) CSS-StyleSheet)
-  ;;; https://drafts.csswg.org/css-syntax/#css-stylesheets
-  ;;; https://drafts.csswg.org/css-syntax/#charset-rule
-  (lambda [[/dev/stdin (current-input-port)]]
-    (define rules : (Listof CSS-Grammar-Rule)
-      (let syntax->grammar : (Listof CSS-Grammar-Rule)
-        ([selur : (Listof CSS-Grammar-Rule) null]
-         [rules : (Listof CSS-Syntax-Rule) (css-parse-stylesheet /dev/stdin)])
-        (if (null? rules) (reverse selur)
-            (let-values ([(rule rest) (values (car rules) (cdr rules))])
-              (if (css-qualified-rule? rule)
-                  (syntax->grammar (css-cons (css-qualified-rule->style-rule rule) selur) rest)
-                  (if (css:@keyword=:=? (css-@rule-name rule) '#:@charset)
-                      (let ([invalid (css-make-syntax-error exn:css:unrecognized (css-@rule-name rule))])
-                        (syntax->grammar selur rest))
-                      (syntax->grammar (cons rule selur) rest)))))))
-    (make-css-stylesheet (or (object-name /dev/stdin) '/dev/cssin) rules)))
-
-(define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (U CSS-Style-Rule CSS-Syntax-Error))
-  ;;; https://drafts.csswg.org/css-syntax/#style-rules
-  ;;; https://drafts.csswg.org/selectors/#invalid
-  (lambda [qr]
-    (define prelude : CSS-Component-Values (css-qualified-rule-prelude qr))
-    (define selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-parse-selectors prelude))
-    (cond [(exn? selectors) selectors]
-          [(null? selectors) (css-make-syntax-error exn:css:empty (css-simple-block-open (css-qualified-rule-block qr)))]
-          [else (let ([components (css-simple-block-components (css-qualified-rule-block qr))])
-                  (define srotpircsed : (Listof CSS-Declaration)
-                    (for/fold ([descriptors : (Listof CSS-Declaration) null])
-                              ([mixed-list (in-list (css-parse-declarations components))])
-                      (cond [(css-declaration? mixed-list) (cons mixed-list descriptors)]
-                            [else (css-make-syntax-error exn:css:unrecognized (css-@rule-name mixed-list))
-                                  descriptors])))
-                  (make-css-style-rule selectors (reverse srotpircsed)))])))
+; https://drafts.csswg.org/css-syntax/#parse-a-css-stylesheet
+(provide (rename-out [css-parse-css-stylesheet read-css-stylesheet])
+         css-qualified-rule->style-rule
+         css-namespace-rule->namespace)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module digitama typed/racket
@@ -161,7 +132,8 @@
   (struct exn:css:missing-block exn:css ())
   (struct exn:css:missing-value exn:css ())
 
-  (define css-make-syntax-error : (-> (-> String Continuation-Mark-Set (Listof Syntax) CSS-Syntax-Error) CSS-Syntax-Any CSS-Syntax-Error)
+  (define css-make-syntax-error : (-> (-> String Continuation-Mark-Set (Listof Syntax) CSS-Syntax-Error)
+                                      (U CSS-Syntax-Any CSS-Component-Values) CSS-Syntax-Error)
     ;;; https://drafts.csswg.org/css-syntax/#style-rules
     ;;; https://drafts.csswg.org/selectors/#invalid
     (lambda [exn:css v]
@@ -169,6 +141,7 @@
         (cond [(eof-object? v) null]
               [(css-function? v) (cons (css-function-name v) (filter css:ident? (css-function-arguments v)))]
               [(css-simple-block? v) (filter css:ident? (css-simple-block-components v))]
+              [(list? v) (filter css-token? v)]
               [else (list v)]))
       (define errobj : CSS-Syntax-Error
         (with-handlers ([exn:fail:syntax? (λ [[e : exn:fail:syntax]] e)])
@@ -220,15 +193,19 @@
     [css-pseudo-selector #:+ CSS-Pseudo-Selector ([name : (U CSS:Ident CSS:Function)] [arguments : CSS-Component-Values]
                                                                                       [element? : Boolean])])
 
-  (define-type CSS-Selector-NameSpace (U CSS:Ident CSS:Delim Boolean))
+  
+  (define-type CSS-Selector-NameSpace (Option CSS:Ident))
   (define-type CSS-Compound-Selector (Listof CSS-Simple-Selector))
   (define-type CSS-Complex-Selector (Listof (U CSS-Compound-Selector Symbol)))
   
   ;; https://drafts.csswg.org/css-syntax/#css-stylesheets
   ;; https://drafts.csswg.org/cssom/#css-object-model
-  (struct: css-stylesheet : CSS-StyleSheet ([location : Any] [rules : (Listof CSS-Grammar-Rule)]))
   (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof CSS-Complex-Selector)] [properties : (Listof CSS-Declaration)]))
 
+  (struct: css-stylesheet : CSS-StyleSheet ([location : Any] [namespaces : CSS-NameSpace] [rules : (Listof CSS-Grammar-Rule)]))
+
+  (define-type CSS-NameSpace (HashTable Symbol String))
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define symbol-ci=? : (-> Symbol Symbol Boolean)
     (lambda [sym1 sym2]
@@ -665,15 +642,35 @@
                          (thunk (close-input-port /dev/cssin))))]))
   
   ;;; https://drafts.csswg.org/css-syntax/#parser-entry-points
+  (define-css-parser-entry css-parse-css-stylesheet :-> CSS-StyleSheet
+    ;;; https://drafts.csswg.org/css-syntax/#parse-a-css-stylesheet
+    ;;; https://drafts.csswg.org/css-syntax/#charset-rule
+    ;;; https://drafts.csswg.org/css-namespaces
+    (lambda [/dev/cssin]
+      (define namespaces : CSS-NameSpace (make-hasheq))
+      (define rules : (Listof CSS-Grammar-Rule)
+        (let syntax->grammar : (Listof CSS-Grammar-Rule)
+          ([selur : (Listof CSS-Grammar-Rule) null]
+           [rules : (Listof CSS-Syntax-Rule) (css-consume-stylesheet /dev/cssin)])
+          (cond [(null? rules) (reverse selur)]
+                [else (let-values ([(rule rest) (values (car rules) (cdr rules))])
+                        (cond [(css-qualified-rule? rule)
+                               (syntax->grammar (css-cons (css-qualified-rule->style-rule rule) selur) rest)]
+                              [(css:@keyword=:=? (css-@rule-name rule) '#:@charset)
+                               (css-make-syntax-error exn:css:unrecognized (css-@rule-name rule))
+                               (syntax->grammar selur rest)]
+                              [(css:@keyword=:=? (css-@rule-name rule) '#:@namespace)
+                               (define ns (css-namespace-rule->namespace rule))
+                               (when (pair? ns) (hash-set! namespaces (car ns) (cdr ns)))
+                               (syntax->grammar selur rest)]
+                              [else (syntax->grammar (cons rule selur) rest)]))])))
+      (make-css-stylesheet (or (object-name /dev/cssin) '/dev/cssin) namespaces rules)))
+
   (define-css-parser-entry css-parse-stylesheet :-> (Listof CSS-Syntax-Rule)
     ;;; https://drafts.csswg.org/css-syntax/#parse-stylesheet
     ;;; https://drafts.csswg.org/css-syntax/#declaration-rule-list
     (lambda [/dev/cssin]
-      (define rules : (Listof CSS-Syntax-Rule) (css-consume-rules /dev/cssin #true))
-      (define rule : (Option CSS-Syntax-Rule) (and (pair? rules) (car rules)))
-      (if (and (css-@rule? rule) (css:@keyword=:=? (css-@rule-name rule) '#:@charset))
-          (cdr rules)
-          rules)))
+      (css-consume-stylesheet /dev/cssin)))
 
   (define-css-parser-entry css-parse-rules :-> (Listof CSS-Syntax-Rule)
     ;;; https://drafts.csswg.org/css-syntax/#parse-list-of-rules
@@ -768,6 +765,55 @@
       (css-make-syntax-error exn:css:unrecognized eof)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define css-namespace-rule->namespace : (-> CSS-@Rule (U (Pairof Symbol String) CSS-Syntax-Error))
+    ;;; https://drafts.csswg.org/css-namespaces/#syntax
+    (lambda [ns]
+      (define definition : CSS-Component-Values (filter-not css:whitespace? (css-@rule-prelude ns)))
+      (define maybe-block : (Option CSS-Simple-Block) (css-@rule-block ns))
+      (define size : Index (length definition))
+      (cond [(not (css:@keyword=:=? (css-@rule-name ns) '#:@namespace)) (css-make-syntax-error exn:css:unrecognized (css-@rule-name ns))]
+            [(css-simple-block? maybe-block) (css-make-syntax-error exn:css:overconsumption maybe-block)]
+            [(null? definition) (css-make-syntax-error exn:css:empty definition)]
+            [else (let-values ([(1st rest1) (values (car definition) (cdr definition))])
+                    (if (null? rest1)
+                        (cond [(css:string? 1st) (cons '|| (css:string-datum 1st))]
+                              [(css:url? 1st) (cons '|| (~a (css:url-datum 1st)))]
+                              [else (css-make-syntax-error exn:css:unrecognized (css-@rule-name ns))])
+                        (let-values ([(2nd rest2) (values (car rest1) (cdr rest1))])
+                          (cond [(pair? rest2) (css-make-syntax-error exn:css:overconsumption rest2)]
+                                [(not (css:ident? 1st)) (css-make-syntax-error exn:css:non-identifier 1st)]
+                                [(css:string? 2nd) (cons (css:ident-datum 1st) (css:string-datum 2nd))]
+                                [(css:url? 2nd) (cons (css:ident-datum 1st) (~a (css:url-datum 2nd)))]
+                                [else (css-make-syntax-error exn:css:unrecognized 2nd)]))))])))
+  
+  (define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (U CSS-Style-Rule CSS-Syntax-Error))
+    ;;; https://drafts.csswg.org/css-syntax/#style-rules
+    ;;; https://drafts.csswg.org/selectors/#invalid
+    (lambda [qr]
+      (define prelude : CSS-Component-Values (css-qualified-rule-prelude qr))
+      (define selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-parse-selectors prelude))
+      (cond [(exn? selectors) selectors]
+            [(null? selectors) (css-make-syntax-error exn:css:empty (css-simple-block-open (css-qualified-rule-block qr)))]
+            [else (let ([components (css-simple-block-components (css-qualified-rule-block qr))])
+                    (define srotpircsed : (Listof CSS-Declaration)
+                      (for/fold ([descriptors : (Listof CSS-Declaration) null])
+                                ([mixed-list (in-list (css-parse-declarations components))])
+                        (cond [(css-declaration? mixed-list) (cons mixed-list descriptors)]
+                              [else (css-make-syntax-error exn:css:unrecognized (css-@rule-name mixed-list))
+                                    descriptors])))
+                    (make-css-style-rule selectors (reverse srotpircsed)))])))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define css-consume-stylesheet : (-> Input-Port (Listof CSS-Syntax-Rule))
+    ;;; https://drafts.csswg.org/css-syntax/#parse-stylesheet
+    ;;; https://drafts.csswg.org/css-syntax/#declaration-rule-list
+    (lambda [css]
+      (define rules : (Listof CSS-Syntax-Rule) (css-consume-rules css #true))
+      (define rule : (Option CSS-Syntax-Rule) (and (pair? rules) (car rules)))
+      (if (and (css-@rule? rule) (css:@keyword=:=? (css-@rule-name rule) '#:@charset))
+          (cdr rules)
+          rules)))
+  
   (define css-consume-rules : (-> Input-Port Boolean (Listof CSS-Syntax-Rule))
     ;;; https://drafts.csswg.org/css-syntax/#consume-list-of-rules
     (lambda [css toplevel?]
@@ -885,13 +931,15 @@
   (define css-consume-compound-selector : (-> Input-Port CSS-Component-Value (Values CSS-Compound-Selector CSS-Syntax-Any))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#grammar
+    ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
     (lambda [css reconsumed-token]
       (define selectors0 : (Listof CSS-Simple-Selector)
         (cond [(or (css:ident? reconsumed-token) (css:delim=:=? reconsumed-token #\|) (css:delim=:=? reconsumed-token #\*))
                (list (css-consume-elemental-selector css reconsumed-token))]
               [(or (css:delim? reconsumed-token) (css:hash? reconsumed-token))
                (list (css-consume-simple-selector css reconsumed-token)
-                     (make-css-type-selector (remake-token reconsumed-token css:delim #\*) #true))]
+                     (make-css-type-selector (remake-token reconsumed-token css:delim #\*)
+                                             (remake-token reconsumed-token css:ident '||)))]
               [else (raise (css-make-syntax-error exn:css:unrecognized reconsumed-token))]))
       (let consume-simple-selector : (Values CSS-Compound-Selector CSS-Syntax-Any) ([srotceles selectors0])
         (define token (css-read-syntax css))
@@ -911,9 +959,11 @@
                    [else (raise (css-make-syntax-error exn:css:missing-identifier next))])]
             [(css:delim=:=? next #\|)
              (cond [(or (css:ident? next2) (css:delim=:=? next2 #\*))
-                    (css-read-syntax css) (css-read-syntax css) (make-css-type-selector next2 reconsumed-token)]
+                    (css-read-syntax css) (css-read-syntax css)
+                    (make-css-type-selector next2 (cond [(css:ident? reconsumed-token) reconsumed-token]
+                                                        [else (remake-token reconsumed-token css:ident '*)]))]
                    [else (raise (css-make-syntax-error exn:css:missing-identifier next))])]
-            [else (make-css-type-selector reconsumed-token #true)])))
+            [else (make-css-type-selector reconsumed-token (remake-token reconsumed-token css:ident '||))])))
 
   (define css-consume-simple-selector : (-> Input-Port CSS-Component-Value CSS-Simple-Selector)
     ;;; https://drafts.csswg.org/selectors/#structure
@@ -942,6 +992,7 @@
   (define css-components->declaration : (-> CSS:Ident CSS-Component-Values (U CSS-Declaration CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-syntax/#consume-declaration
     ;;; https://drafts.csswg.org/css-cascade/#importance
+    ;;; https://drafts.csswg.org/css-variables/#defining-variables
     (lambda [id-token components]
       (define :components : (Option CSS-Component-Values) (memf (negate css:whitespace?) components))
       (cond [(or (false? :components) (null? :components) (not (css:delim=:=? (car :components) #\:)))
@@ -974,6 +1025,7 @@
   (define css-components->attribute-selector : (-> CSS:Delim CSS-Component-Values CSS-Attribute-Selector)
     ;;; https://drafts.csswg.org/selectors/#attribute-selectors
     ;;; https://drafts.csswg.org/selectors/#attrnmsp
+    ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
     (lambda [open-token components]
       (define value-part : (Option CSS-Component-Values) (memf (λ [v] (or (css:match? v) (css:delim=:=? v #\=))) components))
       (define value-size : Index (if (false? value-part) 0 (length value-part)))
@@ -984,7 +1036,7 @@
             (raise (css-make-syntax-error exn:css:missing-identifier open-token))
             (let-values ([(1st rest1) (values (car attr-part) (cdr attr-part))])
               (if (null? rest1)
-                  (cond [(css:ident? 1st) (values 1st #true)]
+                  (cond [(css:ident? 1st) (values 1st (remake-token 1st css:ident '||))]
                         [else (raise (css-make-syntax-error exn:css:non-identifier 1st))])
                   (let-values ([(2nd rest2) (values (car rest1) (cdr rest1))])
                     (if (null? rest2)
@@ -994,7 +1046,7 @@
                         (let-values ([(3rd rest3) (values (car rest2) (cdr rest2))])
                           (cond [(pair? rest3) (raise (css-make-syntax-error exn:css:overconsumption (car rest3)))]
                                 [(and (or (css:ident? 1st) (css:delim=:=? 1st #\*)) (css:delim=:=? 2nd #\|) (css:ident? 3rd))
-                                 (values 3rd 1st)]
+                                 (values 3rd (if (css:ident? 1st) 1st (remake-token 1st css:ident '*)))]
                                 [(and (or (css:ident? 1st) (css:delim=:=? 1st #\*)) (css:delim=:=? 2nd #\|))
                                  (raise (css-make-syntax-error exn:css:non-identifier 3rd))]
                                 [(or (css:ident? 1st) (css:delim=:=? 1st #\*))
@@ -1139,7 +1191,7 @@
     (time-run (map read-css-stylesheet CSSes)))
 
   (collect-garbage)
-  (for ([t (in-range 16)])
+  (for ([t (in-range 32)])
     (time-run (for-each read-css-stylesheet CSSes)))
 
   (log-message css-logger 'debug "exit" eof)
