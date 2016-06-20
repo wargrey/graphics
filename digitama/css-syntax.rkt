@@ -14,16 +14,50 @@
 (provide (all-from-out (submod "." digitama)))
 
 ; https://drafts.csswg.org/css-syntax/#parser-entry-points
-(provide (rename-out [css-parse-stylesheet read-css-stylesheet]
-                     [css-parse-rule read-css-rule]
-                     [css-parse-rules read-css-rules]
-                     [css-parse-declaration read-css-declaration]
-                     [css-parse-declarations read-css-declarations]
-                     [css-parse-component-value read-css-component-value]
-                     [css-parse-component-values read-css-component-values]
-                     [css-parse-component-valueses read-css-component-valueses]
-                     [css-parse-selectors read-css-selectors]
-                     [css-parse-relative-selectors read-css-relative-selectors]))
+(provide css-parse-stylesheet
+         css-parse-rule
+         css-parse-rules
+         css-parse-declaration
+         css-parse-declarations
+         css-parse-component-value
+         css-parse-component-values
+         css-parse-component-valueses
+         css-parse-selectors)
+
+(define read-css-stylesheet : (->* () (CSS-StdIn) CSS-StyleSheet)
+  ;;; https://drafts.csswg.org/css-syntax/#css-stylesheets
+  ;;; https://drafts.csswg.org/css-syntax/#charset-rule
+  (lambda [[/dev/stdin (current-input-port)]]
+    (define rules : (Listof CSS-Grammar-Rule)
+      (let syntax->grammar : (Listof CSS-Grammar-Rule)
+        ([selur : (Listof CSS-Grammar-Rule) null]
+         [rules : (Listof CSS-Syntax-Rule) (css-parse-stylesheet /dev/stdin)])
+        (if (null? rules) (reverse selur)
+            (let-values ([(rule rest) (values (car rules) (cdr rules))])
+              (if (css-qualified-rule? rule)
+                  (syntax->grammar (css-cons (css-qualified-rule->style-rule rule) selur) rest)
+                  (if (css:@keyword=:=? (css-@rule-name rule) '#:@charset)
+                      (let ([invalid (css-make-syntax-error exn:css:unrecognized (css-@rule-name rule))])
+                        (syntax->grammar selur rest))
+                      (syntax->grammar (cons rule selur) rest)))))))
+    (make-css-stylesheet (or (object-name /dev/stdin) '/dev/cssin) rules)))
+
+(define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (U CSS-Style-Rule CSS-Syntax-Error))
+  ;;; https://drafts.csswg.org/css-syntax/#style-rules
+  ;;; https://drafts.csswg.org/selectors/#invalid
+  (lambda [qr]
+    (define prelude : CSS-Component-Values (css-qualified-rule-prelude qr))
+    (define selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-parse-selectors prelude))
+    (cond [(exn? selectors) selectors]
+          [(null? selectors) (css-make-syntax-error exn:css:empty (css-simple-block-open (css-qualified-rule-block qr)))]
+          [else (let ([components (css-simple-block-components (css-qualified-rule-block qr))])
+                  (define srotpircsed : (Listof CSS-Declaration)
+                    (for/fold ([descriptors : (Listof CSS-Declaration) null])
+                              ([mixed-list (in-list (css-parse-declarations components))])
+                      (cond [(css-declaration? mixed-list) (cons mixed-list descriptors)]
+                            [else (css-make-syntax-error exn:css:unrecognized (css-@rule-name mixed-list))
+                                  descriptors])))
+                  (make-css-style-rule selectors (reverse srotpircsed)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module digitama typed/racket
@@ -110,7 +144,7 @@
   (struct: css:bad:stdin : CSS:Bad:StdIn css-bad ())
   
   ;;; https://drafts.csswg.org/css-syntax/#parsing
-  (define-type CSS-StdIn (U Input-Port String Bytes CSS-Component-Values))
+  (define-type CSS-StdIn (U Input-Port Path-String Bytes CSS-Component-Values))
   (define-type CSS-Syntax-Any (U CSS-Component-Value EOF))
   (define-type CSS-Syntax-Rule (U CSS-Qualified-Rule CSS-@Rule))
   (define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule))
@@ -166,6 +200,8 @@
   (struct: css-simple-block : CSS-Simple-Block ([open : CSS:Delim] [components : CSS-Component-Values]))
   (struct: css-@rule : CSS-@Rule ([name : CSS:@Keyword] [prelude : CSS-Component-Values] [block : (Option CSS-Simple-Block)]))
   (struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : CSS-Component-Values] [block : CSS-Simple-Block]))
+  (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [important? : Boolean] [case-sentitive? : Boolean]
+                                                                 [arguments : CSS-Component-Values]))
 
   ;;  https://drafts.csswg.org/selectors/#grammar
   ;;  https://drafts.csswg.org/selectors/#structure
@@ -177,8 +213,8 @@
 
   (define-selectors CSS-Simple-Selector
     [css-type-selector #:+ CSS-Type-Selector ([name : (U CSS:Ident CSS:Delim)] [namespace : CSS-Selector-NameSpace])]
-    [css-class-selector #:+ CSS-Class-Selector ([value : CSS:Ident])] ; === [class~=value]
-    [css-id-selector #:+ CSS-ID-Selector ([value : CSS:Hash])]        ; === [`id`~=value] Note: you name `id` in your application
+    [css-class-selector #:+ CSS-Class-Selector ([value : CSS:Ident])] ; <=> [class~=value]
+    [css-id-selector #:+ CSS-ID-Selector ([value : CSS:Hash])]        ; <=> [`id`~=value] Note: you name `id` in your application
     [css-attribute-selector #:+ CSS-Attribute-Selector ([name : CSS:Ident] [namespace : CSS-Selector-NameSpace])]
     [css-attribute=selector #:+ CSS-Attribute=Selector css-attribute-selector ([operator : CSS:Delim] [value : (U CSS:Ident CSS:String)])]
     [css-pseudo-selector #:+ CSS-Pseudo-Selector ([name : (U CSS:Ident CSS:Function)] [arguments : CSS-Component-Values]
@@ -189,9 +225,9 @@
   (define-type CSS-Complex-Selector (Listof (U CSS-Compound-Selector Symbol)))
   
   ;; https://drafts.csswg.org/css-syntax/#css-stylesheets
-  (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [important? : Boolean] [arguments : CSS-Component-Values]))
-  (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof CSS-Complex-Selector)] [properties : (Listof CSS-Declaration)]))
+  ;; https://drafts.csswg.org/cssom/#css-object-model
   (struct: css-stylesheet : CSS-StyleSheet ([location : Any] [rules : (Listof CSS-Grammar-Rule)]))
+  (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof CSS-Complex-Selector)] [properties : (Listof CSS-Declaration)]))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define symbol-ci=? : (-> Symbol Symbol Boolean)
@@ -310,8 +346,7 @@
       (define ch2 : (U EOF Char) (peek-char css 1))
       (cond [(and (char-ci=? id0 #\u) (char? ch1) (char=? ch1 #\+)
                   (or (char-hexdigit? ch2) (and (char? ch2) (char=? ch2 #\?))))
-             (read-char)
-             (css-consume-unicode-range-token srcloc)]
+             (read-char) (css-consume-unicode-range-token srcloc)]
             [else (let ([name : String (css-consume-name css id0)])
                     (define ch : (U EOF Char) (peek-char css))
                     (cond [(or (eof-object? ch) (not (char=? ch #\()))
@@ -630,30 +665,21 @@
                          (thunk (close-input-port /dev/cssin))))]))
   
   ;;; https://drafts.csswg.org/css-syntax/#parser-entry-points
-  (define-css-parser-entry css-parse-stylesheet :-> CSS-StyleSheet
-    ;;; https://drafts.csswg.org/css-syntax/#css-stylesheets
-    ;;; https://drafts.csswg.org/css-syntax/#parse-a-stylesheet
-    ;;; https://drafts.csswg.org/css-syntax/#charset-rule
+  (define-css-parser-entry css-parse-stylesheet :-> (Listof CSS-Syntax-Rule)
+    ;;; https://drafts.csswg.org/css-syntax/#parse-stylesheet
+    ;;; https://drafts.csswg.org/css-syntax/#declaration-rule-list
     (lambda [/dev/cssin]
-      (define rules : (Listof CSS-Grammar-Rule)
-        (let syntax->grammar : (Listof CSS-Grammar-Rule)
-          ([selur : (Listof CSS-Grammar-Rule) null]
-           [rules : (Listof CSS-Syntax-Rule) (css-consume-rules /dev/cssin #true)])
-          (if (null? rules) (reverse selur)
-              (let-values ([(rule rest) (values (car rules) (cdr rules))])
-                (if (css-qualified-rule? rule)
-                    (syntax->grammar (css-cons (css-qualified-rule->style-rule rule) selur) rest)
-                    (if (css:@keyword=:=? (css-@rule-name rule) '#:@charset)
-                        (cond [(null? selur) (syntax->grammar selur rest)]
-                              [else (css-make-syntax-error exn:css:unrecognized (css-@rule-name rule))
-                                    (syntax->grammar selur rest)])
-                        (syntax->grammar (cons rule selur) rest)))))))
-      (make-css-stylesheet (object-name /dev/cssin) rules)))
+      (define rules : (Listof CSS-Syntax-Rule) (css-consume-rules /dev/cssin #true))
+      (define rule : (Option CSS-Syntax-Rule) (and (pair? rules) (car rules)))
+      (if (and (css-@rule? rule) (css:@keyword=:=? (css-@rule-name rule) '#:@charset))
+          (cdr rules)
+          rules)))
 
   (define-css-parser-entry css-parse-rules :-> (Listof CSS-Syntax-Rule)
     ;;; https://drafts.csswg.org/css-syntax/#parse-list-of-rules
-    (lambda [/dev/cssin [toplevel? : Boolean #false]]
-      (css-consume-rules /dev/cssin toplevel?)))
+    ;;; https://drafts.csswg.org/css-syntax/#declaration-rule-list
+    (lambda [/dev/cssin]
+      (css-consume-rules /dev/cssin #false)))
 
   (define-css-parser-entry css-parse-rule :-> (U CSS-Syntax-Rule CSS-Syntax-Error)
     ;;; https://drafts.csswg.org/css-syntax/#parse-rule
@@ -941,8 +967,9 @@
                                                        (λ [com] (or (css:whitespace? com)
                                                                     (css:delim=:=? com #\!)
                                                                     (css:ident=:=? com 'important)))))
+                                        (define cs? : Boolean (string-prefix? (symbol->string (css:ident-datum id-token)) "--"))
                                         (cond [(null? value-list) (css-make-syntax-error exn:css:missing-value id-token)]
-                                              [else (make-css-declaration id-token important? value-list)]))]))))])))
+                                              [else (make-css-declaration id-token important? cs? value-list)]))]))))])))
 
   (define css-components->attribute-selector : (-> CSS:Delim CSS-Component-Values CSS-Attribute-Selector)
     ;;; https://drafts.csswg.org/selectors/#attribute-selectors
@@ -988,23 +1015,6 @@
                (make-css-attribute=selector attr namespace (remake-token operator css:delim (css:match-datum operator)) value)]
               [else (make-css-attribute-selector attr namespace)])))
 
-  (define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (U CSS-Style-Rule CSS-Syntax-Error))
-    ;;; https://drafts.csswg.org/css-syntax/#style-rules
-    ;;; https://drafts.csswg.org/selectors/#invalid
-    (lambda [qr]
-      (define prelude : CSS-Component-Values (css-qualified-rule-prelude qr))
-      (define selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-parse-selectors prelude))
-      (cond [(exn? selectors) selectors]
-            [(null? selectors) (css-make-syntax-error exn:css:empty (css-simple-block-open (css-qualified-rule-block qr)))]
-            [else (let ([components (css-simple-block-components (css-qualified-rule-block qr))])
-                    (define srotpircsed : (Listof CSS-Declaration)
-                      (for/fold ([descriptors : (Listof CSS-Declaration) null])
-                                ([mixed-list (in-list (css-parse-declarations components))])
-                        (cond [(css-declaration? mixed-list) (cons mixed-list descriptors)]
-                              [else (css-make-syntax-error exn:css:unrecognized (css-@rule-name mixed-list))
-                                    descriptors])))
-                    (make-css-style-rule selectors (reverse srotpircsed)))])))
-
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-open-input-port : (-> CSS-StdIn Input-Port)
     ;;; https://drafts.csswg.org/css-syntax/#parser-entry-points
@@ -1021,9 +1031,10 @@
                                (λ _ (cond [(>= (+ skip cursor) total) eof]
                                           [else (list-ref /dev/stdin (+ skip cursor))])))
                              void))
-          (let* ([/dev/rawin (cond [(string? /dev/stdin) (open-input-string /dev/stdin '/dev/cssin)]
+          (let* ([/dev/rawin (cond [(port? /dev/stdin) /dev/stdin]
+                                   [(path? /dev/stdin) (open-input-file /dev/stdin)]
+                                   [(string? /dev/stdin) (open-input-string /dev/stdin '/dev/cssin)]
                                    [(byte? /dev/stdin) (open-input-bytes /dev/stdin '/dev/cssin)]
-                                   [(port? /dev/stdin) /dev/stdin]
                                    [else (current-input-port)])]
                  [/dev/cssin : Input-Port (css-fallback-encode-input-port /dev/rawin)]
                  [peek-pool : (Listof Any) null])
@@ -1118,14 +1129,18 @@
                                         [else (displayln message out) (forever /dev/log)])])))))
 
   (collect-garbage)
-  (define tamer.css (simplify-path (build-path (current-directory) 'up "tamer" "test.css")))
+  (define CSSes : (Listof Path-String)
+    (for/list : (Listof Path-String)
+      ([filename (in-directory (simplify-path (build-path (collection-file-path "manual-fonts.css" "scribble") 'up)))]
+       #:when (and (regexp-match? "\\.css" filename)
+                   (not (regexp-match? #px"manual-fonts\\.css$" filename))))
+      filename))
   (parameterize ([current-logger css-logger])
-    (time-run (with-input-from-file tamer.css (thunk (read-css-stylesheet)))))
+    (time-run (map read-css-stylesheet CSSes)))
 
   (collect-garbage)
-  (for ([t (in-range 32)])
-    (time-run (with-input-from-file tamer.css
-                (thunk (void (read-css-stylesheet))))))
+  (for ([t (in-range 16)])
+    (time-run (for-each read-css-stylesheet CSSes)))
 
   (log-message css-logger 'debug "exit" eof)
   (copy-port in (current-output-port)))
