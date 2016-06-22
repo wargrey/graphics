@@ -189,6 +189,7 @@
 
   (define-selectors CSS-Simple-Selector
     [css-type-selector #:+ CSS-Type-Selector ([name : (U CSS:Ident CSS:Delim)] [namespace : CSS-Selector-NameSpace])]
+    [css-universal-selector #:+ CSS-Universal-Selector ([namespace : CSS-Selector-NameSpace])]
     [css-class-selector #:+ CSS-Class-Selector ([value : CSS:Ident])] ; <=> [class~=value]
     [css-id-selector #:+ CSS-ID-Selector ([value : CSS:Hash])]        ; <=> [`id`~=value] Note: you name `id` in your application
     [css-attribute-selector #:+ CSS-Attribute-Selector ([name : CSS:Ident] [namespace : CSS-Selector-NameSpace])]
@@ -826,8 +827,8 @@
             [(null? definition) (css-make-syntax-error exn:css:empty definition)]
             [else (let-values ([(1st rest1) (values (car definition) (cdr definition))])
                     (if (null? rest1)
-                        (cond [(css:string? 1st) (cons '|| (css:string-datum 1st))]
-                              [(css:url? 1st) (cons '|| (~a (css:url-datum 1st)))]
+                        (cond [(css:string? 1st) (cons '_ (css:string-datum 1st))]
+                              [(css:url? 1st) (cons '_ (~a (css:url-datum 1st)))]
                               [else (css-make-syntax-error exn:css:unrecognized (css-@rule-name ns))])
                         (let-values ([(2nd rest2) (values (car rest1) (cdr rest1))])
                           (cond [(pair? rest2) (css-make-syntax-error exn:css:overconsumption rest2)]
@@ -988,8 +989,7 @@
                (list (css-consume-elemental-selector css reconsumed-token))]
               [(or (css:delim? reconsumed-token) (css:hash? reconsumed-token))
                (list (css-consume-simple-selector css reconsumed-token)
-                     (make-css-type-selector (remake-token reconsumed-token css:delim #\*)
-                                             (remake-token reconsumed-token css:ident '||)))]
+                     (make-css-universal-selector (remake-token reconsumed-token css:ident '_)))]
               [else (raise (css-make-syntax-error exn:css:unrecognized reconsumed-token))]))
       (let consume-simple-selector : (Values CSS-Compound-Selector CSS-Syntax-Any) ([srotceles selectors0])
         (define token (css-read-syntax css))
@@ -997,7 +997,7 @@
             (values (reverse srotceles) token)
             (consume-simple-selector (cons (css-consume-simple-selector css token) srotceles))))))
 
-  (define css-consume-elemental-selector : (-> Input-Port (U CSS:Ident CSS:Delim) CSS-Type-Selector)
+  (define css-consume-elemental-selector : (-> Input-Port (U CSS:Ident CSS:Delim) (U CSS-Type-Selector CSS-Universal-Selector))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#elemental-selectors
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
@@ -1005,15 +1005,18 @@
       (define next (css-peek-syntax css 0))
       (define next2 (css-peek-syntax css 1))
       (cond [(css:delim=:=? reconsumed-token #\|)
-             (cond [(or (css:ident? next) (css:delim=:=? next #\*)) (css-read-syntax css) (make-css-type-selector next #false)]
+             (css-read-syntax css)
+             (cond [(css:ident? next) (make-css-type-selector next #false)]
+                   [(css:delim=:=? next #\*) (make-css-universal-selector #false)]
                    [else (raise (css-make-syntax-error exn:css:missing-identifier next))])]
             [(css:delim=:=? next #\|)
-             (cond [(or (css:ident? next2) (css:delim=:=? next2 #\*))
-                    (css-read-syntax css) (css-read-syntax css)
-                    (make-css-type-selector next2 (cond [(css:ident? reconsumed-token) reconsumed-token]
-                                                        [else (remake-token reconsumed-token css:ident '*)]))]
+             (css-read-syntax css)
+             (css-read-syntax css)
+             (define ns : CSS:Ident (if (css:ident? reconsumed-token) reconsumed-token (remake-token reconsumed-token css:ident '*)))
+             (cond [(css:ident? next2) (make-css-type-selector next2 ns)]
+                   [(css:delim=:=? next2 #\*) (make-css-universal-selector ns)]
                    [else (raise (css-make-syntax-error exn:css:missing-identifier next))])]
-            [else (make-css-type-selector reconsumed-token (remake-token reconsumed-token css:ident '||))])))
+            [else (make-css-type-selector reconsumed-token (remake-token reconsumed-token css:ident '_))])))
 
   (define css-consume-simple-selector : (-> Input-Port CSS-Component-Value CSS-Simple-Selector)
     ;;; https://drafts.csswg.org/selectors/#structure
@@ -1044,33 +1047,26 @@
     ;;; https://drafts.csswg.org/css-cascade/#importance
     ;;; https://drafts.csswg.org/css-variables/#defining-variables
     (lambda [id-token components]
-      (define :components : (Option CSS-Component-Values) (memf (negate css:whitespace?) components))
-      (cond [(or (false? :components) (null? :components) (not (css:delim=:=? (car :components) #\:)))
+      (define trimmed-components : (Listof CSS-Component-Value) (css-component-trim components))
+      (cond [(or (null? trimmed-components) (not (css:delim=:=? (car trimmed-components) #\:)))
              (css-make-syntax-error exn:css:missing-colon id-token)]
             [else (let clean : (U CSS-Declaration CSS-Syntax-Error)
-                    ([seulav : CSS-Component-Values null]
+                    ([stnenopmoc : (Listof CSS-Component-Value) null]
                      [skip-whitespace? : Boolean #true]
-                     [dirty-list : CSS-Component-Values (cdr :components)])
+                     [dirty-list : (Listof CSS-Component-Value) (cdr trimmed-components)])
                     (if (pair? dirty-list)
                         (let-values ([(head tail) (values (car dirty-list) (cdr dirty-list))])
-                          (cond [(and (css:whitespace? head) skip-whitespace?) (clean seulav #true tail)]
-                                [(css:delim=:=? head #\!) (clean (cons head seulav) #true tail)]
-                                [else (clean (cons head seulav) (css:whitespace? head) tail)]))
-                        (let ([stnenopmoc (memf (negate css:whitespace?) seulav)])
-                          (cond [(false? stnenopmoc) (css-make-syntax-error exn:css:missing-value id-token)]
-                                [else (let ([size (length stnenopmoc)])
-                                        (define important? : Boolean
-                                          (and (> size 1)
-                                               (css:delim=:=? (list-ref stnenopmoc 1) #\!)
-                                               (css:ident=:=? (list-ref stnenopmoc 0) 'important)))
-                                        (define value-list : CSS-Component-Values
-                                          (dropf-right (reverse stnenopmoc)
-                                                       (λ [com] (or (css:whitespace? com)
-                                                                    (css:delim=:=? com #\!)
-                                                                    (css:ident=:=? com 'important)))))
-                                        (define cs? : Boolean (string-prefix? (symbol->string (css:ident-datum id-token)) "--"))
-                                        (cond [(null? value-list) (css-make-syntax-error exn:css:missing-value id-token)]
-                                              [else (make-css-declaration id-token important? cs? value-list)]))]))))])))
+                          (cond [(and (css:whitespace? head) skip-whitespace?) (clean stnenopmoc #true tail)]
+                                [(css:delim=:=? head #\!) (clean (cons head stnenopmoc) #true tail)]
+                                [else (clean (cons head stnenopmoc) (css:whitespace? head) tail)]))
+                        (let ([important? : Boolean (and (>= (length stnenopmoc) 2)
+                                                         (css:delim=:=? (list-ref stnenopmoc 1) #\!)
+                                                         (css:ident=:=? (list-ref stnenopmoc 0) 'important))])
+                          (define value-list : (Listof CSS-Component-Value) (if important? (cddr stnenopmoc) stnenopmoc))
+                          (cond [(null? value-list) (css-make-syntax-error exn:css:missing-value id-token)]
+                                [else (make-css-declaration id-token important?
+                                                            (string-prefix? (symbol->string (css:ident-datum id-token)) "--")
+                                                            (reverse (if important? (cdr value-list) value-list)))]))))])))
 
   (define css-components->attribute-selector : (-> CSS:Delim CSS-Component-Values CSS-Attribute-Selector)
     ;;; https://drafts.csswg.org/selectors/#attribute-selectors
@@ -1182,6 +1178,11 @@
     (lambda [item items]
       (cond [(exn? item) items]
             [else (cons item items)])))
+
+  (define css-component-trim : (-> (Listof CSS-Component-Value) (Listof CSS-Component-Value))
+    (lambda [tsil]
+      (define maybe (memf (negate css:whitespace?) tsil))
+      (if (false? maybe) null (dropf-right maybe css:whitespace?))))
 
   (define css-selector-combinator? : (-> CSS-Syntax-Any Boolean : #:+ (U CSS:WhiteSpace CSS:Delim CSS:||))
     (lambda [token]
