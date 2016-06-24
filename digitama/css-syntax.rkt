@@ -130,15 +130,15 @@
   (define-type Make-CSS-Syntax-Error (-> String Continuation-Mark-Set (Listof Syntax) CSS-Syntax-Error))
 
   (struct exn:css exn:fail:syntax ())
-  (struct exn:css:empty exn:css ())
   (struct exn:css:unrecognized exn:css ())
-  (struct exn:css:overconsumption exn:css ())
-  (struct exn:css:misplaced exn:css ())
-  (struct exn:css:enclosed exn:css ())
-  (struct exn:css:missing-identifier exn:css ())
-  (struct exn:css:missing-colon exn:css ())
-  (struct exn:css:missing-block exn:css ())
-  (struct exn:css:missing-value exn:css ())
+  (struct exn:css:misplaced exn:css:unrecognized ())
+  (struct exn:css:overconsumption exn:css:unrecognized ())
+  (struct exn:css:enclosed exn:css:overconsumption ())
+  (struct exn:css:empty exn:css ())
+  (struct exn:css:missing-identifier exn:css:empty ())
+  (struct exn:css:missing-colon exn:css:empty ())
+  (struct exn:css:missing-block exn:css:empty ())
+  (struct exn:css:missing-value exn:css:empty ())
 
   (define css-make-syntax-error : (-> Make-CSS-Syntax-Error (U CSS-Syntax-Any CSS-Component-Values) CSS-Syntax-Error)
     ;;; https://drafts.csswg.org/css-syntax/#style-rules
@@ -198,9 +198,10 @@
     [css-class-selector #:+ CSS-Class-Selector ([value : CSS:Ident])] ; <=> [class~=value]
     [css-id-selector #:+ CSS-ID-Selector ([value : CSS:Hash])]        ; <=> [`id`~=value] Note: you name `id` in your application
     [css-attribute-selector #:+ CSS-Attribute-Selector ([name : CSS:Ident] [namespace : CSS-Selector-NameSpace])]
-    [css-attribute=selector #:+ CSS-Attribute=Selector css-attribute-selector ([operator : CSS:Delim] [value : (U CSS:Ident CSS:String)])]
-    [css-pseudo-selector #:+ CSS-Pseudo-Selector ([name : (U CSS:Ident CSS:Function)] [arguments : CSS-Component-Values]
-                                                                                      [element? : Boolean])])
+    [css-attribute=selector #:+ CSS-Attribute=Selector css-attribute-selector
+                            ([operator : CSS:Delim] [value : CSS:String] [force-ci? : Boolean])]
+    [css-pseudo-selector #:+ CSS-Pseudo-Selector
+                         ([name : (U CSS:Ident CSS:Function)] [arguments : CSS-Component-Values] [element? : Boolean])])
   
   (define-type CSS-Selector-NameSpace (Option CSS:Ident))
   (define-type CSS-Compound-Selector (Listof CSS-Simple-Selector))
@@ -1173,44 +1174,47 @@
   (define css-components->attribute-selector : (-> CSS:Delim CSS-Component-Values CSS-Attribute-Selector)
     ;;; https://drafts.csswg.org/selectors/#attribute-selectors
     ;;; https://drafts.csswg.org/selectors/#attrnmsp
+    ;;; https://drafts.csswg.org/selectors/#attribute-case
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
     (lambda [open-token components]
-      (define value-part : (Option CSS-Component-Values) (memf (λ [v] (or (css:match? v) (css:delim=:=? v #\=))) components))
-      (define value-size : Index (if (false? value-part) 0 (length value-part)))
-      (define attr-part : CSS-Component-Values (drop-right components value-size))
-      (define-values (1st rest1) (if (null? attr-part) (values eof null) (values (car attr-part) (cdr attr-part))))
+      (define-values (1st rest1) (if (null? components) (values eof null) (values (car components) (cdr components))))
       (define-values (2nd rest2) (if (null? rest1) (values eof null) (values (car rest1) (cdr rest1))))
       (define-values (3rd rest3) (if (null? rest2) (values eof null) (values (car rest2) (cdr rest2))))
-      (displayln (list 1st 2nd 3rd))
-      (define-values (attr namespace)
-        (cond [(eof-object? 1st) (raise (css-make-syntax-error exn:css:missing-identifier open-token))]
-              [(eof-object? 2nd) (cond [(css:ident? 1st) (values 1st (remake-token 1st css:ident '_))]
-                                       [else (raise (css-make-syntax-error exn:css:missing-identifier 1st))])]
-              [(eof-object? 3rd) (cond [(and (css:delim=:=? 1st #\|) (css:ident? 2nd)) (values 2nd #false)]
-                                       [(css:delim=:=? 2nd #\|) (raise (css-make-syntax-error exn:css:missing-identifier 2nd))]
-                                       [else (raise (css-make-syntax-error exn:css:unrecognized 1st))])]
-              [(not (css-null? rest3)) (raise (css-make-syntax-error exn:css:overconsumption rest3))]
+      (define-values (attr namespace op-part)
+        (cond [(eof-object? 1st) (raise (css-make-syntax-error exn:css:empty open-token))]
+              [(or (css:match? 1st) (css:delim=:=? 1st #\=))
+               (raise (css-make-syntax-error exn:css:missing-identifier open-token))]
+              [(or (eof-object? 2nd) (css:match? 2nd) (css:delim=:=? 2nd #\=))
+               (cond [(css:ident? 1st) (values 1st (remake-token 1st css:ident '_) rest1)]
+                     [else (raise (css-make-syntax-error exn:css:missing-identifier 1st))])]
+              [(or (eof-object? 3rd) (css:match? 3rd) (css:delim=:=? 3rd #\=))
+               (cond [(and (css:delim=:=? 1st #\|) (css:ident? 2nd)) (values 2nd #false rest2)]
+                     [(css:delim=:=? 2nd #\|) (raise (css-make-syntax-error exn:css:missing-identifier 2nd))]
+                     [else (raise (css-make-syntax-error exn:css:unrecognized 1st))])]
               [(and (or (css:ident? 1st) (css:delim=:=? 1st #\*)) (css:delim=:=? 2nd #\|) (css:ident? 3rd))
-               (values 3rd (if (css:ident? 1st) 1st (remake-token 1st css:ident '*)))]
+               (values 3rd (if (css:ident? 1st) 1st (remake-token 1st css:ident '*)) rest3)]
               [(and (or (css:ident? 1st) (css:delim=:=? 1st #\*)) (css:delim=:=? 2nd #\|))
                (raise (css-make-syntax-error exn:css:missing-identifier 3rd))]
               [(or (css:ident? 1st) (css:delim=:=? 1st #\*))
                (raise (css-make-syntax-error exn:css:unrecognized 2nd))]
               [else (raise (css-make-syntax-error exn:css:unrecognized 1st))]))
-      (define-values (#{operator : (U CSS:Delim CSS:Match False)} #{value : (U CSS:Ident CSS:String False)})
-        (cond [(false? value-part) (values #false #false)]
-              [else (let-values ([(op rest1) (values (car value-part) (cdr value-part))])
-                      (cond [(null? rest1) (raise (css-make-syntax-error exn:css:missing-value op))]
-                            [(not (or (css:match? op) (css:delim=:=? op #\=))) (raise (css-make-syntax-error exn:css:unrecognized op))]
-                            [else (let-values ([(v maybe-null) (values (car rest1) (cdr rest1))])
-                                    (cond [(pair? maybe-null) (raise (css-make-syntax-error exn:css:overconsumption (car maybe-null)))]
-                                          [(or (css:ident? v) (css:string? v)) (values op v)]
-                                          [else (raise (css-make-syntax-error exn:css:unrecognized v))]))]))]))
-        (cond [(and (css:delim=:=? operator #\=) (or (css:ident? value) (css:string? value)))
-               (make-css-attribute=selector attr namespace operator value)]
-              [(and (css:match? operator) (or (css:ident? value) (css:string? value)))
-               (make-css-attribute=selector attr namespace (remake-token operator css:delim (css:match-datum operator)) value)]
-              [else (make-css-attribute-selector attr namespace)])))
+      (define-values (op value-part) (css-car op-part))
+      (define-values (value ci-part) (css-car value-part))
+      (define-values (i terminal) (css-car ci-part))
+      (unless (eof-object? op)
+        (cond [(eof-object? value) (raise (css-make-syntax-error exn:css:missing-value op))]
+              [(not (or (eof-object? i) (css:ident=:=? i 'i))) (raise (css-make-syntax-error exn:css:overconsumption i))]
+              [(not (css-null? terminal)) (raise (css-make-syntax-error exn:css:overconsumption terminal))]))
+      (define val : CSS:String
+        (cond [(css:string? value) value]
+              [(css:ident? value) (remake-token value css:string (symbol->string (css:ident-datum value)))]
+              [(css-token? value) (raise (css-make-syntax-error exn:css:unrecognized value))]
+              [else (remake-token attr css:string "placeholder")]))
+      (define ci? : Boolean (css:ident? i))
+      (cond [(eof-object? op) (make-css-attribute-selector attr namespace)]
+            [(css:delim=:=? op #\=) (make-css-attribute=selector attr namespace op val ci?)]
+            [(css:match? op) (make-css-attribute=selector attr namespace (remake-token op css:delim (css:match-datum op)) val ci?)]
+            [else (raise (css-make-syntax-error exn:css:unrecognized op))])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-open-input-port : (-> CSS-StdIn Input-Port)
