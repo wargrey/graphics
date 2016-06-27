@@ -306,10 +306,7 @@
                                  (css-token-position start-token)) 0)
                          datum ...)]
       [(_ here-token make-css:token datum ...)
-       #'(make-css:token (css-token-source here-token)
-                         (css-token-line here-token) (css-token-column here-token)
-                         (css-token-position here-token) (css-token-span here-token)
-                         datum ...)]))
+       #'(remake-token [here-token here-token] make-css:token datum ...)]))
 
   (define make-bad-token : (-> CSS-Srcloc (-> Symbol Any CSS-Bad) Struct-TypeTop Any CSS:Bad)
     (lambda [src css:bad:sub token datum]
@@ -384,7 +381,7 @@
       (define ch2 : (U EOF Char) (peek-char css 1))
       (cond [(and (char-ci=? id0 #\u) (char? ch1) (char=? ch1 #\+)
                   (or (char-hexdigit? ch2) (and (char? ch2) (char=? ch2 #\?))))
-             (read-char) (css-consume-unicode-range-token srcloc)]
+             (read-char css) (css-consume-unicode-range-token srcloc)]
             [else (let ([name : String (css-consume-name css id0)])
                     (define ch : (U EOF Char) (peek-char css))
                     (cond [(or (eof-object? ch) (not (char=? ch #\()))
@@ -491,9 +488,9 @@
       (define ch2 : (U EOF Char) (peek-char css 1))
       (define ch3 : (U EOF Char) (peek-char css 2))
       (if (or (css-char-name? ch1) (css-valid-escape? ch1 ch2))
-          (make-token srcloc css:hash
-                      (string->keyword (css-consume-name (css-srcloc-in srcloc) #\#))
-                      (if (css-identifier-prefix? ch1 ch2 ch3) 'id 'unrestricted))
+          (let ([name : String (css-consume-name (css-srcloc-in srcloc) #\#)])
+            (make-token srcloc css:hash (string->keyword name)
+                        (if (css-identifier-prefix? ch1 ch2 ch3) 'id 'unrestricted)))
           (make-token srcloc css:delim #\#))))
 
   (define css-consume-@keyword-token : (-> CSS-Srcloc (U CSS:@Keyword CSS:Delim))
@@ -504,7 +501,8 @@
       (define ch2 : (U EOF Char) (peek-char css 1))
       (define ch3 : (U EOF Char) (peek-char css 2))
       (if (css-identifier-prefix? ch1 ch2 ch3)
-          (make-token srcloc css:@keyword (string->keyword (css-consume-name (css-srcloc-in srcloc) #\@)))
+          (let ([name : String (css-consume-name (css-srcloc-in srcloc) #\@)])
+            (make-token srcloc css:@keyword (string->keyword name)))
           (make-token srcloc css:delim #\@))))
 
   (define css-consume-match-token : (-> CSS-Srcloc Char (U CSS:Match CSS:|| CSS:Delim))
@@ -965,7 +963,7 @@
       (cond [(css:delim=:=? reconsumed #\{) (css-consume-simple-block css reconsumed #\})]
             [(css:delim=:=? reconsumed #\[) (css-consume-simple-block css reconsumed #\])]
             [(css:delim=:=? reconsumed #\() (css-consume-simple-block css reconsumed #\))]
-            [(css:function=:=? reconsumed 'url) (css-url-function->url-token (css-consume-function css reconsumed))]
+            [(css:function=:=? reconsumed 'url) (css-function->url (css-consume-function css reconsumed))]
             [(css:function? reconsumed) (css-consume-function css reconsumed)]
             [else reconsumed])))
 
@@ -1007,8 +1005,8 @@
                             [(null? components) func]
                             [else (last components)]))
                     (remake-token [func end-token] css:function
-                                  (string->symbol (symbol->string fname))
-                                  components))])))
+                                  (string->symbol (symbol->string fname)) ; <==> (symbol-unreadable->symbol fname)
+                                  (filter-not css:whitespace? components)))])))
   
   (define css-consume-components : (->* (Input-Port) ((Option Char) Boolean) (Values (Listof CSS-Token) CSS-Syntax-Terminal))
     ;;; https://drafts.csswg.org/css-syntax/#parse-list-of-component-values
@@ -1043,6 +1041,7 @@
 
   (define css-components->declaration : (-> CSS:Ident (Listof CSS-Token) (U CSS-Declaration CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-syntax/#consume-declaration
+    ;;; https://drafts.csswg.org/css-syntax/#typedef-declaration-value
     ;;; https://drafts.csswg.org/css-cascade/#importance
     ;;; https://drafts.csswg.org/css-variables/#defining-variables
     (lambda [id-token components]
@@ -1431,18 +1430,18 @@
           (and (css:delim? token) (memq (css:delim-datum token) '(#\~ #\+ #\>)) #true)
           (css:||? token))))
 
-  (define css-url-function->url-token : (-> CSS:Function CSS:URL)
+  (define css-function->url : (-> CSS:Function CSS:URL)
     (lambda [url]
       (define-values (href modifiers) (css-car (css:function-arguments url)))
       (if (not (css:string? href))
           (remake-token url css:url 'about:invalid null)
           (let ([datum (if (css:string=:=? href "") 'about:invalid (string->bytes/utf-8 (css:string-datum href)))])
-            (let filter-modifiers : CSS:URL ([sreifidom : (Listof (U CSS:Ident CSS:Function)) null]
+            (let filter-modifiers : CSS:URL ([sreifidom : (Listof (U CSS:Ident CSS:Function CSS:URL)) null]
                                              [tail : (Listof CSS-Token) modifiers])
-              (define-values (modifier rest) (css-car tail))
-              (cond [(eof-object? modifier) (remake-token url css:url datum (reverse sreifidom))]
-                    [(or (css:ident? modifier) (css:function? modifier)) (filter-modifiers (cons modifier sreifidom) rest)]
-                    [else (css-make-syntax-error exn:css:unrecognized modifier) (filter-modifiers sreifidom rest)])))))))
+              (define-values (head rest) (css-car tail))
+              (cond [(eof-object? head) (remake-token url css:url datum (reverse sreifidom))]
+                    [(or (css:ident? head) (css:function? head) (css:url? head)) (filter-modifiers (cons head sreifidom) rest)]
+                    [else (css-make-syntax-error exn:css:unrecognized head) (filter-modifiers sreifidom rest)])))))))
 
 (require (submod "." digitama))
 (require (submod "." parser))
