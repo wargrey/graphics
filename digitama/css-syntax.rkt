@@ -74,7 +74,8 @@
 
   (define-syntax (define-tokens stx)
     (syntax-case stx []
-      [(_ token #:+ Token (extra ...)
+      [(_ token
+          #:+ Token (extra ...)
           #:with [[subid #:+ SubID subrest ...] ...]
           [id #:+ ID #:-> parent #:as Type rest ...] ...)
        (with-syntax ([token-datum (format-id #'token "~a-datum" (syntax-e #'token))]
@@ -87,11 +88,9 @@
                      [token-position (format-id #'token "~a-position" (syntax-e #'token))]
                      [token-span (format-id #'token "~a-span" (syntax-e #'token))]
                      [token-position<? (format-id #'token "~a-position<?" (syntax-e #'token))]
-                     #|[([id? id-datum] ...) (for/list ([token-name (in-list (syntax->list #'(id ...)))])
-                                             (syntax-case token-name []
-                                               [<id> (with-syntax ([? (format-id #'<id> "~a?" (syntax-e #'<id>))]
-                                                                   [> (format-id #'<id> "~a-datum" (syntax-e #'<id>))])
-                                                       #'[? >])]))]|#)
+                     #|[([id? id-datum] ...) (for/list ([<id> (in-list (syntax->list #'(id ...)))])
+                                               (list (format-id <id> "~a?" (syntax-e <id>))
+                                                     (format-id <id> "~a-datum" (syntax-e <id>))))]|#)
          #'(begin (struct: token : Token ([source : Any] [line : Natural] [column : Natural] [position : Natural] [span : Natural]
                                                          [datum : Datum]))
                   (struct: subid : SubID subrest ...) ...
@@ -129,16 +128,16 @@
   (define-tokens css-token #:+ CSS-Token ()
     #:with [[css:numeric #:+ CSS:Numeric css-token ([representation : String])]
             [css:number #:+ CSS:Number css:numeric ()]]
-    [css:bad        #:+ CSS:Bad #:-> css-token #:as Datum                        [token : Symbol]]
+    [css:bad        #:+ CSS:Bad #:-> css-token #:as Datum [token : Symbol]]
     [css:close      #:+ CSS:Close #:-> css-token #:as Char]
     [css:cd         #:+ CSS:CD #:-> css-token #:as Symbol #:=? eq?]
     [css:||         #:+ CSS:|| #:-> css-token #:as Symbol #:=? (const #true)]
     [css:match      #:+ CSS:Match #:-> css-token #:as Char]
     [css:ident      #:+ CSS:Ident #:-> css-token #:as Symbol #:=? symbol-ci=?]
-    [css:url        #:+ CSS:URL #:-> css-token #:as (U String Symbol)            [modifiers : (Listof CSS-URL-Modifier)]]
+    [css:url        #:+ CSS:URL #:-> css-token #:as (U String Symbol) [modifiers : (Listof CSS-URL-Modifier)]]
     [css:function   #:+ CSS:Function #:-> css-token #:as Symbol #:=? symbol-ci=? [arguments : (Listof CSS-Token)]]
-    [css:block      #:+ CSS:Block #:-> css-token #:as Char                       [components : (Listof CSS-Token)]]
-    [css:hash       #:+ CSS:Hash #:-> css-token #:as Keyword #:=? keyword-ci=?   [flag : (U 'id 'unrestricted)]]
+    [css:block      #:+ CSS:Block #:-> css-token #:as Char [components : (Listof CSS-Token)]]
+    [css:hash       #:+ CSS:Hash #:-> css-token #:as Keyword #:=? keyword-ci=? [flag : Symbol]]
     [css:@keyword   #:+ CSS:@Keyword #:-> css-token #:as Keyword #:=? keyword-ci=?]
     [css:string     #:+ CSS:String #:-> css-token #:as String #:=? string=?]
     [css:delim      #:+ CSS:Delim #:-> css-token #:as Char]
