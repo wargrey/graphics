@@ -33,7 +33,9 @@
 (provide read-css-stylesheet
          css-namespace-rule->namespace
          css-media-rule->rules
-         css-qualified-rule->style-rule
+         css-qualified-rule->style-rule)
+
+(provide css-feature-support?
          css-components->declaration)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -212,7 +214,7 @@
       (define errobj (exn:css (~a (object-name exn:css)) (continuation-marks #false) (map css-token->syntax tokens)))
       (log-message (current-logger) 'warning 'exn:css:syntax
                    (let-values ([(token others) (if (pair? tokens) (values (car tokens) (cdr tokens)) (values eof null))])
-                     (cond [(eof-object? token) (format "~a: ~a" (object-name exn:css) token)]
+                     (cond [(eof-object? token) (format "~a: ~a" (object-name exn:css) (if (eof-object? v) eof null))]
                            [(null? others) (format "~a: ~a" (object-name exn:css) (css-token->string token))]
                            [else (format "~a: ~a; others: ~s" (object-name exn:css) (css-token->string token)
                                          (map css-token->datum others))]))
@@ -253,7 +255,8 @@
   
   ;; https://drafts.csswg.org/css-syntax/#css-stylesheets
   ;; https://drafts.csswg.org/cssom/#css-object-model
-  (define-type CSS-Features (HashTable Symbol (U Symbol Integer Real)))
+  (define-type CSS-Media-Features (HashTable Symbol (U Symbol Integer Real)))
+  (define-type CSS-Feature-Support? (-> Symbol Any * Boolean))
   (define-type CSS-Imports (HashTable Bytes CSS-StyleSheet))
   (define-type CSS-NameSpace (HashTable Symbol String))
   
@@ -758,7 +761,8 @@
     ;;; https://drafts.csswg.org/css-cascade/#at-import
     ;;; https://drafts.csswg.org/css-conditional/#processing
     ;;; https://drafts.csswg.org/css-conditional/#contents-of
-    (lambda [/dev/cssin [features : CSS-Features (make-hasheq)] [imports : CSS-Imports (make-hash)]]
+    (lambda [/dev/cssin [features : CSS-Media-Features (make-hasheq)] [support? : CSS-Feature-Support? (const #false)]
+                        [imports : CSS-Imports (make-hash)]]
       (define namespaces : CSS-NameSpace (make-hasheq))
       (define rules : (Listof CSS-Grammar-Rule)
         (let syntax->grammar : (Listof CSS-Grammar-Rule)
@@ -788,8 +792,11 @@
                                              (when (pair? ns) (hash-set! namespaces (car ns) (cdr ns)))
                                              (syntax->grammar selur rest #false #true))])]
                               [(css:@keyword=:=? (css-@rule-name rule) '#:@media)
-                               (define subrules (css-media-rule->rules rule))
-                               (syntax->grammar selur (if (pair? subrules) (append subrules rules) rules) #false #false)]
+                               (define subrules (css-media-rule->rules rule features))
+                               (syntax->grammar selur (if (pair? subrules) (append subrules rest) rest) #false #false)]
+                              [(css:@keyword=:=? (css-@rule-name rule) '#:@support)
+                               (define subrules (css-support-rule->rules rule support?))
+                               (syntax->grammar selur (if (pair? subrules) (append subrules rest) rest) #false #false)]
                               [else (syntax->grammar (cons rule selur) rest #false #false)]))])))
       (make-css-stylesheet (or (object-name /dev/cssin) '/dev/cssin) imports namespaces rules)))
 
@@ -871,7 +878,7 @@
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-query-list
     ;;; https://drafts.csswg.org/mediaqueries/#error-handling
-    (lambda [/dev/cssin]
+    (lambda [/dev/cssin [errule : CSS-Syntax-Any eof]]
       (define maybe-eof (css-peek-syntax/skip-whitespace /dev/cssin))
       (cond [(eof-object? maybe-eof) null]
             [else (for/list : (Listof CSS-Media-Query) ([entry (in-list (css-consume-componentses /dev/cssin #:omit-comma? #true))])
@@ -888,15 +895,15 @@
                              (cond [(eof-object? maybe-type) (css-make-syntax-error exn:css:missing-identifier maybe-type)]
                                    [(css:ident? maybe-type) (css-components->media-type+query maybe-type #true maybe-<and>)]
                                    [else (css-make-syntax-error exn:css:unrecognized maybe-type)])]
-                            [else (css-components->feature-query entry #:@media? #true)])))])))
+                            [else (css-components->feature-query entry errule #:@media? #true)])))])))
 
   (define-css-parser-entry css-parse-feature-query :-> CSS-Feature-Query
     ;;; https://drafts.csswg.org/mediaqueries/#media-types
     ;;; https://drafts.csswg.org/css-conditional/#at-supports
-    (lambda [/dev/cssin]
+    (lambda [/dev/cssin [errule : CSS-Syntax-Any eof]]
       (define-values (conditions _) (css-consume-components /dev/cssin))
       (with-handlers ([exn:fail:syntax? (λ [[e : exn:fail:syntax]] e)])
-        (css-components->feature-query conditions #:@media? #false))))
+        (css-components->feature-query conditions #:@media? #false errule))))
   
   (define-css-parser-entry css-parse-selectors :-> (U (Listof CSS-Complex-Selector) CSS-Syntax-Error)
     ;;; https://drafts.csswg.org/selectors/#structure
@@ -942,15 +949,31 @@
             [(eof-object? 2nd) (cons '_ namespace)]
             [else (css-make-syntax-error exn:css:unrecognized 1st)])))
 
-  (define css-media-rule->rules : (-> CSS-@Rule (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
+  (define css-media-rule->rules : (-> CSS-@Rule CSS-Media-Features (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-conditional/#contents-of
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
-    (lambda [media]
+    (lambda [media features]
       (define name : CSS:@Keyword (css-@rule-name media))
-      (define prelude : (Listof CSS-Token) (css-@rule-prelude media))
+      (define queries : (Listof CSS-Media-Query) (css-parse-media-queries (css-@rule-prelude media) name))
       (define maybe-block : (Option CSS:Block) (css-@rule-block media))
-      (cond [(false? maybe-block) (css-make-syntax-error exn:css:missing-block name)]
-            [else (css-parse-rules (css:block-components maybe-block))])))
+      (if (false? maybe-block)
+          (css-make-syntax-error exn:css:missing-block name)
+          (let ([rules : (Promise (Listof CSS-Syntax-Rule)) (delay (css-parse-rules (css:block-components maybe-block)))])
+            (if (or (null? queries) (ormap (λ [[q : CSS-Media-Query]] (css-feature-support? q features)) queries))
+                (force rules)
+                null)))))
+
+  (define css-support-rule->rules : (-> CSS-@Rule CSS-Feature-Support? (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
+    ;;; https://drafts.csswg.org/css-conditional/#contents-of
+    ;;; https://drafts.csswg.org/css-conditional/#at-supports
+    (lambda [support support?]
+      (define name : CSS:@Keyword (css-@rule-name support))
+      (define maybe-query : (U CSS-Feature-Query CSS-Syntax-Error) (css-parse-feature-query (css-@rule-prelude support) name))
+      (define maybe-block : (Option CSS:Block) (css-@rule-block support))
+      (cond [(exn? maybe-query) maybe-query]
+            [(false? maybe-block) (css-make-syntax-error exn:css:missing-block name)]
+            [(css-feature-support? maybe-query support?) (css-parse-rules (css:block-components maybe-block))]
+            [else null])))
   
   (define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (U CSS-Style-Rule CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-syntax/#style-rules
@@ -1138,13 +1161,13 @@
             [(css-null? maybe-conditions) (css-make-syntax-error exn:css:missing-feature maybe-and)]
             [else (cons (make-css-media-type media not?) (css-components->junction maybe-conditions 'and #false #true))])))
   
-  (define css-components->feature-query : (-> (Listof CSS-Token) #:@media? Boolean CSS-Feature-Query)
+  (define css-components->feature-query : (-> (Listof CSS-Token) CSS-Syntax-Any #:@media? Boolean CSS-Feature-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#mq-only
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
-    (lambda [conditions #:@media? media?]
+    (lambda [conditions errule #:@media? media?]
       (define-values (token rest) (css-car conditions))
       (define-values (operator chain) (css-car rest))
-      (cond [(eof-object? token) (css-throw-syntax-error exn:css:missing-feature conditions)]
+      (cond [(eof-object? token) (css-throw-syntax-error exn:css:missing-feature errule)]
             [(css:ident=:=? token 'not) (css-components->negation token rest media?)]
             [(eof-object? operator) (css-component->feature-query media? token)]
             [(or (css:ident=:=? operator 'and) (css:ident=:=? operator 'or))
@@ -1163,7 +1186,7 @@
              (define subany : (Listof CSS-Token) (css:block-components condition))
              (define-values (name any-values) (css-car subany))
              (define-values (op value-list) (css-car any-values))
-             (cond [(css:block=:=? name #\() (css-components->feature-query subany #:@media? media?)]
+             (cond [(css:block=:=? name #\() (css-components->feature-query subany condition #:@media? media?)]
                    [(css:ident=:=? name 'not) (css-components->negation name any-values media?)]
                    [(and (css:ident? name) (eof-object? op)) (css-media-feature name name #\?)]
                    [(and (css:ident? name) (css:delim=:=? op #\:))
@@ -1201,6 +1224,23 @@
               [(or (eof-object? token) (css:ident=:=? token op)) (components->junction (cons condition junctions) others)]
               [(or (css:ident=:=? token 'and) (css:ident=:=? token 'or)) (css-throw-syntax-error exn:css:misplaced token)]
               [else (css-throw-syntax-error exn:css:overconsumption token)]))))
+
+  (define css-feature-support? : (-> CSS-Media-Query (U CSS-Media-Features CSS-Feature-Support?) Boolean)
+    ;;; https://drafts.csswg.org/css-conditional/#at-supports
+    ;;; https://drafts.csswg.org/mediaqueries/#evaluating
+    ;;; https://drafts.csswg.org/mediaqueries/#media-types
+    (lambda [query support?]
+      (cond [(css-not? query) (not (css-feature-support? (css-not-condition query) support?))]
+            [(css-and? query) (andmap (λ [[q : CSS-Feature-Query]] (css-feature-support? q support?)) (css-and-conditions query))]
+            [(css-or? query) (ormap (λ [[q : CSS-Feature-Query]] (css-feature-support? q support?)) (css-or-conditions query))]
+            [else (and (hash? support?)
+                       (css-media-type? query)
+                       (let ([application-media (hash-ref support? 'media (λ _ 'all))])
+                         (and (symbol? application-media)
+                              (let ([result (or (css:ident=:=? (css-media-type-name query) application-media)
+                                                (css:ident=:=? (css-media-type-name query) 'all))])
+                                (cond [(css-media-type-only? query) result]
+                                      [else (not result)])))))])))
 
   (define css-components->media-range-query : (-> (Listof CSS-Token) CSS:Block CSS-Feature-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#mq-features
