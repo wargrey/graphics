@@ -14,7 +14,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide (all-defined-out))
-(provide (all-from-out (submod "." digitama)))
+(provide (except-out (all-from-out (submod "." digitama)) symbol-downcase symbol-ci=? keyword-ci=?))
 
 ; https://drafts.csswg.org/css-syntax/#parser-entry-points
 (provide css-parse-stylesheet
@@ -40,7 +40,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module digitama typed/racket
-  (provide (except-out (all-defined-out) symbol-ci=? keyword-ci=?))
+  (provide (all-defined-out))
 
   (require (for-syntax racket/syntax))
   (require (for-syntax syntax/parse))
@@ -163,19 +163,26 @@
   (struct: css:bad:range:index : CSS:Bad:Range:Index css:bad ())
   (struct: css:bad:stdin : CSS:Bad:StdIn css:bad ())
 
+  (define css-numeric->scalar : (-> CSS:Numeric Real)
+    ;;; https://drafts.csswg.org/css-values/#numeric-types
+    (lambda [n]
+      (define datum : Datum (if (css:percentage? n) (cons (css:percentage-datum n) '%) (css-token->datum n)))
+      (cond [(real? datum) datum]
+            [else +nan.0])))
+  
   (define css-length->scalar : (case-> [Nonnegative-Exact-Rational Symbol -> Nonnegative-Exact-Rational] [Real Symbol -> Real])
     ;;; https://drafts.csswg.org/css-values/#absolute-lengths
     (lambda [n unit]
       (case unit
-        [(px) n]
-        [(cm) (* n 9600/254)]
+        [(dppx px) n]
+        [(dpcm cm) (* n 9600/254)]
         [(mm) (* n 9600/254 1/10)]
         [(q) (* n 9600/254 1/40)]
-        [(in) (* n 96)]
+        [(dpi in) (* n 96)]
         [(pc) (* n 96 1/6)]
         [(pt) (* n 96 1/72)]
         [else (raise-argument-error 'css-length->real "(or/c px cm mm q in pc pt)" unit)])))
-  
+
   ;;; https://drafts.csswg.org/css-syntax/#parsing
   (define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
   (define-type CSS-URL-Modifier (U CSS:Ident CSS:Function CSS:URL))
@@ -184,12 +191,14 @@
   (define-type CSS-Syntax-Rule (U CSS-Qualified-Rule CSS-@Rule))
   (define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule))
 
-  (define-type CSS-Syntax-Error exn:fail:syntax)
+  (define-type CSS-Syntax-Error exn:css)
   (define-type Make-CSS-Syntax-Error (-> String Continuation-Mark-Set (Listof Syntax) CSS-Syntax-Error))
 
   (struct exn:css exn:fail:syntax ())
+  (struct exn:css:deprecated exn:css ())
   (struct exn:css:unrecognized exn:css ())
   (struct exn:css:misplaced exn:css:unrecognized ())
+  (struct exn:css:range exn:css:unrecognized ())
   (struct exn:css:overconsumption exn:css:unrecognized ())
   (struct exn:css:enclosed exn:css:overconsumption ())
   (struct exn:css:malformed exn:css ())
@@ -255,8 +264,9 @@
   
   ;; https://drafts.csswg.org/css-syntax/#css-stylesheets
   ;; https://drafts.csswg.org/cssom/#css-object-model
-  (define-type CSS-Media-Features (HashTable Symbol (U Symbol Integer Real)))
-  (define-type CSS-Feature-Support? (-> Symbol Any * Boolean))
+  (define-type CSS-Media-Filter (-> Symbol (Option CSS-Media-Value) CSS:Ident Boolean (U CSS-Media-Value/Racket CSS-Syntax-Error Void)))
+  (define-type CSS-Media-Features (HashTable (U Symbol Keyword) CSS-Media-Value/Racket))
+  (define-type CSS-Feature-Support? (-> Symbol (Listof Datum) Boolean))
   (define-type CSS-Imports (HashTable Bytes CSS-StyleSheet))
   (define-type CSS-NameSpace (HashTable Symbol String))
   
@@ -269,25 +279,74 @@
      [rules : (Listof CSS-Grammar-Rule)]))
 
   ;; https://drafts.csswg.org/css-conditional/#at-supports
-  ;; https://drafts.csswg.org/mediaqueries/#mq-syntax
   ;; https://drafts.csswg.org/mediaqueries/#media-types
+  ;; https://drafts.csswg.org/mediaqueries/#mq-syntax
   ;; https://drafts.csswg.org/mediaqueries/#mq-features
   (define-type CSS-Media-Query (U CSS-Media-Type CSS-Feature-Query (Pairof CSS-Media-Type CSS-Feature-Query)))
-  (define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature CSS-Declaration CSS-Syntax-Error))
-  (define-type CSS-Media-Value (U CSS:Integer CSS:Number CSS:Dimension CSS:Ident CSS:Ratio))
+  (define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature CSS-Declaration Symbol CSS-Syntax-Error))
+  (define-type CSS-Media-Value (U CSS:Number CSS:Dimension CSS:Ident))
+  (define-type CSS-Media-Value/Racket (U Real Symbol))
 
-  (struct: css-media-type : CSS-Media-Type ([name : CSS:Ident] [only? : Boolean]))
-  (struct: css-media-feature : CSS-Media-Feature ([name : CSS:Ident] [value : CSS-Media-Value] [operator : Char]))
+  (struct: css-media-type : CSS-Media-Type ([name : Symbol] [only? : Boolean]))
+  (struct: css-media-feature : CSS-Media-Feature ([name : Symbol] [value : CSS-Media-Value/Racket] [operator : Char]))
   (struct: css-not : CSS-Not ([condition : CSS-Feature-Query]))
   (struct: css-and : CSS-And ([conditions : (Listof CSS-Feature-Query)]))
   (struct: css-or : CSS-Or ([conditions : (Listof CSS-Feature-Query)]))
 
-  (define css-media-value? : (-> Any Boolean : #:+ CSS-Media-Value)
-    (lambda [v]
-      (or (css:ident? v)
-          (css:number? v)
-          (css:dimension? v))))
-  
+  (define css-media-filter : CSS-Media-Filter
+    ;;; https://drafts.csswg.org/mediaqueries/#media-descriptor-table
+    ;;; https://drafts.csswg.org/mediaqueries/#mf-deprecated
+    ;;; https://drafts.csswg.org/mediaqueries/#units
+    (lambda [downcased-name maybe-value feature prefixed?]
+      (when (memq downcased-name '(device-width device-height device-aspect-ratio))
+        (css-make-syntax-error exn:css:deprecated feature))
+      (case downcased-name
+        [(width height device-width device-height)
+         (unless (false? maybe-value)
+           (cond [(not (css:numeric? maybe-value)) (css-make-syntax-error exn:css:unrecognized maybe-value)]
+                 [else (let ([v (css-numeric->scalar maybe-value)])
+                         (cond [(<= v 0) (css-make-syntax-error exn:css:range maybe-value)]
+                               [else v]))]))]
+        [(aspect-ratio device-aspect-ratio)
+         (unless (false? maybe-value)
+           (cond [(css:ratio? maybe-value) (css:ratio-datum maybe-value)]
+                 [else (css-make-syntax-error exn:css:unrecognized maybe-value)]))]
+        [(color color-index monochrome)
+         (unless (false? maybe-value)
+           (cond [(not (css:integer? maybe-value)) (css-make-syntax-error exn:css:unrecognized maybe-value)]
+                 [else (let ([v (css:integer-datum maybe-value)])
+                         (cond [(< v 0) (css-make-syntax-error exn:css:range maybe-value)]
+                               [else v]))]))]
+        [(grid)
+         (cond [(and prefixed?) (css-throw-syntax-error exn:css:unrecognized feature)]
+               [(css:integer? maybe-value) (when (zero? (css:integer-datum maybe-value)) 0)]
+               [(css-token? maybe-value) (css-make-syntax-error exn:css:unrecognized maybe-value)])]
+        [(resolution)
+         (unless (false? maybe-value)
+           (cond [(css:ident=:=? maybe-value 'infinite) +inf.0]
+                 [(not (css:dimension? maybe-value)) (css-make-syntax-error exn:css:unrecognized maybe-value)]
+                 [else (let ([v (css-numeric->scalar maybe-value)])
+                         (cond [(<= v 0) (css-make-syntax-error exn:css:range maybe-value)]
+                               [else v]))]))]
+        [(orientation scan update overflow-block overflow-inline color-gamut pointer hover any-pointer any-hover scripting)
+         (unless (false? maybe-value)
+           (cond [(not (css:ident? maybe-value)) (css-make-syntax-error exn:css:unrecognized maybe-value)]
+                 [else (let ([downcased-enum (symbol-downcase (css:ident-datum maybe-value))])
+                         (if (memq downcased-enum (case downcased-name
+                                                    [(orientation) '(portrait landscape)]
+                                                    [(scan) '(interlace progressive)]
+                                                    [(update) '(none slow fast)]
+                                                    [(overflow-block) '(none scroll optional-paged paged)]
+                                                    [(overflow-inline) '(none scroll)]
+                                                    [(color-gamut) '(srgb p3 rec2020)]
+                                                    [(pointer any-pointer) '(none coarse fine)]
+                                                    [(havor any-havor) '(none havor)]
+                                                    [(scripting) '(none initial-only enabled)]
+                                                    [else null]))
+                             downcased-enum
+                             (css-make-syntax-error exn:css:range maybe-value)))]))]
+        [else (css-make-syntax-error exn:css:unrecognized feature)])))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-car : (All (CSS-DT) (-> (Listof CSS-DT) (Values (U CSS-DT EOF) (Listof CSS-DT))))
     (lambda [dirty]
@@ -303,6 +362,10 @@
         (or (null? rest)
             (and (css:whitespace? (car rest))
                  (skip-whitespace (cdr rest)))))))
+
+  (define symbol-downcase : (-> Symbol Symbol)
+    (lambda [sym]
+      (string->symbol (string-downcase (symbol->string sym)))))
   
   (define symbol-ci=? : (-> Symbol Symbol Boolean)
     (lambda [sym1 sym2]
@@ -565,8 +628,8 @@
   
   (define css-consume-name : (-> Input-Port (Option Char) String)
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-name
-    (lambda [css leader]
-      (let consume-name : String ([srahc : (Listof Char) (if leader (list leader) null)])
+    (lambda [css maybe-head]
+      (let consume-name : String ([srahc : (Listof Char) (if maybe-head (list maybe-head) null)])
         (define ch : (U EOF Char) (peek-char css))
         (cond [(css-char-name? ch) (read-char css) (consume-name (cons ch srahc))]
               [(css-valid-escape? ch (peek-char css 1)) (read-char css) (consume-name (cons (css-consume-escaped-char css) srahc))]
@@ -743,6 +806,15 @@
   (require (submod ".." digitama))
   (require (submod ".." tokenizer))
 
+  (define-syntax (css-make-media-feature stx)
+    (syntax-case stx []
+      [(_ name value op media-filter extra ...)
+       #'(let* ([downcased-name : Symbol (symbol-downcase (css:ident-datum name))]
+                [v (media-filter downcased-name value extra ...)])
+           (cond [(exn:css? v) (raise v)]
+                 [(void? v) downcased-name]
+                 [else (make-css-media-feature downcased-name v op)]))]))
+  
   (define-syntax (define-css-parser-entry stx)
     ;;; https://drafts.csswg.org/css-syntax/#parser-entry-points
     (syntax-case stx [: :-> lambda]
@@ -752,7 +824,7 @@
            (dynamic-wind (thunk (port-count-lines! /dev/cssin))
                          (thunk ((λ [[cssin : Input-Port] [args : T defval] ...] : ->T body ...) /dev/cssin args ...))
                          (thunk (close-input-port /dev/cssin))))]))
-  
+
   ;;; https://drafts.csswg.org/css-syntax/#parser-entry-points
   (define-css-parser-entry read-css-stylesheet :-> CSS-StyleSheet
     ;;; https://drafts.csswg.org/css-syntax/#parse-a-css-stylesheet
@@ -761,9 +833,12 @@
     ;;; https://drafts.csswg.org/css-cascade/#at-import
     ;;; https://drafts.csswg.org/css-conditional/#processing
     ;;; https://drafts.csswg.org/css-conditional/#contents-of
-    (lambda [/dev/cssin [features : CSS-Media-Features (make-hasheq)] [support? : CSS-Feature-Support? (const #false)]
-                        [imports : CSS-Imports (make-hash)]]
+    (lambda [/dev/cssin [media : (U CSS-Media-Features (Pairof CSS-Media-Features CSS-Media-Filter)) (make-hasheq)]
+                        [support? : CSS-Feature-Support? (const #false)] [imports : CSS-Imports (make-hash)]]
       (define namespaces : CSS-NameSpace (make-hasheq))
+      (define-values (media-features media-filter)
+        (cond [(pair? media) (values (car media) (cdr media))]
+              [else (values media css-media-filter)]))
       (define rules : (Listof CSS-Grammar-Rule)
         (let syntax->grammar : (Listof CSS-Grammar-Rule)
           ([selur : (Listof CSS-Grammar-Rule) null]
@@ -792,7 +867,7 @@
                                              (when (pair? ns) (hash-set! namespaces (car ns) (cdr ns)))
                                              (syntax->grammar selur rest #false #true))])]
                               [(css:@keyword=:=? (css-@rule-name rule) '#:@media)
-                               (define subrules (css-media-rule->rules rule features))
+                               (define subrules (css-media-rule->rules rule media-features media-filter))
                                (syntax->grammar selur (if (pair? subrules) (append subrules rest) rest) #false #false)]
                               [(css:@keyword=:=? (css-@rule-name rule) '#:@support)
                                (define subrules (css-support-rule->rules rule support?))
@@ -878,32 +953,32 @@
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-query-list
     ;;; https://drafts.csswg.org/mediaqueries/#error-handling
-    (lambda [/dev/cssin [errule : CSS-Syntax-Any eof]]
+    (lambda [/dev/cssin [media-filter : CSS-Media-Filter css-media-filter] [rulename : CSS-Syntax-Any eof]]
       (define maybe-eof (css-peek-syntax/skip-whitespace /dev/cssin))
       (cond [(eof-object? maybe-eof) null]
             [else (for/list : (Listof CSS-Media-Query) ([entry (in-list (css-consume-componentses /dev/cssin #:omit-comma? #true))])
-                    (with-handlers ([exn:fail:syntax? (λ [[e : exn:fail:syntax]] e)])
+                    (with-handlers ([exn:css? (λ [[errcss : exn:css]] errcss)])
                       (define-values (token tokens) (css-car entry))
                       (define-values (next rest) (css-car tokens))
                       (cond [(css:ident=:=? token 'not)
-                             (cond [(css:ident? next) (css-components->media-type+query next #false rest)]
-                                   [else (css-components->negation token tokens #true)])]
+                             (cond [(css:ident? next) (css-components->media-type+query next #false media-filter rest)]
+                                   [else (css-components->negation token tokens media-filter)])]
                             [(css:ident? token)
                              (define-values (maybe-type maybe-<and>)
                                (cond [(css:ident=:=? token 'only) (values next rest)]
                                      [else (values token tokens)]))
                              (cond [(eof-object? maybe-type) (css-make-syntax-error exn:css:missing-identifier maybe-type)]
-                                   [(css:ident? maybe-type) (css-components->media-type+query maybe-type #true maybe-<and>)]
+                                   [(css:ident? maybe-type) (css-components->media-type+query maybe-type #true media-filter maybe-<and>)]
                                    [else (css-make-syntax-error exn:css:unrecognized maybe-type)])]
-                            [else (css-components->feature-query entry errule #:@media? #true)])))])))
+                            [else (css-components->feature-query entry media-filter rulename)])))])))
 
   (define-css-parser-entry css-parse-feature-query :-> CSS-Feature-Query
     ;;; https://drafts.csswg.org/mediaqueries/#media-types
     ;;; https://drafts.csswg.org/css-conditional/#at-supports
-    (lambda [/dev/cssin [errule : CSS-Syntax-Any eof]]
+    (lambda [/dev/cssin [rulename : CSS-Syntax-Any eof]]
       (define-values (conditions _) (css-consume-components /dev/cssin))
-      (with-handlers ([exn:fail:syntax? (λ [[e : exn:fail:syntax]] e)])
-        (css-components->feature-query conditions #:@media? #false errule))))
+      (with-handlers ([exn:css? (λ [[errcss : exn:css]] errcss)])
+        (css-components->feature-query conditions (and 'media-filter #false) rulename))))
   
   (define-css-parser-entry css-parse-selectors :-> (U (Listof CSS-Complex-Selector) CSS-Syntax-Error)
     ;;; https://drafts.csswg.org/selectors/#structure
@@ -911,7 +986,7 @@
     ;;; https://drafts.csswg.org/selectors/#selector-list
     ;;; https://drafts.csswg.org/selectors/#grouping
     (lambda [/dev/cssin]
-      (with-handlers ([exn:fail:syntax? (λ [[e : exn:fail:syntax]] e)])
+      (with-handlers ([exn:css? (λ [[errcss : exn:css]] errcss)])
         (let consume-selector : (Listof CSS-Complex-Selector)
           ([selectors : (Listof CSS-Complex-Selector) null]
            [last-terminal : CSS-Syntax-Terminal eof])
@@ -949,19 +1024,18 @@
             [(eof-object? 2nd) (cons '_ namespace)]
             [else (css-make-syntax-error exn:css:unrecognized 1st)])))
 
-  (define css-media-rule->rules : (-> CSS-@Rule CSS-Media-Features (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
+  (define css-media-rule->rules : (-> CSS-@Rule CSS-Media-Features CSS-Media-Filter (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-conditional/#contents-of
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
-    (lambda [media features]
+    (lambda [media features media-filter]
       (define name : CSS:@Keyword (css-@rule-name media))
-      (define queries : (Listof CSS-Media-Query) (css-parse-media-queries (css-@rule-prelude media) name))
+      (define queries : (Listof CSS-Media-Query) (css-parse-media-queries (css-@rule-prelude media) media-filter name))
       (define maybe-block : (Option CSS:Block) (css-@rule-block media))
       (if (false? maybe-block)
           (css-make-syntax-error exn:css:missing-block name)
-          (let ([rules : (Promise (Listof CSS-Syntax-Rule)) (delay (css-parse-rules (css:block-components maybe-block)))])
-            (if (or (null? queries) (ormap (λ [[q : CSS-Media-Query]] (css-feature-support? q features)) queries))
-                (force rules)
-                null)))))
+          (if (or (null? queries) (ormap (λ [[q : CSS-Media-Query]] (css-feature-support? q features)) queries))
+              (css-parse-rules (css:block-components maybe-block))
+              null))))
 
   (define css-support-rule->rules : (-> CSS-@Rule CSS-Feature-Support? (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-conditional/#contents-of
@@ -1150,76 +1224,80 @@
               [else (consume-body (cons (css-consume-component-value css token) components))]))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define css-components->media-type+query : (-> CSS:Ident Boolean (Listof CSS-Token) CSS-Media-Query)
+  (define css-components->media-type+query : (-> CSS:Ident Boolean CSS-Media-Filter (Listof CSS-Token) CSS-Media-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-query
-    (lambda [media not? conditions]
-      (define type (css:ident-datum media))
+    (lambda [media only? media-filter conditions]
+      (define downcased-type : Symbol (symbol-downcase (css:ident-datum media)))
       (define-values (maybe-and maybe-conditions) (css-car conditions))
-      (cond [(memq type '(only not and or)) (css-make-syntax-error exn:css:misplaced media)]
-            [(eof-object? maybe-and) (make-css-media-type media not?)]
+      (cond [(memq downcased-type '(only not and or)) (css-make-syntax-error exn:css:misplaced media)]
+            [(eof-object? maybe-and) (make-css-media-type downcased-type only?)]
             [(not (css:ident=:=? maybe-and 'and)) (css-make-syntax-error exn:css:unrecognized maybe-and)]
             [(css-null? maybe-conditions) (css-make-syntax-error exn:css:missing-feature maybe-and)]
-            [else (cons (make-css-media-type media not?) (css-components->junction maybe-conditions 'and #false #true))])))
+            [else (cons (make-css-media-type downcased-type only?)
+                        (css-components->junction maybe-conditions 'and #false media-filter))])))
   
-  (define css-components->feature-query : (-> (Listof CSS-Token) CSS-Syntax-Any #:@media? Boolean CSS-Feature-Query)
+  (define css-components->feature-query : (-> (Listof CSS-Token) (Option CSS-Media-Filter) CSS-Syntax-Any CSS-Feature-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#mq-only
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
-    (lambda [conditions errule #:@media? media?]
+    (lambda [conditions maybe-filter alt]
       (define-values (token rest) (css-car conditions))
       (define-values (operator chain) (css-car rest))
-      (cond [(eof-object? token) (css-throw-syntax-error exn:css:missing-feature errule)]
-            [(css:ident=:=? token 'not) (css-components->negation token rest media?)]
-            [(eof-object? operator) (css-component->feature-query media? token)]
+      (cond [(eof-object? token) (css-throw-syntax-error exn:css:missing-feature alt)]
+            [(css:ident=:=? token 'not) (css-components->negation token rest maybe-filter)]
+            [(eof-object? operator) (css-component->feature-query maybe-filter token)]
             [(or (css:ident=:=? operator 'and) (css:ident=:=? operator 'or))
-             (css-components->junction chain (css:ident-datum operator) token media?)]
+             (css-components->junction chain (css:ident-datum operator) token maybe-filter)]
             [else (css-throw-syntax-error exn:css:unrecognized operator)])))
 
-  (define css-component->feature-query : (-> Boolean CSS-Token CSS-Feature-Query)
+  (define css-component->feature-query : (-> (Option CSS-Media-Filter) CSS-Token CSS-Feature-Query)
     ;;; https://drafts.csswg.org/css-syntax/#preserved-tokens
     ;;; https://drafts.csswg.org/css-conditional/#at-supports
     ;;; https://drafts.csswg.org/mediaqueries/#mq-features
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
     ;;; https://drafts.csswg.org/mediaqueries/#mq-boolean-context
     ;;; https://drafts.csswg.org/mediaqueries/#mq-range-context
-    (lambda [media? condition]
+    (lambda [maybe-filter condition]
       (cond [(css:block=:=? condition #\()
              (define subany : (Listof CSS-Token) (css:block-components condition))
              (define-values (name any-values) (css-car subany))
              (define-values (op value-list) (css-car any-values))
-             (cond [(css:block=:=? name #\() (css-components->feature-query subany condition #:@media? media?)]
-                   [(css:ident=:=? name 'not) (css-components->negation name any-values media?)]
-                   [(and (css:ident? name) (eof-object? op)) (css-media-feature name name #\?)]
+             (cond [(css:block=:=? name #\() (css-components->feature-query subany maybe-filter condition)]
+                   [(css:ident=:=? name 'not) (css-components->negation name any-values maybe-filter)]
                    [(and (css:ident? name) (css:delim=:=? op #\:))
                     (define descriptor (css-components->declaration name any-values))
-                    (cond [(exn? descriptor) (if media? (css-throw-syntax-error exn:css:enclosed condition) (raise descriptor))]
-                          [(and media?) (css-declaration->media-query descriptor condition)]
+                    (cond [(exn? descriptor) (if maybe-filter (css-throw-syntax-error exn:css:enclosed condition) (raise descriptor))]
+                          [(procedure? maybe-filter) (css-declaration->media-query descriptor maybe-filter condition)]
                           [else descriptor])]
-                   [(and media?) (css-components->media-range-query subany condition)]
+                   [(procedure? maybe-filter)
+                    (cond [(and (css:ident? name) (eof-object? op)) (css-make-media-feature name #false #\? maybe-filter name #false)]
+                          [else (css-components->media-range-query subany maybe-filter condition)])]
                    [(eof-object? name) (css-throw-syntax-error exn:css:empty condition)]
+                   [(css:ident? name) (css-throw-syntax-error exn:css:missing-value condition)]
+                   [(css:function? condition) (css-throw-syntax-error exn:css:enclosed condition)]
                    [else (css-throw-syntax-error exn:css:unrecognized condition)])]
             [(css:function? condition) (css-throw-syntax-error exn:css:enclosed condition)]
             [else (css-throw-syntax-error exn:css:unrecognized condition)])))
 
-  (define css-components->negation : (-> CSS:Ident (Listof CSS-Token) Boolean CSS-Not)
+  (define css-components->negation : (-> CSS:Ident (Listof CSS-Token) (Option CSS-Media-Filter) CSS-Not)
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-not
-    (lambda [<not> tokens media?]
+    (lambda [<not> tokens maybe-filter]
       (define-values (token rest) (css-car tokens))
       (cond [(eof-object? token) (css-throw-syntax-error exn:css:missing-feature <not>)]
             [(css:ident=:=? token 'not) (css-throw-syntax-error exn:css:misplaced token)]
-            [(css-null? rest) (make-css-not (css-component->feature-query media? token))]
+            [(css-null? rest) (make-css-not (css-component->feature-query maybe-filter token))]
             [else (css-throw-syntax-error exn:css:overconsumption rest)])))
 
-  (define css-components->junction : (-> (Listof CSS-Token) Symbol (Option CSS-Token) Boolean (U CSS-And CSS-Or))
+  (define css-components->junction : (-> (Listof CSS-Token) Symbol (Option CSS-Token) (Option CSS-Media-Filter) (U CSS-And CSS-Or))
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-and
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-or
-    (lambda [conditions op leader media?]
+    (lambda [conditions op maybe-head maybe-filter]
       (define make-junction (if (eq? op 'and) make-css-and make-css-or))
       (let components->junction : (U CSS-And CSS-Or)
-        ([junctions : (Listof CSS-Token) (if (false? leader) null (list leader))]
+        ([junctions : (Listof CSS-Token) (if (false? maybe-head) null (list maybe-head))]
          [rest-conditions : (Listof CSS-Token) conditions])
         (define-values (condition rest) (css-car rest-conditions))
         (define-values (token others) (css-car rest))
-        (cond [(eof-object? condition) (make-junction (map (curry css-component->feature-query media?) (reverse junctions)))]
+        (cond [(eof-object? condition) (make-junction (map (curry css-component->feature-query maybe-filter) (reverse junctions)))]
               [(css:ident=:=? condition 'not) (css-throw-syntax-error exn:css:misplaced condition)]
               [(or (eof-object? token) (css:ident=:=? token op)) (components->junction (cons condition junctions) others)]
               [(or (css:ident=:=? token 'and) (css:ident=:=? token 'or)) (css-throw-syntax-error exn:css:misplaced token)]
@@ -1229,23 +1307,41 @@
     ;;; https://drafts.csswg.org/css-conditional/#at-supports
     ;;; https://drafts.csswg.org/mediaqueries/#evaluating
     ;;; https://drafts.csswg.org/mediaqueries/#media-types
+    ;;; https://drafts.csswg.org/mediaqueries/#boolean-context
     (lambda [query support?]
       (cond [(css-not? query) (not (css-feature-support? (css-not-condition query) support?))]
             [(css-and? query) (andmap (λ [[q : CSS-Feature-Query]] (css-feature-support? q support?)) (css-and-conditions query))]
             [(css-or? query) (ormap (λ [[q : CSS-Feature-Query]] (css-feature-support? q support?)) (css-or-conditions query))]
-            [else (and (hash? support?)
-                       (css-media-type? query)
-                       (let ([application-media (hash-ref support? 'media (λ _ 'all))])
-                         (and (symbol? application-media)
-                              (let ([result (or (css:ident=:=? (css-media-type-name query) application-media)
-                                                (css:ident=:=? (css-media-type-name query) 'all))])
-                                (cond [(css-media-type-only? query) result]
-                                      [else (not result)])))))])))
+            [(hash? support?)
+             (cond [(css-media-feature? query)
+                    (define downcased-name : Symbol (css-media-feature-name query))
+                    (define datum : CSS-Media-Value/Racket (css-media-feature-value query))
+                    (define metadata : (U CSS-Media-Value/Racket EOF) (hash-ref support? downcased-name (λ _ eof)))
+                    (cond [(symbol? datum) (and (symbol? metadata) (symbol-ci=? datum metadata))]
+                          [(real? metadata) (case (css-media-feature-operator query)
+                                              [(#\>) (> metadata datum)] [(#\≥) (>= metadata datum)]
+                                              [(#\<) (< metadata datum)] [(#\≤) (<= metadata datum)]
+                                              [else (= metadata datum)])]
+                          [else #false])]
+                   [(symbol? query)
+                    (define metadata : CSS-Media-Value/Racket (hash-ref support? query (λ _ 'none)))
+                    (not (if (symbol? metadata) (symbol-ci=? metadata 'none) (zero? metadata)))]
+                   [(css-media-type? query)
+                    (define media : CSS-Media-Value/Racket (hash-ref support? '#:@media (λ _ 'all)))
+                    (define result (and (symbol? media) (memq (css-media-type-name query) (list media 'all))))
+                    (if (css-media-type-only? query) (and result #true) (not result))]
+                   [else (and (pair? query)
+                              (css-feature-support? (car query) support?)
+                              (css-feature-support? (cdr query) support?))])]
+            [else (and (procedure? support?)
+                       (css-declaration? query)
+                       (support? (css:ident-datum (css-declaration-name query))
+                                 (map css-token->datum (css-declaration-values query))))])))
 
-  (define css-components->media-range-query : (-> (Listof CSS-Token) CSS:Block CSS-Feature-Query)
+  (define css-components->media-range-query : (-> (Listof CSS-Token) CSS-Media-Filter CSS:Block CSS-Feature-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#mq-features
     ;;; https://drafts.csswg.org/mediaqueries/#mq-range-context
-    (lambda [components broken-condition]
+    (lambda [components media-filter broken-condition]
       (define-values (value0 rest0) (css-car-media-value components))
       (define-values (d0 op0 po0 rest1) (css-car-comparison-operator rest0))
       (define-values (value1 rest2) (css-car-media-value rest1))
@@ -1256,30 +1352,32 @@
             [(eof-object? value1) (css-throw-syntax-error exn:css:missing-value rest0)]
             [(and (css:ident? value0) (css:delim? d1)) (css-throw-syntax-error exn:css:enclosed broken-condition)]
             [(and (eq? op0 #\=) (css:delim? d1)) (css-throw-syntax-error exn:css:overconsumption broken-condition)]
-            [(css:ident? value0) (make-css-media-feature value0 value1 op0)]
-            [(and (eof-object? d1) (css:ident? value1)) (make-css-media-feature value1 value0 po0)]
+            [(css:ident? value0) (css-make-media-feature value0 value1 op0 media-filter value0 #false)]
+            [(and (eof-object? d1) (css:ident? value1)) (css-make-media-feature value1 value0 po0 media-filter value1 #false)]
             [(not (css:ident? value1)) (css-throw-syntax-error exn:css:missing-identifier value1)]
             [(or (eof-object? value2) (css:ident? value2)) (css-throw-syntax-error exn:css:missing-value rest2)]
             [(not (css-null? terminal)) (css-throw-syntax-error exn:css:overconsumption terminal)]
             [(not (css:delim=? d0 d1)) (css-throw-syntax-error exn:css:malformed (list d0 value1 d1))]
-            [else (make-css-and (list (make-css-media-feature value1 value0 po0)
-                                      (make-css-media-feature value1 value2 op1)))])))
+            [else (make-css-and (list (css-make-media-feature value1 value0 po0 media-filter value1 #false)
+                                      (css-make-media-feature value1 value2 op1 media-filter value1 #false)))])))
   
-  (define css-declaration->media-query : (-> CSS-Declaration CSS:Block CSS-Feature-Query)
+  (define css-declaration->media-query : (-> CSS-Declaration CSS-Media-Filter CSS:Block CSS-Feature-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#mq-features
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-ratio
-    (lambda [descriptor broken-condition]
+    ;;; https://drafts.csswg.org/mediaqueries/#mq-min-max
+    (lambda [descriptor media-filter broken-condition]
       (define property : CSS:Ident (css-declaration-name descriptor))
-      (define-values (feature-name op)
+      (define-values (feature op)
         (let ([name (symbol->string (css:ident-datum property))])
           (cond [(string-prefix? name "min-") (values (css-remake-token property css:ident (string->symbol (substring name 4))) #\≥)]
                 [(string-prefix? name "max-") (values (css-remake-token property css:ident (string->symbol (substring name 4))) #\≤)]
                 [else (values property #\=)])))
-      (with-handlers ([exn? (λ _ (css-throw-syntax-error exn:css:enclosed broken-condition))])
-        (define-values (media-value rest) (css-car-media-value (css-declaration-values descriptor)))
-        (cond [(eof-object? media-value) (css-throw-syntax-error exn:css:missing-value property)]
-              [(css-null? rest) (make-css-media-feature feature-name media-value op)]
-              [else (css-throw-syntax-error exn:css:overconsumption rest)]))))
+      (define prefixed? : Boolean (not (eq? feature property)))
+      (define-values (media-value rest) (css-car-media-value (css-declaration-values descriptor)))
+      (cond [(eof-object? media-value) (css-throw-syntax-error exn:css:enclosed broken-condition)]
+            [(not (css-null? rest)) (css-throw-syntax-error exn:css:enclosed broken-condition)]
+            [(and prefixed? (css:ident? media-value)) (css-throw-syntax-error exn:css:unrecognized property)]
+            [else (css-make-media-feature feature media-value op media-filter property prefixed?)])))
 
   (define css-car-comparison-operator : (-> (Listof CSS-Token) (Values (U CSS:Delim EOF) Char Char (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/mediaqueries/#mq-range-context
@@ -1307,7 +1405,7 @@
                            (css-remake-token [value maybe-int] css:ratio (format "~a/~a" width height) (/ width height)))
                          (css-throw-syntax-error exn:css:malformed (filter css-token? (list value maybe-/ maybe-int))))
                      terminal)]
-            [(css-media-value? value) (values value rest)]
+            [(or (css:ident? value) (css:number? value) (css:dimension? value)) (values value rest)]
             [(eof-object? value) (values eof rest)]
             [else (values (css-throw-syntax-error exn:css:unrecognized value) rest)])))
 
