@@ -137,7 +137,7 @@
   (define-tokens css-token #:+ CSS-Token ()
     #:with [[css:numeric #:+ CSS:Numeric css-token ([representation : String])]
             [css:number #:+ CSS:Number css:numeric ()]]
-    [css:bad        #:+ CSS:Bad #:-> css-token #:as Datum [token : Symbol]]
+    [css:bad        #:+ CSS:Bad #:-> css-token #:as (Pairof Symbol Datum)]
     [css:close      #:+ CSS:Close #:-> css-token #:as Char]
     [css:cd         #:+ CSS:CD #:-> css-token #:as Symbol #:=? eq?]
     [css:||         #:+ CSS:|| #:-> css-token #:as Symbol #:=? (const #true)]
@@ -320,13 +320,14 @@
   
   ;; https://drafts.csswg.org/css-syntax/#css-stylesheets
   ;; https://drafts.csswg.org/cssom/#css-object-model
-  (define-type CSS-Media-Preferences (HashTable (U Symbol Keyword) CSS-Media-Datum))
+  (define-type CSS-Media-Preferences (HashTable Symbol CSS-Media-Datum))
   (define-type CSS-Feature-Support? (-> Symbol (Listof Datum) Boolean))
   (define-type CSS-Imports (HashTable Bytes CSS-StyleSheet))
   (define-type CSS-NameSpace (HashTable Symbol String))
 
-  (define-values (current-css-media-preferences current-css-media-feature-filter current-css-feature-support?)
-    (values (make-parameter ((inst make-hasheq (U Symbol Keyword) CSS-Media-Datum)))
+  (define-values (current-css-media-type current-css-media-preferences current-css-media-feature-filter current-css-feature-support?)
+    (values (make-parameter 'all)
+            (make-parameter ((inst make-hasheq Symbol CSS-Media-Datum)))
             (make-parameter css-media-feature-filter)
             (make-parameter (const #false))))
   
@@ -481,7 +482,7 @@
   (define-syntax (css-make-bad-token stx)
     (syntax-case stx []
       [(_ src css:bad:sub token datum)
-       #'(let ([bad (css-make-token src css:bad:sub datum (assert (object-name token) symbol?))])
+       #'(let ([bad (css-make-token src css:bad:sub (cons (assert (object-name token) symbol?) datum))])
            (log-message (current-logger) 'warning 'exn:css:read (css-token->string bad) bad)
            bad)]))
   
@@ -491,8 +492,8 @@
     ;;; https://drafts.csswg.org/css-syntax/#error-handling
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-token
     (lambda [/dev/cssin]
-      (define-values (line column position) (port-next-location /dev/cssin))
       (define ch (read-char /dev/cssin))
+      (define-values (line column position) (port-next-location /dev/cssin))
       (define srcloc (css-srcloc /dev/cssin line column position))
       (cond [(eof-object? ch) eof]
             [(char-whitespace? ch) (css-consume-whitespace-token srcloc)]
@@ -1375,8 +1376,7 @@
                     (define metadata : CSS-Media-Datum (hash-ref support? query (λ _ 'none)))
                     (not (if (symbol? metadata) (symbol-ci=? metadata 'none) (zero? metadata)))]
                    [(css-media-type? query)
-                    (define media : CSS-Media-Datum (hash-ref support? '#:@media (λ _ 'all)))
-                    (define result (and (symbol? media) (memq (css-media-type-name query) (list media 'all))))
+                    (define result (memq (css-media-type-name query) (list (current-css-media-type) 'all)))
                     (if (css-media-type-only? query) (and result #true) (not result))]
                    [else (and (pair? query)
                               (css-query-support? (car query) support?)
@@ -1705,7 +1705,7 @@
 (require (submod "." parser))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module* test0 typed/racket
+(module* test typed/racket
   (require (submod ".."))
 
   (require racket/flonum)
@@ -1733,7 +1733,7 @@
                     (~size (- (current-memory-use) momery0) 'Bytes)
                     cpu real gc)
            (car result))]))
-  
+
   (define-values (in out) (make-pipe))
   (define css-logger (make-logger 'css #false))
   (define css (thread (thunk (let forever ([/dev/log (make-log-receiver css-logger 'debug)])
@@ -1743,12 +1743,15 @@
                                         [else (displayln message out) (forever /dev/log)])])))))
 
   (collect-garbage)
+  (current-css-media-type 'screen)
+  (current-css-media-preferences ((inst make-hash Symbol CSS-Media-Datum) (list (cons 'orientation 'landscape))))
   (define CSSes : (Listof Path-String)
-    (for/list : (Listof Path-String)
-      ([filename (in-directory (simplify-path (build-path (collection-file-path "manual-fonts.css" "scribble") 'up)))]
-       #:when (and (regexp-match? "\\.css" filename)
-                   (not (regexp-match? #px"manual-fonts\\.css$" filename))))
-      filename))
+    ;(for/list : (Listof Path-String)
+    ;  ([filename (in-directory (simplify-path (build-path (collection-file-path "manual-fonts.css" "scribble") 'up)))]
+    ;   #:when (and (regexp-match? "\\.css" filename)
+    ;               (not (regexp-match? #px"manual-fonts\\.css$" filename))))
+    ;  filename)
+    (list (simplify-path (build-path 'up "tamer" "tamer.css"))))
   (parameterize ([current-logger css-logger])
     (time-run (map read-css-stylesheet CSSes)))
 
