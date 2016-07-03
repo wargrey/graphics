@@ -57,6 +57,7 @@
       [(_ id #:+ ID #:-> parent #:as Racket-Type (~optional (~seq #:=? maybe=?)) extra-fields ...)
        (with-syntax ([id? (format-id #'id "~a?" (syntax-e #'id))]
                      [id=? (format-id #'id "~a=?" (syntax-e #'id))]
+                     [id=> (format-id #'id "~a=>" (syntax-e #'id))]
                      [id=:=? (format-id #'id "~a=:=?" (syntax-e #'id))]
                      [id-datum (format-id #'id "~a-datum" (syntax-e #'id))]
                      [type=? (or (attribute maybe=?) #'(λ [v1 v2] (or (eq? v1 v2) (equal? v1 v2))))])
@@ -68,11 +69,17 @@
                       (define right-value : Racket-Type (id-datum right))
                       (type=? left-value right-value)))
                   
-                  (define id=:=? : (-> Any Racket-Type Boolean : #:+ ID)
+                  (define id=:=? : (-> Any (U Racket-Type (-> Racket-Type Boolean)) Boolean : #:+ ID)
                     (lambda [token racket-value]
                       (and (id? token)
                            (let ([css-value : Racket-Type (id-datum token)])
-                             (type=? css-value racket-value)))))))]))
+                             (cond [(procedure? racket-value) (racket-value css-value)]
+                                   [else (type=? css-value racket-value)])))))
+
+                  (define id=> : (All (a) (-> ID (-> Racket-Type a) a))
+                    (lambda [token =>]
+                      (define css-value : Racket-Type (id-datum token))
+                      (=> css-value)))))]))
 
   (define-syntax (define-tokens stx)
     (syntax-case stx []
@@ -163,26 +170,6 @@
   (struct: css:bad:range:index : CSS:Bad:Range:Index css:bad ())
   (struct: css:bad:stdin : CSS:Bad:StdIn css:bad ())
 
-  (define css-numeric->scalar : (-> CSS:Numeric Real)
-    ;;; https://drafts.csswg.org/css-values/#numeric-types
-    (lambda [n]
-      (define datum : Datum (if (css:percentage? n) (cons (css:percentage-datum n) '%) (css-token->datum n)))
-      (cond [(real? datum) datum]
-            [else +nan.0])))
-  
-  (define css-length->scalar : (case-> [Nonnegative-Exact-Rational Symbol -> Nonnegative-Exact-Rational] [Real Symbol -> Real])
-    ;;; https://drafts.csswg.org/css-values/#absolute-lengths
-    (lambda [n unit]
-      (case unit
-        [(dppx px) n]
-        [(dpcm cm) (* n 9600/254)]
-        [(mm) (* n 9600/254 1/10)]
-        [(q) (* n 9600/254 1/40)]
-        [(dpi in) (* n 96)]
-        [(pc) (* n 96 1/6)]
-        [(pt) (* n 96 1/72)]
-        [else (raise-argument-error 'css-length->real "(or/c px cm mm q in pc pt)" unit)])))
-
   ;;; https://drafts.csswg.org/css-syntax/#parsing
   (define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
   (define-type CSS-URL-Modifier (U CSS:Ident CSS:Function CSS:URL))
@@ -198,7 +185,9 @@
   (struct exn:css:deprecated exn:css ())
   (struct exn:css:unrecognized exn:css ())
   (struct exn:css:misplaced exn:css:unrecognized ())
+  (struct exn:css:type exn:css:unrecognized ())
   (struct exn:css:range exn:css:unrecognized ())
+  (struct exn:css:unit exn:css:range ())
   (struct exn:css:overconsumption exn:css:unrecognized ())
   (struct exn:css:enclosed exn:css:overconsumption ())
   (struct exn:css:malformed exn:css ())
@@ -264,8 +253,8 @@
   
   ;; https://drafts.csswg.org/css-syntax/#css-stylesheets
   ;; https://drafts.csswg.org/cssom/#css-object-model
-  (define-type CSS-Media-Filter (-> Symbol (Option CSS-Media-Value) CSS:Ident Boolean (U CSS-Media-Value/Racket CSS-Syntax-Error Void)))
-  (define-type CSS-Media-Features (HashTable (U Symbol Keyword) CSS-Media-Value/Racket))
+  (define-type CSS-Media-Filter (-> Symbol (Option CSS-Media-Value) CSS:Ident Boolean (U CSS-Media-Datum Make-CSS-Syntax-Error Void)))
+  (define-type CSS-Media-Features (HashTable (U Symbol Keyword) CSS-Media-Datum))
   (define-type CSS-Feature-Support? (-> Symbol (Listof Datum) Boolean))
   (define-type CSS-Imports (HashTable Bytes CSS-StyleSheet))
   (define-type CSS-NameSpace (HashTable Symbol String))
@@ -285,67 +274,128 @@
   (define-type CSS-Media-Query (U CSS-Media-Type CSS-Feature-Query (Pairof CSS-Media-Type CSS-Feature-Query)))
   (define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature CSS-Declaration Symbol CSS-Syntax-Error))
   (define-type CSS-Media-Value (U CSS:Number CSS:Dimension CSS:Ident))
-  (define-type CSS-Media-Value/Racket (U Real Symbol))
+  (define-type CSS-Media-Datum (U Real Symbol))
 
   (struct: css-media-type : CSS-Media-Type ([name : Symbol] [only? : Boolean]))
-  (struct: css-media-feature : CSS-Media-Feature ([name : Symbol] [value : CSS-Media-Value/Racket] [operator : Char]))
+  (struct: css-media-feature : CSS-Media-Feature ([name : Symbol] [value : CSS-Media-Datum] [operator : Char]))
   (struct: css-not : CSS-Not ([condition : CSS-Feature-Query]))
   (struct: css-and : CSS-And ([conditions : (Listof CSS-Feature-Query)]))
   (struct: css-or : CSS-Or ([conditions : (Listof CSS-Feature-Query)]))
 
-  (define css-media-filter : CSS-Media-Filter
+  (define css-media-feature-filter : CSS-Media-Filter
     ;;; https://drafts.csswg.org/mediaqueries/#media-descriptor-table
     ;;; https://drafts.csswg.org/mediaqueries/#mf-deprecated
-    ;;; https://drafts.csswg.org/mediaqueries/#units
     (lambda [downcased-name maybe-value feature prefixed?]
       (when (memq downcased-name '(device-width device-height device-aspect-ratio))
         (css-make-syntax-error exn:css:deprecated feature))
       (case downcased-name
-        [(width height device-width device-height)
-         (unless (false? maybe-value)
-           (cond [(not (css:numeric? maybe-value)) (css-make-syntax-error exn:css:unrecognized maybe-value)]
-                 [else (let ([v (css-numeric->scalar maybe-value)])
-                         (cond [(<= v 0) (css-make-syntax-error exn:css:range maybe-value)]
-                               [else v]))]))]
-        [(aspect-ratio device-aspect-ratio)
-         (unless (false? maybe-value)
-           (cond [(css:ratio? maybe-value) (css:ratio-datum maybe-value)]
-                 [else (css-make-syntax-error exn:css:unrecognized maybe-value)]))]
-        [(color color-index monochrome)
-         (unless (false? maybe-value)
-           (cond [(not (css:integer? maybe-value)) (css-make-syntax-error exn:css:unrecognized maybe-value)]
-                 [else (let ([v (css:integer-datum maybe-value)])
-                         (cond [(< v 0) (css-make-syntax-error exn:css:range maybe-value)]
-                               [else v]))]))]
-        [(grid)
-         (cond [(and prefixed?) (css-throw-syntax-error exn:css:unrecognized feature)]
-               [(css:integer? maybe-value) (when (zero? (css:integer-datum maybe-value)) 0)]
-               [(css-token? maybe-value) (css-make-syntax-error exn:css:unrecognized maybe-value)])]
-        [(resolution)
-         (unless (false? maybe-value)
-           (cond [(css:ident=:=? maybe-value 'infinite) +inf.0]
-                 [(not (css:dimension? maybe-value)) (css-make-syntax-error exn:css:unrecognized maybe-value)]
-                 [else (let ([v (css-numeric->scalar maybe-value)])
-                         (cond [(<= v 0) (css-make-syntax-error exn:css:range maybe-value)]
-                               [else v]))]))]
+        [(width height device-width device-height resolution)
+         (define resolution? : Boolean (eq? downcased-name 'resolution))
+         (cond [(and resolution? (css:ident=:=? maybe-value 'infinite)) +inf.0]
+               [(and (not resolution?) (or (css:integer=:=? maybe-value zero?) (css:flonum=:=? maybe-value zero?))) 0]
+               [(css:dimension? maybe-value)
+                (define n : Real (css-dimension->scalar maybe-value (if resolution? 'resolution 'length)))
+                (cond [(nan? n) exn:css:unit]
+                      [(negative? n) exn:css:range]
+                      [else n])]
+               [(css-token? maybe-value) exn:css:type])]
         [(orientation scan update overflow-block overflow-inline color-gamut pointer hover any-pointer any-hover scripting)
-         (unless (false? maybe-value)
-           (cond [(not (css:ident? maybe-value)) (css-make-syntax-error exn:css:unrecognized maybe-value)]
-                 [else (let ([downcased-enum (symbol-downcase (css:ident-datum maybe-value))])
-                         (if (memq downcased-enum (case downcased-name
-                                                    [(orientation) '(portrait landscape)]
-                                                    [(scan) '(interlace progressive)]
-                                                    [(update) '(none slow fast)]
-                                                    [(overflow-block) '(none scroll optional-paged paged)]
-                                                    [(overflow-inline) '(none scroll)]
-                                                    [(color-gamut) '(srgb p3 rec2020)]
-                                                    [(pointer any-pointer) '(none coarse fine)]
-                                                    [(havor any-havor) '(none havor)]
-                                                    [(scripting) '(none initial-only enabled)]
-                                                    [else null]))
-                             downcased-enum
-                             (css-make-syntax-error exn:css:range maybe-value)))]))]
-        [else (css-make-syntax-error exn:css:unrecognized feature)])))
+         (cond [(css:ident? maybe-value)
+                (define downcased-option : Symbol (css:ident=> maybe-value symbol-downcase))
+                (cond [(memq downcased-option
+                             (case downcased-name
+                               [(orientation) '(portrait landscape)]
+                               [(scan) '(interlace progressive)]
+                               [(update) '(none slow fast)]
+                               [(overflow-block) '(none scroll optional-paged paged)]
+                               [(overflow-inline) '(none scroll)]
+                               [(color-gamut) '(srgb p3 rec2020)]
+                               [(pointer any-pointer) '(none coarse fine)]
+                               [(havor any-havor) '(none havor)]
+                               [(scripting) '(none initial-only enabled)]
+                               [else null])) downcased-option]
+                      [else exn:css:range])]
+               [(css-token? maybe-value) exn:css:type])]
+        [(aspect-ratio device-aspect-ratio)
+         (cond [(css:ratio? maybe-value) (css:ratio-datum maybe-value)]
+               [(css-token? maybe-value) exn:css:type])]
+        [(color color-index monochrome)
+         (cond [(css:integer=:=? maybe-value negative?) exn:css:range]
+               [(css:integer? maybe-value) (css:integer-datum maybe-value)]
+               [(css-token? maybe-value) exn:css:type])]
+        [(grid)
+         (cond [(and prefixed?) exn:css:unrecognized]
+               [(css:integer? maybe-value) (when (css:integer=:=? maybe-value zero?) 0)]
+               [(css-token? maybe-value) exn:css:type])]
+        [else exn:css:unrecognized])))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define-type Quantity->Scalar (case-> [Nonnegative-Exact-Rational Symbol -> (U Nonnegative-Exact-Rational Flonum-Nan)]
+                                        [Exact-Rational Symbol -> (U Exact-Rational Flonum-Nan)]
+                                        [Nonnegative-Real Symbol -> Nonnegative-Real]
+                                        [Real Symbol -> Real]))
+  
+  (define css-dimension->scalar : (->* ((U CSS:Dimension (Pairof Real Symbol))) ((Option Symbol)) Real)
+    (lambda [dim [type #false]]
+      (cond [(css:dimension? dim) (css-dimension->scalar (css:dimension-datum dim) type)]
+            [else (let-values ([(n unit) (values (car dim) (cdr dim))])
+                    (case (if (symbol? type) type unit)
+                      [(length px cm mm q in pc pt) (css-length->scalar n unit)]
+                      [(angle deg grad rad turn) (css-angle->scalar n unit)]
+                      [(time s ms min h) (css-time->scalar n unit)]
+                      [(frequency hz khz) (css-frequency->scalar n unit)]
+                      [(resolution dpi dpcm dppx) (css-resolution->scalar n unit)]
+                      [else +nan.0]))])))
+  
+  (define css-length->scalar : Quantity->Scalar
+    ;;; https://drafts.csswg.org/css-values/#absolute-lengths
+    (lambda [n unit]
+      (case unit
+        [(px) n]
+        [(cm) (* n 9600/254)]
+        [(mm) (* n 9600/254 1/10)]
+        [(q) (* n 9600/254 1/40)]
+        [(in) (* n 96)]
+        [(pc) (* n 96 1/6)]
+        [(pt) (* n 96 1/72)]
+        [else +nan.0])))
+  
+  (define css-angle->scalar : (case-> [Nonnegative-Real Symbol -> Nonnegative-Real] [Real Symbol -> Real])
+    ;;; https://drafts.csswg.org/css-values/#angles
+    (lambda [n unit]
+      (case unit
+        [(deg) n]
+        [(grad) (* n 9/10)]
+        [(rad) (* n (/ 180 pi))]
+        [(turn) (* n 360)]
+        [else +nan.0])))
+
+  (define css-time->scalar : Quantity->Scalar
+    ;;; https://drafts.csswg.org/css-values/#time
+    (lambda [n unit]
+      (case unit
+        [(s) n]
+        [(ms) (* n 1/1000)]
+        [(min) (* n 60)]
+        [(h) (* n 60 60)]
+        [else +nan.0])))
+
+  (define css-frequency->scalar : Quantity->Scalar
+    ;;; https://drafts.csswg.org/css-values/#frequency
+    (lambda [n unit]
+      (case unit
+        [(hz) n]
+        [(khz) (* n 1/1000)]
+        [else +nan.0])))
+
+  (define css-resolution->scalar : Quantity->Scalar
+    ;;; https://drafts.csswg.org/css-values/#resolution
+    (lambda [n unit]
+      (case unit
+        [(dppx) n]
+        [(dpcm) (css-length->scalar n 'cm)]
+        [(dpi) (css-length->scalar n 'in)]
+        [else +nan.0])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-car : (All (CSS-DT) (-> (Listof CSS-DT) (Values (U CSS-DT EOF) (Listof CSS-DT))))
@@ -366,6 +416,10 @@
   (define symbol-downcase : (-> Symbol Symbol)
     (lambda [sym]
       (string->symbol (string-downcase (symbol->string sym)))))
+
+  (define --symbol? : (-> Symbol Boolean)
+    (lambda [sym]
+      (string-prefix? (symbol->string sym) "--")))
   
   (define symbol-ci=? : (-> Symbol Symbol Boolean)
     (lambda [sym1 sym2]
@@ -527,9 +581,9 @@
                           [ch3 : (U EOF Char) (peek-char css 2)])
                       (cond [(css-identifier-prefix? ch1 ch2 ch3)
                              (define unit : Symbol (string->symbol (string-downcase (css-consume-name css #false))))
-                             (css-make-token srcloc css:dimension #:datum n representation (cons n unit))]
+                             (css-make-token srcloc css:dimension #:datum (cons n unit) representation (cons n unit))]
                             [(and (char? ch1) (char=? ch1 #\%)) (read-char css)
-                             (css-make-token srcloc css:percentage #:datum n representation (real->fraction n))]
+                             (css-make-token srcloc css:percentage #:datum (cons n '%) representation (real->fraction n))]
                             [(exact-integer? n) (css-make-token srcloc css:integer #:datum n representation n)]
                             [else (css-make-token srcloc css:flonum #:datum n representation (real->double-flonum n))])))])))
 
@@ -808,10 +862,10 @@
 
   (define-syntax (css-make-media-feature stx)
     (syntax-case stx []
-      [(_ name value op media-filter extra ...)
-       #'(let* ([downcased-name : Symbol (symbol-downcase (css:ident-datum name))]
-                [v (media-filter downcased-name value extra ...)])
-           (cond [(exn:css? v) (raise v)]
+      [(_ name value op media-filter feature extra ...)
+       #'(let* ([downcased-name (css:ident=> name symbol-downcase)]
+                [v (media-filter downcased-name value feature extra ...)])
+           (cond [(procedure? v) (css-throw-syntax-error v (if value (list feature value) feature))]
                  [(void? v) downcased-name]
                  [else (make-css-media-feature downcased-name v op)]))]))
   
@@ -838,7 +892,7 @@
       (define namespaces : CSS-NameSpace (make-hasheq))
       (define-values (media-features media-filter)
         (cond [(pair? media) (values (car media) (cdr media))]
-              [else (values media css-media-filter)]))
+              [else (values media css-media-feature-filter)]))
       (define rules : (Listof CSS-Grammar-Rule)
         (let syntax->grammar : (Listof CSS-Grammar-Rule)
           ([selur : (Listof CSS-Grammar-Rule) null]
@@ -953,7 +1007,7 @@
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-query-list
     ;;; https://drafts.csswg.org/mediaqueries/#error-handling
-    (lambda [/dev/cssin [media-filter : CSS-Media-Filter css-media-filter] [rulename : CSS-Syntax-Any eof]]
+    (lambda [/dev/cssin [media-filter : CSS-Media-Filter css-media-feature-filter] [rulename : CSS-Syntax-Any eof]]
       (define maybe-eof (css-peek-syntax/skip-whitespace /dev/cssin))
       (cond [(eof-object? maybe-eof) null]
             [else (for/list : (Listof CSS-Media-Query) ([entry (in-list (css-consume-componentses /dev/cssin #:omit-comma? #true))])
@@ -1014,7 +1068,7 @@
       (define namespace : (U String CSS-Syntax-Error)
         (let ([uri (if (eof-object? 2nd) 1st 2nd)])
           (cond [(css:string? uri) (css:string-datum uri)]
-                [(css:url? uri) (~a (css:url-datum uri))]
+                [(css:url? uri) ((inst css:url=> String) uri ~a)]
                 [(eof-object? 1st) (css-make-syntax-error exn:css:empty (css-@rule-name ns))]
                 [else (css-make-syntax-error exn:css:unrecognized uri)])))
       (cond [(exn? namespace) namespace]
@@ -1100,7 +1154,7 @@
     (lambda [css reconsumed]
       (define-values (prelude maybe-block) (css-consume-rule-item css #:@rule? #false))
       (cond [(css:block? maybe-block) (make-css-qualified-rule (cons reconsumed prelude) maybe-block)]
-            [else (css-make-syntax-error exn:css:missing-block reconsumed)])))
+            [else (css-make-syntax-error exn:css:missing-block (cons reconsumed prelude))])))
 
   (define css-consume-component-value : (-> Input-Port CSS-Token CSS-Token)
     ;;; https://drafts.csswg.org/css-syntax/#component-value
@@ -1199,7 +1253,7 @@
             [else (let verify : (U CSS-Declaration CSS-Syntax-Error)
                     ([lla : (Listof CSS-Token) null]
                      [info : (U False CSS-Syntax-Error CSS:Delim) #false]
-                     [rest : (Listof CSS-Token) (cdr value-list)])
+                     [rest : (Listof CSS-Token) value-list])
                     (cond [(pair? rest)
                            (define-values (1st tail) (values (car rest) (cdr rest)))
                            (cond [(css:whitespace? 1st) (verify lla info tail)]
@@ -1210,8 +1264,7 @@
                                  [else (verify (cons 1st lla) #false tail)])]
                           [(exn:css? info) info]
                           [(null? lla) (css-make-syntax-error exn:css:missing-value id-token)]
-                          [else (make-css-declaration id-token (reverse lla) (css:delim? info)
-                                                      (string-prefix? (symbol->string (css:ident-datum id-token)) "--"))]))])))
+                          [else (make-css-declaration id-token (reverse lla) (css:delim? info) (css:ident=:=? id-token --symbol?))]))])))
 
   (define css-consume-block-body : (-> Input-Port Char (Values (Listof CSS-Token) CSS-Syntax-Terminal))
     ;;; https://drafts.csswg.org/css-syntax/#consume-simple-block
@@ -1227,7 +1280,7 @@
   (define css-components->media-type+query : (-> CSS:Ident Boolean CSS-Media-Filter (Listof CSS-Token) CSS-Media-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-query
     (lambda [media only? media-filter conditions]
-      (define downcased-type : Symbol (symbol-downcase (css:ident-datum media)))
+      (define downcased-type : Symbol (css:ident=> media symbol-downcase))
       (define-values (maybe-and maybe-conditions) (css-car conditions))
       (cond [(memq downcased-type '(only not and or)) (css-make-syntax-error exn:css:misplaced media)]
             [(eof-object? maybe-and) (make-css-media-type downcased-type only?)]
@@ -1275,8 +1328,7 @@
                    [(css:ident? name) (css-throw-syntax-error exn:css:missing-value condition)]
                    [(css:function? condition) (css-throw-syntax-error exn:css:enclosed condition)]
                    [else (css-throw-syntax-error exn:css:unrecognized condition)])]
-            [(css:function? condition) (css-throw-syntax-error exn:css:enclosed condition)]
-            [else (css-throw-syntax-error exn:css:unrecognized condition)])))
+            [else (css-throw-syntax-error exn:css:missing-feature condition)])))
 
   (define css-components->negation : (-> CSS:Ident (Listof CSS-Token) (Option CSS-Media-Filter) CSS-Not)
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-not
@@ -1315,8 +1367,8 @@
             [(hash? support?)
              (cond [(css-media-feature? query)
                     (define downcased-name : Symbol (css-media-feature-name query))
-                    (define datum : CSS-Media-Value/Racket (css-media-feature-value query))
-                    (define metadata : (U CSS-Media-Value/Racket EOF) (hash-ref support? downcased-name (λ _ eof)))
+                    (define datum : CSS-Media-Datum (css-media-feature-value query))
+                    (define metadata : (U CSS-Media-Datum EOF) (hash-ref support? downcased-name (λ _ eof)))
                     (cond [(symbol? datum) (and (symbol? metadata) (symbol-ci=? datum metadata))]
                           [(real? metadata) (case (css-media-feature-operator query)
                                               [(#\>) (> metadata datum)] [(#\≥) (>= metadata datum)]
@@ -1324,10 +1376,10 @@
                                               [else (= metadata datum)])]
                           [else #false])]
                    [(symbol? query)
-                    (define metadata : CSS-Media-Value/Racket (hash-ref support? query (λ _ 'none)))
+                    (define metadata : CSS-Media-Datum (hash-ref support? query (λ _ 'none)))
                     (not (if (symbol? metadata) (symbol-ci=? metadata 'none) (zero? metadata)))]
                    [(css-media-type? query)
-                    (define media : CSS-Media-Value/Racket (hash-ref support? '#:@media (λ _ 'all)))
+                    (define media : CSS-Media-Datum (hash-ref support? '#:@media (λ _ 'all)))
                     (define result (and (symbol? media) (memq (css-media-type-name query) (list media 'all))))
                     (if (css-media-type-only? query) (and result #true) (not result))]
                    [else (and (pair? query)
@@ -1368,7 +1420,7 @@
     (lambda [descriptor media-filter broken-condition]
       (define property : CSS:Ident (css-declaration-name descriptor))
       (define-values (feature op)
-        (let ([name (symbol->string (css:ident-datum property))])
+        (let ([name (css:ident=> property symbol->string)])
           (cond [(string-prefix? name "min-") (values (css-remake-token property css:ident (string->symbol (substring name 4))) #\≥)]
                 [(string-prefix? name "max-") (values (css-remake-token property css:ident (string->symbol (substring name 4))) #\≤)]
                 [else (values property #\=)])))
@@ -1398,8 +1450,7 @@
       (define-values (maybe-/ maybe-rest) (css-car rest))
       (define-values (maybe-int terminal) (css-car maybe-rest))
       (cond [(css:delim=:=? maybe-/ #\/)
-             (values (if (and (css:integer? value) (positive? (css:integer-datum value))
-                              (css:integer? maybe-int) (positive? (css:integer-datum maybe-int)))
+             (values (if (and (css:integer=:=? value positive?) (css:integer=:=? maybe-int positive?))
                          (let ([width : Positive-Integer (max (css:integer-datum value) 1)]
                                [height : Positive-Integer (max (css:integer-datum maybe-int) 1)])
                            (css-remake-token [value maybe-int] css:ratio (format "~a/~a" width height) (/ width height)))
@@ -1544,7 +1595,7 @@
               [(not (css-null? terminal)) (css-throw-syntax-error exn:css:overconsumption terminal)]))
       (define val : CSS:String
         (cond [(css:string? value) value]
-              [(css:ident? value) (css-remake-token value css:string (symbol->string (css:ident-datum value)))]
+              [(css:ident? value) (css-remake-token value css:string (css:ident=> value symbol->string))]
               [(css-token? value) (css-throw-syntax-error exn:css:unrecognized value)]
               [else (css-remake-token attr css:string "placeholder")]))
       (define ci? : Boolean (css:ident? i))
