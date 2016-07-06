@@ -1513,12 +1513,16 @@
                              void))
           (let* ([/dev/rawin (cond [(port? /dev/stdin) /dev/stdin]
                                    [(path? /dev/stdin) (open-input-file /dev/stdin)]
+                                   [(regexp-match? #px"\\.css$" /dev/stdin) (open-input-file (~a /dev/stdin))]
                                    [(string? /dev/stdin) (open-input-string /dev/stdin '/dev/cssin/string)]
                                    [(bytes? /dev/stdin) (open-input-bytes /dev/stdin '/dev/cssin/bytes)]
                                    [else (open-input-string (~s /dev/stdin) '/dev/cssin/error)])]
                  [/dev/cssin : Input-Port (css-fallback-encode-input-port /dev/rawin)]
-                 [portname (let ([s (object-name /dev/cssin)]) (if (path? s) (path->string s) (string->symbol (~a s))))]
                  [peek-pool : (Listof Any) null])
+            (define portname : (U String Symbol)
+              (let ([src (object-name /dev/cssin)])
+                (cond [(path? src) (path->string (simple-form-path src))]
+                      [else (string->symbol (~a src))])))
             (make-input-port portname
                              (λ [[buf : Bytes]]
                                (λ _ (cond [(null? peek-pool) (css-consume-token /dev/cssin portname)]
@@ -1693,7 +1697,7 @@
               [else (css-make-syntax-error exn:css:unrecognized uri)]))
       (cond [(exn? maybe-target.css) maybe-target.css]
             [(css:block? maybe-block) (css-make-syntax-error exn:css:overconsumption maybe-block)]
-            [(false? (regexp-match #px"\\.css$" maybe-target.css)) (css-make-syntax-error exn:css:resource uri)]
+            [(false? (regexp-match? #px"\\.css$" maybe-target.css)) (css-make-syntax-error exn:css:resource uri)]
             [(false? (file-exists? maybe-target.css)) (css-make-syntax-error exn:css:resource uri)]
             [else (let-values ([(maybe-support maybe-media-list) (css-car maybe-condition)])
                     (define-values (support? media-list)
@@ -1783,11 +1787,11 @@
     (lambda [stylesheet]
       (define pool (css-stylesheet-pool stylesheet))
       (for ([id (in-list (css-stylesheet-imports stylesheet))])
-        (define child (hash-ref pool id (const #false)))
+        (define child : (Option CSS-StyleSheet) (hash-ref pool id (const #false)))
         (when (css-stylesheet? child)
-          (define child.css (css-stylesheet-location child))
-          (when (string? (css-stylesheet-location child))
-            (read-css-stylesheet child.css pool))))))
+          (define child.css : (U Symbol String) (css-stylesheet-location child))
+          (when (string? child.css)
+            (read-css-stylesheet (string->path child.css) pool))))))
   
   (define css-url-string->path : (-> Any String Path)
     (lambda [parent-location uri]
@@ -1801,8 +1805,11 @@
 (require (submod "." parser))
 (require (submod "." grammar))
 
+(define pool : CSS-StyleSheet-Pool (make-hasheq))
+(void (read-css-stylesheet "../tamer/tamer.css" pool))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module* test typed/racket
+(module* test0 typed/racket
   (require (submod ".." digitama))
   (require (submod ".." grammar))
 
