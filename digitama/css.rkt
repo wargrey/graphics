@@ -320,9 +320,11 @@
   (define-type CSS-Media-Preferences (HashTable Symbol CSS-Media-Datum))
   (define-type CSS-Feature-Support? (-> Symbol (Listof CSS-Token) Boolean))
 
-  (define-values (current-css-media-type current-css-media-preferences current-css-media-feature-filter current-css-feature-support?)
-    (values (make-parameter 'all)
-            (make-parameter ((inst make-hasheq Symbol CSS-Media-Datum)))
+  (define css-deprecate-media-type : (Parameterof Boolean) (make-parameter #false))
+  (define current-css-media-type : (Parameterof Symbol) (make-parameter 'all))
+  
+  (define-values (current-css-media-preferences current-css-media-feature-filter current-css-feature-support?)
+    (values (make-parameter ((inst make-hasheq Symbol CSS-Media-Datum)))
             (make-parameter css-media-feature-filter)
             (make-parameter (const #false))))
 
@@ -1152,10 +1154,12 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-components->media-type+query : (-> CSS:Ident Boolean (Listof CSS-Token) CSS-Media-Query)
+    ;;; https://drafts.csswg.org/mediaqueries/#media-types
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-query
     (lambda [media only? conditions]
       (define downcased-type : Symbol (css:ident=> media symbol-downcase))
       (define-values (maybe-and maybe-conditions) (css-car conditions))
+      (when (css-deprecate-media-type) (css-make-syntax-error exn:css:deprecated media))
       (cond [(memq downcased-type '(only not and or)) (css-make-syntax-error exn:css:misplaced media)]
             [(eof-object? maybe-and) (make-css-media-type downcased-type only?)]
             [(not (css:ident=:=? maybe-and 'and)) (css-make-syntax-error exn:css:unrecognized maybe-and)]
@@ -1629,6 +1633,7 @@
     ;;; https://drafts.csswg.org/css-cascade/#at-import
     ;;; https://drafts.csswg.org/css-conditional/#processing
     ;;; https://drafts.csswg.org/css-conditional/#contents-of
+    ;;; https://drafts.csswg.org/css-device-adapt/#media-queries
     (lambda [/dev/cssin [pool : CSS-StyleSheet-Pool ((inst make-hasheq Natural CSS-StyleSheet))]]
       (define location : (U String Symbol) (let ([p (object-name /dev/cssin)]) (if (symbol? p) p (~a p))))
       (define identity : Natural (if (string? location) (css-stylesheet-path->identity location) 0))
@@ -1650,46 +1655,51 @@
   (define css-syntax-rules->grammar-rules : (->* ((U String Symbol) (Listof CSS-Syntax-Rule) Boolean Boolean)
                                                  (CSS-StyleSheet-Pool)
                                                  (Values (Listof Positive-Integer) CSS-NameSpace (Listof CSS-Grammar-Rule)))
-    (lambda [location syntaxes can-import0? allow-namespace0? [pool ((inst make-hasheq Natural CSS-StyleSheet))]]
+    (lambda [src syntaxes0 can-import0? allow-namespace0? [pool ((inst make-hasheq Natural CSS-StyleSheet))]]
       (define namespaces : CSS-NameSpace (make-hasheq))
-      (define-values (imports grammars)
-        (let syntax->grammar : (Values (Listof Positive-Integer) (Listof CSS-Grammar-Rule))
-          ([seititnedi : (Listof Positive-Integer) null]
-           [selur : (Listof CSS-Grammar-Rule) null]
-           [rules : (Listof CSS-Syntax-Rule) syntaxes]
-           [can-import? : Boolean can-import0?]
-           [allow-namespace? : Boolean allow-namespace0?])
-          (if (null? rules)
-              (values (reverse seititnedi) (reverse selur))
-              (let-values ([(rule rest) (values (car rules) (cdr rules))])
-                (cond [(css-qualified-rule? rule)
-                       (syntax->grammar seititnedi (css-cons (css-qualified-rule->style-rule rule) selur) rest #false #false)]
-                      [(css:@keyword=:=? (css-@rule-name rule) '#:@charset)
-                       (css-make-syntax-error exn:css:misplaced (css-@rule-name rule))
-                       (syntax->grammar seititnedi selur rest can-import? allow-namespace?)]
-                      [(css:@keyword=:=? (css-@rule-name rule) '#:@import)
-                       (cond [(false? can-import?)
-                              (css-make-syntax-error exn:css:misplaced (css-@rule-name rule))
-                              (syntax->grammar seititnedi selur rest #false #true)]
-                             [else (let ([maybe-id (css-import-rule->stylesheet-identity rule location pool)])
-                                     (cond [(not (integer? maybe-id)) (syntax->grammar seititnedi selur rest #true #true)]
-                                           [else (syntax->grammar (cons maybe-id seititnedi) selur rest #true #true)]))])]
-                      [(css:@keyword=:=? (css-@rule-name rule) '#:@namespace)
-                       (cond [(false? allow-namespace?)
-                              (css-make-syntax-error exn:css:misplaced (css-@rule-name rule))
-                              (syntax->grammar seititnedi selur rest #false #false)]
-                             [else (let ([ns (css-namespace-rule->namespace rule)])
-                                     (when (pair? ns) (hash-set! namespaces (car ns) (cdr ns)))
-                                     (syntax->grammar seititnedi selur rest #false #true))])]
-                      [(css:@keyword=:=? (css-@rule-name rule) '#:@media)
-                       (define subrules (css-media-rule->rules rule))
-                       (syntax->grammar seititnedi selur (if (pair? subrules) (append subrules rest) rest) #false #false)]
-                      [(css:@keyword=:=? (css-@rule-name rule) '#:@support)
-                       (define subrules (css-support-rule->rules rule))
-                       (syntax->grammar seititnedi selur (if (pair? subrules) (append subrules rest) rest) #false #false)]
-                      [(css:@keyword=:=? (css-@rule-name rule) '#:@viewport) (syntax->grammar seititnedi selur rest #false #false)]
-                      [else (syntax->grammar seititnedi (cons rule selur) rest #false #false)])))))
-      (values imports namespaces grammars)))
+      (define viewports : (Listof CSS-@Rule)
+        (filter (λ [stx] (and (css-@rule? stx) (css:@keyword=:=? (css-@rule-name stx) '#:@viewport)))
+                syntaxes0))
+      (let syntax->grammar : (Values (Listof Positive-Integer) CSS-NameSpace (Listof CSS-Grammar-Rule))
+        ([seititnedi : (Listof Positive-Integer) null]
+         [srammarg : (Listof CSS-Grammar-Rule) null]
+         [syntaxes : (Listof CSS-Syntax-Rule) syntaxes0]
+         [can-import? : Boolean can-import0?]
+         [allow-namespace? : Boolean allow-namespace0?])
+        (if (null? syntaxes)
+            (values (reverse seititnedi) namespaces (reverse srammarg))
+            (let-values ([(stx rest) (values (car syntaxes) (cdr syntaxes))])
+              (cond [(css-qualified-rule? stx)
+                     (syntax->grammar seititnedi (css-cons (css-qualified-rule->style-rule stx) srammarg) rest #false #false)]
+                    [(css:@keyword=:=? (css-@rule-name stx) '#:@charset)
+                     (css-make-syntax-error exn:css:misplaced (css-@rule-name stx))
+                     (syntax->grammar seititnedi srammarg rest can-import? allow-namespace?)]
+                    [(css:@keyword=:=? (css-@rule-name stx) '#:@import)
+                     (cond [(false? can-import?)
+                            (css-make-syntax-error exn:css:misplaced (css-@rule-name stx))
+                            (syntax->grammar seititnedi srammarg rest #false #true)]
+                           [else (let ([maybe-id (css-import-rule->stylesheet-identity stx src pool)])
+                                   (cond [(not (integer? maybe-id)) (syntax->grammar seititnedi srammarg rest #true #true)]
+                                         [else (syntax->grammar (cons maybe-id seititnedi) srammarg rest #true #true)]))])]
+                    [(css:@keyword=:=? (css-@rule-name stx) '#:@namespace)
+                     (cond [(false? allow-namespace?)
+                            (css-make-syntax-error exn:css:misplaced (css-@rule-name stx))
+                            (syntax->grammar seititnedi srammarg rest #false #false)]
+                           [else (let ([ns (css-namespace-rule->namespace stx)])
+                                   (when (pair? ns) (hash-set! namespaces (car ns) (cdr ns)))
+                                   (syntax->grammar seititnedi srammarg rest #false #true))])]
+                    [(css:@keyword=:=? (css-@rule-name stx) '#:@media)
+                     (define subsrammarg : (U (Listof CSS-Grammar-Rule) CSS-Syntax-Error)
+                       (let ([substxes (css-media-rule->syntax-rules stx)])
+                         (cond [(not (pair? substxes)) substxes]
+                               [else (let-values ([(_i _n subgrmrs) (css-syntax-rules->grammar-rules src substxes #false #false pool)])
+                                       (reverse subgrmrs))])))
+                     (syntax->grammar seititnedi (if (pair? subsrammarg) (append subsrammarg srammarg) srammarg) rest #false #false)]
+                    [(css:@keyword=:=? (css-@rule-name stx) '#:@support)
+                     (define substxes (css-support-rule->syntax-rules stx))
+                     (syntax->grammar seititnedi srammarg (if (pair? substxes) (append substxes rest) rest) #false #false)]
+                    [(css:@keyword=:=? (css-@rule-name stx) '#:@viewport) (syntax->grammar seititnedi srammarg rest #false #false)]
+                    [else (syntax->grammar seititnedi (cons stx srammarg) rest #false #false)]))))))
   
   (define css-import-rule->stylesheet-identity : (-> CSS-@Rule Any CSS-StyleSheet-Pool (U Positive-Integer False CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-cascade/#at-import
@@ -1738,7 +1748,7 @@
             [(eof-object? 2nd) (cons '_ namespace)]
             [else (css-make-syntax-error exn:css:unrecognized 1st)])))
 
-  (define css-media-rule->rules : (-> CSS-@Rule (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
+  (define css-media-rule->syntax-rules : (-> CSS-@Rule (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-conditional/#contents-of
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
     (lambda [media]
@@ -1750,7 +1760,7 @@
                       (css-parse-rules (css:block-components maybe-block))
                       null)])))
 
-  (define css-support-rule->rules : (-> CSS-@Rule (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
+  (define css-support-rule->syntax-rules : (-> CSS-@Rule (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-conditional/#contents-of
     ;;; https://drafts.csswg.org/css-conditional/#at-supports
     (lambda [support]
@@ -1767,26 +1777,30 @@
     ;;; https://drafts.csswg.org/selectors/#invalid
     (lambda [qr]
       (define prelude : (Listof CSS-Token) (css-qualified-rule-prelude qr))
+      (define components : (Listof CSS-Token) (css:block-components (css-qualified-rule-block qr)))
       (define maybe-selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-components->selectors prelude))
       (cond [(exn? maybe-selectors) maybe-selectors]
-            [else (let make-style-rule : CSS-Style-Rule
-                    ([seitreporp : (Listof CSS-Declaration) null]
-                     [tokens : (Listof CSS-Token) (css:block-components (css-qualified-rule-block qr))])
-                    (define-values (id any-values) (css-car tokens))
-                    (define-values (:values rest)
-                      (let collect : (Values (Listof CSS-Token) (Listof CSS-Token))
-                        ([seulav : (Listof CSS-Token) null]
-                         [rest : (Listof CSS-Token) any-values])
-                        (define-values (head tail) (css-car rest))
-                        (cond [(or (eof-object? head) (css:delim=:=? head #\;)) (values (reverse seulav) tail)]
-                              [(and (css:block=:=? head #\{) (css:@keyword? id)) (values (reverse (cons head seulav)) tail)]
-                              [else (collect (cons head seulav) tail)])))
-                    (cond [(eof-object? id) (make-css-style-rule maybe-selectors (reverse seitreporp))]
-                          [else (let ([property (cond [(css:ident? id) (css-components->declaration id :values)]
-                                                      [else (css-make-syntax-error exn:css:unrecognized (cons id :values))])])
-                                  (make-style-rule (css-cons property seitreporp) rest))]))])))
+            [else (make-css-style-rule maybe-selectors (css-components->declarations components))])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define css-components->declarations : (-> (Listof CSS-Token) (Listof CSS-Declaration))
+    (lambda [components]
+      (let make-style-rule : (Listof CSS-Declaration) ([seitreporp : (Listof CSS-Declaration) null]
+                                                       [tokens : (Listof CSS-Token) components])
+        (define-values (id any-values) (css-car tokens))
+        (define-values (:values rest)
+          (let collect : (Values (Listof CSS-Token) (Listof CSS-Token))
+            ([seulav : (Listof CSS-Token) null]
+             [rest : (Listof CSS-Token) any-values])
+            (define-values (head tail) (css-car rest))
+            (cond [(or (eof-object? head) (css:delim=:=? head #\;)) (values (reverse seulav) tail)]
+                  [(and (css:block=:=? head #\{) (css:@keyword? id)) (values (reverse (cons head seulav)) tail)]
+                  [else (collect (cons head seulav) tail)])))
+        (cond [(eof-object? id) (reverse seitreporp)]
+              [else (let ([property (cond [(css:ident? id) (css-components->declaration id :values)]
+                                          [else (css-make-syntax-error exn:css:unrecognized (cons id :values))])])
+                      (make-style-rule (css-cons property seitreporp) rest))]))))
+
   (define css-stylesheet-path->identity : (-> Path-String Positive-Integer)
     (lambda [uri.css]
       (file-or-directory-identity uri.css)))
@@ -1860,6 +1874,7 @@
                                         [else (displayln message out) (forever /dev/log)])])))))
 
   (collect-garbage)
+  (css-deprecate-media-type #true)
   (current-css-media-type 'screen)
   (current-css-media-preferences ((inst make-hash Symbol CSS-Media-Datum) (list (cons 'orientation 'landscape))))
   (define CSSes : (Listof Path)
