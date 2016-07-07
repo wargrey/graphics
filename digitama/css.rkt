@@ -919,11 +919,10 @@
         (cond [(eof-object? token) (reverse mixed-list)]
               [(or (css:whitespace? token) (css:delim=:=? token #\;)) (consume-declaration+@rule mixed-list)]
               [(css:@keyword? token) (consume-declaration+@rule (cons (css-consume-@rule /dev/cssin token) mixed-list))]
-              [(css:ident? token) (let-values ([(components _) (css-consume-components /dev/cssin #\;)])
-                                    (consume-declaration+@rule (css-cons (css-components->declaration token components) mixed-list)))]
-              [else (let-values ([(_c _t) (css-consume-components /dev/cssin #\;)])
-                      (css-make-syntax-error exn:css:missing-identifier token)
-                      (consume-declaration+@rule mixed-list))]))))
+              [else (let-values ([(components _) (css-consume-components /dev/cssin #\;)])
+                      (consume-declaration+@rule (css-cons (cond [(css:ident? token) (css-components->declaration token components)]
+                                                                 [else (css-make-syntax-error exn:css:missing-identifier token)])
+                                                           mixed-list)))]))))
   
   (define-css-parser-entry css-parse-component-value :-> (U CSS-Token CSS-Syntax-Error)
     ;;; https://drafts.csswg.org/css-syntax/#parse-component-value
@@ -1427,7 +1426,7 @@
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
     (lambda [token tokens]
       (define-values (next rest) (css-car tokens #false))
-      (define-values (next2 rest2) (css-car tokens #false))
+      (define-values (next2 rest2) (css-car rest #false))
       (cond [(css:delim=:=? token #\|)
              (cond [(css:ident? next) (values (make-css-type-selector next #false) rest)]
                    [(css:delim=:=? next #\*) (values (make-css-universal-selector #false) rest)]
@@ -1770,14 +1769,22 @@
       (define prelude : (Listof CSS-Token) (css-qualified-rule-prelude qr))
       (define maybe-selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-components->selectors prelude))
       (cond [(exn? maybe-selectors) maybe-selectors]
-            [else (let ([components (css:block-components (css-qualified-rule-block qr))])
-                    (define srotpircsed : (Listof CSS-Declaration)
-                      (for/fold ([descriptors : (Listof CSS-Declaration) null])
-                                ([mixed-list (in-list (css-parse-declarations components))])
-                        (cond [(css-declaration? mixed-list) (cons mixed-list descriptors)]
-                              [else (css-make-syntax-error exn:css:unrecognized (css-@rule-name mixed-list))
-                                    descriptors])))
-                    (make-css-style-rule maybe-selectors (reverse srotpircsed)))])))
+            [else (let make-style-rule : CSS-Style-Rule
+                    ([seitreporp : (Listof CSS-Declaration) null]
+                     [tokens : (Listof CSS-Token) (css:block-components (css-qualified-rule-block qr))])
+                    (define-values (id any-values) (css-car tokens))
+                    (define-values (:values rest)
+                      (let collect : (Values (Listof CSS-Token) (Listof CSS-Token))
+                        ([seulav : (Listof CSS-Token) null]
+                         [rest : (Listof CSS-Token) any-values])
+                        (define-values (head tail) (css-car rest))
+                        (cond [(or (eof-object? head) (css:delim=:=? head #\;)) (values (reverse seulav) tail)]
+                              [(and (css:block=:=? head #\{) (css:@keyword? id)) (values (reverse (cons head seulav)) tail)]
+                              [else (collect (cons head seulav) tail)])))
+                    (cond [(eof-object? id) (make-css-style-rule maybe-selectors (reverse seitreporp))]
+                          [else (let ([property (cond [(css:ident? id) (css-components->declaration id :values)]
+                                                      [else (css-make-syntax-error exn:css:unrecognized (cons id :values))])])
+                                  (make-style-rule (css-cons property seitreporp) rest))]))])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-stylesheet-path->identity : (-> Path-String Positive-Integer)
