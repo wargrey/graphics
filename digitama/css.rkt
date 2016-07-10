@@ -111,14 +111,15 @@
                       ;(cond [(id? instance) (id-datum instance)]
                       ;      ...
                       ;      [else (assert (object-name instance) symbol?)])
-                      (with-handlers ([exn:fail? (const (assert (object-name instance) symbol?))])
-                        (define-values (struct:token struct:?) (struct-info instance))
-                        (define-values (name cnt auto-cnt token-ref token-set! indices struct:parent struct:p?)
-                          (struct-type-info (assert struct:token struct-type?)))
-                        (define datum : Any ((assert token-ref struct-accessor-procedure?) instance 0))
-                        (cond [(or (symbol? datum) (keyword? datum) (number? datum) (string? datum) (char? datum)) datum]
-                              [(and (pair? datum) (number? (car datum)) (or (number? (cdr datum)) (symbol? (cdr datum)))) datum]
-                              [else (string->symbol (~a datum))]))))
+                      (define-values (struct:token struct:?) (struct-info instance))
+                      (define-values (name count auto-cnt token-ref token-set! indices struct:parent struct:p?)
+                        (struct-type-info (assert struct:token struct-type?)))
+                      (define datum : Any
+                        (cond [(positive? count) ((assert token-ref struct-accessor-procedure?) instance 0)]
+                              [else (let ([v (struct->vector instance)]) (vector-ref v (max (sub1 (vector-length v)) 0)))]))
+                      (cond [(css-base-datum? datum) datum]
+                            [(and (pair? datum) (css-base-datum? (car datum)) (css-base-datum? (cdr datum))) datum]
+                            [else (string->symbol (~a datum))])))
 
                   (define token->syntax : (-> Token Syntax)
                     (lambda [instance]
@@ -404,6 +405,11 @@
         [else +nan.0])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define css-base-datum? : (-> Any Boolean : #:+ Datum)
+    (lambda [datum]
+      (or (symbol? datum) (number? datum)
+          (string? datum) (char? datum) (keyword? datum))))
+  
   (define css-car : (All (CSS-DT) (->* ((Listof CSS-DT)) (Boolean) (Values (U CSS-DT EOF) (Listof CSS-DT))))
     (lambda [dirty [skip-whitespace? #true]]
       (let skip-whitespace : (Values (U CSS-DT EOF) (Listof CSS-DT)) ([rest dirty])
