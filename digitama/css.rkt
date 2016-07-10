@@ -58,7 +58,7 @@
                      [id=:=? (format-id #'id "~a=:=?" (syntax-e #'id))]
                      [id-datum (format-id #'id "~a-datum" (syntax-e #'id))]
                      [type=? (or (attribute maybe=?) #'(λ [v1 v2] (or (eq? v1 v2) (equal? v1 v2))))])
-         #'(begin (struct: id : ID parent ([datum : Racket-Type] extra-fields ...))
+         #'(begin (struct: id : ID parent (extra-fields ... [datum : Racket-Type]))
 
                   (define id=? : (-> ID ID Boolean)
                     (lambda [left right]
@@ -84,8 +84,7 @@
           #:+ Token (extra ...)
           #:with [[subid #:+ SubID subrest ...] ...]
           [id #:+ ID #:-> parent #:as Type rest ...] ...)
-       (with-syntax ([token-datum (format-id #'token "~a-datum" (syntax-e #'token))]
-                     [token->datum (format-id #'token "~a->datum" (syntax-e #'token))]
+       (with-syntax ([token->datum (format-id #'token "~a->datum" (syntax-e #'token))]
                      [token->syntax (format-id #'token "~a->syntax" (syntax-e #'token))]
                      [token->string (format-id #'token "~a->string" (syntax-e #'token))]
                      [token-source (format-id #'token "~a-source" (syntax-e #'token))]
@@ -98,7 +97,8 @@
                                                (list (format-id <id> "~a?" (syntax-e <id>))
                                                      (format-id <id> "~a-datum" (syntax-e <id>))))]|#)
          #'(begin (struct: token : Token ([source : Any] [line : Natural] [column : Natural] [position : Natural] [span : Natural]
-                                                         [datum : Datum] extra ...))
+                                                         extra ...))
+                  
                   (struct: subid : SubID subrest ...) ...
                   (define-token id #:+ ID #:-> parent #:as Type rest ...) ...
 
@@ -108,7 +108,12 @@
                       ;(cond [(id? instance) (id-datum instance)]
                       ;      ...
                       ;      [else (assert (object-name instance) symbol?)])
-                      (token-datum instance)))
+                      (define v : (Vectorof Any) (struct->vector instance))
+                      (define size : Index (vector-length v))
+                      (define datum : Any (vector-ref v (sub1 size)))
+                      (cond [(or (symbol? datum) (keyword? datum) (number? datum) (string? datum) (char? datum)) datum]
+                            [(and (pair? datum) (number? (car datum)) (or (number? (cdr datum)) (symbol? (cdr datum)))) datum]
+                            [else (assert (object-name instance) symbol?)])))
 
                   (define token->syntax : (-> Token Syntax)
                     (lambda [instance]
@@ -265,10 +270,12 @@
 
   ;; https://drafts.csswg.org/mediaqueries/#media-descriptor-table
   ;; https://drafts.csswg.org/mediaqueries/#mf-deprecated
+  (define-type CSS-Feature-Support? (-> Symbol (Listof CSS-Token) Boolean))
+  (define-type CSS-Media-Preferences (HashTable Symbol CSS-Media-Datum))
   (define-type CSS-Media-Feature-Filter (-> Symbol (Option CSS-Media-Value) Boolean
                                             (Values (U CSS-Media-Datum Make-CSS-Syntax-Error Void)
                                                     Boolean)))
-  
+
   (define css-media-feature-filter : CSS-Media-Feature-Filter
     (lambda [downcased-name maybe-value min/max?]
       (values
@@ -314,11 +321,6 @@
          [else exn:css:unrecognized])
        (and (memq downcased-name '(device-width device-height device-aspect-ratio))
             #true))))
-  
-  ;; https://drafts.csswg.org/css-syntax/#css-stylesheets
-  ;; https://drafts.csswg.org/cssom/#css-object-model
-  (define-type CSS-Media-Preferences (HashTable Symbol CSS-Media-Datum))
-  (define-type CSS-Feature-Support? (-> Symbol (Listof CSS-Token) Boolean))
 
   (define css-deprecate-media-type : (Parameterof Boolean) (make-parameter #false))
   (define current-css-media-type : (Parameterof Symbol) (make-parameter 'all))
@@ -450,7 +452,7 @@
 
   (define-syntax (css-make-token stx)
     (syntax-case stx []
-      [(_ src make-css:token #:datum datum extra ...)
+      [(_ src make-css:token datum extra ...)
        #'(let-values ([(start-position) (css-srcloc-pos src)]
                       [(line column position) (port-next-location (css-srcloc-in src))])
            (make-css:token (css-srcloc-source src)
@@ -459,9 +461,7 @@
                            (or start-position 0)
                            (cond [(not (and (integer? position) (integer? start-position))) 0]
                                  [else (max (- position start-position) 0)])
-                           datum extra ...))]
-      [(_ src make-css:token datum extra ...)
-       #'(css-make-token src make-css:token #:datum datum datum extra ...)]))
+                           extra ... datum))]))
 
   (define-syntax (css-remake-token stx)
     (syntax-case stx []
@@ -471,7 +471,7 @@
                          (css-token-position start-token)
                          (max (- (+ (css-token-position end-token) (css-token-span end-token))
                                  (css-token-position start-token)) 0)
-                         datum datum extra ...)]
+                         extra ... datum)]
       [(_ here-token make-css:token datum ...)
        #'(css-remake-token [here-token here-token] make-css:token datum ...)]))
 
@@ -587,11 +587,11 @@
                           [ch3 : (U EOF Char) (peek-char css 2)])
                       (cond [(css-identifier-prefix? ch1 ch2 ch3)
                              (define unit : Symbol (string->symbol (string-downcase (css-consume-name css #false))))
-                             (css-make-token srcloc css:dimension #:datum (cons n unit) representation (cons n unit))]
+                             (css-make-token srcloc css:dimension (cons n unit) representation)]
                             [(and (char? ch1) (char=? ch1 #\%)) (read-char css)
-                             (css-make-token srcloc css:percentage #:datum (cons n '%) representation (real->fraction n))]
-                            [(exact-integer? n) (css-make-token srcloc css:integer #:datum n representation n)]
-                            [else (css-make-token srcloc css:flonum #:datum n representation (real->double-flonum n))])))])))
+                             (css-make-token srcloc css:percentage (real->fraction n) representation)]
+                            [(exact-integer? n) (css-make-token srcloc css:integer n representation)]
+                            [else (css-make-token srcloc css:flonum (real->double-flonum n) representation)])))])))
 
   (define css-consume-url-token : (-> CSS-Srcloc (U CSS:URL CSS:Bad))
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-url-token
@@ -1320,7 +1320,7 @@
              (values (if (and (css:integer=:=? value positive?) (css:integer=:=? maybe-int positive?))
                          (let ([width : Positive-Integer (max (css:integer-datum value) 1)]
                                [height : Positive-Integer (max (css:integer-datum maybe-int) 1)])
-                           (css-remake-token [value maybe-int] css:ratio (format "~a/~a" width height) (/ width height)))
+                           (css-remake-token [value maybe-int] css:ratio (/ width height) (format "~a/~a" width height)))
                          (css-throw-syntax-error exn:css:malformed (filter css-token? (list value maybe-/ maybe-int))))
                      terminal)]
             [(or (css:ident? value) (css:number? value) (css:dimension? value)) (values value rest)]
@@ -1610,11 +1610,19 @@
   (require (submod ".." tokenizer))
   (require (submod ".." parser))
 
-  (define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule))
+  ;; https://drafts.csswg.org/css-syntax/#css-stylesheets
+  (define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule CSS-Media-Rule))
   (define-type CSS-NameSpace (HashTable Symbol String))
   (define-type CSS-StyleSheet-Pool (HashTable Natural CSS-StyleSheet))
 
   (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof CSS-Complex-Selector)] [properties : (Listof CSS-Declaration)]))
+
+  (struct: css-viewport : CSS-Viewport ())
+  
+  (struct: css-media-rule : CSS-Media-Rule
+    ([queries : (Listof CSS-Media-Query)]
+     [preferences : CSS-Media-Preferences]
+     [rules : (Listof CSS-Grammar-Rule)]))
   
   (struct: css-stylesheet : CSS-StyleSheet
     ([pool : CSS-StyleSheet-Pool]
