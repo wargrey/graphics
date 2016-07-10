@@ -39,6 +39,9 @@
 (module digitama typed/racket
   (provide (all-defined-out))
 
+  (require typed/racket/unsafe)
+  (unsafe-require/typed racket [struct-accessor-procedure? (-> Any Boolean : #:+ (-> Any Integer Any))])
+  
   (require (for-syntax racket/syntax))
   (require (for-syntax syntax/parse))
   
@@ -58,7 +61,7 @@
                      [id=:=? (format-id #'id "~a=:=?" (syntax-e #'id))]
                      [id-datum (format-id #'id "~a-datum" (syntax-e #'id))]
                      [type=? (or (attribute maybe=?) #'(λ [v1 v2] (or (eq? v1 v2) (equal? v1 v2))))])
-         #'(begin (struct: id : ID parent (extra-fields ... [datum : Racket-Type]))
+         #'(begin (struct: id : ID parent ([datum : Racket-Type] extra-fields ...))
 
                   (define id=? : (-> ID ID Boolean)
                     (lambda [left right]
@@ -108,12 +111,14 @@
                       ;(cond [(id? instance) (id-datum instance)]
                       ;      ...
                       ;      [else (assert (object-name instance) symbol?)])
-                      (define v : (Vectorof Any) (struct->vector instance))
-                      (define size : Index (vector-length v))
-                      (define datum : Any (vector-ref v (sub1 size)))
-                      (cond [(or (symbol? datum) (keyword? datum) (number? datum) (string? datum) (char? datum)) datum]
-                            [(and (pair? datum) (number? (car datum)) (or (number? (cdr datum)) (symbol? (cdr datum)))) datum]
-                            [else (assert (object-name instance) symbol?)])))
+                      (with-handlers ([exn:fail? (const (assert (object-name instance) symbol?))])
+                        (define-values (struct:token struct:?) (struct-info instance))
+                        (define-values (name cnt auto-cnt token-ref token-set! indices struct:parent struct:p?)
+                          (struct-type-info (assert struct:token struct-type?)))
+                        (define datum : Any ((assert token-ref struct-accessor-procedure?) instance 0))
+                        (cond [(or (symbol? datum) (keyword? datum) (number? datum) (string? datum) (char? datum)) datum]
+                              [(and (pair? datum) (number? (car datum)) (or (number? (cdr datum)) (symbol? (cdr datum)))) datum]
+                              [else (string->symbol (~a datum))]))))
 
                   (define token->syntax : (-> Token Syntax)
                     (lambda [instance]
@@ -179,6 +184,11 @@
   (define-type CSS-Syntax-Terminal (U CSS:Delim CSS:Close EOF))
   (define-type CSS-Syntax-Rule (U CSS-Qualified-Rule CSS-@Rule))
 
+  (struct: css-@rule : CSS-@Rule ([name : CSS:@Keyword] [prelude : (Listof CSS-Token)] [block : (Option CSS:Block)]))
+  (struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : (Pairof CSS-Token (Listof CSS-Token))] [block : CSS:Block]))
+  (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [values : (Listof CSS-Token)]
+                                                                 [important? : Boolean] [case-sentitive? : Boolean]))
+
   (define-type CSS-Syntax-Error exn:css)
   (define-type Make-CSS-Syntax-Error (-> String Continuation-Mark-Set (Listof Syntax) CSS-Syntax-Error))
 
@@ -225,11 +235,6 @@
     (syntax-case stx []
       [(_ sexp ...)
        #'(raise (css-make-syntax-error sexp ...))]))
-
-  (struct: css-@rule : CSS-@Rule ([name : CSS:@Keyword] [prelude : (Listof CSS-Token)] [block : (Option CSS:Block)]))
-  (struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : (Pairof CSS-Token (Listof CSS-Token))] [block : CSS:Block]))
-  (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [values : (Listof CSS-Token)]
-                                                                 [important? : Boolean] [case-sentitive? : Boolean]))
 
   ;; https://drafts.csswg.org/selectors/#grammar
   ;; https://drafts.csswg.org/selectors/#structure
@@ -461,7 +466,7 @@
                            (or start-position 0)
                            (cond [(not (and (integer? position) (integer? start-position))) 0]
                                  [else (max (- position start-position) 0)])
-                           extra ... datum))]))
+                           datum extra ...))]))
 
   (define-syntax (css-remake-token stx)
     (syntax-case stx []
@@ -471,7 +476,7 @@
                          (css-token-position start-token)
                          (max (- (+ (css-token-position end-token) (css-token-span end-token))
                                  (css-token-position start-token)) 0)
-                         extra ... datum)]
+                         datum extra ...)]
       [(_ here-token make-css:token datum ...)
        #'(css-remake-token [here-token here-token] make-css:token datum ...)]))
 
@@ -587,11 +592,11 @@
                           [ch3 : (U EOF Char) (peek-char css 2)])
                       (cond [(css-identifier-prefix? ch1 ch2 ch3)
                              (define unit : Symbol (string->symbol (string-downcase (css-consume-name css #false))))
-                             (css-make-token srcloc css:dimension (cons n unit) representation)]
+                             (css-make-token srcloc css:dimension representation (cons n unit))]
                             [(and (char? ch1) (char=? ch1 #\%)) (read-char css)
-                             (css-make-token srcloc css:percentage (real->fraction n) representation)]
-                            [(exact-integer? n) (css-make-token srcloc css:integer n representation)]
-                            [else (css-make-token srcloc css:flonum (real->double-flonum n) representation)])))])))
+                             (css-make-token srcloc css:percentage representation (real->fraction n))]
+                            [(exact-integer? n) (css-make-token srcloc css:integer representation n)]
+                            [else (css-make-token srcloc css:flonum representation (real->double-flonum n))])))])))
 
   (define css-consume-url-token : (-> CSS-Srcloc (U CSS:URL CSS:Bad))
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-url-token
@@ -1320,7 +1325,7 @@
              (values (if (and (css:integer=:=? value positive?) (css:integer=:=? maybe-int positive?))
                          (let ([width : Positive-Integer (max (css:integer-datum value) 1)]
                                [height : Positive-Integer (max (css:integer-datum maybe-int) 1)])
-                           (css-remake-token [value maybe-int] css:ratio (/ width height) (format "~a/~a" width height)))
+                           (css-remake-token [value maybe-int] css:ratio (format "~a/~a" width height) (/ width height)))
                          (css-throw-syntax-error exn:css:malformed (filter css-token? (list value maybe-/ maybe-int))))
                      terminal)]
             [(or (css:ident? value) (css:number? value) (css:dimension? value)) (values value rest)]
