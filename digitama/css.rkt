@@ -39,9 +39,6 @@
 (module digitama typed/racket
   (provide (all-defined-out))
 
-  (require typed/racket/unsafe)
-  (unsafe-require/typed racket [struct-accessor-procedure? (-> Any Boolean : #:+ (-> Any Integer Any))])
-  
   (require (for-syntax racket/syntax))
   (require (for-syntax syntax/parse))
   
@@ -111,12 +108,14 @@
                       ;(cond [(id? instance) (id-datum instance)]
                       ;      ...
                       ;      [else (assert (object-name instance) symbol?)])
-                      (define-values (struct:token struct:?) (struct-info instance))
-                      (define-values (name count auto-cnt token-ref token-set! indices struct:parent struct:p?)
-                        (struct-type-info (assert struct:token struct-type?)))
-                      (define datum : Any
-                        (cond [(positive? count) ((assert token-ref struct-accessor-procedure?) instance 0)]
-                              [else (let ([v (struct->vector instance)]) (vector-ref v (max (sub1 (vector-length v)) 0)))]))
+                      (define v : (Vectorof Any) (struct->vector instance))
+                      (define-values (struct:token _) (struct-info instance))
+                      (define datum-index : Integer
+                        (let count : Integer ([folded-index : Integer -1] [struct:this : (Option Struct-TypeTop) struct:token])
+                          (cond [(false? struct:this) (+ folded-index 1)]
+                                [else (let-values ([(_n cnt _a _r _! _i struct:parent _?) (struct-type-info struct:this)])
+                                        (count (if (< folded-index 0) 0 (+ folded-index cnt)) struct:parent))])))
+                      (define datum : Any (vector-ref v (min datum-index (sub1 (vector-length v)))))
                       (cond [(css-base-datum? datum) datum]
                             [(and (pair? datum) (css-base-datum? (car datum)) (css-base-datum? (cdr datum))) datum]
                             [else (string->symbol (~a datum))])))
