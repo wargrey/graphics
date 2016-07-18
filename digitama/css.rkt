@@ -335,6 +335,16 @@
             (make-parameter css-media-feature-filter)
             (make-parameter (const #false))))
 
+  ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
+  ;; https://drafts.csswg.org/css-device-adapt/#constraining
+  (define-type CSS-Viewport-Filter (-> CSS-Media-Preferences (Listof CSS-Declaration) CSS-Media-Preferences))
+  
+  (define css-viewport-filter : CSS-Viewport-Filter
+    (lambda [viewport0 . descriptors]
+      viewport0))
+
+  (define current-css-viewport-filter : (Parameterof CSS-Viewport-Filter) (make-parameter css-viewport-filter))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-type Quantity->Scalar (case-> [Nonnegative-Exact-Rational Symbol -> (U Nonnegative-Exact-Rational Flonum-Nan)]
                                         [Exact-Rational Symbol -> (U Exact-Rational Flonum-Nan)]
