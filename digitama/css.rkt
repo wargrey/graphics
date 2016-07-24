@@ -335,6 +335,13 @@
             (make-parameter css-media-feature-filter)
             (make-parameter (const #false))))
 
+  ;; https://drafts.csswg.org/css-cascade/#shorthand
+  ;; https://drafts.csswg.org/css-cascade/#filtering
+  (define-type CSS-Declared-Value-Filter (-> Symbol (Pairof CSS-Token (Listof CSS-Token))
+                                             (U (Vectorof (Pairof Symbol (Listof CSS-Token)))
+                                                (Listof CSS-Token)
+                                                Make-CSS-Syntax-Error)))
+  
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
   ;; https://drafts.csswg.org/css-device-adapt/#constraining
   (define-type CSS-Viewport-Filter (-> CSS-Media-Preferences (Listof CSS-Declaration) CSS-Media-Preferences))
@@ -1808,6 +1815,13 @@
       (define maybe-selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-components->selectors prelude))
       (cond [(exn? maybe-selectors) maybe-selectors]
             [else (make-css-style-rule maybe-selectors (css-components->declarations components))])))
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define css-cascade-declarations : (-> CSS-Declared-Value-Filter (Listof (Listof CSS-Declaration)) (Listof CSS-Declaration))
+    ;;; https://drafts.csswg.org/css-cascade/#cascading
+    ;;; https://drafts.csswg.org/css-cascade/#filtering
+    (lambda [value-filter descriptors-list]
+      (cond [(null? descriptors-list) null]
+            [else (car descriptors-list)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-components->declarations : (-> (Listof CSS-Token) (Listof CSS-Declaration))
