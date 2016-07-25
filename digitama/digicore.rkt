@@ -17,7 +17,6 @@
 
 (define-type Racket-Main (-> String * Void))
 (define-type Place-Main (-> Place-Channel Void))
-(define-type SymbolTable (HashTable Symbol Any))
 (define-type Stack-Hint (Pairof Symbol (Option (Vector (U String Symbol) Integer Integer))))
 (define-type Help-Table (Listof (U (List Symbol String) (List* Symbol (Listof (List (Listof String) Any (Listof String)))))))
 
