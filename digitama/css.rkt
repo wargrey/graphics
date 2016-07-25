@@ -183,11 +183,13 @@
   (define-type CSS-Syntax-Any (U CSS-Token EOF))
   (define-type CSS-Syntax-Terminal (U CSS:Delim CSS:Close EOF))
   (define-type CSS-Syntax-Rule (U CSS-Qualified-Rule CSS-@Rule))
+  (define-type CSS-Tokens (Pairof CSS-Token (Listof CSS-Token)))
 
   (struct: css-@rule : CSS-@Rule ([name : CSS:@Keyword] [prelude : (Listof CSS-Token)] [block : (Option CSS:Block)]))
-  (struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : (Pairof CSS-Token (Listof CSS-Token))] [block : CSS:Block]))
-  (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [values : (Listof CSS-Token)]
-                                                                 [important? : Boolean] [case-sentitive? : Boolean]))
+  (struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : CSS-Tokens] [block : CSS:Block]))
+  (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [values : CSS-Tokens]
+                                                                 [important? : Boolean]
+                                                                 [case-sensitive? : Boolean]))
 
   (define-type CSS-Syntax-Error exn:css)
   (define-type Make-CSS-Syntax-Error (-> String Continuation-Mark-Set (Listof Syntax) CSS-Syntax-Error))
@@ -275,7 +277,7 @@
 
   ;; https://drafts.csswg.org/mediaqueries/#media-descriptor-table
   ;; https://drafts.csswg.org/mediaqueries/#mf-deprecated
-  (define-type CSS-Feature-Support? (-> Symbol (Listof CSS-Token) Boolean))
+  (define-type CSS-Feature-Support? (-> Symbol CSS-Tokens Boolean))
   (define-type CSS-Media-Preferences (HashTable Symbol CSS-Media-Datum))
   (define-type CSS-Media-Feature-Filter (-> Symbol (Option CSS-Media-Value) Boolean
                                             (Values (U CSS-Media-Datum Make-CSS-Syntax-Error Void)
@@ -337,10 +339,9 @@
 
   ;; https://drafts.csswg.org/css-cascade/#shorthand
   ;; https://drafts.csswg.org/css-cascade/#filtering
-  (define-type CSS-Declared-Value-Filter (-> Symbol (Pairof CSS-Token (Listof CSS-Token))
-                                             (U (Vectorof (Pairof Symbol (Listof CSS-Token)))
-                                                (Listof CSS-Token)
-                                                Make-CSS-Syntax-Error)))
+  (define-type CSS-Declared-Value-Filter (-> Symbol CSS-Tokens
+                                             (Values (U (Listof (Pairof Symbol CSS-Tokens)) CSS-Tokens Make-CSS-Syntax-Error)
+                                                     Boolean)))
   
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
   ;; https://drafts.csswg.org/css-device-adapt/#constraining
@@ -1166,8 +1167,10 @@
                                  [(or (css:bad? 1st) (css:close? 1st)) (verify lla (css-make-syntax-error exn:css:malformed 1st) null)]
                                  [else (verify (cons 1st lla) #false tail)])]
                           [(exn:css? info) info]
-                          [(null? lla) (css-make-syntax-error exn:css:missing-value id-token)]
-                          [else (make-css-declaration id-token (reverse lla) (css:delim? info) (css:ident=:=? id-token --symbol?))]))])))
+                          [else (let ([ci? (css:ident=:=? id-token --symbol?)]
+                                      [all-argl (reverse lla)])
+                                  (cond [(null? all-argl) (css-make-syntax-error exn:css:missing-value id-token)]
+                                        [else (make-css-declaration id-token all-argl (css:delim? info) ci?)]))]))])))
 
   (define css-consume-block-body : (-> Input-Port Char (Values (Listof CSS-Token) CSS-Syntax-Terminal))
     ;;; https://drafts.csswg.org/css-syntax/#consume-simple-block
@@ -1815,13 +1818,27 @@
       (define maybe-selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-components->selectors prelude))
       (cond [(exn? maybe-selectors) maybe-selectors]
             [else (make-css-style-rule maybe-selectors (css-components->declarations components))])))
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define css-cascade-declarations : (-> CSS-Declared-Value-Filter (Listof (Listof CSS-Declaration)) (Listof CSS-Declaration))
+  (define css-cascade-declarations : (->* (CSS-Declared-Value-Filter (U (Listof CSS-Declaration) (Listof (Listof CSS-Declaration))))
+                                          ((HashTable Symbol CSS-Declaration))
+                                          (HashTable Symbol CSS-Declaration))
     ;;; https://drafts.csswg.org/css-cascade/#cascading
     ;;; https://drafts.csswg.org/css-cascade/#filtering
-    (lambda [value-filter descriptors-list]
-      (cond [(null? descriptors-list) null]
-            [else (car descriptors-list)])))
+    (lambda [value-filter descriptors [origin ((inst make-hasheq Symbol CSS-Declaration))]]
+      (for ([descriptor (in-list descriptors)])
+        (cond [(list? descriptor) (css-cascade-declarations value-filter descriptor origin)]
+              [else (let* ([desc-name (css:ident-datum (css-declaration-name descriptor))]
+                           [desc-name (if (css-declaration-case-sensitive? descriptor) desc-name (symbol-downcase desc-name))])
+                      (when (or (css-declaration-important? descriptor)
+                                (and (hash-has-key? origin desc-name) (not (css-declaration-important? (hash-ref origin desc-name)))))
+                        (define-values (desc-values deprecated?) (value-filter desc-name (css-declaration-values descriptor)))
+                        (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated (css-declaration-name descriptor)))
+                        (when (pair? desc-values)
+                          (if (pair? (car desc-values)) ; extent longhand properties
+                              (void)
+                              (void)))))]))
+      origin))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-components->declarations : (-> (Listof CSS-Token) (Listof CSS-Declaration))
