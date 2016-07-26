@@ -340,7 +340,7 @@
   ;; https://drafts.csswg.org/css-cascade/#shorthand
   ;; https://drafts.csswg.org/css-cascade/#filtering
   (define-type CSS-Declared-Value-Filter (-> Symbol CSS-Tokens
-                                             (Values (U (Listof (Pairof Symbol CSS-Tokens)) CSS-Tokens Make-CSS-Syntax-Error)
+                                             (Values (U (HashTable Symbol CSS-Tokens) CSS-Tokens Make-CSS-Syntax-Error)
                                                      Boolean)))
   
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
@@ -1823,6 +1823,7 @@
   (define css-cascade-declarations : (->* (CSS-Declared-Value-Filter (U (Listof CSS-Declaration) (Listof (Listof CSS-Declaration))))
                                           ((HashTable Symbol CSS-Declaration))
                                           (HashTable Symbol CSS-Declaration))
+    ;;; https://drafts.csswg.org/css-cascade/#shorthand
     ;;; https://drafts.csswg.org/css-cascade/#cascading
     ;;; https://drafts.csswg.org/css-cascade/#filtering
     (lambda [value-filter descriptors [origin ((inst make-hasheq Symbol CSS-Declaration))]]
@@ -1832,12 +1833,18 @@
                            [desc-name (if (css-declaration-case-sensitive? descriptor) desc-name (symbol-downcase desc-name))])
                       (when (or (css-declaration-important? descriptor)
                                 (and (hash-has-key? origin desc-name) (not (css-declaration-important? (hash-ref origin desc-name)))))
-                        (define-values (desc-values deprecated?) (value-filter desc-name (css-declaration-values descriptor)))
+                        (define desc-argl : CSS-Tokens (css-declaration-values descriptor))
+                        (define-values (desc-values deprecated?) (value-filter desc-name desc-argl))
                         (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated (css-declaration-name descriptor)))
-                        (when (pair? desc-values)
-                          (if (pair? (car desc-values)) ; extent longhand properties
-                              (void)
-                              (void)))))]))
+                        (when (list? desc-values)
+                          (hash-set! origin desc-name
+                                     (cond [(eq? desc-values desc-argl) descriptor]
+                                           [else (struct-copy css-declaration descriptor [values desc-values])])))
+                        (when (hash? desc-values)
+                          (for ([(name argl) (in-hash desc-values)])
+                            (when (or (css-declaration-important? descriptor)
+                                      (and (hash-has-key? origin name) (not (css-declaration-important? (hash-ref origin name)))))
+                              (hash-set! origin name (struct-copy css-declaration descriptor [values argl])))))))]))
       origin))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
