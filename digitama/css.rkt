@@ -340,18 +340,64 @@
   ;; https://drafts.csswg.org/css-cascade/#shorthand
   ;; https://drafts.csswg.org/css-cascade/#filtering
   (define-type CSS-Declared-Value-Filter (-> Symbol CSS-Tokens
-                                             (Values (U (HashTable Symbol CSS-Tokens) CSS-Tokens Make-CSS-Syntax-Error)
+                                             (Values (U (HashTable Symbol CSS-Tokens) CSS-Tokens
+                                                        Make-CSS-Syntax-Error (Pairof Make-CSS-Syntax-Error (Listof CSS-Token)))
                                                      Boolean)))
   
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
   ;; https://drafts.csswg.org/css-device-adapt/#constraining
   (define-type CSS-Viewport-Filter (-> CSS-Media-Preferences (Listof CSS-Declaration) CSS-Media-Preferences))
   
-  (define css-viewport-filter : CSS-Viewport-Filter
-    (lambda [viewport0 . descriptors]
-      viewport0))
+  (define css-viewport-declaration-filter : CSS-Declared-Value-Filter
+    (lambda [suitcased-name desc-values]
+      (define argsize : Index (length desc-values))
+      (define desc-value : CSS-Token (car desc-values))
+      (define exn:css:viewport : (-> CSS-Token (Option Make-CSS-Syntax-Error))
+        (lambda [v]
+          (cond [(or (css:ident=:=? v 'auto)
+                     (css:percentage=:=? v (negate negative?))
+                     (and (css:dimension? v) (>= (css-dimension->scalar v 'length) 0)))
+                 #false]
+                [(or (css:ident? v) (css:percentage? v) (css:dimension? v)) exn:css:range]
+                [else exn:css:type])))
+      (values
+       (case suitcased-name
+         [(width height)
+          (define min-name : Symbol (if (eq? suitcased-name 'width) 'min-width 'min-height))
+          (define max-name : Symbol (if (eq? suitcased-name 'width) 'max-width 'max-height))
+          (define-values (min-value max-value) (values desc-value (list-ref desc-values (if (> argsize 1) 1 0))))
+          (cond [(> argsize 2) (cons exn:css:overconsumption (cddr desc-values))]
+                [(exn:css:viewport min-value) => (λ [exn:css:min] (cons exn:css:min desc-values))]
+                [(exn:css:viewport max-value) => (λ [exn:css:max] (cons exn:css:max (cdr desc-values)))]
+                [else (hasheq min-name (list min-value) max-name (list max-value))])]
+         [(min-width max-width min-height max-height)
+          (cond [(> argsize 1) (cons exn:css:overconsumption (cdr desc-values))]
+                [(exn:css:viewport desc-value) => (λ [exn:css:length] (cons exn:css:length desc-values))]
+                [else desc-values])]
+         [(zoom min-zoom max-zoom)
+          (cond [(> argsize 1) (cons exn:css:overconsumption (cdr desc-values))]
+                [(or (css:ident=:=? desc-value 'auto)
+                     (css:percentage=:=? desc-value (negate negative?))
+                     (css:integer=:=? desc-value (negate negative?))
+                     (css:flonum=:=? desc-value (negate negative?))) desc-values]
+                [(or (css:ident? desc-value) (css:percentage? desc-value)
+                     (css:integer? desc-value) (css:flonum? desc-value))
+                 (cons exn:css:range desc-values)]
+                [else (cons exn:css:type desc-values)])]
+         [(orientation user-zoom)
+          (cond [(> argsize 1) (cons exn:css:overconsumption (cdr desc-values))]
+                [(css:ident? desc-value)
+                 (cond [(memq (css:ident=> desc-value symbol-downcase)
+                              (case suitcased-name
+                                [(orientation) '(auto portrait landscape)]
+                                [(user-zoom) '(zoom fixed)]
+                                [else null])) desc-values]
+                       [else (cons exn:css:range desc-values)])]
+                [else (cons exn:css:type desc-values)])]
+         [else exn:css:unrecognized])
+       #false)))
 
-  (define current-css-viewport-filter : (Parameterof CSS-Viewport-Filter) (make-parameter css-viewport-filter))
+  (define current-css-viewport-filter : (Parameterof CSS-Declared-Value-Filter) (make-parameter css-viewport-declaration-filter))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-type Quantity->Scalar (case-> [Nonnegative-Exact-Rational Symbol -> (U Nonnegative-Exact-Rational Flonum-Nan)]
@@ -363,7 +409,7 @@
     (lambda [dim [type #false]]
       (cond [(css:dimension? dim) (css-dimension->scalar (css:dimension-datum dim) type)]
             [else (let-values ([(n unit) (values (car dim) (cdr dim))])
-                    (case (if (symbol? type) type unit)
+                    (case (or type unit)
                       [(length px cm mm q in pc pt) (css-length->scalar n unit)]
                       [(angle deg grad rad turn) (css-angle->scalar n unit)]
                       [(time s ms min h) (css-time->scalar n unit)]
@@ -1836,15 +1882,19 @@
                         (define desc-argl : CSS-Tokens (css-declaration-values descriptor))
                         (define-values (desc-values deprecated?) (value-filter desc-name desc-argl))
                         (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated (css-declaration-name descriptor)))
-                        (when (list? desc-values)
-                          (hash-set! origin desc-name
-                                     (cond [(eq? desc-values desc-argl) descriptor]
-                                           [else (struct-copy css-declaration descriptor [values desc-values])])))
-                        (when (hash? desc-values)
-                          (for ([(name argl) (in-hash desc-values)])
-                            (when (or (css-declaration-important? descriptor)
-                                      (and (hash-has-key? origin name) (not (css-declaration-important? (hash-ref origin name)))))
-                              (hash-set! origin name (struct-copy css-declaration descriptor [values argl])))))))]))
+                        (cond [(list? desc-values)
+                               (define maybe-exn (car desc-values))
+                               (cond [(procedure? maybe-exn) (css-make-syntax-error maybe-exn (cdr desc-values))]
+                                     [else (hash-set! origin desc-name
+                                                      (cond [(eq? desc-values desc-argl) descriptor]
+                                                            [else (struct-copy css-declaration descriptor [values desc-values])]))])]
+                              [(hash? desc-values)
+                               (for ([(name argl) (in-hash desc-values)])
+                                 (when (or (css-declaration-important? descriptor)
+                                           (and (hash-has-key? origin name)
+                                                (not (css-declaration-important? (hash-ref origin name)))))
+                                   (hash-set! origin name (struct-copy css-declaration descriptor [values argl]))))]
+                              [(procedure? desc-values) (css-make-syntax-error desc-values (css-declaration-name descriptor))])))]))
       origin))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
