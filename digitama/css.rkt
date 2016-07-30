@@ -184,6 +184,7 @@
   (define-type CSS-Syntax-Terminal (U CSS:Delim CSS:Close EOF))
   (define-type CSS-Syntax-Rule (U CSS-Qualified-Rule CSS-@Rule))
   (define-type CSS-Tokens (Pairof CSS-Token (Listof CSS-Token)))
+  (define-type CSS-Descriptors (Listof CSS-Declaration))
 
   (struct: css-@rule : CSS-@Rule ([name : CSS:@Keyword] [prelude : (Listof CSS-Token)] [block : (Option CSS:Block)]))
   (struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : CSS-Tokens] [block : CSS:Block]))
@@ -346,9 +347,9 @@
   
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
   ;; https://drafts.csswg.org/css-device-adapt/#constraining
-  (define-type CSS-Viewport-Filter (-> CSS-Media-Preferences (Listof CSS-Declaration) CSS-Media-Preferences))
+  (define-type CSS-Viewport-Filter (-> CSS-Media-Preferences CSS-Descriptors CSS-Media-Preferences))
   
-  (define css-viewport-declaration-filter : CSS-Declared-Value-Filter
+  (define css-viewport-descriptor-filter : CSS-Declared-Value-Filter
     (lambda [suitcased-name desc-values]
       (define argsize : Index (length desc-values))
       (define desc-value : CSS-Token (car desc-values))
@@ -397,7 +398,8 @@
          [else exn:css:unrecognized])
        #false)))
 
-  (define current-css-viewport-filter : (Parameterof CSS-Declared-Value-Filter) (make-parameter css-viewport-declaration-filter))
+  (define current-css-viewport-descriptor-filter : (Parameterof CSS-Declared-Value-Filter)
+    (make-parameter css-viewport-descriptor-filter))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-type Quantity->Scalar (case-> [Nonnegative-Exact-Rational Symbol -> (U Nonnegative-Exact-Rational Flonum-Nan)]
@@ -1406,9 +1408,9 @@
   (define css-make-media-feature : (-> CSS:Ident (Option CSS-Media-Value) Char (Option CSS:Delim) (U Symbol CSS-Media-Feature))
     ;;; https://drafts.csswg.org/mediaqueries/#mq-features
     ;;; https://drafts.csswg.org/mediaqueries/#mq-min-max
-    (lambda [descriptor maybe-value ophint maybe-op]
-      (define errobj (filter css-token? (list descriptor maybe-op maybe-value)))
-      (define name (css:ident=> descriptor (compose1 string-downcase symbol->string)))
+    (lambda [desc-name maybe-value ophint maybe-op]
+      (define errobj (filter css-token? (list desc-name maybe-op maybe-value)))
+      (define name (css:ident=> desc-name (compose1 string-downcase symbol->string)))
       (define-values (downcased-name op min/max?)
         (cond [(string-prefix? name "min-") (values (string->symbol (substring name 4)) #\≥ #true)]
               [(string-prefix? name "max-") (values (string->symbol (substring name 4)) #\≤ #true)]
@@ -1417,7 +1419,7 @@
         (cond [(or (not maybe-value) (css:delim? maybe-op)) (css-throw-syntax-error exn:css:misplaced errobj)]
               [(not (css:numeric? maybe-value)) (css-throw-syntax-error exn:css:unrecognized errobj)]))
       (define-values (v deprecated?) ((current-css-media-feature-filter) downcased-name maybe-value min/max?))
-      (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated descriptor))
+      (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated desc-name))
       (cond [(void? v) downcased-name]
             [(procedure? v) (css-throw-syntax-error v errobj)]
             [else (make-css-media-feature downcased-name v op)])))
@@ -1691,7 +1693,7 @@
   (define-type CSS-NameSpace (HashTable Symbol String))
   (define-type CSS-StyleSheet-Pool (HashTable Natural CSS-StyleSheet))
 
-  (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof CSS-Complex-Selector)] [properties : (Listof CSS-Declaration)]))
+  (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof CSS-Complex-Selector)] [properties : CSS-Descriptors]))
   
   (struct: css-stylesheet : CSS-StyleSheet
     ([pool : CSS-StyleSheet-Pool]
@@ -1741,9 +1743,18 @@
                  [pool ((inst make-hasheq Natural CSS-StyleSheet))]]
       (define namespaces : CSS-NameSpace (make-hasheq))
       (define viewport : CSS-Media-Preferences init-viewport)
-      (define viewports : (Listof CSS-@Rule)
-        (filter (λ [stx] (and (css-@rule? stx) (css:@keyword=:=? (css-@rule-name stx) '#:@viewport)))
-                syntaxes0))
+      ;;; css-cascade-viewport
+      (define viewport-descriptors : (Listof CSS-Descriptors)
+        (filter-map (λ [stx] (and (css-@rule? stx) (css:@keyword=:=? (css-@rule-name stx) '#:@viewport)
+                                  (or (null? (css-@rule-prelude stx))
+                                      (and (css-make-syntax-error exn:css:overconsumption (css-@rule-prelude stx))
+                                           #false))
+                                  (let ([maybe-block (css-@rule-block stx)])
+                                    (or (and (css:block? maybe-block)
+                                             (css-components->descriptors (css:block-components maybe-block)))
+                                        (and (css-make-syntax-error exn:css:missing-block (css-@rule-name stx))
+                                             #false)))))
+                    syntaxes0))
       (let syntax->grammar : (Values CSS-Media-Preferences (Listof Positive-Integer) CSS-NameSpace (Listof CSS-Grammar-Rule))
         ([seititnedi : (Listof Positive-Integer) null]
          [srammarg : (Listof CSS-Grammar-Rule) null]
@@ -1863,45 +1874,49 @@
       (define components : (Listof CSS-Token) (css:block-components (css-qualified-rule-block qr)))
       (define maybe-selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-components->selectors prelude))
       (cond [(exn? maybe-selectors) maybe-selectors]
-            [else (make-css-style-rule maybe-selectors (css-components->declarations components))])))
+            [else (make-css-style-rule maybe-selectors (css-components->descriptors components))])))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define css-cascade-declarations : (->* (CSS-Declared-Value-Filter (U (Listof CSS-Declaration) (Listof (Listof CSS-Declaration))))
+  (define css-cascade-viewport : (-> CSS-Declared-Value-Filter (Listof CSS-@Rule) (HashTable Symbol CSS-Declaration))
+    ;;; https://drafts.csswg.org/css-device-adapt/#atviewport-rule
+    (lambda [viewport-descriptor-filter viewports]
+      (css-cascade-descriptors viewport-descriptor-filter null)))
+  
+  (define css-cascade-descriptors : (->* (CSS-Declared-Value-Filter (U CSS-Descriptors (Listof CSS-Descriptors)))
                                           ((HashTable Symbol CSS-Declaration))
                                           (HashTable Symbol CSS-Declaration))
     ;;; https://drafts.csswg.org/css-cascade/#shorthand
     ;;; https://drafts.csswg.org/css-cascade/#cascading
     ;;; https://drafts.csswg.org/css-cascade/#filtering
-    (lambda [value-filter descriptors [origin ((inst make-hasheq Symbol CSS-Declaration))]]
-      (for ([descriptor (in-list descriptors)])
-        (cond [(list? descriptor) (css-cascade-declarations value-filter descriptor origin)]
-              [else (let* ([desc-name (css:ident-datum (css-declaration-name descriptor))]
-                           [desc-name (if (css-declaration-case-sensitive? descriptor) desc-name (symbol-downcase desc-name))])
-                      (when (or (css-declaration-important? descriptor)
+    (lambda [desc-filter descriptors [origin ((inst make-hasheq Symbol CSS-Declaration))]]
+      (for ([property (in-list descriptors)])
+        (cond [(list? property) (css-cascade-descriptors desc-filter property origin)]
+              [else (let* ([desc-name (css:ident-datum (css-declaration-name property))]
+                           [desc-name (if (css-declaration-case-sensitive? property) desc-name (symbol-downcase desc-name))])
+                      (when (or (css-declaration-important? property)
                                 (and (hash-has-key? origin desc-name) (not (css-declaration-important? (hash-ref origin desc-name)))))
-                        (define desc-argl : CSS-Tokens (css-declaration-values descriptor))
-                        (define-values (desc-values deprecated?) (value-filter desc-name desc-argl))
-                        (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated (css-declaration-name descriptor)))
+                        (define declared-values : CSS-Tokens (css-declaration-values property))
+                        (define-values (desc-values deprecated?) (desc-filter desc-name declared-values))
+                        (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
                         (cond [(list? desc-values)
                                (define maybe-exn (car desc-values))
                                (cond [(procedure? maybe-exn) (css-make-syntax-error maybe-exn (cdr desc-values))]
                                      [else (hash-set! origin desc-name
-                                                      (cond [(eq? desc-values desc-argl) descriptor]
-                                                            [else (struct-copy css-declaration descriptor [values desc-values])]))])]
+                                                      (cond [(eq? desc-values declared-values) property]
+                                                            [else (struct-copy css-declaration property [values desc-values])]))])]
                               [(hash? desc-values)
                                (for ([(name argl) (in-hash desc-values)])
-                                 (when (or (css-declaration-important? descriptor)
+                                 (when (or (css-declaration-important? property)
                                            (and (hash-has-key? origin name)
                                                 (not (css-declaration-important? (hash-ref origin name)))))
-                                   (hash-set! origin name (struct-copy css-declaration descriptor [values argl]))))]
-                              [(procedure? desc-values) (css-make-syntax-error desc-values (css-declaration-name descriptor))])))]))
+                                   (hash-set! origin name (struct-copy css-declaration property [values argl]))))]
+                              [(procedure? desc-values) (css-make-syntax-error desc-values (css-declaration-name property))])))]))
       origin))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define css-components->declarations : (-> (Listof CSS-Token) (Listof CSS-Declaration))
+  (define css-components->descriptors : (-> (Listof CSS-Token) CSS-Descriptors)
     (lambda [components]
-      (let make-style-rule : (Listof CSS-Declaration) ([seitreporp : (Listof CSS-Declaration) null]
-                                                       [tokens : (Listof CSS-Token) components])
+      (let make-style-rule : CSS-Descriptors ([seitreporp : CSS-Descriptors null] [tokens : (Listof CSS-Token) components])
         (define-values (id any-values) (css-car tokens))
         (define-values (:values rest)
           (let collect : (Values (Listof CSS-Token) (Listof CSS-Token))
