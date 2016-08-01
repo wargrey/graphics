@@ -1771,7 +1771,8 @@
   (define-type CSS-NameSpace (HashTable Symbol String))
   (define-type CSS-StyleSheet-Pool (HashTable Natural CSS-StyleSheet))
 
-  (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof CSS-Complex-Selector)] [descriptors : CSS-Descriptors]))
+  (struct: css-style-rule : CSS-Style-Rule ([identity : Natural] [selectors : (Listof CSS-Complex-Selector)]
+                                                                 [descriptors : CSS-Descriptors]))
   
   (struct: css-stylesheet : CSS-StyleSheet
     ([pool : CSS-StyleSheet-Pool]
@@ -1961,7 +1962,9 @@
       (define components : (Listof CSS-Token) (css:block-components (css-qualified-rule-block qr)))
       (define maybe-selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-components->selectors prelude))
       (cond [(exn? maybe-selectors) maybe-selectors]
-            [else (make-css-style-rule maybe-selectors (css-components->descriptors components))])))
+            [else (make-css-style-rule (css-token-position (css-qualified-rule-block qr))
+                                       maybe-selectors
+                                       (css-components->descriptors components))])))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-cascade-viewport : (->* (CSS-Media-Preferences (Listof CSS-Descriptors))
