@@ -423,6 +423,9 @@
     ;;; https://drafts.csswg.org/css-device-adapt/#constraining
     ;;; https://drafts.csswg.org/css-device-adapt/#handling-auto-zoom
     (lambda [initial-viewport cascaded-values]
+      ; Notes: @viewport is a controversial @rule which is easy to use incorrectly,
+      ;        also, it is rarely used in desktop applications,
+      ;        So we do not check the `initial-viewport` to specific the `specified values`.
       (define initial-width : Real (let ([w (hash-ref initial-viewport 'width (const 0))]) (if (symbol? w) 0 w)))
       (define initial-height : Real (let ([h (hash-ref initial-viewport 'height (const 0))]) (if (symbol? h) 0 h)))
       (parameterize ([current-css-containing-block-width (exact-round (max initial-width 0))]
@@ -1768,7 +1771,7 @@
   (define-type CSS-NameSpace (HashTable Symbol String))
   (define-type CSS-StyleSheet-Pool (HashTable Natural CSS-StyleSheet))
 
-  (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof CSS-Complex-Selector)] [properties : CSS-Descriptors]))
+  (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof CSS-Complex-Selector)] [descriptors : CSS-Descriptors]))
   
   (struct: css-stylesheet : CSS-StyleSheet
     ([pool : CSS-StyleSheet-Pool]
@@ -1817,8 +1820,9 @@
                  [init-viewport (current-css-media-preferences)]
                  [pool ((inst make-hasheq Natural CSS-StyleSheet))]]
       (define namespaces : CSS-NameSpace (make-hasheq))
-      (define stropweiv : (Listof CSS-Descriptors)
-        (for/fold ([viewport-srotpircsed : (Listof CSS-Descriptors) null])
+      (define-values (viewport-srotpircsed !viewport-sexatnys)
+        (for/fold ([viewport-srotpircsed : (Listof CSS-Descriptors) null]
+                   [normal-sexatnys : (Listof CSS-Syntax-Rule) null])
                   ([stx : CSS-Syntax-Rule (in-list syntaxes0)])
           (define maybe-descriptor : (U CSS-Descriptors CSS-Syntax-Error Void)
             (when (and (css-@rule? stx) (css:@keyword=:=? (css-@rule-name stx) '#:@viewport))
@@ -1827,25 +1831,29 @@
               (cond [(not (css-null? prelude)) (css-make-syntax-error exn:css:overconsumption prelude)]
                     [maybe-block (css-components->descriptors (css:block-components maybe-block))]
                     [else (css-make-syntax-error exn:css:missing-block (css-@rule-name stx))])))
-          (cond [(not (list? maybe-descriptor)) viewport-srotpircsed]
-                [else (cons maybe-descriptor viewport-srotpircsed)])))
+          (cond [(void? maybe-descriptor) (values viewport-srotpircsed (cons stx normal-sexatnys))]
+                [(exn? maybe-descriptor) (values viewport-srotpircsed normal-sexatnys)]
+                [else (values (cons maybe-descriptor viewport-srotpircsed) normal-sexatnys)])))
       (define viewport : CSS-Media-Preferences
-        (cond [(null? stropweiv) init-viewport]
+        (cond [(null? viewport-srotpircsed) init-viewport]
               [else (css-cascade-viewport init-viewport
-                                          (reverse stropweiv)
+                                          (reverse viewport-srotpircsed)
                                           (current-css-viewport-descriptor-filter)
                                           (current-css-viewport-filter))]))
       (let syntax->grammar : (Values CSS-Media-Preferences (Listof Positive-Integer) CSS-NameSpace (Listof CSS-Grammar-Rule))
         ([seititnedi : (Listof Positive-Integer) null]
          [srammarg : (Listof CSS-Grammar-Rule) null]
-         [syntaxes : (Listof CSS-Syntax-Rule) syntaxes0]
+         [!viewport-syntaxes : (Listof CSS-Syntax-Rule) (reverse !viewport-sexatnys)]
          [can-import? : Boolean can-import0?]
          [allow-namespace? : Boolean allow-namespace0?])
-        (if (null? syntaxes)
+        (if (null? !viewport-syntaxes)
             (values viewport (reverse seititnedi) namespaces (reverse srammarg))
-            (let-values ([(stx rest) (values (car syntaxes) (cdr syntaxes))])
+            (let-values ([(stx rest) (values (car !viewport-syntaxes) (cdr !viewport-syntaxes))])
               (cond [(css-qualified-rule? stx)
-                     (syntax->grammar seititnedi (css-cons (css-qualified-rule->style-rule stx) srammarg) rest #false #false)]
+                     (define maybe-rule : (U CSS-Style-Rule CSS-Syntax-Error) (css-qualified-rule->style-rule stx))
+                     (syntax->grammar seititnedi (cond [(or (exn? maybe-rule) (null? (css-style-rule-descriptors maybe-rule))) srammarg]
+                                                       [else (cons maybe-rule srammarg)])
+                                      rest #false #false)]
                     [(css:@keyword=:=? (css-@rule-name stx) '#:@charset)
                      (css-make-syntax-error exn:css:misplaced (css-@rule-name stx))
                      (syntax->grammar seititnedi srammarg rest can-import? allow-namespace?)]
@@ -1869,7 +1877,6 @@
                     [(css:@keyword=:=? (css-@rule-name stx) '#:@support)
                      (define substxes (css-@support->syntax-rules stx))
                      (syntax->grammar seititnedi srammarg (if (pair? substxes) (append substxes rest) rest) #false #false)]
-                    [(css:@keyword=:=? (css-@rule-name stx) '#:@viewport) (syntax->grammar seititnedi srammarg rest #false #false)]
                     [else (syntax->grammar seititnedi (cons stx srammarg) rest #false #false)]))))))
   
   (define css-@import->stylesheet-identity : (-> CSS-@Rule Any CSS-Media-Preferences CSS-StyleSheet-Pool
@@ -1933,7 +1940,7 @@
             [else (let ([stxes (css-parse-rules (css:block-components maybe-block))])
                     (and (pair? stxes)
                          (let-values ([(viewport _i _n grmrs) (css-syntax-rules->grammar-rules 'src stxes #false #false preferences)])
-                           (cons viewport grmrs))))])))
+                           (and (pair? grmrs) (cons viewport grmrs)))))])))
 
   (define css-@support->syntax-rules : (-> CSS-@Rule (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-conditional/#contents-of
