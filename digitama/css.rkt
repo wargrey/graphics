@@ -360,12 +360,11 @@
 
   (define-syntax (css-descriptor-ref stx)
     (syntax-parse stx
-      [(_ descriptors desc-name (~or (~optional (~seq #:= maybe-defval)) (~optional (~seq #:=> maybe-values))))
-       (with-syntax ([default-value (or (attribute maybe-defval) #'#false)]
-                     [=> (or (attribute maybe-values) #'car)])
+      [(_ descriptors desc-name (~optional maybe-values))
+       (with-syntax ([=> (or (attribute maybe-values) #'values)])
          #'(let ([cascaded-values (hash-ref descriptors desc-name (const #false))])
-             (cond [(false? cascaded-values) default-value]
-                   [else (=> (css-declaration-values cascaded-values))])))]))
+             (cond [(false? cascaded-values) (=> desc-name #false)]
+                   [else (=> desc-name (css-declaration-values cascaded-values))])))]))
 
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
   (define-type CSS-Viewport-Filter (-> CSS-Media-Preferences CSS-Declared-Values CSS-Media-Preferences))
@@ -375,11 +374,13 @@
       (define argsize : Index (length desc-values))
       (define desc-value : CSS-Token (car desc-values))
       (define (exn:css:viewport [v : CSS-Token]) : (Option Make-CSS-Syntax-Error)
+        (define maybe-scalar : (Option Real) (and (css:dimension? v) (css-dimension->scalar v 'length)))
         (cond [(or (css:ident=:=? v 'auto)
                    (css:percentage=:=? v (negate negative?))
-                   (and (css:dimension? v) (>= (css-dimension->scalar v 'length) 0)))
+                   (and (real? maybe-scalar) (>= maybe-scalar 0)))
                #false]
-              [(or (css:ident? v) (css:percentage? v) (css:dimension? v)) exn:css:range]
+              [(and (real? maybe-scalar) (nan? maybe-scalar)) exn:css:unit]
+              [(or (css:ident? v) (css:percentage? v) (and (real? maybe-scalar) (< maybe-scalar 0))) exn:css:range]
               [else exn:css:type]))
       (values
        (case suitcased-name
@@ -421,27 +422,82 @@
   (define css-viewport-filter : CSS-Viewport-Filter
     ;;; https://drafts.csswg.org/css-device-adapt/#constraining
     ;;; https://drafts.csswg.org/css-device-adapt/#handling-auto-zoom
-    (lambda [preferences cascaded-values]
-      (define min-zoom : (Option CSS-Token) (css-descriptor-ref cascaded-values 'min-zoom))
-      (define max-zoom : (Option CSS-Token) (css-descriptor-ref cascaded-values 'max-zoom))
-      preferences))
+    (lambda [initial-viewport cascaded-values]
+      (define initial-width : Real (let ([w (hash-ref initial-viewport 'width (const 0))]) (if (symbol? w) 0 w)))
+      (define initial-height : Real (let ([h (hash-ref initial-viewport 'height (const 0))]) (if (symbol? h) 0 h)))
+      (parameterize ([current-css-containing-block-width (exact-round (max initial-width 0))]
+                     [current-css-containing-block-height (exact-round (max initial-height 0))])
+        (define (smart [maix : (-> Real * Real)] [v1 : (U Real Symbol)] [v2 : (U Real Symbol)]) : (U Real Symbol)
+          (cond [(and (symbol? v1) (symbol? v2)) 'auto]
+                [(symbol? v1) v2]
+                [(symbol? v2) v1]
+                [else (maix v1 v2)]))
+        (define (zoom->real [desc-name : Symbol] [maybe-values : (Option CSS-Tokens)]) : Real
+          (define zoom : (Option CSS-Token) (and (pair? maybe-values) (car maybe-values)))
+          (cond [(css:percentage? zoom) (* (css:percentage-datum zoom) 1/100)]
+                [(css:integer? zoom) (css:integer-datum zoom)]
+                [(css:flonum? zoom) (css:flonum-datum zoom)]
+                [(eq? desc-name 'max-zoom) +inf.0]
+                [(eq? desc-name 'min-zoom) 0]
+                [else (current-css-viewport-auto-zoom)]))
+        (define (size->scalar [desc-name : Symbol] [maybe-values : (Option CSS-Tokens)]) : (U Real Symbol)
+          (define size : (Option CSS-Token) (and (pair? maybe-values) (car maybe-values)))
+          (cond [(css:dimension? size) (css-dimension->scalar size 'length)]
+                [(not (css:percentage? size)) 'auto]
+                [(memq desc-name '(min-width max-width)) (* (css:percentage-datum size) 1/100 initial-width)]
+                [else (* (css:percentage-datum size) 1/100 initial-height)]))
+        (define (enum-value [desc-name : Symbol] [maybe-values : (Option CSS-Tokens)]) : (U Real Symbol)
+          (define desc-value : (Option CSS-Token) (and (pair? maybe-values) (car maybe-values)))
+          (cond [(css:ident? desc-value) (css:ident-datum desc-value)]
+                [(eq? desc-name 'user-zoom) 'zoom]
+                [else 'auto]))
+        (define min-zoom : Real (css-descriptor-ref cascaded-values 'min-zoom zoom->real))
+        (define max-zoom : Real (max min-zoom (css-descriptor-ref cascaded-values 'max-zoom zoom->real)))
+        (define min-width : (U Real Symbol) (css-descriptor-ref cascaded-values 'min-width size->scalar))
+        (define max-width : (U Real Symbol) (css-descriptor-ref cascaded-values 'max-width size->scalar))
+        (define min-height : (U Real Symbol) (css-descriptor-ref cascaded-values 'min-height size->scalar))
+        (define max-height : (U Real Symbol) (css-descriptor-ref cascaded-values 'max-height size->scalar))
+        (define-values (width height)
+          (let* ([width (smart max min-width (smart min max-width initial-width))]
+                 [height (smart max min-height (smart min max-height initial-height))]
+                 [width (cond [(and (symbol? width) (symbol? height)) initial-width]
+                              [(symbol? width) (if (zero? initial-height) initial-width (* height (/ initial-width initial-height)))]
+                              [else width])])
+            (values width (cond [(real? height) height]
+                                [(zero? initial-width) initial-height]
+                                [else (* width (/ initial-height initial-width))]))))
+        (define actual-viewport (hash-copy initial-viewport))
+        (for ([name (in-list      '(min-zoom max-zoom width height))]
+              [value (in-list (list min-zoom max-zoom width height))])
+          (hash-set! actual-viewport name value))
+        (hash-set! actual-viewport 'orientation (css-descriptor-ref cascaded-values 'orientation enum-value))
+        (hash-set! actual-viewport 'user-zoom (css-descriptor-ref cascaded-values 'user-zoom enum-value))
+        (hash-set! actual-viewport 'zoom (max min-zoom (min max-zoom (css-descriptor-ref cascaded-values 'zoom zoom->real))))
+        actual-viewport)))
 
-  (define-values (current-css-viewport-descriptor-filter current-css-viewport-filter)
+  (define-values (current-css-viewport-descriptor-filter current-css-viewport-filter current-css-viewport-auto-zoom)
     (values (make-parameter css-viewport-descriptor-filter)
-            (make-parameter css-viewport-filter)))
+            (make-parameter css-viewport-filter)
+            (make-parameter 1.0)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;; https://drafts.csswg.org/css-values/#lengths
+  ;;; https://drafts.csswg.org/css-values/#other-units
   (define-type Quantity->Scalar (case-> [Nonnegative-Exact-Rational Symbol -> (U Nonnegative-Exact-Rational Flonum-Nan)]
                                         [Exact-Rational Symbol -> (U Exact-Rational Flonum-Nan)]
                                         [Nonnegative-Real Symbol -> Nonnegative-Real]
                                         [Real Symbol -> Real]))
+
+  (define-values (current-css-containing-block-width current-css-containing-block-height)
+    (values (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))
+            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
   
   (define css-dimension->scalar : (->* ((U CSS:Dimension (Pairof Real Symbol))) ((Option Symbol)) Real)
     (lambda [dim [type #false]]
       (cond [(css:dimension? dim) (css-dimension->scalar (css:dimension-datum dim) type)]
             [else (let-values ([(n unit) (values (car dim) (cdr dim))])
                     (case (or type unit)
-                      [(length px cm mm q in pc pt) (css-length->scalar n unit)]
+                      [(length px cm mm q in pc pt vw vh vmin vmax) (css-length->scalar n unit)]
                       [(angle deg grad rad turn) (css-angle->scalar n unit)]
                       [(time s ms min h) (css-time->scalar n unit)]
                       [(frequency hz khz) (css-frequency->scalar n unit)]
@@ -459,6 +515,10 @@
         [(in) (* n 96)]
         [(pc) (* n 96 1/6)]
         [(pt) (* n 96 1/72)]
+        [(vw) (* n 1/100 (current-css-containing-block-width))]
+        [(vh) (* n 1/100 (current-css-containing-block-height))]
+        [(vmin) (* n 1/100 (min (current-css-containing-block-width) (current-css-containing-block-height)))]
+        [(vmax) (* n 1/100 (max (current-css-containing-block-width) (current-css-containing-block-height)))]
         [else +nan.0])))
   
   (define css-angle->scalar : (case-> [Nonnegative-Real Symbol -> Nonnegative-Real] [Real Symbol -> Real])
@@ -1757,21 +1817,24 @@
                  [init-viewport (current-css-media-preferences)]
                  [pool ((inst make-hasheq Natural CSS-StyleSheet))]]
       (define namespaces : CSS-NameSpace (make-hasheq))
+      (define stropweiv : (Listof CSS-Descriptors)
+        (for/fold ([viewport-srotpircsed : (Listof CSS-Descriptors) null])
+                  ([stx : CSS-Syntax-Rule (in-list syntaxes0)])
+          (define maybe-descriptor : (U CSS-Descriptors CSS-Syntax-Error Void)
+            (when (and (css-@rule? stx) (css:@keyword=:=? (css-@rule-name stx) '#:@viewport))
+              (define prelude : (Listof CSS-Token) (css-@rule-prelude stx))
+              (define maybe-block : (Option CSS:Block) (css-@rule-block stx))
+              (cond [(not (css-null? prelude)) (css-make-syntax-error exn:css:overconsumption prelude)]
+                    [maybe-block (css-components->descriptors (css:block-components maybe-block))]
+                    [else (css-make-syntax-error exn:css:missing-block (css-@rule-name stx))])))
+          (cond [(not (list? maybe-descriptor)) viewport-srotpircsed]
+                [else (cons maybe-descriptor viewport-srotpircsed)])))
       (define viewport : CSS-Media-Preferences
-        (css-cascade-viewport init-viewport
-                              (reverse (for/fold ([viewport-srotpircsed : (Listof CSS-Descriptors) null])
-                                                 ([stx : CSS-Syntax-Rule (in-list syntaxes0)])
-                                         (define maybe-descriptor : (U CSS-Descriptors CSS-Syntax-Error Void)
-                                           (when (and (css-@rule? stx) (css:@keyword=:=? (css-@rule-name stx) '#:@viewport))
-                                             (define prelude : (Listof CSS-Token) (css-@rule-prelude stx))
-                                             (define maybe-block : (Option CSS:Block) (css-@rule-block stx))
-                                             (cond [(not (css-null? prelude)) (css-make-syntax-error exn:css:overconsumption prelude)]
-                                                   [maybe-block (css-components->descriptors (css:block-components maybe-block))]
-                                                   [else (css-make-syntax-error exn:css:missing-block (css-@rule-name stx))])))
-                                         (cond [(not (list? maybe-descriptor)) viewport-srotpircsed]
-                                               [else (cons maybe-descriptor viewport-srotpircsed)])))
-                              (current-css-viewport-descriptor-filter)
-                              (current-css-viewport-filter)))
+        (cond [(null? stropweiv) init-viewport]
+              [else (css-cascade-viewport init-viewport
+                                          (reverse stropweiv)
+                                          (current-css-viewport-descriptor-filter)
+                                          (current-css-viewport-filter))]))
       (let syntax->grammar : (Values CSS-Media-Preferences (Listof Positive-Integer) CSS-NameSpace (Listof CSS-Grammar-Rule))
         ([seititnedi : (Listof Positive-Integer) null]
          [srammarg : (Listof CSS-Grammar-Rule) null]
@@ -1993,6 +2056,7 @@
   (require (submod ".." grammar))
 
   (require racket/flonum)
+  (require (only-in typed/racket/gui get-display-size))
 
   (define-type Unit (U 'KB 'MB 'GB 'TB))
   (define-type Unit* (Listof Unit))
@@ -2018,6 +2082,7 @@
                     cpu real gc)
            (car result))]))
 
+  (define-values (width height) (get-display-size))
   (define-values (in out) (make-pipe))
   (define css-logger (make-logger 'css #false))
   (define css (thread (thunk (let forever ([/dev/log (make-log-receiver css-logger 'debug)])
@@ -2029,7 +2094,12 @@
   (collect-garbage)
   (css-deprecate-media-type #true)
   (current-css-media-type 'screen)
-  (current-css-media-preferences ((inst make-hash Symbol CSS-Media-Datum) (list (cons 'orientation 'landscape))))
+  (current-css-media-preferences
+   ((inst make-hash Symbol CSS-Media-Datum)
+    (list (cons 'orientation 'landscape)
+          (cons 'width (or width 0))
+          (cons 'height (or height 0)))))
+  
   (define CSSes : (Listof Path)
     ;(for/list : (Listof Path-String)
     ;  ([filename (in-directory (simplify-path (build-path (collection-file-path "manual-fonts.css" "scribble") 'up)))]
