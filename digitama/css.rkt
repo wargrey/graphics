@@ -267,10 +267,10 @@
 
   (define-selectors CSS-Simple-Selector
     [css-type-selector #:+ CSS-Type-Selector ([name : Symbol] [namespace : (U Symbol Boolean)])]
-    [css-universal-selector #:+ CSS-Universal-Selector ([namespace : (U Symbol Boolean)])]
     [css-class-selector #:+ CSS-Class-Selector ([value : Symbol])] ; <=> [class~=value]
     [css-id-selector #:+ CSS-ID-Selector ([value : Keyword])]      ; <=> [`id`~=value] Note: you name `id` in your application
-    [css-pseudo-selector #:+ CSS-Pseudo-Selector ([name : Symbol] [element? : Boolean] [arguments : (Option (Listof CSS-Token))])]
+    [css-pseudo-class-selector #:+ CSS-Pseudo-Class-Selector ([name : Symbol] [arguments : (Option (Listof CSS-Token))])]
+    [css-pseudo-element-selector #:+ CSS-Pseudo-Element-Selector ([name : Symbol] [arguments : (Option (Listof CSS-Token))])]
     [css-attribute-selector #:+ CSS-Attribute-Selector ([name : Symbol] [namespace : (U Symbol Boolean)])]
     [css-attribute=selector #:+ CSS-Attribute=Selector css-attribute-selector ([operator : Char] [value : String] [force-ci? : Boolean])])
 
@@ -1593,7 +1593,7 @@
             [else (css-throw-syntax-error exn:css:unrecognized token)])))
   
   (define css-car-elemental-selector : (-> (U CSS:Ident CSS:Delim) (Listof CSS-Token) CSS-NameSpace-Hint
-                                           (Values (U CSS-Type-Selector CSS-Universal-Selector) (Listof CSS-Token)))
+                                           (Values CSS-Type-Selector (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#elemental-selectors
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
@@ -1602,36 +1602,37 @@
       (define-values (next2 rest2) (css-car rest #false))
       (cond [(css:delim=:=? token #\|)
              (cond [(css:ident? next) (values (make-css-type-selector (css:ident-datum next) #false) rest)]
-                   [(css:delim=:=? next #\*) (values (make-css-universal-selector #false) rest)]
+                   [(css:delim=:=? next #\*) (values (make-css-type-selector '* #false) rest)]
                    [else (css-throw-syntax-error exn:css:missing-identifier next)])]
             [(css:delim=:=? next #\|)
              (define ns : (U Symbol Boolean) (css-declared-namespace namespaces token))
              (cond [(css-null? rest) (css-throw-syntax-error exn:css:missing-identifier (list token next))]
                    [(false? ns) (css-throw-syntax-error exn:css:namespace token)]
                    [(css:ident? next2) (values (make-css-type-selector (css:ident-datum next2) ns) rest2)]
-                   [(css:delim=:=? next2 #\*) (values (make-css-universal-selector ns) rest2)]
+                   [(css:delim=:=? next2 #\*) (values (make-css-type-selector '* ns) rest2)]
                    [else (css-throw-syntax-error exn:css:missing-identifier next2)])]
-            [else (let ([ns (or (css-declared-namespace namespaces '||) #true)])
-                    (cond [(css:delim? token) (values (make-css-universal-selector ns) tokens)]
-                          [else (values (make-css-type-selector (css:ident-datum token) ns) tokens)]))])))
+            [else (values (make-css-type-selector (if (css:delim? token) '* (css:ident-datum token))
+                                                  (or (css-declared-namespace namespaces '||) #true))
+                          tokens)])))
 
   (define css-car-simple-selector : (-> CSS-Token (Listof CSS-Token) CSS-NameSpace-Hint (Values CSS-Simple-Selector (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#grammar
     (lambda [token tokens namespaces]
-      (cond [(css:hash? token) (values (make-css-id-selector (css:hash-datum token)) tokens)]
-            [(css:delim=:=? token #\.)
+      (cond [(css:delim=:=? token #\.)
              (define-values (next rest) (css-car tokens #false))
              (cond [(not (css:ident? next)) (css-throw-syntax-error exn:css:missing-identifier next)]
                    [else (values (make-css-class-selector (css:ident-datum next)) rest)])]
             [(css:delim=:=? token #\:)
              (define-values (next rest) (css-car tokens #false))
              (define element? : Boolean (css:delim=:=? next #\:))
+             (define make-css-pseudo-selector (if element? make-css-pseudo-element-selector make-css-pseudo-class-selector))
              (define-values (next2 rest2) (if element? (css-car rest #false) (values next rest)))
-             (cond [(css:ident? next2) (values (make-css-pseudo-selector (css:ident-datum next2) element? #false) rest2)]
+             (cond [(css:ident? next2) (values (make-css-pseudo-selector (css:ident-datum next2) #false) rest2)]
                    [(not (css:function? next2)) (css-throw-syntax-error exn:css:missing-identifier next2)]
-                   [else (values (make-css-pseudo-selector (css:function-datum next2) element? (css:function-arguments next2)) rest2)])]
+                   [else (values (make-css-pseudo-selector (css:function-datum next2) (css:function-arguments next2)) rest2)])]
             [(css:block=:=? token #\[) (values (css-simple-block->attribute-selector token namespaces) tokens)]
+            [(and (css:hash? token) (eq? (css:hash-flag token) 'id)) (values (make-css-id-selector (css:hash-datum token)) tokens)]
             [(or (eof-object? token) (css:delim=:=? token #\,)) (css-throw-syntax-error exn:css:empty token)]
             [else (css-throw-syntax-error exn:css:unrecognized token)])))
   
