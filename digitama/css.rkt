@@ -191,7 +191,6 @@
 
   ;;; https://drafts.csswg.org/css-syntax/#parsing
   (define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
-  (define-type CSS-NameSpace (HashTable Symbol String))
   (define-type CSS-URL-Modifier (U CSS:Ident CSS:Function CSS:URL))
   (define-type CSS-Syntax-Any (U CSS-Token EOF))
   (define-type CSS-Syntax-Terminal (U CSS:Delim CSS:Close EOF))
@@ -212,6 +211,7 @@
   (struct exn:css:resource exn:css ())
   (struct exn:css:deprecated exn:css ())
   (struct exn:css:unrecognized exn:css ())
+  (struct exn:css:namespace exn:css ())
   (struct exn:css:misplaced exn:css:unrecognized ())
   (struct exn:css:type exn:css:unrecognized ())
   (struct exn:css:range exn:css:unrecognized ())
@@ -260,17 +260,28 @@
        #'(begin (define-type Selector (U S-ID ...))
                 (struct: s-id : S-ID rest ...) ...)]))
 
+  (define-type CSS-NameSpace (HashTable Symbol String))
+  (define-type CSS-NameSpace-Hint (U CSS-NameSpace (Listof Symbol) False))
   (define-type CSS-Compound-Selector (Listof CSS-Simple-Selector))
   (define-type CSS-Complex-Selector (Listof (U CSS-Compound-Selector Symbol)))
 
   (define-selectors CSS-Simple-Selector
-    [css-type-selector #:+ CSS-Type-Selector ([name : Symbol] [namespace : (Option Symbol)])]
-    [css-universal-selector #:+ CSS-Universal-Selector ([namespace : (Option Symbol)])]
+    [css-type-selector #:+ CSS-Type-Selector ([name : Symbol] [namespace : (U Symbol Boolean)])]
+    [css-universal-selector #:+ CSS-Universal-Selector ([namespace : (U Symbol Boolean)])]
     [css-class-selector #:+ CSS-Class-Selector ([value : Symbol])] ; <=> [class~=value]
-    [css-id-selector #:+ CSS-ID-Selector ([value : Keyword])]        ; <=> [`id`~=value] Note: you name `id` in your application
+    [css-id-selector #:+ CSS-ID-Selector ([value : Keyword])]      ; <=> [`id`~=value] Note: you name `id` in your application
     [css-pseudo-selector #:+ CSS-Pseudo-Selector ([name : Symbol] [element? : Boolean] [arguments : (Option (Listof CSS-Token))])]
-    [css-attribute-selector #:+ CSS-Attribute-Selector ([name : Symbol] [namespace : (Option Symbol)])]
+    [css-attribute-selector #:+ CSS-Attribute-Selector ([name : Symbol] [namespace : (U Symbol Boolean)])]
     [css-attribute=selector #:+ CSS-Attribute=Selector css-attribute-selector ([operator : Char] [value : String] [force-ci? : Boolean])])
+
+  (define css-declared-namespace : (-> CSS-NameSpace-Hint (U CSS:Ident CSS:Delim Symbol) (U Symbol Boolean))
+    (lambda [namespaces namespace]
+      (cond [(css:delim? namespace) #true] ; *
+            [(false? namespaces) #true]    ; application does not care namespaces
+            [else (let ([ns (if (css:ident? namespace) (css:ident-datum namespace) namespace)])
+                    (if (or (and (hash? namespaces) (hash-has-key? namespaces ns))
+                            (and (list? namespaces) (memq ns namespaces) #true))
+                        ns #false))])))
   
   ;; https://drafts.csswg.org/css-conditional/#at-supports
   ;; https://drafts.csswg.org/mediaqueries/#media-types
@@ -1504,7 +1515,6 @@
             [else (make-css-media-feature downcased-name v op)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define-type CSS-NameSpace-Hint (U CSS-NameSpace (Listof Symbol) False))
   (define css-components->selectors : (-> (Listof CSS-Token) CSS-NameSpace-Hint (U (Listof CSS-Complex-Selector) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#parse-selector
@@ -1549,7 +1559,7 @@
       (define-values (token rest) (css-car components))
       (define-values (head-simple-selectors simple-selectors)
         (cond [(or (css:ident? token) (css:delim=:=? token #\|) (css:delim=:=? token #\*))
-               (define-values (elemental-selector simple-selectors) (css-car-elemental-selector token rest))
+               (define-values (elemental-selector simple-selectors) (css-car-elemental-selector token rest namespaces))
                (values (list elemental-selector) simple-selectors)]
               [(or (css:delim? token) (css:hash? token))
                (define-values (simple-selector simple-selectors) (css-car-simple-selector token rest namespaces))
@@ -1582,12 +1592,12 @@
             [(css:||? token) (values '|| tokens)]
             [else (css-throw-syntax-error exn:css:unrecognized token)])))
   
-  (define css-car-elemental-selector : (-> (U CSS:Ident CSS:Delim) (Listof CSS-Token)
+  (define css-car-elemental-selector : (-> (U CSS:Ident CSS:Delim) (Listof CSS-Token) CSS-NameSpace-Hint
                                            (Values (U CSS-Type-Selector CSS-Universal-Selector) (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#elemental-selectors
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
-    (lambda [token tokens]
+    (lambda [token tokens namespaces]
       (define-values (next rest) (css-car tokens #false))
       (define-values (next2 rest2) (css-car rest #false))
       (cond [(css:delim=:=? token #\|)
@@ -1595,12 +1605,15 @@
                    [(css:delim=:=? next #\*) (values (make-css-universal-selector #false) rest)]
                    [else (css-throw-syntax-error exn:css:missing-identifier next)])]
             [(css:delim=:=? next #\|)
-             (define ns : Symbol (if (css:ident? token) (css:ident-datum token) '*))
-             (cond [(css:ident? next2) (values (make-css-type-selector (css:ident-datum next2) ns) rest2)]
+             (define ns : (U Symbol Boolean) (css-declared-namespace namespaces token))
+             (cond [(css-null? rest) (css-throw-syntax-error exn:css:missing-identifier (list token next))]
+                   [(false? ns) (css-throw-syntax-error exn:css:namespace token)]
+                   [(css:ident? next2) (values (make-css-type-selector (css:ident-datum next2) ns) rest2)]
                    [(css:delim=:=? next2 #\*) (values (make-css-universal-selector ns) rest2)]
-                   [else (css-throw-syntax-error exn:css:missing-identifier next)])]
-            [(css:delim? token) (values (make-css-universal-selector '||) tokens)]
-            [else (values (make-css-type-selector (css:ident-datum token) '||) tokens)])))
+                   [else (css-throw-syntax-error exn:css:missing-identifier next2)])]
+            [else (let ([ns (or (css-declared-namespace namespaces '||) #true)])
+                    (cond [(css:delim? token) (values (make-css-universal-selector ns) tokens)]
+                          [else (values (make-css-type-selector (css:ident-datum token) ns) tokens)]))])))
 
   (define css-car-simple-selector : (-> CSS-Token (Listof CSS-Token) CSS-NameSpace-Hint (Values CSS-Simple-Selector (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
@@ -1636,14 +1649,17 @@
               [(or (css:match? 1st) (css:delim=:=? 1st #\=))
                (css-throw-syntax-error exn:css:missing-identifier block)]
               [(or (eof-object? 2nd) (css:match? 2nd) (css:delim=:=? 2nd #\=))
-               (cond [(css:ident? 1st) (values (css:ident-datum 1st) '|| rest1)]
+               ; WARNING: the namespace behavior for attributes is different from that for elements 
+               (cond [(css:ident? 1st) (values (css:ident-datum 1st) #false rest1)]
                      [else (css-throw-syntax-error exn:css:missing-identifier 1st)])]
               [(or (eof-object? 3rd) (css:match? 3rd) (css:delim=:=? 3rd #\=))
                (cond [(and (css:delim=:=? 1st #\|) (css:ident? 2nd)) (values (css:ident-datum 2nd) #false rest2)]
                      [(css:delim=:=? 2nd #\|) (css-throw-syntax-error exn:css:missing-identifier 2nd)]
                      [else (css-throw-syntax-error exn:css:unrecognized 1st)])]
               [(and (or (css:ident? 1st) (css:delim=:=? 1st #\*)) (css:delim=:=? 2nd #\|) (css:ident? 3rd))
-               (values (css:ident-datum 3rd) (if (css:ident? 1st) (css:ident-datum 1st) '*) rest3)]
+               (define ns (css-declared-namespace namespaces 1st))
+               (cond [(false? ns) (css-throw-syntax-error exn:css:namespace 1st)]
+                     [else (values (css:ident-datum 3rd) ns rest3)])]
               [(and (or (css:ident? 1st) (css:delim=:=? 1st #\*)) (css:delim=:=? 2nd #\|))
                (css-throw-syntax-error exn:css:missing-identifier 3rd)]
               [(or (css:ident? 1st) (css:delim=:=? 1st #\*))
