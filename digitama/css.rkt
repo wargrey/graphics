@@ -2027,33 +2027,27 @@
   (define css-cascade-descriptors : (->* (CSS-Declared-Value-Filter (U CSS-Descriptors (Listof CSS-Descriptors)))
                                          (CSS-Declared-Values) CSS-Declared-Values)
     ;;; https://drafts.csswg.org/css-cascade/#shorthand
-    ;;; https://drafts.csswg.org/css-cascade/#cascading
-    ;;; https://drafts.csswg.org/css-cascade/#filtering
-    (lambda [desc-filter descriptors [origin ((inst make-hasheq Symbol CSS-Declaration))]]
+    ;;; https://drafts.csswg.org/css-cascade/#importance
+    (lambda [desc-filter descriptors [descbase ((inst make-hasheq Symbol CSS-Declaration))]]
       (for ([property (in-list descriptors)])
-        (cond [(list? property) (css-cascade-descriptors desc-filter property origin)]
+        (cond [(list? property) (css-cascade-descriptors desc-filter property descbase)]
               [else (let* ([desc-name (css:ident-datum (css-declaration-name property))]
                            [desc-name (if (css-declaration-case-sensitive? property) desc-name (symbol-downcase desc-name))])
-                      (when (or (css-declaration-important? property)
-                                (not (hash-has-key? origin desc-name))
-                                (not (css-declaration-important? (hash-ref origin desc-name))))
-                        (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
-                        (define-values (desc-values deprecated?) (desc-filter desc-name declared-values))
-                        (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
-                        (cond [(list? desc-values)
-                               (define maybe-exn (car desc-values))
-                               (cond [(procedure? maybe-exn) (css-make-syntax-error maybe-exn (cdr desc-values))]
-                                     [else (hash-set! origin desc-name
-                                                      (cond [(eq? desc-values declared-values) property]
-                                                            [else (struct-copy css-declaration property [values desc-values])]))])]
-                              [(hash? desc-values)
-                               (for ([(name argl) (in-hash desc-values)])
-                                 (when (or (css-declaration-important? property)
-                                           (not (hash-has-key? origin name))
-                                           (not (css-declaration-important? (hash-ref origin name))))
-                                   (hash-set! origin name (struct-copy css-declaration property [values argl]))))]
-                              [(procedure? desc-values) (css-make-syntax-error desc-values (css-declaration-name property))])))]))
-      origin))
+                      ; NOTE: the !important mechanism is not designed to work in the same `origin`
+                      (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
+                      (define-values (desc-values deprecated?) (desc-filter desc-name declared-values))
+                      (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
+                      (cond [(list? desc-values)
+                             (define maybe-exn (car desc-values))
+                             (cond [(procedure? maybe-exn) (css-make-syntax-error maybe-exn (cdr desc-values))]
+                                   [else (hash-set! descbase desc-name
+                                                    (cond [(eq? desc-values declared-values) property]
+                                                          [else (struct-copy css-declaration property [values desc-values])]))])]
+                            [(hash? desc-values)
+                             (for ([(name argl) (in-hash desc-values)])
+                               (hash-set! descbase name (struct-copy css-declaration property [values argl])))]
+                            [(procedure? desc-values) (css-make-syntax-error desc-values (css-declaration-name property))]))]))
+      descbase))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-components->descriptors : (-> (Listof CSS-Token) CSS-Descriptors)
