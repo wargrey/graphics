@@ -1557,17 +1557,17 @@
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
     (lambda [components namespaces]
       (define-values (token rest) (css-car components))
-      (define-values (head-simple-selectors simple-selectors)
+      (define-values (head-simple-selector simple-selectors)
         (cond [(or (css:ident? token) (css:delim=:=? token #\|) (css:delim=:=? token #\*))
                (define-values (elemental-selector simple-selectors) (css-car-elemental-selector token rest namespaces))
-               (values (list elemental-selector) simple-selectors)]
+               (values elemental-selector simple-selectors)]
               [(or (css:delim? token) (css:hash? token))
                (define-values (simple-selector simple-selectors) (css-car-simple-selector token rest namespaces))
-               (values (list simple-selector (make-css-universal-selector '||)) simple-selectors)]
+               (values simple-selector simple-selectors)]
               [(or (eof-object? token) (css:delim=:=? token #\,)) (css-throw-syntax-error exn:css:empty token)]
               [else (css-throw-syntax-error exn:css:unrecognized token)]))
       (let extract-simple-selector : (Values CSS-Compound-Selector (Listof CSS-Token))
-        ([srotceles : (Listof CSS-Simple-Selector) head-simple-selectors]
+        ([srotceles : (Listof CSS-Simple-Selector) (list head-simple-selector)]
          [tokens : (Listof CSS-Token) simple-selectors])
         (define-values (next rest) (css-car tokens #false))
         (cond [(or (eof-object? next) (css:delim=:=? next #\,) (css-selector-combinator? next)) (values (reverse srotceles) tokens)]
@@ -1977,7 +1977,7 @@
     ;;; https://drafts.csswg.org/css-syntax/#style-rules
     ;;; https://drafts.csswg.org/selectors/#invalid
     (lambda [qr namespaces]
-      (define prelude : (Listof CSS-Token) (css-qualified-rule-prelude qr))
+      (define prelude : CSS-Tokens (css-qualified-rule-prelude qr))
       (define components : (Listof CSS-Token) (css:block-components (css-qualified-rule-block qr)))
       (define maybe-selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-components->selectors prelude namespaces))
       (cond [(exn? maybe-selectors) maybe-selectors]
