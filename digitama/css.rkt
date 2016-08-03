@@ -275,14 +275,15 @@
     [css-attribute-selector #:+ CSS-Attribute-Selector ([name : Symbol] [namespace : (U Symbol Boolean)])]
     [css-attribute=selector #:+ CSS-Attribute=Selector css-attribute-selector ([operator : Char] [value : String] [force-ci? : Boolean])])
 
-  (struct: css-complex-selector : CSS-Complex-Selector ([list : CSS-Compound-Selectors] [a : Natural] [b : Natural] [c : Natural]))
+  (struct: css-complex-selector : CSS-Complex-Selector ([list : CSS-Compound-Selectors] [specificity : Natural]))
 
-  (define css-make-complex-selector : (-> CSS-Compound-Selectors CSS-Complex-Selector)
-    ;;; https://drafts.csswg.org/selectors/#specificity-rules
-    (lambda [compound-selectors]
+  (define css-selector-specificity-radix : (Parameterof Natural) (make-parameter 100))
+
+  (define css-selector-specificity : (->* (CSS-Compound-Selectors) (Natural) Natural)
+    (lambda [complex-selector [radix (css-selector-specificity-radix)]]
       (define-values (A B C)
         (for/fold ([A : Natural 0] [B : Natural 0] [C : Natural 0])
-                  ([simple-selectors (in-list compound-selectors)])
+                  ([simple-selectors (in-list complex-selector)])
           (cond [(symbol? simple-selectors) (values A B C)]
                 [else (for/fold ([a : Natural A] [b : Natural B] [c : Natural C])
                                 ([simple-selector (in-list simple-selectors)])
@@ -295,7 +296,16 @@
                                    (css-type-selector? simple-selector))
                                (values a b (add1 c))]
                               [else (values a b c)]))])))
-      (make-css-complex-selector compound-selectors A B C)))
+      (+ (* A radix radix)
+         (* B radix)
+         C)))
+  
+  (define css-make-complex-selector : (-> CSS-Compound-Selectors CSS-Complex-Selector)
+    ;;; https://drafts.csswg.org/selectors/#specificity-rules
+    (lambda [complex-selector]
+      (make-css-complex-selector complex-selector
+                                 (css-selector-specificity complex-selector
+                                                           (css-selector-specificity-radix)))))
 
   (define css-declared-namespace : (-> CSS-NameSpace-Hint (U CSS:Ident CSS:Delim Symbol) (U Symbol Boolean))
     (lambda [namespaces namespace]
@@ -1109,8 +1119,7 @@
     ;;; https://drafts.csswg.org/css-syntax/#parse-list-of-declarations
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-list-of-declarations
     (lambda [/dev/cssin]
-      (let consume-declaration+@rule : (Listof (U CSS-Declaration CSS-@Rule))
-        ([mixed-list : (Listof (U CSS-Declaration CSS-@Rule)) null])
+      (let consume-declaration+@rule ([mixed-list : (Listof (U CSS-Declaration CSS-@Rule)) null])
         (define token (css-read-syntax /dev/cssin))
         (cond [(eof-object? token) (reverse mixed-list)]
               [(or (css:whitespace? token) (css:delim=:=? token #\;)) (consume-declaration+@rule mixed-list)]
@@ -1173,7 +1182,7 @@
       (with-handlers ([exn:css? (λ [[errcss : exn:css]] errcss)])
         (css-components->feature-query conditions #false rulename))))
   
-  (define-css-parser-entry css-parse-selectors :-> (U (Listof CSS-Complex-Selector) CSS-Syntax-Error)
+  (define-css-parser-entry css-parse-selectors :-> (U (Listof+ CSS-Complex-Selector) CSS-Syntax-Error)
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#parse-selector
     ;;; https://drafts.csswg.org/selectors/#selector-list
@@ -1204,7 +1213,7 @@
   (define css-consume-rules : (-> Input-Port Boolean (Listof CSS-Syntax-Rule))
     ;;; https://drafts.csswg.org/css-syntax/#consume-list-of-rules
     (lambda [css toplevel?]
-      (let consume-rules : (Listof CSS-Syntax-Rule) ([rules : (Listof CSS-Syntax-Rule) null])
+      (let consume-rules ([rules : (Listof CSS-Syntax-Rule) null])
         (define token (css-read-syntax css))
         (cond [(eof-object? token) (reverse rules)]
               [(css:whitespace? token) (consume-rules rules)]
@@ -1244,9 +1253,8 @@
     ;;; https://drafts.csswg.org/css-syntax/#qualified-rule
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-qualified-rule
     (lambda [css #:@rule? at-rule?]
-      (let consume-item : (Values (Listof CSS-Token) (Option CSS:Block))
-        ([prelude : (Listof CSS-Token) null]
-         [simple-block : (Option CSS:Block) #false])
+      (let consume-item ([prelude : (Listof CSS-Token) null]
+                         [simple-block : (Option CSS:Block) #false])
         (define token (css-read-syntax css))
         (cond [(or (eof-object? token) (and at-rule? (css:delim=:=? token #\;)))
                (when (eof-object? token) (css-make-syntax-error exn:css:missing-delimiter prelude))
@@ -1284,7 +1292,7 @@
     ;;; https://drafts.csswg.org/css-syntax/#parse-list-of-component-values
     ;;; https://drafts.csswg.org/css-values/#comb-comma
     (lambda [css [terminal-char #false] [omit-terminal? #false]]
-      (let consume-component : (Values (Listof CSS-Token) CSS-Syntax-Terminal) ([stnenopmoc : (Listof CSS-Token) null])
+      (let consume-component ([stnenopmoc : (Listof CSS-Token) null])
         (define token (css-read-syntax css))
         (cond [(eof-object? token) (values (reverse stnenopmoc) token)]
               [(and terminal-char (css:delim=:=? token terminal-char))
@@ -1306,7 +1314,7 @@
     ;;; https://drafts.csswg.org/css-syntax/#parse-comma-separated-list-of-component-values
     ;;; https://drafts.csswg.org/css-values/#comb-comma
     (lambda [css #:omit-comma? [omit-comma? #true]]
-      (let consume-components : (Listof (Listof CSS-Token)) ([componentses : (Listof (Listof CSS-Token)) null])
+      (let consume-components ([componentses : (Listof (Listof CSS-Token)) null])
         (define-values (components terminal) (css-consume-components css #\, omit-comma?))
         (cond [(not (eof-object? terminal)) (consume-components (cons components componentses))]
               [(not omit-comma?) (reverse (cons components componentses))]
@@ -1321,10 +1329,9 @@
     (lambda [id-token components]
       (define-values (maybe-: value-list) (css-car components))
       (cond [(not (css:delim=:=? maybe-: #\:)) (css-make-syntax-error exn:css:missing-colon id-token)]
-            [else (let verify : (U CSS-Declaration CSS-Syntax-Error)
-                    ([lla : (Listof CSS-Token) null]
-                     [info : (U False CSS-Syntax-Error CSS:Delim) #false]
-                     [rest : (Listof CSS-Token) value-list])
+            [else (let verify ([lla : (Listof CSS-Token) null]
+                               [info : (U False CSS-Syntax-Error CSS:Delim) #false]
+                               [rest : (Listof CSS-Token) value-list])
                     (define-values (1st tail) (css-car rest))
                     (cond [(not (eof-object? 1st))
                            (cond [(and (css:delim? info) (css:ident=:=? 1st 'important)) (verify lla info tail)]
@@ -1342,7 +1349,7 @@
     ;;; https://drafts.csswg.org/css-syntax/#consume-simple-block
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-function
     (lambda [css close-char]
-      (let consume-body : (Values (Listof CSS-Token) CSS-Syntax-Terminal) ([components : (Listof CSS-Token) null])
+      (let consume-body ([components : (Listof CSS-Token) null])
         (define token (css-read-syntax css))
         (cond [(eof-object? token) (css-make-syntax-error exn:css:missing-delimiter token) (values (reverse components) eof)]
               [(css:close=:=? token close-char) (values (reverse components) token)]
@@ -1418,9 +1425,8 @@
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-or
     (lambda [conditions op maybe-head media?]
       (define make-junction (if (eq? op 'and) make-css-and make-css-or))
-      (let components->junction : (U CSS-And CSS-Or)
-        ([junctions : (Listof CSS-Token) (if (false? maybe-head) null (list maybe-head))]
-         [rest-conditions : (Listof CSS-Token) conditions])
+      (let components->junction ([junctions : (Listof CSS-Token) (if (false? maybe-head) null (list maybe-head))]
+                                 [rest-conditions : (Listof CSS-Token) conditions])
         (define-values (condition rest) (css-car rest-conditions))
         (define-values (token others) (css-car rest))
         (cond [(eof-object? condition) (make-junction (map (curry css-component->feature-query media?) (reverse junctions)))]
@@ -1543,20 +1549,22 @@
             [else (make-css-media-feature downcased-name v op)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define css-components->selectors : (-> (Listof CSS-Token) CSS-NameSpace-Hint (U (Listof CSS-Complex-Selector) CSS-Syntax-Error))
+  (define css-components->selectors : (-> (Listof CSS-Token) CSS-NameSpace-Hint (U (Listof+ CSS-Complex-Selector) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#parse-selector
     ;;; https://drafts.csswg.org/selectors/#selector-list
     ;;; https://drafts.csswg.org/selectors/#grouping
     (lambda [components namespaces]
       (with-handlers ([exn:css? (λ [[errcss : exn:css]] errcss)])
-        (let extract-complex-selector : (Listof CSS-Complex-Selector)
-          ([srotceles : (Listof CSS-Complex-Selector) null]
-           [tokens : (Listof CSS-Token) components])
-          (define-values (complex-selector terminal rest) (css-car-complex-selector tokens namespaces))
-          (cond [(not (css-null? rest)) (extract-complex-selector (cons complex-selector srotceles) rest)]
-                [(css:delim? terminal) (css-throw-syntax-error exn:css:overconsumption terminal)]
-                [else (reverse (cons complex-selector srotceles))])))))
+        (define-values (head-complex-selector maybe-eof maybe-rest) (css-car-complex-selector components namespaces))
+        (let extract-complex-selector ([srotceles : (Listof CSS-Complex-Selector) null]
+                                       [terminal : (U EOF CSS:Delim) maybe-eof]
+                                       [rest : (Listof CSS-Token) maybe-rest])
+          (if (css-null? rest)
+              (cond [(eof-object? terminal) (cons head-complex-selector (reverse srotceles))]
+                    [else (css-throw-syntax-error exn:css:overconsumption terminal)])
+              (let-values ([(complex-selector maybe-terminal maybe-rest) (css-car-complex-selector rest namespaces)])
+                (extract-complex-selector (cons complex-selector srotceles) maybe-terminal maybe-rest)))))))
   
   (define css-car-complex-selector : (-> (Listof CSS-Token) CSS-NameSpace-Hint
                                          (Values CSS-Complex-Selector (U EOF CSS:Delim) (Listof CSS-Token)))
@@ -1565,9 +1573,8 @@
     ;;; https://drafts.csswg.org/selectors/#grammar
     (lambda [components namespaces]
       (define-values (head-compound-selector rest) (css-car-compound-selector components namespaces))
-      (let extract-relative-selector : (Values CSS-Complex-Selector (U EOF CSS:Delim) (Listof CSS-Token))
-        ([srotceles : (Listof (U Symbol CSS-Compound-Selector)) null]
-         [tokens : (Listof CSS-Token) rest])
+      (let extract-relative-selector ([srotceles : (Listof (U Symbol CSS-Compound-Selector)) null]
+                                      [tokens : (Listof CSS-Token) rest])
         (define-values (maybe-terminal rest) (css-car tokens))
         (define-values (token maybe-selectors) (css-car tokens #false))
         (cond [(or (eof-object? maybe-terminal) (css:delim=:=? maybe-terminal #\,))
@@ -1596,9 +1603,8 @@
                (values simple-selector simple-selectors)]
               [(or (eof-object? token) (css:delim=:=? token #\,)) (css-throw-syntax-error exn:css:empty token)]
               [else (css-throw-syntax-error exn:css:unrecognized token)]))
-      (let extract-simple-selector : (Values CSS-Compound-Selector (Listof CSS-Token))
-        ([srotceles : (Listof CSS-Simple-Selector) null]
-         [tokens : (Listof CSS-Token) simple-selectors])
+      (let extract-simple-selector ([srotceles : (Listof CSS-Simple-Selector) null]
+                                    [tokens : (Listof CSS-Token) simple-selectors])
         (define-values (next rest) (css-car tokens #false))
         (cond [(or (eof-object? next) (css:delim=:=? next #\,) (css-selector-combinator? next))
                (values (cons head-simple-selector (reverse srotceles)) tokens)]
@@ -1821,7 +1827,7 @@
   (define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule CSS-Media-Rule))
   (define-type CSS-StyleSheet-Pool (HashTable Natural CSS-StyleSheet))
 
-  (struct: css-style-rule : CSS-Style-Rule ([id : Natural] [selectors : (Listof CSS-Complex-Selector)] [descriptors : CSS-Descriptors]))
+  (struct: css-style-rule : CSS-Style-Rule ([id : Natural] [selectors : (Listof+ CSS-Complex-Selector)] [descriptors : CSS-Descriptors]))
   
   (struct: css-stylesheet : CSS-StyleSheet
     ([pool : CSS-StyleSheet-Pool]
@@ -2010,7 +2016,7 @@
     (lambda [qr namespaces]
       (define prelude : (Listof+ CSS-Token) (css-qualified-rule-prelude qr))
       (define components : (Listof CSS-Token) (css:block-components (css-qualified-rule-block qr)))
-      (define maybe-selectors : (U (Listof CSS-Complex-Selector) CSS-Syntax-Error) (css-components->selectors prelude namespaces))
+      (define maybe-selectors : (U (Listof+ CSS-Complex-Selector) CSS-Syntax-Error) (css-components->selectors prelude namespaces))
       (cond [(exn? maybe-selectors) maybe-selectors]
             [else (make-css-style-rule (css-token-position (css-qualified-rule-block qr))
                                        maybe-selectors
@@ -2067,9 +2073,8 @@
       (let make-style-rule : CSS-Descriptors ([seitreporp : CSS-Descriptors null] [tokens : (Listof CSS-Token) components])
         (define-values (id any-values) (css-car tokens))
         (define-values (:values rest)
-          (let collect : (Values (Listof CSS-Token) (Listof CSS-Token))
-            ([seulav : (Listof CSS-Token) null]
-             [rest : (Listof CSS-Token) any-values])
+          (let collect : (Values (Listof CSS-Token) (Listof CSS-Token)) ([seulav : (Listof CSS-Token) null]
+                                                                         [rest : (Listof CSS-Token) any-values])
             (define-values (head tail) (css-car rest))
             (cond [(or (eof-object? head) (css:delim=:=? head #\;)) (values (reverse seulav) tail)]
                   [(and (css:block=:=? head #\{) (css:@keyword? id)) (values (reverse (cons head seulav)) tail)]
@@ -2180,11 +2185,12 @@
   (log-message css-logger 'debug "exit" eof)
   (copy-port in (current-output-port))
 
-  (time-run (map (λ [[in : String]]
+  (css-selector-specificity-radix 10)
+  (time-run (map (λ [[in : String]] : (Pairof String Integer)
                    (let ([maybe-complex-selectors (css-parse-selectors in)])
-                     (when (pair? maybe-complex-selectors)
-                       (define s (car maybe-complex-selectors))
-                       (vector in (css-complex-selector-a s) (css-complex-selector-b s) (css-complex-selector-c s)))))
+                     (cond [(exn:css? maybe-complex-selectors) (cons in -1)]
+                           [else (let ([s (car maybe-complex-selectors)])
+                                   (cons in (css-complex-selector-specificity s)))])))
                  (list "* + *"
                        "li"
                        "li::first-line"
@@ -2197,4 +2203,3 @@
                        "#s12:not(FOO)"
                        ".foo :matches(.bar, #baz)"
                        "body #darkside .sith p"))))
-  
