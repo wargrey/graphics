@@ -398,7 +398,7 @@
   ;; https://drafts.csswg.org/css-cascade/#cascading
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declaration))
   (define-type CSS-Declared-Value-Filter (-> Symbol (Listof+ CSS-Token)
-                                             (Values (U (HashTable Symbol (Listof+ CSS-Token)) (Listof+ CSS-Token)
+                                             (Values (U (HashTable Symbol (Listof+ CSS-Token)) (Listof+ CSS-Token) Void
                                                         Make-CSS-Syntax-Error (Pairof Make-CSS-Syntax-Error (Listof CSS-Token)))
                                                      Boolean)))
 
