@@ -385,12 +385,17 @@
 
   ;; https://drafts.csswg.org/css-cascade/#shorthand
   ;; https://drafts.csswg.org/css-cascade/#filtering
+  ;; https://drafts.csswg.org/css-cascade/#cascading
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declaration))
   (define-type CSS-Declared-Value-Filter (-> Symbol (Listof+ CSS-Token)
                                              (Values (U (HashTable Symbol (Listof+ CSS-Token)) (Listof+ CSS-Token)
                                                         Make-CSS-Syntax-Error (Pairof Make-CSS-Syntax-Error (Listof CSS-Token)))
                                                      Boolean)))
 
+  ; !important is designed to work across Origins, but lots of implementations do not follow this principle.
+  (define css-disable-!important-within-origin : (Parameterof Boolean) (make-parameter #true))
+  
+  
   (define-syntax (css-descriptor-ref stx)
     (syntax-parse stx
       [(_ descriptors desc-name (~optional maybe-values))
@@ -1816,8 +1821,7 @@
   (define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule CSS-Media-Rule))
   (define-type CSS-StyleSheet-Pool (HashTable Natural CSS-StyleSheet))
 
-  (struct: css-style-rule : CSS-Style-Rule ([identity : Natural] [selectors : (Listof CSS-Complex-Selector)]
-                                                                 [descriptors : CSS-Descriptors]))
+  (struct: css-style-rule : CSS-Style-Rule ([id : Natural] [selectors : (Listof CSS-Complex-Selector)] [descriptors : CSS-Descriptors]))
   
   (struct: css-stylesheet : CSS-StyleSheet
     ([pool : CSS-StyleSheet-Pool]
@@ -2028,26 +2032,34 @@
                                          (CSS-Declared-Values) CSS-Declared-Values)
     ;;; https://drafts.csswg.org/css-cascade/#shorthand
     ;;; https://drafts.csswg.org/css-cascade/#importance
-    (lambda [desc-filter descriptors [descbase ((inst make-hasheq Symbol CSS-Declaration))]]
+    (lambda [desc-filter descriptors [base ((inst make-hasheq Symbol CSS-Declaration))]]
+      (define !important-only-works-across-origins? : Boolean (css-disable-!important-within-origin))
       (for ([property (in-list descriptors)])
-        (cond [(list? property) (css-cascade-descriptors desc-filter property descbase)]
+        (cond [(list? property) (css-cascade-descriptors desc-filter property base)]
               [else (let* ([desc-name (css:ident-datum (css-declaration-name property))]
                            [desc-name (if (css-declaration-case-sensitive? property) desc-name (symbol-downcase desc-name))])
-                      ; NOTE: the !important mechanism is not designed to work in the same `origin`
-                      (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
-                      (define-values (desc-values deprecated?) (desc-filter desc-name declared-values))
-                      (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
-                      (cond [(list? desc-values)
-                             (define maybe-exn (car desc-values))
-                             (cond [(procedure? maybe-exn) (css-make-syntax-error maybe-exn (cdr desc-values))]
-                                   [else (hash-set! descbase desc-name
-                                                    (cond [(eq? desc-values declared-values) property]
-                                                          [else (struct-copy css-declaration property [values desc-values])]))])]
-                            [(hash? desc-values)
-                             (for ([(name argl) (in-hash desc-values)])
-                               (hash-set! descbase name (struct-copy css-declaration property [values argl])))]
-                            [(procedure? desc-values) (css-make-syntax-error desc-values (css-declaration-name property))]))]))
-      descbase))
+                      (when (or !important-only-works-across-origins?
+                                (css-declaration-important? property)
+                                (not (hash-has-key? base desc-name))
+                                (not (css-declaration-important? (hash-ref base desc-name))))
+                        (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
+                        (define-values (desc-values deprecated?) (desc-filter desc-name declared-values))
+                        (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
+                        (cond [(list? desc-values)
+                               (define maybe-exn (car desc-values))
+                               (cond [(procedure? maybe-exn) (css-make-syntax-error maybe-exn (cdr desc-values))]
+                                     [else (hash-set! base desc-name
+                                                      (cond [(eq? desc-values declared-values) property]
+                                                            [else (struct-copy css-declaration property [values desc-values])]))])]
+                              [(hash? desc-values)
+                               (for ([(name argl) (in-hash desc-values)])
+                                 (when (or !important-only-works-across-origins?
+                                           (css-declaration-important? property)
+                                           (not (hash-has-key? base name))
+                                           (not (css-declaration-important? (hash-ref base name))))
+                                   (hash-set! base name (struct-copy css-declaration property [values argl]))))]
+                              [(procedure? desc-values) (css-make-syntax-error desc-values (css-declaration-name property))])))]))
+      base))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-components->descriptors : (-> (Listof CSS-Token) CSS-Descriptors)
@@ -2173,7 +2185,7 @@
                      (when (pair? maybe-complex-selectors)
                        (define s (car maybe-complex-selectors))
                        (vector in (css-complex-selector-a s) (css-complex-selector-b s) (css-complex-selector-c s)))))
-                 (list "*"
+                 (list "* + *"
                        "li"
                        "li::first-line"
                        "ul li"
