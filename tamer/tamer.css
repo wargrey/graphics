@@ -233,8 +233,9 @@ ol li::before {
 	font-family: Helvetica;
 }
 .some[selectors-may='contain-a-{'] {
-	
+    placeholder: keep-this-rule;
 }
+[attr]{}
 
 @media only screen and (min-width: 200px) {
   .test {
