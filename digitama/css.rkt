@@ -1230,9 +1230,10 @@
   (define css-consume-qualified-rule : (-> Input-Port CSS-Token (U CSS-Qualified-Rule CSS-@Rule CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-syntax/#qualified-rule
     (lambda [css reconsumed]
+      (define head (css-consume-component-value css reconsumed))
       (define-values (prelude maybe-block) (css-consume-rule-item css #:@rule? #false))
-      (cond [(css:block? maybe-block) (make-css-qualified-rule (cons reconsumed prelude) maybe-block)]
-            [else (css-make-syntax-error exn:css:missing-block (cons reconsumed prelude))])))
+      (cond [(css:block? maybe-block) (make-css-qualified-rule (cons head prelude) maybe-block)]
+            [else (css-make-syntax-error exn:css:missing-block (cons head prelude))])))
 
   (define css-consume-component-value : (-> Input-Port CSS-Token CSS-Token)
     ;;; https://drafts.csswg.org/css-syntax/#component-value
@@ -1265,11 +1266,7 @@
   (define css-consume-simple-block : (-> Input-Port CSS:Delim Char CSS:Block)
     ;;; https://drafts.csswg.org/css-syntax/#consume-simple-block
     (lambda [css open close-char]
-      (define-values (components close) (css-consume-block-body css close-char))
-      (define end-token : CSS-Token
-        (cond [(css-token? close) close]
-              [(null? components) open]
-              [else (last components)]))
+      (define-values (components close end-token) (css-consume-block-body css open close-char))
       (css-remake-token [open end-token] css:block (css:delim-datum open) components)))
 
   (define css-consume-function : (-> Input-Port CSS:Function CSS:Function)
@@ -1278,11 +1275,7 @@
     (lambda [css func]
       (define fname : Symbol (css:function-datum func))
       (cond [(false? (symbol-unreadable? fname)) func]
-            [else (let-values ([(components close) (css-consume-block-body css #\))])
-                    (define end-token : CSS-Token
-                      (cond [(css-token? close) close]
-                            [(null? components) func]
-                            [else (last components)]))
+            [else (let-values ([(components close end-token) (css-consume-block-body css func #\))])
                     (css-remake-token [func end-token] css:function
                                       (string->symbol (symbol->string fname)) ; <==> (symbol-unreadable->symbol fname)
                                       (filter-not css:whitespace? components)))])))
@@ -1344,15 +1337,17 @@
                                   (cond [(null? all-argl) (css-make-syntax-error exn:css:missing-value id-token)]
                                         [else (make-css-declaration id-token all-argl (css:delim? info) ci?)]))]))])))
 
-  (define css-consume-block-body : (-> Input-Port Char (Values (Listof CSS-Token) CSS-Syntax-Terminal))
+  (define css-consume-block-body : (-> Input-Port CSS-Token Char (Values (Listof CSS-Token) CSS-Syntax-Terminal CSS-Token))
     ;;; https://drafts.csswg.org/css-syntax/#consume-simple-block
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-function
-    (lambda [css close-char]
+    (lambda [css start-token close-char]
       (let consume-body ([components : (Listof CSS-Token) null])
         (define token (css-read-syntax css))
-        (cond [(eof-object? token) (css-make-syntax-error exn:css:missing-delimiter token) (values (reverse components) eof)]
-              [(css:close=:=? token close-char) (values (reverse components) token)]
-              [else (consume-body (cons (css-consume-component-value css token) components))]))))
+        (cond [(css:close=:=? token close-char) (values (reverse components) token token)]
+              [(not (eof-object? token)) (consume-body (cons (css-consume-component-value css token) components))]
+              [else (let ([end-token (if (null? components) start-token (car components))])
+                      (css-make-syntax-error exn:css:missing-delimiter token)
+                      (values (reverse components) token end-token))]))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-components->media-type+query : (-> CSS:Ident Boolean (Listof CSS-Token) CSS-Media-Query)
