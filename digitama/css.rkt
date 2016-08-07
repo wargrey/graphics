@@ -1684,16 +1684,16 @@
     (lambda [components]
       (let extract-pseudo-class-selector ([srotceles : (Listof CSS-Pseudo-Class-Selector) null]
                                           [tokens : (Listof CSS-Token) components])
-        (define-values (next rest) (css-car tokens #false))
-        (define-values (next2 rest2) (css-car rest #false))
-        (cond [(or (not (css:delim=:=? next #\:)) (css:delim=:=? next2 #\:)) (values (reverse srotceles) tokens)]
-              [(css:ident? next)
-               (let ([selector (make-css-pseudo-class-selector (css:ident-datum next) #false)])
-                 (extract-pseudo-class-selector (cons selector srotceles) rest))]
-              [(css:function? next)
-               (let ([selector (make-css-pseudo-class-selector (css:function-datum next) (css:function-arguments next))])
-                 (extract-pseudo-class-selector (cons selector srotceles) rest))]
-              [else (css-throw-syntax-error exn:css:missing-identifier next)]))))
+        (define-values (maybe: rest) (css-car tokens #false))
+        (define-values (maybe-id rest2) (css-car rest #false))
+        (cond [(or (not (css:delim=:=? maybe: #\:)) (css:delim=:=? maybe-id #\:)) (values (reverse srotceles) tokens)]
+              [(css:ident? maybe-id)
+               (let ([selector (make-css-pseudo-class-selector (css:ident-datum maybe-id) #false)])
+                 (extract-pseudo-class-selector (cons selector srotceles) rest2))]
+              [(css:function? maybe-id)
+               (let ([selector (make-css-pseudo-class-selector (css:function-datum maybe-id) (css:function-arguments maybe-id))])
+                 (extract-pseudo-class-selector (cons selector srotceles) rest2))]
+              [else (css-throw-syntax-error exn:css:missing-identifier maybe:)]))))
   
   (define css-simple-block->attribute-selector : (-> CSS:Block CSS-NameSpace-Hint CSS-Attribute-Selector)
     ;;; https://drafts.csswg.org/selectors/#attribute-selectors
@@ -2223,7 +2223,7 @@
                          "ul ol li.red"
                          "li.red.level"
                          "#x34y"
-                         "#s12:not(FOO)"
+                         ":not(FOO)#s12"
                          ".foo :matches(.bar, #baz)"
                          "body #darkside [sith] p"))))
   
