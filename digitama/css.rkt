@@ -2115,6 +2115,7 @@
     (lambda [stylesheet]
       (define location : (U String Symbol) (css-stylesheet-location stylesheet))
       (and (string? location)
+           (file-exists? location)
            (< (css-stylesheet-timestamp stylesheet)
               (file-or-directory-modify-seconds location)))))
 
