@@ -270,7 +270,9 @@
     [css-attribute=selector #:+ CSS-Attribute=Selector css-attribute-selector ([operator : Char] [value : String] [force-ci? : Boolean])]
   
     [css-pseudo-class-selector #:+ CSS-Pseudo-Class-Selector ([name : Symbol] [arguments : (Option (Listof CSS-Token))])]
-    [css-pseudo-element-selector #:+ CSS-Pseudo-Element-Selector ([name : Symbol] [arguments : (Option (Listof CSS-Token))])]
+    [css-pseudo-element-selector #:+ CSS-Pseudo-Element-Selector ([name : Symbol]
+                                                                  [arguments : (Option (Listof CSS-Token))]
+                                                                  [pseudo-classes : (Listof CSS-Pseudo-Class-Selector)])]
 
     [css-compound-selector #:+ CSS-Compound-Selector ([combinator : (Option Symbol)]
                                                       [type : (U Symbol Boolean)]
@@ -278,8 +280,8 @@
                                                       [pseudo-classes : (Listof CSS-Pseudo-Class-Selector)]
                                                       [classes : (Listof Symbol)]
                                                       [ids : (Listof Keyword)]
-                                                      [pseudo-elements : (Listof CSS-Pseudo-Element-Selector)]
-                                                      [attributes : (Listof CSS-Attribute-Selector)])]
+                                                      [attributes : (Listof CSS-Attribute-Selector)]
+                                                      [pseudo-element : (Option CSS-Pseudo-Element-Selector)])]
     
     [css-complex-selector #:+ CSS-Complex-Selector ([list : (Listof CSS-Compound-Selector)]
                                                     [A : Natural]
@@ -306,7 +308,7 @@
                   (+ B (length (css-compound-selector-classes static-unit))
                      (length (css-compound-selector-pseudo-classes static-unit))
                      (length (css-compound-selector-attributes static-unit)))
-                  (+ C (length (css-compound-selector-pseudo-elements static-unit))
+                  (+ C (if (css-compound-selector-pseudo-element static-unit) 1 0)
                      (if (symbol? (css-compound-selector-type static-unit)) 1 0)))))
       (values A B C)))
   
@@ -1587,8 +1589,8 @@
                                   [(maybe-selector maybe-rest) (css-car maybe-selectors)])
                       (if (or (eof-object? maybe-selector) (css:delim=:=? maybe-selector #\,))
                           (css-throw-syntax-error exn:css:overconsumption maybe-selectors)
-                          (let-values ([(compound-selector rest) (css-car-compound-selector maybe-selectors combinator namespaces)])
-                            (extract-relative-selector (cons compound-selector srotceles) rest))))]))))
+                          (let-values ([(selector rest) (css-car-compound-selector maybe-selectors combinator namespaces)])
+                            (extract-relative-selector (cons selector srotceles) rest))))]))))
 
   (define css-car-compound-selector : (-> (Listof CSS-Token) (Option Symbol) CSS-NameSpace-Hint
                                           (Values CSS-Compound-Selector (Listof CSS-Token)))
@@ -1607,33 +1609,34 @@
       (define-values (pseudo-classes selector-components) (css-car-pseudo-class-selectors simple-selector-components))
       (let extract-simple-selector ([sessalc : (Listof Symbol) null]
                                     [sdi : (Listof Keyword) null]
-                                    [pseudo-stnemele : (Listof CSS-Pseudo-Element-Selector) null]
                                     [setubirtta : (Listof CSS-Attribute-Selector) null]
+                                    [pseudo-element : (Option CSS-Pseudo-Element-Selector) #false]
                                     [selector-tokens : (Listof CSS-Token) selector-components])
         (define-values (token tokens) (css-car selector-tokens #false))
         (cond [(or (eof-object? token) (css:delim=:=? token #\,) (css-selector-combinator? token))
                (values (make-css-compound-selector combinator typename namespace pseudo-classes
-                                                   (reverse sessalc) (reverse sdi) (reverse pseudo-stnemele) (reverse setubirtta))
+                                                   (reverse sessalc) (reverse sdi) (reverse setubirtta) pseudo-element)
                        selector-tokens)]
+              [(and pseudo-element) (css-throw-syntax-error exn:css:overconsumption token)]
               [(css:delim=:=? token #\.)
                (define-values (next rest) (css-car tokens #false))
                (cond [(not (css:ident? next)) (css-throw-syntax-error exn:css:missing-identifier next)]
-                     [else (extract-simple-selector (cons (css:ident-datum next) sessalc) sdi pseudo-stnemele setubirtta rest)])]
+                     [else (extract-simple-selector (cons (css:ident-datum next) sessalc) sdi setubirtta pseudo-element rest)])]
               [(css:delim=:=? token #\:)
-               (define-values (maybe: maybe-rest) (css-car tokens #false))
+               (define-values (maybe-pseudo-classes maybe-rest) (css-car-pseudo-class-selectors tokens))
                (define-values (next rest) (css-car maybe-rest #false))
-               (define pseudo-selector : CSS-Pseudo-Element-Selector
-                 (cond [(eof-object? maybe:) (css-throw-syntax-error exn:css:missing-colon token)]
-                       [(not (css:delim=:=? maybe: #\:)) (css-throw-syntax-error exn:css:misplaced (list token maybe:))]
-                       [(css:ident? next) (make-css-pseudo-element-selector (css:ident-datum next) #false)]
-                       [(css:function? next) (make-css-pseudo-element-selector (css:function-datum next) (css:function-arguments next))]
-                       [else (css-throw-syntax-error exn:css:missing-identifier next)]))
-               (extract-simple-selector sessalc sdi (cons pseudo-selector pseudo-stnemele) setubirtta rest)]
+               (when (null? maybe-pseudo-classes)
+                 (css-throw-syntax-error exn:css:misplaced (list token (car tokens))))
+               (define pelement : CSS-Pseudo-Element-Selector
+                 (let ([pclass (car maybe-pseudo-classes)])
+                   (make-css-pseudo-element-selector (css-pseudo-class-selector-name pclass)
+                                                     (css-pseudo-class-selector-arguments pclass)
+                                                     (cdr maybe-pseudo-classes))))
+               (extract-simple-selector sessalc sdi setubirtta pelement maybe-rest)]
               [(css:block=:=? token #\[)
                (define attribute-selector : CSS-Attribute-Selector (css-simple-block->attribute-selector token namespaces))
-               (extract-simple-selector sessalc sdi pseudo-stnemele (cons attribute-selector setubirtta) tokens)]
-              [(and (css:hash? token) (eq? (css:hash-flag token) 'id))
-               (extract-simple-selector sessalc (cons (css:hash-datum token) sdi) pseudo-stnemele setubirtta tokens)]
+               (extract-simple-selector sessalc sdi (cons attribute-selector setubirtta) pseudo-element tokens)]
+              [(css:hash? token) (extract-simple-selector sessalc (cons (css:hash-datum token) sdi) setubirtta pseudo-element tokens)]
               [else (css-throw-syntax-error exn:css:unrecognized token)]))))
 
   (define css-car-combinator : (-> (U CSS:WhiteSpace CSS:Delim CSS:||) (Listof CSS-Token) (Values Symbol (Listof CSS-Token)))
