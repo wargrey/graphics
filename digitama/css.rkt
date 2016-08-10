@@ -282,7 +282,7 @@
     [css-universal-selector #:+ CSS-Universal-Selector ([namespace : (U Symbol Boolean)])]
 
     [css-attribute-selector #:+ CSS-Attribute-Selector ([name : Symbol] [namespace : (U Symbol Boolean)])]
-    [css-attribute=selector #:+ CSS-Attribute=Selector css-attribute-selector ([operator : Char] [value : String] [force-ci? : Boolean])]
+    [css-attribute=selector #:+ CSS-Attribute=Selector css-attribute-selector ([operator : Char] [value : String])]
   
     [css-pseudo-class-selector #:+ CSS-Pseudo-Class-Selector ([name : Symbol] [arguments : (Option (Listof CSS-Token))])]
     [css-pseudo-element-selector #:+ CSS-Pseudo-Element-Selector ([name : Symbol]
@@ -308,7 +308,7 @@
      [id : (Option Keyword) = #false]
      [namespace : (U Symbol Boolean) = #true]
      [classes : (Listof Symbol) = null]
-     [attributes : (HashTable Symbol (U Symbol String)) = (make-hasheq)]))
+     [attributes : (HashTable Symbol String) = (make-hasheq)]))
 
   (define css-selector-match? : (-> CSS-Complex-Selector CSS-Subject Boolean)
     (lambda [selector subject]
@@ -1752,9 +1752,10 @@
               [(css:ident? value) (css:ident=> value symbol->string)]
               [(eof-object? value) "placeholder for attributes like `[attr]`"]
               [else (css-throw-syntax-error exn:css:type value)]))
+      (define suitcased-value : String (if (css:ident? i) (string-downcase val) val))
       (cond [(eof-object? op) (make-css-attribute-selector attr namespace)]
-            [(css:delim=:=? op #\=) (make-css-attribute=selector attr namespace #\= val (css:ident? i))]
-            [(css:match? op) (make-css-attribute=selector attr namespace (css:match-datum op) val (css:ident? i))]
+            [(css:delim=:=? op #\=) (make-css-attribute=selector attr namespace #\= suitcased-value)]
+            [(css:match? op) (make-css-attribute=selector attr namespace (css:match-datum op) suitcased-value)]
             [else (css-throw-syntax-error exn:css:unrecognized op)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
