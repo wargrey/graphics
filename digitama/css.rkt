@@ -879,9 +879,9 @@
       (define ch2 : (U EOF Char) (peek-char css 1))
       (define ch3 : (U EOF Char) (peek-char css 2))
       (if (or (css-char-name? ch1) (css-valid-escape? ch1 ch2))
-          (let ([name : String (css-consume-name (css-srcloc-in srcloc) #\#)])
+          (let ([name : String (css-consume-name (css-srcloc-in srcloc) #false)])
             (css-make-token srcloc css:hash (string->keyword name)
-                        (if (css-identifier-prefix? ch1 ch2 ch3) 'id 'unrestricted)))
+                            (if (css-identifier-prefix? ch1 ch2 ch3) 'id 'unrestricted)))
           (css-make-token srcloc css:delim #\#))))
 
   (define css-consume-@keyword-token : (-> CSS-Srcloc (U CSS:@Keyword CSS:Delim))
@@ -1609,6 +1609,7 @@
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#grammar
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
+    ;;; https://github.com/w3c/csswg-drafts/issues/202
     (lambda [components combinator namespaces]
       (define-values (typename namespace simple-selector-components)
         (let-values ([(token rest) (css-car components)])
