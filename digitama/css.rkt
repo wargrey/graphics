@@ -309,6 +309,10 @@
      [namespace : (U Symbol Boolean) = #true]
      [classes : (Listof Symbol) = null]
      [attributes : (HashTable Symbol (U Symbol String)) = (make-hasheq)]))
+
+  (define css-selector-match? : (-> CSS-Complex-Selector CSS-Subject Boolean)
+    (lambda [selector subject]
+      #false))
   
   (define css-selector-specificity : (-> (Listof CSS-Compound-Selector) (values Natural Natural Natural))
     ;;; https://drafts.csswg.org/selectors/#specificity-rules
@@ -424,9 +428,6 @@
                                                         Make-CSS-Syntax-Error (Pairof Make-CSS-Syntax-Error (Listof CSS-Token)))
                                                      Boolean)))
 
-  ; !important is designed to work across Origins, but lots of implementations do not follow this principle.
-  (define css-disable-!important-within-origin : (Parameterof Boolean) (make-parameter #true))
-  
   (define-syntax (css-descriptor-ref stx)
     (syntax-parse stx
       [(_ descriptors desc-name (~optional maybe-values))
@@ -2086,13 +2087,11 @@
     ;;; https://drafts.csswg.org/css-cascade/#shorthand
     ;;; https://drafts.csswg.org/css-cascade/#importance
     (lambda [desc-filter descriptors [base ((inst make-hasheq Symbol CSS-Declaration))]]
-      (define !important-only-works-across-origins? : Boolean (css-disable-!important-within-origin))
       (for ([property (in-list descriptors)])
         (cond [(list? property) (css-cascade-descriptors desc-filter property base)]
               [else (let* ([desc-name (css:ident-datum (css-declaration-name property))]
                            [desc-name (if (css-declaration-case-sensitive? property) desc-name (symbol-downcase desc-name))])
-                      (when (or !important-only-works-across-origins?
-                                (css-declaration-important? property)
+                      (when (or (css-declaration-important? property)
                                 (not (hash-has-key? base desc-name))
                                 (not (css-declaration-important? (hash-ref base desc-name))))
                         (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
@@ -2106,8 +2105,7 @@
                                                             [else (struct-copy css-declaration property [values desc-values])]))])]
                               [(hash? desc-values)
                                (for ([(name argl) (in-hash desc-values)])
-                                 (when (or !important-only-works-across-origins?
-                                           (css-declaration-important? property)
+                                 (when (or (css-declaration-important? property)
                                            (not (hash-has-key? base name))
                                            (not (css-declaration-important? (hash-ref base name))))
                                    (hash-set! base name (struct-copy css-declaration property [values argl]))))]
