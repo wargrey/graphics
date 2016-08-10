@@ -254,13 +254,28 @@
 
   ;; https://drafts.csswg.org/selectors/#grammar
   ;; https://drafts.csswg.org/selectors/#structure
+  ;; https://drafts.csswg.org/selectors/#data-model
   (define-syntax (define-selectors stx)
     (syntax-case stx []
       [(_ [s-id #:+ S-ID rest ...] ...)
        #'(begin (struct: s-id : S-ID rest ...) ...)]))
 
+  (define-syntax (define-css-subject stx)
+    (syntax-case stx [: =]
+      [(_ css-subject : CSS-Subject ([field : DataType = defval] ...))
+       (with-syntax* ([make-subject (format-id #'css-subject "make-~a" (syntax-e #'css-subject))]
+                      [(args ...) (for/fold ([args null])
+                                            ([field (in-list (syntax->list #'(field ...)))]
+                                             [arg (in-list (syntax->list #'([field : DataType defval] ...)))])
+                                    (cons (datum->syntax field (string->keyword (symbol->string (syntax-e field))))
+                                          (cons arg args)))])
+         #'(begin (define-type CSS-Subject css-subject)
+                  (struct css-subject ([field : DataType] ...) #:prefab)
+                  (define (make-subject args ...) : CSS-Subject (css-subject field ...))))]))
+
   (define-type CSS-NameSpace (HashTable Symbol String))
   (define-type CSS-NameSpace-Hint (U CSS-NameSpace (Listof Symbol) False))
+  (define-type CSS-Combinator (U '>> '> '+ '~ '||))
   
   (define-selectors
     [css-type-selector #:+ CSS-Type-Selector ([name : Symbol] [namespace : (U Symbol Boolean)])]
@@ -274,7 +289,7 @@
                                                                   [arguments : (Option (Listof CSS-Token))]
                                                                   [pseudo-classes : (Listof CSS-Pseudo-Class-Selector)])]
 
-    [css-compound-selector #:+ CSS-Compound-Selector ([combinator : (Option Symbol)]
+    [css-compound-selector #:+ CSS-Compound-Selector ([combinator : (Option CSS-Combinator)]
                                                       [type : (U Symbol Boolean)]
                                                       [namespace : (U Symbol Boolean)]
                                                       [pseudo-classes : (Listof CSS-Pseudo-Class-Selector)]
@@ -288,15 +303,12 @@
                                                     [B : Natural]
                                                     [C : Natural])])
 
-  (struct: css-subject : CSS-Subject
-    ([combinator : (Option Symbol)]
-     [type : Symbol]
-     [id : Keyword]
-     [namespace : (Option Symbol)]
-     [classes : (Listof Symbol)]
-     [pseudo? : Boolean]
-     [pseudo-elements : (Listof CSS-Pseudo-Element-Selector)]
-     [attributes : (HashTable Symbol (U Symbol String))]))
+  (define-css-subject css-subject : CSS-Subject
+    ([type : (Option Symbol) = #false]
+     [id : (Option Keyword) = #false]
+     [namespace : (U Symbol Boolean) = #true]
+     [classes : (Listof Symbol) = null]
+     [attributes : (HashTable Symbol (U Symbol String)) = (make-hasheq)]))
   
   (define css-selector-specificity : (-> (Listof CSS-Compound-Selector) (values Natural Natural Natural))
     ;;; https://drafts.csswg.org/selectors/#specificity-rules
@@ -414,7 +426,6 @@
 
   ; !important is designed to work across Origins, but lots of implementations do not follow this principle.
   (define css-disable-!important-within-origin : (Parameterof Boolean) (make-parameter #true))
-  
   
   (define-syntax (css-descriptor-ref stx)
     (syntax-parse stx
@@ -1592,7 +1603,7 @@
                           (let-values ([(selector rest) (css-car-compound-selector maybe-selectors combinator namespaces)])
                             (extract-relative-selector (cons selector srotceles) rest))))]))))
 
-  (define css-car-compound-selector : (-> (Listof CSS-Token) (Option Symbol) CSS-NameSpace-Hint
+  (define css-car-compound-selector : (-> (Listof CSS-Token) (Option CSS-Combinator) CSS-NameSpace-Hint
                                           (Values CSS-Compound-Selector (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#grammar
@@ -1639,7 +1650,7 @@
               [(css:hash? token) (extract-simple-selector sessalc (cons (css:hash-datum token) sdi) setubirtta pseudo-element tokens)]
               [else (css-throw-syntax-error exn:css:unrecognized token)]))))
 
-  (define css-car-combinator : (-> (U CSS:WhiteSpace CSS:Delim CSS:||) (Listof CSS-Token) (Values Symbol (Listof CSS-Token)))
+  (define css-car-combinator : (-> (U CSS:WhiteSpace CSS:Delim CSS:||) (Listof CSS-Token) (Values CSS-Combinator (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#grammar
     (lambda [token tokens]
@@ -1654,7 +1665,7 @@
                    [else (values '> tail)])]
             [(css:delim=:=? token #\+) (values '+ tokens)]
             [(css:delim=:=? token #\~) (values '~ tokens)]
-            [(css:||? token) (values (css:||-datum token) tokens)]
+            [(css:||? token) (values '|| tokens)]
             [else (css-throw-syntax-error exn:css:unrecognized token)])))
   
   (define css-car-elemental-selector : (-> (U CSS:Ident CSS:Delim) (Listof CSS-Token) CSS-NameSpace-Hint
@@ -2059,6 +2070,16 @@
       (viewport-filter viewport-preferences
                        (css-cascade-descriptors viewport-descriptor-filter
                                                 viewport-descriptors))))
+
+  (define css-casscade : (All (CSS-Datum) (-> (Listof CSS-StyleSheet) (Listof CSS-Subject)
+                                              CSS-Declared-Value-Filter (HashTable Symbol CSS-Datum)
+                                              (HashTable Symbol CSS-Datum)))
+    ;;; https://drafts.csswg.org/css-cascade/#filtering
+    ;;; https://drafts.csswg.org/css-cascade/#cascading
+    ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
+    ;;; https://drafts.csswg.org/selectors/#data-model
+    (lambda [stylesheets subjects desc-filter initial-preferences]
+      (make-hasheq)))
   
   (define css-cascade-descriptors : (->* (CSS-Declared-Value-Filter (U CSS-Descriptors (Listof CSS-Descriptors)))
                                          (CSS-Declared-Values) CSS-Declared-Values)
