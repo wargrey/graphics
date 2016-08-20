@@ -465,8 +465,8 @@
                                              (Values (U (HashTable Symbol (Listof+ CSS-Token)) (Listof+ CSS-Token) Void
                                                         Make-CSS-Syntax-Error (Pairof (Listof CSS-Token) Make-CSS-Syntax-Error))
                                                      Boolean)))
-  (define-type (CSS-Value-Filter CSS-Datum) (-> (HashTable Symbol CSS-Datum) CSS-Declared-Values (Option Symbol)
-                                                (HashTable Symbol CSS-Datum)))
+  (define-type (CSS-Value-Filter CSS-Datum) (-> CSS-Declared-Values (HashTable Symbol CSS-Datum) (Option (HashTable Symbol CSS-Datum))
+                                                (Option Symbol) (HashTable Symbol CSS-Datum)))
 
   (define-syntax (css-descriptor-ref stx)
     (syntax-parse stx
@@ -513,6 +513,8 @@
               [(or (css:ident? v) (css:percentage? v)) exn:css:range]
               [(not (css:dimension? v)) exn:css:type]
               [else (let ([maybe-dim (css-canonicalize-dimension v)])
+                      ; this is okay even for font relative length since the @viewport is the first rule to be cascaded.
+                      ; the font relative parameters should be initialized when the program starts.
                       (cond [(false? maybe-dim) exn:css:unit]
                             [else (let ([scalar (car (css:dimension-datum maybe-dim))])
                                     (cond [(negative? scalar) exn:css:range]
@@ -561,7 +563,7 @@
     ;;; https://drafts.csswg.org/css-device-adapt/#constraining
     ;;; https://drafts.csswg.org/css-device-adapt/#handling-auto-zoom
     ;;; https://drafts.csswg.org/css-device-adapt/#media-queries
-    (lambda [initial-viewport cascaded-values all]
+    (lambda [cascaded-values initial-viewport inherit-viewport all]
       ; Notes: We do not check the `initial-viewport` to specific the `specified values` since
       ;          @viewport is a controversial @rule which is easy to be used incorrectly,
       ;          @viewport is rarely used in desktop applications, and
@@ -632,6 +634,25 @@
   (define-values (current-css-containing-block-width current-css-containing-block-height)
     (values (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))
             (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
+
+  (define-values (current-css-element-font-size current-css-root-element-font-size)
+    (values (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))
+            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
+
+  (define-values (current-css-x-height current-css-char-width current-css-word-width)
+    (values (ann (make-parameter 1/2) (Parameterof Nonnegative-Exact-Rational))
+            (ann (make-parameter 1/2) (Parameterof Nonnegative-Exact-Rational))
+            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
+
+  (define css-font-relative-length? : (-> (U CSS:Dimension (Pairof Real Symbol)) Boolean)
+    (lambda [dim]
+      (cond [(css:dimension? dim) (css-font-relative-length? (css:dimension-datum dim))]
+            [else (and (memq (cdr dim) '(em ex ch ic rem)) #true)])))
+
+  (define css-viewport-relative-length? : (-> (U CSS:Dimension (Pairof Real Symbol)) Boolean)
+    (lambda [dim]
+      (cond [(css:dimension? dim) (css-font-relative-length? (css:dimension-datum dim))]
+            [else (and (memq (cdr dim) '(vw vh vi vb vmin vmax)) #true)])))
   
   (define css-dimension->scalar : (->* ((U CSS:Dimension (Pairof Real Symbol))) ((Option Symbol) (Option (Boxof Symbol))) Real)
     (lambda [dim [type #false] [&canonical-unit #false]]
@@ -639,7 +660,7 @@
             [else (let-values ([(n unit) (values (car dim) (cdr dim))])
                     (define-values (scalar canonical-unit)
                       (case (or type unit)
-                        [(length px cm mm q in pc pt vw vh vmin vmax) (values (css-length->scalar n unit) 'px)]
+                        [(length px cm mm q in pc pt em ex ch ic rem vw vh vi vb vmin vmax) (values (css-length->scalar n unit) 'px)]
                         [(angle deg grad rad turn) (values (css-angle->scalar n unit) 'deg)]
                         [(time s ms min h) (values (css-time->scalar n unit) 's)]
                         [(frequency hz khz) (values (css-frequency->scalar n unit) 'hz)]
@@ -660,6 +681,7 @@
   
   (define css-length->scalar : Quantity->Scalar
     ;;; https://drafts.csswg.org/css-values/#absolute-lengths
+    ;;; https://drafts.csswg.org/css-values/#relative-lengths
     (lambda [n unit]
       (case unit
         [(px) n]
@@ -669,8 +691,13 @@
         [(in) (* n 96)]
         [(pc) (* n 96 1/6)]
         [(pt) (* n 96 1/72)]
-        [(vw) (* n 1/100 (current-css-containing-block-width))]
-        [(vh) (* n 1/100 (current-css-containing-block-height))]
+        [(em) (* n (current-css-element-font-size))]
+        [(ex) (* n (current-css-x-height))]
+        [(ch) (* n (current-css-char-width))]
+        [(ic) (* n (current-css-word-width))]
+        [(rem) (* n (current-css-root-element-font-size))]
+        [(vw vi) (* n 1/100 (current-css-containing-block-width))]
+        [(vh vb) (* n 1/100 (current-css-containing-block-height))]
         [(vmin) (* n 1/100 (min (current-css-containing-block-width) (current-css-containing-block-height)))]
         [(vmax) (* n 1/100 (max (current-css-containing-block-width) (current-css-containing-block-height)))]
         [else +nan.0])))
@@ -2160,17 +2187,15 @@
                                   [viewport-descriptor-filter (current-css-viewport-descriptor-filter)]
                                   [viewport-filter (current-css-viewport-filter)]]
       (call-with-css-preferences #:media viewport-preferences
-        (viewport-filter viewport-preferences
-                         (css-cascade-descriptors viewport-descriptor-filter
-                                                  viewport-descriptors)
-                         #false))))
+        (viewport-filter (css-cascade-descriptors viewport-descriptor-filter viewport-descriptors)
+                         viewport-preferences #false #false))))
 
-  (define css-cascade : (All (CSS-Datum) (-> (Listof CSS-StyleSheet) CSS-Subject CSS-Declared-Value-Filter
-                                             (CSS-Value-Filter CSS-Datum) (HashTable Symbol CSS-Datum)
+  (define css-cascade : (All (CSS-Datum) (-> (Listof CSS-StyleSheet) CSS-Subject CSS-Declared-Value-Filter (CSS-Value-Filter CSS-Datum)
+                                             (HashTable Symbol CSS-Datum) (Option (HashTable Symbol CSS-Datum))
                                              (HashTable Symbol CSS-Datum)))
     ;;; https://drafts.csswg.org/css-cascade/#filtering
     ;;; https://drafts.csswg.org/css-cascade/#cascading
-    (lambda [stylesheets subject desc-filter value-filter default-values]
+    (lambda [stylesheets subject desc-filter value-filter initial-values inherit-values]
       (define declared-values : CSS-Declared-Values (make-hasheq))
       (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
         (for ([stylesheet (in-list batch)])
@@ -2179,7 +2204,7 @@
                                  (hash-ref (css-stylesheet-pool stylesheet) import)))
           (css-cascade-rules (css-stylesheet-rules stylesheet) subject desc-filter
                              (css-stylesheet-preferences stylesheet) declared-values)))
-      (value-filter default-values declared-values
+      (value-filter declared-values initial-values inherit-values
                     (css-descriptor-ref declared-values 'all
                                         (λ [[desc-name : Symbol] [desc-values : (Option (Listof+ CSS-Token))]]
                                           (and desc-values
@@ -2383,15 +2408,15 @@
       (values desc-values #false)))
 
   (define css-filter : (CSS-Value-Filter Datum)
-    (lambda [default-values declared-values all]
+    (lambda [declared-values all default-values inherit-values]
       (for/hash : (HashTable Symbol Datum) ([desc-name (in-hash-keys declared-values)])
         (values desc-name (css-descriptor-ref declared-values desc-name)))))
 
   tamer-subject
-  (time-run (css-cascade (list tamer-sheet) tamer-subject css-descriptor-filter css-filter ((inst make-hasheq Symbol Datum))))
+  (time-run (css-cascade (list tamer-sheet) tamer-subject css-descriptor-filter css-filter ((inst make-hasheq Symbol Datum)) #false))
   (collect-garbage)
   tamer-header
-  (time-run (css-cascade (list tamer-sheet) tamer-header css-descriptor-filter css-filter ((inst make-hasheq Symbol Datum))))
+  (time-run (css-cascade (list tamer-sheet) tamer-header css-descriptor-filter css-filter ((inst make-hasheq Symbol Datum)) #false))
 
   (map (λ [[in : String]] : (Pairof String Integer)
          (let ([maybe-complex-selectors (css-parse-selectors in)])
