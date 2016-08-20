@@ -461,16 +461,19 @@
   ;; https://drafts.csswg.org/css-cascade/#filtering
   ;; https://drafts.csswg.org/css-cascade/#cascading
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declaration))
-  (define-type CSS-Value-Filter (-> CSS-Media-Preferences CSS-Declared-Values (Option Symbol) CSS-Media-Preferences))
   (define-type CSS-Declared-Value-Filter (-> Symbol (Listof+ CSS-Token)
                                              (Values (U (HashTable Symbol (Listof+ CSS-Token)) (Listof+ CSS-Token) Void
                                                         Make-CSS-Syntax-Error (Pairof (Listof CSS-Token) Make-CSS-Syntax-Error))
                                                      Boolean)))
+  (define-type (CSS-Value-Filter CSS-Datum) (-> (HashTable Symbol CSS-Datum) CSS-Declared-Values (Option Symbol)
+                                                (HashTable Symbol CSS-Datum)))
 
   (define-syntax (css-descriptor-ref stx)
     (syntax-parse stx
       [(_ descriptors desc-name (~optional maybe-values))
-       (with-syntax ([=> (or (attribute maybe-values) #'values)])
+       (with-syntax ([=> (or (attribute maybe-values)
+                             #'(λ [[n : Symbol] [v : (Option (Listof+ CSS-Token))]]
+                                 (and v (css-token->datum (car v)))))])
          #'(let ([cascaded-values (hash-ref descriptors desc-name (const #false))])
              (cond [(false? cascaded-values) (=> desc-name #false)]
                    [else (=> desc-name (css-declaration-values cascaded-values))])))]))
@@ -554,7 +557,7 @@
          [else exn:css:unrecognized])
        #false)))
 
-  (define css-viewport-filter : CSS-Value-Filter
+  (define css-viewport-filter : (CSS-Value-Filter CSS-Media-Datum)
     ;;; https://drafts.csswg.org/css-device-adapt/#constraining
     ;;; https://drafts.csswg.org/css-device-adapt/#handling-auto-zoom
     ;;; https://drafts.csswg.org/css-device-adapt/#media-queries
@@ -1451,8 +1454,8 @@
                                  [(or (css:bad? 1st) (css:close? 1st)) (verify lla (css-make-syntax-error exn:css:malformed 1st) null)]
                                  [else (verify (cons 1st lla) #false tail)])]
                           [(exn:css? info) info]
-                          [else (let ([custom? (css:ident=:=? id-token --symbol?)]
-                                      [all-argl (reverse lla)])
+                          [else (let ([all-argl (reverse lla)]
+                                      [custom? (css:ident=:=? id-token --symbol?)])
                                   (cond [(null? all-argl) (css-make-syntax-error exn:css:missing-value id-token)]
                                         [else (make-css-declaration id-token all-argl (css:delim? info) custom?)]))]))])))
 
@@ -2150,7 +2153,7 @@
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-cascade-viewport : (->* (CSS-Media-Preferences (Listof CSS-Descriptors))
-                                      (CSS-Declared-Value-Filter CSS-Value-Filter)
+                                      (CSS-Declared-Value-Filter (CSS-Value-Filter CSS-Media-Datum))
                                       CSS-Media-Preferences)
     ;;; https://drafts.csswg.org/css-device-adapt/#atviewport-rule
     (lambda [viewport-preferences viewport-descriptors
@@ -2163,10 +2166,11 @@
                          #false))))
 
   (define css-cascade : (All (CSS-Datum) (-> (Listof CSS-StyleSheet) CSS-Subject CSS-Declared-Value-Filter
-                                             (HashTable Symbol CSS-Datum) (HashTable Symbol CSS-Datum)))
+                                             (CSS-Value-Filter CSS-Datum) (HashTable Symbol CSS-Datum)
+                                             (HashTable Symbol CSS-Datum)))
     ;;; https://drafts.csswg.org/css-cascade/#filtering
     ;;; https://drafts.csswg.org/css-cascade/#cascading
-    (lambda [stylesheets subject desc-filter default-values]
+    (lambda [stylesheets subject desc-filter value-filter default-values]
       (define declared-values : CSS-Declared-Values (make-hasheq))
       (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
         (for ([stylesheet (in-list batch)])
@@ -2175,7 +2179,13 @@
                                  (hash-ref (css-stylesheet-pool stylesheet) import)))
           (css-cascade-rules (css-stylesheet-rules stylesheet) subject desc-filter
                              (css-stylesheet-preferences stylesheet) declared-values)))
-      (make-hasheq)))
+      (value-filter default-values declared-values
+                    (css-descriptor-ref declared-values 'all
+                                        (λ [[desc-name : Symbol] [desc-values : (Option (Listof+ CSS-Token))]]
+                                          (and desc-values
+                                               (let ([v (car desc-values)])
+                                                 (cond [(not (css:ident? v)) #false]
+                                                       [else (css:ident-datum v)]))))))))
 
   (define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) CSS-Subject CSS-Declared-Value-Filter)
                                    (CSS-Media-Preferences CSS-Declared-Values) CSS-Declared-Values)
@@ -2243,7 +2253,8 @@
                                 (not (css-declaration-important? (hash-ref descbase desc-name))))
                         (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
                         (define-values (desc-values deprecated?)
-                          (cond [(not (eq? desc-name 'all)) (desc-filter desc-name declared-values)]
+                          (cond [(css-declaration-custom? property) (values declared-values #false)]
+                                [(not (eq? desc-name 'all)) (desc-filter desc-name declared-values)]
                                 [else (css-all-descriptor-filter desc-name declared-values)]))
                         (when deprecated? (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
                         (cond [(list? desc-values)
@@ -2371,11 +2382,16 @@
     (lambda [suitcased-name desc-values]
       (values desc-values #false)))
 
+  (define css-filter : (CSS-Value-Filter Datum)
+    (lambda [default-values declared-values all]
+      (for/hash : (HashTable Symbol Datum) ([desc-name (in-hash-keys declared-values)])
+        (values desc-name (css-descriptor-ref declared-values desc-name)))))
+
   tamer-subject
-  (time-run (css-cascade (list tamer-sheet) tamer-subject css-descriptor-filter ((inst make-hasheq Symbol Datum))))
+  (time-run (css-cascade (list tamer-sheet) tamer-subject css-descriptor-filter css-filter ((inst make-hasheq Symbol Datum))))
   (collect-garbage)
   tamer-header
-  (time-run (css-cascade (list tamer-sheet) tamer-header css-descriptor-filter ((inst make-hasheq Symbol Datum))))
+  (time-run (css-cascade (list tamer-sheet) tamer-header css-descriptor-filter css-filter ((inst make-hasheq Symbol Datum))))
 
   (map (λ [[in : String]] : (Pairof String Integer)
          (let ([maybe-complex-selectors (css-parse-selectors in)])
