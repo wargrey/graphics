@@ -60,6 +60,10 @@ html, body;
     height: 768px;
   }
   /* CSS for landscape layout goes here */
+  body {
+    color: purple;
+    background: yellow;
+  }
 }
 
 @region-style #intro {
@@ -109,7 +113,7 @@ html, body;
 
 @import /* Number 1 */"some/url.css"/* Number 2 */ screen/* Number 3 */;
 
-.foo, /* Number 4 */          #bar/* Number 5 */ {
+.foo, /* Number 4 */          #foo/* Number 5 */ /* Number 6*/ #bar {
     background-color/* Number 6 */: #000/* Number 7 */;
 }
 
