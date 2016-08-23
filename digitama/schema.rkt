@@ -271,25 +271,25 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#|(define-table p as P
-  ([number     : String                 % 出版社编号 #:check (regexp-match? #px"^\\d+$" number)]
-   [names      : (Option String)        % 出版社名称]
-   [address    : (Option String)        % 出版社地址]
-   [url        : (Option String)        % 出版社官网]
-   [about      : (Option String)        % 出版社简介]))
+(module+ test
+  (define-table p as P
+    ([number     : String                 % 出版社编号 #:check (regexp-match? #px"^\\d+$" number)]
+     [names      : (Option String)        % 出版社名称]
+     [address    : (Option String)        % 出版社地址]
+     [url        : (Option String)        % 出版社官网]
+     [about      : (Option String)        % 出版社简介]))
   
-(define-table s as S
-  ([titles     : (Listof String)        % 丛书标题 '("བོད་ཀྱི་བཅུ་ཕྲག་རིག་མཛོད་ཆེན་མོ" "藏族十明文化传世经典丛书")]
-   [type       : Symbol                 % 丛书类型]))
+  (define-table s as S
+    ([titles     : (Listof String)        % 丛书标题 '("བོད་ཀྱི་བཅུ་ཕྲག་རིག་མཛོད་ཆེན་མོ" "藏族十明文化传世经典丛书")]
+     [type       : Symbol                 % 丛书类型]))
   
-(define-values (i o) (make-pipe))
-(write-p (create-p #:number "123") o)
-(write-s (create-s #:titles (list "བོད་ཀྱི་བཅུ་ཕྲག་རིག་མཛོད་ཆེན་མོ") #:type 'Tibetan) o)
-
-(with-handlers ([exn? displayln]) (read-s i))
-(read-p i)
-(read-s i)
-
-(close-output-port o)
-(read i)
-|#
+  (define-values (i o) (make-pipe))
+  (write-p (create-p #:number "123") o)
+  (write-s (create-s #:titles (list "བོད་ཀྱི་བཅུ་ཕྲག་རིག་མཛོད་ཆེན་མོ") #:type 'Tibetan) o)
+  
+  (with-handlers ([exn? displayln]) (read-s i))
+  (read-p i)
+  (read-s i)
+  
+  (close-output-port o)
+  (read i))
