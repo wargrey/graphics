@@ -460,23 +460,14 @@
   ;; https://drafts.csswg.org/css-cascade/#shorthand
   ;; https://drafts.csswg.org/css-cascade/#filtering
   ;; https://drafts.csswg.org/css-cascade/#cascading
-  (define-type CSS-Declared-Values (HashTable Symbol CSS-Declaration))
+  (define-type CSS-Declared-Value (Pairof (Listof+ CSS-Token) Boolean))
+  (define-type CSS-Declared-Values (HashTable Symbol CSS-Declared-Value))
   (define-type CSS-Declared-Value-Filter (-> Symbol (Listof+ CSS-Token)
                                              (Values (U (HashTable Symbol (Listof+ CSS-Token)) (Listof+ CSS-Token) Void
                                                         Make-CSS-Syntax-Error (Pairof (Listof CSS-Token) Make-CSS-Syntax-Error))
                                                      Boolean)))
   (define-type (CSS-Value-Filter CSS-Datum) (-> CSS-Declared-Values (HashTable Symbol CSS-Datum) (Option (HashTable Symbol CSS-Datum))
                                                 (Option Symbol) (HashTable Symbol CSS-Datum)))
-
-  (define-syntax (css-descriptor-ref stx)
-    (syntax-parse stx
-      [(_ descriptors desc-name (~optional maybe-values))
-       (with-syntax ([=> (or (attribute maybe-values)
-                             #'(λ [[n : Symbol] [v : (Option (Listof+ CSS-Token))]]
-                                 (and v (css-token->datum (car v)))))])
-         #'(let ([cascaded-values (hash-ref descriptors desc-name (const #false))])
-             (cond [(false? cascaded-values) (=> desc-name #false)]
-                   [else (=> desc-name (css-declaration-values cascaded-values))])))]))
 
   (define-syntax (call-with-css-preferences stx)
     (syntax-parse stx
@@ -492,6 +483,14 @@
                             [current-css-containing-block-height height])
                sexp ...)))]))
 
+  (define css-descriptor-ref : (All (a) (case-> [-> CSS-Declared-Values Symbol (-> Symbol (Option (Listof+ CSS-Token)) a) a]
+                                                [-> CSS-Declared-Values Symbol (Option (Listof+ Datum))]))
+    (lambda [descriptors desc-name [css->racket-values #false]]
+      (let ([cascaded-values (hash-ref descriptors desc-name (const #false))])
+        (cond [(false? cascaded-values) (and css->racket-values (css->racket-values desc-name #false))]
+              [(false? css->racket-values) (map css-token->datum (car cascaded-values))]
+              [else (css->racket-values desc-name (car cascaded-values))]))))
+  
   (define css-all-descriptor-filter : CSS-Declared-Value-Filter
     ;; https://drafts.csswg.org/css-cascade/#all-shorthand
     (lambda [all-name all-values]
@@ -2220,7 +2219,7 @@
     ;;; https://drafts.csswg.org/selectors/#data-model
     (lambda [rules subject desc-filter
                    [top-preferences (current-css-media-preferences)]
-                   [descbase ((inst make-hasheq Symbol CSS-Declaration))]]
+                   [descbase ((inst make-hasheq Symbol CSS-Declared-Value))]]
       (define-type Style-Metadata (Vector CSS-Complex-Selector CSS-Descriptors CSS-Media-Preferences))
       (define-values (selected-rules-style single-preference?)
         (let cascade-rule : (Values (Listof Style-Metadata) Boolean) ([preferences : CSS-Media-Preferences top-preferences]
@@ -2268,32 +2267,26 @@
                                          (CSS-Declared-Values) CSS-Declared-Values)
     ;;; https://drafts.csswg.org/css-cascade/#shorthand
     ;;; https://drafts.csswg.org/css-cascade/#importance
-    (lambda [desc-filter descriptors [descbase ((inst make-hasheq Symbol CSS-Declaration))]]
+    (lambda [desc-filter descriptors [descbase ((inst make-hasheq Symbol CSS-Declared-Value))]]
       (for ([property (in-list descriptors)])
         (cond [(list? property) (css-cascade-descriptors desc-filter property descbase)]
               [else (let* ([desc-name (css:ident-datum (css-declaration-name property))]
                            [desc-name (if (css-declaration-custom? property) desc-name (symbol-downcase desc-name))])
-                      (when (or (css-declaration-important? property)
-                                (not (hash-has-key? descbase desc-name))
-                                (not (css-declaration-important? (hash-ref descbase desc-name))))
-                        (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
+                      (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
+                      (define important? : Boolean (css-declaration-important? property))
+                      (define fstub : (-> CSS-Declared-Value) (λ [] (cons declared-values #false)))
+                      (when (or important? (not (cdr (hash-ref descbase desc-name fstub))))
                         (define-values (desc-values deprecated?)
                           (cond [(css-declaration-custom? property) (values declared-values #false)]
                                 [(not (eq? desc-name 'all)) (desc-filter desc-name declared-values)]
                                 [else (css-all-descriptor-filter desc-name declared-values)]))
                         (when deprecated? (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
-                        (cond [(list? desc-values)
-                               (hash-set! descbase desc-name
-                                          (cond [(eq? desc-values declared-values) property]
-                                                [else (struct-copy css-declaration property [values desc-values])]))]
-                              [(hash? desc-values)
-                               (for ([(name argl) (in-hash desc-values)])
-                                 (when (or (css-declaration-important? property)
-                                           (not (hash-has-key? descbase name))
-                                           (not (css-declaration-important? (hash-ref descbase name))))
-                                   (hash-set! descbase name (struct-copy css-declaration property [values argl]))))]
+                        (cond [(list? desc-values) (hash-set! descbase desc-name (cons desc-values important?))]
                               [(procedure? desc-values) (css-make-syntax-error desc-values (css-declaration-name property))]
-                              [(pair? desc-values) (css-make-syntax-error (cdr desc-values) (car desc-values))])))]))
+                              [(pair? desc-values) (css-make-syntax-error (cdr desc-values) (car desc-values))]
+                              [(hash? desc-values) (for ([(name argl) (in-hash desc-values)])
+                                                     (when (or important? (not (cdr (hash-ref descbase name fstub))))
+                                                       (hash-set! descbase name (cons argl important?))))])))]))
       descbase))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
