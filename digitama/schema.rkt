@@ -16,14 +16,14 @@
 (struct msg:schema msg:log ([maniplation : Schema-Maniplation] [table : Symbol] [uuid : String])
   #:prefab #:type-name Schema-Message)
 
+
 (define make-schema-message : (->* (Schema-Maniplation Struct-TypeTop String Any)
-                                   (#:level (Option Log-Level) #:flatten-exn? Boolean String)
-                                   #:rest Any Schema-Message)
-  (lambda [maniplation struct:table uuid urgent #:level [level #false] #:flatten-exn? [flatten? #true] [message ""] . argl]
+                                   (#:level (Option Log-Level) String) ;;; `#:rest Type` is broken in 6.6
+                                   Schema-Message)
+  (lambda [maniplation struct:table uuid urgent #:level [level #false] [message ""]]
     (cond [(exn:schema? urgent) (exn:schema->schema-message urgent #:level level)]
           [(exn? urgent) (exn:schema->schema-message (exn->exn:schema urgent maniplation struct:table uuid) #:level level)]
-          [else (let ([table : Symbol (object-name/symbol struct:table)]
-                      [message : String (if (null? argl) message (apply format message argl))])
+          [else (let ([table : Symbol (object-name/symbol struct:table)])
                   (msg:schema (or level 'info) message urgent table maniplation table uuid))])))
 
 (define-type Schema-Record schema-record)
@@ -52,7 +52,9 @@
            (string-join ((inst map String (Pairof Symbol Any)) (λ [kv] (format "(~a . ~s)" (car kv) (cdr kv))) (reverse given))
                         (format "~n~a " (make-string 8 #\space))))))
 
-(define raise-schema-unique-constraint-error : (-> Symbol Struct-TypeTop (UUID String) (Listof (Pairof Symbol Any)) [#:type (U 'Natural 'Surrogate)] Nothing)
+(define raise-schema-unique-constraint-error : (-> Symbol Struct-TypeTop (UUID String) (Listof (Pairof Symbol Any))
+                                                   [#:type (U 'Natural 'Surrogate)]
+                                                   Nothing)
   (lambda [source struct:table uuid given #:type [key-type 'Natural]]
     (define entry : (HashTable Symbol Any) (make-hash given))
     (throw [exn:schema:constraint:unique struct:table uuid `(UNIQUE ,(hash-keys entry)) entry key-type]
@@ -216,7 +218,9 @@
                                (cond [failure (values (cons (cons target given) fields) (cons check checks))]
                                      [(and table-failure (memq target maybe-fields)) (values (cons (cons target given) fields) checks)]
                                      [else (values fields checks)])))
-                           (raise-schema-constraint-error src struct:table uuid (if table-failure (cons 'constraint checks) checks) givens)))]))
+                           (raise-schema-constraint-error src struct:table uuid
+                                                          (if table-failure (cons 'constraint checks) checks)
+                                                          givens)))]))
                 
                 (define (create-table #:unsafe? [unsafe? : Boolean #false] #:UUID [uuid : (UUID String) ""] args ...) : Table
                   (when (not unsafe?) (check-fields 'create-table "" field ...))
@@ -254,37 +258,38 @@
                 
                 (define (read-table [in : (U Input-Port Path-String) /dev/zero]
                                     #:suffix [.rstn : Bytes #".rstn"] #:old-suffixes [old-exts : (Listof Bytes) (list #".rktl")]) : Table
+                  (define-values (head ~mistype) (values (~a "read-" 'table) "~a: unexpected record type: ~a"))
                   (define peeked : (Boxof Natural) (box 0))
                   (match/handlers (cond [(not (input-port? in)) (schema-read-from-file/unsafe in .rstn old-exts)]
                                         [(read (make-peek-port in peeked)) => (λ [v] (when (table? v) (read-bytes (unbox peeked) in)) v)])
                     [(? table? occurrence) (digest-table occurrence #:verify? #true)]
-                    [(? schema-record? record) (throw [exn:schema:read struct:table "" record] "read-~a: unexpected record type: ~a" 'table (object-name record))]
-                    [(? eof-object?) (throw [exn:schema:read struct:table "" eof] "read-~a: unexpected end of stream" 'table)]
-                    [(? exn? e) (throw [exn:schema:read struct:table "" e] "read-~a: ~a" 'table (exn-message e))]
-                    [_ (throw [exn:schema:read struct:table "" #false] "read-~a: not a stream of schema occurrence" 'table)]))))]))
+                    [(? schema-record? record) (throw [exn:schema:read struct:table "" record] ~mistype head (object-name record))]
+                    [(? eof-object?) (throw [exn:schema:read struct:table "" eof] "~a: unexpected end of stream" head)]
+                    [(? exn? e) (throw [exn:schema:read struct:table "" e] "~a: ~a" head (exn-message e))]
+                    [_ (throw [exn:schema:read struct:table "" #false] "~a: unrecognized stream" head)]))))]))
 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module+ test
-  (define-table p as P
-    ([number     : String                 % 出版社编号 #:check (regexp-match? #px"^\\d+$" number)]
-     [names      : (Option String)        % 出版社名称]
-     [address    : (Option String)        % 出版社地址]
-     [url        : (Option String)        % 出版社官网]
-     [about      : (Option String)        % 出版社简介]))
+#|(define-table p as P
+  ([number     : String                 % 出版社编号 #:check (regexp-match? #px"^\\d+$" number)]
+   [names      : (Option String)        % 出版社名称]
+   [address    : (Option String)        % 出版社地址]
+   [url        : (Option String)        % 出版社官网]
+   [about      : (Option String)        % 出版社简介]))
   
-  (define-table s as S
-    ([titles     : (Listof String)        % 丛书标题 '("བོད་ཀྱི་བཅུ་ཕྲག་རིག་མཛོད་ཆེན་མོ" "藏族十明文化传世经典丛书")]
-     [type       : Symbol                 % 丛书类型]))
+(define-table s as S
+  ([titles     : (Listof String)        % 丛书标题 '("བོད་ཀྱི་བཅུ་ཕྲག་རིག་མཛོད་ཆེན་མོ" "藏族十明文化传世经典丛书")]
+   [type       : Symbol                 % 丛书类型]))
   
-  (define-values (i o) (make-pipe))
-  (write-p (create-p #:number "123") o)
-  (write-s (create-s #:titles (list "བོད་ཀྱི་བཅུ་ཕྲག་རིག་མཛོད་ཆེན་མོ") #:type 'Tibetan) o)
-  
-  (with-handlers ([exn? displayln]) (read-s i))
-  (read-p i)
-  (read-s i)
-  
-  (close-output-port o)
-  (read i))
+(define-values (i o) (make-pipe))
+(write-p (create-p #:number "123") o)
+(write-s (create-s #:titles (list "བོད་ཀྱི་བཅུ་ཕྲག་རིག་མཛོད་ཆེན་མོ") #:type 'Tibetan) o)
+
+(with-handlers ([exn? displayln]) (read-s i))
+(read-p i)
+(read-s i)
+
+(close-output-port o)
+(read i)
+|#
