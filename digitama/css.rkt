@@ -277,11 +277,15 @@
   (define-type CSS-NameSpace (HashTable Symbol String))
   (define-type CSS-NameSpace-Hint (U CSS-NameSpace (Listof Symbol) False))
   (define-type CSS-Combinator (U '>> '> '+ '~ '||))
+  (define-type CSS-Attribute-Datum (U String Symbol (Listof (U String Symbol))))
+  (define-type CSS-Attribute-Value (U CSS-Attribute-Datum (Vector Symbol CSS-Attribute-Datum)))
   
   (define-selectors
     [css-attribute-selector #:+ CSS-Attribute-Selector ([name : Symbol] [namespace : (U Symbol Boolean)])]
-    [css-attribute=selector #:+ CSS-Attribute=Selector css-attribute-selector ([operator : Char] [value : String] [i? : Boolean])]
-  
+    [css-attribute~selector #:+ CSS-Attribute=Selector css-attribute-selector ([operator : Char]
+                                                                               [value : (U Symbol String)]
+                                                                               [i? : Boolean])]
+    
     [css-pseudo-class-selector #:+ CSS-Pseudo-Class-Selector ([name : Symbol] [arguments : (Option (Listof CSS-Token))])]
     [css-pseudo-element-selector #:+ CSS-Pseudo-Element-Selector ([name : Symbol]
                                                                   [arguments : (Option (Listof CSS-Token))]
@@ -307,7 +311,7 @@
      [id : (U Keyword (Listof+ Keyword))]
      [namespace : (U Symbol Boolean) = #true]
      [classes : (Listof Symbol) = null]
-     [attributes : (HashTable Symbol (U String (Pairof Symbol String))) = (make-hasheq)]))
+     [attributes : (HashTable Symbol CSS-Attribute-Value) = (make-hasheq)]))
 
   (define css-selector-match : (-> CSS-Complex-Selector CSS-Subject (Option CSS-Complex-Selector))
     ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
@@ -326,24 +330,26 @@
                    [classes : (Listof Symbol) (css-subject-classes element)])
                (for/and : Boolean ([s:c (in-list s:classes)]) (and (memq s:c classes) #true)))
              (let ([s:attrs : (Listof CSS-Attribute-Selector) (css-compound-selector-attributes s)]
-                   [attrs : (HashTable Symbol (U String (Pairof Symbol String))) (css-subject-attributes element)])
+                   [attrs : (HashTable Symbol CSS-Attribute-Value) (css-subject-attributes element)])
                (for/and : Boolean ([attr : CSS-Attribute-Selector (in-list s:attrs)])
                  (and (hash-has-key? attrs (css-attribute-selector-name attr))
                       (let*-values ([(ns.val) (hash-ref attrs (css-attribute-selector-name attr))]
-                                    [(ns val) (if (pair? ns.val) (values (car ns.val) (cdr ns.val)) (values #false ns.val))])
+                                    [(ns datum) (cond [(not (vector? ns.val)) (values #false ns.val)]
+                                                      [else (values (vector-ref ns.val 0) (vector-ref ns.val 1))])])
                         (and (css-attribute-namespace-match? (css-attribute-selector-namespace attr) ns)
-                             (or (not (css-attribute=selector? attr))
-                                 (let ([~empty? (not (string=? (css-attribute=selector-value attr) ""))]
-                                       [px:val (regexp-quote (css-attribute=selector-value attr))]
-                                       [mode (if (css-attribute=selector-i? attr) "i" "-i")])
-                                   (case (css-attribute=selector-operator attr)
-                                     [(#\=) (regexp-match? (pregexp (format "(?~a:^~a$)" mode px:val)) val)]
-                                     [(#\|) (regexp-match? (pregexp (format "(?~a:^~a(-|$))" mode px:val)) val)]
-                                     [(#\~) (and ~empty? (regexp-match? (pregexp (format "(?~a:\\b~a\\b)" mode px:val)) val))]
-                                     [(#\^) (and ~empty? (regexp-match? (pregexp (format "(?~a:^~a)" mode px:val)) val))]
-                                     [(#\$) (and ~empty? (regexp-match? (pregexp (format "(?~a:~a$)" mode px:val)) val))]
-                                     [(#\~) (and ~empty? (regexp-match? (pregexp (format "(?~a:~a)" mode px:val)) val))]
-                                     [else #false]))))))))))
+                             (or (not (css-attribute~selector? attr)) ; [attr]
+                                 (let* ([px:val : String (regexp-quote (~a (css-attribute~selector-value attr)))]
+                                        [mode : String (if (css-attribute~selector-i? attr) "i" "-i")]
+                                        [val : String (if (list? datum) (string-join ((inst map String Any) ~a datum)) (~a datum))])
+                                   (and (non-empty-string? px:val)
+                                        (case (css-attribute~selector-operator attr)
+                                          [(#\=) (regexp-match? (pregexp (format "(?~a:^~a$)" mode px:val)) val)]
+                                          [(#\~) (regexp-match? (pregexp (format "(?~a:\\b~a\\b)" mode px:val)) val)]
+                                          [(#\|) (regexp-match? (pregexp (format "(?~a:^~a(-|$))" mode px:val)) val)]
+                                          [(#\^) (regexp-match? (pregexp (format "(?~a:^~a)" mode px:val)) val)]
+                                          [(#\$) (regexp-match? (pregexp (format "(?~a:~a$)" mode px:val)) val)]
+                                          [(#\*) (regexp-match? (pregexp (format "(?~a:~a)" mode px:val)) val)]
+                                          [else #false])))))))))))
       (and match? selector)))
   
   (define css-selector-specificity : (-> (Listof CSS-Compound-Selector) (values Natural Natural Natural Natural))
@@ -367,12 +373,12 @@
 
   (define css-declared-namespace : (-> CSS-NameSpace-Hint (U CSS:Ident CSS:Delim Symbol) (U Symbol Boolean))
     (lambda [namespaces namespace]
-      (cond [(css:delim? namespace) #true] ; *
-            [(false? namespaces)    #true] ; application does not care namespaces
-            [else (let ([ns (if (css:ident? namespace) (css:ident-datum namespace) namespace)])
-                    (if (or (and (hash? namespaces) (hash-has-key? namespaces ns))
-                            (and (list? namespaces) (memq ns namespaces) #true))
-                        ns #false))])))
+      (or (css:delim? namespace)        ; *
+          (let ([ns (if (css:ident? namespace) (css:ident-datum namespace) namespace)])
+            (if (or (false? namespaces) ; application does not care namespaces
+                    (and (hash? namespaces) (hash-has-key? namespaces ns))
+                    (and (list? namespaces) (memq ns namespaces) #true))
+                ns #false)))))
 
   (define css-attribute-namespace-match? : (-> (U Symbol Boolean) (U Symbol Boolean) Boolean)
     (lambda [src ns]
@@ -1834,11 +1840,11 @@
         (cond [(eof-object? 1st) (css-throw-syntax-error exn:css:empty block)]
               [(or (css:match? 1st) (css:delim=:=? 1st #\=))
                (css-throw-syntax-error exn:css:missing-identifier block)]
-              [(or (eof-object? 2nd) (css:match? 2nd) (css:delim=:=? 2nd #\=))
+              [(or (eof-object? 2nd) (css:match? 2nd) (css:delim=:=? 2nd #\=) (css:whitespace? 2nd))
                ; WARNING: the namespace behavior for attributes is different from that for elements 
                (cond [(css:ident? 1st) (values (css:ident-datum 1st) #false rest1)]
                      [else (css-throw-syntax-error exn:css:missing-identifier 1st)])]
-              [(or (eof-object? 3rd) (css:match? 3rd) (css:delim=:=? 3rd #\=))
+              [(or (eof-object? 3rd) (css:match? 3rd) (css:delim=:=? 3rd #\=) (css:whitespace? 3rd))
                (cond [(and (css:delim=:=? 1st #\|) (css:ident? 2nd)) (values (css:ident-datum 2nd) #false rest2)]
                      [(css:delim=:=? 2nd #\|) (css-throw-syntax-error exn:css:missing-identifier 2nd)]
                      [else (css-throw-syntax-error exn:css:unrecognized 1st)])]
@@ -1851,21 +1857,21 @@
               [(or (css:ident? 1st) (css:delim=:=? 1st #\*))
                (css-throw-syntax-error exn:css:unrecognized 2nd)]
               [else (css-throw-syntax-error exn:css:unrecognized 1st)]))
-      (define-values (op value-part) (css-car op-part))
-      (define-values (value ci-part) (css-car value-part))
+      (define-values (op value-part) (css-car op-part #false))
+      (define-values (value ci-part) (css-car value-part #false))
       (define-values (i terminal) (css-car ci-part))
       (unless (eof-object? op)
         (cond [(eof-object? value) (css-throw-syntax-error exn:css:missing-value op)]
               [(nor (eof-object? i) (css:ident=:=? i 'i)) (css-throw-syntax-error exn:css:overconsumption i)]
               [(css-tokens? terminal) (css-throw-syntax-error exn:css:overconsumption terminal)]))
-      (define val : String
+      (define val : (U String Symbol)
         (cond [(css:string? value) (css:string-datum value)]
-              [(css:ident? value) (css:ident=> value symbol->string)]
-              [(eof-object? value) ""]
+              [(css:ident? value) (css:ident-datum value)]
+              [(or (css:whitespace? value) (eof-object? value)) ""]
               [else (css-throw-syntax-error exn:css:type value)]))
-      (cond [(eof-object? op) (make-css-attribute-selector attr namespace)]
-            [(css:delim=:=? op #\=) (make-css-attribute=selector attr namespace #\= val (css:ident? i))]
-            [(css:match? op) (make-css-attribute=selector attr namespace (css:match-datum op) val (css:ident? i))]
+      (cond [(or (css:whitespace? op) (eof-object? op)) (make-css-attribute-selector attr namespace)]
+            [(css:delim=:=? op #\=) (make-css-attribute~selector attr namespace #\= val (css:ident? i))]
+            [(css:match? op) (make-css-attribute~selector attr namespace (css:match-datum op) val (css:ident? i))]
             [else (css-throw-syntax-error exn:css:unrecognized op)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
