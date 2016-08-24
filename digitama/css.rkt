@@ -282,7 +282,7 @@
   
   (define-selectors
     [css-attribute-selector #:+ CSS-Attribute-Selector ([name : Symbol] [namespace : (U Symbol Boolean)])]
-    [css-attribute~selector #:+ CSS-Attribute=Selector css-attribute-selector ([operator : Char]
+    [css-attribute~selector #:+ CSS-Attribute~Selector css-attribute-selector ([operator : Char]
                                                                                [value : (U Symbol String)]
                                                                                [i? : Boolean])]
     
