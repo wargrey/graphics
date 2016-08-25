@@ -468,9 +468,9 @@
   ;; https://drafts.csswg.org/css-cascade/#cascading
   (define-type CSS-Declared-Value (Pairof (Listof+ CSS-Token) Boolean))
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declared-Value))
+  (define-type CSS-Declared-Result (U (Listof+ CSS-Token) Void Make-CSS-Syntax-Error (Pairof (Listof CSS-Token) Make-CSS-Syntax-Error)))
   (define-type CSS-Declared-Value-Filter (-> Symbol (Listof+ CSS-Token)
-                                             (Values (U (HashTable Symbol (Listof+ CSS-Token)) (Listof+ CSS-Token) Void
-                                                        Make-CSS-Syntax-Error (Pairof (Listof CSS-Token) Make-CSS-Syntax-Error))
+                                             (Values (U (HashTable Symbol (Listof+ CSS-Token)) CSS-Declared-Result)
                                                      Boolean)))
   (define-type (CSS-Value-Filter CSS-Datum) (-> CSS-Declared-Values (HashTable Symbol CSS-Datum) (Option (HashTable Symbol CSS-Datum))
                                                 (Option Symbol) (HashTable Symbol CSS-Datum)))
@@ -2347,14 +2347,11 @@
 (require (submod "." grammar))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module* test typed/racket
-  (require (submod ".." digitama))
-  (require (submod ".." parser))
-  (require (submod ".." grammar))
-
+(module test/digitama typed/racket
+  (provide (all-defined-out))
+  
   (require racket/flonum)
-  (require (only-in typed/racket/gui get-display-size))
-
+  
   (define-type Unit (U 'KB 'MB 'GB 'TB))
   (define-type Unit* (Listof Unit))
   (define units : Unit* '(KB MB GB TB))
@@ -2375,9 +2372,18 @@
        #'(let ([momery0 : Natural (current-memory-use)])
            (define-values (result cpu real gc) (time-apply (thunk sexp ...) null))
            (printf "memory: ~a cpu time: ~a real time: ~a gc time: ~a~n"
-                    (~size (- (current-memory-use) momery0) 'Bytes)
-                    cpu real gc)
-           (car result))]))
+                   (~size (- (current-memory-use) momery0) 'Bytes)
+                   cpu real gc)
+           (car result))])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(module* test typed/racket
+  (require (submod ".." digitama))
+  (require (submod ".." parser))
+  (require (submod ".." grammar))
+  (require (submod ".." test/digitama))
+
+  (require (only-in typed/racket/gui get-display-size))
 
   (define-values (width height) (get-display-size))
   (define-values (in out) (make-pipe))
