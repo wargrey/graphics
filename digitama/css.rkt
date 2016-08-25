@@ -492,11 +492,12 @@
 
   (define css-ref : (All (a) (case-> [-> CSS-Declared-Values Symbol (-> Symbol CSS-Cascaded-Value a) a]
                                      [-> CSS-Declared-Values Symbol (U Datum (Listof+ Datum) False)]))
-    (lambda [properties desc-name [css->racket-values #false]]
-      (let ([maybe-value (car (hash-ref properties desc-name (const (cons #false #false))))])
-        (cond [(false? maybe-value) (and css->racket-values (css->racket-values desc-name #false))]
-              [(false? css->racket-values) (if (list? maybe-value) (map css-token->datum maybe-value) (css-token->datum maybe-value))]
-              [else (css->racket-values desc-name maybe-value)]))))
+    (lambda [properties desc-name [css->datum #false]]
+      (define maybe-value : CSS-Cascaded-Value (car (hash-ref properties desc-name (const (cons #false #false)))))
+      (cond [(procedure? css->datum) (css->datum desc-name maybe-value)]
+            [(css-token? maybe-value) (css-token->datum maybe-value)]
+            [(list? maybe-value) (map css-token->datum maybe-value)]
+            [else maybe-value])))
   
   (define css-all-descriptor-filter : CSS-Declared-Value-Filter
     ;; https://drafts.csswg.org/css-cascade/#all-shorthand
