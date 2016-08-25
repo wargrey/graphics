@@ -499,7 +499,7 @@
             [(list? maybe-value) (map css-token->datum maybe-value)]
             [else maybe-value])))
   
-  (define css-all-descriptor-filter : CSS-Declared-Value-Filter
+  (define css-all-property-filter : CSS-Declared-Value-Filter
     ;; https://drafts.csswg.org/css-cascade/#all-shorthand
     (lambda [all-name all-values]
       (define argsize : Index (length all-values))
@@ -2282,7 +2282,7 @@
                         (define-values (cascaded-value deprecated?)
                           (cond [(css-declaration-custom? property) (values declared-values #false)]
                                 [(not (eq? desc-name 'all)) (desc-filter desc-name declared-values)]
-                                [else (css-all-descriptor-filter desc-name declared-values)]))
+                                [else (css-all-property-filter desc-name declared-values)]))
                         (when deprecated? (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
                         (cond [(css-token? cascaded-value) (hash-set! descbase desc-name (cons cascaded-value important?))]
                               [(list? cascaded-value) (hash-set! descbase desc-name (cons cascaded-value important?))]
