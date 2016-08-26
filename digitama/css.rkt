@@ -161,7 +161,7 @@
     [css:ratio      #:+ CSS:Ratio #:-> css:number #:as Positive-Exact-Rational]
     [css:integer    #:+ CSS:Integer #:-> css:number #:as Integer]
     [css:flonum     #:+ CSS:Flonum #:-> css:number #:as Float]
-    [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Exact-Rational #:=? (λ [f1 f2] (= (* f1 1/100) f2))]
+    [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Exact-Rational]
     [css:dimension  #:+ CSS:Dimension #:-> css:numeric #:as (Pairof Real Symbol)
                     #:=? (λ [d1 d2] (and (= (car d1) (car d2)) (symbol-ci=? (cdr d1) (cdr d2))))]
     [css:whitespace #:+ CSS:WhiteSpace #:-> css-token #:as (U String Char)
@@ -190,7 +190,7 @@
   (struct: css:bad:stdin : CSS:Bad:StdIn css:bad ())
 
   ;;; https://drafts.csswg.org/css-syntax/#parsing
-  (define-type (Listof+ CSS) (Pairof CSS (Listof CSS)))
+  (define-type (Listof+ css) (Pairof css (Listof css)))
   (define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
   (define-type CSS-URL-Modifier (U CSS:Ident CSS:Function CSS:URL))
   (define-type CSS-Syntax-Any (U CSS-Token EOF))
@@ -416,7 +416,7 @@
          [(width height device-width device-height resolution)
           (define resolution? : Boolean (eq? downcased-name 'resolution))
           (cond [(and resolution? (css:ident=:=? maybe-value 'infinite)) +inf.0]
-                [(and (not resolution?) (or (css:integer=:=? maybe-value zero?) (css:flonum=:=? maybe-value zero?))) 0]
+                [(and (not resolution?) (css-number=:=? maybe-value zero?)) 0]
                 [(css:dimension? maybe-value)
                  (define n : Real (css-dimension->scalar maybe-value (if resolution? 'resolution 'length)))
                  (cond [(nan? n) exn:css:unit]
@@ -469,7 +469,8 @@
   (define-type CSS-Cascaded-Value (U CSS-Token (Listof+ CSS-Token) False))
   (define-type CSS-Declared-Value (Pairof CSS-Cascaded-Value Boolean))
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declared-Value))
-  (define-type CSS-Declared-Result (U CSS-Cascaded-Value Void Make-CSS-Syntax-Error (Pairof (Listof CSS-Token) Make-CSS-Syntax-Error)))
+  (define-type CSS-Declared-Result (U CSS-Cascaded-Value Void Make-CSS-Syntax-Error
+                                      (Vector Make-CSS-Syntax-Error (U CSS-Syntax-Any (Listof CSS-Token)))))
   (define-type CSS-Declared-Value-Filter (-> Symbol (Listof+ CSS-Token)
                                              (Values (U (HashTable Symbol CSS-Cascaded-Value) CSS-Declared-Result)
                                                      Boolean)))
@@ -493,7 +494,7 @@
   (define css-ref : (All (a) (case-> [-> CSS-Declared-Values Symbol (-> Symbol CSS-Cascaded-Value a) a]
                                      [-> CSS-Declared-Values Symbol (U Datum (Listof+ Datum) False)]))
     (lambda [properties desc-name [css->datum #false]]
-      (define maybe-value : CSS-Cascaded-Value (car (hash-ref properties desc-name (const (cons #false #false)))))
+      (define maybe-value : CSS-Cascaded-Value (car (hash-ref properties desc-name (λ [] (cons #false #false)))))
       (cond [(procedure? css->datum) (css->datum desc-name maybe-value)]
             [(css-token? maybe-value) (css-token->datum maybe-value)]
             [(list? maybe-value) (map css-token->datum maybe-value)]
@@ -504,7 +505,7 @@
     (lambda [all-name all-values]
       (define argsize : Index (length all-values))
       (define all-value : CSS-Token (car all-values))
-      (values (cond [(> argsize 1) (cons (cdr all-values) exn:css:overconsumption)]
+      (values (cond [(> argsize 1) (vector exn:css:overconsumption (cdr all-values))]
                     [(not (css:ident? all-value)) exn:css:type]
                     [(memq (css:ident=> all-value symbol-downcase) '(initial inherit unset revert)) all-value]
                     [else exn:css:range])
@@ -515,8 +516,9 @@
     (lambda [suitcased-name desc-values]
       (define argsize : Index (length desc-values))
       (define desc-value : CSS-Token (car desc-values))
+      (define >=0? : (-> Real Boolean) (λ [r] (>= r 0)))
       (define (viewport-length [v : CSS-Token]) : (U CSS-Token Make-CSS-Syntax-Error)
-        (cond [(or (css:ident=:=? v 'auto) (css:percentage=:=? v (negate negative?))) v]
+        (cond [(or (css:ident=:=? v 'auto) (css:percentage=:=? v >=0?)) v]
               [(or (css:ident? v) (css:percentage? v)) exn:css:range]
               [(not (css:dimension? v)) exn:css:type]
               [else (let ([maybe-dim (css-canonicalize-dimension v)])
@@ -533,28 +535,22 @@
           (define max-name : Symbol (if (eq? suitcased-name 'width) 'max-width 'max-height))
           (define min-value : (U CSS-Token Make-CSS-Syntax-Error) (viewport-length desc-value))
           (define max-value : (U CSS-Token Make-CSS-Syntax-Error) (viewport-length (list-ref desc-values (if (> argsize 1) 1 0))))
-          (cond [(> argsize 2) (cons (cddr desc-values) exn:css:overconsumption)]
-                [(procedure? min-value) (cons (list desc-value) min-value)]
-                [(procedure? max-value) (cons (cdr desc-values) max-value)]
+          (cond [(> argsize 2) (vector exn:css:overconsumption (cddr desc-values))]
+                [(procedure? min-value) (vector min-value desc-value)]
+                [(procedure? max-value) (vector max-value (cadr desc-values))]
                 [else (hasheq min-name min-value max-name max-value)])]
          [(min-width max-width min-height max-height)
           (define length-value : (U CSS-Token Make-CSS-Syntax-Error) (viewport-length desc-value))
-          (cond [(> argsize 1) (cons (cdr desc-values) exn:css:overconsumption)]
-                [(procedure? length-value) (cons (list desc-value) length-value)]
+          (cond [(> argsize 1) (vector exn:css:overconsumption (cdr desc-values))]
+                [(procedure? length-value) (vector length-value desc-value)]
                 [else length-value])]
          [(zoom min-zoom max-zoom)
-          (cond [(> argsize 1) (cons (cdr desc-values) exn:css:overconsumption)]
-                [(or (css:ident=:=? desc-value 'auto)
-                     (css:percentage=:=? desc-value (negate negative?))
-                     (css:integer=:=? desc-value (negate negative?))
-                     (css:flonum=:=? desc-value (negate negative?)))
-                 desc-value]
-                [(or (css:ident? desc-value) (css:percentage? desc-value)
-                     (css:integer? desc-value) (css:flonum? desc-value))
-                 exn:css:range]
+          (cond [(> argsize 1) (vector exn:css:overconsumption (cdr desc-values))]
+                [(or (css:ident=:=? desc-value 'auto) (css:percentage=:=? desc-value >=0?) (css-number=:=? desc-value >=0?)) desc-value]
+                [(or (css:ident? desc-value) (css:percentage? desc-value) (css:number? desc-value)) exn:css:range]
                 [else exn:css:type])]
          [(orientation user-zoom)
-          (cond [(> argsize 1) (cons (cdr desc-values) exn:css:overconsumption)]
+          (cond [(> argsize 1) (vector exn:css:overconsumption (cdr desc-values))]
                 [(not (css:ident? desc-value)) exn:css:type]
                 [(memq (css:ident=> desc-value symbol-downcase)
                        (case suitcased-name
@@ -748,6 +744,16 @@
     (lambda [datum]
       (or (symbol? datum) (number? datum)
           (string? datum) (char? datum) (keyword? datum))))
+
+  (define css-number=:=? : (-> Any (U Real (-> Real Boolean)) Boolean)
+    (lambda [token type?]
+      (define datum : (U Number Void)
+        (cond [(css:integer? token) (css:integer-datum token)]
+              [(css:flonum? token) (css:flonum-datum token)]
+              [(css:ratio? token) (css:ratio-datum token)]))
+      (and (real? datum)
+           (cond [(procedure? type?) (type? datum)]
+                 [else (eqv? datum type?)]))))
   
   (define css-car : (All (css) (->* ((Listof css)) (Boolean) (Values (U css EOF) (Listof css))))
     (lambda [dirty [skip-whitespace? #true]]
@@ -2191,7 +2197,7 @@
                                   [viewport-descriptor-filter (current-css-viewport-descriptor-filter)]
                                   [viewport-filter (current-css-viewport-filter)]]
       (call-with-css-preferences #:media viewport-preferences
-        (viewport-filter (css-cascade-properties viewport-descriptor-filter viewport-descriptors)
+        (viewport-filter (css-cascade-declarations viewport-descriptor-filter viewport-descriptors)
                          viewport-preferences #false #false))))
 
   (define css-cascade : (All (css) (-> (Listof CSS-StyleSheet) CSS-Subject CSS-Declared-Value-Filter (CSS-Cascaded-Value-Filter css)
@@ -2257,40 +2263,41 @@
         (call-with-css-preferences #:media top-preferences
           (if (and single-preference?)
               (let ([source-ref (λ [[src : Style-Metadata]] : CSS-Declarations (vector-ref src 1))])
-                (css-cascade-properties desc-filter (map source-ref ordered-sources) descbase))
+                (css-cascade-declarations desc-filter (map source-ref ordered-sources) descbase))
               (for ([src (in-list ordered-sources)])
                 (define alter-preferences : CSS-Media-Preferences (vector-ref src 2))
                 (if (eq? alter-preferences top-preferences)
-                    (css-cascade-properties desc-filter (vector-ref src 1) descbase)
+                    (css-cascade-declarations desc-filter (vector-ref src 1) descbase)
                     (call-with-css-preferences #:media alter-preferences
-                      (css-cascade-properties desc-filter (vector-ref src 1) descbase)))))))
+                      (css-cascade-declarations desc-filter (vector-ref src 1) descbase)))))))
        descbase))
 
-  (define css-cascade-properties : (->* (CSS-Declared-Value-Filter (U CSS-Declarations (Listof CSS-Declarations)))
-                                        (CSS-Declared-Values) CSS-Declared-Values)
+  (define css-cascade-declarations : (->* (CSS-Declared-Value-Filter (U CSS-Declarations (Listof CSS-Declarations)))
+                                          (CSS-Declared-Values) CSS-Declared-Values)
     ;;; https://drafts.csswg.org/css-cascade/#shorthand
     ;;; https://drafts.csswg.org/css-cascade/#importance
     (lambda [desc-filter properties [descbase ((inst make-hasheq Symbol CSS-Declared-Value))]]
+      (define (key-property? [desc-name : Symbol] [important? : Boolean]) : Boolean
+        (or important? (not (cdr (hash-ref descbase desc-name (λ [] (cons #false #false)))))))
       (for ([property (in-list properties)])
-        (cond [(list? property) (css-cascade-properties desc-filter property descbase)]
+        (cond [(list? property) (css-cascade-declarations desc-filter property descbase)]
               [else (let* ([desc-name (css:ident-datum (css-declaration-name property))]
                            [desc-name (if (css-declaration-custom? property) desc-name (symbol-downcase desc-name))])
                       (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
                       (define important? : Boolean (css-declaration-important? property))
-                      (define fstub : (-> CSS-Declared-Value) (λ [] (cons #false #false)))
-                      (when (or important? (not (cdr (hash-ref descbase desc-name fstub))))
-                        (define-values (cascaded-value deprecated?)
+                      (when (key-property? desc-name important?) 
+                        (define-values (desc-value deprecated?)
                           (cond [(css-declaration-custom? property) (values declared-values #false)]
                                 [(not (eq? desc-name 'all)) (desc-filter desc-name declared-values)]
                                 [else (css-all-property-filter desc-name declared-values)]))
                         (when deprecated? (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
-                        (cond [(css-token? cascaded-value) (hash-set! descbase desc-name (cons cascaded-value important?))]
-                              [(list? cascaded-value) (hash-set! descbase desc-name (cons cascaded-value important?))]
-                              [(procedure? cascaded-value) (css-make-syntax-error cascaded-value (css-declaration-name property))]
-                              [(pair? cascaded-value) (css-make-syntax-error (cdr cascaded-value) (car cascaded-value))]
-                              [(hash? cascaded-value) (for ([(name argl) (in-hash cascaded-value)])
-                                                        (when (or important? (not (cdr (hash-ref descbase name fstub))))
-                                                          (hash-set! descbase name (cons argl important?))))])))]))
+                        (cond [(css-token? desc-value) (hash-set! descbase desc-name (cons desc-value important?))]
+                              [(list? desc-value) (hash-set! descbase desc-name (cons desc-value important?))]
+                              [(procedure? desc-value) (css-make-syntax-error desc-value (css-declaration-name property))]
+                              [(vector? desc-value) (css-make-syntax-error (vector-ref desc-value 0) (vector-ref desc-value 1))]
+                              [(hash? desc-value) (for ([(name argl) (in-hash desc-value)]
+                                                        #:when (key-property? name important?))
+                                                    (hash-set! descbase name (cons argl important?)))])))]))
       descbase))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -3,6 +3,8 @@
 (provide (all-defined-out))
 (provide (all-from-out typed/racket/draw images/flomap typed/images/logos typed/images/icons))
 
+@require{css.rkt}
+
 (require racket/fixnum)
 (require racket/flonum)
 
@@ -353,10 +355,125 @@
             (make-superimpose 'ct) (make-superimpose 'cc) (make-superimpose 'cb)
             (make-superimpose 'rt) (make-superimpose 'rc) (make-superimpose 'rb))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(module digitama typed/racket
+  (provide (all-defined-out))
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;; http://www.w3.org/Style/CSS/specs.en.html                                                 ;;;
+  ;;;                                                                                           ;;;
+  ;;; https://drafts.csswg.org/css-color                                                        ;;;
+  ;;; https://drafts.csswg.org/css-fonts                                                        ;;;
+  ;;; https://drafts.csswg.org/css-images                                                       ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (require "css.rkt")
+  (require typed/racket/draw)
+  
+  (define the-css-colorbase : (HashTable Datum (Instance Color%)) (hasheq))
+
+  (define ~rgba : (-> Natural String)
+    (lambda [rgba]
+      (~r rgba #:sign (list "#:" "#:" "#:") #:base 16 #:min-width 8 #:pad-string "0")))
+  
+  (define css-rgba-argument->byte : (->* (CSS-Token) (Boolean) (U Byte CSS-Declared-Result))
+    (lambda [t [alpha? #false]]
+      (define-values (v:max gamut:max) (if alpha? (values 1.0 #xFF) (values 255.0 #x01)))
+      (cond [(css:integer=:=? t byte?) (min #xFF (max 0 (css:integer-datum t)))]
+            [(css:flonum=:=? t (λ [[v : Real]] (<= 0.0 v v:max))) (min #xFF (max 0 (exact-round (* (css:flonum-datum t) gamut:max))))]
+            [(css:percentage=:=? t (λ [[v : Real]] (<= 0 v 100))) (min #xFF (max 0 (round (* (css:percentage-datum t) 1/100 #xFF))))]
+            [(or (css:percentage? t) (css:number? t)) (vector exn:css:range t)]
+            [else (vector exn:css:type t)])))
+
+  (define css-color-filter-delimiter : (->* (CSS-Token (Listof CSS-Token) Index) (Boolean)
+                                            (Values (Option CSS-Declared-Result) (Listof CSS-Token) Natural))
+    ;;; https://github.com/w3c/csswg-drafts/issues/266
+    (lambda [id args n:min [comma? #true]]
+      (define n:max : Natural (add1 n:min))
+      (let fold ([result : (Option CSS-Declared-Result) #false]
+                 [sgra : (Listof CSS-Token) null]
+                 [n : Natural 0]
+                 [tokens : (Listof CSS-Token) args]
+                 [i : Natural 0])
+        (cond [(or (vector? result) (and (null? tokens) (>= n n:min))) (values result (reverse sgra) n)]
+              [(and (null? tokens) (< n n:min)) (values (vector exn:css:missing-value id) (reverse sgra) n)]
+              [else (let-values ([(t r ni) (values (car tokens) (cdr tokens) (add1 i))])
+                      (cond [(>= n n:max) (fold (vector exn:css:overconsumption tokens) sgra n r ni)]
+                            [(not (css:delim? t)) (fold result (cons t sgra) (add1 n) r ni)]
+                            [else (let ([d : Char (css:delim-datum t)]
+                                        [following? : Boolean (pair? r)])
+                                    (cond [(and (char=? d #\,) (odd? i) following? (or comma? (css:delim? result))) (fold t sgra n r ni)]
+                                          [(and (char=? d #\/) (odd? i) following? (not (css:delim? result))) (fold t sgra n r ni)]
+                                          [(not following?) (fold (vector exn:css:missing-value t) sgra n r ni)]
+                                          [else (fold (vector exn:css:unrecognized t) sgra n r ni)]))]))]))))
+  
+  (define css-rgba-declaration-filter : (-> CSS:Function (Listof CSS-Token) CSS-Declared-Result)
+    (lambda [frgba args]
+      (define-values (result rgba-tokens argsize) (css-color-filter-delimiter frgba args 3))
+      (cond [(vector? result) result]
+            [else (match-let ([(list r g b) (map css-rgba-argument->byte (take rgba-tokens 3))])
+                    (define a : (U Byte CSS-Declared-Result) (if (= argsize 4) (css-rgba-argument->byte (last rgba-tokens) #true) #xFF))
+                    (cond [(not (byte? r)) r]
+                          [(not (byte? g)) g]
+                          [(not (byte? b)) b]
+                          [(not (byte? a)) a]
+                          [else (let ([rgba (bitwise-ior (arithmetic-shift r 24) (arithmetic-shift g 16) (arithmetic-shift b 8) a)])
+                                  (css-remake-token [frgba (last args)] css:integer (~rgba rgba) rgba))]))]))))
+
+(require (submod "." digitama))
+
+(define select-or-create-color : (-> (U Keyword String Symbol Natural) (Instance Color%))
+  (lambda [color]
+    (hash-ref the-css-colorbase color)))
+
+(define css-hash-color->rgba : (-> Keyword (Option Natural))
+  ;;; https://drafts.csswg.org/css-color/#hex-notation
+  (lambda [hash-color]
+    (define color : String (keyword->string hash-color))
+    (define digits : Index (string-length color))
+    (define maybe-hexcolor : (Option Natural)
+      (and (memq digits (list 3 4 6 8))
+           (for/fold ([hexcolor : (Option Natural) 0])
+                     ([ch : Char (in-string color)])
+             (define digit : (U Integer Void)
+               (cond [(char-numeric? ch) (- (char->integer ch) #x30)]
+                     [(char<=? #\A ch #\F) (- (char->integer ch) #x41 -10)]
+                     [(char<=? #\a ch #\f) (- (char->integer ch) #x61 -10)]))
+             (and hexcolor
+                  (exact-nonnegative-integer? digit)
+                  (let ([result : Natural (bitwise-ior (arithmetic-shift hexcolor 4) digit)])
+                    (if (>= digits 6) result (bitwise-ior (arithmetic-shift result 4) digit)))))))
+    (cond [(false? maybe-hexcolor) #false]
+          [(or (= digits 8) (= digits 4)) maybe-hexcolor]
+          [else (bitwise-ior (arithmetic-shift maybe-hexcolor 8) #xFF)])))
+
+(define css-color-declaration-filter : (-> (Listof+ CSS-Token) CSS-Declared-Result)
+  ;;; https://drafts.csswg.org/css-color/#color-type
+  ;;; https://drafts.csswg.org/css-color/#named-colors
+  ;;; https://drafts.csswg.org/css-color/#numeric-rgb
+  ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
+  ;;; https://drafts.csswg.org/css-color/#the-hwb-notation
+  (lambda [color-values]
+    (define argsize : Index (length color-values))
+    (define color-value : CSS-Token (car color-values))
+    (cond [(> argsize 1) (vector exn:css:overconsumption (cdr color-values))]
+          [(css:ident? color-value)
+           (define name : String (css:ident=> color-value symbol->string))
+           (cond [(send the-color-database find-color name) color-value]
+                 [(member (string-downcase name) '("transparent" "currentcolor")) color-value]
+                 [else exn:css:range])]
+          [(css:hash? color-value)
+           (define maybe-rgba : (Option Natural) (css:hash=> color-value css-hash-color->rgba))
+           (cond [(false? maybe-rgba) exn:css:range]
+                 [else (css-remake-token color-value css:integer (~rgba maybe-rgba) maybe-rgba)])]
+          [(css:function? color-value)
+           (case (css:function-datum color-value)
+             [(rgb rgba) (css-rgba-declaration-filter color-value (css:function-arguments color-value))]
+             [else exn:css:unrecognized])]
+          [else exn:css:type])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module+ test
+(module+ test0
   (apply bitmap-vl-append
          (for/fold ([bitmap-descs : (Listof Bitmap) null])
                    ([width (in-list (list 32 16  2   2             32  32               32               256 256))]
@@ -386,4 +503,42 @@
                          (bitmap-text (format "- : (Bitmap ~a ~a #:combined)" combined-width combined-height) #:color "Purple")
                          (bitmap-lt-superimpose (bitmap-frame combined-desc #:margin 1 #:border-style 'transparent #:style 'transparent)
                                                 (bitmap-frame (bitmap-blank width combined-height) #:border-color "Lavender")))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(module* test typed/racket
+  (require "css.rkt")
+  (require (submod ".."))
+  (require (submod "css.rkt" test/digitama))
+
+  (define symbol-suffix? : (-> Symbol String Boolean)
+    (lambda [name suffix]
+      (string-suffix? (symbol->string name) suffix)))
+  
+  (current-css-media-type 'screen)
+  (current-css-media-preferences
+   ((inst make-hash Symbol CSS-Media-Datum)
+    (list (cons 'orientation 'landscape)
+          (cons 'width 1440)
+          (cons 'height 820))))
+  
+  (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet (simplify-path (build-path 'up "tamer" "tamer.css")))))
+  (define tamer-subject : CSS-Subject (make-css-subject #:type 'body #:id '#:header))
+
+  (define css-descriptor-filter : CSS-Declared-Value-Filter
+    (lambda [suitcased-name desc-values]
+      (values (cond [(symbol-suffix? suitcased-name "color") (css-color-declaration-filter desc-values)]
+                    [else desc-values])
+              #false)))
+
+  (define css-filter : (CSS-Cascaded-Value-Filter Datum)
+    (lambda [declared-values all default-values inherit-values]
+      (for/hash : (HashTable Symbol Datum) ([desc-name (in-hash-keys declared-values)])
+        (values desc-name
+                (css-ref declared-values desc-name
+                         (λ [[desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]]
+                           (cond [(css:integer? maybe-value) (css:numeric-representation maybe-value)]
+                                 [(css-token? maybe-value) (css-token->datum maybe-value)]
+                                 [else (and maybe-value (map css-token->datum maybe-value))])))))))
+
+  tamer-subject
+  (time-run (css-cascade (list tamer-sheet) tamer-subject css-descriptor-filter css-filter ((inst make-hasheq Symbol Datum)) #false)))

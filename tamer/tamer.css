@@ -258,7 +258,7 @@ body {
 	font-size: 10px;
 	color: red !important;
 	background-color: green;
-	background-color: rgba(0,128,0,0.7);
+	background-color: rgba(0,128,0,0.7) !important;
 	frequency: 30Hz;
 }
 body {
