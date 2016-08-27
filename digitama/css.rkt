@@ -626,6 +626,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;; https://drafts.csswg.org/css-values/#lengths
   ;;; https://drafts.csswg.org/css-values/#other-units
+  (define-type CSS-Quantity-Type (U 'length 'angle 'time 'frequency 'resolution))
   (define-type Quantity->Scalar (case-> [Nonnegative-Exact-Rational Symbol -> (U Nonnegative-Exact-Rational Flonum-Nan)]
                                         [Exact-Rational Symbol -> (U Exact-Rational Flonum-Nan)]
                                         [Nonnegative-Real Symbol -> Nonnegative-Real]
@@ -654,7 +655,7 @@
       (cond [(css:dimension? dim) (css-font-relative-length? (css:dimension-datum dim))]
             [else (and (memq (cdr dim) '(vw vh vi vb vmin vmax)) #true)])))
   
-  (define css-dimension->scalar : (->* ((U CSS:Dimension (Pairof Real Symbol))) ((Option Symbol) (Option (Boxof Symbol))) Real)
+  (define css-dimension->scalar : (->* ((U CSS:Dimension (Pairof Real Symbol))) ((Option CSS-Quantity-Type) (Option (Boxof Symbol))) Real)
     (lambda [dim [type #false] [&canonical-unit #false]]
       (cond [(css:dimension? dim) (css-dimension->scalar (css:dimension-datum dim) type)]
             [else (let-values ([(n unit) (values (car dim) (cdr dim))])
@@ -669,7 +670,7 @@
                     (when (box? &canonical-unit) (set-box! &canonical-unit (if (nan? scalar) 'NaN canonical-unit)))
                     scalar)])))
 
-  (define css-canonicalize-dimension : (->* (CSS:Dimension) ((Option Symbol)) (Option CSS:Dimension))
+  (define css-canonicalize-dimension : (->* (CSS:Dimension) ((Option CSS-Quantity-Type)) (Option CSS:Dimension))
     (lambda [dim [type #false]]
       (define unit : Symbol (cdr (css:dimension-datum dim)))
       (define &canonical-unit : (Boxof Symbol) (box unit))
