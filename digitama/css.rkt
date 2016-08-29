@@ -161,7 +161,7 @@
     [css:ratio      #:+ CSS:Ratio #:-> css:number #:as Positive-Exact-Rational]
     [css:integer    #:+ CSS:Integer #:-> css:number #:as Integer]
     [css:flonum     #:+ CSS:Flonum #:-> css:number #:as Float]
-    [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Exact-Rational]
+    [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Float]
     [css:dimension  #:+ CSS:Dimension #:-> css:numeric #:as (Pairof Real Symbol)
                     #:=? (λ [d1 d2] (and (= (car d1) (car d2)) (symbol-ci=? (cdr d1) (cdr d2))))]
     [css:whitespace #:+ CSS:WhiteSpace #:-> css-token #:as (U String Char)
@@ -579,7 +579,7 @@
               [(symbol? v2) v1]
               [else (maix v1 v2)]))
       (define (zoom->real [desc-name : Symbol] [maybe-zoom : CSS-Cascaded-Value]) : Real
-        (cond [(css:percentage? maybe-zoom) (* (css:percentage-datum maybe-zoom) 1/100)]
+        (cond [(css:percentage? maybe-zoom) (css:percentage-datum maybe-zoom)]
               [(css:integer? maybe-zoom) (css:integer-datum maybe-zoom)]
               [(css:flonum? maybe-zoom) (css:flonum-datum maybe-zoom)]
               [(eq? desc-name 'max-zoom) +inf.0]
@@ -588,8 +588,8 @@
       (define (size->scalar [desc-name : Symbol] [maybe-size : CSS-Cascaded-Value]) : (U Real Symbol)
         (cond [(css:dimension? maybe-size) (car (css:dimension-datum maybe-size))] ; already canonicalized
               [(not (css:percentage? maybe-size)) 'auto]
-              [(memq desc-name '(min-width max-width)) (* (css:percentage-datum maybe-size) 1/100 initial-width)]
-              [else (* (css:percentage-datum maybe-size) 1/100 initial-height)]))
+              [(memq desc-name '(min-width max-width)) (* (css:percentage-datum maybe-size) initial-width)]
+              [else (* (css:percentage-datum maybe-size) initial-height)]))
       (define (enum-value [desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]) : (U Real Symbol)
         (cond [(css:ident? maybe-value) (css:ident-datum maybe-value)]
               [(eq? desc-name 'user-zoom) 'zoom]
@@ -939,7 +939,7 @@
                              (define unit : Symbol (string->symbol (string-downcase (css-consume-name css #false))))
                              (css-make-token srcloc css:dimension representation (cons n unit))]
                             [(and (char? ch1) (char=? ch1 #\%)) (read-char css)
-                             (css-make-token srcloc css:percentage representation (real->fraction n))]
+                             (css-make-token srcloc css:percentage representation (real->double-flonum (* n 1/100)))]
                             [(exact-integer? n) (css-make-token srcloc css:integer representation n)]
                             [else (css-make-token srcloc css:flonum representation (real->double-flonum n))])))])))
 
@@ -1106,17 +1106,6 @@
       (cond [(char<=? #\A hexch #\F) (- (char->integer hexch) 55)]
             [(char<=? #\a hexch #\f) (- (char->integer hexch) 87)]
             [else (- (char->integer hexch) 48)])))
-
-  (define real->fraction : (-> Real Exact-Rational)
-    (lambda [r]
-      (cond [(and (rational? r) (exact? r)) r]
-            [(and (integer? r) (inexact? r)) (inexact->exact r)]
-            [else (let* ([representation (number->string r)]
-                         [fraction (string->number (string-append (string-replace representation "." "") "/1"
-                                                                  (string-replace (string-replace representation #px".*?\\." "")
-                                                                                  #px"." "0")))])
-                    (cond [(and (rational? fraction) (exact? fraction)) fraction]
-                          [else 0 #| this should not happen |#]))])))
 
   (define css-char-non-printable? : (-> (U EOF Char) Boolean : #:+ Char)
     (lambda [ch]
@@ -2256,11 +2245,10 @@
                                   (and single-preference?)))]))))
       (unless (null? selected-rules-style)
         (define ordered-sources
-          (sort selected-rules-style
+          (sort (reverse selected-rules-style)
                 (λ [[sm1 : Style-Metadata] [sm2 : Style-Metadata]]
-                  ; NOTE: the input style list has not been reversed
-                  (>= (css-complex-selector-specificity (vector-ref sm1 0))
-                      (css-complex-selector-specificity (vector-ref sm2 0))))))
+                  (< (css-complex-selector-specificity (vector-ref sm1 0))
+                     (css-complex-selector-specificity (vector-ref sm2 0))))))
         (call-with-css-preferences #:media top-preferences
           (if (and single-preference?)
               (let ([source-ref (λ [[src : Style-Metadata]] : CSS-Declarations (vector-ref src 1))])
