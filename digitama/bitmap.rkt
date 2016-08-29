@@ -135,7 +135,7 @@
         (define-values (width height descent ascent) (send dc get-text-extent subdesc font combine?))
         (values subdesc (exact-ceiling width) height)))
 
-    (match-define-values (_ char-width phantom-height) (desc-extent " " 0 1))
+    (define-values (_ char-width phantom-height) (desc-extent " " 0 1))
     (define-values (descs ys width height)
       (for/fold ([descs : (Listof String) null] [ys : (Listof Real) null] [width : Natural 0] [height : Real 0])
                 ([desc : String (in-list (string-split description (string #\newline)))])
@@ -226,23 +226,23 @@
                    (bitmap-blank (fxmax (fx+ dx1 (send bmp1 get-width)) (fx+ dx2 (send bmp2 get-width)))
                                  (fxmax (fx+ dy1 (send bmp1 get-height)) (fx+ dy2 (send bmp2 get-height))))))
                (send dc set-smoothing 'aligned)
-               (match order
-                 ['over  (void (send dc draw-bitmap bmp1 dx1 dy1)
-                               (send dc draw-bitmap bmp2 dx2 dy2))]
-                 ['under (void (send dc draw-bitmap bmp2 dx2 dy2)
-                               (send dc draw-bitmap bmp1 dx1 dy1))])
+               (case order
+                 [(over)  (void (send dc draw-bitmap bmp1 dx1 dy1)
+                                (send dc draw-bitmap bmp2 dx2 dy2))]
+                 [(under) (void (send dc draw-bitmap bmp2 dx2 dy2)
+                                (send dc draw-bitmap bmp1 dx1 dy1))])
                (or (send dc get-bitmap) (bitmap-blank))))
            bitmap-pin)])
     (values (make-pin 'over) (make-pin 'under))))
 
 (define bitmap-pin : (-> Real Real Real Real Bitmap Bitmap * Bitmap)
   (lambda [x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
-    (match-define-values (bmp _ _)
-      (for/fold: ([bmp : Bitmap  bmp0]
-                  [x : Exact-Rational  0]
-                  [y : Exact-Rational  0])
-                 ([bmp1 (in-list (cons bmp0 bmps))]
-                  [bmp2 (in-list bmps)])
+    (define-values (bmp _who _cares)
+      (for/fold ([bmp : Bitmap  bmp0]
+                 [x : Exact-Rational  0]
+                 [y : Exact-Rational  0])
+                ([bmp1 (in-list (cons bmp0 bmps))]
+                 [bmp2 (in-list bmps)])
         (define-values (w1 h1) (bitmap-size bmp1))
         (define-values (w2 h2) (bitmap-size bmp2))
         (define x1 (+ x (- (inexact->exact (* x1-frac w1)) (inexact->exact (* x2-frac w2)))))
@@ -257,98 +257,94 @@
   (let ([make-append
          (lambda [alignment] : (-> [#:gapsize Real] Bitmap * Bitmap)
           (lambda [#:gapsize [delta 0.0] . bitmaps]
-            (match bitmaps
-              [(list) (bitmap-blank)]
-              [(list base) base]
-              ;[(list base bmp)  TODO: if gapsize can be defined with bitmap-pin
-              ; (match alignment
-              ;   ['vl (bitmap-pin  0  1  0  0  base bmp)]
-              ;   ['vc (bitmap-pin 1/2 1 1/2 0  base bmp)]
-              ;   ['vr (bitmap-pin  1  1  1  0  base bmp)]
-              ;   ['ht (bitmap-pin  1  0  0  0  base bmp)]
-              ;   ['hc (bitmap-pin  1 1/2 0 1/2 base bmp)]
-              ;   ['hb (bitmap-pin  1  1  0  1  base bmp)]
-              ;   [should-not-happen base])]
-              [(list-rest base others)
-               (let ([min-width : Positive-Integer (send base get-width)]
-                     [min-height : Positive-Integer (send base get-height)])
-                 (define-values (width0 height0)
-                   (for/fold ([width : Real (send base get-width)]
-                              [height : Real (send base get-height)])
-                             ([child : Bitmap (in-list others)])
-                     (define w : Positive-Integer (send child get-width))
-                     (define h : Positive-Integer (send child get-height))
-                     (match alignment
-                       [(or 'vl 'vc 'vr) (values (max width w) (+ height h delta))]
-                       [(or 'ht 'hc 'hb) (values (+ width w delta) (max height h))]
-                       [should-not-happen (values (max width w) (max height h))])))
+            (cond [(null? bitmaps) (bitmap-blank)]
+                  [(null? (cdr bitmaps)) (car bitmaps)]
+                  ;[(list base bmp)  TODO: if gapsize can be defined with bitmap-pin
+                  ; (match alignment
+                  ;   ['vl (bitmap-pin  0  1  0  0  base bmp)]
+                  ;   ['vc (bitmap-pin 1/2 1 1/2 0  base bmp)]
+                  ;   ['vr (bitmap-pin  1  1  1  0  base bmp)]
+                  ;   ['ht (bitmap-pin  1  0  0  0  base bmp)]
+                  ;   ['hc (bitmap-pin  1 1/2 0 1/2 base bmp)]
+                  ;   ['hb (bitmap-pin  1  1  0  1  base bmp)]
+                  ;   [should-not-happen base])]
+                  [else (let*-values ([(base others) (values (car bitmaps) (cdr bitmaps))]
+                                      [(min-width min-height) (bitmap-size base)])
+                          (define-values (width0 height0)
+                            (for/fold ([width : Real (send base get-width)]
+                                       [height : Real (send base get-height)])
+                                      ([child : Bitmap (in-list others)])
+                              (define w : Positive-Integer (send child get-width))
+                              (define h : Positive-Integer (send child get-height))
+                              (match alignment
+                                [(or 'vl 'vc 'vr) (values (max width w) (+ height h delta))]
+                                [(or 'ht 'hc 'hb) (values (+ width w delta) (max height h))]
+                                [should-not-happen (values (max width w) (max height h))])))
                  
-                 (define width : Positive-Real (max min-width width0))
-                 (define height : Positive-Real (max min-height height0))
-                 (define dc : (Instance Bitmap-DC%)
-                   (make-object bitmap-dc% (bitmap-blank width height)))
-                 (send dc set-smoothing 'aligned)
-                 
-                 (let append-bitmap : Void ([bmps : (Listof Bitmap) (cons base others)]
-                                            [xoff : Real (- delta)] [yoff : Real (- delta)])
-                   (unless (null? bmps)
-                     (define bmp : Bitmap (car bmps))
-                     (define w : Positive-Integer (send bmp get-width))
-                     (define h : Positive-Integer (send bmp get-height))
-                     (define this-x-if-use : Real (+ xoff delta))
-                     (define this-y-if-use : Real (+ yoff delta))
-                     (define-values (x y)
-                       (match alignment
-                         ['vl (values 0                 this-y-if-use)]
-                         ['vc (values (/ (- width w) 2) this-y-if-use)]
-                         ['vr (values (- width w)       this-y-if-use)]
-                         ['ht (values this-x-if-use     0)]
-                         ['hc (values this-x-if-use     (/ (- height h) 2))]
-                         ['hb (values this-x-if-use     (- height h))]
-                         [should-not-happen (values this-x-if-use this-y-if-use)]))
-                     (send dc draw-bitmap bmp x y)
-                     (append-bitmap (cdr bmps) (+ this-x-if-use w) (+ this-y-if-use h))))
-                 (or (send dc get-bitmap) (bitmap-blank)))])))]
+                          (define width : Positive-Real (max min-width width0))
+                          (define height : Positive-Real (max min-height height0))
+                          (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
+                          (send dc set-smoothing 'aligned)
+                          
+                          (let append-bitmap : Void ([bmps : (Listof Bitmap) bitmaps]
+                                                     [xoff : Real (- delta)]
+                                                     [yoff : Real (- delta)])
+                            (unless (null? bmps)
+                              (define bmp : Bitmap (car bmps))
+                              (define-values (w h) (bitmap-size bmp))
+                              (define this-x-if-use : Real (+ xoff delta))
+                              (define this-y-if-use : Real (+ yoff delta))
+                              (define-values (x y)
+                                (case alignment
+                                  [(vl) (values 0                 this-y-if-use)]
+                                  [(vc) (values (/ (- width w) 2) this-y-if-use)]
+                                  [(vr) (values (- width w)       this-y-if-use)]
+                                  [(ht) (values this-x-if-use     0)]
+                                  [(hc) (values this-x-if-use     (/ (- height h) 2))]
+                                  [(hb) (values this-x-if-use     (- height h))]
+                                  [else (values this-x-if-use this-y-if-use)]))
+                              (send dc draw-bitmap bmp x y)
+                              (append-bitmap (cdr bmps) (+ this-x-if-use w) (+ this-y-if-use h))))
+                          (or (send dc get-bitmap) (bitmap-blank)))])))]
         [make-superimpose
          (lambda [alignment] : (-> Bitmap * Bitmap)
-           (match-lambda*
-             [(list) (bitmap-blank)]
-             [(list base) base]
-             [(list base bmp)
-              (match alignment
-                ['lt (bitmap-pin  0   0   0   0  base bmp)]
-                ['lc (bitmap-pin  0  1/2  0  1/2 base bmp)]
-                ['lb (bitmap-pin  0   1   0   1  base bmp)]
-                ['ct (bitmap-pin 1/2  0  1/2  0  base bmp)]
-                ['cc (bitmap-pin 1/2 1/2 1/2 1/2 base bmp)]
-                ['cb (bitmap-pin 1/2  1  1/2  1  base bmp)]
-                ['rt (bitmap-pin  1   0   1   0  base bmp)]
-                ['rc (bitmap-pin  1  1/2  1  1/2 base bmp)]
-                ['rb (bitmap-pin  1   1   1   1  base bmp)]
-                [should-not-happen base])]
-             [(list-rest bitmaps)
-              (let-values ([(width height) (for/fold ([width : Positive-Integer 1]
-                                                      [height : Positive-Integer 1])
-                                                     ([bmp : Bitmap (in-list bitmaps)])
-                                             (values (max width (send bmp get-width))
-                                                     (max height (send bmp get-height))))])
-                (define dc : (Instance Bitmap-DC%)
-                  (make-object bitmap-dc% (bitmap-blank width height)))
-                (send dc set-smoothing 'aligned)
+           (lambda bitmaps
+             (cond [(null? bitmaps) (bitmap-blank)]
+                   [(null? (cdr bitmaps)) (car bitmaps)]
+                   [(null? (cddr bitmaps))
+                    (let-values ([(base bmp) (values (car bitmaps) (cadr bitmaps))])
+                      (case alignment
+                        [(lt) (bitmap-pin  0   0   0   0  base bmp)]
+                        [(lc) (bitmap-pin  0  1/2  0  1/2 base bmp)]
+                        [(lb) (bitmap-pin  0   1   0   1  base bmp)]
+                        [(ct) (bitmap-pin 1/2  0  1/2  0  base bmp)]
+                        [(cc) (bitmap-pin 1/2 1/2 1/2 1/2 base bmp)]
+                        [(cb) (bitmap-pin 1/2  1  1/2  1  base bmp)]
+                        [(rt) (bitmap-pin  1   0   1   0  base bmp)]
+                        [(rc) (bitmap-pin  1  1/2  1  1/2 base bmp)]
+                        [(rb) (bitmap-pin  1   1   1   1  base bmp)]
+                        [else base]))]
+                   [else (let-values ([(width height) (for/fold ([width : Positive-Integer 1]
+                                                                 [height : Positive-Integer 1])
+                                                                ([bmp : Bitmap (in-list bitmaps)])
+                                                        (values (max width (send bmp get-width))
+                                                                (max height (send bmp get-height))))])
+                           (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
+                           (send dc set-smoothing 'aligned)
                 
-                (for ([bmp : Bitmap (in-list bitmaps)])
-                  (define w : Positive-Integer (send bmp get-width))
-                  (define h : Positive-Integer (send bmp get-height))
-                  (define-values (rx by) (values (- width w) (- height h)))
-                  (define-values (cx cy) (values (/ rx 2) (/ by 2)))
-                  (define-values (x y)
-                    (match alignment
-                      ['lt (values  0 0)] ['lc (values  0 cy)] ['lb (values  0 by)]
-                      ['ct (values cx 0)] ['cc (values cx cy)] ['cb (values cx by)]
-                      ['rt (values rx 0)] ['rc (values rx cy)] ['rb (values rx by)]
-                      [should-not-happen (values 0 0)]))
-                  (send dc draw-bitmap bmp x y))
-                (or (send dc get-bitmap) (bitmap-blank)))]))])
+                           (for ([bmp : Bitmap (in-list bitmaps)])
+                             (define w : Positive-Integer (send bmp get-width))
+                             (define h : Positive-Integer (send bmp get-height))
+                             (define-values (rx by) (values (- width w) (- height h)))
+                             (define-values (cx cy) (values (/ rx 2) (/ by 2)))
+                             (define-values (x y)
+                               (case alignment
+                                 [(lt) (values  0 0)] [(lc) (values  0 cy)] [(lb) (values  0 by)]
+                                 [(ct) (values cx 0)] [(cc) (values cx cy)] [(cb) (values cx by)]
+                                 [(rt) (values rx 0)] [(rc) (values rx cy)] [(rb) (values rx by)]
+                                 [else (values 0 0)]))
+                             (send dc draw-bitmap bmp x y))
+                           (or (send dc get-bitmap) (bitmap-blank)))])))])
     (values (make-append 'vl) (make-append 'vc) (make-append 'vr)
             (make-append 'ht) (make-append 'hc) (make-append 'hb)
             (make-superimpose 'lt) (make-superimpose 'lc) (make-superimpose 'lb)
@@ -452,8 +448,10 @@
     (lambda [frgba args]
       (define-values (result rgba-tokens argsize) (css-color-filter-delimiter frgba args 3))
       (cond [(vector? result) result]
-            [else (match-let ([(list r g b) (map css-rgb->scalar (take rgba-tokens 3))])
-                    (define a : (U Gamut CSS-Declared-Result) (if (= argsize 4) (css-alpha->scalar (last rgba-tokens)) 1.0))
+            [else (let ([r (css-rgb->scalar (first rgba-tokens))]
+                        [g (css-rgb->scalar (second rgba-tokens))]
+                        [b (css-rgb->scalar (third rgba-tokens))]
+                        [a (if (= argsize 4) (css-alpha->scalar (fourth rgba-tokens)) 1.0)])
                     (cond [(not (byte? r)) r]
                           [(not (byte? g)) g]
                           [(not (byte? b)) b]
@@ -465,11 +463,12 @@
   (define css-apply-hsba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) HSB->RGB CSS-Declared-Result)
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
     (lambda [fhsba args ->rgb]
-      (define-values (result hsla-tokens argsize) (css-color-filter-delimiter fhsba args 3))
+      (define-values (result hsba-tokens argsize) (css-color-filter-delimiter fhsba args 3))
       (cond [(vector? result) result]
-            [else (match-let ([(list hue s b) (take hsla-tokens 3)])
-                    (define h : (U Hue CSS-Declared-Result) (css-hue->scalar hue))
-                    (define a : (U Gamut CSS-Declared-Result) (if (= argsize 4) (css-alpha->scalar (last hsla-tokens)) 1.0))
+            [else (let ([h (css-hue->scalar (first hsba-tokens))]
+                        [s (second hsba-tokens)]
+                        [b (third hsba-tokens)]
+                        [a (if (= argsize 4) (css-alpha->scalar (fourth hsba-tokens)) 1.0)])
                     (cond [(not (flonum? h)) h]
                           [(not (css:percentage? s)) (vector exn:css:type s)]
                           [(not (css:percentage? b)) (vector exn:css:type b)]
