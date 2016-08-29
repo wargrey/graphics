@@ -16,9 +16,10 @@
               (fl (/ green #xFF))
               (fl (/ blue  #xFF)))))
 
-(define hsb->rgb-bytes : (-> HSB->RGB Hue Gamut Gamut (Values Byte Byte Byte))
-  (lambda [hsb->rgb hue s% %]
-    (define-values (red green blue) (hsb->rgb hue s% %))
+(define hsb->rgb-bytes : (-> HSB->RGB Real Real Real (Values Byte Byte Byte))
+  (lambda [hsb->rgb Hue S% B%]
+    (define-values (hue s% b%) (hsb-normalize Hue S% B%))
+    (define-values (red green blue) (hsb->rgb hue s% b%))
     (values (min (exact-round (fl* red   255.0)) #xFF)
             (min (exact-round (fl* green 255.0)) #xFF)
             (min (exact-round (fl* blue  255.0)) #xFF))))
