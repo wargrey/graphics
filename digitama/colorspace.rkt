@@ -64,11 +64,10 @@
 
 (define hsi->rgb : HSB->RGB
   (lambda [hue saturation intensity]
-    ;;; For 0, 120, 240 and 360, the results stay the same no matter < or <=.
     (cond [(or (zero? saturation) (flnan? hue)) (values intensity intensity intensity)]
-          [(fl<= hue 120.0) (hsi-sector->rgb hue saturation intensity 'RG)]
-          [(fl<= hue 240.0) (hsi-sector->rgb (fl- hue 120.0) saturation intensity 'GB)]
-          [else (hsi-sector->rgb (fl- hue 240.0) saturation intensity 'BR)])))
+          [(fl< hue 120.0) (hsi-sector->rgb hue saturation intensity 'red)]
+          [(fl< hue 240.0) (hsi-sector->rgb (fl- hue 120.0) saturation intensity 'green)]
+          [else (hsi-sector->rgb (fl- hue 240.0) saturation intensity 'blue)])))
   
 (define rgb->hsi : RGB->HSB
   (lambda [red green blue]
@@ -137,16 +136,19 @@
         [else (values 0.0 0.0 0.0)]))
     (values (flabs (fl+ red m)) (flabs (fl+ green m)) (flabs (fl+ blue m)))))
 
-(define hsi-sector->rgb : (-> Flonum Flonum Flonum (U 'RG 'GB 'BR) (Values Gamut Gamut Gamut))
-  (lambda [hue saturation intensity sector]
-    (define H : Flonum (fl* hue (fl/ pi 180.0)))
-    (define 3Im/RBG : Flonum (fl* intensity (fl- 1.0 saturation)))
-    (define 3IScosH : Flonum (fl* intensity (fl+ 1.0 (fl* saturation (fl/ (flcos H) (flcos (fl- (fl/ pi 3.0) H)))))))
-    (define 3I.rest : Flonum (fl- (fl* intensity 3.0) (fl+ 3Im/RBG 3IScosH)))
-    (case sector
-      [(RG) (values (flabs 3IScosH) (flabs 3I.rest) (flabs 3Im/RBG))]
-      [(GB) (values (flabs 3Im/RBG) (flabs 3IScosH) (flabs 3I.rest))]
-      [else (values (flabs 3I.rest) (flabs 3Im/RBG) (flabs 3IScosH))])))
+(define hsi-sector->rgb : (-> Flonum Flonum Flonum (U 'red 'green 'blue) (Values Gamut Gamut Gamut))
+  (lambda [hue saturation intensity color]
+    (define flcosH/cos60-H : Flonum
+      (cond [(or (zero? hue) (fl= hue 120.0)) 2.0]
+            [else (let ([H (fl* hue (fl/ pi 180.0))])
+                    (fl/ (flcos H) (flcos (fl- (fl/ pi 3.0) H))))]))
+    (define major : Flonum (fl* intensity (fl+ 1.0 (fl* saturation flcosH/cos60-H))))
+    (define midor : Flonum (fl* intensity (fl- 1.0 saturation)))
+    (define minor : Flonum (fl- (fl* 3.0 intensity) (fl+ major midor)))
+    (case color
+      [(red)   (values (flabs major) (flabs minor) (flabs midor))]
+      [(green) (values (flabs midor) (flabs major) (flabs minor))]
+      [else    (values (flabs minor) (flabs midor) (flabs major))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ test
