@@ -17,24 +17,24 @@
               (fl (/ blue  #xFF)))))
 
 (define hsb->rgb-bytes : (-> HSB->RGB Real Real Real (Values Byte Byte Byte))
-  (lambda [hsb->rgb Hue S% B%]
-    (define-values (hue s% b%) (hsb-normalize Hue S% B%))
-    (define-values (red green blue) (hsb->rgb hue s% b%))
-    (values (min (exact-round (fl* red   255.0)) #xFF)
-            (min (exact-round (fl* green 255.0)) #xFF)
-            (min (exact-round (fl* blue  255.0)) #xFF))))
+  (lambda [hsb->rgb hue s% b%]
+    (define-values (red green blue) (hsb->rgb (real->hue hue) (real->gamut s%) (real->gamut b%)))
+    (values (gamut->byte red)
+            (gamut->byte green)
+            (gamut->byte blue))))
 
-(define hsb-normalize : (-> Real Real Real (Values Hue Gamut Gamut))
-  (lambda [hue s% b%]
-    (values (cond [(nan? hue) +nan.0]
+(define gamut->byte : (-> Gamut Byte) (λ [v] (min (exact-round (fl* v 255.0)) #xFF)))
+(define real->gamut : (-> Real Gamut) (λ [v] (flmax (flmin (fl v) 1.0) 0.0)))
+
+(define real->hue : (-> Real Hue)
+  (lambda [hue]
+    (cond [(nan? hue) +nan.0]
                   [(or (zero? hue) (and (positive? hue) (< hue 360))) (fl hue)]
                   [else (let ([integer-part (modulo (exact-truncate hue) 360)])
                           (cond [(integer? hue) (fl integer-part)]
                                 [(positive? hue) (flabs (fl (+ integer-part (- hue (truncate hue)))))]
                                 [(zero? integer-part) (flabs (fl+ 360.0 (fl (- hue (truncate hue)))))]
-                                [else (flabs (fl (- integer-part (- (truncate hue) hue))))]))])
-            (flmax (flmin (fl s%) 1.0) 0.0)
-            (flmax (flmin (fl b%) 1.0) 0.0))))
+                                [else (flabs (fl (- integer-part (- (truncate hue) hue))))]))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define hsv->rgb : HSB->RGB

@@ -141,6 +141,9 @@
   ;;; https://drafts.csswg.org/css-syntax/#tokenization
   ;; https://drafts.csswg.org/css-syntax/#component-value
   ;; https://drafts.csswg.org/css-syntax/#current-input-token
+  (define-type (Listof+ css) (Pairof css (Listof css)))
+  (define-type RGBA (Pairof Natural Nonnegative-Flonum))
+  
   (define-tokens css-token #:+ CSS-Token ()
     #:with [[css:numeric #:+ CSS:Numeric css-token ([representation : String])]
             [css:number #:+ CSS:Number css:numeric ()]]
@@ -150,15 +153,11 @@
     [css:||         #:+ CSS:|| #:-> css-token #:as Symbol #:=? (const #true)]
     [css:match      #:+ CSS:Match #:-> css-token #:as Char]
     [css:ident      #:+ CSS:Ident #:-> css-token #:as Symbol #:=? symbol-ci=?]
-    [css:url        #:+ CSS:URL #:-> css-token #:as (U String Symbol) [modifiers : (Listof CSS-URL-Modifier)]]
-    [css:function   #:+ CSS:Function #:-> css-token #:as Symbol #:=? symbol-ci=? [arguments : (Listof CSS-Token)]]
-    [css:block      #:+ CSS:Block #:-> css-token #:as Char [components : (Listof CSS-Token)]]
     [css:hash       #:+ CSS:Hash #:-> css-token #:as Keyword #:=? keyword-ci=? [flag : Symbol]]
     [css:@keyword   #:+ CSS:@Keyword #:-> css-token #:as Keyword #:=? keyword-ci=?]
     [css:string     #:+ CSS:String #:-> css-token #:as String #:=? string=?]
     [css:delim      #:+ CSS:Delim #:-> css-token #:as Char]
     [css:urange     #:+ CSS:URange #:-> css-token #:as (Pairof Index Index)]
-    [css:ratio      #:+ CSS:Ratio #:-> css:number #:as Positive-Exact-Rational]
     [css:integer    #:+ CSS:Integer #:-> css:number #:as Integer]
     [css:flonum     #:+ CSS:Flonum #:-> css:number #:as Float]
     [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Float]
@@ -167,7 +166,16 @@
     [css:whitespace #:+ CSS:WhiteSpace #:-> css-token #:as (U String Char)
                     #:=? (λ [ws1 ws2] (cond [(and (char? ws1) (char? ws2)) (char=? ws1 ws2 #\space)]  ; whitespace
                                             [(and (string? ws1) (string? ws2)) (string=? ws1 ws2)]    ; comment
-                                            [else #false]))])
+                                            [else #false]))]
+
+    ;;; These tokens are processed by tokenizer and parser, and they are always ready for applications.
+    [css:url        #:+ CSS:URL #:-> css-token #:as (U String Symbol) [modifiers : (Listof CSS-URL-Modifier)]]
+    [css:function   #:+ CSS:Function #:-> css-token #:as Symbol #:=? symbol-ci=? [arguments : (Listof CSS-Token)]]
+    [css:block      #:+ CSS:Block #:-> css-token #:as Char [components : (Listof CSS-Token)]]
+    
+    ;;; These tokens are remade by the parser, and they are never produced by the tokenizer.
+    [css:ratio      #:+ CSS:Ratio #:-> css:number #:as Positive-Exact-Rational]
+    [css:rgba       #:+ CSS:RGBA #:-> css-token #:as RGBA])
 
   (define-syntax (css-remake-token stx)
     (syntax-case stx []
@@ -190,7 +198,6 @@
   (struct: css:bad:stdin : CSS:Bad:StdIn css:bad ())
 
   ;;; https://drafts.csswg.org/css-syntax/#parsing
-  (define-type (Listof+ css) (Pairof css (Listof css)))
   (define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
   (define-type CSS-URL-Modifier (U CSS:Ident CSS:Function CSS:URL))
   (define-type CSS-Syntax-Any (U CSS-Token EOF))

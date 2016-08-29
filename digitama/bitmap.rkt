@@ -52,26 +52,23 @@
     flmp))
 
 (define flomap->bitmap : (-> Flomap Bitmap)
-  (let ([fl->byte : (-> Flonum Byte)
-         (λ [x] (let ([v (max 0 (fl->fx (flround (fl* x 255.0))))])
-                  (if (byte? v) v 255)))])
-    (lambda [fmp]
-      (match-define (flomap vs 4 w h) fmp)
-      (define bs : Bytes (make-bytes (* 4 w h)))
-      (for ([ia (in-range 0 (* 4 w h) 4)])
-        (define-values (ir ig ib) (values (fx+ ia 1) (fx+ ia 2) (fx+ ia 3)))
-        (bytes-set! bs ia (fl->byte (flvector-ref vs ia)))
-        (bytes-set! bs ir (fl->byte (flvector-ref vs ir)))
-        (bytes-set! bs ig (fl->byte (flvector-ref vs ig)))
-        (bytes-set! bs ib (fl->byte (flvector-ref vs ib))))
-
-      (define bmp : Bitmap
-        (make-bitmap (max 1 (exact-ceiling (/ w (default-icon-backing-scale))))
-                     (max 1 (exact-ceiling (/ h (default-icon-backing-scale))))
-                     #:backing-scale (default-icon-backing-scale)))
-      (send bmp set-argb-pixels 0 0 (max 0 w) (max 0 h) bs #true #true #:unscaled? #true)
-      (send bmp set-argb-pixels 0 0 (max 0 w) (max 0 h) bs #false #true #:unscaled? #true)
-      bmp)))
+  (lambda [fmp]
+    (match-define (flomap vs 4 w h) fmp)
+    (define bs : Bytes (make-bytes (* 4 w h)))
+    (for ([ia (in-range 0 (* 4 w h) 4)])
+      (define-values (ir ig ib) (values (fx+ ia 1) (fx+ ia 2) (fx+ ia 3)))
+      (bytes-set! bs ia (gamut->byte (flabs (flvector-ref vs ia))))
+      (bytes-set! bs ir (gamut->byte (flabs (flvector-ref vs ir))))
+      (bytes-set! bs ig (gamut->byte (flabs (flvector-ref vs ig))))
+      (bytes-set! bs ib (gamut->byte (flabs (flvector-ref vs ib)))))
+    
+    (define bmp : Bitmap
+      (make-bitmap (max 1 (exact-ceiling (/ w (default-icon-backing-scale))))
+                   (max 1 (exact-ceiling (/ h (default-icon-backing-scale))))
+                   #:backing-scale (default-icon-backing-scale)))
+    (send bmp set-argb-pixels 0 0 (abs w) (abs h) bs #true #true #:unscaled? #true)
+    (send bmp set-argb-pixels 0 0 (abs w) (abs h) bs #false #true #:unscaled? #true)
+    bmp))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -377,11 +374,7 @@
   
   (define the-colorbase : (HashTable Datum (Instance Color%)) (hasheq))
 
-  (define ~rgba : (-> Natural String)
-    (lambda [rgba]
-      (~r rgba #:sign (list "#:" "#:" "#:") #:base 16 #:min-width 8 #:pad-string "0")))
-
-  (define css-hash-color->rgba : (-> Keyword (Option Natural))
+  (define css-hash-color->rgba : (-> Keyword (Option RGBA))
     ;;; https://drafts.csswg.org/css-color/#hex-notation
     (lambda [hash-color]
       (define color : String (keyword->string hash-color))
@@ -399,26 +392,35 @@
                     (let ([result : Natural (bitwise-ior (arithmetic-shift hexcolor 4) digit)])
                       (if (>= digits 6) result (bitwise-ior (arithmetic-shift result 4) digit)))))))
       (cond [(false? maybe-hexcolor) #false]
-            [(or (= digits 8) (= digits 4)) maybe-hexcolor]
-            [else (bitwise-ior (arithmetic-shift maybe-hexcolor 8) #xFF)])))
+            [(or (= digits 3) (= digits 6)) (cons maybe-hexcolor 1.0)]
+            [else (let ([alpha (bitwise-and maybe-hexcolor #xFF)])
+                    (cons (arithmetic-shift maybe-hexcolor -8)
+                          (real->gamut (/ alpha 255.0))))])))
   
-  (define css-rgba->scalar : (->* (CSS-Token) (Boolean) (U Byte CSS-Declared-Result))
-    (lambda [t [alpha? #false]]
-      (define-values (v:max gamut:max) (if alpha? (values 1.0 #xFF) (values 255.0 #x01)))
-      (cond [(css:integer=:=? t byte?) (min #xFF (max 0 (css:integer-datum t)))]
-            [(css:flonum=:=? t (λ [[v : Flonum]] (<= 0.0 v v:max))) (min #xFF (max 0 (exact-round (* (css:flonum-datum t) gamut:max))))]
-            [(css:percentage=:=? t (λ [[v : Flonum]] (<= 0.0 v 1.0))) (min #xFF (max 0 (exact-round (* (css:percentage-datum t) #xFF))))]
+  (define css-rgb->scalar : (-> CSS-Token (U Byte CSS-Declared-Result))
+    (lambda [t]
+      (cond [(css:integer=:=? t byte?) (min #xFF (abs (css:integer-datum t)))]
+            [(css:flonum=:=? t (λ [[v : Flonum]] (<= 0.0 v 255.0))) (min #xFF (abs (css:flonum=> t exact-round)))]
+            [(css:percentage=:=? t (λ [[v : Flonum]] (<= 0.0 v 1.0))) (gamut->byte (abs (css:percentage-datum t)))]
             [(or (css:percentage? t) (css:number? t)) (vector exn:css:range t)]
             [else (vector exn:css:type t)])))
 
-  (define css-hue->scalar : (-> CSS-Token (U Real CSS-Declared-Result))
+  (define css-alpha->scalar : (-> CSS-Token (U Gamut CSS-Declared-Result))
+    (lambda [t]
+      (cond [(css:flonum=:=? t (λ [[v : Flonum]] (<= 0.0 v 1.0))) (css:flonum=> t real->gamut)]
+            [(css:percentage=:=? t (λ [[v : Flonum]] (<= 0.0 v 1.0))) (css:percentage=> t real->gamut)]
+            [(css:integer=:=? t (λ [[v : Integer]] (<= 0 v 1))) (css:integer=> t real->gamut)]
+            [(or (css:percentage? t) (css:number? t)) (vector exn:css:range t)]
+            [else (vector exn:css:type t)])))
+
+  (define css-hue->scalar : (-> CSS-Token (U Hue CSS-Declared-Result))
     (lambda [t]
       (cond [(css:dimension? t)
              (define scalar : Real (css-dimension->scalar t 'angle))
-             (cond [(not (nan? scalar)) scalar]
+             (cond [(not (nan? scalar)) (real->hue scalar)]
                    [else (vector exn:css:unit t)])]
-            [(css:integer? t) (css:integer-datum t)]
-            [(css:flonum? t) (css:flonum-datum t)]
+            [(css:integer? t) (css:integer=> t real->hue)]
+            [(css:flonum? t) (css:flonum=> t real->hue)]
             [else (vector exn:css:type t)])))
 
   (define css-color-filter-delimiter : (->* (CSS-Token (Listof CSS-Token) Index) (Boolean)
@@ -450,35 +452,39 @@
     (lambda [frgba args]
       (define-values (result rgba-tokens argsize) (css-color-filter-delimiter frgba args 3))
       (cond [(vector? result) result]
-            [else (match-let ([(list r g b) (map css-rgba->scalar (take rgba-tokens 3))])
-                    (define a : (U Byte CSS-Declared-Result) (if (= argsize 4) (css-rgba->scalar (last rgba-tokens) #true) #xFF))
+            [else (match-let ([(list r g b) (map css-rgb->scalar (take rgba-tokens 3))])
+                    (define a : (U Gamut CSS-Declared-Result) (if (= argsize 4) (css-alpha->scalar (last rgba-tokens)) 1.0))
                     (cond [(not (byte? r)) r]
                           [(not (byte? g)) g]
                           [(not (byte? b)) b]
-                          [(not (byte? a)) a]
-                          [else (let ([rgba (bitwise-ior (arithmetic-shift r 24) (arithmetic-shift g 16) (arithmetic-shift b 8) a)])
-                                  (css-remake-token [frgba (last args)] css:integer (~rgba rgba) rgba))]))])))
+                          [(not (flonum? a)) a]
+                          [else (css-remake-token [frgba (last args)] css:rgba
+                                                  (cons (bitwise-ior (arithmetic-shift r 16) (arithmetic-shift g 8) b)
+                                                        a))]))])))
 
   (define css-apply-hsba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) HSB->RGB CSS-Declared-Result)
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
     (lambda [fhsba args ->rgb]
       (define-values (result hsla-tokens argsize) (css-color-filter-delimiter fhsba args 3))
       (cond [(vector? result) result]
-            [else (match-let ([(list Hue S B) (take hsla-tokens 3)])
-                    (define H : (U Real CSS-Declared-Result) (css-hue->scalar Hue))
-                    (define a : (U Byte CSS-Declared-Result) (if (= argsize 4) (css-rgba->scalar (last hsla-tokens) #true) #xFF))
-                    (cond [(not (real? H)) H]
-                          [(not (css:percentage? S)) (vector exn:css:type S)]
-                          [(not (css:percentage? B)) (vector exn:css:type B)]
-                          [(not (byte? a)) a]
-                          [else (let-values ([(r g b) (hsb->rgb-bytes ->rgb H (css:percentage-datum S) (css:percentage-datum B))])
-                                  (define rgba (bitwise-ior (arithmetic-shift r 24) (arithmetic-shift g 16) (arithmetic-shift b 8) a))
-                                  (css-remake-token [fhsba (last args)] css:integer (~rgba rgba) rgba))]))]))))
+            [else (match-let ([(list hue s b) (take hsla-tokens 3)])
+                    (define h : (U Hue CSS-Declared-Result) (css-hue->scalar hue))
+                    (define a : (U Gamut CSS-Declared-Result) (if (= argsize 4) (css-alpha->scalar (last hsla-tokens)) 1.0))
+                    (cond [(not (flonum? h)) h]
+                          [(not (css:percentage? s)) (vector exn:css:type s)]
+                          [(not (css:percentage? b)) (vector exn:css:type b)]
+                          [(not (flonum? a)) a]
+                          [else (let-values ([(flr flg flb) (->rgb h (css:percentage=> s real->gamut) (css:percentage=> b real->gamut))])
+                                  (css-remake-token [fhsba (last args)] css:rgba
+                                                    (cons (bitwise-ior (arithmetic-shift (gamut->byte flr) 16)
+                                                                       (arithmetic-shift (gamut->byte flg) 8)
+                                                                       (gamut->byte flb))
+                                                          a)))]))]))))
 
 (require (submod "." css))
 
-(define select-rgba-color : (->* ((U Keyword String Symbol Natural)) ((U Boolean Nonnegative-Flonum)) (Instance Color%))
-  (lambda [color [alpha #true]]
+(define select-rgba-color : (->* ((U String Symbol Natural)) (Gamut) (Instance Color%))
+  (lambda [color [alpha 1.0]]
     (hash-ref the-colorbase color)))
 
 (define css-color-declaration-filter : (-> (Listof+ CSS-Token) CSS-Declared-Result)
@@ -497,9 +503,9 @@
                  [(member (string-downcase name) '("transparent" "currentcolor" "rebeccapurple")) color-value]
                  [else exn:css:range])]
           [(css:hash? color-value)
-           (define maybe-rgba : (Option Natural) (css:hash=> color-value css-hash-color->rgba))
+           (define maybe-rgba : (Option RGBA) (css:hash=> color-value css-hash-color->rgba))
            (cond [(false? maybe-rgba) exn:css:range]
-                 [else (css-remake-token color-value css:integer (~rgba maybe-rgba) maybe-rgba)])]
+                 [else (css-remake-token color-value css:rgba maybe-rgba)])]
           [(css:function? color-value)
            (case (css:function=> color-value (λ [[f : Symbol]] (string->symbol (string-downcase (symbol->string f)))))
              [(rgb rgba) (css-apply-rgba color-value (css:function-arguments color-value))]
@@ -551,6 +557,13 @@
   (define symbol-suffix? : (-> Symbol String Boolean)
     (lambda [name suffix]
       (string-suffix? (symbol->string name) suffix)))
+
+  (define rgba->string : (-> RGBA (Pairof Keyword Flonum))
+    (lambda [rgba]
+      (define rgb : Natural (car rgba))
+      (define alpha : Gamut (cdr rgba))
+      (cons (string->keyword (~r rgb #:base 16 #:min-width 6 #:pad-string "0"))
+            alpha)))
   
   (current-css-media-type 'screen)
   (current-css-media-preferences
@@ -575,7 +588,7 @@
         (values desc-name
                 (css-ref declared-values desc-name
                          (λ [[desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]]
-                           (cond [(css:integer? maybe-value) (css:numeric-representation maybe-value)]
+                           (cond [(css:rgba? maybe-value) (css:rgba=> maybe-value rgba->string)]
                                  [(css-token? maybe-value) (css-token->datum maybe-value)]
                                  [else (and maybe-value (map css-token->datum maybe-value))])))))))
 
