@@ -489,8 +489,8 @@
   (define-type CSS-Declared-Value-Filter (-> Symbol (Listof+ CSS-Token)
                                              (Values (U (HashTable Symbol CSS-Cascaded-Value) CSS-Declared-Result)
                                                      Boolean)))
-  (define-type (CSS-Cascaded-Value-Filter css) (-> CSS-Declared-Values (HashTable Symbol css) (Option (HashTable Symbol css))
-                                                   (Option Symbol) (HashTable Symbol css)))
+  (define-type (CSS-Cascaded-Value-Filter Configuration) (-> CSS-Declared-Values Configuration (Option Configuration) (Option Symbol)
+                                                             Configuration))
   
   (define-syntax (call-with-css-preferences stx)
     (syntax-parse stx
@@ -578,7 +578,7 @@
          [else exn:css:unrecognized])
        #false)))
 
-  (define css-viewport-filter : (CSS-Cascaded-Value-Filter CSS-Media-Datum)
+  (define css-viewport-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol CSS-Media-Datum))
     ;;; https://drafts.csswg.org/css-device-adapt/#constraining
     ;;; https://drafts.csswg.org/css-device-adapt/#handling-auto-zoom
     ;;; https://drafts.csswg.org/css-device-adapt/#media-queries
@@ -2201,7 +2201,7 @@
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-cascade-viewport : (->* (CSS-Media-Preferences (Listof CSS-Declarations))
-                                      (CSS-Declared-Value-Filter (CSS-Cascaded-Value-Filter CSS-Media-Datum))
+                                      (CSS-Declared-Value-Filter (CSS-Cascaded-Value-Filter (HashTable Symbol CSS-Media-Datum)))
                                       CSS-Media-Preferences)
     ;;; https://drafts.csswg.org/css-device-adapt/#atviewport-rule
     (lambda [viewport-preferences viewport-descriptors
@@ -2211,9 +2211,10 @@
         (viewport-filter (css-cascade-declarations viewport-descriptor-filter viewport-descriptors)
                          viewport-preferences #false #false))))
 
-  (define css-cascade : (All (css) (-> (Listof CSS-StyleSheet) CSS-Subject CSS-Declared-Value-Filter (CSS-Cascaded-Value-Filter css)
-                                             (HashTable Symbol css) (Option (HashTable Symbol css))
-                                             (HashTable Symbol css)))
+  (define css-cascade : (All (Configuration) (-> (Listof CSS-StyleSheet) CSS-Subject
+                                                 CSS-Declared-Value-Filter (CSS-Cascaded-Value-Filter Configuration)
+                                                 Configuration (Option Configuration)
+                                                 Configuration))
     ;;; https://drafts.csswg.org/css-cascade/#filtering
     ;;; https://drafts.csswg.org/css-cascade/#cascading
     (lambda [stylesheets subject desc-filter value-filter initial-values inherit-values]
@@ -2427,7 +2428,7 @@
     (lambda [suitcased-name desc-values]
       (values desc-values #false)))
 
-  (define css-filter : (CSS-Cascaded-Value-Filter Datum)
+  (define css-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Datum))
     (lambda [declared-values all default-values inherit-values]
       (for/hash : (HashTable Symbol Datum) ([desc-name (in-hash-keys declared-values)])
         (values desc-name (css-ref declared-values desc-name)))))
