@@ -371,7 +371,6 @@
   (define the-colorbase : (HashTable Datum (Instance Color%)) (hasheq))
 
   (define css-hash-color->rgba : (-> Keyword (Option RGBA))
-    ;;; https://drafts.csswg.org/css-color/#hex-notation
     (lambda [hash-color]
       (define color : String (keyword->string hash-color))
       (define digits : Index (string-length color))
@@ -391,7 +390,7 @@
             [(or (= digits 3) (= digits 6)) (cons maybe-hexcolor 1.0)]
             [else (let ([alpha (bitwise-and maybe-hexcolor #xFF)])
                     (cons (arithmetic-shift maybe-hexcolor -8)
-                          (real->gamut (/ alpha 255.0))))])))
+                          (real->double-flonum (abs (/ alpha 255.0)))))])))
   
   (define css-rgb->scalar : (-> CSS-Token (U Byte CSS-Declared-Result))
     (lambda [t]
@@ -480,8 +479,11 @@
 
 (require (submod "." css))
 
-(define select-rgba-color : (->* ((U String Symbol Natural)) (Gamut) (Instance Color%))
+(define select-rgba-color : (->* (Datum) (Gamut) (Instance Color%))
   (lambda [color [alpha 1.0]]
+    (make-color 123 123 123 1.0)
+    color%
+    make-rectangular
     (hash-ref the-colorbase color)))
 
 (define css-color-declaration-filter : (-> (Listof+ CSS-Token) CSS-Declared-Result)
@@ -555,11 +557,11 @@
     (lambda [name suffix]
       (string-suffix? (symbol->string name) suffix)))
 
-  (define rgba->string : (-> RGBA (Pairof Keyword Flonum))
+  (define ~rgba : (-> RGBA Datum)
     (lambda [rgba]
       (define rgb : Natural (car rgba))
       (define alpha : Gamut (cdr rgba))
-      (cons (string->keyword (~r rgb #:base 16 #:min-width 6 #:pad-string "0"))
+      (cons (~r rgb #:base 16 #:min-width 6 #:pad-string "0")
             alpha)))
   
   (current-css-media-type 'screen)
@@ -572,6 +574,18 @@
   (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet (simplify-path (build-path 'up "tamer" "tamer.css")))))
   (define tamer-subject : CSS-Subject (make-css-subject #:type 'body #:id '#:header))
 
+  (define-configuration descriptors #:as Descriptors
+    ([color : Datum]
+     [background-color : Datum]
+     [border-color : Datum]
+     [otherwise : (Option (HashTable Symbol Datum))]))
+
+  (define token->color : (-> Symbol CSS-Cascaded-Value Datum)
+    (lambda [desc-name maybe-value]
+      (cond [(css:rgba? maybe-value) (css:rgba=> maybe-value ~rgba)]
+            [(css:ident? maybe-value) (css:ident-datum maybe-value)]
+            [else #false])))
+  
   (define css-descriptor-filter : CSS-Declared-Value-Filter
     (lambda [suitcased-name desc-values]
       (values (case suitcased-name
@@ -579,15 +593,24 @@
                 [else desc-values])
               #false)))
 
-  (define css-filter : (CSS-Cascaded-Value-Filter Datum)
+  (define css-filter : (CSS-Cascaded-Value-Filter (Option Descriptors))
     (lambda [declared-values all default-values inherit-values]
-      (for/hash : (HashTable Symbol Datum) ([desc-name (in-hash-keys declared-values)])
-        (values desc-name
-                (css-ref declared-values desc-name
-                         (λ [[desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]]
-                           (cond [(css:rgba? maybe-value) (css:rgba=> maybe-value rgba->string)]
-                                 [(css-token? maybe-value) (css-token->datum maybe-value)]
-                                 [else (and maybe-value (map css-token->datum maybe-value))])))))))
-
+      (make-descriptors #:color (css-ref declared-values 'color token->color)
+                        #:background-color (css-ref declared-values 'background-color token->color)
+                        #:border-color (css-ref declared-values 'border-color token->color)
+                        #:otherwise (for/hash : (HashTable Symbol Datum) ([desc-name (in-hash-keys declared-values)]
+                                                                          #:when (not (symbol-suffix? desc-name "color")))
+                                      (values desc-name
+                                              (css-ref declared-values desc-name
+                                                       (λ [[desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]]
+                                                         (cond [(token->color desc-name maybe-value) => values]
+                                                               [(css-token? maybe-value) (css-token->datum maybe-value)]
+                                                               [else (and maybe-value (map css-token->datum maybe-value))]))))))))
+  
   tamer-subject
-  (time-run (css-cascade (list tamer-sheet) tamer-subject css-descriptor-filter css-filter ((inst make-hasheq Symbol Datum)) #false)))
+  (time-run (css-cascade (list tamer-sheet)
+                         tamer-subject
+                         css-descriptor-filter
+                         css-filter
+                         #false
+                         #false)))

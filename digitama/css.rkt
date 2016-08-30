@@ -14,7 +14,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide (all-defined-out))
-(provide (except-out (all-from-out (submod "." digitama)) symbol-downcase symbol-ci=? keyword-ci=?))
+(provide (except-out (all-from-out (submod "." digitama)) struct: symbol-downcase symbol-ci=? keyword-ci=?))
 (provide (except-out (all-from-out (submod "." grammar)) css-stylesheet-placeholder))
 
 ; https://drafts.csswg.org/css-syntax/#parser-entry-points
@@ -37,10 +37,29 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module digitama typed/racket
-  (provide (all-defined-out))
+  (provide (except-out (all-defined-out) define-token define-tokens))
 
   (require (for-syntax racket/syntax))
   (require (for-syntax syntax/parse))
+
+  (define-syntax (define-configuration stx)
+    (syntax-case stx [:]
+      [(_ configuration #:as Configuration ([property : DataType info ...] ...))
+       (with-syntax* ([make-configuration (format-id #'configuration "make-~a" (syntax-e #'configuration))]
+                      [([defval ...] ...)
+                       (for/list ([field-info (in-list (syntax->list #'([DataType info ...] ...)))])
+                         (syntax-case field-info [Option]
+                           [(DataType #:= defval) #'(defval)]
+                           [((Option T)) #'(#false)]
+                           [(DataType) #'()]))]
+                      [(args ...) (for/fold ([args null])
+                                            ([field (in-list (syntax->list #'(property ...)))]
+                                             [arg (in-list (syntax->list #'([property : DataType defval ...] ...)))])
+                                    (cons (datum->syntax field (string->keyword (symbol->string (syntax-e field))))
+                                          (cons arg args)))])
+         #'(begin (define-type Configuration configuration)
+                  (struct configuration ([property : DataType] ...) #:prefab)
+                  (define (make-configuration args ...) : Configuration (configuration property ...))))]))
   
   (define-syntax (struct: stx)
     (syntax-case stx [:]
@@ -275,20 +294,6 @@
       [(_ [s-id #:+ S-ID rest ...] ...)
        #'(begin (struct: s-id : S-ID rest ...) ...)]))
 
-  (define-syntax (define-css-subject stx)
-    (syntax-case stx [: =]
-      [(_ css-subject : CSS-Subject ([field : DataType maybe-defval ...] ...))
-       (with-syntax ([make-subject (format-id #'css-subject "make-~a" (syntax-e #'css-subject))]
-                     [(args ...) (for/fold ([args null])
-                                           ([field (in-list (syntax->list #'(field ...)))]
-                                            [arg (in-list (syntax->list #'([field : DataType maybe-defval ...] ...)))])
-                                   (cons (datum->syntax field (string->keyword (symbol->string (syntax-e field))))
-                                         (cons (datum->syntax arg (filter (λ [token] (not (eq? (syntax-e token) '=)))
-                                                                          (syntax->list arg))) args)))])
-         #'(begin (define-type CSS-Subject css-subject)
-                  (struct css-subject ([field : DataType] ...) #:prefab)
-                  (define (make-subject args ...) : CSS-Subject (css-subject field ...))))]))
-
   (define-type CSS-NameSpace (HashTable Symbol String))
   (define-type CSS-NameSpace-Hint (U CSS-NameSpace (Listof Symbol) False))
   (define-type CSS-Combinator (U '>> '> '+ '~ '||))
@@ -321,12 +326,12 @@
                                                     [B : Natural]
                                                     [C : Natural])])
 
-  (define-css-subject css-subject : CSS-Subject
+  (define-configuration css-subject #:as CSS-Subject
     ([type : Symbol]
      [id : (U Keyword (Listof+ Keyword))]
-     [namespace : (U Symbol Boolean) = #true]
-     [classes : (Listof Symbol) = null]
-     [attributes : (HashTable Symbol CSS-Attribute-Value) = (make-hasheq)]))
+     [namespace : (U Symbol Boolean)                      #:= #true]
+     [classes : (Listof Symbol)                           #:= null]
+     [attributes : (HashTable Symbol CSS-Attribute-Value) #:= (make-hasheq)]))
 
   (define css-selector-match : (-> CSS-Complex-Selector CSS-Subject (Option CSS-Complex-Selector))
     ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
