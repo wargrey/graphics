@@ -83,7 +83,8 @@
       [(_ token
           #:+ Token (extra ...)
           #:with [[subid #:+ SubID subrest ...] ...]
-          [id #:+ ID #:-> parent #:as Type rest ...] ...)
+          [[id #:+ ID #:-> parent #:as Type rest ...] ...]
+          #:extend [[subsubid #:+ SubSubID subsubrest ...] ...])
        (with-syntax ([token->datum (format-id #'token "~a->datum" (syntax-e #'token))]
                      [token->syntax (format-id #'token "~a->syntax" (syntax-e #'token))]
                      [token->string (format-id #'token "~a->string" (syntax-e #'token))]
@@ -101,6 +102,7 @@
                   
                   (struct: subid : SubID subrest ...) ...
                   (define-token id #:+ ID #:-> parent #:as Type rest ...) ...
+                  (struct: subsubid : SubSubID subsubrest ...) ...
 
                   (define token->datum : (-> Token Datum)
                     (lambda [instance]
@@ -143,39 +145,45 @@
   ;; https://drafts.csswg.org/css-syntax/#current-input-token
   (define-type (Listof+ css) (Pairof css (Listof css)))
   (define-type RGBA (Pairof Natural Nonnegative-Flonum))
+  (define-type CSS-Quantity-Type (U 'length 'angle 'time 'frequency 'resolution))
   
   (define-tokens css-token #:+ CSS-Token ()
     #:with [[css:numeric #:+ CSS:Numeric css-token ([representation : String])]
             [css:number #:+ CSS:Number css:numeric ()]]
-    [css:bad        #:+ CSS:Bad #:-> css-token #:as (Pairof Symbol Datum)]
-    [css:close      #:+ CSS:Close #:-> css-token #:as Char]
-    [css:cd         #:+ CSS:CD #:-> css-token #:as Symbol #:=? eq?]
-    [css:||         #:+ CSS:|| #:-> css-token #:as Symbol #:=? (const #true)]
-    [css:match      #:+ CSS:Match #:-> css-token #:as Char]
-    [css:ident      #:+ CSS:Ident #:-> css-token #:as Symbol #:=? symbol-ci=?]
-    [css:hash       #:+ CSS:Hash #:-> css-token #:as Keyword #:=? keyword-ci=? [flag : Symbol]]
-    [css:@keyword   #:+ CSS:@Keyword #:-> css-token #:as Keyword #:=? keyword-ci=?]
-    [css:string     #:+ CSS:String #:-> css-token #:as String #:=? string=?]
-    [css:delim      #:+ CSS:Delim #:-> css-token #:as Char]
-    [css:urange     #:+ CSS:URange #:-> css-token #:as (Pairof Index Index)]
-    [css:integer    #:+ CSS:Integer #:-> css:number #:as Integer]
-    [css:flonum     #:+ CSS:Flonum #:-> css:number #:as Float]
-    [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Float]
-    [css:dimension  #:+ CSS:Dimension #:-> css:numeric #:as (Pairof Real Symbol)
-                    #:=? (λ [d1 d2] (and (= (car d1) (car d2)) (symbol-ci=? (cdr d1) (cdr d2))))]
-    [css:whitespace #:+ CSS:WhiteSpace #:-> css-token #:as (U String Char)
-                    #:=? (λ [ws1 ws2] (cond [(and (char? ws1) (char? ws2)) (char=? ws1 ws2 #\space)]  ; whitespace
-                                            [(and (string? ws1) (string? ws2)) (string=? ws1 ws2)]    ; comment
-                                            [else #false]))]
-
-    ;;; These tokens are processed by tokenizer and parser, and they are always ready for applications.
-    [css:url        #:+ CSS:URL #:-> css-token #:as (U String Symbol) [modifiers : (Listof CSS-URL-Modifier)]]
-    [css:function   #:+ CSS:Function #:-> css-token #:as Symbol #:=? symbol-ci=? [arguments : (Listof CSS-Token)]]
-    [css:block      #:+ CSS:Block #:-> css-token #:as Char [components : (Listof CSS-Token)]]
-    
-    ;;; These tokens are remade by the parser, and they are never produced by the tokenizer.
-    [css:ratio      #:+ CSS:Ratio #:-> css:number #:as Positive-Exact-Rational]
-    [css:rgba       #:+ CSS:RGBA #:-> css-token #:as RGBA])
+    [[css:bad        #:+ CSS:Bad #:-> css-token #:as (Pairof Symbol Datum)]
+     [css:close      #:+ CSS:Close #:-> css-token #:as Char]
+     [css:cd         #:+ CSS:CD #:-> css-token #:as Symbol #:=? eq?]
+     [css:||         #:+ CSS:|| #:-> css-token #:as Symbol #:=? (const #true)]
+     [css:match      #:+ CSS:Match #:-> css-token #:as Char]
+     [css:ident      #:+ CSS:Ident #:-> css-token #:as Symbol #:=? symbol-ci=?]
+     [css:hash       #:+ CSS:Hash #:-> css-token #:as Keyword #:=? keyword-ci=? [flag : Symbol]]
+     [css:@keyword   #:+ CSS:@Keyword #:-> css-token #:as Keyword #:=? keyword-ci=?]
+     [css:string     #:+ CSS:String #:-> css-token #:as String #:=? string=?]
+     [css:delim      #:+ CSS:Delim #:-> css-token #:as Char]
+     [css:urange     #:+ CSS:URange #:-> css-token #:as (Pairof Index Index)]
+     [css:integer    #:+ CSS:Integer #:-> css:number #:as Integer]
+     [css:flonum     #:+ CSS:Flonum #:-> css:number #:as Float]
+     [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Float]
+     [css:dimension  #:+ CSS:Dimension #:-> css:numeric #:as (Pairof Real Symbol)
+                     #:=? (λ [d1 d2] (and (= (car d1) (car d2)) (symbol-ci=? (cdr d1) (cdr d2))))]
+     [css:whitespace #:+ CSS:WhiteSpace #:-> css-token #:as (U String Char)
+                     #:=? (λ [ws1 ws2] (cond [(and (char? ws1) (char? ws2)) (char=? ws1 ws2 #\space)]  ; whitespace
+                                             [(and (string? ws1) (string? ws2)) (string=? ws1 ws2)]    ; comment
+                                             [else #false]))]
+     
+     ;;; These tokens are processed by tokenizer and parser, and they are always ready for applications.
+     [css:url        #:+ CSS:URL #:-> css-token #:as (U String Symbol) [modifiers : (Listof CSS-URL-Modifier)]]
+     [css:function   #:+ CSS:Function #:-> css-token #:as Symbol #:=? symbol-ci=? [arguments : (Listof CSS-Token)]]
+     [css:block      #:+ CSS:Block #:-> css-token #:as Char [components : (Listof CSS-Token)]]
+     
+     ;;; These tokens are remade by the parser, and they are never produced by the tokenizer.
+     [css:ratio      #:+ CSS:Ratio #:-> css:number #:as Positive-Exact-Rational]
+     [css:rgba       #:+ CSS:RGBA #:-> css-token #:as RGBA]]
+    #:extend [[css:length #:+ CSS:Length css:dimension ([type : (U 'font 'viewport 'absolute)])]
+              [css:angle #:+ CSS:Angle css:dimension ()]
+              [css:time #:+ CSS:Time css:dimension ()]
+              [css:frequency #:+ CSS:Frequency css:dimension ()]
+              [css:resolution #:+ CSS:Resolution css:dimension ()]])
 
   (define-syntax (css-remake-token stx)
     (syntax-case stx []
@@ -421,14 +429,14 @@
       (values
        (case downcased-name
          [(width height device-width device-height resolution)
-          (define resolution? : Boolean (eq? downcased-name 'resolution))
-          (cond [(and resolution? (css:ident=:=? maybe-value 'infinite)) +inf.0]
-                [(and (not resolution?) (css-number=:=? maybe-value zero?)) 0]
-                [(css:dimension? maybe-value)
-                 (define n : Real (css-dimension->scalar maybe-value (if resolution? 'resolution 'length)))
-                 (cond [(nan? n) exn:css:unit]
-                       [(negative? n) exn:css:range]
-                       [else n])]
+          (cond [(css-number=:=? maybe-value zero?) 0]
+                [(css:length? maybe-value) (let ([n (css-dimension->scalar maybe-value)]) (if (negative? n) exn:css:range n))]
+                [(css:dimension? maybe-value) exn:css:unit]
+                [(css-token? maybe-value) exn:css:type])]
+         [(resolution)
+          (cond [(css:ident=:=? maybe-value 'infinite) +inf.0]
+                [(css:resolution? maybe-value) (let ([n (css-dimension->scalar maybe-value)]) (if (negative? n) exn:css:range n))]
+                [(css:dimension? maybe-value) exn:css:unit]
                 [(css-token? maybe-value) exn:css:type])]
          [(orientation scan update overflow-block overflow-inline color-gamut pointer hover any-pointer any-hover scripting)
           (cond [(css:ident? maybe-value)
@@ -528,6 +536,7 @@
         (cond [(or (css:ident=:=? v 'auto) (css:percentage=:=? v >=0?)) v]
               [(or (css:ident? v) (css:percentage? v)) exn:css:range]
               [(not (css:dimension? v)) exn:css:type]
+              [(not (css:length? v)) exn:css:unit]
               [else (let ([maybe-dim (css-canonicalize-dimension v)])
                       ; this is okay even for font relative length since the @viewport is the first rule to be cascaded.
                       ; the font relative parameters should be initialized when the program starts.
@@ -633,7 +642,6 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;; https://drafts.csswg.org/css-values/#lengths
   ;;; https://drafts.csswg.org/css-values/#other-units
-  (define-type CSS-Quantity-Type (U 'length 'angle 'time 'frequency 'resolution))
   (define-type Quantity->Scalar (case-> [Nonnegative-Exact-Rational Symbol -> (U Nonnegative-Exact-Rational Flonum-Nan)]
                                         [Exact-Rational Symbol -> (U Exact-Rational Flonum-Nan)]
                                         [Nonnegative-Real Symbol -> Nonnegative-Real]
@@ -652,36 +660,34 @@
             (ann (make-parameter 1/2) (Parameterof Nonnegative-Exact-Rational))
             (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
 
-  (define css-font-relative-length? : (-> (U CSS:Dimension (Pairof Real Symbol)) Boolean)
-    (lambda [dim]
-      (cond [(css:dimension? dim) (css-font-relative-length? (css:dimension-datum dim))]
-            [else (and (memq (cdr dim) '(em ex ch ic rem)) #true)])))
+  (define css-font-relative-length? : (-> Any Boolean : #:+ CSS:Length)
+    (lambda [v]
+      (and (css:length? v)
+           (eq? (css:length-type v) 'font))))
 
-  (define css-viewport-relative-length? : (-> (U CSS:Dimension (Pairof Real Symbol)) Boolean)
-    (lambda [dim]
-      (cond [(css:dimension? dim) (css-font-relative-length? (css:dimension-datum dim))]
-            [else (and (memq (cdr dim) '(vw vh vi vb vmin vmax)) #true)])))
+  (define css-viewport-relative-length? : (-> Any Boolean : #:+ CSS:Length)
+    (lambda [v]
+      (and (css:length? v)
+           (eq? (css:length-type v) 'viewport))))
   
-  (define css-dimension->scalar : (->* ((U CSS:Dimension (Pairof Real Symbol))) ((Option CSS-Quantity-Type) (Option (Boxof Symbol))) Real)
-    (lambda [dim [type #false] [&canonical-unit #false]]
-      (cond [(css:dimension? dim) (css-dimension->scalar (css:dimension-datum dim) type)]
-            [else (let-values ([(n unit) (values (car dim) (cdr dim))])
-                    (define-values (scalar canonical-unit)
-                      (case (or type unit)
-                        [(length px cm mm q in pc pt em ex ch ic rem vw vh vi vb vmin vmax) (values (css-length->scalar n unit) 'px)]
-                        [(angle deg grad rad turn) (values (css-angle->scalar n unit) 'deg)]
-                        [(time s ms min h) (values (css-time->scalar n unit) 's)]
-                        [(frequency hz khz) (values (css-frequency->scalar n unit) 'hz)]
-                        [(resolution dpi dpcm dppx) (values (css-resolution->scalar n unit) 'dpi)]
-                        [else (values +nan.0 unit)]))
-                    (when (box? &canonical-unit) (set-box! &canonical-unit (if (nan? scalar) 'NaN canonical-unit)))
-                    scalar)])))
+  (define css-dimension->scalar : (->* (CSS:Dimension) ((Option (Boxof Symbol))) Real)
+    (lambda [dim [&canonical-unit #false]]
+      (define-values (n unit) (values (car (css:dimension-datum dim)) (cdr (css:dimension-datum dim))))
+      (define-values (scalar canonical-unit)
+        (cond [(css:length? dim) (values (css-length->scalar n unit) 'px)]
+              [(css:angle? dim) (values (css-angle->scalar n unit) 'deg)]
+              [(css:time? dim) (values (css-time->scalar n unit) 's)]
+              [(css:frequency? dim) (values (css-frequency->scalar n unit) 'hz)]
+              [(css:resolution? dim) (values (css-resolution->scalar n unit) 'dpi)]
+              [else (values +nan.0 unit)]))
+      (when (box? &canonical-unit) (set-box! &canonical-unit (if (nan? scalar) 'NaN canonical-unit)))
+      scalar))
 
-  (define css-canonicalize-dimension : (->* (CSS:Dimension) ((Option CSS-Quantity-Type)) (Option CSS:Dimension))
-    (lambda [dim [type #false]]
+  (define css-canonicalize-dimension : (-> CSS:Dimension (Option CSS:Dimension))
+    (lambda [dim]
       (define unit : Symbol (cdr (css:dimension-datum dim)))
       (define &canonical-unit : (Boxof Symbol) (box unit))
-      (define scalar : Real (css-dimension->scalar dim type &canonical-unit))
+      (define scalar : Real (css-dimension->scalar dim &canonical-unit))
       (define canonical-unit : Symbol (unbox &canonical-unit))
       (cond [(nan? scalar) #false]
             [(eq? canonical-unit unit) dim]
@@ -944,7 +950,15 @@
                           [ch3 : (U EOF Char) (peek-char css 2)])
                       (cond [(css-identifier-prefix? ch1 ch2 ch3)
                              (define unit : Symbol (string->symbol (string-downcase (css-consume-name css #false))))
-                             (css-make-token srcloc css:dimension representation (cons n unit))]
+                             (case unit
+                               [(em ex ch ic rem) (css-make-token srcloc css:length representation (cons n unit) 'font)]
+                               [(vw vh vi vb vmin vmax) (css-make-token srcloc css:length representation (cons n unit) 'viewport)]
+                               [(px cm mm q in pc pt) (css-make-token srcloc css:length representation (cons n unit) 'absolute)]
+                               [(deg grad rad turn) (css-make-token srcloc css:angle representation (cons n unit))]
+                               [(s ms min h) (css-make-token srcloc css:time representation (cons n unit))]
+                               [(frequency hz khz) (css-make-token srcloc css:frequency representation (cons n unit))]
+                               [(resolution dpi dpcm dppx) (css-make-token srcloc css:resolution representation (cons n unit))]
+                               [else (css-make-token srcloc css:dimension representation (cons n unit))])]
                             [(and (char? ch1) (char=? ch1 #\%)) (read-char css)
                              (css-make-token srcloc css:percentage representation (real->double-flonum (* n 1/100)))]
                             [(exact-integer? n) (css-make-token srcloc css:integer representation n)]

@@ -411,12 +411,10 @@
 
   (define css-hue->scalar : (-> CSS-Token (U Hue CSS-Declared-Result))
     (lambda [t]
-      (cond [(css:dimension? t)
-             (define scalar : Real (css-dimension->scalar t 'angle))
-             (cond [(not (nan? scalar)) (real->hue scalar)]
-                   [else (vector exn:css:unit t)])]
+      (cond [(css:angle? t) (real->hue (css-dimension->scalar t))]
             [(css:integer? t) (css:integer=> t real->hue)]
             [(css:flonum? t) (css:flonum=> t real->hue)]
+            [(css:dimension? t) (vector exn:css:unit t)]
             [else (vector exn:css:type t)])))
 
   (define css-color-filter-delimiter : (->* (CSS-Token (Listof CSS-Token) Index) (Boolean)
