@@ -395,17 +395,17 @@
   
   (define css-rgb->scalar : (-> CSS-Token (U Byte CSS-Declared-Result))
     (lambda [t]
-      (cond [(css:integer=:=? t byte?) (min #xFF (abs (css:integer-datum t)))]
-            [(css:flonum=:=? t (λ [[v : Flonum]] (<= 0.0 v 255.0))) (min #xFF (abs (css:flonum=> t exact-round)))]
-            [(css:percentage=:=? t (λ [[v : Flonum]] (<= 0.0 v 1.0))) (gamut->byte (abs (css:percentage-datum t)))]
+      (cond [(and (css:integer? t) (css:integer=> t real->maybe-byte)) => values]
+            [(and (css:flonum? t) (css:flonum=> t real->maybe-byte)) => values]
+            [(and (css:percentage? t) (css:percentage=> t gamut->maybe-byte)) => values]
             [(or (css:percentage? t) (css:number? t)) (vector exn:css:range t)]
             [else (vector exn:css:type t)])))
 
   (define css-alpha->scalar : (-> CSS-Token (U Gamut CSS-Declared-Result))
     (lambda [t]
-      (cond [(css:flonum=:=? t (λ [[v : Flonum]] (<= 0.0 v 1.0))) (css:flonum=> t real->gamut)]
-            [(css:percentage=:=? t (λ [[v : Flonum]] (<= 0.0 v 1.0))) (css:percentage=> t real->gamut)]
-            [(css:integer=:=? t (λ [[v : Integer]] (<= 0 v 1))) (css:integer=> t real->gamut)]
+      (cond [(and (css:flonum? t) (css:flonum=> t real->maybe-gamut)) => values]
+            [(and (css:percentage? t) (css:percentage=> t real->maybe-gamut)) => values]
+            [(and (css:integer? t) (css:integer=> t real->maybe-gamut)) => values]
             [(or (css:percentage? t) (css:number? t)) (vector exn:css:range t)]
             [else (vector exn:css:type t)])))
 

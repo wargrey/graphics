@@ -10,8 +10,12 @@
 (define-type HSB->RGB (-> Hue Gamut Gamut (Values Gamut Gamut Gamut)))
 (define-type RGB->HSB (-> Gamut Gamut Gamut (Values Hue Gamut Gamut)))
 
-(define gamut->byte : (-> Gamut Byte) (λ [v] (min (exact-round (fl* v 255.0)) #xFF)))
-(define real->gamut : (-> Real Gamut) (λ [v] (flmax (flmin (fl v) 1.0) 0.0)))
+(define gamut->byte : (-> Gamut Byte) (λ [r] (min (exact-round (fl* r 255.0)) #xFF)))
+(define real->gamut : (-> Real Gamut) (λ [r] (flmax (flmin (fl r) 1.0) 0.0)))
+
+(define real->maybe-gamut : (-> Real (Option Gamut)) (λ [r] (and (not (negative? r)) (<= r 1.0) (fl r))))
+(define real->maybe-byte : (-> Real (Option Byte)) (λ [r] (and (not (negative? r)) (<= r 255) (min (exact-round r) #xFF))))
+(define gamut->maybe-byte : (-> Real (Option Byte)) (λ [r] (and (not (negative? r)) (<= r 1.0) (gamut->byte (fl r)))))
 
 (define real->hue : (-> Real Hue)
   (lambda [hue]
