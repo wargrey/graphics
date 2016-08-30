@@ -578,7 +578,8 @@
     ([color : Datum]
      [background-color : Datum]
      [border-color : Datum]
-     [otherwise : (Option (HashTable Symbol Datum))]))
+     [otherwise : (Option (HashTable Symbol Datum))])
+    #:transparent)
 
   (define token->color : (-> Symbol CSS-Cascaded-Value Datum)
     (lambda [desc-name maybe-value]

@@ -44,7 +44,7 @@
 
   (define-syntax (define-configuration stx)
     (syntax-case stx [:]
-      [(_ configuration #:as Configuration ([property : DataType info ...] ...))
+      [(_ configuration #:as Configuration ([property : DataType info ...] ...) options ...)
        (with-syntax* ([make-configuration (format-id #'configuration "make-~a" (syntax-e #'configuration))]
                       [([defval ...] ...)
                        (for/list ([field-info (in-list (syntax->list #'([DataType info ...] ...)))])
@@ -58,7 +58,7 @@
                                     (cons (datum->syntax field (string->keyword (symbol->string (syntax-e field))))
                                           (cons arg args)))])
          #'(begin (define-type Configuration configuration)
-                  (struct configuration ([property : DataType] ...) #:prefab)
+                  (struct configuration ([property : DataType] ...) options ...)
                   (define (make-configuration args ...) : Configuration (configuration property ...))))]))
   
   (define-syntax (struct: stx)
@@ -331,7 +331,8 @@
      [id : (U Keyword (Listof+ Keyword))]
      [namespace : (U Symbol Boolean)                      #:= #true]
      [classes : (Listof Symbol)                           #:= null]
-     [attributes : (HashTable Symbol CSS-Attribute-Value) #:= (make-hasheq)]))
+     [attributes : (HashTable Symbol CSS-Attribute-Value) #:= (make-hasheq)])
+    #:prefab)
 
   (define css-selector-match : (-> CSS-Complex-Selector CSS-Subject (Option CSS-Complex-Selector))
     ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
