@@ -387,9 +387,9 @@
                     (let ([result : Natural (bitwise-ior (arithmetic-shift hexcolor 4) digit)])
                       (if (>= digits 6) result (bitwise-ior (arithmetic-shift result 4) digit)))))))
       (cond [(false? maybe-hexcolor) #false]
-            [(or (= digits 3) (= digits 6)) (cons maybe-hexcolor 1.0)]
+            [(or (= digits 3) (= digits 6)) (cons (min #xFFFFFF maybe-hexcolor) 1.0)]
             [else (let ([alpha (bitwise-and maybe-hexcolor #xFF)])
-                    (cons (arithmetic-shift maybe-hexcolor -8)
+                    (cons (min #xFFFFFF (arithmetic-shift maybe-hexcolor -8))
                           (real->double-flonum (abs (/ alpha 255.0)))))])))
   
   (define css-rgb->scalar : (-> CSS-Token (U Byte CSS-Declared-Result))
@@ -454,7 +454,7 @@
                           [(not (byte? b)) b]
                           [(not (flonum? a)) a]
                           [else (css-remake-token [frgba (last args)] css:rgba
-                                                  (cons (bitwise-ior (arithmetic-shift r 16) (arithmetic-shift g 8) b)
+                                                  (cons (min #xFFFFFF (bitwise-ior (arithmetic-shift r 16) (arithmetic-shift g 8) b))
                                                         a))]))])))
 
   (define css-apply-hsba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) HSB->RGB CSS-Declared-Result)
@@ -472,9 +472,10 @@
                           [(not (flonum? a)) a]
                           [else (let-values ([(flr flg flb) (->rgb h (css:percentage=> s real->gamut) (css:percentage=> b real->gamut))])
                                   (css-remake-token [fhsba (last args)] css:rgba
-                                                    (cons (bitwise-ior (arithmetic-shift (gamut->byte flr) 16)
-                                                                       (arithmetic-shift (gamut->byte flg) 8)
-                                                                       (gamut->byte flb))
+                                                    (cons (min #xFFFFFF
+                                                               (bitwise-ior (arithmetic-shift (gamut->byte flr) 16)
+                                                                            (arithmetic-shift (gamut->byte flg) 8)
+                                                                            (gamut->byte flb)))
                                                           a)))]))]))))
 
 (require (submod "." css))

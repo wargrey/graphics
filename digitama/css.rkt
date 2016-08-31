@@ -164,7 +164,7 @@
   ;; https://drafts.csswg.org/css-syntax/#component-value
   ;; https://drafts.csswg.org/css-syntax/#current-input-token
   (define-type (Listof+ css) (Pairof css (Listof css)))
-  (define-type RGBA (Pairof Nonnegative-Fixnum Byte))
+  (define-type RGBA (Pairof Nonnegative-Fixnum Nonnegative-Flonum))
   (define-type CSS-Quantity-Type (U 'length 'angle 'time 'frequency 'resolution))
   (define-type Ident-Flag (U 'custom 'downcased 'upcase))
   
