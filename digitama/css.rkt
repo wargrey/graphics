@@ -14,7 +14,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide (all-defined-out))
-(provide (except-out (all-from-out (submod "." digitama)) struct: symbol-downcase symbol-ci=? keyword-ci=?))
+(provide (except-out (all-from-out (submod "." digitama)) struct: symbol-downcase))
 (provide (except-out (all-from-out (submod "." grammar)) css-stylesheet-placeholder))
 
 ; https://drafts.csswg.org/css-syntax/#parser-entry-points
@@ -39,6 +39,8 @@
 (module digitama typed/racket
   (provide (except-out (all-defined-out) define-token define-tokens))
 
+  (require racket/flonum)
+  
   (require (for-syntax racket/syntax))
   (require (for-syntax syntax/parse))
 
@@ -70,13 +72,12 @@
   
   (define-syntax (define-token stx)
     (syntax-parse stx
-      [(_ id #:+ ID #:-> parent #:as Racket-Type (~optional (~seq #:=? maybe=?)) extra-fields ...)
+      [(_ id #:+ ID #:-> parent #:as Racket-Type extra-fields ... #:=? type=?)
        (with-syntax ([id? (format-id #'id "~a?" (syntax-e #'id))]
                      [id=? (format-id #'id "~a=?" (syntax-e #'id))]
                      [id=> (format-id #'id "~a=>" (syntax-e #'id))]
                      [id=:=? (format-id #'id "~a=:=?" (syntax-e #'id))]
-                     [id-datum (format-id #'id "~a-datum" (syntax-e #'id))]
-                     [type=? (or (attribute maybe=?) #'(λ [v1 v2] (or (eq? v1 v2) (equal? v1 v2))))])
+                     [id-datum (format-id #'id "~a-datum" (syntax-e #'id))])
          #'(begin (struct: id : ID parent ([datum : Racket-Type] extra-fields ...))
 
                   (define id=? : (-> ID ID Boolean)
@@ -163,45 +164,42 @@
   ;; https://drafts.csswg.org/css-syntax/#component-value
   ;; https://drafts.csswg.org/css-syntax/#current-input-token
   (define-type (Listof+ css) (Pairof css (Listof css)))
-  (define-type RGBA (Pairof Natural Nonnegative-Flonum))
+  (define-type RGBA (Pairof Nonnegative-Fixnum Byte))
   (define-type CSS-Quantity-Type (U 'length 'angle 'time 'frequency 'resolution))
+  (define-type Ident-Flag (U 'custom 'downcased 'upcase))
   
   (define-tokens css-token #:+ CSS-Token ()
     #:with [[css:numeric #:+ CSS:Numeric css-token ([representation : String])]
-            [css:number #:+ CSS:Number css:numeric ()]]
-    [[css:bad        #:+ CSS:Bad #:-> css-token #:as (Pairof Symbol Datum)]
-     [css:close      #:+ CSS:Close #:-> css-token #:as Char]
-     [css:cd         #:+ CSS:CD #:-> css-token #:as Symbol #:=? eq?]
-     [css:||         #:+ CSS:|| #:-> css-token #:as Symbol #:=? (const #true)]
-     [css:match      #:+ CSS:Match #:-> css-token #:as Char]
-     [css:ident      #:+ CSS:Ident #:-> css-token #:as Symbol #:=? symbol-ci=?]
-     [css:hash       #:+ CSS:Hash #:-> css-token #:as Keyword #:=? keyword-ci=? [flag : Symbol]]
-     [css:@keyword   #:+ CSS:@Keyword #:-> css-token #:as Keyword #:=? keyword-ci=?]
-     [css:string     #:+ CSS:String #:-> css-token #:as String #:=? string=?]
-     [css:delim      #:+ CSS:Delim #:-> css-token #:as Char]
-     [css:urange     #:+ CSS:URange #:-> css-token #:as (Pairof Index Index)]
-     [css:integer    #:+ CSS:Integer #:-> css:number #:as Integer]
-     [css:flonum     #:+ CSS:Flonum #:-> css:number #:as Float]
-     [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Float]
-     [css:dimension  #:+ CSS:Dimension #:-> css:numeric #:as (Pairof Real Symbol)
-                     #:=? (λ [d1 d2] (and (= (car d1) (car d2)) (symbol-ci=? (cdr d1) (cdr d2))))]
-     [css:whitespace #:+ CSS:WhiteSpace #:-> css-token #:as (U String Char)
-                     #:=? (λ [ws1 ws2] (cond [(and (char? ws1) (char? ws2)) (char=? ws1 ws2 #\space)]  ; whitespace
-                                             [(and (string? ws1) (string? ws2)) (string=? ws1 ws2)]    ; comment
-                                             [else #false]))]
+            [css:number  #:+ CSS:Number css:numeric ()]]
+    [[css:bad        #:+ CSS:Bad        #:-> css-token   #:as (Pairof Symbol Datum)          #:=? equal?]
+     [css:close      #:+ CSS:Close      #:-> css-token   #:as Char                           #:=? char=?]
+     [css:cd         #:+ CSS:CD         #:-> css-token   #:as Symbol                         #:=? eq?]
+     [css:||         #:+ CSS:||         #:-> css-token   #:as Symbol                         #:=? eq?]
+     [css:match      #:+ CSS:Match      #:-> css-token   #:as Char                           #:=? char=?]
+     [css:ident      #:+ CSS:Ident      #:-> css-token   #:as Symbol [flag : Ident-Flag]     #:=? eq?]
+     [css:hash       #:+ CSS:Hash       #:-> css-token   #:as Keyword                        #:=? eq?]
+     [css:@keyword   #:+ CSS:@Keyword   #:-> css-token   #:as Keyword                        #:=? eq?]
+     [css:string     #:+ CSS:String     #:-> css-token   #:as String                         #:=? string=?]
+     [css:delim      #:+ CSS:Delim      #:-> css-token   #:as Char                           #:=? char=?]
+     [css:urange     #:+ CSS:URange     #:-> css-token   #:as (Pairof Index Index)           #:=? equal?]
+     [css:integer    #:+ CSS:Integer    #:-> css:number  #:as Integer                        #:=? =]
+     [css:flonum     #:+ CSS:Flonum     #:-> css:number  #:as Float                          #:=? fl=]
+     [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Float                          #:=? fl=]
+     [css:dimension  #:+ CSS:Dimension  #:-> css:numeric #:as (Pairof Real Symbol)           #:=? equal?]
+     [css:whitespace #:+ CSS:WhiteSpace #:-> css-token   #:as (U String Char)                #:=? equal?]
      
      ;;; These tokens are processed by tokenizer and parser, and they are always ready for applications.
-     [css:url        #:+ CSS:URL #:-> css-token #:as (U String Symbol) [modifiers : (Listof CSS-URL-Modifier)]]
-     [css:function   #:+ CSS:Function #:-> css-token #:as Symbol #:=? symbol-ci=? [arguments : (Listof CSS-Token)]]
-     [css:block      #:+ CSS:Block #:-> css-token #:as Char [components : (Listof CSS-Token)]]
+     [css:url        #:+ CSS:URL        #:-> css-token   #:as (U String Symbol) [modifiers : (Listof CSS-URL-Modifier)] #:=? equal?]
+     [css:function   #:+ CSS:Function   #:-> css-token   #:as Symbol [arguments : (Listof CSS-Token)]                   #:=? eq?   ]
+     [css:block      #:+ CSS:Block      #:-> css-token   #:as Char [components : (Listof CSS-Token)]                    #:=? char=?]
      
      ;;; These tokens are remade by the parser, and they are never produced by the tokenizer.
-     [css:ratio      #:+ CSS:Ratio #:-> css:number #:as Positive-Exact-Rational]
-     [css:rgba       #:+ CSS:RGBA #:-> css-token #:as RGBA]]
-    #:extend [[css:length #:+ CSS:Length css:dimension ([type : (U 'font 'viewport 'absolute)])]
-              [css:angle #:+ CSS:Angle css:dimension ()]
-              [css:time #:+ CSS:Time css:dimension ()]
-              [css:frequency #:+ CSS:Frequency css:dimension ()]
+     [css:ratio      #:+ CSS:Ratio      #:-> css:number  #:as Positive-Exact-Rational        #:=? =]
+     [css:rgba       #:+ CSS:RGBA       #:-> css-token   #:as RGBA                           #:=? equal?]]
+    #:extend [[css:length     #:+ CSS:Length css:dimension ([type : (U 'font 'viewport 'absolute)])]
+              [css:angle      #:+ CSS:Angle css:dimension ()]
+              [css:time       #:+ CSS:Time css:dimension ()]
+              [css:frequency  #:+ CSS:Frequency css:dimension ()]
               [css:resolution #:+ CSS:Resolution css:dimension ()]])
 
   (define-syntax (css-remake-token stx)
@@ -234,9 +232,7 @@
 
   (struct: css-@rule : CSS-@Rule ([name : CSS:@Keyword] [prelude : (Listof CSS-Token)] [block : (Option CSS:Block)]))
   (struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : (Listof+ CSS-Token)] [block : CSS:Block]))
-  (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [values : (Listof+ CSS-Token)]
-                                                                 [important? : Boolean]
-                                                                 [custom? : Boolean]))
+  (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [values : (Listof+ CSS-Token)] [important? : Boolean]))
 
   (define-type CSS-Syntax-Error exn:css)
   (define-type Make-CSS-Syntax-Error (-> String Continuation-Mark-Set (Listof Syntax) CSS-Syntax-Error))
@@ -341,7 +337,7 @@
       (define match? : Boolean
         (and (let ([s:type (css-compound-selector-type s)])
                (and (css-attribute-namespace-match? (css-compound-selector-namespace s) (css-subject-namespace element))
-                    (or (eq? s:type #true) (symbol-ci=? s:type (css-subject-type element)))))
+                    (or (eq? s:type #true) (eq? s:type (css-subject-type element)))))
              (let ([s:ids : (Listof Keyword) (css-compound-selector-ids s)]
                    [id : (U Keyword (Listof+ Keyword)) (css-subject-id element)])
                (cond [(null? s:ids) #true]
@@ -440,13 +436,13 @@
                 [(css:dimension? maybe-value) exn:css:unit]
                 [(css-token? maybe-value) exn:css:type])]
          [(resolution)
-          (cond [(css:ident=:=? maybe-value 'infinite) +inf.0]
+          (cond [(css-keyword=:=? maybe-value 'infinite) +inf.0]
                 [(css:resolution? maybe-value) (let ([n (css-dimension->scalar maybe-value)]) (if (negative? n) exn:css:range n))]
                 [(css:dimension? maybe-value) exn:css:unit]
                 [(css-token? maybe-value) exn:css:type])]
          [(orientation scan update overflow-block overflow-inline color-gamut pointer hover any-pointer any-hover scripting)
           (cond [(css:ident? maybe-value)
-                 (define downcased-option : Symbol (css:ident=> maybe-value symbol-downcase))
+                 (define downcased-option : Symbol (css-ident-autocase maybe-value))
                  (cond [(memq downcased-option
                               (case downcased-name
                                 [(orientation) '(portrait landscape)]
@@ -528,7 +524,7 @@
       (define all-value : CSS-Token (car all-values))
       (values (cond [(> argsize 1) (vector exn:css:overconsumption (cdr all-values))]
                     [(not (css:ident? all-value)) exn:css:type]
-                    [(memq (css:ident=> all-value symbol-downcase) '(initial inherit unset revert)) all-value]
+                    [(memq (css-ident-autocase all-value) '(initial inherit unset revert)) all-value]
                     [else exn:css:range])
               #false)))
 
@@ -539,7 +535,7 @@
       (define desc-value : CSS-Token (car desc-values))
       (define >=0? : (-> Real Boolean) (λ [r] (>= r 0)))
       (define (viewport-length [v : CSS-Token]) : (U CSS-Token Make-CSS-Syntax-Error)
-        (cond [(or (css:ident=:=? v 'auto) (css:percentage=:=? v >=0?)) v]
+        (cond [(or (css-keyword=:=? v 'auto) (css:percentage=:=? v >=0?)) v]
               [(or (css:ident? v) (css:percentage? v)) exn:css:range]
               [(not (css:dimension? v)) exn:css:type]
               [(not (css:length? v)) exn:css:unit]
@@ -568,13 +564,13 @@
                 [else length-value])]
          [(zoom min-zoom max-zoom)
           (cond [(> argsize 1) (vector exn:css:overconsumption (cdr desc-values))]
-                [(or (css:ident=:=? desc-value 'auto) (css:percentage=:=? desc-value >=0?) (css-number=:=? desc-value >=0?)) desc-value]
+                [(or (css-keyword=:=? desc-value 'auto) (css:percentage=:=? desc-value >=0?) (css-number=:=? desc-value >=0?)) desc-value]
                 [(or (css:ident? desc-value) (css:percentage? desc-value) (css:number? desc-value)) exn:css:range]
                 [else exn:css:type])]
          [(orientation user-zoom)
           (cond [(> argsize 1) (vector exn:css:overconsumption (cdr desc-values))]
                 [(not (css:ident? desc-value)) exn:css:type]
-                [(memq (css:ident=> desc-value symbol-downcase)
+                [(memq (css-ident-autocase desc-value)
                        (case suitcased-name
                          [(orientation) '(auto portrait landscape)]
                          [(user-zoom) '(zoom fixed)]
@@ -765,15 +761,26 @@
       (or (symbol? datum) (number? datum)
           (string? datum) (char? datum) (keyword? datum))))
 
-  (define css-number=:=? : (-> Any (U Real (-> Real Boolean)) Boolean)
+  (define css-number=:=? : (-> Any (U Real (-> Real Boolean)) Boolean : #:+ CSS:Number)
     (lambda [token type?]
-      (define datum : (U Number Void)
-        (cond [(css:integer? token) (css:integer-datum token)]
-              [(css:flonum? token) (css:flonum-datum token)]
-              [(css:ratio? token) (css:ratio-datum token)]))
-      (and (real? datum)
-           (cond [(procedure? type?) (type? datum)]
-                 [else (eqv? datum type?)]))))
+      (and (css:number? token)
+           (let ([datum (cond [(css:integer? token) (css:integer-datum token)]
+                              [(css:flonum? token) (css:flonum-datum token)]
+                              [(css:ratio? token) (css:ratio-datum token)])])
+             (and (real? datum)
+                  (cond [(procedure? type?) (type? datum)]
+                        [else (eqv? datum type?)]))))))
+
+  (define css-keyword=:=? : (-> Any Symbol Boolean : #:+ CSS:Ident)
+    (lambda [token well-defined-keyword-is-downcased]
+      (and (css:ident? token)
+           (eq? (css-ident-autocase token)
+                well-defined-keyword-is-downcased))))
+
+  (define css-ident-autocase : (->* (CSS:Ident) (Boolean) Symbol)
+    (lambda [token [force-downcase-custom? #false]]
+      (define id : Symbol (css:ident-datum token))
+      (if (or (eq? (css:ident-flag token) 'upcase) force-downcase-custom?) (symbol-downcase id) id)))
   
   (define css-car : (All (css) (->* ((Listof css)) (Boolean) (Values (U css EOF) (Listof css))))
     (lambda [dirty [skip-whitespace? #true]]
@@ -804,23 +811,7 @@
 
   (define symbol-downcase : (-> Symbol Symbol)
     (lambda [sym]
-      (string->symbol (string-downcase (symbol->string sym)))))
-
-  (define --symbol? : (-> Symbol Boolean)
-    (lambda [sym]
-      (string-prefix? (symbol->string sym) "--")))
-  
-  (define symbol-ci=? : (-> Symbol Symbol Boolean)
-    (lambda [sym1 sym2]
-      (or (eq? sym1 sym2)
-          (string-ci=? (symbol->string sym1)
-                       (symbol->string sym2)))))
-
-  (define keyword-ci=? : (-> Keyword Keyword Boolean)
-    (lambda [kw1 kw2]
-      (or (eq? kw1 kw2)
-          (string-ci=? (keyword->string kw1)
-                       (keyword->string kw2))))))
+      (string->symbol (string-downcase (symbol->string sym))))))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module tokenizer typed/racket ;;; https://drafts.csswg.org/css-syntax/#tokenization
@@ -916,12 +907,16 @@
       (cond [(and (char-ci=? id0 #\u) (char? ch1) (char=? ch1 #\+)
                   (or (char-hexdigit? ch2) (and (char? ch2) (char=? ch2 #\?))))
              (read-char css) (css-consume-unicode-range-token srcloc)]
-            [else (let ([name : String (css-consume-name css id0)])
+            [else (let-values ([(name has-upcase?) (css-consume-name css id0)])
                     (define ch : (U EOF Char) (peek-char css))
                     (cond [(or (eof-object? ch) (not (char=? ch #\()))
-                           (css-make-token srcloc css:ident (string->symbol name))]
+                           (define idname : Symbol (string->symbol name))
+                           (cond [(and (char? ch1) (char=? id0 ch1 #\-)) (css-make-token srcloc css:ident idname 'custom)]
+                                 [(not has-upcase?) (css-make-token srcloc css:ident idname 'downcased)]
+                                 [else (css-make-token srcloc css:ident idname 'upcase)])]
                           [(or (not (string-ci=? name "url")) (regexp-match-peek #px"^.\\s*[\"']" css))
-                           (read-char css) (css-make-token srcloc css:function (string->unreadable-symbol name) null)]
+                           (define fname : Symbol (string->unreadable-symbol (if has-upcase? (string-downcase name) name)))
+                           (read-char css) (css-make-token srcloc css:function fname null)]
                           [else (read-char css) (css-consume-url-token srcloc)]))])))
       
   (define css-consume-string-token : (-> CSS-Srcloc Char (U CSS:String CSS:Bad))
@@ -955,7 +950,8 @@
                           [ch2 : (U EOF Char) (peek-char css 1)]
                           [ch3 : (U EOF Char) (peek-char css 2)])
                       (cond [(css-identifier-prefix? ch1 ch2 ch3)
-                             (define unit : Symbol (string->symbol (string-downcase (css-consume-name css #false))))
+                             (define-values (raw has-upcase?) (css-consume-name css #false))
+                             (define unit : Symbol (string->symbol (if has-upcase? (string-downcase raw) raw)))
                              (case unit
                                [(em ex ch ic rem) (css-make-token srcloc css:length representation (cons n unit) 'font)]
                                [(vw vh vi vb vmin vmax) (css-make-token srcloc css:length representation (cons n unit) 'viewport)]
@@ -1030,10 +1026,8 @@
       (define ch2 : (U EOF Char) (peek-char css 1))
       (define ch3 : (U EOF Char) (peek-char css 2))
       (if (or (css-char-name? ch1) (css-valid-escape? ch1 ch2))
-          (let ([name : String (css-consume-name (css-srcloc-in srcloc) #false)])
-            (css-make-token srcloc css:hash (string->keyword name)
-                            (cond [(css-identifier-prefix? ch1 ch2 ch3) 'id]
-                                  [else 'unrestricted])))
+          (let-values ([(name has-upcase?) (css-consume-name (css-srcloc-in srcloc) #false)])
+            (css-make-token srcloc css:hash (string->keyword name)))
           (css-make-token srcloc css:delim #\#))))
 
   (define css-consume-@keyword-token : (-> CSS-Srcloc (U CSS:@Keyword CSS:Delim))
@@ -1044,8 +1038,10 @@
       (define ch2 : (U EOF Char) (peek-char css 1))
       (define ch3 : (U EOF Char) (peek-char css 2))
       (if (css-identifier-prefix? ch1 ch2 ch3)
-          (let ([name : String (css-consume-name (css-srcloc-in srcloc) #\@)])
-            (css-make-token srcloc css:@keyword (string->keyword name)))
+          (let-values ([(name has-upcase?) (css-consume-name (css-srcloc-in srcloc) #\@)])
+            (css-make-token srcloc css:@keyword
+                            (string->keyword (cond [(not has-upcase?) name]
+                                                   [else (string-downcase name)]))))
           (css-make-token srcloc css:delim #\@))))
 
   (define css-consume-match-token : (-> CSS-Srcloc Char (U CSS:Match CSS:|| CSS:Delim))
@@ -1064,14 +1060,16 @@
       (regexp-match #px"\\s*" css)
       (void)))
   
-  (define css-consume-name : (-> Input-Port (Option Char) String)
+  (define css-consume-name : (-> Input-Port (Option Char) (Values String Boolean))
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-name
     (lambda [css maybe-head]
-      (let consume-name : String ([srahc : (Listof Char) (if maybe-head (list maybe-head) null)])
+      (let consume-name : (Values String Boolean) ([srahc : (Listof Char) (if maybe-head (list maybe-head) null)]
+                                                   [uc? : Boolean (and (char? maybe-head) (char-upper-case? maybe-head))])
         (define ch : (U EOF Char) (peek-char css))
-        (cond [(css-char-name? ch) (read-char css) (consume-name (cons ch srahc))]
-              [(css-valid-escape? ch (peek-char css 1)) (read-char css) (consume-name (cons (css-consume-escaped-char css) srahc))]
-              [else (list->string (reverse srahc))]))))
+        (cond [(and (char? ch) (char-upper-case? ch)) (read-char css) (consume-name (cons ch srahc) #true)]
+              [(css-char-name? ch) (read-char css) (consume-name (cons ch srahc) uc?)]
+              [(css-valid-escape? ch (peek-char css 1)) (read-char css) (consume-name (cons (css-consume-escaped-char css) srahc) uc?)]
+              [else (values (list->string (reverse srahc)) uc?)]))))
 
   (define css-consume-number : (-> Input-Port Char (Values Real String))
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-number
@@ -1145,17 +1143,17 @@
   (define css-char-name-prefix? : (-> (U EOF Char) Boolean : #:+ Char)
     (lambda [ch]
       (and (char? ch)
-           (or (char<=? #\a ch #\z)
-               (char<=? #\A ch #\Z)
-               (char>=? ch #\u0080)
-               (char=? #\_  ch)))))
+           (or (char-lower-case? ch)
+               (char-upper-case? ch)
+               (char=? #\_  ch)
+               (char>=? ch #\u0080)))))
 
   (define css-char-name? : (-> (U EOF Char) Boolean : #:+ Char)
     (lambda [ch]
       (and (char? ch)
-           (or (css-char-name-prefix? ch)
-               (char<=? #\0 ch #\9)
-               (char=? #\- ch)))))
+           (or (char-numeric? ch)
+               (char=? #\- ch)
+               (css-char-name-prefix? ch)))))
   
   (define css-valid-escape? : (-> (U EOF Char) (U EOF Char) Boolean : #:+ Char)
     ;;; https://drafts.csswg.org/css-syntax/#escaping
@@ -1325,12 +1323,12 @@
         (with-handlers ([exn:css? (λ [[errcss : exn:css]] errcss)])
           (define-values (token tokens) (css-car entry))
           (define-values (next rest) (css-car tokens))
-          (cond [(css:ident=:=? token 'not)
+          (cond [(css-keyword=:=? token 'not)
                  (cond [(css:ident? next) (css-components->media-type+query next #false rest)]
                        [else (css-components->negation token tokens #true)])]
                 [(css:ident? token)
                  (define-values (maybe-type maybe-<and>)
-                   (cond [(css:ident=:=? token 'only) (values next rest)]
+                   (cond [(css-keyword=:=? token 'only) (values next rest)]
                          [else (values token tokens)]))
                  (cond [(eof-object? maybe-type) (css-make-syntax-error exn:css:missing-identifier maybe-type)]
                        [(css:ident? maybe-type) (css-components->media-type+query maybe-type #true maybe-<and>)]
@@ -1502,28 +1500,27 @@
                                [rest : (Listof CSS-Token) value-list])
                     (define-values (1st tail) (css-car rest))
                     (cond [(not (eof-object? 1st))
-                           (cond [(and (css:delim? info) (css:ident=:=? 1st 'important)) (verify lla info tail)]
+                           (cond [(and (css:delim? info) (css-keyword=:=? 1st 'important)) (verify lla info tail)]
                                  [(css:delim? info) (verify lla (css-make-syntax-error exn:css:unrecognized info) null)]
                                  [(css:delim=:=? 1st #\!) (verify lla 1st tail)]
                                  [(or (css:bad? 1st) (css:close? 1st)) (verify lla (css-make-syntax-error exn:css:malformed 1st) null)]
                                  [else (verify (cons 1st lla) #false tail)])]
                           [(exn:css? info) info]
-                          [else (let ([all-argl (reverse lla)]
-                                      [custom? (css:ident=:=? id-token --symbol?)])
+                          [else (let ([all-argl (reverse lla)])
                                   (cond [(null? all-argl) (css-make-syntax-error exn:css:missing-value id-token)]
-                                        [else (make-css-declaration id-token all-argl (css:delim? info) custom?)]))]))])))
+                                        [else (make-css-declaration id-token all-argl (css:delim? info))]))]))])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-components->media-type+query : (-> CSS:Ident Boolean (Listof CSS-Token) CSS-Media-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#media-types
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-query
     (lambda [media only? conditions]
-      (define downcased-type : Symbol (css:ident=> media symbol-downcase))
+      (define downcased-type : Symbol (css-ident-autocase media #true))
       (define-values (maybe-and maybe-conditions) (css-car conditions))
       (when (css-deprecate-media-type) (css-make-syntax-error exn:css:deprecated media))
       (cond [(memq downcased-type '(only not and or)) (css-make-syntax-error exn:css:misplaced media)]
             [(eof-object? maybe-and) (make-css-media-type downcased-type only?)]
-            [(not (css:ident=:=? maybe-and 'and)) (css-make-syntax-error exn:css:unrecognized maybe-and)]
+            [(not (css-keyword=:=? maybe-and 'and)) (css-make-syntax-error exn:css:unrecognized maybe-and)]
             [(css-null? maybe-conditions) (css-make-syntax-error exn:css:missing-feature maybe-and)]
             [else (cons (make-css-media-type downcased-type only?)
                         (css-components->junction maybe-conditions 'and #false #true))])))
@@ -1535,9 +1532,9 @@
       (define-values (token rest) (css-car conditions))
       (define-values (operator chain) (css-car rest))
       (cond [(eof-object? token) (css-throw-syntax-error exn:css:missing-feature alt)]
-            [(css:ident=:=? token 'not) (css-components->negation token rest media?)]
+            [(css-keyword=:=? token 'not) (css-components->negation token rest media?)]
             [(eof-object? operator) (css-component->feature-query media? token)]
-            [(or (css:ident=:=? operator 'and) (css:ident=:=? operator 'or))
+            [(or (css-keyword=:=? operator 'and) (css-keyword=:=? operator 'or))
              (css-components->junction chain (css:ident-datum operator) token media?)]
             [else (css-throw-syntax-error exn:css:unrecognized operator)])))
 
@@ -1554,7 +1551,7 @@
              (define-values (name any-values) (css-car subany))
              (define-values (op value-list) (css-car any-values))
              (cond [(css:block=:=? name #\() (css-components->feature-query subany media? condition)]
-                   [(css:ident=:=? name 'not) (css-components->negation name any-values media?)]
+                   [(css-keyword=:=? name 'not) (css-components->negation name any-values media?)]
                    [(and (css:ident? name) (css:delim=:=? op #\:))
                     (define descriptor (css-components->declaration name any-values))
                     (cond [(exn? descriptor) (if media? (css-throw-syntax-error exn:css:enclosed condition) (raise descriptor))]
@@ -1574,7 +1571,7 @@
     (lambda [<not> tokens media?]
       (define-values (token rest) (css-car tokens))
       (cond [(eof-object? token) (css-throw-syntax-error exn:css:missing-feature <not>)]
-            [(css:ident=:=? token 'not) (css-throw-syntax-error exn:css:misplaced token)]
+            [(css-keyword=:=? token 'not) (css-throw-syntax-error exn:css:misplaced token)]
             [(css-null? rest) (make-css-not (css-component->feature-query media? token))]
             [else (css-throw-syntax-error exn:css:overconsumption rest)])))
 
@@ -1588,9 +1585,9 @@
         (define-values (condition rest) (css-car rest-conditions))
         (define-values (token others) (css-car rest))
         (cond [(eof-object? condition) (make-junction (map (curry css-component->feature-query media?) (reverse junctions)))]
-              [(css:ident=:=? condition 'not) (css-throw-syntax-error exn:css:misplaced condition)]
-              [(or (eof-object? token) (css:ident=:=? token op)) (components->junction (cons condition junctions) others)]
-              [(or (css:ident=:=? token 'and) (css:ident=:=? token 'or)) (css-throw-syntax-error exn:css:misplaced token)]
+              [(css-keyword=:=? condition 'not) (css-throw-syntax-error exn:css:misplaced condition)]
+              [(or (eof-object? token) (css-keyword=:=? token op)) (components->junction (cons condition junctions) others)]
+              [(or (css-keyword=:=? token 'and) (css-keyword=:=? token 'or)) (css-throw-syntax-error exn:css:misplaced token)]
               [else (css-throw-syntax-error exn:css:overconsumption token)]))))
 
   (define css-query-support? : (-> CSS-Media-Query (U CSS-Media-Preferences CSS-Feature-Support?) Boolean)
@@ -1607,7 +1604,7 @@
                     (define downcased-name : Symbol (css-media-feature-name query))
                     (define datum : CSS-Media-Datum (css-media-feature-value query))
                     (define metadata : (U CSS-Media-Datum EOF) (hash-ref support? downcased-name (λ _ eof)))
-                    (cond [(symbol? datum) (and (symbol? metadata) (symbol-ci=? datum metadata))]
+                    (cond [(symbol? datum) (and (symbol? metadata) (eq? datum metadata))]
                           [(real? metadata) (case (css-media-feature-operator query)
                                               [(#\>) (> metadata datum)] [(#\≥) (>= metadata datum)]
                                               [(#\<) (< metadata datum)] [(#\≤) (<= metadata datum)]
@@ -1615,7 +1612,7 @@
                           [else #false])]
                    [(symbol? query)
                     (define metadata : CSS-Media-Datum (hash-ref support? query (λ _ 'none)))
-                    (not (if (symbol? metadata) (symbol-ci=? metadata 'none) (zero? metadata)))]
+                    (not (if (symbol? metadata) (eq? metadata 'none) (zero? metadata)))]
                    [(css-media-type? query)
                     (define result (memq (css-media-type-name query) (list (current-css-media-type) 'all)))
                     (if (css-media-type-only? query) (and result #true) (not result))]
@@ -1691,8 +1688,8 @@
     ;;; https://drafts.csswg.org/mediaqueries/#mq-features
     ;;; https://drafts.csswg.org/mediaqueries/#mq-min-max
     (lambda [desc-name maybe-value ophint maybe-op]
-      (define errobj (filter css-token? (list desc-name maybe-op maybe-value)))
-      (define name (css:ident=> desc-name (compose1 string-downcase symbol->string)))
+      (define errobj : (Listof CSS-Token) (filter css-token? (list desc-name maybe-op maybe-value)))
+      (define name : String (symbol->string (css-ident-autocase desc-name)))
       (define-values (downcased-name op min/max?)
         (cond [(string-prefix? name "min-") (values (string->symbol (substring name 4)) #\≥ #true)]
               [(string-prefix? name "max-") (values (string->symbol (substring name 4)) #\≤ #true)]
@@ -1884,7 +1881,7 @@
       (define-values (i terminal) (css-car ci-part))
       (unless (eof-object? op)
         (cond [(eof-object? value) (css-throw-syntax-error exn:css:missing-value op)]
-              [(nor (eof-object? i) (css:ident=:=? i 'i)) (css-throw-syntax-error exn:css:overconsumption i)]
+              [(nor (eof-object? i) (css-keyword=:=? i 'i)) (css-throw-syntax-error exn:css:overconsumption i)]
               [(css-tokens? terminal) (css-throw-syntax-error exn:css:overconsumption terminal)]))
       (define val : (U String Symbol)
         (cond [(css:string? value) (css:string-datum value)]
@@ -2298,13 +2295,12 @@
         (or important? (not (cdr (hash-ref descbase desc-name (λ [] (cons #false #false)))))))
       (for ([property (in-list properties)])
         (cond [(list? property) (css-cascade-declarations desc-filter property descbase)]
-              [else (let* ([desc-name (css:ident-datum (css-declaration-name property))]
-                           [desc-name (if (css-declaration-custom? property) desc-name (symbol-downcase desc-name))])
+              [else (let ([desc-name (css-ident-autocase (css-declaration-name property))])
                       (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
                       (define important? : Boolean (css-declaration-important? property))
-                      (when (key-property? desc-name important?) 
+                      (when (key-property? desc-name important?)
                         (define-values (desc-value deprecated?)
-                          (cond [(css-declaration-custom? property) (values declared-values #false)]
+                          (cond [(eq? (css:ident-flag (css-declaration-name property)) 'custom) (values declared-values #false)]
                                 [(not (eq? desc-name 'all)) (desc-filter desc-name declared-values)]
                                 [else (css-all-property-filter desc-name declared-values)]))
                         (when deprecated? (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))

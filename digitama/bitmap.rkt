@@ -481,9 +481,7 @@
 
 (define select-rgba-color : (->* (Datum) (Gamut) (Instance Color%))
   (lambda [color [alpha 1.0]]
-    (make-color 123 123 123 1.0)
     color%
-    make-rectangular
     (hash-ref the-colorbase color)))
 
 (define css-color-declaration-filter : (-> (Listof+ CSS-Token) CSS-Declared-Result)
@@ -506,7 +504,7 @@
            (cond [(false? maybe-rgba) exn:css:range]
                  [else (css-remake-token color-value css:rgba maybe-rgba)])]
           [(css:function? color-value)
-           (case (css:function=> color-value (λ [[f : Symbol]] (string->symbol (string-downcase (symbol->string f)))))
+           (case (css:function-datum color-value)
              [(rgb rgba) (css-apply-rgba color-value (css:function-arguments color-value))]
              [(hsl hsla) (css-apply-hsba color-value (css:function-arguments color-value) hsl->rgb)]
              [(hsv hsva) (css-apply-hsba color-value (css:function-arguments color-value) hsv->rgb)]
