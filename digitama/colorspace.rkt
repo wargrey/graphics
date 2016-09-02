@@ -20,12 +20,12 @@
 (define real->hue : (-> Real Hue)
   (lambda [hue]
     (cond [(nan? hue) +nan.0]
-                  [(or (zero? hue) (and (positive? hue) (< hue 360))) (fl hue)]
-                  [else (let ([integer-part (modulo (exact-truncate hue) 360)])
-                          (cond [(integer? hue) (fl integer-part)]
-                                [(positive? hue) (flabs (fl (+ integer-part (- hue (truncate hue)))))]
-                                [(zero? integer-part) (flabs (fl+ 360.0 (fl (- hue (truncate hue)))))]
-                                [else (flabs (fl (- integer-part (- (truncate hue) hue))))]))])))
+          [(or (zero? hue) (and (positive? hue) (< hue 360))) (fl hue)]
+          [else (let ([integer-part (modulo (exact-truncate hue) 360)])
+                  (cond [(integer? hue) (fl integer-part)]
+                        [(positive? hue) (flabs (fl (+ integer-part (- hue (truncate hue)))))]
+                        [(zero? integer-part) (flabs (fl+ 360.0 (fl (- hue (truncate hue)))))]
+                        [else (flabs (fl (- integer-part (- (truncate hue) hue))))]))])))
 
 (define rgb-bytes->hsb : (-> RGB->HSB Byte Byte Byte (Values Hue Gamut Gamut))
   (lambda [rgb->hsb red green blue]
