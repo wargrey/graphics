@@ -13,10 +13,6 @@
 (define gamut->byte : (-> Gamut Byte) (λ [r] (min (exact-round (fl* r 255.0)) #xFF)))
 (define real->gamut : (-> Real Gamut) (λ [r] (flmax (flmin (fl r) 1.0) 0.0)))
 
-(define real->maybe-gamut : (-> Real (Option Gamut)) (λ [r] (and (not (negative? r)) (<= r 1.0) (fl r))))
-(define real->maybe-byte : (-> Real (Option Byte)) (λ [r] (and (not (negative? r)) (<= r 255) (min (exact-round r) #xFF))))
-(define gamut->maybe-byte : (-> Real (Option Byte)) (λ [r] (and (not (negative? r)) (<= r 1.0) (gamut->byte (fl r)))))
-
 (define real->hue : (-> Real Hue)
   (lambda [hue]
     (cond [(nan? hue) +nan.0]
