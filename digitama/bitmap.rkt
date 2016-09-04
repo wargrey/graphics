@@ -393,8 +393,8 @@
   
   (define css-rgb->scalar : (-> CSS-Token (U Natural CSS-Declared-Result))
     (lambda [t]
-      (cond [(css:percentage? t) (css:percentage=> t fl* 255.0 exact-round)]
-            [(css:natural=:=? t fx<= #xFF) (css:natural-datum t)]
+      (cond [(css:byte? t) (css:byte-datum t)]
+            [(css:percentage? t) (css:percentage=> t fl* 255.0 exact-round)]
             [(css:flunum=:=? t fl<= 255.0) (css:flunum=> t exact-round)]
             [(css-number? t) (vector exn:css:range t)]
             [else (vector exn:css:type t)])))

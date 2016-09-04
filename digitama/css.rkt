@@ -150,8 +150,8 @@
                                (format-id <id> "~a-datum" (syntax-e <id>))
                                (format-id <id> "~a=:=?" (syntax-e <id>))))]
                       [([parent? parent-datum parent=:=?] ...)
-                       (for/list ([<id> (in-list (syntax->list #'(id ...)))]
-                                  [<parent> (in-list (syntax->list #'(parent ...)))]
+                       (for/list ([<parent> (in-list (syntax->list #'(parent ...)))]
+                                  [<id> (in-list (syntax->list #'(id ...)))]
                                   [<id?> (in-list (syntax->list #'(id? ...)))]
                                   [<id-datum> (in-list (syntax->list #'(id-datum ...)))]
                                   [<id=:=?> (in-list (syntax->list #'(id=:=? ...)))]
@@ -159,7 +159,7 @@
                          (list <id?> <id-datum> <id=:=?>))])
          #'(begin (struct: token : Token css-numeric ())
                   (define-token id : ID parent #:as Type #:=:=? id=:=? #:=? type=? #:with id? id=? id-datum) ...
-                  (define (token->datum [t : Token]) : (U Integer Flonum) (cond [(parent? t) (parent-datum t)] ... [else +nan.0]))))]))
+                  (define (token->datum [t : Token]) : (U Type ...) (cond [(parent? t) (parent-datum t)] ... [else +nan.0]))))]))
   
   (define-syntax (define-dimensional-tokens stx)
     (syntax-case stx []
@@ -270,7 +270,8 @@
       (format "~a:~a:~a: ~a: ~s" (css-token-source instance)
               (css-token-line instance) (add1 (css-token-column instance)) (object-name instance)
               (cond [(css:delta%? instance) (string-append (css-numeric-representation instance) "%")]
-                    [(css-number? instance) (css-numeric-representation instance)]
+                    [(css:dimension? instance) (~a (css-numeric-representation instance) (css:dimension-unit instance))]
+                    [(css-numeric? instance) (css-numeric-representation instance)]
                     [else (css-token->datum instance)]))))
 
   ;;; https://drafts.csswg.org/css-syntax/#tokenization
@@ -306,18 +307,19 @@
       [css:function   #:+ CSS:Function   #:as Symbol            [arguments  : (Listof CSS-Token)]])
 
     (define-numeric-tokens css-number #:+ CSS-Number
-      [css:bignum     #:+ CSS:Bignum     #:-> css-number        #:as Integer            #:=? =]
-      
       [css:integer    #:+ CSS:Integer    #:-> css-number        #:as Fixnum             #:=? fx=]
       [css:natural    #:+ CSS:Natural    #:-> css:integer       #:as Index              #:=? fx=]
-      [css:zero       #:+ CSS:Zero       #:-> css:natural       #:as Zero               #:=? fx=]
+      [css:byte       #:+ CSS:Byte       #:-> css:natural       #:as Byte               #:=? fx=]
+      [css:zero       #:+ CSS:Zero       #:-> css:byte          #:as Zero               #:=? fx=]
 
       [css:flonum     #:+ CSS:Flonum     #:-> css-number        #:as Flonum             #:=? fl=]
       [css:flunum     #:+ CSS:Flunum     #:-> css:flonum        #:as Nonnegative-Flonum #:=? fl=]
       [css:flzero     #:+ CSS:Flzero     #:-> css:flunum        #:as Flonum-Zero        #:=? fl=]
 
       [css:delta%     #:+ CSS:Delta%     #:-> css-number        #:as Flonum             #:=? fl=]
-      [css:percentage #:+ CSS:Percentage #:-> css:delta%        #:as Nonnegative-Flonum #:=? fl=])
+      [css:percentage #:+ CSS:Percentage #:-> css:delta%        #:as Nonnegative-Flonum #:=? fl=]
+
+      [css:bignum     #:+ CSS:Bignum     #:-> css-number        #:as Integer            #:=? =])
   
     (define-dimensional-tokens css:dimension
       ;;; https://drafts.csswg.org/css-values/#absolute-lengths
@@ -974,10 +976,11 @@
                              (cond [(positive? n) (css-make-token srcloc css:flunum representation n n)]
                                    [(zero? n) (css-make-token srcloc css:flzero representation n n n)]
                                    [else (css-make-token srcloc css:flonum representation n)])]
-                            [(zero? n)   (css-make-token srcloc css:zero representation n n n)]
+                            [(zero? n)   (css-make-token srcloc css:zero    representation n n n n)]
+                            [(byte? n)   (css-make-token srcloc css:byte    representation n n n)]
                             [(index? n)  (css-make-token srcloc css:natural representation n n)]
                             [(fixnum? n) (css-make-token srcloc css:integer representation n)]
-                            [else        (css-make-token srcloc css:bignum representation n)])))])))
+                            [else        (css-make-token srcloc css:bignum  representation n)])))])))
 
   (define css-consume-url-token : (-> CSS-Srcloc (U CSS:URL CSS:Bad))
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-url-token
@@ -1687,7 +1690,7 @@
                            (css-remake-token [value maybe-int] css:ratio (/ width height)))
                          (css-throw-syntax-error exn:css:malformed (filter css-token? (list value maybe-/ maybe-int))))
                      terminal)]
-            [(or (css:ident? value) (css-number? value) (css:dimension? value)) (values value rest)]
+            [(or (css:ident? value) (css-numeric? value)) (values value rest)]
             [(eof-object? value) (values eof rest)]
             [else (values (css-throw-syntax-error exn:css:unrecognized value) rest)])))
 
