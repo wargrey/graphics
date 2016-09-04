@@ -10,11 +10,11 @@
 
 (require typed/racket/date)
 
-(define ~n_w : (-> Natural String String)
+(define ~n_w : (-> Integer String String)
   (lambda [count word]
     (format "~a ~a" count (plural count word))))
 
-(define ~w=n : (-> Natural String String)
+(define ~w=n : (-> Integer String String)
   (lambda [count word]
     (format "~a=~a" (plural count word) count)))
 
@@ -40,11 +40,11 @@
             [else (format "~a:~a.~a~a" m s padding ms)]))))
 
 (define-type/enum units : Unit 'KB 'MB 'GB 'TB)
-(define ~size : (case-> [Natural 'Bytes [#:precision (U Integer (List '= Integer))] -> String]
+(define ~size : (case-> [Integer 'Bytes [#:precision (U Integer (List '= Integer))] -> String]
                         [Flonum Unit [#:precision (U Integer (List '= Integer))] -> String])
   (lambda [size unit #:precision [prcs '(= 3)]]
     (if (symbol=? unit 'Bytes)
-        (cond [(< size 1024) (~n_w size "Byte")]
+        (cond [(< -1024 size 1024) (~n_w size "Byte")]
               [else (~size (fl/ (real->double-flonum size) 1024.0) 'KB #:precision prcs)])
         (let try-next-unit : String ([s : Flonum size] [us : (Option Unit*) (member unit units)])
           (cond [(false? us) "Typed Racket is buggy if you see this message"]
@@ -54,7 +54,7 @@
 (module digitama typed/racket
   (provide (all-defined-out))
 
-  (define plural : (-> Natural String String)
+  (define plural : (-> Integer String String)
     (lambda [n word]
       (define dict : (HashTable String String) #hash(("story" . "stories") ("Story" . "Stories")))
       (cond [(= n 1) word]
