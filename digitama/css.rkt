@@ -14,7 +14,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide (all-defined-out))
-(provide (except-out (all-from-out (submod "." digitama)) struct: symbol-downcase))
+(provide (except-out (all-from-out (submod "." digitama)) struct:))
 (provide (except-out (all-from-out (submod "." grammar)) css-stylesheet-placeholder))
 
 ; https://drafts.csswg.org/css-syntax/#parser-entry-points
@@ -37,10 +37,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module digitama typed/racket
-  (provide (except-out (all-defined-out) define-token define-tokens))
+  (provide (except-out (all-defined-out) define-tokens define-token define-token=:=?
+                       define-symbolic-tokens define-numeric-tokens define-dimensional-tokens)
+           (all-from-out racket/fixnum)
+           (all-from-out racket/flonum))
 
+  (require racket/fixnum)
   (require racket/flonum)
-  
+
+  (require (for-syntax racket/string))
   (require (for-syntax racket/syntax))
   (require (for-syntax syntax/parse))
 
@@ -70,138 +75,286 @@
          #'(begin (define-type ID id)
                   (struct id rest ... #:prefab #:extra-constructor-name make-id)))]))
   
+  (define-syntax (define-token=:=? stx)
+    (syntax-case stx [:]
+      [(_ symbolic=:=? : Type symbolic? symbolic-datum #:+ Symbolic #:=? type=?)
+       #'(define symbolic=:=? : (-> Any (U Type (Vectorof Type) (-> Type Boolean)) Boolean : #:+ Symbolic)
+           (lambda [token hint]
+             (and (symbolic? token)
+                  (let ([css-value : Type (symbolic-datum token)])
+                    (cond [(procedure? hint) (hint css-value)]
+                          [(vector? hint) (for/or : Boolean ([v (in-vector hint)]) (type=? css-value v))]
+                          [else (type=? css-value hint)])))))]
+      [(_ numeric=:=? : Type numeric? numeric-datum #:+ Numeric)
+       #'(define numeric=:=? : (case-> [Any (-> Type Boolean) -> Boolean : #:+ Numeric]
+                                       [Any (-> Type Type Boolean) Type -> Boolean : #:+ Numeric]
+                                       [Any Type (-> Type Type Boolean) Type -> Boolean : #:+ Numeric])
+           (case-lambda [(token type?)  (and (numeric? token) (type? (numeric-datum token)))]
+                        [(token op n)   (and (numeric? token) (op (numeric-datum token) n))]
+                        [(token l op r) (and (numeric? token) (let ([m : Type (numeric-datum token)]) (op l m) (op m r)))]))]))
+
   (define-syntax (define-token stx)
+    (syntax-parse stx #:literals [: Symbol Keyword]
+      [(_ number : Number parent #:as Type #:=:=? number=.=? #:=? type=? #:with number? number=? number-datum)
+       (with-syntax ([number=> (format-id #'number "~a=>" (syntax-e #'number))])
+         #'(begin (struct: number : Number parent ([datum : Type]))
+                  (define (number=? [t1 : Number] [t2 : Number]) : Boolean (type=? (number-datum t1) (number-datum t2)))
+                  (define-token=:=? number=.=? : Type number? number-datum #:+ Number)
+                  (define number=> (case-lambda #:forall (a b)
+                                                [([t : Number] [=> : (-> Type a)]) (=> (number-datum t))]
+                                                [([t : Number] [=> : (-> Type b a)] [n : b]) (=> (number-datum t) n)]))))]
+      [(_ identifier : Identifier parent ((~and (~or Symbol Keyword) Type) rest ...) #:with keyword? keyword=? keyword-datum)
+       (with-syntax ([keyword-norm     (format-id #'identifier "~a-norm" (syntax-e #'identifier))]
+                     [keyword=:=?      (format-id #'identifier "~a=:=?" (syntax-e #'identifier))]
+                     [keyword-norm=:=? (format-id #'identifier "~a-norm=:=?" (syntax-e #'identifier))]
+                     [keyword=>        (format-id #'identifier "~a=>" (syntax-e #'identifier))]
+                     [keyword-norm=>   (format-id #'identifier "~a-norm=>" (syntax-e #'identifier))])
+         #'(begin (struct: identifier : Identifier parent ([datum : Type] [norm : Type] rest ...))
+                  (define (keyword=? [t1 : Identifier] [t2 : Identifier]) : Boolean (eq? (keyword-datum t1) (keyword-datum t2)))
+                  (define-token=:=? keyword=:=?      : Type keyword? keyword-datum #:+ Identifier #:=? eq?)
+                  (define-token=:=? keyword-norm=:=? : Type keyword? keyword-norm  #:+ Identifier #:=? eq?)
+                  (define #:forall (a) (keyword=>      [t : Identifier] [=> : (-> Type a)]) : a (=> (keyword-datum t)))
+                  (define #:forall (a) (keyword-norm=> [t : Identifier] [=> : (-> Type a)]) : a (=> (keyword-norm t)))))]
+      [(_ otherwise : Otherwise parent (Type rest ...) #:with otherwise? otherwise=? otherwise-datum)
+       (with-syntax ([type=? (case (syntax-e #'Type) [(String) #'string=?] [(Char) #'char=?] [else #'equal?])]
+                     [otherwise=:=? (format-id #'otherwise "~a=:=?" (syntax-e #'otherwise))]
+                     [otherwise=>   (format-id #'otherwise "~a=>" (syntax-e #'otherwise))])
+         #'(begin (struct: otherwise : Otherwise parent ([datum : Type] rest ...))
+                  (define (otherwise=? [t1 : Otherwise] [t2 : Otherwise]) : Boolean (type=? (otherwise-datum t1) (otherwise-datum t2)))
+                  (define-token=:=? otherwise=:=? : Type otherwise? otherwise-datum #:+ Otherwise #:=? type=?)
+                  (define #:forall (a) (otherwise=> [t : Otherwise] [=> : (-> Type a)]) : a (=> (otherwise-datum t)))))]))
+
+  (define-syntax (define-symbolic-tokens stx)
     (syntax-parse stx
-      [(_ id #:+ ID #:-> parent #:as Racket-Type extra-fields ... #:=? type=?)
-       (with-syntax ([id? (format-id #'id "~a?" (syntax-e #'id))]
-                     [id=? (format-id #'id "~a=?" (syntax-e #'id))]
-                     [id=> (format-id #'id "~a=>" (syntax-e #'id))]
-                     [id=:=? (format-id #'id "~a=:=?" (syntax-e #'id))]
-                     [id-datum (format-id #'id "~a-datum" (syntax-e #'id))])
-         #'(begin (struct: id : ID parent ([datum : Racket-Type] extra-fields ...))
+      [(_ token #:+ Token [id #:+ ID #:as Type rest ...] ...)
+       (with-syntax ([token->datum (format-id #'token "~a->datum" (syntax-e #'token))]
+                     [([id? id=? id-datum] ...)
+                      (for/list ([<id> (in-list (syntax->list #'(id ...)))])
+                        (list (format-id <id> "~a?" (syntax-e <id>))
+                              (format-id <id> "~a=?" (syntax-e <id>))
+                              (format-id <id> "~a-datum" (syntax-e <id>))))])
+         #'(begin (struct: token : Token css-token ())
+                  (define-token id : ID token (Type rest ...) #:with id? id=? id-datum) ...
+                  (define (token->datum [t : Token]) : (U False Type ...) (cond [(id? t) (id-datum t)] ... [else #false]))))]))
 
-                  (define id=? : (-> ID ID Boolean)
-                    (lambda [left right]
-                      (define left-value : Racket-Type (id-datum left))
-                      (define right-value : Racket-Type (id-datum right))
-                      (type=? left-value right-value)))
+  (define-syntax (define-numeric-tokens stx)
+    (syntax-case stx []
+      [(_ token #:+ Token [id #:+ ID #:-> parent #:as Type #:=? type=?] ...)
+       (with-syntax* ([token->datum (format-id #'token "~a->datum" (syntax-e #'token))]
+                      [([id? id=? id-datum id=:=?] ...)
+                       (for/list ([<id> (in-list (syntax->list #'(id ...)))])
+                         (list (format-id <id> "~a?" (syntax-e <id>))
+                               (format-id <id> "~a=?" (syntax-e <id>))
+                               (format-id <id> "~a-datum" (syntax-e <id>))
+                               (format-id <id> "~a=:=?" (syntax-e <id>))))]
+                      [([parent? parent-datum parent=:=?] ...)
+                       (for/list ([<id> (in-list (syntax->list #'(id ...)))]
+                                  [<parent> (in-list (syntax->list #'(parent ...)))]
+                                  [<id?> (in-list (syntax->list #'(id? ...)))]
+                                  [<id-datum> (in-list (syntax->list #'(id-datum ...)))]
+                                  [<id=:=?> (in-list (syntax->list #'(id=:=? ...)))]
+                                  #:when (eq? (syntax-e <parent>) (syntax-e #'token)))
+                         (list <id?> <id-datum> <id=:=?>))])
+         #'(begin (struct: token : Token css-numeric ())
+                  (define-token id : ID parent #:as Type #:=:=? id=:=? #:=? type=? #:with id? id=? id-datum) ...
+                  (define (token->datum [t : Token]) : (U Integer Flonum) (cond [(parent? t) (parent-datum t)] ... [else +nan.0]))))]))
+  
+  (define-syntax (define-dimensional-tokens stx)
+    (syntax-case stx []
+      [(_ parent [id #:+ ID rest ... #:=> canonical-unit [transforms ...]] ...)
+       (with-syntax ([token->datum (format-id #'parent "~a->datum" (syntax-e #'parent))]
+                     [([id? +id? id->datum id->scalar css:id->canon css-id->canon] ...)
+                      (for/list ([<id> (in-list (syntax->list #'(id ...)))])
+                        (list (format-id <id> "~a?" (syntax-e <id>))
+                              (format-id <id> "~a?" (string-replace (symbol->string (syntax-e <id>)) ":" ":+"))
+                              (format-id <id> "~a->datum" (syntax-e <id>))
+                              (format-id <id> "~a->scalar" (syntax-e <id>))
+                              (format-id <id> "~a-canonicalize" (syntax-e <id>))
+                              (format-id <id> "~a-canonicalize" (string-replace (symbol->string (syntax-e <id>)) ":" "-"))))])
+         #'(begin (struct: id : ID parent (rest ...)) ...
+
+                  (define css-id->canon : (case-> [Nonnegative-Real Symbol -> Nonnegative-Real] [Real Symbol -> Real])
+                    (lambda [canonical-unit unit]
+                      (case unit
+                        [(canonical-unit) canonical-unit]
+                        transforms ...
+                        [else +nan.0])))
+                  ...
+
+                  (define css:id->canon : (-> (U ID CSS-Zero) (Option CSS:Dimension))
+                    (lambda [t]
+                      (if (css:dimension? t)
+                          (let ([u (css:dimension-unit t)])
+                            (cond [(eq? u 'canonical-unit) t]
+                                  [else (let ([v (css-id->canon (css:dimension-datum t) u)])
+                                          (and (not (nan? v))
+                                               (css-remake-token t css:dimension (css-numeric-representation t)
+                                                                 v 'canonical-unit (css:dimension-scalar t))))]))
+                          (css-remake-token t css:dimension (css-numeric-representation t) 0.0 'canonical-unit 0.0))))
+                  ...
+
+                  (define +id? : (-> Any Boolean : #:+ (U ID CSS-Zero))
+                    (lambda [t]
+                      (or (and (id? t) (= (css:dimension-datum t) (css:dimension-scalar t)))
+                          (css-zero? t))))
+                  ...
                   
-                  (define id=:=? : (-> Any (U Racket-Type (-> Racket-Type Boolean)) Boolean : #:+ ID)
-                    (lambda [token racket-value]
-                      (and (id? token)
-                           (let ([css-value : Racket-Type (id-datum token)])
-                             (cond [(procedure? racket-value) (racket-value css-value)]
-                                   [else (type=? css-value racket-value)])))))
-
-                  (define id=> : (All (a) (-> ID (-> Racket-Type a) a))
-                    (lambda [token =>]
-                      (define css-value : Racket-Type (id-datum token))
-                      (=> css-value)))))]))
-
+                  (define-values (id->datum id->scalar)
+                    (values (λ [[t : (U ID CSS-Zero)]] (if (id? t) (css-id->canon (css:dimension-datum t) (css:dimension-unit t)) 0.0))
+                            (λ [[t : (U ID CSS-Zero)]] (if (id? t) (css-id->canon (css:dimension-scalar t) (css:dimension-unit t)) 0.0))))
+                  ...
+                  
+                  (define token->datum : (-> (U CSS:Dimension CSS-Zero) Real)
+                    (lambda [instance]
+                      (cond [(id? instance) (css-id->canon (css:dimension-datum instance) (css:dimension-unit instance))] ...
+                            [(css-zero? instance) 0.0]
+                            [else +nan.0])))))]))
+  
   (define-syntax (define-tokens stx)
     (syntax-case stx []
-      [(_ token
-          #:+ Token (extra ...)
-          #:with [[subid #:+ SubID subrest ...] ...]
-          [[id #:+ ID #:-> parent #:as Type rest ...] ...]
-          #:extend [[subsubid #:+ SubSubID subsubrest ...] ...])
+      [(_ token : Token header [(define-struct subparent subrest ...) ...] (define-typical-tokens group rest ...) ...)
        (with-syntax ([token->datum (format-id #'token "~a->datum" (syntax-e #'token))]
-                     [token->syntax (format-id #'token "~a->syntax" (syntax-e #'token))]
-                     [token->string (format-id #'token "~a->string" (syntax-e #'token))]
-                     [token-source (format-id #'token "~a-source" (syntax-e #'token))]
-                     [token-line (format-id #'token "~a-line" (syntax-e #'token))]
-                     [token-column (format-id #'token "~a-column" (syntax-e #'token))]
-                     [token-position (format-id #'token "~a-position" (syntax-e #'token))]
-                     [token-span (format-id #'token "~a-span" (syntax-e #'token))]
-                     [token-position<? (format-id #'token "~a-position<?" (syntax-e #'token))]
-                     [([id? id-datum] ...) (for/list ([<id> (in-list (syntax->list #'(id ...)))])
-                                             (list (format-id <id> "~a?" (syntax-e <id>))
-                                                   (format-id <id> "~a-datum" (syntax-e <id>))))])
-         #'(begin (struct: token : Token ([source : Any] [line : Natural] [column : Natural] [position : Natural] [span : Natural]
-                                                         extra ...))
-                  
-                  (struct: subid : SubID subrest ...) ...
-                  (define-token id #:+ ID #:-> parent #:as Type rest ...) ...
-                  (struct: subsubid : SubSubID subsubrest ...) ...
+                     [([type? type->datum] ...)
+                      (for/list ([<type> (in-list (syntax->list #'(group ...)))])
+                        (list (format-id <type> "~a?" (syntax-e <type>))
+                              (format-id <type> "~a->datum" (syntax-e <type>))))])
+         #'(begin (struct: token : Token header)
+                  (define-struct subparent subrest ...) ...
+                  (define-typical-tokens group rest ...) ...
 
                   (define token->datum : (-> Token Datum)
                     (lambda [instance]
-                      ;;; Meanwhile Typed Racket is buggy for this way
-                      ;(cond [(id? instance) (id-datum instance)]
-                      ;      ...
-                      ;      [else (assert (object-name instance) symbol?)])
-                      (define v : (Vectorof Any) (struct->vector instance))
-                      (define-values (struct:token _) (struct-info instance))
-                      (define datum-index : Integer
-                        (let count : Integer ([folded-index : Integer -1] [struct:this : (Option Struct-TypeTop) struct:token])
-                          (cond [(false? struct:this) (+ folded-index 1)]
-                                [else (let-values ([(_n cnt _a _r _! _i struct:parent _?) (struct-type-info struct:this)])
-                                        (count (if (< folded-index 0) 0 (+ folded-index cnt)) struct:parent))])))
-                      (define datum : Any (vector-ref v (min datum-index (sub1 (vector-length v)))))
-                      (cond [(css-base-datum? datum) datum]
-                            [(and (pair? datum) (css-base-datum? (car datum)) (css-base-datum? (cdr datum))) datum]
-                            [else (string->symbol (~a datum))])))
+                      (cond [(css:dimension? instance) (cons (css:dimension-datum instance) (css:dimension-unit instance))]
+                            [(type? instance) (type->datum instance)] ...
+                            [else (assert (object-name instance) symbol?)])))))]))
+  
+  (define-values (current-css-containing-block-width current-css-containing-block-height)
+    (values (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))
+            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
 
-                  (define token->syntax : (-> Token Syntax)
-                    (lambda [instance]
-                      (datum->syntax #false (token->datum instance)
-                                     (list (token-source instance)
-                                           (token-line instance) (token-column instance)
-                                           (token-position instance) (token-span instance)))))
+  (define-values (current-css-element-font-size current-css-root-element-font-size)
+    (values (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))
+            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
 
-                  (define token->string : (-> Token String)
-                    (lambda [instance]
-                      (format "~a:~a:~a: ~a: ~s" (token-source instance)
-                              (token-line instance) (add1 (token-column instance))
-                              (object-name instance) (token->datum instance))))
-                  
-                  (define token-position<? : (-> Token Token Boolean)
-                    (lambda [token1 token2]
-                      (< (token-position token1)
-                         (token-position token1))))))]))
+  (define-values (current-css-x-height current-css-char-width current-css-word-width)
+    (values (ann (make-parameter 1/2) (Parameterof Nonnegative-Exact-Rational))
+            (ann (make-parameter 1/2) (Parameterof Nonnegative-Exact-Rational))
+            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
+
+  (define css-zero? : (-> Any Boolean : #:+ CSS-Zero)
+    (lambda [v]
+      (or (css:zero? v)
+          (css:flzero? v))))
+  
+  (define css-font-relative-length? : (-> Any Boolean : #:+ CSS:Length)
+    (lambda [v]
+      (and (css:length? v)
+           (eq? (css:length-type v) 'font))))
+
+  (define css-viewport-relative-length? : (-> Any Boolean : #:+ CSS:Length)
+    (lambda [v]
+      (and (css:length? v)
+           (eq? (css:length-type v) 'viewport))))
+
+  (define css-token->syntax : (-> CSS-Token Syntax)
+    (lambda [instance]
+      (datum->syntax #false (css-token->datum instance)
+                     (list (css-token-source instance)
+                           (css-token-line instance) (css-token-column instance)
+                           (css-token-position instance) (css-token-span instance)))))
+  
+  (define css-token->string : (-> CSS-Token String)
+    (lambda [instance]
+      (format "~a:~a:~a: ~a: ~s" (css-token-source instance)
+              (css-token-line instance) (add1 (css-token-column instance)) (object-name instance)
+              (cond [(css:delta%? instance) (string-append (css-numeric-representation instance) "%")]
+                    [(css-number? instance) (css-numeric-representation instance)]
+                    [else (css-token->datum instance)]))))
 
   ;;; https://drafts.csswg.org/css-syntax/#tokenization
   ;; https://drafts.csswg.org/css-syntax/#component-value
   ;; https://drafts.csswg.org/css-syntax/#current-input-token
-  (define-type (Listof+ css) (Pairof css (Listof css)))
-  (define-type RGBA (Pairof Nonnegative-Fixnum Nonnegative-Flonum))
-  (define-type CSS-Quantity-Type (U 'length 'angle 'time 'frequency 'resolution))
-  (define-type Ident-Flag (U 'custom 'downcased 'upcase))
-  
-  (define-tokens css-token #:+ CSS-Token ()
-    #:with [[css:numeric #:+ CSS:Numeric css-token ([representation : String])]
-            [css:number  #:+ CSS:Number css:numeric ()]]
-    [[css:bad        #:+ CSS:Bad        #:-> css-token   #:as (Pairof Symbol Datum)          #:=? equal?]
-     [css:close      #:+ CSS:Close      #:-> css-token   #:as Char                           #:=? char=?]
-     [css:cd         #:+ CSS:CD         #:-> css-token   #:as Symbol                         #:=? eq?]
-     [css:||         #:+ CSS:||         #:-> css-token   #:as Symbol                         #:=? eq?]
-     [css:match      #:+ CSS:Match      #:-> css-token   #:as Char                           #:=? char=?]
-     [css:ident      #:+ CSS:Ident      #:-> css-token   #:as Symbol [flag : Ident-Flag]     #:=? eq?]
-     [css:hash       #:+ CSS:Hash       #:-> css-token   #:as Keyword                        #:=? eq?]
-     [css:@keyword   #:+ CSS:@Keyword   #:-> css-token   #:as Keyword                        #:=? eq?]
-     [css:string     #:+ CSS:String     #:-> css-token   #:as String                         #:=? string=?]
-     [css:delim      #:+ CSS:Delim      #:-> css-token   #:as Char                           #:=? char=?]
-     [css:urange     #:+ CSS:URange     #:-> css-token   #:as (Pairof Index Index)           #:=? equal?]
-     [css:integer    #:+ CSS:Integer    #:-> css:number  #:as Integer                        #:=? =]
-     [css:flonum     #:+ CSS:Flonum     #:-> css:number  #:as Float                          #:=? fl=]
-     [css:percentage #:+ CSS:Percentage #:-> css:numeric #:as Float                          #:=? fl=]
-     [css:dimension  #:+ CSS:Dimension  #:-> css:numeric #:as (Pairof Real Symbol)           #:=? equal?]
-     [css:whitespace #:+ CSS:WhiteSpace #:-> css-token   #:as (U String Char)                #:=? equal?]
-     
-     ;;; These tokens are processed by tokenizer and parser, and they are always ready for applications.
-     [css:url        #:+ CSS:URL        #:-> css-token   #:as (U String Symbol) [modifiers : (Listof CSS-URL-Modifier)] #:=? equal?]
-     [css:function   #:+ CSS:Function   #:-> css-token   #:as Symbol [arguments : (Listof CSS-Token)]                   #:=? eq?   ]
-     [css:block      #:+ CSS:Block      #:-> css-token   #:as Char [components : (Listof CSS-Token)]                    #:=? char=?]
-     
-     ;;; These tokens are remade by the parser, and they are never produced by the tokenizer.
-     [css:ratio      #:+ CSS:Ratio      #:-> css:number  #:as Positive-Exact-Rational        #:=? =]
-     [css:rgba       #:+ CSS:RGBA       #:-> css-token   #:as RGBA                           #:=? equal?]]
-    #:extend [[css:length     #:+ CSS:Length css:dimension ([type : (U 'font 'viewport 'absolute)])]
-              [css:angle      #:+ CSS:Angle css:dimension ()]
-              [css:time       #:+ CSS:Time css:dimension ()]
-              [css:frequency  #:+ CSS:Frequency css:dimension ()]
-              [css:resolution #:+ CSS:Resolution css:dimension ()]])
+  (define-tokens css-token : CSS-Token ([source : Any] [line : Natural] [column : Natural] [position : Natural] [span : Natural])
+    [(struct: css-numeric   : CSS-Numeric   css-token   ([representation : String]))
+     (struct: css:dimension : CSS:Dimension css-numeric ([datum : Real] [unit : Symbol] [scalar : Nonnegative-Real]))]
 
+    ; TODO: Typed Racket is buggy if there are more than 11 Ids for (token->datum)
+    (define-symbolic-tokens css-special #:+ CSS-Special
+      [css:bad        #:+ CSS:Bad        #:as (Pairof Symbol Datum)]
+      [css:whitespace #:+ CSS:WhiteSpace #:as (U String Char)]
+      [css:close      #:+ CSS:Close      #:as Char]
+      
+      ; These tokens are remade by the parser, and they are never produced by the tokenizer.
+      [css:ratio      #:+ CSS:Ratio      #:as Positive-Exact-Rational]
+      [css:rgba       #:+ CSS:RGBA       #:as (Pairof Nonnegative-Fixnum Nonnegative-Flonum)])
+
+    (define-symbolic-tokens css-symbolic #:+ CSS-Symbolic
+      [css:cd         #:+ CSS:CD         #:as Char]
+      [css:match      #:+ CSS:Match      #:as Char]
+      [css:delim      #:+ CSS:Delim      #:as Char]
+      [css:ident      #:+ CSS:Ident      #:as Symbol]
+      [css:@keyword   #:+ CSS:@Keyword   #:as Keyword]
+      [css:hash       #:+ CSS:Hash       #:as Keyword]
+      [css:string     #:+ CSS:String     #:as String]
+      [css:urange     #:+ CSS:URange     #:as (Pairof Index Index)])
+
+    (define-symbolic-tokens css-structural #:+ CSS-Structural
+      [css:url        #:+ CSS:URL        #:as (U String Symbol) [modifiers  : (Listof CSS-URL-Modifier)]]
+      [css:block      #:+ CSS:Block      #:as Char              [components : (Listof CSS-Token)]]
+      [css:function   #:+ CSS:Function   #:as Symbol            [arguments  : (Listof CSS-Token)]])
+
+    (define-numeric-tokens css-number #:+ CSS-Number
+      [css:bignum     #:+ CSS:Bignum     #:-> css-number        #:as Integer            #:=? =]
+      
+      [css:integer    #:+ CSS:Integer    #:-> css-number        #:as Fixnum             #:=? fx=]
+      [css:natural    #:+ CSS:Natural    #:-> css:integer       #:as Index              #:=? fx=]
+      [css:byte       #:+ CSS:Byte       #:-> css:natural       #:as Byte               #:=? fx=]
+      [css:zero       #:+ CSS:Zero       #:-> css:byte          #:as Zero               #:=? fx=]
+
+      [css:flonum     #:+ CSS:Flonum     #:-> css-number        #:as Flonum             #:=? fl=]
+      [css:flunum     #:+ CSS:Flunum     #:-> css:flonum        #:as Nonnegative-Flonum #:=? fl=]
+      [css:flzero     #:+ CSS:Flzero     #:-> css:flunum        #:as Flonum-Zero        #:=? fl=]
+
+      [css:delta%     #:+ CSS:Delta%     #:-> css-number        #:as Flonum             #:=? fl=]
+      [css:percentage #:+ CSS:Percentage #:-> css:delta%        #:as Nonnegative-Flonum #:=? fl=])
+  
+    (define-dimensional-tokens css:dimension
+      ;;; https://drafts.csswg.org/css-values/#absolute-lengths
+      ;;; https://drafts.csswg.org/css-values/#relative-lengths
+      [css:length     #:+ CSS:Length                            [type : (U 'font 'viewport 'absolute)]
+                      #:=> px   [[(cm)    (* px 9600/254)]
+                                 [(mm)    (* px 9600/254 1/10)]
+                                 [(q)     (* px 9600/254 1/40)]
+                                 [(in)    (* px 96)]
+                                 [(pc)    (* px 96 1/6)]
+                                 [(pt)    (* px 96 1/72)]
+                                 [(em)    (* px (current-css-element-font-size))]
+                                 [(ex)    (* px (current-css-x-height))]
+                                 [(ch)    (* px (current-css-char-width))]
+                                 [(ic)    (* px (current-css-word-width))]
+                                 [(rem)   (* px (current-css-root-element-font-size))]
+                                 [(vw vi) (* px 1/100 (current-css-containing-block-width))]
+                                 [(vh vb) (* px 1/100 (current-css-containing-block-height))]
+                                 [(vmin)  (* px 1/100 (min (current-css-containing-block-width) (current-css-containing-block-height)))]
+                                 [(vmax)  (* px 1/100 (max (current-css-containing-block-width) (current-css-containing-block-height)))]]]
+      ;;; https://drafts.csswg.org/css-values/#angles
+      [css:angle      #:+ CSS:Angle
+                      #:=> deg  [[(grad)  (* deg 9/10)]
+                                 [(rad)   (* deg (/ 180 pi))]
+                                 [(turn)  (* deg 360)]]]
+      ;;; https://drafts.csswg.org/css-values/#time
+      [css:time       #:+ CSS:Time
+                      #:=> s    [[(ms)    (* s 1/1000)]
+                                 [(min)   (* s 60)]
+                                 [(h)     (* s 60 60)]]]
+      ;;; https://drafts.csswg.org/css-values/#frequency
+      [css:frequency  #:+ CSS:Frequency
+                      #:=> kz   [[(khz)   (* kz 1/1000)]]]
+      ;;; https://drafts.csswg.org/css-values/#resolution
+      [css:resolution #:+ CSS:Resolution
+                      #:=> dppx [[(dpcm)  (css-length-canonicalize dppx 'cm)]
+                                 [(dpi)   (css-length-canonicalize dppx 'in)]]]))
+    
   (define-syntax (css-remake-token stx)
     (syntax-case stx []
       [(_ [start-token end-token] make-css:token datum extra ...)
@@ -223,8 +376,10 @@
   (struct: css:bad:stdin : CSS:Bad:StdIn css:bad ())
 
   ;;; https://drafts.csswg.org/css-syntax/#parsing
+  (define-type (Listof+ css) (Pairof css (Listof css)))
   (define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
   (define-type CSS-URL-Modifier (U CSS:Ident CSS:Function CSS:URL))
+  (define-type CSS-Zero (U CSS:Zero CSS:Flzero))
   (define-type CSS-Syntax-Any (U CSS-Token EOF))
   (define-type CSS-Syntax-Terminal (U CSS:Delim CSS:Close EOF))
   (define-type CSS-Syntax-Rule (U CSS-Qualified-Rule CSS-@Rule))
@@ -409,7 +564,7 @@
   ;; https://drafts.csswg.org/mediaqueries/#mq-features
   (define-type CSS-Media-Query (U CSS-Media-Type CSS-Feature-Query (Pairof CSS-Media-Type CSS-Feature-Query)))
   (define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature CSS-Declaration Symbol CSS-Syntax-Error))
-  (define-type CSS-Media-Value (U CSS:Number CSS:Dimension CSS:Ident))
+  (define-type CSS-Media-Value (U CSS-Numeric CSS:Ident CSS:Ratio))
   (define-type CSS-Media-Datum (U Real Symbol))
 
   (struct: css-media-type : CSS-Media-Type ([name : Symbol] [only? : Boolean]))
@@ -431,18 +586,19 @@
       (values
        (case downcased-name
          [(width height device-width device-height resolution)
-          (cond [(css-number=:=? maybe-value zero?) 0]
-                [(css:length? maybe-value) (let ([n (css-dimension->scalar maybe-value)]) (if (negative? n) exn:css:range n))]
+          (cond [(css:+length? maybe-value) (css:length->scalar maybe-value)]
+                [(css:length? maybe-value) exn:css:range]
                 [(css:dimension? maybe-value) exn:css:unit]
                 [(css-token? maybe-value) exn:css:type])]
          [(resolution)
-          (cond [(css-keyword=:=? maybe-value 'infinite) +inf.0]
-                [(css:resolution? maybe-value) (let ([n (css-dimension->scalar maybe-value)]) (if (negative? n) exn:css:range n))]
+          (cond [(css:ident-norm=:=? maybe-value 'infinite) +inf.0]
+                [(css:+resolution? maybe-value) (css:resolution->scalar maybe-value)]
+                [(css:resolution? maybe-value) exn:css:range]
                 [(css:dimension? maybe-value) exn:css:unit]
                 [(css-token? maybe-value) exn:css:type])]
          [(orientation scan update overflow-block overflow-inline color-gamut pointer hover any-pointer any-hover scripting)
           (cond [(css:ident? maybe-value)
-                 (define downcased-option : Symbol (css-ident-autocase maybe-value))
+                 (define downcased-option : Symbol (css:ident-norm maybe-value))
                  (cond [(memq downcased-option
                               (case downcased-name
                                 [(orientation) '(portrait landscape)]
@@ -524,7 +680,7 @@
       (define all-value : CSS-Token (car all-values))
       (values (cond [(> argsize 1) (vector exn:css:overconsumption (cdr all-values))]
                     [(not (css:ident? all-value)) exn:css:type]
-                    [(memq (css-ident-autocase all-value) '(initial inherit unset revert)) all-value]
+                    [(memq (css:ident-norm all-value) '(initial inherit unset revert)) all-value]
                     [else exn:css:range])
               #false)))
 
@@ -533,19 +689,14 @@
     (lambda [suitcased-name desc-values]
       (define argsize : Index (length desc-values))
       (define desc-value : CSS-Token (car desc-values))
-      (define >=0? : (-> Real Boolean) (λ [r] (>= r 0)))
       (define (viewport-length [v : CSS-Token]) : (U CSS-Token Make-CSS-Syntax-Error)
-        (cond [(or (css-keyword=:=? v 'auto) (css:percentage=:=? v >=0?)) v]
-              [(or (css:ident? v) (css:percentage? v)) exn:css:range]
-              [(not (css:dimension? v)) exn:css:type]
-              [(not (css:length? v)) exn:css:unit]
-              [else (let ([maybe-dim (css-canonicalize-dimension v)])
-                      ; this is okay even for font relative length since the @viewport is the first rule to be cascaded.
-                      ; the font relative parameters should be initialized when the program starts.
-                      (cond [(false? maybe-dim) exn:css:unit]
-                            [else (let ([scalar (car (css:dimension-datum maybe-dim))])
-                                    (cond [(negative? scalar) exn:css:range]
-                                          [else maybe-dim]))]))]))
+        (cond ; this is okay even for font relative length since the @viewport is the first rule to be cascaded.
+              ; the font relative parameters should be initialized when the program starts.
+              [(css:+length? v) (or (css:length-canonicalize v) exn:css:unit)]
+              [(or (css:ident-norm=:=? v 'auto) (css:percentage? v) (css-zero? v)) v]
+              [(or (css:ident? v) (css:delta%? v) (css:length? v)) exn:css:range]
+              [(css:dimension? v) exn:css:unit]
+              [else exn:css:type]))
       (values
        (case suitcased-name
          [(width height)
@@ -564,13 +715,14 @@
                 [else length-value])]
          [(zoom min-zoom max-zoom)
           (cond [(> argsize 1) (vector exn:css:overconsumption (cdr desc-values))]
-                [(or (css-keyword=:=? desc-value 'auto) (css:percentage=:=? desc-value >=0?) (css-number=:=? desc-value >=0?)) desc-value]
-                [(or (css:ident? desc-value) (css:percentage? desc-value) (css:number? desc-value)) exn:css:range]
+                [(css:ident-norm=:=? desc-value 'auto) desc-value]
+                [(or (css-zero? desc-value) (css:delta%=:=? desc-value fl>= 0.0)) desc-value]
+                [(or (css:ident? desc-value) (css-number? desc-value)) exn:css:range]
                 [else exn:css:type])]
          [(orientation user-zoom)
           (cond [(> argsize 1) (vector exn:css:overconsumption (cdr desc-values))]
                 [(not (css:ident? desc-value)) exn:css:type]
-                [(memq (css-ident-autocase desc-value)
+                [(memq (css:ident-norm desc-value)
                        (case suitcased-name
                          [(orientation) '(auto portrait landscape)]
                          [(user-zoom) '(zoom fixed)]
@@ -597,19 +749,17 @@
               [(symbol? v2) v1]
               [else (maix v1 v2)]))
       (define (zoom->real [desc-name : Symbol] [maybe-zoom : CSS-Cascaded-Value]) : Real
-        (cond [(css:percentage? maybe-zoom) (css:percentage-datum maybe-zoom)]
-              [(css:integer? maybe-zoom) (css:integer-datum maybe-zoom)]
-              [(css:flonum? maybe-zoom) (css:flonum-datum maybe-zoom)]
+        (cond [(css-number? maybe-zoom) (assert (css-number->datum maybe-zoom) real?)]
               [(eq? desc-name 'max-zoom) +inf.0]
               [(eq? desc-name 'min-zoom) 0]
               [else (current-css-viewport-auto-zoom)]))
       (define (size->scalar [desc-name : Symbol] [maybe-size : CSS-Cascaded-Value]) : (U Real Symbol)
-        (cond [(css:dimension? maybe-size) (car (css:dimension-datum maybe-size))] ; already canonicalized
+        (cond [(css:dimension? maybe-size) (css:dimension-datum maybe-size)] ; already canonicalized
               [(not (css:percentage? maybe-size)) 'auto]
-              [(memq desc-name '(min-width max-width)) (* (css:percentage-datum maybe-size) initial-width)]
-              [else (* (css:percentage-datum maybe-size) initial-height)]))
+              [(memq desc-name '(min-width max-width)) (css:percentage=> maybe-size * initial-width)]
+              [else (css:percentage=> maybe-size * initial-height)]))
       (define (enum-value [desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]) : (U Real Symbol)
-        (cond [(css:ident? maybe-value) (css:ident-datum maybe-value)]
+        (cond [(css:ident? maybe-value) (css:ident-norm maybe-value)]
               [(eq? desc-name 'user-zoom) 'zoom]
               [else 'auto]))
       (define min-zoom : Real (css-ref cascaded-values 'min-zoom zoom->real))
@@ -642,146 +792,6 @@
             (make-parameter 1.0)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;; https://drafts.csswg.org/css-values/#lengths
-  ;;; https://drafts.csswg.org/css-values/#other-units
-  (define-type Quantity->Scalar (case-> [Nonnegative-Exact-Rational Symbol -> (U Nonnegative-Exact-Rational Flonum-Nan)]
-                                        [Exact-Rational Symbol -> (U Exact-Rational Flonum-Nan)]
-                                        [Nonnegative-Real Symbol -> Nonnegative-Real]
-                                        [Real Symbol -> Real]))
-
-  (define-values (current-css-containing-block-width current-css-containing-block-height)
-    (values (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))
-            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
-
-  (define-values (current-css-element-font-size current-css-root-element-font-size)
-    (values (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))
-            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
-
-  (define-values (current-css-x-height current-css-char-width current-css-word-width)
-    (values (ann (make-parameter 1/2) (Parameterof Nonnegative-Exact-Rational))
-            (ann (make-parameter 1/2) (Parameterof Nonnegative-Exact-Rational))
-            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
-
-  (define css-font-relative-length? : (-> Any Boolean : #:+ CSS:Length)
-    (lambda [v]
-      (and (css:length? v)
-           (eq? (css:length-type v) 'font))))
-
-  (define css-viewport-relative-length? : (-> Any Boolean : #:+ CSS:Length)
-    (lambda [v]
-      (and (css:length? v)
-           (eq? (css:length-type v) 'viewport))))
-  
-  (define css-dimension->scalar : (->* (CSS:Dimension) ((Option (Boxof Symbol))) Real)
-    (lambda [dim [&canonical-unit #false]]
-      (define-values (n unit) (values (car (css:dimension-datum dim)) (cdr (css:dimension-datum dim))))
-      (define-values (scalar canonical-unit)
-        (cond [(css:length? dim) (values (css-length->scalar n unit) 'px)]
-              [(css:angle? dim) (values (css-angle->scalar n unit) 'deg)]
-              [(css:time? dim) (values (css-time->scalar n unit) 's)]
-              [(css:frequency? dim) (values (css-frequency->scalar n unit) 'hz)]
-              [(css:resolution? dim) (values (css-resolution->scalar n unit) 'dpi)]
-              [else (values +nan.0 unit)]))
-      (when (box? &canonical-unit) (set-box! &canonical-unit (if (nan? scalar) 'NaN canonical-unit)))
-      scalar))
-
-  (define css-canonicalize-dimension : (-> CSS:Dimension (Option CSS:Dimension))
-    (lambda [dim]
-      (define unit : Symbol (cdr (css:dimension-datum dim)))
-      (define &canonical-unit : (Boxof Symbol) (box unit))
-      (define scalar : Real (css-dimension->scalar dim &canonical-unit))
-      (define canonical-unit : Symbol (unbox &canonical-unit))
-      (cond [(nan? scalar) #false]
-            [(eq? canonical-unit unit) dim]
-            [else (css-remake-token dim css:dimension (css:numeric-representation dim) (cons scalar canonical-unit))])))
-  
-  (define css-length->scalar : Quantity->Scalar
-    ;;; https://drafts.csswg.org/css-values/#absolute-lengths
-    ;;; https://drafts.csswg.org/css-values/#relative-lengths
-    (lambda [n unit]
-      (case unit
-        [(px) n]
-        [(cm) (* n 9600/254)]
-        [(mm) (* n 9600/254 1/10)]
-        [(q) (* n 9600/254 1/40)]
-        [(in) (* n 96)]
-        [(pc) (* n 96 1/6)]
-        [(pt) (* n 96 1/72)]
-        [(em) (* n (current-css-element-font-size))]
-        [(ex) (* n (current-css-x-height))]
-        [(ch) (* n (current-css-char-width))]
-        [(ic) (* n (current-css-word-width))]
-        [(rem) (* n (current-css-root-element-font-size))]
-        [(vw vi) (* n 1/100 (current-css-containing-block-width))]
-        [(vh vb) (* n 1/100 (current-css-containing-block-height))]
-        [(vmin) (* n 1/100 (min (current-css-containing-block-width) (current-css-containing-block-height)))]
-        [(vmax) (* n 1/100 (max (current-css-containing-block-width) (current-css-containing-block-height)))]
-        [else +nan.0])))
-  
-  (define css-angle->scalar : (case-> [Nonnegative-Real Symbol -> Nonnegative-Real] [Real Symbol -> Real])
-    ;;; https://drafts.csswg.org/css-values/#angles
-    (lambda [n unit]
-      (case unit
-        [(deg) n]
-        [(grad) (* n 9/10)]
-        [(rad) (* n (/ 180 pi))]
-        [(turn) (* n 360)]
-        [else +nan.0])))
-
-  (define css-time->scalar : Quantity->Scalar
-    ;;; https://drafts.csswg.org/css-values/#time
-    (lambda [n unit]
-      (case unit
-        [(s) n]
-        [(ms) (* n 1/1000)]
-        [(min) (* n 60)]
-        [(h) (* n 60 60)]
-        [else +nan.0])))
-
-  (define css-frequency->scalar : Quantity->Scalar
-    ;;; https://drafts.csswg.org/css-values/#frequency
-    (lambda [n unit]
-      (case unit
-        [(hz) n]
-        [(khz) (* n 1/1000)]
-        [else +nan.0])))
-
-  (define css-resolution->scalar : Quantity->Scalar
-    ;;; https://drafts.csswg.org/css-values/#resolution
-    (lambda [n unit]
-      (case unit
-        [(dppx) n]
-        [(dpcm) (css-length->scalar n 'cm)]
-        [(dpi) (css-length->scalar n 'in)]
-        [else +nan.0])))
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define css-base-datum? : (-> Any Boolean : #:+ Datum)
-    (lambda [datum]
-      (or (symbol? datum) (number? datum)
-          (string? datum) (char? datum) (keyword? datum))))
-
-  (define css-number=:=? : (-> Any (U Real (-> Real Boolean)) Boolean : #:+ CSS:Number)
-    (lambda [token type?]
-      (and (css:number? token)
-           (let ([datum (cond [(css:integer? token) (css:integer-datum token)]
-                              [(css:flonum? token) (css:flonum-datum token)]
-                              [(css:ratio? token) (css:ratio-datum token)])])
-             (and (real? datum)
-                  (cond [(procedure? type?) (type? datum)]
-                        [else (eqv? datum type?)]))))))
-
-  (define css-keyword=:=? : (-> Any Symbol Boolean : #:+ CSS:Ident)
-    (lambda [token well-defined-keyword-is-downcased]
-      (and (css:ident? token)
-           (eq? (css-ident-autocase token)
-                well-defined-keyword-is-downcased))))
-
-  (define css-ident-autocase : (->* (CSS:Ident) (Boolean) Symbol)
-    (lambda [token [force-downcase-custom? #false]]
-      (define id : Symbol (css:ident-datum token))
-      (if (or (eq? (css:ident-flag token) 'upcase) force-downcase-custom?) (symbol-downcase id) id)))
-  
   (define css-car : (All (css) (->* ((Listof css)) (Boolean) (Values (U css EOF) (Listof css))))
     (lambda [dirty [skip-whitespace? #true]]
       (let skip-whitespace ([rest dirty])
@@ -807,11 +817,7 @@
   (define css-cons : (All (css) (-> (U CSS-Syntax-Error css) (Listof css) (Listof css)))
     (lambda [item items]
       (cond [(exn? item) items]
-            [else (cons item items)])))
-
-  (define symbol-downcase : (-> Symbol Symbol)
-    (lambda [sym]
-      (string->symbol (string-downcase (symbol->string sym))))))
+            [else (cons item items)]))))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module tokenizer typed/racket ;;; https://drafts.csswg.org/css-syntax/#tokenization
@@ -826,7 +832,7 @@
 
   (define-syntax (css-make-token stx)
     (syntax-case stx []
-      [(_ src make-css:token datum extra ...)
+      [(_ src make-css:token datum ...)
        #'(let-values ([(start-position) (css-srcloc-pos src)]
                       [(line column position) (port-next-location (css-srcloc-in src))])
            (make-css:token (css-srcloc-source src)
@@ -835,7 +841,7 @@
                            (or start-position 0)
                            (cond [(nand (integer? position) (integer? start-position)) 0]
                                  [else (max (- position start-position) 0)])
-                           datum extra ...))]))
+                           datum ...))]))
 
   (define-syntax (css-make-bad-token stx)
     (syntax-case stx []
@@ -874,11 +880,11 @@
       (define css : Input-Port (css-srcloc-in srcloc))
       (if (char=? open/close #\<)
           (let ([cdo : (U EOF String) (peek-string 3 0 css)])
-            (cond [(and (string? cdo) (string=? cdo "!--")) (read-string 3 css) (css-make-token srcloc css:cd '<!--)]
+            (cond [(and (string? cdo) (string=? cdo "!--")) (read-string 3 css) (css-make-token srcloc css:cd #\<)]
                   [else (css-make-token srcloc css:delim #\<)]))
           (let ([cdc : (U EOF String) (peek-string 2 0 css)])
             (cond [(eof-object? cdc) (css-make-token srcloc css:delim #\-)]
-                  [(string=? cdc "->") (read-string 2 css) (css-make-token srcloc css:cd '-->)]
+                  [(string=? cdc "->") (read-string 2 css) (css-make-token srcloc css:cd #\>)]
                   [(css-identifier-prefix? #\- (string-ref cdc 0) (string-ref cdc 1)) (css-consume-ident-token srcloc #\-)]
                   [else (css-consume-numeric-token srcloc #\-)])))))
 
@@ -907,16 +913,15 @@
       (cond [(and (char-ci=? id0 #\u) (char? ch1) (char=? ch1 #\+)
                   (or (char-hexdigit? ch2) (and (char? ch2) (char=? ch2 #\?))))
              (read-char css) (css-consume-unicode-range-token srcloc)]
-            [else (let-values ([(name has-upcase?) (css-consume-name css id0)])
+            [else (let ([name (css-consume-name css id0)])
                     (define ch : (U EOF Char) (peek-char css))
                     (cond [(or (eof-object? ch) (not (char=? ch #\()))
-                           (define idname : Symbol (string->symbol name))
-                           (cond [(and (char? ch1) (char=? id0 ch1 #\-)) (css-make-token srcloc css:ident idname 'custom)]
-                                 [(not has-upcase?) (css-make-token srcloc css:ident idname 'downcased)]
-                                 [else (css-make-token srcloc css:ident idname 'upcase)])]
-                          [(or (not (string-ci=? name "url")) (regexp-match-peek #px"^.\\s*[\"']" css))
-                           (define fname : Symbol (string->unreadable-symbol (if has-upcase? (string-downcase name) name)))
-                           (read-char css) (css-make-token srcloc css:function fname null)]
+                           (if (and (char? ch1) (char=? id0 ch1 #\-))
+                               (let ([--id (string->unreadable-symbol name)]) (css-make-token srcloc css:ident --id --id))
+                               (css-make-token srcloc css:ident (string->symbol name) (string->symbol (string-downcase name))))]
+                          [(and (or (not (string-ci=? name "url")) (regexp-match-peek #px"^.\\s*[\"']" css)) (read-char css))
+                           (define fnorm : Symbol (string->symbol (string-downcase name)))
+                           (css-make-token srcloc css:function (string->unreadable-symbol name) fnorm null)]
                           [else (read-char css) (css-consume-url-token srcloc)]))])))
       
   (define css-consume-string-token : (-> CSS-Srcloc Char (U CSS:String CSS:Bad))
@@ -928,16 +933,14 @@
         (cond [(or (eof-object? ch) (char=? ch quotation))
                (when (eof-object? ch) (css-make-bad-token srcloc css:bad:eof struct:css:string (list->string (reverse chars))))
                (css-make-token srcloc css:string (list->string (reverse chars)))]
-              [(char=? ch #\newline)
-               (css-make-bad-token srcloc css:bad:eol struct:css:string (list->string (reverse chars)))]
-              [(not (char=? ch #\\))
-               (consume-string-token (cons ch chars))]
+              [(char=? ch #\newline) (css-make-bad-token srcloc css:bad:eol struct:css:string (list->string (reverse chars)))]
+              [(not (char=? ch #\\)) (consume-string-token (cons ch chars))]
               [else (let ([next (peek-char css)])
                       (cond [(eof-object? next) (consume-string-token chars)]
-                            [(char=? next #\newline) (read-char css) (consume-string-token (cons ch chars))]
+                            [(and (char=? next #\newline) (read-char css)) (consume-string-token (cons ch chars))]
                             [else (consume-string-token (cons (css-consume-escaped-char css) chars))]))]))))
 
-  (define css-consume-numeric-token : (-> CSS-Srcloc Char (U CSS:Numeric CSS:Delim CSS:Bad))
+  (define css-consume-numeric-token : (-> CSS-Srcloc Char (U CSS-Numeric CSS:Delim CSS:Bad))
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-number
     ;;; https://drafts.csswg.org/css-values/#numeric-types
     (lambda [srcloc sign/digit]
@@ -950,21 +953,30 @@
                           [ch2 : (U EOF Char) (peek-char css 1)]
                           [ch3 : (U EOF Char) (peek-char css 2)])
                       (cond [(css-identifier-prefix? ch1 ch2 ch3)
-                             (define-values (raw has-upcase?) (css-consume-name css #false))
-                             (define unit : Symbol (string->symbol (if has-upcase? (string-downcase raw) raw)))
+                             (define unit : Symbol (string->symbol (string-downcase (css-consume-name css #false))))
+                             (define scalar : Nonnegative-Real (if (negative? n) (abs n) n))
                              (case unit
-                               [(em ex ch ic rem) (css-make-token srcloc css:length representation (cons n unit) 'font)]
-                               [(vw vh vi vb vmin vmax) (css-make-token srcloc css:length representation (cons n unit) 'viewport)]
-                               [(px cm mm q in pc pt) (css-make-token srcloc css:length representation (cons n unit) 'absolute)]
-                               [(deg grad rad turn) (css-make-token srcloc css:angle representation (cons n unit))]
-                               [(s ms min h) (css-make-token srcloc css:time representation (cons n unit))]
-                               [(frequency hz khz) (css-make-token srcloc css:frequency representation (cons n unit))]
-                               [(resolution dpi dpcm dppx) (css-make-token srcloc css:resolution representation (cons n unit))]
-                               [else (css-make-token srcloc css:dimension representation (cons n unit))])]
-                            [(and (char? ch1) (char=? ch1 #\%)) (read-char css)
-                             (css-make-token srcloc css:percentage representation (real->double-flonum (* n 1/100)))]
-                            [(exact-integer? n) (css-make-token srcloc css:integer representation n)]
-                            [else (css-make-token srcloc css:flonum representation (real->double-flonum n))])))])))
+                               [(em ex ch ic rem)       (css-make-token srcloc css:length     representation n unit scalar 'font)]
+                               [(vw vh vi vb vmin vmax) (css-make-token srcloc css:length     representation n unit scalar 'viewport)]
+                               [(px cm mm q in pc pt)   (css-make-token srcloc css:length     representation n unit scalar 'absolute)]
+                               [(deg grad rad turn)     (css-make-token srcloc css:angle      representation n unit scalar)]
+                               [(s ms min h)            (css-make-token srcloc css:time       representation n unit scalar)]
+                               [(hz khz)                (css-make-token srcloc css:frequency  representation n unit scalar)]
+                               [(dpi dpcm dppx)         (css-make-token srcloc css:resolution representation n unit scalar)]
+                               [else                    (css-make-token srcloc css:dimension  representation n unit scalar)])]
+                            [(and (char? ch1) (char=? ch1 #\%) (read-char css))
+                             (define n% : Flonum (real->double-flonum (* n 1/100)))
+                             (cond [(or (negative? n%) (fl> n% 1.0)) (css-make-token srcloc css:delta% representation n%)]
+                                   [else (css-make-token srcloc css:percentage representation n% n%)])]
+                            [(flonum? n)
+                             (cond [(positive? n) (css-make-token srcloc css:flunum representation n n)]
+                                   [(zero? n) (css-make-token srcloc css:flzero representation n n n)]
+                                   [else (css-make-token srcloc css:flonum representation n)])]
+                            [(zero? n)   (css-make-token srcloc css:zero representation n n n n)]
+                            [(byte? n)   (css-make-token srcloc css:byte representation n n n)]
+                            [(index? n)  (css-make-token srcloc css:natural representation n n)]
+                            [(fixnum? n) (css-make-token srcloc css:integer representation n)]
+                            [else        (css-make-token srcloc css:bignum representation n)])))])))
 
   (define css-consume-url-token : (-> CSS-Srcloc (U CSS:URL CSS:Bad))
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-url-token
@@ -983,14 +995,12 @@
                     (cond [(or (eof-object? ch) (char=? ch #\)))
                            (when (eof-object? ch) (css-make-bad-token srcloc css:bad:eof struct:css:url (list->string (reverse chars))))
                            (css-make-token srcloc css:url (list->string (reverse chars)) null)]
-                          [(char-whitespace? ch)
-                           (css-consume-whitespace css)
+                          [(and (char-whitespace? ch) (css-consume-whitespace css))
                            (define end : (U EOF Char) (read-char css))
                            (define uri : String (list->string (reverse chars)))
                            (cond [(or (eof-object? end) (char=? end #\))) (css-make-token srcloc css:url uri null)]
                                  [else (css-consume-bad-url-remnants css (css-make-bad-token srcloc css:bad:blank struct:css:url uri))])]
-                          [(css-valid-escape? ch (peek-char css))
-                           (consume-url-token (cons (css-consume-escaped-char css) chars))]
+                          [(css-valid-escape? ch (peek-char css)) (consume-url-token (cons (css-consume-escaped-char css) chars))]
                           [(or (memq ch '(#\\ #\" #\' #\()) (css-char-non-printable? ch))
                            (css-consume-bad-url-remnants css (css-make-bad-token srcloc css:bad:char struct:css:url ch))]
                           [else (consume-url-token (cons ch chars))]))])))
@@ -1010,7 +1020,7 @@
         (cond [(not (= start0 end0)) (values start0 end0)]
               [else (let ([ch1 (peek-char css 0)]
                           [ch2 (peek-char css 1)])
-                      (cond [(and (char? ch1) (char=? ch1 #\-) (char-hexdigit? ch2)) (read-char css)
+                      (cond [(and (char? ch1) (char=? ch1 #\-) (char-hexdigit? ch2) (read-char css))
                              (define-values (end _) (css-consume-hexadecimal (css-srcloc-in srcloc) 6))
                              (values start0 end)]
                             [else (values start0 start0)]))]))
@@ -1026,8 +1036,8 @@
       (define ch2 : (U EOF Char) (peek-char css 1))
       (define ch3 : (U EOF Char) (peek-char css 2))
       (if (or (css-char-name? ch1) (css-valid-escape? ch1 ch2))
-          (let-values ([(name has-upcase?) (css-consume-name (css-srcloc-in srcloc) #false)])
-            (css-make-token srcloc css:hash (string->keyword name)))
+          (let ([name (css-consume-name (css-srcloc-in srcloc) #false)])
+            (css-make-token srcloc css:hash (string->keyword name) (string->keyword (string-downcase name))))
           (css-make-token srcloc css:delim #\#))))
 
   (define css-consume-@keyword-token : (-> CSS-Srcloc (U CSS:@Keyword CSS:Delim))
@@ -1038,20 +1048,18 @@
       (define ch2 : (U EOF Char) (peek-char css 1))
       (define ch3 : (U EOF Char) (peek-char css 2))
       (if (css-identifier-prefix? ch1 ch2 ch3)
-          (let-values ([(name has-upcase?) (css-consume-name (css-srcloc-in srcloc) #\@)])
-            (css-make-token srcloc css:@keyword
-                            (string->keyword (cond [(not has-upcase?) name]
-                                                   [else (string-downcase name)]))))
+          (let ([name (css-consume-name (css-srcloc-in srcloc) #\@)])
+            (css-make-token srcloc css:@keyword (string->keyword name) (string->keyword (string-downcase name))))
           (css-make-token srcloc css:delim #\@))))
 
-  (define css-consume-match-token : (-> CSS-Srcloc Char (U CSS:Match CSS:|| CSS:Delim))
+  (define css-consume-match-token : (-> CSS-Srcloc Char (U CSS:Match CSS:Delim))
     ;;; https://drafts.csswg.org/css-syntax/#include-match-token-diagram
     ;;; https://drafts.csswg.org/css-syntax/#column-token-diagram
     (lambda [srcloc prefix]
       (define css : Input-Port (css-srcloc-in srcloc))
       (define ch : (U EOF Char) (peek-char css))
-      (cond [(and (char=? prefix #\|) (eq? ch #\|)) (read-char css) (css-make-token srcloc css:|| '||)]
-            [(eq? ch #\=) (read-char css) (css-make-token srcloc css:match prefix)]
+      (cond [(and (char=? prefix #\|) (eq? ch #\|) (read-char css)) (css-make-token srcloc css:delim #\tab)]
+            [(and (eq? ch #\=) (read-char css)) (css-make-token srcloc css:match prefix)]
             [else (css-make-token srcloc css:delim prefix)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1060,32 +1068,31 @@
       (regexp-match #px"\\s*" css)
       (void)))
   
-  (define css-consume-name : (-> Input-Port (Option Char) (Values String Boolean))
+  (define css-consume-name : (-> Input-Port (Option Char) String)
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-name
     (lambda [css maybe-head]
-      (let consume-name : (Values String Boolean) ([srahc : (Listof Char) (if maybe-head (list maybe-head) null)]
-                                                   [uc? : Boolean (and (char? maybe-head) (char-upper-case? maybe-head))])
+      (let consume-name ([srahc : (Listof Char) (if maybe-head (list maybe-head) null)])
         (define ch : (U EOF Char) (peek-char css))
-        (cond [(and (char? ch) (char-upper-case? ch)) (read-char css) (consume-name (cons ch srahc) #true)]
-              [(css-char-name? ch) (read-char css) (consume-name (cons ch srahc) uc?)]
-              [(css-valid-escape? ch (peek-char css 1)) (read-char css) (consume-name (cons (css-consume-escaped-char css) srahc) uc?)]
-              [else (values (list->string (reverse srahc)) uc?)]))))
+        (cond [(and (css-char-name? ch) (read-char css)) (consume-name (cons ch srahc))]
+              [(and (css-valid-escape? ch (peek-char css 1)) (read-char css)) (consume-name (cons (css-consume-escaped-char css) srahc))]
+              [else (list->string (reverse srahc))]))))
 
-  (define css-consume-number : (-> Input-Port Char (Values Real String))
+  (define css-consume-number : (-> Input-Port Char (Values (U Flonum Integer) String))
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-number
     (lambda [css sign/digit]
-      (let consume-number : (Values Real String) ([chars (list sign/digit)])
+      (let consume-number ([chars (list sign/digit)])
         (define ch : (U EOF Char) (peek-char css))
         (cond [(and (char? ch)
                     (or (char-numeric? ch)
                         (char=? ch #\+) (char=? ch #\-)
                         (css-decimal-point? ch (peek-char css 1))
-                        (css-scientific-notation? ch (peek-char css 1) (peek-char css 2))))
-               (read-char css)
+                        (css-scientific-notation? ch (peek-char css 1) (peek-char css 2)))
+                    (read-char css))
                (consume-number (cons ch chars))]
               [else (let* ([representation : String (list->string (reverse chars))]
                            [maybe-number : (Option Complex) (string->number representation)])
-                      (cond [(real? maybe-number) (values maybe-number representation)]
+                      (cond [(exact-integer? maybe-number) (values maybe-number representation)]
+                            [(flonum? maybe-number) (values maybe-number representation)]
                             [else (values +nan.0 representation)]))]))))
 
   (define css-consume-hexadecimal : (->* (Input-Port Byte) (Integer #:\s?$? Boolean) (Values Integer Byte))
@@ -1094,11 +1101,10 @@
       (cond [(or (eof-object? hex) (not (char-hexdigit? hex)) (zero? rest-count))
              (when (and eat-last-whitespace? (char? hex) (char-whitespace? hex)) (read-char css))
              (values result rest-count)]
-            [else (read-char css)
-             (css-consume-hexadecimal #:\s?$? eat-last-whitespace?
-                                      css (sub1 rest-count)
-                                      (+ (* result 16)
-                                         (char->hexadecimal hex)))])))
+            [else (read-char css) (css-consume-hexadecimal #:\s?$? eat-last-whitespace?
+                                                           css (sub1 rest-count)
+                                                           (+ (* result 16)
+                                                              (char->hexadecimal hex)))])))
 
   (define css-consume-escaped-char : (-> Input-Port Char)
     ;;; https://drafts.csswg.org/css-syntax/#consume-an-escaped-code-point
@@ -1116,7 +1122,7 @@
     (lambda [css bad-url-token]
       (define ch : (U EOF Char) (read-char css))
       (cond [(or (eof-object? ch) (char=? ch #\))) bad-url-token]
-            [(char=? ch #\\) (read-char css) (css-consume-bad-url-remnants css bad-url-token)]
+            [(and (char=? ch #\\) (read-char css)) (css-consume-bad-url-remnants css bad-url-token)]
             [else (css-consume-bad-url-remnants css bad-url-token)])))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1151,9 +1157,9 @@
   (define css-char-name? : (-> (U EOF Char) Boolean : #:+ Char)
     (lambda [ch]
       (and (char? ch)
-           (or (char-numeric? ch)
-               (char=? #\- ch)
-               (css-char-name-prefix? ch)))))
+           (or (css-char-name-prefix? ch)
+               (char-numeric? ch)
+               (char=? #\- ch)))))
   
   (define css-valid-escape? : (-> (U EOF Char) (U EOF Char) Boolean : #:+ Char)
     ;;; https://drafts.csswg.org/css-syntax/#escaping
@@ -1323,12 +1329,12 @@
         (with-handlers ([exn:css? (λ [[errcss : exn:css]] errcss)])
           (define-values (token tokens) (css-car entry))
           (define-values (next rest) (css-car tokens))
-          (cond [(css-keyword=:=? token 'not)
+          (cond [(css:ident-norm=:=? token 'not)
                  (cond [(css:ident? next) (css-components->media-type+query next #false rest)]
                        [else (css-components->negation token tokens #true)])]
                 [(css:ident? token)
                  (define-values (maybe-type maybe-<and>)
-                   (cond [(css-keyword=:=? token 'only) (values next rest)]
+                   (cond [(css:ident-norm=:=? token 'only) (values next rest)]
                          [else (values token tokens)]))
                  (cond [(eof-object? maybe-type) (css-make-syntax-error exn:css:missing-identifier maybe-type)]
                        [(css:ident? maybe-type) (css-components->media-type+query maybe-type #true maybe-<and>)]
@@ -1367,7 +1373,7 @@
     (lambda [css]
       (define rules : (Listof CSS-Syntax-Rule) (css-consume-rules css #true))
       (define rule : (Option CSS-Syntax-Rule) (and (pair? rules) (car rules)))
-      (if (and (css-@rule? rule) (css:@keyword=:=? (css-@rule-name rule) '#:@charset))
+      (if (and (css-@rule? rule) (css:@keyword-norm=:=? (css-@rule-name rule) '#:@charset))
           (cdr rules)
           rules)))
   
@@ -1406,7 +1412,7 @@
       (cond [(css:delim=:=? reconsumed #\{) (css-consume-simple-block css reconsumed #\})]
             [(css:delim=:=? reconsumed #\[) (css-consume-simple-block css reconsumed #\])]
             [(css:delim=:=? reconsumed #\() (css-consume-simple-block css reconsumed #\))]
-            [(css:function=:=? reconsumed 'url) (css-function->url (css-consume-function css reconsumed))]
+            [(css:function-norm=:=? reconsumed 'url) (css-function->url (css-consume-function css reconsumed))]
             [(css:function? reconsumed) (css-consume-function css reconsumed)]
             [else reconsumed])))
 
@@ -1440,6 +1446,7 @@
             [else (let-values ([(components close end-token) (css-consume-block-body css func #\))])
                     (css-remake-token [func end-token] css:function
                                       (string->symbol (symbol->string fname)) ; <==> (symbol-unreadable->symbol fname)
+                                      (css:function-norm func)
                                       (filter-not css:whitespace? components)))])))
 
   (define css-consume-block-body : (-> Input-Port CSS-Token Char (Values (Listof CSS-Token) CSS-Syntax-Terminal CSS-Token))
@@ -1500,13 +1507,13 @@
                                [rest : (Listof CSS-Token) value-list])
                     (define-values (1st tail) (css-car rest))
                     (cond [(not (eof-object? 1st))
-                           (cond [(and (css:delim? info) (css-keyword=:=? 1st 'important)) (verify lla info tail)]
+                           (cond [(and (css:delim? info) (css:ident-norm=:=? 1st 'important)) (verify lla info tail)]
                                  [(css:delim? info) (verify lla (css-make-syntax-error exn:css:unrecognized info) null)]
                                  [(css:delim=:=? 1st #\!) (verify lla 1st tail)]
-                                 [(or (css:bad? 1st) (css:close? 1st)) (verify lla (css-make-syntax-error exn:css:malformed 1st) null)]
+                                 [(css-special? 1st) (verify lla (css-make-syntax-error exn:css:malformed 1st) null)]
                                  [else (verify (cons 1st lla) #false tail)])]
                           [(exn:css? info) info]
-                          [else (let ([all-argl (reverse lla)])
+                          [else (let ([all-argl (reverse lla)]) ; (reverse) does not know non-null list.
                                   (cond [(null? all-argl) (css-make-syntax-error exn:css:missing-value id-token)]
                                         [else (make-css-declaration id-token all-argl (css:delim? info))]))]))])))
 
@@ -1515,12 +1522,12 @@
     ;;; https://drafts.csswg.org/mediaqueries/#media-types
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-query
     (lambda [media only? conditions]
-      (define downcased-type : Symbol (css-ident-autocase media #true))
+      (define downcased-type : Symbol (css:ident-norm media))
       (define-values (maybe-and maybe-conditions) (css-car conditions))
       (when (css-deprecate-media-type) (css-make-syntax-error exn:css:deprecated media))
       (cond [(memq downcased-type '(only not and or)) (css-make-syntax-error exn:css:misplaced media)]
             [(eof-object? maybe-and) (make-css-media-type downcased-type only?)]
-            [(not (css-keyword=:=? maybe-and 'and)) (css-make-syntax-error exn:css:unrecognized maybe-and)]
+            [(not (css:ident-norm=:=? maybe-and 'and)) (css-make-syntax-error exn:css:unrecognized maybe-and)]
             [(css-null? maybe-conditions) (css-make-syntax-error exn:css:missing-feature maybe-and)]
             [else (cons (make-css-media-type downcased-type only?)
                         (css-components->junction maybe-conditions 'and #false #true))])))
@@ -1530,13 +1537,12 @@
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
     (lambda [conditions media? alt]
       (define-values (token rest) (css-car conditions))
-      (define-values (operator chain) (css-car rest))
+      (define-values (op chain) (css-car rest))
       (cond [(eof-object? token) (css-throw-syntax-error exn:css:missing-feature alt)]
-            [(css-keyword=:=? token 'not) (css-components->negation token rest media?)]
-            [(eof-object? operator) (css-component->feature-query media? token)]
-            [(or (css-keyword=:=? operator 'and) (css-keyword=:=? operator 'or))
-             (css-components->junction chain (css:ident-datum operator) token media?)]
-            [else (css-throw-syntax-error exn:css:unrecognized operator)])))
+            [(css:ident-norm=:=? token 'not) (css-components->negation token rest media?)]
+            [(eof-object? op) (css-component->feature-query media? token)]
+            [(css:ident-norm=:=? op '#(and or)) (css-components->junction chain (css:ident-norm op) token media?)]
+            [else (css-throw-syntax-error exn:css:unrecognized op)])))
 
   (define css-component->feature-query : (-> Boolean CSS-Token CSS-Feature-Query)
     ;;; https://drafts.csswg.org/css-syntax/#preserved-tokens
@@ -1551,7 +1557,7 @@
              (define-values (name any-values) (css-car subany))
              (define-values (op value-list) (css-car any-values))
              (cond [(css:block=:=? name #\() (css-components->feature-query subany media? condition)]
-                   [(css-keyword=:=? name 'not) (css-components->negation name any-values media?)]
+                   [(css:ident-norm=:=? name 'not) (css-components->negation name any-values media?)]
                    [(and (css:ident? name) (css:delim=:=? op #\:))
                     (define descriptor (css-components->declaration name any-values))
                     (cond [(exn? descriptor) (if media? (css-throw-syntax-error exn:css:enclosed condition) (raise descriptor))]
@@ -1571,7 +1577,7 @@
     (lambda [<not> tokens media?]
       (define-values (token rest) (css-car tokens))
       (cond [(eof-object? token) (css-throw-syntax-error exn:css:missing-feature <not>)]
-            [(css-keyword=:=? token 'not) (css-throw-syntax-error exn:css:misplaced token)]
+            [(css:ident-norm=:=? token 'not) (css-throw-syntax-error exn:css:misplaced token)]
             [(css-null? rest) (make-css-not (css-component->feature-query media? token))]
             [else (css-throw-syntax-error exn:css:overconsumption rest)])))
 
@@ -1585,9 +1591,9 @@
         (define-values (condition rest) (css-car rest-conditions))
         (define-values (token others) (css-car rest))
         (cond [(eof-object? condition) (make-junction (map (curry css-component->feature-query media?) (reverse junctions)))]
-              [(css-keyword=:=? condition 'not) (css-throw-syntax-error exn:css:misplaced condition)]
-              [(or (eof-object? token) (css-keyword=:=? token op)) (components->junction (cons condition junctions) others)]
-              [(or (css-keyword=:=? token 'and) (css-keyword=:=? token 'or)) (css-throw-syntax-error exn:css:misplaced token)]
+              [(css:ident-norm=:=? condition 'not) (css-throw-syntax-error exn:css:misplaced condition)]
+              [(or (eof-object? token) (css:ident-norm=:=? token op)) (components->junction (cons condition junctions) others)]
+              [(css:ident-norm=:=? token '#(and or)) (css-throw-syntax-error exn:css:misplaced token)]
               [else (css-throw-syntax-error exn:css:overconsumption token)]))))
 
   (define css-query-support? : (-> CSS-Media-Query (U CSS-Media-Preferences CSS-Feature-Support?) Boolean)
@@ -1621,7 +1627,7 @@
                               (css-query-support? (cdr query) support?))])]
             [else (and (procedure? support?)
                        (css-declaration? query)
-                       (support? (css:ident-datum (css-declaration-name query))
+                       (support? (css:ident-norm (css-declaration-name query))
                                  (css-declaration-values query)))])))
 
   (define css-components->media-range-query : (-> (Listof CSS-Token) CSS:Block CSS-Feature-Query)
@@ -1643,7 +1649,7 @@
             [(not (css:ident? value1)) (css-throw-syntax-error exn:css:missing-identifier value1)]
             [(or (eof-object? value2) (css:ident? value2)) (css-throw-syntax-error exn:css:missing-value rest2)]
             [(css-tokens? terminal) (css-throw-syntax-error exn:css:overconsumption terminal)]
-            [(not (css:delim=? d0 d1)) (css-throw-syntax-error exn:css:malformed (list d0 value1 d1))]
+            [(not (eq? (css:delim-datum d0) (css:delim-datum d1))) (css-throw-syntax-error exn:css:malformed (list d0 value1 d1))]
             [else (make-css-and (list (css-make-media-feature value1 value0 po0 d0)
                                       (css-make-media-feature value1 value2 op1 d1)))])))
   
@@ -1677,10 +1683,10 @@
              (values (if (and (css:integer=:=? value positive?) (css:integer=:=? maybe-int positive?))
                          (let ([width : Positive-Integer (max (css:integer-datum value) 1)]
                                [height : Positive-Integer (max (css:integer-datum maybe-int) 1)])
-                           (css-remake-token [value maybe-int] css:ratio (format "~a/~a" width height) (/ width height)))
+                           (css-remake-token [value maybe-int] css:ratio (/ width height)))
                          (css-throw-syntax-error exn:css:malformed (filter css-token? (list value maybe-/ maybe-int))))
                      terminal)]
-            [(or (css:ident? value) (css:number? value) (css:dimension? value)) (values value rest)]
+            [(or (css:ident? value) (css-number? value) (css:dimension? value)) (values value rest)]
             [(eof-object? value) (values eof rest)]
             [else (values (css-throw-syntax-error exn:css:unrecognized value) rest)])))
 
@@ -1689,14 +1695,14 @@
     ;;; https://drafts.csswg.org/mediaqueries/#mq-min-max
     (lambda [desc-name maybe-value ophint maybe-op]
       (define errobj : (Listof CSS-Token) (filter css-token? (list desc-name maybe-op maybe-value)))
-      (define name : String (symbol->string (css-ident-autocase desc-name)))
+      (define name : String (symbol->string (css:ident-norm desc-name)))
       (define-values (downcased-name op min/max?)
         (cond [(string-prefix? name "min-") (values (string->symbol (substring name 4)) #\≥ #true)]
               [(string-prefix? name "max-") (values (string->symbol (substring name 4)) #\≤ #true)]
               [else (values (string->symbol name) ophint #false)]))
       (when (and min/max?)
         (cond [(or (not maybe-value) (css:delim? maybe-op)) (css-throw-syntax-error exn:css:misplaced errobj)]
-              [(not (css:numeric? maybe-value)) (css-throw-syntax-error exn:css:unrecognized errobj)]))
+              [(not (css-numeric? maybe-value)) (css-throw-syntax-error exn:css:unrecognized errobj)]))
       (define-values (v deprecated?) ((current-css-media-feature-filter) downcased-name maybe-value min/max?))
       (unless (not deprecated?) (css-make-syntax-error exn:css:deprecated desc-name))
       (cond [(void? v) downcased-name]
@@ -1752,7 +1758,7 @@
       (define-values (head heads) (css-car components))
       (define-values (typename namespace simple-selector-components)
         (cond [(css:ident? head) (css-car-elemental-selector head heads namespaces)]
-              [(or (css:delim=:=? head #\|) (css:delim=:=? head #\*)) (css-car-elemental-selector head heads namespaces)]
+              [(css:delim=:=? head '#(#\|  #\*)) (css-car-elemental-selector head heads namespaces)]
               [(or (eof-object? head) (css:delim=:=? head #\,)) (css-throw-syntax-error exn:css:empty head)]
               [else (values #true (or (css-declared-namespace namespaces '||) #true) (cons head heads))]))
       (define-values (pseudo-classes selector-components) (css-car-pseudo-class-selectors simple-selector-components))
@@ -1788,23 +1794,24 @@
               [(css:hash? token) (extract-simple-selector sessalc (cons (css:hash-datum token) sdi) setubirtta pseudo-element tokens)]
               [else (css-throw-syntax-error exn:css:unrecognized token)]))))
 
-  (define css-car-combinator : (-> (U CSS:WhiteSpace CSS:Delim CSS:||) (Listof CSS-Token) (Values CSS-Combinator (Listof CSS-Token)))
+  (define css-car-combinator : (-> (U CSS:WhiteSpace CSS:Delim) (Listof CSS-Token) (Values CSS-Combinator (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#grammar
     (lambda [token tokens]
-      (cond [(css:whitespace? token)
-             (define-values (next tail) (css-car tokens))
-             (cond [(css-selector-combinator? next) (css-car-combinator next tail)]
-                   [else (values '>> tokens)])]
-            [(css:delim=:=? token #\>)
-             (define-values (next tail) (css-car tokens #false))
-             (define-values (next2 tail2) (css-car tail))
-             (cond [(css:delim=:=? next #\>) (values '>> tail2)]
-                   [else (values '> tail)])]
-            [(css:delim=:=? token #\+) (values '+ tokens)]
-            [(css:delim=:=? token #\~) (values '~ tokens)]
-            [(css:||? token) (values '|| tokens)]
-            [else (css-throw-syntax-error exn:css:unrecognized token)])))
+      (case (cond [(css:whitespace? token) #\space] [(css:delim? token) (css:delim-datum token)] [else #\null])
+        [(#\space)
+         (define-values (next tail) (css-car tokens))
+         (cond [(css-selector-combinator? next) (css-car-combinator next tail)]
+               [else (values '>> tokens)])]
+        [(#\>)
+         (define-values (next tail) (css-car tokens #false))
+         (define-values (next2 tail2) (css-car tail))
+         (cond [(css:delim=:=? next #\>) (values '>> tail2)]
+               [else (values '> tail)])]
+        [(#\+)   (values '+ tokens)]
+        [(#\~)   (values '~ tokens)]
+        [(#\tab) (values '|| tokens)]
+        [else (css-throw-syntax-error exn:css:unrecognized token)])))
   
   (define css-car-elemental-selector : (-> (U CSS:Ident CSS:Delim) (Listof CSS-Token) CSS-NameSpace-Hint
                                            (Values (U Symbol True) (U Symbol Boolean) (Listof CSS-Token)))
@@ -1815,18 +1822,18 @@
       (define-values (next rest) (css-car tokens #false))
       (define-values (next2 rest2) (css-car rest #false))
       (cond [(css:delim=:=? token #\|)
-             (cond [(css:ident? next) (values (css:ident-datum next) #false rest)]
+             (cond [(css:ident? next) (values (css:ident-norm next) #false rest)]
                    [(css:delim=:=? next #\*) (values #true #false rest)]
                    [else (css-throw-syntax-error exn:css:missing-identifier next)])]
             [(css:delim=:=? next #\|)
              (define ns : (U Symbol Boolean) (css-declared-namespace namespaces token))
              (cond [(false? ns) (css-throw-syntax-error exn:css:namespace token)]
-                   [(css:ident? next2) (values (css:ident-datum next2) ns rest2)]
+                   [(css:ident? next2) (values (css:ident-norm next2) ns rest2)]
                    [(css:delim=:=? next2 #\*) (values #true ns rest2)]
                    [else (css-throw-syntax-error exn:css:missing-identifier (list token next))])]
             [else (let ([ns (or (css-declared-namespace namespaces '||) #true)])
                     (cond [(css:delim? token) (values #true ns tokens)]
-                          [else (values (css:ident-datum token) ns tokens)]))])))
+                          [else (values (css:ident-norm token) ns tokens)]))])))
 
   (define css-car-pseudo-class-selectors : (-> (Listof CSS-Token) (Values (Listof CSS-Pseudo-Class-Selector) (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
@@ -1842,7 +1849,7 @@
                (let ([selector (make-css-pseudo-class-selector (css:ident-datum maybe-id) #false)])
                  (extract-pseudo-class-selector (cons selector srotceles) rest2))]
               [(css:function? maybe-id)
-               (let ([selector (make-css-pseudo-class-selector (css:function-datum maybe-id) (css:function-arguments maybe-id))])
+               (let ([selector (make-css-pseudo-class-selector (css:function-norm maybe-id) (css:function-arguments maybe-id))])
                  (extract-pseudo-class-selector (cons selector srotceles) rest2))]
               [else (css-throw-syntax-error exn:css:missing-identifier maybe:)]))))
   
@@ -1881,7 +1888,7 @@
       (define-values (i terminal) (css-car ci-part))
       (unless (eof-object? op)
         (cond [(eof-object? value) (css-throw-syntax-error exn:css:missing-value op)]
-              [(nor (eof-object? i) (css-keyword=:=? i 'i)) (css-throw-syntax-error exn:css:overconsumption i)]
+              [(nor (eof-object? i) (css:ident-norm=:=? i 'i)) (css-throw-syntax-error exn:css:overconsumption i)]
               [(css-tokens? terminal) (css-throw-syntax-error exn:css:overconsumption terminal)]))
       (define val : (U String Symbol)
         (cond [(css:string? value) (css:string-datum value)]
@@ -1964,24 +1971,23 @@
         (cond [(not (css:whitespace? token)) token]
               [else (peek/skip-whitespace (add1 skip))]))))
 
-  (define css-selector-combinator? : (-> CSS-Syntax-Any Boolean : #:+ (U CSS:WhiteSpace CSS:Delim CSS:||))
+  (define css-selector-combinator? : (-> CSS-Syntax-Any Boolean : #:+ (U CSS:WhiteSpace CSS:Delim))
     (lambda [token]
       (or (css:whitespace? token)
-          (and (css:delim? token) (memq (css:delim-datum token) '(#\~ #\+ #\>)) #true)
-          (css:||? token))))
+          (and (css:delim=:=? token '#(#\~ #\+ #\> #\tab))
+               #true))))
 
   (define css-function->url : (-> CSS:Function CSS:URL)
     (lambda [url]
       (define-values (href modifiers) (css-car (css:function-arguments url)))
-      (if (not (css:string? href))
-          (css-remake-token url css:url 'about:invalid null)
-          (let ([datum (if (css:string=:=? href "") 'about:invalid (css:string-datum href))])
-            (let filter-modifiers : CSS:URL ([sreifidom : (Listof CSS-URL-Modifier) null]
-                                             [tail : (Listof CSS-Token) modifiers])
-              (define-values (head rest) (css-car tail))
-              (cond [(eof-object? head) (css-remake-token url css:url datum (reverse sreifidom))]
-                    [(or (css:ident? head) (css:function? head) (css:url? head)) (filter-modifiers (cons head sreifidom) rest)]
-                    [else (css-make-syntax-error exn:css:unrecognized head) (filter-modifiers sreifidom rest)]))))))
+      (cond [(not (css:string? href)) (css-remake-token url css:url 'about:invalid null)]
+            [else (let ([datum (if (css:string=:=? href "") 'about:invalid (css:string-datum href))])
+                    (let filter-modifiers : CSS:URL ([sreifidom : (Listof CSS-URL-Modifier) null]
+                                                     [tail : (Listof CSS-Token) modifiers])
+                      (define-values (head rest) (css-car tail))
+                      (cond [(eof-object? head) (css-remake-token url css:url datum (reverse sreifidom))]
+                            [(or (css:ident? head) (css:function? head) (css:url? head)) (filter-modifiers (cons head sreifidom) rest)]
+                            [else (css-make-syntax-error exn:css:unrecognized head) (filter-modifiers sreifidom rest)])))])))
 
   (define css-media-queries-support? : (-> (Listof CSS-Media-Query) CSS-Media-Preferences Boolean)
     (lambda [queries preferences]
@@ -2056,7 +2062,7 @@
                    [normal-sexatnys : (Listof CSS-Syntax-Rule) null])
                   ([stx : CSS-Syntax-Rule (in-list syntaxes0)])
           (define maybe-descriptor : (U CSS-Declarations CSS-Syntax-Error Void)
-            (when (and (css-@rule? stx) (css:@keyword=:=? (css-@rule-name stx) '#:@viewport))
+            (when (and (css-@rule? stx) (css:@keyword-norm=:=? (css-@rule-name stx) '#:@viewport))
               (define prelude : (Listof CSS-Token) (css-@rule-prelude stx))
               (define maybe-block : (Option CSS:Block) (css-@rule-block stx))
               (cond [(css-tokens? prelude) (css-make-syntax-error exn:css:overconsumption prelude)]
@@ -2085,31 +2091,31 @@
                      (syntax->grammar seititnedi (cond [(or (exn? maybe-rule) (null? (css-style-rule-properties maybe-rule))) srammarg]
                                                        [else (cons maybe-rule srammarg)])
                                       rest #false #false)]
-                    [(css:@keyword=:=? (css-@rule-name stx) '#:@charset)
+                    [(css:@keyword-norm=:=? (css-@rule-name stx) '#:@charset)
                      (css-make-syntax-error exn:css:misplaced (css-@rule-name stx))
                      (syntax->grammar seititnedi srammarg rest can-import? allow-namespace?)]
-                    [(css:@keyword=:=? (css-@rule-name stx) '#:@import)
+                    [(css:@keyword-norm=:=? (css-@rule-name stx) '#:@import)
                      (cond [(false? can-import?)
                             (css-make-syntax-error exn:css:misplaced (css-@rule-name stx))
                             (syntax->grammar seititnedi srammarg rest #false #true)]
                            [else (let ([maybe-id (css-@import->stylesheet-identity stx src viewport pool)])
                                    (cond [(not (integer? maybe-id)) (syntax->grammar seititnedi srammarg rest #true #true)]
                                          [else (syntax->grammar (cons maybe-id seititnedi) srammarg rest #true #true)]))])]
-                    [(css:@keyword=:=? (css-@rule-name stx) '#:@namespace)
+                    [(css:@keyword-norm=:=? (css-@rule-name stx) '#:@namespace)
                      (cond [(false? allow-namespace?)
                             (css-make-syntax-error exn:css:misplaced (css-@rule-name stx))
                             (syntax->grammar seititnedi srammarg rest #false #false)]
                            [else (let ([ns (css-@namespace->namespace stx)])
                                    (when (pair? ns) (hash-set! namespaces (car ns) (cdr ns)))
                                    (syntax->grammar seititnedi srammarg rest #false #true))])]
-                    [(css:@keyword=:=? (css-@rule-name stx) '#:@media)
+                    [(css:@keyword-norm=:=? (css-@rule-name stx) '#:@media)
                      (define media-rules (css-@media->media-rule stx viewport namespaces pool))
                      (syntax->grammar seititnedi
                                       (cond [(list? media-rules) (append (reverse media-rules) srammarg)]
                                             [(pair? media-rules) (cons media-rules srammarg)]
                                             [else srammarg])
                                       rest #false #false)]
-                    [(css:@keyword=:=? (css-@rule-name stx) '#:@support)
+                    [(css:@keyword-norm=:=? (css-@rule-name stx) '#:@support)
                      (define expand-stxes (css-@support->syntax-rules stx))
                      (syntax->grammar seititnedi srammarg (if (pair? expand-stxes) (append expand-stxes rest) rest) #false #false)]
                     [else (syntax->grammar seititnedi (cons stx srammarg) rest #false #false)]))))))
@@ -2133,7 +2139,7 @@
             [(false? (file-exists? maybe-target.css)) (css-make-syntax-error exn:css:resource uri)]
             [else (let-values ([(maybe-support maybe-media-list) (css-car maybe-condition)])
                     (define-values (support? media-list)
-                      (if (css:function=:=? maybe-support 'supports)
+                      (if (css:function-norm=:=? maybe-support 'supports)
                           (let* ([components (css:function-arguments maybe-support)]
                                  [supports (list (css-remake-token maybe-support css:block #\( components))]
                                  [query (css-parse-feature-query supports name)])
@@ -2295,12 +2301,12 @@
         (or important? (not (cdr (hash-ref descbase desc-name (λ [] (cons #false #false)))))))
       (for ([property (in-list properties)])
         (cond [(list? property) (css-cascade-declarations desc-filter property descbase)]
-              [else (let ([desc-name (css-ident-autocase (css-declaration-name property))])
+              [else (let ([desc-name (css:ident-norm (css-declaration-name property))])
                       (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
                       (define important? : Boolean (css-declaration-important? property))
                       (when (key-property? desc-name important?)
                         (define-values (desc-value deprecated?)
-                          (cond [(eq? (css:ident-flag (css-declaration-name property)) 'custom) (values declared-values #false)]
+                          (cond [(css:ident=:=? (css-declaration-name property) symbol-unreadable?) (values declared-values #false)]
                                 [(not (eq? desc-name 'all)) (desc-filter desc-name declared-values)]
                                 [else (css-all-property-filter desc-name declared-values)]))
                         (when deprecated? (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
@@ -2367,22 +2373,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module test/digitama typed/racket
   (provide (all-defined-out))
-  
-  (require racket/flonum)
-  
-  (define-type Unit (U 'KB 'MB 'GB 'TB))
-  (define-type Unit* (Listof Unit))
-  (define units : Unit* '(KB MB GB TB))
-  (define ~size : (case-> [Integer 'Bytes [#:precision (U Integer (List '= Integer))] -> String]
-                          [Flonum Unit [#:precision (U Integer (List '= Integer))] -> String])
-    (lambda [size unit #:precision [prcs '(= 3)]]
-      (if (symbol=? unit 'Bytes)
-          (cond [(< (abs size) 1024) (format "~aBytes" size)]
-                [else (~size (fl/ (real->double-flonum size) 1024.0) 'KB #:precision prcs)])
-          (let try-next-unit : String ([s : Flonum size] [us : (Option Unit*) (member unit units)])
-            (cond [(false? us) "Typed Racket is buggy if you see this message"]
-                  [(or (fl< (abs s) 1024.0) (null? (cdr us))) (string-append (~r s #:precision prcs) (symbol->string (car us)))]
-                  [else (try-next-unit (fl/ s 1024.0) (cdr us))])))))
+
+  (require "format.rkt")
   
   (define-syntax (time-run stx)
     (syntax-case stx []
@@ -2435,6 +2427,7 @@
       (for/hash : (HashTable Symbol Datum) ([desc-name (in-hash-keys declared-values)])
         (values desc-name (css-ref declared-values desc-name)))))
 
+  tamer-sheet
   tamer-subject
   (time-run (css-cascade (list tamer-sheet) tamer-subject css-declaration-filter css-filter ((inst make-hasheq Symbol Datum)) #false))
   (collect-garbage)
