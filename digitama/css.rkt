@@ -100,9 +100,11 @@
          #'(begin (struct: number : Number parent ([datum : Type]))
                   (define (number=? [t1 : Number] [t2 : Number]) : Boolean (type=? (number-datum t1) (number-datum t2)))
                   (define-token=:=? number=.=? : Type number? number-datum #:+ Number)
-                  (define number=> (case-lambda #:forall (a b)
-                                                [([t : Number] [=> : (-> Type a)]) (=> (number-datum t))]
-                                                [([t : Number] [=> : (-> Type b a)] [n : b]) (=> (number-datum t) n)]))))]
+                  (define number=>
+                    (case-lambda #:forall (a b c)
+                                 [([t : Number] [=> : (-> Type a)]) (=> (number-datum t))]
+                                 [([t : Number] [op : (-> Type b a)] [n : b]) (op (number-datum t) n)]
+                                 [([t : Number] [op : (-> Type b c)] [n : b] [=> : (-> c a)]) (=> (op (number-datum t) n))]))))]
       [(_ identifier : Identifier parent ((~and (~or Symbol Keyword) Type) rest ...) #:with keyword? keyword=? keyword-datum)
        (with-syntax ([keyword-norm     (format-id #'identifier "~a-norm" (syntax-e #'identifier))]
                      [keyword=:=?      (format-id #'identifier "~a=:=?" (syntax-e #'identifier))]
@@ -278,7 +280,7 @@
     [(struct: css-numeric   : CSS-Numeric   css-token   ([representation : String]))
      (struct: css:dimension : CSS:Dimension css-numeric ([datum : Real] [unit : Symbol] [scalar : Nonnegative-Real]))]
 
-    ; TODO: Typed Racket is buggy if there are more than 11 Ids for (token->datum)
+    ; TODO: Typed Racket is buggy if there are more than 11 conditions for (token->datum)
     (define-symbolic-tokens css-special #:+ CSS-Special
       [css:bad        #:+ CSS:Bad        #:as (Pairof Symbol Datum)]
       [css:whitespace #:+ CSS:WhiteSpace #:as (U String Char)]
@@ -286,7 +288,7 @@
       
       ; These tokens are remade by the parser, and they are never produced by the tokenizer.
       [css:ratio      #:+ CSS:Ratio      #:as Positive-Exact-Rational]
-      [css:rgba       #:+ CSS:RGBA       #:as (Pairof Nonnegative-Fixnum Nonnegative-Flonum)])
+      [css:rgba       #:+ CSS:RGBA       #:as CSS-RGBA])
 
     (define-symbolic-tokens css-symbolic #:+ CSS-Symbolic
       [css:cd         #:+ CSS:CD         #:as Char]
@@ -308,8 +310,7 @@
       
       [css:integer    #:+ CSS:Integer    #:-> css-number        #:as Fixnum             #:=? fx=]
       [css:natural    #:+ CSS:Natural    #:-> css:integer       #:as Index              #:=? fx=]
-      [css:byte       #:+ CSS:Byte       #:-> css:natural       #:as Byte               #:=? fx=]
-      [css:zero       #:+ CSS:Zero       #:-> css:byte          #:as Zero               #:=? fx=]
+      [css:zero       #:+ CSS:Zero       #:-> css:natural       #:as Zero               #:=? fx=]
 
       [css:flonum     #:+ CSS:Flonum     #:-> css-number        #:as Flonum             #:=? fl=]
       [css:flunum     #:+ CSS:Flunum     #:-> css:flonum        #:as Nonnegative-Flonum #:=? fl=]
@@ -380,6 +381,7 @@
   (define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
   (define-type CSS-URL-Modifier (U CSS:Ident CSS:Function CSS:URL))
   (define-type CSS-Zero (U CSS:Zero CSS:Flzero))
+  (define-type CSS-RGBA (Pairof Nonnegative-Fixnum Nonnegative-Flonum))
   (define-type CSS-Syntax-Any (U CSS-Token EOF))
   (define-type CSS-Syntax-Terminal (U CSS:Delim CSS:Close EOF))
   (define-type CSS-Syntax-Rule (U CSS-Qualified-Rule CSS-@Rule))
@@ -427,7 +429,7 @@
                    (let-values ([(token others) (css-car tokens #false)])
                      (cond [(eof-object? token) (format "~a: ~a" (object-name exn:css) (if (eof-object? v) eof null))]
                            [(null? others) (format "~a: ~a" (object-name exn:css) (css-token->string token))]
-                           [else (format "~a: ~a; others: ~s" (object-name exn:css) (css-token->string token)
+                           [else (format "~a: ~a; others: ~a" (object-name exn:css) (css-token->string token)
                                          (map css-token->datum others))]))
                    errobj)
       errobj))
@@ -972,8 +974,7 @@
                              (cond [(positive? n) (css-make-token srcloc css:flunum representation n n)]
                                    [(zero? n) (css-make-token srcloc css:flzero representation n n n)]
                                    [else (css-make-token srcloc css:flonum representation n)])]
-                            [(zero? n)   (css-make-token srcloc css:zero representation n n n n)]
-                            [(byte? n)   (css-make-token srcloc css:byte representation n n n)]
+                            [(zero? n)   (css-make-token srcloc css:zero representation n n n)]
                             [(index? n)  (css-make-token srcloc css:natural representation n n)]
                             [(fixnum? n) (css-make-token srcloc css:integer representation n)]
                             [else        (css-make-token srcloc css:bignum representation n)])))])))
