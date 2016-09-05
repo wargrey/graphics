@@ -264,15 +264,19 @@
                      (list (css-token-source instance)
                            (css-token-line instance) (css-token-column instance)
                            (css-token-position instance) (css-token-span instance)))))
+
+  (define css-token-datum->string : (-> CSS-Token String)
+    (lambda [instance]
+      (cond [(css:delta%? instance) (string-append (css-numeric-representation instance) "%")]
+            [(css:dimension? instance) (~a (css-numeric-representation instance) (css:dimension-unit instance))]
+            [(css-numeric? instance) (css-numeric-representation instance)]
+            [else (~a (css-token->datum instance))])))
   
   (define css-token->string : (-> CSS-Token String)
     (lambda [instance]
-      (format "~a:~a:~a: ~a: ~s" (css-token-source instance)
-              (css-token-line instance) (add1 (css-token-column instance)) (object-name instance)
-              (cond [(css:delta%? instance) (string-append (css-numeric-representation instance) "%")]
-                    [(css:dimension? instance) (~a (css-numeric-representation instance) (css:dimension-unit instance))]
-                    [(css-numeric? instance) (css-numeric-representation instance)]
-                    [else (css-token->datum instance)]))))
+      (format "~a:~a:~a: ~a: ~a" (css-token-source instance)
+              (css-token-line instance) (add1 (css-token-column instance))
+              (object-name instance) (css-token-datum->string instance))))
 
   ;;; https://drafts.csswg.org/css-syntax/#tokenization
   ;; https://drafts.csswg.org/css-syntax/#component-value
@@ -432,7 +436,7 @@
                      (cond [(eof-object? token) (format "~a: ~a" (object-name exn:css) (if (eof-object? v) eof null))]
                            [(null? others) (format "~a: ~a" (object-name exn:css) (css-token->string token))]
                            [else (format "~a: ~a; others: ~a" (object-name exn:css) (css-token->string token)
-                                         (map css-token->datum others))]))
+                                         (map css-token-datum->string others))]))
                    errobj)
       errobj))
 
@@ -648,7 +652,7 @@
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declared-Value))
   (define-type CSS-Declared-Result (U CSS-Cascaded-Value Void Make-CSS-Syntax-Error
                                       (Vector Make-CSS-Syntax-Error (U CSS-Syntax-Any (Listof CSS-Token)))))
-  (define-type CSS-Declared-Value-Filter (-> Symbol (Listof+ CSS-Token)
+  (define-type CSS-Declared-Value-Filter (-> Symbol CSS-Token (Listof CSS-Token)
                                              (Values (U (HashTable Symbol CSS-Cascaded-Value) CSS-Declared-Result)
                                                      Boolean)))
   (define-type (CSS-Cascaded-Value-Filter Configuration) (-> CSS-Declared-Values Configuration (Option Configuration) (Option Symbol)
@@ -679,10 +683,8 @@
   
   (define css-all-property-filter : CSS-Declared-Value-Filter
     ;; https://drafts.csswg.org/css-cascade/#all-shorthand
-    (lambda [all-name all-values]
-      (define argsize : Index (length all-values))
-      (define all-value : CSS-Token (car all-values))
-      (values (cond [(> argsize 1) (vector exn:css:overconsumption (cdr all-values))]
+    (lambda [all-name all-value rest]
+      (values (cond [(pair? rest) (vector exn:css:overconsumption rest)]
                     [(not (css:ident? all-value)) exn:css:type]
                     [(memq (css:ident-norm all-value) '(initial inherit unset revert)) all-value]
                     [else exn:css:range])
@@ -690,9 +692,7 @@
 
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
   (define css-viewport-descriptor-filter : CSS-Declared-Value-Filter
-    (lambda [suitcased-name desc-values]
-      (define argsize : Index (length desc-values))
-      (define desc-value : CSS-Token (car desc-values))
+    (lambda [suitcased-name desc-value rest]
       (define (viewport-length [v : CSS-Token]) : (U CSS-Token Make-CSS-Syntax-Error)
         (cond ; this is okay even for font relative length since the @viewport is the first rule to be cascaded.
               ; the font relative parameters should be initialized when the program starts.
@@ -707,24 +707,24 @@
           (define min-name : Symbol (if (eq? suitcased-name 'width) 'min-width 'min-height))
           (define max-name : Symbol (if (eq? suitcased-name 'width) 'max-width 'max-height))
           (define min-value : (U CSS-Token Make-CSS-Syntax-Error) (viewport-length desc-value))
-          (define max-value : (U CSS-Token Make-CSS-Syntax-Error) (viewport-length (list-ref desc-values (if (> argsize 1) 1 0))))
-          (cond [(> argsize 2) (vector exn:css:overconsumption (cddr desc-values))]
-                [(procedure? min-value) (vector min-value desc-value)]
-                [(procedure? max-value) (vector max-value (cadr desc-values))]
+          (define max-value : (U CSS-Token Make-CSS-Syntax-Error) (if (pair? rest) (viewport-length (car rest)) min-value))
+          (cond [(procedure? min-value) (vector min-value desc-value)]
+                [(procedure? max-value) (vector max-value (car rest))]
+                [(and (pair? rest) (pair? (cdr rest))) (vector exn:css:overconsumption (cdr rest))]
                 [else (hasheq min-name min-value max-name max-value)])]
          [(min-width max-width min-height max-height)
           (define length-value : (U CSS-Token Make-CSS-Syntax-Error) (viewport-length desc-value))
-          (cond [(> argsize 1) (vector exn:css:overconsumption (cdr desc-values))]
-                [(procedure? length-value) (vector length-value desc-value)]
+          (cond [(procedure? length-value) (vector length-value desc-value)]
+                [(pair? rest) (vector exn:css:overconsumption rest)]
                 [else length-value])]
          [(zoom min-zoom max-zoom)
-          (cond [(> argsize 1) (vector exn:css:overconsumption (cdr desc-values))]
+          (cond [(pair? rest) (vector exn:css:overconsumption rest)]
                 [(css:ident-norm=:=? desc-value 'auto) desc-value]
                 [(or (css-zero? desc-value) (css:delta%=:=? desc-value fl>= 0.0)) desc-value]
                 [(or (css:ident? desc-value) (css-number? desc-value)) exn:css:range]
                 [else exn:css:type])]
          [(orientation user-zoom)
-          (cond [(> argsize 1) (vector exn:css:overconsumption (cdr desc-values))]
+          (cond [(pair? rest) (vector exn:css:overconsumption rest)]
                 [(not (css:ident? desc-value)) exn:css:type]
                 [(memq (css:ident-norm desc-value)
                        (case suitcased-name
@@ -1951,14 +1951,14 @@
   (define css-read-syntax : (-> Input-Port CSS-Syntax-Any)
     (lambda [css]
       (define stx (read-char-or-special css))
-      (cond [(or (eof-object? stx) (css-token? stx)) stx]
+      (cond [(or (css-token? stx) (eof-object? stx)) stx]
             [else (css-make-bad-token (css-srcloc css '/dev/cssin/error #false #false #false)
                                       css:bad:stdin struct:css-token (~s stx))])))
 
   (define css-peek-syntax : (->* (Input-Port) (Natural) CSS-Syntax-Any)
     (lambda [css [skip 0]]
       (define stx (peek-char-or-special css skip))
-      (cond [(or (eof-object? stx) (css-token? stx)) stx]
+      (cond [(or (css-token? stx) (eof-object? stx)) stx]
             [else (css-make-bad-token (css-srcloc css '/dev/cssin/error #false #false #false)
                                       css:bad:stdin struct:css-token (~s stx))])))
   
@@ -2311,8 +2311,8 @@
                       (when (key-property? desc-name important?)
                         (define-values (desc-value deprecated?)
                           (cond [(css:ident=:=? (css-declaration-name property) symbol-unreadable?) (values declared-values #false)]
-                                [(not (eq? desc-name 'all)) (desc-filter desc-name declared-values)]
-                                [else (css-all-property-filter desc-name declared-values)]))
+                                [(not (eq? desc-name 'all)) (desc-filter desc-name (car declared-values) (cdr declared-values))]
+                                [else (css-all-property-filter desc-name (car declared-values) (cdr declared-values))]))
                         (when deprecated? (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
                         (cond [(css-token? desc-value) (hash-set! descbase desc-name (cons desc-value important?))]
                               [(list? desc-value) (hash-set! descbase desc-name (cons desc-value important?))]
@@ -2423,8 +2423,8 @@
   (define tamer-header : CSS-Subject (make-css-subject #:type 'html #:id '#:header))
 
   (define css-declaration-filter : CSS-Declared-Value-Filter
-    (lambda [suitcased-name desc-values]
-      (values desc-values #false)))
+    (lambda [suitcased-name desc-value rest]
+      (values (cons desc-value rest) #false)))
 
   (define css-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Datum))
     (lambda [declared-values all default-values inherit-values]

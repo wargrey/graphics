@@ -19,6 +19,7 @@
 (define-type Flomap flomap)
 (define-type Bitmap (Instance Bitmap%))
 (define-type String+Color (U String (Instance Color%)))
+(define-type RGBA-Color (U String Symbol Natural))
 
 (define bitmap/2x : (-> (U Path-String Input-Port) Bitmap)
   (lambda [src]
@@ -367,8 +368,52 @@
   
   (require typed/racket/draw)
   
-  (define the-colorbase : (HashTable Datum (Instance Color%)) (hasheq))
-
+  (define the-color-pool : (HashTable (U Symbol Natural) (Instance Color%)) (if (fixnum? #xFFFFFFFF) (make-hasheq) (make-hasheqv)))
+  (define css-named-colors : (HashTable Symbol (Vector Byte Byte Byte))
+    #hasheq((black . #(0 0 0)) (white . #(255 255 255)) (whitesmoke . #(245 245 245)) (moccasin . #(255 228 181)) (gold . #(255 215 0))
+                               (plum . #(221 160 221)) (darksalmon . #(233 150 122)) (teal . #(0 128 128)) (yellow . #(255 255 0))
+                               (lightsalmon . #(255 160 122)) (aquamarine . #(127 255 212)) (lavenderblush . #(255 240 245))
+                               (palevioletred . #(219 112 147)) (olivedrab . #(107 142 35)) (dimgrey . #(105 105 105))
+                               (navajowhite . #(255 222 173)) (darkblue . #(0 0 139)) (indigo . #(75 0 130)) (rosybrown . #(188 143 143))
+                               (springgreen . #(0 255 127)) (dimgray . #(105 105 105)) (lavender . #(230 230 250))
+                               (darkolivegreen . #(85 107 47)) (mediumblue . #(0 0 205)) (sienna . #(160 82 45)) (blue . #(0 0 255))
+                               (royalblue . #(65 105 225)) (goldenrod . #(218 165 32)) (rebeccapurple . #(102 51 153))
+                               (antiquewhite . #(250 235 215)) (crimson . #(220 20 60)) (cyan . #(0 255 255)) (coral . #(255 127 80))
+                               (chocolate . #(210 105 30)) (lightcyan . #(224 255 255)) (oldlace . #(253 245 230)) (red . #(255 0 0))
+                               (limegreen . #(50 205 50)) (darkslateblue . #(72 61 139)) (sandybrown . #(244 164 96))
+                               (mediumseagreen . #(60 179 113)) (paleturquoise . #(175 238 238)) (lightslategray . #(119 136 153))
+                               (ghostwhite . #(248 248 255)) (azure . #(240 255 255)) (lightcoral . #(240 128 128)) (navy . #(0 0 128))
+                               (seashell . #(255 245 238)) (darkcyan . #(0 139 139)) (burlywood . #(222 184 135)) (lime . #(0 255 0))
+                               (lightslategrey . #(119 136 153)) (darkorchid . #(153 50 204)) (thistle . #(216 191 216))
+                               (bisque . #(255 228 196)) (darkred . #(139 0 0)) (darkgrey . #(169 169 169)) (darkviolet . #(148 0 211))
+                               (magenta . #(255 0 255)) (peachpuff . #(255 218 185)) (orchid . #(218 112 214)) (lawngreen . #(124 252 0))
+                               (lightgoldenrodyellow . #(250 250 210)) (slategrey . #(112 128 144)) (orangered . #(255 69 0))
+                               (tomato . #(255 99 71)) (peru . #(205 133 63)) (darkgray . #(169 169 169)) (lightseagreen . #(32 178 170))
+                               (blueviolet . #(138 43 226)) (darkgreen . #(0 100 0)) (forestgreen . #(34 139 34)) (grey . #(128 128 128))
+                               (papayawhip . #(255 239 213)) (mediumvioletred . #(199 21 133)) (lightyellow . #(255 255 224))
+                               (lightgray . #(211 211 211)) (ivory . #(255 255 240)) (mediumorchid . #(186 85 211))
+                               (darkturquoise . #(0 206 209)) (gray . #(128 128 128)) (deeppink . #(255 20 147)) (snow . #(255 250 250))
+                               (purple . #(128 0 128)) (mediumpurple . #(147 112 219)) (skyblue . #(135 206 235)) (maroon . #(128 0 0))
+                               (lightgreen . #(144 238 144)) (lemonchiffon . #(255 250 205)) (seagreen . #(46 139 87))
+                               (honeydew . #(240 255 240)) (darkseagreen . #(143 188 143)) (darkmagenta . #(139 0 139))
+                               (blanchedalmond . #(255 235 205)) (darkslategrey . #(47 79 79)) (yellowgreen . #(154 205 50))
+                               (palegoldenrod . #(238 232 170)) (hotpink . #(255 105 180)) (firebrick . #(178 34 34))
+                               (darkkhaki . #(189 183 107)) (indianred . #(205 92 92)) (mediumslateblue . #(123 104 238))
+                               (chartreuse . #(127 255 0)) (floralwhite . #(255 250 240)) (darkslategray . #(47 79 79))
+                               (deepskyblue . #(0 191 255)) (tan . #(210 180 140)) (pink . #(255 192 203)) (beige . #(245 245 220))
+                               (darkorange . #(255 140 0)) (violet . #(238 130 238)) (mintcream . #(245 255 250)) (orange . #(255 165 0))
+                               (cornsilk . #(255 248 220)) (mediumaquamarine . #(102 205 170)) (darkgoldenrod . #(184 134 11))
+                               (lightblue . #(173 216 230)) (mediumturquoise . #(72 209 204)) (mistyrose . #(255 228 225))
+                               (lightgrey . #(211 211 211)) (steelblue . #(70 130 180)) (lightpink . #(255 182 193)) (green . #(0 128 0))
+                               (wheat . #(245 222 179)) (linen . #(250 240 230)) (powderblue . #(176 224 230)) (aqua . #(0 255 255))
+                               (khaki . #(240 230 140)) (slategray . #(112 128 144)) (saddlebrown . #(139 69 19)) (brown . #(165 42 42))
+                               (turquoise . #(64 224 208)) (palegreen . #(152 251 152)) (aliceblue . #(240 248 255)) 
+                               (cadetblue . #(95 158 160)) (olive . #(128 128 0)) (slateblue . #(106 90 205)) (fuchsia . #(255 0 255))
+                               (lightskyblue . #(135 206 250)) (salmon . #(250 128 114)) (lightsteelblue . #(176 196 222))
+                               (gainsboro . #(220 220 220)) (mediumspringgreen . #(0 250 154)) (midnightblue . #(25 25 112))
+                               (silver . #(192 192 192)) (dodgerblue . #(30 144 255)) (greenyellow . #(173 255 47))
+                               (cornflowerblue . #(100 149 237))))
+  
   (define css-hash-color->rgba : (-> Keyword (Option CSS-RGBA))
     (lambda [hash-color]
       (define color : String (keyword->string hash-color))
@@ -479,25 +524,24 @@
 
 (require (submod "." css))
 
-(define select-rgba-color : (->* (Datum) (Gamut) (Instance Color%))
+(define select-rgba-color : (->* (RGBA-Color) (Gamut) (Instance Color%))
   (lambda [color [alpha 1.0]]
     color%
-    (hash-ref the-colorbase color)))
+    ;(hash-ref the-color-pool color)
+    (make-object color%)))
 
-(define css-color-declaration-filter : (-> (Listof+ CSS-Token) CSS-Declared-Result)
+(define css-color-declaration-filter : (-> CSS-Token (Listof CSS-Token) CSS-Declared-Result)
   ;;; https://drafts.csswg.org/css-color/#color-type
   ;;; https://drafts.csswg.org/css-color/#named-colors
   ;;; https://drafts.csswg.org/css-color/#numeric-rgb
   ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
   ;;; https://drafts.csswg.org/css-color/#the-hwb-notation
-  (lambda [color-values]
-    (define argsize : Index (length color-values))
-    (define color-value : CSS-Token (car color-values))
-    (cond [(> argsize 1) (vector exn:css:overconsumption (cdr color-values))]
+  (lambda [color-value rest]
+    (cond [(pair? rest) (vector exn:css:overconsumption rest)]
           [(css:ident? color-value)
-           (define name : String (css:ident=> color-value symbol->string))
-           (cond [(send the-color-database find-color name) color-value]
-                 [(member (string-downcase name) '("transparent" "currentcolor" "rebeccapurple")) color-value]
+           (define name : Symbol (css:ident-norm color-value))
+           (cond [(hash-has-key? css-named-colors name) color-value]
+                 [(memq name '(transparent currentcolor)) color-value]
                  [else exn:css:range])]
           [(css:hash? color-value)
            (define maybe-rgba : (Option CSS-RGBA) (css:hash=> color-value css-hash-color->rgba))
@@ -511,6 +555,9 @@
              [(hsi hsia) (css-apply-hsba color-value (css:function-arguments color-value) hsi->rgb)]
              [(hwb hwba) (css-apply-hsba color-value (css:function-arguments color-value) hwb->rgb)]
              [else (vector exn:css:unrecognized color-value)])]
+          [(css:string? color-value)
+           (define name : String (css:string-datum color-value))
+           (if (send the-color-database find-color name) color-value exn:css:range)]
           [else exn:css:type])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -551,10 +598,6 @@
   (require (submod ".."))
   (require (submod "css.rkt" test/digitama))
 
-  (define symbol-suffix? : (-> Symbol String Boolean)
-    (lambda [name suffix]
-      (string-suffix? (symbol->string name) suffix)))
-
   (define ~rgba : (-> CSS-RGBA Datum)
     (lambda [rgba]
       (define rgb : Natural (car rgba))
@@ -586,10 +629,10 @@
             [else #false])))
   
   (define css-descriptor-filter : CSS-Declared-Value-Filter
-    (lambda [suitcased-name desc-values]
+    (lambda [suitcased-name desc-value rest]
       (values (case suitcased-name
-                [(color background-color border-color) (css-color-declaration-filter desc-values)]
-                [else desc-values])
+                [(color background-color border-color) (css-color-declaration-filter desc-value rest)]
+                [else desc-value])
               #false)))
 
   (define css-filter : (CSS-Cascaded-Value-Filter (Option Descriptors))
@@ -597,8 +640,9 @@
       (make-descriptors #:color (css-ref declared-values 'color token->color)
                         #:background-color (css-ref declared-values 'background-color token->color)
                         #:border-color (css-ref declared-values 'border-color token->color)
-                        #:otherwise (for/hash : (HashTable Symbol Datum) ([desc-name (in-hash-keys declared-values)]
-                                                                          #:when (not (symbol-suffix? desc-name "color")))
+                        #:otherwise (for/hash : (HashTable Symbol Datum)
+                                      ([desc-name (in-hash-keys declared-values)]
+                                       #:when (not (memq desc-name '(color background-color border-color))))
                                       (values desc-name
                                               (css-ref declared-values desc-name
                                                        (λ [[desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]]
