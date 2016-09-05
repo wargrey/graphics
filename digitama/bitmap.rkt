@@ -556,8 +556,12 @@
              [(hwb hwba) (css-apply-hsba color-value (css:function-arguments color-value) hwb->rgb)]
              [else (vector exn:css:unrecognized color-value)])]
           [(css:string? color-value)
-           (define name : String (css:string-datum color-value))
-           (if (send the-color-database find-color name) color-value exn:css:range)]
+           (define name-raw : String (css:string-datum color-value))
+           (define grey : (Option (Pairof String (Listof (Option String)))) (regexp-match #px"(?i:grey)" name-raw))
+           (define name : String (if (pair? grey) (string-replace name-raw (car grey) "gray") name-raw))
+           (cond [(not (send the-color-database find-color name)) exn:css:range]
+                 [(pair? grey) (css-remake-token color-value css:string name)]
+                 [else color-value])]
           [else exn:css:type])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -626,6 +630,7 @@
     (lambda [desc-name maybe-value]
       (cond [(css:rgba? maybe-value) (css:rgba=> maybe-value ~rgba)]
             [(css:ident? maybe-value) (css:ident-datum maybe-value)]
+            [(css:string? maybe-value) (css:string-datum maybe-value)]
             [else #false])))
   
   (define css-descriptor-filter : CSS-Declared-Value-Filter
