@@ -293,7 +293,7 @@
       
       ; These tokens are remade by the parser, and they are never produced by the tokenizer.
       [css:ratio      #:+ CSS:Ratio      #:as Positive-Exact-Rational]
-      [css:rgba       #:+ CSS:RGBA       #:as Nonnegative-Fixnum       [alpha : Nonnegative-Flonum]])
+      [css:rgba       #:+ CSS:RGBA       #:as Index                    [alpha : Nonnegative-Flonum]])
 
     (define-symbolic-tokens css-symbolic #:+ CSS-Symbolic
       [css:cd         #:+ CSS:CD         #:as Char]
@@ -460,30 +460,35 @@
   (define-type CSS-Attribute-Value (U CSS-Attribute-Datum (Vector Symbol CSS-Attribute-Datum)))
   
   (define-selectors
-    [css-attribute-selector #:+ CSS-Attribute-Selector ([name : Symbol] [namespace : (U Symbol Boolean)])]
-    [css-attribute~selector #:+ CSS-Attribute~Selector css-attribute-selector ([operator : Char]
-                                                                               [value : (U Symbol String)]
-                                                                               [i? : Boolean])]
+    [css-attribute-selector      #:+ CSS-Attribute-Selector ([name : Symbol] [quirk : Symbol] [namespace : (U Symbol Boolean)])]
+    [css-attribute~selector      #:+ CSS-Attribute~Selector css-attribute-selector
+                                 ([operator : Char]
+                                  [value : (U Symbol String)]
+                                  [i? : Boolean])]
     
-    [css-pseudo-class-selector #:+ CSS-Pseudo-Class-Selector ([name : Symbol] [arguments : (Option (Listof CSS-Token))])]
-    [css-pseudo-element-selector #:+ CSS-Pseudo-Element-Selector ([name : Symbol]
-                                                                  [arguments : (Option (Listof CSS-Token))]
-                                                                  [pseudo-classes : (Listof CSS-Pseudo-Class-Selector)])]
+    [css-pseudo-class-selector   #:+ CSS-Pseudo-Class-Selector ([name : Symbol] [arguments : (Option (Listof CSS-Token))])]
+    [css-pseudo-element-selector #:+ CSS-Pseudo-Element-Selector
+                                 ([name : Symbol]
+                                  [arguments : (Option (Listof CSS-Token))]
+                                  [pseudo-classes : (Listof CSS-Pseudo-Class-Selector)])]
 
-    [css-compound-selector #:+ CSS-Compound-Selector ([combinator : (Option CSS-Combinator)]
-                                                      [type : (U Symbol True)]
-                                                      [namespace : (U Symbol Boolean)]
-                                                      [pseudo-classes : (Listof CSS-Pseudo-Class-Selector)]
-                                                      [classes : (Listof Symbol)]
-                                                      [ids : (Listof Keyword)]
-                                                      [attributes : (Listof CSS-Attribute-Selector)]
-                                                      [pseudo-element : (Option CSS-Pseudo-Element-Selector)])]
+    [css-compound-selector       #:+ CSS-Compound-Selector
+                                 ([combinator : (Option CSS-Combinator)]
+                                  [type : (U Symbol True)]
+                                  [quirk : (U Symbol True)]
+                                  [namespace : (U Symbol Boolean)]
+                                  [pseudo-classes : (Listof CSS-Pseudo-Class-Selector)]
+                                  [classes : (Listof Symbol)]
+                                  [ids : (Listof Keyword)]
+                                  [attributes : (Listof CSS-Attribute-Selector)]
+                                  [pseudo-element : (Option CSS-Pseudo-Element-Selector)])]
     
-    [css-complex-selector #:+ CSS-Complex-Selector ([specificity : Natural]
-                                                    [list : (Listof+ CSS-Compound-Selector)]
-                                                    [A : Natural]
-                                                    [B : Natural]
-                                                    [C : Natural])])
+    [css-complex-selector        #:+ CSS-Complex-Selector
+                                 ([specificity : Natural]
+                                  [list : (Listof+ CSS-Compound-Selector)]
+                                  [A : Natural]
+                                  [B : Natural]
+                                  [C : Natural])])
 
   (define-configuration css-subject #:as CSS-Subject
     ([type : Symbol]
@@ -493,12 +498,13 @@
      [attributes : (HashTable Symbol CSS-Attribute-Value) #:= (make-hasheq)])
     #:prefab)
 
-  (define css-selector-match : (-> CSS-Complex-Selector CSS-Subject (Option CSS-Complex-Selector))
+  (define css-selector-match : (->* (CSS-Complex-Selector CSS-Subject) (Boolean) (Option Natural))
     ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
-    (lambda [selector element]
+    ;;; https://drafts.csswg.org/selectors/#case-sensitive
+    (lambda [selector element [quirk? #false]] ; WARNING: `quirk?` only affects type name and attribute names
       (define s : CSS-Compound-Selector (last (css-complex-selector-list selector)))
       (define match? : Boolean
-        (and (let ([s:type (css-compound-selector-type s)])
+        (and (let ([s:type (if quirk? (css-compound-selector-quirk s) (css-compound-selector-type s))])
                (and (css-attribute-namespace-match? (css-compound-selector-namespace s) (css-subject-namespace element))
                     (or (eq? s:type #true) (eq? s:type (css-subject-type element)))))
              (let ([s:ids : (Listof Keyword) (css-compound-selector-ids s)]
@@ -512,14 +518,14 @@
              (let ([s:attrs : (Listof CSS-Attribute-Selector) (css-compound-selector-attributes s)]
                    [attrs : (HashTable Symbol CSS-Attribute-Value) (css-subject-attributes element)])
                (for/and : Boolean ([attr : CSS-Attribute-Selector (in-list s:attrs)])
-                 (and (hash-has-key? attrs (css-attribute-selector-name attr))
+                 (and (hash-has-key? attrs (if quirk? (css-attribute-selector-quirk attr) (css-attribute-selector-name attr)))
                       (let*-values ([(ns.val) (hash-ref attrs (css-attribute-selector-name attr))]
                                     [(ns datum) (cond [(not (vector? ns.val)) (values #false ns.val)]
                                                       [else (values (vector-ref ns.val 0) (vector-ref ns.val 1))])])
                         (and (css-attribute-namespace-match? (css-attribute-selector-namespace attr) ns)
                              (or (not (css-attribute~selector? attr)) ; [attr]
                                  (let* ([px:val : String (regexp-quote (~a (css-attribute~selector-value attr)))]
-                                        [mode : String (if (css-attribute~selector-i? attr) "i" "-i")]
+                                        [mode : String (if (or quirk? (css-attribute~selector-i? attr)) "i" "-i")]
                                         [val : String (if (list? datum) (string-join ((inst map String Any) ~a datum)) (~a datum))])
                                    (and (non-empty-string? px:val)
                                         (case (css-attribute~selector-operator attr)
@@ -530,7 +536,7 @@
                                           [(#\$) (regexp-match? (pregexp (format "(?~a:~a$)" mode px:val)) val)]
                                           [(#\*) (regexp-match? (pregexp (format "(?~a:~a)" mode px:val)) val)]
                                           [else #false])))))))))))
-      (and match? selector)))
+      (and match? (css-complex-selector-specificity selector))))
   
   (define css-selector-specificity : (-> (Listof CSS-Compound-Selector) (values Natural Natural Natural Natural))
     ;;; https://drafts.csswg.org/selectors/#specificity-rules
@@ -625,12 +631,12 @@
           (cond [(css:ratio? maybe-value) (css:ratio-datum maybe-value)]
                 [(css-token? maybe-value) exn:css:type])]
          [(color color-index monochrome)
-          (cond [(css:integer=:=? maybe-value negative?) exn:css:range]
-                [(css:integer? maybe-value) (css:integer-datum maybe-value)]
+          (cond [(css:natural? maybe-value) (css:natural-datum maybe-value)]
+                [(css:integer? maybe-value) exn:css:range]
                 [(css-token? maybe-value) exn:css:type])]
-         [(grid)
+         [(grid) ; legacy descriptor
           (cond [(and min/max?) exn:css:unrecognized]
-                [(css:integer? maybe-value) (when (css:integer=:=? maybe-value zero?) 0)]
+                [(css:integer? maybe-value) (when (css:zero? maybe-value) 0)]
                 [(css-token? maybe-value) exn:css:type])]
          [else exn:css:unrecognized])
        (and (memq downcased-name '(device-width device-height device-aspect-ratio))
@@ -647,7 +653,7 @@
   ;; https://drafts.csswg.org/css-cascade/#shorthand
   ;; https://drafts.csswg.org/css-cascade/#filtering
   ;; https://drafts.csswg.org/css-cascade/#cascading
-  (define-type CSS-Cascaded-Value (U CSS-Token (Listof+ CSS-Token) False))
+  (define-type CSS-Cascaded-Value (U CSS-Token (Listof CSS-Token) False))
   (define-type CSS-Declared-Value (Pairof CSS-Cascaded-Value Boolean))
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declared-Value))
   (define-type CSS-Declared-Result (U CSS-Cascaded-Value Void Make-CSS-Syntax-Error
@@ -1760,11 +1766,11 @@
     ;;; https://github.com/w3c/csswg-drafts/issues/202
     (lambda [components combinator namespaces]
       (define-values (head heads) (css-car components))
-      (define-values (typename namespace simple-selector-components)
+      (define-values (typename quirkname namespace simple-selector-components)
         (cond [(css:ident? head) (css-car-elemental-selector head heads namespaces)]
-              [(css:delim=:=? head '#(#\|  #\*)) (css-car-elemental-selector head heads namespaces)]
+              [(css:delim=:=? head '#(#\| #\*)) (css-car-elemental-selector head heads namespaces)]
               [(or (eof-object? head) (css:delim=:=? head #\,)) (css-throw-syntax-error exn:css:empty head)]
-              [else (values #true (or (css-declared-namespace namespaces '||) #true) (cons head heads))]))
+              [else (values #true #true (or (css-declared-namespace namespaces '||) #true) (cons head heads))]))
       (define-values (pseudo-classes selector-components) (css-car-pseudo-class-selectors simple-selector-components))
       (let extract-simple-selector ([sessalc : (Listof Symbol) null]
                                     [sdi : (Listof Keyword) null]
@@ -1773,7 +1779,7 @@
                                     [selector-tokens : (Listof CSS-Token) selector-components])
         (define-values (token tokens) (css-car selector-tokens #false))
         (cond [(or (eof-object? token) (css:delim=:=? token #\,) (css-selector-combinator? token))
-               (values (make-css-compound-selector combinator typename namespace pseudo-classes
+               (values (make-css-compound-selector combinator typename quirkname namespace pseudo-classes
                                                    (reverse sessalc) (reverse sdi) (reverse setubirtta) pseudo-element)
                        selector-tokens)]
               [(and pseudo-element) (css-throw-syntax-error exn:css:overconsumption token)]
@@ -1818,7 +1824,7 @@
         [else (css-throw-syntax-error exn:css:unrecognized token)])))
   
   (define css-car-elemental-selector : (-> (U CSS:Ident CSS:Delim) (Listof CSS-Token) CSS-NameSpace-Hint
-                                           (Values (U Symbol True) (U Symbol Boolean) (Listof CSS-Token)))
+                                           (Values (U Symbol True) (U Symbol True) (U Symbol Boolean) (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#elemental-selectors
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
@@ -1826,18 +1832,18 @@
       (define-values (next rest) (css-car tokens #false))
       (define-values (next2 rest2) (css-car rest #false))
       (cond [(css:delim=:=? token #\|)
-             (cond [(css:ident? next) (values (css:ident-norm next) #false rest)]
-                   [(css:delim=:=? next #\*) (values #true #false rest)]
+             (cond [(css:ident? next) (values (css:ident-datum next) (css:ident-norm next) #false rest)]
+                   [(css:delim=:=? next #\*) (values #true #true #false rest)]
                    [else (css-throw-syntax-error exn:css:missing-identifier next)])]
             [(css:delim=:=? next #\|)
              (define ns : (U Symbol Boolean) (css-declared-namespace namespaces token))
              (cond [(false? ns) (css-throw-syntax-error exn:css:namespace token)]
-                   [(css:ident? next2) (values (css:ident-norm next2) ns rest2)]
-                   [(css:delim=:=? next2 #\*) (values #true ns rest2)]
+                   [(css:ident? next2) (values (css:ident-datum next2) (css:ident-norm next2) ns rest2)]
+                   [(css:delim=:=? next2 #\*) (values #true #true ns rest2)]
                    [else (css-throw-syntax-error exn:css:missing-identifier (list token next))])]
             [else (let ([ns (or (css-declared-namespace namespaces '||) #true)])
-                    (cond [(css:delim? token) (values #true ns tokens)]
-                          [else (values (css:ident-norm token) ns tokens)]))])))
+                    (cond [(css:delim? token) (values #true #true ns tokens)]
+                          [else (values (css:ident-datum token) (css:ident-norm token) ns tokens)]))])))
 
   (define css-car-pseudo-class-selectors : (-> (Listof CSS-Token) (Values (Listof CSS-Pseudo-Class-Selector) (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
@@ -1866,22 +1872,22 @@
       (define-values (1st rest1) (css-car (css:block-components block)))
       (define-values (2nd rest2) (css-car rest1 #false))
       (define-values (3rd rest3) (css-car rest2 #false))
-      (define-values (attr namespace op-part)
+      (define-values (attrname quirkname namespace op-part)
         (cond [(eof-object? 1st) (css-throw-syntax-error exn:css:empty block)]
               [(or (css:match? 1st) (css:delim=:=? 1st #\=))
                (css-throw-syntax-error exn:css:missing-identifier block)]
               [(or (eof-object? 2nd) (css:match? 2nd) (css:delim=:=? 2nd #\=) (css:whitespace? 2nd))
                ; WARNING: the namespace behavior for attributes is different from that for elements 
-               (cond [(css:ident? 1st) (values (css:ident-datum 1st) #false rest1)]
+               (cond [(css:ident? 1st) (values (css:ident-datum 1st) (css:ident-norm 1st) #false rest1)]
                      [else (css-throw-syntax-error exn:css:missing-identifier 1st)])]
               [(or (eof-object? 3rd) (css:match? 3rd) (css:delim=:=? 3rd #\=) (css:whitespace? 3rd))
-               (cond [(and (css:delim=:=? 1st #\|) (css:ident? 2nd)) (values (css:ident-datum 2nd) #false rest2)]
+               (cond [(and (css:delim=:=? 1st #\|) (css:ident? 2nd)) (values (css:ident-datum 2nd) (css:ident-norm 2nd) #false rest2)]
                      [(css:delim=:=? 2nd #\|) (css-throw-syntax-error exn:css:missing-identifier 2nd)]
                      [else (css-throw-syntax-error exn:css:unrecognized 1st)])]
               [(and (or (css:ident? 1st) (css:delim=:=? 1st #\*)) (css:delim=:=? 2nd #\|) (css:ident? 3rd))
                (define ns (css-declared-namespace namespaces 1st))
                (cond [(false? ns) (css-throw-syntax-error exn:css:namespace 1st)]
-                     [else (values (css:ident-datum 3rd) ns rest3)])]
+                     [else (values (css:ident-datum 3rd) (css:ident-norm 3rd) ns rest3)])]
               [(and (or (css:ident? 1st) (css:delim=:=? 1st #\*)) (css:delim=:=? 2nd #\|))
                (css-throw-syntax-error exn:css:missing-identifier 3rd)]
               [(or (css:ident? 1st) (css:delim=:=? 1st #\*))
@@ -1899,9 +1905,9 @@
               [(css:ident? value) (css:ident-datum value)]
               [(or (css:whitespace? value) (eof-object? value)) ""]
               [else (css-throw-syntax-error exn:css:type value)]))
-      (cond [(or (css:whitespace? op) (eof-object? op)) (make-css-attribute-selector attr namespace)]
-            [(css:delim=:=? op #\=) (make-css-attribute~selector attr namespace #\= val (css:ident? i))]
-            [(css:match? op) (make-css-attribute~selector attr namespace (css:match-datum op) val (css:ident? i))]
+      (cond [(or (css:whitespace? op) (eof-object? op)) (make-css-attribute-selector attrname quirkname namespace)]
+            [(css:delim=:=? op #\=) (make-css-attribute~selector attrname quirkname namespace #\= val (css:ident? i))]
+            [(css:match? op) (make-css-attribute~selector attrname quirkname namespace (css:match-datum op) val (css:ident? i))]
             [else (css-throw-syntax-error exn:css:unrecognized op)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2226,18 +2232,18 @@
 
   (define css-cascade : (All (Configuration) (-> (Listof CSS-StyleSheet) CSS-Subject
                                                  CSS-Declared-Value-Filter (CSS-Cascaded-Value-Filter Configuration)
-                                                 Configuration (Option Configuration)
+                                                 Configuration (Option Configuration) [#:quirk? Boolean]
                                                  Configuration))
     ;;; https://drafts.csswg.org/css-cascade/#filtering
     ;;; https://drafts.csswg.org/css-cascade/#cascading
-    (lambda [stylesheets subject desc-filter value-filter initial-values inherit-values]
+    (lambda [stylesheets subject desc-filter value-filter initial-values inherit-values #:quirk? [quirk? #false]]
       (define declared-values : CSS-Declared-Values (make-hasheq))
       (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
         (for ([stylesheet (in-list batch)])
           (define child-identities : (Listof Positive-Integer) (css-stylesheet-imports stylesheet))
           (cascade-stylesheets (for/list : (Listof CSS-StyleSheet) ([import (in-list child-identities)])
                                  (hash-ref (css-stylesheet-pool stylesheet) import)))
-          (css-cascade-rules (css-stylesheet-rules stylesheet) subject desc-filter
+          (css-cascade-rules (css-stylesheet-rules stylesheet) subject desc-filter quirk?
                              (css-stylesheet-preferences stylesheet) declared-values)))
       (value-filter declared-values initial-values inherit-values
                     (css-ref declared-values 'all
@@ -2246,15 +2252,15 @@
                                      [else (css:ident-datum maybe-value)]))))))
 
   (define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) CSS-Subject CSS-Declared-Value-Filter)
-                                   (CSS-Media-Preferences CSS-Declared-Values) CSS-Declared-Values)
+                                   (Boolean CSS-Media-Preferences CSS-Declared-Values) CSS-Declared-Values)
     ;;; https://drafts.csswg.org/css-cascade/#filtering
     ;;; https://drafts.csswg.org/css-cascade/#cascading
     ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
     ;;; https://drafts.csswg.org/selectors/#data-model
-    (lambda [rules subject desc-filter
+    (lambda [rules subject desc-filter [quirk? #false]
                    [top-preferences (current-css-media-preferences)]
                    [descbase ((inst make-hasheq Symbol CSS-Declared-Value))]]
-      (define-type Style-Metadata (Vector CSS-Complex-Selector CSS-Declarations CSS-Media-Preferences))
+      (define-type Style-Metadata (Vector Integer CSS-Declarations CSS-Media-Preferences))
       (define-values (selected-rules-style single-preference?)
         (let cascade-rule : (Values (Listof Style-Metadata) Boolean) ([preferences : CSS-Media-Preferences top-preferences]
                                                                       [grammars : (Listof CSS-Grammar-Rule) rules]
@@ -2266,24 +2272,18 @@
             (cond [(css-@rule? style) (values styles single-preference?)]
                   [(pair? style) (cascade-rule (cdr style) (car style) styles #false)]
                   [else (let ([selectors : (Listof+ CSS-Complex-Selector) (css-style-rule-selectors style)])
-                          (define selector : (Option CSS-Complex-Selector)
-                            (for/fold ([selected : (Option CSS-Complex-Selector) #false])
-                                      ([selector (in-list selectors)])
-                              (define matched : (Option CSS-Complex-Selector) (css-selector-match selector subject))
-                              (cond [(false? selected) matched]
-                                    [(false? matched) selected]
-                                    [else (let ([s (css-complex-selector-specificity selected)]
-                                                [m (css-complex-selector-specificity matched)])
-                                            (if (< s m) matched selected))])))
-                          (values (cond [(false? selector) styles]
-                                        [else (cons (vector selector (css-style-rule-properties style) preferences) styles)])
+                          (define max-specificity : Natural
+                            (for/fold ([max-specificity : Natural 0]) ([selector (in-list selectors)])
+                              (define matched-specificity : Natural (or (css-selector-match selector subject quirk?) 0))
+                              (max matched-specificity max-specificity)))
+                          (values (cond [(zero? max-specificity) styles]
+                                        [else (cons (vector max-specificity (css-style-rule-properties style) preferences) styles)])
                                   (and single-preference?)))]))))
       (unless (null? selected-rules-style)
-        (define ordered-sources
+        (define ordered-sources : (Listof Style-Metadata)
           (sort (reverse selected-rules-style)
                 (λ [[sm1 : Style-Metadata] [sm2 : Style-Metadata]]
-                  (< (css-complex-selector-specificity (vector-ref sm1 0))
-                     (css-complex-selector-specificity (vector-ref sm2 0))))))
+                  (< (vector-ref sm1 0) (vector-ref sm1 0)))))
         (call-with-css-preferences #:media top-preferences
           (if (and single-preference?)
               (let ([source-ref (λ [[src : Style-Metadata]] : CSS-Declarations (vector-ref src 1))])
