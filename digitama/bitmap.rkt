@@ -18,8 +18,7 @@
 
 (define-type Flomap flomap)
 (define-type Bitmap (Instance Bitmap%))
-(define-type String+Color (U String (Instance Color%)))
-(define-type RGBA-Color (U String Symbol Natural))
+(define-type Color+sRGB (U Nonnegative-Fixnum Symbol String (Instance Color%)))
 
 (define bitmap/2x : (-> (U Path-String Input-Port) Bitmap)
   (lambda [src]
@@ -109,23 +108,23 @@
     (bitmap-blank #:backing-scale (send bmp get-backing-scale)
                   (send bmp get-width) (send bmp get-height))))
 
-(define bitmap-text : (->* (String) ((Instance Font%) #:combine? Boolean #:color (Option String+Color)
-                                                      #:background-color (Option String+Color)) Bitmap)
+(define bitmap-text : (->* (String) ((Instance Font%) #:combine? Boolean #:color (Option Color+sRGB)
+                                                      #:background-color (Option Color+sRGB)) Bitmap)
   (lambda [content [font (make-font+)] #:combine? [combine? #false] #:color [fgcolor #false]
            #:background-color [bgcolor #false]]
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank)))
     (define-values (width height descent ascent) (send dc get-text-extent content font combine?))
     (send dc set-bitmap (bitmap-blank width height))
     (send dc set-font font)
-    (when fgcolor (send dc set-text-foreground fgcolor))
-    (when bgcolor (send dc set-text-background bgcolor))
+    (when fgcolor (send dc set-text-foreground (select-rgba-color fgcolor)))
+    (when bgcolor (send dc set-text-background (select-rgba-color bgcolor)))
     (when bgcolor (send dc set-text-mode 'solid))
     (send dc draw-text content 0 0 combine?)
     (or (send dc get-bitmap) (bitmap-blank))))
 
 (define bitmap-desc : (->* (String Positive-Real)
-                           ((Instance Font%) #:combine? Boolean #:color (Option String+Color)
-                                             #:background-color (Option String+Color)) Bitmap)
+                           ((Instance Font%) #:combine? Boolean #:color (Option Color+sRGB)
+                                             #:background-color (Option Color+sRGB)) Bitmap)
   (lambda [description max-width.0 [font (make-font+)] #:combine? [combine? #false] #:color [fgcolor #false]
            #:background-color [bgcolor #false]]
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank)))
@@ -163,26 +162,27 @@
     
     (send dc set-bitmap (bitmap-blank (max 1 width) (max 1 phantom-height height)))
     (send dc set-font font)
-    (when fgcolor (send dc set-text-foreground fgcolor))
+    (when fgcolor (send dc set-text-foreground (select-rgba-color fgcolor)))
     (unless (false? bgcolor)
+      (define color : (Instance Color%) (select-rgba-color bgcolor))
       (send dc set-smoothing 'aligned)
-      (send dc set-pen bgcolor 0 'transparent)
-      (send dc set-brush bgcolor 'solid)
+      (send dc set-pen color 0 'transparent)
+      (send dc set-brush color 'solid)
       (send dc draw-rectangle 0 0 (max 1 width) (max 1 phantom-height height)))
     (for ([desc (in-list (reverse descs))] [y (in-list (reverse ys))])
       (send dc draw-text desc 0 y combine?))
     (or (send dc get-bitmap) (bitmap-blank))))
 
-(define bitmap-frame : (-> Bitmap [#:margin Index] [#:color String+Color] [#:style Brush-Style]
-                           [#:border-color String+Color] [#:border-width Index] [#:border-style Pen-Style] Bitmap)
-  (lambda [bmp #:margin [margin 0] #:color [brush-color (make-object color% "White")] #:style [brush-style 'transparent]
-           #:border-color [pen-color (make-object color% "Black")] #:border-width [pen-size 1] #:border-style [pen-style 'solid]]
+(define bitmap-frame : (-> Bitmap [#:margin Index] [#:color Color+sRGB] [#:style Brush-Style]
+                           [#:border-color Color+sRGB] [#:border-width Index] [#:border-style Pen-Style] Bitmap)
+  (lambda [bmp #:margin [margin 0] #:color [brush-color #xFFFFFF] #:style [brush-style 'transparent]
+           #:border-color [pen-color #x000000] #:border-width [pen-size 1] #:border-style [pen-style 'solid]]
     (define width : Positive-Integer (+ margin margin (send bmp get-width) pen-size pen-size))
     (define height : Positive-Integer (+ margin margin (send bmp get-height) pen-size pen-size))
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
     (send dc set-smoothing 'aligned)
-    (send dc set-pen pen-color pen-size (if (zero? pen-size) 'transparent pen-style))
-    (send dc set-brush brush-color brush-style)
+    (send dc set-pen (select-rgba-color pen-color) pen-size (if (zero? pen-size) 'transparent pen-style))
+    (send dc set-brush (select-rgba-color brush-color) brush-style)
     (send dc draw-rectangle 0 0 width height)
     (send dc draw-bitmap bmp margin margin)
     (or (send dc get-bitmap) (bitmap-blank))))
@@ -368,7 +368,8 @@
   
   (require typed/racket/draw)
   
-  (define the-color-pool : (HashTable (U Symbol Natural) (Instance Color%)) (if (fixnum? #xFFFFFFFF) (make-hasheq) (make-hasheqv)))
+  (define the-color-pool : (HashTable Fixnum (Instance Color%)) (make-hasheq))
+  
   (define css-named-colors : (HashTable Symbol (Vector Byte Byte Byte))
     #hasheq((black . #(0 0 0)) (white . #(255 255 255)) (whitesmoke . #(245 245 245)) (moccasin . #(255 228 181)) (gold . #(255 215 0))
                                (plum . #(221 160 221)) (darksalmon . #(233 150 122)) (teal . #(0 128 128)) (yellow . #(255 255 0))
@@ -413,8 +414,21 @@
                                (gainsboro . #(220 220 220)) (mediumspringgreen . #(0 250 154)) (midnightblue . #(25 25 112))
                                (silver . #(192 192 192)) (dodgerblue . #(30 144 255)) (greenyellow . #(173 255 47))
                                (cornflowerblue . #(100 149 237))))
+
+  (define rgb-bytes->fixnum : (-> Natural Natural Natural Nonnegative-Fixnum)
+    (lambda [r g b]
+      (bitwise-and #xFFFFFF
+                   (bitwise-ior (arithmetic-shift r 16)
+                                (arithmetic-shift g 8)
+                                b))))
+
+  (define fixnum->rgb-bytes : (-> Nonnegative-Fixnum (Values Byte Byte Byte))
+    (lambda [rgb]
+      (values (bitwise-and (arithmetic-shift rgb -16) #xFF)
+              (bitwise-and (arithmetic-shift rgb -8) #xFF)
+              (bitwise-and rgb #xFF))))
   
-  (define css-hash-color->rgba : (-> Keyword (Option CSS-RGBA))
+  (define css-hex-color->rgba : (-> Keyword (Values (Option Nonnegative-Fixnum) Nonnegative-Flonum))
     (lambda [hash-color]
       (define color : String (keyword->string hash-color))
       (define digits : Index (string-length color))
@@ -430,11 +444,10 @@
                     (exact-nonnegative-integer? digit)
                     (let ([result : Natural (bitwise-ior (arithmetic-shift hexcolor 4) digit)])
                       (if (>= digits 6) result (bitwise-ior (arithmetic-shift result 4) digit)))))))
-      (cond [(false? maybe-hexcolor) #false]
-            [(or (= digits 3) (= digits 6)) (cons (min #xFFFFFF maybe-hexcolor) 1.0)]
-            [else (let ([alpha (bitwise-and maybe-hexcolor #xFF)])
-                    (cons (min #xFFFFFF (arithmetic-shift maybe-hexcolor -8))
-                          (real->double-flonum (abs (/ alpha 255.0)))))])))
+      (cond [(false? maybe-hexcolor) (values #false 1.0)]
+            [(or (= digits 3) (= digits 6)) (values (bitwise-and maybe-hexcolor #xFFFFFF) 1.0)]
+            [else (values (bitwise-and (arithmetic-shift maybe-hexcolor -8) #xFFFFFF)
+                          (real->double-flonum (abs (/ (bitwise-and maybe-hexcolor #xFF) 255.0))))])))
   
   (define css-rgb->scalar : (-> CSS-Token (U Natural CSS-Declared-Result))
     (lambda [t]
@@ -497,9 +510,7 @@
                           [(not (exact-nonnegative-integer? g)) g]
                           [(not (exact-nonnegative-integer? b)) b]
                           [(not (flonum? a)) a]
-                          [else (css-remake-token [frgba (last args)] css:rgba
-                                                  (cons (min #xFFFFFF (bitwise-ior (arithmetic-shift r 16) (arithmetic-shift g 8) b))
-                                                        a))]))])))
+                          [else (css-remake-token [frgba (last args)] css:rgba (rgb-bytes->fixnum r g b) a)]))])))
 
   (define css-apply-hsba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) HSB->RGB CSS-Declared-Result)
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
@@ -516,19 +527,46 @@
                           [(not (flonum? a)) a]
                           [else (let-values ([(flr flg flb) (->rgb h (css:percentage-datum s) (css:percentage-datum b))])
                                   (css-remake-token [fhsba (last args)] css:rgba
-                                                    (cons (min #xFFFFFF
-                                                               (bitwise-ior (arithmetic-shift (gamut->byte flr) 16)
-                                                                            (arithmetic-shift (gamut->byte flg) 8)
-                                                                            (gamut->byte flb)))
-                                                          a)))]))]))))
+                                                    (rgb-bytes->fixnum (gamut->byte flr) (gamut->byte flg) (gamut->byte flb))
+                                                    a))]))]))))
 
 (require (submod "." css))
 
-(define select-rgba-color : (->* (RGBA-Color) (Gamut) (Instance Color%))
-  (lambda [color [alpha 1.0]]
-    color%
-    ;(hash-ref the-color-pool color)
-    (make-object color%)))
+(define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Real) (Instance Color%))
+  (lambda [color-representation [alpha 1.0]]
+    (define abyte : Byte (min (exact-round (* alpha 255.0)) #xFF))
+    (define opaque? : Boolean (fx= abyte #xFF))
+    (cond [(fixnum? color-representation)
+           (define hashcode : Fixnum (bitwise-and color-representation #xFFFFFF))
+           (hash-ref! the-color-pool
+                      (if opaque? hashcode (eqv-hash-code (make-rectangular hashcode abyte)))
+                      (thunk (let-values ([(r g b) (fixnum->rgb-bytes color-representation)])
+                               (make-color r g b (fl/ (real->double-flonum abyte) 255.0)))))]
+          [(symbol? color-representation)
+           (let try-again ([color-name : Symbol color-representation]
+                           [downcased? : Boolean #false])
+             (cond [(hash-has-key? css-named-colors color-name)
+                    (hash-ref! the-color-pool
+                               (cond [(and opaque?) (eq-hash-code color-name)]
+                                     [else (equal-hash-code (cons color-name abyte))])
+                               (thunk (let ([rgb (hash-ref css-named-colors color-name)])
+                                        (select-rgba-color (rgb-bytes->fixnum (vector-ref rgb 0)
+                                                                              (vector-ref rgb 1)
+                                                                              (vector-ref rgb 2))
+                                                           alpha))))]
+                   [(not downcased?) (try-again (string->symbol (string-downcase (symbol->string color-name))) #true)]
+                   [else (select-rgba-color 0 alpha)]))]
+          [(string? color-representation)
+           (let* ([color-name (string-downcase (string-replace color-representation #px"(?i:grey)" "gray"))]
+                  [color (send the-color-database find-color color-name)])
+             (cond [(false? color) (select-rgba-color 0 alpha)]
+                   [else (hash-ref! the-color-pool
+                                    (equal-hash-code (if opaque? color-name (cons color-name abyte)))
+                                    (thunk (select-rgba-color (rgb-bytes->fixnum (send color red)
+                                                                                 (send color green)
+                                                                                 (send color blue))
+                                                              alpha)))]))]
+          [else color-representation])))
 
 (define css-color-declaration-filter : (-> CSS-Token (Listof CSS-Token) CSS-Declared-Result)
   ;;; https://drafts.csswg.org/css-color/#color-type
@@ -544,9 +582,9 @@
                  [(memq name '(transparent currentcolor)) color-value]
                  [else exn:css:range])]
           [(css:hash? color-value)
-           (define maybe-rgba : (Option CSS-RGBA) (css:hash=> color-value css-hash-color->rgba))
-           (cond [(false? maybe-rgba) exn:css:range]
-                 [else (css-remake-token color-value css:rgba maybe-rgba)])]
+           (define-values (maybe-rgb alpha) (css-hex-color->rgba (css:hash-datum color-value)))
+           (cond [(false? maybe-rgb) exn:css:range]
+                 [else (css-remake-token color-value css:rgba maybe-rgb alpha)])]
           [(css:function? color-value)
            (case (css:function-norm color-value)
              [(rgb rgba) (css-apply-rgba color-value (css:function-arguments color-value))]
@@ -582,19 +620,19 @@
            (append bitmap-descs
                    (list (bitmap-pin 1 1/2 0 1/2
                                      (bitmap-text "> ")
-                                     (bitmap-text "(" #:color "Sienna")
+                                     (bitmap-text "(" #:color 'Sienna)
                                      (bitmap-hc-append #:gapsize 7
-                                                       (bitmap-text "bitmap-desc" #:color "Blue")
-                                                       (bitmap-text (~s words) #:color "Orange")
-                                                       (bitmap-text (~a width) #:color "Tomato"))
-                                     (bitmap-text ")" #:color "Sienna"))
-                         (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color "Purple")
+                                                       (bitmap-text "bitmap-desc" #:color 'Blue)
+                                                       (bitmap-text (~s words) #:color 'Orange)
+                                                       (bitmap-text (~a width) #:color 'Tomato))
+                                     (bitmap-text ")" #:color 'Sienna))
+                         (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color 'Purple)
                          (bitmap-pin 0 0 0 0
                                      (bitmap-frame desc #:margin 1 #:border-style 'transparent #:style 'transparent)
-                                     (bitmap-frame (bitmap-blank width height) #:border-color "Lavender"))
-                         (bitmap-text (format "- : (Bitmap ~a ~a #:combined)" combined-width combined-height) #:color "Purple")
+                                     (bitmap-frame (bitmap-blank width height) #:border-color 'Lavender))
+                         (bitmap-text (format "- : (Bitmap ~a ~a #:combined)" combined-width combined-height) #:color 'Purple)
                          (bitmap-lt-superimpose (bitmap-frame combined-desc #:margin 1 #:border-style 'transparent #:style 'transparent)
-                                                (bitmap-frame (bitmap-blank width combined-height) #:border-color "Lavender")))))))
+                                                (bitmap-frame (bitmap-blank width combined-height) #:border-color 'Lavender)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* test typed/racket
@@ -602,12 +640,11 @@
   (require (submod ".."))
   (require (submod "css.rkt" test/digitama))
 
-  (define ~rgba : (-> CSS-RGBA Datum)
+  (define ~rgba : (-> (Instance Color%) String)
     (lambda [rgba]
-      (define rgb : Natural (car rgba))
-      (define alpha : Gamut (cdr rgba))
-      (cons (~r rgb #:base 16 #:min-width 6 #:pad-string "0")
-            alpha)))
+      (format "~x"
+              (make-rectangular (+ (arithmetic-shift (send rgba red) 16) (arithmetic-shift (send rgba green) 8) (send rgba blue))
+                                (exact-round (* (send rgba alpha) 255.0))))))
   
   (current-css-media-type 'screen)
   (current-css-media-preferences
@@ -620,18 +657,18 @@
   (define tamer-subject : CSS-Subject (make-css-subject #:type 'body #:id '#:header))
 
   (define-configuration descriptors #:as Descriptors
-    ([color : Datum]
-     [background-color : Datum]
-     [border-color : Datum]
+    ([color : (Instance Color%)]
+     [background-color : (Instance Color%)]
+     [border-color : (Instance Color%)]
      [otherwise : (Option (HashTable Symbol Datum))])
     #:transparent)
 
-  (define token->color : (-> Symbol CSS-Cascaded-Value Datum)
+  (define token->color : (-> Symbol CSS-Cascaded-Value (Instance Color%))
     (lambda [desc-name maybe-value]
-      (cond [(css:rgba? maybe-value) (css:rgba=> maybe-value ~rgba)]
-            [(css:ident? maybe-value) (css:ident-datum maybe-value)]
-            [(css:string? maybe-value) (css:string-datum maybe-value)]
-            [else #false])))
+      (cond [(css:rgba? maybe-value) (select-rgba-color (css:rgba-datum maybe-value) (css:rgba-alpha maybe-value))]
+            [(css:ident? maybe-value) (css:ident=> maybe-value select-rgba-color)]
+            [(css:string? maybe-value) (css:string=> maybe-value select-rgba-color)]
+            [else (make-object color%)])))
   
   (define css-descriptor-filter : CSS-Declared-Value-Filter
     (lambda [suitcased-name desc-value rest]
@@ -651,8 +688,7 @@
                                       (values desc-name
                                               (css-ref declared-values desc-name
                                                        (λ [[desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]]
-                                                         (cond [(token->color desc-name maybe-value) => values]
-                                                               [(css-token? maybe-value) (css-token->datum maybe-value)]
+                                                         (cond [(css-token? maybe-value) (css-token->datum maybe-value)]
                                                                [else (and maybe-value (map css-token->datum maybe-value))]))))))))
   
   tamer-subject

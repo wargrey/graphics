@@ -293,7 +293,7 @@
       
       ; These tokens are remade by the parser, and they are never produced by the tokenizer.
       [css:ratio      #:+ CSS:Ratio      #:as Positive-Exact-Rational]
-      [css:rgba       #:+ CSS:RGBA       #:as CSS-RGBA])
+      [css:rgba       #:+ CSS:RGBA       #:as Nonnegative-Fixnum       [alpha : Nonnegative-Flonum]])
 
     (define-symbolic-tokens css-symbolic #:+ CSS-Symbolic
       [css:cd         #:+ CSS:CD         #:as Char]
@@ -306,24 +306,24 @@
       [css:urange     #:+ CSS:URange     #:as (Pairof Index Index)])
 
     (define-symbolic-tokens css-structural #:+ CSS-Structural
-      [css:url        #:+ CSS:URL        #:as (U String Symbol) [modifiers  : (Listof CSS-URL-Modifier)]]
-      [css:block      #:+ CSS:Block      #:as Char              [components : (Listof CSS-Token)]]
-      [css:function   #:+ CSS:Function   #:as Symbol            [arguments  : (Listof CSS-Token)]])
+      [css:url        #:+ CSS:URL        #:as (U String Symbol)        [modifiers  : (Listof CSS-URL-Modifier)]]
+      [css:block      #:+ CSS:Block      #:as Char                     [components : (Listof CSS-Token)]]
+      [css:function   #:+ CSS:Function   #:as Symbol                   [arguments  : (Listof CSS-Token)]])
 
     (define-numeric-tokens css-number #:+ CSS-Number
-      [css:integer    #:+ CSS:Integer    #:-> css-number        #:as Fixnum             #:=? fx=]
-      [css:natural    #:+ CSS:Natural    #:-> css:integer       #:as Index              #:=? fx=]
-      [css:byte       #:+ CSS:Byte       #:-> css:natural       #:as Byte               #:=? fx=]
-      [css:zero       #:+ CSS:Zero       #:-> css:byte          #:as Zero               #:=? fx=]
+      [css:integer    #:+ CSS:Integer    #:-> css-number               #:as Fixnum             #:=? fx=]
+      [css:natural    #:+ CSS:Natural    #:-> css:integer              #:as Index              #:=? fx=]
+      [css:byte       #:+ CSS:Byte       #:-> css:natural              #:as Byte               #:=? fx=]
+      [css:zero       #:+ CSS:Zero       #:-> css:byte                 #:as Zero               #:=? fx=]
 
-      [css:flonum     #:+ CSS:Flonum     #:-> css-number        #:as Flonum             #:=? fl=]
-      [css:flunum     #:+ CSS:Flunum     #:-> css:flonum        #:as Nonnegative-Flonum #:=? fl=]
-      [css:flzero     #:+ CSS:Flzero     #:-> css:flunum        #:as Flonum-Zero        #:=? fl=]
+      [css:flonum     #:+ CSS:Flonum     #:-> css-number               #:as Flonum             #:=? fl=]
+      [css:flunum     #:+ CSS:Flunum     #:-> css:flonum               #:as Nonnegative-Flonum #:=? fl=]
+      [css:flzero     #:+ CSS:Flzero     #:-> css:flunum               #:as Flonum-Zero        #:=? fl=]
 
-      [css:delta%     #:+ CSS:Delta%     #:-> css-number        #:as Flonum             #:=? fl=]
-      [css:percentage #:+ CSS:Percentage #:-> css:delta%        #:as Nonnegative-Flonum #:=? fl=]
+      [css:delta%     #:+ CSS:Delta%     #:-> css-number               #:as Flonum             #:=? fl=]
+      [css:percentage #:+ CSS:Percentage #:-> css:delta%               #:as Nonnegative-Flonum #:=? fl=]
 
-      [css:bignum     #:+ CSS:Bignum     #:-> css-number        #:as Integer            #:=? =])
+      [css:bignum     #:+ CSS:Bignum     #:-> css-number               #:as Integer            #:=? =])
   
     (define-dimensional-tokens css:dimension
       ;;; https://drafts.csswg.org/css-values/#absolute-lengths
