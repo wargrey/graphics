@@ -365,7 +365,8 @@
 
   (require "css.rkt")
   (require "colorspace.rkt")
-  
+
+  (require racket/fixnum)
   (require typed/racket/draw)
   
   (define the-color-pool : (HashTable Fixnum (Instance Color%)) (make-hasheq))
@@ -417,16 +418,16 @@
 
   (define rgb-bytes->index : (-> Byte Byte Byte Index)
     (lambda [r g b]
-      (bitwise-and #xFFFFFF
-                   (bitwise-ior (arithmetic-shift r 16)
-                                (arithmetic-shift g 8)
-                                b))))
+      (fxand #xFFFFFF
+             (fxior (fxlshift r 16)
+                    (fxior (fxlshift g 8)
+                           b)))))
 
   (define index->rgb-bytes : (-> Index (Values Byte Byte Byte))
     (lambda [rgb]
-      (values (bitwise-and (arithmetic-shift rgb -16) #xFF)
-              (bitwise-and (arithmetic-shift rgb -8) #xFF)
-              (bitwise-and rgb #xFF))))
+      (values (fxand (fxrshift rgb 16) #xFF)
+              (fxand (fxrshift rgb 8) #xFF)
+              (fxand rgb #xFF))))
   
   (define css-hex-color->rgba : (-> Keyword (Values (Option Index) Nonnegative-Flonum))
     (lambda [hash-color]
@@ -438,7 +439,7 @@
           [(3 4) (for/fold ([hexcolor : (Option Natural) 0])
                            ([ch : Char (in-string color)])
                    (define digit : (U Integer Void)
-                     (cond [(char-numeric? ch) (- (char->integer ch) #x30)]
+                     (cond [(char-numeric? ch)   (- (char->integer ch) #x30)]
                            [(char<=? #\a ch #\f) (- (char->integer ch) #x61 -10)]
                            [(char<=? #\A ch #\F) (- (char->integer ch) #x41 -10)]))
                    (and hexcolor (byte? digit)
@@ -449,21 +450,21 @@
       (cond [(false? (index? maybe-hexcolor)) (values #false 1.0)]
             [(or (= digits 3) (= digits 6)) (values maybe-hexcolor 1.0)]
             [else (values (arithmetic-shift maybe-hexcolor -8)
-                          (real->double-flonum (abs (/ (bitwise-and maybe-hexcolor #xFF) 255.0))))])))
+                          (flabs (fl/ (fx->fl (fxand maybe-hexcolor #xFF)) 255.0)))])))
   
   (define css-rgb->scalar : (-> CSS-Token (U Byte CSS-Declared-Result))
     (lambda [t]
-      (cond [(css:byte? t) (css:byte-datum t)]
-            [(css:percentage? t) (min (css:percentage=> t fl* 255.0 exact-round) #xFF)]
-            [(css:flunum=:=? t fl<= 255.0) (min (css:flunum=> t exact-round) #xFF)]
+      (cond [(css:integer=<-? t byte?) (css:integer-norm=> t min #xFF)]
+            [(css:percentage=<-? t flprobability?)  (min (css:percentage-norm=> t fl* 255.0 exact-round) #xFF)]
+            [(css:flonum=<-? t 0.0 fl<= 255.0) (min (css:flonum-norm=> t exact-round) #xFF)]
             [(css-number? t) (vector exn:css:range t)]
             [else (vector exn:css:type t)])))
 
   (define css-alpha->scalar : (-> CSS-Token (U Gamut CSS-Declared-Result))
     (lambda [t]
-      (cond [(css:percentage? t) (css:percentage-datum t)]
-            [(css:flunum=:=? t fl<= 1.0) (css:flunum-datum t)]
-            [(css:natural=:=? t fx<= 1) (css:natural=> t fx->fl)]
+      (cond [(css:percentage=<-? t flprobability?) (css:percentage-norm t)]
+            [(css:flonum=<-? t flprobability?) (css:flonum-norm t)]
+            [(css:integer=<-? t '(0 1)) (css:integer-norm=> t fx->fl)]
             [(css-number? t) (vector exn:css:range t)]
             [else (vector exn:css:type t)])))
 
@@ -523,7 +524,7 @@
                           [(not (css:percentage? s)) (vector exn:css:type s)]
                           [(not (css:percentage? b)) (vector exn:css:type b)]
                           [(not (flonum? a)) a]
-                          [else (let-values ([(flr flg flb) (->rgb h (css:percentage-datum s) (css:percentage-datum b))])
+                          [else (let-values ([(flr flg flb) (->rgb h (css:percentage-norm s) (css:percentage-norm b))])
                                   (css-remake-token [fhsba (last args)] css:rgba
                                                     (rgb-bytes->index (gamut->byte flr) (gamut->byte flg) (gamut->byte flb))
                                                     a))]))]))))
@@ -535,11 +536,11 @@
     (define abyte : Byte (min (exact-round (* alpha 255.0)) #xFF))
     (define opaque? : Boolean (fx= abyte #xFF))
     (cond [(index? color-representation)
-           (define hashcode : Index (bitwise-and color-representation #xFFFFFF))
+           (define hashcode : Index (fxand color-representation #xFFFFFF))
            (hash-ref! the-color-pool
                       (if opaque? hashcode (eqv-hash-code (make-rectangular hashcode abyte)))
                       (thunk (let-values ([(r g b) (index->rgb-bytes color-representation)])
-                               (make-color r g b (fl/ (real->double-flonum abyte) 255.0)))))]
+                               (make-color r g b (fl/ (fx->fl abyte) 255.0)))))]
           [(symbol? color-representation)
            (let try-again ([color-name : Symbol color-representation]
                            [downcased? : Boolean #false])
@@ -600,10 +601,14 @@
                  [else color-value])]
           [else exn:css:type])))
 
-(define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (U (HashTable Symbol CSS-Cascaded-Value) CSS-Declared-Result))
+(define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) CSS-Declared+Longhand-Result)
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
-  (lambda [suitcased-name desc-value rest]
-    (void)))
+  (lambda [suitcased-name font-value rest]
+    (case suitcased-name
+      [(font-weight)
+       (cond [(pair? rest) (vector exn:css:overconsumption rest)]
+             [(css:ident=<-? font-value '(normal bold bolder lighter)) font-value]
+             [else exn:css:type])])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ test0
@@ -669,10 +674,12 @@
   
   (define css-descriptor-filter : CSS-Declared-Value-Filter
     (lambda [suitcased-name desc-value rest]
-      (values (case suitcased-name
-                [(color background-color border-color) (css-declared-color-filter desc-value rest)]
-                [else desc-value])
-              #false)))
+      (define maybe-font-property : CSS-Declared+Longhand-Result (css-font-property-filter suitcased-name desc-value rest))
+      (cond [(not (void? maybe-font-property)) (values maybe-font-property #false)]
+            [else (values (case suitcased-name
+                            [(color background-color border-color) (css-declared-color-filter desc-value rest)]
+                            [else desc-value])
+                          #false)])))
 
   (define css-filter : (CSS-Cascaded-Value-Filter (Option Descriptors))
     (lambda [declared-values all default-values inherit-values]
