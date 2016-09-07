@@ -18,7 +18,7 @@
 
 (define-type Flomap flomap)
 (define-type Bitmap (Instance Bitmap%))
-(define-type Color+sRGB (U Index Symbol String (Instance Color%)))
+(define-type Color+sRGB (U Nonnegative-Fixnum Symbol String (Instance Color%)))
 
 (define bitmap/2x : (-> (U Path-String Input-Port) Bitmap)
   (lambda [src]
@@ -141,21 +141,21 @@
                 ([desc : String (in-list (string-split description (string #\newline)))])
         (define terminal : Index (string-length desc))
         (let desc-row : (Values (Listof String) (Listof Real) Natural Real)
-          ([idx0 : Natural 0] [descs : (Listof String) descs] [ys : (Listof Real) ys]
-                              [Widthn : Natural width] [yn : Real height])
+          ([idx0 : Nonnegative-Fixnum 0] [descs : (Listof String) descs] [ys : (Listof Real) ys]
+                                         [Widthn : Natural width] [yn : Real height])
           (define-values (descn widthn heightn idx)
-            (let desc-col-expt : (Values String Natural Real Natural)
-              ([interval : Natural 1] [open : Natural idx0] [close : Natural terminal]
-                                      [backtracking : String ""] ; char-width is bad for forecasting the next width 
-                                      [back-width : Natural max-width] [back-height : Nonnegative-Real phantom-height])
-              (define idx : Natural (min close (+ open interval)))
-              (define next-open : Natural (+ open (quotient interval 2)))
+            (let desc-col-expt : (Values String Natural Real Nonnegative-Fixnum)
+              ([interval : Nonnegative-Fixnum 1] [open : Nonnegative-Fixnum idx0] [close : Nonnegative-Fixnum terminal]
+                                                 [backtracking : String ""] ; char-width is bad for forecasting the next width 
+                                                 [back-width : Natural max-width] [back-height : Nonnegative-Real phantom-height])
+              (define idx : Nonnegative-Fixnum (fxmin close (fx+ open interval)))
+              (define next-open : Nonnegative-Fixnum (fx+ open (fxquotient interval 2)))
               (define-values (line width height) (desc-extent desc idx0 idx))
-              (define found? : Boolean (and (> width max-width) (= interval 1) (<= back-width max-width)))
+              (define found? : Boolean (and (> width max-width) (fx= interval 1) (<= back-width max-width)))
               (cond [found? (values backtracking back-width back-height (if (zero? open) terminal (max 0 (sub1 idx))))]
                     [(> width max-width) (desc-col-expt 1 next-open idx backtracking back-width back-height)]
                     [(= close idx) (values line width height idx)]
-                    [else (desc-col-expt (arithmetic-shift interval 1) open close line width height)])))
+                    [else (desc-col-expt (fxlshift interval 1) open close line width height)])))
           (if (fx= idx terminal)
               (values (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn))
               (desc-row idx (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn))))))
@@ -416,55 +416,55 @@
                                (silver . #(192 192 192)) (dodgerblue . #(30 144 255)) (greenyellow . #(173 255 47))
                                (cornflowerblue . #(100 149 237))))
 
-  (define rgb-bytes->index : (-> Byte Byte Byte Index)
+  (define rgb-bytes->ufixnum : (-> Byte Byte Byte Nonnegative-Fixnum)
     (lambda [r g b]
       (fxand #xFFFFFF
              (fxior (fxlshift r 16)
                     (fxior (fxlshift g 8)
                            b)))))
 
-  (define index->rgb-bytes : (-> Index (Values Byte Byte Byte))
+  (define ufixnum->rgb-bytes : (-> Nonnegative-Fixnum (Values Byte Byte Byte))
     (lambda [rgb]
       (values (fxand (fxrshift rgb 16) #xFF)
               (fxand (fxrshift rgb 8) #xFF)
               (fxand rgb #xFF))))
   
-  (define css-hex-color->rgba : (-> Keyword (Values (Option Index) Nonnegative-Flonum))
+  (define css-hex-color->rgba : (-> Keyword (Values (Option Nonnegative-Fixnum) Nonnegative-Flonum))
     (lambda [hash-color]
       (define color : String (keyword->string hash-color))
       (define digits : Index (string-length color))
       (define maybe-hexcolor : (Option Number)
         (case digits
           [(6 8) (string->number color 16)]
-          [(3 4) (for/fold ([hexcolor : (Option Natural) 0])
+          [(3 4) (for/fold ([hexcolor : (Option Nonnegative-Fixnum) 0])
                            ([ch : Char (in-string color)])
                    (define digit : (U Integer Void)
-                     (cond [(char-numeric? ch)   (- (char->integer ch) #x30)]
-                           [(char<=? #\a ch #\f) (- (char->integer ch) #x61 -10)]
-                           [(char<=? #\A ch #\F) (- (char->integer ch) #x41 -10)]))
+                     (cond [(char-numeric? ch)   (fx- (char->integer ch) #x30)]
+                           [(char<=? #\a ch #\f) (fx- (char->integer ch) #x37)]
+                           [(char<=? #\A ch #\F) (fx- (char->integer ch) #x57)]))
                    (and hexcolor (byte? digit)
-                        (bitwise-ior (arithmetic-shift hexcolor 8)
-                                     (arithmetic-shift digit 4)
-                                     digit)))]
+                        (fxior (fxlshift hexcolor 8)
+                               (fxior (fxlshift digit 4)
+                                      digit))))]
           [else #false]))
       (cond [(false? (index? maybe-hexcolor)) (values #false 1.0)]
-            [(or (= digits 3) (= digits 6)) (values maybe-hexcolor 1.0)]
-            [else (values (arithmetic-shift maybe-hexcolor -8)
+            [(or (fx= digits 3) (fx= digits 6)) (values maybe-hexcolor 1.0)]
+            [else (values (fxrshift maybe-hexcolor 8)
                           (flabs (fl/ (fx->fl (fxand maybe-hexcolor #xFF)) 255.0)))])))
   
   (define css-rgb->scalar : (-> CSS-Token (U Byte CSS-Declared-Result))
     (lambda [t]
-      (cond [(css:integer=<-? t byte?) (css:integer-norm=> t min #xFF)]
-            [(css:percentage=<-? t flprobability?)  (min (css:percentage-norm=> t fl* 255.0 exact-round) #xFF)]
-            [(css:flonum=<-? t 0.0 fl<= 255.0) (min (css:flonum-norm=> t exact-round) #xFF)]
+      (cond [(css:byte? t) (css:byte-datum t)]
+            [(css:fraction%? t)  (min (css:fraction%=> t fl* 255.0 exact-round) #xFF)]
+            [(css:flunum=<-? t fl<= 255.0) (min (css:flunum=> t exact-round) #xFF)]
             [(css-number? t) (vector exn:css:range t)]
             [else (vector exn:css:type t)])))
 
   (define css-alpha->scalar : (-> CSS-Token (U Gamut CSS-Declared-Result))
     (lambda [t]
-      (cond [(css:percentage=<-? t flprobability?) (css:percentage-norm t)]
-            [(css:flonum=<-? t flprobability?) (css:flonum-norm t)]
-            [(css:integer=<-? t '(0 1)) (css:integer-norm=> t fx->fl)]
+      (cond [(css:fraction%? t) (css:fraction%-datum t)]
+            [(css:flunum=<-? t fl<= 1.0) (css:flunum-datum t)]
+            [(css:byte=<-? t '(0 1)) (css:byte=> t fx->fl)]
             [(css-number? t) (vector exn:css:range t)]
             [else (vector exn:css:type t)])))
 
@@ -476,19 +476,20 @@
             [(css:dimension? t) (vector exn:css:unit t)]
             [else (vector exn:css:type t)])))
 
-  (define css-color-filter-delimiter : (->* (CSS-Token (Listof CSS-Token) Index) (Boolean) (Values CSS-Declared-Result Natural))
+  (define css-color-filter-delimiter : (->* (CSS-Token (Listof CSS-Token) Index) (Boolean)
+                                            (Values CSS-Declared-Result Nonnegative-Fixnum))
     ;;; https://github.com/w3c/csswg-drafts/issues/266
     (lambda [id args n:min [comma? #true]]
-      (define n:max : Natural (add1 n:min))
+      (define n:max : Positive-Fixnum (fx+ n:min 1))
       (let fold ([return : (Listof CSS-Token) null]
-                 [size : Natural 0]
+                 [size : Nonnegative-Fixnum 0]
                  [source : (Listof CSS-Token) args]
                  [podd? : Boolean #false]
                  [/? : Boolean #false])
-        (cond [(null? source) (if (>= size n:min) (values (reverse return) size) (values (vector exn:css:missing-value id) size))]
+        (cond [(null? source) (if (fx>= size n:min) (values (reverse return) size) (values (vector exn:css:missing-value id) size))]
               [else (let-values ([(token rest) (values (car source) (cdr source))])
-                      (cond [(>= size n:max) (values (vector exn:css:overconsumption source) size)]
-                            [(not (css:delim? token)) (fold (cons token return) (add1 size) rest (not podd?) /?)]
+                      (cond [(fx>= size n:max) (values (vector exn:css:overconsumption source) size)]
+                            [(not (css:delim? token)) (fold (cons token return) (fx+ size 1) rest (not podd?) /?)]
                             [else (let ([d : Char (css:delim-datum token)]
                                         [following? : Boolean (pair? rest)])
                                     (cond [(and (char=? d #\,) podd? following? (or comma? /?)) (fold return size rest (not podd?) /?)]
@@ -504,12 +505,12 @@
             [else (let ([r (css-rgb->scalar (first rgba-tokens))]
                         [g (css-rgb->scalar (second rgba-tokens))]
                         [b (css-rgb->scalar (third rgba-tokens))]
-                        [a (if (= argsize 4) (css-alpha->scalar (fourth rgba-tokens)) 1.0)])
+                        [a (if (fx= argsize 4) (css-alpha->scalar (fourth rgba-tokens)) 1.0)])
                     (cond [(not (byte? r)) r]
                           [(not (byte? g)) g]
                           [(not (byte? b)) b]
                           [(not (flonum? a)) a]
-                          [else (css-remake-token [frgba (last args)] css:rgba (rgb-bytes->index r g b) a)]))])))
+                          [else (css-remake-token [frgba (last args)] css:rgba (rgb-bytes->ufixnum r g b) a)]))])))
 
   (define css-apply-hsba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) HSB->RGB CSS-Declared-Result)
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
@@ -519,14 +520,14 @@
             [else (let ([h (css-hue->scalar (first hsba-tokens))]
                         [s (second hsba-tokens)]
                         [b (third hsba-tokens)]
-                        [a (if (= argsize 4) (css-alpha->scalar (fourth hsba-tokens)) 1.0)])
+                        [a (if (fx= argsize 4) (css-alpha->scalar (fourth hsba-tokens)) 1.0)])
                     (cond [(not (flonum? h)) h]
-                          [(not (css:percentage? s)) (vector exn:css:type s)]
-                          [(not (css:percentage? b)) (vector exn:css:type b)]
+                          [(not (css:fraction%? s)) (vector exn:css:type s)]
+                          [(not (css:fraction%? b)) (vector exn:css:type b)]
                           [(not (flonum? a)) a]
-                          [else (let-values ([(flr flg flb) (->rgb h (css:percentage-norm s) (css:percentage-norm b))])
+                          [else (let-values ([(flr flg flb) (->rgb h (css:fraction%-datum s) (css:fraction%-datum b))])
                                   (css-remake-token [fhsba (last args)] css:rgba
-                                                    (rgb-bytes->index (gamut->byte flr) (gamut->byte flg) (gamut->byte flb))
+                                                    (rgb-bytes->ufixnum (gamut->byte flr) (gamut->byte flg) (gamut->byte flb))
                                                     a))]))]))))
 
 (require (submod "." css))
@@ -535,11 +536,11 @@
   (lambda [color-representation [alpha 1.0]]
     (define abyte : Byte (min (exact-round (* alpha 255.0)) #xFF))
     (define opaque? : Boolean (fx= abyte #xFF))
-    (cond [(index? color-representation)
-           (define hashcode : Index (fxand color-representation #xFFFFFF))
+    (cond [(fixnum? color-representation)
+           (define hashcode : Nonnegative-Fixnum (fxand color-representation #xFFFFFF))
            (hash-ref! the-color-pool
                       (if opaque? hashcode (eqv-hash-code (make-rectangular hashcode abyte)))
-                      (thunk (let-values ([(r g b) (index->rgb-bytes color-representation)])
+                      (thunk (let-values ([(r g b) (ufixnum->rgb-bytes color-representation)])
                                (make-color r g b (fl/ (fx->fl abyte) 255.0)))))]
           [(symbol? color-representation)
            (let try-again ([color-name : Symbol color-representation]
@@ -549,9 +550,9 @@
                                (cond [(and opaque?) (eq-hash-code color-name)]
                                      [else (equal-hash-code (cons color-name abyte))])
                                (thunk (let ([rgb (hash-ref css-named-colors color-name)])
-                                        (select-rgba-color (rgb-bytes->index (vector-ref rgb 0)
-                                                                             (vector-ref rgb 1)
-                                                                             (vector-ref rgb 2))
+                                        (select-rgba-color (rgb-bytes->ufixnum (vector-ref rgb 0)
+                                                                               (vector-ref rgb 1)
+                                                                               (vector-ref rgb 2))
                                                            alpha))))]
                    [(not downcased?) (try-again (string->symbol (string-downcase (symbol->string color-name))) #true)]
                    [else (select-rgba-color 0 alpha)]))]
@@ -561,9 +562,9 @@
              (cond [(false? color) (select-rgba-color 0 alpha)]
                    [else (hash-ref! the-color-pool
                                     (equal-hash-code (if opaque? color-name (cons color-name abyte)))
-                                    (thunk (select-rgba-color (rgb-bytes->index (send color red)
-                                                                                (send color green)
-                                                                                (send color blue))
+                                    (thunk (select-rgba-color (rgb-bytes->ufixnum (send color red)
+                                                                                  (send color green)
+                                                                                  (send color blue))
                                                               alpha)))]))]
           [else color-representation])))
 

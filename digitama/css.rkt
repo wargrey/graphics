@@ -112,26 +112,24 @@
   
   (define-syntax (define-token stx)
     (syntax-parse stx #:literals [: Symbol Keyword]
-      [(_ number : Number parent #:as Type Norm-Type #:=? type=? #:with id? id-datum)
-       (with-syntax ([id=?        (format-id #'number "~a=?" (syntax-e #'number))]
-                     [id-norm     (format-id #'number "~a-norm" (syntax-e #'number))])
-         #'(begin (struct: number : Number parent ([datum : Type] [norm : Norm-Type]))
+      [(_ id : Number parent #:as Type #:=? type=? #:with id? id-datum)
+       (with-syntax ([id=? (format-id #'id "~a=?" (syntax-e #'id))])
+         #'(begin (struct: id : Number parent ([datum : Type]))
                   (define (id=? [t1 : Number] [t2 : Number]) : Boolean (type=? (id-datum t1) (id-datum t2)))
-                  (define-token-interface number  : Type      id? id-datum #:+ Number #:= type=?)
-                  (define-token-interface id-norm : Norm-Type id? id-norm  #:+ Number #:= type=?)))]
-      [(_ identifier : Identifier parent ((~and (~or Symbol Keyword) Type) rest ...) #:with id? id-datum)
-       (with-syntax ([id=?        (format-id #'identifier "~a=?" (syntax-e #'identifier))]
-                     [id-norm     (format-id #'identifier "~a-norm" (syntax-e #'identifier))])
-         #'(begin (struct: identifier : Identifier parent ([datum : Type] [norm : Type] rest ...))
+                  (define-token-interface id : Type id? id-datum #:+ Number #:= type=?)))]
+      [(_ id : Identifier parent ((~and (~or Symbol Keyword) Type) rest ...) #:with id? id-datum)
+       (with-syntax ([id=? (format-id #'id "~a=?" (syntax-e #'id))]
+                     [id-norm (format-id #'id "~a-norm" (syntax-e #'id))])
+         #'(begin (struct: id : Identifier parent ([datum : Type] [norm : Type] rest ...))
                   (define (id=? [t1 : Identifier] [t2 : Identifier]) : Boolean (eq? (id-datum t1) (id-datum t2)))
-                  (define-token-interface identifier : Type id? id-datum #:+ Identifier #:eq? eq?)
+                  (define-token-interface id : Type id? id-datum #:+ Identifier #:eq? eq?)
                   (define-token-interface id-norm    : Type id? id-norm  #:+ Identifier #:eq? eq?)))]
-      [(_ otherwise : Otherwise parent (Type rest ...) #:with id? id-datum)
+      [(_ id : Otherwise parent (Type rest ...) #:with id? id-datum)
        (with-syntax ([type=? (case (syntax-e #'Type) [(String) #'string=?] [(Char) #'char=?] [else #'equal?])]
-                     [id=?   (format-id #'otherwise "~a=?" (syntax-e #'otherwise))])
-         #'(begin (struct: otherwise : Otherwise parent ([datum : Type] rest ...))
+                     [id=? (format-id #'id "~a=?" (syntax-e #'id))])
+         #'(begin (struct: id : Otherwise parent ([datum : Type] rest ...))
                   (define (id=? [t1 : Otherwise] [t2 : Otherwise]) : Boolean (type=? (id-datum t1) (id-datum t2)))
-                  (define-token-interface otherwise : Type id? id-datum #:+ Otherwise #:eq? type=?)))]))
+                  (define-token-interface id : Type id? id-datum #:+ Otherwise #:eq? type=?)))]))
 
   (define-syntax (define-symbolic-tokens stx)
     (syntax-parse stx
@@ -147,15 +145,22 @@
 
   (define-syntax (define-numeric-tokens stx)
     (syntax-case stx []
-      [(_ token #:+ Token [id #:+ ID #:as Type Norm-Type #:=? type=?] ...)
-       (with-syntax ([token->datum (format-id #'token "~a->datum" (syntax-e #'token))]
-                     [([id? id-datum] ...)
-                      (for/list ([<id> (in-list (syntax->list #'(id ...)))])
-                        (list (format-id <id> "~a?" (syntax-e <id>))
-                              (format-id <id> "~a-datum" (syntax-e <id>))))])
+      [(_ token #:+ Token [id #:+ ID #:-> parent #:as Type #:=? type=?] ...)
+       (with-syntax* ([token->datum (format-id #'token "~a->datum" (syntax-e #'token))]
+                      [([id? id=? id-datum] ...)
+                       (for/list ([<id> (in-list (syntax->list #'(id ...)))])
+                         (list (format-id <id> "~a?" (syntax-e <id>))
+                               (format-id <id> "~a=?" (syntax-e <id>))
+                               (format-id <id> "~a-datum" (syntax-e <id>))))]
+                      [([parent? parent-datum] ...)
+                       (for/list ([<parent> (in-list (syntax->list #'(parent ...)))]
+                                  [<id?> (in-list (syntax->list #'(id? ...)))]
+                                  [<id-datum> (in-list (syntax->list #'(id-datum ...)))]
+                                  #:when (eq? (syntax-e <parent>) (syntax-e #'token)))
+                         (list <id?> <id-datum>))])
          #'(begin (struct: token : Token css-numeric ())
-                  (define-token id : ID token #:as Type Norm-Type #:=? type=? #:with id? id-datum) ...
-                  (define (token->datum [t : Token]) : (U Type ...) (cond [(id? t) (id-datum t)] ... [else +nan.0]))))]))
+                  (define-token id : ID parent #:as Type #:=? type=? #:with id? id-datum) ...
+                  (define (token->datum [t : Token]) : (U Type ...) (cond [(parent? t) (parent-datum t)] ... [else +nan.0]))))]))
   
   (define-syntax (define-dimensional-tokens stx)
     (syntax-case stx []
@@ -225,7 +230,7 @@
                       (cond [(css:dimension? instance) (cons (css:dimension-datum instance) (css:dimension-unit instance))]
                             [(type? instance) (type->datum instance)] ...
                             [else (assert (object-name instance) symbol?)])))))]))
-  
+
   (define-values (current-css-containing-block-width current-css-containing-block-height)
     (values (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))
             (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
@@ -243,6 +248,11 @@
     (lambda [v]
       (or (css:zero? v)
           (css:flzero? v))))
+
+  (define css-one? : (-> Any Boolean : #:+ CSS-One)
+    (lambda [v]
+      (or (css:one? v)
+          (css:flone? v))))
   
   (define css-font-relative-length? : (-> Any Boolean : #:+ CSS:Length)
     (lambda [v]
@@ -263,7 +273,7 @@
 
   (define css-token-datum->string : (-> CSS-Token String)
     (lambda [instance]
-      (cond [(css:percentage? instance) (string-append (css-numeric-representation instance) "%")]
+      (cond [(css-percentage? instance) (string-append (css-numeric-representation instance) "%")]
             [(css:dimension? instance) (~a (css-numeric-representation instance) (css:dimension-unit instance))]
             [(css-numeric? instance) (css-numeric-representation instance)]
             [else (~a (css-token->datum instance))])))
@@ -277,6 +287,10 @@
   ;;; https://drafts.csswg.org/css-syntax/#tokenization
   ;; https://drafts.csswg.org/css-syntax/#component-value
   ;; https://drafts.csswg.org/css-syntax/#current-input-token
+  (define-type CSS-URL-Modifier (U CSS:Ident CSS:Function CSS:URL))
+  (define-type CSS-Zero (U CSS:Zero CSS:Flzero))
+  (define-type CSS-One (U CSS:One CSS:Flone))
+  
   (define-tokens css-token : CSS-Token ([source : Any] [line : Natural] [column : Natural] [position : Natural] [span : Natural])
     [(struct: css-numeric   : CSS-Numeric   css-token   ([representation : String]))
      (struct: css:dimension : CSS:Dimension css-numeric ([datum : Real] [unit : Symbol] [scalar : Nonnegative-Real]))]
@@ -289,7 +303,7 @@
       
       ; These tokens are remade by the parser, and they are never produced by the tokenizer.
       [css:ratio      #:+ CSS:Ratio      #:as Positive-Exact-Rational]
-      [css:rgba       #:+ CSS:RGBA       #:as Index                      [alpha : Nonnegative-Flonum]])
+      [css:rgba       #:+ CSS:RGBA       #:as Nonnegative-Fixnum         [alpha : Nonnegative-Flonum]])
 
     (define-symbolic-tokens css-symbolic #:+ CSS-Symbolic
       [css:cd         #:+ CSS:CD         #:as Char]
@@ -307,10 +321,19 @@
       [css:function   #:+ CSS:Function   #:as Symbol                     [arguments  : (Listof CSS-Token)]])
 
     (define-numeric-tokens css-number #:+ CSS-Number
-      [css:integer    #:+ CSS:Integer    #:as Fixnum  Nonnegative-Fixnum #:=? fx=]
-      [css:flonum     #:+ CSS:Flonum     #:as Flonum  Nonnegative-Flonum #:=? fl=]
-      [css:percentage #:+ CSS:Percentage #:as Flonum  Nonnegative-Flonum #:=? fl=]
-      [css:bignum     #:+ CSS:Bignum     #:as Integer Natural            #:=? =])
+      [css:integer    #:+ CSS:Integer    #:-> css-number               #:as Fixnum             #:=? fx=]
+      [css:natural    #:+ CSS:Natural    #:-> css:integer              #:as Nonnegative-Fixnum #:=? fx=]
+      [css:byte       #:+ CSS:Byte       #:-> css:natural              #:as Byte               #:=? fx=]
+      
+      [css:flonum     #:+ CSS:Flonum     #:-> css-number               #:as Flonum             #:=? fl=]
+      [css:flunum     #:+ CSS:Flunum     #:-> css:flonum               #:as Nonnegative-Flonum #:=? fl=]
+      
+      [css:bignum     #:+ CSS:Bignum     #:-> css-number               #:as Integer            #:=? =])
+
+    (define-numeric-tokens css-percentage #:+ CSS-Percentage
+      [css:delta%     #:+ CSS:Delta%     #:-> css-percentage           #:as Flonum             #:=? fl=]
+      [css:ratio%     #:+ CSS:Ratio%     #:-> css:delta%               #:as Nonnegative-Flonum #:=? fl=]
+      [css:fraction%  #:+ CSS:Fraction%  #:-> css:ratio%               #:as Nonnegative-Flonum #:=? fl=])
   
     (define-dimensional-tokens css:dimension
       ;;; https://drafts.csswg.org/css-values/#absolute-lengths
@@ -349,8 +372,11 @@
                       #:=> dppx [[(dpcm)  (css-length-canonicalize dppx 'cm)]
                                  [(dpi)   (css-length-canonicalize dppx 'in)]]]))
 
-  (struct: css:zero : CSS:Zero css:integer ())
-  (struct: css:flzero : CSS:Flzero css:flonum ())
+  (struct: css:zero : CSS:Zero css:byte ())
+  (struct: css:one  : CSS:One css:byte ())
+  
+  (struct: css:flzero : CSS:Flzero css:flunum ())
+  (struct: css:flone  : CSS:Flone css:flunum ())
     
   (define-syntax (css-remake-token stx)
     (syntax-case stx []
@@ -375,8 +401,6 @@
   ;;; https://drafts.csswg.org/css-syntax/#parsing
   (define-type (Listof+ css) (Pairof css (Listof css)))
   (define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
-  (define-type CSS-URL-Modifier (U CSS:Ident CSS:Function CSS:URL))
-  (define-type CSS-Zero (U CSS:Zero CSS:Flzero))
   (define-type CSS-Syntax-Any (U CSS-Token EOF))
   (define-type CSS-Syntax-Error-Any (U CSS-Syntax-Any (Listof CSS-Token)))
   (define-type CSS-Syntax-Terminal (U CSS:Delim CSS:Close EOF))
@@ -621,7 +645,7 @@
           (cond [(css:ratio? maybe-value) (css:ratio-datum maybe-value)]
                 [(css-token? maybe-value) exn:css:type])]
          [(color color-index monochrome)
-          (cond [(css:integer=<-? maybe-value exact-nonnegative-integer?) (css:integer-datum maybe-value)]
+          (cond [(css:natural? maybe-value) (css:natural-datum maybe-value)]
                 [(css:integer? maybe-value) exn:css:range]
                 [(css-token? maybe-value) exn:css:type])]
          [(grid) ; legacy descriptor
@@ -691,8 +715,8 @@
         (cond ; this is okay even for font relative length since the @viewport is the first rule to be cascaded.
               ; the font relative parameters should be initialized when the program starts.
               [(css:+length? v) (or (css:length-canonicalize v) exn:css:unit)]
-              [(or (css:ident-norm=:=? v 'auto) (css:percentage=<-? v 0.0 fl<= 1.0) (css-zero? v)) v]
-              [(or (css:ident? v) (css:percentage? v) (css:length? v)) exn:css:range]
+              [(or (css:ident-norm=:=? v 'auto) (css:fraction%? v) (css-zero? v)) v]
+              [(or (css:ident? v) (css-percentage? v) (css:length? v)) exn:css:range]
               [(css:dimension? v) exn:css:unit]
               [else exn:css:type]))
       (values
@@ -714,8 +738,8 @@
          [(zoom min-zoom max-zoom)
           (cond [(pair? rest) (vector exn:css:overconsumption rest)]
                 [(css:ident-norm=:=? desc-value 'auto) desc-value]
-                [(or (css-zero? desc-value) (css:percentage=<-? desc-value fl>= 0.0)) desc-value]
-                [(or (css:ident? desc-value) (css-number? desc-value)) exn:css:range]
+                [(or (css:flunum? desc-value) (css:ratio%? desc-value) (css-one? desc-value)) desc-value]
+                [(or (css:ident? desc-value) (css-percentage? desc-value) (css-number? desc-value)) exn:css:range]
                 [else exn:css:type])]
          [(orientation user-zoom)
           (cond [(pair? rest) (vector exn:css:overconsumption rest)]
@@ -753,9 +777,9 @@
               [else (current-css-viewport-auto-zoom)]))
       (define (size->scalar [desc-name : Symbol] [maybe-size : CSS-Cascaded-Value]) : (U Real Symbol)
         (cond [(css:dimension? maybe-size) (css:dimension-datum maybe-size)] ; already canonicalized
-              [(not (css:percentage? maybe-size)) 'auto]
-              [(memq desc-name '(min-width max-width)) (css:percentage=> maybe-size * initial-width)]
-              [else (css:percentage=> maybe-size * initial-height)]))
+              [(not (css:fraction%? maybe-size)) 'auto]
+              [(memq desc-name '(min-width max-width)) (css:fraction%=> maybe-size * initial-width)]
+              [else (css:fraction%=> maybe-size * initial-height)]))
       (define (enum-value [desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]) : (U Real Symbol)
         (cond [(css:ident? maybe-value) (css:ident-norm maybe-value)]
               [(eq? desc-name 'user-zoom) 'zoom]
@@ -964,13 +988,21 @@
                                [else                    (css-make-token srcloc css:dimension  representation n unit scalar)])]
                             [(and (char? ch1) (char=? ch1 #\%) (read-char css))
                              (define n% : Flonum (real->double-flonum (* n 1/100)))
-                             (css-make-token srcloc css:percentage representation n% (flmax (flmin n% 1.0) 0.0))]
+                             (cond [(negative? n%) (css-make-token srcloc css:delta% representation n%)]
+                                   [(fl> n% 1.0) (css-make-token srcloc css:ratio% representation n% n%)]
+                                   [else (css-make-token srcloc css:fraction% representation n% n% n%)])]
                             [(flonum? n)
                              (cond [(zero? n) (css-make-token srcloc css:flzero representation n n)]
-                                   [else (css-make-token srcloc css:flonum representation n (flabs n))])]
-                            [(zero? n)   (css-make-token srcloc css:zero    representation n n)]
-                            [(fixnum? n) (css-make-token srcloc css:integer representation n (fxabs n))]
-                            [else        (css-make-token srcloc css:bignum  representation n (abs n))])))])))
+                                   [(fl= n 1.0) (css-make-token srcloc css:flone representation n n)]
+                                   [(positive? n) (css-make-token srcloc css:flunum representation n n)]
+                                   [else (css-make-token srcloc css:flonum representation n)])]
+                            [(zero? n) (css-make-token srcloc css:zero representation n n n)]
+                            [(= n 1)   (css-make-token srcloc css:one  representation n n n)]
+                            [(byte? n) (css-make-token srcloc css:byte representation n n n)]
+                            [(fixnum? n)
+                             (cond [(fx>= n 0) (css-make-token srcloc css:natural representation n n)]
+                                   [else       (css-make-token srcloc css:integer representation n)])]
+                            [else (css-make-token srcloc css:bignum representation n)])))])))
 
   (define css-consume-url-token : (-> CSS-Srcloc (U CSS:URL CSS:Bad))
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-url-token
@@ -1005,13 +1037,13 @@
       (define css : Input-Port (css-srcloc-in srcloc))
       (define-values (n rest) (css-consume-hexadecimal (css-srcloc-in srcloc) 6))
       (define-values (start0 end0)
-        (let consume-? : (Values Integer Integer) ([s : Integer n] [e : Integer n] [? : Integer rest])
+        (let consume-? : (Values Fixnum Fixnum) ([s : Fixnum n] [e : Fixnum n] [? : Fixnum rest])
           (cond [(zero? ?) (values s e)]
                 [else (let ([ch : (U EOF Char) (peek-char css)])
                         (cond [(or (eof-object? ch) (not (char=? ch #\?))) (values s e)]
-                              [else (read-char css) (consume-? (* s 16) (+ (* e 16) (char->hexadecimal #\f)) (sub1 ?))]))])))
+                              [else (read-char css) (consume-? (fx* s 16) (fx+ (fx* e 16) (char->hexadecimal #\f)) (fx- ? 1))]))])))
       (define-values (start end)
-        (cond [(not (= start0 end0)) (values start0 end0)]
+        (cond [(not (fx= start0 end0)) (values start0 end0)]
               [else (let ([ch1 (peek-char css 0)]
                           [ch2 (peek-char css 1)])
                       (cond [(and (char? ch1) (char=? ch1 #\-) (char-hexdigit? ch2) (read-char css))
@@ -1089,16 +1121,16 @@
                             [(flonum? maybe-number) (values maybe-number representation)]
                             [else (values +nan.0 representation)]))]))))
 
-  (define css-consume-hexadecimal : (->* (Input-Port Byte) (Integer #:\s?$? Boolean) (Values Integer Byte))
+  (define css-consume-hexadecimal : (->* (Input-Port Byte) (Fixnum #:\s?$? Boolean) (Values Fixnum Byte))
     (lambda [css rest-count [result 0] #:\s?$? [eat-last-whitespace? #false]]
       (define hex : (U EOF Char) (peek-char css))
       (cond [(or (eof-object? hex) (not (char-hexdigit? hex)) (zero? rest-count))
              (when (and eat-last-whitespace? (char? hex) (char-whitespace? hex)) (read-char css))
              (values result rest-count)]
             [else (read-char css) (css-consume-hexadecimal #:\s?$? eat-last-whitespace?
-                                                           css (sub1 rest-count)
-                                                           (+ (* result 16)
-                                                              (char->hexadecimal hex)))])))
+                                                           css (fx- rest-count 1)
+                                                           (fx+ (fx* result 16)
+                                                                (char->hexadecimal hex)))])))
 
   (define css-consume-escaped-char : (-> Input-Port Char)
     ;;; https://drafts.csswg.org/css-syntax/#consume-an-escaped-code-point
@@ -1126,11 +1158,11 @@
            (or (char<=? #\0 ch #\9)
                (char-ci<=? #\a ch #\f)))))
 
-  (define char->hexadecimal : (-> Char Integer)
+  (define char->hexadecimal : (-> Char Fixnum)
     (lambda [hexch]
-      (cond [(char<=? #\A hexch #\F) (- (char->integer hexch) 55)]
-            [(char<=? #\a hexch #\f) (- (char->integer hexch) 87)]
-            [else (- (char->integer hexch) 48)])))
+      (cond [(char<=? #\A hexch #\F) (fx- (char->integer hexch) #x37)]
+            [(char<=? #\a hexch #\f) (fx- (char->integer hexch) #x57)]
+            [else (fx- (char->integer hexch) #x30)])))
 
   (define css-char-non-printable? : (-> (U EOF Char) Boolean : #:+ Char)
     (lambda [ch]
