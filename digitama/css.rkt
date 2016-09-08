@@ -164,7 +164,7 @@
   
   (define-syntax (define-dimensional-tokens stx)
     (syntax-case stx []
-      [(_ parent [id #:+ ID rest ... #:=> canonical-unit [transforms ...]] ...)
+      [(_ parent [id #:+ ID #:=> canonical-unit [transforms ...]] ...)
        (with-syntax ([token->datum (format-id #'parent "~a->datum" (syntax-e #'parent))]
                      [([id? +id? id->datum id->scalar css:id->canon css-id->canon] ...)
                       (for/list ([<id> (in-list (syntax->list #'(id ...)))])
@@ -174,7 +174,7 @@
                               (format-id <id> "~a->scalar" (syntax-e <id>))
                               (format-id <id> "~a-canonicalize" (syntax-e <id>))
                               (format-id <id> "~a-canonicalize" (string-replace (symbol->string (syntax-e <id>)) ":" "-"))))])
-         #'(begin (struct: id : ID parent (rest ...)) ...
+         #'(begin (struct: id : ID parent ()) ...
 
                   (define css-id->canon : (case-> [Nonnegative-Flonum Symbol -> Nonnegative-Flonum] [Flonum Symbol -> Flonum])
                     (lambda [canonical-unit unit]
@@ -215,15 +215,19 @@
   
   (define-syntax (define-tokens stx)
     (syntax-case stx []
-      [(_ token : Token header [(define-struct subparent subrest ...) ...] (define-typical-tokens group rest ...) ...)
+      [(_ token #:+ Token header
+          [[ptoken #:+ PToken #:-> pparent pfields] ...]
+          [[ctoken #:+ CToken #:-> cparent] ...]
+          (define-typical-tokens group rest ...) ...)
        (with-syntax ([token->datum (format-id #'token "~a->datum" (syntax-e #'token))]
                      [([type? type->datum] ...)
                       (for/list ([<type> (in-list (syntax->list #'(group ...)))])
                         (list (format-id <type> "~a?" (syntax-e <type>))
                               (format-id <type> "~a->datum" (syntax-e <type>))))])
          #'(begin (struct: token : Token header)
-                  (define-struct subparent subrest ...) ...
+                  (struct: ptoken : PToken pparent pfields) ...
                   (define-typical-tokens group rest ...) ...
+                  (struct: ctoken : CToken cparent ()) ...
 
                   (define token->datum : (-> Token Datum)
                     (lambda [instance]
@@ -254,16 +258,6 @@
       (or (css:one? v)
           (css:flone? v))))
   
-  (define css-font-relative-length? : (-> Any Boolean : #:+ CSS:Length)
-    (lambda [v]
-      (and (css:length? v)
-           (eq? (css:length-type v) 'font))))
-
-  (define css-viewport-relative-length? : (-> Any Boolean : #:+ CSS:Length)
-    (lambda [v]
-      (and (css:length? v)
-           (eq? (css:length-type v) 'viewport))))
-
   (define css-token->syntax : (-> CSS-Token Syntax)
     (lambda [instance]
       (datum->syntax #false (css-token->datum instance)
@@ -291,93 +285,96 @@
   (define-type CSS-Zero (U CSS:Zero CSS:Flzero))
   (define-type CSS-One (U CSS:One CSS:Flone))
   
-  (define-tokens css-token : CSS-Token ([source : Any] [line : Natural] [column : Natural] [position : Natural] [span : Natural])
-    [(struct: css-numeric   : CSS-Numeric   css-token   ([representation : String]))
-     (struct: css:dimension : CSS:Dimension css-numeric ([datum : Flonum] [unit : Symbol] [scalar : Nonnegative-Flonum]))]
+  (define-tokens css-token #:+ CSS-Token ([source : Any] [line : Natural] [column : Natural] [position : Natural] [span : Natural])
+    [[css-numeric         #:+ CSS-Numeric         #:->  css-token  ([representation : String])]
+     [css:dimension       #:+ CSS:Dimension       #:-> css-numeric ([datum : Flonum] [unit : Symbol] [scalar : Nonnegative-Flonum])]]
+
+    [[css:zero            #:+ CSS:Zero            #:-> css:byte]
+     [css:one             #:+ CSS:One             #:-> css:byte]
+     
+     [css:flzero          #:+ CSS:Flzero          #:-> css:flunum]
+     [css:flone           #:+ CSS:Flone           #:-> css:flunum]
+     
+     [css:length:font     #:+ CSS:Length:Font     #:-> css:length]
+     [css:length:viewport #:+ CSS:Length:Viewport #:-> css:length]]
 
     ; TODO: Typed Racket is buggy if there are more than 11 conditions for (token->datum)
     (define-symbolic-tokens css-special #:+ CSS-Special
-      [css:bad        #:+ CSS:Bad        #:as (Pairof Symbol Datum)]
-      [css:whitespace #:+ CSS:WhiteSpace #:as (U String Char)]
-      [css:close      #:+ CSS:Close      #:as Char]
+      [css:bad            #:+ CSS:Bad             #:as (Pairof Symbol Datum)]
+      [css:whitespace     #:+ CSS:WhiteSpace      #:as (U String Char)]
+      [css:close          #:+ CSS:Close           #:as Char]
       
       ; These tokens are remade by the parser, and they are never produced by the tokenizer.
-      [css:ratio      #:+ CSS:Ratio      #:as Positive-Flonum]
-      [css:rgba       #:+ CSS:RGBA       #:as Nonnegative-Fixnum         [alpha : Nonnegative-Flonum]])
+      [css:ratio          #:+ CSS:Ratio           #:as Positive-Flonum]
+      [css:rgba           #:+ CSS:RGBA            #:as Nonnegative-Fixnum     [alpha : Nonnegative-Flonum]])
 
     (define-symbolic-tokens css-symbolic #:+ CSS-Symbolic
-      [css:cd         #:+ CSS:CD         #:as Char]
-      [css:match      #:+ CSS:Match      #:as Char]
-      [css:delim      #:+ CSS:Delim      #:as Char]
-      [css:ident      #:+ CSS:Ident      #:as Symbol]
-      [css:@keyword   #:+ CSS:@Keyword   #:as Keyword]
-      [css:hash       #:+ CSS:Hash       #:as Keyword]
-      [css:string     #:+ CSS:String     #:as String]
-      [css:urange     #:+ CSS:URange     #:as (Pairof Index Index)])
+      [css:cd             #:+ CSS:CD              #:as Char]
+      [css:match          #:+ CSS:Match           #:as Char]
+      [css:delim          #:+ CSS:Delim           #:as Char]
+      [css:ident          #:+ CSS:Ident           #:as Symbol]
+      [css:@keyword       #:+ CSS:@Keyword        #:as Keyword]
+      [css:hash           #:+ CSS:Hash            #:as Keyword]
+      [css:string         #:+ CSS:String          #:as String]
+      [css:urange         #:+ CSS:URange          #:as (Pairof Index Index)])
 
     (define-symbolic-tokens css-structural #:+ CSS-Structural
-      [css:url        #:+ CSS:URL        #:as (U String Symbol)          [modifiers  : (Listof CSS-URL-Modifier)]]
-      [css:block      #:+ CSS:Block      #:as Char                       [components : (Listof CSS-Token)]]
-      [css:function   #:+ CSS:Function   #:as Symbol                     [arguments  : (Listof CSS-Token)]])
+      [css:url            #:+ CSS:URL             #:as (U String Symbol)      [modifiers  : (Listof CSS-URL-Modifier)]]
+      [css:block          #:+ CSS:Block           #:as Char                   [components : (Listof CSS-Token)]]
+      [css:function       #:+ CSS:Function        #:as Symbol                 [arguments  : (Listof CSS-Token)]])
 
     (define-numeric-tokens css-number #:+ CSS-Number
-      [css:integer    #:+ CSS:Integer    #:-> css-number               #:as Fixnum             #:=? fx=]
-      [css:natural    #:+ CSS:Natural    #:-> css:integer              #:as Nonnegative-Fixnum #:=? fx=]
-      [css:byte       #:+ CSS:Byte       #:-> css:natural              #:as Byte               #:=? fx=]
+      [css:integer        #:+ CSS:Integer         #:-> css-number             #:as Fixnum             #:=? fx=]
+      [css:natural        #:+ CSS:Natural         #:-> css:integer            #:as Nonnegative-Fixnum #:=? fx=]
+      [css:byte           #:+ CSS:Byte            #:-> css:natural            #:as Byte               #:=? fx=]
       
-      [css:flonum     #:+ CSS:Flonum     #:-> css-number               #:as Flonum             #:=? fl=]
-      [css:flunum     #:+ CSS:Flunum     #:-> css:flonum               #:as Nonnegative-Flonum #:=? fl=]
+      [css:flonum         #:+ CSS:Flonum          #:-> css-number             #:as Flonum             #:=? fl=]
+      [css:flunum         #:+ CSS:Flunum          #:-> css:flonum             #:as Nonnegative-Flonum #:=? fl=]
       
-      [css:bignum     #:+ CSS:Bignum     #:-> css-number               #:as Integer            #:=? =])
+      [css:bignum         #:+ CSS:Bignum          #:-> css-number             #:as Integer            #:=? =])
 
     (define-numeric-tokens css-percentage #:+ CSS-Percentage
-      [css:delta%     #:+ CSS:Delta%     #:-> css-percentage           #:as Flonum             #:=? fl=]
-      [css:ratio%     #:+ CSS:Ratio%     #:-> css:delta%               #:as Nonnegative-Flonum #:=? fl=]
-      [css:fraction%  #:+ CSS:Fraction%  #:-> css:ratio%               #:as Nonnegative-Flonum #:=? fl=])
+      [css:delta%         #:+ CSS:Delta%          #:-> css-percentage         #:as Flonum             #:=? fl=]
+      [css:ratio%         #:+ CSS:Ratio%          #:-> css:delta%             #:as Nonnegative-Flonum #:=? fl=]
+      [css:fraction%      #:+ CSS:Fraction%       #:-> css:ratio%             #:as Nonnegative-Flonum #:=? fl=])
   
     (define-dimensional-tokens css:dimension
       ;;; https://drafts.csswg.org/css-values/#absolute-lengths
       ;;; https://drafts.csswg.org/css-values/#relative-lengths
-      [css:length     #:+ CSS:Length                                     [type : (U 'font 'viewport 'absolute)]
-                      #:=> px   [[(cm)    (fl* px (fl/ 96.0 2.54))]
-                                 [(mm)    (fl* px (fl/ 96.0 25.4))]  ; 1cm/10
-                                 [(q)     (fl* px (fl/ 96.0 101.6))] ; 1cm/40
-                                 [(in)    (fl* px 96.0)]
-                                 [(pc)    (fl* px 16.0)]             ; 1in/6
-                                 [(pt)    (fl* px (fl/ 96.0 72.0))]  ; 1in/72
-                                 [(em)    (fl* px (current-css-element-font-size))]
-                                 [(ex)    (fl* px (current-css-x-height))]
-                                 [(ch)    (fl* px (current-css-char-width))]
-                                 [(ic)    (fl* px (current-css-word-width))]
-                                 [(rem)   (fl* px (current-css-root-element-font-size))]
-                                 [(vw vi) (fl* px (fl* 0.01 (current-css-viewport-width)))]
-                                 [(vh vb) (fl* px (fl* 0.01 (current-css-viewport-height)))]
-                                 [(vmin)  (fl* px (fl* 0.01 (min (current-css-viewport-width) (current-css-viewport-height))))]
-                                 [(vmax)  (fl* px (fl* 0.01 (max (current-css-viewport-width) (current-css-viewport-height))))]]]
+      [css:length         #:+ CSS:Length          #:=> px
+                          [[(cm)    (fl* px (fl/ 96.0 2.54))]
+                           [(mm)    (fl* px (fl/ 96.0 25.4))]  ; 1cm/10
+                           [(q)     (fl* px (fl/ 96.0 101.6))] ; 1cm/40
+                           [(in)    (fl* px 96.0)]
+                           [(pc)    (fl* px 16.0)]             ; 1in/6
+                           [(pt)    (fl* px (fl/ 96.0 72.0))]  ; 1in/72
+                           [(em)    (fl* px (current-css-element-font-size))]
+                           [(ex)    (fl* px (current-css-x-height))]
+                           [(ch)    (fl* px (current-css-char-width))]
+                           [(ic)    (fl* px (current-css-word-width))]
+                           [(rem)   (fl* px (current-css-root-element-font-size))]
+                           [(vw vi) (fl* px (fl* 0.01 (current-css-viewport-width)))]
+                           [(vh vb) (fl* px (fl* 0.01 (current-css-viewport-height)))]
+                           [(vmin)  (fl* px (fl* 0.01 (min (current-css-viewport-width) (current-css-viewport-height))))]
+                           [(vmax)  (fl* px (fl* 0.01 (max (current-css-viewport-width) (current-css-viewport-height))))]]]
       ;;; https://drafts.csswg.org/css-values/#angles
-      [css:angle      #:+ CSS:Angle
-                      #:=> deg  [[(grad)  (fl* deg 0.9)]
-                                 [(rad)   (fl* deg (fl/ 180.0 pi))]
-                                 [(turn)  (fl* deg 360.0)]]]
+      [css:angle          #:+ CSS:Angle           #:=> deg
+                          [[(grad)  (fl* deg 0.9)]
+                           [(rad)   (fl* deg (fl/ 180.0 pi))]
+                           [(turn)  (fl* deg 360.0)]]]
       ;;; https://drafts.csswg.org/css-values/#time
-      [css:time       #:+ CSS:Time
-                      #:=> s    [[(ms)    (fl* s 0.001)]
-                                 [(min)   (fl* s 60.0)]
-                                 [(h)     (fl* s 3600.0)]]]
+      [css:time           #:+ CSS:Time            #:=> s
+                          [[(ms)    (fl* s 0.001)]
+                           [(min)   (fl* s 60.0)]
+                           [(h)     (fl* s 3600.0)]]]
       ;;; https://drafts.csswg.org/css-values/#frequency
-      [css:frequency  #:+ CSS:Frequency
-                      #:=> kz   [[(khz)   (fl* kz 0.001)]]]
+      [css:frequency      #:+ CSS:Frequency       #:=> kz
+                          [[(khz)   (fl* kz 0.001)]]]
       ;;; https://drafts.csswg.org/css-values/#resolution
-      [css:resolution #:+ CSS:Resolution
-                      #:=> dppx [[(dpcm)  (css-length-canonicalize dppx 'cm)]
-                                 [(dpi)   (css-length-canonicalize dppx 'in)]]]))
-
-  (struct: css:zero : CSS:Zero css:byte ())
-  (struct: css:one  : CSS:One css:byte ())
+      [css:resolution     #:+ CSS:Resolution      #:=> dppx
+                          [[(dpcm)  (css-length-canonicalize dppx 'cm)]
+                           [(dpi)   (css-length-canonicalize dppx 'in)]]]))
   
-  (struct: css:flzero : CSS:Flzero css:flunum ())
-  (struct: css:flone  : CSS:Flone css:flunum ())
-    
   (define-syntax (css-remake-token stx)
     (syntax-case stx []
       [(_ [start-token end-token] make-css:token datum extra ...)
@@ -595,7 +592,7 @@
   (define-type CSS-Media-Query (U CSS-Media-Type CSS-Feature-Query (Pairof CSS-Media-Type CSS-Feature-Query)))
   (define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature CSS-Declaration Symbol CSS-Syntax-Error))
   (define-type CSS-Media-Value (U CSS-Numeric CSS:Ident CSS:Ratio))
-  (define-type CSS-Media-Datum (U Symbol Integer Flonum))
+  (define-type CSS-Media-Datum (U Symbol Integer Flonum)) ; here is intend to use Integer rather than Fixnum
 
   (struct: css-media-type : CSS-Media-Type ([name : Symbol] [only? : Boolean]))
   (struct: css-media-feature : CSS-Media-Feature ([name : Symbol] [value : CSS-Media-Datum] [operator : Char]))
@@ -669,6 +666,7 @@
   ;; https://drafts.csswg.org/css-cascade/#shorthand
   ;; https://drafts.csswg.org/css-cascade/#filtering
   ;; https://drafts.csswg.org/css-cascade/#cascading
+  ; NOTE: After cascading, applications may also need to distinguish critical types, such as percentage or flonum.
   (define-type CSS-Cascaded-Value (U CSS-Token (Listof CSS-Token) False))
   (define-type CSS-Declared-Value (Pairof CSS-Cascaded-Value Boolean))
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declared-Value))
@@ -779,7 +777,7 @@
       (define (zoom->flonum [desc-name : Symbol] [maybe-zoom : CSS-Cascaded-Value]) : Flonum
         (cond [(css:ratio%? maybe-zoom) (css:ratio%-datum maybe-zoom)]
               [(css:flunum? maybe-zoom) (css:flunum-datum maybe-zoom)]
-              [(css:natural? maybe-zoom) (css:natural=> maybe-zoom exact->inexact)]
+              [(css:natural? maybe-zoom) (css:natural=> maybe-zoom fx->fl)]
               [(eq? desc-name 'max-zoom) +inf.0]
               [(eq? desc-name 'min-zoom) 0.0]
               [else (current-css-viewport-auto-zoom)]))
@@ -987,16 +985,16 @@
                              (define value : Flonum (real->double-flonum n))
                              (define scalar : Nonnegative-Flonum (if (negative? value) (flabs value) value))
                              (case unit
-                               [(em ex ch ic rem)       (css-make-token srcloc css:length     representation value unit scalar 'font)]
-                               [(vw vh vi vb vmin vmax) (css-make-token srcloc css:length     representation value unit scalar 'viewport)]
-                               [(px cm mm q in pc pt)   (css-make-token srcloc css:length     representation value unit scalar 'absolute)]
-                               [(deg grad rad turn)     (css-make-token srcloc css:angle      representation value unit scalar)]
-                               [(s ms min h)            (css-make-token srcloc css:time       representation value unit scalar)]
-                               [(hz khz)                (css-make-token srcloc css:frequency  representation value unit scalar)]
-                               [(dpi dpcm dppx)         (css-make-token srcloc css:resolution representation value unit scalar)]
-                               [else                    (css-make-token srcloc css:dimension  representation value unit scalar)])]
+                               [(em ex ch ic rem)       (css-make-token srcloc css:length:font     representation value unit scalar)]
+                               [(vw vh vi vb vmin vmax) (css-make-token srcloc css:length:viewport representation value unit scalar)]
+                               [(px cm mm q in pc pt)   (css-make-token srcloc css:length          representation value unit scalar)]
+                               [(deg grad rad turn)     (css-make-token srcloc css:angle           representation value unit scalar)]
+                               [(s ms min h)            (css-make-token srcloc css:time            representation value unit scalar)]
+                               [(hz khz)                (css-make-token srcloc css:frequency       representation value unit scalar)]
+                               [(dpi dpcm dppx)         (css-make-token srcloc css:resolution      representation value unit scalar)]
+                               [else                    (css-make-token srcloc css:dimension       representation value unit scalar)])]
                             [(and (char? ch1) (char=? ch1 #\%) (read-char css))
-                             (define n% : Flonum (real->double-flonum (fl* (real->double-flonum n) 0.01)))
+                             (define n% : Flonum (fl* (real->double-flonum n) 0.01))
                              (cond [(negative? n%) (css-make-token srcloc css:delta% representation n%)]
                                    [(fl> n% 1.0) (css-make-token srcloc css:ratio% representation n% n%)]
                                    [else (css-make-token srcloc css:fraction% representation n% n% n%)])]
@@ -1715,14 +1713,16 @@
       (define-values (maybe-/ maybe-rest) (css-car rest))
       (define-values (maybe-int terminal) (css-car maybe-rest))
       (cond [(css:delim=:=? maybe-/ #\/)
-             (values (if (and (css:natural=<-? value positive?) (css:natural=<-? maybe-int positive?))
-                         (let* ([width : Nonnegative-Integer (css:natural-datum value)]
-                                [height : Nonnegative-Integer (css:natural-datum maybe-int)]
-                                [ratio : Nonnegative-Flonum (real->double-flonum (/ width height))])
-                           ; NOTE: this is a trap for the potential subnormal result,
-                           ;        however in practice it is merely happen, hence, 0.618 here is almost a placeholder.
-                           (css-remake-token [value maybe-int] css:ratio (if (zero? ratio) 0.618 ratio)))
-                         (css-throw-syntax-error exn:css:malformed (filter css-token? (list value maybe-/ maybe-int))))
+             (values (cond [(and (css:natural=<-? value positive?) (css:natural=<-? maybe-int positive?))
+                            (define width : Nonnegative-Fixnum (css:natural-datum value))
+                            (define height : Nonnegative-Fixnum (css:natural-datum maybe-int))
+                            (define ratio : Nonnegative-Flonum (real->double-flonum (/ width height)))
+                            ; NOTE: this is a trap for the potential subnormal result,
+                            ;        however in practice it is merely happen, hence, 0.618 here is almost a placeholder.
+                            (css-remake-token [value maybe-int] css:ratio (if (zero? ratio) 0.618 ratio))]
+                           [(css-number? value) (css-throw-syntax-error exn:css:range value)]
+                           [(css-number? maybe-int) (css-throw-syntax-error exn:css:range maybe-int)]
+                           [else (css-throw-syntax-error exn:css:type (filter css-token? (list value maybe-/ maybe-int)))])
                      terminal)]
             [(or (css:ident? value) (css-numeric? value)) (values value rest)]
             [(eof-object? value) (values eof rest)]
