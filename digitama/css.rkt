@@ -176,7 +176,7 @@
                               (format-id <id> "~a-canonicalize" (string-replace (symbol->string (syntax-e <id>)) ":" "-"))))])
          #'(begin (struct: id : ID parent (rest ...)) ...
 
-                  (define css-id->canon : (case-> [Nonnegative-Real Symbol -> Nonnegative-Real] [Real Symbol -> Real])
+                  (define css-id->canon : (case-> [Nonnegative-Flonum Symbol -> Nonnegative-Flonum] [Flonum Symbol -> Flonum])
                     (lambda [canonical-unit unit]
                       (case unit
                         [(canonical-unit) canonical-unit]
@@ -198,7 +198,7 @@
 
                   (define +id? : (-> Any Boolean : #:+ (U ID CSS-Zero))
                     (lambda [t]
-                      (or (and (id? t) (= (css:dimension-datum t) (css:dimension-scalar t)))
+                      (or (and (id? t) (fl= (css:dimension-datum t) (css:dimension-scalar t)))
                           (css-zero? t))))
                   ...
                   
@@ -207,7 +207,7 @@
                             (λ [[t : (U ID CSS-Zero)]] (if (id? t) (css-id->canon (css:dimension-scalar t) (css:dimension-unit t)) 0.0))))
                   ...
                   
-                  (define token->datum : (-> (U CSS:Dimension CSS-Zero) Real)
+                  (define token->datum : (-> (U CSS:Dimension CSS-Zero) Flonum)
                     (lambda [instance]
                       (cond [(id? instance) (css-id->canon (css:dimension-datum instance) (css:dimension-unit instance))] ...
                             [(css-zero? instance) 0.0]
@@ -231,18 +231,18 @@
                             [(type? instance) (type->datum instance)] ...
                             [else (assert (object-name instance) symbol?)])))))]))
 
-  (define-values (current-css-containing-block-width current-css-containing-block-height)
-    (values (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))
-            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
+  (define-values (current-css-viewport-width current-css-viewport-height)
+    (values (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))
+            (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
 
   (define-values (current-css-element-font-size current-css-root-element-font-size)
-    (values (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))
-            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
+    (values (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))
+            (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
 
   (define-values (current-css-x-height current-css-char-width current-css-word-width)
-    (values (ann (make-parameter 1/2) (Parameterof Nonnegative-Exact-Rational))
-            (ann (make-parameter 1/2) (Parameterof Nonnegative-Exact-Rational))
-            (ann (make-parameter 1) (Parameterof Nonnegative-Exact-Rational))))
+    (values (ann (make-parameter 0.5) (Parameterof Nonnegative-Flonum))
+            (ann (make-parameter 0.5) (Parameterof Nonnegative-Flonum))
+            (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
 
   (define css-zero? : (-> Any Boolean : #:+ CSS-Zero)
     (lambda [v]
@@ -293,7 +293,7 @@
   
   (define-tokens css-token : CSS-Token ([source : Any] [line : Natural] [column : Natural] [position : Natural] [span : Natural])
     [(struct: css-numeric   : CSS-Numeric   css-token   ([representation : String]))
-     (struct: css:dimension : CSS:Dimension css-numeric ([datum : Real] [unit : Symbol] [scalar : Nonnegative-Real]))]
+     (struct: css:dimension : CSS:Dimension css-numeric ([datum : Flonum] [unit : Symbol] [scalar : Nonnegative-Flonum]))]
 
     ; TODO: Typed Racket is buggy if there are more than 11 conditions for (token->datum)
     (define-symbolic-tokens css-special #:+ CSS-Special
@@ -302,7 +302,7 @@
       [css:close      #:+ CSS:Close      #:as Char]
       
       ; These tokens are remade by the parser, and they are never produced by the tokenizer.
-      [css:ratio      #:+ CSS:Ratio      #:as Positive-Exact-Rational]
+      [css:ratio      #:+ CSS:Ratio      #:as Positive-Flonum]
       [css:rgba       #:+ CSS:RGBA       #:as Nonnegative-Fixnum         [alpha : Nonnegative-Flonum]])
 
     (define-symbolic-tokens css-symbolic #:+ CSS-Symbolic
@@ -339,34 +339,34 @@
       ;;; https://drafts.csswg.org/css-values/#absolute-lengths
       ;;; https://drafts.csswg.org/css-values/#relative-lengths
       [css:length     #:+ CSS:Length                                     [type : (U 'font 'viewport 'absolute)]
-                      #:=> px   [[(cm)    (* px 9600/254)]
-                                 [(mm)    (* px 9600/254 1/10)]
-                                 [(q)     (* px 9600/254 1/40)]
-                                 [(in)    (* px 96)]
-                                 [(pc)    (* px 96 1/6)]
-                                 [(pt)    (* px 96 1/72)]
-                                 [(em)    (* px (current-css-element-font-size))]
-                                 [(ex)    (* px (current-css-x-height))]
-                                 [(ch)    (* px (current-css-char-width))]
-                                 [(ic)    (* px (current-css-word-width))]
-                                 [(rem)   (* px (current-css-root-element-font-size))]
-                                 [(vw vi) (* px 1/100 (current-css-containing-block-width))]
-                                 [(vh vb) (* px 1/100 (current-css-containing-block-height))]
-                                 [(vmin)  (* px 1/100 (min (current-css-containing-block-width) (current-css-containing-block-height)))]
-                                 [(vmax)  (* px 1/100 (max (current-css-containing-block-width) (current-css-containing-block-height)))]]]
+                      #:=> px   [[(cm)    (fl* px (fl/ 96.0 2.54))]
+                                 [(mm)    (fl* px (fl/ 96.0 25.4))]  ; 1cm/10
+                                 [(q)     (fl* px (fl/ 96.0 101.6))] ; 1cm/40
+                                 [(in)    (fl* px 96.0)]
+                                 [(pc)    (fl* px 16.0)]             ; 1in/6
+                                 [(pt)    (fl* px (fl/ 96.0 72.0))]  ; 1in/72
+                                 [(em)    (fl* px (current-css-element-font-size))]
+                                 [(ex)    (fl* px (current-css-x-height))]
+                                 [(ch)    (fl* px (current-css-char-width))]
+                                 [(ic)    (fl* px (current-css-word-width))]
+                                 [(rem)   (fl* px (current-css-root-element-font-size))]
+                                 [(vw vi) (fl* px (fl* 0.01 (current-css-viewport-width)))]
+                                 [(vh vb) (fl* px (fl* 0.01 (current-css-viewport-height)))]
+                                 [(vmin)  (fl* px (fl* 0.01 (min (current-css-viewport-width) (current-css-viewport-height))))]
+                                 [(vmax)  (fl* px (fl* 0.01 (max (current-css-viewport-width) (current-css-viewport-height))))]]]
       ;;; https://drafts.csswg.org/css-values/#angles
       [css:angle      #:+ CSS:Angle
-                      #:=> deg  [[(grad)  (* deg 9/10)]
-                                 [(rad)   (* deg (/ 180 pi))]
-                                 [(turn)  (* deg 360)]]]
+                      #:=> deg  [[(grad)  (fl* deg 0.9)]
+                                 [(rad)   (fl* deg (fl/ 180.0 pi))]
+                                 [(turn)  (fl* deg 360.0)]]]
       ;;; https://drafts.csswg.org/css-values/#time
       [css:time       #:+ CSS:Time
-                      #:=> s    [[(ms)    (* s 1/1000)]
-                                 [(min)   (* s 60)]
-                                 [(h)     (* s 60 60)]]]
+                      #:=> s    [[(ms)    (fl* s 0.001)]
+                                 [(min)   (fl* s 60.0)]
+                                 [(h)     (fl* s 3600.0)]]]
       ;;; https://drafts.csswg.org/css-values/#frequency
       [css:frequency  #:+ CSS:Frequency
-                      #:=> kz   [[(khz)   (* kz 1/1000)]]]
+                      #:=> kz   [[(khz)   (fl* kz 0.001)]]]
       ;;; https://drafts.csswg.org/css-values/#resolution
       [css:resolution #:+ CSS:Resolution
                       #:=> dppx [[(dpcm)  (css-length-canonicalize dppx 'cm)]
@@ -498,11 +498,11 @@
                                   [pseudo-element : (Option CSS-Pseudo-Element-Selector)])]
     
     [css-complex-selector        #:+ CSS-Complex-Selector
-                                 ([specificity : Natural]
+                                 ([specificity : Nonnegative-Fixnum]
                                   [list : (Listof+ CSS-Compound-Selector)]
-                                  [A : Natural]
-                                  [B : Natural]
-                                  [C : Natural])])
+                                  [A : Nonnegative-Fixnum]
+                                  [B : Nonnegative-Fixnum]
+                                  [C : Nonnegative-Fixnum])])
 
   (define-configuration css-subject #:as CSS-Subject
     ([type : Symbol]
@@ -512,7 +512,7 @@
      [attributes : (HashTable Symbol CSS-Attribute-Value) #:= (make-hasheq)])
     #:prefab)
 
-  (define css-selector-match : (->* (CSS-Complex-Selector CSS-Subject) (Boolean) (Option Natural))
+  (define css-selector-match : (->* (CSS-Complex-Selector CSS-Subject) (Boolean) (Option Nonnegative-Fixnum))
     ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
     ;;; https://drafts.csswg.org/selectors/#case-sensitive
     (lambda [selector element [quirk? #false]] ; WARNING: `quirk?` only affects type name and attribute names
@@ -552,19 +552,21 @@
                                           [else #false])))))))))))
       (and match? (css-complex-selector-specificity selector))))
   
-  (define css-selector-specificity : (-> (Listof CSS-Compound-Selector) (values Natural Natural Natural Natural))
+  (define css-selector-specificity : (-> (Listof CSS-Compound-Selector)
+                                         (values Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum))
     ;;; https://drafts.csswg.org/selectors/#specificity-rules
     (lambda [complex-selector]
       (define-values (A B C)
-        (for/fold ([A : Natural 0] [B : Natural 0] [C : Natural 0])
+        (for/fold ([A : Nonnegative-Fixnum 0] [B : Nonnegative-Fixnum 0] [C : Nonnegative-Fixnum 0])
                   ([static-unit (in-list complex-selector)])
-          (values (+ A (length (css-compound-selector-ids static-unit)))
-                  (+ B (length (css-compound-selector-classes static-unit))
-                     (length (css-compound-selector-pseudo-classes static-unit))
-                     (length (css-compound-selector-attributes static-unit)))
-                  (+ C (if (css-compound-selector-pseudo-element static-unit) 1 0)
-                     (if (symbol? (css-compound-selector-type static-unit)) 1 0)))))
-      (values (bitwise-ior (arithmetic-shift A 16) (arithmetic-shift B 8) C) A B C)))
+          (values (fx+ A (length (css-compound-selector-ids static-unit)))
+                  (fx+ B (fx+ (length (css-compound-selector-classes static-unit))
+                              (fx+ (length (css-compound-selector-pseudo-classes static-unit))
+                                   (length (css-compound-selector-attributes static-unit)))))
+                  (fx+ C (fx+ (if (css-compound-selector-pseudo-element static-unit) 1 0)
+                              (if (symbol? (css-compound-selector-type static-unit)) 1 0))))))
+      (values (fxior (fxlshift A 16) (fxior (fxlshift B 8) C))
+              A B C)))
   
   (define css-make-complex-selector : (-> (Listof+ CSS-Compound-Selector) CSS-Complex-Selector)
     (lambda [complex-selector]
@@ -593,7 +595,7 @@
   (define-type CSS-Media-Query (U CSS-Media-Type CSS-Feature-Query (Pairof CSS-Media-Type CSS-Feature-Query)))
   (define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature CSS-Declaration Symbol CSS-Syntax-Error))
   (define-type CSS-Media-Value (U CSS-Numeric CSS:Ident CSS:Ratio))
-  (define-type CSS-Media-Datum (U Real Symbol))
+  (define-type CSS-Media-Datum (U Symbol Integer Flonum))
 
   (struct: css-media-type : CSS-Media-Type ([name : Symbol] [only? : Boolean]))
   (struct: css-media-feature : CSS-Media-Feature ([name : Symbol] [value : CSS-Media-Datum] [operator : Char]))
@@ -680,14 +682,14 @@
     (syntax-parse stx
       [(_ (~optional (~seq #:media maybe-preferences)) sexp ...)
        (with-syntax ([preferences (or (attribute maybe-preferences) #'(current-css-media-preferences))])
-         #'(let ([w (hash-ref preferences 'width (thunk (current-css-containing-block-width)))]
-                 [h (hash-ref preferences 'height (thunk (current-css-containing-block-height)))])
+         #'(let ([w (hash-ref preferences 'width (thunk (current-css-viewport-width)))]
+                 [h (hash-ref preferences 'height (thunk (current-css-viewport-height)))])
              (define-values (width height)
-               (values (if (and (real? w) (positive? w)) (exact-round w) (current-css-containing-block-width))
-                       (if (and (real? h) (positive? h)) (exact-round h) (current-css-containing-block-height))))
+               (values (if (and (real? w) (positive? w)) (real->double-flonum w) (current-css-viewport-width))
+                       (if (and (real? h) (positive? h)) (real->double-flonum h) (current-css-viewport-height))))
              (parameterize ([current-css-media-preferences preferences]
-                            [current-css-containing-block-width width]
-                            [current-css-containing-block-height height])
+                            [current-css-viewport-width width]
+                            [current-css-viewport-height height])
                sexp ...)))]))
 
   (define css-ref : (All (a) (case-> [-> CSS-Declared-Values Symbol (-> Symbol CSS-Cascaded-Value a) a]
@@ -738,7 +740,7 @@
          [(zoom min-zoom max-zoom)
           (cond [(pair? rest) (vector exn:css:overconsumption rest)]
                 [(css:ident-norm=:=? desc-value 'auto) desc-value]
-                [(or (css:flunum? desc-value) (css:ratio%? desc-value) (css-one? desc-value)) desc-value]
+                [(or (css:flunum? desc-value) (css:natural? desc-value) (css:ratio%? desc-value)) desc-value]
                 [(or (css:ident? desc-value) (css-percentage? desc-value) (css-number? desc-value)) exn:css:range]
                 [else exn:css:type])]
          [(orientation user-zoom)
@@ -758,54 +760,60 @@
     ;;; https://drafts.csswg.org/css-device-adapt/#constraining
     ;;; https://drafts.csswg.org/css-device-adapt/#handling-auto-zoom
     ;;; https://drafts.csswg.org/css-device-adapt/#media-queries
+    ;;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
     (lambda [cascaded-values initial-viewport inherit-viewport all]
       ; Notes: We do not check the `initial-viewport` to specific the `specified values` since
       ;          @viewport is a controversial @rule which is easy to be used incorrectly,
       ;          @viewport is rarely used in desktop applications, and
       ;          this behavior is indeed specified if I understand the specification correctly.
-      (define initial-width : Real (let ([w (hash-ref initial-viewport 'width (const 1))]) (if (symbol? w) 1 w)))
-      (define initial-height : Real (let ([h (hash-ref initial-viewport 'height (const 1))]) (if (symbol? h) 1 h)))
-      (define (smart [maix : (-> Real * Real)] [v1 : (U Real Symbol)] [v2 : (U Real Symbol)]) : (U Real Symbol)
+      (define-values (initial-width initial-height)
+        (let ([w (hash-ref initial-viewport 'width (const #false))]
+              [h (hash-ref initial-viewport 'height (const #false))])
+          (values (if (real? w) (flmax (real->double-flonum w) 1.0) 1.0)
+                  (if (real? h) (flmax (real->double-flonum h) 1.0) 1.0))))
+      (define (smart [maix : (-> Flonum Flonum Flonum)] [v1 : (U Flonum Symbol)] [v2 : (U Flonum Symbol)]) : (U Flonum Symbol)
         (cond [(and (symbol? v1) (symbol? v2)) 'auto]
               [(symbol? v1) v2]
               [(symbol? v2) v1]
               [else (maix v1 v2)]))
-      (define (zoom->real [desc-name : Symbol] [maybe-zoom : CSS-Cascaded-Value]) : Real
-        (cond [(css-number? maybe-zoom) (assert (css-number->datum maybe-zoom) real?)]
+      (define (zoom->flonum [desc-name : Symbol] [maybe-zoom : CSS-Cascaded-Value]) : Flonum
+        (cond [(css:ratio%? maybe-zoom) (css:ratio%-datum maybe-zoom)]
+              [(css:flunum? maybe-zoom) (css:flunum-datum maybe-zoom)]
+              [(css:natural? maybe-zoom) (css:natural=> maybe-zoom exact->inexact)]
               [(eq? desc-name 'max-zoom) +inf.0]
-              [(eq? desc-name 'min-zoom) 0]
+              [(eq? desc-name 'min-zoom) 0.0]
               [else (current-css-viewport-auto-zoom)]))
-      (define (size->scalar [desc-name : Symbol] [maybe-size : CSS-Cascaded-Value]) : (U Real Symbol)
+      (define (size->scalar [desc-name : Symbol] [maybe-size : CSS-Cascaded-Value]) : (U Flonum Symbol)
         (cond [(css:dimension? maybe-size) (css:dimension-datum maybe-size)] ; already canonicalized
               [(not (css:fraction%? maybe-size)) 'auto]
-              [(memq desc-name '(min-width max-width)) (css:fraction%=> maybe-size * initial-width)]
-              [else (css:fraction%=> maybe-size * initial-height)]))
-      (define (enum-value [desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]) : (U Real Symbol)
+              [(memq desc-name '(min-width max-width)) (css:fraction%=> maybe-size fl* initial-width)]
+              [else (css:fraction%=> maybe-size fl* initial-height)]))
+      (define (enum-value [desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]) : Symbol
         (cond [(css:ident? maybe-value) (css:ident-norm maybe-value)]
               [(eq? desc-name 'user-zoom) 'zoom]
               [else 'auto]))
-      (define min-zoom : Real (css-ref cascaded-values 'min-zoom zoom->real))
-      (define max-zoom : Real (max min-zoom (css-ref cascaded-values 'max-zoom zoom->real)))
-      (define min-width : (U Real Symbol) (css-ref cascaded-values 'min-width size->scalar))
-      (define max-width : (U Real Symbol) (css-ref cascaded-values 'max-width size->scalar))
-      (define min-height : (U Real Symbol) (css-ref cascaded-values 'min-height size->scalar))
-      (define max-height : (U Real Symbol) (css-ref cascaded-values 'max-height size->scalar))
+      (define min-zoom : Flonum (css-ref cascaded-values 'min-zoom zoom->flonum))
+      (define max-zoom : Flonum (max min-zoom (css-ref cascaded-values 'max-zoom zoom->flonum)))
+      (define min-width : (U Flonum Symbol) (css-ref cascaded-values 'min-width size->scalar))
+      (define max-width : (U Flonum Symbol) (css-ref cascaded-values 'max-width size->scalar))
+      (define min-height : (U Flonum Symbol) (css-ref cascaded-values 'min-height size->scalar))
+      (define max-height : (U Flonum Symbol) (css-ref cascaded-values 'max-height size->scalar))
       (define-values (width height)
-        (let* ([width (smart max min-width (smart min max-width initial-width))]
-               [height (smart max min-height (smart min max-height initial-height))]
+        (let* ([width (smart flmax min-width (smart flmin max-width initial-width))]
+               [height (smart flmax min-height (smart flmin max-height initial-height))]
                [width (cond [(and (symbol? width) (symbol? height)) initial-width]
-                            [(symbol? width) (if (zero? initial-height) initial-width (* height (/ initial-width initial-height)))]
+                            [(symbol? width) (if (zero? initial-height) initial-width (fl* height (fl/ initial-width initial-height)))]
                             [else width])])
-          (values width (cond [(real? height) height]
+          (values width (cond [(flonum? height) height]
                               [(zero? initial-width) initial-height]
-                              [else (* width (/ initial-height initial-width))]))))
+                              [else (fl* width (fl/ initial-height initial-width))]))))
       (define actual-viewport (hash-copy initial-viewport))
       (for ([name (in-list      '(min-zoom max-zoom width height))]
             [value (in-list (list min-zoom max-zoom width height))])
         (hash-set! actual-viewport name value))
       (hash-set! actual-viewport 'orientation (css-ref cascaded-values 'orientation enum-value))
       (hash-set! actual-viewport 'user-zoom (css-ref cascaded-values 'user-zoom enum-value))
-      (hash-set! actual-viewport 'zoom (max min-zoom (min max-zoom (css-ref cascaded-values 'zoom zoom->real))))
+      (hash-set! actual-viewport 'zoom (max min-zoom (min max-zoom (css-ref cascaded-values 'zoom zoom->flonum))))
       actual-viewport))
 
   (define-values (current-css-viewport-descriptor-filter current-css-viewport-filter current-css-viewport-auto-zoom)
@@ -976,18 +984,19 @@
                           [ch3 : (U EOF Char) (peek-char css 2)])
                       (cond [(css-identifier-prefix? ch1 ch2 ch3)
                              (define unit : Symbol (string->symbol (string-downcase (css-consume-name css #false))))
-                             (define scalar : Nonnegative-Real (if (negative? n) (abs n) n))
+                             (define value : Flonum (real->double-flonum n))
+                             (define scalar : Nonnegative-Flonum (if (negative? value) (flabs value) value))
                              (case unit
-                               [(em ex ch ic rem)       (css-make-token srcloc css:length     representation n unit scalar 'font)]
-                               [(vw vh vi vb vmin vmax) (css-make-token srcloc css:length     representation n unit scalar 'viewport)]
-                               [(px cm mm q in pc pt)   (css-make-token srcloc css:length     representation n unit scalar 'absolute)]
-                               [(deg grad rad turn)     (css-make-token srcloc css:angle      representation n unit scalar)]
-                               [(s ms min h)            (css-make-token srcloc css:time       representation n unit scalar)]
-                               [(hz khz)                (css-make-token srcloc css:frequency  representation n unit scalar)]
-                               [(dpi dpcm dppx)         (css-make-token srcloc css:resolution representation n unit scalar)]
-                               [else                    (css-make-token srcloc css:dimension  representation n unit scalar)])]
+                               [(em ex ch ic rem)       (css-make-token srcloc css:length     representation value unit scalar 'font)]
+                               [(vw vh vi vb vmin vmax) (css-make-token srcloc css:length     representation value unit scalar 'viewport)]
+                               [(px cm mm q in pc pt)   (css-make-token srcloc css:length     representation value unit scalar 'absolute)]
+                               [(deg grad rad turn)     (css-make-token srcloc css:angle      representation value unit scalar)]
+                               [(s ms min h)            (css-make-token srcloc css:time       representation value unit scalar)]
+                               [(hz khz)                (css-make-token srcloc css:frequency  representation value unit scalar)]
+                               [(dpi dpcm dppx)         (css-make-token srcloc css:resolution representation value unit scalar)]
+                               [else                    (css-make-token srcloc css:dimension  representation value unit scalar)])]
                             [(and (char? ch1) (char=? ch1 #\%) (read-char css))
-                             (define n% : Flonum (real->double-flonum (* n 1/100)))
+                             (define n% : Flonum (real->double-flonum (fl* (real->double-flonum n) 0.01)))
                              (cond [(negative? n%) (css-make-token srcloc css:delta% representation n%)]
                                    [(fl> n% 1.0) (css-make-token srcloc css:ratio% representation n% n%)]
                                    [else (css-make-token srcloc css:fraction% representation n% n% n%)])]
@@ -1139,7 +1148,7 @@
       (cond [(eof-object? esc) #\uFFFD]
             [(not (char-hexdigit? esc)) esc]
             [else (let-values ([(hex _) (css-consume-hexadecimal css (sub1 6) (char->hexadecimal esc) #:\s?$? #true)])
-                    (cond [(or (<= hex 0) (> hex #x10FFFF)) #\uFFFD] ; #\nul and max unicode
+                    (cond [(or (fx<= hex 0) (fx> hex #x10FFFF)) #\uFFFD] ; #\nul and max unicode
                           [(<= #xD800 hex #xDFFF) #\uFFFD] ; surrogate
                           [else (integer->char hex)]))])))
 
@@ -1706,10 +1715,13 @@
       (define-values (maybe-/ maybe-rest) (css-car rest))
       (define-values (maybe-int terminal) (css-car maybe-rest))
       (cond [(css:delim=:=? maybe-/ #\/)
-             (values (if (and (css:integer=<-? value positive?) (css:integer=<-? maybe-int positive?))
-                         (let ([width : Positive-Integer (css:integer=> value max 1)]
-                               [height : Positive-Integer (css:integer=> maybe-int max 1)])
-                           (css-remake-token [value maybe-int] css:ratio (/ width height)))
+             (values (if (and (css:natural=<-? value positive?) (css:natural=<-? maybe-int positive?))
+                         (let* ([width : Nonnegative-Integer (css:natural-datum value)]
+                                [height : Nonnegative-Integer (css:natural-datum maybe-int)]
+                                [ratio : Nonnegative-Flonum (real->double-flonum (/ width height))])
+                           ; NOTE: this is a trap for the potential subnormal result,
+                           ;        however in practice it is merely happen, hence, 0.618 here is almost a placeholder.
+                           (css-remake-token [value maybe-int] css:ratio (if (zero? ratio) 0.618 ratio)))
                          (css-throw-syntax-error exn:css:malformed (filter css-token? (list value maybe-/ maybe-int))))
                      terminal)]
             [(or (css:ident? value) (css-numeric? value)) (values value rest)]
@@ -1806,14 +1818,13 @@
               [(css:delim=:=? token #\:)
                (define-values (maybe-pseudo-classes maybe-rest) (css-car-pseudo-class-selectors tokens))
                (define-values (next rest) (css-car maybe-rest #false))
-               (when (null? maybe-pseudo-classes)
-                 (css-throw-syntax-error exn:css:misplaced (list token (car tokens))))
-               (define pelement : CSS-Pseudo-Element-Selector
-                 (let ([pclass (car maybe-pseudo-classes)])
-                   (make-css-pseudo-element-selector (css-pseudo-class-selector-name pclass)
-                                                     (css-pseudo-class-selector-arguments pclass)
-                                                     (cdr maybe-pseudo-classes))))
-               (extract-simple-selector sessalc sdi setubirtta pelement maybe-rest)]
+               (cond [(null? maybe-pseudo-classes) (css-throw-syntax-error exn:css:misplaced (list token (car tokens)))]
+                     [else (let ([pclass (car maybe-pseudo-classes)])
+                             (define pelement : CSS-Pseudo-Element-Selector
+                               (make-css-pseudo-element-selector (css-pseudo-class-selector-name pclass)
+                                                                 (css-pseudo-class-selector-arguments pclass)
+                                                                 (cdr maybe-pseudo-classes)))
+                             (extract-simple-selector sessalc sdi setubirtta pelement maybe-rest))])]
               [(css:block=:=? token #\[)
                (define attribute-selector : CSS-Attribute-Selector (css-simple-block->attribute-selector token namespaces))
                (extract-simple-selector sessalc sdi (cons attribute-selector setubirtta) pseudo-element tokens)]
@@ -1949,7 +1960,7 @@
                                    [(bytes? /dev/stdin) (open-input-bytes /dev/stdin '/dev/cssin/bytes)]
                                    [else (open-input-string (~s /dev/stdin) '/dev/cssin/error)])]
                  [/dev/cssin : Input-Port (css-fallback-encode-input-port /dev/rawin)]
-                 [peek-pool : (Listof Any) null])
+                 [peek-pool : (Listof CSS-Syntax-Any) null])
             (define portname : (U String Symbol)
               (let ([src (object-name /dev/cssin)])
                 (cond [(path? src) (path->string (simple-form-path src))]
@@ -1961,6 +1972,8 @@
                                                   (set! peek-pool rest)
                                                   (car peeked))])))
                              (λ [[buf : Bytes] [skip : Nonnegative-Integer] [evt : Any]]
+                               ; NOTE: It seems that optimize this code to always throw the last peeked token
+                               ;        does not improve the performance.
                                (λ _ (and (for ([idx (in-range (length peek-pool) (add1 skip))])
                                            (set! peek-pool (cons (css-consume-token /dev/cssin portname) peek-pool)))
                                          (list-ref peek-pool (- (length peek-pool) skip 1)))))
@@ -1992,10 +2005,10 @@
 
   (define css-peek-syntax/skip-whitespace : (-> Input-Port CSS-Syntax-Any)
     (lambda [css]
-      (let peek/skip-whitespace : CSS-Syntax-Any ([skip : Natural 0])
+      (let peek/skip-whitespace : CSS-Syntax-Any ([skip : Nonnegative-Fixnum 0])
         (define token (css-peek-syntax css skip))
         (cond [(not (css:whitespace? token)) token]
-              [else (peek/skip-whitespace (add1 skip))]))))
+              [else (peek/skip-whitespace (fx+ skip 1))]))))
 
   (define css-selector-combinator? : (-> CSS-Syntax-Any Boolean : #:+ (U CSS:WhiteSpace CSS:Delim))
     (lambda [token]
@@ -2275,7 +2288,9 @@
     (lambda [rules subject desc-filter [quirk? #false]
                    [top-preferences (current-css-media-preferences)]
                    [descbase ((inst make-hasheq Symbol CSS-Declared-Value))]]
-      (define-type Style-Metadata (Vector Integer CSS-Declarations CSS-Media-Preferences))
+      ; NOTE: defined the `Style-Metadata` as `List` will slow down the parsing,
+      ;       even though this code is not reached at that stage.
+      (define-type Style-Metadata (Vector Nonnegative-Fixnum CSS-Declarations CSS-Media-Preferences))
       (define-values (selected-rules-style single-preference?)
         (let cascade-rule : (Values (Listof Style-Metadata) Boolean) ([preferences : CSS-Media-Preferences top-preferences]
                                                                       [grammars : (Listof CSS-Grammar-Rule) rules]
@@ -2287,18 +2302,18 @@
             (cond [(css-@rule? style) (values styles single-preference?)]
                   [(pair? style) (cascade-rule (cdr style) (car style) styles #false)]
                   [else (let ([selectors : (Listof+ CSS-Complex-Selector) (css-style-rule-selectors style)])
-                          (define max-specificity : Natural
-                            (for/fold ([max-specificity : Natural 0]) ([selector (in-list selectors)])
-                              (define matched-specificity : Natural (or (css-selector-match selector subject quirk?) 0))
-                              (max matched-specificity max-specificity)))
-                          (values (cond [(zero? max-specificity) styles]
-                                        [else (cons (vector max-specificity (css-style-rule-properties style) preferences) styles)])
-                                  (and single-preference?)))]))))
+                          (define specificity : Nonnegative-Fixnum
+                            (for/fold ([max-specificity : Nonnegative-Fixnum 0]) ([selector (in-list selectors)])
+                              (define matched-specificity : Nonnegative-Fixnum (or (css-selector-match selector subject quirk?) 0))
+                              (fxmax matched-specificity max-specificity)))
+                          (cond [(zero? specificity) (values styles single-preference?)]
+                                [else (let ([sm : Style-Metadata (vector specificity (css-style-rule-properties style) preferences)])
+                                        (values (cons sm styles) single-preference?))]))]))))
       (unless (null? selected-rules-style)
         (define ordered-sources : (Listof Style-Metadata)
           (sort (reverse selected-rules-style)
                 (λ [[sm1 : Style-Metadata] [sm2 : Style-Metadata]]
-                  (< (vector-ref sm1 0) (vector-ref sm1 0)))))
+                  (fx< (vector-ref sm1 0) (vector-ref sm2 0)))))
         (call-with-css-preferences #:media top-preferences
           (if (and single-preference?)
               (let ([source-ref (λ [[src : Style-Metadata]] : CSS-Declarations (vector-ref src 1))])
