@@ -260,15 +260,6 @@
           (lambda [#:gapsize [delta 0.0] . bitmaps]
             (cond [(null? bitmaps) (bitmap-blank)]
                   [(null? (cdr bitmaps)) (car bitmaps)]
-                  ;[(list base bmp)  TODO: if gapsize can be defined with bitmap-pin
-                  ; (match alignment
-                  ;   ['vl (bitmap-pin  0  1  0  0  base bmp)]
-                  ;   ['vc (bitmap-pin 1/2 1 1/2 0  base bmp)]
-                  ;   ['vr (bitmap-pin  1  1  1  0  base bmp)]
-                  ;   ['ht (bitmap-pin  1  0  0  0  base bmp)]
-                  ;   ['hc (bitmap-pin  1 1/2 0 1/2 base bmp)]
-                  ;   ['hb (bitmap-pin  1  1  0  1  base bmp)]
-                  ;   [should-not-happen base])]
                   [else (let*-values ([(base others) (values (car bitmaps) (cdr bitmaps))]
                                       [(min-width min-height) (bitmap-size base)])
                           (define-values (width0 height0)
@@ -277,10 +268,10 @@
                                       ([child : Bitmap (in-list others)])
                               (define w : Positive-Integer (send child get-width))
                               (define h : Positive-Integer (send child get-height))
-                              (match alignment
-                                [(or 'vl 'vc 'vr) (values (max width w) (+ height h delta))]
-                                [(or 'ht 'hc 'hb) (values (+ width w delta) (max height h))]
-                                [should-not-happen (values (max width w) (max height h))])))
+                              (case alignment
+                                [(vl vc vr) (values (max width w) (+ height h delta))]
+                                [(ht hc hb) (values (+ width w delta) (max height h))]
+                                [else #|unreachable|# (values (max width w) (max height h))])))
                  
                           (define width : Positive-Real (max min-width width0))
                           (define height : Positive-Real (max min-height height0))
@@ -303,7 +294,7 @@
                                   [(ht) (values this-x-if-use     0)]
                                   [(hc) (values this-x-if-use     (/ (- height h) 2))]
                                   [(hb) (values this-x-if-use     (- height h))]
-                                  [else (values this-x-if-use this-y-if-use)]))
+                                  [else #|unreachable|# (values this-x-if-use this-y-if-use)]))
                               (send dc draw-bitmap bmp x y)
                               (append-bitmap (cdr bmps) (+ this-x-if-use w) (+ this-y-if-use h))))
                           (or (send dc get-bitmap) (bitmap-blank)))])))]
@@ -343,7 +334,7 @@
                                  [(lt) (values  0 0)] [(lc) (values  0 cy)] [(lb) (values  0 by)]
                                  [(ct) (values cx 0)] [(cc) (values cx cy)] [(cb) (values cx by)]
                                  [(rt) (values rx 0)] [(rc) (values rx cy)] [(rb) (values rx by)]
-                                 [else (values 0 0)]))
+                                 [else #|unreachable|# (values 0 0)]))
                              (send dc draw-bitmap bmp x y))
                            (or (send dc get-bitmap) (bitmap-blank)))])))])
     (values (make-append 'vl) (make-append 'vc) (make-append 'vr)
