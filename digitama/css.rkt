@@ -2422,7 +2422,7 @@
            (car result))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module* test typed/racket
+(module* main typed/racket
   (require (submod ".." digitama))
   (require (submod ".." parser))
   (require (submod ".." grammar))
@@ -2439,7 +2439,6 @@
                                   (cond [(eof-object? urgent) (close-output-port out)]
                                         [else (displayln message out) (forever /dev/log)])])))))
 
-  (collect-garbage)
   (current-logger css-logger)
   (css-deprecate-media-type #true)
   (current-css-media-type 'screen)
@@ -2448,8 +2447,15 @@
     (list (cons 'orientation 'landscape)
           (cons 'width (or width 0))
           (cons 'height (or height 0)))))
+
+  (collect-garbage)
+  (collect-garbage)
+  (collect-garbage)
+  (define tamer-sheet : CSS-StyleSheet
+    (time-run (read-css-stylesheet (simplify-path (build-path (find-system-path 'orig-dir)
+                                                              (find-system-path 'run-file)
+                                                              'up 'up "tamer" "tamer.css")))))
   
-  (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet (simplify-path (build-path 'up "tamer" "tamer.css")))))
   (define tamer-subject : CSS-Subject (make-css-subject #:type 'body #:id '#:123))
   (define tamer-header : CSS-Subject (make-css-subject #:type 'html #:id '#:header))
 
@@ -2465,6 +2471,8 @@
   tamer-sheet
   tamer-subject
   (time-run (css-cascade (list tamer-sheet) tamer-subject css-declaration-filter css-filter ((inst make-hasheq Symbol Datum)) #false))
+  (collect-garbage)
+  (collect-garbage)
   (collect-garbage)
   tamer-header
   (time-run (css-cascade (list tamer-sheet) tamer-header css-declaration-filter css-filter ((inst make-hasheq Symbol Datum)) #false))

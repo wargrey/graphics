@@ -587,7 +587,7 @@
              [else exn:css:type])])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module+ test0
+(module+ test
   (apply bitmap-vl-append
          (for/fold ([bitmap-descs : (Listof Bitmap) null])
                    ([width (in-list (list 32 16  2   2             32  32               32               256 256))]
@@ -619,7 +619,7 @@
                                                 (bitmap-frame (bitmap-blank width combined-height) #:border-color 'Lavender)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module* test typed/racket
+(module* main typed/racket
   (require "css.rkt")
   (require (submod ".."))
   (require (submod "css.rkt" test/digitama))
@@ -631,7 +631,11 @@
           (cons 'width 1440)
           (cons 'height 820))))
   
-  (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet (simplify-path (build-path 'up "tamer" "tamer.css")))))
+  (define tamer-sheet : CSS-StyleSheet
+    (time-run (read-css-stylesheet (simplify-path (build-path (find-system-path 'orig-dir)
+                                                              (find-system-path 'run-file)
+                                                              'up 'up "tamer" "tamer.css")))))
+  
   (define tamer-subject : CSS-Subject (make-css-subject #:type 'body #:id '#:header))
 
   (define-configuration descriptors #:as Descriptors
