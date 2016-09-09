@@ -722,13 +722,14 @@
       (values
        (case suitcased-name
          [(width height)
+          (define-values (2nd-value real-rest) (css-car rest))
           (define min-name : Symbol (if (eq? suitcased-name 'width) 'min-width 'min-height))
           (define max-name : Symbol (if (eq? suitcased-name 'width) 'max-width 'max-height))
           (define min-value : (U CSS-Token Make-CSS-Syntax-Error) (viewport-length desc-value))
-          (define max-value : (U CSS-Token Make-CSS-Syntax-Error) (if (pair? rest) (viewport-length (car rest)) min-value))
+          (define max-value : (U CSS-Token Make-CSS-Syntax-Error) (if (css-token? 2nd-value) (viewport-length 2nd-value) min-value))
           (cond [(procedure? min-value) (vector min-value desc-value)]
-                [(procedure? max-value) (vector max-value (car rest))]
-                [(and (pair? rest) (pair? (cdr rest))) (vector exn:css:overconsumption (cdr rest))]
+                [(procedure? max-value) (vector max-value 2nd-value)]
+                [(pair? real-rest) (vector exn:css:overconsumption real-rest)]
                 [else (hasheq min-name min-value max-name max-value)])]
          [(min-width max-width min-height max-height)
           (define length-value : (U CSS-Token Make-CSS-Syntax-Error) (viewport-length desc-value))

@@ -9,6 +9,7 @@
 
 (require racket/fixnum)
 (require racket/flonum)
+(require racket/unsafe/ops)
 
 (require typed/racket/draw)
 
@@ -34,7 +35,7 @@
 
 (define bitmap->flomap : (-> Bitmap Flomap)
   (lambda [bmp]
-    (define backing-scale : Nonnegative-Real (send bmp get-backing-scale))
+    (define backing-scale : Positive-Real (send bmp get-backing-scale))
     (define w : Positive-Integer (max 1 (exact-ceiling (* (send bmp get-width) backing-scale))))
     (define h : Positive-Integer (max 1 (exact-ceiling (* (send bmp get-height) backing-scale))))
     (define bs : Bytes (make-bytes (* 4 w h)))
@@ -86,7 +87,7 @@
       (define fontsize : Real (let ([default-size (send basefont get-size)])
                                 (cond [(positive? size) size]
                                       [(zero? size) default-size]
-                                      [else (* -1 size default-size)])))
+                                      [else (* (- size) default-size)])))
       (if (string? maybe-face)
           (send the-font-list find-or-create-font fontsize maybe-face
                 (or family (send basefont get-family)) (or style (send basefont get-style))
@@ -97,7 +98,7 @@
                 (or weight (send basefont get-weight)) underlined? 'smoothed pixels?
                 (or hinting (send basefont get-hinting)))))))
 
-(define bitmap-blank : (->* () (Nonnegative-Real (Option Nonnegative-Real) #:backing-scale Nonnegative-Real) Bitmap)
+(define bitmap-blank : (->* () (Nonnegative-Real (Option Nonnegative-Real) #:backing-scale Positive-Real) Bitmap)
   (lambda [[w 0] [h #false] #:backing-scale [backing-scale (default-icon-backing-scale)]]
     (define width : Positive-Integer (max 1 (exact-ceiling w)))
     (define height : Positive-Integer (max 1 (exact-ceiling (or h w))))
@@ -371,50 +372,39 @@
   
   (define the-color-pool : (HashTable Fixnum (Instance Color%)) (make-hasheq))
   
-  (define css-named-colors : (HashTable Symbol (Vector Byte Byte Byte))
-    #hasheq((black . #(0 0 0)) (white . #(255 255 255)) (whitesmoke . #(245 245 245)) (moccasin . #(255 228 181)) (gold . #(255 215 0))
-                               (plum . #(221 160 221)) (darksalmon . #(233 150 122)) (teal . #(0 128 128)) (yellow . #(255 255 0))
-                               (lightsalmon . #(255 160 122)) (aquamarine . #(127 255 212)) (lavenderblush . #(255 240 245))
-                               (palevioletred . #(219 112 147)) (olivedrab . #(107 142 35)) (dimgrey . #(105 105 105))
-                               (navajowhite . #(255 222 173)) (darkblue . #(0 0 139)) (indigo . #(75 0 130)) (rosybrown . #(188 143 143))
-                               (springgreen . #(0 255 127)) (dimgray . #(105 105 105)) (lavender . #(230 230 250))
-                               (darkolivegreen . #(85 107 47)) (mediumblue . #(0 0 205)) (sienna . #(160 82 45)) (blue . #(0 0 255))
-                               (royalblue . #(65 105 225)) (goldenrod . #(218 165 32)) (rebeccapurple . #(102 51 153))
-                               (antiquewhite . #(250 235 215)) (crimson . #(220 20 60)) (cyan . #(0 255 255)) (coral . #(255 127 80))
-                               (chocolate . #(210 105 30)) (lightcyan . #(224 255 255)) (oldlace . #(253 245 230)) (red . #(255 0 0))
-                               (limegreen . #(50 205 50)) (darkslateblue . #(72 61 139)) (sandybrown . #(244 164 96))
-                               (mediumseagreen . #(60 179 113)) (paleturquoise . #(175 238 238)) (lightslategray . #(119 136 153))
-                               (ghostwhite . #(248 248 255)) (azure . #(240 255 255)) (lightcoral . #(240 128 128)) (navy . #(0 0 128))
-                               (seashell . #(255 245 238)) (darkcyan . #(0 139 139)) (burlywood . #(222 184 135)) (lime . #(0 255 0))
-                               (lightslategrey . #(119 136 153)) (darkorchid . #(153 50 204)) (thistle . #(216 191 216))
-                               (bisque . #(255 228 196)) (darkred . #(139 0 0)) (darkgrey . #(169 169 169)) (darkviolet . #(148 0 211))
-                               (magenta . #(255 0 255)) (peachpuff . #(255 218 185)) (orchid . #(218 112 214)) (lawngreen . #(124 252 0))
-                               (lightgoldenrodyellow . #(250 250 210)) (slategrey . #(112 128 144)) (orangered . #(255 69 0))
-                               (tomato . #(255 99 71)) (peru . #(205 133 63)) (darkgray . #(169 169 169)) (lightseagreen . #(32 178 170))
-                               (blueviolet . #(138 43 226)) (darkgreen . #(0 100 0)) (forestgreen . #(34 139 34)) (grey . #(128 128 128))
-                               (papayawhip . #(255 239 213)) (mediumvioletred . #(199 21 133)) (lightyellow . #(255 255 224))
-                               (lightgray . #(211 211 211)) (ivory . #(255 255 240)) (mediumorchid . #(186 85 211))
-                               (darkturquoise . #(0 206 209)) (gray . #(128 128 128)) (deeppink . #(255 20 147)) (snow . #(255 250 250))
-                               (purple . #(128 0 128)) (mediumpurple . #(147 112 219)) (skyblue . #(135 206 235)) (maroon . #(128 0 0))
-                               (lightgreen . #(144 238 144)) (lemonchiffon . #(255 250 205)) (seagreen . #(46 139 87))
-                               (honeydew . #(240 255 240)) (darkseagreen . #(143 188 143)) (darkmagenta . #(139 0 139))
-                               (blanchedalmond . #(255 235 205)) (darkslategrey . #(47 79 79)) (yellowgreen . #(154 205 50))
-                               (palegoldenrod . #(238 232 170)) (hotpink . #(255 105 180)) (firebrick . #(178 34 34))
-                               (darkkhaki . #(189 183 107)) (indianred . #(205 92 92)) (mediumslateblue . #(123 104 238))
-                               (chartreuse . #(127 255 0)) (floralwhite . #(255 250 240)) (darkslategray . #(47 79 79))
-                               (deepskyblue . #(0 191 255)) (tan . #(210 180 140)) (pink . #(255 192 203)) (beige . #(245 245 220))
-                               (darkorange . #(255 140 0)) (violet . #(238 130 238)) (mintcream . #(245 255 250)) (orange . #(255 165 0))
-                               (cornsilk . #(255 248 220)) (mediumaquamarine . #(102 205 170)) (darkgoldenrod . #(184 134 11))
-                               (lightblue . #(173 216 230)) (mediumturquoise . #(72 209 204)) (mistyrose . #(255 228 225))
-                               (lightgrey . #(211 211 211)) (steelblue . #(70 130 180)) (lightpink . #(255 182 193)) (green . #(0 128 0))
-                               (wheat . #(245 222 179)) (linen . #(250 240 230)) (powderblue . #(176 224 230)) (aqua . #(0 255 255))
-                               (khaki . #(240 230 140)) (slategray . #(112 128 144)) (saddlebrown . #(139 69 19)) (brown . #(165 42 42))
-                               (turquoise . #(64 224 208)) (palegreen . #(152 251 152)) (aliceblue . #(240 248 255)) 
-                               (cadetblue . #(95 158 160)) (olive . #(128 128 0)) (slateblue . #(106 90 205)) (fuchsia . #(255 0 255))
-                               (lightskyblue . #(135 206 250)) (salmon . #(250 128 114)) (lightsteelblue . #(176 196 222))
-                               (gainsboro . #(220 220 220)) (mediumspringgreen . #(0 250 154)) (midnightblue . #(25 25 112))
-                               (silver . #(192 192 192)) (dodgerblue . #(30 144 255)) (greenyellow . #(173 255 47))
-                               (cornflowerblue . #(100 149 237))))
+  (define css-named-colors : (HashTable Symbol Nonnegative-Fixnum)
+    #hasheq((black . 0) (gold . #xFFD700) (palegoldenrod . #xEEE8AA) (hotpink . #xFF69B4) (darksalmon . #xE9967A) (yellow . #xFFFF00)
+                        (moccasin . #xFFE4B5) (white . #xFFFFFF) (plum . #xDDA0DD) (teal . #x008080) (whitesmoke . #xF5F5F5)
+                        (lightsalmon . #xFFA07A) (aquamarine . #x7FFFD4) (lavenderblush . #xFFF0F5) (palevioletred . #xDB7093)
+                        (olivedrab . #x6B8E23) (dimgrey . #x696969) (navajowhite . #xFFDEAD) (darkblue . #x00008B) (coral . #xFF7F50)
+                        (indigo . #x4B0082) (lightcyan . #xE0FFFF) (limegreen . #x32CD32) (oldlace . #xFDF5E6) (grey . #x808080)
+                        (darkslateblue . #x483D8B) (sandybrown . #xF4A460) (mediumblue . #x0000CD) (darkolivegreen . #x556B2F)
+                        (sienna . #xA0522D) (springgreen . #x00FF7F) (dimgray . #x696969) (royalblue . #x4169E1) (ivory . #xFFFFF0)
+                        (rebeccapurple . #x663399) (crimson . #xDC143C) (goldenrod . #xDAA520) (gray . #x808080) (purple . #x800080)
+                        (antiquewhite . #xFAEBD7) (cyan . #x00FFFF) (aliceblue . #xF0F8FF) (darkviolet . #x9400D3) (orchid . #xDA70D6)
+                        (palegreen . #x98FB98) (green . #x008000) (peachpuff . #xFFDAB9) (snow . #xFFFAFA) (mediumseagreen . #x3CB371)
+                        (paleturquoise . #xAFEEEE) (lightslategray . #x778899) (lightcoral . #xF08080) (ghostwhite . #xF8F8FF)
+                        (azure . #xF0FFFF) (seashell . #xFFF5EE) (darkcyan . #x008B8B) (darkorchid . #x9932CC) (burlywood . #xDEB887)
+                        (lightslategrey . #x778899) (thistle . #xD8BFD8) (bisque . #xFFE4C4) (darkred . #x8B0000) (darkgrey . #xA9A9A9)
+                        (dodgerblue . #x1E90FF) (lavender . #xE6E6FA) (deeppink . #xFF1493) (cornflowerblue . #x6495ED) (peru . #xCD853F)
+                        (orangered . #xFF4500) (darkgray . #xA9A9A9) (lightseagreen . #x20B2AA) (tomato . #xFF6347) (darkgreen . #x006400)
+                        (blueviolet . #x8A2BE2) (forestgreen . #x228B22) (mediumvioletred . #xC71585) (lightyellow . #xFFFFE0)
+                        (lightgray . #xD3D3D3) (mediumorchid . #xBA55D3) (darkturquoise . #x00CED1) (papayawhip . #xFFEFD5) 
+                        (yellowgreen . #x9ACD32) (lawngreen . #x7CFC00) (firebrick . #xB22222) (rosybrown . #xBC8F8F) (navy . #x000080)
+                        (mediumpurple . #x9370DB) (skyblue . #x87CEEB) (lightgreen . #x90EE90) (lemonchiffon . #xFFFACD) (tan . #xD2B48C)
+                        (honeydew . #xF0FFF0) (seagreen . #x2E8B57) (darkseagreen . #x8FBC8F) (darkmagenta . #x8B008B) (pink . #xFFC0CB)
+                        (blanchedalmond . #xFFEBCD) (darkslategrey . #x2F4F4F) (maroon . #x800000) (darkgoldenrod . #xB8860B)
+                        (chocolate . #xD2691E) (mediumaquamarine . #x66CDAA) (darkkhaki . #xBDB76B) (indianred . #xCD5C5C)
+                        (floralwhite . #xFFFAF0) (darkslategray . #x2F4F4F) (mediumslateblue . #x7B68EE) (chartreuse . #x7FFF00)
+                        (deepskyblue . #x00BFFF) (blue . #x0000FF) (lime . #x00FF00) (darkorange . #xFF8C00) (red . #xFF0000)
+                        (violet . #xEE82EE) (mintcream . #xF5FFFA) (beige . #xF5F5DC) (cornsilk . #xFFF8DC) (turquoise . #x40E0D0)
+                        (brown . #xA52A2A) (magenta . #xFF00FF) (lightgoldenrodyellow . #xFAFAD2) (saddlebrown . #x8B4513)
+                        (slategrey . #x708090) (lightblue . #xADD8E6) (steelblue . #x4682B4) (mediumturquoise . #x48D1CC)
+                        (mistyrose . #xFFE4E1) (lightgrey . #xD3D3D3) (lightpink . #xFFB6C1) (wheat . #xF5DEB3) (linen . #xFAF0E6)
+                        (powderblue . #xB0E0E6) (aqua . #x00FFFF) (khaki . #xF0E68C) (slategray . #x708090) (greenyellow . #xADFF2F)
+                        (cadetblue . #x5F9EA0) (slateblue . #x6A5ACD) (olive . #x808000) (orange . #xFFA500) (lightsteelblue . #xB0C4DE)
+                        (lightskyblue . #x87CEFA) (gainsboro . #xDCDCDC) (fuchsia . #xFF00FF) (mediumspringgreen . #x00FA9A)
+                        (midnightblue . #x191970) (salmon . #xFA8072) (silver . #xC0C0C0)))
 
   (define rgb-bytes->ufixnum : (-> Byte Byte Byte Nonnegative-Fixnum)
     (lambda [r g b]
@@ -501,11 +491,11 @@
     ;;; https://drafts.csswg.org/css-color/#rgb-functions
     (lambda [frgba args]
       (define-values (rgba-tokens argsize) (css-color-filter-delimiter frgba args 3))
-      (cond [(not (list? rgba-tokens)) rgba-tokens]
-            [else (let ([r (css-rgb->scalar (first rgba-tokens))]
-                        [g (css-rgb->scalar (second rgba-tokens))]
-                        [b (css-rgb->scalar (third rgba-tokens))]
-                        [a (if (fx= argsize 4) (css-alpha->scalar (fourth rgba-tokens)) 1.0)])
+      (cond [(not (pair? rgba-tokens)) rgba-tokens]
+            [else (let ([r (css-rgb->scalar (list-ref rgba-tokens 0))]
+                        [g (css-rgb->scalar (list-ref rgba-tokens 1))]
+                        [b (css-rgb->scalar (list-ref rgba-tokens 2))]
+                        [a (if (fx= argsize 4) (css-alpha->scalar (last rgba-tokens)) 1.0)])
                     (cond [(not (byte? r)) r]
                           [(not (byte? g)) g]
                           [(not (byte? b)) b]
@@ -516,11 +506,11 @@
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
     (lambda [fhsba args ->rgb]
       (define-values (hsba-tokens argsize) (css-color-filter-delimiter fhsba args 3))
-      (cond [(not (list? hsba-tokens)) hsba-tokens]
-            [else (let ([h (css-hue->scalar (first hsba-tokens))]
-                        [s (second hsba-tokens)]
-                        [b (third hsba-tokens)]
-                        [a (if (fx= argsize 4) (css-alpha->scalar (fourth hsba-tokens)) 1.0)])
+      (cond [(not (pair? hsba-tokens)) hsba-tokens]
+            [else (let ([h (css-hue->scalar (list-ref hsba-tokens 0))]
+                        [s (list-ref hsba-tokens 1)]
+                        [b (list-ref hsba-tokens 2)]
+                        [a (if (fx= argsize 4) (css-alpha->scalar (last hsba-tokens)) 1.0)])
                     (cond [(not (flonum? h)) h]
                           [(not (css:fraction%? s)) (vector exn:css:type s)]
                           [(not (css:fraction%? b)) (vector exn:css:type b)]
@@ -532,9 +522,9 @@
 
 (require (submod "." css))
 
-(define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Real) (Instance Color%))
+(define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Flonum) (Instance Color%))
   (lambda [color-representation [alpha 1.0]]
-    (define abyte : Byte (min (exact-round (* alpha 255.0)) #xFF))
+    (define abyte : Byte (min (exact-round (fl* alpha 255.0)) #xFF))
     (define opaque? : Boolean (fx= abyte #xFF))
     (cond [(fixnum? color-representation)
            (define hashcode : Nonnegative-Fixnum (fxand color-representation #xFFFFFF))
@@ -549,11 +539,7 @@
                     (hash-ref! the-color-pool
                                (cond [(and opaque?) (eq-hash-code color-name)]
                                      [else (equal-hash-code (cons color-name abyte))])
-                               (thunk (let ([rgb (hash-ref css-named-colors color-name)])
-                                        (select-rgba-color (rgb-bytes->ufixnum (vector-ref rgb 0)
-                                                                               (vector-ref rgb 1)
-                                                                               (vector-ref rgb 2))
-                                                           alpha))))]
+                               (thunk (select-rgba-color (hash-ref css-named-colors color-name) alpha)))]
                    [(not downcased?) (try-again (string->symbol (string-downcase (symbol->string color-name))) #true)]
                    [else (select-rgba-color 0 alpha)]))]
           [(string? color-representation)
@@ -562,9 +548,7 @@
              (cond [(false? color) (select-rgba-color 0 alpha)]
                    [else (hash-ref! the-color-pool
                                     (equal-hash-code (if opaque? color-name (cons color-name abyte)))
-                                    (thunk (select-rgba-color (rgb-bytes->ufixnum (send color red)
-                                                                                  (send color green)
-                                                                                  (send color blue))
+                                    (thunk (select-rgba-color (rgb-bytes->ufixnum (send color red) (send color green) (send color blue))
                                                               alpha)))]))]
           [else color-representation])))
 
