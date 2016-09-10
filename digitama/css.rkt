@@ -306,7 +306,7 @@
       
       ; These tokens are remade by the parser, and they are never produced by the tokenizer.
       [css:ratio          #:+ CSS:Ratio           #:as Positive-Flonum]
-      [css:rgba           #:+ CSS:RGBA            #:as Nonnegative-Fixnum     [alpha : Nonnegative-Flonum]])
+      [css:rgba           #:+ CSS:RGBA            #:as Index                  [alpha : Nonnegative-Flonum]])
 
     (define-symbolic-tokens css-symbolic #:+ CSS-Symbolic
       [css:cd             #:+ CSS:CD              #:as Char]
@@ -443,7 +443,7 @@
               [else (list v)]))
       (define errobj (exn:css (~a (object-name exn:css)) (continuation-marks #false) (map css-token->syntax tokens)))
       (log-message (current-logger) 'warning 'exn:css:syntax
-                   (let-values ([(token others) (css-car tokens #false)])
+                   (let-values ([(token others) (css-car/keep-whitespace tokens)])
                      (cond [(eof-object? token) (format "~a: ~a" (object-name exn:css) (if (eof-object? v) eof null))]
                            [(null? others) (format "~a: ~a" (object-name exn:css) (css-token->string token))]
                            [else (format "~a: ~a; others: ~a" (object-name exn:css) (css-token->string token)
@@ -821,12 +821,17 @@
             (make-parameter 1.0)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define css-car : (All (css) (->* ((Listof css)) (Boolean) (Values (U css EOF) (Listof css))))
-    (lambda [dirty [skip-whitespace? #true]]
+  (define css-car/keep-whitespace : (-> (Listof CSS-Token) (Values (U CSS-Token EOF) (Listof CSS-Token)))
+    (lambda [dirty]
+      (cond [(null? dirty) (values eof null)]
+            [else (values (car dirty) (cdr dirty))])))
+
+  (define css-car : (-> (Listof CSS-Token) (Values (U CSS-Token EOF) (Listof CSS-Token)))
+    (lambda [dirty]
       (let skip-whitespace ([rest dirty])
         (cond [(null? rest) (values eof null)]
               [else (let-values ([(head tail) (values (car rest) (cdr rest))])
-                      (cond [(and (css:whitespace? head) skip-whitespace?) (skip-whitespace tail)]
+                      (cond [(css:whitespace? head) (skip-whitespace tail)]
                             [else (values head tail)]))]))))
   
   (define css-null? : (-> (Listof Any) Boolean)
@@ -1049,7 +1054,9 @@
           (cond [(zero? ?) (values s e)]
                 [else (let ([ch : (U EOF Char) (peek-char css)])
                         (cond [(or (eof-object? ch) (not (char=? ch #\?))) (values s e)]
-                              [else (read-char css) (consume-? (fx* s 16) (fx+ (fx* e 16) (char->hexadecimal #\f)) (fx- ? 1))]))])))
+                              [else (read-char css) (consume-? (fxlshift s 4)
+                                                               (fxior (fxlshift e 4) #xF)
+                                                               (fx- ? 1))]))])))
       (define-values (start end)
         (cond [(not (fx= start0 end0)) (values start0 end0)]
               [else (let ([ch1 (peek-char css 0)]
@@ -1137,7 +1144,7 @@
              (values result rest-count)]
             [else (read-char css) (css-consume-hexadecimal #:\s?$? eat-last-whitespace?
                                                            css (fx- rest-count 1)
-                                                           (fx+ (fx* result 16)
+                                                           (fx+ (fxlshift result 4)
                                                                 (char->hexadecimal hex)))])))
 
   (define css-consume-escaped-char : (-> Input-Port Char)
@@ -1163,13 +1170,13 @@
   (define char-hexdigit? : (-> (U EOF Char) Boolean : #:+ Char)
     (lambda [ch]
       (and (char? ch)
-           (or (char<=? #\0 ch #\9)
+           (or (char-numeric? ch)
                (char-ci<=? #\a ch #\f)))))
 
   (define char->hexadecimal : (-> Char Fixnum)
     (lambda [hexch]
-      (cond [(char<=? #\A hexch #\F) (fx- (char->integer hexch) #x37)]
-            [(char<=? #\a hexch #\f) (fx- (char->integer hexch) #x57)]
+      (cond [(char<=? #\a hexch) (fx- (char->integer hexch) #x57)]
+            [(char<=? #\A hexch) (fx- (char->integer hexch) #x37)]
             [else (fx- (char->integer hexch) #x30)])))
 
   (define css-char-non-printable? : (-> (U EOF Char) Boolean : #:+ Char)
@@ -1699,7 +1706,7 @@
     ;;; https://drafts.csswg.org/mediaqueries/#mq-range-context
     (lambda [components]
       (define-values (d rest) (css-car components))
-      (define-values (maybe-= terminal) (css-car rest #false))
+      (define-values (maybe-= terminal) (css-car/keep-whitespace rest))
       (cond [(css:delim=:=? d #\=) (values d #\= #\= rest)]
             [(css:delim=:=? d #\>) (if (css:delim=:=? maybe-= #\=) (values d #\≥ #\≤ terminal) (values d #\> #\< rest))]
             [(css:delim=:=? d #\<) (if (css:delim=:=? maybe-= #\=) (values d #\≤ #\≥ terminal) (values d #\< #\> rest))]
@@ -1776,7 +1783,7 @@
       (let extract-relative-selector ([srotceles : (Listof CSS-Compound-Selector) null]
                                       [tokens : (Listof CSS-Token) rest])
         (define-values (maybe-terminal rest) (css-car tokens))
-        (define-values (token maybe-selectors) (css-car tokens #false))
+        (define-values (token maybe-selectors) (css-car/keep-whitespace tokens))
         (cond [(or (eof-object? maybe-terminal) (css:delim=:=? maybe-terminal #\,))
                (values (css-make-complex-selector (cons head-compound-selector (reverse srotceles))) maybe-terminal rest)]
               [(not (css-selector-combinator? token)) (css-throw-syntax-error exn:css:unrecognized maybe-terminal)]
@@ -1806,19 +1813,19 @@
                                     [setubirtta : (Listof CSS-Attribute-Selector) null]
                                     [pseudo-element : (Option CSS-Pseudo-Element-Selector) #false]
                                     [selector-tokens : (Listof CSS-Token) selector-components])
-        (define-values (token tokens) (css-car selector-tokens #false))
+        (define-values (token tokens) (css-car/keep-whitespace selector-tokens))
         (cond [(or (eof-object? token) (css:delim=:=? token #\,) (css-selector-combinator? token))
                (values (make-css-compound-selector combinator typename quirkname namespace pseudo-classes
                                                    (reverse sessalc) (reverse sdi) (reverse setubirtta) pseudo-element)
                        selector-tokens)]
               [(and pseudo-element) (css-throw-syntax-error exn:css:overconsumption token)]
               [(css:delim=:=? token #\.)
-               (define-values (next rest) (css-car tokens #false))
+               (define-values (next rest) (css-car/keep-whitespace tokens))
                (cond [(not (css:ident? next)) (css-throw-syntax-error exn:css:missing-identifier next)]
                      [else (extract-simple-selector (cons (css:ident-datum next) sessalc) sdi setubirtta pseudo-element rest)])]
               [(css:delim=:=? token #\:)
                (define-values (maybe-pseudo-classes maybe-rest) (css-car-pseudo-class-selectors tokens))
-               (define-values (next rest) (css-car maybe-rest #false))
+               (define-values (next rest) (css-car/keep-whitespace maybe-rest))
                (cond [(null? maybe-pseudo-classes) (css-throw-syntax-error exn:css:misplaced (list token (car tokens)))]
                      [else (let ([pclass (car maybe-pseudo-classes)])
                              (define pelement : CSS-Pseudo-Element-Selector
@@ -1842,7 +1849,7 @@
          (cond [(css-selector-combinator? next) (css-car-combinator next tail)]
                [else (values '>> tokens)])]
         [(#\>)
-         (define-values (next tail) (css-car tokens #false))
+         (define-values (next tail) (css-car/keep-whitespace tokens))
          (define-values (next2 tail2) (css-car tail))
          (cond [(css:delim=:=? next #\>) (values '>> tail2)]
                [else (values '> tail)])]
@@ -1857,8 +1864,8 @@
     ;;; https://drafts.csswg.org/selectors/#elemental-selectors
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
     (lambda [token tokens namespaces]
-      (define-values (next rest) (css-car tokens #false))
-      (define-values (next2 rest2) (css-car rest #false))
+      (define-values (next rest) (css-car/keep-whitespace tokens))
+      (define-values (next2 rest2) (css-car/keep-whitespace rest))
       (cond [(css:delim=:=? token #\|)
              (cond [(css:ident? next) (values (css:ident-datum next) (css:ident-norm next) #false rest)]
                    [(css:delim=:=? next #\*) (values #true #true #false rest)]
@@ -1880,8 +1887,8 @@
     (lambda [components]
       (let extract-pseudo-class-selector ([srotceles : (Listof CSS-Pseudo-Class-Selector) null]
                                           [tokens : (Listof CSS-Token) components])
-        (define-values (maybe: rest) (css-car tokens #false))
-        (define-values (maybe-id rest2) (css-car rest #false))
+        (define-values (maybe: rest) (css-car/keep-whitespace tokens))
+        (define-values (maybe-id rest2) (css-car/keep-whitespace rest))
         (cond [(or (not (css:delim=:=? maybe: #\:)) (css:delim=:=? maybe-id #\:)) (values (reverse srotceles) tokens)]
               [(css:ident? maybe-id)
                (let ([selector (make-css-pseudo-class-selector (css:ident-datum maybe-id) #false)])
@@ -1898,8 +1905,8 @@
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
     (lambda [block namespaces]
       (define-values (1st rest1) (css-car (css:block-components block)))
-      (define-values (2nd rest2) (css-car rest1 #false))
-      (define-values (3rd rest3) (css-car rest2 #false))
+      (define-values (2nd rest2) (css-car/keep-whitespace rest1))
+      (define-values (3rd rest3) (css-car/keep-whitespace rest2))
       (define-values (attrname quirkname namespace op-part)
         (cond [(eof-object? 1st) (css-throw-syntax-error exn:css:empty block)]
               [(or (css:match? 1st) (css:delim=:=? 1st #\=))
@@ -1921,8 +1928,8 @@
               [(or (css:ident? 1st) (css:delim=:=? 1st #\*))
                (css-throw-syntax-error exn:css:unrecognized 2nd)]
               [else (css-throw-syntax-error exn:css:unrecognized 1st)]))
-      (define-values (op value-part) (css-car op-part #false))
-      (define-values (value ci-part) (css-car value-part #false))
+      (define-values (op value-part) (css-car/keep-whitespace op-part))
+      (define-values (value ci-part) (css-car/keep-whitespace value-part))
       (define-values (i terminal) (css-car ci-part))
       (unless (eof-object? op)
         (cond [(eof-object? value) (css-throw-syntax-error exn:css:missing-value op)]
@@ -2419,7 +2426,13 @@
            (printf "memory: ~a cpu time: ~a real time: ~a gc time: ~a~n"
                    (~size (- (current-memory-use) momery0) 'Bytes)
                    cpu real gc)
-           (car result))])))
+           (car result))]))
+  
+  (define run-file : Path-String (find-system-path 'run-file))
+  (define tamer.css : Path-String
+    (simplify-path (cond [(regexp-match? #px"DrRacket$" run-file) (build-path 'up "tamer" "tamer.css")]
+                         [else (build-path (find-system-path 'orig-dir) (find-system-path 'run-file)
+                                           'up 'up "tamer" "tamer.css")]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* main typed/racket
@@ -2447,15 +2460,11 @@
     (list (cons 'orientation 'landscape)
           (cons 'width (or width 0))
           (cons 'height (or height 0)))))
-
-  (collect-garbage)
-  (collect-garbage)
-  (collect-garbage)
-  (define tamer-sheet : CSS-StyleSheet
-    (time-run (read-css-stylesheet (simplify-path (build-path (find-system-path 'orig-dir)
-                                                              (find-system-path 'run-file)
-                                                              'up 'up "tamer" "tamer.css")))))
   
+  (collect-garbage)
+  (collect-garbage)
+  (collect-garbage)
+  (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer.css)))  
   (define tamer-subject : CSS-Subject (make-css-subject #:type 'body #:id '#:123))
   (define tamer-header : CSS-Subject (make-css-subject #:type 'html #:id '#:header))
 

@@ -19,7 +19,7 @@
 
 (define-type Flomap flomap)
 (define-type Bitmap (Instance Bitmap%))
-(define-type Color+sRGB (U Nonnegative-Fixnum Symbol String (Instance Color%)))
+(define-type Color+sRGB (U Index Symbol String (Instance Color%)))
 
 (define bitmap/2x : (-> (U Path-String Input-Port) Bitmap)
   (lambda [src]
@@ -363,7 +363,7 @@
   
   (define the-color-pool : (HashTable Fixnum (Instance Color%)) (make-hasheq))
   
-  (define css-named-colors : (HashTable Symbol Nonnegative-Fixnum)
+  (define css-named-colors : (HashTable Symbol Index)
     #hasheq((black . 0) (gold . #xFFD700) (palegoldenrod . #xEEE8AA) (hotpink . #xFF69B4) (darksalmon . #xE9967A) (yellow . #xFFFF00)
                         (moccasin . #xFFE4B5) (white . #xFFFFFF) (plum . #xDDA0DD) (teal . #x008080) (whitesmoke . #xF5F5F5)
                         (lightsalmon . #xFFA07A) (aquamarine . #x7FFFD4) (lavenderblush . #xFFF0F5) (palevioletred . #xDB7093)
@@ -397,20 +397,20 @@
                         (lightskyblue . #x87CEFA) (gainsboro . #xDCDCDC) (fuchsia . #xFF00FF) (mediumspringgreen . #x00FA9A)
                         (midnightblue . #x191970) (salmon . #xFA8072) (silver . #xC0C0C0)))
 
-  (define rgb-bytes->ufixnum : (-> Byte Byte Byte Nonnegative-Fixnum)
+  (define rgb-bytes->index : (-> Byte Byte Byte Index)
     (lambda [r g b]
       (fxand #xFFFFFF
              (fxior (fxlshift r 16)
                     (fxior (fxlshift g 8)
                            b)))))
 
-  (define ufixnum->rgb-bytes : (-> Nonnegative-Fixnum (Values Byte Byte Byte))
+  (define index->rgb-bytes : (-> Index (Values Byte Byte Byte))
     (lambda [rgb]
       (values (fxand (fxrshift rgb 16) #xFF)
               (fxand (fxrshift rgb 8) #xFF)
               (fxand rgb #xFF))))
   
-  (define css-hex-color->rgba : (-> Keyword (Values (Option Nonnegative-Fixnum) Nonnegative-Flonum))
+  (define css-hex-color->rgba : (-> Keyword (Values (Option Index) Nonnegative-Flonum))
     (lambda [hash-color]
       (define color : String (keyword->string hash-color))
       (define digits : Index (string-length color))
@@ -428,10 +428,11 @@
                                (fxior (fxlshift digit 4)
                                       digit))))]
           [else #false]))
-      (cond [(false? (index? maybe-hexcolor)) (values #false 1.0)]
-            [(or (fx= digits 3) (fx= digits 6)) (values maybe-hexcolor 1.0)]
-            [else (values (fxrshift maybe-hexcolor 8)
-                          (flabs (fl/ (fx->fl (fxand maybe-hexcolor #xFF)) 255.0)))])))
+      (cond [(or (fx= digits 3) (fx= digits 6)) (values (and (index? maybe-hexcolor) maybe-hexcolor) 1.0)]
+            [(not (exact-integer? maybe-hexcolor)) (values #false 1.0)]
+            [else (let ([hex-rgb (arithmetic-shift maybe-hexcolor -8)])
+                    (values (and (index? hex-rgb) hex-rgb)
+                            (flabs (fl/ (fx->fl (fxand maybe-hexcolor #xFF)) 255.0))))])))
   
   (define css-rgb->scalar : (-> CSS-Token (U Byte CSS-Declared-Result))
     (lambda [t]
@@ -491,7 +492,7 @@
                           [(not (byte? g)) g]
                           [(not (byte? b)) b]
                           [(not (flonum? a)) a]
-                          [else (css-remake-token [frgba (last args)] css:rgba (rgb-bytes->ufixnum r g b) a)]))])))
+                          [else (css-remake-token [frgba (last args)] css:rgba (rgb-bytes->index r g b) a)]))])))
 
   (define css-apply-hsba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) HSB->RGB CSS-Declared-Result)
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
@@ -508,7 +509,7 @@
                           [(not (flonum? a)) a]
                           [else (let-values ([(flr flg flb) (->rgb h (css:fraction%-datum s) (css:fraction%-datum b))])
                                   (css-remake-token [fhsba (last args)] css:rgba
-                                                    (rgb-bytes->ufixnum (gamut->byte flr) (gamut->byte flg) (gamut->byte flb))
+                                                    (rgb-bytes->index (gamut->byte flr) (gamut->byte flg) (gamut->byte flb))
                                                     a))]))]))))
 
 (require (submod "." css))
@@ -521,7 +522,7 @@
            (define hashcode : Nonnegative-Fixnum (fxand color-representation #xFFFFFF))
            (hash-ref! the-color-pool
                       (if opaque? hashcode (eqv-hash-code (make-rectangular hashcode abyte)))
-                      (thunk (let-values ([(r g b) (ufixnum->rgb-bytes color-representation)])
+                      (thunk (let-values ([(r g b) (index->rgb-bytes color-representation)])
                                (make-color r g b (fl/ (fx->fl abyte) 255.0)))))]
           [(symbol? color-representation)
            (let try-again ([color-name : Symbol color-representation]
@@ -539,7 +540,7 @@
              (cond [(false? color) (select-rgba-color 0 alpha)]
                    [else (hash-ref! the-color-pool
                                     (equal-hash-code (if opaque? color-name (cons color-name abyte)))
-                                    (thunk (select-rgba-color (rgb-bytes->ufixnum (send color red) (send color green) (send color blue))
+                                    (thunk (select-rgba-color (rgb-bytes->index (send color red) (send color green) (send color blue))
                                                               alpha)))]))]
           [else color-representation])))
 
@@ -631,11 +632,7 @@
           (cons 'width 1440)
           (cons 'height 820))))
   
-  (define tamer-sheet : CSS-StyleSheet
-    (time-run (read-css-stylesheet (simplify-path (build-path (find-system-path 'orig-dir)
-                                                              (find-system-path 'run-file)
-                                                              'up 'up "tamer" "tamer.css")))))
-  
+  (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer.css)))
   (define tamer-subject : CSS-Subject (make-css-subject #:type 'body #:id '#:header))
 
   (define-configuration descriptors #:as Descriptors
