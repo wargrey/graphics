@@ -608,6 +608,13 @@
                                             (Values (U CSS-Media-Datum Make-CSS-Syntax-Error Void)
                                                     Boolean)))
 
+  (define css-media-keyword-value : (-> (Option CSS-Media-Value) (Listof Symbol) (U CSS-Media-Datum Make-CSS-Syntax-Error Void))
+    (lambda [maybe-value options]
+      (cond [(css:ident? maybe-value)
+             (define downcased-option : Symbol (css:ident-norm maybe-value))
+             (if (memq downcased-option options) downcased-option exn:css:range)]
+            [(css-token? maybe-value) exn:css:type])))
+  
   (define css-media-feature-filter : CSS-Media-Feature-Filter
     (lambda [downcased-name maybe-value min/max?]
       (values
@@ -623,23 +630,6 @@
                 [(css:resolution? maybe-value) exn:css:range]
                 [(css:dimension? maybe-value) exn:css:unit]
                 [(css-token? maybe-value) exn:css:type])]
-         [(orientation scan update overflow-block overflow-inline color-gamut pointer hover any-pointer any-hover scripting)
-          (cond [(css:ident? maybe-value)
-                 (define downcased-option : Symbol (css:ident-norm maybe-value))
-                 (cond [(memq downcased-option
-                              (case downcased-name
-                                [(orientation) '(portrait landscape)]
-                                [(scan) '(interlace progressive)]
-                                [(update) '(none slow fast)]
-                                [(overflow-block) '(none scroll optional-paged paged)]
-                                [(overflow-inline) '(none scroll)]
-                                [(color-gamut) '(srgb p3 rec2020)]
-                                [(pointer any-pointer) '(none coarse fine)]
-                                [(havor any-havor) '(none havor)]
-                                [(scripting) '(none initial-only enabled)]
-                                [else null])) downcased-option]
-                       [else exn:css:range])]
-                [(css-token? maybe-value) exn:css:type])]
          [(aspect-ratio device-aspect-ratio)
           (cond [(css:ratio? maybe-value) (css:ratio-datum maybe-value)]
                 [(css-token? maybe-value) exn:css:type])]
@@ -651,6 +641,15 @@
           (cond [(and min/max?) exn:css:unrecognized]
                 [(css:zero? maybe-value) 0]
                 [(not (css-number? maybe-value)) exn:css:type])]
+         [(orientation) (css-media-keyword-value maybe-value '(portrait landscape))]
+         [(scan) (css-media-keyword-value maybe-value '(interlace progressive))]
+         [(update) (css-media-keyword-value maybe-value '(none slow fast))]
+         [(overflow-block) (css-media-keyword-value maybe-value '(none scroll optional-paged paged))]
+         [(overflow-inline) (css-media-keyword-value maybe-value '(none scroll))]
+         [(color-gamut) (css-media-keyword-value maybe-value '(srgb p3 rec2020))]
+         [(pointer any-pointer) (css-media-keyword-value maybe-value '(none coarse fine))]
+         [(havor any-havor) (css-media-keyword-value maybe-value '(none havor))]
+         [(scripting) (css-media-keyword-value maybe-value '(none initial-only enabled))]
          [else exn:css:unrecognized])
        (and (memq downcased-name '(device-width device-height device-aspect-ratio))
             #true))))
@@ -675,6 +674,11 @@
   (define-type CSS-Declared-Value-Filter (-> Symbol CSS-Token (Listof CSS-Token) (Values CSS-Declared+Longhand-Result Boolean)))
   (define-type (CSS-Cascaded-Value-Filter Configuration) (-> CSS-Declared-Values Configuration (Option Configuration) (Option Symbol)
                                                              Configuration))
+
+  ; https://drafts.csswg.org/css-cascade/#all-shorthand
+  ; https://drafts.csswg.org/css-values/#common-keywords
+  (define css-wide-keywords : (Listof Symbol) (list 'initial 'inherit 'unset))
+  (define css-predefined-all : (Listof Symbol) (cons 'revert css-wide-keywords))
   
   (define-syntax (call-with-css-preferences stx)
     (syntax-parse stx
@@ -698,15 +702,14 @@
             [(css-token? maybe-value) (css-token->datum maybe-value)]
             [(list? maybe-value) (map css-token->datum maybe-value)]
             [else maybe-value])))
-  
-  (define css-all-property-filter : CSS-Declared-Value-Filter
-    ;; https://drafts.csswg.org/css-cascade/#all-shorthand
-    (lambda [all-name all-value rest]
-      (values (cond [(pair? rest) (vector exn:css:overconsumption rest)]
-                    [(not (css:ident? all-value)) exn:css:type]
-                    [(memq (css:ident-norm all-value) '(initial inherit unset revert)) all-value]
-                    [else exn:css:range])
-              #false)))
+
+  (define css-declared-keyword-filter : (case-> [CSS-Token (Listof CSS-Token) (Listof Symbol) -> (Option CSS-Declared-Result)]
+                                                [CSS-Token (Listof CSS-Token) (Listof Symbol) True -> CSS-Declared-Result])
+    (lambda [desc-value desc-rest options [terminate? #false]]
+      (cond [(pair? desc-rest) (vector exn:css:overconsumption desc-rest)]
+            [(css:ident-norm=<-? desc-value options) desc-value]
+            [(css:ident? desc-value) exn:css:range]
+            [else (and terminate? exn:css:type)])))
 
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
   (define css-viewport-descriptor-filter : CSS-Declared-Value-Filter
@@ -742,16 +745,8 @@
                 [(or (css:flunum? desc-value) (css:natural? desc-value) (css:ratio%? desc-value)) desc-value]
                 [(or (css:ident? desc-value) (css-percentage? desc-value) (css-number? desc-value)) exn:css:range]
                 [else exn:css:type])]
-         [(orientation user-zoom)
-          (cond [(pair? rest) (vector exn:css:overconsumption rest)]
-                [(not (css:ident? desc-value)) exn:css:type]
-                [(memq (css:ident-norm desc-value)
-                       (case suitcased-name
-                         [(orientation) '(auto portrait landscape)]
-                         [(user-zoom) '(zoom fixed)]
-                         [else null]))
-                 desc-value]
-                [else exn:css:range])]
+         [(orientation) (css-declared-keyword-filter desc-value rest '(auto portrait landscape) #true)]
+         [(user-zoom) (css-declared-keyword-filter desc-value rest '(zoom fixed) #true)]
          [else exn:css:unrecognized])
        #false)))
 
@@ -2344,13 +2339,16 @@
       (for ([property (in-list properties)])
         (cond [(list? property) (css-cascade-declarations desc-filter property descbase)]
               [else (let ([desc-name (css:ident-norm (css-declaration-name property))])
+                      (define desc-predefined-keywords : (Listof Symbol) (if (eq? desc-name 'all) css-predefined-all css-wide-keywords))
                       (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
                       (define important? : Boolean (css-declaration-important? property))
+                      (define decl-value : CSS-Token (car declared-values))
+                      (define decl-rest : (Listof CSS-Token) (cdr declared-values))
                       (when (key-property? desc-name important?)
                         (define-values (desc-value deprecated?)
                           (cond [(symbol-unreadable? (css:ident-norm (css-declaration-name property))) (values declared-values #false)]
-                                [(not (eq? desc-name 'all)) (desc-filter desc-name (car declared-values) (cdr declared-values))]
-                                [else (css-all-property-filter desc-name (car declared-values) (cdr declared-values))]))
+                                [(and (null? decl-rest) (css:ident=<-? decl-value desc-predefined-keywords)) (values decl-value #false)]
+                                [else (desc-filter desc-name decl-value decl-rest)]))
                         (when deprecated? (css-make-syntax-error exn:css:deprecated (css-declaration-name property)))
                         (cond [(css-token? desc-value) (hash-set! descbase desc-name (cons desc-value important?))]
                               [(list? desc-value) (hash-set! descbase desc-name (cons desc-value important?))]
