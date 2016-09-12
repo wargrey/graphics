@@ -703,9 +703,9 @@
             [(list? maybe-value) (map css-token->datum maybe-value)]
             [else maybe-value])))
 
-  (define css-declared-keyword-filter : (case-> [CSS-Token (Listof CSS-Token) (Listof Symbol) -> (Option CSS-Declared-Result)]
-                                                [CSS-Token (Listof CSS-Token) (Listof Symbol) True -> CSS-Declared-Result])
-    (lambda [desc-value desc-rest options [terminate? #false]]
+  (define css-declared-keyword-filter : (case-> [CSS-Token (Listof CSS-Token) (Listof Symbol) -> CSS-Declared-Result]
+                                                [CSS-Token (Listof CSS-Token) (Listof Symbol) False -> (Option CSS-Declared-Result)])
+    (lambda [desc-value desc-rest options [terminate? #true]]
       (cond [(pair? desc-rest) (vector exn:css:overconsumption desc-rest)]
             [(css:ident-norm=<-? desc-value options) desc-value]
             [(css:ident? desc-value) exn:css:range]
@@ -745,8 +745,8 @@
                 [(or (css:flunum? desc-value) (css:natural? desc-value) (css:ratio%? desc-value)) desc-value]
                 [(or (css:ident? desc-value) (css-percentage? desc-value) (css-number? desc-value)) exn:css:range]
                 [else exn:css:type])]
-         [(orientation) (css-declared-keyword-filter desc-value rest '(auto portrait landscape) #true)]
-         [(user-zoom) (css-declared-keyword-filter desc-value rest '(zoom fixed) #true)]
+         [(orientation) (css-declared-keyword-filter desc-value rest '(auto portrait landscape))]
+         [(user-zoom) (css-declared-keyword-filter desc-value rest '(zoom fixed))]
          [else exn:css:unrecognized])
        #false)))
 
