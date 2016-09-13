@@ -578,13 +578,52 @@
                  [else color-value])]
           [else exn:css:type])))
 
+(define css-color-filter : (-> Symbol CSS-Cascaded-Value (Instance Color%))
+    (lambda [desc-name maybe-value]
+      (cond [(css:rgba? maybe-value) (select-rgba-color (css:rgba-datum maybe-value) (css:rgba-alpha maybe-value))]
+            [(css:ident? maybe-value) (css:ident=> maybe-value select-rgba-color)]
+            [(css:string? maybe-value) (css:string=> maybe-value select-rgba-color)]
+            [else (make-object color%)])))
+
 (define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) CSS-Declared+Longhand-Result)
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
   (lambda [suitcased-name font-value rest]
     (case suitcased-name
       [(font-weight)
+       (cond [(css-declared-keyword-filter font-value rest '(normal bold bolder lighter) #false) => values]
+             [(css:natural=<-? font-value '(100 200 300 400 500 600 700 800 900)) font-value]
+             [(or (css:ident? font-value) (css-number? font-value)) exn:css:range]
+             [else exn:css:type])]
+      [(font-style) (css-declared-keyword-filter font-value rest '(normal italic oblique))]
+      [(font-stretch) (css-declared-keyword-filter font-value rest
+                                                   '(normal condensed expanded
+                                                            ultra-condensed extra-condensed semi-condensed
+                                                            ultra-expanded extra-expanded semi-expanded))]
+      [(font-size)
+       (cond [(css-declared-keyword-filter font-value rest
+                                           '(xx-small x-small small medium large x-large xx-large
+                                                      smaller larger) #false) => values]
+             [(css:natural=<-? font-value '(100 200 300 400 500 600 700 800 900)) font-value]
+             [(or (css:+length? font-value) (css:ratio%? font-value)) font-value]
+             [(or (css:ident? font-value) (css:natural? font-value)) exn:css:range]
+             [else exn:css:type])]
+      [(font-size-adjust)
        (cond [(pair? rest) (vector exn:css:overconsumption rest)]
-             [(css:ident=<-? font-value '(normal bold bolder lighter)) font-value]
+             [(css:ident=:=? font-value 'none) font-value]
+             [(or (css:natural? font-value) (css:flunum? font-value)) font-value]
+             [(or (css:ident? font-value) (css-number? font-value)) exn:css:range]
+             [else exn:css:type])]
+      [(font-synthesis)
+       (cond [(css:ident=:=? font-value 'none) (if (pair? rest) (vector exn:css:overconsumption rest) font-value)]
+             [(css:ident=<-? font-value '(weight style))
+              (cond [(null? rest) font-value]
+                    [else (let-values ([(v2 r2) (values (car rest) (cdr rest))])
+                            (cond [(pair? r2) (vector exn:css:overconsumption r2)]
+                                  [(and (css:ident=<-? v2 '(weight style)) (not (css:ident=? font-value v2))) (list font-value v2)]
+                                  [(css:ident? v2) (vector exn:css:range v2)]
+                                  [else (vector exn:css:type v2)]))])]
+             [(pair? rest) (vector exn:css:overconsumption rest)]
+             [(css:ident? font-value) exn:css:range]
              [else exn:css:type])])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -642,13 +681,6 @@
      [otherwise : (Option (HashTable Symbol Datum))])
     #:transparent)
 
-  (define token->color : (-> Symbol CSS-Cascaded-Value (Instance Color%))
-    (lambda [desc-name maybe-value]
-      (cond [(css:rgba? maybe-value) (select-rgba-color (css:rgba-datum maybe-value) (css:rgba-alpha maybe-value))]
-            [(css:ident? maybe-value) (css:ident=> maybe-value select-rgba-color)]
-            [(css:string? maybe-value) (css:string=> maybe-value select-rgba-color)]
-            [else (make-object color%)])))
-  
   (define css-descriptor-filter : CSS-Declared-Value-Filter
     (lambda [suitcased-name desc-value rest]
       (define maybe-font-property : CSS-Declared+Longhand-Result (css-font-property-filter suitcased-name desc-value rest))
@@ -660,9 +692,9 @@
 
   (define css-filter : (CSS-Cascaded-Value-Filter (Option Descriptors))
     (lambda [declared-values all default-values inherit-values]
-      (make-descriptors #:color (css-ref declared-values 'color token->color)
-                        #:background-color (css-ref declared-values 'background-color token->color)
-                        #:border-color (css-ref declared-values 'border-color token->color)
+      (make-descriptors #:color (css-ref declared-values 'color css-color-filter)
+                        #:background-color (css-ref declared-values 'background-color css-color-filter)
+                        #:border-color (css-ref declared-values 'border-color css-color-filter)
                         #:otherwise (for/hash : (HashTable Symbol Datum)
                                       ([desc-name (in-hash-keys declared-values)]
                                        #:when (not (memq desc-name '(color background-color border-color))))
