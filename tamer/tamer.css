@@ -253,7 +253,7 @@ body {
 	background-url: url("http://somesite.com/images/someimage.gif");
 }#header {
 	margin: 10px 2em 1cm 2%;
-	font-family: Verdana, Helvetica, "Gill Sans", sans-serif;
+	font-family: Verdana, Helvetica, Gill Sans, sans-serif;
 	font-size: 10px;
 	color: "GREY";
 	background-color: green;
