@@ -119,9 +119,11 @@
                   (define-token-interface id : Type id? id-datum #:+ Number #:= type=?)))]
       [(_ id : Identifier parent ((~and (~or Symbol Keyword) Type) rest ...) #:with id? id-datum)
        (with-syntax ([id=? (format-id #'id "~a=?" (syntax-e #'id))]
+                     [id-norm=? (format-id #'id "~a-norm=?" (syntax-e #'id))]
                      [id-norm (format-id #'id "~a-norm" (syntax-e #'id))])
          #'(begin (struct: id : Identifier parent ([datum : Type] [norm : Type] rest ...))
                   (define (id=? [t1 : Identifier] [t2 : Identifier]) : Boolean (eq? (id-datum t1) (id-datum t2)))
+                  (define (id-norm=? [t1 : Identifier] [t2 : Identifier]) : Boolean (eq? (id-norm t1) (id-norm t2)))
                   (define-token-interface id : Type id? id-datum #:+ Identifier #:eq? eq?)
                   (define-token-interface id-norm    : Type id? id-norm  #:+ Identifier #:eq? eq?)))]
       [(_ id : Otherwise parent (Type rest ...) #:with id? id-datum)
@@ -419,6 +421,7 @@
   (struct exn:css:misplaced exn:css:unrecognized ())
   (struct exn:css:type exn:css:unrecognized ())
   (struct exn:css:range exn:css:unrecognized ())
+  (struct exn:css:duplicate exn:css:range ())
   (struct exn:css:unit exn:css:range ())
   (struct exn:css:overconsumption exn:css:unrecognized ())
   (struct exn:css:enclosed exn:css:overconsumption ())
@@ -669,8 +672,9 @@
   (define-type CSS-Cascaded-Value (U CSS-Token (Listof CSS-Token) False))
   (define-type CSS-Declared-Value (Pairof CSS-Cascaded-Value Boolean))
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declared-Value))
+  (define-type CSS-Declared-Longhand-Result (HashTable Symbol CSS-Cascaded-Value))
   (define-type CSS-Declared-Result (U CSS-Cascaded-Value Void Make-CSS-Syntax-Error (Vector Make-CSS-Syntax-Error CSS-Syntax-Error-Any)))
-  (define-type CSS-Declared+Longhand-Result (U (HashTable Symbol CSS-Cascaded-Value) CSS-Declared-Result))
+  (define-type CSS-Declared+Longhand-Result (U CSS-Declared-Result CSS-Declared-Longhand-Result))
   (define-type CSS-Declared-Value-Filter (-> Symbol CSS-Token (Listof CSS-Token) (Values CSS-Declared+Longhand-Result Boolean)))
   (define-type (CSS-Cascaded-Value-Filter Configuration) (-> CSS-Declared-Values Configuration (Option Configuration) (Option Symbol)
                                                              Configuration))
