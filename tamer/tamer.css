@@ -83,10 +83,6 @@ html, body;
 	font-Family: Arial; /* The value needs to remain capitalized */
 }
 
-#id {
-  prop: var(--val);
-}
-
 @charset 'utf-16';
 
 @media print {
@@ -252,9 +248,10 @@ body { background: #FFFFFF url("http://somesite.com/images/someimage.gif") repea
 body {
 	background-url: url("http://somesite.com/images/someimage.gif");
 }#header {
+--string-color: "GREY";
 	margin: 10px 2em 1cm 2%;
 	font-family: Verdana, Helvetica, Gill Sans, sans-serif;
-	color: "GREY";
+	color: var(--string-color);
 	background-color: green;
 	background-color: HsIa(240.4deg, 13.5%, 57%, 0.7);
 	frequency: 30Hz;
