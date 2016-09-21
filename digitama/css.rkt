@@ -122,7 +122,7 @@
                   (define (id=? [t1 : Identifier] [t2 : Identifier]) : Boolean (eq? (id-datum t1) (id-datum t2)))
                   (define (id-norm=? [t1 : Identifier] [t2 : Identifier]) : Boolean (eq? (id-norm t1) (id-norm t2)))
                   (define-token-interface id : Type id? id-datum #:+ Identifier #:eq? eq?)
-                  (define-token-interface id-norm    : Type id? id-norm  #:+ Identifier #:eq? eq?)))]
+                  (define-token-interface id-norm : Type id? id-norm  #:+ Identifier #:eq? eq?)))]
       [(_ id : Otherwise parent (Type rest ...) #:with id? id-datum)
        (with-syntax ([type=? (case (syntax-e #'Type) [(String) #'string=?] [(Char) #'char=?] [else #'equal?])]
                      [id=? (format-id #'id "~a=?" (syntax-e #'id))])
@@ -165,17 +165,18 @@
     (syntax-case stx []
       [(_ parent [id #:+ ID #:=> canonical-unit [transforms ...]] ...)
        (with-syntax ([token->datum (format-id #'parent "~a->datum" (syntax-e #'parent))]
-                     [([id? +id? id->datum id->scalar css:id->canon css-id->canon] ...)
+                     [([id? +id? css:id->scalar css-id->scalar id-filter] ...)
                       (for/list ([<id> (in-list (syntax->list #'(id ...)))])
+                        (define varname (symbol->string (syntax-e <id>)))
                         (list (format-id <id> "~a?" (syntax-e <id>))
-                              (format-id <id> "~a?" (string-replace (symbol->string (syntax-e <id>)) ":" ":+"))
-                              (format-id <id> "~a->datum" (syntax-e <id>))
+                              (format-id <id> "~a?" (string-replace varname ":" "+"))
                               (format-id <id> "~a->scalar" (syntax-e <id>))
-                              (format-id <id> "~a-canonicalize" (syntax-e <id>))
-                              (format-id <id> "~a-canonicalize" (string-replace (symbol->string (syntax-e <id>)) ":" "-"))))])
+                              (format-id <id> "~a->scalar" (string-replace varname ":" "-"))
+                              (format-id <id> "~a-filter" (string-replace varname "css:" "css-declared+"))))])
          #'(begin (struct: id : ID parent ()) ...
 
-                  (define css-id->canon : (case-> [Nonnegative-Flonum Symbol -> Nonnegative-Flonum] [Flonum Symbol -> Flonum])
+                  (define css-id->scalar : (case-> [Nonnegative-Flonum Symbol -> Nonnegative-Flonum]
+                                                   [Flonum Symbol -> Flonum])
                     (lambda [canonical-unit unit]
                       (case unit
                         [(canonical-unit) canonical-unit]
@@ -183,32 +184,32 @@
                         [else +nan.0])))
                   ...
 
-                  (define css:id->canon : (-> (U ID CSS-Zero) (Option CSS:Dimension))
-                    (lambda [t]
-                      (if (css:dimension? t)
-                          (let ([u (css:dimension-unit t)])
-                            (cond [(eq? u 'canonical-unit) t]
-                                  [else (let ([v (css-id->canon (css:dimension-datum t) u)])
-                                          (and (not (nan? v))
-                                               (css-remake-token t css:dimension (css-numeric-representation t)
-                                                                 v 'canonical-unit (css:dimension-scalar t))))]))
-                          (css-remake-token t css:dimension (css-numeric-representation t) 0.0 'canonical-unit 0.0))))
-                  ...
-
                   (define +id? : (-> Any Boolean : #:+ (U ID CSS-Zero))
                     (lambda [t]
-                      (or (and (id? t) (fl= (css:dimension-datum t) (css:dimension-scalar t)))
+                      (or (and (id? t) (fl>= (css:dimension-datum t) 0.0))
                           (css-zero? t))))
                   ...
-                  
-                  (define-values (id->datum id->scalar)
-                    (values (λ [[t : (U ID CSS-Zero)]] (if (id? t) (css-id->canon (css:dimension-datum t) (css:dimension-unit t)) 0.0))
-                            (λ [[t : (U ID CSS-Zero)]] (if (id? t) (css-id->canon (css:dimension-scalar t) (css:dimension-unit t)) 0.0))))
+
+                  (define css:id->scalar : (case-> [(U ID CSS-Zero) -> Nonnegative-Flonum]
+                                                   [(U ID CSS-Zero) '#:direction -> Flonum])
+                    (lambda [t [direction? #false]]
+                      (cond [(not (id? t)) 0.0]
+                            [(and direction?) (css-id->scalar (css:dimension-datum t) (css:dimension-unit t))]
+                            [else (css-id->scalar (flabs (css:dimension-datum t)) (css:dimension-unit t))])))
+                  ...
+
+                  (define id-filter : (case-> [CSS-Token -> (U Nonnegative-Flonum CSS-Syntax-Error)]
+                                              [CSS-Token False -> (U Nonnegative-Flonum CSS-Syntax-Error False)])
+                    (lambda [desc-value [terminal? #true]]
+                      (cond [(+id? desc-value) (css:id->scalar desc-value)]
+                            [(id? desc-value) (make-exn:css:range desc-value)]
+                            [(css:dimension? desc-value) (make-exn:css:unit desc-value)]
+                            [else (and terminal? (make-exn:css:type desc-value))])))
                   ...
                   
                   (define token->datum : (-> (U CSS:Dimension CSS-Zero) Flonum)
                     (lambda [instance]
-                      (cond [(id? instance) (css-id->canon (css:dimension-datum instance) (css:dimension-unit instance))] ...
+                      (cond [(id? instance) (css-id->scalar (css:dimension-datum instance) (css:dimension-unit instance))] ...
                             [(css-zero? instance) 0.0]
                             [else +nan.0])))))]))
   
@@ -286,7 +287,7 @@
 
   (define-tokens css-token #:+ CSS-Token ([source : Any] [line : Natural] [column : Natural] [position : Natural] [span : Natural])
     [[css-numeric         #:+ CSS-Numeric         #:-> css-token   ([representation : String])]
-     [css:dimension       #:+ CSS:Dimension       #:-> css-numeric ([datum : Flonum] [unit : Symbol] [scalar : Nonnegative-Flonum])]]
+     [css:dimension       #:+ CSS:Dimension       #:-> css-numeric ([datum : Flonum] [unit : Symbol])]]
 
     [[css:--ident         #:+ CSS:--Ident         #:-> css:ident]
 
@@ -373,8 +374,8 @@
                           [[(khz)   (fl* kz 0.001)]]]
       ;;; https://drafts.csswg.org/css-values/#resolution
       [css:resolution     #:+ CSS:Resolution      #:=> dppx
-                          [[(dpcm)  (css-length-canonicalize dppx 'cm)]
-                           [(dpi)   (css-length-canonicalize dppx 'in)]]]))
+                          [[(dpcm)  (css-length->scalar dppx 'cm)]
+                           [(dpi)   (css-length->scalar dppx 'in)]]]))
   
   (define-syntax (css-remake-token stx)
     (syntax-case stx []
@@ -604,13 +605,13 @@
       (values
        (case downcased-name
          [(width height device-width device-height resolution)
-          (cond [(css:+length? maybe-value) (css:length->scalar maybe-value)]
+          (cond [(css+length? maybe-value) (css:length->scalar maybe-value)]
                 [(css:length? maybe-value) throw-exn:css:range]
                 [(css:dimension? maybe-value) throw-exn:css:unit]
                 [(css-token? maybe-value) throw-exn:css:type])]
          [(resolution)
           (cond [(css:ident-norm=:=? maybe-value 'infinite) +inf.0]
-                [(css:+resolution? maybe-value) (css:resolution->scalar maybe-value)]
+                [(css+resolution? maybe-value) (css:resolution->scalar maybe-value)]
                 [(css:resolution? maybe-value) throw-exn:css:range]
                 [(css:dimension? maybe-value) throw-exn:css:unit]
                 [(css-token? maybe-value) throw-exn:css:type])]
@@ -649,8 +650,8 @@
   ;; https://drafts.csswg.org/css-cascade/#shorthand
   ;; https://drafts.csswg.org/css-cascade/#filtering
   ;; https://drafts.csswg.org/css-cascade/#cascading
-  (define-type CSS-Builtin-Datum (U Complex Symbol (Listof Symbol) String Keyword Char Bytes FlVector FxVector))
-  (define-type CSS-Cascaded-Value (U CSS-Builtin-Datum CSS-Token CSS-Datum CSS-Value (Object)))
+  (define-type CSS-Builtin-Datum (U Complex Symbol Keyword String Char Bytes FlVector FxVector (Vectorof Integer)))
+  (define-type CSS-Cascaded-Value (U CSS-Builtin-Datum CSS-Token (Listof CSS-Token) CSS-Datum CSS-Value (Object)))
   (define-type CSS-Declared-Value (U (-> CSS-Cascaded-Value) (Boxof (-> CSS-Cascaded-Value))))
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declared-Value))
   (define-type CSS-Declared-Longhand-Result (HashTable Symbol CSS-Cascaded-Value))
@@ -673,7 +674,7 @@
          #'(begin (define-type Datum datum)
                   (struct datum parent (fields ...) options ...)))]))
 
-  (define-css-value css-tokens #:as CSS-Tokens ([components : (Listof+ CSS-Token)]) #:prefab)
+  (define-css-value css-bitmask #:as CSS-Bitmask ([options : (Listof Symbol)]) #:prefab)
   (define-css-value css-datums #:as CSS-Datums ([list : (Listof Datum)]) #:prefab)
 
   ; https://drafts.csswg.org/css-cascade/#all-shorthand
@@ -711,13 +712,12 @@
             [(css:ident? desc-value) (make-exn:css:range desc-value)]
             [else (and terminal? (make-exn:css:type desc-value))])))
 
-  (define css-declared-keywords-filter : (-> CSS-Token (Listof CSS-Token) (Listof Symbol) Symbol
-                                             (U Symbol (Listof Symbol) CSS-Syntax-Error))
+  (define css-declared-keywords-filter : (-> CSS-Token (Listof CSS-Token) (Listof Symbol) Symbol (U Symbol CSS-Bitmask CSS-Syntax-Error))
     (lambda [desc-value desc-rest options none]
       (cond [(css:ident-norm=:=? desc-value none) (if (pair? desc-rest) (make-exn:css:overconsumption desc-rest) none)]
             [else (let desc-fold ([desc-others : (Listof CSS-Token) (cons desc-value desc-rest)]
                                   [desc-keywords : (Listof Symbol) null])
-                    (cond [(null? desc-others) desc-keywords]
+                    (cond [(null? desc-others) (css-bitmask desc-keywords)]
                           [else (let ([desc-value (car desc-others)])
                                   (cond [(css:ident-norm=<-? desc-value options)
                                          => (λ [[v : Symbol]]
@@ -733,12 +733,10 @@
       (define (viewport-length [v : CSS-Token]) : (U CSS-Cascaded-Value CSS-Syntax-Error)
         (cond ; this is okay even for font relative length since the @viewport is the first rule to be cascaded.
               ; the font relative parameters should be initialized when the program starts.
-              [(css:+length? v) (css:length->datum v)]
               [(css:ident-norm=:=? v 'auto) 'auto]
               [(css:percentage=<-? v nonnegative-single-flonum?) => values]
-              [(or (css:ident? v) (css-fraction? v) (css:length? v)) (make-exn:css:range v)]
-              [(css:dimension? v) (make-exn:css:unit v)]
-              [else (make-exn:css:type v)]))
+              [(or (css:ident? v) (css-fraction? v)) (make-exn:css:range v)]
+              [else (css-declared+length-filter v)]))
       (values
        (case suitcased-name
          [(width height)
@@ -1037,16 +1035,15 @@
                       (cond [(css-identifier-prefix? ch1 ch2 ch3)
                              (define unit : Symbol (string->symbol (string-downcase (css-consume-name css #false))))
                              (define value : Flonum (real->double-flonum n))
-                             (define scalar : Nonnegative-Flonum (if (negative? value) (flabs value) value))
                              (case unit
-                               [(em ex ch ic rem)       (css-make-token srcloc css:length:font     representation value unit scalar)]
-                               [(vw vh vi vb vmin vmax) (css-make-token srcloc css:length:viewport representation value unit scalar)]
-                               [(px cm mm q in pc pt)   (css-make-token srcloc css:length          representation value unit scalar)]
-                               [(deg grad rad turn)     (css-make-token srcloc css:angle           representation value unit scalar)]
-                               [(s ms min h)            (css-make-token srcloc css:time            representation value unit scalar)]
-                               [(hz khz)                (css-make-token srcloc css:frequency       representation value unit scalar)]
-                               [(dpi dpcm dppx)         (css-make-token srcloc css:resolution      representation value unit scalar)]
-                               [else                    (css-make-token srcloc css:dimension       representation value unit scalar)])]
+                               [(em ex ch ic rem)       (css-make-token srcloc css:length:font     representation value unit)]
+                               [(vw vh vi vb vmin vmax) (css-make-token srcloc css:length:viewport representation value unit)]
+                               [(px cm mm q in pc pt)   (css-make-token srcloc css:length          representation value unit)]
+                               [(deg grad rad turn)     (css-make-token srcloc css:angle           representation value unit)]
+                               [(s ms min h)            (css-make-token srcloc css:time            representation value unit)]
+                               [(hz khz)                (css-make-token srcloc css:frequency       representation value unit)]
+                               [(dpi dpcm dppx)         (css-make-token srcloc css:resolution      representation value unit)]
+                               [else                    (css-make-token srcloc css:dimension       representation value unit)])]
                             [(and (char? ch1) (char=? ch1 #\%) (read-char css))
                              (define n% : Single-Flonum (real->single-flonum (* n 0.01)))
                              (css-make-token srcloc css:percentage representation n%)]
@@ -2423,7 +2420,7 @@
                       (define decl-rest : (Listof CSS-Token) (cdr declared-values))
                       (when (desc-more-important? desc-name important?)
                         (define-values (desc-value deprecated?)
-                          (cond [(css:--ident? (css-declaration-name property)) (values (css-tokens declared-values) #false)]
+                          (cond [(css:--ident? (css-declaration-name property)) (values declared-values #false)]
                                 [(and (null? decl-rest) (css:ident-norm=<-? decl-value desc-wide-keywords)) => (λ [v] (values v #false))]
                                 [else (desc-filter desc-name decl-value decl-rest)]))
                         (when deprecated? (make-exn:css:deprecated (css-declaration-name property)))
