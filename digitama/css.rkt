@@ -39,7 +39,7 @@
 (module digitama typed/racket
   (provide (except-out (all-defined-out) define-tokens define-token define-token-interface
                        define-symbolic-tokens define-numeric-tokens define-dimensional-tokens
-                       define-syntax-error make-syntax-error))
+                       define-predefined-keyword define-syntax-error make-syntax-error))
 
   (provide (rename-out [exact-nonnegative-integer? natural?]))
   (provide (all-from-out racket/fixnum))
@@ -93,7 +93,11 @@
                                    [else (for/or : (Option Type) ([value (in-list range?)])
                                            (and (type=? datum value) datum))])))))
 
-                  (define id=:=? : (-> Any Type Boolean : #:+ CSS:ID) (λ [t v] (and (id? t) (type=? (id-datum t) v))))))]
+                  (define id=:=? : (-> Any Type (Option Type) : #:+ CSS:ID)
+                    (lambda [t v]
+                      (and (id? t)
+                           (let ([d : Type (id-datum t)])
+                             (and (type=? d v) d)))))))]
       [(_ numeric-prefix : Type id? id-datum #:+ CSS:ID #:= type=?)
        (with-syntax ([id=<-? (format-id #'numeric-prefix "~a=<-?" (syntax-e #'numeric-prefix))])
          #'(begin (define id=<-? : (All (a) (case-> [Any (-> Type Boolean : #:+ a) -> (Option a) : #:+ CSS:ID]
@@ -650,14 +654,15 @@
   ;; https://drafts.csswg.org/css-cascade/#shorthand
   ;; https://drafts.csswg.org/css-cascade/#filtering
   ;; https://drafts.csswg.org/css-cascade/#cascading
-  (define-type CSS-Builtin-Datum (U Complex Symbol Keyword String Char Bytes FlVector FxVector (Vectorof Integer)))
-  (define-type CSS-Cascaded-Value (U CSS-Builtin-Datum CSS-Token (Listof CSS-Token) CSS-Datum CSS-Value (Object)))
-  (define-type CSS-Declared-Value (U (-> CSS-Cascaded-Value) (Boxof (-> CSS-Cascaded-Value))))
+  (define-type CSS-Value-Any (U Complex Symbol Keyword String Char Bytes FlVector FxVector (Vectorof Integer)
+                                CSS-Token (Listof CSS-Token) CSS-Datum CSS-Value (Object)))
+  
+  (define-type CSS-Declared-Value (U (-> Any) (Boxof (-> Any)))) ; meanwhile Type Racket is buggy on (∩ Flonum CSS-Value-Any)
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declared-Value))
-  (define-type CSS-Declared-Longhand-Result (HashTable Symbol CSS-Cascaded-Value))
-  (define-type CSS-Declared+Longhand-Result (U CSS-Declared-Longhand-Result CSS-Cascaded-Value CSS-Syntax-Error Void))
+  (define-type CSS-Declared-Longhand-Result (HashTable Symbol CSS-Value-Any))
+  (define-type CSS-Declared+Longhand-Result (U CSS-Declared-Longhand-Result CSS-Value-Any CSS-Syntax-Error Void))
   (define-type CSS-Declared-Value-Filter (-> Symbol CSS-Token (Listof CSS-Token) (Values CSS-Declared+Longhand-Result Boolean)))
-  (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Declared-Values Preference (Option Preference) (Option Symbol) Preference))
+  (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Declared-Values Preference (Option CSS-Declared-Values) Preference))
 
   (define-type CSS-Datum --css-datum)
   (define-type CSS-Value --css-value)
@@ -674,14 +679,29 @@
          #'(begin (define-type Datum datum)
                   (struct datum parent (fields ...) options ...)))]))
 
+  (define-syntax (define-predefined-keyword stx)
+    (syntax-case stx [:]
+      [(_ css-wide-keyword #:as CSS-Wide-Keyword [keyword ...])
+       (with-syntax ([(keywords-ormap css:keyword ...)
+                      (cons (format-id #'css-wide-keyword "~as-ormap" (syntax-e #'css-wide-keyword))
+                            (for/list ([kwd (in-list (syntax->list #'(keyword ...)))])
+                              (format-id kwd "css:~a" (syntax-e kwd))))])
+         #'(begin (define-css-value css-wide-keyword #:as CSS-Wide-Keyword ([value : Symbol]) #:transparent)
+                  (define css:keyword : CSS-Wide-Keyword (css-wide-keyword 'keyword)) ...
+
+                  (define keywords-ormap : (-> (U Symbol CSS-Token) (Option CSS-Wide-Keyword))
+                    (lambda [key]
+                      (cond [(css-token? key) (and (css:ident? key) (keywords-ormap (css:ident-norm key)))]
+                            [(eq? key 'keyword) css:keyword] ...
+                            [else #false])))))]))
+
   (define-css-value css-bitmask #:as CSS-Bitmask ([options : (Listof Symbol)]) #:prefab)
   (define-css-value css-datums #:as CSS-Datums ([list : (Listof Datum)]) #:prefab)
 
   ; https://drafts.csswg.org/css-cascade/#all-shorthand
   ; https://drafts.csswg.org/css-values/#common-keywords
-  (define css-wide-keywords : (Listof Symbol) (list 'initial 'inherit 'unset))
-  (define css-all-shorthands : (Listof Symbol) (cons 'revert css-wide-keywords))
   (define current-css-all-exceptions : (Parameterof (Listof Symbol)) (make-parameter (list 'direction 'unicode-bidi)))
+  (define-predefined-keyword css-wide-keyword #:as CSS-Wide-Keyword [initial inherit unset revert])
   
   (define-syntax (call-with-css-media stx)
     (syntax-parse stx
@@ -697,12 +717,30 @@
                             [current-css-viewport-height height])
                sexp ...)))]))
 
-  (define css-ref : (All (a) (case-> [CSS-Declared-Values Symbol (-> Symbol CSS-Cascaded-Value a) -> a]
-                                     [CSS-Declared-Values Symbol -> CSS-Cascaded-Value]))
-    (lambda [properties desc-name [css->datum (λ [[dn : Symbol] [cv : CSS-Cascaded-Value]] cv)]]
-      (define fvalue : CSS-Declared-Value (hash-ref properties desc-name (thunk (λ [] 'unset))))
-      (define cascaded-value : CSS-Cascaded-Value ((if (box? fvalue) (unbox fvalue) fvalue)))
-      (css->datum desc-name cascaded-value)))
+  (define css-ref : (All (a) (case-> [CSS-Declared-Values (Option CSS-Declared-Values) Symbol -> Any]
+                                     [CSS-Declared-Values (Option CSS-Declared-Values) Symbol (-> Symbol Any (∩ a CSS-Value-Any)) -> a]))
+    (lambda [properties inherited-values desc-name [css->datum #false]]
+      (define fvalue : CSS-Declared-Value
+        (hash-ref properties desc-name
+                  (thunk (if (memq desc-name (cons 'all (current-css-all-exceptions)))
+                             (hash-ref! properties desc-name (thunk (thunk css:unset)))
+                             (let ([all (css-ref properties #false 'all)])
+                               (cond [(css-wide-keyword? all) (thunk all)]
+                                     [else (thunk css:unset)]))))))
+      (define cascaded-value : Any
+        (cond [(not (box? fvalue)) (fvalue)]
+              [else (let ([fvalue (unbox fvalue)])
+                      (hash-set! properties desc-name fvalue)
+                      (fvalue))]))
+      (define specified-value : Any
+        (cond [(not (css-wide-keyword? cascaded-value)) cascaded-value]
+              [(or (false? inherited-values) (eq? cascaded-value css:initial)) css:initial]
+              [else (css-ref inherited-values #false desc-name)]))
+      (cond [(false? css->datum) specified-value]
+            [else (let ([computed-value (css->datum desc-name specified-value)])
+                    (unless (eq? cascaded-value computed-value)
+                      (hash-set! properties desc-name (thunk computed-value)))
+                    computed-value)])))
 
   (define css-declared-keyword-filter : (case-> [CSS-Token (Listof CSS-Token) (Listof Symbol) -> (U Symbol CSS-Syntax-Error)]
                                                 [CSS-Token (Listof CSS-Token) (Listof Symbol) False -> (U Symbol CSS-Syntax-Error False)])
@@ -730,10 +768,10 @@
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
   (define css-viewport-descriptor-filter : CSS-Declared-Value-Filter
     (lambda [suitcased-name desc-value rest]
-      (define (viewport-length [v : CSS-Token]) : (U CSS-Cascaded-Value CSS-Syntax-Error)
+      (define (viewport-length [v : CSS-Token]) : (U CSS-Value-Any CSS-Syntax-Error)
         (cond ; this is okay even for font relative length since the @viewport is the first rule to be cascaded.
               ; the font relative parameters should be initialized when the program starts.
-              [(css:ident-norm=:=? v 'auto) 'auto]
+              [(css:ident-norm=:=? v 'auto) => values]
               [(css:percentage=<-? v nonnegative-single-flonum?) => values]
               [(or (css:ident? v) (css-fraction? v)) (make-exn:css:range v)]
               [else (css-declared+length-filter v)]))
@@ -743,20 +781,22 @@
           (define-values (2nd-value real-rest) (css-car rest))
           (define min-name : Symbol (if (eq? suitcased-name 'width) 'min-width 'min-height))
           (define max-name : Symbol (if (eq? suitcased-name 'width) 'max-width 'max-height))
-          (define min-value : (U CSS-Cascaded-Value CSS-Syntax-Error) (viewport-length desc-value))
-          (define max-value : (U CSS-Cascaded-Value CSS-Syntax-Error) (if (css-token? 2nd-value) (viewport-length 2nd-value) min-value))
+          (define min-value : (U CSS-Value-Any CSS-Syntax-Error) (viewport-length desc-value))
+          (define max-value : (U CSS-Value-Any CSS-Syntax-Error) (if (css-token? 2nd-value) (viewport-length 2nd-value) min-value))
           (when (nor (exn? min-value) (exn? max-value))
             (cond [(pair? real-rest) (make-exn:css:overconsumption real-rest)]
                   [else (hasheq min-name min-value max-name max-value)]))]
          [(min-width max-width min-height max-height)
-          (define length-value : (U CSS-Cascaded-Value CSS-Syntax-Error) (viewport-length desc-value))
+          (define length-value : (U CSS-Value-Any CSS-Syntax-Error) (viewport-length desc-value))
           (unless (exn? length-value)
             (cond [(pair? rest) (make-exn:css:overconsumption rest)]
                   [else length-value]))]
          [(zoom min-zoom max-zoom)
           (cond [(pair? rest) (make-exn:css:overconsumption rest)]
-                [(css:ident-norm=:=? desc-value 'auto) desc-value]
-                [(or (css:flonum? desc-value) (css:integer? desc-value) (css:percentage? desc-value)) desc-value]
+                [(css:ident-norm=:=? desc-value 'auto) => values]
+                [(css:flonum=<-? desc-value nonnegative-flonum?) => values]
+                [(css:integer=<-? desc-value exact-nonnegative-integer?) => exact->inexact]
+                [(css:percentage=<-? desc-value nonnegative-single-flonum?) => real->double-flonum]
                 [(or (css:ident? desc-value) (css-number? desc-value)) (make-exn:css:range desc-value)]
                 [else (make-exn:css:type desc-value)])]
          [(orientation) (css-declared-keyword-filter desc-value rest '(auto portrait landscape))]
@@ -764,12 +804,13 @@
          [else (make-exn:css:unrecognized desc-value)])
        #false)))
 
+  (struct test ())
   (define css-viewport-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol CSS-Media-Datum))
     ;;; https://drafts.csswg.org/css-device-adapt/#constraining
     ;;; https://drafts.csswg.org/css-device-adapt/#handling-auto-zoom
     ;;; https://drafts.csswg.org/css-device-adapt/#media-queries
     ;;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
-    (lambda [cascaded-values initial-viewport inherit-viewport all]
+    (lambda [cascaded-values initial-viewport inherited-viewport]
       ; Notes: We do not check the `initial-viewport` to specific the `specified values` since
       ;          @viewport is a controversial @rule which is easy to be used incorrectly,
       ;          @viewport is rarely used in desktop applications, and
@@ -784,27 +825,27 @@
               [(symbol? v1) v2]
               [(symbol? v2) v1]
               [else (maix v1 v2)]))
-      (define (zoom->flonum [desc-name : Symbol] [maybe-zoom : CSS-Cascaded-Value]) : Flonum
-        (cond [(real? maybe-zoom) (real->double-flonum maybe-zoom)]
+      (define (zoom->flonum [desc-name : Symbol] [maybe-zoom : Any]) : Nonnegative-Flonum
+        (cond [(nonnegative-flonum? maybe-zoom) maybe-zoom]
               [(eq? desc-name 'max-zoom) +inf.0]
               [(eq? desc-name 'min-zoom) 0.0]
               [else (current-css-viewport-auto-zoom)]))
-      (define (size->scalar [desc-name : Symbol] [maybe-size : CSS-Cascaded-Value]) : (U Flonum Symbol)
+      (define (size->scalar [desc-name : Symbol] [maybe-size : Any]) : (U Flonum Symbol)
         (cond [(flonum? maybe-size) maybe-size]
               [(not (single-flonum? maybe-size)) 'auto]
               [else (fl* (real->double-flonum maybe-size)
                          (if (memq desc-name '(min-width max-width))
                              initial-width initial-height))]))
-      (define (enum-value [desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]) : Symbol
-        (cond [(and (symbol? maybe-value) (not (memq maybe-value css-all-shorthands))) maybe-value]
+      (define (enum-value [desc-name : Symbol] [maybe-value : Any]) : Symbol
+        (cond [(symbol? maybe-value) maybe-value]
               [(eq? desc-name 'user-zoom) 'zoom]
               [else 'auto]))
-      (define min-zoom : Flonum (css-ref cascaded-values 'min-zoom zoom->flonum))
-      (define max-zoom : Flonum (max min-zoom (css-ref cascaded-values 'max-zoom zoom->flonum)))
-      (define min-width : (U Flonum Symbol) (css-ref cascaded-values 'min-width size->scalar))
-      (define max-width : (U Flonum Symbol) (css-ref cascaded-values 'max-width size->scalar))
-      (define min-height : (U Flonum Symbol) (css-ref cascaded-values 'min-height size->scalar))
-      (define max-height : (U Flonum Symbol) (css-ref cascaded-values 'max-height size->scalar))
+      (define min-zoom : Flonum (css-ref cascaded-values #false 'min-zoom zoom->flonum))
+      (define max-zoom : Flonum (flmax min-zoom (css-ref cascaded-values #false 'max-zoom zoom->flonum)))
+      (define min-width : (U Flonum Symbol) (css-ref cascaded-values #false 'min-width size->scalar))
+      (define max-width : (U Flonum Symbol) (css-ref cascaded-values #false 'max-width size->scalar))
+      (define min-height : (U Flonum Symbol) (css-ref cascaded-values #false 'min-height size->scalar))
+      (define max-height : (U Flonum Symbol) (css-ref cascaded-values #false 'max-height size->scalar))
       (define-values (width height)
         (let* ([width (smart flmax min-width (smart flmin max-width initial-width))]
                [height (smart flmax min-height (smart flmin max-height initial-height))]
@@ -818,15 +859,15 @@
       (for ([name (in-list      '(min-zoom max-zoom width height))]
             [value (in-list (list min-zoom max-zoom width height))])
         (hash-set! actual-viewport name value))
-      (hash-set! actual-viewport 'orientation (css-ref cascaded-values 'orientation enum-value))
-      (hash-set! actual-viewport 'user-zoom (css-ref cascaded-values 'user-zoom enum-value))
-      (hash-set! actual-viewport 'zoom (max min-zoom (min max-zoom (css-ref cascaded-values 'zoom zoom->flonum))))
+      (hash-set! actual-viewport 'orientation (css-ref cascaded-values #false 'orientation enum-value))
+      (hash-set! actual-viewport 'user-zoom (css-ref cascaded-values #false 'user-zoom enum-value))
+      (hash-set! actual-viewport 'zoom (max min-zoom (min max-zoom (css-ref cascaded-values #false 'zoom zoom->flonum))))
       actual-viewport))
 
   (define-values (current-css-viewport-descriptor-filter current-css-viewport-filter current-css-viewport-auto-zoom)
     (values (make-parameter css-viewport-descriptor-filter)
             (make-parameter css-viewport-filter)
-            (make-parameter 1.0)))
+            (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-car/keep-whitespace : (-> (Listof CSS-Token) (Values (U CSS-Token EOF) (Listof CSS-Token)))
@@ -2323,15 +2364,16 @@
                                   [viewport-filter (current-css-viewport-filter)]]
       (call-with-css-media #:preferences viewport-preferences
         (viewport-filter (css-cascade-declarations viewport-descriptor-filter viewport-descriptors)
-                         viewport-preferences #false #false))))
+                         viewport-preferences
+                         #false))))
 
   (define css-cascade : (All (Preference) (-> (Listof CSS-StyleSheet) CSS-Subject
                                               CSS-Declared-Value-Filter (CSS-Cascaded-Value-Filter Preference)
-                                              Preference (Option Preference) [#:quirk? Boolean]
-                                              Preference))
+                                              Preference (Option CSS-Declared-Values) [#:quirk? Boolean]
+                                              (Values Preference CSS-Declared-Values)))
     ;;; https://drafts.csswg.org/css-cascade/#filtering
     ;;; https://drafts.csswg.org/css-cascade/#cascading
-    (lambda [stylesheets subject desc-filter value-filter initial-values inherit-values #:quirk? [quirk? #false]]
+    (lambda [stylesheets subject desc-filter value-filter initial-values inherited-values #:quirk? [quirk? #false]]
       (define declared-values : CSS-Declared-Values (make-hasheq))
       (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
         (for ([stylesheet (in-list batch)])
@@ -2340,11 +2382,7 @@
                                  (hash-ref (css-stylesheet-pool stylesheet) import)))
           (css-cascade-rules (css-stylesheet-rules stylesheet) subject desc-filter quirk?
                              (css-stylesheet-preferences stylesheet) declared-values)))
-      (value-filter declared-values initial-values inherit-values
-                    (css-ref declared-values 'all
-                             (λ [[desc-name : Symbol] [maybe-value : CSS-Cascaded-Value]]
-                               (cond [(not (css:ident? maybe-value)) #false]
-                                     [else (css:ident-norm maybe-value)]))))))
+      (values (value-filter declared-values initial-values inherited-values) declared-values)))
 
   (define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) CSS-Subject CSS-Declared-Value-Filter)
                                    (Boolean CSS-Media-Preferences CSS-Declared-Values) CSS-Declared-Values)
@@ -2401,7 +2439,7 @@
     (lambda [desc-filter properties [descbase ((inst make-hasheq Symbol CSS-Declared-Value))]]
       (define (desc-more-important? [desc-name : Symbol] [important? : Boolean]) : Boolean
         (or important? (not (box? (hash-ref descbase desc-name (thunk (λ [] 'unset)))))))
-      (define (desc-set! [desc-name : Symbol] [desc-value : CSS-Cascaded-Value] [important? : Boolean]) : Void
+      (define (desc-set! [desc-name : Symbol] [desc-value : CSS-Value-Any] [important? : Boolean]) : Void
         (define declared-value : CSS-Declared-Value (if important? (box (thunk desc-value)) (thunk desc-value)))
         (when (eq? desc-name 'all)
           (define css-all-exceptions : (Listof Symbol) (current-css-all-exceptions))
@@ -2413,7 +2451,6 @@
       (for ([property (in-list properties)])
         (cond [(list? property) (css-cascade-declarations desc-filter property descbase)]
               [else (let ([desc-name : Symbol (css:ident-norm (css-declaration-name property))])
-                      (define desc-wide-keywords : (Listof Symbol) (if (eq? desc-name 'all) css-all-shorthands css-wide-keywords))
                       (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
                       (define important? : Boolean (css-declaration-important? property))
                       (define decl-value : CSS-Token (car declared-values))
@@ -2421,7 +2458,7 @@
                       (when (desc-more-important? desc-name important?)
                         (define-values (desc-value deprecated?)
                           (cond [(css:--ident? (css-declaration-name property)) (values declared-values #false)]
-                                [(and (null? decl-rest) (css:ident-norm=<-? decl-value desc-wide-keywords)) => (λ [v] (values v #false))]
+                                [(and (null? decl-rest) (css-wide-keywords-ormap decl-value)) => (λ [v] (values v #false))]
                                 [else (desc-filter desc-name decl-value decl-rest)]))
                         (when deprecated? (make-exn:css:deprecated (css-declaration-name property)))
                         ; NOTE: CSS tokens are also acceptable here, but they are just allowed for convenient
@@ -2542,19 +2579,26 @@
     (lambda [suitcased-name desc-value rest]
       (values (css-datums (map css-token->datum (cons desc-value rest))) #false)))
 
-  (define css-filter : (CSS-Cascaded-Value-Filter (Option (HashTable Symbol CSS-Cascaded-Value)))
-    (lambda [declared-values all default-values inherit-values]
-      (for/hash : (HashTable Symbol CSS-Cascaded-Value) ([desc-name (in-hash-keys declared-values)])
-        (values desc-name (css-ref declared-values desc-name)))))
+  (define css-filter : (CSS-Cascaded-Value-Filter (Option (HashTable Symbol Any)))
+    (lambda [declared-values default-values inherited-values]
+      (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys declared-values)])
+        (values desc-name (css-ref declared-values inherited-values desc-name)))))
 
   tamer-sheet
   tamer-subject
-  (time-run (css-cascade (list tamer-sheet) tamer-subject css-declaration-filter css-filter #false #false))
+  (time-run (let-values ([(preference for-children)
+                          (css-cascade (list tamer-sheet) tamer-subject css-declaration-filter
+                                       css-filter #false #false)])
+              preference))
+  
   (collect-garbage)
   (collect-garbage)
   (collect-garbage)
   tamer-header
-  (time-run (css-cascade (list tamer-sheet) tamer-header css-declaration-filter css-filter #false #false))
+  (time-run (let-values ([(preference for-children)
+                          (css-cascade (list tamer-sheet) tamer-header css-declaration-filter
+                                       css-filter #false #false)])
+              car))
 
   (map (λ [[in : String]] : (Pairof String Integer)
          (let ([maybe-complex-selectors (css-parse-selectors in)])
