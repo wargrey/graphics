@@ -308,6 +308,27 @@
       (cond [(css:percentage=<-? desc-value nonnegative-single-flonum?) => values]
             [(css-fraction? desc-value) (make-exn:css:range desc-value)]
             [else (css-declared+number-filter desc-value terminal?)])))
+
+  (define css-declared+percentage-filter : (case-> [CSS-Token -> (U Nonnegative-Flonum CSS-Syntax-Error)]
+                                                   [CSS-Token True -> (U Nonnegative-Flonum CSS-Syntax-Error)]
+                                                   [CSS-Token False -> (U Nonnegative-Flonum CSS-Syntax-Error False)])
+    (lambda [desc-value [terminal? #true]]
+      (cond [(and (css:flonum? desc-value) (let ([v (css:flonum-datum desc-value)]) (and (fl>= v 0.0) (fl<= v 1.0) v))) => values]
+            [(css:one? desc-value) 1.0]
+            [(css:zero? desc-value) 0.0]
+            [(css-number? desc-value) (make-exn:css:range desc-value)]
+            [else (and terminal? (make-exn:css:type desc-value))])))
+
+  (define css-declared+percentage%-filter : (case-> [CSS-Token -> (U Nonnegative-Flonum CSS-Syntax-Error)]
+                                                    [CSS-Token True -> (U Nonnegative-Flonum CSS-Syntax-Error)]
+                                                    [CSS-Token False -> (U Nonnegative-Flonum CSS-Syntax-Error False)])
+    (lambda [desc-value [terminal? #true]]
+      (cond [(and (css:percentage? desc-value)
+                  (let ([v (css:percentage-datum desc-value)])
+                    (and (<= 0f0 v 1f0) v)))
+             => real->double-flonum]
+            [(css-fraction? desc-value) (make-exn:css:range desc-value)]
+            [else (css-declared+percentage-filter desc-value terminal?)])))
   
   (define css-token->syntax : (-> CSS-Token Syntax)
     (lambda [instance]
@@ -701,23 +722,20 @@
   ;; https://drafts.csswg.org/css-cascade/#shorthand
   ;; https://drafts.csswg.org/css-cascade/#filtering
   ;; https://drafts.csswg.org/css-cascade/#cascading
-  (define-type CSS-Value-Any (U Datum FlVector FxVector CSS-Token CSS-Datum CSS-Value (Object)))
-  (struct !important ([replace : (-> Any)]) #:prefab #:type-name !Important)
-  (struct !lazy ([force : (Listof CSS-Token)]) #:prefab #:type-name !Lazy)
+  ; NOTE: CSS tokens are also acceptable here, but they are just allowed for convenient
+  ;        since they provide the precision type info for applications directly.                      
+  (define-type CSS-Value-Any (U Datum FlVector FxVector CSS-Token --datum --value (Object)))
   
-  (define-type CSS-Declared-Value (U (-> Any) (-> !Lazy) !Important)) ; meanwhile Type Racket is buggy on (∩ Flonum CSS-Value-Any)
+  (define-type CSS-Declared-Value (U (-> CSS-Value-Any) (Boxof (-> CSS-Value-Any))))
   (define-type CSS-Declared-Values (HashTable Symbol CSS-Declared-Value))
   (define-type CSS-Declared-Longhand-Result (HashTable Symbol CSS-Value-Any))
   (define-type CSS-Declared+Longhand-Result (U CSS-Declared-Longhand-Result CSS-Value-Any CSS-Syntax-Error Void))
   (define-type CSS-Declared-Value-Filter (-> Symbol CSS-Token (Listof CSS-Token) (Values CSS-Declared+Longhand-Result Boolean)))
   (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Declared-Values Preference (Option CSS-Declared-Values) Preference))
 
-  (define-type CSS-Datum --datum)
-  (define-type CSS-Value --value)
-
   (struct --datum () #:prefab)
   (struct --value () #:transparent)
-
+  
   (define-syntax (define-css-value stx)
     (syntax-case stx [:]
       [(_ datum #:as Datum (fields ...) options ...)
@@ -751,6 +769,7 @@
                             [else key])))))]))
 
   (define-css-value css-bitmask #:as CSS-Bitmask ([options : (Listof Symbol)]) #:prefab)
+  (define-css-value css-lazy #:as CSS-Lazy ([force : (Listof+ CSS-Token)]) #:prefab)
 
   ; https://drafts.csswg.org/css-cascade/#all-shorthand
   ; https://drafts.csswg.org/css-values/#common-keywords
@@ -771,8 +790,10 @@
                             [current-css-viewport-height height])
                sexp ...)))]))
 
-  (define css-ref : (All (a) (case-> [CSS-Declared-Values (Option CSS-Declared-Values) Symbol -> Any]
-                                     [CSS-Declared-Values (Option CSS-Declared-Values) Symbol (-> Symbol Any (∩ a CSS-Value-Any)) -> a]))
+  (define css-ref : (All (a) (case-> [CSS-Declared-Values (Option CSS-Declared-Values) Symbol -> CSS-Value-Any]
+                                     [CSS-Declared-Values (Option CSS-Declared-Values) Symbol
+                                                          (-> Symbol CSS-Value-Any (∩ a CSS-Value-Any))
+                                                          -> a]))
     (lambda [properties inherited-values desc-name [css->datum #false]]
       (define fvalue : CSS-Declared-Value
         (hash-ref properties desc-name
@@ -781,12 +802,12 @@
                              (let ([all (css-ref properties #false 'all)])
                                (cond [(css-wide-keyword? all) (thunk all)]
                                      [else (thunk css:unset)]))))))
-      (define cascaded-value : Any
-        (cond [(not (!important? fvalue)) (fvalue)]
-              [else (let ([fvalue (!important-replace fvalue)])
+      (define cascaded-value : CSS-Value-Any
+        (cond [(not (box? fvalue)) (fvalue)]
+              [else (let ([fvalue (unbox fvalue)])
                       (hash-set! properties desc-name fvalue)
                       (fvalue))]))
-      (define specified-value : Any
+      (define specified-value : CSS-Value-Any
         (cond [(or (eq? cascaded-value css:revert) (not (css-wide-keyword? cascaded-value))) cascaded-value]
               [(or (false? inherited-values) (eq? cascaded-value css:initial)) css:initial]
               [else (css-ref inherited-values #false desc-name)]))
@@ -856,19 +877,19 @@
               [(symbol? v1) v2]
               [(symbol? v2) v1]
               [else (maix v1 v2)]))
-      (define (zoom->flonum [desc-name : Symbol] [maybe-zoom : Any]) : Nonnegative-Flonum
-        (cond [(nonnegative-flonum? maybe-zoom) maybe-zoom]
+      (define (zoom->flonum [desc-name : Symbol] [zoom : CSS-Value-Any]) : Nonnegative-Flonum
+        (cond [(nonnegative-flonum? zoom) zoom]
               [(eq? desc-name 'max-zoom) +inf.0]
               [(eq? desc-name 'min-zoom) 0.0]
               [else (current-css-viewport-auto-zoom)]))
-      (define (size->scalar [desc-name : Symbol] [maybe-size : Any]) : (U Flonum Symbol)
-        (cond [(flonum? maybe-size) maybe-size]
-              [(not (single-flonum? maybe-size)) 'auto]
-              [else (fl* (real->double-flonum maybe-size)
+      (define (size->scalar [desc-name : Symbol] [size : CSS-Value-Any]) : (U Flonum Symbol)
+        (cond [(flonum? size) size]
+              [(not (single-flonum? size)) 'auto]
+              [else (fl* (real->double-flonum size)
                          (if (memq desc-name '(min-width max-width))
                              initial-width initial-height))]))
-      (define (enum-value [desc-name : Symbol] [maybe-value : Any]) : Symbol
-        (cond [(symbol? maybe-value) maybe-value]
+      (define (enum-value [desc-name : Symbol] [value : CSS-Value-Any]) : Symbol
+        (cond [(symbol? value) value]
               [(eq? desc-name 'user-zoom) 'zoom]
               [else 'auto]))
       (define min-zoom : Flonum (css-ref cascaded-values #false 'min-zoom zoom->flonum))
@@ -901,6 +922,13 @@
             (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define-syntax (make-css->racket stx)
+    (syntax-case stx []
+      [(_ ->)
+       #'(lambda [v]
+           (cond [(exn:css? v) v]
+                 [else (-> v)]))]))
+  
   (define css-car/keep-whitespace : (-> (Listof CSS-Token) (Values (U CSS-Token EOF) (Listof CSS-Token)))
     (lambda [dirty]
       (cond [(null? dirty) (values eof null)]
@@ -2453,9 +2481,9 @@
     ;;; https://drafts.csswg.org/css-variables/#syntax
     (lambda [desc-filter properties [descbase ((inst make-hasheq Symbol CSS-Declared-Value))]]
       (define (desc-more-important? [desc-name : Symbol] [important? : Boolean]) : Boolean
-        (or important? (not (!important? (hash-ref descbase desc-name (thunk (λ [] css:unset)))))))
-      (define (desc-set! [desc-name : Symbol] [desc-value : (U CSS-Value-Any !Lazy)] [important? : Boolean]) : Void
-        (define declared-value : CSS-Declared-Value (if important? (!important (thunk desc-value)) (thunk desc-value)))
+        (or important? (not (box? (hash-ref descbase desc-name (thunk (λ [] css:unset)))))))
+      (define (desc-set! [desc-name : Symbol] [desc-value : CSS-Value-Any] [important? : Boolean]) : Void
+        (define declared-value : CSS-Declared-Value (if important? (box (thunk desc-value)) (thunk desc-value)))
         (when (eq? desc-name 'all)
           (define css-all-exceptions : (Listof Symbol) (current-css-all-exceptions))
           (for ([desc-key (in-hash-keys descbase)])
@@ -2472,12 +2500,10 @@
                       (define decl-rest : (Listof CSS-Token) (cdr declared-values))
                       (when (desc-more-important? desc-name important?)
                         (define-values (desc-value deprecated?)
-                          (cond [(css:--ident? (css-declaration-name property)) (values (!lazy declared-values) #false)]
+                          (cond [(css:--ident? (css-declaration-name property)) (values (css-lazy declared-values) #false)]
                                 [(and (null? decl-rest) (css-wide-keywords-ormap decl-value)) => (λ [v] (values v #false))]
                                 [else (desc-filter desc-name decl-value decl-rest)]))
                         (when deprecated? (make-exn:css:deprecated (css-declaration-name property)))
-                        ; NOTE: CSS tokens are also acceptable here, but they are just allowed for convenient
-                        ;        since they provide the precision type info for applications directly.
                         (when (nor (exn:css? desc-value) (void? desc-value) (false? desc-value))
                           (cond [(not (hash? desc-value)) (desc-set! desc-name desc-value important?)]
                                 [else (for ([(name value) (in-hash desc-value)] #:when (desc-more-important? name important?))

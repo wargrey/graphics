@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 
+(require racket/fixnum)
 (require math/flonum)
 
 (define-type Gamut Nonnegative-Flonum)
@@ -23,6 +24,19 @@
                         [(zero? integer-part) (flabs (fl+ 360.0 (fl (- hue (truncate hue)))))]
                         [else (flabs (fl (- integer-part (- (truncate hue) hue))))]))])))
 
+(define rgb-bytes->index : (-> Byte Byte Byte Index)
+  (lambda [r g b]
+    (fxand #xFFFFFF
+           (fxior (fxlshift r 16)
+                  (fxior (fxlshift g 8)
+                         b)))))
+
+(define index->rgb-bytes : (-> Index (Values Byte Byte Byte))
+  (lambda [rgb]
+    (values (fxand (fxrshift rgb 16) #xFF)
+            (fxand (fxrshift rgb 8) #xFF)
+            (fxand rgb #xFF))))
+
 (define rgb-bytes->hsb : (-> RGB->HSB Byte Byte Byte (Values Hue Gamut Gamut))
   (lambda [rgb->hsb red green blue]
     (rgb->hsb (fl (/ red   #xFF))
@@ -35,6 +49,16 @@
     (values (gamut->byte red)
             (gamut->byte green)
             (gamut->byte blue))))
+
+(define rgb-index->hsb : (-> RGB->HSB Index (Values Hue Gamut Gamut))
+  (lambda [rgb->hsb hex]
+    (define-values (red green blue) (index->rgb-bytes hex))
+    (rgb-bytes->hsb rgb->hsb red green blue)))
+
+(define hsb->rgb-index : (-> HSB->RGB Real Real Real Index)
+  (lambda [hsb->rgb hue s% b%]
+    (define-values (red green blue) (hsb->rgb-bytes hsb->rgb hue s% b%))
+    (rgb-bytes->index red green blue)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define hsv->rgb : HSB->RGB
