@@ -360,7 +360,7 @@
   (require typed/racket/draw)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define-css-value css-color #:as CSS-Color () #:transparent)
+  (define-css-value css-color #:as CSS-Color ())
   (struct sRGBA css-color ([hex : Index] [a : Nonnegative-Flonum]) #:transparent)
   (struct sHSBA css-color ([h : Real] [s : Real] [b : Real] [a : Nonnegative-Flonum] [>rgb : HSB->RGB]) #:transparent)
   
@@ -509,8 +509,8 @@
   (define current-css-small-caption-font : (Parameterof (Instance Font%)) (make-parameter css-default-font))
   (define current-css-status-bar-font : (Parameterof (Instance Font%)) (make-parameter css-default-font))
   
-  (define css-reset!-other-font-properties : (-> CSS-Declared-Longhand-Result (Instance Font%) CSS-Token CSS-Declared-Longhand-Result)
-    (lambda [font-longhand font position-token]
+  (define css-reset!-other-font-properties : (-> CSS-Longhand-Values (Instance Font%) CSS-Longhand-Values)
+    (lambda [font-longhand font]
       (hash-ref! font-longhand 'font-family (thunk (list (or (send font get-face) (send font get-family)))))
       (hash-ref! font-longhand 'font-weight (thunk (send font get-weight)))
       (hash-ref! font-longhand 'font-style (thunk (send font get-style)))
@@ -527,24 +527,19 @@
                                                 'px 'pt))))
       font-longhand))
 
-  (define css-set!-font-property : (-> CSS-Declared-Longhand-Result Symbol CSS-Token (Listof CSS-Token) CSS-Declared+Longhand-Result)
-    (lambda [font-longhand font-option property rst]
-      (cond [(hash-has-key? font-longhand font-option) (make-exn:css:duplicate property)]
+  (define css-set!-font-property : (-> CSS-Longhand-Values Symbol CSS-Datum CSS-Token (Listof CSS-Token) CSS+Longhand-Values)
+    (lambda [font-longhand font-option property ptoken rest]
+      (cond [(hash-has-key? font-longhand font-option) (make-exn:css:duplicate ptoken)]
             [(hash-set! font-longhand font-option property)
-             (cond [(null? rst) (css-reset!-other-font-properties font-longhand css-default-font property)]
-                   [else (css-font-shorthand-filter (car rst) (cdr rst) font-longhand #false)])])))
-
-  (define css-set!-font-size-property : (-> CSS-Declared-Longhand-Result CSS-Token (Listof CSS-Token) CSS-Declared+Longhand-Result)
-    (lambda [font-longhand property rest]
-      (cond [(hash-has-key? font-longhand 'font-size) (make-exn:css:duplicate property)]
-            [(hash-set! font-longhand 'font-size property)
-             (cond [(null? rest) (css-reset!-other-font-properties font-longhand css-default-font property)]
+             (cond [(null? rest) (css-reset!-other-font-properties font-longhand css-default-font)]
+                   [(not (eq? font-option 'font-size)) (css-font-shorthand-filter (car rest) (cdr rest) font-longhand #false)]
                    [else (let-values ([(maybe-/ rst) (values (car rest) (cdr rest))])
                            (cond [(not (css:delim=:=? maybe-/ #\/)) (css-font-shorthand-filter maybe-/ rst font-longhand #false)]
                                  [(null? rst) (make-exn:css:missing-value maybe-/)]
-                                 [else (let ([maybe-lh (css-line-height-filter (car rst) null)])
-                                         (cond [(not (css-token? maybe-lh)) maybe-lh]
-                                               [else (css-set!-font-property font-longhand 'line-height maybe-lh (cdr rst))]))]))])])))
+                                 [else (let* ([<line-height> (car rst)]
+                                              [height (css-line-height-filter <line-height> null)])
+                                         (unless (exn? height)
+                                           (css-set!-font-property font-longhand 'line-height height <line-height> (cdr rst))))]))])])))
 
   (define css-font-family-filter : (-> CSS-Token (Listof CSS-Token) (U (Listof (U String Symbol)) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-fonts/#font-family-prop
@@ -558,9 +553,9 @@
                       [cvalue : CSS-Token font-value]
                       [rvalues : (Listof CSS-Token) rest])
         (define maybe-family : (U String Symbol False)
-          (and (and (css:string? cvalue) (css:string-datum cvalue))
-               (css:ident-norm=<-? cvalue '(default decorative roman script  swiss      modern    system    symbol
-                                             emoji  fantasy    serif cursive sans-serif monospace system-ui math fangsong))))
+          (or (and (css:string? cvalue) (css:string-datum cvalue))
+              (css:ident-norm=<-? cvalue '(default decorative roman script  swiss      modern    system    symbol
+                                            emoji  fantasy    serif cursive sans-serif monospace system-ui math fangsong))))
         (cond [(and maybe-family)
                (define-values (maybe-term rst) (css-car rvalues))
                (cond [(pair? ylimaf) (make-exn:css:missing-delimiter cvalue)]
@@ -583,55 +578,60 @@
             [(css-declared+number%-filter font-value #false) => (make-css->racket real->double-flonum)]
             [else (css-declared+length-filter font-value)])))
 
+  (define css-font-numeric-size-filter : (case-> [CSS-Token -> (U Nonnegative-Inexact-Real CSS-Syntax-Error)]
+                                                 [CSS-Token True -> (U Nonnegative-Inexact-Real CSS-Syntax-Error)]
+                                                 [CSS-Token False -> (U Nonnegative-Inexact-Real CSS-Syntax-Error False)])
+    ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
+    (lambda [font-value [terminal? #true]]
+      (cond [(css-declared+number-filter font-value #false) => (make-css->racket real->double-flonum)]
+            [(css-declared+number%-filter font-value #false) => (make-css->racket real->single-flonum)]
+            [else (css-declared+length-filter font-value terminal?)])))
+
   (define css-font-size-filter : (case-> [CSS-Token (Listof CSS-Token) -> (U Symbol Nonnegative-Inexact-Real CSS-Syntax-Error)]
+                                         [CSS-Token (Listof CSS-Token) True -> (U Symbol Nonnegative-Inexact-Real CSS-Syntax-Error)]
                                          [CSS-Token (Listof CSS-Token) False -> (U Symbol Nonnegative-Inexact-Real
                                                                                    CSS-Syntax-Error False)])
     ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
     (lambda [font-value rest [terminal? #true]]
       (cond [(css-declared-keyword-filter font-value rest css-font-size-option #false) => values]
-            [(css-declared+number-filter font-value #false) => (make-css->racket real->double-flonum)]
-            [(css-declared+number%-filter font-value #false) => (make-css->racket real->single-flonum)]
-            [else (and terminal? (css-declared+length-filter font-value))])))
+            [else (css-font-numeric-size-filter font-value terminal?)])))
 
-  (define css-font-shorthand-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Declared-Longhand-Result Boolean)
-                                           CSS-Declared+Longhand-Result)
+  (define css-font-shorthand-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values Boolean) CSS+Longhand-Values)
     ;;; https://drafts.csswg.org/css-fonts/#font-prop
-    (lambda [property rst [font-longhand ((inst make-hasheq Symbol CSS-Value-Any))] [initial? #true]]
-      (define font-hint : (U CSS-Value-Any Symbol CSS-Syntax-Error)
-        (cond [(css:ident? property)
-               (define kywd : Symbol (css:ident-norm property))
-               (cond [(eq? kywd 'normal) kywd]
-                     [(memq kywd css-font-style-option) 'font-style]
-                     [(memq kywd css-font-variant-options/21) 'font-variant]
-                     [(memq kywd css-font-weight-option) 'font-weight]
-                     [(memq kywd css-font-stretch-option) 'font-stretch]
-                     [(memq kywd css-font-size-option) 'font-size]
-                     [(and initial? (memq kywd css-system-font-names)) (if (null? rst) kywd (make-exn:css:overconsumption rst))]
+    (lambda [property rst [font-longhand ((inst make-hasheq Symbol CSS-Datum))] [initial? #true]]
+      (define keyword : (Option Symbol) (and (css:ident? property) (css:ident-norm property)))
+      (define font-hint : (U Symbol Nonnegative-Flonum Nonnegative-Single-Flonum Integer (Listof (U String Symbol)) CSS-Syntax-Error)
+        (cond [(and keyword)
+               (cond [(eq? keyword 'normal) keyword]
+                     [(memq keyword css-font-style-option) 'font-style]
+                     [(memq keyword css-font-variant-options/21) 'font-variant]
+                     [(memq keyword css-font-weight-option) 'font-weight]
+                     [(memq keyword css-font-stretch-option) 'font-stretch]
+                     [(memq keyword css-font-size-option) 'font-size]
+                     [(and initial? (memq keyword css-system-font-names) (if (null? rst) keyword (make-exn:css:overconsumption rst)))]
                      [else (css-font-family-filter property rst)])]
               [(css:string? property) (css-font-family-filter property rst)]
-              [(css:integer=<-? property 1 <= 999) property]
-              [(css-font-size-filter property null #false) => values]
+              [(css:integer=<-? property 1 <= 999) => values]
+              [(css-font-numeric-size-filter property #false) => values]
               [else (make-exn:css:unrecognized property)]))
-      (cond [(eq? font-hint 'normal)
-             ; this keyword potentially applies to more then three properties,
-             ; and already be the default settings for all those properties.
-             (cond [(null? rst) (css-reset!-other-font-properties font-longhand css-default-font property)]
-                   [else (css-font-shorthand-filter (car rst) (cdr rst) font-longhand #false)])]
-            [(symbol? font-hint)
-             (case font-hint
-               [(caption) (css-reset!-other-font-properties font-longhand (current-css-caption-font) property)]
-               [(small-caption) (css-reset!-other-font-properties font-longhand (current-css-small-caption-font) property)]
-               [(icon) (css-reset!-other-font-properties font-longhand (current-css-icon-font) property)]
-               [(menu) (css-reset!-other-font-properties font-longhand (current-css-menu-font) property)]
-               [(message-box) (css-reset!-other-font-properties font-longhand (current-css-message-box-font) property)]
-               [(status-bar) (css-reset!-other-font-properties font-longhand (current-css-status-bar-font) property)]
-               [(font-size) (css-set!-font-size-property font-longhand property rst)]
-               [else (css-set!-font-property font-longhand font-hint property rst)])]
-            [(css:integer? font-hint) (css-set!-font-property font-longhand 'font-weight font-hint rst)]
-            [(css-token? font-hint) (css-set!-font-size-property font-longhand font-hint rst)]
-            [(pair? font-hint) ; this branch will exist only once
+      (cond [(symbol? font-hint)
+             (if (eq? font-hint 'normal) ; ignore the default option (also, this option can be applied to 3 properties)
+                 (cond [(null? rst) (css-reset!-other-font-properties font-longhand css-default-font)]
+                       [else (css-font-shorthand-filter (car rst) (cdr rst) font-longhand #false)])
+                 (case font-hint
+                   [(caption) (css-reset!-other-font-properties font-longhand (current-css-caption-font))]
+                   [(small-caption) (css-reset!-other-font-properties font-longhand (current-css-small-caption-font))]
+                   [(icon) (css-reset!-other-font-properties font-longhand (current-css-icon-font))]
+                   [(menu) (css-reset!-other-font-properties font-longhand (current-css-menu-font))]
+                   [(message-box) (css-reset!-other-font-properties font-longhand (current-css-message-box-font))]
+                   [(status-bar) (css-reset!-other-font-properties font-longhand (current-css-status-bar-font))]
+                   [(font-size) (css-set!-font-property font-longhand 'font-size font-hint property rst)]
+                   [else (css-set!-font-property font-longhand font-hint (or keyword 'should-not-happen) property rst)]))]
+            [(integer? font-hint) (css-set!-font-property font-longhand 'font-weight font-hint property rst)]
+            [(real? font-hint) (css-set!-font-property font-longhand 'font-size font-hint property rst)]
+            [(list? font-hint) ; this branch will exist only once
              (hash-set! font-longhand 'font-family font-hint)
-             (css-reset!-other-font-properties font-longhand css-default-font property)]
+             (css-reset!-other-font-properties font-longhand css-default-font)]
             [else font-hint]))))
 
 (require (submod "." css))
@@ -700,7 +700,7 @@
                  [else (make-exn:css:range color-value)])]
           [else (make-exn:css:type color-value)])))
 
-(define css-color->color% : (-> Symbol CSS-Value-Any (Instance Color%))
+(define css-color->color% : (-> Symbol CSS-Datum (Instance Color%))
   (lambda [desc-name color]
     (cond [(or (index? color) (string? color) (symbol? color)) (select-rgba-color color)]
           [(sRGBA? color) (select-rgba-color (sRGBA-hex color) (sRGBA-a color))]
@@ -708,7 +708,7 @@
           [else (select-rgba-color (hsb->rgb-index (sHSBA->rgb color) (sHSBA-h color) (sHSBA-s color) (sHSBA-b color))
                                    (sHSBA-a color))])))
 
-(define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (Option CSS-Declared+Longhand-Result))
+(define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (Option CSS+Longhand-Values))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
   ;;; https://drafts.csswg.org/css-fonts-4/#expanded-font-weight-scale
   (lambda [suitcased-name font-value rest [terminal? #true]]
@@ -792,10 +792,10 @@
     ([color : (Instance Color%)]
      [background-color : (Instance Color%)]
      [border-color : (Instance Color%)]
-     [otherwise : (Option (Listof (Pairof Symbol CSS-Value-Any)))])
+     [otherwise : (Option (Listof (Pairof Symbol CSS-Datum)))])
     #:transparent)
 
-  (define css-descriptor-filter : CSS-Declared-Value-Filter
+  (define css-descriptor-filter : CSS-Declaration-Filter
     (lambda [suitcased-name desc-value rest]
       (values (cond [(css-font-property-filter suitcased-name desc-value rest) => values]
                     [else (case suitcased-name
@@ -805,13 +805,13 @@
 
   (define css-filter : (CSS-Cascaded-Value-Filter (Option Descriptors))
     (lambda [declared-values initial-values inherit-values]
-      (make-descriptors #:color (css-ref declared-values inherit-values 'color css-color->color%)
-                        #:background-color (css-ref declared-values inherit-values 'background-color css-color->color%)
-                        #:border-color (css-ref declared-values inherit-values 'border-color css-color->color%)
-                        #:otherwise (for/list : (Listof (Pairof Symbol CSS-Value-Any)) ([desc-name (in-hash-keys declared-values)])
+      (make-descriptors #:color (css-color->color% 'color (css-ref declared-values inherit-values 'color))
+                        #:background-color (css-color->color% 'background-color (css-ref declared-values inherit-values 'background-color))
+                        #:border-color (css-color->color% 'border-color (css-ref declared-values inherit-values 'border-color))
+                        #:otherwise (for/list : (Listof (Pairof Symbol CSS-Datum)) ([desc-name (in-hash-keys declared-values)])
                                       (cons desc-name
                                             (css-ref declared-values #false desc-name
-                                                     (λ [[desc-name : Symbol] [desc-value : CSS-Value-Any]]
+                                                     (λ [[desc-name : Symbol] [desc-value : CSS-Datum]]
                                                        desc-value)))))))
   
   tamer-subject
