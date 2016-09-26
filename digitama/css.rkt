@@ -514,7 +514,6 @@
   (struct: css-@rule : CSS-@Rule ([name : CSS:@Keyword] [prelude : (Listof CSS-Token)] [block : (Option CSS:Block)]))
   (struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : (Listof+ CSS-Token)] [block : CSS:Block]))
   (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [values : (Listof+ CSS-Token)] [important? : Boolean] [lazy? : Boolean]))
-  (struct: css-declaration+var : CSS-Declaration+Var css-declaration ())
 
   ;; https://drafts.csswg.org/selectors/#grammar
   ;; https://drafts.csswg.org/selectors/#structure
@@ -1661,8 +1660,8 @@
     (lambda [id-token components]
       (define-values (maybe-: value-list) (css-car components))
       (if (css:delim=:=? maybe-: #\:)
-          (let-values ([(maybe-values important? lazy?) (css-any->declaration-value id-token value-list (css:--ident? id-token))])
-            (if (exn? maybe-values) maybe-values (make-css-declaration id-token maybe-values important? lazy?)))
+          (let-values ([(maybe-values important? references) (css-any->declaration-value id-token value-list (css:--ident? id-token))])
+            (if (exn? maybe-values) maybe-values (make-css-declaration id-token maybe-values important? references)))
           (make-exn:css:missing-colon id-token))))
 
   (define css-any->declaration-value : (-> CSS-Token (Listof CSS-Token) Boolean
@@ -1679,7 +1678,7 @@
         (if (eof-object? head)
             (let ([all (reverse lla)]) ; (reverse) does not know non-null list.
               (cond [(null? all) (values (make-exn:css:missing-value hint-token) #false lazy?)]
-                    [else (values all (and (not var?) ! #true) lazy?)]))
+                    [else (values all (and (false? var?) ! #true) lazy?)]))
             (cond [(and ! (css:ident-norm=:=? head 'important)) (fold (if var? (cons head lla) lla) ! lazy? tail)]
                   [(and !) (values (make-exn:css:unrecognized !) #false lazy?)]
                   [(css:delim=:=? head #\!) (fold lla head lazy? tail)]
@@ -2413,6 +2412,7 @@
                                               (Values Preference CSS-Values)))
     ;;; https://drafts.csswg.org/css-cascade/#filtering
     ;;; https://drafts.csswg.org/css-cascade/#cascading
+    ;;; https://drafts.csswg.org/css-variables/#cycles
     (lambda [stylesheets subject desc-filter value-filter initial-values inherited-values #:quirk? [quirk? #false]]
       (define declared-values : CSS-Values (make-hasheq))
       (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
@@ -2420,18 +2420,18 @@
           (define child-identities : (Listof Positive-Integer) (css-stylesheet-imports stylesheet))
           (cascade-stylesheets (for/list : (Listof CSS-StyleSheet) ([import (in-list child-identities)])
                                  (hash-ref (css-stylesheet-pool stylesheet) import)))
-          (css-cascade-rules (css-stylesheet-rules stylesheet) subject desc-filter inherited-values
-                             quirk? (css-stylesheet-preferences stylesheet) declared-values)))
+          (css-cascade-rules (css-stylesheet-rules stylesheet) subject desc-filter quirk?
+                             (css-stylesheet-preferences stylesheet) declared-values)))
+      (css-resolve-variables declared-values inherited-values)
       (values (value-filter declared-values initial-values inherited-values) declared-values)))
 
   (define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) CSS-Subject CSS-Declaration-Filter)
-                                   ((Option CSS-Values) Boolean CSS-Media-Preferences CSS-Values) CSS-Values)
+                                   (Boolean CSS-Media-Preferences CSS-Values) CSS-Values)
     ;;; https://drafts.csswg.org/css-cascade/#filtering
     ;;; https://drafts.csswg.org/css-cascade/#cascading
     ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
     ;;; https://drafts.csswg.org/selectors/#data-model
-    ;;; https://drafts.csswg.org/css-variables/#cycles
-    (lambda [rules subject desc-filter [inherited-values #false] [quirk? #false]
+    (lambda [rules subject desc-filter [quirk? #false]
                    [top-preferences (current-css-media-preferences)]
                    [descbase ((inst make-hasheq Symbol CSS+Lazy-Value))]]
       ; NOTE: defined the `Style-Metadata` as `List` will slow down the parsing,
@@ -2470,14 +2470,6 @@
                     (css-cascade-declarations desc-filter (vector-ref src 1) descbase)
                     (call-with-css-media #:preferences alter-preferences
                       (css-cascade-declarations desc-filter (vector-ref src 1) descbase)))))))
-      (unless (false? inherited-values) ; copy inherited variables if not present.
-        ; NOTE: Do not copy normal properties here since the properties are not always inheritable.
-        (for ([(--var lazy) (in-hash inherited-values)] #:when (symbol-unreadable? --var))
-          (hash-ref! descbase --var (thunk lazy))))
-      #|(for ([(--var lazy) (in-hash descbase)] #:when (and (symbol-unreadable? --var) (not (box? lazy))))
-          (define v : CSS-Datum (lazy))
-          (when (css-lazy? v)
-            (cond [(css-lazy-recursive?)])))|#
       descbase))
 
   (define css-cascade-declarations : (->* (CSS-Declaration-Filter (U CSS-Declarations (Listof CSS-Declarations))) (CSS-Values) CSS-Values)
@@ -2528,7 +2520,7 @@
         (define-values (:values rest)
           (let collect : (Values (Listof CSS-Token) (Listof CSS-Token)) ([seulav : (Listof CSS-Token) null]
                                                                          [rest : (Listof CSS-Token) any-values])
-            (define-values (head tail) (css-car rest))
+            (define-values (head tail) (css-car/keep-whitespace rest))
             (cond [(or (eof-object? head) (css:delim=:=? head #\;)) (values (reverse seulav) tail)]
                   [(and (css:block=:=? head #\{) (css:@keyword? id)) (values (reverse (cons head seulav)) tail)]
                   [else (collect (cons head seulav) tail)])))
@@ -2566,30 +2558,44 @@
                       (build-path pwd uri))]))
       (simple-form-path uri.css)))
 
+  (define css-resolve-variables : (-> CSS-Values (Option CSS-Values) CSS-Values)
+    ;;; https://drafts.csswg.org/css-variables/#cycles
+    (lambda [declared-values inherited-values]
+      (for ([(--var lazy) (in-hash declared-values)] #:when (and (symbol-unreadable? --var) (not (box? lazy))))
+        (define v : CSS-Datum (lazy))
+        (when (and (css-lazy? v) (css-lazy-recursive? v))
+          (define flat-values : (U (Listof CSS-Token) CSS-Syntax-Error)
+            (css-variable-substitude (css-lazy-force v) declared-values (list --var) '#:keep-whitespace))
+          (hash-set! declared-values --var
+                     (let ([lazy-value (if (pair? flat-values) (css-lazy flat-values #false) css:initial)])
+                       ; WARNING: The `css:initail` is not wrapped in `css-lazy`, that means this is an invalid variable.
+                       (thunk lazy-value)))))
+      (unless (false? inherited-values)
+        (for ([(--var lazy) (in-hash inherited-values)] #:when (symbol-unreadable? --var))
+          (hash-ref! declared-values --var (thunk lazy))))
+      declared-values))
+
   (define css-variable-substitude : (->* ((Listof CSS-Token) CSS-Values (Listof Symbol)) ((Option '#:keep-whitespace))
                                          (U (Listof CSS-Token) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-variables/#invalid-variables
-    (lambda [decl-values variables vars [keep-whitespace? #false]]
-      (let var-fold ([substituded-values : (Listof CSS-Token) null]
+    (lambda [decl-values variables refpath [keep-whitespace? #false]]
+      (let var-fold ([seulav : (Listof CSS-Token) null]
                      [rest-values : (Listof CSS-Token) decl-values])
         (define-values (head tail) (css-car rest-values))
-        (cond [(eof-object? head) (reverse (if keep-whitespace? substituded-values (filter-not css:whitespace? substituded-values)))]
-              [(not (css:var? head)) (var-fold (cons head substituded-values) tail)]
+        (cond [(eof-object? head) (reverse (if keep-whitespace? seulav (filter-not css:whitespace? seulav)))]
+              [(not (css:var? head)) (var-fold (cons head seulav) tail)]
+              [(memq (css:var-datum head) refpath) (make-exn:css:cyclic-dependency head)]
               [else (let ([--var (css:var-datum head)])
-                      (cond [(memq --var vars) (make-exn:css:cyclic-dependency head)]
-                            [else (let ([maybe-tokens (hash-ref variables --var (thunk #false))]
-                                        [fallback (css:var-fallback head)]
-                                        [lazyback? (css:var-lazy? head)])
-                                    (define-values (vs recursive?)
-                                      ; WARNING: whitespaces have not been filtered
-                                      (cond [(or (false? maybe-tokens) (box? maybe-tokens)) (values fallback lazyback?)]
-                                            [else (let ([v (maybe-tokens)])
-                                                    (cond [(css-lazy? v) (values (css-lazy-force v) (css-lazy-recursive? v))]
-                                                          [else (values fallback lazyback?)]))]))
-                                    (cond [(null? vs) null #|Yes, whitespace-only token list is also valid|#]
-                                          [(not recursive?) (var-fold (append (reverse vs) substituded-values) tail)]
-                                          [else (let ([rs (css-variable-substitude vs variables (cons --var vars) keep-whitespace?)])
-                                                  (if (pair? rs) (var-fold (append rs substituded-values) tail) rs))]))]))])))))
+                      (define lazy-tokens : CSS+Lazy-Value (hash-ref variables --var (thunk (thunk css:initial))))
+                      (define-values (--vs lazy?)
+                        (cond [(box? lazy-tokens) (values (css:var-fallback head) (css:var-lazy? head))]
+                              [else (let ([v (lazy-tokens)])
+                                      (cond [(css-lazy? v) (values (css-lazy-force v) (css-lazy-recursive? v))]
+                                            [else (values (css:var-fallback head) (css:var-lazy? head))]))]))
+                      (cond [(null? --vs) null #|Yes, whitespace-only token list is also valid|#]
+                            [(not lazy?) (var-fold (append (reverse --vs) seulav) tail)]
+                            [else (let ([vs (css-variable-substitude --vs variables (cons --var refpath) keep-whitespace?)])
+                                    (if (pair? vs) (var-fold (append (reverse vs) seulav) tail) vs))]))])))))
 
 (require (submod "." digitama))
 (require (submod "." parser))
