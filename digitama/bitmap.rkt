@@ -768,10 +768,10 @@
   (define tamer-bitmap-test : CSS-Subject (make-css-subject #:type 'module #:id '#:header #:classes '(main)))
 
   (define-preference bmp #:as Bitmap-Test-Preference
-    ([function-color : Color+sRGB                             #:= 'Blue]
+    ([symbol-color : Color+sRGB                               #:= 'Blue]
      [string-color : Color+sRGB                               #:= 'Orange]
      [number-color : Color+sRGB                               #:= 'Tomato]
-     [type-color : Color+sRGB                                 #:= 'Purple]
+     [output-color : Color+sRGB                               #:= 'Purple]
      [paran-color : Color+sRGB                                #:= 'Sienna]
      [border-color : Color+sRGB                               #:= 'Lavender]
      [background-color : Color+sRGB                           #:= "Honeydew"]
@@ -781,7 +781,7 @@
   (define css-descriptor-filter : CSS-Declaration-Filter
     (lambda [suitcased-name desc-value rest]
       (values (cond [(css-font-property-filter suitcased-name desc-value rest) => values]
-                    [(memq suitcased-name '(paran-color function-color string-color number-color type-color
+                    [(memq suitcased-name '(paran-color symbol-color string-color number-color output-color
                                                         background-color border-color))
                      => (λ [v] (css-declared-color-filter desc-value rest))]
                     [else (map css-token->datum (cons desc-value rest))])
@@ -789,10 +789,10 @@
 
   (define css-preference-filter : (CSS-Cascaded-Value-Filter Bitmap-Test-Preference)
     (lambda [declared-values initial-values inherit-values]
-      (make-bmp #:function-color (css-color->color% (css-ref declared-values inherit-values 'function-color))
+      (make-bmp #:symbol-color (css-color->color% (css-ref declared-values inherit-values 'symbol-color))
                 #:string-color (css-color->color% (css-ref declared-values inherit-values 'string-color))
                 #:number-color (css-color->color% (css-ref declared-values inherit-values 'number-color))
-                #:type-color (css-color->color% (css-ref declared-values inherit-values 'type-color))
+                #:output-color (css-color->color% (css-ref declared-values inherit-values 'output-color))
                 #:paran-color (css-color->color% (css-ref declared-values inherit-values 'paran-color))
                 #:border-color (css-color->color% (css-ref declared-values inherit-values 'border-color))
                 #:background-color (css-color->color% (css-ref declared-values inherit-values 'background-color))
@@ -832,11 +832,11 @@
                                      (bitmap-text "> ")
                                      (bitmap-text "(" #:color (bmp-paran-color btp))
                                      (bitmap-hc-append #:gapsize 7
-                                                       (bitmap-text "bitmap-desc" #:color (bmp-function-color btp))
+                                                       (bitmap-text "bitmap-desc" #:color (bmp-symbol-color btp))
                                                        (bitmap-text (~s words) #:color (bmp-string-color btp))
                                                        (bitmap-text (~a width) #:color (bmp-number-color btp)))
                                      (bitmap-text ")" #:color (bmp-paran-color btp)))
-                         (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color (bmp-type-color btp))
+                         (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color (bmp-output-color btp))
                          (bitmap-pin 0 0 0 0
                                      (bitmap-frame desc #:margin 1 #:border-style 'transparent #:style 'transparent)
                                      (bitmap-frame (bitmap-blank width height) #:border-color (bmp-border-color btp)))
