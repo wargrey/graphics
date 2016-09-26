@@ -248,7 +248,6 @@ body { background: #FFFFFF url("http://somesite.com/images/someimage.gif") repea
 body {
 	background-url: url("http://somesite.com/images/someimage.gif");
 }#header {
---string-color: "GREY";
 	margin: 10px 2em 1cm 2%;
 	font-family: Verdana, Helvetica, Gill Sans, sans-serif;
 	color: var(--string-color);
@@ -256,6 +255,17 @@ body {
 	background-color: HsIa(240.4deg, 13.5%, 57%, 0.7);
 	frequency: 30Hz;
 }
+
+#header{
+    --cyclic: var(--dependency);
+    --dependency: var(--cyclic);
+    --self-dependency: var(--self-dependency);
+    --whitespace: ;
+    --undefined: var(--missing-variable);
+    --pseudo-color: var(--pseudo, var(--whitespace)var(--string-color));
+    --string-color: var(--whitespace)"GREY"var(--whitespace);
+}
+
 body {
 	color: green;
 	font: 75% "Lucida Grande", "Trebuchet MS", Verdana, sans-serif;
