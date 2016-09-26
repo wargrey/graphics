@@ -56,20 +56,20 @@
     (syntax-case stx [:]
       [(_ preference #:as Preference ([property : DataType info ...] ...) options ...)
        (with-syntax* ([make-preference (format-id #'preference "make-~a" (syntax-e #'preference))]
-                      [([defval ...] ...)
-                       (for/list ([field-info (in-list (syntax->list #'([DataType info ...] ...)))])
+                      [([maybe-property ArgType defval ...] ...)
+                       (for/list ([field-info (in-list (syntax->list #'([property DataType info ...] ...)))])
                          (syntax-case field-info [Option]
-                           [(DataType #:= defval) #'(defval)]
-                           [((Option T)) #'(#false)]
-                           [(DataType) #'()]))]
+                           [(property DataType #:= defval) #'((or property defval) (Option DataType) defval)]
+                           [(property (Option T)) #'(property (Option T) #false)]
+                           [(property DataType) #'(property DataType)]))]
                       [(args ...) (for/fold ([args null])
                                             ([field (in-list (syntax->list #'(property ...)))]
-                                             [arg (in-list (syntax->list #'([property : DataType defval ...] ...)))])
+                                             [arg (in-list (syntax->list #'([property : ArgType defval ...] ...)))])
                                     (cons (datum->syntax field (string->keyword (symbol->string (syntax-e field))))
                                           (cons arg args)))])
          #'(begin (define-type Preference preference)
                   (struct preference ([property : DataType] ...) options ...)
-                  (define (make-preference args ...) : Preference (preference property ...))))]))
+                  (define (make-preference args ...) : Preference (preference maybe-property ...))))]))
   
   (define-syntax (struct: stx)
     (syntax-case stx [:]

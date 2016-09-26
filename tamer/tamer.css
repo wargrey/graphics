@@ -281,7 +281,7 @@ module.main {
    string-color: rgba(255, 128, 0);
    number-color: rgba(148, 22, 81);
    output-color: rgba(150, 0, 150);
-   paran-color: rgba(147, 81, 0);
+   paren-color: rgba(147, 81, 0);
    background-color: "Honeydew";
    border-color: var(--gray);
 }

@@ -708,16 +708,14 @@
                  [else (make-exn:css:range color-value)])]
           [else (make-exn:css:type color-value)])))
 
-(define css-color->color% : (case-> [CSS-Datum -> (Instance Color%)]
-                                    [CSS-Datum True -> (Instance Color%)]
-                                    [CSS-Datum False -> (Option (Instance Color%))])
-  (lambda [color [terminate? #true]]
+(define css-color->color% : (-> CSS-Datum (Option (Instance Color%)))
+  (lambda [color]
     (cond [(or (index? color) (string? color) (symbol? color)) (select-rgba-color color)]
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
           [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
           [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
           [(object? color) (cast color (Instance Color%))]
-          [else (and terminate? (select-rgba-color #x000000))])))
+          [else #false])))
 
 (define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (Option CSS+Longhand-Values))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
@@ -772,7 +770,7 @@
      [string-color : Color+sRGB                               #:= 'Orange]
      [number-color : Color+sRGB                               #:= 'Tomato]
      [output-color : Color+sRGB                               #:= 'Purple]
-     [paran-color : Color+sRGB                                #:= 'Sienna]
+     [paren-color : Color+sRGB                                #:= 'Sienna]
      [border-color : Color+sRGB                               #:= 'Lavender]
      [background-color : Color+sRGB                           #:= "Honeydew"]
      [otherwise : (Option (Listof (Pairof Symbol CSS-Datum))) #:= #false])
@@ -781,7 +779,7 @@
   (define css-descriptor-filter : CSS-Declaration-Filter
     (lambda [suitcased-name desc-value rest]
       (values (cond [(css-font-property-filter suitcased-name desc-value rest) => values]
-                    [(memq suitcased-name '(paran-color symbol-color string-color number-color output-color
+                    [(memq suitcased-name '(paren-color symbol-color string-color number-color output-color
                                                         background-color border-color))
                      => (λ [v] (css-declared-color-filter desc-value rest))]
                     [else (map css-token->datum (cons desc-value rest))])
@@ -793,7 +791,7 @@
                 #:string-color (css-color->color% (css-ref declared-values inherit-values 'string-color))
                 #:number-color (css-color->color% (css-ref declared-values inherit-values 'number-color))
                 #:output-color (css-color->color% (css-ref declared-values inherit-values 'output-color))
-                #:paran-color (css-color->color% (css-ref declared-values inherit-values 'paran-color))
+                #:paren-color (css-color->color% (css-ref declared-values inherit-values 'paren-color))
                 #:border-color (css-color->color% (css-ref declared-values inherit-values 'border-color))
                 #:background-color (css-color->color% (css-ref declared-values inherit-values 'background-color))
                 #:otherwise (for/list : (Listof (Pairof Symbol CSS-Datum)) ([desc-name (in-hash-keys declared-values)])
@@ -830,12 +828,12 @@
            (append bitmap-descs
                    (list (bitmap-pin 1 1/2 0 1/2
                                      (bitmap-text "> ")
-                                     (bitmap-text "(" #:color (bmp-paran-color btp))
+                                     (bitmap-text "(" #:color (bmp-paren-color btp))
                                      (bitmap-hc-append #:gapsize 7
                                                        (bitmap-text "bitmap-desc" #:color (bmp-symbol-color btp))
                                                        (bitmap-text (~s words) #:color (bmp-string-color btp))
                                                        (bitmap-text (~a width) #:color (bmp-number-color btp)))
-                                     (bitmap-text ")" #:color (bmp-paran-color btp)))
+                                     (bitmap-text ")" #:color (bmp-paren-color btp)))
                          (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color (bmp-output-color btp))
                          (bitmap-pin 0 0 0 0
                                      (bitmap-frame desc #:margin 1 #:border-style 'transparent #:style 'transparent)
