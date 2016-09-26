@@ -2430,6 +2430,7 @@
     ;;; https://drafts.csswg.org/css-cascade/#cascading
     ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
     ;;; https://drafts.csswg.org/selectors/#data-model
+    ;;; https://drafts.csswg.org/css-variables/#cycles
     (lambda [rules subject desc-filter [inherited-values #false] [quirk? #false]
                    [top-preferences (current-css-media-preferences)]
                    [descbase ((inst make-hasheq Symbol CSS+Lazy-Value))]]
@@ -2473,6 +2474,10 @@
         ; NOTE: Do not copy normal properties here since the properties are not always inheritable.
         (for ([(--var lazy) (in-hash inherited-values)] #:when (symbol-unreadable? --var))
           (hash-ref! descbase --var (thunk lazy))))
+      #|(for ([(--var lazy) (in-hash descbase)] #:when (and (symbol-unreadable? --var) (not (box? lazy))))
+          (define v : CSS-Datum (lazy))
+          (when (css-lazy? v)
+            (cond [(css-lazy-recursive?)])))|#
       descbase))
 
   (define css-cascade-declarations : (->* (CSS-Declaration-Filter (U CSS-Declarations (Listof CSS-Declarations))) (CSS-Values) CSS-Values)
@@ -2561,26 +2566,30 @@
                       (build-path pwd uri))]))
       (simple-form-path uri.css)))
 
-  (define css-variable-substitude : (->* ((Listof CSS-Token) CSS-Values) ((Listof Symbol)) (U (Listof CSS-Token) CSS-Syntax-Error))
-    (lambda [decl-values variables [varpaths null]]
+  (define css-variable-substitude : (->* ((Listof CSS-Token) CSS-Values (Listof Symbol)) ((Option '#:keep-whitespace))
+                                         (U (Listof CSS-Token) CSS-Syntax-Error))
+    ;;; https://drafts.csswg.org/css-variables/#invalid-variables
+    (lambda [decl-values variables vars [keep-whitespace? #false]]
       (let var-fold ([substituded-values : (Listof CSS-Token) null]
                      [rest-values : (Listof CSS-Token) decl-values])
         (define-values (head tail) (css-car rest-values))
-        (cond [(eof-object? head) substituded-values]
+        (cond [(eof-object? head) (reverse (if keep-whitespace? substituded-values (filter-not css:whitespace? substituded-values)))]
               [(not (css:var? head)) (var-fold (cons head substituded-values) tail)]
               [else (let ([--var (css:var-datum head)])
-                      (cond [(memq --var varpaths) (make-exn:css:cyclic-dependency head)]
-                            [else (let ([var-values (css:var-substitude --var (css:var-fallback head) variables)])
-                                    ; NOTE: whitespaces have not been filtered in the `var-values`
-                                    null)]))]))))
-
-  (define css:var-substitude : (-> Symbol (Listof CSS-Token) CSS-Values (Listof CSS-Token))
-    (lambda [--var fallback variables]
-      (define maybe-tokens : (Option CSS+Lazy-Value) (hash-ref variables --var (thunk #false)))
-      (cond [(or (false? maybe-tokens) (box? maybe-tokens)) fallback]
-            [else (let ([tokens (maybe-tokens)])
-                    (cond [(css-lazy? tokens) (css-lazy-force tokens)]
-                          [else fallback]))]))))
+                      (cond [(memq --var vars) (make-exn:css:cyclic-dependency head)]
+                            [else (let ([maybe-tokens (hash-ref variables --var (thunk #false))]
+                                        [fallback (css:var-fallback head)]
+                                        [lazyback? (css:var-lazy? head)])
+                                    (define-values (vs recursive?)
+                                      ; WARNING: whitespaces have not been filtered
+                                      (cond [(or (false? maybe-tokens) (box? maybe-tokens)) (values fallback lazyback?)]
+                                            [else (let ([v (maybe-tokens)])
+                                                    (cond [(css-lazy? v) (values (css-lazy-force v) (css-lazy-recursive? v))]
+                                                          [else (values fallback lazyback?)]))]))
+                                    (cond [(null? vs) null #|Yes, whitespace-only token list is also valid|#]
+                                          [(not recursive?) (var-fold (append (reverse vs) substituded-values) tail)]
+                                          [else (let ([rs (css-variable-substitude vs variables (cons --var vars) keep-whitespace?)])
+                                                  (if (pair? rs) (var-fold (append rs substituded-values) tail) rs))]))]))])))))
 
 (require (submod "." digitama))
 (require (submod "." parser))
@@ -2638,9 +2647,9 @@
   (collect-garbage)
   (collect-garbage)
   (collect-garbage)
-  (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer.css)))  
-  (define tamer-subject : CSS-Subject (make-css-subject #:type 'body #:id '#:123))
-  (define tamer-header : CSS-Subject (make-css-subject #:type 'html #:id '#:header))
+  (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer.css)))
+  (define tamer-html : CSS-Subject (make-css-subject #:type 'html #:id '#:header))
+  (define tamer-body : CSS-Subject (make-css-subject #:type 'body #:id '#:123))
 
   (define css-declaration-filter : CSS-Declaration-Filter
     (lambda [suitcased-name desc-value rest]
@@ -2652,20 +2661,19 @@
         (values desc-name (css-ref declared-values inherited-values desc-name)))))
 
   tamer-sheet
-  tamer-subject
+  tamer-html
+  (match-define (list preference header-preference)
+    (time-run (let-values ([(preference for-children)
+                            (css-cascade (list tamer-sheet) tamer-html css-declaration-filter
+                                         css-filter #false  #false)])
+                (list preference for-children))))
+  (when (hash? preference) (hash->list preference))
+
+  tamer-body
   (time-run (let-values ([(preference for-children)
-                          (css-cascade (list tamer-sheet) tamer-subject css-declaration-filter
-                                       css-filter #false #false)])
-              preference))
-  
-  (collect-garbage)
-  (collect-garbage)
-  (collect-garbage)
-  tamer-header
-  (time-run (let-values ([(preference for-children)
-                          (css-cascade (list tamer-sheet) tamer-header css-declaration-filter
-                                       css-filter #false #false)])
-              preference))
+                          (css-cascade (list tamer-sheet) tamer-body css-declaration-filter
+                                       css-filter #false header-preference)])
+              (when (hash? preference) (hash->list preference))))
 
   (map (λ [[in : String]] : (Pairof String Integer)
          (let ([maybe-complex-selectors (css-parse-selectors in)])
