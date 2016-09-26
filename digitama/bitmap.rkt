@@ -361,8 +361,9 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-css-value css-color #:as CSS-Color ())
-  (struct sRGBA css-color ([hex : Index] [a : Nonnegative-Flonum]) #:transparent)
-  (struct sHSBA css-color ([h : Real] [s : Real] [b : Real] [a : Nonnegative-Flonum] [>rgb : HSB->RGB]) #:transparent)
+  (struct hexa css-color ([hex : Index] [a : Nonnegative-Flonum]) #:transparent #:type-name HEXA)
+  (struct rgba css-color ([r : Byte] [g : Byte] [b : Byte] [a : Nonnegative-Flonum]) #:transparent #:type-name RGBA)
+  (struct hsba css-color ([>rgb : HSB->RGB] [h : Real] [s : Real] [b : Real] [a : Nonnegative-Flonum]) #:transparent #:type-name HSBA)
   
   (define the-color-pool : (HashTable Fixnum (Instance Color%)) (make-hasheq))
   
@@ -434,7 +435,8 @@
 
   (define css-hue->scalar : (-> CSS-Token (U Real CSS-Syntax-Error))
     (lambda [t]
-      (cond [(css-number? t) (css-number->datum t)]
+      (cond [(css:integer? t) (css:integer-datum t)]
+            [(css:flonum? t) (css:flonum-datum t)]
             [else (css-declared-angle-filter t)])))
 
   (define css-sb%->scalar : (-> CSS-Token (U Single-Flonum CSS-Syntax-Error))
@@ -463,7 +465,7 @@
                                           [(not following?) (values (make-exn:css:missing-value token) size)]
                                           [else (values (make-exn:css:unrecognized token) size)]))]))]))))
   
-  (define css-extract-rgba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) (U sRGBA Void))
+  (define css-extract-rgba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) (U RGBA Void CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-color/#rgb-functions
     (lambda [frgba args]
       (define-values (rgba-tokens argsize) (css-color-delimiter-filter frgba args 3))
@@ -471,11 +473,14 @@
         (define r : (U Integer CSS-Syntax-Error) (css-rgb->scalar (list-ref rgba-tokens 0)))
         (define g : (U Integer CSS-Syntax-Error) (css-rgb->scalar (list-ref rgba-tokens 1)))
         (define b : (U Integer CSS-Syntax-Error) (css-rgb->scalar (list-ref rgba-tokens 2)))
-        (define a : (U Flonum CSS-Syntax-Error) (if (fx= argsize 4) (css-declared+percentage%-filter (last rgba-tokens)) 1.0))
-        (when (and (byte? r) (byte? g) (byte? b) (nonnegative-flonum? a))
-          (sRGBA (rgb-bytes->index r g b) a)))))
+        (define a : (U Nonnegative-Flonum CSS-Syntax-Error) (if (fx= argsize 4) (css-declared+percentage%-filter (last rgba-tokens)) 1.0))
+        (cond [(and (byte? r) (byte? g) (byte? b) (nonnegative-flonum? a)) (rgba r g b a)]
+              [(exn:css? r) r]
+              [(exn:css? g) g]
+              [(exn:css? b) b]
+              [(exn:css? a) a]))))
 
-  (define css-extract-hsba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) HSB->RGB (U sHSBA Void))
+  (define css-extract-hsba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) HSB->RGB (U HSBA Void CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
     (lambda [fhsba args ->rgb]
       (define-values (hsba-tokens argsize) (css-color-delimiter-filter fhsba args 3))
@@ -483,9 +488,12 @@
         (define h : (U Real CSS-Syntax-Error) (css-hue->scalar (list-ref hsba-tokens 0)))
         (define s : (U Single-Flonum CSS-Syntax-Error) (css-sb%->scalar (list-ref hsba-tokens 1)))
         (define b : (U Single-Flonum CSS-Syntax-Error) (css-sb%->scalar (list-ref hsba-tokens 2)))
-        (define a : (U Flonum CSS-Syntax-Error) (if (fx= argsize 4) (css-declared+percentage%-filter (last hsba-tokens)) 1.0))
-        (when (and (real? h) (single-flonum? s) (single-flonum? b) (nonnegative-flonum? a))
-          (sHSBA h s b a ->rgb)))))
+        (define a : (U Nonnegative-Flonum CSS-Syntax-Error) (if (fx= argsize 4) (css-declared+percentage%-filter (last hsba-tokens)) 1.0))
+        (cond [(and (real? h) (single-flonum? s) (single-flonum? b) (nonnegative-flonum? a)) (hsba ->rgb h s b a)]
+              [(exn:css? h) h]
+              [(exn:css? s) s]
+              [(exn:css? b) b]
+              [(exn:css? a) a]))))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-default-font : (Instance Font%) (make-font))
@@ -644,7 +652,7 @@
            (define hashcode : Nonnegative-Fixnum (fxand color-representation #xFFFFFF))
            (hash-ref! the-color-pool
                       (if opaque? hashcode (eqv-hash-code (make-rectangular hashcode abyte)))
-                      (thunk (let-values ([(r g b) (index->rgb-bytes color-representation)])
+                      (thunk (let-values ([(r g b) (hex->rgb-bytes color-representation)])
                                (make-color r g b (fl/ (fx->fl abyte) 255.0)))))]
           [(symbol? color-representation)
            (let try-again ([color-name : Symbol color-representation]
@@ -662,7 +670,7 @@
              (cond [(false? color) (select-rgba-color 0 alpha)]
                    [else (hash-ref! the-color-pool
                                     (equal-hash-code (if opaque? color-name (cons color-name abyte)))
-                                    (thunk (select-rgba-color (rgb-bytes->index (send color red) (send color green) (send color blue))
+                                    (thunk (select-rgba-color (rgb-bytes->hex (send color red) (send color green) (send color blue))
                                                               alpha)))]))]
           [else color-representation])))
 
@@ -683,7 +691,7 @@
            (define-values (maybe-rgb alpha) (css-hex-color->rgba (css:hash-norm color-value)))
            (cond [(false? maybe-rgb) (make-exn:css:range color-value)]
                  [(fl= alpha 1.0) maybe-rgb]
-                 [else (sRGBA maybe-rgb alpha)])]
+                 [else (hexa maybe-rgb alpha)])]
           [(css:function? color-value)
            (case (css:function-norm color-value)
              [(rgb rgba) (css-extract-rgba color-value (css:function-arguments color-value))]
@@ -703,10 +711,11 @@
 (define css-color->color% : (-> Symbol CSS-Datum (Instance Color%))
   (lambda [desc-name color]
     (cond [(or (index? color) (string? color) (symbol? color)) (select-rgba-color color)]
-          [(sRGBA? color) (select-rgba-color (sRGBA-hex color) (sRGBA-a color))]
-          [(not (sHSBA? color)) (if (object? color) (cast color (Instance Color%)) (select-rgba-color #x000000))]
-          [else (select-rgba-color (hsb->rgb-index (sHSBA->rgb color) (sHSBA-h color) (sHSBA-s color) (sHSBA-b color))
-                                   (sHSBA-a color))])))
+          [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
+          [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
+          [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
+          [(object? color) (cast color (Instance Color%))]
+          [else (select-rgba-color #x000000)])))
 
 (define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (Option CSS+Longhand-Values))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
@@ -726,7 +735,7 @@
       [(font-weight)
        (cond [(css-declared-keyword-filter font-value rest css-font-weight-option #false) => values]
              [(css:integer=<-? font-value 1 <= 999) => values]
-             [(or (css:ident? font-value) (css:integer? font-value)) (make-exn:css:range font-value)]
+             [(css:integer? font-value) (make-exn:css:range font-value)]
              [else (make-exn:css:type font-value)])]
       [(font-size-adjust)
        (cond [(pair? rest) (make-exn:css:overconsumption rest)]
