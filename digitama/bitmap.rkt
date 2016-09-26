@@ -590,19 +590,19 @@
                                                  [CSS-Token True -> (U Nonnegative-Inexact-Real CSS-Syntax-Error)]
                                                  [CSS-Token False -> (U Nonnegative-Inexact-Real CSS-Syntax-Error False)])
     ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
-    (lambda [font-value [terminal? #true]]
+    (lambda [font-value [terminate? #true]]
       (cond [(css-declared+number-filter font-value #false) => (make-css->racket real->double-flonum)]
             [(css-declared+number%-filter font-value #false) => (make-css->racket real->single-flonum)]
-            [else (css-declared+length-filter font-value terminal?)])))
+            [else (css-declared+length-filter font-value terminate?)])))
 
   (define css-font-size-filter : (case-> [CSS-Token (Listof CSS-Token) -> (U Symbol Nonnegative-Inexact-Real CSS-Syntax-Error)]
                                          [CSS-Token (Listof CSS-Token) True -> (U Symbol Nonnegative-Inexact-Real CSS-Syntax-Error)]
                                          [CSS-Token (Listof CSS-Token) False -> (U Symbol Nonnegative-Inexact-Real
                                                                                    CSS-Syntax-Error False)])
     ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
-    (lambda [font-value rest [terminal? #true]]
+    (lambda [font-value rest [terminate? #true]]
       (cond [(css-declared-keyword-filter font-value rest css-font-size-option #false) => values]
-            [else (css-font-numeric-size-filter font-value terminal?)])))
+            [else (css-font-numeric-size-filter font-value terminate?)])))
 
   (define css-font-shorthand-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values Boolean) CSS+Longhand-Values)
     ;;; https://drafts.csswg.org/css-fonts/#font-prop
@@ -708,19 +708,21 @@
                  [else (make-exn:css:range color-value)])]
           [else (make-exn:css:type color-value)])))
 
-(define css-color->color% : (-> Symbol CSS-Datum (Instance Color%))
-  (lambda [desc-name color]
+(define css-color->color% : (case-> [CSS-Datum -> (Instance Color%)]
+                                    [CSS-Datum True -> (Instance Color%)]
+                                    [CSS-Datum False -> (Option (Instance Color%))])
+  (lambda [color [terminate? #true]]
     (cond [(or (index? color) (string? color) (symbol? color)) (select-rgba-color color)]
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
           [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
           [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
           [(object? color) (cast color (Instance Color%))]
-          [else (select-rgba-color #x000000)])))
+          [else (and terminate? (select-rgba-color #x000000))])))
 
 (define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (Option CSS+Longhand-Values))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
   ;;; https://drafts.csswg.org/css-fonts-4/#expanded-font-weight-scale
-  (lambda [suitcased-name font-value rest [terminal? #true]]
+  (lambda [suitcased-name font-value rest [terminate? #true]]
     (case suitcased-name
       [(font) (css-font-shorthand-filter font-value rest)]
       [(font-family) (css-font-family-filter font-value rest)]
@@ -750,38 +752,6 @@
     initial-font))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module+ test
-  (apply bitmap-vl-append
-         (for/fold ([bitmap-descs : (Listof Bitmap) null])
-                   ([width (in-list (list 32 16  2   2             32  32               32               256 256))]
-                    [words (in-list (list "" " " "!" "bitmap-desc" "!" "Hello, Racket!" "Hello,\nWorld!"
-                                          (string-join (list "That last testcase is not a mysterious phenomena:"
-                                                             "It seemed to do some strange optimizing so that"
-                                                             "no single letter would be printed in a single line."
-                                                             "\n\nBug Fixed!"))
-                                          "最后一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。此缺陷已修正！"))])
-           (define desc (bitmap-desc words width #:background-color "Honeydew" #:combine? #false))
-           (define combined-desc (bitmap-desc words width #:background-color "Honeydew" #:combine? #true))
-           (define-values (normal-width combined-width) (values (send desc get-width) (send combined-desc get-width)))
-           (define-values (height combined-height) (values (send desc get-height) (send combined-desc get-height)))
-           (append bitmap-descs
-                   (list (bitmap-pin 1 1/2 0 1/2
-                                     (bitmap-text "> ")
-                                     (bitmap-text "(" #:color 'Sienna)
-                                     (bitmap-hc-append #:gapsize 7
-                                                       (bitmap-text "bitmap-desc" #:color 'Blue)
-                                                       (bitmap-text (~s words) #:color 'Orange)
-                                                       (bitmap-text (~a width) #:color 'Tomato))
-                                     (bitmap-text ")" #:color 'Sienna))
-                         (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color 'Purple)
-                         (bitmap-pin 0 0 0 0
-                                     (bitmap-frame desc #:margin 1 #:border-style 'transparent #:style 'transparent)
-                                     (bitmap-frame (bitmap-blank width height) #:border-color 'Lavender))
-                         (bitmap-text (format "- : (Bitmap ~a ~a #:combined)" combined-width combined-height) #:color 'Purple)
-                         (bitmap-lt-superimpose (bitmap-frame combined-desc #:margin 1 #:border-style 'transparent #:style 'transparent)
-                                                (bitmap-frame (bitmap-blank width combined-height) #:border-color 'Lavender)))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* main typed/racket
   (require "css.rkt")
   (require (submod ".."))
@@ -795,40 +765,82 @@
           (cons 'height 820))))
   
   (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer.css)))
-  (define tamer-subject : CSS-Subject (make-css-subject #:type 'body #:id '#:header))
+  (define tamer-bitmap-test : CSS-Subject (make-css-subject #:type 'module #:id '#:header #:classes '(main)))
 
-  (define-preference descriptors #:as Descriptors
-    ([color : (Instance Color%)]
-     [background-color : (Instance Color%)]
-     [border-color : (Instance Color%)]
-     [otherwise : (Option (Listof (Pairof Symbol CSS-Datum)))])
+  (define-preference bmp #:as Bitmap-Test-Preference
+    ([function-color : Color+sRGB                             #:= 'Blue]
+     [string-color : Color+sRGB                               #:= 'Orange]
+     [number-color : Color+sRGB                               #:= 'Tomato]
+     [type-color : Color+sRGB                                 #:= 'Purple]
+     [paran-color : Color+sRGB                                #:= 'Sienna]
+     [border-color : Color+sRGB                               #:= 'Lavender]
+     [background-color : Color+sRGB                           #:= "Honeydew"]
+     [otherwise : (Option (Listof (Pairof Symbol CSS-Datum))) #:= #false])
     #:transparent)
 
   (define css-descriptor-filter : CSS-Declaration-Filter
     (lambda [suitcased-name desc-value rest]
       (values (cond [(css-font-property-filter suitcased-name desc-value rest) => values]
-                    [else (case suitcased-name
-                            [(color background-color border-color) (css-declared-color-filter desc-value rest)]
-                            [else (map css-token->datum (cons desc-value rest))])])
+                    [(memq suitcased-name '(paran-color function-color string-color number-color type-color
+                                                        background-color border-color))
+                     => (λ [v] (css-declared-color-filter desc-value rest))]
+                    [else (map css-token->datum (cons desc-value rest))])
               #false)))
 
-  (define css-filter : (CSS-Cascaded-Value-Filter (Option Descriptors))
+  (define css-preference-filter : (CSS-Cascaded-Value-Filter Bitmap-Test-Preference)
     (lambda [declared-values initial-values inherit-values]
-      (make-descriptors #:color (css-color->color% 'color (css-ref declared-values inherit-values 'color))
-                        #:background-color (css-color->color% 'background-color (css-ref declared-values inherit-values 'background-color))
-                        #:border-color (css-color->color% 'border-color (css-ref declared-values inherit-values 'border-color))
-                        #:otherwise (for/list : (Listof (Pairof Symbol CSS-Datum)) ([desc-name (in-hash-keys declared-values)])
-                                      (cons desc-name
-                                            (css-ref declared-values #false desc-name
-                                                     (λ [[desc-name : Symbol] [desc-value : CSS-Datum]]
-                                                       desc-value)))))))
+      (make-bmp #:function-color (css-color->color% (css-ref declared-values inherit-values 'function-color))
+                #:string-color (css-color->color% (css-ref declared-values inherit-values 'string-color))
+                #:number-color (css-color->color% (css-ref declared-values inherit-values 'number-color))
+                #:type-color (css-color->color% (css-ref declared-values inherit-values 'type-color))
+                #:paran-color (css-color->color% (css-ref declared-values inherit-values 'paran-color))
+                #:border-color (css-color->color% (css-ref declared-values inherit-values 'border-color))
+                #:background-color (css-color->color% (css-ref declared-values inherit-values 'background-color))
+                #:otherwise (for/list : (Listof (Pairof Symbol CSS-Datum)) ([desc-name (in-hash-keys declared-values)])
+                              (cons desc-name
+                                    (css-ref declared-values #false desc-name
+                                             (λ [[desc-name : Symbol] [desc-value : CSS-Datum]]
+                                               desc-value)))))))
   
-  tamer-subject
-  (time-run (let-values ([(preference for-children)
-                          (css-cascade (list tamer-sheet)
-                                       tamer-subject
-                                       css-descriptor-filter
-                                       css-filter
-                                       #false
-                                       #false)])
-              preference)))
+  tamer-bitmap-test
+  (define btp : Bitmap-Test-Preference
+    (time-run (let-values ([(preference for-children)
+                            (css-cascade (list tamer-sheet)
+                                         tamer-bitmap-test
+                                         css-descriptor-filter
+                                         css-preference-filter
+                                         (make-bmp)
+                                         #false)])
+                preference)))
+
+  btp
+  (apply bitmap-vl-append
+         (for/fold ([bitmap-descs : (Listof Bitmap) null])
+                   ([width (in-list (list 32 16  2   2             32  32               32               256 256))]
+                    [words (in-list (list "" " " "!" "bitmap-desc" "!" "Hello, Racket!" "Hello,\nWorld!"
+                                          (string-join (list "That last testcase is not a mysterious phenomena:"
+                                                             "It seemed to do some strange optimizing so that"
+                                                             "no single letter would be printed in a single line."
+                                                             "\n\nBug Fixed!"))
+                                          "最后一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。此缺陷已修正！"))])
+           (define desc (bitmap-desc words width #:background-color (bmp-background-color btp) #:combine? #false))
+           (define combined-desc (bitmap-desc words width #:background-color (bmp-background-color btp) #:combine? #true))
+           (define-values (normal-width combined-width) (values (send desc get-width) (send combined-desc get-width)))
+           (define-values (height combined-height) (values (send desc get-height) (send combined-desc get-height)))
+           (append bitmap-descs
+                   (list (bitmap-pin 1 1/2 0 1/2
+                                     (bitmap-text "> ")
+                                     (bitmap-text "(" #:color (bmp-paran-color btp))
+                                     (bitmap-hc-append #:gapsize 7
+                                                       (bitmap-text "bitmap-desc" #:color (bmp-function-color btp))
+                                                       (bitmap-text (~s words) #:color (bmp-string-color btp))
+                                                       (bitmap-text (~a width) #:color (bmp-number-color btp)))
+                                     (bitmap-text ")" #:color (bmp-paran-color btp)))
+                         (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color (bmp-type-color btp))
+                         (bitmap-pin 0 0 0 0
+                                     (bitmap-frame desc #:margin 1 #:border-style 'transparent #:style 'transparent)
+                                     (bitmap-frame (bitmap-blank width height) #:border-color (bmp-border-color btp)))
+                         (bitmap-text (format "- : (Bitmap ~a ~a #:combined)" combined-width combined-height) #:color 'Purple)
+                         (bitmap-lt-superimpose (bitmap-frame combined-desc #:margin 1 #:border-style 'transparent #:style 'transparent)
+                                                (bitmap-frame #:border-color (bmp-border-color btp)
+                                                              (bitmap-blank width combined-height))))))))
