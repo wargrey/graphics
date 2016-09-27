@@ -251,8 +251,10 @@ body {
 	margin: 10px 2em 1cm 2%;
 	font-family: Verdana, Helvetica, Gill Sans, sans-serif;
 	background-color: green;
-	background-color: HsIa(120.01deg 2.04% 96.08% / 1.0) /* Honeydew */;
+	background-color: HsIa(120.01deg var(--honeydew-s) var(--honeydew-i) / 1.0);
 	frequency: 30Hz;
+        font-style: initial;
+        lazy-test: arg0(arg00(var(--s) * 1px)) arg1(var(--pi, arg10(10% * 2deg)));
 }
 
 #header{
@@ -263,7 +265,8 @@ body {
     --undefined: var(--missing-variable);
     --broken-color: var(--broken, var(--whitespace)var(--gray));
     --gray: var(--whitespace)"GREY"var(--whitespace);
-    font-style: initial;
+    --honeydew-s: 2.04%;
+    --honeydew-i: 96.08%;
 }
 
 body {

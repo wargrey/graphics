@@ -146,6 +146,20 @@
                   (define-token id : ID token (Type rest ...) #:with id? id-datum) ...
                   (define (token->datum [t : Token]) : (U False Type ...) (cond [(id? t) (id-datum t)] ... [else #false]))))]))
 
+  (define-syntax (define-lazy-tokens stx)
+    (syntax-parse stx
+      [(_ token #:+ Token [id #:+ ID #:with components #:as Type Component] ...)
+       (with-syntax ([([id? id-copy] ...)
+                      (for/list ([<id> (in-list (syntax->list #'(id ...)))])
+                        (list (format-id <id> "~a?" (syntax-e <id>))
+                              (format-id <id> "~a-copy" (syntax-e <id>))))])
+         #'(begin (define-symbolic-tokens token #:+ Token [id #:+ ID #:as Type [components : (Listof Component)] [lazy? : Boolean]] ...)
+
+                  (define id-copy : (-> ID (Listof Component) Boolean ID)
+                    (lambda [instance subcoms ?]
+                      (struct-copy id instance [components subcoms] [lazy? ?])))
+                  ...))]))
+
   (define-syntax (define-numeric-tokens stx)
     (syntax-case stx []
       [(_ token #:+ Token #:nan nan [id #:+ ID #:as Type] ...)
@@ -352,8 +366,8 @@
   ;;; https://drafts.csswg.org/css-syntax/#tokenization
   ;; https://drafts.csswg.org/css-syntax/#component-value
   ;; https://drafts.csswg.org/css-syntax/#current-input-token
-  (define-type CSS-URL-Modifier (U CSS:Ident CSS:Function CSS:URL))
   (define-type --Symbol Symbol)
+  (define-type CSS-URL-Modifier (U CSS:Ident CSS-Lazy-Token))
   (define-type CSS-Zero (U CSS:Zero CSS:Flzero))
   (define-type CSS-One (U CSS:One CSS:Flone))
 
@@ -381,14 +395,14 @@
      [css:bad:stdin       #:+ CSS:Bad:StdIn       #:-> css:bad]]
 
     ; TODO: Typed Racket is buggy if there are more than 11 conditions for (token->datum)
-    (define-symbolic-tokens css-special #:+ CSS-Special
+    (define-symbolic-tokens css-special-token #:+ CSS-Special-Token
       [css:bad            #:+ CSS:Bad             #:as (Pairof Symbol Datum)]
       [css:close          #:+ CSS:Close           #:as Char]
 
       ; Following token is remade by the parser instead of being produced by the tokenizer.
       [css:ratio          #:+ CSS:Ratio           #:as Positive-Exact-Rational])
 
-    (define-symbolic-tokens css-symbolic #:+ CSS-Symbolic
+    (define-symbolic-tokens css-symbolic-token #:+ CSS-Symbolic-Token
       [css:cd             #:+ CSS:CD              #:as Char]
       [css:match          #:+ CSS:Match           #:as Char]
       [css:delim          #:+ CSS:Delim           #:as Char]
@@ -399,11 +413,13 @@
       [css:urange         #:+ CSS:URange          #:as (Pairof Index Index)]
       [css:whitespace     #:+ CSS:WhiteSpace      #:as (U String Char)])
 
-    (define-symbolic-tokens css-structural #:+ CSS-Structural
-      [css:url            #:+ CSS:URL             #:as (U String Symbol) [modifiers : (Listof CSS-URL-Modifier)]]
-      [css:var            #:+ CSS:Var             #:as --Symbol          [fallback : (Listof CSS-Token)] [lazy? : Boolean]]
-      [css:block          #:+ CSS:Block           #:as Char              [components : (Listof CSS-Token)]]
-      [css:function       #:+ CSS:Function        #:as Symbol            [arguments : (Listof CSS-Token)]])
+    (define-symbolic-tokens css-block-token #:+ CSS-Block-Token
+      [css:block          #:+ CSS:Block           #:as Char              [components : (Listof CSS-Token)]])
+
+    (define-lazy-tokens css-lazy-token #:+ CSS-Lazy-Token
+      [css:url            #:+ CSS:URL             #:with modifiers       #:as (U String Symbol) CSS-URL-Modifier]
+      [css:function       #:+ CSS:Function        #:with arguments       #:as Symbol            CSS-Token]
+      [css:var            #:+ CSS:Var             #:with fallback        #:as --Symbol          CSS-Token])
 
     (define-numeric-tokens css-number #:+ CSS-Number #:nan +nan.0
       [css:integer        #:+ CSS:Integer         #:as Integer]
@@ -452,9 +468,8 @@
   (define-syntax (css-remake-token stx)
     (syntax-case stx []
       [(_ [start-token end-token] make-css:token datum extra ...)
-       #'(make-css:token (css-token-source start-token)
-                         (css-token-line start-token) (css-token-column start-token)
-                         (css-token-position start-token)
+       #'(make-css:token (css-token-source start-token) (css-token-line start-token)
+                         (css-token-column start-token) (css-token-position start-token)
                          (max (- (+ (css-token-position end-token) (css-token-span end-token))
                                  (css-token-position start-token)) 0)
                          datum extra ...)]
@@ -969,6 +984,10 @@
       (cond [(exn? item) items]
             [else (cons item items)])))
 
+  (define css-ann-url-modifiers : (-> (Listof CSS-Token) (Listof CSS-URL-Modifier))
+    (lambda [modifiers]
+      (filter (λ [t] (or (css:ident? t) (css-lazy-token? t))) modifiers)))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-error-any->tokens : (-> (U CSS-Syntax-Any (Listof CSS-Token)) (Listof CSS-Token))
     (lambda [any]
@@ -996,9 +1015,7 @@
 
   (require (submod ".." digitama))
 
-  (struct css-srcloc ([in : Input-Port] [source : (U String Symbol)]
-                                        [line : (Option Positive-Integer)] [col : (Option Natural)]
-                                        [pos : (Option Positive-Integer)])
+  (struct css-srcloc ([in : Input-Port] [source : (U String Symbol)] [line : Natural] [col : Natural] [pos : Natural])
     #:type-name CSS-Srcloc)
 
   (define-syntax (css-make-token stx)
@@ -1006,12 +1023,8 @@
       [(_ src make-css:token datum ...)
        #'(let-values ([(start-position) (css-srcloc-pos src)]
                       [(line column position) (port-next-location (css-srcloc-in src))])
-           (make-css:token (css-srcloc-source src)
-                           (or (css-srcloc-line src) line 0)
-                           (or (css-srcloc-col src) column 0)
-                           (or start-position 0)
-                           (cond [(nand (integer? position) (integer? start-position)) 0]
-                                 [else (max (- position start-position) 0)])
+           (make-css:token (css-srcloc-source src) (css-srcloc-line src) (css-srcloc-col src)
+                           start-position (max (- (or position 0) start-position) 0)
                            datum ...))]))
   
   (define-syntax (css-make-bad-token stx)
@@ -1026,7 +1039,7 @@
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-token
     (lambda [/dev/cssin source]
       (define-values (line column position) (port-next-location /dev/cssin))
-      (define srcloc (css-srcloc /dev/cssin source line column position))
+      (define srcloc (css-srcloc /dev/cssin source (or line 0) (or column 0) (or position 0)))
       (define ch (read-char /dev/cssin))
       (cond [(eof-object? ch) eof]
             [(char-whitespace? ch) (css-consume-whitespace-token srcloc)]
@@ -1093,7 +1106,7 @@
                                (css-make-token srcloc css:ident (string->symbol name) (string->symbol (string-downcase name))))]
                           [(and (or (not (string-ci=? name "url")) (regexp-match-peek #px"^.\\s*[\"']" css)) (read-char css))
                            (define fnorm : Symbol (string->symbol (string-downcase name)))
-                           (css-make-token srcloc css:function (string->unreadable-symbol name) fnorm null)]
+                           (css-make-token srcloc css:function (string->unreadable-symbol name) fnorm null #false)]
                           [else (read-char css) (css-consume-url-token srcloc)]))])))
       
   (define css-consume-string-token : (-> CSS-Srcloc Char (U CSS:String CSS:Bad))
@@ -1158,16 +1171,16 @@
       (define start : (U EOF Char) (read-char css))
       (cond [(or (eof-object? start) (char=? start #\)))
              (when (eof-object? start) (css-make-bad-token srcloc css:bad:eof struct:css:url ""))            
-             (css-make-token srcloc css:url 'about:invalid null)]
+             (css-make-token srcloc css:url 'about:invalid null #false)]
             [else (let consume-url-token : (U CSS:URL CSS:Bad) ([chars (list start)])
                     (define ch : (U EOF Char) (read-char css))
                     (cond [(or (eof-object? ch) (char=? ch #\)))
                            (when (eof-object? ch) (css-make-bad-token srcloc css:bad:eof struct:css:url (list->string (reverse chars))))
-                           (css-make-token srcloc css:url (list->string (reverse chars)) null)]
+                           (css-make-token srcloc css:url (list->string (reverse chars)) null #false)]
                           [(and (char-whitespace? ch) (css-consume-whitespace css))
                            (define end : (U EOF Char) (read-char css))
                            (define uri : String (list->string (reverse chars)))
-                           (cond [(or (eof-object? end) (char=? end #\))) (css-make-token srcloc css:url uri null)]
+                           (cond [(or (eof-object? end) (char=? end #\))) (css-make-token srcloc css:url uri null #false)]
                                  [else (css-consume-bad-url-remnants css (css-make-bad-token srcloc css:bad:blank struct:css:url uri))])]
                           [(css-valid-escape? ch (peek-char css)) (consume-url-token (cons (css-consume-escaped-char css) chars))]
                           [(or (memq ch '(#\\ #\" #\' #\()) (css-char-non-printable? ch))
@@ -1619,7 +1632,8 @@
                     (css-remake-token [func end-token] css:function
                                       (string->symbol (symbol->string fname)) ; <==> (symbol-unreadable->symbol fname)
                                       (css:function-norm func)
-                                      components))])))
+                                      components
+                                      #false))])))
 
   (define css-consume-block-body : (-> Input-Port CSS-Token Char (Values (Listof CSS-Token) CSS-Syntax-Terminal CSS-Token))
     ;;; https://drafts.csswg.org/css-syntax/#consume-simple-block
@@ -1674,13 +1688,12 @@
     (lambda [id-token components]
       (define-values (maybe-: value-list) (css-car components))
       (if (css:delim=:=? maybe-: #\:)
-          (let-values ([(maybe-values important? references) (css-any->declaration-value id-token value-list (css:--ident? id-token))])
-            (if (exn? maybe-values) maybe-values (make-css-declaration id-token maybe-values important? references)))
+          (let-values ([(maybe-values important? lazy?) (css-any->declaration-value id-token value-list (css:--ident? id-token))])
+            (if (exn? maybe-values) maybe-values (make-css-declaration id-token maybe-values important? lazy?)))
           (make+exn:css:missing-colon id-token))))
 
   (define css-any->declaration-value : (-> CSS-Token (Listof CSS-Token) Boolean
-                                           (Values (U (Listof+ CSS-Token) CSS-Syntax-Error)
-                                                   Boolean Boolean))
+                                           (Values (U (Listof+ CSS-Token) CSS-Syntax-Error) Boolean Boolean))
     ;;; https://drafts.csswg.org/css-syntax/#typedef-declaration-value
     ;;; https://drafts.csswg.org/css-variables/#defining-variables
     (lambda [hint-token components var?]
@@ -1696,12 +1709,11 @@
             (cond [(and ! (css:ident-norm=:=? head 'important)) (fold (if var? (cons head lla) lla) ! lazy? tail)]
                   [(and !) (values (make+exn:css:unrecognized !) #false lazy?)]
                   [(css:delim=:=? head #\!) (fold lla head lazy? tail)]
-                  [(css-special? head) (values (make+exn:css:malformed head) #false lazy?)]
-                  [(not (css:function-norm=:=? head 'var)) (fold (cons head lla) ! lazy? tail)]
-                  [else (let ([maybe-var (css-function->var head)])
-                          (cond [(exn? maybe-var) (values maybe-var #false lazy?)]
-                                [else (fold (cons maybe-var lla) ! #true tail)]))])))))
-  
+                  [(css-special-token? head) (values (make+exn:css:malformed head) #false lazy?)]
+                  [else (let ([shadow (css-token-identity/remake head)])
+                          (cond [(exn? shadow) (values shadow #false lazy?)]
+                                [else (fold (cons shadow lla) ! (or lazy? (not (eq? head shadow))) tail)]))])))))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-components->media-type+query : (-> CSS:Ident Boolean (Listof CSS-Token) CSS-Media-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#media-types
@@ -2136,14 +2148,14 @@
     (lambda [css]
       (define stx (read-char-or-special css))
       (cond [(or (css-token? stx) (eof-object? stx)) stx]
-            [else (css-make-bad-token (css-srcloc css '/dev/cssin/error #false #false #false)
+            [else (css-make-bad-token (css-srcloc css '/dev/cssin/error 0 0 0)
                                       css:bad:stdin struct:css-token (~s stx))])))
 
   (define css-peek-syntax : (->* (Input-Port) (Natural) CSS-Syntax-Any)
     (lambda [css [skip 0]]
       (define stx (peek-char-or-special css skip))
       (cond [(or (css-token? stx) (eof-object? stx)) stx]
-            [else (css-make-bad-token (css-srcloc css '/dev/cssin/error #false #false #false)
+            [else (css-make-bad-token (css-srcloc css '/dev/cssin/error 0 0 0)
                                       css:bad:stdin struct:css-token (~s stx))])))
   
   (define css-read-syntax/skip-whitespace : (-> Input-Port CSS-Syntax-Any)
@@ -2168,14 +2180,14 @@
   (define css-function->url : (-> CSS:Function CSS:URL)
     (lambda [url]
       (define-values (href modifiers) (css-car (css:function-arguments url)))
-      (cond [(not (css:string? href)) (css-remake-token url css:url 'about:invalid null)]
+      (cond [(not (css:string? href)) (css-remake-token url css:url 'about:invalid null #false)]
             [else (let ([datum (if (css:string=:=? href "") 'about:invalid (css:string-datum href))])
                     (let filter-modifiers ([sreifidom : (Listof CSS-URL-Modifier) null]
                                            [tail : (Listof CSS-Token) modifiers])
                       (define-values (head rest) (css-car tail))
-                      (cond [(eof-object? head) (css-remake-token url css:url datum (reverse sreifidom))]
-                            [(or (css:ident? head) (css:function? head) (css:url? head)) (filter-modifiers (cons head sreifidom) rest)]
-                            [else (make+exn:css:unrecognized head) (filter-modifiers sreifidom rest)])))])))
+                      (cond [(eof-object? head) (css-remake-token url css:url datum (reverse sreifidom) #false)]
+                            [(or (css:ident? head) (css-lazy-token? head)) (filter-modifiers (cons head sreifidom) rest)]
+                            [else (make+exn:css:type head) (filter-modifiers sreifidom rest)])))])))
 
   (define css-function->var : (-> CSS:Function (U CSS:Var CSS-Syntax-Error))
     (lambda [var]
@@ -2187,6 +2199,34 @@
             [else (let-values ([(maybe-fallback _ lazy?) (css-any->declaration-value maybe-comma fallback #true)])
                     (cond [(exn? maybe-fallback) maybe-fallback]
                           [else (css-remake-token var css:var (css:ident-datum --var) maybe-fallback lazy?)]))])))
+
+  (define css-token-identity/remake : (-> CSS-Token (U CSS-Token CSS-Syntax-Error))
+    (lambda [token]
+      (cond [(css:url? token)
+             (define-values (submodifiers lazy?) (css-lazy-subtokens-map (css:url-modifiers token)))
+             (cond [(exn:css? submodifiers) submodifiers]
+                   [(false? lazy?) token]
+                   [else (css:url-copy token (css-ann-url-modifiers submodifiers) lazy?)])]
+            [(css:function? token)
+             (cond [(eq? (css:function-norm token) 'var) (css-function->var token)]
+                   [else (let-values ([(subarguments lazy?) (css-lazy-subtokens-map (css:function-arguments token))])
+                           (cond [(exn:css? subarguments) subarguments]
+                                 [(false? lazy?) token]
+                                 [else (css:function-copy token subarguments lazy?)]))])]
+            [else token])))
+
+  (define css-lazy-subtokens-map : (-> (Listof CSS-Token) (Values (U (Listof CSS-Token) CSS-Syntax-Error) Boolean))
+    (lambda [subtokens]
+      (let lazy-fold ([tokens : (Listof CSS-Token) null]
+                      [lazy? : Boolean #false]
+                      [subrest : (Listof CSS-Token) subtokens])
+        (cond [(null? subrest) (values (reverse tokens) lazy?)]
+              [else (let* ([head (car subrest)]
+                           [shadow (css-token-identity/remake head)])
+                      (cond [(exn:css? shadow) (values shadow #false)]
+                            [else (lazy-fold (cons shadow tokens)
+                                             (or lazy? (not (eq? head shadow)))
+                                             (cdr subrest))]))]))))
   
   (define css-media-queries-support? : (-> (Listof CSS-Media-Query) CSS-Media-Preferences Boolean)
     (lambda [queries preferences]
@@ -2614,7 +2654,15 @@
                      [rest-values : (Listof CSS-Token) decl-values])
         (define-values (head tail) (css-car rest-values))
         (cond [(eof-object? head) (reverse (if keep-whitespace? seulav (filter-not css:whitespace? seulav)))]
-              [(not (css:var? head)) (var-fold (cons head seulav) tail)]
+              [(not (css-lazy-token? head)) (var-fold (cons head seulav) tail)]
+              [(not (css:var? head))
+               (cond [(and (css:function? head) (css:function-lazy? head))
+                      (define args (css-variable-substitude (css:function-arguments head) variables refpath keep-whitespace?))
+                      (if (list? args) (var-fold (cons (css:function-copy head args #false) seulav) tail) args)]
+                     [(and (css:url? head) (css:url-lazy? head))
+                      (define mods (css-variable-substitude (css:url-modifiers head) variables refpath keep-whitespace?))
+                      (if (list? mods) (var-fold (cons (css:url-copy head (css-ann-url-modifiers mods) #false) seulav) tail) mods)]
+                     [else (var-fold (cons head seulav) tail)])]
               [(memq (css:var-datum head) refpath) (make+exn:css:cyclic-dependency head)]
               [else (let ([--var (css:var-datum head)])
                       (define lazy-tokens : CSS+Lazy-Value (hash-ref variables --var (thunk (thunk css:initial))))
