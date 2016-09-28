@@ -286,4 +286,5 @@ module.main {
    border-color: var(--gray);
 
    font: 75% "Lucida Grande", "Trebuchet MS", Verdana, var(--default-font);
+   font: 12px/1.5; /* error property, font property requires font-family or system font */
 }

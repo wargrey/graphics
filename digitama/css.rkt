@@ -264,6 +264,66 @@
                             [(type? instance) (type->datum instance)] ...
                             [else (assert (object-name instance) symbol?)])))))]))
 
+  (define-syntax (make-css->racket stx)
+    (syntax-case stx []
+      [(_ ->) #'(λ [v] (cond [(exn:css? v) v] [else (-> v)]))]))
+
+  (define-syntax (default-css-longhand! stx)
+    (syntax-case stx []
+      [(_ longhand #:with v [property sexp ...] ...)
+       #'(begin (hash-ref! longhand 'property
+                           (thunk (cond [(exn:css? v) v]
+                                        [else sexp ...])))
+                ...
+                longhand)]))
+  
+  (define-syntax (define-css-longhand-defaulting stx)
+    (syntax-parse stx #:literals [False]
+      [(_ id (~optional (~seq #:with datum #:as Type)) [property sexp ...] ...)
+       (with-syntax ([Maybe-Syntax-Error (if (attribute Type) #'(U Type CSS-Syntax-Error) #'(Option CSS-Syntax-Error))]
+                     [maybe-datum (if (attribute datum) #'datum #'maybe-exn)])
+         #'(define id : (->* (Maybe-Syntax-Error) (CSS-Longhand-Values) CSS-Longhand-Values)
+             (lambda [maybe-datum [longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))]]
+               (default-css-longhand! longhand #:with maybe-datum
+                 [property sexp ...]
+                 ...))))]))
+
+  (define-syntax (css:cond stx)
+    (syntax-parse stx
+      [(_ #:with value (~optional (~seq #:null? rest)) #:out-range? [css? ...] (~optional (~seq #:when ?)) condition-branches ...)
+       (with-syntax ([rest? (if (attribute rest) #'(pair? rest) #'#false)]
+                     [terminate? (if (attribute ?) #'? #'#true)])
+       #'(cond [rest? (make-exn:css:overconsumption value)]
+               condition-branches ...
+               [(css? value) (make-exn:css:range value)] ...
+               [else (and terminate? (make-exn:css:type value))]))]
+      [(_ #:with value (~optional (~seq #:null? rest)) (~optional (~seq #:when ?)) condition-branches ...)
+       (with-syntax ([rest? (if (attribute rest) #'(pair? rest) #'#false)]
+                     [terminate? (if (attribute ?) #'? #'#true)])
+       #'(cond [rest? (make-exn:css:overconsumption value)]
+               condition-branches ...
+               [else (and terminate? (make-exn:css:type value))]))]))
+
+  (define css-token->syntax : (-> CSS-Token Syntax)
+    (lambda [instance]
+      (datum->syntax #false (css-token->datum instance)
+                     (list (css-token-source instance)
+                           (css-token-line instance) (css-token-column instance)
+                           (css-token-position instance) (css-token-span instance)))))
+
+  (define css-token-datum->string : (-> CSS-Token String)
+    (lambda [instance]
+      (cond [(css-fraction? instance) (string-append (css-numeric-representation instance) "%")]
+            [(css:dimension? instance) (~a (css-numeric-representation instance) (css:dimension-unit instance))]
+            [(css-numeric? instance) (css-numeric-representation instance)]
+            [else (~a (css-token->datum instance))])))
+  
+  (define css-token->string : (-> CSS-Token String)
+    (lambda [instance]
+      (format "~a:~a:~a: ~a: ~a" (css-token-source instance)
+              (css-token-line instance) (add1 (css-token-column instance))
+              (object-name instance) (css-token-datum->string instance))))
+
   (define-values (current-css-viewport-width current-css-viewport-height)
     (values (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))
             (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
@@ -288,34 +348,29 @@
                                                 [CSS-Token (Listof CSS-Token) (Listof Symbol) True -> (U Symbol CSS-Syntax-Error)]
                                                 [CSS-Token (Listof CSS-Token) (Listof Symbol) False -> (U Symbol CSS-Syntax-Error False)])
     (lambda [desc-value desc-rest options [terminate? #true]]
-      (cond [(pair? desc-rest) (make-exn:css:overconsumption desc-rest)]
-            [(css:ident-norm=<-? desc-value options) => values]
-            [(css:ident? desc-value) (make-exn:css:range desc-value)]
-            [else (and terminate? (make-exn:css:type desc-value))])))
+      (css:cond #:with desc-value #:out-range? [css:ident?] #:when terminate?
+                [(pair? desc-rest) (make-exn:css:overconsumption desc-rest)]
+                [(css:ident-norm=<-? desc-value options) => values])))
 
-  (define css-declared-keywords-filter : (-> CSS-Token (Listof CSS-Token) (Listof Symbol) Symbol (U Symbol CSS-Bitmask CSS-Syntax-Error))
+  (define css-declared-keywords-filter : (-> CSS-Token (Listof CSS-Token) (Listof Symbol) Symbol
+                                             (U Symbol (Listof Symbol) CSS-Syntax-Error))
     (lambda [desc-value desc-rest options none]
       (cond [(css:ident-norm=:=? desc-value none) (if (pair? desc-rest) (make-exn:css:overconsumption desc-rest) none)]
             [else (let desc-fold ([desc-others : (Listof CSS-Token) (cons desc-value desc-rest)]
                                   [desc-keywords : (Listof Symbol) null])
-                    (cond [(null? desc-others) (css-bitmask desc-keywords)]
+                    (cond [(null? desc-others) (remove-duplicates desc-keywords)]
                           [else (let ([desc-value (car desc-others)])
-                                  (cond [(css:ident-norm=<-? desc-value options)
-                                         => (λ [[v : Symbol]]
-                                              (if (for/or : Boolean ([desc-kywd (in-list desc-keywords)]) (eq? v desc-kywd))
-                                                  (make-exn:css:duplicate desc-value)
-                                                  (desc-fold (cdr desc-others) (cons v desc-keywords))))]
-                                        [(css:ident? desc-value) (make-exn:css:range desc-value)]
-                                        [else (make-exn:css:type desc-value)]))]))])))
+                                  (css:cond #:with desc-value #:out-range? [css:ident?]
+                                            [(css:ident-norm=<-? desc-value options)
+                                             => (λ [[v : Symbol]] (desc-fold (cdr desc-others) (cons v desc-keywords)))]))]))])))
 
   (define css-declared+number-filter : (case-> [CSS-Token -> (U Natural Nonnegative-Flonum CSS-Syntax-Error)]
                                                [CSS-Token True -> (U Natural Nonnegative-Flonum CSS-Syntax-Error)]
                                                [CSS-Token False -> (U Natural Nonnegative-Flonum CSS-Syntax-Error False)])
     (lambda [desc-value [terminate? #true]]
-      (cond [(css:integer=<-? desc-value exact-nonnegative-integer?) => values]
-            [(css:flonum=<-? desc-value nonnegative-flonum?) => values]
-            [(css-number? desc-value) (make-exn:css:range desc-value)]
-            [else (and terminate? (make-exn:css:type desc-value))])))
+      (css:cond #:with desc-value #:out-range? [css-number?] #:when terminate?
+                [(css:integer=<-? desc-value exact-nonnegative-integer?) => values]
+                [(css:flonum=<-? desc-value nonnegative-flonum?) => values])))
 
   (define css-declared+number%-filter : (case-> [CSS-Token -> (U Natural Nonnegative-Inexact-Real CSS-Syntax-Error)]
                                                 [CSS-Token True -> (U Natural Nonnegative-Inexact-Real CSS-Syntax-Error)]
@@ -329,11 +384,10 @@
                                                    [CSS-Token True -> (U Nonnegative-Flonum CSS-Syntax-Error)]
                                                    [CSS-Token False -> (U Nonnegative-Flonum CSS-Syntax-Error False)])
     (lambda [desc-value [terminate? #true]]
-      (cond [(css:flonum=<-? desc-value 0.0 fl<= 1.0) => flabs]
-            [(css:one? desc-value) 1.0]
-            [(css:zero? desc-value) 0.0]
-            [(css-number? desc-value) (make-exn:css:range desc-value)]
-            [else (and terminate? (make-exn:css:type desc-value))])))
+      (css:cond #:with desc-value #:out-range? [css-number?] #:when terminate?
+                [(css:flonum=<-? desc-value 0.0 fl<= 1.0) => flabs]
+                [(css:one? desc-value) 1.0]
+                [(css:zero? desc-value) 0.0])))
 
   (define css-declared+percentage%-filter : (case-> [CSS-Token -> (U Nonnegative-Flonum CSS-Syntax-Error)]
                                                     [CSS-Token True -> (U Nonnegative-Flonum CSS-Syntax-Error)]
@@ -342,26 +396,6 @@
       (cond [(css:percentage=<-? desc-value 0f0 <= 1f0) => (λ [v] (flabs (real->double-flonum v)))]
             [(css-fraction? desc-value) (make-exn:css:range desc-value)]
             [else (css-declared+percentage-filter desc-value terminate?)])))
-  
-  (define css-token->syntax : (-> CSS-Token Syntax)
-    (lambda [instance]
-      (datum->syntax #false (css-token->datum instance)
-                     (list (css-token-source instance)
-                           (css-token-line instance) (css-token-column instance)
-                           (css-token-position instance) (css-token-span instance)))))
-
-  (define css-token-datum->string : (-> CSS-Token String)
-    (lambda [instance]
-      (cond [(css-fraction? instance) (string-append (css-numeric-representation instance) "%")]
-            [(css:dimension? instance) (~a (css-numeric-representation instance) (css:dimension-unit instance))]
-            [(css-numeric? instance) (css-numeric-representation instance)]
-            [else (~a (css-token->datum instance))])))
-  
-  (define css-token->string : (-> CSS-Token String)
-    (lambda [instance]
-      (format "~a:~a:~a: ~a: ~a" (css-token-source instance)
-              (css-token-line instance) (add1 (css-token-column instance))
-              (object-name instance) (css-token-datum->string instance))))
 
   ;;; https://drafts.csswg.org/css-syntax/#tokenization
   ;; https://drafts.csswg.org/css-syntax/#component-value
@@ -526,7 +560,6 @@
     [exn:css:misplaced          #:-> exn:css:unrecognized]
     [exn:css:type               #:-> exn:css:unrecognized]
     [exn:css:range              #:-> exn:css:unrecognized]
-    [exn:css:duplicate          #:-> exn:css:range]
     [exn:css:unit               #:-> exn:css:range]
     [exn:css:overconsumption    #:-> exn:css:unrecognized]
     [exn:css:enclosed           #:-> exn:css:overconsumption]
@@ -754,7 +787,8 @@
   ;; https://drafts.csswg.org/css-cascade/#cascading
   ; NOTE: CSS tokens are also acceptable here, but they are just allowed for convenient
   ;        since they provide the precision type info for applications directly.                      
-  (define-type CSS-Datum (U Datum FlVector FxVector CSS-Token --datum (Object)))
+  (define-type CSS-Datum (Rec css (U Datum FlVector FxVector CSS-Token --datum (Object)
+                                     (Pairof css css) (Vectorof css) (Boxof css))))
 
   (define-type CSS+Lazy-Value (U (-> CSS-Datum) (Boxof (-> CSS-Datum))))
   (define-type CSS-Values (HashTable Symbol CSS+Lazy-Value))
@@ -794,7 +828,6 @@
                             [(eq? key 'keyword) css:keyword] ...
                             [else key])))))]))
 
-  (define-css-value css-bitmask #:as CSS-Bitmask ([options : (Listof Symbol)]))
   (define-css-value css-lazy #:as CSS-Lazy ([force : (Listof+ CSS-Token)] [recursive? : Boolean]))
 
   ; https://drafts.csswg.org/css-cascade/#all-shorthand
@@ -833,7 +866,7 @@
                       (fvalue))]))
       (define specified-value : CSS-Datum
         (cond [(or (eq? cascaded-value css:revert) (not (css-wide-keyword? cascaded-value))) cascaded-value]
-              [(or (false? inherited-values) (eq? cascaded-value css:initial)) css:initial]
+              [(or (eq? cascaded-value css:initial) (false? inherited-values)) css:initial]
               [else (css-ref inherited-values #false desc-name)]))
       (cond [(false? css->datum) specified-value]
             [else (let ([computed-value (css->datum desc-name specified-value)])
@@ -858,21 +891,18 @@
           (define min-name : Symbol (if (eq? suitcased-name 'width) 'min-width 'min-height))
           (define max-name : Symbol (if (eq? suitcased-name 'width) 'max-width 'max-height))
           (define min-value : (U CSS-Datum CSS-Syntax-Error) (viewport-length desc-value))
-          (define max-value : (U CSS-Datum CSS-Syntax-Error) (if (css-token? 2nd-value) (viewport-length 2nd-value) min-value))
           (cond [(pair? real-rest) (make-exn:css:overconsumption real-rest)]
-                [else (hasheq min-name min-value max-name max-value)])]
+                [else (hasheq min-name min-value
+                              max-name (cond [(eof-object? 2nd-value) min-value]
+                                             [else (viewport-length 2nd-value)]))])]
          [(min-width max-width min-height max-height)
-          (define length-value : (U CSS-Datum CSS-Syntax-Error) (viewport-length desc-value))
-          (cond [(pair? rest) (make-exn:css:overconsumption rest)]
-                [else length-value])]
+          (if (pair? rest) (make-exn:css:overconsumption rest) (viewport-length desc-value))]
          [(zoom min-zoom max-zoom)
-          (cond [(pair? rest) (make-exn:css:overconsumption rest)]
-                [(css:ident-norm=:=? desc-value 'auto) => values]
-                [(css:flonum=<-? desc-value nonnegative-flonum?) => values]
-                [(css:integer=<-? desc-value exact-nonnegative-integer?) => exact->inexact]
-                [(css:percentage=<-? desc-value nonnegative-single-flonum?) => real->double-flonum]
-                [(or (css:ident? desc-value) (css-number? desc-value)) (make-exn:css:range desc-value)]
-                [else (make-exn:css:type desc-value)])]
+          (css:cond #:with desc-value #:null? rest #:out-range? [css:ident? css-number? css-fraction?]
+                    [(css:ident-norm=:=? desc-value 'auto) => values]
+                    [(css:flonum=<-? desc-value nonnegative-flonum?) => values]
+                    [(css:integer=<-? desc-value exact-nonnegative-integer?) => exact->inexact]
+                    [(css:percentage=<-? desc-value nonnegative-single-flonum?) => real->double-flonum])]
          [(orientation) (css-declared-keyword-filter desc-value rest '(auto portrait landscape))]
          [(user-zoom) (css-declared-keyword-filter desc-value rest '(zoom fixed))]
          [else (make-exn:css:unrecognized desc-value)])
@@ -943,19 +973,6 @@
             (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define-syntax (make-css->racket stx)
-    (syntax-case stx []
-      [(_ ->)
-       #'(lambda [v]
-           (cond [(exn:css? v) v]
-                 [else (-> v)]))]))
-
-  (define-syntax (css-defaulting-thunk stx)
-    (syntax-case stx []
-      [(_ v sexp ...)
-       #'(thunk (cond [(exn:css? v) v]
-                      [else sexp ...]))]))
-  
   (define css-car/keep-whitespace : (-> (Listof CSS-Token) (Values (U CSS-Token EOF) (Listof CSS-Token)))
     (lambda [dirty]
       (cond [(null? dirty) (values eof null)]
@@ -1661,9 +1678,8 @@
               [(and terminal-char (css:delim=:=? token terminal-char))
                (define next (css-peek-syntax/skip-whitespace css))
                (cond [(and omit-terminate? (css-null? stnenopmoc))
-                      (cond [(eof-object? next)
+                      (cond [(and (eof-object? next) (css-read-syntax/skip-whitespace css))
                              (make+exn:css:overconsumption token)
-                             (css-read-syntax/skip-whitespace css)
                              (values (reverse stnenopmoc) eof)]
                             [else (make+exn:css:empty token)
                                   (css-consume-components css terminal-char omit-terminate?)])]
