@@ -267,12 +267,9 @@ body {
     --gray: var(--whitespace)"GREY"var(--whitespace);
     --honeydew-s: 2.04%;
     --honeydew-i: 96.08%;
+    --default-font: sans-serif;
 }
 
-body {
-	color: green;
-	font: 75% "Lucida Grande", "Trebuchet MS", Verdana, sans-serif;
-}
 .test { background:-webkit-linear-gradient(top right, white, black)}
 .test {
    foreground-image : url(bad url);
@@ -287,4 +284,6 @@ module.main {
    paren-color: rgba(147, 81, 0);
    background-color: "Honeydew";
    border-color: var(--gray);
+
+   font: 75% "Lucida Grande", "Trebuchet MS", Verdana, var(--default-font);
 }

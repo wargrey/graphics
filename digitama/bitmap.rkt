@@ -517,37 +517,39 @@
   (define current-css-small-caption-font : (Parameterof (Instance Font%)) (make-parameter css-default-font))
   (define current-css-status-bar-font : (Parameterof (Instance Font%)) (make-parameter css-default-font))
   
-  (define css-reset!-other-font-properties : (-> CSS-Longhand-Values (Instance Font%) CSS-Longhand-Values)
+  (define css-reset!-other-font-properties : (-> CSS-Longhand-Values (U (Instance Font%) CSS-Syntax-Error) CSS-Longhand-Values)
     (lambda [font-longhand font]
-      (hash-ref! font-longhand 'font-family (thunk (list (or (send font get-face) (send font get-family)))))
-      (hash-ref! font-longhand 'font-weight (thunk (send font get-weight)))
-      (hash-ref! font-longhand 'font-style (thunk (send font get-style)))
-      (hash-ref! font-longhand 'font-stretch (thunk 'normal))
-      (hash-ref! font-longhand 'line-height (thunk 'normal))
-      (hash-ref! font-longhand 'font-size-adjust (thunk 'none))
-      (hash-ref! font-longhand 'font-kerning (thunk 'auto))
-      (hash-ref! font-longhand 'font-variant (thunk 'normal))
-      (hash-ref! font-longhand 'font-kerning (thunk 'auto))
-      (hash-ref! font-longhand 'font-language-override (thunk 'normal))
+      (hash-ref! font-longhand 'font-family (css-defaulting-thunk font (list (or (send font get-face) (send font get-family)))))
+      (hash-ref! font-longhand 'font-weight (css-defaulting-thunk font (send font get-weight)))
+      (hash-ref! font-longhand 'font-style (css-defaulting-thunk font (send font get-style)))
+      (hash-ref! font-longhand 'font-stretch (css-defaulting-thunk font 'normal))
+      (hash-ref! font-longhand 'line-height (css-defaulting-thunk font 'normal))
+      (hash-ref! font-longhand 'font-size-adjust (css-defaulting-thunk font 'none))
+      (hash-ref! font-longhand 'font-kerning (css-defaulting-thunk font 'auto))
+      (hash-ref! font-longhand 'font-variant (css-defaulting-thunk font 'normal))
+      (hash-ref! font-longhand 'font-kerning (css-defaulting-thunk font 'auto))
+      (hash-ref! font-longhand 'font-language-override (css-defaulting-thunk font 'normal))
       (hash-ref! font-longhand 'font-size
-                 (thunk (css-length->scalar (real->double-flonum (send font get-size))
-                                            (if (or (send font get-size-in-pixels) (eq? (system-type 'os) 'macosx))
-                                                'px 'pt))))
+                 (css-defaulting-thunk font
+                                       (css-length->scalar (real->double-flonum (send font get-size))
+                                                           (if (or (send font get-size-in-pixels) (eq? (system-type 'os) 'macosx))
+                                                               'px 'pt))))
       font-longhand))
 
-  (define css-set!-font-property : (-> CSS-Longhand-Values Symbol CSS-Datum CSS-Token (Listof CSS-Token) CSS+Longhand-Values)
+  (define css-set!-font-property : (-> CSS-Longhand-Values Symbol CSS-Datum CSS-Token (Listof CSS-Token) CSS-Longhand-Values)
     (lambda [font-longhand font-option property ptoken rest]
-      (cond [(hash-has-key? font-longhand font-option) (make-exn:css:duplicate ptoken)]
-            [(hash-set! font-longhand font-option property)
+      (cond [(hash-has-key? font-longhand font-option) (css-reset!-other-font-properties font-longhand (make-exn:css:duplicate ptoken))]
+            [else (hash-set! font-longhand font-option property)
              (cond [(null? rest) (css-reset!-other-font-properties font-longhand css-default-font)]
                    [(not (eq? font-option 'font-size)) (css-font-shorthand-filter (car rest) (cdr rest) font-longhand #false)]
                    [else (let-values ([(maybe-/ rst) (values (car rest) (cdr rest))])
                            (cond [(not (css:delim=:=? maybe-/ #\/)) (css-font-shorthand-filter maybe-/ rst font-longhand #false)]
-                                 [(null? rst) (make-exn:css:missing-value maybe-/)]
+                                 [(null? rst) (css-reset!-other-font-properties font-longhand (make-exn:css:missing-value maybe-/))]
                                  [else (let* ([<line-height> (car rst)]
                                               [height (css-line-height-filter <line-height> null)])
-                                         (unless (exn? height)
-                                           (css-set!-font-property font-longhand 'line-height height <line-height> (cdr rst))))]))])])))
+                                         (cond [(exn? height) (css-reset!-other-font-properties font-longhand height)]
+                                               [else (css-set!-font-property font-longhand 'line-height height
+                                                                             <line-height> (cdr rst))]))]))])])))
 
   (define css-font-family-filter : (-> CSS-Token (Listof CSS-Token) (U (Listof (U String Symbol)) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-fonts/#font-family-prop
@@ -604,9 +606,9 @@
       (cond [(css-declared-keyword-filter font-value rest css-font-size-option #false) => values]
             [else (css-font-numeric-size-filter font-value terminate?)])))
 
-  (define css-font-shorthand-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values Boolean) CSS+Longhand-Values)
+  (define css-font-shorthand-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values Boolean) CSS-Longhand-Values)
     ;;; https://drafts.csswg.org/css-fonts/#font-prop
-    (lambda [property rst [font-longhand ((inst make-hasheq Symbol CSS-Datum))] [initial? #true]]
+    (lambda [property rst [font-longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))] [initial? #true]]
       (define keyword : (Option Symbol) (and (css:ident? property) (css:ident-norm property)))
       (define font-hint : (U Symbol Nonnegative-Flonum Nonnegative-Single-Flonum Integer (Listof (U String Symbol)) CSS-Syntax-Error)
         (cond [(and keyword)
@@ -640,7 +642,7 @@
             [(list? font-hint) ; this branch will exist only once
              (hash-set! font-longhand 'font-family font-hint)
              (css-reset!-other-font-properties font-longhand css-default-font)]
-            [else font-hint]))))
+            [else (css-reset!-other-font-properties font-longhand font-hint)]))))
 
 (require (submod "." css))
 
