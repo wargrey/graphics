@@ -474,7 +474,7 @@
         (define g : (U Integer CSS-Syntax-Error) (css-rgb->scalar (list-ref rgba-tokens 1)))
         (define b : (U Integer CSS-Syntax-Error) (css-rgb->scalar (list-ref rgba-tokens 2)))
         (define a : (U Nonnegative-Flonum CSS-Syntax-Error) (if (fx= argsize 4) (css-declared+percentage%-filter (last rgba-tokens)) 1.0))
-        (cond [(and (byte? r) (byte? g) (byte? b) (nonnegative-flonum? a)) (rgba r g b a)]
+        (cond [(and (byte? r) (byte? g) (byte? b) (flonum? a)) (rgba r g b a)]
               [(exn:css? r) r]
               [(exn:css? g) g]
               [(exn:css? b) b]
@@ -489,7 +489,7 @@
         (define s : (U Single-Flonum CSS-Syntax-Error) (css-sb%->scalar (list-ref hsba-tokens 1)))
         (define b : (U Single-Flonum CSS-Syntax-Error) (css-sb%->scalar (list-ref hsba-tokens 2)))
         (define a : (U Nonnegative-Flonum CSS-Syntax-Error) (if (fx= argsize 4) (css-declared+percentage%-filter (last hsba-tokens)) 1.0))
-        (cond [(and (real? h) (single-flonum? s) (single-flonum? b) (nonnegative-flonum? a)) (hsba ->rgb h s b a)]
+        (cond [(and (real? h) (single-flonum? s) (single-flonum? b) (flonum? a)) (hsba ->rgb h s b a)]
               [(exn:css? h) h]
               [(exn:css? s) s]
               [(exn:css? b) b]
@@ -519,16 +519,16 @@
   (define current-css-status-bar-font : (Parameterof (Instance Font%)) (make-parameter css-default-font))
   
   (define-css-longhand-defaulting css-default-font-properties #:with font #:as (Instance Font%)
-    [font-family            (list (or (send font get-face) (send font get-family)))]
     [font-weight            (send font get-weight)]
     [font-style             (send font get-style)]
     [font-stretch           'normal]
-    [line-height            'normal]
-    [font-size-adjust       'none]
-    [font-kerning           'auto]
     [font-variant           'normal]
     [font-kerning           'auto]
+    [font-kerning           'auto]
+    [font-size-adjust       'none]
     [font-language-override 'normal]
+    [line-height            'normal]
+    [font-family            (list (or (send font get-face) (send font get-family)))]
     [font-size              (css-length->scalar (real->double-flonum (send font get-size))
                                                 (if (or (send font get-size-in-pixels) (eq? (system-type 'os) 'macosx))
                                                     'px 'pt))])
@@ -539,14 +539,15 @@
       (cond [(eq? property 'font-famliy) (css-default-font-properties css-default-font longhand)]
             ; WARNING: the font shorthand requires `font-family` (or system font)
             [(null? prst) (css-default-font-properties (make-exn:css:missing-value ptoken) longhand)]
-            [(not (eq? property 'font-size)) (css-font-shorthand+family-filter (car prst) (cdr prst) longhand (eq? property 'line-height))]
-            [else (let-values ([(maybe-/ rest) (values (car prst) (cdr prst))])
-                    (cond [(not (css:delim=:=? maybe-/ #\/)) (css-font-shorthand+family-filter maybe-/ rest longhand #false)]
-                          [(null? rest) (css-default-font-properties (make-exn:css:missing-value maybe-/) longhand)]
-                          [else (let* ([<line-height> (car rest)]
-                                       [height (css-line-height-filter <line-height> null)])
-                                  (cond [(exn? height) (css-default-font-properties height longhand)]
-                                        [else (css-set!-font-property longhand 'line-height height <line-height> (cdr rest))]))]))])))
+            [(eq? property 'font-size)
+             (define-values (maybe-/ rest) (values (car prst) (cdr prst)))
+             (cond [(not (css:delim=:=? maybe-/ #\/)) (css-font-shorthand+family-filter maybe-/ rest longhand #false)]
+                   [(null? rest) (css-default-font-properties (make-exn:css:missing-value maybe-/) longhand)]
+                   [else (let* ([<line-height> (car rest)]
+                                [height (css-line-height-filter <line-height> null)])
+                           (cond [(exn? height) (css-default-font-properties height longhand)]
+                                 [else (css-set!-font-property longhand 'line-height height <line-height> (cdr rest))]))])]
+            [else (css-font-shorthand+family-filter (car prst) (cdr prst) longhand (not (eq? property 'line-height)))])))
 
   (define css-font-family-filter : (-> CSS-Token (Listof CSS-Token) (U (Listof (U String Symbol)) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-fonts/#font-family-prop
@@ -599,14 +600,14 @@
     (lambda [property rst [font-longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))] [allow-feature? #true]]
       (define keyword : (Option Symbol) (and (css:ident? property) (css:ident-norm property)))
       (define font-hint : (U Symbol Nonnegative-Inexact-Real Integer (Listof (U String Symbol)) CSS-Syntax-Error)
-        (cond [(and keyword)
-               (cond [(eq? keyword 'normal) (if allow-feature? keyword (make-exn:css:misplaced property))]
-                     [(memq keyword css-font-style-option) (if allow-feature? 'font-style (make-exn:css:misplaced property))]
-                     [(memq keyword css-font-variant-options/21) (if allow-feature? 'font-variant (make-exn:css:misplaced property))]
-                     [(memq keyword css-font-weight-option) (if allow-feature? 'font-weight (make-exn:css:misplaced property))]
-                     [(memq keyword css-font-stretch-option) (if allow-feature? 'font-stretch (make-exn:css:misplaced property))]
-                     [(memq keyword css-font-size-option) (if allow-feature? 'font-size (make-exn:css:misplaced property))]
-                     [(memq keyword css-system-font-names) (make-exn:css:overconsumption rst)]
+        (cond [(not allow-feature?) (css-font-family-filter property rst)]
+              [(symbol? keyword)
+               (cond [(eq? keyword 'normal) keyword]
+                     [(memq keyword css-font-style-option) 'font-style]
+                     [(memq keyword css-font-variant-options/21) 'font-variant]
+                     [(memq keyword css-font-weight-option) 'font-weight]
+                     [(memq keyword css-font-stretch-option) 'font-stretch]
+                     [(memq keyword css-font-size-option) 'font-size]
                      [else (css-font-family-filter property rst)])]
               [(css:string? property) (css-font-family-filter property rst)]
               [(css:integer=<-? property 1 <= 999) => (λ [v] (if allow-feature? v (make-exn:css:misplaced property)))]
