@@ -61,7 +61,7 @@
                          (syntax-case field-info [Option]
                            [(p T #:= dv) #'((if (or (false? p) (css-wide-keyword? p)) dv p) (U T CSS-Wide-Keyword False) dv)]
                            [(p (Option T)) #'((if (css-wide-keyword? p) #false p) (U T CSS-Wide-Keyword False) #false)]
-                           [(p T) (raise-syntax-error (syntax-e #'self) "property requires a default value" #'p)]))]
+                           [(p T) (raise-syntax-error (syntax-e #'self) "property or attribute requires a default value" #'p)]))]
                       [(args ...) (for/fold ([args null])
                                             ([field (in-list (syntax->list #'(property ...)))]
                                              [arg (in-list (syntax->list #'([property : ArgType defval ...] ...)))])
@@ -592,7 +592,7 @@
   (define-type CSS-Attribute-Datum (U String Symbol (Listof (U String Symbol))))
   (define-type CSS-Attribute-Value (U CSS-Attribute-Datum (Vector Symbol CSS-Attribute-Datum)))
 
-  (define css-root-element-name : (Parameterof Symbol) (make-parameter 'root))
+  (define css-root-element-type : (Parameterof Symbol) (make-parameter 'root))
   (define css-root-element-id : (Parameterof (U Keyword (Listof+ Keyword))) (make-parameter '#:root))
   
   (define-selectors
@@ -627,7 +627,7 @@
                                   [C : Nonnegative-Fixnum])])
 
   (define-preference css-subject #:as CSS-Subject
-    ([type : Symbol                                       #:= (css-root-element-name)]
+    ([type : Symbol                                       #:= (css-root-element-type)]
      [id : (U Keyword (Listof+ Keyword))                  #:= (css-root-element-id)]
      [namespace : (U Symbol Boolean)                      #:= #true]
      [classes : (Listof Symbol)                           #:= null]
@@ -852,6 +852,8 @@
                             [current-css-viewport-height height])
                sexp ...)))]))
 
+  (define css-cache-computed-object-value : (Parameterof Boolean) (make-parameter #true))
+  
   (define css-ref : (All (a) (case-> [CSS-Values (Option CSS-Values) Symbol -> CSS-Datum]
                                      [CSS-Values (Option CSS-Values) Symbol (-> Symbol CSS-Datum (∩ a CSS-Datum)) -> a]))
     (lambda [properties inherited-values desc-name [css->datum #false]]
@@ -871,7 +873,9 @@
               [else (css-ref inherited-values #false desc-name)]))
       (cond [(false? css->datum) specified-value]
             [else (let ([computed-value (css->datum desc-name specified-value)])
-                    (when (nor (eq? cascaded-value computed-value) (object? computed-value))
+                    (when (and (not (eq? cascaded-value computed-value))
+                               (implies (object? computed-value)
+                                        (css-cache-computed-object-value)))
                       (hash-set! properties desc-name (thunk computed-value)))
                     computed-value)])))
 
@@ -2628,7 +2632,7 @@
                                              (and (pair? tokens) (findf css:var? tokens))))
                                       (desc-set!-lazy desc-name important? declared-values)]
                                      [else (css-log-syntax-error desc-value)])]
-                              [else (when (false? desc-value)
+                              [else (unless (false? desc-value)
                                       (cond [(css:var? desc-value) (desc-set!-lazy desc-name important? declared-values)]
                                             [(hash? desc-value) (desc-set!-longhand desc-name important? desc-value declared-values)]
                                             [else (desc-set! desc-name important? (thunk desc-value))]))])))]))
@@ -2709,10 +2713,10 @@
               [(not (css:var? head))
                (cond [(and (css:function? head) (css:function-lazy? head))
                       (define args (css-variable-substitude (css:function-arguments head) variables refpath keep-whitespace?))
-                      (if (list? args) (var-fold (cons (css:function-copy head args #false) seulav) tail) args)]
+                      (if (pair? args) (var-fold (cons (css:function-copy head args #false) seulav) tail) args)]
                      [(and (css:url? head) (css:url-lazy? head))
                       (define mods (css-variable-substitude (css:url-modifiers head) variables refpath keep-whitespace?))
-                      (if (list? mods) (var-fold (cons (css:url-copy head (css-ann-url-modifiers mods) #false) seulav) tail) mods)]
+                      (if (pair? mods) (var-fold (cons (css:url-copy head (css-ann-url-modifiers mods) #false) seulav) tail) mods)]
                      [else (var-fold (cons head seulav) tail)])]
               [(memq (css:var-datum head) refpath) (make+exn:css:cyclic head)]
               [else (let ([--var (css:var-datum head)])
@@ -2784,7 +2788,7 @@
   (collect-garbage)
   (collect-garbage)
   (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer.css)))
-  (define tamer-html : CSS-Subject (make-css-subject #:type 'html #:id '#:header))
+  (define tamer-root : CSS-Subject (make-css-subject #:type 'root #:id '#:header))
   (define tamer-body : CSS-Subject (make-css-subject #:type 'body #:id '#:123))
 
   (define css-declaration-filter : CSS-Declaration-Filter
@@ -2797,18 +2801,16 @@
         (values desc-name (css-ref declared-values inherited-values desc-name)))))
 
   tamer-sheet
-  tamer-html
+  tamer-root
   (match-define (list preference header-preference)
     (time-run (let-values ([(preference for-children)
-                            (css-cascade (list tamer-sheet) tamer-html css-declaration-filter
-                                         css-filter #false  #false)])
+                            (css-cascade (list tamer-sheet) tamer-root css-declaration-filter css-filter #false  #false)])
                 (list preference for-children))))
   (when (hash? preference) (hash->list preference))
 
   tamer-body
   (time-run (let-values ([(preference for-children)
-                          (css-cascade (list tamer-sheet) tamer-body css-declaration-filter
-                                       css-filter #false header-preference)])
+                          (css-cascade (list tamer-sheet) tamer-body css-declaration-filter css-filter #false header-preference)])
               (when (hash? preference) (hash->list preference))))
 
   (map (λ [[in : String]] : (Pairof String Integer)

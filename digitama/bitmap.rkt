@@ -465,35 +465,37 @@
                                           [(not following?) (values (make-exn:css:missing-value token) size)]
                                           [else (values (make-exn:css:unrecognized token) size)]))]))]))))
   
-  (define css-extract-rgba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) (U RGBA Void CSS-Syntax-Error))
+  (define css-extract-rgba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) (U RGBA CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-color/#rgb-functions
     (lambda [frgba args]
       (define-values (rgba-tokens argsize) (css-color-delimiter-filter frgba args 3))
-      (when (pair? rgba-tokens)
-        (define r : (U Integer CSS-Syntax-Error) (css-rgb->scalar (list-ref rgba-tokens 0)))
-        (define g : (U Integer CSS-Syntax-Error) (css-rgb->scalar (list-ref rgba-tokens 1)))
-        (define b : (U Integer CSS-Syntax-Error) (css-rgb->scalar (list-ref rgba-tokens 2)))
-        (define a : (U Nonnegative-Flonum CSS-Syntax-Error) (if (fx= argsize 4) (css-declared+percentage%-filter (last rgba-tokens)) 1.0))
-        (cond [(and (byte? r) (byte? g) (byte? b) (flonum? a)) (rgba r g b a)]
-              [(exn:css? r) r]
-              [(exn:css? g) g]
-              [(exn:css? b) b]
-              [(exn:css? a) a]))))
+      (cond [(exn:css? rgba-tokens) rgba-tokens]
+            [else (let ([r (css-rgb->scalar (list-ref rgba-tokens 0))]
+                        [g (css-rgb->scalar (list-ref rgba-tokens 1))]
+                        [b (css-rgb->scalar (list-ref rgba-tokens 2))]
+                        [a (if (fx= argsize 4) (css-declared+percentage%-filter (last rgba-tokens)) 1.0)])
+                    (cond [(and (byte? r) (byte? g) (byte? b) (flonum? a)) (rgba r g b a)]
+                          [(exn:css? r) r]
+                          [(exn:css? g) g]
+                          [(exn:css? b) b]
+                          [(exn:css? a) a]
+                          [else (make-exn:css:empty eof)]))])))
 
-  (define css-extract-hsba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) HSB->RGB (U HSBA Void CSS-Syntax-Error))
+  (define css-extract-hsba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) HSB->RGB (U HSBA CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
     (lambda [fhsba args ->rgb]
       (define-values (hsba-tokens argsize) (css-color-delimiter-filter fhsba args 3))
-      (when (pair? hsba-tokens)
-        (define h : (U Real CSS-Syntax-Error) (css-hue->scalar (list-ref hsba-tokens 0)))
-        (define s : (U Single-Flonum CSS-Syntax-Error) (css-sb%->scalar (list-ref hsba-tokens 1)))
-        (define b : (U Single-Flonum CSS-Syntax-Error) (css-sb%->scalar (list-ref hsba-tokens 2)))
-        (define a : (U Nonnegative-Flonum CSS-Syntax-Error) (if (fx= argsize 4) (css-declared+percentage%-filter (last hsba-tokens)) 1.0))
-        (cond [(and (real? h) (single-flonum? s) (single-flonum? b) (flonum? a)) (hsba ->rgb h s b a)]
-              [(exn:css? h) h]
-              [(exn:css? s) s]
-              [(exn:css? b) b]
-              [(exn:css? a) a]))))
+      (cond [(exn:css? hsba-tokens) hsba-tokens]
+            [else (let ([h (css-hue->scalar (list-ref hsba-tokens 0))]
+                        [s (css-sb%->scalar (list-ref hsba-tokens 1))]
+                        [b (css-sb%->scalar (list-ref hsba-tokens 2))]
+                        [a (if (fx= argsize 4) (css-declared+percentage%-filter (last hsba-tokens)) 1.0)])
+                    (cond [(and (real? h) (single-flonum? s) (single-flonum? b) (flonum? a)) (hsba ->rgb h s b a)]
+                          [(exn:css? h) h]
+                          [(exn:css? s) s]
+                          [(exn:css? b) b]
+                          [(exn:css? a) a]
+                          [else (make-exn:css:empty eof)]))])))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-default-font : (Instance Font%) (make-font))
@@ -677,14 +679,16 @@
                                                               alpha)))]))]
           [else color-representation])))
 
-(define css-declared-color-filter : (-> CSS-Token (Listof CSS-Token) (U Color+sRGB CSS-Color Void CSS-Syntax-Error))
+(define css-declared-color-filter : (case-> [CSS-Token (Listof CSS-Token) -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
+                                            [CSS-Token (Listof CSS-Token) True -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
+                                            [CSS-Token (Listof CSS-Token) False -> (U Color+sRGB CSS-Color False CSS-Syntax-Error)])
   ;;; https://drafts.csswg.org/css-color/#color-type
   ;;; https://drafts.csswg.org/css-color/#named-colors
   ;;; https://drafts.csswg.org/css-color/#numeric-rgb
   ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
   ;;; https://drafts.csswg.org/css-color/#the-hwb-notation
-  (lambda [color-value rest]
-    (css:cond #:with color-value #:null? rest
+  (lambda [color-value rest [terminate? #true]]
+    (css:cond #:with color-value #:null? rest #:when terminate?
               [(css:ident? color-value)
                (define name : Symbol (css:ident-norm color-value))
                (cond [(hash-has-key? css-named-colors name) name]
@@ -709,14 +713,14 @@
                (define name : String (if (pair? grey) (string-replace name-raw (car grey) "gray") name-raw))
                (if (send the-color-database find-color name) name (make-exn:css:range color-value))])))
 
-(define css-color->color% : (-> CSS-Datum (Option (Instance Color%)))
-  (lambda [color]
+(define css-color-filter : (-> Symbol CSS-Datum (U (Instance Color%) CSS-Wide-Keyword))
+  (lambda [_ color]
     (cond [(or (index? color) (string? color) (symbol? color)) (select-rgba-color color)]
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
           [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
           [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
           [(object? color) (cast color (Instance Color%))]
-          [else #false])))
+          [else css:initial])))
 
 (define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (Option CSS+Longhand-Values))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
@@ -780,6 +784,7 @@
   (require (submod ".."))
   (require (submod "css.rkt" test/digitama))
 
+  (css-cache-computed-object-value #false)
   (current-css-media-type 'screen)
   (current-css-media-preferences
    ((inst make-hash Symbol CSS-Media-Datum)
@@ -788,16 +793,16 @@
           (cons 'height 820))))
   
   (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer.css)))
-  (define tamer-bitmap-test : CSS-Subject (make-css-subject #:type 'module #:id '#:header #:classes '(main)))
+  (define tamer-main : CSS-Subject (make-css-subject #:type 'module #:id '#:header #:classes '(main)))
 
   (define-preference bmp #:as Bitmap-Test-Preference
     ([symbol-color : Color+sRGB                               #:= 'Blue]
      [string-color : Color+sRGB                               #:= 'Orange]
      [number-color : Color+sRGB                               #:= 'Tomato]
-     [output-color : Color+sRGB                               #:= 'Purple]
-     [paren-color : Color+sRGB                                #:= 'Sienna]
-     [border-color : Color+sRGB                               #:= 'Lavender]
-     [background-color : Color+sRGB                           #:= "Honeydew"]
+     [output-color : Color+sRGB                               #:= 'Chocolate]
+     [paren-color : Color+sRGB                                #:= 'Firebrick]
+     [border-color : Color+sRGB                               #:= 'Crimson]
+     [background-color : Color+sRGB                           #:= "Snow"]
      [otherwise : (Option (Listof (Pairof Symbol CSS-Datum))) #:= #false])
     #:transparent)
 
@@ -813,24 +818,24 @@
 
   (define css-preference-filter : (CSS-Cascaded-Value-Filter Bitmap-Test-Preference)
     (lambda [declared-values initial-values inherit-values]
-      (make-bmp #:symbol-color (css-color->color% (css-ref declared-values inherit-values 'symbol-color))
-                #:string-color (css-color->color% (css-ref declared-values inherit-values 'string-color))
-                #:number-color (css-color->color% (css-ref declared-values inherit-values 'number-color))
-                #:output-color (css-color->color% (css-ref declared-values inherit-values 'output-color))
-                #:paren-color (css-color->color% (css-ref declared-values inherit-values 'paren-color))
-                #:border-color (css-color->color% (css-ref declared-values inherit-values 'border-color))
-                #:background-color (css-color->color% (css-ref declared-values inherit-values 'background-color))
+      (make-bmp #:symbol-color (css-ref declared-values inherit-values 'symbol-color css-color-filter)
+                #:string-color (css-ref declared-values inherit-values 'string-color css-color-filter)
+                #:number-color (css-ref declared-values inherit-values 'number-color css-color-filter)
+                #:output-color (css-ref declared-values inherit-values 'output-color css-color-filter)
+                #:paren-color (css-ref declared-values inherit-values 'paren-color css-color-filter)
+                #:border-color (css-ref declared-values inherit-values 'border-color css-color-filter)
+                #:background-color (css-ref declared-values inherit-values 'background-color css-color-filter)
                 #:otherwise (for/list : (Listof (Pairof Symbol CSS-Datum)) ([desc-name (in-hash-keys declared-values)])
                               (cons desc-name
                                     (css-ref declared-values #false desc-name
                                              (λ [[desc-name : Symbol] [desc-value : CSS-Datum]]
                                                desc-value)))))))
   
-  tamer-bitmap-test
+  tamer-main
   (define btp : Bitmap-Test-Preference
     (time-run (let-values ([(preference for-children)
                             (css-cascade (list tamer-sheet)
-                                         tamer-bitmap-test
+                                         tamer-main
                                          css-descriptor-filter
                                          css-preference-filter
                                          (make-bmp)
@@ -851,6 +856,7 @@
            (define combined-desc (bitmap-desc words width #:background-color (bmp-background-color btp) #:combine? #true))
            (define-values (normal-width combined-width) (values (send desc get-width) (send combined-desc get-width)))
            (define-values (height combined-height) (values (send desc get-height) (send combined-desc get-height)))
+           (define result-color : Color+sRGB (bmp-output-color btp))
            (append bitmap-descs
                    (list (bitmap-pin 1 1/2 0 1/2
                                      (bitmap-text "> ")
@@ -860,11 +866,11 @@
                                                        (bitmap-text (~s words) #:color (bmp-string-color btp))
                                                        (bitmap-text (~a width) #:color (bmp-number-color btp)))
                                      (bitmap-text ")" #:color (bmp-paren-color btp)))
-                         (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color (bmp-output-color btp))
+                         (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color result-color)
                          (bitmap-pin 0 0 0 0
                                      (bitmap-frame desc #:margin 1 #:border-style 'transparent #:style 'transparent)
                                      (bitmap-frame (bitmap-blank width height) #:border-color (bmp-border-color btp)))
-                         (bitmap-text (format "- : (Bitmap ~a ~a #:combined)" combined-width combined-height) #:color 'Purple)
+                         (bitmap-text (format "- : (Bitmap ~a ~a #:combined)" combined-width combined-height) #:color result-color)
                          (bitmap-lt-superimpose (bitmap-frame combined-desc #:margin 1 #:border-style 'transparent #:style 'transparent)
                                                 (bitmap-frame #:border-color (bmp-border-color btp)
                                                               (bitmap-blank width combined-height))))))))
