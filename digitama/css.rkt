@@ -54,14 +54,14 @@
 
   (define-syntax (define-preference stx)
     (syntax-case stx [:]
-      [(_ preference #:as Preference ([property : DataType info ...] ...) options ...)
+      [(self preference #:as Preference ([property : DataType info ...] ...) options ...)
        (with-syntax* ([make-preference (format-id #'preference "make-~a" (syntax-e #'preference))]
                       [([maybe-property ArgType defval ...] ...)
                        (for/list ([field-info (in-list (syntax->list #'([property DataType info ...] ...)))])
                          (syntax-case field-info [Option]
-                           [(property DataType #:= defval) #'((or property defval) (Option DataType) defval)]
-                           [(property (Option T)) #'(property (Option T) #false)]
-                           [(property DataType) #'(property DataType)]))]
+                           [(p T #:= dv) #'((if (or (false? p) (css-wide-keyword? p)) dv p) (U T CSS-Wide-Keyword False) dv)]
+                           [(p (Option T)) #'((if (css-wide-keyword? p) #false p) (U T CSS-Wide-Keyword False) #false)]
+                           [(p T) (raise-syntax-error (syntax-e #'self) "property requires a default value" #'p)]))]
                       [(args ...) (for/fold ([args null])
                                             ([field (in-list (syntax->list #'(property ...)))]
                                              [arg (in-list (syntax->list #'([property : ArgType defval ...] ...)))])
@@ -554,7 +554,7 @@
   (define-syntax-error exn:css #:as CSS-Syntax-Error
     [exn:css:resource           #:-> exn:css]
     [exn:css:deprecated         #:-> exn:css]
-    [exn:css:cyclic-dependency  #:-> exn:css]
+    [exn:css:cyclic             #:-> exn:css]
     [exn:css:unrecognized       #:-> exn:css]
     [exn:css:namespace          #:-> exn:css]
     [exn:css:misplaced          #:-> exn:css:unrecognized]
@@ -591,6 +591,9 @@
   (define-type CSS-Combinator (U '>> '> '+ '~ '||))
   (define-type CSS-Attribute-Datum (U String Symbol (Listof (U String Symbol))))
   (define-type CSS-Attribute-Value (U CSS-Attribute-Datum (Vector Symbol CSS-Attribute-Datum)))
+
+  (define css-root-element-name : (Parameterof Symbol) (make-parameter 'root))
+  (define css-root-element-id : (Parameterof (U Keyword (Listof+ Keyword))) (make-parameter '#:root))
   
   (define-selectors
     [css-attribute-selector      #:+ CSS-Attribute-Selector ([name : Symbol] [quirk : Symbol] [namespace : (U Symbol Boolean)])]
@@ -624,8 +627,8 @@
                                   [C : Nonnegative-Fixnum])])
 
   (define-preference css-subject #:as CSS-Subject
-    ([type : Symbol]
-     [id : (U Keyword (Listof+ Keyword))]
+    ([type : Symbol                                       #:= (css-root-element-name)]
+     [id : (U Keyword (Listof+ Keyword))                  #:= (css-root-element-id)]
      [namespace : (U Symbol Boolean)                      #:= #true]
      [classes : (Listof Symbol)                           #:= null]
      [attributes : (HashTable Symbol CSS-Attribute-Value) #:= (make-hasheq)])
@@ -793,7 +796,7 @@
   (define-type CSS+Lazy-Value (U (-> CSS-Datum) (Boxof (-> CSS-Datum))))
   (define-type CSS-Values (HashTable Symbol CSS+Lazy-Value))
   (define-type CSS-Longhand-Values (HashTable Symbol (U CSS-Datum CSS-Syntax-Error)))
-  (define-type CSS+Longhand-Values (U CSS-Longhand-Values CSS-Datum CSS-Syntax-Error Void))
+  (define-type CSS+Longhand-Values (U CSS-Longhand-Values CSS-Datum CSS-Syntax-Error))
   (define-type CSS-Declaration-Filter (-> Symbol CSS-Token (Listof CSS-Token) (Values CSS+Longhand-Values Boolean)))
   (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Values Preference (Option CSS-Values) Preference))
 
@@ -861,16 +864,14 @@
                                      [else (thunk css:unset)]))))))
       (define cascaded-value : CSS-Datum
         (cond [(not (box? fvalue)) (fvalue)]
-              [else (let ([fvalue (unbox fvalue)])
-                      (hash-set! properties desc-name fvalue)
-                      (fvalue))]))
+              [else ((unbox fvalue))]))
       (define specified-value : CSS-Datum
         (cond [(or (eq? cascaded-value css:revert) (not (css-wide-keyword? cascaded-value))) cascaded-value]
               [(or (eq? cascaded-value css:initial) (false? inherited-values)) css:initial]
               [else (css-ref inherited-values #false desc-name)]))
       (cond [(false? css->datum) specified-value]
             [else (let ([computed-value (css->datum desc-name specified-value)])
-                    (unless (eq? cascaded-value computed-value)
+                    (when (nor (eq? cascaded-value computed-value) (object? computed-value))
                       (hash-set! properties desc-name (thunk computed-value)))
                     computed-value)])))
 
@@ -2627,7 +2628,7 @@
                                              (and (pair? tokens) (findf css:var? tokens))))
                                       (desc-set!-lazy desc-name important? declared-values)]
                                      [else (css-log-syntax-error desc-value)])]
-                              [else (when (nor (void? desc-value) (false? desc-value))
+                              [else (when (false? desc-value)
                                       (cond [(css:var? desc-value) (desc-set!-lazy desc-name important? declared-values)]
                                             [(hash? desc-value) (desc-set!-longhand desc-name important? desc-value declared-values)]
                                             [else (desc-set! desc-name important? (thunk desc-value))]))])))]))
@@ -2713,7 +2714,7 @@
                       (define mods (css-variable-substitude (css:url-modifiers head) variables refpath keep-whitespace?))
                       (if (list? mods) (var-fold (cons (css:url-copy head (css-ann-url-modifiers mods) #false) seulav) tail) mods)]
                      [else (var-fold (cons head seulav) tail)])]
-              [(memq (css:var-datum head) refpath) (make+exn:css:cyclic-dependency head)]
+              [(memq (css:var-datum head) refpath) (make+exn:css:cyclic head)]
               [else (let ([--var (css:var-datum head)])
                       (define lazy-tokens : CSS+Lazy-Value (hash-ref variables --var (thunk (thunk css:initial))))
                       (define-values (--vs lazy?)

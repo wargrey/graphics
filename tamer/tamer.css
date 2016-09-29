@@ -10,7 +10,7 @@
   unicode-range: U+0025-00FF;
 }
 	
-html, body;
+root, body;
 
 #header {
         margin: 10px 2em 1cm 2%;
@@ -203,16 +203,16 @@ foo|test {
 
 |test {
 	gaga: 2;
-}html {
+}root {
 	some: -test(val1);
 }
 
-html {
+root {
 	some-other: -test(val1);
 }
 
 @media screen {
-	html {
+	root {
 		some: -test(val2);
 	}
 }
