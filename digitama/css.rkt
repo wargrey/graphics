@@ -855,22 +855,22 @@
   (define css-cache-computed-object-value : (Parameterof Boolean) (make-parameter #true))
   
   (define css-ref : (All (a) (case-> [CSS-Values (Option CSS-Values) Symbol -> CSS-Datum]
+                                     [CSS-Values (Option CSS-Values) Symbol False -> CSS-Datum]
                                      [CSS-Values (Option CSS-Values) Symbol (-> Symbol CSS-Datum (∩ a CSS-Datum)) -> a]))
     (lambda [properties inherited-values desc-name [css->datum #false]]
-      (define fvalue : CSS+Lazy-Value
+      (define declared-value : CSS+Lazy-Value
         (hash-ref properties desc-name
                   (thunk (if (memq desc-name (cons 'all (current-css-all-exceptions)))
                              (hash-ref! properties desc-name (thunk (thunk css:unset)))
                              (let ([all (css-ref properties #false 'all)])
-                               (cond [(css-wide-keyword? all) (thunk all)]
-                                     [else (thunk css:unset)]))))))
-      (define cascaded-value : CSS-Datum
-        (cond [(not (box? fvalue)) (fvalue)]
-              [else ((unbox fvalue))]))
+                               (thunk (if (css-wide-keyword? all) all css:unset)))))))
+      (define cascaded-value : CSS-Datum (if (box? declared-value) ((unbox declared-value)) (declared-value)))
       (define specified-value : CSS-Datum
         (cond [(or (eq? cascaded-value css:revert) (not (css-wide-keyword? cascaded-value))) cascaded-value]
               [(or (eq? cascaded-value css:initial) (false? inherited-values)) css:initial]
-              [else (css-ref inherited-values #false desc-name)]))
+              [else (css-ref inherited-values #false desc-name #false)]))
+      (when (or (not (eq? cascaded-value specified-value)) (box? declared-value))
+        (hash-set! properties desc-name (thunk specified-value)))
       (cond [(false? css->datum) specified-value]
             [else (let ([computed-value (css->datum desc-name specified-value)])
                     (when (and (not (eq? cascaded-value computed-value))
