@@ -733,13 +733,15 @@
                (define name : String (if (pair? grey) (string-replace name-raw (car grey) "gray") name-raw))
                (if (send the-color-database find-color name) name (make-exn:css:range color-value))])))
 
-(define css-color-filter : (-> Symbol CSS-Datum (U (Instance Color%) CSS-Wide-Keyword))
+(define css-color-filter : (-> Symbol CSS-Datum (U (Instance Color%) CSS-Wide-Keyword 'currentcolor))
   (lambda [_ color]
     (cond [(or (index? color) (string? color) (symbol? color)) (select-rgba-color color)]
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
           [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
           [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
           [(object? color) (cast color (Instance Color%))]
+          [(eq? color 'transparent) (select-rgba-color #x000000 0.0)]
+          [(eq? color 'currentcolor) color]
           [else css:initial])))
 
 (define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (Option CSS+Longhand-Values))
