@@ -645,7 +645,27 @@
                             [(list? old-options) (unless (memq property old-options) (cons property old-options))]))
                     (unless (void? decor-options) (hash-set! text-decor-longhand text-decor-option decor-options)))])
       (cond [(null? rest) (css-default-font-properties css-default-font text-decor-longhand)]
-            [else (css-font-shorthand+family-filter (car rest) (cdr rest) text-decor-longhand #false)]))))
+            [else (css-font-shorthand+family-filter (car rest) (cdr rest) text-decor-longhand #false)])))
+
+  #|(define css-text-decor-shorthand-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values) CSS-Longhand-Values)
+    ;;; https://drafts.csswg.org/css-fonts/#font-prop
+    (lambda [property rst [decor-longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))]]
+      (define keyword : (Option Symbol) (and (css:ident? property) (css:ident-norm property)))
+      (define font-hint : (U Symbol Nonnegative-Inexact-Real Integer (Listof (U String Symbol)) CSS-Syntax-Error)
+        (cond [(symbol? keyword)
+               (cond [(eq? keyword 'normal) keyword]
+                     [(memq keyword css-font-style-option) 'font-style]
+                     [(memq keyword css-font-variant-options/21) 'font-variant]
+                     [(memq keyword css-font-weight-option) 'font-weight]
+                     [(memq keyword css-font-stretch-option) 'font-stretch]
+                     [(memq keyword css-font-size-option) 'font-size]
+                     [else (css-font-family-filter property rst)])]
+              [(css:string? property) (css-font-family-filter property rst)]
+              [else (make-exn:css:unrecognized property)]))
+      (cond [(exact-integer? font-hint) (css-set!-font-property decor-longhand 'font-weight font-hint property rst)]
+            [(real? font-hint) (css-set!-font-property decor-longhand 'font-size font-hint property rst)]
+            [(list? font-hint) (css-set!-font-property decor-longhand 'font-family font-hint property rst)]
+            [else (css-default-font-properties font-hint decor-longhand)])))|#)
 
 (require (submod "." css))
 

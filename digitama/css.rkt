@@ -576,7 +576,7 @@
 
   (struct: css-@rule : CSS-@Rule ([name : CSS:@Keyword] [prelude : (Listof CSS-Token)] [block : (Option CSS:Block)]))
   (struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : (Listof+ CSS-Token)] [block : CSS:Block]))
-  (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [values : (Listof+ CSS-Token)] [important? : Boolean] [lazy? : Boolean]))
+  (struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [tokens : (Listof+ CSS-Token)] [important? : Boolean] [lazy? : Boolean]))
 
   ;; https://drafts.csswg.org/selectors/#grammar
   ;; https://drafts.csswg.org/selectors/#structure
@@ -790,18 +790,16 @@
   ;; https://drafts.csswg.org/css-cascade/#cascading
   ; NOTE: CSS tokens are also acceptable here, but they are just allowed for convenient
   ;        since they provide the precision type info for applications directly.                      
+  (define-type CSS-Value-Box (MPairof (-> CSS-Datum) (Option CSS-Declaration)))
   (define-type CSS-Datum (Rec css (U Datum FlVector FxVector CSS-Token --datum (Object)
                                      (Pairof css css) (Vectorof css) (Boxof css))))
 
-  (define-type CSS+Lazy-Value (U (-> CSS-Datum) (Boxof (-> CSS-Datum))))
-  (define-type CSS-Values (HashTable Symbol CSS+Lazy-Value))
+  (define-type CSS-Values (HashTable Symbol CSS-Value-Box))
   (define-type CSS-Longhand-Values (HashTable Symbol (U CSS-Datum CSS-Syntax-Error)))
   (define-type CSS+Longhand-Values (U CSS-Longhand-Values CSS-Datum CSS-Syntax-Error))
   (define-type CSS-Declaration-Filter (-> Symbol CSS-Token (Listof CSS-Token) (Values CSS+Longhand-Values Boolean)))
   (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Values Preference (Option CSS-Values) Preference))
 
-  (struct --datum () #:transparent)
-  
   (define-syntax (define-css-value stx)
     (syntax-case stx [:]
       [(_ datum #:as Datum (fields ...) options ...)
@@ -822,16 +820,53 @@
                   (define keywords-ormap : (-> (U Symbol CSS-Token) (Option CSS-Wide-Keyword))
                     (lambda [key]
                       (cond [(css-token? key) (and (css:ident? key) (keywords-ormap (css:ident-norm key)))]
-                            [(eq? key 'keyword) css:keyword] ...
-                            [else #false])))
+                            [else (case key
+                                    [(keyword) css:keyword] ...
+                                    [else #false])])))
 
                   (define keywords-filter-map : (-> (U Symbol CSS-Syntax-Error) (U Symbol CSS-Wide-Keyword CSS-Syntax-Error))
                     (lambda [key]
                       (cond [(not (symbol? key)) key]
-                            [(eq? key 'keyword) css:keyword] ...
-                            [else key])))))]))
+                            [else (case key
+                                    [(keyword) css:keyword] ...
+                                    [else key])])))))]))
 
-  (define-css-value css-lazy #:as CSS-Lazy ([force : (Listof+ CSS-Token)] [recursive? : Boolean]))
+  (struct --datum () #:transparent)
+
+  (define (css-value-box-get [src : CSS-Value-Box]) : CSS-Datum ((mcar src)))
+  (define (css-value-box-put! [src : CSS-Value-Box] [datum : CSS-Datum]) : Void (set-mcar! src (thunk datum)))
+  
+  (define make-css-value-box : (->* ((-> CSS-Datum)) ((Option CSS-Declaration)) CSS-Value-Box)
+    (lambda [lazy-datum [declaration #false]]
+      (mcons lazy-datum declaration)))
+  
+  (define css-value-box-resolve! : (-> CSS-Value-Box (Listof CSS-Token) Void)
+    (lambda [src maybe-flat-values]
+      (define property : (Option CSS-Declaration) (mcdr src))
+      (unless (false? property)
+        (set-mcdr! src (and (pair? maybe-flat-values)
+                            (struct-copy css-declaration property
+                                         [tokens maybe-flat-values]
+                                         [lazy? #false]))))))
+  
+  (define css-value-srclist : (-> CSS-Value-Box (Listof CSS-Token))
+    (lambda [src]
+      (define property : (Option CSS-Declaration) (mcdr src))
+      (if (false? property) null (css-declaration-tokens property))))
+  
+  (define css-value-important? : (-> CSS-Value-Box Boolean)
+    (lambda [src]
+      (define property : (Option CSS-Declaration) (mcdr src))
+      (and property (css-declaration-important? property))))
+
+  (define css-value-lazy? : (-> CSS-Value-Box Boolean)
+    (lambda [src]
+      (define property : (Option CSS-Declaration) (mcdr src))
+      (and property (css-declaration-lazy? property))))
+
+  ; NOTE: CSS-Value-Box is a mutable type, but not all empty values will be mutated.
+  (define (css-make-unset-box) : CSS-Value-Box (make-css-value-box (thunk css:unset)))
+  (define css-unset-box : CSS-Value-Box (css-make-unset-box))
 
   ; https://drafts.csswg.org/css-cascade/#all-shorthand
   ; https://drafts.csswg.org/css-values/#common-keywords
@@ -858,25 +893,22 @@
                                      [CSS-Values (Option CSS-Values) Symbol False -> CSS-Datum]
                                      [CSS-Values (Option CSS-Values) Symbol (-> Symbol CSS-Datum (∩ a CSS-Datum)) -> a]))
     (lambda [properties inherited-values desc-name [css->datum #false]]
-      (define declared-value : CSS+Lazy-Value
+      (define &value : CSS-Value-Box
         (hash-ref properties desc-name
-                  (thunk (if (memq desc-name (cons 'all (current-css-all-exceptions)))
-                             (hash-ref! properties desc-name (thunk (thunk css:unset)))
-                             (let ([all (css-ref properties #false 'all)])
-                               (thunk (if (css-wide-keyword? all) all css:unset)))))))
-      (define cascaded-value : CSS-Datum (if (box? declared-value) ((unbox declared-value)) (declared-value)))
+                  (thunk (cond [(memq desc-name (current-css-all-exceptions)) (css-make-unset-box)]
+                               [else (hash-ref properties 'all css-make-unset-box)]))))
+      (define cascaded-value : CSS-Datum (css-value-box-get &value))
       (define specified-value : CSS-Datum
         (cond [(or (eq? cascaded-value css:revert) (not (css-wide-keyword? cascaded-value))) cascaded-value]
               [(or (eq? cascaded-value css:initial) (false? inherited-values)) css:initial]
               [else (css-ref inherited-values #false desc-name #false)]))
-      (when (or (not (eq? cascaded-value specified-value)) (box? declared-value))
-        (hash-set! properties desc-name (thunk specified-value)))
+      (unless (eq? cascaded-value specified-value) (css-value-box-put! &value specified-value))
       (cond [(false? css->datum) specified-value]
             [else (let ([computed-value (css->datum desc-name specified-value)])
                     (when (and (not (eq? cascaded-value computed-value))
                                (implies (object? computed-value)
                                         (css-cache-computed-object-value)))
-                      (hash-set! properties desc-name (thunk computed-value)))
+                      (css-value-box-put! &value computed-value))
                     computed-value)])))
 
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
@@ -1850,7 +1882,7 @@
             [else (and (procedure? support?)
                        (css-declaration? query)
                        (support? (css:ident-norm (css-declaration-name query))
-                                 (css-declaration-values query)))])))
+                                 (css-declaration-tokens query)))])))
 
   (define css-components->media-range-query : (-> (Listof CSS-Token) CSS:Block CSS-Feature-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#mq-features
@@ -1878,7 +1910,7 @@
   (define css-declaration->media-query : (-> CSS-Declaration CSS:Block CSS-Feature-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#mq-features
     (lambda [property broken-condition]
-      (define-values (media-value rest) (css-car-media-value (css-declaration-values property)))
+      (define-values (media-value rest) (css-car-media-value (css-declaration-tokens property)))
       (cond [(eof-object? media-value) (throw-exn:css:enclosed broken-condition)]
             [(css-pair? rest) (throw-exn:css:enclosed broken-condition)]
             [else (css-make-media-feature (css-declaration-name property) media-value #\: #false)])))
@@ -2512,7 +2544,7 @@
     ;;; https://drafts.csswg.org/selectors/#data-model
     (lambda [rules subject desc-filter [quirk? #false]
                    [top-preferences (current-css-media-preferences)]
-                   [descbase ((inst make-hasheq Symbol CSS+Lazy-Value))]]
+                   [descbase ((inst make-hasheq Symbol CSS-Value-Box))]]
       ; NOTE: defined the `Style-Metadata` as `List` will slow down the parsing,
       ;       even though this code is not reached at that stage.
       (define-type Style-Metadata (Vector Nonnegative-Fixnum CSS-Declarations CSS-Media-Preferences))
@@ -2556,86 +2588,82 @@
     ;;; https://drafts.csswg.org/css-cascade/#importance
     ;;; https://drafts.csswg.org/css-variables/#syntax
     ;;; https://drafts.csswg.org/css-variables/#using-variables
-    (lambda [desc-filter properties [descbase ((inst make-hasheq Symbol CSS+Lazy-Value))]]
+    (lambda [desc-filter properties [descbase ((inst make-hasheq Symbol CSS-Value-Box))]]
       (define (desc-more-important? [desc-name : Symbol] [important? : Boolean]) : Boolean
-        (or important? (not (box? (hash-ref descbase desc-name (thunk (λ [] css:unset)))))))
-      (define (desc-set! [desc-name : Symbol] [important? : Boolean] [desc-value : (-> CSS-Datum)]) : Void
-        (define declared-value : CSS+Lazy-Value (if important? (box desc-value) desc-value))
+        (or important? (not (css-value-important? (hash-ref descbase desc-name (thunk css-unset-box))))))
+      (define (desc-set! [desc-name : Symbol] [property : CSS-Declaration] [desc-value : (-> CSS-Datum)]) : Void
+        (define declared-value : CSS-Value-Box (make-css-value-box desc-value property))
         (when (eq? desc-name 'all)
-          (define css-all-exceptions : (Listof Symbol) (current-css-all-exceptions))
-          (for ([desc-key (in-hash-keys descbase)])
-            (when (and (nor (symbol-unreadable? desc-key) (memq desc-key css-all-exceptions))
-                       (desc-more-important? desc-key important?))
+          (define important? : Boolean (css-declaration-important? property))
+          (for ([desc-key (in-list (remq* (current-css-all-exceptions) (hash-keys descbase)))] #:unless (symbol-unreadable? desc-key))
+            (when (desc-more-important? desc-key important?)
               (hash-set! descbase desc-key declared-value))))
         (hash-set! descbase desc-name declared-value))
-      (define (desc-lazy-filter [desc-name : Symbol] [declared-values : (Listof+ CSS-Token)]) : (U CSS-Datum CSS-Longhand-Values)
-        (define maybe-flat : (U (Listof CSS-Token) CSS-Syntax-Error) (css-variable-substitude declared-values descbase null))
-        (cond [(or (null? maybe-flat) (exn:css? maybe-flat)) css:unset]
+      (define (desc-lazy-filter [desc-name : Symbol] [declared-tokens : (Listof+ CSS-Token)]) : (U CSS-Datum CSS-Longhand-Values)
+        (define maybe-flat : (Listof CSS-Token) (css-variable-substitude declared-tokens descbase null))
+        (cond [(null? maybe-flat) css:unset]
               [else (let-values ([(maybe-value _) (desc-filter desc-name (car maybe-flat) (cdr maybe-flat))])
                       (cond [(exn:css? maybe-value) (css-log-syntax-error maybe-value) css:unset]
                             [(void? maybe-value) css:unset]
                             [else maybe-value]))]))
-      (define (desc-set!-lazy [desc-name : Symbol] [important? : Boolean] [declared-values : (Listof+ CSS-Token)]) : Void
-        (desc-set! desc-name important?
-                   (thunk (let* ([maybe-value (desc-lazy-filter desc-name declared-values)]
+      (define (desc-set!-lazy [desc-name : Symbol] [property : CSS-Declaration] [declared-tokens : (Listof+ CSS-Token)]) : Void
+        (desc-set! desc-name property
+                   (thunk (let* ([maybe-value (desc-lazy-filter desc-name declared-tokens)]
                                  [desc-value (if (hash? maybe-value) css:unset maybe-value)])
-                            (hash-set! descbase desc-name (thunk desc-value))
+                            (hash-set! descbase desc-name (make-css-value-box (thunk desc-value) property))
                             desc-value))))
-      (define (desc-set!-longhand [desc-name : Symbol] [important? : Boolean] [desc-value : CSS-Longhand-Values]
-                                  [declared-values : (Listof+ CSS-Token)]) : Void
-        (define exns : (Listof CSS-Syntax-Error) (remove-duplicates (filter exn:css? (hash-values desc-value)) eq?))
+      (define (desc-set!-longhand [desc-name : Symbol] [desc-value : CSS-Longhand-Values] [property : CSS-Declaration]) : Void
         (define pending-thunk : (-> (U CSS-Longhand-Values CSS-Wide-Keyword))
-          (thunk (let ([maybe-value (desc-lazy-filter desc-name declared-values)])
+          (thunk (let ([maybe-value (desc-lazy-filter desc-name (css-declaration-tokens property))])
                    (cond [(not (hash? maybe-value)) css:unset]
                          [else (let ([exns (remove-duplicates (filter exn:css? (hash-values maybe-value)) eq?)])
                                  (cond [(pair? exn?) (for-each css-log-syntax-error exns) css:unset]
                                        [else maybe-value]))]))))
+        (define exns : (Listof CSS-Syntax-Error) (remove-duplicates (filter exn:css? (hash-values desc-value)) eq?))
+        (define important? : Boolean (css-declaration-important? property))
         (cond [(null? exns)
                (for ([(name value) (in-hash desc-value)] #:unless (exn:css? value))
                  (when (desc-more-important? name important?)
-                   (desc-set! name important? (thunk value))))]
+                   (desc-set! name property (thunk value))))]
               [(for/and : Boolean ([desc-exn (in-list exns)])
                  (and (exn:css:type? desc-exn)
                       (let ([tokens (exn:css-tokens desc-exn)])
                         (and (pair? tokens) (findf css:var? tokens) #true))))
-               (define &pending-value : (Boxof (-> (U CSS-Longhand-Values CSS-Wide-Keyword))) (box pending-thunk))
+               (define &pending-longhand : (Boxof (-> (U CSS-Longhand-Values CSS-Wide-Keyword))) (box pending-thunk))
                (for ([name (in-hash-keys desc-value)] #:when (desc-more-important? name important?))
-                 (desc-set! name important?
-                            (thunk (let ([maybe-pending ((unbox &pending-value))])
-                                     (box-cas! &pending-value pending-thunk (thunk maybe-pending))
+                 (desc-set! name property
+                            (thunk (let ([pending-longhand ((unbox &pending-longhand))])
+                                     (box-cas! &pending-longhand pending-thunk (thunk pending-longhand))
                                      (define desc-value : CSS-Datum
-                                       (cond [(not (hash? maybe-pending)) maybe-pending]
-                                             [else (let ([desc-value (hash-ref maybe-pending name (thunk css:unset))])
+                                       (cond [(not (hash? pending-longhand)) pending-longhand]
+                                             [else (let ([desc-value (hash-ref pending-longhand name (thunk css:unset))])
                                                      (cond [(exn? desc-value) css:unset]
                                                            [else desc-value]))]))
-                                     (hash-set! descbase name (thunk desc-value))
+                                     (hash-set! descbase name (make-css-value-box (thunk desc-value) property))
                                      desc-value))))]
               [else (for-each css-log-syntax-error exns)]))
       (for ([property (in-list properties)])
         (cond [(list? property) (css-cascade-declarations desc-filter property descbase)]
               [else (let ([desc-name : Symbol (css:ident-norm (css-declaration-name property))])
-                      (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
+                      (define declared-tokens : (Listof+ CSS-Token) (css-declaration-tokens property))
                       (define important? : Boolean (css-declaration-important? property))
-                      (define lazy? : Boolean (css-declaration-lazy? property))
-                      (define decl-value : CSS-Token (car declared-values))
-                      (define decl-rest : (Listof CSS-Token) (cdr declared-values))
+                      (define decl-value : CSS-Token (car declared-tokens))
+                      (define decl-rest : (Listof CSS-Token) (cdr declared-tokens))
                       (when (desc-more-important? desc-name important?)
                         (define-values (desc-value deprecated?)
-                          (cond [(symbol-unreadable? desc-name) (values (css-lazy declared-values lazy?) #false)]
+                          (cond [(symbol-unreadable? desc-name) (values (current-inexact-milliseconds) #false)]
                                 [else (desc-filter desc-name decl-value decl-rest)]))
                         (when deprecated? (make+exn:css:deprecated (css-declaration-name property)))
-                        (cond [(exn? desc-value)
-                               (cond [(and (null? decl-rest) (css-wide-keywords-ormap decl-value))
-                                      => (λ [prefab] (desc-set! desc-name important? (thunk prefab)))]
-                                     [(and (exn:css:type? desc-value)
-                                           (let ([tokens (exn:css-tokens desc-value)])
-                                             (and (pair? tokens) (findf css:var? tokens))))
-                                      (desc-set!-lazy desc-name important? declared-values)]
-                                     [else (css-log-syntax-error desc-value)])]
-                              [else (unless (false? desc-value)
-                                      (cond [(css:var? desc-value) (desc-set!-lazy desc-name important? declared-values)]
-                                            [(hash? desc-value) (desc-set!-longhand desc-name important? desc-value declared-values)]
-                                            [else (desc-set! desc-name important? (thunk desc-value))]))])))]))
+                        (cond [(css:var? desc-value) (desc-set!-lazy desc-name property declared-tokens)]
+                              [(hash? desc-value) (desc-set!-longhand desc-name desc-value property)]
+                              [(not (exn? desc-value)) (desc-set! desc-name property (thunk desc-value))]
+                              [(and (null? decl-rest) (css-wide-keywords-ormap decl-value))
+                               => (λ [prefab] (desc-set! desc-name property (thunk prefab)))]
+                              [(and (exn:css:type? desc-value)
+                                    (let ([tokens (exn:css-tokens desc-value)])
+                                      (and (pair? tokens) (findf css:var? tokens))))
+                               (desc-set!-lazy desc-name property declared-tokens)]
+                              [else (css-log-syntax-error desc-value)])))]))
       descbase))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2687,46 +2715,40 @@
   (define css-resolve-variables : (-> CSS-Values (Option CSS-Values) CSS-Values)
     ;;; https://drafts.csswg.org/css-variables/#cycles
     (lambda [declared-values inherited-values]
-      (for ([(--var lazy) (in-hash declared-values)] #:when (and (symbol-unreadable? --var) (not (box? lazy))))
-        (define v : CSS-Datum (lazy))
-        (when (and (css-lazy? v) (css-lazy-recursive? v))
-          (define flat-values : (U (Listof CSS-Token) CSS-Syntax-Error)
-            (css-variable-substitude (css-lazy-force v) declared-values (list --var) '#:keep-whitespace))
-          (hash-set! declared-values --var
-                     (let ([lazy-value (if (pair? flat-values) (css-lazy flat-values #false) css:initial)])
-                       ; WARNING: The `css:initail` is not wrapped in `css-lazy`, that means this is an invalid variable.
-                       (thunk lazy-value)))))
+      (for ([(--var maybe-lazy) (in-hash declared-values)] #:when (symbol-unreadable? --var))
+        (when (css-value-lazy? maybe-lazy)
+          (css-value-box-resolve! maybe-lazy
+                                  (css-variable-substitude (css-value-srclist maybe-lazy)
+                                                           declared-values
+                                                           (list --var)
+                                                           '#:keep-whitespace))))
       (unless (false? inherited-values)
         (for ([(--var lazy) (in-hash inherited-values)] #:when (symbol-unreadable? --var))
           (hash-ref! declared-values --var (thunk lazy))))
       declared-values))
 
-  (define css-variable-substitude : (->* ((Listof CSS-Token) CSS-Values (Listof Symbol)) ((Option '#:keep-whitespace))
-                                         (U (Listof CSS-Token) CSS-Syntax-Error))
+  (define css-variable-substitude : (->* ((Listof CSS-Token) CSS-Values (Listof Symbol)) ((Option '#:keep-whitespace)) (Listof CSS-Token))
     ;;; https://drafts.csswg.org/css-variables/#invalid-variables
     (lambda [decl-values variables refpath [keep-whitespace? #false]]
       (let var-fold ([seulav : (Listof CSS-Token) null]
                      [rest-values : (Listof CSS-Token) decl-values])
         (define-values (head tail) (css-car rest-values))
         (cond [(eof-object? head) (reverse (if keep-whitespace? seulav (filter-not css:whitespace? seulav)))]
-              [(not (css-lazy-token? head)) (var-fold (cons head seulav) tail)]
-              [(not (css:var? head))
-               (cond [(and (css:function? head) (css:function-lazy? head))
-                      (define args (css-variable-substitude (css:function-arguments head) variables refpath keep-whitespace?))
-                      (if (pair? args) (var-fold (cons (css:function-copy head args #false) seulav) tail) args)]
-                     [(and (css:url? head) (css:url-lazy? head))
-                      (define mods (css-variable-substitude (css:url-modifiers head) variables refpath keep-whitespace?))
-                      (if (pair? mods) (var-fold (cons (css:url-copy head (css-ann-url-modifiers mods) #false) seulav) tail) mods)]
-                     [else (var-fold (cons head seulav) tail)])]
-              [(memq (css:var-datum head) refpath) (make+exn:css:cyclic head)]
+              [(and (css:function? head) (css:function-lazy? head))
+               (define args (css-variable-substitude (css:function-arguments head) variables refpath keep-whitespace?))
+               (if (pair? args) (var-fold (cons (css:function-copy head args #false) seulav) tail) args)]
+              [(and (css:url? head) (css:url-lazy? head))
+               (define mods (css-variable-substitude (css:url-modifiers head) variables refpath keep-whitespace?))
+               (if (pair? mods) (var-fold (cons (css:url-copy head (css-ann-url-modifiers mods) #false) seulav) tail) mods)]
+              [(not (css:var? head)) (var-fold (cons head seulav) tail)]
+              [(memq (css:var-datum head) refpath) (make+exn:css:cyclic head) null]
               [else (let ([--var (css:var-datum head)])
-                      (define lazy-tokens : CSS+Lazy-Value (hash-ref variables --var (thunk (thunk css:initial))))
+                      (define lazy-box : CSS-Value-Box (hash-ref variables --var (thunk css-unset-box)))
                       (define-values (--vs lazy?)
-                        (cond [(box? lazy-tokens) (values (css:var-fallback head) (css:var-lazy? head))]
-                              [else (let ([v (lazy-tokens)])
-                                      (cond [(css-lazy? v) (values (css-lazy-force v) (css-lazy-recursive? v))]
-                                            [else (values (css:var-fallback head) (css:var-lazy? head))]))]))
-                      (cond [(null? --vs) null #|Yes, whitespace-only token list is also valid|#]
+                        (let ([lazy-tokens (css-value-srclist lazy-box)])
+                          (cond [(pair? lazy-tokens) (values lazy-tokens (css-value-lazy? lazy-box))]
+                                [else (values (css:var-fallback head) (css:var-lazy? head))])))
+                      (cond [(null? --vs) null #| whitespace-only token list is also valid, but null is not |#]
                             [(not lazy?) (var-fold (append (reverse --vs) seulav) tail)]
                             [else (let ([vs (css-variable-substitude --vs variables (cons --var refpath) keep-whitespace?)])
                                     (if (pair? vs) (var-fold (append (reverse vs) seulav) tail) vs))]))])))))
