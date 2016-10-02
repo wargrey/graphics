@@ -406,6 +406,12 @@
                         (lightskyblue . #x87CEFA) (gainsboro . #xDCDCDC) (fuchsia . #xFF00FF) (mediumspringgreen . #x00FA9A)
                         (midnightblue . #x191970) (salmon . #xFA8072) (silver . #xC0C0C0)))
 
+  (define css-color-datum? : (-> Any Boolean : #:+ (U Index Symbol String))
+    (lambda [maybe-color]
+      (or (index? maybe-color)
+          (symbol? maybe-color)
+          (string? maybe-color))))
+
   (define css-hex-color->rgba : (-> Keyword (Values (Option Index) Nonnegative-Flonum))
     (lambda [hash-color]
       (define color : String (keyword->string hash-color))
@@ -673,8 +679,6 @@
 
 (require (submod "." css))
 
-(define css-current-element-color : (Parameterof Color+sRGB) (make-parameter 'black))
-
 (define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Flonum) (Instance Color%))
   (lambda [color-representation [alpha 1.0]]
     (define abyte : Byte (min (exact-round (fl* alpha 255.0)) #xFF))
@@ -694,7 +698,7 @@
                                      [else (equal-hash-code (cons color-name abyte))])
                                (thunk (select-rgba-color (hash-ref css-named-colors color-name) alpha)))]
                    [(not downcased?) (try-again (string->symbol (string-downcase (symbol->string color-name))) #true)]
-                   [(eq? color-name 'currentcolor) (select-rgba-color (css-current-element-color))]
+                   [(eq? color-name 'currentcolor) (select-rgba-color (current-css-element-color))]
                    [else (select-rgba-color 0 alpha)]))]
           [(string? color-representation)
            (let* ([color-name (string-downcase (string-replace color-representation #px"(?i:grey)" "gray"))]
@@ -705,6 +709,12 @@
                                     (thunk (select-rgba-color (rgb-bytes->hex (send color red) (send color green) (send color blue))
                                                               alpha)))]))]
           [else color-representation])))
+
+(define current-css-element-color : (Parameterof CSS-Datum Color+sRGB)
+  (make-parameter (select-rgba-color #x000000)
+                  (λ [[c : CSS-Datum]]
+                    (define color : (U (Instance Color%) CSS-Wide-Keyword 'currentcolor) (css-color-filter 'color c))
+                    (if (object? color) color (current-css-element-color)))))
 
 (define css-declared-color-filter : (case-> [CSS-Token (Listof CSS-Token) -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
                                             [CSS-Token (Listof CSS-Token) True -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
@@ -740,23 +750,23 @@
                (define name : String (if (pair? grey) (string-replace name-raw (car grey) "gray") name-raw))
                (if (send the-color-database find-color name) name (make-exn:css:range color-value))])))
 
-(define make-css-color-property-filter : (->* ((Listof Symbol)) (Symbol) CSS-Color-Property-Filter)
-  (lambda [property-names [the-fgcolor 'color]]
+(define make-css-color-property-filter : (-> (Listof Symbol) CSS-Color-Property-Filter)
+  (lambda [property-names]
     (λ [[name : Symbol] [value : CSS-Token] [rest : (Listof CSS-Token)]]
       (cond [(pair? rest) (make-exn:css:overconsumption rest)]
-            [(eq? name the-fgcolor) (if (css:ident=:=? value 'currentcolor) css:inherit (css-declared-color-filter value null))]
+            [(eq? name 'color) (if (css:ident=:=? value 'currentcolor) css:inherit (css-declared-color-filter value null))]
             [(for/or : Boolean ([pn (in-list property-names)]) (eq? name pn)) (css-declared-color-filter value null)]
             [else #false]))))
 
 (define css-color-filter : (-> Symbol CSS-Datum (U (Instance Color%) CSS-Wide-Keyword 'currentcolor))
   (lambda [desc-name color]
-    (cond [(or (index? color) (string? color) (symbol? color)) (select-rgba-color color)]
+    (cond [(css-color-datum? color) (select-rgba-color color)]
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
           [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
           [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
           [(object? color) (cast color (Instance Color%))]
           [(eq? color 'transparent) (select-rgba-color #x000000 0.0)]
-          [(eq? color 'currentcolor) (if (eq? desc-name color) css:initial color)]
+          [(eq? color 'currentcolor) color]
           [else css:initial])))
 
 (define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (Option CSS+Longhand-Values))
@@ -839,13 +849,14 @@
      [output-color : Color+sRGB                               #:= 'Chocolate]
      [paren-color : Color+sRGB                                #:= 'Firebrick]
      [border-color : Color+sRGB                               #:= 'Crimson]
+     [foreground-color : Color+sRGB                           #:= "Grey"]
      [background-color : Color+sRGB                           #:= "Snow"]
      [otherwise : (Option (Listof (Pairof Symbol CSS-Datum))) #:= #false])
     #:transparent)
 
-  (define css-preference-color-property-filter
-    (make-css-color-property-filter '(paren-color symbol-color string-color number-color output-color background-color border-color)
-                                    'color))
+  (define css-preference-color-property-filter : CSS-Color-Property-Filter
+    (make-css-color-property-filter '(paren-color symbol-color string-color number-color output-color
+                                                  foreground-color background-color border-color)))
   
   (define css-descriptor-filter : CSS-Declaration-Filter
     (lambda [suitcased-name desc-value rest]
@@ -857,19 +868,21 @@
 
   (define css-preference-filter : (CSS-Cascaded-Value-Filter Bitmap-Test-Preference)
     (lambda [declared-values initial-values inherit-values]
-      (make-bmp #:symbol-color (css-ref declared-values inherit-values 'symbol-color css-color-filter)
-                #:string-color (css-ref declared-values inherit-values 'string-color css-color-filter)
-                #:number-color (css-ref declared-values inherit-values 'number-color css-color-filter)
-                #:output-color (css-ref declared-values inherit-values 'output-color css-color-filter)
-                #:paren-color (css-ref declared-values inherit-values 'paren-color css-color-filter)
-                #:border-color (css-ref declared-values inherit-values 'border-color css-color-filter)
-                #:background-color (css-ref declared-values inherit-values 'background-color css-color-filter)
-                #:otherwise (for/list : (Listof (Pairof Symbol CSS-Datum)) ([desc-name (in-hash-keys declared-values)])
-                              (cons desc-name
-                                    (css-ref declared-values #false desc-name
-                                             (λ [[desc-name : Symbol] [desc-value : CSS-Datum]]
-                                               desc-value)))))))
-  
+      (parameterize ([current-css-element-color (css-ref declared-values inherit-values 'color)])
+        (make-bmp #:symbol-color (css-ref declared-values inherit-values 'symbol-color css-color-filter)
+                  #:string-color (css-ref declared-values inherit-values 'string-color css-color-filter)
+                  #:number-color (css-ref declared-values inherit-values 'number-color css-color-filter)
+                  #:output-color (css-ref declared-values inherit-values 'output-color css-color-filter)
+                  #:paren-color (css-ref declared-values inherit-values 'paren-color css-color-filter)
+                  #:border-color (css-ref declared-values inherit-values 'border-color css-color-filter)
+                  #:foreground-color (css-ref declared-values inherit-values 'foreground-color css-color-filter)
+                  #:background-color (css-ref declared-values inherit-values 'background-color css-color-filter)
+                  #:otherwise (for/list : (Listof (Pairof Symbol CSS-Datum)) ([desc-name (in-hash-keys declared-values)])
+                                (cons desc-name
+                                      (css-ref declared-values #false desc-name
+                                               (λ [[desc-name : Symbol] [desc-value : CSS-Datum]]
+                                                 desc-value))))))))
+    
   tamer-main
   (define btp : Bitmap-Test-Preference
     (time-run (let-values ([(preference for-children)
@@ -891,11 +904,11 @@
                                                              "no single letter would be printed in a single line."
                                                              "\n\nBug Fixed!"))
                                           "最后一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。此缺陷已修正！"))])
-           (define desc (bitmap-desc words width #:background-color (bmp-background-color btp) #:combine? #false))
-           (define combined-desc (bitmap-desc words width #:background-color (bmp-background-color btp) #:combine? #true))
+           (define-values (fgcolor bgcolor rcolor) (values (bmp-foreground-color btp) (bmp-background-color btp) (bmp-output-color btp)))
+           (define desc (bitmap-desc words width #:color fgcolor #:background-color bgcolor #:combine? #false))
+           (define combined-desc (bitmap-desc words width #:color fgcolor #:background-color bgcolor #:combine? #true))
            (define-values (normal-width combined-width) (values (send desc get-width) (send combined-desc get-width)))
            (define-values (height combined-height) (values (send desc get-height) (send combined-desc get-height)))
-           (define result-color : Color+sRGB (bmp-output-color btp))
            (append bitmap-descs
                    (list (bitmap-pin 1 1/2 0 1/2
                                      (bitmap-text "> ")
@@ -905,11 +918,11 @@
                                                        (bitmap-text (~s words) #:color (bmp-string-color btp))
                                                        (bitmap-text (~a width) #:color (bmp-number-color btp)))
                                      (bitmap-text ")" #:color (bmp-paren-color btp)))
-                         (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color result-color)
+                         (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color rcolor)
                          (bitmap-pin 0 0 0 0
                                      (bitmap-frame desc #:margin 1 #:border-style 'transparent #:style 'transparent)
                                      (bitmap-frame (bitmap-blank width height) #:border-color (bmp-border-color btp)))
-                         (bitmap-text (format "- : (Bitmap ~a ~a #:combined)" combined-width combined-height) #:color result-color)
+                         (bitmap-text (format "- : (Bitmap ~a ~a #:combined)" combined-width combined-height) #:color rcolor)
                          (bitmap-lt-superimpose (bitmap-frame combined-desc #:margin 1 #:border-style 'transparent #:style 'transparent)
                                                 (bitmap-frame #:border-color (bmp-border-color btp)
                                                               (bitmap-blank width combined-height))))))))

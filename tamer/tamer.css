@@ -277,12 +277,14 @@ body {
 }
 
 module.main {
+   color : currentcolor;
    symbol-color: Blue;
    string-color: rgba(255, 128, 0);
    number-color: rgba(148, 22, 81);
    output-color: rgba(150, 0, 150);
    paren-color: rgba(147, 81, 0);
    background-color: "Honeydew";
+   foreground-color: currentcolor;
    border-color: var(--gray);
 
    font: 75% "Lucida Grande", "Trebuchet MS", Verdana, var(--default-font);
