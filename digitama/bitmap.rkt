@@ -19,7 +19,11 @@
 
 (define-type Flomap flomap)
 (define-type Bitmap (Instance Bitmap%))
+
 (define-type Color+sRGB (U Index Symbol String (Instance Color%)))
+(define-type CSS-Color-Property-Filter
+  (-> Symbol CSS-Token (Listof CSS-Token)
+      (U Color+sRGB CSS-Color CSS-Syntax-Error CSS-Wide-Keyword False)))
 
 (define bitmap/2x : (-> (U Path-String Input-Port) Bitmap)
   (lambda [src]
@@ -669,6 +673,8 @@
 
 (require (submod "." css))
 
+(define css-current-element-color : (Parameterof Color+sRGB) (make-parameter 'black))
+
 (define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Flonum) (Instance Color%))
   (lambda [color-representation [alpha 1.0]]
     (define abyte : Byte (min (exact-round (fl* alpha 255.0)) #xFF))
@@ -688,6 +694,7 @@
                                      [else (equal-hash-code (cons color-name abyte))])
                                (thunk (select-rgba-color (hash-ref css-named-colors color-name) alpha)))]
                    [(not downcased?) (try-again (string->symbol (string-downcase (symbol->string color-name))) #true)]
+                   [(eq? color-name 'currentcolor) (select-rgba-color (css-current-element-color))]
                    [else (select-rgba-color 0 alpha)]))]
           [(string? color-representation)
            (let* ([color-name (string-downcase (string-replace color-representation #px"(?i:grey)" "gray"))]
@@ -701,7 +708,7 @@
 
 (define css-declared-color-filter : (case-> [CSS-Token (Listof CSS-Token) -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
                                             [CSS-Token (Listof CSS-Token) True -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
-                                            [CSS-Token (Listof CSS-Token) False -> (U Color+sRGB CSS-Color False CSS-Syntax-Error)])
+                                            [CSS-Token (Listof CSS-Token) False -> (U Color+sRGB CSS-Color CSS-Syntax-Error False)])
   ;;; https://drafts.csswg.org/css-color/#color-type
   ;;; https://drafts.csswg.org/css-color/#named-colors
   ;;; https://drafts.csswg.org/css-color/#numeric-rgb
@@ -711,8 +718,8 @@
     (css:cond #:with color-value #:null? rest #:when terminate?
               [(css:ident? color-value)
                (define name : Symbol (css:ident-norm color-value))
-               (cond [(hash-has-key? css-named-colors name) name]
-                     [(memq name '(transparent currentcolor)) name]
+               (cond [(or (eq? name 'transparent) (eq? name 'currentcolor)) name]
+                     [(hash-has-key? css-named-colors name) name]
                      [else (make-exn:css:range color-value)])]
               [(css:hash? color-value)
                (define-values (maybe-rgb alpha) (css-hex-color->rgba (css:hash-norm color-value)))
@@ -733,15 +740,23 @@
                (define name : String (if (pair? grey) (string-replace name-raw (car grey) "gray") name-raw))
                (if (send the-color-database find-color name) name (make-exn:css:range color-value))])))
 
+(define make-css-color-property-filter : (->* ((Listof Symbol)) (Symbol) CSS-Color-Property-Filter)
+  (lambda [property-names [the-fgcolor 'color]]
+    (λ [[name : Symbol] [value : CSS-Token] [rest : (Listof CSS-Token)]]
+      (cond [(pair? rest) (make-exn:css:overconsumption rest)]
+            [(eq? name the-fgcolor) (if (css:ident=:=? value 'currentcolor) css:inherit (css-declared-color-filter value null))]
+            [(for/or : Boolean ([pn (in-list property-names)]) (eq? name pn)) (css-declared-color-filter value null)]
+            [else #false]))))
+
 (define css-color-filter : (-> Symbol CSS-Datum (U (Instance Color%) CSS-Wide-Keyword 'currentcolor))
-  (lambda [_ color]
+  (lambda [desc-name color]
     (cond [(or (index? color) (string? color) (symbol? color)) (select-rgba-color color)]
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
           [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
           [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
           [(object? color) (cast color (Instance Color%))]
           [(eq? color 'transparent) (select-rgba-color #x000000 0.0)]
-          [(eq? color 'currentcolor) color]
+          [(eq? color 'currentcolor) (if (eq? desc-name color) css:initial color)]
           [else css:initial])))
 
 (define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (Option CSS+Longhand-Values))
@@ -790,7 +805,7 @@
   (lambda [suitcased-name decor-value rest]
     (case suitcased-name
       [(text-decoration-line) (css-declared-keywords-filter decor-value rest css-text-decor-line-options 'none)]
-      [(text-decoration-color) (css-declared-color-filter decor-value rest)]
+      [(text-decoration-color) (css-declared-color-filter decor-value rest #false)]
       [(text-decoration-style) (css-declared-keyword-filter decor-value rest css-text-decor-style-option)]
       [(text-decoration-skip) (css-declared-keywords-filter decor-value rest css-text-decor-skip-options 'none)]
       ;[(text-decoraction)]
@@ -828,13 +843,15 @@
      [otherwise : (Option (Listof (Pairof Symbol CSS-Datum))) #:= #false])
     #:transparent)
 
+  (define css-preference-color-property-filter
+    (make-css-color-property-filter '(paren-color symbol-color string-color number-color output-color background-color border-color)
+                                    'color))
+  
   (define css-descriptor-filter : CSS-Declaration-Filter
     (lambda [suitcased-name desc-value rest]
       (values (cond [(css-font-property-filter suitcased-name desc-value rest) => values]
                     [(css-text-decor-property-filter suitcased-name desc-value rest) => values]
-                    [(memq suitcased-name '(paren-color symbol-color string-color number-color output-color
-                                                        background-color border-color))
-                     => (λ [v] (css-declared-color-filter desc-value rest))]
+                    [(css-preference-color-property-filter suitcased-name desc-value rest) => values]
                     [else (map css-token->datum (cons desc-value rest))])
               #false)))
 
