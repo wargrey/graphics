@@ -1,6 +1,6 @@
 #lang at-exp typed/racket
 
-(provide (all-defined-out))
+(provide (all-defined-out) Color+sRGB css-declared-color-filter)
 (provide (all-from-out "colorspace.rkt"))
 (provide (all-from-out typed/racket/draw images/flomap typed/images/logos typed/images/icons))
 
@@ -19,8 +19,6 @@
 
 (define-type Flomap flomap)
 (define-type Bitmap (Instance Bitmap%))
-
-(define-type Color+sRGB (U Index Symbol String (Instance Color%)))
 
 (define bitmap/2x : (-> (U Path-String Input-Port) Bitmap)
   (lambda [src]
@@ -362,6 +360,8 @@
   (require typed/racket/draw)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define-type Color+sRGB (U Index Symbol String (Instance Color%)))
+
   (define-css-value css-color #:as CSS-Color ())
   (struct hexa css-color ([hex : Index] [a : Nonnegative-Flonum]) #:transparent #:type-name HEXA)
   (struct rgba css-color ([r : Byte] [g : Byte] [b : Byte] [a : Nonnegative-Flonum]) #:transparent #:type-name RGBA)
@@ -503,6 +503,41 @@
                           [(exn:css? b) b]
                           [(exn:css? a) a]
                           [else (make-exn:css:empty eof)]))])))
+
+  (define css-declared-color-filter : (case-> [CSS-Token (Listof CSS-Token) -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
+                                              [CSS-Token (Listof CSS-Token) True -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
+                                              [CSS-Token (Listof CSS-Token) False -> (U Color+sRGB CSS-Color CSS-Syntax-Error False)])
+    ;;; https://drafts.csswg.org/css-color/#color-type
+    ;;; https://drafts.csswg.org/css-color/#named-colors
+    ;;; https://drafts.csswg.org/css-color/#numeric-rgb
+    ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
+    ;;; https://drafts.csswg.org/css-color/#the-hwb-notation
+    (lambda [color-value rest [terminate? #true]]
+      (css:cond #:with color-value #:null? rest #:when terminate?
+                [(css:ident? color-value)
+                 (define name : Symbol (css:ident-norm color-value))
+                 (cond [(or (eq? name 'transparent) (eq? name 'currentcolor)) name]
+                       [(hash-has-key? css-named-colors name) name]
+                       [else (make-exn:css:range color-value)])]
+                [(css:hash? color-value)
+                 (define-values (maybe-rgb alpha) (css-hex-color->rgba (css:hash-norm color-value)))
+                 (cond [(false? maybe-rgb) (make-exn:css:range color-value)]
+                       [(fl= alpha 1.0) maybe-rgb]
+                       [else (hexa maybe-rgb alpha)])]
+                [(css:function? color-value)
+                 (case (css:function-norm color-value)
+                   [(rgb rgba) (css-extract-rgba color-value (css:function-arguments color-value))]
+                   [(hsl hsla) (css-extract-hsba color-value (css:function-arguments color-value) hsl->rgb)]
+                   [(hsv hsva) (css-extract-hsba color-value (css:function-arguments color-value) hsv->rgb)]
+                   [(hsi hsia) (css-extract-hsba color-value (css:function-arguments color-value) hsi->rgb)]
+                   [(hwb hwba) (css-extract-hsba color-value (css:function-arguments color-value) hwb->rgb)]
+                   [else (make-exn:css:range color-value)])]
+                [(css:string? color-value)
+                 (define name-raw : String (css:string-datum color-value))
+                 (define grey : (Option (Pairof String (Listof (Option String)))) (regexp-match #px"(?i:grey)" name-raw))
+                 (define name : String (if (pair? grey) (string-replace name-raw (car grey) "gray") name-raw))
+                 (if (send the-color-database find-color name) name (make-exn:css:range color-value))])))
+
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-default-font : (Instance Font%) (make-font))
@@ -606,10 +641,10 @@
 
   (define css-font-shorthand+family-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values Boolean) CSS-Longhand-Values)
     ;;; https://drafts.csswg.org/css-fonts/#font-prop
-    (lambda [property rst [font-longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))] [allow-feature? #true]]
-      (define keyword : (Option Symbol) (and (css:ident? property) (css:ident-norm property)))
+    (lambda [head rst [font-longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))] [allow-feature? #true]]
+      (define keyword : (Option Symbol) (and (css:ident? head) (css:ident-norm head)))
       (define font-hint : (U Symbol Nonnegative-Inexact-Real Integer (Listof (U String Symbol)) CSS-Syntax-Error)
-        (cond [(not allow-feature?) (css-font-family-filter property rst)]
+        (cond [(not allow-feature?) (css-font-family-filter head rst)]
               [(symbol? keyword)
                (cond [(eq? keyword 'normal) keyword]
                      [(memq keyword css-font-style-option) 'font-style]
@@ -617,19 +652,19 @@
                      [(memq keyword css-font-weight-option) 'font-weight]
                      [(memq keyword css-font-stretch-option) 'font-stretch]
                      [(memq keyword css-font-size-option) 'font-size]
-                     [else (css-font-family-filter property rst)])]
-              [(css:string? property) (css-font-family-filter property rst)]
-              [(css:integer=<-? property 1 <= 999) => (λ [v] (if allow-feature? v (make-exn:css:misplaced property)))]
-              [(css-font-numeric-size-filter property #false) => (λ [v] (if allow-feature? v (make-exn:css:misplaced property)))]
-              [else (make-exn:css:unrecognized property)]))
+                     [else (css-font-family-filter head rst)])]
+              [(css:string? head) (css-font-family-filter head rst)]
+              [(css:integer=<-? head 1 <= 999) => (λ [v] (if allow-feature? v (make-exn:css:misplaced head)))]
+              [(css-font-numeric-size-filter head #false) => (λ [v] (if allow-feature? v (make-exn:css:misplaced head)))]
+              [else (make-exn:css:unrecognized head)]))
       (cond [(symbol? font-hint)
              ; NOTE: The default option `normal` can be applied to 4 properties, and any one is okay.
              ;         Here just let the `css-set!-font-property` check the terminate condition.
-             (cond [(not (eq? font-hint 'normal)) (css-set!-font-property font-longhand font-hint keyword property rst)]
-                   [else (css-set!-font-property font-longhand 'font-language-override font-hint property rst)])]
-            [(exact-integer? font-hint) (css-set!-font-property font-longhand 'font-weight font-hint property rst)]
-            [(real? font-hint) (css-set!-font-property font-longhand 'font-size font-hint property rst)]
-            [(list? font-hint) (css-set!-font-property font-longhand 'font-family font-hint property rst)]
+             (cond [(not (eq? font-hint 'normal)) (css-set!-font-property font-longhand font-hint keyword head rst)]
+                   [else (css-set!-font-property font-longhand 'font-language-override font-hint head rst)])]
+            [(exact-integer? font-hint) (css-set!-font-property font-longhand 'font-weight font-hint head rst)]
+            [(real? font-hint) (css-set!-font-property font-longhand 'font-size font-hint head rst)]
+            [(list? font-hint) (css-set!-font-property font-longhand 'font-family font-hint head rst)]
             [else (css-default-font-properties font-hint font-longhand)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -643,7 +678,7 @@
     [text-decoration-color 'currentcolor]
     [font-decoration-style 'solid])
 
-  (define css-set!-text-decor-property : (-> CSS-Longhand-Values Symbol CSS-Datum (Listof CSS-Token) CSS-Longhand-Values)
+  (define css-set!-decor-property : (-> CSS-Longhand-Values Symbol CSS-Datum (Listof CSS-Token) CSS-Longhand-Values)
     (lambda [text-decor-longhand text-decor-option property rest]
       (cond [(not (eq? text-decor-option 'text-decoration-line)) (hash-set! text-decor-longhand text-decor-option property)]
             [else (let ([old-options (hash-ref text-decor-longhand text-decor-option (thunk 'none))])
@@ -651,28 +686,19 @@
                       (cond [(or (eq? property 'none) (eq? old-options 'none)) property]
                             [(list? old-options) (unless (memq property old-options) (cons property old-options))]))
                     (unless (void? decor-options) (hash-set! text-decor-longhand text-decor-option decor-options)))])
-      (cond [(null? rest) (css-default-font-properties css-default-font text-decor-longhand)]
-            [else (css-font-shorthand+family-filter (car rest) (cdr rest) text-decor-longhand #false)])))
+      (cond [(null? rest) (css-default-text-decor-properties #false text-decor-longhand)]
+            [else (css-text-decor-shorthand-filter (car rest) (cdr rest) text-decor-longhand)])))
 
-  #|(define css-text-decor-shorthand-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values) CSS-Longhand-Values)
+  (define css-text-decor-shorthand-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values) CSS-Longhand-Values)
     ;;; https://drafts.csswg.org/css-fonts/#font-prop
-    (lambda [property rst [decor-longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))]]
-      (define keyword : (Option Symbol) (and (css:ident? property) (css:ident-norm property)))
-      (define font-hint : (U Symbol Nonnegative-Inexact-Real Integer (Listof (U String Symbol)) CSS-Syntax-Error)
-        (cond [(symbol? keyword)
-               (cond [(eq? keyword 'normal) keyword]
-                     [(memq keyword css-font-style-option) 'font-style]
-                     [(memq keyword css-font-variant-options/21) 'font-variant]
-                     [(memq keyword css-font-weight-option) 'font-weight]
-                     [(memq keyword css-font-stretch-option) 'font-stretch]
-                     [(memq keyword css-font-size-option) 'font-size]
-                     [else (css-font-family-filter property rst)])]
-              [(css:string? property) (css-font-family-filter property rst)]
-              [else (make-exn:css:unrecognized property)]))
-      (cond [(exact-integer? font-hint) (css-set!-font-property decor-longhand 'font-weight font-hint property rst)]
-            [(real? font-hint) (css-set!-font-property decor-longhand 'font-size font-hint property rst)]
-            [(list? font-hint) (css-set!-font-property decor-longhand 'font-family font-hint property rst)]
-            [else (css-default-font-properties font-hint decor-longhand)])))|#)
+    (lambda [head rst [decor-longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))]]
+      (define datum : (Option Symbol) (and (css:ident? head) (css:ident-norm head)))
+      (cond [(eq? datum 'none) (css-set!-decor-property decor-longhand 'text-decoration-line datum rst)]
+            [(memq datum css-text-decor-line-options) (css-set!-decor-property decor-longhand 'text-decoration-line datum rst)]
+            [(memq datum css-text-decor-style-option) (css-set!-decor-property decor-longhand 'text-decoration-style datum rst)]
+            [else (let ([maybe-color (css-declared-color-filter head null)])
+                    (cond [(exn? maybe-color) (css-default-text-decor-properties maybe-color decor-longhand)]
+                          [else (css-set!-decor-property decor-longhand 'text-decoration-color maybe-color rst)]))]))))
 
 (require (submod "." css))
 
@@ -713,45 +739,11 @@
                     (define color : (U (Instance Color%) CSS-Wide-Keyword 'currentcolor) (css-color-filter 'color c))
                     (if (object? color) color (current-css-element-color)))))
 
-(define css-declared-color-filter : (case-> [CSS-Token (Listof CSS-Token) -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
-                                            [CSS-Token (Listof CSS-Token) True -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
-                                            [CSS-Token (Listof CSS-Token) False -> (U Color+sRGB CSS-Color CSS-Syntax-Error False)])
-  ;;; https://drafts.csswg.org/css-color/#color-type
-  ;;; https://drafts.csswg.org/css-color/#named-colors
-  ;;; https://drafts.csswg.org/css-color/#numeric-rgb
-  ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
-  ;;; https://drafts.csswg.org/css-color/#the-hwb-notation
-  (lambda [color-value rest [terminate? #true]]
-    (css:cond #:with color-value #:null? rest #:when terminate?
-              [(css:ident? color-value)
-               (define name : Symbol (css:ident-norm color-value))
-               (cond [(or (eq? name 'transparent) (eq? name 'currentcolor)) name]
-                     [(hash-has-key? css-named-colors name) name]
-                     [else (make-exn:css:range color-value)])]
-              [(css:hash? color-value)
-               (define-values (maybe-rgb alpha) (css-hex-color->rgba (css:hash-norm color-value)))
-               (cond [(false? maybe-rgb) (make-exn:css:range color-value)]
-                     [(fl= alpha 1.0) maybe-rgb]
-                     [else (hexa maybe-rgb alpha)])]
-              [(css:function? color-value)
-               (case (css:function-norm color-value)
-                 [(rgb rgba) (css-extract-rgba color-value (css:function-arguments color-value))]
-                 [(hsl hsla) (css-extract-hsba color-value (css:function-arguments color-value) hsl->rgb)]
-                 [(hsv hsva) (css-extract-hsba color-value (css:function-arguments color-value) hsv->rgb)]
-                 [(hsi hsia) (css-extract-hsba color-value (css:function-arguments color-value) hsi->rgb)]
-                 [(hwb hwba) (css-extract-hsba color-value (css:function-arguments color-value) hwb->rgb)]
-                 [else (make-exn:css:range color-value)])]
-              [(css:string? color-value)
-               (define name-raw : String (css:string-datum color-value))
-               (define grey : (Option (Pairof String (Listof (Option String)))) (regexp-match #px"(?i:grey)" name-raw))
-               (define name : String (if (pair? grey) (string-replace name-raw (car grey) "gray") name-raw))
-               (if (send the-color-database find-color name) name (make-exn:css:range color-value))])))
-
 (define css-color-property-filter : (->* (Symbol CSS-Token (Listof CSS-Token)) ((U Regexp (Listof Symbol)))
                                          (U Color+sRGB CSS-Color CSS-Syntax-Error CSS-Wide-Keyword False))
   (lambda [name value rest [px.names #px"-color$"]]
     (cond [(pair? rest) (make-exn:css:overconsumption rest)]
-          [(eq? name 'color) (if (css:ident=:=? value 'currentcolor) css:inherit (css-declared-color-filter value null))]
+          [(eq? name 'color) (if (css:ident-norm=:=? value 'currentcolor) css:inherit (css-declared-color-filter value null))]
           [(and (list? px.names) (for/or : Boolean ([pn (in-list px.names)]) (eq? name pn))) (css-declared-color-filter value null)]
           [(and (regexp? px.names) (regexp-match? px.names (symbol->string name))) (css-declared-color-filter value null)]
           [else #false])))
@@ -793,7 +785,7 @@
                  [(css:integer=<-? font-value 1 <= 999) => values])]
       [(font-size-adjust)
        (css:cond #:with font-value #:null? rest #:out-range? [css:percentage?]
-                 [(css:ident=:=? font-value 'none) => values]
+                 [(css:ident-norm=:=? font-value 'none) => values]
                  [(css-declared+number-filter font-value) => values])]
       [(font)
        (define maybe-system-font : (Option Symbol) (css:ident-norm=<-? font-value css-system-font-names))
@@ -816,7 +808,7 @@
       [(text-decoration-color) (css-declared-color-filter decor-value rest #false)]
       [(text-decoration-style) (css-declared-keyword-filter decor-value rest css-text-decor-style-option)]
       [(text-decoration-skip) (css-declared-keywords-filter decor-value rest css-text-decor-skip-options 'none)]
-      ;[(text-decoraction)]
+      [(text-decoration) (css-text-decor-shorthand-filter decor-value rest)]
       [else #false])))
 
 (define css-font-filter : (CSS-Cascaded-Value-Filter (Instance Color%))
