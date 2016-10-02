@@ -21,9 +21,6 @@
 (define-type Bitmap (Instance Bitmap%))
 
 (define-type Color+sRGB (U Index Symbol String (Instance Color%)))
-(define-type CSS-Color-Property-Filter
-  (-> Symbol CSS-Token (Listof CSS-Token)
-      (U Color+sRGB CSS-Color CSS-Syntax-Error CSS-Wide-Keyword False)))
 
 (define bitmap/2x : (-> (U Path-String Input-Port) Bitmap)
   (lambda [src]
@@ -750,13 +747,14 @@
                (define name : String (if (pair? grey) (string-replace name-raw (car grey) "gray") name-raw))
                (if (send the-color-database find-color name) name (make-exn:css:range color-value))])))
 
-(define make-css-color-property-filter : (-> (Listof Symbol) CSS-Color-Property-Filter)
-  (lambda [property-names]
-    (λ [[name : Symbol] [value : CSS-Token] [rest : (Listof CSS-Token)]]
-      (cond [(pair? rest) (make-exn:css:overconsumption rest)]
-            [(eq? name 'color) (if (css:ident=:=? value 'currentcolor) css:inherit (css-declared-color-filter value null))]
-            [(for/or : Boolean ([pn (in-list property-names)]) (eq? name pn)) (css-declared-color-filter value null)]
-            [else #false]))))
+(define css-color-property-filter : (->* (Symbol CSS-Token (Listof CSS-Token)) ((U Regexp (Listof Symbol)))
+                                         (U Color+sRGB CSS-Color CSS-Syntax-Error CSS-Wide-Keyword False))
+  (lambda [name value rest [px.names #px"-color$"]]
+    (cond [(pair? rest) (make-exn:css:overconsumption rest)]
+          [(eq? name 'color) (if (css:ident=:=? value 'currentcolor) css:inherit (css-declared-color-filter value null))]
+          [(and (list? px.names) (for/or : Boolean ([pn (in-list px.names)]) (eq? name pn))) (css-declared-color-filter value null)]
+          [(and (regexp? px.names) (regexp-match? px.names (symbol->string name))) (css-declared-color-filter value null)]
+          [else #false])))
 
 (define css-color-filter : (-> Symbol CSS-Datum (U (Instance Color%) CSS-Wide-Keyword 'currentcolor))
   (lambda [desc-name color]
@@ -854,15 +852,11 @@
      [otherwise : (Option (Listof (Pairof Symbol CSS-Datum))) #:= #false])
     #:transparent)
 
-  (define css-preference-color-property-filter : CSS-Color-Property-Filter
-    (make-css-color-property-filter '(paren-color symbol-color string-color number-color output-color
-                                                  foreground-color background-color border-color)))
-  
   (define css-descriptor-filter : CSS-Declaration-Filter
     (lambda [suitcased-name desc-value rest]
       (values (cond [(css-font-property-filter suitcased-name desc-value rest) => values]
                     [(css-text-decor-property-filter suitcased-name desc-value rest) => values]
-                    [(css-preference-color-property-filter suitcased-name desc-value rest) => values]
+                    [(css-color-property-filter suitcased-name desc-value rest #px"-color$") => values]
                     [else (map css-token->datum (cons desc-value rest))])
               #false)))
 
