@@ -39,7 +39,8 @@
 (module digitama typed/racket
   (provide (except-out (all-defined-out) define-tokens define-token define-token-interface
                        define-symbolic-tokens define-numeric-tokens define-dimensional-tokens
-                       define-prefab-keyword define-syntax-error css-error-any->tokens))
+                       define-prefab-keyword define-syntax-error css-error-any->tokens
+                       css-tee-computed-value css-ref-raw))
 
   (provide (rename-out [exact-nonnegative-integer? natural?]))
   (provide (all-from-out racket/fixnum))
@@ -304,26 +305,6 @@
                condition-branches ...
                [else (and terminate? (make-exn:css:type value))]))]))
 
-  (define css-token->syntax : (-> CSS-Token Syntax)
-    (lambda [instance]
-      (datum->syntax #false (css-token->datum instance)
-                     (list (css-token-source instance)
-                           (css-token-line instance) (css-token-column instance)
-                           (css-token-position instance) (css-token-span instance)))))
-
-  (define css-token-datum->string : (-> CSS-Token String)
-    (lambda [instance]
-      (cond [(css-fraction? instance) (string-append (css-numeric-representation instance) "%")]
-            [(css:dimension? instance) (~a (css-numeric-representation instance) (css:dimension-unit instance))]
-            [(css-numeric? instance) (css-numeric-representation instance)]
-            [else (~a (css-token->datum instance))])))
-  
-  (define css-token->string : (-> CSS-Token String)
-    (lambda [instance]
-      (format "~a:~a:~a: ~a: ~a" (css-token-source instance)
-              (css-token-line instance) (add1 (css-token-column instance))
-              (object-name instance) (css-token-datum->string instance))))
-
   (define-values (current-css-viewport-width current-css-viewport-height)
     (values (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))
             (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
@@ -396,6 +377,26 @@
       (cond [(css:percentage=<-? desc-value 0f0 <= 1f0) => (λ [v] (flabs (real->double-flonum v)))]
             [(css-fraction? desc-value) (make-exn:css:range desc-value)]
             [else (css-declared+percentage-filter desc-value terminate?)])))
+
+  (define css-token->syntax : (-> CSS-Token Syntax)
+    (lambda [instance]
+      (datum->syntax #false (css-token->datum instance)
+                     (list (css-token-source instance)
+                           (css-token-line instance) (css-token-column instance)
+                           (css-token-position instance) (css-token-span instance)))))
+
+  (define css-token-datum->string : (-> CSS-Token String)
+    (lambda [instance]
+      (cond [(css-fraction? instance) (string-append (css-numeric-representation instance) "%")]
+            [(css:dimension? instance) (~a (css-numeric-representation instance) (css:dimension-unit instance))]
+            [(css-numeric? instance) (css-numeric-representation instance)]
+            [else (~a (css-token->datum instance))])))
+  
+  (define css-token->string : (-> CSS-Token String)
+    (lambda [instance]
+      (format "~a:~a:~a: ~a: ~a" (css-token-source instance)
+              (css-token-line instance) (add1 (css-token-column instance))
+              (object-name instance) (css-token-datum->string instance))))
 
   ;;; https://drafts.csswg.org/css-syntax/#tokenization
   ;; https://drafts.csswg.org/css-syntax/#component-value
@@ -852,12 +853,37 @@
                             [current-css-viewport-height height])
                sexp ...)))]))
 
+  (define-syntax (css-tee-computed-value stx)
+    (syntax-case stx []
+      [(_ properties desc-name cascaded-value computed-value-sexp)
+       #'(let([computed-value computed-value-sexp])
+           (when (and (not (eq? cascaded-value computed-value))
+                      (implies (object? computed-value)
+                               (css-cache-computed-object-value)))
+             (hash-set! properties desc-name (thunk computed-value)))
+           computed-value)]))
+
   (define css-cache-computed-object-value : (Parameterof Boolean) (make-parameter #true))
-  
+
   (define css-ref : (All (a) (case-> [CSS-Values (Option CSS-Values) Symbol -> CSS-Datum]
-                                     [CSS-Values (Option CSS-Values) Symbol False -> CSS-Datum]
-                                     [CSS-Values (Option CSS-Values) Symbol (-> Symbol CSS-Datum (∩ a CSS-Datum)) -> a]))
-    (lambda [properties inherited-values desc-name [css->datum #false]]
+                                     [CSS-Values (Option CSS-Values) Symbol (-> Symbol CSS-Datum (∩ a CSS-Datum)) -> a]
+                                     [CSS-Values (Option CSS-Values) Symbol (-> Any Boolean : #:+ (∩ a CSS-Datum)) (∩ a CSS-Datum) -> a]))
+    (case-lambda
+      [(properties inherited-values desc-name)
+       (define-values (cascaded-value specified-value) (css-ref-raw properties inherited-values desc-name))
+       specified-value]
+      [(properties inherited-values desc-name datum->value)
+       (define-values (cascaded-value specified-value) (css-ref-raw properties inherited-values desc-name))
+       (css-tee-computed-value properties desc-name cascaded-value
+                               (datum->value desc-name (css-ref properties inherited-values desc-name)))]
+      [(properties inherited-values desc-name datum? default-value)
+       (define-values (cascaded-value specified-value) (css-ref-raw properties inherited-values desc-name))
+       (css-tee-computed-value properties desc-name cascaded-value
+                               (cond [(datum? specified-value) specified-value]
+                                     [else default-value]))]))
+
+  (define css-ref-raw : (-> CSS-Values (Option CSS-Values) Symbol (Values CSS-Datum CSS-Datum))
+    (lambda [properties inherited-values desc-name]
       (define declared-value : CSS+Lazy-Value
         (hash-ref properties desc-name
                   (thunk (cond [(memq desc-name (current-css-all-exceptions)) (thunk css:unset)]
@@ -866,16 +892,10 @@
       (define specified-value : CSS-Datum
         (cond [(or (eq? cascaded-value css:revert) (not (css-wide-keyword? cascaded-value))) cascaded-value]
               [(or (eq? cascaded-value css:initial) (false? inherited-values)) css:initial]
-              [else (css-ref inherited-values #false desc-name #false)]))
+              [else (let-values ([(_ sv) (css-ref-raw inherited-values #false desc-name)]) sv)]))
       (when (or (not (eq? cascaded-value specified-value)) (box? declared-value))
         (hash-set! properties desc-name (thunk specified-value)))
-      (cond [(false? css->datum) specified-value]
-            [else (let ([computed-value (css->datum desc-name specified-value)])
-                    (when (and (not (eq? cascaded-value computed-value))
-                               (implies (object? computed-value)
-                                        (css-cache-computed-object-value)))
-                      (hash-set! properties desc-name (thunk computed-value)))
-                    computed-value)])))
+      (values cascaded-value specified-value)))
 
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
   (define css-viewport-descriptor-filter : CSS-Declaration-Filter
@@ -926,32 +946,24 @@
               [h (hash-ref initial-viewport 'height (const #false))])
           (values (if (real? w) (flmax (real->double-flonum w) 1.0) 1.0)
                   (if (real? h) (flmax (real->double-flonum h) 1.0) 1.0))))
+      (define defzoom : Nonnegative-Flonum (current-css-viewport-auto-zoom))
       (define (smart [maix : (-> Flonum Flonum Flonum)] [v1 : (U Flonum Symbol)] [v2 : (U Flonum Symbol)]) : (U Flonum Symbol)
         (cond [(and (symbol? v1) (symbol? v2)) 'auto]
               [(symbol? v1) v2]
               [(symbol? v2) v1]
               [else (maix v1 v2)]))
-      (define (zoom->flonum [desc-name : Symbol] [zoom : CSS-Datum]) : Nonnegative-Flonum
-        (cond [(nonnegative-flonum? zoom) zoom]
-              [(eq? desc-name 'max-zoom) +inf.0]
-              [(eq? desc-name 'min-zoom) 0.0]
-              [else (current-css-viewport-auto-zoom)]))
-      (define (size->scalar [desc-name : Symbol] [size : CSS-Datum]) : (U Flonum Symbol)
+      (define (datum->size [desc-name : Symbol] [size : CSS-Datum]) : (U Flonum Symbol)
         (cond [(flonum? size) size]
               [(not (single-flonum? size)) 'auto]
               [else (fl* (real->double-flonum size)
                          (if (memq desc-name '(min-width max-width))
                              initial-width initial-height))]))
-      (define (enum-value [desc-name : Symbol] [value : CSS-Datum]) : Symbol
-        (cond [(symbol? value) value]
-              [(eq? desc-name 'user-zoom) 'zoom]
-              [else 'auto]))
-      (define min-zoom : Flonum (css-ref cascaded-values #false 'min-zoom zoom->flonum))
-      (define max-zoom : Flonum (flmax min-zoom (css-ref cascaded-values #false 'max-zoom zoom->flonum)))
-      (define min-width : (U Flonum Symbol) (css-ref cascaded-values #false 'min-width size->scalar))
-      (define max-width : (U Flonum Symbol) (css-ref cascaded-values #false 'max-width size->scalar))
-      (define min-height : (U Flonum Symbol) (css-ref cascaded-values #false 'min-height size->scalar))
-      (define max-height : (U Flonum Symbol) (css-ref cascaded-values #false 'max-height size->scalar))
+      (define min-zoom : Flonum (css-ref cascaded-values #false 'min-zoom nonnegative-flonum? 0.0))
+      (define max-zoom : Flonum (flmax min-zoom (css-ref cascaded-values #false 'max-zoom nonnegative-flonum? +inf.0)))
+      (define min-width : (U Flonum Symbol) (css-ref cascaded-values #false 'min-width datum->size))
+      (define max-width : (U Flonum Symbol) (css-ref cascaded-values #false 'max-width datum->size))
+      (define min-height : (U Flonum Symbol) (css-ref cascaded-values #false 'min-height datum->size))
+      (define max-height : (U Flonum Symbol) (css-ref cascaded-values #false 'max-height datum->size))
       (define-values (width height)
         (let* ([width (smart flmax min-width (smart flmin max-width initial-width))]
                [height (smart flmax min-height (smart flmin max-height initial-height))]
@@ -965,9 +977,9 @@
       (for ([name (in-list      '(min-zoom max-zoom width height))]
             [value (in-list (list min-zoom max-zoom width height))])
         (hash-set! actual-viewport name value))
-      (hash-set! actual-viewport 'orientation (css-ref cascaded-values #false 'orientation enum-value))
-      (hash-set! actual-viewport 'user-zoom (css-ref cascaded-values #false 'user-zoom enum-value))
-      (hash-set! actual-viewport 'zoom (max min-zoom (min max-zoom (css-ref cascaded-values #false 'zoom zoom->flonum))))
+      (hash-set! actual-viewport 'orientation (css-ref cascaded-values #false 'orientation symbol? 'auto))
+      (hash-set! actual-viewport 'user-zoom (css-ref cascaded-values #false 'user-zoom symbol? 'zoom))
+      (hash-set! actual-viewport 'zoom (max min-zoom (min max-zoom (css-ref cascaded-values #false 'zoom nonnegative-flonum? defzoom))))
       actual-viewport))
 
   (define-values (current-css-viewport-descriptor-filter current-css-viewport-filter current-css-viewport-auto-zoom)
