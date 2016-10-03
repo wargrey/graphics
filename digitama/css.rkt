@@ -790,10 +790,10 @@
   ;; https://drafts.csswg.org/css-cascade/#filtering
   ;; https://drafts.csswg.org/css-cascade/#cascading
   ; NOTE: CSS tokens are also acceptable here, but they are just allowed for convenient
-  ;        since they provide the precision type info for applications directly.                      
-  (define-type CSS-Datum (Rec css (U Datum FlVector FxVector CSS-Token --datum (Object)
-                                     (Pairof css css) (Vectorof css) (Boxof css))))
-
+  ;        since they provide the precision type info for applications directly.
+  ; TODO: If no CSS-Token, it will complain because of chaperone contract.
+  (define-type CSS-Datum (U Datum Bytes FlVector FxVector CSS-Token --datum (Object)))
+  
   (define-type CSS+Lazy-Value (U (-> CSS-Datum) (Boxof (-> CSS-Datum))))
   (define-type CSS-Values (HashTable Symbol CSS+Lazy-Value))
   (define-type CSS-Longhand-Values (HashTable Symbol (U CSS-Datum CSS-Syntax-Error)))
@@ -2633,7 +2633,8 @@
                           (cond [(symbol-unreadable? desc-name) (values (css-lazy declared-values lazy?) #false)]
                                 [else (desc-filter desc-name decl-value decl-rest)]))
                         (when deprecated? (make+exn:css:deprecated (css-declaration-name property)))
-                        (cond [(css:var? desc-value) (desc-set!-lazy desc-name important? declared-values)]
+                        (cond ; maybe client applications want to deal with variables on their own.
+                              ;[(css:var? desc-value) (desc-set!-lazy desc-name important? declared-values)]
                               [(hash? desc-value) (desc-set!-longhand desc-name important? desc-value declared-values)]
                               [(not (exn? desc-value)) (desc-set! desc-name important? (thunk desc-value))]
                               [(and (null? decl-rest) (css-wide-keywords-ormap decl-value))
@@ -2801,7 +2802,7 @@
 
   (define css-filter : (CSS-Cascaded-Value-Filter (Option (HashTable Symbol Any)))
     (lambda [declared-values default-values inherited-values]
-      (for/hash : (HashTable Symbol Any) ([desc-name (in-list (cons 'wargrey (hash-keys declared-values)))])
+      (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys declared-values)])
         (values desc-name (css-ref declared-values inherited-values desc-name)))))
 
   tamer-sheet
