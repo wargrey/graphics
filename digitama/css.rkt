@@ -309,6 +309,24 @@
                condition-branches ...
                [else (and terminate? (make-exn:css:type value))]))]))
 
+  (define-syntax (css-make-datum->size stx)
+    (syntax-case stx []
+      [(_ defval [size #:=> sexp%])
+       #'(lambda [[_ : Symbol] [size : CSS-Datum]] : (U Flonum defval)
+           (cond [(flonum? size) size]
+                 [(css:length? size) (css:length->scalar size '#:direction)]
+                 [(single-flonum? size) sexp%]
+                 [else defval]))]))
+
+  (define-syntax (css-make-datum+>size stx)
+    (syntax-case stx []
+      [(_ defval [size #:=> sexp%])
+       #'(lambda [[_ : Symbol] [size : CSS-Datum]] : (U Nonnegative-Flonum defval)
+           (cond [(and (flonum? size) (>= size 0)) size]
+                 [(css+length? size) (css:length->scalar size)]
+                 [(single-flonum? size) sexp%]
+                 [else defval]))]))
+
   (define-values (current-css-viewport-width current-css-viewport-height)
     (values (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))
             (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
@@ -954,19 +972,14 @@
               [(symbol? v1) v2]
               [(symbol? v2) v1]
               [else (maix v1 v2)]))
-      (define (datum->size [desc-name : Symbol] [size : CSS-Datum]) : (U Flonum Symbol)
-        (cond [(flonum? size) size]
-              [(css:length:font? size) (css:length->scalar size)]
-              [(not (single-flonum? size)) 'auto]
-              [else (fl* (real->double-flonum size)
-                         (if (memq desc-name '(min-width max-width))
-                             initial-width initial-height))]))
+      (define datum->width (css-make-datum->size 'auto [% #:=> (fl* (real->double-flonum %) initial-width)]))
+      (define datum->height (css-make-datum->size 'auto [% #:=> (fl* (real->double-flonum %) initial-height)]))
       (define min-zoom : Flonum (css-ref cascaded-values #false 'min-zoom nonnegative-flonum? 0.0))
       (define max-zoom : Flonum (flmax min-zoom (css-ref cascaded-values #false 'max-zoom nonnegative-flonum? +inf.0)))
-      (define min-width : (U Flonum Symbol) (css-ref cascaded-values #false 'min-width datum->size))
-      (define max-width : (U Flonum Symbol) (css-ref cascaded-values #false 'max-width datum->size))
-      (define min-height : (U Flonum Symbol) (css-ref cascaded-values #false 'min-height datum->size))
-      (define max-height : (U Flonum Symbol) (css-ref cascaded-values #false 'max-height datum->size))
+      (define min-width : (U Flonum Symbol) (css-ref cascaded-values #false 'min-width datum->width))
+      (define max-width : (U Flonum Symbol) (css-ref cascaded-values #false 'max-width datum->width))
+      (define min-height : (U Flonum Symbol) (css-ref cascaded-values #false 'min-height datum->height))
+      (define max-height : (U Flonum Symbol) (css-ref cascaded-values #false 'max-height datum->height))
       (define-values (width height)
         (let* ([width (smart flmax min-width (smart flmin max-width initial-width))]
                [height (smart flmax min-height (smart flmin max-height initial-height))]
