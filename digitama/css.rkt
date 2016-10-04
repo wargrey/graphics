@@ -184,15 +184,19 @@
     (syntax-case stx []
       [(_ parent [id #:+ ID #:=> canonical-unit [transforms ...]] ...)
        (with-syntax ([token->datum (format-id #'parent "~a->datum" (syntax-e #'parent))]
-                     [([id? +id? css:id->scalar css-id->scalar id-filter +id-filter] ...)
+                     [([id? +id? css:id->scalar css-id->scalar id-filter +id-filter Flonum/Font Flunum/Font id->scalar] ...)
                       (for/list ([<id> (in-list (syntax->list #'(id ...)))])
                         (define varname (symbol->string (syntax-e <id>)))
-                        (list (format-id <id> "~a?" (syntax-e <id>))
-                              (format-id <id> "~a?" (string-replace varname ":" "+"))
-                              (format-id <id> "~a->scalar" (syntax-e <id>))
-                              (format-id <id> "~a->scalar" (string-replace varname ":" "-"))
-                              (format-id <id> "~a-filter" (string-replace varname "css:" "css-declared-"))
-                              (format-id <id> "~a-filter" (string-replace varname "css:" "css-declared+"))))])
+                        (list* (format-id <id> "~a?" (syntax-e <id>))
+                               (format-id <id> "~a?" (string-replace varname ":" "+"))
+                               (format-id <id> "~a->scalar" (syntax-e <id>))
+                               (format-id <id> "~a->scalar" (string-replace varname ":" "-"))
+                               (format-id <id> "~a-filter" (string-replace varname "css:" "css-declared-"))
+                               (format-id <id> "~a-filter" (string-replace varname "css:" "css-declared+"))
+                               (if (not (eq? (syntax-e <id>) 'css:length))
+                                   (list #'Flonum #'Nonnegative-Flonum #'(css:id->scalar desc-value))
+                                   (list #'(U Flonum CSS:Length:Font) #'(U Nonnegative-Flonum CSS:Length:Font)
+                                         #'(if (css:length:font? desc-value) desc-value (css:id->scalar desc-value))))))])
          #'(begin (struct: id : ID parent ()) ...
 
                   (define css-id->scalar : (case-> [Nonnegative-Flonum Symbol -> Nonnegative-Flonum]
@@ -218,18 +222,18 @@
                             [else (css-id->scalar (flabs (css:dimension-datum t)) (css:dimension-unit t))])))
                   ...
 
-                  (define id-filter : (case-> [CSS-Token -> (U Flonum CSS-Syntax-Error)]
-                                              [CSS-Token True -> (U Flonum CSS-Syntax-Error)]
-                                              [CSS-Token False -> (U Flonum CSS-Syntax-Error False)])
+                  (define id-filter : (case-> [CSS-Token -> (U Flonum/Font CSS-Syntax-Error)]
+                                              [CSS-Token True -> (U Flonum/Font CSS-Syntax-Error)]
+                                              [CSS-Token False -> (U Flonum/Font CSS-Syntax-Error False)])
                     (lambda [desc-value [terminate? #true]]
                       (cond [(id? desc-value) (css:id->scalar desc-value)]
                             [(css:dimension? desc-value) (make-exn:css:unit desc-value)]
                             [else (and terminate? (make-exn:css:type desc-value))])))
                   ...
                   
-                  (define +id-filter : (case-> [CSS-Token -> (U Nonnegative-Flonum CSS-Syntax-Error)]
-                                               [CSS-Token True -> (U Nonnegative-Flonum CSS-Syntax-Error)]
-                                               [CSS-Token False -> (U Nonnegative-Flonum CSS-Syntax-Error False)])
+                  (define +id-filter : (case-> [CSS-Token -> (U Flunum/Font CSS-Syntax-Error)]
+                                               [CSS-Token True -> (U Flunum/Font CSS-Syntax-Error)]
+                                               [CSS-Token False -> (U Flunum/Font CSS-Syntax-Error False)])
                     (lambda [desc-value [terminate? #true]]
                       (cond [(+id? desc-value) (css:id->scalar desc-value)]
                             [(id? desc-value) (make-exn:css:range desc-value)]
@@ -901,9 +905,7 @@
   (define css-viewport-descriptor-filter : CSS-Declaration-Filter
     (lambda [suitcased-name desc-value rest]
       (define (viewport-length [v : CSS-Token]) : (U CSS-Datum CSS-Syntax-Error)
-        (cond ; this is okay even for font relative length since the @viewport is the first rule to be cascaded.
-              ; the font relative parameters should be initialized when the program starts.
-              [(css:ident-norm=:=? v 'auto) => values]
+        (cond [(css:ident-norm=:=? v 'auto) => values]
               [(css:percentage=<-? v nonnegative-single-flonum?) => values]
               [(or (css:ident? v) (css-fraction? v)) (make-exn:css:range v)]
               [else (css-declared+length-filter v)]))
@@ -954,6 +956,7 @@
               [else (maix v1 v2)]))
       (define (datum->size [desc-name : Symbol] [size : CSS-Datum]) : (U Flonum Symbol)
         (cond [(flonum? size) size]
+              [(css:length:font? size) (css:length->scalar size)]
               [(not (single-flonum? size)) 'auto]
               [else (fl* (real->double-flonum size)
                          (if (memq desc-name '(min-width max-width))
