@@ -709,25 +709,28 @@
   (define css-datum->font-family : (-> Symbol CSS-Datum (U String Font-Family))
     (lambda [_ value]
       (let extract : (U String Font-Family) ([families : (Listof CSS-Datum) (if (list? value) value (list value))])
-        (cond [(null? families) 'default]
-              [else (let ([family (car families)])
-                      (cond [(symbol? family)
-                             (case family
-                               [(decorative fantasy) 'decorative]
-                               [(roman serif) 'roman]
-                               [(script cursive) 'script]
-                               [(swiss sans-serif) 'swiss]
-                               [(modern monospace) 'modern]
-                               [(system system-ui) 'system]
-                               [(symbol math) 'symbol]
-                               [else 'default])]
-                            [(string? family)
-                             (or (for/or : (Option String) ([face (in-list css-font-family-names/no-variants)])
-                                   (and (string-ci=? family face) family))
-                                 (extract (cdr families)))]
-                            [else (extract (cdr families))]))]))))
+        (if (null? families)
+            (let ([pfont (or (unbox &font) css-default-font)])
+              (or (send pfont get-face)
+                  (send pfont get-family)))
+            (let ([family (car families)])
+              (cond [(symbol? family)
+                     (case family
+                       [(decorative fantasy) 'decorative]
+                       [(roman serif) 'roman]
+                       [(script cursive) 'script]
+                       [(swiss sans-serif) 'swiss]
+                       [(modern monospace) 'modern]
+                       [(system system-ui) 'system]
+                       [(symbol math) 'symbol]
+                       [else 'default])]
+                    [(string? family)
+                     (or (for/or : (Option String) ([face (in-list css-font-family-names/no-variants)])
+                           (and (string-ci=? family face) family))
+                         (extract (cdr families)))]
+                    [else (extract (cdr families))]))))))
 
-  (define css-datum->font-size : (-> Symbol CSS-Datum Nonnegative-Flonum)
+  (define css-datum->font-size : (-> Symbol CSS-Datum Nonnegative-Real)
     (lambda [_ value]
       (cond [(symbol? value)
              (case value
@@ -746,24 +749,24 @@
             [(css+length? value) (css:length->scalar value)]
             [else +nan.0])))
 
-  (define css-datum->font-weight : (-> Symbol CSS-Datum (Option Font-Weight))
+  (define css-datum->font-weight : (-> Symbol CSS-Datum Font-Weight)
     (lambda [_ value]
       (cond [(symbol? value)
              (case value
                [(normal light bold) value]
                [(bolder) (if (eq? (send (or (unbox &font) css-default-font) get-weight) 'light) 'normal 'bold)]
                [(lighter) (if (eq? (send (or (unbox &font) css-default-font) get-weight) 'bold) 'normal 'light)]
-               [else #false])]
+               [else (send (or (unbox &font) css-default-font) get-weight)])]
             [(and (fixnum? value) (fx<= value 300)) 'light]
             [(and (fixnum? value) (fx>= value 700)) 'bold]
-            [else #false])))
+            [else (send (or (unbox &font) css-default-font) get-weight)])))
 
-  (define css-datum->font-style : (-> Symbol CSS-Datum (Option Font-Style))
+  (define css-datum->font-style : (-> Symbol CSS-Datum Font-Style)
     (lambda [_ value]
       (case value
         [(normal italic) value]
         [(oblique slant) 'slant]
-        [else #false])))
+        [else (send (or (unbox &font) css-default-font) get-style)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-text-decor-line-options : (Listof Symbol) '(underline overline line-through blink))
@@ -914,23 +917,24 @@
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) ((Option (Instance Font%))) (Instance Font%))
   (lambda [declared-values inherited-values [basefont #false]]
     (define maybe-font : CSS-Datum (and (hash? inherited-values) (css-ref inherited-values #false 'font)))
-    (call-with-font (if (object? maybe-font) (cast maybe-font (Instance Font%)) css-default-font) #:root? (false? maybe-font)
-      (define family : (U String Font-Family) (css-ref declared-values inherited-values 'font-family css-datum->font-family))
-      (define size : Nonnegative-Flonum (css-ref declared-values inherited-values 'font-size css-datum->font-size))
-      (define style : (Option Font-Style) (css-ref declared-values inherited-values 'font-style css-datum->font-style))
-      (define weight : (Option Font-Weight) (css-ref declared-values inherited-values 'font-weight css-datum->font-weight))
-      (define decoration : CSS-Datum (css-ref declared-values inherited-values 'text-decoration-line))
+    (define font : (Instance Font%) (if (object? maybe-font) (cast maybe-font (Instance Font%)) css-default-font))
+    (define (css-datum->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof Symbol)
+      (cond [(list? value) (filter symbol? value)]
+            [else (if (send font get-underlined) (list 'underline) null)]))
+    (call-with-font font #:root? (false? maybe-font)
+      (define family : (U String Font-Family) (css-ref declared-values #false 'font-family css-datum->font-family))
+      (define size : Nonnegative-Real (css-ref declared-values #false 'font-size css-datum->font-size))
+      (define style : Font-Style (css-ref declared-values #false 'font-style css-datum->font-style))
+      (define weight : Font-Weight (css-ref declared-values #false 'font-weight css-datum->font-weight))
+      (define decorations : (Listof Symbol) (css-ref declared-values #false 'text-decoration-line css-datum->font-underlined))
       (define font : (Instance Font%)
         (make-font+ (or basefont css-default-font)
                     #:face (and (string? family) family) #:family (and (symbol? family) family)
                     #:size size #:size-in-pixels? (implies (nan? size) 'inherited)
-                    #:style style #:weight weight #:underlined? (if (and (list? decoration) (memq 'underline decoration)) #true 'none)))
+                    #:style style #:weight weight #:underlined? (and (memq 'underline decorations) #true)))
       (call-with-font font
         (hash-set! declared-values 'font (thunk font))
-        (when (symbol? family) (hash-set! declared-values 'font-family (thunk (send font get-family))))
-        (when (nan? size) (hash-set! declared-values 'font-size (thunk (send font get-size))))
-        (when (false? style) (hash-set! declared-values 'font-style (thunk (send font get-style))))
-        (when (false? weight) (hash-set! declared-values 'font-weight (thunk (send font get-weight))))
+        (when (nan? size) (hash-set! declared-values 'font-size (thunk (smart-font-size font))))
         font))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
