@@ -312,7 +312,7 @@
 
   (define-syntax (css-make-datum->size stx)
     (syntax-parse stx
-      [(_ #:100% 100fl% #:= defval (~optional (~seq #:as NanType)) (~optional (~seq (~and #:no-direction +))))
+      [(_ #:100% fl% #:= defval (~optional (~seq #:as NanType)) (~optional (~seq (~and #:no-direction +))))
        (with-syntax ([SizeType (if (attribute NanType) #'NanType #'defval)]
                      [(fl? sfl? length? FLType direction)
                       (cond [(not (attribute +)) (list #'flonum? #'single-flonum? #'css:length? #'Flonum #''#:direction)]
@@ -320,22 +320,18 @@
                                         #'Nonnegative-Flonum #'#false)])])
          #'(lambda [[_ : Symbol] [size : CSS-Datum]] : (U FLType SizeType)
              (cond [(fl? size) size]
-                   [(sfl? size) (fl* (real->double-flonum size) 100fl%)]
+                   [(sfl? size) (fl* (real->double-flonum size) fl%)]
                    [(length? size) (css:length->scalar size direction)]
                    [else defval])))]))
+
+  (struct flcss% ([rem : Nonnegative-Flonum] [vw : Nonnegative-Flonum] [vh : Nonnegative-Flonum]
+                                             [em : Nonnegative-Flonum] [ex : Nonnegative-Flonum]
+                                             [ch : Nonnegative-Flonum] [ic : Nonnegative-Flonum])
+    #:type-name FlCSS%
+    #:transparent
+    #:mutable)
   
-  (define-values (current-css-viewport-width current-css-viewport-height)
-    (values (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))
-            (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
-
-  (define-values (current-css-element-font-size current-css-root-element-font-size)
-    (values (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))
-            (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
-
-  (define-values (current-css-x-height current-css-char-width current-css-word-width)
-    (values (ann (make-parameter 0.5) (Parameterof Nonnegative-Flonum))
-            (ann (make-parameter 0.5) (Parameterof Nonnegative-Flonum))
-            (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
+  (define length% : FlCSS% (flcss% 1.0 1.0 1.0 1.0 0.5 0.5 1.0))
 
   (define nonnegative-fixnum? : (-> Any Boolean : #:+ Nonnegative-Fixnum) (λ [v] (and (fixnum? v) (fx>= v 0))))
   (define nonnegative-flonum? : (-> Any Boolean : #:+ Nonnegative-Flonum) (λ [v] (and (flonum? v) (fl>= v 0.0))))
@@ -352,10 +348,9 @@
                 [(pair? desc-rest) (make-exn:css:overconsumption desc-rest)]
                 [(css:ident-norm=<-? desc-value options) => values])))
 
-  (define css-declared-keywords-filter : (-> CSS-Token (Listof CSS-Token) (Listof Symbol) Symbol
-                                             (U Symbol (Listof Symbol) CSS-Syntax-Error))
+  (define css-declared-keywords-filter : (-> CSS-Token (Listof CSS-Token) (Listof Symbol) Symbol (U (Listof Symbol) CSS-Syntax-Error))
     (lambda [desc-value desc-rest options none]
-      (cond [(css:ident-norm=:=? desc-value none) (if (pair? desc-rest) (make-exn:css:overconsumption desc-rest) none)]
+      (cond [(css:ident-norm=:=? desc-value none) (if (pair? desc-rest) (make-exn:css:overconsumption desc-rest) null)]
             [else (let desc-fold ([desc-others : (Listof CSS-Token) (cons desc-value desc-rest)]
                                   [desc-keywords : (Listof Symbol) null])
                     (cond [(null? desc-others) (remove-duplicates desc-keywords)]
@@ -492,15 +487,15 @@
                            [(in)    (fl* px 96.0)]
                            [(pc)    (fl* px 16.0)]             ; 1in/6
                            [(pt)    (fl* px (fl/ 96.0 72.0))]  ; 1in/72
-                           [(em)    (fl* px (current-css-element-font-size))]
-                           [(ex)    (fl* px (current-css-x-height))]
-                           [(ch)    (fl* px (current-css-char-width))]
-                           [(ic)    (fl* px (current-css-word-width))]
-                           [(rem)   (fl* px (current-css-root-element-font-size))]
-                           [(vw vi) (fl* px (fl* 0.01 (current-css-viewport-width)))]
-                           [(vh vb) (fl* px (fl* 0.01 (current-css-viewport-height)))]
-                           [(vmin)  (fl* px (fl* 0.01 (min (current-css-viewport-width) (current-css-viewport-height))))]
-                           [(vmax)  (fl* px (fl* 0.01 (max (current-css-viewport-width) (current-css-viewport-height))))]]]
+                           [(em)    (fl* px (flcss%-em length%))]
+                           [(ex)    (fl* px (flcss%-ex length%))]
+                           [(ch)    (fl* px (flcss%-ch length%))]
+                           [(ic)    (fl* px (flcss%-ic length%))]
+                           [(rem)   (fl* px (flcss%-rem length%))]
+                           [(vw vi) (fl* px (fl* 0.01 (flcss%-vw length%)))]
+                           [(vh vb) (fl* px (fl* 0.01 (flcss%-vh length%)))]
+                           [(vmin)  (fl* px (fl* 0.01 (min (flcss%-vw length%) (flcss%-vh length%))))]
+                           [(vmax)  (fl* px (fl* 0.01 (max (flcss%-vw length%) (flcss%-vh length%))))]]]
       ;;; https://drafts.csswg.org/css-values/#angles
       [css:angle          #:+ CSS:Angle           #:=> deg
                           [[(grad)  (fl* deg 0.9)]
@@ -862,15 +857,11 @@
     (syntax-parse stx
       [(_ (~optional (~seq #:preferences maybe-preferences)) sexp ...)
        (with-syntax ([preferences (or (attribute maybe-preferences) #'(current-css-media-preferences))])
-         #'(let ([w (hash-ref preferences 'width (thunk (current-css-viewport-width)))]
-                 [h (hash-ref preferences 'height (thunk (current-css-viewport-height)))])
-             (define-values (width height)
-               (values (if (and (real? w) (positive? w)) (real->double-flonum w) (current-css-viewport-width))
-                       (if (and (real? h) (positive? h)) (real->double-flonum h) (current-css-viewport-height))))
-             (parameterize ([current-css-media-preferences preferences]
-                            [current-css-viewport-width width]
-                            [current-css-viewport-height height])
-               sexp ...)))]))
+         #'(let ([w (hash-ref preferences 'width (thunk #false))]
+                 [h (hash-ref preferences 'height (thunk #false))])
+             (when (and (real? w) (positive? w)) (set-flcss%-vw! length% (real->double-flonum w)))
+             (when (and (real? h) (positive? h)) (set-flcss%-vh! length% (real->double-flonum h)))
+             sexp ...))]))
 
   (define-syntax (css-tee-computed-value stx)
     (syntax-case stx []
