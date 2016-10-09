@@ -253,7 +253,6 @@ body {
 	background-color: green;
 	background-color: HsIa(120.01deg var(--honeydew-s) var(--honeydew-i) / 1.0);
 	frequency: 30Hz;
-        font-style: initial;
         lazy-test: arg0(arg00(var(--s) * 1px)) arg1(var(--pi, arg10(10% * 2deg)));
 }
 
@@ -281,13 +280,13 @@ module.main {
    symbol-color: Blue;
    string-color: rgba(255, 128, 0);
    number-color: rgba(148, 22, 81);
-   output-color: rgba(150, 0, 150);
-   paren-color: rgba(147, 81, 0);
+   output-color: racket(debugger-bomb-color);
+   paren-color: racket(run-icon-color);
    background-color: "Honeydew";
    foreground-color: currentcolor;
    border-color: var(--gray);
 
-   font: 75% "Lucida Grande", "Trebuchet MS", Verdana, var(--default-font);
+   font: italic 75% "Lucida Grande", "Trebuchet MS", Verdana, var(--default-font);
    font: 12px/1.5; /* error property, font property requires font-family or system font */
    text-decoration: underline;
 }

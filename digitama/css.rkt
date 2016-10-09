@@ -294,7 +294,15 @@
                  [property sexp ...]
                  ...))))]))
 
-  (define-syntax (css:cond stx)
+  (define-syntax (define-css-declared-racket-value-filter stx)
+    (syntax-case stx []
+      [(_ value-filter : ValueType #:with maybe-value asserts ...)
+       #'(define value-filter : (-> CSS-Token (Listof CSS-Token) (U ValueType CSS-Syntax-Error))
+           (lambda [fracket args]
+             (define-values (<racket-id> maybe-value) (css-eval fracket args))
+             (cond asserts ... [(exn:css? maybe-value) maybe-value] [else (make-exn:css:racket:type <racket-id>)])))]))
+
+  (define-syntax (css-cond stx)
     (syntax-parse stx
       [(_ #:with value (~optional (~seq #:null? rest)) #:out-range? [css? ...] (~optional (~seq #:when ?)) condition-branches ...)
        (with-syntax ([rest? (if (attribute rest) #'(pair? rest) #'#false)]
@@ -344,7 +352,7 @@
                                                 [CSS-Token (Listof CSS-Token) (Listof Symbol) True -> (U Symbol CSS-Syntax-Error)]
                                                 [CSS-Token (Listof CSS-Token) (Listof Symbol) False -> (U Symbol CSS-Syntax-Error False)])
     (lambda [desc-value desc-rest options [terminate? #true]]
-      (css:cond #:with desc-value #:out-range? [css:ident?] #:when terminate?
+      (css-cond #:with desc-value #:out-range? [css:ident?] #:when terminate?
                 [(pair? desc-rest) (make-exn:css:overconsumption desc-rest)]
                 [(css:ident-norm=<-? desc-value options) => values])))
 
@@ -355,7 +363,7 @@
                                   [desc-keywords : (Listof Symbol) null])
                     (cond [(null? desc-others) (remove-duplicates desc-keywords)]
                           [else (let ([desc-value (car desc-others)])
-                                  (css:cond #:with desc-value #:out-range? [css:ident?]
+                                  (css-cond #:with desc-value #:out-range? [css:ident?]
                                             [(css:ident-norm=<-? desc-value options)
                                              => (λ [[v : Symbol]] (desc-fold (cdr desc-others) (cons v desc-keywords)))]))]))])))
 
@@ -363,7 +371,7 @@
                                                [CSS-Token True -> (U Natural Nonnegative-Flonum CSS-Syntax-Error)]
                                                [CSS-Token False -> (U Natural Nonnegative-Flonum CSS-Syntax-Error False)])
     (lambda [desc-value [terminate? #true]]
-      (css:cond #:with desc-value #:out-range? [css-number?] #:when terminate?
+      (css-cond #:with desc-value #:out-range? [css-number?] #:when terminate?
                 [(css:integer=<-? desc-value exact-nonnegative-integer?) => values]
                 [(css:flonum=<-? desc-value nonnegative-flonum?) => values])))
 
@@ -379,7 +387,7 @@
                                                    [CSS-Token True -> (U Nonnegative-Flonum CSS-Syntax-Error)]
                                                    [CSS-Token False -> (U Nonnegative-Flonum CSS-Syntax-Error False)])
     (lambda [desc-value [terminate? #true]]
-      (css:cond #:with desc-value #:out-range? [css-number?] #:when terminate?
+      (css-cond #:with desc-value #:out-range? [css-number?] #:when terminate?
                 [(css:flonum=<-? desc-value 0.0 fl<= 1.0) => flabs]
                 [(css:one? desc-value) 1.0]
                 [(css:zero? desc-value) 0.0])))
@@ -570,8 +578,10 @@
     [exn:css:resource           #:-> exn:css]
     [exn:css:deprecated         #:-> exn:css]
     [exn:css:cyclic             #:-> exn:css]
-    [exn:css:unrecognized       #:-> exn:css]
     [exn:css:namespace          #:-> exn:css]
+    [exn:css:racket             #:-> exn:css]
+    [exn:css:racket:type        #:-> exn:css:racket]
+    [exn:css:unrecognized       #:-> exn:css]
     [exn:css:misplaced          #:-> exn:css:unrecognized]
     [exn:css:type               #:-> exn:css:unrecognized]
     [exn:css:range              #:-> exn:css:unrecognized]
@@ -929,7 +939,7 @@
          [(min-width max-width min-height max-height)
           (if (pair? rest) (make-exn:css:overconsumption rest) (viewport-length desc-value))]
          [(zoom min-zoom max-zoom)
-          (css:cond #:with desc-value #:null? rest #:out-range? [css:ident? css-number? css-fraction?]
+          (css-cond #:with desc-value #:null? rest #:out-range? [css:ident? css-number? css-fraction?]
                     [(css:ident-norm=:=? desc-value 'auto) => values]
                     [(css:flonum=<-? desc-value nonnegative-flonum?) => values]
                     [(css:integer=<-? desc-value exact-nonnegative-integer?) => exact->inexact]
@@ -1023,6 +1033,19 @@
     (lambda [item items]
       (cond [(exn? item) items]
             [else (cons item items)])))
+
+  (define css-eval : (-> CSS-Token (Listof CSS-Token) (Values CSS-Syntax-Any (U Any CSS-Syntax-Error)))
+    (lambda [<racket> args]
+      (define-values (<racket-id> rest) (css-car args))
+      (values <racket-id>
+              (cond [(eof-object? <racket-id>) (make-exn:css:empty <racket>)]
+                    [(css-pair? rest) (make-exn:css:overconsumption rest)]
+                    [(not (css:ident? <racket-id>)) (make-exn:css:type <racket-id>)]
+                    [else (with-handlers ([exn? (λ _ (make-exn:css:racket <racket-id>))])
+                            (define id : Symbol (css:ident-datum <racket-id>))
+                            (define v (namespace-variable-value id #true (thunk (call-with-values (thunk (eval id)) (λ _ (car _))))))
+                            (if (parameter? v) (v) v))]))))
+         
 
   (define css-ann-url-modifiers : (-> (Listof CSS-Token) (Listof CSS-URL-Modifier))
     (lambda [modifiers]

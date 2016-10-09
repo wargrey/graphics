@@ -438,7 +438,7 @@
   
   (define css-rgb->scalar : (-> CSS-Token (U Integer CSS-Syntax-Error))
     (lambda [t]
-      (css:cond #:with t #:out-range? [css-number?]
+      (css-cond #:with t #:out-range? [css-number?]
                 [(css:integer=<-? t byte?) => values]
                 [(css:percentage=<-? t 0.0f0 <= 1.0f0) => (λ [%] (exact-round (* % 255.0)))]
                 [(css:flonum=<-? t fl<= 255.0) => exact-round])))
@@ -507,6 +507,15 @@
                           [(exn:css? a) a]
                           [else (make-exn:css:empty eof)]))])))
 
+  (define-css-declared-racket-value-filter css-eval-color : (U String Symbol Index (Instance Color%)) #:with maybe-color
+    [(is-a? maybe-color color%) (cast maybe-color (Instance Color%))]
+    [(and (string? maybe-color) (send the-color-database find-color maybe-color)) maybe-color]
+    [(index? maybe-color) maybe-color]
+    [(and (symbol? maybe-color)
+          (or (and (hash-has-key? css-named-colors maybe-color) maybe-color)
+              (let ([color (string->symbol (string-downcase (symbol->string maybe-color)))])
+                (and (hash-has-key? css-named-colors color) color)))) => values])
+
   (define css-declared-color-filter : (case-> [CSS-Token (Listof CSS-Token) -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
                                               [CSS-Token (Listof CSS-Token) True -> (U Color+sRGB CSS-Color CSS-Syntax-Error)]
                                               [CSS-Token (Listof CSS-Token) False -> (U Color+sRGB CSS-Color CSS-Syntax-Error False)])
@@ -516,7 +525,7 @@
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
     ;;; https://drafts.csswg.org/css-color/#the-hwb-notation
     (lambda [color-value rest [terminate? #true]]
-      (css:cond #:with color-value #:null? rest #:when terminate?
+      (css-cond #:with color-value #:null? rest #:when terminate?
                 [(css:ident? color-value)
                  (define name : Symbol (css:ident-norm color-value))
                  (cond [(or (eq? name 'transparent) (eq? name 'currentcolor)) name]
@@ -534,11 +543,11 @@
                    [(hsv hsva) (css-extract-hsba color-value (css:function-arguments color-value) hsv->rgb)]
                    [(hsi hsia) (css-extract-hsba color-value (css:function-arguments color-value) hsi->rgb)]
                    [(hwb hwba) (css-extract-hsba color-value (css:function-arguments color-value) hwb->rgb)]
+                   [(racket) (css-eval-color color-value (css:function-arguments color-value))]
                    [else (make-exn:css:range color-value)])]
                 [(css:string? color-value)
                  (define name-raw : String (css:string-datum color-value))
-                 (define grey : (Option (Pairof String (Listof (Option String)))) (regexp-match #px"(?i:grey)" name-raw))
-                 (define name : String (if (pair? grey) (string-replace name-raw (car grey) "gray") name-raw))
+                 (define name : String (string-replace name-raw #px"(?i:grey)$" "gray"))
                  (if (send the-color-database find-color name) name (make-exn:css:range color-value))])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -585,6 +594,9 @@
   (define current-css-message-box-font : (Parameterof (Instance Font%)) (make-parameter css-default-font))
   (define current-css-small-caption-font : (Parameterof (Instance Font%)) (make-parameter css-default-font))
   (define current-css-status-bar-font : (Parameterof (Instance Font%)) (make-parameter css-default-font))
+
+  (define-css-declared-racket-value-filter css-eval-font : (Instance Font%) #:with maybe-font
+    [(is-a? maybe-font font%) (cast maybe-font (Instance Font%))])
 
   (define smart-font-size : (-> (Instance Font%) Nonnegative-Flonum)
     (let ([macosx? (eq? (system-type 'os) 'macosx)])
@@ -692,7 +704,7 @@
                      [(memq keyword css-font-size-option) 'font-size]
                      [else (css-font-family-filter head rst)])]
               [(css:string? head) (css-font-family-filter head rst)]
-              [(css:integer=<-? head 1 <= 999) => (λ [v] (if allow-feature? v (make-exn:css:misplaced head)))]
+              [(css:integer=<-? head 0 < 1000) => (λ [v] (if allow-feature? v (make-exn:css:misplaced head)))]
               [(css-font-numeric-size-filter head #false) => (λ [v] (if allow-feature? v (make-exn:css:misplaced head)))]
               [else (make-exn:css:unrecognized head)]))
       (cond [(symbol? font-hint)
@@ -844,10 +856,9 @@
 (define css-color-property-filter : (->* (Symbol CSS-Token (Listof CSS-Token)) ((U Regexp (Listof Symbol)))
                                          (U Color+sRGB CSS-Color CSS-Syntax-Error CSS-Wide-Keyword False))
   (lambda [name value rest [px.names #px"-color$"]]
-    (cond [(pair? rest) (make-exn:css:overconsumption rest)]
-          [(eq? name 'color) (if (css:ident-norm=:=? value 'currentcolor) css:inherit (css-declared-color-filter value null))]
-          [(and (list? px.names) (for/or : Boolean ([pn (in-list px.names)]) (eq? name pn))) (css-declared-color-filter value null)]
-          [(and (regexp? px.names) (regexp-match? px.names (symbol->string name))) (css-declared-color-filter value null)]
+    (cond [(eq? name 'color) (if (css:ident-norm=:=? value 'currentcolor) css:inherit (css-declared-color-filter value rest))]
+          [(and (list? px.names) (for/or : Boolean ([pn (in-list px.names)]) (eq? name pn))) (css-declared-color-filter value rest)]
+          [(and (regexp? px.names) (regexp-match? px.names (symbol->string name))) (css-declared-color-filter value rest)]
           [else #false])))
 
 (define css-datum->color : (-> Symbol CSS-Datum (U (Instance Color%) CSS-Wide-Keyword 'currentcolor))
@@ -878,20 +889,22 @@
        (cond [(css-declared-keyword-filter font-value rest css-font-size-option #false) => values]
              [else (css-font-numeric-size-filter font-value)])]
       [(font-stretch)
-       (css:cond #:with font-value #:out-range? [css:percentage?]
+       (css-cond #:with font-value #:out-range? [css:percentage?]
                  [(css-declared-keyword-filter font-value rest css-font-stretch-option #false) => values]
                  [(css:percentage=<-? font-value nonnegative-single-flonum?) => values])]
       [(font-weight)
-       (css:cond #:with font-value #:out-range? [css:integer?]
+       (css-cond #:with font-value #:out-range? [css:integer?]
                  [(css-declared-keyword-filter font-value rest css-font-weight-option #false) => values]
-                 [(css:integer=<-? font-value 1 <= 999) => values])]
+                 [(css:integer=<-? font-value 0 < 1000) => values])]
       [(font-size-adjust)
-       (css:cond #:with font-value #:null? rest #:out-range? [css:percentage?]
+       (css-cond #:with font-value #:null? rest #:out-range? [css:percentage?]
                  [(css:ident-norm=:=? font-value 'none) => values]
                  [(css-declared+number-filter font-value) => values])]
       [(font)
        (define maybe-system-font : (Option Symbol) (css:ident-norm=<-? font-value css-system-font-names))
-       (cond [(and (symbol? maybe-system-font) (pair? rest)) (css-default-font-properties (make-exn:css:overconsumption rest))]
+       (define racket-id : (Option (Listof CSS-Token)) (and (css:function=:=? font-value 'racket) (css:function-arguments font-value)))
+       (cond [(and (or maybe-system-font racket-id) (pair? rest)) (css-default-font-properties (make-exn:css:overconsumption rest))]
+             [(list? racket-id) (css-eval-font font-value racket-id)]
              [else (case maybe-system-font
                      [(caption) (css-default-font-properties (current-css-caption-font))]
                      [(small-caption) (css-default-font-properties (current-css-small-caption-font))]
