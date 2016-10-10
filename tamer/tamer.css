@@ -242,7 +242,6 @@ ol li::before {
   }
 }
 
-.test-1 { content: "Basic String \Test: \22\20\\\E9 \6C34\00A5\a\27\""; } /* \a is ascii newline, not letter 'a' */
 .test-4 { content: "\1D11E" } /* Beyond the Basic Multilingual Plane */
 body { background: #FFFFFF url("http://somesite.com/images/someimage.gif") repeat top center; }
 body {
@@ -286,7 +285,15 @@ module.main {
    foreground-color: currentcolor;
    border-color: var(--gray);
 
-   font: italic 75% "Lucida Grande", "Trebuchet MS", Verdana, var(--default-font);
+   font: italic 85% "Lucida Grande", "Trebuchet MS", Verdana, var(--default-font);
    font: 12px/1.5; /* error property, font property requires font-family or system font */
    text-decoration: underline;
+
+   testcases: (32 "") (32 " ") (0 "!") (2 "bitmap-desc") (32 "Hello,\nRacket!")
+              (256 "That last testcase is not a mysterious phenomena: "
+                   "It seemed to do some strange optimizing so that "
+                   "no single letter would be printed in a single line."
+                   "\a\a Bug Fixed!")
+              (256 "上一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。\a\a此缺陷已修正！")
+              (256 "Basic String \Test: \22\20\\\E9 \6C34\00A5\a\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */");
 }

@@ -117,13 +117,13 @@
     (send dc draw-text content 0 0 combine?)
     (or (send dc get-bitmap) (bitmap-blank))))
 
-(define bitmap-desc : (->* (String Positive-Real)
+(define bitmap-desc : (->* (String Nonnegative-Real)
                            (Font #:combine? Boolean #:color (Option Color+sRGB)
                                  #:background-color (Option Color+sRGB)) Bitmap)
   (lambda [description max-width.0 [font css-default-font] #:combine? [combine? #false] #:color [fgcolor #false]
            #:background-color [bgcolor #false]]
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank)))
-    (define max-width : Positive-Integer (exact-ceiling max-width.0))
+    (define max-width : Natural (exact-ceiling max-width.0))
     (define desc-extent : (-> String Integer Integer (Values String Natural Nonnegative-Real))
       (lambda [desc start end]
         (define subdesc : String (substring desc start end))
@@ -500,7 +500,7 @@
                           [(exn:css? a) a]
                           [else (make-exn:css:empty eof)]))])))
 
-  (define-css-declared-racket-value-filter css-eval-color : (U String Symbol Index (Instance Color%)) #:with maybe-color
+  (define-css-declared-racket-value-filter css-eval-color #:-> (U String Symbol Index (Instance Color%)) #:with maybe-color
     [(is-a? maybe-color color%) (cast maybe-color (Instance Color%))]
     [(and (string? maybe-color) (send the-color-database find-color maybe-color)) maybe-color]
     [(index? maybe-color) maybe-color]
@@ -509,9 +509,7 @@
               (let ([color (string->symbol (string-downcase (symbol->string maybe-color)))])
                 (and (hash-has-key? css-named-colors color) color)))) => values])
 
-  (define css-declared-color-filter : (case-> [CSS-Token (Listof CSS-Token) -> (U CSS-Color-Datum CSS-Syntax-Error)]
-                                              [CSS-Token (Listof CSS-Token) True -> (U CSS-Color-Datum CSS-Syntax-Error)]
-                                              [CSS-Token (Listof CSS-Token) False -> (U CSS-Color-Datum CSS-Syntax-Error False)])
+  (define-css-declared-value-filter css-declared-color-filter #:case-> CSS-Token (Listof CSS-Token) #:-> CSS-Color-Datum
     ;;; https://drafts.csswg.org/css-color/#color-type
     ;;; https://drafts.csswg.org/css-color/#named-colors
     ;;; https://drafts.csswg.org/css-color/#numeric-rgb
@@ -569,18 +567,16 @@
       (define-values (img+color maybe-color) (css-car args))
       (cond [(eof-object? img+color) (make-exn:css:empty fimage)]
             [(or (and (css:string? img+color) (css:string-datum img+color)) (css-declared-image-filter img+color null #false))
-             => (make-css->racket
+             => (make-css->datum
                  (λ [img+url] (let ([maybe-fallback (css-extract-image-fallback maybe-color)])
                                 (cond [(exn:css? maybe-fallback) maybe-fallback]
                                       [(and (string? img+url) (string=? img+url "")) (image-object 'about:invalid maybe-fallback)]
                                       [else (image-object img+url maybe-fallback)]))))]
             [(css-declared-color-filter img+color maybe-color #false)
-             => (make-css->racket (λ [solid] (image-object 'about:invalid solid)))]
+             => (make-css->datum (λ [solid] (image-object 'about:invalid solid)))]
             [else (make-exn:css:type img+color)])))
   
-  (define css-declared-image-filter : (case-> [CSS-Token (Listof CSS-Token) -> (U CSS-Image-Datum CSS-Syntax-Error)]
-                                              [CSS-Token (Listof CSS-Token) True -> (U CSS-Image-Datum CSS-Syntax-Error)]
-                                              [CSS-Token (Listof CSS-Token) False -> (U CSS-Image-Datum CSS-Syntax-Error False)])
+  (define-css-declared-value-filter css-declared-image-filter #:case-> CSS-Token (Listof CSS-Token) #:-> CSS-Image-Datum
     ;;; https://drafts.csswg.org/css-images/#image-values
     ;;; https://drafts.csswg.org/css-images/#invalid-image
     (lambda [image-value rest [terminate? #true]]
@@ -639,7 +635,7 @@
   (define current-css-small-caption-font : (Parameterof Font) (make-parameter css-default-font))
   (define current-css-status-bar-font : (Parameterof Font) (make-parameter css-default-font))
 
-  (define-css-declared-racket-value-filter css-eval-font : Font #:with maybe-font
+  (define-css-declared-racket-value-filter css-eval-font #:-> Font #:with maybe-font
     [(is-a? maybe-font font%) (cast maybe-font Font)])
 
   (define smart-font-size : (-> Font Nonnegative-Flonum)
@@ -721,7 +717,7 @@
     ;;; http://www.w3.org/TR/CSS2/visudet.html#propdef-line-height
     (lambda [font-value rest]
       (cond [(css-declared-keyword-filter font-value rest '(normal inherit) #false) => css-wide-keywords-filter-map]
-            [(css-declared+number%-filter font-value #false) => (make-css->racket real->double-flonum)]
+            [(css-declared+number%-filter font-value #false) => (make-css->datum real->double-flonum)]
             [else (css-declared+length-filter font-value)])))
 
   (define css-font-numeric-size-filter : (case-> [CSS-Token -> (U Nonnegative-Inexact-Real CSS:Length:Font CSS-Syntax-Error)]
@@ -729,8 +725,8 @@
                                                  [CSS-Token False -> (U Nonnegative-Inexact-Real CSS:Length:Font CSS-Syntax-Error False)])
     ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
     (lambda [font-value [terminate? #true]]
-      (cond [(css-declared+number-filter font-value #false) => (make-css->racket real->double-flonum)]
-            [(css-declared+number%-filter font-value #false) => (make-css->racket real->single-flonum)]
+      (cond [(css-declared+number-filter font-value #false) => (make-css->datum real->double-flonum)]
+            [(css-declared+number%-filter font-value #false) => (make-css->datum real->single-flonum)]
             [else (css-declared+length-filter font-value terminate?)])))
 
   (define css-font-shorthand+family-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values Boolean) CSS-Longhand-Values)
@@ -1027,22 +1023,47 @@
      [border-color : Color+sRGB                                #:= 'Crimson]
      [foreground-color : Color+sRGB                            #:= "Grey"]
      [background-color : Color+sRGB                            #:= "Snow"]
-     [font : Font                                  #:= css-default-font]
+     [font : Font                                              #:= css-default-font]
+     [test-widths : (Listof Natural)                           #:= null]
+     [test-words : (Listof String)                             #:= null]
      [otherwise : (Option (Listof (Vector Symbol CSS-Datum)))  #:= #false])
     #:transparent)
 
+  (define-css-declared-value-filter css-declared-testcases-filter
+    #:-> Symbol CSS-Token (Listof CSS-Token)
+    #:-> CSS-Longhand-Values
+    (lambda [_ desc-value rest]
+      (define-values (widths words)
+        (for/fold ([widths : (Listof Natural) null]
+                   [words : (Listof String) null])
+                  ([block (in-list (cons desc-value rest))])
+          (cond [(not (css:block? block)) (values widths words)]
+                [else (let-values ([(<width> <words>) (css-car (css:block-components block))])
+                        (define width : (Option Natural) (css:integer=<-? <width> natural?))
+                        (define word : String (string-join (map css:string-datum (filter css:string? <words>)) ""))
+                        (cond [(false? width) (values widths words)]
+                              [else (values (cons width widths) (cons word words))]))])))
+      (hash 'test-widths (reverse widths)
+            'test-words (reverse words))))
+  
   (define css-descriptor-filter : CSS-Declaration-Filter
     (lambda [suitcased-name desc-value rest]
       (values (cond [(css-font-property-filter suitcased-name desc-value rest) => values]
                     [(css-text-decor-property-filter suitcased-name desc-value rest) => values]
                     [(css-color-property-filter suitcased-name desc-value rest) => values]
                     [(css-image-property-filter suitcased-name desc-value rest) => values]
+                    [(eq? suitcased-name 'testcases) (css-declared-testcases-filter suitcased-name desc-value rest)]
                     [else (map css-token->datum (cons desc-value rest))])
               #false)))
 
   (define css-preference-filter : (CSS-Cascaded-Value-Filter Bitmap-Test-Preference)
     (lambda [declared-values initial-values inherit-values]
+      (define (css-datum->widths [_ : Symbol] [value : CSS-Datum]) : (Listof Natural)
+        (filter natural? (if (list? value) value (list value))))
+      (define (css-datum->words [_ : Symbol] [value : CSS-Datum]) : (Listof String)
+        (filter string? (if (list? value) value (list value))))
       (parameterize ([current-css-element-color (css-ref declared-values inherit-values 'color)])
+        (displayln (css-ref declared-values inherit-values 'escaped-text))
         (make-bmp #:symbol-color (css-ref declared-values inherit-values 'symbol-color css-datum->color)
                   #:string-color (css-ref declared-values inherit-values 'string-color css-datum->color)
                   #:number-color (css-ref declared-values inherit-values 'number-color css-datum->color)
@@ -1052,6 +1073,8 @@
                   #:foreground-color (css-ref declared-values inherit-values 'foreground-color css-datum->color)
                   #:background-color (css-ref declared-values inherit-values 'background-color css-datum->color)
                   #:font (css-extract-font declared-values inherit-values (bmp-font initial-values))
+                  #:test-widths (css-ref declared-values inherit-values 'test-widths css-datum->widths)
+                  #:test-words (css-ref declared-values inherit-values 'test-words css-datum->words)
                   #:otherwise (for/list : (Listof (Vector Symbol CSS-Datum)) ([desc-name (in-hash-keys declared-values)])
                                 (vector desc-name (css-ref declared-values #false desc-name)))))))
     
@@ -1067,17 +1090,12 @@
                 preference)))
 
   btp
+  (define font : Font (bmp-font btp))
+  (define-values (fgcolor bgcolor rcolor) (values (bmp-foreground-color btp) (bmp-background-color btp) (bmp-output-color btp)))
   (apply bitmap-vl-append
          (for/fold ([bitmap-descs : (Listof Bitmap) null])
-                   ([width (in-list (list 32 16  2   2             32  32               32               256 256))]
-                    [words (in-list (list "" " " "!" "bitmap-desc" "!" "Hello, Racket!" "Hello,\nWorld!"
-                                          (string-join (list "That last testcase is not a mysterious phenomena:"
-                                                             "It seemed to do some strange optimizing so that"
-                                                             "no single letter would be printed in a single line."
-                                                             "\n\nBug Fixed!"))
-                                          "最后一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。此缺陷已修正！"))])
-           (define font : Font (bmp-font btp))
-           (define-values (fgcolor bgcolor rcolor) (values (bmp-foreground-color btp) (bmp-background-color btp) (bmp-output-color btp)))
+                   ([width (in-list (bmp-test-widths btp))]
+                    [words (in-list (bmp-test-words btp))])
            (define desc (bitmap-desc words width font #:color fgcolor #:background-color bgcolor #:combine? #false))
            (define combined-desc (bitmap-desc words width font #:color fgcolor #:background-color bgcolor #:combine? #true))
            (define-values (normal-width combined-width) (values (send desc get-width) (send combined-desc get-width)))

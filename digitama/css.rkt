@@ -270,7 +270,7 @@
                             [(type? instance) (type->datum instance)] ...
                             [else (assert (object-name instance) symbol?)])))))]))
 
-  (define-syntax (make-css->racket stx)
+  (define-syntax (make-css->datum stx)
     (syntax-case stx []
       [(_ ->) #'(λ [v] (cond [(exn:css? v) v] [else (-> v)]))]))
 
@@ -296,11 +296,22 @@
 
   (define-syntax (define-css-declared-racket-value-filter stx)
     (syntax-case stx []
-      [(_ value-filter : ValueType #:with maybe-value asserts ...)
+      [(_ value-filter #:-> ValueType #:with maybe-value asserts ...)
        #'(define value-filter : (-> CSS-Token (Listof CSS-Token) (U ValueType CSS-Syntax-Error))
            (lambda [fracket args]
              (define-values (<racket-id> maybe-value) (css-eval-value fracket args))
              (cond asserts ... [(exn:css? maybe-value) maybe-value] [else (make-exn:css:racket:type <racket-id>)])))]))
+
+  (define-syntax (define-css-declared-value-filter stx)
+    (syntax-case stx []
+      [(_ value-filter #:case-> DomType ... #:-> RangeType lambda-body)
+       #'(define value-filter : (case-> [DomType ... -> (U RangeType CSS-Syntax-Error)]
+                                        [DomType ... True -> (U RangeType CSS-Syntax-Error)]
+                                        [DomType ... False -> (U RangeType CSS-Syntax-Error False)])
+           lambda-body)]
+      [(_ value-filter #:-> DomType ... #:-> RangeType lambda-body)
+       #'(define value-filter : (-> DomType ... (U RangeType CSS-Syntax-Error))
+           lambda-body)]))
 
   (define-syntax (css-cond stx)
     (syntax-parse stx
@@ -348,15 +359,14 @@
   (define css-zero? : (-> Any Boolean : #:+ CSS-Zero) (λ [v] (or (css:zero? v) (css:flzero? v))))
   (define css-one? : (-> Any Boolean : #:+ CSS-One) (λ [v] (or (css:one? v) (css:flone? v))))
 
-  (define css-declared-keyword-filter : (case-> [CSS-Token (Listof CSS-Token) (Listof Symbol) -> (U Symbol CSS-Syntax-Error)]
-                                                [CSS-Token (Listof CSS-Token) (Listof Symbol) True -> (U Symbol CSS-Syntax-Error)]
-                                                [CSS-Token (Listof CSS-Token) (Listof Symbol) False -> (U Symbol CSS-Syntax-Error False)])
+  (define-css-declared-value-filter css-declared-keyword-filter #:case-> CSS-Token (Listof CSS-Token) (Listof Symbol) #:-> Symbol
     (lambda [desc-value desc-rest options [terminate? #true]]
       (css-cond #:with desc-value #:out-range? [css:ident?] #:when terminate?
                 [(pair? desc-rest) (make-exn:css:overconsumption desc-rest)]
                 [(css:ident-norm=<-? desc-value options) => values])))
 
-  (define css-declared-keywords-filter : (-> CSS-Token (Listof CSS-Token) (Listof Symbol) Symbol (U (Listof Symbol) CSS-Syntax-Error))
+  (define-css-declared-value-filter css-declared-keywords-filter
+    #:-> CSS-Token (Listof CSS-Token) (Listof Symbol) Symbol #:-> (Listof Symbol)
     (lambda [desc-value desc-rest options none]
       (cond [(css:ident-norm=:=? desc-value none) (if (pair? desc-rest) (make-exn:css:overconsumption desc-rest) null)]
             [else (let desc-fold ([desc-others : (Listof CSS-Token) (cons desc-value desc-rest)]
@@ -367,34 +377,26 @@
                                             [(css:ident-norm=<-? desc-value options)
                                              => (λ [[v : Symbol]] (desc-fold (cdr desc-others) (cons v desc-keywords)))]))]))])))
 
-  (define css-declared+number-filter : (case-> [CSS-Token -> (U Natural Nonnegative-Flonum CSS-Syntax-Error)]
-                                               [CSS-Token True -> (U Natural Nonnegative-Flonum CSS-Syntax-Error)]
-                                               [CSS-Token False -> (U Natural Nonnegative-Flonum CSS-Syntax-Error False)])
+  (define-css-declared-value-filter css-declared+number-filter #:case-> CSS-Token #:-> (U Natural Nonnegative-Flonum)
     (lambda [desc-value [terminate? #true]]
       (css-cond #:with desc-value #:out-range? [css-number?] #:when terminate?
                 [(css:integer=<-? desc-value exact-nonnegative-integer?) => values]
                 [(css:flonum=<-? desc-value nonnegative-flonum?) => values])))
 
-  (define css-declared+number%-filter : (case-> [CSS-Token -> (U Natural Nonnegative-Inexact-Real CSS-Syntax-Error)]
-                                                [CSS-Token True -> (U Natural Nonnegative-Inexact-Real CSS-Syntax-Error)]
-                                                [CSS-Token False -> (U Natural Nonnegative-Inexact-Real CSS-Syntax-Error False)])
+  (define-css-declared-value-filter css-declared+number%-filter #:case-> CSS-Token #:-> (U Natural Nonnegative-Inexact-Real)
     (lambda [desc-value [terminate? #true]]
       (cond [(css:percentage=<-? desc-value nonnegative-single-flonum?) => values]
             [(css-fraction? desc-value) (make-exn:css:range desc-value)]
             [else (css-declared+number-filter desc-value terminate?)])))
 
-  (define css-declared+percentage-filter : (case-> [CSS-Token -> (U Nonnegative-Flonum CSS-Syntax-Error)]
-                                                   [CSS-Token True -> (U Nonnegative-Flonum CSS-Syntax-Error)]
-                                                   [CSS-Token False -> (U Nonnegative-Flonum CSS-Syntax-Error False)])
+  (define-css-declared-value-filter css-declared+percentage-filter #:case-> CSS-Token #:-> Nonnegative-Flonum
     (lambda [desc-value [terminate? #true]]
       (css-cond #:with desc-value #:out-range? [css-number?] #:when terminate?
                 [(css:flonum=<-? desc-value 0.0 fl<= 1.0) => flabs]
                 [(css:one? desc-value) 1.0]
                 [(css:zero? desc-value) 0.0])))
 
-  (define css-declared+percentage%-filter : (case-> [CSS-Token -> (U Nonnegative-Flonum CSS-Syntax-Error)]
-                                                    [CSS-Token True -> (U Nonnegative-Flonum CSS-Syntax-Error)]
-                                                    [CSS-Token False -> (U Nonnegative-Flonum CSS-Syntax-Error False)])
+  (define-css-declared-value-filter css-declared+percentage%-filter #:case-> CSS-Token #:-> Nonnegative-Flonum
     (lambda [desc-value [terminate? #true]]
       (cond [(css:percentage=<-? desc-value 0f0 <= 1f0) => (λ [v] (flabs (real->double-flonum v)))]
             [(css-fraction? desc-value) (make-exn:css:range desc-value)]
