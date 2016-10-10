@@ -299,7 +299,7 @@
       [(_ value-filter : ValueType #:with maybe-value asserts ...)
        #'(define value-filter : (-> CSS-Token (Listof CSS-Token) (U ValueType CSS-Syntax-Error))
            (lambda [fracket args]
-             (define-values (<racket-id> maybe-value) (css-eval fracket args))
+             (define-values (<racket-id> maybe-value) (css-eval-value fracket args))
              (cond asserts ... [(exn:css? maybe-value) maybe-value] [else (make-exn:css:racket:type <racket-id>)])))]))
 
   (define-syntax (css-cond stx)
@@ -424,6 +424,7 @@
   ;; https://drafts.csswg.org/css-syntax/#component-value
   ;; https://drafts.csswg.org/css-syntax/#current-input-token
   (define-type --Symbol Symbol)
+  (define-type CSS-Invalid-URL 'about:invalid)
   (define-type CSS-URL-Modifier (U CSS:Ident CSS-Lazy-Token))
   (define-type CSS-Zero (U CSS:Zero CSS:Flzero))
   (define-type CSS-One (U CSS:One CSS:Flone))
@@ -474,9 +475,9 @@
       [css:block          #:+ CSS:Block           #:as Char              [components : (Listof CSS-Token)]])
 
     (define-lazy-tokens css-lazy-token #:+ CSS-Lazy-Token
-      [css:url            #:+ CSS:URL             #:with modifiers       #:as (U String Symbol) CSS-URL-Modifier]
-      [css:function       #:+ CSS:Function        #:with arguments       #:as Symbol            CSS-Token]
-      [css:var            #:+ CSS:Var             #:with fallback        #:as --Symbol          CSS-Token])
+      [css:url            #:+ CSS:URL             #:with modifiers       #:as (U String CSS-Invalid-URL) CSS-URL-Modifier]
+      [css:function       #:+ CSS:Function        #:with arguments       #:as Symbol                     CSS-Token]
+      [css:var            #:+ CSS:Var             #:with fallback        #:as --Symbol                   CSS-Token])
 
     (define-numeric-tokens css-number #:+ CSS-Number #:nan +nan.0
       [css:integer        #:+ CSS:Integer         #:as Integer]
@@ -830,8 +831,10 @@
   (define-syntax (define-css-value stx)
     (syntax-case stx [:]
       [(_ datum #:as Datum (fields ...) options ...)
+       #'(define-css-value datum #:as Datum #:=> --datum (fields ...) options ...)]
+      [(_ datum #:as Datum #:=> parent (fields ...) options ...)
        #'(begin (define-type Datum datum)
-                (struct datum --datum (fields ...) #:transparent options ...))]))
+                (struct datum parent (fields ...) #:transparent options ...))]))
 
   (define-syntax (define-prefab-keyword stx)
     (syntax-case stx [:]
@@ -1034,7 +1037,7 @@
       (cond [(exn? item) items]
             [else (cons item items)])))
 
-  (define css-eval : (-> CSS-Token (Listof CSS-Token) (Values CSS-Syntax-Any (U Any CSS-Syntax-Error)))
+  (define css-eval-value : (-> CSS-Token (Listof CSS-Token) (Values CSS-Syntax-Any (U Any CSS-Syntax-Error)))
     (lambda [<racket> args]
       (define-values (<racket-id> rest) (css-car args))
       (values <racket-id>
@@ -1562,7 +1565,6 @@
 
   (define-css-parser-entry css-parse-component-valueses :-> (Listof (Listof CSS-Token))
     ;;; https://drafts.csswg.org/css-syntax/#parse-comma-separated-list-of-component-values
-    ;;; https://drafts.csswg.org/css-values/#comb-comma
     (lambda [/dev/cssin]
       (css-consume-componentses /dev/cssin #:omit-comma? #false)))
 
@@ -1712,7 +1714,6 @@
   
   (define css-consume-components : (->* (Input-Port) ((Option Char) Boolean) (Values (Listof CSS-Token) CSS-Syntax-Terminal))
     ;;; https://drafts.csswg.org/css-syntax/#parse-list-of-component-values
-    ;;; https://drafts.csswg.org/css-values/#comb-comma
     (lambda [css [terminal-char #false] [omit-terminate? #false]]
       (let consume-component ([stnenopmoc : (Listof CSS-Token) null])
         (define token (css-read-syntax css))
@@ -2430,7 +2431,7 @@
       (define maybe-block : (Option CSS:Block) (css-@rule-block import))
       (define maybe-target.css : (U Path CSS-Syntax-Error)
         (cond [(eof-object? uri) (make+exn:css:empty (css-@rule-name import))]
-              [(css:string=<-? uri non-empty-string?) => (curry css-url-string->path parent-href)]
+              [(css:string=<-? uri non-empty-string?) => (λ [url] (css-url-string->path parent-href url))]
               [(css:url=<-? uri non-empty-string?) => (λ [url] (css-url-string->path parent-href (~a url)))]
               [(or (css:string? uri) (css:url? uri)) (make+exn:css:empty uri)]
               [else (make+exn:css:unrecognized uri)]))
