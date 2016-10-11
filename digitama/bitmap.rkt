@@ -1063,7 +1063,6 @@
       (define (css-datum->words [_ : Symbol] [value : CSS-Datum]) : (Listof String)
         (filter string? (if (list? value) value (list value))))
       (parameterize ([current-css-element-color (css-ref declared-values inherit-values 'color)])
-        (displayln (css-ref declared-values inherit-values 'escaped-text))
         (make-bmp #:symbol-color (css-ref declared-values inherit-values 'symbol-color css-datum->color)
                   #:string-color (css-ref declared-values inherit-values 'string-color css-datum->color)
                   #:number-color (css-ref declared-values inherit-values 'number-color css-datum->color)

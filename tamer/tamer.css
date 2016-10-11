@@ -289,7 +289,7 @@ module.main {
    font: 12px/1.5; /* error property, font property requires font-family or system font */
    text-decoration: underline;
 
-   testcases: (32 "") (32 " ") (0 "!") (2 "bitmap-desc") (32 "Hello,\nRacket!")
+   testcases: (32 "") (32 " ") (0 "!") (2 "bitmap-desc") (32 "Hello,\aRacket!")
               (256 "That last testcase is not a mysterious phenomena: "
                    "It seemed to do some strange optimizing so that "
                    "no single letter would be printed in a single line."
