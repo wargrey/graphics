@@ -289,11 +289,17 @@ module.main {
    font: 12px/1.5; /* error property, font property requires font-family or system font */
    text-decoration: underline;
 
+   racket-logo: x-icon([#height 32] [#material whatever] [#thickness 12 ]);
+   case-sensitive-error-logo: x-icon([#Height 32] [#thickness 12]);
+   arity-error-logo: racket-logo(overconsumption [#height 32] normal-argument);
+   arity-error-logo: right-arrow-icon([#height 32]);
+   arity-error-logo: racket(text-icon [#height 32]);
+
    testcases: (32 "") (32 " ") (0 "!") (2 "bitmap-desc") (32 "Hello,\aRacket!")
-              (256 "That last testcase is not a mysterious phenomena: "
+              [256 "That last testcase is not a mysterious phenomena: "
                    "It seemed to do some strange optimizing so that "
                    "no single letter would be printed in a single line."
-                   "\a\a Bug Fixed!")
-              (256 "上一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。\a\a此缺陷已修正！")
-              (256 "Basic String \Test: \22\20\\\E9 \6C34\00A5\a\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */");
+                   "\a\a Bug Fixed!"]
+              [256 "上一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。\a\a此缺陷已修正！"]
+              [256 "Basic String \Test: \22\20\\\E9 \6C34\00A5\a\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */"];
 }
