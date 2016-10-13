@@ -298,10 +298,18 @@
     (syntax-case stx []
       [(_ value-filter #:-> ValueType #:with maybe-value asserts ...)
        #'(define value-filter : (-> CSS-Token (Listof CSS-Token) (U ValueType CSS-Syntax-Error))
-           (lambda [fracket args]
-             (define-values (<racket-id> maybe-value) (css-eval-value fracket args))
+           (lambda [fracket argl]
+             (define-values (<racket-id> maybe-value) (css-eval-value fracket argl))
              (cond asserts ... [(exn:css? maybe-value) maybe-value] [else (make-exn:css:racket:type <racket-id>)])))]))
 
+  (define-syntax (define-css-declared-#:keywords-filter stx)
+    (syntax-parse stx
+      [(_ keywords-filter #:with value (~optional (~seq (~and #:ci? ci?))) [ignored-keywords ...] cases ...)
+       (with-syntax ([keyword-ci? (if (attribute ci?) #'#true #'#false)])
+         #'(define keywords-filter : CSS-Declared-#:Keywords-Filter
+             (let ([λ:kw : CSS-Declared-#:Keyword-Filter (λ [:keyword value] (case :keyword cases ...))])
+               (make-css-declared-#:keywords-filter λ:kw keyword-ci? (list 'ignored-keywords ...)))))]))
+  
   (define-syntax (define-css-declared-value-filter stx)
     (syntax-case stx []
       [(_ value-filter #:case-> DomType ... #:-> RangeType lambda-body)
@@ -310,8 +318,9 @@
                                         [DomType ... False -> (U RangeType CSS-Syntax-Error False)])
            lambda-body)]
       [(_ value-filter #:-> DomType ... #:-> RangeType lambda-body)
-       #'(define value-filter : (-> DomType ... (U RangeType CSS-Syntax-Error))
-           lambda-body)]))
+       #'(define value-filter : (-> DomType ... (U RangeType CSS-Syntax-Error)) lambda-body)]
+      [(_ value-filter #:->* DomType ... #:-> RangeType lambda-body)
+       #'(define value-filter : (->* DomType ... (U RangeType CSS-Syntax-Error)) lambda-body)]))
 
   (define-syntax (css-cond stx)
     (syntax-parse stx
@@ -584,6 +593,8 @@
     [exn:css:namespace          #:-> exn:css]
     [exn:css:racket             #:-> exn:css]
     [exn:css:racket:type        #:-> exn:css:racket]
+    [exn:css:racket:arity       #:-> exn:css:racket]
+    [exn:css:racket:unexpected  #:-> exn:css:racket]
     [exn:css:unrecognized       #:-> exn:css]
     [exn:css:misplaced          #:-> exn:css:unrecognized]
     [exn:css:type               #:-> exn:css:unrecognized]
@@ -1050,13 +1061,41 @@
                             (define id : Symbol (css:ident-datum <racket-id>))
                             (define v (namespace-variable-value id #true (thunk (call-with-values (thunk (eval id)) (λ _ (car _))))))
                             (if (parameter? v) (v) v))]))))
-         
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define-type CSS-Declared-#:Keyword-Filter (-> Keyword CSS-Token (U CSS-Datum CSS-Syntax-Error Void)))
+  (define-type CSS-Declared-#:Keywords-Filter (-> CSS-Token (Listof CSS:Block) (Listof Keyword) (Listof Keyword)
+                                                  (U (HashTable Keyword CSS-Datum) CSS-Syntax-Error)))
+  
+  (define make-css-declared-#:keywords-filter : (->* (CSS-Declared-#:Keyword-Filter) (Boolean (Listof Keyword))
+                                                     CSS-Declared-#:Keywords-Filter)
+    (lambda [keyword-filter [keyword-ci? #false] [ignored-keywords null]]
+      (define keyword->datum : (-> CSS:Hash Keyword) (if keyword-ci? css:hash-norm css:hash-datum))
+      (lambda [f-token f-argl mandatory-keywords all-keywords]
+        (define kw:args : (HashTable Keyword CSS-Datum) (make-hasheq))
+        (let keywords-filter ([blocks : (Listof CSS:Block) f-argl])
+          (cond [(pair? blocks)
+                 (define-values (kw should-only-one-value) (css-car (css:block-components (car blocks))))
+                 (define-values (v should-empty) (css-car should-only-one-value))
+                 (cond [(eof-object? kw) (make-exn:css:empty (car blocks))]
+                       [(eof-object? v) (make-exn:css:missing-value kw)]
+                       [(not (css:hash? kw)) (make-exn:css:type kw)]
+                       [else (let ([:keyword (keyword->datum kw)])
+                               (cond [(and (pair? ignored-keywords) (memq :keyword ignored-keywords)) (keywords-filter (cdr blocks))]
+                                     [else (let ([datum (when (memq :keyword all-keywords) (keyword-filter :keyword v))])
+                                             (cond [(exn:css? datum) datum]
+                                                   [(void? datum) (make-exn:css:racket:unexpected (list f-token kw))]
+                                                   [(css-pair? should-empty) (make-exn:css:overconsumption should-empty)]
+                                                   [else (hash-set! kw:args :keyword datum)
+                                                         (keywords-filter (cdr blocks))]))]))])]
+                [(for/and : Boolean ([:kw (in-list mandatory-keywords)]) (hash-has-key? kw:args :kw)) kw:args]
+                [else (make-exn:css:racket:arity (cons f-token (filter-map (λ [[kw : CSS:Block]] (car (css:block-components kw)))
+                                                                           f-argl)))])))))
+    
   (define css-ann-url-modifiers : (-> (Listof CSS-Token) (Listof CSS-URL-Modifier))
     (lambda [modifiers]
       (filter (λ [t] (or (css:ident? t) (css-lazy-token? t))) modifiers)))
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-error-any->tokens : (-> (U CSS-Syntax-Any (Listof CSS-Token)) (Listof CSS-Token))
     (lambda [any]
       (cond [(eof-object? any) null]
