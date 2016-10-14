@@ -500,7 +500,7 @@
                           [(exn:css? a) a]
                           [else (make-exn:css:empty eof)]))])))
 
-  (define-css-declared-racket-value-filter css-eval-color #:-> (U String Symbol Index Color) #:with maybe-color
+  (define-css-declared-racket-value-filter css-eval-color #:with maybe-color #:as (U String Symbol Index Color)
     [(is-a? maybe-color color%) (cast maybe-color Color)]
     [(and (string? maybe-color) (send the-color-database find-color maybe-color)) maybe-color]
     [(index? maybe-color) maybe-color]
@@ -523,7 +523,7 @@
                        [(hash-has-key? css-named-colors name) name]
                        [else (make-exn:css:range color-value)])]
                 [(css:hash? color-value)
-                 (define-values (maybe-rgb alpha) (css-hex-color->rgba (css:hash-norm color-value)))
+                 (define-values (maybe-rgb alpha) (css-hex-color->rgba (css:hash-datum color-value)))
                  (cond [(false? maybe-rgb) (make-exn:css:range color-value)]
                        [(fl= alpha 1.0) maybe-rgb]
                        [else (hexa maybe-rgb alpha)])]
@@ -534,81 +534,36 @@
                    [(hsv hsva) (css-extract-hsba color-value (css:function-arguments color-value) hsv->rgb)]
                    [(hsi hsia) (css-extract-hsba color-value (css:function-arguments color-value) hsi->rgb)]
                    [(hwb hwba) (css-extract-hsba color-value (css:function-arguments color-value) hwb->rgb)]
-                   [(racket) (css-eval-color color-value (css:function-arguments color-value))]
                    [else (make-exn:css:range color-value)])]
                 [(css:string? color-value)
                  (define name-raw : String (css:string-datum color-value))
                  (define name : String (string-replace name-raw #px"(?i:grey)$" "gray"))
-                 (if (send the-color-database find-color name) name (make-exn:css:range color-value))])))
+                 (if (send the-color-database find-color name) name (make-exn:css:range color-value))]
+                [(css:racket? color-value) (css-eval-color color-value)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-type Bitmap (Instance Bitmap%))
-  (define-type CSS-Image-Datum (U CSS-Image String CSS-Invalid-URL))
-  (define-type Icon-Metainfo (Vector (Listof Keyword) (Listof Keyword) Natural Natural))
+  (define-type CSS-Image-Datum (U CSS-@λ CSS-Image String 'about:invalid))
 
-  (begin-for-syntax
-    (require racket/list)
-    
-    (define metadata-pool (make-hasheq))
-
-    (define (module->metadata! modpath)
-      (dynamic-require modpath (void))
-      (define-values (apis syntaxes) (module->exports modpath))
-      (for ([ids (in-list (append apis syntaxes))])
-        (for ([info (in-list (cdr ids))])
-          (with-handlers ([exn? void])
-            (define icon (dynamic-require modpath (car info)))
-            (when (procedure? icon)
-              (define-values (rkws akws) (procedure-keywords icon))
-              (when (memq '#:backing-scale akws)
-                (define arity (procedure-arity icon))
-                (define-values (a:min a:max)
-                  (cond [(list? arity) (values (first arity) (last arity))]
-                        [else (values arity arity)]))
-                (hash-set! metadata-pool (car info) (vector rkws akws a:min a:max)))))))))
-
-  (define-syntax (define-icon-keywords stx)
-    (syntax-case stx []
-      [(_ the-metadata-pool)
-       (with-syntax ([the-pool metadata-pool])
-         (for-each module->metadata!
-                   (list 'images/logos 'images/icons/arrow 'images/icons/control
-                         'images/icons/file 'images/icons/misc 'images/icons/stickman
-                         'images/icons/symbol 'images/icons/tool))
-         #'(define the-metadata-pool : (HashTable Symbol Icon-Metainfo) the-pool))]))
-  
   (define-css-value css-image #:as CSS-Image ())
   (define-css-value image #:as Image #:=> css-image ([image : CSS-Image-Datum] [fallback : (Option CSS-Color-Datum)]))
-  (define-css-value icon #:as Icon #:=> css-image ([name : Symbol] [argl : (Listof CSS-Datum)] [kw:args : (HashTable Keyword CSS-Datum)]))
 
-  (define-icon-keywords the-metadata-pool)
   (define the-image-pool : (HashTable (U CSS-Image String) Bitmap) (make-hash))
 
-  (define-css-declared-#:keywords-filter css-declared-icon-#:keywords-filter #:with value [#:material]
-    [(#:backing-scale) (css-declared+number-filter value)]
-    [(#:height #:thickness) (css-declared+number%-filter value)]
-    [(#:color #:shackle-color #:body-color #:arm-color #:head-color) (css-declared-color-filter value null)]
-    [(#:disk-color #:arrow-color #:frame-color #:handle-color #:cap-color #:bomb-color) (css-declared-color-filter value null)])
-
-  (define css-eval-image : (-> CSS-Token (Listof CSS-Token) (U CSS-Image CSS-Syntax-Error))
-    (lambda [f-icon f-argl]
-      (define fname : Symbol
-        (cond [(css:function? f-icon) (css:function-norm f-icon)]
-              [(css:ident? f-icon) (css:ident-norm f-icon)]
-              [else '||]))
-      (define (eval-image [metainfo : Icon-Metainfo]) : (U CSS-Image CSS-Syntax-Error)
-        (define-values (kw:argl argl) (partition css:block? (filter-not css:whitespace? f-argl)))
-        (define arity : Index (length argl))
-        (define kw:args : (U (HashTable Keyword CSS-Datum) CSS-Syntax-Error)
-          (css-declared-icon-#:keywords-filter f-icon kw:argl (vector-ref metainfo 0) (vector-ref metainfo 1)))
-        (cond [(exn:css? kw:args) kw:args]
-              [(zero? (fx+ (vector-ref metainfo 2) arity)) (icon fname null kw:args)]
-              [(> arity (vector-ref metainfo 3)) (make-exn:css:racket:arity (cons f-icon argl))]
-              [else (icon fname null kw:args)]))
-      (cond [(eq? fname '||) (make-exn:css:type f-icon)]
-            [(hash-ref the-metadata-pool fname (thunk #false)) => eval-image]
-            [else (make-exn:css:racket f-icon)])))
+  (define-@λ-pool the-@icon-pool
+    #:λnames #px"-(icon|logo)$"
+    #:requires [images/logos images/icons/arrow images/icons/control
+                images/icons/file images/icons/misc images/icons/stickman
+                images/icons/symbol images/icons/tool])
   
+  (define css-@icon-filter : CSS-@λ-Filter
+    (lambda [λname λ:kw/λpos value]
+      (case λ:kw/λpos
+        ;[(#:backing-scale) (css-declared+number-filter value)]
+        ;[(#:height #:thickness) (css-declared+number%-filter value)]
+        [(#:color #:shackle-color #:body-color #:arm-color #:head-color) (css-declared-color-filter value null)]
+        [(#:disk-color #:arrow-color #:frame-color #:handle-color #:cap-color #:bomb-color) (css-declared-color-filter value null)])))
+
   (define css-extract-image-fallback : (-> (Listof CSS-Token) (U CSS-Color-Datum False CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-images/#image-notation
     (lambda [maybe-fallback]
@@ -639,13 +594,9 @@
     ;;; https://drafts.csswg.org/css-images/#image-values
     ;;; https://drafts.csswg.org/css-images/#invalid-image
     (lambda [image-value rest [terminate? #true]]
-      (css-cond #:with image-value #:null? rest #:out-range? [css:function?] #:when terminate?
-                [(css:function? image-value)
-                 (define args : (Listof CSS-Token) (css:function-arguments image-value))
-                 (case (css:function-norm image-value)
-                   [(image) (css-extract-image image-value args)]
-                   [(racket) (if (null? args) (make-exn:css:empty image-value) (css-eval-image (car args) (cdr args)))]
-                   [else (css-eval-image image-value args)])]
+      (css-cond #:with image-value #:null? rest #:out-range? [css:function? css:λracket?] #:when terminate?
+                [(css:function=:=? image-value 'image) (css-extract-image image-value (css:function-arguments image-value))]
+                [(css-declared-@lambda-filter image-value css-@icon-filter the-@icon-pool #false) => values]
                 [(css:url=<-? image-value non-empty-string?) => values]
                 [(css:url? image-value) 'about:invalid])))
 
@@ -696,8 +647,7 @@
   (define current-css-small-caption-font : (Parameterof Font) (make-parameter css-default-font))
   (define current-css-status-bar-font : (Parameterof Font) (make-parameter css-default-font))
 
-  (define-css-declared-racket-value-filter css-eval-font #:-> Font #:with maybe-font
-    [(is-a? maybe-font font%) (cast maybe-font Font)])
+  (define-css-declared-racket-value-filter css-eval-font #:is-a? font% #:as Font)
 
   (define smart-font-size : (-> Font Nonnegative-Flonum)
     (let ([macosx? (eq? (system-type 'os) 'macosx)])
@@ -781,13 +731,10 @@
             [(css-declared+number%-filter font-value #false) => (make-css->datum real->double-flonum)]
             [else (css-declared+length-filter font-value)])))
 
-  (define css-font-numeric-size-filter : (case-> [CSS-Token -> (U Nonnegative-Inexact-Real CSS:Length:Font CSS-Syntax-Error)]
-                                                 [CSS-Token True -> (U Nonnegative-Inexact-Real CSS:Length:Font CSS-Syntax-Error)]
-                                                 [CSS-Token False -> (U Nonnegative-Inexact-Real CSS:Length:Font CSS-Syntax-Error False)])
+  (define-css-declared-value-filter css-font-numeric-size-filter #:case-> CSS-Token #:-> (U Nonnegative-Inexact-Real CSS:Length:Font)
     ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
     (lambda [font-value [terminate? #true]]
-      (cond [(css-declared+number-filter font-value #false) => (make-css->datum real->double-flonum)]
-            [(css-declared+number%-filter font-value #false) => (make-css->datum real->single-flonum)]
+      (cond [(css-declared+number%-filter font-value #false) => (make-css->datum exact->inexact)]
             [else (css-declared+length-filter font-value terminate?)])))
 
   (define css-font-shorthand+family-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values Boolean) CSS-Longhand-Values)
@@ -1009,11 +956,10 @@
                  [(css:ident-norm=:=? font-value 'none) => values]
                  [(css-declared+number-filter font-value) => values])]
       [(font)
-       (define maybe-system-font : (Option Symbol) (css:ident-norm=<-? font-value css-system-font-names))
-       (define racket-font : (Option (Listof CSS-Token)) (and (css:function=:=? font-value 'racket) (css:function-arguments font-value)))
-       (cond [(and (or maybe-system-font racket-font) (pair? rest)) (css-default-font-properties (make-exn:css:overconsumption rest))]
-             [(list? racket-font) (css-eval-font font-value racket-font)]
-             [else (case maybe-system-font
+       (define sysfont : (Option Symbol) (css:ident-norm=<-? font-value css-system-font-names))
+       (cond [(and (or sysfont (css:racket? font-value)) (pair? rest)) (css-default-font-properties (make-exn:css:overconsumption rest))]
+             [(css:racket? font-value) (css-default-font-properties (css-eval-font font-value))]
+             [else (case sysfont
                      [(caption) (css-default-font-properties (current-css-caption-font))]
                      [(small-caption) (css-default-font-properties (current-css-small-caption-font))]
                      [(icon) (css-default-font-properties (current-css-icon-font))]
@@ -1034,7 +980,7 @@
       [(text-decoration) (css-text-decor-shorthand-filter decor-value rest)]
       [else #false])))
 
-(call-with-font css-default-font #:root? #true '(initializing the lengt%))
+(call-with-font css-default-font #:root? #true (void '(initializing the length%)))
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) ((Option Font)) Font)
   (lambda [declared-values inherited-values [basefont #false]]
     (define maybe-font : CSS-Datum (and (hash? inherited-values) (css-ref inherited-values #false 'font)))
@@ -1061,8 +1007,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* main typed/racket
   (require "css.rkt")
+  (require "format.rkt")
   (require (submod ".."))
-  (require (submod "css.rkt" test/digitama))
+
+  (define-syntax (time-run stx)
+    (syntax-case stx []
+      [(_ sexp ...)
+       #'(let ([momery0 : Natural (current-memory-use)])
+           (define-values (result cpu real gc) (time-apply (thunk sexp ...) null))
+           (printf "memory: ~a cpu time: ~a real time: ~a gc time: ~a~n"
+                   (~size (- (current-memory-use) momery0) 'Bytes)
+                   cpu real gc)
+           (car result))]))
+  
+  (define run-file : Path-String (find-system-path 'run-file))
+  (define bitmap.css : Path-String
+    (simplify-path (cond [(regexp-match? #px"DrRacket$" run-file) (build-path 'up "tamer" "bitmap.css")]
+                         [else (build-path (find-system-path 'orig-dir) run-file 'up 'up "tamer" "bitmap.css")])))
 
   (css-cache-computed-object-value #false)
   (current-css-media-type 'screen)
@@ -1072,7 +1033,7 @@
           (cons 'width 1440)
           (cons 'height 820))))
   
-  (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer.css)))
+  (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet bitmap.css)))
   (define tamer-main : CSS-Subject (make-css-subject #:type 'module #:id '#:header #:classes '(main)))
 
   (define-preference bmp #:as Bitmap-Test-Preference

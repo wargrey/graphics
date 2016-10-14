@@ -1050,15 +1050,18 @@
             [else (list any)])))
 
 
-  (define css-log-syntax-error : (->* (CSS-Syntax-Error) (Logger) Void)
-    (lambda [errobj [logger (current-logger)]]
+  (define css-log-syntax-error : (->* (CSS-Syntax-Error) (Logger (Option CSS-Token)) Void)
+    (lambda [errobj [logger (current-logger)] [property #false]]
       (define any : (U EOF (Listof CSS-Token)) (exn:css-tokens errobj))
+      (define-values (head others)
+        (let ([tokens (if (eof-object? any) null any)])
+          (cond [(css-token? property) (values property tokens)]
+                [else (css-car/keep-whitespace tokens)])))
       (log-message logger 'warning 'exn:css:syntax
-                   (let-values ([(token others) (css-car/keep-whitespace (if (eof-object? any) null any))])
-                     (cond [(eof-object? token) (format "~a: ~a" (object-name errobj) (if (eof-object? any) eof null))]
-                           [(null? others) (format "~a: ~a" (object-name errobj) (css-token->string token))]
-                           [else (format "~a: ~a; others: ~a" (object-name errobj) (css-token->string token)
-                                         (map css-token-datum->string others))]))
+                   (cond [(eof-object? head) (format "~a: ~a" (object-name errobj) (if (eof-object? any) eof null))]
+                         [(null? others) (format "~a: ~a" (object-name errobj) (css-token->string head))]
+                         [else (format "~a: ~a; others: ~a" (object-name errobj) (css-token->string head)
+                                       (map css-token-datum->string others))])
                    errobj))))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2647,7 +2650,8 @@
               [else (for-each css-log-syntax-error exns)]))
       (for ([property (in-list properties)])
         (cond [(list? property) (css-cascade-declarations desc-filter property descbase)]
-              [else (let ([desc-name : Symbol (css:ident-norm (css-declaration-name property))])
+              [else (let* ([<desc-name> : CSS:Ident (css-declaration-name property)]
+                           [desc-name : Symbol (css:ident-norm <desc-name>)])
                       (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
                       (define important? : Boolean (css-declaration-important? property))
                       (define lazy? : Boolean (css-declaration-lazy? property))
@@ -2667,7 +2671,7 @@
                                     (let ([tokens (exn:css-tokens desc-value)])
                                       (and (pair? tokens) (findf css:var? tokens))))
                                (desc-set!-lazy desc-name important? declared-values)]
-                              [else (css-log-syntax-error desc-value)])))]))
+                              [else (css-log-syntax-error desc-value (current-logger) <desc-name>)])))]))
       descbase))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2847,7 +2851,7 @@
                    [λ:kws : (Listof Keyword) (vector-ref λinfo 0)])
       (define-values (head tail) (css-car args))
       (cond [(css:hash? head)
-             (define-values (value rest) (css-car/keep-whitespace tail))
+             (define-values (value rest) (css-car tail))
              (define λ:kw : Keyword (css:hash-datum head))
              (cond [(eof-object? value) (make-exn:css:racket:arity head)]
                    [(not (memq λ:kw λ:all)) (make-exn:css:racket:unexpected head)]
@@ -2871,10 +2875,13 @@
       (if (parameter? v) (v) v))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module test/digitama typed/racket
-  (provide (all-defined-out))
+(module* main typed/racket
+  (require (submod ".." digitama))
+  (require (submod ".." parser))
+  (require (submod ".." grammar))
 
   (require "format.rkt")
+  (require (only-in typed/racket/gui get-display-size))
   
   (define-syntax (time-run stx)
     (syntax-case stx []
@@ -2889,18 +2896,8 @@
   (define run-file : Path-String (find-system-path 'run-file))
   (define tamer.css : Path-String
     (simplify-path (cond [(regexp-match? #px"DrRacket$" run-file) (build-path 'up "tamer" "tamer.css")]
-                         [else (build-path (find-system-path 'orig-dir) (find-system-path 'run-file)
-                                           'up 'up "tamer" "tamer.css")]))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module* main typed/racket
-  (require (submod ".." digitama))
-  (require (submod ".." parser))
-  (require (submod ".." grammar))
-  (require (submod ".." test/digitama))
-
-  (require (only-in typed/racket/gui get-display-size))
-
+                         [else (build-path (find-system-path 'orig-dir) run-file 'up 'up "tamer" "tamer.css")])))
+  
   (define-values (width height) (get-display-size))
   (define-values (in out) (make-pipe))
   (define css-logger (make-logger 'css #false))
