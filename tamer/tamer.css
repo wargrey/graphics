@@ -265,6 +265,7 @@ body {
     --gray: var(--whitespace)"GREY"var(--whitespace);
     --honeydew-s: 2.04%;
     --honeydew-i: 96.08%;
+    --icon-height: 32;
     --default-font: sans-serif;
 }
 
@@ -279,8 +280,8 @@ module.main {
    symbol-color: Blue;
    string-color: rgba(255, 128, 0);
    number-color: rgba(148, 22, 81);
-   output-color: racket(debugger-bomb-color);
-   paren-color: racket(run-icon-color);
+   output-color: @debugger-bomb-color;
+   paren-color: @run-icon-color;
    background-color: "Honeydew";
    foreground-color: currentcolor;
    border-color: var(--gray);
@@ -289,11 +290,12 @@ module.main {
    font: 12px/1.5; /* error property, font property requires font-family or system font */
    text-decoration: underline;
 
-   racket-logo: x-icon([#height 32] [#material whatever] [#thickness 12 ]);
-   case-sensitive-error-logo: x-icon([#Height 32] [#thickness 12]);
-   arity-error-logo: racket-logo(overconsumption [#height 32] normal-argument);
-   arity-error-logo: right-arrow-icon([#height 32]);
-   arity-error-logo: racket(text-icon [#height 32]);
+   at-exp: @racket[] @schema [];
+   racket-logo: @x-icon[#height var(--icon-height) #material whatever #thickness 12];
+   case-sensitive-error-logo: @x-icon[#Height 32 #thickness 12];
+   arity-error-logo: @racket-logo(overconsumption #height 32 normal-argument);
+   arity-error-logo: @right-arrow-icon{#height 32};
+   arity-error-logo: @text-icon[#height 32];
 
    testcases: (32 "") (32 " ") (0 "!") (2 "bitmap-desc") (32 "Hello,\aRacket!")
               [256 "That last testcase is not a mysterious phenomena: "
