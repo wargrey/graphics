@@ -395,8 +395,8 @@
   (define-css-declared-value-filter css-declared+number-filter #:case-> CSS-Token #:-> (U Natural Nonnegative-Flonum)
     (lambda [desc-value [terminate? #true]]
       (css-cond #:with desc-value #:out-range? [css-number?] #:when terminate?
-                [(css:integer=<-? desc-value exact-nonnegative-integer?) => values]
-                [(css:flonum=<-? desc-value nonnegative-flonum?) => values])))
+                [(css:flonum=<-? desc-value nonnegative-flonum?) => values]
+                [(css:integer=<-? desc-value exact-nonnegative-integer?) => values])))
 
   (define-css-declared-value-filter css-declared+number%-filter #:case-> CSS-Token #:-> (U Natural Nonnegative-Inexact-Real)
     (lambda [desc-value [terminate? #true]]
@@ -1220,24 +1220,21 @@
     (lambda [srcloc]
       (define css : Input-Port (css-srcloc-in srcloc))
       (css-consume-whitespace css)
-      (define start : (U EOF Char) (read-char css))
-      (cond [(or (eof-object? start) (char=? start #\)))
-             (when (eof-object? start) (css-make-bad-token srcloc css:bad:eof struct:css:url ""))            
-             (css-make-token srcloc css:url 'about:invalid null #false)]
-            [else (let consume-url-token : (U CSS:URL CSS:Bad) ([chars (list start)])
-                    (define ch : (U EOF Char) (read-char css))
-                    (cond [(or (eof-object? ch) (char=? ch #\)))
-                           (when (eof-object? ch) (css-make-bad-token srcloc css:bad:eof struct:css:url (list->string (reverse chars))))
-                           (css-make-token srcloc css:url (list->string (reverse chars)) null #false)]
-                          [(and (char-whitespace? ch) (css-consume-whitespace css))
-                           (define end : (U EOF Char) (read-char css))
-                           (define uri : String (list->string (reverse chars)))
-                           (cond [(or (eof-object? end) (char=? end #\))) (css-make-token srcloc css:url uri null #false)]
-                                 [else (css-consume-bad-url-remnants css (css-make-bad-token srcloc css:bad:blank struct:css:url uri))])]
-                          [(css-valid-escape? ch (peek-char css)) (consume-url-token (cons (css-consume-escaped-char css) chars))]
-                          [(or (memq ch '(#\\ #\" #\' #\()) (css-char-non-printable? ch))
-                           (css-consume-bad-url-remnants css (css-make-bad-token srcloc css:bad:char struct:css:url ch))]
-                          [else (consume-url-token (cons ch chars))]))])))
+      (let consume-url-token ([srahc : (Listof Char) null])
+        (define ch : (U EOF Char) (read-char css))
+        (cond [(or (eof-object? ch) (char=? ch #\)))
+               (define uri : (U String 'about:invalid) (if (null? srahc) 'about:invalid (list->string (reverse srahc))))
+               (when (eof-object? ch) (css-make-bad-token srcloc css:bad:eof struct:css:url uri))
+               (css-make-token srcloc css:url uri null #false)]
+              [(and (char-whitespace? ch) (css-consume-whitespace css))
+               (define end : (U EOF Char) (read-char css))
+               (define uri : (U String 'about:invalid) (if (null? srahc) 'about:invalid (list->string (reverse srahc))))
+               (cond [(or (eof-object? end) (char=? end #\))) (css-make-token srcloc css:url uri null #false)]
+                     [else (css-consume-bad-url-remnants css (css-make-bad-token srcloc css:bad:blank struct:css:url uri))])]
+              [(css-valid-escape? ch (peek-char css)) (consume-url-token (cons (css-consume-escaped-char css) srahc))]
+              [(or (memq ch '(#\\ #\" #\' #\()) (css-char-non-printable? ch))
+               (css-consume-bad-url-remnants css (css-make-bad-token srcloc css:bad:char struct:css:url ch))]
+              [else (consume-url-token (cons ch srahc))]))))
 
   (define css-consume-unicode-range-token : (-> CSS-Srcloc (U CSS:URange CSS:Bad))
     ;;; https://drafts.csswg.org/css-syntax/#urange-syntax
@@ -2432,7 +2429,7 @@
       (define maybe-target.css : (U Path CSS-Syntax-Error)
         (cond [(eof-object? uri) (make+exn:css:empty (css-@rule-name import))]
               [(css:string=<-? uri non-empty-string?) => (λ [url] (css-url-string->path parent-href url))]
-              [(css:url=<-? uri non-empty-string?) => (λ [url] (css-url-string->path parent-href (~a url)))]
+              [(css:url=<-? uri string?) => (λ [url] (css-url-string->path parent-href url))]
               [(or (css:string? uri) (css:url? uri)) (make+exn:css:empty uri)]
               [else (make+exn:css:unrecognized uri)]))
       (cond [(exn? maybe-target.css) maybe-target.css]
@@ -2774,7 +2771,7 @@
 
 ;;; Interacting with Racket
 (define-type CSS-@λ-Filter (-> Symbol (U Keyword Natural) CSS-Token (U CSS-Datum CSS-Syntax-Error Void)))
-(define-type CSS-@λ-Metainfo (Vector (Listof Keyword) (Listof Keyword) (-> Natural Boolean)))
+(define-type CSS-@λ-Metainfo (Vector (Listof Keyword) (Listof Keyword) (Listof Natural) (U Natural +inf.0)))
 (define-type CSS-@λ-Pool (HashTable Symbol CSS-@λ-Metainfo))
 
 (begin-for-syntax
@@ -2782,8 +2779,11 @@
 
   (define (λinfo-set! the-pool id λid)
     (define-values (rkws akws) (procedure-keywords λid))
-    (define λarity-include? (λ [a] (procedure-arity-includes? λid a #true)))
-    (hash-set! the-pool id (vector rkws akws λarity-include?)))
+    (define arities (let ([a (procedure-arity λid)]) (if (list? a) a (list a))))
+    (define mbarty (last arities))
+    (hash-set! the-pool id (vector rkws akws (filter integer? arities)
+                                   (cond [(integer? mbarty) +inf.0]
+                                         [else (arity-at-least-value mbarty)]))))
   
   (define (module->λinfo! the-pool modpath hints)
     (dynamic-require modpath (void))
@@ -2839,7 +2839,8 @@
   (lambda [<λ> λfilter λinfo]
     (define λname : Symbol (css:λracket-datum <λ>))
     (define λ:all : (Listof Keyword) (vector-ref λinfo 1))
-    (define λarity? : (-> Natural Boolean) (vector-ref λinfo 2))
+    (define λarities : (Listof Natural) (vector-ref λinfo 2))
+    (define λarity-min : (U Natural +inf.0) (vector-ref λinfo 3))
     (let λ-filter ([spxes : (Listof CSS-Datum) null]
                    [args : (Listof CSS-Token) (css:λracket-arguments <λ>)]
                    [position : Natural 0]
@@ -2859,8 +2860,8 @@
              (cond [(exn:css? datum) datum]
                    [(void? datum) (make-exn:css:racket:arity args)]
                    [else (λ-filter (cons datum spxes) tail (add1 position) λ:kws)])]
-            [(and (null? λ:kws) (λarity? position)) (css-@λ (cons λname (reverse spxes)))]
-            [else (make-exn:css:racket:arity <λ>)]))))
+            [(nor (null? λ:kws) (or (memq position λarities) (>= position λarity-min))) (make-exn:css:racket:arity <λ>)]
+            [else (css-@λ (cons λname (reverse spxes)))]))))
 
 (define css-eval-value : (-> CSS:Racket (U Any CSS-Syntax-Error))
   (lambda [<v>]
