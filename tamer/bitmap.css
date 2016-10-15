@@ -1,15 +1,11 @@
 @charset "utf-8";
 
-#header {
-	margin: 10px 2em 1cm 2%;
-	font-family: Whatever, Verdana, Helvetica, Gill Sans, sans-serif;
-	background-color: green;
-	background-color: HsIa(120.01deg var(--honeydew-s) var(--honeydew-i) / 1.0);
-	frequency: 30Hz;
-        lazy-test: arg0(arg00(var(--s) * 1px)) arg1(var(--pi, arg10(10% * 2deg)));
+#root {
+    font-family: Whatever, Helvetica, Gill Sans, sans-serif;
+    background-color: HsIa(120.01deg var(--honeydew-s) var(--honeydew-i) / 1.0);
 }
 
-#header{
+#root {
     --cyclic: var(--dependency);
     --dependency: var(--cyclic);
     --self-dependency: var(--self-dependency);
@@ -23,33 +19,70 @@
     --default-font: sans-serif;
 }
 
+
 module.main {
-   color : currentcolor;
-   symbol-color: Blue;
-   string-color: rgba(255, 128, 0);
-   number-color: rgba(148, 22, 81);
-   output-color: @debugger-bomb-color;
-   paren-color: @run-icon-color;
-   background-color: "Honeydew";
-   foreground-color: currentcolor;
-   border-color: var(--gray);
+    color : currentcolor;
+    symbol-color: Blue;
+    string-color: rgba(255, 128, 0);
+    number-color: rgba(148, 22, 81);
+    output-color: @debugger-bomb-color;
+    paren-color: @run-icon-color;
+    background-color: "Honeydew";
+    foreground-color: currentcolor;
+    border-color: var(--gray);
 
-   font: italic 85% "Lucida Grande", "Trebuchet MS", Verdana, var(--default-font);
-   font: 12px/1.5; /* error property, font property requires font-family or system font */
-   text-decoration: underline;
+    width: 256;
 
-   at-exp: @racket[] @schema [];
-   racket-logo: @x-icon[#height var(--icon-height) #material whatever #thickness 12];
-   case-sensitive-error-logo: @x-icon[#Height 32 #thickness 12];
-   arity-error-logo: @racket-logo(overconsumption #height 32 normal-argument);
-   arity-error-logo: @right-arrow-icon{#height 32};
-   arity-error-logo: @text-icon[#height 32];
+    font: italic 85% "Lucida Grande", "Trebuchet MS", Verdana, var(--default-font);
+    text-decoration: underline;
 
-   testcases: (32 "") (32 " ") (0 "!") (2 "bitmap-desc") (32 "Hello,\aRacket!")
-              [256 "That last testcase is not a mysterious phenomena: "
-                   "It seemed to do some strange optimizing so that "
-                   "no single letter would be printed in a single line."
-                   "\a\a Bug Fixed!"]
-              [256 "上一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。\a\a此缺陷已修正！"]
-              [256 "Basic String \Test: \22\20\\\E9 \6C34\00A5\a\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */"];
+    at-exp: @racket[] @schema [];
+    racket-logo: @x-icon[#height var(--icon-height) #material whatever #thickness 12];
+
+    font: 12px/1.5; /* error property, font property requires font-family or system font */
+
+    case-sensitive-error-logo: @x-icon[#Height 32 #thickness 12];
+    arity-error-logo: @racket-logo(overconsumption #height 32 normal-argument);
+    arity-error-logo: @right-arrow-icon{#height 32};
+    arity-error-logo: @text-icon[#height 32];
+}
+
+test.case1 {
+    width: 32;
+    desc: "";
+}
+
+test.case2 {
+    width: 32;
+    desc: " ";
+}
+
+test.case3 {
+    width: 0;
+    desc: "!";
+}
+
+test.case4 {
+    width: 2;
+    desc: "bitmap-desc";
+}
+
+test.case5 {
+    width: 32;
+    desc: "Hello,\aRacket!";
+}
+
+test.case6 {
+    desc: "That last testcase is not a mysterious phenomena: "
+          "It seemed to do some strange optimizing so that "
+          "no single letter would be printed in a single line."
+          "\a\a Bug Fixed!";
+}
+
+test.case7 {
+    desc: "上一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。\a\a此缺陷已修正！";
+}
+
+test.case8 {
+    desc: "Basic String \Test: \22\20\\\E9 \6C34\00A5\a\27\"\a/* '\\a' is ascii newline, not letter 'a' */";
 }
