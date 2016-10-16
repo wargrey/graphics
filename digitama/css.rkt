@@ -376,9 +376,9 @@
 
   (define-syntax (css-make-datum->boolean stx)
     (syntax-parse stx
-      [(_ true-words ...)
+      [(_ truewords ...)
        #'(lambda [[_ : Symbol] [keyword : CSS-Datum]] : (U Boolean CSS-Wide-Keyword)
-           (cond [(symbol? keyword) (memq keyword (list 'true-words ...))]
+           (cond [(symbol? keyword) (for/or : Boolean ([tw (in-list (list 'truewords ...))]) (eq? keyword tw))]
                  [else css:initial]))]))
 
   (define-css-declared-value-filter css-declared-keyword-filter #:case-> CSS-Token (Listof CSS-Token) (Listof Symbol) #:-> Symbol
@@ -767,7 +767,7 @@
   (define-type CSS-Feature-Support? (-> Symbol (Listof+ CSS-Token) Boolean))
   (define-type CSS-Media-Preferences (HashTable Symbol CSS-Media-Datum))
   (define-type CSS-Media-Feature-Value (U CSS-Media-Datum (-> (Listof CSS-Token) Nothing) Void))
-  (define-type CSS-Media-Feature-Filter (-> Symbol (Option CSS-Media-Value) Boolean (Values CSS-Media-Feature-Value Boolean)))
+  (define-type CSS-Media-Feature-Filter (-> Symbol (Option CSS-Media-Value) Boolean (-> Void) CSS-Media-Feature-Value))
 
   (define css-media-keyword-filter : (-> (Option CSS-Media-Value) (Listof Symbol) CSS-Media-Feature-Value)
     (lambda [maybe-value options]
@@ -776,43 +776,42 @@
             [(css-token? maybe-value) throw-exn:css:type])))
   
   (define css-media-feature-filter : CSS-Media-Feature-Filter
-    (lambda [downcased-name maybe-value min/max?]
-      (values
-       (case downcased-name
-         [(width height device-width device-height resolution)
-          (cond [(css+length? maybe-value) (css:length->scalar maybe-value)]
-                [(css:length? maybe-value) throw-exn:css:range]
-                [(css:dimension? maybe-value) throw-exn:css:unit]
-                [(css-token? maybe-value) throw-exn:css:type])]
-         [(resolution)
-          (cond [(css:ident-norm=:=? maybe-value 'infinite) +inf.0]
-                [(css+resolution? maybe-value) (css:resolution->scalar maybe-value)]
-                [(css:resolution? maybe-value) throw-exn:css:range]
-                [(css:dimension? maybe-value) throw-exn:css:unit]
-                [(css-token? maybe-value) throw-exn:css:type])]
-         [(aspect-ratio device-aspect-ratio)
-          (cond [(css:ratio? maybe-value) (real->double-flonum (css:ratio-datum maybe-value))]
-                [(css-token? maybe-value) throw-exn:css:type])]
-         [(color color-index monochrome)
-          (cond [(css:integer=<-? maybe-value exact-nonnegative-integer?) => values]
-                [(css:integer? maybe-value) throw-exn:css:range]
-                [(css-token? maybe-value) throw-exn:css:type])]
-         [(grid) ; legacy descriptor
-          (cond [(and min/max?) throw-exn:css:unrecognized]
-                [(css:zero? maybe-value) 0]
-                [(not (css-number? maybe-value)) throw-exn:css:type])]
-         [(orientation) (css-media-keyword-filter maybe-value '(portrait landscape))]
-         [(scan) (css-media-keyword-filter maybe-value '(interlace progressive))]
-         [(update) (css-media-keyword-filter maybe-value '(none slow fast))]
-         [(overflow-block) (css-media-keyword-filter maybe-value '(none scroll optional-paged paged))]
-         [(overflow-inline) (css-media-keyword-filter maybe-value '(none scroll))]
-         [(color-gamut) (css-media-keyword-filter maybe-value '(srgb p3 rec2020))]
-         [(pointer any-pointer) (css-media-keyword-filter maybe-value '(none coarse fine))]
-         [(havor any-havor) (css-media-keyword-filter maybe-value '(none havor))]
-         [(scripting) (css-media-keyword-filter maybe-value '(none initial-only enabled))]
-         [else throw-exn:css:unrecognized])
-       (and (memq downcased-name '(device-width device-height device-aspect-ratio))
-            #true))))
+    (lambda [downcased-name maybe-value min/max? deprecated!]
+      (case downcased-name
+        [(width height device-width device-height resolution)
+         (when (or (eq? downcased-name 'device-width) (eq? downcased-name 'device-height)) (deprecated!))
+         (cond [(css+length? maybe-value) (css:length->scalar maybe-value)]
+               [(css:length? maybe-value) throw-exn:css:range]
+               [(css:dimension? maybe-value) throw-exn:css:unit]
+               [(css-token? maybe-value) throw-exn:css:type])]
+        [(resolution)
+         (cond [(css:ident-norm=:=? maybe-value 'infinite) +inf.0]
+               [(css+resolution? maybe-value) (css:resolution->scalar maybe-value)]
+               [(css:resolution? maybe-value) throw-exn:css:range]
+               [(css:dimension? maybe-value) throw-exn:css:unit]
+               [(css-token? maybe-value) throw-exn:css:type])]
+        [(aspect-ratio device-aspect-ratio)
+         (when (eq? downcased-name 'device-aspect-ratio) (deprecated!))
+         (cond [(css:ratio? maybe-value) (real->double-flonum (css:ratio-datum maybe-value))]
+               [(css-token? maybe-value) throw-exn:css:type])]
+        [(color color-index monochrome)
+         (cond [(css:integer=<-? maybe-value exact-nonnegative-integer?) => values]
+               [(css:integer? maybe-value) throw-exn:css:range]
+               [(css-token? maybe-value) throw-exn:css:type])]
+        [(grid) ; legacy descriptor
+         (cond [(and min/max?) throw-exn:css:unrecognized]
+               [(css:zero? maybe-value) 0]
+               [(not (css-number? maybe-value)) throw-exn:css:type])]
+        [(orientation) (css-media-keyword-filter maybe-value '(portrait landscape))]
+        [(scan) (css-media-keyword-filter maybe-value '(interlace progressive))]
+        [(update) (css-media-keyword-filter maybe-value '(none slow fast))]
+        [(overflow-block) (css-media-keyword-filter maybe-value '(none scroll optional-paged paged))]
+        [(overflow-inline) (css-media-keyword-filter maybe-value '(none scroll))]
+        [(color-gamut) (css-media-keyword-filter maybe-value '(srgb p3 rec2020))]
+        [(pointer any-pointer) (css-media-keyword-filter maybe-value '(none coarse fine))]
+        [(havor any-havor) (css-media-keyword-filter maybe-value '(none havor))]
+        [(scripting) (css-media-keyword-filter maybe-value '(none initial-only enabled))]
+        [else throw-exn:css:unrecognized])))
 
   (define css-deprecate-media-type : (Parameterof Boolean) (make-parameter #false))
   (define current-css-media-type : (Parameterof Symbol) (make-parameter 'all))
@@ -825,16 +824,13 @@
   ;; https://drafts.csswg.org/css-cascade/#shorthand
   ;; https://drafts.csswg.org/css-cascade/#filtering
   ;; https://drafts.csswg.org/css-cascade/#cascading
-  ; NOTE: CSS tokens are also acceptable here, but they are just allowed for convenient
-  ;        since they provide the precision type info for applications directly.
-  ; TODO: If no CSS-Token, it will complain because of chaperone contract.
   (define-type CSS-Datum (U Datum Bytes FlVector FxVector CSS-Token --datum (Object)))
   
   (define-type CSS+Lazy-Value (U (-> CSS-Datum) (Boxof (-> CSS-Datum))))
   (define-type CSS-Values (HashTable Symbol CSS+Lazy-Value))
   (define-type CSS-Longhand-Values (HashTable Symbol (U CSS-Datum CSS-Syntax-Error)))
   (define-type CSS+Longhand-Values (U CSS-Longhand-Values CSS-Datum CSS-Syntax-Error))
-  (define-type CSS-Declaration-Filter (-> Symbol CSS-Token (Listof CSS-Token) (Values CSS+Longhand-Values Boolean)))
+  (define-type CSS-Declaration-Filter (-> Symbol CSS-Token (Listof CSS-Token) (-> Void) (U CSS+Longhand-Values Void)))
   (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Values Preference (Option CSS-Values) Preference))
 
   (struct --datum () #:transparent)
@@ -937,35 +933,33 @@
 
   ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
   (define css-viewport-descriptor-filter : CSS-Declaration-Filter
-    (lambda [suitcased-name desc-value rest]
+    (lambda [suitcased-name desc-value rest !]
       (define (viewport-length [v : CSS-Token]) : (U CSS-Datum CSS-Syntax-Error)
         (cond [(css:ident-norm=:=? v 'auto) => values]
               [(css:percentage=<-? v nonnegative-single-flonum?) => values]
               [(or (css:ident? v) (css-fraction? v)) (make-exn:css:range v)]
               [else (css-declared+length-filter v)]))
-      (values
-       (case suitcased-name
-         [(width height)
-          (define-values (2nd-value real-rest) (css-car rest))
-          (define min-name : Symbol (if (eq? suitcased-name 'width) 'min-width 'min-height))
-          (define max-name : Symbol (if (eq? suitcased-name 'width) 'max-width 'max-height))
-          (define min-value : (U CSS-Datum CSS-Syntax-Error) (viewport-length desc-value))
-          (cond [(pair? real-rest) (make-exn:css:overconsumption real-rest)]
-                [else (hasheq min-name min-value
-                              max-name (cond [(eof-object? 2nd-value) min-value]
-                                             [else (viewport-length 2nd-value)]))])]
-         [(min-width max-width min-height max-height)
-          (if (pair? rest) (make-exn:css:overconsumption rest) (viewport-length desc-value))]
-         [(zoom min-zoom max-zoom)
-          (css-cond #:with desc-value #:null? rest #:out-range? [css:ident? css-number? css-fraction?]
-                    [(css:ident-norm=:=? desc-value 'auto) => values]
-                    [(css:flonum=<-? desc-value nonnegative-flonum?) => values]
-                    [(css:integer=<-? desc-value exact-nonnegative-integer?) => exact->inexact]
-                    [(css:percentage=<-? desc-value nonnegative-single-flonum?) => real->double-flonum])]
-         [(orientation) (css-declared-keyword-filter desc-value rest '(auto portrait landscape))]
-         [(user-zoom) (css-declared-keyword-filter desc-value rest '(zoom fixed))]
-         [else (make-exn:css:unrecognized desc-value)])
-       #false)))
+      (case suitcased-name
+        [(width height)
+         (define-values (2nd-value real-rest) (css-car rest))
+         (define min-name : Symbol (if (eq? suitcased-name 'width) 'min-width 'min-height))
+         (define max-name : Symbol (if (eq? suitcased-name 'width) 'max-width 'max-height))
+         (define min-value : (U CSS-Datum CSS-Syntax-Error) (viewport-length desc-value))
+         (cond [(pair? real-rest) (make-exn:css:overconsumption real-rest)]
+               [else (hasheq min-name min-value
+                             max-name (cond [(eof-object? 2nd-value) min-value]
+                                            [else (viewport-length 2nd-value)]))])]
+        [(min-width max-width min-height max-height)
+         (if (pair? rest) (make-exn:css:overconsumption rest) (viewport-length desc-value))]
+        [(zoom min-zoom max-zoom)
+         (css-cond #:with desc-value #:null? rest #:out-range? [css:ident? css-number? css-fraction?]
+                   [(css:ident-norm=:=? desc-value 'auto) => values]
+                   [(css:flonum=<-? desc-value nonnegative-flonum?) => values]
+                   [(css:integer=<-? desc-value exact-nonnegative-integer?) => exact->inexact]
+                   [(css:percentage=<-? desc-value nonnegative-single-flonum?) => real->double-flonum])]
+        [(orientation) (css-declared-keyword-filter desc-value rest '(auto portrait landscape))]
+        [(user-zoom) (css-declared-keyword-filter desc-value rest '(zoom fixed))]
+        [else (make-exn:css:unrecognized desc-value)])))
 
   (define css-viewport-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol CSS-Media-Datum))
     ;;; https://drafts.csswg.org/css-device-adapt/#constraining
@@ -1979,8 +1973,8 @@
       (when (and min/max?)
         (cond [(or (not maybe-value) (css:delim? maybe-op)) (throw-exn:css:misplaced errobj)]
               [(not (css-numeric? maybe-value)) (throw-exn:css:type errobj)]))
-      (define-values (throw-v deprecated?) ((current-css-media-feature-filter) downcased-name maybe-value min/max?))
-      (when deprecated? (make+exn:css:deprecated desc-name))
+      (define deprecated! : (-> Void) (thunk (void (make+exn:css:deprecated desc-name))))
+      (define throw-v ((current-css-media-feature-filter) downcased-name maybe-value min/max? deprecated!))
       (cond [(void? throw-v) downcased-name]
             [(symbol? throw-v) (make-css-media-feature downcased-name throw-v op)]
             [(number? throw-v) (make-css-media-feature downcased-name throw-v op)]
@@ -2633,9 +2627,9 @@
         (lambda [<desc-name> desc-name declared-values] 
           (define flat-values : (Listof CSS-Token) (css-variable-substitude declared-values descbase null))
           (cond [(null? flat-values) css:unset]
-                [else (let-values ([(maybe-value _) (desc-filter desc-name (car flat-values) (cdr flat-values))])
+                [else (let ([maybe-value (desc-filter desc-name (car flat-values) (cdr flat-values) void)])
                         (cond [(exn:css? maybe-value) (css-log-syntax-error maybe-value (current-logger) <desc-name>) css:unset]
-                              [(void? maybe-value) css:unset]
+                              [(void? maybe-value) (make+exn:css:unrecognized <desc-name>) css:unset]
                               [else maybe-value]))])))
       (define desc-set!-lazy : (-> CSS:Ident Symbol Boolean (Listof+ CSS-Token) Void)
         (lambda [<desc-name> desc-name important? declared-values]
@@ -2685,12 +2679,13 @@
                       (define decl-value : CSS-Token (car declared-values))
                       (define decl-rest : (Listof CSS-Token) (cdr declared-values))
                       (when (desc-more-important? desc-name important?)
-                        (define-values (desc-value deprecated?)
-                          (cond [(symbol-interned? desc-name) (desc-filter desc-name decl-value decl-rest)]
-                                [else (values (css-lazy declared-values (css-declaration-lazy? property)) #false)]))
-                        (when deprecated? (make+exn:css:deprecated (css-declaration-name property)))
-                        (cond [(css:var? desc-value) (desc-set!-lazy <desc-name> desc-name important? declared-values)]
+                        (define desc-value : (U CSS+Longhand-Values Void)
+                          (cond [(symbol-unreadable? desc-name) (css-lazy declared-values (css-declaration-lazy? property))]
+                                [else (let ([deprecated! (thunk (void (make+exn:css:deprecated <desc-name>)))])
+                                        (desc-filter desc-name decl-value decl-rest deprecated!))]))
+                        (cond [(void? desc-value) (make+exn:css:unrecognized <desc-name>)]
                               [(hash? desc-value) (desc-set!-longhand <desc-name> desc-name important? desc-value declared-values)]
+                              [(css:var? desc-value) (desc-set!-lazy <desc-name> desc-name important? declared-values)]
                               [(not (exn? desc-value)) (desc-set! desc-name important? (thunk desc-value))]
                               [(and (null? decl-rest) (css-wide-keywords-ormap decl-value))
                                => (λ [prefab] (desc-set! desc-name important? (thunk prefab)))]
@@ -2954,8 +2949,8 @@
   (define tamer-body : CSS-Subject (make-css-subject #:type 'body #:id '#:123))
 
   (define css-declaration-filter : CSS-Declaration-Filter
-    (lambda [suitcased-name desc-value rest]
-      (values (map css-token->datum (cons desc-value rest)) #false)))
+    (lambda [suitcased-name desc-value rest !]
+      (map css-token->datum (cons desc-value rest))))
 
   (define css-filter : (CSS-Cascaded-Value-Filter (Option (HashTable Symbol Any)))
     (lambda [declared-values default-values inherited-values]
