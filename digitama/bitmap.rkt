@@ -104,7 +104,7 @@
 
 (define bitmap-text : (->* (String) (Font #:combine? Boolean #:color (Option Color+sRGB)
                                           #:background-color (Option Color+sRGB)) Bitmap)
-  (lambda [content [font css-default-font] #:combine? [combine? #false] #:color [fgcolor #false]
+  (lambda [content [font css-default-font] #:combine? [combine? #true] #:color [fgcolor #false]
            #:background-color [bgcolor #false]]
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank)))
     (define-values (width height descent ascent) (send dc get-text-extent content font combine?))
@@ -119,7 +119,7 @@
 (define bitmap-desc : (->* (String Nonnegative-Real)
                            (Font #:combine? Boolean #:color (Option Color+sRGB)
                                  #:background-color (Option Color+sRGB)) Bitmap)
-  (lambda [description max-width.0 [font css-default-font] #:combine? [combine? #false] #:color [fgcolor #false]
+  (lambda [description max-width.0 [font css-default-font] #:combine? [combine? #true] #:color [fgcolor #false]
            #:background-color [bgcolor #false]]
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank)))
     (define max-width : Natural (exact-ceiling max-width.0))
@@ -457,7 +457,7 @@
                  [source : (Listof CSS-Token) (filter-not css:whitespace? args)]
                  [podd? : Boolean #false]
                  [/? : Boolean #false])
-        (define-values (token rest) (css-car source))
+        (define-values (token rest) (css-car/cdr source))
         (cond [(eof-object? token) (if (fx>= size n:min) (values (reverse return) size) (values (make-exn:css:missing-value id) size))]
               [(fx>= size n:max) (values (make-exn:css:overconsumption source) size)]
               [(not (css:delim? token)) (fold (cons token return) (fx+ size 1) rest (not podd?) /?)]
@@ -567,10 +567,10 @@
   (define css-extract-image-fallback : (-> (Listof CSS-Token) (U CSS-Color-Datum False CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-images/#image-notation
     (lambda [maybe-fallback]
-      (define-values (maybe-comma maybe-rest) (css-car maybe-fallback))
+      (define-values (maybe-comma maybe-rest) (css-car/cdr maybe-fallback))
       (cond [(eof-object? maybe-comma) #false]
             [(not (css:delim=:=? maybe-comma #\,)) (make-exn:css:missing-comma maybe-comma)]
-            [else (let-values ([(maybe-color rest) (css-car maybe-rest)])
+            [else (let-values ([(maybe-color rest) (css-car/cdr maybe-rest)])
                     (cond [(eof-object? maybe-color) (make-exn:css:missing-value maybe-comma)]
                           [(pair? rest) (make-exn:css:overconsumption rest)]
                           [else (css-declared-color-filter maybe-color null)]))])))
@@ -578,7 +578,7 @@
   (define css-extract-image : (-> CSS-Token (Listof CSS-Token) (U CSS-Image CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-images/#image-notation
     (lambda [fimage argl]
-      (define-values (img+color maybe-color) (css-car argl))
+      (define-values (img+color maybe-color) (css-car/cdr argl))
       (cond [(eof-object? img+color) (make-exn:css:empty fimage)]
             [(or (and (css:string? img+color) (css:string-datum img+color)) (css-declared-image-filter img+color null #false))
              => (make-css->datum
@@ -631,6 +631,7 @@
   
   (define css-font-style-option : (Listof Symbol) '(normal italic oblique slant))
   (define css-font-kerning-option : (Listof Symbol) '(auto normal none))
+  (define css-font-variant-ligatures-options : (Listof Symbol) '(normal none))
   (define css-font-position-option : (Listof Symbol) '(normal sub super))
   (define css-font-caps-option : (Listof Symbol) '(normal small-caps all-small-caps petite-caps all-petite-caps unicase titling-caps))
   (define css-font-weight-option : (Listof Symbol) '(normal bold bolder light lighter))
@@ -670,7 +671,6 @@
     [font-stretch           'normal]
     [font-variant           'normal]
     [font-kerning           'auto]
-    [font-kerning           'auto]
     [font-size-adjust       'none]
     [font-language-override 'normal]
     [line-height            'normal]
@@ -709,14 +709,14 @@
               (css:ident-norm=<-? cvalue '(default decorative roman script  swiss      modern    system    symbol
                                             emoji  fantasy    serif cursive sans-serif monospace system-ui math fangsong))))
         (cond [(and maybe-family)
-               (define-values (maybe-term rst) (css-car rvalues))
+               (define-values (maybe-term rst) (css-car/cdr rvalues))
                (cond [(pair? ylimaf) (make-exn:css:missing-delimiter cvalue)]
                      [(eof-object? maybe-term) (reverse (cons maybe-family seilimaf))]
                      [(not (css:delim=:=? maybe-term #\,)) (make-exn:css:missing-delimiter rvalues)]
                      [(null? rst) (make-exn:css:overconsumption rvalues)]
                      [else (font-fold (cons maybe-family seilimaf) null (car rst) (cdr rst))])]
               [(css:ident? cvalue)
-               (define-values (maybe-term rst) (css-car rvalues))
+               (define-values (maybe-term rst) (css-car/cdr rvalues))
                (cond [(eof-object? maybe-term) (reverse (cons (identifier-join cvalue ylimaf) seilimaf))]
                      [(not (css:delim=:=? maybe-term #\,)) (font-fold seilimaf (cons cvalue ylimaf) maybe-term rst)]
                      [(null? rst) (make-exn:css:overconsumption rvalues)]
@@ -756,7 +756,7 @@
               [(css-font-numeric-size-filter head #false) => (λ [v] (if allow-feature? v (make-exn:css:misplaced head)))]
               [else (make-exn:css:unrecognized head)]))
       (cond [(symbol? font-hint)
-             ; NOTE: The default option `normal` can be applied to 4 properties, and any one is okay.
+             ; NOTE: The default option `normal` can be applied to more than 4 properties, and any one is okay.
              ;         Here just let the `css-set!-font-property` check the terminate condition.
              (cond [(not (eq? font-hint 'normal)) (css-set!-font-property font-longhand font-hint keyword head rst)]
                    [else (css-set!-font-property font-longhand 'font-language-override font-hint head rst)])]
@@ -922,7 +922,7 @@
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
           [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
           [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
-          [(object? color) (cast color Color)]
+          [(and (object? color) (is-a? color color%)) (cast color Color)]
           [(eq? color 'transparent) (select-rgba-color #x000000 0.0)]
           [(eq? color 'currentcolor) color]
           [else css:initial])))
@@ -936,6 +936,7 @@
       [(font-family) (css-font-family-filter font-value rest)]
       [(font-style) (css-declared-keyword-filter font-value rest css-font-style-option)]
       [(font-kerning) (css-declared-keyword-filter font-value rest css-font-kerning-option)]
+      [(font-variant-ligatures) (css-declared-keyword-filter font-value rest css-font-variant-ligatures-options)]
       [(font-variant-position) (css-declared-keyword-filter font-value rest css-font-position-option)]
       [(font-variant-caps) (css-declared-keyword-filter font-value rest css-font-caps-option)]
       [(line-height) (css-line-height-filter font-value rest)]
@@ -984,11 +985,11 @@
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) ((Option Font)) Font)
   (lambda [declared-values inherited-values [basefont #false]]
     (define maybe-font : CSS-Datum (and (hash? inherited-values) (css-ref inherited-values #false 'font)))
-    (define font : Font (if (object? maybe-font) (cast maybe-font Font) css-default-font))
+    (define inherited-font : Font (if (and (object? maybe-font) (is-a? maybe-font font%)) (cast maybe-font Font) css-default-font))
     (define (css-datum->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof Symbol)
       (cond [(list? value) (filter symbol? value)]
-            [else (if (send font get-underlined) (list 'underline) null)]))
-    (call-with-font font #:root? (false? maybe-font)
+            [else (if (send inherited-font get-underlined) (list 'underline) null)]))
+    (call-with-font inherited-font #:root? (false? maybe-font)
       (define family : (U String Font-Family) (css-ref declared-values #false 'font-family css-datum->font-family))
       (define size : Nonnegative-Real (css-ref declared-values #false 'font-size css-datum->font-size))
       (define style : Font-Style (css-ref declared-values #false 'font-style css-datum->font-style))
@@ -1034,9 +1035,9 @@
           (cons 'height 820))))
   
   (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet bitmap.css)))
-  (define tamer-main : CSS-Subject (make-css-subject #:type 'module #:id '#:header #:classes '(main)))
-
-  (define-preference bmp #:as Bitmap-Test-Preference
+  tamer-sheet
+  
+  (define-preference btest #:as Bitmap-TestCase
     ([symbol-color : Color+sRGB                                #:= 'Blue]
      [string-color : Color+sRGB                                #:= 'Orange]
      [number-color : Color+sRGB                                #:= 'Tomato]
@@ -1046,96 +1047,87 @@
      [foreground-color : Color+sRGB                            #:= "Grey"]
      [background-color : Color+sRGB                            #:= "Snow"]
      [font : Font                                              #:= css-default-font]
-     [test-widths : (Listof Natural)                           #:= null]
-     [test-words : (Listof String)                             #:= null]
-     [otherwise : (Option (Listof (Vector Symbol CSS-Datum)))  #:= #false])
+     [width : Index                                            #:= 512]
+     [combine? : Boolean                                       #:= #false]
+     [desc : String                                            #:= "['desc' property is required]"]
+     [descriptors : (HashTable Symbol CSS-Datum)               #:= (make-hash)])
     #:transparent)
-
-  (define-css-declared-value-filter css-declared-testcases-filter
-    #:-> Symbol CSS-Token (Listof CSS-Token)
-    #:-> CSS-Longhand-Values
-    (lambda [_ desc-value rest]
-      (define-values (widths words)
-        (for/fold ([widths : (Listof Natural) null]
-                   [words : (Listof String) null])
-                  ([block (in-list (cons desc-value rest))])
-          (cond [(not (css:block? block)) (values widths words)]
-                [else (let-values ([(<width> <words>) (css-car (css:block-components block))])
-                        (define width : (Option Natural) (css:integer=<-? <width> natural?))
-                        (define word : String (string-join (map css:string-datum (filter css:string? <words>)) ""))
-                        (cond [(false? width) (values widths words)]
-                              [else (values (cons width widths) (cons word words))]))])))
-      (hash 'test-widths (reverse widths)
-            'test-words (reverse words))))
   
   (define css-descriptor-filter : CSS-Declaration-Filter
-    (lambda [suitcased-name desc-value rest]
-      (values (cond [(css-font-property-filter suitcased-name desc-value rest) => values]
-                    [(css-text-decor-property-filter suitcased-name desc-value rest) => values]
-                    [(css-color-property-filter suitcased-name desc-value rest) => values]
-                    [(css-image-property-filter suitcased-name desc-value rest) => values]
-                    [(eq? suitcased-name 'testcases) (css-declared-testcases-filter suitcased-name desc-value rest)]
-                    [else (map css-token->datum (cons desc-value rest))])
-              #false)))
+    (lambda [suitcased-name desc-value rest deprecated!]
+      (cond [(css-font-property-filter suitcased-name desc-value rest) => values]
+            [(css-text-decor-property-filter suitcased-name desc-value rest) => values]
+            [(css-color-property-filter suitcased-name desc-value rest) => values]
+            [(css-image-property-filter suitcased-name desc-value rest) => values]
+            [(eq? suitcased-name 'desc) (string-join (filter-map (λ [t] (css:string=<-? t string?)) (cons desc-value rest)))]
+            [(pair? rest) (make-exn:css:overconsumption rest)]
+            [else (case suitcased-name
+                    [(count width) (css-declared-natural-filter desc-value)]
+                    [(combine) (css-declared-keyword-filter desc-value null '(combine none))])])))
 
-  (define css-preference-filter : (CSS-Cascaded-Value-Filter Bitmap-Test-Preference)
+  (define css-preference-filter : (CSS-Cascaded-Value-Filter Bitmap-TestCase)
     (lambda [declared-values initial-values inherit-values]
-      (define (css-datum->widths [_ : Symbol] [value : CSS-Datum]) : (Listof Natural)
-        (filter natural? (if (list? value) value (list value))))
-      (define (css-datum->words [_ : Symbol] [value : CSS-Datum]) : (Listof String)
-        (filter string? (if (list? value) value (list value))))
       (parameterize ([current-css-element-color (css-ref declared-values inherit-values 'color)])
-        (make-bmp #:symbol-color (css-ref declared-values inherit-values 'symbol-color css-datum->color)
-                  #:string-color (css-ref declared-values inherit-values 'string-color css-datum->color)
-                  #:number-color (css-ref declared-values inherit-values 'number-color css-datum->color)
-                  #:output-color (css-ref declared-values inherit-values 'output-color css-datum->color)
-                  #:paren-color (css-ref declared-values inherit-values 'paren-color css-datum->color)
-                  #:border-color (css-ref declared-values inherit-values 'border-color css-datum->color)
-                  #:foreground-color (css-ref declared-values inherit-values 'foreground-color css-datum->color)
-                  #:background-color (css-ref declared-values inherit-values 'background-color css-datum->color)
-                  #:font (css-extract-font declared-values inherit-values (bmp-font initial-values))
-                  #:test-widths (css-ref declared-values inherit-values 'test-widths css-datum->widths)
-                  #:test-words (css-ref declared-values inherit-values 'test-words css-datum->words)
-                  #:otherwise (for/list : (Listof (Vector Symbol CSS-Datum)) ([desc-name (in-hash-keys declared-values)])
-                                (vector desc-name (css-ref declared-values #false desc-name)))))))
-    
-  tamer-main
-  (define btp : Bitmap-Test-Preference
-    (time-run (let-values ([(preference for-children)
-                            (css-cascade (list tamer-sheet)
-                                         tamer-main
-                                         css-descriptor-filter
-                                         css-preference-filter
-                                         (make-bmp)
-                                         #false)])
-                preference)))
+        (make-btest #:symbol-color (css-ref declared-values inherit-values 'symbol-color css-datum->color)
+                    #:string-color (css-ref declared-values inherit-values 'string-color css-datum->color)
+                    #:number-color (css-ref declared-values inherit-values 'number-color css-datum->color)
+                    #:output-color (css-ref declared-values inherit-values 'output-color css-datum->color)
+                    #:paren-color (css-ref declared-values inherit-values 'paren-color css-datum->color)
+                    #:border-color (css-ref declared-values inherit-values 'border-color css-datum->color)
+                    #:foreground-color (css-ref declared-values inherit-values 'foreground-color css-datum->color)
+                    #:background-color (css-ref declared-values inherit-values 'background-color css-datum->color)
+                    #:font (css-extract-font declared-values inherit-values (btest-font initial-values))
+                    #:width (css-ref declared-values inherit-values 'width index? #false)
+                    #:combine? (css-ref declared-values inherit-values 'font-variant-ligatures (css-make-datum->boolean normal))
+                    #:desc (css-ref declared-values inherit-values 'desc string? #false)
+                    #:descriptors (for/hash : (HashTable Symbol CSS-Datum) ([key (in-hash-keys declared-values)])
+                                    (values key (css-ref declared-values #false key)))))))
 
-  btp
-  (define font : Font (bmp-font btp))
-  (define-values (fgcolor bgcolor rcolor) (values (bmp-foreground-color btp) (bmp-background-color btp) (bmp-output-color btp)))
-  (apply bitmap-vl-append
-         (for/fold ([bitmap-descs : (Listof Bitmap) null])
-                   ([width (in-list (bmp-test-widths btp))]
-                    [words (in-list (bmp-test-words btp))])
-           (define desc (bitmap-desc words width font #:color fgcolor #:background-color bgcolor #:combine? #false))
-           (define combined-desc (bitmap-desc words width font #:color fgcolor #:background-color bgcolor #:combine? #true))
-           (define-values (normal-width combined-width) (values (send desc get-width) (send combined-desc get-width)))
-           (define-values (height combined-height) (values (send desc get-height) (send combined-desc get-height)))
-           (append bitmap-descs
-                   (list (bitmap-pin 1 1/2 0 1/2
-                                     (bitmap-text "> ")
-                                     (bitmap-text "(" #:color (bmp-paren-color btp))
-                                     (bitmap-hc-append #:gapsize 7
-                                                       (bitmap-text "bitmap-desc" #:color (bmp-symbol-color btp))
-                                                       (bitmap-text (~s words) #:color (bmp-string-color btp))
-                                                       (bitmap-text (~a width) #:color (bmp-number-color btp)))
-                                     (bitmap-text ")" #:color (bmp-paren-color btp)))
-                         (bitmap-text (format "- : (Bitmap ~a ~a)" normal-width height) #:color rcolor)
-                         (bitmap-pin 0 0 0 0
-                                     (bitmap-frame desc #:margin 1 #:border-style 'transparent #:style 'transparent)
-                                     (bitmap-frame (bitmap-blank width height) #:border-color (bmp-border-color btp)))
-                         (bitmap-text (format "- : (Bitmap ~a ~a #:combined)" combined-width combined-height) #:color rcolor)
-                         (bitmap-lt-superimpose (bitmap-frame combined-desc #:margin 1 #:border-style 'transparent #:style 'transparent)
-                                                (bitmap-frame #:border-color (bmp-border-color btp)
-                                                              (bitmap-blank width combined-height)))))))
-  length%)
+  (define tamer-main : CSS-Subject (make-css-subject #:type 'module #:id '#:root #:classes '(main)))
+
+  (define :values : CSS-Values (make-hash))
+  (define :root : Bitmap-TestCase
+    (time-run (let-values ([(toplevel topvalues)
+                            (css-cascade (list tamer-sheet) tamer-main
+                                         css-descriptor-filter css-preference-filter
+                                         (make-btest) #false)])
+                (set! :values topvalues)
+                toplevel)))
+
+  (define-values (bitmap-descs testcases)
+    (for/fold ([bitmap-descs : (Listof Bitmap) null]
+               [testcases : (Listof Bitmap-TestCase) null])
+              ([i (in-range (css-ref :values #false 'count index? 8))])
+      (define tobj : Bitmap-TestCase
+        (time-run (let-values ([(tobj _) (css-cascade (list tamer-sheet)
+                                                      (make-css-subject #:type 'test #:id (string->keyword (~a 'case i)))
+                                                      css-descriptor-filter css-preference-filter
+                                                      :root :values)]) tobj)))
+
+      (define-values (fgcolor bgcolor rcolor bdcolor)
+        (values (btest-foreground-color tobj) (btest-background-color tobj)
+                (btest-output-color tobj) (btest-border-color tobj)))
+
+      (define-values (width words font combine?) (values (btest-width tobj) (btest-desc tobj) (btest-font tobj) (btest-combine? tobj)))
+      (define desc (bitmap-desc words width font #:color fgcolor #:background-color bgcolor #:combine? combine?))
+      (define-values (desc-width height) (bitmap-size desc))
+      
+      (values (append bitmap-descs
+                      (list (bitmap-pin 1 1/2 0 1/2
+                                        (bitmap-text "> ")
+                                        (bitmap-text "(" #:color (btest-paren-color tobj))
+                                        (bitmap-hc-append #:gapsize 7
+                                                          (bitmap-text (~a "bitmap-case" i) #:color (btest-symbol-color tobj))
+                                                          (bitmap-text (~s words) #:color (btest-string-color tobj))
+                                                          (bitmap-text (~a width) #:color (btest-number-color tobj)))
+                                        (bitmap-text ")" #:color (btest-paren-color tobj)))
+                            (bitmap-text #:color rcolor
+                                         (cond [(not combine?) (format "- : (Bitmap ~a ~a)" desc-width height)]
+                                               [else (format "- : (Bitmap ~a ~a #:combined)" desc-width height)]))
+                            (bitmap-lt-superimpose (bitmap-frame desc #:margin 1 #:border-style 'transparent #:style 'transparent)
+                                                   (bitmap-frame (bitmap-blank width height) #:border-color bdcolor))))
+              (cons tobj testcases))))
+
+  length%
+  :root
+  (apply bitmap-vl-append bitmap-descs))

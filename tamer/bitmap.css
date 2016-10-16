@@ -31,7 +31,10 @@ module.main {
     foreground-color: currentcolor;
     border-color: var(--gray);
 
+    count: 8;
     width: 256;
+    desc: "";
+    font-variant-ligatures: normal;
 
     font: italic 85% "Lucida Grande", "Trebuchet MS", Verdana, var(--default-font);
     text-decoration: underline;
@@ -47,42 +50,41 @@ module.main {
     arity-error-logo: @text-icon[#height 32];
 }
 
-test.case1 {
+test#case0 {
     width: 32;
-    desc: "";
 }
 
-test.case2 {
+test#case1 {
     width: 32;
     desc: " ";
 }
 
-test.case3 {
+test#case2 {
     width: 0;
     desc: "!";
 }
 
-test.case4 {
+test#case3 {
     width: 2;
     desc: "bitmap-desc";
 }
 
-test.case5 {
+test#case4 {
     width: 32;
     desc: "Hello,\aRacket!";
 }
 
-test.case6 {
-    desc: "That last testcase is not a mysterious phenomena: "
-          "It seemed to do some strange optimizing so that "
+test#case5 {
+    desc: "That last testcase is not a mysterious phenomena:"
+          "It seemed to do some strange optimizing so that"
           "no single letter would be printed in a single line."
           "\a\a Bug Fixed!";
 }
 
-test.case7 {
+test#case6 {
     desc: "上一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。\a\a此缺陷已修正！";
 }
 
-test.case8 {
-    desc: "Basic String \Test: \22\20\\\E9 \6C34\00A5\a\27\"\a/* '\\a' is ascii newline, not letter 'a' */";
+test#case7 {
+    desc: "Basic String \Test: \22\20\\\E9 \6C34\00A5\a\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */";
 }
