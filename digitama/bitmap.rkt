@@ -1078,7 +1078,7 @@
                     #:background-color (css-ref declared-values inherit-values 'background-color css-datum->color)
                     #:font (css-extract-font declared-values inherit-values (btest-font initial-values))
                     #:width (css-ref declared-values inherit-values 'width index? #false)
-                    #:combine? (css-ref declared-values inherit-values 'font-variant-ligatures (css-make-datum->boolean normal))
+                    #:combine? (eq? 'normal (css-ref declared-values inherit-values 'font-variant-ligatures symbol? 'normal))
                     #:desc (css-ref declared-values inherit-values 'desc string? #false)
                     #:descriptors (for/hash : (HashTable Symbol CSS-Datum) ([key (in-hash-keys declared-values)])
                                     (values key (css-ref declared-values #false key)))))))

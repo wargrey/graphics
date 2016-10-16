@@ -374,13 +374,6 @@
                    [(length? size) (css:length->scalar size direction)]
                    [else defval])))]))
 
-  (define-syntax (css-make-datum->boolean stx)
-    (syntax-parse stx
-      [(_ truewords ...)
-       #'(lambda [[_ : Symbol] [keyword : CSS-Datum]] : (U Boolean CSS-Wide-Keyword)
-           (cond [(symbol? keyword) (for/or : Boolean ([tw (in-list (list 'truewords ...))]) (eq? keyword tw))]
-                 [else css:initial]))]))
-
   (define-css-declared-value-filter css-declared-keyword-filter #:case-> CSS-Token (Listof CSS-Token) (Listof Symbol) #:-> Symbol
     (lambda [desc-value desc-rest options [terminate? #true]]
       (css-cond #:with desc-value #:out-range? [css:ident?] #:when terminate?
