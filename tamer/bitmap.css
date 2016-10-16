@@ -34,7 +34,6 @@ module.main {
     count: 8;
     width: 256;
     desc: "";
-    font-variant-ligatures: normal;
 
     font: italic 85% "Lucida Grande", "Trebuchet MS", Verdana, var(--default-font);
     text-decoration: underline;
@@ -72,6 +71,9 @@ test#case3 {
 test#case4 {
     width: 32;
     desc: "Hello,\aRacket!";
+    font: normal 12 modern;
+    text-decoration: none;
+    font-variant-ligatures: none;
 }
 
 test#case5 {
@@ -86,5 +88,5 @@ test#case6 {
 }
 
 test#case7 {
-    desc: "Basic String \Test: \22\20\\\E9 \6C34\00A5\a\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */";
+    desc: "Basic String \Test: \22\20\\\E9 \6C34\00A5\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */";
 }

@@ -55,7 +55,8 @@
 
   (define-syntax (define-preference stx)
     (syntax-case stx [:]
-      [(self preference #:as Preference ([property : DataType info ...] ...) options ...)
+      [(self preference #:as Preference (fields ...) options ...) #'(self preference #:as Preference #:with [] (fields ...) options ...)]
+      [(self preference #:as Preference #:with [[bindings BindTypes ...] ...] ([property : DataType info ...] ...) options ...)
        (with-syntax* ([make-preference (format-id #'preference "make-~a" (syntax-e #'preference))]
                       [([maybe-property ArgType defval ...] ...)
                        (for/list ([field-info (in-list (syntax->list #'([property DataType info ...] ...)))])
@@ -63,14 +64,25 @@
                            [(p T #:= dv) #'((if (or (false? p) (css-wide-keyword? p)) dv p) (U T CSS-Wide-Keyword False) dv)]
                            [(p (Option T)) #'((if (css-wide-keyword? p) #false p) (U T CSS-Wide-Keyword False) #false)]
                            [(p T) (raise-syntax-error (syntax-e #'self) "property or attribute requires a default value" #'p)]))]
-                      [(args ...) (for/fold ([args null])
-                                            ([field (in-list (syntax->list #'(property ...)))]
-                                             [arg (in-list (syntax->list #'([property : ArgType defval ...] ...)))])
-                                    (cons (datum->syntax field (string->keyword (symbol->string (syntax-e field))))
-                                          (cons arg args)))])
+                      [(args ...)
+                       (for/fold ([args null])
+                                 ([argument (in-list (syntax->list #'([property : ArgType defval ...] ...)))])
+                         (cons (datum->syntax argument (string->keyword (symbol->string (car (syntax->datum argument)))))
+                               (cons argument args)))]
+                      [([pref-bindings properties ...] ...)
+                       (for/list ([binding (in-list (syntax->list #'(bindings ...)))]
+                                  [Types (in-list (syntax->list #'([BindTypes ...] ...)))])
+                         (define types (syntax->datum Types))
+                         (cons (format-id #'preference "~a-~a" (syntax-e #'preference) (syntax-e binding))
+                               (for/fold ([properties null])
+                                         ([property (in-list (syntax->list #'(property ...)))]
+                                          [type (in-list (syntax->list #'(DataType ...)))])
+                                 (cond [(not (memq (syntax-e type) types)) properties]
+                                       [else (cons (syntax-e property) properties)]))))])
          #'(begin (define-type Preference preference)
                   (struct preference ([property : DataType] ...) options ...)
-                  (define (make-preference args ...) : Preference (preference maybe-property ...))))]))
+                  (define (make-preference args ...) : Preference (preference maybe-property ...))
+                  (define pref-bindings : (Listof Symbol) (list 'properties ...)) ...))]))
   
   (define-syntax (struct: stx)
     (syntax-case stx [:]
@@ -296,7 +308,8 @@
 
   (define css-token-datum->string : (-> CSS-Token String)
     (lambda [instance]
-      (cond [(css-fraction? instance) (string-append (css-numeric-representation instance) "%")]
+      (cond [(css:ident? instance) (symbol->string (css:ident-datum instance))]
+            [(css-fraction? instance) (string-append (css-numeric-representation instance) "%")]
             [(css:dimension? instance) (~a (css-numeric-representation instance) (css:dimension-unit instance))]
             [(css-numeric? instance) (css-numeric-representation instance)]
             [else (~a (css-token->datum instance))])))
@@ -462,13 +475,13 @@
       [css:racket         #:+ CSS:Racket          #:as Symbol])
 
     (define-symbolic-tokens css-symbolic-token #:+ CSS-Symbolic-Token
-      [css:cd             #:+ CSS:CD              #:as Char]
-      [css:match          #:+ CSS:Match           #:as Char]
-      [css:delim          #:+ CSS:Delim           #:as Char]
       [css:ident          #:+ CSS:Ident           #:as Symbol↯]
       [css:@keyword       #:+ CSS:@Keyword        #:as Keyword↯]
       [css:hash           #:+ CSS:Hash            #:as Keyword]
       [css:string         #:+ CSS:String          #:as String]
+      [css:delim          #:+ CSS:Delim           #:as Char]
+      [css:match          #:+ CSS:Match           #:as Char]
+      [css:cd             #:+ CSS:CD              #:as Char]
       [css:urange         #:+ CSS:URange          #:as (Pairof Index Index)]
       [css:whitespace     #:+ CSS:WhiteSpace      #:as (U String Char)])
 
@@ -1007,10 +1020,20 @@
             (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define css-car/cdr : (All (a) (-> (Listof a) (Values (U a EOF) (Listof a))))
+  (define css-car/cdr : (All (a) (case-> [(Pairof a (Listof a)) -> (Values a (Listof a))]
+                                         [(Listof a) -> (Values (U a EOF) (Listof a))]))
     (lambda [pretent-no-whitespace]
       (cond [(null? pretent-no-whitespace) (values eof null)]
             [else (values (car pretent-no-whitespace) (cdr pretent-no-whitespace))])))
+
+  (define css-car/cadr : (All (a) (case-> [(Pairof a (Listof a)) -> (Values a (Listof a) (U a EOF) (Listof a))]
+                                          [(Listof a) -> (Values (U a EOF) (Listof a) (U a EOF) (Listof a))]))
+    (lambda [pretent-no-whitespace]
+      (cond [(null? pretent-no-whitespace) (values eof null eof null)]
+            [else (let ([1st (car pretent-no-whitespace)]
+                        [2nd (cdr pretent-no-whitespace)])
+                    (cond [(null? 2nd) (values 1st null eof null)]
+                          [else (values 1st 2nd (car 2nd) (cdr 2nd))]))])))
 
   (define css-car : (-> (Listof CSS-Token) (Values (U CSS-Token EOF) (Listof CSS-Token)))
     (lambda [dirty]
@@ -1050,18 +1073,16 @@
             [else (list any)])))
 
 
-  (define css-log-syntax-error : (->* (CSS-Syntax-Error) (Logger (Option CSS-Token)) Void)
+  (define css-log-syntax-error : (->* (CSS-Syntax-Error) (Logger (Option CSS:Ident)) Void)
     (lambda [errobj [logger (current-logger)] [property #false]]
+      (define in : String (if (false? property) "" (format " #:in ~a" (css:ident-datum property))))
       (define any : (U EOF (Listof CSS-Token)) (exn:css-tokens errobj))
-      (define-values (head others)
-        (let ([tokens (if (eof-object? any) null any)])
-          (cond [(css-token? property) (values property tokens)]
-                [else (css-car/cdr tokens)])))
+      (define-values (head others) (css-car/cdr (if (eof-object? any) null any)))
       (log-message logger 'warning 'exn:css:syntax
-                   (cond [(eof-object? head) (format "~a: ~a" (object-name errobj) (if (eof-object? any) eof null))]
-                         [(null? others) (format "~a: ~a" (object-name errobj) (css-token->string head))]
-                         [else (format "~a: ~a; others: ~a" (object-name errobj) (css-token->string head)
-                                       (map css-token-datum->string others))])
+                   (cond [(eof-object? head) (format "~a: ~a~a" (object-name errobj) (if (eof-object? any) eof null) in)]
+                         [(null? others) (format "~a: ~a~a" (object-name errobj) (css-token->string head) in)]
+                         [else (format "~a: ~a~a~a" (object-name errobj) (css-token->string head)
+                                       (map css-token-datum->string others) in)])
                    errobj))))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2082,8 +2103,7 @@
     ;;; https://drafts.csswg.org/selectors/#elemental-selectors
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
     (lambda [token tokens namespaces]
-      (define-values (next rest) (css-car/cdr tokens))
-      (define-values (next2 rest2) (css-car/cdr rest))
+      (define-values (next rest next2 rest2) (css-car/cadr tokens))
       (cond [(css:delim=:=? token #\|)
              (cond [(css:ident? next) (values (css:ident-datum next) (css:ident-norm next) #false rest)]
                    [(css:delim=:=? next #\*) (values #true #true #false rest)]
@@ -2105,8 +2125,7 @@
     (lambda [components]
       (let extract-pseudo-class-selector ([srotceles : (Listof CSS-Pseudo-Class-Selector) null]
                                           [tokens : (Listof CSS-Token) components])
-        (define-values (maybe: rest) (css-car/cdr tokens))
-        (define-values (maybe-id rest2) (css-car/cdr rest))
+        (define-values (maybe: rest maybe-id rest2) (css-car/cadr tokens))
         (cond [(or (not (css:delim=:=? maybe: #\:)) (css:delim=:=? maybe-id #\:)) (values (reverse srotceles) tokens)]
               [(css:ident? maybe-id)
                (let ([selector (make-css-pseudo-class-selector (css:ident-datum maybe-id) #false)])
@@ -2123,8 +2142,7 @@
     ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
     (lambda [block namespaces]
       (define-values (1st rest1) (css-car (css:block-components block)))
-      (define-values (2nd rest2) (css-car/cdr rest1))
-      (define-values (3rd rest3) (css-car/cdr rest2))
+      (define-values (2nd rest2 3rd rest3) (css-car/cadr rest1))
       (define-values (attrname quirkname namespace op-part)
         (cond [(eof-object? 1st) (throw-exn:css:empty block)]
               [(or (css:match? 1st) (css:delim=:=? 1st #\=))
@@ -2146,8 +2164,7 @@
               [(or (css:ident? 1st) (css:delim=:=? 1st #\*))
                (throw-exn:css:unrecognized 2nd)]
               [else (throw-exn:css:unrecognized 1st)]))
-      (define-values (op value-part) (css-car/cdr op-part))
-      (define-values (value ci-part) (css-car/cdr value-part))
+      (define-values (op value-part value ci-part) (css-car/cadr op-part))
       (define-values (i terminal) (css-car ci-part))
       (unless (eof-object? op)
         (cond [(eof-object? value) (throw-exn:css:missing-value op)]

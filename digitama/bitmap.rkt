@@ -677,31 +677,31 @@
     [font-family            (list (or (send font get-face) (send font get-family)))]
     [font-size              (smart-font-size font)])
 
-  (define css-set!-font-property : (-> CSS-Longhand-Values Symbol CSS-Datum CSS-Token (Listof CSS-Token) CSS-Longhand-Values)
-    (lambda [longhand property value ptoken prst]
+  (define css-set!-font-property : (-> CSS-Longhand-Values Symbol (U CSS-Datum CSS-Syntax-Error) CSS-Token (Listof CSS-Token)
+                                       CSS-Longhand-Values)
+    (lambda [longhand property value head tail]
+      ; NOTE: CSS-Syntax-Error can also be stored in the longhand form.
       (hash-set! longhand property value)
-      (cond [(eq? property 'font-famliy) (css-default-font-properties css-default-font longhand)]
-            ; WARNING: the font shorthand requires `font-family` (or system font)
-            [(null? prst) (css-default-font-properties (make-exn:css:missing-value ptoken) longhand)]
-            [(eq? property 'font-size)
-             (define-values (maybe-/ rest) (values (car prst) (cdr prst)))
-             (cond [(not (css:delim=:=? maybe-/ #\/)) (css-font-shorthand+family-filter maybe-/ rest longhand #false)]
-                   [(null? rest) (css-default-font-properties (make-exn:css:missing-value maybe-/) longhand)]
-                   [else (let* ([<line-height> (car rest)]
-                                [height (css-line-height-filter <line-height> null)])
-                           (cond [(exn? height) (css-default-font-properties height longhand)]
-                                 [else (css-set!-font-property longhand 'line-height height <line-height> (cdr rest))]))])]
-            [else (css-font-shorthand+family-filter (car prst) (cdr prst) longhand (not (eq? property 'line-height)))])))
+      ; WARNING: the font shorthand requires `font-family` (or system font)
+      (cond [(eq? property 'font-family)
+             (cond [(list? value) (css-default-font-properties css-default-font longhand)]
+                   [(exn? value) (css-default-font-properties value longhand)]
+                   [else (css-set!-font-property longhand 'font-family (css-font-family-filter head tail) head null)])]
+            [(null? tail) (css-default-font-properties (make-exn:css:missing-value head) longhand)]
+            [(eq? property 'line-height) (css-set!-font-property longhand 'font-family 'not-filtered (car tail) (cdr tail))]
+            [(not (eq? property 'font-size)) (css-font-shorthand+family-filter (car tail) (cdr tail) longhand)]
+            [else (let-values ([(maybe-/ prest <height> rest) (css-car/cadr tail)])
+                    (cond [(not (css:delim=:=? maybe-/ #\/)) (css-set!-font-property longhand 'font-family 'not-filtered maybe-/ prest)]
+                          [(eof-object? <height>) (css-default-font-properties (make-exn:css:missing-value maybe-/) longhand)]
+                          [else (let ([height (css-line-height-filter <height> null)])
+                                  (cond [(exn? height) (css-default-font-properties height longhand)]
+                                        [else (css-set!-font-property longhand 'line-height height <height> rest)]))]))])))
 
   (define css-font-family-filter : (-> CSS-Token (Listof CSS-Token) (U (Listof (U String Symbol)) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-fonts/#font-family-prop
     ;;; https://drafts.csswg.org/css-fonts-4/#extended-generics
     (lambda [font-value rest]
-      (define (identifier-join [tail : CSS:Ident] [family-heads : (Listof CSS:Ident)]) : String
-        (string-join (for/list : (Listof String) ([part (in-list (reverse (cons tail family-heads)))])
-                       (symbol->string (css:ident-datum part)))))
       (let font-fold ([seilimaf : (Listof (U String Symbol)) null]
-                      [ylimaf : (Listof CSS:Ident) null]
                       [cvalue : CSS-Token font-value]
                       [rvalues : (Listof CSS-Token) rest])
         (define maybe-family : (U String Symbol False)
@@ -709,18 +709,19 @@
               (css:ident-norm=<-? cvalue '(default decorative roman script  swiss      modern    system    symbol
                                             emoji  fantasy    serif cursive sans-serif monospace system-ui math fangsong))))
         (cond [(and maybe-family)
-               (define-values (maybe-term rst) (css-car/cdr rvalues))
-               (cond [(pair? ylimaf) (make-exn:css:missing-delimiter cvalue)]
-                     [(eof-object? maybe-term) (reverse (cons maybe-family seilimaf))]
-                     [(not (css:delim=:=? maybe-term #\,)) (make-exn:css:missing-delimiter rvalues)]
-                     [(null? rst) (make-exn:css:overconsumption rvalues)]
-                     [else (font-fold (cons maybe-family seilimaf) null (car rst) (cdr rst))])]
+               (define-values (term rst) (css-car/cdr rvalues))
+               (cond [(eof-object? term) (reverse (cons maybe-family seilimaf))]
+                     [(nor (pair? rst) (css:delim=:=? term #\,)) (make-exn:css:overconsumption term)]
+                     [else (font-fold (cons maybe-family seilimaf) (car rst) (cdr rst))])]
               [(css:ident? cvalue)
-               (define-values (maybe-term rst) (css-car/cdr rvalues))
-               (cond [(eof-object? maybe-term) (reverse (cons (identifier-join cvalue ylimaf) seilimaf))]
-                     [(not (css:delim=:=? maybe-term #\,)) (font-fold seilimaf (cons cvalue ylimaf) maybe-term rst)]
-                     [(null? rst) (make-exn:css:overconsumption rvalues)]
-                     [else (font-fold (cons (identifier-join cvalue ylimaf) seilimaf) null (car rst) (cdr rst))])]
+               (let family-fold ([family : String (symbol->string (css:ident-datum cvalue))]
+                                 [rfamilies : (Listof CSS-Token) rvalues])
+                 (define-values (part rst) (css-car/cdr rfamilies))
+                 (cond [(eof-object? part) (reverse (cons family seilimaf))]
+                       [(css:ident? part) (family-fold (string-append family " " (symbol->string (css:ident-datum part))) rst)]
+                       [(not (css:delim=:=? part #\,)) (make-exn:css:type part)]
+                       [(null? rst) (make-exn:css:overconsumption rfamilies)]
+                       [else (font-fold (cons family seilimaf) (car rst) (cdr rst))]))]
               [else (make-exn:css:type cvalue)]))))
 
   (define css-line-height-filter : (-> CSS-Token (Listof CSS-Token) (U Symbol Nonnegative-Flonum CSS:Length:Font
@@ -737,23 +738,22 @@
       (cond [(css-declared+number%-filter font-value #false) => (make-css->datum exact->inexact)]
             [else (css-declared+length-filter font-value terminate?)])))
 
-  (define css-font-shorthand+family-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values Boolean) CSS-Longhand-Values)
+  (define css-font-shorthand+family-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values) CSS-Longhand-Values)
     ;;; https://drafts.csswg.org/css-fonts/#font-prop
-    (lambda [head rst [font-longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))] [allow-feature? #true]]
+    (lambda [head rst [font-longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))]]
       (define keyword : (Option Symbol) (and (css:ident? head) (css:ident-norm head)))
-      (define font-hint : (U Symbol Nonnegative-Inexact-Real Integer CSS:Length:Font (Listof (U String Symbol)) CSS-Syntax-Error)
-        (cond [(not allow-feature?) (css-font-family-filter head rst)]
-              [(symbol? keyword)
+      (define font-hint : (U CSS-Datum CSS-Syntax-Error)
+        (cond [(symbol? keyword)
                (cond [(eq? keyword 'normal) keyword]
                      [(memq keyword css-font-style-option) 'font-style]
                      [(memq keyword css-font-variant-options/21) 'font-variant]
                      [(memq keyword css-font-weight-option) 'font-weight]
                      [(memq keyword css-font-stretch-option) 'font-stretch]
                      [(memq keyword css-font-size-option) 'font-size]
-                     [else (css-font-family-filter head rst)])]
-              [(css:string? head) (css-font-family-filter head rst)]
-              [(css:integer=<-? head 0 < 1000) => (λ [v] (if allow-feature? v (make-exn:css:misplaced head)))]
-              [(css-font-numeric-size-filter head #false) => (λ [v] (if allow-feature? v (make-exn:css:misplaced head)))]
+                     [else #false])]
+              [(css:string? head) #false]
+              [(css:integer=<-? head 0 < 1000) => values]
+              [(css-font-numeric-size-filter head #false) => values]
               [else (make-exn:css:unrecognized head)]))
       (cond [(symbol? font-hint)
              ; NOTE: The default option `normal` can be applied to more than 4 properties, and any one is okay.
@@ -763,8 +763,7 @@
             [(exact-integer? font-hint) (css-set!-font-property font-longhand 'font-weight font-hint head rst)]
             [(real? font-hint) (css-set!-font-property font-longhand 'font-size font-hint head rst)]
             [(css:length:font? font-hint) (css-set!-font-property font-longhand 'font-size font-hint head rst)]
-            [(list? font-hint) (css-set!-font-property font-longhand 'font-family font-hint head rst)]
-            [else (css-default-font-properties font-hint font-longhand)])))
+            [else (css-set!-font-property font-longhand 'font-family font-hint head rst)])))
 
   (define css-datum->font-family : (-> Symbol CSS-Datum (U String Font-Family))
     (lambda [_ value]
@@ -985,7 +984,7 @@
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) ((Option Font)) Font)
   (lambda [declared-values inherited-values [basefont #false]]
     (define maybe-font : CSS-Datum (and (hash? inherited-values) (css-ref inherited-values #false 'font)))
-    (define inherited-font : Font (if (and (object? maybe-font) (is-a? maybe-font font%)) (cast maybe-font Font) css-default-font))
+    (define inherited-font : Font (if (object? maybe-font) (cast maybe-font Font) (or basefont css-default-font)))
     (define (css-datum->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof Symbol)
       (cond [(list? value) (filter symbol? value)]
             [else (if (send inherited-font get-underlined) (list 'underline) null)]))
@@ -1037,7 +1036,7 @@
   (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet bitmap.css)))
   tamer-sheet
   
-  (define-preference btest #:as Bitmap-TestCase
+  (define-preference btest #:as Bitmap-TestCase #:with ([color-properties Color+sRGB])
     ([symbol-color : Color+sRGB                                #:= 'Blue]
      [string-color : Color+sRGB                                #:= 'Orange]
      [number-color : Color+sRGB                                #:= 'Tomato]
@@ -1052,12 +1051,12 @@
      [desc : String                                            #:= "['desc' property is required]"]
      [descriptors : (HashTable Symbol CSS-Datum)               #:= (make-hash)])
     #:transparent)
-  
+
   (define css-descriptor-filter : CSS-Declaration-Filter
     (lambda [suitcased-name desc-value rest deprecated!]
       (cond [(css-font-property-filter suitcased-name desc-value rest) => values]
             [(css-text-decor-property-filter suitcased-name desc-value rest) => values]
-            [(css-color-property-filter suitcased-name desc-value rest) => values]
+            [(css-color-property-filter suitcased-name desc-value rest btest-color-properties) => values]
             [(css-image-property-filter suitcased-name desc-value rest) => values]
             [(eq? suitcased-name 'desc) (string-join (filter-map (λ [t] (css:string=<-? t string?)) (cons desc-value rest)))]
             [(pair? rest) (make-exn:css:overconsumption rest)]
@@ -1128,6 +1127,6 @@
                                                    (bitmap-frame (bitmap-blank width height) #:border-color bdcolor))))
               (cons tobj testcases))))
 
-  length%
   :root
-  (apply bitmap-vl-append bitmap-descs))
+  (apply bitmap-vl-append bitmap-descs)
+  length%)
