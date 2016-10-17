@@ -74,15 +74,15 @@
   (lambda [[basefont css-default-font] #:size [size +nan.0] #:face [face #false] #:family [family #false]
            #:style [style #false] #:weight [weight #false] #:hinting [hinting #false]
            #:underlined? [underlined 'default] #:size-in-pixels? [size-in-pixels? 'default]]
-    (define maybe-face : (Option String) (or face (send basefont get-face)))
+    (define ?-face : (Option String) (or face (send basefont get-face)))
     (define underlined? : Boolean (if (boolean? underlined) underlined (send basefont get-underlined)))
     (define pixels? : Boolean (if (boolean? size-in-pixels?) size-in-pixels? (send basefont get-size-in-pixels)))
     (define fontsize : Real (cond [(positive? size) size]
                                   [(zero? size) (smart-font-size basefont)]
                                   [(nan? size) (smart-font-size basefont)]
                                   [else (* (- size) (smart-font-size basefont))]))
-    (if (string? maybe-face)
-        (send the-font-list find-or-create-font fontsize maybe-face
+    (if (string? ?-face)
+        (send the-font-list find-or-create-font fontsize ?-face
               (or family (send basefont get-family)) (or style (send basefont get-style))
               (or weight (send basefont get-weight)) underlined? 'smoothed pixels?
               (or hinting (send basefont get-hinting)))
@@ -409,7 +409,7 @@
     (lambda [hash-color]
       (define color : String (keyword->string hash-color))
       (define digits : Index (string-length color))
-      (define maybe-hexcolor : (Option Number)
+      (define ?-hexcolor : (Option Number)
         (case digits
           [(6 8) (string->number color 16)]
           [(3 4) (for/fold ([hexcolor : (Option Nonnegative-Fixnum) 0])
@@ -423,90 +423,87 @@
                                (fxior (fxlshift digit 4)
                                       digit))))]
           [else #false]))
-      (cond [(or (fx= digits 3) (fx= digits 6)) (values (and (index? maybe-hexcolor) maybe-hexcolor) 1.0)]
-            [(not (exact-integer? maybe-hexcolor)) (values #false 1.0)]
-            [else (let ([hex-rgb (arithmetic-shift maybe-hexcolor -8)])
+      (cond [(or (fx= digits 3) (fx= digits 6)) (values (and (index? ?-hexcolor) ?-hexcolor) 1.0)]
+            [(not (exact-integer? ?-hexcolor)) (values #false 1.0)]
+            [else (let ([hex-rgb (arithmetic-shift ?-hexcolor -8)])
                     (values (and (index? hex-rgb) hex-rgb)
-                            (flabs (fl/ (fx->fl (fxand maybe-hexcolor #xFF)) 255.0))))])))
+                            (flabs (fl/ (fx->fl (fxand ?-hexcolor #xFF)) 255.0))))])))
   
-  (define css-rgb->scalar : (-> CSS-Token (U Integer CSS-Syntax-Error))
-    (lambda [t]
-      (css-cond #:with t #:out-range? [css-number?]
+  (define-css-declared-value-filter css-declared-rgb-byte-filter #:case-> CSS-Token #:-> Integer
+    (lambda [t [terminate? #true]]
+      (css-cond #:with t #:out-range? [css-number?] #:when terminate?
                 [(css:integer=<-? t byte?) => values]
                 [(css:percentage=<-? t 0.0f0 <= 1.0f0) => (λ [%] (exact-round (* % 255.0)))]
                 [(css:flonum=<-? t fl<= 255.0) => exact-round])))
 
-  (define css-hue->scalar : (-> CSS-Token (U Real CSS-Syntax-Error))
-    (lambda [t]
+  (define-css-declared-value-filter css-declared-hue-filter #:case-> CSS-Token #:-> Real
+    (lambda [t [terminate? #true]]
       (cond [(css:integer? t) (css:integer-datum t)]
             [(css:flonum? t) (css:flonum-datum t)]
-            [else (css-declared-angle-filter t)])))
+            [else (css-declared-angle-filter t terminate?)])))
 
-  (define css-sb%->scalar : (-> CSS-Token (U Single-Flonum CSS-Syntax-Error))
-    (lambda [t]
+  (define-css-declared-value-filter css-declared-sb%-filter #:case-> CSS-Token #:-> Single-Flonum
+    (lambda [t [terminate? #true]]
       (cond [(css:percentage? t) (css:percentage-datum t)]
-            [else (make-exn:css:type t)])))
+            [else (and terminate? (make-exn:css:type t))])))
 
-  (define css-color-delimiter-filter : (->* (CSS-Token (Listof CSS-Token) Index) (Boolean)
-                                            (Values (U (Listof CSS-Token) CSS-Syntax-Error) Nonnegative-Fixnum))
+  (define css-color-components-filter : (-> CSS-Token (Listof CSS-Token)
+                                           (Values CSS-Token CSS-Token CSS-Token
+                                                   (U Nonnegative-Flonum CSS-Syntax-Error)))
     ;;; https://github.com/w3c/csswg-drafts/issues/266
-    (lambda [id args n:min [comma? #true]]
-      (define n:max : Positive-Fixnum (fx+ n:min 1))
-      (let fold ([return : (Listof CSS-Token) null]
-                 [size : Nonnegative-Fixnum 0]
-                 [source : (Listof CSS-Token) (filter-not css:whitespace? args)]
-                 [podd? : Boolean #false]
-                 [/? : Boolean #false])
-        (define-values (token rest) (css-car/cdr source))
-        (cond [(eof-object? token) (if (fx>= size n:min) (values (reverse return) size) (values (make-exn:css:missing-value id) size))]
-              [(fx>= size n:max) (values (make-exn:css:overconsumption source) size)]
-              [(not (css:delim? token)) (fold (cons token return) (fx+ size 1) rest (not podd?) /?)]
-              [else (let ([d : Char (css:delim-datum token)]
-                          [following? : Boolean (pair? rest)])
-                      (cond [(and (char=? d #\,) podd? following? (or comma? /?)) (fold return size rest (not podd?) /?)]
-                            [(and (char=? d #\/) podd? following? (not /?)) (fold return size rest (not podd?) #true)]
-                            [(not following?) (values (make-exn:css:missing-value token) size)]
-                            [else (values (make-exn:css:unrecognized token) size)]))]))))
+    (lambda [id args]
+      (match args
+        [(list c1 c2 c3) (values c1 c2 c3 1.0)]
+        [(list c1 c2 c3 alpha) (values c1 c2 c3 (css-declared+percentage%-filter alpha))]
+        [(list c1 c2 c3 (? css:slash?) alpha) (values c1 c2 c3 (css-declared+percentage%-filter alpha))]
+        [(list c1 (? css:comma?) c2 (? css:comma?) c3) (values c1 c2 c3 1.0)]
+        [(list c1 (? css:comma?) c2 (? css:comma?) c3 (? css:comma?) alpha) (values c1 c2 c3 (css-declared+percentage%-filter alpha))]
+        [else (values id id id (let fold ([source : (Listof CSS-Token) args]
+                                          [size : Nonnegative-Fixnum 0]
+                                          [odd-position? : Boolean #false])
+                                 (define-values (token rest) (css-car/cdr source))
+                                 (cond [(fx>= size 4) (make-exn:css:overconsumption source)]
+                                       [(eof-object? token) (make-exn:css:malformed (if (css:function? id) id (cons id args)))]
+                                       [(not (css:delim? token)) (fold rest (fx+ size 1) (not odd-position?))]
+                                       [(null? rest) (make-exn:css:missing-value token)]
+                                       [(not odd-position?) (make-exn:css:missing-comma token)]
+                                       [else (fold rest size (not odd-position?))])))])))
   
   (define css-extract-rgba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) (U RGBA CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-color/#rgb-functions
     (lambda [frgba args]
-      (define-values (rgba-tokens argsize) (css-color-delimiter-filter frgba args 3))
-      (cond [(exn:css? rgba-tokens) rgba-tokens]
-            [else (let ([r (css-rgb->scalar (list-ref rgba-tokens 0))]
-                        [g (css-rgb->scalar (list-ref rgba-tokens 1))]
-                        [b (css-rgb->scalar (list-ref rgba-tokens 2))]
-                        [a (if (fx= argsize 4) (css-declared+percentage%-filter (last rgba-tokens)) 1.0)])
-                    (cond [(and (byte? r) (byte? g) (byte? b) (flonum? a)) (rgba r g b a)]
+      (define-values (R G B alpha) (css-color-components-filter frgba args))
+      (cond [(exn:css? alpha) alpha]
+            [else (let ([r (css-declared-rgb-byte-filter R)]
+                        [g (css-declared-rgb-byte-filter G)]
+                        [b (css-declared-rgb-byte-filter B)])
+                    (cond [(and (byte? r) (byte? g) (byte? b) (flonum? alpha)) (rgba r g b alpha)]
                           [(exn:css? r) r]
                           [(exn:css? g) g]
                           [(exn:css? b) b]
-                          [(exn:css? a) a]
                           [else (make-exn:css:empty eof)]))])))
 
   (define css-extract-hsba : (-> CSS-Token (Listof CSS-Token) HSB->RGB (U HSBA CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
     (lambda [fhsba args ->rgb]
-      (define-values (hsba-tokens argsize) (css-color-delimiter-filter fhsba args 3))
-      (cond [(exn:css? hsba-tokens) hsba-tokens]
-            [else (let ([h (css-hue->scalar (list-ref hsba-tokens 0))]
-                        [s (css-sb%->scalar (list-ref hsba-tokens 1))]
-                        [b (css-sb%->scalar (list-ref hsba-tokens 2))]
-                        [a (if (fx= argsize 4) (css-declared+percentage%-filter (last hsba-tokens)) 1.0)])
-                    (cond [(and (real? h) (single-flonum? s) (single-flonum? b) (flonum? a)) (hsba ->rgb h s b a)]
+      (define-values (H S B alpha) (css-color-components-filter fhsba args))
+      (cond [(exn:css? alpha) alpha]
+            [else (let ([h (css-declared-hue-filter H)]
+                        [s (css-declared-sb%-filter S)]
+                        [b (css-declared-sb%-filter B)])
+                    (cond [(and (real? h) (single-flonum? s) (single-flonum? b) (flonum? alpha)) (hsba ->rgb h s b alpha)]
                           [(exn:css? h) h]
                           [(exn:css? s) s]
                           [(exn:css? b) b]
-                          [(exn:css? a) a]
                           [else (make-exn:css:empty eof)]))])))
 
-  (define-css-declared-racket-value-filter css-eval-color #:with maybe-color #:as (U String Symbol Index Color)
-    [(is-a? maybe-color color%) (cast maybe-color Color)]
-    [(and (string? maybe-color) (send the-color-database find-color maybe-color)) maybe-color]
-    [(index? maybe-color) maybe-color]
-    [(and (symbol? maybe-color)
-          (or (and (hash-has-key? css-named-colors maybe-color) maybe-color)
-              (let ([color (string->symbol (string-downcase (symbol->string maybe-color)))])
+  (define-css-declared-racket-value-filter css-eval-color #:with ?-color #:as (U String Symbol Index Color)
+    [(is-a? ?-color color%) (cast ?-color Color)]
+    [(and (string? ?-color) (send the-color-database find-color ?-color)) ?-color]
+    [(index? ?-color) ?-color]
+    [(and (symbol? ?-color)
+          (or (and (hash-has-key? css-named-colors ?-color) ?-color)
+              (let ([color (string->symbol (string-downcase (symbol->string ?-color)))])
                 (and (hash-has-key? css-named-colors color) color)))) => values])
 
   (define-css-declared-value-filter css-declared-color-filter #:case-> CSS-Token (Listof CSS-Token) #:-> CSS-Color-Datum
@@ -523,10 +520,10 @@
                        [(hash-has-key? css-named-colors name) name]
                        [else (make-exn:css:range color-value)])]
                 [(css:hash? color-value)
-                 (define-values (maybe-rgb alpha) (css-hex-color->rgba (css:hash-datum color-value)))
-                 (cond [(false? maybe-rgb) (make-exn:css:range color-value)]
-                       [(fl= alpha 1.0) maybe-rgb]
-                       [else (hexa maybe-rgb alpha)])]
+                 (define-values (?-rgb alpha) (css-hex-color->rgba (css:hash-datum color-value)))
+                 (cond [(false? ?-rgb) (make-exn:css:range color-value)]
+                       [(fl= alpha 1.0) ?-rgb]
+                       [else (hexa ?-rgb alpha)])]
                 [(css:function? color-value)
                  (case (css:function-norm color-value)
                    [(rgb rgba) (css-extract-rgba color-value (css:function-arguments color-value))]
@@ -566,27 +563,27 @@
 
   (define css-extract-image-fallback : (-> (Listof CSS-Token) (U CSS-Color-Datum False CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-images/#image-notation
-    (lambda [maybe-fallback]
-      (define-values (maybe-comma maybe-rest) (css-car/cdr maybe-fallback))
-      (cond [(eof-object? maybe-comma) #false]
-            [(not (css:delim=:=? maybe-comma #\,)) (make-exn:css:missing-comma maybe-comma)]
-            [else (let-values ([(maybe-color rest) (css-car/cdr maybe-rest)])
-                    (cond [(eof-object? maybe-color) (make-exn:css:missing-value maybe-comma)]
+    (lambda [?-fallback]
+      (define-values (?-comma ?-rest) (css-car/cdr ?-fallback))
+      (cond [(eof-object? ?-comma) #false]
+            [(not (css:delim=:=? ?-comma #\,)) (make-exn:css:missing-comma ?-comma)]
+            [else (let-values ([(?-color rest) (css-car/cdr ?-rest)])
+                    (cond [(eof-object? ?-color) (make-exn:css:missing-value ?-comma)]
                           [(pair? rest) (make-exn:css:overconsumption rest)]
-                          [else (css-declared-color-filter maybe-color null)]))])))
+                          [else (css-declared-color-filter ?-color null)]))])))
   
   (define css-extract-image : (-> CSS-Token (Listof CSS-Token) (U CSS-Image CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-images/#image-notation
     (lambda [fimage argl]
-      (define-values (img+color maybe-color) (css-car/cdr argl))
+      (define-values (img+color ?-color) (css-car/cdr argl))
       (cond [(eof-object? img+color) (make-exn:css:empty fimage)]
             [(or (and (css:string? img+color) (css:string-datum img+color)) (css-declared-image-filter img+color null #false))
              => (make-css->datum
-                 (λ [img+url] (let ([maybe-fallback (css-extract-image-fallback maybe-color)])
-                                (cond [(exn:css? maybe-fallback) maybe-fallback]
-                                      [(and (string? img+url) (string=? img+url "")) (image 'about:invalid maybe-fallback)]
-                                      [else (image img+url maybe-fallback)]))))]
-            [(css-declared-color-filter img+color maybe-color #false)
+                 (λ [img+url] (let ([?-fallback (css-extract-image-fallback ?-color)])
+                                (cond [(exn:css? ?-fallback) ?-fallback]
+                                      [(and (string? img+url) (string=? img+url "")) (image 'about:invalid ?-fallback)]
+                                      [else (image img+url ?-fallback)]))))]
+            [(css-declared-color-filter img+color ?-color #false)
              => (make-css->datum (λ [solid] (image 'about:invalid solid)))]
             [else (make-exn:css:type img+color)])))
   
@@ -607,8 +604,8 @@
 
   (define-syntax (call-with-font stx)
     (syntax-parse stx
-      [(_ font (~optional (~seq #:root? maybe-root?)) sexp ...)
-       (with-syntax ([root? (or (attribute maybe-root?) #'#false)])
+      [(_ font (~optional (~seq #:root? ?-root?)) sexp ...)
+       (with-syntax ([root? (or (attribute ?-root?) #'#false)])
          #'(cond [(eq? font (unbox &font)) sexp ...]
                  [else (let-values ([(xw x-height x-descent x-extra) (send dc get-text-extent "x" font)]
                                     [(0-width 0h 0d 0a) (send dc get-text-extent "0" font)]
@@ -685,14 +682,14 @@
       ; WARNING: the font shorthand requires `font-family` (or system font)
       (cond [(eq? property 'font-family)
              (cond [(list? value) (css-default-font-properties css-default-font longhand)]
-                   [(exn? value) (css-default-font-properties value longhand)]
+                   [(exn? value) (css-default-font-properties value longhand)] ; see (css-font-shorthand+family-filter)
                    [else (css-set!-font-property longhand 'font-family (css-font-family-filter head tail) head null)])]
             [(null? tail) (css-default-font-properties (make-exn:css:missing-value head) longhand)]
             [(eq? property 'line-height) (css-set!-font-property longhand 'font-family 'not-filtered (car tail) (cdr tail))]
             [(not (eq? property 'font-size)) (css-font-shorthand+family-filter (car tail) (cdr tail) longhand)]
-            [else (let-values ([(maybe-/ prest <height> rest) (css-car/cadr tail)])
-                    (cond [(not (css:delim=:=? maybe-/ #\/)) (css-set!-font-property longhand 'font-family 'not-filtered maybe-/ prest)]
-                          [(eof-object? <height>) (css-default-font-properties (make-exn:css:missing-value maybe-/) longhand)]
+            [else (let-values ([(?-/ prest <height> rest) (css-car/cadr tail)])
+                    (cond [(not (css:delim=:=? ?-/ #\/)) (css-set!-font-property longhand 'font-family 'not-filtered ?-/ prest)]
+                          [(eof-object? <height>) (css-default-font-properties (make-exn:css:missing-value ?-/) longhand)]
                           [else (let ([height (css-line-height-filter <height> null)])
                                   (cond [(exn? height) (css-default-font-properties height longhand)]
                                         [else (css-set!-font-property longhand 'line-height height <height> rest)]))]))])))
@@ -704,15 +701,15 @@
       (let font-fold ([seilimaf : (Listof (U String Symbol)) null]
                       [cvalue : CSS-Token font-value]
                       [rvalues : (Listof CSS-Token) rest])
-        (define maybe-family : (U String Symbol False)
+        (define ?-family : (U String Symbol False)
           (or (and (css:string? cvalue) (css:string-datum cvalue))
               (css:ident-norm=<-? cvalue '(default decorative roman script  swiss      modern    system    symbol
                                             emoji  fantasy    serif cursive sans-serif monospace system-ui math fangsong))))
-        (cond [(and maybe-family)
+        (cond [(and ?-family)
                (define-values (term rst) (css-car/cdr rvalues))
-               (cond [(eof-object? term) (reverse (cons maybe-family seilimaf))]
+               (cond [(eof-object? term) (reverse (cons ?-family seilimaf))]
                      [(nor (pair? rst) (css:delim=:=? term #\,)) (make-exn:css:overconsumption term)]
-                     [else (font-fold (cons maybe-family seilimaf) (car rst) (cdr rst))])]
+                     [else (font-fold (cons ?-family seilimaf) (car rst) (cdr rst))])]
               [(css:ident? cvalue)
                (let family-fold ([family : String (symbol->string (css:ident-datum cvalue))]
                                  [rfamilies : (Listof CSS-Token) rvalues])
@@ -857,9 +854,9 @@
       (cond [(eq? datum 'none) (css-set!-decor-property decor-longhand 'text-decoration-line datum rst)]
             [(memq datum css-text-decor-line-options) (css-set!-decor-property decor-longhand 'text-decoration-line datum rst)]
             [(memq datum css-text-decor-style-option) (css-set!-decor-property decor-longhand 'text-decoration-style datum rst)]
-            [else (let ([maybe-color (css-declared-color-filter head null)])
-                    (cond [(exn? maybe-color) (css-default-text-decor-properties maybe-color decor-longhand)]
-                          [else (css-set!-decor-property decor-longhand 'text-decoration-color maybe-color rst)]))]))))
+            [else (let ([?-color (css-declared-color-filter head null)])
+                    (cond [(exn? ?-color) (css-default-text-decor-properties ?-color decor-longhand)]
+                          [else (css-set!-decor-property decor-longhand 'text-decoration-color ?-color rst)]))]))))
 
 (require (submod "." css))
 
@@ -983,12 +980,12 @@
 (call-with-font css-default-font #:root? #true (void '(initializing the length%)))
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) ((Option Font)) Font)
   (lambda [declared-values inherited-values [basefont #false]]
-    (define maybe-font : CSS-Datum (and (hash? inherited-values) (css-ref inherited-values #false 'font)))
-    (define inherited-font : Font (if (object? maybe-font) (cast maybe-font Font) (or basefont css-default-font)))
+    (define ?-font : CSS-Datum (and (hash? inherited-values) (css-ref inherited-values #false 'font)))
+    (define inherited-font : Font (if (object? ?-font) (cast ?-font Font) (or basefont css-default-font)))
     (define (css-datum->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof Symbol)
       (cond [(list? value) (filter symbol? value)]
             [else (if (send inherited-font get-underlined) (list 'underline) null)]))
-    (call-with-font inherited-font #:root? (false? maybe-font)
+    (call-with-font inherited-font #:root? (false? ?-font)
       (define family : (U String Font-Family) (css-ref declared-values #false 'font-family css-datum->font-family))
       (define size : Nonnegative-Real (css-ref declared-values #false 'font-size css-datum->font-size))
       (define style : Font-Style (css-ref declared-values #false 'font-style css-datum->font-style))
@@ -1025,6 +1022,15 @@
     (simplify-path (cond [(regexp-match? #px"DrRacket$" run-file) (build-path 'up "tamer" "bitmap.css")]
                          [else (build-path (find-system-path 'orig-dir) run-file 'up 'up "tamer" "bitmap.css")])))
 
+  (define-values (in out) (make-pipe))
+  (define css-logger (make-logger 'css #false))
+  (define css (thread (thunk (let forever ([/dev/log (make-log-receiver css-logger 'debug)])
+                               (match (sync/enable-break /dev/log)
+                                 [(vector _ message urgent _)
+                                  (cond [(eof-object? urgent) (close-output-port out)]
+                                        [else (displayln message out) (forever /dev/log)])])))))
+  
+  (current-logger css-logger)
   (css-cache-computed-object-value #false)
   (current-css-media-type 'screen)
   (current-css-media-preferences
@@ -1032,7 +1038,7 @@
     (list (cons 'orientation 'landscape)
           (cons 'width 1440)
           (cons 'height 820))))
-  
+
   (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet bitmap.css)))
   tamer-sheet
   
@@ -1129,4 +1135,7 @@
 
   :root
   (apply bitmap-vl-append bitmap-descs)
-  length%)
+  length%
+
+  (log-message css-logger 'debug "exit" eof)
+  (copy-port in (current-output-port)))
