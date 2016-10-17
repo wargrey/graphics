@@ -122,37 +122,36 @@
   (lambda [description max-width.0 [font css-default-font] #:combine? [combine? #true] #:color [fgcolor #false]
            #:background-color [bgcolor #false]]
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank)))
-    (define max-width : Natural (exact-ceiling max-width.0))
-    (define desc-extent : (-> String Integer Integer (Values String Natural Nonnegative-Real))
+    (define max-width : Nonnegative-Flonum (real->double-flonum max-width.0))
+    (define desc-extent : (-> String Integer Integer (Values String Nonnegative-Flonum Nonnegative-Flonum))
       (lambda [desc start end]
         (define subdesc : String (substring desc start end))
         (define-values (width height descent ascent) (send dc get-text-extent subdesc font combine?))
-        (values subdesc (exact-ceiling width) height)))
+        (values subdesc (real->double-flonum width) (real->double-flonum height))))
 
     (define-values (_ char-width phantom-height) (desc-extent " " 0 1))
     (define-values (descs ys width height)
-      (for/fold ([descs : (Listof String) null] [ys : (Listof Real) null] [width : Natural 0] [height : Real 0])
+      (for/fold ([descs : (Listof String) null] [ys : (Listof Flonum) null] [width : Nonnegative-Flonum 0.0] [height : Flonum 0.0])
                 ([desc : String (in-list (string-split description (string #\newline)))])
         (define terminal : Index (string-length desc))
-        (let desc-row : (Values (Listof String) (Listof Real) Natural Real)
-          ([idx0 : Nonnegative-Fixnum 0] [descs : (Listof String) descs] [ys : (Listof Real) ys]
-                                         [Widthn : Natural width] [yn : Real height])
+        (let desc-row ([idx0 : Nonnegative-Fixnum 0] [descs : (Listof String) descs] [ys : (Listof Flonum) ys]
+                                                     [Widthn : Nonnegative-Flonum width] [yn : Flonum height])
           (define-values (descn widthn heightn idx)
-            (let desc-col-expt : (Values String Natural Real Nonnegative-Fixnum)
+            (let desc-col-expt : (Values String Nonnegative-Flonum Flonum Nonnegative-Fixnum)
               ([interval : Nonnegative-Fixnum 1] [open : Nonnegative-Fixnum idx0] [close : Nonnegative-Fixnum terminal]
                                                  [backtracking : String ""] ; char-width is bad for forecasting the next width 
-                                                 [back-width : Natural max-width] [back-height : Nonnegative-Real phantom-height])
+                                                 [back-width : Nonnegative-Flonum max-width]
+                                                 [back-height : Nonnegative-Flonum phantom-height])
               (define idx : Nonnegative-Fixnum (fxmin close (fx+ open interval)))
               (define next-open : Nonnegative-Fixnum (fx+ open (fxquotient interval 2)))
               (define-values (line width height) (desc-extent desc idx0 idx))
-              (define found? : Boolean (and (> width max-width) (fx= interval 1) (<= back-width max-width)))
+              (define found? : Boolean (and (fl> width max-width) (fx= interval 1) (fl<= back-width max-width)))
               (cond [found? (values backtracking back-width back-height (if (zero? open) terminal (max 0 (sub1 idx))))]
-                    [(> width max-width) (desc-col-expt 1 next-open idx backtracking back-width back-height)]
-                    [(= close idx) (values line width height idx)]
+                    [(fl> width max-width) (desc-col-expt 1 next-open idx backtracking back-width back-height)]
+                    [(fx= close idx) (values line width height idx)]
                     [else (desc-col-expt (fxlshift interval 1) open close line width height)])))
-          (if (fx= idx terminal)
-              (values (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn))
-              (desc-row idx (cons descn descs) (cons yn ys) (max widthn Widthn) (+ yn heightn))))))
+          (cond [(fx= idx terminal) (values (cons descn descs) (cons yn ys) (max widthn Widthn) (fl+ yn heightn))]
+                [else (desc-row idx (cons descn descs) (cons yn ys) (max widthn Widthn) (fl+ yn heightn))]))))
     
     (send dc set-bitmap (bitmap-blank (max 1 width) (max 1 phantom-height height)))
     (send dc set-font font)
@@ -462,8 +461,8 @@
                                           [size : Nonnegative-Fixnum 0]
                                           [odd-position? : Boolean #false])
                                  (define-values (token rest) (css-car/cdr source))
-                                 (cond [(fx>= size 4) (make-exn:css:overconsumption source)]
-                                       [(eof-object? token) (make-exn:css:malformed (if (css:function? id) id (cons id args)))]
+                                 (cond [(fx>= size 4) (make-exn:css:arity source)]
+                                       [(eof-object? token) (make-exn:css:arity (if (css:function? id) id (cons id args)))]
                                        [(not (css:delim? token)) (fold rest (fx+ size 1) (not odd-position?))]
                                        [(null? rest) (make-exn:css:missing-value token)]
                                        [(not odd-position?) (make-exn:css:missing-comma token)]
@@ -606,23 +605,28 @@
     (syntax-parse stx
       [(_ font (~optional (~seq #:root? ?-root?)) sexp ...)
        (with-syntax ([root? (or (attribute ?-root?) #'#false)])
-         #'(cond [(eq? font (unbox &font)) sexp ...]
-                 [else (let-values ([(xw x-height x-descent x-extra) (send dc get-text-extent "x" font)]
-                                    [(0-width 0h 0d 0a) (send dc get-text-extent "0" font)]
-                                    [(水-width wh wd wa) (send dc get-text-extent "水" font)])
-                         (set-flcss%-em! length% (smart-font-size font))
-                         (set-flcss%-ex! length% (real->double-flonum (max (- x-height x-descent x-extra) 0)))
-                         (set-flcss%-ch! length% (real->double-flonum 0-width))
-                         (set-flcss%-ic! length% (real->double-flonum 水-width))
-                         (when root? (set-flcss%-rem! length% (smart-font-size font)))
-                         (set-box! &font font)
-                         sexp ...)]))]))
+         ; NOTE: This operation is extremely expensive (at least 0.4s), but Racket do have its own cache strategy.
+         #'(begin (unless (eq? font (unbox &font))
+                    ; WARNING: 'xh' seems to be impractical, the font% size is just a nominal size
+                    ;            and usually smaller than the generated text in which case the 'ex' is
+                    ;            always surprisingly larger than the size, the '0w' therefore is used instead.                      
+                    ;(define-values (xw xh xd xe) (send dc get-text-extent "x" font)]
+                    (define-values (0w 0h 0d 0e) (send dc get-text-extent "0" font))
+                    (define-values (ww wh wd we) (send dc get-text-extent "水" font))
+                    (define em : Nonnegative-Flonum (smart-font-size font))
+                    (when root? (set-flcss%-rem! length% em))
+                    (set-flcss%-em! length% em)
+                    (set-flcss%-ex! length% (real->double-flonum 0w))
+                    (set-flcss%-ch! length% (real->double-flonum 0w))
+                    (set-flcss%-ic! length% (real->double-flonum ww))
+                    (set-box! &font font))
+                  sexp ...))]))
   
   (define css-default-font : Font (make-font))
   (define css-font-family-names/no-variants : (Listof String) (get-face-list 'all #:all-variants? #false))
   (define css-font-scaling-factor : Nonnegative-Flonum 1.2)
   (define dc (make-object bitmap-dc% (make-object bitmap% 1 1)))
-  (define &font : (Boxof (Option Font)) (box #false))
+  (define &font : (Boxof Font) (box css-default-font))
 
   (define css-font-synthesis-options : (Listof Symbol) '(weight style small-caps))
   
@@ -977,26 +981,24 @@
       [(text-decoration) (css-text-decor-shorthand-filter decor-value rest)]
       [else #false])))
 
-(call-with-font css-default-font #:root? #true (void '(initializing the length%)))
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) ((Option Font)) Font)
   (lambda [declared-values inherited-values [basefont #false]]
     (define ?-font : CSS-Datum (and (hash? inherited-values) (css-ref inherited-values #false 'font)))
     (define inherited-font : Font (if (object? ?-font) (cast ?-font Font) (or basefont css-default-font)))
-    (define (css-datum->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof Symbol)
-      (cond [(list? value) (filter symbol? value)]
-            [else (if (send inherited-font get-underlined) (list 'underline) null)]))
+    (define (css-datum->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof Datum)
+      (if (list? value) value (if (send inherited-font get-underlined) (list 'underline) null)))
     (call-with-font inherited-font #:root? (false? ?-font)
       (define family : (U String Font-Family) (css-ref declared-values #false 'font-family css-datum->font-family))
       (define size : Nonnegative-Real (css-ref declared-values #false 'font-size css-datum->font-size))
       (define style : Font-Style (css-ref declared-values #false 'font-style css-datum->font-style))
       (define weight : Font-Weight (css-ref declared-values #false 'font-weight css-datum->font-weight))
-      (define decorations : (Listof Symbol) (css-ref declared-values #false 'text-decoration-line css-datum->font-underlined))
+      (define decorations : (Listof Datum) (css-ref declared-values #false 'text-decoration-line css-datum->font-underlined))
       (define font : Font
         (make-font+ (or basefont css-default-font)
                     #:face (and (string? family) family) #:family (and (symbol? family) family)
                     #:size size #:size-in-pixels? (implies (nan? size) 'inherited)
                     #:style style #:weight weight #:underlined? (and (memq 'underline decorations) #true)))
-      (call-with-font font
+     (call-with-font font
         (hash-set! declared-values 'font (thunk font))
         (when (nan? size) (hash-set! declared-values 'font-size (thunk (smart-font-size font))))
         font))))
@@ -1009,26 +1011,26 @@
 
   (define-syntax (time-run stx)
     (syntax-case stx []
-      [(_ sexp ...)
+      [(_ prefix sexp ...)
        #'(let ([momery0 : Natural (current-memory-use)])
            (define-values (result cpu real gc) (time-apply (thunk sexp ...) null))
-           (printf "memory: ~a cpu time: ~a real time: ~a gc time: ~a~n"
-                   (~size (- (current-memory-use) momery0) 'Bytes)
-                   cpu real gc)
+           (printf "~a: memory: ~a cpu time: ~a real time: ~a gc time: ~a~n" prefix
+                   (~size (- (current-memory-use) momery0) 'Bytes) cpu real gc)
            (car result))]))
   
   (define run-file : Path-String (find-system-path 'run-file))
+  (define DrRacket? : Boolean (regexp-match? #px"DrRacket$" run-file))
   (define bitmap.css : Path-String
-    (simplify-path (cond [(regexp-match? #px"DrRacket$" run-file) (build-path 'up "tamer" "bitmap.css")]
-                         [else (build-path (find-system-path 'orig-dir) run-file 'up 'up "tamer" "bitmap.css")])))
+    (simplify-path (cond [(not DrRacket?) (build-path (find-system-path 'orig-dir) run-file 'up 'up "tamer" "bitmap.css")]
+                         [else (build-path 'up "tamer" "bitmap.css")])))
 
   (define-values (in out) (make-pipe))
   (define css-logger (make-logger 'css #false))
   (define css (thread (thunk (let forever ([/dev/log (make-log-receiver css-logger 'debug)])
                                (match (sync/enable-break /dev/log)
-                                 [(vector _ message urgent _)
-                                  (cond [(eof-object? urgent) (close-output-port out)]
-                                        [else (displayln message out) (forever /dev/log)])])))))
+                                 [(vector 'debug _ (? eof-object?) _) (close-output-port out)]
+                                 [(vector level message _ 'exn:css:syntax) (fprintf out "[~a] ~a~n" level message) (forever /dev/log)]
+                                 [else (forever /dev/log)])))))
   
   (current-logger css-logger)
   (css-cache-computed-object-value #false)
@@ -1039,9 +1041,6 @@
           (cons 'width 1440)
           (cons 'height 820))))
 
-  (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet bitmap.css)))
-  tamer-sheet
-  
   (define-preference btest #:as Bitmap-TestCase #:with ([color-properties Color+sRGB])
     ([symbol-color : Color+sRGB                                #:= 'Blue]
      [string-color : Color+sRGB                                #:= 'Orange]
@@ -1088,11 +1087,13 @@
                     #:descriptors (for/hash : (HashTable Symbol CSS-Datum) ([key (in-hash-keys declared-values)])
                                     (values key (css-ref declared-values #false key)))))))
 
+  (define tamer-sheet : CSS-StyleSheet (read-css-stylesheet bitmap.css))
   (define tamer-main : CSS-Subject (make-css-subject #:type 'module #:id '#:root #:classes '(main)))
 
   (define :values : CSS-Values (make-hash))
   (define :root : Bitmap-TestCase
-    (time-run (let-values ([(toplevel topvalues)
+    (time-run 'tamer-main
+              (let-values ([(toplevel topvalues)
                             (css-cascade (list tamer-sheet) tamer-main
                                          css-descriptor-filter css-preference-filter
                                          (make-btest) #false)])
@@ -1103,11 +1104,10 @@
     (for/fold ([bitmap-descs : (Listof Bitmap) null]
                [testcases : (Listof Bitmap-TestCase) null])
               ([i (in-range (css-ref :values #false 'count index? 8))])
-      (define tobj : Bitmap-TestCase
-        (time-run (let-values ([(tobj _) (css-cascade (list tamer-sheet)
-                                                      (make-css-subject #:type 'test #:id (string->keyword (~a 'case i)))
-                                                      css-descriptor-filter css-preference-filter
-                                                      :root :values)]) tobj)))
+      (define-values (tobj _) (css-cascade (list tamer-sheet)
+                                           (make-css-subject #:type 'test #:id (string->keyword (~a 'case i)))
+                                           css-descriptor-filter css-preference-filter
+                                           :root :values))
 
       (define-values (fgcolor bgcolor rcolor bdcolor)
         (values (btest-foreground-color tobj) (btest-background-color tobj)
@@ -1133,9 +1133,9 @@
                                                    (bitmap-frame (bitmap-blank width height) #:border-color bdcolor))))
               (cons tobj testcases))))
 
-  :root
-  (apply bitmap-vl-append bitmap-descs)
-  length%
+  (when DrRacket? :root)
+  (when DrRacket? (apply bitmap-vl-append bitmap-descs))
+  (when DrRacket? length%)
 
   (log-message css-logger 'debug "exit" eof)
-  (copy-port in (current-output-port)))
+  (when DrRacket? (copy-port in (current-output-port))))

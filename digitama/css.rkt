@@ -283,15 +283,6 @@
                             [(type? instance) (type->datum instance)] ...
                             [else (assert (object-name instance) symbol?)])))))]))
 
-  (struct flcss% ([rem : Nonnegative-Flonum] [vw : Nonnegative-Flonum] [vh : Nonnegative-Flonum]
-                                             [em : Nonnegative-Flonum] [ex : Nonnegative-Flonum]
-                                             [ch : Nonnegative-Flonum] [ic : Nonnegative-Flonum])
-    #:type-name FlCSS%
-    #:transparent
-    #:mutable)
-  
-  (define length% : FlCSS% (flcss% 1.0 1.0 1.0 1.0 0.5 0.5 1.0))
-
   (define nonnegative-fixnum? : (-> Any Boolean : #:+ Nonnegative-Fixnum) (λ [v] (and (fixnum? v) (fx>= v 0))))
   (define nonnegative-flonum? : (-> Any Boolean : #:+ Nonnegative-Flonum) (λ [v] (and (flonum? v) (fl>= v 0.0))))
   (define nonnegative-single-flonum? : (-> Any Boolean : #:+ Nonnegative-Single-Flonum) (λ [v] (and (single-flonum? v) (>= v 0.0f0))))
@@ -590,16 +581,16 @@
                               (if (eof-object? v) v tokens))))
                   ...
 
-                  (define make+exn : (->* ((U CSS-Syntax-Any (Listof CSS-Token))) (Logger) subexn)
-                    (lambda [v [logger (current-logger)]]
+                  (define make+exn : (->* ((U CSS-Syntax-Any (Listof CSS-Token))) ((Option CSS:Ident) Log-Level) subexn)
+                    (lambda [v [property #false] [level 'warning]]
                       (define errobj : subexn (make-exn v))
-                      (css-log-syntax-error errobj logger)
+                      (css-log-syntax-error errobj property level)
                       errobj))
                   ...
                   
-                  (define throw-exn : (->* ((U CSS-Syntax-Any (Listof CSS-Token))) (Logger) Nothing)
-                    (lambda [v [logger (current-logger)]]
-                      (raise (make+exn v logger))))
+                  (define throw-exn : (->* ((U CSS-Syntax-Any (Listof CSS-Token))) ((Option CSS:Ident) Log-Level) Nothing)
+                    (lambda [v [property #false] [level 'warning]]
+                      (raise (make+exn v property level))))
                   ...))]))
   
   (define-syntax-error exn:css #:as CSS-Syntax-Error
@@ -608,9 +599,7 @@
     [exn:css:cyclic             #:-> exn:css]
     [exn:css:namespace          #:-> exn:css]
     [exn:css:racket             #:-> exn:css]
-    [exn:css:racket:type        #:-> exn:css:racket]
-    [exn:css:racket:arity       #:-> exn:css:racket]
-    [exn:css:racket:unexpected  #:-> exn:css:racket]
+    [exn:css:contract           #:-> exn:css:racket]
     [exn:css:unrecognized       #:-> exn:css]
     [exn:css:misplaced          #:-> exn:css:unrecognized]
     [exn:css:type               #:-> exn:css:unrecognized]
@@ -620,6 +609,7 @@
     [exn:css:enclosed           #:-> exn:css:overconsumption]
     [exn:css:malformed          #:-> exn:css]
     [exn:css:empty              #:-> exn:css:malformed]
+    [exn:css:arity              #:-> exn:css:malformed]
     [exn:css:missing-identifier #:-> exn:css:malformed]
     [exn:css:missing-variable   #:-> exn:css:missing-identifier]
     [exn:css:missing-block      #:-> exn:css:malformed]
@@ -642,8 +632,8 @@
       [(_ [s-id #:+ S-ID rest ...] ...)
        #'(begin (struct: s-id : S-ID rest ...) ...)]))
 
-  (define-type CSS-NameSpace (HashTable Symbol String))
-  (define-type CSS-NameSpace-Hint (U CSS-NameSpace (Listof Symbol) False))
+  (define-type CSS-Namespace (HashTable Symbol String))
+  (define-type CSS-Namespace-Hint (U CSS-Namespace (Listof Symbol) False))
   (define-type CSS-Combinator (U '>> '> '+ '~ '||))
   (define-type CSS-Attribute-Datum (U String Symbol (Listof (U String Symbol))))
   (define-type CSS-Attribute-Value (U CSS-Attribute-Datum (Vector Symbol CSS-Attribute-Datum)))
@@ -751,7 +741,7 @@
       (define-values (specificity A B C) (css-selector-specificity complex-selector))
       (make-css-complex-selector specificity complex-selector A B C)))
 
-  (define css-declared-namespace : (-> CSS-NameSpace-Hint (U CSS:Ident CSS:Delim Symbol) (U Symbol Boolean))
+  (define css-declared-namespace : (-> CSS-Namespace-Hint (U CSS:Ident CSS:Delim Symbol) (U Symbol Boolean))
     (lambda [namespaces namespace]
       (or (css:delim? namespace)        ; *
           (let ([ns (if (css:ident? namespace) (css:ident-datum namespace) namespace)])
@@ -886,8 +876,8 @@
                             [else key])))))]))
 
   ; NOTE: `css-lazy` must hold at least one token(even it's just a <whitespace>),
-  ;        since `null` indicates an invalid variable when substituding.
-  (define-css-value css-lazy #:as CSS-Lazy ([force : (Listof+ CSS-Token)] [recursive? : Boolean]))
+  ;        since `null` indicates an invalid variable when substituting.
+  (define-css-value css-lazy #:as CSS-Lazy ([property : CSS:Ident] [force : (Listof+ CSS-Token)] [recursive? : Boolean]))
   (define-css-value css-@λ #:as CSS-@λ ([sexp : (Pairof Symbol (Listof CSS-Datum))]))
 
   ; https://drafts.csswg.org/css-cascade/#all-shorthand
@@ -915,8 +905,19 @@
              (hash-set! properties desc-name (thunk computed-value)))
            computed-value)]))
 
-  (define css-cache-computed-object-value : (Parameterof Boolean) (make-parameter #true))
+  (define-preference flcss% #:as FlCSS%
+    ([vw : Nonnegative-Flonum  #:= 1440.0]
+     [vh : Nonnegative-Flonum  #:= 820.0]
+     [rem : Nonnegative-Flonum #:= 12.0]
+     [em : Nonnegative-Flonum  #:= 12.0]
+     [ex : Nonnegative-Flonum  #:= 8.0]
+     [ch : Nonnegative-Flonum  #:= 8.0]
+     [ic : Nonnegative-Flonum  #:= 12.0])
+    #:transparent
+    #:mutable)
 
+  (define length% : FlCSS% (make-flcss%))
+  (define css-cache-computed-object-value : (Parameterof Boolean) (make-parameter #true))
   (define css-ref : (All (a b) (case-> [CSS-Values (Option CSS-Values) Symbol -> CSS-Datum]
                                        [CSS-Values (Option CSS-Values) Symbol (-> Symbol CSS-Datum (∩ a CSS-Datum)) -> a]
                                        [CSS-Values (Option CSS-Values) Symbol (-> Any Boolean : #:+ (∩ a CSS-Datum)) (∩ b CSS-Datum)
@@ -1086,12 +1087,12 @@
             [else (list any)])))
 
 
-  (define css-log-syntax-error : (->* (CSS-Syntax-Error) (Logger (Option CSS:Ident)) Void)
-    (lambda [errobj [logger (current-logger)] [property #false]]
+  (define css-log-syntax-error : (->* (CSS-Syntax-Error) ((Option CSS:Ident) Log-Level) Void)
+    (lambda [errobj [property #false] [level 'warning]]
       (define in : String (if (false? property) "" (format " #:in ~a" (css:ident-datum property))))
       (define any : (U EOF (Listof CSS-Token)) (exn:css-tokens errobj))
       (define-values (head others) (css-car/cdr (if (eof-object? any) null any)))
-      (log-message logger 'warning 'exn:css:syntax
+      (log-message (current-logger) level 'exn:css:syntax
                    (cond [(eof-object? head) (format "~a~a" (if (eof-object? any) eof null) in)]
                          [(null? others) (format "~a~a" (css-token->string head errobj) in)]
                          [else (format "~a ~a~a" (css-token->string head errobj) (map css-token-datum->string others) in)])
@@ -1119,7 +1120,7 @@
     (syntax-case stx []
       [(_ src css:bad:sub token datum)
        #'(let ([bad (css-make-token src css:bad:sub (cons (assert (object-name token) symbol?) datum))])
-           (log-message (current-logger) 'warning 'exn:css:read (css-token->string bad) bad)
+           (log-message (current-logger) 'debug 'exn:css:read (css-token->string bad) bad)
            bad)]))
   
   (define css-consume-token : (-> Input-Port (U String Symbol) (U EOF CSS-Token))
@@ -2010,7 +2011,7 @@
             [else (throw-v errobj)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define css-components->selectors : (-> (Listof CSS-Token) CSS-NameSpace-Hint (U (Listof+ CSS-Complex-Selector) CSS-Syntax-Error))
+  (define css-components->selectors : (-> (Listof CSS-Token) CSS-Namespace-Hint (U (Listof+ CSS-Complex-Selector) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#parse-selector
     ;;; https://drafts.csswg.org/selectors/#selector-list
@@ -2027,7 +2028,7 @@
               (let-values ([(complex-selector ?-terminal ?-rest) (css-car-complex-selector rest namespaces)])
                 (extract-complex-selector (cons complex-selector srotceles) ?-terminal ?-rest)))))))
   
-  (define css-car-complex-selector : (-> (Listof CSS-Token) CSS-NameSpace-Hint
+  (define css-car-complex-selector : (-> (Listof CSS-Token) CSS-Namespace-Hint
                                          (Values CSS-Complex-Selector (U EOF CSS:Delim) (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#combinators
@@ -2048,7 +2049,7 @@
                           (let-values ([(selector rest) (css-car-compound-selector ?-selectors combinator namespaces)])
                             (extract-relative-selector (cons selector srotceles) rest))))]))))
 
-  (define css-car-compound-selector : (-> (Listof CSS-Token) (Option CSS-Combinator) CSS-NameSpace-Hint
+  (define css-car-compound-selector : (-> (Listof CSS-Token) (Option CSS-Combinator) CSS-Namespace-Hint
                                           (Values CSS-Compound-Selector (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#grammar
@@ -2112,7 +2113,7 @@
         [(#\tab) (values '|| tokens)]
         [else (throw-exn:css:unrecognized token)])))
   
-  (define css-car-elemental-selector : (-> (U CSS:Ident CSS:Delim) (Listof CSS-Token) CSS-NameSpace-Hint
+  (define css-car-elemental-selector : (-> (U CSS:Ident CSS:Delim) (Listof CSS-Token) CSS-Namespace-Hint
                                            (Values (U Symbol True) (U Symbol True) (U Symbol Boolean) (Listof CSS-Token)))
     ;;; https://drafts.csswg.org/selectors/#structure
     ;;; https://drafts.csswg.org/selectors/#elemental-selectors
@@ -2150,7 +2151,7 @@
                  (extract-pseudo-class-selector (cons selector srotceles) rest2))]
               [else (throw-exn:css:missing-identifier maybe:)]))))
   
-  (define css-simple-block->attribute-selector : (-> CSS:Block CSS-NameSpace-Hint CSS-Attribute-Selector)
+  (define css-simple-block->attribute-selector : (-> CSS:Block CSS-Namespace-Hint CSS-Attribute-Selector)
     ;;; https://drafts.csswg.org/selectors/#attribute-selectors
     ;;; https://drafts.csswg.org/selectors/#attrnmsp
     ;;; https://drafts.csswg.org/selectors/#attribute-case
@@ -2363,7 +2364,7 @@
      [timestamp : Integer]
      [preferences : CSS-Media-Preferences]
      [imports : (Listof Positive-Integer)]
-     [namespaces : CSS-NameSpace]
+     [namespaces : CSS-Namespace]
      [rules : (Listof CSS-Grammar-Rule)]))
 
   (define css-stylesheet-placeholder : CSS-StyleSheet
@@ -2388,7 +2389,7 @@
                       stylesheet)))
           (let ([rules (css-consume-stylesheet /dev/cssin)])
             (when (positive? identity) (hash-set! pool identity css-stylesheet-placeholder))
-            (define namespaces : CSS-NameSpace (make-hasheq))
+            (define namespaces : CSS-Namespace (make-hasheq))
             (define-values (viewport imports grammars)
               (css-syntax-rules->grammar-rules location rules namespaces #true #true init-viewport pool))
             (define timestamp : Integer (if (string? location) (file-or-directory-modify-seconds location) (current-seconds)))
@@ -2397,7 +2398,7 @@
             stylesheet))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define css-syntax-rules->grammar-rules : (->* ((U String Symbol) (Listof CSS-Syntax-Rule) CSS-NameSpace Boolean Boolean)
+  (define css-syntax-rules->grammar-rules : (->* ((U String Symbol) (Listof CSS-Syntax-Rule) CSS-Namespace Boolean Boolean)
                                                  (CSS-Media-Preferences CSS-StyleSheet-Pool)
                                                  (Values CSS-Media-Preferences (Listof Positive-Integer) (Listof CSS-Grammar-Rule)))
     (lambda [src syntaxes0 namespaces can-import0? allow-namespace0?
@@ -2515,7 +2516,7 @@
             [(eof-object? 2nd) (cons '|| namespace)]
             [else (make+exn:css:unrecognized 1st)])))
 
-  (define css-@media->media-rule : (-> CSS-@Rule CSS-Media-Preferences CSS-NameSpace CSS-StyleSheet-Pool
+  (define css-@media->media-rule : (-> CSS-@Rule CSS-Media-Preferences CSS-Namespace CSS-StyleSheet-Pool
                                        (U (Listof CSS-Grammar-Rule) CSS-Media-Rule CSS-Syntax-Error Void))
     ;;; https://drafts.csswg.org/css-conditional/#contents-of
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
@@ -2544,7 +2545,7 @@
             [(not (css-query-support? (css-parse-feature-query (css-@rule-prelude support) name) (current-css-feature-support?))) null]
             [else (css-parse-rules (css:block-components ?-block))])))
   
-  (define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (Option CSS-NameSpace) (U CSS-Style-Rule CSS-Syntax-Error))
+  (define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (Option CSS-Namespace) (U CSS-Style-Rule CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-syntax/#style-rules
     ;;; https://drafts.csswg.org/selectors/#invalid
     (lambda [qr namespaces]
@@ -2651,10 +2652,10 @@
         (hash-set! descbase desc-name declared-value))
       (define desc-lazy-filter : (-> CSS:Ident Symbol (Listof+ CSS-Token) (U CSS-Datum CSS-Longhand-Values))
         (lambda [<desc-name> desc-name declared-values] 
-          (define flat-values : (Listof CSS-Token) (css-variable-substitude declared-values descbase null))
+          (define flat-values : (Listof CSS-Token) (css-variable-substitute <desc-name> declared-values descbase null))
           (cond [(null? flat-values) css:unset]
                 [else (let ([?-value (desc-filter desc-name (car flat-values) (cdr flat-values) void)])
-                        (cond [(exn:css? ?-value) (css-log-syntax-error ?-value (current-logger) <desc-name>) css:unset]
+                        (cond [(exn:css? ?-value) (css-log-syntax-error ?-value <desc-name>) css:unset]
                               [(void? ?-value) (make+exn:css:unrecognized <desc-name>) css:unset]
                               [else ?-value]))])))
       (define desc-set!-lazy : (-> CSS:Ident Symbol Boolean (Listof+ CSS-Token) Void)
@@ -2667,13 +2668,12 @@
       (define desc-set!-longhand : (-> CSS:Ident Symbol Boolean CSS-Longhand-Values (Listof+ CSS-Token) Void)
         (lambda [<desc-name> desc-name important? desc-value declared-values]
           (define exns : (Listof CSS-Syntax-Error) (remove-duplicates (filter exn:css? (hash-values desc-value)) eq?))
-          (define logger : Logger (current-logger))
           (define pending-thunk : (-> (U CSS-Longhand-Values CSS-Wide-Keyword))
             (thunk (let ([?-value (desc-lazy-filter <desc-name> desc-name declared-values)])
                      (cond [(not (hash? ?-value)) css:unset]
                            [else (let ([exns-again (remove-duplicates (filter exn:css? (hash-values ?-value)) eq?)])
                                    (cond [(not (pair? exns-again)) ?-value]
-                                         [else (for ([e (in-list exns-again)]) (css-log-syntax-error e logger <desc-name>))
+                                         [else (for ([e (in-list exns-again)]) (css-log-syntax-error e <desc-name>))
                                                css:unset]))]))))
           (cond [(null? exns)
                  (for ([(name value) (in-hash desc-value)] #:unless (exn:css? value))
@@ -2695,7 +2695,7 @@
                                                              [else desc-value]))]))
                                        (hash-set! descbase name (thunk desc-value))
                                        desc-value))))]
-                [else (for ([e (in-list exns)]) (css-log-syntax-error e logger <desc-name>))])))
+                [else (for ([e (in-list exns)]) (css-log-syntax-error e <desc-name>))])))
       (for ([property (in-list properties)])
         (cond [(list? property) (css-cascade-declarations desc-filter property descbase)]
               [else (let* ([<desc-name> : CSS:Ident (css-declaration-name property)]
@@ -2706,10 +2706,10 @@
                       (define decl-rest : (Listof CSS-Token) (cdr declared-values))
                       (when (desc-more-important? desc-name important?)
                         (define desc-value : (U CSS+Longhand-Values Void)
-                          (cond [(symbol-unreadable? desc-name) (css-lazy declared-values (css-declaration-lazy? property))]
+                          (cond [(symbol-unreadable? desc-name) (css-lazy <desc-name> declared-values (css-declaration-lazy? property))]
                                 [else (let ([deprecated! (thunk (void (make+exn:css:deprecated <desc-name>)))])
                                         (desc-filter desc-name decl-value decl-rest deprecated!))]))
-                        (cond [(void? desc-value) (make+exn:css:unrecognized <desc-name>)]
+                        (cond [(void? desc-value) (make+exn:css:unrecognized <desc-name> <desc-name> 'debug)]
                               [(hash? desc-value) (desc-set!-longhand <desc-name> desc-name important? desc-value declared-values)]
                               [(css:var? desc-value) (desc-set!-lazy <desc-name> desc-name important? declared-values)]
                               [(not (exn? desc-value)) (desc-set! desc-name important? (thunk desc-value))]
@@ -2719,7 +2719,7 @@
                                     (let ([tokens (exn:css-tokens desc-value)])
                                       (and (pair? tokens) (findf css:var? tokens))))
                                (desc-set!-lazy <desc-name> desc-name important? declared-values)]
-                              [else (css-log-syntax-error desc-value (current-logger) <desc-name>)])))]))
+                              [else (css-log-syntax-error desc-value <desc-name>)])))]))
       descbase))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2774,40 +2774,41 @@
       (for ([(--var lazy) (in-hash declared-values)] #:when (and (symbol-unreadable? --var) (not (box? lazy))))
         (define v : CSS-Datum (lazy))
         (when (and (css-lazy? v) (css-lazy-recursive? v))
-          (define flat-values : (Listof CSS-Token) (css-variable-substitude (css-lazy-force v) declared-values (list --var)))
+          (define property : CSS:Ident (css-lazy-property v))
+          (define flat-values : (Listof CSS-Token) (css-variable-substitute property (css-lazy-force v) declared-values (list --var)))
           (hash-set! declared-values --var
                      ; WARNING: The `empty` is not wrapped in `css-lazy`, that means this is an invalid variable.
-                     (let ([lazy-value (if (null? flat-values) empty (css-lazy flat-values #false))])
+                     (let ([lazy-value (if (null? flat-values) empty (css-lazy property flat-values #false))])
                        (thunk lazy-value)))))
       (unless (false? inherited-values)
         (for ([(--var lazy) (in-hash inherited-values)] #:when (symbol-unreadable? --var))
           (hash-ref! declared-values --var (thunk lazy))))
       declared-values))
 
-  (define css-variable-substitude : (-> (Listof CSS-Token) CSS-Values (Listof Symbol) (Listof CSS-Token))
+  (define css-variable-substitute : (-> CSS:Ident (Listof CSS-Token) CSS-Values (Listof Symbol) (Listof CSS-Token))
     ;;; https://drafts.csswg.org/css-variables/#invalid-variables
-    (lambda [decl-values variables refpath]
+    (lambda [property decl-values variables refpath]
       (let var-fold ([seulav : (Listof CSS-Token) null]
                      [rest-values : (Listof CSS-Token) decl-values])
         (define-values (head tail) (css-car/cdr rest-values))
         (cond [(eof-object? head) (if (css-pair? seulav) (reverse (filter-not css:whitespace? seulav)) seulav)]
               [(css:function? head)
                (cond [(not (css:function-lazy? head)) (var-fold (cons head seulav) tail)] 
-                     [else (let ([args (css-variable-substitude (css:function-arguments head) variables refpath)])
+                     [else (let ([args (css-variable-substitute property (css:function-arguments head) variables refpath)])
                              (cond [(css-pair? args) (var-fold (cons (css:function-copy head args #false) seulav) tail)]
                                    [(pair? args) (var-fold (cons (css:function-copy head null #false) seulav) tail)]
                                    [else null]))])]
               [(css:λracket? head)
                (cond [(not (css:λracket-lazy? head)) (var-fold (cons head seulav) tail)]
-                     [else (let ([args (css-variable-substitude (css:λracket-arguments head) variables refpath)])
+                     [else (let ([args (css-variable-substitute property (css:λracket-arguments head) variables refpath)])
                              (cond [(css-pair? args) (var-fold (cons (css:λracket-copy head args #false) seulav) tail)]
                                    [(pair? args) (var-fold (cons (css:λracket-copy head null #false) seulav) tail)]
                                    [else null]))])]
               [(and (css:url? head) (css:url-lazy? head))
-               (define mods (css-variable-substitude (css:url-modifiers head) variables refpath))
+               (define mods (css-variable-substitute property (css:url-modifiers head) variables refpath))
                (if (pair? mods) (var-fold (cons (css:url-copy head (css-url-modifiers-filter head mods) #false) seulav) tail) mods)]
               [(not (css:var? head)) (var-fold (cons head seulav) tail)]
-              [(memq (css:var-datum head) refpath) (make+exn:css:cyclic head) null]
+              [(memq (css:var-datum head) refpath) (make+exn:css:cyclic head property 'debug) null]
               [else (let ([--var (css:var-datum head)])
                       (define lazy-tokens : CSS+Lazy-Value (hash-ref variables --var (thunk (thunk css:initial))))
                       (define-values (--vs lazy?)
@@ -2815,9 +2816,10 @@
                               [else (let ([v (lazy-tokens)])
                                       (cond [(css-lazy? v) (values (css-lazy-force v) (css-lazy-recursive? v))]
                                             [else (values (css:var-fallback head) (css:var-lazy? head))]))]))
-                      (cond [(null? --vs) (make+exn:css:missing-value head) null]
+                      (cond [(null? --vs) (make+exn:css:missing-value head property 'debug) null]
                             [(not lazy?) (var-fold (append (reverse --vs) seulav) tail)]
-                            [else (let ([vs (css-variable-substitude --vs variables (cons --var refpath))])
+                            [else (let ([vs (css-variable-substitute property --vs variables (cons --var refpath))])
+                                    ; Here is intended to only report with the "toplevel" property
                                     (if (null? vs) vs (var-fold (append (reverse vs) seulav) tail)))]))])))))
 
 (require (submod "." digitama))
@@ -2871,10 +2873,10 @@
 (define-syntax (define-css-declared-racket-value-filter stx)
   (syntax-case stx []
     [(_ value-filter #:with ?-value #:as ValueType asserts ...)
-     #'(define value-filter : (-> CSS:Racket (U ValueType CSS-Syntax-Error))
-         (lambda [racket-id]
-           (define ?-value (css-eval-value racket-id))
-           (cond asserts ... [(exn:css? ?-value) ?-value] [else (make-exn:css:racket:type racket-id)])))]
+     #'(define value-filter : (->* (CSS:Racket) (Namespace) (U ValueType CSS-Syntax-Error))
+         (lambda [racket-id [ns (current-namespace)]]
+           (define ?-value (css-eval-value racket-id ns))
+           (cond asserts ... [(exn:css? ?-value) ?-value] [else (make-exn:css:contract racket-id)])))]
     [(_ value-filter #:is-a? class% #:as ValueType)
      #'(define-css-declared-racket-value-filter value-filter #:with ?-value #:as ValueType
          [(is-a? ?-value class%) (cast ?-value ValueType)])]
@@ -2904,8 +2906,8 @@
       (cond [(css:hash? head)
              (define-values (value rest) (css-car/cdr tail))
              (define λ:kw : Keyword (css:hash-datum head))
-             (cond [(eof-object? value) (make-exn:css:racket:arity head)]
-                   [(not (memq λ:kw λ:all)) (make-exn:css:racket:unexpected head)]
+             (cond [(eof-object? value) (make-exn:css:arity head)]
+                   [(not (memq λ:kw λ:all)) (make-exn:css:racket:unrecognized head)]
                    [else (let ([datum (λfilter λname λ:kw value)])
                            (cond [(exn:css? datum) datum]
                                  [(void? datum) (λ-filter spxes rest position λ:kws)]
@@ -2913,16 +2915,16 @@
             [(css-token? head)
              (define datum : (U CSS-Datum CSS-Syntax-Error Void) (λfilter λname position head))
              (cond [(exn:css? datum) datum]
-                   [(void? datum) (make-exn:css:racket:arity args)]
+                   [(void? datum) (make-exn:css:arity args)]
                    [else (λ-filter (cons datum spxes) tail (add1 position) λ:kws)])]
-            [(nor (null? λ:kws) (or (memq position λarities) (>= position λarity-min))) (make-exn:css:racket:arity <λ>)]
+            [(nor (null? λ:kws) (or (memq position λarities) (>= position λarity-min))) (make-exn:css:arity <λ>)]
             [else (css-@λ (cons λname (reverse spxes)))]))))
 
-(define css-eval-value : (-> CSS:Racket (U Any CSS-Syntax-Error))
-  (lambda [<thing>]
+(define css-eval-value : (-> CSS:Racket Namespace (U Any CSS-Syntax-Error))
+  (lambda [<thing> ns]
     (with-handlers ([exn? (λ _ (make-exn:css:racket <thing>))])
       (define id : Symbol (css:racket-datum <thing>))
-      (define v (namespace-variable-value id #true (thunk (call-with-values (thunk (eval id)) (λ _ (car _))))))
+      (define v (call-with-values (thunk (eval id ns)) (λ _ (car _))))
       (if (parameter? v) (v) v))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2954,9 +2956,10 @@
   (define css-logger (make-logger 'css #false))
   (define css (thread (thunk (let forever ([/dev/log (make-log-receiver css-logger 'debug)])
                                (match (sync/enable-break /dev/log)
-                                 [(vector _ message urgent _)
+                                 [(vector level message urgent _)
                                   (cond [(eof-object? urgent) (close-output-port out)]
-                                        [else (displayln message out) (forever /dev/log)])])))))
+                                        [else (fprintf out "[~a] ~a~n" level message)
+                                              (forever /dev/log)])])))))
 
   (current-logger css-logger)
   (css-deprecate-media-type #true)
