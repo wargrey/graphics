@@ -2907,7 +2907,7 @@
              (define-values (value rest) (css-car/cdr tail))
              (define λ:kw : Keyword (css:hash-datum head))
              (cond [(eof-object? value) (make-exn:css:arity head)]
-                   [(not (memq λ:kw λ:all)) (make-exn:css:racket:unrecognized head)]
+                   [(not (memq λ:kw λ:all)) (make-exn:css:unrecognized head)]
                    [else (let ([datum (λfilter λname λ:kw value)])
                            (cond [(exn:css? datum) datum]
                                  [(void? datum) (λ-filter spxes rest position λ:kws)]
