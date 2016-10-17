@@ -2922,6 +2922,7 @@
 
 (define css-eval-value : (-> CSS:Racket Namespace (U Any CSS-Syntax-Error))
   (lambda [<thing> ns]
+    ;;; WARNING: This operation is extremely expensive at first time.
     (with-handlers ([exn? (λ _ (make-exn:css:racket <thing>))])
       (define id : Symbol (css:racket-datum <thing>))
       (define v (call-with-values (thunk (eval id ns)) (λ _ (car _))))
