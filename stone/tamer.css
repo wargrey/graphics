@@ -20,7 +20,7 @@ span.RktCmt, span.RktOut, span.RktErr, span.RktRes {
 }
 
 span.techinside {
-	font-style: italic;
+    font-style: italic;
 }
 
 blockquote.SCodeFlow {
@@ -39,6 +39,6 @@ blockquote.refcontent {
 }
 
 ul.HBdigimon, li.HBdigimonItem {
-	list-style-type: none;
-	margin-left: 0;
+    list-style-type: none;
+    margin-left: 0;
 }
