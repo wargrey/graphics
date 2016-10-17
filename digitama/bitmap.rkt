@@ -546,11 +546,10 @@
 
   (define the-image-pool : (HashTable (U CSS-Image String) Bitmap) (make-hash))
 
-  (define-@λ-pool the-@icon-pool
-    #:λnames #px"-(icon|logo)$"
-    #:requires [images/logos images/icons/arrow images/icons/control
-                images/icons/file images/icons/misc images/icons/stickman
-                images/icons/symbol images/icons/tool])
+  (define-@λ-pool the-@icon-pool #:λnames #px"-(icon|logo)$"
+    images/logos images/icons/arrow images/icons/control
+    images/icons/file images/icons/misc images/icons/stickman
+    images/icons/symbol images/icons/tool)
   
   (define css-@icon-filter : CSS-@λ-Filter
     (lambda [λname λ:kw/λpos value]
