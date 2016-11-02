@@ -2914,9 +2914,10 @@
 (require (submod "." grammar))
 
 ;;; Interacting with Racket
-(define-type CSS-@λ-Keyword-Filter (-> Symbol Keyword (U (CSS:Filter CSS-Datum) Void)))
 (define-type CSS-@λ-Metainfo (Vector (Listof Keyword) (Listof Keyword) (Listof Natural) (U Natural +inf.0)))
 (define-type CSS-@λ-Pool (HashTable Symbol CSS-@λ-Metainfo))
+(define-type CSS-@λ-Filter (case-> [Symbol Keyword -> (U (CSS:Filter CSS-Datum) Void)]
+                                   [Symbol False -> (CSS-Parser (Listof CSS-Datum))]))
 
 (begin-for-syntax
   (require racket/list)
@@ -2968,8 +2969,8 @@
      #'(define-css-declared-racket-value-filter value-filter #:with ?-value #:as ValueType
          [(type? ?-value) ?-value])]))
 
-(define css:@λ-filter : (->* (CSS-@λ-Pool (CSS-Parser (Listof CSS-Datum))) (CSS-@λ-Keyword-Filter) (CSS:Filter CSS-@λ))
-  (lambda [λpool λparser [λkw-filter void]]
+(define css:@λ-filter : (-> CSS-@λ-Pool CSS-@λ-Filter (CSS:Filter CSS-@λ))
+  (lambda [λpool λfilter]
     (define (do-filter [<λ> : CSS:λRacket] [λname : Symbol] [λinfo : CSS-@λ-Metainfo]) : (U CSS-@λ CSS-Syntax-Error)
       (define λ:all : (Listof Keyword) (vector-ref λinfo 1))
       (define λarities : (Listof Natural) (vector-ref λinfo 2))
@@ -2983,15 +2984,15 @@
                (define λ:kw : Keyword (css:hash-datum head))
                (cond [(eof-object? value) (make-exn:css:arity head)]
                      [(not (memq λ:kw λ:all)) (make-exn:css:unrecognized head)]
-                     [else (let ([kw:filter (λkw-filter λname λ:kw)])
+                     [else (let ([kw:filter (λfilter λname λ:kw)])
                              (cond [(void? kw:filter) (λ-fold swk λ:mkws rest)]
                                    [else (let ([datum (kw:filter value)])
                                            (cond [(exn:css? datum) datum]
                                                  [(false? datum) (make-exn:css:type value)]
-                                                 [else (λ-fold (cons datum (cons λ:kw swk))
-                                                               (remq λ:kw λ:mkws) rest)]))]))])]
+                                                 [else (λ-fold (cons datum (cons λ:kw swk)) (remq λ:kw λ:mkws) rest)]))]))])]
               [(pair? λ:mkws) (make-exn:css:arity <λ>)]
-              [else (let-values ([(argl rest) (λparser swk args)])
+              [else (let ([λparser (λfilter λname #false)])
+                      (define-values (argl rest) (λparser swk args))
                       (cond [(exn:css? argl) argl]
                             [(false? argl) (make-exn:css:type args)]
                             [(pair? rest) (make-exn:css:overconsumption rest)]
