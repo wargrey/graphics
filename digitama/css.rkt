@@ -587,29 +587,32 @@
 
   (define-syntax (define-css-function-filter stx)
     (syntax-parse stx
-      [(_ func-filter #:-> RangeType #:parsers [([fname matches ...] aliases ...) fexpr fparsers ...] ...
+      [(_ func-filter #:-> RangeType [(fname+aliases matches ...) #:~> fparser #:=> fexpr] ...
           (~optional (~seq #:where (~and definitions [defaux ...]))))
        (with-syntax ([defines (if (attribute definitions) #'(begin defaux ...) #'(void))]
+                     [([fname aliases ...] ...)
+                      (for/list ([<fname> (in-list (syntax->list #'(fname+aliases ...)))])
+                        (if (list? (syntax-e <fname>)) <fname> (list <fname>)))]
                      [([[type? var ...] ...] ...)
                       (for/list ([<matches> (in-list (syntax->list #'([matches ...] ...)))])
-                        (for/list ([<pattern> (in-list (syntax->list <matches>))])
+                        (for/list ([<pattern> (in-list (#| NOTE |# reverse (syntax->list <matches>)))])
                           (if (list? (syntax-e <pattern>)) <pattern> (list #'values <pattern>))))])
-         #'(define (func-filter [final : (-> (Listof CSS-Datum) RangeType) definal]) : (CSS:Filter RangeType) defines
+         #'(define (func-filter) : (CSS:Filter RangeType) defines
              (define do-parse : (-> Symbol (CSS-Parser (Listof CSS-Datum)) (U (Listof CSS-Datum) CSS-Syntax-Error))
                (lambda [func-name func-parse func-argl]
                  (define-values (fargs --tokens) (func-parse (list func-name) func-argl))
                  (cond [(exn:css? fargs) fargs]
                        [(false? fargs) (make-exn:css:type --tokens)]
                        [(pair? --tokens) (make-exn:css:overconsumption --tokens)]
-                       [else (reverse fargs)])))
+                       [else fargs #| NOTE: the list is intended to left reversed |#])))
              (λ [[token : CSS-Syntax-Any]] : (CSS-Option RangeType)
                (and (css:function? token)
                     (let ([argl : (Listof CSS-Token) (css:function-arguments token)])
                       (case (css:function-norm color-value)
                         [(fname aliases ...)
                          (match (do-parse 'fname fparser argl)
-                           [(list _ (? type? var ...) ...) fexpr]
-                           [(? list? should-not-happen) (make-exn:css:malformed token)]
+                           [(list (? type? var ...) ... _) fexpr] ; NOTE: the list is reversed
+                           [(? list?) (make-exn:css:arity token)]
                            [(? exn? e) e])]
                         ...
                         [else (make-exn:css:range token)]))))))]))
@@ -667,6 +670,14 @@
       (λ [[token : CSS-Syntax-Any]] : (CSS-Option a)
         (define datum : (CSS-Option a) (css-filter token))
         (if (not (false? datum)) datum default-value))))
+
+  (define CSS:<$> : (All (a) (->* ((CSS:Filter a) (-> (U CSS-Syntax-Any (Listof CSS-Token)) CSS-Syntax-Error)) (Boolean) (CSS:Filter a)))
+    (lambda [css-filter make-exn [s/exn/? #true]]
+      (λ [[token : CSS-Syntax-Any]] : (CSS-Option a)
+        (define datum : (CSS-Option a) (css-filter token))
+        (cond [(false? datum) (make-exn token)]
+              [(and s/exn/? (exn:css? datum)) (make-exn token)]
+              [else datum]))))
   
   (define CSS<^> : (-> (CSS:Filter CSS-Datum) (CSS-Parser (Listof CSS-Datum)))
     (lambda [atom-filter]
@@ -694,12 +705,13 @@
                 [(pair? tail-parsers) (switch (car tail-parsers) (cdr tail-parsers))]
                 [else (values ++data --tokens)])))))
 
-  (define CSS<~> : (All (a) (-> (CSS-Parser a) (CSS-Parser a) (CSS-Parser a)))
-    (lambda [cond-parser value-parser]
+  (define CSS<?> : (All (a) (->* ((CSS-Parser a) (CSS-Parser a)) ((Option (CSS-Parser a)) Boolean) (CSS-Parser a)))
+    (lambda [cond-parser then-parser [else-parser #false] [need-cond? #false]]
       (λ [[data : a] [tokens : (Listof CSS-Token)]] : (Values (CSS-Option a) (Listof CSS-Token))
         (define-values (++data --tokens) (cond-parser data tokens))
-        (cond [(nor (false? ++data) (exn:css? ++data)) (value-parser data --tokens)]
-              [else (values ++data tokens)]))))
+        (cond [(nor (false? ++data) (exn:css? ++data)) (then-parser (if need-cond? ++data data) --tokens)]
+              [(false? else-parser) (values ++data tokens)]
+              [else (else-parser data tokens)]))))
   
   (define CSS<*> : (All (a) (->* ((CSS-Parser a)) (Index (U Index +inf.0)) (CSS-Parser a)))
     (lambda [css-parser [least 0] [maybe-most +inf.0]]
@@ -713,15 +725,8 @@
                       (cond [(or (false? ++data) (exn:css? ++data)) (if (< least n) (values data++ tokens--) (values ++data --tokens))]
                             [(= n most) (values ++data --tokens)] ; (= n +inf.0) also does not make much sense
                             [else (seq ++data --tokens (add1 n))])))])))
-  
-  (define CSS<?> : (All (a) (->* ((CSS-Parser a)) ((Option '#:ignore-syntax-error)) (CSS-Parser a)))
-    (lambda [css-parser [ignore? #false]]
-      (λ [[data : a] [tokens : (Listof CSS-Token)]] : (Values (CSS-Option a) (Listof CSS-Token))
-        (define-values (++data --tokens) (css-parser data tokens))
-        (cond [(or (false? ++data) (and ignore? (exn:css? ++data))) (values data tokens)]
-              [else (values ++data --tokens)]))))
 
-  (define CSS<$> : (All (a) (-> (CSS-Parser a) * (CSS-Parser a)))
+  (define CSS<~> : (All (a) (-> (CSS-Parser a) * (CSS-Parser a)))
     (lambda css-parsers
       (λ [[data : a] [tokens : (Listof CSS-Token)]] : (Values (CSS-Option a) (Listof CSS-Token))
         (let datum-fold ([data++ : a data]
@@ -752,6 +757,11 @@
       (λ [[token : CSS-Syntax-Any]] : (CSS-Option b)
         (define datum : (CSS-Option a) (css-filter token))
         (if (exn:css? datum) datum (and datum (css->racket datum))))))
+
+  (define css:eof-filter : (All (a) (-> a (CSS:Filter a)))
+    (lambda [eof-value]
+      (λ [[token : CSS-Syntax-Any]] : (CSS-Option a)
+        (and (eof-object? token) eof-value))))
   
   (define-css-disjoined-filter css-keyword-filter #:-> Symbol
     #:with [[options : (U (Listof Symbol) Symbol)]]
@@ -785,6 +795,9 @@
     (lambda [options [none 'none]]
       (CSS<+> (CSS<^> (CSS:<=> (css-keyword-filter none) null))
               (CSS<*> (CSS<^> (css-keyword-filter options)) 1 +inf.0))))
+
+  (define css-comma-parser : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (css:delim-filter #\,) make-exn:css:missing-comma)))
+  (define css-slash-parser : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (css:delim-filter #\/) make-exn:css:missing-slash)))
 
   ;; https://drafts.csswg.org/selectors/#grammar
   ;; https://drafts.csswg.org/selectors/#structure
@@ -1106,8 +1119,8 @@
         (css:percentage-filter nonnegative-single-flonum?)
         (css+length-filter #true))
       (define (size-parser [min-size : Symbol] [max-size : Symbol]) : (Pairof (CSS-Parser CSS-Longhand-Values) (Listof Symbol))
-        (cons (CSS<•> (CSS<$> (CSS<#> (viewport-length-filter) min-size)
-                              (CSS<?> (CSS<#> (viewport-length-filter) max-size)))
+        (cons (CSS<•> (CSS<~> (CSS<#> (viewport-length-filter) min-size)
+                              (CSS<*> (CSS<#> (viewport-length-filter) max-size) 0 1))
                       (λ [[longhand : (HashTable Symbol CSS-Datum)]]
                         (cond [(hash-has-key? longhand max-size) longhand]
                               [else (hash-set longhand max-size (hash-ref longhand min-size))])))
