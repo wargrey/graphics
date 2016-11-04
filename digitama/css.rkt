@@ -93,7 +93,7 @@
   (define-syntax (define-token-interface stx)
     (syntax-case stx [:]
       [(_ symbolic-prefix : Type id? id-datum #:+ CSS:ID #:eq? type=?)
-       (with-syntax ([id-filter (format-id #'symbolic-prefix "~a-filter" (syntax-e #'symbolic-prefix))]
+       (with-syntax ([<id> (format-id #'symbolic-prefix "<~a>" (syntax-e #'symbolic-prefix))]
                      [id=<-? (format-id #'symbolic-prefix "~a=<-?" (syntax-e #'symbolic-prefix))]
                      [id=:=? (format-id #'symbolic-prefix "~a=:=?" (syntax-e #'symbolic-prefix))])
          #'(begin (define id=<-? : (All (a) (case-> [Any (-> Type Boolean : #:+ a) -> (Option a) : #:+ CSS:ID]
@@ -103,9 +103,9 @@
                                          (cond [(procedure? range?) (and (range? datum) datum)]
                                                [else (and (member datum range? type=?) datum)])))))
 
-                  (define id-filter : (All (a) (case-> [(-> Type Boolean : #:+ a) -> (CSS:Filter a)]
-                                                       [(U (-> Type Boolean) (Listof Type) Type) -> (CSS:Filter Type)]
-                                                       [-> (CSS:Filter Type)]))
+                  (define <id> : (All (a) (case-> [(-> Type Boolean : #:+ a) -> (CSS:Filter a)]
+                                                  [(U (-> Type Boolean) (Listof Type) Type) -> (CSS:Filter Type)]
+                                                  [-> (CSS:Filter Type)]))
                     (case-lambda
                       [() (λ [[t : CSS-Syntax-Any]] (and (id? t) (id-datum t)))]
                       [(range?) (cond [(procedure? range?)
@@ -128,7 +128,7 @@
                            (let ([d : Type (id-datum t)])
                              (and (type=? d v) d)))))))]
       [(_ numeric-prefix : Type id? id-datum #:+ CSS:ID #:= type=?)
-       (with-syntax ([id-filter (format-id #'numeric-prefix "~a-filter" (syntax-e #'numeric-prefix))]
+       (with-syntax ([<id> (format-id #'numeric-prefix "<~a>" (syntax-e #'numeric-prefix))]
                      [id=<-? (format-id #'numeric-prefix "~a=<-?" (syntax-e #'numeric-prefix))])
          #'(begin (define id=<-? : (All (a) (case-> [Any (-> Type Boolean : #:+ a) -> (Option a) : #:+ CSS:ID]
                                                     [Any (-> Type Type Boolean) Type -> (Option Type) : #:+ CSS:ID]
@@ -141,11 +141,11 @@
                                                                           [else (for/or : (Option Type) ([v (in-list range?)])
                                                                                   (and (type=? d v) d))])))]))
 
-                  (define id-filter : (All (a) (case-> [(-> Type Boolean : #:+ a) -> (CSS:Filter a)]
-                                                       [(-> Type Type Boolean) Type -> (CSS:Filter Type)]
-                                                       [Type (-> Type Type Boolean) Type -> (CSS:Filter Type)]
-                                                       [(Listof Type) -> (CSS:Filter Type)]
-                                                       [-> (CSS:Filter Type)]))
+                  (define <id> : (All (a) (case-> [(-> Type Boolean : #:+ a) -> (CSS:Filter a)]
+                                                 [(-> Type Type Boolean) Type -> (CSS:Filter Type)]
+                                                 [Type (-> Type Type Boolean) Type -> (CSS:Filter Type)]
+                                                 [(Listof Type) -> (CSS:Filter Type)]
+                                                 [-> (CSS:Filter Type)]))
                     (case-lambda
                       [() (λ [[t : CSS-Syntax-Any]] (and (id? t) (id-datum t)))]
                       [(op n) (λ [[t : CSS-Syntax-Any]] (or (id=<-? t op n) (and (id? t) (make-exn:css:range t))))]
@@ -228,15 +228,15 @@
       [(_ parent #:+ _ [id #:+ ID #:=> canonical-unit [transforms ...]] ...)
        (with-syntax ([token->datum (format-id #'parent "~a->datum" (syntax-e #'parent))]
                      [token-filter (format-id #'parent "~a-filter" (syntax-e #'parent))]
-                     [([id? +id? css:id->scalar css-id->scalar id-filter +id-filter] ...)
+                     [([id? +id? css:id->scalar css-id->scalar <id> <+id>] ...)
                       (for/list ([<id> (in-list (syntax->list #'(id ...)))])
                         (define varname (symbol->string (syntax-e <id>)))
                         (list (format-id <id> "~a?" (syntax-e <id>))
                               (format-id <id> "~a?" (string-replace varname ":" "+"))
                               (format-id <id> "~a->scalar" (syntax-e <id>))
                               (format-id <id> "~a->scalar" (string-replace varname ":" "-"))
-                              (format-id <id> "~a-filter" (syntax-e <id>))
-                              (format-id <id> "~a-filter" (string-replace varname "css:" "css+"))))]
+                              (format-id <id> "<~a>" (syntax-e <id>))
+                              (format-id <id> "<~a>" (string-replace varname "css:" "css+"))))]
                      [([Flonum/Font Flunum/Font !font?] ...)
                       (for/list ([<id> (in-list (syntax->list #'(id ...)))])
                         (if (not (eq? (syntax-e <id>) 'css:length))
@@ -269,9 +269,9 @@
                           (css-zero? token))))
                   ...
 
-                  (define id-filter : (case-> [-> (CSS:Filter Flonum/Font)]
-                                              [False -> (CSS:Filter Flonum/Font)]
-                                              [True -> (CSS:Filter Flonum)])
+                  (define <id> : (case-> [-> (CSS:Filter Flonum/Font)]
+                                         [False -> (CSS:Filter Flonum/Font)]
+                                         [True -> (CSS:Filter Flonum)])
                     (lambda [[ignore-font? #false]]
                       (λ [[token : CSS-Syntax-Any]]
                         (cond [(id? token) (if (or ignore-font? !font?) (css:id->scalar token) token)]
@@ -279,9 +279,9 @@
                               [else #false]))))
                   ...
 
-                  (define +id-filter : (case-> [-> (CSS:Filter Flunum/Font)]
-                                               [False -> (CSS:Filter Flunum/Font)]
-                                               [True -> (CSS:Filter Nonnegative-Flonum)])
+                  (define <+id> : (case-> [-> (CSS:Filter Flunum/Font)]
+                                          [False -> (CSS:Filter Flunum/Font)]
+                                          [True -> (CSS:Filter Nonnegative-Flonum)])
                     (lambda [[ignore-font? #false]]
                       (λ [[token : CSS-Syntax-Any]]
                         (cond [(+id? token) (if (or ignore-font? !font?) (css:id->scalar token) token)]
@@ -687,13 +687,15 @@
         (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
               [else (values (cons datum data) tail)]))))
   
-  (define CSS<#> : (-> (CSS:Filter CSS-Datum) Symbol (CSS-Parser CSS-Longhand-Values))
-    (lambda [atom-filter tag]
+  (define CSS<#> : (->* ((CSS:Filter CSS-Datum) Symbol) ((Option (-> Symbol CSS-Datum CSS-Datum CSS-Datum)))
+                        (CSS-Parser CSS-Longhand-Values))
+    (lambda [atom-filter tag [updater #false]]
       (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
         (define-values (head tail) (css-car/cdr tokens))
         (define datum : (CSS-Option CSS-Datum) (atom-filter head))
         (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
-              [else (values (hash-set data tag datum) tail)]))))
+              [else (let ([longhand-set (λ [[v : CSS-Datum]] (if (and v updater) (updater tag v datum) datum))])
+                      (values (hash-update data tag longhand-set (thunk #false)) tail))]))))
   
   (define CSS<+> : (All (a) (-> (CSS-Parser a) (CSS-Parser a) * (CSS-Parser a)))
     (lambda [head-branch . tail-branches]
@@ -763,41 +765,41 @@
       (λ [[token : CSS-Syntax-Any]] : (CSS-Option a)
         (and (eof-object? token) eof-value))))
   
-  (define-css-disjoined-filter css-keyword-filter #:-> Symbol
+  (define-css-disjoined-filter <css-keyword> #:-> Symbol
     #:with [[options : (U (Listof Symbol) Symbol)]]
-    (css:ident-norm-filter options))
+    (<css:ident-norm> options))
   
-  (define-css-disjoined-filter css-boolean-filter #:-> (U Zero One)
-    (CSS:<=> (css:integer-filter = 0) 0)
-    (CSS:<=> (css:integer-filter = 1) 1))
+  (define-css-disjoined-filter <css-boolean> #:-> (U Zero One)
+    (CSS:<=> (<css:integer> = 0) 0)
+    (CSS:<=> (<css:integer> = 1) 1))
   
-  (define-css-disjoined-filter css-natural-filter #:-> Natural
-    (css:integer-filter exact-nonnegative-integer?))
+  (define-css-disjoined-filter <css-natural> #:-> Natural
+    (<css:integer> exact-nonnegative-integer?))
   
-  (define-css-disjoined-filter css+real-filter #:-> (U Natural Nonnegative-Flonum)
-    (css:flonum-filter nonnegative-flonum?)
-    (css:integer-filter exact-nonnegative-integer?))
+  (define-css-disjoined-filter <css+real> #:-> (U Natural Nonnegative-Flonum)
+    (<css:flonum> nonnegative-flonum?)
+    (<css:integer> exact-nonnegative-integer?))
 
-  (define-css-disjoined-filter css+%real-filter #:-> (U Natural Nonnegative-Inexact-Real)
-    (css:percentage-filter nonnegative-single-flonum?)
-    (css+real-filter))
+  (define-css-disjoined-filter <css+%real> #:-> (U Natural Nonnegative-Inexact-Real)
+    (<css:percentage> nonnegative-single-flonum?)
+    (<css+real>))
 
-  (define-css-disjoined-filter css-flunit-filter #:-> Nonnegative-Flonum
-    (CSS:<•> (css:flonum-filter 0.0 fl<= 1.0) flabs)
-    (CSS:<=> (css:integer-filter = 0) 0.0)
-    (CSS:<=> (css:integer-filter = 1) 1.0))
+  (define-css-disjoined-filter <css-flunit> #:-> Nonnegative-Flonum
+    (CSS:<•> (<css:flonum> 0.0 fl<= 1.0) flabs)
+    (CSS:<=> (<css:integer> = 0) 0.0)
+    (CSS:<=> (<css:integer> = 1) 1.0))
 
-  (define-css-disjoined-filter css-%flunit-filter #:-> Nonnegative-Flonum
-    (CSS:<•> (css:percentage-filter 0f0 <= 1f0) flabs real->double-flonum)
-    (css-flunit-filter))
+  (define-css-disjoined-filter <css-%flunit> #:-> Nonnegative-Flonum
+    (CSS:<•> (<css:percentage> 0f0 <= 1f0) flabs real->double-flonum)
+    (<css-flunit>))
 
-  (define css-keywords-parser : (->* ((Listof Symbol)) (Symbol) (CSS-Parser (Listof CSS-Datum)))
+  (define <CSS-Keywords> : (->* ((Listof Symbol)) (Symbol) (CSS-Parser (Listof CSS-Datum)))
     (lambda [options [none 'none]]
-      (CSS<+> (CSS<^> (CSS:<=> (css-keyword-filter none) null))
-              (CSS<*> (CSS<^> (css-keyword-filter options)) 1 +inf.0))))
+      (CSS<+> (CSS<^> (CSS:<=> (<css-keyword> none) null))
+              (CSS<*> (CSS<^> (<css-keyword> options)) 1 +inf.0))))
 
-  (define css-comma-parser : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (css:delim-filter #\,) make-exn:css:missing-comma)))
-  (define css-slash-parser : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (css:delim-filter #\/) make-exn:css:missing-slash)))
+  (define <CSS-Comma> : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (<css:delim> #\,) make-exn:css:missing-comma)))
+  (define <CSS-Slash> : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (<css:delim> #\/) make-exn:css:missing-slash)))
 
   ;; https://drafts.csswg.org/selectors/#grammar
   ;; https://drafts.csswg.org/selectors/#structure
@@ -957,22 +959,22 @@
       (case downcased-name
         [(width height device-width device-height resolution)
          (when (or (eq? downcased-name 'device-width) (eq? downcased-name 'device-height)) (deprecated!))
-         (css+length-filter #true)]
+         (<css+length> #true)]
         [(aspect-ratio device-aspect-ratio)
          (when (eq? downcased-name 'device-aspect-ratio) (deprecated!))
-         (CSS:<•> (css:ratio-filter) real->double-flonum)]
-        [(resolution) (CSS:<+> (CSS:<=> (css-keyword-filter 'infinite) +inf.0) (css:resolution-filter))]
-        [(color color-index monochrome) (css:integer-filter exact-nonnegative-integer?)]
-        [(grid) #|legacy descriptor|# (when (false? min/max?) (css-boolean-filter))]
-        [(orientation) (css-keyword-filter '(portrait landscape))]
-        [(scan) (css-keyword-filter '(interlace progressive))]
-        [(update) (css-keyword-filter '(none slow fast))]
-        [(overflow-block) (css-keyword-filter '(none scroll optional-paged paged))]
-        [(overflow-inline) (css-keyword-filter '(none scroll))]
-        [(color-gamut) (css-keyword-filter '(srgb p3 rec2020))]
-        [(pointer any-pointer) (css-keyword-filter '(none coarse fine))]
-        [(havor any-havor) (css-keyword-filter '(none havor))]
-        [(scripting) (css-keyword-filter '(none initial-only enabled))])))
+         (CSS:<•> (<css:ratio>) real->double-flonum)]
+        [(resolution) (CSS:<+> (CSS:<=> (<css-keyword> 'infinite) +inf.0) (<css:resolution>))]
+        [(color color-index monochrome) (<css:integer> exact-nonnegative-integer?)]
+        [(grid) #|legacy descriptor|# (when (false? min/max?) (<css-boolean>))]
+        [(orientation) (<css-keyword> '(portrait landscape))]
+        [(scan) (<css-keyword> '(interlace progressive))]
+        [(update) (<css-keyword> '(none slow fast))]
+        [(overflow-block) (<css-keyword> '(none scroll optional-paged paged))]
+        [(overflow-inline) (<css-keyword> '(none scroll))]
+        [(color-gamut) (<css-keyword> '(srgb p3 rec2020))]
+        [(pointer any-pointer) (<css-keyword> '(none coarse fine))]
+        [(havor any-havor) (<css-keyword> '(none havor))]
+        [(scripting) (<css-keyword> '(none initial-only enabled))])))
 
   (define css-deprecate-media-type : (Parameterof Boolean) (make-parameter #false))
   (define current-css-media-type : (Parameterof Symbol) (make-parameter 'all))
@@ -1115,10 +1117,10 @@
   (define css-viewport-parser : CSS-Declaration-Parser
     (lambda [suitcased-name !]
       (define-css-disjoined-filter viewport-length-filter #:-> (U Symbol Nonnegative-Inexact-Real)
-        (css-keyword-filter 'auto)
-        (css:percentage-filter nonnegative-single-flonum?)
-        (css+length-filter #true))
-      (define (size-parser [min-size : Symbol] [max-size : Symbol]) : (Pairof (CSS-Parser CSS-Longhand-Values) (Listof Symbol))
+        (<css-keyword> 'auto)
+        (<css:percentage> nonnegative-single-flonum?)
+        (<css+length> #true))
+      (define (make-size-parser [min-size : Symbol] [max-size : Symbol]) : (Pairof (CSS-Parser CSS-Longhand-Values) (Listof Symbol))
         (cons (CSS<•> (CSS<~> (CSS<#> (viewport-length-filter) min-size)
                               (CSS<*> (CSS<#> (viewport-length-filter) max-size) 0 1))
                       (λ [[longhand : (HashTable Symbol CSS-Datum)]]
@@ -1126,12 +1128,12 @@
                               [else (hash-set longhand max-size (hash-ref longhand min-size))])))
                (list min-size max-size)))
       (case suitcased-name
-        [(width) (size-parser 'min-width 'max-width)]
-        [(height) (size-parser 'min-height 'max-height)]
-        [(zoom min-zoom max-zoom) (CSS<^> (CSS:<+> (css-keyword-filter 'auto) (CSS:<•> (css+%real-filter) real->double-flonum)))]
+        [(width) (make-size-parser 'min-width 'max-width)]
+        [(height) (make-size-parser 'min-height 'max-height)]
+        [(zoom min-zoom max-zoom) (CSS<^> (CSS:<+> (<css-keyword> 'auto) (CSS:<•> (<css+%real>) real->double-flonum)))]
         [(min-width max-width min-height max-height) (CSS<^> (viewport-length-filter))]
-        [(orientation) (CSS<^> (css-keyword-filter '(auto portrait landscape)))]
-        [(user-zoom) (CSS<^> (css-keyword-filter '(zoom fixed)))]
+        [(orientation) (CSS<^> (<css-keyword> '(auto portrait landscape)))]
+        [(user-zoom) (CSS<^> (<css-keyword> '(zoom fixed)))]
         [else #false])))
 
   (define css-viewport-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol CSS-Media-Datum))
