@@ -624,16 +624,6 @@
       [(_ compound-filter #:-> RangeType atom-filters ...)
        #'(define compound-filter : (-> (CSS:Filter RangeType)) (λ [] (CSS:<+> atom-filters ...)))]))
 
-  (define-syntax (define-css-longhand-defaulting stx)
-    (syntax-parse stx #:literals [False]
-      [(_ id (~optional (~seq #:with datum #:as Type)) [property sexp ...] ...)
-       (with-syntax ([?Syntax-Error (if (attribute Type) #'(U Type CSS-Syntax-Error) #'(Option CSS-Syntax-Error))]
-                     [?datum (if (attribute datum) #'datum #'?exn)])
-         #'(define id : (->* (?Syntax-Error) (CSS-Longhand-Values) CSS-Longhand-Values)
-             (lambda [?datum [longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))]]
-               (hash-ref! longhand 'property (thunk (cond [(exn:css? ?datum) ?datum] [else sexp ...]))) ...
-               longhand)))]))
-
   (define-syntax (css-make-datum->size stx)
     (syntax-parse stx
       [(_ #:100% fl% #:= defval (~optional (~seq #:as NanType)) (~optional (~seq (~and #:no-direction +))))
