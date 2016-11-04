@@ -608,7 +608,7 @@
              (λ [[token : CSS-Syntax-Any]] : (CSS-Option RangeType)
                (and (css:function? token)
                     (let ([argl : (Listof CSS-Token) (css:function-arguments token)])
-                      (case (css:function-norm color-value)
+                      (case (css:function-norm token)
                         [(fname aliases ...)
                          (match (do-parse 'fname fparser argl)
                            [(list (? type? var ...) ... _) fexpr] ; NOTE: the list is reversed
@@ -760,7 +760,7 @@
         (define datum : (CSS-Option a) (css-filter token))
         (if (exn:css? datum) datum (and datum (css->racket datum))))))
 
-  (define css:eof-filter : (All (a) (-> a (CSS:Filter a)))
+  (define <css:eof> : (All (a) (-> a (CSS:Filter a)))
     (lambda [eof-value]
       (λ [[token : CSS-Syntax-Any]] : (CSS-Option a)
         (and (eof-object? token) eof-value))))
@@ -3008,22 +3008,23 @@
 
 (define-syntax (define-css-racket-value-filter stx)
   (syntax-case stx []
-    [(_ value-filter #:with ?-value #:as ValueType asserts ...)
-     #'(define value-filter : (->* () (Namespace) (CSS:Filter ValueType))
+    [(_ <racket-value> #:with ?-value #:as ValueType asserts ...)
+     #'(define <racket-value> : (->* () (Namespace) (CSS:Filter ValueType))
          (lambda [[ns (current-namespace)]]
            (λ [[token : CSS-Syntax-Any]] : (CSS-Option ValueType)
              (and (css:racket? token)
-                  (let ([?-value (css-eval-value racket-id ns)])
+                  (let* ([racket-id : Symbol (css:racket-datum token)]
+                         [?-value (css-eval-value racket-id ns)])
                     (cond asserts ... [(exn:css? ?-value) ?-value]
                           [else (make-exn:css:contract racket-id)]))))))]
-    [(_ value-filter #:is-a? class% #:as ValueType)
-     #'(define-css-racket-value-filter value-filter #:with ?-value #:as ValueType
+    [(_ <racket-value> #:is-a? class% #:as ValueType)
+     #'(define-css-racket-value-filter <racket-value> #:with ?-value #:as ValueType
          [(is-a? ?-value class%) (cast ?-value ValueType)])]
-    [(_ value-filter #:? type? #:as ValueType)
-     #'(define-css-racket-value-filter value-filter #:with ?-value #:as ValueType
+    [(_ <racket-value> #:? type? #:as ValueType)
+     #'(define-css-racket-value-filter <racket-value> #:with ?-value #:as ValueType
          [(type? ?-value) ?-value])]))
 
-(define-css-atomic-filter css:@λ-filter #:-> CSS-@λ #:with [[token : css:λracket?] [λpool : CSS-@λ-Pool] [λfilter : CSS-@λ-Filter]]
+(define-css-atomic-filter <css:@λ> #:-> CSS-@λ #:with [[token : css:λracket?] [λpool : CSS-@λ-Pool] [λfilter : CSS-@λ-Filter]]
   (define λid : Symbol (css:λracket-datum token))
   (cond [(hash-ref λpool λid (thunk #false)) => (λ [λinfo] (do-filter token λid λinfo))]
         [else (make-exn:css:range token)])
