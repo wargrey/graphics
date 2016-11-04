@@ -58,7 +58,7 @@
       [(self preference #:as Preference (fields ...) options ...) #'(self preference #:as Preference #:with [] (fields ...) options ...)]
       [(self preference #:as Preference #:with [[bindings BindTypes ...] ...] ([property : DataType info ...] ...) options ...)
        (with-syntax* ([make-preference (format-id #'preference "make-~a" (syntax-e #'preference))]
-                      [([?-property ArgType defval ...] ...)
+                      [([?property ArgType defval ...] ...)
                        (for/list ([field-info (in-list (syntax->list #'([property DataType info ...] ...)))])
                          (syntax-case field-info [Option]
                            [(p T #:= dv) #'[(if (css-wide-keyword? p) dv p) (U T CSS-Wide-Keyword) dv]]
@@ -80,7 +80,7 @@
                                        [else (cons (syntax-e property) properties)]))))])
          #'(begin (define-type Preference preference)
                   (struct preference ([property : DataType] ...) options ...)
-                  (define (make-preference args ...) : Preference (preference ?-property ...))
+                  (define (make-preference args ...) : Preference (preference ?property ...))
                   (define pref-bindings : (Listof Symbol) (list 'properties ...)) ...))]))
   
   (define-syntax (struct: stx)
@@ -627,11 +627,11 @@
   (define-syntax (define-css-longhand-defaulting stx)
     (syntax-parse stx #:literals [False]
       [(_ id (~optional (~seq #:with datum #:as Type)) [property sexp ...] ...)
-       (with-syntax ([?-Syntax-Error (if (attribute Type) #'(U Type CSS-Syntax-Error) #'(Option CSS-Syntax-Error))]
-                     [?-datum (if (attribute datum) #'datum #'?-exn)])
-         #'(define id : (->* (?-Syntax-Error) (CSS-Longhand-Values) CSS-Longhand-Values)
-             (lambda [?-datum [longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))]]
-               (hash-ref! longhand 'property (thunk (cond [(exn:css? ?-datum) ?-datum] [else sexp ...]))) ...
+       (with-syntax ([?Syntax-Error (if (attribute Type) #'(U Type CSS-Syntax-Error) #'(Option CSS-Syntax-Error))]
+                     [?datum (if (attribute datum) #'datum #'?exn)])
+         #'(define id : (->* (?Syntax-Error) (CSS-Longhand-Values) CSS-Longhand-Values)
+             (lambda [?datum [longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))]]
+               (hash-ref! longhand 'property (thunk (cond [(exn:css? ?datum) ?datum] [else sexp ...]))) ...
                longhand)))]))
 
   (define-syntax (css-make-datum->size stx)
@@ -1040,8 +1040,8 @@
   
   (define-syntax (call-with-css-media stx)
     (syntax-parse stx
-      [(_ (~optional (~seq #:preferences ?-preferences)) sexp ...)
-       (with-syntax ([preferences (or (attribute ?-preferences) #'(current-css-media-preferences))])
+      [(_ (~optional (~seq #:preferences ?preferences)) sexp ...)
+       (with-syntax ([preferences (or (attribute ?preferences) #'(current-css-media-preferences))])
          #'(let ([w (hash-ref preferences 'width (thunk #false))]
                  [h (hash-ref preferences 'height (thunk #false))])
              (when (and (real? w) (positive? w)) (set-flcss%-vw! length% (real->double-flonum w)))
@@ -1477,8 +1477,8 @@
   
   (define css-consume-name : (-> Input-Port (Option Char) String)
     ;;; https://drafts.csswg.org/css-syntax/#consume-a-name
-    (lambda [css ?-head]
-      (let consume-name ([srahc : (Listof Char) (if ?-head (list ?-head) null)])
+    (lambda [css ?head]
+      (let consume-name ([srahc : (Listof Char) (if ?head (list ?head) null)])
         (define ch : (U EOF Char) (peek-char css))
         (cond [(and (css-char-name? ch) (read-char css)) (consume-name (cons ch srahc))]
               [(and (css-valid-escape? ch (peek-char css 1)) (read-char css)) (consume-name (cons (css-consume-escaped-char css) srahc))]
@@ -1497,9 +1497,9 @@
                     (read-char css))
                (consume-number (cons ch chars))]
               [else (let* ([representation : String (list->string (reverse chars))]
-                           [?-number : (Option Complex) (string->number representation)])
-                      (cond [(exact-integer? ?-number) (values ?-number representation)]
-                            [(flonum? ?-number) (values ?-number representation)]
+                           [?number : (Option Complex) (string->number representation)])
+                      (cond [(exact-integer? ?number) (values ?number representation)]
+                            [(flonum? ?number) (values ?number representation)]
                             [else (values +nan.0 representation)]))]))))
 
   (define css-consume-hexadecimal : (->* (Input-Port Byte) (Fixnum #:\s?$? Boolean) (Values Fixnum Byte))
@@ -1699,10 +1699,10 @@
               [(or (css:whitespace? token) (css:semicolon? token)) (consume-declaration+@rule mixed-list)]
               [(css:@keyword? token) (consume-declaration+@rule (cons (css-consume-@rule /dev/cssin token) mixed-list))]
               [else (let-values ([(components _) (css-consume-components /dev/cssin #\;)])
-                      (define ?-declaration : (U CSS-Declaration CSS-Syntax-Error)
+                      (define ?declaration : (U CSS-Declaration CSS-Syntax-Error)
                         (cond [(css:ident? token) (css-components->declaration token components)]
                               [else (make+exn:css:missing-identifier token)]))
-                      (consume-declaration+@rule (css-cons ?-declaration mixed-list)))]))))
+                      (consume-declaration+@rule (css-cons ?declaration mixed-list)))]))))
   
   (define-css-parser-entry css-parse-component-value :-> (U CSS-Token CSS-Syntax-Error)
     ;;; https://drafts.csswg.org/css-syntax/#parse-component-value
@@ -1740,12 +1740,12 @@
                  (cond [(css:ident? next) (css-components->media-type+query next #false rest)]
                        [else (css-components->negation token tokens #true)])]
                 [(css:ident? token)
-                 (define-values (?-type ?-<and>)
+                 (define-values (?type ?<and>)
                    (cond [(css:ident-norm=:=? token 'only) (values next rest)]
                          [else (values token tokens)]))
-                 (cond [(eof-object? ?-type) (make+exn:css:missing-identifier ?-type)]
-                       [(css:ident? ?-type) (css-components->media-type+query ?-type #true ?-<and>)]
-                       [else (make+exn:css:unrecognized ?-type)])]
+                 (cond [(eof-object? ?type) (make+exn:css:missing-identifier ?type)]
+                       [(css:ident? ?type) (css-components->media-type+query ?type #true ?<and>)]
+                       [else (make+exn:css:unrecognized ?type)])]
                 [else (css-components->feature-query entry #true rulename)])))))
 
   (define-css-parser-entry css-parse-feature-query :-> CSS-Feature-Query
@@ -1799,15 +1799,15 @@
     ;;; https://drafts.csswg.org/css-syntax/#at-rule
     ;;; https://drafts.csswg.org/css-syntax/#consume-an-at-rule
     (lambda [css reconsumed-at-token]
-      (define-values (prelude ?-block) (css-consume-rule-item css #:@rule? #true))
-      (make-css-@rule reconsumed-at-token prelude ?-block)))
+      (define-values (prelude ?block) (css-consume-rule-item css #:@rule? #true))
+      (make-css-@rule reconsumed-at-token prelude ?block)))
 
   (define css-consume-qualified-rule : (-> Input-Port CSS-Token (U CSS-Qualified-Rule CSS-@Rule CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-syntax/#qualified-rule
     (lambda [css reconsumed]
       (define head (css-consume-component-value css reconsumed))
-      (define-values (prelude ?-block) (css-consume-rule-item css #:@rule? #false))
-      (cond [(css:block? ?-block) (make-css-qualified-rule (cons head prelude) ?-block)]
+      (define-values (prelude ?block) (css-consume-rule-item css #:@rule? #false))
+      (cond [(css:block? ?block) (make-css-qualified-rule (cons head prelude) ?block)]
             [else (make+exn:css:missing-block (cons head prelude))])))
 
   (define css-consume-component-value : (-> Input-Port CSS-Token CSS-Token)
@@ -1917,11 +1917,11 @@
     ;;; https://drafts.csswg.org/css-syntax/#typedef-declaration-value
     ;;; https://drafts.csswg.org/css-variables/#defining-variables
     (lambda [id-token components]
-      (define-values (?-: value-list) (css-car components))
-      (cond [(not (css:colon? ?-:)) (make+exn:css:missing-colon id-token)]
+      (define-values (?: value-list) (css-car components))
+      (cond [(not (css:colon? ?:)) (make+exn:css:missing-colon id-token)]
             [else (let ([var? (and (css:ident=<-? id-token symbol-unreadable?) #true)])
-                    (define-values (?-values important? lazy?) (css-any->declaration-value id-token value-list var?))
-                    (if (exn? ?-values) ?-values (make-css-declaration id-token ?-values important? lazy?)))])))
+                    (define-values (?values important? lazy?) (css-any->declaration-value id-token value-list var?))
+                    (if (exn? ?values) ?values (make-css-declaration id-token ?values important? lazy?)))])))
 
   (define css-any->declaration-value : (-> CSS-Token (Listof CSS-Token) Boolean
                                            (Values (U (Listof+ CSS-Token) CSS-Syntax-Error) Boolean Boolean))
@@ -1929,23 +1929,23 @@
     ;;; https://drafts.csswg.org/css-variables/#defining-variables
     (lambda [hint-token components var?]
       (let fold ([lla : (Listof CSS-Token) null]
-                 [! : (Option CSS:Delim) #false]
+                 [<!> : (Option CSS:Delim) #false]
                  [lazy? : Boolean #false]
                  [rest : (Listof CSS-Token) components])
-        (define-values (head tail) (if ! (css-car/cdr rest) (css-car rest)))
+        (define-values (head tail) (if <!> (css-car/cdr rest) (css-car rest)))
         (if (eof-object? head)
             (let ([all (reverse lla)]) ; (reverse) does not know non-null list.
               ; whitespace-only <declaration-value>s are also valid, but they are only meaningful for variables.
-              (cond [(pair? all) (values all (and (false? var?) ! #true) lazy?)]
+              (cond [(pair? all) (values all (and (false? var?) <!> #true) lazy?)]
                     [(and var? (pair? components)) (values components #false #false)]
                     [else (values (make+exn:css:missing-value hint-token) #false lazy?)]))
-            (cond [(and ! (css:ident-norm=:=? head 'important)) (fold (if var? (cons head lla) lla) ! lazy? tail)]
-                  [(and !) (values (make+exn:css:unrecognized !) #false lazy?)]
+            (cond [(and <!> (css:ident-norm=:=? head 'important)) (fold (if var? (cons head lla) lla) <!> lazy? tail)]
+                  [(and <!>) (values (make+exn:css:unrecognized <!>) #false lazy?)]
                   [(css:delim=:=? head #\!) (fold lla head lazy? tail)]
                   [(css-bad-token? head) (values (make+exn:css:malformed head) #false lazy?)]
                   [else (let-values ([(shadow shadow-lazy? real-tail) (css-declaration-value-filter head tail)])
                           (cond [(exn? shadow) (values shadow #false lazy?)]
-                                [else (fold (cons shadow lla) ! (or lazy? shadow-lazy?) real-tail)]))])))))
+                                [else (fold (cons shadow lla) <!> (or lazy? shadow-lazy?) real-tail)]))])))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-components->media-type+query : (-> CSS:Ident Boolean (Listof CSS-Token) CSS-Media-Query)
@@ -1953,14 +1953,14 @@
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-query
     (lambda [media only? conditions]
       (define downcased-type : Symbol (css:ident-norm media))
-      (define-values (?-and ?-conditions) (css-car conditions))
+      (define-values (?and ?conditions) (css-car conditions))
       (when (css-deprecate-media-type) (make+exn:css:deprecated media))
       (cond [(memq downcased-type '(only not and or)) (make+exn:css:misplaced media)]
-            [(eof-object? ?-and) (make-css-media-type downcased-type only?)]
-            [(not (css:ident-norm=:=? ?-and 'and)) (make+exn:css:unrecognized ?-and)]
-            [(css-null? ?-conditions) (make+exn:css:missing-feature ?-and)]
+            [(eof-object? ?and) (make-css-media-type downcased-type only?)]
+            [(not (css:ident-norm=:=? ?and 'and)) (make+exn:css:unrecognized ?and)]
+            [(css-null? ?conditions) (make+exn:css:missing-feature ?and)]
             [else (cons (make-css-media-type downcased-type only?)
-                        (css-components->junction ?-conditions 'and #false #true))])))
+                        (css-components->junction ?conditions 'and #false #true))])))
   
   (define css-components->feature-query : (-> (Listof CSS-Token) Boolean CSS-Syntax-Any CSS-Feature-Query)
     ;;; https://drafts.csswg.org/mediaqueries/#mq-only
@@ -2014,9 +2014,9 @@
   (define css-components->junction : (-> (Listof CSS-Token) Symbol (Option CSS-Token) Boolean (U CSS-And CSS-Or))
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-and
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-or
-    (lambda [conditions op ?-head media?]
+    (lambda [conditions op ?head media?]
       (define make-junction (if (eq? op 'and) make-css-and make-css-or))
-      (let components->junction ([junctions : (Listof CSS-Token) (if (false? ?-head) null (list ?-head))]
+      (let components->junction ([junctions : (Listof CSS-Token) (if (false? ?head) null (list ?head))]
                                  [--conditions : (Listof CSS-Token) conditions])
         (define-values (condition rest) (css-car --conditions))
         (define-values (token others) (css-car rest))
@@ -2095,10 +2095,10 @@
     ;;; https://drafts.csswg.org/mediaqueries/#mq-range-context
     (lambda [components]
       (define-values (d rest) (css-car components))
-      (define-values (?-= terminal) (css-car/cdr rest))
+      (define-values (?= terminal) (css-car/cdr rest))
       (cond [(css:delim=:=? d #\=) (values d #\= #\= rest)]
-            [(css:delim=:=? d #\>) (if (css:delim=:=? ?-= #\=) (values d #\≥ #\≤ terminal) (values d #\> #\< rest))]
-            [(css:delim=:=? d #\<) (if (css:delim=:=? ?-= #\=) (values d #\≤ #\≥ terminal) (values d #\< #\> rest))]
+            [(css:delim=:=? d #\>) (if (css:delim=:=? ?= #\=) (values d #\≥ #\≤ terminal) (values d #\> #\< rest))]
+            [(css:delim=:=? d #\<) (if (css:delim=:=? ?= #\=) (values d #\≤ #\≥ terminal) (values d #\< #\> rest))]
             [(eof-object? d) (values eof #\≠ #\≠ rest)]
             [else (throw-exn:css:unrecognized d)])))
   
@@ -2107,16 +2107,16 @@
     ;;; https://drafts.csswg.org/mediaqueries/#typedef-ratio
     (lambda [components]
       (define-values (value rest) (css-car components))
-      (define-values (?-/ ?-rest) (css-car rest))
-      (define-values (?-int terminal) (css-car ?-rest))
+      (define-values (?/ ?rest) (css-car rest))
+      (define-values (?int terminal) (css-car ?rest))
       (cond [(eof-object? value) (values eof rest)]
-            [(css:slash? ?-/)
+            [(css:slash? ?/)
              (define width : (Option Positive-Integer) (css:integer=<-? value exact-positive-integer?))
-             (define height : (Option Positive-Integer) (css:integer=<-? ?-int exact-positive-integer?))
-             (values (cond [(and width height (css-token? ?-int)) (css-remake-token [value ?-int] css:ratio (/ width height))]
+             (define height : (Option Positive-Integer) (css:integer=<-? ?int exact-positive-integer?))
+             (values (cond [(and width height (css-token? ?int)) (css-remake-token [value ?int] css:ratio (/ width height))]
                            [(css-number? value) (throw-exn:css:range value)]
-                           [(css-number? ?-int) (throw-exn:css:range ?-int)]
-                           [else (throw-exn:css:type (filter css-token? (list value ?-/ ?-int)))])
+                           [(css-number? ?int) (throw-exn:css:range ?int)]
+                           [else (throw-exn:css:type (filter css-token? (list value ?/ ?int)))])
                      terminal)]
             [(or (css:ident? value) (css-numeric? value)) (values value rest)]
             [else (values (throw-exn:css:unrecognized value) rest)])))
@@ -2124,22 +2124,22 @@
   (define css-make-media-feature : (-> CSS:Ident (Option CSS-Media-Value) Char (Option CSS:Delim) (U Symbol CSS-Media-Feature))
     ;;; https://drafts.csswg.org/mediaqueries/#mq-features
     ;;; https://drafts.csswg.org/mediaqueries/#mq-min-max
-    (lambda [desc-name ?-value ophint ?-op]
-      (define errobj : (Listof CSS-Token) (filter css-token? (list desc-name ?-op ?-value)))
+    (lambda [desc-name ?value ophint ?op]
+      (define errobj : (Listof CSS-Token) (filter css-token? (list desc-name ?op ?value)))
       (define name : String (symbol->string (css:ident-norm desc-name)))
       (define-values (downcased-name op min/max?)
         (cond [(string-prefix? name "min-") (values (string->symbol (substring name 4)) #\≥ #true)]
               [(string-prefix? name "max-") (values (string->symbol (substring name 4)) #\≤ #true)]
               [else (values (string->symbol name) ophint #false)]))
       (when (and min/max?)
-        (cond [(or (not ?-value) (css:delim? ?-op)) (throw-exn:css:misplaced errobj)]
-              [(not (css-numeric? ?-value)) (throw-exn:css:type errobj)]))
+        (cond [(or (not ?value) (css:delim? ?op)) (throw-exn:css:misplaced errobj)]
+              [(not (css-numeric? ?value)) (throw-exn:css:type errobj)]))
       (define feature-filter : (U Void (CSS:Filter CSS-Media-Datum))
         ((current-css-media-feature-filter) downcased-name min/max? (thunk (void (make+exn:css:deprecated desc-name)))))
       (cond [(void? feature-filter) (throw-exn:css:unrecognized errobj)]
-            [(false? ?-value) downcased-name]
-            [else (let ([datum (feature-filter ?-value)])
-                    (cond [(false? datum) (throw-exn:css:type ?-value desc-name)]
+            [(false? ?value) downcased-name]
+            [else (let ([datum (feature-filter ?value)])
+                    (cond [(false? datum) (throw-exn:css:type ?value desc-name)]
                           [(exn:css? datum) (css-log-syntax-error datum desc-name) (raise datum)]
                           [else (make-css-media-feature downcased-name datum op)]))])))
 
@@ -2151,15 +2151,15 @@
     ;;; https://drafts.csswg.org/selectors/#grouping
     (lambda [components namespaces]
       (with-handlers ([exn:css? (λ [[errcss : exn:css]] errcss)])
-        (define-values (head-complex-selector ?-eof ?-rest) (css-car-complex-selector components namespaces))
+        (define-values (head-complex-selector ?eof ?rest) (css-car-complex-selector components namespaces))
         (let extract-complex-selector ([srotceles : (Listof CSS-Complex-Selector) null]
-                                       [terminal : (U EOF CSS:Delim) ?-eof]
-                                       [rest : (Listof CSS-Token) ?-rest])
+                                       [terminal : (U EOF CSS:Delim) ?eof]
+                                       [rest : (Listof CSS-Token) ?rest])
           (if (css-null? rest)
               (cond [(eof-object? terminal) (cons head-complex-selector (reverse srotceles))]
                     [else (throw-exn:css:overconsumption terminal)])
-              (let-values ([(complex-selector ?-terminal ?-rest) (css-car-complex-selector rest namespaces)])
-                (extract-complex-selector (cons complex-selector srotceles) ?-terminal ?-rest)))))))
+              (let-values ([(complex-selector ?terminal ?rest) (css-car-complex-selector rest namespaces)])
+                (extract-complex-selector (cons complex-selector srotceles) ?terminal ?rest)))))))
   
   (define css-car-complex-selector : (-> (Listof CSS-Token) CSS-Namespace-Hint
                                          (Values CSS-Complex-Selector (U EOF CSS:Delim) (Listof CSS-Token)))
@@ -2170,16 +2170,16 @@
       (define-values (head-compound-selector rest) (css-car-compound-selector components #false namespaces))
       (let extract-relative-selector ([srotceles : (Listof CSS-Compound-Selector) null]
                                       [tokens : (Listof CSS-Token) rest])
-        (define-values (?-terminal rest) (css-car tokens))
-        (define-values (token ?-selectors) (css-car/cdr tokens))
-        (cond [(or (eof-object? ?-terminal) (css:comma? ?-terminal))
-               (values (css-make-complex-selector (cons head-compound-selector (reverse srotceles))) ?-terminal rest)]
-              [(not (css-selector-combinator? token)) (throw-exn:css:unrecognized ?-terminal)]
-              [else (let*-values ([(combinator ?-selectors) (css-car-combinator token ?-selectors)]
-                                  [(?-selector ?-rest) (css-car ?-selectors)])
-                      (if (or (eof-object? ?-selector) (css:comma? ?-selector))
-                          (throw-exn:css:overconsumption ?-selectors)
-                          (let-values ([(selector rest) (css-car-compound-selector ?-selectors combinator namespaces)])
+        (define-values (?terminal rest) (css-car tokens))
+        (define-values (token ?selectors) (css-car/cdr tokens))
+        (cond [(or (eof-object? ?terminal) (css:comma? ?terminal))
+               (values (css-make-complex-selector (cons head-compound-selector (reverse srotceles))) ?terminal rest)]
+              [(not (css-selector-combinator? token)) (throw-exn:css:unrecognized ?terminal)]
+              [else (let*-values ([(combinator ?selectors) (css-car-combinator token ?selectors)]
+                                  [(?selector ?rest) (css-car ?selectors)])
+                      (if (or (eof-object? ?selector) (css:comma? ?selector))
+                          (throw-exn:css:overconsumption ?selectors)
+                          (let-values ([(selector rest) (css-car-compound-selector ?selectors combinator namespaces)])
                             (extract-relative-selector (cons selector srotceles) rest))))]))))
 
   (define css-car-compound-selector : (-> (Listof CSS-Token) (Option CSS-Selector-Combinator) CSS-Namespace-Hint
@@ -2212,15 +2212,15 @@
                (cond [(not (css:ident? next)) (throw-exn:css:missing-identifier next)]
                      [else (extract-simple-selector (cons (css:ident-datum next) sessalc) sdi setubirtta pseudo-element rest)])]
               [(css:colon? token)
-               (define-values (?-pseudo-classes ?-rest) (css-car-pseudo-class-selectors tokens))
-               (define-values (next rest) (css-car/cdr ?-rest))
-               (cond [(null? ?-pseudo-classes) (throw-exn:css:misplaced (list token (car tokens)))]
-                     [else (let ([pclass (car ?-pseudo-classes)])
+               (define-values (?pseudo-classes ?rest) (css-car-pseudo-class-selectors tokens))
+               (define-values (next rest) (css-car/cdr ?rest))
+               (cond [(null? ?pseudo-classes) (throw-exn:css:misplaced (list token (car tokens)))]
+                     [else (let ([pclass (car ?pseudo-classes)])
                              (define pelement : CSS-Pseudo-Element-Selector
                                (make-css-pseudo-element-selector (css-pseudo-class-selector-name pclass)
                                                                  (css-pseudo-class-selector-arguments pclass)
-                                                                 (cdr ?-pseudo-classes)))
-                             (extract-simple-selector sessalc sdi setubirtta pelement ?-rest))])]
+                                                                 (cdr ?pseudo-classes)))
+                             (extract-simple-selector sessalc sdi setubirtta pelement ?rest))])]
               [(css:block=:=? token #\[)
                (define attribute-selector : CSS-Attribute-Selector (css-simple-block->attribute-selector token namespaces))
                (extract-simple-selector sessalc sdi (cons attribute-selector setubirtta) pseudo-element tokens)]
@@ -2274,13 +2274,13 @@
     (lambda [components]
       (let extract-pseudo-class-selector ([srotceles : (Listof CSS-Pseudo-Class-Selector) null]
                                           [tokens : (Listof CSS-Token) components])
-        (define-values (maybe: rest ?-id rest2) (css-car/cadr tokens))
-        (cond [(or (not (css:colon? maybe:)) (css:colon? ?-id)) (values (reverse srotceles) tokens)]
-              [(css:ident? ?-id)
-               (let ([selector (make-css-pseudo-class-selector (css:ident-datum ?-id) #false)])
+        (define-values (maybe: rest ?id rest2) (css-car/cadr tokens))
+        (cond [(or (not (css:colon? maybe:)) (css:colon? ?id)) (values (reverse srotceles) tokens)]
+              [(css:ident? ?id)
+               (let ([selector (make-css-pseudo-class-selector (css:ident-datum ?id) #false)])
                  (extract-pseudo-class-selector (cons selector srotceles) rest2))]
-              [(css:function? ?-id)
-               (let ([selector (make-css-pseudo-class-selector (css:function-norm ?-id) (css:function-arguments ?-id))])
+              [(css:function? ?id)
+               (let ([selector (make-css-pseudo-class-selector (css:function-norm ?id) (css:function-arguments ?id))])
                  (extract-pseudo-class-selector (cons selector srotceles) rest2))]
               [else (throw-exn:css:missing-identifier maybe:)]))))
   
@@ -2410,14 +2410,14 @@
 
   (define css-function->var : (-> CSS:Function (U CSS:Var CSS-Syntax-Error))
     (lambda [var]
-      (define-values (--var ?-fallback-list) (css-car (css:function-arguments var)))
-      (define-values (?-comma fallback) (css-car ?-fallback-list))
+      (define-values (--var ?fallback-list) (css-car (css:function-arguments var)))
+      (define-values (?comma fallback) (css-car ?fallback-list))
       (cond [(not (css:ident=<-? --var symbol-unreadable?)) (make+exn:css:missing-variable --var)]
-            [(eof-object? ?-comma) (css-remake-token var css:var (css:ident-datum --var) null #false)]
-            [(not (css:comma? ?-comma)) (make+exn:css:missing-comma ?-comma)]
-            [else (let-values ([(?-fallback _ lazy?) (css-any->declaration-value ?-comma fallback #true)])
-                    (cond [(exn? ?-fallback) ?-fallback]
-                          [else (css-remake-token var css:var (css:ident-datum --var) ?-fallback lazy?)]))])))
+            [(eof-object? ?comma) (css-remake-token var css:var (css:ident-datum --var) null #false)]
+            [(not (css:comma? ?comma)) (make+exn:css:missing-comma ?comma)]
+            [else (let-values ([(?fallback _ lazy?) (css-any->declaration-value ?comma fallback #true)])
+                    (cond [(exn? ?fallback) ?fallback]
+                          [else (css-remake-token var css:var (css:ident-datum --var) ?fallback lazy?)]))])))
 
   (define css-declaration-value-filter : (-> CSS-Token (Listof CSS-Token)
                                              (Values (U CSS-Token CSS-Syntax-Error) Boolean (Listof CSS-Token)))
@@ -2561,16 +2561,16 @@
         (for/fold ([viewport-srotpircsed : (Listof CSS-Declarations) null]
                    [normal-sexatnys : (Listof CSS-Syntax-Rule) null])
                   ([stx : CSS-Syntax-Rule (in-list syntaxes0)])
-          (define ?-descriptor : (U CSS-Declarations CSS-Syntax-Error Void)
+          (define ?descriptor : (U CSS-Declarations CSS-Syntax-Error Void)
             (when (and (css-@rule? stx) (css:@keyword-norm=:=? (css-@rule-name stx) '#:@viewport))
               (define prelude : (Listof CSS-Token) (css-@rule-prelude stx))
-              (define ?-block : (Option CSS:Block) (css-@rule-block stx))
+              (define ?block : (Option CSS:Block) (css-@rule-block stx))
               (cond [(css-pair? prelude) (make+exn:css:overconsumption prelude)]
-                    [?-block (css-components->declarations (css:block-components ?-block))]
+                    [?block (css-components->declarations (css:block-components ?block))]
                     [else (make+exn:css:missing-block (css-@rule-name stx))])))
-          (cond [(void? ?-descriptor) (values viewport-srotpircsed (cons stx normal-sexatnys))]
-                [(exn? ?-descriptor) (values viewport-srotpircsed normal-sexatnys)]
-                [else (values (cons ?-descriptor viewport-srotpircsed) normal-sexatnys)])))
+          (cond [(void? ?descriptor) (values viewport-srotpircsed (cons stx normal-sexatnys))]
+                [(exn? ?descriptor) (values viewport-srotpircsed normal-sexatnys)]
+                [else (values (cons ?descriptor viewport-srotpircsed) normal-sexatnys)])))
       (define viewport : CSS-Media-Preferences
         (cond [(null? viewport-srotpircsed) init-viewport]
               [else (css-cascade-viewport init-viewport (reverse viewport-srotpircsed)
@@ -2584,10 +2584,10 @@
         (cond [(null? !viewport-syntaxes) (values viewport (reverse seititnedi) (reverse srammarg))]
               [else (let-values ([(stx rest) (values (car !viewport-syntaxes) (cdr !viewport-syntaxes))])
                       (if (css-qualified-rule? stx)
-                          (let ([?-rule : (U CSS-Style-Rule CSS-Syntax-Error) (css-qualified-rule->style-rule stx namespaces)])
+                          (let ([?rule : (U CSS-Style-Rule CSS-Syntax-Error) (css-qualified-rule->style-rule stx namespaces)])
                             (define ++srammarg : (Listof CSS-Grammar-Rule)
-                              (cond [(or (exn? ?-rule) (null? (css-style-rule-properties ?-rule))) srammarg]
-                                    [else (cons ?-rule srammarg)]))
+                              (cond [(or (exn? ?rule) (null? (css-style-rule-properties ?rule))) srammarg]
+                                    [else (cons ?rule srammarg)]))
                             (syntax->grammar seititnedi ++srammarg rest #false #false))
                           (case (css:@keyword-norm (css-@rule-name stx))
                             [(#:@charset)
@@ -2622,38 +2622,38 @@
                                                  (U Positive-Integer False CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-cascade/#at-import
     (lambda [import parent-href preferences pool]
-      (define-values (uri ?-condition) (css-car (css-@rule-prelude import)))
+      (define-values (uri ?condition) (css-car (css-@rule-prelude import)))
       (define name : CSS:@Keyword (css-@rule-name import))
-      (define ?-block : (Option CSS:Block) (css-@rule-block import))
-      (define ?-target.css : (U Path CSS-Syntax-Error)
+      (define ?block : (Option CSS:Block) (css-@rule-block import))
+      (define ?target.css : (U Path CSS-Syntax-Error)
         (cond [(eof-object? uri) (make+exn:css:empty (css-@rule-name import))]
               [(css:string=<-? uri non-empty-string?) => (λ [url] (css-url-string->path parent-href url))]
               [(css:url=<-? uri string?) => (λ [url] (css-url-string->path parent-href url))]
               [(or (css:string? uri) (css:url? uri)) (make+exn:css:empty uri)]
               [else (make+exn:css:unrecognized uri)]))
-      (cond [(exn? ?-target.css) ?-target.css]
-            [(css:block? ?-block) (make+exn:css:overconsumption ?-block)]
-            [(false? (regexp-match? #px"\\.css$" ?-target.css)) (make+exn:css:resource uri)]
-            [(false? (file-exists? ?-target.css)) (make+exn:css:resource uri)]
-            [else (let-values ([(?-support ?-media-list) (css-car ?-condition)])
+      (cond [(exn? ?target.css) ?target.css]
+            [(css:block? ?block) (make+exn:css:overconsumption ?block)]
+            [(false? (regexp-match? #px"\\.css$" ?target.css)) (make+exn:css:resource uri)]
+            [(false? (file-exists? ?target.css)) (make+exn:css:resource uri)]
+            [else (let-values ([(?support ?media-list) (css-car ?condition)])
                     (define-values (support? media-list)
-                      (if (css:function-norm=:=? ?-support 'supports)
-                          (let* ([components (css:function-arguments ?-support)]
-                                 [supports (list (css-remake-token ?-support css:block #\( components #false))]
+                      (if (css:function-norm=:=? ?support 'supports)
+                          (let* ([components (css:function-arguments ?support)]
+                                 [supports (list (css-remake-token ?support css:block #\( components #false))]
                                  [query (css-parse-feature-query supports name)])
-                            (values (css-query-support? query (current-css-feature-support?)) ?-media-list))
-                          (values #true ?-condition)))
+                            (values (css-query-support? query (current-css-feature-support?)) ?media-list))
+                          (values #true ?condition)))
                     (and support? (css-media-queries-support? (css-parse-media-queries media-list name) preferences)
                          (parameterize ([current-css-media-preferences preferences])
-                           (read-css-stylesheet ?-target.css pool))
-                         (css-stylesheet-path->identity ?-target.css)))])))
+                           (read-css-stylesheet ?target.css pool))
+                         (css-stylesheet-path->identity ?target.css)))])))
     
   (define css-@namespace->namespace : (-> CSS-@Rule (U (Pairof Symbol String) CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-namespaces/#syntax
     (lambda [ns]
       (define-values (1st rest) (css-car (css-@rule-prelude ns)))
       (define-values (2nd terminal) (css-car rest))
-      (define ?-block : (Option CSS:Block) (css-@rule-block ns))
+      (define ?block : (Option CSS:Block) (css-@rule-block ns))
       (define namespace : (U String CSS-Syntax-Error)
         (let ([uri (if (eof-object? 2nd) 1st 2nd)])
           (cond [(css:string? uri) (css:string-datum uri)]
@@ -2661,7 +2661,7 @@
                 [(eof-object? 1st) (make+exn:css:empty (css-@rule-name ns))]
                 [else (make+exn:css:unrecognized uri)])))
       (cond [(exn? namespace) namespace]
-            [(css:block? ?-block) (make+exn:css:overconsumption ?-block)]
+            [(css:block? ?block) (make+exn:css:overconsumption ?block)]
             [(css-pair? terminal) (make+exn:css:overconsumption terminal)]
             [(css:ident? 1st) (cons (css:ident-datum 1st) namespace)]
             [(eof-object? 2nd) (cons '|| namespace)]
@@ -2673,11 +2673,11 @@
     ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
     (lambda [media preferences namespaces pool]
       (define name : CSS:@Keyword (css-@rule-name media))
-      (define ?-block : (Option CSS:Block) (css-@rule-block media))
-      (cond [(false? ?-block) (make+exn:css:missing-block name)]
-            [(css-null? (css:block-components ?-block)) (void)]
+      (define ?block : (Option CSS:Block) (css-@rule-block media))
+      (cond [(false? ?block) (make+exn:css:missing-block name)]
+            [(css-null? (css:block-components ?block)) (void)]
             [else (when (css-media-queries-support? (css-parse-media-queries (css-@rule-prelude media) name) preferences)
-                    (define stxes : (Listof CSS-Syntax-Rule) (css-parse-rules (css:block-components ?-block)))
+                    (define stxes : (Listof CSS-Syntax-Rule) (css-parse-rules (css:block-components ?block)))
                     (when (pair? stxes)
                       (define-values (viewport _ grammars)
                         (css-syntax-rules->grammar-rules 'src stxes namespaces #false #false preferences pool))
@@ -2690,11 +2690,11 @@
     ;;; https://drafts.csswg.org/css-conditional/#at-supports
     (lambda [support]
       (define name : CSS:@Keyword (css-@rule-name support))
-      (define ?-block : (Option CSS:Block) (css-@rule-block support))
-      (cond [(false? ?-block) (make+exn:css:missing-block name)]
-            [(css-null? (css:block-components ?-block)) null]
+      (define ?block : (Option CSS:Block) (css-@rule-block support))
+      (cond [(false? ?block) (make+exn:css:missing-block name)]
+            [(css-null? (css:block-components ?block)) null]
             [(not (css-query-support? (css-parse-feature-query (css-@rule-prelude support) name) (current-css-feature-support?))) null]
-            [else (css-parse-rules (css:block-components ?-block))])))
+            [else (css-parse-rules (css:block-components ?block))])))
   
   (define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (Option CSS-Namespace) (U CSS-Style-Rule CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-syntax/#style-rules
@@ -2702,9 +2702,9 @@
     (lambda [qr namespaces]
       (define prelude : (Listof+ CSS-Token) (css-qualified-rule-prelude qr))
       (define components : (Listof CSS-Token) (css:block-components (css-qualified-rule-block qr)))
-      (define ?-selectors : (U (Listof+ CSS-Complex-Selector) CSS-Syntax-Error) (css-components->selectors prelude namespaces))
-      (cond [(exn? ?-selectors) ?-selectors]
-            [else (make-css-style-rule ?-selectors (css-components->declarations components))])))
+      (define ?selectors : (U (Listof+ CSS-Complex-Selector) CSS-Syntax-Error) (css-components->selectors prelude namespaces))
+      (cond [(exn? ?selectors) ?selectors]
+            [else (make-css-style-rule ?selectors (css-components->declarations components))])))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-cascade-viewport : (->* (CSS-Media-Preferences (Listof CSS-Declarations))
@@ -2965,11 +2965,6 @@
 (require (submod "." grammar))
 
 ;;; Interacting with Racket
-(define-type CSS-@λ-Metainfo (Vector (Listof Keyword) (Listof Keyword) (Listof Natural) (U Natural +inf.0)))
-(define-type CSS-@λ-Pool (HashTable Symbol CSS-@λ-Metainfo))
-(define-type CSS-@λ-Filter (case-> [Symbol Keyword -> (U (CSS:Filter CSS-Datum) Void)]
-                                   [Symbol False -> (CSS-Parser (Listof CSS-Datum))]))
-
 (begin-for-syntax
   (require racket/list)
 
@@ -2998,6 +2993,11 @@
             (λpool-set! the-pool id λid)))))
     (datum->syntax <the-@λ-pool> the-pool)))
 
+(define-type CSS-@λ-Metainfo (Vector (Listof Keyword) (Listof Keyword) (Listof Natural) (U Natural +inf.0)))
+(define-type CSS-@λ-Pool (HashTable Symbol CSS-@λ-Metainfo))
+(define-type CSS-@λ-Filter (case-> [Symbol Keyword -> (U (CSS:Filter CSS-Datum) Void)]
+                                   [Symbol False -> (CSS-Parser (Listof CSS-Datum))]))
+
 (define-syntax (define-@λ-pool stx)
   (syntax-case stx []
     [(_ the-@λ-pool #:λnames λnames modpaths ...)
@@ -3008,21 +3008,21 @@
 
 (define-syntax (define-css-racket-value-filter stx)
   (syntax-case stx []
-    [(_ <racket-value> #:with ?-value #:as ValueType asserts ...)
+    [(_ <racket-value> #:with ?value #:as ValueType asserts ...)
      #'(define <racket-value> : (->* () (Namespace) (CSS:Filter ValueType))
          (lambda [[ns (current-namespace)]]
            (λ [[token : CSS-Syntax-Any]] : (CSS-Option ValueType)
              (and (css:racket? token)
                   (let* ([racket-id : Symbol (css:racket-datum token)]
-                         [?-value (css-eval-value racket-id ns)])
-                    (cond asserts ... [(exn:css? ?-value) ?-value]
+                         [?value (css-eval-value racket-id ns)])
+                    (cond asserts ... [(exn:css? ?value) ?value]
                           [else (make-exn:css:contract racket-id)]))))))]
     [(_ <racket-value> #:is-a? class% #:as ValueType)
-     #'(define-css-racket-value-filter <racket-value> #:with ?-value #:as ValueType
-         [(is-a? ?-value class%) (cast ?-value ValueType)])]
+     #'(define-css-racket-value-filter <racket-value> #:with ?value #:as ValueType
+         [(is-a? ?value class%) (cast ?value ValueType)])]
     [(_ <racket-value> #:? type? #:as ValueType)
-     #'(define-css-racket-value-filter <racket-value> #:with ?-value #:as ValueType
-         [(type? ?-value) ?-value])]))
+     #'(define-css-racket-value-filter <racket-value> #:with ?value #:as ValueType
+         [(type? ?value) ?value])]))
 
 (define-css-atomic-filter <css:@λ> #:-> CSS-@λ #:with [[token : css:λracket?] [λpool : CSS-@λ-Pool] [λfilter : CSS-@λ-Filter]]
   (define λid : Symbol (css:λracket-datum token))
@@ -3140,9 +3140,9 @@
               for-children))
 
   (map (λ [[in : String]] : (Pairof String Integer)
-         (let ([?-complex-selectors (css-parse-selectors in)])
-           (cond [(exn:css? ?-complex-selectors) (cons in -1)]
-                 [else (let* ([s (car ?-complex-selectors)]
+         (let ([?complex-selectors (css-parse-selectors in)])
+           (cond [(exn:css? ?complex-selectors) (cons in -1)]
+                 [else (let* ([s (car ?complex-selectors)]
                               [a (css-complex-selector-A s)]
                               [b (css-complex-selector-B s)]
                               [c (css-complex-selector-C s)])
