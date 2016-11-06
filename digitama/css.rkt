@@ -649,18 +649,19 @@
       [(_ css-filter f) #'(css:compose css-filter f)]
       [(_ css-filter f g) #'(css:compose (css:compose css-filter g) f)]
       [(_ css-filter f g h ...) #'(css:compose css-filter (compose f g h ...))]))
+
+  (define-syntax (CSS<?> stx)
+    (syntax-case stx [else]
+      [(_ [<if> <then> ...] ... [else <else> ...]) #'(CSS<if> (list (cons <if> (CSS<&> <then> ...)) ...) (CSS<&> <else> ...))]
+      [(_ [<if> <then> ...] ...) #'(CSS<if> (list (cons <if> (CSS<&> <then> ...)) ...) #false)]
+      [(_ <if> <then> <else>) #'(CSS<if> (list (cons <if> <then>)) <else>)]
+      [(_ <if> <then>) #'(CSS<if> (list (cons <if> <then>)) #false)]))
   
   (define CSS:<=> : (All (a b) (-> (CSS:Filter a) b (CSS:Filter b)))
     (lambda [css-filter const]
       (λ [[token : CSS-Syntax-Any]] : (CSS-Option b)
         (define datum : (CSS-Option a) (css-filter token))
         (if (exn:css? datum) datum (and datum const)))))
-
-  (define CSS:<?> : (All (a) (->* ((CSS:Filter a)) ((Option a)) (CSS:Filter a)))
-    (lambda [css-filter [default-value #false]]
-      (λ [[token : CSS-Syntax-Any]] : (CSS-Option a)
-        (define datum : (CSS-Option a) (css-filter token))
-        (if (not (false? datum)) datum default-value))))
 
   (define CSS:<$> : (All (a) (->* ((CSS:Filter a) (-> (U CSS-Syntax-Any (Listof CSS-Token)) CSS-Syntax-Error)) (Boolean) (CSS:Filter a)))
     (lambda [css-filter make-exn [s/exn/? #true]]
@@ -699,14 +700,6 @@
         (define-values (++data --tokens) (css-parser data tokens))
         (cond [(or (exn:css? ++data) (false? ++data)) (values ++data --tokens)]
               [else (values (data=>data ++data) --tokens)]))))
-  
-  (define CSS<?> : (All (a) (->* ((CSS-Parser a) (CSS-Parser a)) ((Option (CSS-Parser a)) Boolean) (CSS-Parser a)))
-    (lambda [cond-parser then-parser [else-parser #false] [need-cond? #false]]
-      (λ [[data : a] [tokens : (Listof CSS-Token)]] : (Values (CSS-Option a) (Listof CSS-Token))
-        (define-values (++data --tokens) (cond-parser data tokens))
-        (cond [(nor (false? ++data) (exn:css? ++data)) (then-parser (if need-cond? ++data data) --tokens)]
-              [(false? else-parser) (values ++data tokens)]
-              [else (else-parser data tokens)]))))
 
   (define CSS<+> : (All (a) (-> (CSS-Parser a) (CSS-Parser a) * (CSS-Parser a)))
     ;;; https://drafts.csswg.org/css-values/#comb-one
@@ -721,16 +714,18 @@
 
   (define CSS<&> : (All (a) (-> (CSS-Parser a) * (CSS-Parser a)))
     ;;; TODO: https://drafts.csswg.org/css-values/#comb-all
-    (lambda css-parsers
-      (λ [[data : a] [tokens : (Listof CSS-Token)]] : (Values (CSS-Option a) (Listof CSS-Token))
-        (let datum-fold ([data++ : a data]
-                         [tokens-- : (Listof CSS-Token) tokens]
-                         [parsers : (Listof (CSS-Parser a)) css-parsers])
-          (cond [(null? parsers) (values data++ tokens--)]
-                [else (let ([css-parser (car parsers)])
-                        (define-values (++data --tokens) (css-parser data++ tokens--))
-                        (cond [(or (false? ++data) (exn:css? ++data)) (values ++data --tokens)]
-                              [else (datum-fold ++data --tokens (cdr parsers))]))])))))
+    (case-lambda
+      [() values]
+      [(css-parser) css-parser]
+      [css-parsers (λ [[data : a] [tokens : (Listof CSS-Token)]] : (Values (CSS-Option a) (Listof CSS-Token))
+                     (let datum-fold ([data++ : a data]
+                                      [tokens-- : (Listof CSS-Token) tokens]
+                                      [parsers : (Listof (CSS-Parser a)) css-parsers])
+                       (cond [(null? parsers) (values data++ tokens--)]
+                             [else (let ([css-parser (car parsers)])
+                                     (define-values (++data --tokens) (css-parser data++ tokens--))
+                                     (cond [(or (false? ++data) (exn:css? ++data)) (values ++data --tokens)]
+                                           [else (datum-fold ++data --tokens (cdr parsers))]))])))]))
   
   (define CSS<*> : (All (a) (->* ((CSS-Parser a)) (Index (U Index +inf.0)) (CSS-Parser a)))
     ;;; https://drafts.csswg.org/css-values/#mult-zero-plus
@@ -782,7 +777,7 @@
       (λ [[token : CSS-Syntax-Any]] : (CSS-Option (U a b))
         (define datum : (CSS-Option a) (css-filter1 token))
         (cond [(false? datum) (css-filter2 token)]
-              [else datum #|TODO: to check if `exn:css:range` is also okay|#]))))
+              [else datum]))))
   
   (define css:compose : (All (a b) (-> (CSS:Filter a) (-> a b) (CSS:Filter b)))
     (lambda [css-filter css->racket]
@@ -794,6 +789,20 @@
     (lambda [eof-value]
       (λ [[token : CSS-Syntax-Any]] : (CSS-Option a)
         (and (eof-object? token) eof-value))))
+
+  (define CSS<if> : (All (a) (->* ((Listof (Pairof (CSS-Parser a) (CSS-Parser a)))) ((Option (CSS-Parser a))) (CSS-Parser a)))
+    (lambda [cond-parsers [else-parser #false]]
+      (cond [(null? cond-parsers) (if (false? else-parser) values else-parser)]
+            [else (λ [[data : a] [tokens : (Listof CSS-Token)]] : (Values (CSS-Option a) (Listof CSS-Token))
+                    (let else-if ([branch : (Pairof (CSS-Parser a) (CSS-Parser a)) (car cond-parsers)]
+                                  [branches-- : (Listof (Pairof (CSS-Parser a) (CSS-Parser a))) (cdr cond-parsers)])
+                      (define-values (if-parser then-parser) (css-car/cdr branch))
+                      (define-values (++data --tokens) (if-parser data tokens))
+                      (cond [(and (exn:css? ++data) (null? branches--) (false? else-parser)) (values ++data --tokens)]
+                            [(nor (false? ++data) (exn:css? ++data)) (then-parser data --tokens)]
+                            [(pair? branches--) (else-if (car branches--) (cdr branches--))]
+                            [(false? else-parser) (values ++data tokens)]
+                            [else (else-parser data tokens)])))])))
   
   (define-css-disjoined-filter <css-keyword> #:-> Symbol
     #:with [[options : (U (Listof Symbol) Symbol)]]
