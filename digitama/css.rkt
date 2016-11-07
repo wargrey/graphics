@@ -626,12 +626,13 @@
                         ...
                         [else (make-exn:css:range token)]))))))]))
 
-  (define-syntax (define-css-parameters-filter stx)
+  (define-syntax (define-css-system-parameters-filter stx)
     (syntax-case stx []
-      [(_ <id> #:suffix suffix #:-> DomainType RangeType [css racket] ... [otherwise last-one])
+      [(_ <id> #:-> DomainType RangeType [css racket] ... [otherwise last-one])
        (with-syntax ([(current ... current-last)
-                      (for/list ([<p> (in-list (syntax->list #'(css ... otherwise)))])
-                        (format-id <p> "current-css-~a-~a" (syntax-e <p>) (syntax-e #'suffix)))])
+                      (let ([suffix (string-downcase (symbol->string (syntax-e #'RangeType)))])
+                        (for/list ([<p> (in-list (syntax->list #'(css ... otherwise)))])
+                          (format-id <p> "current-css-~a-~a" (syntax-e <p>) suffix)))])
          #'(begin (define-type DomainType (U 'css ... 'otherwise))
                   (define current : (Parameterof RangeType) (make-parameter racket)) ...
                   (define current-last : (Parameterof RangeType) (make-parameter last-one))
@@ -723,6 +724,13 @@
         (define-values (++data --tokens) (css-parser data tokens))
         (cond [(or (exn:css? ++data) (false? ++data)) (values ++data --tokens)]
               [else (values (data=>data ++data) --tokens)]))))
+
+  (define CSS<_> : (All (a) (-> (CSS-Parser a) (CSS-Parser a)))
+    (lambda [css-parser]
+      (λ [[data : a] [tokens : (Listof CSS-Token)]] : (Values (CSS-Option a) (Listof CSS-Token))
+        (define-values (++data --tokens) (css-parser data tokens))
+        (cond [(or (exn:css? ++data) (false? ++data)) (values ++data --tokens)]
+              [else (values data --tokens)]))))
 
   (define CSS<+> : (All (a) (-> (CSS-Parser a) (CSS-Parser a) * (CSS-Parser a)))
     ;;; https://drafts.csswg.org/css-values/#comb-one
@@ -855,13 +863,13 @@
     (CSS:<~> (<css:percentage> 0f0 <= 1f0) flabs real->double-flonum)
     (<css-flunit>))
 
-  (define <CSS-Keywords> : (->* ((Listof Symbol)) (Symbol) (CSS-Parser (Listof CSS-Datum)))
+  (define <:css-keywords:> : (->* ((Listof Symbol)) (Symbol) (CSS-Parser (Listof CSS-Datum)))
     (lambda [options [none 'none]]
       (CSS<+> (CSS<^> (CSS:<=> (<css-keyword> none) null))
               (CSS<*> (CSS<^> (<css-keyword> options)) 1 +inf.0))))
 
-  (define <CSS-Comma> : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (<css:delim> #\,) make-exn:css:missing-comma)))
-  (define <CSS-Slash> : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (<css:delim> #\/) make-exn:css:missing-slash)))
+  (define <:css-comma:> : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (<css:delim> #\,) make-exn:css:missing-comma)))
+  (define <:css-slash:> : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (<css:delim> #\/) make-exn:css:missing-slash)))
 
   ;; https://drafts.csswg.org/selectors/#grammar
   ;; https://drafts.csswg.org/selectors/#structure
