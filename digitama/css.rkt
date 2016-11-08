@@ -114,7 +114,7 @@
                                              (and (id? t) (make-exn:css:range t))))]
                                       [(list? range?)
                                        (λ [[t : CSS-Syntax-Any]]
-                                         (and (id? t) ; TODO: Some symbolic tokens may have list-like data
+                                         (and (id? t)
                                               (or (let ([d : Type (id-datum t)]) (and (member d range? type=?) d))
                                                   (make-exn:css:range t))))]
                                       [else (λ [[t : CSS-Syntax-Any]]
@@ -363,8 +363,9 @@
      [css:bad:range       #:+ CSS:Bad:Range       #:-> css:bad]
      [css:bad:stdin       #:+ CSS:Bad:StdIn       #:-> css:bad]]
 
+    ; WARNING: Carefully defining types to avoid happening to mess up '(list? datum)'. 
     (define-symbolic-tokens css-bad-token #:+ CSS-Bad-Token
-      [css:bad            #:+ CSS:Bad             #:as (Pairof Symbol Datum)]
+      [css:bad            #:+ CSS:Bad             #:as String]
       [css:close          #:+ CSS:Close           #:as Char])
     
     ; TODO: Typed Racket is buggy if there are more than 11 conditions for (token->datum)
@@ -575,14 +576,15 @@
   (define-type (CSS-Option css) (U css CSS-Syntax-Error False))
   (define-type (CSS:Filter css) (-> CSS-Syntax-Any (CSS-Option css)))
   (define-type (CSS-Parser css) (-> css (Listof CSS-Token) (Values (CSS-Option css) (Listof CSS-Token))))
-  (define-type CSS-Longhand-Parser-Update (-> Symbol CSS-Datum CSS-Datum CSS-Datum))
+  (define-type CSS-Shorthand-Parser (CSS-Parser CSS-Longhand-Values))
+  (define-type CSS-Longhand-Update (-> Symbol CSS-Datum CSS-Datum CSS-Datum))
 
   (define-syntax (define-css-disjoined-filter stx)
     (syntax-case stx [:]
       [(_ compound-filter #:-> RangeType #:with [[dom : DomType defval ...] ...] atom-filters ...)
-       #'(define compound-filter : (-> DomType ... (CSS:Filter RangeType)) (λ [dom ...] (CSS:<+> atom-filters ...)))]
+       #'(define (compound-filter [dom : DomType defval ...] ...) : (CSS:Filter RangeType) (CSS:<+> atom-filters ...))]
       [(_ compound-filter #:-> RangeType atom-filters ...)
-       #'(define compound-filter : (-> (CSS:Filter RangeType)) (λ [] (CSS:<+> atom-filters ...)))]))
+       #'(define (compound-filter) : (CSS:Filter RangeType) (CSS:<+> atom-filters ...))]))
   
   (define-syntax (define-css-atomic-filter stx)
     (syntax-case stx [:]
@@ -607,7 +609,7 @@
                         (for/list ([<pattern> (in-list (#| NOTE |# reverse (syntax->list <matches>)))])
                           (if (list? (syntax-e <pattern>)) <pattern> (list #'values <pattern>))))])
          #'(define (func-filter) : (CSS:Filter RangeType) defines
-             (define do-parse : (-> Symbol (CSS-Parser (Listof CSS-Datum)) (U (Listof CSS-Datum) CSS-Syntax-Error))
+             (define do-parse : (-> Symbol (CSS-Parser (Listof CSS-Datum)) (Listof CSS-Token) (U (Listof CSS-Datum) CSS-Syntax-Error))
                (lambda [func-name func-parse func-argl]
                  (define-values (fargs --tokens) (func-parse (list func-name) func-argl))
                  (cond [(exn:css? fargs) fargs]
@@ -628,17 +630,16 @@
 
   (define-syntax (define-css-system-parameters-filter stx)
     (syntax-case stx []
-      [(_ <id> #:-> DomainType RangeType [css racket] ... [otherwise last-one])
+      [(_ <id> #:-> RangeType [css racket] ... [otherwise last-one])
        (with-syntax ([(current ... current-last)
                       (let ([suffix (string-downcase (symbol->string (syntax-e #'RangeType)))])
                         (for/list ([<p> (in-list (syntax->list #'(css ... otherwise)))])
                           (format-id <p> "current-css-~a-~a" (syntax-e <p>) suffix)))])
-         #'(begin (define-type DomainType (U 'css ... 'otherwise))
-                  (define current : (Parameterof RangeType) (make-parameter racket)) ...
+         #'(begin (define current : (Parameterof RangeType) (make-parameter racket)) ...
                   (define current-last : (Parameterof RangeType) (make-parameter last-one))
-                  (define-css-disjoined-filter <id> #:-> DomainType
+                  (define-css-disjoined-filter <id> #:-> RangeType
                     (CSS:<~> (<css:ident-norm> (list 'css ... 'otherwise))
-                             (λ [[id : DomainType]] : RangeType
+                             (λ [[id : Symbol]] : RangeType
                                (case id [(css) (current)] ... [else (current-last)]))))))]))
 
   (define-syntax (css-make-datum->size stx)
@@ -655,6 +656,13 @@
                    [(length? size) (css:length->scalar size direction)]
                    [else defval])))]))
 
+  (define-syntax (CSS<?> stx)
+    (syntax-case stx [else]
+      [(_ [<if> <then> ...] ... [else <else> ...]) #'(CSS<if> (list (cons <if> (CSS<&> <then> ...)) ...) (CSS<&> <else> ...))]
+      [(_ [<if> <then> ...] ...) #'(CSS<if> (list (cons <if> (CSS<&> <then> ...)) ...) #false)]
+      [(_ <if> <then> <else>) #'(CSS<if> (list (cons <if> <then>)) <else>)]
+      [(_ <if> <then>) #'(CSS<if> (list (cons <if> <then>)) #false)]))
+  
   (define-syntax (CSS:<+> stx)
     (syntax-case stx []
       [(_ css-filter) #'css-filter]
@@ -665,13 +673,6 @@
       [(_ css-filter f) #'(css:compose css-filter f)]
       [(_ css-filter f g) #'(css:compose (css:compose css-filter g) f)]
       [(_ css-filter f g h ...) #'(css:compose css-filter (compose f g h ...))]))
-
-  (define-syntax (CSS<?> stx)
-    (syntax-case stx [else]
-      [(_ [<if> <then> ...] ... [else <else> ...]) #'(CSS<if> (list (cons <if> (CSS<&> <then> ...)) ...) (CSS<&> <else> ...))]
-      [(_ [<if> <then> ...] ...) #'(CSS<if> (list (cons <if> (CSS<&> <then> ...)) ...) #false)]
-      [(_ <if> <then> <else>) #'(CSS<if> (list (cons <if> <then>)) <else>)]
-      [(_ <if> <then>) #'(CSS<if> (list (cons <if> <then>)) #false)]))
   
   (define CSS:<=> : (All (a b) (-> (CSS:Filter a) b (CSS:Filter b)))
     (lambda [css-filter const]
@@ -688,10 +689,11 @@
               [else datum]))))
   
   (define CSS<^> : (All (a) (case-> [(CSS:Filter CSS-Datum) -> (CSS-Parser (Listof CSS-Datum))]
-                                    [(CSS:Filter CSS-Datum) Symbol -> (CSS-Parser CSS-Longhand-Values)]
-                                    [(CSS:Filter CSS-Datum) Symbol CSS-Longhand-Parser-Update -> (CSS-Parser CSS-Longhand-Values)]
-                                    [(CSS:Filter a) (->* (a) (CSS-Longhand-Values) CSS-Longhand-Values)
-                                                    -> (CSS-Parser CSS-Longhand-Values)]))
+                                    [(CSS:Filter CSS-Datum) Symbol -> CSS-Shorthand-Parser]
+                                    [(CSS:Filter CSS-Datum) Symbol CSS-Longhand-Update -> CSS-Shorthand-Parser]
+                                    [(CSS-Parser (Listof CSS-Datum)) (List Symbol) -> CSS-Shorthand-Parser]
+                                    [(CSS-Parser (Listof CSS-Datum)) (List Symbol) CSS-Longhand-Update -> CSS-Shorthand-Parser]
+                                    [(CSS:Filter a) (->* (a) (CSS-Longhand-Values) CSS-Longhand-Values) -> CSS-Shorthand-Parser]))
     (case-lambda
       [(atom-filter)
        (λ [[data : (Listof CSS-Datum)] [tokens : (Listof CSS-Token)]]
@@ -700,23 +702,36 @@
          (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
                [else (values (cons datum data) tail)]))]
       [(atom-filter tag)
+       (cond [(symbol? tag)
+              (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
+                (define-values (token --tokens) (css-car/cdr tokens))
+                (define datum : (CSS-Option CSS-Datum) (atom-filter token))
+                (cond [(or (false? datum) (exn:css? datum)) (values datum --tokens)]
+                      [else (values (hash-set data tag datum) --tokens)]))]
+             [(list? tag)
+              (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
+                (define-values (subdata --tokens) (atom-filter null tokens))
+                (cond [(or (false? subdata) (exn:css? subdata)) (values subdata --tokens)]
+                      [else (values (hash-set data (car tag) subdata) --tokens)]))]
+             [(λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
+                (define-values (token --tokens) (css-car/cdr tokens))
+                (define datum : (CSS-Option a) (atom-filter token))
+                (cond [(or (false? datum) (exn:css? datum)) (values datum --tokens)]
+                      [else (values (tag datum data) --tokens)]))])]
+      [(atom-filter tag updater)
        (if (symbol? tag)
            (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
-             (define-values (head tail) (css-car/cdr tokens))
-             (define datum : (CSS-Option CSS-Datum) (atom-filter head))
-             (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
-                   [else (values (hash-set data tag datum) tail)]))
+             (define-values (token --tokens) (css-car/cdr tokens))
+             (define datum : (CSS-Option CSS-Datum) (atom-filter token))
+             (cond [(or (false? datum) (exn:css? datum)) (values datum --tokens)]
+                   [else (values (hash-update data tag (λ [[v : CSS-Datum]] (updater tag v datum)) (thunk #false)) --tokens)]))
            (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
-             (define-values (head tail) (css-car/cdr tokens))
-             (define datum : (CSS-Option a) (atom-filter head))
-             (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
-                   [else (values (tag datum data) tail)])))]
-      [(atom-filter tag updater)
-       (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
-         (define-values (head tail) (css-car/cdr tokens))
-         (define datum : (CSS-Option CSS-Datum) (atom-filter head))
-         (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
-               [else (values (hash-update data tag (λ [[v : CSS-Datum]] (updater tag v datum)) (thunk #false)) tail)]))]))
+             (define-values (subdata --tokens) (atom-filter null tokens))
+             (cond [(or (false? subdata) (exn:css? subdata)) (values subdata --tokens)]
+                   [else (values (hash-update data (car tag)
+                                              (λ [[v : CSS-Datum]] (updater (car tag) v subdata))
+                                              (thunk #false))
+                                 --tokens)])))]))
 
   (define CSS<~> : (All (a) (-> (CSS-Parser a) (-> a a) (CSS-Parser a)))
     (lambda [css-parser data=>data]
@@ -799,8 +814,10 @@
                   [tokens-- : (Listof CSS-Token) tokens]
                   [n : Natural 1])
           (define-values (subdata --tokens) (css-parser sub++ tokens--))
-          (cond [(or (false? subdata) (exn:css? subdata)) (if (< least n) (values (cons sub++ data) tokens--) (values subdata --tokens))]
-                [(= n most) (values (cons subdata data) --tokens)]
+          (cond [(or (false? subdata) (exn:css? subdata))
+                 (cond [(< least n) (values (cons (reverse sub++) data) tokens--)]
+                       [else (values subdata --tokens)])]
+                [(= n most) (values (cons (reverse subdata) data) --tokens)]
                 [else (seq subdata --tokens (add1 n))])))))
 
   (define css:disjoin : (All (a b) (-> (CSS:Filter a) (CSS:Filter b) (CSS:Filter (U a b))))
@@ -821,18 +838,19 @@
       (λ [[token : CSS-Syntax-Any]] : (CSS-Option a)
         (and (eof-object? token) eof-value))))
 
-  (define CSS<if> : (All (a) (->* ((Listof (Pairof (CSS-Parser a) (CSS-Parser a)))) ((Option (CSS-Parser a))) (CSS-Parser a)))
+  (define CSS<if> : (All (a) (->* ((Listof (Pairof (CSS:Filter Any) (CSS-Parser a)))) ((Option (CSS-Parser a))) (CSS-Parser a)))
     (lambda [cond-parsers [else-parser #false]]
       (cond [(null? cond-parsers) (if (false? else-parser) values else-parser)]
             [else (λ [[data : a] [tokens : (Listof CSS-Token)]] : (Values (CSS-Option a) (Listof CSS-Token))
-                    (let else-if ([branch : (Pairof (CSS-Parser a) (CSS-Parser a)) (car cond-parsers)]
-                                  [branches-- : (Listof (Pairof (CSS-Parser a) (CSS-Parser a))) (cdr cond-parsers)])
-                      (define-values (if-parser then-parser) (css-car/cdr branch))
-                      (define-values (++data --tokens) (if-parser data tokens))
-                      (cond [(and (exn:css? ++data) (null? branches--) (false? else-parser)) (values ++data --tokens)]
-                            [(nor (false? ++data) (exn:css? ++data)) (then-parser data --tokens)]
+                    (let else-if ([branch : (Pairof (CSS:Filter Any) (CSS-Parser a)) (car cond-parsers)]
+                                  [branches-- : (Listof (Pairof (CSS:Filter Any) (CSS-Parser a))) (cdr cond-parsers)])
+                      (define-values (if:filter then-parser) (css-car/cdr branch))
+                      (define-values (token --tokens) (css-car/cdr tokens))
+                      (define if:datum : Any (if:filter token))
+                      (cond [(and (exn:css? if:datum) (null? branches--) (false? else-parser)) (values if:datum tokens)]
+                            [(nor (false? if:datum) (exn:css? if:datum)) (then-parser data --tokens)]
                             [(pair? branches--) (else-if (car branches--) (cdr branches--))]
-                            [(false? else-parser) (values ++data tokens)]
+                            [(false? else-parser) (values if:datum tokens)]
                             [else (else-parser data tokens)])))])))
   
   (define-css-disjoined-filter <css-keyword> #:-> Symbol
@@ -868,8 +886,8 @@
       (CSS<+> (CSS<^> (CSS:<=> (<css-keyword> none) null))
               (CSS<*> (CSS<^> (<css-keyword> options)) 1 +inf.0))))
 
-  (define <:css-comma:> : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (<css:delim> #\,) make-exn:css:missing-comma)))
-  (define <:css-slash:> : (CSS-Parser (Listof CSS-Datum)) (CSS<^> (CSS:<$> (<css:delim> #\/) make-exn:css:missing-slash)))
+  (define (<css-comma>) : (CSS:Filter Char) (CSS:<$> (<css:delim> #\,) make-exn:css:missing-comma))
+  (define (<css-slash>) : (CSS:Filter Char) (CSS:<$> (<css:delim> #\/) make-exn:css:missing-slash))
 
   ;; https://drafts.csswg.org/selectors/#grammar
   ;; https://drafts.csswg.org/selectors/#structure
@@ -1058,16 +1076,16 @@
   ;; https://drafts.csswg.org/css-cascade/#filtering
   ;; https://drafts.csswg.org/css-cascade/#cascading
   (define-type CSS-Datum
-    (Rec css (U CSS-Token-Datum Bytes FlVector FxVector CSS-Token Null --datum (Object)
-                (Pairof css css) (Vectorof css) (Boxof css))))
+    (Rec css (U CSS-Token-Datum Bytes FlVector FxVector CSS-Token --datum (Object)
+                ; (Pairof css css) messes up things when (list? datum)ing. 
+                (Listof css) (Vectorof css) (Boxof css))))
   
   (define-type CSS-Longhand-Values (HashTable Symbol CSS-Datum))
   (define-type CSS-Variable-Values (HashTable Symbol (U CSS-Declaration Null)))
   (define-type CSS-Cascading-Declarations (U CSS-Declarations (Listof CSS-Declarations)))
   (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Values Preference (Option CSS-Values) Preference))
   (define-type CSS-Declaration-Parsers (-> Symbol (-> Void) CSS-Declaration-Parser))
-  (define-type CSS-Declaration-Parser (U (Pairof (CSS-Parser CSS-Longhand-Values) (Listof Symbol))
-                                         (CSS-Parser (Listof CSS-Datum)) Void False))
+  (define-type CSS-Declaration-Parser (U (Pairof CSS-Shorthand-Parser (Listof Symbol)) (CSS-Parser (Listof CSS-Datum)) Void False))
   
   (struct --datum () #:transparent)
 
@@ -1169,6 +1187,14 @@
                                (cond [(datum? specified-value) specified-value]
                                      [else default-value]))]))
 
+  (define css-set! : (-> CSS-Values Symbol CSS-Datum Void)
+    (lambda [declared-values property value]
+      (hash-set! (css-values-descriptors declared-values) property (thunk value))))
+
+  (define in-css-values : (-> CSS-Values (Sequenceof Symbol (-> CSS-Datum)))
+    (lambda [declared-values]
+      (in-hash (css-values-descriptors declared-values))))
+
   (define css-ref-raw : (-> (HashTable Symbol (-> CSS-Datum)) (Option CSS-Values) Symbol (Values CSS-Datum CSS-Datum))
     (lambda [properties inherited-values desc-name]
       (define declared-value : (-> CSS-Datum)
@@ -1191,7 +1217,7 @@
         (<css-keyword> 'auto)
         (<css:percentage> nonnegative-single-flonum?)
         (<css+length> #true))
-      (define (make-size-parser [min-size : Symbol] [max-size : Symbol]) : (Pairof (CSS-Parser CSS-Longhand-Values) (Listof Symbol))
+      (define (make-size-parser [min-size : Symbol] [max-size : Symbol]) : (Pairof CSS-Shorthand-Parser (Listof Symbol))
         (cons (CSS<~> (CSS<&> (CSS<^> (viewport-length-filter) min-size)
                               (CSS<*> (CSS<^> (viewport-length-filter) max-size) 0 1))
                       (λ [[longhand : (HashTable Symbol CSS-Datum)]]
@@ -1323,7 +1349,7 @@
   (define-syntax (css-make-bad-token stx)
     (syntax-case stx []
       [(_ src css:bad:sub token datum)
-       #'(let ([bad (css-make-token src css:bad:sub (cons (assert (object-name token) symbol?) datum))])
+       #'(let ([bad (css-make-token src css:bad:sub (~s (cons (object-name token) datum)))])
            (log-message (current-logger) 'debug 'exn:css:read (css-token->string bad) bad)
            bad)]))
   
@@ -2869,7 +2895,7 @@
               [(exn:css? desc-value) (css-log-syntax-error desc-value <desc-name>) #false]
               [(pair? tail) (make+exn:css:overconsumption tail <desc-name>) #false]
               [else desc-value]))
-      (define (parse-long [info : (Pairof (CSS-Parser CSS-Longhand-Values) (Listof Symbol))]
+      (define (parse-long [info : (Pairof CSS-Shorthand-Parser (Listof Symbol))]
                           [<desc-name> : CSS:Ident] [declared-values : (Listof+ CSS-Token)]
                           [important? : Boolean] [lazy? : Boolean]) : Void
         (cond [(and lazy?)
@@ -2915,8 +2941,7 @@
                                       (when (desc-more-important? desc-name important?)
                                         (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
                                         (define lazy? : Boolean (css-declaration-lazy? property))
-                                        (define info : (U (Pairof (CSS-Parser CSS-Longhand-Values) (Listof Symbol))
-                                                          (CSS-Parser (Listof CSS-Datum)) False Void)
+                                        (define info : CSS-Declaration-Parser
                                           (desc-parser desc-name (thunk (void (make+exn:css:deprecated <desc-name>)))))
                                         (cond [(false? info) (make+exn:css:unrecognized <desc-name>)]
                                               [(void? info) (void '(ignore this property))]
@@ -3057,7 +3082,7 @@
 (define-type CSS-@λ-Metainfo (Vector (Listof Keyword) (Listof Keyword) (Listof Natural) (U Natural +inf.0)))
 (define-type CSS-@λ-Pool (HashTable Symbol CSS-@λ-Metainfo))
 (define-type CSS-@λ-Filter (case-> [Symbol Keyword -> (U (CSS:Filter CSS-Datum) Void)]
-                                   [Symbol False -> (CSS-Parser (Listof CSS-Datum))]))
+                                   [Symbol False -> (U (CSS-Parser (Listof CSS-Datum)) Void)]))
 
 (define-syntax (define-@λ-pool stx)
   (syntax-case stx []
@@ -3074,10 +3099,9 @@
          (lambda [[ns (current-namespace)]]
            (λ [[token : CSS-Syntax-Any]] : (CSS-Option ValueType)
              (and (css:racket? token)
-                  (let* ([racket-id : Symbol (css:racket-datum token)]
-                         [?value (css-eval-value racket-id ns)])
+                  (let ([?value (css-eval-value token ns)])
                     (cond asserts ... [(exn:css? ?value) ?value]
-                          [else (make-exn:css:contract racket-id)]))))))]
+                          [else (make-exn:css:contract token)]))))))]
     [(_ <racket-value> #:is-a? class% #:as ValueType)
      #'(define-css-racket-value-filter <racket-value> #:with ?value #:as ValueType
          [(is-a? ?value class%) (cast ?value ValueType)])]
@@ -3111,7 +3135,7 @@
                                                 [else (λ-fold (cons datum (cons λ:kw swk)) (remq λ:kw λ:mkws) rest)]))]))])]
              [(pair? λ:mkws) (make-exn:css:arity <λ>)]
              [else (let ([λparser (λfilter λname #false)])
-                     (define-values (argl rest) (λparser swk args))
+                     (define-values (argl rest) (if (void? λparser) (values swk args) (λparser swk args)))
                      (cond [(exn:css? argl) argl]
                            [(false? argl) (make-exn:css:type args)]
                            [(pair? rest) (make-exn:css:overconsumption rest)]
@@ -3129,6 +3153,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* main typed/racket
+  (provide (all-from-out (submod ".." digitama)))
+  (provide (all-from-out (submod ".." parser)))
+  (provide (all-from-out (submod ".." grammar)))
+  
   (require (submod ".." digitama))
   (require (submod ".." parser))
   (require (submod ".." grammar))
