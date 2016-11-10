@@ -731,7 +731,7 @@
               (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
                 (define-values (subdata --tokens) (atom-filter null tokens))
                 (cond [(or (false? subdata) (exn:css? subdata)) (values subdata --tokens)]
-                      [else (values (hash-set data (car tag) subdata) --tokens)]))]
+                      [else (values (hash-set data (car tag) (reverse subdata)) --tokens)]))]
              [(λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
                 (define-values (token --tokens) (css-car/cdr tokens))
                 (define datum : (CSS-Option a) (atom-filter token))
@@ -748,7 +748,7 @@
              (define-values (subdata --tokens) (atom-filter null tokens))
              (cond [(or (false? subdata) (exn:css? subdata)) (values subdata --tokens)]
                    [else (values (hash-update data (car tag)
-                                              (λ [[v : CSS-Datum]] (updater (car tag) v subdata))
+                                              (λ [[v : CSS-Datum]] (updater (car tag) v (reverse subdata)))
                                               (thunk #false))
                                  --tokens)])))]))
 
@@ -2970,8 +2970,8 @@
       (define (parse-desc [info : (CSS-Parser (Listof CSS-Datum))]
                           [<desc-name> : CSS:Ident] [desc-name : Symbol] [declared-values : (Listof+ CSS-Token)]
                           [important? : Boolean] [lazy? : Boolean]) : Void
-        (define (normalize [desc-value : (Option (Listof CSS-Datum))]) : (Option CSS-Datum)
-          (cond [(pair? desc-value) (if (null? (cdr desc-value)) (car desc-value) (reverse desc-value))]
+        (define (normalize [desc-values : (Option (Listof CSS-Datum))]) : (Option CSS-Datum)
+          (cond [(pair? desc-values) (if (null? (cdr desc-values)) (car desc-values) (reverse desc-values))]
                 [else (and (null? (cdr declared-values)) (css-wide-keywords-ormap (car declared-values)))]))
         (cond [(and lazy?)
                (desc-set! desc-name important?

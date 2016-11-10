@@ -1,6 +1,6 @@
 #lang at-exp typed/racket
 
-(provide (all-defined-out) Color+sRGB Color Bitmap Font css-declared-color-filter css-default-font)
+(provide (all-defined-out) Color+sRGB Color Bitmap Font <css-color> current-css-default-font)
 (provide (all-from-out "colorspace.rkt"))
 (provide (all-from-out typed/racket/draw images/flomap typed/images/logos typed/images/icons))
 
@@ -71,18 +71,17 @@
 (define make-font+ : (->* () (Font #:size Real #:face (Option String) #:family (Option Font-Family)
                                    #:style (Option Font-Style) #:weight (Option Font-Weight) #:hinting (Option Font-Hinting)
                                    #:underlined? (U Boolean Symbol) #:size-in-pixels? (U Boolean Symbol)) Font)
-  (lambda [[basefont css-default-font] #:size [size +nan.0] #:face [face #false] #:family [family #false]
+  (lambda [[basefont (current-css-default-font)] #:size [size +nan.0] #:face [face #false] #:family [family #false]
            #:style [style #false] #:weight [weight #false] #:hinting [hinting #false]
            #:underlined? [underlined 'default] #:size-in-pixels? [size-in-pixels? 'default]]
-    (define ?-face : (Option String) (or face (send basefont get-face)))
+    (define ?face : (Option String) (or face (send basefont get-face)))
     (define underlined? : Boolean (if (boolean? underlined) underlined (send basefont get-underlined)))
     (define pixels? : Boolean (if (boolean? size-in-pixels?) size-in-pixels? (send basefont get-size-in-pixels)))
     (define fontsize : Real (cond [(positive? size) size]
-                                  [(zero? size) (smart-font-size basefont)]
-                                  [(nan? size) (smart-font-size basefont)]
+                                  [(or (zero? size) (nan? size)) (smart-font-size basefont)]
                                   [else (* (- size) (smart-font-size basefont))]))
-    (if (string? ?-face)
-        (send the-font-list find-or-create-font fontsize ?-face
+    (if (string? ?face)
+        (send the-font-list find-or-create-font fontsize ?face
               (or family (send basefont get-family)) (or style (send basefont get-style))
               (or weight (send basefont get-weight)) underlined? 'smoothed pixels?
               (or hinting (send basefont get-hinting)))
@@ -104,7 +103,7 @@
 
 (define bitmap-text : (->* (String) (Font #:combine? Boolean #:color (Option Color+sRGB)
                                           #:background-color (Option Color+sRGB)) Bitmap)
-  (lambda [content [font css-default-font] #:combine? [combine? #true] #:color [fgcolor #false]
+  (lambda [content [font (current-css-default-font)] #:combine? [combine? #true] #:color [fgcolor #false]
            #:background-color [bgcolor #false]]
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank)))
     (define-values (width height descent ascent) (send dc get-text-extent content font combine?))
@@ -119,7 +118,7 @@
 (define bitmap-desc : (->* (String Nonnegative-Real)
                            (Font #:combine? Boolean #:color (Option Color+sRGB)
                                  #:background-color (Option Color+sRGB)) Bitmap)
-  (lambda [description max-width.0 [font css-default-font] #:combine? [combine? #true] #:color [fgcolor #false]
+  (lambda [description max-width.0 [font (current-css-default-font)] #:combine? [combine? #true] #:color [fgcolor #false]
            #:background-color [bgcolor #false]]
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank)))
     (define max-width : Nonnegative-Flonum (real->double-flonum max-width.0))
@@ -404,138 +403,96 @@
                         (lightskyblue . #x87CEFA) (gainsboro . #xDCDCDC) (fuchsia . #xFF00FF) (mediumspringgreen . #x00FA9A)
                         (midnightblue . #x191970) (salmon . #xFA8072) (silver . #xC0C0C0)))
 
-  (define css-hex-color->rgba : (-> Keyword (Values (Option Index) Nonnegative-Flonum))
-    (lambda [hash-color]
-      (define color : String (keyword->string hash-color))
-      (define digits : Index (string-length color))
-      (define ?-hexcolor : (Option Number)
-        (case digits
-          [(6 8) (string->number color 16)]
-          [(3 4) (for/fold ([hexcolor : (Option Nonnegative-Fixnum) 0])
-                           ([ch : Char (in-string color)])
-                   (define digit : (U Integer Void)
-                     (cond [(char-numeric? ch)   (fx- (char->integer ch) #x30)]
-                           [(char<=? #\a ch #\f) (fx- (char->integer ch) #x37)]
-                           [(char<=? #\A ch #\F) (fx- (char->integer ch) #x57)]))
-                   (and hexcolor (byte? digit)
-                        (fxior (fxlshift hexcolor 8)
-                               (fxior (fxlshift digit 4)
-                                      digit))))]
-          [else #false]))
-      (cond [(or (fx= digits 3) (fx= digits 6)) (values (and (index? ?-hexcolor) ?-hexcolor) 1.0)]
-            [(not (exact-integer? ?-hexcolor)) (values #false 1.0)]
-            [else (let ([hex-rgb (arithmetic-shift ?-hexcolor -8)])
-                    (values (and (index? hex-rgb) hex-rgb)
-                            (flabs (fl/ (fx->fl (fxand ?-hexcolor #xFF)) 255.0))))])))
-  
-  (define-css-declared-value-filter css-declared-rgb-byte-filter #:case-> CSS-Token #:-> Integer
-    (lambda [t [terminate? #true]]
-      (css-cond #:with t #:out-range? [css-number?] #:when terminate?
-                [(css:integer=<-? t byte?) => values]
-                [(css:percentage=<-? t 0.0f0 <= 1.0f0) => (λ [%] (exact-round (* % 255.0)))]
-                [(css:flonum=<-? t fl<= 255.0) => exact-round])))
+  (define-css-atomic-filter <css#color> #:-> (U Index HEXA) #:with [[color-value : css:hash?]]
+    (define-values (?rgb alpha) (css-hex-color->rgba (css:hash-datum color-value)))
+    (cond [(false? ?rgb) (make-exn:css:range color-value)]
+          [(fl= alpha 1.0) ?rgb]
+          [else (hexa ?rgb alpha)])
+    #:where
+    [(define (css-hex-color->rgba [hash-color : Keyword]) : (Values (Option Index) Nonnegative-Flonum)
+       ;;; https://drafts.csswg.org/css-color/#numeric-rgb
+       (define color : String (keyword->string hash-color))
+       (define digits : Index (string-length color))
+       (define ?hexcolor : (Option Number)
+         (case digits
+           [(6 8) (string->number color 16)]
+           [(3 4) (for/fold ([hexcolor : (Option Nonnegative-Fixnum) 0])
+                            ([ch : Char (in-string color)])
+                    (define digit : (U Integer Void)
+                      (cond [(char-numeric? ch)   (fx- (char->integer ch) #x30)]
+                            [(char<=? #\a ch #\f) (fx- (char->integer ch) #x37)]
+                            [(char<=? #\A ch #\F) (fx- (char->integer ch) #x57)]))
+                    (and hexcolor (byte? digit)
+                         (fxior (fxlshift hexcolor 8)
+                                (fxior (fxlshift digit 4)
+                                       digit))))]
+           [else #false]))
+       (cond [(or (fx= digits 3) (fx= digits 6)) (values (and (index? ?hexcolor) ?hexcolor) 1.0)]
+             [(not (exact-integer? ?hexcolor)) (values #false 1.0)]
+             [else (let ([hex-rgb (arithmetic-shift ?hexcolor -8)])
+                     (values (and (index? hex-rgb) hex-rgb)
+                             (flabs (fl/ (fx->fl (fxand ?hexcolor #xFF)) 255.0))))]))])
 
-  (define-css-declared-value-filter css-declared-hue-filter #:case-> CSS-Token #:-> Real
-    (lambda [t [terminate? #true]]
-      (cond [(css:integer? t) (css:integer-datum t)]
-            [(css:flonum? t) (css:flonum-datum t)]
-            [else (css-declared-angle-filter t terminate?)])))
-
-  (define-css-declared-value-filter css-declared-sb%-filter #:case-> CSS-Token #:-> Single-Flonum
-    (lambda [t [terminate? #true]]
-      (cond [(css:percentage? t) (css:percentage-datum t)]
-            [else (and terminate? (make-exn:css:type t))])))
-
-  (define css-color-components-filter : (-> CSS-Token (Listof CSS-Token)
-                                           (Values CSS-Token CSS-Token CSS-Token
-                                                   (U Nonnegative-Flonum CSS-Syntax-Error)))
-    ;;; https://github.com/w3c/csswg-drafts/issues/266
-    (lambda [id args]
-      (match args
-        [(list c1 c2 c3) (values c1 c2 c3 1.0)]
-        [(list c1 c2 c3 alpha) (values c1 c2 c3 (css-declared+percentage%-filter alpha))]
-        [(list c1 c2 c3 (? css:slash?) alpha) (values c1 c2 c3 (css-declared+percentage%-filter alpha))]
-        [(list c1 (? css:comma?) c2 (? css:comma?) c3) (values c1 c2 c3 1.0)]
-        [(list c1 (? css:comma?) c2 (? css:comma?) c3 (? css:comma?) alpha) (values c1 c2 c3 (css-declared+percentage%-filter alpha))]
-        [else (values id id id (let fold ([source : (Listof CSS-Token) args]
-                                          [size : Nonnegative-Fixnum 0]
-                                          [odd-position? : Boolean #false])
-                                 (define-values (token rest) (css-car/cdr source))
-                                 (cond [(fx>= size 4) (make-exn:css:arity source)]
-                                       [(eof-object? token) (make-exn:css:arity (if (css:function? id) id (cons id args)))]
-                                       [(not (css:delim? token)) (fold rest (fx+ size 1) (not odd-position?))]
-                                       [(null? rest) (make-exn:css:missing-value token)]
-                                       [(not odd-position?) (make-exn:css:missing-comma token)]
-                                       [else (fold rest size (not odd-position?))])))])))
-  
-  (define css-extract-rgba : (-> (U CSS:Function CSS:Ident) (Listof CSS-Token) (U RGBA CSS-Syntax-Error))
+  (define-css-function-filter <css-color-notation> #:-> CSS-Color
     ;;; https://drafts.csswg.org/css-color/#rgb-functions
-    (lambda [frgba args]
-      (define-values (R G B alpha) (css-color-components-filter frgba args))
-      (cond [(exn:css? alpha) alpha]
-            [else (let ([r (css-declared-rgb-byte-filter R)]
-                        [g (css-declared-rgb-byte-filter G)]
-                        [b (css-declared-rgb-byte-filter B)])
-                    (cond [(and (byte? r) (byte? g) (byte? b) (flonum? alpha)) (rgba r g b alpha)]
-                          [(exn:css? r) r]
-                          [(exn:css? g) g]
-                          [(exn:css? b) b]
-                          [else (make-exn:css:empty eof)]))])))
-
-  (define css-extract-hsba : (-> CSS-Token (Listof CSS-Token) HSB->RGB (U HSBA CSS-Syntax-Error))
-    ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
-    (lambda [fhsba args ->rgb]
-      (define-values (H S B alpha) (css-color-components-filter fhsba args))
-      (cond [(exn:css? alpha) alpha]
-            [else (let ([h (css-declared-hue-filter H)]
-                        [s (css-declared-sb%-filter S)]
-                        [b (css-declared-sb%-filter B)])
-                    (cond [(and (real? h) (single-flonum? s) (single-flonum? b) (flonum? alpha)) (hsba ->rgb h s b alpha)]
-                          [(exn:css? h) h]
-                          [(exn:css? s) s]
-                          [(exn:css? b) b]
-                          [else (make-exn:css:empty eof)]))])))
-
-  (define-css-declared-racket-value-filter css-eval-color #:with ?-color #:as (U String Symbol Index Color)
-    [(is-a? ?-color color%) (cast ?-color Color)]
-    [(and (string? ?-color) (send the-color-database find-color ?-color)) ?-color]
-    [(index? ?-color) ?-color]
-    [(and (symbol? ?-color)
-          (or (and (hash-has-key? css-named-colors ?-color) ?-color)
-              (let ([color (string->symbol (string-downcase (symbol->string ?-color)))])
-                (and (hash-has-key? css-named-colors color) color)))) => values])
-
-  (define-css-declared-value-filter css-declared-color-filter #:case-> CSS-Token (Listof CSS-Token) #:-> CSS-Color-Datum
-    ;;; https://drafts.csswg.org/css-color/#color-type
-    ;;; https://drafts.csswg.org/css-color/#named-colors
-    ;;; https://drafts.csswg.org/css-color/#numeric-rgb
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
     ;;; https://drafts.csswg.org/css-color/#the-hwb-notation
-    (lambda [color-value rest [terminate? #true]]
-      (css-cond #:with color-value #:null? rest #:when terminate?
-                [(css:ident? color-value)
-                 (define name : Symbol (css:ident-norm color-value))
-                 (cond [(or (eq? name 'transparent) (eq? name 'currentcolor)) name]
-                       [(hash-has-key? css-named-colors name) name]
-                       [else (make-exn:css:range color-value)])]
-                [(css:hash? color-value)
-                 (define-values (?-rgb alpha) (css-hex-color->rgba (css:hash-datum color-value)))
-                 (cond [(false? ?-rgb) (make-exn:css:range color-value)]
-                       [(fl= alpha 1.0) ?-rgb]
-                       [else (hexa ?-rgb alpha)])]
-                [(css:function? color-value)
-                 (case (css:function-norm color-value)
-                   [(rgb rgba) (css-extract-rgba color-value (css:function-arguments color-value))]
-                   [(hsl hsla) (css-extract-hsba color-value (css:function-arguments color-value) hsl->rgb)]
-                   [(hsv hsva) (css-extract-hsba color-value (css:function-arguments color-value) hsv->rgb)]
-                   [(hsi hsia) (css-extract-hsba color-value (css:function-arguments color-value) hsi->rgb)]
-                   [(hwb hwba) (css-extract-hsba color-value (css:function-arguments color-value) hwb->rgb)]
-                   [else (make-exn:css:range color-value)])]
-                [(css:string? color-value)
-                 (define name-raw : String (css:string-datum color-value))
-                 (define name : String (string-replace name-raw #px"(?i:grey)$" "gray"))
-                 (if (send the-color-database find-color name) name (make-exn:css:range color-value))]
-                [(css:racket? color-value) (css-eval-color color-value)])))
+    [([rgba rgb] [byte? r] [byte? g] [byte? b] [nonnegative-flonum? alpha])
+     #:~> (make-parser <:rgb:> <:rgb:>) #:=> (rgba r g b alpha)]
+    [([hsla hsl] [real? h] [single-flonum? s] [single-flonum? l] [nonnegative-flonum? alpha])
+     #:~> (make-parser <:hue:> (CSS<^> (<css:percentage>))) #:=> (hsba hsl->rgb h s l alpha)]
+    [([hsva hsv] [real? h] [single-flonum? s] [single-flonum? v] [nonnegative-flonum? alpha])
+     #:~> (make-parser <:hue:> (CSS<^> (<css:percentage>))) #:=> (hsba hsv->rgb h s v alpha)]
+    [([hsia hsi] [real? h] [single-flonum? s] [single-flonum? i] [nonnegative-flonum? alpha])
+     #:~> (make-parser <:hue:> (CSS<^> (<css:percentage>))) #:=> (hsba hsi->rgb h s i alpha)]
+    [([hwba hwb] [real? h] [single-flonum? w] [single-flonum? b] [nonnegative-flonum? alpha])
+     #:~> (make-parser <:hue:> (CSS<^> (<css:percentage>))) #:=> (hsba hwb->rgb h w b alpha)]
+    #:where
+    [(define-css-disjoined-filter <rgb-byte> #:-> Integer
+       (<css:integer> byte?)
+       (CSS:<~> (<css:percentage> 0.0f0 <= 1.0f0) (λ [[% : Single-Flonum]] (exact-round (* % 255.0))))
+       (CSS:<~> (<css:flonum> 0.0 fl<= 255.0) exact-round))
+
+     (define make-alpha-parser : (-> (CSS:Filter Char) (CSS-Parser (Listof CSS-Datum)))
+       (lambda [<delimiter>]
+         (CSS<$> (CSS<?> [<delimiter> (CSS<^> (<css-%flunit>))]) 1.0)))
+     
+     (define make-parser : (-> (CSS-Parser (Listof CSS-Datum)) (CSS-Parser (Listof CSS-Datum)) (CSS-Parser (Listof CSS-Datum)))
+       ;;; https://github.com/w3c/csswg-drafts/issues/266
+       (lambda [c1 c2]
+         (CSS<&> c1 (CSS<?> [(<css-comma>) (CSS<#> c2 '(2)) (make-alpha-parser (<css-comma>))]
+                            [else          (CSS<*> c2 '(2)) (make-alpha-parser (<css-slash>))]))))
+
+     (define <:rgb:> (CSS<^> (<rgb-byte>)))
+     (define <:hue:> (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>) (<css:angle>))))])
+
+  (define-css-atomic-filter <racket-colorbase> #:-> Color
+    #:with [[color-value : css:string?] [px : Regexp #px"(?i:grey)$"] [to : String "gray"]]
+    (define name : String (string-replace (css:string-datum color-value) px to))
+    (cond [(send the-color-database find-color name) => values]
+          [else (make-exn:css:range color-value)]))
+  
+  (define-css-racket-value-filter <racket-color> #:with ?color #:as (U String Symbol Index Color)
+    [(is-a? ?color color%) (cast ?color Color)]
+    [(index? ?color) ?color]
+    [(and (symbol? ?color)
+          (or (and (hash-has-key? css-named-colors ?color) ?color)
+              (let ([color (string->symbol (string-downcase (symbol->string ?color)))])
+                (and (hash-has-key? css-named-colors color) color)))) => values]
+    [(and (string? ?color) (send the-color-database find-color ?color)) ?color])
+
+  (define-css-disjoined-filter <css-color> #:-> (U CSS-Color-Datum CSS-Wide-Keyword)
+    ;;; https://drafts.csswg.org/css-color/#color-type
+    ;;; https://drafts.csswg.org/css-color/#named-colors
+    #:with [[hint? : Any #false]]
+    (CSS:<~> (<css-keyword> (cons 'currentcolor (cons 'transparent (hash-keys css-named-colors))))
+             (λ [[c : Symbol]] (cond [(not (eq? c 'currentcolor)) c]
+                                     [(false? hint?) c]
+                                     [else css:inherit])))
+    (<css#color>)
+    (<css-color-notation>)
+    (<racket-colorbase>)
+    (<racket-color>))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-type Bitmap (Instance Bitmap%))
@@ -552,48 +509,48 @@
     images/icons/symbol images/icons/tool)
   
   (define css-@icon-filter : CSS-@λ-Filter
-    (lambda [λname λ:kw/λpos value]
-      (case λ:kw/λpos
-        ;[(#:backing-scale) (css-declared+number-filter value)]
-        ;[(#:height #:thickness) (css-declared+number%-filter value)]
-        [(#:color #:shackle-color #:body-color #:arm-color #:head-color) (css-declared-color-filter value null)]
-        [(#:disk-color #:arrow-color #:frame-color #:handle-color #:cap-color #:bomb-color) (css-declared-color-filter value null)])))
+    (lambda [λname ?λ:kw]
+      (case ?λ:kw
+        ;[(#:backing-scale) (css-declared+real-filter value)]
+        ;[(#:height #:thickness) (css-declared+%real-filter value)]
+        ;[(#:color #:shackle-color #:body-color #:arm-color #:head-color) (css-declared-color-filter value null)]
+        ;[(#:disk-color #:arrow-color #:frame-color #:handle-color #:cap-color #:bomb-color) (css-declared-color-filter value null)]
+        )))
 
   (define css-extract-image-fallback : (-> (Listof CSS-Token) (U CSS-Color-Datum False CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-images/#image-notation
-    (lambda [?-fallback]
-      (define-values (?-comma ?-rest) (css-car/cdr ?-fallback))
-      (cond [(eof-object? ?-comma) #false]
-            [(not (css:delim=:=? ?-comma #\,)) (make-exn:css:missing-comma ?-comma)]
-            [else (let-values ([(?-color rest) (css-car/cdr ?-rest)])
-                    (cond [(eof-object? ?-color) (make-exn:css:missing-value ?-comma)]
-                          [(pair? rest) (make-exn:css:overconsumption rest)]
-                          [else (css-declared-color-filter ?-color null)]))])))
+    (lambda [?fallback]
+      (define-values (?comma ?rest) (css-car/cdr ?fallback))
+      (cond [(eof-object? ?comma) #false]
+            [(not (css:delim=:=? ?comma #\,)) (make-exn:css:missing-comma ?comma)]
+            [else (let-values ([(?color rest) (css-car/cdr ?rest)])
+                    (cond [(eof-object? ?color) (make-exn:css:missing-value ?comma)]
+                          [else (pair? rest) (make-exn:css:unexpected rest)]
+                          ;[else (css-declared-color-filter ?color null)]
+                          ))])))
   
   (define css-extract-image : (-> CSS-Token (Listof CSS-Token) (U CSS-Image CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-images/#image-notation
     (lambda [fimage argl]
-      (define-values (img+color ?-color) (css-car/cdr argl))
+      (define-values (img+color ?color) (css-car/cdr argl))
       (cond [(eof-object? img+color) (make-exn:css:empty fimage)]
-            [(or (and (css:string? img+color) (css:string-datum img+color)) (css-declared-image-filter img+color null #false))
+            #|[(or (and (css:string? img+color) (css:string-datum img+color)) (css-declared-image-filter img+color null #false))
              => (make-css->datum
-                 (λ [img+url] (let ([?-fallback (css-extract-image-fallback ?-color)])
-                                (cond [(exn:css? ?-fallback) ?-fallback]
-                                      [(and (string? img+url) (string=? img+url "")) (image 'about:invalid ?-fallback)]
-                                      [else (image img+url ?-fallback)]))))]
-            [(css-declared-color-filter img+color ?-color #false)
-             => (make-css->datum (λ [solid] (image 'about:invalid solid)))]
+                 (λ [img+url] (let ([?fallback (css-extract-image-fallback ?color)])
+                                (cond [(exn:css? ?fallback) ?fallback]
+                                      [(and (string? img+url) (string=? img+url "")) (image 'about:invalid ?fallback)]
+                                      [else (image img+url ?fallback)]))))]
+            [(css-declared-color-filter img+color ?color #false)
+             => (make-css->datum (λ [solid] (image 'about:invalid solid)))]|#
             [else (make-exn:css:type img+color)])))
   
-  (define-css-declared-value-filter css-declared-image-filter #:case-> CSS-Token (Listof CSS-Token) #:-> CSS-Image-Datum
+  (define-css-disjoined-filter <css-image> #:-> CSS-Image-Datum
     ;;; https://drafts.csswg.org/css-images/#image-values
     ;;; https://drafts.csswg.org/css-images/#invalid-image
-    (lambda [image-value rest [terminate? #true]]
-      (css-cond #:with image-value #:null? rest #:out-range? [css:function? css:λracket?] #:when terminate?
-                [(css:function=:=? image-value 'image) (css-extract-image image-value (css:function-arguments image-value))]
-                [(css-declared-@lambda-filter image-value css-@icon-filter the-@icon-pool #false) => values]
-                [(css:url=<-? image-value non-empty-string?) => values]
-                [(css:url? image-value) 'about:invalid])))
+    ;[(css:function=:=? image-value 'image) (css-extract-image image-value (css:function-arguments image-value))]
+    (<css:@λ> the-@icon-pool css-@icon-filter)
+    (<css:url> non-empty-string?)
+    (CSS:<=> (<css:url>) 'about:invalid))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-type Font (Instance Font%))
@@ -602,8 +559,8 @@
 
   (define-syntax (call-with-font stx)
     (syntax-parse stx
-      [(_ font (~optional (~seq #:root? ?-root?)) sexp ...)
-       (with-syntax ([root? (or (attribute ?-root?) #'#false)])
+      [(_ font (~optional (~seq #:root? ?root?)) sexp ...)
+       (with-syntax ([root? (or (attribute ?root?) #'#false)])
          ; NOTE: This operation is extremely expensive (at least 0.4s), but Racket do have its own cache strategy.
          #'(begin (unless (eq? font (unbox &font))
                     ; WARNING: 'xh' seems to be impractical, the font% size is just a nominal size
@@ -620,13 +577,17 @@
                     (set-flcss%-ic! length% (real->double-flonum ww))
                     (set-box! &font font))
                   sexp ...))]))
-  
-  (define css-default-font : Font (make-font))
+
+  (define current-css-default-font : (Parameterof Font) (make-parameter (make-font)))
   (define css-font-family-names/no-variants : (Listof String) (get-face-list 'all #:all-variants? #false))
   (define css-font-scaling-factor : Nonnegative-Flonum 1.2)
   (define dc (make-object bitmap-dc% (make-object bitmap% 1 1)))
-  (define &font : (Boxof Font) (box css-default-font))
+  (define &font : (Boxof Font) (box (current-css-default-font)))
 
+  (define css-font-generic-families : (Listof Symbol)
+    '(default decorative roman script  swiss      modern    system    symbol
+       emoji  fantasy    serif cursive sans-serif monospace system-ui math fangsong))
+  
   (define css-font-synthesis-options : (Listof Symbol) '(weight style small-caps))
   
   (define css-font-style-option : (Listof Symbol) '(normal italic oblique slant))
@@ -639,16 +600,16 @@
   (define css-font-variant-options/21 : (Listof Symbol) '(normal small-caps))
   (define css-font-stretch-option : (Listof Symbol) '(normal condensed expanded ultra-condensed extra-condensed semi-condensed
                                                              ultra-expanded extra-expanded semi-expanded))
-    
-  (define css-system-font-names : (Listof Symbol) '(caption icon menu message-box small-caption status-bar))
-  (define current-css-caption-font : (Parameterof Font) (make-parameter css-default-font))
-  (define current-css-icon-font : (Parameterof Font) (make-parameter css-default-font))
-  (define current-css-menu-font : (Parameterof Font) (make-parameter css-default-font))
-  (define current-css-message-box-font : (Parameterof Font) (make-parameter css-default-font))
-  (define current-css-small-caption-font : (Parameterof Font) (make-parameter css-default-font))
-  (define current-css-status-bar-font : (Parameterof Font) (make-parameter css-default-font))
-
-  (define-css-declared-racket-value-filter css-eval-font #:is-a? font% #:as Font)
+  
+  (define-css-system-parameters-filter <css-system-font> #:-> Font
+    [caption       (current-css-default-font)]
+    [icon          (current-css-default-font)]
+    [menu          (current-css-default-font)]
+    [message-box   (current-css-default-font)]
+    [small-caption (current-css-default-font)]
+    [status-bar    (current-css-default-font)])
+  
+  (define-css-racket-value-filter <racket-font> #:is-a? font% #:as Font)
 
   (define smart-font-size : (-> Font Nonnegative-Flonum)
     (let ([macosx? (eq? (system-type 'os) 'macosx)])
@@ -657,175 +618,122 @@
                             (if (or macosx? (send font get-size-in-pixels))
                                 'px 'pt)))))
 
-  (define css-font-medium  : Nonnegative-Flonum (smart-font-size css-default-font))
-  (define css-font-xxlarge : Nonnegative-Flonum (* 2/1 css-font-medium))
-  (define css-font-xlarge  : Nonnegative-Flonum (* 3/2 css-font-medium))
-  (define css-font-large   : Nonnegative-Flonum (* 6/5 css-font-medium))
-  (define css-font-small   : Nonnegative-Flonum (* 8/9 css-font-medium))
-  (define css-font-xsmall  : Nonnegative-Flonum (* 3/4 css-font-medium))
-  (define css-font-xxsmall : Nonnegative-Flonum (* 3/5 css-font-medium))
+  (define css-font->longhand-properties : (->* (Font) (CSS-Longhand-Values) CSS-Longhand-Values)
+    (lambda [font [longhand css-longhand]]
+      (let* ([longhand++ (hash-set longhand 'font-weight (send font get-weight))]
+             [longhand++ (hash-set longhand++ 'font-style (send font get-style))]
+             [longhand++ (hash-set longhand++ 'font-size (smart-font-size font))])
+        (hash-set longhand++ 'font-family
+                  (list (or (send font get-face)
+                            (send font get-family)))))))
+
+  (define-css-disjoined-filter <font-stretch> #:-> (U Symbol Nonnegative-Single-Flonum)
+    ;;; https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
+    (<css-keyword> css-font-stretch-option)
+    (<css:percentage> nonnegative-single-flonum?))
+
+  (define-css-disjoined-filter <font-weight> #:-> (U Symbol Integer)
+    ;;; https://drafts.csswg.org/css-fonts/#font-weight-prop
+    (<css-keyword> css-font-weight-option)
+    (<css:integer> 0 < 1000))
   
-  (define-css-longhand-defaulting css-default-font-properties #:with font #:as Font
-    [font-weight            (send font get-weight)]
-    [font-style             (send font get-style)]
-    [font-stretch           'normal]
-    [font-variant           'normal]
-    [font-kerning           'auto]
-    [font-size-adjust       'none]
-    [font-language-override 'normal]
-    [line-height            'normal]
-    [font-family            (list (or (send font get-face) (send font get-family)))]
-    [font-size              (smart-font-size font)])
+  (define-css-disjoined-filter <font-size> #:-> (U Symbol Nonnegative-Inexact-Real CSS:Length:Font)
+    ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
+    (CSS:<~> (<css+%real>) exact->inexact)
+    (<css+length>)
+    (<css-keyword> css-font-size-option))
 
-  (define css-set!-font-property : (-> CSS-Longhand-Values Symbol (U CSS-Datum CSS-Syntax-Error) CSS-Token (Listof CSS-Token)
-                                       CSS-Longhand-Values)
-    (lambda [longhand property value head tail]
-      ; NOTE: CSS-Syntax-Error can also be stored in the longhand form.
-      (hash-set! longhand property value)
-      ; WARNING: the font shorthand requires `font-family` (or system font)
-      (cond [(eq? property 'font-family)
-             (cond [(list? value) (css-default-font-properties css-default-font longhand)]
-                   [(exn? value) (css-default-font-properties value longhand)] ; see (css-font-shorthand+family-filter)
-                   [else (css-set!-font-property longhand 'font-family (css-font-family-filter head tail) head null)])]
-            [(null? tail) (css-default-font-properties (make-exn:css:missing-value head) longhand)]
-            [(eq? property 'line-height) (css-set!-font-property longhand 'font-family 'not-filtered (car tail) (cdr tail))]
-            [(not (eq? property 'font-size)) (css-font-shorthand+family-filter (car tail) (cdr tail) longhand)]
-            [else (let-values ([(?-/ prest <height> rest) (css-car/cadr tail)])
-                    (cond [(not (css:delim=:=? ?-/ #\/)) (css-set!-font-property longhand 'font-family 'not-filtered ?-/ prest)]
-                          [(eof-object? <height>) (css-default-font-properties (make-exn:css:missing-value ?-/) longhand)]
-                          [else (let ([height (css-line-height-filter <height> null)])
-                                  (cond [(exn? height) (css-default-font-properties height longhand)]
-                                        [else (css-set!-font-property longhand 'line-height height <height> rest)]))]))])))
+  (define-css-disjoined-filter <line-height> #:-> (U Symbol Nonnegative-Flonum CSS:Length:Font CSS-Wide-Keyword)
+    ;;; http://www.w3.org/TR/CSS2/visudet.html#propdef-line-height
+    (CSS:<~> (<css+%real>) real->double-flonum)
+    (<css+length>)
+    (CSS:<~> (<css-keyword> '(normal inherit)) css-wide-keywords-filter-map))
 
-  (define css-font-family-filter : (-> CSS-Token (Listof CSS-Token) (U (Listof (U String Symbol)) CSS-Syntax-Error))
+  (define <:font-family:> : (CSS-Parser (Listof CSS-Datum))
     ;;; https://drafts.csswg.org/css-fonts/#font-family-prop
     ;;; https://drafts.csswg.org/css-fonts-4/#extended-generics
-    (lambda [font-value rest]
-      (let font-fold ([seilimaf : (Listof (U String Symbol)) null]
-                      [cvalue : CSS-Token font-value]
-                      [rvalues : (Listof CSS-Token) rest])
-        (define ?-family : (U String Symbol False)
-          (or (and (css:string? cvalue) (css:string-datum cvalue))
-              (css:ident-norm=<-? cvalue '(default decorative roman script  swiss      modern    system    symbol
-                                            emoji  fantasy    serif cursive sans-serif monospace system-ui math fangsong))))
-        (cond [(and ?-family)
-               (define-values (term rst) (css-car/cdr rvalues))
-               (cond [(eof-object? term) (reverse (cons ?-family seilimaf))]
-                     [(nor (pair? rst) (css:delim=:=? term #\,)) (make-exn:css:overconsumption term)]
-                     [else (font-fold (cons ?-family seilimaf) (car rst) (cdr rst))])]
-              [(css:ident? cvalue)
-               (let family-fold ([family : String (symbol->string (css:ident-datum cvalue))]
-                                 [rfamilies : (Listof CSS-Token) rvalues])
-                 (define-values (part rst) (css-car/cdr rfamilies))
-                 (cond [(eof-object? part) (reverse (cons family seilimaf))]
-                       [(css:ident? part) (family-fold (string-append family " " (symbol->string (css:ident-datum part))) rst)]
-                       [(not (css:delim=:=? part #\,)) (make-exn:css:type part)]
-                       [(null? rst) (make-exn:css:overconsumption rfamilies)]
-                       [else (font-fold (cons family seilimaf) (car rst) (cdr rst))]))]
-              [else (make-exn:css:type cvalue)]))))
-
-  (define css-line-height-filter : (-> CSS-Token (Listof CSS-Token) (U Symbol Nonnegative-Flonum CSS:Length:Font
-                                                                       CSS-Wide-Keyword CSS-Syntax-Error))
-    ;;; http://www.w3.org/TR/CSS2/visudet.html#propdef-line-height
-    (lambda [font-value rest]
-      (cond [(css-declared-keyword-filter font-value rest '(normal inherit) #false) => css-wide-keywords-filter-map]
-            [(css-declared+number%-filter font-value #false) => (make-css->datum real->double-flonum)]
-            [else (css-declared+length-filter font-value)])))
-
-  (define-css-declared-value-filter css-font-numeric-size-filter #:case-> CSS-Token #:-> (U Nonnegative-Inexact-Real CSS:Length:Font)
-    ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
-    (lambda [font-value [terminate? #true]]
-      (cond [(css-declared+number%-filter font-value #false) => (make-css->datum exact->inexact)]
-            [else (css-declared+length-filter font-value terminate?)])))
-
-  (define css-font-shorthand+family-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values) CSS-Longhand-Values)
+    (CSS<#> (CSS<+> (CSS<^> (CSS:<+> (<css:string>) (<css-keyword> css-font-generic-families)))
+                    (CSS<!> (CSS<^> (<css:ident>))))))
+  
+  (define <:font-shorthand:> : (Pairof CSS-Shorthand-Parser (Listof Symbol))
     ;;; https://drafts.csswg.org/css-fonts/#font-prop
-    (lambda [head rst [font-longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))]]
-      (define keyword : (Option Symbol) (and (css:ident? head) (css:ident-norm head)))
-      (define font-hint : (U CSS-Datum CSS-Syntax-Error)
-        (cond [(symbol? keyword)
-               (cond [(eq? keyword 'normal) keyword]
-                     [(memq keyword css-font-style-option) 'font-style]
-                     [(memq keyword css-font-variant-options/21) 'font-variant]
-                     [(memq keyword css-font-weight-option) 'font-weight]
-                     [(memq keyword css-font-stretch-option) 'font-stretch]
-                     [(memq keyword css-font-size-option) 'font-size]
-                     [else #false])]
-              [(css:string? head) #false]
-              [(css:integer=<-? head 0 < 1000) => values]
-              [(css-font-numeric-size-filter head #false) => values]
-              [else (make-exn:css:unrecognized head)]))
-      (cond [(symbol? font-hint)
-             ; NOTE: The default option `normal` can be applied to more than 4 properties, and any one is okay.
-             ;         Here just let the `css-set!-font-property` check the terminate condition.
-             (cond [(not (eq? font-hint 'normal)) (css-set!-font-property font-longhand font-hint keyword head rst)]
-                   [else (css-set!-font-property font-longhand 'font-language-override font-hint head rst)])]
-            [(exact-integer? font-hint) (css-set!-font-property font-longhand 'font-weight font-hint head rst)]
-            [(real? font-hint) (css-set!-font-property font-longhand 'font-size font-hint head rst)]
-            [(css:length:font? font-hint) (css-set!-font-property font-longhand 'font-size font-hint head rst)]
-            [else (css-set!-font-property font-longhand 'font-family font-hint head rst)])))
+    (cons (CSS<+> (CSS<^> (<css-system-font>) css-font->longhand-properties)
+                  (CSS<^> (<racket-font>) css-font->longhand-properties)
+                  (CSS<&> (CSS<*> (CSS<+> (CSS<_> (CSS<^> (<css-keyword> 'normal) '|Ignoring, some properties use it as defaults|))
+                                          (CSS<^> (<font-weight>) 'font-weight)
+                                          (CSS<^> (<css-keyword> css-font-style-option) 'font-style)
+                                          (CSS<^> (<css-keyword> css-font-variant-options/21) 'font-variant)
+                                          ; <font-stretch> also accepts percentage in css-fonts-4 specification,
+                                          ; however it preempts the 'font-size
+                                          (CSS<^> (<css-keyword> css-font-stretch-option) 'font-stretch)))
+                          (CSS<^> (<font-size>) 'font-size)
+                          (CSS<*> (CSS<?> [(<css-slash>) (CSS<^> (<line-height>) 'line-height)]) '?)
+                          (CSS<^> <:font-family:> '(font-family))))
+          '(font-style font-variant font-weight font-stretch font-size line-height font-family
+                       font-size-adjust font-kerning font-language-override)))
 
   (define css-datum->font-family : (-> Symbol CSS-Datum (U String Font-Family))
     (lambda [_ value]
-      (let extract : (U String Font-Family) ([families : (Listof CSS-Datum) (if (list? value) value (list value))])
-        (if (null? families)
-            (let ([pfont (or (unbox &font) css-default-font)])
-              (or (send pfont get-face)
-                  (send pfont get-family)))
-            (let ([family (car families)])
-              (cond [(symbol? family)
-                     (case family
-                       [(decorative fantasy) 'decorative]
-                       [(roman serif) 'roman]
-                       [(script cursive) 'script]
-                       [(swiss sans-serif) 'swiss]
-                       [(modern monospace) 'modern]
-                       [(system system-ui) 'system]
-                       [(symbol math) 'symbol]
-                       [else 'default])]
-                    [(string? family)
-                     (or (for/or : (Option String) ([face (in-list css-font-family-names/no-variants)])
-                           (and (string-ci=? family face) family))
-                         (extract (cdr families)))]
-                    [else (extract (cdr families))]))))))
+      (define (generic-family-map [family : Symbol]) : Font-Family
+        (case family
+          [(decorative fantasy) 'decorative]
+          [(roman serif) 'roman]
+          [(script cursive) 'script]
+          [(swiss sans-serif) 'swiss]
+          [(modern monospace) 'modern]
+          [(system system-ui) 'system]
+          [(symbol math) 'symbol]
+          [else 'default]))
+      (define (face-filter [family : String]) : (Option String)
+        (for/or : (Option String) ([face (in-list css-font-family-names/no-variants)])
+          (and (string-ci=? family face) family)))
+      (let select ([families (if (list? value) value (list value))])
+        (cond [(null? families) (let ([pfont (unbox &font)]) (or (send pfont get-face) (send pfont get-family)))]
+              [else (let ([family (car families)])
+                      (or (and (symbol? family) (generic-family-map family))
+                          (and (string? family) (face-filter family))
+                          (and (list? family) (face-filter (string-trim (~a family) #px"(^[(])|([)]$)")))
+                          (select (cdr families))))]))))
 
   (define css-datum->font-size : (-> Symbol CSS-Datum Nonnegative-Real)
-    (lambda [_ value]
+    (lambda [property value]
       (cond [(symbol? value)
-             (case value
-               [(xx-large) css-font-xxlarge]
-               [(x-large)  css-font-xlarge]
-               [(large)    css-font-large]
-               [(small)    css-font-small]
-               [(x-small)  css-font-xsmall]
-               [(xx-small) css-font-xxsmall]
-               [(medium)   css-font-medium]
-               [(smaller)  (* 5/6 (flcss%-em length%))] ; TODO: find a better function to deal with these two keyword.
-               [(larger)   (* 6/5 (flcss%-em length%))] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
-               [else +nan.0])]
+             (let ([css-font-medium (smart-font-size (current-css-default-font))])
+               (case value
+                 [(xx-large) (* 2/1 css-font-medium)]
+                 [(x-large)  (* 3/2 css-font-medium)]
+                 [(large)    (* 6/5 css-font-medium)]
+                 [(small)    (* 8/9 css-font-medium)]
+                 [(x-small)  (* 3/4 css-font-medium)]
+                 [(xx-small) (* 3/5 css-font-medium)]
+                 [(smaller)  (* 5/6 (flcss%-em length%))] ; TODO: find a better function to deal with these two keywords.
+                 [(larger)   (* 6/5 (flcss%-em length%))] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
+                 [else       css-font-medium]))]
             [(nonnegative-flonum? value) value]
             [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (flcss%-em length%))]
             [(css+length? value) (css:length->scalar value)]
-            [else +nan.0])))
+            [(eq? property 'min-font-size) 0]
+            [(eq? property 'max-font-size) +inf.0]
+            [else +nan.0 #| used to determine whether size-in-pixels? will be inherited, see (css-extract-font) |#])))
 
   (define css-datum->font-weight : (-> Symbol CSS-Datum Font-Weight)
     (lambda [_ value]
       (cond [(symbol? value)
              (case value
                [(normal light bold) value]
-               [(bolder) (if (eq? (send (or (unbox &font) css-default-font) get-weight) 'light) 'normal 'bold)]
-               [(lighter) (if (eq? (send (or (unbox &font) css-default-font) get-weight) 'bold) 'normal 'light)]
-               [else (send (or (unbox &font) css-default-font) get-weight)])]
+               [(bolder) (if (eq? (send (unbox &font) get-weight) 'light) 'normal 'bold)]
+               [(lighter) (if (eq? (send (unbox &font) get-weight) 'bold) 'normal 'light)]
+               [else (send (current-css-default-font) get-weight)])]
             [(and (fixnum? value) (fx<= value 300)) 'light]
             [(and (fixnum? value) (fx>= value 700)) 'bold]
-            [else (send (or (unbox &font) css-default-font) get-weight)])))
+            [else (send (current-css-default-font) get-weight)])))
 
   (define css-datum->font-style : (-> Symbol CSS-Datum Font-Style)
     (lambda [_ value]
       (case value
         [(normal italic) value]
         [(oblique slant) 'slant]
-        [else (send (or (unbox &font) css-default-font) get-style)])))
+        [else (send (current-css-default-font) get-style)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-text-decor-line-options : (Listof Symbol) '(underline overline line-through blink))
@@ -833,33 +741,17 @@
 
   (define css-text-decor-style-option : (Listof Symbol) '(solid double dotted dashed wavy))
 
-  (define-css-longhand-defaulting css-default-text-decor-properties
-    [text-decoration-line  'none]
-    [text-decoration-color 'currentcolor]
-    [font-decoration-style 'solid])
-
-  (define css-set!-decor-property : (-> CSS-Longhand-Values Symbol CSS-Datum (Listof CSS-Token) CSS-Longhand-Values)
-    (lambda [text-decor-longhand text-decor-option property rest]
-      (cond [(not (eq? text-decor-option 'text-decoration-line)) (hash-set! text-decor-longhand text-decor-option property)]
-            [else (let ([old-options (hash-ref text-decor-longhand text-decor-option (thunk null))])
-                    (define decor-options : (U CSS-Datum Void)
-                      (when (symbol? property)
-                        (cond [(eq? property 'none) null]
-                              [(and (list? old-options) (not (memq property old-options))) (cons property old-options)])))
-                    (unless (void? decor-options) (hash-set! text-decor-longhand text-decor-option decor-options)))])
-      (cond [(null? rest) (css-default-text-decor-properties #false text-decor-longhand)]
-            [else (css-text-decor-shorthand-filter (car rest) (cdr rest) text-decor-longhand)])))
-
-  (define css-text-decor-shorthand-filter : (->* (CSS-Token (Listof CSS-Token)) (CSS-Longhand-Values) CSS-Longhand-Values)
-    ;;; https://drafts.csswg.org/css-fonts/#font-prop
-    (lambda [head rst [decor-longhand ((inst make-hasheq Symbol (U CSS-Datum CSS-Syntax-Error)))]]
-      (define datum : (Option Symbol) (and (css:ident? head) (css:ident-norm head)))
-      (cond [(eq? datum 'none) (css-set!-decor-property decor-longhand 'text-decoration-line datum rst)]
-            [(memq datum css-text-decor-line-options) (css-set!-decor-property decor-longhand 'text-decoration-line datum rst)]
-            [(memq datum css-text-decor-style-option) (css-set!-decor-property decor-longhand 'text-decoration-style datum rst)]
-            [else (let ([?-color (css-declared-color-filter head null)])
-                    (cond [(exn? ?-color) (css-default-text-decor-properties ?-color decor-longhand)]
-                          [else (css-set!-decor-property decor-longhand 'text-decoration-color ?-color rst)]))]))))
+  (define css-fold-decoration-line : CSS-Longhand-Update
+    (lambda [_ old-options property]
+      (if (list? old-options) (cons property old-options) (list property))))
+  
+  (define <:text-decoration:> : (Pairof CSS-Shorthand-Parser (Listof Symbol))
+    ;;; https://drafts.csswg.org/css-text-decor/#text-decoration-color-property
+    (cons (CSS<*> (CSS<+> (CSS<^> (CSS:<=> (<css-keyword> 'none) null) 'text-decoration-line)
+                          (CSS<^> (<css-keyword> css-text-decor-line-options) 'text-decoration-line css-fold-decoration-line)
+                          (CSS<^> (<css-keyword> css-text-decor-style-option) 'text-decoration-style)
+                          (CSS<^> (<css-color>) 'text-decoration-color)))
+          '(text-decoration-line text-decoration-color text-decoration-style))))
 
 (require (submod "." css))
 
@@ -900,20 +792,19 @@
                     (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css-datum->color 'color c))
                     (if (object? color) color (current-css-element-color)))))
 
-(define css-color-property-filter : (->* (Symbol CSS-Token (Listof CSS-Token)) ((U Regexp (Listof Symbol)))
-                                         (U CSS-Color-Datum CSS-Syntax-Error CSS-Wide-Keyword False))
-  (lambda [name value rest [px.names #px"-color$"]]
-    (cond [(eq? name 'color) (if (css:ident-norm=:=? value 'currentcolor) css:inherit (css-declared-color-filter value rest))]
-          [(and (list? px.names) (for/or : Boolean ([pn (in-list px.names)]) (eq? name pn))) (css-declared-color-filter value rest)]
-          [(and (regexp? px.names) (regexp-match? px.names (symbol->string name))) (css-declared-color-filter value rest)]
+(define css-color-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
+  (lambda [name [px.names #px"-color$"]]
+    (cond [(eq? name 'color) (CSS<^> (<css-color> '#:inherit-currentcolor))]
+          [(and (list? px.names) (for/or : Boolean ([pn (in-list px.names)]) (eq? name pn))) (CSS<^> (<css-color>))]
+          [(and (regexp? px.names) (regexp-match? px.names (symbol->string name))) (CSS<^> (<css-color>))]
           [else #false])))
 
-(define css-image-property-filter : (->* (Symbol CSS-Token (Listof CSS-Token)) ((U Regexp (Listof Symbol)))
+#|(define css-image-property-filter : (->* (Symbol CSS-Token (Listof CSS-Token)) ((U Regexp (Listof Symbol)))
                                          (U CSS-Image-Datum CSS-Syntax-Error CSS-Wide-Keyword False))
   (lambda [name value rest [px.names #px"-(image|icon|logo)$"]]
     (cond [(and (list? px.names) (for/or : Boolean ([pn (in-list px.names)]) (eq? name pn))) (css-declared-image-filter value rest)]
           [(and (regexp? px.names) (regexp-match? px.names (symbol->string name))) (css-declared-image-filter value rest)]
-          [else #false])))
+          [else #false])))|#
 
 (define css-datum->color : (-> Symbol CSS-Datum (U Color CSS-Wide-Keyword 'currentcolor))
   (lambda [desc-name color]
@@ -926,84 +817,68 @@
           [(eq? color 'currentcolor) color]
           [else css:initial])))
 
-(define css-font-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (Option CSS+Longhand-Values))
+(define css-font-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
   ;;; https://drafts.csswg.org/css-fonts-4/#basic-font-props
   ;;; https://drafts.csswg.org/css-fonts-4/#expanded-font-weight-scale
-  (lambda [suitcased-name font-value rest]
+  (lambda [suitcased-name]
     (case suitcased-name
-      [(font-family) (css-font-family-filter font-value rest)]
-      [(font-style) (css-declared-keyword-filter font-value rest css-font-style-option)]
-      [(font-kerning) (css-declared-keyword-filter font-value rest css-font-kerning-option)]
-      [(font-variant-ligatures) (css-declared-keyword-filter font-value rest css-font-variant-ligatures-options)]
-      [(font-variant-position) (css-declared-keyword-filter font-value rest css-font-position-option)]
-      [(font-variant-caps) (css-declared-keyword-filter font-value rest css-font-caps-option)]
-      [(line-height) (css-line-height-filter font-value rest)]
-      [(font-synthesis) (css-declared-keywords-filter font-value rest css-font-synthesis-options 'none)]
-      [(font-size min-font-size max-font-size)
-       (cond [(css-declared-keyword-filter font-value rest css-font-size-option #false) => values]
-             [else (css-font-numeric-size-filter font-value)])]
-      [(font-stretch)
-       (css-cond #:with font-value #:out-range? [css:percentage?]
-                 [(css-declared-keyword-filter font-value rest css-font-stretch-option #false) => values]
-                 [(css:percentage=<-? font-value nonnegative-single-flonum?) => values])]
-      [(font-weight)
-       (css-cond #:with font-value #:out-range? [css:integer?]
-                 [(css-declared-keyword-filter font-value rest css-font-weight-option #false) => values]
-                 [(css:integer=<-? font-value 0 < 1000) => values])]
-      [(font-size-adjust)
-       (css-cond #:with font-value #:null? rest #:out-range? [css:percentage?]
-                 [(css:ident-norm=:=? font-value 'none) => values]
-                 [(css-declared+number-filter font-value) => values])]
-      [(font)
-       (define sysfont : (Option Symbol) (css:ident-norm=<-? font-value css-system-font-names))
-       (cond [(and (or sysfont (css:racket? font-value)) (pair? rest)) (css-default-font-properties (make-exn:css:overconsumption rest))]
-             [(css:racket? font-value) (css-default-font-properties (css-eval-font font-value))]
-             [else (case sysfont
-                     [(caption) (css-default-font-properties (current-css-caption-font))]
-                     [(small-caption) (css-default-font-properties (current-css-small-caption-font))]
-                     [(icon) (css-default-font-properties (current-css-icon-font))]
-                     [(menu) (css-default-font-properties (current-css-menu-font))]
-                     [(message-box) (css-default-font-properties (current-css-message-box-font))]
-                     [(status-bar) (css-default-font-properties (current-css-status-bar-font))]
-                     [else (css-font-shorthand+family-filter font-value rest)])])]
+      [(font) <:font-shorthand:>]
+      [(font-family) <:font-family:>]
+      [(font-style) (CSS<^> (<css-keyword> css-font-style-option))]
+      [(font-kerning) (CSS<^> (<css-keyword> css-font-kerning-option))]
+      [(font-variant-ligatures) (CSS<^> (<css-keyword> css-font-variant-ligatures-options))]
+      [(font-variant-position) (CSS<^> (<css-keyword> css-font-position-option))]
+      [(font-variant-caps) (CSS<^> (<css-keyword> css-font-caps-option))]
+      [(line-height) (CSS<^> (<line-height>))]
+      [(font-synthesis) (<:css-keywords:> css-font-synthesis-options 'none)]
+      [(font-size min-font-size max-font-size) (CSS<^> (<font-size>))]
+      [(font-stretch) (CSS<^> (<font-stretch>))]
+      [(font-weight) (CSS<^> (<font-weight>))]
+      [(font-size-adjust) (CSS<^> (CSS:<+> (<css-keyword> 'none) (<css+real>)))]
       [else #false])))
 
-(define css-text-decor-property-filter : (-> Symbol CSS-Token (Listof CSS-Token) (Option CSS+Longhand-Values))
+(define css-text-decoration-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
   ;;; https://drafts.csswg.org/css-text-decor/#line-decoration
-  (lambda [suitcased-name decor-value rest]
+  (lambda [suitcased-name]
     (case suitcased-name
-      [(text-decoration-line) (css-declared-keywords-filter decor-value rest css-text-decor-line-options 'none)]
-      [(text-decoration-color) (css-declared-color-filter decor-value rest #false)]
-      [(text-decoration-style) (css-declared-keyword-filter decor-value rest css-text-decor-style-option)]
-      [(text-decoration-skip) (css-declared-keywords-filter decor-value rest css-text-decor-skip-options 'none)]
-      [(text-decoration) (css-text-decor-shorthand-filter decor-value rest)]
+      [(text-decoration) <:text-decoration:>]
+      [(text-decoration-line) (<:css-keywords:> css-text-decor-line-options 'none)]
+      [(text-decoration-style) (CSS<^> (<css-keyword> css-text-decor-style-option))]
+      [(text-decoration-skip) (<:css-keywords:> css-text-decor-skip-options 'none)]
+      [(text-decoration-color) (CSS<^> (<css-color>))]
       [else #false])))
 
-(define css-extract-font : (->* (CSS-Values (Option CSS-Values)) ((Option Font)) Font)
-  (lambda [declared-values inherited-values [basefont #false]]
-    (define ?-font : CSS-Datum (and (hash? inherited-values) (css-ref inherited-values #false 'font)))
-    (define inherited-font : Font (if (object? ?-font) (cast ?-font Font) (or basefont css-default-font)))
-    (define (css-datum->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof Datum)
+(define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (Font) Font)
+  (lambda [declared-values inherited-values [basefont (current-css-default-font)]]
+    (define ?font : CSS-Datum (and inherited-values (css-ref inherited-values #false 'font)))
+    (define inherited-font : Font (if (object? ?font) (cast ?font Font) basefont))
+    (define (css-datum->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof CSS-Datum)
       (if (list? value) value (if (send inherited-font get-underlined) (list 'underline) null)))
-    (call-with-font inherited-font #:root? (false? ?-font)
+    (call-with-font inherited-font #:root? (false? ?font)
       (define family : (U String Font-Family) (css-ref declared-values #false 'font-family css-datum->font-family))
-      (define size : Nonnegative-Real (css-ref declared-values #false 'font-size css-datum->font-size))
+      (define min-size : Nonnegative-Real (css-ref declared-values #false 'min-font-size css-datum->font-size))
+      (define max-size : Nonnegative-Real (css-ref declared-values #false 'max-font-size css-datum->font-size))
+      (define font-size : Nonnegative-Real (css-ref declared-values #false 'font-size css-datum->font-size))
       (define style : Font-Style (css-ref declared-values #false 'font-style css-datum->font-style))
       (define weight : Font-Weight (css-ref declared-values #false 'font-weight css-datum->font-weight))
-      (define decorations : (Listof Datum) (css-ref declared-values #false 'text-decoration-line css-datum->font-underlined))
+      (define decorations : (Listof CSS-Datum) (css-ref declared-values #false 'text-decoration-line css-datum->font-underlined))
+      (define size : Nonnegative-Real (max (min max-size font-size) min-size))
       (define font : Font
-        (make-font+ (or basefont css-default-font)
-                    #:face (and (string? family) family) #:family (and (symbol? family) family)
+        (make-font+ #:face (and (string? family) family) #:family (and (symbol? family) family)
                     #:size size #:size-in-pixels? (implies (nan? size) 'inherited)
-                    #:style style #:weight weight #:underlined? (and (memq 'underline decorations) #true)))
+                    #:style style #:weight weight #:underlined? (and (memq 'underline decorations) #true)
+                    basefont))
      (call-with-font font
-        (hash-set! declared-values 'font (thunk font))
-        (when (nan? size) (hash-set! declared-values 'font-size (thunk (smart-font-size font))))
-        font))))
+       (css-set! declared-values 'font font)
+       (when (nan? size) (css-set! declared-values 'font-size size))
+       font))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* main typed/racket
+  (provide (all-from-out "css.rkt"))
+  (provide (all-from-out (submod "..")))
+  
   (require "css.rkt")
   (require "format.rkt")
   (require (submod ".."))
@@ -1035,7 +910,7 @@
   (css-cache-computed-object-value #false)
   (current-css-media-type 'screen)
   (current-css-media-preferences
-   ((inst make-hash Symbol CSS-Media-Datum)
+   ((inst make-hasheq Symbol CSS-Media-Datum)
     (list (cons 'orientation 'landscape)
           (cons 'width 1440)
           (cons 'height 820))))
@@ -1049,27 +924,32 @@
      [border-color : Color+sRGB                                #:= 'Crimson]
      [foreground-color : Color+sRGB                            #:= "Grey"]
      [background-color : Color+sRGB                            #:= "Snow"]
-     [font : Font                                              #:= css-default-font]
+     [font : Font                                              #:= (current-css-default-font)]
      [width : Index                                            #:= 512]
      [combine? : Boolean                                       #:= #false]
      [desc : String                                            #:= "['desc' property is required]"]
-     [descriptors : (HashTable Symbol CSS-Datum)               #:= (make-hash)])
+     [descriptors : (HashTable Symbol CSS-Datum)               #:= (make-hasheq)])
     #:transparent)
 
-  (define css-descriptor-filter : CSS-Declaration-Filter
-    (lambda [suitcased-name desc-value rest deprecated!]
-      (cond [(css-font-property-filter suitcased-name desc-value rest) => values]
-            [(css-text-decor-property-filter suitcased-name desc-value rest) => values]
-            [(css-color-property-filter suitcased-name desc-value rest btest-color-properties) => values]
-            [(css-image-property-filter suitcased-name desc-value rest) => values]
-            [(eq? suitcased-name 'desc) (string-join (filter-map (λ [t] (css:string=<-? t string?)) (cons desc-value rest)))]
-            [(pair? rest) (make-exn:css:overconsumption rest)]
-            [else (case suitcased-name
-                    [(count width) (css-declared-natural-filter desc-value)]
-                    [(combine) (css-declared-keyword-filter desc-value null '(combine none))])])))
+  (define css-descriptor-filter : CSS-Declaration-Parsers
+    (lambda [suitcased-name deprecated!]
+      (or (css-font-property-parsers suitcased-name)
+          (css-text-decoration-property-parsers suitcased-name)
+          (css-color-property-parsers suitcased-name btest-color-properties)
+          ;[(css-image-property-filter suitcased-name desc-value rest) => values]
+          (case suitcased-name
+            [(desc) (CSS<*> (CSS<^> (<css:string>)) '+)]
+            [(count width) (CSS<^> (<css-natural>))]
+            [(combine) (CSS<^> (<css-keyword> '(combine none)))]
+            [(at-exp) (CSS<^> (list (<css:λracket>) (<css:racket>) (<css:block>)))])
+          #false)))
 
   (define css-preference-filter : (CSS-Cascaded-Value-Filter Bitmap-TestCase)
     (lambda [declared-values initial-values inherit-values]
+      (define (css-datum->desc [_ : Symbol] [value : CSS-Datum]) : String
+        (cond [(string? value) value]
+              [(list? value) (string-join (map (λ [v] (~a v)) value))]
+              [else (btest-desc initial-values)]))
       (parameterize ([current-css-element-color (css-ref declared-values inherit-values 'color)])
         (make-btest #:symbol-color (css-ref declared-values inherit-values 'symbol-color css-datum->color)
                     #:string-color (css-ref declared-values inherit-values 'string-color css-datum->color)
@@ -1079,17 +959,17 @@
                     #:border-color (css-ref declared-values inherit-values 'border-color css-datum->color)
                     #:foreground-color (css-ref declared-values inherit-values 'foreground-color css-datum->color)
                     #:background-color (css-ref declared-values inherit-values 'background-color css-datum->color)
-                    #:font (css-extract-font declared-values inherit-values (btest-font initial-values))
-                    #:width (css-ref declared-values inherit-values 'width index? #false)
+                    #:font (css-extract-font declared-values inherit-values)
+                    #:width (css-ref declared-values inherit-values 'width index? css:initial)
                     #:combine? (eq? 'normal (css-ref declared-values inherit-values 'font-variant-ligatures symbol? 'normal))
-                    #:desc (css-ref declared-values inherit-values 'desc string? #false)
-                    #:descriptors (for/hash : (HashTable Symbol CSS-Datum) ([key (in-hash-keys declared-values)])
-                                    (values key (css-ref declared-values #false key)))))))
+                    #:desc (css-ref declared-values inherit-values 'desc css-datum->desc)
+                    #:descriptors (for/hash : (HashTable Symbol CSS-Datum) ([(k fv) (in-css-values declared-values)])
+                                    (values k (fv)))))))
 
   (define tamer-sheet : CSS-StyleSheet (read-css-stylesheet bitmap.css))
   (define tamer-main : CSS-Subject (make-css-subject #:type 'module #:id '#:root #:classes '(main)))
 
-  (define :values : CSS-Values (make-hash))
+  (define :values : CSS-Values (make-css-values))
   (define :root : Bitmap-TestCase
     (time-run 'tamer-main
               (let-values ([(toplevel topvalues)
