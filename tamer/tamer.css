@@ -56,9 +56,9 @@ root, body;
 @media screen and (orientation: landscape) {
   @viewport {
     width: 1024px ?; /* test CSS<?> combinator, okay with exn:css:overconsumption */
-    width: 1024px;
+    width: 1024px 1280px;
     height: 768px 768dpi; /* test CSS<?> combinator, fail with exn:css:unit */
-    height: 768px;
+    height: 800px;
   }
   /* CSS for landscape layout goes here */
   body {
