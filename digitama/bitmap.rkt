@@ -453,15 +453,15 @@
        (CSS:<~> (<css:percentage> 0.0f0 <= 1.0f0) (λ [[% : Single-Flonum]] (exact-round (* % 255.0))))
        (CSS:<~> (<css:flonum> 0.0 fl<= 255.0) exact-round))
 
-     (define make-alpha-parser : (-> (CSS:Filter Char) (CSS-Parser (Listof CSS-Datum)))
+     (define make-alpha-parser : (-> (-> (CSS:Filter Char)) (CSS-Parser (Listof CSS-Datum)))
        (lambda [<delimiter>]
-         (CSS<$> (CSS<?> [<delimiter> (CSS<^> (<css-%flunit>))]) 1.0)))
+         (CSS<$> (CSS<?> [(<delimiter>) (CSS<^> (<css-%flunit>))]) 1.0)))
      
      (define make-parser : (-> (CSS-Parser (Listof CSS-Datum)) (CSS-Parser (Listof CSS-Datum)) (CSS-Parser (Listof CSS-Datum)))
        ;;; https://github.com/w3c/csswg-drafts/issues/266
        (lambda [c1 c2]
-         (CSS<&> c1 (CSS<?> [(<css-comma>) (CSS<#> c2 '(2)) (make-alpha-parser (<css-comma>))]
-                            [else          (CSS<*> c2 '(2)) (make-alpha-parser (<css-slash>))]))))
+         (CSS<&> c1 (CSS<?> [(<css-comma>) (CSS<#> c2 '(2)) (make-alpha-parser <css-comma>)]
+                            [else          (CSS<*> c2 '(2)) (make-alpha-parser <css-slash>)]))))
 
      (define <:rgb:> (CSS<^> (<rgb-byte>)))
      (define <:hue:> (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>) (<css:angle>))))])
@@ -499,7 +499,7 @@
   (define-type CSS-Image-Datum (U CSS-@λ CSS-Image String))
 
   (define-css-value css-image #:as CSS-Image ())
-  (define-css-value image #:as Image #:=> css-image ([image : CSS-Image-Datum] [fallback : (Option CSS-Color-Datum)]))
+  (define-css-value image #:as Image #:=> css-image ([content : CSS-Image-Datum] [fallback : CSS-Color-Datum]))
 
   (define the-image-pool : (HashTable (U CSS-Image String) Bitmap) (make-hash))
 
@@ -517,45 +517,21 @@
         ;[(#:disk-color #:arrow-color #:frame-color #:handle-color #:cap-color #:bomb-color) (css-declared-color-filter value null)]
         )))
 
-  (define css-extract-image-fallback : (-> (Listof CSS-Token) (U CSS-Color-Datum False CSS-Syntax-Error))
+  (define-css-function-filter <css-image-notation> #:-> CSS-Image
     ;;; https://drafts.csswg.org/css-images/#image-notation
-    (lambda [?fallback]
-      (define-values (?comma ?rest) (css-car/cdr ?fallback))
-      (cond [(eof-object? ?comma) #false]
-            [(not (css:delim=:=? ?comma #\,)) (make-exn:css:missing-comma ?comma)]
-            [else (let-values ([(?color rest) (css-car/cdr ?rest)])
-                    (cond [(eof-object? ?color) (make-exn:css:missing-value ?comma)]
-                          [else (pair? rest) (make-exn:css:overconsumption rest)]
-                          ;[else (css-declared-color-filter ?color null)]
-                          ))])))
-  
-  (define css-image-notation : (-> CSS-Token (Listof CSS-Token) (U CSS-Image CSS-Syntax-Error))
-    ;;; https://drafts.csswg.org/css-images/#image-notation
-    (lambda [fimage argl]
-      (define-values (img+color ?color) (css-car/cdr argl))
-      (cond [(eof-object? img+color) (make-exn:css:empty fimage)]
-            #|[(or (and (css:string? img+color) (css:string-datum img+color)) (css-declared-image-filter img+color null #false))
-             => (make-css->datum
-                 (λ [img+url] (let ([?fallback (css-extract-image-fallback ?color)])
-                                (cond [(exn:css? ?fallback) ?fallback]
-                                      [(and (string? img+url) (string=? img+url "")) (image 'about:invalid ?fallback)]
-                                      [else (image img+url ?fallback)]))))]
-            [(css-declared-color-filter img+color ?color #false)
-             => (make-css->datum (λ [solid] (image 'about:invalid solid)))]|#
-            [else (make-exn:css:type img+color)])))
-
-  #|(define-css-function-filter <css-image-notation> #:-> CSS-Image
-    ;;; https://drafts.csswg.org/css-images/#image-notation
-    [(image [byte? r] [byte? g] [byte? b] [nonnegative-flonum? alpha])
-     #:~> (make-parser <:rgb:> <:rgb:>) #:=> (rgba r g b alpha)])|#
+    [(image) #:=> [(image "" [fallback : index? string? symbol? css-color?])
+                   (image [content : css-@λ? string? css-image?] [fallback : index? string? symbol? css-color?])]
+     (CSS<+> (CSS<^> (<css-color>)) ; NOTE: both color and url accept strings, however their domains are not intersective.
+             (CSS<&> (CSS<^> (CSS:<+> (<css-image>) (<css:string>)))
+                     (CSS<$> (CSS<?> [(<css-comma>) (CSS<^> (<css-color>))]) 'transparent)))])
   
   (define-css-disjoined-filter <css-image> #:-> CSS-Image-Datum
     ;;; https://drafts.csswg.org/css-images/#image-values
     ;;; https://drafts.csswg.org/css-images/#invalid-image
     ;[(css:function=:=? image-value 'image) (css-extract-image image-value (css:function-arguments image-value))]
     (<css:@λ> the-@icon-pool css-@icon-filter)
-    ;(<css-image-notation>)
-    (CSS:<?> (<css:url> string?) #false ""))
+    (<css-image-notation>)
+    (CSS:<?> (<css:url> string?) #false (λ _ "")))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-type Font (Instance Font%))

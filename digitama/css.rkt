@@ -469,6 +469,7 @@
             [(css:hash? instance) (~a "#" (keyword->string (css:hash-datum instance)))]
             [(css:match? instance) (~a (css:match-datum instance) '=)]
             [(css:delim=:=? instance #\tab) "||"]
+            [(css:string? instance) (~s (css:string-datum instance))]
             [else (~a (css-token->datum instance))])))
   
   (define css-token->string : (->* (CSS-Token) ((Option Any) (Option Any)) String)
@@ -578,7 +579,7 @@
 
   ;; Parser Combinators and Syntax Sugars of dealing with declarations for client applications
   ;    WARNING: Notations are not following the CSS Specifications https://drafts.csswg.org/css-values/#component-combinators
-  (define-type (CSS-Multiplier idx) (U idx (List idx) (Pairof (U idx Symbol) (U idx Symbol)) '+ '? '*))
+  (define-type (CSS-Multiplier idx) (U idx (List idx) (Pairof (U idx Symbol) (U idx Symbol))))
   (define-type (CSS-Option css) (U css CSS-Syntax-Error False))
   (define-type (CSS:Filter css) (-> CSS-Syntax-Any (CSS-Option css)))
   (define-type (CSS-Parser css) (-> css (Listof CSS-Token) (Values (CSS-Option css) (Listof CSS-Token))))
@@ -616,6 +617,7 @@
                               (syntax-case <pattern> [: _]
                                 [(var : type?) (values (cons #'(? type? var) snrettap) (cons #'var stnemugra))]
                                 [(var : type? ...) (values (cons #'(? (λ [v] (or (type? v) ...)) var) snrettap) (cons #'var stnemugra))]
+                                [,var (values (cons #'var snrettap) (cons #'var stnemugra))]
                                 [_ (let ([? (datum->syntax #'_ (gensym))]) (values (cons ? snrettap) (cons ? stnemugra)))]
                                 [var (values snrettap (cons #'var stnemugra))])))
                           (list #| intending |# snerttap (reverse stnemugra))))])
@@ -634,7 +636,7 @@
                         [(fname aliases ...)
                          (match (do-parse 'fname (CSS<+> fparser ...) argl)
                            [(list nerttap ... _) (constructor field ...)] ...
-                           [(? list?) (make-exn:css:arity token)]
+                           [_ (make-exn:css:malformed token)]
                            [(? exn? e) e])]
                         ...
                         [else (make-exn:css:range token)]))))))]))
@@ -694,18 +696,18 @@
         (if (exn:css? datum) datum (and datum const)))))
 
   (define CSS:<?> : (All (a b c) (case-> [(CSS:Filter a) (-> (U CSS-Syntax-Any (Listof CSS-Token)) CSS-Syntax-Error) -> (CSS:Filter a)]
-                                         [(CSS:Filter a) b c -> (CSS:Filter (U a b c))]))
+                                         [(CSS:Filter a) b (-> CSS-Syntax-Error c) -> (CSS:Filter (U a b c))]))
     (case-lambda
       [(css:filter make-exn)
        (λ [[token : CSS-Syntax-Any]]
          (define datum : (CSS-Option a) (css:filter token))
          (cond [(or (false? datum) (exn:css? datum)) (make-exn token)]
                [else datum]))]
-      [(css:filter false-value exn-value)
+      [(css:filter false-value fexn-value)
        (λ [[token : CSS-Syntax-Any]]
          (define datum : (CSS-Option a) (css:filter token))
-         (cond [(false? datum) exn-value]
-               [(exn:css? datum) exn-value]
+         (cond [(false? datum) false-value]
+               [(exn:css? datum) (or (fexn-value datum) datum)]
                [else datum]))]))
   
   (define CSS<^> : (All (a) (case-> [(U (CSS:Filter CSS-Datum) (Listof (CSS:Filter CSS-Datum))) -> (CSS-Parser (Listof CSS-Datum))]
@@ -821,7 +823,7 @@
                                      (cond [(or (false? ++data) (exn:css? ++data)) (values ++data --tokens)]
                                            [else (datum-fold ++data --tokens (cdr parsers))]))])))]))
   
-  (define CSS<*> : (All (a) (->* ((CSS-Parser a)) ((CSS-Multiplier Index)) (CSS-Parser a)))
+  (define CSS<*> : (All (a) (->* ((CSS-Parser a)) ((U (CSS-Multiplier Index) '+ '? '*)) (CSS-Parser a)))
     ;;; https://drafts.csswg.org/css-values/#mult-zero-plus
     ;;; https://drafts.csswg.org/css-values/#comb-any
     (lambda [css-parser [multiplier '*]]
@@ -836,7 +838,7 @@
                             [(= n most) (values ++data --tokens)] ; (= n +inf.0) also does not make much sense
                             [else (seq ++data --tokens (add1 n))])))])))
 
-  (define CSS<#> : (All (a) (->* ((CSS-Parser a)) ((CSS-Multiplier Positive-Index)) (CSS-Parser a)))
+  (define CSS<#> : (All (a) (->* ((CSS-Parser a)) ((U (CSS-Multiplier Positive-Index) '+)) (CSS-Parser a)))
     ;;; https://drafts.csswg.org/css-values/#mult-comma
     (lambda [css-parser [multiplier '+]]
       (define-values (least most) (css:multiplier-range multiplier 1))
@@ -853,8 +855,8 @@
                               [(null? --tokens) (values (make-exn:css:overconsumption ?comma) --tokens)]
                               [else (seq ++data --tokens (add1 n))]))])))))
 
-  (define CSS<!> : (->* ((CSS-Parser (Listof CSS-Datum))) ((CSS-Multiplier Positive-Index)) (CSS-Parser (Listof CSS-Datum)))
-    ;;; https://drafts.csswg.org/css-values/#mult-req
+  (define CSS<!> : (->* ((CSS-Parser (Listof CSS-Datum))) ((U (CSS-Multiplier Positive-Index) '+)) (CSS-Parser (Listof CSS-Datum)))
+    ;;; (WARNING: this is *not*) https://drafts.csswg.org/css-values/#mult-req
     (lambda [css-parser [multiplier '+]]
       (define-values (least most) (css:multiplier-range multiplier 1))
       (λ [[data : (Listof CSS-Datum)] [tokens : (Listof CSS-Token)]]
@@ -903,7 +905,7 @@
                [(false? else-parser) (values if:datum tokens)]
                [else (else-parser data tokens)]))]))
 
-  (define css:multiplier-range : (-> (CSS-Multiplier Index) Index (Values Natural (U Natural +inf.0)))
+  (define css:multiplier-range : (-> (U (CSS-Multiplier Index) '+ '? '*) Index (Values Natural (U Natural +inf.0)))
     (lambda [multiplier least]
       (case multiplier
         [(?) (values 0 1)]
