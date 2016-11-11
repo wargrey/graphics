@@ -6,6 +6,12 @@
 
     font: 12px/1.5; /* error property, font property requires font-family or system font */
 
+    url-image: image(url(test.png));
+    string-image: image("color.png");
+    solid-image: image(#000);
+    fallback-image: image("", #ABCDEF);
+    error-image: image(#FFF, "");
+    
     case-sensitive-error-logo: @x-icon[#Height 32 #thickness 12];
     arity-error-logo: @racket-logo(overconsumption #height 32 normal-argument);
     arity-error-logo: @right-arrow-icon{#height 32};
