@@ -500,7 +500,7 @@
       (define logger : Logger (current-logger))
       (define topic : Symbol 'exn:css:syntax)
       (define msg : String (exn-message errobj))
-      (define <eof>? : Boolean (regexp-match? msg "#<eof>"))
+      (define <eof>? : Boolean (regexp-match? #px"#<eof>" msg))
       (cond [(false? property) (log-message logger level topic msg errobj)]
             [(not <eof>?) (log-message logger level topic (format "~a @‹~a›" msg (css:ident-datum property)) errobj)]
             [else (let ([eof-msg (css-token->string property errobj eof)])
@@ -584,7 +584,7 @@
   (define-type (CSS-Parser css) (-> css (Listof CSS-Token) (Values (CSS-Option css) (Listof CSS-Token))))
   (define-type CSS-Shorthand-Parser (CSS-Parser CSS-Longhand-Values))
   (define-type CSS-Longhand-Update (-> Symbol CSS-Datum CSS-Datum CSS-Datum))
-
+  
   (define-syntax (define-css-disjoined-filter stx)
     (syntax-case stx [:]
       [(_ compound-filter #:-> RangeType #:with [[dom : DomType defval ...] ...] atom-filters ...)
@@ -604,16 +604,21 @@
 
   (define-syntax (define-css-function-filter stx)
     (syntax-parse stx
-      [(_ func-filter #:-> RangeType [(fname+aliases matches ...) #:~> fparser #:=> fexpr] ...
+      [(_ func-filter #:-> RangeType [(fname aliases ...) #:=> [(constructor matches ...) ...] fparser ...] ...
           (~optional (~seq #:where (~and definitions [defaux ...]))))
        (with-syntax ([defines (if (attribute definitions) #'(begin defaux ...) #'(void))]
-                     [([fname aliases ...] ...)
-                      (for/list ([<fname> (in-list (syntax->list #'(fname+aliases ...)))])
-                        (if (list? (syntax-e <fname>)) <fname> (list <fname>)))]
-                     [([[type? var ...] ...] ...)
-                      (for/list ([<matches> (in-list (syntax->list #'([matches ...] ...)))])
-                        (for/list ([<pattern> (in-list (#| NOTE |# reverse (syntax->list <matches>)))])
-                          (if (list? (syntax-e <pattern>)) <pattern> (list #'values <pattern>))))])
+                     [([[[nerttap ...] [field ...]] ...] ...)
+                      (for/list ([<groups> (in-list (syntax->list #'(([matches ...] ...) ...)))])
+                        (for/list ([<matches> (in-list (syntax->list <groups>))])
+                          (define-values (snerttap stnemugra)
+                            (for/fold ([snrettap null] [stnemugra null])
+                                      ([<pattern> (in-list (syntax->list <matches>))])
+                              (syntax-case <pattern> [: _]
+                                [(var : type?) (values (cons #'(? type? var) snrettap) (cons #'var stnemugra))]
+                                [(var : type? ...) (values (cons #'(? (λ [v] (or (type? v) ...)) var) snrettap) (cons #'var stnemugra))]
+                                [_ (let ([? (datum->syntax #'_ (gensym))]) (values (cons ? snrettap) (cons ? stnemugra)))]
+                                [var (values snrettap (cons #'var stnemugra))])))
+                          (list #| intending |# snerttap (reverse stnemugra))))])
          #'(define (func-filter) : (CSS:Filter RangeType) defines
              (define do-parse : (-> Symbol (CSS-Parser (Listof CSS-Datum)) (Listof CSS-Token) (U (Listof CSS-Datum) CSS-Syntax-Error))
                (lambda [func-name func-parse func-argl]
@@ -621,14 +626,14 @@
                  (cond [(exn:css? fargs) fargs]
                        [(false? fargs) (make-exn:css:type --tokens)]
                        [(pair? --tokens) (make-exn:css:overconsumption --tokens)]
-                       [else fargs #| NOTE: the list is intended to left reversed |#])))
+                       [else fargs #| intending |#])))
              (λ [[token : CSS-Syntax-Any]] : (CSS-Option RangeType)
                (and (css:function? token)
                     (let ([argl : (Listof CSS-Token) (css:function-arguments token)])
                       (case (css:function-norm token)
                         [(fname aliases ...)
-                         (match (do-parse 'fname fparser argl)
-                           [(list (? type? var ...) ... _) fexpr] ; NOTE: the list is reversed
+                         (match (do-parse 'fname (CSS<+> fparser ...) argl)
+                           [(list nerttap ... _) (constructor field ...)] ...
                            [(? list?) (make-exn:css:arity token)]
                            [(? exn? e) e])]
                         ...
@@ -661,7 +666,7 @@
                    [(sfl? size) (fl* (real->double-flonum size) fl%)]
                    [(length? size) (css:length->scalar size direction)]
                    [else defval])))]))
-
+  
   (define-syntax (CSS<?> stx)
     (syntax-case stx [else]
       [(_) #'values]

@@ -437,16 +437,16 @@
     ;;; https://drafts.csswg.org/css-color/#rgb-functions
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
     ;;; https://drafts.csswg.org/css-color/#the-hwb-notation
-    [([rgba rgb] [byte? r] [byte? g] [byte? b] [nonnegative-flonum? alpha])
-     #:~> (make-parser <:rgb:> <:rgb:>) #:=> (rgba r g b alpha)]
-    [([hsla hsl] [real? h] [single-flonum? s] [single-flonum? l] [nonnegative-flonum? alpha])
-     #:~> (make-parser <:hue:> (CSS<^> (<css:percentage>))) #:=> (hsba hsl->rgb h s l alpha)]
-    [([hsva hsv] [real? h] [single-flonum? s] [single-flonum? v] [nonnegative-flonum? alpha])
-     #:~> (make-parser <:hue:> (CSS<^> (<css:percentage>))) #:=> (hsba hsv->rgb h s v alpha)]
-    [([hsia hsi] [real? h] [single-flonum? s] [single-flonum? i] [nonnegative-flonum? alpha])
-     #:~> (make-parser <:hue:> (CSS<^> (<css:percentage>))) #:=> (hsba hsi->rgb h s i alpha)]
-    [([hwba hwb] [real? h] [single-flonum? w] [single-flonum? b] [nonnegative-flonum? alpha])
-     #:~> (make-parser <:hue:> (CSS<^> (<css:percentage>))) #:=> (hsba hwb->rgb h w b alpha)]
+    [(rgba rgb) #:=> [(rgba [r : byte?] [g : byte?] [b : byte?] [alpha : nonnegative-flonum?])]
+     (make-parser <:rgb:> <:rgb:>)]
+    [(hsla hsl) #:=> [(hsba hsl->rgb [h : real?] [s : single-flonum?] [l : single-flonum?] [alpha : nonnegative-flonum?])]
+     (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
+    [(hsva hsv) #:=> [(hsba hsv->rgb [h : real?] [s : single-flonum?] [v : single-flonum?] [alpha : nonnegative-flonum?])]
+     (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
+    [(hsia hsi) #:=> [(hsba hsi->rgb [h : real?] [s : single-flonum?] [i : single-flonum?] [alpha : nonnegative-flonum?])]
+     (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
+    [(hwba hwb) #:=> [(hsba hwb->rgb [h : real?] [w : single-flonum?] [b : single-flonum?] [alpha : nonnegative-flonum?])]
+     (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
     #:where
     [(define-css-disjoined-filter <rgb-byte> #:-> Integer
        (<css:integer> byte?)
@@ -496,7 +496,7 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-type Bitmap (Instance Bitmap%))
-  (define-type CSS-Image-Datum (U CSS-@λ CSS-Image String 'about:invalid))
+  (define-type CSS-Image-Datum (U CSS-@λ CSS-Image String))
 
   (define-css-value css-image #:as CSS-Image ())
   (define-css-value image #:as Image #:=> css-image ([image : CSS-Image-Datum] [fallback : (Option CSS-Color-Datum)]))
@@ -525,11 +525,11 @@
             [(not (css:delim=:=? ?comma #\,)) (make-exn:css:missing-comma ?comma)]
             [else (let-values ([(?color rest) (css-car/cdr ?rest)])
                     (cond [(eof-object? ?color) (make-exn:css:missing-value ?comma)]
-                          [else (pair? rest) (make-exn:css:unexpected rest)]
+                          [else (pair? rest) (make-exn:css:overconsumption rest)]
                           ;[else (css-declared-color-filter ?color null)]
                           ))])))
   
-  (define css-extract-image : (-> CSS-Token (Listof CSS-Token) (U CSS-Image CSS-Syntax-Error))
+  (define css-image-notation : (-> CSS-Token (Listof CSS-Token) (U CSS-Image CSS-Syntax-Error))
     ;;; https://drafts.csswg.org/css-images/#image-notation
     (lambda [fimage argl]
       (define-values (img+color ?color) (css-car/cdr argl))
@@ -543,19 +543,22 @@
             [(css-declared-color-filter img+color ?color #false)
              => (make-css->datum (λ [solid] (image 'about:invalid solid)))]|#
             [else (make-exn:css:type img+color)])))
+
+  #|(define-css-function-filter <css-image-notation> #:-> CSS-Image
+    ;;; https://drafts.csswg.org/css-images/#image-notation
+    [(image [byte? r] [byte? g] [byte? b] [nonnegative-flonum? alpha])
+     #:~> (make-parser <:rgb:> <:rgb:>) #:=> (rgba r g b alpha)])|#
   
   (define-css-disjoined-filter <css-image> #:-> CSS-Image-Datum
     ;;; https://drafts.csswg.org/css-images/#image-values
     ;;; https://drafts.csswg.org/css-images/#invalid-image
     ;[(css:function=:=? image-value 'image) (css-extract-image image-value (css:function-arguments image-value))]
     (<css:@λ> the-@icon-pool css-@icon-filter)
-    (<css:url> non-empty-string?)
-    (CSS:<=> (<css:url>) 'about:invalid))
+    ;(<css-image-notation>)
+    (CSS:<?> (<css:url> string?) #false ""))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-type Font (Instance Font%))
-  
-  (define-predicate font-family? Font-Family)
 
   (define-syntax (call-with-font stx)
     (syntax-parse stx
@@ -580,7 +583,6 @@
 
   (define current-css-default-font : (Parameterof Font) (make-parameter (make-font)))
   (define css-font-family-names/no-variants : (Listof String) (get-face-list 'all #:all-variants? #false))
-  (define css-font-scaling-factor : Nonnegative-Flonum 1.2)
   (define dc (make-object bitmap-dc% (make-object bitmap% 1 1)))
   (define &font : (Boxof Font) (box (current-css-default-font)))
 
@@ -794,17 +796,16 @@
 
 (define css-color-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
   (lambda [name [px.names #px"-color$"]]
-    (cond [(eq? name 'color) (CSS<^> (<css-color> '#:inherit-currentcolor))]
-          [(and (list? px.names) (for/or : Boolean ([pn (in-list px.names)]) (eq? name pn))) (CSS<^> (<css-color>))]
-          [(and (regexp? px.names) (regexp-match? px.names (symbol->string name))) (CSS<^> (<css-color>))]
-          [else #false])))
+    (or (and (eq? name 'color) (CSS<^> (<css-color> '#:inherit-currentcolor)))
+        (and (or (and (list? px.names) (memq name px.names))
+                 (and (regexp? px.names) (regexp-match? px.names (symbol->string name))))
+             (CSS<^> (<css-color>))))))
 
-#|(define css-image-property-filter : (->* (Symbol CSS-Token (Listof CSS-Token)) ((U Regexp (Listof Symbol)))
-                                         (U CSS-Image-Datum CSS-Syntax-Error CSS-Wide-Keyword False))
-  (lambda [name value rest [px.names #px"-(image|icon|logo)$"]]
-    (cond [(and (list? px.names) (for/or : Boolean ([pn (in-list px.names)]) (eq? name pn))) (css-declared-image-filter value rest)]
-          [(and (regexp? px.names) (regexp-match? px.names (symbol->string name))) (css-declared-image-filter value rest)]
-          [else #false])))|#
+(define css-image-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
+  (lambda [name [px.names #px"-(image|icon|logo)$"]]
+    (and (or (and (list? px.names) (memq name px.names))
+             (and (regexp? px.names) (regexp-match? px.names (symbol->string name))))
+         (CSS<^> (<css-image>)))))
 
 (define css-datum->color : (-> Symbol CSS-Datum (U Color CSS-Wide-Keyword 'currentcolor))
   (lambda [desc-name color]
@@ -936,7 +937,7 @@
       (or (css-font-property-parsers suitcased-name)
           (css-text-decoration-property-parsers suitcased-name)
           (css-color-property-parsers suitcased-name btest-color-properties)
-          ;[(css-image-property-filter suitcased-name desc-value rest) => values]
+          (css-image-property-parsers suitcased-name)
           (case suitcased-name
             [(desc) (CSS<*> (CSS<^> (<css:string>)) '+)]
             [(count width) (CSS<^> (<css-natural>))]
