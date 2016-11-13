@@ -510,12 +510,12 @@
   
   (define css-@icon-filter : CSS-@λ-Filter
     (lambda [λname ?λ:kw]
-      (case ?λ:kw
-        ;[(#:backing-scale) (css-declared+real-filter value)]
-        ;[(#:height #:thickness) (css-declared+%real-filter value)]
-        ;[(#:color #:shackle-color #:body-color #:arm-color #:head-color) (css-declared-color-filter value null)]
-        ;[(#:disk-color #:arrow-color #:frame-color #:handle-color #:cap-color #:bomb-color) (css-declared-color-filter value null)]
-        )))
+      (case (or ?λ:kw λname)
+        #|[(#:backing-scale) (<css+real>)]
+        [(#:height #:thickness) (<css+%real>)]
+        [(#:color #:shackle-color #:body-color #:arm-color #:head-color) (<css-color>)]
+        [(#:disk-color #:arrow-color #:frame-color #:handle-color #:cap-color #:bomb-color) (<css-color>)]
+        [(text-icon) (CSS<^> (<css:string>))]|#)))
 
   (define-css-function-filter <css-image-notation> #:-> CSS-Image
     ;;; https://drafts.csswg.org/css-images/#image-notation
@@ -989,6 +989,7 @@
                                                    (bitmap-frame (bitmap-blank width height) #:border-color bdcolor))))
               (cons tobj testcases))))
 
+  (when DrRacket? tamer-sheet)
   (when DrRacket? :root)
   (when DrRacket? (apply bitmap-vl-append bitmap-descs))
   (when DrRacket? length%)
