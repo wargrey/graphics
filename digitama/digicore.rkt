@@ -263,7 +263,7 @@
               (λ [datum] (hint source-evt)
                 (cond [(not (place-message-box? datum)) datum]
                       [else (let ([stream (place-message-box-stream datum)])
-                              (match/handlers (if (bytes? stream) (with-input-from-bytes stream read) (box stream))
+                              (match/handlers (if (bytes? stream) (with-input-from-bytes (cast stream Bytes) read) (box stream))
                                 [(? exn:fail:read? e) (exn->prefab-message e #:level 'fatal #:exn->detail (λ _ stream))]))])))))
 
 (define place-channel-send : (-> Place-Channel Any Void)

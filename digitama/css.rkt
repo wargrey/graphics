@@ -464,8 +464,10 @@
       [(_ here-token make-css:token datum ...)
        #'(css-remake-token [here-token here-token] make-css:token datum ...)]))
 
-  (define nonnegative-fixnum? : (-> Any Boolean : #:+ Nonnegative-Fixnum) (λ [v] (and (fixnum? v) (fx>= v 0))))
+  (define positive-flonum? : (-> Any Boolean : #:+ Positive-Flonum) (λ [v] (and (flonum? v) (fl> v 0.0))))
   (define nonnegative-flonum? : (-> Any Boolean : #:+ Nonnegative-Flonum) (λ [v] (and (flonum? v) (fl>= v 0.0))))
+  
+  (define positive-single-flonum? : (-> Any Boolean : #:+ Positive-Single-Flonum) (λ [v] (and (single-flonum? v) (> v 0.0f0))))
   (define nonnegative-single-flonum? : (-> Any Boolean : #:+ Nonnegative-Single-Flonum) (λ [v] (and (single-flonum? v) (>= v 0.0f0))))
 
   (define css-zero? : (-> Any Boolean : #:+ CSS-Zero) (λ [v] (or (css:zero? v) (css:flzero? v))))
@@ -784,14 +786,19 @@
                                               (thunk #false))
                                  --tokens)])))]))
 
-  (define CSS<$> : (case-> [(CSS-Parser (Listof CSS-Datum)) CSS-Datum -> (CSS-Parser (Listof CSS-Datum))]
+  (define CSS<$> : (case-> [(CSS-Parser (Listof CSS-Datum)) -> (CSS-Parser (Listof CSS-Datum))]
+                           [(CSS-Parser (Listof CSS-Datum)) CSS-Datum -> (CSS-Parser (Listof CSS-Datum))]
                            [(CSS:Filter CSS-Datum) Symbol (-> CSS-Longhand-Values CSS-Datum) -> CSS-Shorthand-Parser]
                            [(CSS-Parser (Listof CSS-Datum)) (List Symbol) (-> CSS-Longhand-Values CSS-Datum) -> CSS-Shorthand-Parser])
     (case-lambda
+      [(css-parser)
+       (λ [[data : (Listof CSS-Datum)] [tokens : (Listof CSS-Token)]]
+         (cond [(pair? tokens) (css-parser data tokens)]
+               [else (values data null)]))]
       [(css-parser eof-value)
        (λ [[data : (Listof CSS-Datum)] [tokens : (Listof CSS-Token)]]
          (cond [(pair? tokens) (css-parser data tokens)]
-               [else (values (if eof-value (cons eof-value data) data) null)]))]
+               [else (values (cons eof-value data) null)]))]
       [(css:filter tag fdatum)
        (if (symbol? tag)
            (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
@@ -936,10 +943,6 @@
                                   [(symbol? m) (values n +inf.0)]
                                   [else (values n n)]))])])))
   
-  (define-css-disjoined-filter <racket-boolean> #:-> Boolean
-    (CSS:<=> (<css:hash> '(#:false #:f)) #false)
-    (CSS:<=> (<css:hash> '(#:true #:t)) #true))
-  
   (define-css-disjoined-filter <css-boolean> #:-> (U Zero One)
     (CSS:<=> (<css:integer> = 0) 0)
     (CSS:<=> (<css:integer> = 1) 1))
@@ -949,16 +952,23 @@
     (<css:ident-norm> options))
   
   (define-css-disjoined-filter <css-natural> #:-> Natural
-    (<css:integer> exact-nonnegative-integer?))
+    #:with [[nonzero : (Option '#:nonzero) #false]]
+    (cond [nonzero (<css:integer> exact-positive-integer?)]
+          [else    (<css:integer> exact-nonnegative-integer?)]))
   
   (define-css-disjoined-filter <css+real> #:-> (U Natural Nonnegative-Flonum)
-    (<css:flonum> nonnegative-flonum?)
-    (<css:integer> exact-nonnegative-integer?))
+    #:with [[nonzero : (Option '#:nonzero) #false]]
+    (cond [nonzero (CSS:<+> (<css:flonum> positive-flonum?) (<css:integer> exact-positive-integer?))]
+          [else    (CSS:<+> (<css:flonum> nonnegative-flonum?) (<css:integer> exact-nonnegative-integer?))]))
 
   (define-css-disjoined-filter <css+%real> #:-> (U Natural Nonnegative-Inexact-Real)
-    (<css:percentage> nonnegative-single-flonum?)
-    (<css:flonum> nonnegative-flonum?)
-    (<css:integer> exact-nonnegative-integer?))
+    #:with [[nonzero : (Option '#:nonzero) #false]]
+    (cond [nonzero (CSS:<+> (<css:percentage> positive-single-flonum?)
+                            (<css:flonum> positive-flonum?)
+                            (<css:integer> exact-positive-integer?))]
+          [else    (CSS:<+> (<css:percentage> nonnegative-single-flonum?)
+                            (<css:flonum> nonnegative-flonum?)
+                            (<css:integer> exact-nonnegative-integer?))]))
 
   (define-css-disjoined-filter <css-flunit> #:-> Nonnegative-Flonum
     (CSS:<~> (<css:flonum> 0.0 fl<= 1.0) flabs)
@@ -1209,8 +1219,6 @@
                       (cond [(not (symbol? key)) key]
                             [(eq? key 'keyword) css:keyword] ...
                             [else key])))))]))
-
-  (define-css-value css-@λ #:as CSS-@λ ([sexp : (Pairof Symbol (Listof Any))]))
 
   ; https://drafts.csswg.org/css-cascade/#all-shorthand
   ; https://drafts.csswg.org/css-values/#common-keywords
@@ -2657,19 +2665,27 @@
   (define css-λarguments-filter : (-> (Listof CSS-Token) (U (Listof CSS-Token) CSS-Syntax-Error))
     (lambda [argl]
       (define (escape [<comma> : CSS:Comma] [<datum> : CSS:String]) : CSS:Unquote
-        (css-remake-token [<comma> <datum>] make-css:unquote (css:string-datum <datum>)))
+        (css-remake-token [<comma> <datum>] css:unquote (css:string-datum <datum>)))
       (let rearrange ([swk : (Listof CSS-Token) null]
                       [lgra : (Listof CSS-Token) null]
                       [tail : (Listof CSS-Token) argl])
         (define-values (head rest) (css-car/cdr tail))
         (cond [(eof-object? head) (append (reverse swk) (reverse lgra))]
-              [(css:hash? head)
-               (define-values (kw-value ?escaping) (css-car/cdr rest))
-               (cond [(or (eof-object? kw-value) (css:hash? kw-value)) (make+exn:css:missing-value head)]
-                     [(not (css:comma? kw-value)) (rearrange (cons kw-value (cons head swk)) lgra ?escaping)]
+              [(or (css:hash? head) (css:delim=:=? head #\#))
+               (define-values (:kw real-rest)
+                 (cond [(css:hash? head) (values head rest)]
+                       [else (let-values ([(esc others) (css-car/cdr rest)])
+                               (values (cond [(eof-object? esc) (make+exn:css:missing-value head)]
+                                             [(not (css:string? esc)) (make+exn:css:type esc)]
+                                             [else (css-remake-token [head esc] css:hash (string->keyword (css:string-datum esc)))])
+                                       others))]))
+               (define-values (kw-value ?escaping) (css-car/cdr real-rest))
+               (cond [(exn:css? :kw) :kw]
+                     [(or (eof-object? kw-value) (css:hash? kw-value) (css:delim=:=? kw-value #\#)) (make+exn:css:missing-value :kw)]
+                     [(not (css:comma? kw-value)) (rearrange (cons kw-value (cons :kw swk)) lgra ?escaping)]
                      [else (let-values ([(esc others) (css-car/cdr ?escaping)])
                              (cond [(eof-object? esc) (make+exn:css:missing-value kw-value)]
-                                   [(css:string? esc) (rearrange (cons (escape kw-value esc) (cons head swk)) lgra others)]
+                                   [(css:string? esc) (rearrange (cons (escape kw-value esc) (cons :kw swk)) lgra others)]
                                    [else (make+exn:css:type esc)]))])]
               [(css:comma? head)
                (define-values (esc-datum others) (css-car/cdr rest))
@@ -3186,6 +3202,8 @@
 (define-type CSS-@λ-Filter (case-> [Symbol Keyword -> (U (CSS:Filter CSS-Datum) Void)]
                                    [Symbol False -> (U (CSS-Parser (Listof CSS-Datum)) Void)]))
 
+(define-css-value css-@λ #:as CSS-@λ ([sexp : (Pairof Symbol (Listof Any))]))
+
 (define-syntax (define-@λ-pool stx)
   (syntax-case stx []
     [(_ the-@λ-pool #:λnames λnames modpaths ...)
@@ -3211,9 +3229,11 @@
      #'(define-css-racket-value-filter <racket-value> #:with ?value #:as ValueType
          [(type? ?value) ?value])]))
 
-(define-css-atomic-filter <css:@λ> #:-> CSS-@λ #:with [[token : css:λracket?] [λpool : CSS-@λ-Pool] [λfilter : CSS-@λ-Filter]]
+(define-css-atomic-filter <css:@λ> #:-> CSS-@λ
+  #:with [[token : css:λracket?] [λpool : CSS-@λ-Pool] [λfilter : CSS-@λ-Filter] [λids : (Listof Symbol) null]]
   (define λid : Symbol (css:λracket-datum token))
-  (cond [(hash-ref λpool λid (thunk #false)) => (λ [λinfo] (do-filter token λid λinfo))]
+  (cond [(and (pair? λids) (not (memq λid λids))) (make-exn:css:range token)]
+        [(hash-ref λpool λid (thunk #false)) => (λ [λinfo] (do-filter token λid λinfo))]
         [else (make-exn:css:range token)])
   #:where
   [(define (do-filter [<λ> : CSS:λRacket] [λname : Symbol] [λinfo : CSS-@λ-Metainfo]) : (U CSS-@λ CSS-Syntax-Error)

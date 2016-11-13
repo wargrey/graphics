@@ -1,6 +1,6 @@
 #lang at-exp typed/racket
 
-(provide (all-defined-out) Color+sRGB Color Bitmap Font <css-color> current-css-default-font)
+(provide (all-defined-out) Color+sRGB Color Bitmap Font)
 (provide (all-from-out "colorspace.rkt"))
 (provide (all-from-out typed/racket/draw images/flomap typed/images/logos typed/images/icons))
 
@@ -68,26 +68,28 @@
     bmp))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-font+ : (->* () (Font #:size Real #:face (Option String) #:family (Option Font-Family)
+(define make-font+ : (->* () (Font #:size Real #:face (Option String) #:size-in-pixels? (U Boolean Symbol) #:family (Option Font-Family)
                                    #:style (Option Font-Style) #:weight (Option Font-Weight) #:hinting (Option Font-Hinting)
-                                   #:underlined? (U Boolean Symbol) #:size-in-pixels? (U Boolean Symbol)) Font)
+                                   #:underlined? (U Boolean Symbol) #:smoothing (Option Font-Smoothing)) Font)
   (lambda [[basefont (current-css-default-font)] #:size [size +nan.0] #:face [face #false] #:family [family #false]
-           #:style [style #false] #:weight [weight #false] #:hinting [hinting #false]
+           #:style [style #false] #:weight [weight #false] #:hinting [hinting #false] #:smoothing [smoothing #false]
            #:underlined? [underlined 'default] #:size-in-pixels? [size-in-pixels? 'default]]
     (define ?face : (Option String) (or face (send basefont get-face)))
     (define underlined? : Boolean (if (boolean? underlined) underlined (send basefont get-underlined)))
     (define pixels? : Boolean (if (boolean? size-in-pixels?) size-in-pixels? (send basefont get-size-in-pixels)))
-    (define fontsize : Real (cond [(positive? size) size]
-                                  [(or (zero? size) (nan? size)) (smart-font-size basefont)]
-                                  [else (* (- size) (smart-font-size basefont))]))
+    (define fontsize : Real (min 1024.0 (cond [(positive? size) size]
+                                              [(or (zero? size) (nan? size)) (smart-font-size basefont)]
+                                              [else (* (- size) (smart-font-size basefont))])))
     (if (string? ?face)
         (send the-font-list find-or-create-font fontsize ?face
               (or family (send basefont get-family)) (or style (send basefont get-style))
-              (or weight (send basefont get-weight)) underlined? 'smoothed pixels?
+              (or weight (send basefont get-weight)) underlined?
+              (or smoothing (send basefont get-smoothing)) pixels?
               (or hinting (send basefont get-hinting)))
         (send the-font-list find-or-create-font fontsize
               (or family (send basefont get-family)) (or style (send basefont get-style))
-              (or weight (send basefont get-weight)) underlined? 'smoothed pixels?
+              (or weight (send basefont get-weight)) underlined?
+              (or smoothing (send basefont get-smoothing)) pixels?
               (or hinting (send basefont get-hinting))))))
 
 (define bitmap-blank : (->* () (Nonnegative-Real (Option Nonnegative-Real) #:backing-scale Positive-Real) Bitmap)
@@ -507,15 +509,34 @@
     images/logos images/icons/arrow images/icons/control
     images/icons/file images/icons/misc images/icons/stickman
     images/icons/symbol images/icons/tool)
+
+  (define-@λ-pool the-@draw-pool #:λnames [make-font make-pen make-brush] racket/draw)
+
+  (define css-@draw-filter : CSS-@λ-Filter
+    (lambda [λname ?λ:kw]
+      (case (or ?λ:kw λname)
+        [(#:size) (CSS:<+> (<css:integer> 0 < 1024) (<css:flonum> 0.0 fl< 1024.0))]
+        [(#:face) (CSS:<+> (<css:string>) (<css:escape> false?))]
+        [(#:family) (<css:ident> (make-predicate Font-Family))]
+        [(#:style) (<css:ident> (make-predicate Font-Style))]
+        [(#:weight) (<css:ident> (make-predicate Font-Weight))]
+        [(#:underlined? #:size-in-pixels?) (<css:escape> boolean?)]
+        [(#:smoothing) (<css:ident> racket-font-smoothing?)]
+        [(#:hinting) (<css:ident> racket-font-hinting?)])))
   
   (define css-@icon-filter : CSS-@λ-Filter
     (lambda [λname ?λ:kw]
+      (define-css-disjoined-filter <text-icon-font> #:-> (U Font CSS-@λ)
+        (<css-system-font>)
+        (<racket-font>)
+        (<css:@λ> the-@draw-pool css-@draw-filter '(make-font)))
       (case (or ?λ:kw λname)
-        #|[(#:backing-scale) (<css+real>)]
-        [(#:height #:thickness) (<css+%real>)]
-        [(#:color #:shackle-color #:body-color #:arm-color #:head-color) (<css-color>)]
-        [(#:disk-color #:arrow-color #:frame-color #:handle-color #:cap-color #:bomb-color) (<css-color>)]
-        [(text-icon) (CSS<^> (<css:string>))]|#)))
+        [(#:backing-scale) (<css+real> '#:nonzero)]
+        [(#:height #:thickness #:outline) (<css+%real>)]
+        [(#:material) (<css:ident> '(plastic-icon-material rubber-icon-material glass-icon-material metal-icon-material))]
+        [(#:trim?) (<css:escape> boolean?)]
+        [(text-icon) (CSS<&> (CSS<^> (<css:string>)) (CSS<$> (CSS<^> (<text-icon-font>))))]
+        [else (when ?λ:kw (<css-color>))])))
 
   (define-css-function-filter <css-image-notation> #:-> CSS-Image
     ;;; https://drafts.csswg.org/css-images/#image-notation
@@ -524,7 +545,7 @@
      (CSS<+> (CSS<^> (<css-color>)) ; NOTE: both color and url accept strings, however their domains are not intersective.
              (CSS<&> (CSS<^> (CSS:<+> (<css-image>) (<css:string>)))
                      (CSS<$> (CSS<?> [(<css-comma>) (CSS<^> (<css-color>))]) 'transparent)))])
-  
+
   (define-css-disjoined-filter <css-image> #:-> CSS-Image-Datum
     ;;; https://drafts.csswg.org/css-images/#image-values
     ;;; https://drafts.csswg.org/css-images/#invalid-image
@@ -565,6 +586,9 @@
   (define css-font-generic-families : (Listof Symbol)
     '(default decorative roman script  swiss      modern    system    symbol
        emoji  fantasy    serif cursive sans-serif monospace system-ui math fangsong))
+
+  (define-predicate racket-font-smoothing? Font-Smoothing)
+  (define-predicate racket-font-hinting? Font-Hinting)
   
   (define css-font-synthesis-options : (Listof Symbol) '(weight style small-caps))
   
@@ -617,8 +641,8 @@
   
   (define-css-disjoined-filter <font-size> #:-> (U Symbol Nonnegative-Inexact-Real CSS:Length:Font)
     ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
-    (CSS:<~> (<css+%real>) exact->inexact)
     (<css+length>)
+    (CSS:<~> (<css+%real>) exact->inexact)
     (<css-keyword> css-font-size-option))
 
   (define-css-disjoined-filter <line-height> #:-> (U Symbol Nonnegative-Flonum CSS:Length:Font CSS-Wide-Keyword)
@@ -690,8 +714,8 @@
             [(nonnegative-flonum? value) value]
             [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (flcss%-em length%))]
             [(css+length? value) (css:length->scalar value)]
-            [(eq? property 'min-font-size) 0]
-            [(eq? property 'max-font-size) +inf.0]
+            [(eq? property 'min-font-size) 0.0]
+            [(eq? property 'max-font-size) 1024.0]
             [else +nan.0 #| used to determine whether size-in-pixels? will be inherited, see (css-extract-font) |#])))
 
   (define css-datum->font-weight : (-> Symbol CSS-Datum Font-Weight)
@@ -770,6 +794,10 @@
                     (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css-datum->color 'color c))
                     (if (object? color) color (current-css-element-color)))))
 
+(provide <css-color> <css-image> <css-system-font> current-css-default-font
+         current-css-caption-font current-css-small-caption-font current-css-menu-font
+         current-css-icon-font current-css-status-bar-font current-css-message-box-font)
+
 (define css-color-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
   (lambda [name [px.names #px"-color$"]]
     (or (and (eq? name 'color) (CSS<^> (<css-color> '#:inherit-currentcolor)))
@@ -813,6 +841,8 @@
       [(font-stretch) (CSS<^> (<font-stretch>))]
       [(font-weight) (CSS<^> (<font-weight>))]
       [(font-size-adjust) (CSS<^> (CSS:<+> (<css-keyword> 'none) (<css+real>)))]
+      [(-racket-font-smoothing) (CSS<^> (<css:ident-norm> racket-font-smoothing?))]
+      [(-racket-font-hinting) (CSS<^> (<css:ident-norm> racket-font-hinting?))]
       [else #false])))
 
 (define css-text-decoration-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
@@ -840,11 +870,13 @@
       (define style : Font-Style (css-ref declared-values #false 'font-style css-datum->font-style))
       (define weight : Font-Weight (css-ref declared-values #false 'font-weight css-datum->font-weight))
       (define decorations : (Listof CSS-Datum) (css-ref declared-values #false 'text-decoration-line css-datum->font-underlined))
+      (define smoothing : Font-Smoothing (css-ref declared-values #false '-racket-font-smoothing racket-font-smoothing? 'default))
+      (define hinting : Font-Hinting (css-ref declared-values #false '-racket-font-hinting racket-font-hinting? 'aligned))
       (define size : Nonnegative-Real (max (min max-size font-size) min-size))
       (define font : Font
         (make-font+ #:face (and (string? family) family) #:family (and (symbol? family) family)
-                    #:size size #:size-in-pixels? (implies (nan? size) 'inherited)
-                    #:style style #:weight weight #:underlined? (and (memq 'underline decorations) #true)
+                    #:size size #:size-in-pixels? (implies (nan? size) #| NOTE |# 'inherited) #:hinting hinting
+                    #:style style #:weight weight #:underlined? (and (memq 'underline decorations) #true) #:smoothing smoothing
                     basefont))
      (call-with-font font
        (css-set! declared-values 'font font)
