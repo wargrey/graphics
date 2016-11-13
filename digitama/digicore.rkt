@@ -261,9 +261,9 @@
     (hint #false)
     (wrap-evt source-evt ; do not work with guard evt since the maker may not be invoked
               (λ [datum] (hint source-evt)
-                (cond [(not (place-message-box? datum)) datum]
-                      [else (let ([stream (place-message-box-stream datum)])
-                              (match/handlers (if (bytes? stream) (with-input-from-bytes (cast stream Bytes) read) (box stream))
+                (cond [(not (place-message? datum)) datum]
+                      [else (let ([stream : Any (place-message-stream datum)])
+                              (match/handlers (if (bytes? stream) (with-input-from-bytes stream read) (box stream))
                                 [(? exn:fail:read? e) (exn->prefab-message e #:level 'fatal #:exn->detail (λ _ stream))]))])))))
 
 (define place-channel-send : (-> Place-Channel Any Void)
@@ -271,8 +271,8 @@
     (match datum
       [(? place-message-allowed?) (place-channel-put dest datum)]
       [(? exn?) (place-channel-put dest (exn->prefab-message datum))]
-      [(box (and (not (? bytes? v)) (? place-message-allowed? v))) (place-channel-put dest (place-message-box v))]
-      [_ (place-channel-put dest (place-message-box (with-output-to-bytes (thunk (write datum)))))])))
+      [(box (and (not (? bytes? v)) (? place-message-allowed? v))) (place-channel-put dest (place-message v))]
+      [_ (place-channel-put dest (place-message (with-output-to-bytes (thunk (write datum)))))])))
 
 (define place-channel-recv : (-> Place-Channel [#:timeout Nonnegative-Real] [#:hint (Parameterof (Option Place-Channel))] Any)
   (lambda [channel #:timeout [s +inf.0] #:hint [hint the-synced-place-channel]]
@@ -380,7 +380,7 @@
   
   (require/typed/provide racket [vector-set-performance-stats! Vector-Set-Performance-Stats!])
 
-  (struct place-message-box ([stream : Any]) #:prefab)
+  (struct place-message ([stream : Any]) #:prefab)
   (define infobase : (HashTable String Info-Ref) (make-hash))
   
   (define immutable-guard : (-> Symbol (Path-String -> Nothing))
