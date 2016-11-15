@@ -439,15 +439,15 @@
     ;;; https://drafts.csswg.org/css-color/#rgb-functions
     ;;; https://drafts.csswg.org/css-color/#the-hsl-notation
     ;;; https://drafts.csswg.org/css-color/#the-hwb-notation
-    [(rgba rgb) #:=> [(rgba [r : byte?] [g : byte?] [b : byte?] [alpha : nonnegative-flonum?])]
+    [(rgba rgb) #:=> [(rgba [r ? byte?] [g ? byte?] [b ? byte?] [alpha ? nonnegative-flonum?])]
      (make-parser <:rgb:> <:rgb:>)]
-    [(hsla hsl) #:=> [(hsba hsl->rgb [h : real?] [s : single-flonum?] [l : single-flonum?] [alpha : nonnegative-flonum?])]
+    [(hsla hsl) #:=> [(hsba hsl->rgb [h ? real?] [s ? single-flonum?] [l ? single-flonum?] [alpha ? nonnegative-flonum?])]
      (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
-    [(hsva hsv) #:=> [(hsba hsv->rgb [h : real?] [s : single-flonum?] [v : single-flonum?] [alpha : nonnegative-flonum?])]
+    [(hsva hsv) #:=> [(hsba hsv->rgb [h ? real?] [s ? single-flonum?] [v ? single-flonum?] [alpha ? nonnegative-flonum?])]
      (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
-    [(hsia hsi) #:=> [(hsba hsi->rgb [h : real?] [s : single-flonum?] [i : single-flonum?] [alpha : nonnegative-flonum?])]
+    [(hsia hsi) #:=> [(hsba hsi->rgb [h ? real?] [s ? single-flonum?] [i ? single-flonum?] [alpha ? nonnegative-flonum?])]
      (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
-    [(hwba hwb) #:=> [(hsba hwb->rgb [h : real?] [w : single-flonum?] [b : single-flonum?] [alpha : nonnegative-flonum?])]
+    [(hwba hwb) #:=> [(hsba hwb->rgb [h ? real?] [w ? single-flonum?] [b ? single-flonum?] [alpha ? nonnegative-flonum?])]
      (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
     #:where
     [(define-css-disjoined-filter <rgb-byte> #:-> Integer
@@ -502,6 +502,7 @@
 
   (define-css-value css-image #:as CSS-Image ())
   (define-css-value image #:as Image #:=> css-image ([content : CSS-Image-Datum] [fallback : CSS-Color-Datum]))
+  (define-css-value image-set #:as Image-Set #:=> css-image ([options : (Listof (List CSS-Image-Datum Inexact-Real))]))
 
   (define the-image-pool : (HashTable (U CSS-Image String) Bitmap) (make-hash))
 
@@ -530,21 +531,43 @@
         (<css-system-font>)
         (<racket-font>)
         (<css:@λ> the-@draw-pool css-@draw-filter '(make-font)))
+      (define <:clock-pointers:> : (CSS-Parser (Listof CSS-Datum))
+        (CSS<$> (CSS<&> (CSS<^> (<css:integer> 0 <= 11))
+                        (CSS<$> (CSS<^> (CSS:<+> (<css:integer> 0 <= 60)
+                                                 (<css:flonum> 0.0 fl<= 60.0)))))))
       (case (or ?λ:kw λname)
         [(#:backing-scale) (<css+real> '#:nonzero)]
         [(#:height #:thickness #:outline) (<css+%real>)]
         [(#:material) (<css:ident> '(plastic-icon-material rubber-icon-material glass-icon-material metal-icon-material))]
         [(#:trim?) (<css:escape> boolean?)]
         [(text-icon) (CSS<&> (CSS<^> (<css:string>)) (CSS<$> (CSS<^> (<text-icon-font>))))]
-        [else (when ?λ:kw (<css-color>))])))
+        [(regular-polygon-icon) (CSS<&> (CSS<^> (<css-natural> '#:nonzero)) (CSS<$> (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))))]
+        [(lock-icon) (CSS<$> (CSS<^> (<css:escape> boolean?)))]
+        [(running-stickman-icon) (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))]
+        [else (if ?λ:kw (<css-color>) <:clock-pointers:>)])))
 
   (define-css-function-filter <css-image-notation> #:-> CSS-Image
     ;;; https://drafts.csswg.org/css-images/#image-notation
-    [(image) #:=> [(image "" [fallback : index? string? symbol? css-color?])
-                   (image [content : css-@λ? string? css-image?] [fallback : index? string? symbol? css-color?])]
+    ;;; https://drafts.csswg.org/css-images/#image-set-notation
+    [(image) #:=> [(image "" [fallback ? index? string? symbol? css-color?])
+                   (image [content ? css-image? string? css-@λ?] [fallback ? index? string? symbol? css-color?])]
      (CSS<+> (CSS<^> (<css-color>)) ; NOTE: both color and url accept strings, however their domains are not intersective.
              (CSS<&> (CSS<^> (CSS:<+> (<css-image>) (<css:string>)))
-                     (CSS<$> (CSS<?> [(<css-comma>) (CSS<^> (<css-color>))]) 'transparent)))])
+                     (CSS<$> (CSS<?> [(<css-comma>) (CSS<^> (<css-color>))]) 'transparent)))]
+    [(image-set) #:=> [(image-set [options ? css-image-sets?])]
+     (CSS<!> (CSS<#> (CSS<!> (CSS<^> (list (CSS:<+> (<css:string>) (<css-image>))
+                                           (λ [[token : CSS-Syntax-Any]] : (CSS-Option Inexact-Real)
+                                             (and (css:dimension? token)
+                                                  (let* ([datum (css:dimension-datum token)]
+                                                         [unit (css:dimension-unit token)]
+                                                         [scalar (css-resolution->scalar datum unit)])
+                                                    (cond [(fl> scalar 0.0) scalar]
+                                                          [(fl<= datum 0.0) (make-exn:css:range token)]
+                                                          [(eq? unit 'x) (real->single-flonum datum)]
+                                                          [else (make-exn:css:type token)])))))))))]
+    #:where
+    [(define-predicate css-image-datum? CSS-Image-Datum)
+     (define-predicate css-image-sets? (Listof (List CSS-Image-Datum Inexact-Real)))])
 
   (define-css-disjoined-filter <css-image> #:-> CSS-Image-Datum
     ;;; https://drafts.csswg.org/css-images/#image-values
@@ -713,7 +736,7 @@
                  [else       css-font-medium]))]
             [(nonnegative-flonum? value) value]
             [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (flcss%-em length%))]
-            [(css+length? value) (css:length->scalar value)]
+            [(css+length? value) (css:length->scalar value #false)]
             [(eq? property 'min-font-size) 0.0]
             [(eq? property 'max-font-size) 1024.0]
             [else +nan.0 #| used to determine whether size-in-pixels? will be inherited, see (css-extract-font) |#])))
@@ -811,17 +834,6 @@
              (and (regexp? px.names) (regexp-match? px.names (symbol->string name))))
          (CSS<^> (<css-image>)))))
 
-(define css-datum->color : (-> Symbol CSS-Datum (U Color CSS-Wide-Keyword 'currentcolor))
-  (lambda [desc-name color]
-    (cond [(or (index? color) (symbol? color) (string? color)) (select-rgba-color color)]
-          [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
-          [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
-          [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
-          [(and (object? color) (is-a? color color%)) (cast color Color)]
-          [(eq? color 'transparent) (select-rgba-color #x000000 0.0)]
-          [(eq? color 'currentcolor) color]
-          [else css:initial])))
-
 (define css-font-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
   ;;; https://drafts.csswg.org/css-fonts-4/#basic-font-props
@@ -882,6 +894,28 @@
        (css-set! declared-values 'font font)
        (when (nan? size) (css-set! declared-values 'font-size size))
        font))))
+
+(define css-datum->color : (-> Symbol CSS-Datum (U Color CSS-Wide-Keyword 'currentcolor))
+  (lambda [desc-name color]
+    (cond [(or (index? color) (symbol? color) (string? color)) (select-rgba-color color)]
+          [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
+          [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
+          [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
+          [(and (object? color) (is-a? color color%)) (cast color Color)]
+          [(eq? color 'transparent) (select-rgba-color #x000000 0.0)]
+          [(eq? color 'currentcolor) color]
+          [else css:initial])))
+
+(define css-datum->bitmap : (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))
+  (lambda [desc-name color]
+    (cond [(or (index? color) (symbol? color) (string? color)) (select-rgba-color color)]
+          [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
+          [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
+          [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
+          [(and (object? color) (is-a? color color%)) (cast color Color)]
+          [(eq? color 'transparent) (select-rgba-color #x000000 0.0)]
+          [(eq? color 'currentcolor) color]
+          [else css:initial])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* main typed/racket

@@ -2,7 +2,9 @@
 
 #root {
     at-exp: @racket[] @schema [];
-    racket-logo: @x-icon[#height var(--icon-height) #material whatever #thickness 12];
+    racket-logo: @x-icon[#height var(--icon-height) #material rubber-icon-material #thickness 12];
+    escape-icon: @text-icon["testcase for escaping" @make-font[#'underlined?' ,'#true']];
+    retina-icon: image-set("normal.png" 1x, "normal@2x.png" 2x);
 
     font: 12px/1.5; /* error property, font property requires font-family or system font */
 
@@ -11,7 +13,7 @@
     solid-image: image(#000);
     fallback-image: image("", #ABCDEF);
     error-image: image(#FFF, "");
-    
+
     case-sensitive-error-logo: @x-icon[#Height ,'32' #thickness 12];
     arity-error-logo: @racket-logo(overconsumption #height 32 normal-argument);
     arity-error-logo: @right-arrow-icon{#height 32};

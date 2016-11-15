@@ -270,9 +270,9 @@
                         [else +nan.0])))
                   ...
 
-                  (define css:id->scalar : (case-> [(U ID CSS-Zero) -> Nonnegative-Flonum]
-                                                   [(U ID CSS-Zero) False -> Nonnegative-Flonum]
-                                                   [(U ID CSS-Zero) '#:direction -> Flonum])
+                  (define css:id->scalar : (case-> [(U ID CSS-Zero) -> Flonum]
+                                                   [(U ID CSS-Zero) True -> Flonum]
+                                                   [(U ID CSS-Zero) False -> Nonnegative-Flonum])
                     (lambda [token [direction? #false]]
                       (cond [(not (id? token)) 0.0]
                             [(and direction?) (css-id->scalar (css:dimension-datum token) (css:dimension-unit token))]
@@ -300,7 +300,7 @@
                                           [True -> (CSS:Filter Nonnegative-Flonum)])
                     (lambda [[ignore-font? #false]]
                       (λ [[token : CSS-Syntax-Any]]
-                        (cond [(+id? token) (if (or ignore-font? !font?) (css:id->scalar token) token)]
+                        (cond [(+id? token) (if (or ignore-font? !font?) (css:id->scalar token #false) token)]
                               [(id? token) (make-exn:css:range token)]
                               [(css:dimension? token) (make-exn:css:unit token)]
                               [else #false]))))
@@ -624,23 +624,35 @@
        #'(defilter atom-filter #:-> RangeType #:with [[token : css:token?] [dom : DomType defval ...] ...] atom-body ... #:where [])]))
 
   (define-syntax (define-css-function-filter stx)
+    (define (parse-pattern <constructor> <matches>)
+      (define-values (snerttap stnemugra)
+        (for/fold ([snrettap null] [stnemugra null])
+                  ([<pattern> (in-list <matches>)])
+          (syntax-case <pattern> [: _]
+            [(field ? type?) (values (cons #'(? type? field) snrettap) (cons #'field stnemugra))]
+            [(field ? type? ...) (values (cons #'(? (λ [v] (or (type? v) ...)) field) snrettap) (cons #'field stnemugra))]
+            [(field : Type) (values (cons #'(? (make-predicate Type) field) snrettap) (cons #'field stnemugra))]
+            [(field : Type ...) (values (cons #'(? (make-predicate (U Type ...)) field) snrettap) (cons #'field stnemugra))]
+            [,field (values (cons #'field snrettap) (cons #'field stnemugra))]
+            [_ (let ([? (datum->syntax #'_ (gensym))]) (values (cons ? snrettap) (cons ? stnemugra)))]
+            [field (values snrettap (cons #'field stnemugra))])))
+      (list (list* #'list #'_ (reverse snerttap)) (cons <constructor> (reverse stnemugra))))
     (syntax-parse stx
-      [(_ func-filter #:-> RangeType [(fname aliases ...) #:=> [(constructor matches ...) ...] fparser ...] ...
-          (~optional (~seq #:where (~and definitions [defaux ...]))))
-       (with-syntax ([defines (if (attribute definitions) #'(begin defaux ...) #'(void))]
-                     [([[[nerttap ...] [field ...]] ...] ...)
-                      (for/list ([<groups> (in-list (syntax->list #'(([matches ...] ...) ...)))])
-                        (for/list ([<matches> (in-list (syntax->list <groups>))])
-                          (define-values (snerttap stnemugra)
-                            (for/fold ([snrettap null] [stnemugra null])
-                                      ([<pattern> (in-list (syntax->list <matches>))])
-                              (syntax-case <pattern> [: _]
-                                [(var : type?) (values (cons #'(? type? var) snrettap) (cons #'var stnemugra))]
-                                [(var : type? ...) (values (cons #'(? (λ [v] (or (type? v) ...)) var) snrettap) (cons #'var stnemugra))]
-                                [,var (values (cons #'var snrettap) (cons #'var stnemugra))]
-                                [_ (let ([? (datum->syntax #'_ (gensym))]) (values (cons ? snrettap) (cons ? stnemugra)))]
-                                [var (values snrettap (cons #'var stnemugra))])))
-                          (list #| intending |# snerttap (reverse stnemugra))))])
+      [(self func-filter #:-> RangeType
+           [(fname aliases ...) #:=> [transforms ...] fparser ...] ...
+           (~optional (~seq #:where [defaux ...])))
+       (with-syntax ([defines (if (attribute defaux) #'(begin defaux ...) #'(void))]
+                     [((([pattern ...] [transform ...]) ...) ...)
+                      (for/list ([<function> (in-list (syntax->list #'(fname ...)))]
+                                 [<transforms> (in-list (syntax->list #'([transforms ...] ...)))])
+                        (define transforms (syntax-e <transforms>))
+                        (when (null? transforms) (raise-syntax-error (syntax-e #'self) "empty value transform" <function>))
+                        (for/list ([<transform> (in-list transforms)])
+                          (define transform (syntax-e <transform>))
+                          (cond [(pair? transform) (parse-pattern (car transform) (cdr transform))]
+                                [(null? transform) (raise-syntax-error (syntax-e #'self) "missing value constructor" <transform>)]
+                                [else (let ([? (datum->syntax <transform> (gensym))])
+                                        (list (list #'? #'list? ?) (list #'values ?)))])))])
          #'(define (func-filter) : (CSS:Filter RangeType) defines
              (define do-parse : (-> Symbol (CSS-Parser (Listof CSS-Datum)) (Listof CSS-Token) (U (Listof CSS-Datum) CSS-Syntax-Error))
                (lambda [func-name func-parse func-argl]
@@ -648,14 +660,14 @@
                  (cond [(exn:css? fargs) fargs]
                        [(false? fargs) (make-exn:css:type --tokens)]
                        [(pair? --tokens) (make-exn:css:overconsumption --tokens)]
-                       [else fargs #| intending |#])))
+                       [else (reverse fargs)])))
              (λ [[token : CSS-Syntax-Any]] : (CSS-Option RangeType)
                (and (css:function? token)
                     (let ([argl : (Listof CSS-Token) (css:function-arguments token)])
                       (case (css:function-norm token)
                         [(fname aliases ...)
                          (match (do-parse 'fname (CSS<+> fparser ...) argl)
-                           [(list nerttap ... _) (constructor field ...)] ...
+                           [(pattern ...) (transform ...)] ...
                            [(? exn? e) e]
                            [_ (make-exn:css:arity token)])]
                         ...
@@ -680,7 +692,7 @@
       [(_ #:100% fl% #:= defval (~optional (~seq #:as NanType)) (~optional (~seq (~and #:no-direction +))))
        (with-syntax ([SizeType (if (attribute NanType) #'NanType #'defval)]
                      [(fl? sfl? length? FLType direction)
-                      (cond [(not (attribute +)) (list #'flonum? #'single-flonum? #'css:length? #'Flonum #''#:direction)]
+                      (cond [(not (attribute +)) (list #'flonum? #'single-flonum? #'css:length? #'Flonum #'#true)]
                             [else (list #'nonnegative-flonum? #'nonnegative-single-flonum? #'css+length?
                                         #'Nonnegative-Flonum #'#false)])])
          #'(lambda [[_ : Symbol] [size : CSS-Datum]] : (U FLType SizeType)
@@ -708,7 +720,7 @@
       [(_ css-filter f) #'(css:compose css-filter f)]
       [(_ css-filter f g) #'(css:compose (css:compose css-filter g) f)]
       [(_ css-filter f g h ...) #'(css:compose css-filter (compose f g h ...))]))
-  
+
   (define CSS:<=> : (All (a b) (-> (CSS:Filter a) b (CSS:Filter b)))
     (lambda [css-filter const]
       (λ [[token : CSS-Syntax-Any]]
@@ -955,7 +967,7 @@
     #:with [[nonzero : (Option '#:nonzero) #false]]
     (cond [nonzero (<css:integer> exact-positive-integer?)]
           [else    (<css:integer> exact-nonnegative-integer?)]))
-  
+
   (define-css-disjoined-filter <css+real> #:-> (U Natural Nonnegative-Flonum)
     #:with [[nonzero : (Option '#:nonzero) #false]]
     (cond [nonzero (CSS:<+> (<css:flonum> positive-flonum?) (<css:integer> exact-positive-integer?))]
