@@ -445,7 +445,8 @@
       ;;; https://drafts.csswg.org/css-values/#resolution
       [css:resolution     #:+ CSS:Resolution      #:=> dppx
                           [[(dpcm)  (fl* dppx (fl/ 2.54 96.0))]
-                           [(dpi)   (fl* dppx (fl/ 1.0 96.0))]]])
+                           [(dpi)   (fl* dppx (fl/ 1.0 96.0))]
+                           [(x)     dppx]]])
 
     (define-symbolic-tokens css-unreadable-token #:+ CSS-Unreadable-Token
       ; These tokens are remade by the parser instead of being produced by the tokenizer.
@@ -1577,7 +1578,7 @@
                                [(deg grad rad turn)     (css-make-token srcloc css:angle           rep+unit value unit)]
                                [(s ms min h)            (css-make-token srcloc css:time            rep+unit value unit)]
                                [(hz khz)                (css-make-token srcloc css:frequency       rep+unit value unit)]
-                               [(dpi dpcm dppx)         (css-make-token srcloc css:resolution      rep+unit value unit)]
+                               [(dpi dpcm dppx x)       (css-make-token srcloc css:resolution      rep+unit value unit)]
                                [else                    (css-make-token srcloc css:dimension       rep+unit value unit)])]
                             [(and (char? ch1) (char=? ch1 #\%) (read-char css))
                              (define n% : Single-Flonum (real->single-flonum (* n 0.01)))

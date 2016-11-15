@@ -555,16 +555,7 @@
              (CSS<&> (CSS<^> (CSS:<+> (<css-image>) (<css:string>)))
                      (CSS<$> (CSS<?> [(<css-comma>) (CSS<^> (<css-color>))]) 'transparent)))]
     [(image-set) #:=> [(image-set [options ? css-image-sets?])]
-     (CSS<!> (CSS<#> (CSS<!> (CSS<^> (list (CSS:<+> (<css:string>) (<css-image>))
-                                           (λ [[token : CSS-Syntax-Any]] : (CSS-Option Flonum)
-                                             (and (css:dimension? token)
-                                                  (let* ([datum (css:dimension-datum token)]
-                                                         [unit (css:dimension-unit token)]
-                                                         [scalar (css-resolution->scalar datum unit)])
-                                                    (cond [(fl> scalar 0.0) scalar]
-                                                          [(fl<= datum 0.0) (make-exn:css:range token)]
-                                                          [(eq? unit 'x) datum]
-                                                          [else (make-exn:css:type token)])))))))))]
+     (CSS<!> (CSS<#> (CSS<!> (CSS<^> (list (CSS:<+> (<css:string>) (<css-image>)) (<css+resolution>))))))]
     #:where
     [(define-predicate css-image-datum? CSS-Image-Datum)
      (define-predicate css-image-sets? (Listof (List CSS-Image-Datum Flonum)))])
@@ -829,10 +820,14 @@
              (CSS<^> (<css-color>))))))
 
 (define css-image-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
+  ;;; https://drafts.csswg.org/css-images/#image-processing
   (lambda [name [px.names #px"-(image|icon|logo)$"]]
-    (and (or (and (list? px.names) (memq name px.names))
-             (and (regexp? px.names) (regexp-match? px.names (symbol->string name))))
-         (CSS<^> (<css-image>)))))
+    (case name
+      [(image-resolution) (CSS<*> (CSS<^> (CSS:<+> (<css-keyword> '(from-image snap)) (<css+resolution>))) '+)]
+      [(image-rendering) (CSS<^> (<css-keyword> '(auto crisp-edges pixelated)))]
+      [else (and (or (and (list? px.names) (memq name px.names))
+                     (and (regexp? px.names) (regexp-match? px.names (symbol->string name))))
+                 (CSS<^> (<css-image>)))])))
 
 (define css-font-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
@@ -906,7 +901,7 @@
           [(eq? color 'currentcolor) color]
           [else css:initial])))
 
-#|(define css-datum->bitmap : (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))
+#|(define css-datum->image : (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))
   (lambda [desc-name color]
     (cond [(or (index? color) (symbol? color) (string? color)) (select-rgba-color color)]
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]

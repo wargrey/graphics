@@ -4,7 +4,7 @@
     at-exp: @racket[] @schema [];
     racket-logo: @x-icon[#height var(--icon-height) #material rubber-icon-material #thickness 12];
     escape-icon: @text-icon["testcase for escaping" @make-font[#'underlined?' ,'#true']];
-    retina-icon: image-set("normal.png" 1x, "normal@2x.png" 2x);
+    retina-icon: image-set("normal.png" 96dpi, "normal@2x.png" 2x);
 
     font: 12px/1.5; /* error property, font property requires font-family or system font */
 
@@ -52,6 +52,7 @@ module.main {
 
     font: normal 85% "Lucida Grande", "Trebuchet MS", Verdana, Helvetica, Gill Sans, var(--default-font);
     text-decoration: underline;
+    image-resolution: 2dppx snap;
 }
 
 test#case0 {
