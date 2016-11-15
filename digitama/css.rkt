@@ -241,7 +241,7 @@
   
   (define-syntax (define-dimensional-tokens stx)
     (syntax-case stx []
-      [(_ parent #:+ _ [id #:+ ID #:=> canonical-unit [transforms ...]] ...)
+      [(_ parent #:+ _ [id #:+ ID #:=> canonical-unit [conversion ...]] ...)
        (with-syntax ([token->datum (format-id #'parent "~a->datum" (syntax-e #'parent))]
                      [token-filter (format-id #'parent "~a-filter" (syntax-e #'parent))]
                      [([id? +id? css:id->scalar css-id->scalar <id> <+id>] ...)
@@ -266,7 +266,7 @@
                     (lambda [canonical-unit unit]
                       (case unit
                         [(canonical-unit) canonical-unit]
-                        transforms ...
+                        conversion ...
                         [else +nan.0])))
                   ...
 
@@ -279,10 +279,10 @@
                             [else (css-id->scalar (flabs (css:dimension-datum token)) (css:dimension-unit token))])))
                   ...
 
-                  (define +id? : (-> Any Boolean : #:+ (U ID CSS-Zero))
+                  (define +id? : (-> Any Boolean : #:+ ID)
                     (lambda [token]
-                      (or (and (id? token) (fl>= (css:dimension-datum token) 0.0))
-                          (css-zero? token))))
+                      (and (id? token)
+                           (fl> (css:dimension-datum token) 0.0))))
                   ...
 
                   (define <id> : (case-> [-> (CSS:Filter Flonum/Font)]
@@ -444,8 +444,8 @@
                           [[(khz)   (fl* kz 0.001)]]]
       ;;; https://drafts.csswg.org/css-values/#resolution
       [css:resolution     #:+ CSS:Resolution      #:=> dppx
-                          [[(dpcm)  (css-length->scalar dppx 'cm)]
-                           [(dpi)   (css-length->scalar dppx 'in)]]])
+                          [[(dpcm)  (fl* dppx (fl/ 2.54 96.0))]
+                           [(dpi)   (fl* dppx (fl/ 1.0 96.0))]]])
 
     (define-symbolic-tokens css-unreadable-token #:+ CSS-Unreadable-Token
       ; These tokens are remade by the parser instead of being produced by the tokenizer.

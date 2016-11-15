@@ -502,7 +502,7 @@
 
   (define-css-value css-image #:as CSS-Image ())
   (define-css-value image #:as Image #:=> css-image ([content : CSS-Image-Datum] [fallback : CSS-Color-Datum]))
-  (define-css-value image-set #:as Image-Set #:=> css-image ([options : (Listof (List CSS-Image-Datum Inexact-Real))]))
+  (define-css-value image-set #:as Image-Set #:=> css-image ([options : (Listof (List CSS-Image-Datum Flonum))]))
 
   (define the-image-pool : (HashTable (U CSS-Image String) Bitmap) (make-hash))
 
@@ -556,18 +556,18 @@
                      (CSS<$> (CSS<?> [(<css-comma>) (CSS<^> (<css-color>))]) 'transparent)))]
     [(image-set) #:=> [(image-set [options ? css-image-sets?])]
      (CSS<!> (CSS<#> (CSS<!> (CSS<^> (list (CSS:<+> (<css:string>) (<css-image>))
-                                           (λ [[token : CSS-Syntax-Any]] : (CSS-Option Inexact-Real)
+                                           (λ [[token : CSS-Syntax-Any]] : (CSS-Option Flonum)
                                              (and (css:dimension? token)
                                                   (let* ([datum (css:dimension-datum token)]
                                                          [unit (css:dimension-unit token)]
                                                          [scalar (css-resolution->scalar datum unit)])
                                                     (cond [(fl> scalar 0.0) scalar]
                                                           [(fl<= datum 0.0) (make-exn:css:range token)]
-                                                          [(eq? unit 'x) (real->single-flonum datum)]
+                                                          [(eq? unit 'x) datum]
                                                           [else (make-exn:css:type token)])))))))))]
     #:where
     [(define-predicate css-image-datum? CSS-Image-Datum)
-     (define-predicate css-image-sets? (Listof (List CSS-Image-Datum Inexact-Real)))])
+     (define-predicate css-image-sets? (Listof (List CSS-Image-Datum Flonum)))])
 
   (define-css-disjoined-filter <css-image> #:-> CSS-Image-Datum
     ;;; https://drafts.csswg.org/css-images/#image-values
@@ -906,7 +906,7 @@
           [(eq? color 'currentcolor) color]
           [else css:initial])))
 
-(define css-datum->bitmap : (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))
+#|(define css-datum->bitmap : (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))
   (lambda [desc-name color]
     (cond [(or (index? color) (symbol? color) (string? color)) (select-rgba-color color)]
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
@@ -915,7 +915,7 @@
           [(and (object? color) (is-a? color color%)) (cast color Color)]
           [(eq? color 'transparent) (select-rgba-color #x000000 0.0)]
           [(eq? color 'currentcolor) color]
-          [else css:initial])))
+          [else css:initial])))|#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* main typed/racket
