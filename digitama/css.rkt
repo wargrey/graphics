@@ -528,6 +528,10 @@
             [else (let ([eof-msg (css-token->string property errobj eof)])
                     (log-message logger level topic (format "~a @‹~a›" eof-msg (css:ident-datum property)) errobj))])))
 
+  (define css-log-read-error : (->* (String) (Any Log-Level) Void)
+    (lambda [message [errobj #false] [level 'debug]]
+      (log-message (current-logger) level 'exn:css:read message errobj)))
+
   ;;; https://drafts.csswg.org/css-syntax/#parsing
   (define-type (Listof+ css) (Pairof css (Listof css)))
   (define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
@@ -1458,7 +1462,7 @@
     (syntax-case stx []
       [(_ src css:bad:sub token datum)
        #'(let ([bad (css-make-token src css:bad:sub (~s (cons (object-name token) datum)))])
-           (log-message (current-logger) 'debug 'exn:css:read (css-token->string bad) bad)
+           (css-log-read-error (css-token->string bad) bad)
            bad)]))
   
   (define css-consume-token : (-> Input-Port (U String Symbol) (U EOF CSS-Token))

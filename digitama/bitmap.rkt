@@ -20,8 +20,14 @@
 
 (define bitmap/2x : (-> (U Path-String Input-Port) Bitmap)
   (lambda [src]
-    (define raw : Bitmap (read-bitmap src #:try-@2x? #true))
-    (bitmap-scale raw (/ (send raw get-backing-scale) (default-icon-backing-scale)))))
+    (define raw : Bitmap (read-image src #:source-resolution +nan.0))
+    (cond [(not (send raw ok?)) the-invalid-image]
+          [else (bitmap-scale raw (/ (send raw get-backing-scale) 2.0))])))
+
+(define bitmap-normalize : (-> Bitmap Bitmap)
+  (lambda [raw]
+    (cond [(not (send raw ok?)) the-invalid-image]
+          [else (bitmap-scale raw (/ (send raw get-backing-scale) (default-icon-backing-scale)))])))
 
 (define bitmap-size : (-> Bitmap (Values Positive-Integer Positive-Integer))
   (lambda [bmp]
@@ -31,9 +37,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap->flomap : (-> Bitmap Flomap)
   (lambda [bmp]
-    (define backing-scale : Positive-Real (send bmp get-backing-scale))
-    (define w : Positive-Integer (max 1 (exact-ceiling (* (send bmp get-width) backing-scale))))
-    (define h : Positive-Integer (max 1 (exact-ceiling (* (send bmp get-height) backing-scale))))
+    (define resolution : Positive-Real (send bmp get-backing-scale))
+    (define w : Positive-Integer (max 1 (exact-ceiling (* (send bmp get-width) resolution))))
+    (define h : Positive-Integer (max 1 (exact-ceiling (* (send bmp get-height) resolution))))
     (define bs : Bytes (make-bytes (* 4 w h)))
     (send bmp get-argb-pixels 0 0 w h bs #true #true #:unscaled? #true)
     (send bmp get-argb-pixels 0 0 w h bs #false #true #:unscaled? #true)
@@ -93,10 +99,10 @@
               (or hinting (send basefont get-hinting))))))
 
 (define bitmap-blank : (->* () (Nonnegative-Real (Option Nonnegative-Real) #:backing-scale Positive-Real) Bitmap)
-  (lambda [[w 0] [h #false] #:backing-scale [backing-scale (default-icon-backing-scale)]]
+  (lambda [[w 0] [h #false] #:backing-scale [resolution (default-icon-backing-scale)]]
     (define width : Positive-Integer (max 1 (exact-ceiling w)))
     (define height : Positive-Integer (max 1 (exact-ceiling (or h w))))
-    (make-bitmap width height #:backing-scale backing-scale)))
+    (make-bitmap width height #:backing-scale resolution)))
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
   (lambda [bmp]
@@ -173,13 +179,60 @@
            #:border-color [pen-color #x000000] #:border-width [pen-size 1] #:border-style [pen-style 'solid]]
     (define width : Positive-Integer (+ margin margin (send bmp get-width) pen-size pen-size))
     (define height : Positive-Integer (+ margin margin (send bmp get-height) pen-size pen-size))
-    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
+    (define frame : Bitmap (bitmap-blank width height #:backing-scale (send bmp get-backing-scale)))
+    (define dc : (Instance Bitmap-DC%) (send frame make-dc))
     (send dc set-smoothing 'aligned)
     (send dc set-pen (select-rgba-color pen-color) pen-size (if (zero? pen-size) 'transparent pen-style))
     (send dc set-brush (select-rgba-color brush-color) brush-style)
     (send dc draw-rectangle 0 0 width height)
     (send dc draw-bitmap bmp margin margin)
-    (or (send dc get-bitmap) (bitmap-blank))))
+    frame))
+
+(define bitmap-copy : (case-> [Bitmap -> Bitmap]
+                              [Bitmap Real Real Nonnegative-Real Nonnegative-Real -> Bitmap])
+  (case-lambda
+    [(bmp) (bitmap-copy bmp 0 0 (send bmp get-width) (send bmp get-height))]
+    [(bmp left top width height)
+     (define clone : Bitmap (bitmap-blank width height #:backing-scale (send bmp get-backing-scale)))
+     (define dc : (Instance Bitmap-DC%) (send clone make-dc))
+     (send dc set-smoothing 'aligned)
+     (send dc draw-bitmap-section bmp 0 0 left top width height)
+     clone]))
+
+(define bitmap-section : (-> Bitmap Real Real Nonnegative-Real Nonnegative-Real Bitmap)
+  (lambda [bmp left top width height]
+    (define-values (src-width src-height) (bitmap-size bmp))
+    (cond [(and (zero? left) (zero? top) (= width src-width) (= height src-height)) bmp]
+          [else (bitmap-copy bmp left top width height)])))
+
+(define bitmap-section/dot : (-> Bitmap Real Real Real Real Bitmap)
+  (lambda [bmp left top right bottom]
+    (bitmap-section bmp left top (max (- right left) 0) (max (- bottom top) 0))))
+
+(define bitmap-inset : (case-> [Bitmap Real -> Bitmap]
+                               [Bitmap Real Real -> Bitmap]
+                               [Bitmap Real Real Real Real -> Bitmap])
+  (case-lambda
+    [(bmp inset) (bitmap-inset bmp inset inset inset inset)]
+    [(bmp horizontal vertical) (bitmap-inset bmp horizontal vertical horizontal vertical)]
+    [(bmp left top right bottom)
+     (bitmap-section/dot bmp (- left) (- top) (+ (send bmp get-width) right) (+ (send bmp get-height) bottom))]))
+
+(define bitmap-crop : (-> Bitmap Positive-Real Positive-Real Real Real Bitmap)
+  (lambda [bmp width height left% top%]
+    (define-values (w h) (bitmap-size bmp))
+    (define-values (x y) (values (* (- width w) left%) (* (- height h) top%)))
+    (bitmap-inset bmp x y (- width w x) (- height h y))))
+
+(define bitmap-lt-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 0 0)))
+(define bitmap-lc-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 0 1/2)))
+(define bitmap-lb-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 0 1)))
+(define bitmap-ct-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 1/2 0)))
+(define bitmap-cc-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 1/2 1/2)))
+(define bitmap-cb-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 1/2 1)))
+(define bitmap-rt-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 1 0)))
+(define bitmap-rc-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 1 1/2)))
+(define bitmap-rb-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 1 1)))
 
 (define bitmap-scale : (->* (Bitmap Real) (Real) Bitmap)
   (case-lambda
@@ -187,13 +240,14 @@
      (if (= scale 1.0) bmp (bitmap-scale bmp scale scale))]
     [(bmp scale-x scale-y)
      (cond [(and (= scale-x 1.0) (= scale-y 1.0)) bmp]
-           [else (let ([w : Positive-Integer (max 1 (exact-ceiling (* (send bmp get-width) scale-x)))]
-                       [h : Positive-Integer (max 1 (exact-ceiling (* (send bmp get-height) scale-y)))])
-                   (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank w h)))
+           [else (let ([width : Nonnegative-Real (* (send bmp get-width) (abs scale-x))]
+                       [height : Nonnegative-Real (* (send bmp get-height) (abs scale-y))])
+                   (define scaled : Bitmap (bitmap-blank width height #:backing-scale (send bmp get-backing-scale)))
+                   (define dc : (Instance Bitmap-DC%) (send scaled make-dc))
                    (send dc set-smoothing 'aligned)
                    (send dc set-scale scale-x scale-y)
                    (send dc draw-bitmap bmp 0 0)
-                   (or (send dc get-bitmap) (bitmap-blank)))])]))
+                   scaled)])]))
 
 (define bitmap-resize : (case-> [Bitmap (U Bitmap Nonnegative-Real) -> Bitmap]
                                 [Bitmap Nonnegative-Real Nonnegative-Real -> Bitmap])
@@ -230,7 +284,7 @@
     (values (make-pin 'over) (make-pin 'under))))
 
 (define bitmap-pin : (-> Real Real Real Real Bitmap Bitmap * Bitmap)
-  (lambda [x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
+  (lambda [x1% y1% x2% y2% bmp0 . bmps]
     (define-values (bmp _who _cares)
       (for/fold ([bmp : Bitmap  bmp0]
                  [x : Exact-Rational  0]
@@ -239,8 +293,8 @@
                  [bmp2 (in-list bmps)])
         (define-values (w1 h1) (bitmap-size bmp1))
         (define-values (w2 h2) (bitmap-size bmp2))
-        (define x1 (+ x (- (inexact->exact (* x1-frac w1)) (inexact->exact (* x2-frac w2)))))
-        (define y1 (+ y (- (inexact->exact (* y1-frac h1)) (inexact->exact (* y2-frac h2)))))
+        (define x1 (+ x (- (inexact->exact (* x1% w1)) (inexact->exact (* x2% w2)))))
+        (define y1 (+ y (- (inexact->exact (* y1% h1)) (inexact->exact (* y2% h2)))))
         (values (bitmap-pin-over bmp x1 y1 bmp2) (max 0 x1) (max 0 y1))))
     bmp))
 
@@ -504,6 +558,7 @@
   (define-css-value image #:as Image #:=> css-image ([content : CSS-Image-Datum] [fallback : CSS-Color-Datum]))
   (define-css-value image-set #:as Image-Set #:=> css-image ([options : (Listof (List CSS-Image-Datum Flonum))]))
 
+  (define the-invalid-image : Bitmap (read-bitmap (open-input-bytes #"invalid bitmap source")))
   (define the-image-pool : (HashTable (U CSS-Image String) Bitmap) (make-hash))
 
   (define-@λ-pool the-@icon-pool #:λnames #px"-(icon|logo)$"
@@ -512,6 +567,9 @@
     images/icons/symbol images/icons/tool)
 
   (define-@λ-pool the-@draw-pool #:λnames [make-font make-pen make-brush] racket/draw)
+
+  (define css-image-rendering-option : (Listof Symbol) '(auto crisp-edges pixelated))
+  (define css-image-fit-option : (Listof Symbol) '(fill contain cover none scale-down))
 
   (define css-@draw-filter : CSS-@λ-Filter
     (lambda [λname ?λ:kw]
@@ -769,7 +827,12 @@
                           (CSS<^> (<css-color>) 'text-decoration-color)))
           '(text-decoration-line text-decoration-color text-decoration-style))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require (submod "." css))
+
+(require racket/provide)
+(provide <css-color> <css-image> <css-system-font>
+         (matching-identifiers-out #px"^current-css-" (all-from-out (submod "." css))))
 
 (define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)
   (lambda [color-representation [alpha 1.0]]
@@ -808,10 +871,41 @@
                     (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css-datum->color 'color c))
                     (if (object? color) color (current-css-element-color)))))
 
-(provide <css-color> <css-image> <css-system-font> current-css-default-font
-         current-css-caption-font current-css-small-caption-font current-css-menu-font
-         current-css-icon-font current-css-status-bar-font current-css-message-box-font)
+(define read-image : (-> (U Path-String Input-Port) [#:source-resolution Positive-Real] Bitmap)
+  ;;; https://drafts.csswg.org/css-images/#image-fragments
+  (lambda [src #:source-resolution [resolution +nan.0]] ; +nan.0 means the value of css property `image-resolution` is `from-image`
+    (define (image-invalid [errobj : exn]) : Bitmap
+      (define msg : String (format "css-image: ~a @~s" (read-line (open-input-string (exn-message errobj))) errobj))
+      (css-log-read-error msg errobj)
+      the-invalid-image)
+    (define (image-section [raw : Bitmap] [xywh : String]) : Bitmap
+      (cond [(not (send raw ok?)) the-invalid-image]
+            [else (match (regexp-match #px"^(\\d+),(\\d+),(\\d+),(\\d+)$" xywh)
+                    [(list-rest _ (app (λ [_] (and (list? _) (map (λ [_] (string->number (~a _))) _)))
+                                       (list (? index? x) (? index? y) (? index? w) (? index? h))))
+                     (bitmap-section raw x y w h)]
+                    [_ (raise-user-error 'read-image "malformed fragment")])]))
+    (define (read-image.rkt [src.rkt : String] [id : Symbol]) : Bitmap
+      (module-declared? src.rkt #true)
+      (define raw (dynamic-require src.rkt id))
+      (cond [(is-a? raw bitmap%) (cast raw Bitmap)]
+            [else (error 'read-image "contract violation: received ~s" raw)]))
+    (define (read-image.bmp [src.bmp : String]) : Bitmap
+      (cond [(nan? resolution) (read-bitmap src.bmp #:try-@2x? #true)]
+            [else (read-bitmap src.bmp #:backing-scale resolution)]))
+    (with-handlers ([exn? image-invalid])
+      (cond [(input-port? src) (read-bitmap src #:backing-scale (if (nan? resolution) 1.0 resolution))]
+            [(regexp-match? #px"[?]id=" src)
+             (match (string-split (if (path? src) (path->string src) src) #px"([?]id=)|(#xywh=)")
+               [(list src.rkt id xywh) (image-section (read-image.rkt src.rkt (string->symbol id)) xywh)]
+               [(list src.rkt id) (read-image.rkt src.rkt (string->symbol id))]
+               [_ (raise-user-error 'read-image "too many fragment")])]
+            [else (match (string-split (if (path? src) (path->string src) src) "#xywh=")
+                    [(list src.rkt xywh) (image-section (read-image.bmp src.rkt) xywh)]
+                    [(list src.rkt) (read-image.bmp src.rkt)]
+                    [_ (raise-user-error 'read-image "too many fragment")])]))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-color-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
   (lambda [name [px.names #px"-color$"]]
     (or (and (eq? name 'color) (CSS<^> (<css-color> '#:inherit-currentcolor)))
@@ -824,7 +918,7 @@
   (lambda [name [px.names #px"-(image|icon|logo)$"]]
     (case name
       [(image-resolution) (CSS<*> (CSS<^> (CSS:<+> (<css-keyword> '(from-image snap)) (<css+resolution>))) '+)]
-      [(image-rendering) (CSS<^> (<css-keyword> '(auto crisp-edges pixelated)))]
+      [(image-rendering) (CSS<^> (<css-keyword> css-image-rendering-option))]
       [else (and (or (and (list? px.names) (memq name px.names))
                      (and (regexp? px.names) (regexp-match? px.names (symbol->string name))))
                  (CSS<^> (<css-image>)))])))
@@ -896,21 +990,16 @@
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
           [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
           [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
-          [(and (object? color) (is-a? color color%)) (cast color Color)]
+          [(is-a? color color%) (cast color Color)]
           [(eq? color 'transparent) (select-rgba-color #x000000 0.0)]
           [(eq? color 'currentcolor) color]
           [else css:initial])))
 
-#|(define css-datum->image : (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))
-  (lambda [desc-name color]
-    (cond [(or (index? color) (symbol? color) (string? color)) (select-rgba-color color)]
-          [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
-          [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
-          [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
-          [(and (object? color) (is-a? color color%)) (cast color Color)]
-          [(eq? color 'transparent) (select-rgba-color #x000000 0.0)]
-          [(eq? color 'currentcolor) color]
-          [else css:initial])))|#
+(define css-datum->image : (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))
+  (lambda [desc-name image]
+    (cond [(non-empty-string? image) (read-image image)]
+          [(is-a? image bitmap%) (cast image Bitmap)]
+          [else css:initial])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* main typed/racket
