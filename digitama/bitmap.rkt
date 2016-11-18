@@ -91,6 +91,12 @@
                [(bmp ratio) (values (* (send bmp get-width) ratio) (* (send bmp get-height) ratio))]
                [(bmp w-ratio h-ratio) (values (* (send bmp get-width) w-ratio) (* (send bmp get-height) h-ratio))]))
 
+(define bitmap-size+resolution : (Bitmap -> (Values Positive-Integer Positive-Integer Positive-Real))
+  (lambda [bmp]
+    (values (send bmp get-width)
+            (send bmp get-height)
+            (send bmp get-backing-scale))))
+
 (define bitmap-intrinsic-size : (-> Bitmap (Values Positive-Integer Positive-Integer))
   (lambda [bmp]
     (define resolution : Positive-Real (send bmp get-backing-scale))
@@ -141,6 +147,14 @@
     (bitmap-blank (send bmp get-width)
                   (send bmp get-height)
                   (send bmp get-backing-scale))))
+
+(define bitmap-solid : (->* (Nonnegative-Real Nonnegative-Real Color+sRGB) (Positive-Real) Bitmap)
+  (lambda [width height color [resolution (default-icon-backing-scale)]]
+    (define solid : Bitmap (bitmap-blank width height resolution))
+    (define dc : (Instance Bitmap-DC%) (send solid make-dc))
+    (send dc set-background (select-rgba-color color))
+    (send dc clear)
+    solid))
 
 (define bitmap-text : (->* (String) (Font #:combine? Boolean #:color (Option Color+sRGB)
                                           #:background-color (Option Color+sRGB)) Bitmap)
@@ -589,7 +603,6 @@
   (define-css-value image-set #:as Image-Set #:=> css-image ([options : (Listof (List CSS-Image-Datum Flonum))]))
 
   (define the-invalid-image : Bitmap (read-bitmap (open-input-bytes #"invalid bitmap source")))
-  (define the-image-pool : (HashTable (U CSS-Image String) Bitmap) (make-hash))
 
   (define-@λ-pool the-@icon-pool #:λnames #px"-(icon|logo)$"
     images/logos images/icons/arrow images/icons/control
@@ -871,8 +884,8 @@
 (require (submod "." css))
 
 (require racket/provide)
-(provide <css-color> <css-image> <css-system-font>
-         (matching-identifiers-out #px"^current-css-" (all-from-out (submod "." css))))
+(provide <css-color> <css-image> <css-system-font> current-css-default-font
+         (matching-identifiers-out #px"^default-css-" (all-from-out (submod "." css))))
 
 (define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)
   (lambda [color-representation [alpha 1.0]]

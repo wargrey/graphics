@@ -687,7 +687,7 @@
        (with-syntax ([(current ... current-last)
                       (let ([suffix (string-downcase (symbol->string (syntax-e #'RangeType)))])
                         (for/list ([<p> (in-list (syntax->list #'(css ... otherwise)))])
-                          (format-id <p> "current-css-~a-~a" (syntax-e <p>) suffix)))])
+                          (format-id <p> "default-css-~a-~a" (syntax-e <p>) suffix)))])
          #'(begin (define current : (Parameterof RangeType) (make-parameter racket)) ...
                   (define current-last : (Parameterof RangeType) (make-parameter last-one))
                   (define-css-disjoined-filter <id> #:-> RangeType
