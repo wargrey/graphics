@@ -2,7 +2,7 @@
 
 (provide (all-defined-out) Color+sRGB Color Bitmap Font)
 (provide (all-from-out "colorspace.rkt"))
-(provide (all-from-out typed/racket/draw images/flomap typed/images/logos typed/images/icons))
+(provide (all-from-out typed/racket/draw typed/images/logos typed/images/icons))
 
 @require{css.rkt}
 @require{colorspace.rkt}
@@ -11,67 +11,77 @@
 (require racket/flonum)
 
 (require typed/racket/draw)
-
-(require (except-in images/flomap flomap->bitmap bitmap->flomap))
 (require typed/images/logos)
 (require typed/images/icons)
 
-(define-type Flomap flomap)
+(define read-image : (-> (U Path-String Input-Port) [#:resolution Positive-Real] Bitmap)
+  ;;; https://drafts.csswg.org/css-images/#image-fragments
+  (lambda [src #:resolution [resolution +nan.0 #| means 'from-image', or as highest as possible |#]]
+    (define (image-section [raw : Bitmap] [xywh : String]) : Bitmap
+      (cond [(not (send raw ok?)) the-invalid-image]
+            [else (match (regexp-match #px"^(\\d+),(\\d+),(\\d+),(\\d+)$" xywh)
+                    [(list-rest _ (app (λ [_] (and (list? _) (map (λ [_] (string->number (~a _))) _)))
+                                       (list (? index? x) (? index? y) (? index? w) (? index? h))))
+                     (bitmap-section raw x y w h)]
+                    [_ (raise-user-error 'read-image "malformed fragment")])]))
+    (with-handlers ([exn? (λ [[e : exn]] (css-log-read-error e src) the-invalid-image)])
+      (cond [(input-port? src) (read-bitmap src #:backing-scale (if (nan? resolution) 1.0 resolution))]
+            [(not (regexp-match? #px"[?]id=" src))
+             (define (read-image.bmp [src.bmp : String]) : Bitmap
+               (cond [(nan? resolution) (read-bitmap src.bmp #:try-@2x? #true)]
+                     [else (read-bitmap src.bmp #:backing-scale resolution)]))
+             (match (string-split (if (path? src) (path->string src) src) "#xywh=")
+               [(list src.rkt xywh) (image-section (read-image.bmp src.rkt) xywh)]
+               [(list src.rkt) (read-image.bmp src.rkt)]
+               [_ (raise-user-error 'read-image "too many fragment")])]
+            [else #| path?id=binding#xywh=x,y,w,h |#
+             (define (read-image.rkt [src.rkt : String] [id : Symbol]) : Bitmap
+               (module-declared? src.rkt #true)
+               (define raw : Any
+                 (let ([evaling (thunk (call-with-values (thunk (eval id (module->namespace src.rkt))) (λ _ (car _))))])
+                   (define value (dynamic-require src.rkt id evaling))
+                   (cond [(not (hash? value)) value]
+                         [(rational? resolution) (hash-ref value resolution (thunk value))]
+                         [else (let ([all (sort (hash-keys value) >)]) (if (pair? all) (hash-ref value (car all)) value))])))
+               (cond [(is-a? raw bitmap%) (cast raw Bitmap)]
+                     [else (error 'read-image "contract violation: received ~s" raw)]))
+             (match (string-split (if (path? src) (path->string src) src) #px"([?]id=)|(#xywh=)")
+               [(list src.rkt id xywh) (image-section (read-image.rkt src.rkt (string->symbol id)) xywh)]
+               [(list src.rkt id) (read-image.rkt src.rkt (string->symbol id))]
+               [_ (raise-user-error 'read-image "too many fragment")])]))))
 
-(define bitmap/2x : (-> (U Path-String Input-Port) Bitmap)
-  (lambda [src]
-    (define raw : Bitmap (read-image src #:source-resolution +nan.0))
+(define bitmap-normalize : (->* (Bitmap) (Positive-Real) Bitmap)
+  (lambda [raw [resolution (default-icon-backing-scale)]]
+    (define ratio : Nonnegative-Real (/ (send raw get-backing-scale) resolution))
     (cond [(not (send raw ok?)) the-invalid-image]
-          [else (bitmap-scale raw (/ (send raw get-backing-scale) 2.0))])))
+          [(= ratio 1.0) raw]
+          [else (let ([bmp (bitmap-blank (* (send raw get-width) ratio) (* (send raw get-height) ratio) resolution)])
+                  #| The commented one is much slower:
+                     (let-values ([(w h) (bitmap-intrinsic-size raw)])
+                       (define bmp : Bitmap (bitmap-blank (/ w resolution) (/ h resolution) #:backing-scale resolution))
+                       (define bs : Bytes (make-bytes (inexact->exact (* 4 w h))))
+                       (send raw get-argb-pixels 0 0 w h bs #true #true #:unscaled? #true)
+                       (send raw get-argb-pixels 0 0 w h bs #false #true #:unscaled? #true)
+                       (send bmp set-argb-pixels 0 0 w h bs #true #true #:unscaled? #true)
+                       (send bmp set-argb-pixels 0 0 w h bs #false #true #:unscaled? #true)) |#
+                  (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
+                  (send dc set-smoothing 'aligned)
+                  (send dc set-scale ratio ratio)
+                  (send dc draw-bitmap raw 0 0)
+                  bmp)])))
 
-(define bitmap-normalize : (-> Bitmap Bitmap)
-  (lambda [raw]
-    (cond [(not (send raw ok?)) the-invalid-image]
-          [else (bitmap-scale raw (/ (send raw get-backing-scale) (default-icon-backing-scale)))])))
+(define bitmap-size : (case-> [Bitmap -> (Values Positive-Integer Positive-Integer)]
+                              [Bitmap Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)]
+                              [Bitmap Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)])
+  (case-lambda [(bmp) (values (send bmp get-width) (send bmp get-height))]
+               [(bmp ratio) (values (* (send bmp get-width) ratio) (* (send bmp get-height) ratio))]
+               [(bmp w-ratio h-ratio) (values (* (send bmp get-width) w-ratio) (* (send bmp get-height) h-ratio))]))
 
-(define bitmap-size : (-> Bitmap (Values Positive-Integer Positive-Integer))
-  (lambda [bmp]
-    (values (send bmp get-width)
-            (send bmp get-height))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap->flomap : (-> Bitmap Flomap)
+(define bitmap-intrinsic-size : (-> Bitmap (Values Positive-Integer Positive-Integer))
   (lambda [bmp]
     (define resolution : Positive-Real (send bmp get-backing-scale))
-    (define w : Positive-Integer (max 1 (exact-ceiling (* (send bmp get-width) resolution))))
-    (define h : Positive-Integer (max 1 (exact-ceiling (* (send bmp get-height) resolution))))
-    (define bs : Bytes (make-bytes (* 4 w h)))
-    (send bmp get-argb-pixels 0 0 w h bs #true #true #:unscaled? #true)
-    (send bmp get-argb-pixels 0 0 w h bs #false #true #:unscaled? #true)
-    
-    (define flmp (make-flomap 4 w h))
-    (define flvs (flomap-values flmp))
-    (for ([ia (in-range 0 (* 4 w h) 4)])
-      (define-values (ir ig ib) (values (fx+ ia 1) (fx+ ia 2) (fx+ ia 3)))
-      (flvector-set! flvs ia (fl/ (fx->fl (bytes-ref bs ia)) 255.0))
-      (flvector-set! flvs ir (fl/ (fx->fl (bytes-ref bs ir)) 255.0))
-      (flvector-set! flvs ig (fl/ (fx->fl (bytes-ref bs ig)) 255.0))
-      (flvector-set! flvs ib (fl/ (fx->fl (bytes-ref bs ib)) 255.0)))
-    flmp))
-
-(define flomap->bitmap : (-> Flomap Bitmap)
-  (lambda [fmp]
-    (match-define (flomap vs 4 w h) fmp)
-    (define bs : Bytes (make-bytes (* 4 w h)))
-    (for ([ia (in-range 0 (* 4 w h) 4)])
-      (define-values (ir ig ib) (values (fx+ ia 1) (fx+ ia 2) (fx+ ia 3)))
-      (bytes-set! bs ia (gamut->byte (flabs (flvector-ref vs ia))))
-      (bytes-set! bs ir (gamut->byte (flabs (flvector-ref vs ir))))
-      (bytes-set! bs ig (gamut->byte (flabs (flvector-ref vs ig))))
-      (bytes-set! bs ib (gamut->byte (flabs (flvector-ref vs ib)))))
-    
-    (define bmp : Bitmap
-      (make-bitmap (max 1 (exact-ceiling (/ w (default-icon-backing-scale))))
-                   (max 1 (exact-ceiling (/ h (default-icon-backing-scale))))
-                   #:backing-scale (default-icon-backing-scale)))
-    (send bmp set-argb-pixels 0 0 (abs w) (abs h) bs #true #true #:unscaled? #true)
-    (send bmp set-argb-pixels 0 0 (abs w) (abs h) bs #false #true #:unscaled? #true)
-    bmp))
+    (values (max (exact-ceiling (* (send bmp get-width) resolution)) 1)
+            (max (exact-ceiling (* (send bmp get-height) resolution)) 1))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-font+ : (->* () (Font #:size Real #:face (Option String) #:size-in-pixels? (U Boolean Symbol) #:family (Option Font-Family)
@@ -98,24 +108,24 @@
               (or smoothing (send basefont get-smoothing)) pixels?
               (or hinting (send basefont get-hinting))))))
 
-(define bitmap-blank : (->* () (Nonnegative-Real (Option Nonnegative-Real) #:backing-scale Positive-Real) Bitmap)
-  (lambda [[w 0] [h #false] #:backing-scale [resolution (default-icon-backing-scale)]]
+(define bitmap-blank : (->* () (Nonnegative-Real (Option Nonnegative-Real) Positive-Real) Bitmap)
+  (lambda [[w 0] [h #false] [resolution (default-icon-backing-scale)]]
     (define width : Positive-Integer (max 1 (exact-ceiling w)))
     (define height : Positive-Integer (max 1 (exact-ceiling (or h w))))
     (make-bitmap width height #:backing-scale resolution)))
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
   (lambda [bmp]
-    (bitmap-blank #:backing-scale (send bmp get-backing-scale)
-                  (send bmp get-width) (send bmp get-height))))
+    (bitmap-blank (send bmp get-width)
+                  (send bmp get-height)
+                  (send bmp get-backing-scale))))
 
 (define bitmap-text : (->* (String) (Font #:combine? Boolean #:color (Option Color+sRGB)
                                           #:background-color (Option Color+sRGB)) Bitmap)
   (lambda [content [font (current-css-default-font)] #:combine? [combine? #true] #:color [fgcolor #false]
            #:background-color [bgcolor #false]]
-    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank)))
-    (define-values (width height descent ascent) (send dc get-text-extent content font combine?))
-    (send dc set-bitmap (bitmap-blank width height))
+    (define-values (width height descent ascent) (send backup-dc get-text-extent content font combine?))
+    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
     (send dc set-font font)
     (when fgcolor (send dc set-text-foreground (select-rgba-color fgcolor)))
     (when bgcolor (send dc set-text-background (select-rgba-color bgcolor)))
@@ -128,15 +138,14 @@
                                  #:background-color (Option Color+sRGB)) Bitmap)
   (lambda [description max-width.0 [font (current-css-default-font)] #:combine? [combine? #true] #:color [fgcolor #false]
            #:background-color [bgcolor #false]]
-    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank)))
     (define max-width : Nonnegative-Flonum (real->double-flonum max-width.0))
     (define desc-extent : (-> String Integer Integer (Values String Nonnegative-Flonum Nonnegative-Flonum))
       (lambda [desc start end]
         (define subdesc : String (substring desc start end))
-        (define-values (width height descent ascent) (send dc get-text-extent subdesc font combine?))
+        (define-values (width height descent ascent) (send backup-dc get-text-extent subdesc font combine?))
         (values subdesc (real->double-flonum width) (real->double-flonum height))))
 
-    (define-values (_ char-width phantom-height) (desc-extent " " 0 1))
+    (define-values (_ _w phantom-height) (desc-extent " " 0 1))
     (define-values (descs ys width height)
       (for/fold ([descs : (Listof String) null] [ys : (Listof Flonum) null] [width : Nonnegative-Flonum 0.0] [height : Flonum 0.0])
                 ([desc : String (in-list (string-split description (string #\newline)))])
@@ -146,8 +155,7 @@
           (define-values (descn widthn heightn idx)
             (let desc-col-expt : (Values String Nonnegative-Flonum Flonum Nonnegative-Fixnum)
               ([interval : Nonnegative-Fixnum 1] [open : Nonnegative-Fixnum idx0] [close : Nonnegative-Fixnum terminal]
-                                                 [backtracking : String ""] ; char-width is bad for forecasting the next width 
-                                                 [back-width : Nonnegative-Flonum max-width]
+                                                 [backtracking : String ""] [back-width : Nonnegative-Flonum max-width]
                                                  [back-height : Nonnegative-Flonum phantom-height])
               (define idx : Nonnegative-Fixnum (fxmin close (fx+ open interval)))
               (define next-open : Nonnegative-Fixnum (fx+ open (fxquotient interval 2)))
@@ -159,8 +167,8 @@
                     [else (desc-col-expt (fxlshift interval 1) open close line width height)])))
           (cond [(fx= idx terminal) (values (cons descn descs) (cons yn ys) (max widthn Widthn) (fl+ yn heightn))]
                 [else (desc-row idx (cons descn descs) (cons yn ys) (max widthn Widthn) (fl+ yn heightn))]))))
-    
-    (send dc set-bitmap (bitmap-blank (max 1 width) (max 1 phantom-height height)))
+
+    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width (max phantom-height height))))
     (send dc set-font font)
     (when fgcolor (send dc set-text-foreground (select-rgba-color fgcolor)))
     (unless (false? bgcolor)
@@ -179,7 +187,7 @@
            #:border-color [pen-color #x000000] #:border-width [pen-size 1] #:border-style [pen-style 'solid]]
     (define width : Positive-Integer (+ margin margin (send bmp get-width) pen-size pen-size))
     (define height : Positive-Integer (+ margin margin (send bmp get-height) pen-size pen-size))
-    (define frame : Bitmap (bitmap-blank width height #:backing-scale (send bmp get-backing-scale)))
+    (define frame : Bitmap (bitmap-blank width height (send bmp get-backing-scale)))
     (define dc : (Instance Bitmap-DC%) (send frame make-dc))
     (send dc set-smoothing 'aligned)
     (send dc set-pen (select-rgba-color pen-color) pen-size (if (zero? pen-size) 'transparent pen-style))
@@ -193,7 +201,7 @@
   (case-lambda
     [(bmp) (bitmap-copy bmp 0 0 (send bmp get-width) (send bmp get-height))]
     [(bmp left top width height)
-     (define clone : Bitmap (bitmap-blank width height #:backing-scale (send bmp get-backing-scale)))
+     (define clone : Bitmap (bitmap-blank width height (send bmp get-backing-scale)))
      (define dc : (Instance Bitmap-DC%) (send clone make-dc))
      (send dc set-smoothing 'aligned)
      (send dc draw-bitmap-section bmp 0 0 left top width height)
@@ -242,7 +250,7 @@
      (cond [(and (= scale-x 1.0) (= scale-y 1.0)) bmp]
            [else (let ([width : Nonnegative-Real (* (send bmp get-width) (abs scale-x))]
                        [height : Nonnegative-Real (* (send bmp get-height) (abs scale-y))])
-                   (define scaled : Bitmap (bitmap-blank width height #:backing-scale (send bmp get-backing-scale)))
+                   (define scaled : Bitmap (bitmap-blank width height (send bmp get-backing-scale)))
                    (define dc : (Instance Bitmap-DC%) (send scaled make-dc))
                    (send dc set-smoothing 'aligned)
                    (send dc set-scale scale-x scale-y)
@@ -638,9 +646,9 @@
                     ; WARNING: 'xh' seems to be impractical, the font% size is just a nominal size
                     ;            and usually smaller than the generated text in which case the 'ex' is
                     ;            always surprisingly larger than the size, the '0w' therefore is used instead.                      
-                    ;(define-values (xw xh xd xe) (send dc get-text-extent "x" font)]
-                    (define-values (0w 0h 0d 0e) (send dc get-text-extent "0" font))
-                    (define-values (ww wh wd we) (send dc get-text-extent "水" font))
+                    ;(define-values (xw xh xd xe) (send backup-dc get-text-extent "x" font)]
+                    (define-values (0w 0h 0d 0e) (send backup-dc get-text-extent "0" font))
+                    (define-values (ww wh wd we) (send backup-dc get-text-extent "水" font))
                     (define em : Nonnegative-Flonum (smart-font-size font))
                     (when root? (set-flcss%-rem! length% em))
                     (set-flcss%-em! length% em)
@@ -652,7 +660,7 @@
 
   (define current-css-default-font : (Parameterof Font) (make-parameter (make-font)))
   (define css-font-family-names/no-variants : (Listof String) (get-face-list 'all #:all-variants? #false))
-  (define dc (make-object bitmap-dc% (make-object bitmap% 1 1)))
+  (define backup-dc (make-object bitmap-dc% (make-object bitmap% 1 1)))
   (define &font : (Boxof Font) (box (current-css-default-font)))
 
   (define css-font-generic-families : (Listof Symbol)
@@ -870,40 +878,6 @@
                   (λ [[c : CSS-Datum]]
                     (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css-datum->color 'color c))
                     (if (object? color) color (current-css-element-color)))))
-
-(define read-image : (-> (U Path-String Input-Port) [#:source-resolution Positive-Real] Bitmap)
-  ;;; https://drafts.csswg.org/css-images/#image-fragments
-  (lambda [src #:source-resolution [resolution +nan.0]] ; +nan.0 means the value of css property `image-resolution` is `from-image`
-    (define (image-invalid [errobj : exn]) : Bitmap
-      (define msg : String (format "css-image: ~a @~s" (read-line (open-input-string (exn-message errobj))) errobj))
-      (css-log-read-error msg errobj)
-      the-invalid-image)
-    (define (image-section [raw : Bitmap] [xywh : String]) : Bitmap
-      (cond [(not (send raw ok?)) the-invalid-image]
-            [else (match (regexp-match #px"^(\\d+),(\\d+),(\\d+),(\\d+)$" xywh)
-                    [(list-rest _ (app (λ [_] (and (list? _) (map (λ [_] (string->number (~a _))) _)))
-                                       (list (? index? x) (? index? y) (? index? w) (? index? h))))
-                     (bitmap-section raw x y w h)]
-                    [_ (raise-user-error 'read-image "malformed fragment")])]))
-    (define (read-image.rkt [src.rkt : String] [id : Symbol]) : Bitmap
-      (module-declared? src.rkt #true)
-      (define raw (dynamic-require src.rkt id))
-      (cond [(is-a? raw bitmap%) (cast raw Bitmap)]
-            [else (error 'read-image "contract violation: received ~s" raw)]))
-    (define (read-image.bmp [src.bmp : String]) : Bitmap
-      (cond [(nan? resolution) (read-bitmap src.bmp #:try-@2x? #true)]
-            [else (read-bitmap src.bmp #:backing-scale resolution)]))
-    (with-handlers ([exn? image-invalid])
-      (cond [(input-port? src) (read-bitmap src #:backing-scale (if (nan? resolution) 1.0 resolution))]
-            [(regexp-match? #px"[?]id=" src)
-             (match (string-split (if (path? src) (path->string src) src) #px"([?]id=)|(#xywh=)")
-               [(list src.rkt id xywh) (image-section (read-image.rkt src.rkt (string->symbol id)) xywh)]
-               [(list src.rkt id) (read-image.rkt src.rkt (string->symbol id))]
-               [_ (raise-user-error 'read-image "too many fragment")])]
-            [else (match (string-split (if (path? src) (path->string src) src) "#xywh=")
-                    [(list src.rkt xywh) (image-section (read-image.bmp src.rkt) xywh)]
-                    [(list src.rkt) (read-image.bmp src.rkt)]
-                    [_ (raise-user-error 'read-image "too many fragment")])]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-color-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))

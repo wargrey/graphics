@@ -516,6 +516,13 @@
           [(? css:λracket? main) (tokens->exn main (css:λracket-arguments main))]
           [(? css:block? main) (tokens->exn main (css:block-components main))]
           [(? css-token?) (token->exn any)]))))
+  
+  (define css-log-read-error : (->* ((U exn CSS:Bad)) (Any Log-Level) Void)
+    (lambda [errobj [src #false] [level 'debug]]
+      (define message : String
+        (cond [(css:bad? errobj) (css-token->string errobj)]
+              [else (format "@~s: ~a: ~a" src (object-name errobj) (read-line (open-input-string (exn-message errobj))))]))
+      (log-message (current-logger) level 'exn:css:read message errobj)))
 
   (define css-log-syntax-error : (->* (CSS-Syntax-Error) ((Option CSS:Ident) Log-Level) Void)
     (lambda [errobj [property #false] [level 'warning]]
@@ -527,10 +534,6 @@
             [(not <eof>?) (log-message logger level topic (format "~a @‹~a›" msg (css:ident-datum property)) errobj)]
             [else (let ([eof-msg (css-token->string property errobj eof)])
                     (log-message logger level topic (format "~a @‹~a›" eof-msg (css:ident-datum property)) errobj))])))
-
-  (define css-log-read-error : (->* (String) (Any Log-Level) Void)
-    (lambda [message [errobj #false] [level 'debug]]
-      (log-message (current-logger) level 'exn:css:read message errobj)))
 
   ;;; https://drafts.csswg.org/css-syntax/#parsing
   (define-type (Listof+ css) (Pairof css (Listof css)))
@@ -1462,7 +1465,7 @@
     (syntax-case stx []
       [(_ src css:bad:sub token datum)
        #'(let ([bad (css-make-token src css:bad:sub (~s (cons (object-name token) datum)))])
-           (css-log-read-error (css-token->string bad) bad)
+           (css-log-read-error bad)
            bad)]))
   
   (define css-consume-token : (-> Input-Port (U String Symbol) (U EOF CSS-Token))
