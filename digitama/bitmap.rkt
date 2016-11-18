@@ -14,41 +14,62 @@
 (require typed/images/logos)
 (require typed/images/icons)
 
-(define read-image : (-> (U Path-String Input-Port) [#:resolution Positive-Real] Bitmap)
+(define bitmap : (->* ((U Path-String Input-Port)) (Positive-Real) Bitmap)
   ;;; https://drafts.csswg.org/css-images/#image-fragments
-  (lambda [src #:resolution [resolution +nan.0 #| means 'from-image', or as highest as possible |#]]
-    (define (image-section [raw : Bitmap] [xywh : String]) : Bitmap
+  (lambda [src [resolution (default-icon-backing-scale)]]
+    (define (image-section [raw : Bitmap] [xywh : String] [hint : Symbol]) : Bitmap
       (cond [(not (send raw ok?)) the-invalid-image]
             [else (match (regexp-match #px"^(\\d+),(\\d+),(\\d+),(\\d+)$" xywh)
-                    [(list-rest _ (app (λ [_] (and (list? _) (map (λ [_] (string->number (~a _))) _)))
-                                       (list (? index? x) (? index? y) (? index? w) (? index? h))))
+                    [(list _ (? string? (app string->number (? index? x))) (? string? (app string->number (? index? y)))
+                           (? string? (app string->number (? index? w))) (? string? (app string->number (? index? h))))
                      (bitmap-section raw x y w h)]
-                    [_ (raise-user-error 'read-image "malformed fragment")])]))
+                    [_ (raise-user-error hint "malformed fragment")])]))
     (with-handlers ([exn? (λ [[e : exn]] (css-log-read-error e src) the-invalid-image)])
-      (cond [(input-port? src) (read-bitmap src #:backing-scale (if (nan? resolution) 1.0 resolution))]
+      (cond [(input-port? src) (read-bitmap src #:backing-scale (default-icon-backing-scale))]
             [(not (regexp-match? #px"[?]id=" src))
-             (define (read-image.bmp [src.bmp : String]) : Bitmap
-               (cond [(nan? resolution) (read-bitmap src.bmp #:try-@2x? #true)]
-                     [else (read-bitmap src.bmp #:backing-scale resolution)]))
+             (define (read-image.bmp [src.bmp : String]) : Bitmap (read-bitmap src.bmp #:backing-scale resolution))
              (match (string-split (if (path? src) (path->string src) src) "#xywh=")
-               [(list src.rkt xywh) (image-section (read-image.bmp src.rkt) xywh)]
+               [(list src.rkt xywh) (image-section (read-image.bmp src.rkt) xywh 'read-image)]
                [(list src.rkt) (read-image.bmp src.rkt)]
                [_ (raise-user-error 'read-image "too many fragment")])]
             [else #| path?id=binding#xywh=x,y,w,h |#
              (define (read-image.rkt [src.rkt : String] [id : Symbol]) : Bitmap
-               (module-declared? src.rkt #true)
-               (define raw : Any
-                 (let ([evaling (thunk (call-with-values (thunk (eval id (module->namespace src.rkt))) (λ _ (car _))))])
-                   (define value (dynamic-require src.rkt id evaling))
-                   (cond [(not (hash? value)) value]
-                         [(rational? resolution) (hash-ref value resolution (thunk value))]
-                         [else (let ([all (sort (hash-keys value) >)]) (if (pair? all) (hash-ref value (car all)) value))])))
+               (define raw (require-image src.rkt id resolution))
                (cond [(is-a? raw bitmap%) (cast raw Bitmap)]
-                     [else (error 'read-image "contract violation: received ~s" raw)]))
+                     [else (error 'require-image "contract violation: received ~s" raw)]))
              (match (string-split (if (path? src) (path->string src) src) #px"([?]id=)|(#xywh=)")
-               [(list src.rkt id xywh) (image-section (read-image.rkt src.rkt (string->symbol id)) xywh)]
+               [(list src.rkt id xywh) (image-section (read-image.rkt src.rkt (string->symbol id)) xywh 'require-image)]
                [(list src.rkt id) (read-image.rkt src.rkt (string->symbol id))]
-               [_ (raise-user-error 'read-image "too many fragment")])]))))
+               [_ (raise-user-error 'require-image "too many fragment")])]))))
+
+(define sprite : (->* ((U Path-String Input-Port)) (Positive-Real) (Listof Bitmap))
+  (lambda [src [resolution (default-icon-backing-scale)]]
+    (define (image-disassemble [raw : Bitmap] [grid : String] [hint : Symbol]) : (Listof Bitmap)
+      (cond [(not (send raw ok?)) null]
+            [else (match (regexp-match #px"^(\\d+),(\\d+)$" grid)
+                    [(list _ (? string? (app string->number (? exact-positive-integer? cols)))
+                           (? string? (app string->number (? exact-positive-integer? rows))))
+                     (bitmap->sprite raw cols rows)]
+                    [_ (raise-user-error hint "malformed fragments")])]))
+    (with-handlers ([exn? (λ [[e : exn]] (css-log-read-error e src) null)])
+      (cond [(input-port? src) (list (read-bitmap src #:backing-scale (default-icon-backing-scale)))]
+            [(not (regexp-match? #px"[?]id=" src))
+             (define (read-sprite.bmp [src.bmp : String]) : Bitmap (read-bitmap src.bmp #:backing-scale resolution))
+             (match (string-split (if (path? src) (path->string src) src) "#grids=")
+               [(list src.rkt xywh) (image-disassemble (read-sprite.bmp src.rkt) xywh 'read-sprite)]
+               [(list src.rkt) (list (read-sprite.bmp src.rkt))]
+               [_ (raise-user-error 'read-sprite "too many fragments")])]
+            [else #| path?id=binding |#
+             (define (read-sprite.rkt [src.rkt : String] [id : Symbol] [grid : (Option String)]) : (Listof Bitmap)
+               (define raw (require-image src.rkt id resolution))
+               (cond [(list? raw) (filter-map (λ [v] (and (is-a? v bitmap%) (cast v Bitmap))) raw)]
+                     [(not (is-a? raw bitmap%)) (error 'require-sprite "contract violation: received ~s" raw)]
+                     [(string? grid) (image-disassemble (cast raw Bitmap) grid 'require-sprite)]
+                     [else (list (cast raw Bitmap))]))
+             (match (string-split (if (path? src) (path->string src) src) #px"([?]id=)|(#grids=)")
+               [(list src.rkt id grid) (read-sprite.rkt src.rkt (string->symbol id) grid)]
+               [(list src.rkt id) (read-sprite.rkt src.rkt (string->symbol id) #false)]
+               [_ (raise-user-error 'require-sprite "too many queries")])]))))
 
 (define bitmap-normalize : (->* (Bitmap) (Positive-Real) Bitmap)
   (lambda [raw [resolution (default-icon-backing-scale)]]
@@ -56,14 +77,7 @@
     (cond [(not (send raw ok?)) the-invalid-image]
           [(= ratio 1.0) raw]
           [else (let ([bmp (bitmap-blank (* (send raw get-width) ratio) (* (send raw get-height) ratio) resolution)])
-                  #| The commented one is much slower:
-                     (let-values ([(w h) (bitmap-intrinsic-size raw)])
-                       (define bmp : Bitmap (bitmap-blank (/ w resolution) (/ h resolution) #:backing-scale resolution))
-                       (define bs : Bytes (make-bytes (inexact->exact (* 4 w h))))
-                       (send raw get-argb-pixels 0 0 w h bs #true #true #:unscaled? #true)
-                       (send raw get-argb-pixels 0 0 w h bs #false #true #:unscaled? #true)
-                       (send bmp set-argb-pixels 0 0 w h bs #true #true #:unscaled? #true)
-                       (send bmp set-argb-pixels 0 0 w h bs #false #true #:unscaled? #true)) |#
+                  ; This algorithm is much faster than the (get/set-argb-pixels) one
                   (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
                   (send dc set-smoothing 'aligned)
                   (send dc set-scale ratio ratio)
@@ -82,6 +96,14 @@
     (define resolution : Positive-Real (send bmp get-backing-scale))
     (values (max (exact-ceiling (* (send bmp get-width) resolution)) 1)
             (max (exact-ceiling (* (send bmp get-height) resolution)) 1))))
+
+(define bitmap->sprite : (->* (Bitmap) (Positive-Integer Positive-Integer) (Listof Bitmap))
+  (lambda [bmp [cols 1] [rows 1]]
+    (define-values (src-width src-height) (bitmap-size bmp))
+    (define-values (width height) (values (/ src-width cols) (/ src-height rows)))
+    (reverse (for*/fold ([sprite : (Listof Bitmap) null])
+                        ([y (in-range rows)] [x (in-range cols)])
+               (cons (bitmap-copy bmp (* x width) (* y height) width height) sprite)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-font+ : (->* () (Font #:size Real #:face (Option String) #:size-in-pixels? (U Boolean Symbol) #:family (Option Font-Family)
@@ -579,6 +601,16 @@
   (define css-image-rendering-option : (Listof Symbol) '(auto crisp-edges pixelated))
   (define css-image-fit-option : (Listof Symbol) '(fill contain cover none scale-down))
 
+  (define require-image : (-> String Symbol Positive-Real Any)
+    (lambda [src.rkt id resolution]
+      (define fallback (thunk (call-with-values (thunk (eval id (module->namespace src.rkt))) (λ _ (car _)))))
+      (module-declared? src.rkt #true)
+      (define value (dynamic-require src.rkt id fallback))
+      (cond [(not (hash? value)) value]
+            [else (hash-ref value (exact->inexact resolution)
+                            (thunk (let ([all (sort (hash-keys value) >)])
+                                     (if (pair? all) (hash-ref value (car all)) value))))])))
+
   (define css-@draw-filter : CSS-@λ-Filter
     (lambda [λname ?λ:kw]
       (case (or ?λ:kw λname)
@@ -971,7 +1003,7 @@
 
 (define css-datum->image : (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))
   (lambda [desc-name image]
-    (cond [(non-empty-string? image) (read-image image)]
+    (cond [(non-empty-string? image) (bitmap image)]
           [(is-a? image bitmap%) (cast image Bitmap)]
           [else css:initial])))
 
