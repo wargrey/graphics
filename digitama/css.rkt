@@ -695,7 +695,7 @@
                              (λ [[id : Symbol]] : RangeType
                                (case id [(css) (current)] ... [else (current-last)]))))))]))
 
-  (define-syntax (css-make-datum->size stx)
+  (define-syntax (make-css->size stx)
     (syntax-parse stx
       [(_ #:100% fl% #:= defval (~optional (~seq #:as NanType)) (~optional (~seq (~and #:no-direction +))))
        (with-syntax ([SizeType (if (attribute NanType) #'NanType #'defval)]
@@ -1185,9 +1185,9 @@
         [(scripting) (<css-keyword> '(none initial-only enabled))])))
 
   (define css-deprecate-media-type : (Parameterof Boolean) (make-parameter #false))
-  (define current-css-media-type : (Parameterof Symbol) (make-parameter 'all))
+  (define default-css-media-type : (Parameterof Symbol) (make-parameter 'all))
   
-  (define-values (current-css-media-preferences current-css-media-feature-filter current-css-feature-support?)
+  (define-values (default-css-media-preferences default-css-media-feature-filter default-css-feature-support?)
     (values (make-parameter ((inst make-hasheq Symbol CSS-Media-Datum)))
             (make-parameter css-media-feature-filter)
             (make-parameter (const #false))))
@@ -1242,13 +1242,13 @@
 
   ; https://drafts.csswg.org/css-cascade/#all-shorthand
   ; https://drafts.csswg.org/css-values/#common-keywords
-  (define current-css-all-exceptions : (Parameterof (Listof Symbol)) (make-parameter (list 'direction 'unicode-bidi)))
+  (define default-css-all-exceptions : (Parameterof (Listof Symbol)) (make-parameter (list 'direction 'unicode-bidi)))
   (define-prefab-keyword css-wide-keyword #:as CSS-Wide-Keyword [initial inherit unset revert])
   
   (define-syntax (call-with-css-media stx)
     (syntax-parse stx
       [(_ (~optional (~seq #:preferences ?preferences)) sexp ...)
-       (with-syntax ([preferences (or (attribute ?preferences) #'(current-css-media-preferences))])
+       (with-syntax ([preferences (or (attribute ?preferences) #'(default-css-media-preferences))])
          #'(let ([w (hash-ref preferences 'width (thunk #false))]
                  [h (hash-ref preferences 'height (thunk #false))])
              (when (and (real? w) (positive? w)) (set-flcss%-vw! length% (real->double-flonum w)))
@@ -1317,11 +1317,11 @@
     (lambda [properties inherited-values desc-name]
       (define declared-value : (-> CSS-Datum)
         (hash-ref properties desc-name
-                  (thunk (cond [(memq desc-name (current-css-all-exceptions)) (thunk css:unset)]
+                  (thunk (cond [(memq desc-name (default-css-all-exceptions)) (thunk css:unset)]
                                [else (hash-ref properties 'all (thunk (thunk css:unset)))]))))
       (define cascaded-value : CSS-Datum (declared-value))
       (define specified-value : CSS-Datum
-        (cond [(or (eq? cascaded-value css:revert) (not (css-wide-keyword? cascaded-value))) cascaded-value]
+        (cond [(not (css-wide-keyword? cascaded-value)) cascaded-value]
               [(or (eq? cascaded-value css:initial) (false? inherited-values)) css:initial]
               [else (let-values ([(_ sv) (css-ref-raw (css-values-descriptors inherited-values) #false desc-name)]) sv)]))
       (unless (eq? cascaded-value specified-value)
@@ -1354,7 +1354,7 @@
     ;;; https://drafts.csswg.org/css-device-adapt/#media-queries
     ;;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
     (lambda [cascaded-values initial-viewport inherited-viewport]
-      ; Notes: We do not check the `initial-viewport` to specific the `specified values` since
+      ; Notes: There is no need to check the `initial-viewport` to specific the `specified values` since
       ;          @viewport is a controversial @rule which is easy to be used incorrectly,
       ;          @viewport is rarely used in desktop applications, and
       ;          this behavior is indeed specified if I understand the specification correctly.
@@ -1363,20 +1363,20 @@
               [h (hash-ref initial-viewport 'height (const #false))])
           (values (if (real? w) (flmax (real->double-flonum w) 1.0) 1.0)
                   (if (real? h) (flmax (real->double-flonum h) 1.0) 1.0))))
-      (define defzoom : Nonnegative-Flonum (current-css-viewport-auto-zoom))
+      (define defzoom : Nonnegative-Flonum (default-css-viewport-auto-zoom))
       (define (smart [maix : (-> Flonum Flonum Flonum)] [v1 : (U Flonum Symbol)] [v2 : (U Flonum Symbol)]) : (U Flonum Symbol)
         (cond [(and (symbol? v1) (symbol? v2)) 'auto]
               [(symbol? v1) v2]
               [(symbol? v2) v1]
               [else (maix v1 v2)]))
-      (define datum->width (css-make-datum->size #:100% initial-width #:= 'auto))
-      (define datum->height (css-make-datum->size #:100% initial-height #:= 'auto))
+      (define css->width (make-css->size #:100% initial-width #:= 'auto))
+      (define css->height (make-css->size #:100% initial-height #:= 'auto))
       (define min-zoom : Flonum (css-ref cascaded-values #false 'min-zoom nonnegative-flonum? 0.0))
       (define max-zoom : Flonum (flmax min-zoom (css-ref cascaded-values #false 'max-zoom nonnegative-flonum? +inf.0)))
-      (define min-width : (U Flonum Symbol) (css-ref cascaded-values #false 'min-width datum->width))
-      (define max-width : (U Flonum Symbol) (css-ref cascaded-values #false 'max-width datum->width))
-      (define min-height : (U Flonum Symbol) (css-ref cascaded-values #false 'min-height datum->height))
-      (define max-height : (U Flonum Symbol) (css-ref cascaded-values #false 'max-height datum->height))
+      (define min-width : (U Flonum Symbol) (css-ref cascaded-values #false 'min-width css->width))
+      (define max-width : (U Flonum Symbol) (css-ref cascaded-values #false 'max-width css->width))
+      (define min-height : (U Flonum Symbol) (css-ref cascaded-values #false 'min-height css->height))
+      (define max-height : (U Flonum Symbol) (css-ref cascaded-values #false 'max-height css->height))
       (define-values (width height)
         (let* ([width (smart flmax min-width (smart flmin max-width initial-width))]
                [height (smart flmax min-height (smart flmin max-height initial-height))]
@@ -1395,7 +1395,7 @@
       (hash-set! actual-viewport 'zoom (max min-zoom (min max-zoom (css-ref cascaded-values #false 'zoom nonnegative-flonum? defzoom))))
       actual-viewport))
 
-  (define-values (current-css-viewport-parsers current-css-viewport-filter current-css-viewport-auto-zoom)
+  (define-values (default-css-viewport-parsers default-css-viewport-filter default-css-viewport-auto-zoom)
     (values (make-parameter css-viewport-parsers)
             (make-parameter css-viewport-filter)
             (ann (make-parameter 1.0) (Parameterof Nonnegative-Flonum))))
@@ -2254,7 +2254,7 @@
                     (define metadata : CSS-Media-Datum (hash-ref support? query (λ _ 'none)))
                     (not (if (symbol? metadata) (eq? metadata 'none) (zero? metadata)))]
                    [(css-media-type? query)
-                    (define result (memq (css-media-type-name query) (list (current-css-media-type) 'all)))
+                    (define result (memq (css-media-type-name query) (list (default-css-media-type) 'all)))
                     (if (css-media-type-only? query) (and result #true) (not result))]
                    [else (and (pair? query)
                               (css-query-support? (car query) support?)
@@ -2341,7 +2341,7 @@
         (cond [(or (not ?value) (css:delim? ?op)) (throw-exn:css:misplaced errobj)]
               [(not (css-numeric? ?value)) (throw-exn:css:type errobj)]))
       (define feature-filter : (U Void (CSS:Filter CSS-Media-Datum))
-        ((current-css-media-feature-filter) downcased-name min/max? (thunk (void (make+exn:css:deprecated desc-name)))))
+        ((default-css-media-feature-filter) downcased-name min/max? (thunk (void (make+exn:css:deprecated desc-name)))))
       (cond [(void? feature-filter) (throw-exn:css:unrecognized errobj)]
             [(false? ?value) downcased-name]
             [else (let ([datum (feature-filter ?value)])
@@ -2759,7 +2759,7 @@
     (lambda [/dev/cssin [pool : CSS-StyleSheet-Pool ((inst make-hasheq Natural CSS-StyleSheet))]]
       (define location : (U String Symbol) (let ([p (object-name /dev/cssin)]) (if (symbol? p) p (~a p))))
       (define identity : Natural (if (string? location) (css-stylesheet-path->identity location) 0))
-      (define init-viewport : CSS-Media-Preferences (current-css-media-preferences))
+      (define init-viewport : CSS-Media-Preferences (default-css-media-preferences))
       (or (and (string? location) (hash-has-key? pool identity)
                (let ([stylesheet (hash-ref pool identity)])
                  (and (not (css-stylesheet-outdated? stylesheet))
@@ -2780,7 +2780,7 @@
                                                  (CSS-Media-Preferences CSS-StyleSheet-Pool)
                                                  (Values CSS-Media-Preferences (Listof Positive-Integer) (Listof CSS-Grammar-Rule)))
     (lambda [src syntaxes0 namespaces can-import0? allow-namespace0?
-                 [init-viewport (current-css-media-preferences)]
+                 [init-viewport (default-css-media-preferences)]
                  [pool ((inst make-hasheq Natural CSS-StyleSheet))]]
       (define-values (viewport-srotpircsed !viewport-sexatnys)
         (for/fold ([viewport-srotpircsed : (Listof CSS-Declarations) null]
@@ -2799,7 +2799,7 @@
       (define viewport : CSS-Media-Preferences
         (cond [(null? viewport-srotpircsed) init-viewport]
               [else (css-cascade-viewport init-viewport (reverse viewport-srotpircsed)
-                                          (current-css-viewport-parsers) (current-css-viewport-filter))]))
+                                          (default-css-viewport-parsers) (default-css-viewport-filter))]))
       (let syntax->grammar : (Values CSS-Media-Preferences (Listof Positive-Integer) (Listof CSS-Grammar-Rule))
         ([seititnedi : (Listof Positive-Integer) null]
          [srammarg : (Listof CSS-Grammar-Rule) null]
@@ -2866,10 +2866,10 @@
                           (let* ([components (css:function-arguments ?support)]
                                  [supports (list (css-remake-token ?support css:block #\( components #false))]
                                  [query (css-parse-feature-query supports name)])
-                            (values (css-query-support? query (current-css-feature-support?)) ?media-list))
+                            (values (css-query-support? query (default-css-feature-support?)) ?media-list))
                           (values #true ?condition)))
                     (and support? (css-media-queries-support? (css-parse-media-queries media-list name) preferences)
-                         (parameterize ([current-css-media-preferences preferences])
+                         (parameterize ([default-css-media-preferences preferences])
                            (read-css-stylesheet ?target.css pool))
                          (css-stylesheet-path->identity ?target.css)))])))
     
@@ -2918,7 +2918,7 @@
       (define ?block : (Option CSS:Block) (css-@rule-block support))
       (cond [(false? ?block) (make+exn:css:missing-block name)]
             [(css-null? (css:block-components ?block)) null]
-            [(not (css-query-support? (css-parse-feature-query (css-@rule-prelude support) name) (current-css-feature-support?))) null]
+            [(not (css-query-support? (css-parse-feature-query (css-@rule-prelude support) name) (default-css-feature-support?))) null]
             [else (css-parse-rules (css:block-components ?block))])))
   
   (define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (Option CSS-Namespace) (U CSS-Style-Rule CSS-Syntax-Error))
@@ -2937,8 +2937,8 @@
                                       CSS-Media-Preferences)
     ;;; https://drafts.csswg.org/css-device-adapt/#atviewport-rule
     (lambda [viewport-preferences viewport-descriptors
-                                  [viewport-parser (current-css-viewport-parsers)]
-                                  [viewport-filter (current-css-viewport-filter)]]
+                                  [viewport-parser (default-css-viewport-parsers)]
+                                  [viewport-filter (default-css-viewport-filter)]]
       (call-with-css-media #:preferences viewport-preferences
         (viewport-filter (css-cascade-declarations viewport-parser viewport-descriptors)
                          viewport-preferences
@@ -2969,7 +2969,7 @@
     ;;; https://drafts.csswg.org/css-cascade/#cascading
     ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
     ;;; https://drafts.csswg.org/selectors/#data-model
-    (lambda [rules subject desc-filter [quirk? #false] [top-preferences (current-css-media-preferences)] [descbase (make-css-values)]]
+    (lambda [rules subject desc-filter [quirk? #false] [top-preferences (default-css-media-preferences)] [descbase (make-css-values)]]
       ; NOTE: defined the `Style-Metadata` as `List` will slow down the parsing,
       ;       even though this code is not reached at that stage.
       (define-type Style-Metadata (Vector Nonnegative-Fixnum CSS-Declarations CSS-Media-Preferences))
@@ -3022,7 +3022,7 @@
       (define (desc-set! [desc-name : Symbol] [important? : Boolean] [declared-value : (-> CSS-Datum)]) : Void
         (when important? (hash-set! importants desc-name #true))
         (when (eq? desc-name 'all)
-          (for ([desc-key (in-list (remq* (current-css-all-exceptions) (hash-keys descbase)))])
+          (for ([desc-key (in-list (remq* (default-css-all-exceptions) (hash-keys descbase)))])
             (when (desc-more-important? desc-key important?)
               (hash-set! descbase desc-key declared-value))))
         (hash-set! descbase desc-name declared-value))
@@ -3344,8 +3344,8 @@
 
   (current-logger css-logger)
   (css-deprecate-media-type #true)
-  (current-css-media-type 'screen)
-  (current-css-media-preferences
+  (default-css-media-type 'screen)
+  (default-css-media-preferences
    ((inst make-hash Symbol CSS-Media-Datum)
     (list (cons 'orientation 'landscape)
           (cons 'width (or width 0))
