@@ -516,14 +516,22 @@
           [(? css:λracket? main) (tokens->exn main (css:λracket-arguments main))]
           [(? css:block? main) (tokens->exn main (css:block-components main))]
           [(? css-token?) (token->exn any)]))))
-  
-  (define css-log-read-error : (->* ((U exn CSS:Bad)) (Any Log-Level) Void)
-    (lambda [errobj [src #false] [level 'debug]]
+
+  (define css-log-error : (->* ((U exn CSS:Bad)) (Any Log-Level Symbol) Void)
+    (lambda [errobj [src #false] [level 'debug] [topic 'exn:css:fail]]
       (define message : String
         (cond [(css:bad? errobj) (css-token->string errobj)]
               [else (format "@~s: ~a: ~a" src (object-name errobj) (read-line (open-input-string (exn-message errobj))))]))
-      (log-message (current-logger) level 'exn:css:read message errobj)))
+      (log-message (current-logger) level topic message errobj)))
+  
+  (define css-log-read-error : (->* ((U exn CSS:Bad)) (Any Log-Level) Void)
+    (lambda [errobj [src #false] [level 'debug]]
+      (css-log-error errobj src level 'exn:css:read)))
 
+  (define css-log-eval-error : (->* ((U exn CSS:Bad)) (Any Log-Level) Void)
+    (lambda [errobj [src #false] [level 'debug]]
+      (css-log-error errobj src level 'exn:css:eval)))
+  
   (define css-log-syntax-error : (->* (CSS-Syntax-Error) ((Option CSS:Ident) Log-Level) Void)
     (lambda [errobj [property #false] [level 'warning]]
       (define logger : Logger (current-logger))
@@ -608,6 +616,7 @@
   ;; Parser Combinators and Syntax Sugars of dealing with declarations for client applications
   ;    WARNING: Notations are not following the CSS Specifications https://drafts.csswg.org/css-values/#component-combinators
   (define-type (CSS-Multiplier idx) (U idx (List idx) (Pairof (U idx Symbol) (U idx Symbol))))
+  (define-type (CSS-Maybe css) (U css CSS-Wide-Keyword))
   (define-type (CSS-Option css) (U css CSS-Syntax-Error False))
   (define-type (CSS:Filter css) (-> CSS-Syntax-Any (CSS-Option css)))
   (define-type (CSS-Parser css) (-> css (Listof CSS-Token) (Values (CSS-Option css) (Listof CSS-Token))))
@@ -3279,7 +3288,7 @@
              [else (let ([λparser (λfilter λname #false)])
                      (define-values (argl rest) (if (void? λparser) (values swk args) (λparser swk args)))
                      (cond [(exn:css? argl) argl]
-                           [(false? argl) (make-exn:css:type args)]
+                           [(false? argl) (make-exn:css:type rest)]
                            [(pair? rest) (make-exn:css:overconsumption rest)]
                            [else (let ([count (- (length argl) (length swk))])
                                    (cond [(nor (memq count λarities) (>= count λmin-arty)) (make-exn:css:arity <λ>)]

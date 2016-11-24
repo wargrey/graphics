@@ -16,7 +16,7 @@
 
 (define bitmap : (->* ((U Path-String Input-Port)) (Positive-Real) Bitmap)
   ;;; https://drafts.csswg.org/css-images/#image-fragments
-  (lambda [src [resolution (default-icon-backing-scale)]]
+  (lambda [src [density (default-icon-backing-scale)]]
     (define (image-section [raw : Bitmap] [xywh : String] [hint : Symbol]) : Bitmap
       (cond [(not (send raw ok?)) the-invalid-image]
             [else (match (regexp-match #px"^(\\d+),(\\d+),(\\d+),(\\d+)$" xywh)
@@ -25,16 +25,16 @@
                      (bitmap-section raw x y w h)]
                     [_ (raise-user-error hint "malformed fragment")])]))
     (with-handlers ([exn? (λ [[e : exn]] (css-log-read-error e src) the-invalid-image)])
-      (cond [(input-port? src) (read-bitmap src #:backing-scale (default-icon-backing-scale))]
+      (cond [(input-port? src) (read-bitmap src #:backing-scale density)]
             [(not (regexp-match? #px"[?]id=" src))
-             (define (read-image.bmp [src.bmp : String]) : Bitmap (read-bitmap src.bmp #:backing-scale resolution))
+             (define (read-image.bmp [src.bmp : String]) : Bitmap (read-bitmap src.bmp #:backing-scale density))
              (match (string-split (if (path? src) (path->string src) src) "#xywh=")
                [(list src.rkt xywh) (image-section (read-image.bmp src.rkt) xywh 'read-image)]
                [(list src.rkt) (read-image.bmp src.rkt)]
                [_ (raise-user-error 'read-image "too many fragment")])]
             [else #| path?id=binding#xywh=x,y,w,h |#
              (define (read-image.rkt [src.rkt : String] [id : Symbol]) : Bitmap
-               (define raw (require-image src.rkt id resolution))
+               (define raw (require-image src.rkt id density))
                (cond [(is-a? raw bitmap%) (cast raw Bitmap)]
                      [else (error 'require-image "contract violation: received ~s" raw)]))
              (match (string-split (if (path? src) (path->string src) src) #px"([?]id=)|(#xywh=)")
@@ -43,7 +43,7 @@
                [_ (raise-user-error 'require-image "too many fragment")])]))))
 
 (define sprite : (->* ((U Path-String Input-Port)) (Positive-Real) (Listof Bitmap))
-  (lambda [src [resolution (default-icon-backing-scale)]]
+  (lambda [src [density (default-icon-backing-scale)]]
     (define (image-disassemble [raw : Bitmap] [grid : String] [hint : Symbol]) : (Listof Bitmap)
       (cond [(not (send raw ok?)) null]
             [else (match (regexp-match #px"^(\\d+),(\\d+)$" grid)
@@ -52,16 +52,16 @@
                      (bitmap->sprite raw cols rows)]
                     [_ (raise-user-error hint "malformed fragments")])]))
     (with-handlers ([exn? (λ [[e : exn]] (css-log-read-error e src) null)])
-      (cond [(input-port? src) (list (read-bitmap src #:backing-scale (default-icon-backing-scale)))]
+      (cond [(input-port? src) (list (read-bitmap src #:backing-scale density))]
             [(not (regexp-match? #px"[?]id=" src))
-             (define (read-sprite.bmp [src.bmp : String]) : Bitmap (read-bitmap src.bmp #:backing-scale resolution))
+             (define (read-sprite.bmp [src.bmp : String]) : Bitmap (read-bitmap src.bmp #:backing-scale density))
              (match (string-split (if (path? src) (path->string src) src) "#grids=")
                [(list src.rkt xywh) (image-disassemble (read-sprite.bmp src.rkt) xywh 'read-sprite)]
                [(list src.rkt) (list (read-sprite.bmp src.rkt))]
                [_ (raise-user-error 'read-sprite "too many fragments")])]
             [else #| path?id=binding |#
              (define (read-sprite.rkt [src.rkt : String] [id : Symbol] [grid : (Option String)]) : (Listof Bitmap)
-               (define raw (require-image src.rkt id resolution))
+               (define raw (require-image src.rkt id density))
                (cond [(list? raw) (filter-map (λ [v] (and (is-a? v bitmap%) (cast v Bitmap))) raw)]
                      [(not (is-a? raw bitmap%)) (error 'require-sprite "contract violation: received ~s" raw)]
                      [(string? grid) (image-disassemble (cast raw Bitmap) grid 'require-sprite)]
@@ -71,19 +71,6 @@
                [(list src.rkt id) (read-sprite.rkt src.rkt (string->symbol id) #false)]
                [_ (raise-user-error 'require-sprite "too many queries")])]))))
 
-(define bitmap-normalize : (->* (Bitmap) (Positive-Real) Bitmap)
-  (lambda [raw [resolution (default-icon-backing-scale)]]
-    (define ratio : Nonnegative-Real (/ (send raw get-backing-scale) resolution))
-    (cond [(not (send raw ok?)) the-invalid-image]
-          [(= ratio 1.0) raw]
-          [else (let ([bmp (bitmap-blank (* (send raw get-width) ratio) (* (send raw get-height) ratio) resolution)])
-                  ; This algorithm is much faster than the (get/set-argb-pixels) one
-                  (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
-                  (send dc set-smoothing 'aligned)
-                  (send dc set-scale ratio ratio)
-                  (send dc draw-bitmap raw 0 0)
-                  bmp)])))
-
 (define bitmap-size : (case-> [Bitmap -> (Values Positive-Integer Positive-Integer)]
                               [Bitmap Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)]
                               [Bitmap Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)])
@@ -91,7 +78,7 @@
                [(bmp ratio) (values (* (send bmp get-width) ratio) (* (send bmp get-height) ratio))]
                [(bmp w-ratio h-ratio) (values (* (send bmp get-width) w-ratio) (* (send bmp get-height) h-ratio))]))
 
-(define bitmap-size+resolution : (Bitmap -> (Values Positive-Integer Positive-Integer Positive-Real))
+(define bitmap-size+density : (Bitmap -> (Values Positive-Integer Positive-Integer Positive-Real))
   (lambda [bmp]
     (values (send bmp get-width)
             (send bmp get-height)
@@ -99,9 +86,9 @@
 
 (define bitmap-intrinsic-size : (-> Bitmap (Values Positive-Integer Positive-Integer))
   (lambda [bmp]
-    (define resolution : Positive-Real (send bmp get-backing-scale))
-    (values (max (exact-ceiling (* (send bmp get-width) resolution)) 1)
-            (max (exact-ceiling (* (send bmp get-height) resolution)) 1))))
+    (define density : Positive-Real (send bmp get-backing-scale))
+    (values (max (exact-ceiling (* (send bmp get-width) density)) 1)
+            (max (exact-ceiling (* (send bmp get-height) density)) 1))))
 
 (define bitmap->sprite : (->* (Bitmap) (Positive-Integer Positive-Integer) (Listof Bitmap))
   (lambda [bmp [cols 1] [rows 1]]
@@ -111,11 +98,23 @@
                         ([y (in-range rows)] [x (in-range cols)])
                (cons (bitmap-copy bmp (* x width) (* y height) width height) sprite)))))
 
+(define bitmap-alter-density : (->* (Bitmap) (Positive-Real) Bitmap)
+  (lambda [raw [density (default-icon-backing-scale)]]
+    (define ratio : Nonnegative-Real (/ (send raw get-backing-scale) density))
+    (cond [(= ratio 1.0) raw]
+          [else (let ([bmp (bitmap-blank (* (send raw get-width) ratio) (* (send raw get-height) ratio) density)])
+                  ; This algorithm is much faster than the (get/set-argb-pixels) one
+                  (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
+                  (send dc set-smoothing 'aligned)
+                  (send dc set-scale ratio ratio)
+                  (send dc draw-bitmap raw 0 0)
+                  bmp)])))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-font+ : (->* () (Font #:size Real #:face (Option String) #:size-in-pixels? (U Boolean Symbol) #:family (Option Font-Family)
                                    #:style (Option Font-Style) #:weight (Option Font-Weight) #:hinting (Option Font-Hinting)
                                    #:underlined? (U Boolean Symbol) #:smoothing (Option Font-Smoothing)) Font)
-  (lambda [[basefont (current-css-default-font)] #:size [size +nan.0] #:face [face #false] #:family [family #false]
+  (lambda [[basefont (default-css-font)] #:size [size +nan.0] #:face [face #false] #:family [family #false]
            #:style [style #false] #:weight [weight #false] #:hinting [hinting #false] #:smoothing [smoothing #false]
            #:underlined? [underlined 'default] #:size-in-pixels? [size-in-pixels? 'default]]
     (define ?face : (Option String) (or face (send basefont get-face)))
@@ -137,10 +136,10 @@
               (or hinting (send basefont get-hinting))))))
 
 (define bitmap-blank : (->* () (Nonnegative-Real (Option Nonnegative-Real) Positive-Real) Bitmap)
-  (lambda [[w 0] [h #false] [resolution (default-icon-backing-scale)]]
+  (lambda [[w 0] [h #false] [density (default-icon-backing-scale)]]
     (define width : Positive-Integer (max 1 (exact-ceiling w)))
     (define height : Positive-Integer (max 1 (exact-ceiling (or h w))))
-    (make-bitmap width height #:backing-scale resolution)))
+    (make-bitmap width height #:backing-scale density)))
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
   (lambda [bmp]
@@ -148,9 +147,9 @@
                   (send bmp get-height)
                   (send bmp get-backing-scale))))
 
-(define bitmap-solid : (->* (Nonnegative-Real Nonnegative-Real Color+sRGB) (Positive-Real) Bitmap)
-  (lambda [width height color [resolution (default-icon-backing-scale)]]
-    (define solid : Bitmap (bitmap-blank width height resolution))
+(define bitmap-solid : (->* () (Color+sRGB Nonnegative-Real Positive-Real) Bitmap)
+  (lambda [[color 'transparent] [size 1] [density (default-icon-backing-scale)]]
+    (define solid : Bitmap (bitmap-blank size size density))
     (define dc : (Instance Bitmap-DC%) (send solid make-dc))
     (send dc set-background (select-rgba-color color))
     (send dc clear)
@@ -158,7 +157,7 @@
 
 (define bitmap-text : (->* (String) (Font #:combine? Boolean #:color (Option Color+sRGB)
                                           #:background-color (Option Color+sRGB)) Bitmap)
-  (lambda [content [font (current-css-default-font)] #:combine? [combine? #true] #:color [fgcolor #false]
+  (lambda [content [font (default-css-font)] #:combine? [combine? #true] #:color [fgcolor #false]
            #:background-color [bgcolor #false]]
     (define-values (width height descent ascent) (send backup-dc get-text-extent content font combine?))
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
@@ -172,8 +171,8 @@
 (define bitmap-desc : (->* (String Nonnegative-Real)
                            (Font #:combine? Boolean #:color (Option Color+sRGB)
                                  #:background-color (Option Color+sRGB)) Bitmap)
-  (lambda [description max-width.0 [font (current-css-default-font)] #:combine? [combine? #true] #:color [fgcolor #false]
-           #:background-color [bgcolor #false]]
+  (lambda [description max-width.0 [font (default-css-font)]
+           #:combine? [combine? #true] #:color [fgcolor #false] #:background-color [bgcolor #false]]
     (define max-width : Nonnegative-Flonum (real->double-flonum max-width.0))
     (define desc-extent : (-> String Integer Integer (Values String Nonnegative-Flonum Nonnegative-Flonum))
       (lambda [desc start end]
@@ -454,6 +453,7 @@
   (require racket/fixnum)
 
   (require typed/racket/draw)
+  (require typed/images/icons)
 
   (require (for-syntax syntax/parse))
 
@@ -466,7 +466,8 @@
   (define-css-value hexa #:as HEXA #:=> css-color ([hex : Index] [a : Nonnegative-Flonum]))
   (define-css-value rgba #:as RGBA #:=> css-color ([r : Byte] [g : Byte] [b : Byte] [a : Nonnegative-Flonum]))
   (define-css-value hsba #:as HSBA #:=> css-color ([>rgb : HSB->RGB] [h : Real] [s : Real] [b : Real] [a : Nonnegative-Flonum]))
-  
+
+  (define-predicate css-basic-color-datum? (U Index Symbol String))
   (define the-color-pool : (HashTable Fixnum Color) (make-hasheq))
   
   (define css-named-colors : (HashTable Symbol Index)
@@ -596,13 +597,17 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-type Bitmap (Instance Bitmap%))
+  (define-type Image-Set-Option (List CSS-Image-Datum Positive-Flonum))
+  (define-type Image-Set-Options (Listof Image-Set-Option))
   (define-type CSS-Image-Datum (U CSS-@λ CSS-Image String))
 
   (define-css-value css-image #:as CSS-Image ())
   (define-css-value image #:as Image #:=> css-image ([content : CSS-Image-Datum] [fallback : CSS-Color-Datum]))
-  (define-css-value image-set #:as Image-Set #:=> css-image ([options : (Listof (List CSS-Image-Datum Flonum))]))
+  (define-css-value image-set #:as Image-Set #:=> css-image ([options : Image-Set-Options]))
 
-  (define the-invalid-image : Bitmap (read-bitmap (open-input-bytes #"invalid bitmap source")))
+  (define-predicate css-image-datum? CSS-Image-Datum)
+  (define the-invalid-image : Bitmap (read-bitmap (open-input-bytes #"placeholder")))
+  (define default-css-invalid-image : (Parameterof Bitmap) (make-parameter (x-icon)))
 
   (define-@λ-pool the-@icon-pool #:λnames #px"-(icon|logo)$"
     images/logos images/icons/arrow images/icons/control
@@ -615,12 +620,12 @@
   (define css-image-fit-option : (Listof Symbol) '(fill contain cover none scale-down))
 
   (define require-image : (-> String Symbol Positive-Real Any)
-    (lambda [src.rkt id resolution]
+    (lambda [src.rkt id density]
       (define fallback (thunk (call-with-values (thunk (eval id (module->namespace src.rkt))) (λ _ (car _)))))
       (module-declared? src.rkt #true)
       (define value (dynamic-require src.rkt id fallback))
       (cond [(not (hash? value)) value]
-            [else (hash-ref value (exact->inexact resolution)
+            [else (hash-ref value (exact->inexact density)
                             (thunk (let ([all (sort (hash-keys value) >)])
                                      (if (pair? all) (hash-ref value (car all)) value))))])))
 
@@ -661,15 +666,14 @@
     ;;; https://drafts.csswg.org/css-images/#image-notation
     ;;; https://drafts.csswg.org/css-images/#image-set-notation
     [(image) #:=> [(image "" [fallback ? index? string? symbol? css-color?])
-                   (image [content ? css-image? string? css-@λ?] [fallback ? index? string? symbol? css-color?])]
+                   (image [content ? css-image? string? css-@λ?] [fallback ? css-basic-color-datum? css-color?])]
      (CSS<+> (CSS<^> (<css-color>)) ; NOTE: both color and url accept strings, however their domains are not intersective.
              (CSS<&> (CSS<^> (CSS:<+> (<css-image>) (<css:string>)))
                      (CSS<$> (CSS<?> [(<css-comma>) (CSS<^> (<css-color>))]) 'transparent)))]
     [(image-set) #:=> [(image-set [options ? css-image-sets?])]
      (CSS<!> (CSS<#> (CSS<!> (CSS<^> (list (CSS:<+> (<css:string>) (<css-image>)) (<css+resolution>))))))]
     #:where
-    [(define-predicate css-image-datum? CSS-Image-Datum)
-     (define-predicate css-image-sets? (Listof (List CSS-Image-Datum Flonum)))])
+    [(define-predicate css-image-sets? Image-Set-Options)])
 
   (define-css-disjoined-filter <css-image> #:-> CSS-Image-Datum
     ;;; https://drafts.csswg.org/css-images/#image-values
@@ -703,10 +707,10 @@
                     (set-box! &font font))
                   sexp ...))]))
 
-  (define current-css-default-font : (Parameterof Font) (make-parameter (make-font)))
+  (define default-css-font : (Parameterof Font) (make-parameter (make-font)))
   (define css-font-family-names/no-variants : (Listof String) (get-face-list 'all #:all-variants? #false))
   (define backup-dc (make-object bitmap-dc% (make-object bitmap% 1 1)))
-  (define &font : (Boxof Font) (box (current-css-default-font)))
+  (define &font : (Boxof Font) (box (default-css-font)))
 
   (define css-font-generic-families : (Listof Symbol)
     '(default decorative roman script  swiss      modern    system    symbol
@@ -729,12 +733,12 @@
                                                              ultra-expanded extra-expanded semi-expanded))
   
   (define-css-system-parameters-filter <css-system-font> #:-> Font
-    [caption       (current-css-default-font)]
-    [icon          (current-css-default-font)]
-    [menu          (current-css-default-font)]
-    [message-box   (current-css-default-font)]
-    [small-caption (current-css-default-font)]
-    [status-bar    (current-css-default-font)])
+    [caption       (default-css-font)]
+    [icon          (default-css-font)]
+    [menu          (default-css-font)]
+    [message-box   (default-css-font)]
+    [small-caption (default-css-font)]
+    [status-bar    (default-css-font)])
   
   (define-css-racket-value-filter <racket-font> #:is-a? font% #:as Font)
 
@@ -799,7 +803,7 @@
           '(font-style font-variant font-weight font-stretch font-size line-height font-family
                        font-size-adjust font-kerning font-language-override)))
 
-  (define css-datum->font-family : (-> Symbol CSS-Datum (U String Font-Family))
+  (define css->font-family : (-> Symbol CSS-Datum (U String Font-Family))
     (lambda [_ value]
       (define (generic-family-map [family : Symbol]) : Font-Family
         (case family
@@ -822,10 +826,10 @@
                           (and (list? family) (face-filter (string-trim (~a family) #px"(^[(])|([)]$)")))
                           (select (cdr families))))]))))
 
-  (define css-datum->font-size : (-> Symbol CSS-Datum Nonnegative-Real)
+  (define css->font-size : (-> Symbol CSS-Datum Nonnegative-Real)
     (lambda [property value]
       (cond [(symbol? value)
-             (let ([css-font-medium (smart-font-size (current-css-default-font))])
+             (let ([css-font-medium (smart-font-size (default-css-font))])
                (case value
                  [(xx-large) (* 2/1 css-font-medium)]
                  [(x-large)  (* 3/2 css-font-medium)]
@@ -843,24 +847,24 @@
             [(eq? property 'max-font-size) 1024.0]
             [else +nan.0 #| used to determine whether size-in-pixels? will be inherited, see (css-extract-font) |#])))
 
-  (define css-datum->font-weight : (-> Symbol CSS-Datum Font-Weight)
+  (define css->font-weight : (-> Symbol CSS-Datum Font-Weight)
     (lambda [_ value]
       (cond [(symbol? value)
              (case value
                [(normal light bold) value]
                [(bolder) (if (eq? (send (unbox &font) get-weight) 'light) 'normal 'bold)]
                [(lighter) (if (eq? (send (unbox &font) get-weight) 'bold) 'normal 'light)]
-               [else (send (current-css-default-font) get-weight)])]
+               [else (send (default-css-font) get-weight)])]
             [(and (fixnum? value) (fx<= value 300)) 'light]
             [(and (fixnum? value) (fx>= value 700)) 'bold]
-            [else (send (current-css-default-font) get-weight)])))
+            [else (send (default-css-font) get-weight)])))
 
-  (define css-datum->font-style : (-> Symbol CSS-Datum Font-Style)
+  (define css->font-style : (-> Symbol CSS-Datum Font-Style)
     (lambda [_ value]
       (case value
         [(normal italic) value]
         [(oblique slant) 'slant]
-        [else (send (current-css-default-font) get-style)])))
+        [else (send (default-css-font) get-style)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define css-text-decor-line-options : (Listof Symbol) '(underline overline line-through blink))
@@ -884,44 +888,43 @@
 (require (submod "." css))
 
 (require racket/provide)
-(provide <css-color> <css-image> <css-system-font> current-css-default-font
+(provide <css-color> <css-image> <css-system-font> default-css-font
          (matching-identifiers-out #px"^default-css-" (all-from-out (submod "." css))))
 
 (define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)
-  (lambda [color-representation [alpha 1.0]]
-    (define abyte : Byte (min (exact-round (fl* alpha 255.0)) #xFF))
-    (define opaque? : Boolean (fx= abyte #xFF))
-    (cond [(fixnum? color-representation)
-           (define hashcode : Nonnegative-Fixnum (fxand color-representation #xFFFFFF))
+  (lambda [representation [alpha 1.0]]
+    (define opaque? : Boolean (fl= alpha 1.0))
+    (cond [(fixnum? representation)
+           (define hashcode : Nonnegative-Fixnum (fxand representation #xFFFFFF))
            (hash-ref! the-color-pool
-                      (if opaque? hashcode (eqv-hash-code (make-rectangular hashcode abyte)))
-                      (thunk (let-values ([(r g b) (hex->rgb-bytes color-representation)])
-                               (make-color r g b (fl/ (fx->fl abyte) 255.0)))))]
-          [(symbol? color-representation)
-           (let try-again ([color-name : Symbol color-representation]
+                      (if opaque? hashcode (eqv-hash-code (make-rectangular hashcode alpha)))
+                      (thunk (let-values ([(r g b) (hex->rgb-bytes representation)])
+                               (make-color r g b alpha))))]
+          [(symbol? representation)
+           (let try-again ([color-name : Symbol representation]
                            [downcased? : Boolean #false])
              (cond [(hash-has-key? css-named-colors color-name)
                     (hash-ref! the-color-pool
                                (cond [(and opaque?) (eq-hash-code color-name)]
-                                     [else (equal-hash-code (cons color-name abyte))])
+                                     [else (equal-hash-code (cons color-name alpha))])
                                (thunk (select-rgba-color (hash-ref css-named-colors color-name) alpha)))]
                    [(not downcased?) (try-again (string->symbol (string-downcase (symbol->string color-name))) #true)]
                    [(eq? color-name 'currentcolor) (select-rgba-color (current-css-element-color))]
-                   [else (select-rgba-color 0 alpha)]))]
-          [(string? color-representation)
-           (let* ([color-name (string-downcase (string-replace color-representation #px"(?i:grey)" "gray"))]
+                   [else (select-rgba-color #x000000 (if (eq? color-name 'transparent) 0.0 alpha))]))]
+          [(string? representation)
+           (let* ([color-name (string-downcase (string-replace representation #px"(?i:grey)" "gray"))]
                   [color (send the-color-database find-color color-name)])
-             (cond [(false? color) (select-rgba-color 0 alpha)]
+             (cond [(false? color) (select-rgba-color #x000000 alpha)]
                    [else (hash-ref! the-color-pool
-                                    (equal-hash-code (if opaque? color-name (cons color-name abyte)))
+                                    (equal-hash-code (if opaque? color-name (cons color-name alpha)))
                                     (thunk (select-rgba-color (rgb-bytes->hex (send color red) (send color green) (send color blue))
                                                               alpha)))]))]
-          [else color-representation])))
+          [else representation])))
 
 (define current-css-element-color : (Parameterof CSS-Datum Color+sRGB)
   (make-parameter (select-rgba-color #x000000)
                   (λ [[c : CSS-Datum]]
-                    (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css-datum->color 'color c))
+                    (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css->color 'color c))
                     (if (object? color) color (current-css-element-color)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -977,19 +980,19 @@
       [else #false])))
 
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (Font) Font)
-  (lambda [declared-values inherited-values [basefont (current-css-default-font)]]
+  (lambda [declared-values inherited-values [basefont (default-css-font)]]
     (define ?font : CSS-Datum (and inherited-values (css-ref inherited-values #false 'font)))
     (define inherited-font : Font (if (object? ?font) (cast ?font Font) basefont))
-    (define (css-datum->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof CSS-Datum)
+    (define (css->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof CSS-Datum)
       (if (list? value) value (if (send inherited-font get-underlined) (list 'underline) null)))
     (call-with-font inherited-font #:root? (false? ?font)
-      (define family : (U String Font-Family) (css-ref declared-values #false 'font-family css-datum->font-family))
-      (define min-size : Nonnegative-Real (css-ref declared-values #false 'min-font-size css-datum->font-size))
-      (define max-size : Nonnegative-Real (css-ref declared-values #false 'max-font-size css-datum->font-size))
-      (define font-size : Nonnegative-Real (css-ref declared-values #false 'font-size css-datum->font-size))
-      (define style : Font-Style (css-ref declared-values #false 'font-style css-datum->font-style))
-      (define weight : Font-Weight (css-ref declared-values #false 'font-weight css-datum->font-weight))
-      (define decorations : (Listof CSS-Datum) (css-ref declared-values #false 'text-decoration-line css-datum->font-underlined))
+      (define family : (U String Font-Family) (css-ref declared-values #false 'font-family css->font-family))
+      (define min-size : Nonnegative-Real (css-ref declared-values #false 'min-font-size css->font-size))
+      (define max-size : Nonnegative-Real (css-ref declared-values #false 'max-font-size css->font-size))
+      (define font-size : Nonnegative-Real (css-ref declared-values #false 'font-size css->font-size))
+      (define style : Font-Style (css-ref declared-values #false 'font-style css->font-style))
+      (define weight : Font-Weight (css-ref declared-values #false 'font-weight css->font-weight))
+      (define decorations : (Listof CSS-Datum) (css-ref declared-values #false 'text-decoration-line css->font-underlined))
       (define smoothing : Font-Smoothing (css-ref declared-values #false '-racket-font-smoothing racket-font-smoothing? 'default))
       (define hinting : Font-Hinting (css-ref declared-values #false '-racket-font-hinting racket-font-hinting? 'aligned))
       (define size : Nonnegative-Real (max (min max-size font-size) min-size))
@@ -1003,22 +1006,72 @@
        (when (nan? size) (css-set! declared-values 'font-size size))
        font))))
 
-(define css-datum->color : (-> Symbol CSS-Datum (U Color CSS-Wide-Keyword 'currentcolor))
+(define css->color : (-> Symbol CSS-Datum (U Color CSS-Wide-Keyword 'currentcolor))
   (lambda [desc-name color]
-    (cond [(or (index? color) (symbol? color) (string? color)) (select-rgba-color color)]
+    (cond [(is-a? color color%) (cast color Color)]
+          [(eq? color 'currentcolor) color #| evaluated at used-value time |#]
+          [(css-basic-color-datum? color) (select-rgba-color color)]
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
           [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
           [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
-          [(is-a? color color%) (cast color Color)]
-          [(eq? color 'transparent) (select-rgba-color #x000000 0.0)]
-          [(eq? color 'currentcolor) color]
           [else css:initial])))
 
-(define css-datum->image : (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))
-  (lambda [desc-name image]
-    (cond [(non-empty-string? image) (bitmap image)]
-          [(is-a? image bitmap%) (cast image Bitmap)]
-          [else css:initial])))
+(define make-css->bitmap : (case-> [-> (-> Symbol CSS-Datum (CSS-Maybe Bitmap))]
+                                   [Positive-Real (U Positive-Real Bitmap) -> (-> Symbol CSS-Datum (CSS-Maybe Bitmap))]
+                                   [Positive-Real Positive-Real Bitmap -> (-> Symbol CSS-Datum (CSS-Maybe Bitmap))]
+                                   [(-> (CSS-Maybe Bitmap) (CSS-Maybe Bitmap)) -> (-> Symbol CSS-Datum (CSS-Maybe Bitmap))])
+  (case-lambda
+    [() (make-css->bitmap values)]
+    [(height density/alt-image)
+     (cond [(real? density/alt-image) (make-css->bitmap height density/alt-image (default-css-invalid-image))]
+           [else (make-css->bitmap height (default-icon-backing-scale) (default-css-invalid-image))])]
+    [(height density alt-image)
+     (make-css->bitmap
+      (λ [[raw : (CSS-Maybe Bitmap)]]
+        (define (normalize [bmp : Bitmap]) : Bitmap
+          (bitmap-scale (bitmap-alter-density bmp density)
+                        (/ height (send bmp get-height))))
+        (cond [(css-wide-keyword? raw) (normalize alt-image)]
+              [(send raw ok?) (normalize raw)]
+              [else (let ([bmp (default-css-invalid-image)])
+                      (cond [(> (send bmp get-height) height) (normalize bmp)]
+                            [else (bitmap-cc-superimpose (bitmap-blank height height density)
+                                                         (bitmap-alter-density bmp density))]))])))]
+    [(normalize)
+     (letrec ([image->bitmap : (->* (CSS-Image-Datum) (Positive-Real) Bitmap)
+               (λ [img [the-density (default-icon-backing-scale)]]
+                 (cond [(non-empty-string? img) (bitmap img the-density)]
+                       [(image? img)
+                        (define bmp : Bitmap (image->bitmap (image-content img)))
+                        (cond [(send bmp ok?) bmp]
+                              [else (let ([color (css->color '_ (image-fallback img))])
+                                      (bitmap-solid (if (object? color) color 'transparent)))])]
+                       [(image-set? img)
+                        (define-values (src density)
+                          (for/fold ([the-src : CSS-Image-Datum ""]
+                                     [resolution : Nonnegative-Flonum 0.0])
+                                    ([option (in-list (image-set-options img))])
+                            (define this-density : Nonnegative-Flonum (cadr option))
+                            ; - resoltions should not duplicate, but if so, use the first one.
+                            ; - if there is no specific resolution, use the highest one.
+                            (if (or (= resolution the-density) (fl<= this-density resolution))
+                                (values the-src resolution)
+                                (values (car option) this-density))))
+                        (cond [(zero? density) the-invalid-image]
+                              [else (image->bitmap src density)])]
+                       [(css-@λ? img)
+                        (define (sexp-filter [datum : Any]) : Any
+                          (if (css-@λ? datum) (map sexp-filter (css-@λ-sexp datum)) datum))
+                        (with-handlers ([exn? (λ [[e : exn]] (css-log-eval-error e 'css->bitmap) the-invalid-image)])
+                          (define icon : Any (call-with-values (thunk (eval (map sexp-filter (css-@λ-sexp img)))) (λ _ (car _))))
+                          (if (is-a? icon bitmap%) (cast icon Bitmap) the-invalid-image))]
+                       [else the-invalid-image]))])
+       (λ [_ image]
+         (cond [(is-a? image bitmap%) (normalize (cast image Bitmap))]
+               [(css-image-datum? image) (normalize (image->bitmap image))]
+               [else (normalize css:initial)])))]))
+
+(define css->bitmap (make-css->bitmap))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* main typed/racket
@@ -1054,27 +1107,28 @@
   
   (current-logger css-logger)
   (css-cache-computed-object-value #false)
-  (current-css-media-type 'screen)
-  (current-css-media-preferences
+  (default-css-media-type 'screen)
+  (default-css-media-preferences
    ((inst make-hasheq Symbol CSS-Media-Datum)
     (list (cons 'orientation 'landscape)
           (cons 'width 1440)
           (cons 'height 820))))
 
   (define-preference btest #:as Bitmap-TestCase #:with ([color-properties Color+sRGB])
-    ([symbol-color : Color+sRGB                                #:= 'Blue]
-     [string-color : Color+sRGB                                #:= 'Orange]
-     [number-color : Color+sRGB                                #:= 'Tomato]
-     [output-color : Color+sRGB                                #:= 'Chocolate]
-     [paren-color : Color+sRGB                                 #:= 'Firebrick]
-     [border-color : Color+sRGB                                #:= 'Crimson]
-     [foreground-color : Color+sRGB                            #:= "Grey"]
-     [background-color : Color+sRGB                            #:= "Snow"]
-     [font : Font                                              #:= (current-css-default-font)]
-     [width : Index                                            #:= 512]
-     [combine? : Boolean                                       #:= #false]
-     [desc : String                                            #:= "['desc' property is required]"]
-     [descriptors : (HashTable Symbol CSS-Datum)               #:= (make-hasheq)])
+    ([symbol-color : Color+sRGB                  #:= 'Blue]
+     [string-color : Color+sRGB                  #:= 'Orange]
+     [number-color : Color+sRGB                  #:= 'Tomato]
+     [output-color : Color+sRGB                  #:= 'Chocolate]
+     [paren-color : Color+sRGB                   #:= 'Firebrick]
+     [border-color : Color+sRGB                  #:= 'Crimson]
+     [foreground-color : Color+sRGB              #:= "Grey"]
+     [background-color : Color+sRGB              #:= "Snow"]
+     [font : Font                                #:= (default-css-font)]
+     [width : Index                              #:= 512]
+     [combine? : Boolean                         #:= #false]
+     [desc : String                              #:= "['desc' property is required]"]
+     [prelude : Bitmap                           #:= (bitmap-text "> ")]
+     [descriptors : (HashTable Symbol CSS-Datum) #:= (make-hasheq)])
     #:transparent)
 
   (define css-descriptor-filter : CSS-Declaration-Parsers
@@ -1087,28 +1141,29 @@
             [(desc) (CSS<*> (CSS<^> (<css:string>)) '+)]
             [(count width) (CSS<^> (<css-natural>))]
             [(combine) (CSS<^> (<css-keyword> '(combine none)))]
-            [(at-exp) (CSS<^> (list (<css:λracket>) (<css:racket>) (<css:block>)))])
-          #false)))
+            [(at-exp) (CSS<^> (list (<css:λracket>) (<css:racket>) (<css:block>)))]
+            [(prelude) (CSS<^> (<css-image>))]))))
 
   (define css-preference-filter : (CSS-Cascaded-Value-Filter Bitmap-TestCase)
     (lambda [declared-values initial-values inherit-values]
-      (define (css-datum->desc [_ : Symbol] [value : CSS-Datum]) : String
+      (define (css->desc [_ : Symbol] [value : CSS-Datum]) : String
         (cond [(string? value) value]
               [(list? value) (string-join (map (λ [v] (~a v)) value))]
               [else (btest-desc initial-values)]))
       (parameterize ([current-css-element-color (css-ref declared-values inherit-values 'color)])
-        (make-btest #:symbol-color (css-ref declared-values inherit-values 'symbol-color css-datum->color)
-                    #:string-color (css-ref declared-values inherit-values 'string-color css-datum->color)
-                    #:number-color (css-ref declared-values inherit-values 'number-color css-datum->color)
-                    #:output-color (css-ref declared-values inherit-values 'output-color css-datum->color)
-                    #:paren-color (css-ref declared-values inherit-values 'paren-color css-datum->color)
-                    #:border-color (css-ref declared-values inherit-values 'border-color css-datum->color)
-                    #:foreground-color (css-ref declared-values inherit-values 'foreground-color css-datum->color)
-                    #:background-color (css-ref declared-values inherit-values 'background-color css-datum->color)
+        (make-btest #:symbol-color (css-ref declared-values inherit-values 'symbol-color css->color)
+                    #:string-color (css-ref declared-values inherit-values 'string-color css->color)
+                    #:number-color (css-ref declared-values inherit-values 'number-color css->color)
+                    #:output-color (css-ref declared-values inherit-values 'output-color css->color)
+                    #:paren-color (css-ref declared-values inherit-values 'paren-color css->color)
+                    #:border-color (css-ref declared-values inherit-values 'border-color css->color)
+                    #:foreground-color (css-ref declared-values inherit-values 'foreground-color css->color)
+                    #:background-color (css-ref declared-values inherit-values 'background-color css->color)
                     #:font (css-extract-font declared-values inherit-values)
                     #:width (css-ref declared-values inherit-values 'width index? css:initial)
                     #:combine? (eq? 'normal (css-ref declared-values inherit-values 'font-variant-ligatures symbol? 'normal))
-                    #:desc (css-ref declared-values inherit-values 'desc css-datum->desc)
+                    #:desc (css-ref declared-values inherit-values 'desc css->desc)
+                    #:prelude (css-ref declared-values inherit-values 'prelude (make-css->bitmap 15 (btest-prelude initial-values)))
                     #:descriptors (for/hash : (HashTable Symbol CSS-Datum) ([(k fv) (in-css-values declared-values)])
                                     (values k (fv)))))))
 
@@ -1144,7 +1199,7 @@
       
       (values (append bitmap-descs
                       (list (bitmap-pin 1 1/2 0 1/2
-                                        (bitmap-text "> ")
+                                        (btest-prelude tobj)
                                         (bitmap-text "(" #:color (btest-paren-color tobj))
                                         (bitmap-hc-append #:gapsize 7
                                                           (bitmap-text (~a "bitmap-case" i) #:color (btest-symbol-color tobj))

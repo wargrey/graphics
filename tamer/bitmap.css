@@ -49,6 +49,7 @@ module.main {
     count: 8;
     width: 256;
     desc: "";
+    prelude: @text-icon("Prelude> " @make-font(#face "Lucida Grande") #height 6);
 
     font: normal 85% "Lucida Grande", "Trebuchet MS", Verdana, Helvetica, Gill Sans, var(--default-font);
     text-decoration: underline;
