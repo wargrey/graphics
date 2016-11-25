@@ -1016,28 +1016,26 @@
           [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
           [else css:initial])))
 
-(define make-css->bitmap : (case-> [-> (-> Symbol CSS-Datum (CSS-Maybe Bitmap))]
-                                   [Positive-Real (U Positive-Real Bitmap) -> (-> Symbol CSS-Datum (CSS-Maybe Bitmap))]
-                                   [Positive-Real Positive-Real Bitmap -> (-> Symbol CSS-Datum (CSS-Maybe Bitmap))]
-                                   [(-> (CSS-Maybe Bitmap) (CSS-Maybe Bitmap)) -> (-> Symbol CSS-Datum (CSS-Maybe Bitmap))])
+(define make-css->bitmap : (case-> [-> (-> Symbol CSS-Datum Bitmap)]
+                                   [Positive-Real (U Positive-Real Bitmap) -> (-> Symbol CSS-Datum Bitmap)]
+                                   [Positive-Real Positive-Real Bitmap -> (-> Symbol CSS-Datum Bitmap)]
+                                   [(U (-> Bitmap Bitmap) Bitmap) -> (-> Symbol CSS-Datum Bitmap)])
   (case-lambda
-    [() (make-css->bitmap values)]
+    [() (make-css->bitmap (default-css-invalid-image))]
     [(height density/alt-image)
      (cond [(real? density/alt-image) (make-css->bitmap height density/alt-image (default-css-invalid-image))]
            [else (make-css->bitmap height (default-icon-backing-scale) (default-css-invalid-image))])]
     [(height density alt-image)
      (make-css->bitmap
-      (λ [[raw : (CSS-Maybe Bitmap)]]
+      (λ [[raw : Bitmap]]
         (define (normalize [bmp : Bitmap]) : Bitmap
           (bitmap-scale (bitmap-alter-density bmp density)
                         (/ height (send bmp get-height))))
-        (cond [(css-wide-keyword? raw) (normalize alt-image)]
-              [(send raw ok?) (normalize raw)]
-              [else (let ([bmp (default-css-invalid-image)])
-                      (cond [(> (send bmp get-height) height) (normalize bmp)]
-                            [else (bitmap-cc-superimpose (bitmap-blank height height density)
-                                                         (bitmap-alter-density bmp density))]))])))]
-    [(normalize)
+        (cond [(send raw ok?) (normalize raw)]
+              [(> (send alt-image get-height) height) (normalize alt-image)]
+              [else (bitmap-cc-superimpose (bitmap-blank height height density)
+                                           (bitmap-alter-density alt-image density))])))]
+    [(normalize/alt)
      (letrec ([image->bitmap : (->* (CSS-Image-Datum) (Positive-Real) Bitmap)
                (λ [img [the-density (default-icon-backing-scale)]]
                  (cond [(non-empty-string? img) (bitmap img the-density)]
@@ -1067,9 +1065,10 @@
                           (if (is-a? icon bitmap%) (cast icon Bitmap) the-invalid-image))]
                        [else the-invalid-image]))])
        (λ [_ image]
-         (cond [(is-a? image bitmap%) (normalize (cast image Bitmap))]
-               [(css-image-datum? image) (normalize (image->bitmap image))]
-               [else (normalize css:initial)])))]))
+         (cond [(is-a? image bitmap%) (cast image Bitmap)]
+               [(css-image-datum? image) (let ([raw (image->bitmap image)]) (if (object? normalize/alt) raw (normalize/alt raw)))]
+               [(object? normalize/alt) normalize/alt]
+               [else (normalize/alt (default-css-invalid-image))])))]))
 
 (define css->bitmap (make-css->bitmap))
 
@@ -1163,7 +1162,7 @@
                     #:width (css-ref declared-values inherit-values 'width index? css:initial)
                     #:combine? (eq? 'normal (css-ref declared-values inherit-values 'font-variant-ligatures symbol? 'normal))
                     #:desc (css-ref declared-values inherit-values 'desc css->desc)
-                    #:prelude (css-ref declared-values inherit-values 'prelude (make-css->bitmap 15 (btest-prelude initial-values)))
+                    #:prelude (css-ref declared-values inherit-values 'prelude (make-css->bitmap (btest-prelude initial-values)))
                     #:descriptors (for/hash : (HashTable Symbol CSS-Datum) ([(k fv) (in-css-values declared-values)])
                                     (values k (fv)))))))
 
