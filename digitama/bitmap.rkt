@@ -1058,10 +1058,9 @@
                         (cond [(zero? density) the-invalid-image]
                               [else (image->bitmap src density)])]
                        [(css-@λ? img)
-                        (define (sexp-filter [datum : Any]) : Any
-                          (if (css-@λ? datum) (map sexp-filter (css-@λ-sexp datum)) datum))
                         (with-handlers ([exn? (λ [[e : exn]] (css-log-eval-error e 'css->bitmap) the-invalid-image)])
-                          (define icon : Any (call-with-values (thunk (eval (map sexp-filter (css-@λ-sexp img)))) (λ _ (car _))))
+                          (define sexp : (Listof Any) (css-@λ->top-level-form img (flcss%-em length%)))
+                          (define icon : Any (call-with-values (thunk (eval sexp)) (λ _ (car _))))
                           (if (is-a? icon bitmap%) (cast icon Bitmap) the-invalid-image))]
                        [else the-invalid-image]))])
        (λ [_ image]

@@ -3090,8 +3090,7 @@
                                         (define lazy? : Boolean (css-declaration-lazy? property))
                                         (define info : CSS-Declaration-Parser
                                           (desc-parser desc-name (thunk (void (make+exn:css:deprecated <desc-name>)))))
-                                        (cond [(false? info) (make+exn:css:unrecognized <desc-name>)]
-                                              [(void? info) (void '(ignore this property))]
+                                        (cond [(or (false? info) (void? info)) (make+exn:css:unrecognized <desc-name>)]
                                               [(pair? info) (parse-long info <desc-name> declared-values important? lazy?)]
                                               [else (parse-desc info <desc-name> desc-name declared-values important? lazy?)])))]))])))
       valuebase))
@@ -3294,16 +3293,16 @@
                                    (cond [(nor (memq count λarities) (>= count λmin-arty)) (make-exn:css:arity <λ>)]
                                          [else (css-@λ (cons λname (reverse argl)))]))]))])))])
 
-(define <css:escape> : (All (a) (case-> [-> (CSS:Filter String)]
-                                        [(-> Any Boolean : #:+ a) -> (CSS:Filter a)]
-                                        [(-> Any Boolean) -> (CSS:Filter Any)]))
+(define <css:escape> : (All (a) (case-> [-> (CSS:Filter (List 'values String))]
+                                        [(-> Any Boolean : #:+ a) -> (CSS:Filter (List 'values a))]
+                                        [(-> Any Boolean) -> (CSS:Filter (List 'values Any))]))
   (case-lambda
-    [() (λ [[t : CSS-Syntax-Any]] (and (css:unquote? t) (css:unquote-datum t)))]
+    [() (λ [[t : CSS-Syntax-Any]] (and (css:unquote? t) (list 'values (css:unquote-datum t))))]
     [(type?) (λ [[t : CSS-Syntax-Any]]
                (and (css:unquote? t)
                     (with-handlers ([exn? (λ _ (make-exn:css:racket t))])
                       (let ([v (read (open-input-string (css:unquote-datum t)))])
-                        (if (type? v) v (make-exn:css:contract t))))))]))
+                        (if (type? v) (list 'values v) (make-exn:css:contract t))))))]))
 
 (define css-eval-value : (-> CSS:Racket Namespace (U Any CSS-Syntax-Error))
   (lambda [<thing> ns]
@@ -3312,6 +3311,15 @@
       (define id : Symbol (css:racket-datum <thing>))
       (define v : Any (call-with-values (thunk (eval id ns)) (λ _ (car _))))
       (if (parameter? v) (v) v))))
+
+(define css-@λ->top-level-form : (->* (CSS-@λ) ((Option Real)) (Listof Any))
+  (lambda [datum [maybe-100% #false]]
+    (define (fsexp [datum : Any]) : Any
+      (cond [(single-flonum? datum) (* datum (or maybe-100% 1.0f0))]
+            [(css:length? datum) (css:length->scalar datum #true)]
+            [(css-@λ? datum) (map fsexp (css-@λ-sexp datum))]
+            [else datum]))
+    (map fsexp (css-@λ-sexp datum))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module* main typed/racket
