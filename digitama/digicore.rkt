@@ -227,7 +227,7 @@
            [else (continuation-mark-set->context (continuation-marks cm))]))))
 
 (define-type Prefab-Message msg:log)
-(struct msg:log ([level : Log-Level] [brief : String] [details : Any] [topic : Symbol])
+(struct msg:log ([level : Log-Level] [brief : String] [detail : Any] [topic : Symbol])
   #:prefab #:constructor-name make-prefab-message)
 
 (define dtrace-send : (-> Any Symbol String Any Void)
@@ -246,7 +246,7 @@
 (define dtrace-message : (-> Prefab-Message [#:logger Logger] [#:alter-topic (Option Symbol)] [#:detail-only? Boolean] Void)
   (lambda [info #:logger [logger (current-logger)] #:alter-topic [topic #false] #:detail-only? [detail-only? #false]]
     (log-message logger (msg:log-level info) (or topic (msg:log-topic info))
-                 (msg:log-brief info) (if detail-only? (msg:log-details info) info))))
+                 (msg:log-brief info) (if detail-only? (msg:log-detail info) info))))
 
 (define exn->prefab-message : (-> exn [#:level Log-Level] [#:exn->detail (-> exn Any)] Prefab-Message)
   (lambda [e #:level [level 'error] #:exn->detail [exn->detail (λ [[e : exn]] (continuation-mark->stack-hints (exn-continuation-marks e)))]]

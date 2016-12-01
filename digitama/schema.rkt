@@ -9,12 +9,12 @@
 (require (for-syntax syntax/parse))
 
 (define-type (UUID dataspec) String)
+(define-type Schema-Message msg:schema)
 
 (define schema-tables : (HashTable Symbol Struct-TypeTop) (make-hasheq))
 
 (define-type/enum schema-maniplations : Schema-Maniplation read write verify select delete merge index unknown)
-(struct msg:schema msg:log ([maniplation : Schema-Maniplation] [table : Symbol] [uuid : String])
-  #:prefab #:type-name Schema-Message)
+(struct msg:schema msg:log ([maniplation : Schema-Maniplation] [table : Symbol] [uuid : String]) #:prefab)
 
 
 (define make-schema-message : (->* (Schema-Maniplation Struct-TypeTop String Any)
@@ -199,7 +199,8 @@
                                 [arg! (in-list (syntax->list #'([field : (U DataType Void) (void)] ...)))])
                        (list (cons :fld (cons arg (car syns)))
                              (cons :fld (cons arg! (cadr syns)))))])
-       #'(begin (struct table schema-record ([field : DataType] ...) #:prefab #:type-name Table #:constructor-name unsafe-table)
+       #'(begin (define-type Table table)
+                (struct table schema-record ([field : DataType] ...) #:prefab #:constructor-name unsafe-table)
                 (hash-set! schema-tables (object-name/symbol struct:table) struct:table)
                 
                 (define-syntax (check-fields stx)
