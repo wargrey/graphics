@@ -144,8 +144,8 @@ exec racket -N "`basename $0 .rkt`" -t "$0" -- ${1+"$@|#\@|"}
                    [current-command-line-arguments (vector)])
      (send (make-object splash%) show #true)))
  (class frame% (inherit show)
-   (define subframe%? ((inst make-subclass? Frame%) frame%))
-   (define bitmap%? ((inst make-is-a? Bitmap%) bitmap%))
+   (define-cheat-opaque subframe%? #:sub? Frame% frame%)
+   (define-cheat-opaque bitmap%? #:is-a? Bitmap% bitmap%)
 
    (define splash-logger (make-logger 'splash /dev/log))
    (define logo.png : Path (build-path (digimon-icon) (string-append (#%digimon) ".png")))
