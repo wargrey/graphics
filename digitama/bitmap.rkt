@@ -35,7 +35,7 @@
             [else #| path?id=binding#xywh=x,y,w,h |#
              (define (read-image.rkt [src.rkt : String] [id : Symbol]) : Bitmap
                (define raw (require-image src.rkt id density))
-               (cond [(is-a? raw bitmap%) (cast raw Bitmap)]
+               (cond [(bitmap%? raw) raw]
                      [else (error 'require-image "contract violation: received ~s" raw)]))
              (match (string-split (if (path? src) (path->string src) src) #px"([?]id=)|(#xywh=)")
                [(list src.rkt id xywh) (image-section (read-image.rkt src.rkt (string->symbol id)) xywh 'require-image)]
@@ -62,10 +62,10 @@
             [else #| path?id=binding |#
              (define (read-sprite.rkt [src.rkt : String] [id : Symbol] [grid : (Option String)]) : (Listof Bitmap)
                (define raw (require-image src.rkt id density))
-               (cond [(list? raw) (filter-map (λ [v] (and (is-a? v bitmap%) (cast v Bitmap))) raw)]
-                     [(not (is-a? raw bitmap%)) (error 'require-sprite "contract violation: received ~s" raw)]
-                     [(string? grid) (image-disassemble (cast raw Bitmap) grid 'require-sprite)]
-                     [else (list (cast raw Bitmap))]))
+               (cond [(list? raw) (filter-map (λ [v] (and (bitmap%? v) v)) raw)]
+                     [(not (bitmap%? raw)) (error 'require-sprite "contract violation: received ~s" raw)]
+                     [(string? grid) (image-disassemble raw grid 'require-sprite)]
+                     [else (list raw)]))
              (match (string-split (if (path? src) (path->string src) src) #px"([?]id=)|(#grids=)")
                [(list src.rkt id grid) (read-sprite.rkt src.rkt (string->symbol id) grid)]
                [(list src.rkt id) (read-sprite.rkt src.rkt (string->symbol id) #false)]
@@ -452,6 +452,7 @@
 
   (require racket/fixnum)
 
+  (require typed/cheat)
   (require typed/racket/draw)
   (require typed/images/icons)
 
@@ -467,6 +468,7 @@
   (define-css-value rgba #:as RGBA #:=> css-color ([r : Byte] [g : Byte] [b : Byte] [a : Nonnegative-Flonum]))
   (define-css-value hsba #:as HSBA #:=> css-color ([>rgb : HSB->RGB] [h : Real] [s : Real] [b : Real] [a : Nonnegative-Flonum]))
 
+  (define-cheat-opaque color%? #:is-a? Color% color%)
   (define-predicate css-basic-color-datum? (U Index Symbol String))
   (define the-color-pool : (HashTable Fixnum Color) (make-hasheq))
   
@@ -574,7 +576,7 @@
           [else (make-exn:css:range color-value)]))
   
   (define-css-racket-value-filter <racket-color> #:with ?color #:as (U String Symbol Index Color)
-    [(is-a? ?color color%) (cast ?color Color)]
+    [(color%? ?color) ?color]
     [(index? ?color) ?color]
     [(and (symbol? ?color)
           (or (and (hash-has-key? css-named-colors ?color) ?color)
@@ -605,6 +607,7 @@
   (define-css-value image #:as Image #:=> css-image ([content : CSS-Image-Datum] [fallback : CSS-Color-Datum]))
   (define-css-value image-set #:as Image-Set #:=> css-image ([options : Image-Set-Options]))
 
+  (define-cheat-opaque bitmap%? #:is-a? Bitmap% bitmap%)
   (define-predicate css-image-datum? CSS-Image-Datum)
   (define the-invalid-image : Bitmap (read-bitmap (open-input-bytes #"placeholder")))
   (define default-css-invalid-image : (Parameterof Bitmap) (make-parameter (x-icon)))
@@ -707,6 +710,7 @@
                     (set-box! &font font))
                   sexp ...))]))
 
+  (define-cheat-opaque font%? #:is-a? Font% font%)
   (define default-css-font : (Parameterof Font) (make-parameter (make-font)))
   (define css-font-family-names/no-variants : (Listof String) (get-face-list 'all #:all-variants? #false))
   (define backup-dc (make-object bitmap-dc% (make-object bitmap% 1 1)))
@@ -740,7 +744,7 @@
     [small-caption (default-css-font)]
     [status-bar    (default-css-font)])
   
-  (define-css-racket-value-filter <racket-font> #:is-a? font% #:as Font)
+  (define-css-racket-value-filter <racket-font> #:? font%? #:as Font)
 
   (define smart-font-size : (-> Font Nonnegative-Flonum)
     (let ([macosx? (eq? (system-type 'os) 'macosx)])
@@ -889,7 +893,7 @@
 
 (require racket/provide)
 (provide <css-color> <css-image> <css-system-font> default-css-font
-         (matching-identifiers-out #px"^default-css-" (all-from-out (submod "." css))))
+         (matching-identifiers-out #px"(^default-css-|%?$)" (all-from-out (submod "." css))))
 
 (define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)
   (lambda [representation [alpha 1.0]]
@@ -1008,7 +1012,7 @@
 
 (define css->color : (-> Symbol CSS-Datum (U Color CSS-Wide-Keyword 'currentcolor))
   (lambda [desc-name color]
-    (cond [(is-a? color color%) (cast color Color)]
+    (cond [(color%? color) color]
           [(eq? color 'currentcolor) color #| evaluated at used-value time |#]
           [(css-basic-color-datum? color) (select-rgba-color color)]
           [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
@@ -1061,10 +1065,10 @@
                         (with-handlers ([exn? (λ [[e : exn]] (css-log-eval-error e 'css->bitmap) the-invalid-image)])
                           (define sexp : (Listof Any) (css-@λ->top-level-form img (flcss%-em length%)))
                           (define icon : Any (call-with-values (thunk (eval sexp)) (λ _ (car _))))
-                          (if (is-a? icon bitmap%) (cast icon Bitmap) the-invalid-image))]
+                          (if (bitmap%? icon) icon the-invalid-image))]
                        [else the-invalid-image]))])
        (λ [_ image]
-         (cond [(is-a? image bitmap%) (normalize (cast image Bitmap))]
+         (cond [(bitmap%? image) (normalize image)]
                [(css-image-datum? image) (normalize (image->bitmap image))]
                [else css:initial])))]))
 

@@ -3,16 +3,16 @@
 (define boot-time : Fixnum (current-milliseconds))
 
 (provide (all-defined-out) Term-Color vim-colors Racket-Place-Status Racket-Thread-Status)
-(provide (all-from-out "sugar.rkt" "format.rkt" "ugly.rkt" "uuid.rkt"))
+(provide (all-from-out "sugar.rkt" "format.rkt" "uuid.rkt"))
 (provide (all-from-out (submod "openssl.rkt" typed/ffi)))
+(provide (all-from-out typed/cheat))
 
+(require typed/cheat)
 (require (for-syntax racket/syntax))
 
 @require{sugar.rkt}
 @require{format.rkt}
-@require{ugly.rkt}
 @require{uuid.rkt}
-
 @require[(submod "openssl.rkt" typed/ffi)]
 
 (define-type Racket-Main (-> String * Void))
