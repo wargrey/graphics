@@ -1,12 +1,12 @@
 #lang info
 
-(define collection "css")
-(define version "1.0")
-
+(define collection 'use-pkg-name)
 (define pkg-desc "A CSS Engine written in pure Typed Racket")
+
+(define deps '("base" "digimon"))
+(define build-deps '("scribble-lib" "racket-doc"))
+
+(define version "1.0")
 (define pkg-authors '(wargrey))
 
-(define build-deps '("base"
-                     "math-lib"
-                     "typed-racket-lib"
-                     "scribble-lib"))
+(define scribblings '(["tamer/css.scrbl" (main-doc) (parsing-library)]))
