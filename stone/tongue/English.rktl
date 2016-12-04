@@ -1,8 +1,0 @@
-((tamer-handbook . "Tamer's Handbook")
- (handbook-story . "Story")
- (handbook-scenario . "Scenario")
- (handbook-reference . "References")
- (handbook-appendix . "Appendix")
- (handbook-bibliography . "Bibliography")
- (handbook-digimon . "Partner Digimon")
- (handbook-index . "Index"))
