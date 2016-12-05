@@ -2,12 +2,13 @@
 
 (provide (all-defined-out) <css-color>)
 
+(require colorspace)
+
 (require "digitama/digicore.rkt")
 (require "digitama/bitmap.rkt")
 (require "digitama/color.rkt")
 (require "recognizer.rkt")
 (require "racket.rkt")
-(require "../colorspace/main.rkt")
 
 (define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)
   (lambda [representation [alpha 1.0]]

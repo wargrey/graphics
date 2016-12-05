@@ -15,11 +15,9 @@
 
 (provide (all-defined-out))
 
-(define-syntax (require/provide stx)
-  (syntax-case stx []
-    [(_ spec ...)
-     #'(begin (provide (all-from-out spec)) ...
-              (require spec) ...)]))
+(require digimon/digitama/sugar)
 
-(require/provide "syntax.rkt" "bitmap.rkt" "racket.rkt"
-                 "color.rkt" "image.rkt" "font.rkt" "text-decor.rkt")
+(require/provide bitmap)
+(require/provide "syntax.rkt" "racket.rkt"
+                 "color.rkt" "image.rkt"
+                 "font.rkt" "text-decor.rkt")

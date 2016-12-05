@@ -1,15 +1,14 @@
 #lang typed/racket
 
+(require racket/provide)
 (provide (all-defined-out) <:font-shorthand:> <:font-family:> <css-system-font>)
+(provide (matching-identifiers-out #px"(^default-css-|%?$)" (all-from-out "digitama/font.rkt")))
+
+(require bitmap)
 
 (require "digitama/digicore.rkt")
-(require "digitama/bitmap.rkt")
 (require "digitama/font.rkt")
 (require "recognizer.rkt")
-(require "bitmap.rkt")
-
-(require racket/provide)
-(provide (matching-identifiers-out #px"(^default-css-|%?$)" (all-from-out "digitama/font.rkt")))
 
 (define css-font-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
