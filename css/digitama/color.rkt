@@ -5,11 +5,10 @@
 (provide (all-defined-out))
 
 (require "bitmap.rkt")
-
-(require/provide "digicore.rkt")
-(require/provide "../recognizer.rkt")
-(require/provide "../racket.rkt")
-(require/provide "../colorspace.rkt")
+(require "digicore.rkt")
+(require "../recognizer.rkt")
+(require "../racket.rkt")
+(require "../../colorspace/main.rkt")
 
 (define-type CSS-Color-Datum (U Color+sRGB CSS-Color))
 (define-predicate css-basic-color-datum? (U Index Symbol String))

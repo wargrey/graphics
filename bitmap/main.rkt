@@ -1,11 +1,11 @@
 #lang typed/racket
 
 (provide (all-defined-out))
-(provide (except-out (all-from-out "digitama/bitmap.rkt" "color.rkt") require-image))
+(provide (except-out (all-from-out css/digitama/bitmap) require-image))
 
-(require "digitama/bitmap.rkt")
-(require "digitama/misc.rkt")
-(require "color.rkt")
+(require css/digitama/bitmap)
+(require css/digitama/misc)
+(require css/color)
 
 (define bitmap : (->* ((U Path-String Input-Port)) (Positive-Real) Bitmap)
   ;;; https://drafts.csswg.org/css-images/#image-fragments

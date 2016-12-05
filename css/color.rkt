@@ -1,11 +1,13 @@
 #lang typed/racket
 
 (provide (all-defined-out) <css-color>)
-(provide (all-from-out "digitama/bitmap.rkt" "colorspace.rkt"))
 
+(require "digitama/digicore.rkt")
 (require "digitama/bitmap.rkt")
 (require "digitama/color.rkt")
-(require "colorspace.rkt")
+(require "recognizer.rkt")
+(require "racket.rkt")
+(require "../colorspace/main.rkt")
 
 (define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)
   (lambda [representation [alpha 1.0]]

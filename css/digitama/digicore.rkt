@@ -486,18 +486,6 @@
           [else (let ([eof-msg (css-token->string property errobj eof)])
                   (log-message logger level topic (format "~a @‹~a›" eof-msg (css:ident-datum property)) errobj))])))
 
-(define-preference flcss% #:as FlCSS%
-  ([vw : Nonnegative-Flonum  #:= 1440.0]
-   [vh : Nonnegative-Flonum  #:= 820.0]
-   [rem : Nonnegative-Flonum #:= 12.0]
-   [em : Nonnegative-Flonum  #:= 12.0]
-   [ex : Nonnegative-Flonum  #:= 8.0]
-   [ch : Nonnegative-Flonum  #:= 8.0]
-   [ic : Nonnegative-Flonum  #:= 12.0])
-  #:transparent
-  #:mutable)
-
-(define length% : FlCSS% (make-flcss%))
 (define css-zero? : (-> Any Boolean : #:+ CSS-Zero) (λ [v] (or (css:zero? v) (css:flzero? v))))
 (define css-one? : (-> Any Boolean : #:+ CSS-One) (λ [v] (or (css:one? v) (css:flone? v))))
 
@@ -666,12 +654,24 @@
            (hash-set! properties desc-name (thunk computed-value)))
          computed-value)]))
 
+(define-preference flcss% #:as FlCSS%
+  ([vw : Nonnegative-Flonum  #:= 1440.0]
+   [vh : Nonnegative-Flonum  #:= 820.0]
+   [rem : Nonnegative-Flonum #:= 12.0]
+   [em : Nonnegative-Flonum  #:= 12.0]
+   [ex : Nonnegative-Flonum  #:= 8.0]
+   [ch : Nonnegative-Flonum  #:= 8.0]
+   [ic : Nonnegative-Flonum  #:= 12.0])
+  #:transparent
+  #:mutable)
+
 (define-preference css-values #:as CSS-Values
   ([descriptors : (HashTable Symbol (-> CSS-Datum)) #:= (make-hasheq)]
    [variables : CSS-Variable-Values                 #:= (make-hasheq)]
    [importants : (HashTable Symbol Boolean)         #:= (make-hasheq)])
   #:transparent)
 
+(define length% : FlCSS% (make-flcss%))
 (define css-longhand : CSS-Longhand-Values (make-immutable-hasheq))
 (define css-cache-computed-object-value : (Parameterof Boolean) (make-parameter #true))
   

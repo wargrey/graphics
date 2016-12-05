@@ -1,10 +1,11 @@
 #lang typed/racket
 
 (provide (all-defined-out) <:font-shorthand:> <:font-family:> <css-system-font>)
-(provide (all-from-out "digitama/bitmap.rkt"))
 
+(require "digitama/digicore.rkt")
 (require "digitama/bitmap.rkt")
 (require "digitama/font.rkt")
+(require "recognizer.rkt")
 (require "bitmap.rkt")
 
 (require racket/provide)

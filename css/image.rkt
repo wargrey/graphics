@@ -1,11 +1,14 @@
 #lang typed/racket
 
 (provide (all-defined-out) <css-image>)
-(provide (all-from-out "bitmap.rkt"))
 
 (require "digitama/image.rkt")
 (require "digitama/misc.rkt")
-(require "bitmap.rkt")
+(require "digitama/digicore.rkt")
+(require "recognizer.rkt")
+(require "racket.rkt")
+(require "color.rkt")
+(require "../bitmap/main.rkt")
 
 (define css-image-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
   ;;; https://drafts.csswg.org/css-images/#image-processing
