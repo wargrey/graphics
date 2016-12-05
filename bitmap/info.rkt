@@ -7,3 +7,5 @@
 
 (define version "1.0")
 (define pkg-authors '(wargrey))
+
+(define scribblings '(["tamer/bitmap.scrbl" (main-doc) (gui-library)]))
