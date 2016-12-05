@@ -5,6 +5,8 @@
 (require "../main.rkt")
 (require digimon/format)
 
+(require racket/runtime-path)
+
 (define-syntax (time-run stx)
   (syntax-case stx []
     [(_ prefix sexp ...)
@@ -15,7 +17,7 @@
          (car result))]))
 
 (define DrRacket? : Boolean (regexp-match? #px"DrRacket$" (find-system-path 'run-file)))
-(define bitmap.css : Path-String "bitmap.css")
+(define-runtime-path bitmap.css "bitmap.css")
 
 (define-values (in out) (make-pipe))
 (define css-logger (make-logger 'css #false))

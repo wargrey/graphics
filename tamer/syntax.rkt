@@ -3,6 +3,7 @@
 (require "../syntax.rkt")
 
 (require digimon/format)
+(require racket/runtime-path)
 
 (define-syntax (time-run stx)
   (syntax-case stx []
@@ -14,7 +15,7 @@
                  cpu real gc)
          (car result))]))
 
-(define tamer.css : Path-String "tamer.css")
+(define-runtime-path tamer.css "tamer.css")
   
 (define-values (width height) (get-display-size))
 (define-values (in out) (make-pipe))
