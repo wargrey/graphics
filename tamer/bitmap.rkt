@@ -17,7 +17,7 @@
          (car result))]))
 
 (define DrRacket? : Boolean (regexp-match? #px"DrRacket$" (find-system-path 'run-file)))
-(define-runtime-path bitmap.css "bitmap.css")
+(define-runtime-path bitmap.css "../stone/bitmap.css")
 
 (define-values (in out) (make-pipe))
 (define css-logger (make-logger 'css #false))

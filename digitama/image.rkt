@@ -4,11 +4,13 @@
 
 (provide (all-defined-out))
 
-(require "digicore.rkt")
 (require "bitmap.rkt")
-(require "font.rkt")
-(require "color.rkt")
-(require "../racket.rkt")
+
+(require/provide "digicore.rkt")
+(require/provide "font.rkt")
+(require/provide "color.rkt")
+(require/provide "../recognizer.rkt")
+(require/provide "../racket.rkt")
 
 (define-type Image-Set-Option (List CSS-Image-Datum Positive-Flonum))
 (define-type Image-Set-Options (Listof Image-Set-Option))

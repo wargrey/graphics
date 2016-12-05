@@ -5,6 +5,7 @@
 (provide (all-defined-out))
 
 (require "digitama/digicore.rkt")
+(require "recognizer.rkt")
 
 (begin-for-syntax
   (require racket/list)

@@ -15,3 +15,18 @@
 (define-type (Listof+ css) (Pairof css (Listof css)))
 (define-type Symbol↯ Symbol)
 (define-type Keyword↯ Keyword)
+
+(define css-log-error : (->* ((U exn String)) (Any Log-Level Symbol) Void)
+  (lambda [errobj [src #false] [level 'debug] [topic 'exn:css:fail]]
+    (define message : String
+      (cond [(string? errobj) errobj]
+            [else (format "@~s: ~a: ~a" src (object-name errobj) (read-line (open-input-string (exn-message errobj))))]))
+    (log-message (current-logger) level topic message errobj)))
+  
+(define css-log-read-error : (->* ((U exn String)) (Any Log-Level) Void)
+  (lambda [errobj [src #false] [level 'debug]]
+    (css-log-error errobj src level 'exn:css:read)))
+
+(define css-log-eval-error : (->* ((U exn String)) (Any Log-Level) Void)
+  (lambda [errobj [src #false] [level 'debug]]
+    (css-log-error errobj src level 'exn:css:eval)))

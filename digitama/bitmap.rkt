@@ -1,6 +1,6 @@
 #lang typed/racket
 
-(provide (all-defined-out))
+(provide (all-defined-out) require/provide)
 (provide (all-from-out typed/racket/draw typed/images/logos typed/images/icons))
 (provide (all-from-out racket/flonum racket/fixnum))
 
@@ -12,6 +12,7 @@
 (require racket/fixnum)
 
 (require digimon/cheat)
+(require digimon/digitama/sugar)
 
 (define-type Color (Instance Color%))
 (define-type Color+sRGB (U Index Symbol String Color))

@@ -6,6 +6,9 @@
 (require "digicore.rkt")
 (require "tokenizer.rkt")
 (require "parser.rkt")
+(require "conditional.rkt")
+(require "device-adapt.rkt")
+(require "selector.rkt")
 (require "misc.rkt")
 
 (require (for-syntax syntax/parse))

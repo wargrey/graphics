@@ -2,9 +2,7 @@
 
 (provide (all-defined-out) <:text-decoration:>)
 
-(require "digitama/digicore.rkt")
 (require "digitama/text-decor.rkt")
-(require "digitama/color.rkt")
 
 (define css-text-decoration-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
   ;;; https://drafts.csswg.org/css-text-decor/#line-decoration

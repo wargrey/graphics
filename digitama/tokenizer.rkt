@@ -5,6 +5,7 @@
 (provide (all-defined-out))
 
 (require "digicore.rkt")
+(require "misc.rkt")
 
 (struct css-srcloc ([in : Input-Port] [source : (U String Symbol)] [line : Natural] [col : Natural] [pos : Natural])
   #:type-name CSS-Srcloc)
@@ -22,7 +23,7 @@
   (syntax-case stx []
     [(_ src css:bad:sub token datum)
      #'(let ([bad (css-make-token src css:bad:sub (~s (cons (object-name token) datum)))])
-         (css-log-read-error bad)
+         (css-log-read-error (css-token->string bad))
          bad)]))
 
 (define css-consume-token : (-> Input-Port (U String Symbol) (U EOF CSS-Token))

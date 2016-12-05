@@ -3,9 +3,11 @@
 ;;; https://drafts.csswg.org/css-text-decor
 
 (provide (all-defined-out))
+(provide (all-from-out "digicore.rkt" "color.rkt" "../recognizer.rkt"))
 
 (require "digicore.rkt")
 (require "color.rkt")
+(require "../recognizer.rkt")
 
 (define css-text-decor-line-options : (Listof Symbol) '(underline overline line-through blink))
 (define css-text-decor-skip-options : (Listof Symbol) '(objects spaces ink edges box-decoration))

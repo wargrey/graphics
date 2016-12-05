@@ -3,9 +3,8 @@
 (provide (all-defined-out) <css-image>)
 (provide (all-from-out "bitmap.rkt"))
 
-(require "digitama/digicore.rkt")
 (require "digitama/image.rkt")
-(require "racket.rkt")
+(require "digitama/misc.rkt")
 (require "bitmap.rkt")
 
 (define css-image-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))

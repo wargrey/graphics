@@ -3,8 +3,8 @@
 (provide (all-defined-out))
 (provide (except-out (all-from-out "digitama/bitmap.rkt" "color.rkt") require-image))
 
-(require "digitama/digicore.rkt")
 (require "digitama/bitmap.rkt")
+(require "digitama/misc.rkt")
 (require "color.rkt")
 
 (define bitmap : (->* ((U Path-String Input-Port)) (Positive-Real) Bitmap)

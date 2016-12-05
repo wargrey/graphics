@@ -5,9 +5,11 @@
 
 (provide (all-defined-out))
 
-(require "digicore.rkt")
 (require "bitmap.rkt")
-(require "../racket.rkt")
+
+(require/provide "digicore.rkt")
+(require/provide "../recognizer.rkt")
+(require/provide "../racket.rkt")
 
 (require (for-syntax syntax/parse))
 

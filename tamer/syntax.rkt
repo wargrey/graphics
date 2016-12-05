@@ -1,6 +1,7 @@
 #lang typed/racket/gui
 
 (require "../syntax.rkt")
+(require "../digitama/selector.rkt")
 
 (require digimon/format)
 (require racket/runtime-path)
@@ -15,7 +16,7 @@
                  cpu real gc)
          (car result))]))
 
-(define-runtime-path tamer.css "tamer.css")
+(define-runtime-path tamer.css "../stone/tamer.css")
   
 (define-values (width height) (get-display-size))
 (define-values (in out) (make-pipe))
