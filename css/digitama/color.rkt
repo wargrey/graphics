@@ -1,4 +1,4 @@
-#lang at-exp typed/racket
+#lang typed/racket
 
 ;;; https://drafts.csswg.org/css-color
 

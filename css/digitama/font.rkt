@@ -1,4 +1,4 @@
-#lang at-exp typed/racket
+#lang typed/racket
 
 ;;; https://drafts.csswg.org/css-fonts
 ;;; https://drafts.csswg.org/css-fonts-4

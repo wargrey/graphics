@@ -3,7 +3,7 @@
 (define collection 'use-pkg-name)
 (define pkg-desc "A CSS Engine written in pure Typed Racket")
 
-(define deps '("base" "digimon" "images-lib"))
+(define deps '("base" "digimon" "images-lib" "typed-racket-more"))
 (define build-deps '("scribble-lib" "racket-doc"))
 
 (define version "1.0")

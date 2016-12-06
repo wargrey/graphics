@@ -3,7 +3,7 @@
 (define collection 'use-pkg-name)
 (define pkg-desc "Color space conversion")
 
-(define deps '("base" "math-lib"))
+(define deps '("base" "math-lib" "typed-racket-lib"))
 (define build-deps '("scribble-lib" "racket-doc"))
 
 (define version "1.0")
