@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang digimon/sugar
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; http://www.w3.org/Style/CSS/specs.en.html                                                   ;;;
@@ -14,8 +14,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide (all-defined-out))
-
-(require digimon/digitama/sugar)
 
 (require/provide bitmap)
 (require/provide "syntax.rkt" "racket.rkt"
