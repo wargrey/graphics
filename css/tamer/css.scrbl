@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@title{CSS: A CSS Engine Written in Pure Typed Racket}
+@title{CSS: A CSS Engine Written in Typed Racket}
 @author{wargrey}
 
-@italic{Sorry, but I will write it as soon as possible.}
+@italic{Sorry, I will write the documentation when it is ready to use. Currently I am using it to build a desktop application.}
