@@ -103,30 +103,29 @@
                                    (cond [(nor (memq count λarities) (>= count λmin-arty)) (make-exn:css:arity <λ>)]
                                          [else (css-@λ (cons λname (reverse argl)))]))]))])))])
 
-(define <css:escape> : (All (a) (case-> [-> (CSS:Filter (List 'values String))]
-                                        [(-> Any Boolean : #:+ a) -> (CSS:Filter (List 'values a))]
-                                        [(-> Any Boolean) -> (CSS:Filter (List 'values Any))]))
-  (case-lambda
-    [() (λ [[t : CSS-Syntax-Any]] (and (css:unquote? t) (list 'values (css:unquote-datum t))))]
-    [(type?) (λ [[t : CSS-Syntax-Any]]
-               (and (css:unquote? t)
-                    (with-handlers ([exn? (λ _ (make-exn:css:racket t))])
-                      (let ([v (read (open-input-string (css:unquote-datum t)))])
-                        (if (type? v) (list 'values v) (make-exn:css:contract t))))))]))
+(define-css-atomic-filter <css-#boolean> #:-> (List 'values Boolean)
+  #:with [[token : css:ident?]]
+  (case (css:ident-norm token)
+    [(false False) '(values #false)]
+    [(true True)   '(values #true)]
+    [else (make-exn:css:range token)]))
+
+(define-css-disjoined-filter <css-#false> #:-> (List 'values False)
+  (CSS:<=> (<css:ident> '(False false)) '(values #false)))
 
 (define css-eval-value : (-> CSS:Racket Namespace (U Any CSS-Syntax-Error))
   (lambda [<thing> ns]
-    ;;; WARNING: This operation is extremely expensive at first time.
     (with-handlers ([exn? (λ _ (make-exn:css:racket <thing>))])
       (define id : Symbol (css:racket-datum <thing>))
       (define v : Any (call-with-values (thunk (eval id ns)) (λ _ (car _))))
       (if (parameter? v) (v) v))))
 
-(define css-@λ->top-level-form : (->* (CSS-@λ) ((Option Real)) (Listof Any))
-  (lambda [datum [maybe-100% #false]]
+(define css-eval-@λ : (->* (CSS-@λ Namespace) ((Option Real)) Any)
+  (lambda [datum ns [maybe-100% #false]]
     (define (fsexp [datum : Any]) : Any
       (cond [(single-flonum? datum) (* datum (or maybe-100% 1.0f0))]
             [(css:length? datum) (css:length->scalar datum #true)]
             [(css-@λ? datum) (map fsexp (css-@λ-sexp datum))]
             [else datum]))
-    (map fsexp (css-@λ-sexp datum))))
+    (call-with-values (thunk (eval (map fsexp (css-@λ-sexp datum)) ns))
+      (λ do-not-support-multiple-values (car do-not-support-multiple-values)))))

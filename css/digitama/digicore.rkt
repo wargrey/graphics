@@ -418,8 +418,7 @@
   (define-symbolic-tokens css-unreadable-token #:+ CSS-Unreadable-Token
     ; These tokens are remade by the parser instead of being produced by the tokenizer.
     [css:ratio          #:+ CSS:Ratio           #:as Positive-Exact-Rational]
-    [css:racket         #:+ CSS:Racket          #:as Symbol]
-    [css:unquote        #:+ CSS:Unquote         #:as String]))
+    [css:racket         #:+ CSS:Racket          #:as Symbol]))
   
 (define-syntax (css-remake-token stx)
   (syntax-case stx []

@@ -18,9 +18,7 @@
 
 (define css-log-error : (->* ((U exn String)) (Any Log-Level Symbol) Void)
   (lambda [errobj [src #false] [level 'debug] [topic 'exn:css:fail]]
-    (define message : String
-      (cond [(string? errobj) errobj]
-            [else (format "@~s: ~a: ~a" src (object-name errobj) (read-line (open-input-string (exn-message errobj))))]))
+    (define message : String (if (string? errobj) errobj (format "@~s: ~a: ~a" src (object-name errobj) (exn-message errobj))))
     (log-message (current-logger) level topic message errobj)))
   
 (define css-log-read-error : (->* ((U exn String)) (Any Log-Level) Void)

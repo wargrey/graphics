@@ -3,7 +3,6 @@
 #root {
     at-exp: @racket[] @schema [];
     racket-logo: @x-icon[#height var(--icon-height) #material rubber-icon-material #thickness 12];
-    escape-icon: @text-icon["testcase for escaping" @make-font[#'underlined?' ,'#true']];
     retina-icon: image-set("normal.png" 96dpi, "normal@2x.png" 2x);
 
     font: 12px/1.5; /* error property, font property requires font-family or system font */
@@ -14,7 +13,7 @@
     fallback-image: image("", #ABCDEF);
     error-image: image(#FFF, "");
 
-    case-sensitive-error-logo: @x-icon[#Height ,'32' #thickness 12];
+    case-sensitive-error-logo: @x-icon[#Height 32 #thickness 12];
     arity-error-logo: @racket-logo(overconsumption #height 32 normal-argument);
     arity-error-logo: @right-arrow-icon{#height 32};
     arity-error-logo: @text-icon[#height 32];
@@ -49,7 +48,7 @@ module.main {
     count: 8;
     width: 256;
     desc: "";
-    prelude: @text-icon("Prelude> " @make-font(#face "Lucida Grande") #height 100% #'trim?' ,'#false');
+    prelude: @text-icon("Prelude> " @make-font(#face "Lucida Grande") #height 100% #trim\? false);
 
     font: normal 85% "Lucida Grande", "Trebuchet MS", Verdana, Helvetica, Gill Sans, var(--default-font);
     text-decoration: underline;

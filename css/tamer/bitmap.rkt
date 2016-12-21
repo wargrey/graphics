@@ -24,7 +24,8 @@
 (define css (thread (thunk (let forever ([/dev/log (make-log-receiver css-logger 'debug)])
                              (match (sync/enable-break /dev/log)
                                [(vector 'debug _ (? eof-object?) _) (close-output-port out)]
-                               [(vector level message _ 'exn:css:syntax) (fprintf out "[~a] ~a~n" level message) (forever /dev/log)]
+                               [(vector level message _ (or 'exn:css:syntax 'exn:css:eval 'exn:css:read))
+                                (fprintf out "[~a] ~a~n" level message) (forever /dev/log)]
                                [else (forever /dev/log)])))))
   
 (current-logger css-logger)
@@ -139,6 +140,8 @@
 (when DrRacket? :root)
 (when DrRacket? (apply bitmap-vl-append bitmap-descs))
 (when DrRacket? length%)
+
+(when (pair? testcases) (btest-prelude (car testcases)))
 
 (log-message css-logger 'debug "exit" eof)
 (when DrRacket? (copy-port in (current-output-port)))

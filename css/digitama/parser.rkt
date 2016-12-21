@@ -766,34 +766,15 @@
 
 (define css-λarguments-filter : (-> (Listof CSS-Token) (U (Listof CSS-Token) CSS-Syntax-Error))
   (lambda [argl]
-    (define (escape [<comma> : CSS:Comma] [<datum> : CSS:String]) : CSS:Unquote
-      (css-remake-token [<comma> <datum>] css:unquote (css:string-datum <datum>)))
     (let rearrange ([swk : (Listof CSS-Token) null]
                     [lgra : (Listof CSS-Token) null]
                     [tail : (Listof CSS-Token) argl])
       (define-values (head rest) (css-car/cdr tail))
       (cond [(eof-object? head) (append (reverse swk) (reverse lgra))]
-            [(or (css:hash? head) (css:delim=:=? head #\#))
-             (define-values (:kw real-rest)
-               (cond [(css:hash? head) (values head rest)]
-                     [else (let-values ([(esc others) (css-car/cdr rest)])
-                             (values (cond [(eof-object? esc) (make+exn:css:missing-value head)]
-                                           [(not (css:string? esc)) (make+exn:css:type esc)]
-                                           [else (css-remake-token [head esc] css:hash (string->keyword (css:string-datum esc)))])
-                                     others))]))
-             (define-values (kw-value ?escaping) (css-car/cdr real-rest))
-             (cond [(exn:css? :kw) :kw]
-                   [(or (eof-object? kw-value) (css:hash? kw-value) (css:delim=:=? kw-value #\#)) (make+exn:css:missing-value :kw)]
-                   [(not (css:comma? kw-value)) (rearrange (cons kw-value (cons :kw swk)) lgra ?escaping)]
-                   [else (let-values ([(esc others) (css-car/cdr ?escaping)])
-                           (cond [(eof-object? esc) (make+exn:css:missing-value kw-value)]
-                                 [(css:string? esc) (rearrange (cons (escape kw-value esc) (cons :kw swk)) lgra others)]
-                                 [else (make+exn:css:type esc)]))])]
-            [(css:comma? head)
-             (define-values (esc-datum others) (css-car/cdr rest))
-             (cond [(eof-object? esc-datum) (make+exn:css:missing-value head)]
-                   [(css:string? esc-datum) (rearrange swk (cons (escape head esc-datum) lgra) others)]
-                   [else (make+exn:css:type esc-datum)])]
+            [(css:hash? head)
+             (define-values (kw-value others) (css-car/cdr rest))
+             (cond [(eof-object? kw-value) (make+exn:css:missing-value head)]
+                   [else (rearrange (cons kw-value (cons head swk)) lgra others)])]
             [else (rearrange swk (cons head lgra) rest)]))))
   
 (define css-media-queries-support? : (-> (Listof CSS-Media-Query) CSS-Media-Preferences Boolean)

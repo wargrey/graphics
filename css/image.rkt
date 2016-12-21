@@ -64,9 +64,7 @@
                               [else (image->bitmap src density)])]
                        [(css-@λ? img)
                         (with-handlers ([exn? (λ [[e : exn]] (css-log-eval-error e 'css->bitmap) the-invalid-image)])
-                          (define sexp : (Listof Any) (css-@λ->top-level-form img (flcss%-em length%)))
-                          (define icon : Any (call-with-values (thunk (eval sexp)) (λ _ (car _))))
-                          (if (bitmap%? icon) icon the-invalid-image))]
+                          (assert (css-eval-@λ img (module->namespace 'bitmap) (flcss%-em length%)) bitmap%?))]
                        [else the-invalid-image]))])
        (λ [_ image]
          (cond [(bitmap%? image) (normalize image)]

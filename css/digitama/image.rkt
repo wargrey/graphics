@@ -35,11 +35,11 @@
   (lambda [λname ?λ:kw]
     (case (or ?λ:kw λname)
       [(#:size) (CSS:<+> (<css:integer> 0 < 1024) (<css:flonum> 0.0 fl< 1024.0))]
-      [(#:face) (CSS:<+> (<css:string>) (<css:escape> false?))]
+      [(#:face) (CSS:<+> (<css:string>) (<css-#false>))]
       [(#:family) (<css:ident> (make-predicate Font-Family))]
       [(#:style) (<css:ident> (make-predicate Font-Style))]
       [(#:weight) (<css:ident> (make-predicate Font-Weight))]
-      [(#:underlined? #:size-in-pixels?) (<css:escape> boolean?)]
+      [(#:underlined? #:size-in-pixels?) (<css-#boolean>)]
       [(#:smoothing) (<css:ident> racket-font-smoothing?)]
       [(#:hinting) (<css:ident> racket-font-hinting?)])))
   
@@ -57,10 +57,10 @@
       [(#:backing-scale) (<css+real> '#:nonzero)]
       [(#:height #:thickness #:outline) (<css+%real>)]
       [(#:material) (<css:ident> '(plastic-icon-material rubber-icon-material glass-icon-material metal-icon-material))]
-      [(#:trim?) (<css:escape> boolean?)]
+      [(#:trim?) (<css-#boolean>)]
       [(text-icon) (CSS<&> (CSS<^> (<css:string>)) (CSS<$> (CSS<^> (<text-icon-font>))))]
       [(regular-polygon-icon) (CSS<&> (CSS<^> (<css-natural> '#:nonzero)) (CSS<$> (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))))]
-      [(lock-icon) (CSS<$> (CSS<^> (<css:escape> boolean?)))]
+      [(lock-icon) (CSS<$> (CSS<^> (<css-#boolean>)))]
       [(running-stickman-icon) (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))]
       [else (if ?λ:kw (<css-color>) <:clock-pointers:>)])))
 
@@ -80,7 +80,6 @@
 (define-css-disjoined-filter <css-image> #:-> CSS-Image-Datum
   ;;; https://drafts.csswg.org/css-images/#image-values
   ;;; https://drafts.csswg.org/css-images/#invalid-image
-  ;[(css:function=:=? image-value 'image) (css-extract-image image-value (css:function-arguments image-value))]
   (<css:@λ> the-@icon-pool css-@icon-filter)
   (<css-image-notation>)
   (CSS:<?> (<css:url> string?) #false (λ _ "")))
