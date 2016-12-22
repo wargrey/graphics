@@ -419,7 +419,10 @@
     ; These tokens are remade by the parser instead of being produced by the tokenizer.
     [css:ratio          #:+ CSS:Ratio           #:as Positive-Exact-Rational]
     [css:racket         #:+ CSS:Racket          #:as Symbol]))
-  
+
+(define css-zero? : (-> Any Boolean : #:+ CSS-Zero) (λ [v] (or (css:zero? v) (css:flzero? v))))
+(define css-one? : (-> Any Boolean : #:+ CSS-One) (λ [v] (or (css:one? v) (css:flone? v))))
+
 (define-syntax (css-remake-token stx)
   (syntax-case stx []
     [(_ [start-token end-token] make-css:token datum extra ...)
@@ -485,8 +488,14 @@
           [else (let ([eof-msg (css-token->string property errobj eof)])
                   (log-message logger level topic (format "~a @‹~a›" eof-msg (css:ident-datum property)) errobj))])))
 
-(define css-zero? : (-> Any Boolean : #:+ CSS-Zero) (λ [v] (or (css:zero? v) (css:flzero? v))))
-(define css-one? : (-> Any Boolean : #:+ CSS-One) (λ [v] (or (css:one? v) (css:flone? v))))
+(define css-url-modifiers-filter : (-> CSS-Token (Listof CSS-Token) (Listof CSS-URL-Modifier))
+  (lambda [url modifiers]
+    (let modifiers-filter ([sreifidom : (Listof CSS-URL-Modifier) null]
+                           [tail : (Listof CSS-Token) modifiers])
+      (define-values (head rest) (css-car tail))
+      (cond [(eof-object? head) (reverse sreifidom)]
+            [(or (css:ident? head) (css-lazy-token? head)) (modifiers-filter (cons head sreifidom) rest)]
+            [else (make+exn:css:type (list url head)) (modifiers-filter sreifidom rest)]))))
 
 ;;; https://drafts.csswg.org/css-syntax/#parsing
 (define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
@@ -580,6 +589,11 @@
    [classes : (Listof Symbol)                           #:= null]
    [attributes : (HashTable Symbol CSS-Attribute-Value) #:= (make-hasheq)])
   #:prefab)
+
+;; https://drafts.csswg.org/mediaqueries
+(define-type CSS-Media-Value (U CSS-Numeric CSS:Ident CSS:Ratio))
+(define-type CSS-Media-Datum (U Symbol Integer Flonum))
+(define-type CSS-Media-Preferences (HashTable Symbol CSS-Media-Datum))
 
 ;; https://drafts.csswg.org/css-cascade/#shorthand
 ;; https://drafts.csswg.org/css-cascade/#filtering

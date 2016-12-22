@@ -15,8 +15,6 @@
 ;; https://drafts.csswg.org/mediaqueries/#mq-features
 (define-type CSS-Media-Query (U CSS-Media-Type CSS-Feature-Query (Pairof CSS-Media-Type CSS-Feature-Query)))
 (define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature CSS-Declaration Symbol CSS-Syntax-Error))
-(define-type CSS-Media-Value (U CSS-Numeric CSS:Ident CSS:Ratio))
-(define-type CSS-Media-Datum (U Symbol Integer Flonum))
 
 (struct: css-media-type : CSS-Media-Type ([name : Symbol] [only? : Boolean]))
 (struct: css-media-feature : CSS-Media-Feature ([name : Symbol] [value : CSS-Media-Datum] [operator : Char]))
@@ -27,7 +25,6 @@
 ;; https://drafts.csswg.org/mediaqueries/#media-descriptor-table
 ;; https://drafts.csswg.org/mediaqueries/#mf-deprecated
 (define-type CSS-Feature-Support? (-> Symbol (Listof+ CSS-Token) Boolean))
-(define-type CSS-Media-Preferences (HashTable Symbol CSS-Media-Datum))
 (define-type CSS-Media-Feature-Filter (-> Symbol Boolean (-> Void) (U Void (CSS:Filter CSS-Media-Datum))))
 
 (define css-media-feature-filter : CSS-Media-Feature-Filter

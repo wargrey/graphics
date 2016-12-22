@@ -18,7 +18,7 @@
 (define-type CSS-Namespace (HashTable Symbol String))
 (define-type CSS-Namespace-Hint (U CSS-Namespace (Listof Symbol) False))
 (define-type CSS-Selector-Combinator (U '>> '> '+ '~ '||))
-  
+
 (define-selectors
   [css-attribute-selector      #:+ CSS-Attribute-Selector ([name : Symbol] [quirk : Symbol] [namespace : (U Symbol Boolean)])]
   [css-attribute~selector      #:+ CSS-Attribute~Selector css-attribute-selector
