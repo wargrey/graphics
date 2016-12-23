@@ -19,3 +19,13 @@
 (require/provide "syntax.rkt" "racket.rkt"
                  "color.rkt" "image.rkt"
                  "font.rkt" "text-decor.rkt")
+
+(module reader syntax/module-reader
+  #:whole-body-readers? #true
+  #:read css-read
+  #:read-syntax css-read-syntax
+  #:language css
+  #:language-info css-language-info
+  #:info css-info
+
+  (require "language-info.rkt"))
