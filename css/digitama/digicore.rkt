@@ -587,7 +587,8 @@
    [id : (U Keyword (Listof+ Keyword))                  #:= (css-root-element-id)]
    [namespace : (U Symbol Boolean)                      #:= #true]
    [classes : (Listof Symbol)                           #:= null]
-   [attributes : (HashTable Symbol CSS-Attribute-Value) #:= (make-hasheq)])
+   [attributes : (HashTable Symbol CSS-Attribute-Value) #:= (make-hasheq)]
+   [:classes : (Listof Symbol)                          #:= null])
   #:prefab)
 
 ;; https://drafts.csswg.org/mediaqueries

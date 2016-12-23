@@ -91,7 +91,7 @@
                                   (values k (fv)))))))
 
 (define tamer-sheet : CSS-StyleSheet (read-css-stylesheet bitmap.css))
-(define tamer-main : CSS-Subject (make-css-subject #:type 'module #:id '#:root #:classes '(main)))
+(define tamer-main : CSS-Subject (make-css-subject #:type 'module #:id '#:root #:classes '(main) #::classes '(root)))
 
 (define :values : CSS-Values (make-css-values))
 (define :root : Bitmap-TestCase

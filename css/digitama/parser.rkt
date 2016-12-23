@@ -530,16 +530,17 @@
             [(css:delim=<-? head '(#\| #\*)) (css-car-elemental-selector head heads namespaces)]
             [(or (eof-object? head) (css:comma? head)) (throw-exn:css:empty head)]
             [else (values #true #true (or (css-declared-namespace namespaces '||) #true) (cons head heads))]))
-    (define-values (pseudo-classes selector-components) (css-car-pseudo-class-selectors simple-selector-components))
+    (define-values (:classes selector-components) (css-car-:class-selectors simple-selector-components))
     (let extract-simple-selector ([sessalc : (Listof Symbol) null]
                                   [sdi : (Listof Keyword) null]
                                   [setubirtta : (Listof CSS-Attribute-Selector) null]
-                                  [pseudo-element : (Option CSS-Pseudo-Element-Selector) #false]
+                                  [pseudo-element : (Option CSS-::Element-Selector) #false]
                                   [selector-tokens : (Listof CSS-Token) selector-components])
       (define-values (token tokens) (css-car/cdr selector-tokens))
       (cond [(or (eof-object? token) (css:comma? token) (css-selector-combinator? token))
-             (values (make-css-compound-selector combinator typename quirkname namespace pseudo-classes
-                                                 (reverse sessalc) (reverse sdi) (reverse setubirtta) pseudo-element)
+             (values (make-css-compound-selector combinator typename quirkname namespace
+                                                 (cond [(null? sdi) null] [(null? (cdr sdi)) (car sdi)] [else (reverse sdi)])
+                                                 (reverse sessalc) (reverse setubirtta) :classes pseudo-element)
                      selector-tokens)]
             [(and pseudo-element) (throw-exn:css:overconsumption token)]
             [(css:delim=:=? token #\.)
@@ -547,14 +548,14 @@
              (cond [(not (css:ident? next)) (throw-exn:css:type:identifier next)]
                    [else (extract-simple-selector (cons (css:ident-datum next) sessalc) sdi setubirtta pseudo-element rest)])]
             [(css:colon? token)
-             (define-values (?pseudo-classes ?rest) (css-car-pseudo-class-selectors tokens))
+             (define-values (?pseudo-classes ?rest) (css-car-:class-selectors tokens))
              (define-values (next rest) (css-car/cdr ?rest))
              (cond [(null? ?pseudo-classes) (throw-exn:css:misplaced (list token (car tokens)))]
                    [else (let ([pclass (car ?pseudo-classes)])
-                           (define pelement : CSS-Pseudo-Element-Selector
-                             (make-css-pseudo-element-selector (css-pseudo-class-selector-name pclass)
-                                                               (css-pseudo-class-selector-arguments pclass)
-                                                               (cdr ?pseudo-classes)))
+                           (define pelement : CSS-::Element-Selector
+                             (make-css-::element-selector (css-:class-selector-name pclass)
+                                                          (css-:class-selector-arguments pclass)
+                                                          (cdr ?pseudo-classes)))
                            (extract-simple-selector sessalc sdi setubirtta pelement ?rest))])]
             [(css:block=:=? token #\[)
              (define attribute-selector : CSS-Attribute-Selector (css-simple-block->attribute-selector token namespaces))
@@ -602,21 +603,21 @@
                   (cond [(css:delim? token) (values #true #true ns tokens)]
                         [else (values (css:ident-datum token) (css:ident-norm token) ns tokens)]))])))
 
-(define css-car-pseudo-class-selectors : (-> (Listof CSS-Token) (Values (Listof CSS-Pseudo-Class-Selector) (Listof CSS-Token)))
+(define css-car-:class-selectors : (-> (Listof CSS-Token) (Values (Listof CSS-:Class-Selector) (Listof CSS-Token)))
   ;;; https://drafts.csswg.org/selectors/#structure
   ;;; https://drafts.csswg.org/selectors/#elemental-selectors
   ;;; https://drafts.csswg.org/selectors/#pseudo-classes
   (lambda [components]
-    (let extract-pseudo-class-selector ([srotceles : (Listof CSS-Pseudo-Class-Selector) null]
-                                        [tokens : (Listof CSS-Token) components])
+    (let extract-:class-selector ([srotceles : (Listof CSS-:Class-Selector) null]
+                                  [tokens : (Listof CSS-Token) components])
       (define-values (maybe: rest ?id rest2) (css-car/cadr tokens))
       (cond [(or (not (css:colon? maybe:)) (css:colon? ?id)) (values (reverse srotceles) tokens)]
             [(css:ident? ?id)
-             (let ([selector (make-css-pseudo-class-selector (css:ident-datum ?id) #false)])
-               (extract-pseudo-class-selector (cons selector srotceles) rest2))]
+             (let ([selector (make-css-:class-selector (css:ident-datum ?id) #false)])
+               (extract-:class-selector (cons selector srotceles) rest2))]
             [(css:function? ?id)
-             (let ([selector (make-css-pseudo-class-selector (css:function-norm ?id) (css:function-arguments ?id))])
-               (extract-pseudo-class-selector (cons selector srotceles) rest2))]
+             (let ([selector (make-css-:class-selector (css:function-norm ?id) (css:function-arguments ?id))])
+               (extract-:class-selector (cons selector srotceles) rest2))]
             [else (throw-exn:css:type:identifier maybe:)]))))
   
 (define css-simple-block->attribute-selector : (-> CSS:Block CSS-Namespace-Hint CSS-Attribute-Selector)

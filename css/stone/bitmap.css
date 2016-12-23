@@ -1,6 +1,6 @@
 @charset "utf-8";
 
-#root {
+:root {
     at-exp: @racket[] @schema [];
     racket-logo: @x-icon[#height var(--icon-height) #material rubber-icon-material #thickness 12];
     retina-icon: image-set("normal.png" 96dpi, "normal@2x.png" 2x);
@@ -19,7 +19,7 @@
     arity-error-logo: @text-icon[#height 32];
 }
 
-#root {
+:root {
     --cyclic: var(--dependency);
     --dependency: var(--cyclic);
     --self-dependency: var(--self-dependency);
