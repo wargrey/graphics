@@ -6,7 +6,7 @@
 (require racket/port)
 (require syntax/strip-context)
 
-(require "syntax.rkt")
+(require "digitama/grammar.rkt")
 
 (define css-read
   (lambda [[/dev/cssin (current-input-port)]]
@@ -15,17 +15,16 @@
   
 (define css-read-syntax
   (lambda [[src #false] [/dev/cssin (current-input-port)]]
-    (define modname
-      (cond [(path? src) (string->symbol (path->string (path-replace-extension (file-name-from-path src) "")))]
-            [else (if (symbol? src) src 'lang.css)]))
+    (define lang.css
+      (cond [(not (path? src)) 'lang.css]
+            [else (let ([src.css (path-replace-extension (file-name-from-path src) "")])
+                    (string->symbol (path->string (cond [(regexp-match? #px"\\.css$" src.css) src.css]
+                                                        [else (path-replace-extension src.css ".css")]))))]))
     (strip-context
-     #`(module #,modname typed/racket/base
-         (provide (all-defined-out))
-         (provide (all-from-out css/syntax))
-         
+     #`(module #,lang.css typed/racket/base
+         (provide (all-defined-out) (all-from-out css/syntax))
          (require css/syntax)
-         
-         (define css : CSS-StyleSheet (read-css-stylesheet (open-input-bytes #,(port->bytes /dev/cssin) '#,src)))))))
+         (define #,lang.css : CSS-StyleSheet (read-css-stylesheet (open-input-bytes #,(port->bytes /dev/cssin) '#,src)))))))
 
 (define css-language-info
   (lambda [argument]
