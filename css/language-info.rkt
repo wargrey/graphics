@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/path)
+(require racket/port)
 (require syntax/strip-context)
 
 (require "syntax.rkt")
@@ -14,11 +15,17 @@
   
 (define css-read-syntax
   (lambda [[src #false] [/dev/cssin (current-input-port)]]
-    (define modname (if src (string->symbol (path->string (path-replace-extension (file-name-from-path src) ""))) 'lang.css))
+    (define modname
+      (cond [(path? src) (string->symbol (path->string (path-replace-extension (file-name-from-path src) "")))]
+            [else (if (symbol? src) src 'lang.css)]))
     (strip-context
-     #`(module #,modname racket/base
-         ; TODO: why the result looks right but actually is not css-stylesheet?
-         #,(css-read /dev/cssin)))))
+     #`(module #,modname typed/racket/base
+         (provide (all-defined-out))
+         (provide (all-from-out css/syntax))
+         
+         (require css/syntax)
+         
+         (define css : CSS-StyleSheet (read-css-stylesheet (open-input-bytes #,(port->bytes /dev/cssin) '#,src)))))))
 
 (define css-language-info
   (lambda [argument]
