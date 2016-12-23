@@ -20,6 +20,7 @@
             [else (let ([src.css (path-replace-extension (file-name-from-path src) "")])
                     (string->symbol (path->string (cond [(regexp-match? #px"\\.css$" src.css) src.css]
                                                         [else (path-replace-extension src.css ".css")]))))]))
+    (regexp-match #px"^\\s*" /dev/cssin) ; skip blanks between `#lang` and contents
     (strip-context
      #`(module #,lang.css typed/racket/base
          (provide (all-defined-out) (all-from-out css/syntax))
@@ -30,7 +31,6 @@
   (lambda [argument]
     (λ [key default]
       (case key
-        ;[(configure-runtime) `(#(typed-racket/language-info configure ()))]
         [else default]))))
 
 (define css-info
