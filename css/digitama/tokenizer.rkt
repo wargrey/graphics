@@ -386,26 +386,3 @@
     (and (char? ch1) (char? ch2)
          (char=? ch1 #\.)
          (char<=? #\0 ch2 #\9))))
-
-(define css-fallback-charset : (-> String String)
-  (lambda [from]
-    (define CHARSET : String (string-upcase from))
-    (cond [(member CHARSET '("UTF-16BE" "UTF-16LE")) "UTF-8"]
-          [else CHARSET])))
-  
-(define css-fallback-encode-input-port : (-> Input-Port Input-Port)
-  ;;; https://drafts.csswg.org/css-syntax/#input-byte-stream
-  ;;; https://drafts.csswg.org/css-syntax/#charset-rule
-  (lambda [/dev/rawin]
-    (define magic : (U EOF String) (peek-string 1024 0 /dev/rawin))
-    (cond [(eof-object? magic) /dev/rawin]
-          [(let ([charset? (regexp-match #px"^@charset \"(.*?)\";" magic)])
-             (and charset? (let ([name (cdr charset?)]) (and (pair? name) (car name)))))
-           => (λ [v] (let ([charset (css-fallback-charset v)])
-                       (cond [(string-ci=? charset "UTF-8") /dev/rawin]
-                             [else (with-handlers ([exn? (const /dev/rawin)])
-                                     (reencode-input-port /dev/rawin charset
-                                                          (string->bytes/utf-8 (format "@charset \u22~a\u22;" v))
-                                                          #false (object-name /dev/rawin) #true))])))]
-          [else /dev/rawin])))
-

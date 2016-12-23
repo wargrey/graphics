@@ -20,12 +20,12 @@
                  "color.rkt" "image.rkt"
                  "font.rkt" "text-decor.rkt")
 
-(module reader syntax/module-reader
-  #:whole-body-readers? #true
-  #:read css-read
-  #:read-syntax css-read-syntax
-  #:language 'css
-  #:language-info css-language-info
-  #:info css-info
+(module reader racket/base
+  (provide (except-out (all-from-out racket/base) read read-syntax))
 
-  (require "language-info.rkt"))
+  (provide (rename-out [css-read read]))
+  (provide (rename-out [css-read-syntax read-syntax]))
+  (provide (rename-out [css-language-info get-language-info]))
+  (provide (rename-out [css-info get-info]))
+  
+  (require css/language-info))

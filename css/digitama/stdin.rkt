@@ -76,3 +76,29 @@
       (define token (css-peek-syntax css skip))
       (cond [(not (css:whitespace? token)) token]
             [else (peek/skip-whitespace (fx+ skip 1))]))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define css-fallback-charset : (-> Bytes String)
+  (lambda [from]
+    (define CHARSET : String (string-upcase (bytes->string/utf-8 from)))
+    (cond [(member CHARSET '("UTF-16BE" "UTF-16LE")) "UTF-8"]
+          [else CHARSET])))
+  
+(define css-fallback-encode-input-port : (-> Input-Port Input-Port)
+  ;;; https://drafts.csswg.org/css-syntax/#input-byte-stream
+  ;;; https://drafts.csswg.org/css-syntax/#charset-rule
+  (lambda [/dev/rawin]
+    (when (regexp-match-peek #px"^#(lang|!)" /dev/rawin)
+      ;; skip racket `#lang` line and blanks.
+      (read-line /dev/rawin)
+      (regexp-match #px"^\\s*" /dev/rawin))
+    (define magic : (Option (Pairof Bytes (Listof (Option Bytes)))) (regexp-match-peek #px"^@charset \"(.*?)\";" /dev/rawin))
+    (define charset : (Option Bytes) (and magic (let ([name (cdr magic)]) (and (pair? name) (car name)))))
+    (define CHARSET : (Option String) (and charset (css-fallback-charset charset)))
+    (cond [(or (false? CHARSET) (string-ci=? CHARSET "UTF-8")) /dev/rawin]
+          [else (with-handlers ([exn? (const /dev/rawin)])
+                  (reencode-input-port /dev/rawin CHARSET (car (assert magic pair?))
+                                       #false (object-name /dev/rawin) #true
+                                       (λ [[msg : String] [port : Input-Port]] : Nothing
+                                         (error 'css-fallback-encode-input-port
+                                                (string-append msg ": ~e") port))))])))
