@@ -24,7 +24,7 @@
   #:whole-body-readers? #true
   #:read css-read
   #:read-syntax css-read-syntax
-  #:language css
+  #:language 'css
   #:language-info css-language-info
   #:info css-info
 

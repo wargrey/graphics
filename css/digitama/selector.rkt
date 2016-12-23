@@ -28,7 +28,7 @@
 
 (define-selectors
   [css-attribute-selector #:+ CSS-Attribute-Selector ([name : Symbol] [quirk : Symbol] [namespace : (U Symbol Boolean)])]
-  [css-attribute~selector #:+ CSS-Attribute~Selector css-attribute-selector ([operator : Char] [value : (U Symbol String)] [i? : Boolean])]  
+  [css-attribute~selector #:+ CSS-Attribute~Selector css-attribute-selector ([type : Char] [value : (U Symbol String)] [i? : Boolean])]  
 
   [css-:class-selector    #:+ CSS-:Class-Selector ([name : Symbol] [arguments : (Option (Listof CSS-Token))])]
   [css-::element-selector #:+ CSS-::Element-Selector
@@ -145,7 +145,7 @@
                              [mode : String (if (or quirk? (css-attribute~selector-i? attr)) "i" "-i")]
                              [val : String (if (list? datum) (string-join ((inst map String Any) ~a datum)) (~a datum))])
                         (and (non-empty-string? px:val)
-                             (case (css-attribute~selector-operator attr)
+                             (case (css-attribute~selector-type attr)
                                [(#\=) (regexp-match? (pregexp (format "(?~a:^~a$)" mode px:val)) val)]
                                [(#\~) (regexp-match? (pregexp (format "(?~a:\\b~a\\b)" mode px:val)) val)]
                                [(#\|) (regexp-match? (pregexp (format "(?~a:^~a(-|$))" mode px:val)) val)]
