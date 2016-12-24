@@ -5,6 +5,7 @@
 (provide (all-defined-out))
 
 (require "digitama/digicore.rkt")
+(require "digitama/misc.rkt")
 (require "recognizer.rkt")
 
 (begin-for-syntax
@@ -53,11 +54,12 @@
 (define-syntax (define-css-racket-value-filter stx)
   (syntax-case stx []
     [(_ <racket-value> #:with ?value #:as ValueType asserts ...)
-     #'(define <racket-value> : (->* () (Namespace) (CSS:Filter ValueType))
-         (lambda [[ns (current-namespace)]]
+     #'(define <racket-value> : (-> (CSS:Filter ValueType))
+         (lambda []
            (λ [[token : CSS-Syntax-Any]] : (CSS-Option ValueType)
              (and (css:racket? token)
-                  (let ([?value (css-eval-value token ns)])
+                  (let ([catch (λ [[e : exn]] (css-log-eval-error e '<racket-value>) (make-exn:css:racket token))])
+                    (define ?value (with-handlers ([exn? catch]) (css-eval-value token (current-namespace))))
                     (cond asserts ... [(exn:css? ?value) ?value]
                           [else (make-exn:css:contract token)]))))))]
     [(_ <racket-value> #:is-a? class% #:as ValueType)
@@ -113,12 +115,11 @@
 (define-css-disjoined-filter <css-#false> #:-> (List 'values False)
   (CSS:<=> (<css:ident> '(False false)) '(values #false)))
 
-(define css-eval-value : (-> CSS:Racket Namespace (U Any CSS-Syntax-Error))
-  (lambda [<thing> ns]
-    (with-handlers ([exn? (λ _ (make-exn:css:racket <thing>))])
-      (define id : Symbol (css:racket-datum <thing>))
-      (define v : Any (call-with-values (thunk (eval id ns)) (λ _ (car _))))
-      (if (parameter? v) (v) v))))
+(define css-eval-value : (->* (CSS:Racket Namespace) ((Option Symbol)) (U Any CSS-Syntax-Error))
+  (lambda [<thing> ns [src #false]]
+    (define id : Symbol (css:racket-datum <thing>))
+    (define v : Any (call-with-values (thunk (eval id ns)) (λ _ (car _))))
+    (if (parameter? v) (v) v)))
 
 (define css-eval-@λ : (->* (CSS-@λ Namespace) ((Option Real)) Any)
   (lambda [datum ns [maybe-100% #false]]
