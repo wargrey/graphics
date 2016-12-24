@@ -60,11 +60,11 @@
           [(prelude) (CSS<^> (<css-image>))]))))
 
 (define css-preference-filter : (CSS-Cascaded-Value-Filter Bitmap-TestCase)
-  (lambda [declared-values initial-values inherit-values]
-    (define (css->desc [_ : Symbol] [value : CSS-Datum]) : String
+  (lambda [declared-values inherit-values]
+    (define (css->desc [_ : Symbol] [value : CSS-Datum]) : (U String CSS-Wide-Keyword)
       (cond [(string? value) value]
             [(list? value) (string-join (map (λ [v] (~a v)) value))]
-            [else (btest-desc initial-values)]))
+            [else css:initial]))
     (parameterize ([current-css-element-color (css-ref declared-values inherit-values 'color)])
       (make-btest #:symbol-color (css-ref declared-values inherit-values 'symbol-color css->color)
                   #:string-color (css-ref declared-values inherit-values 'string-color css->color)
@@ -90,9 +90,7 @@
 (define :root : Bitmap-TestCase
   (time-run 'tamer-main
             (let-values ([(toplevel topvalues)
-                          (css-cascade (list tamer-sheet) (list tamer-main)
-                                       css-descriptor-filter css-preference-filter
-                                       (make-btest) #false)])
+                          (css-cascade (list tamer-sheet) (list tamer-main) css-descriptor-filter css-preference-filter #false)])
               (set! :values topvalues)
               toplevel)))
 
@@ -103,8 +101,7 @@
     (define tamer-test : CSS-Subject (make-css-subject #:type 'test #:id (string->keyword (~a 'case i))))
     (define-values (tobj _)
       (css-cascade (list tamer-sheet) (list tamer-test tamer-main)
-                   css-descriptor-filter css-preference-filter
-                   :root :values))
+                   css-descriptor-filter css-preference-filter :values))
 
     (define-values (fgcolor bgcolor rcolor bdcolor)
       (values (btest-foreground-color tobj) (btest-background-color tobj)

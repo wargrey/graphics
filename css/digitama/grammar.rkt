@@ -204,10 +204,9 @@
   (lambda [viewport-preferences viewport-descriptors
                                 [viewport-parser (default-css-viewport-parsers)]
                                 [viewport-filter (default-css-viewport-filter)]]
-    (call-with-css-media #:preferences viewport-preferences
-      (viewport-filter (css-cascade-declarations viewport-parser viewport-descriptors)
-                       viewport-preferences
-                       #false))))
+    (call-with-css-size-from-media #:preferences viewport-preferences
+      (parameterize ([default-css-media-preferences viewport-preferences])
+        (viewport-filter (css-cascade-declarations viewport-parser viewport-descriptors) #false)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-stylesheet-path->identity : (-> Path-String Positive-Integer)

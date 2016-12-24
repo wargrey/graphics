@@ -47,7 +47,7 @@
                            [:classes : (Listof CSS-:Class-Selector)]
                            [::element : (Option CSS-::Element-Selector)])])
 
-(define css-selector-match : (->* (CSS-Complex-Selector (Listof+ CSS-Subject)) (Boolean) (Option Nonnegative-Fixnum))
+(define css-selector-match : (->* (CSS-Complex-Selector (Listof CSS-Subject)) (Boolean) (Option Nonnegative-Fixnum))
   ;;; https://drafts.csswg.org/selectors/#evaluating-selectors
   (lambda [selectors stnemele [quirk? #false]]
     ; TODO: define a better object model

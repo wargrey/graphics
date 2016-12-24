@@ -29,14 +29,14 @@
 (define css-stylesheet-placeholder : CSS-StyleSheet
   (make-css-stylesheet (make-hasheq) '/dev/null 0 (make-hasheq) null (make-hasheq) null))
 
-(define css-cascade : (All (Preference) (-> (Listof CSS-StyleSheet) (Listof+ CSS-Subject)
+(define css-cascade : (All (Preference) (-> (Listof CSS-StyleSheet) (Listof CSS-Subject)
                                             CSS-Declaration-Parsers (CSS-Cascaded-Value-Filter Preference)
-                                            Preference (Option CSS-Values) [#:quirk? Boolean]
+                                            (Option CSS-Values) [#:quirk? Boolean]
                                             (Values Preference CSS-Values)))
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
   ;;; https://drafts.csswg.org/css-variables/#cycles
-  (lambda [stylesheets stcejbus desc-filter value-filter initial-values inherited-values #:quirk? [quirk? #false]]
+  (lambda [stylesheets stcejbus desc-filter value-filter inherited-values #:quirk? [quirk? #false]]
     (define declared-values : CSS-Values (make-css-values))
     (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
       (for ([stylesheet (in-list batch)])
@@ -46,9 +46,9 @@
         (css-cascade-rules (css-stylesheet-rules stylesheet) stcejbus desc-filter quirk?
                            (css-stylesheet-preferences stylesheet) declared-values)))
     (css-resolve-variables declared-values inherited-values)
-    (values (value-filter declared-values initial-values inherited-values) declared-values)))
+    (values (value-filter declared-values inherited-values) declared-values)))
 
-(define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) (Listof+ CSS-Subject) CSS-Declaration-Parsers)
+(define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject) CSS-Declaration-Parsers)
                                  (Boolean CSS-Media-Preferences CSS-Values) CSS-Values)
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
@@ -79,7 +79,7 @@
         (sort (reverse selected-rules-style)
               (λ [[sm1 : Style-Metadata] [sm2 : Style-Metadata]]
                 (fx< (vector-ref sm1 0) (vector-ref sm2 0)))))
-      (call-with-css-media #:preferences top-preferences
+      (call-with-css-size-from-media #:preferences top-preferences
         (if (and single-preference?)
             (let ([source-ref (λ [[src : Style-Metadata]] : CSS-Declarations (vector-ref src 1))])
               (css-cascade-declarations desc-filter (map source-ref ordered-sources) descbase))
@@ -87,7 +87,7 @@
               (define alter-preferences : CSS-Media-Preferences (vector-ref src 2))
               (if (eq? alter-preferences top-preferences)
                   (css-cascade-declarations desc-filter (vector-ref src 1) descbase)
-                  (call-with-css-media #:preferences alter-preferences
+                  (call-with-css-size-from-media #:preferences alter-preferences
                     (css-cascade-declarations desc-filter (vector-ref src 1) descbase)))))))
     descbase))
 

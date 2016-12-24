@@ -34,14 +34,14 @@
   ;;; https://drafts.csswg.org/css-device-adapt/#handling-auto-zoom
   ;;; https://drafts.csswg.org/css-device-adapt/#media-queries
   ;;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
-  (lambda [cascaded-values initial-viewport inherited-viewport]
+  (lambda [cascaded-values inherited-viewport]
     ; Notes: There is no need to check the `initial-viewport` to specific the `specified values` since
     ;          @viewport is a controversial @rule which is easy to be used incorrectly,
     ;          @viewport is rarely used in desktop applications, and
     ;          this behavior is indeed specified if I understand the specification correctly.
     (define-values (initial-width initial-height)
-      (let ([w (hash-ref initial-viewport 'width (const #false))]
-            [h (hash-ref initial-viewport 'height (const #false))])
+      (let ([w (hash-ref (default-css-media-preferences) 'width (const #false))]
+            [h (hash-ref (default-css-media-preferences) 'height (const #false))])
         (values (if (real? w) (flmax (real->double-flonum w) 1.0) 1.0)
                 (if (real? h) (flmax (real->double-flonum h) 1.0) 1.0))))
     (define defzoom : Nonnegative-Flonum (default-css-viewport-auto-zoom))
@@ -67,7 +67,7 @@
         (values width (cond [(flonum? height) height]
                             [(zero? initial-width) initial-height]
                             [else (fl* width (fl/ initial-height initial-width))]))))
-    (define actual-viewport (hash-copy initial-viewport))
+    (define actual-viewport (hash-copy (default-css-media-preferences)))
     (for ([name (in-list      '(min-zoom max-zoom width height))]
           [value (in-list (list min-zoom max-zoom width height))])
       (hash-set! actual-viewport name value))

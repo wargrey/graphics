@@ -611,7 +611,7 @@
 (define-type CSS-Cascading-Declarations (U CSS-Declarations (Listof CSS-Declarations)))
 (define-type CSS-Declaration-Parser (U (Pairof CSS-Shorthand-Parser (Listof Symbol)) (CSS-Parser (Listof CSS-Datum)) Void False))
 (define-type CSS-Declaration-Parsers (-> Symbol (-> Void) CSS-Declaration-Parser))
-(define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Values Preference (Option CSS-Values) Preference))
+(define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Values (Option CSS-Values) Preference))
   
 (struct --datum () #:transparent)
 
@@ -651,7 +651,7 @@
 (define default-css-all-exceptions : (Parameterof (Listof Symbol)) (make-parameter (list 'direction 'unicode-bidi)))
 (define-prefab-keyword css-wide-keyword #:as CSS-Wide-Keyword [initial inherit unset revert])
   
-(define-syntax (call-with-css-media stx)
+(define-syntax (call-with-css-size-from-media stx)
   (syntax-parse stx
     [(_ (~optional (~seq #:preferences ?preferences)) sexp ...)
      (with-syntax ([preferences (or (attribute ?preferences) #'(default-css-media-preferences))])
