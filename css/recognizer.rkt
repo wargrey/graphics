@@ -363,11 +363,14 @@
                                 [else (values n n)]))])])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define positive-flonum? : (-> Any Boolean : #:+ Positive-Flonum) (λ [v] (and (flonum? v) (fl> v 0.0))))
-(define nonnegative-flonum? : (-> Any Boolean : #:+ Nonnegative-Flonum) (λ [v] (and (flonum? v) (fl>= v 0.0))))
+(define-predicate positive-flonum? Positive-Flonum)
+(define-predicate nonnegative-flonum? Nonnegative-Flonum)
   
-(define positive-single-flonum? : (-> Any Boolean : #:+ Positive-Single-Flonum) (λ [v] (and (single-flonum? v) (> v 0.0f0))))
-(define nonnegative-single-flonum? : (-> Any Boolean : #:+ Nonnegative-Single-Flonum) (λ [v] (and (single-flonum? v) (>= v 0.0f0))))
+(define-predicate positive-single-flonum? Positive-Single-Flonum)
+(define-predicate nonnegative-single-flonum? Nonnegative-Single-Flonum)
+
+(define-predicate positive-byte? Positive-Byte)
+(define-predicate positive-index? Positive-Index)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-css-disjoined-filter <css-boolean> #:-> (U Zero One)
