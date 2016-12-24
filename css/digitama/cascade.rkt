@@ -29,34 +29,32 @@
 (define css-stylesheet-placeholder : CSS-StyleSheet
   (make-css-stylesheet (make-hasheq) '/dev/null 0 (make-hasheq) null (make-hasheq) null))
 
-(define css-cascade : (All (Preference) (-> (Listof CSS-StyleSheet) CSS-Subject
+(define css-cascade : (All (Preference) (-> (Listof CSS-StyleSheet) (Listof+ CSS-Subject)
                                             CSS-Declaration-Parsers (CSS-Cascaded-Value-Filter Preference)
                                             Preference (Option CSS-Values) [#:quirk? Boolean]
                                             (Values Preference CSS-Values)))
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
   ;;; https://drafts.csswg.org/css-variables/#cycles
-  (lambda [stylesheets subject desc-filter value-filter initial-values inherited-values #:quirk? [quirk? #false]]
+  (lambda [stylesheets stcejbus desc-filter value-filter initial-values inherited-values #:quirk? [quirk? #false]]
     (define declared-values : CSS-Values (make-css-values))
     (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
       (for ([stylesheet (in-list batch)])
         (define child-identities : (Listof Positive-Integer) (css-stylesheet-imports stylesheet))
         (cascade-stylesheets (for/list : (Listof CSS-StyleSheet) ([import (in-list child-identities)])
                                (hash-ref (css-stylesheet-pool stylesheet) import)))
-        (css-cascade-rules (css-stylesheet-rules stylesheet) subject desc-filter quirk?
+        (css-cascade-rules (css-stylesheet-rules stylesheet) stcejbus desc-filter quirk?
                            (css-stylesheet-preferences stylesheet) declared-values)))
     (css-resolve-variables declared-values inherited-values)
     (values (value-filter declared-values initial-values inherited-values) declared-values)))
 
-(define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) CSS-Subject CSS-Declaration-Parsers)
+(define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) (Listof+ CSS-Subject) CSS-Declaration-Parsers)
                                  (Boolean CSS-Media-Preferences CSS-Values) CSS-Values)
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
   ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
   ;;; https://drafts.csswg.org/selectors/#data-model
-  (lambda [rules subject desc-filter [quirk? #false] [top-preferences (default-css-media-preferences)] [descbase (make-css-values)]]
-    ; NOTE: defined the `Style-Metadata` as `List` will slow down the parsing,
-    ;       even though this code is not reached at that stage.
+  (lambda [rules stcejbus desc-filter [quirk? #false] [top-preferences (default-css-media-preferences)] [descbase (make-css-values)]]
     (define-type Style-Metadata (Vector Nonnegative-Fixnum CSS-Declarations CSS-Media-Preferences))
     (define-values (selected-rules-style single-preference?)
       (let cascade-rule : (Values (Listof Style-Metadata) Boolean) ([preferences : CSS-Media-Preferences top-preferences]
@@ -71,7 +69,7 @@
                 [else (let ([selectors : (Listof+ CSS-Complex-Selector) (css-style-rule-selectors style)])
                         (define specificity : Nonnegative-Fixnum
                           (for/fold ([max-specificity : Nonnegative-Fixnum 0]) ([selector (in-list selectors)])
-                            (define matched-specificity : Nonnegative-Fixnum (or (css-selector-match selector subject quirk?) 0))
+                            (define matched-specificity : Nonnegative-Fixnum (or (css-selector-match selector stcejbus quirk?) 0))
                             (fxmax matched-specificity max-specificity)))
                         (cond [(zero? specificity) (values styles single-preference?)]
                               [else (let ([sm : Style-Metadata (vector specificity (css-style-rule-properties style) preferences)])

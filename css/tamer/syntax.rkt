@@ -1,20 +1,10 @@
 #lang typed/racket/gui
 
+(require "time-run.rkt")
 (require "../syntax.rkt")
-(require "../digitama/selector.rkt")
+(require "../digitama/misc.rkt")
 
-(require digimon/format)
 (require racket/runtime-path)
-
-(define-syntax (time-run stx)
-  (syntax-case stx []
-    [(_ sexp ...)
-     #'(let ([momery0 : Natural (current-memory-use)])
-         (define-values (result cpu real gc) (time-apply (thunk sexp ...) null))
-         (printf "memory: ~a cpu time: ~a real time: ~a gc time: ~a~n"
-                 (~size (- (current-memory-use) momery0) 'Bytes)
-                 cpu real gc)
-         (car result))]))
 
 (define-runtime-path tamer.css "../stone/tamer.css")
   
@@ -36,9 +26,7 @@
    (list (cons 'orientation 'landscape)
          (cons 'width (or width 0))
          (cons 'height (or height 0)))))
-  
-(collect-garbage)
-(collect-garbage)
+
 (collect-garbage)
 (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer.css)))
 (define tamer-root : CSS-Subject (make-css-subject #:type 'root #:id '#:header))
@@ -58,35 +46,18 @@ tamer-sheet
 tamer-root
 (match-define (list preference header-preference)
   (time-run (let-values ([(preference for-children)
-                          (css-cascade (list tamer-sheet) tamer-root css-declaration-parsers css-value-filter #false  #false)])
+                          (css-cascade (list tamer-sheet) (list tamer-root)
+                                       css-declaration-parsers css-value-filter
+                                       #false  #false)])
               (list preference for-children))))
 header-preference
 
 tamer-body
 (time-run (let-values ([(preference for-children)
-                        (css-cascade (list tamer-sheet) tamer-body css-declaration-parsers css-value-filter #false header-preference)])
+                        (css-cascade (list tamer-sheet) (list tamer-body tamer-root)
+                                     css-declaration-parsers css-value-filter
+                                     #false header-preference)])
             for-children))
-
-(map (λ [[in : String]] : (Pairof String Integer)
-       (let ([?complex-selectors (css-parse-selectors in)])
-         (cond [(exn:css? ?complex-selectors) (cons in -1)]
-               [else (let* ([s (car ?complex-selectors)]
-                            [a (css-complex-selector-A s)]
-                            [b (css-complex-selector-B s)]
-                            [c (css-complex-selector-C s)])
-                       (cons in (+ (* a 100) (* b 10) c)))])))
-     (list "* + *"
-           "li"
-           "li::first-line"
-           "ul li"
-           "ul ol+li"
-           "h1 + *[rel=up]"
-           "ul ol li.red"
-           "li.red.level"
-           "#x34y"
-           ":not(FOO)#s12"
-           ".foo :matches(.bar, #baz)"
-           "body #darkside [sith] p"))
 
 (log-message css-logger 'debug "exit" eof)
 (copy-port in (current-output-port))

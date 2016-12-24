@@ -576,6 +576,7 @@
 (define-type CSS-Longhand-Update (-> Symbol CSS-Datum CSS-Datum CSS-Datum))
   
 ;; https://drafts.csswg.org/selectors
+(define-type CSS-Selector-Combinator (U '>> '> '+ '~ '||))
 (define-type CSS-Attribute-Datum (U String Symbol (Listof (U String Symbol))))
 (define-type CSS-Attribute-Value (U CSS-Attribute-Datum (Vector Symbol CSS-Attribute-Datum)))
 
@@ -583,7 +584,8 @@
 (define css-root-element-id : (Parameterof (U Keyword (Listof+ Keyword))) (make-parameter '#:root))
 
 (define-preference css-subject #:as CSS-Subject
-  ([type : Symbol                                       #:= (css-root-element-type)]
+  ([combinator : CSS-Selector-Combinator                #:= '>]
+   [type : Symbol                                       #:= (css-root-element-type)]
    [id : (U Keyword (Listof+ Keyword))                  #:= (css-root-element-id)]
    [namespace : (U Symbol Boolean)                      #:= #true]
    [classes : (Listof Symbol)                           #:= null]

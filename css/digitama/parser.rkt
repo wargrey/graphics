@@ -509,7 +509,7 @@
       (define-values (?terminal rest) (css-car tokens))
       (define-values (token ?selectors) (css-car/cdr tokens))
       (cond [(or (eof-object? ?terminal) (css:comma? ?terminal))
-             (values (css-make-complex-selector (cons head-compound-selector (reverse srotceles))) ?terminal rest)]
+             (values (cons head-compound-selector (reverse srotceles)) ?terminal rest)]
             [(not (css-selector-combinator? token)) (throw-exn:css:unrecognized ?terminal)]
             [else (let*-values ([(combinator ?selectors) (css-car-combinator token ?selectors)]
                                 [(?selector ?rest) (css-car ?selectors)])
@@ -538,8 +538,7 @@
                                   [selector-tokens : (Listof CSS-Token) selector-components])
       (define-values (token tokens) (css-car/cdr selector-tokens))
       (cond [(or (eof-object? token) (css:comma? token) (css-selector-combinator? token))
-             (values (make-css-compound-selector combinator typename quirkname namespace
-                                                 (cond [(null? sdi) null] [(null? (cdr sdi)) (car sdi)] [else (reverse sdi)])
+             (values (make-css-compound-selector combinator typename quirkname namespace (reverse sdi)
                                                  (reverse sessalc) (reverse setubirtta) :classes pseudo-element)
                      selector-tokens)]
             [(and pseudo-element) (throw-exn:css:overconsumption token)]

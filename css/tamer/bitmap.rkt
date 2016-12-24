@@ -2,19 +2,10 @@
 
 (provide (all-defined-out))
 
+(require "time-run.rkt")
 (require "../main.rkt")
-(require digimon/format)
 
 (require racket/runtime-path)
-
-(define-syntax (time-run stx)
-  (syntax-case stx []
-    [(_ prefix sexp ...)
-     #'(let ([momery0 : Natural (current-memory-use)])
-         (define-values (result cpu real gc) (time-apply (thunk sexp ...) null))
-         (printf "~a: memory: ~a cpu time: ~a real time: ~a gc time: ~a~n" prefix
-                 (~size (- (current-memory-use) momery0) 'Bytes) cpu real gc)
-         (car result))]))
 
 (define DrRacket? : Boolean (regexp-match? #px"DrRacket$" (find-system-path 'run-file)))
 (define-runtime-path bitmap.css "../stone/bitmap.css")
@@ -29,6 +20,7 @@
                                [else (forever /dev/log)])))))
   
 (current-logger css-logger)
+(current-namespace (module->namespace 'bitmap))
 (css-cache-computed-object-value #false)
 (default-css-media-type 'screen)
 (default-css-media-preferences
@@ -90,14 +82,15 @@
                   #:descriptors (for/hash : (HashTable Symbol CSS-Datum) ([(k fv) (in-css-values declared-values)])
                                   (values k (fv)))))))
 
+(css-root-element-type 'module)
 (define tamer-sheet : CSS-StyleSheet (read-css-stylesheet bitmap.css))
-(define tamer-main : CSS-Subject (make-css-subject #:type 'module #:id '#:root #:classes '(main) #::classes '(root)))
+(define tamer-main : CSS-Subject (make-css-subject #:type 'module #:classes '(main)))
 
 (define :values : CSS-Values (make-css-values))
 (define :root : Bitmap-TestCase
   (time-run 'tamer-main
             (let-values ([(toplevel topvalues)
-                          (css-cascade (list tamer-sheet) tamer-main
+                          (css-cascade (list tamer-sheet) (list tamer-main)
                                        css-descriptor-filter css-preference-filter
                                        (make-btest) #false)])
               (set! :values topvalues)
@@ -107,10 +100,11 @@
   (for/fold ([bitmap-descs : (Listof Bitmap) null]
              [testcases : (Listof Bitmap-TestCase) null])
             ([i (in-range (css-ref :values #false 'count index? 8))])
-    (define-values (tobj _) (css-cascade (list tamer-sheet)
-                                         (make-css-subject #:type 'test #:id (string->keyword (~a 'case i)))
-                                         css-descriptor-filter css-preference-filter
-                                         :root :values))
+    (define tamer-test : CSS-Subject (make-css-subject #:type 'test #:id (string->keyword (~a 'case i))))
+    (define-values (tobj _)
+      (css-cascade (list tamer-sheet) (list tamer-test tamer-main)
+                   css-descriptor-filter css-preference-filter
+                   :root :values))
 
     (define-values (fgcolor bgcolor rcolor bdcolor)
       (values (btest-foreground-color tobj) (btest-background-color tobj)
@@ -136,12 +130,11 @@
                                                  (bitmap-frame (bitmap-blank width height) #:border-color bdcolor))))
             (cons tobj testcases))))
 
-(when DrRacket? tamer-sheet)
-(when DrRacket? :root)
-(when DrRacket? (apply bitmap-vl-append bitmap-descs))
-(when DrRacket? length%)
-
-(when (pair? testcases) (btest-prelude (car testcases)))
+(when DrRacket?
+  (values tamer-sheet
+          :root
+          (apply bitmap-vl-append bitmap-descs)
+          length%))
 
 (log-message css-logger 'debug "exit" eof)
 (when DrRacket? (copy-port in (current-output-port)))
