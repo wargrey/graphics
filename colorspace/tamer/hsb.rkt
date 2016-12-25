@@ -1,6 +1,7 @@
 #lang typed/racket
 
-(require "../main.rkt")
+(require "../hsb.rkt")
+(require "../misc.rkt")
 
 (require math/flonum)
 
