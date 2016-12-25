@@ -1,6 +1,6 @@
 #lang typed/racket
 
-(provide (all-defined-out))
+(provide (all-defined-out) select-rgba-color)
 (provide (except-out (all-from-out css/digitama/bitmap) require-image))
 
 (require css/digitama/bitmap)
