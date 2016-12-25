@@ -2,49 +2,18 @@
 
 (provide (all-defined-out) <css-color>)
 
-(require colorspace)
-
 (require "digitama/digicore.rkt")
 (require "digitama/bitmap.rkt")
 (require "digitama/color.rkt")
 (require "recognizer.rkt")
-(require "racket.rkt")
-
-(define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)
-  (lambda [representation [alpha 1.0]]
-    (define opaque? : Boolean (fl= alpha 1.0))
-    (cond [(fixnum? representation)
-           (define hashcode : Nonnegative-Fixnum (fxand representation #xFFFFFF))
-           (hash-ref! the-color-pool
-                      (if opaque? hashcode (eqv-hash-code (make-rectangular hashcode alpha)))
-                      (thunk (let-values ([(r g b) (hex->rgb-bytes representation)])
-                               (make-color r g b alpha))))]
-          [(symbol? representation)
-           (let try-again ([color-name : Symbol representation]
-                           [downcased? : Boolean #false])
-             (cond [(hash-has-key? css-named-colors color-name)
-                    (hash-ref! the-color-pool
-                               (cond [(and opaque?) (eq-hash-code color-name)]
-                                     [else (equal-hash-code (cons color-name alpha))])
-                               (thunk (select-rgba-color (hash-ref css-named-colors color-name) alpha)))]
-                   [(not downcased?) (try-again (string->symbol (string-downcase (symbol->string color-name))) #true)]
-                   [(eq? color-name 'currentcolor) (select-rgba-color (current-css-element-color))]
-                   [else (select-rgba-color #x000000 (if (eq? color-name 'transparent) 0.0 alpha))]))]
-          [(string? representation)
-           (let* ([color-name (string-downcase (string-replace representation #px"(?i:grey)" "gray"))]
-                  [color (send the-color-database find-color color-name)])
-             (cond [(false? color) (select-rgba-color #x000000 alpha)]
-                   [else (hash-ref! the-color-pool
-                                    (equal-hash-code (if opaque? color-name (cons color-name alpha)))
-                                    (thunk (select-rgba-color (rgb-bytes->hex (send color red) (send color green) (send color blue))
-                                                              alpha)))]))]
-          [else representation])))
 
 (define current-css-element-color : (Parameterof CSS-Datum Color+sRGB)
   (make-parameter (select-rgba-color #x000000)
                   (λ [[c : CSS-Datum]]
                     (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css->color 'color c))
                     (if (object? color) color (current-css-element-color)))))
+
+(default-make-currentcolor current-css-element-color)
 
 (define css-color-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
   (lambda [name [px.names #px"-color$"]]

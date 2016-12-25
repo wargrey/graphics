@@ -2,11 +2,16 @@
 
 (provide (all-defined-out) <css-image>)
 
-(require bitmap)
+(require bitmap/base)
+(require bitmap/resize)
+(require bitmap/misc)
+(require bitmap/combiner)
+(require bitmap/constructor)
 
+(require "digitama/digicore.rkt")
+(require "digitama/bitmap.rkt")
 (require "digitama/image.rkt")
 (require "digitama/misc.rkt")
-(require "digitama/digicore.rkt")
 (require "recognizer.rkt")
 (require "racket.rkt")
 (require "color.rkt")
@@ -43,7 +48,9 @@
     [(normalize)
      (letrec ([image->bitmap : (->* (CSS-Image-Datum) (Positive-Real) Bitmap)
                (λ [img [the-density (default-icon-backing-scale)]]
-                 (cond [(non-empty-string? img) (bitmap img the-density)]
+                 (cond [(non-empty-string? img)
+                        (with-handlers ([exn? (λ [[e : exn]] (css-log-read-error e img) the-invalid-image)])
+                          (bitmap img the-density))]
                        [(image? img)
                         (define bmp : Bitmap (image->bitmap (image-content img)))
                         (cond [(send bmp ok?) bmp]
