@@ -1,7 +1,6 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out racket/string racket/bool))
 
 (require racket/string)
 (require racket/bool)

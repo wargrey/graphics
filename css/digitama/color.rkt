@@ -3,7 +3,6 @@
 ;;; https://drafts.csswg.org/css-color
 
 (provide (all-defined-out))
-(provide (all-from-out colorspace bitmap/digitama/color))
 
 (require colorspace)
 (require bitmap/digitama/color)

@@ -1,6 +1,10 @@
 #lang typed/racket
 
-(provide (all-defined-out) <css-color>)
+(provide (all-defined-out) <css-color> select-rgba-color)
+(provide (all-from-out colorspace))
+
+(require bitmap/digitama/color)
+(require colorspace)
 
 (require "digitama/digicore.rkt")
 (require "digitama/bitmap.rkt")

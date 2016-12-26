@@ -6,6 +6,9 @@
 (require "digitama/color.rkt")
 
 (require racket/math)
+(require racket/string)
+(require racket/bool)
+
 (require typed/images/icons)
 
 (define bitmap-blank : (->* () (Nonnegative-Real (Option Nonnegative-Real) Positive-Real) Bitmap)

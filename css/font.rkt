@@ -4,10 +4,11 @@
 (provide (all-defined-out) <:font-shorthand:> <:font-family:> <css-system-font>)
 (provide (matching-identifiers-out #px"(^default-css-|%?$)" (all-from-out "digitama/font.rkt")))
 
-(require bitmap)
+(require bitmap/misc)
 
 (require "digitama/digicore.rkt")
 (require "digitama/font.rkt")
+(require "digitama/bitmap.rkt")
 (require "recognizer.rkt")
 
 (define css-font-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
