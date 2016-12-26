@@ -363,9 +363,12 @@
                                 [else (values n n)]))])])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-predicate positive-fixnum? Positive-Fixnum)
+(define-predicate nonnegative-fixnum? Nonnegative-Fixnum)
+
 (define-predicate positive-flonum? Positive-Flonum)
 (define-predicate nonnegative-flonum? Nonnegative-Flonum)
-  
+
 (define-predicate positive-single-flonum? Positive-Single-Flonum)
 (define-predicate nonnegative-single-flonum? Nonnegative-Single-Flonum)
 
