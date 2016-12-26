@@ -414,6 +414,11 @@
   (CSS:<=> (<css:integer> = 0) 0.0)
   (CSS:<=> (<css:integer> = 1) 1.0))
 
+(define-css-disjoined-filter <css-size> #:-> (U Nonnegative-Inexact-Real CSS:Length:Font)
+  ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
+  (<css+length>)
+  (CSS:<~> (<css+%real>) exact->inexact))
+
 (define <:css-keywords:> : (->* ((Listof Symbol)) (Symbol) (CSS-Parser (Listof CSS-Datum)))
   (lambda [options [none 'none]]
     (CSS<+> (CSS<^> (CSS:<=> (<css-keyword> none) null))
