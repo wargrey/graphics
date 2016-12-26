@@ -50,8 +50,8 @@
             [(symbol? v1) v2]
             [(symbol? v2) v1]
             [else (maix v1 v2)]))
-    (define css->width (make-css->size #:100% initial-width #:= 'auto))
-    (define css->height (make-css->size #:100% initial-height #:= 'auto))
+    (define css->width (make-css->size 'auto #:100% initial-width))
+    (define css->height (make-css->size 'auto #:100% initial-height))
     (define min-zoom : Flonum (css-ref cascaded-values #false 'min-zoom nonnegative-flonum? 0.0))
     (define max-zoom : Flonum (flmax min-zoom (css-ref cascaded-values #false 'max-zoom nonnegative-flonum? +inf.0)))
     (define min-width : (U Flonum Symbol) (css-ref cascaded-values #false 'min-width css->width))

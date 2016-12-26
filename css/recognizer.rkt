@@ -94,20 +94,6 @@
                            (λ [[id : Symbol]] : RangeType
                              (case id [(css) (current)] ... [else (current-last)]))))))]))
 
-(define-syntax (make-css->size stx)
-  (syntax-parse stx
-    [(_ #:100% fl% #:= defval (~optional (~seq #:as NanType)) (~optional (~seq (~and #:no-direction +))))
-     (with-syntax ([SizeType (if (attribute NanType) #'NanType #'defval)]
-                   [(fl? sfl? length? FLType direction)
-                    (cond [(not (attribute +)) (list #'flonum? #'single-flonum? #'css:length? #'Flonum #'#true)]
-                          [else (list #'nonnegative-flonum? #'nonnegative-single-flonum? #'css+length?
-                                      #'Nonnegative-Flonum #'#false)])])
-       #'(lambda [[_ : Symbol] [size : CSS-Datum]] : (U FLType SizeType)
-           (cond [(fl? size) size]
-                 [(sfl? size) (fl* (real->double-flonum size) fl%)]
-                 [(length? size) (css:length->scalar size direction)]
-                 [else defval])))]))
-  
 (define-syntax (CSS<?> stx)
   (syntax-case stx [else]
     [(_) #'values]
@@ -414,11 +400,6 @@
   (CSS:<=> (<css:integer> = 0) 0.0)
   (CSS:<=> (<css:integer> = 1) 1.0))
 
-(define-css-disjoined-filter <css-size> #:-> (U Nonnegative-Inexact-Real CSS:Length:Font)
-  ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
-  (<css+length>)
-  (CSS:<~> (<css+%real>) exact->inexact))
-
 (define <:css-keywords:> : (->* ((Listof Symbol)) (Symbol) (CSS-Parser (Listof CSS-Datum)))
   (lambda [options [none 'none]]
     (CSS<+> (CSS<^> (CSS:<=> (<css-keyword> none) null))
@@ -426,3 +407,27 @@
 
 (define (<css-comma>) : (CSS:Filter Char) (CSS:<?> (<css:delim> #\,) make-exn:css:missing-comma))
 (define (<css-slash>) : (CSS:Filter Char) (CSS:<?> (<css:delim> #\/) make-exn:css:missing-slash))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-css-disjoined-filter <css-size> #:-> (U Nonnegative-Inexact-Real CSS:Length:Font)
+  (<css+length>)
+  (CSS:<~> (<css+%real>) exact->inexact))
+
+(define make-css->size : (All (a) (-> a #:100% Nonnegative-Flonum (-> Symbol CSS-Datum (U a Nonnegative-Flonum))))
+  (lambda [defval #:100% fl%]
+    (λ [property datum]
+      (cond [(nonnegative-flonum? datum) datum]
+            [(nonnegative-single-flonum? datum) (fl* (real->double-flonum datum) fl%)]
+            [(css:length? datum) (css:length->scalar datum #false)]
+            [else defval]))))
+
+(define make-css->pixels : (All (a b) (-> (-> Any Boolean : #:+ a) b #:100% Nonnegative-Real [#:size->pixels (-> Real Integer)]
+                                          (-> Symbol CSS-Datum (U a b))))
+  (lambda [pixels? defval #:100% fl% #:size->pixels [-> exact-round]]
+    (λ [property datum]
+      (define size : Integer
+        (cond [(flonum? datum) (-> datum)]
+              [(single-flonum? datum) (-> (* datum fl%))]
+              [(css:length? datum) (-> (css:length->scalar datum #false))]
+              [else -1]))
+      (if (pixels? size) size defval))))
