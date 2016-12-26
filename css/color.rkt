@@ -1,6 +1,6 @@
 #lang typed/racket
 
-(provide (all-defined-out) <css-color> select-rgba-color)
+(provide (all-defined-out) <css-color> select-color)
 (provide (all-from-out colorspace))
 
 (require bitmap/digitama/color)
@@ -12,7 +12,7 @@
 (require "recognizer.rkt")
 
 (define current-css-element-color : (Parameterof CSS-Datum Color+sRGB)
-  (make-parameter (select-rgba-color #x000000)
+  (make-parameter (select-color #x000000)
                   (λ [[c : CSS-Datum]]
                     (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css->color 'color c))
                     (if (object? color) color (current-css-element-color)))))
@@ -30,8 +30,8 @@
   (lambda [desc-name color]
     (cond [(color%? color) color]
           [(eq? color 'currentcolor) color #| evaluated at used-value time |#]
-          [(css-basic-color-datum? color) (select-rgba-color color)]
-          [(hexa? color) (select-rgba-color (hexa-hex color) (hexa-a color))]
-          [(rgba? color) (select-rgba-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
-          [(hsba? color) (select-rgba-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
+          [(css-basic-color-datum? color) (select-color color)]
+          [(hexa? color) (select-color (hexa-hex color) (hexa-a color))]
+          [(rgba? color) (select-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
+          [(hsba? color) (select-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
           [else css:initial])))

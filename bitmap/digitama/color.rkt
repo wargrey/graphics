@@ -46,7 +46,7 @@
                       (lightskyblue . #x87CEFA) (gainsboro . #xDCDCDC) (fuchsia . #xFF00FF) (mediumspringgreen . #x00FA9A)
                       (midnightblue . #x191970) (salmon . #xFA8072) (silver . #xC0C0C0)))
 
-(define select-rgba-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)
+(define select-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)
   (lambda [representation [alpha 1.0]]
     (define opaque? : Boolean (fl= alpha 1.0))
     (cond [(fixnum? representation)
@@ -62,16 +62,16 @@
                     (hash-ref! the-color-pool
                                (cond [(and opaque?) (eq-hash-code color-name)]
                                      [else (equal-hash-code (cons color-name alpha))])
-                               (λ [] (select-rgba-color (hash-ref css-named-colors color-name) alpha)))]
+                               (λ [] (select-color (hash-ref css-named-colors color-name) alpha)))]
                    [(not downcased?) (try-again (string->symbol (string-downcase (symbol->string color-name))) #true)]
-                   [(eq? color-name 'currentcolor) (select-rgba-color ((default-make-currentcolor)))]
-                   [else (select-rgba-color #x000000 (if (eq? color-name 'transparent) 0.0 alpha))]))]
+                   [(eq? color-name 'currentcolor) (select-color ((default-make-currentcolor)))]
+                   [else (select-color #x000000 (if (eq? color-name 'transparent) 0.0 alpha))]))]
           [(string? representation)
            (let* ([color-name (string-downcase (string-replace representation #px"(?i:grey)" "gray"))]
                   [color (send the-color-database find-color color-name)])
-             (cond [(false? color) (select-rgba-color #x000000 alpha)]
+             (cond [(false? color) (select-color #x000000 alpha)]
                    [else (hash-ref! the-color-pool
                                     (equal-hash-code (if opaque? color-name (cons color-name alpha)))
-                                    (λ [] (select-rgba-color (rgb-bytes->hex (send color red) (send color green) (send color blue))
+                                    (λ [] (select-color (rgb-bytes->hex (send color red) (send color green) (send color blue))
                                                              alpha)))]))]
           [else representation])))

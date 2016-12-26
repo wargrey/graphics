@@ -1,8 +1,9 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) select-color)
 
 (require "digitama/bitmap.rkt")
+(require "digitama/color.rkt")
 (require "constructor.rkt")
 
 (require typed/images/icons)
