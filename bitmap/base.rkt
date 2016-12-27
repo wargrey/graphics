@@ -11,6 +11,25 @@
 
 (require typed/images/icons)
 
+(define bitmap-icon : (->* ((U Bitmap Path-String Input-Port))
+                           ((-> Bitmap) #:dtrace String #:height Nonnegative-Real #:scale? Boolean)
+                           Bitmap)
+  (lambda [src [fallback #false] #:dtrace [tips #false] #:height [size #false] #:scale? [scale? #true]]
+    (define (on-error-call-fallback [e : exn]) : Bitmap
+      (define x.icon : Bitmap (if fallback (fallback) (x-icon #:height (or size (toolbar-icon-height)))))
+      (when (string? tips) (log-message (current-logger) 'warning (format "~a~n~a" tips (exn-message e)) x.icon))
+      x.icon)
+    (define raw.icon : Bitmap
+      (with-handlers ([exn? on-error-call-fallback])
+        (define src.icon : Bitmap
+          (cond [(or (path? src) (string? src)) (read-bitmap src #:try-@2x? #true)]
+                [(input-port? src) (read-bitmap src)]
+                [else (if (send src ok?) src (error 'bitmap-icon "invalid bitmap"))]))
+        (when (string? tips) (log-message (current-logger) 'info tips src.icon))
+        src.icon))
+    (cond [(or (false? size) (false? scale?)) raw.icon]
+          [else (bitmap-scale raw.icon (/ size (send raw.icon get-height)))])))
+
 (define bitmap : (->* ((U Path-String Input-Port)) (Positive-Real) Bitmap)
   ;;; https://drafts.csswg.org/css-images/#image-fragments
   (lambda [src [density (default-icon-backing-scale)]]
@@ -73,4 +92,3 @@
     (reverse (for*/fold ([sprite : (Listof Bitmap) null])
                         ([y (in-range rows)] [x (in-range cols)])
                (cons (bitmap-copy bmp (* x width) (* y height) width height) sprite)))))
-
