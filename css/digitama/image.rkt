@@ -39,9 +39,9 @@
 (define css-image-rendering-option : (Listof Symbol) '(auto crisp-edges pixelated))
 (define css-image-fit-option : (Listof Symbol) '(fill contain cover none scale-down))
 
-(define make-image-normalizer : (case-> [Positive-Real Positive-Real (-> Bitmap) -> (-> (CSS-Maybe Bitmap) Bitmap)]
-                                        [Positive-Real Positive-Real -> (-> (CSS-Maybe Bitmap) (CSS-Maybe Bitmap))])
-  (let ([normalize (λ [[h : Positive-Real] [d : Positive-Real] [b : Bitmap]]
+(define make-image-normalizer : (case-> [Nonnegative-Real Positive-Real (-> Bitmap) -> (-> (CSS-Maybe Bitmap) Bitmap)]
+                                        [Nonnegative-Real Positive-Real -> (-> (CSS-Maybe Bitmap) (CSS-Maybe Bitmap))])
+  (let ([normalize (λ [[h : Nonnegative-Real] [d : Positive-Real] [b : Bitmap]]
                      (bitmap-scale (bitmap-alter-density b d) (/ h (send b get-height))))])
     (case-lambda
       [(height density)

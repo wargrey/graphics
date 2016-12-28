@@ -23,10 +23,10 @@
                  (CSS<^> (<css-image>)))])))
 
 (define make-css->bitmap : (All (racket) (case-> [(-> (CSS-Maybe Bitmap) racket) -> (CSS->Racket racket)]
-                                                 [Positive-Real (-> Bitmap) -> (CSS->Racket Bitmap)]
-                                                 [Positive-Real Positive-Real (-> Bitmap) -> (CSS->Racket Bitmap)]
-                                                 [Positive-Real -> (CSS->Racket (CSS-Maybe Bitmap))]
-                                                 [Positive-Real Positive-Real -> (CSS->Racket (CSS-Maybe Bitmap))]))
+                                                 [Nonnegative-Real (-> Bitmap) -> (CSS->Racket Bitmap)]
+                                                 [Nonnegative-Real Positive-Real (-> Bitmap) -> (CSS->Racket Bitmap)]
+                                                 [Nonnegative-Real -> (CSS->Racket (CSS-Maybe Bitmap))]
+                                                 [Nonnegative-Real Positive-Real -> (CSS->Racket (CSS-Maybe Bitmap))]))
   (case-lambda
     [(height density/image)
      (cond [(real? density/image) (css->normalized-image (make-image-normalizer height density/image))]
