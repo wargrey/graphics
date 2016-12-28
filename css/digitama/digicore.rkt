@@ -248,10 +248,11 @@
                           [else (css-id->scalar (flabs (css:dimension-datum token)) (css:dimension-unit token))])))
                 ...
 
-                (define +id? : (-> Any Boolean : #:+ ID)
+                (define +id? : (-> Any Boolean : #:+ (U ID CSS-Zero))
                   (lambda [token]
-                    (and (id? token)
-                         (fl>= (css:dimension-datum token) 0.0))))
+                    (or (css-zero? token)
+                        (and (id? token)
+                             (fl>= (css:dimension-datum token) 0.0)))))
                 ...
 
                 (define <id> : (case-> [-> (CSS:Filter Flonum/Font)]
