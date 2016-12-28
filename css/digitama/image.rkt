@@ -80,11 +80,7 @@
                  [else (image->bitmap src density)])]
           [(css-@λ? img)
            (with-handlers ([exn? (λ [[e : exn]] (css-log-eval-error e 'css->bitmap) the-invalid-image)])
-             (define (css->racket css)
-               (cond [(eq? css 'currentcolor) (current-css-element-color)]
-                     [(or (css-color? css) (css-basic-color-datum? css)) (css->color '_ css)]
-                     [else css:initial]))
-             (assert (css-eval-@λ img (module->namespace 'bitmap) (flcss%-em length%) css->racket) bitmap%?))]
+             (assert (css-eval-@λ img (module->namespace 'bitmap) (flcss%-em length%)) bitmap%?))]
           [else the-invalid-image])))
 
 (define css->normalized-image : (All (racket) (-> (-> (CSS-Maybe Bitmap) racket) (CSS->Racket racket)))
@@ -125,7 +121,9 @@
       [(regular-polygon-icon) (CSS<&> (CSS<^> (<css-natural> '#:nonzero)) (CSS<$> (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))))]
       [(lock-icon) (CSS<$> (CSS<^> (<css-#boolean>)))]
       [(running-stickman-icon) (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))]
-      [else (if ?λ:kw (<css-color>) <:clock-pointers:>)])))
+      [else (cond [(false? ?λ:kw) <:clock-pointers:>]
+                  [else (CSS:<+> (<css:racket>) ; their is no need to evaluating racket bindings right now 
+                                 (CSS:<@> (<css-color>) (λ [[c : CSS-Datum]] (css->color '_ c))))])])))
 
 (define-css-function-filter <css-image-notation> #:-> CSS-Image
   ;;; https://drafts.csswg.org/css-images/#image-notation

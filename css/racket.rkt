@@ -42,6 +42,7 @@
                                    [Symbol False -> (U (CSS-Parser (Listof CSS-Datum)) Void)]))
 
 (define-css-value css-@λ #:as CSS-@λ ([sexp : (Pairof Symbol (Listof Any))]))
+(define-css-value css-thunk #:as CSS-Thunk ([λ : (-> Any)]))
 
 (define-syntax (define-@λ-pool stx)
   (syntax-case stx []
@@ -115,18 +116,26 @@
 (define-css-disjoined-filter <css-#false> #:-> (List 'values False)
   (CSS:<=> (<css:ident> '(False false)) '(values #false)))
 
+(define CSS:<@> : (All (css) (-> (CSS:Filter css) (-> css Any) (CSS:Filter CSS-Thunk)))
+  (lambda [css-filter css->racket]
+    (λ [[token : CSS-Syntax-Any]]
+      (define datum : (CSS-Option css) (css-filter token))
+      (cond [(or (exn:css? datum) (false? datum)) datum]
+            [else (css-thunk (λ [] (css->racket datum)))]))))
+
 (define css-eval-value : (->* (CSS:Racket Namespace) ((Option Symbol)) (U Any CSS-Syntax-Error))
   (lambda [<thing> ns [src #false]]
     (define id : Symbol (css:racket-datum <thing>))
     (define v : Any (call-with-values (thunk (eval id ns)) (λ _ (car _))))
     (if (parameter? v) (v) v)))
 
-(define css-eval-@λ : (->* (CSS-@λ Namespace Nonnegative-Real) ((-> Any Any)) Any)
-  (lambda [datum ns 100% [css->racket values]]
+(define css-eval-@λ : (-> CSS-@λ Namespace Nonnegative-Real Any)
+  (lambda [datum ns 100%]
     (define (fsexp [datum : Any]) : Any
       (cond [(single-flonum? datum) (* datum 100%)]
             [(css:length? datum) (css:length->scalar datum #true)]
+            [(css-thunk? datum) ((css-thunk-λ datum))]
             [(css-@λ? datum) (map fsexp (css-@λ-sexp datum))]
-            [else (let ([v (css->racket datum)]) (if (css-wide-keyword? v) datum v))]))
+            [else datum]))
     (call-with-values (thunk (eval (map fsexp (css-@λ-sexp datum)) ns))
       (λ do-not-support-multiple-values (car do-not-support-multiple-values)))))
