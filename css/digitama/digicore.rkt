@@ -251,7 +251,7 @@
                 (define +id? : (-> Any Boolean : #:+ ID)
                   (lambda [token]
                     (and (id? token)
-                         (fl> (css:dimension-datum token) 0.0))))
+                         (fl>= (css:dimension-datum token) 0.0))))
                 ...
 
                 (define <id> : (case-> [-> (CSS:Filter Flonum/Font)]
