@@ -2,7 +2,7 @@
 
 :root {
     at-exp: @racket[] @schema [];
-    racket-logo: @x-icon[#height var(--icon-height) #material rubber-icon-material #thickness 12];
+    racket-logo: @x-icon[#:height var(--icon-height) #:material rubber-icon-material #:thickness 12];
     retina-icon: image-set("normal.png" 96dpi, "normal@2x.png" 2x);
 
     font: 12px/1.5; /* error property, font property requires font-family or system font */
@@ -13,10 +13,10 @@
     fallback-image: image("", #ABCDEF);
     error-image: image(#FFF, "");
 
-    case-sensitive-error-logo: @x-icon[#Height 32 #thickness 12];
-    arity-error-paran-logo: @racket-logo(overconsumption #height 32 normal-argument);
-    arity-error-brace-logo: @right-arrow-icon{#height 32};
-    arity-error-bracket-logo: @text-icon[#height 32];
+    case-sensitive-error-logo: @x-icon[#:Height 32 #:thickness 12];
+    arity-error-paran-logo: @racket-logo(overconsumption #:height 32 normal-argument);
+    arity-error-brace-logo: @right-arrow-icon{#:height 32};
+    arity-error-bracket-logo: @text-icon[#:height 32];
 }
 
 :root {
@@ -48,7 +48,7 @@ module.main {
     count: 8;
     width: 256;
     desc: "";
-    prelude: @text-icon("Prelude> " @make-font(#face "Lucida Grande") #color rgba(60 192 60) #height 100% #trim\? false);
+    prelude: @text-icon("Prelude> " @make-font(#:face "Lucida Grande") #:color #3C803C #:height 100% #:trim\? false);
 
     font: normal 85% "Lucida Grande", "Trebuchet MS", Verdana, Helvetica, Gill Sans, var(--default-font);
     text-decoration: underline;

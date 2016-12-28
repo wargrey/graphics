@@ -85,9 +85,9 @@
                   [λ:mkws : (Listof Keyword) (vector-ref λinfo 0)]
                   [args : (Listof CSS-Token) (css:λracket-arguments <λ>)])
        (define-values (head tail) (css-car/cdr args))
-       (cond [(css:hash? head)
+       (cond [(css:#:keyword? head)
               (define-values (value rest) (css-car/cdr tail))
-              (define λ:kw : Keyword (css:hash-datum head))
+              (define λ:kw : Keyword (css:#:keyword-datum head))
               (cond [(eof-object? value) (make-exn:css:arity head)]
                     [(not (memq λ:kw λ:all)) (make-exn:css:range head)]
                     [else (let ([kw:filter (λfilter λname λ:kw)])

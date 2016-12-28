@@ -419,7 +419,8 @@
   (define-symbolic-tokens css-unreadable-token #:+ CSS-Unreadable-Token
     ; These tokens are remade by the parser instead of being produced by the tokenizer.
     [css:ratio          #:+ CSS:Ratio           #:as Positive-Exact-Rational]
-    [css:racket         #:+ CSS:Racket          #:as Symbol]))
+    [css:racket         #:+ CSS:Racket          #:as Symbol]
+    [css:#:keyword      #:+ CSS:#:Keyword       #:as Keyword]))
 
 (define css-zero? : (-> Any Boolean : #:+ CSS-Zero) (λ [v] (or (css:zero? v) (css:flzero? v))))
 (define css-one? : (-> Any Boolean : #:+ CSS-One) (λ [v] (or (css:one? v) (css:flone? v))))
@@ -628,24 +629,24 @@
 (define-syntax (define-prefab-keyword stx)
   (syntax-case stx [:]
     [(_ css-wide-keyword #:as CSS-Wide-Keyword [keyword ...])
-     (with-syntax ([(keywords-ormap keywords-filter-map css:keyword ...)
+     (with-syntax ([(keywords-ormap keywords-filter-map css:symbol ...)
                     (list* (format-id #'css-wide-keyword "~as-ormap" (syntax-e #'css-wide-keyword))
                            (format-id #'css-wide-keyword "~as-filter-map" (syntax-e #'css-wide-keyword))
                            (for/list ([kwd (in-list (syntax->list #'(keyword ...)))])
                              (format-id kwd "css:~a" (syntax-e kwd))))])
        #'(begin (define-css-value css-wide-keyword #:as CSS-Wide-Keyword ([value : Symbol]))
-                (define css:keyword : CSS-Wide-Keyword (css-wide-keyword 'keyword)) ...
+                (define css:symbol : CSS-Wide-Keyword (css-wide-keyword 'keyword)) ...
 
                 (define keywords-ormap : (-> (U Symbol CSS-Token) (Option CSS-Wide-Keyword))
                   (lambda [key]
                     (cond [(css-token? key) (and (css:ident? key) (keywords-ormap (css:ident-norm key)))]
-                          [(eq? key 'keyword) css:keyword] ...
+                          [(eq? key 'keyword) css:symbol] ...
                           [else #false])))
 
                 (define keywords-filter-map : (-> (U Symbol CSS-Syntax-Error) (U Symbol CSS-Wide-Keyword CSS-Syntax-Error))
                   (lambda [key]
                     (cond [(not (symbol? key)) key]
-                          [(eq? key 'keyword) css:keyword] ...
+                          [(eq? key 'keyword) css:symbol] ...
                           [else key])))))]))
 
 ; https://drafts.csswg.org/css-cascade/#all-shorthand

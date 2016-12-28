@@ -150,8 +150,14 @@
                     [tail : (Listof CSS-Token) argl])
       (define-values (head rest) (css-car/cdr tail))
       (cond [(eof-object? head) (append (reverse swk) (reverse lgra))]
-            [(css:hash? head)
-             (define-values (kw-value others) (css-car/cdr rest))
-             (cond [(eof-object? kw-value) (make+exn:css:missing-value head)]
-                   [else (rearrange (cons kw-value (cons head swk)) lgra others)])]
+            [(css:delim=:=? head #\#)
+             (define-values (?: :kw+rest) (css-car/cdr rest))
+             (define-values (?kw value+rest) (css-car/cdr :kw+rest))
+             (define-values (kw-value others) (css-car/cdr value+rest))
+             (cond [(or (eof-object? ?:) (not (css:colon? ?:))) (rearrange swk (cons head lgra) rest)]
+                   [(or (eof-object? ?kw) (not (css:ident? ?kw))) (rearrange swk (list* ?: head lgra) :kw+rest)]
+                   [else (let* ([:kw (string->keyword (symbol->string (css:ident-datum ?kw)))]
+                                [<#:kw> (css-remake-token [head ?kw] css:#:keyword :kw)])
+                           (cond [(eof-object? kw-value) (make+exn:css:missing-value <#:kw>)]
+                                 [else (rearrange (cons kw-value (cons <#:kw> swk)) lgra others)]))])]
             [else (rearrange swk (cons head lgra) rest)]))))
