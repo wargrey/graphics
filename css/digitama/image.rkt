@@ -4,12 +4,20 @@
 
 (provide (all-defined-out))
 
+(require bitmap/base)
+(require bitmap/resize)
+(require bitmap/misc)
+(require bitmap/combiner)
+(require bitmap/constructor)
+
 (require "bitmap.rkt")
 (require "digicore.rkt")
 (require "font.rkt")
 (require "color.rkt")
+(require "misc.rkt")
 (require "../recognizer.rkt")
 (require "../racket.rkt")
+(require "../color.rkt")
 
 (define-type Image-Set-Option (List CSS-Image-Datum Positive-Flonum))
 (define-type Image-Set-Options (Listof Image-Set-Option))
@@ -30,6 +38,46 @@
 
 (define css-image-rendering-option : (Listof Symbol) '(auto crisp-edges pixelated))
 (define css-image-fit-option : (Listof Symbol) '(fill contain cover none scale-down))
+
+(define make-image-normalizer : (-> Positive-Real Positive-Real (-> Bitmap) (-> Bitmap Bitmap))
+  (lambda [height density mk-image]
+    (λ [[raw : Bitmap]]
+      (define (normalize [bmp : Bitmap]) : Bitmap
+        (bitmap-scale (bitmap-alter-density bmp density)
+                      (/ height (send bmp get-height))))
+      (cond [(send raw ok?) (normalize raw)]
+            [else (let ([alt-image : Bitmap (mk-image)])
+                    (cond [(> (send alt-image get-height) height) (normalize alt-image)]
+                          [else (bitmap-cc-superimpose (bitmap-blank height height density)
+                                                       (bitmap-alter-density alt-image density))]))]))))
+
+(define image->bitmap : (->* (CSS-Image-Datum) (Positive-Real) Bitmap)
+  (lambda [img [the-density (default-icon-backing-scale)]]
+    (cond [(non-empty-string? img)
+           (with-handlers ([exn? (λ [[e : exn]] (css-log-read-error e img) the-invalid-image)])
+             (bitmap img the-density))]
+          [(image? img)
+           (define bmp : Bitmap (image->bitmap (image-content img)))
+           (cond [(send bmp ok?) bmp]
+                 [else (let ([color (css->color '_ (image-fallback img))])
+                         (bitmap-solid (if (object? color) color 'transparent)))])]
+          [(image-set? img)
+           (define-values (src density)
+             (for/fold ([the-src : CSS-Image-Datum ""]
+                        [resolution : Nonnegative-Flonum 0.0])
+                       ([option (in-list (image-set-options img))])
+               (define this-density : Nonnegative-Flonum (cadr option))
+               ; - resoltions should not duplicate, but if so, use the first one.
+               ; - if there is no specific resolution, use the highest one.
+               (if (or (= resolution the-density) (fl<= this-density resolution))
+                   (values the-src resolution)
+                   (values (car option) this-density))))
+           (cond [(zero? density) the-invalid-image]
+                 [else (image->bitmap src density)])]
+          [(css-@λ? img)
+           (with-handlers ([exn? (λ [[e : exn]] (css-log-eval-error e 'css->bitmap) the-invalid-image)])
+             (assert (css-eval-@λ img (module->namespace 'bitmap) (flcss%-em length%)) bitmap%?))]
+          [else the-invalid-image])))
 
 (define css-@draw-filter : CSS-@λ-Filter
   (lambda [λname ?λ:kw]
