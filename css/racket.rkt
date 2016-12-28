@@ -121,12 +121,12 @@
     (define v : Any (call-with-values (thunk (eval id ns)) (λ _ (car _))))
     (if (parameter? v) (v) v)))
 
-(define css-eval-@λ : (->* (CSS-@λ Namespace) ((Option Real)) Any)
-  (lambda [datum ns [maybe-100% #false]]
+(define css-eval-@λ : (->* (CSS-@λ Namespace Nonnegative-Real) ((-> Any Any)) Any)
+  (lambda [datum ns 100% [css->racket values]]
     (define (fsexp [datum : Any]) : Any
-      (cond [(single-flonum? datum) (* datum (or maybe-100% 1.0f0))]
+      (cond [(single-flonum? datum) (* datum 100%)]
             [(css:length? datum) (css:length->scalar datum #true)]
             [(css-@λ? datum) (map fsexp (css-@λ-sexp datum))]
-            [else datum]))
+            [else (let ([v (css->racket datum)]) (if (css-wide-keyword? v) datum v))]))
     (call-with-values (thunk (eval (map fsexp (css-@λ-sexp datum)) ns))
       (λ do-not-support-multiple-values (car do-not-support-multiple-values)))))

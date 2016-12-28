@@ -80,7 +80,11 @@
                  [else (image->bitmap src density)])]
           [(css-@λ? img)
            (with-handlers ([exn? (λ [[e : exn]] (css-log-eval-error e 'css->bitmap) the-invalid-image)])
-             (assert (css-eval-@λ img (module->namespace 'bitmap) (flcss%-em length%)) bitmap%?))]
+             (define (css->racket css)
+               (cond [(eq? css 'currentcolor) (current-css-element-color)]
+                     [(or (css-color? css) (css-basic-color-datum? css)) (css->color '_ css)]
+                     [else css:initial]))
+             (assert (css-eval-@λ img (module->namespace 'bitmap) (flcss%-em length%) css->racket) bitmap%?))]
           [else the-invalid-image])))
 
 (define css->normalized-image : (All (racket) (-> (-> (CSS-Maybe Bitmap) racket) (CSS->Racket racket)))
