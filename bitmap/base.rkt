@@ -17,7 +17,7 @@
   (lambda [src [fallback #false] #:dtrace [tips #false] #:height [size #false] #:scale? [scale? #true]]
     (define (on-error-call-fallback [e : exn]) : Bitmap
       (define x.icon : Bitmap (if fallback (fallback) (x-icon #:height (or size (toolbar-icon-height)))))
-      (when (string? tips) (log-message (current-logger) 'warning (format "~a~n~a" tips (exn-message e)) x.icon))
+      (when (string? tips) (log-message (current-logger) 'warning (format "~a~n~a" tips (exn-message e)) x.icon #false))
       x.icon)
     (define raw.icon : Bitmap
       (with-handlers ([exn? on-error-call-fallback])
@@ -25,7 +25,7 @@
           (cond [(or (path? src) (string? src)) (read-bitmap src #:try-@2x? #true)]
                 [(input-port? src) (read-bitmap src)]
                 [else (if (send src ok?) src (error 'bitmap-icon "invalid bitmap"))]))
-        (when (string? tips) (log-message (current-logger) 'info tips src.icon))
+        (when (string? tips) (log-message (current-logger) 'info tips src.icon #false))
         src.icon))
     (cond [(or (false? size) (false? scale?)) raw.icon]
           [else (bitmap-scale raw.icon (/ size (send raw.icon get-height)))])))
