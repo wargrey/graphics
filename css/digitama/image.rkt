@@ -39,6 +39,63 @@
 (define css-image-rendering-option : (Listof Symbol) '(auto crisp-edges pixelated))
 (define css-image-fit-option : (Listof Symbol) '(fill contain cover none scale-down))
 
+(define css-@draw-filter : CSS-@λ-Filter
+  (lambda [λname ?λ:kw]
+    (case (or ?λ:kw λname)
+      [(#:size) (CSS:<+> (<css:integer> 0 < 1024) (<css:flonum> 0.0 fl< 1024.0))]
+      [(#:face) (CSS:<+> (<css:string>) (<css-#false>))]
+      [(#:family) (<css:ident> (make-predicate Font-Family))]
+      [(#:style) (<css:ident> (make-predicate Font-Style))]
+      [(#:weight) (<css:ident> (make-predicate Font-Weight))]
+      [(#:underlined? #:size-in-pixels?) (<css-#boolean>)]
+      [(#:smoothing) (<css:ident> racket-font-smoothing?)]
+      [(#:hinting) (<css:ident> racket-font-hinting?)])))
+  
+(define css-@icon-filter : CSS-@λ-Filter
+  (lambda [λname ?λ:kw]
+    (define-css-disjoined-filter <text-icon-font> #:-> (U Font CSS-@λ)
+      (<css-system-font>)
+      (<racket-font>)
+      (<css:@λ> the-@draw-pool css-@draw-filter '(make-font)))
+    (define <:clock-pointers:> : (CSS-Parser (Listof CSS-Datum))
+      (CSS<$> (CSS<&> (CSS<^> (<css:integer> 0 <= 11))
+                      (CSS<$> (CSS<^> (CSS:<+> (<css:integer> 0 <= 60)
+                                               (<css:flonum> 0.0 fl<= 60.0)))))))
+    (case (or ?λ:kw λname)
+      [(#:backing-scale) (<css+real> '#:nonzero)]
+      [(#:height #:thickness) (<css-size>)]
+      [(#:outline) (<css+%real>)]
+      [(#:material) (<css:ident> '(plastic-icon-material rubber-icon-material glass-icon-material metal-icon-material))]
+      [(#:trim?) (<css-#boolean>)]
+      [(text-icon) (CSS<&> (CSS<^> (<css:string>)) (CSS<$> (CSS<^> (<text-icon-font>))))]
+      [(regular-polygon-icon) (CSS<&> (CSS<^> (<css-natural> '#:nonzero)) (CSS<$> (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))))]
+      [(lock-icon) (CSS<$> (CSS<^> (<css-#boolean>)))]
+      [(running-stickman-icon) (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))]
+      [else (cond [(false? ?λ:kw) <:clock-pointers:>]
+                  [else (CSS:<+> (<css:racket>) ; their is no need to evaluating racket bindings right now 
+                                 (CSS:<@> (<css-color>) (λ [[c : CSS-Datum]] (css->color '_ c))))])])))
+
+(define-css-function-filter <css-image-notation> #:-> CSS-Image
+  ;;; https://drafts.csswg.org/css-images/#image-notation
+  ;;; https://drafts.csswg.org/css-images/#image-set-notation
+  [(image) #:=> [(image "" [fallback ? index? string? symbol? css-color?])
+                 (image [content ? css-image? string? css-@λ?] [fallback ? css-basic-color-datum? css-color?])]
+   (CSS<+> (CSS<^> (<css-color>)) ; NOTE: both color and url accept strings, however their domains are not intersective.
+           (CSS<&> (CSS<^> (CSS:<+> (<css-image>) (<css:string>)))
+                   (CSS<$> (CSS<?> [(<css-comma>) (CSS<^> (<css-color>))]) 'transparent)))]
+  [(image-set) #:=> [(image-set [options ? css-image-sets?])]
+   (CSS<!> (CSS<#> (CSS<!> (CSS<^> (list (CSS:<+> (<css:string>) (<css-image>)) (<css+resolution>))))))]
+  #:where
+  [(define-predicate css-image-sets? Image-Set-Options)])
+
+(define-css-disjoined-filter <css-image> #:-> CSS-Image-Datum
+  ;;; https://drafts.csswg.org/css-images/#image-values
+  ;;; https://drafts.csswg.org/css-images/#invalid-image
+  (<css:@λ> the-@icon-pool css-@icon-filter)
+  (<css-image-notation>)
+  (CSS:<?> (<css:url> string?) #false (λ _ "")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-image-normalizer : (case-> [Nonnegative-Real Positive-Real (-> Bitmap) -> (-> (CSS-Maybe Bitmap) Bitmap)]
                                         [Nonnegative-Real Positive-Real -> (-> (CSS-Maybe Bitmap) (CSS-Maybe Bitmap))])
   (let ([normalize (λ [[h : Nonnegative-Real] [d : Positive-Real] [b : Bitmap]]
@@ -89,59 +146,3 @@
       (cond [(bitmap%? image) (normalize image)]
             [(css-image-datum? image) (normalize (image->bitmap image))]
             [else (normalize css:initial)]))))
-
-(define css-@draw-filter : CSS-@λ-Filter
-  (lambda [λname ?λ:kw]
-    (case (or ?λ:kw λname)
-      [(#:size) (CSS:<+> (<css:integer> 0 < 1024) (<css:flonum> 0.0 fl< 1024.0))]
-      [(#:face) (CSS:<+> (<css:string>) (<css-#false>))]
-      [(#:family) (<css:ident> (make-predicate Font-Family))]
-      [(#:style) (<css:ident> (make-predicate Font-Style))]
-      [(#:weight) (<css:ident> (make-predicate Font-Weight))]
-      [(#:underlined? #:size-in-pixels?) (<css-#boolean>)]
-      [(#:smoothing) (<css:ident> racket-font-smoothing?)]
-      [(#:hinting) (<css:ident> racket-font-hinting?)])))
-  
-(define css-@icon-filter : CSS-@λ-Filter
-  (lambda [λname ?λ:kw]
-    (define-css-disjoined-filter <text-icon-font> #:-> (U Font CSS-@λ)
-      (<css-system-font>)
-      (<racket-font>)
-      (<css:@λ> the-@draw-pool css-@draw-filter '(make-font)))
-    (define <:clock-pointers:> : (CSS-Parser (Listof CSS-Datum))
-      (CSS<$> (CSS<&> (CSS<^> (<css:integer> 0 <= 11))
-                      (CSS<$> (CSS<^> (CSS:<+> (<css:integer> 0 <= 60)
-                                               (<css:flonum> 0.0 fl<= 60.0)))))))
-    (case (or ?λ:kw λname)
-      [(#:backing-scale) (<css+real> '#:nonzero)]
-      [(#:height) (<css-size>)]
-      [(#:thickness #:outline) (<css+%real>)]
-      [(#:material) (<css:ident> '(plastic-icon-material rubber-icon-material glass-icon-material metal-icon-material))]
-      [(#:trim?) (<css-#boolean>)]
-      [(text-icon) (CSS<&> (CSS<^> (<css:string>)) (CSS<$> (CSS<^> (<text-icon-font>))))]
-      [(regular-polygon-icon) (CSS<&> (CSS<^> (<css-natural> '#:nonzero)) (CSS<$> (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))))]
-      [(lock-icon) (CSS<$> (CSS<^> (<css-#boolean>)))]
-      [(running-stickman-icon) (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))]
-      [else (cond [(false? ?λ:kw) <:clock-pointers:>]
-                  [else (CSS:<+> (<css:racket>) ; their is no need to evaluating racket bindings right now 
-                                 (CSS:<@> (<css-color>) (λ [[c : CSS-Datum]] (css->color '_ c))))])])))
-
-(define-css-function-filter <css-image-notation> #:-> CSS-Image
-  ;;; https://drafts.csswg.org/css-images/#image-notation
-  ;;; https://drafts.csswg.org/css-images/#image-set-notation
-  [(image) #:=> [(image "" [fallback ? index? string? symbol? css-color?])
-                 (image [content ? css-image? string? css-@λ?] [fallback ? css-basic-color-datum? css-color?])]
-   (CSS<+> (CSS<^> (<css-color>)) ; NOTE: both color and url accept strings, however their domains are not intersective.
-           (CSS<&> (CSS<^> (CSS:<+> (<css-image>) (<css:string>)))
-                   (CSS<$> (CSS<?> [(<css-comma>) (CSS<^> (<css-color>))]) 'transparent)))]
-  [(image-set) #:=> [(image-set [options ? css-image-sets?])]
-   (CSS<!> (CSS<#> (CSS<!> (CSS<^> (list (CSS:<+> (<css:string>) (<css-image>)) (<css+resolution>))))))]
-  #:where
-  [(define-predicate css-image-sets? Image-Set-Options)])
-
-(define-css-disjoined-filter <css-image> #:-> CSS-Image-Datum
-  ;;; https://drafts.csswg.org/css-images/#image-values
-  ;;; https://drafts.csswg.org/css-images/#invalid-image
-  (<css:@λ> the-@icon-pool css-@icon-filter)
-  (<css-image-notation>)
-  (CSS:<?> (<css:url> string?) #false (λ _ "")))
