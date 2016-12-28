@@ -114,7 +114,8 @@
                                                (<css:flonum> 0.0 fl<= 60.0)))))))
     (case (or ?λ:kw λname)
       [(#:backing-scale) (<css+real> '#:nonzero)]
-      [(#:height #:thickness #:outline) (<css+%real>)]
+      [(#:height) (<css-size>)]
+      [(#:thickness #:outline) (<css+%real>)]
       [(#:material) (<css:ident> '(plastic-icon-material rubber-icon-material glass-icon-material metal-icon-material))]
       [(#:trim?) (<css-#boolean>)]
       [(text-icon) (CSS<&> (CSS<^> (<css:string>)) (CSS<$> (CSS<^> (<text-icon-font>))))]
