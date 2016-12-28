@@ -27,15 +27,14 @@
                                                  [Positive-Real Positive-Real (-> Bitmap) -> (CSS->Racket Bitmap)]
                                                  [Positive-Real -> (CSS->Racket (CSS-Maybe Bitmap))]
                                                  [Positive-Real Positive-Real -> (CSS->Racket (CSS-Maybe Bitmap))]))
-  (let ()
-    (case-lambda
-      [(height density/image)
-       (cond [(real? density/image) (css->normalized-image (make-image-normalizer height density/image))]
-             [else (css->normalized-image (make-image-normalizer height (default-icon-backing-scale) density/image))])]
-      [(height density mk-image) (css->normalized-image (make-image-normalizer height density mk-image))]
-      [(height/normalize)
-       (cond [(not (real? height/normalize)) (css->normalized-image height/normalize)]
-             [else (css->normalized-image (make-image-normalizer height/normalize (default-icon-backing-scale)))])])))
+  (case-lambda
+    [(height density/image)
+     (cond [(real? density/image) (css->normalized-image (make-image-normalizer height density/image))]
+           [else (css->normalized-image (make-image-normalizer height (default-icon-backing-scale) density/image))])]
+    [(height density mk-image) (css->normalized-image (make-image-normalizer height density mk-image))]
+    [(height/normalize)
+     (cond [(not (real? height/normalize)) (css->normalized-image height/normalize)]
+           [else (css->normalized-image (make-image-normalizer height/normalize (default-icon-backing-scale)))])]))
 
 (define-values (css->bitmap css->image)
   (values (css->normalized-image (λ [[raw : (CSS-Maybe Bitmap)]] raw))
