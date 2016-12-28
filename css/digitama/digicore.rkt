@@ -352,7 +352,7 @@
     [css:bad            #:+ CSS:Bad             #:as String]
     [css:close          #:+ CSS:Close           #:as Char])
     
-  ; TODO: Typed Racket is buggy if there are more than 11 conditions for (token->datum)
+  ; TODO: Typed Racket is buggy if there are more than 11 conditions
   (define-symbolic-tokens css-symbolic-token #:+ CSS-Symbolic-Token
     [css:delim          #:+ CSS:Delim           #:as Char]
     [css:ident          #:+ CSS:Ident           #:as Symbol↯]
@@ -613,6 +613,7 @@
 (define-type CSS-Declaration-Parser (U (Pairof CSS-Shorthand-Parser (Listof Symbol)) (CSS-Parser (Listof CSS-Datum)) Void False))
 (define-type CSS-Declaration-Parsers (-> Symbol (-> Void) CSS-Declaration-Parser))
 (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Values (Option CSS-Values) Preference))
+(define-type (CSS->Racket racket) (-> Symbol CSS-Datum racket))
   
 (struct --datum () #:transparent)
 
@@ -693,7 +694,7 @@
 (define css-cache-computed-object-value : (Parameterof Boolean) (make-parameter #true))
   
 (define css-ref : (All (a b) (case-> [CSS-Values (Option CSS-Values) Symbol -> CSS-Datum]
-                                     [CSS-Values (Option CSS-Values) Symbol (-> Symbol CSS-Datum (∩ a CSS-Datum)) -> a]
+                                     [CSS-Values (Option CSS-Values) Symbol (CSS->Racket (∩ a CSS-Datum)) -> a]
                                      [CSS-Values (Option CSS-Values) Symbol (-> Any Boolean : #:+ (∩ a CSS-Datum)) (∩ b CSS-Datum)
                                                  -> (U a b)]))
   (case-lambda

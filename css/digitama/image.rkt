@@ -39,17 +39,21 @@
 (define css-image-rendering-option : (Listof Symbol) '(auto crisp-edges pixelated))
 (define css-image-fit-option : (Listof Symbol) '(fill contain cover none scale-down))
 
-(define make-image-normalizer : (-> Positive-Real Positive-Real (-> Bitmap) (-> Bitmap Bitmap))
-  (lambda [height density mk-image]
-    (λ [[raw : Bitmap]]
-      (define (normalize [bmp : Bitmap]) : Bitmap
-        (bitmap-scale (bitmap-alter-density bmp density)
-                      (/ height (send bmp get-height))))
-      (cond [(send raw ok?) (normalize raw)]
-            [else (let ([alt-image : Bitmap (mk-image)])
-                    (cond [(> (send alt-image get-height) height) (normalize alt-image)]
-                          [else (bitmap-cc-superimpose (bitmap-blank height height density)
-                                                       (bitmap-alter-density alt-image density))]))]))))
+(define make-image-normalizer : (case-> [Positive-Real Positive-Real (-> Bitmap) -> (-> (CSS-Maybe Bitmap) Bitmap)]
+                                        [Positive-Real Positive-Real -> (-> (CSS-Maybe Bitmap) (CSS-Maybe Bitmap))])
+  (let ([normalize (λ [[h : Positive-Real] [d : Positive-Real] [b : Bitmap]]
+                     (bitmap-scale (bitmap-alter-density b d) (/ h (send b get-height))))])
+    (case-lambda
+      [(height density)
+       (λ [[raw : (CSS-Maybe Bitmap)]]
+         (if (and (bitmap%? raw) (send raw ok?)) (normalize height density raw) css:initial))]
+      [(height density mk-image)
+       (λ [[raw : (CSS-Maybe Bitmap)]]
+         (cond [(and (bitmap%? raw) (send raw ok?)) (normalize height density raw)]
+               [else (let ([alt-image : Bitmap (mk-image)])
+                       (cond [(> (send alt-image get-height) height) (normalize height density alt-image)]
+                             [else (bitmap-cc-superimpose (bitmap-blank height height density)
+                                                          (bitmap-alter-density alt-image density))]))]))])))
 
 (define image->bitmap : (->* (CSS-Image-Datum) (Positive-Real) Bitmap)
   (lambda [img [the-density (default-icon-backing-scale)]]
@@ -78,6 +82,13 @@
            (with-handlers ([exn? (λ [[e : exn]] (css-log-eval-error e 'css->bitmap) the-invalid-image)])
              (assert (css-eval-@λ img (module->namespace 'bitmap) (flcss%-em length%)) bitmap%?))]
           [else the-invalid-image])))
+
+(define css->normalized-image : (All (racket) (-> (-> (CSS-Maybe Bitmap) racket) (CSS->Racket racket)))
+  (lambda [normalize]
+    (λ [_ image]
+      (cond [(bitmap%? image) (normalize image)]
+            [(css-image-datum? image) (normalize (image->bitmap image))]
+            [else (normalize css:initial)]))))
 
 (define css-@draw-filter : CSS-@λ-Filter
   (lambda [λname ?λ:kw]

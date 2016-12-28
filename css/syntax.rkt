@@ -18,11 +18,6 @@
          css-parse-feature-query
          css-parse-selectors)
 
-(provide define-css-parser-entry
-         css-consume-stylesheet
-         css-query-support?
-         css-components->declaration)
-
 (require "digitama/digicore.rkt")
 (require "digitama/parser.rkt")
 (require "digitama/grammar.rkt")

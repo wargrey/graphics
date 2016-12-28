@@ -413,7 +413,7 @@
   (<css+length>)
   (CSS:<~> (<css+%real>) exact->inexact))
 
-(define make-css->size : (All (a) (-> a #:100% Nonnegative-Flonum (-> Symbol CSS-Datum (U a Nonnegative-Flonum))))
+(define make-css->size : (All (a) (-> a #:100% Nonnegative-Flonum (CSS->Racket (U a Nonnegative-Flonum))))
   (lambda [defval #:100% fl%]
     (λ [property datum]
       (cond [(nonnegative-flonum? datum) datum]
@@ -422,7 +422,7 @@
             [else defval]))))
 
 (define make-css->pixels : (All (a b) (-> (-> Any Boolean : #:+ a) b #:100% Nonnegative-Real [#:size->pixels (-> Real Integer)]
-                                          (-> Symbol CSS-Datum (U a b))))
+                                          (CSS->Racket (U a b))))
   (lambda [pixels? defval #:100% fl% #:size->pixels [-> exact-round]]
     (λ [property datum]
       (define size : Integer

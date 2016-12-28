@@ -9,5 +9,3 @@
 
 (define-predicate racket-font-smoothing? Font-Smoothing)
 (define-predicate racket-font-hinting? Font-Hinting)
-
-(define default-css-invalid-image : (Parameterof Bitmap) (make-parameter (x-icon)))

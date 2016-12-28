@@ -2,6 +2,8 @@
 
 (provide (all-defined-out) <css-image>)
 
+(require bitmap/constructor)
+
 (require "digitama/digicore.rkt")
 (require "digitama/bitmap.rkt")
 (require "digitama/image.rkt")
@@ -20,21 +22,23 @@
                      (and (regexp? px.names) (regexp-match? px.names (symbol->string name))))
                  (CSS<^> (<css-image>)))])))
 
-(define make-css->bitmap : (case-> [(U Positive-Real (-> Bitmap Bitmap)) -> (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))]
-                                   [Positive-Real (U Positive-Real (-> Bitmap)) -> (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))]
-                                   [Positive-Real Positive-Real (-> Bitmap) -> (-> Symbol CSS-Datum (U Bitmap CSS-Wide-Keyword))])
-  (case-lambda
-    [(height density/image)
-     (cond [(real? density/image) (make-css->bitmap (make-image-normalizer height density/image default-css-invalid-image))]
-           [else (make-css->bitmap (make-image-normalizer height (default-icon-backing-scale) density/image))])]
-    [(height density mk-image) (make-css->bitmap (make-image-normalizer height density mk-image))]
-    [(height/normalize)
-     (define normalize : (-> Bitmap Bitmap)
-       (cond [(not (real? height/normalize)) height/normalize]
-             [else (make-image-normalizer height/normalize (default-icon-backing-scale) default-css-invalid-image)]))
-     (λ [_ image]
-       (cond [(bitmap%? image) (normalize image)]
-             [(css-image-datum? image) (normalize (image->bitmap image))]
-             [else css:initial]))]))
+(define make-css->bitmap : (All (racket) (case-> [(-> (CSS-Maybe Bitmap) racket) -> (CSS->Racket racket)]
+                                                 [Positive-Real (-> Bitmap) -> (CSS->Racket Bitmap)]
+                                                 [Positive-Real Positive-Real (-> Bitmap) -> (CSS->Racket Bitmap)]
+                                                 [Positive-Real -> (CSS->Racket (CSS-Maybe Bitmap))]
+                                                 [Positive-Real Positive-Real -> (CSS->Racket (CSS-Maybe Bitmap))]))
+  (let ()
+    (case-lambda
+      [(height density/image)
+       (cond [(real? density/image) (css->normalized-image (make-image-normalizer height density/image))]
+             [else (css->normalized-image (make-image-normalizer height (default-icon-backing-scale) density/image))])]
+      [(height density mk-image) (css->normalized-image (make-image-normalizer height density mk-image))]
+      [(height/normalize)
+       (cond [(not (real? height/normalize)) (css->normalized-image height/normalize)]
+             [else (css->normalized-image (make-image-normalizer height/normalize (default-icon-backing-scale)))])])))
 
-(define css->bitmap (make-css->bitmap values))
+(define-values (css->bitmap css->image)
+  (values (css->normalized-image (λ [[raw : (CSS-Maybe Bitmap)]] raw))
+          (css->normalized-image (λ [[raw : (CSS-Maybe Bitmap)]]
+                                   (cond [(and (bitmap%? raw) (send raw ok?)) raw]
+                                         [else (bitmap-solid)])))))

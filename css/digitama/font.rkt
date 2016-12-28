@@ -117,7 +117,7 @@
         '(font-style font-variant font-weight font-stretch font-size line-height font-family
                      font-size-adjust font-kerning font-language-override)))
 
-(define css->font-family : (-> Symbol CSS-Datum (U String Font-Family))
+(define css->font-family : (CSS->Racket (U String Font-Family))
   (lambda [_ value]
     (define (generic-family-map [family : Symbol]) : Font-Family
       (case family
@@ -140,7 +140,7 @@
                         (and (list? family) (face-filter (string-trim (~a family) #px"(^[(])|([)]$)")))
                         (select (cdr families))))]))))
 
-(define css->font-size : (-> Symbol CSS-Datum Nonnegative-Real)
+(define css->font-size : (CSS->Racket Nonnegative-Real)
   (lambda [property value]
     (cond [(symbol? value)
            (let ([css-font-medium (smart-font-size (default-css-font))])
@@ -161,7 +161,7 @@
           [(eq? property 'max-font-size) 1024.0]
           [else +nan.0 #| used to determine whether size-in-pixels? will be inherited, see (css-extract-font) |#])))
 
-(define css->font-weight : (-> Symbol CSS-Datum Font-Weight)
+(define css->font-weight : (CSS->Racket Font-Weight)
   (lambda [_ value]
     (cond [(symbol? value)
            (case value
@@ -173,7 +173,7 @@
           [(and (fixnum? value) (fx>= value 700)) 'bold]
           [else (send (default-css-font) get-weight)])))
 
-(define css->font-style : (-> Symbol CSS-Datum Font-Style)
+(define css->font-style : (CSS->Racket Font-Style)
   (lambda [_ value]
     (case value
       [(normal italic) value]

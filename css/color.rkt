@@ -26,7 +26,7 @@
                  (and (regexp? px.names) (regexp-match? px.names (symbol->string name))))
              (CSS<^> (<css-color>))))))
 
-(define css->color : (-> Symbol CSS-Datum (U Color CSS-Wide-Keyword 'currentcolor))
+(define css->color : (CSS->Racket (U Color CSS-Wide-Keyword 'currentcolor))
   (lambda [desc-name color]
     (cond [(color%? color) color]
           [(eq? color 'currentcolor) color #| evaluated at used-value time |#]
