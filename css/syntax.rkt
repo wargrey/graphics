@@ -2,6 +2,8 @@
 
 ;;; https://drafts.csswg.org/css-syntax
 
+(provide (all-defined-out))
+
 (provide (except-out (all-from-out "digitama/digicore.rkt") css-log-syntax-error))
 (provide (except-out (all-from-out "digitama/cascade.rkt") css-stylesheet-placeholder))
 (provide (all-from-out "digitama/grammar.rkt" "digitama/conditional.rkt" "recognizer.rkt"))
@@ -24,3 +26,8 @@
 (require "digitama/conditional.rkt")
 (require "digitama/cascade.rkt")
 (require "recognizer.rkt")
+
+(define all-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Any))
+  (lambda [declared-values inherited-values]
+    (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys (css-values-descriptors declared-values))])
+      (values desc-name (css-ref declared-values inherited-values desc-name)))))

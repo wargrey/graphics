@@ -20,6 +20,13 @@
                  "color.rkt" "image.rkt"
                  "font.rkt" "text-decor.rkt")
 
+(define all+graphics-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Any))
+  (lambda [declared-values inherited-values]
+    (parameterize ([current-css-element-color (css-ref declared-values #false 'color)])
+      (css-extract-font declared-values #false)
+      (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys (css-values-descriptors declared-values))])
+        (values desc-name (css-ref declared-values inherited-values desc-name))))))
+
 (module reader racket/base
   (provide (except-out (all-from-out racket/base) read read-syntax))
 

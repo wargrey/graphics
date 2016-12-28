@@ -10,6 +10,7 @@
 (require "digitama/font.rkt")
 (require "digitama/bitmap.rkt")
 (require "recognizer.rkt")
+(require "text-decor.rkt")
 
 (define css-font-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
@@ -60,3 +61,13 @@
        (css-set! declared-values 'font font)
        (when (nan? size) (css-set! declared-values 'font-size size))
        font))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define font-parsers : CSS-Declaration-Parsers
+  (lambda [suitcased-name deprecated!]
+    (or (css-font-property-parsers suitcased-name)
+        (css-text-decoration-property-parsers suitcased-name))))
+
+(define font-filter : (CSS-Cascaded-Value-Filter Font)
+  (lambda [declared-values inherited-values]
+    (css-extract-font declared-values inherited-values)))

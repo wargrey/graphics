@@ -37,17 +37,12 @@
     (λ [[initial : (Listof CSS-Datum)] [declared-values : (Listof CSS-Token)]]
       (values (map css-token->datum declared-values) null))))
 
-(define css-value-filter : (CSS-Cascaded-Value-Filter (Option (HashTable Symbol Any)))
-  (lambda [declared-values inherited-values]
-    (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys (css-values-descriptors declared-values))])
-      (values desc-name (css-ref declared-values inherited-values desc-name)))))
-
 tamer-sheet
 tamer-root
 (match-define (list preference header-preference)
   (time-run (let-values ([(preference for-children)
                           (css-cascade (list tamer-sheet) (list tamer-root)
-                                       css-declaration-parsers css-value-filter
+                                       css-declaration-parsers all-filter
                                        #false)])
               (list preference for-children))))
 header-preference
@@ -55,7 +50,7 @@ header-preference
 tamer-body
 (time-run (let-values ([(preference for-children)
                         (css-cascade (list tamer-sheet) (list tamer-body tamer-root)
-                                     css-declaration-parsers css-value-filter
+                                     css-declaration-parsers all-filter
                                      header-preference)])
             for-children))
 
