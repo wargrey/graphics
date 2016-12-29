@@ -1,19 +1,8 @@
 #lang typed/racket
 
-(require "time-run.rkt")
+(require "configure.rkt")
 (require "../syntax.rkt")
 (require "../digitama/selector.rkt")
-
-(define-values (in out) (make-pipe))
-(define css-logger (make-logger 'css #false))
-(define css (thread (thunk (let forever ([/dev/log (make-log-receiver css-logger 'debug)])
-                             (match (sync/enable-break /dev/log)
-                               [(vector level message urgent _)
-                                (cond [(eof-object? urgent) (close-output-port out)]
-                                      [else (fprintf out "[~a] ~a~n" level message)
-                                            (forever /dev/log)])])))))
-
-(current-logger css-logger)
 
 (time-run (map (λ [[in : String]] : (Pairof String Integer)
                  (let ([?complex-selectors (css-parse-selectors in)])

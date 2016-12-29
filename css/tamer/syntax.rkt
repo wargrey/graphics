@@ -1,34 +1,11 @@
-#lang typed/racket/gui
+#lang typed/racket
 
-(require "time-run.rkt")
+(require "configure.rkt")
 (require "../syntax.rkt")
-(require "../digitama/misc.rkt")
 
-(require racket/runtime-path)
-
-(define-runtime-path tamer.css "../stone/tamer.css")
-  
-(define-values (width height) (get-display-size))
-(define-values (in out) (make-pipe))
-(define css-logger (make-logger 'css #false))
-(define css (thread (thunk (let forever ([/dev/log (make-log-receiver css-logger 'debug)])
-                             (match (sync/enable-break /dev/log)
-                               [(vector level message urgent _)
-                                (cond [(eof-object? urgent) (close-output-port out)]
-                                      [else (fprintf out "[~a] ~a~n" level message)
-                                            (forever /dev/log)])])))))
-
-(current-logger css-logger)
-(css-deprecate-media-type #true)
-(default-css-media-type 'screen)
-(default-css-media-preferences
-  ((inst make-hash Symbol CSS-Media-Datum)
-   (list (cons 'orientation 'landscape)
-         (cons 'width (or width 0))
-         (cons 'height (or height 0)))))
-
+(css-configure-@media)
 (collect-garbage)
-(define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer.css)))
+(define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer/tamer.css)))
 (define tamer-root : CSS-Subject (make-css-subject #:type 'root #:id '#:header))
 (define tamer-body : CSS-Subject (make-css-subject #:type 'module #:id '#:root #:classes '(main)))
 
@@ -37,7 +14,6 @@
     (λ [[initial : (Listof CSS-Datum)] [declared-values : (Listof CSS-Token)]]
       (values (map css-token->datum declared-values) null))))
 
-tamer-sheet
 tamer-root
 (match-define (list preference header-preference)
   (time-run (let-values ([(preference for-children)
@@ -53,6 +29,3 @@ tamer-body
                                      css-declaration-parsers all-filter
                                      header-preference)])
             for-children))
-
-(log-message css-logger 'debug "exit" eof)
-(copy-port in (current-output-port))

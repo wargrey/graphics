@@ -2,32 +2,11 @@
 
 (provide (all-defined-out))
 
-(require "time-run.rkt")
+(require "configure.rkt")
 (require "../main.rkt")
 
-(require racket/runtime-path)
-
-(define DrRacket? : Boolean (regexp-match? #px"DrRacket$" (find-system-path 'run-file)))
-(define-runtime-path bitmap.css "../stone/bitmap.css")
-
-(define-values (in out) (make-pipe))
-(define css-logger (make-logger 'css #false))
-(define css (thread (thunk (let forever ([/dev/log (make-log-receiver css-logger 'debug)])
-                             (match (sync/enable-break /dev/log)
-                               [(vector 'debug _ (? eof-object?) _) (close-output-port out)]
-                               [(vector level message _ (or 'exn:css:syntax 'exn:css:eval 'exn:css:read))
-                                (fprintf out "[~a] ~a~n" level message) (forever /dev/log)]
-                               [else (forever /dev/log)])))))
-  
-(current-logger css-logger)
+(css-configure-@media)
 (current-namespace (module->namespace 'bitmap))
-(css-cache-computed-object-value #false)
-(default-css-media-type 'screen)
-(default-css-media-preferences
-  ((inst make-hasheq Symbol CSS-Media-Datum)
-   (list (cons 'orientation 'landscape)
-         (cons 'width 1440)
-         (cons 'height 820))))
 
 (define-preference btest #:as Bitmap-TestCase #:with ([color-properties Color+sRGB])
   ([symbol-color : Color+sRGB                  #:= 'Blue]
@@ -83,7 +62,8 @@
                                   (values k (fv)))))))
 
 (css-root-element-type 'module)
-(define tamer-sheet : CSS-StyleSheet (read-css-stylesheet bitmap.css))
+
+(define tamer-sheet : CSS-StyleSheet (read-css-stylesheet tamer/bitmap.css))
 (define tamer-main : CSS-Subject (make-css-subject #:type 'module #:classes '(main)))
 
 (define :values : CSS-Values (make-css-values))
@@ -128,10 +108,6 @@
             (cons tobj testcases))))
 
 (when DrRacket?
-  (values tamer-sheet
-          :root
+  (values :root
           (apply bitmap-vl-append bitmap-descs)
           length%))
-
-(log-message css-logger 'debug "exit" eof)
-(when DrRacket? (copy-port in (current-output-port)))

@@ -91,11 +91,7 @@
     (when (regexp-match-peek #px"^#(lang|!)" /dev/rawin)
       ;; skip racket `#lang` line and blanks.
       (read-line /dev/rawin)
-      (regexp-match #px"^\\s*" /dev/rawin)
-      (when (regexp-match-peek #px"^[(]module " /dev/rawin)
-        ;; skip configuration module and blanks.
-        (read /dev/rawin)
-        (regexp-match #px"^\\s*" /dev/rawin)))
+      (regexp-match #px"^\\s*" /dev/rawin))
     (define magic : (Option (Pairof Bytes (Listof (Option Bytes)))) (regexp-match-peek #px"^@charset \"(.*?)\";" /dev/rawin))
     (define charset : (Option Bytes) (and magic (let ([name (cdr magic)]) (and (pair? name) (car name)))))
     (define CHARSET : (Option String) (and charset (css-fallback-charset charset)))
