@@ -24,15 +24,13 @@
   (lambda [declared-values inherited-values]
     (parameterize ([current-css-element-color (css-ref declared-values #false 'color)])
       (css-extract-font declared-values #false)
-      (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys (css-values-descriptors declared-values))])
-        (values desc-name (css-ref declared-values inherited-values desc-name))))))
+      (all-filter declared-values inherited-values))))
 
 (module reader racket/base
   (provide (except-out (all-from-out racket/base) read read-syntax))
 
   (provide (rename-out [css-read read]))
   (provide (rename-out [css-read-syntax read-syntax]))
-  (provide (rename-out [css-language-info get-language-info]))
   (provide (rename-out [css-info get-info]))
   
   (require css/language-info))

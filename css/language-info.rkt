@@ -21,17 +21,20 @@
                     (string->symbol (path->string (cond [(regexp-match? #px"\\.css$" src.css) src.css]
                                                         [else (path-replace-extension src.css ".css")]))))]))
     (regexp-match #px"^\\s*" /dev/cssin) ; skip blanks between `#lang` and contents
-    (strip-context
-     #`(module #,lang.css typed/racket/base
-         (provide (all-defined-out) (all-from-out css/syntax))
-         (require css/syntax)
-         (define #,lang.css : CSS-StyleSheet (read-css-stylesheet (open-input-bytes #,(port->bytes /dev/cssin) '#,src)))))))
-
-(define css-language-info
-  (lambda [argument]
-    (λ [key default]
-      (case key
-        [else default]))))
+    (syntax-property
+     (strip-context
+      #`(module #,lang.css typed/racket/base
+          (provide (all-defined-out))
+          (provide (all-from-out css/syntax))
+          
+          (require css/syntax)
+          (require (submod css/language-info runtime))
+          
+          (define #,lang.css : CSS-StyleSheet (read-css-stylesheet (open-input-bytes #,(port->bytes /dev/cssin) '#,src)))
+          (when (DrRacket?) #,lang.css)))
+     'module-language
+     '#(css/language-info css-language-info #false)
+     #true)))
 
 (define css-info
   (lambda [key default use-default]
@@ -39,3 +42,16 @@
       [(drracket:default-filters) '(["CSS Sources" "*.css"])]
       [(drracket:default-extension) "css"]
       [else (use-default key default)])))
+
+(define css-language-info
+  (lambda [argument]
+    (λ [key default]
+      (case key
+        [(configure-runtime) '(#((submod css/language-info runtime) DrRacket? #true))]
+        [else default]))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(module runtime typed/racket/base
+  (provide (all-defined-out))
+  
+  (define DrRacket? : (Parameterof Boolean) (make-parameter #false)))
