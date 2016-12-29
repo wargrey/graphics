@@ -20,7 +20,12 @@
             [else (let ([src.css (path-replace-extension (file-name-from-path src) "")])
                     (string->symbol (path->string (cond [(regexp-match? #px"\\.css$" src.css) src.css]
                                                         [else (path-replace-extension src.css ".css")]))))]))
-    (regexp-match #px"^\\s*" /dev/cssin) ; skip blanks between `#lang` and contents
+    (define configure-runtime
+      (let* ([/dev/pkin (peeking-input-port /dev/cssin)]
+             [?config (read /dev/pkin)])
+        (cond [(not (and (list? ?config) (eq? (car ?config) 'module))) #'(void)]
+              [else (read-syntax (object-name /dev/cssin) /dev/cssin)])))
+    (regexp-match #px"^\\s*" /dev/cssin) ; skip blanks before real css content
     (syntax-property
      (strip-context
       #`(module #,lang.css typed/racket/base
@@ -29,8 +34,11 @@
           
           (require css/syntax)
           (require (submod css/language-info runtime))
+
+          #,configure-runtime
           
-          (define #,lang.css : CSS-StyleSheet (read-css-stylesheet (open-input-bytes #,(port->bytes /dev/cssin) '#,src)))
+          (define #,lang.css : CSS-StyleSheet
+            (read-css-stylesheet (open-input-bytes #,(port->bytes /dev/cssin) '#,src)))
           (when (DrRacket?) #,lang.css)))
      'module-language
      '#(css/language-info css-language-info #false)

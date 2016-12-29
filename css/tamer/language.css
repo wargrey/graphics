@@ -1,5 +1,8 @@
 #lang css
 
+(module configure-runtime racket/base
+  (displayln "CSS as Racket module!"))
+
 @charset "utf-8";
 @charset "utf-16";
 
