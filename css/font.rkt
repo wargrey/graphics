@@ -11,6 +11,7 @@
 (require "digitama/bitmap.rkt")
 (require "recognizer.rkt")
 (require "text-decor.rkt")
+(require "color.rkt")
 
 (define css-font-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
@@ -71,3 +72,15 @@
 (define font-filter : (CSS-Cascaded-Value-Filter Font)
   (lambda [declared-values inherited-values]
     (css-extract-font declared-values inherited-values)))
+
+(define font+color-parsers : CSS-Declaration-Parsers
+  (lambda [suitcased-name deprecated!]
+    (or (css-font-property-parsers suitcased-name)
+        (css-text-decoration-property-parsers suitcased-name)
+        (css-color-property-parsers suitcased-name '()))))
+
+(define font+color-filter : (CSS-Cascaded-Value-Filter (Pairof Font Color))
+  (lambda [declared-values inherited-values]
+    (define color : (CSS-Maybe Color+sRGB) (css-ref declared-values inherited-values 'color css->color))
+    (cons (css-extract-font declared-values inherited-values)
+          (select-color (if (css-wide-keyword? color) (current-css-element-color) color)))))
