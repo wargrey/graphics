@@ -96,13 +96,14 @@
                            [#:border-color Color+sRGB] [#:border-width Index] [#:border-style Pen-Style] Bitmap)
   (lambda [bmp #:margin [margin 0] #:color [brush-color #xFFFFFF] #:style [brush-style 'transparent]
            #:border-color [pen-color #x000000] #:border-width [pen-size 1] #:border-style [pen-style 'solid]]
-    (define width : Positive-Integer (+ margin margin (send bmp get-width) pen-size pen-size))
-    (define height : Positive-Integer (+ margin margin (send bmp get-height) pen-size pen-size))
+    (define offset : Nonnegative-Fixnum (fx+ margin pen-size))
+    (define width : Positive-Integer (+ (send bmp get-width) offset offset))
+    (define height : Positive-Integer (+ (send bmp get-height) offset offset))
     (define frame : Bitmap (bitmap-blank width height (send bmp get-backing-scale)))
     (define dc : (Instance Bitmap-DC%) (send frame make-dc))
     (send dc set-smoothing 'aligned)
     (send dc set-pen (select-color pen-color) pen-size (if (zero? pen-size) 'transparent pen-style))
     (send dc set-brush (select-color brush-color) brush-style)
     (send dc draw-rectangle 0 0 width height)
-    (send dc draw-bitmap bmp margin margin)
+    (send dc draw-bitmap bmp offset offset)
     frame))

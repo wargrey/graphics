@@ -26,6 +26,35 @@
      (send dc draw-bitmap-section bmp 0 0 left top width height)
      clone]))
 
+(define bitmap-trim : (->* (Bitmap) (Boolean) Bitmap)
+  (lambda [bmp [just-alpha? #true]]
+    (define w : Positive-Fixnum (assert (send bmp get-width) fixnum?))
+    (define h : Positive-Fixnum (assert (send bmp get-height) fixnum?))
+    (define pixels : Bytes (make-bytes (* w h 4)))
+    (send bmp get-argb-pixels 0 0 w h pixels just-alpha?)
+    (define-values (x y X Y)
+      (let ([x : Nonnegative-Fixnum w]
+            [y : Nonnegative-Fixnum h]
+            [X : Nonnegative-Fixnum 0]
+            [Y : Nonnegative-Fixnum 0])
+        (let y-loop : Void ([yn : Nonnegative-Fixnum 0] [i : Nonnegative-Fixnum 0])
+          (when (fx< yn h)
+            (let x-loop : Void ([xn : Nonnegative-Fixnum 0] [i : Nonnegative-Fixnum i])
+              (cond [(fx< xn w)
+                     (let argb-loop : Void ([k : Nonnegative-Fixnum 0] [i : Nonnegative-Fixnum i])
+                       (cond [(fx< k 4)
+                              (define v (bytes-ref pixels i))
+                              (when (fx> v 0)
+                                (set! x (fxmin x xn))
+                                (set! y (fxmin y yn))
+                                (set! X (fxmax X (fx+ 1 xn)))
+                                (set! Y (fxmax Y (fx+ 1 yn))))
+                              (argb-loop (fx+ k 1) (fx+ i 1))]
+                             [else (x-loop (fx+ xn 1) i)]))]
+                    [else (y-loop (fx+ yn 1) i)]))))
+        (values x y X Y)))
+    (bitmap-section/dot bmp x y X Y)))
+
 (define bitmap-inset : (case-> [Bitmap Real -> Bitmap]
                                [Bitmap Real Real -> Bitmap]
                                [Bitmap Real Real Real Real -> Bitmap])
