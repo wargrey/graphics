@@ -21,6 +21,7 @@
                     (string->symbol (path->string (cond [(regexp-match? #px"\\.css$" src.css) src.css]
                                                         [else (path-replace-extension src.css ".css")]))))]))
     (regexp-match #px"^\\s*" /dev/cssin) ; skip blanks before real css content
+    (define-values (line col pos) (port-next-location /dev/cssin))
     (syntax-property
      (strip-context
       #`(module #,lang.css typed/racket/base
@@ -31,7 +32,10 @@
           (require (submod css/language-info runtime))
           
           (define #,lang.css : CSS-StyleSheet
-            (read-css-stylesheet (open-input-bytes #,(port->bytes /dev/cssin) '#,src)))
+            (let ([/dev/rawin (open-input-bytes #,(port->bytes /dev/cssin) '#,src)])
+              (port-count-lines! /dev/rawin)
+              (set-port-next-location! /dev/rawin #,line #,col #,pos)
+              (read-css-stylesheet /dev/rawin)))
           (when (DrRacket?) #,lang.css)))
      'module-language
      '#(css/language-info css-language-info #false)

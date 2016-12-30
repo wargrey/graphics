@@ -17,7 +17,7 @@
     [(_ id :-> ->T (lambda [cssin [args : T defval ...] ...] body ...))
      #'(define (id [/dev/stdin : CSS-StdIn (current-input-port)] [args : T defval ...] ...) : ->T
          (define /dev/cssin : Input-Port (css-open-input-port /dev/stdin))
-         (dynamic-wind (thunk (port-count-lines! /dev/cssin))
+         (dynamic-wind (thunk '(css-open-input-port has already enabled line counting))
                        (thunk ((λ [[cssin : Input-Port] [args : T defval ...] ...] : ->T body ...) /dev/cssin args ...))
                        (thunk (close-input-port /dev/cssin))))]))
 

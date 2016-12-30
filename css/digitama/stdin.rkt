@@ -48,7 +48,7 @@
                                   (unless (eq? /dev/rawin /dev/stdin) (close-input-port /dev/rawin)))
                            #false #false
                            (thunk (port-next-location /dev/cssin))
-                           (thunk (port-count-lines! /dev/cssin)))))))
+                           (thunk (void (list css-fallback-encode-input-port '|has already set it|))))))))
   
 (define css-read-syntax : (-> Input-Port CSS-Syntax-Any)
   (lambda [css]
@@ -88,6 +88,7 @@
   ;;; https://drafts.csswg.org/css-syntax/#input-byte-stream
   ;;; https://drafts.csswg.org/css-syntax/#charset-rule
   (lambda [/dev/rawin]
+    (unless (port-counts-lines? /dev/rawin) (port-count-lines! /dev/rawin))
     (when (regexp-match-peek #px"^#(lang|!)" /dev/rawin)
       ;; skip racket `#lang` line and blanks.
       (read-line /dev/rawin)
