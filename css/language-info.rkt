@@ -41,14 +41,15 @@
      '#(css/language-info css-language-info #false)
      #true)))
 
-(define css-info
-  (lambda [key default use-default]
+(define (css-info in mod line col pos)
+  (lambda [key default]
     (case key
       [(drracket:default-filters) '(["CSS Sources" "*.css"])]
       [(drracket:default-extension) "css"]
       [(color-lexer) (dynamic-require '(submod css/language-info highlight) 'css-lexer)]
-      [else (use-default key default)])))
+      [else default])))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-language-info
   (lambda [argument]
     (λ [key default]
@@ -56,7 +57,6 @@
         [(configure-runtime) '(#((submod css/language-info runtime) DrRacket? #true))]
         [else default]))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module runtime typed/racket/base
   (provide (all-defined-out))
   
