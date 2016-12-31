@@ -26,7 +26,7 @@
                          [_ <field-info>]))])
        #'(define-preference preference #:as Preference #:with extra-bindings (property-definitions ...) options ...))]))
 
-(define current-css-element-color : (Parameterof Color) (make-parameter (select-color #x000000)))
+(define current-css-element-color : (Parameterof Color+sRGB Color) (make-parameter (select-color #x000000) select-color))
 (default-make-currentcolor current-css-element-color)
 
 (define css-color-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
