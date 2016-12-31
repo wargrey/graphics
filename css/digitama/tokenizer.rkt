@@ -16,8 +16,7 @@
      #'(let-values ([(start-position) (css-srcloc-pos src)]
                     [(line column position) (port-next-location (css-srcloc-in src))])
          (make-css:token (css-srcloc-source src) (css-srcloc-line src) (css-srcloc-col src)
-                         start-position (max (- (or position 0) start-position) 0)
-                         datum ...))]))
+                         start-position (or position 0) datum ...))]))
   
 (define-syntax (css-make-bad-token stx)
   (syntax-case stx []

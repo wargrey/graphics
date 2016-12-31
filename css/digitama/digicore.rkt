@@ -311,7 +311,7 @@
 (define-type CSS-Zero (U CSS:Zero CSS:Flzero))
 (define-type CSS-One (U CSS:One CSS:Flone))
 
-(define-tokens css-token #:+ CSS-Token ([source : Any] [line : Natural] [column : Natural] [position : Natural] [span : Natural])
+(define-tokens css-token #:+ CSS-Token ([source : Any] [line : Natural] [column : Natural] [start : Natural] [end : Natural])
   [[css-numeric         #:+ CSS-Numeric         #:-> css-token   ([representation : String])]
    [css:dimension       #:+ CSS:Dimension       #:-> css-numeric ([datum : Flonum] [unit : Symbol])]]
 
@@ -421,19 +421,16 @@
   (syntax-case stx []
     [(_ [start-token end-token] make-css:token datum extra ...)
      #'(make-css:token (css-token-source start-token) (css-token-line start-token)
-                       (css-token-column start-token) (css-token-position start-token)
-                       (max (- (+ (css-token-position end-token) (css-token-span end-token))
-                               (css-token-position start-token)) 0)
-                       datum extra ...)]
+                       (css-token-column start-token) (css-token-start start-token)
+                       (css-token-end end-token) datum extra ...)]
     [(_ here-token make-css:token datum ...)
      #'(css-remake-token [here-token here-token] make-css:token datum ...)]))
 
 (define css-token->syntax : (-> CSS-Token Syntax)
   (lambda [instance]
     (datum->syntax #false (css-token->datum instance)
-                   (list (css-token-source instance)
-                         (css-token-line instance) (css-token-column instance)
-                         (css-token-position instance) (css-token-span instance)))))
+                   (list (css-token-source instance) (css-token-line instance) (css-token-column instance)
+                         (css-token-start instance) (- (css-token-end instance) (css-token-start instance))))))
 
 (define css-token-datum->string : (-> CSS-Token String)
   (lambda [instance]

@@ -46,6 +46,7 @@
     (case key
       [(drracket:default-filters) '(["CSS Sources" "*.css"])]
       [(drracket:default-extension) "css"]
+      [(color-lexer) (dynamic-require '(submod css/language-info highlight) 'css-lexer)]
       [else (use-default key default)])))
 
 (define css-language-info
@@ -60,3 +61,16 @@
   (provide (all-defined-out))
   
   (define DrRacket? : (Parameterof Boolean) (make-parameter #false)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(module highlight typed/racket/base
+  (provide (all-defined-out))
+
+  (require css/digitama/digicore)
+  (require css/digitama/tokenizer)
+  
+  (define css-lexer : (-> Input-Port (Values (U String EOF) Symbol (Option Symbol) (Option Integer) (Option Integer)))
+    (lambda [/dev/cssin]
+      (define v : CSS-Syntax-Any (css-consume-token /dev/cssin (format "~a" (object-name /dev/cssin))))
+      (cond [(eof-object? v) (values eof 'eof #false #false #false)]
+            [else (values (css-token-datum->string v) 'comment #false (css-token-start v) (css-token-end v))]))))
