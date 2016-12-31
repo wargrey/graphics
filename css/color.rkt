@@ -11,7 +11,7 @@
 (require "digitama/color.rkt")
 (require "recognizer.rkt")
 
-(define current-css-element-color : (Parameterof CSS-Datum Color+sRGB)
+(define current-css-element-color : (Parameterof CSS-Datum Color)
   (make-parameter (select-color #x000000)
                   (λ [[c : CSS-Datum]]
                     (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css->color 'color c))
@@ -35,3 +35,11 @@
           [(rgba? color) (select-color (rgb-bytes->hex (rgba-r color) (rgba-g color) (rgba-b color)) (rgba-a color))]
           [(hsba? color) (select-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
           [else css:initial])))
+
+(define css-color-ref : (-> CSS-Values (Option CSS-Values) Symbol (U Color CSS-Wide-Keyword))
+  (lambda [declared-values inherited-values property]
+    ;;; NOTE: `css-ref` will save all the values as computed value if it knows how to transform the cascaded values,
+    ;;          hence the `css-color-ref` to generate a more useful used value for clients so that clients do not need
+    ;;          to trace the `currentcolor` all the time. The correct current color may escape from the `parameterize`.
+    (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css-ref declared-values inherited-values property css->color))
+    (if (eq? color 'currentcolor) (current-css-element-color) color)))

@@ -17,19 +17,11 @@
 
 (define-syntax (define-preference stx)
   (syntax-parse stx #:literals [:]
-    [(self preference #:as Preference
-           (~optional (~seq #:undefined Undef undef? undef)
-                      #:defaults ([Undef #'CSS-Wide-Keyword] [undef? #'css-wide-keyword?] [undef #'css:initial]))
-           (fields ...)
-           options ...)
-     #'(self preference #:as Preference #:undefined Undef undef? undef #:with [] (fields ...) options ...)]
-    [(self preference #:as Preference
-           (~optional (~seq #:undefined Uv uv? uv)
-                      #:defaults ([Uv #'CSS-Wide-Keyword] [uv? #'css-wide-keyword?] [uv #'css:initial]))
-           #:with [[bindings BindTypes ...] ...]
-           ([property : DataType info ...] ...)
-           options ...)
+    [(self preference #:as Preference (fields ...) options ...)
+     #'(self preference #:as Preference #:with [] (fields ...) options ...)]
+    [(self preference #:as Preference #:with [[bindings BindTypes ...] ...] ([property : DataType info ...] ...) options ...)
      (with-syntax* ([make-preference (format-id #'preference "make-~a" (syntax-e #'preference))]
+                    [(Uv uv? uv) (list #'CSS-Wide-Keyword #'css-wide-keyword? #'css:initial)]
                     [([property-filter ArgType defval ...] ...)
                      (for/list ([field-info (in-list (syntax->list #'([property DataType info ...] ...)))])
                        (syntax-parse field-info
@@ -38,7 +30,7 @@
                          [(p T #:~> Super fltr) #'[fltr Super]]
                          [(p T #:~> fltr) #'[fltr Any]]
                          [(p T #:= dv) #'[(if (uv? p) dv p) (U T Uv) uv]]
-                         [(p rest ...) (raise-syntax-error (syntax-e #'self) "property requires an algorithm to compute value" #'p)]))]
+                         [(p rest ...) (raise-syntax-error (syntax-e #'self) "property requires #:= and/or #:~> to compute value" #'p)]))]
                     [(args ...)
                      (for/fold ([args null])
                                ([argument (in-list (syntax->list #'([property : ArgType defval ...] ...)))])
