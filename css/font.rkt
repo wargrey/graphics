@@ -81,6 +81,5 @@
 
 (define font+color-filter : (CSS-Cascaded-Value-Filter (Pairof Font Color))
   (lambda [declared-values inherited-values]
-    (define color : (CSS-Maybe Color+sRGB) (css-ref declared-values inherited-values 'color css->color))
     (cons (css-extract-font declared-values inherited-values)
-          (select-color (if (css-wide-keyword? color) (current-css-element-color) color)))))
+          (css-color-ref declared-values inherited-values))))
