@@ -11,12 +11,22 @@
 (require "digitama/color.rkt")
 (require "recognizer.rkt")
 
-(define current-css-element-color : (Parameterof CSS-Datum Color)
-  (make-parameter (select-color #x000000)
-                  (λ [[c : CSS-Datum]]
-                    (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css->color 'color c))
-                    (if (object? color) color (current-css-element-color)))))
+(require (for-syntax racket/syntax))
+(require (for-syntax syntax/parse))
 
+(define-syntax (define-preference* stx)
+  (syntax-parse stx #:literals [:]
+    [(self preference #:as Preference (fields ...) options ...)
+     #'(self preference #:as Preference #:with [] (fields ...) options ...)]
+    [(_ preference #:as Preference #:with extra-bindings (field-info ...) options ...)
+     (with-syntax* ([(property-definitions ...)
+                     (for/list ([<field-info> (in-list (syntax->list #'(field-info ...)))])
+                       (syntax-parse <field-info> #:datum-literals [Color]
+                         [(p : Color #:= dv) #'[p : Color #:= dv #:~> Color+sRGB select-color]]
+                         [_ <field-info>]))])
+       #'(define-preference preference #:as Preference #:with extra-bindings (property-definitions ...) options ...))]))
+
+(define current-css-element-color : (Parameterof Color) (make-parameter (select-color #x000000)))
 (default-make-currentcolor current-css-element-color)
 
 (define css-color-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
@@ -36,10 +46,16 @@
           [(hsba? color) (select-color (hsb->rgb-hex (hsba->rgb color) (hsba-h color) (hsba-s color) (hsba-b color)) (hsba-a color))]
           [else css:initial])))
 
-(define css-color-ref : (-> CSS-Values (Option CSS-Values) Symbol (U Color CSS-Wide-Keyword))
-  (lambda [declared-values inherited-values property]
-    ;;; NOTE: `css-ref` will save all the values as computed value if it knows how to transform the cascaded values,
-    ;;          hence the `css-color-ref` to generate a more useful used value for clients so that clients do not need
-    ;;          to trace the `currentcolor` all the time. The correct current color may escape from the `parameterize`.
-    (define color : (U Color CSS-Wide-Keyword 'currentcolor) (css-ref declared-values inherited-values property css->color))
-    (if (eq? color 'currentcolor) (current-css-element-color) color)))
+(define css-color-ref : (case-> [CSS-Values (Option CSS-Values) -> Color]
+                                [CSS-Values (Option CSS-Values) Symbol -> (U Color CSS-Wide-Keyword)])
+  ;;; NOTE: `css-ref` will save all the values as computed value if it knows how to transform the cascaded values,
+  ;;          hence the `css-color-ref` to generate a more useful used value for clients so that clients do not need
+  ;;          to trace the `currentcolor` all the time. The correct current color may escape from the `parameterize`.
+  (case-lambda
+    [(declared-values inherited-values)
+     ; TODO: if the `color` property has the value of `currentcolor`, can it be saved for children?
+     (define color : CSS-Datum (css-ref declared-values inherited-values 'color))
+     (if (color%? color) color (current-css-element-color))]
+    [(declared-values inherited-values property)
+     (define xxx-color : (U Color CSS-Wide-Keyword 'currentcolor) (css-ref declared-values inherited-values property css->color))
+     (if (eq? xxx-color 'currentcolor) (current-css-element-color) xxx-color)]))

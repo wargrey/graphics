@@ -22,7 +22,7 @@
 
 (define all+graphics-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Any))
   (lambda [declared-values inherited-values]
-    (parameterize ([current-css-element-color (css-ref declared-values #false 'color)])
+    (parameterize ([current-css-element-color (css-color-ref declared-values #false)])
       (css-extract-font declared-values #false)
       (all-filter declared-values inherited-values))))
 

@@ -8,15 +8,15 @@
 (css-configure-@media)
 (current-namespace (module->namespace 'bitmap))
 
-(define-preference btest #:as Bitmap-TestCase #:with ([color-properties Color+sRGB])
-  ([symbol-color : Color+sRGB                  #:= 'Blue]
-   [string-color : Color+sRGB                  #:= 'Orange]
-   [number-color : Color+sRGB                  #:= 'Tomato]
-   [output-color : Color+sRGB                  #:= 'Chocolate]
-   [paren-color : Color+sRGB                   #:= 'Firebrick]
-   [border-color : Color+sRGB                  #:= 'Crimson]
-   [foreground-color : Color+sRGB              #:= "Grey"]
-   [background-color : Color+sRGB              #:= "Snow"]
+(define-preference* btest #:as Bitmap-TestCase #:with ([color-properties Color])
+  ([symbol-color : Color                       #:= 'Blue]
+   [string-color : Color                       #:= 'Orange]
+   [number-color : Color                       #:= 'Tomato]
+   [output-color : Color                       #:= 'Chocolate]
+   [paren-color : Color                        #:= 'Firebrick]
+   [border-color : Color                       #:= 'Crimson]
+   [foreground-color : Color                   #:= "Grey"]
+   [background-color : Color                   #:= "Snow"]
    [font : Font                                #:= (default-css-font)]
    [width : Index                              #:= 512]
    [combine? : Boolean                         #:= #false]
@@ -27,8 +27,7 @@
 
 (define css-descriptor-filter : CSS-Declaration-Parsers
   (lambda [suitcased-name deprecated!]
-    (or (css-font-property-parsers suitcased-name)
-        (css-text-decoration-property-parsers suitcased-name)
+    (or (font-parsers suitcased-name deprecated!)
         (css-color-property-parsers suitcased-name btest-color-properties)
         (css-image-property-parsers suitcased-name)
         (case suitcased-name
@@ -44,7 +43,7 @@
       (cond [(string? value) value]
             [(list? value) (string-join (map (λ [v] (~a v)) value))]
             [else css:initial]))
-    (parameterize ([current-css-element-color (css-ref declared-values inherited-values 'color)])
+    (parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)])
       (make-btest #:symbol-color (css-color-ref declared-values inherited-values 'symbol-color)
                   #:string-color (css-color-ref declared-values inherited-values 'string-color)
                   #:number-color (css-color-ref declared-values inherited-values 'number-color)

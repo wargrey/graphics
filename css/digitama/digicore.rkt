@@ -19,16 +19,16 @@
   (syntax-parse stx #:literals [:]
     [(self preference #:as Preference (fields ...) options ...)
      #'(self preference #:as Preference #:with [] (fields ...) options ...)]
-    [(self preference #:as Preference #:with [[bindings BindTypes ...] ...] ([property : DataType info ...] ...) options ...)
+    [(_ preference #:as Preference #:with [[bindings BindTypes ...] ...] ([property : DataType info ...] ...) options ...)
      (with-syntax* ([make-preference (format-id #'preference "make-~a" (syntax-e #'preference))]
                     [(Uv uv? uv) (list #'CSS-Wide-Keyword #'css-wide-keyword? #'css:initial)]
                     [([property-filter ArgType defval ...] ...)
                      (for/list ([field-info (in-list (syntax->list #'([property DataType info ...] ...)))])
                        (syntax-parse field-info
-                         [(p T #:= dv #:~> Super fltr) #'[(let ([v : (U T Uv) fltr]) (if (uv? v) dv v)) (U Super Uv) uv]]
-                         [(p T #:= dv #:~> fltr) #'[(let ([v : (U T Uv) fltr]) (if (uv? v) dv v)) Any uv]]
-                         [(p T #:~> Super fltr) #'[fltr Super]]
-                         [(p T #:~> fltr) #'[fltr Any]]
+                         [(p T #:= dv #:~> Super fltr) #'[(if (uv? p) (fltr dv) (fltr p)) (U Super Uv) uv]]
+                         [(p T #:= dv #:~> fltr) #'[(if (uv? p) (fltr dv) (fltr p)) Any uv]]
+                         [(p T #:~> Super fltr) #'[(fltr p) Super]]
+                         [(p T #:~> fltr) #'[(fltr p) Any]]
                          [(p T #:= dv) #'[(if (uv? p) dv p) (U T Uv) uv]]
                          [(p rest ...) (raise-syntax-error (syntax-e #'self) "property requires #:= and/or #:~> to compute value" #'p)]))]
                     [(args ...)
