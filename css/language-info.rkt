@@ -64,13 +64,48 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module highlight typed/racket/base
-  (provide (all-defined-out))
+  (provide css-lexer)
 
   (require css/digitama/digicore)
   (require css/digitama/tokenizer)
+
+  (define css-char->Dr.SubType : (-> (U CSS:Delim CSS:Close) (Option Symbol))
+    (lambda [token]
+      (cond [(css:close? token) (string->symbol (string (css:close-datum token)))]
+            [(css:delim=<-? token '(#\( #\[ #\{)) (string->symbol (string (css:delim-datum token)))]
+            [else #false])))
+  
+  (define css-id->Dr.Type : (-> Symbol Boolean Symbol)
+    (lambda [id func?]
+      (case id
+        [(inherit important true false) 'constant]
+        [(initial unset revert) 'sexp-comment]
+        [(only not and or) 'no-color]
+        [else (cond [(and func?) 'parenthesis]
+                    [(symbol-unreadable? id) 'no-color]
+                    [else 'symbol])])))
+  
+  (define css-other->Dr.Type : (-> CSS-Token Symbol)
+    (lambda [token]
+      (cond [(css:ident? token) (css-id->Dr.Type (css:ident-norm token) #false)]
+            [(css:string? token) 'string]
+            [(css:hash? token) 'hash-colon-keyword]
+            [(css:@keyword? token) 'hash-colon-keyword]
+            [(css:urange? token) 'constant]
+            [(css:bad? token) 'error]
+            [else 'other])))
+
+  (define css-hlvalues : (-> CSS-Token Symbol (Option Symbol) (Values String Symbol (Option Symbol) (Option Integer) (Option Integer)))
+    (lambda [t type subtype]
+      (values "" type subtype (css-token-start t) (css-token-end t))))
   
   (define css-lexer : (-> Input-Port (Values (U String EOF) Symbol (Option Symbol) (Option Integer) (Option Integer)))
     (lambda [/dev/cssin]
-      (define v : CSS-Syntax-Any (css-consume-token /dev/cssin (format "~a" (object-name /dev/cssin))))
-      (cond [(eof-object? v) (values eof 'eof #false #false #false)]
-            [else (values (css-token-datum->string v) 'comment #false (css-token-start v) (css-token-end v))]))))
+      (define t : CSS-Syntax-Any (css-consume-token /dev/cssin (format "~a" (object-name /dev/cssin))))
+      (cond [(eof-object? t) (values eof 'eof #false #false #false)]
+            [(css:whitespace? t) (css-hlvalues t (if (string? (css:whitespace-datum t)) 'comment 'white-space) #false)]
+            [(or (css:delim? t) (css:close? t)) (css-hlvalues t 'parenthesis (css-char->Dr.SubType t))]
+            [(css-numeric? t) (css-hlvalues t 'constant #false)]
+            [(css:function? t) (css-hlvalues t (css-id->Dr.Type (css:function-norm t) #true) '|(|)]
+            [(css:url? t) (css-hlvalues t 'parenthesis '|(|)]
+            [else (css-hlvalues t (css-other->Dr.Type t) #false)]))))
