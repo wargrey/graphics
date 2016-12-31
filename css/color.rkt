@@ -53,9 +53,8 @@
   ;;          to trace the `currentcolor` all the time. The correct current color may escape from the `parameterize`.
   (case-lambda
     [(declared-values inherited-values)
-     ; TODO: if the `color` property has the value of `currentcolor`, can it be saved for children?
-     (define color : CSS-Datum (css-ref declared-values inherited-values 'color))
-     (if (color%? color) color (current-css-element-color))]
+     (define color : (CSS-Maybe Color+sRGB) (css-ref declared-values inherited-values 'color css->color))
+     (select-color (if (css-wide-keyword? color) (current-css-element-color) color))]
     [(declared-values inherited-values property)
      (define xxx-color : (U Color CSS-Wide-Keyword 'currentcolor) (css-ref declared-values inherited-values property css->color))
      (if (eq? xxx-color 'currentcolor) (current-css-element-color) xxx-color)]))
