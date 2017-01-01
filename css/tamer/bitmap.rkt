@@ -102,7 +102,7 @@
                           (bitmap-text #:color rcolor
                                        (cond [(not combine?) (format "- : (Bitmap ~a ~a)" desc-width height)]
                                              [else (format "- : (Bitmap ~a ~a #:combined)" desc-width height)]))
-                          (bitmap-lt-superimpose (bitmap-frame desc #:padding 1 #:border-style 'transparent #:style 'transparent)
+                          (bitmap-lt-superimpose (bitmap-frame desc #:border-style 'transparent #:style 'transparent)
                                                  (bitmap-frame (bitmap-blank width height) #:border-color bdcolor))))
             (cons tobj testcases))))
 

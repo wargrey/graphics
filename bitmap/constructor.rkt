@@ -92,11 +92,11 @@
       (send dc draw-text desc 0 y combine?))
     (or (send dc get-bitmap) (bitmap-blank))))
 
-(define bitmap-frame : (-> Bitmap [#:padding Index] [#:color Color+sRGB] [#:style Brush-Style]
+(define bitmap-frame : (-> Bitmap [#:inset Index] [#:color Color+sRGB] [#:style Brush-Style]
                            [#:margin Index] [#:border-color Color+sRGB] [#:border-style Pen-Style] Bitmap)
-  (lambda [bmp #:padding [padding 0] #:color [brush-color #xFFFFFF] #:style [brush-style 'transparent]
+  (lambda [bmp #:inset [inset 0] #:color [brush-color #xFFFFFF] #:style [brush-style 'transparent]
                #:margin [margin 1] #:border-color [pen-color #x000000] #:border-style [pen-style 'solid]]
-    (define offset : Nonnegative-Fixnum (fx+ padding margin))
+    (define offset : Nonnegative-Fixnum (fx+ inset margin))
     (define width : Positive-Integer (+ (send bmp get-width) offset offset))
     (define height : Positive-Integer (+ (send bmp get-height) offset offset))
     (define frame : Bitmap (bitmap-blank width height (send bmp get-backing-scale)))
