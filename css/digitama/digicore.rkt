@@ -664,13 +664,13 @@
          computed-value)]))
 
 (define-preference flcss% #:as FlCSS%
-  ([vw : Nonnegative-Flonum  #:= 1440.0]
-   [vh : Nonnegative-Flonum  #:= 820.0]
-   [rem : Nonnegative-Flonum #:= 12.0]
-   [em : Nonnegative-Flonum  #:= 12.0]
-   [ex : Nonnegative-Flonum  #:= 8.0]
-   [ch : Nonnegative-Flonum  #:= 8.0]
-   [ic : Nonnegative-Flonum  #:= 12.0])
+  ([vw : Nonnegative-Flonum  #:= 0.0]
+   [vh : Nonnegative-Flonum  #:= 0.0]
+   [rem : Nonnegative-Flonum #:= 0.0]
+   [em : Nonnegative-Flonum  #:= 0.0]
+   [ex : Nonnegative-Flonum  #:= 0.0]
+   [ch : Nonnegative-Flonum  #:= 0.0]
+   [ic : Nonnegative-Flonum  #:= 0.0])
   #:transparent
   #:mutable)
 

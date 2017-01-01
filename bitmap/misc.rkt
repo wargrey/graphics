@@ -45,7 +45,9 @@
   (lambda [[basefont (default-css-font)] #:size [size +nan.0] #:face [face #false] #:family [family #false]
            #:style [style #false] #:weight [weight #false] #:hinting [hinting #false] #:smoothing [smoothing #false]
            #:underlined? [underlined 'default] #:size-in-pixels? [size-in-pixels? 'default]]
-    (define ?face : (Option String) (or face (send basefont get-face)))
+    ;;; NOTE: Racket provides extra term `family` to make the font% cross platform, in practical, these two terminologies are referring
+    ;;;        the same thing, thus, ask the basefont for inheriting the `font description string` only when both of them are unset.
+    (define ?face : (Option String) (or face (and (not family) (send basefont get-face))))
     (define underlined? : Boolean (if (boolean? underlined) underlined (send basefont get-underlined)))
     (define pixels? : Boolean (if (boolean? size-in-pixels?) size-in-pixels? (send basefont get-size-in-pixels)))
     (define fontsize : Real (min 1024.0 (cond [(positive? size) size]

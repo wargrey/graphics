@@ -46,6 +46,7 @@
         (css-cascade-rules (css-stylesheet-rules stylesheet) stcejbus desc-filter quirk?
                            (css-stylesheet-preferences stylesheet) declared-values)))
     (css-resolve-variables declared-values inherited-values)
+    ;;; TODO: should we copy the inherited values after invoking (value-filter)?
     (values (value-filter declared-values inherited-values) declared-values)))
 
 (define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject) CSS-Declaration-Parsers)

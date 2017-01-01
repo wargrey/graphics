@@ -39,11 +39,11 @@
 
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (Font) Font)
   (lambda [declared-values inherited-values [basefont (default-css-font)]]
-    (define ?font : CSS-Datum (and inherited-values (css-ref inherited-values #false 'font)))
-    (define inherited-font : Font (if (object? ?font) (cast ?font Font) basefont))
     (define (css->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof CSS-Datum)
       (if (list? value) value (if (send inherited-font get-underlined) (list 'underline) null)))
-    (call-with-font inherited-font #:root? (false? ?font)
+    (define ?font : CSS-Datum (and inherited-values (css-ref inherited-values #false 'font)))
+    (define inherited-font : Font (if (font%? ?font) ?font basefont))
+    (call-with-font inherited-font
       (define family : (U String Font-Family) (css-ref declared-values #false 'font-family css->font-family))
       (define min-size : Nonnegative-Real (css-ref declared-values #false 'min-font-size css->font-size))
       (define max-size : Nonnegative-Real (css-ref declared-values #false 'max-font-size css->font-size))
@@ -58,7 +58,7 @@
         (make-font+ #:face (and (string? family) family) #:family (and (symbol? family) family)
                     #:size size #:size-in-pixels? (implies (nan? size) #| NOTE |# 'inherited) #:hinting hinting
                     #:style style #:weight weight #:underlined? (and (memq 'underline decorations) #true) #:smoothing smoothing
-                    basefont))
+                    inherited-font))
      (call-with-font font
        (css-set! declared-values 'font font)
        (when (nan? size) (css-set! declared-values 'font-size size))

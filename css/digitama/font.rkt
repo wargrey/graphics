@@ -14,24 +14,25 @@
 
 (define-syntax (call-with-font stx)
   (syntax-parse stx
-    [(_ font (~optional (~seq #:root? ?root?)) sexp ...)
-     (with-syntax ([root? (or (attribute ?root?) #'#false)])
-       ; NOTE: This operation is extremely expensive (at least 0.4s), but Racket do have its own cache strategy.
-       #'(begin (unless (eq? font (unbox &font))
-                  ; WARNING: 'xh' seems to be impractical, the font% size is just a nominal size
-                  ;            and usually smaller than the generated text in which case the 'ex' is
-                  ;            always surprisingly larger than the size, the '0w' therefore is used instead.                      
-                  ;(define-values (xw xh xd xe) (send the-dc get-text-extent "x" font)]
-                  (define-values (0w 0h 0d 0e) (send the-dc get-text-extent "0" font))
-                  (define-values (ww wh wd we) (send the-dc get-text-extent "水" font))
-                  (define em : Nonnegative-Flonum (smart-font-size font))
-                  (when root? (set-flcss%-rem! length% em))
-                  (set-flcss%-em! length% em)
-                  (set-flcss%-ex! length% (real->double-flonum 0w))
-                  (set-flcss%-ch! length% (real->double-flonum 0w))
-                  (set-flcss%-ic! length% (real->double-flonum ww))
-                  (set-box! &font font))
-                sexp ...))]))
+    [(_ font sexp ...)
+     ; NOTE: This operation is extremely expensive (at least 0.4s), but Racket do have its own cache strategy.
+     #'(let ([rem? (positive? (flcss%-rem length%))]
+             [last-font (unbox &font)])
+         (unless (and (eq? font last-font) rem?)
+           ; WARNING: 'xh' seems to be impractical, the font% size is just a nominal size
+           ;            and usually smaller than the generated text in which case the 'ex' is
+           ;            always surprisingly larger than the size, the '0w' therefore is used instead.                      
+           ;(define-values (xw xh xd xe) (send the-dc get-text-extent "x" font)]
+           (define-values (0w 0h 0d 0e) (send the-dc get-text-extent "0" font))
+           (define-values (ww wh wd we) (send the-dc get-text-extent "水" font))
+           (define em : Nonnegative-Flonum (smart-font-size font))
+           (when (false? rem?) (set-flcss%-rem! length% em))
+           (set-flcss%-em! length% em)
+           (set-flcss%-ex! length% (real->double-flonum 0w))
+           (set-flcss%-ch! length% (real->double-flonum 0w))
+           (set-flcss%-ic! length% (real->double-flonum ww))
+           (set-box! &font font))
+         sexp ...)]))
 
 (define-type CSS-Size+Unitless (U Nonnegative-Flonum Negative-Single-Flonum Symbol))
 
