@@ -26,8 +26,3 @@
 (require "digitama/conditional.rkt")
 (require "digitama/cascade.rkt")
 (require "recognizer.rkt")
-
-(define all-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Any))
-  (lambda [declared-values inherited-values]
-    (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys (css-values-descriptors declared-values))])
-      (values desc-name (css-ref declared-values inherited-values desc-name)))))

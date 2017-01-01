@@ -4,6 +4,7 @@
 
 (require "configure.rkt")
 (require "../main.rkt")
+(require "../sugar.rkt")
 
 (css-configure-@media)
 (current-namespace (module->namespace 'bitmap))
@@ -27,7 +28,7 @@
 
 (define css-descriptor-filter : CSS-Declaration-Parsers
   (lambda [suitcased-name deprecated!]
-    (or (font-parsers suitcased-name deprecated!)
+    (or (css-font+colors-parsers suitcased-name deprecated!)
         (css-color-property-parsers suitcased-name btest-color-properties)
         (css-image-property-parsers suitcased-name)
         (case suitcased-name

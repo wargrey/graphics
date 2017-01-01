@@ -11,7 +11,6 @@
 (require "digitama/bitmap.rkt")
 (require "recognizer.rkt")
 (require "text-decor.rkt")
-(require "color.rkt")
 
 (define css-normal-line-height : (Parameterof Nonnegative-Flonum) (make-parameter 1.2))
 
@@ -71,24 +70,3 @@
     (cond [(nonnegative-flonum? computed-value) computed-value]
           [(single-flonum? computed-value) (fl* (real->double-flonum (- computed-value)) (flcss%-em length%))]
           [else (fl* normal (flcss%-em length%))])))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define font-parsers : CSS-Declaration-Parsers
-  (lambda [suitcased-name deprecated!]
-    (or (css-font-property-parsers suitcased-name)
-        (css-text-decoration-property-parsers suitcased-name))))
-
-(define font-filter : (CSS-Cascaded-Value-Filter Font)
-  (lambda [declared-values inherited-values]
-    (css-extract-font declared-values inherited-values)))
-
-(define font+color-parsers : CSS-Declaration-Parsers
-  (lambda [suitcased-name deprecated!]
-    (or (css-font-property-parsers suitcased-name)
-        (css-text-decoration-property-parsers suitcased-name)
-        (css-color-property-parsers suitcased-name '()))))
-
-(define font+color-filter : (CSS-Cascaded-Value-Filter (Pairof Font Color))
-  (lambda [declared-values inherited-values]
-    (cons (css-extract-font declared-values inherited-values)
-          (css-color-ref declared-values inherited-values))))

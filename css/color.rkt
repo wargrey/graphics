@@ -42,7 +42,7 @@
   (case-lambda
     [(declared-values inherited-values)
      (define color : (CSS-Maybe Color+sRGB) (css-ref declared-values inherited-values 'color css->color))
-     (select-color (if (css-wide-keyword? color) (current-css-element-color) color))]
+     (if (css-wide-keyword? color) (current-css-element-color) (select-color color))]
     [(declared-values inherited-values property)
      (define xxx-color : (U Color CSS-Wide-Keyword 'currentcolor) (css-ref declared-values inherited-values property css->color))
      (if (eq? xxx-color 'currentcolor) (current-css-element-color) xxx-color)]))
