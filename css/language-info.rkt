@@ -72,7 +72,7 @@
   (define css-char->DrType : (-> Char Symbol)
     (lambda [delim]
       (case delim
-        [(#\: #\;) 'sexp-comment]
+        [(#\: #\, #\;) 'sexp-comment]
         [(#\+ #\- #\* #\/) 'symbol]
         [else 'constant])))
   
@@ -109,6 +109,6 @@
             [(css:open? t) (css-hlvalues t 'parenthesis (string->symbol (string (css:delim-datum t))))]
             [(css:close? t) (css-hlvalues t 'parenthesis (string->symbol (string (css:close-datum t))))]
             [(css:delim? t) (css-hlvalues t (css-char->DrType (css:delim-datum t)) #false)]
-            [(css-numeric? t) (css-hlvalues t 'constant #false)]
+            [(css-numeric? t) (css-hlvalues t (if (css-nan? t) 'error 'constant) #false)]
             [(css:url? t) (css-hlvalues t 'parenthesis '|(|)]
             [else (css-hlvalues t (css-other->DrType t) #false)]))))

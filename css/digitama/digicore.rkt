@@ -418,6 +418,12 @@
 (define css-zero? : (-> Any Boolean : #:+ CSS-Zero) (λ [v] (or (css:zero? v) (css:flzero? v))))
 (define css-one? : (-> Any Boolean : #:+ CSS-One) (λ [v] (or (css:one? v) (css:flone? v))))
 
+(define css-nan? : (-> CSS-Numeric Boolean)
+  (lambda [token]
+    (or (and (css:flonum? token) (eqv? (css:flonum-datum token) +nan.0))
+        (and (css:dimension? token) (eqv? (css:dimension-datum token) +nan.0))
+        (and (css:percentage? token) (eqv? (css:percentage-datum token) +nan.f)))))
+
 (define-syntax (css-remake-token stx)
   (syntax-case stx []
     [(_ [start-token end-token] make-css:token datum extra ...)
