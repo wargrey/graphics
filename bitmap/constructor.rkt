@@ -92,22 +92,20 @@
       (send dc draw-text desc 0 y combine?))
     (or (send dc get-bitmap) (bitmap-blank))))
 
-(define bitmap-frame : (-> Bitmap [#:margin Index] [#:border Index] [#:inset Index]
-                           [#:color Color+sRGB] [#:style Brush-Style]
-                           [#:border-color Color+sRGB] [#:border-style Pen-Style] Bitmap)
-  (lambda [bmp #:margin [margin 0] #:border [border 1] #:inset [inset 0]
-               #:color [brush-color #xFFFFFF] #:style [brush-style 'transparent]
-               #:border-color [pen-color #x000000] #:border-style [pen-style 'solid]]
+(define bitmap-frame : (-> Bitmap [#:margin Index] [#:border Index] [#:inset Index] [#:color Color+sRGB] [#:style Pen-Style]
+                           [#:background-color Color+sRGB] [#:background-style Brush-Style] Bitmap)
+  (lambda [bmp #:margin [margin 0] #:border [border 1] #:inset [inset 0] #:color [pen-color #x000000] #:style [pen-style 'solid]
+               #:background-color [brush-color #xFFFFFF] #:background-style [brush-style 'transparent]]
     (define offset : Nonnegative-Fixnum (fx+ border inset))
-    (define fwidth : Positive-Integer (+ (send bmp get-width) offset offset))
-    (define fheight : Positive-Integer (+ (send bmp get-height) offset offset))
-    (define width : Positive-Integer (+ fwidth margin margin))
-    (define height : Positive-Integer (+ fheight margin margin))
-    (define frame : Bitmap (bitmap-blank width height (send bmp get-backing-scale)))
+    (define width : Positive-Integer (+ (send bmp get-width) offset offset))
+    (define height : Positive-Integer (+ (send bmp get-height) offset offset))
+    (define full-width : Positive-Integer (+ width margin margin))
+    (define full-height : Positive-Integer (+ height margin margin))
+    (define frame : Bitmap (bitmap-blank full-width full-height (send bmp get-backing-scale)))
     (define dc : (Instance Bitmap-DC%) (send frame make-dc))
     (send dc set-smoothing 'aligned)
     (send dc set-pen (select-color pen-color) border (if (zero? border) 'transparent pen-style))
     (send dc set-brush (select-color brush-color) brush-style)
-    (send dc draw-rectangle margin margin fwidth fheight)
+    (send dc draw-rectangle margin margin width height)
     (send dc draw-bitmap bmp (fx+ offset margin) (fx+ offset margin))
     frame))
