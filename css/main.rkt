@@ -20,11 +20,18 @@
                  "color.rkt" "image.rkt"
                  "font.rkt" "text-decor.rkt")
 
-(define all+graphics-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Any))
-  (lambda [declared-values inherited-values]
-    (parameterize ([current-css-element-color (css-color-ref declared-values #false)])
-      (css-extract-font declared-values #false)
-      (all-filter declared-values inherited-values))))
+(define-syntax (define-preference* stx)
+  (syntax-parse stx #:literals [:]
+    [(self preference #:as Preference (fields ...) options ...)
+     #'(self preference #:as Preference #:with [] (fields ...) options ...)]
+    [(_ preference #:as Preference #:with extra-bindings (field-info ...) options ...)
+     (with-syntax* ([(property-definitions ...)
+                     (for/list ([<field-info> (in-list (syntax->list #'(field-info ...)))])
+                       (syntax-parse <field-info> #:datum-literals [Color Used-Size]
+                         [(p : Color #:= dv) #'[p : Color #:= dv #:~> Color+sRGB select-color]]
+                         [(p : Used-Size #:= dv) #'[p : Nonnegative-Flounm #:= dv #:~> CSS-Unitless-Size select-size]]
+                         [_ <field-info>]))])
+       #'(define-preference preference #:as Preference #:with extra-bindings (property-definitions ...) options ...))]))
 
 (module reader racket/base
   (provide (except-out (all-from-out racket/base) read read-syntax))

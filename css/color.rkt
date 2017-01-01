@@ -14,18 +14,6 @@
 (require (for-syntax racket/syntax))
 (require (for-syntax syntax/parse))
 
-(define-syntax (define-preference* stx)
-  (syntax-parse stx #:literals [:]
-    [(self preference #:as Preference (fields ...) options ...)
-     #'(self preference #:as Preference #:with [] (fields ...) options ...)]
-    [(_ preference #:as Preference #:with extra-bindings (field-info ...) options ...)
-     (with-syntax* ([(property-definitions ...)
-                     (for/list ([<field-info> (in-list (syntax->list #'(field-info ...)))])
-                       (syntax-parse <field-info> #:datum-literals [Color]
-                         [(p : Color #:= dv) #'[p : Color #:= dv #:~> Color+sRGB select-color]]
-                         [_ <field-info>]))])
-       #'(define-preference preference #:as Preference #:with extra-bindings (property-definitions ...) options ...))]))
-
 (define current-css-element-color : (Parameterof Color+sRGB Color) (make-parameter (select-color #x000000) select-color))
 (default-make-currentcolor current-css-element-color)
 

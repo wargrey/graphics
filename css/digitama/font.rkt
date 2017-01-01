@@ -33,6 +33,8 @@
                   (set-box! &font font))
                 sexp ...))]))
 
+(define-type CSS-Size+Unitless (U Nonnegative-Flonum Negative-Single-Flonum Symbol))
+
 (define css-font-family-names/no-variants : (Listof String) (get-face-list 'all #:all-variants? #false))
 (define &font : (Boxof Font) (box (default-css-font)))
 
@@ -88,11 +90,22 @@
   (CSS:<~> (<css+%real>) exact->inexact)
   (<css-keyword> css-font-size-option))
 
-(define-css-disjoined-filter <line-height> #:-> (U Symbol Nonnegative-Flonum CSS:Length:Font CSS-Wide-Keyword)
+(define-css-disjoined-filter <line-height> #:-> (U CSS-Size+Unitless Nonnegative-Single-Flonum CSS:Length:Font CSS-Wide-Keyword)
   ;;; http://www.w3.org/TR/CSS2/visudet.html#propdef-line-height
-  (CSS:<~> (<css+%real>) real->double-flonum)
-  (<css+length>)
-  (CSS:<~> (<css-keyword> '(normal inherit)) css-wide-keywords-filter-map))
+  ;;; WARNING: When the cascaded value is `normal` or a number, the computed value and used value are different,
+  ;;;           hence the `negative single flonum` to tell the `css->line-height` the unitless value must be inheritable. 
+  (CSS:<~> (<css+real>) (λ [[v : Nonnegative-Real]] (- (real->single-flonum v))))
+  (CSS:<~> (<css-keyword> '(normal inherit)) css-wide-keywords-filter-map)
+  (<css:percentage> nonnegative-single-flonum?)
+  (<css+length>))
+
+(define css->line-height : (-> Symbol CSS-Datum CSS-Size+Unitless)
+  (lambda [_ value]
+    (cond [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (flcss%-em length%))]
+          [(#|negative-|#single-flonum? value) value #|computed value is *not* the used value|#]
+          [(nonnegative-flonum? value) value #|computed value is the used value|#]
+          [(css+length? value) (css:length->scalar value #false)]
+          [else 'normal #|computed value is *not* the used value|#])))
 
 (define <:font-family:> : (CSS-Parser (Listof CSS-Datum))
   ;;; https://drafts.csswg.org/css-fonts/#font-family-prop

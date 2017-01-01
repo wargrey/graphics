@@ -1,7 +1,7 @@
 #lang typed/racket
 
 (require racket/provide)
-(provide (all-defined-out) <:font-shorthand:> <:font-family:> <css-system-font>)
+(provide (all-defined-out) <:font-shorthand:> <:font-family:> <css-system-font> css->line-height CSS-Size+Unitless)
 (provide (matching-identifiers-out #px"(^default-css-|%?$)" (all-from-out "digitama/font.rkt")))
 
 (require bitmap/misc)
@@ -12,6 +12,8 @@
 (require "recognizer.rkt")
 (require "text-decor.rkt")
 (require "color.rkt")
+
+(define css-normal-line-height : (Parameterof Nonnegative-Flonum) (make-parameter 1.2))
 
 (define css-font-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
@@ -62,6 +64,13 @@
        (css-set! declared-values 'font font)
        (when (nan? size) (css-set! declared-values 'font-size size))
        font))))
+
+(define select-size : (->* (CSS-Size+Unitless) (Nonnegative-Flonum) Nonnegative-Flonum)
+  (lambda [computed-value [normal (css-normal-line-height)]]
+    (void 'see css->line-height)
+    (cond [(nonnegative-flonum? computed-value) computed-value]
+          [(single-flonum? computed-value) (fl* (real->double-flonum (- computed-value)) (flcss%-em length%))]
+          [else (fl* normal (flcss%-em length%))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define font-parsers : CSS-Declaration-Parsers
