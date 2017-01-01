@@ -321,6 +321,7 @@
    [css:flone           #:+ CSS:Flone           #:-> css:flonum]
    [css:flzero          #:+ CSS:Flzero          #:-> css:flonum]
 
+   [css:open            #:+ CSS:Open            #:-> css:delim]
    [css:colon           #:+ CSS:Colon           #:-> css:delim]
    [css:semicolon       #:+ CSS:Semicolon       #:-> css:delim]
    [css:comma           #:+ CSS:Comma           #:-> css:delim]

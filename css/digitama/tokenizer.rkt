@@ -37,6 +37,7 @@
           [(char-numeric? ch) (css-consume-numeric-token srcloc ch)]
           [(css-char-name-prefix? ch) (css-consume-ident-token srcloc ch)]
           [else (case ch
+                  [(#\( #\[ #\{) (css-make-token srcloc css:open ch)]
                   [(#\) #\] #\}) (css-make-token srcloc css:close ch)]
                   [(#\' #\") (css-consume-string-token srcloc ch)]
                   [(#\+ #\.) (css-consume-numeric-token srcloc ch)]

@@ -66,16 +66,17 @@
 (module highlight typed/racket/base
   (provide css-lexer)
 
-  (require css/digitama/digicore)
-  (require css/digitama/tokenizer)
+  (require "digitama/digicore.rkt")
+  (require "digitama/tokenizer.rkt")
 
-  (define css-char->Dr.SubType : (-> (U CSS:Delim CSS:Close) (Option Symbol))
-    (lambda [token]
-      (cond [(css:close? token) (string->symbol (string (css:close-datum token)))]
-            [(css:delim=<-? token '(#\( #\[ #\{)) (string->symbol (string (css:delim-datum token)))]
-            [else #false])))
+  (define css-char->DrType : (-> Char Symbol)
+    (lambda [delim]
+      (case delim
+        [(#\: #\;) 'sexp-comment]
+        [(#\+ #\- #\* #\/) 'symbol]
+        [else 'constant])))
   
-  (define css-id->Dr.Type : (-> Symbol Boolean Symbol)
+  (define css-id->DrType : (-> Symbol Boolean Symbol)
     (lambda [id func?]
       (case id
         [(inherit important true false) 'constant]
@@ -85,10 +86,9 @@
                     [(symbol-unreadable? id) 'no-color]
                     [else 'symbol])])))
   
-  (define css-other->Dr.Type : (-> CSS-Token Symbol)
+  (define css-other->DrType : (-> CSS-Token Symbol)
     (lambda [token]
-      (cond [(css:ident? token) (css-id->Dr.Type (css:ident-norm token) #false)]
-            [(css:string? token) 'string]
+      (cond [(css:string? token) 'string]
             [(css:hash? token) 'hash-colon-keyword]
             [(css:@keyword? token) 'hash-colon-keyword]
             [(css:urange? token) 'constant]
@@ -104,8 +104,11 @@
       (define t : CSS-Syntax-Any (css-consume-token /dev/cssin (format "~a" (object-name /dev/cssin))))
       (cond [(eof-object? t) (values eof 'eof #false #false #false)]
             [(css:whitespace? t) (css-hlvalues t (if (string? (css:whitespace-datum t)) 'comment 'white-space) #false)]
-            [(or (css:delim? t) (css:close? t)) (css-hlvalues t 'parenthesis (css-char->Dr.SubType t))]
+            [(css:ident? t) (css-hlvalues t (css-id->DrType (css:ident-norm t) #false) #false)]
+            [(css:function? t) (css-hlvalues t (css-id->DrType (css:function-norm t) #true) '|(|)]
+            [(css:open? t) (css-hlvalues t 'parenthesis (string->symbol (string (css:delim-datum t))))]
+            [(css:close? t) (css-hlvalues t 'parenthesis (string->symbol (string (css:close-datum t))))]
+            [(css:delim? t) (css-hlvalues t (css-char->DrType (css:delim-datum t)) #false)]
             [(css-numeric? t) (css-hlvalues t 'constant #false)]
-            [(css:function? t) (css-hlvalues t (css-id->Dr.Type (css:function-norm t) #true) '|(|)]
             [(css:url? t) (css-hlvalues t 'parenthesis '|(|)]
-            [else (css-hlvalues t (css-other->Dr.Type t) #false)]))))
+            [else (css-hlvalues t (css-other->DrType t) #false)]))))
