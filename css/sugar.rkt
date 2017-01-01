@@ -61,21 +61,3 @@
   (lambda [declared-values inherited-values]
     (cons (css-font-filter declared-values inherited-values)
           (css-colors-filter declared-values inherited-values))))
-
-(define css-all-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Any))
-  (lambda [declared-values inherited-values]
-    (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys (css-values-descriptors declared-values))])
-      (values desc-name (css-ref declared-values inherited-values desc-name)))))
-
-(define css-all+graphics-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Any))
-  (lambda [declared-values inherited-values]
-    (parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)])
-      (css-extract-font declared-values inherited-values)
-      (css-all-filter declared-values inherited-values))))
-
-(define css-simple-box-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Any))
-  (lambda [declared-values inherited-values]
-    (parameterize ([current-css-element-color (css-color-ref declared-values #false)])
-      (css-extract-font declared-values inherited-values)
-      (for/hash : (HashTable Symbol Any) ([desc-name (in-list '(margin padding width height border-style))])
-        (values desc-name (css-ref declared-values inherited-values desc-name))))))

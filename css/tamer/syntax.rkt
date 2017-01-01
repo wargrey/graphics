@@ -10,6 +10,11 @@
 (define tamer-root : CSS-Subject (make-css-subject #:type 'root #:id '#:header))
 (define tamer-body : CSS-Subject (make-css-subject #:type 'module #:id '#:root #:classes '(main)))
 
+(define css-all-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Any))
+  (lambda [declared-values inherited-values]
+    (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys (css-values-descriptors declared-values))])
+      (values desc-name (css-ref declared-values inherited-values desc-name)))))
+
 (define css-declaration-parsers : CSS-Declaration-Parsers
   (lambda [suitcased-name !]
     (λ [[initial : (Listof CSS-Datum)] [declared-values : (Listof CSS-Token)]]
