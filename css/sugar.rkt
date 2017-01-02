@@ -28,13 +28,13 @@
 
 (define-syntax (call-with-css-box stx)
   (syntax-parse stx
-    [(_ declared-values inherited-values sexp ...)
-     #'(call-with-css-box declared-values inherited-values #:with () sexp ...)]
     [(_ declared-values inherited-values #:with (extra-parameters ...) sexp ...)
      #'(parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)]
                       [default-css-font (css-extract-font declared-values inherited-values)]
                       extra-parameters ...)
-         sexp ...)]))
+         sexp ...)]
+    [(_ declared-values inherited-values sexp ...)
+     #'(call-with-css-box declared-values inherited-values #:with () sexp ...)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-font+colors-parsers : CSS-Declaration-Parsers
