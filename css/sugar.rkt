@@ -26,7 +26,15 @@
                          [_ <field-info>]))])
        #'(define-preference preference #:as Preference #:with extra-bindings (property-definitions ...) options ...))]))
 
-(define-predicate pen-style? Pen-Style)
+(define-syntax (call-with-css-box stx)
+  (syntax-parse stx
+    [(_ declared-values inherited-values sexp ...)
+     #'(call-with-css-box declared-values inherited-values #:with () sexp ...)]
+    [(_ declared-values inherited-values #:with (extra-parameters ...) sexp ...)
+     #'(parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)]
+                      [default-css-font (css-extract-font declared-values inherited-values)]
+                      extra-parameters ...)
+         sexp ...)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-font+colors-parsers : CSS-Declaration-Parsers
@@ -35,17 +43,6 @@
         (css-text-decoration-property-parsers suitcased-name)
         (css-color-property-parsers suitcased-name '(background-color)))))
 
-(define css-simple-box-parsers : CSS-Declaration-Parsers
-  (lambda [suitcased-name deprecated!]
-    (or (css-font-property-parsers suitcased-name)
-        (css-text-decoration-property-parsers suitcased-name)
-        (css-color-property-parsers suitcased-name '(background-color border-color))
-        (case suitcased-name
-          [(width height padding margin) (CSS<^> (<css-size>))]
-          [(border-style) (CSS<^> (<css:ident> pen-style?))]
-          [else #false]))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-font-filter : (CSS-Cascaded-Value-Filter Font)
   (lambda [declared-values inherited-values]
     (css-extract-font declared-values inherited-values)))
