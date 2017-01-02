@@ -22,18 +22,19 @@
     [(_ preference #:as Preference #:with [[bindings BindTypes ...] ...] ([property : DataType info ...] ...) options ...)
      (with-syntax* ([make-preference (format-id #'preference "make-~a" (syntax-e #'preference))]
                     [(Uv uv? uv) (list #'CSS-Wide-Keyword #'css-wide-keyword? #'css:initial)]
-                    [([property-filter ArgType defval ...] ...)
+                    [([initial-value property-filter ArgumentType defval ...] ...)
                      (for/list ([field-info (in-list (syntax->list #'([property DataType info ...] ...)))])
                        (syntax-parse field-info
-                         [(p T #:= dv #:~> Super fltr) #'[(if (uv? p) (fltr dv) (fltr p)) (U Super Uv) uv]]
-                         [(p T #:= dv #:~> fltr) #'[(if (uv? p) (fltr dv) (fltr p)) Any uv]]
-                         [(p T #:~> Super fltr) #'[(fltr p) Super]]
-                         [(p T #:~> fltr) #'[(fltr p) Any]]
-                         [(p T #:= dv) #'[(if (uv? p) dv p) (U T Uv) uv]]
-                         [(p rest ...) (raise-syntax-error (syntax-e #'self) "property requires #:= and/or #:~> to compute value" #'p)]))]
+                         [(p T #:= dv #:~> Super fltr) #'[(fltr dv) (if (uv? p) (fltr dv) (fltr p)) (U Super Uv) uv]]
+                         [(p T #:= dv #:~> fltr) #'[(fltr dv) (if (uv? p) (fltr initial) (fltr p)) Any uv]]
+                         [(p T #:= dv) #'[dv (if (uv? p) dv p) (U T Uv) uv]]
+                         [(p rest ...) (raise-syntax-error (syntax-e #'self) "property requires an initial value" #'p)]))]
+                    [(initial-property ...)
+                     (for/list ([property (in-list (syntax->list #'(property ...)))])
+                       (format-id property "initial-~a-~a" (syntax-e #'preference) (syntax-e property)))]
                     [(args ...)
                      (for/fold ([args null])
-                               ([argument (in-list (syntax->list #'([property : ArgType defval ...] ...)))])
+                               ([argument (in-list (syntax->list #'([property : ArgumentType defval ...] ...)))])
                        (cons (datum->syntax argument (string->keyword (symbol->string (car (syntax->datum argument)))))
                              (cons argument args)))]
                     [([pref-bindings properties ...] ...)
@@ -49,6 +50,7 @@
        #'(begin (struct preference ([property : DataType] ...) options ...)
                 (define pref-bindings : (Listof Symbol) (list 'properties ...)) ...
                 (define (make-preference args ...) : Preference (preference property-filter ...))
+                (define (initial-property) : DataType initial-value) ...
                 (define-type Preference preference)))]))
   
 (define-syntax (define-token-interface stx)
