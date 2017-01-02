@@ -15,14 +15,16 @@
 (define-syntax (call-with-font stx)
   (syntax-parse stx
     [(_ font sexp ...)
-     ; NOTE: This operation is extremely expensive (at least 0.4s), but Racket do have its own cache strategy.
      #'(let ([rem? (positive? (flcss%-rem length%))]
              [last-font (unbox &font)])
          (unless (and (eq? font last-font) rem?)
-           ; WARNING: 'xh' seems to be impractical, the font% size is just a nominal size
-           ;            and usually smaller than the generated text in which case the 'ex' is
-           ;            always surprisingly larger than the size, the '0w' therefore is used instead.                      
-           ;(define-values (xw xh xd xe) (send the-dc get-text-extent "x" font)]
+           ;;; WARNING
+           ;; 'xh' seems to be impractical, the font% size is just a nominal size
+           ;; and usually smaller than the generated text in which case the 'ex' is
+           ;; always surprisingly larger than the size, the '0w' therefore is used instead.
+           ;;; NOTE
+           ;; This operation is extremely expensive (at least 0.4s), but Racket do have its own cache strategy.
+           #;(define-values (xw xh xd xe) (send the-dc get-text-extent "x" font))
            (define-values (0w 0h 0d 0e) (send the-dc get-text-extent "0" font))
            (define-values (ww wh wd we) (send the-dc get-text-extent "水" font))
            (define em : Nonnegative-Flonum (smart-font-size font))
@@ -33,8 +35,6 @@
            (set-flcss%-ic! length% (real->double-flonum ww))
            (set-box! &font font))
          sexp ...)]))
-
-(define-type CSS-Size+Unitless (U Nonnegative-Flonum Negative-Single-Flonum Symbol))
 
 (define css-font-family-names/no-variants : (Listof String) (get-face-list 'all #:all-variants? #false))
 (define &font : (Boxof Font) (box (default-css-font)))
@@ -87,26 +87,13 @@
   
 (define-css-disjoined-filter <font-size> #:-> (U Symbol Nonnegative-Inexact-Real CSS:Length:Font)
   ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
-  (<css+length>)
-  (CSS:<~> (<css+%real>) exact->inexact)
+  (<css-size>)
   (<css-keyword> css-font-size-option))
 
-(define-css-disjoined-filter <line-height> #:-> (U CSS-Size+Unitless Nonnegative-Single-Flonum CSS:Length:Font CSS-Wide-Keyword)
+(define-css-disjoined-filter <line-height> #:-> (U Symbol Nonnegative-Flonum Single-Flonum CSS:Length:Font CSS-Wide-Keyword)
   ;;; http://www.w3.org/TR/CSS2/visudet.html#propdef-line-height
-  ;;; WARNING: When the cascaded value is `normal` or a number, the computed value and used value are different,
-  ;;;           hence the `negative single flonum` to tell the `css->line-height` the unitless value must be inheritable. 
-  (CSS:<~> (<css+real>) (λ [[v : Nonnegative-Real]] (- (real->single-flonum v))))
-  (CSS:<~> (<css-keyword> '(normal inherit)) css-wide-keywords-filter-map)
-  (<css:percentage> nonnegative-single-flonum?)
-  (<css+length>))
-
-(define css->line-height : (-> Symbol CSS-Datum CSS-Size+Unitless)
-  (lambda [_ value]
-    (cond [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (flcss%-em length%))]
-          [(#|negative-|#single-flonum? value) value #|computed value is *not* the used value|#]
-          [(nonnegative-flonum? value) value #|computed value is the used value|#]
-          [(css+length? value) (css:length->scalar value #false)]
-          [else 'normal #|computed value is *not* the used value|#])))
+  (<css-unitless-size>)
+  (CSS:<~> (<css-keyword> '(normal inherit)) css-wide-keywords-filter-map))
 
 (define <:font-family:> : (CSS-Parser (Listof CSS-Datum))
   ;;; https://drafts.csswg.org/css-fonts/#font-family-prop
@@ -193,3 +180,11 @@
       [(normal italic) value]
       [(oblique slant) 'slant]
       [else (send (default-css-font) get-style)])))
+
+(define css->line-height : (-> Symbol CSS-Datum (U Nonnegative-Flonum Negative-Single-Flonum))
+  (lambda [_ value]
+    (cond [(css+length? value) (css:length->scalar value #false)]
+          [(nonnegative-flonum? value) value #|computed value is the used value|#]
+          [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (flcss%-em length%))]
+          [(#|negative-|#single-flonum? value) value #|computed value is *not* the used value|#]
+          [else #|'normal|# +nan.0 #|computed value is *not* the used value|#])))

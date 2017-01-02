@@ -1,7 +1,7 @@
 #lang typed/racket
 
 (require racket/provide)
-(provide (all-defined-out) <:font-shorthand:> <:font-family:> <css-system-font> css->line-height CSS-Size+Unitless)
+(provide (all-defined-out) <:font-shorthand:> <:font-family:> <css-system-font> css->line-height)
 (provide (matching-identifiers-out #px"(^default-css-|%?$)" (all-from-out "digitama/font.rkt")))
 
 (require bitmap/misc)
@@ -64,9 +64,9 @@
        (when (nan? size) (css-set! declared-values 'font-size size))
        font))))
 
-(define select-size : (->* (CSS-Size+Unitless) (Nonnegative-Flonum) Nonnegative-Flonum)
+(define select-size : (->* ((U Nonnegative-Flonum Negative-Single-Flonum)) (Nonnegative-Flonum) Nonnegative-Flonum)
   (lambda [computed-value [normal (css-normal-line-height)]]
     (void 'see css->line-height)
-    (cond [(nonnegative-flonum? computed-value) computed-value]
-          [(single-flonum? computed-value) (fl* (real->double-flonum (- computed-value)) (flcss%-em length%))]
-          [else (fl* normal (flcss%-em length%))])))
+    (cond [(nan? computed-value) (fl* normal (flcss%-em length%))]
+          [(nonnegative-flonum? computed-value) computed-value]
+          [else (fl* (real->double-flonum (- computed-value)) (flcss%-em length%))])))

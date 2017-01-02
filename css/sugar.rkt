@@ -16,9 +16,13 @@
     [(_ preference #:as Preference #:with extra-bindings (field-info ...) options ...)
      (with-syntax* ([(property-definitions ...)
                      (for/list ([<field-info> (in-list (syntax->list #'(field-info ...)))])
-                       (syntax-parse <field-info> #:datum-literals [Color Used-Size]
+                       (syntax-parse <field-info> #:datum-literals [Color Unitless-Size]
                          [(p : Color #:= dv) #'[p : Color #:= dv #:~> Color+sRGB select-color]]
-                         [(p : Used-Size #:= dv) #'[p : Nonnegative-Flounm #:= dv #:~> CSS-Unitless-Size select-size]]
+                         [(p : Unitless-Size #:= dv) #'[p : Nonnegative-Flonum #:= dv #:~> (U Nonnegative-Flonum Negative-Single-Flonum)
+                                                          select-size]]
+                         [(p : Unitless-Size #:= dv nv) #'[p : Nonnegative-Flonum #:= dv #:~> (U Nonnegative-Flonum Negative-Single-Flonum)
+                                                             (λ [[v : (U Nonnegative-Flonum Negative-Single-Flonum)]]
+                                                               (select-size v nv))]]
                          [_ <field-info>]))])
        #'(define-preference preference #:as Preference #:with extra-bindings (property-definitions ...) options ...))]))
 

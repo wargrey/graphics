@@ -1,7 +1,6 @@
 #lang typed/racket
 
 ;;; Parser Combinators and Syntax Sugars of dealing with declarations for client applications
-
 ;;; WARNING: Notations are not following the CSS Specifications https://drafts.csswg.org/css-values/#component-combinators
 
 (provide (all-defined-out))
@@ -412,6 +411,14 @@
 (define-css-disjoined-filter <css-size> #:-> (U Nonnegative-Inexact-Real CSS:Length:Font)
   (<css+length>)
   (CSS:<~> (<css+%real>) exact->inexact))
+
+(define-css-disjoined-filter <css-unitless-size> #:-> (U Nonnegative-Flonum Single-Flonum CSS:Length:Font)
+  ;;; NOTE
+  ; `unitless` means the computed value and used value are different,
+  ; hence the `negative single flonum` to tell the `css->*` the unitless value must be inheritable.
+  (CSS:<~> (<css+real>) (λ [[v : Nonnegative-Real]] (- (real->single-flonum v))))
+  (<css:percentage> nonnegative-single-flonum?)
+  (<css+length>))
 
 (define make-css->size : (All (a) (-> a #:100% Nonnegative-Flonum (CSS->Racket (U a Nonnegative-Flonum))))
   (lambda [defval #:100% fl%]
