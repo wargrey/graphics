@@ -420,6 +420,21 @@
   (<css:percentage> nonnegative-single-flonum?)
   (<css+length>))
 
+(define make-css-pair-parsers : (case-> [(CSS:Filter CSS-Datum) Symbol Symbol -> (Pairof CSS-Shorthand-Parser (Listof Symbol))]
+                                        [(CSS:Filter CSS-Datum) Symbol Symbol Symbol Symbol
+                                                                -> (Pairof CSS-Shorthand-Parser (Listof Symbol))])
+  (case-lambda
+    [(filter name1 name2)
+     (cons (CSS<&> (CSS<^> filter name1)
+                   (CSS<$> filter name2 (λ [longhand] (hash-ref longhand name1))))
+           (list name1 name2))]
+    [(filter top right bottom left)
+     (cons (CSS<&> (CSS<^> filter top)
+                   (CSS<$> filter right (λ [longhand] (hash-ref longhand top)))
+                   (CSS<$> filter bottom (λ [longhand] (hash-ref longhand top)))
+                   (CSS<$> filter left (λ [longhand] (hash-ref longhand right))))
+           (list top right bottom left))]))
+
 (define make-css->size : (All (a) (-> a #:100% Nonnegative-Flonum (CSS->Racket (U a Nonnegative-Flonum))))
   (lambda [defval #:100% fl%]
     (λ [property datum]

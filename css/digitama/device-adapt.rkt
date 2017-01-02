@@ -16,13 +16,9 @@
       (<css-keyword> 'auto)
       (<css:percentage> nonnegative-single-flonum?)
       (<css+length> #true))
-    (define (make-size-parser [min-size : Symbol] [max-size : Symbol]) : (Pairof CSS-Shorthand-Parser (Listof Symbol))
-      (cons (CSS<&> (CSS<^> (viewport-length-filter) min-size)
-                    (CSS<$> (viewport-length-filter) max-size (λ [longhand] (hash-ref longhand min-size))))
-            (list min-size max-size)))
     (case suitcased-name
-      [(width) (make-size-parser 'min-width 'max-width)]
-      [(height) (make-size-parser 'min-height 'max-height)]
+      [(width) (make-css-pair-parsers (viewport-length-filter) 'min-width 'max-width)]
+      [(height) (make-css-pair-parsers (viewport-length-filter) 'min-height 'max-height)]
       [(zoom min-zoom max-zoom) (CSS<^> (CSS:<+> (<css-keyword> 'auto) (CSS:<~> (<css+%real>) real->double-flonum)))]
       [(min-width max-width min-height max-height) (CSS<^> (viewport-length-filter))]
       [(orientation) (CSS<^> (<css-keyword> '(auto portrait landscape)))]
