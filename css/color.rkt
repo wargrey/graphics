@@ -35,10 +35,11 @@
           [else css:initial])))
 
 (define css-color-ref : (case-> [CSS-Values (Option CSS-Values) -> Color]
-                                [CSS-Values (Option CSS-Values) Symbol -> (U Color CSS-Wide-Keyword)])
-  ;;; NOTE: `css-ref` will save all the values as computed value if it knows how to transform the cascaded values,
-  ;;          hence the `css-color-ref` to generate a more useful used value for clients so that clients do not need
-  ;;          to trace the `currentcolor` all the time. The correct current color may escape from the `parameterize`.
+                                [CSS-Values (Option CSS-Values) Symbol -> (CSS-Maybe Color)])
+  ;;; NOTE
+  ;; `css-ref` will save all the values as computed value if it knows how to transform the cascaded values,
+  ;; hence the `css-color-ref` to generate a more useful used value for clients so that clients do not need
+  ;; to trace the `currentcolor` all the time. The correct current color may escape from the `parameterize`.
   (case-lambda
     [(declared-values inherited-values)
      (define color : (CSS-Maybe Color+sRGB) (css-ref declared-values inherited-values 'color css->color))

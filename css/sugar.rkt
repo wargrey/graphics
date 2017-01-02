@@ -28,13 +28,34 @@
 
 (define-syntax (call-with-css-box stx)
   (syntax-parse stx
-    [(_ declared-values inherited-values #:with (extra-parameters ...) sexp ...)
-     #'(parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)]
-                      [default-css-font (css-extract-font declared-values inherited-values)]
-                      extra-parameters ...)
-         sexp ...)]
-    [(_ declared-values inherited-values sexp ...)
-     #'(call-with-css-box declared-values inherited-values #:with () sexp ...)]))
+    [(_ declared-values inherited-values #:with [box-size size-ref color-ref local-ref] sexp ...)
+     (with-syntax ([___ (datum->syntax #'local-ref '...)])
+       #'(parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)]
+                        [default-css-font (css-extract-font declared-values inherited-values)])
+           (define box-size : (->* (Nonnegative-Flonum Nonnegative-Flonum) (Nonnegative-Flonum Nonnegative-Flonum)
+                                   (Values Nonnegative-Flonum Nonnegative-Flonum))
+             (lambda [initial-width initial-height [width% (flcss%-vw length%)] [height% (flcss%-vh length%)]]
+               (css-box-size declared-values inherited-values initial-width initial-height width% height%)))
+           (define size-ref : (case-> [Symbol Nonnegative-Flonum -> (CSS-Maybe Nonnegative-Flonum)]
+                                      [Symbol Nonnegative-Flonum Nonnegative-Flonum -> Nonnegative-Flonum])
+             (case-lambda [(property 100%) (css-size-ref declared-values inherited-values property 100%)]
+                          [(property 100% defsize) (css-size-ref declared-values inherited-values property 100% defsize)]))
+           (define color-ref : (-> Symbol (CSS-Maybe Color)) (lambda [property] (css-color-ref declared-values inherited-values property)))
+           (define-syntax (local-ref stx) (syntax-case stx [] [(_ argl ___) #'(css-ref declared-values inherited-values argl ___)]))
+           sexp ...))]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define css-box-size : (->* (CSS-Values (Option CSS-Values) Nonnegative-Flonum Nonnegative-Flonum)
+                            (Nonnegative-Flonum Nonnegative-Flonum)
+                            (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [declares inherits initial-width initial-height [width% (flcss%-vw length%)] [height% (flcss%-vh length%)]]
+    (values (css-ref declares inherits 'width (make-css->size initial-width #:100% width%))
+            (css-ref declares inherits 'height (make-css->size initial-height #:100% height%)))))
+
+(define css-size-ref : (case-> [CSS-Values (Option CSS-Values) Symbol Nonnegative-Flonum -> (CSS-Maybe Nonnegative-Flonum)]
+                               [CSS-Values (Option CSS-Values) Symbol Nonnegative-Flonum Nonnegative-Flonum -> Nonnegative-Flonum])
+  (lambda [declares inherits property 100% [defsize css:initial]]
+    (css-ref declares inherits property (make-css->size defsize #:100% 100%))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-font+colors-parsers : CSS-Declaration-Parsers
