@@ -62,7 +62,7 @@
   (lambda [suitcased-name deprecated!]
     (or (css-font-property-parsers suitcased-name)
         (css-text-decoration-property-parsers suitcased-name)
-        (css-color-property-parsers suitcased-name '(background-color)))))
+        (css-color-property-parsers suitcased-name null))))
 
 (define css-font-filter : (CSS-Cascaded-Value-Filter Font)
   (lambda [declared-values inherited-values]

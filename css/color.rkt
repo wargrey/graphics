@@ -20,7 +20,8 @@
 (define css-color-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
   (lambda [name [px.names #px"-color$"]]
     (or (and (eq? name 'color) (CSS<^> (<css-color> '#:inherit-currentcolor)))
-        (and (or (and (list? px.names) (memq name px.names))
+        (and (or (memq name '(background-color border-color))
+                 (and (list? px.names) (memq name px.names))
                  (and (regexp? px.names) (regexp-match? px.names (symbol->string name))))
              (CSS<^> (<css-color>))))))
 
