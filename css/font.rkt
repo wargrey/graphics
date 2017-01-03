@@ -70,3 +70,8 @@
     (cond [(nan? computed-value) (fl* normal (flcss%-em length%))]
           [(nonnegative-flonum? computed-value) computed-value]
           [else (fl* (real->double-flonum (- computed-value)) (flcss%-em length%))])))
+
+(define css-font-parsers : CSS-Declaration-Parsers
+  (lambda [suitcased-name deprecated!]
+    (or (css-font-property-parsers suitcased-name)
+        (css-text-decoration-property-parsers suitcased-name))))

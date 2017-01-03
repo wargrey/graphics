@@ -60,8 +60,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-font+colors-parsers : CSS-Declaration-Parsers
   (lambda [suitcased-name deprecated!]
-    (or (css-font-property-parsers suitcased-name)
-        (css-text-decoration-property-parsers suitcased-name)
+    (or (css-font-parsers suitcased-name deprecated!)
         (css-color-property-parsers suitcased-name null))))
 
 (define css-font-filter : (CSS-Cascaded-Value-Filter Font)
