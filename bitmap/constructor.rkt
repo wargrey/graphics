@@ -97,7 +97,10 @@
                            Bitmap)
   (lambda [bmp #:margin [margin 0] #:border [border 1] #:inset [inset 0] #:color [pen-color #x000000] #:style [pen-style 'solid]
                #:background-color [brush-color #xFFFFFF] #:background-style [brush-style 'transparent]]
-    (define offset : Nonnegative-Real (+ border inset))
+    ;;; TODO:
+    ; In this aligned bitmap context, border with 0 behaves the same as 1.
+    ; It seems that, Racket also deal with 0 width line the "as thin as possible" algorithm.
+    (define offset : Nonnegative-Real (+ (max border 1) inset))
     (define width : Positive-Real (+ (send bmp get-width) offset offset))
     (define height : Positive-Real (+ (send bmp get-height) offset offset))
     (define full-width : Positive-Real (+ width margin margin))
@@ -105,7 +108,7 @@
     (define frame : Bitmap (bitmap-blank full-width full-height (send bmp get-backing-scale)))
     (define dc : (Instance Bitmap-DC%) (send frame make-dc))
     (send dc set-smoothing 'aligned)
-    (send dc set-pen (select-color pen-color) border (if (zero? border) 'transparent pen-style))
+    (send dc set-pen (select-color pen-color) border pen-style)
     (send dc set-brush (select-color brush-color) brush-style)
     (send dc draw-rectangle margin margin width height)
     (send dc draw-bitmap bmp (+ offset margin) (+ offset margin))
