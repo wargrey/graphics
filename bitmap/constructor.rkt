@@ -92,20 +92,21 @@
       (send dc draw-text desc 0 y combine?))
     (or (send dc get-bitmap) (bitmap-blank))))
 
-(define bitmap-frame : (-> Bitmap [#:margin Index] [#:border Index] [#:inset Index] [#:color Color+sRGB] [#:style Pen-Style]
-                           [#:background-color Color+sRGB] [#:background-style Brush-Style] Bitmap)
+(define bitmap-frame : (-> Bitmap [#:margin Nonnegative-Real] [#:border Nonnegative-Real] [#:inset Nonnegative-Real]
+                           [#:color Color+sRGB] [#:style Pen-Style] [#:background-color Color+sRGB] [#:background-style Brush-Style]
+                           Bitmap)
   (lambda [bmp #:margin [margin 0] #:border [border 1] #:inset [inset 0] #:color [pen-color #x000000] #:style [pen-style 'solid]
                #:background-color [brush-color #xFFFFFF] #:background-style [brush-style 'transparent]]
-    (define offset : Nonnegative-Fixnum (fx+ border inset))
-    (define width : Positive-Integer (+ (send bmp get-width) offset offset))
-    (define height : Positive-Integer (+ (send bmp get-height) offset offset))
-    (define full-width : Positive-Integer (+ width margin margin))
-    (define full-height : Positive-Integer (+ height margin margin))
+    (define offset : Nonnegative-Real (+ border inset))
+    (define width : Positive-Real (+ (send bmp get-width) offset offset))
+    (define height : Positive-Real (+ (send bmp get-height) offset offset))
+    (define full-width : Positive-Real (+ width margin margin))
+    (define full-height : Positive-Real (+ height margin margin))
     (define frame : Bitmap (bitmap-blank full-width full-height (send bmp get-backing-scale)))
     (define dc : (Instance Bitmap-DC%) (send frame make-dc))
     (send dc set-smoothing 'aligned)
     (send dc set-pen (select-color pen-color) border (if (zero? border) 'transparent pen-style))
     (send dc set-brush (select-color brush-color) brush-style)
     (send dc draw-rectangle margin margin width height)
-    (send dc draw-bitmap bmp (fx+ offset margin) (fx+ offset margin))
+    (send dc draw-bitmap bmp (+ offset margin) (+ offset margin))
     frame))
