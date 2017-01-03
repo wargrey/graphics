@@ -18,6 +18,7 @@
 (require "../recognizer.rkt")
 (require "../racket.rkt")
 (require "../color.rkt")
+(require "../font.rkt")
 
 (define-type Image-Set-Option (List CSS-Image-Datum Positive-Flonum))
 (define-type Image-Set-Options (Listof Image-Set-Option))
@@ -63,7 +64,7 @@
                                                (<css:flonum> 0.0 fl<= 60.0)))))))
     (case (or ?λ:kw λname)
       [(#:backing-scale) (<css+real> '#:nonzero)]
-      [(#:height #:thickness) (<css-size>)]
+      [(#:height #:thickness) (CSS:<@> (<line-height>) (λ [[v : CSS-Datum]] (select-size (css->line-height '_ v))))]
       [(#:outline) (<css+%real>)]
       [(#:material) (<css:ident> '(plastic-icon-material rubber-icon-material glass-icon-material metal-icon-material))]
       [(#:trim?) (<css-#boolean>)]
@@ -73,7 +74,11 @@
       [(running-stickman-icon) (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))]
       [else (cond [(false? ?λ:kw) <:clock-pointers:>]
                   [else (CSS:<+> (<css:racket>) ; their is no need to evaluating racket bindings right now 
-                                 (CSS:<@> (<css-color>) (λ [[c : CSS-Datum]] (css->color '_ c))))])])))
+                                 (CSS:<@> (<css-color>)
+                                          (λ [[v : CSS-Datum]]
+                                            (let ([c (css->color '_ v)])
+                                              (cond [(not (color%? c)) (current-css-element-color)]
+                                                    [else c])))))])])))
 
 (define-css-function-filter <css-image-notation> #:-> CSS-Image
   ;;; https://drafts.csswg.org/css-images/#image-notation
