@@ -7,6 +7,7 @@
 (require syntax/strip-context)
 
 (require "digitama/grammar.rkt")
+(require "digitama/patch.rkt")
 
 (define css-read
   (lambda [[/dev/cssin (current-input-port)]]
@@ -59,6 +60,9 @@
 
 (module runtime typed/racket/base
   (provide (all-defined-out))
+  (provide (all-from-out "digitama/patch.rkt"))
+
+  (require "digitama/patch.rkt")
   
   (define DrRacket? : (Parameterof Boolean) (make-parameter #false)))
 
