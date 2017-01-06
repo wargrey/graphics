@@ -9,6 +9,9 @@
 (require "font.rkt")
 (require "text-decor.rkt")
 
+(define-type Font+Color (Pairof Font Color))
+(define-type Font+Colors (Pairof Font (Pairof Color Color)))
+
 (define-syntax (define-preference* stx)
   (syntax-parse stx #:literals [:]
     [(self preference #:as Preference (fields ...) options ...)
@@ -73,12 +76,12 @@
           (let ([bgcolor (css-color-ref declared-values inherited-values 'background-color)])
             (if (css-wide-keyword? bgcolor) (select-color 'transparent) bgcolor)))))
 
-(define css-font+color-filter : (CSS-Cascaded-Value-Filter (Pairof Font Color))
+(define css-font+color-filter : (CSS-Cascaded-Value-Filter Font+Color)
   (lambda [declared-values inherited-values]
     (cons (css-font-filter declared-values inherited-values)
           (css-color-ref declared-values inherited-values))))
 
-(define css-font+colors-filter : (CSS-Cascaded-Value-Filter (Pairof Font (Pairof Color Color)))
+(define css-font+colors-filter : (CSS-Cascaded-Value-Filter Font+Colors)
   (lambda [declared-values inherited-values]
     (cons (css-font-filter declared-values inherited-values)
           (css-colors-filter declared-values inherited-values))))
