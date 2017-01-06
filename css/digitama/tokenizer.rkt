@@ -72,7 +72,7 @@
     (define css : Input-Port (css-srcloc-in srcloc))
     (define ch1 : (U EOF Char) (peek-char css 0))
     (cond [(or (eof-object? ch1) (not (char=? ch1 #\*))) (css-make-token srcloc css:slash #\/)]
-          [(regexp-match #px".*?\\*/" css) => (λ [**/] (css-make-token srcloc css:whitespace (format "/~a" (car **/))))]
+          [(regexp-match #px".*?((\\*/)|$)" css) => (λ [**/] (css-make-token srcloc css:whitespace (format "/~a" (car **/))))]
           [else (css-make-bad-token srcloc css:bad:eof struct:css:whitespace "/*")])))
 
 (define css-consume-whitespace-token : (-> CSS-Srcloc CSS:WhiteSpace)
