@@ -2,6 +2,14 @@
 
 @charset "utf-8";
 
+/**
+ * This example is not as good as it should be,
+ * the DOM and CSSOM are not clearly defined
+ * and conceptually indistinguishable, `module`
+ * is also a bad type name which makes it more
+ * confusing.
+ */
+
 :root {
     at-exp: @racket[] @schema [];
     racket-logo: @x-icon[#:height var(--icon-height) #:material rubber-icon-material #:thickness 12];
@@ -35,7 +43,6 @@
     --default-font: sans-serif;
 }
 
-
 module.main {
     color : currentcolor;
     symbol-color: Blue;
@@ -47,7 +54,6 @@ module.main {
     background-color: HsIa(120.01deg var(--honeydew-s) var(--honeydew-i) / 1.0);
     border-color: var(--gray);
 
-    count: 8;
     width: 256;
     desc: "";
     prelude: @text-icon("Prelude> " @make-font(#:face "Lucida Grande") #:color #3C803C #:height 100% #:trim\? false);
@@ -57,27 +63,27 @@ module.main {
     image-resolution: 2dppx snap;
 }
 
-test#case0 {
+bitmap-desc.test {
     width: 32;
 }
 
-test#case1 {
+bitmap-desc.test {
     width: 32;
     desc: " ";
     text-decoration: none;
 }
 
-test#case2 {
+bitmap-desc.test {
     width: 0;
     desc: "!";
 }
 
-test#case3 {
+bitmap-desc.test {
     width: 2;
     desc: "bitmap-desc";
 }
 
-test#case4 {
+bitmap-desc.test {
     width: 32;
     desc: "Hello,\aRacket!";
     font: small modern;
@@ -85,18 +91,18 @@ test#case4 {
     font-variant-ligatures: none;
 }
 
-test#case5 {
+bitmap-desc.test {
     desc: "That last testcase is not a mysterious phenomena:"
           "It seemed to do some strange optimizing so that"
           "no single letter would be printed in a single line."
           "\a\a Bug Fixed!";
 }
 
-test#case6 {
+bitmap-desc.test {
     desc: "上一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。\a\a此缺陷已修正！";
 }
 
-test#case7 {
+bitmap-desc.test {
     desc: "Basic String \Test: \22\20\\\E9 \6C34\00A5\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */";
     font-style: italic;
 }
