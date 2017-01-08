@@ -2,7 +2,6 @@
 
 (provide (all-defined-out))
 
-(require "patch.rkt")
 (require "digicore.rkt")
 (require "tokenizer.rkt")
 

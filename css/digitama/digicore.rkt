@@ -602,6 +602,8 @@
 ;; https://drafts.csswg.org/css-cascade/#filtering
 ;; https://drafts.csswg.org/css-cascade/#cascading
 (define-type CSS-Datum
+  ;;; TODO
+  ;; Why `CSS-Datum` is not defined as `Any` if `Any` can serve the engine.
   (Rec css (U CSS-Token-Datum Boolean Bytes FlVector FxVector CSS-Token --datum (Object)
               ; (Pairof css css) messes up things when (list? datum)ing. 
               (Listof css) (Vectorof css) (Boxof css))))

@@ -366,7 +366,7 @@
   (CSS:<=> (<css:integer> = 1) 1))
 
 (define-css-disjoined-filter <css-keyword> #:-> Symbol
-  #:with [[options : (U (Listof Symbol) Symbol)]]
+  #:with [[options : (U (-> Symbol Boolean) (Listof Symbol) Symbol)]]
   (<css:ident-norm> options))
   
 (define-css-disjoined-filter <css-natural> #:-> Natural

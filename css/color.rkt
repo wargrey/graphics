@@ -43,8 +43,8 @@
   ;; to trace the `currentcolor` all the time. The correct current color may escape from the `parameterize`.
   (case-lambda
     [(declared-values inherited-values)
-     (define color : (CSS-Maybe Color+sRGB) (css-ref declared-values inherited-values 'color css->color))
+     (define color : (CSS-Maybe (U 'currentcolor Color)) (css-ref declared-values inherited-values 'color css->color))
      (if (css-wide-keyword? color) (current-css-element-color) (select-color color))]
     [(declared-values inherited-values property)
-     (define xxx-color : (U Color CSS-Wide-Keyword 'currentcolor) (css-ref declared-values inherited-values property css->color))
+     (define xxx-color : (CSS-Maybe (U 'currentcolor Color)) (css-ref declared-values inherited-values property css->color))
      (if (eq? xxx-color 'currentcolor) (current-css-element-color) xxx-color)]))
