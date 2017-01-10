@@ -3,11 +3,14 @@
 (provide (all-defined-out) <css-image>)
 
 (require bitmap/constructor)
+(require bitmap/digitama/color)
 
 (require "digitama/digicore.rkt")
 (require "digitama/bitmap.rkt")
 (require "digitama/image.rkt")
 (require "recognizer.rkt")
+
+(define-type CSS-Make-Icon (-> #:height Nonnegative-Real #:color Color Bitmap))
 
 ;;; TODO: meanwhile <css+resolution> accepts 0
 ;;; TODO: deal with the default resolution
@@ -41,3 +44,12 @@
           (css->normalized-image (λ [[raw : (CSS-Maybe Bitmap)]]
                                    (cond [(and (bitmap%? raw) (send raw ok?)) raw]
                                          [else (bitmap-solid)])))))
+
+(define css-icon-ref : (-> CSS-Values (Option CSS-Values) Symbol CSS-Make-Icon Nonnegative-Real Color+sRGB Bitmap)
+  (let ([cache : (HashTable Any (-> Symbol CSS-Datum Bitmap)) (make-hash)])
+    (lambda [declared-values inherited-values property default-icon icon-height icon-color]
+      (define color : Color (select-color icon-color))
+      (css-ref declared-values inherited-values property
+               (hash-ref! cache (list default-icon icon-height color)
+                          (thunk (let ([make-icon (thunk (default-icon #:color color #:height icon-height))])
+                                   (make-css->bitmap icon-height make-icon))))))))

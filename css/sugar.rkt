@@ -5,9 +5,10 @@
 (require "digitama/bitmap.rkt")
 
 (require "syntax.rkt")
-(require "color.rkt")
 (require "font.rkt")
 (require "text-decor.rkt")
+(require "color.rkt")
+(require "image.rkt")
 
 (define-type Font+Color (Pairof Font Color))
 (define-type Font+Colors (Pairof Font (Pairof Color Color)))
@@ -31,7 +32,7 @@
 
 (define-syntax (call-with-css-box stx)
   (syntax-parse stx
-    [(_ declared-values inherited-values #:with [box-size size-ref color-ref local-ref] sexp ...)
+    [(_ declared-values inherited-values #:with [box-size size-ref color-ref icon-ref local-ref] sexp ...)
      (with-syntax ([___ (datum->syntax #'local-ref '...)])
        #'(parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)]
                         [default-css-font (css-extract-font declared-values inherited-values)])
@@ -43,6 +44,9 @@
                                       [Symbol Nonnegative-Flonum Nonnegative-Flonum -> Nonnegative-Flonum])
              (case-lambda [(property 100%) (css-size-ref declared-values inherited-values property 100%)]
                           [(property 100% defsize) (css-size-ref declared-values inherited-values property 100% defsize)]))
+           (define icon-ref : (-> Symbol CSS-Make-Icon Nonnegative-Real Color+sRGB Bitmap)
+             (lambda [property default-icon height color]
+               (css-icon-ref declared-values inherited-values property default-icon height color)))
            (define color-ref : (-> Symbol (CSS-Maybe Color)) (lambda [property] (css-color-ref declared-values inherited-values property)))
            (define-syntax (local-ref stx) (syntax-case stx [] [(_ argl ___) #'(css-ref declared-values inherited-values argl ___)]))
            sexp ...))]))
