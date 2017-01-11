@@ -5,6 +5,6 @@
 (define pkg-authors '(wargrey))
 
 (define version "1.0")
-(define deps '("base" "digimon" "images-lib" "math-lib" "typed-racket-lib" "typed-racket-more"))
+(define deps '("base" "images-lib" "math-lib" "typed-racket-lib" "typed-racket-more"))
 (define build-deps '("scribble-lib" "racket-doc"))
 

@@ -1,4 +1,4 @@
-#lang digimon/sugar
+#lang typed/racket/base
 
 (provide (all-defined-out))
 
@@ -9,6 +9,10 @@
 (require "text-decor.rkt")
 (require "color.rkt")
 (require "image.rkt")
+
+(require (for-syntax racket/base))
+(require (for-syntax racket/syntax))
+(require (for-syntax syntax/parse))
 
 (define-type Font+Color (Pairof Font Color))
 (define-type Font+Colors (Pairof Font (Pairof Color Color)))

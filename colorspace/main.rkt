@@ -1,3 +1,5 @@
-#lang digimon/sugar
+#lang typed/racket/base
 
-(require/provide "hsb.rkt" "misc.rkt")
+(provide (all-from-out "hsb.rkt" "misc.rkt"))
+
+(require "hsb.rkt" "misc.rkt")

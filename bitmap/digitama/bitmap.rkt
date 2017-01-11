@@ -11,7 +11,7 @@
 (require racket/flonum)
 (require racket/math)
 
-(require digimon/cheat)
+(require "cheat.rkt")
 
 (define-type Color (Instance Color%))
 (define-type Color+sRGB (U Index Symbol String Color))

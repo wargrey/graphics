@@ -1,4 +1,4 @@
-#lang digimon/sugar
+#lang typed/racket/base
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; http://www.w3.org/Style/CSS/specs.en.html                                                   ;;;
@@ -14,8 +14,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide (all-defined-out))
+(provide (all-from-out bitmap))
 
-(require/provide bitmap)
+(require bitmap)
+
 (require/provide "syntax.rkt" "racket.rkt"
                  "color.rkt" "image.rkt"
                  "font.rkt" "text-decor.rkt")
