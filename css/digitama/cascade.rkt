@@ -17,6 +17,8 @@
 
 (define-type CSS-Style-Metadata (Vector Nonnegative-Fixnum CSS-Declarations CSS-Media-Preferences))
 
+(define css-warning-unknown-property? : (Parameterof Boolean) (make-parameter #true))
+
 (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof+ CSS-Complex-Selector)] [properties : CSS-Declarations]))
 
 (struct: css-stylesheet : CSS-StyleSheet
@@ -141,7 +143,8 @@
                                       (define lazy? : Boolean (css-declaration-lazy? property))
                                       (define info : CSS-Declaration-Parser
                                         (desc-parsers desc-name (thunk (void (make+exn:css:deprecated <desc-name>)))))
-                                      (cond [(or (false? info) (void? info)) (make+exn:css:unrecognized <desc-name>)]
+                                      (cond [(false? info) (when (css-warning-unknown-property?) (make+exn:css:unrecognized <desc-name>))]
+                                            [(void? info) (when (css-warning-unknown-property?) (make+exn:css:unrecognized <desc-name>))]
                                             [(pair? info) (parse-long info <desc-name> declared-values important? lazy?)]
                                             [else (parse-desc info <desc-name> desc-name declared-values important? lazy?)])))]))])))
     valuebase))
