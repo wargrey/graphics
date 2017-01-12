@@ -1,0 +1,25 @@
+#lang css
+
+@charset "utf-8";
+
+/**
+ * In this test, the box is not a standard one.
+ * `margin` and `padding` only accept one or two arguments,
+ * so `margin-bottom`, `margin-left`, `padding-bottom` and `padding-left` are ignored.
+ */
+
+:root {
+  font-size: larger;
+  margin: 4px 4px;
+  padding: 0px 0px;
+  icon-height: 1.5; /* unitless */
+  color: DarkSlateGray;
+  background-color: White;
+  border-color: Silver;
+  border-style: transparent;
+}
+
+:selected {
+  color: GhostWhite;
+  background-color: DodgerBlue;
+}

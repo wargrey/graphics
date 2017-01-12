@@ -1,8 +1,8 @@
 #lang typed/racket
 
 (require racket/provide)
-(provide (all-defined-out) <:font-shorthand:> <:font-family:> <css-system-font> css->line-height)
-(provide (matching-identifiers-out #px"(^default-css-|%?$)" (all-from-out "digitama/font.rkt")))
+(provide (all-defined-out) (rename-out [<line-height> <css-line-height>]) <css-system-font> css->line-height)
+(provide (matching-identifiers-out #px"^default-css-[a-zA-Z0-9-]+$" (all-from-out "digitama/font.rkt")))
 
 (require bitmap/misc)
 

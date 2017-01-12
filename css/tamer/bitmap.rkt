@@ -9,7 +9,7 @@
 (css-configure-@media)
 (current-namespace (module->namespace 'bitmap))
 
-(define-preference* btest #:as Bitmap-TestCase #:with ([color-properties Color])
+(define-preference* btest #:as Bitmap.CSS #:with ([color-properties Color])
   ([symbol-color : Color                       #:= 'Blue]
    [string-color : Color                       #:= 'Orange]
    [number-color : Color                       #:= 'Tomato]
@@ -38,7 +38,7 @@
           [(at-exp) (CSS<^> (list (<css:λracket>) (<css:racket>) (<css:block>)))]
           [(prelude) (CSS<^> (<css-image>))]))))
 
-(define btest-filter : (CSS-Cascaded-Value-Filter Bitmap-TestCase)
+(define btest-filter : (CSS-Cascaded-Value-Filter Bitmap.CSS)
   (lambda [declared-values inherited-values]
     (define (css->desc [_ : Symbol] [value : CSS-Datum]) : (U String CSS-Wide-Keyword)
       (cond [(string? value) value]
@@ -68,7 +68,7 @@
 (define ~btest : CSS-Subject (make-css-subject #:type 'bitmap-desc #:classes '(test)))
 
 (define *root : CSS-Values (make-css-values))
-(define $root : Bitmap-TestCase
+(define $root : Bitmap.CSS
   (time-run 'tamer-main
             (let-values ([(toplevel topvalues) (css-cascade (list bitmap.css) (list ~module) btest-parsers btest-filter #false)])
               (set! *root topvalues)
@@ -76,7 +76,7 @@
 
 (define-values (bitmap-descs testcases)
   (let-values ([($btests _) (css-cascade* (list bitmap.css) (list ~btest ~module) btest-parsers btest-filter *root)])
-    (for/fold ([bitmap-descs : (Listof Bitmap) null] [testcases : (Listof Bitmap-TestCase) null])
+    (for/fold ([bitmap-descs : (Listof Bitmap) null] [testcases : (Listof Bitmap.CSS) null])
               ([$bt (in-list $btests)])
       (define-values (fgcolor bgcolor rcolor bdcolor)
         (values (btest-foreground-color $bt) (btest-background-color $bt)
