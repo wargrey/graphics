@@ -29,7 +29,9 @@
       ((inst make-hash Symbol CSS-Media-Datum)
        (list (cons 'orientation 'landscape)
              (cons 'width (or width 0))
-             (cons 'height (or height 0)))))))
+             (cons 'height (or height 0))
+             (cons 'resolution (real->double-flonum (or (get-display-backing-scale) 1.0)))
+             (cons 'color (get-display-depth)))))))
 
 (define units : (Listof Symbol) '(KB MB GB TB))
 (define ~size : (->* (Real) (Symbol #:precision (U Integer (List '= Integer))) String)

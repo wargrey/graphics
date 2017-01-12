@@ -471,7 +471,7 @@
       (cond [(or (not ?value) (css:delim? ?op)) (throw-exn:css:misplaced errobj)]
             [(not (css-numeric? ?value)) (throw-exn:css:type errobj)]))
     (define feature-filter : (U Void (CSS:Filter CSS-Media-Datum))
-      ((default-css-media-feature-filter) downcased-name min/max? (thunk (void (make+exn:css:deprecated desc-name)))))
+      ((default-css-media-feature-filters) downcased-name min/max? (thunk (void (make+exn:css:deprecated desc-name)))))
     (cond [(void? feature-filter) (throw-exn:css:unrecognized errobj)]
           [(false? ?value) downcased-name]
           [else (let ([datum (feature-filter ?value)])

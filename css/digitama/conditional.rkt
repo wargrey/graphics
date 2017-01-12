@@ -25,18 +25,18 @@
 ;; https://drafts.csswg.org/mediaqueries/#media-descriptor-table
 ;; https://drafts.csswg.org/mediaqueries/#mf-deprecated
 (define-type CSS-Feature-Support? (-> Symbol (Listof+ CSS-Token) Boolean))
-(define-type CSS-Media-Feature-Filter (-> Symbol Boolean (-> Void) (U Void (CSS:Filter CSS-Media-Datum))))
+(define-type CSS-Media-Feature-Filters (-> Symbol Boolean (-> Void) (U Void (CSS:Filter CSS-Media-Datum))))
 
-(define css-media-feature-filter : CSS-Media-Feature-Filter
+(define css-media-feature-filters : CSS-Media-Feature-Filters
   (lambda [downcased-name min/max? deprecated!]
     (case downcased-name
-      [(width height device-width device-height resolution)
+      [(width height device-width device-height)
        (when (or (eq? downcased-name 'device-width) (eq? downcased-name 'device-height)) (deprecated!))
        (<css+length> #true)]
       [(aspect-ratio device-aspect-ratio)
        (when (eq? downcased-name 'device-aspect-ratio) (deprecated!))
        (CSS:<~> (<css:ratio>) real->double-flonum)]
-      [(resolution) (CSS:<+> (CSS:<=> (<css-keyword> 'infinite) +inf.0) (<css:resolution>))]
+      [(resolution) (CSS:<+> (CSS:<=> (<css-keyword> 'infinite) +inf.0) (<css+resolution>))]
       [(color color-index monochrome) (<css:integer> exact-nonnegative-integer?)]
       [(grid) #|legacy descriptor|# (when (false? min/max?) (<css-boolean>))]
       [(orientation) (<css-keyword> '(portrait landscape))]
@@ -52,7 +52,7 @@
 (define css-deprecate-media-type : (Parameterof Boolean) (make-parameter #false))
 (define default-css-media-type : (Parameterof Symbol) (make-parameter 'all))
   
-(define-values (default-css-media-preferences default-css-media-feature-filter default-css-feature-support?)
+(define-values (default-css-media-preferences default-css-media-feature-filters default-css-feature-support?)
   (values (make-parameter ((inst make-hasheq Symbol CSS-Media-Datum)))
-          (make-parameter css-media-feature-filter)
+          (make-parameter css-media-feature-filters)
           (make-parameter (const #false))))

@@ -10,13 +10,19 @@
 
 :root {
   font-size: larger;
-  margin: 4px 4px;
+  margin: 2px 2px;
   padding: 0px 0px;
   icon-height: 1.5; /* unitless */
   color: DarkSlateGray;
   background-color: White;
   border-color: Silver;
   border-style: transparent;
+}
+
+@media (resolution = 2dppx) {
+  :root {
+    margin: 4px 4px;
+  }
 }
 
 :selected {
