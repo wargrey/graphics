@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (except-out (all-defined-out) make-pin make-append make-superimpose))
+(provide (except-out (all-defined-out) define-combiner make-pin make-append make-superimpose))
 
 (require "digitama/bitmap.rkt")
 (require "constructor.rkt")
@@ -140,8 +140,8 @@
   (lambda [x1% y1% x2% y2% bmp0 . bmps]
     (define-values (bmp _who _cares)
       (for/fold ([bmp : Bitmap  bmp0]
-                 [x : Exact-Rational  0]
-                 [y : Exact-Rational  0])
+                 [x : Exact-Rational 0]
+                 [y : Exact-Rational 0])
                 ([bmp1 (in-list (cons bmp0 bmps))]
                  [bmp2 (in-list bmps)])
         (define-values (w1 h1) (bitmap-size bmp1))
