@@ -17,3 +17,4 @@
 (require/provide "digitama/bitmap.rkt")
 (require/provide "base.rkt" "constructor.rkt" "combiner.rkt")
 (require/provide "resize.rkt" "misc.rkt" "compile-time.rkt")
+(require/provide "grayscale.rkt")
