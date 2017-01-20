@@ -22,24 +22,26 @@
                                                         [else (path-replace-extension src.css ".css")]))))]))
     (regexp-match #px"^\\s*" /dev/cssin) ; skip blanks before real css content
     (define-values (line col pos) (port-next-location /dev/cssin))
-    (syntax-property
-     (strip-context
-      #`(module #,lang.css typed/racket/base
-          (provide (all-defined-out))
-          (provide (all-from-out css/syntax))
-          
-          (require css/syntax)
-          (require (submod css/language-info runtime))
-          
-          (define #,lang.css : CSS-StyleSheet
-            (let ([/dev/rawin (open-input-bytes #,(port->bytes /dev/cssin) '#,src)])
-              (port-count-lines! /dev/rawin)
-              (set-port-next-location! /dev/rawin #,line #,col #,pos)
-              (read-css-stylesheet /dev/rawin)))
-          (when (DrRacket?) #,lang.css)))
-     'module-language
-     '#(css/language-info css-language-info #false)
-     #true)))
+    (define magic (symbol->string (gensym "--")))
+    (strip-context
+     #`(module #,lang.css typed/racket/base
+         (provide (all-defined-out))
+         (provide (all-from-out css/syntax))
+         
+         (require css/syntax)
+         
+         (define #,lang.css : CSS-StyleSheet
+           (let ([/dev/rawin (open-input-bytes #,(port->bytes /dev/cssin) '#,src)])
+             (port-count-lines! /dev/rawin)
+             (set-port-next-location! /dev/rawin #,line #,col #,pos)
+             (read-css-stylesheet /dev/rawin)))
+         
+         (when (with-handlers ([exn? (λ _ #false)])
+                 (equal? (vector-ref (current-command-line-arguments) 0) #,magic))
+           #,lang.css)
+
+         (module configure-runtime typed/racket/base
+           (current-command-line-arguments (vector #,magic)))))))
 
 (define (css-info in mod line col pos)
   (lambda [key default]
@@ -56,11 +58,6 @@
       (case key
         [(configure-runtime) '(#((submod css/language-info runtime) DrRacket? #true))]
         [else default]))))
-
-(module runtime typed/racket/base
-  (provide (all-defined-out))
-  
-  (define DrRacket? : (Parameterof Boolean) (make-parameter #false)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module highlight typed/racket/base
