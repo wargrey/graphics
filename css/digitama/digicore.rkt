@@ -19,7 +19,7 @@
   (syntax-parse stx #:literals [:]
     [(self preference #:as Preference (fields ...) options ...)
      #'(self preference #:as Preference #:with [] (fields ...) options ...)]
-    [(_ preference #:as Preference #:with [[bindings BindTypes ...] ...] ([property : DataType info ...] ...) options ...)
+    [(self preference #:as Preference #:with [[bindings BindTypes ...] ...] ([property : DataType info ...] ...) options ...)
      (with-syntax* ([make-preference (format-id #'preference "make-~a" (syntax-e #'preference))]
                     [(Uv uv? uv) (list #'CSS-Wide-Keyword #'css-wide-keyword? #'css:initial)]
                     [([initial-value property-filter ArgumentType defval ...] ...)
