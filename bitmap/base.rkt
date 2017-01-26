@@ -11,18 +11,23 @@
 
 (require typed/images/icons)
 
-(define build-bitmap : (->* (Nonnegative-Real Nonnegative-Real (-> Fixnum Fixnum (Values Real Real Real Real))) (Positive-Real) Bitmap)
-  (lambda [width height fargb [density (default-icon-backing-scale)]]
-    ;;; TODO: the resulting bitmap is a little different than (build-flomap)
+(define build-bitmap : (-> Nonnegative-Real Nonnegative-Real (-> Fixnum Fixnum (Values Real Real Real Real))
+                           [#:backing-scale Positive-Real] [#:alpha-multiplied? Boolean] Bitmap)
+  (lambda [width height fargb #:backing-scale [density (default-icon-backing-scale)] #:alpha-multiplied? [/alpha? #false]]
     (define-values (w h) (values (exact-floor (* width density)) (exact-floor (* height density))))
     (define size : Integer (* w h 4))
     (define buffer : Bytes (make-bytes size))
+    (define argb->rgb : (-> Real Real Real Real (Values Real Real Real))
+      (cond [(not /alpha?) (λ [a r g b] (values r g b))]
+            [else (λ [a r g b] (cond [(zero? a) (values r g b)]
+                                     [else (values (/ r a) (/ g a) (/ b a))]))]))
     (let y-loop : Void ([y : Fixnum 0])
       (when (fx< y h)
         (let x-loop : Void ([x : Fixnum 0])
           (when (fx< x w)
             (define idx : Fixnum (fx* (fx+ (fx* y w) x) 4))
-            (define-values (a r g b) (fargb x y))
+            (define-values (a r0 g0 b0) (fargb x y))
+            (define-values (r g b) (argb->rgb a r0 g0 b0))
             (bytes-set! buffer (fx+ idx 0) (fxmin (fxmax (exact-round (* a #xFF)) #x00) #xFF))
             (bytes-set! buffer (fx+ idx 1) (fxmin (fxmax (exact-round (* r #xFF)) #x00) #xFF))
             (bytes-set! buffer (fx+ idx 2) (fxmin (fxmax (exact-round (* g #xFF)) #x00) #xFF))
