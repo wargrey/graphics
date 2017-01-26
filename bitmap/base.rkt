@@ -11,6 +11,28 @@
 
 (require typed/images/icons)
 
+(define build-bitmap : (->* (Nonnegative-Real Nonnegative-Real (-> Fixnum Fixnum (Values Real Real Real Real))) (Positive-Real) Bitmap)
+  (lambda [width height fargb [density (default-icon-backing-scale)]]
+    ;;; TODO: the resulting bitmap is a little different than (build-flomap)
+    (define-values (w h) (values (exact-floor (* width density)) (exact-floor (* height density))))
+    (define size : Integer (* w h 4))
+    (define buffer : Bytes (make-bytes size))
+    (let y-loop : Void ([y : Fixnum 0])
+      (when (fx< y h)
+        (let x-loop : Void ([x : Fixnum 0])
+          (when (fx< x w)
+            (define idx : Fixnum (fx* (fx+ (fx* y w) x) 4))
+            (define-values (a r g b) (fargb x y))
+            (bytes-set! buffer (fx+ idx 0) (fxmin (fxmax (exact-round (* a #xFF)) #x00) #xFF))
+            (bytes-set! buffer (fx+ idx 1) (fxmin (fxmax (exact-round (* r #xFF)) #x00) #xFF))
+            (bytes-set! buffer (fx+ idx 2) (fxmin (fxmax (exact-round (* g #xFF)) #x00) #xFF))
+            (bytes-set! buffer (fx+ idx 3) (fxmin (fxmax (exact-round (* b #xFF)) #x00) #xFF))
+            (x-loop (fx+ x 1))))
+        (y-loop (fx+ y 1))))
+    (define bmp (make-bitmap (max 1 (exact-ceiling width)) (max 1 (exact-ceiling height)) #:backing-scale density))
+    (send bmp set-argb-pixels 0 0 w h buffer)
+    bmp))
+
 (define bitmap-icon : (->* ((U Bitmap Path-String Input-Port))
                            ((-> Bitmap) #:dtrace String #:height Nonnegative-Real #:scale? Boolean)
                            Bitmap)
