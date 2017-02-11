@@ -614,6 +614,7 @@
 (define-type CSS-Declaration-Parser (U (Pairof CSS-Shorthand-Parser (Listof Symbol)) (CSS-Parser (Listof CSS-Datum)) Void False))
 (define-type CSS-Declaration-Parsers (-> Symbol (-> Void) CSS-Declaration-Parser))
 (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Values (Option CSS-Values) Preference))
+(define-type (CSS-Cascaded-Value+Filter Preference Env) (-> CSS-Values (Option CSS-Values) Env Preference))
 (define-type (CSS->Racket racket) (-> Symbol CSS-Datum racket))
   
 (struct --datum () #:transparent)

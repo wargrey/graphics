@@ -18,6 +18,7 @@
 (define-type CSS-Style-Metadata (Vector Nonnegative-Fixnum CSS-Declarations CSS-Media-Preferences))
 
 (define css-warning-unknown-property? : (Parameterof Boolean) (make-parameter #true))
+(define css-select-quirk-mode? : (Parameterof Boolean) (make-parameter #false))
 
 (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof+ CSS-Complex-Selector)] [properties : CSS-Declarations]))
 
@@ -33,24 +34,36 @@
 (define css-stylesheet-placeholder : CSS-StyleSheet
   (make-css-stylesheet (make-hasheq) '/dev/null 0 (make-hasheq) null (make-hasheq) null))
 
-(define css-cascade : (All (Preference) (-> (Listof CSS-StyleSheet) (Listof CSS-Subject)
-                                            CSS-Declaration-Parsers (CSS-Cascaded-Value-Filter Preference)
-                                            (Option CSS-Values) [#:quirk? Boolean]
-                                            (Values Preference CSS-Values)))
+(define css-cascade : (All (Preference Env) (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                                                        (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
+                                                        (Values Preference CSS-Values)]
+                                                    [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                                                        (CSS-Cascaded-Value+Filter Preference Env)
+                                                        (Option CSS-Values) Env
+                                                        (Values Preference CSS-Values)]))
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
-  (lambda [stylesheets stcejbus desc-parsers value-filter inherited-values #:quirk? [quirk? #false]]
-    (define declared-values : CSS-Values (make-css-values))
-    (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
-      (for ([stylesheet (in-list batch)])
-        (define imported-identities : (Listof Positive-Integer) (css-stylesheet-imports stylesheet))
-        (cascade-stylesheets (for/list : (Listof CSS-StyleSheet) ([import (in-list imported-identities)])
-                               (hash-ref (css-stylesheet-pool stylesheet) import)))
-        (css-cascade-rules (css-stylesheet-rules stylesheet) stcejbus desc-parsers quirk?
-                           (css-stylesheet-preferences stylesheet) declared-values)))
-    (css-resolve-variables declared-values inherited-values)
-    ;;; TODO: should we copy the inherited values after invoking (value-filter)?
-    (values (value-filter declared-values inherited-values) declared-values)))
+  (let ()
+    (define do-cascade : (-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers (Option CSS-Values) CSS-Values)
+      (lambda [stylesheets stcejbus desc-parsers inherited-values]
+        (define declared-values : CSS-Values (make-css-values))
+        (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
+          (for ([stylesheet (in-list batch)])
+            (define imported-identities : (Listof Positive-Integer) (css-stylesheet-imports stylesheet))
+            (cascade-stylesheets (for/list : (Listof CSS-StyleSheet) ([import (in-list imported-identities)])
+                                   (hash-ref (css-stylesheet-pool stylesheet) import)))
+            (css-cascade-rules (css-stylesheet-rules stylesheet) stcejbus desc-parsers (css-select-quirk-mode?)
+                               (css-stylesheet-preferences stylesheet) declared-values)))
+        (css-resolve-variables declared-values inherited-values)
+        ; TODO: should we copy the inherited values after invoking (value-filter)?
+        declared-values))
+    (case-lambda
+      [(stylesheets stcejbus desc-parsers value-filter inherited-values)
+       (define declared-values : CSS-Values (do-cascade stylesheets stcejbus desc-parsers inherited-values))
+       (values (value-filter declared-values inherited-values) declared-values)]
+      [(stylesheets stcejbus desc-parsers value-filter inherited-values env)
+       (define declared-values : CSS-Values (do-cascade stylesheets stcejbus desc-parsers inherited-values))
+       (values (value-filter declared-values inherited-values env) declared-values)])))
 
 (define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject) CSS-Declaration-Parsers)
                                  (Boolean CSS-Media-Preferences CSS-Values) CSS-Values)
@@ -150,34 +163,46 @@
     valuebase))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define css-cascade* : (All (Preference) (-> (Listof CSS-StyleSheet) (Listof CSS-Subject)
-                                             CSS-Declaration-Parsers (CSS-Cascaded-Value-Filter Preference)
-                                             (Option CSS-Values) [#:quirk? Boolean]
-                                             (Values (Listof Preference) (Listof CSS-Values))))
-  ;;; https://drafts.csswg.org/css-cascade/#filtering
-  ;;; https://drafts.csswg.org/css-cascade/#cascading
-  (lambda [stylesheets stcejbus desc-parsers value-filter inherited-values #:quirk? [quirk? #false]]
-    (define-values (secnereferp seulav)
-      (let cascade-stylesheets : (values (Listof Preference) (Listof CSS-Values)) ([batch : (Listof CSS-StyleSheet) stylesheets]
-                                                                                   [all-secnereferp : (Listof Preference) null]
-                                                                                   [all-seulav : (Listof CSS-Values) null])
-        (for/fold ([accu-secnereferp : (Listof Preference) all-secnereferp] [accu-values : (Listof CSS-Values) all-seulav])
-                  ([stylesheet (in-list batch)])
-          (define imported-identities : (Listof Positive-Integer) (css-stylesheet-imports stylesheet))
-          (define-values (sub-secnereferp sub-seulav)
-            (cascade-stylesheets (for/list : (Listof CSS-StyleSheet) ([import (in-list imported-identities)])
-                                   (hash-ref (css-stylesheet-pool stylesheet) import))
-                                 accu-secnereferp accu-values))
-          (define this-values : (Listof CSS-Values)
-            (css-cascade-rules* (css-stylesheet-rules stylesheet) stcejbus desc-parsers quirk?
-                                (css-stylesheet-preferences stylesheet)))
-          (for/fold ([this-secnereferp : (Listof Preference) sub-secnereferp]
-                     [this-seulav : (Listof CSS-Values) sub-seulav])
-                    ([declared-values (in-list this-values)])
-            (css-resolve-variables declared-values inherited-values)
-            (values (cons (value-filter declared-values inherited-values) this-secnereferp)
-                    (cons declared-values this-seulav))))))
-    (values (reverse secnereferp) (reverse seulav))))
+(define css-cascade* : (All (Preference Env) (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                                                         (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
+                                                         (Values (Listof Preference) (Listof CSS-Values))]
+                                                     [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                                                         (CSS-Cascaded-Value+Filter Preference Env)
+                                                         (Option CSS-Values) Env
+                                                         (Values (Listof Preference) (Listof CSS-Values))]))
+  (let ()
+    (define do-cascade* : (All (Preference) (-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                                                (Option CSS-Values) (-> CSS-Values Preference)
+                                                (Values (Listof Preference) (Listof CSS-Values))))
+      (lambda [stylesheets stcejbus desc-parsers inherited-values do-value-filter]
+        (define-values (secnereferp seulav)
+          (let cascade-stylesheets : (values (Listof Preference) (Listof CSS-Values)) ([batch : (Listof CSS-StyleSheet) stylesheets]
+                                                                                       [all-secnereferp : (Listof Preference) null]
+                                                                                       [all-seulav : (Listof CSS-Values) null])
+            (for/fold ([accu-secnereferp : (Listof Preference) all-secnereferp] [accu-values : (Listof CSS-Values) all-seulav])
+                      ([stylesheet (in-list batch)])
+              (define imported-identities : (Listof Positive-Integer) (css-stylesheet-imports stylesheet))
+              (define-values (sub-secnereferp sub-seulav)
+                (cascade-stylesheets (for/list : (Listof CSS-StyleSheet) ([import (in-list imported-identities)])
+                                       (hash-ref (css-stylesheet-pool stylesheet) import))
+                                     accu-secnereferp accu-values))
+              (define this-values : (Listof CSS-Values)
+                (css-cascade-rules* (css-stylesheet-rules stylesheet) stcejbus desc-parsers (css-select-quirk-mode?)
+                                    (css-stylesheet-preferences stylesheet)))
+              (for/fold ([this-secnereferp : (Listof Preference) sub-secnereferp]
+                         [this-seulav : (Listof CSS-Values) sub-seulav])
+                        ([declared-values : CSS-Values (in-list this-values)])
+                (css-resolve-variables declared-values inherited-values)
+                (values (cons (do-value-filter declared-values) this-secnereferp)
+                        (cons declared-values this-seulav))))))
+        (values (reverse secnereferp) (reverse seulav))))
+    (case-lambda
+      [(stylesheets stcejbus desc-parsers value-filter inherited-values)
+       (do-cascade* stylesheets stcejbus desc-parsers inherited-values
+                    (λ [[declared-values : CSS-Values]] (value-filter declared-values inherited-values)))]
+      [(stylesheets stcejbus desc-parsers value-filter inherited-values env)
+       (do-cascade* stylesheets stcejbus desc-parsers inherited-values
+                    (λ [[declared-values : CSS-Values]] (value-filter declared-values inherited-values env)))])))
 
 (define css-cascade-rules* : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject) CSS-Declaration-Parsers)
                                   (Boolean CSS-Media-Preferences) (Listof CSS-Values))

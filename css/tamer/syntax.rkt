@@ -10,8 +10,9 @@
 (define tamer-root : CSS-Subject (make-css-subject #:type 'root #:id '#:header))
 (define tamer-body : CSS-Subject (make-css-subject #:type 'module #:id '#:root #:classes '(main)))
 
-(define css-all-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol Any))
-  (lambda [declared-values inherited-values]
+(define css-all-filter : (CSS-Cascaded-Value+Filter (HashTable Symbol Any) Symbol)
+  (lambda [declared-values inherited-values env]
+    (displayln env)
     (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys (css-values-descriptors declared-values))])
       (values desc-name (css-ref declared-values inherited-values desc-name)))))
 
@@ -25,7 +26,7 @@ tamer-root
   (time-run (let-values ([(preference for-children)
                           (css-cascade (list tamer-sheet) (list tamer-root)
                                        css-declaration-parsers css-all-filter
-                                       #false)])
+                                       #false 'root)])
               (list preference for-children))))
 header-preference
 
@@ -33,5 +34,5 @@ tamer-body
 (time-run (let-values ([(preference for-children)
                         (css-cascade (list tamer-sheet) (list tamer-body tamer-root)
                                      css-declaration-parsers css-all-filter
-                                     header-preference)])
+                                     header-preference 'body)])
             for-children))
