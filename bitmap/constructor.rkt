@@ -117,7 +117,8 @@
     (define dc : (Instance Bitmap-DC%) (send frame make-dc))
     (send dc set-smoothing 'aligned)
     (send dc set-pen (select-color pen-color) border pen-style)
-    (when brush-color (send dc set-brush (select-color brush-color) brush-style))
+    (cond [(not brush-color) (send dc set-brush (select-color #x000000) 'transparent)]
+          [else (send dc set-brush (select-color brush-color) brush-style)])
     (send dc draw-rectangle margin margin width height)
     (send dc draw-bitmap bmp (+ offset margin) (+ offset margin))
     frame))
