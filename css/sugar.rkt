@@ -6,7 +6,6 @@
 
 (require "syntax.rkt")
 (require "font.rkt")
-(require "text-decor.rkt")
 (require "color.rkt")
 (require "image.rkt")
 
@@ -107,3 +106,19 @@
   (lambda [declared-values inherited-values]
     (cons (css-font-filter declared-values inherited-values)
           (css-colors-filter declared-values inherited-values))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define css-cascade-colors : (-> (Listof CSS-StyleSheet) (Listof CSS-Subject) (Option CSS-Values) (Pairof Color Color))
+  (lambda [stylesheets stcejbus inherited-values]
+    (define-values ($ _) (css-cascade stylesheets stcejbus css-font+colors-parsers css-colors-filter inherited-values))
+    $))
+
+(define css-cascade-font+color : (-> (Listof CSS-StyleSheet) (Listof CSS-Subject) (Option CSS-Values) Font+Color)
+  (lambda [stylesheets stcejbus inherited-values]
+    (define-values ($ _) (css-cascade stylesheets stcejbus css-font+colors-parsers css-font+color-filter inherited-values))
+    $))
+
+(define css-cascade-font+colors : (-> (Listof CSS-StyleSheet) (Listof CSS-Subject) (Option CSS-Values) Font+Colors)
+  (lambda [stylesheets stcejbus inherited-values]
+    (define-values ($ _) (css-cascade stylesheets stcejbus css-font+colors-parsers css-font+colors-filter inherited-values))
+    $))
