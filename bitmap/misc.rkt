@@ -39,6 +39,11 @@
                   (send dc draw-bitmap raw 0 0)
                   bmp)])))
 
+(define text-size : (->* (String Font) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [text font [combined? #true] #:with-dc [dc the-dc]]
+    (define-values (w h d a) (send dc get-text-extent text font combined?))
+    (values (real->double-flonum w) (real->double-flonum h))))
+
 (define make-font+ : (->* () (Font #:size Real #:face (Option String) #:size-in-pixels? (U Boolean Symbol) #:family (Option Font-Family)
                                    #:style (Option Font-Style) #:weight (Option Font-Weight) #:hinting (Option Font-Hinting)
                                    #:underlined? (U Boolean Symbol) #:smoothing (Option Font-Smoothing)) Font)
