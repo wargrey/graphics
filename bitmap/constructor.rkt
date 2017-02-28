@@ -53,11 +53,11 @@
     (or (send dc get-bitmap) (bitmap-blank))))
 
 (define bitmap-desc : (->* (String Nonnegative-Real)
-                           (Font #:combine? Boolean #:color (Option Color+sRGB)
-                                 #:background-color (Option Color+sRGB)) Bitmap)
-  (lambda [description max-width.0 [font (default-css-font)]
+                           (Font #:max-height Nonnegative-Real #:combine? Boolean
+                                 #:color (Option Color+sRGB) #:background-color (Option Color+sRGB)) Bitmap)
+  (lambda [description max-width.0 [font (default-css-font)] #:max-height [max-height.0 +inf.0]
            #:combine? [combine? #true] #:color [fgcolor #false] #:background-color [bgcolor #false]]
-    (define max-width : Nonnegative-Flonum (real->double-flonum max-width.0))
+    (define-values (max-width max-height) (values (real->double-flonum max-width.0) (real->double-flonum max-height.0)))
     (define desc-extent : (-> String Integer Integer (Values String Nonnegative-Flonum Nonnegative-Flonum))
       (lambda [desc start end]
         (define subdesc : String (substring desc start end))
@@ -84,7 +84,8 @@
                     [(fl> width max-width) (desc-col-expt 1 next-open idx backtracking back-width back-height)]
                     [(fx= close idx) (values line width height idx)]
                     [else (desc-col-expt (fxlshift interval 1) open close line width height)])))
-          (cond [(fx= idx terminal) (values (cons descn descs) (cons yn ys) (max widthn Widthn) (fl+ yn heightn))]
+          (cond [(fl> (fl+ yn heightn) max-height) (values descs ys (max widthn Widthn) yn)]
+                [(fx= idx terminal) (values (cons descn descs) (cons yn ys) (max widthn Widthn) (fl+ yn heightn))]
                 [else (desc-row idx (cons descn descs) (cons yn ys) (max widthn Widthn) (fl+ yn heightn))]))))
 
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width (max phantom-height height))))
