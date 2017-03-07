@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [bitmap-circle bitmap-disk]))
 
 (require "digitama/bitmap.rkt")
 (require "digitama/color.rkt")
@@ -110,8 +111,8 @@
   (lambda [bmp #:margin [margin 0] #:border [border 1] #:inset [inset 0] #:color [pen-color #x000000] #:style [pen-style 'solid]
                #:background-color [brush-color #false] #:background-style [brush-style 'solid]]
     ;;; TODO:
-    ; In this aligned bitmap context, border with 0 behaves the same as 1.
-    ; It seems that, Racket also deal with 0 width line the "as thin as possible" algorithm.
+    ; In this aligned bitmap context, border width 0 behaves the same as 1.
+    ; It seems that, Racket also use the "as thin as possible" algorithm to deal with zero width line. 
     (define offset : Nonnegative-Real (+ (max border 1) inset))
     (define width : Positive-Real (+ (send bmp get-width) offset offset))
     (define height : Positive-Real (+ (send bmp get-height) offset offset))
@@ -126,3 +127,52 @@
     (send dc draw-rectangle margin margin width height)
     (send dc draw-bitmap bmp (+ offset margin) (+ offset margin))
     frame))
+
+(define bitmap-rectangle : (->* (Nonnegative-Real)
+                                (Nonnegative-Real (Option Real)
+                                                  #:color Color+sRGB #:style Brush-Style
+                                                  #:border-color Color+sRGB #:border-style Pen-Style
+                                                  #:border-width Nonnegative-Real)
+                                Bitmap)
+  (lambda [w [h #false] [radius #false]
+             #:color [color #x000000] #:style [brush-style 'solid]
+             #:border-color [pen-color #false] #:border-style [pen-style 'solid]
+             #:border-width [border-width 1]]
+    (define width : Nonnegative-Real w)
+    (define height : Nonnegative-Real (or h w))
+    (define bmp : Bitmap (bitmap-blank width height))
+    (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
+    (send dc set-smoothing 'aligned)
+    (send dc set-pen (select-color (or pen-color color)) border-width pen-style)
+    (send dc set-brush (select-color color) brush-style)
+    (cond [(false? radius) (send dc draw-rectangle 0 0 width height)]
+          [else (send dc draw-rounded-rectangle 0 0 width height radius)])
+    bmp))
+
+
+(define bitmap-ellipse : (->* (Nonnegative-Real)
+                              (Nonnegative-Real #:color Color+sRGB #:style Brush-Style
+                                                #:border-color Color+sRGB #:border-style Pen-Style
+                                                #:border-width Nonnegative-Real)
+                              Bitmap)
+  (lambda [w [h #false] #:color [color #x000000] #:style [brush-style 'solid]
+             #:border-color [pen-color #false] #:border-style [pen-style 'solid]
+             #:border-width [border-width 1]]
+    (define width : Nonnegative-Real w)
+    (define height : Nonnegative-Real (or h w))
+    (define bmp : Bitmap (bitmap-blank width height))
+    (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
+    (send dc set-smoothing 'aligned)
+    (send dc set-pen (select-color (or pen-color color)) border-width pen-style)
+    (send dc set-brush (select-color color) brush-style)
+    (send dc draw-ellipse 0 0 width height)
+    bmp))
+
+(define bitmap-circle : (-> Nonnegative-Real [#:color Color+sRGB] [#:style Brush-Style]
+                            [#:border-color Color+sRGB] [#:border-style Pen-Style]
+                            [#:border-width Nonnegative-Real] Bitmap)
+  (lambda [r #:color [color #x000000] #:style [brush-style 'solid]
+             #:border-color [pen-color #false] #:border-style [pen-style 'solid]
+             #:border-width [border-width 1]]
+    (bitmap-ellipse #:color color #:style brush-style #:border-color (or pen-color color)
+                    #:border-style pen-style #:border-width border-width r)))
