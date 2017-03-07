@@ -17,12 +17,15 @@
     (define height : Positive-Integer (max 1 (exact-ceiling (or h w))))
     (make-bitmap width height #:backing-scale density)))
 
-(define bitmap-dc : (->* ((-> (Instance Bitmap-DC%) Any)) (Nonnegative-Real (Option Nonnegative-Real) Positive-Real) Bitmap)
+(define bitmap-dc : (->* ((-> (Instance Bitmap-DC%) Nonnegative-Flonum Nonnegative-Flonum Any))
+                         (Nonnegative-Real (Option Nonnegative-Real) Positive-Real)
+                         Bitmap)
   (lambda [draw-with [w 0] [h #false] [density (default-icon-backing-scale)]]
     (define bmp : Bitmap (bitmap-blank w h density))
     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
     (send dc set-smoothing 'aligned)
-    (draw-with dc)
+    ;;; let the device deal with non-integer size
+    (draw-with dc (real->double-flonum w) (real->double-flonum (or h w)))
     bmp))
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
