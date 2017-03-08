@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (rename-out [bitmap-circle bitmap-disk]))
+(provide (rename-out [bitmap-ellipse bitmap-circle]
+                     [bitmap-ellipse bitmap-disk]))
 
 (require "digitama/bitmap.rkt")
 (require "digitama/color.rkt")
@@ -12,7 +13,7 @@
 
 (require typed/images/icons)
 
-(define bitmap-blank : (->* () (Nonnegative-Real (Option Nonnegative-Real) Positive-Real) Bitmap)
+(define bitmap-blank : (->* () (Real (Option Real) Positive-Real) Bitmap)
   (lambda [[w 0] [h #false] [density (default-icon-backing-scale)]]
     (define width : Positive-Integer (max 1 (exact-ceiling w)))
     (define height : Positive-Integer (max 1 (exact-ceiling (or h w))))
@@ -35,7 +36,7 @@
                   (send bmp get-height)
                   (send bmp get-backing-scale))))
 
-(define bitmap-solid : (->* () (Color+sRGB Nonnegative-Real Positive-Real) Bitmap)
+(define bitmap-solid : (->* () (Color+sRGB Real Positive-Real) Bitmap)
   (lambda [[color 'transparent] [size 1] [density (default-icon-backing-scale)]]
     (define solid : Bitmap (bitmap-blank size size density))
     (define dc : (Instance Bitmap-DC%) (send solid make-dc))
@@ -56,9 +57,10 @@
     (send dc draw-text content 0 0 combine?)
     (or (send dc get-bitmap) (bitmap-blank))))
 
-(define bitmap-desc : (->* (String Nonnegative-Real)
-                           (Font #:max-height Nonnegative-Real #:combine? Boolean
-                                 #:color (Option Color+sRGB) #:background-color (Option Color+sRGB)) Bitmap)
+(define bitmap-desc : (->* (String Real)
+                           (Font #:color (Option Color+sRGB) #:background-color (Option Color+sRGB)
+                                 #:max-height Real #:combine? Boolean)
+                           Bitmap)
   (lambda [description max-width.0 [font (default-css-font)] #:max-height [max-height.0 +inf.0]
            #:combine? [combine? #true] #:color [fgcolor #false] #:background-color [bgcolor #false]]
     (define-values (max-width max-height) (values (real->double-flonum max-width.0) (real->double-flonum max-height.0)))
@@ -70,21 +72,21 @@
 
     (define-values (_ _w phantom-height) (desc-extent " " 0 1))
     (define-values (descs ys width height)
-      (for/fold ([descs : (Listof String) null] [ys : (Listof Flonum) null] [width : Nonnegative-Flonum 0.0] [height : Flonum 0.0])
+      (for/fold ([descs : (Listof String) null] [ys : (Listof Flonum) null] [width : Flonum 0.0] [height : Flonum 0.0])
                 ([desc : String (in-list (string-split description (string #\newline)))])
         (define terminal : Index (string-length desc))
-        (let desc-row ([idx0 : Nonnegative-Fixnum 0] [descs : (Listof String) descs] [ys : (Listof Flonum) ys]
-                                                     [Widthn : Nonnegative-Flonum width] [yn : Flonum height])
+        (let desc-row ([idx0 : Fixnum 0] [descs : (Listof String) descs] [ys : (Listof Flonum) ys]
+                                         [Widthn : Flonum width] [yn : Flonum height])
           (define-values (descn widthn heightn idx)
-            (let desc-col-expt : (Values String Nonnegative-Flonum Flonum Nonnegative-Fixnum)
-              ([interval : Nonnegative-Fixnum 1] [open : Nonnegative-Fixnum idx0] [close : Nonnegative-Fixnum terminal]
-                                                 [backtracking : String ""] [back-width : Nonnegative-Flonum max-width]
-                                                 [back-height : Nonnegative-Flonum phantom-height])
-              (define idx : Nonnegative-Fixnum (fxmin close (fx+ open interval)))
-              (define next-open : Nonnegative-Fixnum (fx+ open (fxquotient interval 2)))
+            (let desc-col-expt : (Values String Flonum Flonum Fixnum)
+              ([interval : Nonnegative-Fixnum 1] [open : Fixnum idx0] [close : Fixnum terminal]
+                                                 [backtracking : String ""] [back-width : Flonum max-width]
+                                                 [back-height : Flonum phantom-height])
+              (define idx : Fixnum (fxmin close (fx+ open interval)))
+              (define next-open : Fixnum (fx+ open (fxquotient interval 2)))
               (define-values (line width height) (desc-extent desc idx0 idx))
               (define found? : Boolean (and (fl> width max-width) (fx= interval 1) (fl<= back-width max-width)))
-              (cond [found? (values backtracking back-width back-height (if (zero? open) terminal (max 0 (sub1 idx))))]
+              (cond [found? (values backtracking back-width back-height (if (zero? open) terminal (fx- idx 1)))]
                     [(fl> width max-width) (desc-col-expt 1 next-open idx backtracking back-width back-height)]
                     [(fx= close idx) (values line width height idx)]
                     [else (desc-col-expt (fxlshift interval 1) open close line width height)])))
@@ -128,18 +130,18 @@
     (send dc draw-bitmap bmp (+ offset margin) (+ offset margin))
     frame))
 
-(define bitmap-rectangle : (->* (Nonnegative-Real)
-                                (Nonnegative-Real (Option Real)
-                                                  #:color Color+sRGB #:style Brush-Style
-                                                  #:border-color Color+sRGB #:border-style Pen-Style
-                                                  #:border-width Nonnegative-Real)
+(define bitmap-rectangle : (->* (Real)
+                                (Real (Option Real)
+                                      #:color Color+sRGB #:style Brush-Style
+                                      #:border-color Color+sRGB #:border-style Pen-Style
+                                      #:border-width Nonnegative-Real)
                                 Bitmap)
   (lambda [w [h #false] [radius #false]
              #:color [color #x000000] #:style [brush-style 'solid]
              #:border-color [pen-color #false] #:border-style [pen-style 'solid]
              #:border-width [border-width 1]]
-    (define width : Nonnegative-Real w)
-    (define height : Nonnegative-Real (or h w))
+    (define width : Nonnegative-Real (max w 0.0))
+    (define height : Nonnegative-Real (max (or h w) 0.0))
     (define bmp : Bitmap (bitmap-blank width height))
     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
     (send dc set-smoothing 'aligned)
@@ -150,16 +152,16 @@
     bmp))
 
 
-(define bitmap-ellipse : (->* (Nonnegative-Real)
-                              (Nonnegative-Real #:color Color+sRGB #:style Brush-Style
-                                                #:border-color Color+sRGB #:border-style Pen-Style
-                                                #:border-width Nonnegative-Real)
+(define bitmap-ellipse : (->* (Real)
+                              (Real #:color Color+sRGB #:style Brush-Style
+                                    #:border-color Color+sRGB #:border-style Pen-Style
+                                    #:border-width Nonnegative-Real)
                               Bitmap)
   (lambda [w [h #false] #:color [color #x000000] #:style [brush-style 'solid]
              #:border-color [pen-color #false] #:border-style [pen-style 'solid]
              #:border-width [border-width 1]]
-    (define width : Nonnegative-Real w)
-    (define height : Nonnegative-Real (or h w))
+    (define width : Nonnegative-Real (max w 0.0))
+    (define height : Nonnegative-Real (max (or h w) 0.0))
     (define bmp : Bitmap (bitmap-blank width height))
     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
     (send dc set-smoothing 'aligned)
@@ -167,12 +169,3 @@
     (send dc set-brush (select-color color) brush-style)
     (send dc draw-ellipse 0 0 width height)
     bmp))
-
-(define bitmap-circle : (-> Nonnegative-Real [#:color Color+sRGB] [#:style Brush-Style]
-                            [#:border-color Color+sRGB] [#:border-style Pen-Style]
-                            [#:border-width Nonnegative-Real] Bitmap)
-  (lambda [r #:color [color #x000000] #:style [brush-style 'solid]
-             #:border-color [pen-color #false] #:border-style [pen-style 'solid]
-             #:border-width [border-width 1]]
-    (bitmap-ellipse #:color color #:style brush-style #:border-color (or pen-color color)
-                    #:border-style pen-style #:border-width border-width r)))
