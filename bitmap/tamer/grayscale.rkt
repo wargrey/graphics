@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (require typed/images/logos)
-(require "../grayscale.rkt")
+(require "../color.rkt")
 
 (define b (planet-logo))
 
@@ -18,4 +18,3 @@ b
 (bitmap-grayscale/channel b 'red)
 (bitmap-grayscale/channel b 'green)
 (bitmap-grayscale/channel b 'blue)
-

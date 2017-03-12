@@ -3,7 +3,21 @@
 (provide (all-defined-out))
 
 (require "digitama/bitmap.rkt")
+(require "constructor.rkt")
 
+(define bitmap-cellophane : (-> Bitmap Nonnegative-Real Bitmap)
+  (lambda [bmp opacity]
+    (cond [(>= opacity 1.0) bmp]
+          [else (let ([abmp (bitmap-blank (send bmp get-width)
+                                          (send bmp get-height)
+                                          (send bmp get-backing-scale))])
+                  (define dc : (Instance Bitmap-DC%) (send abmp make-dc))
+                  (send dc set-smoothing 'aligned)
+                  (send dc set-alpha opacity)
+                  (send dc draw-bitmap bmp 0 0)
+                  abmp)])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-grayscale : (-> Bitmap (-> Byte Byte Byte Byte) Bitmap)
   (lambda [bmp rgb->gray]
     (define-values (w h bs) (values (send bmp get-width) (send bmp get-height) (send bmp get-backing-scale)))
