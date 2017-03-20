@@ -12,7 +12,7 @@
 (require (for-syntax racket/syntax))
 (require (for-syntax syntax/parse))
 
-(define-syntax (define-css-disjoined-filter stx)
+(define-syntax (define-css-disjoint-filter stx)
   (syntax-case stx [:]
     [(_ compound-filter #:-> RangeType #:with [[dom : DomType defval ...] ...] atom-filters ...)
      #'(define (compound-filter [dom : DomType defval ...] ...) : (CSS:Filter RangeType) (CSS:<+> atom-filters ...))]
@@ -88,7 +88,7 @@
                         (format-id <p> "default-css-~a-~a" (syntax-e <p>) suffix)))])
        #'(begin (define current : (Parameterof RangeType) (make-parameter racket)) ...
                 (define current-last : (Parameterof RangeType) (make-parameter last-one))
-                (define-css-disjoined-filter <id> #:-> RangeType
+                (define-css-disjoint-filter <id> #:-> RangeType
                   (CSS:<~> (<css:ident-norm> (list 'css ... 'otherwise))
                            (λ [[id : Symbol]] : RangeType
                              (case id [(css) (current)] ... [else (current-last)]))))))]))
@@ -361,25 +361,25 @@
 (define-predicate positive-index? Positive-Index)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-css-disjoined-filter <css-boolean> #:-> (U Zero One)
+(define-css-disjoint-filter <css-boolean> #:-> (U Zero One)
   (CSS:<=> (<css:integer> = 0) 0)
   (CSS:<=> (<css:integer> = 1) 1))
 
-(define-css-disjoined-filter <css-keyword> #:-> Symbol
+(define-css-disjoint-filter <css-keyword> #:-> Symbol
   #:with [[options : (U (-> Symbol Boolean) (Listof Symbol) Symbol)]]
   (<css:ident-norm> options))
   
-(define-css-disjoined-filter <css-natural> #:-> Natural
+(define-css-disjoint-filter <css-natural> #:-> Natural
   #:with [[nonzero : (Option '#:nonzero) #false]]
   (cond [nonzero (<css:integer> exact-positive-integer?)]
         [else    (<css:integer> exact-nonnegative-integer?)]))
 
-(define-css-disjoined-filter <css+real> #:-> (U Natural Nonnegative-Flonum)
+(define-css-disjoint-filter <css+real> #:-> (U Natural Nonnegative-Flonum)
   #:with [[nonzero : (Option '#:nonzero) #false]]
   (cond [nonzero (CSS:<+> (<css:flonum> positive-flonum?) (<css:integer> exact-positive-integer?))]
         [else    (CSS:<+> (<css:flonum> nonnegative-flonum?) (<css:integer> exact-nonnegative-integer?))]))
 
-(define-css-disjoined-filter <css+%real> #:-> (U Natural Nonnegative-Inexact-Real)
+(define-css-disjoint-filter <css+%real> #:-> (U Natural Nonnegative-Inexact-Real)
   #:with [[nonzero : (Option '#:nonzero) #false]]
   (cond [nonzero (CSS:<+> (<css:percentage> positive-single-flonum?)
                           (<css:flonum> positive-flonum?)
@@ -388,12 +388,12 @@
                           (<css:flonum> nonnegative-flonum?)
                           (<css:integer> exact-nonnegative-integer?))]))
 
-(define-css-disjoined-filter <css-flunit> #:-> Nonnegative-Flonum
+(define-css-disjoint-filter <css-flunit> #:-> Nonnegative-Flonum
   (CSS:<~> (<css:flonum> 0.0 fl<= 1.0) flabs)
   (CSS:<=> (<css:integer> = 0) 0.0)
   (CSS:<=> (<css:integer> = 1) 1.0))
 
-(define-css-disjoined-filter <css-%flunit> #:-> Nonnegative-Flonum
+(define-css-disjoint-filter <css-%flunit> #:-> Nonnegative-Flonum
   (CSS:<~> (<css:percentage> 0f0 <= 1f0) flabs real->double-flonum)
   (CSS:<~> (<css:flonum> 0.0 fl<= 1.0) flabs)
   (CSS:<=> (<css:integer> = 0) 0.0)
@@ -408,11 +408,11 @@
 (define (<css-slash>) : (CSS:Filter Char) (CSS:<?> (<css:delim> #\/) make-exn:css:missing-slash))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-css-disjoined-filter <css-size> #:-> (U Nonnegative-Inexact-Real CSS:Length:Font)
+(define-css-disjoint-filter <css-size> #:-> (U Nonnegative-Inexact-Real CSS:Length:Font)
   (<css+length>)
   (CSS:<~> (<css+%real>) exact->inexact))
 
-(define-css-disjoined-filter <css-unitless-size> #:-> (U Nonnegative-Flonum Single-Flonum CSS:Length:Font)
+(define-css-disjoint-filter <css-unitless-size> #:-> (U Nonnegative-Flonum Single-Flonum CSS:Length:Font)
   ;;; NOTE
   ; `unitless` means the computed value and used value are different,
   ; hence the `negative single flonum` to tell the `css->*` the unitless value must be inheritable.

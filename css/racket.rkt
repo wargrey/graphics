@@ -113,7 +113,7 @@
     [(true True)   '(values #true)]
     [else (make-exn:css:range token)]))
 
-(define-css-disjoined-filter <css-#false> #:-> (List 'values False)
+(define-css-disjoint-filter <css-#false> #:-> (List 'values False)
   (CSS:<=> (<css:ident> '(False false)) '(values #false)))
 
 (define CSS:<@> : (All (css) (-> (CSS:Filter css) (-> css Any) (CSS:Filter CSS-Thunk)))

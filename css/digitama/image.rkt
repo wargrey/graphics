@@ -54,7 +54,7 @@
   
 (define css-@icon-filter : CSS-@λ-Filter
   (lambda [λname ?λ:kw]
-    (define-css-disjoined-filter <text-icon-font> #:-> (U Font CSS-@λ)
+    (define-css-disjoint-filter <text-icon-font> #:-> (U Font CSS-@λ)
       (<css-system-font>)
       (<racket-font>)
       (<css:@λ> the-@draw-pool css-@draw-filter '(make-font)))
@@ -93,7 +93,7 @@
   #:where
   [(define-predicate css-image-sets? Image-Set-Options)])
 
-(define-css-disjoined-filter <css-image> #:-> CSS-Image-Datum
+(define-css-disjoint-filter <css-image> #:-> CSS-Image-Datum
   ;;; https://drafts.csswg.org/css-images/#image-values
   ;;; https://drafts.csswg.org/css-images/#invalid-image
   (<css:@λ> the-@icon-pool css-@icon-filter)

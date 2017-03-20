@@ -75,22 +75,22 @@
                 (list (or (send font get-face)
                           (send font get-family)))))))
 
-(define-css-disjoined-filter <font-stretch> #:-> (U Symbol Nonnegative-Single-Flonum)
+(define-css-disjoint-filter <font-stretch> #:-> (U Symbol Nonnegative-Single-Flonum)
   ;;; https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
   (<css-keyword> css-font-stretch-option)
   (<css:percentage> nonnegative-single-flonum?))
 
-(define-css-disjoined-filter <font-weight> #:-> (U Symbol Integer)
+(define-css-disjoint-filter <font-weight> #:-> (U Symbol Integer)
   ;;; https://drafts.csswg.org/css-fonts/#font-weight-prop
   (<css-keyword> css-font-weight-option)
   (<css:integer> 0 < 1000))
   
-(define-css-disjoined-filter <font-size> #:-> (U Symbol Nonnegative-Inexact-Real CSS:Length:Font)
+(define-css-disjoint-filter <font-size> #:-> (U Symbol Nonnegative-Inexact-Real CSS:Length:Font)
   ;;; https://drafts.csswg.org/css-fonts/#font-size-prop
   (<css-size>)
   (<css-keyword> css-font-size-option))
 
-(define-css-disjoined-filter <line-height> #:-> (U Symbol Nonnegative-Flonum Single-Flonum CSS:Length:Font CSS-Wide-Keyword)
+(define-css-disjoint-filter <line-height> #:-> (U Symbol Nonnegative-Flonum Single-Flonum CSS:Length:Font CSS-Wide-Keyword)
   ;;; http://www.w3.org/TR/CSS2/visudet.html#propdef-line-height
   (<css-unitless-size>)
   (CSS:<~> (<css-keyword> '(normal inherit)) css-wide-keywords-filter-map))

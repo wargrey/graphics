@@ -12,7 +12,7 @@
 ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
 (define css-viewport-parsers : CSS-Declaration-Parsers
   (lambda [suitcased-name !]
-    (define-css-disjoined-filter viewport-length-filter #:-> (U Symbol Nonnegative-Inexact-Real)
+    (define-css-disjoint-filter viewport-length-filter #:-> (U Symbol Nonnegative-Inexact-Real)
       (<css-keyword> 'auto)
       (<css:percentage> nonnegative-single-flonum?)
       (<css+length> #true))

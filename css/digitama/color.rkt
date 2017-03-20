@@ -65,7 +65,7 @@
   [(hwba hwb) #:=> [(hsba hwb->rgb [h ? real?] [w ? single-flonum?] [b ? single-flonum?] [alpha ? nonnegative-flonum?])]
    (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
   #:where
-  [(define-css-disjoined-filter <rgb-byte> #:-> Integer
+  [(define-css-disjoint-filter <rgb-byte> #:-> Integer
      (<css:integer> byte?)
      (CSS:<~> (<css:percentage> 0.0f0 <= 1.0f0) (λ [[% : Single-Flonum]] (exact-round (* % 255.0))))
      (CSS:<~> (<css:flonum> 0.0 fl<= 255.0) exact-round))
@@ -98,7 +98,7 @@
               (and (hash-has-key? css-named-colors color) color)))) => values]
   [(and (string? ?color) (send the-color-database find-color ?color)) ?color])
 
-(define-css-disjoined-filter <css-color> #:-> (U CSS-Color-Datum CSS-Wide-Keyword)
+(define-css-disjoint-filter <css-color> #:-> (U CSS-Color-Datum CSS-Wide-Keyword)
   ;;; https://drafts.csswg.org/css-color/#color-type
   ;;; https://drafts.csswg.org/css-color/#named-colors
   #:with [[hint? : Any #false]]
