@@ -44,17 +44,16 @@
     (define-values (w h d a) (send dc get-text-extent text font combined?))
     (values (real->double-flonum w) (real->double-flonum h))))
 
-(define make-font+ : (->* () (Font #:size Real #:face (Option String) #:size-in-pixels? (U Boolean Symbol) #:family (Option Font-Family)
+(define make-font+ : (->* () (Font #:size Real #:face (Option String) #:family (Option Font-Family)
                                    #:style (Option Font-Style) #:weight (Option Font-Weight) #:hinting (Option Font-Hinting)
                                    #:underlined? (U Boolean Symbol) #:smoothing (Option Font-Smoothing)) Font)
   (lambda [[basefont (default-css-font)] #:size [size +nan.0] #:face [face #false] #:family [family #false]
            #:style [style #false] #:weight [weight #false] #:hinting [hinting #false] #:smoothing [smoothing #false]
-           #:underlined? [underlined 'default] #:size-in-pixels? [size-in-pixels? 'default]]
-    ;;; NOTE: Racket provides extra term `family` to make the font% cross platform, in practical, these two terminologies are referring
+           #:underlined? [underlined 'default]]
+    ;;; NOTE: Racket provides extra term `family` to make the font% cross platform, in practice, these two terminologies are referring
     ;;;        the same thing, thus, ask the basefont for inheriting the `font description string` only when both of them are unset.
     (define ?face : (Option String) (or face (and (not family) (send basefont get-face))))
     (define underlined? : Boolean (if (boolean? underlined) underlined (send basefont get-underlined)))
-    (define pixels? : Boolean (if (boolean? size-in-pixels?) size-in-pixels? (send basefont get-size-in-pixels)))
     (define fontsize : Real (min 1024.0 (cond [(positive? size) size]
                                               [(or (zero? size) (nan? size)) (smart-font-size basefont)]
                                               [else (* (- size) (smart-font-size basefont))])))
@@ -62,10 +61,10 @@
         (send the-font-list find-or-create-font fontsize ?face
               (or family (send basefont get-family)) (or style (send basefont get-style))
               (or weight (send basefont get-weight)) underlined?
-              (or smoothing (send basefont get-smoothing)) pixels?
+              (or smoothing (send basefont get-smoothing)) #true
               (or hinting (send basefont get-hinting)))
         (send the-font-list find-or-create-font fontsize
               (or family (send basefont get-family)) (or style (send basefont get-style))
               (or weight (send basefont get-weight)) underlined?
-              (or smoothing (send basefont get-smoothing)) pixels?
+              (or smoothing (send basefont get-smoothing)) #true
               (or hinting (send basefont get-hinting))))))

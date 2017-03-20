@@ -56,8 +56,8 @@
       (define size : Nonnegative-Real (max (min max-size font-size) min-size))
       (define font : Font
         (make-font+ #:face (and (string? family) family) #:family (and (symbol? family) family)
-                    #:size size #:size-in-pixels? (implies (nan? size) #| NOTE |# 'inherited) #:hinting hinting
-                    #:style style #:weight weight #:underlined? (and (memq 'underline decorations) #true) #:smoothing smoothing
+                    #:size size #:style style #:weight weight #:hinting hinting
+                    #:underlined? (and (memq 'underline decorations) #true) #:smoothing smoothing
                     inherited-font))
      (call-with-font font
        (css-set! declared-values 'font font)

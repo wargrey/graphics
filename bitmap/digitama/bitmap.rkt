@@ -24,7 +24,7 @@
 
 (define the-dc (make-object bitmap-dc% (make-object bitmap% 1 1)))
 (define the-invalid-image : Bitmap (read-bitmap (open-input-bytes #"placeholder")))
-(define default-css-font : (Parameterof Font) (make-parameter (make-font)))
+(define default-css-font : (Parameterof Font) (make-parameter (make-font #:size-in-pixels? #true)))
 
 (define smart-font-size : (-> Font Nonnegative-Flonum)
   (let ([macosx? (eq? (system-type 'os) 'macosx)])
