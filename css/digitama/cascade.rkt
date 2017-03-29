@@ -19,6 +19,7 @@
 
 (define css-warning-unknown-property? : (Parameterof Boolean) (make-parameter #true))
 (define css-select-quirk-mode? : (Parameterof Boolean) (make-parameter #false))
+(define css-property-case-sensitive? : (Parameterof Boolean) (make-parameter #false))
 
 (struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof+ CSS-Complex-Selector)] [properties : CSS-Declarations]))
 
@@ -92,6 +93,7 @@
     (define varbase : CSS-Variable-Values (css-values-variables valuebase))
     (define descbase : (HashTable Symbol (-> CSS-Datum)) (css-values-descriptors valuebase))
     (define importants : (HashTable Symbol Boolean) (css-values-importants valuebase))
+    (define case-sensitive? : Boolean (css-property-case-sensitive?))
     (define (desc-more-important? [desc-name : Symbol] [important? : Boolean]) : Boolean
       (or important? (not (hash-has-key? importants desc-name))))
     (define (desc-set! [desc-name : Symbol] [important? : Boolean] [declared-value : (-> CSS-Datum)]) : Void
@@ -148,7 +150,7 @@
       (for ([property (in-list subproperties)])
         (cond [(list? property) (cascade property)]
               [else (let* ([<desc-name> : CSS:Ident (css-declaration-name property)]
-                           [desc-name : Symbol (css:ident-norm <desc-name>)])
+                           [desc-name : Symbol (if case-sensitive? (css:ident-datum <desc-name>) (css:ident-norm <desc-name>))])
                       (cond [(symbol-unreadable? desc-name) (hash-set! varbase desc-name property)]
                             [else (let ([important? : Boolean (css-declaration-important? property)])
                                     (when (desc-more-important? desc-name important?)
