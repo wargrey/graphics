@@ -11,6 +11,7 @@
 (require "digitama/bitmap.rkt")
 (require "recognizer.rkt")
 (require "text-decor.rkt")
+(require "values.rkt")
 
 (define css-normal-line-height : (Parameterof Nonnegative-Flonum) (make-parameter 1.2))
 

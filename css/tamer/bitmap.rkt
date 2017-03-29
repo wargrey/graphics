@@ -23,7 +23,7 @@
    [combine? : Boolean                         #:= #false]
    [desc : String                              #:= "['desc' property is required]"]
    [prelude : Bitmap                           #:= (bitmap-text "> ")]
-   [descriptors : (HashTable Symbol CSS-Datum) #:= (make-hasheq)])
+   [descriptors : (HashTable Symbol CSS-Datum) #:= (make-immutable-hasheq)])
   #:transparent)
 
 (define btest-parsers : CSS-Declaration-Parsers
@@ -58,8 +58,9 @@
                   #:combine? (eq? 'normal (css-ref declared-values inherited-values 'font-variant-ligatures symbol? 'normal))
                   #:desc (css-ref declared-values inherited-values 'desc css->desc)
                   #:prelude (css-ref declared-values inherited-values 'prelude css->bitmap)
-                  #:descriptors (for/hash : (HashTable Symbol CSS-Datum) ([(k fv) (in-css-values declared-values)])
-                                  (values k (fv)))))))
+                  #:descriptors (css-values-fold declared-values (initial-btest-descriptors)
+                                                 (λ [[property : Symbol] [this-datum : CSS-Datum] [desc++ : (HashTable Symbol CSS-Datum)]]
+                                                   (hash-set desc++ property this-datum)))))))
 
 (css-root-element-type 'module)
 

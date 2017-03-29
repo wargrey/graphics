@@ -715,14 +715,6 @@
                              (cond [(datum? specified-value) specified-value]
                                    [else default-value]))]))
 
-(define css-set! : (-> CSS-Values Symbol CSS-Datum Void)
-  (lambda [declared-values property value]
-    (hash-set! (css-values-descriptors declared-values) property (thunk value))))
-
-(define in-css-values : (-> CSS-Values (Sequenceof Symbol (-> CSS-Datum)))
-  (lambda [declared-values]
-    (in-hash (css-values-descriptors declared-values))))
-
 (define css-ref-raw : (-> (HashTable Symbol (-> CSS-Datum)) (Option CSS-Values) Symbol (Values CSS-Datum CSS-Datum))
   (lambda [properties inherited-values desc-name]
     (define declared-value : (-> CSS-Datum)
