@@ -264,3 +264,5 @@ body {
    foreground-image : url(bad url);
 	background-image : url ( U+62-64 ) ;
 }
+
+.test { \~a: "escaped-identifier"; }

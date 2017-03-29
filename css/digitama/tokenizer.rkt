@@ -46,10 +46,11 @@
                   [(#\@) (css-consume-@keyword-token srcloc)]
                   [(#\/) (css-consume-comment-token srcloc)]
                   [(#\< #\-) (css-consume-cd-token srcloc ch)]
-                  [(#\null) (css-make-token srcloc css:delim #\uFFFD)]
                   [(#\;) (css-make-token srcloc css:semicolon #\;)]
                   [(#\,) (css-make-token srcloc css:comma #\,)]
                   [(#\:) (css-make-token srcloc css:colon #\:)]
+                  [(#\\) (css-consume-escaped-ident-token srcloc)]
+                  [(#\null) (css-make-token srcloc css:delim #\uFFFD)]
                   [else (css-make-token srcloc css:delim ch)])])))
 
 (define css-consume-cd-token : (-> CSS-Srcloc Char CSS-Token)
@@ -103,7 +104,15 @@
                          (define fnorm : Symbol (string->symbol (string-downcase name)))
                          (css-make-token srcloc css:function (string->unreadable-symbol name) fnorm null #false)]
                         [else (read-char css) (css-consume-url-token srcloc)]))])))
-      
+
+(define css-consume-escaped-ident-token : (-> CSS-Srcloc (U CSS:Ident CSS:Delim CSS:Function CSS:URL CSS:URange CSS:Bad))
+  ;;; https://drafts.csswg.org/css-syntax/#consume-token (when #\\ is found at the beginning of a non-whitespace token)
+  (lambda [srcloc]
+    (define css : Input-Port (css-srcloc-in srcloc))
+    (if (css-valid-escape? #\\ (peek-char css 1))
+        (css-consume-ident-token srcloc (css-consume-escaped-char css))
+        (css-remake-token (css-make-bad-token srcloc css:bad:char struct:css:delim #\\) css:delim #\\))))
+
 (define css-consume-string-token : (-> CSS-Srcloc Char (U CSS:String CSS:Bad))
   ;;; https://drafts.csswg.org/css-syntax/#consume-a-string-token
   (lambda [srcloc quotation]
