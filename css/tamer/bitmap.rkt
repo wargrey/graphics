@@ -32,7 +32,7 @@
         (css-color-property-parsers suitcased-name btest-color-properties)
         (css-image-property-parsers suitcased-name)
         (case suitcased-name
-          [(desc) (CSS<*> (CSS<^> (<css:string>)) '+)]
+          [(desc) (<:css-strings:>)]
           [(width) (CSS<^> (<css-natural>))]
           [(combine) (CSS<^> (<css-keyword> '(combine none)))]
           [(at-exp) (CSS<^> (list (<css:λracket>) (<css:racket>) (<css:block>)))]
@@ -42,7 +42,7 @@
   (lambda [declared-values inherited-values]
     (define (css->desc [_ : Symbol] [value : CSS-Datum]) : (U String CSS-Wide-Keyword)
       (cond [(string? value) value]
-            [(list? value) (string-join (map (λ [v] (~a v)) value))]
+            [(list? value) (string-join (filter string? value))]
             [else css:initial]))
     (parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)])
       (make-btest #:symbol-color (css-color-ref declared-values inherited-values 'symbol-color)

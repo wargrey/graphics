@@ -404,6 +404,10 @@
     (CSS<+> (CSS<^> (CSS:<=> (<css-keyword> none) null))
             (CSS<*> (CSS<^> (<css-keyword> options)) '+))))
 
+(define <:css-strings:> : (->* () ((U (CSS-Multiplier Index) '+ '? '*) (-> String Boolean)) (CSS-Parser (Listof CSS-Datum)))
+  (lambda [[multipliers '+] [string-filter (λ _ #true)]]
+    (CSS<*> (CSS<^> (<css:string> string-filter)) multipliers)))
+
 (define (<css-comma>) : (CSS:Filter Char) (CSS:<?> (<css:delim> #\,) make-exn:css:missing-comma))
 (define (<css-slash>) : (CSS:Filter Char) (CSS:<?> (<css:delim> #\/) make-exn:css:missing-slash))
 
