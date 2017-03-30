@@ -14,3 +14,13 @@
     (for/fold ([val++ : a initial])
               ([(property fvalue) (in-hash (css-values-descriptors css-values))])
       (fold property (fvalue) val++))))
+
+(define css-values-for-each : (All (a) (case-> [CSS-Values a (-> Symbol CSS-Datum a Any) -> Void]
+                                               [CSS-Values (-> Symbol CSS-Datum Any) -> Void]))
+  (case-lambda
+    [(css-values env iter)
+     (for ([(property fvalue) (in-hash (css-values-descriptors css-values))])
+       (iter property (fvalue) env))]
+    [(css-values iter)
+     (for ([(property fvalue) (in-hash (css-values-descriptors css-values))])
+       (iter property (fvalue)))]))
