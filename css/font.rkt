@@ -40,9 +40,9 @@
 
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (Font) Font)
   (lambda [declared-values inherited-values [basefont (default-css-font)]]
-    (define (css->font-underlined [_ : Symbol] [value : CSS-Datum]) : (Listof CSS-Datum)
+    (define (css->font-underlined [_ : Symbol] [value : Any]) : (Listof Any)
       (if (list? value) value (if (send inherited-font get-underlined) (list 'underline) null)))
-    (define ?font : CSS-Datum (and inherited-values (css-ref inherited-values #false 'font)))
+    (define ?font : Any (and inherited-values (css-ref inherited-values #false 'font)))
     (define inherited-font : Font (if (font%? ?font) ?font basefont))
     (call-with-font inherited-font
       (define family : (U String Font-Family) (css-ref declared-values #false 'font-family css->font-family))
@@ -51,7 +51,7 @@
       (define font-size : Nonnegative-Real (css-ref declared-values #false 'font-size css->font-size))
       (define style : Font-Style (css-ref declared-values #false 'font-style css->font-style))
       (define weight : Font-Weight (css-ref declared-values #false 'font-weight css->font-weight))
-      (define decorations : (Listof CSS-Datum) (css-ref declared-values #false 'text-decoration-line css->font-underlined))
+      (define decorations : (Listof Any) (css-ref declared-values #false 'text-decoration-line css->font-underlined))
       (define smoothing : Font-Smoothing (css-ref declared-values #false '-racket-font-smoothing racket-font-smoothing? 'default))
       (define hinting : Font-Hinting (css-ref declared-values #false '-racket-font-hinting racket-font-hinting? 'aligned))
       (define size : Nonnegative-Real (max (min max-size font-size) min-size))
@@ -68,9 +68,9 @@
 (define select-size : (->* ((U Nonnegative-Flonum Negative-Single-Flonum)) (Nonnegative-Flonum) Nonnegative-Flonum)
   (lambda [computed-value [normal (css-normal-line-height)]]
     (void 'see css->line-height)
-    (cond [(nan? computed-value) (fl* normal (flcss%-em length%))]
+    (cond [(nan? computed-value) (fl* normal ((css-lazy-font-scalar) 'em))]
           [(nonnegative-flonum? computed-value) computed-value]
-          [else (fl* (real->double-flonum (- computed-value)) (flcss%-em length%))])))
+          [else (fl* (real->double-flonum (- computed-value)) ((css-lazy-font-scalar) 'em))])))
 
 (define css-font-parsers : CSS-Declaration-Parsers
   (lambda [suitcased-name deprecated!]

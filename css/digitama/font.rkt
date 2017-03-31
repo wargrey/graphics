@@ -15,24 +15,30 @@
 (define-syntax (call-with-font stx)
   (syntax-parse stx
     [(_ font sexp ...)
-     #'(let ([rem? (positive? (flcss%-rem length%))]
+     #'(let ([rem? (positive? (css-rem))]
              [last-font (unbox &font)])
          (unless (and (eq? font last-font) rem?)
            ;;; WARNING
            ;; 'xh' seems to be impractical, the font% size is just a nominal size
            ;; and usually smaller than the generated text in which case the 'ex' is
-           ;; always surprisingly larger than the size, the '0w' therefore is used instead.
+           ;; always surprisingly larger than the size, the '0w' therefore is used instead,
+           ;; same consideration to 'cap'.
            ;;; NOTE
            ;; This operation is extremely expensive (at least 0.4s), but Racket do have its own cache strategy.
-           #;(define-values (xw xh xd xe) (send the-dc get-text-extent "x" font))
-           (define-values (0w 0h 0d 0e) (send the-dc get-text-extent "0" font))
-           (define-values (ww wh wd we) (send the-dc get-text-extent "水" font))
+           #;(define-values (xw xh xd xs) (send the-dc get-text-extent "x" font))
+           (define-values (0w 0h 0d 0s) (send the-dc get-text-extent "0" font))
+           (define-values (ww wh wd ws) (send the-dc get-text-extent "水" font))
            (define em : Nonnegative-Flonum (smart-font-size font))
-           (when (false? rem?) (set-flcss%-rem! length% em))
-           (set-flcss%-em! length% em)
-           (set-flcss%-ex! length% (real->double-flonum 0w))
-           (set-flcss%-ch! length% (real->double-flonum 0w))
-           (set-flcss%-ic! length% (real->double-flonum ww))
+           (when (false? rem?) (css-rem em))
+           (css-lazy-font-scalar
+            (λ [[unit : Symbol]]
+              (case unit
+                [(em)  em]
+                [(ex)  (real->double-flonum 0w)]
+                [(ch)  (real->double-flonum 0w)]
+                [(cap) (real->double-flonum (max (- em 0d 0s) 0d))]
+                [(ic)  (real->double-flonum ww)]
+                [else +nan.0])))
            (set-box! &font font))
          sexp ...)]))
 
@@ -95,7 +101,7 @@
   (<css-unitless-size>)
   (CSS:<~> (<css-keyword> '(normal inherit)) css-wide-keywords-filter-map))
 
-(define <:font-family:> : (CSS-Parser (Listof CSS-Datum))
+(define <:font-family:> : (CSS-Parser (Listof Any))
   ;;; https://drafts.csswg.org/css-fonts/#font-family-prop
   ;;; https://drafts.csswg.org/css-fonts-4/#extended-generics
   (CSS<#> (CSS<+> (CSS<^> (CSS:<+> (<css:string>) (<css-keyword> css-font-generic-families)))
@@ -152,11 +158,11 @@
                [(small)    (* 8/9 css-font-medium)]
                [(x-small)  (* 3/4 css-font-medium)]
                [(xx-small) (* 3/5 css-font-medium)]
-               [(smaller)  (* 5/6 (flcss%-em length%))] ; TODO: find a better function to deal with these two keywords.
-               [(larger)   (* 6/5 (flcss%-em length%))] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
+               [(smaller)  (* 5/6 ((css-lazy-font-scalar) 'em))] ; TODO: find a better function to deal with these two keywords.
+               [(larger)   (* 6/5 ((css-lazy-font-scalar) 'em))] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
                [else       css-font-medium]))]
           [(nonnegative-flonum? value) value]
-          [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (flcss%-em length%))]
+          [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) ((css-lazy-font-scalar) 'em))]
           [(css+length? value) (css:length->scalar value #false)]
           [(eq? property 'min-font-size) 0.0]
           [(eq? property 'max-font-size) 1024.0]
@@ -181,10 +187,10 @@
       [(oblique slant) 'slant]
       [else (send (default-css-font) get-style)])))
 
-(define css->line-height : (-> Symbol CSS-Datum (U Nonnegative-Flonum Negative-Single-Flonum))
+(define css->line-height : (-> Symbol Any (U Nonnegative-Flonum Negative-Single-Flonum))
   (lambda [_ value]
     (cond [(css+length? value) (css:length->scalar value #false)]
           [(nonnegative-flonum? value) value #|computed value is the used value|#]
-          [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (flcss%-em length%))]
+          [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) ((css-lazy-font-scalar) 'em))]
           [(#|negative-|#single-flonum? value) value #|computed value is *not* the used value|#]
           [else #|'normal|# +nan.0 #|computed value is *not* the used value|#])))

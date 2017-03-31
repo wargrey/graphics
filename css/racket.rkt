@@ -38,8 +38,8 @@
 
 (define-type CSS-@λ-Metainfo (Vector (Listof Keyword) (Listof Keyword) (Listof Natural) (U Natural +inf.0)))
 (define-type CSS-@λ-Pool (HashTable Symbol CSS-@λ-Metainfo))
-(define-type CSS-@λ-Filter (case-> [Symbol Keyword -> (U (CSS:Filter CSS-Datum) Void)]
-                                   [Symbol False -> (U (CSS-Parser (Listof CSS-Datum)) Void)]))
+(define-type CSS-@λ-Filter (case-> [Symbol Keyword -> (U (CSS:Filter Any) Void)]
+                                   [Symbol False -> (U (CSS-Parser (Listof Any)) Void)]))
 
 (define-css-value css-@λ #:as CSS-@λ ([sexp : (Pairof Symbol (Listof Any))]))
 (define-css-value css-thunk #:as CSS-Thunk ([λ : (-> Any)]))
@@ -81,7 +81,7 @@
      (define λ:all : (Listof Keyword) (vector-ref λinfo 1))
      (define λarities : (Listof Natural) (vector-ref λinfo 2))
      (define λmin-arty : (U Natural +inf.0) (vector-ref λinfo 3))
-     (let λ-fold ([swk : (Listof CSS-Datum) null]
+     (let λ-fold ([swk : (Listof Any) null]
                   [λ:mkws : (Listof Keyword) (vector-ref λinfo 0)]
                   [args : (Listof CSS-Token) (css:λracket-arguments <λ>)])
        (define-values (head tail) (css-car/cdr args))

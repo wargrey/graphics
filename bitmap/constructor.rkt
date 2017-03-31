@@ -44,17 +44,26 @@
     (send dc clear)
     solid))
 
-(define bitmap-text : (->* (String) (Font #:combine? Boolean #:color (Option Color+sRGB)
-                                          #:background-color (Option Color+sRGB)) Bitmap)
-  (lambda [content [font (default-css-font)] #:combine? [combine? #true] #:color [fgcolor #false]
-           #:background-color [bgcolor #false]]
-    (define-values (width height descent ascent) (send the-dc get-text-extent content font combine?))
+(define bitmap-text : (->* (String) (Font #:combine? Boolean #:color (Option Color+sRGB) #:background-color (Option Color+sRGB)
+                                          #:baseline-color (Option Color+sRGB) #:baseline-style Pen-Style
+                                          #:ascentline-color (Option Color+sRGB) #:ascentline-style Pen-Style) Bitmap)
+  (lambda [content [font (default-css-font)] #:combine? [combine? #true] #:color [fgcolor #false] #:background-color [bgcolor #false]
+                   #:baseline-color [blcolor #false] #:baseline-style [blstyle 'solid]
+                   #:ascentline-color [alcolor #false] #:ascentline-style [alstyle 'solid]]
+    (define-values (width height descent space) (send the-dc get-text-extent content font combine?))
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
     (send dc set-font font)
     (when fgcolor (send dc set-text-foreground (select-color fgcolor)))
     (when bgcolor (send dc set-text-background (select-color bgcolor)))
     (when bgcolor (send dc set-text-mode 'solid))
     (send dc draw-text content 0 0 combine?)
+    (unless (false? alcolor)
+      (send dc set-pen (select-color alcolor) 1 alstyle)
+      (send dc draw-line 0 space width space))
+    (unless (false? blcolor)
+      (define baseline : Real (- height descent))
+      (send dc set-pen (select-color blcolor) 1 blstyle)
+      (send dc draw-line 0 baseline width baseline))
     (or (send dc get-bitmap) (bitmap-blank))))
 
 (define bitmap-desc : (->* (String Real)

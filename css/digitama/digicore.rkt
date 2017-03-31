@@ -383,15 +383,18 @@
                          [(in)    (fl* px 96.0)]
                          [(pc)    (fl* px 16.0)]             ; 1in/6
                          [(pt)    (fl* px (fl/ 96.0 72.0))]  ; 1in/72
-                         [(em)    (fl* px (flcss%-em length%))]
-                         [(ex)    (fl* px (flcss%-ex length%))]
-                         [(ch)    (fl* px (flcss%-ch length%))]
-                         [(ic)    (fl* px (flcss%-ic length%))]
-                         [(rem)   (fl* px (flcss%-rem length%))]
-                         [(vw vi) (fl* px (fl* 0.01 (flcss%-vw length%)))]
-                         [(vh vb) (fl* px (fl* 0.01 (flcss%-vh length%)))]
-                         [(vmin)  (fl* px (fl* 0.01 (min (flcss%-vw length%) (flcss%-vh length%))))]
-                         [(vmax)  (fl* px (fl* 0.01 (max (flcss%-vw length%) (flcss%-vh length%))))]]]
+                         [(em)    (fl* px ((css-lazy-font-scalar) 'em))]
+                         [(ex)    (fl* px ((css-lazy-font-scalar) 'ex))]
+                         [(cap)   (fl* px ((css-lazy-font-scalar) 'cap))]
+                         [(ch)    (fl* px ((css-lazy-font-scalar) 'ch))]
+                         [(ic)    (fl* px ((css-lazy-font-scalar) 'ic))]
+                         [(lh)    (fl* px ((css-lazy-font-scalar) 'lh))]
+                         [(rem)   (fl* px (css-rem))]
+                         [(rlh)   (fl* px (css-rlh))]
+                         [(vw vi) (fl* px (fl* 0.01 (css-vw)))]
+                         [(vh vb) (fl* px (fl* 0.01 (css-vh)))]
+                         [(vmin)  (fl* px (fl* 0.01 (min (css-vw) (css-vh))))]
+                         [(vmax)  (fl* px (fl* 0.01 (max (css-vw) (css-vh))))]]]
     ;;; https://drafts.csswg.org/css-values/#angles
     [css:angle          #:+ CSS:Angle           #:=> deg
                         [[(grad)  (fl* deg 0.9)]
@@ -573,7 +576,7 @@
 (define-type (CSS:Filter css) (-> CSS-Syntax-Any (CSS-Option css)))
 (define-type (CSS-Parser css) (-> css (Listof CSS-Token) (Values (CSS-Option css) (Listof CSS-Token))))
 (define-type CSS-Shorthand-Parser (CSS-Parser CSS-Longhand-Values))
-(define-type CSS-Longhand-Update (-> Symbol CSS-Datum CSS-Datum CSS-Datum))
+(define-type CSS-Longhand-Update (-> Symbol Any Any Any))
   
 ;; https://drafts.csswg.org/selectors
 (define-type CSS-Selector-Combinator (U '>> '> '+ '~ '||))
@@ -600,29 +603,21 @@
 
 ;; https://drafts.csswg.org/css-cascade/#shorthand
 ;; https://drafts.csswg.org/css-cascade/#filtering
-;; https://drafts.csswg.org/css-cascade/#cascading
-(define-type CSS-Datum
-  ;;; TODO
-  ;; Why `CSS-Datum` is not defined as `Any` if `Any` can serve the engine.
-  (Rec css (U CSS-Token-Datum Boolean Bytes FlVector FxVector CSS-Token --datum (Object)
-              ; (Pairof css css) messes up things when (list? datum)ing. 
-              (Listof css) (Vectorof css) (Boxof css))))
-  
-(define-type CSS-Longhand-Values (HashTable Symbol CSS-Datum))
+;; https://drafts.csswg.org/css-cascade/#cascading  
+(define-type CSS-Longhand-Values (HashTable Symbol Any))
 (define-type CSS-Variable-Values (HashTable Symbol (U CSS-Declaration Null)))
 (define-type CSS-Cascading-Declarations (U CSS-Declarations (Listof CSS-Declarations)))
-(define-type CSS-Declaration-Parser (U (Pairof CSS-Shorthand-Parser (Listof Symbol)) (CSS-Parser (Listof CSS-Datum)) Void False))
+(define-type CSS-Declaration-Parser (U (Pairof CSS-Shorthand-Parser (Listof Symbol)) (CSS-Parser (Listof Any)) Void False))
 (define-type CSS-Declaration-Parsers (-> Symbol (-> Void) CSS-Declaration-Parser))
 (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Values (Option CSS-Values) Preference))
 (define-type (CSS-Cascaded-Value+Filter Preference Env) (-> CSS-Values (Option CSS-Values) Env Preference))
-(define-type (CSS->Racket racket) (-> Symbol CSS-Datum racket))
-  
-(struct --datum () #:transparent)
+(define-type (CSS->Racket racket) (-> Symbol Any racket))
 
 (define-syntax (define-css-value stx)
   (syntax-case stx [:]
     [(_ datum #:as Datum (fields ...) options ...)
-     #'(define-css-value datum #:as Datum #:=> --datum (fields ...) options ...)]
+     #'(begin (define-type Datum datum)
+              (struct datum (fields ...) #:transparent options ...))]
     [(_ datum #:as Datum #:=> parent (fields ...) options ...)
      #'(begin (define-type Datum datum)
               (struct datum parent (fields ...) #:transparent options ...))]))
@@ -651,18 +646,19 @@
                           [else key])))))]))
 
 ; https://drafts.csswg.org/css-cascade/#all-shorthand
+; https://drafts.csswg.org/css-values/#relative-lengths
 ; https://drafts.csswg.org/css-values/#common-keywords
 (define default-css-all-exceptions : (Parameterof (Listof Symbol)) (make-parameter (list 'direction 'unicode-bidi)))
 (define-prefab-keyword css-wide-keyword #:as CSS-Wide-Keyword [initial inherit unset revert])
-  
+
 (define-syntax (call-with-css-size-from-media stx)
   (syntax-parse stx
     [(_ (~optional (~seq #:preferences ?preferences)) sexp ...)
      (with-syntax ([preferences (or (attribute ?preferences) #'(default-css-media-preferences))])
        #'(let ([w (hash-ref preferences 'width (thunk #false))]
                [h (hash-ref preferences 'height (thunk #false))])
-           (when (and (real? w) (positive? w)) (set-flcss%-vw! length% (real->double-flonum w)))
-           (when (and (real? h) (positive? h)) (set-flcss%-vh! length% (real->double-flonum h)))
+           (when (and (real? w) (positive? w)) (css-vw (real->double-flonum w)))
+           (when (and (real? h) (positive? h)) (css-vh (real->double-flonum h)))
            sexp ...))]))
 
 (define-syntax (css-tee-computed-value stx)
@@ -674,55 +670,45 @@
            (hash-set! properties desc-name (thunk computed-value)))
          computed-value)]))
 
-(define-preference flcss% #:as FlCSS%
-  ([vw : Nonnegative-Flonum  #:= 0.0]
-   [vh : Nonnegative-Flonum  #:= 0.0]
-   [rem : Nonnegative-Flonum #:= 0.0]
-   [em : Nonnegative-Flonum  #:= 0.0]
-   [ex : Nonnegative-Flonum  #:= 0.0]
-   [ch : Nonnegative-Flonum  #:= 0.0]
-   [ic : Nonnegative-Flonum  #:= 0.0])
-  #:transparent
-  #:mutable)
+(define-css-parameters css-global-relative-lengths [vw vh rem rlh] : Nonnegative-Flonum #:= 0.0)
+(define css-lazy-font-scalar : (Parameterof (-> Symbol Nonnegative-Flonum)) (make-parameter (λ _ +nan.0)))
 
 (define-preference css-values #:as CSS-Values
-  ([descriptors : (HashTable Symbol (-> CSS-Datum)) #:= (make-hasheq)]
-   [variables : CSS-Variable-Values                 #:= (make-hasheq)]
-   [importants : (HashTable Symbol Boolean)         #:= (make-hasheq)])
+  ([descriptors : (HashTable Symbol (-> Any)) #:= (make-hasheq)]
+   [variables : CSS-Variable-Values           #:= (make-hasheq)]
+   [importants : (HashTable Symbol Boolean)   #:= (make-hasheq)])
   #:transparent)
 
-(define length% : FlCSS% (make-flcss%))
 (define css-longhand : CSS-Longhand-Values (make-immutable-hasheq))
 (define css-cache-computed-object-value : (Parameterof Boolean) (make-parameter #true))
   
-(define css-ref : (All (a b) (case-> [CSS-Values (Option CSS-Values) Symbol -> CSS-Datum]
-                                     [CSS-Values (Option CSS-Values) Symbol (CSS->Racket (∩ a CSS-Datum)) -> a]
-                                     [CSS-Values (Option CSS-Values) Symbol (-> Any Boolean : #:+ (∩ a CSS-Datum)) (∩ b CSS-Datum)
-                                                 -> (U a b)]))
+(define css-ref : (All (a b) (case-> [CSS-Values (Option CSS-Values) Symbol -> Any]
+                                     [CSS-Values (Option CSS-Values) Symbol (CSS->Racket a) -> a]
+                                     [CSS-Values (Option CSS-Values) Symbol (-> Any Boolean : #:+ a) b -> (U a b)]))
   (case-lambda
     [(declared-values inherited-values desc-name)
-     (define properties : (HashTable Symbol (-> CSS-Datum)) (css-values-descriptors declared-values))
+     (define properties : (HashTable Symbol (-> Any)) (css-values-descriptors declared-values))
      (define-values (cascaded-value specified-value) (css-ref-raw properties inherited-values desc-name))
      specified-value]
     [(declared-values inherited-values desc-name datum->value)
-     (define properties : (HashTable Symbol (-> CSS-Datum)) (css-values-descriptors declared-values))
+     (define properties : (HashTable Symbol (-> Any)) (css-values-descriptors declared-values))
      (define-values (cascaded-value specified-value) (css-ref-raw properties inherited-values desc-name))
      (css-tee-computed-value properties desc-name cascaded-value (datum->value desc-name specified-value))]
     [(declared-values inherited-values desc-name datum? default-value)
-     (define properties : (HashTable Symbol (-> CSS-Datum)) (css-values-descriptors declared-values))
+     (define properties : (HashTable Symbol (-> Any)) (css-values-descriptors declared-values))
      (define-values (cascaded-value specified-value) (css-ref-raw properties inherited-values desc-name))
      (css-tee-computed-value properties desc-name cascaded-value
                              (cond [(datum? specified-value) specified-value]
                                    [else default-value]))]))
 
-(define css-ref-raw : (-> (HashTable Symbol (-> CSS-Datum)) (Option CSS-Values) Symbol (Values CSS-Datum CSS-Datum))
+(define css-ref-raw : (-> (HashTable Symbol (-> Any)) (Option CSS-Values) Symbol (Values Any Any))
   (lambda [properties inherited-values desc-name]
-    (define declared-value : (-> CSS-Datum)
+    (define declared-value : (-> Any)
       (hash-ref properties desc-name
                 (thunk (cond [(memq desc-name (default-css-all-exceptions)) (thunk css:unset)]
                              [else (hash-ref properties 'all (thunk (thunk css:unset)))]))))
-    (define cascaded-value : CSS-Datum (declared-value))
-    (define specified-value : CSS-Datum
+    (define cascaded-value : Any (declared-value))
+    (define specified-value : Any
       (cond [(not (css-wide-keyword? cascaded-value)) cascaded-value]
             [(or (eq? cascaded-value css:initial) (false? inherited-values)) css:initial]
             [else (let-values ([(_ sv) (css-ref-raw (css-values-descriptors inherited-values) #false desc-name)]) sv)]))

@@ -147,6 +147,7 @@
                            (define rep+unit : String (~a representation unit))
                            (case unit
                              [(em ex ch ic rem)       (css-make-token srcloc css:length:font     rep+unit value unit)]
+                             [(cap lh rlh)            (css-make-token srcloc css:length:font     rep+unit value unit)]
                              [(vw vh vi vb vmin vmax) (css-make-token srcloc css:length:viewport rep+unit value unit)]
                              [(px cm mm q in pc pt)   (css-make-token srcloc css:length          rep+unit value unit)]
                              [(deg grad rad turn)     (css-make-token srcloc css:angle           rep+unit value unit)]

@@ -58,13 +58,13 @@
       (<css-system-font>)
       (<racket-font>)
       (<css:@λ> the-@draw-pool css-@draw-filter '(make-font)))
-    (define <:clock-pointers:> : (CSS-Parser (Listof CSS-Datum))
+    (define <:clock-pointers:> : (CSS-Parser (Listof Any))
       (CSS<$> (CSS<&> (CSS<^> (<css:integer> 0 <= 11))
                       (CSS<$> (CSS<^> (CSS:<+> (<css:integer> 0 <= 60)
                                                (<css:flonum> 0.0 fl<= 60.0)))))))
     (case (or ?λ:kw λname)
       [(#:backing-scale) (<css+real> '#:nonzero)]
-      [(#:height #:thickness) (CSS:<@> (<line-height>) (λ [[v : CSS-Datum]] (select-size (css->line-height '_ v))))]
+      [(#:height #:thickness) (CSS:<@> (<line-height>) (λ [[v : Any]] (select-size (css->line-height '_ v))))]
       [(#:outline) (<css+%real>)]
       [(#:material) (<css:ident> '(plastic-icon-material rubber-icon-material glass-icon-material metal-icon-material))]
       [(#:trim?) (<css-#boolean>)]
@@ -75,7 +75,7 @@
       [else (cond [(false? ?λ:kw) <:clock-pointers:>]
                   [else (CSS:<+> (<css:racket>) ; their is no need to evaluating racket bindings right now 
                                  (CSS:<@> (<css-color>)
-                                          (λ [[v : CSS-Datum]]
+                                          (λ [[v : Any]]
                                             (let ([c (css->color '_ v)])
                                               (cond [(not (color%? c)) (current-css-element-color)]
                                                     [else c])))))])])))
@@ -142,7 +142,7 @@
                  [else (image->bitmap src density)])]
           [(css-@λ? img)
            (with-handlers ([exn? (λ [[e : exn]] (css-log-eval-error e 'css->bitmap) the-invalid-image)])
-             (assert (css-eval-@λ img (module->namespace 'bitmap) (flcss%-em length%)) bitmap%?))]
+             (assert (css-eval-@λ img (module->namespace 'bitmap) ((css-lazy-font-scalar) 'em)) bitmap%?))]
           [else the-invalid-image])))
 
 (define css->normalized-image : (All (racket) (-> (-> (CSS-Maybe Bitmap) racket) (CSS->Racket racket)))

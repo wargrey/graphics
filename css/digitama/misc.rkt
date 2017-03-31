@@ -12,6 +12,25 @@
        #'(begin (struct id rest ... #:extra-constructor-name make-id #:transparent)
                 (define-type ID id)))]))
 
+(define-syntax (define-css-parameters stx)
+  (syntax-case stx [:]
+    [(_ parameters [name ...] : Type #:= defval)
+     #'(define-css-parameters parameters ([name : Type #:= defval] ...))]
+    [(_ parameters ([name : Type #:= defval] ...))
+     (with-syntax ([(p-name ...) (for/list ([<u> (in-list (syntax->list #'(name ...)))]) (format-id <u> "css-~a" (syntax-e <u>)))])
+       #'(begin (define p-name : (case-> [Type -> Void] [-> Type])
+                  (let ([&storage : (Boxof Type) (box defval)])
+                    (case-lambda
+                      [(v) (set-box! &storage v)]
+                      [() (unbox &storage)])))
+                ...
+
+                (define parameters : (-> (HashTable Symbol (U Type ...)))
+                  (lambda []
+                    (make-immutable-hash
+                     (list (cons 'name (p-name))
+                           ...))))))]))
+
 (define-type (Listof+ css) (Pairof css (Listof css)))
 (define-type Symbol↯ Symbol)
 (define-type Keyword↯ Keyword)

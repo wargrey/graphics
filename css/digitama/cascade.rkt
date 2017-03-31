@@ -91,12 +91,12 @@
   ;;; https://drafts.csswg.org/css-variables/#using-variables
   (lambda [desc-parsers properties [valuebase (make-css-values)]]
     (define varbase : CSS-Variable-Values (css-values-variables valuebase))
-    (define descbase : (HashTable Symbol (-> CSS-Datum)) (css-values-descriptors valuebase))
+    (define descbase : (HashTable Symbol (-> Any)) (css-values-descriptors valuebase))
     (define importants : (HashTable Symbol Boolean) (css-values-importants valuebase))
     (define case-sensitive? : Boolean (css-property-case-sensitive?))
     (define (desc-more-important? [desc-name : Symbol] [important? : Boolean]) : Boolean
       (or important? (not (hash-has-key? importants desc-name))))
-    (define (desc-set! [desc-name : Symbol] [important? : Boolean] [declared-value : (-> CSS-Datum)]) : Void
+    (define (desc-set! [desc-name : Symbol] [important? : Boolean] [declared-value : (-> Any)]) : Void
       (when important? (hash-set! importants desc-name #true))
       (when (eq? desc-name 'all)
         (for ([desc-key (in-list (remq* (default-css-all-exceptions) (hash-keys descbase)))])
@@ -122,7 +122,7 @@
                (desc-set! name important?
                           (thunk (let ([longhand ((unbox &pending-longhand))])
                                    (box-cas! &pending-longhand pending-thunk (thunk longhand))
-                                   (define desc-value : CSS-Datum
+                                   (define desc-value : Any
                                      (cond [(not (hash? longhand)) css:unset]
                                            [else (hash-ref longhand name (thunk css:initial))]))
                                    (hash-set! descbase name (thunk desc-value))
@@ -130,16 +130,16 @@
             [(do-parse (car info) css-longhand declared-values <desc-name>)
              => (λ [longhand] (for ([(name desc-value) (in-hash longhand)])
                                 (desc-set! name important? (thunk desc-value))))]))
-    (define (parse-desc [info : (CSS-Parser (Listof CSS-Datum))]
+    (define (parse-desc [info : (CSS-Parser (Listof Any))]
                         [<desc-name> : CSS:Ident] [desc-name : Symbol] [declared-values : (Listof+ CSS-Token)]
                         [important? : Boolean] [lazy? : Boolean]) : Void
-      (define (normalize [desc-values : (Option (Listof CSS-Datum))]) : (Option CSS-Datum)
+      (define (normalize [desc-values : (Option (Listof Any))]) : (Option Any)
         (cond [(pair? desc-values) (if (null? (cdr desc-values)) (car desc-values) (reverse desc-values))]
               [else (and (null? (cdr declared-values)) (css-wide-keywords-ormap (car declared-values)))]))
       (cond [(and lazy?)
              (desc-set! desc-name important?
                         (thunk (let ([flat-values (css-variable-substitute <desc-name> declared-values varbase null)])
-                                 (define desc-value : (Option CSS-Datum)
+                                 (define desc-value : (Option Any)
                                    (and (css-pair? flat-values)
                                         (normalize (do-parse info null flat-values <desc-name>))))
                                  (unless (false? desc-value) (hash-set! descbase desc-name (thunk desc-value)))

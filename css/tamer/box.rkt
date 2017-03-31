@@ -10,8 +10,8 @@
 (define-predicate pen-style? Pen-Style)
 
 (define-preference* box #:as Box.CSS
-  ([width : Nonnegative-Flonum             #:= (flcss%-vw length%)]
-   [height : Nonnegative-Flonum            #:= (flcss%-vh length%)]
+  ([width : Nonnegative-Flonum             #:= (css-vw)]
+   [height : Nonnegative-Flonum            #:= (css-vh)]
    [vertical-margin : Nonnegative-Flonum   #:= 4.0]
    [horizontal-margin : Nonnegative-Flonum #:= 4.0]
    [vertical-inset : Nonnegative-Flonum    #:= 0.0]

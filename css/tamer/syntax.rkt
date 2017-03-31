@@ -18,7 +18,7 @@
 
 (define css-declaration-parsers : CSS-Declaration-Parsers
   (lambda [suitcased-name !]
-    (λ [[initial : (Listof CSS-Datum)] [declared-values : (Listof CSS-Token)]]
+    (λ [[initial : (Listof Any)] [declared-values : (Listof CSS-Token)]]
       (values (map css-token->datum declared-values) null))))
 
 tamer-root

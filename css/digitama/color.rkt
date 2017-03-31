@@ -70,11 +70,11 @@
      (CSS:<~> (<css:percentage> 0.0f0 <= 1.0f0) (λ [[% : Single-Flonum]] (exact-round (* % 255.0))))
      (CSS:<~> (<css:flonum> 0.0 fl<= 255.0) exact-round))
 
-   (define make-alpha-parser : (-> (-> (CSS:Filter Char)) (CSS-Parser (Listof CSS-Datum)))
+   (define make-alpha-parser : (-> (-> (CSS:Filter Char)) (CSS-Parser (Listof Any)))
      (lambda [<delimiter>]
        (CSS<$> (CSS<?> [(<delimiter>) (CSS<^> (<css-%flunit>))]) 1.0)))
      
-   (define make-parser : (-> (CSS-Parser (Listof CSS-Datum)) (CSS-Parser (Listof CSS-Datum)) (CSS-Parser (Listof CSS-Datum)))
+   (define make-parser : (-> (CSS-Parser (Listof Any)) (CSS-Parser (Listof Any)) (CSS-Parser (Listof Any)))
      ;;; https://github.com/w3c/csswg-drafts/issues/266
      (lambda [c1 c2]
        (CSS<&> c1 (CSS<?> [(<css-comma>) (CSS<#> c2 '(2)) (make-alpha-parser <css-comma>)]

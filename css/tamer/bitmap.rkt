@@ -10,20 +10,20 @@
 (current-namespace (module->namespace 'bitmap))
 
 (define-preference* btest #:as Bitmap.CSS #:with ([color-properties Color])
-  ([symbol-color : Color                       #:= 'Blue]
-   [string-color : Color                       #:= 'Orange]
-   [number-color : Color                       #:= 'Tomato]
-   [output-color : Color                       #:= 'Chocolate]
-   [paren-color : Color                        #:= 'Firebrick]
-   [border-color : Color                       #:= 'Crimson]
-   [foreground-color : Color                   #:= "Grey"]
-   [background-color : Color                   #:= "Snow"]
-   [font : Font                                #:= (default-css-font)]
-   [width : Index                              #:= 512]
-   [combine? : Boolean                         #:= #false]
-   [desc : String                              #:= "['desc' property is required]"]
-   [prelude : Bitmap                           #:= (bitmap-text "> ")]
-   [descriptors : (HashTable Symbol CSS-Datum) #:= (make-immutable-hasheq)])
+  ([symbol-color : Color                 #:= 'Blue]
+   [string-color : Color                 #:= 'Orange]
+   [number-color : Color                 #:= 'Tomato]
+   [output-color : Color                 #:= 'Chocolate]
+   [paren-color : Color                  #:= 'Firebrick]
+   [border-color : Color                 #:= 'Crimson]
+   [foreground-color : Color             #:= "Grey"]
+   [background-color : Color             #:= "Snow"]
+   [font : Font                          #:= (default-css-font)]
+   [width : Index                        #:= 512]
+   [combine? : Boolean                   #:= #false]
+   [desc : String                        #:= "['desc' property is required]"]
+   [prelude : Bitmap                     #:= (bitmap-text "> ")]
+   [descriptors : (HashTable Symbol Any) #:= (make-immutable-hasheq)])
   #:transparent)
 
 (define btest-parsers : CSS-Declaration-Parsers
@@ -40,7 +40,7 @@
 
 (define btest-filter : (CSS-Cascaded-Value-Filter Bitmap.CSS)
   (lambda [declared-values inherited-values]
-    (define (css->desc [_ : Symbol] [value : CSS-Datum]) : (U String CSS-Wide-Keyword)
+    (define (css->desc [_ : Symbol] [value : Any]) : (U String CSS-Wide-Keyword)
       (cond [(string? value) value]
             [(list? value) (string-join (filter string? value))]
             [else css:initial]))
@@ -59,7 +59,7 @@
                   #:desc (css-ref declared-values inherited-values 'desc css->desc)
                   #:prelude (css-ref declared-values inherited-values 'prelude css->bitmap)
                   #:descriptors (css-values-fold declared-values (initial-btest-descriptors)
-                                                 (λ [[property : Symbol] [this-datum : CSS-Datum] [desc++ : (HashTable Symbol CSS-Datum)]]
+                                                 (λ [[property : Symbol] [this-datum : Any] [desc++ : (HashTable Symbol Any)]]
                                                    (hash-set desc++ property this-datum)))))))
 
 (css-root-element-type 'module)
@@ -106,4 +106,4 @@
 (when DrRacket?
   (values $root
           (apply bitmap-vl-append bitmap-descs)
-          length%))
+          (css-global-relative-lengths)))

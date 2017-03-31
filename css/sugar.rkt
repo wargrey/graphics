@@ -56,7 +56,7 @@
 (define css-box-size : (->* (CSS-Values (Option CSS-Values) Nonnegative-Flonum Nonnegative-Flonum)
                             (Nonnegative-Flonum Nonnegative-Flonum)
                             (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [declares inherits initial-width initial-height [width% (flcss%-vw length%)] [height% (flcss%-vh length%)]]
+  (lambda [declares inherits initial-width initial-height [width% (css-vw)] [height% (css-vh)]]
     (values (css-ref declares inherits 'width (make-css->size initial-width #:100% width%))
             (css-ref declares inherits 'height (make-css->size initial-height #:100% height%)))))
 
@@ -73,7 +73,7 @@
                                              (-> Symbol (CSS-Maybe Color))
                                              (-> Symbol CSS-Make-Icon Nonnegative-Real Color+sRGB Bitmap)))
   (lambda [declared-values inherited-values]
-    (values (lambda [initial-width initial-height [width% (flcss%-vw length%)] [height% (flcss%-vh length%)]]
+    (values (lambda [initial-width initial-height [width% (css-vw)] [height% (css-vh)]]
               (css-box-size declared-values inherited-values initial-width initial-height width% height%))
             (case-lambda [(property 100%) (css-size-ref declared-values inherited-values property 100%)]
                          [(property 100% defsize) (css-size-ref declared-values inherited-values property 100% defsize)])

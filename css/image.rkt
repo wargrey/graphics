@@ -46,7 +46,7 @@
                                          [else (bitmap-solid)])))))
 
 (define css-icon-ref : (-> CSS-Values (Option CSS-Values) Symbol CSS-Make-Icon Nonnegative-Real Color+sRGB Bitmap)
-  (let ([cache : (HashTable Any (-> Symbol CSS-Datum Bitmap)) (make-hash)])
+  (let ([cache : (HashTable Any (-> Symbol Any Bitmap)) (make-hash)])
     (lambda [declared-values inherited-values property default-icon icon-height icon-color]
       (define color : Color (select-color icon-color))
       (css-ref declared-values inherited-values property
