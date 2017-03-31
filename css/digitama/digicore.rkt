@@ -603,9 +603,9 @@
 
 ;; https://drafts.csswg.org/css-cascade/#shorthand
 ;; https://drafts.csswg.org/css-cascade/#filtering
-;; https://drafts.csswg.org/css-cascade/#cascading  
+;; https://drafts.csswg.org/css-cascade/#cascading
+(define-type CSS-Values (HashTable Symbol (-> Any)))
 (define-type CSS-Longhand-Values (HashTable Symbol Any))
-(define-type CSS-Variable-Values (HashTable Symbol (U CSS-Declaration Null)))
 (define-type CSS-Cascading-Declarations (U CSS-Declarations (Listof CSS-Declarations)))
 (define-type CSS-Declaration-Parser (U (Pairof CSS-Shorthand-Parser (Listof Symbol)) (CSS-Parser (Listof Any)) Void False))
 (define-type CSS-Declaration-Parsers (-> Symbol (-> Void) CSS-Declaration-Parser))
@@ -672,48 +672,39 @@
 
 (define-css-parameters css-global-relative-lengths [vw vh rem rlh] : Nonnegative-Flonum #:= 0.0)
 (define css-lazy-font-scalar : (Parameterof (-> Symbol Nonnegative-Flonum)) (make-parameter (λ _ +nan.0)))
-
-(define-preference css-values #:as CSS-Values
-  ([descriptors : (HashTable Symbol (-> Any)) #:= (make-hasheq)]
-   [variables : CSS-Variable-Values           #:= (make-hasheq)]
-   [importants : (HashTable Symbol Boolean)   #:= (make-hasheq)])
-  #:transparent)
-
 (define css-longhand : CSS-Longhand-Values (make-immutable-hasheq))
 (define css-cache-computed-object-value : (Parameterof Boolean) (make-parameter #true))
+(define make-css-values : (-> CSS-Values) (λ [] ((inst make-hasheq Symbol (-> Any)))))
   
 (define css-ref : (All (a b) (case-> [CSS-Values (Option CSS-Values) Symbol -> Any]
                                      [CSS-Values (Option CSS-Values) Symbol (CSS->Racket a) -> a]
                                      [CSS-Values (Option CSS-Values) Symbol (-> Any Boolean : #:+ a) b -> (U a b)]))
   (case-lambda
     [(declared-values inherited-values desc-name)
-     (define properties : (HashTable Symbol (-> Any)) (css-values-descriptors declared-values))
-     (define-values (cascaded-value specified-value) (css-ref-raw properties inherited-values desc-name))
+     (define-values (cascaded-value specified-value) (css-ref-raw declared-values inherited-values desc-name))
      specified-value]
     [(declared-values inherited-values desc-name datum->value)
-     (define properties : (HashTable Symbol (-> Any)) (css-values-descriptors declared-values))
-     (define-values (cascaded-value specified-value) (css-ref-raw properties inherited-values desc-name))
-     (css-tee-computed-value properties desc-name cascaded-value (datum->value desc-name specified-value))]
+     (define-values (cascaded-value specified-value) (css-ref-raw declared-values inherited-values desc-name))
+     (css-tee-computed-value declared-values desc-name cascaded-value (datum->value desc-name specified-value))]
     [(declared-values inherited-values desc-name datum? default-value)
-     (define properties : (HashTable Symbol (-> Any)) (css-values-descriptors declared-values))
-     (define-values (cascaded-value specified-value) (css-ref-raw properties inherited-values desc-name))
-     (css-tee-computed-value properties desc-name cascaded-value
+     (define-values (cascaded-value specified-value) (css-ref-raw declared-values inherited-values desc-name))
+     (css-tee-computed-value declared-values desc-name cascaded-value
                              (cond [(datum? specified-value) specified-value]
                                    [else default-value]))]))
 
-(define css-ref-raw : (-> (HashTable Symbol (-> Any)) (Option CSS-Values) Symbol (Values Any Any))
-  (lambda [properties inherited-values desc-name]
+(define css-ref-raw : (-> CSS-Values (Option CSS-Values) Symbol (Values Any Any))
+  (lambda [declared-values inherited-values desc-name]
     (define declared-value : (-> Any)
-      (hash-ref properties desc-name
+      (hash-ref declared-values desc-name
                 (thunk (cond [(memq desc-name (default-css-all-exceptions)) (thunk css:unset)]
-                             [else (hash-ref properties 'all (thunk (thunk css:unset)))]))))
+                             [else (hash-ref declared-values 'all (thunk (thunk css:unset)))]))))
     (define cascaded-value : Any (declared-value))
     (define specified-value : Any
       (cond [(not (css-wide-keyword? cascaded-value)) cascaded-value]
             [(or (eq? cascaded-value css:initial) (false? inherited-values)) css:initial]
-            [else (let-values ([(_ sv) (css-ref-raw (css-values-descriptors inherited-values) #false desc-name)]) sv)]))
+            [else (let-values ([(_ sv) (css-ref-raw inherited-values #false desc-name)]) sv)]))
     (unless (eq? cascaded-value specified-value)
-      (hash-set! properties desc-name (thunk specified-value)))
+      (hash-set! declared-values desc-name (thunk specified-value)))
     (values cascaded-value specified-value)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

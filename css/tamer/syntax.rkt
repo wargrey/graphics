@@ -13,7 +13,7 @@
 (define css-all-filter : (CSS-Cascaded-Value+Filter (HashTable Symbol Any) Symbol)
   (lambda [declared-values inherited-values env]
     (displayln env)
-    (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys (css-values-descriptors declared-values))])
+    (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys declared-values)])
       (values desc-name (css-ref declared-values inherited-values desc-name)))))
 
 (define css-declaration-parsers : CSS-Declaration-Parsers

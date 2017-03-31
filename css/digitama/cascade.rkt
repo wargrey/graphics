@@ -89,10 +89,9 @@
   ;;; https://drafts.csswg.org/css-cascade/#importance
   ;;; https://drafts.csswg.org/css-variables/#syntax
   ;;; https://drafts.csswg.org/css-variables/#using-variables
-  (lambda [desc-parsers properties [valuebase (make-css-values)]]
-    (define varbase : CSS-Variable-Values (css-values-variables valuebase))
-    (define descbase : (HashTable Symbol (-> Any)) (css-values-descriptors valuebase))
-    (define importants : (HashTable Symbol Boolean) (css-values-importants valuebase))
+  (lambda [desc-parsers properties [descbase (make-css-values)]]
+    ;;; TODO: find a better way to deal with !important
+    (define importants : (HashTable Symbol Boolean) (hash-ref! !imptbase descbase (thunk ((inst make-hasheq Symbol Boolean)))))
     (define case-sensitive? : Boolean (css-property-case-sensitive?))
     (define (desc-more-important? [desc-name : Symbol] [important? : Boolean]) : Boolean
       (or important? (not (hash-has-key? importants desc-name))))
@@ -115,7 +114,8 @@
                         [important? : Boolean] [lazy? : Boolean]) : Void
       (cond [(and lazy?)
              (define pending-thunk : (-> (Option CSS-Longhand-Values))
-               (thunk (let ([flat-values (css-variable-substitute <desc-name> declared-values varbase null)])
+               (thunk (let* ([varbase (css-varbase-ref descbase)]
+                             [flat-values (css-variable-substitute <desc-name> declared-values varbase null)])
                         (and (css-pair? flat-values) (do-parse (car info) css-longhand flat-values <desc-name>)))))
              (define &pending-longhand : (Boxof (-> (Option CSS-Longhand-Values))) (box pending-thunk))
              (for ([name (in-list (cdr info))] #:when (desc-more-important? name important?))
@@ -138,7 +138,8 @@
               [else (and (null? (cdr declared-values)) (css-wide-keywords-ormap (car declared-values)))]))
       (cond [(and lazy?)
              (desc-set! desc-name important?
-                        (thunk (let ([flat-values (css-variable-substitute <desc-name> declared-values varbase null)])
+                        (thunk (let* ([varbase (css-varbase-ref descbase)]
+                                      [flat-values (css-variable-substitute <desc-name> declared-values varbase null)])
                                  (define desc-value : (Option Any)
                                    (and (css-pair? flat-values)
                                         (normalize (do-parse info null flat-values <desc-name>))))
@@ -151,7 +152,7 @@
         (cond [(list? property) (cascade property)]
               [else (let* ([<desc-name> : CSS:Ident (css-declaration-name property)]
                            [desc-name : Symbol (if case-sensitive? (css:ident-datum <desc-name>) (css:ident-norm <desc-name>))])
-                      (cond [(symbol-unreadable? desc-name) (hash-set! varbase desc-name property)]
+                      (cond [(symbol-unreadable? desc-name) (varbase-set! descbase desc-name property)]
                             [else (let ([important? : Boolean (css-declaration-important? property)])
                                     (when (desc-more-important? desc-name important?)
                                       (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
@@ -162,7 +163,7 @@
                                             [(void? info) (when (css-warning-unknown-property?) (make+exn:css:unrecognized <desc-name>))]
                                             [(pair? info) (parse-long info <desc-name> declared-values important? lazy?)]
                                             [else (parse-desc info <desc-name> desc-name declared-values important? lazy?)])))]))])))
-    valuebase))
+    descbase))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-cascade* : (All (Preference Env) (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
@@ -222,6 +223,8 @@
                           (css-cascade-declarations desc-parsers (vector-ref src 1)))))]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define !imptbase : (HashTable CSS-Values (HashTable Symbol Boolean)) ((inst make-hasheq CSS-Values (HashTable Symbol Boolean))))
+
 (define css-select-rules : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject)) (Boolean CSS-Media-Preferences)
                                 (Values (Listof CSS-Style-Metadata) Boolean))
   ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector

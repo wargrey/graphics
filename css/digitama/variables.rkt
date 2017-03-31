@@ -34,21 +34,24 @@
 (define css-resolve-variables : (-> CSS-Values (Option CSS-Values) CSS-Values)
   ;;; https://drafts.csswg.org/css-variables/#cycles
   (lambda [declared-values inherited-values]
-    (define declared-vars : CSS-Variable-Values (css-values-variables declared-values))
-    (for ([(--var --value) (in-hash declared-vars)])
-      (when (and (css-declaration? --value) (css-declaration-lazy? --value))
-        (define property : CSS:Ident (css-declaration-name --value))
-        (define --values : (Listof+ CSS-Token) (css-declaration-values --value))
-        (define flat-values : (Listof CSS-Token) (css-variable-substitute property --values declared-vars (list --var)))
-        (hash-set! declared-vars --var
-                   (cond [(pair? flat-values) (struct-copy css-declaration --value [values flat-values] [lazy? #false])]
-                         [else null]))))
-    (unless (false? inherited-values)
-      (for ([(--var --value) (in-hash (css-values-variables inherited-values))])
+    (define ?declared-vars : (Option CSS-Variables) (css-varbase-ref declared-values))
+    (when ?declared-vars
+      (for ([(--var --value) (in-hash ?declared-vars)])
+        (when (and (css-declaration? --value) (css-declaration-lazy? --value))
+          (define property : CSS:Ident (css-declaration-name --value))
+          (define --values : (Listof+ CSS-Token) (css-declaration-values --value))
+          (define flat-values : (Listof CSS-Token) (css-variable-substitute property --values ?declared-vars (list --var)))
+          (hash-set! ?declared-vars --var
+                     (cond [(pair? flat-values) (struct-copy css-declaration --value [values flat-values] [lazy? #false])]
+                           [else null])))))
+    (define ?inherited-vars : (Option CSS-Variables) (and inherited-values (css-varbase-ref inherited-values)))
+    (when ?inherited-vars
+      (define declared-vars : CSS-Variables (or ?declared-vars (css-varbase-ref! declared-values)))
+      (for ([(--var --value) (in-hash ?inherited-vars)])
         (hash-ref! declared-vars --var (thunk --value))))
     declared-values))
 
-(define css-variable-substitute : (-> CSS:Ident (Listof CSS-Token) CSS-Variable-Values (Listof Symbol) (Listof CSS-Token))
+(define css-variable-substitute : (-> CSS:Ident (Listof CSS-Token) (Option CSS-Variables) (Listof Symbol) (Listof CSS-Token))
   ;;; https://drafts.csswg.org/css-variables/#invalid-variables
   (lambda [property var-values varbase refpath]
     (let var-fold ([seulav : (Listof CSS-Token) null]
@@ -73,7 +76,7 @@
             [(not (css:var? head)) (var-fold (cons head seulav) tail)]
             [(memq (css:var-datum head) refpath) (make+exn:css:cyclic head property 'debug) null]
             [else (let ([--var (css:var-datum head)])
-                    (define --value : (U CSS-Declaration Null) (hash-ref varbase --var (thunk null)))
+                    (define --value : (U CSS-Declaration Null) (if (false? varbase) null (hash-ref varbase --var (thunk null))))
                     (define-values (--vs lazy?)
                       (cond [(null? --value) (values (css:var-fallback head) (css:var-lazy? head))]
                             [else (values (css-declaration-values --value) (css-declaration-lazy? --value))]))
@@ -132,6 +135,23 @@
           [else (values token #false candidates)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type CSS-Variables (HashTable Symbol (U CSS-Declaration Null)))
+
+(define --varbases : (HashTable CSS-Values CSS-Variables) ((inst make-hasheq CSS-Values CSS-Variables)))
+
+(define css-varbase-ref : (-> CSS-Values (Option CSS-Variables))
+  (lambda [which]
+    (hash-ref --varbases which (thunk #false))))
+
+(define css-varbase-ref! : (-> CSS-Values CSS-Variables)
+  (lambda [which]
+    (hash-ref! --varbases which
+               (thunk ((inst make-hasheq Symbol (U CSS-Declaration Null)))))))
+
+(define varbase-set! : (-> CSS-Values Symbol (U CSS-Declaration Null) Void)
+  (lambda [which --var --value]
+    (hash-set! (css-varbase-ref! which) --var --value)))
+
 (define css-lazy-subtokens-map : (-> (Listof CSS-Token) (Values (U (Listof CSS-Token) CSS-Syntax-Error) Boolean))
   (lambda [subtokens]
     (let lazy-fold ([tokens : (Listof CSS-Token) null]
