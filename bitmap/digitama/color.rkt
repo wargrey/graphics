@@ -1,4 +1,4 @@
-#lang typed/racket/base
+#lang typed/racket
 
 (provide (all-defined-out))
 
@@ -7,7 +7,7 @@
 
 (require colorspace/misc)
 
-(require "bitmap.rkt")
+(require "digicore.rkt")
 
 (define the-color-pool : (HashTable Fixnum Color) (make-hasheq))
 (define default-make-currentcolor : (Parameterof (-> Color+sRGB)) (make-parameter (λ [] #x000000)))

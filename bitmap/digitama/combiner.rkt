@@ -1,12 +1,8 @@
-#lang typed/racket/base
+#lang typed/racket
 
 (provide (all-defined-out))
 
-(require racket/list)
-
-(require "bitmap.rkt")
-
-(require (for-syntax racket/base))
+(require "digicore.rkt")
 
 (define-syntax (define-combiner stx)
   (syntax-case stx []

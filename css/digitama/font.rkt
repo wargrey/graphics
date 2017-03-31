@@ -5,6 +5,8 @@
 
 (provide (all-defined-out))
 
+(require bitmap/digitama/font)
+
 (require "bitmap.rkt")
 (require "digicore.rkt")
 (require "../recognizer.rkt")
@@ -124,25 +126,15 @@
         '(font-style font-variant font-weight font-stretch font-size line-height font-family
                      font-size-adjust font-kerning font-language-override)))
 
-(define css->font-family : (CSS->Racket (U String Font-Family))
+(define css->font-family : (CSS->Racket (U String Symbol))
   (lambda [_ value]
-    (define (generic-family-map [family : Symbol]) : Font-Family
-      (case family
-        [(decorative fantasy) 'decorative]
-        [(roman serif) 'roman]
-        [(script cursive) 'script]
-        [(swiss sans-serif) 'swiss]
-        [(modern monospace) 'modern]
-        [(system system-ui) 'system]
-        [(symbol math) 'symbol]
-        [else 'default]))
     (define (face-filter [family : String]) : (Option String)
       (for/or : (Option String) ([face (in-list css-font-family-names/no-variants)])
         (and (string-ci=? family face) family)))
     (let select ([families (if (list? value) value (list value))])
       (cond [(null? families) (let ([pfont (unbox &font)]) (or (send pfont get-face) (send pfont get-family)))]
             [else (let ([family (car families)])
-                    (or (and (symbol? family) (generic-family-map family))
+                    (or (and (symbol? family) family)
                         (and (string? family) (face-filter family))
                         (and (list? family) (face-filter (string-trim (~a family) #px"(^[(])|([)]$)")))
                         (select (cdr families))))]))))

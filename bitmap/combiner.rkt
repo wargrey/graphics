@@ -1,8 +1,8 @@
-#lang typed/racket/base
+#lang typed/racket
 
 (provide (except-out (all-defined-out) make-pin make-append make-append* make-superimpose))
 
-(require "digitama/bitmap.rkt")
+(require "digitama/digicore.rkt")
 (require "digitama/combiner.rkt")
 (require "constructor.rkt")
 (require "misc.rkt")

@@ -1,11 +1,12 @@
-#lang typed/racket/base
+#lang typed/racket
 
 (provide (all-defined-out))
 (provide (rename-out [bitmap-ellipse bitmap-circle]
                      [bitmap-ellipse bitmap-disk]))
 
-(require "digitama/bitmap.rkt")
+(require "digitama/digicore.rkt")
 (require "digitama/color.rkt")
+(require "font.rkt")
 
 (require racket/math)
 (require racket/string)
@@ -44,12 +45,13 @@
     (send dc clear)
     solid))
 
-(define bitmap-text : (->* (String) (Font #:combine? Boolean #:color (Option Color+sRGB) #:background-color (Option Color+sRGB)
+(define bitmap-text : (->* (String) (Font #:combine? (U Boolean Symbol) #:color (Option Color+sRGB) #:background-color (Option Color+sRGB)
                                           #:baseline-color (Option Color+sRGB) #:baseline-style Pen-Style
                                           #:ascentline-color (Option Color+sRGB) #:ascentline-style Pen-Style) Bitmap)
-  (lambda [content [font (default-css-font)] #:combine? [combine? #true] #:color [fgcolor #false] #:background-color [bgcolor #false]
+  (lambda [content [font (default-css-font)] #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background-color [bgcolor #false]
                    #:baseline-color [blcolor #false] #:baseline-style [blstyle 'solid]
                    #:ascentline-color [alcolor #false] #:ascentline-style [alstyle 'solid]]
+    (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font get-combine?))))
     (define-values (width height descent space) (send the-dc get-text-extent content font combine?))
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
     (send dc set-font font)
@@ -68,10 +70,11 @@
 
 (define bitmap-desc : (->* (String Real)
                            (Font #:color (Option Color+sRGB) #:background-color (Option Color+sRGB)
-                                 #:max-height Real #:combine? Boolean)
+                                 #:max-height Real #:combine? (U Boolean Symbol))
                            Bitmap)
   (lambda [description max-width.0 [font (default-css-font)] #:max-height [max-height.0 +inf.0]
-           #:combine? [combine? #true] #:color [fgcolor #false] #:background-color [bgcolor #false]]
+           #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background-color [bgcolor #false]]
+    (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font get-combine?))))
     (define-values (max-width max-height) (values (real->double-flonum max-width.0) (real->double-flonum max-height.0)))
     (define desc-extent : (-> String Integer Integer (Values String Nonnegative-Flonum Nonnegative-Flonum))
       (lambda [desc start end]

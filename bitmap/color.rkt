@@ -1,8 +1,8 @@
-#lang typed/racket/base
+#lang typed/racket
 
 (provide (all-defined-out))
 
-(require "digitama/bitmap.rkt")
+(require "digitama/digicore.rkt")
 (require "constructor.rkt")
 
 (define bitmap-cellophane : (-> Bitmap Nonnegative-Real Bitmap)

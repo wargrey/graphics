@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "digitama/bitmap.rkt")
+(require "digitama/digicore.rkt")
 (require "digitama/color.rkt")
 (require "digitama/misc.rkt")
 

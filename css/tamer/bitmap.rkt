@@ -18,9 +18,8 @@
    [border-color : Color                 #:= 'Crimson]
    [foreground-color : Color             #:= "Grey"]
    [background-color : Color             #:= "Snow"]
-   [font : Font                          #:= (default-css-font)]
+   [font : CSS-Font                      #:= (make-font+)]
    [width : Index                        #:= 512]
-   [combine? : Boolean                   #:= #false]
    [desc : String                        #:= "['desc' property is required]"]
    [prelude : Bitmap                     #:= (bitmap-text "> ")]
    [descriptors : (HashTable Symbol Any) #:= (make-immutable-hasheq)])
@@ -34,7 +33,6 @@
         (case suitcased-name
           [(desc) (<:css-strings:>)]
           [(width) (CSS<^> (<css-natural>))]
-          [(combine) (CSS<^> (<css-keyword> '(combine none)))]
           [(at-exp) (CSS<^> (list (<css:λracket>) (<css:racket>) (<css:block>)))]
           [(prelude) (CSS<^> (<css-image>))]))))
 
@@ -55,7 +53,6 @@
                   #:background-color (css-color-ref declared-values inherited-values 'background-color)
                   #:font (css-extract-font declared-values inherited-values)
                   #:width (css-ref declared-values inherited-values 'width index? css:initial)
-                  #:combine? (eq? 'normal (css-ref declared-values inherited-values 'font-variant-ligatures symbol? 'normal))
                   #:desc (css-ref declared-values inherited-values 'desc css->desc)
                   #:prelude (css-ref declared-values inherited-values 'prelude css->bitmap)
                   #:descriptors (css-values-fold declared-values (initial-btest-descriptors)
@@ -82,9 +79,9 @@
       (define-values (fgcolor bgcolor rcolor bdcolor)
         (values (btest-foreground-color $bt) (btest-background-color $bt)
                 (btest-output-color $bt) (btest-border-color $bt)))
-      
-      (define-values (width words font combine?) (values (btest-width $bt) (btest-desc $bt) (btest-font $bt) (btest-combine? $bt)))
-      (define desc (bitmap-desc words width font #:color fgcolor #:background-color bgcolor #:combine? combine?))
+
+      (define-values (width words font) (values (btest-width $bt) (btest-desc $bt) (btest-font $bt)))
+      (define desc (bitmap-desc words width font #:color fgcolor #:background-color bgcolor))
       (define-values (desc-width height) (bitmap-size desc))
       
       (values (append bitmap-descs
@@ -94,10 +91,11 @@
                                         (bitmap-hc-append #:gapsize 7
                                                           (bitmap-text "bitmap-desc" #:color (btest-symbol-color $bt))
                                                           (bitmap-text (~s words) #:color (btest-string-color $bt))
+                                                          (bitmap-text (~s (send font get-face)) #:color (btest-string-color $bt))
                                                           (bitmap-text (~a width) #:color (btest-number-color $bt)))
                                         (bitmap-text ")" #:color (btest-paren-color $bt)))
                             (bitmap-text #:color rcolor
-                                         (cond [(not combine?) (format "- : (Bitmap ~a ~a)" desc-width height)]
+                                         (cond [(not (send font get-combine?)) (format "- : (Bitmap ~a ~a)" desc-width height)]
                                                [else (format "- : (Bitmap ~a ~a #:combined)" desc-width height)]))
                             (bitmap-lt-superimpose (bitmap-frame desc #:style 'transparent) ; align by frame border
                                                    (bitmap-frame (bitmap-blank width height) #:color bdcolor))))

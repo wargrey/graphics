@@ -4,7 +4,7 @@
 (provide (all-defined-out) (rename-out [<line-height> <css-line-height>]) <css-system-font> css->line-height)
 (provide (matching-identifiers-out #px"^default-css-[a-zA-Z0-9-]+$" (all-from-out "digitama/font.rkt")))
 
-(require bitmap/misc)
+(require bitmap/font)
 
 (require "digitama/digicore.rkt")
 (require "digitama/font.rkt")
@@ -38,14 +38,14 @@
       [(-racket-font-hinting) (CSS<^> (<css:ident-norm> racket-font-hinting?))]
       [else #false])))
 
-(define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (Font) Font)
+(define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (Font) CSS-Font)
   (lambda [declared-values inherited-values [basefont (default-css-font)]]
     (define (css->font-underlined [_ : Symbol] [value : Any]) : (Listof Any)
       (if (list? value) value (if (send inherited-font get-underlined) (list 'underline) null)))
     (define ?font : Any (and inherited-values (css-ref inherited-values #false 'font)))
     (define inherited-font : Font (if (font%? ?font) ?font basefont))
     (call-with-font inherited-font
-      (define family : (U String Font-Family) (css-ref declared-values #false 'font-family css->font-family))
+      (define family : (U String Symbol) (css-ref declared-values #false 'font-family css->font-family))
       (define min-size : Nonnegative-Real (css-ref declared-values #false 'min-font-size css->font-size))
       (define max-size : Nonnegative-Real (css-ref declared-values #false 'max-font-size css->font-size))
       (define font-size : Nonnegative-Real (css-ref declared-values #false 'font-size css->font-size))
@@ -55,10 +55,11 @@
       (define smoothing : Font-Smoothing (css-ref declared-values #false '-racket-font-smoothing racket-font-smoothing? 'default))
       (define hinting : Font-Hinting (css-ref declared-values #false '-racket-font-hinting racket-font-hinting? 'aligned))
       (define size : Nonnegative-Real (max (min max-size font-size) min-size))
-      (define font : Font
-        (make-font+ #:face (and (string? family) family) #:family (and (symbol? family) family)
-                    #:size size #:style style #:weight weight #:hinting hinting
+      (define ligatures : Symbol (css-ref declared-values inherited-values 'font-variant-ligatures symbol? 'normal))
+      (define font : CSS-Font
+        (make-font+ #:family family #:size size #:style style #:weight weight #:hinting hinting
                     #:underlined? (and (memq 'underline decorations) #true) #:smoothing smoothing
+                    #:combine? (eq? ligatures 'normal)
                     inherited-font))
      (call-with-font font
        (css-set! declared-values 'font font)

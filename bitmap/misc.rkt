@@ -1,8 +1,8 @@
-#lang typed/racket/base
+#lang typed/racket
 
 (provide (all-defined-out) select-color)
 
-(require "digitama/bitmap.rkt")
+(require "digitama/digicore.rkt")
 (require "digitama/color.rkt")
 (require "constructor.rkt")
 
@@ -38,33 +38,3 @@
                   (send dc set-scale ratio ratio)
                   (send dc draw-bitmap raw 0 0)
                   bmp)])))
-
-(define text-size : (->* (String Font) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [text font [combined? #true] #:with-dc [dc the-dc]]
-    (define-values (w h d a) (send dc get-text-extent text font combined?))
-    (values (real->double-flonum w) (real->double-flonum h))))
-
-(define make-font+ : (->* () (Font #:size Real #:face (Option String) #:family (Option Font-Family)
-                                   #:style (Option Font-Style) #:weight (Option Font-Weight) #:hinting (Option Font-Hinting)
-                                   #:underlined? (U Boolean Symbol) #:smoothing (Option Font-Smoothing)) Font)
-  (lambda [[basefont (default-css-font)] #:size [size +nan.0] #:face [face #false] #:family [family #false]
-           #:style [style #false] #:weight [weight #false] #:hinting [hinting #false] #:smoothing [smoothing #false]
-           #:underlined? [underlined 'default]]
-    ;;; NOTE: Racket provides extra term `family` to make the font% cross platform, in practice, these two terminologies are referring
-    ;;;        the same thing, thus, ask the basefont for inheriting the `font description string` only when both of them are unset.
-    (define ?face : (Option String) (or face (and (not family) (send basefont get-face))))
-    (define underlined? : Boolean (if (boolean? underlined) underlined (send basefont get-underlined)))
-    (define fontsize : Real (min 1024.0 (cond [(positive? size) size]
-                                              [(or (zero? size) (nan? size)) (smart-font-size basefont)]
-                                              [else (* (- size) (smart-font-size basefont))])))
-    (if (string? ?face)
-        (send the-font-list find-or-create-font fontsize ?face
-              (or family (send basefont get-family)) (or style (send basefont get-style))
-              (or weight (send basefont get-weight)) underlined?
-              (or smoothing (send basefont get-smoothing)) #true
-              (or hinting (send basefont get-hinting)))
-        (send the-font-list find-or-create-font fontsize
-              (or family (send basefont get-family)) (or style (send basefont get-style))
-              (or weight (send basefont get-weight)) underlined?
-              (or smoothing (send basefont get-smoothing)) #true
-              (or hinting (send basefont get-hinting))))))

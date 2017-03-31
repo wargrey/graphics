@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(require "../digitama/bitmap.rkt")
+(require "../digitama/digicore.rkt")
 (require "../constructor.rkt")
 (require "../resize.rkt")
 
