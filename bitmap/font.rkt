@@ -31,7 +31,11 @@
     (init-field face [size 12.0] [style 'normal] [weight 'normal] [underline? #true]
                 [smoothing 'default] [hinting 'aligned] [combine? #true])
 
-    (super-make-object size face 'default style weight underline? smoothing #true hinting)
+    ;;; NOTE
+    ; The generic font `system-ui` is a virtual font that relatives to host system or device
+    ; which may hard to obtain, thus, it is the default one if the alternative face is not available.
+    
+    (super-make-object size face 'system style weight underline? smoothing #true hinting)
 
     (define em : Nonnegative-Flonum +nan.0)
     (define ex : Nonnegative-Flonum 0.0)
@@ -69,29 +73,13 @@
       (and combine? #true))
 
     (define/override (get-family)
-      'default)))
+      (let try-next ([families : (Listof Font-Family) '(swiss roman modern decorative script symbol system)])
+        (cond [(null? families) (super get-family)]
+              [(string=? face (font-family->font-face (car families))) (car families)]
+              [else (try-next (cdr families))])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-cheat-opaque css-font%? #:is-a? CSS-Font% css-font%)
-
-(define default-font-family->font-face : (Parameterof (-> Symbol (U String False Void))) (make-parameter (λ _ #false)))
-
-(define font-family->font-face : (-> Symbol String)
-  (lambda [family]
-    (define ?face ((default-font-family->font-face) family))
-    (cond [(string? ?face) ?face]
-          [else (let ([racket-family (generic-font-family-map family)])
-                  (define font-id : Integer (send the-font-name-directory find-family-default-font-id racket-family))
-                  (or (send the-font-name-directory get-screen-name font-id 'normal 'normal)
-                      (case (system-type)
-                        [(windows) "Tahoma"]
-                        [(macosx) "Lucida Grande"]
-                        [else "Sans"])))])))
-
-(define text-size : (->* (String Font) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [text font [combined? #true] #:with-dc [dc the-dc]]
-    (define-values (w h d a) (send dc get-text-extent text font combined?))
-    (values (real->double-flonum w) (real->double-flonum h))))
 
 (define make-font+ : (->* () (Font #:size Real #:family (U String Symbol False) #:style (Option Font-Style) #:weight (Option Font-Weight)
                                    #:hinting (Option Font-Hinting) #:underlined? (U Boolean Symbol) #:smoothing (Option Font-Smoothing)
@@ -105,10 +93,10 @@
                           [(or (zero? size) (nan? size)) (smart-font-size basefont)]
                           [else (* (- size) (smart-font-size basefont))])))
       (define font-face : String
-        (or (and (string? face) face)
-            (send basefont get-face)
-            (let ([generic-family (if (symbol? face) face (send basefont get-family))])
-              (font-family->font-face generic-family))))
+        (cond [(string? face) face]
+              [(symbol? face) (font-family->font-face face)]
+              [(send basefont get-face) => values]
+              [else (font-family->font-face (send basefont get-family))]))
       (define font-style : Font-Style (or style (send basefont get-style)))
       (define font-weight : Font-Weight (or weight (send basefont get-weight)))
       (define font-smoothing : Font-Smoothing (or smoothing (send basefont get-smoothing)))
@@ -119,3 +107,33 @@
                  (list font-face font-size font-style font-weight font-underlined? font-smoothing font-hinting font-combine?)
                  (λ [] (make-object css-font% font-face font-size font-style font-weight
                          font-underlined? font-smoothing font-hinting font-combine?))))))
+
+(define racket-font-family->font-face : (-> Symbol String)
+  (let ([os (system-type)]
+        [ui (delay (with-handlers ([exn? (λ _ #false)])
+                     (and (collection-file-path "base.rkt" "racket" "gui")
+                          (let ([system-ui (dynamic-require 'racket/gui/base 'normal-control-font)])
+                            (and (font%? system-ui) (send system-ui get-face))))))])
+    (lambda [family]
+      (case family
+        [(swiss default) (case os [(macosx) "Lucida Grande"] [(windows) "Tahoma"] [else "Sans"])]
+        [(roman)         (case os [(macosx) "Times"] [(windows) "Times New Roman"] [else "Serif"])]
+        [(modern)        (case os [(macosx windows) "Courier New"] [else "Monospace"])]
+        [(decorative)    (case os [(windows) "Arial"] [else "Helvetica"])]
+        [(script)        (case os [(macosx) "Apple Chancery, Italic"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
+        [(symbol)        (case os [else "Symbol"])]
+        [(system)        (or (force ui) (racket-font-family->font-face 'default))]
+        [else (racket-font-family->font-face (generic-font-family-map family))]))))
+
+(define default-font-family->font-face : (Parameterof (-> Symbol (Option String))) (make-parameter racket-font-family->font-face))
+
+(define font-family->font-face : (-> Symbol String)
+  (lambda [family]
+    (or ((default-font-family->font-face) family)
+        (racket-font-family->font-face family))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define text-size : (->* (String Font) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [text font [combined? #true] #:with-dc [dc the-dc]]
+    (define-values (w h d a) (send dc get-text-extent text font combined?))
+    (values (real->double-flonum w) (real->double-flonum h))))
