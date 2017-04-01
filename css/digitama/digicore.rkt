@@ -676,9 +676,10 @@
 (define css-cache-computed-object-value : (Parameterof Boolean) (make-parameter #true))
 (define make-css-values : (-> CSS-Values) (λ [] ((inst make-hasheq Symbol (-> Any)))))
   
-(define css-ref : (All (a b) (case-> [CSS-Values (Option CSS-Values) Symbol -> Any]
-                                     [CSS-Values (Option CSS-Values) Symbol (CSS->Racket a) -> a]
-                                     [CSS-Values (Option CSS-Values) Symbol (-> Any Boolean : #:+ a) b -> (U a b)]))
+(define css-ref : (All (a b c) (case-> [CSS-Values (Option CSS-Values) Symbol -> Any]
+                                       [CSS-Values (Option CSS-Values) Symbol (CSS->Racket a) -> a]
+                                       [CSS-Values (Option CSS-Values) Symbol (-> Any Boolean : #:+ a) b -> (U a b)]
+                                       [CSS-Values (Option CSS-Values) Symbol (-> Any Boolean : #:+ a) b c -> (U a b c)]))
   (case-lambda
     [(declared-values inherited-values desc-name)
      (define-values (cascaded-value specified-value) (css-ref-raw declared-values inherited-values desc-name))
@@ -690,6 +691,12 @@
      (define-values (cascaded-value specified-value) (css-ref-raw declared-values inherited-values desc-name))
      (css-tee-computed-value declared-values desc-name cascaded-value
                              (cond [(datum? specified-value) specified-value]
+                                   [else default-value]))]
+    [(declared-values inherited-values desc-name datum? default-value initial-value)
+     (define-values (cascaded-value specified-value) (css-ref-raw declared-values inherited-values desc-name))
+     (css-tee-computed-value declared-values desc-name cascaded-value
+                             (cond [(css-wide-keyword? specified-value) initial-value]
+                                   [(datum? specified-value) specified-value]
                                    [else default-value]))]))
 
 (define css-ref-raw : (-> CSS-Values (Option CSS-Values) Symbol (Values Any Any))
