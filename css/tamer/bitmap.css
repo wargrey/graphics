@@ -15,6 +15,7 @@
     racket-logo: @x-icon[#:height var(--icon-height) #:material rubber-icon-material #:thickness 12];
     retina-icon: image-set("normal.png" 96dpi, "normal@2x.png" 2x);
 
+    font: Verdana, decorative; /* error property, font property requires font-size */
     font: 12px/1.5; /* error property, font property requires font-family or system font */
 
     url-image: image(url(test.png));
@@ -58,7 +59,7 @@ module.main {
     desc: "";
     prelude: @text-icon("Prelude> " @make-font(#:face "Lucida Grande") #:color #3C803C #:height 100% #:trim\? false);
 
-    font: normal 85% "Lucida Grande", "Trebuchet MS", Verdana, Helvetica, Gill Sans, var(--default-font);
+    font: normal 85% Kailasa, "Microsoft Himalaya", Qomolangma-Uchen Sarchung, var(--default-font);
     text-decoration: underline;
     image-resolution: 2dppx snap;
 }
@@ -92,6 +93,7 @@ bitmap-desc.test {
 }
 
 bitmap-desc.test {
+    font: medium American Typewriter, script;
     desc: "That last testcase is not a mysterious phenomena:"
           "It seemed to do some strange optimizing so that"
           "no single letter would be printed in a single line."
@@ -99,10 +101,13 @@ bitmap-desc.test {
 }
 
 bitmap-desc.test {
+    font-family: HanziPen TC, script;
     desc: "上一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。\a\a此缺陷已修正！";
 }
 
 bitmap-desc.test {
     desc: "Basic String \Test: \22\20\\\E9 \6C34\00A5\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */";
-    font-style: italic;
+    font-family: system-ui;
+    font-size: initial;
+    font-style: initial;
 }

@@ -31,11 +31,9 @@
     (init-field face [size 12.0] [style 'normal] [weight 'normal] [underline? #true]
                 [smoothing 'default] [hinting 'aligned] [combine? #true])
 
-    ;;; NOTE
-    ; The generic font `system-ui` is a virtual font that relatives to host system or device
-    ; which may hard to obtain, thus, it is the default one if the alternative face is not available.
-    
-    (super-make-object size face 'system style weight underline? smoothing #true hinting)
+    ;;; TODO
+    ; It seems that if face is there, the family will be ignored no matter the face is available or not
+    (super-make-object size face 'default style weight underline? smoothing #true hinting)
 
     (define em : Nonnegative-Flonum +nan.0)
     (define ex : Nonnegative-Flonum 0.0)
@@ -71,7 +69,7 @@
     
     (define/public (get-combine?)
       (and combine? #true))
-
+    
     (define/override (get-family)
       (let try-next ([families : (Listof Font-Family) '(swiss roman modern decorative script symbol system)])
         (cond [(null? families) (super get-family)]
@@ -81,7 +79,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-cheat-opaque css-font%? #:is-a? CSS-Font% css-font%)
 
-(define make-font+ : (->* () (Font #:size Real #:family (U String Symbol False) #:style (Option Font-Style) #:weight (Option Font-Weight)
+(define make-font+ : (->* () (Font #:size Real #:family (U String Symbol False) #:style (Option Symbol) #:weight (Option Symbol)
                                    #:hinting (Option Font-Hinting) #:underlined? (U Boolean Symbol) #:smoothing (Option Font-Smoothing)
                                    #:combine? (U Boolean Symbol)) CSS-Font)
   (let ([fontbase : (HashTable Any CSS-Font) (make-hash)])
@@ -97,8 +95,8 @@
               [(symbol? face) (font-family->font-face face)]
               [(send basefont get-face) => values]
               [else (font-family->font-face (send basefont get-family))]))
-      (define font-style : Font-Style (or style (send basefont get-style)))
-      (define font-weight : Font-Weight (or weight (send basefont get-weight)))
+      (define font-style : Font-Style (generic-font-style-map (or style 'inherit) basefont))
+      (define font-weight : Font-Weight (generic-font-weight-map (or weight 'inherit) basefont))
       (define font-smoothing : Font-Smoothing (or smoothing (send basefont get-smoothing)))
       (define font-underlined? : Boolean (if (boolean? underlined) underlined (send basefont get-underlined)))
       (define font-hinting : Font-Hinting (or hinting (send basefont get-hinting)))
@@ -111,18 +109,17 @@
 (define racket-font-family->font-face : (-> Symbol String)
   (let ([os (system-type)]
         [ui (delay (with-handlers ([exn? (λ _ #false)])
-                     (and (collection-file-path "base.rkt" "racket" "gui")
-                          (let ([system-ui (dynamic-require 'racket/gui/base 'normal-control-font)])
-                            (and (font%? system-ui) (send system-ui get-face))))))])
+                     (let ([system-ui (dynamic-require 'racket/gui/base 'normal-control-font)])
+                       (and (font%? system-ui) (send system-ui get-face)))))])
     (lambda [family]
       (case family
         [(swiss default) (case os [(macosx) "Lucida Grande"] [(windows) "Tahoma"] [else "Sans"])]
         [(roman)         (case os [(macosx) "Times"] [(windows) "Times New Roman"] [else "Serif"])]
-        [(modern)        (case os [(macosx windows) "Courier New"] [else "Monospace"])]
-        [(decorative)    (case os [(windows) "Arial"] [else "Helvetica"])]
+        [(modern)        (case os [(macosx) "Courier"] [(windows) "Courier New"] [else "Monospace"])]
+        [(decorative)    (case os [(macosx) "Helvetica"] [(windows) "Arial"] [else "Helvetica"])]
         [(script)        (case os [(macosx) "Apple Chancery, Italic"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
         [(symbol)        (case os [else "Symbol"])]
-        [(system)        (or (force ui) (racket-font-family->font-face 'default))]
+        [(system)        (or (force ui) (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"]))]
         [else (racket-font-family->font-face (generic-font-family-map family))]))))
 
 (define default-font-family->font-face : (Parameterof (-> Symbol (Option String))) (make-parameter racket-font-family->font-face))

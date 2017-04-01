@@ -7,11 +7,11 @@
 (define generic-font-family-map : (->* (Symbol) ((Instance Font%)) Font-Family)
   (lambda [family [basefont (default-css-font)]]
     (case family
-      [(decorative fantasy) 'decorative]
-      [(roman serif)        'roman]
-      [(script cursive)     'script]
       [(swiss sans-serif)   'swiss]
+      [(roman serif)        'roman]
       [(modern monospace)   'modern]
+      [(decorative fantasy) 'decorative]
+      [(script cursive)     'script]
       [(system system-ui)   'system]
       [(symbol math)        'symbol]
       [(default)            'default]
@@ -43,7 +43,7 @@
           [(>= value 700) 'bold]
           [else 'normal])))
 
-(define css->font-style : (->* (Symbol) ((Instance Font%)) Font-Style)
+(define generic-font-style-map : (->* (Symbol) ((Instance Font%)) Font-Style)
   (lambda [value [basefont (default-css-font)]]
     (case value
       [(normal italic) value]

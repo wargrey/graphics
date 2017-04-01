@@ -48,8 +48,8 @@
 (define &font : (Boxof Font) (box (default-css-font)))
 
 (define css-font-generic-families : (Listof Symbol)
-  '(default decorative roman script  swiss      modern    system    symbol
-     emoji  fantasy    serif cursive sans-serif monospace system-ui math fangsong))
+  '(default roman swiss      decorative modern    script  system    symbol
+     emoji  serif sans-serif fantasy    monospace cursive system-ui math fangsong))
   
 (define css-font-synthesis-options : (Listof Symbol) '(weight style small-caps))
   
@@ -159,25 +159,6 @@
           [(eq? property 'min-font-size) 0.0]
           [(eq? property 'max-font-size) 1024.0]
           [else +nan.0 #| used to determine whether size-in-pixels? will be inherited, see (css-extract-font) |#])))
-
-(define css->font-weight : (CSS->Racket Font-Weight)
-  (lambda [_ value]
-    (cond [(symbol? value)
-           (case value
-             [(normal light bold) value]
-             [(bolder) (if (eq? (send (unbox &font) get-weight) 'light) 'normal 'bold)]
-             [(lighter) (if (eq? (send (unbox &font) get-weight) 'bold) 'normal 'light)]
-             [else (send (default-css-font) get-weight)])]
-          [(and (fixnum? value) (fx<= value 300)) 'light]
-          [(and (fixnum? value) (fx>= value 700)) 'bold]
-          [else (send (default-css-font) get-weight)])))
-
-(define css->font-style : (CSS->Racket Font-Style)
-  (lambda [_ value]
-    (case value
-      [(normal italic) value]
-      [(oblique slant) 'slant]
-      [else (send (default-css-font) get-style)])))
 
 (define css->line-height : (-> Symbol Any (U Nonnegative-Flonum Negative-Single-Flonum))
   (lambda [_ value]
