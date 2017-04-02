@@ -107,8 +107,7 @@
                          font-underlined? font-smoothing font-hinting font-combine?))))))
 
 (define racket-font-family->font-face : (-> Symbol String)
-  (let ([os (system-type)]
-        [ui (delay (with-handlers ([exn? (λ _ #false)])
+  (let ([ui (delay (with-handlers ([exn? (λ _ #false)])
                      (let ([system-ui (dynamic-require 'racket/gui/base 'normal-control-font)])
                        (and (font%? system-ui) (send system-ui get-face)))))])
     (lambda [family]

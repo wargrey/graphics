@@ -383,12 +383,12 @@
                          [(in)    (fl* px 96.0)]
                          [(pc)    (fl* px 16.0)]             ; 1in/6
                          [(pt)    (fl* px (fl/ 96.0 72.0))]  ; 1in/72
-                         [(em)    (fl* px ((css-lazy-font-scalar) 'em))]
-                         [(ex)    (fl* px ((css-lazy-font-scalar) 'ex))]
-                         [(cap)   (fl* px ((css-lazy-font-scalar) 'cap))]
-                         [(ch)    (fl* px ((css-lazy-font-scalar) 'ch))]
-                         [(ic)    (fl* px ((css-lazy-font-scalar) 'ic))]
-                         [(lh)    (fl* px ((css-lazy-font-scalar) 'lh))]
+                         [(em)    (fl* px (css-em))]
+                         [(ex)    (fl* px (css-ex))]
+                         [(cap)   (fl* px (css-cap))]
+                         [(ch)    (fl* px (css-ch))]
+                         [(ic)    (fl* px (css-ic))]
+                         [(lh)    (fl* px (css-lh))]
                          [(rem)   (fl* px (css-rem))]
                          [(rlh)   (fl* px (css-rlh))]
                          [(vw vi) (fl* px (fl* 0.01 (css-vw)))]
@@ -661,19 +661,9 @@
            (when (and (real? h) (positive? h)) (css-vh (real->double-flonum h)))
            sexp ...))]))
 
-(define-syntax (css-tee-computed-value stx)
-  (syntax-case stx []
-    [(_ properties desc-name cascaded-value computed-value-sexp)
-     #'(let([computed-value computed-value-sexp])
-         (when (and (not (eq? cascaded-value computed-value))
-                    (implies (object? computed-value) (css-cache-computed-object-value)))
-           (hash-set! properties desc-name (thunk computed-value)))
-         computed-value)]))
-
-(define-css-parameters css-global-relative-lengths [vw vh rem rlh] : Nonnegative-Flonum #:= 0.0)
-(define css-lazy-font-scalar : (Parameterof (-> Symbol Nonnegative-Flonum)) (make-parameter (λ _ +nan.0)))
+(define-css-parameters css-root-relative-lengths [vw vh rem rlh] : Nonnegative-Flonum #:= 0.0)
+(define-css-parameters css-font-relative-lengths [em ex cap ch ic lh] : Nonnegative-Flonum #:= 0.0)
 (define css-longhand : CSS-Longhand-Values (make-immutable-hasheq))
-(define css-cache-computed-object-value : (Parameterof Boolean) (make-parameter #true))
 (define make-css-values : (-> CSS-Values) (λ [] ((inst make-hasheq Symbol (-> Any)))))
   
 (define css-ref : (All (a b c) (case-> [CSS-Values (Option CSS-Values) Symbol -> Any]
@@ -689,14 +679,12 @@
      (css-tee-computed-value declared-values desc-name cascaded-value (datum->value desc-name specified-value))]
     [(declared-values inherited-values desc-name datum? default-value)
      (define-values (cascaded-value specified-value) (css-ref-raw declared-values inherited-values desc-name))
-     (css-tee-computed-value declared-values desc-name cascaded-value
-                             (cond [(datum? specified-value) specified-value]
-                                   [else default-value]))]
+     (css-tee-computed-value declared-values desc-name cascaded-value (if (datum? specified-value) specified-value default-value))]
     [(declared-values inherited-values desc-name datum? default-value initial-value)
      (define-values (cascaded-value specified-value) (css-ref-raw declared-values inherited-values desc-name))
      (css-tee-computed-value declared-values desc-name cascaded-value
-                             (cond [(css-wide-keyword? specified-value) initial-value]
-                                   [(datum? specified-value) specified-value]
+                             (cond [(datum? specified-value) specified-value]
+                                   [(css-wide-keyword? specified-value) initial-value]
                                    [else default-value]))]))
 
 (define css-ref-raw : (-> CSS-Values (Option CSS-Values) Symbol (Values Any Any))
@@ -713,6 +701,12 @@
     (unless (eq? cascaded-value specified-value)
       (hash-set! declared-values desc-name (thunk specified-value)))
     (values cascaded-value specified-value)))
+
+(define css-tee-computed-value : (All (a) (-> CSS-Values Symbol Any a a))
+  (lambda [properties desc-name cascaded-value computed-value]
+    (unless (eq? cascaded-value computed-value)
+      (hash-set! properties desc-name (thunk computed-value)))
+    computed-value))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-car/cdr : (All (a b) (case-> [(Pairof a b) -> (Values a b)]

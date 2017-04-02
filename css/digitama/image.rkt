@@ -142,7 +142,7 @@
                  [else (image->bitmap src density)])]
           [(css-@λ? img)
            (with-handlers ([exn? (λ [[e : exn]] (css-log-eval-error e 'css->bitmap) the-invalid-image)])
-             (assert (css-eval-@λ img (module->namespace 'bitmap) ((css-lazy-font-scalar) 'em)) bitmap%?))]
+             (assert (css-eval-@λ img (module->namespace 'bitmap) (css-em)) bitmap%?))]
           [else the-invalid-image])))
 
 (define css->normalized-image : (All (racket) (-> (-> (CSS-Maybe Bitmap) racket) (CSS->Racket racket)))

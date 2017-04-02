@@ -104,4 +104,5 @@
 (when DrRacket?
   (values $root
           (apply bitmap-vl-append bitmap-descs)
-          (css-global-relative-lengths)))
+          (css-root-relative-lengths)
+          (css-font-relative-lengths)))

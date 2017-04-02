@@ -69,9 +69,9 @@
 (define select-size : (->* ((U Nonnegative-Flonum Negative-Single-Flonum)) (Nonnegative-Flonum) Nonnegative-Flonum)
   (lambda [computed-value [normal (css-normal-line-height)]]
     (void 'see css->line-height)
-    (cond [(nan? computed-value) (fl* normal ((css-lazy-font-scalar) 'em))]
+    (cond [(nan? computed-value) (fl* normal (css-em))]
           [(nonnegative-flonum? computed-value) computed-value]
-          [else (fl* (real->double-flonum (- computed-value)) ((css-lazy-font-scalar) 'em))])))
+          [else (fl* (real->double-flonum (- computed-value)) (css-em))])))
 
 (define css-font-parsers : CSS-Declaration-Parsers
   (lambda [suitcased-name deprecated!]

@@ -32,7 +32,7 @@
            (define-values (ww wh wd ws) (send the-dc get-text-extent "水" font))
            (define em : Nonnegative-Flonum (smart-font-size font))
            (when (false? rem?) (css-rem em))
-           (css-lazy-font-scalar
+           (css-font-relative-lengths
             (λ [[unit : Symbol]]
               (case unit
                 [(em)  em]
@@ -150,11 +150,11 @@
                [(small)    (* 8/9 css-font-medium)]
                [(x-small)  (* 3/4 css-font-medium)]
                [(xx-small) (* 3/5 css-font-medium)]
-               [(smaller)  (* 5/6 ((css-lazy-font-scalar) 'em))] ; TODO: find a better function to deal with these two keywords.
-               [(larger)   (* 6/5 ((css-lazy-font-scalar) 'em))] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
+               [(smaller)  (* 5/6 (css-em))] ; TODO: find a better function to deal with these two keywords.
+               [(larger)   (* 6/5 (css-em))] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
                [else       css-font-medium]))]
           [(nonnegative-flonum? value) value]
-          [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) ((css-lazy-font-scalar) 'em))]
+          [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (css-em))]
           [(css+length? value) (css:length->scalar value #false)]
           [(eq? property 'min-font-size) 0.0]
           [(eq? property 'max-font-size) 1024.0]
@@ -164,6 +164,6 @@
   (lambda [_ value]
     (cond [(css+length? value) (css:length->scalar value #false)]
           [(nonnegative-flonum? value) value #|computed value is the used value|#]
-          [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) ((css-lazy-font-scalar) 'em))]
+          [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (css-em))]
           [(#|negative-|#single-flonum? value) value #|computed value is *not* the used value|#]
           [else #|'normal|# +nan.0 #|computed value is *not* the used value|#])))

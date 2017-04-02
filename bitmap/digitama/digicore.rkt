@@ -21,13 +21,14 @@
 (define-cheat-opaque bitmap%? #:is-a? Bitmap% bitmap%)
 (define-cheat-opaque font%? #:is-a? Font% font%)
 
+(define os : Symbol (system-type 'os))
 (define the-dc (make-object bitmap-dc% (make-object bitmap% 1 1)))
 (define the-invalid-image : Bitmap (read-bitmap (open-input-bytes #"placeholder")))
 (define default-css-font : (Parameterof (Instance Font%)) (make-parameter (make-font #:size-in-pixels? #true)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define smart-font-size : (-> (Instance Font%) Nonnegative-Flonum)
-  (let ([macosx? (eq? (system-type 'os) 'macosx)])
+  (let ([macosx? (eq? os 'macosx)])
     (lambda [font]
       (define size : Nonnegative-Flonum (real->double-flonum (send font get-size)))
       (case (if (or macosx? (send font get-size-in-pixels)) 'px 'pt)

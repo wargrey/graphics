@@ -15,8 +15,6 @@
 (define-syntax (define-css-parameters stx)
   (syntax-case stx [:]
     [(_ parameters [name ...] : Type #:= defval)
-     #'(define-css-parameters parameters ([name : Type #:= defval] ...))]
-    [(_ parameters ([name : Type #:= defval] ...))
      (with-syntax ([(p-name ...) (for/list ([<u> (in-list (syntax->list #'(name ...)))]) (format-id <u> "css-~a" (syntax-e <u>)))])
        #'(begin (define p-name : (case-> [Type -> Void] [-> Type])
                   (let ([&storage : (Boxof Type) (box defval)])
@@ -25,11 +23,11 @@
                       [() (unbox &storage)])))
                 ...
 
-                (define parameters : (-> (HashTable Symbol (U Type ...)))
-                  (lambda []
-                    (make-immutable-hash
-                     (list (cons 'name (p-name))
-                           ...))))))]))
+                (define parameters : (case-> [-> (Listof (Pairof Symbol Type))]
+                                             [(-> Symbol Type) -> Void])
+                  (case-lambda
+                    [(ref) (p-name (ref 'name)) ...]
+                    [() (list (cons 'name (p-name)) ...)]))))]))
 
 (define-type (Listof+ css) (Pairof css (Listof css)))
 (define-type Symbol↯ Symbol)
