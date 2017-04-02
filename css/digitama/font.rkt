@@ -5,6 +5,7 @@
 
 (provide (all-defined-out))
 
+(require bitmap/font)
 (require bitmap/digitama/font)
 
 (require "bitmap.rkt")
@@ -20,32 +21,13 @@
      #'(let ([rem? (positive? (css-rem))]
              [last-font (unbox &font)])
          (unless (and (eq? font last-font) rem?)
-           ;;; WARNING
-           ;; 'xh' seems to be impractical, the font% size is just a nominal size
-           ;; and usually smaller than the generated text in which case the 'ex' is
-           ;; always surprisingly larger than the size, the '0w' therefore is used instead,
-           ;; same consideration to 'cap'.
-           ;;; NOTE
-           ;; This operation is extremely expensive (at least 0.4s), but Racket do have its own cache strategy.
-           #;(define-values (xw xh xd xs) (send the-dc get-text-extent "x" font))
-           (define-values (0w 0h 0d 0s) (send the-dc get-text-extent "0" font))
-           (define-values (ww wh wd ws) (send the-dc get-text-extent "水" font))
-           (define em : Nonnegative-Flonum (smart-font-size font))
-           (when (false? rem?) (css-rem em))
-           (css-font-relative-lengths
-            (λ [[unit : Symbol]]
-              (case unit
-                [(em)  em]
-                [(ex)  (real->double-flonum 0w)]
-                [(ch)  (real->double-flonum 0w)]
-                [(cap) (real->double-flonum (max (- em 0d 0s) 0d))]
-                [(ic)  (real->double-flonum ww)]
-                [else +nan.0])))
+           (css-font-relative-lengths (send font get-font-metrics '(em ex ch cap ic)))
+           (when (false? rem?) (css-rem (css-em)))
            (set-box! &font font))
          sexp ...)]))
 
 (define css-font-family-names/no-variants : (Listof String) (get-face-list 'all #:all-variants? #false))
-(define &font : (Boxof Font) (box (default-css-font)))
+(define &font : (Boxof CSS-Font) (box (make-css-font)))
 
 (define css-font-generic-families : (Listof Symbol)
   '(default roman swiss      decorative modern    script  system    symbol
@@ -64,14 +46,14 @@
 (define css-font-stretch-option : (Listof Symbol) '(normal condensed expanded ultra-condensed extra-condensed semi-condensed
                                                            ultra-expanded extra-expanded semi-expanded))
   
-(define-css-system-parameters-filter <css-system-font> #:-> Font
+(define-css-prefab-filter <css-system-font> #:-> Font #:format "default-css-~a-font"
   [caption       (default-css-font)]
   [icon          (default-css-font)]
   [menu          (default-css-font)]
   [message-box   (default-css-font)]
   [small-caption (default-css-font)]
   [status-bar    (default-css-font)])
-  
+
 (define-css-racket-value-filter <racket-font> #:? font%? #:as Font)
 
 (define css-font->longhand-properties : (->* (Font) (CSS-Longhand-Values) CSS-Longhand-Values)

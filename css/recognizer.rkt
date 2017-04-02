@@ -79,15 +79,14 @@
                       ...
                       [else (make-exn:css:range token)]))))))]))
 
-(define-syntax (define-css-system-parameters-filter stx)
-  (syntax-case stx []
-    [(_ <id> #:-> RangeType [css racket] ... [otherwise last-one])
+(define-syntax (define-css-prefab-filter stx)
+  (syntax-parse stx
+    [(_ <id> #:-> RangeType #:format fmt:str [css default-racket] ... [otherwise last-one])
      (with-syntax ([(current ... current-last)
-                    (let ([suffix (string-downcase (symbol->string (syntax-e #'RangeType)))])
-                      (for/list ([<p> (in-list (syntax->list #'(css ... otherwise)))])
-                        (format-id <p> "default-css-~a-~a" (syntax-e <p>) suffix)))])
-       #'(begin (define current : (Parameterof RangeType) (make-parameter racket)) ...
-                (define current-last : (Parameterof RangeType) (make-parameter last-one))
+                    (for/list ([<p> (in-list (syntax->list #'(css ... otherwise)))])
+                      (format-id <p> (syntax-e #'fmt) (syntax-e <p>)))])
+       #'(begin (define-css-parameter current : RangeType #:= default-racket) ...
+                (define-css-parameter current-last : RangeType #:= last-one)
                 (define-css-disjoint-filter <id> #:-> RangeType
                   (CSS:<~> (<css:ident-norm> (list 'css ... 'otherwise))
                            (λ [[id : Symbol]] : RangeType

@@ -1,7 +1,9 @@
 #lang typed/racket
 
 (require racket/provide)
-(provide (all-defined-out) (rename-out [<line-height> <css-line-height>]) <css-system-font> css->line-height)
+(provide (all-defined-out))
+(provide (all-from-out bitmap/font))
+(provide (rename-out [<line-height> <css-line-height>]) <css-system-font> css->line-height)
 (provide (matching-identifiers-out #px"^default-css-[a-zA-Z0-9-]+$" (all-from-out "digitama/font.rkt")))
 
 (require bitmap/font)
@@ -38,12 +40,12 @@
       [(-racket-font-hinting) (CSS<^> (<css:ident-norm> racket-font-hinting?))]
       [else #false])))
 
-(define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (Font) CSS-Font)
-  (lambda [declared-values inherited-values [basefont (default-css-font)]]
+(define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (CSS-Font) CSS-Font)
+  (lambda [declared-values inherited-values [basefont (make-css-font)]]
     (define (css->font-underlined [_ : Symbol] [value : Any]) : (Listof Any)
       (if (list? value) value (if (send inherited-font get-underlined) (list 'underline) null)))
     (define ?font : Any (and inherited-values (css-ref inherited-values #false 'font)))
-    (define inherited-font : Font (if (font%? ?font) ?font basefont))
+    (define inherited-font : CSS-Font (if (css-font%? ?font) ?font basefont))
     (call-with-font inherited-font
       (define family : (U String Symbol) (css-ref declared-values #false 'font-family css->font-family))
       (define min-size : Nonnegative-Real (css-ref declared-values #false 'min-font-size css->font-size))
@@ -57,10 +59,10 @@
       (define size : Nonnegative-Real (max (min max-size font-size) min-size))
       (define ligatures : Symbol (css-ref declared-values inherited-values 'font-variant-ligatures symbol? 'normal))
       (define font : CSS-Font
-        (make-font+ #:family family #:size size #:style style #:weight weight #:hinting hinting
-                    #:underlined? (and (memq 'underline decorations) #true) #:smoothing smoothing
-                    #:combine? (eq? ligatures 'normal)
-                    inherited-font))
+        (make-css-font #:family family #:size size #:style style #:weight weight #:hinting hinting
+                       #:underlined? (and (memq 'underline decorations) #true) #:smoothing smoothing
+                       #:combine? (eq? ligatures 'normal)
+                       inherited-font))
      (call-with-font font
        (css-set! declared-values 'font font)
        (when (nan? size) (css-set! declared-values 'font-size size))

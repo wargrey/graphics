@@ -49,3 +49,12 @@
       [(normal italic) value]
       [(oblique slant) 'slant]
       [else (send basefont get-style)])))
+
+(define system-ui : (-> Symbol String String)
+  (let ([facebase ((inst make-hasheq Symbol String))])
+    (lambda [symfont deface]
+      (hash-ref! facebase symfont
+                 (thunk (with-handlers ([exn? (λ _ deface)])
+                          (let ([system-ui (dynamic-require 'racket/gui/base symfont)])
+                            (or (and (font%? system-ui) (send system-ui get-face))
+                                deface))))))))

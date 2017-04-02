@@ -1,10 +1,11 @@
 #lang typed/racket
 
 (provide (all-from-out racket/flonum racket/fixnum))
-(provide (except-out (all-defined-out) define-tokens define-token define-token-interface
+(provide (except-out (all-defined-out)
+                     define-tokens define-token define-token-interface
                      define-symbolic-tokens define-numeric-tokens define-dimensional-tokens
-                     define-prefab-keyword define-syntax-error css-make-syntax-error
-                     css-tee-computed-value css-ref-raw))
+                     define-prefab-keyword define-syntax-error
+                     css-make-syntax-error css-tee-computed-value css-ref-raw))
 
 (require racket/fixnum)
 (require racket/flonum)

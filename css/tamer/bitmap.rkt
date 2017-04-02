@@ -18,7 +18,7 @@
    [border-color : Color                 #:= 'Crimson]
    [foreground-color : Color             #:= "Grey"]
    [background-color : Color             #:= "Snow"]
-   [font : CSS-Font                      #:= (make-font+)]
+   [font : CSS-Font                      #:= (make-css-font)]
    [width : Index                        #:= 512]
    [desc : String                        #:= "['desc' property is required]"]
    [prelude : Bitmap                     #:= (bitmap-text "> ")]
@@ -103,6 +103,6 @@
 
 (when DrRacket?
   (values $root
-          (apply bitmap-vl-append bitmap-descs)
+          (bitmap-vl-append* bitmap-descs)
           (css-root-relative-lengths)
           (css-font-relative-lengths)))

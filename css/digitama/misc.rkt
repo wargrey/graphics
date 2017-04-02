@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require racket/promise)
+
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
 
@@ -12,21 +14,24 @@
        #'(begin (struct id rest ... #:extra-constructor-name make-id #:transparent)
                 (define-type ID id)))]))
 
+(define-syntax (define-css-parameter stx)
+  (syntax-case stx [:]
+    [(_ id : Type #:= defval)
+     #'(define id : (case-> [(U Type (Promise (-> Type))) -> Void] [-> Type])
+         (let ([&storage : (Boxof (-> Type)) (box (λ [] defval))])
+           (case-lambda
+             [(v) (set-box! &storage (if (promise? v) (force v) (λ [] v)))]
+             [() ((unbox &storage))])))]))
+
 (define-syntax (define-css-parameters stx)
   (syntax-case stx [:]
     [(_ parameters [name ...] : Type #:= defval)
      (with-syntax ([(p-name ...) (for/list ([<u> (in-list (syntax->list #'(name ...)))]) (format-id <u> "css-~a" (syntax-e <u>)))])
-       #'(begin (define p-name : (case-> [Type -> Void] [-> Type])
-                  (let ([&storage : (Boxof Type) (box defval)])
-                    (case-lambda
-                      [(v) (set-box! &storage v)]
-                      [() (unbox &storage)])))
-                ...
-
-                (define parameters : (case-> [-> (Listof (Pairof Symbol Type))]
-                                             [(-> Symbol Type) -> Void])
+       #'(begin (define-css-parameter p-name : Type #:= defval) ... 
+                (define parameters : (case-> [-> (Listof (Pairof Symbol (U Type (Promise (-> Type)))))]
+                                             [(Listof (Pairof Symbol Type)) -> Void])
                   (case-lambda
-                    [(ref) (p-name (ref 'name)) ...]
+                    [(db) (let ([pv (assq 'name db)]) (when pv (p-name (cdr pv)))) ...]
                     [() (list (cons 'name (p-name)) ...)]))))]))
 
 (define-type (Listof+ css) (Pairof css (Listof css)))
