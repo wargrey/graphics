@@ -5,12 +5,13 @@
 (define bitmap-text*
   (lambda [text font]
     (bitmap-frame #:color 'gray
-                  (bitmap-text #:baseline-color 'green #:ascentline-color 'red
-                               text (make-css-font font #:size 24)))))
+                  (bitmap-text #:ascent-color 'Magenta #:descent-color 'Blue
+                               #:capline-color 'Orange #:meanline-color 'Green #:baseline-color 'Red
+                               text (make-css-font (make-css-font font #:size 'xx-large) #:size 'larger)))))
 
-(for/list ([face (in-list (get-face-list))])
-  (cons face (bitmap-vl-append (bitmap-text* "Sphinx[#t]" (make-css-font #:family face #:combine? #true))
-                               (bitmap-text* "Sphinx[#f]" (make-css-font #:family face #:combine? #false)))))
+#;(for/list ([face (in-list (get-face-list))])
+    (cons face (bitmap-vl-append (bitmap-text* "Sphinx[#t]" (make-css-font #:family face #:combine? #true))
+                                 (bitmap-text* "Sphinx[#f]" (make-css-font #:family face #:combine? #false)))))
 
 (bitmap-vl-append* #:gapsize 16
  (for/list ([face (in-list (list "Qomolangma-Uchen Sarchung" "Microsoft Himalaya" "Kailasa"))])

@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require (for-syntax racket/base))
-(require (for-syntax racket/syntax))
 
 (define-syntax (require/provide stx)
   (syntax-case stx []

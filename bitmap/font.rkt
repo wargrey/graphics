@@ -7,6 +7,7 @@
 (require "digitama/digicore.rkt")
 (require "digitama/cheat.rkt")
 (require "digitama/font.rkt")
+(require "digitama/unsafe.rkt")
 
 (define-type CSS-Font (Instance CSS-Font%))
 
@@ -22,35 +23,30 @@
                [hinting Font-Hinting #:optional])
          (init-rest Null)
          [get-combine? (-> Boolean)]
-         [get-font-metrics (-> (Listof Symbol) (Listof (Pairof Symbol Nonnegative-Flonum)))]))
+         [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]))
 
 (define css-font% : CSS-Font%
   (class font%
     (init-field face [combine? #true])
-    (init [size 12.0] [style 'normal] [weight 'normal] [underline? #true] [smoothing 'default] [hinting 'aligned])
+    (init [size 12.0] [style 'normal] [weight 'normal] [underline? #false] [smoothing 'default] [hinting 'aligned])
     
     (super-make-object size face 'default style weight underline? smoothing #true hinting)
 
     (define metrics : (HashTable Symbol Nonnegative-Flonum) (make-hasheq))
     
-    (define/public (get-font-metrics units)
+    (define/public (get-metrics [units null])
       (define (metrics-ref [unit : Symbol]) : Nonnegative-Flonum (hash-ref metrics unit (thunk +nan.0)))
       (when (zero? (hash-count metrics))
-        ;;; WARNING
-        ;; 'xh' seems to be impractical, the font% size is just a nominal size
-        ;; and usually smaller than the generated text in which case the 'ex' is
-        ;; always surprisingly larger than the size, the '0w' therefore is used instead,
-        ;; same consideration to 'cap'.
-        #;(define-values (xw xh xd xs) (send the-dc get-text-extent "x" this))
-        (define-values (0w 0h 0d 0s) (send the-dc get-text-extent "0" this))
-        (define-values (ww wh wd ws) (send the-dc get-text-extent "水" this))
+        (define-values (ex cap ch ic) (get-font-metrics this))
         (hash-set! metrics 'em (smart-font-size this))
-        (hash-set! metrics 'ex (real->double-flonum 0w))
-        (hash-set! metrics 'cap (real->double-flonum (max (- (smart-font-size this) 0d 0s) 0d)))
-        (hash-set! metrics 'ch (real->double-flonum 0w))
-        (hash-set! metrics 'ic (real->double-flonum ww)))
-      (for/list : (Listof (Pairof Symbol Nonnegative-Flonum)) ([unit (in-list units)])
-        (cons unit (metrics-ref unit))))
+        (hash-set! metrics 'ex ex)
+        (hash-set! metrics 'cap cap)
+        (hash-set! metrics 'ch ch)
+        (hash-set! metrics 'ic ic)
+        (hash-set! metrics 'lh +nan.0))
+      (cond [(null? units) (hash->list metrics)]
+            [else (for/list : (Listof (Pairof Symbol Nonnegative-Flonum)) ([unit (in-list units)])
+                    (cons unit (metrics-ref unit)))]))
     
     (define/public (get-combine?)
       combine?)
@@ -65,23 +61,26 @@
 (define-cheat-opaque css-font%? #:is-a? CSS-Font% css-font%)
 
 (define make-css-font : (->* ()
-                             (Font #:size Real #:family (U String Symbol False) #:style (Option Symbol) #:weight (Option Symbol)
-                                   #:hinting (Option Font-Hinting) #:underlined? (U Boolean Symbol) #:smoothing (Option Font-Smoothing)
-                                   #:combine? (U Boolean Symbol))
+                             (Font #:size (U Symbol Nonnegative-Real) #:family (U String Symbol (Listof (U String Symbol)))
+                                   #:style (Option Symbol) #:weight (Option Symbol) #:combine? (U Boolean Symbol)
+                                   #:hinting (Option Font-Hinting) #:underlined? (U Boolean Symbol) #:smoothing (Option Font-Smoothing))
                              (Instance CSS-Font%))
   (let ([fontbase : (HashTable (Listof Any) (Instance CSS-Font%)) (make-hash)])
-    (lambda [[basefont (default-css-font)] #:size [size +nan.0] #:family [face #false] #:style [style #false] #:weight [weight #false]
+    (lambda [[basefont (default-css-font)] #:size [size +nan.0] #:family [face null] #:style [style #false] #:weight [weight #false]
                                            #:hinting [hinting #false] #:smoothing [smoothing #false] #:underlined? [underlined 'inherit]
                                            #:combine? [combine? 'inherit]]
-      (define font-size : Real
-        (min 1024.0 (cond [(positive? size) size]
-                          [(or (zero? size) (nan? size)) (smart-font-size basefont)]
-                          [else (* (- size) (smart-font-size basefont))])))
+      (define font-size-raw : Nonnegative-Real
+        (cond [(symbol? size) (generic-font-size-map size basefont (default-css-font))]
+              [(nan? size) (smart-font-size basefont)]
+              [(single-flonum? size) (* size (smart-font-size basefont))]
+              [else size]))
       (define font-face : String
         (cond [(string? face) face]
               [(symbol? face) (font-family->font-face face)]
-              [(send basefont get-face) => values]
-              [else (font-family->font-face (send basefont get-family))]))
+              [else (or (and (pair? face) (select-font-face face font-family->font-face))
+                        (send basefont get-face)
+                        (font-family->font-face (send basefont get-family)))]))
+      (define font-size : Flonum (flmin 1024.0 (real->double-flonum font-size-raw)))
       (define font-style : Font-Style (generic-font-style-map (or style 'inherit) basefont))
       (define font-weight : Font-Weight (generic-font-weight-map (or weight 'inherit) basefont))
       (define font-smoothing : Font-Smoothing (or smoothing (send basefont get-smoothing)))
@@ -106,7 +105,7 @@
       [(script)        (case os [(macosx) "Apple Chancery, Italic"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
       [(symbol)        (case os [else "Symbol"])]
       [(system)        (system-ui 'normal-control-font (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"]))]
-      [else (racket-font-family->font-face (generic-font-family-map family))])))
+      [else (racket-font-family->font-face (generic-font-family-map family (default-css-font)))])))
 
 (define default-font-family->font-face : (Parameterof (-> Symbol (Option String))) (make-parameter racket-font-family->font-face))
 
@@ -115,7 +114,27 @@
     (or ((default-font-family->font-face) family)
         (racket-font-family->font-face family))))
 
+(define default-css-font : (Parameterof (Instance CSS-Font%))
+  (make-parameter (make-object css-font% (racket-font-family->font-face 'default))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define get-font-metrics : (-> Font (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [font]
+    (get_font_metrics (or (send font get-face)
+                          (font-family->font-face (send font get-family)))
+                      (smart-font-size font)
+                      (send font get-style)
+                      (send font get-weight))))
+
+(define get-font-metrics-lines : (-> Font String (Values Flonum Flonum Flonum Flonum Flonum))
+  (lambda [font content]
+    (get_font_metrics_lines (or (send font get-face)
+                                (font-family->font-face (send font get-family)))
+                            (smart-font-size font)
+                            (send font get-style)
+                            (send font get-weight)
+                            content)))
+
 (define text-size : (->* (String Font) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [text font [combined? #true] #:with-dc [dc the-dc]]
     (define-values (w h d a) (send dc get-text-extent text font combined?))

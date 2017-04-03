@@ -21,13 +21,12 @@
      #'(let ([rem? (positive? (css-rem))]
              [last-font (unbox &font)])
          (unless (and (eq? font last-font) rem?)
-           (css-font-relative-lengths (send font get-font-metrics '(em ex ch cap ic)))
+           (css-font-relative-lengths (send font get-metrics))
            (when (false? rem?) (css-rem (css-em)))
            (set-box! &font font))
          sexp ...)]))
 
-(define css-font-family-names/no-variants : (Listof String) (get-face-list 'all #:all-variants? #false))
-(define &font : (Boxof CSS-Font) (box (make-css-font)))
+(define &font : (Boxof CSS-Font) (box (default-css-font)))
 
 (define css-font-generic-families : (Listof Symbol)
   '(default roman swiss      decorative modern    script  system    symbol
@@ -110,9 +109,6 @@
 
 (define css->font-family : (CSS->Racket (U String Symbol))
   (lambda [_ value]
-    (define (face-filter [family : String]) : (Option String)
-      (for/or : (Option String) ([face (in-list css-font-family-names/no-variants)])
-        (and (string-ci=? family face) family)))
     (let select ([families (if (list? value) value (list value))])
       (cond [(null? families) (let ([pfont (unbox &font)]) (or (send pfont get-face) (send pfont get-family)))]
             [else (let ([family (car families)])
@@ -123,24 +119,14 @@
 
 (define css->font-size : (CSS->Racket Nonnegative-Real)
   (lambda [property value]
-    (cond [(symbol? value)
-           (let ([css-font-medium (smart-font-size (default-css-font))])
-             (case value
-               [(xx-large) (* 2/1 css-font-medium)]
-               [(x-large)  (* 3/2 css-font-medium)]
-               [(large)    (* 6/5 css-font-medium)]
-               [(small)    (* 8/9 css-font-medium)]
-               [(x-small)  (* 3/4 css-font-medium)]
-               [(xx-small) (* 3/5 css-font-medium)]
-               [(smaller)  (* 5/6 (css-em))] ; TODO: find a better function to deal with these two keywords.
-               [(larger)   (* 6/5 (css-em))] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
-               [else       css-font-medium]))]
+    (cond [(symbol? value) (generic-font-size-map value (unbox &font) (default-css-font))]
           [(nonnegative-flonum? value) value]
           [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (css-em))]
           [(css+length? value) (css:length->scalar value #false)]
           [(eq? property 'min-font-size) 0.0]
           [(eq? property 'max-font-size) 1024.0]
-          [else +nan.0 #| used to determine whether size-in-pixels? will be inherited, see (css-extract-font) |#])))
+          [(eq? value css:inherit) 1.0f0]
+          [else (css-rem)])))
 
 (define css->line-height : (-> Symbol Any (U Nonnegative-Flonum Negative-Single-Flonum))
   (lambda [_ value]

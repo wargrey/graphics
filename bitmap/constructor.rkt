@@ -9,9 +9,6 @@
 (require "font.rkt")
 
 (require racket/math)
-(require racket/string)
-(require racket/bool)
-
 (require typed/images/icons)
 
 (define bitmap-blank : (->* () (Real (Option Real) Positive-Real) Bitmap)
@@ -46,26 +43,42 @@
     solid))
 
 (define bitmap-text : (->* (String) (Font #:combine? (U Boolean Symbol) #:color (Option Color+sRGB) #:background-color (Option Color+sRGB)
+                                          #:ascent-color (Option Color+sRGB) #:ascent-style Pen-Style
+                                          #:capline-color (Option Color+sRGB) #:capline-style Pen-Style
+                                          #:meanline-color (Option Color+sRGB) #:meanline-style Pen-Style
                                           #:baseline-color (Option Color+sRGB) #:baseline-style Pen-Style
-                                          #:ascentline-color (Option Color+sRGB) #:ascentline-style Pen-Style) Bitmap)
+                                          #:descent-color (Option Color+sRGB) #:descent-style Pen-Style) Bitmap)
   (lambda [content [font (default-css-font)] #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background-color [bgcolor #false]
+                   #:ascent-color [alcolor #false] #:ascent-style [alstyle 'solid]
+                   #:capline-color [clcolor #false] #:capline-style [clstyle 'solid]
+                   #:meanline-color [mlcolor #false] #:meanline-style [mlstyle 'solid]
                    #:baseline-color [blcolor #false] #:baseline-style [blstyle 'solid]
-                   #:ascentline-color [alcolor #false] #:ascentline-style [alstyle 'solid]]
+                   #:descent-color [dlcolor #false] #:descent-style [dlstyle 'solid]]
     (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font get-combine?))))
-    (define-values (width height descent space) (send the-dc get-text-extent content font combine?))
+    (define-values (width height _ zero) (send the-dc get-text-extent content font combine?))
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
     (send dc set-font font)
     (when fgcolor (send dc set-text-foreground (select-color fgcolor)))
     (when bgcolor (send dc set-text-background (select-color bgcolor)))
     (when bgcolor (send dc set-text-mode 'solid))
     (send dc draw-text content 0 0 combine?)
-    (unless (false? alcolor)
-      (send dc set-pen (select-color alcolor) 1 alstyle)
-      (send dc draw-line 0 space width space))
-    (unless (false? blcolor)
-      (define baseline : Real (- height descent))
-      (send dc set-pen (select-color blcolor) 1 blstyle)
-      (send dc draw-line 0 baseline width baseline))
+    (when (or alcolor clcolor mlcolor blcolor dlcolor)
+      (define-values (ascent capline meanline baseline descent) (get-font-metrics-lines font content))
+      (unless (false? alcolor)
+        (send dc set-pen (select-color alcolor) 1 alstyle)
+        (send dc draw-line 0 ascent width ascent))
+      (unless (false? clcolor)
+        (send dc set-pen (select-color clcolor) 1 alstyle)
+        (send dc draw-line 0 capline width capline))
+      (unless (false? mlcolor)
+        (send dc set-pen (select-color mlcolor) 1 alstyle)
+        (send dc draw-line 0 meanline width meanline))
+      (unless (false? blcolor)
+        (send dc set-pen (select-color blcolor) 1 blstyle)
+        (send dc draw-line 0 baseline width baseline))
+      (unless (false? dlcolor)
+        (send dc set-pen (select-color dlcolor) 1 blstyle)
+        (send dc draw-line 0 descent width descent)))
     (or (send dc get-bitmap) (bitmap-blank))))
 
 (define bitmap-desc : (->* (String Real)
