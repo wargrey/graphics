@@ -41,7 +41,7 @@
       [else #false])))
 
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (CSS-Font) CSS-Font)
-  (lambda [declared-values inherited-values [basefont (make-css-font)]]
+  (lambda [declared-values inherited-values [basefont (default-css-font)]]
     (define (css->font-underlined [_ : Symbol] [value : Any]) : (Listof Any)
       (if (list? value) value (if (send inherited-font get-underlined) (list 'underline) null)))
     (define ?font : Any (and inherited-values (css-ref inherited-values #false 'font)))
@@ -57,15 +57,13 @@
       (define smoothing : (Option Font-Smoothing) (css-ref declared-values #false '-racket-font-smoothing racket-font-smoothing? #false))
       (define hinting : (Option Font-Hinting) (css-ref declared-values #false '-racket-font-hinting racket-font-hinting? #false))
       (define size : Nonnegative-Real (max (min max-size font-size) min-size))
-      (define ligatures : Symbol (css-ref declared-values inherited-values 'font-variant-ligatures symbol? 'normal))
+      (define ligature : Symbol (css-ref declared-values inherited-values 'font-variant-ligatures symbol? 'normal))
       (define font : CSS-Font
         (make-css-font #:family family #:size size #:style style #:weight weight #:hinting hinting
-                       #:underlined? (and (memq 'underline decorations) #true) #:smoothing smoothing
-                       #:combine? (eq? ligatures 'normal)
+                       #:ligature ligature #:lines (filter symbol? decorations) #:smoothing smoothing
                        inherited-font))
      (call-with-font font
        (css-set! declared-values 'font font)
-       (when (nan? size) (css-set! declared-values 'font-size size))
        font))))
 
 (define select-size : (->* ((U Nonnegative-Flonum Negative-Single-Flonum)) (Nonnegative-Flonum) Nonnegative-Flonum)

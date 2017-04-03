@@ -14,11 +14,11 @@
 (define-type CSS-Font%
   (Class #:implements Font%
          (init-field [face String]
-                     [combine? Boolean #:optional])
+                     [ligature Symbol #:optional])
          (init [size Real #:optional]
                [style Font-Style #:optional]
                [weight Font-Weight #:optional]
-               [underline? Boolean #:optional]
+               [lines (Listof Symbol) #:optional]
                [smoothing Font-Smoothing #:optional]
                [hinting Font-Hinting #:optional])
          (init-rest Null)
@@ -27,10 +27,10 @@
 
 (define css-font% : CSS-Font%
   (class font%
-    (init-field face [combine? #true])
-    (init [size 12.0] [style 'normal] [weight 'normal] [underline? #false] [smoothing 'default] [hinting 'aligned])
+    (init-field face [ligature 'normal])
+    (init [size 12.0] [style 'normal] [weight 'normal] [lines null] [smoothing 'default] [hinting 'aligned])
     
-    (super-make-object size face 'default style weight underline? smoothing #true hinting)
+    (super-make-object size face 'default style weight (pair? lines) smoothing #true hinting)
 
     (define metrics : (HashTable Symbol Nonnegative-Flonum) (make-hasheq))
     
@@ -49,7 +49,7 @@
                     (cons unit (metrics-ref unit)))]))
     
     (define/public (get-combine?)
-      combine?)
+      (not (eq? ligature 'none)))
     
     (define/override (get-family)
       (let try-next ([families : (Listof Font-Family) '(swiss roman modern decorative script symbol system)])
@@ -62,13 +62,13 @@
 
 (define make-css-font : (->* ()
                              (Font #:size (U Symbol Nonnegative-Real) #:family (U String Symbol (Listof (U String Symbol)))
-                                   #:style (Option Symbol) #:weight (Option Symbol) #:combine? (U Boolean Symbol)
-                                   #:hinting (Option Font-Hinting) #:underlined? (U Boolean Symbol) #:smoothing (Option Font-Smoothing))
+                                   #:style (Option Symbol) #:weight (Option Symbol) #:ligature (U Boolean Symbol)
+                                   #:hinting (Option Font-Hinting) #:lines (Option (Listof Symbol)) #:smoothing (Option Font-Smoothing))
                              (Instance CSS-Font%))
   (let ([fontbase : (HashTable (Listof Any) (Instance CSS-Font%)) (make-hash)])
     (lambda [[basefont (default-css-font)] #:size [size +nan.0] #:family [face null] #:style [style #false] #:weight [weight #false]
-                                           #:hinting [hinting #false] #:smoothing [smoothing #false] #:underlined? [underlined 'inherit]
-                                           #:combine? [combine? 'inherit]]
+                                           #:hinting [hinting #false] #:smoothing [smoothing #false] #:lines [lines #false]
+                                           #:ligature [ligature #false]]
       (define font-size-raw : Nonnegative-Real
         (cond [(symbol? size) (generic-font-size-map size basefont (default-css-font))]
               [(nan? size) (smart-font-size basefont)]
@@ -84,16 +84,16 @@
       (define font-style : Font-Style (generic-font-style-map (or style 'inherit) basefont))
       (define font-weight : Font-Weight (generic-font-weight-map (or weight 'inherit) basefont))
       (define font-smoothing : Font-Smoothing (or smoothing (send basefont get-smoothing)))
-      (define font-underlined? : Boolean (if (boolean? underlined) underlined (send basefont get-underlined)))
+      (define font-lines : (Listof Symbol) (or lines (if (send basefont get-underlined) '(underline) null)))
       (define font-hinting : Font-Hinting (or hinting (send basefont get-hinting)))
-      (define font-combine? : Boolean
-        (cond [(boolean? combine?) combine?]
-              [(css-font%? basefont) (send basefont get-combine?)]
-              [else #true]))
+      (define font-ligature : Symbol
+        (cond [(symbol? ligature) ligature]
+              [(css-font%? basefont) (if (send basefont get-combine?) 'normal 'none)]
+              [else 'normal]))
       (hash-ref! fontbase
-                 (list font-face font-combine? font-size font-style font-weight font-underlined? font-smoothing font-hinting)
-                 (λ [] (make-object css-font% font-face font-combine? font-size
-                         font-style font-weight font-underlined? font-smoothing font-hinting))))))
+                 (list font-face font-ligature font-size font-style font-weight font-lines font-smoothing font-hinting)
+                 (λ [] (make-object css-font% font-face font-ligature font-size
+                         font-style font-weight font-lines font-smoothing font-hinting))))))
 
 (define racket-font-family->font-face : (-> Symbol String)
   (lambda [family]
