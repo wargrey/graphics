@@ -22,6 +22,12 @@
                [smoothing Font-Smoothing #:optional]
                [hinting Font-Hinting #:optional])
          (init-rest Null)
+         [em (-> Nonnegative-Flonum)]
+         [ex (-> Nonnegative-Flonum)]
+         [cap (-> Nonnegative-Flonum)]
+         [ch (-> Nonnegative-Flonum)]
+         [ic (-> Nonnegative-Flonum)]
+         [lh (-> Nonnegative-Flonum)]
          [get-combine? (-> Boolean)]
          [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]))
 
@@ -32,18 +38,17 @@
     
     (super-make-object size face 'default style weight (pair? lines) smoothing #true hinting)
 
+    (define-syntax (define-metrics-accessor stx)
+      (syntax-case stx []
+        [(_ (get-ms [units null]) #:with [m ...] body ...)
+         #'(begin (define/public (m) (fill-metrics!) (metrics-ref 'm)) ...
+                  (define/public (get-ms [units null])
+                    body ...))]))
+
     (define metrics : (HashTable Symbol Nonnegative-Flonum) (make-hasheq))
-    
-    (define/public (get-metrics [units null])
-      (define (metrics-ref [unit : Symbol]) : Nonnegative-Flonum (hash-ref metrics unit (thunk +nan.0)))
-      (when (zero? (hash-count metrics))
-        (define-values (ex cap ch ic) (get-font-metrics this))
-        (hash-set! metrics 'em (smart-font-size this))
-        (hash-set! metrics 'ex ex)
-        (hash-set! metrics 'cap cap)
-        (hash-set! metrics 'ch ch)
-        (hash-set! metrics 'ic ic)
-        (hash-set! metrics 'lh +nan.0))
+
+    (define-metrics-accessor (get-metrics [units null]) #:with [em ex cap ch ic lh]
+      (fill-metrics!)
       (cond [(null? units) (hash->list metrics)]
             [else (for/list : (Listof (Pairof Symbol Nonnegative-Flonum)) ([unit (in-list units)])
                     (cons unit (metrics-ref unit)))]))
@@ -55,7 +60,20 @@
       (let try-next ([families : (Listof Font-Family) '(swiss roman modern decorative script symbol system)])
         (cond [(null? families) (super get-family)]
               [(string=? face (font-family->font-face (car families))) (car families)]
-              [else (try-next (cdr families))])))))
+              [else (try-next (cdr families))])))
+
+    (define/private (fill-metrics!) : Void
+      (when (zero? (hash-count metrics))
+        (define-values (ex cap ch ic) (get-font-metrics this))
+        (hash-set! metrics 'em (smart-font-size this))
+        (hash-set! metrics 'ex ex)
+        (hash-set! metrics 'cap cap)
+        (hash-set! metrics 'ch ch)
+        (hash-set! metrics 'ic ic)
+        (hash-set! metrics 'lh +nan.0)))
+
+    (define/private (metrics-ref [unit : Symbol]) : Nonnegative-Flonum
+      (hash-ref metrics unit (thunk +nan.0)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-cheat-opaque css-font%? #:is-a? CSS-Font% css-font%)

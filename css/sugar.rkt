@@ -37,19 +37,19 @@
   (syntax-parse stx
     [(_ declared-values inherited-values #:with [box-size size-ref color-ref local-ref] sexp ...)
      (with-syntax ([___ (datum->syntax #'local-ref '...)])
-       #'(parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)]
-                        [default-css-font (css-extract-font declared-values inherited-values)])
+       #'(parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)])
+           (css-extract-font declared-values inherited-values)
            (define-values (box-size size-ref color-ref icon-ref) (css-property-accessors declared-values inherited-values))
            (define-syntax (local-ref stx) (syntax-case stx [] [(_ argl ___) #'(css-ref declared-values inherited-values argl ___)]))
            sexp ...))]
     [(_ declared-values inherited-values (~optional normal-icon-height) #:with [box-size size-ref color-ref icon-ref local-ref] sexp ...)
      (with-syntax ([___ (datum->syntax #'local-ref '...)]
                    [nih (if (attribute normal-icon-height) #'(real->double-flonum normal-icon-height) #'(css-normal-line-height))])
-       #'(parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)]
-                        [default-css-font (css-extract-font declared-values inherited-values)])
+       #'(parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)])
+           (css-extract-font declared-values inherited-values)
            (define-values (box-size size-ref color-ref icon-ref) (css-property-accessors declared-values inherited-values))
            (define-syntax (local-ref stx) (syntax-case stx [] [(_ argl ___) #'(css-ref declared-values inherited-values argl ___)]))
-           (parameterize ([default-icon-height (select-size (css-ref declared-values inherited-values 'icon-height css->line-height) nih)])
+           (parameterize ([default-icon-height (select-size (local-ref 'icon-height css->line-height) nih)])
              sexp ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

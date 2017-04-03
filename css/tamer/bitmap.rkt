@@ -18,7 +18,7 @@
    [border-color : Color                 #:= 'Crimson]
    [foreground-color : Color             #:= "Grey"]
    [background-color : Color             #:= "Snow"]
-   [font : CSS-Font                      #:= (make-css-font)]
+   [font : CSS-Font                      #:= (current-css-element-font)]
    [width : Index                        #:= 512]
    [desc : String                        #:= "['desc' property is required]"]
    [prelude : Bitmap                     #:= (bitmap-text "> ")]
@@ -42,22 +42,22 @@
       (cond [(string? value) value]
             [(list? value) (string-join (filter string? value))]
             [else css:initial]))
-    (parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)])
-      (make-btest #:symbol-color (css-color-ref declared-values inherited-values 'symbol-color)
-                  #:string-color (css-color-ref declared-values inherited-values 'string-color)
-                  #:number-color (css-color-ref declared-values inherited-values 'number-color)
-                  #:output-color (css-color-ref declared-values inherited-values 'output-color)
-                  #:paren-color (css-color-ref declared-values inherited-values 'paren-color)
-                  #:border-color (css-color-ref declared-values inherited-values 'border-color)
-                  #:foreground-color (css-color-ref declared-values inherited-values 'foreground-color)
-                  #:background-color (css-color-ref declared-values inherited-values 'background-color)
-                  #:font (css-extract-font declared-values inherited-values)
-                  #:width (css-ref declared-values inherited-values 'width index? css:initial)
-                  #:desc (css-ref declared-values inherited-values 'desc css->desc)
-                  #:prelude (css-ref declared-values inherited-values 'prelude css->bitmap)
-                  #:descriptors (css-values-fold declared-values (initial-btest-descriptors)
-                                                 (λ [[property : Symbol] [this-datum : Any] [desc++ : (HashTable Symbol Any)]]
-                                                   (hash-set desc++ property this-datum)))))))
+    (current-css-element-color (css-color-ref declared-values inherited-values))
+    (make-btest #:symbol-color (css-color-ref declared-values inherited-values 'symbol-color)
+                #:string-color (css-color-ref declared-values inherited-values 'string-color)
+                #:number-color (css-color-ref declared-values inherited-values 'number-color)
+                #:output-color (css-color-ref declared-values inherited-values 'output-color)
+                #:paren-color (css-color-ref declared-values inherited-values 'paren-color)
+                #:border-color (css-color-ref declared-values inherited-values 'border-color)
+                #:foreground-color (css-color-ref declared-values inherited-values 'foreground-color)
+                #:background-color (css-color-ref declared-values inherited-values 'background-color)
+                #:font (css-extract-font declared-values inherited-values)
+                #:width (css-ref declared-values inherited-values 'width index? css:initial)
+                #:desc (css-ref declared-values inherited-values 'desc css->desc)
+                #:prelude (css-ref declared-values inherited-values 'prelude css->bitmap)
+                #:descriptors (css-values-fold declared-values (initial-btest-descriptors)
+                                               (λ [[property : Symbol] [this-datum : Any] [desc++ : (HashTable Symbol Any)]]
+                                                 (hash-set desc++ property this-datum))))))
 
 (css-root-element-type 'module)
 
@@ -83,6 +83,7 @@
       (define-values (width words font) (values (btest-width $bt) (btest-desc $bt) (btest-font $bt)))
       (define desc (bitmap-desc words width font #:color fgcolor #:background-color bgcolor))
       (define-values (desc-width height) (bitmap-size desc))
+      (define ~s32 : (-> String String) (λ [txt] (~s txt #:max-width 32 #:pad-string "...")))
       
       (values (append bitmap-descs
                       (list (bitmap-pin 1 1/2 0 1/2
@@ -90,9 +91,10 @@
                                         (bitmap-text "(" #:color (btest-paren-color $bt))
                                         (bitmap-hc-append #:gapsize 7
                                                           (bitmap-text "bitmap-desc" #:color (btest-symbol-color $bt))
-                                                          (bitmap-text (~s words) #:color (btest-string-color $bt))
+                                                          (bitmap-text (~s32 words) #:color (btest-string-color $bt))
+                                                          (bitmap-text (~a width) #:color (btest-number-color $bt))
                                                           (bitmap-text (~s (send font get-face)) #:color (btest-string-color $bt))
-                                                          (bitmap-text (~a width) #:color (btest-number-color $bt)))
+                                                          (bitmap-text (~a (smart-font-size font)) #:color (btest-number-color $bt)))
                                         (bitmap-text ")" #:color (btest-paren-color $bt)))
                             (bitmap-text #:color rcolor
                                          (cond [(not (send font get-combine?)) (format "- : (Bitmap ~a ~a)" desc-width height)]

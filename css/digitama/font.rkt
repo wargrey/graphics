@@ -13,19 +13,6 @@
 (require "../recognizer.rkt")
 (require "../racket.rkt")
 
-(require (for-syntax syntax/parse))
-
-(define-syntax (call-with-font stx)
-  (syntax-parse stx
-    [(_ font sexp ...)
-     #'(let ([rem? (positive? (css-rem))]
-             [last-font (unbox &font)])
-         (unless (and (eq? font last-font) rem?)
-           (css-font-relative-lengths (send font get-metrics))
-           (when (false? rem?) (css-rem (css-em)))
-           (set-box! &font font))
-         sexp ...)]))
-
 (define &font : (Boxof CSS-Font) (box (default-css-font)))
 
 (define css-font-generic-families : (Listof Symbol)
@@ -124,9 +111,9 @@
           [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (css-em))]
           [(css+length? value) (css:length->scalar value #false)]
           [(eq? property 'min-font-size) 0.0]
-          [(eq? property 'max-font-size) 1024.0]
-          [(eq? value css:inherit) 1.0f0]
-          [else (css-rem)])))
+          [(eq? property 'max-font-size) +inf.0]
+          [(eq? value css:inherit) (css-em)]
+          [else (generic-font-size-map 'medium (unbox &font) (default-css-font))])))
 
 (define css->line-height : (-> Symbol Any (U Nonnegative-Flonum Negative-Single-Flonum))
   (lambda [_ value]

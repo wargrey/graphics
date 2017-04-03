@@ -13,7 +13,7 @@
   (define &layout (box #false))
   (define &ink (make-PangoRectangle 0 0 0 0))
   (define &logical (make-PangoRectangle 0 0 0 0))
-
+  
   (define get_font_metrics
     (lambda [font-face font-size font-style font-weight]
       (define-values (font-desc baseline get-extent) (make-desc+extent font-face font-size font-style font-weight))

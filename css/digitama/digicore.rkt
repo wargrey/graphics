@@ -584,8 +584,8 @@
 (define-type CSS-Attribute-Datum (U String Symbol (Listof (U String Symbol))))
 (define-type CSS-Attribute-Value (U CSS-Attribute-Datum (Vector Symbol CSS-Attribute-Datum)))
 
-(define css-root-element-type : (Parameterof Symbol) (make-parameter 'root))
-(define css-root-element-id : (Parameterof (U Keyword (Listof+ Keyword))) (make-parameter '#:root))
+(define-css-parameter css-root-element-type : Symbol #:= 'root)
+(define-css-parameter css-root-element-id : (U Keyword (Listof+ Keyword)) #:= '#:root)
 
 (define-preference css-subject #:as CSS-Subject
   ([combinator : CSS-Selector-Combinator                #:= '>]
@@ -626,19 +626,21 @@
 (define-syntax (define-prefab-keyword stx)
   (syntax-case stx [:]
     [(_ css-wide-keyword #:as CSS-Wide-Keyword [keyword ...])
-     (with-syntax ([(keywords-ormap keywords-filter-map css:symbol ...)
-                    (list* (format-id #'css-wide-keyword "~as-ormap" (syntax-e #'css-wide-keyword))
+     (with-syntax ([(<keywords> keywords-filter-map css:symbol ...)
+                    (list* (format-id #'css-wide-keyword "<~as>" (syntax-e #'css-wide-keyword))
                            (format-id #'css-wide-keyword "~as-filter-map" (syntax-e #'css-wide-keyword))
                            (for/list ([kwd (in-list (syntax->list #'(keyword ...)))])
                              (format-id kwd "css:~a" (syntax-e kwd))))])
        #'(begin (define-css-value css-wide-keyword #:as CSS-Wide-Keyword ([value : Symbol]))
                 (define css:symbol : CSS-Wide-Keyword (css-wide-keyword 'keyword)) ...
-
-                (define keywords-ormap : (-> (U Symbol CSS-Token) (Option CSS-Wide-Keyword))
-                  (lambda [key]
-                    (cond [(css-token? key) (and (css:ident? key) (keywords-ormap (css:ident-norm key)))]
-                          [(eq? key 'keyword) css:symbol] ...
-                          [else #false])))
+                
+                (define <keywords> : (-> (CSS:Filter CSS-Wide-Keyword))
+                  (lambda []
+                    (λ [[token : CSS-Syntax-Any]]
+                      (and (css:ident? token)
+                           (or (let ([key : Symbol (css:ident-norm token)])
+                                 (cond [(eq? key 'keyword) css:symbol] ...
+                                       [else (make-exn:css:range token)])))))))
 
                 (define keywords-filter-map : (-> (U Symbol CSS-Syntax-Error) (U Symbol CSS-Wide-Keyword CSS-Syntax-Error))
                   (lambda [key]
@@ -662,15 +664,15 @@
            (when (and (real? h) (positive? h)) (css-vh (real->double-flonum h)))
            sexp ...))]))
 
-(define-css-parameters css-root-relative-lengths [vw vh rem rlh] : Nonnegative-Flonum #:= 0.0)
-(define-css-parameters css-font-relative-lengths [em ex cap ch ic lh] : Nonnegative-Flonum #:= 0.0)
+(define-css-parameters css-root-relative-lengths [vw vh rem rlh] : Nonnegative-Flonum #:= +nan.0)
+(define-css-parameters css-font-relative-lengths [em ex cap ch ic lh] : Nonnegative-Flonum #:= +nan.0)
 (define css-longhand : CSS-Longhand-Values (make-immutable-hasheq))
 (define make-css-values : (-> CSS-Values) (λ [] ((inst make-hasheq Symbol (-> Any)))))
   
-(define css-ref : (All (a b c) (case-> [CSS-Values (Option CSS-Values) Symbol -> Any]
-                                       [CSS-Values (Option CSS-Values) Symbol (CSS->Racket a) -> a]
-                                       [CSS-Values (Option CSS-Values) Symbol (-> Any Boolean : #:+ a) b -> (U a b)]
-                                       [CSS-Values (Option CSS-Values) Symbol (-> Any Boolean : #:+ a) b c -> (U a b c)]))
+(define css-ref : (All (a b c) (case-> [CSS-Values (U CSS-Values Boolean) Symbol -> Any]
+                                       [CSS-Values (U CSS-Values Boolean) Symbol (CSS->Racket a) -> a]
+                                       [CSS-Values (U CSS-Values Boolean) Symbol (-> Any Boolean : #:+ a) b -> (U a b)]
+                                       [CSS-Values (U CSS-Values Boolean) Symbol (-> Any Boolean : #:+ a) b c -> (U a b c)]))
   (case-lambda
     [(declared-values inherited-values desc-name)
      (define-values (cascaded-value specified-value) (css-ref-raw declared-values inherited-values desc-name))
@@ -681,14 +683,15 @@
     [(declared-values inherited-values desc-name datum? default-value)
      (define-values (cascaded-value specified-value) (css-ref-raw declared-values inherited-values desc-name))
      (css-tee-computed-value declared-values desc-name cascaded-value (if (datum? specified-value) specified-value default-value))]
-    [(declared-values inherited-values desc-name datum? default-value initial-value)
+    [(declared-values inherited-values desc-name datum? default-value inherit-value)
+     ;;; See NOTE in `css-ref-raw`
      (define-values (cascaded-value specified-value) (css-ref-raw declared-values inherited-values desc-name))
      (css-tee-computed-value declared-values desc-name cascaded-value
                              (cond [(datum? specified-value) specified-value]
-                                   [(css-wide-keyword? specified-value) initial-value]
+                                   [(eq? specified-value css:inherit) inherit-value]
                                    [else default-value]))]))
 
-(define css-ref-raw : (-> CSS-Values (Option CSS-Values) Symbol (Values Any Any))
+(define css-ref-raw : (-> CSS-Values (U CSS-Values Boolean) Symbol (Values Any Any))
   (lambda [declared-values inherited-values desc-name]
     (define declared-value : (-> Any)
       (hash-ref declared-values desc-name
@@ -696,9 +699,17 @@
                              [else (hash-ref declared-values 'all (thunk (thunk css:unset)))]))))
     (define cascaded-value : Any (declared-value))
     (define specified-value : Any
+      ;;; NOTE
+      ;; when the `inherited-values` is #true, it means this property is inheritable
+      ;; but the value is not stored with the property, clients will deal this on their on.
+      ;; For example, the font consists of several separate properties, and some of them value types between Racket
+      ;; and CSS are not stay the same, it is therefore more convenient to store it with the shorthand property 'font'
+      ;; as a Racket object than reset all relevent properties every time after making a new font object.
       (cond [(not (css-wide-keyword? cascaded-value)) cascaded-value]
-            [(or (eq? cascaded-value css:initial) (false? inherited-values)) css:initial]
-            [else (let-values ([(_ sv) (css-ref-raw inherited-values #false desc-name)]) sv)]))
+            [(eq? cascaded-value css:initial) css:initial]
+            [(hash? inherited-values) (let-values ([(_ sv) (css-ref-raw inherited-values #true desc-name)]) sv)]
+            [(false? inherited-values) css:initial]
+            [else css:inherit]))
     (unless (eq? cascaded-value specified-value)
       (hash-set! declared-values desc-name (thunk specified-value)))
     (values cascaded-value specified-value)))

@@ -10,6 +10,7 @@
 (require "selector.rkt")
 (require "variables.rkt")
 (require "conditional.rkt")
+(require "../recognizer.rkt")
 
 (define-type CSS-StyleSheet-Pool (HashTable Natural CSS-StyleSheet))
 (define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule CSS-Media-Rule))
@@ -102,23 +103,22 @@
           (when (desc-more-important? desc-key important?)
             (hash-set! descbase desc-key declared-value))))
       (hash-set! descbase desc-name declared-value))
-    (define #:forall (a) (do-parse [parse : (CSS-Parser a)] [initial : a] [declared-values : (Listof CSS-Token)]) : (U a CSS-Syntax-Error)
+    (define #:forall (a) (do-parse [<desc-name> : CSS:Ident] [parse : (CSS-Parser a)] [initial : a]
+                                   [declared-values : (Listof CSS-Token)]) : (Option a)
       (define-values (desc-value+exn tail) (parse initial declared-values))
-      (cond [(false? desc-value+exn) (if (null? tail) (make-exn:css:missing-value tail) (make+exn:css:type tail))]
-            [(exn:css? desc-value+exn) desc-value+exn]
-            [(pair? tail) (make-exn:css:overconsumption tail)]
+      (cond [(false? desc-value+exn) ((if (null? tail) make+exn:css:missing-value make+exn:css:type) tail <desc-name>) #false]
+            [(exn:css? desc-value+exn) (css-log-syntax-error desc-value+exn <desc-name>) #false]
+            [(pair? tail) (make+exn:css:overconsumption tail <desc-name>) #false]
             [else desc-value+exn]))
     (define (parse-long [parser : (Pairof CSS-Shorthand-Parser (Listof Symbol))]
                         [<desc-name> : CSS:Ident] [declared-values : (Listof+ CSS-Token)]
                         [important? : Boolean] [lazy? : Boolean]) : Void
-      (define (normalize [desc-values : (U CSS-Longhand-Values CSS-Syntax-Error)]) : (Option CSS-Longhand-Values)
-        (cond [(not (exn:css? desc-values)) desc-values]
-              [else (and (css-log-syntax-error desc-values <desc-name>) #false)]))
       (cond [(and lazy?)
              (define pending-thunk : (-> (Option CSS-Longhand-Values))
                (thunk (let* ([varbase (css-varbase-ref descbase)]
                              [flat-values (css-variable-substitute <desc-name> declared-values varbase null)])
-                        (and (css-pair? flat-values) (normalize (do-parse (car parser) css-longhand flat-values))))))
+                        (and (css-pair? flat-values)
+                             (do-parse <desc-name> (car parser) css-longhand flat-values)))))
              (define &pending-longhand : (Boxof (-> (Option CSS-Longhand-Values))) (box pending-thunk))
              (for ([name (in-list (cdr parser))] #:when (desc-more-important? name important?))
                (desc-set! name important?
@@ -127,27 +127,27 @@
                                    (let ([desc-value (if (hash? longhand) (hash-ref longhand name (thunk css:initial)) css:unset)])
                                      (hash-set! descbase name (thunk desc-value))
                                      desc-value)))))]
-            [(normalize (do-parse (car parser) css-longhand declared-values))
+            [(do-parse <desc-name> (car parser) css-longhand declared-values)
              => (λ [longhand] (for ([(name desc-value) (in-hash longhand)])
                                 (desc-set! name important? (thunk desc-value))))]))
     (define (parse-desc [parser : (CSS-Parser (Listof Any))]
                         [<desc-name> : CSS:Ident] [desc-name : Symbol] [declared-values : (Listof+ CSS-Token)]
                         [important? : Boolean] [lazy? : Boolean]) : Void
-      (define (normalize [desc-values : (U (Listof Any) CSS-Syntax-Error)]) : Any
-        (cond [(pair? desc-values) (if (null? (cdr desc-values)) (car desc-values) (reverse desc-values))]
-              [(and (null? (cdr declared-values)) (css-wide-keywords-ormap (car declared-values))) => identity]
-              [else (and (exn:css? desc-values) (css-log-syntax-error desc-values <desc-name>) #false)]))
+      (define css-parse : (CSS-Parser (Listof Any)) (CSS<+> parser (CSS<^> (<css-wide-keywords>))))
+      (define (normalize [desc-values : (Listof Any)]) : Any
+        (cond [(and (pair? desc-values) (null? (cdr desc-values))) (car desc-values)]
+              [else (reverse desc-values)]))
       (cond [(and lazy?)
              (desc-set! desc-name important?
                         (thunk (let* ([varbase (css-varbase-ref descbase)]
                                       [flat-values (css-variable-substitute <desc-name> declared-values varbase null)])
                                  (define desc-value : Any
-                                   (and (css-pair? flat-values)
-                                        (normalize (do-parse parser null flat-values))))
-                                 (unless (false? desc-value) (hash-set! descbase desc-name (thunk desc-value)))
-                                 (or desc-value css:unset))))]
-            [(normalize (do-parse parser null declared-values))
-             => (λ [desc-value] (desc-set! desc-name important? (thunk desc-value)))]))
+                                   (normalize (or (and (css-pair? flat-values) (do-parse <desc-name> css-parse null flat-values))
+                                                  (list css:unset))))
+                                 (hash-set! descbase desc-name (thunk desc-value)) ; self replace
+                                 desc-value)))]
+            [(do-parse <desc-name> css-parse null declared-values)
+             => (λ [desc-value] (desc-set! desc-name important? (thunk (normalize desc-value))))]))
     (let cascade ([subproperties : CSS-Cascading-Declarations properties])
       (for ([property (in-list subproperties)])
         (cond [(list? property) (cascade property)]

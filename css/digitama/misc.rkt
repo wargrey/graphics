@@ -21,7 +21,13 @@
          (let ([&storage : (Boxof (-> Type)) (box (λ [] defval))])
            (case-lambda
              [(v) (set-box! &storage (if (promise? v) (force v) (λ [] v)))]
-             [() ((unbox &storage))])))]))
+             [() ((unbox &storage))])))]
+    [(_ id : Type #:guard [guard : TypeIn] #:= defval)
+     #'(define id : (case-> [TypeIn -> Void] [-> Type])
+         (let ([&storage : (Boxof Type) (box (guard defval))])
+           (case-lambda
+             [(v) (set-box! &storage (guard v))]
+             [() (unbox &storage)])))]))
 
 (define-syntax (define-css-parameters stx)
   (syntax-case stx [:]

@@ -4,7 +4,7 @@
 (require "../sugar.rkt")
 (require "configure.rkt")
 
-(current-css-element-color 'DarkSlateGray)
+(current-css-element-color 'Silver)
 (css-configure-@media)
 
 (define-predicate pen-style? Pen-Style)
@@ -17,7 +17,7 @@
    [vertical-inset : Nonnegative-Flonum    #:= 0.0]
    [horizontal-inset : Nonnegative-Flonum  #:= 0.0]
    [icon-height : Nonnegative-Flonum       #:= (real->double-flonum (default-icon-height))]
-   [font : Font                            #:= (default-css-font)]
+   [font : Font                            #:= (current-css-element-font)]
    [color : Color                          #:= 'currentcolor]
    [border-color : Color                   #:= 'currentcolor]
    [background-color : Color               #:= 'transparent]

@@ -110,4 +110,5 @@ bitmap-desc.test {
     font-family: system-ui;
     font-size: initial;
     font-style: initial;
+    text-decoration-line: initial;
 }

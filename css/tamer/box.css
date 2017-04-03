@@ -15,7 +15,7 @@
   icon-height: 1.5; /* unitless */
   color: DarkSlateGray;
   background-color: White;
-  border-color: Silver;
+  border-color: currentcolor;
   border-style: transparent;
 }
 

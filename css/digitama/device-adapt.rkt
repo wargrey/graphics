@@ -38,8 +38,8 @@
     (define-values (initial-width initial-height)
       (let ([w (hash-ref (default-css-media-preferences) 'width (const #false))]
             [h (hash-ref (default-css-media-preferences) 'height (const #false))])
-        (values (if (real? w) (flmax (real->double-flonum w) 1.0) 1.0)
-                (if (real? h) (flmax (real->double-flonum h) 1.0) 1.0))))
+        (values (if (and (real? w) (positive? w)) (flmax (real->double-flonum w) 1.0) 1.0)
+                (if (and (real? h) (positive? h)) (flmax (real->double-flonum h) 1.0) 1.0))))
     (define defzoom : Nonnegative-Flonum (default-css-viewport-auto-zoom))
     (define (smart [maix : (-> Flonum Flonum Flonum)] [v1 : (U Flonum Symbol)] [v2 : (U Flonum Symbol)]) : (U Flonum Symbol)
       (cond [(and (symbol? v1) (symbol? v2)) 'auto]
