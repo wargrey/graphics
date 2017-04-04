@@ -55,7 +55,7 @@ module.main {
     background-color: HsIa(120.01deg var(--honeydew-s) var(--honeydew-i) / 1.0);
     border-color: var(--gray);
 
-    width: 256;
+    width: 384;
     desc: "";
     prelude: @text-icon("Prelude> " @make-font(#:face "Lucida Grande") #:color #3C803C #:height 100% #:trim\? false);
 
@@ -85,8 +85,8 @@ bitmap-desc.test {
 }
 
 bitmap-desc.test {
-    width: 32;
-    desc: "Hello,\aRacket!";
+    width: 64;
+    desc: "Hello,\aMystery?";
     font: small modern;
     text-decoration: none;
     font-variant-ligatures: none;

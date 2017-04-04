@@ -8,6 +8,7 @@
 
 (css-configure-@media)
 (current-namespace (module->namespace 'bitmap))
+(default-css-font (make-css-font #:size 16.0))
 
 (define-preference* btest #:as Bitmap.CSS #:with ([color-properties Color])
   ([symbol-color : Color                 #:= 'Blue]
@@ -83,7 +84,7 @@
       (define-values (width words font) (values (btest-width $bt) (btest-desc $bt) (btest-font $bt)))
       (define desc (bitmap-desc words width font #:color fgcolor #:background-color bgcolor))
       (define-values (desc-width height) (bitmap-size desc))
-      (define ~s32 : (-> String String) (λ [txt] (~s txt #:max-width 32 #:pad-string "...")))
+      (define ~s32 : (-> String String) (λ [txt] (~s txt #:max-width 32 #:limit-marker "...\"")))
       
       (values (append bitmap-descs
                       (list (bitmap-pin 1 1/2 0 1/2
@@ -98,7 +99,7 @@
                                         (bitmap-text ")" #:color (btest-paren-color $bt)))
                             (bitmap-text #:color rcolor
                                          (cond [(not (send font get-combine?)) (format "- : (Bitmap ~a ~a)" desc-width height)]
-                                               [else (format "- : (Bitmap ~a ~a #:combined)" desc-width height)]))
+                                               [else (format "- : (Bitmap ~a ~a #:ligature)" desc-width height)]))
                             (bitmap-lt-superimpose (bitmap-frame desc #:style 'transparent) ; align by frame border
                                                    (bitmap-frame (bitmap-blank width height) #:color bdcolor))))
               (cons $bt testcases)))))
