@@ -13,7 +13,7 @@
 (require "misc.rkt")
 
 ;; https://drafts.csswg.org/css-syntax/#css-stylesheets  
-(define-css-parser-entry read-css-stylesheet :-> CSS-StyleSheet
+(define-css-parser-entry read-css-stylesheet #:-> CSS-StyleSheet
   ;;; https://drafts.csswg.org/css-syntax/#parse-a-css-stylesheet
   ;;; https://drafts.csswg.org/css-syntax/#charset-rule
   ;;; https://drafts.csswg.org/css-namespaces
@@ -32,7 +32,7 @@
                     stylesheet)))
         (let ([rules (css-consume-stylesheet /dev/cssin)])
           (when (positive? identity) (hash-set! pool identity css-stylesheet-placeholder))
-          (define namespaces : CSS-Namespace (make-hasheq))
+          (define namespaces : (HashTable Symbol String) (make-hasheq))
           (define-values (viewport imports grammars)
             (css-syntax-rules->grammar-rules location rules namespaces #true #true init-viewport pool))
           (define timestamp : Integer (if (string? location) (file-or-directory-modify-seconds location) (current-seconds)))
@@ -41,7 +41,7 @@
           stylesheet))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define css-syntax-rules->grammar-rules : (->* ((U String Symbol) (Listof CSS-Syntax-Rule) CSS-Namespace Boolean Boolean)
+(define css-syntax-rules->grammar-rules : (->* ((U String Symbol) (Listof CSS-Syntax-Rule) (HashTable Symbol String) Boolean Boolean)
                                                (CSS-Media-Preferences CSS-StyleSheet-Pool)
                                                (Values CSS-Media-Preferences (Listof Positive-Integer) (Listof CSS-Grammar-Rule)))
   (lambda [src syntaxes0 namespaces can-import0? allow-namespace0?
@@ -157,7 +157,7 @@
           [(eof-object? 2nd) (cons '|| namespace)]
           [else (make+exn:css:type 1st)])))
 
-(define css-@media->media-rule : (-> CSS-@Rule CSS-Media-Preferences CSS-Namespace CSS-StyleSheet-Pool
+(define css-@media->media-rule : (-> CSS-@Rule CSS-Media-Preferences (HashTable Symbol String) CSS-StyleSheet-Pool
                                      (U (Listof CSS-Grammar-Rule) CSS-Media-Rule CSS-Syntax-Error Void))
   ;;; https://drafts.csswg.org/css-conditional/#contents-of
   ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
@@ -186,7 +186,7 @@
           [(not (css-query-support? (css-parse-feature-query (css-@rule-prelude support) name) (default-css-feature-support?))) null]
           [else (css-parse-rules (css:block-components ?block))])))
   
-(define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (Option CSS-Namespace) (U CSS-Style-Rule CSS-Syntax-Error))
+(define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (Option (HashTable Symbol String)) (U CSS-Style-Rule CSS-Syntax-Error))
   ;;; https://drafts.csswg.org/css-syntax/#style-rules
   ;;; https://drafts.csswg.org/selectors/#invalid
   (lambda [qr namespaces]

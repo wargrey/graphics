@@ -576,7 +576,7 @@
 (define-type (CSS-Option css) (U css CSS-Syntax-Error False))
 (define-type (CSS:Filter css) (-> CSS-Syntax-Any (CSS-Option css)))
 (define-type (CSS-Parser css) (-> css (Listof CSS-Token) (Values (CSS-Option css) (Listof CSS-Token))))
-(define-type CSS-Shorthand-Parser (CSS-Parser CSS-Longhand-Values))
+(define-type CSS-Shorthand-Parser (CSS-Parser (HashTable Symbol Any)))
 (define-type CSS-Longhand-Update (-> Symbol Any Any Any))
   
 ;; https://drafts.csswg.org/selectors
@@ -606,7 +606,6 @@
 ;; https://drafts.csswg.org/css-cascade/#filtering
 ;; https://drafts.csswg.org/css-cascade/#cascading
 (define-type CSS-Values (HashTable Symbol (-> Any)))
-(define-type CSS-Longhand-Values (HashTable Symbol Any))
 (define-type CSS-Cascading-Declarations (U CSS-Declarations (Listof CSS-Declarations)))
 (define-type CSS-Declaration-Parser (U (Pairof CSS-Shorthand-Parser (Listof Symbol)) (CSS-Parser (Listof Any)) Void False))
 (define-type CSS-Declaration-Parsers (-> Symbol (-> Void) CSS-Declaration-Parser))
@@ -666,7 +665,7 @@
 
 (define-css-parameters css-root-relative-lengths [vw vh rem rlh] : Nonnegative-Flonum #:= +nan.0)
 (define-css-parameters css-font-relative-lengths [em ex cap ch ic lh] : Nonnegative-Flonum #:= +nan.0)
-(define css-longhand : CSS-Longhand-Values (make-immutable-hasheq))
+(define css-longhand : (HashTable Symbol Any) (make-immutable-hasheq))
 (define make-css-values : (-> CSS-Values) (λ [] ((inst make-hasheq Symbol (-> Any)))))
   
 (define css-ref : (All (a b c) (case-> [CSS-Values (U CSS-Values Boolean) Symbol -> Any]

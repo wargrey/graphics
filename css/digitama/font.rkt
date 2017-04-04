@@ -32,7 +32,7 @@
 (define css-font-stretch-option : (Listof Symbol) '(normal condensed expanded ultra-condensed extra-condensed semi-condensed
                                                            ultra-expanded extra-expanded semi-expanded))
   
-(define-css-prefab-filter <css-system-font> #:-> Font #:format "default-css-~a-font"
+(define-css-prefab-filter <css-system-font> #:-> CSS-Font #:format "default-css-~a-font"
   [caption       (default-css-font)]
   [icon          (default-css-font)]
   [menu          (default-css-font)]
@@ -42,7 +42,7 @@
 
 (define-css-racket-value-filter <racket-font> #:? font%? #:as Font)
 
-(define css-font->longhand-properties : (->* (Font) (CSS-Longhand-Values) CSS-Longhand-Values)
+(define css-font->longhand-properties : (->* (Font) ((HashTable Symbol Any)) (HashTable Symbol Any))
   (lambda [font [longhand css-longhand]]
     (let* ([longhand++ (hash-set longhand 'font-weight (send font get-weight))]
            [longhand++ (hash-set longhand++ 'font-style (send font get-style))]

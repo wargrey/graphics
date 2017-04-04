@@ -13,8 +13,8 @@
 
 (define-syntax (define-css-parser-entry stx)
   ;;; https://drafts.csswg.org/css-syntax/#parser-entry-points
-  (syntax-case stx [: :-> lambda]
-    [(_ id :-> ->T (lambda [cssin [args : T defval ...] ...] body ...))
+  (syntax-case stx [: lambda]
+    [(_ id #:-> ->T (lambda [cssin [args : T defval ...] ...] body ...))
      #'(define (id [/dev/stdin : CSS-StdIn (current-input-port)] [args : T defval ...] ...) : ->T
          (define /dev/cssin : Input-Port (css-open-input-port /dev/stdin))
          (dynamic-wind (thunk '(css-open-input-port has already enabled line counting))
@@ -22,19 +22,19 @@
                        (thunk (close-input-port /dev/cssin))))]))
 
 ;;; https://drafts.csswg.org/css-syntax/#parser-entry-points
-(define-css-parser-entry css-parse-stylesheet :-> (Listof CSS-Syntax-Rule)
+(define-css-parser-entry css-parse-stylesheet #:-> (Listof CSS-Syntax-Rule)
   ;;; https://drafts.csswg.org/css-syntax/#parse-stylesheet
   ;;; https://drafts.csswg.org/css-syntax/#declaration-rule-list
   (lambda [/dev/cssin]
     (css-consume-stylesheet /dev/cssin)))
 
-(define-css-parser-entry css-parse-rules :-> (Listof CSS-Syntax-Rule)
+(define-css-parser-entry css-parse-rules #:-> (Listof CSS-Syntax-Rule)
   ;;; https://drafts.csswg.org/css-syntax/#parse-list-of-rules
   ;;; https://drafts.csswg.org/css-syntax/#declaration-rule-list
   (lambda [/dev/cssin]
     (css-consume-rules /dev/cssin #false)))
 
-(define-css-parser-entry css-parse-rule :-> (U CSS-Syntax-Rule CSS-Syntax-Error)
+(define-css-parser-entry css-parse-rule #:-> (U CSS-Syntax-Rule CSS-Syntax-Error)
   ;;; https://drafts.csswg.org/css-syntax/#parse-rule
   (lambda [/dev/cssin]
     (define stx (css-read-syntax/skip-whitespace /dev/cssin))
@@ -46,7 +46,7 @@
     (cond [(or (eof-object? end) (exn? retval)) retval]
           [else (make+exn:css:overconsumption end)])))
 
-(define-css-parser-entry css-parse-declaration :-> (U CSS-Declaration CSS-Syntax-Error)
+(define-css-parser-entry css-parse-declaration #:-> (U CSS-Declaration CSS-Syntax-Error)
   ;;; https://drafts.csswg.org/css-syntax/#declaration
   ;;; https://drafts.csswg.org/css-syntax/#parse-declaration
   ;;; https://drafts.csswg.org/css-conditional/#at-ruledef-supports
@@ -56,7 +56,7 @@
           [else (let-values ([(components _) (css-consume-components /dev/cssin)])
                   (css-components->declaration token components))])))
 
-(define-css-parser-entry css-parse-declarations :-> (Listof (U CSS-Declaration CSS-@Rule))
+(define-css-parser-entry css-parse-declarations #:-> (Listof (U CSS-Declaration CSS-@Rule))
   ;;; https://drafts.csswg.org/css-syntax/#parse-list-of-declarations
   ;;; https://drafts.csswg.org/css-syntax/#consume-a-list-of-declarations
   (lambda [/dev/cssin]
@@ -71,7 +71,7 @@
                             [else (make+exn:css:type:identifier token)]))
                     (consume-declaration+@rule (css-cons ?declaration mixed-list)))]))))
   
-(define-css-parser-entry css-parse-component-value :-> (U CSS-Token CSS-Syntax-Error)
+(define-css-parser-entry css-parse-component-value #:-> (U CSS-Token CSS-Syntax-Error)
   ;;; https://drafts.csswg.org/css-syntax/#parse-component-value
   (lambda [/dev/cssin]
     (define token (css-read-syntax/skip-whitespace /dev/cssin))
@@ -81,18 +81,18 @@
                   (cond [(eof-object? end) retval]
                         [else (make+exn:css:overconsumption end)]))])))
 
-(define-css-parser-entry css-parse-component-values :-> (Listof CSS-Token)
+(define-css-parser-entry css-parse-component-values #:-> (Listof CSS-Token)
   ;;; https://drafts.csswg.org/css-syntax/#parse-list-of-component-values
   (lambda [/dev/cssin]
     (define-values (components _) (css-consume-components /dev/cssin))
     components))
 
-(define-css-parser-entry css-parse-component-valueses :-> (Listof (Listof CSS-Token))
+(define-css-parser-entry css-parse-component-valueses #:-> (Listof (Listof CSS-Token))
   ;;; https://drafts.csswg.org/css-syntax/#parse-comma-separated-list-of-component-values
   (lambda [/dev/cssin]
     (css-consume-componentses /dev/cssin #:omit-comma? #false)))
 
-(define-css-parser-entry css-parse-media-queries :-> (Listof CSS-Media-Query)
+(define-css-parser-entry css-parse-media-queries #:-> (Listof CSS-Media-Query)
   ;;; https://drafts.csswg.org/mediaqueries/#media-types
   ;;; https://drafts.csswg.org/mediaqueries/#mq-list
   ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
@@ -115,7 +115,7 @@
                      [else (make+exn:css:type:identifier ?type)])]
               [else (css-components->feature-query entry #true rulename)])))))
 
-(define-css-parser-entry css-parse-feature-query :-> CSS-Feature-Query
+(define-css-parser-entry css-parse-feature-query #:-> CSS-Feature-Query
   ;;; https://drafts.csswg.org/mediaqueries/#media-types
   ;;; https://drafts.csswg.org/css-conditional/#at-supports
   (lambda [/dev/cssin [rulename : CSS-Syntax-Any eof]]
@@ -123,7 +123,7 @@
     (with-handlers ([exn:css? (λ [[errcss : exn:css]] errcss)])
       (css-components->feature-query conditions #false rulename))))
   
-(define-css-parser-entry css-parse-selectors :-> (U (Listof+ CSS-Complex-Selector) CSS-Syntax-Error)
+(define-css-parser-entry css-parse-selectors #:-> (U (Listof+ CSS-Complex-Selector) CSS-Syntax-Error)
   ;;; https://drafts.csswg.org/selectors/#structure
   ;;; https://drafts.csswg.org/selectors/#parse-selector
   ;;; https://drafts.csswg.org/selectors/#selector-list

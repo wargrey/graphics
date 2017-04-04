@@ -138,7 +138,7 @@
                                   [(CSS:Filter Any) Symbol CSS-Longhand-Update -> CSS-Shorthand-Parser]
                                   [(CSS-Parser (Listof Any)) (List Symbol) -> CSS-Shorthand-Parser]
                                   [(CSS-Parser (Listof Any)) (List Symbol) CSS-Longhand-Update -> CSS-Shorthand-Parser]
-                                  [(CSS:Filter a) (->* (a) (CSS-Longhand-Values) CSS-Longhand-Values) -> CSS-Shorthand-Parser]))
+                                  [(CSS:Filter a) (->* (a) ((HashTable Symbol Any)) (HashTable Symbol Any)) -> CSS-Shorthand-Parser]))
   (case-lambda
     [(atom-filter)
      (if (list? atom-filter)
@@ -159,29 +159,29 @@
                  [else (values (cons datum data) tail)])))]
     [(atom-filter tag)
      (cond [(symbol? tag)
-            (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
+            (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
               (define-values (token --tokens) (css-car/cdr tokens))
               (define datum : (CSS-Option Any) (atom-filter token))
               (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
                     [else (values (hash-set data tag datum) --tokens)]))]
            [(list? tag)
-            (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
+            (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
               (define-values (subdata --tokens) (atom-filter null tokens))
               (cond [(or (false? subdata) (exn:css? subdata)) (values subdata --tokens)]
                     [else (values (hash-set data (car tag) (reverse subdata)) --tokens)]))]
-           [(λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
+           [(λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
               (define-values (token --tokens) (css-car/cdr tokens))
               (define datum : (CSS-Option a) (atom-filter token))
               (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
                     [else (values (tag datum data) --tokens)]))])]
     [(atom-filter tag updater)
      (if (symbol? tag)
-         (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
+         (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
            (define-values (token --tokens) (css-car/cdr tokens))
            (define datum : (CSS-Option Any) (atom-filter token))
            (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
                  [else (values (hash-update data tag (λ [[v : Any]] (updater tag v datum)) (thunk #false)) --tokens)]))
-         (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
+         (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
            (define-values (subdata --tokens) (atom-filter null tokens))
            (cond [(or (false? subdata) (exn:css? subdata)) (values subdata --tokens)]
                  [else (values (hash-update data (car tag)
@@ -191,8 +191,8 @@
 
 (define CSS<$> : (case-> [(CSS-Parser (Listof Any)) -> (CSS-Parser (Listof Any))]
                          [(CSS-Parser (Listof Any)) Any -> (CSS-Parser (Listof Any))]
-                         [(CSS:Filter Any) Symbol (-> CSS-Longhand-Values Any) -> CSS-Shorthand-Parser]
-                         [(CSS-Parser (Listof Any)) (List Symbol) (-> CSS-Longhand-Values Any) -> CSS-Shorthand-Parser])
+                         [(CSS:Filter Any) Symbol (-> (HashTable Symbol Any) Any) -> CSS-Shorthand-Parser]
+                         [(CSS-Parser (Listof Any)) (List Symbol) (-> (HashTable Symbol Any) Any) -> CSS-Shorthand-Parser])
   (case-lambda
     [(css-parser)
      (λ [[data : (Listof Any)] [tokens : (Listof CSS-Token)]]
@@ -204,10 +204,10 @@
              [else (values (cons eof-value data) null)]))]
     [(css:filter tag fdatum)
      (if (symbol? tag)
-         (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
+         (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
            (cond [(pair? tokens) (let ([css-parser (CSS<^> css:filter tag)]) (css-parser data tokens))]
                  [else (values (hash-set data tag (fdatum data)) null)]))
-         (λ [[data : CSS-Longhand-Values] [tokens : (Listof CSS-Token)]]
+         (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
            (cond [(pair? tokens) (let ([css-parser (CSS<^> css:filter tag)]) (css-parser data tokens))]
                  [else (values (hash-set data (car tag) (fdatum data)) null)])))]))
 

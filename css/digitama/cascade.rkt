@@ -30,7 +30,7 @@
    [timestamp : Integer]
    [preferences : CSS-Media-Preferences]
    [imports : (Listof Positive-Integer)]
-   [namespaces : CSS-Namespace]
+   [namespaces : (HashTable Symbol String)]
    [rules : (Listof CSS-Grammar-Rule)]))
 
 (define css-stylesheet-placeholder : CSS-StyleSheet
@@ -114,12 +114,12 @@
                         [<desc-name> : CSS:Ident] [declared-values : (Listof+ CSS-Token)]
                         [important? : Boolean] [lazy? : Boolean]) : Void
       (cond [(and lazy?)
-             (define pending-thunk : (-> (Option CSS-Longhand-Values))
+             (define pending-thunk : (-> (Option (HashTable Symbol Any)))
                (thunk (let* ([varbase (css-varbase-ref descbase)]
                              [flat-values (css-variable-substitute <desc-name> declared-values varbase null)])
                         (and (css-pair? flat-values)
                              (do-parse <desc-name> (car parser) css-longhand flat-values)))))
-             (define &pending-longhand : (Boxof (-> (Option CSS-Longhand-Values))) (box pending-thunk))
+             (define &pending-longhand : (Boxof (-> (Option (HashTable Symbol Any)))) (box pending-thunk))
              (for ([name (in-list (cdr parser))] #:when (desc-more-important? name important?))
                (desc-set! name important?
                           (thunk (let ([longhand ((unbox &pending-longhand))])

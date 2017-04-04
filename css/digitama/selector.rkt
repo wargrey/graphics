@@ -22,8 +22,7 @@
          (make-hasheq (list (cons 'v1 'v2) ...
                             (cons 'v2 'v1) ...)))]))
 
-(define-type CSS-Namespace (HashTable Symbol String))
-(define-type CSS-Namespace-Hint (U CSS-Namespace (Listof Symbol) False))
+(define-type CSS-Namespace-Hint (U (HashTable Symbol String) (Listof Symbol) False))
 (define-type CSS-Complex-Selector (Listof+ CSS-Compound-Selector))
 
 (define-selectors
