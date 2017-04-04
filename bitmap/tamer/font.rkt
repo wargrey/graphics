@@ -19,10 +19,6 @@
                      (bitmap-text* (string-append face ": བོད་ཡིག[-]") (make-css-font #:family face #:ligature 'none)))))
 
 (bitmap-vl-append* #:gapsize 16
- (for/list ([face (in-list (list "Qomolangma-Uchen Sarchung" "Microsoft Himalaya" "Kailasa"))])
-   (bitmap-text* (string-append face ": བོད་ཡིག[+]") (make-css-font #:family face #:ligature 'normal))))
-
-(bitmap-vl-append* #:gapsize 16
  (for/list ([family (in-list (list 'decorative 'roman 'script 'swiss 'modern 'symbol 'system))])
    (define font (make-css-font #:family family #:ligature 'normal))
    (bitmap-text* (format "~a[~a]: norm -> Sphinx" (send font get-family) (send font get-face)) font)))

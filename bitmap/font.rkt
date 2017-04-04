@@ -27,7 +27,7 @@
          [cap (-> Nonnegative-Flonum)]
          [ch (-> Nonnegative-Flonum)]
          [ic (-> Nonnegative-Flonum)]
-         [lh (-> Nonnegative-Flonum)]
+         [lh (-> Nonnegative-Flonum)] ; WARNING: this is layout-height rather than line-height
          [get-combine? (-> Boolean)]
          [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]))
 
@@ -64,13 +64,13 @@
 
     (define/private (fill-metrics!) : Void
       (when (zero? (hash-count metrics))
-        (define-values (ex cap ch ic) (get-font-metrics this))
+        (define-values (ex cap ch ic layout-height) (get-font-metrics this))
         (hash-set! metrics 'em (smart-font-size this))
         (hash-set! metrics 'ex ex)
         (hash-set! metrics 'cap cap)
         (hash-set! metrics 'ch ch)
         (hash-set! metrics 'ic ic)
-        (hash-set! metrics 'lh +nan.0)))
+        (hash-set! metrics 'lh layout-height)))
 
     (define/private (metrics-ref [unit : Symbol]) : Nonnegative-Flonum
       (hash-ref metrics unit (thunk +nan.0)))))
@@ -136,7 +136,8 @@
   (make-parameter (make-object css-font% (racket-font-family->font-face 'default))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define get-font-metrics : (-> Font (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
+(define get-font-metrics : (-> Font (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                            Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [font]
     (get_font_metrics (or (send font get-face)
                           (font-family->font-face (send font get-family)))

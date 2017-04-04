@@ -17,23 +17,27 @@
   (define get_font_metrics
     (lambda [font-face font-size font-style font-weight]
       (define-values (font-desc baseline get-extent) (make-desc+extent font-face font-size font-style font-weight))
-      (define-values (xx xy xw ex  xa xd) (get-extent "x"))
-      (define-values (Ox Oy Ow cap Oa Od) (get-extent "O"))
-      (define-values (0x 0y ch 0h  0a 0d) (get-extent "0"))
-      (define-values (wx wy ic wh  wa wd) (get-extent "水"))
-      
+      (define-values (xx xy xw xh xH) (get-extent "x"))
+      (define-values (Ox Oy Ow Oh OH) (get-extent "O"))
+      (define-values (0x 0y ch 0h 0H) (get-extent "0"))
+      (define-values (wx wy ic wh wH) (get-extent "水"))
+
       (pango_font_description_free font-desc)
-      (values ex cap ch ic)))
+      
+      (define ex  (unsafe-fx- baseline xy))
+      (define cap (unsafe-fx- baseline Oy))
+      (values (~metric ex) (~metric cap) (~metric ch) (~metric ic) (~metric wH))))
 
   (define get_font_metrics_lines
     (lambda [font-face font-size font-style font-weight content]
       (define-values (font-desc baseline get-extent) (make-desc+extent font-face font-size font-style font-weight))
-      (define-values (xx meanline xw eh     xa xd) (get-extent "x"))
-      (define-values (Ox capline  Ow Oh     Oa Od) (get-extent "O"))
-      (define-values (cx ascent   cw height ca cd) (get-extent content))
+      (define-values (xx meanline xw eh     eH) (get-extent "x"))
+      (define-values (Ox capline  Ow Oh     OH) (get-extent "O"))
+      (define-values (cx ascent   cw height cH) (get-extent content))
       
       (pango_font_description_free font-desc)
-      (values ascent capline meanline baseline (+ ascent height))))
+      (values (~metric ascent) (~metric capline) (~metric meanline) (~metric baseline)
+              (~metric (unsafe-fx+ ascent height)))))
   
   (define make-desc+extent
     (lambda [font-face font-size font-style font-weight]
@@ -50,29 +54,28 @@
       (define layout (or (unbox &layout) (and (set-box! &layout (pango_cairo_create_layout cr)) (unbox &layout))))
       (pango_layout_set_font_description layout font-desc)
 
-      (let ([baseline (~metric (pango_layout_get_baseline layout))])
+      (let ([baseline (pango_layout_get_baseline layout)])
         (values font-desc baseline (λ [hint-char] (~extent layout baseline hint-char))))))
 
   (define ~extent
     (lambda [layout baseline hint-char]
       (pango_layout_set_text layout hint-char)
       (pango_layout_get_extents layout &ink &logical)
-    
+      
       (define-values (x y width height) (~rectangle &ink))
-
-      (values x y width height
-              (and 'ascent (unsafe-fl- baseline y))
-              (and 'descent (unsafe-fl- (unsafe-fl+ y height) baseline)))))
+      (define layout-height (PangoRectangle-height &logical))
+      
+      (values x y width height layout-height)))
 
   (define ~rectangle
     (lambda [&rect]
-      (values (~metric (PangoRectangle-x &rect)) (~metric (PangoRectangle-y &rect))
-              (~metric (PangoRectangle-width &rect)) (~metric (PangoRectangle-height &rect)))))
+      (values (PangoRectangle-x &rect) (PangoRectangle-y &rect)
+              (PangoRectangle-width &rect) (PangoRectangle-height &rect))))
 
   (define ~metric
     (lambda [val]
-      (unsafe-fl/ (real->double-flonum val)
-                  (real->double-flonum PANGO_SCALE))))
+      (unsafe-fl/ (unsafe-fx->fl val)
+                  (unsafe-fx->fl PANGO_SCALE))))
   
   (define (~style style)
     (case style
@@ -88,5 +91,6 @@
 
 (require/typed/provide
  (submod "." unsafe)
- [get_font_metrics (-> String Real Symbol Symbol (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))]
- [get_font_metrics_lines (-> String Real Symbol Symbol String (Values Flonum Flonum Flonum Flonum Flonum))])
+ [get_font_metrics_lines (-> String Real Symbol Symbol String (Values Flonum Flonum Flonum Flonum Flonum))]
+ [get_font_metrics (-> String Real Symbol Symbol
+                       (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))])
