@@ -25,7 +25,7 @@
     (define-values (width height) (get-display-size))
     (css-deprecate-media-type #true)
     (default-css-media-type 'screen)
-    (default-css-media-preferences
+    (default-css-media-features
       ((inst make-hash Symbol CSS-Media-Datum)
        (list (cons 'orientation 'landscape)
              (cons 'width (or width 0))

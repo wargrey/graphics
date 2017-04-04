@@ -59,7 +59,7 @@
 (define-values ($root:n *root:n) (css-cascade (list box.css) (list ~root:n) box-parsers box-filter #false))
 (define-values ($root:s *root:s) (css-cascade (list box.css) (list ~root:s) box-parsers box-filter #false))
 
-(default-css-media-preferences)
+(default-css-media-features)
 (bitmap-hb-append #:gapsize (+ (box-vertical-margin $root:n) (box-vertical-margin $root:s))
                   (bitmap-frame #:color (current-css-element-color) #:style 'dot
                                 (bitmap-frame #:margin (box-vertical-margin $root:n) #:inset (box-vertical-inset $root:n)

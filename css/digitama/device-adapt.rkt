@@ -6,7 +6,7 @@
 
 (require "misc.rkt")
 (require "digicore.rkt")
-(require "conditional.rkt")
+(require "condition.rkt")
 (require "../recognizer.rkt")
 
 ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
@@ -36,8 +36,8 @@
     ;          @viewport is rarely used in desktop applications, and
     ;          this behavior is indeed specified if I understand the specification correctly.
     (define-values (initial-width initial-height)
-      (let ([w (hash-ref (default-css-media-preferences) 'width (const #false))]
-            [h (hash-ref (default-css-media-preferences) 'height (const #false))])
+      (let ([w (hash-ref (default-css-media-features) 'width (const #false))]
+            [h (hash-ref (default-css-media-features) 'height (const #false))])
         (values (if (and (real? w) (positive? w)) (flmax (real->double-flonum w) 1.0) 1.0)
                 (if (and (real? h) (positive? h)) (flmax (real->double-flonum h) 1.0) 1.0))))
     (define defzoom : Nonnegative-Flonum (default-css-viewport-auto-zoom))
@@ -63,7 +63,7 @@
         (values width (cond [(flonum? height) height]
                             [(zero? initial-width) initial-height]
                             [else (fl* width (fl/ initial-height initial-width))]))))
-    (define actual-viewport (hash-copy (default-css-media-preferences)))
+    (define actual-viewport (hash-copy (default-css-media-features)))
     (for ([name (in-list      '(min-zoom max-zoom width height))]
           [value (in-list (list min-zoom max-zoom width height))])
       (hash-set! actual-viewport name value))

@@ -600,7 +600,7 @@
 ;; https://drafts.csswg.org/mediaqueries
 (define-type CSS-Media-Value (U CSS-Numeric CSS:Ident CSS:Ratio))
 (define-type CSS-Media-Datum (U Symbol Integer Flonum))
-(define-type CSS-Media-Preferences (HashTable Symbol CSS-Media-Datum))
+(define-type CSS-Media-Features (HashTable Symbol CSS-Media-Datum))
 
 ;; https://drafts.csswg.org/css-cascade/#shorthand
 ;; https://drafts.csswg.org/css-cascade/#filtering
@@ -653,12 +653,12 @@
 (define default-css-all-exceptions : (Parameterof (Listof Symbol)) (make-parameter (list 'direction 'unicode-bidi)))
 (define-prefab-keyword css-wide-keyword #:as CSS-Wide-Keyword [initial inherit unset revert])
 
-(define-syntax (call-with-css-size-from-media stx)
+(define-syntax (call-with-css-viewport-from-media stx)
   (syntax-parse stx
-    [(_ (~optional (~seq #:preferences ?preferences)) sexp ...)
-     (with-syntax ([preferences (or (attribute ?preferences) #'(default-css-media-preferences))])
-       #'(let ([w (hash-ref preferences 'width (thunk #false))]
-               [h (hash-ref preferences 'height (thunk #false))])
+    [(_ (~optional (~seq #:descriptors ?env)) sexp ...)
+     (with-syntax ([env (or (attribute ?env) #'(default-css-media-features))])
+       #'(let ([w (hash-ref env 'width (thunk #false))]
+               [h (hash-ref env 'height (thunk #false))])
            (when (and (real? w) (positive? w)) (css-vw (real->double-flonum w)))
            (when (and (real? h) (positive? h)) (css-vh (real->double-flonum h)))
            sexp ...))]))

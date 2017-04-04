@@ -5,7 +5,7 @@
 (provide (all-defined-out))
 
 (require "digicore.rkt")
-(require "conditional.rkt")
+(require "condition.rkt")
 (require "variables.rkt")
 (require "selector.rkt")
 (require "stdin.rkt")
@@ -360,40 +360,6 @@
             [(css:ident-norm=<-? token '(and or)) (throw-exn:css:misplaced token)]
             [else (throw-exn:css:overconsumption token)]))))
 
-(define css-query-support? : (-> CSS-Media-Query (U CSS-Media-Preferences CSS-Feature-Support?) Boolean)
-  ;;; https://drafts.csswg.org/css-conditional/#at-supports
-  ;;; https://drafts.csswg.org/mediaqueries/#evaluating
-  ;;; https://drafts.csswg.org/mediaqueries/#media-types
-  ;;; https://drafts.csswg.org/mediaqueries/#boolean-context
-  (lambda [query support?]
-    (cond [(css-not? query) (not (css-query-support? (css-not-condition query) support?))]
-          [(css-and? query) (andmap (λ [[q : CSS-Feature-Query]] (css-query-support? q support?)) (css-and-conditions query))]
-          [(css-or? query) (ormap (λ [[q : CSS-Feature-Query]] (css-query-support? q support?)) (css-or-conditions query))]
-          [(hash? support?)
-           (cond [(css-media-feature? query)
-                  (define downcased-name : Symbol (css-media-feature-name query))
-                  (define datum : CSS-Media-Datum (css-media-feature-value query))
-                  (define metadata : (U CSS-Media-Datum EOF) (hash-ref support? downcased-name (λ _ eof)))
-                  (cond [(symbol? datum) (and (symbol? metadata) (eq? datum metadata))]
-                        [(real? metadata) (case (css-media-feature-operator query)
-                                            [(#\>) (> metadata datum)] [(#\≥) (>= metadata datum)]
-                                            [(#\<) (< metadata datum)] [(#\≤) (<= metadata datum)]
-                                            [else (= metadata datum)])]
-                        [else #false])]
-                 [(symbol? query)
-                  (define metadata : CSS-Media-Datum (hash-ref support? query (λ _ 'none)))
-                  (not (if (symbol? metadata) (eq? metadata 'none) (zero? metadata)))]
-                 [(css-media-type? query)
-                  (define result (memq (css-media-type-name query) (list (default-css-media-type) 'all)))
-                  (if (css-media-type-only? query) (and result #true) (not result))]
-                 [else (and (pair? query)
-                            (css-query-support? (car query) support?)
-                            (css-query-support? (cdr query) support?))])]
-          [else (and (procedure? support?)
-                     (css-declaration? query)
-                     (support? (css:ident-norm (css-declaration-name query))
-                               (css-declaration-values query)))])))
-
 (define css-components->media-range-query : (-> (Listof CSS-Token) CSS:Block CSS-Feature-Query)
   ;;; https://drafts.csswg.org/mediaqueries/#mq-features
   ;;; https://drafts.csswg.org/mediaqueries/#mq-range-context
@@ -685,9 +651,3 @@
     (or (css:whitespace? token)
         (and (css:delim=<-? token '(#\~ #\+ #\> #\tab))
              #true))))
-
-(define css-media-queries-support? : (-> (Listof CSS-Media-Query) CSS-Media-Preferences Boolean)
-  (lambda [queries preferences]
-    (or (null? queries)
-        (for/or ([query (in-list queries)])
-          (css-query-support? query preferences)))))
