@@ -1,6 +1,7 @@
 #lang typed/racket
 
 ;;; https://drafts.csswg.org/css-device-adapt
+;;; https://github.com/w3c/csswg-drafts/issues/258
 
 (provide (all-defined-out))
 
