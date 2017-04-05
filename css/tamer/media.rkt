@@ -8,6 +8,13 @@
 (current-css-element-color 'Silver)
 (css-configure-@media)
 
+(default-css-feature-support?
+  (λ [[desc : Symbol] [value : Any]]
+    (implies (equal? (cons 'font-variant-ligatures 'normal)
+                     (cons desc value))
+             (not (eq? (system-type)
+                       'macosx)))))
+
 (define-predicate pen-style? Pen-Style)
 
 (define-preference* box #:as Box.CSS
@@ -22,7 +29,8 @@
    [color : Color                          #:= 'currentcolor]
    [border-color : Color                   #:= 'currentcolor]
    [background-color : Color               #:= 'transparent]
-   [border-style : Pen-Style               #:= 'transparent])
+   [border-style : Pen-Style               #:= 'transparent]
+   [ligature : Symbol                      #:= 'enabled])
   #:transparent)
 
 (define box-parsers : CSS-Declaration-Parsers
@@ -52,7 +60,8 @@
                 #:horizontal-margin (css-box-size-ref 'margin-right width)
                 #:background-color (css-box-color-ref 'background-color)
                 #:border-color (css-box-color-ref 'border-color)
-                #:border-style (css-box-ref 'border-style pen-style? css:initial)))))
+                #:border-style (css-box-ref 'border-style pen-style? css:initial)
+                #:ligature (get-field ligature (current-css-element-font))))))
 
 (define ~root:n : CSS-Subject (make-css-subject #::classes '(root)))
 (define ~root:s : CSS-Subject (make-css-subject #::classes '(selected)))

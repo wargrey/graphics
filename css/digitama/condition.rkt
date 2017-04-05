@@ -25,7 +25,7 @@
 
 ;; https://drafts.csswg.org/mediaqueries/#media-descriptor-table
 ;; https://drafts.csswg.org/mediaqueries/#mf-deprecated
-(define-type CSS-@Supports-Okay? (-> Symbol (Listof+ CSS-Token) Boolean))
+(define-type CSS-@Supports-Okay? (-> Symbol Any Boolean))
 (define-type CSS-@Media-Filters (-> Symbol Boolean (-> Void) (U Void (CSS:Filter CSS-Media-Datum))))
 
 (define css-media-feature-filters : CSS-@Media-Filters
@@ -56,7 +56,7 @@
 (define-values (default-css-media-features default-css-media-feature-filters default-css-feature-support?)
   (values (make-parameter ((inst make-hasheq Symbol CSS-Media-Datum)))
           (make-parameter css-media-feature-filters)
-          (make-parameter (const #false))))
+          (make-parameter (ann (const #true) CSS-@Supports-Okay?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-@media-okay? : (-> (Listof CSS-Media-Query) CSS-Media-Features Boolean)
@@ -87,15 +87,6 @@
     (or (null? queries)
         (for/or ([query (in-list queries)])
           (css-condition-okay? query okay?)))))
-
-(define css-@supports-okay? : (-> CSS-Feature-Query CSS-@Supports-Okay? Boolean)
-  ;;; https://drafts.csswg.org/css-conditional/#at-supports
-  (lambda [query support?]
-    (define (okay? [q : (U CSS-Media-Query CSS-Feature-Query)]) : Boolean
-      (and (css-declaration? q)
-           (support? (css:ident-norm (css-declaration-name q))
-                     (css-declaration-values q))))
-    (css-condition-okay? query okay?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-condition-okay? : (-> CSS-Media-Query (-> CSS-Condition Boolean) Boolean)

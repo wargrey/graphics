@@ -41,6 +41,12 @@
   }
 }
 
+@supports not (font-variant-ligatures: normal) {
+  :root {
+     font-variant-ligatures: none;
+  }
+}
+
 :selected {
   color: GhostWhite;
   background-color: DodgerBlue;

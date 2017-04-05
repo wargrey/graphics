@@ -3,7 +3,8 @@
 ;;; https://drafts.csswg.org/css-cascade
 ;;; https://drafts.csswg.org/css-values
 
-(provide (except-out (all-defined-out) CSS-Style-Metadata))
+(provide (except-out (all-defined-out) CSS-Style-Metadata
+                     desc-more-important? do-parse normalize))
 
 (require "misc.rkt")
 (require "digicore.rkt")
@@ -38,7 +39,7 @@
         (hash-clear! !importants)
         (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
           (for ([this-sheet (in-list batch)])
-            (cascade-stylesheets (css-select-children this-sheet))
+            (cascade-stylesheets (css-select-children this-sheet desc-parsers))
             (css-cascade-rules (css-stylesheet-grammars this-sheet) stcejbus desc-parsers (css-select-quirk-mode?) declared-values
                                (css-cascade-viewport (default-css-media-features) (css-stylesheet-viewports this-sheet)))))
         (css-resolve-variables declared-values inherited-values)
@@ -66,7 +67,7 @@
   ;;; https://drafts.csswg.org/css-cascade/#cascading
   (lambda [rules stcejbus desc-parsers [quirk? #false] [descbase (make-css-values)] [top-descriptors (default-css-media-features)]]
     (call-with-css-viewport-from-media #:descriptors top-descriptors
-      (define-values (ordered-srcs single?) (css-select-styles rules stcejbus quirk? top-descriptors))
+      (define-values (ordered-srcs single?) (css-select-styles rules stcejbus desc-parsers quirk? top-descriptors))
       (if (and single?)
           (let ([source-ref (λ [[src : CSS-Style-Metadata]] : CSS-Declarations (vector-ref src 1))])
             (css-cascade-declarations desc-parsers (map source-ref ordered-srcs) descbase))
@@ -85,8 +86,6 @@
   ;;; https://drafts.csswg.org/css-variables/#using-variables
   (lambda [desc-parsers properties [descbase (make-css-values)]]
     (define case-sensitive? : Boolean (css-property-case-sensitive?))
-    (define (desc-more-important? [desc-name : Symbol] [important? : Boolean]) : Boolean
-      (or important? (not (hash-has-key? !importants desc-name))))
     (define (desc-set! [desc-name : Symbol] [important? : Boolean] [declared-value : (-> Any)]) : Void
       (when important? (hash-set! !importants desc-name #true))
       (when (eq? desc-name 'all)
@@ -94,13 +93,6 @@
           (when (desc-more-important? desc-key important?)
             (hash-set! descbase desc-key declared-value))))
       (hash-set! descbase desc-name declared-value))
-    (define #:forall (a) (do-parse [<desc-name> : CSS:Ident] [parse : (CSS-Parser a)] [initial : a]
-                                   [declared-values : (Listof CSS-Token)]) : (Option a)
-      (define-values (desc-value+exn tail) (parse initial declared-values))
-      (cond [(false? desc-value+exn) ((if (null? tail) make+exn:css:missing-value make+exn:css:type) tail <desc-name>) #false]
-            [(exn:css? desc-value+exn) (css-log-syntax-error desc-value+exn <desc-name>) #false]
-            [(pair? tail) (make+exn:css:overconsumption tail <desc-name>) #false]
-            [else desc-value+exn]))
     (define (parse-long [parser : (Pairof CSS-Shorthand-Parser (Listof Symbol))]
                         [<desc-name> : CSS:Ident] [declared-values : (Listof+ CSS-Token)]
                         [important? : Boolean] [lazy? : Boolean]) : Void
@@ -125,9 +117,6 @@
                         [<desc-name> : CSS:Ident] [desc-name : Symbol] [declared-values : (Listof+ CSS-Token)]
                         [important? : Boolean] [lazy? : Boolean]) : Void
       (define css-parse : (CSS-Parser (Listof Any)) (CSS<+> parser (CSS<^> (<css-wide-keywords>))))
-      (define (normalize [desc-values : (Listof Any)]) : Any
-        (cond [(and (pair? desc-values) (null? (cdr desc-values))) (car desc-values)]
-              [else (reverse desc-values)]))
       (cond [(and lazy?)
              (desc-set! desc-name important?
                         (thunk (let* ([varbase (css-varbase-ref descbase)]
@@ -177,9 +166,10 @@
             ([batch : (Listof CSS-StyleSheet) stylesheets]
              [all-rotpircsed : (Listof Preference) null]
              [all-seulav : (Listof CSS-Values) null])
-            (for/fold ([rotpircsed++ : (Listof Preference) all-rotpircsed] [values++ : (Listof CSS-Values) all-seulav])
+            (for/fold ([descriptors++ : (Listof Preference) all-rotpircsed] [values++ : (Listof CSS-Values) all-seulav])
                       ([this-sheet (in-list batch)])
-              (define-values (sub-rotpircsed sub-seulav) (cascade-stylesheets (css-select-children this-sheet) rotpircsed++ values++))
+              (define-values (sub-rotpircsed sub-seulav)
+                (cascade-stylesheets (css-select-children this-sheet desc-parsers) descriptors++ values++))
               (define this-values : (Listof CSS-Values)
                 (css-cascade-rules* (css-stylesheet-grammars this-sheet) stcejbus desc-parsers (css-select-quirk-mode?)
                                     (css-cascade-viewport (default-css-media-features) (css-stylesheet-viewports this-sheet))))
@@ -204,7 +194,7 @@
   ;;; https://drafts.csswg.org/css-cascade/#cascading
   (lambda [rules stcejbus desc-parsers [quirk? #false] [top-descriptors (default-css-media-features)]]
     (call-with-css-viewport-from-media #:descriptors top-descriptors
-      (define-values (ordered-srcs single?) (css-select-styles rules stcejbus quirk? top-descriptors))
+      (define-values (ordered-srcs single?) (css-select-styles rules stcejbus desc-parsers quirk? top-descriptors))
       (cond [(and single?) (map (λ [[src : CSS-Style-Metadata]] (css-cascade-declarations desc-parsers (vector-ref src 1))) ordered-srcs)]
             [else (for/list : (Listof CSS-Values) ([src (in-list ordered-srcs)])
                     (define alter-descriptors : CSS-Media-Features (vector-ref src 2))
@@ -216,11 +206,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define !importants : (HashTable Symbol Boolean) ((inst make-hasheq Symbol Boolean)))
 
-(define css-select-styles : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject)) (Boolean CSS-Media-Features)
+(define desc-more-important? : (-> Symbol Boolean Boolean)
+  (lambda [desc-name important?]
+    (or important? (not (hash-has-key? !importants desc-name)))))
+
+(define css-select-styles : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject) CSS-Declaration-Parsers) (Boolean CSS-Media-Features)
                                  (Values (Listof CSS-Style-Metadata) Boolean))
   ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
   ;;; https://drafts.csswg.org/selectors/#data-model
-  (lambda [rules stcejbus [quirk? #false] [top-descriptors (default-css-media-features)]]
+  (lambda [rules stcejbus decl-parsers [quirk? #false] [top-descriptors (default-css-media-features)]]
     (define-values (selected-styles single-query?)
       (let cascade-rules : (Values (Listof CSS-Style-Metadata) Boolean)
         ([descriptors : CSS-Media-Features top-descriptors]
@@ -244,19 +238,54 @@
                                 (css-media-rule-grammars rule)
                                 styles
                                 (and (null? (css-media-rule-viewports rule)) single-query?))]
-                [(and (css-supports-rule? rule) (css-@supports-okay? (css-supports-rule-query rule) (default-css-feature-support?)))
+                [(and (css-supports-rule? rule)
+                      (css-@supports-okay? (css-supports-rule-query rule)
+                                           decl-parsers
+                                           (default-css-feature-support?)))
                  (cascade-rules descriptors (css-supports-rule-grammars rule) styles single-query?)]
                 [else #|other `css-@rule`s|# (values styles single-query?)]))))
     (values (sort (reverse selected-styles) #| `reverse` guarantees orginal order |#
-                  (λ [[sm1 : CSS-Style-Metadata] [sm2 : CSS-Style-Metadata]] (fx< (vector-ref sm1 0) (vector-ref sm2 0))))
+                  (λ [[sm1 : CSS-Style-Metadata] [sm2 : CSS-Style-Metadata]]
+                    (fx< (vector-ref sm1 0) (vector-ref sm2 0))))
             single-query?)))
 
-(define css-select-children : (-> CSS-StyleSheet (Listof CSS-StyleSheet))
-  (lambda [parent]
+(define css-select-children : (-> CSS-StyleSheet CSS-Declaration-Parsers (Listof CSS-StyleSheet))
+  (lambda [parent decl-parsers]
     (define pool : CSS-StyleSheet-Pool (css-stylesheet-pool parent))
     (define (okay? [child : CSS-Import-Rule]) : Boolean
       (define query : (Option CSS-Feature-Query) (css-import-rule-supports child))
-      (and (implies query (css-@supports-okay? query (default-css-feature-support?)))
+      (and (implies query (css-@supports-okay? query decl-parsers (default-css-feature-support?)))
            (css-@media-okay? (css-import-rule-media-list child) (default-css-media-features))))
     (for/list : (Listof CSS-StyleSheet) ([child (in-list (css-stylesheet-imports parent))] #:when (okay? child))
       (hash-ref pool (css-import-rule-identity child)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define css-@supports-okay? : (-> CSS-Feature-Query CSS-Declaration-Parsers CSS-@Supports-Okay? Boolean)
+  ;;; https://drafts.csswg.org/css-conditional/#at-supports
+  (lambda [query decl-parsers support?]
+    (define (okay? [query : (U CSS-Media-Query CSS-Feature-Query)]) : Boolean
+      (and (css-declaration? query)
+           (let* ([<desc-name> : CSS:Ident (css-declaration-name query)]
+                  [declared-values : (Listof+ CSS-Token) (css-declaration-values query)])
+             (define info (decl-parsers (css:ident-norm <desc-name>) void))
+             (define decl-values 
+               (cond [(or (false? info) (void? info)) (make+exn:css:unrecognized <desc-name>) #false]
+                     [(pair? info) (do-parse <desc-name> (car info) css-longhand declared-values)]
+                     [else (do-parse <desc-name> info null declared-values)]))
+             (and decl-values (support? (css:ident-norm <desc-name>)
+                                        (cond [(hash? decl-values) decl-values]
+                                              [else (normalize decl-values)]))))))
+    (css-condition-okay? query okay?)))
+
+(define do-parse : (All (a) (-> CSS:Ident (CSS-Parser a) a (Listof CSS-Token) (Option a)))
+  (lambda [<desc-name> parse initial declared-values]
+    (define-values (desc-value+exn tail) (parse initial declared-values))
+    (cond [(false? desc-value+exn) ((if (null? tail) make+exn:css:missing-value make+exn:css:type) tail <desc-name>) #false]
+          [(exn:css? desc-value+exn) (css-log-syntax-error desc-value+exn <desc-name>) #false]
+          [(pair? tail) (make+exn:css:overconsumption tail <desc-name>) #false]
+          [else desc-value+exn])))
+
+(define normalize : (-> (Listof Any) Any)
+  (lambda [desc-values]
+    (cond [(and (pair? desc-values) (null? (cdr desc-values))) (car desc-values)]
+          [else (reverse desc-values)])))
