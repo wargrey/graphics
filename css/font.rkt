@@ -42,8 +42,8 @@
       [(font-stretch) (CSS<^> (<font-stretch>))]
       [(font-weight) (CSS<^> (<font-weight>))]
       [(font-size-adjust) (CSS<^> (CSS:<+> (<css-keyword> 'none) (<css+real>)))]
-      [(-racket-font-smoothing) (CSS<^> (<css:ident-norm> racket-font-smoothing?))]
-      [(-racket-font-hinting) (CSS<^> (<css:ident-norm> racket-font-hinting?))]
+      [(font-smoothing) (CSS<^> (<css:ident-norm> racket-font-smoothing?))]
+      [(font-hinting) (CSS<^> (<css:ident-norm> racket-font-hinting?))]
       [else #false])))
 
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (CSS-Font) CSS-Font)
@@ -74,8 +74,8 @@
                      #:family (css-ref declared-values #true 'font-family css->font-family)
                      #:style (css-ref declared-values #true 'font-style symbol? 'normal (send inherited-font get-style))
                      #:weight (css-ref declared-values #true 'font-weight symbol? 'normal (send inherited-font get-weight))
-                     #:smoothing (css-ref declared-values #true '-racket-font-smoothing racket-font-smoothing? #false smoothing)
-                     #:hinting (css-ref declared-values #true '-racket-font-hinting racket-font-hinting? #false hinting)
+                     #:smoothing (css-ref declared-values #true 'font-smoothing racket-font-smoothing? #false smoothing)
+                     #:hinting (css-ref declared-values #true 'font-hinting racket-font-hinting? #false hinting)
                      #:ligature (css-ref declared-values inherited-values 'font-variant-ligatures symbol? 'normal)
                      #:lines (css-ref declared-values inherited-values 'text-decoration-line css->text-decor-lines)))
 
