@@ -4,6 +4,7 @@
 
 @import url(bitmap.css);
 
+@namespace tamer url(github.com/wargrey/css/testcases/syntax);
 @namespace toto "http://toto.example.org";
 
 @font-face {

@@ -10,6 +10,8 @@
 
 @import url(retina.css) (resolution = 2dppx);
 
+@namespace box url(github.com/wargrey/css/testcases/conditions);
+                                            
 :root {
   font-size: larger;
   padding: 0px 0px;

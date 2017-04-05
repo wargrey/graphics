@@ -2,6 +2,8 @@
 
 @charset "utf-8";
 
+@namespace bitmap url(github.com/wargrey/css/testcases/css-cascade*);
+
 /**
  * This example is not as good as it should be,
  * the DOM and CSSOM are not clearly defined
