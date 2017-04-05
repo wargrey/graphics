@@ -2,8 +2,6 @@
 
 (provide (all-defined-out))
 
-(require racket/runtime-path)
-
 (require "../syntax.rkt")
 
 (define-syntax (time-run stx)
@@ -16,9 +14,6 @@
          (car result))]))
 
 (define DrRacket? : Boolean (regexp-match? #px"DrRacket$" (find-system-path 'run-file)))
-(define-runtime-path tamer/tamer.css "tamer.css")
-(define-runtime-path tamer/bitmap.css "bitmap.css")
-(define-runtime-path tamer/box.css "box.css")
 
 (define css-configure-@media : (-> Void)
   (lambda []

@@ -4,6 +4,10 @@
 (require "../syntax.rkt")
 (require "../sugar.rkt")
 
+(require racket/runtime-path)
+
+(define-runtime-path tamer/tamer.css "tamer.css")
+
 (css-configure-@media)
 (collect-garbage)
 (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer/tamer.css)))

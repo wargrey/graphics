@@ -60,20 +60,20 @@
         [else default]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module highlight typed/racket/base
+(module highlight racket/base
   (provide css-lexer)
 
   (require "digitama/digicore.rkt")
   (require "digitama/tokenizer.rkt")
 
-  (define css-char->DrType : (-> Char Symbol)
+  (define css-char->DrType ;: (-> Char Symbol)
     (lambda [delim]
       (case delim
         [(#\: #\, #\;) 'sexp-comment]
         [(#\+ #\- #\* #\/) 'symbol]
         [else 'constant])))
   
-  (define css-id->DrType : (-> Symbol Boolean Symbol)
+  (define css-id->DrType ;: (-> Symbol Boolean Symbol)
     (lambda [id func?]
       (case id
         [(inherit important true false) 'constant]
@@ -83,7 +83,7 @@
                     [(symbol-unreadable? id) 'no-color]
                     [else 'symbol])])))
   
-  (define css-other->DrType : (-> CSS-Token Symbol)
+  (define css-other->DrType ;: (-> CSS-Token Symbol)
     (lambda [token]
       (cond [(css:string? token) 'string]
             [(css:hash? token) 'hash-colon-keyword]
@@ -92,13 +92,13 @@
             [(css:bad? token) 'error]
             [else 'other])))
 
-  (define css-hlvalues : (-> CSS-Token Symbol (Option Symbol) (Values String Symbol (Option Symbol) (Option Integer) (Option Integer)))
+  (define css-hlvalues ;: (-> CSS-Token Symbol (Option Symbol) (Values String Symbol (Option Symbol) (Option Integer) (Option Integer)))
     (lambda [t type subtype]
       (values "" type subtype (css-token-start t) (css-token-end t))))
   
-  (define css-lexer : (-> Input-Port (Values (U String EOF) Symbol (Option Symbol) (Option Integer) (Option Integer)))
+  (define css-lexer ;: (-> Input-Port (Values (U String EOF) Symbol (Option Symbol) (Option Integer) (Option Integer)))
     (lambda [/dev/cssin]
-      (define t : CSS-Syntax-Any (css-consume-token /dev/cssin (format "~a" (object-name /dev/cssin))))
+      (define t #|: CSS-Syntax-Any|# (css-consume-token /dev/cssin (format "~a" (object-name /dev/cssin))))
       (cond [(eof-object? t) (values eof 'eof #false #false #false)]
             [(css:whitespace? t) (css-hlvalues t (if (string? (css:whitespace-datum t)) 'comment 'white-space) #false)]
             [(css:ident? t) (css-hlvalues t (css-id->DrType (css:ident-norm t) #false) #false)]

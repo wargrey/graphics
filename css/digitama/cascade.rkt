@@ -10,48 +10,15 @@
 (require "selector.rkt")
 (require "variables.rkt")
 (require "condition.rkt")
+(require "grammar.rkt")
+(require "device-adapt.rkt")
 (require "../recognizer.rkt")
-
-(define-type CSS-StyleSheet-Pool (HashTable Natural CSS-StyleSheet))
-(define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule CSS-Media-Rule CSS-Supports-Rule))
 
 (define-type CSS-Style-Metadata (Vector Nonnegative-Fixnum CSS-Declarations CSS-Media-Features))
 
 (define css-warning-unknown-property? : (Parameterof Boolean) (make-parameter #true))
 (define css-select-quirk-mode? : (Parameterof Boolean) (make-parameter #false))
 (define css-property-case-sensitive? : (Parameterof Boolean) (make-parameter #false))
-
-(struct: css-import-rule : CSS-Import-Rule
-  ([identity : Positive-Integer]
-   [supports : (Option CSS-Feature-Query)]
-   [media-list : (Listof CSS-Media-Query)]
-   [features : CSS-Media-Features]))
-
-(struct: css-media-rule : CSS-Media-Rule
-  ([queries : (Listof CSS-Media-Query)]
-   [grammars : (Listof CSS-Grammar-Rule)]
-   [features : CSS-Media-Features]
-   [viewport : (Option CSS-Media-Features)]))
-
-(struct: css-supports-rule : CSS-Supports-Rule
-  ([query : CSS-Feature-Query]
-   [grammars : (Listof CSS-Grammar-Rule)]))
-
-(struct: css-style-rule : CSS-Style-Rule
-  ([selectors : (Listof+ CSS-Complex-Selector)]
-   [properties : CSS-Declarations]))
-
-(define-preference css-stylesheet #:as CSS-StyleSheet
-  ([location : (U String Symbol)           #:= '/dev/null]
-   [namespaces : (HashTable Symbol String) #:= (make-hasheq)]
-   [imports : (Listof CSS-Import-Rule)     #:= null]
-   [grammars : (Listof CSS-Grammar-Rule)   #:= null]
-   [pool : CSS-StyleSheet-Pool             #:= (make-hasheq)]
-   [timestamp : Integer                    #:= 0]
-   [features : CSS-Media-Features          #:= (make-hasheq)])
-  #:transparent)
-
-(define css-stylesheet-placeholder : CSS-StyleSheet (make-css-stylesheet))
 
 (define css-cascade :
   (All (Preference Env)
@@ -63,16 +30,17 @@
                    (Values Preference CSS-Values)]))
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
+  ;;; https://drafts.csswg.org/css-cascade/#at-import
   (let ()
     (define do-cascade : (-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers (Option CSS-Values) CSS-Values)
       (lambda [stylesheets stcejbus desc-parsers inherited-values]
         (define declared-values : CSS-Values (make-css-values))
         (hash-clear! !importants)
         (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
-          (for ([stylesheet (in-list batch)])
-            (cascade-stylesheets (css-select-children stylesheet))
-            (css-cascade-rules (css-stylesheet-grammars stylesheet) stcejbus desc-parsers (css-select-quirk-mode?)
-                               (css-stylesheet-features stylesheet) declared-values)))
+          (for ([this-sheet (in-list batch)])
+            (cascade-stylesheets (css-select-children this-sheet))
+            (css-cascade-rules (css-stylesheet-grammars this-sheet) stcejbus desc-parsers (css-select-quirk-mode?) declared-values
+                               (css-cascade-viewport (default-css-media-features) (css-stylesheet-viewports this-sheet)))))
         (css-resolve-variables declared-values inherited-values)
         ; TODO: should we copy the inherited values after invoking (value-filter)?
         declared-values))
@@ -84,13 +52,23 @@
        (define declared-values : CSS-Values (do-cascade stylesheets stcejbus desc-parsers inherited-values))
        (values (value-filter declared-values inherited-values env) declared-values)])))
 
+(define css-cascade-viewport : (->* (CSS-Media-Features (Listof CSS-Declarations))
+                                    (CSS-Declaration-Parsers (CSS-Cascaded-Value-Filter (HashTable Symbol CSS-Media-Datum)))
+                                    CSS-Media-Features)
+  ;;; https://drafts.csswg.org/css-device-adapt/#atviewport-rule
+  (lambda [init-viewport descriptors [viewport-parser (default-css-viewport-parsers)] [viewport-filter (default-css-viewport-filter)]]
+    (cond [(null? descriptors) init-viewport]
+          [else (call-with-css-viewport-from-media #:descriptors init-viewport
+                  (parameterize ([default-css-media-features init-viewport])
+                    (viewport-filter (css-cascade-declarations viewport-parser descriptors) #false)))])))
+
 (define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject) CSS-Declaration-Parsers)
-                                 (Boolean CSS-Media-Features CSS-Values) CSS-Values)
+                                 (Boolean CSS-Values CSS-Media-Features) CSS-Values)
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
-  (lambda [rules stcejbus desc-parsers [quirk? #false] [top-descriptors (default-css-media-features)] [descbase (make-css-values)]]
-    (define-values (ordered-srcs single?) (css-select-styles rules stcejbus quirk? top-descriptors))
+  (lambda [rules stcejbus desc-parsers [quirk? #false] [descbase (make-css-values)] [top-descriptors (default-css-media-features)]]
     (call-with-css-viewport-from-media #:descriptors top-descriptors
+      (define-values (ordered-srcs single?) (css-select-styles rules stcejbus quirk? top-descriptors))
       (if (and single?)
           (let ([source-ref (λ [[src : CSS-Style-Metadata]] : CSS-Declarations (vector-ref src 1))])
             (css-cascade-declarations desc-parsers (map source-ref ordered-srcs) descbase))
@@ -202,11 +180,11 @@
              [all-rotpircsed : (Listof Preference) null]
              [all-seulav : (Listof CSS-Values) null])
             (for/fold ([rotpircsed++ : (Listof Preference) all-rotpircsed] [values++ : (Listof CSS-Values) all-seulav])
-                      ([stylesheet (in-list batch)])
-              (define-values (sub-rotpircsed sub-seulav) (cascade-stylesheets (css-select-children stylesheet) rotpircsed++ values++))
+                      ([this-sheet (in-list batch)])
+              (define-values (sub-rotpircsed sub-seulav) (cascade-stylesheets (css-select-children this-sheet) rotpircsed++ values++))
               (define this-values : (Listof CSS-Values)
-                (css-cascade-rules* (css-stylesheet-grammars stylesheet) stcejbus desc-parsers (css-select-quirk-mode?)
-                                    (css-stylesheet-features stylesheet)))
+                (css-cascade-rules* (css-stylesheet-grammars this-sheet) stcejbus desc-parsers (css-select-quirk-mode?)
+                                    (css-cascade-viewport (default-css-media-features) (css-stylesheet-viewports this-sheet))))
               (for/fold ([this-rotpircsed : (Listof Preference) sub-rotpircsed]
                          [this-seulav : (Listof CSS-Values) sub-seulav])
                         ([declared-values : CSS-Values (in-list this-values)])
@@ -227,8 +205,8 @@
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
   (lambda [rules stcejbus desc-parsers [quirk? #false] [top-descriptors (default-css-media-features)]]
-    (define-values (ordered-srcs single?) (css-select-styles rules stcejbus quirk? top-descriptors))
     (call-with-css-viewport-from-media #:descriptors top-descriptors
+      (define-values (ordered-srcs single?) (css-select-styles rules stcejbus quirk? top-descriptors))
       (cond [(and single?) (map (λ [[src : CSS-Style-Metadata]] (css-cascade-declarations desc-parsers (vector-ref src 1))) ordered-srcs)]
             [else (for/list : (Listof CSS-Values) ([src (in-list ordered-srcs)])
                     (define alter-descriptors : CSS-Media-Features (vector-ref src 2))
@@ -262,9 +240,12 @@
                  (cond [(zero? specificity) (values styles single-query?)]
                        [else (let ([sm : CSS-Style-Metadata (vector specificity (css-style-rule-properties rule) descriptors)])
                                (values (cons sm styles) single-query?))])]
-                [(and (css-media-rule? rule) (css-@media-okay? (css-media-rule-queries rule) (css-media-rule-features rule)))
-                 (cascade-rules (or (css-media-rule-viewport rule) descriptors) (css-media-rule-grammars rule)
-                                styles (if (css-media-rule-viewport rule) #false single-query?))]
+                [(and (css-media-rule? rule) (css-@media-okay? (css-media-rule-queries rule) descriptors))
+                 (cascade-rules (cond [(null? (css-media-rule-viewports rule)) descriptors]
+                                      [else (css-cascade-viewport descriptors (css-media-rule-viewports rule))])
+                                (css-media-rule-grammars rule)
+                                styles
+                                (and (null? (css-media-rule-viewports rule)) single-query?))]
                 [(and (css-supports-rule? rule) (css-@supports-okay? (css-supports-rule-query rule) (default-css-feature-support?)))
                  (cascade-rules descriptors (css-supports-rule-grammars rule) styles single-query?)]
                 [else #|other `css-@rule`s|# (values styles single-query?)]))))
@@ -278,6 +259,6 @@
     (define (okay? [child : CSS-Import-Rule]) : Boolean
       (define query : (Option CSS-Feature-Query) (css-import-rule-supports child))
       (and (implies query (css-@supports-okay? query (default-css-feature-support?)))
-           (css-@media-okay? (css-import-rule-media-list child) (css-import-rule-features child))))
+           (css-@media-okay? (css-import-rule-media-list child) (default-css-media-features))))
     (for/list : (Listof CSS-StyleSheet) ([child (in-list (css-stylesheet-imports parent))] #:when (okay? child))
       (hash-ref pool (css-import-rule-identity child)))))

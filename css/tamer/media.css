@@ -10,8 +10,14 @@
 
 @import url(retina.css) (resolution = 2dppx);
 
-@namespace box url(github.com/wargrey/css/testcases/conditions);
-                                            
+@namespace box url(github.com/wargrey/css/testcases/media);
+
+@viewport {
+  user-zoom: fixed;
+  width: 800px;
+  height: 600px;
+}
+                                                          
 :root {
   font-size: larger;
   padding: 0px 0px;

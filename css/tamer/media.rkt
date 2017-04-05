@@ -3,6 +3,7 @@
 (require "../main.rkt")
 (require "../sugar.rkt")
 (require "configure.rkt")
+(require "media.css")
 
 (current-css-element-color 'Silver)
 (css-configure-@media)
@@ -53,13 +54,12 @@
                 #:border-color (css-box-color-ref 'border-color)
                 #:border-style (css-box-ref 'border-style pen-style? css:initial)))))
 
-(define box.css : CSS-StyleSheet (read-css-stylesheet tamer/box.css))
 (define ~root:n : CSS-Subject (make-css-subject #::classes '(root)))
 (define ~root:s : CSS-Subject (make-css-subject #::classes '(selected)))
-(define-values ($root:n *root:n) (css-cascade (list box.css) (list ~root:n) box-parsers box-filter #false))
-(define-values ($root:s *root:s) (css-cascade (list box.css) (list ~root:s) box-parsers box-filter #false))
+(define-values ($root:n *root:n) (css-cascade (list media.css) (list ~root:n) box-parsers box-filter #false))
+(define-values ($root:s *root:s) (css-cascade (list media.css) (list ~root:s) box-parsers box-filter #false))
 
-box.css
+media.css
 (bitmap-hb-append #:gapsize (+ (box-vertical-margin $root:n) (box-vertical-margin $root:s))
                   (bitmap-frame #:color (current-css-element-color) #:style 'dot
                                 (bitmap-frame #:margin (box-vertical-margin $root:n) #:inset (box-vertical-inset $root:n)

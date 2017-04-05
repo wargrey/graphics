@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require "bitmap.css")
+
 (require "configure.rkt")
 (require "../main.rkt")
 (require "../sugar.rkt")
@@ -62,7 +64,6 @@
 
 (css-root-element-type 'module)
 
-(define bitmap.css : CSS-StyleSheet (read-css-stylesheet tamer/bitmap.css))
 (define ~module : CSS-Subject (make-css-subject #:type 'module #:classes '(main)))
 (define ~btest : CSS-Subject (make-css-subject #:type 'bitmap-desc #:classes '(test)))
 
