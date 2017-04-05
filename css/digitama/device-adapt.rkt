@@ -9,6 +9,8 @@
 (require "condition.rkt")
 (require "../recognizer.rkt")
 
+(define-type CSS-Viewport-Filter (CSS-Cascaded-Value+Filter (HashTable Symbol CSS-Media-Datum) (HashTable Symbol CSS-Media-Datum)))
+
 ;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
 (define css-viewport-parsers : CSS-Declaration-Parsers
   (lambda [suitcased-name !]
@@ -22,22 +24,20 @@
       [(zoom min-zoom max-zoom) (CSS<^> (CSS:<+> (<css-keyword> 'auto) (CSS:<~> (<css+%real>) real->double-flonum)))]
       [(min-width max-width min-height max-height) (CSS<^> (viewport-length-filter))]
       [(orientation) (CSS<^> (<css-keyword> '(auto portrait landscape)))]
-      [(user-zoom) (CSS<^> (<css-keyword> '(zoom fixed)))]
-      [else #false])))
+      [(user-zoom) (CSS<^> (<css-keyword> '(zoom fixed)))])))
 
-(define css-viewport-filter : (CSS-Cascaded-Value-Filter (HashTable Symbol CSS-Media-Datum))
+(define css-viewport-filter : CSS-Viewport-Filter
   ;;; https://drafts.csswg.org/css-device-adapt/#constraining
   ;;; https://drafts.csswg.org/css-device-adapt/#handling-auto-zoom
   ;;; https://drafts.csswg.org/css-device-adapt/#media-queries
   ;;; https://drafts.csswg.org/css-device-adapt/#viewport-desc
-  (lambda [cascaded-values inherited-viewport]
-    ; Notes: There is no need to check the `initial-viewport` to specific the `specified values` since
-    ;          @viewport is a controversial @rule which is easy to be used incorrectly,
-    ;          @viewport is rarely used in desktop applications, and
-    ;          this behavior is indeed specified if I understand the specification correctly.
+  (lambda [cascaded-values _ initial-viewport]
+    ;;; Notes
+    ;; * @viewport is a controversial @rule which is easy to be used incorrectly,
+    ;; * @viewport is rarely used in desktop applications, and
     (define-values (initial-width initial-height)
-      (let ([w (hash-ref (default-css-media-features) 'width (const #false))]
-            [h (hash-ref (default-css-media-features) 'height (const #false))])
+      (let ([w (hash-ref initial-viewport 'width (const #false))]
+            [h (hash-ref initial-viewport 'height (const #false))])
         (values (if (and (real? w) (positive? w)) (flmax (real->double-flonum w) 1.0) 1.0)
                 (if (and (real? h) (positive? h)) (flmax (real->double-flonum h) 1.0) 1.0))))
     (define defzoom : Nonnegative-Flonum (default-css-viewport-auto-zoom))

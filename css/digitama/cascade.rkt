@@ -52,15 +52,13 @@
        (define declared-values : CSS-Values (do-cascade stylesheets stcejbus desc-parsers inherited-values))
        (values (value-filter declared-values inherited-values env) declared-values)])))
 
-(define css-cascade-viewport : (->* (CSS-Media-Features (Listof CSS-Declarations))
-                                    (CSS-Declaration-Parsers (CSS-Cascaded-Value-Filter (HashTable Symbol CSS-Media-Datum)))
+(define css-cascade-viewport : (->* (CSS-Media-Features (Listof CSS-Declarations)) (CSS-Declaration-Parsers CSS-Viewport-Filter)
                                     CSS-Media-Features)
   ;;; https://drafts.csswg.org/css-device-adapt/#atviewport-rule
   (lambda [init-viewport descriptors [viewport-parser (default-css-viewport-parsers)] [viewport-filter (default-css-viewport-filter)]]
     (cond [(null? descriptors) init-viewport]
           [else (call-with-css-viewport-from-media #:descriptors init-viewport
-                  (parameterize ([default-css-media-features init-viewport])
-                    (viewport-filter (css-cascade-declarations viewport-parser descriptors) #false)))])))
+                  (viewport-filter (css-cascade-declarations viewport-parser descriptors) #false init-viewport))])))
 
 (define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject) CSS-Declaration-Parsers)
                                  (Boolean CSS-Values CSS-Media-Features) CSS-Values)
