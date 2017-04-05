@@ -12,8 +12,8 @@
 (define-preference* box #:as Box.CSS
   ([width : Nonnegative-Flonum             #:= (css-vw)]
    [height : Nonnegative-Flonum            #:= (css-vh)]
-   [vertical-margin : Nonnegative-Flonum   #:= 4.0]
-   [horizontal-margin : Nonnegative-Flonum #:= 4.0]
+   [vertical-margin : Nonnegative-Flonum   #:= 3.0]
+   [horizontal-margin : Nonnegative-Flonum #:= 3.0]
    [vertical-inset : Nonnegative-Flonum    #:= 0.0]
    [horizontal-inset : Nonnegative-Flonum  #:= 0.0]
    [icon-height : Nonnegative-Flonum       #:= (real->double-flonum (default-icon-height))]
@@ -59,7 +59,7 @@
 (define-values ($root:n *root:n) (css-cascade (list box.css) (list ~root:n) box-parsers box-filter #false))
 (define-values ($root:s *root:s) (css-cascade (list box.css) (list ~root:s) box-parsers box-filter #false))
 
-(default-css-media-features)
+box.css
 (bitmap-hb-append #:gapsize (+ (box-vertical-margin $root:n) (box-vertical-margin $root:s))
                   (bitmap-frame #:color (current-css-element-color) #:style 'dot
                                 (bitmap-frame #:margin (box-vertical-margin $root:n) #:inset (box-vertical-inset $root:n)

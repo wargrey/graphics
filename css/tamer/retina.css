@@ -1,0 +1,9 @@
+#lang css
+
+@charset "utf-8";
+
+:root {
+  margin: 4px 4px;
+  icon-height: 1.6 /* unitless */ !important;
+  border-style: dot !important;
+}

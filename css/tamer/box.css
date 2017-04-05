@@ -8,20 +8,28 @@
  * so `margin-bottom`, `margin-left`, `padding-bottom` and `padding-left` are ignored.
  */
 
+@import url(retina.css) (resolution = 2dppx);
+
 :root {
   font-size: larger;
-  margin: 2px 2px;
   padding: 0px 0px;
-  icon-height: 1.5; /* unitless */
   color: DarkSlateGray;
   background-color: White;
   border-color: currentcolor;
-  border-style: transparent;
+}
+
+@media (resolution < 2dppx) {
+  :root {
+    margin: 2px 2px;
+    icon-height: 1.2; /* unitless */
+    border-style: transparent;
+  }
 }
 
 @media (resolution = 2dppx) {
   :root {
-    margin: 4px 4px;
+     icon-height: 1.2; /* unitless */
+     border-style: initial !important;
   }
 }
 

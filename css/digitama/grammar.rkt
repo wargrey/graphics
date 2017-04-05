@@ -37,15 +37,15 @@
             (css-syntax-rules->grammar-rules location rules namespaces #true #true init-viewport pool))
           (define timestamp : Integer (if (string? location) (file-or-directory-modify-seconds location) (current-seconds)))
           (define stylesheet : CSS-StyleSheet
-            (make-css-stylesheet #:location location #:namespaces namespaces #:imports imports #:features viewport #:rules grammars
-                                 #:pool pool #:timestamp timestamp))
+            (make-css-stylesheet #:location location #:namespaces namespaces #:imports imports #:grammars grammars
+                                 #:pool pool #:timestamp timestamp #:features viewport))
           (when (positive? identity) (hash-set! pool identity stylesheet))
           stylesheet))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-syntax-rules->grammar-rules : (->* ((U String Symbol) (Listof CSS-Syntax-Rule) (HashTable Symbol String) Boolean Boolean)
                                                (CSS-Media-Features CSS-StyleSheet-Pool)
-                                               (Values CSS-Media-Features (Listof Positive-Integer) (Listof CSS-Grammar-Rule)))
+                                               (Values CSS-Media-Features (Listof CSS-Import-Rule) (Listof CSS-Grammar-Rule)))
   (lambda [src syntaxes0 namespaces can-import0? allow-namespace0?
                [init-viewport (default-css-media-features)]
                [pool ((inst make-hasheq Natural CSS-StyleSheet))]]
@@ -67,14 +67,14 @@
       (cond [(null? viewport-srotpircsed) init-viewport]
             [else (css-cascade-viewport init-viewport (reverse viewport-srotpircsed)
                                         (default-css-viewport-parsers) (default-css-viewport-filter))]))
-    (let syntax->grammar : (Values CSS-Media-Features (Listof Positive-Integer) (Listof CSS-Grammar-Rule))
-      ([seititnedi : (Listof Positive-Integer) null]
+    (let syntax->grammar : (Values CSS-Media-Features (Listof CSS-Import-Rule) (Listof CSS-Grammar-Rule))
+      ([seititnedi : (Listof CSS-Import-Rule) null]
        [srammarg : (Listof CSS-Grammar-Rule) null]
-       [!viewport-syntaxes : (Listof CSS-Syntax-Rule) (reverse !viewport-sexatnys)]
+       [syntaxes : (Listof CSS-Syntax-Rule) (reverse !viewport-sexatnys)]
        [can-import? : Boolean can-import0?]
        [allow-namespace? : Boolean allow-namespace0?])
-      (cond [(null? !viewport-syntaxes) (values viewport (reverse seititnedi) (reverse srammarg))]
-            [else (let-values ([(stx rest) (values (car !viewport-syntaxes) (cdr !viewport-syntaxes))])
+      (cond [(null? syntaxes) (values viewport (reverse seititnedi) (reverse srammarg))]
+            [else (let-values ([(stx rest) (values (car syntaxes) (cdr syntaxes))])
                     (if (css-qualified-rule? stx)
                         (let ([?rule : (U CSS-Style-Rule CSS-Syntax-Error) (css-qualified-rule->style-rule stx namespaces)])
                           (define ++srammarg : (Listof CSS-Grammar-Rule)
@@ -82,36 +82,32 @@
                                   [else (cons ?rule srammarg)]))
                           (syntax->grammar seititnedi ++srammarg rest #false #false))
                         (case (css:@keyword-norm (css-@rule-name stx))
+                          [(#:@media)
+                           (define ?rule (css-@condition->conditional-rule stx viewport namespaces pool))
+                           (syntax->grammar seititnedi (if (css-media-rule? ?rule) (cons ?rule srammarg) srammarg)
+                                            rest #false #false)]
+                          [(#:@supports)
+                           (define ?rule (css-@condition->conditional-rule stx viewport namespaces pool))
+                           (syntax->grammar seititnedi (if (css-supports-rule? ?rule) (cons ?rule srammarg) srammarg)
+                                            rest #false #false)]
+                          [(#:@namespace)
+                           (define ?ns : (U (Pairof Symbol String) CSS-Syntax-Error)
+                             (cond [allow-namespace? (css-@namespace->namespace stx)]
+                                   [else (make+exn:css:misplaced (css-@rule-name stx))]))
+                           (when (pair? ?ns) (hash-set! namespaces (car ?ns) (cdr ?ns)))
+                           (syntax->grammar seititnedi srammarg rest #false allow-namespace?)]
+                          [(#:@import)
+                           (define ?rule : (U CSS-Import-Rule False CSS-Syntax-Error)
+                             (cond [(false? can-import?) (make+exn:css:misplaced (css-@rule-name stx))]
+                                   [else (css-@import->import-rule stx src viewport pool)]))
+                           (syntax->grammar (if (css-import-rule? ?rule) (cons ?rule seititnedi) seititnedi)
+                                            srammarg rest can-import? allow-namespace?)]
                           [(#:@charset)
                            (make+exn:css:misplaced (css-@rule-name stx))
                            (syntax->grammar seititnedi srammarg rest can-import? allow-namespace?)]
-                          [(#:@import)
-                           (define css-id : (U Positive-Integer False CSS-Syntax-Error)
-                             (cond [(false? can-import?) (make+exn:css:misplaced (css-@rule-name stx))]
-                                   [else (css-@import->stylesheet-identity stx src viewport pool)]))
-                           (syntax->grammar (if (integer? css-id) (cons css-id seititnedi) seititnedi)
-                                            srammarg rest can-import? allow-namespace?)]
-                          [(#:@namespace)
-                           (define css-ns : (U (Pairof Symbol String) CSS-Syntax-Error)
-                             (cond [allow-namespace? (css-@namespace->namespace stx)]
-                                   [else (make+exn:css:misplaced (css-@rule-name stx))]))
-                           (when (pair? css-ns) (hash-set! namespaces (car css-ns) (cdr css-ns)))
-                           (syntax->grammar seititnedi srammarg rest #false allow-namespace?)]
-                          [(#:@media)
-                           (define media-rules (css-@media->media-rule stx viewport namespaces pool))
-                           (define ++srammarg : (Listof CSS-Grammar-Rule)
-                             (cond [(list? media-rules) (append (reverse media-rules) srammarg)]
-                                   [(pair? media-rules) (cons media-rules srammarg)]
-                                   [else srammarg]))
-                           (syntax->grammar seititnedi ++srammarg rest #false #false)]
-                          [(#:@support)
-                           (define expand-stxes (css-@support->syntax-rules stx))
-                           (define delta : (Listof CSS-Syntax-Rule) (if (pair? expand-stxes) (append expand-stxes rest) rest))
-                           (syntax->grammar seititnedi srammarg delta #false #false)]
                           [else (syntax->grammar seititnedi (cons stx srammarg) rest #false #false)])))]))))
   
-(define css-@import->stylesheet-identity : (-> CSS-@Rule Any CSS-Media-Features CSS-StyleSheet-Pool
-                                               (U Positive-Integer False CSS-Syntax-Error))
+(define css-@import->import-rule : (-> CSS-@Rule Any CSS-Media-Features CSS-StyleSheet-Pool (U CSS-Import-Rule False CSS-Syntax-Error))
   ;;; https://drafts.csswg.org/css-cascade/#at-import
   (lambda [import parent-href features pool]
     (define-values (uri ?condition) (css-car (css-@rule-prelude import)))
@@ -127,18 +123,15 @@
           [(css:block? ?block) (make+exn:css:overconsumption ?block)]
           [(false? (regexp-match? #px"\\.css$" ?target.css)) (make+exn:css:resource uri)]
           [(false? (file-exists? ?target.css)) (make+exn:css:resource uri)]
-          [else (let-values ([(?support ?media-list) (css-car ?condition)])
-                  (define-values (support? media-list)
-                    (if (css:function-norm=:=? ?support 'supports)
-                        (let* ([components (css:function-arguments ?support)]
-                               [supports (list (css-remake-token ?support css:block #\( components #false))]
-                               [query (css-parse-feature-query supports name)])
-                          (values (css-@supports-okay? query (default-css-feature-support?)) ?media-list))
-                        (values #true ?condition)))
-                  (and support? (css-@media-okay? (css-parse-media-queries media-list name) features)
-                       (parameterize ([default-css-media-features features])
-                         (read-css-stylesheet ?target.css pool))
-                       (css-stylesheet-path->identity ?target.css)))])))
+          [else (parameterize ([default-css-media-features features])
+                  (define-values (?supports ?media-list) (css-car ?condition))
+                  (define-values (?query ?queries)
+                    (if (css:function-norm=:=? ?supports 'supports)
+                        (values (css-components->feature-query (css:function-arguments ?supports) #false name)
+                                (css-parse-media-queries ?media-list name))
+                        (values #false (css-parse-media-queries ?condition name))))
+                  (read-css-stylesheet ?target.css pool)
+                  (css-import-rule (css-stylesheet-path->identity ?target.css) ?query ?queries features))])))
     
 (define css-@namespace->namespace : (-> CSS-@Rule (U (Pairof Symbol String) CSS-Syntax-Error))
   ;;; https://drafts.csswg.org/css-namespaces/#syntax
@@ -159,34 +152,26 @@
           [(eof-object? 2nd) (cons '|| namespace)]
           [else (make+exn:css:type 1st)])))
 
-(define css-@media->media-rule : (-> CSS-@Rule CSS-Media-Features (HashTable Symbol String) CSS-StyleSheet-Pool
-                                     (U (Listof CSS-Grammar-Rule) CSS-Media-Rule CSS-Syntax-Error Void))
+(define css-@condition->conditional-rule : (-> CSS-@Rule CSS-Media-Features (HashTable Symbol String) CSS-StyleSheet-Pool
+                                               (U CSS-Media-Rule CSS-Supports-Rule CSS-Syntax-Error Void))
   ;;; https://drafts.csswg.org/css-conditional/#contents-of
+  ;;; https://drafts.csswg.org/css-conditional/#at-supports
   ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
-  (lambda [media features namespaces pool]
-    (define name : CSS:@Keyword (css-@rule-name media))
-    (define ?block : (Option CSS:Block) (css-@rule-block media))
+  (lambda [condition features namespaces pool]
+    (define name : CSS:@Keyword (css-@rule-name condition))
+    (define ?block : (Option CSS:Block) (css-@rule-block condition))
     (cond [(false? ?block) (make+exn:css:missing-block name)]
           [(css-null? (css:block-components ?block)) (void)]
-          [else (when (css-@media-okay? (css-parse-media-queries (css-@rule-prelude media) name) features)
-                  (define stxes : (Listof CSS-Syntax-Rule) (css-parse-rules (css:block-components ?block)))
+          [else (let ([stxes : (Listof CSS-Syntax-Rule) (css-parse-rules (css:block-components ?block))])
                   (when (pair? stxes)
                     (define-values (viewport _ grammars)
                       (css-syntax-rules->grammar-rules 'src stxes namespaces #false #false features pool))
                     (when (pair? grammars)
-                      (cond [(eq? viewport features) grammars]
-                            [else (cons grammars viewport)]))))])))
-
-(define css-@support->syntax-rules : (-> CSS-@Rule (U (Listof CSS-Syntax-Rule) CSS-Syntax-Error))
-  ;;; https://drafts.csswg.org/css-conditional/#contents-of
-  ;;; https://drafts.csswg.org/css-conditional/#at-supports
-  (lambda [support]
-    (define name : CSS:@Keyword (css-@rule-name support))
-    (define ?block : (Option CSS:Block) (css-@rule-block support))
-    (cond [(false? ?block) (make+exn:css:missing-block name)]
-          [(css-null? (css:block-components ?block)) null]
-          [(not (css-@supports-okay? (css-parse-feature-query (css-@rule-prelude support) name) (default-css-feature-support?))) null]
-          [else (css-parse-rules (css:block-components ?block))])))
+                      (if (eq? (css:@keyword-norm name) '#:@media)
+                          (css-media-rule (css-parse-media-queries (css-@rule-prelude condition) name) grammars features
+                                                (and (not (eq? features viewport)) viewport))
+                          (let ([supports (css-parse-feature-query (css-@rule-prelude condition) name)])
+                            (if (exn:css? supports) supports (css-supports-rule supports grammars)))))))])))
   
 (define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (Option (HashTable Symbol String)) (U CSS-Style-Rule CSS-Syntax-Error))
   ;;; https://drafts.csswg.org/css-syntax/#style-rules
@@ -224,10 +209,10 @@
 (define css-update-imported-stylesheets : (-> CSS-StyleSheet Void)
   (lambda [stylesheet]
     (define pool : CSS-StyleSheet-Pool (css-stylesheet-pool stylesheet))
-    (for ([id (in-list (css-stylesheet-imports stylesheet))])
-      (define child : (Option CSS-StyleSheet) (hash-ref pool id (const #false)))
-      (when (css-stylesheet? child)
-        (define child.css : (U Symbol String) (css-stylesheet-location child))
+    (for ([children (in-list (css-stylesheet-imports stylesheet))])
+      (define id : (Option CSS-StyleSheet) (hash-ref pool (css-import-rule-identity children) (const #false)))
+      (when (css-stylesheet? id)
+        (define child.css : (U Symbol String) (css-stylesheet-location id))
         (when (string? child.css)
           (read-css-stylesheet (string->path child.css) pool))))))
   

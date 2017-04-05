@@ -13,8 +13,7 @@
 (require "../recognizer.rkt")
 
 (define-type CSS-StyleSheet-Pool (HashTable Natural CSS-StyleSheet))
-(define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule CSS-Media-Rule))
-(define-type CSS-Media-Rule (Pairof (Listof CSS-Grammar-Rule) CSS-Media-Features))
+(define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule CSS-Media-Rule CSS-Supports-Rule))
 
 (define-type CSS-Style-Metadata (Vector Nonnegative-Fixnum CSS-Declarations CSS-Media-Features))
 
@@ -22,39 +21,57 @@
 (define css-select-quirk-mode? : (Parameterof Boolean) (make-parameter #false))
 (define css-property-case-sensitive? : (Parameterof Boolean) (make-parameter #false))
 
-(struct: css-style-rule : CSS-Style-Rule ([selectors : (Listof+ CSS-Complex-Selector)] [properties : CSS-Declarations]))
+(struct: css-import-rule : CSS-Import-Rule
+  ([identity : Positive-Integer]
+   [supports : (Option CSS-Feature-Query)]
+   [media-list : (Listof CSS-Media-Query)]
+   [features : CSS-Media-Features]))
+
+(struct: css-media-rule : CSS-Media-Rule
+  ([queries : (Listof CSS-Media-Query)]
+   [grammars : (Listof CSS-Grammar-Rule)]
+   [features : CSS-Media-Features]
+   [viewport : (Option CSS-Media-Features)]))
+
+(struct: css-supports-rule : CSS-Supports-Rule
+  ([query : CSS-Feature-Query]
+   [grammars : (Listof CSS-Grammar-Rule)]))
+
+(struct: css-style-rule : CSS-Style-Rule
+  ([selectors : (Listof+ CSS-Complex-Selector)]
+   [properties : CSS-Declarations]))
 
 (define-preference css-stylesheet #:as CSS-StyleSheet
   ([location : (U String Symbol)           #:= '/dev/null]
    [namespaces : (HashTable Symbol String) #:= (make-hasheq)]
-   [imports : (Listof Positive-Integer)    #:= null]
-   [features : CSS-Media-Features          #:= (make-hasheq)]
-   [rules : (Listof CSS-Grammar-Rule)      #:= null]
+   [imports : (Listof CSS-Import-Rule)     #:= null]
+   [grammars : (Listof CSS-Grammar-Rule)   #:= null]
    [pool : CSS-StyleSheet-Pool             #:= (make-hasheq)]
-   [timestamp : Integer                    #:= 0])
+   [timestamp : Integer                    #:= 0]
+   [features : CSS-Media-Features          #:= (make-hasheq)])
   #:transparent)
 
 (define css-stylesheet-placeholder : CSS-StyleSheet (make-css-stylesheet))
 
-(define css-cascade : (All (Preference Env) (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
-                                                        (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
-                                                        (Values Preference CSS-Values)]
-                                                    [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
-                                                        (CSS-Cascaded-Value+Filter Preference Env)
-                                                        (Option CSS-Values) Env
-                                                        (Values Preference CSS-Values)]))
+(define css-cascade :
+  (All (Preference Env)
+       (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                   (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
+                   (Values Preference CSS-Values)]
+               [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                   (CSS-Cascaded-Value+Filter Preference Env) (Option CSS-Values) Env
+                   (Values Preference CSS-Values)]))
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
   (let ()
     (define do-cascade : (-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers (Option CSS-Values) CSS-Values)
       (lambda [stylesheets stcejbus desc-parsers inherited-values]
         (define declared-values : CSS-Values (make-css-values))
+        (hash-clear! !importants)
         (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
           (for ([stylesheet (in-list batch)])
-            (define imported-identities : (Listof Positive-Integer) (css-stylesheet-imports stylesheet))
-            (cascade-stylesheets (for/list : (Listof CSS-StyleSheet) ([import (in-list imported-identities)])
-                                   (hash-ref (css-stylesheet-pool stylesheet) import)))
-            (css-cascade-rules (css-stylesheet-rules stylesheet) stcejbus desc-parsers (css-select-quirk-mode?)
+            (cascade-stylesheets (css-select-children stylesheet))
+            (css-cascade-rules (css-stylesheet-grammars stylesheet) stcejbus desc-parsers (css-select-quirk-mode?)
                                (css-stylesheet-features stylesheet) declared-values)))
         (css-resolve-variables declared-values inherited-values)
         ; TODO: should we copy the inherited values after invoking (value-filter)?
@@ -72,7 +89,7 @@
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
   (lambda [rules stcejbus desc-parsers [quirk? #false] [top-descriptors (default-css-media-features)] [descbase (make-css-values)]]
-    (define-values (ordered-srcs single?) (css-select-rules rules stcejbus quirk? top-descriptors))
+    (define-values (ordered-srcs single?) (css-select-styles rules stcejbus quirk? top-descriptors))
     (call-with-css-viewport-from-media #:descriptors top-descriptors
       (if (and single?)
           (let ([source-ref (λ [[src : CSS-Style-Metadata]] : CSS-Declarations (vector-ref src 1))])
@@ -91,13 +108,11 @@
   ;;; https://drafts.csswg.org/css-variables/#syntax
   ;;; https://drafts.csswg.org/css-variables/#using-variables
   (lambda [desc-parsers properties [descbase (make-css-values)]]
-    ;;; TODO: find a better way to deal with !important
-    (define importants : (HashTable Symbol Boolean) (hash-ref! !imptbase descbase (thunk ((inst make-hasheq Symbol Boolean)))))
     (define case-sensitive? : Boolean (css-property-case-sensitive?))
     (define (desc-more-important? [desc-name : Symbol] [important? : Boolean]) : Boolean
-      (or important? (not (hash-has-key? importants desc-name))))
+      (or important? (not (hash-has-key? !importants desc-name))))
     (define (desc-set! [desc-name : Symbol] [important? : Boolean] [declared-value : (-> Any)]) : Void
-      (when important? (hash-set! importants desc-name #true))
+      (when important? (hash-set! !importants desc-name #true))
       (when (eq? desc-name 'all)
         (for ([desc-key (in-list (remq* (default-css-all-exceptions) (hash-keys descbase)))])
           (when (desc-more-important? desc-key important?)
@@ -167,31 +182,30 @@
     descbase))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define css-cascade* : (All (Preference Env) (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
-                                                         (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
-                                                         (Values (Listof Preference) (Listof CSS-Values))]
-                                                     [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
-                                                         (CSS-Cascaded-Value+Filter Preference Env)
-                                                         (Option CSS-Values) Env
-                                                         (Values (Listof Preference) (Listof CSS-Values))]))
+(define css-cascade* :
+  (All (Preference Env)
+       (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                   (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
+                   (Values (Listof Preference) (Listof CSS-Values))]
+               [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                   (CSS-Cascaded-Value+Filter Preference Env) (Option CSS-Values) Env
+                   (Values (Listof Preference) (Listof CSS-Values))]))
   (let ()
     (define do-cascade* : (All (Preference) (-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
                                                 (Option CSS-Values) (-> CSS-Values Preference)
                                                 (Values (Listof Preference) (Listof CSS-Values))))
       (lambda [stylesheets stcejbus desc-parsers inherited-values do-value-filter]
+        (hash-clear! !importants) ; TODO: if it is placed correctly, perhaps a specification for custom cascading process is required.
         (define-values (rotpircsed seulav)
-          (let cascade-stylesheets : (values (Listof Preference) (Listof CSS-Values)) ([batch : (Listof CSS-StyleSheet) stylesheets]
-                                                                                       [all-rotpircsed : (Listof Preference) null]
-                                                                                       [all-seulav : (Listof CSS-Values) null])
-            (for/fold ([accu-rotpircsed : (Listof Preference) all-rotpircsed] [accu-values : (Listof CSS-Values) all-seulav])
+          (let cascade-stylesheets : (values (Listof Preference) (Listof CSS-Values))
+            ([batch : (Listof CSS-StyleSheet) stylesheets]
+             [all-rotpircsed : (Listof Preference) null]
+             [all-seulav : (Listof CSS-Values) null])
+            (for/fold ([rotpircsed++ : (Listof Preference) all-rotpircsed] [values++ : (Listof CSS-Values) all-seulav])
                       ([stylesheet (in-list batch)])
-              (define imported-identities : (Listof Positive-Integer) (css-stylesheet-imports stylesheet))
-              (define-values (sub-rotpircsed sub-seulav)
-                (cascade-stylesheets (for/list : (Listof CSS-StyleSheet) ([import (in-list imported-identities)])
-                                       (hash-ref (css-stylesheet-pool stylesheet) import))
-                                     accu-rotpircsed accu-values))
+              (define-values (sub-rotpircsed sub-seulav) (cascade-stylesheets (css-select-children stylesheet) rotpircsed++ values++))
               (define this-values : (Listof CSS-Values)
-                (css-cascade-rules* (css-stylesheet-rules stylesheet) stcejbus desc-parsers (css-select-quirk-mode?)
+                (css-cascade-rules* (css-stylesheet-grammars stylesheet) stcejbus desc-parsers (css-select-quirk-mode?)
                                     (css-stylesheet-features stylesheet)))
               (for/fold ([this-rotpircsed : (Listof Preference) sub-rotpircsed]
                          [this-seulav : (Listof CSS-Values) sub-seulav])
@@ -213,7 +227,7 @@
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
   (lambda [rules stcejbus desc-parsers [quirk? #false] [top-descriptors (default-css-media-features)]]
-    (define-values (ordered-srcs single?) (css-select-rules rules stcejbus quirk? top-descriptors))
+    (define-values (ordered-srcs single?) (css-select-styles rules stcejbus quirk? top-descriptors))
     (call-with-css-viewport-from-media #:descriptors top-descriptors
       (cond [(and single?) (map (λ [[src : CSS-Style-Metadata]] (css-cascade-declarations desc-parsers (vector-ref src 1))) ordered-srcs)]
             [else (for/list : (Listof CSS-Values) ([src (in-list ordered-srcs)])
@@ -224,30 +238,46 @@
                           (css-cascade-declarations desc-parsers (vector-ref src 1)))))]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define !imptbase : (HashTable CSS-Values (HashTable Symbol Boolean)) ((inst make-hasheq CSS-Values (HashTable Symbol Boolean))))
+(define !importants : (HashTable Symbol Boolean) ((inst make-hasheq Symbol Boolean)))
 
-(define css-select-rules : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject)) (Boolean CSS-Media-Features)
-                                (Values (Listof CSS-Style-Metadata) Boolean))
+(define css-select-styles : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject)) (Boolean CSS-Media-Features)
+                                 (Values (Listof CSS-Style-Metadata) Boolean))
   ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
   ;;; https://drafts.csswg.org/selectors/#data-model
   (lambda [rules stcejbus [quirk? #false] [top-descriptors (default-css-media-features)]]
     (define-values (selected-styles single-query?)
-      (let cascade-rule : (Values (Listof CSS-Style-Metadata) Boolean) ([descriptors : CSS-Media-Features top-descriptors]
-                                                                        [grammars : (Listof CSS-Grammar-Rule) rules]
-                                                                        [stylebase : (Listof CSS-Style-Metadata) null]
-                                                                        [single? : Boolean #true])
+      (let cascade-rules : (Values (Listof CSS-Style-Metadata) Boolean)
+        ([descriptors : CSS-Media-Features top-descriptors]
+         [grammars : (Listof CSS-Grammar-Rule) rules]
+         [stylebase : (Listof CSS-Style-Metadata) null]
+         [single? : Boolean #true])
         (for/fold ([styles stylebase] [single-query? single?])
-                  ([style (in-list grammars)])
-          (cond [(css-@rule? style) (values styles single-query?)]
-                [(pair? style) (cascade-rule (cdr style) (car style) styles #false)]
-                [else (let ([selectors : (Listof+ CSS-Complex-Selector) (css-style-rule-selectors style)])
-                        (define specificity : Nonnegative-Fixnum
-                          (for/fold ([max-specificity : Nonnegative-Fixnum 0]) ([selector (in-list selectors)])
-                            (define matched-specificity : Nonnegative-Fixnum (or (css-selector-match selector stcejbus quirk?) 0))
-                            (fxmax matched-specificity max-specificity)))
-                        (cond [(zero? specificity) (values styles single-query?)]
-                              [else (let ([sm : CSS-Style-Metadata (vector specificity (css-style-rule-properties style) descriptors)])
-                                      (values (cons sm styles) single-query?))]))]))))
+                  ([rule (in-list grammars)])
+          (cond [(css-style-rule? rule)
+                 (define selectors : (Listof+ CSS-Complex-Selector) (css-style-rule-selectors rule))
+                 (define specificity : Nonnegative-Fixnum
+                   (for/fold ([max-specificity : Nonnegative-Fixnum 0]) ([selector (in-list selectors)])
+                     (define matched-specificity : Nonnegative-Fixnum (or (css-selector-match selector stcejbus quirk?) 0))
+                     (fxmax matched-specificity max-specificity)))
+                 (cond [(zero? specificity) (values styles single-query?)]
+                       [else (let ([sm : CSS-Style-Metadata (vector specificity (css-style-rule-properties rule) descriptors)])
+                               (values (cons sm styles) single-query?))])]
+                [(and (css-media-rule? rule) (css-@media-okay? (css-media-rule-queries rule) (css-media-rule-features rule)))
+                 (cascade-rules (or (css-media-rule-viewport rule) descriptors) (css-media-rule-grammars rule)
+                                styles (if (css-media-rule-viewport rule) #false single-query?))]
+                [(and (css-supports-rule? rule) (css-@supports-okay? (css-supports-rule-query rule) (default-css-feature-support?)))
+                 (cascade-rules descriptors (css-supports-rule-grammars rule) styles single-query?)]
+                [else #|other `css-@rule`s|# (values styles single-query?)]))))
     (values (sort (reverse selected-styles) #| `reverse` guarantees orginal order |#
                   (λ [[sm1 : CSS-Style-Metadata] [sm2 : CSS-Style-Metadata]] (fx< (vector-ref sm1 0) (vector-ref sm2 0))))
             single-query?)))
+
+(define css-select-children : (-> CSS-StyleSheet (Listof CSS-StyleSheet))
+  (lambda [parent]
+    (define pool : CSS-StyleSheet-Pool (css-stylesheet-pool parent))
+    (define (okay? [child : CSS-Import-Rule]) : Boolean
+      (define query : (Option CSS-Feature-Query) (css-import-rule-supports child))
+      (and (implies query (css-@supports-okay? query (default-css-feature-support?)))
+           (css-@media-okay? (css-import-rule-media-list child) (css-import-rule-features child))))
+    (for/list : (Listof CSS-StyleSheet) ([child (in-list (css-stylesheet-imports parent))] #:when (okay? child))
+      (hash-ref pool (css-import-rule-identity child)))))

@@ -15,12 +15,13 @@
 ;; https://drafts.csswg.org/mediaqueries/#mq-features
 (define-type CSS-Media-Query (U CSS-Media-Type CSS-Feature-Query (Pairof CSS-Media-Type CSS-Feature-Query)))
 (define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature CSS-Declaration Symbol CSS-Syntax-Error))
+(define-type CSS-Condition (U CSS-Media-Query CSS-Feature-Query))
 
 (struct: css-media-type : CSS-Media-Type ([name : Symbol] [only? : Boolean]))
 (struct: css-media-feature : CSS-Media-Feature ([name : Symbol] [value : CSS-Media-Datum] [operator : Char]))
-(struct: css-not : CSS-Not ([condition : CSS-Feature-Query]))
-(struct: css-and : CSS-And ([conditions : (Listof CSS-Feature-Query)]))
-(struct: css-or : CSS-Or ([conditions : (Listof CSS-Feature-Query)]))
+(struct: css-not : CSS-Not ([condition : CSS-Condition]))
+(struct: css-and : CSS-And ([conditions : (Listof CSS-Condition)]))
+(struct: css-or : CSS-Or ([conditions : (Listof CSS-Condition)]))
 
 ;; https://drafts.csswg.org/mediaqueries/#media-descriptor-table
 ;; https://drafts.csswg.org/mediaqueries/#mf-deprecated
@@ -63,7 +64,7 @@
   ;;; https://drafts.csswg.org/mediaqueries/#media-types
   ;;; https://drafts.csswg.org/mediaqueries/#boolean-context
   (lambda [queries features]
-    (define (okay? [query : (U CSS-Media-Query CSS-Feature-Query)]) : Boolean
+    (define (okay? [query : CSS-Condition]) : Boolean
       (cond [(css-media-feature? query)
              (define downcased-name : Symbol (css-media-feature-name query))
              (define datum : CSS-Media-Datum (css-media-feature-value query))
@@ -97,9 +98,9 @@
     (css-condition-okay? query okay?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define css-condition-okay? : (-> CSS-Media-Query (-> (U CSS-Media-Query CSS-Feature-Query) Boolean) Boolean)
+(define css-condition-okay? : (-> CSS-Media-Query (-> CSS-Condition Boolean) Boolean)
   (lambda [query okay?]
     (cond [(css-not? query) (not (css-condition-okay? (css-not-condition query) okay?))]
-          [(css-and? query) (andmap (λ [[q : CSS-Feature-Query]] (css-condition-okay? q okay?)) (css-and-conditions query))]
-          [(css-or? query) (ormap (λ [[q : CSS-Feature-Query]] (css-condition-okay? q okay?)) (css-or-conditions query))]
+          [(css-and? query) (andmap (λ [[q : CSS-Condition]] (css-condition-okay? q okay?)) (css-and-conditions query))]
+          [(css-or? query) (ormap (λ [[q : CSS-Condition]] (css-condition-okay? q okay?)) (css-or-conditions query))]
           [else (okay? query)])))
