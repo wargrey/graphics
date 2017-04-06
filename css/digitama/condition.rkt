@@ -81,7 +81,7 @@
   [aspect-ratio    : Positive-Exact-Rational #:= 1/1]
   [orientation     : Symbol                  #:= 'portrait]
 
-  [resolution      : Nonnegative-Flonum      #:= 2.0] ; this should be Positive-Flonum, blame (real->double-flonum)
+  [resolution      : Nonnegative-Flonum      #:= 2.0] ; the drafts don't mention if 0.0 is allowed.
   [scan            : Symbol                  #:= 'progressive]
   [grid            : (U One Zero)            #:= 0]
   [update          : Symbol                  #:= 'slow]
