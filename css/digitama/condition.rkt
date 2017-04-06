@@ -9,6 +9,20 @@
 (require "digicore.rkt")
 (require "../recognizer.rkt")
 
+(require (for-syntax racket/syntax))
+
+(define-syntax (define-make-media-features stx)
+  (syntax-case stx [:]
+    [(_ make-immutable-features [feature : DataType #:= defval] ...)
+     (with-syntax ([(args ...)
+                    (for/fold ([args null])
+                              ([argument (in-list (syntax->list #'([feature : DataType defval] ...)))])
+                      (cons (datum->syntax argument (string->keyword (symbol->string (car (syntax->datum argument)))))
+                            (cons argument args)))])
+       #'(define (make-immutable-features args ...) : CSS-Media-Features
+           (make-immutable-hasheq
+            (list (cons 'feature feature) ...))))]))
+
 ;; https://drafts.csswg.org/css-conditional/#at-supports
 ;; https://drafts.csswg.org/mediaqueries/#media-types
 ;; https://drafts.csswg.org/mediaqueries/#mq-syntax
@@ -22,6 +36,13 @@
 (struct: css-not : CSS-Not ([condition : CSS-Condition]))
 (struct: css-and : CSS-And ([conditions : (Listof CSS-Condition)]))
 (struct: css-or : CSS-Or ([conditions : (Listof CSS-Condition)]))
+
+(define css-condition-okay? : (-> CSS-Media-Query (-> CSS-Condition Boolean) Boolean)
+  (lambda [query okay?]
+    (cond [(css-not? query) (not (css-condition-okay? (css-not-condition query) okay?))]
+          [(css-and? query) (andmap (λ [[q : CSS-Condition]] (css-condition-okay? q okay?)) (css-and-conditions query))]
+          [(css-or? query) (ormap (λ [[q : CSS-Condition]] (css-condition-okay? q okay?)) (css-or-conditions query))]
+          [else (okay? query)])))
 
 ;; https://drafts.csswg.org/mediaqueries/#media-descriptor-table
 ;; https://drafts.csswg.org/mediaqueries/#mf-deprecated
@@ -52,9 +73,35 @@
 
 (define css-deprecate-media-type : (Parameterof Boolean) (make-parameter #false))
 (define default-css-media-type : (Parameterof Symbol) (make-parameter 'all))
-  
+
+;;; NOTE: The default values are assumed for bitmap device.
+(define-make-media-features make-css-media-features
+  [width           : Nonnegative-Flonum      #:= +inf.0]
+  [height          : Nonnegative-Flonum      #:= +inf.0]
+  [aspect-ratio    : Positive-Exact-Rational #:= 1/1]
+  [orientation     : Symbol                  #:= 'portrait]
+
+  [resolution      : Nonnegative-Flonum      #:= 2.0] ; this should be Positive-Flonum, blame (real->double-flonum)
+  [scan            : Symbol                  #:= 'progressive]
+  [grid            : (U One Zero)            #:= 0]
+  [update          : Symbol                  #:= 'slow]
+  [overflow-block  : Symbol                  #:= 'none]
+  [overflow-inline : Symbol                  #:= 'none]
+
+  [color           : Natural                 #:= 8]
+  [color-index     : Natural                 #:= 0]
+  [monochrome      : Natural                 #:= 0]
+  [color-gamut     : Symbol                  #:= 'srgb]
+
+  [pointer         : Symbol                  #:= 'none]
+  [hover           : Symbol                  #:= 'none]
+  [any-pointer     : Symbol                  #:= 'none]
+  [any-hover       : Symbol                  #:= 'none]
+
+  [script          : Symbol                  #:= 'none])
+
 (define-values (default-css-media-features default-css-media-feature-filters default-css-feature-support?)
-  (values (make-parameter ((inst make-hasheq Symbol CSS-Media-Datum)))
+  (values (make-parameter (make-css-media-features))
           (make-parameter css-media-feature-filters)
           (make-parameter (ann (const #true) CSS-@Supports-Okay?))))
 
@@ -66,18 +113,19 @@
   (lambda [queries features]
     (define (okay? [query : CSS-Condition]) : Boolean
       (cond [(css-media-feature? query)
-             (define downcased-name : Symbol (css-media-feature-name query))
-             (define datum : CSS-Media-Datum (css-media-feature-value query))
-             (define metadata : (U CSS-Media-Datum EOF) (hash-ref features downcased-name (λ _ eof)))
-             (cond [(symbol? datum) (and (symbol? metadata) (eq? datum metadata))]
-                   [(real? metadata) (case (css-media-feature-operator query)
-                                       [(#\>) (> metadata datum)] [(#\≥) (>= metadata datum)]
-                                       [(#\<) (< metadata datum)] [(#\≤) (<= metadata datum)]
-                                       [else (= metadata datum)])]
-                   [else #false])]
+             (define name : Symbol (css-media-feature-name query))
+             (define value : CSS-Media-Datum (css-media-feature-value query))
+             (define feature : (U CSS-Media-Datum EOF) (hash-ref features name (λ _ eof)))
+             (or (eq? value feature)
+                 (and (real? feature) (real? value)
+                      (case (css-media-feature-operator query)
+                        [(#\>) (> feature value)] [(#\≥) (>= feature value)]
+                        [(#\<) (< feature value)] [(#\≤) (<= feature value)]
+                        [else (= feature value)])))]
             [(symbol? query)
-             (define metadata : CSS-Media-Datum (hash-ref features query (λ _ 'none)))
-             (not (if (symbol? metadata) (eq? metadata 'none) (zero? metadata)))]
+             (define feature : CSS-Media-Datum (hash-ref features query (λ _ 'none)))
+             (nor (eq? feature 'none) (eq? feature 0)
+                  (and (number? feature) (zero? feature)))]
             [(css-media-type? query)
              (define result (memq (css-media-type-name query) (list (default-css-media-type) 'all)))
              (if (css-media-type-only? query) (and result #true) (not result))]
@@ -87,11 +135,3 @@
     (or (null? queries)
         (for/or ([query (in-list queries)])
           (css-condition-okay? query okay?)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define css-condition-okay? : (-> CSS-Media-Query (-> CSS-Condition Boolean) Boolean)
-  (lambda [query okay?]
-    (cond [(css-not? query) (not (css-condition-okay? (css-not-condition query) okay?))]
-          [(css-and? query) (andmap (λ [[q : CSS-Condition]] (css-condition-okay? q okay?)) (css-and-conditions query))]
-          [(css-or? query) (ormap (λ [[q : CSS-Condition]] (css-condition-okay? q okay?)) (css-or-conditions query))]
-          [else (okay? query)])))

@@ -21,12 +21,15 @@
     (css-deprecate-media-type #true)
     (default-css-media-type 'screen)
     (default-css-media-features
-      ((inst make-hash Symbol CSS-Media-Datum)
-       (list (cons 'orientation 'landscape)
-             (cons 'width (or width 0))
-             (cons 'height (or height 0))
-             (cons 'resolution (real->double-flonum (or (get-display-backing-scale) 1.0)))
-             (cons 'color (get-display-depth)))))))
+      (make-css-media-features #:width (real->double-flonum (or width 0))
+                               #:height (real->double-flonum (or height 0))
+                               #:resolution (real->double-flonum (or (get-display-backing-scale) 1.0))
+                               #:update 'fast
+                               #:overflow-block 'scroll
+                               #:overflow-inline 'scroll
+                               #:color (get-display-depth)
+                               #:pointer 'fine #:any-pointer 'fine
+                               #:hover 'hover #:any-hover 'hover))))
 
 (define units : (Listof Symbol) '(KB MB GB TB))
 (define ~size : (->* (Real) (Symbol #:precision (U Integer (List '= Integer))) String)

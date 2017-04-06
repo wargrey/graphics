@@ -599,7 +599,7 @@
 
 ;; https://drafts.csswg.org/mediaqueries
 (define-type CSS-Media-Value (U CSS-Numeric CSS:Ident CSS:Ratio))
-(define-type CSS-Media-Datum (U Symbol Integer Flonum))
+(define-type CSS-Media-Datum (U Symbol Exact-Rational Flonum))
 (define-type CSS-Media-Features (HashTable Symbol CSS-Media-Datum))
 
 ;; https://drafts.csswg.org/css-cascade/#shorthand

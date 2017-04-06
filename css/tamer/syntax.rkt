@@ -2,7 +2,6 @@
 
 (require "configure.rkt")
 (require "../syntax.rkt")
-(require "../sugar.rkt")
 
 (require racket/runtime-path)
 

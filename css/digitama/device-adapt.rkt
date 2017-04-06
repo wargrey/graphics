@@ -5,9 +5,7 @@
 
 (provide (all-defined-out))
 
-(require "misc.rkt")
 (require "digicore.rkt")
-(require "condition.rkt")
 (require "../recognizer.rkt")
 
 (define-type CSS-Viewport-Filter (CSS-Cascaded-Value+Filter (HashTable Symbol CSS-Media-Datum) (HashTable Symbol CSS-Media-Datum)))
@@ -64,14 +62,15 @@
         (values width (cond [(flonum? height) height]
                             [(zero? initial-width) initial-height]
                             [else (fl* width (fl/ initial-height initial-width))]))))
-    (define actual-viewport (hash-copy (default-css-media-features)))
-    (for ([name (in-list      '(min-zoom max-zoom width height))]
-          [value (in-list (list min-zoom max-zoom width height))])
-      (hash-set! actual-viewport name value))
-    (hash-set! actual-viewport 'orientation (css-ref cascaded-values #false 'orientation symbol? 'auto))
-    (hash-set! actual-viewport 'user-zoom (css-ref cascaded-values #false 'user-zoom symbol? 'zoom))
-    (hash-set! actual-viewport 'zoom (max min-zoom (min max-zoom (css-ref cascaded-values #false 'zoom nonnegative-flonum? defzoom))))
-    actual-viewport))
+    (define orientation : Symbol (css-ref cascaded-values #false 'orientation symbol? 'auto))
+    (define user-zoom : Symbol (css-ref cascaded-values #false 'user-zoom symbol? 'zoom))
+    (define zone : Flonum (max min-zoom (min max-zoom (css-ref cascaded-values #false 'zoom nonnegative-flonum? defzoom))))
+    (define actual-viewport (hash-copy initial-viewport))
+    (for/fold ([actual-viewport : (HashTable Symbol CSS-Media-Datum) initial-viewport])
+              ([name (in-list      '(min-zoom max-zoom width height orientation user-zoom zone))]
+               [value (in-list (list min-zoom max-zoom width height orientation user-zoom zone))])
+      (define old : (Option CSS-Media-Datum) (hash-ref actual-viewport name (thunk #false)))
+      (if (eq? old value) actual-viewport (hash-set actual-viewport name value)))))
 
 (define-values (default-css-viewport-parsers default-css-viewport-filter default-css-viewport-auto-zoom)
   (values (make-parameter css-viewport-parsers)
