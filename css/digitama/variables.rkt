@@ -34,7 +34,13 @@
 (define css-resolve-variables : (-> CSS-Values (Option CSS-Values) CSS-Values)
   ;;; https://drafts.csswg.org/css-variables/#cycles
   (lambda [declared-values inherited-values]
-    (define ?declared-vars : (Option CSS-Variables) (css-varbase-ref declared-values))
+    (define ?inherited-vars : (Option CSS-Variables) (and inherited-values (css-varbase-ref inherited-values)))
+    (define ?declared-vars : (Option CSS-Variables)
+      (cond [(false? ?inherited-vars) (css-varbase-ref declared-values)]
+            [else (let ([declared-vars (css-varbase-ref! declared-values)])
+                    (for ([(--var --value) (in-hash ?inherited-vars)])
+                      (hash-ref! declared-vars --var (thunk --value)))
+                    declared-vars)]))
     (when ?declared-vars
       (for ([(--var --value) (in-hash ?declared-vars)])
         (when (and (css-declaration? --value) (css-declaration-lazy? --value))
@@ -44,11 +50,6 @@
           (hash-set! ?declared-vars --var
                      (cond [(pair? flat-values) (struct-copy css-declaration --value [values flat-values] [lazy? #false])]
                            [else null])))))
-    (define ?inherited-vars : (Option CSS-Variables) (and inherited-values (css-varbase-ref inherited-values)))
-    (when ?inherited-vars
-      (define declared-vars : CSS-Variables (or ?declared-vars (css-varbase-ref! declared-values)))
-      (for ([(--var --value) (in-hash ?inherited-vars)])
-        (hash-ref! declared-vars --var (thunk --value))))
     declared-values))
 
 (define css-variable-substitute : (-> CSS:Ident (Listof CSS-Token) (Option CSS-Variables) (Listof Symbol) (Listof CSS-Token))

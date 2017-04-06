@@ -32,12 +32,10 @@
   (lambda [suitcased-name deprecated!]
     (or (css-font+colors-parsers suitcased-name deprecated!)
         (css-color-property-parsers suitcased-name btest-color-properties)
-        (css-image-property-parsers suitcased-name)
+        (css-image-property-parsers suitcased-name '(prelude))
         (case suitcased-name
           [(desc) (<:css-strings:>)]
-          [(width) (CSS<^> (<css-natural>))]
-          [(at-exp) (CSS<^> (list (<css:λracket>) (<css:racket>) (<css:block>)))]
-          [(prelude) (CSS<^> (<css-image>))]))))
+          [(width) (CSS<^> (<css-natural>))]))))
 
 (define btest-filter : (CSS-Cascaded-Value-Filter Bitmap.CSS)
   (lambda [declared-values inherited-values]
@@ -60,7 +58,8 @@
                 #:prelude (css-ref declared-values inherited-values 'prelude css->bitmap)
                 #:descriptors (css-values-fold declared-values (initial-btest-descriptors)
                                                (λ [[property : Symbol] [this-datum : Any] [desc++ : (HashTable Symbol Any)]]
-                                                 (hash-set desc++ property this-datum))))))
+                                                 (cond [(memq property btest-color-properties) desc++]
+                                                       [else (hash-set desc++ property this-datum)]))))))
 
 (css-root-element-type 'module)
 

@@ -2,7 +2,9 @@
 
 @charset "utf-8";
 
-@namespace bitmap url(github.com/wargrey/css/testcases/css-cascade*);
+@import url(syntax.css);
+                                 
+@namespace bitmap url(github.com/wargrey/css/testcases/font);
 
 /**
  * This example is not as good as it should be,
@@ -11,40 +13,6 @@
  * is also a bad type name which makes it more
  * confusing.
  */
-
-:root {
-    at-exp: @racket[] @schema [];
-    racket-logo: @x-icon[#:height var(--icon-height) #:material rubber-icon-material #:thickness 12];
-    retina-icon: image-set("normal.png" 96dpi, "normal@2x.png" 2x);
-
-    font: Verdana, decorative; /* error property, font property requires font-size */
-    font: 12px/1.5; /* error property, font property requires font-family or system font */
-
-    url-image: image(url(test.png));
-    string-image: image("color.png");
-    solid-image: image(#000);
-    fallback-image: image("", #ABCDEF);
-    error-image: image(#FFF, "");
-
-    case-sensitive-error-logo: @x-icon[#:Height 32 #:thickness 12];
-    arity-error-paran-logo: @racket-logo(overconsumption #:height 32 normal-argument);
-    arity-error-brace-logo: @right-arrow-icon{#:height 32};
-    arity-error-bracket-logo: @text-icon[#:height 32];
-}
-
-:root {
-    --cyclic: var(--dependency);
-    --dependency: var(--cyclic);
-    --self-dependency: var(--self-dependency);
-    --whitespace: ;
-    --undefined: var(--missing-variable);
-    --broken-color: var(--broken, var(--whitespace)var(--gray));
-    --gray: var(--whitespace)"GREY"var(--whitespace);
-    --honeydew-s: 2.04%;
-    --honeydew-i: 96.08%;
-    --icon-height: 32;
-    --default-font: sans-serif;
-}
 
 module.main {
     color : currentcolor;

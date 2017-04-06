@@ -43,7 +43,6 @@
             (css-cascade-rules (css-stylesheet-grammars this-sheet) stcejbus desc-parsers (css-select-quirk-mode?) declared-values
                                (css-cascade-viewport (default-css-media-features) (css-stylesheet-viewports this-sheet)))))
         (css-resolve-variables declared-values inherited-values)
-        ; TODO: should we copy the inherited values after invoking (value-filter)?
         declared-values))
     (case-lambda
       [(stylesheets stcejbus desc-parsers value-filter inherited-values)
@@ -162,14 +161,14 @@
       (lambda [stylesheets stcejbus desc-parsers inherited-values do-value-filter]
         (hash-clear! !importants) ; TODO: if it is placed correctly, perhaps a specification for custom cascading process is required.
         (define-values (rotpircsed seulav)
-          (let cascade-stylesheets : (values (Listof Preference) (Listof CSS-Values))
+          (let cascade-stylesheets* : (values (Listof Preference) (Listof CSS-Values))
             ([batch : (Listof CSS-StyleSheet) stylesheets]
              [all-rotpircsed : (Listof Preference) null]
              [all-seulav : (Listof CSS-Values) null])
             (for/fold ([descriptors++ : (Listof Preference) all-rotpircsed] [values++ : (Listof CSS-Values) all-seulav])
                       ([this-sheet (in-list batch)])
               (define-values (sub-rotpircsed sub-seulav)
-                (cascade-stylesheets (css-select-children this-sheet desc-parsers) descriptors++ values++))
+                (cascade-stylesheets* (css-select-children this-sheet desc-parsers) descriptors++ values++))
               (define this-values : (Listof CSS-Values)
                 (css-cascade-rules* (css-stylesheet-grammars this-sheet) stcejbus desc-parsers (css-select-quirk-mode?)
                                     (css-cascade-viewport (default-css-media-features) (css-stylesheet-viewports this-sheet))))

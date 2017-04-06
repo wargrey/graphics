@@ -1,0 +1,54 @@
+#lang css
+
+@charset "utf-8";
+
+@namespace syntax url(github.com/wargrey/css/testcases/syntax);
+
+syntax, .maybe-error {
+    at-exp: @racket[] @schema [];
+    racket-logo: @x-icon[#:height var(--icon-height) #:material rubber-icon-material #:thickness 12];
+    retina-icon: image-set("normal.png" 96dpi, "normal@2x.png" 2x);
+
+    font: Verdana, decorative; /* error, font property requires font-size */
+    font: 12px/1.5; /* error, font property requires font-family or system font */
+
+    url-image: image(url(test.png));
+    string-image: image("color.png");
+    solid-image: image(#000);
+    fallback-image: image("", #ABCDEF);
+    error-image: image(#FFF, "");
+
+    case-sensitive-error-logo: @x-icon[#:Height 32 #:thickness 12];
+    arity-error-paran-logo: @racket-logo(overconsumption #:height 32 normal-argument);
+    arity-error-brace-logo: @right-arrow-icon{#:height 32};
+    arity-error-bracket-logo: @text-icon[#:height 32];
+}
+
+syntax.error {
+    --cyclic: var(--dependency);
+    --dependency: var(--cyclic);
+    --self-dependency: var(--self-dependency);
+    --undefined: var(--missing-variable);
+}
+
+:root { /* shared with bitmap.css */
+    --whitespace: ;
+    --gray: var(--whitespace)"GREY"var(--whitespace);
+    --honeydew-s: 2.04%;
+    --honeydew-i: 96.08%;
+    --icon-height: 32;
+    --default-font: sans-serif;
+    --not-cyclic: var(--gray); /* https://drafts.csswg.org/css-variables/#cycles, <one> */
+}
+
+syntax.maybe-error { /* https://drafts.csswg.org/css-variables/#cycles, <two> */
+    --gray: var(--gray); /* anther cyclic, --gray is not unavailable */
+    --mid-cyclic: var(--not-cyclic); /* --not-cyclic has a copy of --gray */
+    --broken-color: var(--broken, var(--whitespace)var(--gray)); /* --whitepsace is okay */
+}
+
+reborn { /* https://drafts.csswg.org/css-variables/#cycles, <three/> */
+    --not-cyclic: var(--mid-cyclic); /* --gray is reborn here */
+    --gray: var(--not-cyclic);
+    color: var(--gray);
+}
