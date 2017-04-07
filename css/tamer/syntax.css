@@ -42,7 +42,7 @@ syntax.error {
 }
 
 syntax.maybe-error { /* https://drafts.csswg.org/css-variables/#cycles, <two> */
-    --gray: var(--gray); /* anther cyclic, --gray is not unavailable */
+    --gray: var(--gray); /* anther cyclic, --gray is unavailable */
     --mid-cyclic: var(--not-cyclic); /* --not-cyclic has a copy of --gray */
     --broken-color: var(--broken, var(--whitespace)var(--gray)); /* --whitepsace is okay */
 }
