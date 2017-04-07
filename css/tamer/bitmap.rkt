@@ -11,6 +11,7 @@
 (css-configure-@media)
 (current-namespace (module->namespace 'bitmap))
 (default-css-font (make-css-font #:size 16.0))
+(css-root-element-type 'module)
 
 (define-preference* btest #:as Bitmap.CSS #:with ([color-properties Color])
   ([symbol-color : Color                 #:= 'Blue]
@@ -60,8 +61,6 @@
                                                (λ [[property : Symbol] [this-datum : Any] [desc++ : (HashTable Symbol Any)]]
                                                  (cond [(memq property btest-color-properties) desc++]
                                                        [else (hash-set desc++ property this-datum)]))))))
-
-(css-root-element-type 'module)
 
 (define ~module : CSS-Subject (make-css-subject #:type 'module #:classes '(main)))
 (define ~btest : CSS-Subject (make-css-subject #:type 'bitmap-desc #:classes '(test)))

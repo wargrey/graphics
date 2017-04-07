@@ -14,11 +14,11 @@
 (define-type CSS-Font%
   (Class #:implements Font%
          (init-field [face String]
-                     [ligature Symbol #:optional])
+                     [ligature Symbol #:optional]
+                     [lines (Listof Symbol) #:optional])
          (init [size Real #:optional]
                [style Font-Style #:optional]
                [weight Font-Weight #:optional]
-               [lines (Listof Symbol) #:optional]
                [smoothing Font-Smoothing #:optional]
                [hinting Font-Hinting #:optional])
          (init-rest Null)
@@ -29,12 +29,13 @@
          [ic (-> Nonnegative-Flonum)]
          [lh (-> Nonnegative-Flonum)] ; WARNING: this is layout-height rather than line-height
          [get-combine? (-> Boolean)]
-         [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]))
+         [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]
+         [inspect (-> Any)]))
 
 (define css-font% : CSS-Font%
   (class font%
-    (init-field face [ligature 'normal])
-    (init [size 12.0] [style 'normal] [weight 'normal] [lines null] [smoothing 'default] [hinting 'aligned])
+    (init-field face [ligature 'normal] [lines null])
+    (init [size 12.0] [style 'normal] [weight 'normal] [smoothing 'default] [hinting 'aligned])
     
     (super-make-object size face 'default style weight (pair? lines) smoothing #true hinting)
 
@@ -55,6 +56,10 @@
     
     (define/public (get-combine?)
       (not (eq? ligature 'none)))
+
+    (define/public (inspect)
+      (list (object-name this) face ligature lines metrics
+            (get-family) (send this get-style) (send this get-weight)))
     
     (define/override (get-family)
       (let try-next ([families : (Listof Font-Family) '(swiss roman modern decorative script symbol system)])
@@ -109,9 +114,9 @@
               [(css-font%? basefont) (if (send basefont get-combine?) 'normal 'none)]
               [else 'normal]))
       (hash-ref! fontbase
-                 (list font-face font-ligature font-size font-style font-weight font-lines font-smoothing font-hinting)
-                 (λ [] (make-object css-font% font-face font-ligature font-size
-                         font-style font-weight font-lines font-smoothing font-hinting))))))
+                 (list font-face font-ligature font-lines font-size font-style font-weight font-smoothing font-hinting)
+                 (λ [] (make-object css-font% font-face font-ligature font-lines
+                         font-size font-style font-weight font-smoothing font-hinting))))))
 
 (define racket-font-family->font-face : (-> Symbol String)
   (lambda [family]

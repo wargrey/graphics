@@ -639,7 +639,7 @@
                            (format-id #'css-wide-keyword "~as-filter-map" (syntax-e #'css-wide-keyword))
                            (for/list ([kwd (in-list (syntax->list #'(keyword ...)))])
                              (format-id kwd "css:~a" (syntax-e kwd))))])
-       #'(begin (define-css-value css-wide-keyword #:as CSS-Wide-Keyword ([value : Symbol]))
+       #'(begin (define-css-value css-wide-keyword #:as CSS-Wide-Keyword ([datum : Symbol]))
                 (define css:symbol : CSS-Wide-Keyword (css-wide-keyword 'keyword)) ...
                 
                 (define <keywords> : (-> (CSS:Filter CSS-Wide-Keyword))

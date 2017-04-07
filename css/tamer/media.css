@@ -10,7 +10,7 @@
 
 @import url(retina.css) (resolution = 2dppx);
 
-@namespace box url(github.com/wargrey/css/testcases/media);
+@namespace media url(github.com/wargrey/css/testcases/media);
 
 @viewport {
   user-zoom: fixed;

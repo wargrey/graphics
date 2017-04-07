@@ -29,8 +29,7 @@
    [color : Color                          #:= 'currentcolor]
    [border-color : Color                   #:= 'currentcolor]
    [background-color : Color               #:= 'transparent]
-   [border-style : Pen-Style               #:= 'transparent]
-   [ligature : Symbol                      #:= 'enabled])
+   [border-style : Pen-Style               #:= 'transparent])
   #:transparent)
 
 (define box-parsers : CSS-Declaration-Parsers
@@ -41,12 +40,11 @@
     (or (css-font-parsers suitcased-name deprecated!)
         (css-color-property-parsers suitcased-name null)
         (case suitcased-name
-          [(width height padding-top margin-top padding-right margin-right) (CSS<^> (<css-size>))]
+          [(width height padding-top margin-top padding-right margin-right) (<css-size>)]
           [(margin) (make-css-pair-parser (<css-size>) 'margin-top 'margin-right)]
           [(padding) (make-css-pair-parser (<css-size>) 'padding-top 'padding-right)]
-          [(border-style) (CSS<^> (<css:ident> pen-style?))]
-          [(icon-height) (CSS<^> (<css-line-height>))]
-          [else #false]))))
+          [(border-style) (<css:ident> pen-style?)]
+          [(icon-height) (<css-line-height>)]))))
 
 (define box-filter : (CSS-Cascaded-Value-Filter Box.CSS)
   (lambda [declared-values inherited-values]
@@ -60,8 +58,7 @@
                 #:horizontal-margin (css-box-size-ref 'margin-right width)
                 #:background-color (css-box-color-ref 'background-color)
                 #:border-color (css-box-color-ref 'border-color)
-                #:border-style (css-box-ref 'border-style pen-style? css:initial)
-                #:ligature (get-field ligature (current-css-element-font))))))
+                #:border-style (css-box-ref 'border-style pen-style? css:initial)))))
 
 (define ~root:n : CSS-Subject (make-css-subject #::classes '(root)))
 (define ~root:s : CSS-Subject (make-css-subject #::classes '(selected)))
@@ -76,12 +73,12 @@ media.css
                                               #:color (box-border-color $root:n) #:style (box-border-style $root:n)
                                               #:background-color (box-background-color $root:n) #:background-style 'solid
                                               (bitmap-desc #:color (box-color $root:n)
-                                                           (pretty-format $root:n) (box-width $root:n)
+                                                           (pretty-format (value-inspect $root:n)) (box-width $root:n)
                                                            (box-font $root:n))))
                   (bitmap-frame #:color (current-css-element-color) #:style 'dot
                                 (bitmap-frame #:margin (box-vertical-margin $root:s) #:inset (box-vertical-inset $root:s)
                                               #:color (box-border-color $root:s) #:style (box-border-style $root:s)
                                               #:background-color (box-background-color $root:s) #:background-style 'solid
                                               (bitmap-desc #:color (box-color $root:s)
-                                                           (pretty-format $root:s) (box-width $root:s)
+                                                           (pretty-format (value-inspect $root:s)) (box-width $root:s)
                                                            (box-font $root:s)))))
