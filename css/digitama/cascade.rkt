@@ -231,17 +231,17 @@
                  (cond [(zero? specificity) (values styles single-query?)]
                        [else (let ([sm : CSS-Style-Metadata (vector specificity (css-style-rule-properties rule) descriptors)])
                                (values (cons sm styles) single-query?))])]
-                [(and (css-media-rule? rule) (css-@media-okay? (css-media-rule-queries rule) descriptors))
-                 (cascade-rules (cond [(null? (css-media-rule-viewports rule)) descriptors]
-                                      [else (css-cascade-viewport descriptors (css-media-rule-viewports rule))])
-                                (css-media-rule-grammars rule)
+                [(and (css-@media-rule? rule) (css-@media-okay? (css-@media-rule-queries rule) descriptors))
+                 (cascade-rules (cond [(null? (css-@media-rule-viewports rule)) descriptors]
+                                      [else (css-cascade-viewport descriptors (css-@media-rule-viewports rule))])
+                                (css-@media-rule-grammars rule)
                                 styles
-                                (and (null? (css-media-rule-viewports rule)) single-query?))]
-                [(and (css-supports-rule? rule)
-                      (css-@supports-okay? (css-supports-rule-query rule)
+                                (and (null? (css-@media-rule-viewports rule)) single-query?))]
+                [(and (css-@supports-rule? rule)
+                      (css-@supports-okay? (css-@supports-rule-query rule)
                                            decl-parsers
                                            (default-css-feature-support?)))
-                 (cascade-rules descriptors (css-supports-rule-grammars rule) styles single-query?)]
+                 (cascade-rules descriptors (css-@supports-rule-grammars rule) styles single-query?)]
                 [else #|other `css-@rule`s|# (values styles single-query?)]))))
     (values (sort (reverse selected-styles) #| `reverse` guarantees orginal order |#
                   (λ [[sm1 : CSS-Style-Metadata] [sm2 : CSS-Style-Metadata]]
@@ -251,12 +251,12 @@
 (define css-select-children : (-> CSS-StyleSheet CSS-Declaration-Parsers (Listof CSS-StyleSheet))
   (lambda [parent decl-parsers]
     (define pool : CSS-StyleSheet-Pool (css-stylesheet-pool parent))
-    (define (okay? [child : CSS-Import-Rule]) : Boolean
-      (define query : (Option CSS-Feature-Query) (css-import-rule-supports child))
+    (define (okay? [child : CSS-@Import-Rule]) : Boolean
+      (define query : (Option CSS-Feature-Query) (css-@import-rule-supports child))
       (and (implies query (css-@supports-okay? query decl-parsers (default-css-feature-support?)))
-           (css-@media-okay? (css-import-rule-media-list child) (default-css-media-features))))
+           (css-@media-okay? (css-@import-rule-media-list child) (default-css-media-features))))
     (for/list : (Listof CSS-StyleSheet) ([child (in-list (css-stylesheet-imports parent))] #:when (okay? child))
-      (hash-ref pool (css-import-rule-identity child)))))
+      (hash-ref pool (css-@import-rule-identity child)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-@supports-okay? : (-> CSS-Feature-Query CSS-Declaration-Parsers CSS-@Supports-Okay? Boolean)

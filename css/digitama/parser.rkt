@@ -290,10 +290,10 @@
     (define-values (?and ?conditions) (css-car conditions))
     (when (css-deprecate-media-type) (make+exn:css:deprecated media))
     (cond [(memq downcased-type '(only not and or)) (make+exn:css:misplaced media)]
-          [(eof-object? ?and) (make-css-media-type downcased-type only?)]
+          [(eof-object? ?and) (if only? (box downcased-type) (css-not (box downcased-type)))]
           [(not (css:ident-norm=:=? ?and 'and)) (make+exn:css:unrecognized ?and)]
           [(css-null? ?conditions) (make+exn:css:missing-feature ?and)]
-          [else (cons (make-css-media-type downcased-type only?)
+          [else (cons (if only? (box downcased-type) (css-not (box downcased-type)))
                       (css-components->junction ?conditions 'and #false #true))])))
   
 (define css-components->feature-query : (-> (Listof CSS-Token) Boolean CSS-Syntax-Any CSS-Feature-Query)
@@ -423,7 +423,7 @@
           [(or (css:ident? value) (css-numeric? value)) (values value rest)]
           [else (values (throw-exn:css:type value) rest)])))
 
-(define css-make-media-feature : (-> CSS:Ident (Option CSS-Media-Value) Char (Option CSS:Delim) (U Symbol CSS-Media-Feature))
+(define css-make-media-feature : (-> CSS:Ident (Option CSS-Media-Value) Char (Option CSS:Delim) (U Symbol CSS-Media-Feature-Query))
   ;;; https://drafts.csswg.org/mediaqueries/#mq-features
   ;;; https://drafts.csswg.org/mediaqueries/#mq-min-max
   (lambda [desc-name ?value ophint ?op]
@@ -443,7 +443,7 @@
           [else (let ([datum (feature-filter ?value)])
                   (cond [(false? datum) (throw-exn:css:type ?value desc-name)]
                         [(exn:css? datum) (css-log-syntax-error datum desc-name) (raise datum)]
-                        [else (make-css-media-feature downcased-name datum op)]))])))
+                        [else (vector downcased-name op datum)]))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-components->selectors : (-> (Listof CSS-Token) CSS-Namespace-Hint (U (Listof+ CSS-Complex-Selector) CSS-Syntax-Error))

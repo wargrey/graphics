@@ -13,19 +13,19 @@
 ;; https://drafts.csswg.org/css-syntax/#css-stylesheets  
 
 (define-type CSS-StyleSheet-Pool (HashTable Natural CSS-StyleSheet))
-(define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule CSS-Media-Rule CSS-Supports-Rule))
+(define-type CSS-Grammar-Rule (U CSS-Style-Rule CSS-@Rule CSS-@Media-Rule CSS-@Supports-Rule))
 
-(struct: css-import-rule : CSS-Import-Rule
+(struct: css-@import-rule : CSS-@Import-Rule
   ([identity : Positive-Integer]
    [supports : (Option CSS-Feature-Query)]
    [media-list : (Listof CSS-Media-Query)]))
 
-(struct: css-media-rule : CSS-Media-Rule
+(struct: css-@media-rule : CSS-@Media-Rule
   ([queries : (Listof CSS-Media-Query)]
    [grammars : (Listof CSS-Grammar-Rule)]
    [viewports : (Listof CSS-Declarations)]))
 
-(struct: css-supports-rule : CSS-Supports-Rule
+(struct: css-@supports-rule : CSS-@Supports-Rule
   ([query : CSS-Feature-Query]
    [grammars : (Listof CSS-Grammar-Rule)]))
 
@@ -36,7 +36,7 @@
 (define-preference css-stylesheet #:as CSS-StyleSheet
   ([location : (U String Symbol)           #:= '/dev/null]
    [namespaces : (HashTable Symbol String) #:= (make-hasheq)]
-   [imports : (Listof CSS-Import-Rule)     #:= null]
+   [imports : (Listof CSS-@Import-Rule)     #:= null]
    [grammars : (Listof CSS-Grammar-Rule)   #:= null]
    [pool : CSS-StyleSheet-Pool             #:= (make-hasheq)]
    [timestamp : Integer                    #:= 0]
@@ -75,9 +75,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-syntax-rules->grammar-rules : (->* ((U String Symbol) (Listof CSS-Syntax-Rule) (HashTable Symbol String) Boolean Boolean)
                                                (CSS-StyleSheet-Pool)
-                                               (Values (Listof CSS-Declarations) (Listof CSS-Import-Rule) (Listof CSS-Grammar-Rule)))
+                                               (Values (Listof CSS-Declarations) (Listof CSS-@Import-Rule) (Listof CSS-Grammar-Rule)))
   (lambda [src all-syntaxes namespaces can-import0? allow-namespace0? [pool ((inst make-hasheq Natural CSS-StyleSheet))]]
-    (let syntax->grammar  ([seititnedi : (Listof CSS-Import-Rule) null]
+    (let syntax->grammar  ([seititnedi : (Listof CSS-@Import-Rule) null]
                            [srammarg : (Listof CSS-Grammar-Rule) null]
                            [srotpircsed : (Listof CSS-Declarations) null]
                            [syntaxes : (Listof CSS-Syntax-Rule) all-syntaxes]
@@ -94,11 +94,11 @@
                         (case (css:@keyword-norm (css-@rule-name stx))
                           [(#:@media)
                            (let ([?rule (css-@condition->conditional-rule stx namespaces pool)])
-                             (syntax->grammar seititnedi (if (css-media-rule? ?rule) (cons ?rule srammarg) srammarg)
+                             (syntax->grammar seititnedi (if (css-@media-rule? ?rule) (cons ?rule srammarg) srammarg)
                                               srotpircsed rest #false #false))]
                           [(#:@supports)
                            (let ([?rule (css-@condition->conditional-rule stx namespaces pool)])
-                             (syntax->grammar seititnedi (if (css-supports-rule? ?rule) (cons ?rule srammarg) srammarg)
+                             (syntax->grammar seititnedi (if (css-@supports-rule? ?rule) (cons ?rule srammarg) srammarg)
                                               srotpircsed rest #false #false))]
                           [(#:@viewport)
                            (let ([?desc (css-@viewport->declarations stx)])
@@ -111,7 +111,7 @@
                           [(#:@import)
                            (let ([?rule (cond [(false? can-import?) (make+exn:css:misplaced (css-@rule-name stx))]
                                               [else (css-@import->import-rule stx src pool)])])
-                             (syntax->grammar (if (css-import-rule? ?rule) (cons ?rule seititnedi) seititnedi) srammarg
+                             (syntax->grammar (if (css-@import-rule? ?rule) (cons ?rule seititnedi) seititnedi) srammarg
                                               srotpircsed rest can-import? allow-namespace?))]
                           [(#:@charset)
                            (make+exn:css:misplaced (css-@rule-name stx))
@@ -126,7 +126,7 @@
           [(and ?block) (css-components->declarations (css:block-components ?block))]
           [else (make+exn:css:missing-block (css-@rule-name viewport))])))
 
-(define css-@import->import-rule : (-> CSS-@Rule Any CSS-StyleSheet-Pool (U CSS-Import-Rule False CSS-Syntax-Error))
+(define css-@import->import-rule : (-> CSS-@Rule Any CSS-StyleSheet-Pool (U CSS-@Import-Rule False CSS-Syntax-Error))
   ;;; https://drafts.csswg.org/css-cascade/#at-import
   (lambda [import parent-href pool]
     (define-values (uri ?condition) (css-car (css-@rule-prelude import)))
@@ -149,7 +149,7 @@
                                 (css-parse-media-queries ?media-list name))
                         (values #false (css-parse-media-queries ?condition name))))
                   (read-css-stylesheet ?target.css pool)
-                  (css-import-rule (css-stylesheet-path->identity ?target.css) ?query ?queries))])))
+                  (css-@import-rule (css-stylesheet-path->identity ?target.css) ?query ?queries))])))
 
 (define css-@namespace->namespace : (-> CSS-@Rule (U (Pairof Symbol String) CSS-Syntax-Error))
   ;;; https://drafts.csswg.org/css-namespaces/#syntax
@@ -171,7 +171,7 @@
           [else (make+exn:css:type 1st)])))
 
 (define css-@condition->conditional-rule : (-> CSS-@Rule (HashTable Symbol String) CSS-StyleSheet-Pool
-                                               (U CSS-Media-Rule CSS-Supports-Rule CSS-Syntax-Error Void))
+                                               (U CSS-@Media-Rule CSS-@Supports-Rule CSS-Syntax-Error Void))
   ;;; https://drafts.csswg.org/css-conditional/#contents-of
   ;;; https://drafts.csswg.org/css-conditional/#at-supports
   ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
@@ -185,9 +185,9 @@
                     (define-values (viewports _ grammars) (css-syntax-rules->grammar-rules 'src stxes namespaces #false #false pool))
                     (when (pair? grammars)
                       (if (eq? (css:@keyword-norm name) '#:@media)
-                          (css-media-rule (css-parse-media-queries (css-@rule-prelude condition) name) grammars viewports)
+                          (css-@media-rule (css-parse-media-queries (css-@rule-prelude condition) name) grammars viewports)
                           (let ([supports (css-parse-feature-query (css-@rule-prelude condition) name)])
-                            (if (exn:css? supports) supports (css-supports-rule supports grammars)))))))])))
+                            (if (exn:css? supports) supports (css-@supports-rule supports grammars)))))))])))
   
 (define css-qualified-rule->style-rule : (-> CSS-Qualified-Rule (Option (HashTable Symbol String)) (U CSS-Style-Rule CSS-Syntax-Error))
   ;;; https://drafts.csswg.org/css-syntax/#style-rules
@@ -216,7 +216,7 @@
   (lambda [stylesheet]
     (define pool : CSS-StyleSheet-Pool (css-stylesheet-pool stylesheet))
     (for ([children (in-list (css-stylesheet-imports stylesheet))])
-      (define id : (Option CSS-StyleSheet) (hash-ref pool (css-import-rule-identity children) (const #false)))
+      (define id : (Option CSS-StyleSheet) (hash-ref pool (css-@import-rule-identity children) (const #false)))
       (when (css-stylesheet? id)
         (define child.css : (U Symbol String) (css-stylesheet-location id))
         (when (string? child.css)

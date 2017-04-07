@@ -27,19 +27,14 @@
 ;; https://drafts.csswg.org/mediaqueries/#media-types
 ;; https://drafts.csswg.org/mediaqueries/#mq-syntax
 ;; https://drafts.csswg.org/mediaqueries/#mq-features
+(define-type CSS-Media-Feature-Query (Vector Symbol Char CSS-Media-Datum))
 (define-type CSS-Media-Query (U (Boxof Symbol) CSS-Feature-Query (Pairof CSS-Media-Query CSS-Feature-Query)))
-(define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature CSS-Declaration Symbol CSS-Syntax-Error))
+(define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature-Query CSS-Declaration Symbol CSS-Syntax-Error))
 (define-type CSS-Condition (U CSS-Media-Query CSS-Feature-Query))
 
-(struct: css-media-feature : CSS-Media-Feature ([name : Symbol] [value : CSS-Media-Datum] [operator : Char]))
 (struct: css-not : CSS-Not ([condition : CSS-Condition]))
 (struct: css-and : CSS-And ([conditions : (Listof CSS-Condition)]))
 (struct: css-or : CSS-Or ([conditions : (Listof CSS-Condition)]))
-
-(define make-css-media-type : (-> Symbol Boolean CSS-Media-Query)
-  (lambda [type only?]
-    (cond [(and only?) (box type)]
-          [else (css-not (box type))])))
 
 (define css-condition-okay? : (-> CSS-Media-Query (-> CSS-Condition Boolean) Boolean)
   (lambda [query okay?]
@@ -107,7 +102,7 @@
 (define-values (default-css-media-features default-css-media-feature-filters default-css-feature-support?)
   (values (make-parameter (make-css-media-features))
           (make-parameter css-media-feature-filters)
-          (make-parameter (ann (const #true) CSS-@Supports-Okay?))))
+          (make-parameter (ann (λ _ #true) CSS-@Supports-Okay?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-@media-okay? : (-> (Listof CSS-Media-Query) CSS-Media-Features Boolean)
@@ -116,16 +111,16 @@
   ;;; https://drafts.csswg.org/mediaqueries/#boolean-context
   (lambda [queries features]
     (define (okay? [query : CSS-Condition]) : Boolean
-      (cond [(css-media-feature? query)
-             (define name : Symbol (css-media-feature-name query))
-             (define value : CSS-Media-Datum (css-media-feature-value query))
+      (cond [(vector? query)
+             (define name : Symbol (vector-ref query 0))
+             (define value : CSS-Media-Datum (vector-ref query 2))
              (define feature : (U CSS-Media-Datum EOF) (hash-ref features name (λ _ eof)))
-             (or (eq? value feature)
-                 (and (real? feature) (real? value)
-                      (case (css-media-feature-operator query)
-                        [(#\>) (> feature value)] [(#\≥) (>= feature value)]
-                        [(#\<) (< feature value)] [(#\≤) (<= feature value)]
-                        [else (= feature value)])))]
+             (cond [(symbol? value) (eq? value feature)] ; TODO: values of color-gamut are ordered symbols
+                   [(real? feature) (case (vector-ref query 1)
+                                      [(#\>) (> feature value)] [(#\≥) (>= feature value)]
+                                      [(#\<) (< feature value)] [(#\≤) (<= feature value)]
+                                      [else (= feature value)])]
+                   [else #false])]
             [(symbol? query)
              (define feature : CSS-Media-Datum (hash-ref features query (λ _ 'none)))
              (nor (eq? feature 'none) (eq? feature 0)
