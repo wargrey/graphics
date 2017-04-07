@@ -27,15 +27,19 @@
 ;; https://drafts.csswg.org/mediaqueries/#media-types
 ;; https://drafts.csswg.org/mediaqueries/#mq-syntax
 ;; https://drafts.csswg.org/mediaqueries/#mq-features
-(define-type CSS-Media-Query (U CSS-Media-Type CSS-Feature-Query (Pairof CSS-Media-Type CSS-Feature-Query)))
+(define-type CSS-Media-Query (U (Boxof Symbol) CSS-Feature-Query (Pairof CSS-Media-Query CSS-Feature-Query)))
 (define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature CSS-Declaration Symbol CSS-Syntax-Error))
 (define-type CSS-Condition (U CSS-Media-Query CSS-Feature-Query))
 
-(struct: css-media-type : CSS-Media-Type ([name : Symbol] [only? : Boolean]))
 (struct: css-media-feature : CSS-Media-Feature ([name : Symbol] [value : CSS-Media-Datum] [operator : Char]))
 (struct: css-not : CSS-Not ([condition : CSS-Condition]))
 (struct: css-and : CSS-And ([conditions : (Listof CSS-Condition)]))
 (struct: css-or : CSS-Or ([conditions : (Listof CSS-Condition)]))
+
+(define make-css-media-type : (-> Symbol Boolean CSS-Media-Query)
+  (lambda [type only?]
+    (cond [(and only?) (box type)]
+          [else (css-not (box type))])))
 
 (define css-condition-okay? : (-> CSS-Media-Query (-> CSS-Condition Boolean) Boolean)
   (lambda [query okay?]
@@ -126,9 +130,9 @@
              (define feature : CSS-Media-Datum (hash-ref features query (λ _ 'none)))
              (nor (eq? feature 'none) (eq? feature 0)
                   (and (number? feature) (zero? feature)))]
-            [(css-media-type? query)
-             (define result (memq (css-media-type-name query) (list (default-css-media-type) 'all)))
-             (if (css-media-type-only? query) (and result #true) (not result))]
+            [(box? query)
+             (and (memq (unbox query) (list (default-css-media-type) 'all))
+                  #true)]
             [else (and (pair? query)
                        (css-condition-okay? (car query) okay?)
                        (css-condition-okay? (cdr query) okay?))]))
