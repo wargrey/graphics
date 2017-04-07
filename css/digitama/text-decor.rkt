@@ -3,7 +3,6 @@
 ;;; https://drafts.csswg.org/css-text-decor
 
 (provide (all-defined-out))
-(provide (all-from-out "digicore.rkt" "color.rkt" "../recognizer.rkt"))
 
 (require "digicore.rkt")
 (require "color.rkt")
@@ -29,5 +28,4 @@
 (define css->text-decor-lines : (CSS->Racket (Listof Symbol))
   (lambda [[_ : Symbol] [value : Any]]
     (cond [(list? value) (filter symbol? value)]
-          [(symbol? value) (if (eq? value 'none) null (list value))]
           [else null])))

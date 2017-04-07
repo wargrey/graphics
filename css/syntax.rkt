@@ -4,7 +4,7 @@
 
 (provide (all-defined-out))
 
-(provide (except-out (all-from-out "digitama/digicore.rkt") css-log-syntax-error))
+(provide (except-out (all-from-out "digitama/digicore.rkt") css-log-syntax-error css-filter? css-parser?))
 (provide (except-out (all-from-out "digitama/grammar.rkt") css-stylesheet-placeholder))
 (provide (all-from-out "digitama/condition.rkt" "digitama/cascade.rkt"))
 (provide (all-from-out "values.rkt" "recognizer.rkt"))

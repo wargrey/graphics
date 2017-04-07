@@ -266,7 +266,7 @@
       (define-values (components terminating-token) (css-consume-components css #\, omit-comma?))
       (cond [(not (eof-object? terminating-token)) (consume-components (cons components componentses))]
             [(not omit-comma?) (reverse (cons components componentses))]
-            [else (filter css-pair? (reverse (cons components componentses)))]))))
+            [else (filter (inst css-pair? CSS-Token) (reverse (cons components componentses)))]))))
 
 (define css-components->declaration : (-> CSS:Ident (Listof CSS-Token) (U CSS-Declaration CSS-Syntax-Error))
   ;;; https://drafts.csswg.org/css-syntax/#consume-declaration

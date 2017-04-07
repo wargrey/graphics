@@ -35,7 +35,7 @@
         (css-image-property-parsers suitcased-name '(prelude))
         (case suitcased-name
           [(desc) (<:css-strings:>)]
-          [(width) (CSS<^> (<css-natural>))]))))
+          [(width) (<css-natural>)]))))
 
 (define btest-filter : (CSS-Cascaded-Value-Filter Bitmap.CSS)
   (lambda [declared-values inherited-values]

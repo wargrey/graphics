@@ -8,15 +8,27 @@
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
 
-(module cheat racket/base (provide (all-defined-out))
-  (define make-cheat-opaque? (λ [? fname] (procedure-rename (λ [v] (and (? v) #true)) fname))))
+(module cheat racket/base
+  (provide (all-defined-out))
+
+  (define (make-cheat-opaque? ? fname)
+    (procedure-rename (λ [v] (and (? v) #true)) fname))
+
+  (define (make-cheat-procedure? arity fname kw?)
+    (procedure-rename (λ [v] (and (procedure? v)
+                                  (procedure-arity-includes? v arity kw?)))
+                      fname)))
 
 (unsafe-require/typed
  (submod "." cheat)
- [make-cheat-opaque? (All (FT) (->* ((U (-> Any Boolean) Byte)) ((Option Symbol)) (-> Any Boolean : #:+ FT)))])
+ [make-cheat-opaque? (All (OT) (-> (-> Any Boolean) Symbol (-> Any Boolean : #:+ OT)))]
+ [make-cheat-procedure? (All (PT) (-> Byte Symbol Boolean (-> Any Boolean : #:+ PT)))])
 
 (define-syntax (define-cheat-opaque stx)
   (syntax-case stx []
+    [(_ id #:=> PT arg kw?)
+     #'(define id : (-> Any Boolean : #:+ PT)
+         ((inst make-cheat-procedure? PT) arg 'id kw?))]
     [(_ id #:is-a? % arg%)
      #'(define id : (-> Any Boolean : #:+ (Instance %))
          ((inst make-cheat-opaque? (Instance %)) (λ [v] (is-a? v arg%)) 'id))]))

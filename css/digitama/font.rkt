@@ -96,7 +96,7 @@
 
 (define css->font-family : (CSS->Racket (U String Symbol))
   (lambda [_ value]
-    (let select ([families (if (list? value) value (list value))])
+    (let select ([families (if (list? value) value null)])
       (cond [(null? families) (let ([pfont (unbox &font)]) (or (send pfont get-face) (send pfont get-family)))]
             [else (let ([family (car families)])
                     (or (and (symbol? family) family)

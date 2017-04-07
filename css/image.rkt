@@ -20,10 +20,10 @@
   (lambda [name [px.names #px"-(image|icon|logo)$"]]
     (case name
       [(image-resolution) (CSS<*> (CSS<^> (CSS:<+> (<css-keyword> '(from-image snap)) (<css+resolution>))) '+)]
-      [(image-rendering) (CSS<^> (<css-keyword> css-image-rendering-option))]
+      [(image-rendering) (<css-keyword> css-image-rendering-option)]
       [else (and (or (and (list? px.names) (memq name px.names))
                      (and (regexp? px.names) (regexp-match? px.names (symbol->string name))))
-                 (CSS<^> (<css-image>)))])))
+                 (<css-image>))])))
 
 (define make-css->bitmap : (All (racket) (case-> [(-> (CSS-Maybe Bitmap) racket) -> (CSS->Racket racket)]
                                                  [Nonnegative-Real (-> Bitmap) -> (CSS->Racket Bitmap)]

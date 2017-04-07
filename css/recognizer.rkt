@@ -302,8 +302,8 @@
   (lambda [css-filter1 css-filter2]
     (λ [[token : CSS-Syntax-Any]]
       (define datum : (CSS-Option a) (css-filter1 token))
-      (cond [(false? datum) (css-filter2 token)]
-            [else datum]))))
+      (cond [(nor (false? datum) (exn:css? datum)) datum]
+            [else (css-filter2 token)]))))
   
 (define css:compose : (All (a b) (-> (CSS:Filter a) (-> a b) (CSS:Filter b)))
   (lambda [css-filter css->racket]

@@ -9,6 +9,7 @@
 
 (require racket/fixnum)
 (require racket/flonum)
+(require bitmap/digitama/cheat)
 
 (require "misc.rkt")
 
@@ -578,7 +579,10 @@
 (define-type (CSS-Parser css) (-> css (Listof CSS-Token) (Values (CSS-Option css) (Listof CSS-Token))))
 (define-type CSS-Shorthand-Parser (CSS-Parser (HashTable Symbol Any)))
 (define-type CSS-Longhand-Update (-> Symbol Any Any Any))
-  
+
+(define-cheat-opaque css-filter? #:=> (CSS:Filter Any) 1 #false)
+(define-cheat-opaque css-parser? #:=> (CSS-Parser (Listof Any)) 2 #false)
+
 ;; https://drafts.csswg.org/selectors
 (define-type CSS-Selector-Combinator (U '>> '> '+ '~ '||))
 (define-type CSS-Attribute-Datum (U String Symbol (Listof (U String Symbol))))
@@ -607,11 +611,16 @@
 ;; https://drafts.csswg.org/css-cascade/#cascading
 (define-type CSS-Values (HashTable Symbol (-> Any)))
 (define-type CSS-Cascading-Declarations (U CSS-Declarations (Listof CSS-Declarations)))
-(define-type CSS-Declaration-Parser (U (Pairof CSS-Shorthand-Parser (Listof Symbol)) (CSS-Parser (Listof Any)) Void False))
 (define-type CSS-Declaration-Parsers (-> Symbol (-> Void) CSS-Declaration-Parser))
 (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Values (Option CSS-Values) Preference))
 (define-type (CSS-Cascaded-Value+Filter Preference Env) (-> CSS-Values (Option CSS-Values) Env Preference))
 (define-type (CSS->Racket racket) (-> Symbol Any racket))
+
+(define-type CSS-Declaration-Parser
+  (U (Pairof CSS-Shorthand-Parser (Listof Symbol))
+     (CSS-Parser (Listof Any))
+     (CSS:Filter Any)
+     Void False))
 
 (define-syntax (define-css-value stx)
   (syntax-case stx [:]
@@ -637,9 +646,9 @@
                   (lambda []
                     (λ [[token : CSS-Syntax-Any]]
                       (and (css:ident? token)
-                           (or (let ([key : Symbol (css:ident-norm token)])
-                                 (cond [(eq? key 'keyword) css:symbol] ...
-                                       [else (make-exn:css:range token)])))))))
+                           (case (css:ident-norm token)
+                             [(keyword) css:symbol] ...
+                             [else (make-exn:css:range token)])))))
 
                 (define keywords-filter-map : (-> (U Symbol CSS-Syntax-Error) (U Symbol CSS-Wide-Keyword CSS-Syntax-Error))
                   (lambda [key]
@@ -742,20 +751,20 @@
             [else (let-values ([(head tail) (values (car rest) (cdr rest))])
                     (cond [(css:whitespace? head) (skip-whitespace tail)]
                           [else (values head tail)]))]))))
-  
-(define css-null? : (-> (Listof Any) Boolean)
-  (lambda [dirty]
-    (let skip-whitespace : Boolean ([rest dirty])
-      (or (null? rest)
-          (and (css:whitespace? (car rest))
-               (skip-whitespace (cdr rest)))))))
 
-(define css-pair? : (-> (Listof CSS-Token) Boolean)
+(define css-pair? : (All (a) (-> (Listof a) Boolean : #:+ (Listof+ a)))
   (lambda [dirty]
-    (let skip-whitespace : Boolean ([rest dirty])
-      (cond [(null? rest) #false]
-            [else (implies (css:whitespace? (car rest))
-                           (skip-whitespace (cdr rest)))]))))
+    (and (pair? dirty)
+         (let skip-whitespace : Boolean ([head : a (car dirty)]
+                                         [tail : (Listof a) (cdr dirty)])
+           (implies (css:whitespace? head)
+                    (and (pair? tail)
+                         (skip-whitespace (car tail)
+                                          (cdr tail))))))))
+
+(define css-null? : (All (a) (-> (Listof a) Boolean : #:- (Listof+ a)))
+  (lambda [dirty]
+    (not (css-pair? dirty))))
 
 (define css-cons : (All (css) (-> (U CSS-Syntax-Error css) (Listof css) (Listof css)))
   (lambda [item items]
