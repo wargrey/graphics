@@ -20,7 +20,7 @@
 
 (require (for-syntax syntax/parse))
 
-(define-type CSS-Style-Metadata (Vector Nonnegative-Fixnum (Listof CSS-Declaration) CSS-Media-Features))
+(define-type CSS-Style-Metadata (Vector Natural (Listof CSS-Declaration) CSS-Media-Features))
 
 (define css-warning-unknown-property? : (Parameterof Boolean) (make-parameter #true))
 (define css-select-quirk-mode? : (Parameterof Boolean) (make-parameter #false))
@@ -38,17 +38,17 @@
 
 (define css-cascade
   : (All (Preference Env)
-         (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+         (case-> [-> (Listof+ CSS-StyleSheet) (Listof+ CSS-Subject) CSS-Declaration-Parsers
                      (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
                      (Values Preference CSS-Values)]
-                 [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                 [-> (Listof+ CSS-StyleSheet) (Listof+ CSS-Subject) CSS-Declaration-Parsers
                      (CSS-Cascaded-Value+Filter Preference Env) (Option CSS-Values) Env
                      (Values Preference CSS-Values)]))
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
   ;;; https://drafts.csswg.org/css-cascade/#at-import
   (let ()
-    (define do-cascade : (-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers (Option CSS-Values) CSS-Values)
+    (define do-cascade : (-> (Listof+ CSS-StyleSheet) (Listof+ CSS-Subject) CSS-Declaration-Parsers (Option CSS-Values) CSS-Values)
       (lambda [stylesheets stcejbus desc-parsers inherited-values]
         (define declared-values : CSS-Values (make-css-values))
         (hash-clear! !importants)
@@ -67,7 +67,7 @@
        (define declared-values : CSS-Values (do-cascade stylesheets stcejbus desc-parsers inherited-values))
        (values (value-filter declared-values inherited-values env) declared-values)])))
 
-(define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject) CSS-Declaration-Parsers)
+(define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) (Listof+ CSS-Subject) CSS-Declaration-Parsers)
                                  (Boolean CSS-Values CSS-Media-Features) CSS-Values)
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
@@ -169,7 +169,7 @@
                   (viewport-filter (css-cascade-declarations viewport-parser (in-vector descriptors))
                                    #false init-viewport))])))
 
-(define css-select-styles : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject) CSS-Declaration-Parsers) (Boolean CSS-Media-Features)
+(define css-select-styles : (->* ((Listof CSS-Grammar-Rule) (Listof+ CSS-Subject) CSS-Declaration-Parsers) (Boolean CSS-Media-Features)
                                  (Values (Listof CSS-Style-Metadata) Boolean))
   ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
   ;;; https://drafts.csswg.org/selectors/#data-model
@@ -184,9 +184,9 @@
                   ([rule (in-list grammars)])
           (cond [(css-style-rule? rule)
                  (define selectors : (Listof+ CSS-Complex-Selector) (css-style-rule-selectors rule))
-                 (define specificity : Nonnegative-Fixnum
-                   (for/fold ([max-specificity : Nonnegative-Fixnum 0]) ([selector (in-list selectors)])
-                     (define matched-specificity : Nonnegative-Fixnum (or (css-selector-match selector stcejbus quirk?) 0))
+                 (define specificity : Natural
+                   (for/fold ([max-specificity : Natural 0]) ([selector (in-list selectors)])
+                     (define matched-specificity : Natural (or (css-selector-match selector stcejbus quirk?) 0))
                      (fxmax matched-specificity max-specificity)))
                  (cond [(zero? specificity) (values styles single-query?)]
                        [else (let ([sm : CSS-Style-Metadata (vector specificity (css-style-rule-properties rule) descriptors)])

@@ -470,12 +470,11 @@
   ;;; https://drafts.csswg.org/selectors/#grammar
   (lambda [components namespaces]
     (define-values (head-compound-selector rest) (css-car-compound-selector components #false namespaces))
-    (let extract-selector ([srotceles : (Listof CSS-Compound-Selector) null]
+    (let extract-selector ([srotceles : (Listof+ CSS-Compound-Selector) (list head-compound-selector)]
                            [tokens : (Listof CSS-Token) rest])
       (define-values (?terminal rest) (css-car tokens))
       (define-values (token ?selectors) (css-car/cdr tokens))
-      (cond [(or (eof-object? ?terminal) (css:comma? ?terminal))
-             (values (cons head-compound-selector (reverse srotceles)) ?terminal rest)]
+      (cond [(or (eof-object? ?terminal) (css:comma? ?terminal)) (values srotceles ?terminal rest)]
             [(not (css-selector-combinator? token)) (throw-exn:css:unrecognized ?terminal)]
             [else (let*-values ([(combinator ?selectors) (css-car-combinator token ?selectors)]
                                 [(?selector ?rest) (css-car ?selectors)])

@@ -12,7 +12,7 @@
 (collect-garbage)
 
 (define tamer-sheet : CSS-StyleSheet (time-run (read-css-stylesheet tamer/tamer.css)))
-(define tamer-root : CSS-Subject (make-css-subject #:type 'root #:id '#:header))
+(define tamer-root : CSS-Subject (make-css-subject #:type 'body #:id '#:header #::classes '(root)))
 (define tamer-syntax : CSS-Subject (make-css-subject #:type 'syntax #:id '#:syntax #:classes '(error maybe-error)))
 (define tamer-reborn : CSS-Subject (make-css-subject #:type 'reborn #:id '#:reborn))
 

@@ -9,17 +9,18 @@
 (require "../digitama/variables.rkt")
 (require "../digitama/condition.rkt")
 (require "../digitama/grammar.rkt")
+(require "../digitama/misc.rkt")
 
 (define css-cascade*
   : (All (Preference Env)
-         (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+         (case-> [-> (Listof+ CSS-StyleSheet) (Listof+ CSS-Subject) CSS-Declaration-Parsers
                      (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
                      (Values (Listof Preference) (Listof CSS-Values))]
-                 [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                 [-> (Listof+ CSS-StyleSheet) (Listof+ CSS-Subject) CSS-Declaration-Parsers
                      (CSS-Cascaded-Value+Filter Preference Env) (Option CSS-Values) Env
                      (Values (Listof Preference) (Listof CSS-Values))]))
   (let ()
-    (define do-cascade* : (All (Preference) (-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+    (define do-cascade* : (All (Preference) (-> (Listof+ CSS-StyleSheet) (Listof+ CSS-Subject) CSS-Declaration-Parsers
                                                 (Option CSS-Values) (-> CSS-Values Preference)
                                                 (Values (Listof Preference) (Listof CSS-Values))))
       (lambda [stylesheets stcejbus desc-parsers inherited-values do-value-filter]
@@ -51,7 +52,7 @@
        (do-cascade* stylesheets stcejbus desc-parsers inherited-values
                     (λ [[declared-values : CSS-Values]] (value-filter declared-values inherited-values env)))])))
 
-(define css-cascade-rules* : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject) CSS-Declaration-Parsers)
+(define css-cascade-rules* : (->* ((Listof CSS-Grammar-Rule) (Listof+ CSS-Subject) CSS-Declaration-Parsers)
                                   (Boolean CSS-Media-Features) (Listof CSS-Values))
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading

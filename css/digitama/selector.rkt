@@ -46,22 +46,26 @@
                            [:classes : (Listof CSS-:Class-Selector)]
                            [::element : (Option CSS-::Element-Selector)])])
 
-(define css-selector-match : (->* (CSS-Complex-Selector (Listof CSS-Subject)) (Boolean) (Option Nonnegative-Fixnum))
+(define css-selector-match : (->* (CSS-Complex-Selector (Listof+ CSS-Subject)) (Boolean) (Option Natural))
   ;;; https://drafts.csswg.org/selectors/#evaluating-selectors
-  (lambda [selectors stnemele [quirk? #false]]
+  (lambda [srotceles stnemele [quirk? #false]]
     ; TODO: define a better object model
     (define root : Symbol (css-root-element-type))
-    (let evaluate : (Option Nonnegative-Fixnum) ([srotceles : (Listof CSS-Compound-Selector) (reverse selectors)]
-                                                 [stcejbus : (Listof CSS-Subject) stnemele]
-                                                 [specificity : Nonnegative-Fixnum 0])
-      (cond [(null? stcejbus) (and (null? srotceles) specificity)]
-            [(null? srotceles) specificity]
-            [else (let* ([element (car stcejbus)]
-                         [root? (eq? (css-subject-type element) root)]
-                         [specificity++ (css-compound-selector-match (car srotceles) element root? quirk?)])
-                    (and specificity++ (evaluate (cdr srotceles) (cdr stcejbus) (fx+ specificity specificity++))))]))))
+    (let evaluate ([selector : CSS-Compound-Selector (car srotceles)]
+                   [element : CSS-Subject (car stnemele)]
+                   [srotceles : (Listof CSS-Compound-Selector) (cdr srotceles)]
+                   [stcejbus : (Listof CSS-Subject) (cdr stnemele)]
+                   [specificity : Natural 0])
+      (define root? : Boolean (eq? (css-subject-type element) root))
+      (define specificity++ : (Option Natural) (css-compound-selector-match selector element root? quirk?))
+      (and specificity++
+           (cond [(null? stcejbus) (and (null? srotceles) (fx+ specificity specificity++))]
+                 [(null? srotceles) (fx+ specificity specificity++)]
+                 [else (evaluate (car srotceles) (car stcejbus)
+                                 (cdr srotceles) (cdr stcejbus)
+                                 (fx+ specificity specificity++))])))))
 
-(define css-compound-selector-match : (->* (CSS-Compound-Selector CSS-Subject Boolean) (Boolean) (Option Nonnegative-Fixnum))
+(define css-compound-selector-match : (->* (CSS-Compound-Selector CSS-Subject Boolean) (Boolean) (Option Natural))
   ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
   ;;; https://drafts.csswg.org/selectors/#case-sensitive
   (lambda [selector element root? [quirk? #false]] ; WARNING: `quirk?` only affects type name and attribute names
@@ -85,10 +89,10 @@
            (or (null? s:classes)
                (and root? (css-:classes-match? s:classes (cons 'root :classes)))
                (and (pair? :classes) (css-:classes-match? s:classes :classes))))
-         (let-values ([(a b c) (css-selector-specificity-ABC selector)])
-           (css-ABC->specificity a b c)))))
+         (let-values ([(a b c) (css-compound-selector-abc selector)])
+           ((default-css-abc->specificity) a b c)))))
 
-(define css-selector-specificity-ABC : (-> CSS-Compound-Selector (values Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum))
+(define css-compound-selector-abc : (-> CSS-Compound-Selector (values Natural Natural Natural))
   ;;; https://drafts.csswg.org/selectors/#specificity-rules
   (lambda [static-unit]
     (values (length (css-compound-selector-ids static-unit))
@@ -117,18 +121,22 @@
   [in-range out-of-range]
   [required optional])
 
-(define css-ABC->specificity : (-> Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum)
-  (lambda [A B C]
-    (fxior (fxlshift A 16) (fxior (fxlshift B 8) C))))
+(define default-css-abc->specificity : (Parameterof (-> Natural Natural Natural Natural))
+  (make-parameter (λ [[A : Natural] [B : Natural] [C : Natural]] : Natural
+                    (fxior (fxlshift A 16) (fxior (fxlshift B 8) C)))))
 
-(define css-selector-list-specificity : (->* (CSS-Complex-Selector) ((-> Natural Natural Natural Natural)) Natural)
-  (lambda [selectors [-> css-ABC->specificity]]
-    (define-values (A B C)
-      (for/fold ([A : Nonnegative-Fixnum 0] [B : Nonnegative-Fixnum 0] [C : Nonnegative-Fixnum 0])
-                ([selector (in-list selectors)])
-        (define-values (a b c) (css-selector-specificity-ABC selector))
-        (values (fx+ A a) (fx+ B b) (fx+ C c))))
-    (-> A B C)))
+(define css-complex-selector-abc : (-> (Listof+ CSS-Compound-Selector) (Values Natural Natural Natural))
+  ;;; https://drafts.csswg.org/selectors/#specificity-rules
+  (lambda [selectors]
+    (for/fold ([A : Natural 0] [B : Natural 0] [C : Natural 0])
+              ([selector (in-list selectors)])
+      (define-values (a b c) (css-compound-selector-abc selector))
+      (values (fx+ A a) (fx+ B b) (fx+ C c)))))
+
+(define css-complex-selector-specificity : (-> CSS-Complex-Selector Natural)
+  (lambda [selectors]
+    (define-values (A B C) (css-complex-selector-abc selectors))
+    ((default-css-abc->specificity) A B C)))
 
 (define css-combinator-match? : (-> (Option CSS-Selector-Combinator) CSS-Selector-Combinator Boolean)
   (lambda [s:combinator combinator]

@@ -4,12 +4,14 @@
 (require "../syntax.rkt")
 (require "../digitama/selector.rkt")
 
+(default-css-abc->specificity
+  (λ [[a : Natural] [b : Natural] [c : Natural]]
+    (+ (* a 100) (+ (* b 10) c))))
+
 (time-run (map (λ [[in : String]] : (Pairof String Integer)
                  (let ([?complex-selectors (css-parse-selectors in)])
                    (cond [(exn:css? ?complex-selectors) (cons in -1)]
-                         [else (cons in (css-selector-list-specificity (car ?complex-selectors)
-                                                                       (λ [[a : Natural] [b : Natural] [c : Natural]]
-                                                                         (+ (* a 100) (+ (* b 10) c)))))])))
+                         [else (cons in (css-complex-selector-specificity (car ?complex-selectors)))])))
                (list "* + *"
                      "li"
                      "li::first-line"
