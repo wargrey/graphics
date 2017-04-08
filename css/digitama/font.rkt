@@ -10,6 +10,7 @@
 
 (require "bitmap.rkt")
 (require "digicore.rkt")
+(require "dimension.rkt")
 (require "../recognizer.rkt")
 (require "../racket.rkt")
 

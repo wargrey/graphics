@@ -5,6 +5,7 @@
 (provide (all-defined-out))
 
 (require "digitama/digicore.rkt")
+(require "digitama/dimension.rkt")
 (require "digitama/misc.rkt")
 (require "recognizer.rkt")
 

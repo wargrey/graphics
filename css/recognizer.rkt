@@ -8,6 +8,7 @@
 
 (require "digitama/misc.rkt")
 (require "digitama/digicore.rkt")
+(require "digitama/dimension.rkt")
 
 (require (for-syntax racket/syntax))
 (require (for-syntax syntax/parse))

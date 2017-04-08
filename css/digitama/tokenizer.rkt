@@ -5,6 +5,7 @@
 (provide (all-defined-out))
 
 (require "digicore.rkt")
+(require "dimension.rkt")
 (require "misc.rkt")
 
 (struct css-srcloc ([in : Input-Port] [source : (U String Symbol)] [line : Natural] [col : Natural] [pos : Natural])

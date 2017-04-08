@@ -12,6 +12,7 @@
 
 (require "bitmap.rkt")
 (require "digicore.rkt")
+(require "dimension.rkt")
 (require "font.rkt")
 (require "color.rkt")
 (require "misc.rkt")

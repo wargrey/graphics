@@ -4,7 +4,8 @@
 ;;; https://drafts.csswg.org/css-values
 
 (provide (except-out (all-defined-out) CSS-Style-Metadata
-                     desc-more-important? do-filter do-parse))
+                     desc-more-important? do-filter do-parse
+                     css-filter? css-parser? !importants))
 
 (require "misc.rkt")
 (require "digicore.rkt")
@@ -15,11 +16,26 @@
 (require "device-adapt.rkt")
 (require "../recognizer.rkt")
 
+(require bitmap/digitama/cheat)
+
+(require (for-syntax racket/syntax))
+(require (for-syntax syntax/parse))
+
 (define-type CSS-Style-Metadata (Vector Nonnegative-Fixnum CSS-Declarations CSS-Media-Features))
 
 (define css-warning-unknown-property? : (Parameterof Boolean) (make-parameter #true))
 (define css-select-quirk-mode? : (Parameterof Boolean) (make-parameter #false))
 (define css-property-case-sensitive? : (Parameterof Boolean) (make-parameter #false))
+
+(define-syntax (call-with-css-viewport-from-media stx)
+  (syntax-parse stx
+    [(_ (~optional (~seq #:descriptors ?env)) sexp ...)
+     (with-syntax ([env (or (attribute ?env) #'(default-css-media-features))])
+       #'(let ([w (hash-ref env 'width (thunk #false))]
+               [h (hash-ref env 'height (thunk #false))])
+           (when (and (real? w) (positive? w)) (css-vw (real->double-flonum w)))
+           (when (and (real? h) (positive? h)) (css-vh (real->double-flonum h)))
+           sexp ...))]))
 
 (define css-cascade :
   (All (Preference Env)
@@ -279,6 +295,9 @@
     (css-condition-okay? query okay?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-cheat-opaque css-filter? #:=> (CSS:Filter Any) 1 #false)
+(define-cheat-opaque css-parser? #:=> (CSS-Parser (Listof Any)) 2 #false)
+
 (define !importants : (HashTable Symbol Boolean) ((inst make-hasheq Symbol Boolean)))
 
 (define desc-more-important? : (-> Symbol Boolean Boolean)

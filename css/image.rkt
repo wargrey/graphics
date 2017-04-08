@@ -8,6 +8,7 @@
 (require "digitama/digicore.rkt")
 (require "digitama/bitmap.rkt")
 (require "digitama/image.rkt")
+(require "digitama/dimension.rkt")
 (require "recognizer.rkt")
 
 (define-type CSS-Make-Icon (-> #:height Nonnegative-Real #:color Color Bitmap))

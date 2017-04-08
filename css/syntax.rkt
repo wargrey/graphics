@@ -4,9 +4,9 @@
 
 (provide (all-defined-out))
 
-(provide (except-out (all-from-out "digitama/digicore.rkt") css-log-syntax-error css-filter? css-parser?))
+(provide (except-out (all-from-out "digitama/digicore.rkt") css-log-syntax-error))
 (provide (except-out (all-from-out "digitama/grammar.rkt") css-stylesheet-placeholder))
-(provide (all-from-out "digitama/condition.rkt" "digitama/cascade.rkt"))
+(provide (all-from-out "digitama/condition.rkt" "digitama/dimension.rkt" "digitama/cascade.rkt"))
 (provide (all-from-out "values.rkt" "recognizer.rkt"))
 
 (provide css-parse-stylesheet
@@ -26,6 +26,7 @@
 (require "digitama/grammar.rkt")
 (require "digitama/condition.rkt")
 (require "digitama/cascade.rkt")
+(require "digitama/dimension.rkt")
 
 (require "values.rkt")
 (require "recognizer.rkt")
