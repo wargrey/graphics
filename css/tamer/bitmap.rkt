@@ -7,6 +7,7 @@
 (require "configure.rkt")
 (require "../main.rkt")
 (require "../sugar.rkt")
+(require "../bonus.rkt")
 
 (css-configure-@media)
 (current-namespace (module->namespace 'bitmap))
