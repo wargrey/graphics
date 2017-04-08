@@ -4,6 +4,8 @@
 
 ;;; https://drafts.csswg.org/css-values/#absolute-lengths
 ;;; https://drafts.csswg.org/css-values/#relative-lengths
+;;; https://drafts.csswg.org/css-egg/#astro-units
+;;; https://drafts.csswg.org/css-egg/#traditional-time
 
 (require "digicore.rkt")
 (require "misc.rkt")
@@ -91,41 +93,47 @@
 
 (define-dimensional-tokens css:dimension
   ([css:length         #:+ CSS:Length          #:=> px
-                       [[(cm)    (fl* px (fl/ 96.0 2.54))]
-                        [(mm)    (fl* px (fl/ 96.0 25.4))]  ; 1cm/10
-                        [(q)     (fl* px (fl/ 96.0 101.6))] ; 1cm/40
-                        [(in)    (fl* px 96.0)]
-                        [(pc)    (fl* px 16.0)]             ; 1in/6
-                        [(pt)    (fl* px (fl/ 96.0 72.0))]  ; 1in/72
-                        [(em)    (fl* px (css-em))]
-                        [(ex)    (fl* px (css-ex))]
-                        [(cap)   (fl* px (css-cap))]
-                        [(ch)    (fl* px (css-ch))]
-                        [(ic)    (fl* px (css-ic))]
-                        [(lh)    (fl* px (css-lh))]
-                        [(rem)   (fl* px (css-rem))]
-                        [(rlh)   (fl* px (css-rlh))]
-                        [(vw vi) (fl* px (fl* 0.01 (css-vw)))]
-                        [(vh vb) (fl* px (fl* 0.01 (css-vh)))]
-                        [(vmin)  (fl* px (fl* 0.01 (min (css-vw) (css-vh))))]
-                        [(vmax)  (fl* px (fl* 0.01 (max (css-vw) (css-vh))))]]]
+                       [[(cm)    (fl* (fl/ 96.0 2.54) px)]
+                        [(mm)    (fl* (fl/ 96.0 25.4) px)]                    #;1cm/10
+                        [(q)     (fl* (fl/ 96.0 101.6) px)]                   #;1cm/40
+                        [(in)    (fl* 96.0 px)]
+                        [(pc)    (fl* 16.0 px)]                               #;1in/6
+                        [(pt)    (fl* (fl/ 96.0 72.0) px)]                    #;1in/72
+                        [(em)    (fl* (css-em) px)]
+                        [(ex)    (fl* (css-ex) px)]
+                        [(cap)   (fl* (css-cap) px)]
+                        [(ch)    (fl* (css-ch) px)]
+                        [(ic)    (fl* (css-ic) px)]
+                        [(lh)    (fl* (css-lh) px)]
+                        [(rem)   (fl* (css-rem) px)]
+                        [(rlh)   (fl* (css-rlh) px)]
+                        [(vw vi) (fl* (fl* 0.01 (css-vw)) px)]
+                        [(vh vb) (fl* (fl* 0.01 (css-vh)) px)]
+                        [(vmin)  (fl* (fl* 0.01 (min (css-vw) (css-vh))) px)]
+                        [(vmax)  (fl* (fl* 0.01 (max (css-vw) (css-vh))) px)]
+                        [(apc)   (fl* (fl* (fl/ 96.0 2.54) 3.086) px)]        #;3.086cm
+                        [(pls)   (fl* 1.133 px)]
+                        [(ls)    (fl* 1.133e12 px)]                           #;1e12pls
+                        #;[(pc)    (fl* (fl* (fl/ 96.0 2.54) 3.086e18) px)]   #;1e18apc]]
    ;;; https://drafts.csswg.org/css-values/#angles
    [css:angle          #:+ CSS:Angle           #:=> deg
-                       [[(grad)  (fl* deg 0.9)]
-                        [(rad)   (fl* deg (fl/ 180.0 pi))]
-                        [(turn)  (fl* deg 360.0)]]]
+                       [[(grad)  (fl* 0.9 deg)]
+                        [(rad)   (fl* (fl/ 180.0 pi) deg)]
+                        [(turn)  (fl* 360.0 deg)]]]
    ;;; https://drafts.csswg.org/css-values/#time
    [css:time           #:+ CSS:Time            #:=> s
-                       [[(ms)    (fl* s 0.001)]
-                        [(min)   (fl* s 60.0)]
-                        [(h)     (fl* s 3600.0)]]]
+                       [[(ms)    (fl* 0.001 s)]
+                        [(min)   (fl* 60.0 s)]
+                        [(h)     (fl* 3600.0 s)]
+                        [(ft)    (fl* 1.2096e6 s)]
+                        [(mft)   (fl* 1.2096e3 s)]]]
    ;;; https://drafts.csswg.org/css-values/#frequency
    [css:frequency      #:+ CSS:Frequency       #:=> kz
-                       [[(khz)   (fl* kz 0.001)]]]
+                       [[(khz)   (fl* 0.001 kz)]]]
    ;;; https://drafts.csswg.org/css-values/#resolution
    [css:resolution     #:+ CSS:Resolution      #:=> dppx
-                       [[(dpcm)  (fl* dppx (fl/ 2.54 96.0))]
-                        [(dpi)   (fl* dppx (fl/ 1.0 96.0))]
+                       [[(dpcm)  (fl* (fl/ 2.54 96.0) dppx)]
+                        [(dpi)   (fl* (fl/ 1.0 96.0) dppx)]
                         [(x)     dppx]]])
   ([css:length:font     #:+ CSS:Length:Font     #:-> css:length]
    [css:length:viewport #:+ CSS:Length:Viewport #:-> css:length]))
