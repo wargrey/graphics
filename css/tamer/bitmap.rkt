@@ -14,19 +14,19 @@
 (css-root-element-type 'module)
 
 (define-preference* btest #:as Bitmap.CSS #:with ([color-properties Color])
-  ([symbol-color : Color                 #:= 'Blue]
-   [string-color : Color                 #:= 'Orange]
-   [number-color : Color                 #:= 'Tomato]
-   [output-color : Color                 #:= 'Chocolate]
-   [paren-color : Color                  #:= 'Firebrick]
-   [border-color : Color                 #:= 'Crimson]
-   [foreground-color : Color             #:= "Grey"]
-   [background-color : Color             #:= "Snow"]
-   [font : CSS-Font                      #:= (current-css-element-font)]
-   [width : Index                        #:= 512]
-   [desc : String                        #:= "['desc' property is required]"]
-   [prelude : Bitmap                     #:= (bitmap-text "> ")]
-   [descriptors : (HashTable Symbol Any) #:= (make-immutable-hasheq)])
+  ([symbol-color : Color                        #:= 'Blue]
+   [string-color : Color                        #:= 'Orange]
+   [number-color : Color                        #:= 'Tomato]
+   [output-color : Color                        #:= 'Chocolate]
+   [paren-color : Color                         #:= 'Firebrick]
+   [border-color : Color                        #:= 'Crimson]
+   [foreground-color : Color                    #:= "Grey"]
+   [background-color : Color                    #:= "Snow"]
+   [font : CSS-Font                             #:= (current-css-element-font)]
+   [width : Index                               #:= 512]
+   [desc : String                               #:= "['desc' property is required]"]
+   [prelude : Bitmap                            #:= (bitmap-text "> ")]
+   [descriptors : (Listof (Pairof Symbol Any)) #:= null])
   #:transparent)
 
 (define btest-parsers : CSS-Declaration-Parsers
@@ -58,9 +58,9 @@
                 #:desc (css-ref declared-values inherited-values 'desc css->desc)
                 #:prelude (css-ref declared-values inherited-values 'prelude css->bitmap)
                 #:descriptors (css-values-fold declared-values (initial-btest-descriptors)
-                                               (λ [[property : Symbol] [this-datum : Any] [desc++ : (HashTable Symbol Any)]]
+                                               (λ [[property : Symbol] [this-datum : Any] [desc++ : (Listof (Pairof Symbol Any))]]
                                                  (cond [(memq property btest-color-properties) desc++]
-                                                       [else (hash-set desc++ property this-datum)]))))))
+                                                       [else (cons (cons property (box this-datum)) desc++)]))))))
 
 (define ~module : CSS-Subject (make-css-subject #:type 'module #:classes '(main)))
 (define ~btest : CSS-Subject (make-css-subject #:type 'bitmap-desc #:classes '(test)))

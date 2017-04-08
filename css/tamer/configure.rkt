@@ -18,27 +18,11 @@
 
 (define DrRacket? : Boolean (regexp-match? #px"DrRacket$" (find-system-path 'run-file)))
 
-(define value-inspect : (-> Any Any)
-  (lambda [raw] ; TODO: deal with cyclics
-    (cond [(css-stylesheet? raw) raw]
-          [(css-wide-keyword? raw) (css-wide-keyword-datum raw)]
-          [(and (struct? raw) (not (object? raw))) (vector-map value-inspect (struct->vector raw))]
-          [(vector? raw) (for/vector : (Vectorof Any) ([val (in-vector raw)]) (value-inspect val))]
-          [(hash? raw) (for/list : (Listof Any) ([(k v) (in-hash raw)]) (cons (value-inspect k) (value-inspect v)))]
-          [(list? raw) (map value-inspect raw)]
-          [(pair? raw) (cons (value-inspect (car raw)) (value-inspect (cdr raw)))]
-          [(box? raw) (box (value-inspect (unbox raw)))]
-          [(color%? raw) (list 'rgba (send raw red) (send raw green) (send raw blue) (send raw alpha))]
-          [(css-font%? raw) (value-inspect (send raw inspect))]
-          [else raw])))
-
 (define css-configure-@media : (-> Void)
   (lambda []
     (define-values (width height) (get-display-size))
-    (define DrPrint : (-> Any AnyValues) (current-print))
     (css-deprecate-media-type #true)
     (default-css-media-type 'screen)
-    (current-print (λ [[raw : Any]] (DrPrint (value-inspect raw))))
     (default-css-media-features
       (make-css-media-features #:width (real->double-flonum (or width 0))
                                #:height (real->double-flonum (or height 0))

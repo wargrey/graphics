@@ -29,10 +29,10 @@
                            (<css:racket>)
                            (<css:block>)))))))
 
-(define css-all-filter : (CSS-Cascaded-Value+Filter (HashTable Symbol Any) Symbol)
+(define css-all-filter : (CSS-Cascaded-Value+Filter (Vectorof (Pairof Symbol Any)) Symbol)
   (lambda [declared-values inherited-values type]
-    (for/hash : (HashTable Symbol Any) ([desc-name (in-hash-keys declared-values)])
-      (values desc-name (css-ref declared-values inherited-values desc-name)))))
+    (for/vector : (Vectorof (Pairof Symbol Any)) ([desc-name (in-hash-keys declared-values)])
+      (cons desc-name (box (css-ref declared-values inherited-values desc-name))))))
 
 (match-define (list $root *root)
   (time-run (let-values ([(root:values for-children)

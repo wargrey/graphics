@@ -8,11 +8,12 @@
 (require "digitama/cheat.rkt")
 (require "digitama/font.rkt")
 (require "digitama/unsafe.rkt")
+(require "digitama/inspectable.rkt")
 
 (define-type CSS-Font (Instance CSS-Font%))
 
 (define-type CSS-Font%
-  (Class #:implements Font%
+  (Class #:implements Inspectable-Font%
          (init-field [face String]
                      [ligature Symbol #:optional]
                      [lines (Listof Symbol) #:optional])
@@ -21,19 +22,17 @@
                [weight Font-Weight #:optional]
                [smoothing Font-Smoothing #:optional]
                [hinting Font-Hinting #:optional])
-         (init-rest Null)
          [em (-> Nonnegative-Flonum)]
          [ex (-> Nonnegative-Flonum)]
          [cap (-> Nonnegative-Flonum)]
          [ch (-> Nonnegative-Flonum)]
          [ic (-> Nonnegative-Flonum)]
-         [lh (-> Nonnegative-Flonum)] ; WARNING: this is layout-height rather than line-height
+         [lh (-> Nonnegative-Flonum)]
          [get-combine? (-> Boolean)]
-         [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]
-         [inspect (-> Any)]))
+         [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]))
 
 (define css-font% : CSS-Font%
-  (class font%
+  (class inspectable-font%
     (init-field face [ligature 'normal] [lines null])
     (init [size 12.0] [style 'normal] [weight 'normal] [smoothing 'default] [hinting 'aligned])
     
@@ -57,16 +56,15 @@
     (define/public (get-combine?)
       (not (eq? ligature 'none)))
 
-    (define/public (inspect)
-      (list (object-name this) face ligature lines metrics
-            (get-family) (send this get-style) (send this get-weight)))
-    
     (define/override (get-family)
       (let try-next ([families : (Listof Font-Family) '(swiss roman modern decorative script symbol system)])
         (cond [(null? families) (super get-family)]
               [(string=? face (font-family->font-face (car families))) (car families)]
               [else (try-next (cdr families))])))
-
+    
+    (define/override (inspect)
+      (list face ligature lines (get-metrics) (get-family) (send this get-style) (send this get-weight)))
+    
     (define/private (fill-metrics!) : Void
       (when (zero? (hash-count metrics))
         (define-values (ex cap ch ic layout-height) (get-font-metrics this))

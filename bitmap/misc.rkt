@@ -1,6 +1,6 @@
 #lang typed/racket
 
-(provide (all-defined-out) select-color)
+(provide (all-defined-out) select-color RGBA-Color rgba% rgba%?)
 
 (require "digitama/digicore.rkt")
 (require "digitama/color.rkt")

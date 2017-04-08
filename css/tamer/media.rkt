@@ -73,12 +73,12 @@ media.css
                                               #:color (box-border-color $root:n) #:style (box-border-style $root:n)
                                               #:background-color (box-background-color $root:n) #:background-style 'solid
                                               (bitmap-desc #:color (box-color $root:n)
-                                                           (pretty-format (value-inspect $root:n)) (box-width $root:n)
+                                                           (pretty-format $root:n) (box-width $root:n)
                                                            (box-font $root:n))))
                   (bitmap-frame #:color (current-css-element-color) #:style 'dot
                                 (bitmap-frame #:margin (box-vertical-margin $root:s) #:inset (box-vertical-inset $root:s)
                                               #:color (box-border-color $root:s) #:style (box-border-style $root:s)
                                               #:background-color (box-background-color $root:s) #:background-style 'solid
                                               (bitmap-desc #:color (box-color $root:s)
-                                                           (pretty-format (value-inspect $root:s)) (box-width $root:s)
+                                                           (pretty-format $root:s) (box-width $root:s)
                                                            (box-font $root:s)))))
