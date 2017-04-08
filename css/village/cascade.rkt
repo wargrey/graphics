@@ -10,14 +10,14 @@
 (require "../digitama/condition.rkt")
 (require "../digitama/grammar.rkt")
 
-(define css-cascade* :
-  (All (Preference Env)
-       (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
-                   (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
-                   (Values (Listof Preference) (Listof CSS-Values))]
-               [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
-                   (CSS-Cascaded-Value+Filter Preference Env) (Option CSS-Values) Env
-                   (Values (Listof Preference) (Listof CSS-Values))]))
+(define css-cascade*
+  : (All (Preference Env)
+         (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                     (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
+                     (Values (Listof Preference) (Listof CSS-Values))]
+                 [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                     (CSS-Cascaded-Value+Filter Preference Env) (Option CSS-Values) Env
+                     (Values (Listof Preference) (Listof CSS-Values))]))
   (let ()
     (define do-cascade* : (All (Preference) (-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
                                                 (Option CSS-Values) (-> CSS-Values Preference)
@@ -58,10 +58,11 @@
   (lambda [rules stcejbus desc-parsers [quirk? #false] [top-descriptors (default-css-media-features)]]
     (call-with-css-viewport-from-media #:descriptors top-descriptors
       (define-values (ordered-srcs single?) (css-select-styles rules stcejbus desc-parsers quirk? top-descriptors))
-      (cond [(and single?) (map (λ [[src : CSS-Style-Metadata]] (css-cascade-declarations desc-parsers (vector-ref src 1))) ordered-srcs)]
-            [else (for/list : (Listof CSS-Values) ([src (in-list ordered-srcs)])
-                    (define alter-descriptors : CSS-Media-Features (vector-ref src 2))
-                    (if (eq? alter-descriptors top-descriptors)
-                        (css-cascade-declarations desc-parsers (vector-ref src 1))
-                        (call-with-css-viewport-from-media #:descriptors alter-descriptors
-                          (css-cascade-declarations desc-parsers (vector-ref src 1)))))]))))
+      (if (and single?)
+          (map (λ [[src : CSS-Style-Metadata]] (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)))) ordered-srcs)
+          (for/list : (Listof CSS-Values) ([src (in-list ordered-srcs)])
+            (define alter-descriptors : CSS-Media-Features (vector-ref src 2))
+            (if (eq? alter-descriptors top-descriptors)
+                (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)))
+                (call-with-css-viewport-from-media #:descriptors alter-descriptors
+                  (css-cascade-declarations desc-parsers (in-value (vector-ref src 1))))))))))

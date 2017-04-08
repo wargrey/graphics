@@ -388,7 +388,6 @@
 (define-type CSS-Syntax-Any (U CSS-Token EOF))
 (define-type CSS-Syntax-Terminal (U CSS:Delim CSS:Close EOF))
 (define-type CSS-Syntax-Rule (U CSS-Qualified-Rule CSS-@Rule))
-(define-type CSS-Declarations (Listof CSS-Declaration))
 
 (define-syntax (define-syntax-error stx)
   ;;; https://drafts.csswg.org/css-syntax/#style-rules
@@ -488,7 +487,6 @@
 ;; https://drafts.csswg.org/css-cascade/#filtering
 ;; https://drafts.csswg.org/css-cascade/#cascading
 (define-type CSS-Values (HashTable Symbol (-> Any)))
-(define-type CSS-Cascading-Declarations (U CSS-Declarations (Listof CSS-Declarations)))
 (define-type CSS-Declaration-Parsers (-> Symbol (-> Void) CSS-Declaration-Parser))
 (define-type (CSS-Cascaded-Value-Filter Preference) (-> CSS-Values (Option CSS-Values) Preference))
 (define-type (CSS-Cascaded-Value+Filter Preference Env) (-> CSS-Values (Option CSS-Values) Env Preference))

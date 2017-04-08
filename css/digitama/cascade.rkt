@@ -20,7 +20,7 @@
 
 (require (for-syntax syntax/parse))
 
-(define-type CSS-Style-Metadata (Vector Nonnegative-Fixnum CSS-Declarations CSS-Media-Features))
+(define-type CSS-Style-Metadata (Vector Nonnegative-Fixnum (Listof CSS-Declaration) CSS-Media-Features))
 
 (define css-warning-unknown-property? : (Parameterof Boolean) (make-parameter #true))
 (define css-select-quirk-mode? : (Parameterof Boolean) (make-parameter #false))
@@ -36,14 +36,14 @@
            (when (and (real? h) (positive? h)) (css-vh (real->double-flonum h)))
            sexp ...))]))
 
-(define css-cascade :
-  (All (Preference Env)
-       (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
-                   (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
-                   (Values Preference CSS-Values)]
-               [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
-                   (CSS-Cascaded-Value+Filter Preference Env) (Option CSS-Values) Env
-                   (Values Preference CSS-Values)]))
+(define css-cascade
+  : (All (Preference Env)
+         (case-> [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                     (CSS-Cascaded-Value-Filter Preference) (Option CSS-Values)
+                     (Values Preference CSS-Values)]
+                 [-> (Listof CSS-StyleSheet) (Listof CSS-Subject) CSS-Declaration-Parsers
+                     (CSS-Cascaded-Value+Filter Preference Env) (Option CSS-Values) Env
+                     (Values Preference CSS-Values)]))
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
   ;;; https://drafts.csswg.org/css-cascade/#at-import
@@ -75,17 +75,17 @@
     (call-with-css-viewport-from-media #:descriptors top-descriptors
       (define-values (ordered-srcs single?) (css-select-styles rules stcejbus desc-parsers quirk? top-descriptors))
       (if (and single?)
-          (let ([source-ref (λ [[src : CSS-Style-Metadata]] : CSS-Declarations (vector-ref src 1))])
-            (css-cascade-declarations desc-parsers (map source-ref ordered-srcs) descbase))
+          (let ([source-ref (λ [[src : CSS-Style-Metadata]] : (Listof CSS-Declaration) (vector-ref src 1))])
+            (css-cascade-declarations desc-parsers (sequence-map source-ref (in-list ordered-srcs)) descbase))
           (for ([src (in-list ordered-srcs)])
             (define alter-descriptors : CSS-Media-Features (vector-ref src 2))
             (if (eq? alter-descriptors top-descriptors)
-                (css-cascade-declarations desc-parsers (vector-ref src 1) descbase)
+                (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) descbase)
                 (call-with-css-viewport-from-media #:descriptors alter-descriptors
-                  (css-cascade-declarations desc-parsers (vector-ref src 1) descbase))))))
+                  (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) descbase))))))
     descbase))
 
-(define css-cascade-declarations : (->* (CSS-Declaration-Parsers CSS-Cascading-Declarations) (CSS-Values) CSS-Values)
+(define css-cascade-declarations : (->* (CSS-Declaration-Parsers (Sequenceof (Listof CSS-Declaration))) (CSS-Values) CSS-Values)
   ;;; https://drafts.csswg.org/css-cascade/#shorthand
   ;;; https://drafts.csswg.org/css-cascade/#importance
   ;;; https://drafts.csswg.org/css-variables/#syntax
@@ -140,17 +140,14 @@
                                    desc-value)))]
               [(do-filter <desc-name> raw-filter declared-values #false)
                => (λ [desc-value] (desc-set! descbase desc-name important? (thunk desc-value)))])))
-    (lambda [desc-parsers properties [descbase (make-css-values)]]
+    (lambda [desc-parsers sequences [descbase (make-css-values)]]
       (define case-sensitive? : Boolean (css-property-case-sensitive?))
-      (let cascade ([subproperties : CSS-Cascading-Declarations properties])
-        (for ([property (in-list subproperties)])
-          (if (list? property)
-              (cascade property)
-              (let* ([<desc-name> : CSS:Ident (css-declaration-name property)]
-                     [desc-name : Symbol (if case-sensitive? (css:ident-datum <desc-name>) (css:ident-norm <desc-name>))])
-                (if (symbol-unreadable? desc-name)
-                    (varbase-set! descbase desc-name property)
-                    (let ([important? : Boolean (css-declaration-important? property)])
+      (for* ([properties sequences]
+             [property (in-list properties)])
+        (define <desc-name> : CSS:Ident (css-declaration-name property))
+        (define desc-name : Symbol (if case-sensitive? (css:ident-datum <desc-name>) (css:ident-norm <desc-name>)))
+        (cond [(symbol-unreadable? desc-name) (varbase-set! descbase desc-name property)]
+              [else (let ([important? : Boolean (css-declaration-important? property)])
                       (when (desc-more-important? desc-name important?)
                         (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
                         (define lazy? : Boolean (css-declaration-lazy? property))
@@ -159,17 +156,18 @@
                         (cond [(css-filter? info) (filter-desc descbase info <desc-name> declared-values desc-name important? lazy?)]
                               [(css-parser? info) (parse-desc descbase info <desc-name> declared-values desc-name important? lazy?)]
                               [(pair? info) (parse-long descbase info <desc-name> declared-values important? lazy?)]
-                              [(css-warning-unknown-property?) (make+exn:css:unrecognized <desc-name>)]))))))))
+                              [(css-warning-unknown-property?) (make+exn:css:unrecognized <desc-name>)])))]))
       descbase)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define css-cascade-viewport : (->* (CSS-Media-Features (Listof CSS-Declarations)) (CSS-Declaration-Parsers CSS-Viewport-Filter)
+(define css-cascade-viewport : (->* (CSS-Media-Features (Vectorof (Listof CSS-Declaration))) (CSS-Declaration-Parsers CSS-Viewport-Filter)
                                     CSS-Media-Features)
   ;;; https://drafts.csswg.org/css-device-adapt/#atviewport-rule
   (lambda [init-viewport descriptors [viewport-parser (default-css-viewport-parsers)] [viewport-filter (default-css-viewport-filter)]]
-    (cond [(null? descriptors) init-viewport]
+    (cond [(zero? (vector-length descriptors)) init-viewport]
           [else (call-with-css-viewport-from-media #:descriptors init-viewport
-                  (viewport-filter (css-cascade-declarations viewport-parser descriptors) #false init-viewport))])))
+                  (viewport-filter (css-cascade-declarations viewport-parser (in-vector descriptors))
+                                   #false init-viewport))])))
 
 (define css-select-styles : (->* ((Listof CSS-Grammar-Rule) (Listof CSS-Subject) CSS-Declaration-Parsers) (Boolean CSS-Media-Features)
                                  (Values (Listof CSS-Style-Metadata) Boolean))

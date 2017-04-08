@@ -23,7 +23,7 @@
 (struct: css-@media-rule : CSS-@Media-Rule
   ([queries : (Listof CSS-Media-Query)]
    [grammars : (Listof CSS-Grammar-Rule)]
-   [viewports : (Listof CSS-Declarations)]))
+   [viewports : (Vectorof (Listof CSS-Declaration))]))
 
 (struct: css-@supports-rule : CSS-@Supports-Rule
   ([query : CSS-Feature-Query]
@@ -31,16 +31,16 @@
 
 (struct: css-style-rule : CSS-Style-Rule
   ([selectors : (Listof+ CSS-Complex-Selector)]
-   [properties : CSS-Declarations]))
+   [properties : (Listof CSS-Declaration)]))
 
 (define-preference css-stylesheet #:as CSS-StyleSheet
-  ([location : (U String Symbol)           #:= '/dev/null]
-   [namespaces : (HashTable Symbol String) #:= (make-hasheq)]
-   [imports : (Listof CSS-@Import-Rule)     #:= null]
-   [grammars : (Listof CSS-Grammar-Rule)   #:= null]
-   [pool : CSS-StyleSheet-Pool             #:= (make-hasheq)]
-   [timestamp : Integer                    #:= 0]
-   [viewports : (Listof CSS-Declarations)  #:= null])
+  ([location : (U String Symbol)                    #:= '/dev/null]
+   [namespaces : (HashTable Symbol String)          #:= (make-hasheq)]
+   [imports : (Listof CSS-@Import-Rule)             #:= null]
+   [grammars : (Listof CSS-Grammar-Rule)            #:= null]
+   [pool : CSS-StyleSheet-Pool                      #:= (make-hasheq)]
+   [timestamp : Integer                             #:= 0]
+   [viewports : (Vectorof (Listof CSS-Declaration)) #:= (vector)])
   #:transparent)
 
 (define css-stylesheet-placeholder : CSS-StyleSheet (make-css-stylesheet))
@@ -73,17 +73,17 @@
           stylesheet))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define css-syntax-rules->grammar-rules : (->* ((U String Symbol) (Listof CSS-Syntax-Rule) (HashTable Symbol String) Boolean Boolean)
-                                               (CSS-StyleSheet-Pool)
-                                               (Values (Listof CSS-Declarations) (Listof CSS-@Import-Rule) (Listof CSS-Grammar-Rule)))
+(define css-syntax-rules->grammar-rules
+  : (->* ((U String Symbol) (Listof CSS-Syntax-Rule) (HashTable Symbol String) Boolean Boolean) (CSS-StyleSheet-Pool)
+         (Values (Vectorof (Listof CSS-Declaration)) (Listof CSS-@Import-Rule) (Listof CSS-Grammar-Rule)))
   (lambda [src all-syntaxes namespaces can-import0? allow-namespace0? [pool ((inst make-hasheq Natural CSS-StyleSheet))]]
     (let syntax->grammar  ([seititnedi : (Listof CSS-@Import-Rule) null]
                            [srammarg : (Listof CSS-Grammar-Rule) null]
-                           [srotpircsed : (Listof CSS-Declarations) null]
+                           [srotpircsed : (Listof (Listof CSS-Declaration)) null]
                            [syntaxes : (Listof CSS-Syntax-Rule) all-syntaxes]
                            [can-import? : Boolean can-import0?]
                            [allow-namespace? : Boolean allow-namespace0?])
-      (cond [(null? syntaxes) (values (reverse srotpircsed) (reverse seititnedi) (reverse srammarg))]
+      (cond [(null? syntaxes) (values (list->vector (reverse srotpircsed)) (reverse seititnedi) (reverse srammarg))]
             [else (let-values ([(stx rest) (values (car syntaxes) (cdr syntaxes))])
                     (if (css-qualified-rule? stx)
                         (let ([?rule : (U CSS-Style-Rule CSS-Syntax-Error) (css-qualified-rule->style-rule stx namespaces)])
@@ -118,7 +118,7 @@
                            (syntax->grammar seititnedi srammarg srotpircsed rest can-import? allow-namespace?)]
                           [else (syntax->grammar seititnedi (cons stx srammarg) srotpircsed rest #false #false)])))]))))
 
-(define css-@viewport->declarations : (-> CSS-@Rule (U CSS-Declarations CSS-Syntax-Error))
+(define css-@viewport->declarations : (-> CSS-@Rule (U (Listof CSS-Declaration) CSS-Syntax-Error))
   (lambda [viewport]
     (define prelude : (Listof CSS-Token) (css-@rule-prelude viewport))
     (define ?block : (Option CSS:Block) (css-@rule-block viewport))

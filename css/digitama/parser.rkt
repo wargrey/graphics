@@ -631,9 +631,9 @@
           [else (throw-exn:css:unrecognized op)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define css-components->declarations : (-> (Listof CSS-Token) CSS-Declarations)
+(define css-components->declarations : (-> (Listof CSS-Token) (Listof CSS-Declaration))
   (lambda [components]
-    (let make-style-rule : CSS-Declarations ([seitreporp : CSS-Declarations null] [tokens : (Listof CSS-Token) components])
+    (let make-style-rule ([seitreporp : (Listof CSS-Declaration) null] [tokens : (Listof CSS-Token) components])
       (define-values (id any-values) (css-car tokens))
       (define-values (:values rest)
         (let collect : (Values (Listof CSS-Token) (Listof CSS-Token)) ([seulav : (Listof CSS-Token) null]
