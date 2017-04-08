@@ -1,6 +1,7 @@
 #lang typed/racket
 
 ;;; https://drafts.csswg.org/css-device-adapt
+;;; https://drafts.csswg.org/css-round-display/#extending-viewport-rule
 ;;; https://github.com/w3c/csswg-drafts/issues/258
 
 (provide (all-defined-out))
@@ -21,10 +22,11 @@
     (case suitcased-name
       [(width) (make-css-pair-parser (viewport-length-filter) 'min-width 'max-width)]
       [(height) (make-css-pair-parser (viewport-length-filter) 'min-height 'max-height)]
-      [(zoom min-zoom max-zoom) (CSS<^> (CSS:<+> (<css-keyword> 'auto) (CSS:<~> (<css+%real>) real->double-flonum)))]
-      [(min-width max-width min-height max-height) (CSS<^> (viewport-length-filter))]
-      [(orientation) (CSS<^> (<css-keyword> '(auto portrait landscape)))]
-      [(user-zoom) (CSS<^> (<css-keyword> '(zoom fixed)))])))
+      [(zoom min-zoom max-zoom) (CSS:<+> (<css-keyword> 'auto) (CSS:<~> (<css+%real>) real->double-flonum))]
+      [(min-width max-width min-height max-height) (viewport-length-filter)]
+      [(orientation) (<css-keyword> '(auto portrait landscape))]
+      [(user-zoom) (<css-keyword> '(zoom fixed))]
+      [(viewport-fit) (<css-keyword> '(auto contain cover))])))
 
 (define css-viewport-filter : CSS-Viewport-Filter
   ;;; https://drafts.csswg.org/css-device-adapt/#constraining
@@ -66,10 +68,11 @@
     (define orientation : Symbol (css-ref cascaded-values #false 'orientation symbol? 'auto))
     (define user-zoom : Symbol (css-ref cascaded-values #false 'user-zoom symbol? 'zoom))
     (define zone : Flonum (max min-zoom (min max-zoom (css-ref cascaded-values #false 'zoom nonnegative-flonum? defzoom))))
+    (define viewport-fit : Symbol (css-ref cascaded-values #false 'viewport-fit symbol? 'auto))
     (define actual-viewport (hash-copy initial-viewport))
     (for/fold ([actual-viewport : (HashTable Symbol CSS-Media-Datum) initial-viewport])
-              ([name (in-list      '(min-zoom max-zoom width height orientation user-zoom zone))]
-               [value (in-list (list min-zoom max-zoom width height orientation user-zoom zone))])
+              ([name (in-list      '(min-zoom max-zoom width height orientation user-zoom zone viewport-fit))]
+               [value (in-list (list min-zoom max-zoom width height orientation user-zoom zone viewport-fit))])
       (define old : (Option CSS-Media-Datum) (hash-ref actual-viewport name (thunk #false)))
       (if (eq? old value) actual-viewport (hash-set actual-viewport name value)))))
 

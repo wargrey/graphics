@@ -2,6 +2,7 @@
 
 ;;; https://drafts.csswg.org/css-conditional
 ;;; https://drafts.csswg.org/mediaqueries
+;;; https://drafts.csswg.org/css-round-display/#extending-media-queries
 
 (provide (all-defined-out))
 
@@ -69,7 +70,8 @@
       [(color-gamut) (<css-keyword> '(srgb p3 rec2020))]
       [(pointer any-pointer) (<css-keyword> '(none coarse fine))]
       [(havor any-havor) (<css-keyword> '(none havor))]
-      [(scripting) (<css-keyword> '(none initial-only enabled))])))
+      [(scripting) (<css-keyword> '(none initial-only enabled))]
+      [(shape) (<css-keyword> '(rect round))])))
 
 (define css-deprecate-media-type : (Parameterof Boolean) (make-parameter #false))
 (define default-css-media-type : (Parameterof Symbol) (make-parameter 'all))
@@ -80,6 +82,7 @@
   [height          : Nonnegative-Flonum      #:= +inf.0]
   [aspect-ratio    : Positive-Exact-Rational #:= 1/1]
   [orientation     : Symbol                  #:= 'portrait]
+  [shape           : Symbol                  #:= 'rect]
 
   [resolution      : Nonnegative-Flonum      #:= 2.0] ; the drafts don't mention if 0.0 is allowed.
   [scan            : Symbol                  #:= 'progressive]
