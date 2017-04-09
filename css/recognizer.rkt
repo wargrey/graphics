@@ -261,11 +261,11 @@
           [else (λ [[data : a] [tokens : (Listof CSS-Token)]]
                   (let seq ([data++ : a data]
                             [tokens-- : (Listof CSS-Token) tokens]
-                            [n : Natural 1])
+                            [n+1 : Natural 1])
                     (define-values (++data --tokens) (css-parser data++ tokens--))
-                    (cond [(or (false? ++data) (exn:css? ++data)) (if (< least n) (values data++ tokens--) (values ++data --tokens))]
-                          [(= n most) (values ++data --tokens)] ; (= n +inf.0) also does not make much sense
-                          [else (seq ++data --tokens (add1 n))])))])))
+                    (cond [(or (false? ++data) (exn:css? ++data)) (if (< least n+1) (values data++ tokens--) (values ++data --tokens))]
+                          [(= n+1 most) (values ++data --tokens)] ; (= n +inf.0) also does not make much sense
+                          [else (seq ++data --tokens (add1 n+1))])))])))
 
 (define CSS<#> : (All (a) (->* ((CSS-Parser a)) ((U (CSS-Multiplier Positive-Index) '+)) (CSS-Parser a)))
   ;;; https://drafts.csswg.org/css-values/#mult-comma
@@ -274,15 +274,15 @@
     (λ [[data : a] [tokens : (Listof CSS-Token)]]
       (let seq ([data++ : a data]
                 [tokens-- : (Listof CSS-Token) tokens]
-                [n : Natural 1])
+                [n+1 : Natural 1])
         (define-values (++data tail) (css-parser data++ tokens--))
-        (cond [(or (false? ++data) (exn:css? ++data)) (if (< least n) (values data++ tokens--) (values ++data tail))]
-              [(= n most) (values ++data tail)]
+        (cond [(or (false? ++data) (exn:css? ++data)) (if (< least n+1) (values data++ tokens--) (values ++data tail))]
+              [(= n+1 most) (values ++data tail)]
               [else (let-values ([(?comma --tokens) (css-car/cdr tail)])
-                      (cond [(eof-object? ?comma) (seq ++data --tokens (add1 n))] ; to check least boundry
+                      (cond [(eof-object? ?comma) (seq ++data --tokens (add1 n+1))] ; to check least boundry
                             [(not (css:comma? ?comma)) (values (make-exn:css:missing-comma ?comma) --tokens)]
-                            [(null? --tokens) (values (make-exn:css:overconsumption ?comma) --tokens)]
-                            [else (seq ++data --tokens (add1 n))]))])))))
+                            [(null? --tokens) (values (make-exn:css:missing-value ?comma) --tokens)]
+                            [else (seq ++data --tokens (add1 n+1))]))])))))
 
 (define CSS<!> : (->* ((CSS-Parser (Listof Any))) ((U (CSS-Multiplier Positive-Index) '+)) (CSS-Parser (Listof Any)))
   ;;; (WARNING: this is *not*) https://drafts.csswg.org/css-values/#mult-req
@@ -291,13 +291,13 @@
     (λ [[data : (Listof Any)] [tokens : (Listof CSS-Token)]]
       (let seq ([sub++ : (Listof Any) null]
                 [tokens-- : (Listof CSS-Token) tokens]
-                [n : Natural 1])
+                [n+1 : Natural 1])
         (define-values (subdata --tokens) (css-parser sub++ tokens--))
-        (cond [(or (false? subdata) (exn:css? subdata))
-               (cond [(< least n) (values (cons (reverse sub++) data) tokens--)]
-                     [else (values subdata --tokens)])]
-              [(= n most) (values (cons (reverse subdata) data) --tokens)]
-              [else (seq subdata --tokens (add1 n))])))))
+        (if (or (false? subdata) (exn:css? subdata))
+            (cond [(< least n+1) (values (cons (reverse sub++) data) tokens--)]
+                  [else (values subdata --tokens)])
+            (cond [(= n+1 most) (values (cons (reverse subdata) data) --tokens)]
+                  [else (seq subdata --tokens (add1 n+1))]))))))
 
 (define css:disjoin : (All (a b) (-> (CSS:Filter a) (CSS:Filter b) (CSS:Filter (U a b))))
   (lambda [css-filter1 css-filter2]

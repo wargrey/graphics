@@ -3,14 +3,19 @@
 @charset "utf-8";
 
 @namespace syntax url(github.com/wargrey/css/testcases/syntax);
-
+                                                             
 syntax, .maybe-error {
+    /** WARNING
+     * This style rule (and all its equivalents) will be parsed twice when running syntax.rkt
+     * since this file is imported by tamer.css and bitmap.css, and the latter is also imported by tamer.css.
+     */
     at-exp: @racket[] @schema [];
     racket-logo: @x-icon[#:height var(--icon-height) #:material rubber-icon-material #:thickness 12];
     retina-icon: image-set("normal.png" 96dpi, "normal@2x.png" 2x);
 
     font: Verdana, decorative; /* error, font property requires font-size */
     font: 12px/1.5; /* error, font property requires font-family or system font */
+    font: 12px Verdana, 1.5, sans-serif; /* error, but the error message needs to improve */
 
     url-image: image(url(test.png));
     string-image: image("color.png");
