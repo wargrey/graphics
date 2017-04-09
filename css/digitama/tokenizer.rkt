@@ -8,16 +8,26 @@
 (require "dimension.rkt")
 (require "misc.rkt")
 
-(struct css-srcloc ([in : Input-Port] [source : (U String Symbol)] [line : Natural] [col : Natural] [pos : Natural])
+(require typed/racket/unsafe)
+
+(unsafe-require/typed
+ racket/base ; the line is gauranteed to count, hence the explicitly requiring.
+ [port-next-location (-> Port (Values Positive-Integer Natural Positive-Integer))])
+
+(struct css-srcloc
+  ([in : Input-Port]
+   [source : (U String Symbol)]
+   [line : Positive-Integer]
+   [column : Natural]
+   [position : Positive-Integer])
   #:type-name CSS-Srcloc)
 
 (define-syntax (css-make-token stx)
   (syntax-case stx []
     [(_ src make-css:token datum ...)
-     #'(let-values ([(start-position) (css-srcloc-pos src)]
-                    [(line column position) (port-next-location (css-srcloc-in src))])
-         (make-css:token (css-srcloc-source src) (css-srcloc-line src) (css-srcloc-col src)
-                         start-position (or position 0) datum ...))]))
+     #'(let-values ([(line column here-position) (port-next-location (css-srcloc-in src))])
+         (make-css:token (css-srcloc-source src) (css-srcloc-line src) (css-srcloc-column src)
+                         (css-srcloc-position src) here-position datum ...))]))
   
 (define-syntax (css-make-bad-token stx)
   (syntax-case stx []
@@ -31,7 +41,7 @@
   ;;; https://drafts.csswg.org/css-syntax/#consume-a-token
   (lambda [/dev/cssin source]
     (define-values (line column position) (port-next-location /dev/cssin))
-    (define srcloc (css-srcloc /dev/cssin source (or line 0) (or column 0) (or position 0)))
+    (define srcloc (css-srcloc /dev/cssin source line column position))
     (define ch (read-char /dev/cssin))
     (cond [(eof-object? ch) eof]
           [(char-whitespace? ch) (css-consume-whitespace-token srcloc)]

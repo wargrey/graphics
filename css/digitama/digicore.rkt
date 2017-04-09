@@ -268,7 +268,12 @@
 (define-type CSS-Zero (U CSS:Zero CSS:Flzero))
 (define-type CSS-One (U CSS:One CSS:Flone))
 
-(define-tokens css-token #:+ CSS-Token ([source : Any] [line : Natural] [column : Natural] [start : Natural] [end : Natural])
+(define-tokens css-token #:+ CSS-Token
+  ([source : (U String Symbol)]
+   [line : Positive-Integer]
+   [column : Natural]
+   [start : Positive-Integer] ; `start` and `end` (instead of `position` and `span`) are required by color lexer.
+   [end : Positive-Integer])
   [[css-numeric         #:+ CSS-Numeric         #:-> css-token   ([representation : String])]
    [css:dimension       #:+ CSS:Dimension       #:-> css-numeric ([datum : Flonum] [unit : Symbol])]]
 
@@ -381,8 +386,8 @@
 (define css-token->syntax : (-> CSS-Token Syntax)
   (lambda [instance]
     (datum->syntax #false (css-token->datum instance)
-                   (list (css-token-source instance) (css-token-line instance) (css-token-column instance)
-                         (css-token-start instance) (- (css-token-end instance) (css-token-start instance))))))
+                   (vector (css-token-source instance) (css-token-line instance) (css-token-column instance)
+                           (css-token-start instance) (fx- (css-token-end instance) (css-token-start instance))))))
 
 (define css-token-datum->string : (-> CSS-Token String)
   (lambda [instance]

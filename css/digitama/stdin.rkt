@@ -1,9 +1,17 @@
 #lang typed/racket
 
 (provide (all-defined-out))
+(provide css-read-syntax css-peek-syntax)
 
 (require "digicore.rkt")
 (require "tokenizer.rkt")
+
+(require typed/racket/unsafe)
+
+(unsafe-require/typed
+ racket/base ; the output is gauranteed by the caller, hence the explicitly requiring.
+ [[read-byte-or-special css-read-syntax] (->* (Input-Port) (U CSS-Token EOF))]
+ [[peek-byte-or-special css-peek-syntax] (->* (Input-Port Natural) (U CSS-Token EOF))])
 
 (define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
 
@@ -51,21 +59,7 @@
                            #false #false
                            (thunk (port-next-location /dev/cssin))
                            (thunk (void (list css-fallback-encode-input-port '|has already set it|))))))))
-  
-(define css-read-syntax : (-> Input-Port CSS-Syntax-Any)
-  (lambda [css]
-    (define stx (read-char-or-special css))
-    (cond [(or (css-token? stx) (eof-object? stx)) stx]
-          [else (css-make-bad-token (css-srcloc css '/dev/cssin/error 0 0 0)
-                                    css:bad:stdin struct:css-token (~s stx))])))
-
-(define css-peek-syntax : (->* (Input-Port) (Natural) CSS-Syntax-Any)
-  (lambda [css [skip 0]]
-    (define stx (peek-char-or-special css skip))
-    (cond [(or (css-token? stx) (eof-object? stx)) stx]
-          [else (css-make-bad-token (css-srcloc css '/dev/cssin/error 0 0 0)
-                                    css:bad:stdin struct:css-token (~s stx))])))
-  
+    
 (define css-read-syntax/skip-whitespace : (-> Input-Port CSS-Syntax-Any)
   (lambda [css]
     (define token (css-read-syntax css))
