@@ -99,7 +99,7 @@
   ;;; https://drafts.csswg.org/css-images/#invalid-image
   (<css:@λ> the-@icon-pool css-@icon-filter)
   (<css-image-notation>)
-  (CSS:<?> (<css:url> string?) #false (λ _ "")))
+  (<css:url>))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-image-normalizer : (case-> [Nonnegative-Real Positive-Real (-> Bitmap) -> (-> (CSS-Maybe Bitmap) Bitmap)]

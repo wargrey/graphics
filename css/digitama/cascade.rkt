@@ -24,7 +24,6 @@
 
 (define css-warning-unknown-property? : (Parameterof Boolean) (make-parameter #true))
 (define css-select-quirk-mode? : (Parameterof Boolean) (make-parameter #false))
-(define css-property-case-sensitive? : (Parameterof Boolean) (make-parameter #false))
 
 (define-syntax (call-with-css-viewport-from-media stx)
   (syntax-parse stx
@@ -74,18 +73,21 @@
   (lambda [rules stcejbus desc-parsers [quirk? #false] [descbase (make-css-values)] [top-descriptors (default-css-media-features)]]
     (call-with-css-viewport-from-media #:descriptors top-descriptors
       (define-values (ordered-srcs single?) (css-select-styles rules stcejbus desc-parsers quirk? top-descriptors))
+      (define css:ident->datum : (-> CSS:Ident Symbol) (if quirk? css:ident-datum css:ident-norm))
       (if (and single?)
           (let ([source-ref (λ [[src : CSS-Style-Metadata]] : (Listof CSS-Declaration) (vector-ref src 1))])
-            (css-cascade-declarations desc-parsers (sequence-map source-ref (in-list ordered-srcs)) descbase))
+            (css-cascade-declarations desc-parsers (sequence-map source-ref (in-list ordered-srcs)) css:ident->datum descbase))
           (for ([src (in-list ordered-srcs)])
             (define alter-descriptors : CSS-Media-Features (vector-ref src 2))
             (if (eq? alter-descriptors top-descriptors)
-                (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) descbase)
+                (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident->datum descbase)
                 (call-with-css-viewport-from-media #:descriptors alter-descriptors
-                  (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) descbase))))))
+                  (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident->datum descbase))))))
     descbase))
 
-(define css-cascade-declarations : (->* (CSS-Declaration-Parsers (Sequenceof (Listof CSS-Declaration))) (CSS-Values) CSS-Values)
+(define css-cascade-declarations : (->* (CSS-Declaration-Parsers (Sequenceof (Listof CSS-Declaration)))
+                                        ((-> CSS:Ident Symbol) CSS-Values)
+                                        CSS-Values)
   ;;; https://drafts.csswg.org/css-cascade/#shorthand
   ;;; https://drafts.csswg.org/css-cascade/#importance
   ;;; https://drafts.csswg.org/css-variables/#syntax
@@ -140,12 +142,11 @@
                                    desc-value)))]
               [(do-filter <desc-name> raw-filter declared-values #false)
                => (λ [desc-value] (desc-set! descbase desc-name important? (thunk desc-value)))])))
-    (lambda [desc-parsers sequences [descbase (make-css-values)]]
-      (define case-sensitive? : Boolean (css-property-case-sensitive?))
+    (lambda [desc-parsers sequences [css:ident->datum css:ident-norm] [descbase (make-css-values)]]
       (for* ([properties sequences]
              [property (in-list properties)])
         (define <desc-name> : CSS:Ident (css-declaration-name property))
-        (define desc-name : Symbol (if case-sensitive? (css:ident-datum <desc-name>) (css:ident-norm <desc-name>)))
+        (define desc-name : Symbol (css:ident->datum <desc-name>))
         (cond [(symbol-unreadable? desc-name) (varbase-set! descbase desc-name property)]
               [else (let ([important? : Boolean (css-declaration-important? property)])
                       (when (desc-more-important? desc-name important?)

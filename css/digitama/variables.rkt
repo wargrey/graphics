@@ -182,3 +182,12 @@
                            (cond [(eof-object? kw-value) (make+exn:css:missing-value <#:kw>)]
                                  [else (rearrange (cons kw-value (cons <#:kw> swk)) lgra others)]))])]
             [else (rearrange swk (cons head lgra) rest)]))))
+
+(define css-url-modifiers-filter : (-> CSS-Token (Listof CSS-Token) (Listof CSS-URL-Modifier))
+  (lambda [url modifiers]
+    (let modifiers-filter ([sreifidom : (Listof CSS-URL-Modifier) null]
+                           [tail : (Listof CSS-Token) modifiers])
+      (define-values (head rest) (css-car tail))
+      (cond [(eof-object? head) (reverse sreifidom)]
+            [(or (css:ident? head) (css-lazy-token? head)) (modifiers-filter (cons head sreifidom) rest)]
+            [else (make+exn:css:type (list url head)) (modifiers-filter sreifidom rest)]))))

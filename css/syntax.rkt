@@ -3,6 +3,7 @@
 ;;; https://drafts.csswg.org/css-syntax
 
 (provide (all-defined-out))
+(provide (struct-out css-subject) make-css-subject CSS-Subject)
 
 (provide (except-out (all-from-out "digitama/digicore.rkt") css-log-syntax-error))
 (provide (except-out (all-from-out "digitama/grammar.rkt") css-stylesheet-placeholder))
@@ -28,6 +29,7 @@
 (require "digitama/condition.rkt")
 (require "digitama/cascade.rkt")
 (require "digitama/dimension.rkt")
+(require "digitama/selector.rkt")
 
 (require "values.rkt")
 (require "recognizer.rkt")

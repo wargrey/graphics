@@ -185,6 +185,9 @@
           [else reconsumed])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(struct: css-@rule : CSS-@Rule ([name : CSS:@Keyword] [prelude : (Listof CSS-Token)] [block : (Option CSS:Block)]))
+(struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : (Listof+ CSS-Token)] [block : CSS:Block]))
+
 (define css-consume-rule-item : (-> Input-Port #:@rule? Boolean (Values (Listof CSS-Token) (Option CSS:Block)))
   ;;; https://drafts.csswg.org/css-syntax/#qualified-rule
   ;;; https://drafts.csswg.org/css-syntax/#consume-a-qualified-rule
@@ -216,11 +219,10 @@
                              [(fnorm) (css:function-norm func)])
                   (if (eq? fnorm 'url)
                       (let-values ([(href modifiers) (css-car components)])
-                        (define datum : (U String 'about:invalid)
-                          (cond [(not (css:string? href)) 'about:invalid]
-                                [else (let ([datum (css:string-datum href)])
-                                        (if (string=? datum "") 'about:invalid datum))]))
-                        (css-remake-token func css:url datum (css-url-modifiers-filter func modifiers) #false))
+                        (css-remake-token func css:url
+                                          (if (css:string? href) (css:string-datum href) "")
+                                          (css-url-modifiers-filter func modifiers)
+                                          #false))
                       (let ([freadable (string->symbol (symbol->string fname))])
                         (css-remake-token [func end-token] css:function freadable fnorm
                                           (cond [(eq? fnorm 'var) components] ; whitespaces are meaningful in var() 
@@ -630,6 +632,10 @@
           [else (throw-exn:css:unrecognized op)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type CSS-Syntax-Terminal (U CSS:Delim CSS:Close EOF))
+(define-type CSS-Syntax-Rule (U CSS-Qualified-Rule CSS-@Rule))
+(define-type CSS-Media-Value (U CSS-Numeric CSS:Ident CSS:Ratio))
+
 (define css-components->declarations : (-> (Listof CSS-Token) (Listof CSS-Declaration))
   (lambda [components]
     (let make-style-rule ([seitreporp : (Listof CSS-Declaration) null] [tokens : (Listof CSS-Token) components])

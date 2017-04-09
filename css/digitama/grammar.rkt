@@ -135,7 +135,7 @@
     (define ?target.css : (U Path CSS-Syntax-Error)
       (cond [(eof-object? uri) (make+exn:css:empty (css-@rule-name import))]
             [(css:string=<-? uri non-empty-string?) => (λ [url] (css-url-string->path parent-href url))]
-            [(css:url=<-? uri string?) => (λ [url] (css-url-string->path parent-href url))]
+            [(css:url=<-? uri non-empty-string?) => (λ [url] (css-url-string->path parent-href url))]
             [(or (css:string? uri) (css:url? uri)) (make+exn:css:empty uri)]
             [else (make+exn:css:type uri)]))
     (cond [(exn? ?target.css) ?target.css]
@@ -160,7 +160,7 @@
     (define namespace : (U String CSS-Syntax-Error)
       (let ([uri (if (eof-object? 2nd) 1st 2nd)])
         (cond [(css:string? uri) (css:string-datum uri)]
-              [(css:url? uri) (~a (css:url-datum uri))]
+              [(css:url? uri) (css:url-datum uri)]
               [(eof-object? 1st) (make+exn:css:empty (css-@rule-name ns))]
               [else (make+exn:css:type uri)])))
     (cond [(exn? namespace) namespace]

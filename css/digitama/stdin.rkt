@@ -5,6 +5,8 @@
 (require "digicore.rkt")
 (require "tokenizer.rkt")
 
+(define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
+
 (define css-open-input-port : (-> CSS-StdIn Input-Port)
   ;;; https://drafts.csswg.org/css-syntax/#parser-entry-points
   (lambda [/dev/stdin]

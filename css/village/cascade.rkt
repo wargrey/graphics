@@ -5,6 +5,7 @@
 (provide (all-defined-out))
 
 (require "../digitama/digicore.rkt")
+(require "../digitama/selector.rkt")
 (require "../digitama/cascade.rkt")
 (require "../digitama/variables.rkt")
 (require "../digitama/condition.rkt")
@@ -59,11 +60,13 @@
   (lambda [rules stcejbus desc-parsers [quirk? #false] [top-descriptors (default-css-media-features)]]
     (call-with-css-viewport-from-media #:descriptors top-descriptors
       (define-values (ordered-srcs single?) (css-select-styles rules stcejbus desc-parsers quirk? top-descriptors))
+      (define css:ident->datum : (-> CSS:Ident Symbol) (if quirk? css:ident-datum css:ident-norm))
       (if (and single?)
-          (map (λ [[src : CSS-Style-Metadata]] (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)))) ordered-srcs)
+          (for/list : (Listof CSS-Values) ([src (in-list ordered-srcs)])
+            (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident->datum))
           (for/list : (Listof CSS-Values) ([src (in-list ordered-srcs)])
             (define alter-descriptors : CSS-Media-Features (vector-ref src 2))
             (if (eq? alter-descriptors top-descriptors)
-                (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)))
+                (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident->datum)
                 (call-with-css-viewport-from-media #:descriptors alter-descriptors
-                  (css-cascade-declarations desc-parsers (in-value (vector-ref src 1))))))))))
+                  (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident->datum))))))))

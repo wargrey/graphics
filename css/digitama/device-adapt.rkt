@@ -8,6 +8,7 @@
 
 (require "digicore.rkt")
 (require "dimension.rkt")
+(require "condition.rkt")
 (require "../recognizer.rkt")
 
 (define-type CSS-Viewport-Filter (CSS-Cascaded-Value+Filter (HashTable Symbol CSS-Media-Datum) (HashTable Symbol CSS-Media-Datum)))

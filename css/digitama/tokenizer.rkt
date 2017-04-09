@@ -179,12 +179,12 @@
     (let consume-url-token ([srahc : (Listof Char) null])
       (define ch : (U EOF Char) (read-char css))
       (cond [(or (eof-object? ch) (char=? ch #\)))
-             (define uri : (U String 'about:invalid) (if (null? srahc) 'about:invalid (list->string (reverse srahc))))
+             (define uri : String (list->string (reverse srahc)))
              (when (eof-object? ch) (css-make-bad-token srcloc css:bad:eof struct:css:url uri))
              (css-make-token srcloc css:url uri null #false)]
             [(and (char-whitespace? ch) (css-consume-whitespace css))
              (define end : (U EOF Char) (read-char css))
-             (define uri : (U String 'about:invalid) (if (null? srahc) 'about:invalid (list->string (reverse srahc))))
+             (define uri : String (list->string (reverse srahc)))
              (cond [(or (eof-object? end) (char=? end #\))) (css-make-token srcloc css:url uri null #false)]
                    [else (css-consume-bad-url-remnants css (css-make-bad-token srcloc css:bad:blank struct:css:url uri))])]
             [(css-valid-escape? ch (peek-char css)) (consume-url-token (cons (css-consume-escaped-char css) srahc))]

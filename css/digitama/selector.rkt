@@ -22,8 +22,22 @@
          (make-hasheq (list (cons 'v1 'v2) ...
                             (cons 'v2 'v1) ...)))]))
 
+(define-type CSS-Selector-Combinator (U '>> '> '+ '~ '||))
 (define-type CSS-Namespace-Hint (U (HashTable Symbol String) (Listof Symbol) False))
 (define-type CSS-Complex-Selector (Listof+ CSS-Compound-Selector))
+(define-type CSS-Attribute-Datum (U String Symbol (Listof (U String Symbol))))
+(define-type CSS-Attribute-Value (U CSS-Attribute-Datum (Vector Symbol CSS-Attribute-Datum)))
+
+(define-preference css-subject #:as CSS-Subject
+  ([combinator : CSS-Selector-Combinator                #:= '>]
+   [type : Symbol                                       #:= (css-root-element-type)]
+   [id : (U Keyword (Listof+ Keyword))                  #:= (css-root-element-id)]
+   [namespace : (U Symbol Boolean)                      #:= #true]
+   [classes : (Listof Symbol)                           #:= null]
+   [attributes : (HashTable Symbol CSS-Attribute-Value) #:= (make-hasheq)]
+   [:classes : (Listof Symbol)                          #:= null]
+   [lang : (U Symbol String)                            #:= ""])
+  #:transparent)
 
 (define-selectors
   [css-attribute-selector #:+ CSS-Attribute-Selector ([name : Symbol] [quirk : Symbol] [namespace : (U Symbol Boolean)])]
@@ -61,8 +75,7 @@
       (and specificity++
            (cond [(null? stcejbus) (and (null? srotceles) (fx+ specificity specificity++))]
                  [(null? srotceles) (fx+ specificity specificity++)]
-                 [else (evaluate (car srotceles) (car stcejbus)
-                                 (cdr srotceles) (cdr stcejbus)
+                 [else (evaluate (car srotceles) (car stcejbus) (cdr srotceles) (cdr stcejbus)
                                  (fx+ specificity specificity++))])))))
 
 (define css-compound-selector-match : (->* (CSS-Compound-Selector CSS-Subject Boolean) (Boolean) (Option Natural))

@@ -29,6 +29,8 @@
 ;; https://drafts.csswg.org/mediaqueries/#media-types
 ;; https://drafts.csswg.org/mediaqueries/#mq-syntax
 ;; https://drafts.csswg.org/mediaqueries/#mq-features
+(define-type CSS-Media-Datum (U Symbol Exact-Rational Flonum))
+(define-type CSS-Media-Features (HashTable Symbol CSS-Media-Datum))
 (define-type CSS-Media-Feature-Query (Vector Symbol Char CSS-Media-Datum))
 (define-type CSS-Media-Query (U (Boxof Symbol) CSS-Feature-Query (Pairof CSS-Media-Query CSS-Feature-Query)))
 (define-type CSS-Feature-Query (U CSS-Not CSS-And CSS-Or CSS-Media-Feature-Query CSS-Declaration Symbol CSS-Syntax-Error))

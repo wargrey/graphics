@@ -1,11 +1,10 @@
 #lang typed/racket
 
 (provide (all-from-out racket/flonum racket/fixnum))
-(provide (except-out (all-defined-out)
+(provide (except-out (all-defined-out) css-make-syntax-error css-tee-computed-value css-ref-raw
                      define-tokens define-token define-token-interface
                      define-symbolic-tokens define-numeric-tokens
-                     define-prefab-keyword define-syntax-error
-                     css-make-syntax-error css-tee-computed-value css-ref-raw))
+                     define-prefab-keyword define-syntax-error))
 
 (require racket/fixnum)
 (require racket/flonum)
@@ -233,6 +232,35 @@
                           [(type? instance) (type->datum instance)] ...
                           [else (assert (object-name instance) symbol?)])))))]))
 
+(define-syntax (define-syntax-error stx)
+  (syntax-case stx []
+    [(_ exn:css #:as Syntax-Error [subexn #:-> parent] ...)
+     (with-syntax ([([make-exn make+exn throw-exn] ...)
+                    (for/list ([<exn> (in-list (syntax->list #'(subexn ...)))])
+                      (list (format-id <exn> "make-~a" (syntax-e <exn>))
+                            (format-id <exn> "make+~a" (syntax-e <exn>))
+                            (format-id <exn> "throw-~a" (syntax-e <exn>))))])
+       #'(begin (define-type Syntax-Error exn:css)
+                (struct exn:css exn:fail:syntax ())
+                (struct subexn parent ()) ...
+
+                (define make-exn : (-> (U CSS-Syntax-Any (Listof CSS-Token)) CSS-Syntax-Error)
+                  (lambda [v]
+                    (css-make-syntax-error subexn v)))
+                ...
+
+                (define make+exn : (->* ((U CSS-Syntax-Any (Listof CSS-Token))) ((Option CSS:Ident) Log-Level) CSS-Syntax-Error)
+                  (lambda [v [property #false] [level 'warning]]
+                    (define errobj : CSS-Syntax-Error (css-make-syntax-error subexn v))
+                    (css-log-syntax-error errobj property level)
+                    errobj))
+                ...
+
+                (define throw-exn : (->* ((U CSS-Syntax-Any (Listof CSS-Token))) ((Option CSS:Ident) Log-Level) Nothing)
+                  (lambda [v [property #false] [level 'warning]]
+                    (raise (make+exn v property level))))
+                ...))]))
+
 ;;; https://drafts.csswg.org/css-syntax/#tokenization
 ;; https://drafts.csswg.org/css-syntax/#component-value
 ;; https://drafts.csswg.org/css-syntax/#current-input-token
@@ -284,7 +312,7 @@
     [css:whitespace     #:+ CSS:WhiteSpace      #:as (U String Char)])
 
   (define-lazy-tokens css-lazy-token #:+ CSS-Lazy-Token
-    [css:url            #:+ CSS:URL             #:with modifiers       #:as (U String 'about:invalid)]
+    [css:url            #:+ CSS:URL             #:with modifiers       #:as String]   ; "" means 'about:invalid
     [css:block          #:+ CSS:Block           #:with components      #:as Char]
     [css:function       #:+ CSS:Function        #:with arguments       #:as Symbol↯]
     [css:λracket        #:+ CSS:λRacket         #:with arguments       #:as Symbol]
@@ -302,6 +330,35 @@
     [css:ratio          #:+ CSS:Ratio           #:as Positive-Exact-Rational]
     [css:racket         #:+ CSS:Racket          #:as Symbol]
     [css:#:keyword      #:+ CSS:#:Keyword       #:as Keyword]))
+
+;; https://drafts.csswg.org/css-syntax/#style-rules
+;; https://drafts.csswg.org/selectors/#invalid
+(define-syntax-error exn:css #:as CSS-Syntax-Error
+  [exn:css:resource           #:-> exn:css]
+  [exn:css:deprecated         #:-> exn:css]
+  [exn:css:cyclic             #:-> exn:css]
+  [exn:css:namespace          #:-> exn:css]
+  [exn:css:racket             #:-> exn:css]
+  [exn:css:contract           #:-> exn:css:racket]
+  [exn:css:unrecognized       #:-> exn:css]
+  [exn:css:misplaced          #:-> exn:css:unrecognized]
+  [exn:css:type               #:-> exn:css:unrecognized]
+  [exn:css:type:identifier    #:-> exn:css:type]
+  [exn:css:type:variable      #:-> exn:css:type:identifier]
+  [exn:css:range              #:-> exn:css:unrecognized]
+  [exn:css:unit               #:-> exn:css:range]
+  [exn:css:overconsumption    #:-> exn:css:unrecognized]
+  [exn:css:enclosed           #:-> exn:css:overconsumption]
+  [exn:css:malformed          #:-> exn:css]
+  [exn:css:arity              #:-> exn:css:malformed]
+  [exn:css:empty              #:-> exn:css:malformed]
+  [exn:css:missing-block      #:-> exn:css:malformed]
+  [exn:css:missing-value      #:-> exn:css:malformed]
+  [exn:css:missing-feature    #:-> exn:css:malformed]
+  [exn:css:missing-delimiter  #:-> exn:css:malformed]
+  [exn:css:missing-colon      #:-> exn:css:missing-delimiter]
+  [exn:css:missing-comma      #:-> exn:css:missing-delimiter]
+  [exn:css:missing-slash      #:-> exn:css:missing-delimiter])
 
 (define css-zero? : (-> Any Boolean : #:+ CSS-Zero) (λ [v] (or (css:zero? v) (css:flzero? v))))
 (define css-one? : (-> Any Boolean : #:+ CSS-One) (λ [v] (or (css:one? v) (css:flone? v))))
@@ -374,84 +431,9 @@
           [else (let ([eof-msg (css-token->string property errobj eof)])
                   (log-message logger level topic (format "~a @‹~a›" eof-msg (css:ident-datum property)) errobj))])))
 
-(define css-url-modifiers-filter : (-> CSS-Token (Listof CSS-Token) (Listof CSS-URL-Modifier))
-  (lambda [url modifiers]
-    (let modifiers-filter ([sreifidom : (Listof CSS-URL-Modifier) null]
-                           [tail : (Listof CSS-Token) modifiers])
-      (define-values (head rest) (css-car tail))
-      (cond [(eof-object? head) (reverse sreifidom)]
-            [(or (css:ident? head) (css-lazy-token? head)) (modifiers-filter (cons head sreifidom) rest)]
-            [else (make+exn:css:type (list url head)) (modifiers-filter sreifidom rest)]))))
-
 ;;; https://drafts.csswg.org/css-syntax/#parsing
-(define-type CSS-StdIn (U Input-Port Path-String Bytes (Listof CSS-Token)))
-(define-type CSS-Syntax-Any (U CSS-Token EOF))
-(define-type CSS-Syntax-Terminal (U CSS:Delim CSS:Close EOF))
-(define-type CSS-Syntax-Rule (U CSS-Qualified-Rule CSS-@Rule))
-
-(define-syntax (define-syntax-error stx)
-  ;;; https://drafts.csswg.org/css-syntax/#style-rules
-  ;;; https://drafts.csswg.org/selectors/#invalid                
-  (syntax-case stx []
-    [(_ exn:css #:as Syntax-Error [subexn #:-> parent] ...)
-     (with-syntax ([([make-exn make+exn throw-exn] ...)
-                    (for/list ([<exn> (in-list (syntax->list #'(subexn ...)))])
-                      (list (format-id <exn> "make-~a" (syntax-e <exn>))
-                            (format-id <exn> "make+~a" (syntax-e <exn>))
-                            (format-id <exn> "throw-~a" (syntax-e <exn>))))])
-       #'(begin (define-type Syntax-Error exn:css)
-                (struct exn:css exn:fail:syntax ())
-                (struct subexn parent ()) ...
-
-                (define make-exn : (-> (U CSS-Syntax-Any (Listof CSS-Token)) CSS-Syntax-Error)
-                  (lambda [v]
-                    (css-make-syntax-error subexn v)))
-                ...
-
-                (define make+exn : (->* ((U CSS-Syntax-Any (Listof CSS-Token))) ((Option CSS:Ident) Log-Level) CSS-Syntax-Error)
-                  (lambda [v [property #false] [level 'warning]]
-                    (define errobj : CSS-Syntax-Error (css-make-syntax-error subexn v))
-                    (css-log-syntax-error errobj property level)
-                    errobj))
-                ...
-
-                (define throw-exn : (->* ((U CSS-Syntax-Any (Listof CSS-Token))) ((Option CSS:Ident) Log-Level) Nothing)
-                  (lambda [v [property #false] [level 'warning]]
-                    (raise (make+exn v property level))))
-                ...))]))
-  
-(define-syntax-error exn:css #:as CSS-Syntax-Error
-  [exn:css:resource           #:-> exn:css]
-  [exn:css:deprecated         #:-> exn:css]
-  [exn:css:cyclic             #:-> exn:css]
-  [exn:css:namespace          #:-> exn:css]
-  [exn:css:racket             #:-> exn:css]
-  [exn:css:contract           #:-> exn:css:racket]
-  [exn:css:unrecognized       #:-> exn:css]
-  [exn:css:misplaced          #:-> exn:css:unrecognized]
-  [exn:css:type               #:-> exn:css:unrecognized]
-  [exn:css:type:identifier    #:-> exn:css:type]
-  [exn:css:type:variable      #:-> exn:css:type:identifier]
-  [exn:css:range              #:-> exn:css:unrecognized]
-  [exn:css:unit               #:-> exn:css:range]
-  [exn:css:overconsumption    #:-> exn:css:unrecognized]
-  [exn:css:enclosed           #:-> exn:css:overconsumption]
-  [exn:css:malformed          #:-> exn:css]
-  [exn:css:arity              #:-> exn:css:malformed]
-  [exn:css:empty              #:-> exn:css:malformed]
-  [exn:css:missing-block      #:-> exn:css:malformed]
-  [exn:css:missing-value      #:-> exn:css:malformed]
-  [exn:css:missing-feature    #:-> exn:css:malformed]
-  [exn:css:missing-delimiter  #:-> exn:css:malformed]
-  [exn:css:missing-colon      #:-> exn:css:missing-delimiter]
-  [exn:css:missing-comma      #:-> exn:css:missing-delimiter]
-  [exn:css:missing-slash      #:-> exn:css:missing-delimiter])
-
-(struct: css-@rule : CSS-@Rule ([name : CSS:@Keyword] [prelude : (Listof CSS-Token)] [block : (Option CSS:Block)]))
-(struct: css-qualified-rule : CSS-Qualified-Rule ([prelude : (Listof+ CSS-Token)] [block : CSS:Block]))
-(struct: css-declaration : CSS-Declaration ([name : CSS:Ident] [values : (Listof+ CSS-Token)] [important? : Boolean] [lazy? : Boolean]))
-
 ;; Parser Combinators and Syntax Sugars of dealing with declarations for client applications
+(define-type CSS-Syntax-Any (U CSS-Token EOF))
 (define-type (CSS-Multiplier idx) (U idx (List idx) (Pairof (U idx Symbol) (U idx Symbol))))
 (define-type (CSS-Maybe css) (U css CSS-Wide-Keyword))
 (define-type (CSS-Option css) (U css CSS-Syntax-Error False))
@@ -460,28 +442,11 @@
 (define-type CSS-Shorthand-Parser (CSS-Parser (HashTable Symbol Any)))
 (define-type CSS-Longhand-Update (-> Symbol Any Any Any))
 
-;; https://drafts.csswg.org/selectors
-(define-type CSS-Selector-Combinator (U '>> '> '+ '~ '||))
-(define-type CSS-Attribute-Datum (U String Symbol (Listof (U String Symbol))))
-(define-type CSS-Attribute-Value (U CSS-Attribute-Datum (Vector Symbol CSS-Attribute-Datum)))
-
-(define-css-parameter css-root-element-type : Symbol #:= 'root)
-(define-css-parameter css-root-element-id : (U Keyword (Listof+ Keyword)) #:= '#:root)
-
-(define-preference css-subject #:as CSS-Subject
-  ([combinator : CSS-Selector-Combinator                #:= '>]
-   [type : Symbol                                       #:= (css-root-element-type)]
-   [id : (U Keyword (Listof+ Keyword))                  #:= (css-root-element-id)]
-   [namespace : (U Symbol Boolean)                      #:= #true]
-   [classes : (Listof Symbol)                           #:= null]
-   [attributes : (HashTable Symbol CSS-Attribute-Value) #:= (make-hasheq)]
-   [:classes : (Listof Symbol)                          #:= null])
-  #:prefab)
-
-;; https://drafts.csswg.org/mediaqueries
-(define-type CSS-Media-Value (U CSS-Numeric CSS:Ident CSS:Ratio))
-(define-type CSS-Media-Datum (U Symbol Exact-Rational Flonum))
-(define-type CSS-Media-Features (HashTable Symbol CSS-Media-Datum))
+(struct: css-declaration : CSS-Declaration
+  ([name : CSS:Ident]
+   [values : (Listof+ CSS-Token)]
+   [important? : Boolean]
+   [lazy? : Boolean]))
 
 ;; https://drafts.csswg.org/css-cascade/#shorthand
 ;; https://drafts.csswg.org/css-cascade/#filtering
@@ -538,6 +503,8 @@
 (define default-css-all-exceptions : (Parameterof (Listof Symbol)) (make-parameter (list 'direction 'unicode-bidi)))
 (define-prefab-keyword css-wide-keyword #:as CSS-Wide-Keyword [initial inherit unset revert])
 
+(define-css-parameter css-root-element-type : Symbol #:= 'root)
+(define-css-parameter css-root-element-id : (U Keyword (Listof+ Keyword)) #:= '#:root)
 (define-css-parameters css-root-relative-lengths [vw vh rem rlh] : Nonnegative-Flonum #:= +nan.0)
 (define-css-parameters css-font-relative-lengths [em ex cap ch ic lh] : Nonnegative-Flonum #:= +nan.0)
 (define css-longhand : (HashTable Symbol Any) (make-immutable-hasheq))
