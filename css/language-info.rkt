@@ -23,22 +23,38 @@
     (regexp-match #px"^\\s*" /dev/cssin) ; skip blanks before real css content
     (define-values (line col pos) (port-next-location /dev/cssin))
     (define magic (symbol->string (gensym "--")))
+    (define-values (load metrics) (values (gensym "read-css-stylesheet") (gensym "metrics")))
+    (define-values (requiring? DrRacket?) (values (gensym "requiring?") (gensym "DrRacket?")))
     (strip-context
      #`(module #,lang.css typed/racket/base
-         (provide (all-defined-out))
+         (provide #,lang.css)
          (provide (all-from-out css/syntax))
-         
+
+         (require racket/pretty)
+         (require racket/format)
          (require css/syntax)
-         
-         (define #,lang.css : CSS-StyleSheet
-           (let ([/dev/rawin (open-input-bytes #,(port->bytes /dev/cssin) '#,src)])
-             (port-count-lines! /dev/rawin)
-             (set-port-next-location! /dev/rawin #,line #,col #,pos)
-             (read-css-stylesheet /dev/rawin)))
-         
-         (when (with-handlers ([exn? (λ _ #false)])
-                 (equal? (vector-ref (current-command-line-arguments) 0) #,magic))
-           #,lang.css)
+
+         (define (#,load) : CSS-StyleSheet
+           (define /dev/rawin : Input-Port (open-input-bytes #,(port->bytes /dev/cssin) '#,src))
+           (port-count-lines! /dev/rawin)
+           (set-port-next-location! /dev/rawin #,line #,col #,pos)
+           (read-css-stylesheet /dev/rawin))
+     
+         (define-values (#,requiring? #,DrRacket?)
+           (values (with-handlers ([exn? (λ _ #true)])
+                     (not (equal? (vector-ref (current-command-line-arguments) 0) #,magic)))
+                   (regexp-match? #px"DrRacket$" (find-system-path 'run-file))))
+
+         (define-values (#,lang.css #,metrics)
+           (let ([mem0 (current-memory-use)])
+             (define-values (&lang.css cpu real gc) (time-apply #,load null))
+             (values (car &lang.css)
+                     (format "~a: memory: ~aMB cpu time: ~a real time ~a gc time ~a" '#,lang.css
+                             (~r (/ (- (current-memory-use) mem0) 1024.0 1024.0) #:precision '(= 3))
+                             cpu real gc))))
+
+         (when (not #,requiring?) (if #,DrRacket? #,lang.css (printf "~a~n~a~n" (pretty-format #,lang.css) #,metrics)))
+         (when #,DrRacket? (displayln #,metrics))
 
          (module configure-runtime typed/racket/base
            (current-command-line-arguments (vector #,magic)))))))
