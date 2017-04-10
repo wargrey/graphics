@@ -15,36 +15,40 @@
   
 (define css-read-syntax
   (lambda [[src #false] [/dev/cssin (current-input-port)]]
-    (define lang.css
-      (cond [(not (path? src)) 'lang.css]
-            [else (let ([src.css (path-replace-extension (file-name-from-path src) "")])
-                    (string->symbol (path->string (cond [(regexp-match? #px"\\.css$" src.css) src.css]
-                                                        [else (path-replace-extension src.css ".css")]))))]))
-    (regexp-match #px"^\\s*" /dev/cssin) ; skip blanks before real css content
-    (define-values (line col pos) (port-next-location /dev/cssin))
     (define magic (symbol->string (gensym "--")))
-    (define-values (load metrics) (values (gensym "read-css-stylesheet") (gensym "metrics")))
-    (define-values (requiring? DrRacket?) (values (gensym "requiring?") (gensym "DrRacket?")))
+    (define-values (load metrics) (values (gensym "load-css-stylesheet") (gensym "metrics")))
+    (define-values (requiring? drracket?) (values (gensym "requiring?") (gensym "DrRacket?")))
+    (regexp-match #px"^\\s*" /dev/cssin) ; skip blanks before real css content
+    (define-values (line column position) (port-next-location /dev/cssin))
+    (define first-@namespace (regexp-match-peek #px"@namespace\\s+(([^ ]+)\\s+)?(url\\(|\")" /dev/cssin))
+    (define lang.css
+      (cond [(and (list? first-@namespace) (bytes? (caddr first-@namespace)))
+             (string->symbol (string-append (bytes->string/utf-8 (caddr first-@namespace)) ".css"))]
+            [(path? src)
+             (define src.css (path-replace-extension (file-name-from-path src) ""))
+             (define path.css (if (regexp-match? #px"\\.css$" src.css) src.css (path-replace-extension src.css ".css")))
+             (string->symbol (path->string path.css))]
+            [else '|this should not happen| 'lang.css]))
     (strip-context
      #`(module #,lang.css typed/racket/base
          (provide #,lang.css)
          (provide (all-from-out css/syntax))
-
+         
          (require racket/pretty)
          (require racket/format)
          (require css/syntax)
-
+         
          (define (#,load) : CSS-StyleSheet
            (define /dev/rawin : Input-Port (open-input-bytes #,(port->bytes /dev/cssin) '#,src))
            (port-count-lines! /dev/rawin)
-           (set-port-next-location! /dev/rawin #,line #,col #,pos)
+           (set-port-next-location! /dev/rawin #,line #,column #,position)
            (read-css-stylesheet /dev/rawin))
-     
-         (define-values (#,requiring? #,DrRacket?)
+         
+         (define-values (#,requiring? #,drracket?)
            (values (with-handlers ([exn? (λ _ #true)])
                      (not (equal? (vector-ref (current-command-line-arguments) 0) #,magic)))
                    (regexp-match? #px"DrRacket$" (find-system-path 'run-file))))
-
+         
          (define-values (#,lang.css #,metrics)
            (let ([mem0 (current-memory-use)])
              (define-values (&lang.css cpu real gc) (time-apply #,load null))
@@ -52,10 +56,10 @@
                      (format "~a: memory: ~aMB cpu time: ~a real time ~a gc time ~a" '#,lang.css
                              (~r (/ (- (current-memory-use) mem0) 1024.0 1024.0) #:precision '(= 3))
                              cpu real gc))))
-
-         (when (not #,requiring?) (if #,DrRacket? #,lang.css (printf "~a~n~a~n" (pretty-format #,lang.css) #,metrics)))
-         (when #,DrRacket? (displayln #,metrics))
-
+         
+         (when (not #,requiring?) (if #,drracket? #,lang.css (printf "~a~n~a~n" (pretty-format #,lang.css) #,metrics)))
+         (when #,drracket? (displayln #,metrics))
+         
          (module configure-runtime typed/racket/base
            (current-command-line-arguments (vector #,magic)))))))
 
@@ -114,7 +118,7 @@
   
   (define css-lexer ;: (-> Input-Port (Values (U String EOF) Symbol (Option Symbol) (Option Integer) (Option Integer)))
     (lambda [/dev/cssin]
-      (define t #|: CSS-Syntax-Any|# (css-consume-token /dev/cssin (format "~a" (object-name /dev/cssin))))
+      (define t #|: CSS-Syntax-Any|# (css-consume-token /dev/cssin (object-name /dev/cssin)))
       (cond [(eof-object? t) (values eof 'eof #false #false #false)]
             [(css:whitespace? t) (css-hlvalues t (if (string? (css:whitespace-datum t)) 'comment 'white-space) #false)]
             [(css:ident? t) (css-hlvalues t (css-id->DrType (css:ident-norm t) #false) #false)]
