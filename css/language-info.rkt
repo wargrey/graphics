@@ -4,6 +4,7 @@
 
 (require racket/path)
 (require racket/port)
+(require racket/pretty)
 (require syntax/strip-context)
 
 (require "digitama/grammar.rkt")
@@ -15,9 +16,6 @@
   
 (define css-read-syntax
   (lambda [[src #false] [/dev/cssin (current-input-port)]]
-    (define magic (symbol->string (gensym "--")))
-    (define-values (load metrics) (values (gensym "load-css-stylesheet") (gensym "metrics")))
-    (define-values (requiring? drracket?) (values (gensym "requiring?") (gensym "DrRacket?")))
     (regexp-match #px"^\\s*" /dev/cssin) ; skip blanks before real css content
     (define-values (line column position) (port-next-location /dev/cssin))
     (define first-@namespace (regexp-match-peek #px"@namespace\\s+(([^ ]+)\\s+)?(url\\(|\")" /dev/cssin))
@@ -38,30 +36,30 @@
          (require racket/format)
          (require css/syntax)
          
-         (define (#,load) : CSS-StyleSheet
+         (define (load-lang.css) : CSS-StyleSheet
            (define /dev/rawin : Input-Port (open-input-bytes #,(port->bytes /dev/cssin) '#,src))
            (port-count-lines! /dev/rawin)
            (set-port-next-location! /dev/rawin #,line #,column #,position)
            (read-css-stylesheet /dev/rawin))
          
-         (define-values (#,requiring? #,drracket?)
-           (values (with-handlers ([exn? (λ _ #true)])
-                     (not (equal? (vector-ref (current-command-line-arguments) 0) #,magic)))
+         (define-values (requiring? drracket?)
+           (values (if (symbol? (pretty-print-columns)) (not (pretty-print-columns 160)) #true)
                    (regexp-match? #px"DrRacket$" (find-system-path 'run-file))))
          
-         (define-values (#,lang.css #,metrics)
+         (define-values (#,lang.css metrics)
            (let ([mem0 (current-memory-use)])
-             (define-values (&lang.css cpu real gc) (time-apply #,load null))
+             (define-values (&lang.css cpu real gc) (time-apply load-lang.css null))
              (values (car &lang.css)
-                     (format "~a: memory: ~aMB cpu time: ~a real time ~a gc time ~a" '#,lang.css
+                     (format "[~a]memory: ~aMB cpu time: ~a real time: ~a gc time: ~a" '#,lang.css
                              (~r (/ (- (current-memory-use) mem0) 1024.0 1024.0) #:precision '(= 3))
                              cpu real gc))))
          
-         (when (not #,requiring?) (if #,drracket? #,lang.css (printf "~a~n~a~n" (pretty-format #,lang.css) #,metrics)))
-         (when #,drracket? (displayln #,metrics))
+         (when (not requiring?) (if drracket? #,lang.css (printf "~a~n~a~n" (pretty-format #,lang.css) metrics)))
+         (when drracket? (displayln metrics))
          
          (module configure-runtime typed/racket/base
-           (current-command-line-arguments (vector #,magic)))))))
+           (require racket/pretty)
+           (pretty-print-columns 'infinity))))))
 
 (define (css-info in mod line col pos)
   (lambda [key default]
@@ -72,28 +70,20 @@
       [else default])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define css-language-info
-  (lambda [argument]
-    (λ [key default]
-      (case key
-        [(configure-runtime) '(#((submod css/language-info runtime) DrRacket? #true))]
-        [else default]))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module highlight racket/base
   (provide css-lexer)
 
   (require "digitama/digicore.rkt")
   (require "digitama/tokenizer.rkt")
 
-  (define css-char->DrType ;: (-> Char Symbol)
+  (define css-char->drtype ;: (-> Char Symbol)
     (lambda [delim]
       (case delim
         [(#\: #\, #\;) 'sexp-comment]
         [(#\+ #\- #\* #\/) 'symbol]
         [else 'constant])))
   
-  (define css-id->DrType ;: (-> Symbol Boolean Symbol)
+  (define css-id->drtype ;: (-> Symbol Boolean Symbol)
     (lambda [id func?]
       (case id
         [(inherit important true false) 'constant]
@@ -103,7 +93,7 @@
                     [(symbol-unreadable? id) 'no-color]
                     [else 'symbol])])))
   
-  (define css-other->DrType ;: (-> CSS-Token Symbol)
+  (define css-other->drtype ;: (-> CSS-Token Symbol)
     (lambda [token]
       (cond [(css:string? token) 'string]
             [(css:hash? token) 'hash-colon-keyword]
@@ -117,15 +107,15 @@
       (values "" type subtype (css-token-start t) (css-token-end t))))
   
   (define css-lexer ;: (-> Input-Port (Values (U String EOF) Symbol (Option Symbol) (Option Integer) (Option Integer)))
-    (lambda [/dev/cssin]
-      (define t #|: CSS-Syntax-Any|# (css-consume-token /dev/cssin (object-name /dev/cssin)))
+    (lambda [/dev/drin]
+      (define t #|: CSS-Syntax-Any|# (css-consume-token /dev/drin '/dev/drin))
       (cond [(eof-object? t) (values eof 'eof #false #false #false)]
             [(css:whitespace? t) (css-hlvalues t (if (string? (css:whitespace-datum t)) 'comment 'white-space) #false)]
-            [(css:ident? t) (css-hlvalues t (css-id->DrType (css:ident-norm t) #false) #false)]
-            [(css:function? t) (css-hlvalues t (css-id->DrType (css:function-norm t) #true) '|(|)]
+            [(css:ident? t) (css-hlvalues t (css-id->drtype (css:ident-norm t) #false) #false)]
+            [(css:function? t) (css-hlvalues t (css-id->drtype (css:function-norm t) #true) '|(|)]
             [(css:open? t) (css-hlvalues t 'parenthesis (string->symbol (string (css:delim-datum t))))]
             [(css:close? t) (css-hlvalues t 'parenthesis (string->symbol (string (css:close-datum t))))]
-            [(css:delim? t) (css-hlvalues t (css-char->DrType (css:delim-datum t)) #false)]
+            [(css:delim? t) (css-hlvalues t (css-char->drtype (css:delim-datum t)) #false)]
             [(css-numeric? t) (css-hlvalues t (if (css-nan? t) 'error 'constant) #false)]
             [(css:url? t) (css-hlvalues t 'parenthesis '|(|)]
-            [else (css-hlvalues t (css-other->DrType t) #false)]))))
+            [else (css-hlvalues t (css-other->drtype t) #false)]))))
