@@ -39,7 +39,7 @@
 
 (define-inspectable-class Inspectable-Color% #:+ Color%
   (init-rest (U (List String)
-                (List Byte Byte Real)
+                (List Byte Byte Byte)
                 (List Byte Byte Byte Real))))
 
 (define-inspectable-class

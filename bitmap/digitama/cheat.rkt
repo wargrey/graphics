@@ -32,3 +32,10 @@
     [(_ id #:is-a? % arg%)
      #'(define id : (-> Any Boolean : #:+ (Instance %))
          ((inst make-cheat-opaque? (Instance %)) (λ [v] (is-a? v arg%)) 'id))]))
+
+(define-syntax (define/make-is-a? stx)
+  (syntax-case stx [:]
+    [(_ % : Type% class-definition)
+     (with-syntax ([%? (format-id #'% "~a?" (syntax-e #'%))])
+       #'(begin (define % : Type% class-definition)
+                (define-cheat-opaque %? #:is-a? Type% %)))]))

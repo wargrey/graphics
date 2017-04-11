@@ -31,7 +31,7 @@
          [get-combine? (-> Boolean)]
          [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]))
 
-(define css-font% : CSS-Font%
+(define/make-is-a? css-font% : CSS-Font%
   (class inspectable-font%
     (init-field face [ligature 'normal] [lines null])
     (init [size 12.0] [style 'normal] [weight 'normal] [smoothing 'default] [hinting 'aligned])
@@ -79,8 +79,6 @@
       (hash-ref metrics unit (thunk +nan.0)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-cheat-opaque css-font%? #:is-a? CSS-Font% css-font%)
-
 (define make-css-font : (->* ()
                              (Font #:size (U Symbol Nonnegative-Real) #:family (U String Symbol (Listof (U String Symbol)))
                                    #:style (Option Symbol) #:weight (Option Symbol) #:ligature (U Boolean Symbol)

@@ -23,7 +23,7 @@
          (init-rest Null) #|disable string based constructor|#))
 
 
-(define rgba% : RGBA-Color%
+(define/make-is-a? rgba% : RGBA-Color%
   (class inspectable-color%
     (init [red (fxmin (random 255) 255)]
           [green (fxmin (random 255) 255)]
@@ -49,7 +49,6 @@
       (list (send this red) (send this green) (send this blue) (send this alpha)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-cheat-opaque rgba%? #:is-a? RGBA-Color% rgba%)
 (define the-color-pool : (HashTable Fixnum RGBA-Color) (make-hasheq))
 (define default-make-currentcolor : (Parameterof (-> Color+sRGB)) (make-parameter (λ [] #x000000)))
 
