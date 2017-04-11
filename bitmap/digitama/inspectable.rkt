@@ -31,6 +31,10 @@
          [custom-write (-> Output-Port Void)]
          [custom-display (-> Output-Port Void)]))
 
+(define-type Fixed-Pen%
+  (Class #:implements/inits Pen%
+         [get-style (-> Pen-Style)] #|the official version forgets this method|#))
+
 (define-inspectable-class Inspectable-Font% #:+ Font%
   ;;; NOTE
   ;; These named initial arguments cannot be used with (new),
@@ -50,10 +54,9 @@
                 (List Byte Byte Byte)
                 (List Byte Byte Byte Real))))
 
-(define-inspectable-class Inspectable-Pen% #:+ Pen%
-  [get-style (-> Pen-Style)] #|the official version forgets this method|#)
-
-(define-inspectable-class [Inspectable-Brush% #:+ Brush%])
+(define-inspectable-class
+  [Inspectable-Pen%   #:+ Fixed-Pen%]
+  [Inspectable-Brush% #:+ Brush%])
 
 (module cheat racket/base
   (provide (all-defined-out))

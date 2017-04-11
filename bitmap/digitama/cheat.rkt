@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) make-cheat-opaque? make-cheat-is-a? make-cheat-procedure?)
 
 (require typed/racket/class)
 (require typed/racket/unsafe)
@@ -11,8 +11,13 @@
 (module cheat racket/base
   (provide (all-defined-out))
 
+  (require racket/class)
+
   (define (make-cheat-opaque? ? fname)
     (procedure-rename (λ [v] (and (? v) #true)) fname))
+
+  (define (make-cheat-is-a? % fname)
+    (procedure-rename (λ [v] (is-a? v %)) fname))
 
   (define (make-cheat-procedure? arity fname kw?)
     (procedure-rename (λ [v] (and (procedure? v)
@@ -22,6 +27,7 @@
 (unsafe-require/typed
  (submod "." cheat)
  [make-cheat-opaque? (All (OT) (-> (-> Any Boolean) Symbol (-> Any Boolean : #:+ OT)))]
+ [make-cheat-is-a? (All (%) (-> Any Symbol (-> Any Boolean : #:+ (Instance %))))]
  [make-cheat-procedure? (All (PT) (-> Byte Symbol Boolean (-> Any Boolean : #:+ PT)))])
 
 (define-syntax (define-cheat-opaque stx)
@@ -31,7 +37,7 @@
          ((inst make-cheat-procedure? PT) arg 'id kw?))]
     [(_ id #:is-a? % arg%)
      #'(define id : (-> Any Boolean : #:+ (Instance %))
-         ((inst make-cheat-opaque? (Instance %)) (λ [v] (is-a? v arg%)) 'id))]))
+         ((inst make-cheat-is-a? %) arg% 'id))]))
 
 (define-syntax (define/make-is-a? stx)
   (syntax-case stx [:]
