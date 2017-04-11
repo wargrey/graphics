@@ -41,8 +41,8 @@
         (css-color-property-parsers suitcased-name null)
         (case suitcased-name
           [(width height padding-top margin-top padding-right margin-right) (<css-size>)]
-          [(margin) (make-css-pair-parser (<css-size>) 'margin-top 'margin-right)]
-          [(padding) (make-css-pair-parser (<css-size>) 'padding-top 'padding-right)]
+          [(margin) (css-make-pair-parser (<css-size>) 'margin-top 'margin-right)]
+          [(padding) (css-make-pair-parser (<css-size>) 'padding-top 'padding-right)]
           [(border-style) (<css:ident> pen-style?)]
           [(icon-height) (<css-line-height>)]))))
 

@@ -21,8 +21,8 @@
       (<css:percentage> nonnegative-single-flonum?)
       (<css+length> #true))
     (case suitcased-name
-      [(width) (make-css-pair-parser (viewport-length-filter) 'min-width 'max-width)]
-      [(height) (make-css-pair-parser (viewport-length-filter) 'min-height 'max-height)]
+      [(width) (css-make-pair-parser (viewport-length-filter) 'min-width 'max-width)]
+      [(height) (css-make-pair-parser (viewport-length-filter) 'min-height 'max-height)]
       [(zoom min-zoom max-zoom) (CSS:<+> (<css-keyword> 'auto) (CSS:<~> (<css+%real>) real->double-flonum))]
       [(min-width max-width min-height max-height) (viewport-length-filter)]
       [(orientation) (<css-keyword> '(auto portrait landscape))]

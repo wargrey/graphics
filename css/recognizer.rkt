@@ -424,7 +424,7 @@
   (<css:percentage> nonnegative-single-flonum?)
   (<css+length>))
 
-(define make-css-pair-parser : (case-> [(CSS:Filter Any) Symbol Symbol -> (Pairof CSS-Shorthand-Parser (Listof Symbol))]
+(define css-make-pair-parser : (case-> [(CSS:Filter Any) Symbol Symbol -> (Pairof CSS-Shorthand-Parser (Listof Symbol))]
                                        [(CSS:Filter Any) Symbol Symbol Symbol Symbol
                                                          -> (Pairof CSS-Shorthand-Parser (Listof Symbol))])
   (case-lambda
