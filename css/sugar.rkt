@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require "digitama/bitmap.rkt")
-(require "digitama/misc.rkt")
+(require "digitama/syntax/misc.rkt")
 
 (require "syntax.rkt")
 (require "font.rkt")

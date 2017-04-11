@@ -6,7 +6,7 @@
 (require bitmap/digitama/color)
 (require colorspace)
 
-(require "digitama/digicore.rkt")
+(require "digitama/syntax/digicore.rkt")
 (require "digitama/bitmap.rkt")
 (require "digitama/color.rkt")
 (require "recognizer.rkt")

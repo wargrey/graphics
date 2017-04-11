@@ -5,10 +5,10 @@
 (provide (all-defined-out))
 (provide (struct-out css-subject) make-css-subject CSS-Subject)
 
-(provide (except-out (all-from-out "digitama/digicore.rkt") css-log-syntax-error))
-(provide (except-out (all-from-out "digitama/grammar.rkt") css-stylesheet-placeholder))
-(provide (except-out (all-from-out  "digitama/cascade.rkt") CSS-Style-Metadata))
-(provide (all-from-out "digitama/condition.rkt" "digitama/dimension.rkt"))
+(provide (except-out (all-from-out "digitama/syntax/digicore.rkt") css-log-syntax-error))
+(provide (except-out (all-from-out "digitama/syntax/grammar.rkt") css-stylesheet-placeholder))
+(provide (except-out (all-from-out  "digitama/syntax/cascade.rkt") CSS-Style-Metadata))
+(provide (all-from-out "digitama/syntax/condition.rkt" "digitama/syntax/dimension.rkt"))
 (provide (all-from-out "values.rkt" "recognizer.rkt"))
 
 (provide css-parse-stylesheet
@@ -23,13 +23,13 @@
          css-parse-feature-query
          css-parse-selectors)
 
-(require "digitama/digicore.rkt")
-(require "digitama/parser.rkt")
-(require "digitama/grammar.rkt")
-(require "digitama/condition.rkt")
-(require "digitama/cascade.rkt")
-(require "digitama/dimension.rkt")
-(require "digitama/selector.rkt")
+(require "digitama/syntax/digicore.rkt")
+(require "digitama/syntax/parser.rkt")
+(require "digitama/syntax/grammar.rkt")
+(require "digitama/syntax/condition.rkt")
+(require "digitama/syntax/cascade.rkt")
+(require "digitama/syntax/dimension.rkt")
+(require "digitama/syntax/selector.rkt")
 
 (require "values.rkt")
 (require "recognizer.rkt")

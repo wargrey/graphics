@@ -9,8 +9,8 @@
 (require bitmap/digitama/font)
 
 (require "bitmap.rkt")
-(require "digicore.rkt")
-(require "dimension.rkt")
+(require "syntax/digicore.rkt")
+(require "syntax/dimension.rkt")
 (require "../recognizer.rkt")
 (require "../racket.rkt")
 

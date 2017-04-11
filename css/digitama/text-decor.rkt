@@ -4,7 +4,7 @@
 
 (provide (all-defined-out))
 
-(require "digicore.rkt")
+(require "syntax/digicore.rkt")
 (require "color.rkt")
 (require "../recognizer.rkt")
 

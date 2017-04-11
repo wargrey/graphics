@@ -8,7 +8,7 @@
 
 (require bitmap/font)
 
-(require "digitama/digicore.rkt")
+(require "digitama/syntax/digicore.rkt")
 (require "digitama/font.rkt")
 (require "digitama/bitmap.rkt")
 (require "digitama/text-decor.rkt")

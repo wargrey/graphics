@@ -9,7 +9,7 @@
 (require "misc.rkt")
 (require "digicore.rkt")
 (require "dimension.rkt")
-(require "../recognizer.rkt")
+(require "../../recognizer.rkt")
 
 (require (for-syntax racket/syntax))
 

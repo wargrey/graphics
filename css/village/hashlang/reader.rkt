@@ -9,8 +9,8 @@
 
 (require syntax/strip-context)
 
-(require "digitama/digicore.rkt")
-(require "digitama/grammar.rkt")
+(require css/digitama/syntax/digicore)
+(require css/digitama/syntax/grammar)
 
 (define css-read
   (lambda [[/dev/cssin (current-input-port)]]
@@ -74,56 +74,5 @@
     (case key
       [(drracket:default-filters) '(["CSS Sources" "*.css"])]
       [(drracket:default-extension) "css"]
-      [(color-lexer) (dynamic-require '(submod css/language-info highlight) 'css-lexer)]
+      [(color-lexer) (dynamic-require 'css/village/hashlang/highlight 'css-lexer)]
       [else default])))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module highlight racket/base
-  (provide css-lexer)
-
-  (require "digitama/digicore.rkt")
-  (require "digitama/tokenizer.rkt")
-
-  (define css-char->drtype ;: (-> Char Symbol)
-    (lambda [delim]
-      (case delim
-        [(#\: #\, #\;) 'sexp-comment]
-        [(#\+ #\- #\* #\/) 'symbol]
-        [else 'constant])))
-  
-  (define css-id->drtype ;: (-> Symbol Boolean Symbol)
-    (lambda [id func?]
-      (case id
-        [(inherit important true false) 'constant]
-        [(initial unset revert) 'sexp-comment]
-        [(only not and or) 'no-color]
-        [else (cond [(and func?) 'parenthesis]
-                    [(symbol-unreadable? id) 'no-color]
-                    [else 'symbol])])))
-  
-  (define css-other->drtype ;: (-> CSS-Token Symbol)
-    (lambda [token]
-      (cond [(css:string? token) 'string]
-            [(css:hash? token) 'hash-colon-keyword]
-            [(css:@keyword? token) 'hash-colon-keyword]
-            [(css:urange? token) 'constant]
-            [(css:bad? token) 'error]
-            [else 'other])))
-
-  (define css-hlvalues ;: (-> CSS-Token Symbol (Option Symbol) (Values String Symbol (Option Symbol) (Option Integer) (Option Integer)))
-    (lambda [t type subtype mode]
-      (values "" type subtype (css-token-start t) (css-token-end t) 0 (not mode))))
-  
-  (define css-lexer ;: (-> Input-Port (Values (U String EOF) Symbol (Option Symbol) (Option Integer) (Option Integer)))
-    (lambda [/dev/drin offset mode]
-      (define t #|: CSS-Syntax-Any|# (css-consume-token /dev/drin '/dev/drin))
-      (cond [(eof-object? t) (values eof 'eof #false #false #false)]
-            [(css:whitespace? t) (css-hlvalues t (if (string? (css:whitespace-datum t)) 'comment 'white-space) #false mode)]
-            [(css:ident? t) (css-hlvalues t (css-id->drtype (css:ident-norm t) #false) #false mode)]
-            [(css:function? t) (css-hlvalues t (css-id->drtype (css:function-norm t) #true) '|(| mode)]
-            [(css:open? t) (css-hlvalues t 'parenthesis (string->symbol (string (css:delim-datum t))) mode)]
-            [(css:close? t) (css-hlvalues t 'parenthesis (string->symbol (string (css:close-datum t))) mode)]
-            [(css:delim? t) (css-hlvalues t (css-char->drtype (css:delim-datum t)) #false mode)]
-            [(css-numeric? t) (css-hlvalues t (if (css-nan? t) 'error 'constant) #false mode)]
-            [(css:url? t) (css-hlvalues t 'parenthesis '|(| mode)]
-            [else (css-hlvalues t (css-other->drtype t) #false mode)]))))

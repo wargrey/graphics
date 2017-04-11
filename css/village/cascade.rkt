@@ -4,13 +4,13 @@
 
 (provide (all-defined-out))
 
-(require "../digitama/digicore.rkt")
-(require "../digitama/selector.rkt")
-(require "../digitama/cascade.rkt")
-(require "../digitama/variables.rkt")
-(require "../digitama/condition.rkt")
-(require "../digitama/grammar.rkt")
-(require "../digitama/misc.rkt")
+(require "../digitama/syntax/digicore.rkt")
+(require "../digitama/syntax/selector.rkt")
+(require "../digitama/syntax/cascade.rkt")
+(require "../digitama/syntax/variables.rkt")
+(require "../digitama/syntax/condition.rkt")
+(require "../digitama/syntax/grammar.rkt")
+(require "../digitama/syntax/misc.rkt")
 
 (define css-cascade*
   : (All (Preference Env)

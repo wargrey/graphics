@@ -2,7 +2,7 @@
 
 (require "configure.rkt")
 (require "../syntax.rkt")
-(require "../digitama/selector.rkt")
+(require "../digitama/syntax/selector.rkt")
 
 (default-css-abc->specificity
   (λ [[a : Natural] [b : Natural] [c : Natural]]

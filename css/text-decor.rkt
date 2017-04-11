@@ -2,7 +2,7 @@
 
 (provide (all-defined-out) <:text-decoration:>)
 
-(require "digitama/digicore.rkt")
+(require "digitama/syntax/digicore.rkt")
 (require "digitama/color.rkt")
 (require "digitama/text-decor.rkt")
 (require "recognizer.rkt")

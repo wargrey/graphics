@@ -6,9 +6,9 @@
 
 (provide (all-defined-out))
 
-(require "digicore.rkt")
-(require "dimension.rkt")
-(require "condition.rkt")
+(require "syntax/condition.rkt")
+(require "syntax/digicore.rkt")
+(require "syntax/dimension.rkt")
 (require "../recognizer.rkt")
 
 (define-type CSS-Viewport-Filter (CSS-Cascaded-Value+Filter (HashTable Symbol CSS-Media-Datum) (HashTable Symbol CSS-Media-Datum)))

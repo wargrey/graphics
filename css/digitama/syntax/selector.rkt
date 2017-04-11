@@ -55,7 +55,6 @@
                            [type : (U Symbol True)]
                            [ids : (Listof Keyword)]
                            [classes : (Listof Symbol)]
-                           [lang : (U Symbol String)]
                            [attributes : (Listof CSS-Attribute-Selector)]
                            [:classes : (Listof CSS-:Class-Selector)]
                            [::element : (Option CSS-::Element-Selector)])])
@@ -63,6 +62,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-selector-match : (-> CSS-Complex-Selector (Listof+ CSS-Subject) (Option Natural))
   ;;; https://drafts.csswg.org/selectors/#evaluating-selectors
+  ;;; https://github.com/w3c/csswg-drafts/issues/720
   (lambda [srotceles stnemele]
     ; TODO: define a better object model
     (define root : Symbol (css-root-element-type))

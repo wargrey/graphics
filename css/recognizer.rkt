@@ -6,9 +6,9 @@
 (provide (all-defined-out))
 (provide (rename-out [exact-nonnegative-integer? natural?]))
 
-(require "digitama/misc.rkt")
-(require "digitama/digicore.rkt")
-(require "digitama/dimension.rkt")
+(require "digitama/syntax/misc.rkt")
+(require "digitama/syntax/digicore.rkt")
+(require "digitama/syntax/dimension.rkt")
 
 (require (for-syntax racket/syntax))
 (require (for-syntax syntax/parse))

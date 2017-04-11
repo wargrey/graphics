@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "digitama/digicore.rkt")
+(require "digitama/syntax/digicore.rkt")
 
 (define css-set! : (-> CSS-Values Symbol Any Void)
   (lambda [declared-values property value]

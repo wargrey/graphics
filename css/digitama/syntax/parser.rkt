@@ -505,7 +505,7 @@
                                   [selector-tokens : (Listof CSS-Token) selector-components])
       (define-values (token tokens) (css-car/cdr selector-tokens))
       (cond [(or (eof-object? token) (css:comma? token) (css-selector-combinator? token))
-             (values (make-css-compound-selector combinator namespace typename (reverse sdi) (reverse sessalc) ""
+             (values (make-css-compound-selector combinator namespace typename (reverse sdi) (reverse sessalc)
                                                  (reverse setubirtta) :classes pseudo-element)
                      selector-tokens)]
             [(and pseudo-element) (throw-exn:css:overconsumption token)]

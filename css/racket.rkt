@@ -4,9 +4,9 @@
 
 (provide (all-defined-out))
 
-(require "digitama/digicore.rkt")
-(require "digitama/dimension.rkt")
-(require "digitama/misc.rkt")
+(require "digitama/syntax/digicore.rkt")
+(require "digitama/syntax/dimension.rkt")
+(require "digitama/syntax/misc.rkt")
 (require "recognizer.rkt")
 
 (begin-for-syntax

@@ -29,4 +29,4 @@
   (provide (rename-out [css-read-syntax read-syntax]))
   (provide (rename-out [css-info get-info]))
   
-  (require css/language-info))
+  (require css/village/hashlang/reader))

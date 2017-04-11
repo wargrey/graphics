@@ -13,8 +13,9 @@
 (require "variables.rkt")
 (require "condition.rkt")
 (require "grammar.rkt")
-(require "device-adapt.rkt")
-(require "../recognizer.rkt")
+
+(require "../device-adapt.rkt")
+(require "../../recognizer.rkt")
 
 (require bitmap/digitama/cheat)
 
