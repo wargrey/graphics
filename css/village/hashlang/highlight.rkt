@@ -8,7 +8,7 @@
 (define css-lexer ;: (-> Input-Port (Values (U String EOF) Symbol (Option Symbol) (Option Integer) (Option Integer)))
   (lambda [/dev/drin offset mode]
     (define t #|: CSS-Syntax-Any|# (css-consume-token /dev/drin '/dev/drin))
-    (cond [(eof-object? t) (values eof 'eof #false #false #false)]
+    (cond [(eof-object? t) (values eof 'eof #false #false #false 0 (not mode))]
           [(css:whitespace? t) (css-hlvalues t (if (string? (css:whitespace-datum t)) 'comment 'white-space) #false mode)]
           [(css:ident? t) (css-hlvalues t (css-id->drtype (css:ident-norm t) #false) #false mode)]
           [(css:function? t) (css-hlvalues t (css-id->drtype (css:function-norm t) #true) '|(| mode)]

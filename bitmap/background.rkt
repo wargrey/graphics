@@ -56,13 +56,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-css-pen : (->* ()
-                            ((Instance Pen%) #:color (Option Color+sRGB) #:width (U Nonnegative-Flonum Symbol False)
+                            ((Instance Pen%) #:color (Option Color+sRGB) #:width (U Nonnegative-Real Symbol False)
                                              #:style (Option Symbol) #:cap (Option Pen-Cap-Style) #:join (Option Pen-Join-Style)
                                              #:stipple (Option (Instance Bitmap%)))
                             (Instance CSS-Pen%))
   (let ([pen%? : (-> Any Boolean : #:+ (Instance Fixed-Pen%)) ((inst make-cheat-is-a? Fixed-Pen%) pen% 'pen%?)]
-        [penbase : (HashTable (Listof Any) (Instance CSS-Pen%)) (make-hash)]
-        [rootpen : (Instance Pen%) (make-pen)])
+        [penbase : (HashTable (Listof Any) Pen) (make-hash)]
+        [rootpen : (Instance Pen%) (make-pen #:color (select-color #x000000))])
     (lambda [[basepen rootpen] #:color [color #false] #:width [width #false] #:style [style #false]
                                #:cap [cap #false] #:join [join #false] #:stipple [stipple 'inherit]]
       (define pen-color : Color

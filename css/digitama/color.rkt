@@ -5,6 +5,7 @@
 (provide (all-defined-out))
 
 (require colorspace)
+(require bitmap/color)
 (require bitmap/digitama/color)
 
 (require "bitmap.rkt")
@@ -89,6 +90,10 @@
   (cond [(send the-color-database find-color name) => values]
         [else (make-exn:css:range color-value)]))
 
+(define-css-racket-value-filter <racket-color> #:with ?color #:as (U String (Instance Color%))
+  [(color%? ?color) ?color]
+  [(and (string? ?color) (send the-color-database find-color ?color)) ?color])
+
 (define-css-disjoint-filter <css-color> #:-> (U CSS-Color-Datum CSS-Wide-Keyword)
   ;;; https://drafts.csswg.org/css-color/#color-type
   ;;; https://drafts.csswg.org/css-color/#named-colors
@@ -99,4 +104,5 @@
                                    [else css:inherit])))
   (<css#color>)
   (<css-color-notation>)
+  (<racket-color>)
   (<racket-colorbase>))

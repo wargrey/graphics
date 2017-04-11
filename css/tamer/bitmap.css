@@ -32,6 +32,8 @@ module.main {
     font: normal 85% Apple Color Emoji, "Segoe UI", Segoe UI Emoji, Segoe UI Symbol, var(--default-font);
     text-decoration: underline;
     image-resolution: 2dppx snap;
+
+    border-top: 1px Silver dotted;
 }
 
 bitmap-desc.test {

@@ -20,7 +20,8 @@
 
 (require/provide "syntax.rkt" "racket.rkt"
                  "color.rkt" "image.rkt"
-                 "font.rkt" "text-decor.rkt")
+                 "font.rkt" "text-decor.rkt"
+                 "background.rkt")
 
 (module reader racket/base
   (provide (except-out (all-from-out racket/base) read read-syntax))

@@ -1,6 +1,7 @@
 #lang typed/racket
 
-(provide (all-defined-out) <css-color> select-color Color)
+(provide (all-defined-out) <css-color>)
+(provide (all-from-out bitmap/color))
 (provide (all-from-out colorspace))
 
 (require bitmap/digitama/color)
@@ -38,7 +39,8 @@
           [else css:initial])))
 
 (define css-color-ref : (case-> [CSS-Values (Option CSS-Values) -> Color]
-                                [CSS-Values (Option CSS-Values) Symbol -> (CSS-Maybe Color)])
+                                [CSS-Values (Option CSS-Values) Symbol -> (CSS-Maybe Color)]
+                                [CSS-Values (Option CSS-Values) Symbol Color+sRGB -> Color])
   ;;; NOTE
   ;; `css-ref` will save all the values as computed value if it knows how to transform the cascaded values,
   ;; hence the `css-color-ref` to generate a more useful used value for clients so that clients do not need
@@ -49,4 +51,9 @@
      (if (css-wide-keyword? color) (current-css-element-color) (select-color color))]
     [(declared-values inherited-values property)
      (define xxx-color : (CSS-Maybe (U 'currentcolor Color)) (css-ref declared-values inherited-values property css->color))
-     (if (eq? xxx-color 'currentcolor) (current-css-element-color) xxx-color)]))
+     (if (eq? xxx-color 'currentcolor) (current-css-element-color) xxx-color)]
+    [(declared-values inherited-values property defcolor)
+     (define xxx-color : (CSS-Maybe (U 'currentcolor Color)) (css-ref declared-values inherited-values property css->color))
+     (cond [(eq? xxx-color 'currentcolor) (current-css-element-color)]
+           [(css-wide-keyword? xxx-color) (select-color defcolor)]
+           [else xxx-color])]))
