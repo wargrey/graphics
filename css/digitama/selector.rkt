@@ -23,7 +23,7 @@
                             (cons 'v2 'v1) ...)))]))
 
 (define-type CSS-Selector-Combinator (U '>> '> '+ '~ '||))
-(define-type CSS-Namespace-Hint (U (HashTable Symbol String) (Listof Symbol) False))
+(define-type CSS-Namespace-Hint (U (Listof (Pairof Symbol String)) False))
 (define-type CSS-Complex-Selector (Listof+ CSS-Compound-Selector))
 (define-type CSS-Attribute-Datum (U String Symbol (Listof (U String Symbol))))
 (define-type CSS-Attribute-Value (U CSS-Attribute-Datum (Vector Symbol CSS-Attribute-Datum)))
@@ -120,8 +120,7 @@
     (or (css:delim? namespace)        ; *
         (let ([ns (if (css:ident? namespace) (css:ident-datum namespace) namespace)])
           (if (or (false? namespaces) ; application does not care namespaces
-                  (and (hash? namespaces) (hash-has-key? namespaces ns))
-                  (and (list? namespaces) (memq ns namespaces) #true))
+                  (and (list? namespaces) (assq ns namespaces) #true))
               ns #false)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
