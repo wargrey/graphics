@@ -25,10 +25,10 @@
    [vertical-inset : Nonnegative-Flonum    #:= 0.0]
    [horizontal-inset : Nonnegative-Flonum  #:= 0.0]
    [icon-height : Nonnegative-Flonum       #:= (real->double-flonum (default-icon-height))]
-   [font : Font                            #:= (current-css-element-font)]
-   [color : Color                          #:= 'currentcolor]
-   [border-color : Color                   #:= 'currentcolor]
-   [background-color : Color               #:= 'transparent]
+   [font : CSS-Font                        #:= (current-css-element-font)]
+   [color : RGBA-Color                     #:= 'currentcolor]
+   [border-color : RGBA-Color              #:= 'currentcolor]
+   [background-color : RGBA-Color          #:= 'transparent]
    [border-style : Pen-Style               #:= 'transparent])
   #:transparent)
 

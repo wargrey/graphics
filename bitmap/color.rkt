@@ -2,68 +2,85 @@
 
 (provide (all-defined-out))
 
-(require "digitama/digicore.rkt")
-(require "constructor.rkt")
+(require racket/string)
+(require racket/bool)
 
-(define bitmap-cellophane : (-> Bitmap Nonnegative-Real Bitmap)
-  (lambda [bmp opacity]
-    (cond [(>= opacity 1.0) bmp]
-          [else (let ([abmp (bitmap-blank (send bmp get-width)
-                                          (send bmp get-height)
-                                          (send bmp get-backing-scale))])
-                  (define dc : (Instance Bitmap-DC%) (send abmp make-dc))
-                  (send dc set-smoothing 'aligned)
-                  (send dc set-alpha opacity)
-                  (send dc draw-bitmap bmp 0 0)
-                  abmp)])))
+(require colorspace/misc)
+
+(require "digitama/digicore.rkt")
+(require "digitama/color.rkt")
+(require "digitama/cheat.rkt")
+(require "digitama/inspectable.rkt")
+
+(define-type RGBA-Color (Instance RGBA-Color%))
+
+(define-type RGBA-Color%
+  (Class #:implements Inspectable-Color%
+         (init [red Byte #:optional]
+               [green Byte #:optional]
+               [blue Byte #:optional]
+               [alpha Real #:optional])
+         (init-field [immutable? Boolean #:optional])
+         (init-rest Null) #|disable string based constructor|#))
+
+(define/make-is-a? rgba% : RGBA-Color%
+  (class inspectable-color%
+    (init [red (fxmin (random 255) 255)]
+          [green (fxmin (random 255) 255)]
+          [blue (fxmin (random 255) 255)]
+          [alpha 1.0])
+    
+    (init-field [immutable? #true])
+    
+    (super-make-object red green blue alpha)
+
+    (define/override (set red green blue [alpha 1.0])
+      (when immutable? (error 'rgba% "color is immutable"))
+      (super set red green blue alpha))
+
+    (define/override (copy-from src)
+      (set (send this red) (send this green) (send this blue) (send this alpha))
+      this)
+    
+    (define/override (is-immutable?)
+      immutable?)
+
+    (define/override (inspect)
+      (list (send this red) (send this green) (send this blue) (send this alpha)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-grayscale : (-> Bitmap (-> Byte Byte Byte Byte) Bitmap)
-  (lambda [bmp rgb->gray]
-    (define-values (w h bs) (values (send bmp get-width) (send bmp get-height) (send bmp get-backing-scale)))
-    (define size : Integer (exact-ceiling (* w h bs bs 4)))
-    (define buffer : Bytes (make-bytes size))
-    (send bmp get-argb-pixels 0 0 w h buffer)
-    (let scale ([r : Integer 1])
-      (when (fx< r size)
-        (define-values (g b) (values (fx+ r 1) (fx+ r 2)))
-        (define gray : Byte (rgb->gray (bytes-ref buffer r) (bytes-ref buffer g) (bytes-ref buffer b)))
-        (bytes-set! buffer r gray)
-        (bytes-set! buffer g gray)
-        (bytes-set! buffer b gray)
-        (scale (fx+ r 4))))
-    (define gray : Bitmap (make-object bitmap% w h #false #true bs))
-    (send gray set-argb-pixels 0 0 w h buffer)
-    gray))
-
-(define bitmap-grayscale/lightness : (-> Bitmap Bitmap)
-  (lambda [bmp]
-    (bitmap-grayscale bmp
-                      (λ [[r : Byte] [g : Byte] [b : Byte]] : Byte
-                        (min (quotient (+ (max r g b) (min r g b)) 2) 255)))))
-
-(define bitmap-grayscale/average : (-> Bitmap Bitmap)
-  (lambda [bmp]
-    (bitmap-grayscale bmp
-                      (λ [[r : Byte] [g : Byte] [b : Byte]] : Byte
-                        (assert (quotient (+ r g b) 3) byte?)))))
-
-(define bitmap-grayscale/luminosity : (->* (Bitmap) (Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum) Bitmap)
-  (lambda [bmp [ro 0.2126] [go 0.7152] [bo 0.0722]]
-    (bitmap-grayscale bmp
-                      (λ [[r : Byte] [g : Byte] [b : Byte]] : Byte
-                        (min (exact-round (+ (* r ro) (* g go) (* b bo))) 255)))))
-
-(define bitmap-grayscale/decomposition : (-> Bitmap (U 'max 'min) Bitmap)
-  (lambda [bmp algorithm]
-    (bitmap-grayscale bmp
-                      (cond [(eq? algorithm 'min) min]
-                            [else (λ [[r : Byte] [g : Byte] [b : Byte]] : Byte (assert (max r g b) byte?))]))))
-
-(define bitmap-grayscale/channel : (-> Bitmap (U 'red 'green 'blue) Bitmap)
-  (lambda [bmp channel]
-    (bitmap-grayscale bmp
-                      (case channel
-                        [(red) (λ [[r : Byte] [g : Byte] [b : Byte]] : Byte r)]
-                        [(green) (λ [[r : Byte] [g : Byte] [b : Byte]] : Byte g)]
-                        [else (λ [[r : Byte] [g : Byte] [b : Byte]] : Byte b)]))))
+(define select-color : (->* (Color+sRGB) (Nonnegative-Flonum) RGBA-Color)
+  (let ([colorbase : (HashTable Fixnum RGBA-Color) (make-hasheq)])
+    (lambda [representation [alpha 1.0]]
+      (define opaque? : Boolean (fl= alpha 1.0))
+      (cond [(fixnum? representation)
+             (define hashcode : Nonnegative-Fixnum (fxand representation #xFFFFFF))
+             (hash-ref! colorbase
+                        (if opaque? hashcode (eqv-hash-code (make-rectangular hashcode alpha)))
+                        (λ [] (let-values ([(r g b) (hex->rgb-bytes representation)])
+                                (make-object rgba% r g b alpha))))]
+            [(symbol? representation)
+             (let try-again ([color-name : Symbol representation]
+                             [downcased? : Boolean #false])
+               (cond [(hash-has-key? css-named-colors color-name)
+                      (hash-ref! colorbase
+                                 (cond [(and opaque?) (eq-hash-code color-name)]
+                                       [else (equal-hash-code (cons color-name alpha))])
+                                 (λ [] (select-color (hash-ref css-named-colors color-name) alpha)))]
+                     [(not downcased?) (try-again (string->symbol (string-downcase (symbol->string color-name))) #true)]
+                     [(eq? color-name 'currentcolor) (select-color ((default-make-currentcolor)))]
+                     [else (select-color #x000000 (if (eq? color-name 'transparent) 0.0 alpha))]))]
+            [(string? representation)
+             (let* ([color-name (string-downcase (string-replace representation #px"(?i:grey)" "gray"))]
+                    [color (send the-color-database find-color color-name)])
+               (cond [(false? color) (select-color #x000000 alpha)]
+                     [else (hash-ref! colorbase
+                                      (equal-hash-code (if opaque? color-name (cons color-name alpha)))
+                                      (λ [] (select-color (rgb-bytes->hex (send color red) (send color green) (send color blue))
+                                                          alpha)))]))]
+            [(not (rgba%? representation))
+             (hash-ref! colorbase
+                        (eq-hash-code representation)
+                        (λ [] (select-color (rgb-bytes->hex (send representation red) (send representation green) (send representation blue))
+                                            (flmax (real->double-flonum (send representation alpha)) 0.0))))]
+            [else representation]))))

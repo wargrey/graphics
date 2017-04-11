@@ -80,9 +80,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-css-font : (->* ()
-                             (Font #:size (U Symbol Nonnegative-Real) #:family (U String Symbol (Listof (U String Symbol)))
-                                   #:style (Option Symbol) #:weight (Option Symbol) #:ligature (U Boolean Symbol)
-                                   #:hinting (Option Font-Hinting) #:lines (Option (Listof Symbol)) #:smoothing (Option Font-Smoothing))
+                             ((Instance Font%) #:size (U Symbol Nonnegative-Real) #:family (U String Symbol (Listof (U String Symbol)))
+                                               #:style (Option Symbol) #:weight (Option Symbol) #:ligature (U Boolean Symbol)
+                                               #:hinting (Option Font-Hinting) #:lines (Option (Listof Symbol))
+                                               #:smoothing (Option Font-Smoothing))
                              (Instance CSS-Font%))
   (let ([fontbase : (HashTable (Listof Any) (Instance CSS-Font%)) (make-hash)])
     (lambda [[basefont (default-css-font)] #:size [size +nan.0] #:family [face null] #:style [style #false] #:weight [weight #false]
@@ -137,8 +138,8 @@
   (make-parameter (make-object css-font% (racket-font-family->font-face 'default))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define get-font-metrics : (-> Font (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
-                                            Nonnegative-Flonum Nonnegative-Flonum))
+(define get-font-metrics : (-> (Instance Font%) (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                                        Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [font]
     (get_font_metrics (or (send font get-face)
                           (font-family->font-face (send font get-family)))
@@ -146,7 +147,7 @@
                       (send font get-style)
                       (send font get-weight))))
 
-(define get-font-metrics-lines : (-> Font String (Values Flonum Flonum Flonum Flonum Flonum))
+(define get-font-metrics-lines : (-> (Instance Font%) String (Values Flonum Flonum Flonum Flonum Flonum))
   (lambda [font content]
     (get_font_metrics_lines (or (send font get-face)
                                 (font-family->font-face (send font get-family)))
@@ -155,7 +156,7 @@
                             (send font get-weight)
                             content)))
 
-(define text-size : (->* (String Font) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
+(define text-size : (->* (String (Instance Font%)) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [text font [combined? #true] #:with-dc [dc the-dc]]
     (define-values (w h d a) (send dc get-text-extent text font combined?))
     (values (real->double-flonum w) (real->double-flonum h))))

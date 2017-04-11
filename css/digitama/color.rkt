@@ -14,7 +14,6 @@
 (require "../racket.rkt")
 
 (define-type CSS-Color-Datum (U Color+sRGB CSS-Color))
-(define-predicate css-basic-color-datum? (U Index Symbol String))
 
 (define-css-value css-color #:as CSS-Color ())
 (define-css-value hexa #:as HEXA #:=> css-color ([hex : Index] [a : Nonnegative-Flonum]))
@@ -84,20 +83,11 @@
    (define <:rgb:> (CSS<^> (<rgb-byte>)))
    (define <:hue:> (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>) (<css:angle>))))])
 
-(define-css-atomic-filter <racket-colorbase> #:-> Color
+(define-css-atomic-filter <racket-colorbase> #:-> (Instance Color%)
   #:with [[color-value : css:string?] [px : Regexp #px"(?i:grey)$"] [to : String "gray"]]
   (define name : String (string-replace (css:string-datum color-value) px to))
   (cond [(send the-color-database find-color name) => values]
         [else (make-exn:css:range color-value)]))
-  
-(define-css-racket-value-filter <racket-color> #:with ?color #:as (U String Symbol Index Color)
-  [(color%? ?color) ?color]
-  [(index? ?color) ?color]
-  [(and (symbol? ?color)
-        (or (and (hash-has-key? css-named-colors ?color) ?color)
-            (let ([color (string->symbol (string-downcase (symbol->string ?color)))])
-              (and (hash-has-key? css-named-colors color) color)))) => values]
-  [(and (string? ?color) (send the-color-database find-color ?color)) ?color])
 
 (define-css-disjoint-filter <css-color> #:-> (U CSS-Color-Datum CSS-Wide-Keyword)
   ;;; https://drafts.csswg.org/css-color/#color-type
@@ -109,5 +99,4 @@
                                    [else css:inherit])))
   (<css#color>)
   (<css-color-notation>)
-  (<racket-colorbase>)
-  (<racket-color>))
+  (<racket-colorbase>))

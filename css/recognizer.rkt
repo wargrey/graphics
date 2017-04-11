@@ -424,10 +424,16 @@
   (<css:percentage> nonnegative-single-flonum?)
   (<css+length>))
 
-(define css-make-pair-parser : (case-> [(CSS:Filter Any) Symbol Symbol -> (Pairof CSS-Shorthand-Parser (Listof Symbol))]
-                                       [(CSS:Filter Any) Symbol Symbol Symbol Symbol
-                                                         -> (Pairof CSS-Shorthand-Parser (Listof Symbol))])
+(define css-make-pair-parser
+  : (case-> [(Listof+ (CSS:Filter Any)) (Listof+ Symbol) -> (Pairof CSS-Shorthand-Parser (Listof Symbol))]
+            [(CSS:Filter Any) Symbol Symbol -> (Pairof CSS-Shorthand-Parser (Listof Symbol))]
+            [(CSS:Filter Any) Symbol Symbol Symbol Symbol -> (Pairof CSS-Shorthand-Parser (Listof Symbol))])
   (case-lambda
+    [(filters names)
+     (cons (CSS<*> (apply CSS<+> (CSS<^> (car filters) (car names))
+                          ((inst map CSS-Shorthand-Parser (CSS:Filter Any) Symbol)
+                           CSS<^> (cdr filters) (cdr names))) '+)
+           names)]
     [(filter name1 name2)
      (cons (CSS<&> (CSS<^> filter name1)
                    (CSS<$> filter name2 (λ [longhand] (hash-ref longhand name1))))

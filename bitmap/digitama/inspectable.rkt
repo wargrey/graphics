@@ -17,6 +17,14 @@
                 #:implements/inits Origin%
                 inits ...))]))
 
+(define-syntax (define/override-immutable stx)
+  (syntax-case stx []
+    [(_ src immutable? strerr ([method args ...] ...))
+     #'(begin (define/override (method args ...)
+                (when immutable? (error src strerr))
+                (super method args ...))
+              ...)]))
+
 (define-type Inspectable<%>
   (Class [inspect (-> (Listof Any))]
          [custom-print (-> Output-Port Natural Void)]
@@ -28,7 +36,7 @@
   ;; These named initial arguments cannot be used with (new),
   ;; they just serve as an elegant form of (init-rest).
   (init [size Real]
-        [face (Option String)] ; the official version forgets that it can be False.
+        [face (Option String)] ; the official version forgets that it can be False
         [family Font-Family]
         [style Font-Style #:optional]
         [weight Font-Weight #:optional]
@@ -42,9 +50,10 @@
                 (List Byte Byte Byte)
                 (List Byte Byte Byte Real))))
 
-(define-inspectable-class
-  [Inspectable-Pen%   #:+ Pen%]
-  [Inspectable-Brush% #:+ Brush%])
+(define-inspectable-class Inspectable-Pen% #:+ Pen%
+  [get-style (-> Pen-Style)] #|the official version forgets this method|#)
+
+(define-inspectable-class [Inspectable-Brush% #:+ Brush%])
 
 (module cheat racket/base
   (provide (all-defined-out))

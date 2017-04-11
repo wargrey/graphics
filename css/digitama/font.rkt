@@ -41,9 +41,7 @@
   [small-caption (default-css-font)]
   [status-bar    (default-css-font)])
 
-(define-css-racket-value-filter <racket-font> #:? font%? #:as Font)
-
-(define css-font->longhand-properties : (->* (Font) ((HashTable Symbol Any)) (HashTable Symbol Any))
+(define css-font->longhand-properties : (->* ((Instance Font%)) ((HashTable Symbol Any)) (HashTable Symbol Any))
   (lambda [font [longhand css-longhand]]
     (let* ([longhand++ (hash-set longhand 'font-weight (send font get-weight))]
            [longhand++ (hash-set longhand++ 'font-style (send font get-style))]
@@ -81,7 +79,6 @@
 (define <:font-shorthand:> : (Pairof CSS-Shorthand-Parser (Listof Symbol))
   ;;; https://drafts.csswg.org/css-fonts/#font-prop
   (cons (CSS<+> (CSS<^> (<css-system-font>) css-font->longhand-properties)
-                (CSS<^> (<racket-font>) css-font->longhand-properties)
                 (CSS<&> (CSS<*> (CSS<+> (CSS<_> (CSS<^> (<css-keyword> 'normal) '|Ignoring, some properties use it as defaults|))
                                         (CSS<^> (<font-weight>) 'font-weight)
                                         (CSS<^> (<css-keyword> css-font-style-option) 'font-style)

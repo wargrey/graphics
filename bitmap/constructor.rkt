@@ -6,6 +6,7 @@
 
 (require "digitama/digicore.rkt")
 (require "digitama/color.rkt")
+(require "color.rkt")
 (require "font.rkt")
 
 (require racket/math)
@@ -42,12 +43,13 @@
     (send dc clear)
     solid))
 
-(define bitmap-text : (->* (String) (Font #:combine? (U Boolean Symbol) #:color (Option Color+sRGB) #:background-color (Option Color+sRGB)
-                                          #:ascent-color (Option Color+sRGB) #:ascent-style Pen-Style
-                                          #:capline-color (Option Color+sRGB) #:capline-style Pen-Style
-                                          #:meanline-color (Option Color+sRGB) #:meanline-style Pen-Style
-                                          #:baseline-color (Option Color+sRGB) #:baseline-style Pen-Style
-                                          #:descent-color (Option Color+sRGB) #:descent-style Pen-Style) Bitmap)
+(define bitmap-text : (->* (String) ((Instance Font%) #:combine? (U Boolean Symbol) #:color (Option Color+sRGB)
+                                                      #:background-color (Option Color+sRGB)
+                                                      #:ascent-color (Option Color+sRGB) #:ascent-style Pen-Style
+                                                      #:capline-color (Option Color+sRGB) #:capline-style Pen-Style
+                                                      #:meanline-color (Option Color+sRGB) #:meanline-style Pen-Style
+                                                      #:baseline-color (Option Color+sRGB) #:baseline-style Pen-Style
+                                                      #:descent-color (Option Color+sRGB) #:descent-style Pen-Style) Bitmap)
   (lambda [content [font (default-css-font)] #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background-color [bgcolor #false]
                    #:ascent-color [alcolor #false] #:ascent-style [alstyle 'solid]
                    #:capline-color [clcolor #false] #:capline-style [clstyle 'solid]
@@ -82,8 +84,8 @@
     (or (send dc get-bitmap) (bitmap-blank))))
 
 (define bitmap-desc : (->* (String Real)
-                           (Font #:color (Option Color+sRGB) #:background-color (Option Color+sRGB)
-                                 #:max-height Real #:combine? (U Boolean Symbol))
+                           ((Instance Font%) #:color (Option Color+sRGB) #:background-color (Option Color+sRGB)
+                                             #:max-height Real #:combine? (U Boolean Symbol))
                            Bitmap)
   (lambda [description max-width.0 [font (default-css-font)] #:max-height [max-height.0 +inf.0]
            #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background-color [bgcolor #false]]
@@ -123,7 +125,7 @@
     (send dc set-font font)
     (when fgcolor (send dc set-text-foreground (select-color fgcolor)))
     (unless (false? bgcolor)
-      (define color : Color (select-color bgcolor))
+      (define color : RGBA-Color (select-color bgcolor))
       (send dc set-smoothing 'aligned)
       (send dc set-pen color 0 'transparent)
       (send dc set-brush color 'solid)

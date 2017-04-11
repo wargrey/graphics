@@ -9,6 +9,7 @@
 (require bitmap/misc)
 (require bitmap/combiner)
 (require bitmap/constructor)
+(require bitmap/digitama/color)
 
 (require "bitmap.rkt")
 (require "font.rkt")
@@ -55,9 +56,8 @@
   
 (define css-@icon-filter : CSS-@λ-Filter
   (lambda [λname ?λ:kw]
-    (define-css-disjoint-filter <text-icon-font> #:-> (U Font CSS-@λ)
+    (define-css-disjoint-filter <text-icon-font> #:-> (U (Instance Font%) CSS-@λ)
       (<css-system-font>)
-      (<racket-font>)
       (<css:@λ> the-@draw-pool css-@draw-filter '(make-font)))
     (define <:clock-pointers:> : (CSS-Parser (Listof Any))
       (CSS<$> (CSS<&> (CSS<^> (<css:integer> 0 <= 11))

@@ -14,19 +14,19 @@
 (default-css-font (make-css-font #:size 16.0))
 (css-root-element-type 'module)
 
-(define-preference* btest #:as Bitmap.CSS #:with ([color-properties Color])
-  ([symbol-color : Color                        #:= 'Blue]
-   [string-color : Color                        #:= 'Orange]
-   [number-color : Color                        #:= 'Tomato]
-   [output-color : Color                        #:= 'Chocolate]
-   [paren-color : Color                         #:= 'Firebrick]
-   [border-color : Color                        #:= 'Crimson]
-   [foreground-color : Color                    #:= "Grey"]
-   [background-color : Color                    #:= "Snow"]
-   [font : CSS-Font                             #:= (current-css-element-font)]
-   [width : Index                               #:= 512]
-   [desc : String                               #:= "['desc' property is required]"]
-   [prelude : Bitmap                            #:= (bitmap-text "> ")]
+(define-preference* btest #:as Bitmap.CSS #:with ([color-properties RGBA-Color])
+  ([symbol-color : RGBA-Color                  #:= 'Blue]
+   [string-color : RGBA-Color                  #:= 'Orange]
+   [number-color : RGBA-Color                  #:= 'Tomato]
+   [output-color : RGBA-Color                  #:= 'Chocolate]
+   [paren-color : RGBA-Color                   #:= 'Firebrick]
+   [border-color : RGBA-Color                  #:= 'Crimson]
+   [foreground-color : RGBA-Color              #:= "Grey"]
+   [background-color : RGBA-Color              #:= "Snow"]
+   [font : CSS-Font                            #:= (current-css-element-font)]
+   [width : Index                              #:= 512]
+   [desc : String                              #:= "['desc' property is required]"]
+   [prelude : Bitmap                           #:= (bitmap-text "> ")]
    [descriptors : (Listof (Pairof Symbol Any)) #:= null])
   #:transparent)
 

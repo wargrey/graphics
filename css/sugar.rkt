@@ -14,8 +14,8 @@
 (require (for-syntax racket/syntax))
 (require (for-syntax syntax/parse))
 
-(define-type Font+Color (Pairof Font Color))
-(define-type Font+Colors (Pairof Font (Pairof Color Color)))
+(define-type Font+Color (Pairof CSS-Font RGBA-Color))
+(define-type Font+Colors (Pairof CSS-Font (Pairof RGBA-Color RGBA-Color)))
 
 (define-syntax (define-preference* stx)
   (syntax-parse stx #:literals [:]
@@ -24,8 +24,8 @@
     [(_ preference #:as Preference #:with extra-bindings (field-info ...) options ...)
      (with-syntax* ([(property-definitions ...)
                      (for/list ([<field-info> (in-list (syntax->list #'(field-info ...)))])
-                       (syntax-parse <field-info> #:datum-literals [Color Unitless]
-                         [(p : Color #:= dv) #'[p : Color #:= dv #:~> Color+sRGB select-color]]
+                       (syntax-parse <field-info> #:datum-literals [RGBA-Color Unitless]
+                         [(p : RGBA-Color #:= dv) #'[p : RGBA-Color #:= dv #:~> Color+sRGB select-color]]
                          [(p : Unitless #:= dv) #'[p : Nonnegative-Flonum #:= dv #:~> (U Nonnegative-Flonum Negative-Single-Flonum)
                                                      select-size]]
                          [(p : Unitless #:= dv nv) #'[p : Nonnegative-Flonum #:= dv #:~> (U Nonnegative-Flonum Negative-Single-Flonum)
@@ -71,7 +71,7 @@
                                                   (Values Nonnegative-Flonum Nonnegative-Flonum))
                                              (case-> [Symbol Nonnegative-Flonum -> (CSS-Maybe Nonnegative-Flonum)]
                                                      [Symbol Nonnegative-Flonum Nonnegative-Flonum -> Nonnegative-Flonum])
-                                             (-> Symbol (CSS-Maybe Color))
+                                             (-> Symbol (CSS-Maybe RGBA-Color))
                                              (-> Symbol CSS-Make-Icon Nonnegative-Real Color+sRGB Bitmap)))
   (lambda [declared-values inherited-values]
     (values (lambda [initial-width initial-height [width% (css-vw)] [height% (css-vh)]]
@@ -88,11 +88,11 @@
     (or (css-font-parsers suitcased-name deprecated!)
         (css-color-property-parsers suitcased-name null))))
 
-(define css-font-filter : (CSS-Cascaded-Value-Filter Font)
+(define css-font-filter : (CSS-Cascaded-Value-Filter CSS-Font)
   (lambda [declared-values inherited-values]
     (css-extract-font declared-values inherited-values)))
 
-(define css-colors-filter : (CSS-Cascaded-Value-Filter (Pairof Color Color))
+(define css-colors-filter : (CSS-Cascaded-Value-Filter (Pairof RGBA-Color RGBA-Color))
   (lambda [declared-values inherited-values]
     (cons (css-color-ref declared-values inherited-values)
           (let ([bgcolor (css-color-ref declared-values inherited-values 'background-color)])
@@ -109,7 +109,7 @@
           (css-colors-filter declared-values inherited-values))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define css-cascade-colors : (-> (Listof+ CSS-StyleSheet) (Listof+ CSS-Subject) (Option CSS-Values) (Pairof Color Color))
+(define css-cascade-colors : (-> (Listof+ CSS-StyleSheet) (Listof+ CSS-Subject) (Option CSS-Values) (Pairof RGBA-Color RGBA-Color))
   (lambda [stylesheets stcejbus inherited-values]
     (define-values ($ _) (css-cascade stylesheets stcejbus css-font+colors-parsers css-colors-filter inherited-values))
     $))

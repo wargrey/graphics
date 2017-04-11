@@ -12,10 +12,8 @@
 
 (require "cheat.rkt")
 
-(define-type Color (Instance Color%))
-(define-type Color+sRGB (U Index Symbol String Color))
+(define-type Color+sRGB (U String Symbol Index (Instance Color%)))
 (define-type Bitmap (Instance Bitmap%))
-(define-type Font (Instance Font%))
 
 (define-cheat-opaque color%? #:is-a? Color% color%)
 (define-cheat-opaque bitmap%? #:is-a? Bitmap% bitmap%)
@@ -23,7 +21,7 @@
 
 (define os : Symbol (system-type 'os))
 (define the-dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (make-object bitmap% 1 1)))
-(define the-invalid-image : Bitmap (read-bitmap (open-input-bytes #"placeholder")))
+(define the-invalid-image : (Instance Bitmap%) (read-bitmap (open-input-bytes #"placeholder")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define smart-font-size : (-> (Instance Font%) Nonnegative-Flonum)
