@@ -492,11 +492,11 @@
   ;;; https://github.com/w3c/csswg-drafts/issues/202
   (lambda [components combinator namespaces]
     (define-values (head heads) (css-car components))
-    (define-values (typename quirkname namespace simple-selector-components)
+    (define-values (typename namespace simple-selector-components)
       (cond [(css:ident? head) (css-car-elemental-selector head heads namespaces)]
             [(css:delim=<-? head '(#\| #\*)) (css-car-elemental-selector head heads namespaces)]
             [(or (eof-object? head) (css:comma? head)) (throw-exn:css:empty head)]
-            [else (values #true #true (or (css-declared-namespace namespaces '||) #true) (cons head heads))]))
+            [else (values #true (or (css-declared-namespace namespaces '||) #true) (cons head heads))]))
     (define-values (:classes selector-components) (css-car-:class-selectors simple-selector-components))
     (let extract-simple-selector ([sessalc : (Listof Symbol) null]
                                   [sdi : (Listof Keyword) null]
@@ -505,8 +505,8 @@
                                   [selector-tokens : (Listof CSS-Token) selector-components])
       (define-values (token tokens) (css-car/cdr selector-tokens))
       (cond [(or (eof-object? token) (css:comma? token) (css-selector-combinator? token))
-             (values (make-css-compound-selector combinator typename quirkname namespace (reverse sdi)
-                                                 (reverse sessalc) (reverse setubirtta) :classes pseudo-element)
+             (values (make-css-compound-selector combinator namespace typename (reverse sdi) (reverse sessalc) ""
+                                                 (reverse setubirtta) :classes pseudo-element)
                      selector-tokens)]
             [(and pseudo-element) (throw-exn:css:overconsumption token)]
             [(css:delim=:=? token #\.)
@@ -549,25 +549,25 @@
       [else (throw-exn:css:unrecognized token)])))
   
 (define css-car-elemental-selector : (-> (U CSS:Ident CSS:Delim) (Listof CSS-Token) CSS-Namespace-Hint
-                                         (Values (U Symbol True) (U Symbol True) (U Symbol Boolean) (Listof CSS-Token)))
+                                         (Values (U Symbol True) (U Symbol Boolean) (Listof CSS-Token)))
   ;;; https://drafts.csswg.org/selectors/#structure
   ;;; https://drafts.csswg.org/selectors/#elemental-selectors
   ;;; https://drafts.csswg.org/css-namespaces/#css-qnames
   (lambda [token tokens namespaces]
     (define-values (next rest next2 rest2) (css-car/cadr tokens))
     (cond [(css:vbar? token)
-           (cond [(css:ident? next) (values (css:ident-datum next) (css:ident-norm next) #false rest)]
-                 [(css:delim=:=? next #\*) (values #true #true #false rest)]
+           (cond [(css:ident? next) (values (css:ident-datum next) #false rest)]
+                 [(css:delim=:=? next #\*) (values #true #false rest)]
                  [else (throw-exn:css:type:identifier next)])]
           [(css:vbar? next)
            (define ns : (U Symbol Boolean) (css-declared-namespace namespaces token))
            (cond [(false? ns) (throw-exn:css:namespace token)]
-                 [(css:ident? next2) (values (css:ident-datum next2) (css:ident-norm next2) ns rest2)]
-                 [(css:delim=:=? next2 #\*) (values #true #true ns rest2)]
+                 [(css:ident? next2) (values (css:ident-datum next2) ns rest2)]
+                 [(css:delim=:=? next2 #\*) (values #true ns rest2)]
                  [else (throw-exn:css:type:identifier (list token next))])]
           [else (let ([ns (or (css-declared-namespace namespaces '||) #true)])
-                  (cond [(css:delim? token) (values #true #true ns tokens)]
-                        [else (values (css:ident-datum token) (css:ident-norm token) ns tokens)]))])))
+                  (cond [(css:delim? token) (values #true ns tokens)]
+                        [else (values (css:ident-datum token) ns tokens)]))])))
 
 (define css-car-:class-selectors : (-> (Listof CSS-Token) (Values (Listof CSS-:Class-Selector) (Listof CSS-Token)))
   ;;; https://drafts.csswg.org/selectors/#structure

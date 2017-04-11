@@ -23,7 +23,6 @@
 (define-type CSS-Style-Metadata (Vector Natural (Listof CSS-Declaration) CSS-Media-Features))
 
 (define css-warning-unknown-property? : (Parameterof Boolean) (make-parameter #true))
-(define css-select-quirk-mode? : (Parameterof Boolean) (make-parameter #false))
 
 (define-syntax (call-with-css-viewport-from-media stx)
   (syntax-parse stx
@@ -54,7 +53,7 @@
         (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
           (for ([this-sheet (in-list batch)])
             (cascade-stylesheets (css-select-children this-sheet desc-parsers))
-            (css-cascade-rules (css-stylesheet-grammars this-sheet) stcejbus desc-parsers (css-select-quirk-mode?) declared-values
+            (css-cascade-rules (css-stylesheet-grammars this-sheet) stcejbus desc-parsers declared-values
                                (css-cascade-viewport (default-css-media-features) (css-stylesheet-viewports this-sheet)))))
         (css-resolve-variables declared-values inherited-values)
         declared-values))
@@ -67,27 +66,25 @@
        (values (value-filter declared-values inherited-values env) declared-values)])))
 
 (define css-cascade-rules : (->* ((Listof CSS-Grammar-Rule) (Listof+ CSS-Subject) CSS-Declaration-Parsers)
-                                 (Boolean CSS-Values CSS-Media-Features) CSS-Values)
+                                 (CSS-Values CSS-Media-Features) CSS-Values)
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
-  (lambda [rules stcejbus desc-parsers [quirk? #false] [descbase (make-css-values)] [top-descriptors (default-css-media-features)]]
+  (lambda [rules stcejbus desc-parsers [descbase (make-css-values)] [top-descriptors (default-css-media-features)]]
     (call-with-css-viewport-from-media #:descriptors top-descriptors
-      (define-values (ordered-srcs single?) (css-select-styles rules stcejbus desc-parsers quirk? top-descriptors))
-      (define css:ident->datum : (-> CSS:Ident Symbol) (if quirk? css:ident-datum css:ident-norm))
+      (define-values (ordered-srcs single?) (css-select-styles rules stcejbus desc-parsers top-descriptors))
       (if (and single?)
           (let ([source-ref (λ [[src : CSS-Style-Metadata]] : (Listof CSS-Declaration) (vector-ref src 1))])
-            (css-cascade-declarations desc-parsers (sequence-map source-ref (in-list ordered-srcs)) css:ident->datum descbase))
+            (css-cascade-declarations desc-parsers (sequence-map source-ref (in-list ordered-srcs)) css:ident-norm descbase))
           (for ([src (in-list ordered-srcs)])
             (define alter-descriptors : CSS-Media-Features (vector-ref src 2))
             (if (eq? alter-descriptors top-descriptors)
-                (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident->datum descbase)
+                (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident-norm descbase)
                 (call-with-css-viewport-from-media #:descriptors alter-descriptors
-                  (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident->datum descbase))))))
+                  (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident-norm descbase))))))
     descbase))
 
 (define css-cascade-declarations : (->* (CSS-Declaration-Parsers (Sequenceof (Listof CSS-Declaration)))
-                                        ((-> CSS:Ident Symbol) CSS-Values)
-                                        CSS-Values)
+                                        ((-> CSS:Ident Symbol) CSS-Values) CSS-Values)
   ;;; https://drafts.csswg.org/css-cascade/#shorthand
   ;;; https://drafts.csswg.org/css-cascade/#importance
   ;;; https://drafts.csswg.org/css-variables/#syntax
@@ -167,14 +164,14 @@
   (lambda [init-viewport descriptors [viewport-parser (default-css-viewport-parsers)] [viewport-filter (default-css-viewport-filter)]]
     (cond [(zero? (vector-length descriptors)) init-viewport]
           [else (call-with-css-viewport-from-media #:descriptors init-viewport
-                  (viewport-filter (css-cascade-declarations viewport-parser (in-vector descriptors))
+                  (viewport-filter (css-cascade-declarations viewport-parser (in-vector descriptors) css:ident-norm)
                                    #false init-viewport))])))
 
-(define css-select-styles : (->* ((Listof CSS-Grammar-Rule) (Listof+ CSS-Subject) CSS-Declaration-Parsers) (Boolean CSS-Media-Features)
+(define css-select-styles : (->* ((Listof CSS-Grammar-Rule) (Listof+ CSS-Subject) CSS-Declaration-Parsers) (CSS-Media-Features)
                                  (Values (Listof CSS-Style-Metadata) Boolean))
   ;;; https://drafts.csswg.org/selectors/#subject-of-a-selector
   ;;; https://drafts.csswg.org/selectors/#data-model
-  (lambda [rules stcejbus decl-parsers [quirk? #false] [top-descriptors (default-css-media-features)]]
+  (lambda [rules stcejbus decl-parsers [top-descriptors (default-css-media-features)]]
     (define-values (selected-styles single-query?)
       (let cascade-rules : (Values (Listof CSS-Style-Metadata) Boolean)
         ([descriptors : CSS-Media-Features top-descriptors]
@@ -187,7 +184,7 @@
                  (define selectors : (Listof+ CSS-Complex-Selector) (css-style-rule-selectors rule))
                  (define specificity : Natural
                    (for/fold ([max-specificity : Natural 0]) ([selector (in-list selectors)])
-                     (define matched-specificity : Natural (or (css-selector-match selector stcejbus quirk?) 0))
+                     (define matched-specificity : Natural (or (css-selector-match selector stcejbus) 0))
                      (fxmax matched-specificity max-specificity)))
                  (cond [(zero? specificity) (values styles single-query?)]
                        [else (let ([sm : CSS-Style-Metadata (vector specificity (css-style-rule-properties rule) descriptors)])

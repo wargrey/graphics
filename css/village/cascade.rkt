@@ -36,8 +36,9 @@
               (define-values (sub-rotpircsed sub-seulav)
                 (cascade-stylesheets* (css-select-children this-sheet desc-parsers) descriptors++ values++))
               (define this-values : (Listof CSS-Values)
-                (css-cascade-rules* (css-stylesheet-grammars this-sheet) stcejbus desc-parsers (css-select-quirk-mode?)
-                                    (css-cascade-viewport (default-css-media-features) (css-stylesheet-viewports this-sheet))))
+                (css-cascade-rules* (css-stylesheet-grammars this-sheet) stcejbus desc-parsers
+                                    (css-cascade-viewport (default-css-media-features)
+                                                          (css-stylesheet-viewports this-sheet))))
               (for/fold ([this-rotpircsed : (Listof Preference) sub-rotpircsed]
                          [this-seulav : (Listof CSS-Values) sub-seulav])
                         ([declared-values : CSS-Values (in-list this-values)])
@@ -54,19 +55,18 @@
                     (λ [[declared-values : CSS-Values]] (value-filter declared-values inherited-values env)))])))
 
 (define css-cascade-rules* : (->* ((Listof CSS-Grammar-Rule) (Listof+ CSS-Subject) CSS-Declaration-Parsers)
-                                  (Boolean CSS-Media-Features) (Listof CSS-Values))
+                                  (CSS-Media-Features) (Listof CSS-Values))
   ;;; https://drafts.csswg.org/css-cascade/#filtering
   ;;; https://drafts.csswg.org/css-cascade/#cascading
-  (lambda [rules stcejbus desc-parsers [quirk? #false] [top-descriptors (default-css-media-features)]]
+  (lambda [rules stcejbus desc-parsers [top-descriptors (default-css-media-features)]]
     (call-with-css-viewport-from-media #:descriptors top-descriptors
-      (define-values (ordered-srcs single?) (css-select-styles rules stcejbus desc-parsers quirk? top-descriptors))
-      (define css:ident->datum : (-> CSS:Ident Symbol) (if quirk? css:ident-datum css:ident-norm))
+      (define-values (ordered-srcs single?) (css-select-styles rules stcejbus desc-parsers top-descriptors))
       (if (and single?)
           (for/list : (Listof CSS-Values) ([src (in-list ordered-srcs)])
-            (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident->datum))
+            (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident-datum))
           (for/list : (Listof CSS-Values) ([src (in-list ordered-srcs)])
             (define alter-descriptors : CSS-Media-Features (vector-ref src 2))
             (if (eq? alter-descriptors top-descriptors)
-                (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident->datum)
+                (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident-datum)
                 (call-with-css-viewport-from-media #:descriptors alter-descriptors
-                  (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident->datum))))))))
+                  (css-cascade-declarations desc-parsers (in-value (vector-ref src 1)) css:ident-datum))))))))
