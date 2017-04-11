@@ -14,7 +14,7 @@
 (require "../recognizer.rkt")
 (require "../racket.rkt")
 
-(define &font : (Boxof CSS-Font) (box (default-css-font)))
+(define &font : (Boxof Font) (box (default-css-font)))
 
 (define css-font-generic-families : (Listof Symbol)
   '(default roman swiss      decorative modern    script  system    symbol
@@ -33,7 +33,7 @@
 (define css-font-stretch-option : (Listof Symbol) '(normal condensed expanded ultra-condensed extra-condensed semi-condensed
                                                            ultra-expanded extra-expanded semi-expanded))
   
-(define-css-prefab-filter <css-system-font> #:-> CSS-Font #:format "default-css-~a-font"
+(define-css-prefab-filter <css-system-font> #:-> Font #:format "default-css-~a-font"
   [caption       (default-css-font)]
   [icon          (default-css-font)]
   [menu          (default-css-font)]

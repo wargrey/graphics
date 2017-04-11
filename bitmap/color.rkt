@@ -12,7 +12,7 @@
 (require "digitama/cheat.rkt")
 (require "digitama/inspectable.rkt")
 
-(define-type RGBA-Color (Instance RGBA-Color%))
+(define-type Color (Instance RGBA-Color%))
 
 (define-type RGBA-Color%
   (Class #:implements Inspectable-Color%
@@ -49,8 +49,8 @@
       (list (send this red) (send this green) (send this blue) (send this alpha)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define select-color : (->* (Color+sRGB) (Nonnegative-Flonum) RGBA-Color)
-  (let ([colorbase : (HashTable Fixnum RGBA-Color) (make-hasheq)])
+(define select-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)
+  (let ([colorbase : (HashTable Fixnum Color) (make-hasheq)])
     (lambda [representation [alpha 1.0]]
       (define opaque? : Boolean (fl= alpha 1.0))
       (cond [(fixnum? representation)

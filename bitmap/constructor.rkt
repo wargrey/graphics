@@ -125,7 +125,7 @@
     (send dc set-font font)
     (when fgcolor (send dc set-text-foreground (select-color fgcolor)))
     (unless (false? bgcolor)
-      (define color : RGBA-Color (select-color bgcolor))
+      (define color : Color (select-color bgcolor))
       (send dc set-smoothing 'aligned)
       (send dc set-pen color 0 'transparent)
       (send dc set-brush color 'solid)

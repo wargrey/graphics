@@ -21,7 +21,7 @@
 (define css-normal-line-height : (Parameterof Nonnegative-Flonum) (make-parameter 1.2))
 
 ; TODO: Is this a good design? How about using (default-css-font) directly?
-(define current-css-element-font : (-> CSS-Font) (λ [] (unbox &font)))
+(define current-css-element-font : (-> Font) (λ [] (unbox &font)))
 
 (define css-font-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
   ;;; https://drafts.csswg.org/css-fonts/#basic-font-props
@@ -46,10 +46,10 @@
       [(font-hinting) (<css:ident-norm> racket-font-hinting?)]
       [else #false])))
 
-(define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (CSS-Font) CSS-Font)
+(define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (Font) Font)
   (lambda [declared-values inherited-values [basefont (default-css-font)]]
     (define ?font : Any (and inherited-values (css-ref inherited-values #false 'font)))
-    (define inherited-font : CSS-Font (if (css-font%? ?font) ?font basefont))
+    (define inherited-font : Font (if (css-font%? ?font) ?font basefont))
     (define rem? : Boolean (positive? (css-rem)))
 
     (let call-with-inherited-font ()
@@ -65,7 +65,7 @@
     (define font-size : Nonnegative-Real (css-ref declared-values #true 'font-size css->font-size))
     (define smoothing : Font-Smoothing (send inherited-font get-smoothing))
     (define hinting : Font-Hinting (send inherited-font get-hinting))
-    (define font : CSS-Font
+    (define font : Font
       ;;; WARNING
       ;; Do not pass inherited-font here, since the inheriting is already done as the `#true`s indicate,
       ;; give properties a chance to use their initial value if they are desired to.

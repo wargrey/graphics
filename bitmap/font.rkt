@@ -10,7 +10,7 @@
 (require "digitama/unsafe.rkt")
 (require "digitama/inspectable.rkt")
 
-(define-type CSS-Font (Instance CSS-Font%))
+(define-type Font (Instance CSS-Font%))
 
 (define-type CSS-Font%
   (Class #:implements Inspectable-Font%
