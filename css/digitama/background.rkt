@@ -25,7 +25,7 @@
   (<css-keyword> css-border-thickness-option))
 
 (define <:border-color:> : (Pairof CSS-Shorthand-Parser (Listof Symbol))
-  (css-make-pair-parser <css-color> 'border-top-color 'border-right-color 'border-bottom-color 'border-left-color))
+  (css-make-pair-parser (<css-color>) 'border-top-color 'border-right-color 'border-bottom-color 'border-left-color))
 
 (define <:border-style:> : (Pairof CSS-Shorthand-Parser (Listof Symbol))
   (css-make-pair-parser (<css-keyword> css-border-style-option)

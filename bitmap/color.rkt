@@ -78,9 +78,8 @@
                                       (equal-hash-code (if opaque? color-name (cons color-name alpha)))
                                       (λ [] (select-color (rgb-bytes->hex (send color red) (send color green) (send color blue))
                                                           alpha)))]))]
-            [(not (rgba%? representation))
-             (hash-ref! colorbase
-                        (eq-hash-code representation)
-                        (λ [] (select-color (rgb-bytes->hex (send representation red) (send representation green) (send representation blue))
-                                            (flmax (real->double-flonum (send representation alpha)) 0.0))))]
-            [else representation]))))
+            [(rgba%? representation) representation]
+            [else (hash-ref! colorbase
+                             (eq-hash-code representation)
+                             (λ [] (select-color (rgb-bytes->hex (send representation red) (send representation green) (send representation blue))
+                                                 (flmax (real->double-flonum (send representation alpha)) 0.0))))]))))

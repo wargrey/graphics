@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require colorspace/misc)
+
 (require "digitama/digicore.rkt")
 (require "digitama/cheat.rkt")
 (require "digitama/color.rkt")
@@ -16,8 +18,8 @@
 
 (define-type CSS-Pen%
   (Class #:implements Inspectable-Pen%
-         (init [color Color]
-               [width Real #:optional]
+         (init-field [color Color])
+         (init [width Real #:optional]
                [style Pen-Style #:optional]
                [cap Pen-Cap-Style #:optional]
                [join Pen-Join-Style #:optional]
@@ -26,8 +28,8 @@
 
 (define-type CSS-Brush%
   (Class #:implements Inspectable-Brush%
-         (init [color Color]
-               [style Brush-Style #:optional]
+         (init-field [color Color])
+         (init [style Brush-Style #:optional]
                [stipple (Option (Instance Bitmap%)) #:optional]
                [gradient (U (Instance CSS-Linear-Gradient%) (Instance CSS-Radial-Gradient%) False) #:optional]
                [transformation (Option (Vector (Vector Real Real Real Real Real Real) Real Real Real Real Real)) #:optional])
@@ -47,7 +49,8 @@
 
 (define/make-is-a? css-pen% : CSS-Pen%
   (class inspectable-pen%
-    (init color [width 1.0] [style 'solid] [cap 'round] [join 'round] [stipple #false])
+    (init-field color)
+    (init [width 1.0] [style 'solid] [cap 'round] [join 'round] [stipple #false])
     (init-field [immutable? #true])
 
     (super-make-object color width style cap join stipple)
@@ -56,10 +59,12 @@
       (case-lambda
        [(color/name)
         (when immutable? (error 'css-pen% "pen is immutable"))
-        (super set-color color/name)]
+        (set! color (select-color color/name))
+        (super set-color color)]
        [(r g b)
         (when immutable? (error 'css-pen% "pen is immutable"))
-        (super set-color r g b)]))
+        (set! color (select-color (rgb-bytes->hex r g b)))
+        (super set-color color)]))
     
     (define/override-immutable 'css-pen% immutable? "pen is immutable"
       ([set-width width]
@@ -70,14 +75,20 @@
 
     (define/override (is-immutable?)
       immutable?)
+
+    (define/override (get-color)
+      ;;; Awkward, it copys the color instance everytime to make it immutable and opaque again
+      ;;; since there is no way to tell it "It's already immutable".
+      color)
     
     (define/override (inspect)
-      (list (send this get-color) (send this get-width) (send this get-style)
+      (list color (send this get-width) (send this get-style)
             (send this get-cap) (send this get-join)))))
 
 (define/make-is-a? css-brush% : CSS-Brush%
   (class inspectable-brush%
-    (init color [style 'solid] [stipple #false] [gradient #false] [transformation #false])
+    (init-field color)
+    (init [style 'solid] [stipple #false] [gradient #false] [transformation #false])
     (init-field [immutable? #true])
 
     (super-make-object color style stipple gradient transformation)
@@ -86,10 +97,12 @@
       (case-lambda
        [(color/name)
         (when immutable? (error 'css-brush% "brush is immutable"))
-        (super set-color color/name)]
+        (set! color (select-color color/name))
+        (super set-color color)]
        [(r g b)
         (when immutable? (error 'css-brush% "brush is immutable"))
-        (super set-color r g b)]))
+        (set! color (select-color (rgb-bytes->hex r g b)))
+        (super set-color color)]))
 
     (define/override (set-style style)
       (when immutable? (error 'css-brush% "brush is immutable"))
@@ -102,9 +115,13 @@
     (define/override (is-immutable?)
       immutable?)
 
+    (define/override (get-color)
+      ;;; Awkward, it copys the color instance everytime to make it immutable and opaque again
+      ;;; since there is no way to tell it "It's already immutable".
+      color)
+    
     (define/override (inspect)
-      (list (send this get-color) (send this get-style)
-            (send this get-gradient) (send this get-transformation)))))
+      (list color (send this get-style) (send this get-gradient) (send this get-transformation)))))
 
 (define/make-is-a? css-linear-gradient% : CSS-Linear-Gradient%
   (class inspectable-linear-gradient%

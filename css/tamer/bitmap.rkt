@@ -25,6 +25,7 @@
    [background-color : Color                   #:= "Snow"]
    [font : Font                                #:= (current-css-element-font)]
    [borders : (Listof Pen)                     #:= null]
+   [brush : Brush                              #:= (make-css-brush)]
    [width : Index                              #:= 512]
    [desc : String                              #:= "['desc' property is required]"]
    [prelude : Bitmap                           #:= (bitmap-text "> ")]
@@ -58,6 +59,7 @@
                 #:background-color (css-color-ref declared-values inherited-values 'background-color)
                 #:font (css-extract-font declared-values inherited-values)
                 #:borders (css-extract-border-pen declared-values inherited-values)  #|properties are not inheritable|#
+                #:brush (css-extract-brush declared-values inherited-values)         #|properties are not inheritable|#
                 #:width (css-ref declared-values inherited-values 'width index? css:initial)
                 #:desc (css-ref declared-values inherited-values 'desc css->desc)
                 #:prelude (css-ref declared-values inherited-values 'prelude css->bitmap)

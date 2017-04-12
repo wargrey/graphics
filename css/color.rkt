@@ -23,14 +23,14 @@
 (define css-color-property-parsers : (->* (Symbol) ((U Regexp (Listof Symbol))) (Option CSS-Declaration-Parser))
   (lambda [name [px.names #px"-color$"]]
     (or (and (eq? name 'color) (<css-color> '#:inherit-currentcolor))
-        (and (or (memq name '(background-color border-color))
-                 (and (list? px.names) (memq name px.names))
+        (and (or (and (list? px.names) (memq name px.names))
                  (and (regexp? px.names) (regexp-match? px.names (symbol->string name))))
              (<css-color>)))))
 
 (define css->color : (CSS->Racket (U Color CSS-Wide-Keyword 'currentcolor))
   (lambda [desc-name color]
-    (cond [(color%? color) (select-color color)]
+    (cond [(rgba%? color) color]
+          [(color%? color) (select-color color)]
           [(eq? color 'currentcolor) color #| evaluated at used-value time |#]
           [(css-basic-color-datum? color) (select-color color)]
           [(hexa? color) (select-color (hexa-hex color) (hexa-a color))]

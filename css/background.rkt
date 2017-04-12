@@ -24,6 +24,8 @@
       [(border-top-color border-right-color border-bottom-color border-left-color) (<css-color>)]
       [(border-top-width border-right-width border-bottom-width border-left-width) (<border-width>)]
       [(border-top-style border-right-style border-bottom-style border-left-style) (<css-keyword> css-border-style-option)]
+      [(background-color) (<css-color>)]
+      [(background-style) (<css-keyword> brush-style?)]
       [else #false])))
 
 (define css-extract-border-pen : (case-> [CSS-Values (Option CSS-Values) -> (Listof Pen)]
@@ -44,3 +46,8 @@
      (make-css-pen #:color (css-color-ref declared-values #false color-key 'currentcolor)
                    #:width (css-ref declared-values #false width-key css->border-width)
                    #:style (css-ref declared-values #false style-key symbol? 'none))]))
+
+(define css-extract-brush : (-> CSS-Values (Option CSS-Values) Brush)
+  (lambda [declared-values inherited-values]
+    (make-css-brush #:color (css-color-ref declared-values #false 'background-color 'transparent)
+                    #:style (css-ref declared-values #false 'background-style brush-style? 'transparent))))
