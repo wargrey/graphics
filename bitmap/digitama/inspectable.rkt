@@ -2,7 +2,9 @@
 
 (provide (all-defined-out))
 (provide inspectable-font% inspectable-color%
-         inspectable-pen% inspectable-brush%)
+         inspectable-pen%  inspectable-brush%
+         inspectable-linear-gradient%
+         inspectable-radial-gradient%)
 
 (require typed/racket/unsafe)
 (require typed/racket/draw)
@@ -55,8 +57,10 @@
                 (List Byte Byte Byte Real))))
 
 (define-inspectable-class
-  [Inspectable-Pen%   #:+ Fixed-Pen%]
-  [Inspectable-Brush% #:+ Brush%])
+  [Inspectable-Pen%             #:+ Fixed-Pen%]
+  [Inspectable-Brush%           #:+ Brush%]
+  [Inspectable-Linear-Gradient% #:+ Linear-Gradient%]
+  [Inspectable-Radial-Gradient% #:+ Radial-Gradient%])
 
 (module cheat racket/base
   (provide (all-defined-out))
@@ -81,11 +85,15 @@
   (define inspectable-font% (inspectable-mixin% font%))
   (define inspectable-color% (inspectable-mixin% color%))
   (define inspectable-pen% (inspectable-mixin% pen%))
-  (define inspectable-brush% (inspectable-mixin% brush%)))
+  (define inspectable-brush% (inspectable-mixin% brush%))
+  (define inspectable-linear-gradient% (inspectable-mixin% linear-gradient%))
+  (define inspectable-radial-gradient% (inspectable-mixin% radial-gradient%)))
 
 (unsafe-require/typed
  (submod "." cheat)
- [inspectable-font%  Inspectable-Font%]
- [inspectable-color% Inspectable-Color%]
- [inspectable-pen%   Inspectable-Pen%]
- [inspectable-brush% Inspectable-Brush%])
+ [inspectable-font%            Inspectable-Font%]
+ [inspectable-color%           Inspectable-Color%]
+ [inspectable-pen%             Inspectable-Pen%]
+ [inspectable-brush%           Inspectable-Brush%]
+ [inspectable-linear-gradient% Inspectable-Linear-Gradient%]
+ [inspectable-radial-gradient% Inspectable-Radial-Gradient%])
