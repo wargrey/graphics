@@ -119,7 +119,7 @@
                                   (desc-set! descbase name important? (thunk desc-value))))])))
     (define parse-desc : (-> CSS-Values (CSS-Parser (Listof Any)) CSS:Ident (Listof+ CSS-Token) Symbol Boolean Boolean Void)
       (lambda [descbase parser <desc-name> declared-values desc-name important? lazy?]
-        (define css-parse : (CSS-Parser (Listof Any)) (CSS<+> parser (CSS<^> (<css-wide-keywords>))))
+        (define css-parse : (CSS-Parser (Listof Any)) (CSS<+> parser (CSS:<^> (<css-wide-keywords>))))
         (cond [(and lazy?)
                (desc-set! descbase desc-name important?
                           (thunk (let* ([flat (css-variable-substitute <desc-name> declared-values (css-varbase-ref descbase) null)]

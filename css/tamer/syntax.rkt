@@ -27,9 +27,9 @@
     (or (css-font-property-parsers suitcased-name)
         (css-image-property-parsers suitcased-name)
         (and (eq? suitcased-name 'at-exp)
-             (CSS<^> (list (<css:λracket>)
-                           (<css:racket>)
-                           (<css:block>)))))))
+             (CSS:<^> (list (<css:λracket>)
+                            (<css:racket>)
+                            (<css:block>)))))))
 
 (define css-all-filter : (CSS-Cascaded-Value+Filter (Vectorof (Pairof Symbol Any)) Symbol)
   (lambda [declared-values inherited-values type]

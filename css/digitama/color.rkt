@@ -58,13 +58,13 @@
   [(rgba rgb) #:=> [(rgba [r ? byte?] [g ? byte?] [b ? byte?] [alpha ? nonnegative-flonum?])]
    (make-parser <:rgb:> <:rgb:>)]
   [(hsla hsl) #:=> [(hsba hsl->rgb [h ? real?] [s ? single-flonum?] [l ? single-flonum?] [alpha ? nonnegative-flonum?])]
-   (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
+   (make-parser <:hue:> (CSS:<^> (<css:percentage>)))]
   [(hsva hsv) #:=> [(hsba hsv->rgb [h ? real?] [s ? single-flonum?] [v ? single-flonum?] [alpha ? nonnegative-flonum?])]
-   (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
+   (make-parser <:hue:> (CSS:<^> (<css:percentage>)))]
   [(hsia hsi) #:=> [(hsba hsi->rgb [h ? real?] [s ? single-flonum?] [i ? single-flonum?] [alpha ? nonnegative-flonum?])]
-   (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
+   (make-parser <:hue:> (CSS:<^> (<css:percentage>)))]
   [(hwba hwb) #:=> [(hsba hwb->rgb [h ? real?] [w ? single-flonum?] [b ? single-flonum?] [alpha ? nonnegative-flonum?])]
-   (make-parser <:hue:> (CSS<^> (<css:percentage>)))]
+   (make-parser <:hue:> (CSS:<^> (<css:percentage>)))]
   #:where
   [(define-css-disjoint-filter <rgb-byte> #:-> Integer
      (<css:integer> byte?)
@@ -73,7 +73,7 @@
 
    (define make-alpha-parser : (-> (-> (CSS:Filter Char)) (CSS-Parser (Listof Any)))
      (lambda [<delimiter>]
-       (CSS<$> (CSS<?> [(<delimiter>) (CSS<^> (<css-%flunit>))]) 1.0)))
+       (CSS<$> (CSS<?> [(<delimiter>) (CSS:<^> (<css-%flunit>))]) 1.0)))
      
    (define make-parser : (-> (CSS-Parser (Listof Any)) (CSS-Parser (Listof Any)) (CSS-Parser (Listof Any)))
      ;;; https://github.com/w3c/csswg-drafts/issues/266
@@ -81,8 +81,8 @@
        (CSS<&> c1 (CSS<?> [(<css-comma>) (CSS<#> c2 '(2)) (make-alpha-parser <css-comma>)]
                           [else          (CSS<*> c2 '(2)) (make-alpha-parser <css-slash>)]))))
 
-   (define <:rgb:> (CSS<^> (<rgb-byte>)))
-   (define <:hue:> (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>) (<css:angle>))))])
+   (define <:rgb:> (CSS:<^> (<rgb-byte>)))
+   (define <:hue:> (CSS:<^> (CSS:<+> (<css:integer>) (<css:flonum>) (<css:angle>))))])
 
 (define-css-atomic-filter <racket-colorbase> #:-> (Instance Color%)
   #:with [[color-value : css:string?] [px : Regexp #px"(?i:grey)$"] [to : String "gray"]]

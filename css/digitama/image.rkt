@@ -60,19 +60,19 @@
       (<css-system-font>)
       (<css:@λ> the-@draw-pool css-@draw-filter '(make-font)))
     (define <:clock-pointers:> : (CSS-Parser (Listof Any))
-      (CSS<$> (CSS<&> (CSS<^> (<css:integer> 0 <= 11))
-                      (CSS<$> (CSS<^> (CSS:<+> (<css:integer> 0 <= 60)
-                                               (<css:flonum> 0.0 fl<= 60.0)))))))
+      (CSS<$> (CSS<&> (CSS:<^> (<css:integer> 0 <= 11))
+                      (CSS<$> (CSS:<^> (CSS:<+> (<css:integer> 0 <= 60)
+                                                (<css:flonum> 0.0 fl<= 60.0)))))))
     (case (or ?λ:kw λname)
       [(#:backing-scale) (<css+real> '#:nonzero)]
       [(#:height #:thickness) (CSS:<@> (<line-height>) (λ [[v : Any]] (select-size (css->line-height '_ v))))]
       [(#:outline) (<css+%real>)]
       [(#:material) (<css:ident> '(plastic-icon-material rubber-icon-material glass-icon-material metal-icon-material))]
       [(#:trim?) (<css-#boolean>)]
-      [(text-icon) (CSS<&> (CSS<^> (<css:string>)) (CSS<$> (CSS<^> (<text-icon-font>))))]
-      [(regular-polygon-icon) (CSS<&> (CSS<^> (<css-natural> '#:nonzero)) (CSS<$> (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))))]
-      [(lock-icon) (CSS<$> (CSS<^> (<css-#boolean>)))]
-      [(running-stickman-icon) (CSS<^> (CSS:<+> (<css:integer>) (<css:flonum>)))]
+      [(text-icon) (CSS<&> (CSS:<^> (<css:string>)) (CSS<$> (CSS:<^> (<text-icon-font>))))]
+      [(regular-polygon-icon) (CSS<&> (CSS:<^> (<css-natural> '#:nonzero)) (CSS<$> (CSS:<^> (CSS:<+> (<css:integer>) (<css:flonum>)))))]
+      [(lock-icon) (CSS<$> (CSS:<^> (<css-#boolean>)))]
+      [(running-stickman-icon) (CSS:<^> (CSS:<+> (<css:integer>) (<css:flonum>)))]
       [else (cond [(false? ?λ:kw) <:clock-pointers:>]
                   [else (CSS:<+> (<css:racket>) ; their is no need to evaluating racket bindings right now 
                                  (CSS:<@> (<css-color>)
@@ -86,11 +86,11 @@
   ;;; https://drafts.csswg.org/css-images/#image-set-notation
   [(image) #:=> [(image "" [fallback ? index? string? symbol? css-color?])
                  (image [content ? css-image? string? css-@λ?] [fallback ? css-basic-color-datum? css-color?])]
-   (CSS<+> (CSS<^> (<css-color>)) ; NOTE: both color and url accept strings, however their domains are not intersective.
-           (CSS<&> (CSS<^> (CSS:<+> (<css-image>) (<css:string>)))
-                   (CSS<$> (CSS<?> [(<css-comma>) (CSS<^> (<css-color>))]) 'transparent)))]
+   (CSS<+> (CSS:<^> (<css-color>)) ; NOTE: both color and url accept strings, however their domains are not intersective.
+           (CSS<&> (CSS:<^> (CSS:<+> (<css-image>) (<css:string>)))
+                   (CSS<$> (CSS<?> [(<css-comma>) (CSS:<^> (<css-color>))]) 'transparent)))]
   [(image-set) #:=> [(image-set [options ? css-image-sets?])]
-   (CSS<!> (CSS<#> (CSS<!> (CSS<^> (list (CSS:<+> (<css:string>) (<css-image>)) (<css+resolution>))))))]
+   (CSS<!> (CSS<#> (CSS<!> (CSS:<^> (list (CSS:<+> (<css:string>) (<css-image>)) (<css+resolution>))))))]
   #:where
   [(define-predicate css-image-sets? Image-Set-Options)])
 

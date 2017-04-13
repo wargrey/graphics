@@ -43,6 +43,7 @@
 
 (define css-font->longhand-properties : (->* ((Instance Font%)) ((HashTable Symbol Any)) (HashTable Symbol Any))
   (lambda [font [longhand css-longhand]]
+    ;;; TODO: expand all font% fields
     (let* ([longhand++ (hash-set longhand 'font-weight (send font get-weight))]
            [longhand++ (hash-set longhand++ 'font-style (send font get-style))]
            [longhand++ (hash-set longhand++ 'font-size (smart-font-size font))])
@@ -73,22 +74,22 @@
 (define <:font-family:> : (CSS-Parser (Listof Any))
   ;;; https://drafts.csswg.org/css-fonts/#font-family-prop
   ;;; https://drafts.csswg.org/css-fonts-4/#extended-generics
-  (CSS<#> (CSS<+> (CSS<^> (CSS:<+> (<css:string>) (<css-keyword> css-font-generic-families)))
-                  (CSS<!> (CSS<^> (<css:ident>))))))
+  (CSS<#> (CSS<+> (CSS:<^> (CSS:<+> (<css:string>) (<css-keyword> css-font-generic-families)))
+                  (CSS<!> (CSS:<^> (<css:ident>))))))
   
 (define <:font-shorthand:> : (Pairof CSS-Shorthand-Parser (Listof Symbol))
   ;;; https://drafts.csswg.org/css-fonts/#font-prop
-  (cons (CSS<+> (CSS<^> (<css-system-font>) css-font->longhand-properties)
-                (CSS<&> (CSS<*> (CSS<+> (CSS<_> (CSS<^> (<css-keyword> 'normal) '|Ignoring, some properties use it as defaults|))
-                                        (CSS<^> (<font-weight>) 'font-weight)
-                                        (CSS<^> (<css-keyword> css-font-style-option) 'font-style)
-                                        (CSS<^> (<css-keyword> css-font-variant-options/21) 'font-variant)
+  (cons (CSS<+> (CSS:<^> (<css-system-font>) css-font->longhand-properties)
+                (CSS<&> (CSS<*> (CSS<+> (CSS<_> (CSS:<^> (<css-keyword> 'normal) '|Ignoring, some properties use it as defaults|))
+                                        (CSS:<^> (<font-weight>) 'font-weight)
+                                        (CSS:<^> (<css-keyword> css-font-style-option) 'font-style)
+                                        (CSS:<^> (<css-keyword> css-font-variant-options/21) 'font-variant)
                                         ; <font-stretch> also accepts percentage in css-fonts-4 specification,
                                         ; however it preempts the 'font-size
-                                        (CSS<^> (<css-keyword> css-font-stretch-option) 'font-stretch)))
-                        (CSS<^> (<font-size>) 'font-size)
-                        (CSS<*> (CSS<?> [(<css-slash>) (CSS<^> (<line-height>) 'line-height)]) '?)
-                        (CSS<^> <:font-family:> '(font-family))))
+                                        (CSS:<^> (<css-keyword> css-font-stretch-option) 'font-stretch)))
+                        (CSS:<^> (<font-size>) 'font-size)
+                        (CSS<*> (CSS<?> [(<css-slash>) (CSS:<^> (<line-height>) 'line-height)]) '?)
+                        (CSS<^> <:font-family:> 'font-family)))
         '(font-style font-variant font-weight font-stretch font-size line-height font-family
                      font-size-adjust font-kerning font-language-override)))
 

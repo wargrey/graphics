@@ -133,67 +133,99 @@
        (cond [(false? datum) false-value]
              [(exn:css? datum) (or (fexn-value datum) datum)]
              [else datum]))]))
-  
-(define CSS<^> : (All (a) (case-> [(U (CSS:Filter Any) (Listof (CSS:Filter Any))) -> (CSS-Parser (Listof Any))]
-                                  [(CSS:Filter Any) Symbol -> CSS-Shorthand-Parser]
-                                  [(CSS:Filter Any) Symbol CSS-Longhand-Update -> CSS-Shorthand-Parser]
-                                  [(CSS-Parser (Listof Any)) (List Symbol) -> CSS-Shorthand-Parser]
-                                  [(CSS-Parser (Listof Any)) (List Symbol) CSS-Longhand-Update -> CSS-Shorthand-Parser]
-                                  [(CSS:Filter a) (->* (a) ((HashTable Symbol Any)) (HashTable Symbol Any)) -> CSS-Shorthand-Parser]))
-  (case-lambda
-    [(atom-filter)
-     (if (list? atom-filter)
-         (λ [[data : (Listof Any)] [tokens : (Listof CSS-Token)]]
-           (let datum-fold ([data++ : (Listof Any) data]
-                            [tokens-- : (Listof CSS-Token) tokens]
-                            [filters : (Listof (CSS:Filter Any)) atom-filter])
-             (cond [(null? filters) (values data++ tokens--)]
-                   [else (let ([css-filter (car filters)])
-                           (define-values (token --tokens) (css-car/cdr tokens--))
-                           (define datum : (CSS-Option Any) (css-filter token))
-                           (cond [(or (false? datum) (exn:css? datum)) (values datum tokens--)]
-                                 [else (datum-fold (cons datum data++) --tokens (cdr filters))]))])))
-         (λ [[data : (Listof Any)] [tokens : (Listof CSS-Token)]]
-           (define-values (head tail) (css-car/cdr tokens))
-           (define datum : (CSS-Option Any) (atom-filter head))
-           (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
-                 [else (values (cons datum data) tail)])))]
-    [(atom-filter tag)
-     (cond [(symbol? tag)
-            (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
-              (define-values (token --tokens) (css-car/cdr tokens))
-              (define datum : (CSS-Option Any) (atom-filter token))
-              (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
-                    [else (values (hash-set data tag datum) --tokens)]))]
-           [(list? tag)
-            (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
-              (define-values (subdata --tokens) (atom-filter null tokens))
-              (cond [(or (false? subdata) (exn:css? subdata)) (values subdata --tokens)]
-                    [else (values (hash-set data (car tag) (reverse subdata)) --tokens)]))]
-           [(λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
-              (define-values (token --tokens) (css-car/cdr tokens))
-              (define datum : (CSS-Option a) (atom-filter token))
-              (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
-                    [else (values (tag datum data) --tokens)]))])]
-    [(atom-filter tag updater)
-     (if (symbol? tag)
-         (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
-           (define-values (token --tokens) (css-car/cdr tokens))
-           (define datum : (CSS-Option Any) (atom-filter token))
-           (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
-                 [else (values (hash-update data tag (λ [[v : Any]] (updater tag v datum)) (thunk #false)) --tokens)]))
-         (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
-           (define-values (subdata --tokens) (atom-filter null tokens))
-           (cond [(or (false? subdata) (exn:css? subdata)) (values subdata --tokens)]
-                 [else (values (hash-update data (car tag)
-                                            (λ [[v : Any]] (updater (car tag) v (reverse subdata)))
-                                            (thunk #false))
-                               --tokens)])))]))
+
+(define CSS:<$> : (-> (CSS:Filter Any) Symbol (-> (HashTable Symbol Any) Any) CSS-Shorthand-Parser)
+  (lambda [css:filter tag fdatum]
+    (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
+      (cond [(pair? tokens) (let ([css-parser (CSS:<^> css:filter tag)]) (css-parser data tokens))]
+            [else (values (hash-set data tag (fdatum data)) null)]))))
+
+(define CSS:<^> : (All (a) (case-> [(U (CSS:Filter Any) (Listof+ (CSS:Filter Any))) -> (CSS-Parser (Listof Any))]
+                                   [(CSS:Filter a) (->* (a) ((HashTable Symbol Any)) (HashTable Symbol Any)) -> CSS-Shorthand-Parser]
+                                   [(CSS:Filter Any) (U Symbol (Listof+ Symbol)) -> CSS-Shorthand-Parser]
+                                   [(CSS:Filter Any) (U Symbol (Listof+ Symbol)) CSS-Longhand-Update -> CSS-Shorthand-Parser]))
+  (let ()
+    (define hash-set++ : (-> (HashTable Symbol Any) (Listof+ Symbol) Any (HashTable Symbol Any))
+      (lambda [data++ tags v]
+        (define rest : (Listof Symbol) (cdr tags))
+        (cond [(null? rest) (hash-set data++ (car tags) v)]
+              [else (hash-set++ (hash-set data++ (car tags) v) rest v)])))
+    (define hash-update++ : (-> (HashTable Symbol Any) (Listof+ Symbol) Any CSS-Longhand-Update (HashTable Symbol Any))
+      (lambda [data++ tags datum updater]
+        (define rest : (Listof Symbol) (cdr tags))
+        (cond [(null? rest) (hash-update data++ (car tags) (λ [[v : Any]] (updater (car tags) v datum)) (thunk #false))]
+              [else (hash-update++ (hash-update data++ (car tags) (λ [[v : Any]] (updater (car tags) v datum)) (thunk #false))
+                                   rest datum updater)])))
+    (case-lambda
+      [(atom-filter)
+       (if (pair? atom-filter)
+           (λ [[data : (Listof Any)] [tokens : (Listof CSS-Token)]]
+             (let datum-fold ([data++ : (Listof Any) data]
+                              [tokens-- : (Listof CSS-Token) tokens]
+                              [filters : (Listof (CSS:Filter Any)) atom-filter])
+               (cond [(null? filters) (values data++ tokens--)]
+                     [else (let ([css-filter (car filters)])
+                             (define-values (token --tokens) (css-car/cdr tokens--))
+                             (define datum : (CSS-Option Any) (css-filter token))
+                             (cond [(or (false? datum) (exn:css? datum)) (values datum tokens--)]
+                                   [else (datum-fold (cons datum data++) --tokens (cdr filters))]))])))
+           (λ [[data : (Listof Any)] [tokens : (Listof CSS-Token)]]
+             (define-values (head tail) (css-car/cdr tokens))
+             (define datum : (CSS-Option Any) (atom-filter head))
+             (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
+                   [else (values (cons datum data) tail)])))]
+      [(atom-filter tag)
+       (if (procedure? tag)
+           (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
+             (define-values (token --tokens) (css-car/cdr tokens))
+             (define datum (atom-filter token))
+             (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
+                   [else (values (tag datum data) --tokens)]))
+           (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
+             (define-values (token --tokens) (css-car/cdr tokens))
+             (define datum : (CSS-Option Any) (atom-filter token))
+             (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
+                   [(symbol? tag) (values (hash-set data tag datum) --tokens)]
+                   [else (values (hash-set++ data tag datum) --tokens)])))]
+      [(atom-filter tag updater)
+       (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
+         (define-values (token --tokens) (css-car/cdr tokens))
+         (define datum : (CSS-Option Any) (atom-filter token))
+         (cond [(or (false? datum) (exn:css? datum)) (values datum tokens)]
+               [(symbol? tag) (values (hash-update data tag (λ [[v : Any]] (updater tag v datum)) (thunk #false)) --tokens)]
+               [else (values (hash-update++ data tag datum updater) --tokens)]))])))
+
+(define CSS<^> : (case-> [(CSS-Parser (Listof Any)) (U Symbol (Listof+ Symbol)) -> CSS-Shorthand-Parser]
+                         [(CSS-Parser (Listof Any)) (U Symbol (Listof+ Symbol)) CSS-Longhand-Update -> CSS-Shorthand-Parser])
+  (let ()
+    (define hash-set++ : (-> (HashTable Symbol Any) (Listof+ Symbol) Any (HashTable Symbol Any))
+      (lambda [data++ tags v]
+        (define rest : (Listof Symbol) (cdr tags))
+        (cond [(null? rest) (hash-set data++ (car tags) v)]
+              [else (hash-set++ (hash-set data++ (car tags) v) rest v)])))
+    (define hash-update++ : (-> (HashTable Symbol Any) (Listof+ Symbol) Any CSS-Longhand-Update (HashTable Symbol Any))
+      (lambda [data++ tags datum updater]
+        (define rest : (Listof Symbol) (cdr tags))
+        (cond [(null? rest) (hash-update data++ (car tags) (λ [[v : Any]] (updater (car tags) v datum)) (thunk #false))]
+              [else (hash-update++ (hash-update data++ (car tags) (λ [[v : Any]] (updater (car tags) v datum)) (thunk #false))
+                                   rest datum updater)])))
+    (case-lambda
+      [(atom-parser tag)
+       (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
+         (define-values (subdata --tokens) ((cast atom-parser (CSS-Parser (Listof Any))) null tokens))
+         (cond [(or (false? subdata) (exn:css? subdata)) (values subdata --tokens)]
+               [(symbol? tag) (values (hash-set data tag (reverse subdata)) --tokens)]
+               [else (values (hash-set++ data tag (reverse subdata)) --tokens)]))]
+      [(atom-parser tag updater)
+       (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
+         (define-values (subdata --tokens) ((cast atom-parser (CSS-Parser (Listof Any))) null tokens))
+         (cond [(or (false? subdata) (exn:css? subdata)) (values subdata --tokens)]
+               [(list? tag) (values (hash-update++ data tag (reverse subdata) updater) --tokens)]
+               [else (values (hash-update data tag (λ [[v : Any]] (updater tag v (reverse subdata))) (thunk #false)) --tokens)]))])))
 
 (define CSS<$> : (case-> [(CSS-Parser (Listof Any)) -> (CSS-Parser (Listof Any))]
                          [(CSS-Parser (Listof Any)) Any -> (CSS-Parser (Listof Any))]
-                         [(CSS:Filter Any) Symbol (-> (HashTable Symbol Any) Any) -> CSS-Shorthand-Parser]
-                         [(CSS-Parser (Listof Any)) (List Symbol) (-> (HashTable Symbol Any) Any) -> CSS-Shorthand-Parser])
+                         [(CSS-Parser (Listof Any)) Symbol (-> (HashTable Symbol Any) Any) -> CSS-Shorthand-Parser])
   (case-lambda
     [(css-parser)
      (λ [[data : (Listof Any)] [tokens : (Listof CSS-Token)]]
@@ -204,13 +236,9 @@
        (cond [(pair? tokens) (css-parser data tokens)]
              [else (values (cons eof-value data) null)]))]
     [(css:filter tag fdatum)
-     (if (symbol? tag)
-         (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
-           (cond [(pair? tokens) (let ([css-parser (CSS<^> css:filter tag)]) (css-parser data tokens))]
-                 [else (values (hash-set data tag (fdatum data)) null)]))
-         (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
-           (cond [(pair? tokens) (let ([css-parser (CSS<^> css:filter tag)]) (css-parser data tokens))]
-                 [else (values (hash-set data (car tag) (fdatum data)) null)])))]))
+     (λ [[data : (HashTable Symbol Any)] [tokens : (Listof CSS-Token)]]
+       (cond [(pair? tokens) (let ([css-parser (CSS<^> css:filter tag)]) (css-parser data tokens))]
+             [else (values (hash-set data tag (fdatum data)) null)]))]))
 
 (define CSS<~> : (All (a) (-> (CSS-Parser a) (-> a a) (CSS-Parser a)))
   (lambda [css-parser data=>data]
@@ -401,12 +429,12 @@
 
 (define <:css-keywords:> : (->* ((Listof Symbol)) (Symbol) (CSS-Parser (Listof Any)))
   (lambda [options [none 'none]]
-    (CSS<+> (CSS<^> (CSS:<=> (<css-keyword> none) null))
-            (CSS<*> (CSS<^> (<css-keyword> options)) '+))))
+    (CSS<+> (CSS:<^> (CSS:<=> (<css-keyword> none) null))
+            (CSS<*> (CSS:<^> (<css-keyword> options)) '+))))
 
 (define <:css-strings:> : (->* () ((U (CSS-Multiplier Index) '+ '? '*) (-> String Boolean)) (CSS-Parser (Listof Any)))
   (lambda [[multipliers '+] [string-filter (λ _ #true)]]
-    (CSS<*> (CSS<^> (<css:string> string-filter)) multipliers)))
+    (CSS<*> (CSS:<^> (<css:string> string-filter)) multipliers)))
 
 (define (<css-comma>) : (CSS:Filter Char) (CSS:<?> (<css:delim> #\,) make-exn:css:missing-comma))
 (define (<css-slash>) : (CSS:Filter Char) (CSS:<?> (<css:delim> #\/) make-exn:css:missing-slash))
@@ -430,19 +458,19 @@
             [(CSS:Filter Any) Symbol Symbol Symbol Symbol -> (Pairof CSS-Shorthand-Parser (Listof Symbol))])
   (case-lambda
     [(filters names)
-     (cons (CSS<*> (apply CSS<+> (CSS<^> (car filters) (car names))
+     (cons (CSS<*> (apply CSS<+> (CSS:<^> (car filters) (car names))
                           ((inst map CSS-Shorthand-Parser (CSS:Filter Any) Symbol)
-                           CSS<^> (cdr filters) (cdr names))) '+)
+                           CSS:<^> (cdr filters) (cdr names))) '+)
            names)]
     [(filter name1 name2)
-     (cons (CSS<&> (CSS<^> filter name1)
-                   (CSS<$> filter name2 (λ [longhand] (hash-ref longhand name1))))
+     (cons (CSS<&> (CSS:<^> filter name1)
+                   (CSS:<$> filter name2 (λ [longhand] (hash-ref longhand name1))))
            (list name1 name2))]
     [(filter top right bottom left)
-     (cons (CSS<&> (CSS<^> filter top)
-                   (CSS<$> filter right (λ [longhand] (hash-ref longhand top)))
-                   (CSS<$> filter bottom (λ [longhand] (hash-ref longhand top)))
-                   (CSS<$> filter left (λ [longhand] (hash-ref longhand right))))
+     (cons (CSS<&> (CSS:<^> filter top)
+                   (CSS:<$> filter right (λ [longhand] (hash-ref longhand top)))
+                   (CSS:<$> filter bottom (λ [longhand] (hash-ref longhand top)))
+                   (CSS:<$> filter left (λ [longhand] (hash-ref longhand right))))
            (list top right bottom left))]))
 
 (define make-css->size : (All (a) (-> a #:100% Nonnegative-Flonum (CSS->Racket (U a Nonnegative-Flonum))))
