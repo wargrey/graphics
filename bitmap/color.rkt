@@ -20,7 +20,6 @@
                [green Byte #:optional]
                [blue Byte #:optional]
                [alpha Real #:optional])
-         (init-field [immutable? Boolean #:optional])
          (init-rest Null) #|disable string based constructor|#))
 
 (define/make-is-a? rgba% : RGBA-Color%
@@ -30,20 +29,11 @@
           [blue (fxmin (random 255) 255)]
           [alpha 1.0])
     
-    (init-field [immutable? #true])
-    
     (super-make-object red green blue alpha)
 
-    (define/override (set red green blue [alpha 1.0])
-      (when immutable? (error 'rgba% "color is immutable"))
-      (super set red green blue alpha))
-
-    (define/override (copy-from src)
-      (set (send this red) (send this green) (send this blue) (send this alpha))
-      this)
-    
-    (define/override (is-immutable?)
-      immutable?)
+    (define/override-immutable 'rgba% "color is immutable"
+      ([set red green blue [alpha 1.0]]
+       [copy-from src]))
 
     (define/override (inspect)
       (list (send this red) (send this green) (send this blue) (send this alpha)))))

@@ -24,8 +24,7 @@
                [style Pen-Style #:optional]
                [cap Pen-Cap-Style #:optional]
                [join Pen-Join-Style #:optional]
-               [stipple (Option (Instance Bitmap%)) #:optional])
-         (init-field [immutable? Boolean #:optional])))
+               [stipple (Option (Instance Bitmap%)) #:optional])))
 
 (define-type CSS-Brush%
   (Class #:implements Inspectable-Brush%
@@ -33,8 +32,7 @@
          (init [style Brush-Style #:optional]
                [stipple (Option (Instance Bitmap%)) #:optional]
                [gradient (U (Instance CSS-Linear-Gradient%) (Instance CSS-Radial-Gradient%) False) #:optional]
-               [transformation (Option (Vector (Vector Real Real Real Real Real Real) Real Real Real Real Real)) #:optional])
-         (init-field [immutable? Boolean #:optional])))
+               [transformation (Option (Vector (Vector Real Real Real Real Real Real) Real Real Real Real Real)) #:optional])))
 
 (define-type CSS-Linear-Gradient%
   (Class #:implements Inspectable-Linear-Gradient%
@@ -52,19 +50,10 @@
   (class inspectable-pen%
     (init-field color)
     (init [width 1.0] [style 'solid] [cap 'round] [join 'round] [stipple #false])
-    (init-field [immutable? #true])
 
     (super-make-object color width style cap join stipple)
-
-    (define-syntax (define/override-immutable stx)
-      (syntax-case stx []
-        [(_ src immutable? strerr ([method args ...] ...))
-         #'(begin (define/override (method args ...)
-                    (when immutable? (error src strerr))
-                    (super method args ...))
-                  ...)]))
     
-    (define/override-immutable 'css-pen% immutable? "pen is immutable"
+    (define/override-immutable 'css-pen% "pen is immutable"
       ([set-width width]
        [set-style style]
        [set-cap cap]
@@ -73,17 +62,8 @@
     
     (define/override set-color
       (case-lambda
-       [(color/name)
-        (when immutable? (error 'css-pen% "pen is immutable"))
-        (set! color (select-color color/name))
-        (super set-color color)]
-       [(r g b)
-        (when immutable? (error 'css-pen% "pen is immutable"))
-        (set! color (select-color (rgb-bytes->hex r g b)))
-        (super set-color color)]))
-
-    (define/override (is-immutable?)
-      immutable?)
+       [(color/name) (error 'css-pen% "pen is immutable")]
+       [(r g b) (error 'css-pen% "pen is immutable")]))
 
     (define/override (get-color)
       ;;; Awkward, it copys the color instance everytime to make it immutable and opaque again
@@ -98,31 +78,17 @@
   (class inspectable-brush%
     (init-field color)
     (init [style 'solid] [stipple #false] [gradient #false] [transformation #false])
-    (init-field [immutable? #true])
-
+    
     (super-make-object color style stipple gradient transformation)
 
     (define/override set-color
       (case-lambda
-       [(color/name)
-        (when immutable? (error 'css-brush% "brush is immutable"))
-        (set! color (select-color color/name))
-        (super set-color color)]
-       [(r g b)
-        (when immutable? (error 'css-brush% "brush is immutable"))
-        (set! color (select-color (rgb-bytes->hex r g b)))
-        (super set-color color)]))
+       [(color/name) (error 'css-brush% "brush is immutable")]
+       [(r g b) (error 'css-brush% "brush is immutable")]))
 
-    (define/override (set-style style)
-      (when immutable? (error 'css-brush% "brush is immutable"))
-      (super set-style style))
-
-    (define/override (set-stipple bmp [transformation #false])
-      (when immutable? (error 'css-brush% "brush is immutable"))
-      (super set-stipple bmp transformation))
-    
-    (define/override (is-immutable?)
-      immutable?)
+    (define/override-immutable 'css-brush% "brush is immutable"
+      ([set-style style]
+       [set-stipple bmp [transformation #false]]))
 
     (define/override (get-color)
       ;;; Awkward, it copys the color instance everytime to make it immutable and opaque again
