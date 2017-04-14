@@ -99,22 +99,23 @@
             (when (desc-more-important? desc-key important?)
               (hash-set! descbase desc-key declared-value))))
         (hash-set! descbase desc-name declared-value)))
-    (define parse-long : (-> CSS-Values (Pairof CSS-Shorthand-Parser (Listof Symbol)) CSS:Ident (Listof+ CSS-Token) Boolean Boolean Void)
-      (lambda [descbase parser <desc-name> declared-values important? lazy?]
+    (define parse-long : (-> CSS-Values (Pairof CSS-Shorthand-Parser (Listof+ Symbol)) CSS:Ident (Listof+ CSS-Token) Boolean Boolean Void)
+      (lambda [descbase info <desc-name> declared-values important? lazy?]
+        (define css-parse : CSS-Shorthand-Parser (CSS<+> (car info) (CSS:<^> (<css-wide-keywords>) (cdr info))))
         (cond [(and lazy?)
                (define pending-thunk : (-> (Option (HashTable Symbol Any)))
                  (thunk (let ([flat-values (css-variable-substitute <desc-name> declared-values (css-varbase-ref descbase) null)])
                           (and (css-pair? flat-values)
-                               (do-parse <desc-name> (car parser) flat-values css-longhand #false)))))
+                               (do-parse <desc-name> css-parse flat-values css-longhand #false)))))
                (define &pending-longhand : (Boxof (-> (Option (HashTable Symbol Any)))) (box pending-thunk))
-               (for ([name (in-list (cdr parser))] #:when (desc-more-important? name important?))
+               (for ([name (in-list (cdr info))] #:when (desc-more-important? name important?))
                  (desc-set! descbase name important?
                             (thunk (let ([longhand ((unbox &pending-longhand))])
                                      (box-cas! &pending-longhand pending-thunk (thunk longhand))
                                      (let ([desc-value (if (hash? longhand) (hash-ref longhand name (thunk css:initial)) css:unset)])
                                        (hash-set! descbase name (thunk desc-value))
                                        desc-value)))))]
-              [(do-parse <desc-name> (car parser) declared-values css-longhand #false)
+              [(do-parse <desc-name> css-parse declared-values css-longhand #false)
                => (λ [longhand] (for ([(name desc-value) (in-hash longhand)])
                                   (desc-set! descbase name important? (thunk desc-value))))])))
     (define parse-desc : (-> CSS-Values (CSS-Parser (Listof Any)) CSS:Ident (Listof+ CSS-Token) Symbol Boolean Boolean Void)

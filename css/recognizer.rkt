@@ -453,19 +453,27 @@
   (<css+length>))
 
 (define css-make-pair-parser
-  : (case-> [(Listof+ (CSS:Filter Any)) (Listof+ Symbol) -> (Pairof CSS-Shorthand-Parser (Listof Symbol))]
-            [(CSS:Filter Any) Symbol Symbol -> (Pairof CSS-Shorthand-Parser (Listof Symbol))]
-            [(CSS:Filter Any) Symbol Symbol Symbol Symbol -> (Pairof CSS-Shorthand-Parser (Listof Symbol))])
+  : (case-> [(Listof+ (Pairof (CSS:Filter Any) (Listof+ Symbol))) -> CSS-Shorthand+Parser]
+            [(Listof+ (CSS:Filter Any)) (Listof+ Symbol) -> CSS-Shorthand+Parser]
+            [(CSS:Filter Any) Symbol Symbol -> CSS-Shorthand+Parser]
+            [(CSS:Filter Any) Symbol Symbol Symbol Symbol -> CSS-Shorthand+Parser])
   (case-lambda
+    [(filters)
+     (define-values (parsers names)
+       (for/fold ([parsers : (Listof+ CSS-Shorthand-Parser) (list (CSS:<^> (caar filters) (cdar filters)))]
+                  [names : (Listof+ Symbol) (cdar filters)])
+                 ([fltr+name : (Pairof (CSS:Filter Any) (Listof+ Symbol)) (cdr filters)])
+         (values (cons (CSS:<^> (car fltr+name) (cdr fltr+name)) parsers)
+                 (append names (cdr fltr+name)))))
+     (cons (CSS<*> (apply CSS<+> (car parsers) (cdr parsers)) '+) names)]
     [(filters names)
      (cons (CSS<*> (apply CSS<+> (CSS:<^> (car filters) (car names))
-                          ((inst map CSS-Shorthand-Parser (CSS:Filter Any) Symbol)
-                           CSS:<^> (cdr filters) (cdr names))) '+)
+                          (map CSS:<^> (cdr filters) (cdr names))) '+)
            names)]
-    [(filter name1 name2)
-     (cons (CSS<&> (CSS:<^> filter name1)
-                   (CSS:<$> filter name2 (λ [longhand] (hash-ref longhand name1))))
-           (list name1 name2))]
+    [(filter vertical horizontal)
+     (cons (CSS<&> (CSS:<^> filter vertical)
+                   (CSS:<$> filter horizontal (λ [longhand] (hash-ref longhand vertical))))
+           (list vertical horizontal))]
     [(filter top right bottom left)
      (cons (CSS<&> (CSS:<^> filter top)
                    (CSS:<$> filter right (λ [longhand] (hash-ref longhand top)))

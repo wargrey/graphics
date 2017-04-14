@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require bitmap/background)
+
 (require "digitama/bitmap.rkt")
 (require "digitama/syntax/misc.rkt")
 
@@ -24,8 +26,10 @@
     [(_ preference #:as Preference #:with extra-bindings (field-info ...) options ...)
      (with-syntax* ([(property-definitions ...)
                      (for/list ([<field-info> (in-list (syntax->list #'(field-info ...)))])
-                       (syntax-parse <field-info> #:datum-literals [Color Unitless]
+                       (syntax-parse <field-info> #:datum-literals [Color Pen Brush Unitless]
                          [(p : Color #:= dv) #'[p : Color #:= dv #:~> Color+sRGB select-color]]
+                         [(p : Pen #:= dv) #'[p : Pen #:= dv #:~> Pen+Color select-pen]]
+                         [(p : Brush #:= dv) #'[p : Brush #:= dv #:~> Brush+Color select-brush]]
                          [(p : Unitless #:= dv) #'[p : Nonnegative-Flonum #:= dv #:~> (U Nonnegative-Flonum Negative-Single-Flonum)
                                                      select-size]]
                          [(p : Unitless #:= dv nv) #'[p : Nonnegative-Flonum #:= dv #:~> (U Nonnegative-Flonum Negative-Single-Flonum)

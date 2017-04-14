@@ -15,8 +15,6 @@
              (not (eq? (system-type)
                        'macosx)))))
 
-(define-predicate pen-style? Pen-Style)
-
 (define-preference* box #:as Box.CSS
   ([width : Nonnegative-Flonum             #:= (css-vw)]
    [height : Nonnegative-Flonum            #:= (css-vh)]
@@ -27,9 +25,8 @@
    [icon-height : Nonnegative-Flonum       #:= (real->double-flonum (default-icon-height))]
    [font : Font                            #:= (current-css-element-font)]
    [color : Color                          #:= 'currentcolor]
-   [border-color : Color                   #:= 'currentcolor]
-   [background-color : Color               #:= 'transparent]
-   [border-style : Pen-Style               #:= 'transparent])
+   [borders : (Listof Pen)                 #:= null]
+   [brush : Brush                          #:= 'transparent])
   #:transparent)
 
 (define box-parsers : CSS-Declaration-Parsers
@@ -38,12 +35,9 @@
   ;; but to keep the css file portable, no new properties are introduced.
   (lambda [suitcased-name deprecated!]
     (or (css-font-parsers suitcased-name deprecated!)
-        (css-color-property-parsers suitcased-name null)
+        (css-color-property-parsers suitcased-name)
+        (css-simple-box-property-parsers suitcased-name)
         (case suitcased-name
-          [(width height padding-top margin-top padding-right margin-right) (<css-size>)]
-          [(margin) (css-make-pair-parser (<css-size>) 'margin-top 'margin-right)]
-          [(padding) (css-make-pair-parser (<css-size>) 'padding-top 'padding-right)]
-          [(border-style) (<css:ident> pen-style?)]
           [(icon-height) (<css-line-height>)]))))
 
 (define box-filter : (CSS-Cascaded-Value-Filter Box.CSS)
@@ -56,9 +50,8 @@
                 #:horizontal-inset (css-box-size-ref 'padding-right width)
                 #:vertical-margin (css-box-size-ref 'margin-top height)
                 #:horizontal-margin (css-box-size-ref 'margin-right width)
-                #:background-color (css-box-color-ref 'background-color)
-                #:border-color (css-box-color-ref 'border-color)
-                #:border-style (css-box-ref 'border-style pen-style? css:initial)))))
+                #:borders (css-extract-border-pen declared-values inherited-values)
+                #:brush (css-extract-background-brush declared-values inherited-values)))))
 
 (define ~root:n : CSS-Subject (make-css-subject #::classes '(root)))
 (define ~root:s : CSS-Subject (make-css-subject #::classes '(selected)))
@@ -68,17 +61,15 @@
 media.css
 (default-css-media-features)
 (bitmap-hb-append #:gapsize (+ (box-vertical-margin $root:n) (box-vertical-margin $root:s))
-                  (bitmap-frame #:color (current-css-element-color) #:style 'dot
+                  (bitmap-frame #:color (cons (current-css-element-color) 'dot)
                                 (bitmap-frame #:margin (box-vertical-margin $root:n) #:inset (box-vertical-inset $root:n)
-                                              #:color (box-border-color $root:n) #:style (box-border-style $root:n)
-                                              #:background-color (box-background-color $root:n) #:background-style 'solid
+                                              #:color (car (box-borders $root:n)) #:background (box-brush $root:n)
                                               (bitmap-desc #:color (box-color $root:n)
                                                            (pretty-format $root:n) (box-width $root:n)
                                                            (box-font $root:n))))
-                  (bitmap-frame #:color (current-css-element-color) #:style 'dot
+                  (bitmap-frame #:color (cons (current-css-element-color) 'dot)
                                 (bitmap-frame #:margin (box-vertical-margin $root:s) #:inset (box-vertical-inset $root:s)
-                                              #:color (box-border-color $root:s) #:style (box-border-style $root:s)
-                                              #:background-color (box-background-color $root:s) #:background-style 'solid
+                                              #:color (car (box-borders $root:s)) #:background (box-brush $root:s)
                                               (bitmap-desc #:color (box-color $root:s)
                                                            (pretty-format $root:s) (box-width $root:s)
                                                            (box-font $root:s)))))

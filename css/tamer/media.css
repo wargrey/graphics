@@ -24,6 +24,7 @@
   color: DarkSlateGray;
   background-color: White;
   border-color: currentcolor;
+  border-width: 1;
 }
 
 @media (resolution < 2dppx) {
@@ -50,8 +51,9 @@
 :selected {
   color: GhostWhite;
   background-color: DodgerBlue;
+  background-style: solid;
 }
 
 @racket test {
-  (displayln "here")
+  (displayln (current-memory-use))
 }

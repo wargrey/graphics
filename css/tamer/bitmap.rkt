@@ -20,13 +20,11 @@
    [number-color : Color                       #:= 'Tomato]
    [output-color : Color                       #:= 'Chocolate]
    [paren-color : Color                        #:= 'Firebrick]
-   [border-color : Color                       #:= 'Crimson]
    [foreground-color : Color                   #:= "Grey"]
-   [background-color : Color                   #:= "Snow"]
    [font : Font                                #:= (current-css-element-font)]
    [borders : (Listof Pen)                     #:= null]
-   [brush : Brush                              #:= (make-css-brush)]
-   [width : Index                              #:= 512]
+   [brush : Brush                              #:= 'transparent]
+   [max-width : Index                          #:= 512]
    [desc : String                              #:= "['desc' property is required]"]
    [prelude : Bitmap                           #:= (bitmap-text "> ")]
    [descriptors : (Listof (Pairof Symbol Any)) #:= null])
@@ -37,10 +35,10 @@
     (or (css-font+colors-parsers suitcased-name deprecated!)
         (css-color-property-parsers suitcased-name btest-color-properties)
         (css-image-property-parsers suitcased-name '(prelude))
-        (css-border-property-parsers suitcased-name)
+        (css-simple-box-property-parsers suitcased-name)
         (case suitcased-name
           [(desc) (<:css-strings:>)]
-          [(width) (<css-natural>)]))))
+          [(desc-width) (<css-natural>)]))))
 
 (define btest-filter : (CSS-Cascaded-Value-Filter Bitmap.CSS)
   (lambda [declared-values inherited-values]
@@ -54,13 +52,11 @@
                 #:number-color (css-color-ref declared-values inherited-values 'number-color)
                 #:output-color (css-color-ref declared-values inherited-values 'output-color)
                 #:paren-color (css-color-ref declared-values inherited-values 'paren-color)
-                #:border-color (css-color-ref declared-values inherited-values 'border-color)
                 #:foreground-color (css-color-ref declared-values inherited-values 'foreground-color)
-                #:background-color (css-color-ref declared-values inherited-values 'background-color)
                 #:font (css-extract-font declared-values inherited-values)
-                #:borders (css-extract-border-pen declared-values inherited-values)  #|properties are not inheritable|#
-                #:brush (css-extract-brush declared-values inherited-values)         #|properties are not inheritable|#
-                #:width (css-ref declared-values inherited-values 'width index? css:initial)
+                #:borders (css-extract-border-pen declared-values inherited-values)     #|properties are not inheritable|#
+                #:brush (css-extract-background-brush declared-values inherited-values) #|properties are not inheritable|#
+                #:max-width (css-ref declared-values inherited-values 'desc-width index? css:initial)
                 #:desc (css-ref declared-values inherited-values 'desc css->desc)
                 #:prelude (css-ref declared-values inherited-values 'prelude css->bitmap)
                 #:descriptors (css-values-fold declared-values (initial-btest-descriptors)
@@ -82,12 +78,10 @@
   (let-values ([($btests _) (css-cascade* (list bitmap.css) (list ~btest ~module) btest-parsers btest-filter *root)])
     (for/fold ([bitmap-descs : (Listof Bitmap) null] [testcases : (Listof Bitmap.CSS) null])
               ([$bt (in-list $btests)])
-      (define-values (fgcolor bgcolor rcolor bdcolor)
-        (values (btest-foreground-color $bt) (btest-background-color $bt)
-                (btest-output-color $bt) (btest-border-color $bt)))
+      (define-values (fgcolor rcolor) (values (btest-foreground-color $bt) (btest-output-color $bt)))
 
-      (define-values (width words font) (values (btest-width $bt) (btest-desc $bt) (btest-font $bt)))
-      (define desc (bitmap-desc words width font #:color fgcolor #:background-color bgcolor))
+      (define-values (width words font) (values (btest-max-width $bt) (btest-desc $bt) (btest-font $bt)))
+      (define desc (bitmap-desc words width font #:color fgcolor #:background (btest-brush $bt)))
       (define-values (desc-width height) (bitmap-size desc))
       (define ~s32 : (-> String String) (λ [txt] (~s txt #:max-width 32 #:limit-marker "...\"")))
       
@@ -105,8 +99,8 @@
                             (bitmap-text #:color rcolor
                                          (cond [(not (send font get-combine?)) (format "- : (Bitmap ~a ~a)" desc-width height)]
                                                [else (format "- : (Bitmap ~a ~a #:ligature)" desc-width height)]))
-                            (bitmap-lt-superimpose (bitmap-frame desc #:style 'transparent) ; align by frame border
-                                                   (bitmap-frame (bitmap-blank width height) #:color bdcolor))))
+                            (bitmap-lt-superimpose (bitmap-frame desc #:color 'transparent) #|for aligning|#
+                                                   (bitmap-frame (bitmap-blank width height) #:color (car (btest-borders $bt))))))
               (cons $bt testcases)))))
 
 (when DrRacket?

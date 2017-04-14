@@ -77,7 +77,7 @@
   (CSS<#> (CSS<+> (CSS:<^> (CSS:<+> (<css:string>) (<css-keyword> css-font-generic-families)))
                   (CSS<!> (CSS:<^> (<css:ident>))))))
   
-(define <:font-shorthand:> : (Pairof CSS-Shorthand-Parser (Listof Symbol))
+(define <:font-shorthand:> : CSS-Shorthand+Parser
   ;;; https://drafts.csswg.org/css-fonts/#font-prop
   (cons (CSS<+> (CSS:<^> (<css-system-font>) css-font->longhand-properties)
                 (CSS<&> (CSS<*> (CSS<+> (CSS<_> (CSS:<^> (<css-keyword> 'normal) '|Ignoring, some properties use it as defaults|))

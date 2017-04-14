@@ -13,14 +13,24 @@
 ;;; WARNING
 ;; All properties in this specification are *not* inheritable.
 
-(define css-border-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
+(define css-simple-box-property-parsers : (-> Symbol (Option CSS-Declaration-Parser))
+  ;;; https://www.w3.org/TR/CSS2/box.html#box-model
   ;;; https://drafts.csswg.org/css-backgrounds/#borders
   (lambda [suitcased-name]
     (case suitcased-name
+      [(margin) <:margin:>]
+      [(padding) <:padding:>]
+      [(border) <:border:>]
       [(border-top) <:border-top:>]
       [(border-right) <:border-right:>]
       [(border-bottom) <:border-bottom:>]
       [(border-left) <:border-left:>]
+      [(border-color) <:border-color:>]
+      [(border-width) <:border-width:>]
+      [(border-style) <:border-style:>]
+      [(width height) (<css-size>)]
+      [(margin-top margin-right margin-bottom margin-left) (<css-size>)]
+      [(padding-top padding-right padding-bottom padding-left) (<css-size>)]
       [(border-top-color border-right-color border-bottom-color border-left-color) (<css-color>)]
       [(border-top-width border-right-width border-bottom-width border-left-width) (<border-width>)]
       [(border-top-style border-right-style border-bottom-style border-left-style) (<css-keyword> css-border-style-option)]
@@ -47,7 +57,7 @@
                    #:width (css-ref declared-values #false width-key css->border-width)
                    #:style (css-ref declared-values #false style-key symbol? 'none))]))
 
-(define css-extract-brush : (-> CSS-Values (Option CSS-Values) Brush)
+(define css-extract-background-brush : (-> CSS-Values (Option CSS-Values) Brush)
   (lambda [declared-values inherited-values]
     (make-css-brush #:color (css-color-ref declared-values #false 'background-color 'transparent)
                     #:style (css-ref declared-values #false 'background-style brush-style? 'transparent))))

@@ -5,9 +5,8 @@
 (define bitmap-text*
   (lambda [text font]
     (bitmap-frame #:color 'gray
-                  (bitmap-text #:ascent-color 'Magenta #:descent-color 'Blue
-                               #:capline-color 'Orange #:meanline-color 'Green #:baseline-color 'Red
-                               text (make-css-font (make-css-font font #:size 'xx-large) #:size 2.f0)))))
+                  (bitmap-text #:ascent 'Magenta #:descent 'Blue #:capline 'Orange #:meanline 'Green #:baseline 'Red
+                               text (make-css-font (make-css-font font #:size 'xx-large) #:size 2f0)))))
 
 #;(for/list ([face (in-list (get-face-list))])
     (cons face (bitmap-vl-append (bitmap-text* "Sphinx[+]" (make-css-font #:family face #:ligature 'normal))

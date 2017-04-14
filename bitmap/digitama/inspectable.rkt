@@ -19,14 +19,6 @@
                 #:implements/inits Origin%
                 inits ...))]))
 
-(define-syntax (define/override-immutable stx)
-  (syntax-case stx []
-    [(_ src immutable? strerr ([method args ...] ...))
-     #'(begin (define/override (method args ...)
-                (when immutable? (error src strerr))
-                (super method args ...))
-              ...)]))
-
 (define-type Inspectable<%>
   (Class [inspect (-> (Listof Any))]
          [custom-print (-> Output-Port Natural Void)]

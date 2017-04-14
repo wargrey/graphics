@@ -19,6 +19,9 @@
 (define-cheat-opaque bitmap%? #:is-a? Bitmap% bitmap%)
 (define-cheat-opaque font%? #:is-a? Font% font%)
 
+(define-type Pen+Color (U Color+sRGB (Pairof Color+sRGB Pen-Style) (List Color+sRGB Nonnegative-Real Pen-Style) (Instance Pen%)))
+(define-type Brush+Color (U Color+sRGB (Pairof Color+sRGB Brush-Style) (Instance Brush%)))
+
 (define os : Symbol (system-type 'os))
 (define the-dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (make-object bitmap% 1 1)))
 (define the-invalid-image : (Instance Bitmap%) (read-bitmap (open-input-bytes #"placeholder")))

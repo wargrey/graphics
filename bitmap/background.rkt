@@ -8,6 +8,7 @@
 (require "digitama/cheat.rkt")
 (require "digitama/color.rkt")
 (require "digitama/inspectable.rkt")
+(require "digitama/background.rkt")
 (require "color.rkt")
 
 (define-predicate pen-style? Pen-Style)
@@ -55,6 +56,21 @@
 
     (super-make-object color width style cap join stipple)
 
+    (define-syntax (define/override-immutable stx)
+      (syntax-case stx []
+        [(_ src immutable? strerr ([method args ...] ...))
+         #'(begin (define/override (method args ...)
+                    (when immutable? (error src strerr))
+                    (super method args ...))
+                  ...)]))
+    
+    (define/override-immutable 'css-pen% immutable? "pen is immutable"
+      ([set-width width]
+       [set-style style]
+       [set-cap cap]
+       [set-join join]
+       [set-stipple bmp]))
+    
     (define/override set-color
       (case-lambda
        [(color/name)
@@ -65,13 +81,6 @@
         (when immutable? (error 'css-pen% "pen is immutable"))
         (set! color (select-color (rgb-bytes->hex r g b)))
         (super set-color color)]))
-    
-    (define/override-immutable 'css-pen% immutable? "pen is immutable"
-      ([set-width width]
-       [set-style style]
-       [set-cap cap]
-       [set-join join]
-       [set-stipple bmp]))
 
     (define/override (is-immutable?)
       immutable?)
@@ -152,7 +161,9 @@
         [rootpen : (Instance Pen%) (make-pen #:color (select-color #x000000))])
     (lambda [[basepen rootpen] #:color [color #false] #:width [width #false] #:style [style #false]
                                #:cap [cap #false] #:join [join #false] #:stipple [stipple 'inherit]]
-      (define pen-color : Color (select-color (or color (send basepen get-color))))
+      (define pen-color : Color
+        (select-color (cond [(memq style '(hidden none transparent)) 'transparent]
+                            [else (or color (send basepen get-color))])))
       (define pen-width : Real
         (cond [(memq style '(hidden none)) 0.0]
               [(real? width) (min 255.0 width)]
@@ -189,3 +200,14 @@
       (hash-ref! brushbase
                  (list brush-color brush-style)
                  (λ [] (make-object css-brush% brush-color brush-style))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define select-pen : (-> Pen+Color Pen)
+  (lambda [pen-hint]
+    (cond [(css-pen%? pen-hint) pen-hint]
+          [else ((inst smart-pen Pen) pen-hint make-css-pen)])))
+
+(define select-brush : (-> Brush+Color Brush)
+  (lambda [brush-hint]
+    (cond [(css-brush%? brush-hint) brush-hint]
+          [else ((inst smart-brush Brush) brush-hint make-css-brush)])))

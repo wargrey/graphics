@@ -22,49 +22,66 @@ module.main {
     output-color: @debugger-bomb-color;
     paren-color: @run-icon-color;
     foreground-color: currentcolor;
-    background-color: HsIa(120.01deg var(--honeydew-s) var(--honeydew-i) / 1.0);
-    border-color: var(--gray);
 
-    width: 384;
     desc: "";
+    desc-width: 384;
     prelude: @text-icon("Prelude> " @make-font(#:face "Lucida Grande") #:color #3C803C #:height 100% #:trim\? false);
 
     font: normal 85% Apple Color Emoji, "Segoe UI", Segoe UI Emoji, Segoe UI Symbol, var(--default-font);
     text-decoration: underline;
     image-resolution: 2dppx snap;
 
+    border-top: 255px var(--gray) dotted;      /* border properties are not inheritable */
+    background-color: var(--background-color); /* background properties are not inheritable */
+}
+
+bitmap-desc.test {
+    desc-width: 32;
     border-top: 1px Silver dotted;
+    background-style: solid;
+    background-color: var(--background-color);
 }
 
 bitmap-desc.test {
-    width: 32;
-}
-
-bitmap-desc.test {
-    width: 32;
+    desc-width: 32;
     desc: " ";
     text-decoration: none;
+    border-top: 1px Silver dotted;
+    background-style: solid;
+    background-color: var(--background-color);
 }
 
 bitmap-desc.test {
-    width: 0;
+    desc-width: 0;
     desc: "!";
+    border-top: 1px Silver dotted;
+    background-style: solid;
+    background-color: var(--background-color);
 }
 
 bitmap-desc.test {
-    width: 2;
+    desc-width: 2;
     desc: "bitmap-desc";
+    border-top: 1px Silver dotted;
+    background-style: solid;
+    background-color: var(--background-color);
 }
 
 bitmap-desc.test {
-    width: 64;
+    desc-width: 64;
     desc: "Hello,\aMystery?";
     font: small Monaco, "Courier New", Courier, monospace;
     text-decoration: none;
     font-variant-ligatures: none;
+    border-top: 1px Silver dotted;
+    background-style: solid;
+    background-color: var(--background-color);
 }
 
 bitmap-desc.test {
+    border-top: 1px Silver dotted;
+    background-style: solid;
+    background-color: var(--background-color);
     font: medium American Typewriter, script;
     desc: "That last testcase is not a mysterious phenomena:"
           "It seemed to do some strange optimizing so that"
@@ -73,20 +90,29 @@ bitmap-desc.test {
 }
 
 bitmap-desc.test {
+    border-top: 1px Silver dotted;
     font-family: HanziPen TC, script;
+    background-style: solid;
+    background-color: var(--background-color);
     desc: "上一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。\a\a此缺陷已修正！";
 }
 
 bitmap-desc.test {
+    border-top: 1px Silver dotted;
     desc: "Basic String \Test: \22\20\\\E9 \6C34\00A5\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */";
     font-family: system-ui;
     font-size: initial;
     font-style: initial;
     text-decoration-line: initial;
+    background-style: solid;
+    background-color: var(--background-color);
 }
 
 bitmap-desc:lang(bo).test {
+    border-top: 1px Silver dotted;
     font-family: Qomolangma-Uchen Sarchung, "Microsoft Himalaya", Kailasa, default;
     desc: "བོད་ཡིག";
     text-decoration-line: underline;
+    background-style: solid;
+    background-color: var(--background-color);
 }

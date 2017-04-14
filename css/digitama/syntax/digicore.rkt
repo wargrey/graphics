@@ -444,6 +444,7 @@
 (define-type (CSS-Option css) (U css CSS-Syntax-Error False))
 (define-type (CSS:Filter css) (-> CSS-Syntax-Any (CSS-Option css)))
 (define-type (CSS-Parser css) (-> css (Listof CSS-Token) (Values (CSS-Option css) (Listof CSS-Token))))
+(define-type CSS-Shorthand+Parser (Pairof (CSS-Parser (HashTable Symbol Any)) (Listof+ Symbol)))
 (define-type CSS-Shorthand-Parser (CSS-Parser (HashTable Symbol Any)))
 (define-type CSS-Longhand-Update (-> Symbol Any Any Any))
 
@@ -463,7 +464,7 @@
 (define-type (CSS->Racket racket) (-> Symbol Any racket))
 
 (define-type CSS-Declaration-Parser
-  (U (Pairof CSS-Shorthand-Parser (Listof Symbol))
+  (U CSS-Shorthand+Parser
      (CSS-Parser (Listof Any))
      (CSS:Filter Any)
      Void False))

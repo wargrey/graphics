@@ -5,8 +5,8 @@
 (provide (all-defined-out))
 
 (require "syntax/digicore.rkt")
-(require "color.rkt")
 (require "../recognizer.rkt")
+(require "color.rkt")
 
 (define css-text-decor-line-options : (Listof Symbol) '(underline overline line-through blink))
 (define css-text-decor-skip-options : (Listof Symbol) '(objects spaces ink edges box-decoration))
@@ -17,7 +17,7 @@
   (lambda [_ old-options property]
     (if (list? old-options) (cons property old-options) (list property))))
   
-(define <:text-decoration:> : (Pairof CSS-Shorthand-Parser (Listof Symbol))
+(define <:text-decoration:> : CSS-Shorthand+Parser
   ;;; https://drafts.csswg.org/css-text-decor/#text-decoration-color-property
   (cons (CSS<*> (CSS<+> (CSS:<^> (<css-keyword> 'none) 'text-decoration-line)
                         (CSS:<^> (<css-keyword> css-text-decor-line-options) 'text-decoration-line css-fold-decoration-line)
