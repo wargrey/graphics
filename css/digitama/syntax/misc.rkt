@@ -56,3 +56,16 @@
 (define css-log-eval-error : (->* ((U exn String)) (Any Log-Level) Void)
   (lambda [errobj [src #false] [level 'debug]]
     (css-log-error errobj src level 'exn:css:eval)))
+
+(define hash-set++ : (-> (HashTable Symbol Any) (Listof+ Symbol) Any (HashTable Symbol Any))
+  (lambda [data++ tags v]
+    (define rest : (Listof Symbol) (cdr tags))
+    (cond [(null? rest) (hash-set data++ (car tags) v)]
+          [else (hash-set++ (hash-set data++ (car tags) v) rest v)])))
+
+(define hash-update++ : (-> (HashTable Symbol Any) (Listof+ Symbol) Any (-> Symbol Any Any Any) (HashTable Symbol Any))
+  (lambda [data++ tags datum updater]
+    (define rest : (Listof Symbol) (cdr tags))
+    (cond [(null? rest) (hash-update data++ (car tags) (λ [[v : Any]] (updater (car tags) v datum)) (λ [] #false))]
+          [else (hash-update++ (hash-update data++ (car tags) (λ [[v : Any]] (updater (car tags) v datum)) (λ [] #false))
+                               rest datum updater)])))
