@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (require typed/images/logos)
-(require "../transform.rkt")
+(require "../effect.rkt")
 
 (define b (planet-logo))
 

@@ -16,4 +16,4 @@
 (require/provide "digitama/digicore.rkt")
 (require/provide "base.rkt" "constructor.rkt" "combiner.rkt")
 (require/provide "resize.rkt" "misc.rkt" "compile-time.rkt")
-(require/provide "color.rkt" "font.rkt" "transform.rkt")
+(require/provide "color.rkt" "font.rkt" "effect.rkt")
