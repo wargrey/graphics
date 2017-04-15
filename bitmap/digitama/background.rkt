@@ -1,5 +1,7 @@
 #lang typed/racket
 
+(provide (all-defined-out))
+
 (provide smart-pen)
 (provide smart-brush)
 
@@ -16,9 +18,9 @@
   (define smart-pen
     (lambda [hint make-css-pen]
       (cond [(is-a? hint pen%) (make-css-pen hint)]
-            [(pair? hint) (make-css-pen #:color (car hint) #:style (cdr hint))]
-            [(list? hint) (make-css-pen #:color (car hint) #:width (cadr hint) #:style (caddr hint))]
-            [else (make-css-pen #:color hint)])))
+            [(not (pair? hint)) (make-css-pen #:color hint)]
+            [(pair? (cdr hint)) (make-css-pen #:color (car hint) #:width (cadr hint) #:style (cddr hint))]
+            [else (make-css-pen #:color (car hint) #:style (cdr hint))])))
   
   (define smart-brush
     (lambda [hint make-css-brush]
@@ -30,3 +32,10 @@
  (submod "." cheat)
  [smart-pen (All (a) (-> Pen+Color (->* () ((Instance Pen%) #:color Color+sRGB #:style Pen-Style) a) a))]
  [smart-brush (All (a) (-> Brush+Color (->* () ((Instance Brush%) #:color Color+sRGB #:style Brush-Style) a) a))])
+
+(define generic-pen-width-map : (->* (Symbol) ((Instance Pen%)) Real)
+  (lambda [width [basepen (make-pen)]]
+    (cond [(eq? width 'thin) 1.0]
+          [(eq? width 'medium) 3.0]
+          [(eq? width 'thick) 5.0]
+          [else (send basepen get-width)])))

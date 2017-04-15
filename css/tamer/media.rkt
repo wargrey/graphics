@@ -6,6 +6,7 @@
 (require "media.css")
 
 (current-css-element-color 'Silver)
+(default-css-pen (make-css-pen #:width 1 #:color (current-css-element-color) #:style 'transparent))
 (css-configure-@media)
 
 (default-css-feature-support?
@@ -61,15 +62,15 @@
 media.css
 (default-css-media-features)
 (bitmap-hb-append #:gapsize (+ (box-vertical-margin $root:n) (box-vertical-margin $root:s))
-                  (bitmap-frame #:color (cons (current-css-element-color) 'dot)
-                                (bitmap-frame #:margin (box-vertical-margin $root:n) #:inset (box-vertical-inset $root:n)
-                                              #:color (car (box-borders $root:n)) #:background (box-brush $root:n)
+                  (bitmap-frame #:border (list* (current-css-element-color) 1 'dot)
+                                (bitmap-frame #:margin (box-vertical-margin $root:n) #:padding (box-vertical-inset $root:n)
+                                              #:border (box-borders $root:n) #:background (box-brush $root:n)
                                               (bitmap-desc #:color (box-color $root:n)
                                                            (pretty-format $root:n) (box-width $root:n)
                                                            (box-font $root:n))))
-                  (bitmap-frame #:color (cons (current-css-element-color) 'dot)
-                                (bitmap-frame #:margin (box-vertical-margin $root:s) #:inset (box-vertical-inset $root:s)
-                                              #:color (car (box-borders $root:s)) #:background (box-brush $root:s)
+                  (bitmap-frame #:border (list* (current-css-element-color) 1 'dot)
+                                (bitmap-frame #:margin (box-vertical-margin $root:s) #:padding (box-vertical-inset $root:s)
+                                              #:border (box-borders $root:s) #:background (box-brush $root:s)
                                               (bitmap-desc #:color (box-color $root:s)
                                                            (pretty-format $root:s) (box-width $root:s)
                                                            (box-font $root:s)))))

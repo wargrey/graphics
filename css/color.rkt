@@ -40,7 +40,7 @@
 
 (define css-color-ref : (case-> [CSS-Values (Option CSS-Values) -> Color]
                                 [CSS-Values (Option CSS-Values) Symbol -> (CSS-Maybe Color)]
-                                [CSS-Values (Option CSS-Values) Symbol Color+sRGB -> Color])
+                                [CSS-Values (Option CSS-Values) Symbol (Option Color+sRGB) -> (Option Color)])
   ;;; NOTE
   ;; `css-ref` will save all the values as computed value if it knows how to transform the cascaded values,
   ;; hence the `css-color-ref` to generate a more useful used value for clients so that clients do not need
@@ -55,5 +55,5 @@
     [(declared-values inherited-values property defcolor)
      (define xxx-color : (CSS-Maybe (U 'currentcolor Color)) (css-ref declared-values inherited-values property css->color))
      (cond [(eq? xxx-color 'currentcolor) (current-css-element-color)]
-           [(css-wide-keyword? xxx-color) (select-color defcolor)]
+           [(css-wide-keyword? xxx-color) (and defcolor (select-color defcolor))]
            [else xxx-color])]))

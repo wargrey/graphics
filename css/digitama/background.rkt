@@ -65,9 +65,9 @@
          (cons (<border-width>) '(border-top-width border-right-width border-bottom-width border-left-width))
          (cons (<css-keyword> css-border-style-option) '(border-top-style border-right-style border-bottom-style border-left-style)))))
 
-(define css->border-width : (CSS->Racket (U Symbol Nonnegative-Real))
+(define css->border-width : (CSS->Racket (U Real Symbol False))
   (lambda [_ value]
     (cond [(symbol? value) value]
           [(nonnegative-flonum? value) value]
           [(css+length? value) (css:length->scalar value #false)]
-          [else 'medium])))
+          [else #false])))

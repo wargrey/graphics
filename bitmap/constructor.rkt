@@ -127,26 +127,61 @@
       (send dc draw-text desc 0 y combine?))
     (or (send dc get-bitmap) (bitmap-blank))))
 
-(define bitmap-frame : (-> Bitmap [#:margin Nonnegative-Real] [#:border Nonnegative-Real] [#:inset Nonnegative-Real]
-                           [#:color Pen+Color] [#:background Brush+Color]
+(define bitmap-frame : (-> Bitmap [#:border (U Pen+Color (Listof Pen+Color))] [#:background Brush+Color]
+                           [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
+                           [#:padding (U Nonnegative-Real (Listof Nonnegative-Real))]
                            Bitmap)
-  (lambda [bmp #:margin [margin 0] #:border [border 1] #:inset [inset 0] #:color [pen-hint 'black] #:background [brush-hint 'transparent]]
-    ;;; TODO:
-    ; In this aligned bitmap context, border width 0 behaves the same as 1.
-    ; It seems that, Racket also use the "as thin as possible" algorithm to deal with zero width line. 
-    (define offset : Nonnegative-Real (+ (max border 1) inset))
-    (define width : Positive-Real (+ (send bmp get-width) offset offset))
-    (define height : Positive-Real (+ (send bmp get-height) offset offset))
-    (define full-width : Positive-Real (+ width margin margin))
-    (define full-height : Positive-Real (+ height margin margin))
-    (define frame : Bitmap (bitmap-blank full-width full-height (send bmp get-backing-scale)))
-    (define dc : (Instance Bitmap-DC%) (send frame make-dc))
-    (send dc set-smoothing 'aligned)
-    (send dc set-pen (select-pen pen-hint))
-    (send dc set-brush (select-brush brush-hint))
-    (send dc draw-rectangle margin margin width height)
-    (send dc draw-bitmap bmp (+ offset margin) (+ offset margin))
-    frame))
+  (let ()
+    (define (normalize [v : (U Nonnegative-Real (Listof Nonnegative-Real))])
+      : (Values Nonnegative-Real Nonnegative-Real Nonnegative-Real Nonnegative-Real)
+      (if (list? v)
+          (match v
+            [(list t) (values t t t t)]
+            [(list t r) (values t r t r)]
+            [(list t r b) (values t r b r)]
+            [(list t r b l rest ...) (values t r b l)]
+            [else (values 0 0 0 0)])
+          (values v v v v)))
+    (define (draw-border [dc : (Instance Bitmap-DC%)] [pen : (Instance Pen%)] [w : Real] [x1 : Real] [y1 : Real] [x2 : Real] [y2 : Real])
+      (when (> w 0) (send* dc (set-pen pen) (draw-line x1 y1 x2 y2))))
+    (lambda [bmp #:margin [margin 0] #:padding [inset 0]
+                 #:border [pen-hint (default-css-pen)]
+                 #:background [brush-hint (default-css-brush)]]
+      (define-values (margin-top margin-right margin-bottom margin-left) (normalize margin))
+      (define-values (padding-top padding-right padding-bottom padding-left) (normalize inset))
+      (define-values (pen-top pen-right pen-bottom pen-left)
+        (if (list? pen-hint)
+            (match pen-hint
+              [(list vt) (let ([t (select-pen vt)]) (values t t t t))]
+              [(list vt vr) (let ([t (select-pen vt)] [r (select-pen vr)]) (values t r t r))]
+              [(list vt vr b) (let ([t (select-pen vt)] [r (select-pen vr)]) (values t r (select-pen b) r))]
+              [(list t r b l) (values (select-pen t) (select-pen r) (select-pen b) (select-pen l))]
+              [else (let ([t (default-css-pen)]) (values t t t t))])
+            (let ([p (select-pen pen-hint)]) (values p p p p))))
+      (define-values (border-top border-right border-bottom border-left)
+        (values (send pen-top get-width) (send pen-right get-width)
+                (send pen-bottom get-width) (send pen-left get-width)))
+      (define-values (bgx bgy bgw bgh)
+        (values (+ margin-left border-left) (+ margin-top border-top)
+                (+ (send bmp get-width) padding-left padding-right)
+                (+ (send bmp get-height) padding-top padding-bottom)))
+      (define-values (bdx0 bdy0 bdx1 bdy1)
+        (values margin-left margin-top
+                (+ margin-left border-left bgw border-right)
+                (+ margin-top border-top bgh border-bottom)))
+      (define frame : Bitmap (bitmap-blank (+ bdx1 margin-right) (+ bdy1 margin-bottom) (send bmp get-backing-scale)))
+      (define dc : (Instance Bitmap-DC%) (send frame make-dc))
+      (send dc set-smoothing 'aligned)
+      (send dc set-pen (select-pen 'transparent))
+      (send dc set-brush (select-brush brush-hint))
+      (send dc draw-rectangle bgx bgy bgw bgh)
+      ;;; TODO: deal with corner overlaps correctly
+      (let ([bdy (+ bdy0 (* border-top 1/2))]) (draw-border dc pen-top border-top bdx0 bdy bdx1 bdy))
+      (let ([bdy (- bdy1 (* border-bottom 1/2))]) (draw-border dc pen-bottom border-bottom bdx0 bdy bdx1 bdy))
+      (let ([bdx (+ bdx0 (* border-left 1/2))]) (draw-border dc pen-left border-left bdx bdy0 bdx bdy1))
+      (let ([bdx (- bdx1 (* border-right 1/2))]) (draw-border dc pen-right border-right bdx bdy0 bdx bdy1))
+      (send dc draw-bitmap bmp (+ bgx padding-left) (+ bgy padding-top))
+      frame)))
 
 (define bitmap-rectangle : (->* (Real) (Real (Option Real) #:color Brush+Color #:border Pen+Color) Bitmap)
   (lambda [w [h #false] [radius #false] #:color [color #x000000] #:border [pen-color 'transparent]]

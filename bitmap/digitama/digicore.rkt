@@ -19,7 +19,7 @@
 (define-cheat-opaque bitmap%? #:is-a? Bitmap% bitmap%)
 (define-cheat-opaque font%? #:is-a? Font% font%)
 
-(define-type Pen+Color (U Color+sRGB (Pairof Color+sRGB Pen-Style) (List Color+sRGB Nonnegative-Real Pen-Style) (Instance Pen%)))
+(define-type Pen+Color (U Color+sRGB (Pairof Color+sRGB Pen-Style) (Pairof Color+sRGB (Pairof Nonnegative-Real Pen-Style)) (Instance Pen%)))
 (define-type Brush+Color (U Color+sRGB (Pairof Color+sRGB Brush-Style) (Instance Brush%)))
 
 (define os : Symbol (system-type 'os))

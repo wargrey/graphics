@@ -35,18 +35,20 @@ module.main {
     background-color: var(--background-color); /* background properties are not inheritable */
 }
 
-bitmap-desc.test {
+bitmap-desc.test { /* not top and bottom border */
     desc-width: 32;
-    border-top: 1px Silver dotted;
+    border-left: 1px Silver dotted;
+    border-right: 1px Silver dotted;
     background-style: solid;
     background-color: var(--background-color);
 }
 
-bitmap-desc.test {
+bitmap-desc.test { /* not left and right border */
     desc-width: 32;
     desc: " ";
     text-decoration: none;
     border-top: 1px Silver dotted;
+    border-bottom: 1px Silver dotted;
     background-style: solid;
     background-color: var(--background-color);
 }
@@ -54,7 +56,7 @@ bitmap-desc.test {
 bitmap-desc.test {
     desc-width: 0;
     desc: "!";
-    border-top: 1px Silver dotted;
+    border: 1px Silver dotted;
     background-style: solid;
     background-color: var(--background-color);
 }
@@ -62,7 +64,7 @@ bitmap-desc.test {
 bitmap-desc.test {
     desc-width: 2;
     desc: "bitmap-desc";
-    border-top: 1px Silver dotted;
+    border: 1px Silver dotted;
     background-style: solid;
     background-color: var(--background-color);
 }
@@ -73,13 +75,13 @@ bitmap-desc.test {
     font: small Monaco, "Courier New", Courier, monospace;
     text-decoration: none;
     font-variant-ligatures: none;
-    border-top: 1px Silver dotted;
+    border: 1px Silver dotted;
     background-style: solid;
     background-color: var(--background-color);
 }
 
 bitmap-desc.test {
-    border-top: 1px Silver dotted;
+    border: 1px Silver dotted;
     background-style: solid;
     background-color: var(--background-color);
     font: medium American Typewriter, script;
@@ -90,7 +92,7 @@ bitmap-desc.test {
 }
 
 bitmap-desc.test {
-    border-top: 1px Silver dotted;
+    border: 1px Silver dotted;
     font-family: HanziPen TC, script;
     background-style: solid;
     background-color: var(--background-color);
@@ -98,7 +100,11 @@ bitmap-desc.test {
 }
 
 bitmap-desc.test {
-    border-top: 1px Silver dotted;
+    margin: 8px;
+    border-top:    2px hsi(240, 0%, 75%)  dot-dash;
+    border-right:  2px hsi(120, 50%, 32%) dashed;
+    border-bottom: 2px hsi(240, 0%, 50%)  long-dash;
+    border-left:   2px hsi(120, 50%, 64%) solid;
     desc: "Basic String \Test: \22\20\\\E9 \6C34\00A5\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */";
     font-family: system-ui;
     font-size: initial;
@@ -108,8 +114,8 @@ bitmap-desc.test {
     background-color: var(--background-color);
 }
 
-bitmap-desc:lang(bo).test {
-    border-top: 1px Silver dotted;
+bitmap-desc:lang(bo).test { /* functional pseudo classes have not been supported */
+    border: 1px Silver dotted;
     font-family: Qomolangma-Uchen Sarchung, "Microsoft Himalaya", Kailasa, default;
     desc: "བོད་ཡིག";
     text-decoration-line: underline;

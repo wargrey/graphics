@@ -53,11 +53,11 @@
          [(bottom) (values 'border-bottom-color 'border-bottom-width 'border-bottom-style)]
          [(left)   (values 'border-left-color   'border-left-width   'border-left-style)]
          [else     (values 'border-top-color    'border-top-width    'border-top-style)]))
-     (make-css-pen #:color (css-color-ref declared-values #false color-key 'currentcolor)
+     (make-css-pen #:color (css-color-ref declared-values #false color-key #false)
                    #:width (css-ref declared-values #false width-key css->border-width)
-                   #:style (css-ref declared-values #false style-key symbol? 'none))]))
+                   #:style (css-ref declared-values #false style-key symbol? #false))]))
 
 (define css-extract-background-brush : (-> CSS-Values (Option CSS-Values) Brush)
   (lambda [declared-values inherited-values]
-    (make-css-brush #:color (css-color-ref declared-values #false 'background-color 'transparent)
-                    #:style (css-ref declared-values #false 'background-style brush-style? 'transparent))))
+    (make-css-brush #:color (css-color-ref declared-values #false 'background-color #false)
+                    #:style (css-ref declared-values #false 'background-style brush-style? #false))))

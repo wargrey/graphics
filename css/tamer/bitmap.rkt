@@ -80,8 +80,8 @@
               ([$bt (in-list $btests)])
       (define-values (fgcolor rcolor) (values (btest-foreground-color $bt) (btest-output-color $bt)))
 
-      (define-values (width words font) (values (btest-max-width $bt) (btest-desc $bt) (btest-font $bt)))
-      (define desc (bitmap-desc words width font #:color fgcolor #:background (btest-brush $bt)))
+      (define-values (max-width words font) (values (btest-max-width $bt) (btest-desc $bt) (btest-font $bt)))
+      (define desc (bitmap-desc words max-width font #:color fgcolor #:background (btest-brush $bt)))
       (define-values (desc-width height) (bitmap-size desc))
       (define ~s32 : (-> String String) (λ [txt] (~s txt #:max-width 32 #:limit-marker "...\"")))
       
@@ -92,15 +92,14 @@
                                         (bitmap-hc-append #:gapsize 7
                                                           (bitmap-text "bitmap-desc" #:color (btest-symbol-color $bt))
                                                           (bitmap-text (~s32 words) #:color (btest-string-color $bt))
-                                                          (bitmap-text (~a width) #:color (btest-number-color $bt))
+                                                          (bitmap-text (~a max-width) #:color (btest-number-color $bt))
                                                           (bitmap-text (~s (send font get-face)) #:color (btest-string-color $bt))
                                                           (bitmap-text (~a (smart-font-size font)) #:color (btest-number-color $bt)))
                                         (bitmap-text ")" #:color (btest-paren-color $bt)))
                             (bitmap-text #:color rcolor
                                          (cond [(not (send font get-combine?)) (format "- : (Bitmap ~a ~a)" desc-width height)]
                                                [else (format "- : (Bitmap ~a ~a #:ligature)" desc-width height)]))
-                            (bitmap-lt-superimpose (bitmap-frame desc #:color 'transparent) #|for aligning|#
-                                                   (bitmap-frame (bitmap-blank width height) #:color (car (btest-borders $bt))))))
+                            (bitmap-frame desc #:border (btest-borders $bt) #:padding (list 0 (max (- max-width desc-width) 0) 0 0))))
               (cons $bt testcases)))))
 
 (when DrRacket?

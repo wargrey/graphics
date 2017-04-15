@@ -6,7 +6,6 @@
 
 (require "digitama/digicore.rkt")
 (require "digitama/cheat.rkt")
-(require "digitama/color.rkt")
 (require "digitama/inspectable.rkt")
 (require "digitama/background.rkt")
 (require "color.rkt")
@@ -117,26 +116,26 @@
       (list x0 y0 r0 x1 y1 r1 (send this get-stops)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define default-css-pen : (Parameterof (Instance Pen%))
+  (make-parameter (make-pen #:color (select-color 'transparent) #:width (generic-pen-width-map 'medium) #:style 'transparent)))
+
+(define default-css-brush : (Parameterof (Instance Brush%))
+  (make-parameter (make-brush #:color (select-color 'transparent) #:style 'transparent)))
+
 (define make-css-pen : (->* ()
-                            ((Instance Pen%) #:color (Option Color+sRGB) #:width (U Nonnegative-Real Symbol False)
+                            ((Instance Pen%) #:color (Option Color+sRGB) #:width (U Real Symbol False)
                                              #:style (Option Symbol) #:cap (Option Pen-Cap-Style) #:join (Option Pen-Join-Style)
                                              #:stipple (Option (Instance Bitmap%)))
                             (Instance CSS-Pen%))
   (let ([pen%? : (-> Any Boolean : #:+ (Instance Fixed-Pen%)) ((inst make-cheat-is-a? Fixed-Pen%) pen% 'pen%?)]
-        [penbase : (HashTable (Listof Any) Pen) (make-hash)]
-        [rootpen : (Instance Pen%) (make-pen #:color (select-color #x000000))])
-    (lambda [[basepen rootpen] #:color [color #false] #:width [width #false] #:style [style #false]
-                               #:cap [cap #false] #:join [join #false] #:stipple [stipple 'inherit]]
-      (define pen-color : Color
-        (select-color (cond [(memq style '(hidden none transparent)) 'transparent]
-                            [else (or color (send basepen get-color))])))
+        [penbase : (HashTable (Listof Any) Pen) (make-hash)])
+    (lambda [[basepen (default-css-pen)] #:color [color #false] #:width [width #false] #:style [style #false]
+                                         #:cap [cap #false] #:join [join #false] #:stipple [stipple 'inherit]]
+      (define pen-color : Color (select-color (or color (send basepen get-color))))
       (define pen-width : Real
         (cond [(memq style '(hidden none)) 0.0]
-              [(real? width) (min 255.0 width)]
-              [(eq? width 'thin) 1.0]
-              [(eq? width 'medium) 3.0]
-              [(eq? width 'thick) 5.0]
-              [else (send basepen get-width)]))
+              [(and (real? width) (>= width 0.0)) (min 255.0 width)]
+              [else (generic-pen-width-map 'medium basepen)]))
       (define pen-style : Pen-Style
         (cond [(pen-style? style) style]
               [else (case style ; TODO: deal with other CSS style options
@@ -156,10 +155,9 @@
                                                  #:transformation (U False (Vector (Vector Real Real Real Real Real Real)
                                                                                    Real Real Real Real Real)))
                               (Instance CSS-Brush%))
-  (let ([brushbase : (HashTable (Listof Any) Brush) (make-hash)]
-        [rootbrush : (Instance Brush%) (make-brush #:color (select-color #x000000))])
-    (lambda [[basebrush rootbrush] #:color [color #false] #:style [style #false] #:gradient [gradient #false]
-                                   #:stipple [stipple 'inherit] #:transformation [transformation 'inherit]]
+  (let ([brushbase : (HashTable (Listof Any) Brush) (make-hash)])
+    (lambda [[basebrush (default-css-brush)] #:color [color #false] #:style [style #false] #:gradient [gradient #false]
+                                             #:stipple [stipple 'inherit] #:transformation [transformation 'inherit]]
       (define brush-color : Color (select-color (or color (send basebrush get-color))))
       (define brush-style : Brush-Style (or style (send basebrush get-style)))
       ; TODO: deal with stipple gradient and transformation
