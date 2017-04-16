@@ -4,7 +4,6 @@
 ;;; WARNING: Notations are not following the CSS Specifications https://drafts.csswg.org/css-values/#component-combinators
 
 (provide (all-defined-out))
-(provide (rename-out [exact-nonnegative-integer? natural?]))
 
 (require "digitama/syntax/misc.rkt")
 (require "digitama/syntax/digicore.rkt")
