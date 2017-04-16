@@ -52,7 +52,7 @@
                     (for/list ([<function> (in-list (syntax->list #'(fname ...)))]
                                [<transforms> (in-list (syntax->list #'([transforms ...] ...)))])
                       (define transforms (syntax-e <transforms>))
-                      (when (null? transforms) (raise-syntax-error (syntax-e #'self) "empty value transform" <function>))
+                      (when (null? transforms) (raise-syntax-error (syntax-e #'self) "empty value transformation" <function>))
                       (for/list ([<transform> (in-list transforms)])
                         (define transform (syntax-e <transform>))
                         (cond [(pair? transform) (parse-pattern (car transform) (cdr transform))]
