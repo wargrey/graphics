@@ -28,8 +28,9 @@
          [ch (-> Nonnegative-Flonum)]
          [ic (-> Nonnegative-Flonum)]
          [lh (-> Nonnegative-Flonum)]
-         [get-combine? (-> Boolean)]
-         [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]))
+         [get-face* (-> String)]
+         [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]
+         [should-combine? (-> Boolean)]))
 
 (define/make-is-a? css-font% : CSS-Font%
   (class inspectable-font%
@@ -52,9 +53,9 @@
       (cond [(null? units) (hash->list metrics)]
             [else (for/list : (Listof (Pairof Symbol Nonnegative-Flonum)) ([unit (in-list units)])
                     (cons unit (metrics-ref unit)))]))
-    
-    (define/public (get-combine?)
-      (not (eq? ligature 'none)))
+
+    (define/public (get-face*) face)
+    (define/public (should-combine?) (not (eq? ligature 'none)))
 
     (define/override (get-family)
       (let try-next ([families : (Listof Font-Family) '(swiss roman modern decorative script symbol system)])
@@ -84,7 +85,7 @@
                                                #:style (Option Symbol) #:weight (Option Symbol) #:ligature (U Boolean Symbol)
                                                #:hinting (Option Font-Hinting) #:lines (Option (Listof Symbol))
                                                #:smoothing (Option Font-Smoothing))
-                             (Instance CSS-Font%))
+                             Font)
   (let ([fontbase : (HashTable (Listof Any) (Instance CSS-Font%)) (make-hash)])
     (lambda [[basefont (default-css-font)] #:size [size +nan.0] #:family [face null] #:style [style #false] #:weight [weight #false]
                                            #:hinting [hinting #false] #:smoothing [smoothing #false] #:lines [lines #false]
@@ -108,7 +109,7 @@
       (define font-hinting : Font-Hinting (or hinting (send basefont get-hinting)))
       (define font-ligature : Symbol
         (cond [(symbol? ligature) ligature]
-              [(css-font%? basefont) (if (send basefont get-combine?) 'normal 'none)]
+              [(css-font%? basefont) (if (send basefont should-combine?) 'normal 'none)]
               [else 'normal]))
       (hash-ref! fontbase
                  (list font-face font-ligature font-lines font-size font-style font-weight font-smoothing font-hinting)

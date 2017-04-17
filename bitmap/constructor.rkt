@@ -50,7 +50,7 @@
   (lambda [content [font (default-css-font)] #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background-color [bgcolor #false]
                    #:ascent [alcolor #false] #:descent [dlcolor #false] #:capline [clcolor #false] #:meanline [mlcolor #false]
                    #:baseline [blcolor #false]]
-    (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font get-combine?))))
+    (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font should-combine?))))
     (define-values (width height _ zero) (send the-dc get-text-extent content font combine?))
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
     (send dc set-font font)
@@ -83,7 +83,7 @@
                            Bitmap)
   (lambda [description max-width.0 [font (default-css-font)] #:max-height [max-height.0 +inf.0]
            #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background [bgcolor #false]]
-    (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font get-combine?))))
+    (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font should-combine?))))
     (define-values (max-width max-height) (values (real->double-flonum max-width.0) (real->double-flonum max-height.0)))
     (define desc-extent : (-> String Integer Integer (Values String Nonnegative-Flonum Nonnegative-Flonum))
       (lambda [desc start end]

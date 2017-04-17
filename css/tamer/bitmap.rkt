@@ -97,7 +97,7 @@
                                                           (bitmap-text (~a (smart-font-size font)) #:color (btest-number-color $bt)))
                                         (bitmap-text ")" #:color (btest-paren-color $bt)))
                             (bitmap-text #:color rcolor
-                                         (cond [(not (send font get-combine?)) (format "- : (Bitmap ~a ~a)" desc-width height)]
+                                         (cond [(not (send font should-combine?)) (format "- : (Bitmap ~a ~a)" desc-width height)]
                                                [else (format "- : (Bitmap ~a ~a #:ligature)" desc-width height)]))
                             (bitmap-frame desc #:border (btest-borders $bt) #:padding (list 0 (max (- max-width desc-width) 0) 0 0))))
               (cons $bt testcases)))))

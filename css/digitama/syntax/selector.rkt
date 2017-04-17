@@ -25,8 +25,8 @@
 (define-type CSS-Selector-Combinator (U '>> '> '+ '~ '||))
 (define-type CSS-Namespace-Hint (U (Listof (Pairof Symbol String)) False))
 (define-type CSS-Complex-Selector (Listof+ CSS-Compound-Selector))
-(define-type CSS-Attribute-Datum (U String Symbol (Listof (U String Symbol))))
-(define-type CSS-Attribute-Value (U CSS-Attribute-Datum (Vector Symbol CSS-Attribute-Datum)))
+(define-type CSS-Attribute-Value (U (U String Symbol (Listof (U String Symbol)))
+                                    (Vector Symbol (U String Symbol (Listof (U String Symbol))))))
 
 (define-preference css-subject #:as CSS-Subject
   ([combinator : CSS-Selector-Combinator                #:= '>]
