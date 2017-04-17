@@ -1,9 +1,6 @@
 #lang typed/racket/gui
 
 (provide (all-defined-out))
-(provide (all-from-out racket/logging))
-
-(require racket/logging)
 
 (require bitmap/digitama/digicore)
 (require bitmap/font)

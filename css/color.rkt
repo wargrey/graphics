@@ -16,7 +16,6 @@
 (require (for-syntax racket/syntax))
 (require (for-syntax syntax/parse))
 
-;;; TODO: should the current-css-element-color be a Racket Parameter? CSS does not have this concept.
 (define current-css-element-color : (Parameterof Color+sRGB Color) (make-parameter (select-color #x000000) select-color))
 (default-make-currentcolor current-css-element-color)
 

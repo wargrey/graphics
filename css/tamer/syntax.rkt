@@ -1,5 +1,7 @@
 #lang typed/racket
 
+(require racket/logging)
+
 (require "configure.rkt")
 (require "../syntax.rkt")
 (require "../image.rkt")

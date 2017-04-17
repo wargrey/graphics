@@ -135,7 +135,7 @@
       (define pen-width : Real
         (cond [(memq style '(hidden none)) 0.0]
               [(and (real? width) (>= width 0.0)) (min 255.0 width)]
-              [else (generic-pen-width-map 'medium basepen)]))
+              [else (send basepen get-width)]))
       (define pen-style : Pen-Style
         (cond [(pen-style? style) style]
               [else (case style ; TODO: deal with other CSS style options

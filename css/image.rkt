@@ -11,7 +11,7 @@
 (require "digitama/image.rkt")
 (require "recognizer.rkt")
 
-(define-type CSS-Make-Icon (-> #:height Nonnegative-Real #:color (Instance Color%) Bitmap))
+(define-type CSS-Make-Icon (-> #:height Nonnegative-Real #:color Color Bitmap))
 
 ;;; TODO: meanwhile <css+resolution> accepts 0
 ;;; TODO: deal with the default resolution

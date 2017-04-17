@@ -38,8 +38,24 @@
       (pango_font_description_free font-desc)
       (values (~metric ascent) (~metric capline) (~metric meanline) (~metric baseline)
               (~metric (unsafe-fx+ ascent height)))))
+
+  (define get_font~extent
+    (lambda [font-face font-size font-style font-weight]
+      (define-values (desc baseline get-extent) (make-desc+extent font-face font-size font-style font-weight))
+      get-extent))
   
   (define make-desc+extent
+    (lambda [font-face font-size font-style font-weight]
+      (define font-desc (make-desc font-face font-size font-style font-weight))
+      (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
+      
+      (define layout (or (unbox &layout) (and (set-box! &layout (pango_cairo_create_layout cr)) (unbox &layout))))
+      (pango_layout_set_font_description layout font-desc)
+
+      (let ([baseline (pango_layout_get_baseline layout)])
+        (values font-desc baseline (λ [hint-char] (~extent layout baseline hint-char))))))
+
+  (define make-desc
     (lambda [font-face font-size font-style font-weight]
       (define font-desc
         (let ([face-is-family? (regexp-match #rx"," font-face)])
@@ -49,13 +65,7 @@
                         desc)])))
       (unless (eq? font-style 'normal) (pango_font_description_set_style font-desc (~style font-style)))
       (unless (eq? font-weight 'normal) (pango_font_description_set_weight font-desc (~weight font-weight)))
-      (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
-      
-      (define layout (or (unbox &layout) (and (set-box! &layout (pango_cairo_create_layout cr)) (unbox &layout))))
-      (pango_layout_set_font_description layout font-desc)
-
-      (let ([baseline (pango_layout_get_baseline layout)])
-        (values font-desc baseline (λ [hint-char] (~extent layout baseline hint-char))))))
+      font-desc))
 
   (define ~extent
     (lambda [layout baseline hint-char]

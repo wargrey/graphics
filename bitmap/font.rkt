@@ -30,6 +30,8 @@
          [lh (-> Nonnegative-Flonum)]
          [get-face* (-> String)]
          [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]
+         [get-text-size (->* (String) ((Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))]
+         [draw-text (-> (Instance DC<%>) String Real Real Void)]
          [should-combine? (-> Boolean)]))
 
 (define/make-is-a? css-font% : CSS-Font%
@@ -56,6 +58,12 @@
 
     (define/public (get-face*) face)
     (define/public (should-combine?) (not (eq? ligature 'none)))
+
+    (define/public (get-text-size text [dc the-dc])
+      (text-size text this (should-combine?) #:with-dc dc))
+
+    (define/public (draw-text dc text x y)
+      (send dc draw-text text x y))
 
     (define/override (get-family)
       (let try-next ([families : (Listof Font-Family) '(swiss roman modern decorative script symbol system)])
@@ -158,6 +166,6 @@
                             content)))
 
 (define text-size : (->* (String (Instance Font%)) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [text font [combined? #true] #:with-dc [dc the-dc]]
-    (define-values (w h d a) (send dc get-text-extent text font combined?))
+  (lambda [text font [combine? #true] #:with-dc [dc the-dc]]
+    (define-values (w h d a) (send dc get-text-extent text font combine?))
     (values (real->double-flonum w) (real->double-flonum h))))

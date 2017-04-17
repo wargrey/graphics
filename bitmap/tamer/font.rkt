@@ -2,9 +2,11 @@
 
 (require "../main.rkt")
 
+(default-css-pen (make-css-pen #:color 'gray #:width 1 #:style 'solid))
+
 (define bitmap-text*
   (lambda [text font]
-    (bitmap-frame #:color 'gray
+    (bitmap-frame #:border 'gray
                   (bitmap-text #:ascent 'Magenta #:descent 'Blue #:capline 'Orange #:meanline 'Green #:baseline 'Red
                                text (make-css-font (make-css-font font #:size 'xx-large) #:size 2f0)))))
 

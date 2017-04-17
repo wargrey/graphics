@@ -13,7 +13,7 @@
 (require/provide colorspace)
 (require/provide typed/images/icons typed/images/logos)
 
-(require/provide "digitama/digicore.rkt")
+(require/provide "digitama/digicore.rkt" "compile-time.rkt")
 (require/provide "base.rkt" "constructor.rkt" "combiner.rkt")
-(require/provide "resize.rkt" "misc.rkt" "compile-time.rkt")
-(require/provide "color.rkt" "font.rkt" "effect.rkt")
+(require/provide "resize.rkt" "misc.rkt" "effect.rkt")
+(require/provide "color.rkt" "font.rkt" "background.rkt")
