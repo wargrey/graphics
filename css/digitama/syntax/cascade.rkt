@@ -23,7 +23,8 @@
 
 (define-type CSS-Style-Metadata (Vector Natural (Listof CSS-Declaration) CSS-Media-Features))
 
-(define css-warning-unknown-property? : (Parameterof Boolean) (make-parameter #true))
+(define css-warn-unknown-property? : (Parameterof Boolean) (make-parameter #true))
+(define css-warn-unknown-feature? : (Parameterof Boolean) (make-parameter #false))
 
 (define-syntax (call-with-css-viewport-from-media stx)
   (syntax-parse stx
@@ -156,7 +157,7 @@
                         (cond [(css-filter? info) (filter-desc descbase info <desc-name> declared-values desc-name important? lazy?)]
                               [(css-parser? info) (parse-desc descbase info <desc-name> declared-values desc-name important? lazy?)]
                               [(pair? info) (parse-long descbase info <desc-name> declared-values important? lazy?)]
-                              [(css-warning-unknown-property?) (make+exn:css:unrecognized <desc-name>)])))]))
+                              [(css-warn-unknown-property?) (make+exn:css:unrecognized <desc-name>)])))]))
       descbase)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -230,7 +231,7 @@
                (cond [(css-filter? info) (do-filter <desc-name> info decl-values #false)]
                      [(css-parser? info) ((inst do-parse (Listof Any) False) <desc-name> info decl-values null #false reverse)]
                      [(pair? info) (do-parse <desc-name> (car info) decl-values css-longhand #false)]
-                     [(css-warning-unknown-property?) (make+exn:css:unrecognized <desc-name>)]))
+                     [(css-warn-unknown-feature?) (make+exn:css:unrecognized <desc-name>)]))
              (and desc-values (support? (css:ident-norm <desc-name>) desc-values)))))
     (css-condition-okay? query okay?)))
 
