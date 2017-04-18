@@ -2,8 +2,6 @@
 
 (provide (all-defined-out))
 
-(require typed/racket/draw)
-
 (require "digitama/digicore.rkt")
 (require "digitama/cheat.rkt")
 (require "digitama/font.rkt")
