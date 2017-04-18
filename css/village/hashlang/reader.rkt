@@ -60,14 +60,7 @@
 
            (define drracket? : Boolean (regexp-match? #px"DrRacket$" (find-system-path 'run-file)))
            (if drracket? #,lang.css (printf "~a~n~a~n" (pretty-format #,lang.css) metrics))
-           (when drracket? (displayln metrics)))
-         
-         #,@(for/list ([mod (in-list (css-stylesheet-modules all-rules))]
-                  #:when (pair? (css-@racket-rule-sexps mod)))
-              (read (open-input-string (format "(module+ ~a ~a)" (css-@racket-rule-name mod)
-                                         (subbytes bytes-bag
-                                                   (sub1 (css-token-start (first (css-@racket-rule-sexps mod))))
-                                                   (css-token-end (last (css-@racket-rule-sexps mod))))))))))))
+           (when drracket? (displayln metrics)))))))
 
 (define (css-info in mod line col pos)
   (lambda [key default]
