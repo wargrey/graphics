@@ -63,7 +63,12 @@
       (text-size text this (should-combine?) #:with-dc dc))
 
     (define/public (draw-text dc text x y)
-      (send dc draw-text text x y))
+      (define saved-font (send dc get-font))
+      (cond [(eq? saved-font this) (send dc draw-text text x y (should-combine?))]
+            [else (send* dc
+                    (set-font this)
+                    (draw-text text x y (should-combine?))
+                    (set-font saved-font))]))
 
     (define/override (get-family)
       (let try-next ([families : (Listof Font-Family) '(swiss roman modern decorative script symbol system)])
