@@ -41,8 +41,6 @@
                     [() (list (cons 'name (p-name)) ...)]))))]))
 
 (define-type (Listof+ css) (Pairof css (Listof css)))
-(define-type Symbol↯ Symbol)
-(define-type Keyword↯ Keyword)
 
 (define css-log-error : (->* ((U exn String)) (Any Log-Level Symbol) Void)
   (lambda [errobj [src #false] [level 'debug] [topic 'exn:css:fail]]

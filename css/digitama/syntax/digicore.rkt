@@ -132,13 +132,13 @@
                                            (make-exn:css:range t)))))]))))]))
 
 (define-syntax (define-token stx)
-  (syntax-parse stx #:literals [: Symbol↯ Keyword↯]
+  (syntax-parse stx #:literals [: Symbol Keyword]
     [(_ id : Number parent #:as Type #:=? type=? #:with id? id-datum)
      (with-syntax ([id=? (format-id #'id "~a=?" (syntax-e #'id))])
        #'(begin (struct: id : Number parent ([datum : Type]))
                 (define (id=? [t1 : Number] [t2 : Number]) : Boolean (type=? (id-datum t1) (id-datum t2)))
                 (define-token-interface id : Type id? id-datum #:+ Number #:= type=?)))]
-    [(_ id : Identifier parent ((~and (~or Symbol↯ Keyword↯) Type) rest ...) #:with id? id-datum)
+    [(_ id : Identifier parent ((~and (~or Symbol Keyword) Type) #:ci rest ...) #:with id? id-datum)
      (with-syntax ([id=? (format-id #'id "~a=?" (syntax-e #'id))]
                    [id-norm=? (format-id #'id "~a-norm=?" (syntax-e #'id))]
                    [id-norm (format-id #'id "~a-norm" (syntax-e #'id))])
@@ -170,13 +170,13 @@
 
 (define-syntax (define-lazy-tokens stx)
   (syntax-parse stx
-    [(_ token #:+ Token [id #:+ ID #:with components #:as Type] ...)
+    [(_ token #:+ Token [id #:+ ID #:with components #:as Type ...] ...)
      (with-syntax ([([id? id-copy Component] ...)
                     (for/list ([<id> (in-list (syntax->list #'(id ...)))])
                       (list (format-id <id> "~a?" (syntax-e <id>))
                             (format-id <id> "~a-copy" (syntax-e <id>))
                             (if (eq? (syntax-e <id>) 'css:url) #'CSS-URL-Modifier #'CSS-Token)))])
-       #'(begin (define-symbolic-tokens token #:+ Token [id #:+ ID #:as Type [components : (Listof Component)] [lazy? : Boolean]] ...)
+       #'(begin (define-symbolic-tokens token #:+ Token [id #:+ ID #:as Type ... [components : (Listof Component)] [lazy? : Boolean]] ...)
 
                 (define id-copy : (-> ID (Listof Component) Boolean ID)
                   (lambda [instance subcoms ?]
@@ -307,8 +307,8 @@
   ; TODO: Typed Racket is buggy if there are more than 11 conditions
   (define-symbolic-tokens css-symbolic-token #:+ CSS-Symbolic-Token
     [css:delim          #:+ CSS:Delim           #:as Char]
-    [css:ident          #:+ CSS:Ident           #:as Symbol↯]
-    [css:@keyword       #:+ CSS:@Keyword        #:as Keyword↯]
+    [css:ident          #:+ CSS:Ident           #:as Symbol            #:ci]
+    [css:@keyword       #:+ CSS:@Keyword        #:as Keyword           #:ci]
     [css:hash           #:+ CSS:Hash            #:as Keyword]
     [css:string         #:+ CSS:String          #:as String]
     [css:match          #:+ CSS:Match           #:as Char]
@@ -319,7 +319,7 @@
   (define-lazy-tokens css-lazy-token #:+ CSS-Lazy-Token
     [css:url            #:+ CSS:URL             #:with modifiers       #:as String]   ; "" means 'about:invalid
     [css:block          #:+ CSS:Block           #:with components      #:as Char]
-    [css:function       #:+ CSS:Function        #:with arguments       #:as Symbol↯]
+    [css:function       #:+ CSS:Function        #:with arguments       #:as Symbol #:ci]
     [css:λracket        #:+ CSS:λRacket         #:with arguments       #:as Symbol]
     [css:var            #:+ CSS:Var             #:with fallback        #:as Symbol])
 
