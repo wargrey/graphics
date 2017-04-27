@@ -2,6 +2,14 @@
 
 (provide (all-defined-out))
 
+(require (for-syntax racket/base))
+
+(define-syntax (require/provide stx)
+  (syntax-case stx []
+    [(_ spec ...)
+     #'(begin (provide (all-from-out spec)) ...
+              (require spec) ...)]))
+
 (define require-image : (-> String Symbol Positive-Real Any)
   (lambda [src.rkt id density]
     (define fallback (λ [] (call-with-values (λ [] (eval id (module->namespace src.rkt))) (λ _ (car _)))))

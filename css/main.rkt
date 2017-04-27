@@ -17,6 +17,7 @@
 (provide (all-from-out bitmap))
 
 (require bitmap)
+(require bitmap/digitama/misc)
 
 (require/provide "syntax.rkt" "racket.rkt"
                  "color.rkt" "image.rkt"

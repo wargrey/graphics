@@ -1,15 +1,15 @@
 #lang typed/racket
 
 (provide (all-defined-out))
+(provide (all-from-out "digitama/digicore.rkt"))
 
-(require "digitama/digicore.rkt")
-(require "digitama/color.rkt")
 (require "digitama/misc.rkt")
 
-(require "resize.rkt")
-(require "misc.rkt")
+(require/provide "digitama/digicore.rkt")
+(require/provide "constructor.rkt" "combiner.rkt" "resize.rkt")
+(require/provide "color.rkt" "font.rkt" "background.rkt" "misc.rkt")
 
-(require typed/images/icons)
+(require/provide typed/images/icons)
 
 (define build-bitmap : (-> Nonnegative-Real Nonnegative-Real (-> Fixnum Fixnum (Values Real Real Real Real))
                            [#:backing-scale Positive-Real] [#:alpha-multiplied? Boolean] Bitmap)
@@ -114,8 +114,7 @@
 
 (define bitmap->sprite : (->* (Bitmap) (Positive-Integer Positive-Integer) (Listof Bitmap))
   (lambda [bmp [cols 1] [rows 1]]
-    (define-values (src-width src-height) (bitmap-size bmp))
-    (define-values (width height) (values (/ src-width cols) (/ src-height rows)))
+    (define-values (width height) (values (/ (send bmp get-width) cols) (/ (send bmp get-height) rows)))
     (reverse (for*/fold ([sprite : (Listof Bitmap) null])
                         ([y (in-range rows)] [x (in-range cols)])
                (cons (bitmap-copy bmp (* x width) (* y height) width height) sprite)))))

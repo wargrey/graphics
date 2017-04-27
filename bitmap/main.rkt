@@ -1,19 +1,9 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
-
-(require (for-syntax racket/base))
-
-(define-syntax (require/provide stx)
-  (syntax-case stx []
-    [(_ spec ...)
-     #'(begin (provide (all-from-out spec)) ...
-              (require spec) ...)]))
+(require "digitama/misc.rkt")
 
 (require/provide colorspace)
-(require/provide typed/images/icons typed/images/logos)
+(require/provide typed/images/logos)
 
-(require/provide "digitama/digicore.rkt" "compile-time.rkt")
-(require/provide "base.rkt" "constructor.rkt" "combiner.rkt")
-(require/provide "resize.rkt" "misc.rkt" "effect.rkt")
-(require/provide "color.rkt" "font.rkt" "background.rkt")
+(require/provide "base.rkt" "effect.rkt")
+(require/provide "compile-time.rkt")

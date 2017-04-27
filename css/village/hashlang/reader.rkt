@@ -36,31 +36,33 @@
      #`(module #,lang.css typed/racket/base
          (provide #,lang.css)
          (provide (all-from-out css/syntax))
-         
-         (require racket/pretty)
-         (require racket/format)
+
          (require css/syntax)
-         
-         (define (load-lang.css) : CSS-StyleSheet
-           (define /dev/rawin : Input-Port (open-input-bytes #,bytes-bag '#,src))
-           (port-count-lines! /dev/rawin)
-           (set-port-next-location! /dev/rawin #,line #,column #,position)
-           (read-css-stylesheet /dev/rawin))
-         
-         (define-values (#,lang.css metrics)
-           (let ([mem0 (current-memory-use)])
-             (define-values (&lang.css cpu real gc) (time-apply load-lang.css null))
-             (values (car &lang.css)
-                     (format "[~a]memory: ~aMB cpu time: ~a real time: ~a gc time: ~a" '#,lang.css
-                             (~r (/ (- (current-memory-use) mem0) 1024.0 1024.0) #:precision '(= 3))
-                             cpu real gc))))
+
+         ;;; NOTE
+         ; Prefab structures can be handled at compile time, however reading the stylesheet is reasonably efficient,
+         ; therefore do not waste time in struggling to optimize the reading process.
+         (define-values (#,lang.css MB cpu real gc)
+           (let ([/dev/rawin (open-input-bytes #,bytes-bag '#,src)]
+                 [mem0 (current-memory-use)])
+             (port-count-lines! /dev/rawin)
+             (set-port-next-location! /dev/rawin #,line #,column #,position)
+             (define-values (&lang.css cpu real gc) (time-apply read-css-stylesheet (list /dev/rawin)))
+             (values (car &lang.css) (/ (- (current-memory-use) mem0) 1024.0 1024.0) cpu real gc)))
 
          (module+ main
+           (require racket/pretty)
+           (require racket/format)
+           
            (pretty-print-columns 160)
 
+           (define benchmark : String
+             (format "[~a]memory: ~aMB cpu time: ~a real time: ~a gc time: ~a"
+                     '#,lang.css (~r MB #:precision '(= 3)) cpu real gc))
+           
            (define drracket? : Boolean (regexp-match? #px"DrRacket$" (find-system-path 'run-file)))
-           (if drracket? #,lang.css (printf "~a~n~a~n" (pretty-format #,lang.css) metrics))
-           (when drracket? (displayln metrics)))))))
+           (if drracket? #,lang.css (printf "~a~n~a~n" (pretty-format #,lang.css) benchmark))
+           (when drracket? (displayln benchmark)))))))
 
 (define (css-info in mod line col pos)
   (lambda [key default]
