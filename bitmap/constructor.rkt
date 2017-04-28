@@ -184,7 +184,7 @@
       frame)))
 
 (define bitmap-rectangle : (->* (Real) (Real (Option Real) #:color Brush+Color #:border Pen+Color) Bitmap)
-  (lambda [w [h #false] [radius #false] #:color [color #x000000] #:border [pen-color 'transparent]]
+  (lambda [w [h #false] [radius #false] #:color [color (cons #x000000 'solid)] #:border [pen-color 'transparent]]
     (define width : Nonnegative-Real (max w 0.0))
     (define height : Nonnegative-Real (max (or h w) 0.0))
     (define bmp : Bitmap (bitmap-blank width height))
@@ -197,7 +197,7 @@
     bmp))
 
 (define bitmap-ellipse : (->* (Real) (Real #:color Brush+Color #:border Pen+Color) Bitmap)
-  (lambda [w [h #false] #:color [color #x000000] #:border [pen-color 'transparent]]
+  (lambda [w [h #false] #:color [color (cons #x000000 'solid)] #:border [pen-color 'transparent]]
     (define width : Nonnegative-Real (max w 0.0))
     (define height : Nonnegative-Real (max (or h w) 0.0))
     (define bmp : Bitmap (bitmap-blank width height))
