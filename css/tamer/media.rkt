@@ -23,7 +23,7 @@
    [horizontal-margin : Nonnegative-Flonum #:= 3.0]
    [vertical-inset : Nonnegative-Flonum    #:= 0.0]
    [horizontal-inset : Nonnegative-Flonum  #:= 0.0]
-   [icon-height : Nonnegative-Flonum       #:= (real->double-flonum (default-icon-height))]
+   [icon-height : Nonnegative-Flonum       #:= (default-bitmap-icon-height)]
    [font : Font                            #:= (current-css-element-font)]
    [color : Color                          #:= 'currentcolor]
    [borders : (Listof Pen)                 #:= null]

@@ -5,8 +5,6 @@
 (require "digitama/digicore.rkt")
 (require "constructor.rkt")
 
-(require typed/images/icons)
-
 (define bitmap-size : (case-> [Bitmap -> (Values Positive-Integer Positive-Integer)]
                               [Bitmap Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)]
                               [Bitmap Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)])
@@ -27,7 +25,7 @@
             (max (exact-ceiling (* (send bmp get-height) density)) 1))))
 
 (define bitmap-alter-density : (->* (Bitmap) (Positive-Real) Bitmap)
-  (lambda [raw [density (default-icon-backing-scale)]]
+  (lambda [raw [density (default-bitmap-density)]]
     (define ratio : Nonnegative-Real (/ (send raw get-backing-scale) density))
     (cond [(= ratio 1.0) raw]
           [else (let ([bmp (bitmap-blank (* (send raw get-width) ratio) (* (send raw get-height) ratio) density)])

@@ -18,15 +18,15 @@
   (define smart-pen
     (lambda [hint make-css-pen]
       (cond [(is-a? hint pen%) (make-css-pen hint)]
-            [(not (pair? hint)) (make-css-pen #:color hint)]
+            [(not (pair? hint)) (make-css-pen #:color hint #:width 1 #:style 'solid)]
             [(pair? (cdr hint)) (make-css-pen #:color (car hint) #:width (cadr hint) #:style (cddr hint))]
-            [else (make-css-pen #:color (car hint) #:style (cdr hint))])))
+            [else (make-css-pen #:color (car hint) #:width 1 #:style (cdr hint))])))
   
   (define smart-brush
     (lambda [hint make-css-brush]
       (cond [(is-a? hint brush%) (make-css-brush hint)]
             [(pair? hint) (make-css-brush #:color (car hint) #:style (cdr hint))]
-            [else (make-css-brush #:color hint)]))))
+            [else (make-css-brush #:color hint #:style 'solid)]))))
 
 (unsafe-require/typed
  (submod "." cheat)

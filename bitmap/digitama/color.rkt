@@ -4,7 +4,7 @@
 
 (require "digicore.rkt")
 
-(define-predicate css-basic-color-datum? (U Index Symbol String))
+(define-predicate color-datum? (U Index Symbol String))
 
 (define default-make-currentcolor : (Parameterof (-> Color+sRGB)) (make-parameter (λ [] #x000000)))
 

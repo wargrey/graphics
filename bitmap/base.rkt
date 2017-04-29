@@ -2,18 +2,19 @@
 
 (provide (all-defined-out))
 (provide (all-from-out "digitama/digicore.rkt"))
+(provide (except-out (all-from-out typed/images/icons) default-icon-backing-scale default-icon-height))
 
 (require "digitama/misc.rkt")
+
+(require typed/images/icons)
 
 (require/provide "digitama/digicore.rkt")
 (require/provide "constructor.rkt" "combiner.rkt" "resize.rkt")
 (require/provide "color.rkt" "font.rkt" "background.rkt" "misc.rkt")
 
-(require/provide typed/images/icons)
-
 (define build-bitmap : (-> Nonnegative-Real Nonnegative-Real (-> Fixnum Fixnum (Values Real Real Real Real))
                            [#:backing-scale Positive-Real] [#:alpha-multiplied? Boolean] Bitmap)
-  (lambda [width height fargb #:backing-scale [density (default-icon-backing-scale)] #:alpha-multiplied? [/alpha? #false]]
+  (lambda [width height fargb #:backing-scale [density (default-bitmap-density)] #:alpha-multiplied? [/alpha? #false]]
     (define-values (w h) (values (exact-floor (* width density)) (exact-floor (* height density))))
     (define size : Integer (* w h 4))
     (define buffer : Bytes (make-bytes size))
@@ -59,7 +60,7 @@
 
 (define bitmap : (->* ((U Path-String Input-Port)) (Positive-Real) Bitmap)
   ;;; https://drafts.csswg.org/css-images/#image-fragments
-  (lambda [src [density (default-icon-backing-scale)]]
+  (lambda [src [density (default-bitmap-density)]]
     (define (image-section [raw : Bitmap] [xywh : String] [hint : Symbol]) : Bitmap
       (cond [(not (send raw ok?)) the-invalid-image]
             [else (match (regexp-match #px"^(\\d+),(\\d+),(\\d+),(\\d+)$" xywh)
@@ -85,7 +86,7 @@
              [_ (raise-user-error 'require-image "too many fragment")])])))
 
 (define sprite : (->* ((U Path-String Input-Port)) (Positive-Real) (Listof Bitmap))
-  (lambda [src [density (default-icon-backing-scale)]]
+  (lambda [src [density (default-bitmap-density)]]
     (define (image-disassemble [raw : Bitmap] [grid : String] [hint : Symbol]) : (Listof Bitmap)
       (cond [(not (send raw ok?)) null]
             [else (match (regexp-match #px"^(\\d+),(\\d+)$" grid)

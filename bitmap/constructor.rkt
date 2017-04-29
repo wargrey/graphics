@@ -9,11 +9,8 @@
 (require "color.rkt")
 (require "font.rkt")
 
-(require racket/math)
-(require typed/images/icons)
-
 (define bitmap-blank : (->* () (Real (Option Real) Positive-Real) Bitmap)
-  (lambda [[w 0] [h #false] [density (default-icon-backing-scale)]]
+  (lambda [[w 0] [h #false] [density (default-bitmap-density)]]
     (define width : Positive-Integer (max 1 (exact-ceiling w)))
     (define height : Positive-Integer (max 1 (exact-ceiling (or h w))))
     (make-bitmap width height #:backing-scale density)))
@@ -21,7 +18,7 @@
 (define bitmap-dc : (->* ((-> (Instance Bitmap-DC%) Nonnegative-Flonum Nonnegative-Flonum Any))
                          (Nonnegative-Real (Option Nonnegative-Real) Positive-Real)
                          Bitmap)
-  (lambda [draw-with [w 0] [h #false] [density (default-icon-backing-scale)]]
+  (lambda [draw-with [w 0] [h #false] [density (default-bitmap-density)]]
     (define bmp : Bitmap (bitmap-blank w h density))
     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
     (send dc set-smoothing 'aligned)
@@ -36,7 +33,7 @@
                   (send bmp get-backing-scale))))
 
 (define bitmap-solid : (->* () (Color+sRGB Real Positive-Real) Bitmap)
-  (lambda [[color 'transparent] [size 1] [density (default-icon-backing-scale)]]
+  (lambda [[color 'transparent] [size 1] [density (default-bitmap-density)]]
     (define solid : Bitmap (bitmap-blank size size density))
     (define dc : (Instance Bitmap-DC%) (send solid make-dc))
     (send dc set-background (select-color color))
@@ -46,13 +43,14 @@
 (define bitmap-text : (->* (String) ((Instance Font%) #:combine? (U Boolean Symbol) #:color (Option Color+sRGB)
                                                       #:background-color (Option Color+sRGB) #:baseline (Option Pen+Color)
                                                       #:capline (Option Pen+Color) #:meanline (Option Pen+Color)
-                                                      #:ascent (Option Pen+Color) #:descent (Option Pen+Color)) Bitmap)
+                                                      #:ascent (Option Pen+Color) #:descent (Option Pen+Color)
+                                                      #:density Positive-Real) Bitmap)
   (lambda [content [font (default-css-font)] #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background-color [bgcolor #false]
                    #:ascent [alcolor #false] #:descent [dlcolor #false] #:capline [clcolor #false] #:meanline [mlcolor #false]
-                   #:baseline [blcolor #false]]
+                   #:baseline [blcolor #false] #:density [density (default-bitmap-density)]]
     (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font should-combine?))))
     (define-values (width height _ zero) (send the-dc get-text-extent content font combine?))
-    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
+    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height density)))
     (send dc set-font font)
     (when fgcolor (send dc set-text-foreground (select-color fgcolor)))
     (when bgcolor (send dc set-text-background (select-color bgcolor)))
@@ -79,10 +77,11 @@
 
 (define bitmap-desc : (->* (String Real)
                            ((Instance Font%) #:color (Option Color+sRGB) #:background (Option Brush+Color)
-                                             #:max-height Real #:combine? (U Boolean Symbol))
+                                             #:max-height Real #:combine? (U Boolean Symbol) #:density Positive-Real)
                            Bitmap)
   (lambda [description max-width.0 [font (default-css-font)] #:max-height [max-height.0 +inf.0]
-           #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background [bgcolor #false]]
+           #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background [bgcolor #false]
+           #:density [density (default-bitmap-density)]]
     (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font should-combine?))))
     (define-values (max-width max-height) (values (real->double-flonum max-width.0) (real->double-flonum max-height.0)))
     (define desc-extent : (-> String Integer Integer (Values String Nonnegative-Flonum Nonnegative-Flonum))
@@ -115,7 +114,7 @@
                 [(fx= idx terminal) (values (cons descn descs) (cons yn ys) (max widthn Widthn) (fl+ yn heightn))]
                 [else (desc-row idx (cons descn descs) (cons yn ys) (max widthn Widthn) (fl+ yn heightn))]))))
 
-    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width (max phantom-height height))))
+    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width (max phantom-height height) density)))
     (send dc set-font font)
     (when fgcolor (send dc set-text-foreground (select-color fgcolor)))
     (unless (false? bgcolor)
@@ -130,7 +129,7 @@
 (define bitmap-frame : (-> Bitmap [#:border (U Pen+Color (Listof Pen+Color))] [#:background Brush+Color]
                            [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
                            [#:padding (U Nonnegative-Real (Listof Nonnegative-Real))]
-                           Bitmap)
+                           [#:density Positive-Real] Bitmap)
   (let ()
     (define (normalize [v : (U Nonnegative-Real (Listof Nonnegative-Real))])
       : (Values Nonnegative-Real Nonnegative-Real Nonnegative-Real Nonnegative-Real)
@@ -144,9 +143,8 @@
           (values v v v v)))
     (define (draw-border [dc : (Instance Bitmap-DC%)] [pen : (Instance Pen%)] [w : Real] [x1 : Real] [y1 : Real] [x2 : Real] [y2 : Real])
       (when (> w 0) (send* dc (set-pen pen) (draw-line x1 y1 x2 y2))))
-    (lambda [bmp #:margin [margin 0] #:padding [inset 0]
-                 #:border [pen-hint (default-css-pen)]
-                 #:background [brush-hint (default-css-brush)]]
+    (lambda [bmp #:margin [margin 0] #:padding [inset 0] #:density [density (default-bitmap-density)]
+                 #:border [pen-hint (default-css-pen)] #:background [brush-hint (default-css-brush)]]
       (define-values (margin-top margin-right margin-bottom margin-left) (normalize margin))
       (define-values (padding-top padding-right padding-bottom padding-left) (normalize inset))
       (define-values (pen-top pen-right pen-bottom pen-left)
@@ -156,7 +154,7 @@
               [(list vt vr) (let ([t (select-pen vt)] [r (select-pen vr)]) (values t r t r))]
               [(list vt vr b) (let ([t (select-pen vt)] [r (select-pen vr)]) (values t r (select-pen b) r))]
               [(list t r b l) (values (select-pen t) (select-pen r) (select-pen b) (select-pen l))]
-              [else (let ([t (default-css-pen)]) (values t t t t))])
+              [else (let ([deadcode (default-css-pen)]) (values deadcode deadcode deadcode deadcode))])
             (let ([p (select-pen pen-hint)]) (values p p p p))))
       (define-values (border-top border-right border-bottom border-left)
         (values (send pen-top get-width) (send pen-right get-width)
@@ -183,11 +181,12 @@
       (send dc draw-bitmap bmp (+ bgx padding-left) (+ bgy padding-top))
       frame)))
 
-(define bitmap-rectangle : (->* (Real) (Real (Option Real) #:color Brush+Color #:border Pen+Color) Bitmap)
-  (lambda [w [h #false] [radius #false] #:color [color (cons #x000000 'solid)] #:border [pen-color 'transparent]]
+(define bitmap-rectangle : (->* (Real) (Real (Option Real) #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
+  (lambda [w [h #false] [radius #false] #:color [color #x000000] #:border [pen-color 'transparent]
+             #:density [density (default-bitmap-density)]]
     (define width : Nonnegative-Real (max w 0.0))
     (define height : Nonnegative-Real (max (or h w) 0.0))
-    (define bmp : Bitmap (bitmap-blank width height))
+    (define bmp : Bitmap (bitmap-blank width height density))
     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
     (send dc set-smoothing 'aligned)
     (send dc set-pen (select-pen pen-color))
@@ -196,11 +195,12 @@
           [else (send dc draw-rounded-rectangle 0 0 width height radius)])
     bmp))
 
-(define bitmap-ellipse : (->* (Real) (Real #:color Brush+Color #:border Pen+Color) Bitmap)
-  (lambda [w [h #false] #:color [color (cons #x000000 'solid)] #:border [pen-color 'transparent]]
+(define bitmap-ellipse : (->* (Real) (Real #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
+  (lambda [w [h #false] #:color [color #x000000] #:border [pen-color 'transparent]
+             #:density [density (default-bitmap-density)]]
     (define width : Nonnegative-Real (max w 0.0))
     (define height : Nonnegative-Real (max (or h w) 0.0))
-    (define bmp : Bitmap (bitmap-blank width height))
+    (define bmp : Bitmap (bitmap-blank width height density))
     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
     (send dc set-smoothing 'aligned)
     (send dc set-pen (select-pen pen-color))

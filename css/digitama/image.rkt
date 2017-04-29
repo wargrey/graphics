@@ -85,7 +85,7 @@
   ;;; https://drafts.csswg.org/css-images/#image-notation
   ;;; https://drafts.csswg.org/css-images/#image-set-notation
   [(image) #:=> [(image "" [fallback ? index? string? symbol? css-color?])
-                 (image [content ? css-image? string? css-@λ?] [fallback ? css-basic-color-datum? css-color?])]
+                 (image [content ? css-image? string? css-@λ?] [fallback ? color-datum? css-color?])]
    (CSS<+> (CSS:<^> (<css-color>)) ; NOTE: both color and url accept strings, however their domains are not intersective.
            (CSS<&> (CSS:<^> (CSS:<+> (<css-image>) (<css:string>)))
                    (CSS<$> (CSS<?> [(<css-comma>) (CSS:<^> (<css-color>))]) 'transparent)))]
@@ -119,7 +119,7 @@
                                                           (bitmap-alter-density alt-image density))]))]))])))
 
 (define image->bitmap : (->* (CSS-Image-Datum) (Positive-Real) Bitmap)
-  (lambda [img [the-density (default-icon-backing-scale)]]
+  (lambda [img [the-density (default-bitmap-density)]]
     (cond [(non-empty-string? img)
            (with-handlers ([exn? (λ [[e : exn]] (css-log-read-error e img) the-invalid-image)])
              (bitmap img the-density))]

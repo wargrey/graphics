@@ -2,4 +2,4 @@
 
 wargrey
 
-_Sorry, but I will write it as soon as possible._
+_Sorry, but I will write it when it is ready to use._

@@ -54,7 +54,7 @@
            (css-extract-font declared-values inherited-values)
            (define-values (box-size size-ref color-ref icon-ref) (css-property-accessors declared-values inherited-values))
            (define-syntax (local-ref stx) (syntax-case stx [] [(_ argl ___) #'(css-ref declared-values inherited-values argl ___)]))
-           (parameterize ([default-icon-height (select-size (local-ref 'icon-height css->line-height) nih)])
+           (parameterize ([default-bitmap-icon-height (select-size (local-ref 'icon-height css->line-height) nih)])
              sexp ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

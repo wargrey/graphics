@@ -34,11 +34,11 @@
   (case-lambda
     [(height density/image)
      (cond [(real? density/image) (css->normalized-image (make-image-normalizer height density/image))]
-           [else (css->normalized-image (make-image-normalizer height (default-icon-backing-scale) density/image))])]
+           [else (css->normalized-image (make-image-normalizer height (default-bitmap-density) density/image))])]
     [(height density mk-image) (css->normalized-image (make-image-normalizer height density mk-image))]
     [(height/normalize)
      (cond [(not (real? height/normalize)) (css->normalized-image height/normalize)]
-           [else (css->normalized-image (make-image-normalizer height/normalize (default-icon-backing-scale)))])]))
+           [else (css->normalized-image (make-image-normalizer height/normalize (default-bitmap-density)))])]))
 
 (define-values (css->bitmap css->image)
   (values (css->normalized-image (λ [[raw : (CSS-Maybe Bitmap)]] raw))
