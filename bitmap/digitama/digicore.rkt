@@ -22,8 +22,9 @@
 (define default-bitmap-density : (Parameterof Positive-Flonum) (make-parameter 2.0))
 (define default-bitmap-icon-height : (Parameterof Nonnegative-Flonum) (make-parameter 24.0))
 
-(define-type Pen+Color (U Color+sRGB (Pairof Color+sRGB Pen-Style) (Pairof Color+sRGB (Pairof Nonnegative-Real Pen-Style)) (Instance Pen%)))
 (define-type Brush+Color (U Color+sRGB (Pairof Color+sRGB Brush-Style) (Instance Brush%)))
+(define-type Pen+Color (U Color+sRGB (Pairof Color+sRGB Pen-Style) (Pairof Color+sRGB Nonnegative-Real)
+                          (Pairof Color+sRGB (Pairof Nonnegative-Real Pen-Style)) (Instance Pen%)))
 
 (define os : Symbol (system-type 'os))
 (define the-dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (make-object bitmap% 1 1)))

@@ -144,7 +144,7 @@
     (define (draw-border [dc : (Instance Bitmap-DC%)] [pen : (Instance Pen%)] [w : Real] [x1 : Real] [y1 : Real] [x2 : Real] [y2 : Real])
       (when (> w 0) (send* dc (set-pen pen) (draw-line x1 y1 x2 y2))))
     (lambda [bmp #:margin [margin 0] #:padding [inset 0] #:density [density (default-bitmap-density)]
-                 #:border [pen-hint (default-css-pen)] #:background [brush-hint (default-css-brush)]]
+                 #:border [pen-hint "Silver"] #:background [brush-hint (default-css-brush)]]
       (define-values (margin-top margin-right margin-bottom margin-left) (normalize margin))
       (define-values (padding-top padding-right padding-bottom padding-left) (normalize inset))
       (define-values (pen-top pen-right pen-bottom pen-left)
@@ -182,28 +182,55 @@
       frame)))
 
 (define bitmap-rectangle : (->* (Real) (Real (Option Real) #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
-  (lambda [w [h #false] [radius #false] #:color [color #x000000] #:border [pen-color 'transparent]
+  (lambda [w [h #false] [radius #false] #:color [color #x000000] #:border [border-color 'transparent]
              #:density [density (default-bitmap-density)]]
     (define width : Nonnegative-Real (max w 0.0))
     (define height : Nonnegative-Real (max (or h w) 0.0))
     (define bmp : Bitmap (bitmap-blank width height density))
     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
     (send dc set-smoothing 'aligned)
-    (send dc set-pen (select-pen pen-color))
+    (send dc set-pen (select-pen border-color))
     (send dc set-brush (select-brush color))
     (cond [(false? radius) (send dc draw-rectangle 0 0 width height)]
           [else (send dc draw-rounded-rectangle 0 0 width height radius)])
     bmp))
 
 (define bitmap-ellipse : (->* (Real) (Real #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
-  (lambda [w [h #false] #:color [color #x000000] #:border [pen-color 'transparent]
+  (lambda [w [h #false] #:color [color #x000000] #:border [border-color 'transparent]
              #:density [density (default-bitmap-density)]]
     (define width : Nonnegative-Real (max w 0.0))
     (define height : Nonnegative-Real (max (or h w) 0.0))
     (define bmp : Bitmap (bitmap-blank width height density))
     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
     (send dc set-smoothing 'aligned)
-    (send dc set-pen (select-pen pen-color))
+    (send dc set-pen (select-pen border-color))
     (send dc set-brush (select-brush color))
     (send dc draw-ellipse 0 0 width height)
     bmp))
+
+(define bitmap-polygon : (->* ((Pairof (Pairof Real Real) (Listof (Pairof Real Real))))
+                              (Real Real (U 'odd-even 'winding) #:color Brush+Color #:border Pen+Color #:density Positive-Real)
+                              Bitmap)
+  (let ([path : (Instance DC-Path%) (make-object dc-path%)])
+    (lambda [vertices [xoffset 0.0] [yoffset 0.0] [style 'odd-even] #:color [color #x000000] #:border [border-color 'transparent]
+                      #:density [density (default-bitmap-density)]]
+      (define count : Integer (length vertices))
+      (send path reset)
+      (send path move-to (caar vertices) (cdar vertices))
+      (for ([p (in-list (cdr vertices))]) (send path line-to (car p) (cdr p)))
+      (send path close)
+      (define border-pen : Pen (select-pen border-color))
+      (define brush : Brush (select-brush color))
+      (define lw : Real (send border-pen get-width))
+      (define-values (xoff yoff) (values (+ xoffset (/ lw 2)) (+ yoffset (/ lw 2))))
+      (define-values (left top width height) (send path get-bounding-box))
+      (define bmp : Bitmap (bitmap-blank (+ (max left width) lw) (+ (max top height) lw) density))
+      (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
+      (send dc set-smoothing 'aligned)
+      (send dc set-pen border-pen)
+      (send dc set-brush brush)
+      (when (< count 3)
+        (send dc set-pen (make-css-pen border-pen #:color (send brush get-color)))
+        (when (= count 1) (send dc draw-point (+ xoff (caar vertices)) (+ yoff (cdar vertices)))))
+      (send dc draw-path path xoff yoff style)
+      bmp)))

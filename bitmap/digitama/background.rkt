@@ -20,6 +20,7 @@
       (cond [(is-a? hint pen%) (make-css-pen hint)]
             [(not (pair? hint)) (make-css-pen #:color hint #:width 1 #:style 'solid)]
             [(pair? (cdr hint)) (make-css-pen #:color (car hint) #:width (cadr hint) #:style (cddr hint))]
+            [(real? (cdr hint)) (make-css-pen #:color (car hint) #:width (cdr hint) #:style 'solid)]
             [else (make-css-pen #:color (car hint) #:width 1 #:style (cdr hint))])))
   
   (define smart-brush
