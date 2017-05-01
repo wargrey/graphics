@@ -59,12 +59,12 @@
 (define list->n:vector : (All (a) (-> (Listof a) Integer a (Vectorof a)))
   (lambda [src total defval]
     (cond [(null? src) (make-vector total defval)]
-          [else (let ([filled : a (last src)])
+          [else (let ([filling : a (last src)])
                   (let fold ([dest : (Listof a) null]
                              [count : Integer 0]
                              [rest : (Listof a) src])
                   (cond [(= total count) (list->vector (reverse dest))]
-                        [(null? rest) (fold (cons filled dest) (add1 count) null)]
+                        [(null? rest) (vector-append (list->vector (reverse dest)) (make-vector (- total count) filling))]
                         [else (fold (cons (car rest) dest) (add1 count) (cdr rest))])))])))
 
 (define nmap : (All (a) (-> (-> Integer a) Integer (Listof a)))
