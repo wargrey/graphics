@@ -24,8 +24,8 @@
     (css-deprecate-media-type #true)
     (default-css-media-type 'screen)
     (default-css-media-features
-      (make-css-media-features #:width (real->double-flonum (or width 0))
-                               #:height (real->double-flonum (or height 0))
+      (make-css-media-features #:width (fx->fl (or width 0))
+                               #:height (fx->fl (or height 0))
                                #:resolution (real->double-flonum (or (get-display-backing-scale) 1.0))
                                #:update 'fast
                                #:overflow-block 'scroll

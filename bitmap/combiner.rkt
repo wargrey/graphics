@@ -94,10 +94,10 @@
                  [(rc) (bitmap-pin  1  1/2  1  1/2 base bmp)]
                  [(rb) (bitmap-pin  1   1   1   1  base bmp)]
                  [else base]))]
-            [else (let ([info : (Pseudo-Bitmap Bitmap) (superimpose alignment bitmaps)])
+            [else (let ([info : Pseudo-Bitmap (superimpose alignment bitmaps)])
                     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank (car info) (cadr info))))
                     (send dc set-smoothing 'aligned)
-                    (for ([bmp+xy : (List Bitmap Nonnegative-Real Nonnegative-Real) (in-list (caddr info))])
+                    (for ([bmp+xy (in-list (caddr info))])
                       (send dc draw-bitmap (car bmp+xy) (cadr bmp+xy) (caddr bmp+xy)))
                     (or (send dc get-bitmap) (bitmap-blank)))]))))
 
@@ -144,16 +144,16 @@
                   (define grows : (Vectorof Nonnegative-Real) (list->n:vector row-gaps nrows 0.0))
                   (define #:forall (a) (colmap [f : (-> Integer a)]) (nmap f ncols))
                   (define #:forall (a) (rowmap [f : (-> Integer a)]) (nmap f nrows))
-                  (define pbcols : (Vectorof (Pseudo-Bitmap (Boxof Bitmap)))
+                  (define pbcols : (Vectorof (Pseudo-Bitmap* (Boxof Bitmap)))
                     (list->vector (colmap (λ [[c : Integer]]
-                                            (superimpose (vector-ref alcols c)
-                                                         (rowmap (λ [[r : Integer]] (bitmap-ref c r)))
-                                                         (inst unbox Bitmap))))))
-                  (define pbrows : (Vectorof (Pseudo-Bitmap (Boxof Bitmap)))
+                                            (superimpose* (vector-ref alcols c)
+                                                          (rowmap (λ [[r : Integer]] (bitmap-ref c r)))
+                                                          (inst unbox Bitmap))))))
+                  (define pbrows : (Vectorof (Pseudo-Bitmap* (Boxof Bitmap)))
                     (list->vector (rowmap (λ [[r : Integer]]
-                                            (superimpose (vector-ref alrows r)
-                                                         (colmap (λ [[c : Integer]] (bitmap-ref c r)))
-                                                         (inst unbox Bitmap))))))
+                                            (superimpose* (vector-ref alrows r)
+                                                          (colmap (λ [[c : Integer]] (bitmap-ref c r)))
+                                                          (inst unbox Bitmap))))))
                   (vector-set! gcols (sub1 ncols) 0.0)
                   (vector-set! grows (sub1 nrows) 0.0)
                   (bitmap-vl-append*
