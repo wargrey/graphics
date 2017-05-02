@@ -5,7 +5,6 @@
 (require "digitama/digicore.rkt")
 (require "digitama/combiner.rkt")
 (require "constructor.rkt")
-(require "misc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-pin : (-> Symbol (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap))
@@ -33,10 +32,9 @@
       (cond [(null? bitmaps) (bitmap-blank)]
             [(null? (cdr bitmaps)) (car bitmaps)]
             [else (let*-values ([(base others) (values (car bitmaps) (cdr bitmaps))]
-                                [(min-width min-height) (bitmap-size base)])
+                                [(min-width min-height) (values (send base get-width) (send base get-height))])
                     (define-values (width0 height0)
-                      (for/fold ([width : Real (send base get-width)]
-                                 [height : Real (send base get-height)])
+                      (for/fold ([width : Real min-width] [height : Real min-height])
                                 ([child : Bitmap (in-list others)])
                         (define w : Positive-Integer (send child get-width))
                         (define h : Positive-Integer (send child get-height))
@@ -50,12 +48,12 @@
                     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
                     (send dc set-smoothing 'aligned)
                     
-                    (let append-bitmap : Void ([bmps : (Listof Bitmap) bitmaps]
+                    (let render : Void ([bmps : (Listof Bitmap) bitmaps]
                                                [xoff : Real (- delta)]
                                                [yoff : Real (- delta)])
                       (unless (null? bmps)
                         (define bmp : Bitmap (car bmps))
-                        (define-values (w h) (bitmap-size bmp))
+                        (define-values (w h) (values (send bmp get-width) (send bmp get-height)))
                         (define this-x-if-use : Real (+ xoff delta))
                         (define this-y-if-use : Real (+ yoff delta))
                         (define-values (x y)
@@ -68,7 +66,7 @@
                             [(hb) (values this-x-if-use     (- height h))]
                             [else #|unreachable|# (values this-x-if-use this-y-if-use)]))
                         (send dc draw-bitmap bmp x y)
-                        (append-bitmap (cdr bmps) (+ this-x-if-use w) (+ this-y-if-use h))))
+                        (render (cdr bmps) (+ this-x-if-use w) (+ this-y-if-use h))))
                     (or (send dc get-bitmap) (bitmap-blank)))]))))
 
 (define make-append : (-> Symbol (-> [#:gapsize Real] Bitmap * Bitmap))
@@ -95,10 +93,12 @@
                  [(rb) (bitmap-pin  1   1   1   1  base bmp)]
                  [else base]))]
             [else (let ([info : Pseudo-Bitmap (superimpose alignment bitmaps)])
-                    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank (car info) (cadr info))))
+                    (define-values (width height) (values (car info) (cadr info)))
+                    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
                     (send dc set-smoothing 'aligned)
-                    (for ([bmp+xy (in-list (caddr info))])
-                      (send dc draw-bitmap (car bmp+xy) (cadr bmp+xy) (caddr bmp+xy)))
+                    (for ([bmp+fxy (in-list (caddr info))])
+                      (define-values (x y) ((cdr bmp+fxy) width height))
+                      (send dc draw-bitmap (car bmp+fxy) x y))
                     (or (send dc get-bitmap) (bitmap-blank)))]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -116,59 +116,54 @@
                  [y : Exact-Rational 0])
                 ([bmp1 (in-list (cons bmp0 bmps))]
                  [bmp2 (in-list bmps)])
-        (define-values (w1 h1) (bitmap-size bmp1))
-        (define-values (w2 h2) (bitmap-size bmp2))
+        (define-values (w1 h1) (values (send bmp1 get-width) (send bmp1 get-height)))
+        (define-values (w2 h2) (values (send bmp2 get-width) (send bmp2 get-height)))
         (define x1 (+ x (- (inexact->exact (* x1% w1)) (inexact->exact (* x2% w2)))))
         (define y1 (+ y (- (inexact->exact (* y1% h1)) (inexact->exact (* y2% h2)))))
         (values (bitmap-pin-over bmp x1 y1 bmp2) (max 0 x1) (max 0 y1))))
     bmp))
 
-(define bitmap-table : (-> Natural (Listof Superimpose-Alignment) (Listof Superimpose-Alignment)
-                           (Listof Nonnegative-Real) (Listof Nonnegative-Real) Bitmap * Bitmap)
-  (lambda [ncols col-aligns row-aligns col-gaps row-gaps . bitmaps]
-    (define count : Index (length bitmaps))
-    (cond [(zero? (* ncols count)) (bitmap-blank)]
-          [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder count ncols)])
-                  (define nrows : Natural (fx+ maybe-nrows (sgn extra-ncols)))
-                  (define &bitmaps : (Vectorof (Vectorof (Boxof Bitmap))) ; in case a bitmap is placed in the table more than once.
-                    (let row-fold ([row : Integer nrows] [src : (Listof Bitmap) bitmaps] [row++ : (Listof (Vectorof (Boxof Bitmap))) null])
-                      (cond [(zero? row) (list->vector (reverse row++))]
-                            [else (let col-fold ([col : Integer ncols] [src : (Listof Bitmap) src] [col++ : (Listof (Boxof Bitmap)) null])
-                                    (cond [(zero? col) (row-fold (sub1 row) src (cons (list->vector (reverse col++)) row++))]
-                                          [(null? src) (col-fold (sub1 col) null (cons (box the-invalid-image) col++))]
-                                          [else (col-fold (sub1 col) (cdr src) (cons (box (car src)) col++))]))])))
-                  (define (bitmap-ref [c : Integer] [r : Integer]) : (Boxof Bitmap) (vector-ref (vector-ref &bitmaps r) c))
-                  (define alcols : (Vectorof Superimpose-Alignment) (list->n:vector col-aligns ncols 'cc))
-                  (define alrows : (Vectorof Superimpose-Alignment) (list->n:vector row-aligns nrows 'cc))
-                  (define gcols : (Vectorof Nonnegative-Real) (list->n:vector col-gaps ncols 0.0))
-                  (define grows : (Vectorof Nonnegative-Real) (list->n:vector row-gaps nrows 0.0))
-                  (define #:forall (a) (colmap [f : (-> Integer a)]) (nmap f ncols))
-                  (define #:forall (a) (rowmap [f : (-> Integer a)]) (nmap f nrows))
-                  (define pbcols : (Vectorof (Pseudo-Bitmap* (Boxof Bitmap)))
-                    (list->vector (colmap (λ [[c : Integer]]
-                                            (superimpose* (vector-ref alcols c)
-                                                          (rowmap (λ [[r : Integer]] (bitmap-ref c r)))
-                                                          (inst unbox Bitmap))))))
-                  (define pbrows : (Vectorof (Pseudo-Bitmap* (Boxof Bitmap)))
-                    (list->vector (rowmap (λ [[r : Integer]]
-                                            (superimpose* (vector-ref alrows r)
-                                                          (colmap (λ [[c : Integer]] (bitmap-ref c r)))
-                                                          (inst unbox Bitmap))))))
-                  (vector-set! gcols (sub1 ncols) 0.0)
-                  (vector-set! grows (sub1 nrows) 0.0)
-                  (bitmap-vl-append*
-                   (rowmap (λ [[r : Integer]]
-                             (bitmap-ht-append*
-                              (colmap (λ [[c : Integer]]
-                                        (let* ([&bmp (bitmap-ref c r)]
-                                               [pbc (vector-ref pbcols c)]
-                                               [pbr (vector-ref pbrows r)]
-                                               [w (+ (car pbc) (vector-ref gcols c))]
-                                               [h (+ (cadr pbr) (vector-ref grows r))])
-                                          (define-values (x _y) (find-xy &bmp pbc))
-                                          (define-values (_x y) (find-xy &bmp pbr))
-                                          (define cell (bitmap-blank w h))
-                                          (send* (send cell make-dc)
-                                            (set-smoothing 'aligned)
-                                            (draw-bitmap (unbox &bmp) x y))
-                                          cell))))))))])))
+(define bitmap-table : (->* (Positive-Integer (Listof Bitmap))
+                            ((Listof Superimpose-Alignment)
+                             (Listof Superimpose-Alignment)
+                             (Listof Nonnegative-Real)
+                             (Listof Nonnegative-Real))
+                            Bitmap)
+  (lambda [ncols bitmaps [col-aligns '(cc)] [row-aligns '(cc)] [col-gaps '(0)] [row-gaps '(0)]]
+    (define-values (maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols))
+    (define nrows : Natural (fx+ maybe-nrows (sgn extra-ncols)))
+    (define alcols : (Vectorof Symbol) (list->n:vector col-aligns ncols 'cc))
+    (define alrows : (Vectorof Symbol) (list->n:vector row-aligns nrows 'cc))
+    (define gcols : (Vectorof Real) (list->n:vector col-gaps ncols 0.0))
+    (define grows : (Vectorof Real) (list->n:vector row-gaps nrows 0.0))
+    (define table-ref : (-> Integer Integer Bitmap-Cell)
+      (let ([table : Bitmap-Tables (list->table bitmaps nrows ncols)])
+        (λ [c r] (vector-ref (vector-ref table r) c))))
+    (define pbcols : (Vectorof Pseudo-Bitmap*)
+      (list->vector (nmap ncols (λ [[c : Integer]]
+                                  (superimpose* (vector-ref alcols c)
+                                                (nmap nrows (λ [[r : Integer]] (table-ref c r))))))))
+    (define pbrows : (Vectorof Pseudo-Bitmap*)
+      (list->vector (nmap nrows (λ [[r : Integer]]
+                                  (superimpose* (vector-ref alrows r)
+                                                (nmap ncols (λ [[c : Integer]] (table-ref c r))))))))
+    (vector-set! gcols (sub1 ncols) 0.0)
+    (unless (zero? nrows) (vector-set! grows (sub1 nrows) 0.0))
+    (bitmap-vl-append*
+     (nmap nrows
+           (λ [[r : Integer]]
+             (bitmap-ht-append*
+              (nmap ncols
+                    (λ [[c : Integer]]
+                      (let* ([cell (table-ref c r)]
+                             [pbc (vector-ref pbcols c)]
+                             [pbr (vector-ref pbrows r)]
+                             [w (+ (car pbc) (vector-ref gcols c))]
+                             [h (+ (cadr pbr) (vector-ref grows r))])
+                        (define-values (x _y) (find-xy cell pbc))
+                        (define-values (_x y) (find-xy cell pbr))
+                        (define cell.bmp (bitmap-blank w h))
+                        (send* (send cell.bmp make-dc)
+                          (set-smoothing 'aligned)
+                          (draw-bitmap (car cell) x y))
+                        cell.bmp)))))))))

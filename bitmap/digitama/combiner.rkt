@@ -18,55 +18,67 @@
        #'(begin (define-values (bitmap-combiner ...) (values (make-combiner 'tips) ...))
                 ...))]))
 
-(define-type Pseudo-Bitmap (List Natural Natural (Listof (List Bitmap Flonum Flonum))))
-(define-type (Pseudo-Bitmap* a) (List Natural Natural (Listof (List a Flonum Flonum))))
+(define-type Bitmap-Layer->XY (-> Integer Integer (Values Real Real)))
+(define-type Pseudo-Bitmap (List Integer Integer (Listof (Pairof Bitmap Bitmap-Layer->XY))))
 (define-type Superimpose-Alignment (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
 
 (define superimpose : (-> Symbol (Listof Bitmap) Pseudo-Bitmap)
   (lambda [alignment bitmaps]
-    (cond [(null? bitmaps) (list 0 0 null)]
-          [else (let-values ([(width height) (superimpose-size (car bitmaps) (cdr bitmaps))])
-                  (list width height
-                        (for/list ([bmp (in-list bitmaps)])
-                          (define-values (x y) (superimpose-xy bmp width height alignment))
-                          (list bmp x y))))])))
+    (define-values (width height sreyal)
+      (for/fold ([width : Integer 0] [height : Integer 0] [layers : (Listof (Pairof Bitmap Bitmap-Layer->XY)) null])
+                ([bmp : Bitmap (in-list bitmaps)])
+        (define-values (w h) (values (send bmp get-width) (send bmp get-height)))
+        (values (fxmax width w) (fxmax height h) (cons (cons bmp (make-layer alignment w h)) layers))))
+    (list width height (reverse sreyal))))
 
-(define superimpose-size : (-> Bitmap (Listof Bitmap) (Values Positive-Integer Positive-Integer))
-  (lambda [base bitmaps]
-    (for/fold ([width : Positive-Integer (send base get-width)]
-               [height : Positive-Integer (send base get-height)])
-              ([bmp : Bitmap (in-list bitmaps)])
-      (values (max width (send bmp get-width))
-              (max height (send bmp get-height))))))
+(define make-layer : (-> Symbol Integer Integer Bitmap-Layer->XY)
+  (lambda [alignment w h]
+    (λ [[W : Integer] [H : Integer]] (superimpose-xy alignment W H w h))))
 
-(define superimpose-xy : (-> Bitmap Positive-Integer Positive-Integer Symbol (Values Flonum Flonum))
-  (lambda [bmp width height alignment]
-    (define-values (w h) (values (send bmp get-width) (send bmp get-height)))
-    (define-values (rx by) (values (fx->fl (fx- width w)) (fx->fl (fx- height h))))
-    (define-values (cx cy) (values (fl/ rx 2.0) (fl/ by 2.0)))
+(define superimpose-xy : (-> Symbol Integer Integer Integer Integer (Values Real Real))
+  (lambda [alignment width height w h]
+    (define-values (rx by) (values (fx- width w) (fx- height h)))
+    (define-values (cx cy) (values (/ rx 2) (/ by 2)))
     (case alignment
       [(lt) (values 0.0 0.0)] [(lc) (values 0.0 cy)] [(lb) (values 0.0 by)]
       [(ct) (values  cx 0.0)] [(cc) (values  cx cy)] [(cb) (values  cx by)]
       [(rt) (values  rx 0.0)] [(rc) (values  rx cy)] [(rb) (values  rx by)]
       [else #|unreachable|# (values 0.0 0.0)])))
 
-(define superimpose* : (All (a) (-> Symbol (Listof a) (-> a Bitmap) (Pseudo-Bitmap* a)))
-  (lambda [alignment &bitmaps unbmp]
-    (cond [(null? &bitmaps) (list 0 0 null)]
-          [else (let*-values ([(bitmaps) (map unbmp &bitmaps)]
-                              [(width height) (superimpose-size (car bitmaps) (cdr bitmaps))])
-                  (list width height
-                        (for/list ([&bmp (in-list &bitmaps)]
-                                   [bmp (in-list bitmaps)])
-                          (define-values (x y) (superimpose-xy bmp width height alignment))
-                          (list &bmp x y))))])))
+(define-type Bitmap-Cell (List Bitmap Positive-Integer Positive-Integer))
+(define-type Bitmap-Tables (Vectorof (Vectorof Bitmap-Cell)))
+(define-type Pseudo-Bitmap* (List Integer Integer (Listof (List Bitmap-Cell Real Real))))
 
-(define find-xy : (All (a) (-> a (Pseudo-Bitmap* a) (Values Flonum Flonum)))
+(define superimpose* : (-> Symbol (Listof Bitmap-Cell) Pseudo-Bitmap*)
+  (lambda [alignment cells]
+    (define-values (width height)
+      (for/fold ([width : Integer 0] [height : Integer 0])
+                ([cell : Bitmap-Cell (in-list cells)])
+        (values (max width (cadr cell)) (max height (caddr cell)))))
+    (list width height
+          (for/list ([cell (in-list cells)])
+            (define-values (w h) (values (cadr cell) (caddr cell)))
+            (define-values (x y) (superimpose-xy alignment width height w h))
+            (list cell x y)))))
+
+(define find-xy : (All (a) (-> a Pseudo-Bitmap* (Values Real Real)))
   (lambda [bmp pbmps]
     (let find ([rest (caddr pbmps)])
       (cond [(null? rest) (values 0.0 0.0)]
             [(eq? bmp (caar rest)) (values (cadar rest) (caddar rest))]
             [else (find (cdr rest))]))))
+
+(define list->table : (-> (Listof Bitmap) Natural Natural Bitmap-Tables)
+  (lambda [bitmaps nrows ncols]
+    (let row-fold ([row : Integer nrows] [src : (Listof Bitmap) bitmaps] [row++ : (Listof (Vectorof Bitmap-Cell)) null])
+      (cond [(zero? row) (list->vector (reverse row++))]
+            [else (let col-fold ([col : Integer ncols] [src : (Listof Bitmap) src] [col++ : (Listof Bitmap-Cell) null])
+                    (cond [(zero? col) (row-fold (sub1 row) src (cons ((inst list->vector Bitmap-Cell) (reverse col++)) row++))]
+                          [(null? src) (col-fold (sub1 col) null (cons (list the-invalid-image 1 1) col++))]
+                          [else (let* ([this.bmp (car src)]
+                                       [w (send this.bmp get-width)]
+                                       [h (send this.bmp get-height)])
+                                  (col-fold (sub1 col) (cdr src) (cons (list this.bmp w h) col++)))]))]))))
 
 (define list->n:vector : (All (a) (-> (Listof a) Integer a (Vectorof a)))
   (lambda [src total defval]
@@ -78,7 +90,7 @@
                         [(pair? rest) (fold (cons (car rest) dest) (cdr rest) (add1 count))]
                         [else (list->vector (append (reverse dest) (make-list (- total count) (car dest))))]))])))
 
-(define nmap : (All (a) (-> (-> Integer a) Integer (Listof a)))
-  (lambda [f total]
+(define nmap : (All (a) (-> Integer (-> Integer a) (Listof a)))
+  (lambda [total f]
     (let fold ([n : Integer total] [acc : (Listof a) null])
       (if (zero? n) acc (fold (sub1 n) (cons (f (sub1 n)) acc))))))

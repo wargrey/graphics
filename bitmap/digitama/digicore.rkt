@@ -12,7 +12,7 @@
 
 (require "cheat.rkt")
 
-(define-type Color+sRGB (U String Symbol Index (Instance Color%)))
+(define-type Color+sRGB (U String Symbol Integer (Instance Color%)))
 (define-type Bitmap (Instance Bitmap%))
 
 (define-cheat-opaque color%? #:is-a? Color% color%)

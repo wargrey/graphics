@@ -43,7 +43,7 @@
   (let ([colorbase : (HashTable Fixnum Color) (make-hasheq)])
     (lambda [representation [alpha 1.0]]
       (define opaque? : Boolean (fl= alpha 1.0))
-      (cond [(fixnum? representation)
+      (cond [(exact-integer? representation)
              (define hashcode : Nonnegative-Fixnum (fxand representation #xFFFFFF))
              (hash-ref! colorbase
                         (if opaque? hashcode (eqv-hash-code (make-rectangular hashcode alpha)))

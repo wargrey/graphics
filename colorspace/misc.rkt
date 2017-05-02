@@ -32,7 +32,7 @@
                   (fxior (fxlshift g 8)
                          b)))))
 
-(define hex->rgb-bytes : (-> Index (Values Byte Byte Byte))
+(define hex->rgb-bytes : (-> Integer (Values Byte Byte Byte))
   (lambda [rgb]
     (values (fxand (fxrshift rgb 16) #xFF)
             (fxand (fxrshift rgb 8) #xFF)
@@ -51,7 +51,7 @@
             (gamut->byte green)
             (gamut->byte blue))))
 
-(define rgb-hex->hsb : (-> RGB->HSB Index (Values Hue Gamut Gamut))
+(define rgb-hex->hsb : (-> RGB->HSB Integer (Values Hue Gamut Gamut))
   (lambda [rgb->hsb hex]
     (define-values (red green blue) (hex->rgb-bytes hex))
     (rgb-bytes->hsb rgb->hsb red green blue)))

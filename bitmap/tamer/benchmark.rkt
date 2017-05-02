@@ -30,14 +30,14 @@
         (match piece [`(sq ,c) (bitmap:draw-square c)]))))))
 
 (define (bitmap:render:table block)
-  (apply bitmap-table *n* '(ct) '(lc) '(0) '(0)
-         (for*/list ([row block] [piece row])
-           (match piece [`(sq ,c) (bitmap:draw-square c)]))))
+  (bitmap-table *n* (for*/list ([row block] [piece row])
+                      (match piece [`(sq ,c) (bitmap:draw-square c)]))
+                '(ct) '(lc)))
 
 ; Timings
 (define b0 (random-squares *n*))
 
-(displayln "bitmap-*-append...")
+(displayln "bitmap-append...")
 (void (time (bitmap:render b0)))
 (displayln "bitmap-table...")
 (bitmap-scale (time (bitmap:render:table b0)) 1/2)
