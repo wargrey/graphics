@@ -46,7 +46,7 @@
       [else #|unreachable|# (values 0.0 0.0)])))
 
 (define-type Bitmap-Cell (List Bitmap Positive-Integer Positive-Integer))
-(define-type Bitmap-Tables (Vectorof (Vectorof Bitmap-Cell)))
+(define-type Bitmap-Tables (Vectorof Bitmap-Cell))
 (define-type Pseudo-Bitmap* (List Integer Integer (Listof (List Bitmap-Cell Real Real))))
 
 (define superimpose* : (-> Symbol (Listof Bitmap-Cell) Pseudo-Bitmap*)
@@ -70,27 +70,18 @@
 
 (define list->table : (-> (Listof Bitmap) Natural Natural Bitmap-Tables)
   (lambda [bitmaps nrows ncols]
-    (let row-fold ([row : Integer nrows] [src : (Listof Bitmap) bitmaps] [row++ : (Listof (Vectorof Bitmap-Cell)) null])
-      (cond [(zero? row) (list->vector (reverse row++))]
-            [else (let col-fold ([col : Integer ncols] [src : (Listof Bitmap) src] [col++ : (Listof Bitmap-Cell) null])
-                    (cond [(zero? col) (row-fold (sub1 row) src (cons ((inst list->vector Bitmap-Cell) (reverse col++)) row++))]
-                          [(null? src) (col-fold (sub1 col) null (cons (list the-invalid-image 1 1) col++))]
-                          [else (let* ([this.bmp (car src)]
-                                       [w (send this.bmp get-width)]
-                                       [h (send this.bmp get-height)])
-                                  (col-fold (sub1 col) (cdr src) (cons (list this.bmp w h) col++)))]))]))))
+    (define cells : Bitmap-Tables
+      (for/vector : Bitmap-Tables ([bmp (in-list bitmaps)])
+        (define-values (w h) (values (send bmp get-width) (send bmp get-height)))
+        (list bmp w h)))
+    (define diff : Integer (fx- (fx* nrows ncols) (vector-length cells)))
+    (cond [(<= diff 0) cells]
+          [else (let ([filling : Bitmap-Cell (list the-invalid-image 1 1)])
+                  (vector-append cells ((inst make-vector Bitmap-Cell) diff filling)))])))
 
 (define list->n:vector : (All (a) (-> (Listof a) Integer a (Vectorof a)))
-  (lambda [src total defval]
-    (cond [(null? src) (make-vector total defval)]
-          [else (let fold ([dest : (List* a (Listof a)) (list (car src))]
-                           [rest : (Listof a) (cdr src)]
-                           [count : Integer 1])
-                  (cond [(= total count) (list->vector (reverse dest))]
-                        [(pair? rest) (fold (cons (car rest) dest) (cdr rest) (add1 count))]
-                        [else (list->vector (append (reverse dest) (make-list (- total count) (car dest))))]))])))
-
-(define nmap : (All (a) (-> Integer (-> Integer a) (Listof a)))
-  (lambda [total f]
-    (let fold ([n : Integer total] [acc : (Listof a) null])
-      (if (zero? n) acc (fold (sub1 n) (cons (f (sub1 n)) acc))))))
+  (lambda [src total defval] ; NOTE: (length src) is usually much smaller then the demand. 
+    (define count : Integer (length src))
+    (cond [(zero? count) (make-vector total defval)]
+          [(< count total) (list->vector (append src (make-list (- total count) (last src))))]
+          [else (list->vector src)])))

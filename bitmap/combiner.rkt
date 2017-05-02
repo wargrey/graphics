@@ -49,8 +49,8 @@
                     (send dc set-smoothing 'aligned)
                     
                     (let render : Void ([bmps : (Listof Bitmap) bitmaps]
-                                               [xoff : Real (- delta)]
-                                               [yoff : Real (- delta)])
+                                        [xoff : Real (- delta)]
+                                        [yoff : Real (- delta)])
                       (unless (null? bmps)
                         (define bmp : Bitmap (car bmps))
                         (define-values (w h) (values (send bmp get-width) (send bmp get-height)))
@@ -136,34 +136,38 @@
     (define alrows : (Vectorof Symbol) (list->n:vector row-aligns nrows 'cc))
     (define gcols : (Vectorof Real) (list->n:vector col-gaps ncols 0.0))
     (define grows : (Vectorof Real) (list->n:vector row-gaps nrows 0.0))
+
     (define table-ref : (-> Integer Integer Bitmap-Cell)
       (let ([table : Bitmap-Tables (list->table bitmaps nrows ncols)])
-        (λ [c r] (vector-ref (vector-ref table r) c))))
+        (λ [c r] (vector-ref table (fx+ (fx* r ncols) c)))))
     (define pbcols : (Vectorof Pseudo-Bitmap*)
-      (list->vector (nmap ncols (λ [[c : Integer]]
-                                  (superimpose* (vector-ref alcols c)
-                                                (nmap nrows (λ [[r : Integer]] (table-ref c r))))))))
+      (for/vector : (Vectorof Pseudo-Bitmap*) ([c (in-range ncols)])
+        (superimpose* (vector-ref alcols c) (for/list ([r (in-range nrows)]) (table-ref c r)))))
     (define pbrows : (Vectorof Pseudo-Bitmap*)
-      (list->vector (nmap nrows (λ [[r : Integer]]
-                                  (superimpose* (vector-ref alrows r)
-                                                (nmap ncols (λ [[c : Integer]] (table-ref c r))))))))
+      (for/vector : (Vectorof Pseudo-Bitmap*) ([r (in-range nrows)])
+        (superimpose* (vector-ref alrows r) (for/list ([c (in-range ncols)]) (table-ref c r)))))
     (vector-set! gcols (sub1 ncols) 0.0)
     (unless (zero? nrows) (vector-set! grows (sub1 nrows) 0.0))
-    (bitmap-vl-append*
-     (nmap nrows
-           (λ [[r : Integer]]
-             (bitmap-ht-append*
-              (nmap ncols
-                    (λ [[c : Integer]]
-                      (let* ([cell (table-ref c r)]
-                             [pbc (vector-ref pbcols c)]
-                             [pbr (vector-ref pbrows r)]
-                             [w (+ (car pbc) (vector-ref gcols c))]
-                             [h (+ (cadr pbr) (vector-ref grows r))])
-                        (define-values (x _y) (find-xy cell pbc))
-                        (define-values (_x y) (find-xy cell pbr))
-                        (define cell.bmp (bitmap-blank w h))
-                        (send* (send cell.bmp make-dc)
-                          (set-smoothing 'aligned)
-                          (draw-bitmap (car cell) x y))
-                        cell.bmp)))))))))
+
+    (define-values (width height cells)
+      (for/fold ([width : Real 0] [height : Real 0] [pbmps : (Listof (List Bitmap Real Real)) null])
+                ([row : Integer (in-range nrows)])
+        (define pbrow : Pseudo-Bitmap* (vector-ref pbrows row))
+        (define hrow : Real (+ (cadr pbrow) (vector-ref grows row)))
+        (define-values (wcols cells)
+          (for/fold ([xoff : Real 0] [pbmps : (Listof (List Bitmap Real Real)) pbmps])
+                    ([col : Integer (in-range ncols)])
+            (define cell : Bitmap-Cell (table-ref col row))
+            (define pbcol : Pseudo-Bitmap* (vector-ref pbcols col))
+            (define wcol : Real (+ (car pbcol) (vector-ref gcols col)))
+            (define-values (x _y) (find-xy cell pbcol))
+            (define-values (_x y) (find-xy cell pbrow))
+            (values (+ xoff wcol) (cons (list (car cell) (+ x xoff) (+ y height)) pbmps))))
+        (values wcols (+ height hrow) cells)))
+
+    (define bmp (bitmap-blank width height))
+    (define dc (send bmp make-dc))
+    (send dc set-smoothing 'aligned)
+    (for ([cell (in-list cells)])
+      (send dc draw-bitmap (car cell) (cadr cell) (caddr cell)))
+    bmp))
