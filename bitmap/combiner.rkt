@@ -31,43 +31,47 @@
     (λ [bitmaps #:gapsize [delta 0.0]]
       (cond [(null? bitmaps) (bitmap-blank)]
             [(null? (cdr bitmaps)) (car bitmaps)]
-            [else (let*-values ([(base others) (values (car bitmaps) (cdr bitmaps))]
-                                [(min-width min-height) (values (send base get-width) (send base get-height))])
-                    (define-values (width0 height0)
-                      (for/fold ([width : Real min-width] [height : Real min-height])
+            [else (let*-values ([(base others gap) (values (car bitmaps) (cdr bitmaps) (real->double-flonum delta))]
+                                [(min-width min-height) (values (fx->fl (send base get-width)) (fx->fl (send base get-height)))])
+                    (define-values (width0 height0 sllec)
+                      (for/fold ([width : Flonum min-width]
+                                 [height : Flonum min-height]
+                                 [cells : (Listof Bitmap-Cell) (list (list base min-width min-height))])
                                 ([child : Bitmap (in-list others)])
-                        (define w : Positive-Integer (send child get-width))
-                        (define h : Positive-Integer (send child get-height))
+                        (define w : Flonum (fx->fl (send child get-width)))
+                        (define h : Flonum (fx->fl (send child get-height)))
+                        (define cells++ : (Listof Bitmap-Cell) (cons (list child w h) cells))
                         (case alignment
-                          [(vl vc vr) (values (max width w) (+ height h delta))]
-                          [(ht hc hb) (values (+ width w delta) (max height h))]
-                          [else #|unreachable|# (values (max width w) (max height h))])))
+                          [(vl vc vr) (values (flmax width w) (fl+ height (fl+ h gap)) cells++)]
+                          [(ht hc hb) (values (fl+ width (fl+ w gap)) (flmax height h) cells++)]
+                          [else #|unreachable|# (values (flmax width w) (flmax height h) cells++)])))
                     
-                    (define width : Positive-Real (max min-width width0))
-                    (define height : Positive-Real (max min-height height0))
-                    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
+                    (define width : Flonum (flmax min-width width0))
+                    (define height : Flonum (flmax min-height height0))
+                    (define bmp : Bitmap (bitmap-blank width height (send base get-backing-scale)))
+                    (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
                     (send dc set-smoothing 'aligned)
                     
-                    (let render : Void ([bmps : (Listof Bitmap) bitmaps]
-                                        [xoff : Real (- delta)]
-                                        [yoff : Real (- delta)])
-                      (unless (null? bmps)
-                        (define bmp : Bitmap (car bmps))
-                        (define-values (w h) (values (send bmp get-width) (send bmp get-height)))
-                        (define this-x-if-use : Real (+ xoff delta))
-                        (define this-y-if-use : Real (+ yoff delta))
+                    (let render : Void ([cells : (Listof Bitmap-Cell) (reverse sllec)]
+                                        [xoff : Flonum (fl- 0.0 gap)]
+                                        [yoff : Flonum (fl- 0.0 gap)])
+                      (unless (null? cells)
+                        (define w : Flonum (cadar cells))
+                        (define h : Flonum (caddar cells))
+                        (define this-x-if-use : Flonum (fl+ xoff gap))
+                        (define this-y-if-use : Flonum (fl+ yoff gap))
                         (define-values (x y)
                           (case alignment
-                            [(vl) (values 0                 this-y-if-use)]
-                            [(vc) (values (/ (- width w) 2) this-y-if-use)]
-                            [(vr) (values (- width w)       this-y-if-use)]
-                            [(ht) (values this-x-if-use     0)]
-                            [(hc) (values this-x-if-use     (/ (- height h) 2))]
-                            [(hb) (values this-x-if-use     (- height h))]
+                            [(vl) (values 0.0                     this-y-if-use)]
+                            [(vc) (values (fl/ (fl- width w) 2.0) this-y-if-use)]
+                            [(vr) (values (fl- width w)           this-y-if-use)]
+                            [(ht) (values this-x-if-use           0.0)]
+                            [(hc) (values this-x-if-use           (fl/ (fl- height h) 2.0))]
+                            [(hb) (values this-x-if-use           (fl- height h))]
                             [else #|unreachable|# (values this-x-if-use this-y-if-use)]))
-                        (send dc draw-bitmap bmp x y)
-                        (render (cdr bmps) (+ this-x-if-use w) (+ this-y-if-use h))))
-                    (or (send dc get-bitmap) (bitmap-blank)))]))))
+                        (send dc draw-bitmap (caar cells) x y)
+                        (render (cdr cells) (fl+ this-x-if-use w) (fl+ this-y-if-use h))))
+                    bmp)]))))
 
 (define make-append : (-> Symbol (-> [#:gapsize Real] Bitmap * Bitmap))
   (lambda [alignment]
@@ -94,12 +98,13 @@
                  [else base]))]
             [else (let ([info : Pseudo-Bitmap (superimpose alignment bitmaps)])
                     (define-values (width height) (values (car info) (cadr info)))
-                    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height)))
+                    (define bmp : Bitmap (bitmap-blank width height (send (car bitmaps) get-backing-scale)))
+                    (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
                     (send dc set-smoothing 'aligned)
                     (for ([bmp+fxy (in-list (caddr info))])
                       (define-values (x y) ((cdr bmp+fxy) width height))
                       (send dc draw-bitmap (car bmp+fxy) x y))
-                    (or (send dc get-bitmap) (bitmap-blank)))]))))
+                    bmp)]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-combiner
@@ -134,11 +139,12 @@
     (define nrows : Natural (fx+ maybe-nrows (sgn extra-ncols)))
     (define alcols : (Vectorof Symbol) (list->n:vector col-aligns ncols 'cc))
     (define alrows : (Vectorof Symbol) (list->n:vector row-aligns nrows 'cc))
-    (define gcols : (Vectorof Real) (list->n:vector col-gaps ncols 0.0))
-    (define grows : (Vectorof Real) (list->n:vector row-gaps nrows 0.0))
+    (define gcols : (Vectorof Flonum) (list->n:vector (map real->double-flonum col-gaps) ncols 0.0))
+    (define grows : (Vectorof Flonum) (list->n:vector (map real->double-flonum row-gaps) nrows 0.0))
 
     (define table-ref : (-> Integer Integer Bitmap-Cell)
       (let ([table : Bitmap-Tables (list->table bitmaps nrows ncols)])
+        ;;; TODO: why (unsafe-vector-ref) makes it 3-4x slower?
         (λ [c r] (vector-ref table (fx+ (fx* r ncols) c)))))
     (define pbcols : (Vectorof Pseudo-Bitmap*)
       (for/vector : (Vectorof Pseudo-Bitmap*) ([c (in-range ncols)])
@@ -146,28 +152,30 @@
     (define pbrows : (Vectorof Pseudo-Bitmap*)
       (for/vector : (Vectorof Pseudo-Bitmap*) ([r (in-range nrows)])
         (superimpose* (vector-ref alrows r) (for/list ([c (in-range ncols)]) (table-ref c r)))))
-    (vector-set! gcols (sub1 ncols) 0.0)
-    (unless (zero? nrows) (vector-set! grows (sub1 nrows) 0.0))
+    
+    (unless (zero? nrows)
+      (vector-set! gcols (sub1 ncols) 0.0)
+      (vector-set! grows (sub1 nrows) 0.0))
 
     (define-values (width height cells)
-      (for/fold ([width : Real 0] [height : Real 0] [pbmps : (Listof (List Bitmap Real Real)) null])
+      (for/fold ([width : Flonum 0.0] [height : Flonum 0.0] [pbmps : (Listof (List Bitmap Flonum Flonum)) null])
                 ([row : Integer (in-range nrows)])
         (define pbrow : Pseudo-Bitmap* (vector-ref pbrows row))
-        (define hrow : Real (+ (cadr pbrow) (vector-ref grows row)))
+        (define hrow : Flonum (fl+ (cadr pbrow) (vector-ref grows row)))
         (define-values (wcols cells)
-          (for/fold ([xoff : Real 0] [pbmps : (Listof (List Bitmap Real Real)) pbmps])
+          (for/fold ([xoff : Flonum 0.0] [pbmps : (Listof (List Bitmap Flonum Flonum)) pbmps])
                     ([col : Integer (in-range ncols)])
             (define cell : Bitmap-Cell (table-ref col row))
             (define pbcol : Pseudo-Bitmap* (vector-ref pbcols col))
-            (define wcol : Real (+ (car pbcol) (vector-ref gcols col)))
+            (define wcol : Flonum (fl+ (car pbcol) (vector-ref gcols col)))
             (define-values (x _y) (find-xy cell pbcol))
             (define-values (_x y) (find-xy cell pbrow))
-            (values (+ xoff wcol) (cons (list (car cell) (+ x xoff) (+ y height)) pbmps))))
-        (values wcols (+ height hrow) cells)))
+            (values (fl+ xoff wcol) (cons (list (car cell) (fl+ x xoff) (fl+ y height)) pbmps))))
+        (values wcols (fl+ height hrow) cells)))
 
-    (define bmp (bitmap-blank width height))
-    (define dc (send bmp make-dc))
+    (define bmp : Bitmap (bitmap-blank width height (if (null? bitmaps) (default-bitmap-density) (send (car bitmaps) get-backing-scale))))
+    (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
     (send dc set-smoothing 'aligned)
-    (for ([cell (in-list cells)])
+    (for ([cell : Bitmap-Cell (in-list cells)])
       (send dc draw-bitmap (car cell) (cadr cell) (caddr cell)))
     bmp))
