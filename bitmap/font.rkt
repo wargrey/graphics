@@ -5,7 +5,7 @@
 (require "digitama/digicore.rkt")
 (require "digitama/cheat.rkt")
 (require "digitama/font.rkt")
-(require "digitama/unsafe.rkt")
+(require "digitama/unsafe/font.rkt")
 (require "digitama/inspectable.rkt")
 
 (define-type Font (Instance CSS-Font%))

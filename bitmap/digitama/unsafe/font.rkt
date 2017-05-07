@@ -3,7 +3,6 @@
 (module unsafe racket/base
   (provide (all-defined-out))
 
-  (require racket/flonum)
   (require racket/unsafe/ops)
   (require racket/draw/unsafe/pango)
   (require racket/draw/unsafe/cairo)
@@ -39,6 +38,13 @@
       (values (~metric ascent) (~metric capline) (~metric meanline) (~metric baseline)
               (~metric (unsafe-fx+ ascent height)))))
 
+  (define get-the-layout
+    (lambda []
+      (or (unbox &layout)
+          (let ([layout (pango_cairo_create_layout cr)])
+            (set-box! &layout layout)
+            layout))))
+  
   (define get_font~extent
     (lambda [font-face font-size font-style font-weight]
       (define-values (desc baseline get-extent) (make-desc+extent font-face font-size font-style font-weight))
@@ -46,16 +52,15 @@
   
   (define make-desc+extent
     (lambda [font-face font-size font-style font-weight]
-      (define font-desc (make-desc font-face font-size font-style font-weight))
-      (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
+      (define layout (get-the-layout))
+      (define font-desc (make-font-desc font-face font-size font-style font-weight))
       
-      (define layout (or (unbox &layout) (and (set-box! &layout (pango_cairo_create_layout cr)) (unbox &layout))))
       (pango_layout_set_font_description layout font-desc)
 
       (let ([baseline (pango_layout_get_baseline layout)])
         (values font-desc baseline (λ [hint-char] (~extent layout baseline hint-char))))))
 
-  (define make-desc
+  (define make-font-desc
     (lambda [font-face font-size font-style font-weight]
       (define font-desc
         (let ([face-is-family? (regexp-match #rx"," font-face)])
@@ -65,6 +70,7 @@
                         desc)])))
       (unless (eq? font-style 'normal) (pango_font_description_set_style font-desc (~style font-style)))
       (unless (eq? font-weight 'normal) (pango_font_description_set_weight font-desc (~weight font-weight)))
+      (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
       font-desc))
 
   (define ~extent
