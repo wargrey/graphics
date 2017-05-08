@@ -30,7 +30,8 @@
          [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]
          [get-text-size (->* (String) ((Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))]
          [draw-text (-> (Instance DC<%>) String Real Real Void)]
-         [should-combine? (-> Boolean)]))
+         [should-combine? (-> Boolean)]
+         [as-font-description (-> Font-Description)]))
 
 (define/make-is-a? css-font% : CSS-Font%
   (class inspectable-font%
@@ -47,6 +48,7 @@
                     body ...))]))
 
     (define metrics : (HashTable Symbol Nonnegative-Flonum) (make-hasheq))
+    (define &desc : (Boxof (Option Font-Description)) (box #false))
 
     (define-metrics-accessor (get-metrics [units null]) #:with [em ex cap ch ic lh]
       (fill-metrics!)
@@ -67,6 +69,12 @@
                     (set-font this)
                     (draw-text text x y (should-combine?))
                     (set-font saved-font))]))
+
+    (define/public (as-font-description)
+      (or (unbox &desc)
+          (let ([desc (pango-create-font-desc face (send this get-size) (send this get-style) (send this get-weight))])
+            (set-box! &desc desc)
+            desc)))
 
     (define/override (get-family)
       (let try-next ([families : (Listof Font-Family) '(swiss roman modern decorative script symbol system)])
@@ -153,20 +161,20 @@
 (define get-font-metrics : (-> (Instance Font%) (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                                                         Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [font]
-    (get_font_metrics (or (send font get-face)
-                          (font-family->font-face (send font get-family)))
-                      (smart-font-size font)
-                      (send font get-style)
-                      (send font get-weight))))
+    (get_font_metrics (font->font-description font))))
 
 (define get-font-metrics-lines : (-> (Instance Font%) String (Values Flonum Flonum Flonum Flonum Flonum))
   (lambda [font content]
-    (get_font_metrics_lines (or (send font get-face)
-                                (font-family->font-face (send font get-family)))
-                            (smart-font-size font)
-                            (send font get-style)
-                            (send font get-weight)
-                            content)))
+    (get_font_metrics_lines (font->font-description font) content)))
+
+(define font->font-description : (-> (Instance Font%) Font-Description)
+  (lambda [font]
+    (cond [(css-font%? font) (send font as-font-description)]
+          [else (pango-create-font-desc (or (send font get-face)
+                                            (font-family->font-face (send font get-family)))
+                                        (smart-font-size font)
+                                        (send font get-style)
+                                        (send font get-weight))])))
 
 (define text-size : (->* (String (Instance Font%)) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [text font [combine? #true] #:with-dc [dc the-dc]]

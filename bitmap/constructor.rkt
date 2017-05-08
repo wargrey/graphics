@@ -5,6 +5,7 @@
                      [bitmap-ellipse bitmap-disk]))
 
 (require "digitama/digicore.rkt")
+(require "digitama/unsafe/font.rkt")
 (require "background.rkt")
 (require "color.rkt")
 (require "font.rkt")
@@ -74,56 +75,23 @@
         (send dc draw-line 0 descent width descent)))
     (or (send dc get-bitmap) (bitmap-blank))))
 
-(define bitmap-desc : (->* (String Real)
-                           ((Instance Font%) #:color (Option Color+sRGB) #:background (Option Brush+Color)
-                                             #:max-height Real #:combine? (U Boolean Symbol) #:density Positive-Real)
-                           Bitmap)
-  (lambda [description max-width.0 [font (default-css-font)] #:max-height [max-height.0 +inf.0]
-           #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background [bgcolor #false]
+(define bitmap-paragraph : (->* ((U String (Listof String)) Real)
+                                ((Instance Font%) #:color Color+sRGB #:background Brush+Color
+                                                  #:max-height Real #:indent Real #:spacing Real
+                                                  #:wrap-mode Symbol #:ellipsize-mode Symbol
+                                                  #:combine? (U Boolean Symbol) #:density Positive-Real)
+                                Bitmap)
+  (lambda [words max-width [font (default-css-font)] #:max-height [max-height +inf.0] #:indent [indent 0.0]
+           #:combine? [?combine? 'auto] #:color [fgcolor #x000000] #:background [bgcolor 'transparent] #:spacing [spacing 0.0]
+           #:wrap-mode [wrap 'PANGO_WRAP_WORD_CHAR] #:ellipsize-mode [ellipsize 'PANGO_ELLIPSIZE_END]
            #:density [density (default-bitmap-density)]]
     (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font should-combine?))))
-    (define-values (max-width max-height) (values (real->double-flonum max-width.0) (real->double-flonum max-height.0)))
-    (define desc-extent : (-> String Integer Integer (Values String Nonnegative-Flonum Nonnegative-Flonum))
-      (lambda [desc start end]
-        (define subdesc : String (substring desc start end))
-        (define-values (width height descent ascent) (send the-dc get-text-extent subdesc font combine?))
-        (values subdesc (real->double-flonum width) (real->double-flonum height))))
-
-    (define-values (_ _w phantom-height) (desc-extent " " 0 1))
-    (define-values (descs ys width height)
-      (for/fold ([descs : (Listof String) null] [ys : (Listof Flonum) null] [width : Flonum 0.0] [height : Flonum 0.0])
-                ([desc : String (in-list (string-split description (string #\newline)))])
-        (define terminal : Index (string-length desc))
-        (let desc-row ([idx0 : Fixnum 0] [descs : (Listof String) descs] [ys : (Listof Flonum) ys]
-                                         [Widthn : Flonum width] [yn : Flonum height])
-          (define-values (descn widthn heightn idx)
-            (let desc-col-expt : (Values String Flonum Flonum Fixnum)
-              ([interval : Nonnegative-Fixnum 1] [open : Fixnum idx0] [close : Fixnum terminal]
-                                                 [backtracking : String ""] [back-width : Flonum max-width]
-                                                 [back-height : Flonum phantom-height])
-              (define idx : Fixnum (fxmin close (fx+ open interval)))
-              (define next-open : Fixnum (fx+ open (fxquotient interval 2)))
-              (define-values (line width height) (desc-extent desc idx0 idx))
-              (define found? : Boolean (and (fl> width max-width) (fx= interval 1) (fl<= back-width max-width)))
-              (cond [found? (values backtracking back-width back-height (if (zero? open) terminal (fx- idx 1)))]
-                    [(fl> width max-width) (desc-col-expt 1 next-open idx backtracking back-width back-height)]
-                    [(fx= close idx) (values line width height idx)]
-                    [else (desc-col-expt (fxlshift interval 1) open close line width height)])))
-          (cond [(fl> (fl+ yn heightn) max-height) (values descs ys (max widthn Widthn) yn)]
-                [(fx= idx terminal) (values (cons descn descs) (cons yn ys) (max widthn Widthn) (fl+ yn heightn))]
-                [else (desc-row idx (cons descn descs) (cons yn ys) (max widthn Widthn) (fl+ yn heightn))]))))
-
-    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width (max phantom-height height) density)))
-    (send dc set-font font)
-    (when fgcolor (send dc set-text-foreground (select-color fgcolor)))
-    (unless (false? bgcolor)
-      (send dc set-smoothing 'aligned)
-      (send dc set-pen (select-pen 'transparent))
-      (send dc set-brush (select-brush bgcolor))
-      (send dc draw-rectangle 0 0 (max 1 width) (max 1 phantom-height height)))
-    (for ([desc (in-list (reverse descs))] [y (in-list (reverse ys))])
-      (send dc draw-text desc 0 y combine?))
-    (or (send dc get-bitmap) (bitmap-blank))))
+    
+    (pango_paragraph (if (list? words) (string-join words "\n") words)
+                     (real->double-flonum max-width) (real->double-flonum max-height)
+                     (real->double-flonum indent) (real->double-flonum spacing) wrap ellipsize
+                     (select-color fgcolor) (send (select-brush bgcolor) get-color)
+                     (font->font-description font) (real->double-flonum density))))
 
 (define bitmap-frame : (-> Bitmap [#:border (U Pen+Color (Listof Pen+Color))] [#:background Brush+Color]
                            [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]

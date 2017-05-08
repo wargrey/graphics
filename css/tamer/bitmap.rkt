@@ -81,7 +81,7 @@
       (define-values (fgcolor rcolor) (values (btest-foreground-color $bt) (btest-output-color $bt)))
 
       (define-values (max-width words font) (values (btest-max-width $bt) (btest-desc $bt) (btest-font $bt)))
-      (define desc (bitmap-desc words max-width font #:color fgcolor #:background (btest-brush $bt)))
+      (define desc (bitmap-paragraph words max-width font #:color fgcolor #:background (btest-brush $bt)))
       (define-values (desc-width height) (bitmap-size desc))
       (define ~s32 : (-> String String) (λ [txt] (~s txt #:max-width 32 #:limit-marker "...\"")))
       

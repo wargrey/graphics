@@ -70,7 +70,7 @@ bitmap-desc.test {
 }
 
 bitmap-desc.test {
-    desc-width: 64;
+    desc-width: 65;
     desc: "Hello,\aMystery?";
     font: small Monaco, "Courier New", Courier, monospace;
     text-decoration: none;
