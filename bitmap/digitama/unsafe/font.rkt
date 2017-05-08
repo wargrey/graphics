@@ -42,7 +42,7 @@
       (values (~metric ascent) (~metric capline) (~metric meanline) (~metric baseline)
               (~metric (unsafe-fx+ ascent height)))))
 
-  (define (pango_paragraph words max-width max-height indent spacing wrap ellipsize color bgcolor font-desc density)
+  (define (pango_paragraph words max-width max-height indent spacing wrap ellipsize color background font-desc density)
     (define layout (pango-reset-layout max-width max-height indent spacing wrap ellipsize))
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout words)
@@ -51,12 +51,12 @@
     (define-values (flwidth flheight) (values (~metric pango-width) (unsafe-flmin (~metric pango-height) max-height)))
     (define-values (bmp cr draw-text?)
       (if (unsafe-fl<= flwidth max-width)
-          (let-values ([(bmp cr) (make-cairo-image* flwidth flheight bgcolor density)])
+          (let-values ([(bmp cr) (make-cairo-image* flwidth flheight background density)])
             (values bmp cr #true))
           (let-values ([(w h) (and (pango_layout_set_text layout " ") (pango_layout_get_size layout))])
             (define draw-text? (unsafe-fl>= max-width (~metric w)))
             (define smart-height (if draw-text? flheight (unsafe-flmin (~metric h) flheight)))
-            (define-values (bmp cr) (make-cairo-image* max-width smart-height bgcolor density))
+            (define-values (bmp cr) (make-cairo-image* max-width smart-height background density))
             (values bmp cr draw-text?))))
     (when draw-text?
       (cairo-set-rgba cr color)
@@ -128,7 +128,7 @@
  (submod "." unsafe)
  [#:opaque Font-Description font-description?]
  [pango-create-font-desc (-> String Real Symbol Symbol Font-Description)]
- [pango_paragraph (-> String Flonum Flonum Flonum Flonum Symbol Symbol (Instance Color%) (Instance Color%) Font-Description Flonum
+ [pango_paragraph (-> String Flonum Flonum Flonum Flonum Symbol Symbol (Instance Color%) (Instance Brush%) Font-Description Flonum
                       (Instance Bitmap%))])
 
 (unsafe-require/typed

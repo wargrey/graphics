@@ -7,7 +7,8 @@
 
   (require racket/class)
   (require racket/draw)
-  (require racket/flonum)
+
+  (define transparent-pen (make-pen #:style 'transparent))
   
   (define (cairo-create-argb-image flwidth flheight [density 1.0])
     (define surface
@@ -29,10 +30,15 @@
     (unless (unsafe-fl= density 1.0) (cairo_scale cr density density))
     (values bmp cr))
 
-  (define (make-cairo-image* flwidth flheight flcolor [density 1.0])
+  (define (make-cairo-image* flwidth flheight background [density 1.0])
     (define-values (bmp cr) (make-cairo-image flwidth flheight density))
-    (cairo-set-rgba cr flcolor)
-    (cairo_paint cr)
+    ;;; TODO: use cairo APIs directly
+    (define dc (send bmp make-dc))
+    (define saved-brush (send dc get-brush))
+    (define saved-pen (send dc get-pen))
+    (send* dc (set-pen transparent-pen) (set-brush background))
+    (send dc draw-rectangle 0 0 (send bmp get-width) (send bmp get-height))
+    (send* dc (set-pen saved-pen) (set-brush saved-brush))
     (values bmp cr))
 
   (define (cairo-set-rgba cr color)

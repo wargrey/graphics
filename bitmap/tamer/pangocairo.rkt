@@ -55,7 +55,7 @@
                                   "This paragraph should be ellipsized")
                    256.0 128.0 32.0 2.0 'PANGO_WRAP_WORD_CHAR 'PANGO_ELLIPSIZE_END
                    (make-color (random 255) (random 255) (random 255) 1.00)
-                   (make-color (random 255) (random 255) (random 255) 0.08)
+                   (make-brush #:color (make-color (random 255) (random 255) (random 255) 0.08))
                    (pango-create-font-desc "Symbol" 16.0 'normal 'normal) 2.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
