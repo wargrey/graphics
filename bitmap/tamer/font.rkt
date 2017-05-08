@@ -11,13 +11,7 @@
                                text (make-css-font (make-css-font font #:size 'xx-large) #:size 2f0)))))
 
 #;(for/list : (Listof (Pairof String Bitmap)) ([face (in-list (get-face-list))])
-    (cons face (bitmap-vl-append (bitmap-text* "Sphinx[+]" (make-css-font #:family face #:ligature 'normal))
-                                 (bitmap-text* "Sphinx[-]" (make-css-font #:family face #:ligature 'none)))))
-
-(bitmap-vl-append* #:gapsize 16
- (for/list : (Listof Bitmap) ([face (in-list (list "Qomolangma-Uchen Sarchung" "Microsoft Himalaya" "Kailasa"))])
-   (bitmap-vl-append (bitmap-text* (string-append face ": བོད་ཡིག[+]") (make-css-font #:family face #:ligature 'normal))
-                     (bitmap-text* (string-append face ": བོད་ཡིག[-]") (make-css-font #:family face #:ligature 'none)))))
+  (cons face (bitmap-text* "Sphinx[+]" (make-css-font #:family face #:ligature 'normal))))
 
 (bitmap-vl-append* #:gapsize 16
  (for/list : (Listof Bitmap) ([family (in-list (list 'decorative 'roman 'script 'swiss 'modern 'symbol 'system))])

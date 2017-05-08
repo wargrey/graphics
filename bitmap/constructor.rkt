@@ -75,18 +75,16 @@
         (send dc draw-line 0 descent width descent)))
     (or (send dc get-bitmap) (bitmap-blank))))
 
-(define bitmap-paragraph : (->* ((U String (Listof String)) Real)
+(define bitmap-paragraph : (->* ((U String (Listof String)))
                                 ((Instance Font%) #:color Color+sRGB #:background Brush+Color
-                                                  #:max-height Real #:indent Real #:spacing Real
+                                                  #:max-width Real #:max-height Real #:indent Real #:spacing Real
                                                   #:wrap-mode Symbol #:ellipsize-mode Symbol
-                                                  #:combine? (U Boolean Symbol) #:density Positive-Real)
+                                                  #:density Positive-Real)
                                 Bitmap)
-  (lambda [words max-width [font (default-css-font)] #:max-height [max-height +inf.0] #:indent [indent 0.0]
-           #:combine? [?combine? 'auto] #:color [fgcolor #x000000] #:background [bgcolor 'transparent] #:spacing [spacing 0.0]
-           #:wrap-mode [wrap 'PANGO_WRAP_WORD_CHAR] #:ellipsize-mode [ellipsize 'PANGO_ELLIPSIZE_END]
-           #:density [density (default-bitmap-density)]]
-    (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font should-combine?))))
-    
+  (lambda [words [font (default-css-font)] #:color [fgcolor #x000000] #:background [bgcolor 'transparent]
+                 #:max-width [max-width +inf.0] #:max-height [max-height +inf.0] #:indent [indent 0.0] #:spacing [spacing 0.0]
+                 #:wrap-mode [wrap 'PANGO_WRAP_WORD_CHAR] #:ellipsize-mode [ellipsize 'PANGO_ELLIPSIZE_END]
+                 #:density [density (default-bitmap-density)]]
     (pango_paragraph (if (list? words) (string-join words "\n") words)
                      (real->double-flonum max-width) (real->double-flonum max-height)
                      (real->double-flonum indent) (real->double-flonum spacing) wrap ellipsize

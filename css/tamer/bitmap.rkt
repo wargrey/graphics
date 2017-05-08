@@ -81,7 +81,7 @@
       (define-values (fgcolor rcolor) (values (btest-foreground-color $bt) (btest-output-color $bt)))
 
       (define-values (max-width words font) (values (btest-max-width $bt) (btest-desc $bt) (btest-font $bt)))
-      (define desc (bitmap-paragraph words max-width font #:color fgcolor #:background (btest-brush $bt)))
+      (define desc (bitmap-paragraph words font #:color fgcolor #:background (btest-brush $bt) #:max-width max-width))
       (define-values (desc-width height) (bitmap-size desc))
       (define ~s32 : (-> String String) (λ [txt] (~s txt #:max-width 32 #:limit-marker "...\"")))
       
@@ -90,7 +90,7 @@
                                         (btest-prelude $bt)
                                         (bitmap-text "(" #:color (btest-paren-color $bt))
                                         (bitmap-hc-append #:gapsize 7
-                                                          (bitmap-text "bitmap-desc" #:color (btest-symbol-color $bt))
+                                                          (bitmap-text "bitmap-paragraph" #:color (btest-symbol-color $bt))
                                                           (bitmap-text (~s32 words) #:color (btest-string-color $bt))
                                                           (bitmap-text (~a max-width) #:color (btest-number-color $bt))
                                                           (bitmap-text (~s (send font get-face)) #:color (btest-string-color $bt))

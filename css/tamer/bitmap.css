@@ -63,16 +63,16 @@ bitmap-desc.test {
 
 bitmap-desc.test {
     desc-width: 2;
-    desc: "bitmap-desc";
+    desc: "bitmap-paragraph";
     border: 1px Silver dotted;
     background-style: solid;
     background-color: var(--background-color);
 }
 
 bitmap-desc.test {
-    desc-width: 65;
+    desc-width: 64;
     desc: "Hello,\aMystery?";
-    font: small Monaco, "Courier New", Courier, monospace;
+    font: small "Courier New", Monaco, Courier, monospace;
     text-decoration: none;
     font-variant-ligatures: none;
     border: 1px Silver dotted;
