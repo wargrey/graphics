@@ -1,7 +1,7 @@
 #lang typed/racket
 
 (provide (all-defined-out))
-(provide (all-from-out typed/racket/draw))
+(provide (all-from-out typed/racket/draw "types.rkt"))
 (provide (all-from-out racket/fixnum racket/flonum racket/math))
 
 (require typed/racket/draw)
@@ -11,9 +11,7 @@
 (require racket/math)
 
 (require "cheat.rkt")
-
-(define-type Color+sRGB (U String Symbol Integer (Instance Color%)))
-(define-type Bitmap (Instance Bitmap%))
+(require "types.rkt")
 
 (define-cheat-opaque color%? #:is-a? Color% color%)
 (define-cheat-opaque bitmap%? #:is-a? Bitmap% bitmap%)
@@ -21,10 +19,6 @@
 
 (define default-bitmap-density : (Parameterof Positive-Flonum) (make-parameter 2.0))
 (define default-bitmap-icon-height : (Parameterof Nonnegative-Flonum) (make-parameter 24.0))
-
-(define-type Brush+Color (U Color+sRGB (Pairof Color+sRGB Brush-Style) (Instance Brush%)))
-(define-type Pen+Color (U Color+sRGB (Pairof Color+sRGB Pen-Style) (Pairof Color+sRGB Nonnegative-Real)
-                          (Pairof Color+sRGB (Pairof Nonnegative-Real Pen-Style)) (Instance Pen%)))
 
 (define os : Symbol (system-type 'os))
 (define the-dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (make-object bitmap% 1 1)))

@@ -8,23 +8,21 @@
 (require (submod "../digitama/unsafe/image.rkt" unsafe))
 
 (define density 2.0)
-(define radius 150)
-(define words (string-split "Using Pango with Cairo to Draw Colorful Text Circle"))
 
-(define (cairo-circle)
-  (define-values (bmp cr) (make-cairo-image (* 2.0 radius) (* 2.0 radius) density))
+(define (cairo-text-circle)
+  (define radius 150.0)
+  (define-values (bmp cr width height) (make-cairo-image (* 2.0 radius) (* 2.0 radius) density))
 
-  (define (draw-text-circle cr font-face font-size font-weight font-style)
-    ; Center coordinates on the middle of the region we are drawing
-    (cairo_translate cr radius radius)
-
+  (define (draw-text-circle cr words font-face font-size font-weight font-style)
     ; Create a PangoLayout, set the font and text
     (define layout (pango_cairo_create_layout cr))
     (define desc (pango-create-font-desc font-face font-size font-weight font-style))
     (pango_layout_set_font_description layout desc)
     (pango_font_description_free desc)
 
-    ; Draw the layout N_WORDS times in a circle
+    ; Center coordinates on the middle of the region we are drawing
+    (cairo_translate cr radius radius)
+    
     (define n (length words))
     (for ([i (in-range n)])
       (define angle (/ (* 360.0 i) n))
@@ -44,20 +42,33 @@
       (pango_cairo_show_layout cr layout)
 
       (cairo_restore cr)))
+
+  ; draw background squares
+  (for* ([x (in-range (/ width 10.0))]
+         [y (in-range (/ height 10.0))])
+    (cairo_rectangle cr (* x 10.0) (* y 10) 5 5))
   
-  (draw-text-circle cr "Symbol" 24 'bold 'normal)
+  (define brush (cairo_pattern_create_radial radius radius (/ radius 3.0) radius radius radius))
+  (cairo_pattern_add_color_stop_rgb brush 0.0 (random) (random) (random))
+  (cairo_pattern_add_color_stop_rgb brush 0.9 1 1 1)
+  (cairo_set_source cr brush)
+  (cairo_fill cr)
+
+  (define words (string-split "Using Pango with Cairo to Draw Colorful Text Circle"))
+  (draw-text-circle cr words "Symbol" 24 'bold 'normal)
   (cairo_destroy cr)
+  (cairo_pattern_destroy brush)
   bmp)
 
 (define (cairo-paragraph)
-  (pango_paragraph (string-append "Pango Layout Test:\n"
-                                  "Here is some text that should wrap suitably to demonstrate PangoLayout's features.\n"
-                                  "This paragraph should be ellipsized")
-                   256.0 128.0 32.0 2.0 'PANGO_WRAP_WORD_CHAR 'PANGO_ELLIPSIZE_END
-                   (pango-create-font-desc "Symbol" 16.0 'normal 'normal)
-                   (flvector (random) (random) (random) 1.00)
-                   (flvector (random) (random) (random) 0.08)
-                   2.0))
+  (bitmap_paragraph (string-append "Pango Layout Test:\n"
+                                   "Here is some text that should wrap suitably to demonstrate PangoLayout's features.\n"
+                                   "This paragraph should be ellipsized")
+                    256.0 128.0 32.0 2.0 'PANGO_WRAP_WORD_CHAR 'PANGO_ELLIPSIZE_END
+                    (pango-create-font-desc "Symbol" 16.0 'normal 'normal)
+                    (flvector (random) (random) (random) 1.00)
+                    (flvector (random) (random) (random) 0.08)
+                    2.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (benchmark make-image)
@@ -65,5 +76,5 @@
   (collect-garbage)
   (time (make-image)))
 
-(benchmark cairo-circle)
+(benchmark cairo-text-circle)
 (benchmark cairo-paragraph)

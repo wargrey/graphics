@@ -10,6 +10,9 @@
 (require "digitama/background.rkt")
 (require "color.rkt")
 
+(require "digitama/unsafe/background.rkt")
+(require "digitama/unsafe/image.rkt")
+
 (define-predicate pen-style? Pen-Style)
 (define-predicate brush-style? Brush-Style)
 
@@ -31,7 +34,8 @@
          (init [style Brush-Style #:optional]
                [stipple (Option (Instance Bitmap%)) #:optional]
                [gradient (U (Instance CSS-Linear-Gradient%) (Instance CSS-Radial-Gradient%) False) #:optional]
-               [transformation (Option (Vector (Vector Real Real Real Real Real Real) Real Real Real Real Real)) #:optional])))
+               [transformation (Option (Vector (Vector Real Real Real Real Real Real) Real Real Real Real Real)) #:optional])
+         [get-handle* (-> Brush-Pattern*)]))
 
 (define-type CSS-Linear-Gradient%
   (Class #:implements Inspectable-Linear-Gradient%
@@ -80,6 +84,9 @@
     
     (super-make-object color style stipple gradient transformation)
 
+    (define/public (get-handle*)
+      (flvector))
+    
     (define/override set-color
       (case-lambda
        [(color/name) (error 'css-brush% "brush is immutable")]
@@ -104,7 +111,7 @@
 
     (define/override (inspect)
       (define-values (x0 y0 x1 y1) (send this get-line))
-      (list x0 y0 x1 y1 (send this get-stops)))))
+      (list (cons x0 y0) (cons x1 y1) (send this get-stops)))))
 
 (define/make-is-a? css-radial-gradient% : CSS-Radial-Gradient%
   (class inspectable-radial-gradient%
@@ -113,7 +120,7 @@
 
     (define/override (inspect)
       (define-values (x0 y0 r0 x1 y1 r1) (send this get-circles))
-      (list x0 y0 r0 x1 y1 r1 (send this get-stops)))))
+      (list (list x0 y0 r0) (list x1 y1 r1) (send this get-stops)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-css-pen : (Parameterof (Instance Pen%))

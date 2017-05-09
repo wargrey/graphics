@@ -5,10 +5,11 @@
                      [bitmap-ellipse bitmap-disk]))
 
 (require "digitama/digicore.rkt")
-(require "digitama/unsafe/font.rkt")
 (require "background.rkt")
 (require "color.rkt")
 (require "font.rkt")
+
+(require "digitama/unsafe/image.rkt")
 
 (define bitmap-blank : (->* () (Real (Option Real) Positive-Real) Bitmap)
   (lambda [[w 0] [h #false] [density (default-bitmap-density)]]
@@ -85,15 +86,15 @@
                  #:max-width [max-width +inf.0] #:max-height [max-height +inf.0] #:indent [indent 0.0] #:spacing [spacing 0.0]
                  #:wrap-mode [wrap 'PANGO_WRAP_WORD_CHAR] #:ellipsize-mode [ellipsize 'PANGO_ELLIPSIZE_END]
                  #:density [density (default-bitmap-density)]]
-    (pango_paragraph (if (list? words) (string-join words "\n") words)
-                     (real->double-flonum max-width) (real->double-flonum max-height)
-                     (real->double-flonum indent) (real->double-flonum spacing) wrap ellipsize
-                     (font->font-description font)
-                     (color->flvector (select-color fgcolor))
-                     (let ([brush (select-brush bgcolor)])
-                       (or #;(send brush get-handle)
-                           (color->flvector (send brush get-color))))
-                     (real->double-flonum density))))
+    (bitmap_paragraph (if (list? words) (string-join words "\n") words)
+                      (real->double-flonum max-width) (real->double-flonum max-height)
+                      (real->double-flonum indent) (real->double-flonum spacing) wrap ellipsize
+                      (font->font-description font)
+                      (color->flvector (select-color fgcolor))
+                      (let ([brush (select-brush bgcolor)])
+                        (or #;(send brush get-handle)
+                            (color->flvector (send brush get-color))))
+                      (real->double-flonum density))))
 
 (define bitmap-frame : (-> Bitmap [#:border (U Pen+Color (Listof Pen+Color))] [#:background Brush+Color]
                            [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
