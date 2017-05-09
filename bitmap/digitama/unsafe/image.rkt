@@ -8,6 +8,9 @@
   (require racket/class)
   (require racket/draw)
 
+  (require racket/flonum)
+  (require racket/unsafe/ops)
+
   (define transparent-pen (make-pen #:style 'transparent))
   
   (define (cairo-create-argb-image flwidth flheight [density 1.0])
@@ -32,21 +35,17 @@
 
   (define (make-cairo-image* flwidth flheight background [density 1.0])
     (define-values (bmp cr) (make-cairo-image flwidth flheight density))
-    ;;; TODO: use cairo APIs directly
-    (define dc (send bmp make-dc))
-    (define saved-brush (send dc get-brush))
-    (define saved-pen (send dc get-pen))
-    (send* dc (set-pen transparent-pen) (set-brush background))
-    (send dc draw-rectangle 0 0 (send bmp get-width) (send bmp get-height))
-    (send* dc (set-pen saved-pen) (set-brush saved-brush))
+    (when (flvector? background)
+      (cairo-set-rgba cr background)
+      (cairo_paint cr))
     (values bmp cr))
 
   (define (cairo-set-rgba cr color)
     (cairo_set_source_rgba cr
-                           (unsafe-fl/ (unsafe-fx->fl (send color red)) 255.0)
-                           (unsafe-fl/ (unsafe-fx->fl (send color green)) 255.0)
-                           (unsafe-fl/ (unsafe-fx->fl (send color blue)) 255.0)
-                           (send color alpha)))
+                           (unsafe-flvector-ref color 0)
+                           (unsafe-flvector-ref color 1)
+                           (unsafe-flvector-ref color 2)
+                           (unsafe-flvector-ref color 3)))
   
   (define (cairo-image->bitmap cr flwidth flheight [density 1.0])
     (define-values (width height) (values (unsafe-fxmax (unsafe-fl->fx flwidth) 1) (unsafe-fxmax (unsafe-fl->fx flheight) 1)))

@@ -1,5 +1,6 @@
 #lang typed/racket/base
 
+(provide (all-defined-out))
 (provide Font-Description pango-create-font-desc pango_paragraph)
 (provide get_font_metrics_lines get_font_metrics)
 
@@ -42,7 +43,7 @@
       (values (~metric ascent) (~metric capline) (~metric meanline) (~metric baseline)
               (~metric (unsafe-fx+ ascent height)))))
 
-  (define (pango_paragraph words max-width max-height indent spacing wrap ellipsize color background font-desc density)
+  (define (pango_paragraph words max-width max-height indent spacing wrap ellipsize font-desc color background density)
     (define layout (pango-create-layout the-cairo max-width max-height indent spacing wrap ellipsize))
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout words)
@@ -120,11 +121,13 @@
     (pango_layout_set_ellipsize layout smart-emode)
     layout))
 
+(define-type Cairo-Brush (U False FlVector))
+
 (unsafe-require/typed
  (submod "." unsafe)
  [#:opaque Font-Description font-description?]
  [pango-create-font-desc (-> String Real Symbol Symbol Font-Description)]
- [pango_paragraph (-> String Flonum Flonum Flonum Flonum Symbol Symbol (Instance Color%) (Instance Brush%) Font-Description Flonum
+ [pango_paragraph (-> String Flonum Flonum Flonum Flonum Symbol Symbol Font-Description FlVector Cairo-Brush Flonum
                       (Instance Bitmap%))])
 
 (unsafe-require/typed

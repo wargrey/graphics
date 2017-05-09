@@ -32,10 +32,6 @@
          [custom-write (-> Output-Port Void)]
          [custom-display (-> Output-Port Void)]))
 
-(define-type Fixed-Pen%
-  (Class #:implements/inits Pen%
-         [get-style (-> Pen-Style)] #|the official version forgets this method|#))
-
 (define-inspectable-class Inspectable-Font% #:+ Font%
   ;;; NOTE
   ;; These named initial arguments cannot be used with (new),
@@ -56,7 +52,7 @@
                 (List Byte Byte Byte Real))))
 
 (define-inspectable-class
-  [Inspectable-Pen%             #:+ Fixed-Pen%]
+  [Inspectable-Pen%             #:+ Pen%]
   [Inspectable-Brush%           #:+ Brush%]
   [Inspectable-Linear-Gradient% #:+ Linear-Gradient%]
   [Inspectable-Radial-Gradient% #:+ Radial-Gradient%])

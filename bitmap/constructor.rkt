@@ -88,8 +88,12 @@
     (pango_paragraph (if (list? words) (string-join words "\n") words)
                      (real->double-flonum max-width) (real->double-flonum max-height)
                      (real->double-flonum indent) (real->double-flonum spacing) wrap ellipsize
-                     (select-color fgcolor) (select-brush bgcolor)
-                     (font->font-description font) (real->double-flonum density))))
+                     (font->font-description font)
+                     (color->flvector (select-color fgcolor))
+                     (let ([brush (select-brush bgcolor)])
+                       (or #;(send brush get-handle)
+                           (color->flvector (send brush get-color))))
+                     (real->double-flonum density))))
 
 (define bitmap-frame : (-> Bitmap [#:border (U Pen+Color (Listof Pen+Color))] [#:background Brush+Color]
                            [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]

@@ -127,8 +127,7 @@
                                              #:style (Option Symbol) #:cap (Option Pen-Cap-Style) #:join (Option Pen-Join-Style)
                                              #:stipple (Option (Instance Bitmap%)))
                             (Instance CSS-Pen%))
-  (let ([pen%? : (-> Any Boolean : #:+ (Instance Fixed-Pen%)) ((inst make-cheat-is-a? Fixed-Pen%) pen% 'pen%?)]
-        [penbase : (HashTable (Listof Any) Pen) (make-hash)])
+  (let ([penbase : (HashTable (Listof Any) Pen) (make-hash)])
     (lambda [[basepen (default-css-pen)] #:color [color #false] #:width [width #false] #:style [style #false]
                                          #:cap [cap #false] #:join [join #false] #:stipple [stipple 'inherit]]
       (define pen-color : Color (select-color (or color (send basepen get-color))))
@@ -142,7 +141,7 @@
                       [(hidden none) 'transparent]
                       [(dotted) 'dot]
                       [(dashed) 'long-dash]
-                      [else (if (pen%? basepen) (send basepen get-style) 'solid)])]))
+                      [else (send basepen get-style)])]))
       ; TODO: deal with cap, join and stipple
       (hash-ref! penbase
                  (list pen-color pen-width pen-style)
