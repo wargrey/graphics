@@ -13,6 +13,7 @@
 (define-type RGB->HSB (-> Gamut Gamut Gamut (Values Hue Gamut Gamut)))
 
 (define gamut->byte : (-> Gamut Byte) (λ [r] (min (exact-round (fl* r 255.0)) #xFF)))
+(define byte->gamut : (-> Byte Gamut) (λ [r] (real->double-flonum (/ r #xFF))))
 (define real->gamut : (-> Real Gamut) (λ [r] (flmax (flmin (real->double-flonum r) 1.0) 0.0)))
 
 (define real->hue : (-> Real Hue)
@@ -40,9 +41,9 @@
 
 (define rgb-bytes->hsb : (-> RGB->HSB Byte Byte Byte (Values Hue Gamut Gamut))
   (lambda [rgb->hsb red green blue]
-    (rgb->hsb (real->double-flonum (/ red   #xFF))
-              (real->double-flonum (/ green #xFF))
-              (real->double-flonum (/ blue  #xFF)))))
+    (rgb->hsb (byte->gamut red)
+              (byte->gamut green)
+              (byte->gamut blue))))
 
 (define hsb->rgb-bytes : (-> HSB->RGB Real Real Real (Values Byte Byte Byte))
   (lambda [hsb->rgb hue s% b%]

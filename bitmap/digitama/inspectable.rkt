@@ -70,16 +70,24 @@
   (define inspectable-mixin%
     (lambda [%]
       (class* % (printable<%>) (super-make-object)
+        (define &this (box #false))
+        
         (define/public (inspect) this)
       
         (define/public (custom-print /dev/stdout quote-depth)
           (custom-write /dev/stdout))
       
         (define/public (custom-write /dev/stdout)
-          (write (cons (object-name this) (inspect)) /dev/stdout))
+          (write (self) /dev/stdout))
       
         (define/public (custom-display /dev/stdout)
-          (display (cons (object-name this) (inspect)) /dev/stdout)))))
+          (display (self) /dev/stdout))
+
+        (define/private (self)
+          (or (unbox &this)
+              (let ([self (cons (object-name this) (inspect))])
+                (set-box! &this self)
+                self))))))
 
   (define inspectable-font% (inspectable-mixin% font%))
   (define inspectable-color% (inspectable-mixin% color%))

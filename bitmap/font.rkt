@@ -31,7 +31,7 @@
          [get-text-size (->* (String) ((Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))]
          [draw-text (-> (Instance DC<%>) String Real Real Void)]
          [should-combine? (-> Boolean)]
-         [as-font-description (-> Font-Description)]))
+         [get-handle (-> Font-Description)]))
 
 (define/make-is-a? css-font% : CSS-Font%
   (class inspectable-font%
@@ -70,7 +70,7 @@
                     (draw-text text x y (should-combine?))
                     (set-font saved-font))]))
 
-    (define/public (as-font-description)
+    (define/public (get-handle)
       (or (unbox &desc)
           (let ([desc (pango-create-font-desc face (send this get-size) (send this get-style) (send this get-weight))])
             (set-box! &desc desc)
@@ -169,7 +169,7 @@
 
 (define font->font-description : (-> (Instance Font%) Font-Description)
   (lambda [font]
-    (cond [(css-font%? font) (send font as-font-description)]
+    (cond [(css-font%? font) (send font get-handle)]
           [else (pango-create-font-desc (or (send font get-face)
                                             (font-family->font-face (send font get-family)))
                                         (smart-font-size font)

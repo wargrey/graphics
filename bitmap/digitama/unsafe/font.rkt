@@ -43,7 +43,7 @@
               (~metric (unsafe-fx+ ascent height)))))
 
   (define (pango_paragraph words max-width max-height indent spacing wrap ellipsize color background font-desc density)
-    (define layout (pango-reset-layout max-width max-height indent spacing wrap ellipsize))
+    (define layout (pango-create-layout the-cairo max-width max-height indent spacing wrap ellipsize))
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout words)
 
@@ -70,7 +70,7 @@
     (let ([&layout (box #false)])
       (lambda []
         (or (unbox &layout)
-            (let ([layout (pango_cairo_create_layout the-cairo)])
+            (let ([layout (time (pango_cairo_create_layout the-cairo))])
               (set-box! &layout layout)
               layout)))))
   
@@ -78,10 +78,6 @@
     (lambda [font-desc]
       (define layout (the-layout))
 
-      (pango_layout_set_indent layout 0)
-      (pango_layout_set_width layout -1)
-      (pango_layout_set_height layout -1)
-      (pango_layout_set_ellipsize layout 'PANGO_ELLIPSIZE_NONE)
       (pango_layout_set_font_description layout font-desc)
 
       (let ([baseline (pango_layout_get_baseline layout)])
@@ -109,13 +105,13 @@
     (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
     font-desc)
   
-  (define (pango-reset-layout max-width max-height indent spacing wrap-mode ellipsize-mode)
+  (define (pango-create-layout cr max-width max-height indent spacing wrap-mode ellipsize-mode)
     (define-values (smart-height smart-emode)
       (cond [(eq? ellipsize-mode 'PANGO_ELLIPSIZE_NONE) (values -1 ellipsize-mode)]
             [(or (eq? max-height +inf.0) (eq? max-height -inf.0)) (values -1 'PANGO_ELLIPSIZE_NONE)]
             [(unsafe-fl< max-height 0.0) (values (unsafe-fl->fx max-height) ellipsize-mode)]
             [else (values (~size max-height) ellipsize-mode)]))
-    (define layout (the-layout))
+    (define layout (pango_cairo_create_layout cr))
     (pango_layout_set_width layout (if (eq? max-width +inf.0) -1 (~size (unsafe-flmax max-width 0.0))))
     (pango_layout_set_height layout smart-height)
     (pango_layout_set_indent layout (~size indent))   ; nan? and infinite? are 0s
