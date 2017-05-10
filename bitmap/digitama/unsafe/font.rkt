@@ -1,10 +1,9 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide Font-Description pango-create-font-desc)
-(provide get_font_metrics_lines get_font_metrics)
+(provide Font-Description)
 
-(require typed/racket/unsafe)
+(require "source.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -69,7 +68,7 @@
       
       (values x y width height layout-height)))
 
-  (define (pango-create-font-desc font-face font-size font-style font-weight)
+  (define (bitmap_create_font_desc font-face font-size font-style font-weight)
     (define font-desc
       (let ([face-is-family? (regexp-match #rx"," font-face)])
         (cond [(not face-is-family?) (pango_font_description_from_string font-face)]
@@ -81,11 +80,9 @@
     (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
     font-desc))
 
-(unsafe-require/typed
+(require/typed/provide
  (submod "." unsafe)
- [#:opaque Font-Description font-description?]
- [pango-create-font-desc (-> String Real Symbol Symbol Font-Description)]
+ [bitmap_create_font_desc (-> String Real Symbol Symbol Font-Description)]
  [get_font_metrics_lines (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]
  [get_font_metrics (-> Font-Description (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                                                 Nonnegative-Flonum Nonnegative-Flonum))])
-

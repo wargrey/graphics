@@ -50,8 +50,7 @@
     
     (define cr (cairo_create surface))
     (unless (unsafe-fl= density 1.0) (cairo_scale cr density density))
-    
-    (cairo_surface_destroy surface) ; cairo will maintain the surface
+    (cairo_surface_destroy surface)
     cr))
 
 (define make-cairo-image
@@ -66,34 +65,45 @@
 (define make-cairo-image*
   (lambda [flwidth flheight background [density 1.0]]
     (define-values (img cr width height) (make-cairo-image flwidth flheight density))
-    (when (flvector? background)
-      (cairo-set-rgba cr background)
-      (cairo_paint cr))
+    (cairo-set-source cr background)
+    (cairo_paint cr)
     (values img cr width height)))
+
+(define cairo-set-source
+  (lambda [cr src]
+    (cond [(flvector? src)
+           (cairo_set_source_rgba cr
+                                  (unsafe-flvector-ref src 0)
+                                  (unsafe-flvector-ref src 1)
+                                  (unsafe-flvector-ref src 2)
+                                  (unsafe-flvector-ref src 3))]
+          [(cpointer? src)
+           (case (cpointer-tag src)
+             [(cairo_pattern_t) (cairo_set_source cr src)]
+             [(cairo_surface_t) (cairo_set_source_surface cr src 0.0 0.0)]
+             [else (cairo-warn-message src "unrecognized source pointer: ~a" (cpointer-tag src))])]
+          [else (cairo-warn-message src "unrecognized source type: ~a" src)])))
 
 (define cairo-image->bitmap
   (lambda [cr flwidth flheight [density 1.0]]
     (define-values (width height) (values (unsafe-fxmax (unsafe-fl->fx flwidth) 1) (unsafe-fxmax (unsafe-fl->fx flheight) 1)))
     (define img (make-object bitmap% width height #false #true density))
-    (define-values (src-surface dest-surface) (values (cairo_get_target cr) (send img get-handle)))
-    (define-values (src dest) (values (cairo_image_surface_get_data src-surface) (cairo_image_surface_get_data dest-surface)))
-    (define-values (src-step dest-step) (values (cairo_image_surface_get_stride src-surface) (cairo_image_surface_get_stride dest-surface)))
-    (define-values (total safe-step) (values (unsafe-bytes-length dest) (unsafe-fxmin src-step dest-step)))
-    (cond [(eq? src-step dest-step) (memcpy dest src total _byte)]
+    (define-values (src dest) (values (cairo_get_target cr) (send img get-handle)))
+    (define-values (src-data dest-data) (values (cairo_image_surface_get_data src) (cairo_image_surface_get_data dest)))
+    (define-values (src-step dest-step) (values (cairo_image_surface_get_stride src) (cairo_image_surface_get_stride dest)))
+    (define-values (total safe-step) (values (unsafe-bytes-length dest-data) (unsafe-fxmin src-step dest-step)))
+    (cond [(eq? src-step dest-step) (memcpy dest-data src-data total _byte)]
           [else (let rowcpy ([srcoff 0] [destoff 0])
                   (define destnext (unsafe-fx+ destoff dest-step))
-                  (memcpy dest destoff src srcoff safe-step _byte)
+                  (memcpy dest-data destoff src-data srcoff safe-step _byte)
                   (when (< destnext total) (rowcpy (unsafe-fx+ srcoff src-step) destnext)))])
-    (cairo_surface_mark_dirty dest-surface)
+    (cairo_surface_mark_dirty dest)
     img))
 
-(define cairo-set-rgba
-  (lambda [cr color]
-    (cairo_set_source_rgba cr
-                           (unsafe-flvector-ref color 0)
-                           (unsafe-flvector-ref color 1)
-                           (unsafe-flvector-ref color 2)
-                           (unsafe-flvector-ref color 3))))
+(define cairo-warn-message
+  (lambda [src msg . args]
+    (define message (if (null? args) msg (apply format msg args)))
+    (log-message (current-logger) 'warning 'exn:css:bitmap message src)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ~size

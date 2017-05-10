@@ -11,12 +11,6 @@
 
 (require "digitama/unsafe/image.rkt")
 
-(define bitmap-blank : (->* () (Real (Option Real) Positive-Real) Bitmap)
-  (lambda [[w 0] [h #false] [density (default-bitmap-density)]]
-    (define width : Positive-Integer (max 1 (exact-ceiling w)))
-    (define height : Positive-Integer (max 1 (exact-ceiling (or h w))))
-    (make-bitmap width height #:backing-scale density)))
-
 (define bitmap-dc : (->* ((-> (Instance Bitmap-DC%) Nonnegative-Flonum Nonnegative-Flonum Any))
                          (Nonnegative-Real (Option Nonnegative-Real) Positive-Real)
                          Bitmap)
@@ -28,11 +22,17 @@
     (draw-with dc (real->double-flonum w) (real->double-flonum (or h w)))
     bmp))
 
+(define bitmap-blank : (->* () (Real (Option Real) Positive-Real) Bitmap)
+  (lambda [[width 0.0] [height #false] [density (default-bitmap-density)]]
+    (bitmap_blank (real->double-flonum width)
+                  (real->double-flonum (or height width))
+                  (real->double-flonum density))))
+
 (define bitmap-ghost : (-> Bitmap Bitmap)
   (lambda [bmp]
-    (bitmap-blank (send bmp get-width)
-                  (send bmp get-height)
-                  (send bmp get-backing-scale))))
+    (bitmap_blank (exact->inexact (send bmp get-width))
+                  (exact->inexact (send bmp get-height))
+                  (real->double-flonum (send bmp get-backing-scale)))))
 
 (define bitmap-solid : (->* () (Color+sRGB Real Positive-Real) Bitmap)
   (lambda [[color 'transparent] [size 1] [density (default-bitmap-density)]]
@@ -90,10 +90,8 @@
                       (real->double-flonum max-width) (real->double-flonum max-height)
                       (real->double-flonum indent) (real->double-flonum spacing) wrap ellipsize
                       (font->font-description font)
-                      (color->flvector (select-color fgcolor))
-                      (let ([brush (select-brush bgcolor)])
-                        (or #;(send brush get-handle)
-                            (color->flvector (send brush get-color))))
+                      (color->source (select-color fgcolor))
+                      (brush->source (select-brush bgcolor))
                       (real->double-flonum density))))
 
 (define bitmap-frame : (-> Bitmap [#:border (U Pen+Color (Listof Pen+Color))] [#:background Brush+Color]

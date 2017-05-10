@@ -5,8 +5,9 @@
 (require "digitama/digicore.rkt")
 (require "digitama/cheat.rkt")
 (require "digitama/font.rkt")
-(require "digitama/unsafe/font.rkt")
 (require "digitama/inspectable.rkt")
+
+(require "digitama/unsafe/font.rkt")
 
 (define-type Font (Instance CSS-Font%))
 
@@ -31,7 +32,7 @@
          [get-text-size (->* (String) ((Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))]
          [draw-text (-> (Instance DC<%>) String Real Real Void)]
          [should-combine? (-> Boolean)]
-         [get-handle (-> Font-Description)]))
+         [get-source (-> Font-Description)]))
 
 (define/make-is-a? css-font% : CSS-Font%
   (class inspectable-font%
@@ -70,9 +71,9 @@
                     (draw-text text x y (should-combine?))
                     (set-font saved-font))]))
 
-    (define/public (get-handle)
+    (define/public (get-source)
       (or (unbox &desc)
-          (let ([desc (pango-create-font-desc face (send this get-size) (send this get-style) (send this get-weight))])
+          (let ([desc (bitmap_create_font_desc face (send this get-size) (send this get-style) (send this get-weight))])
             (set-box! &desc desc)
             desc)))
 
@@ -169,12 +170,12 @@
 
 (define font->font-description : (-> (Instance Font%) Font-Description)
   (lambda [font]
-    (cond [(css-font%? font) (send font get-handle)]
-          [else (pango-create-font-desc (or (send font get-face)
-                                            (font-family->font-face (send font get-family)))
-                                        (smart-font-size font)
-                                        (send font get-style)
-                                        (send font get-weight))])))
+    (cond [(css-font%? font) (send font get-source)]
+          [else (bitmap_create_font_desc (or (send font get-face)
+                                             (font-family->font-face (send font get-family)))
+                                         (smart-font-size font)
+                                         (send font get-style)
+                                         (send font get-weight))])))
 
 (define text-size : (->* (String (Instance Font%)) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [text font [combine? #true] #:with-dc [dc the-dc]]

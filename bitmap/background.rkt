@@ -2,22 +2,23 @@
 
 (provide (all-defined-out))
 
-(require colorspace/misc)
-
 (require "digitama/digicore.rkt")
 (require "digitama/cheat.rkt")
 (require "digitama/inspectable.rkt")
 (require "digitama/background.rkt")
 (require "color.rkt")
 
-(require "digitama/unsafe/background.rkt")
-(require "digitama/unsafe/image.rkt")
+(require "digitama/unsafe/source.rkt")
 
 (define-predicate pen-style? Pen-Style)
 (define-predicate brush-style? Brush-Style)
 
 (define-type Pen (Instance CSS-Pen%))
 (define-type Brush (Instance CSS-Brush%))
+
+(define-type CSS-Gradient-Stop-Color (Pairof Real (Instance Color%)))
+(define-type CSS-Linear-Gradient (Vector Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
+(define-type CSS-Radial-Gradient (Vector Real Real Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 
 (define-type CSS-Pen%
   (Class #:implements Inspectable-Pen%
@@ -33,21 +34,9 @@
          (init-field [color Color])
          (init [style Brush-Style #:optional]
                [stipple (Option (Instance Bitmap%)) #:optional]
-               [gradient (U (Instance CSS-Linear-Gradient%) (Instance CSS-Radial-Gradient%) False) #:optional]
+               [gradient (U (Instance Linear-Gradient%) (Instance Radial-Gradient%) False) #:optional]
                [transformation (Option (Vector (Vector Real Real Real Real Real Real) Real Real Real Real Real)) #:optional])
-         [get-handle* (-> Brush-Pattern*)]))
-
-(define-type CSS-Linear-Gradient%
-  (Class #:implements Inspectable-Linear-Gradient%
-         (init [x0 Real] [y0 Real]
-               [x1 Real] [y1 Real]
-               [stops (Listof (List Real Color))])))
-
-(define-type CSS-Radial-Gradient%
-  (Class #:implements Inspectable-Radial-Gradient%
-         (init [x0 Real] [y0 Real] [r0 Real]
-               [x1 Real] [y1 Real] [r1 Real]
-               [stops (Listof (List Real Color))])))
+         [get-source (-> Bitmap-Source)]))
 
 (define/make-is-a? css-pen% : CSS-Pen%
   (class inspectable-pen%
@@ -84,8 +73,9 @@
     
     (super-make-object color style stipple gradient transformation)
 
-    (define/public (get-handle*)
-      (flvector))
+    (define source : Bitmap-Source (generic-brush->pattern this))
+
+    (define/public (get-source) source)
     
     (define/override set-color
       (case-lambda
@@ -102,25 +92,12 @@
       color)
     
     (define/override (inspect)
-      (list color (send this get-style) (send this get-gradient) (send this get-transformation)))))
-
-(define/make-is-a? css-linear-gradient% : CSS-Linear-Gradient%
-  (class inspectable-linear-gradient%
-    (init x0 y0 x1 y1 stops)
-    (super-make-object x0 y0 x1 y1 stops)
-
-    (define/override (inspect)
-      (define-values (x0 y0 x1 y1) (send this get-line))
-      (list (cons x0 y0) (cons x1 y1) (send this get-stops)))))
-
-(define/make-is-a? css-radial-gradient% : CSS-Radial-Gradient%
-  (class inspectable-radial-gradient%
-    (init x0 y0 r0 x1 y1 r1 stops)
-    (super-make-object x0 y0 r0 x1 y1 r1 stops)
-
-    (define/override (inspect)
-      (define-values (x0 y0 r0 x1 y1 r1) (send this get-circles))
-      (list (list x0 y0 r0) (list x1 y1 r1) (send this get-stops)))))
+      (define ?gradient (send this get-gradient))
+      (list color (send this get-style) (send this get-transformation)
+            (or (and (linear-gradient%? ?gradient)
+                     (call-with-values (thunk (inspect-linear-gradient ?gradient)) list))
+                (and (radial-gradient%? ?gradient)
+                     (call-with-values (thunk (inspect-radial-gradient ?gradient)) list)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-css-pen : (Parameterof (Instance Pen%))
@@ -156,7 +133,7 @@
 
 (define make-css-brush : (->* ()
                               ((Instance Brush%) #:color (Option Color+sRGB) #:style (Option Brush-Style)
-                                                 #:gradient (U False CSS-Linear-Gradient% CSS-Radial-Gradient%)
+                                                 #:gradient (U False CSS-Linear-Gradient CSS-Radial-Gradient)
                                                  #:stipple (Option (Instance Bitmap%))
                                                  #:transformation (U False (Vector (Vector Real Real Real Real Real Real)
                                                                                    Real Real Real Real Real)))
@@ -181,3 +158,8 @@
   (lambda [brush-hint]
     (cond [(css-brush%? brush-hint) brush-hint]
           [else ((inst smart-brush Brush) brush-hint make-css-brush)])))
+
+(define brush->source : (-> (Instance Brush%) Bitmap-Source)
+  (lambda [brush]
+    (cond [(css-brush%? brush) (send brush get-source)]
+          [else (generic-brush->pattern brush)])))

@@ -2,9 +2,7 @@
 
 (provide (all-defined-out))
 (provide inspectable-font% inspectable-color%
-         inspectable-pen%  inspectable-brush%
-         inspectable-linear-gradient%
-         inspectable-radial-gradient%)
+         inspectable-pen%  inspectable-brush%)
 
 (require typed/racket/unsafe)
 (require typed/racket/draw)
@@ -32,12 +30,17 @@
          [custom-write (-> Output-Port Void)]
          [custom-display (-> Output-Port Void)]))
 
+(define-inspectable-class Inspectable-Color% #:+ Color%
+  (init-rest (U (List String)
+                (List Byte Byte Byte)
+                (List Byte Byte Byte Real))))
+
 (define-inspectable-class Inspectable-Font% #:+ Font%
   ;;; NOTE
   ;; These named initial arguments cannot be used with (new),
   ;; they just serve as an elegant form of (init-rest).
   (init [size Real]
-        [face (Option String)] ; the official version forgets that it can be False
+        [face (Option String)]
         [family Font-Family]
         [style Font-Style #:optional]
         [weight Font-Weight #:optional]
@@ -46,16 +49,9 @@
         [size-in-pixels? Any #:optional]
         [hinting Font-Hinting #:optional]))
 
-(define-inspectable-class Inspectable-Color% #:+ Color%
-  (init-rest (U (List String)
-                (List Byte Byte Byte)
-                (List Byte Byte Byte Real))))
-
 (define-inspectable-class
-  [Inspectable-Pen%             #:+ Pen%]
-  [Inspectable-Brush%           #:+ Brush%]
-  [Inspectable-Linear-Gradient% #:+ Linear-Gradient%]
-  [Inspectable-Radial-Gradient% #:+ Radial-Gradient%])
+  [Inspectable-Pen%   #:+ Pen%]
+  [Inspectable-Brush% #:+ Brush%])
 
 (module cheat racket/base
   (provide (all-defined-out))
@@ -85,18 +81,14 @@
                 (set-box! &this self)
                 self))))))
 
-  (define inspectable-font% (inspectable-mixin% font%))
+  (define inspectable-font%  (inspectable-mixin% font%))
   (define inspectable-color% (inspectable-mixin% color%))
-  (define inspectable-pen% (inspectable-mixin% pen%))
-  (define inspectable-brush% (inspectable-mixin% brush%))
-  (define inspectable-linear-gradient% (inspectable-mixin% linear-gradient%))
-  (define inspectable-radial-gradient% (inspectable-mixin% radial-gradient%)))
+  (define inspectable-pen%   (inspectable-mixin% pen%))
+  (define inspectable-brush% (inspectable-mixin% brush%)))
 
 (unsafe-require/typed
  (submod "." cheat)
- [inspectable-font%            Inspectable-Font%]
- [inspectable-color%           Inspectable-Color%]
- [inspectable-pen%             Inspectable-Pen%]
- [inspectable-brush%           Inspectable-Brush%]
- [inspectable-linear-gradient% Inspectable-Linear-Gradient%]
- [inspectable-radial-gradient% Inspectable-Radial-Gradient%])
+ [inspectable-font%  Inspectable-Font%]
+ [inspectable-color% Inspectable-Color%]
+ [inspectable-pen%   Inspectable-Pen%]
+ [inspectable-brush% Inspectable-Brush%])

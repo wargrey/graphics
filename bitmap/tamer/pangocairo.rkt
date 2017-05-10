@@ -1,4 +1,4 @@
-#lang racket/gui
+#lang racket
 
 (require racket/math)
 (require racket/flonum)
@@ -16,7 +16,7 @@
   (define (draw-text-circle cr words font-face font-size font-weight font-style)
     ; Create a PangoLayout, set the font and text
     (define layout (pango_cairo_create_layout cr))
-    (define desc (pango-create-font-desc font-face font-size font-weight font-style))
+    (define desc (bitmap_create_font_desc font-face font-size font-weight font-style))
     (pango_layout_set_font_description layout desc)
     (pango_font_description_free desc)
 
@@ -49,32 +49,36 @@
     (cairo_rectangle cr (* x 10.0) (* y 10) 5 5))
   
   (define brush (cairo_pattern_create_radial radius radius (/ radius 3.0) radius radius radius))
-  (cairo_pattern_add_color_stop_rgb brush 0.0 (random) (random) (random))
-  (cairo_pattern_add_color_stop_rgb brush 0.9 1 1 1)
+  (cairo_pattern_set_extend brush CAIRO_EXTEND_PAD)
+  (cairo_pattern_add_color_stop_rgba brush 0.0 (random) (random) (random) 1.0)
+  (cairo_pattern_add_color_stop_rgba brush 0.9 1.0 1.0 1.0 1.0)
   (cairo_set_source cr brush)
   (cairo_fill cr)
 
   (define words (string-split "Using Pango with Cairo to Draw Colorful Text Circle"))
-  (draw-text-circle cr words "Symbol" 24 'bold 'normal)
+  (draw-text-circle cr words "Trebuchet MS" 24 'bold 'normal)
   (cairo_destroy cr)
   (cairo_pattern_destroy brush)
   bmp)
 
 (define (cairo-paragraph)
+  (define brush (cairo_pattern_create_linear 0.0 0.0 256.0 128.0))
+  (cairo_pattern_set_extend brush CAIRO_EXTEND_PAD)
+  (cairo_pattern_add_color_stop_rgba brush 0.0 1.0 0.0 0.0 1.0)
+  (cairo_pattern_add_color_stop_rgba brush 0.5 0.0 1.0 0.0 1.0)
+  (cairo_pattern_add_color_stop_rgba brush 1.0 0.0 0.0 1.0 1.0)
   (bitmap_paragraph (string-append "Pango Layout Test:\n"
                                    "Here is some text that should wrap suitably to demonstrate PangoLayout's features.\n"
-                                   "This paragraph should be ellipsized")
-                    256.0 128.0 32.0 2.0 'PANGO_WRAP_WORD_CHAR 'PANGO_ELLIPSIZE_END
-                    (pango-create-font-desc "Symbol" 16.0 'normal 'normal)
-                    (flvector (random) (random) (random) 1.00)
-                    (flvector (random) (random) (random) 0.08)
-                    2.0))
+                                   "This paragraph should be ellipsized.")
+                    256.0 128.0 32.0 4.0 'PANGO_WRAP_WORD_CHAR 'PANGO_ELLIPSIZE_END
+                    (bitmap_create_font_desc "Trebuchet MS" 16.0 'Bold 'normal)
+                    brush (flvector (random) (random) (random) 0.08) 2.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define (benchmark make-image)
+(define (benchmark make-image . args)
   (printf "~a " (object-name make-image))
   (collect-garbage)
-  (time (make-image)))
+  (time (apply make-image args)))
 
 (benchmark cairo-text-circle)
 (benchmark cairo-paragraph)

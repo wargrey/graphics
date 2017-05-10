@@ -21,7 +21,7 @@
                [blue Byte #:optional]
                [alpha Real #:optional])
          (init-rest Null) ; disable string based constructor
-         [get-handle (-> FlVector)]))
+         [get-source (-> FlVector)]))
 
 (define/make-is-a? rgba% : RGBA-Color%
   (class inspectable-color%
@@ -38,7 +38,7 @@
                 (byte->gamut blue)
                 (real->gamut alpha)))
     
-    (define/public (get-handle) flcolor)
+    (define/public (get-source) flcolor)
     
     (define/override-immutable 'rgba% "color is immutable"
       ([set red green blue [alpha 1.0]]
@@ -83,9 +83,9 @@
                              (λ [] (select-color (rgb-bytes->hex (send representation red) (send representation green) (send representation blue))
                                                  (flmax (real->double-flonum (send representation alpha)) 0.0))))]))))
 
-(define color->flvector : (-> (Instance Color%) FlVector)
+(define color->source : (-> (Instance Color%) FlVector)
   (lambda [color]
-    (cond [(rgba%? color) (send color get-handle)]
+    (cond [(rgba%? color) (send color get-source)]
           [else (flvector (byte->gamut (send color red))
                           (byte->gamut (send color green))
                           (byte->gamut (send color blue))
