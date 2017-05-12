@@ -11,9 +11,9 @@
                                text (make-css-font (make-css-font font #:size 'xx-large) #:size 2f0)))))
 
 #;(for/list : (Listof (Pairof String Bitmap)) ([face (in-list (get-face-list))])
-  (cons face (bitmap-text* "Sphinx[+]" (make-css-font #:family face #:ligature 'normal))))
+  (cons face (bitmap-text* "Sphinx" (make-css-font #:family face))))
 
 (bitmap-vl-append* #:gapsize 16
  (for/list : (Listof Bitmap) ([family (in-list (list 'decorative 'roman 'script 'swiss 'modern 'symbol 'system))])
-   (define font (make-css-font #:family family #:ligature 'normal))
-   (bitmap-text* (format "~a[~a]: norm -> Sphinx" (send font get-family) (send font get-face)) font)))
+   (define font (make-css-font #:family family))
+   (bitmap-text* (format "~a[~a]: Sphinx" (send font get-family) (send font get-face)) font)))

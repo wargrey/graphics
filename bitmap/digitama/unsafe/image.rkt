@@ -42,7 +42,7 @@
           (let-values ([(w h) (and (pango_layout_set_text layout " ") (pango_layout_get_size layout))])
             (define draw-text? (unsafe-fl>= max-width (~metric w)))
             (define smart-height (if draw-text? flheight (unsafe-flmin (~metric h) flheight)))
-            (define-values (bmp cr w h) (make-cairo-image* max-width smart-height bgsource density))
+            (define-values (bmp cr _w _h) (make-cairo-image* max-width smart-height bgsource density))
             (values bmp cr draw-text?))))
     (when draw-text?
       (cairo-set-source cr fgsource)
@@ -55,7 +55,7 @@
   (define (bitmap_create_layout cr max-width max-height indent spacing wrap-mode ellipsize-mode)
     (define-values (smart-height smart-emode)
       (cond [(eq? ellipsize-mode 'PANGO_ELLIPSIZE_NONE) (values -1 ellipsize-mode)]
-            [(or (eq? max-height +inf.0) (eq? max-height -inf.0)) (values -1 'PANGO_ELLIPSIZE_NONE)]
+            [(or (eq? max-height +inf.0) (eq? max-height -inf.0)) (values -1 PANGO_ELLIPSIZE_NONE)]
             [(unsafe-fl< max-height 0.0) (values (unsafe-fl->fx max-height) ellipsize-mode)]
             [else (values (~size max-height) ellipsize-mode)]))
     (define layout (pango_cairo_create_layout cr))
@@ -71,4 +71,4 @@
  (submod "." unsafe)
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Flonum Bitmap-Source Bitmap)]
- [bitmap_paragraph (-> String Flonum Flonum Flonum Flonum Symbol Symbol Font-Description Bitmap-Source Bitmap-Source Flonum Bitmap)])
+ [bitmap_paragraph (-> String Flonum Flonum Flonum Flonum Integer Integer Font-Description Bitmap-Source Bitmap-Source Flonum Bitmap)])

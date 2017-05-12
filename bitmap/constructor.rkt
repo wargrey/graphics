@@ -42,21 +42,20 @@
     (send dc clear)
     solid))
 
-(define bitmap-text : (->* (String) ((Instance Font%) #:combine? (U Boolean Symbol) #:color (Option Color+sRGB)
+(define bitmap-text : (->* (String) ((Instance Font%) #:color (Option Color+sRGB)
                                                       #:background-color (Option Color+sRGB) #:baseline (Option Pen+Color)
                                                       #:capline (Option Pen+Color) #:meanline (Option Pen+Color)
                                                       #:ascent (Option Pen+Color) #:descent (Option Pen+Color)
                                                       #:density Positive-Real) Bitmap)
-  (lambda [content [font (default-css-font)] #:combine? [?combine? 'auto] #:color [fgcolor #false] #:background-color [bgcolor #false]
+  (lambda [content [font (default-css-font)] #:color [fgcolor #false] #:background-color [bgcolor #false]
                    #:ascent [alcolor #false] #:descent [dlcolor #false] #:capline [clcolor #false] #:meanline [mlcolor #false]
                    #:baseline [blcolor #false] #:density [density (default-bitmap-density)]]
-    (define combine? : Boolean (if (boolean? ?combine?) ?combine? (implies (css-font%? font) (send font should-combine?))))
-    (define-values (width height _ zero) (send the-dc get-text-extent content font combine?))
+    (define-values (width height _ zero) (send the-dc get-text-extent content font #true))
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height density)))
     (send dc set-font font)
     (when fgcolor (send dc set-text-foreground (select-color fgcolor)))
     (when bgcolor (send* dc (set-text-background (select-color bgcolor)) (set-text-mode 'solid)))
-    (send dc draw-text content 0 0 combine?)
+    (send dc draw-text content 0 0 #true)
     (when (or alcolor clcolor mlcolor blcolor dlcolor)
       (define-values (ascent capline meanline baseline descent) (get-font-metrics-lines font content))
       (unless (false? alcolor)
@@ -79,16 +78,16 @@
 (define bitmap-paragraph : (->* ((U String (Listof String)))
                                 ((Instance Font%) #:color Color+sRGB #:background Brush+Color
                                                   #:max-width Real #:max-height Real #:indent Real #:spacing Real
-                                                  #:wrap-mode Symbol #:ellipsize-mode Symbol
+                                                  ;#:wrap-mode Symbol #:ellipsize-mode Symbol
                                                   #:density Positive-Real)
                                 Bitmap)
   (lambda [words [font (default-css-font)] #:color [fgcolor #x000000] #:background [bgcolor 'transparent]
                  #:max-width [max-width +inf.0] #:max-height [max-height +inf.0] #:indent [indent 0.0] #:spacing [spacing 0.0]
-                 #:wrap-mode [wrap 'PANGO_WRAP_WORD_CHAR] #:ellipsize-mode [ellipsize 'PANGO_ELLIPSIZE_END]
+                 ;#:wrap-mode [wrap 'PANGO_WRAP_WORD_CHAR] #:ellipsize-mode [ellipsize 'PANGO_ELLIPSIZE_END]
                  #:density [density (default-bitmap-density)]]
     (bitmap_paragraph (if (list? words) (string-join words "\n") words)
                       (real->double-flonum max-width) (real->double-flonum max-height)
-                      (real->double-flonum indent) (real->double-flonum spacing) wrap ellipsize
+                      (real->double-flonum indent) (real->double-flonum spacing) 2 3
                       (font->font-description font)
                       (color->source (select-color fgcolor))
                       (brush->source (select-brush bgcolor))

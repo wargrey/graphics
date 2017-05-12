@@ -1,22 +1,18 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
-(provide Font-Description)
+(provide (all-defined-out) Font-Description)
 
 (require "source.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
-  (provide (rename-out [cpointer? font-description?]))
-
-  (require racket/class)
   
   (require "ffi.rkt")
 
   (define the-cairo (cairo-create-argb-image 1.0 1.0))
   (define &ink (make-PangoRectangle 0 0 0 0))
   (define &logical (make-PangoRectangle 0 0 0 0))
-
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define get_font_metrics
     (lambda [font-desc]
@@ -39,6 +35,27 @@
       
       (values (~metric ascent) (~metric capline) (~metric meanline)
               (~metric baseline) (~metric (unsafe-fx+ ascent height)))))
+
+  (define-values (pango-font-weights font-weight->integer integer->font-weight)
+    (let ([font-weights (list '(thin . 100) '(ultralight . 200) '(light . 300) '(semilight . 350) '(book . 380)
+                              '(normal . 400) '(medium . 500) '(semibold . 600)
+                              '(bold . 700) '(ultrabold . 800) '(heavy . 900) '(ultraheavy . 1000))])
+      (values (map unsafe-car font-weights)
+              (λ [weight] (let ([kv (assq weight font-weights)])
+                            (cond [(and kv) (unsafe-cdr kv)]
+                                  [else (unsafe-cdr (assq 'normal font-weights))])))
+              (λ [weight] (cond [(unsafe-fx< weight 150) 'thin]
+                                [(unsafe-fx< weight 250) 'ultralight]
+                                [(unsafe-fx< weight 325) 'light]
+                                [(unsafe-fx< weight 365) 'semilight]
+                                [(unsafe-fx< weight 390) 'book]
+                                [(unsafe-fx< weight 450) 'normal]
+                                [(unsafe-fx< weight 550) 'medium]
+                                [(unsafe-fx< weight 650) 'bold]
+                                [(unsafe-fx< weight 750) 'ultrabold]
+                                [(unsafe-fx< weight 850) 'heavy]
+                                [else 'ultraheavy])))))
+
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define the-layout
@@ -68,7 +85,7 @@
       
       (values x y width height layout-height)))
 
-  (define (bitmap_create_font_desc font-face font-size font-style font-weight)
+  (define (bitmap_create_font_desc font-face font-size font-style font-weight font-stretch)
     (define font-desc
       (let ([face-is-family? (regexp-match #rx"," font-face)])
         (cond [(not face-is-family?) (pango_font_description_from_string font-face)]
@@ -76,13 +93,17 @@
                       (pango_font_description_set_family desc font-face)
                       desc)])))
     (unless (eq? font-style 'normal) (pango_font_description_set_style font-desc (~style font-style)))
-    (unless (eq? font-weight 'normal) (pango_font_description_set_weight font-desc (~weight font-weight)))
+    (unless (eq? font-weight 'normal) (pango_font_description_set_weight font-desc (font-weight->integer font-weight)))
+    (pango_font_description_set_stretch font-desc font-stretch)
     (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
     font-desc))
 
 (require/typed/provide
  (submod "." unsafe)
- [bitmap_create_font_desc (-> String Real Symbol Symbol Font-Description)]
+ [pango-font-weights (Listof Symbol)]
+ [font-weight->integer (-> Symbol Integer)]
+ [integer->font-weight (-> Integer Symbol)]
+ [bitmap_create_font_desc (-> String Real Symbol Symbol Symbol Font-Description)]
  [get_font_metrics_lines (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]
  [get_font_metrics (-> Font-Description (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                                                 Nonnegative-Flonum Nonnegative-Flonum))])

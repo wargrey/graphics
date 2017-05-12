@@ -67,16 +67,15 @@
     (define hinting : Font-Hinting (send inherited-font get-hinting))
     (define font : Font
       ;;; WARNING
-      ;; Do not pass inherited-font here, since the inheriting is already done as the `#true`s indicate,
-      ;; give properties a chance to use their initial value if they are desired to.
-      ;; Also see (css-ref)
+      ;; Do not pass inherited-font here for properties that racket font% already set, since the inheriting is already done
+      ;; as the `#true`s indicate, giving properties a chance to use their initial value if they are desired to. Also see (css-ref).
       (make-css-font #:size (max (min max-size font-size) min-size)
                      #:family (css-ref declared-values #true 'font-family css->font-family)
                      #:style (css-ref declared-values #true 'font-style symbol? 'normal (send inherited-font get-style))
-                     #:weight (css-ref declared-values #true 'font-weight symbol? 'normal (send inherited-font get-weight))
+                     #:weight (css-ref declared-values #true 'font-weight pango-font-weight? 'normal (send inherited-font get-weight))
                      #:smoothing (css-ref declared-values #true 'font-smoothing racket-font-smoothing? #false smoothing)
                      #:hinting (css-ref declared-values #true 'font-hinting racket-font-hinting? #false hinting)
-                     #:ligature (css-ref declared-values inherited-values 'font-variant-ligatures symbol? 'normal)
+                     #:stretch (css-ref declared-values inherited-values 'font-stretch symbol? 'normal)
                      #:lines (css-ref declared-values inherited-values 'text-decoration-line css->text-decor-lines)))
 
     (let call-with-current-element-font ()

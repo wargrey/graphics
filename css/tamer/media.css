@@ -42,9 +42,9 @@
   }
 }
 
-@supports not (font-variant-ligatures: normal) {
+@supports (font-stretch: expanded) {
   :root {
-     font-variant-ligatures: none;
+     font-stretch: expanded;
   }
 }
 

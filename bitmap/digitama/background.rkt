@@ -30,7 +30,7 @@
 
 (require/typed/provide
  (submod "." cheat)
- [smart-pen (All (a) (-> Pen+Color (->* () ((Instance Pen%) #:color Color+sRGB #:style Pen-Style) a) a))]
+ [smart-pen (All (a) (-> Pen+Color (->* () ((Instance Pen%) #:color Color+sRGB #:width Real #:style Pen-Style) a) a))]
  [smart-brush (All (a) (-> Brush+Color (->* () ((Instance Brush%) #:color Color+sRGB #:style Brush-Style) a) a))])
 
 (define transparent-source : FlVector (flvector 0.0 0.0 0.0 0.0))

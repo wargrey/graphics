@@ -13,13 +13,13 @@
 
 (define-type CSS-Font%
   (Class #:implements Inspectable-Font%
-         (init-field [face String]
-                     [ligature Symbol #:optional]
-                     [lines (Listof Symbol) #:optional])
+         (init-field [face String])
          (init [size Real #:optional]
-               [style Font-Style #:optional]
-               [weight Font-Weight #:optional]
-               [smoothing Font-Smoothing #:optional]
+               [style Font-Style #:optional])
+         (init-field [weight Symbol #:optional]
+                     [stretch Symbol #:optional]
+                     [lines (Listof Symbol) #:optional])
+         (init [smoothing Font-Smoothing #:optional]
                [hinting Font-Hinting #:optional])
          [em (-> Nonnegative-Flonum)]
          [ex (-> Nonnegative-Flonum)]
@@ -28,18 +28,24 @@
          [ic (-> Nonnegative-Flonum)]
          [lh (-> Nonnegative-Flonum)]
          [get-face* (-> String)]
+         [get-weight* (-> Symbol)]
+         [get-stretch (-> Symbol)]
          [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]
-         [get-text-size (->* (String) ((Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))]
-         [draw-text (-> (Instance DC<%>) String Real Real Void)]
-         [should-combine? (-> Boolean)]
          [get-source (-> Font-Description)]))
 
 (define/make-is-a? css-font% : CSS-Font%
   (class inspectable-font%
-    (init-field face [ligature 'normal] [lines null])
-    (init [size 12.0] [style 'normal] [weight 'normal] [smoothing 'default] [hinting 'aligned])
-    
-    (super-make-object size face 'default style weight (pair? lines) smoothing #true hinting)
+    (init-field face)
+    (init [size 12.0] [style 'normal])
+    (init-field [weight 'normal] [stretch 'normal] [lines null])
+    (init [smoothing 'default] [hinting 'aligned])
+
+    (define integer-weight : Integer (font-weight->integer weight))
+    (super-make-object size face 'default style
+                       (cond [(>= integer-weight (font-weight->integer 'bold)) 'bold]
+                             [(>= integer-weight (font-weight->integer 'normal)) 'normal]
+                             [else 'light])
+                       (pair? lines) smoothing #true hinting)
 
     (define-syntax (define-metrics-accessor stx)
       (syntax-case stx []
@@ -58,22 +64,12 @@
                     (cons unit (metrics-ref unit)))]))
 
     (define/public (get-face*) face)
-    (define/public (should-combine?) (not (eq? ligature 'none)))
-
-    (define/public (get-text-size text [dc the-dc])
-      (text-size text this (should-combine?) #:with-dc dc))
-
-    (define/public (draw-text dc text x y)
-      (define saved-font (send dc get-font))
-      (cond [(eq? saved-font this) (send dc draw-text text x y (should-combine?))]
-            [else (send* dc
-                    (set-font this)
-                    (draw-text text x y (should-combine?))
-                    (set-font saved-font))]))
+    (define/public (get-weight*) weight)
+    (define/public (get-stretch) stretch)
 
     (define/public (get-source)
       (or (unbox &desc)
-          (let ([desc (bitmap_create_font_desc face (send this get-size) (send this get-style) (send this get-weight))])
+          (let ([desc (bitmap_create_font_desc face (send this get-size) (send this get-style) weight stretch)])
             (set-box! &desc desc)
             desc)))
 
@@ -84,7 +80,7 @@
               [else (try-next (cdr families))])))
     
     (define/override (inspect)
-      (list face ligature lines (get-metrics) (get-family) (send this get-style) (send this get-weight)))
+      (list face (get-family) (send this get-style) weight stretch lines (get-metrics)))
     
     (define/private (fill-metrics!) : Void
       (when (zero? (hash-count metrics))
@@ -102,14 +98,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-css-font : (->* ()
                              ((Instance Font%) #:size (U Symbol Nonnegative-Real) #:family (U String Symbol (Listof (U String Symbol)))
-                                               #:style (Option Symbol) #:weight (Option Symbol) #:ligature (U Boolean Symbol)
+                                               #:style (Option Symbol) #:weight (U False Symbol Integer) #:stretch (U Boolean Symbol)
                                                #:hinting (Option Font-Hinting) #:lines (Option (Listof Symbol))
                                                #:smoothing (Option Font-Smoothing))
                              Font)
   (let ([fontbase : (HashTable (Listof Any) (Instance CSS-Font%)) (make-hash)])
     (lambda [[basefont (default-css-font)] #:size [size +nan.0] #:family [face null] #:style [style #false] #:weight [weight #false]
                                            #:hinting [hinting #false] #:smoothing [smoothing #false] #:lines [lines #false]
-                                           #:ligature [ligature #false]]
+                                           #:stretch [stretch #false]]
       (define font-size-raw : Nonnegative-Real
         (cond [(symbol? size) (generic-font-size-map size basefont (default-css-font))]
               [(nan? size) (smart-font-size basefont)]
@@ -123,18 +119,21 @@
                         (font-family->font-face (send basefont get-family)))]))
       (define font-size : Flonum (flmin 1024.0 (real->double-flonum font-size-raw)))
       (define font-style : Font-Style (generic-font-style-map (or style 'inherit) basefont))
-      (define font-weight : Font-Weight (generic-font-weight-map (or weight 'inherit) basefont))
+      (define font-weight : Symbol
+        (generic-font-weight-map (or weight 'inherit)
+                                 (thunk (cond [(css-font%? basefont) (send basefont get-weight*)]
+                                              [else (send basefont get-weight)]))))
       (define font-smoothing : Font-Smoothing (or smoothing (send basefont get-smoothing)))
       (define font-lines : (Listof Symbol) (or lines (if (send basefont get-underlined) '(underline) null)))
       (define font-hinting : Font-Hinting (or hinting (send basefont get-hinting)))
-      (define font-ligature : Symbol
-        (cond [(symbol? ligature) ligature]
-              [(css-font%? basefont) (if (send basefont should-combine?) 'normal 'none)]
+      (define font-stretch : Symbol
+        (cond [(symbol? stretch) stretch]
+              [(css-font%? basefont) (send basefont get-stretch)]
               [else 'normal]))
       (hash-ref! fontbase
-                 (list font-face font-ligature font-lines font-size font-style font-weight font-smoothing font-hinting)
-                 (λ [] (make-object css-font% font-face font-ligature font-lines
-                         font-size font-style font-weight font-smoothing font-hinting))))))
+                 (list font-face font-size font-style font-weight font-stretch font-lines font-smoothing font-hinting)
+                 (λ [] (make-object css-font% font-face font-size font-style font-weight
+                         font-stretch font-lines font-smoothing font-hinting))))))
 
 (define racket-font-family->font-face : (-> Symbol String)
   (lambda [family]
@@ -175,7 +174,8 @@
                                              (font-family->font-face (send font get-family)))
                                          (smart-font-size font)
                                          (send font get-style)
-                                         (send font get-weight))])))
+                                         (send font get-weight)
+                                         'normal)])))
 
 (define text-size : (->* (String (Instance Font%)) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [text font [combine? #true] #:with-dc [dc the-dc]]

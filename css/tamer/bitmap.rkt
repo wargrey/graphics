@@ -65,7 +65,7 @@
                                                        [else (cons (cons property (box this-datum)) desc++)]))))))
 
 (define ~module : CSS-Subject (make-css-subject #:type 'module #:classes '(main)))
-(define ~btest : CSS-Subject (make-css-subject #:type 'bitmap-desc #:classes '(test)))
+(define ~btest : CSS-Subject (make-css-subject #:type 'bitmap-paragraph #:classes '(test)))
 
 (define *root : CSS-Values (make-css-values))
 (define $root : Bitmap.CSS
@@ -96,9 +96,7 @@
                                                           (bitmap-text (~s (send font get-face)) #:color (btest-string-color $bt))
                                                           (bitmap-text (~a (smart-font-size font)) #:color (btest-number-color $bt)))
                                         (bitmap-text ")" #:color (btest-paren-color $bt)))
-                            (bitmap-text #:color rcolor
-                                         (cond [(not (send font should-combine?)) (format "- : (Bitmap ~a ~a)" desc-width height)]
-                                               [else (format "- : (Bitmap ~a ~a #:ligature)" desc-width height)]))
+                            (bitmap-text (format "- : (Bitmap ~a ~a)" desc-width height) #:color rcolor)
                             (bitmap-frame desc #:border (btest-borders $bt) #:padding (list 0 (max (- max-width desc-width) 0) 0 0))))
               (cons $bt testcases)))))
 

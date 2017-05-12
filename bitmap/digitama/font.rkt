@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require "digicore.rkt")
+(require "unsafe/font.rkt")
 
 ;;; https://drafts.csswg.org/css-fonts
 ;;; https://drafts.csswg.org/css-fonts-4
@@ -43,17 +44,13 @@
       [(larger)   (* 6/5 (smart-font-size basefont))] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
       [else       css-font-medium])))
 
-(define generic-font-weight-map : (-> (U Symbol Integer) (Instance Font%) Font-Weight)
-  (lambda [weight basefont]
-    (cond [(symbol? weight)
-           (case weight
-             [(normal light bold) weight]
-             [(bolder) (if (eq? (send basefont get-weight) 'light) 'normal 'bold)]
-             [(lighter) (if (eq? (send basefont get-weight) 'bold) 'normal 'light)]
-             [else (send basefont get-weight)])]
-          [(<= weight 300) 'light]
-          [(>= weight 700) 'bold]
-          [else 'normal])))
+(define generic-font-weight-map : (-> (U Symbol Integer) (-> Symbol) Symbol)
+  (lambda [weight inherit]
+    (cond [(integer? weight) (integer->font-weight weight)]
+          [(memq weight pango-font-weights) weight]
+          [(eq? weight 'bolder) (memcadr pango-font-weights (inherit))]
+          [(eq? weight 'lighter) (memcadr (reverse pango-font-weights) (inherit))]
+          [else (inherit)])))
 
 (define generic-font-style-map : (-> Symbol (Instance Font%) Font-Style)
   (lambda [style basefont]
@@ -82,3 +79,10 @@
                           (let ([system-ui (dynamic-require 'racket/gui/base symfont)])
                             (or (and (font%? system-ui) (send system-ui get-face))
                                 deface))))))))
+
+(define memcadr : (-> (Listof Symbol) Symbol Symbol)
+  (lambda [srclist v]
+    (define tail (memv v srclist))
+    (cond [(false? tail) v]
+          [else (let ([tail (cdr tail)])
+                  (if (pair? tail) (car tail) v))])))

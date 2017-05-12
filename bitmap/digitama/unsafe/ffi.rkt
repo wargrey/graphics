@@ -10,12 +10,15 @@
 (require racket/unsafe/ops)
 (require racket/draw/unsafe/pango)
 (require racket/draw/unsafe/cairo)
+(require racket/draw/private/utils)
 
 (require racket/class)
 (require racket/draw)
 (require racket/flonum)
 
 (define PangoLayout (_cpointer 'PangoLayout))
+(define PangoFontDescription (_cpointer 'PangoFontDescription))
+
 (define pango-lib
   (case (system-type)
     [(unix) (ffi-lib "libpango-1.0" '("0" ""))]
@@ -24,8 +27,12 @@
 
 (define-ffi-definer define-pango pango-lib #:provide provide)
 
-(define _pango_wrap_mode (_enum '(PANGO_WRAP_WORD PANGO_WRAP_CHAR PANGO_WRAP_WORD_CHAR)))
-(define _pango_ellipsize_mode (_enum '(PANGO_ELLIPSIZE_NONE PANGO_ELLIPSIZE_START PANGO_ELLIPSIZE_MIDDLE PANGO_ELLIPSIZE_END)))
+(define-enum 0 PANGO_WRAP_WORD PANGO_WRAP_CHAR PANGO_WRAP_WORD_CHAR)
+(define-enum 0 PANGO_ELLIPSIZE_NONE PANGO_ELLIPSIZE_START PANGO_ELLIPSIZE_MIDDLE PANGO_ELLIPSIZE_END)
+
+(define _font-stretch
+  (_enum '(ultra-condensed extra-condensed condensed semi-condensed normal
+                           semi-expanded expanded extra-expanded ultra-expanded)))
 
 (define-pango pango_layout_get_size
   (_fun #:lock-name "cairo-pango-lock"
@@ -33,12 +40,14 @@
         -> _void
         -> (values w h)))
 
+(define-pango pango_font_description_set_stretch (_fun #:lock-name "cairo-pango-lock" PangoFontDescription _font-stretch -> _void))
+
 (define-pango pango_layout_set_indent (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
 (define-pango pango_layout_set_spacing (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
 (define-pango pango_layout_set_width (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
 (define-pango pango_layout_set_height (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
-(define-pango pango_layout_set_wrap (_fun #:lock-name "cairo-pango-lock" PangoLayout _pango_wrap_mode -> _void))
-(define-pango pango_layout_set_ellipsize (_fun #:lock-name "cairo-pango-lock" PangoLayout _pango_ellipsize_mode -> _void))
+(define-pango pango_layout_set_wrap (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
+(define-pango pango_layout_set_ellipsize (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-create-argb-image
@@ -59,6 +68,7 @@
     (define height (unsafe-fxmax (unsafe-fl->fx flheight) 1))
     (define img (make-object bitmap% width height #false #true density))
     (define cr (cairo_create (send img get-handle)))
+    (cairo_set_antialias cr CAIRO_ANTIALIAS_SUBPIXEL)
     (unless (unsafe-fl= density 1.0) (cairo_scale cr density density))
     (values img cr width height)))
 
@@ -126,9 +136,3 @@
     [(italic) PANGO_STYLE_ITALIC]
     [(slant) PANGO_STYLE_OBLIQUE]
     [else PANGO_STYLE_NORMAL]))
-
-(define (~weight weight)
-  (case weight
-    [(light) PANGO_WEIGHT_LIGHT]
-    [(bold) PANGO_WEIGHT_BOLD]
-    [else PANGO_WEIGHT_MEDIUM]))

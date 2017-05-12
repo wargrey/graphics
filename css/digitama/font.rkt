@@ -14,6 +14,8 @@
 (require "../recognizer.rkt")
 (require "../racket.rkt")
 
+(define-predicate pango-font-weight? (U Symbol Integer))
+
 (define &font : (Boxof Font) (box (default-css-font)))
 
 (define css-font-generic-families : (Listof Symbol)
