@@ -4,12 +4,13 @@
 
 (require racket/math)
 (require racket/flonum)
+(require racket/draw)
 
 (require "../digitama/unsafe/pangocairo.rkt")
 (require (submod "../digitama/unsafe/font.rkt" unsafe))
 (require (submod "../digitama/unsafe/image.rkt" unsafe))
 
-(define (cairo-text-circle words radius font-face font-weight font-attrs)
+(define (cairo-text-polygon words radius font-face font-weight font-attrs)
   (define-values (bmp cr width height) (make-cairo-image (* 2.0 radius) (* 2.0 radius) density))
   (define (draw-text-circle cr context words)
     (define layout (pango_layout_new context))
@@ -56,7 +57,11 @@
   (pango_font_description_free desc)
   (cairo_destroy cr)
   (cairo_pattern_destroy brush)
-  bmp)
+  
+  (define temp.png (make-temporary-file))
+  (displayln temp.png)
+  (send bmp save-file temp.png 'png #:unscaled? #true)
+  (read-bitmap temp.png #:backing-scale density))
 
 (define (cairo-paragraph)
   (define-values (width height indent spacing) (values 256.0 128.0 32.0 4.0))
@@ -70,8 +75,7 @@
                                    "This paragraph should be ellipsized or truncated.")
                     width height indent spacing PANGO_WRAP_WORD_CHAR PANGO_ELLIPSIZE_END
                     (bitmap_create_font_desc "Trebuchet MS" 16.0 'normal 'normal 'normal)
-                    '(undercurl) #false
-                    pattern (flvector (random) (random) (random) 0.08) density))
+                    '(undercurl) pattern (flvector (random) (random) (random) 0.08) density))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (benchmark make-image . args)
@@ -84,6 +88,8 @@
 (define pango-font-map (benchmark pango_cairo_font_map_get_default))
 (define context (pango_font_map_create_context pango-font-map))
 (define font-options (benchmark cairo_font_options_create))
+(cairo_font_options_set_antialias font-options CAIRO_ANTIALIAS_DEFAULT)
+(pango_cairo_context_set_font_options context font-options)
 
 (define double-attrs (pango_attr_list_new))
 (pango_attr_list_insert double-attrs (pango_attr_underline_new PANGO_UNDERLINE_DOUBLE))
@@ -91,6 +97,6 @@
 (define delete-attrs (pango_attr_list_new))
 (pango_attr_list_insert delete-attrs (pango_attr_strikethrough_new #true))
 
-(benchmark cairo-text-circle "Using Pango with Cairo to Draw Regular Polygon" 150 "Courier" 'bold double-attrs)
-(benchmark cairo-text-circle "Test Global Cairo Context and Pango Layout" 100 "Helvetica Neue" 'thin delete-attrs)
+(benchmark cairo-text-polygon "Using Pango with Cairo to Draw Regular Polygon" 150 "Courier" 'bold double-attrs)
+(benchmark cairo-text-polygon "Test Global Cairo Context and Pango Layout" 100 "Helvetica Neue" 'thin delete-attrs)
 (benchmark cairo-paragraph)

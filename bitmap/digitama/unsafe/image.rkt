@@ -28,7 +28,7 @@
     (cairo_destroy cr)
     img)
   
-  (define (bitmap_paragraph words max-width max-height indent spacing wrap ellipsize font-desc lines options fgsource bgsource density)
+  (define (bitmap_paragraph words max-width max-height indent spacing wrap ellipsize font-desc lines fgsource bgsource density)
     (define layout (bitmap_create_layout the-cairo max-width max-height indent spacing wrap ellipsize))
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout words)
@@ -61,8 +61,6 @@
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define the-font-options (cairo_font_options_create))
-  
   (define (bitmap_create_layout cr max-width max-height indent spacing wrap-mode ellipsize-mode)
     (define context (the-context))
     (define-values (smart-height smart-emode)
@@ -84,7 +82,11 @@
       (lambda []
         (or (unbox &context)
             (let ([fontmap (pango_cairo_font_map_get_default)])
-              (set-box! &context (pango_font_map_create_context fontmap))
+              (define context (pango_font_map_create_context fontmap))
+              (define options (cairo_font_options_create))
+              (cairo_font_options_set_antialias options CAIRO_ANTIALIAS_DEFAULT)
+              (pango_cairo_context_set_font_options context options)
+              (set-box! &context context)
               (unbox &context)))))))
 
 (require/typed/provide
@@ -92,5 +94,4 @@
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Flonum Bitmap-Source Bitmap)]
  [bitmap_paragraph (-> String Flonum Flonum Flonum Flonum Integer Integer
-                       Font-Description (Listof Symbol) Any
-                       Bitmap-Source Bitmap-Source Flonum Bitmap)])
+                       Font-Description (Listof Symbol) Bitmap-Source Bitmap-Source Flonum Bitmap)])

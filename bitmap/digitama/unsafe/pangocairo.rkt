@@ -72,7 +72,6 @@
     (define height (unsafe-fxmax (unsafe-fl->fx flheight) 1))
     (define img (make-bitmap width height #:backing-scale density))
     (define cr (cairo_create (send img get-handle)))
-    (cairo_set_antialias cr CAIRO_ANTIALIAS_SUBPIXEL)
     (unless (unsafe-fl= density 1.0) (cairo_scale cr density density))
     (values img cr width height)))
 

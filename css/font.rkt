@@ -42,7 +42,6 @@
       [(font-stretch) (<font-stretch>)]
       [(font-weight) (<font-weight>)]
       [(font-size-adjust) (CSS:<+> (<css-keyword> 'none) (<css+real>))]
-      [(font-smoothing) (<css:ident-norm> racket-font-smoothing?)]
       [else #false])))
 
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (Font) Font)
@@ -62,7 +61,6 @@
     (define min-size : Nonnegative-Real (css-ref declared-values #true 'min-font-size css->font-size))
     (define max-size : Nonnegative-Real (css-ref declared-values #true 'max-font-size css->font-size))
     (define font-size : Nonnegative-Real (css-ref declared-values #true 'font-size css->font-size))
-    (define smoothing : Font-Smoothing (send inherited-font get-smoothing))
     (define lines : (Listof Symbol) (css-ref declared-values inherited-values 'text-decoration-line css->text-decor-lines))
     (define line-style : Symbol (css-ref declared-values inherited-values 'text-decoration-style symbol? 'solid))
     (define font : Font
@@ -73,7 +71,6 @@
                      #:family (css-ref declared-values #true 'font-family css->font-family)
                      #:style (css-ref declared-values #true 'font-style symbol? 'normal (send inherited-font get-style))
                      #:weight (css-ref declared-values #true 'font-weight pango-font-weight? 'normal (send inherited-font get-weight))
-                     #:smoothing (css-ref declared-values #true 'font-smoothing racket-font-smoothing? #false smoothing)
                      #:stretch (css-ref declared-values inherited-values 'font-stretch symbol? 'normal)
                      #:lines (cond [(null? lines) lines]
                                    [else (case line-style

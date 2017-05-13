@@ -4,5 +4,3 @@
 (provide (all-from-out bitmap/digitama/digicore))
 
 (require bitmap/digitama/digicore)
-
-(define-predicate racket-font-smoothing? Font-Smoothing)
