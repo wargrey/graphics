@@ -12,7 +12,7 @@
 (module unsafe racket/base
   (provide (all-defined-out) cpointer?)
   
-  (require "ffi.rkt")
+  (require "pangocairo.rkt")
 
   (require racket/unsafe/ops)
 

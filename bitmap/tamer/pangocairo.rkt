@@ -5,7 +5,7 @@
 (require racket/math)
 (require racket/flonum)
 
-(require "../digitama/unsafe/ffi.rkt")
+(require "../digitama/unsafe/pangocairo.rkt")
 (require (submod "../digitama/unsafe/font.rkt" unsafe))
 (require (submod "../digitama/unsafe/image.rkt" unsafe))
 

@@ -12,7 +12,7 @@
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require "ffi.rkt")
+  (require "pangocairo.rkt")
   (require (submod "font.rkt" unsafe))
 
   (require racket/flonum)

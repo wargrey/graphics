@@ -7,7 +7,7 @@
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require "ffi.rkt")
+  (require "pangocairo.rkt")
 
   (define the-cairo (cairo-create-argb-image 1.0 1.0))
   (define &ink (make-PangoRectangle 0 0 0 0))
