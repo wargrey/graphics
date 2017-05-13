@@ -16,8 +16,7 @@
 (require racket/draw)
 (require racket/flonum)
 
-(define PangoLayout (_cpointer 'PangoLayout))
-(define PangoFontDescription (_cpointer 'PangoFontDescription))
+(define-syntax-rule (_pfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 
 (define pango-lib
   (case (system-type)
@@ -27,27 +26,42 @@
 
 (define-ffi-definer define-pango pango-lib #:provide provide)
 
+(define PangoScript (_cpointer 'PangoScript))
+(define PangoLanguage (_cpointer/null 'PangoLanguage))
+(define PangoContext (_cpointer 'PangoContext))
+(define PangoLayout (_cpointer 'PangoLayout))
+(define PangoFontDescription (_cpointer 'PangoFontDescription))
+(define PangoAttribute (_cpointer 'PangoAttribute))
+
 (define-enum 0 PANGO_WRAP_WORD PANGO_WRAP_CHAR PANGO_WRAP_WORD_CHAR)
 (define-enum 0 PANGO_ELLIPSIZE_NONE PANGO_ELLIPSIZE_START PANGO_ELLIPSIZE_MIDDLE PANGO_ELLIPSIZE_END)
 
+(define _gunichar (make-ctype _uint32 char->integer integer->char))
+
 (define _font-stretch
-  (_enum '(ultra-condensed extra-condensed condensed semi-condensed normal
-                           semi-expanded expanded extra-expanded ultra-expanded)))
+  (_enum '(ultra-condensed extra-condensed condensed semi-condensed normal semi-expanded expanded extra-expanded ultra-expanded)))
 
-(define-pango pango_layout_get_size
-  (_fun #:lock-name "cairo-pango-lock"
-        PangoLayout [w : (_ptr o _int)] [h : (_ptr o _int)]
-        -> _void
-        -> (values w h)))
+(define-pango pango_script_for_unichar (_pfun _gunichar -> PangoScript))
+(define-pango pango_script_get_sample_language (_pfun PangoScript -> PangoLanguage))
 
-(define-pango pango_font_description_set_stretch (_fun #:lock-name "cairo-pango-lock" PangoFontDescription _font-stretch -> _void))
+(define-pango pango_language_get_default (_pfun -> PangoLanguage))
+(define-pango pango_language_from_string (_pfun _string -> PangoLanguage))
+(define-pango pango_language_to_string (_pfun PangoLanguage -> _string))
+(define-pango pango_language_get_sample_string (_pfun PangoLanguage -> _string))
 
-(define-pango pango_layout_set_indent (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
-(define-pango pango_layout_set_spacing (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
-(define-pango pango_layout_set_width (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
-(define-pango pango_layout_set_height (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
-(define-pango pango_layout_set_wrap (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
-(define-pango pango_layout_set_ellipsize (_fun #:lock-name "cairo-pango-lock" PangoLayout _int -> _void))
+(define-pango pango_context_set_font_description (_pfun PangoContext PangoFontDescription -> _void))
+(define-pango pango_font_description_set_stretch (_pfun PangoFontDescription _font-stretch -> _void))
+(define-pango pango_attr_strikethrough_new (_pfun _bool -> PangoAttribute))
+(define-pango pango_attr_underline_new (_pfun _int -> PangoAttribute))
+
+(define-pango pango_layout_get_size (_pfun PangoLayout [w : (_ptr o _int)] [h : (_ptr o _int)] -> _void -> (values w h)))
+
+(define-pango pango_layout_set_indent (_pfun PangoLayout _int -> _void))
+(define-pango pango_layout_set_spacing (_pfun PangoLayout _int -> _void))
+(define-pango pango_layout_set_width (_pfun PangoLayout _int -> _void))
+(define-pango pango_layout_set_height (_pfun PangoLayout _int -> _void))
+(define-pango pango_layout_set_wrap (_pfun PangoLayout _int -> _void))
+(define-pango pango_layout_set_ellipsize (_pfun PangoLayout _int -> _void))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-create-argb-image
@@ -66,7 +80,7 @@
   (lambda [flwidth flheight [density 1.0]]
     (define width (unsafe-fxmax (unsafe-fl->fx flwidth) 1))
     (define height (unsafe-fxmax (unsafe-fl->fx flheight) 1))
-    (define img (make-object bitmap% width height #false #true density))
+    (define img (make-bitmap width height #:backing-scale density))
     (define cr (cairo_create (send img get-handle)))
     (cairo_set_antialias cr CAIRO_ANTIALIAS_SUBPIXEL)
     (unless (unsafe-fl= density 1.0) (cairo_scale cr density density))

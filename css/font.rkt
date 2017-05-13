@@ -65,6 +65,8 @@
     (define font-size : Nonnegative-Real (css-ref declared-values #true 'font-size css->font-size))
     (define smoothing : Font-Smoothing (send inherited-font get-smoothing))
     (define hinting : Font-Hinting (send inherited-font get-hinting))
+    (define lines : (Listof Symbol) (css-ref declared-values inherited-values 'text-decoration-line css->text-decor-lines))
+    (define line-style : Symbol (css-ref declared-values inherited-values 'text-decoration-style symbol? 'solid))
     (define font : Font
       ;;; WARNING
       ;; Do not pass inherited-font here for properties that racket font% already set, since the inheriting is already done
@@ -76,7 +78,7 @@
                      #:smoothing (css-ref declared-values #true 'font-smoothing racket-font-smoothing? #false smoothing)
                      #:hinting (css-ref declared-values #true 'font-hinting racket-font-hinting? #false hinting)
                      #:stretch (css-ref declared-values inherited-values 'font-stretch symbol? 'normal)
-                     #:lines (css-ref declared-values inherited-values 'text-decoration-line css->text-decor-lines)))
+                     #:lines (case line-style [(solid) lines] [(double) (cons 'underdouble lines)] [else (cons 'undercurl lines)])))
 
     (let call-with-current-element-font ()
       (css-set! declared-values 'font font)

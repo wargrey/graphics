@@ -9,17 +9,11 @@
 (require (submod "../digitama/unsafe/font.rkt" unsafe))
 (require (submod "../digitama/unsafe/image.rkt" unsafe))
 
-(define density 2.0)
-
-(define (cairo-text-circle radius)
+(define (cairo-text-circle words radius font-face font-weight font-attrs)
   (define-values (bmp cr width height) (make-cairo-image (* 2.0 radius) (* 2.0 radius) density))
-
-  (define (draw-text-circle cr words font-face font-size font-style font-weight font-stretch)
-    ; Create a PangoLayout, set the font and text
-    (define layout (pango_cairo_create_layout cr))
-    (define desc (bitmap_create_font_desc font-face font-size font-style font-weight font-stretch))
-    (pango_layout_set_font_description layout desc)
-    (pango_font_description_free desc)
+  (define (draw-text-circle cr context words)
+    (define layout (pango_layout_new context))
+    (when font-attrs (pango_layout_set_attributes layout font-attrs))
 
     (define n (length words))
     (for ([i (in-range n)])
@@ -31,9 +25,6 @@
       (pango_layout_set_text layout (list-ref words i))
       (cairo_set_source_rgb cr red 0 (- 1.0 red))
       (cairo_rotate cr (degrees->radians angle))
-
-      ; Inform Pango to re-layout the text with the new transformation
-      (pango_cairo_update_layout cr layout)
 
       (define-values (width height) (pango_layout_get_size layout))
       (cairo_move_to cr (/ (~metric width) -2) (- radius))
@@ -53,33 +44,53 @@
   (cairo_set_source cr brush)
   (cairo_fill cr)
 
+  (define desc (bitmap_create_font_desc font-face (* radius 0.16) 'normal font-weight 'normal))
+
   ; Center coordinates on the middle of the region we are drawing
-  (cairo_translate cr radius radius)  
+  (cairo_translate cr radius radius)
+  (pango_context_set_font_description context desc)
+  ; (pango_cairo_update_context cr context) ; TODO: why this is not neccessary?
   
-  (define words (string-split "Using Pango with Cairo to Draw Regular Polygon"))
-  (draw-text-circle cr words "Helvetica Neue" (* radius 0.16) 'normal 'normal 'expanded)
+  (draw-text-circle cr context (string-split words))
+  
+  (pango_font_description_free desc)
   (cairo_destroy cr)
   (cairo_pattern_destroy brush)
   bmp)
 
 (define (cairo-paragraph)
-  (define pattern (cairo_pattern_create_linear 0.0 0.0 256.0 128.0))
+  (define-values (width height indent spacing) (values 256.0 128.0 32.0 4.0))
+  (define pattern (cairo_pattern_create_linear 0.0 0.0 width height))
   (cairo_pattern_set_extend pattern CAIRO_EXTEND_PAD)
   (cairo_pattern_add_color_stop_rgba pattern 0.0 1.0 0.0 0.0 1.0)
   (cairo_pattern_add_color_stop_rgba pattern 0.5 0.0 1.0 0.0 1.0)
   (cairo_pattern_add_color_stop_rgba pattern 1.0 0.0 0.0 1.0 1.0)
-  (bitmap_paragraph (string-append "Pango Layout Test:\n"
+  (bitmap_paragraph (string-append (format "Layout Box(~a, ~a):\n" width height)
                                    "Here is some text that should wrap suitably to demonstrate PangoLayout's features.\n"
                                    "This paragraph should be ellipsized or truncated.")
-                    256.0 128.0 32.0 4.0 PANGO_WRAP_WORD_CHAR PANGO_ELLIPSIZE_END
+                    width height indent spacing PANGO_WRAP_WORD_CHAR PANGO_ELLIPSIZE_END
                     (bitmap_create_font_desc "Trebuchet MS" 16.0 'normal 'normal 'normal)
+                    '(undercurl) #false
                     pattern (flvector (random) (random) (random) 0.08) density))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (benchmark make-image . args)
-  (printf "~a " (object-name make-image))
+  (define smart-fmt (if (terminal-port? (current-output-port)) "\033[38;5;32m~a\033[0m " "~a "))
+  (printf smart-fmt (object-name make-image))
   (collect-garbage)
   (time (apply make-image args)))
 
-(benchmark cairo-text-circle 150)
+(define density 2.0)
+(define pango-font-map (benchmark pango_cairo_font_map_get_default))
+(define context (pango_font_map_create_context pango-font-map))
+(define font-options (benchmark cairo_font_options_create))
+
+(define double-attrs (pango_attr_list_new))
+(pango_attr_list_insert double-attrs (pango_attr_underline_new PANGO_UNDERLINE_DOUBLE))
+
+(define delete-attrs (pango_attr_list_new))
+(pango_attr_list_insert delete-attrs (pango_attr_strikethrough_new #true))
+
+(benchmark cairo-text-circle "Using Pango with Cairo to Draw Regular Polygon" 150 "Courier" 'bold double-attrs)
+(benchmark cairo-text-circle "Test Global Cairo Context and Pango Layout" 100 "Helvetica Neue" 'thin delete-attrs)
 (benchmark cairo-paragraph)
