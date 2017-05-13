@@ -89,6 +89,8 @@
                       (real->double-flonum max-width) (real->double-flonum max-height)
                       (real->double-flonum indent) (real->double-flonum spacing) 2 3
                       (font->font-description font)
+                      (font->decoration-lines font)
+                      #false
                       (color->source (select-color fgcolor))
                       (brush->source (select-brush bgcolor))
                       (real->double-flonum density))))

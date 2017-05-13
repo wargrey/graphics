@@ -26,8 +26,6 @@
 
 (define-ffi-definer define-pango pango-lib #:provide provide)
 
-(define PangoScript (_cpointer 'PangoScript))
-(define PangoLanguage (_cpointer/null 'PangoLanguage))
 (define PangoContext (_cpointer 'PangoContext))
 (define PangoLayout (_cpointer 'PangoLayout))
 (define PangoFontDescription (_cpointer 'PangoFontDescription))
@@ -40,14 +38,6 @@
 
 (define _font-stretch
   (_enum '(ultra-condensed extra-condensed condensed semi-condensed normal semi-expanded expanded extra-expanded ultra-expanded)))
-
-(define-pango pango_script_for_unichar (_pfun _gunichar -> PangoScript))
-(define-pango pango_script_get_sample_language (_pfun PangoScript -> PangoLanguage))
-
-(define-pango pango_language_get_default (_pfun -> PangoLanguage))
-(define-pango pango_language_from_string (_pfun _string -> PangoLanguage))
-(define-pango pango_language_to_string (_pfun PangoLanguage -> _string))
-(define-pango pango_language_get_sample_string (_pfun PangoLanguage -> _string))
 
 (define-pango pango_context_set_font_description (_pfun PangoContext PangoFontDescription -> _void))
 (define-pango pango_font_description_set_stretch (_pfun PangoFontDescription _font-stretch -> _void))

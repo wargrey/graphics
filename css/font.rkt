@@ -43,7 +43,6 @@
       [(font-weight) (<font-weight>)]
       [(font-size-adjust) (CSS:<+> (<css-keyword> 'none) (<css+real>))]
       [(font-smoothing) (<css:ident-norm> racket-font-smoothing?)]
-      [(font-hinting) (<css:ident-norm> racket-font-hinting?)]
       [else #false])))
 
 (define css-extract-font : (->* (CSS-Values (Option CSS-Values)) (Font) Font)
@@ -64,7 +63,6 @@
     (define max-size : Nonnegative-Real (css-ref declared-values #true 'max-font-size css->font-size))
     (define font-size : Nonnegative-Real (css-ref declared-values #true 'font-size css->font-size))
     (define smoothing : Font-Smoothing (send inherited-font get-smoothing))
-    (define hinting : Font-Hinting (send inherited-font get-hinting))
     (define lines : (Listof Symbol) (css-ref declared-values inherited-values 'text-decoration-line css->text-decor-lines))
     (define line-style : Symbol (css-ref declared-values inherited-values 'text-decoration-style symbol? 'solid))
     (define font : Font
@@ -76,9 +74,12 @@
                      #:style (css-ref declared-values #true 'font-style symbol? 'normal (send inherited-font get-style))
                      #:weight (css-ref declared-values #true 'font-weight pango-font-weight? 'normal (send inherited-font get-weight))
                      #:smoothing (css-ref declared-values #true 'font-smoothing racket-font-smoothing? #false smoothing)
-                     #:hinting (css-ref declared-values #true 'font-hinting racket-font-hinting? #false hinting)
                      #:stretch (css-ref declared-values inherited-values 'font-stretch symbol? 'normal)
-                     #:lines (case line-style [(solid) lines] [(double) (cons 'underdouble lines)] [else (cons 'undercurl lines)])))
+                     #:lines (cond [(null? lines) lines]
+                                   [else (case line-style
+                                           [(solid) lines]
+                                           [(double) (cons 'underdouble lines)]
+                                           [else (cons 'undercurl lines)])])))
 
     (let call-with-current-element-font ()
       (css-set! declared-values 'font font)

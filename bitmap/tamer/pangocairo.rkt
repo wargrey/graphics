@@ -49,7 +49,7 @@
   ; Center coordinates on the middle of the region we are drawing
   (cairo_translate cr radius radius)
   (pango_context_set_font_description context desc)
-  ; (pango_cairo_update_context cr context) ; TODO: why this is not neccessary?
+  ; (pango_cairo_update_context cr context) ; this is not neccessary?
   
   (draw-text-circle cr context (string-split words))
   

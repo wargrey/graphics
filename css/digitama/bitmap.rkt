@@ -6,4 +6,3 @@
 (require bitmap/digitama/digicore)
 
 (define-predicate racket-font-smoothing? Font-Smoothing)
-(define-predicate racket-font-hinting? Font-Hinting)

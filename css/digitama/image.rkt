@@ -37,28 +37,13 @@
   images/icons/file images/icons/misc images/icons/stickman
   images/icons/symbol images/icons/tool)
 
-(define-@λ-pool the-@draw-pool #:λnames [make-font make-pen make-brush] racket/draw)
-
 (define css-image-rendering-option : (Listof Symbol) '(auto crisp-edges pixelated))
 (define css-image-fit-option : (Listof Symbol) '(fill contain cover none scale-down))
-
-(define css-@draw-filter : CSS-@λ-Filter
-  (lambda [λname ?λ:kw]
-    (case (or ?λ:kw λname)
-      [(#:size) (CSS:<+> (<css:integer> 0 < 1024) (<css:flonum> 0.0 fl< 1024.0))]
-      [(#:face) (CSS:<+> (<css:string>) (<css-#false>))]
-      [(#:family) (<css:ident> (make-predicate Font-Family))]
-      [(#:style) (<css:ident> (make-predicate Font-Style))]
-      [(#:weight) (<css:ident> (make-predicate Font-Weight))]
-      [(#:underlined? #:size-in-pixels?) (<css-#boolean>)]
-      [(#:smoothing) (<css:ident> racket-font-smoothing?)]
-      [(#:hinting) (<css:ident> racket-font-hinting?)])))
   
 (define css-@icon-filter : CSS-@λ-Filter
   (lambda [λname ?λ:kw]
     (define-css-disjoint-filter <text-icon-font> #:-> (U (Instance Font%) CSS-@λ)
-      (<css-system-font>)
-      (<css:@λ> the-@draw-pool css-@draw-filter '(make-font)))
+      (<css-system-font>))
     (define <:clock-pointers:> : (CSS-Parser (Listof Any))
       (CSS<$> (CSS<&> (CSS:<^> (<css:integer> 0 <= 11))
                       (CSS<$> (CSS:<^> (CSS:<+> (<css:integer> 0 <= 60)

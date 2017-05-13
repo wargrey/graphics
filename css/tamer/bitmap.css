@@ -28,7 +28,7 @@ module.main {
     prelude: @text-icon("Prelude> " @make-font(#:face "Lucida Grande") #:color #3C803C #:height 100% #:trim\? false);
 
     font: normal 85% Apple Color Emoji, "Segoe UI", Segoe UI Emoji, Segoe UI Symbol, var(--default-font);
-    text-decoration: underline;
+    text-decoration: underline wavy;
     image-resolution: 2dppx snap;
 
     border-top: 255px var(--gray) dotted;      /* border properties are not inheritable */

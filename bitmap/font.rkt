@@ -19,8 +19,7 @@
          (init-field [weight Symbol #:optional]
                      [stretch Symbol #:optional]
                      [lines (Listof Symbol) #:optional])
-         (init [smoothing Font-Smoothing #:optional]
-               [hinting Font-Hinting #:optional])
+         (init [smoothing Font-Smoothing #:optional])
          [em (-> Nonnegative-Flonum)]
          [ex (-> Nonnegative-Flonum)]
          [cap (-> Nonnegative-Flonum)]
@@ -31,6 +30,7 @@
          [get-weight* (-> Symbol)]
          [get-stretch (-> Symbol)]
          [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]
+         [get-decoration-lines (-> (Listof Symbol))]
          [get-source (-> Font-Description)]))
 
 (define/make-is-a? css-font% : CSS-Font%
@@ -38,14 +38,14 @@
     (init-field face)
     (init [size 12.0] [style 'normal])
     (init-field [weight 'normal] [stretch 'normal] [lines null])
-    (init [smoothing 'default] [hinting 'aligned])
+    (init [smoothing 'default])
 
     (define integer-weight : Integer (font-weight->integer weight))
     (super-make-object size face 'default style
                        (cond [(>= integer-weight (font-weight->integer 'bold)) 'bold]
                              [(>= integer-weight (font-weight->integer 'normal)) 'normal]
                              [else 'light])
-                       (pair? lines) smoothing #true hinting)
+                       (pair? lines) smoothing #true 'unaligned)
 
     (define-syntax (define-metrics-accessor stx)
       (syntax-case stx []
@@ -66,6 +66,7 @@
     (define/public (get-face*) face)
     (define/public (get-weight*) weight)
     (define/public (get-stretch) stretch)
+    (define/public (get-decoration-lines) lines)
 
     (define/public (get-source)
       (or (unbox &desc)
@@ -125,15 +126,13 @@
                                               [else (send basefont get-weight)]))))
       (define font-smoothing : Font-Smoothing (or smoothing (send basefont get-smoothing)))
       (define font-lines : (Listof Symbol) (or lines (if (send basefont get-underlined) '(underline) null)))
-      (define font-hinting : Font-Hinting (or hinting (send basefont get-hinting)))
       (define font-stretch : Symbol
         (cond [(symbol? stretch) stretch]
               [(css-font%? basefont) (send basefont get-stretch)]
               [else 'normal]))
       (hash-ref! fontbase
-                 (list font-face font-size font-style font-weight font-stretch font-lines font-smoothing font-hinting)
-                 (λ [] (make-object css-font% font-face font-size font-style font-weight
-                         font-stretch font-lines font-smoothing font-hinting))))))
+                 (list font-face font-size font-style font-weight font-stretch font-lines font-smoothing)
+                 (λ [] (make-object css-font% font-face font-size font-style font-weight font-stretch font-lines font-smoothing))))))
 
 (define racket-font-family->font-face : (-> Symbol String)
   (lambda [family]
@@ -176,6 +175,11 @@
                                          (send font get-style)
                                          (send font get-weight)
                                          'normal)])))
+
+(define font->decoration-lines : (-> (Instance Font%) (Listof Symbol))
+  (lambda [font]
+    (cond [(css-font%? font) (send font get-decoration-lines)]
+          [else (if (send font get-underlined) '(underline) null)])))
 
 (define text-size : (->* (String (Instance Font%)) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [text font [combine? #true] #:with-dc [dc the-dc]]
