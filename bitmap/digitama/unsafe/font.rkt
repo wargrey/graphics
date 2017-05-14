@@ -6,6 +6,8 @@
 
 (module unsafe racket/base
   (provide (all-defined-out))
+
+  (require ffi/unsafe/atomic)
   
   (require "pangocairo.rkt")
 
@@ -16,11 +18,13 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define get_font_metrics
     (lambda [font-desc]
+      (start-atomic)
       (define-values (baseline get-extent) (font-desc->get-extent font-desc))
       (define-values (xx xy xw xh xH) (get-extent "x"))
       (define-values (Ox Oy Ow Oh OH) (get-extent "O"))
       (define-values (0x 0y ch 0h 0H) (get-extent "0"))
       (define-values (wx wy ic wh wH) (get-extent "水"))
+      (end-atomic)
       
       (define ex  (unsafe-fx- baseline xy))
       (define cap (unsafe-fx- baseline Oy))
@@ -28,10 +32,12 @@
 
   (define get_font_metrics_lines
     (lambda [font-desc content]
+      (start-atomic)
       (define-values (baseline get-extent) (font-desc->get-extent font-desc))
       (define-values (xx meanline xw eh     eH) (get-extent "x"))
       (define-values (Ox capline  Ow Oh     OH) (get-extent "O"))
       (define-values (cx ascent   cw height cH) (get-extent content))
+      (end-atomic)
       
       (values (~metric ascent) (~metric capline) (~metric meanline)
               (~metric baseline) (~metric (unsafe-fx+ ascent height)))))
@@ -62,7 +68,7 @@
     (let ([&layout (box #false)])
       (lambda []
         (or (unbox &layout)
-            (let ([layout (time (pango_cairo_create_layout the-cairo))])
+            (let ([layout (pango_cairo_create_layout the-cairo)])
               (set-box! &layout layout)
               layout)))))
   

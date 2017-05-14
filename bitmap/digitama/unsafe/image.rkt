@@ -92,12 +92,12 @@
      #xFF))
   
   (define (bitmap_create_layout cr max-width max-height indent spacing wrap-mode ellipsize-mode)
-    (define context (the-context))
     (define-values (smart-height smart-emode)
       (cond [(eq? ellipsize-mode 'PANGO_ELLIPSIZE_NONE) (values -1 ellipsize-mode)]
             [(or (eq? max-height +inf.0) (eq? max-height -inf.0)) (values -1 PANGO_ELLIPSIZE_NONE)]
             [(unsafe-fl< max-height 0.0) (values (unsafe-fl->fx max-height) ellipsize-mode)]
             [else (values (~size max-height) ellipsize-mode)]))
+    (define context (the-context))
     (define layout (pango_layout_new context))
     (pango_layout_set_width layout (if (eq? max-width +inf.0) -1 (~size (unsafe-flmax max-width 0.0))))
     (pango_layout_set_height layout smart-height)
