@@ -144,7 +144,7 @@
 
     (define table-ref : (-> Integer Integer Bitmap-Cell)
       (let ([table : Bitmap-Tables (list->table bitmaps nrows ncols)])
-        ;;; TODO: why (unsafe-vector-ref) makes it 3-4x slower?
+        ;;; TODO: why (unsafe-vector-ref) makes it slower?
         (λ [c r] (vector-ref table (fx+ (fx* r ncols) c)))))
     (define pbcols : (Vectorof Pseudo-Bitmap*)
       (for/vector : (Vectorof Pseudo-Bitmap*) ([c (in-range ncols)])

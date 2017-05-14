@@ -2,9 +2,6 @@
 
 (provide (all-defined-out) bitmap-surface?)
 
-(require typed/racket/unsafe)
-(require typed/racket/draw)
-
 (require "../types.rkt")
 (require "font.rkt")
 (require "source.rkt")
