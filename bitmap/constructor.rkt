@@ -22,6 +22,13 @@
     (draw-with dc (real->double-flonum w) (real->double-flonum (or h w)))
     bmp))
 
+(define bitmap-rectangular : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Real] Bitmap)
+  (lambda [width height λargb #:density [density (default-bitmap-density)]]
+    (λbitmap (real->double-flonum width)
+             (real->double-flonum height)
+             (real->double-flonum density)
+             λargb)))
+
 (define bitmap-blank : (->* () (Real (Option Real) Positive-Real) Bitmap)
   (lambda [[width 0.0] [height #false] [density (default-bitmap-density)]]
     (bitmap_blank (real->double-flonum width)
@@ -36,11 +43,10 @@
 
 (define bitmap-solid : (->* () (Color+sRGB Real Positive-Real) Bitmap)
   (lambda [[color 'transparent] [size 1] [density (default-bitmap-density)]]
-    (define solid : Bitmap (bitmap-blank size size density))
-    (define dc : (Instance Bitmap-DC%) (send solid make-dc))
-    (send dc set-background (select-color color))
-    (send dc clear)
-    solid))
+    (define side-length : Flonum (real->double-flonum size))
+    (bitmap_pattern side-length side-length
+                    (color->source (select-color color))
+                    (real->double-flonum density))))
 
 (define bitmap-text : (->* (String) ((Instance Font%) #:color (Option Color+sRGB)
                                                       #:background-color (Option Color+sRGB) #:baseline (Option Pen+Color)

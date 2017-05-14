@@ -1,17 +1,21 @@
 #lang typed/racket/base
 
-(require images/flomap)
-(require "../base.rkt")
+(require "../digitama/digicore.rkt")
+(require "../constructor.rkt")
 
-(define xy->a : (-> Integer Integer Real) (λ [x y] (/ (+ x y) 200)))
-(define xy->r : (-> Integer Integer Real) (λ [x y] (/ (+ (- 100 x) y) 200)))
-(define xy->g : (-> Integer Integer Real) (λ [x y] (/ (+ (- 100 x) (- 100 y)) 200)))
-(define xy->b : (-> Integer Integer Real) (λ [x y] (/ (+ x (- 100 y)) 200)))
+(define (build-flomap* [x : Nonnegative-Fixnum] [y : Nonnegative-Fixnum] [w : Nonnegative-Fixnum] [h : Nonnegative-Fixnum])
+  (define w+h (fx+ w h))
+  (values (/ (fx+ x y) w+h)
+          (/ (fx+ (fx- w x) y) w+h)
+          (/ (fx+ (fx- w x) (fx- h y)) w+h)
+          (/ (fx+ x (fx- h y)) w+h)))
 
-(define xy->vs (λ [[x : Integer] [y : Integer]] (vector (xy->a x y) (xy->r x y) (xy->g x y) (xy->b x y))))
-(define xy->argb (λ [[x : Integer] [y : Integer]] (values (xy->a x y) (xy->r x y) (xy->g x y) (xy->b x y))))
+(time (bitmap-rectangular 100 100 build-flomap* #:density 1.00))
+(time (bitmap-rectangular 100 100 build-flomap* #:density 1.75))
+(time (bitmap-rectangular 100 100 build-flomap* #:density 2.00))
 
-(flomap->bitmap (build-flomap* 4 100 100 xy->vs))
-(build-bitmap 100 100 xy->argb #:alpha-multiplied? #true)
-(build-bitmap 100 100 xy->argb #:alpha-multiplied? #false)
- 
+(define (build-flomap [x : Nonnegative-Fixnum] [y : Nonnegative-Fixnum] [w : Nonnegative-Fixnum] [h : Nonnegative-Fixnum])
+  (define c (* 1/2 (+ 1 (sin (magnitude (make-rectangular (- x (/ w 2.0)) (- y (/ h 2.0))))))))
+  (values 1.0 c c c))
+
+(time (bitmap-rectangular 100 100 build-flomap))
