@@ -13,8 +13,6 @@
   (require (submod "font.rkt" unsafe))
 
   (require racket/unsafe/ops)
-
-  (define-values (A R G B) (if (system-big-endian?) (values 0 1 2 3) (values 3 2 1 0)))
   
   (define (λbitmap width height density λargb)
     (define-values (img cr w h) (make-cairo-image width height density))

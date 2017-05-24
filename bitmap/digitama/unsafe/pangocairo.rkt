@@ -54,6 +54,8 @@
 (define-pango pango_layout_set_ellipsize (_pfun PangoLayout _int -> _void))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-values (A R G B) (if (system-big-endian?) (values 0 1 2 3) (values 3 2 1 0)))
+
 (define cairo-create-argb-image
   (lambda [flwidth flheight [density 1.0]]
     (define surface

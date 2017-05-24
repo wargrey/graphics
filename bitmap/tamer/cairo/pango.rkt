@@ -6,9 +6,9 @@
 (require racket/flonum)
 (require racket/draw)
 
-(require "../digitama/unsafe/pangocairo.rkt")
-(require (submod "../digitama/unsafe/font.rkt" unsafe))
-(require (submod "../digitama/unsafe/image.rkt" unsafe))
+(require "../../digitama/unsafe/pangocairo.rkt")
+(require (submod "../../digitama/unsafe/font.rkt" unsafe))
+(require (submod "../../digitama/unsafe/image.rkt" unsafe))
 
 (define (cairo-text-polygon words radius font-face font-weight font-attrs)
   (define-values (bmp cr width height) (make-cairo-image (* 2.0 radius) (* 2.0 radius) density))
