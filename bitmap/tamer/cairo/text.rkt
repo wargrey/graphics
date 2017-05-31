@@ -3,17 +3,9 @@
 (require "../../digitama/unsafe/pangocairo.rkt")
 
 (require ffi/unsafe/define)
-(require ffi/unsafe/atomic)
 
 (require racket/draw/unsafe/cairo-lib)
 (require racket/draw/private/utils)
-
-;;; https://www.cairographics.org/samples/text/
-;;; https://www.cairographics.org/samples/text_align_center/
-;;; https://www.cairographics.org/samples/text_extents/
-
-(define density 2.0)
-(define-values (_b tcr _w _h) (make-cairo-image 1.0 1.0 density))
 
 (define-ffi-definer define-cairo cairo-lib #:provide provide-protected)
 (define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
@@ -36,6 +28,13 @@
 (define-cairo cairo_text_path (_cfun _cairo_t _string -> _void))
 
 (define-cairo cairo_text_extents (_cfun _cairo_t _string _cairo_text_extents_t-pointer -> _void))
+
+;;; https://www.cairographics.org/samples/text/
+;;; https://www.cairographics.org/samples/text_align_center/
+;;; https://www.cairographics.org/samples/text_extents/
+
+(define density 2.0)
+(define-values (_b tcr _w _h) (make-cairo-image 1.0 1.0 density))
 
 (define (cairo-text-size! face size style weight utf8 &extents)
   (cairo_select_font_face tcr face style weight)
