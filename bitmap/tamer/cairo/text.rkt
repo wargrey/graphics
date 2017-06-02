@@ -129,3 +129,4 @@
 (cairo-text "Courier" 64.0 CAIRO_FONT_SLANT_NORMAL CAIRO_FONT_WEIGHT_BOLD "Hello" 0.0 0.0 "Cairo" 42.0 20.0)
 (cairo-text-align 256.0 128.0 "monospace" 52.0 CAIRO_FONT_SLANT_NORMAL CAIRO_FONT_WEIGHT_NORMAL "Center")
 (cairo-text-extents "Sans" 80.0 CAIRO_FONT_SLANT_NORMAL CAIRO_FONT_WEIGHT_NORMAL "Sphinx" 0.0 0.0)
+(cairo-text "Arial Unicode MS" 64.0 CAIRO_FONT_SLANT_NORMAL CAIRO_FONT_WEIGHT_NORMAL "こにちわ" 0.0 0.0 "世界" 42.0 20.0)
