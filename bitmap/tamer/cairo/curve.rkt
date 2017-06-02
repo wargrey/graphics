@@ -23,25 +23,7 @@
   bmp)
 
 (define (cairo-quadratic-curve p1 p2 p3)
-  (define-values (x1 y1) (values (real-part p1) (imag-part p1)))
-  (define-values (x2 y2) (values (real-part p2) (imag-part p2)))
-  (define-values (x3 y3) (values (real-part p3) (imag-part p3)))
-  (define width (+ (max x1 x2 x3) (max curve-width line-width)))
-  (define height (+ (max y1 y2 y3) (max curve-width line-width)))
-  (define-values (bmp cr _w _h) (make-cairo-image width height density))
-
-  (cairo_curve_to cr x1 y1 x2 y2 x3 y3)
-  (cairo_set_line_width cr curve-width)
-  (cairo_stroke cr)
-  
-  (cairo_move_to cr x1 y1)
-  (cairo_line_to cr x2 y2)
-  (cairo_line_to cr x3 y3)
-  (cairo_set_source_rgba cr 1.0 0.2 0.2 0.6)
-  (cairo_set_line_width cr line-width)
-  (cairo_stroke cr)
-  
-  bmp)
+  (cairo-cubic-curve p1 (/ (+ p1 p2 p2) 3) (/ (+ p3 p2 p2) 3) p3))
 
 (define (cairo-cubic-curve p1 p2 p3 p4)
   (define-values (x1 y1) (values (real-part p1) (imag-part p1)))
@@ -50,11 +32,10 @@
   (define-values (x4 y4) (values (real-part p4) (imag-part p4)))
   (define-values (x0 xm) (values (min x1 x2 x3 x4) (max x1 x2 x3 x4)))
   (define-values (y0 ym) (values (min y1 y2 y3 y4) (max y1 y2 y3 y4)))
-  (define width (+ (- xm x0) (max curve-width line-width)))
-  (define height (+ (- ym y0) (max curve-width line-width)))
+  (define width (+ xm (max curve-width line-width)))
+  (define height (+ ym (max curve-width line-width)))
   (define-values (bmp cr _w _h) (make-cairo-image width height density))
 
-  (cairo_translate cr (- x0) (- y0))
   (cairo_move_to cr x1 y1)
   (cairo_curve_to cr x2 y2 x3 y3 x4 y4)
   (cairo_set_line_width cr curve-width)
