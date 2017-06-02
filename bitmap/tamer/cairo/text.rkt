@@ -2,13 +2,7 @@
 
 (require "../../digitama/unsafe/pangocairo.rkt")
 
-(require ffi/unsafe/define)
-
-(require racket/draw/unsafe/cairo-lib)
 (require racket/draw/private/utils)
-
-(define-ffi-definer define-cairo cairo-lib #:provide provide-protected)
-(define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 
 (define-enum 0 CAIRO_FONT_SLANT_NORMAL CAIRO_FONT_SLANT_ITALIC CAIRO_FONT_SLANT_OBLIQUE)
 (define-enum 0 CAIRO_FONT_WEIGHT_NORMAL CAIRO_FONT_WEIGHT_BOLD)

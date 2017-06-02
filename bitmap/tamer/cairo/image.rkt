@@ -2,14 +2,7 @@
 
 (require "../../digitama/unsafe/pangocairo.rkt")
 
-(require ffi/unsafe/define)
-
 (require racket/draw)
-(require racket/draw/unsafe/cairo-lib)
-(require racket/draw/private/utils)
-
-(define-ffi-definer define-cairo cairo-lib #:provide provide-protected)
-(define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 
 (define-cstruct _cairo_matrix_t
   ([xx _double*]

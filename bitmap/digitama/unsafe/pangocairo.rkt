@@ -10,12 +10,14 @@
 (require racket/unsafe/ops)
 (require racket/draw/unsafe/pango)
 (require racket/draw/unsafe/cairo)
+(require racket/draw/unsafe/cairo-lib)
 (require racket/draw/private/utils)
 
 (require racket/class)
 (require racket/draw)
 (require racket/flonum)
 
+(define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 (define-syntax-rule (_pfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 
 (define pango-lib
@@ -24,6 +26,7 @@
     [(macosx) (ffi-lib "libpango-1.0.0.dylib")]
     [(windows) (ffi-lib "libpango-1.0-0.dll")]))
 
+(define-ffi-definer define-cairo cairo-lib #:provide provide)
 (define-ffi-definer define-pango pango-lib #:provide provide)
 
 (define PangoContext (_cpointer 'PangoContext))
@@ -52,6 +55,8 @@
 (define-pango pango_layout_set_height (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_wrap (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_ellipsize (_pfun PangoLayout _int -> _void))
+
+(define-cairo cairo_new_sub_path (_cfun _cairo_t -> _void))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (A R G B) (if (system-big-endian?) (values 0 1 2 3) (values 3 2 1 0)))
