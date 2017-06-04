@@ -10,12 +10,11 @@
 (require "digitama/digicore.rkt")
 (require "digitama/color.rkt")
 (require "digitama/cheat.rkt")
-(require "digitama/inspectable.rkt")
 
 (define-type Color (Instance RGBA-Color%))
 
 (define-type RGBA-Color%
-  (Class #:implements Inspectable-Color%
+  (Class #:implements Color%
          (init [red Byte #:optional]
                [green Byte #:optional]
                [blue Byte #:optional]
@@ -24,7 +23,7 @@
          [get-source (-> FlVector)]))
 
 (define/make-is-a? rgba% : RGBA-Color%
-  (class inspectable-color%
+  (class color%
     (init [red (fxmin (random 255) 255)]
           [green (fxmin (random 255) 255)]
           [blue (fxmin (random 255) 255)]
@@ -38,14 +37,7 @@
                 (byte->gamut blue)
                 (real->gamut alpha)))
     
-    (define/public (get-source) flcolor)
-    
-    (define/override-immutable 'rgba% "color is immutable"
-      ([set red green blue [alpha 1.0]]
-       [copy-from src]))
-
-    (define/override (inspect)
-      (list (send this red) (send this green) (send this blue) (send this alpha)))))
+    (define/public (get-source) flcolor)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define select-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)

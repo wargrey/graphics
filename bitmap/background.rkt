@@ -4,7 +4,6 @@
 
 (require "digitama/digicore.rkt")
 (require "digitama/cheat.rkt")
-(require "digitama/inspectable.rkt")
 (require "digitama/background.rkt")
 (require "color.rkt")
 
@@ -21,7 +20,7 @@
 (define-type CSS-Radial-Gradient (Vector Real Real Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 
 (define-type CSS-Pen%
-  (Class #:implements Inspectable-Pen%
+  (Class #:implements Pen%
          (init-field [color Color])
          (init [width Real #:optional]
                [style Pen-Style #:optional]
@@ -30,7 +29,7 @@
                [stipple (Option (Instance Bitmap%)) #:optional])))
 
 (define-type CSS-Brush%
-  (Class #:implements Inspectable-Brush%
+  (Class #:implements Brush%
          (init-field [color Color])
          (init [style Brush-Style #:optional]
                [stipple (Option (Instance Bitmap%)) #:optional]
@@ -39,35 +38,14 @@
          [get-source (-> Bitmap-Source)]))
 
 (define/make-is-a? css-pen% : CSS-Pen%
-  (class inspectable-pen%
+  (class pen%
     (init-field color)
     (init [width 1.0] [style 'solid] [cap 'round] [join 'round] [stipple #false])
 
-    (super-make-object color width style cap join stipple)
-    
-    (define/override-immutable 'css-pen% "pen is immutable"
-      ([set-width width]
-       [set-style style]
-       [set-cap cap]
-       [set-join join]
-       [set-stipple bmp]))
-    
-    (define/override set-color
-      (case-lambda
-       [(color/name) (error 'css-pen% "pen is immutable")]
-       [(r g b) (error 'css-pen% "pen is immutable")]))
-
-    (define/override (get-color)
-      ;;; Awkward, it copys the color instance everytime to make it immutable and opaque again
-      ;;; since there is no way to tell it "It's already immutable".
-      color)
-    
-    (define/override (inspect)
-      (list color (send this get-width) (send this get-style)
-            (send this get-cap) (send this get-join)))))
+    (super-make-object color width style cap join stipple)))
 
 (define/make-is-a? css-brush% : CSS-Brush%
-  (class inspectable-brush%
+  (class brush%
     (init-field color)
     (init [style 'solid] [stipple #false] [gradient #false] [transformation #false])
     
@@ -75,29 +53,7 @@
 
     (define source : Bitmap-Source (generic-brush->pattern this))
 
-    (define/public (get-source) source)
-    
-    (define/override set-color
-      (case-lambda
-       [(color/name) (error 'css-brush% "brush is immutable")]
-       [(r g b) (error 'css-brush% "brush is immutable")]))
-
-    (define/override-immutable 'css-brush% "brush is immutable"
-      ([set-style style]
-       [set-stipple bmp [transformation #false]]))
-
-    (define/override (get-color)
-      ;;; Awkward, it copys the color instance everytime to make it immutable and opaque again
-      ;;; since there is no way to tell it "It's already immutable".
-      color)
-    
-    (define/override (inspect)
-      (define ?gradient (send this get-gradient))
-      (list color (send this get-style) (send this get-transformation)
-            (or (and (linear-gradient%? ?gradient)
-                     (call-with-values (thunk (inspect-linear-gradient ?gradient)) list))
-                (and (radial-gradient%? ?gradient)
-                     (call-with-values (thunk (inspect-radial-gradient ?gradient)) list)))))))
+    (define/public (get-source) source)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-css-pen : (Parameterof (Instance Pen%))

@@ -5,20 +5,20 @@
 (require "digitama/digicore.rkt")
 (require "digitama/cheat.rkt")
 (require "digitama/font.rkt")
-(require "digitama/inspectable.rkt")
 
 (require "digitama/unsafe/font.rkt")
 
 (define-type Font (Instance CSS-Font%))
 
 (define-type CSS-Font%
-  (Class #:implements Inspectable-Font%
+  (Class #:implements Font%
          (init-field [face String])
          (init [size Real #:optional]
                [style Font-Style #:optional])
          (init-field [weight Symbol #:optional]
                      [stretch Symbol #:optional]
                      [lines (Listof Symbol) #:optional])
+         (init-rest Null)
          [em (-> Nonnegative-Flonum)]
          [ex (-> Nonnegative-Flonum)]
          [cap (-> Nonnegative-Flonum)]
@@ -33,7 +33,7 @@
          [get-source (-> Font-Description)]))
 
 (define/make-is-a? css-font% : CSS-Font%
-  (class inspectable-font%
+  (class font%
     (init-field face)
     (init [size 12.0] [style 'normal])
     (init-field [weight 'normal] [stretch 'normal] [lines null])
@@ -77,9 +77,6 @@
         (cond [(null? families) (super get-family)]
               [(string=? face (font-family->font-face (car families))) (car families)]
               [else (try-next (cdr families))])))
-    
-    (define/override (inspect)
-      (list face (get-family) (send this get-style) weight stretch lines (get-metrics)))
     
     (define/private (fill-metrics!) : Void
       (when (zero? (hash-count metrics))
