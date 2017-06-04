@@ -6,6 +6,7 @@
 
 (require ffi/unsafe)
 (require ffi/unsafe/define)
+(require ffi/unsafe/alloc)
 
 (require racket/unsafe/ops)
 (require racket/draw/unsafe/pango)
@@ -57,6 +58,14 @@
 (define-pango pango_layout_set_ellipsize (_pfun PangoLayout _int -> _void))
 
 (define-cairo cairo_new_sub_path (_cfun _cairo_t -> _void))
+(define-cairo cairo_pattern_create_mesh (_cfun -> _cairo_pattern_t) #:wrap (allocator cairo_pattern_destroy))
+(define-cairo cairo_mesh_pattern_begin_patch (_cfun _cairo_pattern_t -> _void))
+(define-cairo cairo_mesh_pattern_move_to (_cfun _cairo_pattern_t _double* _double* -> _void))
+(define-cairo cairo_mesh_pattern_line_to (_cfun _cairo_pattern_t _double* _double* -> _void))
+(define-cairo cairo_mesh_pattern_curve_to (_cfun _cairo_pattern_t _double* _double* _double* _double* _double* _double* -> _void))
+(define-cairo cairo_mesh_pattern_set_control_point (_cfun _cairo_pattern_t _uint _double* _double* -> _void))
+(define-cairo cairo_mesh_pattern_set_corner_color_rgba (_cfun _cairo_pattern_t _uint _double* _double* _double* _double* -> _void))
+(define-cairo cairo_mesh_pattern_end_patch (_cfun _cairo_pattern_t -> _void))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (A R G B) (if (system-big-endian?) (values 0 1 2 3) (values 3 2 1 0)))

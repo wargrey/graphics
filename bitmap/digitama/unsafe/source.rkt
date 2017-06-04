@@ -21,13 +21,13 @@
   (define (bitmap-surface? v) (cpointer*? v 'cairo_surface_t))
   (define (bitmap-pattern? v) (cpointer*? v 'cairo_pattern_t))
   
-  (define (bitmap-linear-gradient x0 y0 x1 y1 stops)
+  (define (bitmap-linear-gradient-pattern x0 y0 x1 y1 stops)
     (define gradient (cairo_pattern_create_linear x0 y0 x1 y1))
     (for ([stop (in-list stops)])
       (gradient-add-color-stop gradient (unsafe-car stop) (unsafe-cdr stop)))
     gradient)
   
-  (define (bitmap-radial-gradient x0 y0 r0 x1 y1 r1 stops)
+  (define (bitmap-radial-gradient-pattern x0 y0 r0 x1 y1 r1 stops)
     (define gradient (cairo_pattern_create_radial x0 y0 r0 x1 y1 r1))
     (for ([stop (in-list stops)])
       (gradient-add-color-stop gradient (unsafe-car stop) (unsafe-cdr stop)))
@@ -53,5 +53,5 @@
 
 (require/typed/provide
  (submod "." unsafe)
- [bitmap-linear-gradient (-> Real Real Real Real (Listof (Pairof Real FlVector)) Bitmap-Pattern)]
- [bitmap-radial-gradient (-> Real Real Real Real Real Real (Listof (Pairof Real FlVector)) Bitmap-Pattern)])
+ [bitmap-linear-gradient-pattern (-> Real Real Real Real (Listof (Pairof Real FlVector)) Bitmap-Pattern)]
+ [bitmap-radial-gradient-pattern (-> Real Real Real Real Real Real (Listof (Pairof Real FlVector)) Bitmap-Pattern)])

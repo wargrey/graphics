@@ -55,10 +55,10 @@
         (let ([?gradient (send brush get-gradient)])
           (or (and (linear-gradient%? ?gradient)
                    (call-with-values (thunk (inspect-linear-gradient ?gradient))
-                     bitmap-linear-gradient))
+                     bitmap-linear-gradient-pattern))
               (and (radial-gradient%? ?gradient)
                    (call-with-values (thunk (inspect-radial-gradient ?gradient))
-                     bitmap-radial-gradient))))
+                     bitmap-radial-gradient-pattern))))
         (case (send brush get-style)
           [(transparent) transparent-source]
           [(hilite) hilite-source]
