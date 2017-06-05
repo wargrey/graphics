@@ -6,25 +6,22 @@
 (require racket/flonum)
 (require racket/math)
 
-(define-type Gamut Nonnegative-Flonum)
-(define-type Hue Nonnegative-Flonum)
+(define-type HSB->RGB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
+(define-type RGB->HSB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 
-(define-type HSB->RGB (-> Hue Gamut Gamut (Values Gamut Gamut Gamut)))
-(define-type RGB->HSB (-> Gamut Gamut Gamut (Values Hue Gamut Gamut)))
+(define gamut->byte : (-> Flonum Byte) (λ [r] (fxmin (fxmax (exact-round (fl* r 255.0)) 0) #xFF)))
+(define byte->gamut : (-> Byte Flonum) (λ [r] (real->double-flonum (/ r #xFF))))
+(define real->gamut : (-> Real Flonum) (λ [r] (flmax (flmin (real->double-flonum r) 1.0) 0.0)))
 
-(define gamut->byte : (-> Gamut Byte) (λ [r] (min (exact-round (fl* r 255.0)) #xFF)))
-(define byte->gamut : (-> Byte Gamut) (λ [r] (real->double-flonum (/ r #xFF))))
-(define real->gamut : (-> Real Gamut) (λ [r] (flmax (flmin (real->double-flonum r) 1.0) 0.0)))
-
-(define real->hue : (-> Real Hue)
+(define real->hue : (-> Real Flonum)
   (lambda [hue]
     (cond [(nan? hue) +nan.0]
           [(or (zero? hue) (and (positive? hue) (< hue 360))) (real->double-flonum hue)]
           [else (let ([integer-part (modulo (exact-truncate hue) 360)])
                   (cond [(integer? hue) (real->double-flonum integer-part)]
-                        [(positive? hue) (flabs (real->double-flonum (+ integer-part (- hue (truncate hue)))))]
-                        [(zero? integer-part) (flabs (fl+ 360.0 (real->double-flonum (- hue (truncate hue)))))]
-                        [else (flabs (real->double-flonum (- integer-part (- (truncate hue) hue))))]))])))
+                        [(positive? hue) (real->double-flonum (+ integer-part (- hue (truncate hue))))]
+                        [(zero? integer-part) (fl+ 360.0 (real->double-flonum (- hue (truncate hue))))]
+                        [else (real->double-flonum (- integer-part (- (truncate hue) hue)))]))])))
 
 (define rgb-bytes->hex : (-> Byte Byte Byte Index)
   (lambda [r g b]
@@ -39,7 +36,7 @@
             (fxand (fxrshift rgb 8) #xFF)
             (fxand rgb #xFF))))
 
-(define rgb-bytes->hsb : (-> RGB->HSB Byte Byte Byte (Values Hue Gamut Gamut))
+(define rgb-bytes->hsb : (-> RGB->HSB Byte Byte Byte (Values Flonum Flonum Flonum))
   (lambda [rgb->hsb red green blue]
     (rgb->hsb (byte->gamut red)
               (byte->gamut green)
@@ -52,7 +49,7 @@
             (gamut->byte green)
             (gamut->byte blue))))
 
-(define rgb-hex->hsb : (-> RGB->HSB Integer (Values Hue Gamut Gamut))
+(define rgb-hex->hsb : (-> RGB->HSB Integer (Values Flonum Flonum Flonum))
   (lambda [rgb->hsb hex]
     (define-values (red green blue) (hex->rgb-bytes hex))
     (rgb-bytes->hsb rgb->hsb red green blue)))

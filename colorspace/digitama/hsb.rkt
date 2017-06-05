@@ -7,7 +7,7 @@
 
 (require "../misc.rkt")
 
-(define rgb->hue : (-> Gamut Gamut Gamut (Values Flonum Flonum Flonum Flonum))
+(define rgb->hue : (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum Flonum))
   (lambda [red green blue]
     (define-values (M m) (values (max red green blue) (min red green blue)))
     (define chroma : Flonum (- M m))
@@ -19,7 +19,7 @@
             [else             (fl* 60.0      (fl/ (fl- green blue) chroma))]))
     (values M m chroma hue)))
 
-(define hue->rgb : (-> Hue Flonum Flonum (Values Gamut Gamut Gamut))
+(define hue->rgb : (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum))
   (lambda [hue chroma m]
     (define hue/60 : Flonum (if (nan? hue) 6.0 (fl/ hue 60.0)))
     (define hue. : Integer (exact-floor hue/60))
@@ -33,9 +33,9 @@
         [(4) (values x 0.0 chroma)]
         [(5) (values chroma 0.0 x)]
         [else (values 0.0 0.0 0.0)]))
-    (values (flabs (fl+ red m)) (flabs (fl+ green m)) (flabs (fl+ blue m)))))
+    (values (fl+ red m) (fl+ green m) (fl+ blue m))))
 
-(define hsi-sector->rgb : (-> Flonum Flonum Flonum (U 'red 'green 'blue) (Values Gamut Gamut Gamut))
+(define hsi-sector->rgb : (-> Flonum Flonum Flonum (U 'red 'green 'blue) (Values Flonum Flonum Flonum))
   (lambda [hue saturation intensity color]
     (define flcosH/cos60-H : Flonum
       (cond [(or (zero? hue) (fl= hue 120.0)) 2.0]
@@ -45,6 +45,6 @@
     (define midor : Flonum (fl* intensity (fl- 1.0 saturation)))
     (define minor : Flonum (fl- (fl* 3.0 intensity) (fl+ major midor)))
     (case color
-      [(red)   (values (flabs major) (flabs minor) (flabs midor))]
-      [(green) (values (flabs midor) (flabs major) (flabs minor))]
-      [else    (values (flabs minor) (flabs midor) (flabs major))])))
+      [(red)   (values major minor midor)]
+      [(green) (values midor major minor)]
+      [else    (values minor midor major)])))

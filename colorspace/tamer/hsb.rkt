@@ -21,7 +21,7 @@
                   (ormap (λ [[m : Flonum]] (eq? (exact-round (fl* src m)) (exact-round (fl* r m))))
                          (list 1000.0 100.0 10.0)))])))
 
-(define examples : (Listof (List Natural Gamut Gamut Gamut Hue Hue Gamut Gamut Gamut Gamut Gamut Gamut Gamut))
+(define examples : (Listof (List Natural Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum))
   (list (list #xFFFFFF  1.000  1.000  1.000  +nan.0  +nan.0  1.000  1.000  1.000  1.000  0.000  0.000  0.000)
         (list #x808080  0.500  0.500  0.500  +nan.0  +nan.0  0.500  0.500  0.500  0.500  0.000  0.000  0.000)
         (list #x000000  0.000  0.000  0.000  +nan.0  +nan.0  0.000  0.000  0.000  0.000  0.000  0.000  0.000)

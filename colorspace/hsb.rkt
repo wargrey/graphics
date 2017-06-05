@@ -20,7 +20,7 @@
     (define-values (M m chroma hue) (rgb->hue red green blue))
     (define value : Flonum M)
     (define saturation : Flonum (if (zero? chroma) 0.0 (fl/ chroma M)))
-    (values (flabs hue) (flabs saturation) (flabs value))))
+    (values hue saturation value)))
 
 (define hsl->rgb : HSB->RGB
   (lambda [hue saturation lightness]
@@ -33,7 +33,7 @@
     (define-values (M m chroma hue) (rgb->hue red green blue))
     (define lightness : Flonum (fl* 0.5 (fl+ M m)))
     (define saturation : Flonum (if (zero? chroma) 0.0 (fl/ chroma (fl- 1.0 (flabs (fl- (fl* 2.0 lightness) 1.0))))))
-    (values (flabs hue) (flabs saturation) (flabs lightness))))
+    (values hue saturation lightness)))
 
 (define hsi->rgb : HSB->RGB
   (lambda [hue saturation intensity]
@@ -59,7 +59,7 @@
         (fl* (fl/ 180.0 pi) (if (fl< hue 0.0) (fl+ (fl* 2.0 pi) hue) hue))))
     (define intensity : Flonum (fl/ (fl+ (fl+ red green) blue) 3.0))
     (define saturation : Flonum (if (zero? intensity) 0.0 (fl- 1.0 (fl/ (min red green blue) intensity))))
-    (values (flabs hue) (flabs saturation) (flabs intensity))))
+    (values hue saturation intensity)))
 
 (define hwb->rgb : HSB->RGB
   (lambda [hue w b]
@@ -71,11 +71,11 @@
     (cond [(fl= black 1.0) (values 0.0 0.0 0.0)]
           [else (let* ([value (fl- 1.0 black)]
                        [saturation (fl- 1.0 (fl/ white value))])
-                  (hsv->rgb hue (flabs saturation) (flabs value)))])))
+                  (hsv->rgb hue saturation value))])))
   
 (define rgb->hwb : RGB->HSB
   (lambda [red green blue]
     (define-values (hue saturation value) (rgb->hsv red green blue))
     (define white : Flonum (fl* (fl- 1.0 saturation) value))
     (define black : Flonum (fl- 1.0 value))
-    (values hue (flabs white) (flabs black))))
+    (values hue white black)))
