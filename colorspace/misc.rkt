@@ -36,6 +36,15 @@
             (fxand (fxrshift rgb 8) #xFF)
             (fxand rgb #xFF))))
 
+(define rgb-gamuts->hex : (-> Flonum Flonum Flonum Index)
+  (lambda [r g b]
+    (rgb-bytes->hex (gamut->byte r) (gamut->byte g) (gamut->byte b))))
+
+(define hex->rgb-gamuts : (-> Integer (Values Flonum Flonum Flonum))
+  (lambda [rgb]
+    (define-values (r g b) (hex->rgb-bytes rgb))
+    (values (byte->gamut r) (byte->gamut g) (byte->gamut b))))
+
 (define rgb-bytes->hsb : (-> RGB->HSB Byte Byte Byte (Values Flonum Flonum Flonum))
   (lambda [rgb->hsb red green blue]
     (rgb->hsb (byte->gamut red)
