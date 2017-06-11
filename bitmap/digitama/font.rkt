@@ -3,24 +3,53 @@
 (provide (all-defined-out))
 
 (require "digicore.rkt")
+(require "misc.rkt")
+
 (require "unsafe/font.rkt")
 
 ;;; https://drafts.csswg.org/css-fonts
 ;;; https://drafts.csswg.org/css-fonts-4
 
-(define generic-font-family-map : (-> Symbol (Instance Font%) Font-Family)
-  (lambda [family basefont]
-    (case family
-      [(swiss sans-serif)   'swiss]
-      [(roman serif)        'roman]
-      [(modern monospace)   'modern]
-      [(decorative fantasy) 'decorative]
-      [(script cursive)     'script]
-      [(system system-ui)   'system]
-      [(symbol math)        'symbol]
-      [(default)            'default]
-      [else (send basefont get-family)])))
+(define-css-keywords [css-font-generic-family css-font-generic-families] #:as CSS:Font-Family 
+  generic-font-family-map #:-> String
+  [(sans-serif) (case os [(macosx) "Lucida Grande"] [(windows) "Tahoma"] [else "Sans"])]
+  [(serif)      (case os [(macosx) "Times"] [(windows) "Times New Roman"] [else "Serif"])]
+  [(monospace)  (case os [(macosx) "Courier"] [(windows) "Courier New"] [else "Monospace"])]
+  [(fantasy)    (case os [(macosx) "Helvetica"] [(windows) "Arial"] [else "Helvetica"])]
+  [(cursive)    (case os [(macosx) "Apple Chancery, Italic"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
+  [(system-ui)  (system-ui 'normal-control-font (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"]))]
+  [(emoji)      (case os [else "Symbol"])]
+  [(math)       (case os [else "Symbol"])]
+  [(fangsong)   (case os [(macosx) "ST FangSong"] [(windows) "FangSong"] [else "Symbol"])])
 
+(define-css-keywords css-font-size-option #:as CSS:Font-Size
+  generic-font-size-map #:-> [inheritsize Nonnegative-Flonum] [font-medium Nonnegative-Flonum] Nonnegative-Flonum
+  [(xx-large) (* 2/1 font-medium)]
+  [(x-large)  (* 3/2 font-medium)]
+  [(large)    (* 6/5 font-medium)]
+  [(small)    (* 8/9 font-medium)]
+  [(x-small)  (* 3/4 font-medium)]
+  [(xx-small) (* 3/5 font-medium)]
+  [(smaller)  (* 5/6 inheritsize)] ; TODO: find a better function to deal with these two keywords.
+  [(larger)   (* 6/5 inheritsize)] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
+  [#:else     font-medium])
+
+(define-css-keywords css-font-stretch-option #:+> CSS:Font-Stretch ; order matters
+  font-stretch->integer integer->font-stretch #:fallback normal
+  [0 ultra-condensed extra-condensed condensed semi-condensed normal
+     semi-expanded expanded extra-expanded ultra-expanded])
+
+(define-css-keywords css-font-style-option #:+> CSS:Font-Style ; order matters
+  font-style->integer integer->font-style #:fallback normal
+  [0 normal oblique italic])
+
+(define-css-keywords css-font-weight-option #:+> CSS:Font-Weight ; order matters
+  font-weight->integer integer->font-weight #:-> Integer #:fallback normal
+  [thin   100] [ultralight 200] [light    300] [semilight  350] [book 380]
+  [normal 400] [medium     500] [semibold 600]
+  [bold   700] [ultrabold  800] [heavy    900] [ultraheavy 1000])
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define select-font-face : (-> (Listof (U String Symbol)) (-> Symbol String) (Option String))
   (lambda [value family->face]
     (let select ([families value])
@@ -30,57 +59,21 @@
                  (and (string? family) (face-filter family))
                  (select (cdr families))))))))
 
-(define generic-font-size-map : (-> Symbol (Instance Font%) (Instance Font%) Nonnegative-Real)
-  (lambda [size basefont rootfont]
-    (define css-font-medium : Nonnegative-Flonum (smart-font-size rootfont))
-    (case size
-      [(xx-large) (* 2/1 css-font-medium)]
-      [(x-large)  (* 3/2 css-font-medium)]
-      [(large)    (* 6/5 css-font-medium)]
-      [(small)    (* 8/9 css-font-medium)]
-      [(x-small)  (* 3/4 css-font-medium)]
-      [(xx-small) (* 3/5 css-font-medium)]
-      [(smaller)  (* 5/6 (smart-font-size basefont))] ; TODO: find a better function to deal with these two keywords.
-      [(larger)   (* 6/5 (smart-font-size basefont))] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
-      [else       css-font-medium])))
-
-(define generic-font-weight-map : (-> (U Symbol Integer) (-> Symbol) Symbol)
-  (lambda [weight inherit]
-    (cond [(integer? weight) (integer->font-weight weight)]
-          [(memq weight pango-font-weights) weight]
-          [(eq? weight 'bolder) (memcadr pango-font-weights (inherit))]
-          [(eq? weight 'lighter) (memcadr (reverse pango-font-weights) (inherit))]
-          [else (inherit)])))
-
-(define generic-font-style-map : (-> Symbol (Instance Font%) Font-Style)
-  (lambda [style basefont]
-    (case style
-      [(normal italic) style]
-      [(oblique slant) 'slant]
-      [else (send basefont get-style)])))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define face-filter : (-> String (Option String))
-  (let ([&faces : (Boxof (Option (HashTable String String))) (box #false)])
+  (let ([&faces : (Boxof (Option (HashTable String String))) (box #false)]
+        [&all-faces : (Boxof (Option (HashTable String String))) (box #false)])
     (lambda [face]
+      (define-values (&face-list all?) (if (regexp-match #rx"," face) (values &all-faces #true) (values &faces #false)))
       (define the-face-set : (HashTable String String)
-        (or (unbox &faces)
-            (let ([the-set (for/hash : (HashTable String String) ([face (in-list (get-face-list))])
+        (or (unbox &face-list)
+            (let ([the-set (for/hash : (HashTable String String)
+                             ([face (in-list (get-face-list #:all-variants? all?))])
                              (values (string-downcase face) face))])
-              (set-box! &faces the-set)
+              (set-box! &face-list the-set)
               the-set)))
       (hash-ref the-face-set (string-downcase face) (thunk #false)))))
 
-(define system-ui : (-> Symbol String String)
-  (let ([facebase ((inst make-hasheq Symbol String))])
-    (lambda [symfont deface]
-      (hash-ref! facebase symfont
-                 (thunk (with-handlers ([exn? (λ _ deface)])
-                          (let ([system-ui (dynamic-require 'racket/gui/base symfont)])
-                            (or (and (font%? system-ui) (send system-ui get-face))
-                                deface))))))))
-
-(define memcadr : (-> (Listof Symbol) Symbol Symbol)
+(define memcadr : (-> (Listof CSS:Font-Weight) CSS:Font-Weight CSS:Font-Weight)
   (lambda [srclist v]
     (define tail (memv v srclist))
     (cond [(false? tail) v]

@@ -1,6 +1,7 @@
 #lang racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) define-enum)
+(provide (all-from-out (submod "../draw.rkt" untyped)))
 (provide (all-from-out ffi/unsafe racket/unsafe/ops))
 (provide (all-from-out racket/draw/unsafe/pango racket/draw/unsafe/cairo))
 
@@ -14,9 +15,7 @@
 (require racket/draw/unsafe/cairo-lib)
 (require racket/draw/private/utils)
 
-(require racket/class)
-(require racket/draw)
-(require racket/flonum)
+(require (submod "../draw.rkt" untyped))
 
 (define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 (define-syntax-rule (_pfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
@@ -40,16 +39,13 @@
 
 (define _gunichar (make-ctype _uint32 char->integer integer->char))
 
-(define _font-stretch
-  (_enum '(ultra-condensed extra-condensed condensed semi-condensed normal semi-expanded expanded extra-expanded ultra-expanded)))
-
 (define-pango pango_context_set_font_description (_pfun PangoContext PangoFontDescription -> _void))
-(define-pango pango_font_description_set_stretch (_pfun PangoFontDescription _font-stretch -> _void))
+(define-pango pango_font_description_get_size (_pfun PangoFontDescription -> _int))
+(define-pango pango_font_description_set_stretch (_pfun PangoFontDescription _int -> _void))
 (define-pango pango_attr_strikethrough_new (_pfun _bool -> PangoAttribute))
 (define-pango pango_attr_underline_new (_pfun _int -> PangoAttribute))
 
 (define-pango pango_layout_get_size (_pfun PangoLayout [w : (_ptr o _int)] [h : (_ptr o _int)] -> _void -> (values w h)))
-
 (define-pango pango_layout_set_indent (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_spacing (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_width (_pfun PangoLayout _int -> _void))
@@ -100,12 +96,12 @@
 
 (define cairo-set-source
   (lambda [cr src]
-    (cond [(flvector? src)
+    (cond [(struct? src) ; (rgba? src)
            (cairo_set_source_rgba cr
-                                  (unsafe-flvector-ref src 0)
-                                  (unsafe-flvector-ref src 1)
-                                  (unsafe-flvector-ref src 2)
-                                  (unsafe-flvector-ref src 3))]
+                                  (unsafe-struct*-ref src 0)
+                                  (unsafe-struct*-ref src 1)
+                                  (unsafe-struct*-ref src 2)
+                                  (unsafe-struct*-ref src 3))]
           [(cpointer? src)
            (case (cpointer-tag src)
              [(cairo_pattern_t) (cairo_set_source cr src)]
@@ -149,9 +145,3 @@
   (lambda [&rect]
     (values (PangoRectangle-x &rect) (PangoRectangle-y &rect)
             (PangoRectangle-width &rect) (PangoRectangle-height &rect))))
-
-(define (~style style)
-  (case style
-    [(italic) PANGO_STYLE_ITALIC]
-    [(slant) PANGO_STYLE_OBLIQUE]
-    [else PANGO_STYLE_NORMAL]))

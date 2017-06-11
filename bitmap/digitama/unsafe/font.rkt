@@ -16,6 +16,14 @@
   (define &logical (make-PangoRectangle 0 0 0 0))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define (bitmap_create_font_desc font-face font-size weight# style# stretch#)
+    (define font-desc (pango_font_description_from_string font-face))
+    (unless (eq? weight# 400) (pango_font_description_set_weight font-desc weight#)) ; TODO: NORMAL or MEDIUM
+    (unless (eq? style# 0) (pango_font_description_set_style font-desc style#))
+    (unless (eq? stretch# 4) (pango_font_description_set_stretch font-desc stretch#))
+    (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
+    font-desc)
+  
   (define get_font_metrics
     (lambda [font-desc]
       (start-atomic)
@@ -28,7 +36,10 @@
       
       (define ex  (unsafe-fx- baseline xy))
       (define cap (unsafe-fx- baseline Oy))
-      (values (~metric ex) (~metric cap) (~metric ch) (~metric ic) (~metric wH))))
+      (list (cons 'em (~metric (pango_font_description_get_size font-desc)))
+            (cons 'ex (~metric ex)) (cons 'cap (~metric cap))
+            (cons 'ch (~metric ch)) (cons 'ic (~metric ic))
+            (cons 'lh #|TODO: line height should be required|# (~metric wH)))))
 
   (define get_font_metrics_lines
     (lambda [font-desc content]
@@ -42,28 +53,15 @@
       (values (~metric ascent) (~metric capline) (~metric meanline)
               (~metric baseline) (~metric (unsafe-fx+ ascent height)))))
 
-  (define-values (pango-font-weights font-weight->integer integer->font-weight)
-    (let ([font-weights (list '(thin . 100) '(ultralight . 200) '(light . 300) '(semilight . 350) '(book . 380)
-                              '(normal . 400) '(medium . 500) '(semibold . 600)
-                              '(bold . 700) '(ultrabold . 800) '(heavy . 900) '(ultraheavy . 1000))])
-      (values (map unsafe-car font-weights)
-              (λ [weight] (let ([kv (assq weight font-weights)])
-                            (cond [(and kv) (unsafe-cdr kv)]
-                                  [else (unsafe-cdr (assq 'normal font-weights))])))
-              (λ [weight] (cond [(unsafe-fx< weight 150) 'thin]
-                                [(unsafe-fx< weight 250) 'ultralight]
-                                [(unsafe-fx< weight 325) 'light]
-                                [(unsafe-fx< weight 365) 'semilight]
-                                [(unsafe-fx< weight 390) 'book]
-                                [(unsafe-fx< weight 450) 'normal]
-                                [(unsafe-fx< weight 550) 'medium]
-                                [(unsafe-fx< weight 650) 'bold]
-                                [(unsafe-fx< weight 750) 'ultrabold]
-                                [(unsafe-fx< weight 850) 'heavy]
-                                [else 'ultraheavy])))))
-
-  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define system-ui
+    (let ([facebase (make-hasheq)])
+      (lambda [symfont deface]
+        (hash-ref! facebase symfont
+                   (λ _ (with-handlers ([exn? (λ _ deface)])
+                          (let ([sysfont (dynamic-require 'racket/gui/base symfont)])
+                            (send sysfont get-face))))))))
+  
   (define the-layout
     (let ([&layout (box #false)])
       (lambda []
@@ -89,27 +87,11 @@
       (define-values (x y width height) (~rectangle &ink))
       (define layout-height (PangoRectangle-height &logical))
       
-      (values x y width height layout-height)))
-
-  (define (bitmap_create_font_desc font-face font-size font-style font-weight font-stretch)
-    (define font-desc
-      (let ([face-is-family? (regexp-match #rx"," font-face)])
-        (cond [(not face-is-family?) (pango_font_description_from_string font-face)]
-              [else (let ([desc (pango_font_description_new)])
-                      (pango_font_description_set_family desc font-face)
-                      desc)])))
-    (unless (eq? font-style 'normal) (pango_font_description_set_style font-desc (~style font-style)))
-    (unless (eq? font-weight 'normal) (pango_font_description_set_weight font-desc (font-weight->integer font-weight)))
-    (pango_font_description_set_stretch font-desc font-stretch)
-    (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
-    font-desc))
+      (values x y width height layout-height))))
 
 (require/typed/provide
  (submod "." unsafe)
- [pango-font-weights (Listof Symbol)]
- [font-weight->integer (-> Symbol Integer)]
- [integer->font-weight (-> Integer Symbol)]
- [bitmap_create_font_desc (-> String Real Symbol Symbol Symbol Font-Description)]
+ [system-ui (-> Symbol String String)]
+ [bitmap_create_font_desc (-> String Real Integer Integer Integer Font-Description)]
  [get_font_metrics_lines (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]
- [get_font_metrics (-> Font-Description (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
-                                                Nonnegative-Flonum Nonnegative-Flonum))])
+ [get_font_metrics (-> Font-Description (Listof (Pairof Symbol Nonnegative-Flonum)))])

@@ -2,12 +2,37 @@
 
 (provide (all-defined-out))
 
+(require (for-syntax racket/base))
+
 (require "digicore.rkt")
 
-(define-predicate color-datum? (U Index Symbol String))
+(define-syntax (define-color-space stx)
+  (syntax-case stx [:]
+    [(_ clr ([com : real->flonum] ...))
+     (with-syntax ([clra (datum->syntax #'clr (string->symbol (format "~aa" (syntax-e #'clr))))])
+       #'(begin (struct clra flcolor ([com : Flonum] ... [alpha : Flonum]) #:transparent)
+                (define (clr [com : Real] ... [alpha : Real 1.0]) : clra
+                  (clra (real->flonum com) ... (real->double-flonum alpha)))))]))
 
-(define default-make-currentcolor : (Parameterof (-> Color+sRGB)) (make-parameter (λ [] #x000000)))
+(define default-make-currentcolor : (Parameterof (-> Color)) (make-parameter (λ [] #x000000)))
+(define fallback-color : Color ((default-make-currentcolor)))
+(define transparent : FlRGBA (rgba 0.0 0.0 0.0 0.0))
 
+(define $ : (-> (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)) Flonum Flonum Flonum Flonum Flonum FlRGBA)
+  (lambda [->rgb h s b a alpha]
+    (define-values (#{r : Flonum} #{g : Flonum} #{b : Flonum}) (->rgb h s b))
+    (rgba r g b (fl* alpha a))))
+
+(define named-rgba : (->* (Symbol Flonum (-> Color Real FlRGBA)) (Boolean) (Option FlRGBA))
+  (lambda [name flalpha rgb* [downcased? #false]]
+    (cond [(hash-has-key? css-named-colors name) (rgb* (hash-ref css-named-colors name) flalpha)]
+          [(not downcased?) (named-rgba (string->symbol (string-downcase (symbol->string name))) flalpha rgb* #true)]
+          [(eq? name 'transparent) transparent]
+          [(hash-has-key? css-color-aliases name) (named-rgba (hash-ref css-color-aliases name) flalpha rgb* #true)]
+          [(eq? name 'currentcolor) (rgb* ((default-make-currentcolor)) flalpha)]
+          [else #false])))
+
+;;; https://drafts.csswg.org/css-color/#named-colors
 (define css-named-colors : (HashTable Symbol Index)
   #hasheq((black . 0) (gold . #xFFD700) (palegoldenrod . #xEEE8AA) (hotpink . #xFF69B4) (darksalmon . #xE9967A) (yellow . #xFFFF00)
                       (moccasin . #xFFE4B5) (white . #xFFFFFF) (plum . #xDDA0DD) (teal . #x008080) (whitesmoke . #xF5F5F5)
@@ -41,3 +66,7 @@
                       (cadetblue . #x5F9EA0) (slateblue . #x6A5ACD) (olive . #x808000) (orange . #xFFA500) (lightsteelblue . #xB0C4DE)
                       (lightskyblue . #x87CEFA) (gainsboro . #xDCDCDC) (fuchsia . #xFF00FF) (mediumspringgreen . #x00FA9A)
                       (midnightblue . #x191970) (salmon . #xFA8072) (silver . #xC0C0C0)))
+
+(define css-color-aliases : (HashTable Symbol Symbol)
+  #hasheq((grey . gray) (lightgrey . lightgray) (darkgrey . darkgray) (dimgrey . dimgray)
+                        (lightslategrey . lightslategray) (slategrey . slategray) (darkslategrey . darkslategray)))

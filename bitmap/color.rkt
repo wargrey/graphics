@@ -1,84 +1,56 @@
 #lang typed/racket
 
-(provide (all-defined-out))
+(provide (all-defined-out) transparent)
 
-(require racket/string)
-(require racket/bool)
-
-(require colorspace/misc)
+(require colorspace)
 
 (require "digitama/digicore.rkt")
 (require "digitama/color.rkt")
-(require "digitama/cheat.rkt")
 
-(define-type Color (Instance RGBA-Color%))
-
-(define-type RGBA-Color%
-  (Class #:implements Color%
-         (init [red Byte #:optional]
-               [green Byte #:optional]
-               [blue Byte #:optional]
-               [alpha Real #:optional])
-         (init-rest Null) ; disable string based constructor
-         [get-source (-> FlVector)]))
-
-(define/make-is-a? rgba% : RGBA-Color%
-  (class color%
-    (init [red (fxmin (random 255) 255)]
-          [green (fxmin (random 255) 255)]
-          [blue (fxmin (random 255) 255)]
-          [alpha 1.0])
-    
-    (super-make-object red green blue alpha)
-
-    (define flcolor : FlVector
-      (flvector (byte->gamut red)
-                (byte->gamut green)
-                (byte->gamut blue)
-                (real->gamut alpha)))
-    
-    (define/public (get-source) flcolor)))
+(struct hexa flcolor ([digits : Index] [alpha : Flonum]) #:transparent)
+(define-color-space hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]))
+(define-color-space hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut]))
+(define-color-space hsi ([hue : real->hue] [saturation : real->gamut] [intensity : real->gamut]))
+(define-color-space hwb ([hue : real->hue] [white : real->gamut] [black : real->gamut]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define select-color : (->* (Color+sRGB) (Nonnegative-Flonum) Color)
-  (let ([colorbase : (HashTable Fixnum Color) (make-hasheq)])
-    (lambda [representation [alpha 1.0]]
-      (define opaque? : Boolean (fl= alpha 1.0))
-      (cond [(exact-integer? representation)
-             (define hashcode : Nonnegative-Fixnum (fxand representation #xFFFFFF))
-             (hash-ref! colorbase
-                        (if opaque? hashcode (eqv-hash-code (make-rectangular hashcode alpha)))
-                        (λ [] (let-values ([(r g b) (hex->rgb-bytes representation)])
-                                (make-object rgba% r g b alpha))))]
-            [(symbol? representation)
-             (let try-again ([color-name : Symbol representation]
-                             [downcased? : Boolean #false])
-               (cond [(hash-has-key? css-named-colors color-name)
-                      (hash-ref! colorbase
-                                 (cond [(and opaque?) (eq-hash-code color-name)]
-                                       [else (equal-hash-code (cons color-name alpha))])
-                                 (λ [] (select-color (hash-ref css-named-colors color-name) alpha)))]
-                     [(not downcased?) (try-again (string->symbol (string-downcase (symbol->string color-name))) #true)]
-                     [(eq? color-name 'currentcolor) (select-color ((default-make-currentcolor)))]
-                     [else (select-color #x000000 (if (eq? color-name 'transparent) 0.0 alpha))]))]
-            [(string? representation)
-             (let* ([color-name (string-downcase (string-replace representation #px"(?i:grey)" "gray"))]
-                    [color (send the-color-database find-color color-name)])
-               (cond [(false? color) (select-color #x000000 alpha)]
-                     [else (hash-ref! colorbase
-                                      (equal-hash-code (if opaque? color-name (cons color-name alpha)))
-                                      (λ [] (select-color (rgb-bytes->hex (send color red) (send color green) (send color blue))
-                                                          alpha)))]))]
-            [(rgba%? representation) representation]
-            [else (hash-ref! colorbase
-                             (eq-hash-code representation)
-                             (λ [] (select-color (rgb-bytes->hex (send representation red) (send representation green) (send representation blue))
-                                                 (flmax (real->double-flonum (send representation alpha)) 0.0))))]))))
+(define rgb : (->* (Real Real Real) (Real) FlRGBA)
+  (lambda [red green blue [alpha 1.0]]
+    (rgba (real->gamut red)
+          (real->gamut green)
+          (real->gamut blue)
+          (real->double-flonum alpha))))
 
-(define color->source : (-> (Instance Color%) FlVector)
-  (lambda [color]
-    (cond [(rgba%? color) (send color get-source)]
-          [else (flvector (byte->gamut (send color red))
-                          (byte->gamut (send color green))
-                          (byte->gamut (send color blue))
-                          (real->gamut (send color alpha)))])))
+(define rgb* : (->* (Color) (Real) FlRGBA)
+  (lambda [src [alpha 1.0]]
+    (define flalpha : Flonum (real->double-flonum alpha))
+    (cond [(symbol? src) (or (named-rgba src flalpha rgb*) (rgb* fallback-color flalpha))]
+          [(exact-integer? src) (let-values ([(r g b) (hex->rgb-gamuts src)]) (rgba r g b flalpha))]
+          [(hexa? src) (let-values ([(r g b) (hex->rgb-gamuts (hexa-digits src))]) (rgba r g b (fl* (hexa-alpha src) flalpha)))]
+          [(rgba? src) (if (= flalpha 1.0) src (rgba (rgba-red src) (rgba-green src) (rgba-blue src) (fl* (rgba-alpha src) flalpha)))]
+          [(hsla? src) ($ hsl->rgb (hsla-hue src) (hsla-saturation src) (hsla-luminosity src) (hsla-alpha src) flalpha)]
+          [(hsva? src) ($ hsv->rgb (hsva-hue src) (hsva-saturation src) (hsva-value src) (hsva-alpha src) flalpha)]
+          [(hsia? src) ($ hsi->rgb (hsia-hue src) (hsia-saturation src) (hsia-intensity src) (hsia-alpha src) flalpha)]
+          [(hwba? src) ($ hwb->rgb (hwba-hue src) (hwba-white src) (hwba-black src) (hwba-alpha src) flalpha)]
+          [else (rgb* fallback-color flalpha)])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define list-color-names : (-> (Listof Symbol))
+  (lambda []
+    (hash-keys css-named-colors)))
+
+(define in-color-names : (-> (Sequenceof Symbol))
+  (lambda []
+    (in-hash-keys css-named-colors)))
+
+(define named-color? : (-> Symbol Boolean)
+  (lambda [name]
+    (and (named-rgba name +nan.0 (λ _ transparent))
+         #true)))
+
+(define flcolor->byte-list : (-> Color (List Byte Byte Byte))
+  (lambda [src]
+    (define flrgba : FlRGBA (rgb* src))
+    (list (gamut->byte (rgba-red flrgba))
+          (gamut->byte (rgba-green flrgba))
+          (gamut->byte (rgba-blue flrgba)))))

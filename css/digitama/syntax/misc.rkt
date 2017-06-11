@@ -1,18 +1,12 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) struct:)
 
 (require racket/promise)
+(require bitmap/digitama/misc)
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
-
-(define-syntax (struct: stx)
-  (syntax-case stx [:]
-    [(_ id : ID rest ...)
-     (with-syntax ([make-id (format-id #'id "make-~a" (syntax-e #'id))])
-       #'(begin (struct id rest ... #:extra-constructor-name make-id #:transparent)
-                (define-type ID id)))]))
 
 (define-syntax (define-css-parameter stx)
   (syntax-case stx [:]

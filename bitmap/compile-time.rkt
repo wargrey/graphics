@@ -1,8 +1,8 @@
 #lang typed/racket
 
-(require (for-syntax racket/base racket/class racket/draw))
+(require (for-syntax racket/base (submod "digitama/draw.rkt" untyped)))
 
-(require typed/racket/draw)
+(require "digitama/draw.rkt")
 
 (provide compiled-bitmap compiled-bitmap-list)
 

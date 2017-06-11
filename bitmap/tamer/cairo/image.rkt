@@ -2,8 +2,6 @@
 
 (require "../../digitama/unsafe/pangocairo.rkt")
 
-(require racket/draw)
-
 (define-cstruct _cairo_matrix_t
   ([xx _double*]
    [yx _double*]

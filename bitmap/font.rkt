@@ -1,179 +1,96 @@
 #lang typed/racket
 
 (provide (all-defined-out))
+(provide (rename-out [generic-font-family-map font-family->face]))
 
 (require "digitama/digicore.rkt")
-(require "digitama/cheat.rkt")
 (require "digitama/font.rkt")
+(require "digitama/misc.rkt")
 
 (require "digitama/unsafe/font.rkt")
 
-(define-type Font (Instance CSS-Font%))
-
-(define-type CSS-Font%
-  (Class #:implements Font%
-         (init-field [face String])
-         (init [size Real #:optional]
-               [style Font-Style #:optional])
-         (init-field [weight Symbol #:optional]
-                     [stretch Symbol #:optional]
-                     [lines (Listof Symbol) #:optional])
-         (init-rest Null)
-         [em (-> Nonnegative-Flonum)]
-         [ex (-> Nonnegative-Flonum)]
-         [cap (-> Nonnegative-Flonum)]
-         [ch (-> Nonnegative-Flonum)]
-         [ic (-> Nonnegative-Flonum)]
-         [lh (-> Nonnegative-Flonum)]
-         [get-face* (-> String)]
-         [get-weight* (-> Symbol)]
-         [get-stretch (-> Symbol)]
-         [get-metrics (->* () ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))]
-         [get-decoration-lines (-> (Listof Symbol))]
-         [get-source (-> Font-Description)]))
-
-(define/make-is-a? css-font% : CSS-Font%
-  (class font%
-    (init-field face)
-    (init [size 12.0] [style 'normal])
-    (init-field [weight 'normal] [stretch 'normal] [lines null])
-
-    (define integer-weight : Integer (font-weight->integer weight))
-    (super-make-object size face 'default style
-                       (cond [(>= integer-weight (font-weight->integer 'bold)) 'bold]
-                             [(>= integer-weight (font-weight->integer 'normal)) 'normal]
-                             [else 'light])
-                       (pair? lines) 'default #true 'unaligned)
-
-    (define-syntax (define-metrics-accessor stx)
-      (syntax-case stx []
-        [(_ (get-ms [units null]) #:with [m ...] body ...)
-         #'(begin (define/public (m) (fill-metrics!) (metrics-ref 'm)) ...
-                  (define/public (get-ms [units null])
-                    body ...))]))
-
-    (define metrics : (HashTable Symbol Nonnegative-Flonum) (make-hasheq))
-    (define &desc : (Boxof (Option Font-Description)) (box #false))
-
-    (define-metrics-accessor (get-metrics [units null]) #:with [em ex cap ch ic lh]
-      (fill-metrics!)
-      (cond [(null? units) (hash->list metrics)]
-            [else (for/list : (Listof (Pairof Symbol Nonnegative-Flonum)) ([unit (in-list units)])
-                    (cons unit (metrics-ref unit)))]))
-
-    (define/public (get-face*) face)
-    (define/public (get-weight*) weight)
-    (define/public (get-stretch) stretch)
-    (define/public (get-decoration-lines) lines)
-
-    (define/public (get-source)
-      (or (unbox &desc)
-          (let ([desc (bitmap_create_font_desc face (send this get-size) (send this get-style) weight stretch)])
-            (set-box! &desc desc)
-            desc)))
-
-    (define/override (get-family)
-      (let try-next ([families : (Listof Font-Family) '(swiss roman modern decorative script symbol system)])
-        (cond [(null? families) (super get-family)]
-              [(string=? face (font-family->font-face (car families))) (car families)]
-              [else (try-next (cdr families))])))
-    
-    (define/private (fill-metrics!) : Void
-      (when (zero? (hash-count metrics))
-        (define-values (ex cap ch ic layout-height) (get-font-metrics this))
-        (hash-set! metrics 'em (smart-font-size this))
-        (hash-set! metrics 'ex ex)
-        (hash-set! metrics 'cap cap)
-        (hash-set! metrics 'ch ch)
-        (hash-set! metrics 'ic ic)
-        (hash-set! metrics 'lh layout-height)))
-
-    (define/private (metrics-ref [unit : Symbol]) : Nonnegative-Flonum
-      (hash-ref metrics unit (thunk +nan.0)))))
+(struct: font : Font
+  ([face : String]
+   [size : Nonnegative-Flonum]
+   [weight : CSS:Font-Weight]
+   [style : CSS:Font-Style]
+   [stretch : CSS:Font-Stretch]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-css-font : (->* ()
-                             ((Instance Font%) #:size (U Symbol Nonnegative-Real) #:family (U String Symbol (Listof (U String Symbol)))
-                                               #:style (Option Symbol) #:weight (U False Symbol Integer) #:stretch (U Boolean Symbol)
-                                               #:lines (Option (Listof Symbol)))
-                             Font)
-  (let ([fontbase : (HashTable (Listof Any) (Instance CSS-Font%)) (make-hash)])
-    (lambda [[basefont (default-css-font)] #:size [size +nan.0] #:family [face null] #:style [style #false] #:weight [weight #false]
-                                           #:lines [lines #false] #:stretch [stretch #false]]
-      (define font-size-raw : Nonnegative-Real
-        (cond [(symbol? size) (generic-font-size-map size basefont (default-css-font))]
-              [(nan? size) (smart-font-size basefont)]
-              [(single-flonum? size) (* size (smart-font-size basefont))]
-              [else size]))
-      (define font-face : String
-        (cond [(string? face) face]
-              [(symbol? face) (font-family->font-face face)]
-              [else (or (and (pair? face) (select-font-face face font-family->font-face))
-                        (send basefont get-face)
-                        (font-family->font-face (send basefont get-family)))]))
-      (define font-size : Flonum (flmin 1024.0 (real->double-flonum font-size-raw)))
-      (define font-style : Font-Style (generic-font-style-map (or style 'inherit) basefont))
-      (define font-weight : Symbol
-        (generic-font-weight-map (or weight 'inherit)
-                                 (thunk (cond [(css-font%? basefont) (send basefont get-weight*)]
-                                              [else (send basefont get-weight)]))))
-      (define font-lines : (Listof Symbol) (or lines (if (send basefont get-underlined) '(underline) null)))
-      (define font-stretch : Symbol
-        (cond [(symbol? stretch) stretch]
-              [(css-font%? basefont) (send basefont get-stretch)]
-              [else 'normal]))
-      (hash-ref! fontbase
-                 (list font-face font-size font-style font-weight font-stretch font-lines)
-                 (λ [] (make-object css-font% font-face font-size font-style font-weight font-stretch font-lines))))))
+(define default-font : (Parameterof Font) (make-parameter (font (generic-font-family-map 'sans-serif) 12.0 'normal 'normal 'normal)))
 
-(define racket-font-family->font-face : (-> Symbol String)
-  (lambda [family]
-    (case family
-      [(swiss default) (case os [(macosx) "Lucida Grande"] [(windows) "Tahoma"] [else "Sans"])]
-      [(roman)         (case os [(macosx) "Times"] [(windows) "Times New Roman"] [else "Serif"])]
-      [(modern)        (case os [(macosx) "Courier"] [(windows) "Courier New"] [else "Monospace"])]
-      [(decorative)    (case os [(macosx) "Helvetica"] [(windows) "Arial"] [else "Helvetica"])]
-      [(script)        (case os [(macosx) "Apple Chancery, Italic"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
-      [(symbol)        (case os [else "Symbol"])]
-      [(system)        (system-ui 'normal-control-font (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"]))]
-      [else (racket-font-family->font-face (generic-font-family-map family (default-css-font)))])))
+(define desc-font : (->* ()
+                         (Font #:size (U Symbol Nonnegative-Real) #:family (U String Symbol (Listof (U String Symbol)))
+                               #:style (Option Symbol) #:weight (U False Symbol Integer) #:stretch (Option Symbol))
+                         Font)
+  (lambda [[basefont (default-font)] #:size [size +nan.0] #:family [face null] #:weight [weight #false] #:style [style #false]
+                                     #:stretch [stretch #false]]
+    (font (cond [(string? face) face]
+                [(symbol? face) (generic-font-family-map face)]
+                [else (or (and (pair? face) (select-font-face face generic-font-family-map))
+                          (font-face basefont))])
+          (cond [(symbol? size) (generic-font-size-map size (font-size basefont) (font-size (default-font)))]
+                [(nan? size) (font-size basefont)]
+                [(single-flonum? size) (* (real->double-flonum size) (font-size basefont))]
+                [else (real->double-flonum size)])
+          (cond [(integer? weight) (integer->font-weight weight)]
+                [(css-font-weight-option? weight) weight]
+                [(eq? weight 'bolder) (memcadr css-font-weight-options (font-weight basefont))]
+                [(eq? weight 'lighter) (memcadr (reverse css-font-weight-options) (font-weight basefont))]
+                [else (font-weight basefont)])
+          (if (css-font-style-option? style) style (font-style basefont))
+          (if (css-font-stretch-option? stretch) stretch (font-stretch basefont)))))
 
-(define default-font-family->font-face : (Parameterof (-> Symbol (Option String))) (make-parameter racket-font-family->font-face))
+(define font-face->family : (-> String (Option CSS:Font-Family))
+  (lambda [face]
+    (let try-next ([families : (Listof CSS:Font-Family) css-font-generic-families])
+      (cond [(null? families) #false]
+            [(string=? face (generic-font-family-map (car families))) (car families)]
+            [else (try-next (cdr families))]))))
 
-(define font-family->font-face : (-> Symbol String)
-  (lambda [family]
-    (or ((default-font-family->font-face) family)
-        (racket-font-family->font-face family))))
-
-(define default-css-font : (Parameterof (Instance CSS-Font%))
-  (make-parameter (make-object css-font% (racket-font-family->font-face 'default))))
+(define font-face->family* : (-> String (U CSS:Font-Family String))
+  (lambda [face]
+    (or (font-face->family face) face)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define get-font-metrics : (-> (Instance Font%) (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
-                                                        Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [font]
-    (get_font_metrics (font->font-description font))))
+(define font-handle : (-> Font Font-Description)
+  (let ([&fonts : (HashTable Any (Ephemeronof Font-Description)) (make-weak-hash)])
+    (lambda [font]
+      (define &font (hash-ref &fonts font (thunk #false)))
+      (or (and &font (ephemeron-value &font))
+          (let ([desc (bitmap_create_font_desc (font-face font) (font-size font)
+                                               (font-weight->integer (font-weight font))
+                                               (font-style->integer (font-style font))
+                                               (font-stretch->integer (font-stretch font)))])
+            (hash-set! &fonts font (make-ephemeron font desc))
+            desc)))))
 
-(define get-font-metrics-lines : (-> (Instance Font%) String (Values Flonum Flonum Flonum Flonum Flonum))
+(define font-metrics-ref : (case-> [Font -> (Listof (Pairof Symbol Nonnegative-Flonum))]
+                                   [Font (Listof Symbol) -> (Listof (Pairof Symbol Nonnegative-Flonum))]
+                                   [Font Symbol -> Nonnegative-Flonum])
+  (let ([&metrics : (HashTable Any (Ephemeronof (Listof (Pairof Symbol Nonnegative-Flonum)))) (make-weak-hash)])
+    (case-lambda
+      [(font)
+       (let ([&m (hash-ref &metrics font (thunk #false))])
+         (or (and &m (ephemeron-value &m))
+             (let ([metrics (get_font_metrics (font-handle font))])
+               (hash-set! &metrics font (make-ephemeron font metrics))
+               metrics)))]
+      [(font units)
+       (let ([metrics (font-metrics-ref font)])
+         (if (symbol? units)
+             (let ([?m (assq units metrics)])
+               (if ?m (cdr ?m) +nan.0))
+             (for/list : (Listof (Pairof Symbol Nonnegative-Flonum))
+               ([m (in-list metrics)] #:when (memq (car m) units))
+               m)))])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define text-metrics-lines : (-> Font String (Values Flonum Flonum Flonum Flonum Flonum))
   (lambda [font content]
-    (get_font_metrics_lines (font->font-description font) content)))
+    (get_font_metrics_lines (font-handle font) content)))
 
-(define font->font-description : (-> (Instance Font%) Font-Description)
-  (lambda [font]
-    (cond [(css-font%? font) (send font get-source)]
-          [else (bitmap_create_font_desc (or (send font get-face)
-                                             (font-family->font-face (send font get-family)))
-                                         (smart-font-size font)
-                                         (send font get-style)
-                                         (send font get-weight)
-                                         'normal)])))
-
-(define font->decoration-lines : (-> (Instance Font%) (Listof Symbol))
-  (lambda [font]
-    (cond [(css-font%? font) (send font get-decoration-lines)]
-          [else (if (send font get-underlined) '(underline) null)])))
-
-(define text-size : (->* (String (Instance Font%)) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
+#;(define text-size : (->* (String (Instance Font%)) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [text font [combine? #true] #:with-dc [dc the-dc]]
     (define-values (w h d a) (send dc get-text-extent text font combine?))
     (values (real->double-flonum w) (real->double-flonum h))))

@@ -19,7 +19,7 @@
   (cairo_mesh_pattern_curve_to pattern (* side 2.0) side     width        (* side 2.0) tx  ty)
   (cairo_mesh_pattern_curve_to pattern (* side 2.0) rest     side         height       0.0 ty)
   (cairo_mesh_pattern_curve_to pattern side         rest     (- side)     side         0.0 0.0)
-  (cairo_mesh_pattern_set_corner_color_rgba pattern 0 1.0 0.0 0.0 1.0)
+  (cairo_mesh_pattern_set_corner_color_rgba pattern 0 2.0 0.0 0.0 1.0)
   (cairo_mesh_pattern_set_corner_color_rgba pattern 1 0.0 1.0 0.0 1.0)
   (cairo_mesh_pattern_set_corner_color_rgba pattern 2 0.0 0.0 1.0 1.0)
   (cairo_mesh_pattern_set_corner_color_rgba pattern 3 1.0 1.0 0.0 1.0)

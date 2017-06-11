@@ -3,9 +3,8 @@
 (provide (all-defined-out))
 
 (require racket/math)
-(require racket/flonum)
-(require racket/draw)
 
+(require "../../digitama/types.rkt")
 (require "../../digitama/unsafe/pangocairo.rkt")
 (require (submod "../../digitama/unsafe/font.rkt" unsafe))
 (require (submod "../../digitama/unsafe/image.rkt" unsafe))
@@ -45,7 +44,7 @@
   (cairo_set_source cr brush)
   (cairo_fill cr)
 
-  (define desc (bitmap_create_font_desc font-face (* radius 0.16) 'normal font-weight 'normal))
+  (define desc (bitmap_create_font_desc font-face (* radius 0.16) font-weight 0 4))
 
   ; Center coordinates on the middle of the region we are drawing
   (cairo_translate cr radius radius)
@@ -74,8 +73,8 @@
                                    "Here is some text that should wrap suitably to demonstrate PangoLayout's features.\n"
                                    "This paragraph should be ellipsized or truncated.")
                     width height indent spacing PANGO_WRAP_WORD_CHAR PANGO_ELLIPSIZE_END
-                    (bitmap_create_font_desc "Trebuchet MS" 16.0 'normal 'normal 'normal)
-                    '(undercurl) pattern (flvector (random) (random) (random) 0.08) density))
+                    (bitmap_create_font_desc "Trebuchet MS" 16.0 500 0 4)
+                    '(undercurl) pattern (rgba (random) (random) (random) 0.08) density))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (benchmark make-image . args)
@@ -97,6 +96,6 @@
 (define delete-attrs (pango_attr_list_new))
 (pango_attr_list_insert delete-attrs (pango_attr_strikethrough_new #true))
 
-(benchmark cairo-text-polygon "Using Pango with Cairo to Draw Regular Polygon" 150 "Courier" 'bold double-attrs)
-(benchmark cairo-text-polygon "Test Global Cairo Context and Pango Layout" 100 "Helvetica Neue" 'thin delete-attrs)
+(benchmark cairo-text-polygon "Using Pango with Cairo to Draw Regular Polygon" 150 "Courier" 700 double-attrs)
+(benchmark cairo-text-polygon "Test Global Cairo Context and Pango Layout" 100 "Helvetica Neue" 100 delete-attrs)
 (benchmark cairo-paragraph)

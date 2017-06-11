@@ -5,9 +5,11 @@
 (provide Bitmap-Surface bitmap-surface?)
 (provide Bitmap-Pattern bitmap-pattern?)
 
+(require "../types.rkt")
+
 (require typed/racket/unsafe)
 
-(define-type Bitmap-Source (U Bitmap-Surface Bitmap-Pattern FlVector))
+(define-type Bitmap-Source (U Bitmap-Surface Bitmap-Pattern FlRGBA))
 
 (module unsafe racket/base
   (provide (all-defined-out) cpointer?)
@@ -40,10 +42,10 @@
 
   (define (gradient-add-color-stop gradient position rgba)
     (cairo_pattern_add_color_stop_rgba gradient position
-                                       (unsafe-flvector-ref rgba 0)
-                                       (unsafe-flvector-ref rgba 1)
-                                       (unsafe-flvector-ref rgba 2)
-                                       (unsafe-flvector-ref rgba 3))))
+                                       (unsafe-struct*-ref rgba 0)
+                                       (unsafe-struct*-ref rgba 1)
+                                       (unsafe-struct*-ref rgba 2)
+                                       (unsafe-struct*-ref rgba 3))))
 
 (unsafe-require/typed
  (submod "." unsafe)
@@ -53,5 +55,5 @@
 
 (require/typed/provide
  (submod "." unsafe)
- [bitmap-linear-gradient-pattern (-> Real Real Real Real (Listof (Pairof Real FlVector)) Bitmap-Pattern)]
- [bitmap-radial-gradient-pattern (-> Real Real Real Real Real Real (Listof (Pairof Real FlVector)) Bitmap-Pattern)])
+ [bitmap-linear-gradient-pattern (-> Real Real Real Real (Listof (Pairof Real FlRGBA)) Bitmap-Pattern)]
+ [bitmap-radial-gradient-pattern (-> Real Real Real Real Real Real (Listof (Pairof Real FlRGBA)) Bitmap-Pattern)])

@@ -2,11 +2,13 @@
 
 (provide (all-defined-out))
 
-(require typed/racket/draw)
+(require "draw.rkt")
+(require "misc.rkt")
 
-(define-type Color+sRGB (U String Symbol Integer (Instance Color%)))
 (define-type Bitmap (Instance Bitmap%))
+(define-type Color (U Symbol Integer FlColor))
 
-(define-type Brush+Color (U Color+sRGB (Pairof Color+sRGB Brush-Style) (Instance Brush%)))
-(define-type Pen+Color (U Color+sRGB (Pairof Color+sRGB Pen-Style) (Pairof Color+sRGB Nonnegative-Real)
-                          (Pairof Color+sRGB (Pairof Nonnegative-Real Pen-Style)) (Instance Pen%)))
+(struct: flcolor : FlColor ())
+(struct: rgba : FlRGBA flcolor ([red : Flonum] [green : Flonum] [blue : Flonum] [alpha : Flonum]))
+(struct: stroke : Stroke ([color : FlRGBA] [width : Flonum] [dasharray : (Vectorof Flonum)] [dashoffset : Flonum]))
+(struct: fill : Fill ([color : FlRGBA] [width : Flonum] [style : Symbol]))

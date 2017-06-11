@@ -1,7 +1,7 @@
 #lang typed/racket
 
 (provide (all-defined-out))
-(provide (rename-out [bitmap-ellipse bitmap-circle]
+#;(provide (rename-out [bitmap-ellipse bitmap-circle]
                      [bitmap-ellipse bitmap-disk]))
 
 (require "digitama/digicore.rkt")
@@ -41,15 +41,15 @@
                   (exact->inexact (send bmp get-height))
                   (real->double-flonum (send bmp get-backing-scale)))))
 
-(define bitmap-solid : (->* () (Color+sRGB Real Positive-Real) Bitmap)
+(define bitmap-solid : (->* () (Color Real Positive-Real) Bitmap)
   (lambda [[color 'transparent] [size 1] [density (default-bitmap-density)]]
-    (define side-length : Flonum (real->double-flonum size))
-    (bitmap_pattern side-length side-length
-                    (color->source (select-color color))
+    (define side : Flonum (real->double-flonum size))
+    (bitmap_pattern side side
+                    (rgb* color)
                     (real->double-flonum density))))
 
-(define bitmap-text : (->* (String) ((Instance Font%) #:color (Option Color+sRGB)
-                                                      #:background-color (Option Color+sRGB) #:baseline (Option Pen+Color)
+#;(define bitmap-text : (->* (String) ((Instance Font%) #:color (Option Color)
+                                                      #:background-color (Option Color) #:baseline (Option Pen+Color)
                                                       #:capline (Option Pen+Color) #:meanline (Option Pen+Color)
                                                       #:ascent (Option Pen+Color) #:descent (Option Pen+Color)
                                                       #:density Positive-Real) Bitmap)
@@ -59,8 +59,8 @@
     (define-values (width height _ zero) (send the-dc get-text-extent content font #true))
     (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height density)))
     (send dc set-font font)
-    (when fgcolor (send dc set-text-foreground (select-color fgcolor)))
-    (when bgcolor (send* dc (set-text-background (select-color bgcolor)) (set-text-mode 'solid)))
+    (when fgcolor (send dc set-text-foreground (rgb* fgcolor)))
+    (when bgcolor (send* dc (set-text-background (rgb* bgcolor)) (set-text-mode 'solid)))
     (send dc draw-text content 0 0 #true)
     (when (or alcolor clcolor mlcolor blcolor dlcolor)
       (define-values (ascent capline meanline baseline descent) (get-font-metrics-lines font content))
@@ -81,8 +81,8 @@
         (send dc draw-line 0 descent width descent)))
     (or (send dc get-bitmap) (bitmap-blank))))
 
-(define bitmap-paragraph : (->* ((U String (Listof String)))
-                                ((Instance Font%) #:color Color+sRGB #:background Brush+Color
+#;(define bitmap-paragraph : (->* ((U String (Listof String)))
+                                ((Instance Font%) #:color Color #:background Brush+Color
                                                   #:max-width Real #:max-height Real #:indent Real #:spacing Real
                                                   ;#:wrap-mode Symbol #:ellipsize-mode Symbol
                                                   #:density Positive-Real)
@@ -96,11 +96,11 @@
                       (real->double-flonum indent) (real->double-flonum spacing) 2 3
                       (font->font-description font)
                       (font->decoration-lines font)
-                      (color->source (select-color fgcolor))
+                      (color->source (rgb* fgcolor))
                       (brush->source (select-brush bgcolor))
                       (real->double-flonum density))))
 
-(define bitmap-frame : (-> Bitmap [#:border (U Pen+Color (Listof Pen+Color))] [#:background Brush+Color]
+#;(define bitmap-frame : (-> Bitmap [#:border (U Pen+Color (Listof Pen+Color))] [#:background Brush+Color]
                            [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
                            [#:padding (U Nonnegative-Real (Listof Nonnegative-Real))]
                            [#:density Positive-Real] Bitmap)
@@ -155,7 +155,7 @@
       (send dc draw-bitmap bmp (+ bgx padding-left) (+ bgy padding-top))
       frame)))
 
-(define bitmap-rectangle : (->* (Real) (Real (Option Real) #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
+#;(define bitmap-rectangle : (->* (Real) (Real (Option Real) #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
   (lambda [w [h #false] [radius #false] #:color [color #x000000] #:border [border-color 'transparent]
              #:density [density (default-bitmap-density)]]
     (define width : Nonnegative-Real (max w 0.0))
@@ -169,7 +169,7 @@
           [else (send dc draw-rounded-rectangle 0 0 width height radius)])
     bmp))
 
-(define bitmap-ellipse : (->* (Real) (Real #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
+#;(define bitmap-ellipse : (->* (Real) (Real #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
   (lambda [w [h #false] #:color [color #x000000] #:border [border-color 'transparent]
              #:density [density (default-bitmap-density)]]
     (define width : Nonnegative-Real (max w 0.0))
@@ -182,7 +182,7 @@
     (send dc draw-ellipse 0 0 width height)
     bmp))
 
-(define bitmap-polygon : (->* ((Pairof (Pairof Real Real) (Listof (Pairof Real Real))))
+#;(define bitmap-polygon : (->* ((Pairof (Pairof Real Real) (Listof (Pairof Real Real))))
                               (Real Real (U 'odd-even 'winding) #:color Brush+Color #:border Pen+Color #:density Positive-Real)
                               Bitmap)
   (let ([path : (Instance DC-Path%) (make-object dc-path%)])
