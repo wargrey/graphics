@@ -4,8 +4,10 @@
 #;(provide (rename-out [bitmap-ellipse bitmap-circle]
                      [bitmap-ellipse bitmap-disk]))
 
+(require (only-in typed/racket/draw bitmap-dc% Bitmap-DC%))
+
 (require "digitama/digicore.rkt")
-(require "background.rkt")
+;(require "background.rkt")
 (require "color.rkt")
 (require "font.rkt")
 

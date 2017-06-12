@@ -26,7 +26,7 @@
      (with-syntax ([id? (format-id #'id "~a?" (syntax-e #'id))])
        #'(begin (define-type TypeU (U 'enum ...))
                 (define ids : (Pairof TypeU (Listof TypeU)) (list 'enum ...))
-                (define-predicate id? TypeU)))]
+                (define id? : (-> Any Boolean : #:+ TypeU) (λ [v] (or (eq? v 'enum) ...)))))]
     [(_ id : TypeU enum ...)
      (with-syntax ([ids (format-id #'id "~as" (syntax-e #'id))])
        #'(enumeration: [id ids] : TypeU enum ...))]))

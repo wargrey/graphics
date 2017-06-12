@@ -26,17 +26,17 @@
   (lambda [[basefont (default-font)] #:size [size +nan.0] #:family [face null] #:weight [weight #false] #:style [style #false]
                                      #:stretch [stretch #false]]
     (font (cond [(string? face) face]
-                [(symbol? face) (generic-font-family-map face)]
+                [(css-font-generic-family? face) (generic-font-family-map face)]
                 [else (or (and (pair? face) (select-font-face face generic-font-family-map))
                           (font-face basefont))])
           (cond [(symbol? size) (generic-font-size-map size (font-size basefont) (font-size (default-font)))]
                 [(nan? size) (font-size basefont)]
                 [(single-flonum? size) (* (real->double-flonum size) (font-size basefont))]
                 [else (real->double-flonum size)])
-          (cond [(integer? weight) (integer->font-weight weight)]
-                [(css-font-weight-option? weight) weight]
+          (cond [(css-font-weight-option? weight) weight]
                 [(eq? weight 'bolder) (memcadr css-font-weight-options (font-weight basefont))]
                 [(eq? weight 'lighter) (memcadr (reverse css-font-weight-options) (font-weight basefont))]
+                [(integer? weight) (integer->font-weight weight)]
                 [else (font-weight basefont)])
           (if (css-font-style-option? style) style (font-style basefont))
           (if (css-font-stretch-option? stretch) stretch (font-stretch basefont)))))

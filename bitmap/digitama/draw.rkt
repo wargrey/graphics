@@ -1,10 +1,16 @@
 #lang typed/racket/base
 
-(provide bitmap% Bitmap% make-bitmap read-bitmap get-face-list)
+(provide (all-defined-out))
 
-(require (only-in typed/racket/draw
-                  bitmap% Bitmap% make-bitmap read-bitmap
-                  get-face-list))
+(provide make-object send)
+(provide bitmap% Bitmap% make-bitmap read-bitmap)
+(provide get-face-list)
+
+(require (only-in racket/class make-object send))
+(require (only-in typed/racket/draw bitmap% Bitmap% make-bitmap read-bitmap))
+(require (only-in typed/racket/draw get-face-list))
+
+(define-type Bitmap (Instance Bitmap%))
 
 (module untyped racket/base
   (provide make-object send)

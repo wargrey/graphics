@@ -351,17 +351,18 @@
                                 [else (values n n)]))])])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-predicate positive-fixnum? Positive-Fixnum)
-(define-predicate nonnegative-fixnum? Nonnegative-Fixnum)
+(define positive-fixnum? : (-> Any Boolean : #:+ Positive-Fixnum) (λ [v] (and (fixnum? v) (fx> v 0))))
+(define nonnegative-fixnum? : (-> Any Boolean : #:+ Nonnegative-Fixnum) (λ [v] (and (fixnum? v) (fx>= v 0))))
 
-(define-predicate positive-flonum? Positive-Flonum)
-(define-predicate nonnegative-flonum? Nonnegative-Flonum)
+(define positive-flonum? : (-> Any Boolean : #:+ Positive-Flonum) (λ [v] (and (flonum? v) (fl> v 0.0))))
+(define nonnegative-flonum? : (-> Any Boolean : #:+ Nonnegative-Flonum) (λ [v] (and (flonum? v) (fl>= v 0.0))))
 
-(define-predicate positive-single-flonum? Positive-Single-Flonum)
-(define-predicate nonnegative-single-flonum? Nonnegative-Single-Flonum)
+(define positive-single-flonum? : (-> Any Boolean : #:+ Positive-Single-Flonum) (λ [v] (and (single-flonum? v) (> v 0.0f0))))
+(define negative-single-flonum? : (-> Any Boolean : #:+ Negative-Single-Flonum) (λ [v] (and (single-flonum? v) (< v 0.0f0))))
+(define nonnegative-single-flonum? : (-> Any Boolean : #:+ Nonnegative-Single-Flonum) (λ [v] (and (single-flonum? v) (>= v 0.0f0))))
 
-(define-predicate positive-byte? Positive-Byte)
-(define-predicate positive-index? Positive-Index)
+(define positive-byte? : (-> Any Boolean : #:+ Positive-Byte) (λ [v] (and (byte? v) (fx> v 0))))
+(define positive-index? : (-> Any Boolean : #:+ Positive-Index) (λ [v] (and (index? v) (fx> v 0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-css-disjoint-filter <css-boolean> #:-> (U Zero One)

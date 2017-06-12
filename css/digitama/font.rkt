@@ -14,8 +14,6 @@
 (require "../recognizer.rkt")
 (require "../racket.rkt")
 
-(define-predicate pango-font-weight? (U Symbol Integer))
-
 (define &font : (Boxof Font) (box (default-font)))
 
 (define css-font-synthesis-options : (Listof Symbol) '(weight style small-caps))
@@ -112,5 +110,10 @@
     (cond [(css+length? value) (css:length->scalar value #false)]
           [(nonnegative-flonum? value) value #|computed value is the used value|#]
           [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (css-em))]
-          [(#|negative-|#single-flonum? value) value #|computed value is *not* the used value|#]
+          [(negative-single-flonum? value) value #|computed value is *not* the used value|#]
           [else #|'normal|# +nan.0 #|computed value is *not* the used value|#])))
+
+(define font-weight*? : (-> Any Boolean : (U Symbol Nonnegative-Integer))
+  (lambda [v]
+    (or (symbol? v)
+        (exact-nonnegative-integer? v))))

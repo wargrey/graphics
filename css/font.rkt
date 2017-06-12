@@ -70,7 +70,7 @@
       (make-css-font #:size (max (min max-size font-size) min-size)
                      #:family (css-ref declared-values #true 'font-family css->font-family)
                      #:style (css-ref declared-values #true 'font-style symbol? 'normal (send inherited-font get-style))
-                     #:weight (css-ref declared-values #true 'font-weight pango-font-weight? 'normal (send inherited-font get-weight))
+                     #:weight (css-ref declared-values #true 'font-weight font-weight*? 'normal (send inherited-font get-weight))
                      #:stretch (css-ref declared-values inherited-values 'font-stretch symbol? 'normal)
                      #:lines (cond [(null? lines) lines]
                                    [else (case line-style
