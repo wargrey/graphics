@@ -1,18 +1,37 @@
 #lang typed/racket
 
-(provide (all-defined-out) transparent)
+(provide (except-out (all-defined-out) define-color-space) transparent)
+
+(require (for-syntax racket/base))
+(require (for-syntax racket/syntax))
 
 (require colorspace)
 
 (require "digitama/digicore.rkt")
 (require "digitama/color.rkt")
 
+(define-syntax (define-color-space stx)
+  (syntax-case stx [:]
+    [(_ clr ([com : real->flonum] ...) #:* rgb->clr)
+     (with-syntax ([clra (format-id #'clr "~aa" (syntax-e #'clr))]
+                   [clra? (format-id #'clr "~aa?" (syntax-e #'clr))]
+                   [clr* (format-id #'clr "~a*" (syntax-e #'clr))])
+       #'(begin (struct clra flcolor ([com : Flonum] ... [alpha : Flonum]) #:transparent)
+                (define (clr [com : Real] ... [alpha : Real 1.0]) : clra
+                  (clra (real->flonum com) ... (real->double-flonum alpha)))
+                (define (clr* [src : Color] [alpha : Real 1.0]) : clra
+                  (cond [(and (clra? src) (= alpha 1.0)) src]
+                        [else (let ([flrgba (rgb* src alpha)])
+                                (define-values (com ...) (rgb->clr (rgba-red flrgba) (rgba-green flrgba) (rgba-blue flrgba)))
+                                (clra com ... (rgba-alpha flrgba)))]))))]))
+
 (struct hexa flcolor ([digits : Index] [alpha : Flonum]) #:transparent)
 (struct xterma flcolor ([index : Byte] [alpha : Flonum]) #:transparent)
-(define-color-space hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]))
-(define-color-space hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut]))
-(define-color-space hsi ([hue : real->hue] [saturation : real->gamut] [intensity : real->gamut]))
-(define-color-space hwb ([hue : real->hue] [white : real->gamut] [black : real->gamut]))
+
+(define-color-space hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]) #:* rgb->hsl)
+(define-color-space hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut])      #:* rgb->hsv)
+(define-color-space hsi ([hue : real->hue] [saturation : real->gamut] [intensity : real->gamut])  #:* rgb->hsi)
+(define-color-space hwb ([hue : real->hue] [white : real->gamut] [black : real->gamut])           #:* rgb->hwb)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define rgb : (->* (Real Real Real) (Real) FlRGBA)
@@ -56,6 +75,3 @@
     (list (gamut->byte (rgba-red flrgba))
           (gamut->byte (rgba-green flrgba))
           (gamut->byte (rgba-blue flrgba)))))
-
-(for/list : (Listof Any) ([sgr (in-range 256)] #:when (byte? sgr))
-  (cons sgr (flcolor->byte-list (xterma sgr 1.0))))

@@ -2,21 +2,11 @@
 
 (provide (all-defined-out))
 
-(require (for-syntax racket/base))
-
 (require "unsafe/source.rkt")
 
 (require racket/fixnum)
 (require racket/flonum)
 (require racket/unsafe/ops)
-
-(define-syntax (define-color-space stx)
-  (syntax-case stx [:]
-    [(_ clr ([com : real->flonum] ...))
-     (with-syntax ([clra (datum->syntax #'clr (string->symbol (format "~aa" (syntax-e #'clr))))])
-       #'(begin (struct clra flcolor ([com : Flonum] ... [alpha : Flonum]) #:transparent)
-                (define (clr [com : Real] ... [alpha : Real 1.0]) : clra
-                  (clra (real->flonum com) ... (real->double-flonum alpha)))))]))
 
 (define default-make-currentcolor : (Parameterof (-> Color)) (make-parameter (λ [] #x000000)))
 (define fallback-color : Color ((default-make-currentcolor)))
@@ -24,8 +14,8 @@
 
 (define $ : (-> (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)) Flonum Flonum Flonum Flonum Flonum FlRGBA)
   (lambda [->rgb h s b a alpha]
-    (define-values (#{r : Flonum} #{g : Flonum} #{b : Flonum}) (->rgb h s b))
-    (rgba r g b (fl* alpha a))))
+    (define-values (flr flg flb) (->rgb h s b))
+    (rgba flr flg flb (fl* alpha a))))
 
 (define named-rgba : (->* (Symbol Flonum (-> Color Real FlRGBA)) (Boolean) (Option FlRGBA))
   (lambda [name flalpha rgb* [downcased? #false]]
