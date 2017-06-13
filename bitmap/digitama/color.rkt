@@ -4,7 +4,11 @@
 
 (require (for-syntax racket/base))
 
-(require "digicore.rkt")
+(require "unsafe/source.rkt")
+
+(require racket/fixnum)
+(require racket/flonum)
+(require racket/unsafe/ops)
 
 (define-syntax (define-color-space stx)
   (syntax-case stx [:]
@@ -31,6 +35,21 @@
           [(hash-has-key? css-color-aliases name) (named-rgba (hash-ref css-color-aliases name) flalpha rgb* #true)]
           [(eq? name 'currentcolor) (rgb* ((default-make-currentcolor)) flalpha)]
           [else #false])))
+
+(define xterm256-rgba : (-> Byte Flonum (-> Color Real FlRGBA) FlRGBA)
+  (lambda [sgr flalpha rgb*]
+    (cond [(fx>= sgr #xE8)
+           (define grey : Flonum (fl/ (real->double-flonum (+ (* (- sgr #xE8) 10) 8)) 255.0))
+           (rgba grey grey grey flalpha)]
+          [(fx>= sgr #x10)
+           (define-values (rg b) (quotient/remainder (- sgr #x10) 6))
+           (define-values (r g) (quotient/remainder rg 6))
+           (rgba (fl/ (unsafe-vector-ref xterm-color-tuples r) 255.0)
+                 (fl/ (unsafe-vector-ref xterm-color-tuples g) 255.0)
+                 (fl/ (unsafe-vector-ref xterm-color-tuples b) 255.0)
+                 flalpha)]
+          [else (or (named-rgba (unsafe-vector-ref xterm-system-colors sgr) flalpha rgb* #true)
+                    (rgb* fallback-color flalpha))])))
 
 ;;; https://drafts.csswg.org/css-color/#named-colors
 (define css-named-colors : (HashTable Symbol Index)
@@ -70,3 +89,8 @@
 (define css-color-aliases : (HashTable Symbol Symbol)
   #hasheq((grey . gray) (lightgrey . lightgray) (darkgrey . darkgray) (dimgrey . dimgray)
                         (lightslategrey . lightslategray) (slategrey . slategray) (darkslategrey . darkslategray)))
+
+(define xterm-color-tuples : (Vectorof Flonum) (vector 0.0 95.0 135.0 175.0 215.0 255.0))
+(define xterm-system-colors : (Vectorof Symbol)
+  (vector 'black 'maroon 'green 'olive 'navy 'purple 'teal 'silver
+          'grey 'red 'lime 'yellow 'blue 'fuchsia 'aqua 'white))

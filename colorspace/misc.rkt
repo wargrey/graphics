@@ -16,7 +16,7 @@
 (define real->hue : (-> Real Flonum)
   (lambda [hue]
     (cond [(nan? hue) +nan.0]
-          [(or (zero? hue) (and (positive? hue) (< hue 360))) (real->double-flonum hue)]
+          [(and (<= 0 hue) (< hue 360)) (real->double-flonum hue)]
           [else (let ([integer-part (modulo (exact-truncate hue) 360)])
                   (cond [(integer? hue) (real->double-flonum integer-part)]
                         [(positive? hue) (real->double-flonum (+ integer-part (- hue (truncate hue))))]

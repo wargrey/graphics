@@ -8,6 +8,7 @@
 (require "digitama/color.rkt")
 
 (struct hexa flcolor ([digits : Index] [alpha : Flonum]) #:transparent)
+(struct xterma flcolor ([index : Byte] [alpha : Flonum]) #:transparent)
 (define-color-space hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]))
 (define-color-space hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut]))
 (define-color-space hsi ([hue : real->hue] [saturation : real->gamut] [intensity : real->gamut]))
@@ -32,6 +33,7 @@
           [(hsva? src) ($ hsv->rgb (hsva-hue src) (hsva-saturation src) (hsva-value src) (hsva-alpha src) flalpha)]
           [(hsia? src) ($ hsi->rgb (hsia-hue src) (hsia-saturation src) (hsia-intensity src) (hsia-alpha src) flalpha)]
           [(hwba? src) ($ hwb->rgb (hwba-hue src) (hwba-white src) (hwba-black src) (hwba-alpha src) flalpha)]
+          [(xterma? src) (xterm256-rgba (xterma-index src) (fl* (xterma-alpha src) flalpha) rgb*)]
           [else (rgb* fallback-color flalpha)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -54,3 +56,6 @@
     (list (gamut->byte (rgba-red flrgba))
           (gamut->byte (rgba-green flrgba))
           (gamut->byte (rgba-blue flrgba)))))
+
+(for/list : (Listof Any) ([sgr (in-range 256)] #:when (byte? sgr))
+  (cons sgr (flcolor->byte-list (xterma sgr 1.0))))
