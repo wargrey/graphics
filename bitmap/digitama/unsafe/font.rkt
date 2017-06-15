@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) Font-Description)
+(provide (all-defined-out))
 
 (require "source.rkt")
 

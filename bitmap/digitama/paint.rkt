@@ -2,31 +2,29 @@
 
 (provide (all-defined-out))
 
-(require "draw.rkt")
 (require "misc.rkt")
 
 ;;; https://svgwg.org/svg2-draft/painting.html
+;;; racket/draw/private/dc
 
-(define-type Color (U Symbol Integer FlColor))
+(define solid-dash : (Vectorof Nonnegative-Flonum) '#())
 
-(struct: flcolor : FlColor ())
+(define-enumeration stroke-dash-style #:as Stroke-Dash-Style 
+  line-dash->array #:-> (Values (Vectorof Nonnegative-Flonum) Flonum)
+  [(dot)           (values '#(1.0 2.0)         2.0)]
+  [(dash)          (values '#(4.0 2.0)         2.0)]
+  [(short-dash)    (values '#(2.0 2.0)         2.0)]
+  [(dot-dash)      (values '#(1.0 2.0 4.0 2.0) 4.0)]
+  [#:else #|none|# (values solid-dash          0.0)])
 
-(struct: rgba : FlRGBA flcolor
-  ([red : Flonum]
-   [green : Flonum]
-   [blue : Flonum]
-   [alpha : Flonum]))
+(define-enumeration stroke-line-cap-option #:+> Stroke-Cap-Style ; order matters
+  line-cap->integer integer->line-cap
+  [0 butt round square])
 
-(struct: stroke : Stroke
-  ([color : FlRGBA]
-   [opacity : Flonum]
-   [width : Flonum]
-   [cap : Symbol]
-   [join : Symbol]
-   [dash : (Vectorof Flonum)]
-   [offset : Flonum]))
+(define-enumeration stroke-line-join-option #:+> Stroke-Join-Style ; order matters
+  line-join->integer integer->line-join
+  [0 miter round bevel])
 
-(struct: fill : Fill
-  ([color : FlRGBA]
-   [opacity : Flonum]
-   [rule : Symbol]))
+(define-enumeration fill-rule-option #:+> Fill-Rule-Style ; order matters
+  fill-rule->integer integer->fill-rule
+  [0 nonzero evenodd])

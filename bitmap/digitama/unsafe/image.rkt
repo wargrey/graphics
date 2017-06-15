@@ -1,8 +1,8 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) bitmap-surface?)
+(provide (all-defined-out))
 
-(require "../types.rkt")
+(require "../draw.rkt")
 (require "font.rkt")
 (require "source.rkt")
 

@@ -71,7 +71,7 @@
   
   bmp)
 
-(define (cairo-line-join width height line-join)
+(define (cairo-line-join width height line-join miter-limit)
   (define-values (bmp cr _w _h) (make-cairo-image width height density))
   (define line-width (/ height 3.0))
   (define delta (/ height (sqrt 2.0)))
@@ -82,6 +82,7 @@
   (cairo_rel_line_to cr delta (- delta))
   (cairo_rel_line_to cr delta delta)
   (cairo_set_line_join cr line-join)
+  (cairo_set_miter_limit cr miter-limit)
   (cairo_stroke cr)
   
   bmp)
@@ -95,6 +96,9 @@
 (cairo-line-cap 256.0 32.0 CAIRO_LINE_CAP_ROUND)
 (cairo-line-cap 256.0 32.0 CAIRO_LINE_CAP_SQUARE)
 
-(cairo-line-join 256.0 64.0 CAIRO_LINE_JOIN_MITER) ; default
-(cairo-line-join 256.0 64.0 CAIRO_LINE_JOIN_BEVEL)
-(cairo-line-join 256.0 64.0 CAIRO_LINE_JOIN_ROUND)
+(cairo-line-join 256.0 64.0 CAIRO_LINE_JOIN_MITER 10.00) ; default
+(cairo-line-join 256.0 64.0 CAIRO_LINE_JOIN_MITER 2.000)
+(cairo-line-join 256.0 64.0 CAIRO_LINE_JOIN_MITER 1.414)
+(cairo-line-join 256.0 64.0 CAIRO_LINE_JOIN_MITER -10.0)
+(cairo-line-join 256.0 64.0 CAIRO_LINE_JOIN_BEVEL 10.00)
+(cairo-line-join 256.0 64.0 CAIRO_LINE_JOIN_ROUND 10.00)
