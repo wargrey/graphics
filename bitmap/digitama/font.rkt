@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "digicore.rkt")
+(require "draw.rkt")
 (require "misc.rkt")
 
 (require "unsafe/font.rkt")
@@ -10,8 +10,8 @@
 ;;; https://drafts.csswg.org/css-fonts
 ;;; https://drafts.csswg.org/css-fonts-4
 
-(define-css-keywords [css-font-generic-family css-font-generic-families] #:as CSS:Font-Family 
-  generic-font-family-map #:-> String
+(define-enumeration [css-font-generic-family css-font-generic-families] #:as Font-Family 
+  font-family->face #:-> String
   [(sans-serif) (case os [(macosx) "Lucida Grande"] [(windows) "Tahoma"] [else "Sans"])]
   [(serif)      (case os [(macosx) "Times"] [(windows) "Times New Roman"] [else "Serif"])]
   [(monospace)  (case os [(macosx) "Courier"] [(windows) "Courier New"] [else "Monospace"])]
@@ -22,41 +22,43 @@
   [(math)       (case os [else "Symbol"])]
   [(fangsong)   (case os [(macosx) "ST FangSong"] [(windows) "FangSong"] [else "Symbol"])])
 
-(define-css-keywords css-font-size-option #:as CSS:Font-Size
-  generic-font-size-map #:-> [inheritsize Nonnegative-Flonum] [font-medium Nonnegative-Flonum] Nonnegative-Flonum
+(define-enumeration css-font-size-option #:as Font-Size
+  generic-font-size-filter #:-> [inheritsize Nonnegative-Flonum] [font-medium Nonnegative-Flonum] Nonnegative-Flonum
   [(xx-large) (* 2/1 font-medium)]
   [(x-large)  (* 3/2 font-medium)]
   [(large)    (* 6/5 font-medium)]
+  [(medium)   (* 1/1 font-medium)]
   [(small)    (* 8/9 font-medium)]
   [(x-small)  (* 3/4 font-medium)]
   [(xx-small) (* 3/5 font-medium)]
   [(smaller)  (* 5/6 inheritsize)] ; TODO: find a better function to deal with these two keywords.
   [(larger)   (* 6/5 inheritsize)] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
-  [#:else     font-medium])
+  [#:else     inheritsize])
 
-(define-css-keywords css-font-stretch-option #:+> CSS:Font-Stretch ; order matters
-  font-stretch->integer integer->font-stretch #:fallback normal
+(define-enumeration css-font-stretch-option #:+> Font-Stretch ; order matters
+  font-stretch->integer integer->font-stretch
   [0 ultra-condensed extra-condensed condensed semi-condensed normal
      semi-expanded expanded extra-expanded ultra-expanded])
 
-(define-css-keywords css-font-style-option #:+> CSS:Font-Style ; order matters
-  font-style->integer integer->font-style #:fallback normal
+(define-enumeration css-font-style-option #:+> Font-Style ; order matters
+  font-style->integer integer->font-style
   [0 normal oblique italic])
 
-(define-css-keywords css-font-weight-option #:+> CSS:Font-Weight ; order matters
-  font-weight->integer integer->font-weight #:-> Integer #:fallback normal
+(define-enumeration css-font-weight-option #:+> Font-Weight ; order matters
+  font-weight->integer integer->font-weight #:-> Integer
   [thin   100] [ultralight 200] [light    300] [semilight  350] [book 380]
   [normal 400] [medium     500] [semibold 600]
   [bold   700] [ultrabold  800] [heavy    900] [ultraheavy 1000])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define select-font-face : (-> (Listof (U String Symbol)) (-> Symbol String) (Option String))
-  (lambda [value family->face]
+(define os : Symbol (system-type 'os))
+
+(define select-font-face : (-> (Listof (U String Symbol)) (Option String))
+  (lambda [value]
     (let select ([families value])
       (and (pair? families)
            (let ([family (car families)])
-             (or (and (symbol? family) (family->face family))
-                 (and (string? family) (face-filter family))
+             (or (if (symbol? family) (font-family->face family) (face-filter family))
                  (select (cdr families))))))))
 
 (define face-filter : (-> String (Option String))
@@ -73,7 +75,7 @@
               the-set)))
       (hash-ref the-face-set (string-downcase face) (thunk #false)))))
 
-(define memcadr : (-> (Listof CSS:Font-Weight) CSS:Font-Weight CSS:Font-Weight)
+(define memcadr : (-> (Listof Font-Weight) Font-Weight Font-Weight)
   (lambda [srclist v]
     (define tail (memv v srclist))
     (cond [(false? tail) v]

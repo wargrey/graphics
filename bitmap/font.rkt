@@ -1,7 +1,6 @@
 #lang typed/racket
 
-(provide (all-defined-out))
-(provide (rename-out [generic-font-family-map font-family->face]))
+(provide (all-defined-out) font-family->face)
 
 (require "digitama/digicore.rkt")
 (require "digitama/font.rkt")
@@ -12,25 +11,25 @@
 (struct: font : Font
   ([face : String]
    [size : Nonnegative-Flonum]
-   [weight : CSS:Font-Weight]
-   [style : CSS:Font-Style]
-   [stretch : CSS:Font-Stretch]))
+   [weight : Font-Weight]
+   [style : Font-Style]
+   [stretch : Font-Stretch]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-font : (Parameterof Font) (make-parameter (font (generic-font-family-map 'sans-serif) 12.0 'normal 'normal 'normal)))
+(define default-font : (Parameterof Font) (make-parameter (font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal)))
 
 (define desc-font : (->* ()
-                         (Font #:size (U Symbol Nonnegative-Real) #:family (U String Symbol (Listof (U String Symbol)))
-                               #:style (Option Symbol) #:weight (U False Symbol Integer) #:stretch (Option Symbol))
+                         (Font #:family (U String Symbol (Listof (U String Symbol)) False) #:size (U Symbol Nonnegative-Real False)
+                               #:style (Option Symbol) #:weight (U Symbol Integer False) #:stretch (Option Symbol))
                          Font)
-  (lambda [[basefont (default-font)] #:size [size +nan.0] #:family [face null] #:weight [weight #false] #:style [style #false]
+  (lambda [[basefont (default-font)] #:family [face null] #:size [size +nan.0] #:weight [weight #false] #:style [style #false]
                                      #:stretch [stretch #false]]
-    (font (cond [(string? face) face]
-                [(css-font-generic-family? face) (generic-font-family-map face)]
-                [else (or (and (pair? face) (select-font-face face generic-font-family-map))
-                          (font-face basefont))])
-          (cond [(symbol? size) (generic-font-size-map size (font-size basefont) (font-size (default-font)))]
-                [(nan? size) (font-size basefont)]
+    (font (cond [(string? face) (or (face-filter face) (font-face basefont))]
+                [(symbol? face) (or (font-family->face face) (font-face basefont))]
+                [(pair? face) (or (select-font-face face) (font-face basefont))]
+                [else (font-face basefont)])
+          (cond [(symbol? size) (generic-font-size-filter size (font-size basefont) (font-size (default-font)))]
+                [(or (false? size) (nan? size)) (font-size basefont)]
                 [(single-flonum? size) (* (real->double-flonum size) (font-size basefont))]
                 [else (real->double-flonum size)])
           (cond [(css-font-weight-option? weight) weight]
@@ -41,14 +40,14 @@
           (if (css-font-style-option? style) style (font-style basefont))
           (if (css-font-stretch-option? stretch) stretch (font-stretch basefont)))))
 
-(define font-face->family : (-> String (Option CSS:Font-Family))
+(define font-face->family : (-> String (Option Font-Family))
   (lambda [face]
-    (let try-next ([families : (Listof CSS:Font-Family) css-font-generic-families])
+    (let try-next ([families : (Listof Font-Family) css-font-generic-families])
       (cond [(null? families) #false]
-            [(string=? face (generic-font-family-map (car families))) (car families)]
+            [(string=? face (font-family->face (car families))) (car families)]
             [else (try-next (cdr families))]))))
 
-(define font-face->family* : (-> String (U CSS:Font-Family String))
+(define font-face->family* : (-> String (U Font-Family String))
   (lambda [face]
     (or (font-face->family face) face)))
 
