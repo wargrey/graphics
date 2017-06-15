@@ -1,6 +1,7 @@
 #lang typed/racket
 
-(require (for-syntax racket/base (submod "digitama/draw.rkt" untyped)))
+(require (for-syntax racket/base))
+(require (for-syntax racket/class))
 
 (require "digitama/draw.rkt")
 

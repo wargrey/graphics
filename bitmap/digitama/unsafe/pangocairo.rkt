@@ -1,7 +1,7 @@
 #lang racket/base
 
-(provide (all-defined-out) define-enum)
-(provide (all-from-out (submod "../draw.rkt" untyped)))
+(provide (all-defined-out) make-object send is-a? define-enum)
+(provide (all-from-out racket/draw/private/bitmap))
 (provide (all-from-out ffi/unsafe racket/unsafe/ops))
 (provide (all-from-out racket/draw/unsafe/pango racket/draw/unsafe/cairo))
 
@@ -13,9 +13,11 @@
 (require racket/draw/unsafe/pango)
 (require racket/draw/unsafe/cairo)
 (require racket/draw/unsafe/cairo-lib)
+
+(require racket/draw/private/bitmap)
 (require racket/draw/private/utils)
 
-(require (submod "../draw.rkt" untyped))
+(require (only-in racket/class make-object send is-a?))
 
 (define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 (define-syntax-rule (_pfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
@@ -54,6 +56,7 @@
 (define-pango pango_layout_set_ellipsize (_pfun PangoLayout _int -> _void))
 
 (define-cairo cairo_new_sub_path (_cfun _cairo_t -> _void))
+(define-cairo cairo_set_miter_limit (_cfun _cairo_t _double* -> _void))
 (define-cairo cairo_pattern_create_mesh (_cfun -> _cairo_pattern_t) #:wrap (allocator cairo_pattern_destroy))
 (define-cairo cairo_mesh_pattern_begin_patch (_cfun _cairo_pattern_t -> _void))
 (define-cairo cairo_mesh_pattern_move_to (_cfun _cairo_pattern_t _double* _double* -> _void))
