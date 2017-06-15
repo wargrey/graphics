@@ -1,7 +1,7 @@
 #lang typed/racket
 
 (provide (except-out (all-defined-out) define-color-space))
-(provide hilite transparent)
+(provide transparent hilite black)
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
