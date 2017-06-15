@@ -11,6 +11,7 @@
 (define default-make-currentcolor : (Parameterof (-> Color)) (make-parameter (λ [] #x000000)))
 (define fallback-color : Color ((default-make-currentcolor)))
 (define transparent : FlRGBA (rgba 0.0 0.0 0.0 0.0))
+(define hilite : FlRGBA (rgba 0.0 0.0 0.0 0.3))
 
 (define $ : (-> (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)) Flonum Flonum Flonum Flonum Flonum FlRGBA)
   (lambda [->rgb h s b a alpha]
