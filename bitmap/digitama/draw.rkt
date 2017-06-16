@@ -11,3 +11,13 @@
 (require (only-in typed/racket/draw get-face-list))
 
 (define-type Bitmap (Instance Bitmap%))
+(define-type Color (U Symbol Integer FlColor))
+
+(define-type Paint paint)
+(define-type FlColor flcolor)
+(define-type FlRGBA rgba)
+
+(struct paint () #:transparent)
+(struct flcolor () #:transparent)
+(struct rgba flcolor ([red : Flonum] [green : Flonum] [blue : Flonum] [alpha : Flonum]) #:transparent)
+

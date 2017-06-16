@@ -9,15 +9,7 @@
 
 (require typed/racket/unsafe)
 
-(define-type Paint-Property paint-property)
-(define-type FlColor flcolor)
-(define-type FlRGBA rgba)
 (define-type Bitmap-Source (U Bitmap-Surface Bitmap-Pattern FlRGBA))
-(define-type Color (U Symbol Integer FlColor))
-
-(struct paint-property () #:transparent)
-(struct flcolor () #:transparent)
-(struct rgba flcolor ([red : Flonum] [green : Flonum] [blue : Flonum] [alpha : Flonum]) #:transparent)
 
 (module unsafe racket/base
   (provide (all-defined-out) cpointer?)

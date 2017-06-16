@@ -6,6 +6,7 @@
 (require "digitama/font.rkt")
 (require "digitama/misc.rkt")
 
+(require "digitama/unsafe/source.rkt")
 (require "digitama/unsafe/font.rkt")
 
 (struct: font : Font
@@ -52,7 +53,7 @@
     (or (font-face->family face) face)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define font-handle : (-> Font Font-Description)
+(define font-description : (-> Font Font-Description)
   (let ([&fonts : (HashTable Any (Ephemeronof Font-Description)) (make-weak-hash)])
     (lambda [font]
       (define &font (hash-ref &fonts font (thunk #false)))
@@ -72,7 +73,7 @@
       [(font)
        (let ([&m (hash-ref &metrics font (thunk #false))])
          (or (and &m (ephemeron-value &m))
-             (let ([metrics (get_font_metrics (font-handle font))])
+             (let ([metrics (get_font_metrics (font-description font))])
                (hash-set! &metrics font (make-ephemeron font metrics))
                metrics)))]
       [(font units)
@@ -87,7 +88,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define text-metrics-lines : (-> Font String (Values Flonum Flonum Flonum Flonum Flonum))
   (lambda [font content]
-    (get_font_metrics_lines (font-handle font) content)))
+    (get_font_metrics_lines (font-description font) content)))
 
 #;(define text-size : (->* (String (Instance Font%)) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [text font [combine? #true] #:with-dc [dc the-dc]]

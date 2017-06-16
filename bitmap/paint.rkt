@@ -4,16 +4,16 @@
 
 (require "color.rkt")
 
+(require "digitama/draw.rkt")
 (require "digitama/paint.rkt")
 (require "digitama/misc.rkt")
-(require "digitama/unsafe/source.rkt")
 
 ;;; https://svgwg.org/svg2-draft/painting.html
 (define-type CSS-Gradient-Stop-Color (Pairof Real FlRGBA))
 (define-type CSS-Linear-Gradient (Vector Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 (define-type CSS-Radial-Gradient (Vector Real Real Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 
-(struct: stroke : Stroke
+(struct: stroke : Stroke paint
   ([color : FlRGBA]
    [width : Flonum]
    [cap : Stroke-Cap-Style]
@@ -22,7 +22,7 @@
    [dash : (Vectorof Nonnegative-Flonum)]
    [offset : Flonum]))
 
-(struct: fill : Fill
+(struct: fill : Fill paint
   ([color : FlRGBA]
    [rule : Fill-Rule-Style]))
 
