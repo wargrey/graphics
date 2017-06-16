@@ -1,6 +1,6 @@
 #lang racket/base
 
-(provide (all-defined-out) make-object send is-a? define-enum)
+(provide (all-defined-out) make-object send is-a?)
 (provide (all-from-out racket/draw/private/bitmap))
 (provide (all-from-out ffi/unsafe racket/unsafe/ops))
 (provide (all-from-out racket/draw/unsafe/pango racket/draw/unsafe/cairo))
@@ -13,9 +13,7 @@
 (require racket/draw/unsafe/pango)
 (require racket/draw/unsafe/cairo)
 (require racket/draw/unsafe/cairo-lib)
-
 (require racket/draw/private/bitmap)
-(require racket/draw/private/utils)
 
 (require (only-in racket/class make-object send is-a?))
 
@@ -35,9 +33,6 @@
 (define PangoLayout (_cpointer 'PangoLayout))
 (define PangoFontDescription (_cpointer 'PangoFontDescription))
 (define PangoAttribute (_cpointer 'PangoAttribute))
-
-(define-enum 0 PANGO_WRAP_WORD PANGO_WRAP_CHAR PANGO_WRAP_WORD_CHAR)
-(define-enum 0 PANGO_ELLIPSIZE_NONE PANGO_ELLIPSIZE_START PANGO_ELLIPSIZE_MIDDLE PANGO_ELLIPSIZE_END)
 
 (define _gunichar (make-ctype _uint32 char->integer integer->char))
 
@@ -73,8 +68,8 @@
   (lambda [flwidth flheight [density 1.0]]
     (define surface
       (cairo_image_surface_create CAIRO_FORMAT_ARGB32
-                                  (unsafe-fxmax (unsafe-fl->fx (unsafe-fl* flwidth density)) 1)
-                                  (unsafe-fxmax (unsafe-fl->fx (unsafe-fl* flheight density)) 1)))
+                                  (unsafe-fxmax (~fx (unsafe-fl* flwidth density)) 1)
+                                  (unsafe-fxmax (~fx (unsafe-fl* flheight density)) 1)))
     
     (define cr (cairo_create surface))
     (unless (unsafe-fl= density 1.0) (cairo_scale cr density density))
@@ -83,8 +78,8 @@
 
 (define make-cairo-image
   (lambda [flwidth flheight [density 1.0]]
-    (define width (unsafe-fxmax (unsafe-fl->fx flwidth) 1))
-    (define height (unsafe-fxmax (unsafe-fl->fx flheight) 1))
+    (define width (unsafe-fxmax (~fx flwidth) 1))
+    (define height (unsafe-fxmax (~fx flheight) 1))
     (define img (make-bitmap width height #:backing-scale density))
     (define cr (cairo_create (send img get-handle)))
     (unless (unsafe-fl= density 1.0) (cairo_scale cr density density))
@@ -114,7 +109,7 @@
 
 (define cairo-image->bitmap
   (lambda [cr flwidth flheight [density 1.0]]
-    (define-values (width height) (values (unsafe-fxmax (unsafe-fl->fx flwidth) 1) (unsafe-fxmax (unsafe-fl->fx flheight) 1)))
+    (define-values (width height) (values (unsafe-fxmax (~fx flwidth) 1) (unsafe-fxmax (~fx flheight) 1)))
     (define img (make-object bitmap% width height #false #true density))
     (define-values (src dest) (values (cairo_get_target cr) (send img get-handle)))
     (define-values (src-data dest-data) (values (cairo_image_surface_get_data src) (cairo_image_surface_get_data dest)))
@@ -134,9 +129,13 @@
     (log-message (current-logger) 'warning 'exn:css:bitmap message src)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define ~fx
+  (lambda [fl]
+    (unsafe-fl->fx (round fl))))
+
 (define ~size
   (lambda [size]
-    (unsafe-fx* (unsafe-fl->fx size)
+    (unsafe-fx* (~fx size)
                 PANGO_SCALE)))
 
 (define ~metric

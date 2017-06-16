@@ -16,11 +16,11 @@
   (define &logical (make-PangoRectangle 0 0 0 0))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_create_font_desc font-face font-size weight# style# stretch#)
+  (define (bitmap_create_font_desc font-face font-size weight style stretch)
     (define font-desc (pango_font_description_from_string font-face))
-    (unless (eq? weight# 400) (pango_font_description_set_weight font-desc weight#)) ; TODO: NORMAL or MEDIUM
-    (unless (eq? style# 0) (pango_font_description_set_style font-desc style#))
-    (unless (eq? stretch# 4) (pango_font_description_set_stretch font-desc stretch#))
+    (when weight (pango_font_description_set_weight font-desc weight))
+    (when style (pango_font_description_set_style font-desc style))
+    (when stretch (pango_font_description_set_stretch font-desc stretch))
     (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
     font-desc)
   
@@ -92,6 +92,6 @@
 (require/typed/provide
  (submod "." unsafe)
  [system-ui (-> Symbol String String)]
- [bitmap_create_font_desc (-> String Real Integer Integer Integer Font-Description)]
+ [bitmap_create_font_desc (-> String Real (Option Integer) (Option Integer) (Option Integer) Font-Description)]
  [get_font_metrics_lines (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]
  [get_font_metrics (-> Font-Description (Listof (Pairof Symbol Nonnegative-Flonum)))])

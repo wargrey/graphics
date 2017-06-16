@@ -1,5 +1,6 @@
 #lang racket
 
+(require racket/draw/private/utils)
 (require "../../digitama/unsafe/pangocairo.rkt")
 
 (define-enum 0 CAIRO_FONT_SLANT_NORMAL CAIRO_FONT_SLANT_ITALIC CAIRO_FONT_SLANT_OBLIQUE)

@@ -90,19 +90,14 @@
      #xFF))
   
   (define (bitmap_create_layout cr max-width max-height indent spacing wrap-mode ellipsize-mode)
-    (define-values (smart-height smart-emode)
-      (cond [(eq? ellipsize-mode 'PANGO_ELLIPSIZE_NONE) (values -1 ellipsize-mode)]
-            [(or (eq? max-height +inf.0) (eq? max-height -inf.0)) (values -1 PANGO_ELLIPSIZE_NONE)]
-            [(unsafe-fl< max-height 0.0) (values (unsafe-fl->fx max-height) ellipsize-mode)]
-            [else (values (~size max-height) ellipsize-mode)]))
     (define context (the-context))
     (define layout (pango_layout_new context))
-    (pango_layout_set_width layout (if (eq? max-width +inf.0) -1 (~size (unsafe-flmax max-width 0.0))))
-    (pango_layout_set_height layout smart-height)
+    (pango_layout_set_width layout (if (flonum? max-width) (~size max-width) max-width))
+    (pango_layout_set_height layout (if (flonum? max-height) (~size max-height) max-height))
     (pango_layout_set_indent layout (~size indent))   ; nan? and infinite? are 0s
     (pango_layout_set_spacing layout (~size spacing)) ; pango knows the min spacing
     (pango_layout_set_wrap layout wrap-mode)
-    (pango_layout_set_ellipsize layout smart-emode)
+    (pango_layout_set_ellipsize layout ellipsize-mode)
     layout)
 
   (define the-context
@@ -124,5 +119,5 @@
  [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Bitmap-Source Flonum Bitmap)]
- [bitmap_paragraph (-> String Flonum Flonum Flonum Flonum Integer Integer Font-Description (Listof Symbol)
+ [bitmap_paragraph (-> String (U Integer Flonum) (U Integer Flonum) Flonum Flonum Integer Integer Font-Description (Listof Symbol)
                        Bitmap-Source Bitmap-Source Flonum Bitmap)])

@@ -4,25 +4,13 @@
 #;(provide (rename-out [bitmap-ellipse bitmap-circle]
                      [bitmap-ellipse bitmap-disk]))
 
-(require (only-in typed/racket/draw bitmap-dc% Bitmap-DC%))
-
+(require "digitama/unsafe/source.rkt")
+(require "digitama/unsafe/image.rkt")
 (require "digitama/digicore.rkt")
-;(require "background.rkt")
+(require "digitama/font.rkt")
+(require "paint.rkt")
 (require "color.rkt")
 (require "font.rkt")
-
-(require "digitama/unsafe/image.rkt")
-
-(define bitmap-dc : (->* ((-> (Instance Bitmap-DC%) Nonnegative-Flonum Nonnegative-Flonum Any))
-                         (Nonnegative-Real (Option Nonnegative-Real) Positive-Real)
-                         Bitmap)
-  (lambda [draw-with [w 0] [h #false] [density (default-bitmap-density)]]
-    (define bmp : Bitmap (bitmap-blank w h density))
-    (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
-    (send dc set-smoothing 'aligned)
-    ;;; let the device deal with non-integer size
-    (draw-with dc (real->double-flonum w) (real->double-flonum (or h w)))
-    bmp))
 
 (define bitmap-rectangular : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Real] Bitmap)
   (lambda [width height λargb #:density [density (default-bitmap-density)]]
@@ -83,24 +71,26 @@
         (send dc draw-line 0 descent width descent)))
     (or (send dc get-bitmap) (bitmap-blank))))
 
-#;(define bitmap-paragraph : (->* ((U String (Listof String)))
-                                ((Instance Font%) #:color Color #:background Brush+Color
-                                                  #:max-width Real #:max-height Real #:indent Real #:spacing Real
-                                                  ;#:wrap-mode Symbol #:ellipsize-mode Symbol
-                                                  #:density Positive-Real)
+(define bitmap-paragraph : (->* ((U String (Listof String)))
+                                (Font #:color Bitmap-Source #:fill Bitmap-Source
+                                      #:max-width Real #:max-height Real #:indent Real #:spacing Real
+                                      #:wrap-mode Paragraph-Wrap-Mode #:ellipsize-mode Paragraph-Ellipsize-Mode
+                                      #:lines (Listof Text-Decoration-Line) #:density Positive-Real)
                                 Bitmap)
-  (lambda [words [font (default-css-font)] #:color [fgcolor #x000000] #:background [bgcolor 'transparent]
+  (lambda [words [font (default-font)] #:color [fgsource black] #:fill [bgsource transparent]
                  #:max-width [max-width +inf.0] #:max-height [max-height +inf.0] #:indent [indent 0.0] #:spacing [spacing 0.0]
-                 ;#:wrap-mode [wrap 'PANGO_WRAP_WORD_CHAR] #:ellipsize-mode [ellipsize 'PANGO_ELLIPSIZE_END]
-                 #:density [density (default-bitmap-density)]]
-    (bitmap_paragraph (if (list? words) (string-join words "\n") words)
-                      (real->double-flonum max-width) (real->double-flonum max-height)
-                      (real->double-flonum indent) (real->double-flonum spacing) 2 3
-                      (font->font-description font)
-                      (font->decoration-lines font)
-                      (color->source (rgb* fgcolor))
-                      (brush->source (select-brush bgcolor))
-                      (real->double-flonum density))))
+                 #:wrap-mode [wrap-mode 'word-char] #:ellipsize-mode [ellipsize-mode 'end]
+                 #:lines [lines null] #:density [density (default-bitmap-density)]]
+    (define smart-width : (U Flonum -1) (if (or (infinite? max-width) (nan? max-width)) -1 (real->double-flonum max-width)))
+    (define-values (smart-height smart-emode)
+      (cond [(eq? ellipsize-mode 'none) (values -1 ellipsize-mode)]
+            [(or (infinite? max-height) (nan? max-height)) (values -1 'none)]
+            [(negative? max-height) (values (exact-round max-height) ellipsize-mode)]
+            [else (values (real->double-flonum max-height) ellipsize-mode)]))
+    (bitmap_paragraph (if (list? words) (string-join words "\n") words) smart-width smart-height
+                      (real->double-flonum indent) (real->double-flonum spacing) ; +nan.0 and +inf.0 are 0s
+                      (paragraph-wrap-mode->integer wrap-mode) (paragraph-ellipsize-mode->integer smart-emode)
+                      (font-description font) lines fgsource bgsource (real->double-flonum density))))
 
 #;(define bitmap-frame : (-> Bitmap [#:border (U Pen+Color (Listof Pen+Color))] [#:background Brush+Color]
                            [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
@@ -158,7 +148,7 @@
       frame)))
 
 #;(define bitmap-rectangle : (->* (Real) (Real (Option Real) #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
-  (lambda [w [h #false] [radius #false] #:color [color #x000000] #:border [border-color 'transparent]
+  (lambda [w [h #false] [radius #false] #:color [color black] #:border [border-color 'transparent]
              #:density [density (default-bitmap-density)]]
     (define width : Nonnegative-Real (max w 0.0))
     (define height : Nonnegative-Real (max (or h w) 0.0))
@@ -172,7 +162,7 @@
     bmp))
 
 #;(define bitmap-ellipse : (->* (Real) (Real #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
-  (lambda [w [h #false] #:color [color #x000000] #:border [border-color 'transparent]
+  (lambda [w [h #false] #:color [color black] #:border [border-color 'transparent]
              #:density [density (default-bitmap-density)]]
     (define width : Nonnegative-Real (max w 0.0))
     (define height : Nonnegative-Real (max (or h w) 0.0))
@@ -188,7 +178,7 @@
                               (Real Real (U 'odd-even 'winding) #:color Brush+Color #:border Pen+Color #:density Positive-Real)
                               Bitmap)
   (let ([path : (Instance DC-Path%) (make-object dc-path%)])
-    (lambda [vertices [xoffset 0.0] [yoffset 0.0] [style 'odd-even] #:color [color #x000000] #:border [border-color 'transparent]
+    (lambda [vertices [xoffset 0.0] [yoffset 0.0] [style 'odd-even] #:color [color black] #:border [border-color 'transparent]
                       #:density [density (default-bitmap-density)]]
       (define count : Integer (length vertices))
       (send path reset)

@@ -7,6 +7,8 @@
 (require "constructor.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require (only-in typed/racket/draw bitmap-dc% Bitmap-DC%))
+
 (define make-pin : (-> Symbol (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap))
   (lambda [order]
     (λ [bmp1 x1 y1 bmp2 [x2 0] [y2 0]]

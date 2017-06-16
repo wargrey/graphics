@@ -10,7 +10,7 @@
 ;;; https://drafts.csswg.org/css-fonts
 ;;; https://drafts.csswg.org/css-fonts-4
 
-(define-enumeration [css-font-generic-family css-font-generic-families] #:as Font-Family 
+(define-enumeration* [css-font-generic-family css-font-generic-families] #:as Font-Family 
   font-family->face #:-> String
   [(sans-serif) (case os [(macosx) "Lucida Grande"] [(windows) "Tahoma"] [else "Sans"])]
   [(serif)      (case os [(macosx) "Times"] [(windows) "Times New Roman"] [else "Serif"])]
@@ -22,7 +22,7 @@
   [(math)       (case os [else "Symbol"])]
   [(fangsong)   (case os [(macosx) "ST FangSong"] [(windows) "FangSong"] [else "Symbol"])])
 
-(define-enumeration css-font-size-option #:as Font-Size
+(define-enumeration* css-font-size-option #:as Font-Size
   generic-font-size-filter #:-> [inheritsize Nonnegative-Flonum] [font-medium Nonnegative-Flonum] Nonnegative-Flonum
   [(xx-large) (* 2/1 font-medium)]
   [(x-large)  (* 3/2 font-medium)]
@@ -35,20 +35,31 @@
   [(larger)   (* 6/5 inheritsize)] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
   [#:else     inheritsize])
 
-(define-enumeration css-font-stretch-option #:+> Font-Stretch ; order matters
+(define-enumeration* css-font-stretch-option #:+> Font-Stretch ; order matters
   font-stretch->integer integer->font-stretch
   [0 ultra-condensed extra-condensed condensed semi-condensed normal
      semi-expanded expanded extra-expanded ultra-expanded])
 
-(define-enumeration css-font-style-option #:+> Font-Style ; order matters
+(define-enumeration* css-font-style-option #:+> Font-Style ; order matters
   font-style->integer integer->font-style
   [0 normal oblique italic])
 
-(define-enumeration css-font-weight-option #:+> Font-Weight ; order matters
+(define-enumeration* css-font-weight-option #:+> Font-Weight ; order matters
   font-weight->integer integer->font-weight #:-> Integer
   [thin   100] [ultralight 200] [light    300] [semilight  350] [book 380]
   [normal 400] [medium     500] [semibold 600]
   [bold   700] [ultrabold  800] [heavy    900] [ultraheavy 1000])
+
+(define-enumeration* paragraph-wrap-mode #:+> Paragraph-Wrap-Mode ; order matters
+  paragraph-wrap-mode->integer integer->paragraph-wrap-mode
+  [-1 none word char word-char])
+
+(define-enumeration* paragraph-ellipsize-mode #:+> Paragraph-Ellipsize-Mode ; order matters
+  paragraph-ellipsize-mode->integer integer->paragraph-ellipsize-mode
+  [0 none start middle end])
+
+(define-enumeration text-decoration-line : Text-Decoration-Line
+  line-through underline underdouble undercurl)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define os : Symbol (system-type 'os))

@@ -58,10 +58,13 @@
     (lambda [font]
       (define &font (hash-ref &fonts font (thunk #false)))
       (or (and &font (ephemeron-value &font))
-          (let ([desc (bitmap_create_font_desc (font-face font) (font-size font)
-                                               (font-weight->integer (font-weight font))
-                                               (font-style->integer (font-style font))
-                                               (font-stretch->integer (font-stretch font)))])
+          (let-values ([(weight style stretch) (values (font-weight font) (font-style font) (font-stretch font))])
+            (define desc : Font-Description
+              (bitmap_create_font_desc (font-face font)
+                                       (font-size font)
+                                       (and (not (eq? weight 'normal)) (font-weight->integer weight))
+                                       (and (not (eq? style 'normal)) (font-style->integer style))
+                                       (and (not (eq? stretch 'normal)) (font-stretch->integer stretch))))
             (hash-set! &fonts font (make-ephemeron font desc))
             desc)))))
 

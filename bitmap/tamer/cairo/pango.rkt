@@ -4,10 +4,12 @@
 
 (require racket/math)
 
-(require "../../digitama/types.rkt")
+(require "../../digitama/draw.rkt")
+(require "../../constructor.rkt")
+(require "../../font.rkt")
+
 (require "../../digitama/unsafe/pangocairo.rkt")
 (require (submod "../../digitama/unsafe/font.rkt" unsafe))
-(require (submod "../../digitama/unsafe/image.rkt" unsafe))
 
 (define (cairo-text-polygon words radius font-face font-weight font-attrs)
   (define-values (bmp cr width height) (make-cairo-image (* 2.0 radius) (* 2.0 radius) density))
@@ -69,12 +71,13 @@
   (cairo_pattern_add_color_stop_rgba pattern 0.0 1.0 0.0 0.0 1.0)
   (cairo_pattern_add_color_stop_rgba pattern 0.5 0.0 1.0 0.0 1.0)
   (cairo_pattern_add_color_stop_rgba pattern 1.0 0.0 0.0 1.0 1.0)
-  (bitmap_paragraph (string-append (format "Layout Box(~a, ~a):\n" width height)
-                                   "Here is some text that should wrap suitably to demonstrate PangoLayout's features.\n"
-                                   "This paragraph should be ellipsized or truncated.")
-                    width height indent spacing PANGO_WRAP_WORD_CHAR PANGO_ELLIPSIZE_END
-                    (bitmap_create_font_desc "Trebuchet MS" 16.0 500 0 4)
-                    '(undercurl) pattern (rgba (random) (random) (random) 0.08) density))
+  (bitmap-paragraph (list (format "Layout Box(~a, ~a):" width height)
+                          "Here is some text that should wrap suitably to demonstrate PangoLayout's features."
+                          "This paragraph should be ellipsized or truncated.")
+                    (desc-font #:family "Trebuchet MS" #:size 16.0 #:weight 'medium #:style 'normal #:stretch 'normal)
+                    #:max-width width #:max-height height #:indent indent #:spacing spacing
+                    #:wrap-mode 'word-char #:ellipsize-mode 'end #:lines '(undercurl)
+                    #:color pattern #:fill (rgba (random) (random) (random) 0.2) #:density density))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (benchmark make-image . args)
