@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require "source.rkt")
+(require "require.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -89,7 +90,7 @@
       
       (values x y width height layout-height))))
 
-(require/typed/provide
+(unsafe/require/provide
  (submod "." unsafe)
  [system-ui (-> Symbol String String)]
  [bitmap_create_font_desc (-> String Real (Option Integer) (Option Integer) (Option Integer) Font-Description)]

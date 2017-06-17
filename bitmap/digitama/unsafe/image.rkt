@@ -5,6 +5,7 @@
 (require "../draw.rkt")
 (require "font.rkt")
 (require "source.rkt")
+(require "require.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -22,7 +23,7 @@
     (define total (unsafe-bytes-length buffer))
     (define W (unsafe-fxquotient stride 4))
     (define H (unsafe-fxquotient total stride))
-    (let y-loop ([y 0]) ; the bigger the more efficient
+    (let y-loop ([y 0])
       (when (unsafe-fx< y H)
         (let x-loop ([x 0] [idx (unsafe-fx* y stride)])
           (when (unsafe-fx< x W)
@@ -94,8 +95,8 @@
     (define layout (pango_layout_new context))
     (pango_layout_set_width layout (if (flonum? max-width) (~size max-width) max-width))
     (pango_layout_set_height layout (if (flonum? max-height) (~size max-height) max-height))
-    (pango_layout_set_indent layout (~size indent))   ; nan? and infinite? are 0s
-    (pango_layout_set_spacing layout (~size spacing)) ; pango knows the min spacing
+    (pango_layout_set_indent layout (~size indent))   ; (~size nan.0) == (~size inf.0) == 0
+    (pango_layout_set_spacing layout (~size spacing)) ; pango knows the minimum spacing
     (pango_layout_set_wrap layout wrap-mode)
     (pango_layout_set_ellipsize layout ellipsize-mode)
     layout)
@@ -114,7 +115,7 @@
 
 (define-type XYWH->ARGB (-> Nonnegative-Fixnum Nonnegative-Fixnum Positive-Fixnum Positive-Fixnum (Values Real Real Real Real)))
 
-(require/typed/provide
+(unsafe/require/provide
  (submod "." unsafe)
  [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]

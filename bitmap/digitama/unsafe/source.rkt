@@ -1,13 +1,9 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) bitmap%?)
-(provide Font-Description font-description?)
-(provide Bitmap-Surface bitmap-surface?)
-(provide Bitmap-Pattern bitmap-pattern?)
+(provide (all-defined-out))
 
 (require "../draw.rkt")
-
-(require typed/racket/unsafe)
+(require "require.rkt")
 
 (define-type Bitmap-Source (U Bitmap-Surface Bitmap-Pattern FlRGBA))
 
@@ -47,14 +43,12 @@
                                        (unsafe-struct*-ref rgba 2)
                                        (unsafe-struct*-ref rgba 3))))
 
-(unsafe-require/typed
+(unsafe/require/provide
  (submod "." unsafe)
- [#:opaque Font-Description font-description?]
- [#:opaque Bitmap-Surface bitmap-surface?]
- [#:opaque Bitmap-Pattern bitmap-pattern?]
- [bitmap%? (-> Any Boolean : Bitmap)])
-
-(require/typed/provide
- (submod "." unsafe)
+ [#:opaque
+  [Font-Description font-description?]
+  [Bitmap-Surface bitmap-surface?]
+  [Bitmap-Pattern bitmap-pattern?]]
+ [bitmap%? (-> Any Boolean : Bitmap)]
  [bitmap-linear-gradient-pattern (-> Real Real Real Real (Listof (Pairof Real FlRGBA)) Bitmap-Pattern)]
  [bitmap-radial-gradient-pattern (-> Real Real Real Real Real Real (Listof (Pairof Real FlRGBA)) Bitmap-Pattern)])
