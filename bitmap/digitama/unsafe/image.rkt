@@ -12,8 +12,6 @@
   
   (require "pangocairo.rkt")
   (require (submod "font.rkt" unsafe))
-
-  (require racket/unsafe/ops)
   
   (define (λbitmap width height density λargb)
     (define-values (img cr w h) (make-cairo-image width height density))
@@ -44,6 +42,38 @@
 
   (define (bitmap_pattern width height background density)
     (define-values (img cr w h) (make-cairo-image* width height background density))
+    (cairo_destroy cr)
+    img)
+
+  (define (bitmap_rectangle flwidth flheight border background density cap->int join->int)
+    (define-values (img cr w h) (make-cairo-image flwidth flheight density))
+    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define inset (unsafe-fl/ line-width 2.0))
+    (cairo_rectangle cr inset inset (unsafe-fl- flwidth line-width) (unsafe-fl- flheight line-width))
+    (cairo-render cr border background cap->int join->int)
+    (cairo_destroy cr)
+    img)
+
+  (define (bitmap_rounded_rectangle flwidth flheight radius border background density cap->int join->int)
+    (define-values (img cr width height) (make-cairo-image flwidth flheight density))
+    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define inset (unsafe-fl/ line-width 2.0))
+    (define flradius
+      (let ([short (unsafe-flmin flwidth flheight)]
+            [flradius (real->double-flonum radius)])
+        (unsafe-flmin (unsafe-fl/ short 2.0)
+                      (cond [(not (single-flonum? radius)) flradius]
+                            [else (unsafe-fl* short flradius)]))))
+    (define tlset (unsafe-fl+ inset flradius))
+    (define xrset (unsafe-fl- (unsafe-fl- flwidth inset) flradius))
+    (define ybset (unsafe-fl- (unsafe-fl- flheight inset) flradius))
+    (cairo_new_sub_path cr) ; not neccessary
+    (cairo_arc cr xrset tlset flradius (~radian -90.0) 0.0)
+    (cairo_arc cr xrset ybset flradius 0.0             (~radian 90.0))
+    (cairo_arc cr tlset ybset flradius (~radian 90.0)  (~radian 180.0))
+    (cairo_arc cr tlset tlset flradius (~radian 180.0) (~radian 270.0))
+    (cairo_close_path cr)
+    (cairo-render cr border background cap->int join->int)
     (cairo_destroy cr)
     img)
   
@@ -114,11 +144,14 @@
               (unbox &context)))))))
 
 (define-type XYWH->ARGB (-> Nonnegative-Fixnum Nonnegative-Fixnum Positive-Fixnum Positive-Fixnum (Values Real Real Real Real)))
+(define-type Racket->C (-> Symbol (Option Integer)))
 
 (unsafe/require/provide
  (submod "." unsafe)
  [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Bitmap-Source Flonum Bitmap)]
+ [bitmap_rectangle (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Racket->C Racket->C Bitmap)]
+ [bitmap_rounded_rectangle (-> Flonum Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Racket->C Racket->C Bitmap)]
  [bitmap_paragraph (-> String (U Integer Flonum) (U Integer Flonum) Flonum Flonum Integer Integer Font-Description (Listof Symbol)
                        Bitmap-Source Bitmap-Source Flonum Bitmap)])

@@ -8,6 +8,7 @@
 (require "digitama/unsafe/image.rkt")
 (require "digitama/digicore.rkt")
 (require "digitama/font.rkt")
+(require "digitama/paint.rkt")
 (require "paint.rkt")
 (require "color.rkt")
 (require "font.rkt")
@@ -147,19 +148,26 @@
       (send dc draw-bitmap bmp (+ bgx padding-left) (+ bgy padding-top))
       frame)))
 
-#;(define bitmap-rectangle : (->* (Real) (Real (Option Real) #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
-  (lambda [w [h #false] [radius #false] #:color [color black] #:border [border-color 'transparent]
+(define bitmap-square : (->* (Real)
+                             ((Option Real) #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Real)
+                             Bitmap)
+  (lambda [w [radius #false] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
+    (define width : Flonum (real->double-flonum w))
+    (if (and radius (positive? radius))
+        (bitmap_rounded_rectangle width width radius border pattern (real->double-flonum density) line-cap->integer line-join->integer)
+        (bitmap_rectangle width width border pattern (real->double-flonum density) line-cap->integer line-join->integer))))
+
+(define bitmap-rectangle : (->* (Real)
+                                (Real (Option Real) #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Real)
+                                Bitmap)
+  (lambda [w [h #false] [radius #false]
+             #:border [border (default-stroke)] #:fill [pattern #false]
              #:density [density (default-bitmap-density)]]
-    (define width : Nonnegative-Real (max w 0.0))
-    (define height : Nonnegative-Real (max (or h w) 0.0))
-    (define bmp : Bitmap (bitmap-blank width height density))
-    (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
-    (send dc set-smoothing 'aligned)
-    (send dc set-pen (select-pen border-color))
-    (send dc set-brush (select-brush color))
-    (cond [(false? radius) (send dc draw-rectangle 0 0 width height)]
-          [else (send dc draw-rounded-rectangle 0 0 width height radius)])
-    bmp))
+    (define width : Flonum (real->double-flonum w))
+    (define height : Flonum (if (not h) width (real->double-flonum h)))
+    (if (and radius (positive? radius))
+        (bitmap_rounded_rectangle width height radius border pattern (real->double-flonum density) line-cap->integer line-join->integer)
+        (bitmap_rectangle width height border pattern (real->double-flonum density) line-cap->integer line-join->integer))))
 
 #;(define bitmap-ellipse : (->* (Real) (Real #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
   (lambda [w [h #false] #:color [color black] #:border [border-color 'transparent]

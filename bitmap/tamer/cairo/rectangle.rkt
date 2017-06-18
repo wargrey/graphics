@@ -1,6 +1,9 @@
 #lang racket
 
 (require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../color.rkt")
+(require "../../paint.rkt")
+(require "../../constructor.rkt")
 
 ;;; https://www.cairographics.org/samples/curve_rectangle/
 
@@ -50,30 +53,11 @@
   
   bmp)
 
-(define (cairo-rounded-rectangle x0 y0 width height aspect line-width)
-  (define-values (x1 y1) (values (+ x0 width) (+ y0 height)))
-  (define-values (bmp cr _w _h) (make-cairo-image (+ x1 line-width) (+ y1 line-width) density))
-  (define radius (/ height 10.0 aspect))
-
-  ;(cairo_new_sub_path cr) ; not neccessary
-  (cairo_arc cr (- x1 radius) (+ y0 radius) radius (degrees->radians -90.0) 0.0)
-  (cairo_arc cr (- x1 radius) (- y1 radius) radius 0.0 (degrees->radians 90.0))
-  (cairo_arc cr (+ x0 radius) (- y1 radius) radius (degrees->radians 90.0) (degrees->radians 180.0))
-  (cairo_arc cr (+ x0 radius) (+ y0 radius) radius (degrees->radians 180.0) (degrees->radians 270.0))
-  (cairo_close_path cr)
-  
-  (cairo_set_source_rgb cr 0.5 0.5 1.0)
-  (cairo_fill_preserve cr)
-  (cairo_set_source_rgba cr 0.5 0.0 0.0 0.5)
-  (cairo_set_line_width cr line-width)
-  (cairo_stroke cr)
-  
-  bmp)
-
 (cairo-curve-rectangle 10.24 10.24 81.92 81.92 40.96 1.00)
 (cairo-curve-rectangle 10.24 10.24 81.92 81.92 40.96 2.00)
 (cairo-curve-rectangle 10.24 10.24 81.92 81.92 40.96 8.00)
 
-(cairo-rounded-rectangle 10.24 10.24 81.92 81.92 1.0 1.00)
-(cairo-rounded-rectangle 10.24 10.24 81.92 81.92 1.0 2.00)
-(cairo-rounded-rectangle 10.24 10.24 81.92 81.92 1.0 8.00)
+(bitmap-square 64.0 10.24 #:border (desc-stroke #:color black #:width 0) #:fill hilite)
+(bitmap-square 64.0 10.24 #:border (desc-stroke #:color black #:width 1) #:fill hilite)
+(bitmap-square 64.0 10.24 #:border (desc-stroke #:color black #:width 2) #:fill hilite)
+(bitmap-rectangle 64.0 32.0 0.25f0 #:border (desc-stroke #:color black #:width 4 #:dash 'dot-dash) #:fill hilite)

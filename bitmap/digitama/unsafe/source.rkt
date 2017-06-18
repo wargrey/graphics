@@ -12,8 +12,6 @@
   
   (require "pangocairo.rkt")
 
-  (require racket/unsafe/ops)
-
   (define (bitmap%? v) (is-a? v bitmap%))
   (define (font-description? v) (cpointer*? v 'PangoFontDescription))
   (define (bitmap-surface? v) (cpointer*? v 'cairo_surface_t))

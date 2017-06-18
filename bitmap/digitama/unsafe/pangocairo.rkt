@@ -1,9 +1,10 @@
 #lang racket/base
 
-(provide (all-defined-out) make-object send is-a?)
+(provide (all-defined-out))
 (provide (all-from-out racket/draw/private/bitmap))
 (provide (all-from-out ffi/unsafe racket/unsafe/ops))
 (provide (all-from-out racket/draw/unsafe/pango racket/draw/unsafe/cairo))
+(provide (all-from-out racket/math) make-object send is-a?)
 
 (require ffi/unsafe)
 (require ffi/unsafe/define)
@@ -16,6 +17,7 @@
 (require racket/draw/private/bitmap)
 
 (require (only-in racket/class make-object send is-a?))
+(require racket/math)
 
 (define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 (define-syntax-rule (_pfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
@@ -107,6 +109,24 @@
              [else (cairo-warn-message src "unrecognized source pointer: ~a" (cpointer-tag src))])]
           [else (cairo-warn-message src "unrecognized source type: ~a" src)])))
 
+(define cairo-set-stroke
+  (lambda [cr stroke cap->c join->c]
+    (cairo-set-source cr (unsafe-struct-ref stroke 0))
+    (cairo_set_line_width cr (unsafe-struct-ref stroke 1))
+    (cairo_set_line_cap cr (cap->c (unsafe-struct-ref stroke 2)))
+    (cairo_set_line_join cr (join->c (unsafe-struct-ref stroke 3)))
+    (cairo_set_miter_limit cr (unsafe-struct-ref stroke 4))
+    (cairo_set_dash cr (unsafe-struct-ref stroke 5) (unsafe-struct-ref stroke 6))))
+
+(define cairo-render
+  (lambda [cr border background cap->int join->int]
+    (unless (not background)
+      (cairo-set-source cr background)
+      (cairo_fill_preserve cr))
+    (unless (not border)
+      (cairo-set-stroke cr border cap->int join->int)
+      (cairo_stroke cr))))    
+
 (define cairo-image->bitmap
   (lambda [cr flwidth flheight [density 1.0]]
     (define-values (width height) (values (unsafe-fxmax (~fx flwidth) 1) (unsafe-fxmax (~fx flheight) 1)))
@@ -147,3 +167,8 @@
   (lambda [&rect]
     (values (PangoRectangle-x &rect) (PangoRectangle-y &rect)
             (PangoRectangle-width &rect) (PangoRectangle-height &rect))))
+
+(define ~radian
+  (lambda [degree]
+    (unsafe-fl* degree
+                (unsafe-fl/ pi 180.0))))

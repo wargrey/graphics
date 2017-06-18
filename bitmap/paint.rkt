@@ -13,11 +13,15 @@
 (define-type CSS-Linear-Gradient (Vector Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 (define-type CSS-Radial-Gradient (Vector Real Real Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 
+(define-type Stroke-Paint (U Color Bitmap Stroke))
+(define-type Fill-Paint (U Color Bitmap Fill))
+
+; Don't forget unsafe/pangocairo.rkt if changing the Stroke
 (struct: stroke : Stroke paint
   ([color : FlRGBA]
    [width : Flonum]
-   [cap : Stroke-Cap-Style]
-   [join : Stroke-Join-Style]
+   [linecap : Stroke-Cap-Style]
+   [linejoin : Stroke-Join-Style]
    [miterlimit : Flonum]
    [dash : (Vectorof Nonnegative-Flonum)]
    [offset : Flonum]))
@@ -27,7 +31,7 @@
    [rule : Fill-Rule-Style]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-stroke : (Parameterof Stroke) (make-parameter (stroke transparent 1.0 'butt 'miter +nan.0 solid-dash 0.0)))
+(define default-stroke : (Parameterof Stroke) (make-parameter (stroke transparent 1.0 'butt 'miter 10.0 solid-dash 0.0)))
 (define default-fill : (Parameterof Fill) (make-parameter (fill black 'nonzero)))
 
 (define desc-stroke : (->* ()
@@ -40,14 +44,14 @@
     (define-values (linejoin miterlimit)
       (cond [(stroke-line-join-option? join) (values join (stroke-miterlimit baseline))]
             [(real? join) (values 'miter (real->double-flonum join))]
-            [else (values (stroke-join baseline) (stroke-miterlimit baseline))]))
+            [else (values (stroke-linejoin baseline) (stroke-miterlimit baseline))]))
     (define-values (dasharray preoffset)
       (cond [(stroke-dash-style? dash) (line-dash->array dash)]
             [else (values (stroke-dash baseline) (stroke-offset baseline))]))
     (define dashoffset : Flonum (if (not offset) preoffset (real->double-flonum offset)))
     (stroke (rgb* (if (not color) (stroke-color baseline) color) opacity)
             (if (real? width) (real->double-flonum width) (stroke-width baseline))
-            (if (stroke-line-cap-option? cap) cap (stroke-cap baseline))
+            (if (stroke-line-cap-option? cap) cap (stroke-linecap baseline))
             linejoin miterlimit dasharray dashoffset)))
 
 (define desc-fill : (->* () (Fill #:color (Option Color) #:opacity Real #:rule (Option Symbol)) Fill)

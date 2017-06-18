@@ -53,6 +53,27 @@
   
   bmp)
 
+(define (cairo-line-width width height line-width)
+  (define-values (bmp cr _w _h) (make-cairo-image width height density))
+
+  (cairo_set_line_width cr line-width)
+  (cairo_rectangle cr 0.0 0.0 width height)
+  (cairo_set_source_rgba cr 0.0 1.0 0.0 1.0)
+  (cairo_stroke cr)
+
+  (cairo_move_to cr (/ line-width 2.0) (/ line-width 2.0))
+  (cairo_rel_line_to cr width 0.0)
+  (cairo_set_source_rgba cr 0.0 0.0 0.0 1.0)
+  (cairo_stroke cr)
+
+  (cairo_set_line_width cr 1.0)
+  (cairo_move_to cr 1.0 1.0)
+  (cairo_rel_line_to cr 0.0 height)
+  (cairo_set_source_rgba cr 0.0 0.0 0.0 1.0)
+  (cairo_stroke cr)
+  
+  bmp)
+
 (define (cairo-line-cap width height line-cap)
   (define-values (bmp cr _w _h) (make-cairo-image width height density))
   (define spacing (/ height 2.0))
@@ -91,6 +112,10 @@
 
 (cairo-fill-style 256.0 128.0 CAIRO_FILL_RULE_EVEN_ODD 4.0 #(0.0 0.7 0.0))
 (cairo-fill-style 256.0 128.0 CAIRO_FILL_RULE_WINDING  4.0 #(0.0 0.0 0.9))
+
+(cairo-line-width 256.0 128.0 2.0)
+(cairo-line-width 256.0 128.0 1.0)
+(cairo-line-width 256.0 128.0 0.4)
 
 (cairo-line-cap 256.0 32.0 CAIRO_LINE_CAP_BUTT)    ; default
 (cairo-line-cap 256.0 32.0 CAIRO_LINE_CAP_ROUND)
