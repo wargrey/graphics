@@ -151,23 +151,26 @@
 (define bitmap-square : (->* (Real)
                              ((Option Real) #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Real)
                              Bitmap)
-  (lambda [w [radius #false] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
+  (lambda [w [radius #false] #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
     (define width : Flonum (real->double-flonum w))
     (if (and radius (positive? radius))
-        (bitmap_rounded_rectangle width width radius border pattern (real->double-flonum density) line-cap->integer line-join->integer)
-        (bitmap_rectangle width width border pattern (real->double-flonum density) line-cap->integer line-join->integer))))
+        (bitmap_rounded_rectangle width width radius border pattern (real->double-flonum density))
+        (bitmap_rectangle width width border pattern (real->double-flonum density)))))
 
 (define bitmap-rectangle : (->* (Real)
                                 (Real (Option Real) #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Real)
                                 Bitmap)
-  (lambda [w [h #false] [radius #false]
-             #:border [border (default-stroke)] #:fill [pattern #false]
+  (lambda [w [h #false] [radius #false] #:border [border (default-stroke)] #:fill [pattern black]
              #:density [density (default-bitmap-density)]]
     (define width : Flonum (real->double-flonum w))
     (define height : Flonum (if (not h) width (real->double-flonum h)))
     (if (and radius (positive? radius))
-        (bitmap_rounded_rectangle width height radius border pattern (real->double-flonum density) line-cap->integer line-join->integer)
-        (bitmap_rectangle width height border pattern (real->double-flonum density) line-cap->integer line-join->integer))))
+        (bitmap_rounded_rectangle width height radius border pattern (real->double-flonum density))
+        (bitmap_rectangle width height border pattern (real->double-flonum density)))))
+
+(define bitmap-stadium : (-> Real Real [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)] [#:density Positive-Real] Bitmap)
+  (lambda [length radius #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
+    (bitmap_stadium (real->double-flonum length) radius border pattern (real->double-flonum density))))
 
 #;(define bitmap-ellipse : (->* (Real) (Real #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
   (lambda [w [h #false] #:color [color black] #:border [border-color 'transparent]

@@ -2,7 +2,12 @@
 
 (provide (all-defined-out))
 
+(require typed/racket/unsafe)
+
 (require "misc.rkt")
+
+(unsafe-provide (rename-out [line-cap->integer linecap->integer]))
+(unsafe-provide (rename-out [line-join->integer linejoin->integer]))
 
 ;;; https://svgwg.org/svg2-draft/painting.html
 ;;; racket/draw/private/dc

@@ -107,25 +107,7 @@
              [(cairo_pattern_t) (cairo_set_source cr src)]
              [(cairo_surface_t) (cairo_set_source_surface cr src 0.0 0.0)]
              [else (cairo-warn-message src "unrecognized source pointer: ~a" (cpointer-tag src))])]
-          [else (cairo-warn-message src "unrecognized source type: ~a" src)])))
-
-(define cairo-set-stroke
-  (lambda [cr stroke cap->c join->c]
-    (cairo-set-source cr (unsafe-struct-ref stroke 0))
-    (cairo_set_line_width cr (unsafe-struct-ref stroke 1))
-    (cairo_set_line_cap cr (cap->c (unsafe-struct-ref stroke 2)))
-    (cairo_set_line_join cr (join->c (unsafe-struct-ref stroke 3)))
-    (cairo_set_miter_limit cr (unsafe-struct-ref stroke 4))
-    (cairo_set_dash cr (unsafe-struct-ref stroke 5) (unsafe-struct-ref stroke 6))))
-
-(define cairo-render
-  (lambda [cr border background cap->int join->int]
-    (unless (not background)
-      (cairo-set-source cr background)
-      (cairo_fill_preserve cr))
-    (unless (not border)
-      (cairo-set-stroke cr border cap->int join->int)
-      (cairo_stroke cr))))    
+          [else (cairo-warn-message src "unrecognized source type: ~a" src)])))    
 
 (define cairo-image->bitmap
   (lambda [cr flwidth flheight [density 1.0]]

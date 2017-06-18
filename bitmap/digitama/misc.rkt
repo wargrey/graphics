@@ -7,6 +7,8 @@
 (require (for-syntax racket/sequence))
 (require (for-syntax syntax/parse))
 
+(define-type Racket->C (-> Symbol (Option Integer)))
+
 (define-syntax (require/provide stx)
   (syntax-case stx []
     [(_ spec ...)

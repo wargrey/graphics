@@ -11,6 +11,7 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
+  (require "paint.rkt")
   (require (submod "font.rkt" unsafe))
   
   (define (λbitmap width height density λargb)
@@ -45,25 +46,22 @@
     (cairo_destroy cr)
     img)
 
-  (define (bitmap_rectangle flwidth flheight border background density cap->int join->int)
+  (define (bitmap_rectangle flwidth flheight border background density)
     (define-values (img cr w h) (make-cairo-image flwidth flheight density))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset (unsafe-fl/ line-width 2.0))
     (cairo_rectangle cr inset inset (unsafe-fl- flwidth line-width) (unsafe-fl- flheight line-width))
-    (cairo-render cr border background cap->int join->int)
+    (cairo-render cr border background)
     (cairo_destroy cr)
     img)
 
-  (define (bitmap_rounded_rectangle flwidth flheight radius border background density cap->int join->int)
+  (define (bitmap_rounded_rectangle flwidth flheight radius border background density)
     (define-values (img cr width height) (make-cairo-image flwidth flheight density))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset (unsafe-fl/ line-width 2.0))
     (define flradius
-      (let ([short (unsafe-flmin flwidth flheight)]
-            [flradius (real->double-flonum radius)])
-        (unsafe-flmin (unsafe-fl/ short 2.0)
-                      (cond [(not (single-flonum? radius)) flradius]
-                            [else (unsafe-fl* short flradius)]))))
+      (let ([short (unsafe-flmin flwidth flheight)])
+        (unsafe-flmin (unsafe-fl/ short 2.0) (radius-normalize radius short))))
     (define tlset (unsafe-fl+ inset flradius))
     (define xrset (unsafe-fl- (unsafe-fl- flwidth inset) flradius))
     (define ybset (unsafe-fl- (unsafe-fl- flheight inset) flradius))
@@ -73,7 +71,22 @@
     (cairo_arc cr tlset ybset flradius (~radian 90.0)  (~radian 180.0))
     (cairo_arc cr tlset tlset flradius (~radian 180.0) (~radian 270.0))
     (cairo_close_path cr)
-    (cairo-render cr border background cap->int join->int)
+    (cairo-render cr border background)
+    (cairo_destroy cr)
+    img)
+
+  (define (bitmap_stadium fllength radius border background density)
+    (define flradius (radius-normalize radius fllength))
+    (define flheight (unsafe-fl* flradius 2.0))
+    (define flwidth (unsafe-fl+ fllength flheight))
+    (define-values (img cr width height) (make-cairo-image flwidth flheight density))
+    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define inset-radius (unsafe-fl- flradius (unsafe-fl/ line-width 2.0)))
+    (cairo_new_sub_path cr) ; not neccessary
+    (cairo_arc_negative cr flradius                       flradius inset-radius (~radian -90.0) (~radian 90.0))
+    (cairo_arc_negative cr (unsafe-fl+ flradius fllength) flradius inset-radius (~radian 90.0)  (~radian 270.0))
+    (cairo_close_path cr)
+    (cairo-render cr border background)
     (cairo_destroy cr)
     img)
   
@@ -114,11 +127,13 @@
     (unsafe-fxmin
      (unsafe-fxmax
       (unsafe-fl->fx
-       (unsafe-fl*
-        (real->double-flonum v)
-        255.0))
+       (unsafe-fl* (real->double-flonum v) 255.0))
       #x00)
      #xFF))
+
+  (define (radius-normalize radius 100%)
+    (define flradius (real->double-flonum radius))
+    (if (single-flonum? radius) (unsafe-fl* flradius 100%) flradius))
   
   (define (bitmap_create_layout cr max-width max-height indent spacing wrap-mode ellipsize-mode)
     (define context (the-context))
@@ -144,14 +159,14 @@
               (unbox &context)))))))
 
 (define-type XYWH->ARGB (-> Nonnegative-Fixnum Nonnegative-Fixnum Positive-Fixnum Positive-Fixnum (Values Real Real Real Real)))
-(define-type Racket->C (-> Symbol (Option Integer)))
 
 (unsafe/require/provide
  (submod "." unsafe)
  [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Bitmap-Source Flonum Bitmap)]
- [bitmap_rectangle (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Racket->C Racket->C Bitmap)]
- [bitmap_rounded_rectangle (-> Flonum Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Racket->C Racket->C Bitmap)]
+ [bitmap_rectangle (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
+ [bitmap_rounded_rectangle (-> Flonum Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
+ [bitmap_stadium (-> Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_paragraph (-> String (U Integer Flonum) (U Integer Flonum) Flonum Flonum Integer Integer Font-Description (Listof Symbol)
                        Bitmap-Source Bitmap-Source Flonum Bitmap)])
