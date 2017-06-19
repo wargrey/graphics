@@ -3,7 +3,10 @@
 (provide (all-defined-out))
 
 (require "digitama/unsafe/source.rkt")
-(require "digitama/unsafe/image.rkt")
+(require "digitama/unsafe/bitmap.rkt")
+(require "digitama/unsafe/shape.rkt")
+(require "digitama/unsafe/text.rkt")
+
 (require "digitama/digicore.rkt")
 (require "digitama/font.rkt")
 (require "paint.rkt")
