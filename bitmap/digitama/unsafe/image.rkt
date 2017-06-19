@@ -46,6 +46,27 @@
     (cairo_destroy cr)
     img)
 
+  (define (bitmap_arc radius start end border background density)
+    (define fllength (unsafe-fl* radius 2.0))
+    (define-values (img cr w h) (make-cairo-image fllength fllength density))
+    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (cairo_translate cr radius radius)
+    (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl/ line-width 2.0)) start end)
+    (cairo-render cr border background)
+    (cairo_destroy cr)
+    img)
+
+  (define (bitmap_elliptical_arc width height start end border background density)
+    (define radius (unsafe-fl/ width 2.0))
+    (define-values (img cr w h) (make-cairo-image width height density))
+    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (cairo_translate cr radius (unsafe-fl/ height 2.0))
+    (cairo_scale cr 1.0 (unsafe-fl/ height width))
+    (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl/ line-width 2.0)) start end)
+    (cairo-render cr border background)
+    (cairo_destroy cr)
+    img)
+  
   (define (bitmap_rectangle flwidth flheight border background density)
     (define-values (img cr w h) (make-cairo-image flwidth flheight density))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
@@ -56,7 +77,7 @@
     img)
 
   (define (bitmap_rounded_rectangle flwidth flheight radius border background density)
-    (define-values (img cr width height) (make-cairo-image flwidth flheight density))
+    (define-values (img cr w h) (make-cairo-image flwidth flheight density))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset (unsafe-fl/ line-width 2.0))
     (define flradius
@@ -66,10 +87,10 @@
     (define xrset (unsafe-fl- (unsafe-fl- flwidth inset) flradius))
     (define ybset (unsafe-fl- (unsafe-fl- flheight inset) flradius))
     (cairo_new_sub_path cr) ; not neccessary
-    (cairo_arc cr xrset tlset flradius (~radian -90.0) 0.0)
-    (cairo_arc cr xrset ybset flradius 0.0             (~radian 90.0))
-    (cairo_arc cr tlset ybset flradius (~radian 90.0)  (~radian 180.0))
-    (cairo_arc cr tlset tlset flradius (~radian 180.0) (~radian 270.0))
+    (cairo_arc cr xrset tlset flradius -pi/2 0.0)
+    (cairo_arc cr xrset ybset flradius 0.0   pi/2)
+    (cairo_arc cr tlset ybset flradius pi/2  pi)
+    (cairo_arc cr tlset tlset flradius pi    3pi/2)
     (cairo_close_path cr)
     (cairo-render cr border background)
     (cairo_destroy cr)
@@ -79,12 +100,12 @@
     (define flradius (radius-normalize radius fllength))
     (define flheight (unsafe-fl* flradius 2.0))
     (define flwidth (unsafe-fl+ fllength flheight))
-    (define-values (img cr width height) (make-cairo-image flwidth flheight density))
+    (define-values (img cr w h) (make-cairo-image flwidth flheight density))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset-radius (unsafe-fl- flradius (unsafe-fl/ line-width 2.0)))
     (cairo_new_sub_path cr) ; not neccessary
-    (cairo_arc_negative cr flradius                       flradius inset-radius (~radian -90.0) (~radian 90.0))
-    (cairo_arc_negative cr (unsafe-fl+ flradius fllength) flradius inset-radius (~radian 90.0)  (~radian 270.0))
+    (cairo_arc_negative cr flradius                       flradius inset-radius -pi/2 pi/2)
+    (cairo_arc_negative cr (unsafe-fl+ flradius fllength) flradius inset-radius pi/2  3pi/2)
     (cairo_close_path cr)
     (cairo-render cr border background)
     (cairo_destroy cr)
@@ -123,6 +144,8 @@
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define-values (-pi/2 pi/2 3pi/2 2pi) (values (~radian -90.0) (~radian 90.0) (~radian 270.0) (unsafe-fl* pi 2.0)))
+  
   (define (argb->datum v)
     (unsafe-fxmin
      (unsafe-fxmax
@@ -165,6 +188,8 @@
  [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Bitmap-Source Flonum Bitmap)]
+ [bitmap_arc (-> Flonum Real Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
+ [bitmap_elliptical_arc (-> Flonum Flonum Real Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_rectangle (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_rounded_rectangle (-> Flonum Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_stadium (-> Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]

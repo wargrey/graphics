@@ -1,14 +1,11 @@
 #lang typed/racket
 
 (provide (all-defined-out))
-#;(provide (rename-out [bitmap-ellipse bitmap-circle]
-                     [bitmap-ellipse bitmap-disk]))
 
 (require "digitama/unsafe/source.rkt")
 (require "digitama/unsafe/image.rkt")
 (require "digitama/digicore.rkt")
 (require "digitama/font.rkt")
-(require "digitama/paint.rkt")
 (require "paint.rkt")
 (require "color.rkt")
 (require "font.rkt")
@@ -172,18 +169,15 @@
   (lambda [length radius #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
     (bitmap_stadium (real->double-flonum length) radius border pattern (real->double-flonum density))))
 
-#;(define bitmap-ellipse : (->* (Real) (Real #:color Brush+Color #:border Pen+Color #:density Positive-Real) Bitmap)
-  (lambda [w [h #false] #:color [color black] #:border [border-color 'transparent]
-             #:density [density (default-bitmap-density)]]
-    (define width : Nonnegative-Real (max w 0.0))
-    (define height : Nonnegative-Real (max (or h w) 0.0))
-    (define bmp : Bitmap (bitmap-blank width height density))
-    (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
-    (send dc set-smoothing 'aligned)
-    (send dc set-pen (select-pen border-color))
-    (send dc set-brush (select-brush color))
-    (send dc draw-ellipse 0 0 width height)
-    bmp))
+(define bitmap-circle : (-> Real [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)] [#:density Positive-Real] Bitmap)
+  (lambda [radius #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
+    (bitmap_arc (real->double-flonum radius) 0.0 (fl* pi 2.0) border pattern (real->double-flonum density))))
+
+(define bitmap-ellipse : (->* (Real) (Real #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Real) Bitmap)
+  (lambda [w [h #false] #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
+    (define width : Flonum (real->double-flonum w))
+    (define height : Flonum (if (not h) width (real->double-flonum h)))
+    (bitmap_elliptical_arc width height 0.0 (fl* pi 2.0) border pattern (real->double-flonum density))))
 
 #;(define bitmap-polygon : (->* ((Pairof (Pairof Real Real) (Listof (Pairof Real Real))))
                               (Real Real (U 'odd-even 'winding) #:color Brush+Color #:border Pen+Color #:density Positive-Real)
