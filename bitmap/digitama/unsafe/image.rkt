@@ -46,7 +46,7 @@
     (cairo_destroy cr)
     img)
 
-  (define (bitmap_arc radius start end border background density)
+  (define (bitmap_arc radius border background density [start 0.0] [end 2pi])
     (define fllength (unsafe-fl* radius 2.0))
     (define-values (img cr w h) (make-cairo-image fllength fllength density))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
@@ -56,13 +56,18 @@
     (cairo_destroy cr)
     img)
 
-  (define (bitmap_elliptical_arc width height start end border background density)
-    (define radius (unsafe-fl/ width 2.0))
+  (define (bitmap_elliptical_arc width height border background density [start 0.0] [end 2pi])
     (define-values (img cr w h) (make-cairo-image width height density))
+    (define-values (width/2 height/2) (values (unsafe-fl/ width 2.0) (unsafe-fl/ height 2.0)))
+    (define radius (unsafe-flmin width/2 height/2))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
-    (cairo_translate cr radius (unsafe-fl/ height 2.0))
-    (cairo_scale cr 1.0 (unsafe-fl/ height width))
+    (cairo_translate cr width/2 height/2)
+    (cairo_save cr)
+    (if (unsafe-fl= radius height/2)
+        (cairo_scale cr (unsafe-fl/ width height) 1.0)
+        (cairo_scale cr 1.0 (unsafe-fl/ height width)))
     (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl/ line-width 2.0)) start end)
+    (cairo_restore cr)
     (cairo-render cr border background)
     (cairo_destroy cr)
     img)
@@ -188,8 +193,8 @@
  [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Bitmap-Source Flonum Bitmap)]
- [bitmap_arc (-> Flonum Real Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
- [bitmap_elliptical_arc (-> Flonum Flonum Real Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
+ [bitmap_arc (->* (Flonum (Option Paint) (Option Bitmap-Source) Flonum) (Real Real) Bitmap)]
+ [bitmap_elliptical_arc (->* (Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum) (Real Real) Bitmap)]
  [bitmap_rectangle (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_rounded_rectangle (-> Flonum Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_stadium (-> Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
