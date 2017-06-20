@@ -13,18 +13,16 @@
 (require "color.rkt")
 (require "font.rkt")
 
-(define bitmap-rectangular : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Real] Bitmap)
+(define bitmap-rectangular : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
   (lambda [width height λargb #:density [density (default-bitmap-density)]]
-    (λbitmap (real->double-flonum width)
-             (real->double-flonum height)
-             (real->double-flonum density)
-             λargb)))
+    (λbitmap (real->double-flonum width) (real->double-flonum height)
+             density λargb)))
 
-(define bitmap-blank : (->* () (Real (Option Real) Positive-Real) Bitmap)
-  (lambda [[width 0.0] [height #false] [density (default-bitmap-density)]]
+(define bitmap-blank : (->* () (Real (Option Real) #:density Positive-Flonum) Bitmap)
+  (lambda [[width 0.0] [height #false] #:density [density (default-bitmap-density)]]
     (bitmap_blank (real->double-flonum width)
                   (real->double-flonum (or height width))
-                  (real->double-flonum density))))
+                  density)))
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
   (lambda [bmp]
@@ -32,53 +30,30 @@
                   (exact->inexact (send bmp get-height))
                   (real->double-flonum (send bmp get-backing-scale)))))
 
-(define bitmap-solid : (->* () (Color Real Positive-Real) Bitmap)
-  (lambda [[color 'transparent] [size 1] [density (default-bitmap-density)]]
+(define bitmap-solid : (->* () (Color Real #:density Positive-Flonum) Bitmap)
+  (lambda [[color 'transparent] [size 1] #:density [density (default-bitmap-density)]]
     (define side : Flonum (real->double-flonum size))
-    (bitmap_pattern side side
-                    (rgb* color)
-                    (real->double-flonum density))))
+    (bitmap_pattern side side (rgb* color) density)))
 
-#;(define bitmap-text : (->* (String) ((Instance Font%) #:color (Option Color)
-                                                      #:background-color (Option Color) #:baseline (Option Pen+Color)
-                                                      #:capline (Option Pen+Color) #:meanline (Option Pen+Color)
-                                                      #:ascent (Option Pen+Color) #:descent (Option Pen+Color)
-                                                      #:density Positive-Real) Bitmap)
-  (lambda [content [font (default-css-font)] #:color [fgcolor #false] #:background-color [bgcolor #false]
+(define bitmap-text : (->* (String)
+                           (Font #:color Bitmap-Source #:background-color Bitmap-Source #:lines (Listof Text-Decoration-Line)
+                                 #:baseline (Option Bitmap-Source) #:capline (Option Bitmap-Source) #:meanline (Option Bitmap-Source)
+                                 #:ascent (Option Bitmap-Source) #:descent (Option Bitmap-Source)
+                                 #:density Positive-Flonum)
+                           Bitmap)
+  (lambda [content [font (default-font)] #:color [fgcolor black] #:background-color [bgcolor transparent] #:lines [lines null]
                    #:ascent [alcolor #false] #:descent [dlcolor #false] #:capline [clcolor #false] #:meanline [mlcolor #false]
                    #:baseline [blcolor #false] #:density [density (default-bitmap-density)]]
-    (define-values (width height _ zero) (send the-dc get-text-extent content font #true))
-    (define dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (bitmap-blank width height density)))
-    (send dc set-font font)
-    (when fgcolor (send dc set-text-foreground (rgb* fgcolor)))
-    (when bgcolor (send* dc (set-text-background (rgb* bgcolor)) (set-text-mode 'solid)))
-    (send dc draw-text content 0 0 #true)
-    (when (or alcolor clcolor mlcolor blcolor dlcolor)
-      (define-values (ascent capline meanline baseline descent) (get-font-metrics-lines font content))
-      (unless (false? alcolor)
-        (send dc set-pen (select-pen alcolor))
-        (send dc draw-line 0 ascent width ascent))
-      (unless (false? clcolor)
-        (send dc set-pen (select-pen clcolor))
-        (send dc draw-line 0 capline width capline))
-      (unless (false? mlcolor)
-        (send dc set-pen (select-pen mlcolor))
-        (send dc draw-line 0 meanline width meanline))
-      (unless (false? blcolor)
-        (send dc set-pen (select-pen blcolor))
-        (send dc draw-line 0 baseline width baseline))
-      (unless (false? dlcolor)
-        (send dc set-pen (select-pen dlcolor))
-        (send dc draw-line 0 descent width descent)))
-    (or (send dc get-bitmap) (bitmap-blank))))
+    (bitmap_text content (font-description font) lines fgcolor bgcolor
+                 alcolor clcolor mlcolor blcolor dlcolor density)))
 
 (define bitmap-paragraph : (->* ((U String (Listof String)))
-                                (Font #:color Bitmap-Source #:fill Bitmap-Source
+                                (Font #:color Bitmap-Source #:background-color Bitmap-Source
                                       #:max-width Real #:max-height Real #:indent Real #:spacing Real
                                       #:wrap-mode Paragraph-Wrap-Mode #:ellipsize-mode Paragraph-Ellipsize-Mode
-                                      #:lines (Listof Text-Decoration-Line) #:density Positive-Real)
+                                      #:lines (Listof Text-Decoration-Line) #:density Positive-Flonum)
                                 Bitmap)
-  (lambda [words [font (default-font)] #:color [fgsource black] #:fill [bgsource transparent]
+  (lambda [words [font (default-font)] #:color [fgsource black] #:background-color [bgsource transparent]
                  #:max-width [max-width +inf.0] #:max-height [max-height +inf.0] #:indent [indent 0.0] #:spacing [spacing 0.0]
                  #:wrap-mode [wrap-mode 'word-char] #:ellipsize-mode [ellipsize-mode 'end]
                  #:lines [lines null] #:density [density (default-bitmap-density)]]
@@ -91,12 +66,12 @@
     (bitmap_paragraph (if (list? words) (string-join words "\n") words) smart-width smart-height
                       (real->double-flonum indent) (real->double-flonum spacing) ; +nan.0 and +inf.0 are 0s
                       (paragraph-wrap-mode->integer wrap-mode) (paragraph-ellipsize-mode->integer smart-emode)
-                      (font-description font) lines fgsource bgsource (real->double-flonum density))))
+                      (font-description font) lines fgsource bgsource density)))
 
 #;(define bitmap-frame : (-> Bitmap [#:border (U Pen+Color (Listof Pen+Color))] [#:background Brush+Color]
                            [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
                            [#:padding (U Nonnegative-Real (Listof Nonnegative-Real))]
-                           [#:density Positive-Real] Bitmap)
+                           [#:density Positive-Flonum] Bitmap)
   (let ()
     (define (normalize [v : (U Nonnegative-Real (Listof Nonnegative-Real))])
       : (Values Nonnegative-Real Nonnegative-Real Nonnegative-Real Nonnegative-Real)
@@ -149,42 +124,42 @@
       frame)))
 
 (define bitmap-square : (->* (Real)
-                             ((Option Real) #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Real)
+                             ((Option Real) #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Flonum)
                              Bitmap)
   (lambda [w [radius #false] #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
     (define width : Flonum (real->double-flonum w))
     (if (and radius (positive? radius))
-        (bitmap_rounded_rectangle width width radius border pattern (real->double-flonum density))
-        (bitmap_rectangle width width border pattern (real->double-flonum density)))))
+        (bitmap_rounded_rectangle width width radius border pattern density)
+        (bitmap_rectangle width width border pattern density))))
 
 (define bitmap-rectangle : (->* (Real)
-                                (Real (Option Real) #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Real)
+                                (Real (Option Real) #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Flonum)
                                 Bitmap)
   (lambda [w [h #false] [radius #false] #:border [border (default-stroke)] #:fill [pattern black]
              #:density [density (default-bitmap-density)]]
     (define width : Flonum (real->double-flonum w))
     (define height : Flonum (if (not h) width (real->double-flonum h)))
     (if (and radius (positive? radius))
-        (bitmap_rounded_rectangle width height radius border pattern (real->double-flonum density))
-        (bitmap_rectangle width height border pattern (real->double-flonum density)))))
+        (bitmap_rounded_rectangle width height radius border pattern density)
+        (bitmap_rectangle width height border pattern density))))
 
-(define bitmap-stadium : (-> Real Real [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)] [#:density Positive-Real] Bitmap)
+(define bitmap-stadium : (-> Real Real [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)] [#:density Positive-Flonum] Bitmap)
   (lambda [length radius #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
-    (bitmap_stadium (real->double-flonum length) radius border pattern (real->double-flonum density))))
+    (bitmap_stadium (real->double-flonum length) radius border pattern density)))
 
-(define bitmap-circle : (-> Real [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)] [#:density Positive-Real] Bitmap)
+(define bitmap-circle : (-> Real [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)] [#:density Positive-Flonum] Bitmap)
   (lambda [radius #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
-    (bitmap_arc (real->double-flonum radius) border pattern (real->double-flonum density))))
+    (bitmap_arc (real->double-flonum radius) border pattern density)))
 
-(define bitmap-ellipse : (->* (Real) (Real #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Real) Bitmap)
+(define bitmap-ellipse : (->* (Real) (Real #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Flonum) Bitmap)
   (lambda [width [height #false] #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
     (if (or (not height) (= width height))
-        (bitmap_arc (fl/ (real->double-flonum width) 2.0) border pattern (real->double-flonum density))
+        (bitmap_arc (fl/ (real->double-flonum width) 2.0) border pattern density)
         (bitmap_elliptical_arc (real->double-flonum width) (real->double-flonum height)
-                               border pattern (real->double-flonum density)))))
+                               border pattern density))))
 
 #;(define bitmap-polygon : (->* ((Pairof (Pairof Real Real) (Listof (Pairof Real Real))))
-                              (Real Real (U 'odd-even 'winding) #:color Brush+Color #:border Pen+Color #:density Positive-Real)
+                              (Real Real (U 'odd-even 'winding) #:color Brush+Color #:border Pen+Color #:density Positive-Flonum)
                               Bitmap)
   (let ([path : (Instance DC-Path%) (make-object dc-path%)])
     (lambda [vertices [xoffset 0.0] [yoffset 0.0] [style 'odd-even] #:color [color black] #:border [border-color 'transparent]

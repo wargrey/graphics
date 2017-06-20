@@ -1,6 +1,7 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (provide (all-defined-out) font-family->face)
+(provide (rename-out [get-face-list list-font-faces]))
 
 (require "digitama/digicore.rkt")
 (require "digitama/font.rkt")
@@ -30,7 +31,7 @@
                 [(pair? face) (or (select-font-face face) (font-face basefont))]
                 [else (font-face basefont)])
           (cond [(symbol? size) (generic-font-size-filter size (font-size basefont) (font-size (default-font)))]
-                [(or (false? size) (nan? size)) (font-size basefont)]
+                [(or (not size) (nan? size)) (font-size basefont)]
                 [(single-flonum? size) (* (real->double-flonum size) (font-size basefont))]
                 [else (real->double-flonum size)])
           (cond [(css-font-weight-option? weight) weight]
@@ -56,7 +57,7 @@
 (define font-description : (-> Font Font-Description)
   (let ([&fonts : (HashTable Any (Ephemeronof Font-Description)) (make-weak-hash)])
     (lambda [font]
-      (define &font (hash-ref &fonts font (thunk #false)))
+      (define &font (hash-ref &fonts font (λ _ #false)))
       (or (and &font (ephemeron-value &font))
           (let-values ([(weight style stretch) (values (font-weight font) (font-style font) (font-stretch font))])
             (define desc : Font-Description
@@ -74,9 +75,9 @@
   (let ([&metrics : (HashTable Any (Ephemeronof (Listof (Pairof Symbol Nonnegative-Flonum)))) (make-weak-hash)])
     (case-lambda
       [(font)
-       (let ([&m (hash-ref &metrics font (thunk #false))])
+       (let ([&m (hash-ref &metrics font (λ _ #false))])
          (or (and &m (ephemeron-value &m))
-             (let ([metrics (get_font_metrics (font-description font))])
+             (let ([metrics (font_get_metrics (font-description font))])
                (hash-set! &metrics font (make-ephemeron font metrics))
                metrics)))]
       [(font units)
@@ -89,11 +90,15 @@
                m)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define text-metrics-lines : (-> Font String (Values Flonum Flonum Flonum Flonum Flonum))
-  (lambda [font content]
-    (get_font_metrics_lines (font-description font) content)))
+(define text-metrics-lines : (->* (String) (Font) (Values Flonum Flonum Flonum Flonum Flonum))
+  (lambda [content [font (default-font)]]
+    (font_get_metrics_lines (font-description font) content)))
 
-#;(define text-size : (->* (String (Instance Font%)) (Boolean #:with-dc (Instance DC<%>)) (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [text font [combine? #true] #:with-dc [dc the-dc]]
-    (define-values (w h d a) (send dc get-text-extent text font combine?))
-    (values (real->double-flonum w) (real->double-flonum h))))
+(define text-size : (->* (String) (Font) (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [text [font (default-font)]]
+    (define-values (width height distance ascent descent) (font_get_text_extent (font-description font) text))
+    (values width height)))
+
+(define text-size* : (->* (String) (Font) (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum))
+  (lambda [text [font (default-font)]]
+    (font_get_text_extent (font-description font) text)))

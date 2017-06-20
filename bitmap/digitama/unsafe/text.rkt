@@ -12,21 +12,32 @@
   
   (require "pangocairo.rkt")
   (require (submod "font.rkt" unsafe))
+
+  (define (bitmap_text content font-desc lines fgsource bgsource alsource dlsource clsource mlsource blsource density)
+    (define-values (width height distance top-space bottom-space) (font_get_text_extent font-desc content))
+    (define-values (bmp cr w h) (make-cairo-image* width height bgsource density))
+    (define layout (bitmap_create_layout the-cairo lines))
+    (pango_layout_set_font_description layout font-desc)
+    (pango_layout_set_text layout content)
+    (cairo-set-source cr fgsource)
+    (cairo_move_to cr 0 0)
+    (pango_cairo_show_layout cr layout)
+    
+    (when (or alsource clsource mlsource blsource dlsource)
+      (define-values (ascent capline meanline baseline descent) (font_get_metrics_lines font-desc content))
+      (cairo_set_line_width cr 1.0)
+      (bitmap_decorate cr alsource ascent width)
+      (bitmap_decorate cr clsource capline width)
+      (bitmap_decorate cr mlsource meanline width)
+      (bitmap_decorate cr blsource baseline width)
+      (bitmap_decorate cr dlsource descent width)
+    bmp))
   
   (define (bitmap_paragraph words max-width max-height indent spacing wrap ellipsize font-desc lines fgsource bgsource density)
-    (define layout (bitmap_create_layout the-cairo max-width max-height indent spacing wrap ellipsize))
+    (define layout (bitmap_create_layout* the-cairo max-width max-height indent spacing wrap ellipsize lines))
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout words)
-
-    (when (pair? lines)
-      (define attrs (pango_attr_list_new))
-      (when (memq 'line-through lines) (pango_attr_list_insert attrs (pango_attr_strikethrough_new #true)))
-      (cond [(memq 'undercurl lines) (pango_attr_list_insert attrs (pango_attr_underline_new PANGO_UNDERLINE_ERROR))]
-            [(memq 'underdouble lines) (pango_attr_list_insert attrs (pango_attr_underline_new PANGO_UNDERLINE_DOUBLE))]
-            [(memq 'underline lines) (pango_attr_list_insert attrs (pango_attr_underline_new PANGO_UNDERLINE_SINGLE))])
-      (pango_layout_set_attributes layout attrs)
-      (pango_attr_list_unref attrs))
-
+      
     (define-values (pango-width pango-height) (pango_layout_get_size layout))
     (define-values (flwidth flheight) (values (~metric pango-width) (unsafe-flmin (~metric pango-height) max-height)))
     (define-values (bmp cr draw-text?)
@@ -46,9 +57,21 @@
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_create_layout cr max-width max-height indent spacing wrap-mode ellipsize-mode)
+  (define (bitmap_create_layout cr lines)
     (define context (the-context))
     (define layout (pango_layout_new context))
+    (when (pair? lines)
+      (define attrs (pango_attr_list_new))
+      (when (memq 'line-through lines) (pango_attr_list_insert attrs (pango_attr_strikethrough_new #true)))
+      (cond [(memq 'undercurl lines) (pango_attr_list_insert attrs (pango_attr_underline_new PANGO_UNDERLINE_ERROR))]
+            [(memq 'underdouble lines) (pango_attr_list_insert attrs (pango_attr_underline_new PANGO_UNDERLINE_DOUBLE))]
+            [(memq 'underline lines) (pango_attr_list_insert attrs (pango_attr_underline_new PANGO_UNDERLINE_SINGLE))])
+      (pango_layout_set_attributes layout attrs)
+      (pango_attr_list_unref attrs))
+    layout)
+  
+  (define (bitmap_create_layout* cr max-width max-height indent spacing wrap-mode ellipsize-mode lines)
+    (define layout (bitmap_create_layout cr lines))
     (pango_layout_set_width layout (if (flonum? max-width) (~size max-width) max-width))
     (pango_layout_set_height layout (if (flonum? max-height) (~size max-height) max-height))
     (pango_layout_set_indent layout (~size indent))   ; (~size nan.0) == (~size inf.0) == 0
@@ -57,6 +80,13 @@
     (pango_layout_set_ellipsize layout ellipsize-mode)
     layout)
 
+  (define (bitmap_decorate cr color y width)
+    (unless (not color)
+      (cairo-set-source cr color)
+      (cairo_move_to cr 0.0 y)
+      (cairo_rel_line_to cr width 0.0)
+      (cairo_stroke cr)))
+  
   (define the-context
     (let ([&context (box #false)])
       (lambda []
@@ -71,5 +101,11 @@
 
 (unsafe/require/provide
  (submod "." unsafe)
- [bitmap_paragraph (-> String (U Integer Flonum) (U Integer Flonum) Flonum Flonum Integer Integer Font-Description (Listof Symbol)
-                       Bitmap-Source Bitmap-Source Flonum Bitmap)])
+ [bitmap_text
+  (-> String Font-Description (Listof Symbol) Bitmap-Source Bitmap-Source
+      (Option Bitmap-Source) (Option Bitmap-Source) (Option Bitmap-Source) (Option Bitmap-Source) (Option Bitmap-Source)
+      Flonum Bitmap)]
+ [bitmap_paragraph
+  (-> String (U Integer Flonum) (U Integer Flonum) Flonum Flonum Integer Integer
+      Font-Description (Listof Symbol) Bitmap-Source Bitmap-Source
+      Flonum Bitmap)])

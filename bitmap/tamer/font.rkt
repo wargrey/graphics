@@ -1,19 +1,25 @@
 #lang typed/racket
 
-(require "../main.rkt")
+(require "../constructor.rkt")
+(require "../paint.rkt")
+(require "../font.rkt")
+(require "../color.rkt")
 
-(default-css-pen (make-css-pen #:color 'gray #:width 1 #:style 'solid))
+(require "../digitama/draw.rkt")
+(require "../digitama/font.rkt")
 
-(define bitmap-text* : (-> String (Instance Font%) Bitmap)
+(default-stroke (desc-stroke #:color 'gray #:width 1 #:dash 'solid))
+
+(define bitmap-text* : (-> String Font Bitmap)
   (lambda [text font]
-    (bitmap-frame #:border 'gray
-                  (bitmap-text #:ascent 'Magenta #:descent 'Blue #:capline 'Orange #:meanline 'Green #:baseline 'Red
-                               text (make-css-font (make-css-font font #:size 'xx-large) #:size 2f0)))))
+    ;(bitmap-frame #:border 'gray
+                  (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
+                               text (desc-font (desc-font font #:size 'xx-large) #:size 2f0))));)
 
-#;(for/list : (Listof (Pairof String Bitmap)) ([face (in-list (get-face-list))])
-  (cons face (bitmap-text* "Sphinx" (make-css-font #:family face))))
+(for/list : (Listof (Pairof String Bitmap)) ([face (in-list (get-face-list))])
+  (cons face (bitmap-text* "Sphinx" (desc-font #:family face))))
 
-(bitmap-vl-append* #:gapsize 16
- (for/list : (Listof Bitmap) ([family (in-list (list 'decorative 'roman 'script 'swiss 'modern 'symbol 'system))])
-   (define font (make-css-font #:family family))
-   (bitmap-text* (format "~a[~a]: Sphinx" (send font get-family) (send font get-face)) font)))
+;(bitmap-vl-append* #:gapsize 16
+ (for/list : (Listof Bitmap) ([family (in-list css-font-generic-families)])
+   (define font (desc-font #:family family))
+   (bitmap-text* (format "~a[~a]: Sphinx" (font-face->family (font-face font)) (font-face font)) font));)

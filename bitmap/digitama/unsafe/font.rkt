@@ -25,7 +25,7 @@
     (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
     font-desc)
   
-  (define get_font_metrics
+  (define font_get_metrics
     (lambda [font-desc]
       (start-atomic)
       (define-values (baseline get-extent) (font-desc->get-extent font-desc))
@@ -42,7 +42,7 @@
             (cons 'ch (~metric ch)) (cons 'ic (~metric ic))
             (cons 'lh #|TODO: line height should be required|# (~metric wH)))))
 
-  (define get_font_metrics_lines
+  (define font_get_metrics_lines
     (lambda [font-desc content]
       (start-atomic)
       (define-values (baseline get-extent) (font-desc->get-extent font-desc))
@@ -53,6 +53,16 @@
       
       (values (~metric ascent) (~metric capline) (~metric meanline)
               (~metric baseline) (~metric (unsafe-fx+ ascent height)))))
+
+  (define font_get_text_extent
+    (lambda [font-desc content]
+      (start-atomic)
+      (define-values (baseline get-extent) (font-desc->get-extent font-desc))
+      (define-values (x ascent width height Height) (get-extent content))
+      (end-atomic)
+      
+      (values (~metric width) (~metric Height) (~metric (unsafe-fx- Height baseline))
+              (~metric ascent) (~metric (unsafe-fx- Height (unsafe-fx+ ascent height))))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define system-ui
@@ -94,5 +104,6 @@
  (submod "." unsafe)
  [system-ui (-> Symbol String String)]
  [bitmap_create_font_desc (-> String Real (Option Integer) (Option Integer) (Option Integer) Font-Description)]
- [get_font_metrics_lines (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]
- [get_font_metrics (-> Font-Description (Listof (Pairof Symbol Nonnegative-Flonum)))])
+ [font_get_metrics_lines (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]
+ [font_get_metrics (-> Font-Description (Listof (Pairof Symbol Nonnegative-Flonum)))]
+ [font_get_text_extent (-> Font-Description String (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum))])

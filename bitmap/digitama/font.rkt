@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (provide (all-defined-out))
 
@@ -84,11 +84,11 @@
                              (values (string-downcase face) face))])
               (set-box! &face-list the-set)
               the-set)))
-      (hash-ref the-face-set (string-downcase face) (thunk #false)))))
+      (hash-ref the-face-set (string-downcase face) (λ _ #false)))))
 
 (define memcadr : (-> (Listof Font-Weight) Font-Weight Font-Weight)
   (lambda [srclist v]
     (define tail (memv v srclist))
-    (cond [(false? tail) v]
+    (cond [(not tail) v]
           [else (let ([tail (cdr tail)])
                   (if (pair? tail) (car tail) v))])))
