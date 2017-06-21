@@ -29,10 +29,10 @@
     (lambda [font-desc]
       (start-atomic)
       (define-values (baseline get-extent) (font-desc->get-extent font-desc))
-      (define-values (xx xy xw xh xH) (get-extent "x"))
-      (define-values (Ox Oy Ow Oh OH) (get-extent "O"))
-      (define-values (0x 0y ch 0h 0H) (get-extent "0"))
-      (define-values (wx wy ic wh wH) (get-extent "水"))
+      (define-values (xx xy xw xh xW xH) (get-extent "x"))
+      (define-values (Ox Oy Ow Oh OW OH) (get-extent "O"))
+      (define-values (0x 0y ch 0h 0W 0H) (get-extent "0"))
+      (define-values (wx wy ic wh wW wH) (get-extent "水"))
       (end-atomic)
       
       (define ex  (unsafe-fx- baseline xy))
@@ -46,9 +46,9 @@
     (lambda [font-desc content]
       (start-atomic)
       (define-values (baseline get-extent) (font-desc->get-extent font-desc))
-      (define-values (xx meanline xw eh     eH) (get-extent "x"))
-      (define-values (Ox capline  Ow Oh     OH) (get-extent "O"))
-      (define-values (cx ascent   cw height cH) (get-extent content))
+      (define-values (xx meanline xw eh     eW eH) (get-extent "x"))
+      (define-values (Ox capline  Ow Oh     OW OH) (get-extent "O"))
+      (define-values (cx ascent   cw height cW cH) (get-extent content))
       (end-atomic)
       
       (values (~metric ascent) (~metric capline) (~metric meanline)
@@ -58,10 +58,10 @@
     (lambda [font-desc content]
       (start-atomic)
       (define-values (baseline get-extent) (font-desc->get-extent font-desc))
-      (define-values (x ascent width height Height) (get-extent content))
+      (define-values (x ascent w height Width Height) (get-extent content))
       (end-atomic)
       
-      (values (~metric width) (~metric Height) (~metric (unsafe-fx- Height baseline))
+      (values (~metric Width) (~metric Height) (~metric (unsafe-fx- Height baseline))
               (~metric ascent) (~metric (unsafe-fx- Height (unsafe-fx+ ascent height))))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,9 +96,10 @@
       (pango_layout_get_extents layout &ink &logical)
       
       (define-values (x y width height) (~rectangle &ink))
+      (define layout-width (PangoRectangle-width &logical))
       (define layout-height (PangoRectangle-height &logical))
       
-      (values x y width height layout-height))))
+      (values x y width height layout-width layout-height))))
 
 (unsafe/require/provide
  (submod "." unsafe)
