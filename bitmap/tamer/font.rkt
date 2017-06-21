@@ -1,6 +1,7 @@
 #lang typed/racket
 
 (require "../constructor.rkt")
+(require "../constants.rkt")
 (require "../paint.rkt")
 (require "../font.rkt")
 (require "../color.rkt")
@@ -17,7 +18,7 @@
                                text (desc-font (desc-font font #:size 'xx-large) #:size 2f0))));)
 
 (for/list : (Listof (Pairof String Bitmap)) ([face (in-list (get-face-list))])
-  (cons face (bitmap-text* "Sphinx" (desc-font #:family face))))
+  (cons face (bitmap-text* (format "~a: Sphinx" face) (desc-font #:family face))))
 
 ;(bitmap-vl-append* #:gapsize 16
  (for/list : (Listof Bitmap) ([family (in-list css-font-generic-families)])

@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (except-out (all-defined-out) define-color-space))
-(provide transparent hilite)
+(provide transparent hilite black)
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
@@ -33,20 +33,6 @@
 (define-color-space hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut])      #:* rgb->hsv)
 (define-color-space hsi ([hue : real->hue] [saturation : real->gamut] [intensity : real->gamut])  #:* rgb->hsi)
 (define-color-space hwb ([hue : real->hue] [white : real->gamut] [black : real->gamut])           #:* rgb->hwb)
-
-(define black   : FlRGBA (rgba 0.0   0.0   0.0   1.0))
-(define white   : FlRGBA (rgba 1.0   1.0   1.0   1.0))
-(define gray    : FlRGBA (rgba 0.502 0.502 0.502 1.0))
-(define brown   : FlRGBA (rgba 0.647 0.165 0.165 1.0))
-(define magenta : FlRGBA (rgba 1.0   0.0   1.0   1.0))
-
-(define red     : FlRGBA (rgba 1.0   0.0   0.0   1.0))
-(define orange  : FlRGBA (rgba 1.0   0.647 0.0   1.0))
-(define yellow  : FlRGBA (rgba 1.0   1.0   0.0   1.0))
-(define green   : FlRGBA (rgba 0.0   1.0   0.0   1.0))
-(define blue    : FlRGBA (rgba 0.0   0.0   1.0   1.0))
-(define cyan    : FlRGBA (rgba 0.0   1.0   1.0   1.0))
-(define purple  : FlRGBA (rgba 0.502 0.0   0.502 1.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define rgb : (->* (Real Real Real) (Real) FlRGBA)

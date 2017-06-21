@@ -12,6 +12,7 @@
 (define fallback-color : Color ((default-make-currentcolor)))
 (define transparent : FlRGBA (rgba 0.0 0.0 0.0 0.0))
 (define hilite : FlRGBA (rgba 0.0 0.0 0.0 0.3))
+(define black : FlRGBA (rgba 0.0 0.0 0.0 1.0))
 
 (define $ : (-> (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)) Flonum Flonum Flonum Flonum Flonum FlRGBA)
   (lambda [->rgb h s b a alpha]
