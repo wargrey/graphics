@@ -143,11 +143,6 @@
     (unsafe-fl/ (unsafe-fx->fl val)
                 (unsafe-fx->fl PANGO_SCALE))))
 
-(define ~rectangle
-  (lambda [&rect]
-    (values (PangoRectangle-x &rect) (PangoRectangle-y &rect)
-            (PangoRectangle-width &rect) (PangoRectangle-height &rect))))
-
 (define ~radian
   (lambda [degree]
     (unsafe-fl* degree

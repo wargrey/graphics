@@ -29,10 +29,10 @@
     (lambda [font-desc]
       (start-atomic)
       (define-values (baseline get-extent) (font-desc->get-extent font-desc))
-      (define-values (xx xy xw xh xW xH) (get-extent "x"))
-      (define-values (Ox Oy Ow Oh OW OH) (get-extent "O"))
-      (define-values (0x 0y ch 0h 0W 0H) (get-extent "0"))
-      (define-values (wx wy ic wh wW wH) (get-extent "水"))
+      (define-values (xy xw xh) (get-extent "x"))
+      (define-values (Oy Ow Oh) (get-extent "O"))
+      (define-values (0y ch 0h) (get-extent "0"))
+      (define-values (wy ic wh wW wH) (get-extent "水" #true))
       (end-atomic)
       
       (define ex  (unsafe-fx- baseline xy))
@@ -46,9 +46,9 @@
     (lambda [font-desc content]
       (start-atomic)
       (define-values (baseline get-extent) (font-desc->get-extent font-desc))
-      (define-values (xx meanline xw eh     eW eH) (get-extent "x"))
-      (define-values (Ox capline  Ow Oh     OW OH) (get-extent "O"))
-      (define-values (cx ascent   cw height cW cH) (get-extent content))
+      (define-values (meanline xw eh)     (get-extent "x"))
+      (define-values (capline  Ow Oh)     (get-extent "O"))
+      (define-values (ascent   cw height) (get-extent content))
       (end-atomic)
       
       (values (~metric ascent) (~metric capline) (~metric meanline)
@@ -58,7 +58,7 @@
     (lambda [font-desc content]
       (start-atomic)
       (define-values (baseline get-extent) (font-desc->get-extent font-desc))
-      (define-values (x ascent w height Width Height) (get-extent content))
+      (define-values (ascent _ height Width Height) (get-extent content #true))
       (end-atomic)
       
       (values (~metric Width) (~metric Height) (~metric (unsafe-fx- Height baseline))
@@ -84,22 +84,19 @@
   (define font-desc->get-extent
     (lambda [font-desc]
       (define layout (the-layout))
-
       (pango_layout_set_font_description layout font-desc)
-
       (let ([baseline (pango_layout_get_baseline layout)])
-        (values baseline (λ [hint-char] (~extent layout baseline hint-char))))))
+        (values baseline
+                (λ [hint-char [full? #false]]
+                  (~extent layout baseline hint-char full?))))))
 
   (define ~extent
-    (lambda [layout baseline hint-char]
+    (lambda [layout baseline hint-char full?]
       (pango_layout_set_text layout hint-char)
       (pango_layout_get_extents layout &ink &logical)
-      
-      (define-values (x y width height) (~rectangle &ink))
-      (define layout-width (PangoRectangle-width &logical))
-      (define layout-height (PangoRectangle-height &logical))
-      
-      (values x y width height layout-width layout-height))))
+      (cond [(not full?) (values (PangoRectangle-y &ink) (PangoRectangle-width &ink) (PangoRectangle-height &ink))]
+            [else (values (PangoRectangle-y &ink) (PangoRectangle-width &ink) (PangoRectangle-height &ink)
+                          (PangoRectangle-width &logical) (PangoRectangle-height &logical))]))))
 
 (unsafe/require/provide
  (submod "." unsafe)
