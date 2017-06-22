@@ -31,7 +31,7 @@
    [rule : Fill-Rule-Style]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-stroke : (Parameterof Stroke) (make-parameter (stroke transparent 1.0 'butt 'miter +nan.0 solid-dash 0.0)))
+(define default-stroke : (Parameterof Stroke) (make-parameter (stroke black 1.0 'butt 'miter +nan.0 solid-dash 0.0)))
 (define default-fill : (Parameterof Fill) (make-parameter (fill black 'nonzero)))
 
 (define desc-stroke : (->* ()

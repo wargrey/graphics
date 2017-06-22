@@ -68,65 +68,18 @@
                       (paragraph-wrap-mode->integer wrap-mode) (paragraph-ellipsize-mode->integer smart-emode)
                       (font-description font) lines fgsource bgsource density)))
 
-#;(define bitmap-frame : (-> Bitmap [#:border (U Pen+Color (Listof Pen+Color))] [#:background Brush+Color]
-                           [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
-                           [#:padding (U Nonnegative-Real (Listof Nonnegative-Real))]
-                           [#:density Positive-Flonum] Bitmap)
-  (let ()
-    (define (normalize [v : (U Nonnegative-Real (Listof Nonnegative-Real))])
-      : (Values Nonnegative-Real Nonnegative-Real Nonnegative-Real Nonnegative-Real)
-      (if (list? v)
-          (match v
-            [(list t) (values t t t t)]
-            [(list t r) (values t r t r)]
-            [(list t r b) (values t r b r)]
-            [(list t r b l rest ...) (values t r b l)]
-            [else (values 0 0 0 0)])
-          (values v v v v)))
-    (define (draw-border [dc : (Instance Bitmap-DC%)] [pen : (Instance Pen%)] [w : Real] [x1 : Real] [y1 : Real] [x2 : Real] [y2 : Real])
-      (when (> w 0) (send* dc (set-pen pen) (draw-line x1 y1 x2 y2))))
-    (lambda [bmp #:margin [margin 0] #:padding [inset 0] #:density [density (default-bitmap-density)]
-                 #:border [pen-hint "Silver"] #:background [brush-hint (default-css-brush)]]
-      (define-values (margin-top margin-right margin-bottom margin-left) (normalize margin))
-      (define-values (padding-top padding-right padding-bottom padding-left) (normalize inset))
-      (define-values (pen-top pen-right pen-bottom pen-left)
-        (if (list? pen-hint)
-            (match pen-hint
-              [(list vt) (let ([t (select-pen vt)]) (values t t t t))]
-              [(list vt vr) (let ([t (select-pen vt)] [r (select-pen vr)]) (values t r t r))]
-              [(list vt vr b) (let ([t (select-pen vt)] [r (select-pen vr)]) (values t r (select-pen b) r))]
-              [(list t r b l) (values (select-pen t) (select-pen r) (select-pen b) (select-pen l))]
-              [else (let ([deadcode (default-css-pen)]) (values deadcode deadcode deadcode deadcode))])
-            (let ([p (select-pen pen-hint)]) (values p p p p))))
-      (define-values (border-top border-right border-bottom border-left)
-        (values (send pen-top get-width) (send pen-right get-width)
-                (send pen-bottom get-width) (send pen-left get-width)))
-      (define-values (bgx bgy bgw bgh)
-        (values (+ margin-left border-left) (+ margin-top border-top)
-                (+ (send bmp get-width) padding-left padding-right)
-                (+ (send bmp get-height) padding-top padding-bottom)))
-      (define-values (bdx0 bdy0 bdx1 bdy1)
-        (values margin-left margin-top
-                (+ margin-left border-left bgw border-right)
-                (+ margin-top border-top bgh border-bottom)))
-      (define frame : Bitmap (bitmap-blank (+ bdx1 margin-right) (+ bdy1 margin-bottom) (send bmp get-backing-scale)))
-      (define dc : (Instance Bitmap-DC%) (send frame make-dc))
-      (send dc set-smoothing 'aligned)
-      (send dc set-pen (select-pen 'transparent))
-      (send dc set-brush (select-brush brush-hint))
-      (send dc draw-rectangle bgx bgy bgw bgh)
-      ;;; TODO: deal with corner overlaps correctly
-      (let ([bdy (+ bdy0 (* border-top 1/2))]) (draw-border dc pen-top border-top bdx0 bdy bdx1 bdy))
-      (let ([bdy (- bdy1 (* border-bottom 1/2))]) (draw-border dc pen-bottom border-bottom bdx0 bdy bdx1 bdy))
-      (let ([bdx (+ bdx0 (* border-left 1/2))]) (draw-border dc pen-left border-left bdx bdy0 bdx bdy1))
-      (let ([bdx (- bdx1 (* border-right 1/2))]) (draw-border dc pen-right border-right bdx bdy0 bdx bdy1))
-      (send dc draw-bitmap bmp (+ bgx padding-left) (+ bgy padding-top))
-      frame)))
+(define bitmap-frame : (-> Bitmap [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)]
+                           [#:margin Nonnegative-Real] [#:padding Nonnegative-Real] Bitmap)
+  (lambda [bmp #:margin [margin 0.0] #:padding [inset 0.0] #:border [stroke (default-stroke)] #:fill [fill #false]]
+    (define flmargin : Flonum (real->double-flonum margin))
+    (define flinset : Flonum (real->double-flonum inset))
+    (bitmap_frame (send bmp get-handle) flmargin flmargin flmargin flmargin flinset flinset flinset flinset
+                  stroke fill (real->double-flonum (send bmp get-backing-scale)))))
 
 (define bitmap-square : (->* (Real)
                              ((Option Real) #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Flonum)
                              Bitmap)
-  (lambda [w [radius #false] #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
+  (lambda [w [radius #false] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
     (define width : Flonum (real->double-flonum w))
     (if (and radius (positive? radius))
         (bitmap_rounded_rectangle width width radius border pattern density)
@@ -135,7 +88,7 @@
 (define bitmap-rectangle : (->* (Real)
                                 (Real (Option Real) #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Flonum)
                                 Bitmap)
-  (lambda [w [h #false] [radius #false] #:border [border (default-stroke)] #:fill [pattern black]
+  (lambda [w [h #false] [radius #false] #:border [border (default-stroke)] #:fill [pattern #false]
              #:density [density (default-bitmap-density)]]
     (define width : Flonum (real->double-flonum w))
     (define height : Flonum (if (not h) width (real->double-flonum h)))
@@ -144,19 +97,25 @@
         (bitmap_rectangle width height border pattern density))))
 
 (define bitmap-stadium : (-> Real Real [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)] [#:density Positive-Flonum] Bitmap)
-  (lambda [length radius #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
+  (lambda [length radius #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
     (bitmap_stadium (real->double-flonum length) radius border pattern density)))
 
 (define bitmap-circle : (-> Real [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)] [#:density Positive-Flonum] Bitmap)
-  (lambda [radius #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
+  (lambda [radius #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
     (bitmap_arc (real->double-flonum radius) border pattern density)))
 
 (define bitmap-ellipse : (->* (Real) (Real #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Flonum) Bitmap)
-  (lambda [width [height #false] #:border [border (default-stroke)] #:fill [pattern black] #:density [density (default-bitmap-density)]]
+  (lambda [width [height #false] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
     (if (or (not height) (= width height))
         (bitmap_arc (fl/ (real->double-flonum width) 2.0) border pattern density)
         (bitmap_elliptical_arc (real->double-flonum width) (real->double-flonum height)
                                border pattern density))))
+
+(define shape (bitmap-ellipse 64.0 32.0 #:border (desc-stroke #:color 'blue) #:fill (rgb* 'snow 1.0)))
+shape
+(bitmap-frame (bitmap-frame #:padding 8.0 #:margin 8.0
+                            #:border (desc-stroke #:color 'snow #:width 4.0) #:fill hilite
+                            shape))
 
 #;(define bitmap-polygon : (->* ((Pairof (Pairof Real Real) (Listof (Pairof Real Real))))
                               (Real Real (U 'odd-even 'winding) #:color Brush+Color #:border Pen+Color #:density Positive-Flonum)
