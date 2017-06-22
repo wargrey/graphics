@@ -16,26 +16,10 @@
 ;;; https://www.cairographics.org/samples/clip_image/
 
 (define density 2.0)
-(define romedalen.png (read-bitmap "romedalen.png"))
-(define image (send romedalen.png get-handle))
+(define image (send (read-bitmap "romedalen.png") get-handle))
 (define w (cairo_image_surface_get_width image))
 (define h (cairo_image_surface_get_height image))
 (define &matrix (make-cairo_matrix_t 0.0 0.0 0.0 0.0 0.0 0.0))
-
-(define (cairo-clip-image xc yc radius)
-  (define-values (x y) (values (max xc radius) (max yc radius)))
-  (define-values (width height) (values (* x 2.0) (* y 2.0)))
-  (define-values (bmp cr _w _h) (make-cairo-image width height density))
-  
-  (cairo_arc cr x y radius 0.0 (degrees->radians 360.0))
-  (cairo_clip cr)
-  (cairo_new_path cr)
-
-  (cairo_scale cr (/ width w) (/ height h))
-  (cairo_set_source_surface cr image 0.0 0.0)
-  (cairo_paint cr)
-
-  bmp)
 
 (define (cairo-image xc yc)
   (define-values (width height) (values (* xc 2.0) (* yc 2.0)))
@@ -70,6 +54,5 @@
   (cairo_pattern_destroy pattern)
   bmp)
 
-(cairo-clip-image 128.0 128.0 76.0)
 (cairo-image 128.0 128.0)
 (cairo-image-pattern 128.0 128.0)
