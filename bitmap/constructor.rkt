@@ -111,12 +111,6 @@
         (bitmap_elliptical_arc (real->double-flonum width) (real->double-flonum height)
                                border pattern density))))
 
-(define shape (bitmap-ellipse 64.0 32.0 #:border (desc-stroke #:color 'blue) #:fill (rgb* 'snow 1.0)))
-shape
-(bitmap-frame (bitmap-frame #:padding 8.0 #:margin 8.0
-                            #:border (desc-stroke #:color 'snow #:width 4.0) #:fill hilite
-                            shape))
-
 #;(define bitmap-polygon : (->* ((Pairof (Pairof Real Real) (Listof (Pairof Real Real))))
                               (Real Real (U 'odd-even 'winding) #:color Brush+Color #:border Pen+Color #:density Positive-Flonum)
                               Bitmap)

@@ -13,9 +13,8 @@
 
 (define bitmap-text* : (-> String Font Bitmap)
   (lambda [text font]
-    ;(bitmap-frame #:border 'gray
-                  (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
-                               text (desc-font (desc-font font #:size 'xx-large) #:size 2f0))));)
+    (bitmap-frame (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
+                               text (desc-font (desc-font font #:size 'xx-large) #:size 2f0)))))
 
 (for/list : (Listof (Pairof String Bitmap)) ([face (in-list (get-face-list))])
   (cons face (bitmap-text* (format "~a: Sphinx" face) (desc-font #:family face))))
