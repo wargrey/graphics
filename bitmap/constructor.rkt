@@ -70,7 +70,7 @@
 
 (define bitmap-frame : (-> Bitmap [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)]
                            [#:margin Nonnegative-Real] [#:padding Nonnegative-Real] Bitmap)
-  (lambda [bmp #:margin [margin 0.0] #:padding [inset 0.0] #:border [stroke (default-stroke)] #:fill [fill #false]]
+  (lambda [bmp #:margin [margin 0.0] #:padding [inset 0.0] #:border [stroke (default-frame-stroke)] #:fill [fill #false]]
     (define flmargin : Flonum (real->double-flonum margin))
     (define flinset : Flonum (real->double-flonum inset))
     (bitmap_frame (send bmp get-handle) flmargin flmargin flmargin flmargin flinset flinset flinset flinset
