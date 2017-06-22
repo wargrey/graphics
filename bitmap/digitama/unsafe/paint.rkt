@@ -21,4 +21,4 @@
       (cairo_fill_preserve cr))
     (unless (not border)
       (cairo-set-stroke cr border)
-      (cairo_stroke cr))))
+      (cairo_stroke_preserve cr))))
