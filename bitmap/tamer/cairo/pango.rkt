@@ -77,7 +77,7 @@
                     (desc-font #:family "Trebuchet MS" #:size 16.0 #:weight 'medium #:style 'normal #:stretch 'normal)
                     #:max-width width #:max-height height #:indent indent #:spacing spacing
                     #:wrap-mode 'word-char #:ellipsize-mode 'end #:lines '(undercurl)
-                    #:color pattern #:fill (rgba (random) (random) (random) 0.2) #:density density))
+                    #:color pattern #:background (rgba (random) (random) (random) 0.2) #:density density))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (benchmark make-image . args)

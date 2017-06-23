@@ -36,37 +36,35 @@
     (bitmap_pattern side side (rgb* color) density)))
 
 (define bitmap-text : (->* (String)
-                           (Font #:color Bitmap-Source #:background-color Bitmap-Source #:lines (Listof Text-Decoration-Line)
+                           (Font #:color Bitmap-Source #:background Bitmap-Source #:lines (Listof Text-Decoration-Line)
                                  #:baseline (Option Bitmap-Source) #:capline (Option Bitmap-Source) #:meanline (Option Bitmap-Source)
                                  #:ascent (Option Bitmap-Source) #:descent (Option Bitmap-Source)
                                  #:density Positive-Flonum)
                            Bitmap)
-  (lambda [content [font (default-font)] #:color [fgcolor black] #:background-color [bgcolor transparent] #:lines [lines null]
-                   #:ascent [alcolor #false] #:descent [dlcolor #false] #:capline [clcolor #false] #:meanline [mlcolor #false]
-                   #:baseline [blcolor #false] #:density [density (default-bitmap-density)]]
-    (bitmap_text content (font-description font) lines fgcolor bgcolor
-                 alcolor clcolor mlcolor blcolor dlcolor density)))
+  (lambda [text [font (default-font)] #:color [fgsource black] #:background [bgsource transparent] #:lines [lines null]
+                #:ascent [alsource #false] #:descent [dlsource #false] #:capline [clsource #false] #:meanline [mlsource #false]
+                #:baseline [blsource #false] #:density [density (default-bitmap-density)]]
+    (bitmap_text text (font-description font) lines fgsource bgsource
+                 alsource clsource mlsource blsource dlsource density)))
 
 (define bitmap-paragraph : (->* ((U String (Listof String)))
-                                (Font #:color Bitmap-Source #:background-color Bitmap-Source
+                                (Font #:color Bitmap-Source #:background Bitmap-Source #:lines (Listof Text-Decoration-Line)
                                       #:max-width Real #:max-height Real #:indent Real #:spacing Real
                                       #:wrap-mode Paragraph-Wrap-Mode #:ellipsize-mode Paragraph-Ellipsize-Mode
-                                      #:lines (Listof Text-Decoration-Line) #:density Positive-Flonum)
+                                      #:density Positive-Flonum)
                                 Bitmap)
-  (lambda [words [font (default-font)] #:color [fgsource black] #:background-color [bgsource transparent]
+  (lambda [texts [font (default-font)] #:color [fgsource black] #:background [bgsource transparent] #:lines [lines null]
                  #:max-width [max-width +inf.0] #:max-height [max-height +inf.0] #:indent [indent 0.0] #:spacing [spacing 0.0]
                  #:wrap-mode [wrap-mode 'word-char] #:ellipsize-mode [ellipsize-mode 'end]
-                 #:lines [lines null] #:density [density (default-bitmap-density)]]
-    (define smart-width : (U Flonum -1) (if (or (infinite? max-width) (nan? max-width)) -1 (real->double-flonum max-width)))
-    (define-values (smart-height smart-emode)
-      (cond [(eq? ellipsize-mode 'none) (values -1 ellipsize-mode)]
-            [(or (infinite? max-height) (nan? max-height)) (values -1 'none)]
-            [(negative? max-height) (values (exact-round max-height) ellipsize-mode)]
-            [else (values (real->double-flonum max-height) ellipsize-mode)]))
-    (bitmap_paragraph (if (list? words) (string-join words "\n") words) smart-width smart-height
+                 #:density [density (default-bitmap-density)]]
+    (bitmap_paragraph (if (list? texts) (string-join texts "\n") texts) (font-description font) lines
+                      (if (or (infinite? max-width) (nan? max-width)) -1 (real->double-flonum max-width))
+                      (cond [(or (infinite? max-height) (nan? max-height)) -1]
+                            [(negative? max-height) (exact-round max-height)]
+                            [else (real->double-flonum max-height)])
                       (real->double-flonum indent) (real->double-flonum spacing) ; +nan.0 and +inf.0 are 0s
-                      (paragraph-wrap-mode->integer wrap-mode) (paragraph-ellipsize-mode->integer smart-emode)
-                      (font-description font) lines fgsource bgsource density)))
+                      (paragraph-wrap-mode->integer wrap-mode) (paragraph-ellipsize-mode->integer ellipsize-mode)
+                      fgsource bgsource density)))
 
 (define bitmap-frame : (-> Bitmap [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)]
                            [#:margin Nonnegative-Real] [#:padding Nonnegative-Real] Bitmap)

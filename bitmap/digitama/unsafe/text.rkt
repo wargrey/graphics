@@ -11,47 +11,49 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
+  (require "../font.rkt")
   (require (submod "font.rkt" unsafe))
 
-  (define (bitmap_text content font-desc lines fgsource bgsource alsource dlsource clsource mlsource blsource density)
-    (define-values (width height distance top-space bottom-space) (font_get_text_extent font-desc content))
+  (define (bitmap_text text font-desc lines fgsource bgsource alsource dlsource clsource mlsource blsource density)
+    (define-values (width height distance ascent descent) (font_get_text_extent font-desc text))
     (define-values (bmp cr w h) (make-cairo-image* width height bgsource density))
     (define layout (bitmap_create_layout the-cairo lines))
     (pango_layout_set_font_description layout font-desc)
-    (pango_layout_set_text layout content)
+    (pango_layout_set_text layout text)
     (cairo-set-source cr fgsource)
     (cairo_move_to cr 0 0)
     (pango_cairo_show_layout cr layout)
     
     (when (or alsource clsource mlsource blsource dlsource)
-      (define-values (ascent capline meanline baseline descent) (font_get_metrics_lines font-desc content))
+      (define-values (ascent capline meanline baseline descent) (font_get_metrics_lines font-desc text))
       (cairo_set_line_width cr 1.0)
       (bitmap_decorate cr alsource ascent width)
       (bitmap_decorate cr clsource capline width)
       (bitmap_decorate cr mlsource meanline width)
       (bitmap_decorate cr blsource baseline width)
-      (bitmap_decorate cr dlsource descent width)
-    bmp))
+      (bitmap_decorate cr dlsource descent width))
+    bmp)
   
-  (define (bitmap_paragraph words max-width max-height indent spacing wrap ellipsize font-desc lines fgsource bgsource density)
-    (define layout (bitmap_create_layout* the-cairo max-width max-height indent spacing wrap ellipsize lines))
+  (define (bitmap_paragraph text font-desc lines max-width max-height indent spacing wrap ellipsize fgsource bgsource density)
+    (define layout (bitmap_create_layout* the-cairo lines max-width max-height indent spacing wrap ellipsize))
     (pango_layout_set_font_description layout font-desc)
-    (pango_layout_set_text layout words)
-      
+    (pango_layout_set_text layout text)
+
     (define-values (pango-width pango-height) (pango_layout_get_size layout))
-    (define-values (flwidth flheight) (values (~metric pango-width) (unsafe-flmin (~metric pango-height) max-height)))
+    (define flwidth (~metric pango-width))
+    (define flheight (if (flonum? max-height) (unsafe-flmin (~metric pango-height) max-height) (~metric pango-height)))
     (define-values (bmp cr draw-text?)
-      (if (unsafe-fl<= flwidth max-width)
+      (if (or (= max-width -1) (unsafe-fl<= flwidth max-width))
           (let-values ([(bmp cr w h) (make-cairo-image* flwidth flheight bgsource density)])
             (values bmp cr #true))
-          (let-values ([(w h) (and (pango_layout_set_text layout " ") (pango_layout_get_size layout))])
-            (define draw-text? (unsafe-fl>= max-width (~metric w)))
-            (define smart-height (if draw-text? flheight (unsafe-flmin (~metric h) flheight)))
-            (define-values (bmp cr _w _h) (make-cairo-image* max-width smart-height bgsource density))
+          (let-values ([(char-width char-height) (and (pango_layout_set_text layout " ") (pango_layout_get_size layout))])
+            (define draw-text? (unsafe-fl>= max-width (~metric char-width)))
+            (define smart-flheight (if draw-text? flheight (unsafe-flmin (~metric char-height) flheight)))
+            (define-values (bmp cr _w _h) (make-cairo-image* max-width smart-flheight bgsource density))
             (values bmp cr draw-text?))))
     (when draw-text?
       (cairo-set-source cr fgsource)
-      (cairo_move_to cr 0 0)
+      (cairo_move_to cr 0.0 0.0)
       (pango_cairo_show_layout cr layout))
     (cairo_destroy cr)
     bmp)
@@ -70,10 +72,10 @@
       (pango_attr_list_unref attrs))
     layout)
   
-  (define (bitmap_create_layout* cr max-width max-height indent spacing wrap-mode ellipsize-mode lines)
+  (define (bitmap_create_layout* cr lines width height indent spacing wrap-mode ellipsize-mode)
     (define layout (bitmap_create_layout cr lines))
-    (pango_layout_set_width layout (if (flonum? max-width) (~size max-width) max-width))
-    (pango_layout_set_height layout (if (flonum? max-height) (~size max-height) max-height))
+    (pango_layout_set_width layout (if (flonum? width) (~size width) width #|-1|#))
+    (pango_layout_set_height layout (if (flonum? height) (~size height) height))
     (pango_layout_set_indent layout (~size indent))   ; (~size nan.0) == (~size inf.0) == 0
     (pango_layout_set_spacing layout (~size spacing)) ; pango knows the minimum spacing
     (pango_layout_set_wrap layout wrap-mode)
@@ -106,6 +108,6 @@
       (Option Bitmap-Source) (Option Bitmap-Source) (Option Bitmap-Source) (Option Bitmap-Source) (Option Bitmap-Source)
       Flonum Bitmap)]
  [bitmap_paragraph
-  (-> String (U Integer Flonum) (U Integer Flonum) Flonum Flonum Integer Integer
-      Font-Description (Listof Symbol) Bitmap-Source Bitmap-Source
+  (-> String Font-Description (Listof Symbol) (U Flonum Nonpositive-Integer) (U Flonum Nonpositive-Integer)
+      Flonum Flonum Integer Integer Bitmap-Source Bitmap-Source
       Flonum Bitmap)])
