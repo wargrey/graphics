@@ -33,4 +33,4 @@
     (cairo_set_source_surface cr src 0.0 0.0)
     (cairo_pattern_set_filter (cairo_get_source cr) filter)
     (cairo_set_operator cr operator)
-    (cairo_paint cr)))
+    (cairo_fill cr)))

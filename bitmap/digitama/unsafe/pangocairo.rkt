@@ -52,6 +52,8 @@
 (define-pango pango_layout_set_wrap (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_ellipsize (_pfun PangoLayout _int -> _void))
 
+(define-cairo cairo_version (_cfun -> _int))
+(define-cairo cairo_version_string (_cfun -> _string))
 (define-cairo cairo_new_sub_path (_cfun _cairo_t -> _void))
 (define-cairo cairo_set_miter_limit (_cfun _cairo_t _double* -> _void))
 (define-cairo cairo_pattern_create_mesh (_cfun -> _cairo_pattern_t) #:wrap (allocator cairo_pattern_destroy))

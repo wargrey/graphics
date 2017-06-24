@@ -1,9 +1,9 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (provide (all-defined-out))
 
 (require "digitama/digicore.rkt")
-(require "constructor.rkt")
+(require "digitama/unsafe/bitmap.rkt")
 
 (define bitmap-size : (case-> [Bitmap -> (Values Positive-Integer Positive-Integer)]
                               [Bitmap Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)]
@@ -24,14 +24,7 @@
     (values (max (exact-ceiling (* (send bmp get-width) density)) 1)
             (max (exact-ceiling (* (send bmp get-height) density)) 1))))
 
-(define bitmap-alter-density : (->* (Bitmap) (Positive-Real) Bitmap)
-  (lambda [raw [density (default-bitmap-density)]]
-    (define ratio : Nonnegative-Real (/ (send raw get-backing-scale) density))
-    (cond [(= ratio 1.0) raw]
-          [else (let ([bmp (bitmap-blank (* (send raw get-width) ratio) (* (send raw get-height) ratio) density)])
-                  ; This algorithm is much faster than the (get/set-argb-pixels) one
-                  (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
-                  (send dc set-smoothing 'aligned)
-                  (send dc set-scale ratio ratio)
-                  (send dc draw-bitmap raw 0 0)
-                  bmp)])))
+(define bitmap-alter-density : (->* (Bitmap) (Positive-Flonum) Bitmap)
+  (lambda [src [dest-density (default-bitmap-density)]]
+    (cond [(fl= (real->double-flonum (send src get-backing-scale)) dest-density) src]
+          [else (bitmap_alter_density (send src get-handle) dest-density)])))
