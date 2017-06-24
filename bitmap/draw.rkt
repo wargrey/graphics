@@ -8,11 +8,11 @@
 (require "digitama/digicore.rkt")
 (require "constructor.rkt")
 
-(define bitmap-dc : (->* ((-> (Instance Bitmap-DC%) Nonnegative-Flonum Nonnegative-Flonum Any))
-                         (Nonnegative-Real (Option Nonnegative-Real) Positive-Real)
+(define bitmap-dc : (->* ((-> (Instance Bitmap-DC%) Nonnegative-Flonum Nonnegative-Flonum Any) Nonnegative-Real)
+                         ((Option Nonnegative-Real) Positive-Flonum)
                          Bitmap)
-  (lambda [draw-with [w 0] [h #false] [density (default-bitmap-density)]]
-    (define bmp : Bitmap (bitmap-blank w h density))
+  (lambda [draw-with w [h #false] [density (default-bitmap-density)]]
+    (define bmp : Bitmap (bitmap-blank w h #:density density))
     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
     (send dc set-smoothing 'aligned)
     ;;; let the device deal with non-integer size
