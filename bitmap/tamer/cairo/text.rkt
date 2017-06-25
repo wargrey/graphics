@@ -27,7 +27,7 @@
 ;;; https://www.cairographics.org/samples/text_extents/
 
 (define density 2.0)
-(define-values (_b tcr _w _h) (make-cairo-image 1.0 1.0 density))
+(define-values (_b tcr _w _h) (make-cairo-image 1.0 1.0 density #true))
 
 (define (cairo-text-size! face size style weight utf8 &extents)
   (cairo_select_font_face tcr face style weight)
@@ -48,7 +48,7 @@
   (define-values (word-y path-y) (values (+ yw word-baseline) (+ yp path-baseline)))
   (define width (+ (max (+ word-x word-width) (+ path-x path-width)) border-width))
   (define height (+ (max (+ yw word-height) (+ yp path-height)) border-width))
-  (define-values (bmp cr _w _h) (make-cairo-image width height density))
+  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
 
   (cairo_select_font_face cr face style weight)
   (cairo_set_font_size cr size)
@@ -77,7 +77,7 @@
   (define-values (dot-radius line-width) (values 10.0 6.0))
   
   (define-values (word-width word-height word-baseline) (cairo-text-size! face size style weight word &extents))
-  (define-values (bmp cr width height) (make-cairo-image (max flwidth word-width) (max flheight word-height) density))
+  (define-values (bmp cr width height) (make-cairo-image (max flwidth word-width) (max flheight word-height) density #true))
   (define-values (x y) (values (/ (- width word-width) 2.0) (+ (/ (- height word-height) 2.0) word-height)))
 
   (cairo_select_font_face cr face style weight)
@@ -104,7 +104,7 @@
   (define-values (dot-radius line-width) (values 10.0 6.0))
   (define-values (x y) (values (+ x0 line-width) (+ y0 line-width)))
   (define-values (word-width word-height baseline) (cairo-text-size! face size style weight word &extents))
-  (define-values (bmp cr _w _h) (make-cairo-image (+ x word-width line-width) (+ y word-height) density))
+  (define-values (bmp cr _w _h) (make-cairo-image (+ x word-width line-width) (+ y word-height) density #true))
 
   (cairo_select_font_face cr face style weight)
   (cairo_set_font_size cr size)

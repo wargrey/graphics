@@ -11,7 +11,7 @@
 (define density 2.0)
 
 (define (cairo-path width height offset line-width dashes)
-  (define-values (bmp cr _w _h) (make-cairo-image width height density))
+  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
 
   (cairo_move_to cr 128.0 25.6)
   (cairo_line_to cr 230.4 230.4)
@@ -35,7 +35,7 @@
   bmp)
 
 (define (cairo-fill-style width height style line-width rgb)
-  (define-values (bmp cr _w _h) (make-cairo-image width height density))
+  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
 
   (cairo_set_line_width cr line-width)
   
@@ -54,7 +54,7 @@
   bmp)
 
 (define (cairo-line-width width height line-width)
-  (define-values (bmp cr _w _h) (make-cairo-image width height density))
+  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
 
   (cairo_set_line_width cr line-width)
   (cairo_rectangle cr 0.0 0.0 width height)
@@ -75,7 +75,7 @@
   bmp)
 
 (define (cairo-line-cap width height line-cap)
-  (define-values (bmp cr _w _h) (make-cairo-image width height density))
+  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
   (define spacing (/ height 2.0))
 
   (cairo_set_line_width cr height)
@@ -93,7 +93,7 @@
   bmp)
 
 (define (cairo-line-join width height line-join miter-limit)
-  (define-values (bmp cr _w _h) (make-cairo-image width height density))
+  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
   (define line-width (/ height 3.0))
   (define delta (/ height (sqrt 2.0)))
 
@@ -113,9 +113,9 @@
 (cairo-fill-style 256.0 128.0 CAIRO_FILL_RULE_EVEN_ODD 4.0 #(0.0 0.7 0.0))
 (cairo-fill-style 256.0 128.0 CAIRO_FILL_RULE_WINDING  4.0 #(0.0 0.0 0.9))
 
-(cairo-line-width 256.0 128.0 2.0)
-(cairo-line-width 256.0 128.0 1.0)
-(cairo-line-width 256.0 128.0 0.4)
+(cairo-line-width 256.0 16.0 2.0)
+(cairo-line-width 256.0 16.0 1.0)
+(cairo-line-width 256.0 16.0 0.4)
 
 (cairo-line-cap 256.0 32.0 CAIRO_LINE_CAP_BUTT)    ; default
 (cairo-line-cap 256.0 32.0 CAIRO_LINE_CAP_ROUND)

@@ -10,7 +10,7 @@
 (require (submod "../../digitama/unsafe/font.rkt" unsafe))
 
 (define (cairo-text-polygon words radius font-face font-weight font-attrs)
-  (define-values (bmp cr width height) (make-cairo-image (* 2.0 radius) (* 2.0 radius) density))
+  (define-values (bmp cr width height) (make-cairo-image (* 2.0 radius) (* 2.0 radius) density #true))
   (define (draw-text-circle cr context words)
     (define layout (pango_layout_new context))
     (when font-attrs (pango_layout_set_attributes layout font-attrs))

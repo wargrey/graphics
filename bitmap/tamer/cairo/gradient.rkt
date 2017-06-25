@@ -10,7 +10,7 @@
 
 (define (cairo-gradient xc yc radius light shadow)
   (define-values (flw flh) (values (* (max xc radius) 2.0) (* (max yc radius) 2.0)))
-  (define-values (bmp cr width height) (make-cairo-image flw flh density))
+  (define-values (bmp cr width height) (make-cairo-image flw flh density #true))
 
   (define background (cairo_pattern_create_linear 0.0 0.0 0.0 height))
   (apply cairo_pattern_add_color_stop_rgba background 0.0 light)

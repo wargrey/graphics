@@ -5,7 +5,7 @@
 
 (define romedalen (read-bitmap (collection-file-path "romedalen.png" "bitmap" "tamer" "cairo") #:backing-scale 2.0))
 
-romedalen
+(bitmap-cellophane romedalen 1.00)
 (bitmap-cellophane romedalen 0.80)
 (bitmap-cellophane romedalen 0.64)
 (bitmap-cellophane romedalen 0.32)

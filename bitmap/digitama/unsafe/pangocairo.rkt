@@ -67,29 +67,31 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-create-argb-image
-  (lambda [flwidth flheight density]
+  (lambda [flwidth flheight density scale?]
     (define surface
       (cairo_image_surface_create CAIRO_FORMAT_ARGB32
                                   (unsafe-fxmax (~fx (unsafe-fl* flwidth density)) 1)
                                   (unsafe-fxmax (~fx (unsafe-fl* flheight density)) 1)))
     
     (define cr (cairo_create surface))
-    (unless (unsafe-fl= density 1.0) (cairo_scale cr density density))
+    (unless (or (not scale?) (unsafe-fl= density 1.0))
+      (cairo_scale cr density density))
     (cairo_surface_destroy surface)
     cr))
 
 (define make-cairo-image
-  (lambda [flwidth flheight density]
+  (lambda [flwidth flheight density scale?]
     (define width (unsafe-fxmax (~fx flwidth) 1))
     (define height (unsafe-fxmax (~fx flheight) 1))
     (define img (make-bitmap width height #:backing-scale density))
     (define cr (cairo_create (send img get-handle)))
-    (unless (unsafe-fl= density 1.0) (cairo_scale cr density density))
+    (unless (or (not scale?) (unsafe-fl= density 1.0))
+      (cairo_scale cr density density))
     (values img cr width height)))
 
 (define make-cairo-image*
-  (lambda [flwidth flheight background density]
-    (define-values (img cr width height) (make-cairo-image flwidth flheight density))
+  (lambda [flwidth flheight background density scale?]
+    (define-values (img cr width height) (make-cairo-image flwidth flheight density scale?))
     (cairo-set-source cr background)
     (cairo_paint cr)
     (values img cr width height)))

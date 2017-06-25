@@ -14,7 +14,7 @@
   
   (define (bitmap_arc radius border background density [start 0.0] [end 2pi])
     (define fllength (unsafe-fl* radius 2.0))
-    (define-values (img cr w h) (make-cairo-image fllength fllength density))
+    (define-values (img cr w h) (make-cairo-image fllength fllength density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (cairo_translate cr radius radius)
     (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl/ line-width 2.0)) start end)
@@ -23,7 +23,7 @@
     img)
 
   (define (bitmap_elliptical_arc width height border background density [start 0.0] [end 2pi])
-    (define-values (img cr w h) (make-cairo-image width height density))
+    (define-values (img cr w h) (make-cairo-image width height density #true))
     (define-values (width/2 height/2) (values (unsafe-fl/ width 2.0) (unsafe-fl/ height 2.0)))
     (define radius (unsafe-flmin width/2 height/2))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
@@ -39,7 +39,7 @@
     img)
   
   (define (bitmap_rectangle flwidth flheight border background density)
-    (define-values (img cr w h) (make-cairo-image flwidth flheight density))
+    (define-values (img cr w h) (make-cairo-image flwidth flheight density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset (unsafe-fl/ line-width 2.0))
     (cairo_rectangle cr inset inset (unsafe-fl- flwidth line-width) (unsafe-fl- flheight line-width))
@@ -48,7 +48,7 @@
     img)
 
   (define (bitmap_rounded_rectangle flwidth flheight radius border background density)
-    (define-values (img cr w h) (make-cairo-image flwidth flheight density))
+    (define-values (img cr w h) (make-cairo-image flwidth flheight density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset (unsafe-fl/ line-width 2.0))
     (define flradius
@@ -71,7 +71,7 @@
     (define flradius (radius-normalize radius fllength))
     (define flheight (unsafe-fl* flradius 2.0))
     (define flwidth (unsafe-fl+ fllength flheight))
-    (define-values (img cr w h) (make-cairo-image flwidth flheight density))
+    (define-values (img cr w h) (make-cairo-image flwidth flheight density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset-radius (unsafe-fl- flradius (unsafe-fl/ line-width 2.0)))
     (cairo_new_sub_path cr) ; not neccessary
