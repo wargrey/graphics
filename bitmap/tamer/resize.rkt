@@ -24,3 +24,10 @@
 (bitmap-inset concentric-circles 16.0 16.0 -16.0 -16.0)
 (bitmap-scale concentric-circles 2.0 1.0)
 (bitmap-rt-crop concentric-circles 64 64)
+
+(define text (bitmap-text (string-append "memory: " (number->string (current-memory-use)))))
+(define trimed-text (time (bitmap-trim text)))
+(bitmap-frame text)
+(bitmap-enclosing-box text)
+(bitmap-frame trimed-text)
+(bitmap-enclosing-box trimed-text)
