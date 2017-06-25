@@ -14,7 +14,8 @@
   
   (define (λbitmap width height density λargb)
     (define-values (img cr w h) (make-cairo-image width height density))
-    (define-values (buffer total stride W H) (cairo-image-metrics cr 4))
+    (define surface (cairo_get_target cr))
+    (define-values (buffer total stride W H) (cairo-surface-metrics surface 4))
     (let y-loop ([y 0])
       (when (unsafe-fx< y H)
         (let x-loop ([x 0] [idx (unsafe-fx* y stride)])
@@ -26,6 +27,7 @@
             (unsafe-bytes-set! buffer (unsafe-fx+ idx B) (argb->datum b))
             (x-loop (unsafe-fx+ x 1) (unsafe-fx+ idx 4))))
         (y-loop (unsafe-fx+ y 1))))
+    (cairo_surface_mark_dirty surface)
     (cairo_destroy cr)
     img)
   

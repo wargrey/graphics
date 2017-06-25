@@ -12,8 +12,7 @@
   (require "pangocairo.rkt")
 
   (define (bitmap_cellophane src alpha density)
-    (define flwidth (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_width src)) density))
-    (define flheight (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_height src)) density))
+    (define-values (flwidth flheight) (cairo-image-size src density))
     (define-values (img cr w h) (make-cairo-image flwidth flheight density))
     (define 1/density (unsafe-fl/ 1.0 density))
     (cairo_scale cr 1/density 1/density) ; order matters
@@ -22,12 +21,26 @@
     (cairo_destroy cr)
     img)
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  )
-
-(define-type XYWH->ARGB (-> Nonnegative-Fixnum Nonnegative-Fixnum Positive-Fixnum Positive-Fixnum (Values Real Real Real Real)))
+  (define (bitmap_grayscale src rgb->gray density)
+    (define-values (flwidth flheight) (cairo-image-size src density))
+    (define-values (img cr w h) (make-cairo-image flwidth flheight density))
+    (define surface (cairo_get_target cr))
+    (define-values (data total) (cairo-surface-data src))
+    (define-values (buffer _) (cairo-surface-data surface))
+    (memcpy buffer data total _byte)
+    (let grayscale ([idx 0])
+      (when (unsafe-fx< idx total)
+        (define-values (r g b) (values (unsafe-fx+ idx R) (unsafe-fx+ idx G) (unsafe-fx+ idx B)))
+        (define gray (rgb->gray (unsafe-bytes-ref data r) (unsafe-bytes-ref data g) (unsafe-bytes-ref data b)))
+        (unsafe-bytes-set! buffer r gray)
+        (unsafe-bytes-set! buffer g gray)
+        (unsafe-bytes-set! buffer b gray)
+        (grayscale (unsafe-fx+ idx 4))))
+    (cairo_surface_mark_dirty surface)
+    (cairo_destroy cr)
+    img))
 
 (unsafe/require/provide
  (submod "." unsafe)
- [bitmap_cellophane (-> Bitmap-Surface Real Flonum Bitmap)])
+ [bitmap_cellophane (-> Bitmap-Surface Flonum Flonum Bitmap)]
+ [bitmap_grayscale (-> Bitmap-Surface (-> Byte Byte Byte Integer) Flonum Bitmap)])

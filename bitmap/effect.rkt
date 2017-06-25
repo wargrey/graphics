@@ -8,52 +8,51 @@
 
 (define bitmap-cellophane : (-> Bitmap Nonnegative-Real Bitmap)
   (lambda [bmp opacity]
-    (cond [(>= opacity 1.0) bmp]
-          [else (bitmap_cellophane (bitmap->surface bmp) opacity
+    (define alpha : Flonum (real->double-flonum opacity))
+    (cond [(fl>= alpha 1.0) bmp]
+          [else (bitmap_cellophane (bitmap->surface bmp) alpha
                                    (real->double-flonum (send bmp get-backing-scale)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-grayscale : (-> Bitmap (-> Byte Byte Byte Byte) Bitmap)
+(define bitmap-grayscale : (-> Bitmap (-> Byte Byte Byte Integer) Bitmap)
   (lambda [bmp rgb->gray]
-    (define-values (w h bs) (values (send bmp get-width) (send bmp get-height) (send bmp get-backing-scale)))
-    (define size : Integer (exact-ceiling (* w h bs bs 4)))
-    (define buffer : Bytes (make-bytes size))
-    (send bmp get-argb-pixels 0 0 w h buffer)
-    (let scale ([r : Integer 1])
-      (when (fx< r size)
-        (define-values (g b) (values (fx+ r 1) (fx+ r 2)))
-        (define gray : Byte (rgb->gray (bytes-ref buffer r) (bytes-ref buffer g) (bytes-ref buffer b)))
-        (bytes-set! buffer r gray)
-        (bytes-set! buffer g gray)
-        (bytes-set! buffer b gray)
-        (scale (fx+ r 4))))
-    (define gray : Bitmap (make-object bitmap% w h #false #true bs))
-    (send gray set-argb-pixels 0 0 w h buffer)
-    gray))
+    (bitmap_grayscale (bitmap->surface bmp) rgb->gray
+                      (real->double-flonum (send bmp get-backing-scale)))))
 
 (define bitmap-grayscale/lightness : (-> Bitmap Bitmap)
   (lambda [bmp]
     (bitmap-grayscale bmp
-                      (λ [[r : Byte] [g : Byte] [b : Byte]] : Byte
-                        (min (quotient (+ (max r g b) (min r g b)) 2) 255)))))
+                      (λ [[r : Byte] [g : Byte] [b : Byte]] : Integer
+                        (fxquotient (fx+ (fxmax (fxmax r g) b)
+                                         (fxmin (fxmin r g) b))
+                                    2)))))
 
 (define bitmap-grayscale/average : (-> Bitmap Bitmap)
   (lambda [bmp]
     (bitmap-grayscale bmp
-                      (λ [[r : Byte] [g : Byte] [b : Byte]] : Byte
-                        (assert (quotient (+ r g b) 3) byte?)))))
+                      (λ [[r : Byte] [g : Byte] [b : Byte]] : Integer
+                        (fxquotient (fx+ (fx+ r g) b) 3)))))
 
-(define bitmap-grayscale/luminosity : (->* (Bitmap) (Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum) Bitmap)
+(define bitmap-grayscale/luminosity : (->* (Bitmap) (Nonnegative-Real Nonnegative-Real Nonnegative-Real) Bitmap)
   (lambda [bmp [ro 0.2126] [go 0.7152] [bo 0.0722]]
+    (define flr : Flonum (real->double-flonum ro))
+    (define flg : Flonum (real->double-flonum go))
+    (define flb : Flonum (real->double-flonum bo))
     (bitmap-grayscale bmp
-                      (λ [[r : Byte] [g : Byte] [b : Byte]] : Byte
-                        (min (exact-round (+ (* r ro) (* g go) (* b bo))) 255)))))
+                      (λ [[r : Byte] [g : Byte] [b : Byte]] : Integer
+                        (define gr : Flonum (fl* (fx->fl r) flr))
+                        (define gg : Flonum (fl* (fx->fl g) flg))
+                        (define gb : Flonum (fl* (fx->fl b) flb))
+                        (fxmin (fl->fx (flround (fl+ (fl+ gr gg) gb))) 255)))))
 
 (define bitmap-grayscale/decomposition : (-> Bitmap (U 'max 'min) Bitmap)
   (lambda [bmp algorithm]
     (bitmap-grayscale bmp
-                      (cond [(eq? algorithm 'min) min]
-                            [else (λ [[r : Byte] [g : Byte] [b : Byte]] : Byte (assert (max r g b) byte?))]))))
+                      (if (eq? algorithm 'min)
+                          (λ [[r : Byte] [g : Byte] [b : Byte]] : Integer
+                            (fxmin (fxmin r g) b))
+                          (λ [[r : Byte] [g : Byte] [b : Byte]] : Integer
+                            (fxmax (fxmax r g) b))))))
 
 (define bitmap-grayscale/channel : (-> Bitmap (U 'red 'green 'blue) Bitmap)
   (lambda [bmp channel]

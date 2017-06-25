@@ -114,13 +114,15 @@
     (values (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_width src)) density)
             (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_height src)) density))))
 
+(define cairo-surface-data
+  (lambda [src]
+    (define data (cairo_image_surface_get_data src))
+    (values data (unsafe-bytes-length data))))
 
-(define cairo-image-metrics
+(define cairo-surface-metrics
   (lambda [src components]
-    (define surface (cairo_get_target src))
-    (define data (cairo_image_surface_get_data surface))
-    (define total (unsafe-bytes-length data))
-    (define stride (cairo_image_surface_get_stride surface))
+    (define-values (data total) (cairo-surface-data src))
+    (define stride (cairo_image_surface_get_stride src))
     (values data total stride
             (unsafe-fxquotient stride components)
             (unsafe-fxquotient total stride))))

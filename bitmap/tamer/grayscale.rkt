@@ -1,20 +1,22 @@
 #lang typed/racket/base
 
-(require typed/images/logos)
+(require "../digitama/draw.rkt")
 (require "../effect.rkt")
 
-(define b (planet-logo))
+(define romedalen (read-bitmap (collection-file-path "romedalen.png" "bitmap" "tamer" "cairo") #:backing-scale 2.0))
 
-b
-(bitmap-grayscale/lightness b)
-(bitmap-grayscale/average b)
-(bitmap-grayscale/luminosity b)
+romedalen
+(bitmap-grayscale/lightness romedalen)
+(bitmap-grayscale/average romedalen)
+(bitmap-grayscale/luminosity romedalen)
 
 'decomposition
-(bitmap-grayscale/decomposition b 'max)
-(bitmap-grayscale/decomposition b 'min)
+(bitmap-grayscale/decomposition romedalen 'max)
+(bitmap-grayscale/decomposition romedalen 'min)
 
 'channel
-(bitmap-grayscale/channel b 'red)
-(bitmap-grayscale/channel b 'green)
-(bitmap-grayscale/channel b 'blue)
+(bitmap-grayscale/channel romedalen 'red)
+(bitmap-grayscale/channel romedalen 'green)
+
+(collect-garbage)
+(bitmap-grayscale/channel romedalen 'blue)
