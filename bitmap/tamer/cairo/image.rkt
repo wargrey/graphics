@@ -16,7 +16,7 @@
 ;;; https://www.cairographics.org/samples/clip_image/
 
 (define density 2.0)
-(define image (send (read-bitmap "romedalen.png") get-handle))
+(define image (send (read-bitmap (collection-file-path "romedalen.png" "bitmap" "tamer" "cairo")) get-handle))
 (define w (cairo_image_surface_get_width image))
 (define h (cairo_image_surface_get_height image))
 (define &matrix (make-cairo_matrix_t 0.0 0.0 0.0 0.0 0.0 0.0))
