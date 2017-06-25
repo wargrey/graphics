@@ -67,7 +67,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-create-argb-image
-  (lambda [flwidth flheight [density 1.0]]
+  (lambda [flwidth flheight density]
     (define surface
       (cairo_image_surface_create CAIRO_FORMAT_ARGB32
                                   (unsafe-fxmax (~fx (unsafe-fl* flwidth density)) 1)
@@ -107,10 +107,26 @@
              [(cairo_pattern_t) (cairo_set_source cr src)]
              [(cairo_surface_t) (cairo_set_source_surface cr src 0.0 0.0)]
              [else (cairo-warn-message src "unrecognized source pointer: ~a" (cpointer-tag src))])]
-          [else (cairo-warn-message src "unrecognized source type: ~a" src)])))    
+          [else (cairo-warn-message src "unrecognized source type: ~a" src)])))
+
+(define cairo-image-size
+  (lambda [src density]
+    (values (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_width src)) density)
+            (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_height src)) density))))
+
+
+(define cairo-image-metrics
+  (lambda [src components]
+    (define surface (cairo_get_target src))
+    (define data (cairo_image_surface_get_data surface))
+    (define total (unsafe-bytes-length data))
+    (define stride (cairo_image_surface_get_stride surface))
+    (values data total stride
+            (unsafe-fxquotient stride components)
+            (unsafe-fxquotient total stride))))
 
 (define cairo-image->bitmap
-  (lambda [cr flwidth flheight [density 1.0]]
+  (lambda [cr flwidth flheight density]
     (define-values (width height) (values (unsafe-fxmax (~fx flwidth) 1) (unsafe-fxmax (~fx flheight) 1)))
     (define img (make-object bitmap% width height #false #true density))
     (define-values (src dest) (values (cairo_get_target cr) (send img get-handle)))
