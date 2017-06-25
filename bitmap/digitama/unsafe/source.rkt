@@ -12,10 +12,12 @@
   
   (require "pangocairo.rkt")
 
-  (define (bitmap%? v) (is-a? v bitmap%))
   (define (font-description? v) (cpointer*? v 'PangoFontDescription))
   (define (bitmap-surface? v) (cpointer*? v 'cairo_surface_t))
   (define (bitmap-pattern? v) (cpointer*? v 'cairo_pattern_t))
+
+  (define (bitmap%? v) (is-a? v bitmap%))
+  (define (bitmap->surface bmp) (send bmp get-handle))
   
   (define (bitmap-linear-gradient-pattern x0 y0 x1 y1 stops)
     (define gradient (cairo_pattern_create_linear x0 y0 x1 y1))
@@ -48,5 +50,6 @@
   [Bitmap-Surface bitmap-surface?]
   [Bitmap-Pattern bitmap-pattern?]]
  [bitmap%? (-> Any Boolean : Bitmap)]
+ [bitmap->surface (-> Bitmap Bitmap-Surface)]
  [bitmap-linear-gradient-pattern (-> Real Real Real Real (Listof (Pairof Real FlRGBA)) Bitmap-Pattern)]
  [bitmap-radial-gradient-pattern (-> Real Real Real Real Real Real (Listof (Pairof Real FlRGBA)) Bitmap-Pattern)])

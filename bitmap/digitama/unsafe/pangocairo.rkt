@@ -79,7 +79,7 @@
     cr))
 
 (define make-cairo-image
-  (lambda [flwidth flheight [density 1.0]]
+  (lambda [flwidth flheight density]
     (define width (unsafe-fxmax (~fx flwidth) 1))
     (define height (unsafe-fxmax (~fx flheight) 1))
     (define img (make-bitmap width height #:backing-scale density))
@@ -88,7 +88,7 @@
     (values img cr width height)))
 
 (define make-cairo-image*
-  (lambda [flwidth flheight background [density 1.0]]
+  (lambda [flwidth flheight background density]
     (define-values (img cr width height) (make-cairo-image flwidth flheight density))
     (cairo-set-source cr background)
     (cairo_paint cr)

@@ -71,7 +71,7 @@
   (lambda [bmp #:margin [margin 0.0] #:padding [inset 0.0] #:border [stroke (default-frame-stroke)] #:fill [fill #false]]
     (define flmargin : Flonum (real->double-flonum margin))
     (define flinset : Flonum (real->double-flonum inset))
-    (bitmap_frame (send bmp get-handle) flmargin flmargin flmargin flmargin flinset flinset flinset flinset
+    (bitmap_frame (bitmap->surface bmp) flmargin flmargin flmargin flmargin flinset flinset flinset flinset
                   stroke fill (real->double-flonum (send bmp get-backing-scale)))))
 
 (define bitmap-square : (->* (Real)

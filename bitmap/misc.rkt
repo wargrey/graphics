@@ -4,6 +4,7 @@
 
 (require "digitama/digicore.rkt")
 (require "digitama/unsafe/bitmap.rkt")
+(require "digitama/unsafe/source.rkt")
 
 (define bitmap-size : (case-> [Bitmap -> (Values Positive-Integer Positive-Integer)]
                               [Bitmap Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)]
@@ -27,4 +28,4 @@
 (define bitmap-alter-density : (->* (Bitmap) (Positive-Flonum) Bitmap)
   (lambda [src [dest-density (default-bitmap-density)]]
     (cond [(fl= (real->double-flonum (send src get-backing-scale)) dest-density) src]
-          [else (bitmap_alter_density (send src get-handle) dest-density)])))
+          [else (bitmap_alter_density (bitmap->surface src) dest-density)])))

@@ -2,8 +2,6 @@
 
 (provide (all-defined-out))
 
-(require racket/math)
-
 (require "../../digitama/draw.rkt")
 (require "../../constructor.rkt")
 (require "../../font.rkt")

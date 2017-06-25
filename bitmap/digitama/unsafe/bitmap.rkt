@@ -44,6 +44,14 @@
     (cairo_destroy cr)
     img)
 
+  (define (bitmap_alter_density src density)
+    (define flwidth (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_width src)) density))
+    (define flheight (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_height src)) density))
+    (define-values (img cr w h) (make-cairo-image flwidth flheight density))
+    (cairo-composite cr src 0.0 0.0 flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
+    (cairo_destroy cr)
+    img)
+
   (define (bitmap_frame src mtop mright mbottom mleft ptop pright pbottom pleft border background density)
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define line-inset (unsafe-fl/ line-width 2.0))
@@ -55,14 +63,6 @@
     (cairo_rectangle cr border-x border-y border-width border-height)
     (cairo-render cr border background)
     (cairo-composite cr src dest-x dest-y dest-width dest-height CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
-    (cairo_destroy cr)
-    img)
-
-  (define (bitmap_alter_density src density)
-    (define flwidth (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_width src)) density))
-    (define flheight (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_height src)) density))
-    (define-values (img cr w h) (make-cairo-image flwidth flheight density))
-    (cairo-composite cr src 0.0 0.0 flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
     (cairo_destroy cr)
     img)
 
@@ -90,6 +90,6 @@
  [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Bitmap-Source Flonum Bitmap)]
- [bitmap_alter_density (-> #|Bitmap-Surface|# Any Flonum Bitmap)]
- [bitmap_frame (-> #|Bitmap-Surface|# Any Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum
+ [bitmap_alter_density (-> Bitmap-Surface Flonum Bitmap)]
+ [bitmap_frame (-> Bitmap-Surface Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum
                    (Option Paint) (Option Bitmap-Source) Flonum Bitmap)])
