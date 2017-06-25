@@ -3,6 +3,8 @@
 (provide (all-defined-out))
 
 (require "digitama/digicore.rkt")
+(require "digitama/unsafe/resize.rkt")
+(require "digitama/unsafe/source.rkt")
 (require "constructor.rkt")
 
 (define bitmap-section : (-> Bitmap Real Real Nonnegative-Real Nonnegative-Real Bitmap)
@@ -18,13 +20,15 @@
 (define bitmap-copy : (case-> [Bitmap -> Bitmap]
                               [Bitmap Real Real Nonnegative-Real Nonnegative-Real -> Bitmap])
   (case-lambda
-    [(bmp) (bitmap-copy bmp 0 0 (send bmp get-width) (send bmp get-height))]
+    [(bmp)
+     (bitmap_section (bitmap->surface bmp) 0.0 0.0
+                     (fx->fl (send bmp get-width)) (fx->fl (send bmp get-height))
+                     (real->double-flonum (send bmp get-backing-scale)))]
     [(bmp left top width height)
-     (define clone : Bitmap (bitmap-blank width height (send bmp get-backing-scale)))
-     (define dc : (Instance Bitmap-DC%) (send clone make-dc))
-     (send dc set-smoothing 'aligned)
-     (send dc draw-bitmap-section bmp 0 0 left top width height)
-     clone]))
+     (bitmap_section (bitmap->surface bmp)
+                     (real->double-flonum left) (real->double-flonum top)
+                     (real->double-flonum width) (real->double-flonum height)
+                     (real->double-flonum (send bmp get-backing-scale)))]))
 
 (define bitmap-trim : (->* (Bitmap) (Boolean) Bitmap)
   (lambda [bmp [just-alpha? #true]]
@@ -60,8 +64,8 @@
                                [Bitmap Real Real Real Real -> Bitmap])
   (case-lambda
     [(bmp inset) (bitmap-inset bmp inset inset inset inset)]
-    [(bmp horizontal vertical) (bitmap-inset bmp horizontal vertical horizontal vertical)]
-    [(bmp left top right bottom)
+    [(bmp vertical horizontal) (bitmap-inset bmp vertical horizontal vertical horizontal)]
+    [(bmp top right bottom left)
      (bitmap-section/dot bmp (- left) (- top) (+ (send bmp get-width) right) (+ (send bmp get-height) bottom))]))
 
 (define bitmap-crop : (-> Bitmap Positive-Real Positive-Real Real Real Bitmap)
@@ -86,14 +90,10 @@
      (if (= scale 1.0) bmp (bitmap-scale bmp scale scale))]
     [(bmp scale-x scale-y)
      (cond [(and (= scale-x 1.0) (= scale-y 1.0)) bmp]
-           [else (let ([width : Nonnegative-Real (* (send bmp get-width) (abs scale-x))]
-                       [height : Nonnegative-Real (* (send bmp get-height) (abs scale-y))])
-                   (define scaled : Bitmap (bitmap-blank width height (send bmp get-backing-scale)))
-                   (define dc : (Instance Bitmap-DC%) (send scaled make-dc))
-                   (send dc set-smoothing 'aligned)
-                   (send dc set-scale scale-x scale-y)
-                   (send dc draw-bitmap bmp 0 0)
-                   scaled)])]))
+           [else (bitmap_scale (bitmap->surface bmp)
+                               (real->double-flonum scale-x)
+                               (real->double-flonum scale-y)
+                               (real->double-flonum (send bmp get-backing-scale)))])]))
 
 (define bitmap-resize : (case-> [Bitmap (U Bitmap Nonnegative-Real) -> Bitmap]
                                 [Bitmap Nonnegative-Real Nonnegative-Real -> Bitmap])
