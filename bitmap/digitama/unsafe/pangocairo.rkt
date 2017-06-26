@@ -76,8 +76,7 @@
     (define cr (cairo_create surface))
     (unless (or (not scale?) (unsafe-fl= density 1.0))
       (cairo_scale cr density density))
-    (cairo_surface_destroy surface)
-    cr))
+    (values surface cr)))
 
 (define make-cairo-image
   (lambda [flwidth flheight density scale?]
@@ -173,3 +172,4 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (A R G B) (if (system-big-endian?) (values 0 1 2 3) (values 3 2 1 0)))
 (define-values (-pi/2 pi/2 3pi/2 2pi) (values (~radian -90.0) (~radian 90.0) (~radian 270.0) (unsafe-fl* pi 2.0)))
+(define-values (the-surface the-cairo) (cairo-create-argb-image 1.0 1.0 1.0 #false))

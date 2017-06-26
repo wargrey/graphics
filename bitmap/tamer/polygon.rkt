@@ -2,6 +2,7 @@
 
 (require "../base.rkt")
 
+#|
 (bitmap-frame (bitmap-polygon #:color "burlywood" #:border 'green '((0 . 0) (-10 . 20) (60 . 0) (-10 . -20))))
 (bitmap-frame (bitmap-polygon #:color "burlywood" #:border 'green '((0 . 0) (-10 . 20) (60 . 0) (-10 . -20)) 10 20))
 (bitmap-frame (bitmap-polygon #:border (cons "darkslategray" 10) '((0 . 0) (50 . 0) (0 . 50) (50 . 50))))
@@ -20,3 +21,4 @@
     (collect-garbage)
     (time (for ([idx (in-range times)])
             (polygon '((0 . 0) (0 . 40) (20 . 40) (20 . 60) (40 . 60) (40 . 20) (20 . 20) (20 . 0)))))))
+|#

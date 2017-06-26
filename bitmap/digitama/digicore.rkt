@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) bitmap%?)
 (provide (all-from-out "draw.rkt"))
 (provide (all-from-out racket/fixnum racket/flonum racket/math))
 
@@ -9,6 +9,7 @@
 (require racket/math)
 
 (require "draw.rkt")
+(require "unsafe/source.rkt")
 
 (define default-bitmap-density : (Parameterof Positive-Flonum) (make-parameter 2.0))
 (define default-bitmap-icon-height : (Parameterof Nonnegative-Flonum) (make-parameter 24.0))

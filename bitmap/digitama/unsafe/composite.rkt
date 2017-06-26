@@ -11,7 +11,7 @@
   
   (require "pangocairo.rkt")
   (require "paint.rkt")
-
+  
   (define (bitmap_composite operator sfc1 x1 y1 sfc2 x2 y2 density)
     (define-values (width1 height1) (cairo-image-size sfc1 density))
     (define-values (width2 height2) (cairo-image-size sfc2 density))

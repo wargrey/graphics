@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require "../draw.rkt")
-(require "font.rkt")
 (require "source.rkt")
 (require "require.rkt")
 
@@ -11,7 +10,6 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
-  (require "../font.rkt")
   (require (submod "font.rkt" unsafe))
 
   (define (bitmap_text text font-desc lines fgsource bgsource alsource dlsource clsource mlsource blsource density)
