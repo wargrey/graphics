@@ -23,7 +23,7 @@
                         (unsafe-flmax (unsafe-fl+ dy1 height1) (unsafe-fl+ dy2 height2))
                         density #true))
     (cairo_save cr)
-    (cairo-composite cr sfc1 dx1 dy1 width1 height1 CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
+    (cairo-composite cr sfc1 dx1 dy1 width1 height1 CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_SOURCE density)
     (cairo_restore cr)
     (cairo-composite cr sfc2 dx2 dy2 width2 height2 CAIRO_FILTER_BILINEAR operator density)
     (cairo_destroy cr)
