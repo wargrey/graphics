@@ -12,7 +12,8 @@
                     (let ([bitmap-~a-crop (syntax-e #'frmt)])
                       (for/list ([<tip> (in-list (syntax->list #'(tips ...)))])
                         (datum->syntax <tip> (string->symbol (format bitmap-~a-crop (syntax-e <tip>))))))])
-       #'(begin (define bitmap-crop : (-> Args ... Flonum Flonum Bitmap) (lambda λargs λmain ...))
+       #'(begin (define bitmap-crop : (-> Args ... Nonnegative-Flonum Nonnegative-Flonum Bitmap)
+                  (lambda λargs λmain ...))
                 (define bitmap-cropper : (-> Args ... Bitmap)
                   (lambda [bmp w h] (bitmap-crop bmp w h left% top%))) ...))]))
 

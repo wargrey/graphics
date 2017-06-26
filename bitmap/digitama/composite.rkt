@@ -31,17 +31,15 @@
      hsl-hue hsl-saturation hsl-color hsl-liminosity])
 
 (define-type Bitmap-Layer->XY (-> Flonum Flonum (Values Flonum Flonum)))
-(define-type Pseudo-Bitmap (List Flonum Flonum (Listof (Pairof Bitmap Bitmap-Layer->XY))))
+(define-type Bitmap-Layers (Listof (Pairof Bitmap Bitmap-Layer->XY)))
 (define-type Superimpose-Alignment (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
 
-(define superimpose : (-> Symbol (Listof Bitmap) Pseudo-Bitmap)
+(define superimpose : (-> Symbol (Listof Bitmap) (Values Flonum Flonum Bitmap-Layers))
   (lambda [alignment bitmaps]
-    (define-values (width height sreyal)
-      (for/fold ([width : Flonum 0.0] [height : Flonum 0.0] [layers : (Listof (Pairof Bitmap Bitmap-Layer->XY)) null])
-                ([bmp : Bitmap (in-list bitmaps)])
-        (define-values (w h) (values (fx->fl (send bmp get-width)) (fx->fl (send bmp get-height))))
-        (values (flmax width w) (flmax height h) (cons (cons bmp (make-layer alignment w h)) layers))))
-    (list width height (reverse sreyal))))
+    (for/fold ([width : Flonum 0.0] [height : Flonum 0.0] [layers : (Listof (Pairof Bitmap Bitmap-Layer->XY)) null])
+              ([bmp : Bitmap (in-list bitmaps)])
+      (define-values (w h) (values (fx->fl (send bmp get-width)) (fx->fl (send bmp get-height))))
+      (values (flmax width w) (flmax height h) (cons (cons bmp (make-layer alignment w h)) layers)))))
 
 (define make-layer : (-> Symbol Flonum Flonum Bitmap-Layer->XY)
   (lambda [alignment w h]

@@ -96,12 +96,11 @@
                  [(rc) (bitmap-pin  1  1/2  1  1/2 base bmp)]
                  [(rb) (bitmap-pin  1   1   1   1  base bmp)]
                  [else base]))]
-            [else (let ([info : Pseudo-Bitmap (superimpose alignment bitmaps)])
-                    (define-values (width height) (values (car info) (cadr info)))
+            [else (let-values ([(width height sreyal) (superimpose alignment bitmaps)])
                     (define bmp : Bitmap (bitmap-blank width height #:density 2.0))
                     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
                     (send dc set-smoothing 'aligned)
-                    (for ([bmp+fxy (in-list (caddr info))])
+                    (for ([bmp+fxy (in-list (reverse sreyal))])
                       (define-values (x y) ((cdr bmp+fxy) width height))
                       (send dc draw-bitmap (car bmp+fxy) x y))
                     bmp)]))))
