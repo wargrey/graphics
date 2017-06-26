@@ -9,8 +9,8 @@
 (require typed/images/icons)
 
 (require/provide "digitama/digicore.rkt")
-(require/provide "constructor.rkt" "combiner.rkt" "resize.rkt")
-(require/provide "color.rkt" "font.rkt" "background.rkt" "misc.rkt")
+(require/provide "constructor.rkt" "composite.rkt" "resize.rkt")
+(require/provide "color.rkt" "font.rkt" "paint.rkt" "misc.rkt")
 
 (define bitmap-icon : (->* ((U Bitmap Path-String Input-Port))
                            ((-> Bitmap) #:dtrace String #:height Nonnegative-Real #:scale? Boolean)

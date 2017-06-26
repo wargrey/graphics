@@ -2,7 +2,7 @@
 
 (require "../digitama/digicore.rkt")
 (require "../constructor.rkt")
-(require "../combiner.rkt")
+(require "../composite.rkt")
 (require "../font.rkt")
 
 (define examples : (Listof Bitmap)

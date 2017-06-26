@@ -1,8 +1,14 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (provide (all-defined-out))
 
+(require racket/vector)
+(require racket/list)
+
 (require "digicore.rkt")
+(require "misc.rkt")
+
+(require (for-syntax racket/base))
 
 (define-syntax (define-combiner stx)
   (syntax-case stx []
@@ -17,6 +23,12 @@
                               <mkcb>)))])
        #'(begin (define-values (bitmap-combiner ...) (values (make-combiner 'tips) ...))
                 ...))]))
+
+(define-enumeration* bitmap-blend-mode #:+> Bitmap-Blend-Mode ; order matters
+  bitmap-operator->integer integer->bitmap-operator
+  [0 clear source over in out atop dest dest-over dest-in dest-out dest-atop xor add saturate
+     multiply screen overlay darken lighten color-dodge color-burn hard-light soft-light difference exclusion
+     hsl-hue hsl-saturation hsl-color hsl-liminosity])
 
 (define-type Bitmap-Layer->XY (-> Flonum Flonum (Values Flonum Flonum)))
 (define-type Pseudo-Bitmap (List Flonum Flonum (Listof (Pairof Bitmap Bitmap-Layer->XY))))

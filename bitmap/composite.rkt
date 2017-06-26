@@ -1,32 +1,30 @@
 #lang typed/racket
 
-(provide (except-out (all-defined-out) make-pin make-append make-append* make-superimpose))
+(provide (except-out (all-defined-out) make-append make-append* make-superimpose))
 
 (require "digitama/digicore.rkt")
-(require "digitama/combiner.rkt")
+(require "digitama/composite.rkt")
+(require "digitama/unsafe/source.rkt")
+(require "digitama/unsafe/composite.rkt")
 (require "constructor.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require (only-in typed/racket/draw bitmap-dc% Bitmap-DC%))
 
-(define make-pin : (-> Symbol (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap))
-  (lambda [order]
-    (λ [bmp1 x1 y1 bmp2 [x2 0] [y2 0]]
-      (define dx : Integer (exact-round (- x1 x2)))
-      (define dy : Integer (exact-round (- y1 y2)))
-      (define dx1 : Natural (fxmax 0 (fx- 0 dx)))
-      (define dy1 : Natural (fxmax 0 (fx- 0 dy)))
-      (define dx2 : Natural (fxmax 0 dx))
-      (define dy2 : Natural (fxmax 0 dy))
-      (define dc : (Instance Bitmap-DC%)
-        (make-object bitmap-dc%
-          (bitmap-blank (fxmax (fx+ dx1 (send bmp1 get-width)) (fx+ dx2 (send bmp2 get-width)))
-                        (fxmax (fx+ dy1 (send bmp1 get-height)) (fx+ dy2 (send bmp2 get-height))))))
-      (send dc set-smoothing 'aligned)
-      (case order
-        [(over)  (send* dc (draw-bitmap bmp1 dx1 dy1) (draw-bitmap bmp2 dx2 dy2))]
-        [(under) (send* dc (draw-bitmap bmp2 dx2 dy2) (draw-bitmap bmp1 dx1 dy1))])
-      (or (send dc get-bitmap) (bitmap-blank)))))
+(define bitmap-composite : (->* (Bitmap Real Real Bitmap) (Real Real #:mode Symbol) Bitmap)
+  (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0] #:mode [op 'over]]
+    (bitmap_composite (or (bitmap-operator->integer op) (bitmap-operator->integer 'over))
+                      (bitmap->surface bmp1) (real->double-flonum x1) (real->double-flonum y1)
+                      (bitmap->surface bmp2) (real->double-flonum x2) (real->double-flonum y2)
+                      (real->double-flonum (send bmp1 get-backing-scale)))))
+
+(define bitmap-pin-over : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
+  (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
+    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 #:mode 'over)))
+
+(define bitmap-pin-under : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
+  (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
+    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 #:mode 'dest-over)))
 
 (define make-append* : (-> Symbol (-> (Listof Bitmap) [#:gapsize Real] Bitmap))
   (lambda [alignment]
@@ -50,7 +48,7 @@
                     
                     (define width : Flonum (flmax min-width width0))
                     (define height : Flonum (flmax min-height height0))
-                    (define bmp : Bitmap (bitmap-blank width height (send base get-backing-scale)))
+                    (define bmp : Bitmap (bitmap-blank width height #:density 2.0))
                     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
                     (send dc set-smoothing 'aligned)
                     
@@ -100,7 +98,7 @@
                  [else base]))]
             [else (let ([info : Pseudo-Bitmap (superimpose alignment bitmaps)])
                     (define-values (width height) (values (car info) (cadr info)))
-                    (define bmp : Bitmap (bitmap-blank width height (send (car bitmaps) get-backing-scale)))
+                    (define bmp : Bitmap (bitmap-blank width height #:density 2.0))
                     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
                     (send dc set-smoothing 'aligned)
                     (for ([bmp+fxy (in-list (caddr info))])
@@ -110,7 +108,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-combiner
-  [make-pin         "bitmap-pin-~a"         (over under)]
   [make-append      "bitmap-~a-append"      (vl vc vr ht hc hb)]
   [make-append*     "bitmap-~a-append*"     (vl vc vr ht hc hb)]
   [make-superimpose "bitmap-~a-superimpose" (lt lc lb ct cc cb rt rc rb)])
@@ -127,7 +124,7 @@
         (define-values (w2 h2) (values (send bmp2 get-width) (send bmp2 get-height)))
         (define x1 (+ x (- (inexact->exact (* x1% w1)) (inexact->exact (* x2% w2)))))
         (define y1 (+ y (- (inexact->exact (* y1% h1)) (inexact->exact (* y2% h2)))))
-        (values (bitmap-pin-over bmp x1 y1 bmp2) (max 0 x1) (max 0 y1))))
+        (values (bitmap-composite bmp x1 y1 bmp2) (max 0 x1) (max 0 y1))))
     bmp))
 
 (define bitmap-table : (->* (Positive-Integer (Listof Bitmap))
@@ -175,7 +172,7 @@
             (values (fl+ xoff wcol) (cons (list (car cell) (fl+ x xoff) (fl+ y height)) pbmps))))
         (values wcols (fl+ height hrow) cells)))
 
-    (define bmp : Bitmap (bitmap-blank width height (if (null? bitmaps) (default-bitmap-density) (send (car bitmaps) get-backing-scale))))
+    (define bmp : Bitmap (bitmap-blank width height #:density 2.0))
     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
     (send dc set-smoothing 'aligned)
     (for ([cell : Bitmap-Cell (in-list cells)])
