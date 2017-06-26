@@ -1,8 +1,12 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (provide (all-defined-out))
 
-(require "digitama/digicore.rkt")
+(require racket/flonum)
+(require racket/fixnum)
+
+(require "digitama/draw.rkt")
+(require "digitama/resize.rkt")
 (require "digitama/unsafe/resize.rkt")
 (require "digitama/unsafe/source.rkt")
 (require "constructor.rkt")
@@ -68,23 +72,16 @@
                      (fl+ (fx->fl (send bmp get-height)) (fl+ flbottom fltop))
                      (real->double-flonum (send bmp get-backing-scale)))]))
 
-(define bitmap-crop : (-> Bitmap Positive-Real Positive-Real Flonum Flonum Bitmap)
-  (lambda [bmp width height left% top%]
+(define-cropper bitmap-crop : (-> Bitmap Positive-Real Positive-Real Bitmap)
+  (#:lambda [bmp width height left% top%]
     (define-values (W H) (values (fx->fl (send bmp get-width)) (fx->fl (send bmp get-height))))
     (define-values (w h) (values (flmin W (real->double-flonum width)) (flmin H (real->double-flonum height))))
     (bitmap_section (bitmap->surface bmp)
                     (fl* (fl- W w) left%) (fl* (fl- H h) top%) w h
-                    (real->double-flonum (send bmp get-backing-scale)))))
-
-(define bitmap-lt-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 0.0 0.0)))
-(define bitmap-lc-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 0.0 0.5)))
-(define bitmap-lb-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 0.0 1.0)))
-(define bitmap-ct-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 0.5 0.0)))
-(define bitmap-cc-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 0.5 0.5)))
-(define bitmap-cb-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 0.5 1.0)))
-(define bitmap-rt-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 1.0 0.0)))
-(define bitmap-rc-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 1.0 0.5)))
-(define bitmap-rb-crop : (-> Bitmap Positive-Real Positive-Real Bitmap) (λ [bmp w h] (bitmap-crop bmp w h 1.0 1.0)))
+                    (real->double-flonum (send bmp get-backing-scale))))
+  #:with ("bitmap-~a-crop" [lt 0.0 0.0] [lc 0.0 0.5] [lb 0.0 1.0]
+                           [ct 0.5 0.0] [cc 0.5 0.5] [cb 0.5 1.0]
+                           [rt 1.0 0.0] [rc 1.0 0.5] [rb 1.0 1.0]))
 
 (define bitmap-scale : (->* (Bitmap Real) (Real) Bitmap)
   (case-lambda
