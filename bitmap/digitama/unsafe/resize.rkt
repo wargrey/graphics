@@ -45,6 +45,13 @@
                    (x-loop (unsafe-fx+ xn 1) (unsafe-fx+ idx:a 4))]
                   [else (y-loop (unsafe-fx+ yn 1) idx:a)]))))
       (values x y X Y)))
+
+  (define (bitmap_bounding_box* src just-alpha? density)
+    (define-values (x y X Y) (bitmap_bounding_box src just-alpha?))
+    (values (unsafe-fl/ (unsafe-fx->fl x) density)
+            (unsafe-fl/ (unsafe-fx->fl y) density)
+            (unsafe-fl/ (unsafe-fx->fl (unsafe-fx- X 1)) density)
+            (unsafe-fl/ (unsafe-fx->fl (unsafe-fx- Y 1)) density)))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (zero-alpha? pixels idx:a)
@@ -61,4 +68,7 @@
  (submod "." unsafe)
  [bitmap_section (-> Bitmap-Surface Flonum Flonum Flonum Flonum Flonum Bitmap)]
  [bitmap_scale (-> Bitmap-Surface Flonum Flonum Flonum Bitmap)]
- [bitmap_bounding_box (-> Bitmap-Surface Boolean (Values Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum))])
+ [bitmap_bounding_box (-> Bitmap-Surface Boolean (Values Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum))]
+ [bitmap_bounding_box* (-> Bitmap-Surface Boolean Flonum
+                           (Values Nonnegative-Flonum Nonnegative-Flonum
+                                   Nonnegative-Flonum Nonnegative-Flonum))])

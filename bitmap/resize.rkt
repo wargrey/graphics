@@ -13,13 +13,11 @@
 
 (define bitmap-section : (-> Bitmap Real Real Nonnegative-Real Nonnegative-Real Bitmap)
   (lambda [bmp x y width height]
-    (define-values (src-width src-height) (values (send bmp get-width) (send bmp get-height)))
+    (define-values (src-width src-height) (bitmap-flsize bmp))
     (cond [(and (zero? x) (zero? y) (= width src-width) (= height src-height)) bmp]
-          [else (bitmap_section (bitmap->surface bmp)
-                                (real->double-flonum x) (real->double-flonum y)
-                                (flmin (real->double-flonum width) (real->double-flonum src-width))
-                                (flmin (real->double-flonum height) (real->double-flonum src-height))
-                                (real->double-flonum (send bmp get-backing-scale)))])))
+          [else (bitmap_section (bitmap-surface bmp) (real->double-flonum x) (real->double-flonum y)
+                                (flmin (real->double-flonum width) src-width) (flmin (real->double-flonum height) src-height)
+                                (bitmap-density bmp))])))
 
 (define bitmap-section/dot : (-> Bitmap Real Real Real Real Bitmap)
   (lambda [bmp x0 y0 xn yn]
@@ -29,32 +27,24 @@
                               [Bitmap Real Real Nonnegative-Real Nonnegative-Real -> Bitmap])
   (case-lambda
     [(bmp)
-     (bitmap_section (bitmap->surface bmp) 0.0 0.0
-                     (fx->fl (send bmp get-width)) (fx->fl (send bmp get-height))
-                     (real->double-flonum (send bmp get-backing-scale)))]
+     (define-values (src-width src-height) (bitmap-flsize bmp))
+     (bitmap_section (bitmap-surface bmp) 0.0 0.0 src-width src-height (bitmap-density bmp))]
     [(bmp x y width height)
-     (bitmap_section (bitmap->surface bmp)
-                     (real->double-flonum x) (real->double-flonum y)
-                     (flmin (real->double-flonum width) (fx->fl (send bmp get-width)))
-                     (flmin (real->double-flonum height) (fx->fl (send bmp get-height)))
-                     (real->double-flonum (send bmp get-backing-scale)))]))
+     (define-values (src-width src-height) (bitmap-flsize bmp))
+     (bitmap_section (bitmap-surface bmp) (real->double-flonum x) (real->double-flonum y)
+                     (flmin (real->double-flonum width) src-width) (flmin (real->double-flonum height) src-height)
+                     (bitmap-density bmp))]))
 
 (define bitmap-enclosing-box : (->* (Bitmap) (Boolean)
-                                    (Values Flonum Flonum Flonum Flonum))
+                                    (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [bmp [just-alpha? #true]]
-    (define density : Nonnegative-Flonum (real->double-flonum (send bmp get-backing-scale)))
-    (define-values (x y X Y) (bitmap_bounding_box (bitmap->surface bmp) just-alpha?))
-    (values (fl/ (fx->fl x) density) (fl/ (fx->fl y) density)
-            (fl/ (fx->fl X) density) (fl/ (fx->fl Y) density))))
+    (bitmap_bounding_box* (bitmap-surface bmp) just-alpha? (bitmap-density bmp))))
 
 (define bitmap-trim : (->* (Bitmap) (Boolean) Bitmap)
   (lambda [bmp [just-alpha? #true]]
-    (define density : Flonum (real->double-flonum (send bmp get-backing-scale)))
-    (define-values (x y X Y) (bitmap_bounding_box (bitmap->surface bmp) just-alpha?))
-    (bitmap_section (bitmap->surface bmp)
-                    (fl/ (fx->fl x) density) (fl/ (fx->fl y) density)
-                    (fl/ (fx->fl (fx- (fx- X 1) x)) density) (fl/ (fx->fl (fx- (fx- Y 1) y)) density)
-                    density)))
+    (define density : Flonum (bitmap-density bmp))
+    (define-values (x y X Y) (bitmap_bounding_box* (bitmap-surface bmp) just-alpha? density))
+    (bitmap_section (bitmap-surface bmp) x y (fl- X x) (fl- Y y) density)))
 
 (define bitmap-inset : (case-> [Bitmap Real -> Bitmap]
                                [Bitmap Real Real -> Bitmap]
@@ -67,18 +57,18 @@
     [(bmp top right bottom left)
      (define-values (flleft flright) (values (real->double-flonum left) (real->double-flonum right)))
      (define-values (fltop flbottom) (values (real->double-flonum top) (real->double-flonum bottom)))
-     (bitmap_section (bitmap->surface bmp) (- flleft) (- fltop)
+     (bitmap_section (bitmap-surface bmp) (- flleft) (- fltop)
                      (fl+ (fx->fl (send bmp get-width)) (fl+ flright flleft))
                      (fl+ (fx->fl (send bmp get-height)) (fl+ flbottom fltop))
-                     (real->double-flonum (send bmp get-backing-scale)))]))
+                     (bitmap-density bmp))]))
 
 (define-cropper bitmap-crop : (-> Bitmap Positive-Real Positive-Real Bitmap)
   (#:lambda [bmp width height left% top%]
     (define-values (W H) (values (fx->fl (send bmp get-width)) (fx->fl (send bmp get-height))))
     (define-values (w h) (values (flmin W (real->double-flonum width)) (flmin H (real->double-flonum height))))
-    (bitmap_section (bitmap->surface bmp)
+    (bitmap_section (bitmap-surface bmp)
                     (fl* (fl- W w) left%) (fl* (fl- H h) top%) w h
-                    (real->double-flonum (send bmp get-backing-scale))))
+                    (bitmap-density bmp)))
   #:with ("bitmap-~a-crop" [lt 0.0 0.0] [lc 0.0 0.5] [lb 0.0 1.0]
                            [ct 0.5 0.0] [cc 0.5 0.5] [cb 0.5 1.0]
                            [rt 1.0 0.0] [rc 1.0 0.5] [rb 1.0 1.0]))
@@ -89,10 +79,10 @@
      (if (= scale 1.0) bmp (bitmap-scale bmp scale scale))]
     [(bmp scale-x scale-y)
      (cond [(and (= scale-x 1.0) (= scale-y 1.0)) bmp]
-           [else (bitmap_scale (bitmap->surface bmp)
+           [else (bitmap_scale (bitmap-surface bmp)
                                (real->double-flonum scale-x)
                                (real->double-flonum scale-y)
-                               (real->double-flonum (send bmp get-backing-scale)))])]))
+                               (bitmap-density bmp))])]))
 
 (define bitmap-resize : (case-> [Bitmap (U Bitmap Nonnegative-Real) -> Bitmap]
                                 [Bitmap Nonnegative-Real Nonnegative-Real -> Bitmap])

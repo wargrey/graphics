@@ -6,6 +6,7 @@
 (require racket/list)
 
 (require "digicore.rkt")
+(require "unsafe/source.rkt")
 (require "misc.rkt")
 
 (require (for-syntax racket/base))
@@ -38,7 +39,7 @@
   (lambda [alignment bitmaps]
     (for/fold ([width : Flonum 0.0] [height : Flonum 0.0] [layers : (Listof (Pairof Bitmap Bitmap-Layer->XY)) null])
               ([bmp : Bitmap (in-list bitmaps)])
-      (define-values (w h) (values (fx->fl (send bmp get-width)) (fx->fl (send bmp get-height))))
+      (define-values (w h) (bitmap-flsize bmp))
       (values (flmax width w) (flmax height h) (cons (cons bmp (make-layer alignment w h)) layers)))))
 
 (define make-layer : (-> Symbol Flonum Flonum Bitmap-Layer->XY)
@@ -82,7 +83,7 @@
   (lambda [bitmaps nrows ncols]
     (define cells : Bitmap-Tables
       (for/vector : Bitmap-Tables ([bmp (in-list bitmaps)])
-        (define-values (w h) (values (fx->fl (send bmp get-width)) (fx->fl (send bmp get-height))))
+        (define-values (w h) (bitmap-flsize bmp))
         (list bmp w h)))
     (define diff : Integer (fx- (fx* nrows ncols) (vector-length cells)))
     (cond [(<= diff 0) cells]

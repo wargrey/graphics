@@ -9,15 +9,12 @@
 (define bitmap-cellophane : (-> Bitmap Nonnegative-Real Bitmap)
   (lambda [bmp opacity]
     (define alpha : Flonum (real->double-flonum opacity))
-    (cond [(fl>= alpha 1.0) bmp]
-          [else (bitmap_cellophane (bitmap->surface bmp) alpha
-                                   (real->double-flonum (send bmp get-backing-scale)))])))
+    (if (fl>= alpha 1.0) bmp (bitmap_cellophane (bitmap-surface bmp) alpha (bitmap-density bmp)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-grayscale : (-> Bitmap (-> Byte Byte Byte Integer) Bitmap)
   (lambda [bmp rgb->gray]
-    (bitmap_grayscale (bitmap->surface bmp) rgb->gray
-                      (real->double-flonum (send bmp get-backing-scale)))))
+    (bitmap_grayscale (bitmap-surface bmp) rgb->gray (bitmap-density bmp))))
 
 (define bitmap-grayscale/lightness : (-> Bitmap Bitmap)
   (lambda [bmp]

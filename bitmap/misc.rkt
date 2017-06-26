@@ -6,26 +6,24 @@
 (require "digitama/unsafe/bitmap.rkt")
 (require "digitama/unsafe/source.rkt")
 
-(define bitmap-size : (case-> [Bitmap -> (Values Positive-Integer Positive-Integer)]
+(define bitmap-size : (case-> [Bitmap -> (Values Positive-Flonum Positive-Flonum)]
                               [Bitmap Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)]
                               [Bitmap Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)])
-  (case-lambda [(bmp) (values (send bmp get-width) (send bmp get-height))]
-               [(bmp ratio) (values (* (send bmp get-width) ratio) (* (send bmp get-height) ratio))]
-               [(bmp w-ratio h-ratio) (values (* (send bmp get-width) w-ratio) (* (send bmp get-height) h-ratio))]))
+  (case-lambda [(bmp) (bitmap-flsize bmp)]
+               [(bmp ratio) (let ([% (real->double-flonum ratio)]) (bitmap-flsize* bmp % %))]
+               [(bmp w% h%) (bitmap-flsize* bmp (real->double-flonum w%) (real->double-flonum h%))]))
 
-(define bitmap-size+density : (Bitmap -> (Values Positive-Integer Positive-Integer Positive-Real))
+(define bitmap-size+density : (Bitmap -> (Values Positive-Flonum Positive-Flonum Positive-Flonum))
   (lambda [bmp]
-    (values (send bmp get-width)
-            (send bmp get-height)
-            (send bmp get-backing-scale))))
+    (define-values (w h) (bitmap-flsize bmp))
+    (values w h (bitmap-density bmp))))
 
-(define bitmap-intrinsic-size : (-> Bitmap (Values Positive-Integer Positive-Integer))
+(define bitmap-intrinsic-size : (-> Bitmap (Values Positive-Flonum Positive-Flonum))
   (lambda [bmp]
-    (define density : Positive-Real (send bmp get-backing-scale))
-    (values (max (exact-ceiling (* (send bmp get-width) density)) 1)
-            (max (exact-ceiling (* (send bmp get-height) density)) 1))))
+    (define density : Positive-Flonum (bitmap-density bmp))
+    (bitmap-flsize* bmp density density)))
 
 (define bitmap-alter-density : (->* (Bitmap) (Positive-Flonum) Bitmap)
   (lambda [src [dest-density (default-bitmap-density)]]
-    (cond [(fl= (real->double-flonum (send src get-backing-scale)) dest-density) src]
-          [else (bitmap_alter_density (bitmap->surface src) dest-density)])))
+    (cond [(fl= (bitmap-density src) dest-density) src]
+          [else (bitmap_alter_density (bitmap-surface src) dest-density)])))

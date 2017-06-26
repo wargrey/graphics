@@ -26,9 +26,8 @@
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
   (lambda [bmp]
-    (bitmap_blank (exact->inexact (send bmp get-width))
-                  (exact->inexact (send bmp get-height))
-                  (real->double-flonum (send bmp get-backing-scale)))))
+    (define-values (w h) (bitmap-flsize bmp))
+    (bitmap_blank w h (bitmap-density bmp))))
 
 (define bitmap-solid : (->* () (Color Real #:density Positive-Flonum) Bitmap)
   (lambda [[color 'transparent] [size 1] #:density [density (default-bitmap-density)]]
@@ -71,8 +70,10 @@
   (lambda [bmp #:margin [margin 0.0] #:padding [inset 0.0] #:border [stroke (default-frame-stroke)] #:fill [fill #false]]
     (define flmargin : Flonum (real->double-flonum margin))
     (define flinset : Flonum (real->double-flonum inset))
-    (bitmap_frame (bitmap->surface bmp) flmargin flmargin flmargin flmargin flinset flinset flinset flinset
-                  stroke fill (real->double-flonum (send bmp get-backing-scale)))))
+    (bitmap_frame (bitmap-surface bmp)
+                  flmargin flmargin flmargin flmargin
+                  flinset flinset flinset flinset
+                  stroke fill (bitmap-density bmp))))
 
 (define bitmap-square : (->* (Real)
                              ((Option Real) #:border (Option Stroke) #:fill (Option Bitmap-Source) #:density Positive-Flonum)

@@ -23,5 +23,5 @@
 (collect-garbage) ; 35±3ms
 (time (void (bitmap-vl-append* bitmaps)))
 
-(collect-garbage) ; 40±3ms
+(collect-garbage) ; 39±3ms
 (time (bitmap-table 26 bitmaps '(rc) '(cc) '(10) '(10)))

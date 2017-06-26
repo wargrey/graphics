@@ -14,9 +14,9 @@
 (define bitmap-composite : (->* (Bitmap Real Real Bitmap) (Real Real #:mode Symbol) Bitmap)
   (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0] #:mode [op 'over]]
     (bitmap_composite (or (bitmap-operator->integer op) (bitmap-operator->integer 'over))
-                      (bitmap->surface bmp1) (real->double-flonum x1) (real->double-flonum y1)
-                      (bitmap->surface bmp2) (real->double-flonum x2) (real->double-flonum y2)
-                      (real->double-flonum (send bmp1 get-backing-scale)))))
+                      (bitmap-surface bmp1) (real->double-flonum x1) (real->double-flonum y1)
+                      (bitmap-surface bmp2) (real->double-flonum x2) (real->double-flonum y2)
+                      (bitmap-density bmp1))))
 
 (define bitmap-pin-over : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
   (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
@@ -86,16 +86,16 @@
             [(null? (cddr bitmaps))
              (let-values ([(base bmp) (values (car bitmaps) (cadr bitmaps))])
                (case alignment
-                 [(lt) (bitmap-pin  0   0   0   0  base bmp)]
-                 [(lc) (bitmap-pin  0  1/2  0  1/2 base bmp)]
-                 [(lb) (bitmap-pin  0   1   0   1  base bmp)]
-                 [(ct) (bitmap-pin 1/2  0  1/2  0  base bmp)]
-                 [(cc) (bitmap-pin 1/2 1/2 1/2 1/2 base bmp)]
-                 [(cb) (bitmap-pin 1/2  1  1/2  1  base bmp)]
-                 [(rt) (bitmap-pin  1   0   1   0  base bmp)]
-                 [(rc) (bitmap-pin  1  1/2  1  1/2 base bmp)]
-                 [(rb) (bitmap-pin  1   1   1   1  base bmp)]
-                 [else base]))]
+                 [(lt) (bitmap_pin 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(lc) (bitmap_pin 0.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(lb) (bitmap_pin 0.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(ct) (bitmap_pin 0.5 0.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(cc) (bitmap_pin 0.5 0.5 0.5 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(cb) (bitmap_pin 0.5 1.0 0.5 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(rt) (bitmap_pin 1.0 0.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(rc) (bitmap_pin 1.0 0.5 1.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(rb) (bitmap_pin 1.0 1.0 1.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [else (car bitmaps)]))]
             [else (let-values ([(width height sreyal) (superimpose alignment bitmaps)])
                     (define bmp : Bitmap (bitmap-blank width height #:density 2.0))
                     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
@@ -111,19 +111,21 @@
   [make-append*     "bitmap-~a-append*"     (vl vc vr ht hc hb)]
   [make-superimpose "bitmap-~a-superimpose" (lt lc lb ct cc cb rt rc rb)])
 
-(define bitmap-pin : (-> Real Real Real Real Bitmap Bitmap * Bitmap)
+(define bitmap-pin* : (-> Real Real Real Real Bitmap Bitmap * Bitmap)
   (lambda [x1% y1% x2% y2% bmp0 . bmps]
     (define-values (bmp _who _cares)
-      (for/fold ([bmp : Bitmap  bmp0]
-                 [x : Exact-Rational 0]
-                 [y : Exact-Rational 0])
+      (for/fold ([bmp : Bitmap bmp0]
+                 [x : Flonum 0.0]
+                 [y : Flonum 0.0])
                 ([bmp1 (in-list (cons bmp0 bmps))]
                  [bmp2 (in-list bmps)])
-        (define-values (w1 h1) (values (send bmp1 get-width) (send bmp1 get-height)))
+        (define-values (w1 h1) (cairo-image-size (bitmap-surface bmp1) (bitmap-density bmp)))
         (define-values (w2 h2) (values (send bmp2 get-width) (send bmp2 get-height)))
         (define x1 (+ x (- (inexact->exact (* x1% w1)) (inexact->exact (* x2% w2)))))
         (define y1 (+ y (- (inexact->exact (* y1% h1)) (inexact->exact (* y2% h2)))))
-        (values (bitmap-composite bmp x1 y1 bmp2) (max 0 x1) (max 0 y1))))
+        (values (bitmap-composite bmp x1 y1 bmp2)
+                (flmax 0.0 x1)
+                (flmax 0.0 y1))))
     bmp))
 
 (define bitmap-table : (->* (Positive-Integer (Listof Bitmap))
