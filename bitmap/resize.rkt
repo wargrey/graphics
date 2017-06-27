@@ -6,7 +6,6 @@
 (require "digitama/resize.rkt")
 (require "digitama/unsafe/resize.rkt")
 (require "digitama/unsafe/source.rkt")
-(require "constructor.rkt")
 
 (define bitmap-section : (-> Bitmap Real Real Nonnegative-Real Nonnegative-Real Bitmap)
   (lambda [bmp x y width height]
@@ -39,9 +38,10 @@
 
 (define bitmap-trim : (->* (Bitmap) (Boolean) Bitmap)
   (lambda [bmp [just-alpha? #true]]
+    (define surface : Bitmap-Surface (bitmap-surface bmp))
     (define density : Flonum (bitmap-density bmp))
-    (define-values (x y X Y) (bitmap_bounding_box* (bitmap-surface bmp) just-alpha? density))
-    (bitmap_section (bitmap-surface bmp) x y (fl- X x) (fl- Y y) density)))
+    (define-values (x y X Y) (bitmap_bounding_box* surface just-alpha? density))
+    (bitmap_section surface x y (fl- X x) (fl- Y y) density)))
 
 (define bitmap-inset : (case-> [Bitmap Real -> Bitmap]
                                [Bitmap Real Real -> Bitmap]
