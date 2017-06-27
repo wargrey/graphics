@@ -1,7 +1,5 @@
 #lang racket
 
-(require racket/flonum)
-
 (require "../../digitama/unsafe/pangocairo.rkt")
 
 ;;; https://www.cairographics.org/samples/gradient/

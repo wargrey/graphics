@@ -2,9 +2,6 @@
 
 (provide (all-defined-out))
 
-(require racket/flonum)
-(require racket/fixnum)
-
 (require "digitama/draw.rkt")
 (require "digitama/resize.rkt")
 (require "digitama/unsafe/resize.rkt")

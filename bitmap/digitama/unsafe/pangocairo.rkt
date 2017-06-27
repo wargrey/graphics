@@ -1,10 +1,9 @@
 #lang racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) make-object send is-a? pi nan? infinite?)
 (provide (all-from-out racket/draw/private/bitmap))
 (provide (all-from-out ffi/unsafe racket/unsafe/ops))
 (provide (all-from-out racket/draw/unsafe/pango racket/draw/unsafe/cairo))
-(provide (all-from-out racket/math) make-object send is-a?)
 
 (require ffi/unsafe)
 (require ffi/unsafe/define)
@@ -17,7 +16,7 @@
 (require racket/draw/private/bitmap)
 
 (require (only-in racket/class make-object send is-a?))
-(require racket/math)
+(require (only-in racket/math pi nan? infinite?))
 
 (define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 (define-syntax-rule (_pfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))

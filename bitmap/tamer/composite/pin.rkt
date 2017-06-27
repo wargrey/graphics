@@ -8,7 +8,7 @@
 (require "../../constants.rkt")
 
 (define-values (diameter alpha) (values 192 1/3))
-(default-stroke (desc-stroke long-dash #:width 4 #:opacity alpha #:dash 'long-dash))
+(default-stroke (desc-stroke long-dash #:width 4 #:opacity alpha #:cap 'round))
 
 (define (build-flomap [x : Nonnegative-Fixnum] [y : Nonnegative-Fixnum] [w : Nonnegative-Fixnum] [h : Nonnegative-Fixnum])
   (define c (* 1/2 (+ 1 (sin (magnitude (make-rectangular (- x (/ w 2.0)) (- y (/ h 2.0))))))))

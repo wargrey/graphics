@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 
+(require racket/flonum)
 (require typed/racket/unsafe)
 
 (require "misc.rkt")
@@ -15,12 +16,12 @@
 (define solid-dash : (Vectorof Nonnegative-Flonum) '#())
 
 (define-enumeration* stroke-dash-style #:as Stroke-Dash-Style 
-  line-dash->array #:-> (Values (Vectorof Nonnegative-Flonum) Flonum)
-  [(dot)           (values '#(1.0 2.0)         2.0)]
-  [(dot-dash)      (values '#(1.0 2.0 4.0 2.0) 4.0)]
-  [(short-dash)    (values '#(2.0 2.0)         2.0)]
-  [(long-dash)     (values '#(4.0 2.0)         2.0)]
-  [#:else #|none|# (values solid-dash          0.0)])
+  line-dash->array #:-> [linewidth Nonnegative-Flonum] (Values Flonum (Vectorof Nonnegative-Flonum))
+  [(dot)           (values 2.0 (dasharray-normalize #(1.0 2.0) linewidth))]
+  [(dot-dash)      (values 4.0 (dasharray-normalize #(1.0 2.0 4.0 2.0) linewidth))]
+  [(short-dash)    (values 2.0 (dasharray-normalize #(2.0 2.0) linewidth))]
+  [(long-dash)     (values 2.0 (dasharray-normalize #(4.0 2.0) linewidth))]
+  [#:else #|none|# (values 0.0 solid-dash)])
 
 (define-enumeration* stroke-line-cap-option #:+> Stroke-Cap-Style ; order matters
   line-cap->integer integer->line-cap
@@ -33,3 +34,9 @@
 (define-enumeration* fill-rule-option #:+> Fill-Rule-Style ; order matters
   fill-rule->integer integer->fill-rule
   [0 nonzero evenodd])
+
+(define dasharray-normalize : (-> (Vectorof Nonnegative-Flonum) Nonnegative-Flonum (Vectorof Nonnegative-Flonum))
+  (lambda [dasharray linewidth]
+    (cond [(fl= linewidth 1.0) dasharray]
+          [else (for/vector : (Vectorof Nonnegative-Flonum) ([dash (in-vector dasharray)])
+                  (fl* dash linewidth))])))

@@ -1,11 +1,16 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (all-from-out racket/flonum racket/fixnum))
 
-(provide make-object send)
+(provide make-object send get-face-list)
 (provide bitmap% Bitmap% make-bitmap read-bitmap)
-(provide get-face-list)
+(provide nan? infinite?)
 
+(require racket/flonum)
+(require racket/fixnum)
+
+(require (only-in racket/math nan? infinite?))
 (require (only-in racket/class make-object send))
 (require (only-in typed/racket/draw bitmap% Bitmap% make-bitmap read-bitmap))
 (require (only-in typed/racket/draw get-face-list))

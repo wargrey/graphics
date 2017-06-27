@@ -4,8 +4,6 @@
 
 (require "draw.rkt")
 
-(require racket/fixnum)
-(require racket/flonum)
 (require racket/unsafe/ops)
 
 (define default-make-currentcolor : (Parameterof (-> Color)) (make-parameter (λ [] #x000000)))

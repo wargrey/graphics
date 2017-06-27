@@ -19,7 +19,7 @@
 ; Don't forget unsafe/pangocairo.rkt if changing the Stroke
 (struct: stroke : Stroke paint
   ([color : FlRGBA]
-   [width : Flonum]
+   [width : Nonnegative-Flonum]
    [linecap : Stroke-Cap-Style]
    [linejoin : Stroke-Join-Style]
    [miterlimit : Flonum]
@@ -42,18 +42,21 @@
                            Stroke)
   (lambda [[baseline (default-stroke)] #:color [color #false] #:opacity [opacity 1.0] #:width [width #false]
                                        #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]]
+    (define linewidth : Nonnegative-Flonum (if (and (real? width) (>= width 0.0)) (real->double-flonum width) (stroke-width baseline)))
     (define-values (linejoin miterlimit)
       (cond [(stroke-line-join-option? join) (values join (stroke-miterlimit baseline))]
             [(real? join) (values 'miter (real->double-flonum join))]
             [else (values (stroke-linejoin baseline) (stroke-miterlimit baseline))]))
-    (define-values (dasharray preoffset)
-      (cond [(stroke-dash-style? dash) (line-dash->array dash)]
-            [else (values (stroke-dash baseline) (stroke-offset baseline))]))
+    (define-values (preoffset dasharray)
+      (cond [(stroke-dash-style? dash) (line-dash->array dash linewidth)]
+            [(vector? dash) (values (stroke-offset baseline) (dasharray-normalize dash linewidth))]
+            [else (values (stroke-offset baseline)
+                          (dasharray-normalize (stroke-dash baseline)
+                                               (flmax (fl/ linewidth (stroke-width baseline)) 0.0)))]))
     (define dashoffset : Flonum (if (not offset) preoffset (real->double-flonum offset)))
-    (stroke (rgb* (if (not color) (stroke-color baseline) color) opacity)
-            (if (real? width) (real->double-flonum width) (stroke-width baseline))
-            (if (stroke-line-cap-option? cap) cap (stroke-linecap baseline))
-            linejoin miterlimit dasharray dashoffset)))
+    (stroke (rgb* (if (not color) (stroke-color baseline) color) opacity) linewidth
+            (if (stroke-line-cap-option? cap) cap (stroke-linecap baseline)) linejoin miterlimit
+            dasharray dashoffset)))
 
 (define desc-fill : (->* () (Fill #:color (Option Color) #:opacity Real #:rule (Option Symbol)) Fill)
   (lambda [[basefill (default-fill)] #:color [color #false] #:opacity [opacity 1.0] #:rule [rule #false]]

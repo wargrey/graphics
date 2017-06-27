@@ -2,11 +2,6 @@
 
 (provide (all-defined-out) bitmap%?)
 (provide (all-from-out "draw.rkt"))
-(provide (all-from-out racket/fixnum racket/flonum racket/math))
-
-(require racket/fixnum)
-(require racket/flonum)
-(require racket/math)
 
 (require "draw.rkt")
 (require "unsafe/source.rkt")
