@@ -1,14 +1,8 @@
-#lang typed/racket/base
+#lang typed/racket
 
 (require "../digitama/digicore.rkt")
 (require "../resize.rkt")
 (require "../constructor.rkt")
-
-(define (build-flomap [x : Nonnegative-Fixnum] [y : Nonnegative-Fixnum] [w : Nonnegative-Fixnum] [h : Nonnegative-Fixnum])
-  (define c (* 1/2 (+ 1 (sin (magnitude (make-rectangular (- x (/ w 2.0)) (- y (/ h 2.0))))))))
-  (values 1.0 c c c))
-
-(time (bitmap-rectangular 100 100 build-flomap))
 
 (define (build-flomap* [x : Nonnegative-Fixnum] [y : Nonnegative-Fixnum] [w : Nonnegative-Fixnum] [h : Nonnegative-Fixnum])
   (define w+h (fx+ w h))

@@ -17,9 +17,9 @@
 (define-enumeration* stroke-dash-style #:as Stroke-Dash-Style 
   line-dash->array #:-> (Values (Vectorof Nonnegative-Flonum) Flonum)
   [(dot)           (values '#(1.0 2.0)         2.0)]
-  [(dash)          (values '#(4.0 2.0)         2.0)]
-  [(short-dash)    (values '#(2.0 2.0)         2.0)]
   [(dot-dash)      (values '#(1.0 2.0 4.0 2.0) 4.0)]
+  [(short-dash)    (values '#(2.0 2.0)         2.0)]
+  [(long-dash)     (values '#(4.0 2.0)         2.0)]
   [#:else #|none|# (values solid-dash          0.0)])
 
 (define-enumeration* stroke-line-cap-option #:+> Stroke-Cap-Style ; order matters

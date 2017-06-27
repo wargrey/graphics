@@ -49,6 +49,5 @@
 
 (unsafe/require/provide
  (submod "." unsafe)
- [cairo-image-size (-> Bitmap-Surface Flonum (Values Flonum Flonum))]
  [bitmap_composite (-> Integer Bitmap-Surface Flonum Flonum Bitmap-Surface Flonum Flonum Flonum Bitmap)]
  [bitmap_pin (-> Flonum Flonum Flonum Flonum Bitmap-Surface Bitmap-Surface Flonum Bitmap)])

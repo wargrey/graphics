@@ -25,10 +25,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define solid      : Stroke (desc-stroke #:dash 'solid))
-(define dash       : Stroke (desc-stroke #:dash 'dash))
 (define dot        : Stroke (desc-stroke #:dash 'dot))
 (define dot-dash   : Stroke (desc-stroke #:dash 'dot-dash))
 (define short-dash : Stroke (desc-stroke #:dash 'short-dash))
+(define long-dash  : Stroke (desc-stroke #:dash 'long-dash))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define sans-serif : Font (desc-font #:family 'sans-serif))

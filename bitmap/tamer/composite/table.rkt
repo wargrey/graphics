@@ -1,10 +1,10 @@
 #lang typed/racket
 
-(require "../digitama/draw.rkt")
-(require "../constructor.rkt")
-(require "../composite.rkt")
-(require "../font.rkt")
-(require "../color.rkt")
+(require "../../digitama/draw.rkt")
+(require "../../constructor.rkt")
+(require "../../composite.rkt")
+(require "../../font.rkt")
+(require "../../color.rkt")
 
 (define examples : (Listof Bitmap)
   (list (bitmap-text "Field Name: ")    (bitmap-text "Testcase for (bitmap-table)")
