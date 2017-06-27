@@ -1,8 +1,8 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (provide (all-defined-out))
 
-(require "digitama/unsafe/source.rkt")
+(require "digitama/unsafe/draw.rkt")
 (require "digitama/unsafe/image.rkt")
 (require "digitama/unsafe/shape.rkt")
 (require "digitama/unsafe/text.rkt")
@@ -12,6 +12,8 @@
 (require "paint.rkt")
 (require "color.rkt")
 (require "font.rkt")
+
+(require racket/string)
 
 (define bitmap-rectangular : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
   (lambda [width height λargb #:density [density (default-bitmap-density)]]

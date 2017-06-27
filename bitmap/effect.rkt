@@ -2,9 +2,9 @@
 
 (provide (all-defined-out))
 
-(require "digitama/digicore.rkt")
+(require "digitama/draw.rkt")
+(require "digitama/unsafe/draw.rkt")
 (require "digitama/unsafe/effect.rkt")
-(require "digitama/unsafe/source.rkt")
 
 (define bitmap-cellophane : (-> Bitmap Nonnegative-Real Bitmap)
   (lambda [bmp opacity]

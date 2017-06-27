@@ -4,8 +4,8 @@
 
 (require "digitama/draw.rkt")
 (require "digitama/resize.rkt")
+(require "digitama/unsafe/draw.rkt")
 (require "digitama/unsafe/resize.rkt")
-(require "digitama/unsafe/source.rkt")
 
 (define bitmap-section : (-> Bitmap Real Real Nonnegative-Real Nonnegative-Real Bitmap)
   (lambda [bmp x y width height]

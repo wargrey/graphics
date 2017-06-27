@@ -4,7 +4,7 @@
 (provide (all-from-out "draw.rkt"))
 
 (require "draw.rkt")
-(require "unsafe/source.rkt")
+(require "unsafe/draw.rkt")
 
 (define default-bitmap-density : (Parameterof Positive-Flonum) (make-parameter 2.0))
 (define default-bitmap-icon-height : (Parameterof Nonnegative-Flonum) (make-parameter 24.0))

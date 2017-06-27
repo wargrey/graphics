@@ -6,8 +6,9 @@
 (require racket/list)
 
 (require "digicore.rkt")
-(require "unsafe/source.rkt")
 (require "misc.rkt")
+
+(require "unsafe/draw.rkt")
 
 (require (for-syntax racket/base))
 

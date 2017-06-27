@@ -7,7 +7,7 @@
 (require "digitama/font.rkt")
 (require "digitama/misc.rkt")
 
-(require "digitama/unsafe/source.rkt")
+(require "digitama/unsafe/draw.rkt")
 (require "digitama/unsafe/font.rkt")
 
 (struct: font : Font

@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require "../draw.rkt")
-(require "source.rkt")
+(require "draw.rkt")
 (require "require.rkt")
 
 (module unsafe racket/base
