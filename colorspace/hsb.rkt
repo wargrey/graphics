@@ -49,7 +49,7 @@
       (let* ([β (flsqrt (fl+ (flexpt (fl- red green) 2.0) (fl* (fl- red blue) (fl- green blue))))]
              [h (fl* (flacos (fl/ α β)) (fl/ 180.0 pi))])
         (if (fl> blue green) (fl- 360.0 h) h)))
-    (define hue/dead-code : Flonum ;;; This algorithm is also okay regardless the performance and (almost not less) precision
+    #;(define hue/dead-code : Flonum ;;; This algorithm is also okay regardless the performance and (almost not less) precision
       (let* ([β (fl* (flsqrt 0.75) (fl- green blue))]
              [chroma (flhypot α β)])
         (define hue : Flonum

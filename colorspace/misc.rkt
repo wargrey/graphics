@@ -9,8 +9,8 @@
 (define-type HSB->RGB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 (define-type RGB->HSB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 
-(define gamut->byte : (-> Flonum Byte) (λ [r] (fxmin (fxmax (exact-round (fl* r 255.0)) 0) #xFF)))
-(define byte->gamut : (-> Byte Flonum) (λ [r] (real->double-flonum (/ r #xFF))))
+(define gamut->byte : (-> Flonum Byte) (λ [r] (fxmin (fxmax (fl->fx (flround (fl* r 255.0))) 0) #xFF)))
+(define byte->gamut : (-> Byte Flonum) (λ [r] (fl/ (fx->fl r) 255.0)))
 (define real->gamut : (-> Real Flonum) (λ [r] (flmax (flmin (real->double-flonum r) 1.0) 0.0)))
 
 (define real->hue : (-> Real Flonum)
