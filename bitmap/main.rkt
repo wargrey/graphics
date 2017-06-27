@@ -6,4 +6,4 @@
 (require/provide typed/images/logos)
 
 (require/provide "base.rkt" "effect.rkt")
-(require/provide "compile-time.rkt")
+(require/provide "prefab.rkt")

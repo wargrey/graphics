@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require "digitama/digicore.rkt")
-(require "digitama/unsafe/bitmap.rkt")
+(require "digitama/unsafe/image.rkt")
 (require "digitama/unsafe/source.rkt")
 
 (define bitmap-size : (case-> [Bitmap -> (Values Positive-Flonum Positive-Flonum)]
