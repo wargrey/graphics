@@ -1,28 +1,19 @@
-#lang typed/racket
+#lang typed/racket/base
+
+(provide prefab-bitmap prefab-bitmap-list)
 
 (require (for-syntax racket/base))
-(require (for-syntax racket/class))
+(require (for-syntax (submod "digitama/unsafe/prefab.rkt" unsafe)))
 
 (require "digitama/draw.rkt")
-
-(provide compiled-bitmap compiled-bitmap-list)
+(require "digitama/unsafe/prefab.rkt")
 
 (begin-for-syntax
-  (define (save-png bm)
-    (define p (open-output-bytes))
-    (send bm save-file p 'png #:unscaled? #t)
-    (define bs (get-output-bytes p))
-    bs)
-  
   (define (make-3d-bitmap ctxt bm)
-    (with-syntax ([bs  (datum->syntax ctxt (save-png bm))]
-                  [scale (send bm get-backing-scale)])
-      (syntax/loc ctxt (load-png bs scale)))))
+    (with-syntax ([(raw width height density) (datum->syntax ctxt (bitmap-save bm))])
+      (syntax/loc ctxt (bitmap-restore raw width height density)))))
 
-(define (load-png [bs : Bytes] [scale : Positive-Real]) : (Instance Bitmap%)
-  (read-bitmap (open-input-bytes bs) 'png/alpha #:backing-scale scale))
-
-(define-syntax (compiled-bitmap stx)
+(define-syntax (prefab-bitmap stx)
   (syntax-case stx ()
     [(_ expr)
      (syntax/loc stx
@@ -30,13 +21,13 @@
                              (define bm expr)
                              (unless (is-a? bm bitmap%)
                                (raise-syntax-error
-                                'compiled-bitmap
+                                'prefab-bitmap
                                 (format "expected argument of type <bitmap%>; given ~e" bm)
                                 #'expr))
                              (make-3d-bitmap inner-stx bm))])
          (maker)))]))
 
-(define-syntax (compiled-bitmap-list stx)
+(define-syntax (prefab-bitmap-list stx)
   (syntax-case stx ()
     [(_ expr)
      (syntax/loc stx
@@ -44,7 +35,7 @@
                              (define bms expr)
                              (unless (and (list? bms) (andmap (λ (bm) (is-a? bm bitmap%)) bms))
                                (raise-syntax-error
-                                'compiled-bitmap-list
+                                'prefab-bitmap-list
                                 (format "expected argument of type <list of bitmap%>; given ~e" bms)
                                 #'expr))
                              (with-syntax ([(bm (... ...)) (map (λ (e) (make-3d-bitmap inner-stx e)) bms)])
