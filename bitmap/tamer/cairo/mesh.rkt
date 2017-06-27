@@ -1,4 +1,6 @@
-#lang racket
+#lang racket/base
+
+(provide cairo-mesh-pattern) ; for tamer/prefab.rkt
 
 (require "../../digitama/unsafe/pangocairo.rkt")
 
@@ -40,4 +42,5 @@
   
   bmp)
 
-(cairo-mesh-pattern 256.0 256.0 0.32)
+(module+ main
+  (cairo-mesh-pattern 256.0 256.0 0.32))
