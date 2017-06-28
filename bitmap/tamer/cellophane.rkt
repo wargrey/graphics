@@ -1,13 +1,17 @@
 #lang typed/racket/base
 
+(require typed/racket/unsafe)
+
 (require "../digitama/draw.rkt")
 (require "../effect.rkt")
 
-(define romedalen (read-bitmap (collection-file-path "romedalen.png" "bitmap" "tamer" "cairo") #:backing-scale 2.0))
+(unsafe-require/typed
+ "cairo/mesh.rkt"
+ [cairo-mesh-pattern (-> Flonum Flonum Flonum Flonum Bitmap)])
 
-(bitmap-cellophane romedalen 1.00)
-(bitmap-cellophane romedalen 0.80)
-(bitmap-cellophane romedalen 0.64)
-(bitmap-cellophane romedalen 0.32)
-(bitmap-cellophane romedalen 0.16)
-(bitmap-cellophane romedalen 0.00)
+(define mesh-pattern (cairo-mesh-pattern 64.0 64.0 0.32 2.0))
+(bitmap-cellophane mesh-pattern 1.00)
+(bitmap-cellophane mesh-pattern 0.64)
+(bitmap-cellophane mesh-pattern 0.32)
+(bitmap-cellophane mesh-pattern 0.16)
+(bitmap-cellophane mesh-pattern 0.00)

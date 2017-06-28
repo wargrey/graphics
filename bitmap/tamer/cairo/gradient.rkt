@@ -1,12 +1,12 @@
 #lang racket
 
+(provide (all-defined-out))
+
 (require "../../digitama/unsafe/pangocairo.rkt")
 
 ;;; https://www.cairographics.org/samples/gradient/
 
-(define density 2.0)
-
-(define (cairo-gradient xc yc radius light shadow)
+(define (cairo-gradient xc yc radius light shadow density)
   (define-values (flw flh) (values (* (max xc radius) 2.0) (* (max yc radius) 2.0)))
   (define-values (bmp cr width height) (make-cairo-image flw flh density #true))
 
@@ -28,4 +28,5 @@
   
   bmp)
 
-(cairo-gradient 128.0 128.0 76.8 '(1.0 1.0 1.0 1.0) '(0.0 0.0 0.0 1.0))
+(module+ main
+  (cairo-gradient 128.0 128.0 76.8 '(1.0 1.0 1.0 1.0) '(0.0 0.0 0.0 1.0) 2.0))

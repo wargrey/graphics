@@ -6,9 +6,7 @@
 
 ;;; https://www.cairographics.org/manual/cairo-cairo-pattern-t.html#cairo-pattern-create-mesh
 
-(define density 2.0)
-
-(define (cairo-mesh-pattern width height ratio)
+(define (cairo-mesh-pattern width height ratio density)
   (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
   (define pattern (cairo_pattern_create_mesh))
   (define-values (side rest) (values (* height ratio) (* height (- 1.0 ratio))))
@@ -43,4 +41,4 @@
   bmp)
 
 (module+ main
-  (cairo-mesh-pattern 256.0 256.0 0.32))
+  (cairo-mesh-pattern 256.0 256.0 0.32 2.0))

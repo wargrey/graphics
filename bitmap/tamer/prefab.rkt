@@ -3,7 +3,7 @@
 (require bitmap/prefab)
 (require (for-syntax "cairo/mesh.rkt"))
 
-(time (prefab-bitmap (time (cairo-mesh-pattern 256.0 256.0 0.32))))
+(time (prefab-bitmap (time (cairo-mesh-pattern 256.0 256.0 0.32 2.0))))
 
 (module workaround typed/racket/base
   (require typed/racket/unsafe)
@@ -21,4 +21,4 @@
 ;   Terminating app due to uncaught exception 'NSInternalInconsistencyException',
 ;   reason: 'nextEventMatchingMask should only be called from the Main Thread!
 #;(require (for-syntax (submod "." workaround)))
-#;(time (prefab-bitmap (time (bitmap-plain-frame (cairo-mesh-pattern 256.0 256.0 0.32)))))
+#;(time (prefab-bitmap (time (bitmap-plain-frame (cairo-mesh-pattern 256.0 256.0 0.32 2.0)))))
