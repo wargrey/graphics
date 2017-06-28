@@ -31,7 +31,7 @@
                         (fxquotient (fx+ (fx+ r g) b) 3)))))
 
 (define bitmap-grayscale/luminosity : (->* (Bitmap) (Nonnegative-Real Nonnegative-Real Nonnegative-Real) Bitmap)
-  (lambda [bmp [ro 0.2126] [go 0.7152] [bo 0.0722]]
+  (lambda [bmp [ro 0.2126729] [go 0.7151522] [bo 0.0721750]]
     (define flr : Flonum (real->double-flonum ro))
     (define flg : Flonum (real->double-flonum go))
     (define flb : Flonum (real->double-flonum bo))
