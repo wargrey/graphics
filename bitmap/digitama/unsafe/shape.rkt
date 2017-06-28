@@ -53,7 +53,7 @@
     (define inset (unsafe-fl/ line-width 2.0))
     (define flradius
       (let ([short (unsafe-flmin flwidth flheight)])
-        (unsafe-flmin (unsafe-fl/ short 2.0) (radius-normalize radius short))))
+        (unsafe-flmin (unsafe-fl/ short 2.0) (~length radius short))))
     (define tlset (unsafe-fl+ inset flradius))
     (define xrset (unsafe-fl- (unsafe-fl- flwidth inset) flradius))
     (define ybset (unsafe-fl- (unsafe-fl- flheight inset) flradius))
@@ -68,7 +68,7 @@
     img)
 
   (define (bitmap_stadium fllength radius border background density)
-    (define flradius (radius-normalize radius fllength))
+    (define flradius (~length radius fllength))
     (define flheight (unsafe-fl* flradius 2.0))
     (define flwidth (unsafe-fl+ fllength flheight))
     (define-values (img cr w h) (make-cairo-image flwidth flheight density #true))
@@ -80,12 +80,7 @@
     (cairo_close_path cr)
     (cairo-render cr border background)
     (cairo_destroy cr)
-    img)
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (radius-normalize radius 100%)
-    (define flradius (real->double-flonum radius))
-    (if (single-flonum? radius) (unsafe-fl* flradius 100%) flradius)))
+    img))
 
 (unsafe/require/provide
  (submod "." unsafe)

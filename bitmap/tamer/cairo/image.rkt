@@ -1,5 +1,6 @@
 #lang racket
 
+(require racket/draw/private/bitmap)
 (require "../../digitama/unsafe/pangocairo.rkt")
 
 (define-cstruct _cairo_matrix_t

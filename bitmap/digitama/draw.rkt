@@ -25,4 +25,3 @@
 (struct paint () #:transparent)
 (struct flcolor () #:transparent)
 (struct rgba flcolor ([red : Flonum] [green : Flonum] [blue : Flonum] [alpha : Flonum]) #:transparent)
-

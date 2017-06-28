@@ -1,9 +1,8 @@
 #lang racket/base
 
-(provide (all-defined-out) make-object send is-a? pi nan? infinite?)
-(provide (all-from-out racket/draw/private/bitmap))
+(provide (all-defined-out) bitmap% make-bitmap make-object send is-a? pi nan? infinite?)
+(provide (all-from-out racket/draw/unsafe/cairo racket/draw/unsafe/pango))
 (provide (all-from-out ffi/unsafe racket/unsafe/ops))
-(provide (all-from-out racket/draw/unsafe/pango racket/draw/unsafe/cairo))
 
 (require ffi/unsafe)
 (require ffi/unsafe/define)
@@ -13,8 +12,8 @@
 (require racket/draw/unsafe/pango)
 (require racket/draw/unsafe/cairo)
 (require racket/draw/unsafe/cairo-lib)
-(require racket/draw/private/bitmap)
 
+(require (only-in racket/draw/private/bitmap bitmap% make-bitmap))
 (require (only-in racket/class make-object send is-a?))
 (require (only-in racket/math pi nan? infinite?))
 
@@ -102,12 +101,8 @@
                                   (unsafe-struct*-ref src 1)
                                   (unsafe-struct*-ref src 2)
                                   (unsafe-struct*-ref src 3))]
-          [(cpointer? src)
-           (case (cpointer-tag src)
-             [(cairo_pattern_t) (cairo_set_source cr src)]
-             [(cairo_surface_t) (cairo_set_source_surface cr src 0.0 0.0)]
-             [else (cairo-warn-message src "unrecognized source pointer: ~a" (cpointer-tag src))])]
-          [else (cairo-warn-message src "unrecognized source type: ~a" src)])))
+          [(eq? (cpointer-tag src) 'cairo_pattern_t) (cairo_set_source cr src)]
+          [else (cairo_set_source_surface cr src 0.0 0.0)])))
 
 (define cairo-image-size
   (lambda [src density]
@@ -126,27 +121,6 @@
     (values data total stride
             (unsafe-fxquotient stride components)
             (unsafe-fxquotient total stride))))
-
-(define cairo-image->bitmap
-  (lambda [cr flwidth flheight density]
-    (define-values (width height) (values (unsafe-fxmax (~fx flwidth) 1) (unsafe-fxmax (~fx flheight) 1)))
-    (define img (make-object bitmap% width height #false #true density))
-    (define-values (src dest) (values (cairo_get_target cr) (send img get-handle)))
-    (define-values (src-data dest-data) (values (cairo_image_surface_get_data src) (cairo_image_surface_get_data dest)))
-    (define-values (src-step dest-step) (values (cairo_image_surface_get_stride src) (cairo_image_surface_get_stride dest)))
-    (define-values (total safe-step) (values (unsafe-bytes-length dest-data) (unsafe-fxmin src-step dest-step)))
-    (cond [(eq? src-step dest-step) (memcpy dest-data src-data total _byte)]
-          [else (let rowcpy ([srcoff 0] [destoff 0])
-                  (define destnext (unsafe-fx+ destoff dest-step))
-                  (memcpy dest-data destoff src-data srcoff safe-step _byte)
-                  (when (< destnext total) (rowcpy (unsafe-fx+ srcoff src-step) destnext)))])
-    (cairo_surface_mark_dirty dest)
-    img))
-
-(define cairo-warn-message
-  (lambda [src msg . args]
-    (define message (if (null? args) msg (apply format msg args)))
-    (log-message (current-logger) 'warning 'exn:css:bitmap message src)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ~fx
@@ -167,6 +141,13 @@
   (lambda [degree]
     (unsafe-fl* degree
                 (unsafe-fl/ pi 180.0))))
+
+(define ~length
+  (lambda [% 100%]
+    (define fl% (real->double-flonum %))
+    (cond [(flonum? %) %]
+          [(single-flonum? %) (unsafe-fl* (real->double-flonum %) 100%)]
+          [else (real->double-flonum %)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (A R G B) (if (system-big-endian?) (values 0 1 2 3) (values 3 2 1 0)))

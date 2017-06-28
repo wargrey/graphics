@@ -41,13 +41,6 @@
     (cairo_destroy cr)
     img)
 
-  (define (bitmap_alter_density src density)
-    (define-values (flwidth flheight) (cairo-image-size src density))
-    (define-values (img cr w h) (make-cairo-image flwidth flheight density #true))
-    (cairo-composite cr src 0.0 0.0 flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
-    (cairo_destroy cr)
-    img)
-
   (define (bitmap_frame src mtop mright mbottom mleft ptop pright pbottom pleft border background density)
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define line-inset (unsafe-fl/ line-width 2.0))
@@ -71,10 +64,12 @@
      #xFF))
 
   (define (frame-metrics line-width line-inset mopen mclose popen pclose size)
-    (define border-position (unsafe-fl+ mopen line-inset))
-    (define position (unsafe-fl+ (unsafe-fl+ mopen popen) line-width))
-    (define border-size (unsafe-fl+ (unsafe-fl+ (unsafe-fl+ popen pclose) size) line-width))
-    (define frame-size (unsafe-fl+ (unsafe-fl+ (unsafe-fl+ border-position border-size) mclose) line-inset))
+    (define-values (flmopen flmclose) (values (~length mopen size) (~length mclose size)))
+    (define-values (flpopen flpclose) (values (~length popen size) (~length pclose size)))
+    (define border-position (unsafe-fl+ flmopen line-inset))
+    (define position (unsafe-fl+ (unsafe-fl+ flmopen flpopen) line-width))
+    (define border-size (unsafe-fl+ (unsafe-fl+ (unsafe-fl+ flpopen flpclose) size) line-width))
+    (define frame-size (unsafe-fl+ (unsafe-fl+ (unsafe-fl+ border-position border-size) flmclose) line-inset))
     (values frame-size border-position border-size position)))
 
 (define-type XYWH->ARGB (-> Nonnegative-Fixnum Nonnegative-Fixnum Positive-Fixnum Positive-Fixnum (Values Real Real Real Real)))
@@ -84,6 +79,5 @@
  [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Bitmap-Source Flonum Bitmap)]
- [bitmap_alter_density (-> Bitmap-Surface Flonum Bitmap)]
- [bitmap_frame (-> Bitmap-Surface Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum
+ [bitmap_frame (-> Bitmap-Surface Real Real Real Real Real Real Real Real
                    (Option Paint) (Option Bitmap-Source) Flonum Bitmap)])

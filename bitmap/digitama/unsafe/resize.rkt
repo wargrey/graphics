@@ -10,7 +10,7 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
-
+  
   (define (bitmap_section src x y width height density)
     (define-values (img cr w h) (make-cairo-image width height density #false))
     (cairo_set_source_surface cr src (unsafe-fl- 0.0 (unsafe-fl* x density)) (unsafe-fl- 0.0 (unsafe-fl* y density)))
