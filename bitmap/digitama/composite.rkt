@@ -6,6 +6,7 @@
 (require racket/list)
 
 (require "digicore.rkt")
+(require "draw.rkt")
 (require "misc.rkt")
 
 (require "unsafe/draw.rkt")
@@ -87,7 +88,7 @@
         (define-values (w h) (bitmap-flsize bmp))
         (list bmp w h)))
     (define diff : Integer (fx- (fx* nrows ncols) (vector-length cells)))
-    (cond [(<= diff 0) cells]
+    (cond [(fx<= diff 0) cells]
           [else (let ([filling : Bitmap-Cell (list the-invalid-image 1.0 1.0)])
                   (vector-append cells ((inst make-vector Bitmap-Cell) diff filling)))])))
 

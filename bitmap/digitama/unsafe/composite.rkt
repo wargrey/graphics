@@ -36,15 +36,6 @@
       (bitmap_composite CAIRO_OPERATOR_OVER sfc1
                         (unsafe-fl- (unsafe-fl* x1% w1) (unsafe-fl* x2% w2))
                         (unsafe-fl- (unsafe-fl* y1% h1) (unsafe-fl* y2% h2))
-                        sfc2 0.0 0.0 density)))
-
-  (define bitmap_pin*
-    (lambda [x1% y1% x2% y2% sfc1 sfc2 density]
-      (define-values (w1 h1) (cairo-image-size sfc1 density))
-      (define-values (w2 h2) (cairo-image-size sfc2 density))
-      (bitmap_composite CAIRO_OPERATOR_OVER sfc1
-                        (unsafe-fl- (unsafe-fl* x1% w1) (unsafe-fl* x2% w2))
-                        (unsafe-fl- (unsafe-fl* y1% h1) (unsafe-fl* y2% h2))
                         sfc2 0.0 0.0 density))))
 
 (unsafe/require/provide

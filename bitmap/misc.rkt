@@ -1,14 +1,15 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [bitmap-intrinsic-flsize bitmap-intrinsic-size]))
 
 (require "digitama/digicore.rkt")
 (require "digitama/unsafe/draw.rkt")
 (require "digitama/unsafe/resize.rkt")
 
 (define bitmap-size : (case-> [Bitmap -> (Values Positive-Flonum Positive-Flonum)]
-                              [Bitmap Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)]
-                              [Bitmap Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Real Nonnegative-Real)])
+                              [Bitmap Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
+                              [Bitmap Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)])
   (case-lambda [(bmp) (bitmap-flsize bmp)]
                [(bmp ratio) (let ([% (real->double-flonum ratio)]) (bitmap-flsize* bmp % %))]
                [(bmp w% h%) (bitmap-flsize* bmp (real->double-flonum w%) (real->double-flonum h%))]))
@@ -17,11 +18,6 @@
   (lambda [bmp]
     (define-values (w h) (bitmap-flsize bmp))
     (values w h (bitmap-density bmp))))
-
-(define bitmap-intrinsic-size : (-> Bitmap (Values Positive-Flonum Positive-Flonum))
-  (lambda [bmp]
-    (define density : Positive-Flonum (bitmap-density bmp))
-    (bitmap-flsize* bmp density density)))
 
 (define bitmap-alter-density : (->* (Bitmap) (Positive-Flonum) Bitmap)
   (lambda [src [dest-density (default-bitmap-density)]]

@@ -10,4 +10,4 @@
 (define default-bitmap-icon-height : (Parameterof Nonnegative-Flonum) (make-parameter 24.0))
 
 ;(define the-dc : (Instance Bitmap-DC%) (make-object bitmap-dc% (make-object bitmap% 1 1)))
-(define the-invalid-image : (Instance Bitmap%) (read-bitmap (open-input-bytes #"placeholder")))
+(define the-invalid-image : Bitmap (read-bitmap (open-input-bytes #"placeholder")))

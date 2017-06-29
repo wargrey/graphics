@@ -11,7 +11,7 @@
           [Bitmap Nonnegative-Flonum Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum)]))
 
 (module unsafe racket/base
-  (provide (all-defined-out) cpointer?)
+  (provide (all-defined-out) cpointer? the-surface)
   
   (require "pangocairo.rkt")
 
@@ -27,6 +27,10 @@
   (define (bitmap-flsize* bmp w% h%)
     (define-values (w h) (bitmap-flsize bmp))
     (values (unsafe-fl* w w%) (unsafe-fl* h h%)))
+
+  (define (bitmap-intrinsic-flsize bmp)
+    (define density (bitmap-density bmp))
+    (bitmap-flsize* bmp density density))
   
   (define (bitmap-linear-gradient-pattern x0 y0 x1 y1 stops)
     (define gradient (cairo_pattern_create_linear x0 y0 x1 y1))
@@ -58,9 +62,11 @@
   [Font-Description font-description?]
   [Bitmap-Surface bitmap-surface?]
   [Bitmap-Pattern bitmap-pattern?]]
+ [the-surface Bitmap-Surface]
  [bitmap%? (-> Any Boolean : Bitmap)]
  [bitmap-surface (-> Bitmap Bitmap-Surface)]
  [bitmap-density (-> Bitmap Positive-Flonum)]
+ [bitmap-intrinsic-flsize (-> Bitmap (Values Positive-Flonum Positive-Flonum))]
  [bitmap-flsize (-> Bitmap (Values Positive-Flonum Positive-Flonum))]
  [bitmap-flsize* Bitmap-FlSize*]
  [bitmap-linear-gradient-pattern (-> Real Real Real Real (Listof (Pairof Real FlRGBA)) Bitmap-Pattern)]

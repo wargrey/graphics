@@ -49,14 +49,13 @@
       (cond [(null? bitmaps) (bitmap-blank)]
             [(null? (cdr bitmaps)) (car bitmaps)]
             [else (let*-values ([(base others gap) (values (car bitmaps) (cdr bitmaps) (real->double-flonum delta))]
-                                [(min-width min-height) (values (fx->fl (send base get-width)) (fx->fl (send base get-height)))])
+                                [(min-width min-height) (bitmap-flsize base)])
                     (define-values (width0 height0 sllec)
                       (for/fold ([width : Flonum min-width]
                                  [height : Flonum min-height]
                                  [cells : (Listof Bitmap-Cell) (list (list base min-width min-height))])
                                 ([child : Bitmap (in-list others)])
-                        (define w : Flonum (fx->fl (send child get-width)))
-                        (define h : Flonum (fx->fl (send child get-height)))
+                        (define-values (w h) (bitmap-flsize child))
                         (define cells++ : (Listof Bitmap-Cell) (cons (list child w h) cells))
                         (case alignment
                           [(vl vc vr) (values (flmax width w) (fl+ height (fl+ h gap)) cells++)]
