@@ -48,46 +48,20 @@
     (λ [bitmaps #:gapsize [delta 0.0]]
       (cond [(null? bitmaps) (bitmap-blank)]
             [(null? (cdr bitmaps)) (car bitmaps)]
-            [else (let*-values ([(base others gap) (values (car bitmaps) (cdr bitmaps) (real->double-flonum delta))]
-                                [(min-width min-height) (bitmap-flsize base)])
-                    (define-values (width0 height0 sllec)
-                      (for/fold ([width : Flonum min-width]
-                                 [height : Flonum min-height]
-                                 [cells : (Listof Bitmap-Cell) (list (list base min-width min-height))])
-                                ([child : Bitmap (in-list others)])
-                        (define-values (w h) (bitmap-flsize child))
-                        (define cells++ : (Listof Bitmap-Cell) (cons (list child w h) cells))
-                        (case alignment
-                          [(vl vc vr) (values (flmax width w) (fl+ height (fl+ h gap)) cells++)]
-                          [(ht hc hb) (values (fl+ width (fl+ w gap)) (flmax height h) cells++)]
-                          [else #|unreachable|# (values (flmax width w) (flmax height h) cells++)])))
-                    
-                    (define width : Flonum (flmax min-width width0))
-                    (define height : Flonum (flmax min-height height0))
-                    (define bmp : Bitmap (bitmap-blank width height #:density 2.0))
-                    (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
-                    (send dc set-smoothing 'aligned)
-                    
-                    (let render : Void ([cells : (Listof Bitmap-Cell) (reverse sllec)]
-                                        [xoff : Flonum (fl- 0.0 gap)]
-                                        [yoff : Flonum (fl- 0.0 gap)])
-                      (unless (null? cells)
-                        (define w : Flonum (cadar cells))
-                        (define h : Flonum (caddar cells))
-                        (define this-x-if-use : Flonum (fl+ xoff gap))
-                        (define this-y-if-use : Flonum (fl+ yoff gap))
-                        (define-values (x y)
-                          (case alignment
-                            [(vl) (values 0.0                     this-y-if-use)]
-                            [(vc) (values (fl/ (fl- width w) 2.0) this-y-if-use)]
-                            [(vr) (values (fl- width w)           this-y-if-use)]
-                            [(ht) (values this-x-if-use           0.0)]
-                            [(hc) (values this-x-if-use           (fl/ (fl- height h) 2.0))]
-                            [(hb) (values this-x-if-use           (fl- height h))]
-                            [else #|unreachable|# (values this-x-if-use this-y-if-use)]))
-                        (send dc draw-bitmap (caar cells) x y)
-                        (render (cdr cells) (fl+ this-x-if-use w) (fl+ this-y-if-use h))))
-                    bmp)]))))
+            [(and (zero? delta) (null? (cddr bitmaps)))
+             (let-values ([(base bmp) (values (car bitmaps) (cadr bitmaps))])
+               (case alignment
+                 [(vl) (bitmap_pin 0.0 1.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(vc) (bitmap_pin 0.5 1.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(vr) (bitmap_pin 1.0 1.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(ht) (bitmap_pin 1.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(hc) (bitmap_pin 1.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(hb) (bitmap_pin 1.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [else base]))]
+            [else (let-values ([(base children) (values (car bitmaps) (cdr bitmaps))])
+                    (bitmap_append alignment
+                                   (bitmap-surface base) (map bitmap-surface children)
+                                   (real->double-flonum delta) (bitmap-density base)))]))))
 
 (define make-append : (-> Symbol (-> [#:gapsize Real] Bitmap * Bitmap))
   (lambda [alignment]
@@ -111,7 +85,7 @@
                  [(rt) (bitmap_pin 1.0 0.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
                  [(rc) (bitmap_pin 1.0 0.5 1.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
                  [(rb) (bitmap_pin 1.0 1.0 1.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [else (car bitmaps)]))]
+                 [else base]))]
             [else (let-values ([(width height sreyal) (superimpose alignment bitmaps)])
                     (define bmp : Bitmap (bitmap-blank width height #:density 2.0))
                     (define dc : (Instance Bitmap-DC%) (send bmp make-dc))

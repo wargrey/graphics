@@ -24,13 +24,15 @@
       (cairo_stroke_preserve cr))))
 
 (define cairo-composite
-  (lambda [cr src dest-x dest-y dest-width dest-height filter operator density]
+  (lambda [cr src dest-x dest-y dest-width dest-height filter operator density restore?]
     (define 1/density (unsafe-fl/ 1.0 density))
 
+    (when restore? (cairo_save cr))
     (cairo_translate cr dest-x dest-y)
     (cairo_rectangle cr 0.0 0.0 dest-width dest-height)
     (cairo_scale cr 1/density 1/density) ; order matters
     (cairo_set_source_surface cr src 0.0 0.0)
     (cairo_pattern_set_filter (cairo_get_source cr) filter)
     (cairo_set_operator cr operator)
-    (cairo_fill cr)))
+    (cairo_fill cr)
+    (when restore? (cairo_restore cr))))

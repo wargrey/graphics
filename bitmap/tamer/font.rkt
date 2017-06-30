@@ -1,6 +1,7 @@
 #lang typed/racket
 
 (require "../constructor.rkt")
+(require "../composite.rkt")
 (require "../constants.rkt")
 (require "../paint.rkt")
 (require "../font.rkt")
@@ -9,7 +10,7 @@
 (require "../digitama/draw.rkt")
 (require "../digitama/font.rkt")
 
-(default-stroke (desc-stroke #:color 'gray #:width 1 #:dash 'solid))
+(default-frame-stroke (desc-stroke long-dash #:color 'gray #:width 1))
 
 (define bitmap-text* : (-> String Font Bitmap)
   (lambda [text font]
@@ -19,7 +20,7 @@
 (for/list : (Listof (Pairof String Bitmap)) ([face (in-list (get-face-list))])
   (cons face (bitmap-text* (format "~a: Sphinx" face) (desc-font #:family face))))
 
-;(bitmap-vl-append* #:gapsize 16
- (for/list : (Listof Bitmap) ([family (in-list css-font-generic-families)])
-   (define font (desc-font #:family family))
-   (bitmap-text* (format "~a[~a]: Sphinx" (font-face->family (font-face font)) (font-face font)) font));)
+(bitmap-vr-append* #:gapsize 16
+                   (for/list : (Listof Bitmap) ([family (in-list css-font-generic-families)])
+                     (define font (desc-font #:family family))
+                     (bitmap-text* (format "~a[~a]: Sphinx" (font-face->family (font-face font)) (font-face font)) font)))

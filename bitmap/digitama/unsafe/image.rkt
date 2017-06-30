@@ -50,7 +50,7 @@
     (define-values (img cr w h) (make-cairo-image width height density #true))
     (cairo_rectangle cr border-x border-y border-width border-height)
     (cairo-render cr border background)
-    (cairo-composite cr src dest-x dest-y dest-width dest-height CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
+    (cairo-composite cr src dest-x dest-y dest-width dest-height CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #false)
     (cairo_destroy cr)
     img)
 
