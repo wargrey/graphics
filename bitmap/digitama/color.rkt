@@ -34,11 +34,11 @@
           [(fx>= sgr #x10)
            (define-values (rg b) (quotient/remainder (- sgr #x10) 6))
            (define-values (r g) (quotient/remainder rg 6))
-           (rgba (fl/ (unsafe-vector-ref xterm-color-tuples r) 255.0)
-                 (fl/ (unsafe-vector-ref xterm-color-tuples g) 255.0)
-                 (fl/ (unsafe-vector-ref xterm-color-tuples b) 255.0)
+           (rgba (fl/ (unsafe-vector*-ref xterm-color-tuples r) 255.0)
+                 (fl/ (unsafe-vector*-ref xterm-color-tuples g) 255.0)
+                 (fl/ (unsafe-vector*-ref xterm-color-tuples b) 255.0)
                  flalpha)]
-          [else (or (named-rgba (unsafe-vector-ref xterm-system-colors sgr) flalpha rgb* #true)
+          [else (or (named-rgba (unsafe-vector*-ref xterm-system-colors sgr) flalpha rgb* #true)
                     (rgb* fallback-color flalpha))])))
 
 ;;; https://drafts.csswg.org/css-color/#named-colors

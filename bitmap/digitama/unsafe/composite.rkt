@@ -60,9 +60,9 @@
     (let combine ([all all])
       (unless (null? all)
         (define child (unsafe-car all))
-        (cairo-composite cr (unsafe-vector-ref child 0)
-                         (unsafe-vector-ref child 1) (unsafe-vector-ref child 2)
-                         (unsafe-vector-ref child 3) (unsafe-vector-ref child 4)
+        (cairo-composite cr (unsafe-vector*-ref child 0)
+                         (unsafe-vector*-ref child 1) (unsafe-vector*-ref child 2)
+                         (unsafe-vector*-ref child 3) (unsafe-vector*-ref child 4)
                          CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #true)
         (combine (unsafe-cdr all))))
     bmp)
@@ -85,7 +85,7 @@
       (unless (null? all)
         (define child (unsafe-car all))
         (define-values (maybe-used-x maybe-used-y) (values (unsafe-fl+ maybe-used-xoff gapsize) (unsafe-fl+ maybe-used-yoff gapsize)))
-        (define-values (chwidth chheight) (values (unsafe-vector-ref child 1) (unsafe-vector-ref child 2)))
+        (define-values (chwidth chheight) (values (unsafe-vector*-ref child 1) (unsafe-vector*-ref child 2)))
         (define-values (dest-x dest-y)
           (case alignment
             [(vl) (values 0.0                                           maybe-used-y)]
@@ -95,7 +95,7 @@
             [(hc) (values maybe-used-x                                  (unsafe-fl/ (unsafe-fl- flheight chheight) 2.0))]
             [(hb) (values maybe-used-x                                  (unsafe-fl- flheight chheight))]
             [else #|unreachable|# (values maybe-used-x                  maybe-used-y)]))
-        (cairo-composite cr (unsafe-vector-ref child 0) dest-x dest-y chwidth chheight
+        (cairo-composite cr (unsafe-vector*-ref child 0) dest-x dest-y chwidth chheight
                          CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #true)
         (combine (unsafe-cdr all) (unsafe-fl+ maybe-used-x chwidth) (unsafe-fl+ maybe-used-y chheight))))
     bmp)
@@ -127,7 +127,7 @@
     (define grows (list->n:vector (map real->double-flonum row-gaps) nrows 0.0))
     (define table (list->table bitmaps nrows ncols density))
 
-    (define table-ref (λ [c r] (unsafe-vector-ref table (unsafe-fx+ (unsafe-fx* r ncols) c))))
+    (define table-ref (λ [c r] (unsafe-vector*-ref table (unsafe-fx+ (unsafe-fx* r ncols) c))))
     (define-values (pbcols pbrows)
       (values (for/vector ([c (in-range ncols)])
                 (superimpose* (vector-ref alcols c)
@@ -145,7 +145,7 @@
     (define-values (flwidth flheight cells)
       (for/fold ([width 0.0] [height 0.0] [pbmps null])
                 ([row (in-range nrows)])
-        (define pbrow (unsafe-vector-ref pbrows row))
+        (define pbrow (unsafe-vector*-ref pbrows row))
         (define hrow (unsafe-fl+ (cadr pbrow) (vector-ref grows row)))
         (define-values (wcols cells)
           (for/fold ([xoff 0.0] [pbmps pbmps])
