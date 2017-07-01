@@ -20,7 +20,7 @@
 (collect-garbage)
 (time (bitmap-table 2 examples '(rc lc) '(ct) '(8) '(8)))
 
-(collect-garbage) ; 35±3ms
+(collect-garbage) ; 15±3ms
 (time (void (bitmap-vl-append* bitmaps)))
 
 (collect-garbage) ; 39±3ms

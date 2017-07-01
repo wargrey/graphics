@@ -27,3 +27,4 @@
 3pc
 (bitmap-pin 3pc 0 0 yellow-circle 64 64)
 (bitmap-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle)
+(bitmap-cc-superimpose 3pc yellow-circle)

@@ -15,8 +15,9 @@
 (define bitmap-composite : (->* (Bitmap Real Real Bitmap) (Symbol Real Real) Bitmap)
   (lambda [bmp1 x1 y1 bmp2 [op 'over] [x2 0.0] [y2 0.0]]
     (bitmap_composite (or (bitmap-operator->integer op) (bitmap-operator->integer 'over))
-                      (bitmap-surface bmp1) (real->double-flonum x1) (real->double-flonum y1)
-                      (bitmap-surface bmp2) (real->double-flonum x2) (real->double-flonum y2)
+                      (bitmap-surface bmp1) (bitmap-surface bmp2)
+                      (fl- (real->double-flonum x1) (real->double-flonum x2))
+                      (fl- (real->double-flonum y1) (real->double-flonum y2))
                       (bitmap-density bmp1))))
 
 (define bitmap-pin-over : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
@@ -28,20 +29,13 @@
     (bitmap-composite bmp1 x1 y1 bmp2 'dest-over x2 y2)))
 
 (define bitmap-pin* : (-> Real Real Real Real Bitmap Bitmap * Bitmap)
+  ;;; TODO: what if one or more bmps are larger then the base one
   (lambda [x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
-    (define-values (x1% y1%) (values (real->double-flonum x1-frac) (real->double-flonum y1-frac)))
-    (define-values (x2% y2%) (values (real->double-flonum x2-frac) (real->double-flonum y2-frac)))
-    (define-values (over density) (values (bitmap-operator->integer 'over) (bitmap-density bmp0)))
-    (define-values (bmp _who _cares)
-      (for/fold ([bmp : Bitmap bmp0] [x : Flonum 0.0] [y : Flonum 0.0])
-                ([bmp1 (in-list (cons bmp0 bmps))] [bmp2 (in-list bmps)])
-        (define-values (w1 h1) (bitmap-flsize bmp1))
-        (define-values (w2 h2) (bitmap-flsize bmp2))
-        (define x1 : Flonum (fl+ x (fl- (fl* w1 x1%) (fl* w2 x2%))))
-        (define y1 : Flonum (fl+ y (fl- (fl* h1 y1%) (fl* h2 y2%))))
-        (values (bitmap_composite over (bitmap-surface bmp) x1 y1 (bitmap-surface bmp2) 0.0 0.0 density)
-                (flmax 0.0 x1) (flmax 0.0 y1))))
-    bmp))
+    (cond [(null? bmps) bmp0]
+          [else (bitmap_pin* (real->double-flonum x1-frac) (real->double-flonum y1-frac)
+                             (real->double-flonum x2-frac) (real->double-flonum y2-frac)
+                             (bitmap-surface bmp0) (map bitmap-surface bmps)
+                             (bitmap-density bmp0))])))
 
 (define make-append* : (-> Symbol (-> (Listof Bitmap) [#:gapsize Real] Bitmap))
   (lambda [alignment]
@@ -86,14 +80,7 @@
                  [(rc) (bitmap_pin 1.0 0.5 1.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
                  [(rb) (bitmap_pin 1.0 1.0 1.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
                  [else base]))]
-            [else (let-values ([(width height sreyal) (superimpose alignment bitmaps)])
-                    (define bmp : Bitmap (bitmap-blank width height #:density 2.0))
-                    (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
-                    (send dc set-smoothing 'aligned)
-                    (for ([bmp+fxy (in-list (reverse sreyal))])
-                      (define-values (x y) ((cdr bmp+fxy) width height))
-                      (send dc draw-bitmap (car bmp+fxy) x y))
-                    bmp)]))))
+            [else (bitmap_superimpose alignment (map bitmap-surface bitmaps) (bitmap-density (car bitmaps)))]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-combiner
