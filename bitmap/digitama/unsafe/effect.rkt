@@ -13,7 +13,7 @@
 
   (define (bitmap_cellophane src alpha density)
     (define-values (flwidth flheight) (cairo-image-size src density))
-    (define-values (img cr w h) (make-cairo-image flwidth flheight density #false))
+    (define-values (img cr) (make-cairo-image flwidth flheight density #false))
     (cairo_set_source_surface cr src 0.0 0.0)
     (cairo_paint_with_alpha cr alpha)
     (cairo_destroy cr)
@@ -21,7 +21,7 @@
 
   (define (bitmap_grayscale src rgb->gray density)
     (define-values (flwidth flheight) (cairo-image-size src density))
-    (define-values (img cr w h) (make-cairo-image flwidth flheight density #false))
+    (define-values (img cr) (make-cairo-image flwidth flheight density #false))
     (define surface (cairo_get_target cr))
     (define-values (data total) (cairo-surface-data src))
     (define-values (buffer _) (cairo-surface-data surface))

@@ -24,7 +24,7 @@
 
 (define (cairo-image xc yc)
   (define-values (width height) (values (* xc 2.0) (* yc 2.0)))
-  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (make-cairo-image width height density #true))
   
   (cairo_translate cr xc yc)
   (cairo_rotate cr (degrees->radians 45.0))

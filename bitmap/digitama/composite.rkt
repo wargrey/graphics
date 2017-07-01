@@ -27,6 +27,8 @@
        #'(begin (define-values (bitmap-combiner ...) (values (make-combiner 'tips) ...))
                 ...))]))
 
+(define-type Superimpose-Alignment (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
+
 (define-enumeration* bitmap-blend-mode #:+> Bitmap-Blend-Mode ; order matters
   bitmap-operator->integer integer->bitmap-operator
   [0 clear source over in out atop dest dest-over dest-in dest-out dest-atop xor add saturate
@@ -35,7 +37,6 @@
 
 (define-type Bitmap-Layer->XY (-> Flonum Flonum (Values Flonum Flonum)))
 (define-type Bitmap-Layers (Listof (Pairof Bitmap Bitmap-Layer->XY)))
-(define-type Superimpose-Alignment (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
 
 (define superimpose : (-> Symbol (Listof Bitmap) (Values Flonum Flonum Bitmap-Layers))
   (lambda [alignment bitmaps]

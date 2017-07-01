@@ -10,7 +10,7 @@
 (define (cairo-arc xc yc radius start end negative-arc? circle-width line-width)
   (define-values (width height) (values (* (max xc radius) 2.0) (* (max yc radius) 2.0)))
   (define-values (angle1 angle2) (values (degrees->radians start) (degrees->radians end)))
-  (define-values (bmp cr _w _h) (make-cairo-image width height density))
+  (define-values (bmp cr) (make-cairo-image width height density))
   (define draw-arc (if negative-arc? cairo_arc_negative cairo_arc))
   
   (cairo_translate cr xc yc)

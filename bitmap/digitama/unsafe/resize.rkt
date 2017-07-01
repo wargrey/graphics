@@ -12,7 +12,7 @@
   (require "pangocairo.rkt")
   
   (define (bitmap_section src x y width height density)
-    (define-values (img cr w h) (make-cairo-image width height density #false))
+    (define-values (img cr) (make-cairo-image width height density #false))
     (cairo_set_source_surface cr src (unsafe-fl- 0.0 (unsafe-fl* x density)) (unsafe-fl- 0.0 (unsafe-fl* y density)))
     (cairo_paint cr)
     (cairo_destroy cr)
@@ -22,7 +22,7 @@
     (define-values (width height) (cairo-image-size src density))
     (define flwidth (unsafe-fl* width (unsafe-flabs xscale)))
     (define flheight (unsafe-fl* height (unsafe-flabs yscale)))
-    (define-values (img cr w h) (make-cairo-image flwidth flheight density #false))
+    (define-values (img cr) (make-cairo-image flwidth flheight density #false))
     (cairo_scale cr xscale yscale) ; order matters
     (cairo_set_source_surface cr src 0.0 0.0)
     (cairo_paint cr)

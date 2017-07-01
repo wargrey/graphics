@@ -11,7 +11,7 @@
 (define density 2.0)
 
 (define (cairo-path width height offset line-width dashes)
-  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (make-cairo-image width height density #true))
 
   (cairo_move_to cr 128.0 25.6)
   (cairo_line_to cr 230.4 230.4)

@@ -27,7 +27,7 @@
 ;;; https://www.cairographics.org/samples/text_extents/
 
 (define density 2.0)
-(define-values (_b tcr _w _h) (make-cairo-image 1.0 1.0 density #true))
+(define-values (_b tcr) (make-cairo-image 1.0 1.0 density #true))
 
 (define (cairo-text-size! face size style weight utf8 &extents)
   (cairo_select_font_face tcr face style weight)

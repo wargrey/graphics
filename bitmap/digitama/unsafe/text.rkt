@@ -14,7 +14,7 @@
 
   (define (bitmap_text text font-desc lines fgsource bgsource alsource dlsource clsource mlsource blsource density)
     (define-values (width height distance ascent descent) (font_get_text_extent font-desc text))
-    (define-values (bmp cr w h) (make-cairo-image* width height bgsource density #true))
+    (define-values (bmp cr) (make-cairo-image* width height bgsource density #true))
     (define layout (bitmap_create_layout the-cairo lines))
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
@@ -42,12 +42,12 @@
     (define flheight (if (flonum? max-height) (unsafe-flmin (~metric pango-height) max-height) (~metric pango-height)))
     (define-values (bmp cr draw-text?)
       (if (or (= max-width -1) (unsafe-fl<= flwidth max-width))
-          (let-values ([(bmp cr w h) (make-cairo-image* flwidth flheight bgsource density #true)])
+          (let-values ([(bmp cr) (make-cairo-image* flwidth flheight bgsource density #true)])
             (values bmp cr #true))
           (let-values ([(char-width char-height) (and (pango_layout_set_text layout " ") (pango_layout_get_size layout))])
             (define draw-text? (unsafe-fl>= max-width (~metric char-width)))
             (define smart-flheight (if draw-text? flheight (unsafe-flmin (~metric char-height) flheight)))
-            (define-values (bmp cr _w _h) (make-cairo-image* max-width smart-flheight bgsource density #true))
+            (define-values (bmp cr) (make-cairo-image* max-width smart-flheight bgsource density #true))
             (values bmp cr draw-text?))))
     (when draw-text?
       (cairo-set-source cr fgsource)

@@ -7,7 +7,10 @@
 (require "require.rkt")
 
 (module unsafe racket/base
-  (provide (all-defined-out) cairo-image-size)
+  (provide (all-defined-out))
+
+  (require racket/vector)
+  (require racket/list)
   
   (require "pangocairo.rkt")
   (require "paint.rkt")
@@ -115,6 +118,49 @@
         (combine (unsafe-cdr all))))
     bmp)
 
+  (define (bitmap_table ncols bitmaps col-aligns row-aligns col-gaps row-gaps density)
+    (define-values (maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols))
+    (define nrows (unsafe-fx+ maybe-nrows (sgn extra-ncols)))
+    (define alcols (list->n:vector col-aligns ncols 'cc))
+    (define alrows (list->n:vector row-aligns nrows 'cc))
+    (define gcols (list->n:vector (map real->double-flonum col-gaps) ncols 0.0))
+    (define grows (list->n:vector (map real->double-flonum row-gaps) nrows 0.0))
+    (define table (list->table bitmaps nrows ncols density))
+
+    (define table-ref (λ [c r] (unsafe-vector-ref table (unsafe-fx+ (unsafe-fx* r ncols) c))))
+    (define-values (pbcols pbrows)
+      (values (for/vector ([c (in-range ncols)])
+                (superimpose* (vector-ref alcols c)
+                              (for/list ([r (in-range nrows)])
+                                (table-ref c r))))
+              (for/vector ([r (in-range nrows)])
+                (superimpose* (vector-ref alrows r)
+                              (for/list ([c (in-range ncols)])
+                                (table-ref c r))))))
+    
+    (unless (zero? nrows)
+      (vector-set! gcols (sub1 ncols) 0.0)
+      (vector-set! grows (sub1 nrows) 0.0))
+
+    (define-values (flwidth flheight cells)
+      (for/fold ([width 0.0] [height 0.0] [pbmps null])
+                ([row (in-range nrows)])
+        (define pbrow (unsafe-vector-ref pbrows row))
+        (define hrow (unsafe-fl+ (cadr pbrow) (vector-ref grows row)))
+        (define-values (wcols cells)
+          (for/fold ([xoff 0.0] [pbmps pbmps])
+                    ([col (in-range ncols)])
+            (define cell (table-ref col row))
+            (define pbcol (vector-ref pbcols col))
+            (define wcol (unsafe-fl+ (car pbcol) (vector-ref gcols col)))
+            (define-values (x _y) (find-xy cell pbcol))
+            (define-values (_x y) (find-xy cell pbrow))
+            (values (unsafe-fl+ xoff wcol) (cons (list (car cell) (unsafe-fl+ x xoff) (unsafe-fl+ y height)) pbmps))))
+        (values wcols (unsafe-fl+ height hrow) cells)))
+
+    (define-values (bmp cr w h) (make-cairo-image flwidth flheight density))
+    bmp)
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define ((make-layer alignment w h) W H) (superimpose-xy alignment W H w h))
   
@@ -125,7 +171,40 @@
       [(lt) (values 0.0 0.0)] [(lc) (values 0.0 cy)] [(lb) (values 0.0 by)]
       [(ct) (values  cx 0.0)] [(cc) (values  cx cy)] [(cb) (values  cx by)]
       [(rt) (values  rx 0.0)] [(rc) (values  rx cy)] [(rb) (values  rx by)]
-      [else #|unreachable|# (values 0.0 0.0)])))
+      [else #|unreachable|# (values 0.0 0.0)]))
+
+  (define (superimpose* alignment cells)
+      (define-values (width height)
+        (for/fold ([width 0.0] [height 0.0])
+                  ([cell (in-list cells)])
+          (values (unsafe-flmax width (cadr cell)) (unsafe-flmax height (caddr cell)))))
+      (list width height
+            (for/list ([cell (in-list cells)])
+              (define-values (w h) (values (cadr cell) (caddr cell)))
+              (define-values (x y) (superimpose-xy alignment width height w h))
+              (list cell x y))))
+
+  (define (find-xy bmp pbmps)
+    (let find ([rest (caddr pbmps)])
+      (cond [(null? rest) (values 0.0 0.0)]
+            [(eq? bmp (caar rest)) (values (cadar rest) (caddar rest))]
+            [else (find (cdr rest))])))
+
+  (define (list->table bitmaps nrows ncols density)
+    (define cells
+      (for/vector ([bmp (in-list bitmaps)])
+        (define-values (w h) (cairo-image-size bmp density))
+        (list bmp w h)))
+    (define diff (unsafe-fx- (unsafe-fx* nrows ncols) (unsafe-vector-length cells)))
+    (cond [(unsafe-fx<= diff 0) cells]
+          [else (let ([filling (list the-cairo 1.0 1.0)])
+                  (vector-append cells (make-vector diff filling)))]))
+
+  (define (list->n:vector src total defval) ; NOTE: (length src) is usually much smaller then the demand. 
+    (define diff (unsafe-fx- total (length src)))
+    (cond [(= diff total) (make-vector total defval)]
+          [(> diff 0) (list->vector (append src (make-list diff (last src))))]
+          [else (list->vector src)])))
 
 (unsafe/require/provide
  (submod "." unsafe)

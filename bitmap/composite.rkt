@@ -96,7 +96,7 @@
                             Bitmap)
   (lambda [ncols bitmaps [col-aligns '(cc)] [row-aligns '(cc)] [col-gaps '(0)] [row-gaps '(0)]]
     (define-values (maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols))
-    (define nrows : Natural (fx+ maybe-nrows (sgn extra-ncols)))
+    (define nrows : Nonnegative-Fixnum (fx+ maybe-nrows (sgn extra-ncols)))
     (define alcols : (Vectorof Symbol) (list->n:vector col-aligns ncols 'cc))
     (define alrows : (Vectorof Symbol) (list->n:vector row-aligns nrows 'cc))
     (define gcols : (Vectorof Flonum) (list->n:vector (map real->double-flonum col-gaps) ncols 0.0))

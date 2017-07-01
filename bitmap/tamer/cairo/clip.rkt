@@ -8,7 +8,7 @@
 
 (define (cairo-clip xc yc radius)
   (define-values (width height) (values (* (max xc radius) 2.0) (* (max yc radius) 2.0)))
-  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (make-cairo-image width height density #true))
 
   ;(cairo_tanslate cr xc yc) ; TODO: Does this operation affects angles?
   (cairo_arc cr xc yc radius 0 (degrees->radians 360.0))

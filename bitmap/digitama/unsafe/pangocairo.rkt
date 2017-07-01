@@ -1,6 +1,6 @@
 #lang racket/base
 
-(provide (all-defined-out) bitmap% make-bitmap make-object send is-a? pi nan? infinite?)
+(provide (all-defined-out) bitmap% make-bitmap make-object send is-a? pi nan? infinite? sgn)
 (provide (all-from-out racket/draw/unsafe/cairo racket/draw/unsafe/pango))
 (provide (all-from-out ffi/unsafe racket/unsafe/ops))
 
@@ -15,7 +15,7 @@
 
 (require (only-in racket/draw/private/bitmap bitmap% make-bitmap))
 (require (only-in racket/class make-object send is-a?))
-(require (only-in racket/math pi nan? infinite?))
+(require (only-in racket/math pi nan? infinite? sgn))
 
 (define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 (define-syntax-rule (_pfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
@@ -78,20 +78,18 @@
 
 (define make-cairo-image
   (lambda [flwidth flheight density scale?]
-    (define width (unsafe-fxmax (~fx flwidth) 1))
-    (define height (unsafe-fxmax (~fx flheight) 1))
-    (define img (make-bitmap width height #:backing-scale density))
+    (define img (make-bitmap (unsafe-fxmax (~fx flwidth) 1) (unsafe-fxmax (~fx flheight) 1) #:backing-scale density))
     (define cr (cairo_create (send img get-handle)))
     (unless (or (not scale?) (unsafe-fl= density 1.0))
       (cairo_scale cr density density))
-    (values img cr width height)))
+    (values img cr)))
 
 (define make-cairo-image*
   (lambda [flwidth flheight background density scale?]
-    (define-values (img cr width height) (make-cairo-image flwidth flheight density scale?))
+    (define-values (img cr) (make-cairo-image flwidth flheight density scale?))
     (cairo-set-source cr background)
     (cairo_paint cr)
-    (values img cr width height)))
+    (values img cr)))
 
 (define cairo-set-source
   (lambda [cr src]
