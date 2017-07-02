@@ -9,6 +9,8 @@
 (require "digitama/unsafe/composite.rkt")
 (require "constructor.rkt")
 
+(require racket/unsafe/ops)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require (only-in typed/racket/draw bitmap-dc% Bitmap-DC%))
 
@@ -97,45 +99,9 @@
   (lambda [ncols bitmaps [col-aligns '(cc)] [row-aligns '(cc)] [col-gaps '(0)] [row-gaps '(0)]]
     (define-values (maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols))
     (define nrows : Nonnegative-Fixnum (fx+ maybe-nrows (sgn extra-ncols)))
-    (define alcols : (Vectorof Symbol) (list->n:vector col-aligns ncols 'cc))
-    (define alrows : (Vectorof Symbol) (list->n:vector row-aligns nrows 'cc))
-    (define gcols : (Vectorof Flonum) (list->n:vector (map real->double-flonum col-gaps) ncols 0.0))
-    (define grows : (Vectorof Flonum) (list->n:vector (map real->double-flonum row-gaps) nrows 0.0))
-
-    (define table-ref : (-> Integer Integer Bitmap-Cell)
-      (let ([table : Bitmap-Tables (list->table bitmaps nrows ncols)])
-        ;;; TODO: why (unsafe-vector-ref) makes it slower?
-        (λ [c r] (vector-ref table (fx+ (fx* r ncols) c)))))
-    (define pbcols : (Vectorof Pseudo-Bitmap*)
-      (for/vector : (Vectorof Pseudo-Bitmap*) ([c (in-range ncols)])
-        (superimpose* (vector-ref alcols c) (for/list ([r (in-range nrows)]) (table-ref c r)))))
-    (define pbrows : (Vectorof Pseudo-Bitmap*)
-      (for/vector : (Vectorof Pseudo-Bitmap*) ([r (in-range nrows)])
-        (superimpose* (vector-ref alrows r) (for/list ([c (in-range ncols)]) (table-ref c r)))))
-    
-    (unless (zero? nrows)
-      (vector-set! gcols (sub1 ncols) 0.0)
-      (vector-set! grows (sub1 nrows) 0.0))
-
-    (define-values (width height cells)
-      (for/fold ([width : Flonum 0.0] [height : Flonum 0.0] [pbmps : (Listof (List Bitmap Flonum Flonum)) null])
-                ([row : Integer (in-range nrows)])
-        (define pbrow : Pseudo-Bitmap* (vector-ref pbrows row))
-        (define hrow : Flonum (fl+ (cadr pbrow) (vector-ref grows row)))
-        (define-values (wcols cells)
-          (for/fold ([xoff : Flonum 0.0] [pbmps : (Listof (List Bitmap Flonum Flonum)) pbmps])
-                    ([col : Integer (in-range ncols)])
-            (define cell : Bitmap-Cell (table-ref col row))
-            (define pbcol : Pseudo-Bitmap* (vector-ref pbcols col))
-            (define wcol : Flonum (fl+ (car pbcol) (vector-ref gcols col)))
-            (define-values (x _y) (find-xy cell pbcol))
-            (define-values (_x y) (find-xy cell pbrow))
-            (values (fl+ xoff wcol) (cons (list (car cell) (fl+ x xoff) (fl+ y height)) pbmps))))
-        (values wcols (fl+ height hrow) cells)))
-
-    (define bmp : Bitmap (bitmap-blank width height #:density 2.0))
-    (define dc : (Instance Bitmap-DC%) (send bmp make-dc))
-    (send dc set-smoothing 'aligned)
-    (for ([cell : Bitmap-Cell (in-list cells)])
-      (send dc draw-bitmap (car cell) (cadr cell) (caddr cell)))
-    bmp))
+    (bitmap_table (map bitmap-surface bitmaps) ncols nrows
+                  (list->n:vector col-aligns ncols 'cc)
+                  (list->n:vector row-aligns nrows 'cc)
+                  (list->n:vector (map real->double-flonum col-gaps) ncols 0.0)
+                  (list->n:vector (map real->double-flonum row-gaps) nrows 0.0)
+                  (if (pair? bitmaps) (bitmap-density (car bitmaps)) (default-bitmap-density)))))

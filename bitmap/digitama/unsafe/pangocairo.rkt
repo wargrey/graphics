@@ -78,8 +78,14 @@
 
 (define make-cairo-image
   (lambda [flwidth flheight density scale?]
-    (define img (make-bitmap (unsafe-fxmax (~fx flwidth) 1) (unsafe-fxmax (~fx flheight) 1) #:backing-scale density))
-    (define cr (cairo_create (send img get-handle)))
+    (define-values (width height) (values (unsafe-fxmax (~fx flwidth) 1) (unsafe-fxmax (~fx flheight) 1)))
+    (define img (make-bitmap width height #:backing-scale density))
+    (define surface (send img get-handle))
+    (when (not surface)
+      (raise-arguments-error 'make-cairo-image "image is too big"
+                             "width" flwidth "height" flheight
+                             "density" density))
+    (define cr (cairo_create surface))
     (unless (or (not scale?) (unsafe-fl= density 1.0))
       (cairo_scale cr density density))
     (values img cr)))
