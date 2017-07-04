@@ -90,18 +90,19 @@
   [make-append*     "bitmap-~a-append*"     (vl vc vr ht hc hb)]
   [make-superimpose "bitmap-~a-superimpose" (lt lc lb ct cc cb rt rc rb)])
 
-(define bitmap-table : (->* (Positive-Integer (Listof Bitmap))
+(define bitmap-table : (->* (Integer (Listof Bitmap))
                             ((Listof Superimpose-Alignment)
                              (Listof Superimpose-Alignment)
                              (Listof Nonnegative-Real)
                              (Listof Nonnegative-Real))
                             Bitmap)
-  (lambda [ncols bitmaps [col-aligns '(cc)] [row-aligns '(cc)] [col-gaps '(0)] [row-gaps '(0)]]
-    (define-values (maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols))
-    (define nrows : Nonnegative-Fixnum (fx+ maybe-nrows (sgn extra-ncols)))
-    (bitmap_table (map bitmap-surface bitmaps) ncols nrows
-                  (list->n:vector col-aligns ncols 'cc)
-                  (list->n:vector row-aligns nrows 'cc)
-                  (list->n:vector (map real->double-flonum col-gaps) ncols 0.0)
-                  (list->n:vector (map real->double-flonum row-gaps) nrows 0.0)
-                  (if (pair? bitmaps) (bitmap-density (car bitmaps)) (default-bitmap-density)))))
+  (lambda [ncols bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
+    (cond [(or (<= ncols 0) (null? bitmaps)) (bitmap-blank)]
+          [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols)])
+                  (define nrows : Nonnegative-Fixnum (fx+ maybe-nrows (sgn extra-ncols)))
+                  (bitmap_table (map bitmap-surface bitmaps) ncols nrows
+                                (if (null? col-aligns) '(cc) col-aligns)
+                                (if (null? row-aligns) '(cc) row-aligns)
+                                (if (null? col-gaps) '(0.0) (map real->double-flonum col-gaps))
+                                (if (null? row-gaps) '(0.0) (map real->double-flonum col-gaps))
+                                (bitmap-density (car bitmaps))))])))

@@ -11,7 +11,7 @@
           [Bitmap Nonnegative-Flonum Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum)]))
 
 (module unsafe racket/base
-  (provide (all-defined-out) cpointer? the-surface)
+  (provide (all-defined-out) the-surface)
   
   (require "pangocairo.rkt")
 

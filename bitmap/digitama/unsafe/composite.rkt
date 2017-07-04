@@ -9,6 +9,7 @@
 (module unsafe racket/base
   (provide (all-defined-out))
 
+  (require (only-in racket/list make-list))
   (require (only-in racket/vector vector-append))
   
   (require "pangocairo.rkt")
@@ -51,7 +52,7 @@
                       (define-values (xoff2 yoff2) (values (unsafe-flmax nx 0.0) (unsafe-flmax ny 0.0)))
                       (compose (unsafe-flmax (unsafe-fl+ xoff1 width) (unsafe-fl+ xoff2 width2))
                                (unsafe-flmax (unsafe-fl+ yoff1 height) (unsafe-fl+ yoff2 height2))
-                               (cons (vector sfc2 xoff2 yoff2 width2 height2) lla)
+                               (unsafe-cons-list (vector sfc2 xoff2 yoff2 width2 height2) lla)
                                (unsafe-flmax nx 0.0) (unsafe-flmax ny 0.0) width2 height2
                                (unsafe-cdr children)))])))
     
@@ -68,23 +69,23 @@
 
   (define (bitmap_append alignment base others gapsize density) ; slight but more efficient than (bitmap_pin*)
     (define-values (min-width min-height) (cairo-image-size base density))
-    (define-values (flwidth flheight all)
+    (define-values (flwidth flheight lla)
       (let compose ([width min-width] [height min-height] [lla (list (vector base min-width min-height))] [children others])
-        (cond [(null? children) (values width height (reverse lla))]
+        (cond [(null? children) (values width height lla)]
               [else (let-values ([(child rest) (values (unsafe-car children) (unsafe-cdr children))])
                       (define-values (chwidth chheight) (cairo-image-size child density))
-                      (define ++ (cons (vector child chwidth chheight) lla))
+                      (define ++ (unsafe-cons-list (vector child chwidth chheight) lla))
                       (case alignment
                         [(vl vc vr) (compose (unsafe-flmax width chwidth) (unsafe-fl+ gapsize (unsafe-fl+ height chheight)) ++ rest)]
                         [(ht hc hb) (compose (unsafe-fl+ gapsize (unsafe-fl+ width chwidth)) (unsafe-flmax height chheight) ++ rest)]
                         [else #|unreachable|# (compose (unsafe-flmax width chwidth) (unsafe-flmax height chheight) ++ rest)]))])))
     
     (define-values (bmp cr) (make-cairo-image flwidth flheight density #true))
-    (let combine ([all all] [maybe-used-xoff (unsafe-fl- 0.0 gapsize)] [maybe-used-yoff (unsafe-fl- 0.0 gapsize)])
-      (unless (null? all)
-        (define child (unsafe-car all))
-        (define-values (maybe-used-x maybe-used-y) (values (unsafe-fl+ maybe-used-xoff gapsize) (unsafe-fl+ maybe-used-yoff gapsize)))
+    (let combine ([lla lla] [maybe-used-xoff flwidth] [maybe-used-yoff flheight])
+      (unless (null? lla)
+        (define child (unsafe-car lla))
         (define-values (chwidth chheight) (values (unsafe-vector*-ref child 1) (unsafe-vector*-ref child 2)))
+        (define-values (maybe-used-x maybe-used-y) (values (unsafe-fl- maybe-used-xoff chwidth) (unsafe-fl- maybe-used-yoff chheight)))
         (define-values (dest-x dest-y)
           (case alignment
             [(vl) (values 0.0                                           maybe-used-y)]
@@ -95,79 +96,80 @@
             [(hb) (values maybe-used-x                                  (unsafe-fl- flheight chheight))]
             [else #|unreachable|# (values maybe-used-x                  maybe-used-y)]))
         (cairo-composite cr (unsafe-vector*-ref child 0) dest-x dest-y chwidth chheight
-                         CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #true)
-        (combine (unsafe-cdr all) (unsafe-fl+ maybe-used-x chwidth) (unsafe-fl+ maybe-used-y chheight))))
+                         CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_DEST_OVER density #true)
+        (combine (unsafe-cdr lla) (unsafe-fl- maybe-used-x gapsize) (unsafe-fl- maybe-used-y gapsize))))
     bmp)
 
   (define (bitmap_superimpose alignment sfcs density)
-    (define-values (flwidth flheight layers)
+    (define-values (flwidth flheight sreyal)
       (let compose ([width 0.0] [height 0.0] [sreyal null] [sfcs sfcs])
-        (cond [(null? sfcs) (values width height (reverse sreyal))]
+        (cond [(null? sfcs) (values width height sreyal)]
               [else (let ([sfc (unsafe-car sfcs)])
                       (define-values (w h) (cairo-image-size sfc density))
                       (values (unsafe-flmax width w) (unsafe-flmax height h)
-                              (cons (cons bmp (make-layer alignment w h)) layers)))])))
+                              (unsafe-cons-list (cons bmp (make-layer alignment w h)) sreyal)))])))
     
     (define-values (bmp cr) (make-cairo-image flwidth flheight density #true))
-    (let combine ([all layers])
-      (unless (null? all)
-        (define layer (unsafe-car all))
+    (let combine ([lla sreyal])
+      (unless (null? lla)
+        (define layer (unsafe-car lla))
         (define-values (x y) ((unsafe-cdr layer) flwidth flheight))
-        (cairo-composite cr (unsafe-car layer) x y flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #true)
-        (combine (unsafe-cdr all))))
+        (cairo-composite cr (unsafe-car layer) x y flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_DEST_OVER density #true)
+        (combine (unsafe-cdr lla))))
     bmp)
 
-  (define (bitmap_table sfcs ncols nrows alcols alrows gcols grows density)
+  (define (bitmap_table sfcs ncols nrows col-aligns row-aligns col-gaps row-gaps density)
+    (define alcols (list->n:vector col-aligns ncols))
+    (define alrows (list->n:vector row-aligns nrows))
+    (define gcols (list->n:vector (map real->double-flonum col-gaps) ncols))
+    (define grows (list->n:vector (map real->double-flonum row-gaps) nrows))
     (define table (list->table sfcs nrows ncols density))
     (define table-ref (λ [c r] (unsafe-vector*-ref table (unsafe-fx+ (unsafe-fx* r ncols) c))))
     (define-values (pbcols pbrows)
       (values (for/vector ([c (in-range ncols)])
-                (superimpose* (vector-ref alcols c)
-                              (for/list ([r (in-range nrows)])
-                                (table-ref c r))))
+                (superimpose* (unsafe-vector*-ref alcols c)
+                              (let ++ ([swor null] [r 0])
+                                (cond [(unsafe-fx= r nrows) swor]
+                                      [else (++ (unsafe-cons-list (table-ref c r) swor)
+                                                (unsafe-fx+ r 1))]))))
               (for/vector ([r (in-range nrows)])
-                (superimpose* (vector-ref alrows r)
-                              (for/list ([c (in-range ncols)])
-                                (table-ref c r))))))
+                (superimpose* (unsafe-vector*-ref alrows r)
+                              (let ++ ([sloc null] [c 0])
+                                (cond [(unsafe-fx= c ncols) sloc]
+                                      [else (++ (unsafe-cons-list (table-ref c r) sloc)
+                                                (unsafe-fx+ c 1))]))))))
     
-    (unless (zero? nrows)
-      (vector-set! gcols (sub1 ncols) 0.0)
-      (vector-set! grows (sub1 nrows) 0.0))
+    (unsafe-vector*-set! gcols (unsafe-fx- ncols 1) 0.0)
+    (unsafe-vector*-set! grows (unsafe-fx- nrows 1) 0.0)
 
-    (define-values (flwidth flheight cells)
-      (let compose-row ([width 0.0] [height 0.0] [psfcs null] [row 0])
-        (cond [(unsafe-fx= row nrows) (values width height psfcs)]
+    (define-values (flwidth flheight)
+      (let compose-row ([width 0.0] [height 0.0] [row 0])
+        (cond [(unsafe-fx= row nrows) (values width height)]
               [else (let ([pbrow (unsafe-vector*-ref pbrows row)])
-                      (define hrow (unsafe-fl+ (cadr pbrow) (unsafe-vector*-ref grows row)))
-                      (define-values (wcols cells)
-                        (let compose-col ([xoff 0.0] [psfcs psfcs] [col 0])
-                          (cond [(unsafe-fx= col ncols) (values xoff psfcs)]
-                                [else (let ([cell (table-ref col row)])
-                                        (define pbcol (vector-ref pbcols col))
-                                        (define wcol (unsafe-fl+ (car pbcol) (unsafe-vector*-ref gcols col)))
-                                        (define-values (x _y) (find-xy cell pbcol))
-                                        (define-values (_x y) (find-xy cell pbrow))
-                                        (compose-col (unsafe-fl+ xoff wcol)
-                                                     (cons (vector cell (unsafe-fl+ x xoff) (unsafe-fl+ y height)) psfcs)
-                                                     (unsafe-fx+ col 1)))])))
-                      (compose-row wcols (unsafe-fl+ height hrow) cells (unsafe-fx+ row 1)))])))
+                      (define hrow (unsafe-fl+ (unsafe-car (unsafe-cdr pbrow)) (unsafe-vector*-ref grows row)))
+                      (let compose-col ([xoff 0.0] [col 0])
+                        (cond [(unsafe-fx= col ncols) (compose-row xoff (unsafe-fl+ height hrow) (unsafe-fx+ row 1))]
+                              [else (let ([cell (table-ref col row)])
+                                      (define pbcol (unsafe-vector*-ref pbcols col))
+                                      (define wcol (unsafe-fl+ (unsafe-car pbcol) (unsafe-vector*-ref gcols col)))
+                                      (define-values (x y) (values (find-position cell pbcol 1) (find-position cell pbrow 2)))
+                                      (unsafe-vector*-set! cell 1 (unsafe-fl+ x xoff))
+                                      (unsafe-vector*-set! cell 2 (unsafe-fl+ y height))
+                                      (compose-col (unsafe-fl+ xoff wcol) (unsafe-fx+ col 1)))])))])))
 
     (define-values (bmp cr) (make-cairo-image flwidth flheight density #true))
-    (let combine ([rest cells])
-      (unless (null? rest)
-        (define cell+xy (unsafe-car rest))
-        (define cell+size (unsafe-vector*-ref cell+xy 0))
-        (cairo-composite cr (unsafe-vector*-ref cell+size 0)
-                         (unsafe-vector*-ref cell+xy 1) (unsafe-vector*-ref cell+xy 2)
-                         (unsafe-vector*-ref cell+size 1) (unsafe-vector*-ref cell+size 2)
-                         CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #true)
-        (combine (unsafe-cdr rest))))
+    (let combine ([idx (unsafe-fx- (unsafe-fx* ncols nrows) 1)])
+      (when (unsafe-fx>= idx 0)
+        (define cell (unsafe-vector*-ref table idx))
+        (cairo-composite cr (unsafe-vector*-ref cell 0) (unsafe-vector*-ref cell 1) (unsafe-vector*-ref cell 2)
+                         flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #true)
+        (combine (unsafe-fx- idx 1))))
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define ((make-layer alignment w h) W H) (superimpose-xy alignment W H w h))
+  (define ((make-layer alignment w h) W H) (superimpose-position alignment W H w h))
   
-  (define (superimpose-xy alignment width height w h)
+  (define (superimpose-position alignment width height w h)
     (define-values (rx by) (values (unsafe-fl- width w) (unsafe-fl- height h)))
     (define-values (cx cy) (values (unsafe-fl/ rx 2.0) (unsafe-fl/ by 2.0)))
     (case alignment
@@ -189,16 +191,16 @@
             (cond [(null? rest) cells]
                   [else (let ([cell (unsafe-car rest)])
                           (define-values (w h) (values (unsafe-vector*-ref cell 1) (unsafe-vector*-ref cell 2)))
-                          (define-values (x y) (superimpose-xy alignment width height w h))
+                          (define-values (x y) (superimpose-position alignment width height w h))
                           (locate (unsafe-cons-list (vector cell x y) cells)
                                   (unsafe-cdr rest)))]))))
 
-  (define (find-xy sfc psfcs)
+  (define (find-position sfc psfcs which)
     (let find ([rest (unsafe-list-ref psfcs 2)])
       (cond [(null? rest) (values 0.0 0.0)]
             [else (let ([cell (unsafe-car rest)])
                     (if (eq? sfc (unsafe-vector*-ref cell 0))
-                        (values (unsafe-vector*-ref cell 1) (unsafe-vector*-ref cell 2))
+                        (unsafe-vector*-ref cell which)
                         (find (unsafe-cdr rest))))])))
 
   (define (list->table sfcs nrows ncols density)
@@ -208,7 +210,13 @@
     (define diff (unsafe-fx- (unsafe-fx* nrows ncols) (unsafe-vector-length cells)))
     (cond [(unsafe-fx<= diff 0) cells]
           [else (let ([filling (vector the-surface 1.0 1.0)])
-                  (vector-append cells (make-vector diff filling)))])))
+                  (vector-append cells (make-vector diff filling)))]))
+
+  (define (list->n:vector src total) ; NOTE: (length src) is usually very small.
+    (define count (length src))
+    (cond [(unsafe-fx= total count) (list->vector src)]
+          [else (let ([supplement (unsafe-list-ref src (unsafe-fx- count 1))])
+                  (list->vector (append src (make-list (unsafe-fx- total count) supplement))))])))
 
 (unsafe/require/provide
  (submod "." unsafe)
@@ -217,7 +225,4 @@
  [bitmap_pin* (-> Flonum Flonum Flonum Flonum Bitmap-Surface (Listof Bitmap-Surface) Flonum Bitmap)]
  [bitmap_append (-> Symbol Bitmap-Surface (Listof Bitmap-Surface) Flonum Flonum Bitmap)]
  [bitmap_superimpose (-> Symbol (Listof Bitmap-Surface) Flonum Bitmap)]
- [bitmap_table (-> (Listof Bitmap-Surface) Integer Integer
-                   (Vectorof Symbol) (Vectorof Symbol)
-                   (Vectorof Flonum) (Vectorof Flonum)
-                   Flonum Bitmap)])
+ [bitmap_table (-> (Listof Bitmap-Surface) Integer Integer (Listof Symbol) (Listof Symbol) (Listof Flonum) (Listof Flonum) Flonum Bitmap)])

@@ -13,16 +13,16 @@
 
 (define monospace : Font (desc-font #:family 'monospace))
 (define bitmaps : (Listof Bitmap)
-  (build-list 1350 (λ _ (let ([rc (random #xFFFFFF)])
-                          (bitmap-text #:color (rgb* rc)
-                                       (string-upcase (format "~x" rc))
-                                       monospace)))))
+  (time (build-list 1350 (λ _ (let ([rc (random #xFFFFFF)])
+                                (bitmap-text #:color (rgb* rc)
+                                             (string-upcase (format "~x" rc))
+                                             monospace))))))
 
-(collect-garbage)
+(collect-garbage) ; 6-9ms
 (time (bitmap-table 2 examples '(rc lc) '(ct) '(8) '(8)))
 
-(collect-garbage) ; 26-30ms
+(collect-garbage) ; 28-33ms
 (time (void (bitmap-vl-append* bitmaps)))
 
-(collect-garbage) ; 25-28ms
+(collect-garbage) ; 25-30ms
 (time (bitmap-table 26 bitmaps '(rc) '(cc) '(10) '(10)))
