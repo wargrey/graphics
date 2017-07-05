@@ -129,7 +129,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ~fx
   (lambda [fl]
-    (unsafe-fl->fx (round fl))))
+    (unsafe-fl->fx (unsafe-flround fl))))
 
 (define ~size
   (lambda [size]
