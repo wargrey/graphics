@@ -47,7 +47,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (cpointer*? v tag)
     (and (cpointer? v)
-         (eq? (cpointer-tag v) tag)))
+         #;(eq? (cpointer-tag v) tag)))
 
   (define (gradient-add-color-stop gradient position rgba)
     (cairo_pattern_add_color_stop_rgba gradient position
