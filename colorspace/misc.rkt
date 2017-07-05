@@ -12,6 +12,7 @@
 (define gamut->byte : (-> Flonum Byte) (λ [r] (fxmin (fxmax (fl->fx (flround (fl* r 255.0))) 0) #xFF)))
 (define byte->gamut : (-> Byte Flonum) (λ [r] (fl/ (fx->fl r) 255.0)))
 (define real->gamut : (-> Real Flonum) (λ [r] (flmax (flmin (real->double-flonum r) 1.0) 0.0)))
+(define gamut->uint16 : (-> Flonum Index) (λ [r] (fxmin (fxmax (fl->fx (flround (fl* r 65535.0))) 0) 65535)))
 
 (define real->hue : (-> Real Flonum)
   (lambda [hue]

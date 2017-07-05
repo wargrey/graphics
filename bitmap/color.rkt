@@ -76,3 +76,10 @@
     (list (gamut->byte (rgba-red flrgba))
           (gamut->byte (rgba-green flrgba))
           (gamut->byte (rgba-blue flrgba)))))
+
+(define flcolor->uint16-list : (-> Color (List Index Index Index))
+  (lambda [src]
+    (define flrgba : FlRGBA (rgb* src))
+    (list (gamut->uint16 (rgba-red flrgba))
+          (gamut->uint16 (rgba-green flrgba))
+          (gamut->uint16 (rgba-blue flrgba)))))
