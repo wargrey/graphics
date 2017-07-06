@@ -69,7 +69,7 @@
 
 (define bitmap-frame : (-> Bitmap [#:border (Option Stroke)] [#:fill (Option Bitmap-Source)]
                            [#:margin Nonnegative-Real] [#:padding Nonnegative-Real] Bitmap)
-  (lambda [bmp #:margin [margin 0.0] #:padding [inset 0.0] #:border [stroke (default-frame-stroke)] #:fill [fill #false]]
+  (lambda [bmp #:margin [margin 0.0] #:padding [inset 0.0] #:border [stroke (default-border)] #:fill [fill #false]]
     (bitmap_frame (bitmap-surface bmp) margin margin margin margin inset inset inset inset
                   stroke fill (bitmap-density bmp))))
 

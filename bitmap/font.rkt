@@ -69,25 +69,25 @@
             (hash-set! &fonts font (make-ephemeron font desc))
             desc)))))
 
-(define font-metrics-ref : (case-> [Font -> (Listof (Pairof Symbol Nonnegative-Flonum))]
-                                   [Font (Listof Symbol) -> (Listof (Pairof Symbol Nonnegative-Flonum))]
-                                   [Font Symbol -> Nonnegative-Flonum])
+(define font-metrics : (-> Font (Listof (Pairof Symbol Nonnegative-Flonum)))
   (let ([&metrics : (HashTable Any (Ephemeronof (Listof (Pairof Symbol Nonnegative-Flonum)))) (make-weak-hash)])
-    (case-lambda
-      [(font)
-       (let ([&m (hash-ref &metrics font (λ _ #false))])
-         (or (and &m (ephemeron-value &m))
-             (let ([metrics (font_get_metrics (font-description font))])
-               (hash-set! &metrics font (make-ephemeron font metrics))
-               metrics)))]
-      [(font units)
-       (let ([metrics (font-metrics-ref font)])
-         (if (symbol? units)
-             (let ([?m (assq units metrics)])
-               (if ?m (cdr ?m) +nan.0))
-             (for/list : (Listof (Pairof Symbol Nonnegative-Flonum))
-               ([m (in-list metrics)] #:when (memq (car m) units))
-               m)))])))
+    (lambda [font]
+      (define &m (hash-ref &metrics font (λ _ #false)))
+      (or (and &m (ephemeron-value &m))
+          (let ([metrics (font_get_metrics (font-description font))])
+            (hash-set! &metrics font (make-ephemeron font metrics))
+            metrics)))))
+
+(define font-metrics-ref : (case-> [Font (Listof Symbol) -> (Listof (Pairof Symbol Nonnegative-Flonum))]
+                                   [Font Symbol -> Nonnegative-Flonum])
+  (lambda [font units]
+    (define metrics (font-metrics font))
+    (if (symbol? units)
+        (let ([?m (assq units metrics)])
+          (if ?m (cdr ?m) +nan.0))
+        (for/list : (Listof (Pairof Symbol Nonnegative-Flonum))
+          ([m (in-list metrics)] #:when (memq (car m) units))
+          m))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define text-metrics-lines : (->* (String) (Font) (Values Flonum Flonum Flonum Flonum Flonum))

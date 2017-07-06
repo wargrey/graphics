@@ -22,7 +22,6 @@
     (cond [(hash-has-key? css-named-colors name) (rgb* (hash-ref css-named-colors name) flalpha)]
           [(not downcased?) (named-rgba (string->symbol (string-downcase (symbol->string name))) flalpha rgb* #true)]
           [(eq? name 'transparent) transparent]
-          [(hash-has-key? css-color-aliases name) (named-rgba (hash-ref css-color-aliases name) flalpha rgb* #true)]
           [(eq? name 'currentcolor) (rgb* ((default-make-currentcolor)) flalpha)]
           [else #false])))
 
@@ -75,10 +74,6 @@
                       (cadetblue . #x5F9EA0) (slateblue . #x6A5ACD) (olive . #x808000) (orange . #xFFA500) (lightsteelblue . #xB0C4DE)
                       (lightskyblue . #x87CEFA) (gainsboro . #xDCDCDC) (fuchsia . #xFF00FF) (mediumspringgreen . #x00FA9A)
                       (midnightblue . #x191970) (salmon . #xFA8072) (silver . #xC0C0C0)))
-
-(define css-color-aliases : (HashTable Symbol Symbol)
-  #hasheq((grey . gray) (lightgrey . lightgray) (darkgrey . darkgray) (dimgrey . dimgray)
-                        (lightslategrey . lightslategray) (slategrey . slategray) (darkslategrey . darkslategray)))
 
 (define xterm-color-tuples : (Vectorof Flonum) (vector 0.0 95.0 135.0 175.0 215.0 255.0))
 (define xterm-system-colors : (Vectorof Symbol)

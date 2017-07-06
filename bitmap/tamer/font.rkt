@@ -10,7 +10,7 @@
 (require "../digitama/draw.rkt")
 (require "../digitama/font.rkt")
 
-(default-frame-stroke (desc-stroke long-dash #:color 'gray #:width 1))
+(default-border (desc-stroke long-dash #:color 'gray #:width 1))
 
 (define bitmap-text* : (-> String Font Bitmap)
   (lambda [text font]
