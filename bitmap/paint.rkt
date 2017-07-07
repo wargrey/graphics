@@ -14,7 +14,7 @@
 (define-type CSS-Radial-Gradient (Vector Real Real Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 
 (define-type Stroke-Paint (U Color Bitmap Stroke))
-(define-type Fill-Paint (U Color Bitmap Fill))
+(define-type Fill-Paint (U Color Bitmap))
 
 ; Don't forget unsafe/pangocairo.rkt if changing the Stroke
 (struct: stroke : Stroke paint
@@ -26,14 +26,10 @@
    [dash : (Vectorof Nonnegative-Flonum)]
    [offset : Flonum]))
 
-(struct: fill : Fill paint
-  ([color : FlRGBA]
-   [rule : Fill-Rule-Style]))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-stroke : (Parameterof Stroke) (make-parameter (stroke black 1.0 'butt 'miter +nan.0 solid-dash 0.0)))
-(define default-border : (Parameterof Stroke) (make-parameter (stroke hilite 1.0 'butt 'miter +nan.0 solid-dash 0.0)))
-(define default-fill : (Parameterof Fill) (make-parameter (fill black 'nonzero)))
+(define default-border : (Parameterof Stroke) (make-parameter (stroke hilite (border-thickness->integer 'medium)
+                                                                      'butt 'miter +nan.0 solid-dash 0.0)))
 
 (define desc-stroke : (->* ()
                            (Stroke #:color (Option Color) #:opacity Real #:width (Option Real)
@@ -50,15 +46,27 @@
     (define-values (preoffset dasharray)
       (cond [(stroke-dash-style? dash) (line-dash->array dash linewidth)]
             [(vector? dash) (values (stroke-offset baseline) (dasharray-normalize dash linewidth))]
-            [else (values (stroke-offset baseline)
-                          (dasharray-normalize (stroke-dash baseline)
-                                               (flmax (fl/ linewidth (stroke-width baseline)) 0.0)))]))
+            [else (values (stroke-offset baseline) (dasharray-normalize (stroke-dash baseline) linewidth (stroke-width baseline)))]))
     (define dashoffset : Flonum (if (not offset) preoffset (real->double-flonum offset)))
-    (stroke (rgb* (if (not color) (stroke-color baseline) color) opacity) linewidth
-            (if (stroke-line-cap-option? cap) cap (stroke-linecap baseline)) linejoin miterlimit
-            dasharray dashoffset)))
+    (stroke (rgb* (or color (stroke-color baseline)) opacity) linewidth
+            (cond [(stroke-line-cap-option? cap) cap] [(eq? dash 'dot) 'round] [else (stroke-linecap baseline)])
+            linejoin miterlimit dasharray dashoffset)))
 
-(define desc-fill : (->* () (Fill #:color (Option Color) #:opacity Real #:rule (Option Symbol)) Fill)
-  (lambda [[basefill (default-fill)] #:color [color #false] #:opacity [opacity 1.0] #:rule [rule #false]]
-    (fill (rgb* (if (not color) (fill-color basefill) color) opacity)
-          (if (fill-rule-option? rule) rule (fill-rule basefill)))))
+(define desc-border : (->* () (Stroke #:color (Option Color) #:width (U Real Symbol False) #:style (Option Symbol)) Stroke)
+  (lambda [[baseline (default-border)] #:color [color #false] #:width [width #false] #:style [dash #false]]
+    (define no-border? : Boolean (or (eq? dash 'none) (eq? dash 'hidden)))
+    (define linewidth : Nonnegative-Flonum
+      (cond [(and no-border?) 0.0]
+            [(and (real? width) (>= width 0.0)) (real->double-flonum width)]
+            [(css-border-thickness-option? width) (border-thickness->integer width)]
+            [else (stroke-width baseline)]))
+    (define-values (dashoffset dasharray)
+      (case dash
+        [(none hidden) (values 0.0 solid-dash)]
+        [(dotted) (line-dash->array 'dot linewidth)]
+        [(dashed) (line-dash->array 'long-dash linewidth)]
+        [else (values (stroke-offset baseline) (dasharray-normalize (stroke-dash baseline) linewidth (stroke-width baseline)))]))
+    (stroke (if (not color) (stroke-color baseline) (rgb* color)) linewidth
+            (if (eq? dash 'dotted) 'round (stroke-linecap baseline))
+            (stroke-linejoin baseline) (stroke-miterlimit baseline)
+            dasharray dashoffset)))

@@ -30,11 +30,11 @@
 (define short-dash       : Stroke (desc-stroke (default-stroke) #:dash 'short-dash))
 (define long-dash        : Stroke (desc-stroke (default-stroke) #:dash 'long-dash))
 
-(define solid-frame      : Stroke (desc-stroke (default-stroke) #:dash 'solid))
-(define dot-frame        : Stroke (desc-stroke (default-stroke) #:dash 'dot))
-(define dot-dash-frame   : Stroke (desc-stroke (default-stroke) #:dash 'dot-dash))
-(define short-dash-frame : Stroke (desc-stroke (default-stroke) #:dash 'short-dash))
-(define long-dash-frame  : Stroke (desc-stroke (default-stroke) #:dash 'long-dash))
+(define solid-frame      : Stroke (desc-stroke (default-border) #:dash 'solid))
+(define dot-frame        : Stroke (desc-stroke (default-border) #:dash 'dot))
+(define dot-dash-frame   : Stroke (desc-stroke (default-border) #:dash 'dot-dash))
+(define short-dash-frame : Stroke (desc-stroke (default-border) #:dash 'short-dash))
+(define long-dash-frame  : Stroke (desc-stroke (default-border) #:dash 'long-dash))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define sans-serif : Font (desc-font #:family 'sans-serif))

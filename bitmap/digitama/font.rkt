@@ -59,7 +59,7 @@
   [0 none start middle end])
 
 (define-enumeration text-decoration-line : Text-Decoration-Line
-  line-through underline underdouble undercurl)
+  [line-through underline underdouble undercurl])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define os : Symbol (system-type 'os))
