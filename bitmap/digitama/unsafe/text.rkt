@@ -102,10 +102,10 @@
 (unsafe/require/provide
  (submod "." unsafe)
  [bitmap_text
-  (-> String Font-Description (Listof Symbol) Bitmap-Source Bitmap-Source
-      (Option Bitmap-Source) (Option Bitmap-Source) (Option Bitmap-Source) (Option Bitmap-Source) (Option Bitmap-Source)
+  (-> String Font-Description (Listof Symbol) Stroke-Paint Fill-Paint
+      (Option Stroke-Paint) (Option Stroke-Paint) (Option Stroke-Paint) (Option Stroke-Paint) (Option Stroke-Paint)
       Flonum Bitmap)]
  [bitmap_paragraph
   (-> String Font-Description (Listof Symbol) (U Flonum Nonpositive-Integer) (U Flonum Nonpositive-Integer)
-      Flonum Flonum Integer Integer Bitmap-Source Bitmap-Source
+      Flonum Flonum Integer Integer Stroke-Paint Fill-Paint
       Flonum Bitmap)])

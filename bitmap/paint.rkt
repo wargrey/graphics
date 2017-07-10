@@ -13,11 +13,8 @@
 (define-type CSS-Linear-Gradient (Vector Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 (define-type CSS-Radial-Gradient (Vector Real Real Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 
-(define-type Stroke-Paint (U Color Bitmap Stroke))
-(define-type Fill-Paint (U Color Bitmap))
-
-; Don't forget unsafe/pangocairo.rkt if changing the Stroke
-(struct: stroke : Stroke paint
+; Don't forget unsafe/paint.rkt if changing the Stroke
+(struct: stroke : Stroke Paint
   ([color : FlRGBA]
    [width : Nonnegative-Flonum]
    [linecap : Stroke-Cap-Style]

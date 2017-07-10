@@ -18,10 +18,10 @@
 (define-type Bitmap (Instance Bitmap%))
 (define-type Color (U Symbol Integer FlColor))
 
-(define-type Paint paint)
-(define-type FlColor flcolor)
 (define-type FlRGBA rgba)
+(define-type Stroke-Paint (U Color Paint))
+(define-type Fill-Paint (U Color Bitmap))
 
-(struct paint () #:transparent)
-(struct flcolor () #:transparent)
-(struct rgba flcolor ([red : Flonum] [green : Flonum] [blue : Flonum] [alpha : Flonum]) #:transparent)
+(struct Paint () #:transparent)
+(struct FlColor () #:transparent)
+(struct rgba FlColor ([red : Flonum] [green : Flonum] [blue : Flonum] [alpha : Flonum]) #:transparent)
