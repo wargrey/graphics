@@ -19,10 +19,9 @@
 (require bitmap)
 (require bitmap/digitama/misc)
 
-(require/provide "syntax.rkt" "racket.rkt"
+(require/provide "syntax.rkt"
                  "color.rkt" "image.rkt"
-                 "font.rkt" "text-decor.rkt"
-                 "background.rkt")
+                 "font.rkt" "text-decor.rkt")
 
 (module reader racket/base
   (provide (except-out (all-from-out racket/base) read read-syntax))

@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;;; Interacting with Racket
 
@@ -8,6 +8,8 @@
 (require "digitama/syntax/dimension.rkt")
 (require "digitama/syntax/misc.rkt")
 (require "recognizer.rkt")
+
+(require (for-syntax racket/base))
 
 (begin-for-syntax
   (require racket/list)
@@ -75,7 +77,7 @@
   #:with [[token : css:λracket?] [λpool : CSS-@λ-Pool] [λfilter : CSS-@λ-Filter] [λids : (Listof Symbol) null]]
   (define λid : Symbol (css:λracket-datum token))
   (cond [(and (pair? λids) (not (memq λid λids))) (make-exn:css:range token)]
-        [(hash-ref λpool λid (thunk #false)) => (λ [λinfo] (do-filter token λid λinfo))]
+        [(hash-ref λpool λid (λ _ #false)) => (λ [λinfo] (do-filter token λid λinfo))]
         [else (make-exn:css:range token)])
   #:where
   [(define (do-filter [<λ> : CSS:λRacket] [λname : Symbol] [λinfo : CSS-@λ-Metainfo]) : (U CSS-@λ CSS-Syntax-Error)
@@ -95,16 +97,16 @@
                             (cond [(void? kw:filter) (λ-fold swk λ:mkws rest)]
                                   [else (let ([datum (kw:filter value)])
                                           (cond [(exn:css? datum) datum]
-                                                [(false? datum) (make-exn:css:type value)]
+                                                [(not datum) (make-exn:css:type value)]
                                                 [else (λ-fold (cons datum (cons λ:kw swk)) (remq λ:kw λ:mkws) rest)]))]))])]
              [(pair? λ:mkws) (make-exn:css:arity <λ>)]
              [else (let ([λparser (λfilter λname #false)])
                      (define-values (argl rest) (if (void? λparser) (values swk args) (λparser swk args)))
                      (cond [(exn:css? argl) argl]
-                           [(false? argl) (make-exn:css:type rest)]
+                           [(not argl) (make-exn:css:type rest)]
                            [(pair? rest) (make-exn:css:overconsumption rest)]
                            [else (let ([count (- (length argl) (length swk))])
-                                   (cond [(nor (memq count λarities) (>= count λmin-arty)) (make-exn:css:arity <λ>)]
+                                   (cond [(not (or (memq count λarities) (>= count λmin-arty))) (make-exn:css:arity <λ>)]
                                          [else (css-@λ (cons λname (reverse argl)))]))]))])))])
 
 (define-css-atomic-filter <css-#boolean> #:-> (List 'values Boolean)
@@ -121,13 +123,13 @@
   (lambda [css-filter css->racket]
     (λ [[token : CSS-Syntax-Any]]
       (define datum : (CSS-Option css) (css-filter token))
-      (cond [(or (exn:css? datum) (false? datum)) datum]
+      (cond [(or (exn:css? datum) (not datum)) datum]
             [else (css-thunk (λ [] (css->racket datum)))]))))
 
 (define css-eval-value : (->* (CSS:Racket Namespace) ((Option Symbol)) (U Any CSS-Syntax-Error))
   (lambda [<thing> ns [src #false]]
     (define id : Symbol (css:racket-datum <thing>))
-    (define v : Any (call-with-values (thunk (eval id ns)) (λ _ (car _))))
+    (define v : Any (call-with-values (λ _ (eval id ns)) (λ _ (car _))))
     (if (parameter? v) (v) v)))
 
 (define css-eval-@λ : (-> CSS-@λ Namespace Nonnegative-Real Any)
@@ -138,5 +140,5 @@
             [(css-thunk? datum) ((css-thunk-λ datum))]
             [(css-@λ? datum) (map fsexp (css-@λ-sexp datum))]
             [else datum]))
-    (call-with-values (thunk (eval (map fsexp (css-@λ-sexp datum)) ns))
+    (call-with-values (λ _ (eval (map fsexp (css-@λ-sexp datum)) ns))
       (λ do-not-support-multiple-values (car do-not-support-multiple-values)))))

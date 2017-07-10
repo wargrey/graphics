@@ -6,12 +6,13 @@
 
 (require "configure.rkt")
 (require "../main.rkt")
+(require "../background.rkt")
 (require "../sugar.rkt")
 (require "../bonus.rkt")
 
 (css-configure-@media)
 (current-namespace (module->namespace 'bitmap))
-(default-css-font (make-css-font #:size 16.0))
+(default-font (desc-font #:size 16.0))
 (css-root-element-type 'module)
 
 (define-preference* btest #:as Bitmap.CSS #:with ([color-properties Color])
@@ -20,10 +21,10 @@
    [number-color : Color                       #:= 'Tomato]
    [output-color : Color                       #:= 'Chocolate]
    [paren-color : Color                        #:= 'Firebrick]
-   [foreground-color : Color                   #:= "Grey"]
+   [foreground-color : Color                   #:= 'Grey]
    [font : Font                                #:= (current-css-element-font)]
-   [borders : (Listof Pen)                     #:= null]
-   [brush : Brush                              #:= 'transparent]
+   [border : Stroke-Paint                      #:= (default-stroke)]
+   [background : Fill-Paint                    #:= 'transparent]
    [max-width : Index                          #:= 512]
    [desc : String                              #:= "['desc' property is required]"]
    [prelude : Bitmap                           #:= (bitmap-text "> ")]
@@ -35,7 +36,7 @@
     (or (css-font+colors-parsers suitcased-name deprecated!)
         (css-color-property-parsers suitcased-name btest-color-properties)
         (css-image-property-parsers suitcased-name '(prelude))
-        (css-simple-box-property-parsers suitcased-name)
+        (css-background-property-parsers suitcased-name)
         (case suitcased-name
           [(desc) (<:css-strings:>)]
           [(desc-width) (<css-natural>)]))))
@@ -46,16 +47,16 @@
       (cond [(string? value) value]
             [(list? value) (string-join (filter string? value))]
             [else css:initial]))
-    (current-css-element-color (css-color-ref declared-values inherited-values))
-    (make-btest #:symbol-color (css-color-ref declared-values inherited-values 'symbol-color)
-                #:string-color (css-color-ref declared-values inherited-values 'string-color)
-                #:number-color (css-color-ref declared-values inherited-values 'number-color)
-                #:output-color (css-color-ref declared-values inherited-values 'output-color)
-                #:paren-color (css-color-ref declared-values inherited-values 'paren-color)
-                #:foreground-color (css-color-ref declared-values inherited-values 'foreground-color)
+    (current-css-element-color (css-rgba-ref declared-values inherited-values))
+    (make-btest #:symbol-color (css-rgba-ref declared-values inherited-values 'symbol-color)
+                #:string-color (css-rgba-ref declared-values inherited-values 'string-color)
+                #:number-color (css-rgba-ref declared-values inherited-values 'number-color)
+                #:output-color (css-rgba-ref declared-values inherited-values 'output-color)
+                #:paren-color (css-rgba-ref declared-values inherited-values 'paren-color)
+                #:foreground-color (css-rgba-ref declared-values inherited-values 'foreground-color)
                 #:font (css-extract-font declared-values inherited-values)
-                #:borders (css-extract-border-pen declared-values inherited-values)     #|properties are not inheritable|#
-                #:brush (css-extract-background-brush declared-values inherited-values) #|properties are not inheritable|#
+                #:border (css-extract-border declared-values inherited-values 'border-top) #|not inheritable|#
+                #:background (css-extract-background declared-values inherited-values)     #|not inheritable|#
                 #:max-width (css-ref declared-values inherited-values 'desc-width index? css:initial)
                 #:desc (css-ref declared-values inherited-values 'desc css->desc)
                 #:prelude (css-ref declared-values inherited-values 'prelude css->bitmap)
@@ -81,23 +82,23 @@
       (define-values (fgcolor rcolor) (values (btest-foreground-color $bt) (btest-output-color $bt)))
 
       (define-values (max-width words font) (values (btest-max-width $bt) (btest-desc $bt) (btest-font $bt)))
-      (define desc (bitmap-paragraph words font #:color fgcolor #:background (btest-brush $bt) #:max-width max-width))
+      (define desc (bitmap-paragraph words font #:color fgcolor #:background (btest-background $bt) #:max-width max-width))
       (define-values (desc-width height) (bitmap-size desc))
       (define ~s32 : (-> String String) (λ [txt] (~s txt #:max-width 32 #:limit-marker "...\"")))
       
       (values (append bitmap-descs
-                      (list (bitmap-pin 1 1/2 0 1/2
-                                        (btest-prelude $bt)
-                                        (bitmap-text "(" #:color (btest-paren-color $bt))
-                                        (bitmap-hc-append #:gapsize 7
-                                                          (bitmap-text "bitmap-paragraph" #:color (btest-symbol-color $bt))
-                                                          (bitmap-text (~s32 words) #:color (btest-string-color $bt))
-                                                          (bitmap-text (~a max-width) #:color (btest-number-color $bt))
-                                                          (bitmap-text (~s (send font get-face)) #:color (btest-string-color $bt))
-                                                          (bitmap-text (~a (smart-font-size font)) #:color (btest-number-color $bt)))
-                                        (bitmap-text ")" #:color (btest-paren-color $bt)))
+                      (list (bitmap-pin* 1 1/2 0 1/2
+                                         (btest-prelude $bt)
+                                         (bitmap-text "(" #:color (btest-paren-color $bt))
+                                         (bitmap-hc-append #:gapsize 7
+                                                           (bitmap-text "bitmap-paragraph" #:color (btest-symbol-color $bt))
+                                                           (bitmap-text (~s32 words) #:color (btest-string-color $bt))
+                                                           (bitmap-text (~a max-width) #:color (btest-number-color $bt))
+                                                           (bitmap-text (~s (font-face font)) #:color (btest-string-color $bt))
+                                                           (bitmap-text (~a (font-size font)) #:color (btest-number-color $bt)))
+                                         (bitmap-text ")" #:color (btest-paren-color $bt)))
                             (bitmap-text (format "- : (Bitmap ~a ~a)" desc-width height) #:color rcolor)
-                            (bitmap-frame desc #:border (btest-borders $bt) #:padding (list 0 (max (- max-width desc-width) 0) 0 0))))
+                            (bitmap-frame desc #:border (btest-border $bt) #:padding (max (- max-width desc-width) 0))))
               (cons $bt testcases)))))
 
 (when DrRacket?

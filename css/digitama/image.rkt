@@ -1,76 +1,42 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;;; https://drafts.csswg.org/css-images
 
 (provide (all-defined-out))
 
+(require racket/string)
+
 (require bitmap/base)
 (require bitmap/resize)
 (require bitmap/misc)
-(require bitmap/combiner)
+(require bitmap/composite)
 (require bitmap/constructor)
-(require bitmap/digitama/color)
 
 (require "bitmap.rkt")
-(require "font.rkt")
-(require "color.rkt")
 (require "syntax/digicore.rkt")
 (require "syntax/dimension.rkt")
 (require "syntax/misc.rkt")
 (require "../recognizer.rkt")
-(require "../racket.rkt")
 (require "../color.rkt")
-(require "../font.rkt")
 
 (define-type Image-Set-Option (List CSS-Image-Datum Positive-Flonum))
 (define-type Image-Set-Options (Listof Image-Set-Option))
-(define-type CSS-Image-Datum (U CSS-@λ CSS-Image String))
+(define-type CSS-Image-Datum (U CSS-Image String))
 
 (define-predicate css-image-datum? CSS-Image-Datum)
 
 (define-css-value css-image #:as CSS-Image ())
-(define-css-value image #:as Image #:=> css-image ([content : CSS-Image-Datum] [fallback : CSS-Color-Datum]))
+(define-css-value image #:as Image #:=> css-image ([content : CSS-Image-Datum] [fallback : Color]))
 (define-css-value image-set #:as Image-Set #:=> css-image ([options : Image-Set-Options]))
-
-(define-@λ-pool the-@icon-pool #:λnames #px"-(icon|logo)$"
-  images/logos images/icons/arrow images/icons/control
-  images/icons/file images/icons/misc images/icons/stickman
-  images/icons/symbol images/icons/tool)
 
 (define css-image-rendering-option : (Listof Symbol) '(auto crisp-edges pixelated))
 (define css-image-fit-option : (Listof Symbol) '(fill contain cover none scale-down))
-  
-(define css-@icon-filter : CSS-@λ-Filter
-  (lambda [λname ?λ:kw]
-    (define-css-disjoint-filter <text-icon-font> #:-> (U (Instance Font%) CSS-@λ)
-      (<css-system-font>))
-    (define <:clock-pointers:> : (CSS-Parser (Listof Any))
-      (CSS<$> (CSS<&> (CSS:<^> (<css:integer> 0 <= 11))
-                      (CSS<$> (CSS:<^> (CSS:<+> (<css:integer> 0 <= 60)
-                                                (<css:flonum> 0.0 fl<= 60.0)))))))
-    (case (or ?λ:kw λname)
-      [(#:backing-scale) (<css+real> '#:nonzero)]
-      [(#:height #:thickness) (CSS:<@> (<line-height>) (λ [[v : Any]] (select-size (css->line-height '_ v))))]
-      [(#:outline) (<css+%real>)]
-      [(#:material) (<css:ident> '(plastic-icon-material rubber-icon-material glass-icon-material metal-icon-material))]
-      [(#:trim?) (<css-#boolean>)]
-      [(text-icon) (CSS<&> (CSS:<^> (<css:string>)) (CSS<$> (CSS:<^> (<text-icon-font>))))]
-      [(regular-polygon-icon) (CSS<&> (CSS:<^> (<css-natural> '#:nonzero)) (CSS<$> (CSS:<^> (CSS:<+> (<css:integer>) (<css:flonum>)))))]
-      [(lock-icon) (CSS<$> (CSS:<^> (<css-#boolean>)))]
-      [(running-stickman-icon) (CSS:<^> (CSS:<+> (<css:integer>) (<css:flonum>)))]
-      [else (cond [(false? ?λ:kw) <:clock-pointers:>]
-                  [else (CSS:<+> (<css:racket>) ; their is no need to evaluating racket bindings right now 
-                                 (CSS:<@> (<css-color>)
-                                          (λ [[v : Any]]
-                                            (let ([c (css->color '_ v)])
-                                              (cond [(not (color%? c)) (current-css-element-color)]
-                                                    [else c])))))])])))
 
 (define-css-function-filter <css-image-notation> #:-> CSS-Image
   ;;; https://drafts.csswg.org/css-images/#image-notation
   ;;; https://drafts.csswg.org/css-images/#image-set-notation
-  [(image) #:=> [(image "" [fallback ? index? string? symbol? css-color?])
-                 (image [content ? css-image? string? css-@λ?] [fallback ? color-datum? css-color?])]
+  [(image) #:=> [(image "" [fallback ? index? symbol? FlColor?])
+                 (image [content ? css-image? string?] [fallback ? symbol? index? FlColor?])]
    (CSS<+> (CSS:<^> (<css-color>)) ; NOTE: both color and url accept strings, however their domains are not intersective.
            (CSS<&> (CSS:<^> (CSS:<+> (<css-image>) (<css:string>)))
                    (CSS<$> (CSS<?> [(<css-comma>) (CSS:<^> (<css-color>))]) 'transparent)))]
@@ -82,14 +48,13 @@
 (define-css-disjoint-filter <css-image> #:-> CSS-Image-Datum
   ;;; https://drafts.csswg.org/css-images/#image-values
   ;;; https://drafts.csswg.org/css-images/#invalid-image
-  (<css:@λ> the-@icon-pool css-@icon-filter)
   (<css-image-notation>)
   (<css:url>))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-image-normalizer : (case-> [Nonnegative-Real Positive-Real (-> Bitmap) -> (-> (CSS-Maybe Bitmap) Bitmap)]
-                                        [Nonnegative-Real Positive-Real -> (-> (CSS-Maybe Bitmap) (CSS-Maybe Bitmap))])
-  (let ([normalize (λ [[h : Nonnegative-Real] [d : Positive-Real] [b : Bitmap]]
+(define make-image-normalizer : (case-> [Nonnegative-Real Positive-Flonum (-> Bitmap) -> (-> (CSS-Maybe Bitmap) Bitmap)]
+                                        [Nonnegative-Real Positive-Flonum -> (-> (CSS-Maybe Bitmap) (CSS-Maybe Bitmap))])
+  (let ([normalize (λ [[h : Nonnegative-Real] [d : Positive-Flonum] [b : Bitmap]]
                      (bitmap-scale (bitmap-alter-density b d) (/ h (send b get-height))))])
     (case-lambda
       [(height density)
@@ -100,7 +65,7 @@
          (cond [(and (bitmap%? raw) (send raw ok?)) (normalize height density raw)]
                [else (let ([alt-image : Bitmap (mk-image)])
                        (cond [(> (send alt-image get-height) height) (normalize height density alt-image)]
-                             [else (bitmap-cc-superimpose (bitmap-blank height height density)
+                             [else (bitmap-cc-superimpose (bitmap-blank height height #:density density)
                                                           (bitmap-alter-density alt-image density))]))]))])))
 
 (define image->bitmap : (->* (CSS-Image-Datum) (Positive-Real) Bitmap)
@@ -112,7 +77,7 @@
            (define bmp : Bitmap (image->bitmap (image-content img)))
            (cond [(send bmp ok?) bmp]
                  [else (let ([color (css->color '_ (image-fallback img))])
-                         (bitmap-solid (if (object? color) color 'transparent)))])]
+                         (bitmap-solid (if (or (FlColor? color) (symbol? color)) color 'transparent)))])]
           [(image-set? img)
            (define-values (src density)
              (for/fold ([the-src : CSS-Image-Datum ""]
@@ -126,9 +91,6 @@
                    (values (car option) this-density))))
            (cond [(zero? density) the-invalid-image]
                  [else (image->bitmap src density)])]
-          [(css-@λ? img)
-           (with-handlers ([exn? (λ [[e : exn]] (css-log-eval-error e 'css->bitmap) the-invalid-image)])
-             (assert (css-eval-@λ img (module->namespace 'bitmap) (css-em)) bitmap%?))]
           [else the-invalid-image])))
 
 (define css->normalized-image : (All (racket) (-> (-> (CSS-Maybe Bitmap) racket) (CSS->Racket racket)))

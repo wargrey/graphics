@@ -1,30 +1,28 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;;; https://drafts.csswg.org/css-fonts
 ;;; https://drafts.csswg.org/css-fonts-4
 
 (provide (all-defined-out))
 
+(require racket/string)
+
 (require bitmap/font)
 (require bitmap/digitama/font)
 
-(require "bitmap.rkt")
 (require "syntax/digicore.rkt")
 (require "syntax/dimension.rkt")
 (require "../recognizer.rkt")
-(require "../racket.rkt")
 
 (define &font : (Boxof Font) (box (default-font)))
 
 (define css-font-synthesis-options : (Listof Symbol) '(weight style small-caps))
 
-(define css-font-kerning-option : (Listof Symbol) '(auto normal none))
+(define css-font-kerning-options : (Listof Symbol) '(auto normal none))
 (define css-font-variant-ligatures-options : (Listof Symbol) '(normal none))
-(define css-font-position-option : (Listof Symbol) '(normal sub super))
-(define css-font-caps-option : (Listof Symbol) '(normal small-caps all-small-caps petite-caps all-petite-caps unicase titling-caps))
+(define css-font-position-options : (Listof Symbol) '(normal sub super))
+(define css-font-caps-options : (Listof Symbol) '(normal small-caps all-small-caps petite-caps all-petite-caps unicase titling-caps))
 (define css-font-variant-options/21 : (Listof Symbol) '(normal small-caps))
-(define css-font-stretch-option : (Listof Symbol) '(normal condensed expanded ultra-condensed extra-condensed semi-condensed
-                                                           ultra-expanded extra-expanded semi-expanded))
   
 (define-css-prefab-filter <css-system-font> #:-> Font #:format "default-css-~a-font"
   [caption       (default-font)]
@@ -44,7 +42,7 @@
 
 (define-css-disjoint-filter <font-stretch> #:-> (U Symbol Nonnegative-Single-Flonum)
   ;;; https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
-  (<css-keyword> css-font-stretch-option)
+  (<css-keyword> css-font-stretch-options)
   (<css:percentage> nonnegative-single-flonum?))
 
 (define-css-disjoint-filter <font-weight> #:-> (U Symbol Integer)
@@ -77,33 +75,33 @@
                                         (CSS:<^> (<css-keyword> css-font-variant-options/21) 'font-variant)
                                         ; <font-stretch> also accepts percentage in css-fonts-4 specification,
                                         ; however it preempts the 'font-size
-                                        (CSS:<^> (<css-keyword> css-font-stretch-option) 'font-stretch)))
+                                        (CSS:<^> (<css-keyword> css-font-stretch-options) 'font-stretch)))
                         (CSS:<^> (<font-size>) 'font-size)
                         (CSS<*> (CSS<?> [(<css-slash>) (CSS:<^> (<line-height>) 'line-height)]) '?)
                         (CSS<^> <:font-family:> 'font-family)))
         '(font-style font-variant font-weight font-stretch font-size line-height font-family
                      font-size-adjust font-kerning font-language-override)))
 
-(define css->font-family : (CSS->Racket (U String CSS:Font-Family))
+(define css->font-family : (CSS->Racket (U String Font-Family))
   (lambda [_ value]
     (let select ([families (if (list? value) value null)])
       (cond [(null? families) (let ([pfont (unbox &font)]) (font-face->family* (font-face pfont)))]
             [else (let ([family (car families)])
                     (or (and (css-font-generic-family? family) family)
                         (and (string? family) (face-filter family))
-                        (and (list? family) (face-filter (string-trim (~a family) #px"(^[(])|([)]$)")))
+                        (and (list? family) (face-filter (string-join (map symbol->string (filter symbol? family)))))
                         (select (cdr families))))]))))
 
 (define css->font-size : (CSS->Racket Nonnegative-Real)
   (lambda [property value]
-    (cond [(symbol? value) (generic-font-size-map value (font-size (unbox &font)) (font-size (default-font)))]
+    (cond [(symbol? value) (generic-font-size-filter value (font-size (unbox &font)) (font-size (default-font)))]
           [(nonnegative-flonum? value) value]
           [(nonnegative-single-flonum? value) (fl* (real->double-flonum value) (css-em))]
           [(css+length? value) (css:length->scalar value #false)]
           [(eq? property 'min-font-size) 0.0]
           [(eq? property 'max-font-size) +inf.0]
           [(eq? value css:inherit) (css-em)]
-          [else (generic-font-size-map 'medium (font-size (unbox &font)) (font-size (default-font)))])))
+          [else (generic-font-size-filter 'medium (font-size (unbox &font)) (font-size (default-font)))])))
 
 (define css->line-height : (-> Symbol Any (U Nonnegative-Flonum Negative-Single-Flonum))
   (lambda [_ value]

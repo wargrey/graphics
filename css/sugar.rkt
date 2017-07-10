@@ -2,8 +2,6 @@
 
 (provide (all-defined-out))
 
-(require bitmap/background)
-
 (require "digitama/bitmap.rkt")
 (require "digitama/syntax/misc.rkt")
 
@@ -27,9 +25,7 @@
      (with-syntax* ([(property-definitions ...)
                      (for/list ([<field-info> (in-list (syntax->list #'(field-info ...)))])
                        (syntax-parse <field-info> #:datum-literals [Color Pen Brush Unitless]
-                         [(p : Color #:= dv) #'[p : Color #:= dv #:~> Color+sRGB select-color]]
-                         [(p : Pen #:= dv) #'[p : Pen #:= dv #:~> Pen+Color select-pen]]
-                         [(p : Brush #:= dv) #'[p : Brush #:= dv #:~> Brush+Color select-brush]]
+                         [(p : Color #:= dv) #'[p : FlRGBA #:= dv #:~> Color rgb*]]
                          [(p : Unitless #:= dv) #'[p : Nonnegative-Flonum #:= dv #:~> (U Nonnegative-Flonum Negative-Single-Flonum)
                                                      select-size]]
                          [(p : Unitless #:= dv nv) #'[p : Nonnegative-Flonum #:= dv #:~> (U Nonnegative-Flonum Negative-Single-Flonum)
@@ -42,7 +38,7 @@
   (syntax-parse stx
     [(_ declared-values inherited-values #:with [box-size size-ref color-ref local-ref] sexp ...)
      (with-syntax ([___ (datum->syntax #'local-ref '...)])
-       #'(parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)])
+       #'(parameterize ([current-css-element-color (css-rgba-ref declared-values inherited-values)])
            (css-extract-font declared-values inherited-values)
            (define-values (box-size size-ref color-ref icon-ref) (css-property-accessors declared-values inherited-values))
            (define-syntax (local-ref stx) (syntax-case stx [] [(_ argl ___) #'(css-ref declared-values inherited-values argl ___)]))
@@ -50,7 +46,7 @@
     [(_ declared-values inherited-values (~optional normal-icon-height) #:with [box-size size-ref color-ref icon-ref local-ref] sexp ...)
      (with-syntax ([___ (datum->syntax #'local-ref '...)]
                    [nih (if (attribute normal-icon-height) #'(real->double-flonum normal-icon-height) #'(css-normal-line-height))])
-       #'(parameterize ([current-css-element-color (css-color-ref declared-values inherited-values)])
+       #'(parameterize ([current-css-element-color (css-rgba-ref declared-values inherited-values)])
            (css-extract-font declared-values inherited-values)
            (define-values (box-size size-ref color-ref icon-ref) (css-property-accessors declared-values inherited-values))
            (define-syntax (local-ref stx) (syntax-case stx [] [(_ argl ___) #'(css-ref declared-values inherited-values argl ___)]))
@@ -76,20 +72,20 @@
                                              (case-> [Symbol Nonnegative-Flonum -> (CSS-Maybe Nonnegative-Flonum)]
                                                      [Symbol Nonnegative-Flonum Nonnegative-Flonum -> Nonnegative-Flonum])
                                              (-> Symbol (CSS-Maybe Color))
-                                             (-> Symbol CSS-Make-Icon Nonnegative-Real Color+sRGB Bitmap)))
+                                             (-> Symbol CSS-Make-Icon Nonnegative-Real Color Bitmap)))
   (lambda [declared-values inherited-values]
     (values (lambda [initial-width initial-height [width% (css-vw)] [height% (css-vh)]]
               (css-box-size declared-values inherited-values initial-width initial-height width% height%))
             (case-lambda [(property 100%) (css-size-ref declared-values inherited-values property 100%)]
                          [(property 100% defsize) (css-size-ref declared-values inherited-values property 100% defsize)])
-            (lambda [property] (css-color-ref declared-values inherited-values property))
+            (lambda [property] (css-rgba-ref declared-values inherited-values property))
             (lambda [property default-icon height color]
               (css-icon-ref declared-values inherited-values property default-icon height color)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-font+colors-parsers : CSS-Declaration-Parsers
   (lambda [suitcased-name deprecated!]
-    (or (css-font-parsers suitcased-name deprecated!)
+    (or (css-font-property-parsers suitcased-name)
         (css-color-property-parsers suitcased-name null))))
 
 (define css-font-filter : (CSS-Cascaded-Value-Filter Font)
@@ -98,14 +94,14 @@
 
 (define css-colors-filter : (CSS-Cascaded-Value-Filter (Pairof Color Color))
   (lambda [declared-values inherited-values]
-    (cons (css-color-ref declared-values inherited-values)
-          (let ([bgcolor (css-color-ref declared-values inherited-values 'background-color)])
-            (if (css-wide-keyword? bgcolor) (select-color 'transparent) bgcolor)))))
+    (cons (css-rgba-ref declared-values inherited-values)
+          (let ([bgcolor (css-rgba-ref declared-values inherited-values 'background-color)])
+            (if (css-wide-keyword? bgcolor) (rgb* 'transparent) bgcolor)))))
 
 (define css-font+color-filter : (CSS-Cascaded-Value-Filter Font+Color)
   (lambda [declared-values inherited-values]
     (cons (css-font-filter declared-values inherited-values)
-          (css-color-ref declared-values inherited-values))))
+          (css-rgba-ref declared-values inherited-values))))
 
 (define css-font+colors-filter : (CSS-Cascaded-Value-Filter Font+Colors)
   (lambda [declared-values inherited-values]
