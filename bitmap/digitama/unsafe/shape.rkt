@@ -12,17 +12,29 @@
   (require "pangocairo.rkt")
   (require "paint.rkt")
   
-  (define (bitmap_arc radius border background density [start 0.0] [end 2pi])
+  (define (bitmap_circle radius border background density)
     (define fllength (unsafe-fl* radius 2.0))
     (define-values (img cr) (make-cairo-image fllength fllength density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (cairo_translate cr radius radius)
-    (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl/ line-width 2.0)) start end)
+    (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl/ line-width 2.0)) 0.0 2pi)
     (cairo-render cr border background)
     (cairo_destroy cr)
     img)
 
-  (define (bitmap_elliptical_arc width height border background density [start 0.0] [end 2pi])
+  (define (bitmap_sector radius start end border background density)
+    (define fllength (unsafe-fl* radius 2.0))
+    (define-values (img cr) (make-cairo-image fllength fllength density #true))
+    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (cairo_translate cr radius radius)
+    (cairo_move_to cr 0.0 0.0)
+    (cairo_arc_negative cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl/ line-width 2.0)) (unsafe-fl- 0.0 start) (unsafe-fl- 0.0 end))
+    (cairo_line_to cr 0.0 0.0)
+    (cairo-render cr border background)
+    (cairo_destroy cr)
+    img)
+
+  (define (bitmap_ellipse width height border background density)
     (define-values (img cr) (make-cairo-image width height density #true))
     (define-values (width/2 height/2) (values (unsafe-fl/ width 2.0) (unsafe-fl/ height 2.0)))
     (define radius (unsafe-flmin width/2 height/2))
@@ -32,7 +44,7 @@
     (if (unsafe-fl= radius height/2)
         (cairo_scale cr (unsafe-fl/ width height) 1.0)
         (cairo_scale cr 1.0 (unsafe-fl/ height width)))
-    (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl/ line-width 2.0)) start end)
+    (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl/ line-width 2.0)) 0.0 2pi)
     (cairo_restore cr)
     (cairo-render cr border background)
     (cairo_destroy cr)
@@ -84,8 +96,9 @@
 
 (unsafe/require/provide
  (submod "." unsafe)
- [bitmap_arc (->* (Flonum (Option Paint) (Option Bitmap-Source) Flonum) (Real Real) Bitmap)]
- [bitmap_elliptical_arc (->* (Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum) (Real Real) Bitmap)]
+ [bitmap_circle (-> Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
+ [bitmap_sector (-> Flonum Real Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
+ [bitmap_ellipse (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_rectangle (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_rounded_rectangle (-> Flonum Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_stadium (-> Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)])
