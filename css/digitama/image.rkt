@@ -12,7 +12,6 @@
 (require bitmap/composite)
 (require bitmap/constructor)
 
-(require "bitmap.rkt")
 (require "syntax/digicore.rkt")
 (require "syntax/dimension.rkt")
 (require "syntax/misc.rkt")

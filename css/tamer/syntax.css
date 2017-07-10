@@ -38,7 +38,7 @@ syntax.error {
 
 :root { /* shared with bitmap.css */
     --whitespace: ;
-    --gray: var(--whitespace)"GREY"var(--whitespace);
+    --gray: var(--whitespace)rgb(128, 128, 128)var(--whitespace);
     --background-color: HsIa(120.01deg var(--honeydew-s) var(--honeydew-i) / 1.0);
     --honeydew-s: 2.04%;
     --honeydew-i: 96.08%;

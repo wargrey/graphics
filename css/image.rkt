@@ -2,12 +2,12 @@
 
 (provide (all-defined-out) <css-image>)
 
+(require bitmap/base)
 (require bitmap/constructor)
 (require bitmap/color)
 
 (require "digitama/syntax/digicore.rkt")
 (require "digitama/syntax/dimension.rkt")
-(require "digitama/bitmap.rkt")
 (require "digitama/image.rkt")
 (require "recognizer.rkt")
 

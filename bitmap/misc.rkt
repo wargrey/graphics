@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 (provide (rename-out [bitmap-intrinsic-flsize bitmap-intrinsic-size]))
 
-(require "digitama/digicore.rkt")
+(require "draw.rkt")
 (require "digitama/unsafe/draw.rkt")
 (require "digitama/unsafe/resize.rkt")
 

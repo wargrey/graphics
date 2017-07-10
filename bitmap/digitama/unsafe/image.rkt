@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../draw.rkt")
+(require "../../draw.rkt")
 (require "draw.rkt")
 (require "require.rkt")
 
@@ -70,14 +70,23 @@
     (define position (unsafe-fl+ (unsafe-fl+ flmopen flpopen) line-width))
     (define border-size (unsafe-fl+ (unsafe-fl+ (unsafe-fl+ flpopen flpclose) size) line-width))
     (define frame-size (unsafe-fl+ (unsafe-fl+ (unsafe-fl+ border-position border-size) flmclose) line-inset))
-    (values frame-size border-position border-size position)))
+    (values frame-size border-position border-size position))
+
+  (define (list->4:values ls defval)
+    (case (length ls)
+      [(0) (values defval defval defval defval)]
+      [(1) (let ([top (unsafe-car ls)]) (values top top top top))]
+      [(2) (let ([top (unsafe-car ls)] [right (unsafe-car (unsafe-cdr ls))]) (values top right top right))]
+      [(3) (let ([top (unsafe-car ls)] [right (unsafe-list-ref ls 1)] [bottom (unsafe-list-ref ls 2)]) (values top right bottom right))]
+      [else (values (unsafe-car ls) (unsafe-list-ref ls 1) (unsafe-list-ref ls 2) (unsafe-list-ref ls 3))])))
 
 (define-type XYWH->ARGB (-> Nonnegative-Fixnum Nonnegative-Fixnum Positive-Fixnum Positive-Fixnum (Values Real Real Real Real)))
 
 (unsafe/require/provide
  (submod "." unsafe)
+ [list->4:values (All (a) (-> (Listof a) a (Values a a a a)))]
  [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Bitmap-Source Flonum Bitmap)]
- [bitmap_frame (-> Bitmap-Surface Real Real Real Real Real Real Real Real
+ [bitmap_frame (-> Bitmap-Surface Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum
                    (Option Paint) (Option Bitmap-Source) Flonum Bitmap)])

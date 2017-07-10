@@ -2,7 +2,7 @@
 
 (require typed/racket/unsafe)
 
-(require "../digitama/draw.rkt")
+(require "../draw.rkt")
 (require "../effect.rkt")
 
 (unsafe-require/typed

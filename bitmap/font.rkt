@@ -3,7 +3,7 @@
 (provide (all-defined-out) font-family->face)
 (provide (rename-out [get-face-list list-font-faces]))
 
-(require "digitama/draw.rkt")
+(require "draw.rkt")
 (require "digitama/font.rkt")
 (require "digitama/misc.rkt")
 

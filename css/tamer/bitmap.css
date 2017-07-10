@@ -19,8 +19,8 @@ module.main {
     symbol-color: Blue;
     string-color: rgba(255, 128, 0);
     number-color: rgba(148, 22, 81);
-    output-color: @debugger-bomb-color;
-    paren-color: @run-icon-color;
+    output-color: rgba(128, 32, 32);
+    paren-color: LawnGreen;
     foreground-color: currentcolor;
 
     desc: "";
@@ -39,7 +39,6 @@ bitmap-paragraph.test { /* not top and bottom border */
     desc-width: 32;
     border-left: 1px Silver dotted;
     border-right: 1px Silver dotted;
-    background-style: solid;
     background-color: var(--background-color);
 }
 
@@ -49,7 +48,6 @@ bitmap-paragraph.test { /* not left and right border */
     text-decoration: none;
     border-top: 1px Silver dotted;
     border-bottom: 1px Silver dotted;
-    background-style: solid;
     background-color: var(--background-color);
 }
 
@@ -57,7 +55,6 @@ bitmap-paragraph.test {
     desc-width: 0;
     desc: "!";
     border: 1px Silver dotted;
-    background-style: solid;
     background-color: var(--background-color);
 }
 
@@ -65,7 +62,6 @@ bitmap-paragraph.test {
     desc-width: 2;
     desc: "bitmap-paragraph";
     border: 1px Silver dotted;
-    background-style: solid;
     background-color: var(--background-color);
 }
 
@@ -75,16 +71,14 @@ bitmap-paragraph.test {
     font: small "Courier New", Monaco, Courier, monospace;
     text-decoration: none;
     border: 1px Silver dotted;
-    background-style: solid;
     background-color: var(--background-color);
 }
 
 bitmap-paragraph.test {
     border: 1px Silver dotted;
-    background-style: solid;
     background-color: var(--background-color);
     font: medium American Typewriter, script;
-    font-stretch: expended;
+    font-stretch: expanded;
     desc: "That last testcase is not a mysterious phenomena:"
           "It seemed to do some strange optimizing so that"
           "no single letter would be printed in a single line."
@@ -94,22 +88,20 @@ bitmap-paragraph.test {
 bitmap-paragraph.test {
     border: 1px Silver dotted;
     font-family: HanziPen TC, script;
-    background-style: solid;
     background-color: var(--background-color);
     desc: "上一个例子不是谜之现象，之前误以为它会自己优化而不会出现一行只有一个字母的情况。\a\a此缺陷已修正！";
 }
 
 bitmap-paragraph.test {
     margin: 8px;
-    border-top:    2px hsi(240, 0%, 75%)  dot-dash;
+    border-top:    2px hsi(240, 0%, 75%)  dotted;
     border-right:  2px hsi(120, 50%, 32%) dashed;
-    border-bottom: 2px hsi(240, 0%, 50%)  long-dash;
+    border-bottom: 2px hsi(240, 0%, 50%)  dashed;
     border-left:   2px hsi(120, 50%, 64%) solid;
     desc: "Basic String \Test: \22\20\\\E9 \6C34\00A5\27\"\a\a/* '\\a' is ascii newline, not letter 'a' */";
     font-family: system-ui;
     font-size: initial;
     font-style: initial;
     text-decoration-line: initial;
-    background-style: solid;
     background-color: var(--background-color);
 }

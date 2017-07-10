@@ -47,7 +47,7 @@
 
 (define-css-disjoint-filter <font-weight> #:-> (U Symbol Integer)
   ;;; https://drafts.csswg.org/css-fonts/#font-weight-prop
-  (<css-keyword> css-font-weight-option?)
+  (<css-keyword> (remove 'medium css-font-weight-options))
   (<css:integer> 0 < 1000))
   
 (define-css-disjoint-filter <font-size> #:-> (U Symbol Nonnegative-Inexact-Real CSS:Length:Font)

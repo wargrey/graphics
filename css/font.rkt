@@ -7,12 +7,12 @@
 (require racket/provide)
 (provide (matching-identifiers-out #px"^default-css-[a-zA-Z0-9-]+$" (all-from-out "digitama/font.rkt")))
 
+(require racket/math)
 (require bitmap/font)
 (require bitmap/digitama/font)
 
 (require "digitama/syntax/digicore.rkt")
 (require "digitama/font.rkt")
-(require "digitama/bitmap.rkt")
 (require "recognizer.rkt")
 (require "values.rkt")
 

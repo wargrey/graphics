@@ -24,9 +24,10 @@
    [foreground-color : Color                   #:= 'Grey]
    [font : Font                                #:= (current-css-element-font)]
    [border : Stroke-Paint                      #:= (default-stroke)]
-   [background : Fill-Paint                    #:= 'transparent]
+   [background : Fill-Paint                    #:= transparent]
    [max-width : Index                          #:= 512]
    [desc : String                              #:= "['desc' property is required]"]
+   [lines : (Listof Symbol)                    #:= null]
    [prelude : Bitmap                           #:= (bitmap-text "> ")]
    [descriptors : (Listof (Pairof Symbol Any)) #:= null])
   #:transparent)
@@ -34,6 +35,7 @@
 (define btest-parsers : CSS-Declaration-Parsers
   (lambda [suitcased-name deprecated!]
     (or (css-font+colors-parsers suitcased-name deprecated!)
+        (css-text-decoration-property-parsers suitcased-name)
         (css-color-property-parsers suitcased-name btest-color-properties)
         (css-image-property-parsers suitcased-name '(prelude))
         (css-background-property-parsers suitcased-name)
@@ -59,6 +61,7 @@
                 #:background (css-extract-background declared-values inherited-values)     #|not inheritable|#
                 #:max-width (css-ref declared-values inherited-values 'desc-width index? css:initial)
                 #:desc (css-ref declared-values inherited-values 'desc css->desc)
+                #:lines (css-ref declared-values inherited-values 'text-decoration-line css->text-decor-lines)
                 #:prelude (css-ref declared-values inherited-values 'prelude css->bitmap)
                 #:descriptors (css-values-fold declared-values (initial-btest-descriptors)
                                                (λ [[property : Symbol] [this-datum : Any] [desc++ : (Listof (Pairof Symbol Any))]]
@@ -82,10 +85,11 @@
       (define-values (fgcolor rcolor) (values (btest-foreground-color $bt) (btest-output-color $bt)))
 
       (define-values (max-width words font) (values (btest-max-width $bt) (btest-desc $bt) (btest-font $bt)))
-      (define desc (bitmap-paragraph words font #:color fgcolor #:background (btest-background $bt) #:max-width max-width))
+      (define desc (bitmap-paragraph #:max-width max-width #:color fgcolor #:background (btest-background $bt) #:lines (btest-lines $bt)
+                                     words font))
       (define-values (desc-width height) (bitmap-size desc))
       (define ~s32 : (-> String String) (λ [txt] (~s txt #:max-width 32 #:limit-marker "...\"")))
-      
+
       (values (append bitmap-descs
                       (list (bitmap-pin* 1 1/2 0 1/2
                                          (btest-prelude $bt)
@@ -98,7 +102,7 @@
                                                            (bitmap-text (~a (font-size font)) #:color (btest-number-color $bt)))
                                          (bitmap-text ")" #:color (btest-paren-color $bt)))
                             (bitmap-text (format "- : (Bitmap ~a ~a)" desc-width height) #:color rcolor)
-                            (bitmap-frame desc #:border (btest-border $bt) #:padding (max (- max-width desc-width) 0))))
+                            (bitmap-frame desc #:border (btest-border $bt) #:padding (list 0 (max (- max-width desc-width) 0) 0 0))))
               (cons $bt testcases)))))
 
 (when DrRacket?

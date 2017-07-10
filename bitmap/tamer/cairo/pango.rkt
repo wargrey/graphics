@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../../digitama/draw.rkt")
+(require "../../draw.rkt")
 (require "../../constructor.rkt")
 (require "../../font.rkt")
 

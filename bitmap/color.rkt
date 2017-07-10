@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (except-out (all-defined-out) define-color-space))
+(provide (struct-out rgba) (struct-out FlColor) FlRGBA Color)
 (provide transparent hilite black)
 
 (require (for-syntax racket/base))
@@ -8,7 +9,7 @@
 
 (require colorspace)
 
-(require "digitama/digicore.rkt")
+(require "draw.rkt")
 (require "digitama/color.rkt")
 
 (define-syntax (define-color-space stx)

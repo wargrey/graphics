@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../draw.rkt")
+(require "../../draw.rkt")
 (require "draw.rkt")
 (require "require.rkt")
 
@@ -14,7 +14,7 @@
 
   (define (bitmap_text text font-desc lines fgsource bgsource alsource dlsource clsource mlsource blsource density)
     (define-values (width height distance ascent descent) (font_get_text_extent font-desc text))
-    (define-values (bmp cr) (make-cairo-image* width height bgsource density #true))
+    (define-values (bmp cr) (make-text-image width height bgsource density))
     (define layout (bitmap_create_layout the-cairo lines))
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
@@ -42,12 +42,12 @@
     (define flheight (if (flonum? max-height) (unsafe-flmin (~metric pango-height) max-height) (~metric pango-height)))
     (define-values (bmp cr draw-text?)
       (if (or (= max-width -1) (unsafe-fl<= flwidth max-width))
-          (let-values ([(bmp cr) (make-cairo-image* flwidth flheight bgsource density #true)])
+          (let-values ([(bmp cr) (make-text-image flwidth flheight bgsource density)])
             (values bmp cr #true))
           (let-values ([(char-width char-height) (and (pango_layout_set_text layout " ") (pango_layout_get_size layout))])
             (define draw-text? (unsafe-fl>= max-width (~metric char-width)))
             (define smart-flheight (if draw-text? flheight (unsafe-flmin (~metric char-height) flheight)))
-            (define-values (bmp cr) (make-cairo-image* max-width smart-flheight bgsource density #true))
+            (define-values (bmp cr) (make-text-image max-width smart-flheight bgsource density))
             (values bmp cr draw-text?))))
     (when draw-text?
       (cairo-set-source cr fgsource)
@@ -57,6 +57,11 @@
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define (make-text-image width height background density)
+    (if (not background)
+        (make-cairo-image width height density #true)
+        (make-cairo-image* width height background density #true)))
+  
   (define (bitmap_create_layout cr lines)
     (define context (the-context))
     (define layout (pango_layout_new context))
@@ -102,10 +107,10 @@
 (unsafe/require/provide
  (submod "." unsafe)
  [bitmap_text
-  (-> String Font-Description (Listof Symbol) Stroke-Paint Fill-Paint
-      (Option Stroke-Paint) (Option Stroke-Paint) (Option Stroke-Paint) (Option Stroke-Paint) (Option Stroke-Paint)
+  (-> String Font-Description (Listof Symbol) Bitmap-Source (Option Bitmap-Source)
+      (Option FlRGBA) (Option FlRGBA) (Option FlRGBA) (Option FlRGBA) (Option FlRGBA)
       Flonum Bitmap)]
  [bitmap_paragraph
   (-> String Font-Description (Listof Symbol) (U Flonum Nonpositive-Integer) (U Flonum Nonpositive-Integer)
-      Flonum Flonum Integer Integer Stroke-Paint Fill-Paint
+      Flonum Flonum Integer Integer Bitmap-Source (Option Bitmap-Source)
       Flonum Bitmap)])

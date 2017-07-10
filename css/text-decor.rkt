@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) <:text-decoration:>)
+(provide (all-defined-out) <:text-decoration:> css->text-decor-lines)
 
 (require "digitama/syntax/digicore.rkt")
 (require "digitama/color.rkt")

@@ -5,7 +5,7 @@
 (require (for-syntax racket/base))
 (require (for-syntax (submod "digitama/unsafe/prefab.rkt" unsafe)))
 
-(require "digitama/draw.rkt")
+(require "draw.rkt")
 (require "digitama/unsafe/prefab.rkt")
 
 (begin-for-syntax

@@ -1,14 +1,15 @@
 #lang typed/racket
 
-(provide (all-defined-out))
-(provide (all-from-out "digitama/digicore.rkt"))
+(provide (all-defined-out) Stroke-Paint Fill-Paint bitmap%?)
 (provide (except-out (all-from-out typed/images/icons) default-icon-backing-scale default-icon-height))
 
+(require "digitama/source.rkt")
 (require "digitama/misc.rkt")
+(require "digitama/unsafe/draw.rkt")
 
 (require typed/images/icons)
 
-(require/provide "digitama/digicore.rkt")
+(require/provide "draw.rkt")
 (require/provide "constructor.rkt" "composite.rkt" "resize.rkt")
 (require/provide "color.rkt" "font.rkt" "paint.rkt" "misc.rkt")
 

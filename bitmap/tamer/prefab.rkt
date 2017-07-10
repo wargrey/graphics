@@ -9,7 +9,7 @@
   (require typed/racket/unsafe)
   (unsafe-provide bitmap-plain-frame)
 
-  (require bitmap/digitama/draw)
+  (require bitmap/draw)
   (require bitmap/constructor)
   (require bitmap/constants)
 

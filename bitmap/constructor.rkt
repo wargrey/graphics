@@ -2,15 +2,16 @@
 
 (provide (all-defined-out))
 
+(require "draw.rkt")
+(require "font.rkt")
+
+(require "digitama/font.rkt")
+(require "digitama/source.rkt")
+
 (require "digitama/unsafe/draw.rkt")
 (require "digitama/unsafe/image.rkt")
 (require "digitama/unsafe/shape.rkt")
 (require "digitama/unsafe/text.rkt")
-
-(require "digitama/digicore.rkt")
-(require "digitama/font.rkt")
-(require "digitama/source.rkt")
-(require "font.rkt")
 
 (require racket/string)
 
@@ -36,40 +37,50 @@
     (bitmap_pattern side side (rgb* color) density)))
 
 (define bitmap-text : (->* (String)
-                           (Font #:color Stroke-Paint #:background Fill-Paint #:lines (Listof Text-Decoration-Line)
-                                 #:baseline (Option Stroke-Paint) #:capline (Option Stroke-Paint) #:meanline (Option Stroke-Paint)
-                                 #:ascent (Option Stroke-Paint) #:descent (Option Stroke-Paint)
+                           (Font #:color Fill-Paint #:background (Option Fill-Paint) #:lines (Listof Symbol)
+                                 #:baseline (Option Color) #:capline (Option Color) #:meanline (Option Color)
+                                 #:ascent (Option Color) #:descent (Option Color)
                                  #:density Positive-Flonum)
                            Bitmap)
-  (lambda [text [font (default-font)] #:color [fgsource black] #:background [bgsource transparent] #:lines [lines null]
+  (lambda [text [font (default-font)] #:color [fgsource black] #:background [bgsource #false] #:lines [lines null]
                 #:ascent [alsource #false] #:descent [dlsource #false] #:capline [clsource #false] #:meanline [mlsource #false]
                 #:baseline [blsource #false] #:density [density (default-bitmap-density)]]
-    (bitmap_text text (font-description font) lines fgsource bgsource
-                 alsource clsource mlsource blsource dlsource density)))
+    (bitmap_text text (font-description font) lines (fill-paint->source fgsource) (fill-paint->source* bgsource)
+                 (and alsource (rgb* alsource)) (and clsource (rgb* clsource)) (and mlsource (rgb* mlsource))
+                 (and blsource (rgb* blsource)) (and dlsource (rgb* dlsource)) density)))
 
 (define bitmap-paragraph : (->* ((U String (Listof String)))
-                                (Font #:color Stroke-Paint #:background Fill-Paint #:lines (Listof Text-Decoration-Line)
+                                (Font #:color Fill-Paint #:background (Option Fill-Paint) #:lines (Listof Symbol)
                                       #:max-width Real #:max-height Real #:indent Real #:spacing Real
                                       #:wrap-mode Paragraph-Wrap-Mode #:ellipsize-mode Paragraph-Ellipsize-Mode
                                       #:density Positive-Flonum)
                                 Bitmap)
-  (lambda [texts [font (default-font)] #:color [fgsource black] #:background [bgsource transparent] #:lines [lines null]
+  (lambda [texts [font (default-font)] #:color [fgsource black] #:background [bgsource #false] #:lines [lines null]
                  #:max-width [max-width +inf.0] #:max-height [max-height +inf.0] #:indent [indent 0.0] #:spacing [spacing 0.0]
                  #:wrap-mode [wrap-mode 'word-char] #:ellipsize-mode [ellipsize-mode 'end]
                  #:density [density (default-bitmap-density)]]
+    (define-values (smart-height smart-emode)
+      (cond [(or (infinite? max-height) (nan? max-height)) (values -1 'none)]
+            [(negative? max-height) (values (exact-round max-height) ellipsize-mode)]
+            [else (values (real->double-flonum max-height) ellipsize-mode)]))
     (bitmap_paragraph (if (list? texts) (string-join texts "\n") texts) (font-description font) lines
-                      (if (or (infinite? max-width) (nan? max-width)) -1 (real->double-flonum max-width))
-                      (cond [(or (infinite? max-height) (nan? max-height)) -1]
-                            [(negative? max-height) (exact-round max-height)]
-                            [else (real->double-flonum max-height)])
-                      (real->double-flonum indent) (real->double-flonum spacing) ; +nan.0 and +inf.0 are 0s
-                      (paragraph-wrap-mode->integer wrap-mode) (paragraph-ellipsize-mode->integer ellipsize-mode)
-                      fgsource bgsource density)))
+                      (if (or (infinite? max-width) (nan? max-width)) -1 (real->double-flonum max-width)) smart-height
+                      (real->double-flonum indent) (real->double-flonum spacing)
+                      (paragraph-wrap-mode->integer wrap-mode) (paragraph-ellipsize-mode->integer smart-emode)
+                      (fill-paint->source fgsource) (fill-paint->source* bgsource) density)))
 
 (define bitmap-frame : (-> Bitmap [#:border (Option Stroke-Paint)] [#:fill (Option Fill-Paint)]
-                           [#:margin Nonnegative-Real] [#:padding Nonnegative-Real] Bitmap)
+                           [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
+                           [#:padding (U Nonnegative-Real (Listof Nonnegative-Real))]
+                           Bitmap)
   (lambda [bmp #:margin [margin 0.0] #:padding [inset 0.0] #:border [stroke (default-border)] #:fill [fill #false]]
-    (bitmap_frame (bitmap-surface bmp) margin margin margin margin inset inset inset inset
+    (define-values (mtop mright mbottom mleft)
+      (cond [(list? margin) (list->4:values (map real->double-flonum margin) 0.0)]
+            [else (let ([fl (real->double-flonum margin)]) (values fl fl fl fl))]))
+    (define-values (ptop pright pbottom pleft)
+      (cond [(list? inset) (list->4:values (map real->double-flonum inset) 0.0)]
+            [else (let ([fl (real->double-flonum inset)]) (values fl fl fl fl))]))
+    (bitmap_frame (bitmap-surface bmp) mtop mright mbottom mleft ptop pright pbottom pleft
                   (stroke-paint->source* stroke) (fill-paint->source* fill) (bitmap-density bmp))))
 
 (define bitmap-square : (->* (Real)
@@ -105,11 +116,8 @@
                             Bitmap)
   (lambda [radius start end #:border [border (default-stroke)] #:fill [pattern #false] #:radian? [radian? #true]
                   #:density [density (default-bitmap-density)]]
-    (if (not radian?)
-        (bitmap_sector (real->double-flonum radius) (~radian (real->double-flonum start)) (~radian (real->double-flonum end))
-                       (stroke-paint->source* border) (fill-paint->source* pattern) density)
-        (bitmap_sector (real->double-flonum radius) (real->double-flonum start) (real->double-flonum end)
-                       (stroke-paint->source* border) (fill-paint->source* pattern) density))))
+    (bitmap_sector (real->double-flonum radius) (real->double-flonum start) (real->double-flonum end)
+                   (stroke-paint->source* border) (fill-paint->source* pattern) density radian?)))
 
 (define bitmap-ellipse : (->* (Real) (Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:density Positive-Flonum) Bitmap)
   (lambda [width [height #false] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]

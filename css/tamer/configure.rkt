@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require bitmap/digitama/digicore)
+(require bitmap/draw)
 (require bitmap/font)
 
 (require "../syntax.rkt")

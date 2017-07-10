@@ -43,7 +43,7 @@
   [(thick)           5.0])
 
 (define-enumeration css-border-style-option : Border-Style 
-  [none hidden dotted dashed groove ridge inset outset])
+  [none hidden dotted dashed solid groove ridge inset outset])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dasharray-normalize : (case-> [(Vectorof Nonnegative-Flonum) Nonnegative-Flonum -> (Vectorof Nonnegative-Flonum)]

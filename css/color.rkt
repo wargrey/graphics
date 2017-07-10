@@ -9,7 +9,6 @@
 (require colorspace)
 
 (require "digitama/syntax/digicore.rkt")
-(require "digitama/bitmap.rkt")
 (require "digitama/color.rkt")
 (require "recognizer.rkt")
 
@@ -40,7 +39,7 @@
                                [CSS-Values (Option CSS-Values) Symbol (Option Color) -> (Option FlRGBA)])
   ;;; NOTE
   ;; `css-ref` will save all the values as computed value if it knows how to transform the cascaded values,
-  ;; hence the `css-color-ref` to generate a more useful used value for clients so that clients do not need
+  ;; hence the `css-rgba-ref` to generate a more useful used value for clients so that clients do not need
   ;; to trace the `currentcolor` all the time. The correct current color may escape from the `parameterize`.
   (case-lambda
     [(declared-values inherited-values)

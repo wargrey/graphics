@@ -3,13 +3,12 @@
 (provide (except-out (all-defined-out) make-append make-append* make-superimpose))
 (provide (rename-out [bitmap-pin-over bitmap-pin]))
 
-(require "digitama/digicore.rkt")
+(require "draw.rkt")
+(require "constructor.rkt")
+
 (require "digitama/composite.rkt")
 (require "digitama/unsafe/draw.rkt")
 (require "digitama/unsafe/composite.rkt")
-(require "constructor.rkt")
-
-(require racket/unsafe/ops)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require (only-in typed/racket/draw bitmap-dc% Bitmap-DC%))

@@ -4,7 +4,7 @@
 
 (require typed/racket/unsafe)
 
-(require "../digitama/draw.rkt")
+(require "../draw.rkt")
 (require "../misc.rkt")
 
 (unsafe-require/typed

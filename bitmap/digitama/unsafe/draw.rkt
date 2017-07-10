@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../draw.rkt")
+(require "../../draw.rkt")
 (require "require.rkt")
 
 (define-type Bitmap-Source (U Bitmap-Surface Bitmap-Pattern FlRGBA))
@@ -11,7 +11,7 @@
           [Bitmap Nonnegative-Flonum Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum)]))
 
 (module unsafe racket/base
-  (provide (all-defined-out) the-surface ~radian -pi/2 pi/2 3pi/2 2pi)
+  (provide (all-defined-out) the-surface)
   
   (require "pangocairo.rkt")
 
@@ -62,11 +62,6 @@
   [Font-Description font-description?]
   [Bitmap-Surface bitmap-surface?]
   [Bitmap-Pattern bitmap-pattern?]]
- [2pi Flonum]
- [-pi/2 Flonum]
- [pi/2 Flonum]
- [3pi/2 Flonum]
- [~radian (-> Flonum Flonum)]
  [the-surface Bitmap-Surface]
  [bitmap%? (-> Any Boolean : Bitmap)]
  [bitmap-surface (-> Bitmap Bitmap-Surface)]

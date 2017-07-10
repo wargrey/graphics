@@ -4,10 +4,13 @@
 (provide (all-from-out "../paint.rkt"))
 (provide (all-from-out "../color.rkt"))
 
-(require "draw.rkt")
 (require "unsafe/draw.rkt")
+(require "../draw.rkt")
 (require "../paint.rkt")
 (require "../color.rkt")
+
+(define-type Stroke-Paint (U Color Paint))
+(define-type Fill-Paint (U Color Bitmap Bitmap-Pattern))
 
 (define stroke-paint->source : (-> Stroke-Paint Paint)
   (lambda [paint]
@@ -22,6 +25,7 @@
 (define fill-paint->source : (-> Fill-Paint Bitmap-Source)
   (lambda [paint]
     (cond [(bitmap%? paint) (bitmap-surface paint)]
+          [(bitmap-pattern? paint) paint]
           [else (rgb* paint)])))
 
 (define fill-paint->source* : (-> (Option Fill-Paint) (Option Bitmap-Source))

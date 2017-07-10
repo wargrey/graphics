@@ -8,7 +8,6 @@
 (require bitmap/digitama/color)
 (require colorspace/misc)
 
-(require "bitmap.rkt")
 (require "syntax/digicore.rkt")
 (require "syntax/dimension.rkt")
 (require "../recognizer.rkt")

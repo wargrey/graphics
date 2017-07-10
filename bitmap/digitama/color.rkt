@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "draw.rkt")
+(require "../draw.rkt")
 
 (require racket/unsafe/ops)
 

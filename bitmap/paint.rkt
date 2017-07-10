@@ -4,7 +4,7 @@
 
 (require "color.rkt")
 
-(require "digitama/draw.rkt")
+(require "draw.rkt")
 (require "digitama/paint.rkt")
 (require "digitama/misc.rkt")
 

@@ -31,7 +31,7 @@
   :root {
     margin: 2px 2px;
     icon-height: 1.2; /* unitless */
-    border-style: transparent;
+    border-style: none;
   }
 }
 
@@ -51,7 +51,6 @@
 :selected {
   color: GhostWhite;
   background-color: DodgerBlue;
-  background-style: solid;
 }
 
 @racket test {
