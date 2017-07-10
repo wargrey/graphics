@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;;; https://drafts.csswg.org/css-cascade
 ;;; https://drafts.csswg.org/css-values
@@ -7,18 +7,20 @@
                      desc-more-important? do-filter do-parse
                      css-filter? css-parser?))
 
+(require racket/sequence)
+
 (require "misc.rkt")
 (require "digicore.rkt")
 (require "selector.rkt")
 (require "variables.rkt")
 (require "condition.rkt")
 (require "grammar.rkt")
+(require "cheat.rkt")
 
 (require "../device-adapt.rkt")
 (require "../../recognizer.rkt")
 
-(require bitmap/digitama/cheat)
-
+(require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
 
 (define-type CSS-Style-Metadata (Vector Natural (Listof CSS-Declaration) CSS-Media-Features))
@@ -30,8 +32,8 @@
   (syntax-parse stx
     [(_ (~optional (~seq #:descriptors ?env)) sexp ...)
      (with-syntax ([env (or (attribute ?env) #'(default-css-media-features))])
-       #'(let ([w (hash-ref env 'width (thunk #false))]
-               [h (hash-ref env 'height (thunk #false))])
+       #'(let ([w (hash-ref env 'width (λ [] #false))]
+               [h (hash-ref env 'height (λ [] #false))])
            (when (and (real? w) (positive? w)) (css-vw (real->double-flonum w)))
            (when (and (real? h) (positive? h)) (css-vh (real->double-flonum h)))
            sexp ...))]))
@@ -105,43 +107,43 @@
         (define css-parse : CSS-Shorthand-Parser (CSS<+> (car info) (CSS:<^> (<css-wide-keywords>) (cdr info))))
         (cond [(and lazy?)
                (define pending-thunk : (-> (Option (HashTable Symbol Any)))
-                 (thunk (let ([flat-values (css-variable-substitute <desc-name> declared-values (css-varbase-ref descbase) null)])
-                          (and (css-pair? flat-values)
-                               (do-parse <desc-name> css-parse flat-values css-longhand #false)))))
+                 (λ [] (let ([flat-values (css-variable-substitute <desc-name> declared-values (css-varbase-ref descbase) null)])
+                         (and (css-pair? flat-values)
+                              (do-parse <desc-name> css-parse flat-values css-longhand #false)))))
                (define &pending-longhand : (Boxof (-> (Option (HashTable Symbol Any)))) (box pending-thunk))
                (for ([name (in-list (cdr info))] #:when (desc-more-important? name important?))
                  (desc-set! descbase name important?
-                            (thunk (let ([longhand ((unbox &pending-longhand))])
-                                     (box-cas! &pending-longhand pending-thunk (thunk longhand))
-                                     (let ([desc-value (if (hash? longhand) (hash-ref longhand name (thunk css:initial)) css:unset)])
-                                       (hash-set! descbase name (thunk desc-value))
+                            (λ [] (let ([longhand ((unbox &pending-longhand))])
+                                     (box-cas! &pending-longhand pending-thunk (λ [] longhand))
+                                     (let ([desc-value (if (hash? longhand) (hash-ref longhand name (λ [] css:initial)) css:unset)])
+                                       (hash-set! descbase name (λ [] desc-value))
                                        desc-value)))))]
               [(do-parse <desc-name> css-parse declared-values css-longhand #false)
                => (λ [longhand] (for ([(name desc-value) (in-hash longhand)])
-                                  (desc-set! descbase name important? (thunk desc-value))))])))
+                                  (desc-set! descbase name important? (λ [] desc-value))))])))
     (define parse-desc : (-> CSS-Values (CSS-Parser (Listof Any)) CSS:Ident (Listof+ CSS-Token) Symbol Boolean Boolean Void)
       (lambda [descbase parser <desc-name> declared-values desc-name important? lazy?]
         (define css-parse : (CSS-Parser (Listof Any)) (CSS<+> parser (CSS:<^> (<css-wide-keywords>))))
         (cond [(and lazy?)
                (desc-set! descbase desc-name important?
-                          (thunk (let* ([flat (css-variable-substitute <desc-name> declared-values (css-varbase-ref descbase) null)]
-                                        [desc-value (cond [(not (css-pair? flat)) css:unset]
-                                                          [else ((inst do-parse (Listof Any) CSS-Wide-Keyword)
-                                                                 <desc-name> css-parse flat null css:unset reverse)])])
-                                   (hash-set! descbase desc-name (thunk desc-value)) ; self replace
-                                   desc-value)))]
+                          (λ [] (let* ([flat (css-variable-substitute <desc-name> declared-values (css-varbase-ref descbase) null)]
+                                       [desc-value (cond [(not (css-pair? flat)) css:unset]
+                                                         [else ((inst do-parse (Listof Any) CSS-Wide-Keyword)
+                                                                <desc-name> css-parse flat null css:unset reverse)])])
+                                  (hash-set! descbase desc-name (λ [] desc-value)) ; self replace
+                                  desc-value)))]
               [((inst do-parse (Listof Any) False) <desc-name> css-parse declared-values null #false reverse)
-               => (λ [desc-value] (desc-set! descbase desc-name important? (thunk desc-value)))])))
+               => (λ [desc-value] (desc-set! descbase desc-name important? (λ [] desc-value)))])))
     (define filter-desc : (-> CSS-Values (CSS:Filter Any) CSS:Ident (Listof+ CSS-Token) Symbol Boolean Boolean Void)
       (lambda [descbase raw-filter <desc-name> declared-values desc-name important? lazy?]
         (cond [(and lazy?)
                (desc-set! descbase desc-name important?
-                          (thunk (let* ([flat (css-variable-substitute <desc-name> declared-values (css-varbase-ref descbase) null)]
-                                        [desc-value (if (css-pair? flat) (do-filter <desc-name> raw-filter flat css:unset) css:unset)])
-                                   (hash-set! descbase desc-name (thunk desc-value)) ; self replace
-                                   desc-value)))]
+                          (λ [] (let* ([flat (css-variable-substitute <desc-name> declared-values (css-varbase-ref descbase) null)]
+                                       [desc-value (if (css-pair? flat) (do-filter <desc-name> raw-filter flat css:unset) css:unset)])
+                                  (hash-set! descbase desc-name (λ [] desc-value)) ; self replace
+                                  desc-value)))]
               [(do-filter <desc-name> raw-filter declared-values #false)
-               => (λ [desc-value] (desc-set! descbase desc-name important? (thunk desc-value)))])))
+               => (λ [desc-value] (desc-set! descbase desc-name important? (λ [] desc-value)))])))
     (lambda [desc-parsers sequences [css:ident->datum css:ident-norm] [descbase (make-css-values)]]
       (for* ([properties sequences]
              [property (in-list properties)])
@@ -153,7 +155,7 @@
                         (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
                         (define lazy? : Boolean (css-declaration-lazy? property))
                         (define info : CSS-Declaration-Parser
-                          (desc-parsers desc-name (thunk (void (make+exn:css:deprecated <desc-name>)))))
+                          (desc-parsers desc-name (λ [] (void (make+exn:css:deprecated <desc-name>)))))
                         (cond [(css-filter? info) (filter-desc descbase info <desc-name> declared-values desc-name important? lazy?)]
                               [(css-parser? info) (parse-desc descbase info <desc-name> declared-values desc-name important? lazy?)]
                               [(pair? info) (parse-long descbase info <desc-name> declared-values important? lazy?)]

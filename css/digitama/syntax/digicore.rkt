@@ -1,6 +1,6 @@
-#lang typed/racket
+#lang typed/racket/base
 
-(provide (all-from-out racket/flonum racket/fixnum))
+(provide (all-from-out racket/flonum racket/fixnum racket/bool racket/list racket/format))
 (provide (except-out (all-defined-out) css-make-syntax-error css-tee-computed-value css-ref-raw
                      define-tokens define-token define-token-interface
                      define-symbolic-tokens define-numeric-tokens
@@ -8,9 +8,14 @@
 
 (require racket/fixnum)
 (require racket/flonum)
+(require racket/list)
+(require racket/bool)
+(require racket/format)
+(require racket/match)
 
 (require "misc.rkt")
 
+(require (for-syntax racket/base))
 (require (for-syntax racket/string))
 (require (for-syntax racket/syntax))
 (require (for-syntax syntax/parse))
@@ -431,7 +436,7 @@
     (define topic : Symbol 'exn:css:syntax)
     (define msg : String (exn-message errobj))
     (define <eof>? : Boolean (regexp-match? #px"#<eof>" msg))
-    (cond [(false? property) (log-message logger level topic msg errobj)]
+    (cond [(not property) (log-message logger level topic msg errobj)]
           [(not <eof>?) (log-message logger level topic (format "~a @‹~a›" msg (css:ident-datum property)) errobj)]
           [else (let ([eof-msg (css-token->string property errobj eof)])
                   (log-message logger level topic (format "~a @‹~a›" eof-msg (css:ident-datum property)) errobj))])))
@@ -542,8 +547,8 @@
   (lambda [declared-values inherited-values desc-name]
     (define declared-value : (-> Any)
       (hash-ref declared-values desc-name
-                (thunk (cond [(memq desc-name (default-css-all-exceptions)) (thunk css:unset)]
-                             [else (hash-ref declared-values 'all (thunk (thunk css:unset)))]))))
+                (λ [] (cond [(memq desc-name (default-css-all-exceptions)) (λ [] css:unset)]
+                            [else (hash-ref declared-values 'all (λ [] (λ [] css:unset)))]))))
     (define cascaded-value : Any (declared-value))
     (define specified-value : Any
       ;;; NOTE
@@ -555,16 +560,16 @@
       (cond [(not (css-wide-keyword? cascaded-value)) cascaded-value]
             [(eq? cascaded-value css:initial) css:initial]
             [(hash? inherited-values) (let-values ([(_ sv) (css-ref-raw inherited-values #true desc-name)]) sv)]
-            [(false? inherited-values) css:initial]
+            [(not inherited-values) css:initial]
             [else css:inherit]))
     (unless (eq? cascaded-value specified-value)
-      (hash-set! declared-values desc-name (thunk specified-value)))
+      (hash-set! declared-values desc-name (λ [] specified-value)))
     (values cascaded-value specified-value)))
 
 (define css-tee-computed-value : (All (a) (-> CSS-Values Symbol Any a a))
   (lambda [properties desc-name cascaded-value computed-value]
     (unless (eq? cascaded-value computed-value)
-      (hash-set! properties desc-name (thunk computed-value)))
+      (hash-set! properties desc-name (λ [] computed-value)))
     computed-value))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

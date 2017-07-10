@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;;; https://drafts.csswg.org/css-syntax/#tokenization
 
@@ -9,6 +9,8 @@
 (require "misc.rkt")
 
 (require typed/racket/unsafe)
+
+(require (for-syntax racket/base))
 
 (unsafe-require/typed
  racket/base ; the line is gauranteed to count, hence the explicitly requiring.

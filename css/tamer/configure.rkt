@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require bitmap/draw)
-(require bitmap/font)
 
 (require "../syntax.rkt")
 

@@ -1,8 +1,10 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;;; https://drafts.csswg.org/css-syntax/#parsing
 
 (provide (all-defined-out))
+
+(require racket/string)
 
 (require "digicore.rkt")
 (require "condition.rkt")
@@ -11,15 +13,17 @@
 (require "stdin.rkt")
 (require "misc.rkt")
 
+(require (for-syntax racket/base))
+
 (define-syntax (define-css-parser-entry stx)
   ;;; https://drafts.csswg.org/css-syntax/#parser-entry-points
   (syntax-case stx [: lambda]
     [(_ id #:-> ->T (lambda [cssin [args : T defval ...] ...] body ...))
      #'(define (id [/dev/stdin : CSS-StdIn (current-input-port)] [args : T defval ...] ...) : ->T
          (define /dev/cssin : Input-Port (css-open-input-port /dev/stdin))
-         (dynamic-wind (thunk '(css-open-input-port has already enabled line counting))
-                       (thunk ((λ [[cssin : Input-Port] [args : T defval ...] ...] : ->T body ...) /dev/cssin args ...))
-                       (thunk (close-input-port /dev/cssin))))]))
+         (dynamic-wind (λ [] '(css-open-input-port has already enabled line counting))
+                       (λ [] ((λ [[cssin : Input-Port] [args : T defval ...] ...] : ->T body ...) /dev/cssin args ...))
+                       (λ [] (close-input-port /dev/cssin))))]))
 
 ;;; https://drafts.csswg.org/css-syntax/#parser-entry-points
 (define-css-parser-entry css-parse-stylesheet #:-> (Listof CSS-Syntax-Rule)
@@ -306,18 +310,18 @@
     (define-values (op chain) (css-car rest))
     (cond [(eof-object? token) (throw-exn:css:missing-feature alt)]
           [(css:ident-norm=:=? token 'not) (css-components->negation token rest media?)]
-          [(eof-object? op) (css-component->feature-query media? token)]
+          [(eof-object? op) (css-component->feature-query token media?)]
           [(css:ident-norm=<-? op '(and or)) (css-components->junction chain (css:ident-norm op) token media?)]
           [else (throw-exn:css:unrecognized op)])))
 
-(define css-component->feature-query : (-> Boolean CSS-Token CSS-Feature-Query)
+(define css-component->feature-query : (-> CSS-Token Boolean CSS-Feature-Query)
   ;;; https://drafts.csswg.org/css-syntax/#preserved-tokens
   ;;; https://drafts.csswg.org/css-conditional/#at-supports
   ;;; https://drafts.csswg.org/mediaqueries/#mq-features
   ;;; https://drafts.csswg.org/mediaqueries/#mq-syntax
   ;;; https://drafts.csswg.org/mediaqueries/#mq-boolean-context
   ;;; https://drafts.csswg.org/mediaqueries/#mq-range-context
-  (lambda [media? condition]
+  (lambda [condition media?]
     (cond [(css:block=:=? condition #\()
            (define subany : (Listof CSS-Token) (css:block-components condition))
            (define-values (name any-values) (css-car subany))
@@ -344,19 +348,18 @@
     (define-values (token rest) (css-car tokens))
     (cond [(eof-object? token) (throw-exn:css:missing-feature <not>)]
           [(css:ident-norm=:=? token 'not) (throw-exn:css:misplaced token)]
-          [(css-null? rest) (make-css-not (css-component->feature-query media? token))]
+          [(css-null? rest) (make-css-not (css-component->feature-query token media?))]
           [else (throw-exn:css:overconsumption rest)])))
 
 (define css-components->junction : (-> (Listof CSS-Token) Symbol (Option CSS-Token) Boolean (U CSS-And CSS-Or))
   ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-and
   ;;; https://drafts.csswg.org/mediaqueries/#typedef-media-or
   (lambda [conditions op ?head media?]
-    (define make-junction (if (eq? op 'and) make-css-and make-css-or))
     (let components->junction ([junctions : (Listof CSS-Token) (if (false? ?head) null (list ?head))]
                                [--conditions : (Listof CSS-Token) conditions])
       (define-values (condition rest) (css-car --conditions))
       (define-values (token others) (css-car rest))
-      (cond [(eof-object? condition) (make-junction (map (curry css-component->feature-query media?) (reverse junctions)))]
+      (cond [(eof-object? condition) (junctions->conditional-query junctions op media?)]
             [(css:ident-norm=:=? condition 'not) (throw-exn:css:misplaced condition)]
             [(or (eof-object? token) (css:ident-norm=:=? token op)) (components->junction (cons condition junctions) others)]
             [(css:ident-norm=<-? token '(and or)) (throw-exn:css:misplaced token)]
@@ -439,7 +442,7 @@
       (cond [(or (not ?value) (css:delim? ?op)) (throw-exn:css:misplaced errobj)]
             [(not (css-numeric? ?value)) (throw-exn:css:type errobj)]))
     (define feature-filter : (U Void (CSS:Filter CSS-Media-Datum))
-      ((default-css-media-feature-filters) downcased-name min/max? (thunk (void (make+exn:css:deprecated desc-name)))))
+      ((default-css-media-feature-filters) downcased-name min/max? (λ [] (void (make+exn:css:deprecated desc-name)))))
     (cond [(void? feature-filter) (throw-exn:css:unrecognized errobj)]
           [(false? ?value) downcased-name]
           [else (let ([datum (feature-filter ?value)])
@@ -656,3 +659,10 @@
     (or (css:whitespace? token)
         (and (css:delim=<-? token '(#\~ #\+ #\> #\tab))
              #true))))
+
+(define junctions->conditional-query : (-> (Listof CSS-Token) Symbol Boolean (U CSS-And CSS-Or))
+  (lambda [junctions op media?]
+    (define queries : (Listof CSS-Feature-Query)
+      (for/list ([junction (in-list (reverse junctions))])
+        (css-component->feature-query junction media?)))
+    (if (eq? op 'and) (make-css-and queries) (make-css-or queries))))

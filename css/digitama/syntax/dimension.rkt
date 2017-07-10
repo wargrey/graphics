@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (provide (all-defined-out))
 
@@ -7,9 +7,12 @@
 ;;; https://drafts.csswg.org/css-egg/#astro-units
 ;;; https://drafts.csswg.org/css-egg/#traditional-time
 
+(require racket/math)
+
 (require "digicore.rkt")
 (require "misc.rkt")
 
+(require (for-syntax racket/base))
 (require (for-syntax racket/string))
 (require (for-syntax racket/syntax))
 (require (for-syntax syntax/parse))

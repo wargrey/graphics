@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;;; This module provides some nonstandard cascade APIs
 

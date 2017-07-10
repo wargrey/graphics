@@ -1,7 +1,10 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (provide (all-defined-out))
 (provide css-read-syntax css-peek-syntax)
+
+(require racket/path)
+(require racket/port)
 
 (require "digicore.rkt")
 (require "tokenizer.rkt")
@@ -54,11 +57,11 @@
                              (λ _ (and (for ([idx (in-range (length peek-pool) (add1 skip))])
                                          (set! peek-pool (cons (css-consume-token /dev/cssin portname) peek-pool)))
                                        (list-ref peek-pool (- (length peek-pool) skip 1)))))
-                           (thunk (unless (eq? /dev/rawin /dev/cssin) (close-input-port /dev/cssin))
+                           (λ [] (unless (eq? /dev/rawin /dev/cssin) (close-input-port /dev/cssin))
                                   (unless (eq? /dev/rawin /dev/stdin) (close-input-port /dev/rawin)))
                            #false #false
-                           (thunk (port-next-location /dev/cssin))
-                           (thunk (void (list css-fallback-encode-input-port '|has already set it|))))))))
+                           (λ [] (port-next-location /dev/cssin))
+                           (λ [] (void (list css-fallback-encode-input-port '|has already set it|))))))))
     
 (define css-read-syntax/skip-whitespace : (-> Input-Port CSS-Syntax-Any)
   (lambda [css]
@@ -93,7 +96,7 @@
     (define charset : (Option Bytes) (and magic (let ([name (cdr magic)]) (and (pair? name) (car name)))))
     (define CHARSET : (Option String) (and charset (css-fallback-charset charset)))
     (cond [(or (false? CHARSET) (string-ci=? CHARSET "UTF-8")) /dev/rawin]
-          [else (with-handlers ([exn? (const /dev/rawin)])
+          [else (with-handlers ([exn? (λ _ /dev/rawin)])
                   (reencode-input-port /dev/rawin CHARSET (car (assert magic pair?))
                                        #false (object-name /dev/rawin) #true
                                        (λ [[msg : String] [port : Input-Port]] : Nothing

@@ -1,11 +1,16 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;;; https://drafts.csswg.org/selectors
 
 (provide (all-defined-out))
 
+(require racket/set)
+(require racket/string)
+
 (require "digicore.rkt")
 (require "misc.rkt")
+
+(require (for-syntax racket/base))
 
 ;; https://drafts.csswg.org/selectors/#grammar
 ;; https://drafts.csswg.org/selectors/#structure

@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;;; https://drafts.csswg.org/css-variables
 
@@ -20,7 +20,7 @@
       (if (eof-object? head)
           (let ([all (reverse lla)]) ; (reverse) does not know non-null list.
             ; whitespace-only <declaration-value>s are also valid, but they are only meaningful for variables.
-            (cond [(pair? all) (values all (and (false? var?) <!> #true) lazy?)]
+            (cond [(pair? all) (values all (and (not var?) <!> #true) lazy?)]
                   [(and var? (pair? components)) (values components #false #false)]
                   [else (values (make+exn:css:missing-value hint-token) #false lazy?)]))
           (cond [(and <!> (css:ident-norm=:=? head 'important)) (fold (if var? (cons head lla) lla) <!> lazy? tail)]
@@ -36,10 +36,10 @@
   (lambda [declared-values inherited-values]
     (define ?inherited-vars : (Option CSS-Variables) (and inherited-values (css-varbase-ref inherited-values)))
     (define ?declared-vars : (Option CSS-Variables)
-      (cond [(false? ?inherited-vars) (css-varbase-ref declared-values)]
+      (cond [(not ?inherited-vars) (css-varbase-ref declared-values)]
             [else (let ([declared-vars (css-varbase-ref! declared-values)])
                     (for ([(--var --value) (in-hash ?inherited-vars)])
-                      (hash-ref! declared-vars --var (thunk --value)))
+                      (hash-ref! declared-vars --var (λ [] --value)))
                     declared-vars)]))
     (when ?declared-vars
       (for ([(--var --value) (in-hash ?declared-vars)])
@@ -77,7 +77,7 @@
             [(not (css:var? head)) (var-fold (cons head seulav) tail)]
             [(memq (css:var-datum head) refpath) (make+exn:css:cyclic head property 'debug) null]
             [else (let ([--var (css:var-datum head)])
-                    (define --value : (U CSS-Declaration Null) (if (false? varbase) null (hash-ref varbase --var (thunk null))))
+                    (define --value : (U CSS-Declaration Null) (if (not varbase) null (hash-ref varbase --var (λ [] null))))
                     (define-values (--vs lazy?)
                       (cond [(null? --value) (values (css:var-fallback head) (css:var-lazy? head))]
                             [else (values (css-declaration-values --value) (css-declaration-lazy? --value))]))
@@ -104,7 +104,7 @@
            (define-values (submodifiers lazy?) (css-lazy-subtokens-map (css:url-modifiers token)))
            (define url : (U CSS:URL CSS-Syntax-Error)
              (cond [(exn:css? submodifiers) submodifiers]
-                   [(false? lazy?) token]
+                   [(not lazy?) token]
                    [else (css:url-copy token (css-url-modifiers-filter token submodifiers) lazy?)]))
            (values url (not (eq? token url)) candidates)]
           [(css:function? token)
@@ -112,7 +112,7 @@
              (cond [(eq? (css:function-norm token) 'var) (css-function->var token)]
                    [else (let-values ([(subarguments lazy?) (css-lazy-subtokens-map (css:function-arguments token))])
                            (cond [(exn:css? subarguments) subarguments]
-                                 [(false? lazy?) token]
+                                 [(not lazy?) token]
                                  [else (css:function-copy token subarguments lazy?)]))]))
            (values func (not (eq? token func)) candidates)]
           [(css:@keyword? token)
@@ -130,7 +130,7 @@
            (define-values (subcomponents lazy?) (css-lazy-subtokens-map (css:block-components token)))
            (define block : (U CSS:Block CSS-Syntax-Error)
              (cond [(exn:css? subcomponents) subcomponents]
-                   [(false? lazy?) token]
+                   [(not lazy?) token]
                    [else (css:block-copy token subcomponents lazy?)]))
            (values block (not (eq? token block)) candidates)]
           [else (values token #false candidates)])))
@@ -142,12 +142,12 @@
 
 (define css-varbase-ref : (-> CSS-Values (Option CSS-Variables))
   (lambda [which]
-    (hash-ref --varbases which (thunk #false))))
+    (hash-ref --varbases which (λ [] #false))))
 
 (define css-varbase-ref! : (-> CSS-Values CSS-Variables)
   (lambda [which]
     (hash-ref! --varbases which
-               (thunk ((inst make-hasheq Symbol (U CSS-Declaration Null)))))))
+               (λ [] ((inst make-hasheq Symbol (U CSS-Declaration Null)))))))
 
 (define varbase-set! : (-> CSS-Values Symbol (U CSS-Declaration Null) Void)
   (lambda [which --var --value]

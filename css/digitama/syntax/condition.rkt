@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;;; https://drafts.csswg.org/css-conditional
 ;;; https://drafts.csswg.org/mediaqueries
@@ -11,6 +11,7 @@
 (require "dimension.rkt")
 (require "../../recognizer.rkt")
 
+(require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
 
 (define-syntax (define-make-media-features stx)

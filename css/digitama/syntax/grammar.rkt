@@ -1,9 +1,12 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;;; https://drafts.csswg.org/css-syntax/#parse-a-css-stylesheet
 
 (provide (all-defined-out))
-  
+
+(require racket/string)
+(require racket/path)
+
 (require "digicore.rkt")
 (require "parser.rkt")
 (require "selector.rkt")
@@ -242,7 +245,7 @@
   (lambda [stylesheet]
     (define pool : CSS-StyleSheet-Pool (css-stylesheet-pool stylesheet))
     (for ([children (in-list (css-stylesheet-imports stylesheet))])
-      (define id : (Option CSS-StyleSheet) (hash-ref pool (css-@import-rule-identity children) (const #false)))
+      (define id : (Option CSS-StyleSheet) (hash-ref pool (css-@import-rule-identity children) (λ _ #false)))
       (when (css-stylesheet? id)
         (define child.css : (U Symbol String) (css-stylesheet-location id))
         (when (string? child.css)
