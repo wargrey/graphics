@@ -35,7 +35,7 @@
   bmp)
 
 (define (cairo-fill-style width height style line-width rgb)
-  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (make-cairo-image width height density #true))
 
   (cairo_set_line_width cr line-width)
   
@@ -54,7 +54,7 @@
   bmp)
 
 (define (cairo-line-width width height line-width)
-  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (make-cairo-image width height density #true))
 
   (cairo_set_line_width cr line-width)
   (cairo_rectangle cr 0.0 0.0 width height)
@@ -75,7 +75,7 @@
   bmp)
 
 (define (cairo-line-cap width height line-cap)
-  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (make-cairo-image width height density #true))
   (define spacing (/ height 2.0))
 
   (cairo_set_line_width cr height)
@@ -93,7 +93,7 @@
   bmp)
 
 (define (cairo-line-join width height line-join miter-limit)
-  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (make-cairo-image width height density #true))
   (define line-width (/ height 3.0))
   (define delta (/ height (sqrt 2.0)))
 

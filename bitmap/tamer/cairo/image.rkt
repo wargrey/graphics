@@ -37,7 +37,7 @@
 
 (define (cairo-image-pattern xc yc)
   (define-values (width height) (values (* xc 2.0) (* yc 2.0)))
-  (define-values (bmp cr _w _h) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (make-cairo-image width height density #true))
   (define pattern (cairo_pattern_create_for_surface image))
 
   (cairo_pattern_set_extend pattern CAIRO_EXTEND_REPEAT)
