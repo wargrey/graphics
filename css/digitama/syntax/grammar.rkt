@@ -44,7 +44,7 @@
    [namespaces : (Listof (Pairof Symbol String))    #:= null]
    [imports : (Listof CSS-@Import-Rule)             #:= null]
    [grammars : (Listof CSS-Grammar-Rule)            #:= null]
-   [pool : CSS-StyleSheet-Pool                      #:= (make-hasheq)]
+   [pool : CSS-StyleSheet-Pool                      #:= (make-hash)]
    [timestamp : Integer                             #:= 0]
    [viewports : (Vectorof (Listof CSS-Declaration)) #:= (vector)]
    [modules : (Listof CSS-@Racket-Rule)             #:= null])
@@ -60,7 +60,7 @@
   ;;; https://drafts.csswg.org/css-conditional/#processing
   ;;; https://drafts.csswg.org/css-conditional/#contents-of
   ;;; https://drafts.csswg.org/css-device-adapt/#media-queries
-  (lambda [/dev/cssin [pool : CSS-StyleSheet-Pool ((inst make-hasheq Natural CSS-StyleSheet))]]
+  (lambda [/dev/cssin [pool : CSS-StyleSheet-Pool ((inst make-hash Natural CSS-StyleSheet))]]
     (define location : (U String Symbol) (let ([p (object-name /dev/cssin)]) (if (symbol? p) p (~a p))))
     (define identity : Natural (if (string? location) (css-stylesheet-path->identity location) 0))
     (or (and (string? location) (hash-has-key? pool identity)
