@@ -15,10 +15,9 @@
 (require (only-in typed/racket/draw bitmap% Bitmap% make-bitmap read-bitmap))
 (require (only-in typed/racket/draw get-face-list))
 
+(define-type FlRGBA rgba)
 (define-type Bitmap (Instance Bitmap%))
 (define-type Color (U Symbol Integer FlColor))
-
-(define-type FlRGBA rgba)
 
 (struct Paint () #:transparent)
 (struct FlColor () #:transparent)

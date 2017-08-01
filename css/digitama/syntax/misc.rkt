@@ -1,9 +1,8 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) struct:)
+(provide (all-defined-out))
 
 (require racket/promise)
-(require bitmap/digitama/misc)
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))

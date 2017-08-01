@@ -36,9 +36,9 @@
               (define-values (sub-rotpircsed sub-seulav)
                 (cascade-stylesheets* (css-select-children this-sheet desc-parsers) descriptors++ values++))
               (define this-values : (Listof CSS-Values)
-                (css-cascade-rules* (css-stylesheet-grammars this-sheet) stcejbus desc-parsers
+                (css-cascade-rules* (CSS-StyleSheet-grammars this-sheet) stcejbus desc-parsers
                                     (css-cascade-viewport (default-css-media-features)
-                                                          (css-stylesheet-viewports this-sheet))))
+                                                          (CSS-StyleSheet-viewports this-sheet))))
               (for/fold ([this-rotpircsed : (Listof Preference) sub-rotpircsed]
                          [this-seulav : (Listof CSS-Values) sub-seulav])
                         ([declared-values : CSS-Values (in-list this-values)])

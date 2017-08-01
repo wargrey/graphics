@@ -5,20 +5,20 @@
 
 (require "draw.rkt")
 (require "digitama/font.rkt")
-(require "digitama/misc.rkt")
 
 (require "digitama/unsafe/draw.rkt")
 (require "digitama/unsafe/font.rkt")
 
-(struct: font : Font
+(struct Font
   ([face : String]
    [size : Nonnegative-Flonum]
    [weight : Font-Weight]
    [style : Font-Style]
-   [stretch : Font-Stretch]))
+   [stretch : Font-Stretch])
+  #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-font : (Parameterof Font) (make-parameter (font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal)))
+(define default-font : (Parameterof Font) (make-parameter (Font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal)))
 
 (define desc-font : (->* ()
                          (Font #:family (U String Symbol (Listof (U String Symbol)) False) #:size (U Symbol Nonnegative-Real False)
@@ -26,21 +26,21 @@
                          Font)
   (lambda [[basefont (default-font)] #:family [face null] #:size [size +nan.0] #:weight [weight #false] #:style [style #false]
                                      #:stretch [stretch #false]]
-    (font (cond [(string? face) (or (face-filter face) (font-face basefont))]
-                [(symbol? face) (or (font-family->face face) (font-face basefont))]
-                [(pair? face) (or (select-font-face face) (font-face basefont))]
-                [else (font-face basefont)])
-          (cond [(symbol? size) (generic-font-size-filter size (font-size basefont) (font-size (default-font)))]
-                [(or (not size) (nan? size)) (font-size basefont)]
-                [(single-flonum? size) (* (real->double-flonum size) (font-size basefont))]
+    (Font (cond [(string? face) (or (face-filter face) (Font-face basefont))]
+                [(symbol? face) (or (font-family->face face) (Font-face basefont))]
+                [(pair? face) (or (select-font-face face) (Font-face basefont))]
+                [else (Font-face basefont)])
+          (cond [(symbol? size) (generic-font-size-filter size (Font-size basefont) (Font-size (default-font)))]
+                [(or (not size) (nan? size)) (Font-size basefont)]
+                [(single-flonum? size) (* (real->double-flonum size) (Font-size basefont))]
                 [else (real->double-flonum size)])
           (cond [(css-font-weight-option? weight) weight]
-                [(eq? weight 'bolder) (memcadr css-font-weight-options (font-weight basefont))]
-                [(eq? weight 'lighter) (memcadr (reverse css-font-weight-options) (font-weight basefont))]
+                [(eq? weight 'bolder) (memcadr css-font-weight-options (Font-weight basefont))]
+                [(eq? weight 'lighter) (memcadr (reverse css-font-weight-options) (Font-weight basefont))]
                 [(integer? weight) (integer->font-weight weight)]
-                [else (font-weight basefont)])
-          (if (css-font-style-option? style) style (font-style basefont))
-          (if (css-font-stretch-option? stretch) stretch (font-stretch basefont)))))
+                [else (Font-weight basefont)])
+          (if (css-font-style-option? style) style (Font-style basefont))
+          (if (css-font-stretch-option? stretch) stretch (Font-stretch basefont)))))
 
 (define font-face->family : (-> String (Option Font-Family))
   (lambda [face]
@@ -59,10 +59,10 @@
     (lambda [font]
       (define &font (hash-ref &fonts font (λ _ #false)))
       (or (and &font (ephemeron-value &font))
-          (let-values ([(weight style stretch) (values (font-weight font) (font-style font) (font-stretch font))])
+          (let-values ([(weight style stretch) (values (Font-weight font) (Font-style font) (Font-stretch font))])
             (define desc : Font-Description
-              (bitmap_create_font_desc (font-face font)
-                                       (font-size font)
+              (bitmap_create_font_desc (Font-face font)
+                                       (Font-size font)
                                        (and (not (eq? weight 'normal)) (font-weight->integer weight))
                                        (and (not (eq? style 'normal)) (font-style->integer style))
                                        (and (not (eq? stretch 'normal)) (font-stretch->integer stretch))))

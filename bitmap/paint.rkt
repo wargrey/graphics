@@ -6,7 +6,6 @@
 
 (require "draw.rkt")
 (require "digitama/paint.rkt")
-(require "digitama/misc.rkt")
 
 ;;; https://svgwg.org/svg2-draft/painting.html
 (define-type CSS-Gradient-Stop-Color (Pairof Real FlRGBA))
@@ -14,18 +13,19 @@
 (define-type CSS-Radial-Gradient (Vector Real Real Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 
 ; Don't forget unsafe/paint.rkt if changing the Stroke
-(struct: stroke : Stroke Paint
+(struct Stroke Paint
   ([color : FlRGBA]
    [width : Nonnegative-Flonum]
    [linecap : Stroke-Cap-Style]
    [linejoin : Stroke-Join-Style]
    [miterlimit : Flonum]
    [dash : (Vectorof Nonnegative-Flonum)]
-   [offset : Flonum]))
+   [offset : Flonum])
+  #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-stroke : (Parameterof Stroke) (make-parameter (stroke black 1.0 'butt 'miter +nan.0 solid-dash 0.0)))
-(define default-border : (Parameterof Stroke) (make-parameter (stroke hilite (border-thickness->integer 'medium)
+(define default-stroke : (Parameterof Stroke) (make-parameter (Stroke black 1.0 'butt 'miter +nan.0 solid-dash 0.0)))
+(define default-border : (Parameterof Stroke) (make-parameter (Stroke hilite (border-thickness->integer 'medium)
                                                                       'butt 'miter +nan.0 solid-dash 0.0)))
 
 (define desc-stroke : (->* ()
@@ -35,18 +35,18 @@
                            Stroke)
   (lambda [[baseline (default-stroke)] #:color [color #false] #:opacity [opacity 1.0] #:width [width #false]
                                        #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]]
-    (define linewidth : Nonnegative-Flonum (if (and (real? width) (>= width 0.0)) (real->double-flonum width) (stroke-width baseline)))
+    (define linewidth : Nonnegative-Flonum (if (and (real? width) (>= width 0.0)) (real->double-flonum width) (Stroke-width baseline)))
     (define-values (linejoin miterlimit)
-      (cond [(stroke-line-join-option? join) (values join (stroke-miterlimit baseline))]
+      (cond [(stroke-line-join-option? join) (values join (Stroke-miterlimit baseline))]
             [(real? join) (values 'miter (real->double-flonum join))]
-            [else (values (stroke-linejoin baseline) (stroke-miterlimit baseline))]))
+            [else (values (Stroke-linejoin baseline) (Stroke-miterlimit baseline))]))
     (define-values (preoffset dasharray)
       (cond [(stroke-dash-style? dash) (line-dash->array dash linewidth)]
-            [(vector? dash) (values (stroke-offset baseline) (dasharray-normalize dash linewidth))]
-            [else (values (stroke-offset baseline) (dasharray-normalize (stroke-dash baseline) linewidth (stroke-width baseline)))]))
+            [(vector? dash) (values (Stroke-offset baseline) (dasharray-normalize dash linewidth))]
+            [else (values (Stroke-offset baseline) (dasharray-normalize (Stroke-dash baseline) linewidth (Stroke-width baseline)))]))
     (define dashoffset : Flonum (if (not offset) preoffset (real->double-flonum offset)))
-    (stroke (rgb* (or color (stroke-color baseline)) opacity) linewidth
-            (cond [(stroke-line-cap-option? cap) cap] [(eq? dash 'dot) 'round] [else (stroke-linecap baseline)])
+    (Stroke (rgb* (or color (Stroke-color baseline)) opacity) linewidth
+            (cond [(stroke-line-cap-option? cap) cap] [(eq? dash 'dot) 'round] [else (Stroke-linecap baseline)])
             linejoin miterlimit dasharray dashoffset)))
 
 (define desc-border : (->* () (Stroke #:color (Option Color) #:width (U Real Symbol False) #:style (Option Symbol)) Stroke)
@@ -56,14 +56,14 @@
       (cond [(and no-border?) 0.0]
             [(and (real? width) (>= width 0.0)) (real->double-flonum width)]
             [(css-border-thickness-option? width) (border-thickness->integer width)]
-            [else (stroke-width baseline)]))
+            [else (Stroke-width baseline)]))
     (define-values (dashoffset dasharray)
       (case dash
         [(none hidden) (values 0.0 solid-dash)]
         [(dotted) (line-dash->array 'dot linewidth)]
         [(dashed) (line-dash->array 'long-dash linewidth)]
-        [else (values (stroke-offset baseline) (dasharray-normalize (stroke-dash baseline) linewidth (stroke-width baseline)))]))
-    (stroke (if (not color) (stroke-color baseline) (rgb* color)) linewidth
-            (if (eq? dash 'dotted) 'round (stroke-linecap baseline))
-            (stroke-linejoin baseline) (stroke-miterlimit baseline)
+        [else (values (Stroke-offset baseline) (dasharray-normalize (Stroke-dash baseline) linewidth (Stroke-width baseline)))]))
+    (Stroke (if (not color) (Stroke-color baseline) (rgb* color)) linewidth
+            (if (eq? dash 'dotted) 'round (Stroke-linecap baseline))
+            (Stroke-linejoin baseline) (Stroke-miterlimit baseline)
             dasharray dashoffset)))

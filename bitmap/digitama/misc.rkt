@@ -15,13 +15,6 @@
      #'(begin (provide (all-from-out spec)) ...
               (require spec) ...)]))
 
-(define-syntax (struct: stx)
-  (syntax-case stx [:]
-    [(_ id : ID rest ...)
-     (with-syntax ([make-id (format-id #'id "make-~a" (syntax-e #'id))])
-       #'(begin (struct id rest ... #:extra-constructor-name make-id #:transparent)
-                (define-type ID id)))]))
-
 (define-syntax (define-enumeration stx)
   (syntax-case stx [:]
     [(_ id : TypeU #:with kw->enum #:-> EnumType [enum value] ...)

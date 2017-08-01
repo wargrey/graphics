@@ -57,8 +57,8 @@
         (let cascade-stylesheets ([batch : (Listof CSS-StyleSheet) stylesheets])
           (for ([this-sheet (in-list batch)])
             (cascade-stylesheets (css-select-children this-sheet desc-parsers))
-            (css-cascade-rules (css-stylesheet-grammars this-sheet) stcejbus desc-parsers declared-values
-                               (css-cascade-viewport (default-css-media-features) (css-stylesheet-viewports this-sheet)))))
+            (css-cascade-rules (CSS-StyleSheet-grammars this-sheet) stcejbus desc-parsers declared-values
+                               (css-cascade-viewport (default-css-media-features) (CSS-StyleSheet-viewports this-sheet)))))
         (css-resolve-variables declared-values inherited-values)
         declared-values))
     (case-lambda
@@ -147,13 +147,13 @@
     (lambda [desc-parsers sequences [css:ident->datum css:ident-norm] [descbase (make-css-values)]]
       (for* ([properties sequences]
              [property (in-list properties)])
-        (define <desc-name> : CSS:Ident (css-declaration-name property))
+        (define <desc-name> : CSS:Ident (CSS-Declaration-name property))
         (define desc-name : Symbol (css:ident->datum <desc-name>))
         (cond [(symbol-unreadable? desc-name) (varbase-set! descbase desc-name property)]
-              [else (let ([important? : Boolean (css-declaration-important? property)])
+              [else (let ([important? : Boolean (CSS-Declaration-important? property)])
                       (when (desc-more-important? desc-name important?)
-                        (define declared-values : (Listof+ CSS-Token) (css-declaration-values property))
-                        (define lazy? : Boolean (css-declaration-lazy? property))
+                        (define declared-values : (Listof+ CSS-Token) (CSS-Declaration-values property))
+                        (define lazy? : Boolean (CSS-Declaration-lazy? property))
                         (define info : CSS-Declaration-Parser
                           (desc-parsers desc-name (λ [] (void (make+exn:css:deprecated <desc-name>)))))
                         (cond [(css-filter? info) (filter-desc descbase info <desc-name> declared-values desc-name important? lazy?)]
@@ -185,26 +185,26 @@
          [single? : Boolean #true])
         (for/fold ([styles stylebase] [single-query? single?])
                   ([rule (in-list grammars)])
-          (cond [(css-style-rule? rule)
-                 (define selectors : (Listof+ CSS-Complex-Selector) (css-style-rule-selectors rule))
+          (cond [(CSS-Style-Rule? rule)
+                 (define selectors : (Listof+ CSS-Complex-Selector) (CSS-Style-Rule-selectors rule))
                  (define specificity : Natural
                    (for/fold ([max-specificity : Natural 0]) ([selector (in-list selectors)])
                      (define matched-specificity : Natural (or (css-selector-match selector stcejbus) 0))
                      (fxmax matched-specificity max-specificity)))
                  (cond [(zero? specificity) (values styles single-query?)]
-                       [else (let ([sm : CSS-Style-Metadata (vector specificity (css-style-rule-properties rule) descriptors)])
+                       [else (let ([sm : CSS-Style-Metadata (vector specificity (CSS-Style-Rule-properties rule) descriptors)])
                                (values (cons sm styles) single-query?))])]
-                [(and (css-@media-rule? rule) (css-@media-okay? (css-@media-rule-queries rule) descriptors))
-                 (cascade-rules (cond [(null? (css-@media-rule-viewports rule)) descriptors]
-                                      [else (css-cascade-viewport descriptors (css-@media-rule-viewports rule))])
-                                (css-@media-rule-grammars rule)
+                [(and (CSS-@Media-Rule? rule) (css-@media-okay? (CSS-@Media-Rule-queries rule) descriptors))
+                 (cascade-rules (cond [(null? (CSS-@Media-Rule-viewports rule)) descriptors]
+                                      [else (css-cascade-viewport descriptors (CSS-@Media-Rule-viewports rule))])
+                                (CSS-@Media-Rule-grammars rule)
                                 styles
-                                (and (null? (css-@media-rule-viewports rule)) single-query?))]
-                [(and (css-@supports-rule? rule)
-                      (css-@supports-okay? (css-@supports-rule-query rule)
+                                (and (null? (CSS-@Media-Rule-viewports rule)) single-query?))]
+                [(and (CSS-@Supports-Rule? rule)
+                      (css-@supports-okay? (CSS-@Supports-Rule-query rule)
                                            decl-parsers
                                            (default-css-feature-support?)))
-                 (cascade-rules descriptors (css-@supports-rule-grammars rule) styles single-query?)]
+                 (cascade-rules descriptors (CSS-@Supports-Rule-grammars rule) styles single-query?)]
                 [else #|other `css-@rule`s|# (values styles single-query?)]))))
     (values (sort (reverse selected-styles) #| `reverse` guarantees orginal order |#
                   (λ [[sm1 : CSS-Style-Metadata] [sm2 : CSS-Style-Metadata]]
@@ -213,21 +213,21 @@
 
 (define css-select-children : (-> CSS-StyleSheet CSS-Declaration-Parsers (Listof CSS-StyleSheet))
   (lambda [parent decl-parsers]
-    (define pool : CSS-StyleSheet-Pool (css-stylesheet-pool parent))
+    (define pool : CSS-StyleSheet-Pool (CSS-StyleSheet-pool parent))
     (define (okay? [child : CSS-@Import-Rule]) : Boolean
-      (define query : (Option CSS-Feature-Query) (css-@import-rule-supports child))
+      (define query : (Option CSS-Feature-Query) (CSS-@Import-Rule-supports child))
       (and (implies query (css-@supports-okay? query decl-parsers (default-css-feature-support?)))
-           (css-@media-okay? (css-@import-rule-media-list child) (default-css-media-features))))
-    (for/list : (Listof CSS-StyleSheet) ([child (in-list (css-stylesheet-imports parent))] #:when (okay? child))
-      (hash-ref pool (css-@import-rule-identity child)))))
+           (css-@media-okay? (CSS-@Import-Rule-media-list child) (default-css-media-features))))
+    (for/list : (Listof CSS-StyleSheet) ([child (in-list (CSS-StyleSheet-imports parent))] #:when (okay? child))
+      (hash-ref pool (CSS-@Import-Rule-identity child)))))
 
 (define css-@supports-okay? : (-> CSS-Feature-Query CSS-Declaration-Parsers CSS-@Supports-Okay? Boolean)
   ;;; https://drafts.csswg.org/css-conditional/#at-supports
   (lambda [query decl-parsers support?]
     (define (okay? [query : (U CSS-Media-Query CSS-Feature-Query)]) : Boolean
-      (and (css-declaration? query)
-           (let* ([<desc-name> : CSS:Ident (css-declaration-name query)]
-                  [decl-values : (Listof+ CSS-Token) (css-declaration-values query)])
+      (and (CSS-Declaration? query)
+           (let* ([<desc-name> : CSS:Ident (CSS-Declaration-name query)]
+                  [decl-values : (Listof+ CSS-Token) (CSS-Declaration-values query)])
              (define info (decl-parsers (css:ident-norm <desc-name>) void))
              (define desc-values ;;; TODO: what if variables exist in @supports query?
                (cond [(css-filter? info) (do-filter <desc-name> info decl-values #false)]

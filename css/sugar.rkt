@@ -19,9 +19,9 @@
 
 (define-syntax (define-preference* stx)
   (syntax-parse stx #:literals [:]
-    [(self preference #:as Preference (fields ...) options ...)
-     #'(self preference #:as Preference #:with [] (fields ...) options ...)]
-    [(_ preference #:as Preference #:with extra-bindings (field-info ...) options ...)
+    [(self Preference (fields ...) options ...)
+     #'(self Preference #:with [] (fields ...) options ...)]
+    [(_ Preference #:with extra-bindings (field-info ...) options ...)
      (with-syntax* ([(property-definitions ...)
                      (for/list ([<field-info> (in-list (syntax->list #'(field-info ...)))])
                        (syntax-parse <field-info> #:datum-literals [Unitless]
@@ -31,7 +31,7 @@
                                                         (λ [[v : (U Nonnegative-Flonum Negative-Single-Flonum)]]
                                                           (select-size v nv))]]
                          [_ <field-info>]))])
-       #'(define-preference preference #:as Preference #:with extra-bindings (property-definitions ...) options ...))]))
+       #'(define-preference Preference #:with extra-bindings (property-definitions ...) options ...))]))
 
 (define-syntax (call-with-css-box stx)
   (syntax-parse stx
