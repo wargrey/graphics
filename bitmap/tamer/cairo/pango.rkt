@@ -9,9 +9,17 @@
 (require "../../digitama/unsafe/pangocairo.rkt")
 (require (submod "../../digitama/unsafe/font.rkt" unsafe))
 
-(define (cairo-text-polygon words radius font-face font-weight font-attrs)
+(require racket/draw/unsafe/bstr)
+
+(define (save-image s out)
+  (let ([proc (lambda (ignored bstr len)
+                (write-bytes (scheme_make_sized_byte_string bstr len 0) out)
+                CAIRO_STATUS_SUCCESS)])
+    (cairo_surface_write_to_png_stream s proc)))
+
+(define (cairo_text_polygon make-image words radius context font-face font-weight font-attrs)
   (define-values (width height) (values (* 2.0 radius) (* 2.0 radius)))
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (data sfs cr) (make-image width height density #true))
   (define (draw-text-circle cr context words)
     (define layout (pango_layout_new context))
     (when font-attrs (pango_layout_set_attributes layout font-attrs))
@@ -57,10 +65,14 @@
   (pango_font_description_free desc)
   (cairo_destroy cr)
   (cairo_pattern_destroy brush)
-  
+  (values data (cairo_image_surface_get_width sfs) (cairo_image_surface_get_height sfs) (cairo_image_surface_get_stride sfs)))
+
+(define (cairo-text-polygon words radius context font-face font-weight font-attrs)
+  (define-values (data w h s) (cairo_text_polygon cairo-create-argb-image words radius context font-face font-weight font-attrs))
   (define temp.png (make-temporary-file))
+  (define sfs (cairo_image_surface_create_for_data data CAIRO_FORMAT_ARGB32 w h s))
   (displayln temp.png)
-  (send bmp save-file temp.png 'png #:unscaled? #true)
+  (cairo_surface_write_to_png sfs temp.png)
   (read-bitmap temp.png #:backing-scale density))
 
 (define (cairo-paragraph)
@@ -85,19 +97,26 @@
   (collect-garbage)
   (time (apply make-image args)))
 
+(define (current-memory-mb)
+  (define mem (current-memory-use))
+  (/ mem 1024.0 1024.0))
+
 (define density 2.0)
-(define pango-font-map (benchmark pango_cairo_font_map_get_default))
-(define context (pango_font_map_create_context pango-font-map))
-(define font-options (benchmark cairo_font_options_create))
-(cairo_font_options_set_antialias font-options CAIRO_ANTIALIAS_DEFAULT)
-(pango_cairo_context_set_font_options context font-options)
 
-(define double-attrs (pango_attr_list_new))
-(pango_attr_list_insert double-attrs (pango_attr_underline_new PANGO_UNDERLINE_DOUBLE))
-
-(define delete-attrs (pango_attr_list_new))
-(pango_attr_list_insert delete-attrs (pango_attr_strikethrough_new #true))
-
-(benchmark cairo-text-polygon "Using Pango with Cairo to Draw Regular Polygon" 150 "Courier" 700 double-attrs)
-(benchmark cairo-text-polygon "Test Global Cairo Context and Pango Layout" 100 "Helvetica Neue" 100 delete-attrs)
-(benchmark cairo-paragraph)
+(module+ main
+  (define pango-font-map (benchmark pango_cairo_font_map_get_default))
+  (define context (pango_font_map_create_context pango-font-map))
+  (define font-options (benchmark cairo_font_options_create))
+  (cairo_font_options_set_antialias font-options CAIRO_ANTIALIAS_DEFAULT)
+  (pango_cairo_context_set_font_options context font-options)
+  
+  (define double-attrs (pango_attr_list_new))
+  (pango_attr_list_insert double-attrs (pango_attr_underline_new PANGO_UNDERLINE_DOUBLE))
+  
+  (define delete-attrs (pango_attr_list_new))
+  (pango_attr_list_insert delete-attrs (pango_attr_strikethrough_new #true))
+  
+  (benchmark cairo-text-polygon "Using Pango with Cairo to Draw Regular Polygon" 150 context "Courier" 700 double-attrs)
+  (benchmark cairo-text-polygon "Test Global Cairo Context and Pango Layout" 100 context "Helvetica Neue" 100 delete-attrs)
+  (benchmark cairo-paragraph))
+  

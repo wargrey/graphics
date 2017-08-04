@@ -63,18 +63,24 @@
 (define-cairo cairo_mesh_pattern_set_corner_color_rgba (_cfun _cairo_pattern_t _uint _double* _double* _double* _double* -> _void))
 (define-cairo cairo_mesh_pattern_end_patch (_cfun _cairo_pattern_t -> _void))
 
+(define-cairo cairo_surface_write_to_png (_cfun _cairo_surface_t _path -> _int))
+(define-cairo cairo_format_stride_for_width (_fun _int _int -> _int))
+(define-cairo cairo_image_surface_create_for_data (_cfun _bytes _int _int _int _int -> _cairo_surface_t)
+  #:wrap (allocator cairo_surface_destroy))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-create-argb-image
   (lambda [flwidth flheight density scale?]
-    (define surface
-      (cairo_image_surface_create CAIRO_FORMAT_ARGB32
-                                  (unsafe-fxmax (~fx (unsafe-fl* flwidth density)) 1)
-                                  (unsafe-fxmax (~fx (unsafe-fl* flheight density)) 1)))
+    (define width (unsafe-fxmax (~fx (unsafe-fl* flwidth density)) 1))
+    (define height (unsafe-fxmax (~fx (unsafe-fl* flheight density)) 1))
+    (define stride (cairo_format_stride_for_width CAIRO_FORMAT_ARGB32 width))
+    (define pixman (make-bytes (unsafe-fx* height stride)))
+    (define surface (cairo_image_surface_create_for_data pixman CAIRO_FORMAT_ARGB32 width height stride))
     
     (define cr (cairo_create surface))
     (unless (or (not scale?) (unsafe-fl= density 1.0))
       (cairo_scale cr density density))
-    (values surface cr)))
+    (values pixman surface cr)))
 
 (define make-cairo-image
   (lambda [flwidth flheight density scale?]
@@ -156,4 +162,4 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (A R G B) (if (system-big-endian?) (values 0 1 2 3) (values 3 2 1 0)))
 (define-values (-pi/2 pi/2 3pi/2 2pi) (values (~radian -90.0) (~radian 90.0) (~radian 270.0) (unsafe-fl* pi 2.0)))
-(define-values (the-surface the-cairo) (cairo-create-argb-image 1.0 1.0 1.0 #false))
+(define-values (the-pixman the-surface the-cairo) (cairo-create-argb-image 1.0 1.0 1.0 #false))
