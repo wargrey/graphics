@@ -1,7 +1,7 @@
 #lang info
 
 (define collection 'multi)
-(define pkg-desc "A CSS Engine written in pure Typed Racket")
+(define pkg-desc "Essential Computer Graphics for Typed Racket")
 (define pkg-authors '(wargrey))
 
 (define version "1.0")
