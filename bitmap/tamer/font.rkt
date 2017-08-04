@@ -22,4 +22,4 @@
 (bitmap-vr-append* #:gapsize 16.0
                    (for/list : (Listof Bitmap) ([family (in-list css-font-generic-families)])
                      (define font (desc-font #:family family))
-                     (bitmap-text* (format "~a[~a]: Sphinx" (font-face->family (font-face font)) (font-face font)) font)))
+                     (bitmap-text* (format "~a[~a]: Sphinx" (font-face->family (Font-face font)) (Font-face font)) font)))
