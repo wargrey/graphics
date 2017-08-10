@@ -2,7 +2,6 @@
 
 (provide (all-defined-out))
 
-(require "draw.rkt")
 (require "digitama/unsafe/convert.rkt")
 (require "digitama/unsafe/effect.rkt")
 

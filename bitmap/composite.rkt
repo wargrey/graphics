@@ -3,12 +3,10 @@
 (provide (except-out (all-defined-out) make-append make-append* make-superimpose))
 (provide (rename-out [bitmap-pin-over bitmap-pin]))
 
-(require "draw.rkt")
 (require "constructor.rkt")
-
 (require "digitama/composite.rkt")
-(require "digitama/unsafe/convert.rkt")
 (require "digitama/unsafe/composite.rkt")
+(require "digitama/unsafe/convert.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-composite : (->* (Bitmap Real Real Bitmap) (Symbol Real Real) Bitmap)

@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require "misc.rkt")
-(require "../draw.rkt")
 (require "unsafe/font.rkt")
 
 ;;; https://drafts.csswg.org/css-fonts

@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out) Bitmap-Surface bitmap-surface?)
+(provide (all-from-out racket/fixnum racket/flonum))
 (provide (rename-out [Bitmap<%>-surface bitmap-surface]))
 (provide (rename-out [Bitmap-density bitmap-density]))
 (provide (rename-out [Bitmap-width bitmap-width]))

@@ -4,7 +4,7 @@
 
 (require "color.rkt")
 
-(require "draw.rkt")
+(require "digitama/base.rkt")
 (require "digitama/paint.rkt")
 
 ;;; https://svgwg.org/svg2-draft/painting.html

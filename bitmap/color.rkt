@@ -4,13 +4,13 @@
 (provide (struct-out rgba) (struct-out FlColor) FlRGBA Color)
 (provide transparent hilite black)
 
-(require (for-syntax racket/base))
-(require (for-syntax racket/syntax))
-
 (require colorspace)
 
-(require "draw.rkt")
+(require "digitama/base.rkt")
 (require "digitama/color.rkt")
+
+(require (for-syntax racket/base))
+(require (for-syntax racket/syntax))
 
 (define-syntax (define-color-space stx)
   (syntax-case stx [:]

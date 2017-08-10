@@ -2,8 +2,8 @@
 
 (require typed/racket/unsafe)
 
-(require "../draw.rkt")
 (require "../effect.rkt")
+(require "../digitama/base.rkt")
 (require "../digitama/unsafe/convert.rkt")
 
 (unsafe-require/typed

@@ -2,12 +2,13 @@
 
 (provide (all-defined-out))
 
-(require "../../draw.rkt")
 (require "../../constructor.rkt")
 (require "../../font.rkt")
+(require "../../stdio.rkt")
 
-(require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/base.rkt")
 (require "../../digitama/unsafe/convert.rkt")
+(require "../../digitama/unsafe/pangocairo.rkt")
 (require (only-in (submod "../../digitama/unsafe/font.rkt" unsafe) bitmap_create_font_desc))
 
 (define (cairo_text_polygon words radius context font-face font-weight font-attrs)

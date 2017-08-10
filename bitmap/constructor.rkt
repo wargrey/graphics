@@ -2,9 +2,9 @@
 
 (provide (all-defined-out))
 
-(require "draw.rkt")
 (require "font.rkt")
 
+(require "digitama/base.rkt")
 (require "digitama/font.rkt")
 (require "digitama/source.rkt")
 

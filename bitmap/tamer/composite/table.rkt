@@ -1,10 +1,10 @@
 #lang typed/racket
 
-(require "../../draw.rkt")
 (require "../../constructor.rkt")
 (require "../../composite.rkt")
 (require "../../font.rkt")
 (require "../../color.rkt")
+
 (require "../../digitama/unsafe/convert.rkt")
 
 (define examples : (Listof Bitmap)

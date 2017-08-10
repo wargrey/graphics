@@ -2,9 +2,9 @@
 
 (provide (all-defined-out))
 
-(require "../../draw.rkt")
-(require "require.rkt")
+(require "../base.rkt")
 (require "convert.rkt")
+(require "require.rkt")
 
 (define-type Bitmap-Source (U Bitmap-Surface Bitmap-Pattern FlRGBA))
 (define-type Bitmap-FlSize*

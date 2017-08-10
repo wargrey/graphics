@@ -4,7 +4,7 @@
 (provide list-font-families list-font-faces)
 (provide list-monospace-font-families list-monospace-font-faces)
 
-(require "draw.rkt")
+(require "digitama/base.rkt")
 (require "digitama/font.rkt")
 (require "digitama/unsafe/font.rkt")
 

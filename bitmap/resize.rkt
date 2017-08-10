@@ -2,10 +2,9 @@
 
 (provide (all-defined-out))
 
-(require "draw.rkt")
 (require "digitama/resize.rkt")
-(require "digitama/unsafe/convert.rkt")
 (require "digitama/unsafe/resize.rkt")
+(require "digitama/unsafe/convert.rkt")
 
 (define bitmap-section : (-> Bitmap Real Real Nonnegative-Real Nonnegative-Real Bitmap)
   (lambda [bmp x y width height]

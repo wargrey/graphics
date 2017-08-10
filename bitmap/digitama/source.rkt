@@ -4,9 +4,9 @@
 (provide (all-from-out "../paint.rkt"))
 (provide (all-from-out "../color.rkt"))
 
-(require "unsafe/convert.rkt")
+(require "base.rkt")
 (require "unsafe/source.rkt")
-(require "../draw.rkt")
+(require "unsafe/convert.rkt")
 (require "../paint.rkt")
 (require "../color.rkt")
 

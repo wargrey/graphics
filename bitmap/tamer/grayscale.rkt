@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(require "../draw.rkt")
+(require "../stdio.rkt")
 (require "../effect.rkt")
 
 (define romedalen (read-bitmap (collection-file-path "romedalen.png" "bitmap" "tamer" "cairo") #:backing-scale 2.0))

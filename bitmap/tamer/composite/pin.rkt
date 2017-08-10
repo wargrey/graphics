@@ -1,12 +1,11 @@
 #lang typed/racket
 
-(require "../../draw.rkt")
 (require "../../constructor.rkt")
 (require "../../composite.rkt")
 (require "../../paint.rkt")
 (require "../../color.rkt")
 (require "../../constants.rkt")
-(require "../../digitama/unsafe/convert.rkt")
+(require "../../digitama/base.rkt")
 
 (define-values (diameter alpha) (values 192 1/3))
 (default-stroke (desc-stroke long-dash #:width 4 #:opacity alpha #:cap 'round))

@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../../draw.rkt")
+(require "../base.rkt")
 (require "convert.rkt")
 (require "source.rkt")
 (require "font.rkt")

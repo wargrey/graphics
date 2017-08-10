@@ -1,14 +1,13 @@
 #lang typed/racket
 
-(require "../draw.rkt")
 (require "../constructor.rkt")
 (require "../composite.rkt")
 (require "../constants.rkt")
 (require "../paint.rkt")
 (require "../font.rkt")
 
-(require "../digitama/font.rkt")
 (require "../digitama/unsafe/convert.rkt")
+(require "../digitama/font.rkt")
 
 (default-border (desc-stroke long-dash #:color 'gray #:width 1))
 

@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "draw.rkt")
+(require "digitama/base.rkt")
 (require "color.rkt")
 (require "paint.rkt")
 (require "font.rkt")

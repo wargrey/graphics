@@ -2,7 +2,6 @@
 
 (provide (all-defined-out))
 
-(require "../../draw.rkt")
 (require "convert.rkt")
 (require "require.rkt")
 
