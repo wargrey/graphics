@@ -13,8 +13,8 @@
 
 (time (bitmap-rectangular 100 100 build-flomap* #:density 1.00))
 (time (bitmap-rectangular 100 100 build-flomap* #:density 1.75))
-(define plane (time (bitmap-rectangular 100 100 build-flomap* #:density 2.00)))
 
+(define plane (time (bitmap-rectangular 100 100 build-flomap* #:density 2.00)))
 (bitmap-copy plane)
 (bitmap-inset plane 16.0 16.0 -16.0 -16.0)
 (bitmap-scale plane 2.0 1.0)

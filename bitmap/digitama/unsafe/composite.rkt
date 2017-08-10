@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require "../../draw.rkt")
-(require "draw.rkt")
+(require "convert.rkt")
 (require "require.rkt")
 
 (module unsafe racket/base
@@ -14,10 +14,11 @@
   
   (require "pangocairo.rkt")
   (require "paint.rkt")
+  (require (submod "convert.rkt" unsafe))
   
   (define (bitmap_composite operator sfc1 sfc2 dx dy density)
-    (define-values (w1 h1) (cairo-image-size sfc1 density))
-    (define-values (w2 h2) (cairo-image-size sfc2 density))
+    (define-values (w1 h1) (cairo-surface-size sfc1 density))
+    (define-values (w2 h2) (cairo-surface-size sfc2 density))
     (define-values (dx1 dy1) (values (unsafe-flmax (unsafe-fl- 0.0 dx) 0.0) (unsafe-flmax (unsafe-fl- 0.0 dy) 0.0)))
     (define-values (dx2 dy2) (values (unsafe-flmax dx 0.0) (unsafe-flmax dy 0.0)))
     (define-values (img cr)
@@ -30,22 +31,22 @@
     img)
 
   (define (bitmap_pin x1% y1% x2% y2% sfc1 sfc2 density)
-    (define-values (w1 h1) (cairo-image-size sfc1 density))
-    (define-values (w2 h2) (cairo-image-size sfc2 density))
+    (define-values (w1 h1) (cairo-surface-size sfc1 density))
+    (define-values (w2 h2) (cairo-surface-size sfc2 density))
     (bitmap_composite CAIRO_OPERATOR_OVER sfc1 sfc2
                       (unsafe-fl- (unsafe-fl* x1% w1) (unsafe-fl* x2% w2))
                       (unsafe-fl- (unsafe-fl* y1% h1) (unsafe-fl* y2% h2))
                       density))
   
   (define (bitmap_pin* x1% y1% x2% y2% sfc1 sfcs density)
-    (define-values (min-width min-height) (cairo-image-size sfc1 density))
+    (define-values (min-width min-height) (cairo-surface-size sfc1 density))
     (define-values (flwidth flheight all)
       (let compose ([width min-width] [height min-height] [lla (list (vector sfc1 0.0 0.0 min-width min-height))]
                                       [dx 0.0] [dy 0.0]  ; offsets passed to (bitmap_composite), also see (flomap-pin*)
                                       [width1 min-width] [height1 min-height] [children sfcs])
         (cond [(null? children) (values width height (reverse lla))]
               [else (let ([sfc2 (unsafe-car children)])
-                      (define-values (width2 height2) (cairo-image-size sfc2 density))
+                      (define-values (width2 height2) (cairo-surface-size sfc2 density))
                       (define nx (unsafe-fl+ dx (unsafe-fl- (unsafe-fl* width1 x1%) (unsafe-fl* width2 x2%))))
                       (define ny (unsafe-fl+ dy (unsafe-fl- (unsafe-fl* height1 y1%) (unsafe-fl* height2 y2%))))
                       (define-values (xoff1 yoff1) (values (unsafe-flmax (unsafe-fl- 0.0 nx) 0.0) (unsafe-flmax (unsafe-fl- 0.0 ny) 0.0)))
@@ -68,12 +69,12 @@
     bmp)
 
   (define (bitmap_append alignment base others gapsize density) ; slight but more efficient than (bitmap_pin*)
-    (define-values (min-width min-height) (cairo-image-size base density))
+    (define-values (min-width min-height) (cairo-surface-size base density))
     (define-values (flwidth flheight lla)
       (let compose ([width min-width] [height min-height] [lla (list (vector base min-width min-height))] [children others])
         (cond [(null? children) (values width height lla)]
               [else (let-values ([(child rest) (values (unsafe-car children) (unsafe-cdr children))])
-                      (define-values (chwidth chheight) (cairo-image-size child density))
+                      (define-values (chwidth chheight) (cairo-surface-size child density))
                       (define ++ (unsafe-cons-list (vector child chwidth chheight) lla))
                       (case alignment
                         [(vl vc vr) (compose (unsafe-flmax width chwidth) (unsafe-fl+ gapsize (unsafe-fl+ height chheight)) ++ rest)]
@@ -105,7 +106,7 @@
       (let compose ([width 0.0] [height 0.0] [sreyal null] [sfcs sfcs])
         (cond [(null? sfcs) (values width height sreyal)]
               [else (let ([sfc (unsafe-car sfcs)])
-                      (define-values (w h) (cairo-image-size sfc density))
+                      (define-values (w h) (cairo-surface-size sfc density))
                       (values (unsafe-flmax width w) (unsafe-flmax height h)
                               (unsafe-cons-list (cons bmp (make-layer alignment w h)) sreyal)))])))
     
@@ -205,7 +206,7 @@
 
   (define (list->table sfcs nrows ncols density)
     (define cells (for/vector ([sfc (in-list sfcs)])
-                    (define-values (w h) (cairo-image-size sfc density))
+                    (define-values (w h) (cairo-surface-size sfc density))
                     (vector sfc w h)))
     (define diff (unsafe-fx- (unsafe-fx* nrows ncols) (unsafe-vector-length cells)))
     (cond [(unsafe-fx<= diff 0) cells]

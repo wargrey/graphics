@@ -8,7 +8,7 @@
 (require "digitama/font.rkt")
 (require "digitama/source.rkt")
 
-(require "digitama/unsafe/draw.rkt")
+(require "digitama/unsafe/convert.rkt")
 (require "digitama/unsafe/image.rkt")
 (require "digitama/unsafe/shape.rkt")
 (require "digitama/unsafe/text.rkt")

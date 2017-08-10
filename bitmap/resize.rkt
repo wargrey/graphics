@@ -4,7 +4,7 @@
 
 (require "draw.rkt")
 (require "digitama/resize.rkt")
-(require "digitama/unsafe/draw.rkt")
+(require "digitama/unsafe/convert.rkt")
 (require "digitama/unsafe/resize.rkt")
 
 (define bitmap-section : (-> Bitmap Real Real Nonnegative-Real Nonnegative-Real Bitmap)
@@ -54,18 +54,16 @@
     [(bmp top right bottom left)
      (define-values (flleft flright) (values (real->double-flonum left) (real->double-flonum right)))
      (define-values (fltop flbottom) (values (real->double-flonum top) (real->double-flonum bottom)))
-     (bitmap_section (bitmap-surface bmp) (- flleft) (- fltop)
-                     (fl+ (fx->fl (send bmp get-width)) (fl+ flright flleft))
-                     (fl+ (fx->fl (send bmp get-height)) (fl+ flbottom fltop))
-                     (bitmap-density bmp))]))
+     (define-values (flwidth flheight density) (bitmap-flsize+density bmp))
+     (bitmap_section (bitmap-surface bmp) (fl- 0.0 flleft) (fl- 0.0 fltop)
+                     (fl+ flwidth (fl+ flright flleft)) (fl+ flheight (fl+ flbottom fltop))
+                     density)]))
 
 (define-cropper bitmap-crop : (-> Bitmap Positive-Real Positive-Real Bitmap)
   (#:lambda [bmp width height left% top%]
-    (define-values (W H) (values (fx->fl (send bmp get-width)) (fx->fl (send bmp get-height))))
+    (define-values (W H density) (bitmap-flsize+density bmp))
     (define-values (w h) (values (flmin W (real->double-flonum width)) (flmin H (real->double-flonum height))))
-    (bitmap_section (bitmap-surface bmp)
-                    (fl* (fl- W w) left%) (fl* (fl- H h) top%) w h
-                    (bitmap-density bmp)))
+    (bitmap_section (bitmap-surface bmp) (fl* (fl- W w) left%) (fl* (fl- H h) top%) w h density))
   #:with ("bitmap-~a-crop" [lt 0.0 0.0] [lc 0.0 0.5] [lb 0.0 1.0]
                            [ct 0.5 0.0] [cc 0.5 0.5] [cb 0.5 1.0]
                            [rt 1.0 0.0] [rc 1.0 0.5] [rb 1.0 1.0]))
@@ -86,11 +84,11 @@
   (case-lambda
     [(bmp refer)
      (if (not (real? refer))
-         (bitmap-resize bmp (send refer get-width) (send refer get-height))
+         (bitmap-resize bmp (bitmap-width refer) (bitmap-height refer))
          (bitmap-scale bmp (fl/ (real->double-flonum refer)
-                                (fx->fl (fxmin (send bmp get-width)
-                                               (send bmp get-height))))))]
+                                (fx->fl (fxmin (bitmap-width bmp)
+                                               (bitmap-height bmp))))))]
     [(bmp w h)
      (bitmap-scale bmp
-                   (fl/ (real->double-flonum w) (fx->fl (send bmp get-width)))
-                   (fl/ (real->double-flonum h) (fx->fl (send bmp get-height))))]))
+                   (fl/ (real->double-flonum w) (fx->fl (bitmap-width bmp)))
+                   (fl/ (real->double-flonum h) (fx->fl (bitmap-height bmp))))]))

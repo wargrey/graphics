@@ -2,14 +2,14 @@
 
 (provide (all-defined-out))
 
-(require "../../draw.rkt")
-(require "draw.rkt")
+(require "convert.rkt")
 (require "require.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
+  (require (submod "convert.rkt" unsafe))
   
   (define (bitmap_section src x y width height density)
     (define-values (img cr) (make-cairo-image width height density #false))
@@ -19,7 +19,7 @@
     img)
 
   (define (bitmap_scale src xscale yscale density)
-    (define-values (width height) (cairo-image-size src density))
+    (define-values (width height) (cairo-surface-size src density))
     (define flwidth (unsafe-fl* width (unsafe-flabs xscale)))
     (define flheight (unsafe-fl* height (unsafe-flabs yscale)))
     (define-values (img cr) (make-cairo-image flwidth flheight density #false))

@@ -4,6 +4,7 @@
 
 (require "../draw.rkt")
 (require "../effect.rkt")
+(require "../digitama/unsafe/convert.rkt")
 
 (unsafe-require/typed
  "cairo/mesh.rkt"

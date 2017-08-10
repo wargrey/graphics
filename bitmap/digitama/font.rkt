@@ -72,16 +72,15 @@
                  (select (cdr families))))))))
 
 (define face-filter : (-> String (Option String))
-  (let ([&faces : (Boxof (Option (HashTable String String))) (box #false)]
-        [&all-faces : (Boxof (Option (HashTable String String))) (box #false)])
+  (let ([&families : (Boxof (Option (HashTable String String))) (box #false)]
+        [&faces : (Boxof (Option (HashTable String String))) (box #false)])
     (lambda [face]
-      (define-values (&face-list all?) (if (regexp-match #rx"," face) (values &all-faces #true) (values &faces #false)))
+      (define-values (&pool ls) (if (regexp-match? #rx"," face) (values &faces list-font-faces) (values &families list-font-families)))
       (define the-face-set : (HashTable String String)
-        (or (unbox &face-list)
-            (let ([the-set (for/hash : (HashTable String String)
-                             ([face (in-list (get-face-list #:all-variants? all?))])
+        (or (unbox &pool)
+            (let ([the-set (for/hash : (HashTable String String) ([face (in-list (ls))])
                              (values (string-downcase face) face))])
-              (set-box! &face-list the-set)
+              (set-box! &pool the-set)
               the-set)))
       (hash-ref the-face-set (string-downcase face) (λ _ #false)))))
 

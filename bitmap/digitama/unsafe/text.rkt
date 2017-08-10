@@ -3,7 +3,9 @@
 (provide (all-defined-out))
 
 (require "../../draw.rkt")
-(require "draw.rkt")
+(require "convert.rkt")
+(require "source.rkt")
+(require "font.rkt")
 (require "require.rkt")
 
 (module unsafe racket/base

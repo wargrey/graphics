@@ -7,19 +7,12 @@
 (require "../../font.rkt")
 
 (require "../../digitama/unsafe/pangocairo.rkt")
-(require (submod "../../digitama/unsafe/font.rkt" unsafe))
+(require "../../digitama/unsafe/convert.rkt")
+(require (only-in (submod "../../digitama/unsafe/font.rkt" unsafe) bitmap_create_font_desc))
 
-(require racket/draw/unsafe/bstr)
-
-(define (save-image s out)
-  (let ([proc (lambda (ignored bstr len)
-                (write-bytes (scheme_make_sized_byte_string bstr len 0) out)
-                CAIRO_STATUS_SUCCESS)])
-    (cairo_surface_write_to_png_stream s proc)))
-
-(define (cairo_text_polygon make-image words radius context font-face font-weight font-attrs)
+(define (cairo_text_polygon words radius context font-face font-weight font-attrs)
   (define-values (width height) (values (* 2.0 radius) (* 2.0 radius)))
-  (define-values (data sfs cr) (make-image width height density #true))
+  (define-values (bmp cr) (make-cairo-image width height density #true))
   (define (draw-text-circle cr context words)
     (define layout (pango_layout_new context))
     (when font-attrs (pango_layout_set_attributes layout font-attrs))
@@ -65,14 +58,13 @@
   (pango_font_description_free desc)
   (cairo_destroy cr)
   (cairo_pattern_destroy brush)
-  (values data (cairo_image_surface_get_width sfs) (cairo_image_surface_get_height sfs) (cairo_image_surface_get_stride sfs)))
+  bmp)
 
 (define (cairo-text-polygon words radius context font-face font-weight font-attrs)
-  (define-values (data w h s) (cairo_text_polygon cairo-create-argb-image words radius context font-face font-weight font-attrs))
+  (define bmp (cairo_text_polygon words radius context font-face font-weight font-attrs))
   (define temp.png (make-temporary-file))
-  (define sfs (cairo_image_surface_create_for_data data CAIRO_FORMAT_ARGB32 w h s))
   (displayln temp.png)
-  (cairo_surface_write_to_png sfs temp.png)
+  (cairo_surface_write_to_png (bitmap-surface bmp) temp.png)
   (read-bitmap temp.png #:backing-scale density))
 
 (define (cairo-paragraph)

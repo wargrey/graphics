@@ -8,10 +8,10 @@
 
 (define-syntax (unsafe/require/provide stx)
   (syntax-case stx [:]
+    [(_ modpath [#:opaque [PType pid?] ...] [id Type] ...)
+     #'(begin (provide PType pid?) ...
+              (unsafe-require/typed modpath [#:opaque PType pid?]) ...
+              (unsafe/require/provide modpath [id Type] ...))]
     [(_ modpath [id Type] ...)
      #'(begin (provide id ...)
-              (unsafe-require/typed modpath [id Type] ...))]
-    [(_ modpath [#:opaque [Predicate predicate] ...] [id Type] ...)
-     #'(begin (provide Predicate predicate) ...
-              (unsafe-require/typed modpath [#:opaque Predicate predicate] ...)
-              (unsafe/require/provide modpath [id Type] ...))]))
+              (unsafe-require/typed modpath [id Type] ...))]))

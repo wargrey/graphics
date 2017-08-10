@@ -1,12 +1,11 @@
 #lang typed/racket/base
 
 (provide (all-defined-out) font-family->face)
-(provide (rename-out [get-face-list list-font-faces]))
+(provide list-font-families list-font-faces)
+(provide list-monospace-font-families list-monospace-font-faces)
 
 (require "draw.rkt")
 (require "digitama/font.rkt")
-
-(require "digitama/unsafe/draw.rkt")
 (require "digitama/unsafe/font.rkt")
 
 (struct Font

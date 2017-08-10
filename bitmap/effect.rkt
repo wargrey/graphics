@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require "draw.rkt")
-(require "digitama/unsafe/draw.rkt")
+(require "digitama/unsafe/convert.rkt")
 (require "digitama/unsafe/effect.rkt")
 
 (define bitmap-cellophane : (-> Bitmap Nonnegative-Real Bitmap)

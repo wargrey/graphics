@@ -6,6 +6,7 @@
 
 (require "../draw.rkt")
 (require "../misc.rkt")
+(require "../digitama/unsafe/convert.rkt")
 
 (unsafe-require/typed
  "cairo/gradient.rkt"

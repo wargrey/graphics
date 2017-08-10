@@ -4,7 +4,8 @@
 (provide (all-from-out "../paint.rkt"))
 (provide (all-from-out "../color.rkt"))
 
-(require "unsafe/draw.rkt")
+(require "unsafe/convert.rkt")
+(require "unsafe/source.rkt")
 (require "../draw.rkt")
 (require "../paint.rkt")
 (require "../color.rkt")
@@ -24,7 +25,7 @@
 
 (define fill-paint->source : (-> Fill-Paint Bitmap-Source)
   (lambda [paint]
-    (cond [(bitmap%? paint) (bitmap-surface paint)]
+    (cond [(bitmap? paint) (bitmap-surface paint)]
           [(bitmap-pattern? paint) paint]
           [else (rgb* paint)])))
 

@@ -1,6 +1,6 @@
 #lang racket/base
 
-(provide (all-defined-out) bitmap% make-bitmap make-object send is-a? pi nan? infinite? sgn)
+(provide (all-defined-out) create-bitmap pi nan? infinite? sgn)
 (provide (all-from-out racket/draw/unsafe/cairo racket/draw/unsafe/pango))
 (provide (all-from-out ffi/unsafe racket/unsafe/ops))
 
@@ -13,9 +13,8 @@
 (require racket/draw/unsafe/cairo)
 (require racket/draw/unsafe/cairo-lib)
 
-(require (only-in racket/draw/private/bitmap bitmap% make-bitmap))
-(require (only-in racket/class make-object send is-a?))
 (require (only-in racket/math pi nan? infinite? sgn))
+(require "convert.rkt")
 
 (define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 (define-syntax-rule (_pfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
@@ -52,8 +51,10 @@
 
 (define-cairo cairo_version (_cfun -> _int))
 (define-cairo cairo_version_string (_cfun -> _string))
+(define-cairo cairo_status_to_string (_cfun _int -> _string))
 (define-cairo cairo_new_sub_path (_cfun _cairo_t -> _void))
 (define-cairo cairo_set_miter_limit (_cfun _cairo_t _double* -> _void))
+(define-cairo cairo_surface_write_to_png (_cfun _cairo_surface_t _path -> _int))
 (define-cairo cairo_pattern_create_mesh (_cfun -> _cairo_pattern_t) #:wrap (allocator cairo_pattern_destroy))
 (define-cairo cairo_mesh_pattern_begin_patch (_cfun _cairo_pattern_t -> _void))
 (define-cairo cairo_mesh_pattern_move_to (_cfun _cairo_pattern_t _double* _double* -> _void))
@@ -63,38 +64,44 @@
 (define-cairo cairo_mesh_pattern_set_corner_color_rgba (_cfun _cairo_pattern_t _uint _double* _double* _double* _double* -> _void))
 (define-cairo cairo_mesh_pattern_end_patch (_cfun _cairo_pattern_t -> _void))
 
-(define-cairo cairo_surface_write_to_png (_cfun _cairo_surface_t _path -> _int))
-(define-cairo cairo_format_stride_for_width (_fun _int _int -> _int))
-(define-cairo cairo_image_surface_create_for_data (_cfun _bytes _int _int _int _int -> _cairo_surface_t)
-  #:wrap (allocator cairo_surface_destroy))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-create-argb-image
   (lambda [flwidth flheight density scale?]
+    (define-values (surface cr width height) (cairo-create-argb-image* flwidth flheight density scale?))
+    (values surface cr)))
+
+(define cairo-create-argb-image*
+  (lambda [flwidth flheight density scale?]
     (define width (unsafe-fxmax (~fx (unsafe-fl* flwidth density)) 1))
     (define height (unsafe-fxmax (~fx (unsafe-fl* flheight density)) 1))
-    (define stride (cairo_format_stride_for_width CAIRO_FORMAT_ARGB32 width))
-    (define pixman (make-bytes (unsafe-fx* height stride)))
-    (define surface (cairo_image_surface_create_for_data pixman CAIRO_FORMAT_ARGB32 width height stride))
+    (define surface (cairo_image_surface_create CAIRO_FORMAT_ARGB32 width height))
+    (define status (cairo_surface_status surface))
+
+    (unless (unsafe-fx= status CAIRO_STATUS_SUCCESS)
+      (raise-arguments-error (or (let use-next-id ([stacks (reverse (continuation-mark-set->context (current-continuation-marks)))])
+                                   (and (pair? stacks)
+                                        (let ([stack (unsafe-car (unsafe-car stacks))])
+                                          (or (and (symbol? stack)
+                                                   (let ([$stack (symbol->string stack)])
+                                                     (and (unsafe-fx> (string-length $stack) 6)
+                                                          (string=? (substring $stack 0 6) "bitmap")))
+                                                   stack)
+                                              (use-next-id (unsafe-cdr stacks))))))
+                                 'make-image)
+                             (cairo_status_to_string status)
+                             "width" flwidth "height" flheight
+                             "density" density))
     
     (define cr (cairo_create surface))
     (unless (or (not scale?) (unsafe-fl= density 1.0))
       (cairo_scale cr density density))
-    (values pixman surface cr)))
+    (values surface cr width height)))
 
 (define make-cairo-image
   (lambda [flwidth flheight density scale?]
-    (define-values (width height) (values (unsafe-fxmax (~fx flwidth) 1) (unsafe-fxmax (~fx flheight) 1)))
-    (define img (make-bitmap width height #:backing-scale density))
-    (define surface (send img get-handle))
-    (when (not surface)
-      (raise-arguments-error 'make-cairo-image "image is too big"
-                             "width" flwidth "height" flheight
-                             "density" density))
-    (define cr (cairo_create surface))
-    (unless (or (not scale?) (unsafe-fl= density 1.0))
-      (cairo_scale cr density density))
-    (values img cr)))
+    (define-values (surface cr width height) (cairo-create-argb-image* flwidth flheight density scale?))
+    (values (create-bitmap surface width height density)
+            cr)))
 
 (define make-cairo-image*
   (lambda [flwidth flheight background density scale?]
@@ -113,24 +120,6 @@
                                   (unsafe-struct*-ref src 3))]
           [(eq? (cpointer-tag src) 'cairo_pattern_t) (cairo_set_source cr src)]
           [else (cairo_set_source_surface cr src 0.0 0.0)])))
-
-(define cairo-image-size
-  (lambda [src density]
-    (values (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_width src)) density)
-            (unsafe-fl/ (unsafe-fx->fl (cairo_image_surface_get_height src)) density))))
-
-(define cairo-surface-data
-  (lambda [src]
-    (define data (cairo_image_surface_get_data src))
-    (values data (unsafe-bytes-length data))))
-
-(define cairo-surface-metrics
-  (lambda [src components]
-    (define-values (data total) (cairo-surface-data src))
-    (define stride (cairo_image_surface_get_stride src))
-    (values data total stride
-            (unsafe-fxquotient stride components)
-            (unsafe-fxquotient total stride))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ~fx
@@ -162,4 +151,4 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (A R G B) (if (system-big-endian?) (values 0 1 2 3) (values 3 2 1 0)))
 (define-values (-pi/2 pi/2 3pi/2 2pi) (values (~radian -90.0) (~radian 90.0) (~radian 270.0) (unsafe-fl* pi 2.0)))
-(define-values (the-pixman the-surface the-cairo) (cairo-create-argb-image 1.0 1.0 1.0 #false))
+(define-values (the-surface the-cairo) (cairo-create-argb-image 1.0 1.0 1.0 #false))

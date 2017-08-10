@@ -7,12 +7,10 @@
 (require "constructor.rkt")
 
 (require "digitama/composite.rkt")
-(require "digitama/unsafe/draw.rkt")
+(require "digitama/unsafe/convert.rkt")
 (require "digitama/unsafe/composite.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require (only-in typed/racket/draw bitmap-dc% Bitmap-DC%))
-
 (define bitmap-composite : (->* (Bitmap Real Real Bitmap) (Symbol Real Real) Bitmap)
   (lambda [bmp1 x1 y1 bmp2 [op 'over] [x2 0.0] [y2 0.0]]
     (bitmap_composite (or (bitmap-operator->integer op) (bitmap-operator->integer 'over))
