@@ -47,13 +47,13 @@
   (define (cairo-surface-shadow sfs)
     (make-phantom-bytes (bytes-length (cairo_image_surface_get_data sfs))))
 
-  (define (cairo-surface->png-bytes s)
+  (define (cairo-surface->png-bytes sfs)
     (define /dev/pngout (open-output-bytes '/dev/pngout))
     (define (do-write ignored bstr len)
       (write-bytes (scheme_make_sized_byte_string bstr len 0) /dev/pngout)
       CAIRO_STATUS_SUCCESS)
     (start-breakable-atomic)
-    (cairo_surface_write_to_png_stream s do-write)
+    (cairo_surface_write_to_png_stream sfs do-write)
     (end-breakable-atomic)
     (get-output-bytes /dev/pngout)))
 
