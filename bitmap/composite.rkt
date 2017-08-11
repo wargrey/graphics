@@ -13,8 +13,8 @@
   (lambda [bmp1 x1 y1 bmp2 [op 'over] [x2 0.0] [y2 0.0]]
     (bitmap_composite (or (bitmap-operator->integer op) (bitmap-operator->integer 'over))
                       (bitmap-surface bmp1) (bitmap-surface bmp2)
-                      (fl- (real->double-flonum x1) (real->double-flonum x2))
-                      (fl- (real->double-flonum y1) (real->double-flonum y2))
+                      (- (real->double-flonum x1) (real->double-flonum x2))
+                      (- (real->double-flonum y1) (real->double-flonum y2))
                       (bitmap-density bmp1))))
 
 (define bitmap-pin-over : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
@@ -94,7 +94,7 @@
   (lambda [ncols bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
     (cond [(or (<= ncols 0) (null? bitmaps)) (bitmap-blank)]
           [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols)])
-                  (define nrows : Nonnegative-Fixnum (fx+ maybe-nrows (sgn extra-ncols)))
+                  (define nrows : Nonnegative-Fixnum (+ maybe-nrows (sgn extra-ncols)))
                   (bitmap_table (map bitmap-surface bitmaps) ncols nrows
                                 (if (null? col-aligns) '(cc) col-aligns)
                                 (if (null? row-aligns) '(cc) row-aligns)

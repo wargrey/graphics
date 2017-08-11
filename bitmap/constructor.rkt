@@ -13,6 +13,7 @@
 (require "digitama/unsafe/shape.rkt")
 (require "digitama/unsafe/text.rkt")
 
+(require racket/math)
 (require racket/string)
 
 (define bitmap-rectangular : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
@@ -122,7 +123,7 @@
 (define bitmap-ellipse : (->* (Real) (Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:density Positive-Flonum) Bitmap)
   (lambda [width [height #false] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
     (if (or (not height) (= width height))
-        (bitmap_circle (fl/ (real->double-flonum width) 2.0) (stroke-paint->source* border) (fill-paint->source* pattern) density)
+        (bitmap_circle (/ (real->double-flonum width) 2.0) (stroke-paint->source* border) (fill-paint->source* pattern) density)
         (bitmap_ellipse (real->double-flonum width) (real->double-flonum height)
                         (stroke-paint->source* border) (fill-paint->source* pattern) density))))
 

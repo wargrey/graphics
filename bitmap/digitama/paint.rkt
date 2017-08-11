@@ -2,10 +2,9 @@
 
 (provide (all-defined-out))
 
-(require racket/flonum)
 (require typed/racket/unsafe)
 
-(require "misc.rkt")
+(require "enumeration.rkt")
 
 (unsafe-provide (rename-out [line-cap->integer linecap->integer]))
 (unsafe-provide (rename-out [line-join->integer linejoin->integer]))
@@ -17,10 +16,10 @@
 
 (define-enumeration* stroke-dash-style #:as Stroke-Dash-Style 
   line-dash->array #:-> [linewidth Nonnegative-Flonum] (Values Flonum (Vectorof Nonnegative-Flonum))
-  [(dot)        (values (fl* 2.0 linewidth) (dasharray-normalize #(0.1 2.0) linewidth))]
-  [(dot-dash)   (values (fl* 4.0 linewidth) (dasharray-normalize #(0.1 2.0 4.0 2.0) linewidth))]
-  [(short-dash) (values (fl* 2.0 linewidth) (dasharray-normalize #(2.0 2.0) linewidth))]
-  [(long-dash)  (values (fl* 2.0 linewidth) (dasharray-normalize #(4.0 2.0) linewidth))]
+  [(dot)        (values (* 2.0 linewidth) (dasharray-normalize #(0.1 2.0) linewidth))]
+  [(dot-dash)   (values (* 4.0 linewidth) (dasharray-normalize #(0.1 2.0 4.0 2.0) linewidth))]
+  [(short-dash) (values (* 2.0 linewidth) (dasharray-normalize #(2.0 2.0) linewidth))]
+  [(long-dash)  (values (* 2.0 linewidth) (dasharray-normalize #(4.0 2.0) linewidth))]
   [(solid)      (values 0.0 solid-dash)]
   [#:else       (values 0.0 solid-dash)])
 
@@ -50,9 +49,9 @@
                                       [(Vectorof Nonnegative-Flonum) Flonum Flonum -> (Vectorof Nonnegative-Flonum)])
   (case-lambda
     [(dasharray linewidth basewidth)
-     (dasharray-normalize dasharray (flmax (fl/ linewidth basewidth) 0.0))]
+     (dasharray-normalize dasharray (max (/ linewidth basewidth) 0.0))]
     [(dasharray linewidth)
-     (cond [(fl= linewidth 1.0) dasharray]
-           [(fl= linewidth 0.0) dasharray]
+     (cond [(= linewidth 1.0) dasharray]
+           [(= linewidth 0.0) dasharray]
            [else (for/vector : (Vectorof Nonnegative-Flonum) ([dash (in-vector dasharray)])
-                   (fl* dash linewidth))])]))
+                   (* dash linewidth))])]))

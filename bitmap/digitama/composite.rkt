@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "misc.rkt")
+(require "enumeration.rkt")
 
 (require (for-syntax racket/base))
 

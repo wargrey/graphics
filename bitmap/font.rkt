@@ -4,6 +4,8 @@
 (provide list-font-families list-font-faces)
 (provide list-monospace-font-families list-monospace-font-faces)
 
+(require racket/math)
+
 (require "digitama/base.rkt")
 (require "digitama/font.rkt")
 (require "digitama/unsafe/font.rkt")

@@ -9,9 +9,9 @@
 (define bitmap-alter-density : (->* (Bitmap) (Positive-Flonum) Bitmap)
   (lambda [src [dest-density (default-bitmap-density)]]
     (define density : Positive-Flonum (bitmap-density src))
-    (cond [(fl= density dest-density) src]
+    (cond [(= density dest-density) src]
           [else (let-values ([(flwidth flheight) (bitmap-flsize src density density)])
                   (bitmap_section (bitmap-surface src) 0.0 0.0
-                                  (fl/ flwidth dest-density)
-                                  (fl/ flheight dest-density)
+                                  (/ flwidth dest-density)
+                                  (/ flheight dest-density)
                                   dest-density))])))

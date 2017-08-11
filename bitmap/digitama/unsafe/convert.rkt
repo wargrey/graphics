@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) Bitmap-Surface bitmap-surface?)
-(provide (all-from-out racket/fixnum racket/flonum))
+(provide (except-out (all-defined-out) create-argb-bitmap))
+(provide Bitmap-Surface bitmap-surface? cairo-surface-shadow)
 (provide (rename-out [Bitmap<%>-surface bitmap-surface]))
 (provide (rename-out [Bitmap-density bitmap-density]))
 (provide (rename-out [Bitmap-width bitmap-width]))
@@ -10,10 +10,8 @@
 
 (require typed/racket/unsafe)
 (require file/convertible)
-(require racket/fixnum)
-(require racket/flonum)
 
-(unsafe-provide (rename-out [create-argb-bitmap create-bitmap]))
+(unsafe-provide create-argb-bitmap)
 
 (module unsafe racket/base
   (provide (all-defined-out) phantom-bytes? make-phantom-bytes)
@@ -121,15 +119,15 @@
                                 [Bitmap Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
                                 [Bitmap Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)])
   (let ([flsize : (-> Bitmap Nonnegative-Flonum Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
-                 (λ [bmp w% h%] (let-values ([(w h) (bitmap-flsize bmp)]) (values (fl* w w%) (fl* h h%))))])
-    (case-lambda [(bmp) (values (fx->fl (Bitmap-width bmp)) (fx->fl (Bitmap-height bmp)))]
+                 (λ [bmp w% h%] (let-values ([(w h) (bitmap-flsize bmp)]) (values (* w w%) (* h h%))))])
+    (case-lambda [(bmp) (values (exact->inexact (Bitmap-width bmp)) (exact->inexact (Bitmap-height bmp)))]
                  [(bmp ratio) (let ([% (real->double-flonum ratio)]) (flsize bmp % %))]
                  [(bmp w% h%) (flsize bmp (real->double-flonum w%) (real->double-flonum h%))])))
 
 (define bitmap-intrinsic-flsize : (-> Bitmap (Values Positive-Flonum Positive-Flonum))
   (lambda [bmp]
     (define-values (w h) (bitmap-intrinsic-size bmp))
-    (values (fx->fl w) (fx->fl h))))
+    (values (exact->inexact w) (exact->inexact h))))
 
 (define bitmap-flsize+density : (-> Bitmap (Values Positive-Flonum Positive-Flonum Positive-Flonum))
   (lambda [bmp]
@@ -142,7 +140,7 @@
     (define density (Bitmap-density self))
     (define surface (Bitmap<%>-surface self))
     (case mime
-      [(png@2x-bytes) (or (and (fl= density 2.0) (cairo-surface->png-bytes surface)) fallback)]
+      [(png@2x-bytes) (or (and (= density 2.0) (cairo-surface->png-bytes surface)) fallback)]
       [(png-bytes) (cairo-surface->png-bytes surface)]
       [else fallback])))
 

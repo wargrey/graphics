@@ -4,12 +4,12 @@
 (require "../resize.rkt")
 (require "../constructor.rkt")
 
-(define (build-flomap* [x : Nonnegative-Fixnum] [y : Nonnegative-Fixnum] [w : Nonnegative-Fixnum] [h : Nonnegative-Fixnum])
-  (define w+h (fx+ w h))
-  (values (/ (fx+ x y) w+h)
-          (/ (fx+ (fx- w x) y) w+h)
-          (/ (fx+ (fx- w x) (fx- h y)) w+h)
-          (/ (fx+ x (fx- h y)) w+h)))
+(define (build-flomap* [x : Index] [y : Index] [w : Index] [h : Index])
+  (define w+h (+ w h))
+  (values (/ (+ x y) w+h)
+          (/ (+ (- w x) y) w+h)
+          (/ (+ (- w x) (- h y)) w+h)
+          (/ (+ x (- h y)) w+h)))
 
 (time (bitmap-rectangular 100 100 build-flomap* #:density 1.00))
 (time (bitmap-rectangular 100 100 build-flomap* #:density 1.75))

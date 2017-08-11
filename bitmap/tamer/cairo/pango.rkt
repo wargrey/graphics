@@ -4,7 +4,7 @@
 
 (require "../../constructor.rkt")
 (require "../../font.rkt")
-(require "../../stdio.rkt")
+(require "../../digitama/stdio.rkt")
 
 (require "../../digitama/base.rkt")
 (require "../../digitama/unsafe/convert.rkt")

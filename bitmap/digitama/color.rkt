@@ -13,7 +13,7 @@
 (define $ : (-> (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)) Flonum Flonum Flonum Flonum Flonum FlRGBA)
   (lambda [->rgb h s b a alpha]
     (define-values (flr flg flb) (->rgb h s b))
-    (rgba flr flg flb (fl* alpha a))))
+    (rgba flr flg flb (* alpha a))))
 
 (define named-rgba : (->* (Symbol Flonum (-> Color Real FlRGBA)) (Boolean) (Option FlRGBA))
   (lambda [name flalpha rgb* [downcased? #false]]
@@ -25,15 +25,15 @@
 
 (define xterm256-rgba : (-> Byte Flonum (-> Color Real FlRGBA) FlRGBA)
   (lambda [sgr flalpha rgb*]
-    (cond [(fx>= sgr #xE8)
-           (define grey : Flonum (fl/ (real->double-flonum (+ (* (- sgr #xE8) 10) 8)) 255.0))
+    (cond [(>= sgr #xE8)
+           (define grey : Flonum (/ (real->double-flonum (+ (* (- sgr #xE8) 10) 8)) 255.0))
            (rgba grey grey grey flalpha)]
-          [(fx>= sgr #x10)
+          [(>= sgr #x10)
            (define-values (rg b) (quotient/remainder (- sgr #x10) 6))
            (define-values (r g) (quotient/remainder rg 6))
-           (rgba (fl/ (vector-ref xterm-color-tuples r) 255.0)
-                 (fl/ (vector-ref xterm-color-tuples g) 255.0)
-                 (fl/ (vector-ref xterm-color-tuples b) 255.0)
+           (rgba (/ (vector-ref xterm-color-tuples r) 255.0)
+                 (/ (vector-ref xterm-color-tuples g) 255.0)
+                 (/ (vector-ref xterm-color-tuples b) 255.0)
                  flalpha)]
           [else (or (named-rgba (vector-ref xterm-system-colors sgr) flalpha rgb* #true)
                     (rgb* fallback-color flalpha))])))

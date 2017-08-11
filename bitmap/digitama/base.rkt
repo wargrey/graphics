@@ -1,11 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) nan? infinite? exact-round)
-(provide (all-from-out racket/flonum racket/fixnum))
-
-(require racket/flonum)
-(require racket/fixnum)
-(require (only-in racket/math nan? infinite? exact-round))
+(provide (all-defined-out))
 
 (define-type FlRGBA rgba)
 (define-type Color (U Symbol Integer FlColor))
