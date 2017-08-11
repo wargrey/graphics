@@ -1,8 +1,12 @@
 #lang typed/racket/base
 
-(provide (except-out (all-defined-out) exn-args->message))
+(provide (except-out (all-defined-out) exn-args->message exn-src+args->message))
 
-(struct exn:fail:read:signature exn:fail:read () #:extra-constructor-name make-exn:fail:read:signature)
+(require racket/string)
+(require racket/format)
+
+(struct exn:fail:read:signature exn:fail:read () #:extra-constructor-name make-exn:read:signature)
+(struct exn:fail:syntax:range exn:fail:syntax () #:extra-constructor-name make-exn:read:range)
 
 (define throw-eof-error : (-> Input-Port Nothing)
   (lambda [/dev/stdin]
@@ -12,18 +16,42 @@
 
 (define throw-read-error : (-> Input-Port Symbol Any * Nothing)
   (lambda [/dev/stdin src . args]
-    (raise (make-exn:fail:read (format "~a: ~a" (exn-args->message src args) (object-name /dev/stdin))
+    (raise (make-exn:fail:read (format "~a: ~a" (exn-src+args->message src args) (object-name /dev/stdin))
                                (continuation-marks #false)
                                null))))
 
+(define throw-syntax-error : (-> Input-Port Symbol Any * Nothing)
+  (lambda [/dev/stdin src . args]
+    (raise (make-exn:fail:syntax (format "~a: ~a" (exn-src+args->message src args) (object-name /dev/stdin))
+                                 (continuation-marks #false)
+                                 null))))
+
 (define throw-signature-error : (-> Input-Port Symbol Any * Nothing)
   (lambda [/dev/stdin src . args]
-    (raise (make-exn:fail:read:signature (format "~a: ~a" (exn-args->message src args) (object-name /dev/stdin))
-                                         (continuation-marks #false)
-                                         null))))
+    (raise (make-exn:read:signature (format "~a: ~a" (exn-src+args->message src args) (object-name /dev/stdin))
+                                    (continuation-marks #false)
+                                    null))))
+
+(define throw-range-error : (-> Symbol (U Procedure String (Pairof Real Real) (Listof Any)) Any Any * Nothing)
+  (lambda [src constraint given . args]
+    (define message : String (exn-args->message args "out of range"))
+    (define expected : String
+      (cond [(string? constraint) constraint]
+            [(procedure? constraint) (~a (object-name constraint))]
+            [(pair? constraint) (format "[~a, ~a]" (car constraint) (cdr constraint))]
+            [else (string-join #:before-first "(" ((inst map String Any) ~s constraint) ", " #:after-last ")")]))
+    (raise (make-exn:read:range (format "~a: ~a~n expected: ~a~n given: ~s" src message expected given)
+                                (continuation-marks #false)
+                                null))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define exn-args->message : (-> Symbol (Listof Any) String)
+(define exn-args->message : (-> (Listof Any) String String)
+  (lambda [args defmsg]
+    (cond [(null? args) defmsg]
+          [(string? (car args)) (apply format (car args) (cdr args))]
+          [else (~s args)])))
+
+(define exn-src+args->message : (-> Symbol (Listof Any) String)
   (lambda [src args]
     (cond [(null? args) (symbol->string src)]
           [(string? (car args)) (apply format (string-append "~a: " (car args)) src (cdr args))]

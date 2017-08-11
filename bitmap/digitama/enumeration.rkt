@@ -39,17 +39,17 @@
      (with-syntax ([expected (datum->syntax #'enum->kw (string-join (map number->string (syntax->datum #'(value ...)))
                                                                     ", " #:before-first "{" #:after-last "}"))])
        #'(begin (define-enumeration id : TypeU #:with kw->enum #:-> Integer [enum value] ...)
-                (define enum->kw : (All (a) (->* (Integer) ((-> Integer a)) (U TypeU a)))
-                  (lambda [kv [on-error (λ [[given : Integer]] (raise-argument-error 'id expected given))]]
-                    (cond [(= kv value) 'enum] ... [else (on-error kv)])))))]
+                (define enum->kw : (All (a) (->* (Integer) ((-> Symbol String Integer a)) (U TypeU a)))
+                  (lambda [kv [throw raise-argument-error]]
+                    (cond [(= kv value) 'enum] ... [else (throw 'id expected kv)])))))]
     [(_ id #:+> TypeU kw->enum enum->kw [start:integer enum ... enum$])
      (with-syntax* ([(value ... value$) (for/list ([<enum> (in-syntax #'(enum ... enum$))] [idx (in-naturals 0)])
                                           (datum->syntax <enum> (+ (syntax-e #'start) idx)))]
                     [expected (datum->syntax #'enum->kw (format "[~a, ~a]" (syntax-e #'start) (syntax-e #'value$)))])
        #'(begin (define-enumeration id : TypeU #:with kw->enum #:-> Integer [enum value] ... [enum$ value$])
-                (define enum->kw : (All (a) (->* (Integer) ((-> Integer a)) (U TypeU a)))
-                  (lambda [kv [on-error (λ [[given : Integer]] (raise-argument-error 'id expected given))]]
-                    (cond [(= kv value) 'enum] ... [(= kv value$) 'enum$] [else (on-error kv)])))))]
+                (define enum->kw : (All (a) (->* (Integer) ((-> Symbol String Integer a)) (U TypeU a)))
+                  (lambda [kv [throw raise-argument-error]]
+                    (cond [(= kv value) 'enum] ... [(= kv value$) 'enum$] [else (throw 'id expected kv)])))))]
     [(_ id #:+> TypeU kw->enum enum->kw #:range Type [enum value] ... [enum$ value$])
      (with-syntax ([(range ...) (for/list ([<start> (in-syntax #'(value ...))]
                                            [<end> (sequence-tail (in-syntax #'(value ... value$)) 1)])
