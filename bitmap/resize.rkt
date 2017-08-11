@@ -54,7 +54,7 @@
      (define-values (flleft flright) (values (real->double-flonum left) (real->double-flonum right)))
      (define-values (fltop flbottom) (values (real->double-flonum top) (real->double-flonum bottom)))
      (define-values (flwidth flheight density) (bitmap-flsize+density bmp))
-     (bitmap_section (bitmap-surface bmp) (- 0.0 flleft) (- 0.0 fltop)
+     (bitmap_section (bitmap-surface bmp) (- flleft) (- fltop)
                      (+ flwidth flright flleft) (+ flheight flbottom fltop)
                      density)]))
 

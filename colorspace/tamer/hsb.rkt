@@ -1,9 +1,6 @@
 #lang typed/racket
 
 (require "../hsb.rkt")
-(require "../misc.rkt")
-
-(require math/flonum)
 
 (define color->name : (-> Natural Keyword)
   (lambda [color]
@@ -11,14 +8,14 @@
 
 (define color->flbyte : (-> Flonum Flonum)
   (lambda [color]
-    (define flbyte : Flonum (fl* color 255.0))
-    (fl/ (round (fl* flbyte 1000.0)) 1000.0)))
+    (define flbyte : Flonum (* color 255.0))
+    (/ (round (* flbyte 1000.0)) 1000.0)))
   
 (define datum=? : (-> Flonum Flonum * Boolean)
   (lambda [src . res]
-    (cond [(ormap flnan? (cons src res)) (andmap flnan? (cons src res))]
+    (cond [(ormap nan? (cons src res)) (andmap nan? (cons src res))]
           [else (for/and ([r (in-list res)])
-                  (ormap (λ [[m : Flonum]] (eq? (exact-round (fl* src m)) (exact-round (fl* r m))))
+                  (ormap (λ [[m : Flonum]] (eq? (exact-round (* src m)) (exact-round (* r m))))
                          (list 1000.0 100.0 10.0)))])))
 
 (define examples : (Listof (List Natural Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum))

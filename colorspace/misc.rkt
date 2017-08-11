@@ -3,16 +3,15 @@
 (provide (all-defined-out))
 
 (require racket/fixnum)
-(require racket/flonum)
 (require racket/math)
 
 (define-type HSB->RGB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 (define-type RGB->HSB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 
-(define gamut->byte : (-> Flonum Byte) (λ [r] (fxmin (fxmax (fl->fx (flround (fl* r 255.0))) 0) #xFF)))
-(define byte->gamut : (-> Byte Flonum) (λ [r] (fl/ (fx->fl r) 255.0)))
-(define real->gamut : (-> Real Flonum) (λ [r] (flmax (flmin (real->double-flonum r) 1.0) 0.0)))
-(define gamut->uint16 : (-> Flonum Index) (λ [r] (fxmin (fxmax (fl->fx (flround (fl* r 65535.0))) 0) 65535)))
+(define gamut->byte : (-> Flonum Byte) (λ [r] (min (max (exact-round (* r 255.0))) 0) #xFF))
+(define byte->gamut : (-> Byte Flonum) (λ [r] (/ (exact->inexact r) 255.0)))
+(define real->gamut : (-> Real Flonum) (λ [r] (max (min (real->double-flonum r) 1.0) 0.0)))
+(define gamut->uint16 : (-> Flonum Index) (λ [r] (assert (min (max (exact-round (* r 65535.0)) 0) 65535) index?)))
 
 (define real->hue : (-> Real Flonum)
   (lambda [hue]
@@ -21,7 +20,7 @@
           [else (let ([integer-part (modulo (exact-truncate hue) 360)])
                   (cond [(integer? hue) (real->double-flonum integer-part)]
                         [(positive? hue) (real->double-flonum (+ integer-part (- hue (truncate hue))))]
-                        [(zero? integer-part) (fl+ 360.0 (real->double-flonum (- hue (truncate hue))))]
+                        [(zero? integer-part) (+ 360.0 (real->double-flonum (- hue (truncate hue))))]
                         [else (real->double-flonum (- integer-part (- (truncate hue) hue)))]))])))
 
 (define rgb-bytes->hex : (-> Byte Byte Byte Index)
