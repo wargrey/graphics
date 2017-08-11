@@ -8,6 +8,7 @@
                      create-argb-bitmap cairo-surface-shadow))
 
 (require typed/racket/unsafe)
+(require racket/path)
 
 (require "digitama/enumeration.rkt")
 (require "digitama/parser/exn.rkt")
@@ -30,12 +31,21 @@
      #'(create-bitmap [constructor #false] filename density width height palettes depth argl ...)]))
 
 (define select-file@2x : (-> Path-String Positive-Flonum Boolean (Values Path-String Positive-Flonum))
-  (lambda [src.psd density try?]
-    (cond [(not try?) (values src.psd density)]
-          [else (let* ([path.psd : String (if (string? src.psd) src.psd (path->string src.psd))]
+  (lambda [src density try?]
+    (cond [(not try?) (values src density)]
+          [else (let* ([path.psd : String (if (string? src) src (path->string src))]
                        [path@2x.psd : String (regexp-replace #rx"([.][^.]*|)$" path.psd "@2x\\1")])
                   (cond [(not (file-exists? path@2x.psd)) (values path.psd density)]
                         [else (values path@2x.psd (+ density density))]))])))
+
+(define bitmap-port-source : (-> Input-Port Symbol)
+  (lambda [/dev/stdin]
+    (define portname : Any (object-name /dev/stdin))
+    (define filename : String
+      (cond [(path? portname) (format "~a" (file-name-from-path portname))]
+            [(string? portname) portname]
+            [else (format "~a" portname)]))
+    (string->unreadable-symbol filename)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define read-n:bytes : (-> Input-Port Natural Bytes)
