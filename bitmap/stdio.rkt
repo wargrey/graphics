@@ -8,7 +8,6 @@
                      create-argb-bitmap cairo-surface-shadow))
 
 (require typed/racket/unsafe)
-(require racket/path)
 
 (require "digitama/enumeration.rkt")
 (require "digitama/parser/exn.rkt")
@@ -40,12 +39,7 @@
 
 (define bitmap-port-source : (-> Input-Port Symbol)
   (lambda [/dev/stdin]
-    (define portname : Any (object-name /dev/stdin))
-    (define filename : String
-      (cond [(path? portname) (format "~a" (file-name-from-path portname))]
-            [(string? portname) portname]
-            [else (format "~a" portname)]))
-    (string->unreadable-symbol filename)))
+    (string->unreadable-symbol (port-name /dev/stdin))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define read-n:bytes : (-> Input-Port Natural Bytes)

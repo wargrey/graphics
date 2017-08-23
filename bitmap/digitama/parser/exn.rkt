@@ -4,6 +4,7 @@
 
 (require racket/string)
 (require racket/format)
+(require racket/path)
 
 (struct exn:fail:read:signature exn:fail:read () #:extra-constructor-name make-exn:read:signature)
 (struct exn:fail:syntax:check exn:fail:syntax () #:extra-constructor-name make-exn:syntax:check)
@@ -11,31 +12,31 @@
 
 (define throw-eof-error : (-> Input-Port Nothing)
   (lambda [/dev/stdin]
-    (raise (make-exn:fail:read:eof (format "~a: unexpected end of file!" (object-name /dev/stdin))
+    (raise (make-exn:fail:read:eof (format "~a: unexpected end of file!" (port-name /dev/stdin))
                                    (continuation-marks #false)
                                    null))))
 
 (define throw-read-error : (-> Input-Port Symbol Any * Nothing)
   (lambda [/dev/stdin src . args]
-    (raise (make-exn:fail:read (format "~a: ~a" (exn-src+args->message src args) (object-name /dev/stdin))
+    (raise (make-exn:fail:read (format "~a: ~a" (exn-src+args->message src args) (port-name /dev/stdin))
                                (continuation-marks #false)
                                null))))
 
 (define throw-signature-error : (-> Input-Port Symbol Any * Nothing)
   (lambda [/dev/stdin src . args]
-    (raise (make-exn:read:signature (format "~a: ~a" (exn-src+args->message src args) (object-name /dev/stdin))
+    (raise (make-exn:read:signature (format "~a: ~a" (exn-src+args->message src args) (port-name /dev/stdin))
                                     (continuation-marks #false)
                                     null))))
 
 (define throw-syntax-error : (-> Input-Port Symbol Any * Nothing)
   (lambda [/dev/stdin src . args]
-    (raise (make-exn:fail:syntax (format "~a: ~a" (exn-src+args->message src args) (object-name /dev/stdin))
+    (raise (make-exn:fail:syntax (format "~a: ~a" (exn-src+args->message src args) (port-name /dev/stdin))
                                  (continuation-marks #false)
                                  null))))
 
 (define throw-check-error : (-> Input-Port Symbol Any * Nothing)
   (lambda [/dev/stdin src . args]
-    (raise (make-exn:syntax:check (format "~a: ~a" (exn-src+args->message src args) (object-name /dev/stdin))
+    (raise (make-exn:syntax:check (format "~a: ~a" (exn-src+args->message src args) (port-name /dev/stdin))
                                   (continuation-marks #false)
                                   null))))
 
@@ -52,6 +53,13 @@
                                   null))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define port-name : (-> Input-Port String)
+  (lambda [/dev/stdin]
+    (define portname : Any (object-name /dev/stdin))
+    (cond [(path? portname) (format "~a" (file-name-from-path portname))]
+          [(string? portname) portname]
+          [else (format "~a" portname)])))
+
 (define exn-args->message : (-> (Listof Any) String String)
   (lambda [args defmsg]
     (cond [(null? args) defmsg]
