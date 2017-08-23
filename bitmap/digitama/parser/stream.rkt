@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (except-out (all-defined-out) assert* define-integer-parser define-integer-parser*))
+(provide (except-out (all-defined-out) define-integer-parser define-integer-parser*))
 (provide (all-from-out "number.rkt"))
 
 (require typed/racket/unsafe)
@@ -11,16 +11,17 @@
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
 
-(define-type Throw-Range-Error (-> Symbol String Any Any * Nothing))
+(define-type Throw-Range-Error (-> Symbol String Any Nothing))
 
 (define-syntax (assert* stx)
   (syntax-case stx []
-    [(_ sexp pred throw)
+    [(_ sexp pred throw) #'(assert* sexp pred throw 'assert)]
+    [(_ sexp pred throw src)
      #`(let ([v sexp]
              [? pred])
          #,(syntax-property
             (quasisyntax/loc stx
-              (if (? v) v (throw 'assert (symbol->string (object-name ?)) v)))
+              (if (? v) v (throw src (symbol->string (object-name ?)) v)))
             'feature-profile:TR-dynamic-check #t))]))
 
 (define-syntax (define-integer-parser stx)

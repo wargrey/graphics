@@ -53,10 +53,12 @@
     (read-nbytes* /dev/stdin (read-uinteger /dev/stdin size))))
 
 (define read-uinteger : (All (a) (case-> [Input-Port Natural -> Natural]
-                                         [Input-Port Natural (-> Any Boolean : a) -> a]))
+                                         [Input-Port Natural (-> Any Boolean : a) -> a]
+                                         [Input-Port Natural (-> Any Boolean : a) Throw-Range-Error Symbol -> a]))
   (case-lambda
     [(/dev/stdin bsize) (integer-bytes->integer (read-bytes* /dev/stdin bsize) #false #true 0 bsize)]
-    [(/dev/stdin bsize subinteger?) (assert (read-uinteger /dev/stdin bsize) subinteger?)]))
+    [(/dev/stdin bsize subinteger?) (assert (read-uinteger /dev/stdin bsize) subinteger?)]
+    [(/dev/stdin bsize subinteger? throw src) (assert* (read-uinteger /dev/stdin bsize) subinteger? throw src)]))
 
 (define read-signature : (-> Input-Port Bytes Boolean)
   (lambda [/dev/stdin signature]
