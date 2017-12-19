@@ -16,18 +16,25 @@
 
 (unsafe-require/typed
  "digitama/unsafe/pangocairo.rkt"
- [cairo-create-image-surface (-> Flonum Flonum Flonum (Values Bitmap-Surface Positive-Fixnum Positive-Fixnum))])
+ [cairo-create-image-surface (-> Flonum Flonum Flonum (Values Bitmap-Surface Positive-Index Positive-Index))]
+ [cairo_image_surface_get_data (-> Bitmap-Surface Bytes)]
+ [cairo_surface_mark_dirty (-> Bitmap-Surface Bytes)]
+ [A Byte]
+ [R Byte]
+ [G Byte]
+ [B Byte])
 
 (require (for-syntax racket/base))
 
 (define-syntax (create-bitmap stx)
   (syntax-case stx [:]
-    [(_ [Bitmap convertor] filename density width height palettes depth argl ...)
-     #'(let-values ([(surface w h) (cairo-create-image-surface (exact->inexact width) (exact->inexact height) density)])
-         (Bitmap convertor (cairo-surface-shadow surface) surface filename density
-                 width height palettes depth argl ...))]
-    [(_ constructor filename density width height palettes depth argl ...)
-     #'(create-bitmap [constructor #false] filename density width height palettes depth argl ...)]))
+    [(_ [Bitmap convertor] filename density width height palettes depth argl ... decode)
+     #'(let-values ([(surface fxwidth fxheight) (cairo-create-image-surface (exact->inexact width) (exact->inexact height) density)])
+         (decode (cairo_image_surface_get_data surface) fxwidth fxheight A R G B)
+         (cairo_surface_mark_dirty surface)
+         (Bitmap convertor (cairo-surface-shadow surface) surface filename density width height palettes depth argl ...))]
+    [(_ constructor filename density width height palettes depth argl ... decode)
+     #'(create-bitmap [constructor #false] filename density width height palettes depth argl ... decode)]))
 
 (define select-file@2x : (-> Path-String Positive-Flonum Boolean (Values Path-String Positive-Flonum))
   (lambda [src density try?]

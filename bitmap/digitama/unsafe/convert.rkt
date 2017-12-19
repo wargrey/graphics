@@ -45,7 +45,7 @@
             (unsafe-fxquotient total stride)))
 
   (define (cairo-surface-shadow sfs)
-    (make-phantom-bytes (bytes-length (cairo_image_surface_get_data sfs))))
+    (make-phantom-bytes (unsafe-bytes-length (cairo_image_surface_get_data sfs))))
 
   (define (cairo-surface->png-bytes sfs)
     (define /dev/pngout (open-output-bytes '/dev/pngout))
@@ -63,8 +63,8 @@
  [#:opaque Phantom-Bytes phantom-bytes?]
  [cairo-surface-intrinsic-size (-> Bitmap-Surface (Values Positive-Fixnum Positive-Fixnum))]
  [cairo-surface-data (-> Bitmap-Surface (Values Bytes Index))]
- [cairo-surface->png-bytes (-> Bitmap-Surface Bytes)]
- [cairo-surface-shadow (-> Bitmap-Surface Phantom-Bytes)])
+ [cairo-surface-shadow (-> Bitmap-Surface Phantom-Bytes)]
+ [cairo-surface->png-bytes (-> Bitmap-Surface Bytes)])
 
 (struct Bitmap<%>
   ([convert : (Option Procedure)]

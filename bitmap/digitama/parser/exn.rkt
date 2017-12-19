@@ -18,25 +18,25 @@
 
 (define throw-read-error : (-> Input-Port Symbol Any * Nothing)
   (lambda [/dev/stdin src . args]
-    (raise (make-exn:fail:read (format "~a: ~a" (exn-src+args->message src args) (port-name /dev/stdin))
+    (raise (make-exn:fail:read (format "~a: ~a" (port-name /dev/stdin) (exn-src+args->message src args))
                                (continuation-marks #false)
                                null))))
 
 (define throw-signature-error : (-> Input-Port Symbol Any * Nothing)
   (lambda [/dev/stdin src . args]
-    (raise (make-exn:read:signature (format "~a: ~a" (exn-src+args->message src args) (port-name /dev/stdin))
+    (raise (make-exn:read:signature (format "~a: ~a" (port-name /dev/stdin) (exn-src+args->message src args))
                                     (continuation-marks #false)
                                     null))))
 
 (define throw-syntax-error : (-> Input-Port Symbol Any * Nothing)
   (lambda [/dev/stdin src . args]
-    (raise (make-exn:fail:syntax (format "~a: ~a" (exn-src+args->message src args) (port-name /dev/stdin))
+    (raise (make-exn:fail:syntax (format "~a: ~a" (port-name /dev/stdin) (exn-src+args->message src args))
                                  (continuation-marks #false)
                                  null))))
 
 (define throw-check-error : (-> Input-Port Symbol Any * Nothing)
   (lambda [/dev/stdin src . args]
-    (raise (make-exn:syntax:check (format "~a: ~a" (exn-src+args->message src args) (port-name /dev/stdin))
+    (raise (make-exn:syntax:check (format "~a: ~a" (port-name /dev/stdin) (exn-src+args->message src args))
                                   (continuation-marks #false)
                                   null))))
 
