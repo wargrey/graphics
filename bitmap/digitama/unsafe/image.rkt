@@ -23,7 +23,7 @@
         (let x-loop ([x 0] [idx (unsafe-fx* y stride)])
           (when (unsafe-fx< x w)
             (define-values (ra rr rg rb) (λargb x y w h))
-            (define alpha (color-component-real->byte ra))
+            (define alpha (alpha-multiplied-real->byte ra 255))
             (unsafe-bytes-set! pixman (unsafe-fx+ idx A) alpha)
             (unsafe-bytes-set! pixman (unsafe-fx+ idx R) (alpha-multiplied-real->byte rr alpha))
             (unsafe-bytes-set! pixman (unsafe-fx+ idx G) (alpha-multiplied-real->byte rg alpha))
@@ -58,14 +58,13 @@
     img)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (color-component-real->byte v)
-    (unsafe-fl->fx
-      (unsafe-flround
-       (unsafe-flmin (unsafe-flmax (unsafe-fl* (real->double-flonum v) 255.0) 0.0) 255.0))))
-
   (define (alpha-multiplied-real->byte v alpha)
     ; WARNING: the color component value cannot be greater than alpha if it is properly scaled
-    (unsafe-fxmin (color-component-real->byte v) alpha))
+    (unsafe-fxmax #x00
+                  (unsafe-fxmin alpha
+                                (unsafe-fl->fx
+                                 (unsafe-flround
+                                  (unsafe-fl* (real->double-flonum v) 255.0))))))
 
   (define (frame-metrics line-width line-inset mopen mclose popen pclose size)
     (define-values (flmopen flmclose) (values (~length mopen size) (~length mclose size)))
