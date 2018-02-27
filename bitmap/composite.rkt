@@ -1,7 +1,6 @@
 #lang typed/racket
 
 (provide (except-out (all-defined-out) make-append make-append* make-superimpose))
-(provide (rename-out [bitmap-pin-over bitmap-pin]))
 
 (require "constructor.rkt")
 (require "digitama/composite.rkt")
@@ -17,11 +16,12 @@
                       (- (real->double-flonum y1) (real->double-flonum y2))
                       (bitmap-density bmp1))))
 
+(define bitmap-pin : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
+  (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
+    (bitmap-composite bmp1 x1 y1 bmp2 'screen x2 y2)))
+
 (define bitmap-pin-over : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
   (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
-    ;; WARNING
-    ;   The result may different than that of (flomap-pin)
-    ;   since every color component of flomap is alpha blended.
     (bitmap-composite bmp1 x1 y1 bmp2 'over x2 y2)))
 
 (define bitmap-pin-under : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
