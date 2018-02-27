@@ -31,19 +31,19 @@
 
   (define (bitmap_bounding_box src just-alpha?)
     (define-values (pixels total stride w h) (cairo-surface-metrics src 4))
-    (define zero-dot? (if just-alpha? zero-alpha? zero-argb?))
+    (define-values (zero-dot? dotoff) (if just-alpha? (values zero-alpha? A) (values zero-argb? 0)))
     (let ([x w] [y h] [X 0] [Y 0])
-      (let y-loop ([yn 0] [idx:a A])
+      (let y-loop ([yn 0] [idx dotoff])
         (when (unsafe-fx< yn h)
-          (let x-loop ([xn 0] [idx:a idx:a])
+          (let x-loop ([xn 0] [idx idx])
             (cond [(unsafe-fx< xn w)
-                   (unless (zero-dot? pixels idx:a)
+                   (unless (zero-dot? pixels idx)
                      (set! x (unsafe-fxmin x xn))
                      (set! y (unsafe-fxmin y yn))
                      (set! X (unsafe-fxmax X (unsafe-fx+ 1 xn)))
                      (set! Y (unsafe-fxmax Y (unsafe-fx+ 1 yn))))
-                   (x-loop (unsafe-fx+ xn 1) (unsafe-fx+ idx:a 4))]
-                  [else (y-loop (unsafe-fx+ yn 1) idx:a)]))))
+                   (x-loop (unsafe-fx+ xn 1) (unsafe-fx+ idx 4))]
+                  [else (y-loop (unsafe-fx+ yn 1) idx)]))))
       (values x y X Y)))
 
   (define (bitmap_bounding_box* src just-alpha? density)
@@ -54,15 +54,11 @@
             (unsafe-fl/ (unsafe-fx->fl (unsafe-fx- Y 1)) density)))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (zero-alpha? pixels idx:a)
-    (unsafe-fx= (unsafe-bytes-ref pixels idx:a) 0))
+  (define (zero-alpha? pixels idx:must-be-alpha)
+    (unsafe-fx= (unsafe-bytes-ref pixels idx:must-be-alpha) 0))
 
-  (define (zero-argb? pixels idx:a)
-    (define idx (unsafe-fx- idx:a A))
-    (and (unsafe-fx= (unsafe-bytes-ref pixels idx:a) 0)
-         (unsafe-fx= (unsafe-bytes-ref pixels (unsafe-fx+ idx R)) 0)
-         (unsafe-fx= (unsafe-bytes-ref pixels (unsafe-fx+ idx G)) 0)
-         (unsafe-fx= (unsafe-bytes-ref pixels (unsafe-fx+ idx B)) 0))))
+  (define (zero-argb? pixels idx)
+    (unsafe-fx= (integer-bytes->integer pixels #false #true idx (unsafe-fx+ idx 4)) 0)))
 
 (unsafe/require/provide
  (submod "." unsafe)

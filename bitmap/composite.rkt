@@ -19,6 +19,9 @@
 
 (define bitmap-pin-over : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
   (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
+    ;; WARNING
+    ;   The result may different than that of (flomap-pin)
+    ;   since every color component of flomap is alpha blended.
     (bitmap-composite bmp1 x1 y1 bmp2 'over x2 y2)))
 
 (define bitmap-pin-under : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)

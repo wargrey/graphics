@@ -22,11 +22,12 @@
       (when (unsafe-fx< y h)
         (let x-loop ([x 0] [idx (unsafe-fx* y stride)])
           (when (unsafe-fx< x w)
-            (define-values (a r g b) (λargb x y w h))
-            (unsafe-bytes-set! pixman (unsafe-fx+ idx A) (argb->datum a))
-            (unsafe-bytes-set! pixman (unsafe-fx+ idx R) (argb->datum r))
-            (unsafe-bytes-set! pixman (unsafe-fx+ idx G) (argb->datum g))
-            (unsafe-bytes-set! pixman (unsafe-fx+ idx B) (argb->datum b))
+            (define-values (ra rr rg rb) (λargb x y w h))
+            (define alpha (color-component-real->byte ra))
+            (unsafe-bytes-set! pixman (unsafe-fx+ idx A) alpha)
+            (unsafe-bytes-set! pixman (unsafe-fx+ idx R) (alpha-multiplied-real->byte rr alpha))
+            (unsafe-bytes-set! pixman (unsafe-fx+ idx G) (alpha-multiplied-real->byte rg alpha))
+            (unsafe-bytes-set! pixman (unsafe-fx+ idx B) (alpha-multiplied-real->byte rb alpha))
             (x-loop (unsafe-fx+ x 1) (unsafe-fx+ idx 4))))
         (y-loop (unsafe-fx+ y 1))))
     (cairo_surface_mark_dirty surface)
@@ -57,13 +58,14 @@
     img)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (argb->datum v)
-    (unsafe-fxmin
-     (unsafe-fxmax
-      (unsafe-fl->fx
-       (unsafe-fl* (real->double-flonum v) 255.0))
-      #x00)
-     #xFF))
+  (define (color-component-real->byte v)
+    (unsafe-fl->fx
+      (unsafe-flround
+       (unsafe-flmin (unsafe-flmax (unsafe-fl* (real->double-flonum v) 255.0) 0.0) 255.0))))
+
+  (define (alpha-multiplied-real->byte v alpha)
+    ; WARNING: the color component value cannot be greater than alpha if it is properly scaled
+    (unsafe-fxmin (color-component-real->byte v) alpha))
 
   (define (frame-metrics line-width line-inset mopen mclose popen pclose size)
     (define-values (flmopen flmclose) (values (~length mopen size) (~length mclose size)))

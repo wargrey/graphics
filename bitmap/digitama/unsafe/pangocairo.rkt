@@ -67,6 +67,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-create-image-surface
   ; NOTE: (cairo_image_surface_create_for_data) does not work here since Racket bytes maybe moved by GC.
+  ; NOTE: CAIRO_FORMAT_ARGB32 is alpha-multiplied.
   (lambda [flwidth flheight density]
     (define width (unsafe-fxmax (~fx (unsafe-fl* flwidth density)) 1))
     (define height (unsafe-fxmax (~fx (unsafe-fl* flheight density)) 1))
