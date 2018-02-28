@@ -12,6 +12,8 @@
 (require "digitama/unsafe/composite.rkt")
 (require "digitama/unsafe/convert.rkt")
 
+(define default-pin-operator : (Parameterof Symbol) (make-parameter 'over))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-composite : (case-> [Bitmap Real Real Bitmap Symbol -> Bitmap]
                                    [Bitmap Real Real Bitmap Real Real Symbol -> Bitmap])
@@ -40,7 +42,7 @@
   ;;; TODO: what if one or more bmps are larger then the base one
   (lambda [x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
     (cond [(null? bmps) bmp0]
-          [else (bitmap_pin* CAIRO_OPERATOR_OVER
+          [else (bitmap_pin* (or (bitmap-operator->integer (default-pin-operator)) CAIRO_OPERATOR_OVER)
                              (real->double-flonum x1-frac) (real->double-flonum y1-frac)
                              (real->double-flonum x2-frac) (real->double-flonum y2-frac)
                              (bitmap-surface bmp0) (map bitmap-surface bmps)
@@ -72,10 +74,10 @@
     (define append-apply : (-> (Listof Bitmap) [#:gapsize Real] Bitmap) (make-append* alignment))
     (λ [#:gapsize [delta 0.0] . bitmaps] (append-apply #:gapsize delta bitmaps))))
 
-(define make-superimpose : (-> Symbol (-> [#:operator Symbol] Bitmap * Bitmap))
+(define make-superimpose : (-> Symbol (-> Bitmap * Bitmap))
   (lambda [alignment]
-    (λ [#:operator [op 'over] . bitmaps]
-      (define blend-mode : Integer (or (bitmap-operator->integer op) (bitmap-operator->integer 'over)))
+    (λ bitmaps
+      (define blend-mode : Integer (or (bitmap-operator->integer (default-pin-operator)) CAIRO_OPERATOR_OVER))
       (cond [(null? bitmaps) (bitmap-blank)]
             [(null? (cdr bitmaps)) (car bitmaps)]
             [(null? (cddr bitmaps))
