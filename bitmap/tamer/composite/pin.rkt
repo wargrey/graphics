@@ -7,8 +7,9 @@
 (require "../../constants.rkt")
 (require "../../digitama/base.rkt")
 
-(define-values (diameter alpha) (values 192 1/3))
-(default-stroke (desc-stroke long-dash #:width 4 #:opacity alpha #:cap 'round))
+(define-values (diameter dash-width alpha) (values 192 4 1/3))
+(define yellow-stroke (desc-stroke short-dash #:width dash-width #:opacity 1/2 #:cap 'round))
+(default-stroke (desc-stroke long-dash #:width dash-width #:opacity alpha #:cap 'round))
 
 (define (build-flomap [x : Nonnegative-Fixnum] [y : Nonnegative-Fixnum] [w : Nonnegative-Fixnum] [h : Nonnegative-Fixnum])
   (define grayscale
@@ -19,7 +20,7 @@
 (define red-circle (bitmap-ellipse diameter #:fill (rgb* 'red alpha)))
 (define green-circle (bitmap-ellipse diameter #:fill (rgb* 'green alpha)))
 (define blue-circle (bitmap-ellipse diameter #:fill (rgb* 'blue alpha)))
-(define yellow-circle (bitmap-ellipse 124 #:border (desc-stroke #:opacity 3/2) #:fill (rgb* 'yellow 1/2)))
+(define yellow-circle (bitmap-ellipse 124 #:border yellow-stroke #:fill (rgb* 'yellow 1/2)))
 (define 3pc (bitmap-pin* 1/8 11/48 0 0 (bitmap-pin* 1/3 0 0 0 red-circle green-circle) blue-circle))
 
 3pc
@@ -27,6 +28,7 @@
 (bitmap-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle)
 (bitmap-cc-superimpose 3pc yellow-circle #:operator 'screen)
 
-(define sine (time (bitmap-rectangular diameter diameter build-flomap)))
-(bitmap-pin sine -20 -20 sine)
-(bitmap-pin sine (/ diameter 2) 0 sine)
+(define sine (time (bitmap-rectangular 100 100 build-flomap)))
+(bitmap-pin* 1/5 1/5 0 0 sine sine)
+(bitmap-pin* 1/2 0 0 0 sine sine)
+(bitmap-composite sine 50 0 sine 'screen)

@@ -1,6 +1,11 @@
 #lang typed/racket
 
 (provide (except-out (all-defined-out) make-append make-append* make-superimpose))
+(provide (rename-out [bitmap-pin-over bitmap-pin]))
+
+;;; NOTE
+;; flomap composition is alpha blended,
+;; the mode seems the same as CAIRO_OPERATOR_SCREEN.
 
 (require "constructor.rkt")
 (require "digitama/composite.rkt")
@@ -8,30 +13,31 @@
 (require "digitama/unsafe/convert.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-composite : (->* (Bitmap Real Real Bitmap) (#:operator Symbol Real Real) Bitmap)
-  (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0] #:operator [op 'over]]
-    (bitmap_composite (or (bitmap-operator->integer op) CAIRO_OPERATOR_OVER)
-                      (bitmap-surface bmp1) (bitmap-surface bmp2)
-                      (- (real->double-flonum x1) (real->double-flonum x2))
-                      (- (real->double-flonum y1) (real->double-flonum y2))
-                      (bitmap-density bmp1))))
-
-(define bitmap-pin : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
-  (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
-    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 #:operator 'screen)))
+(define bitmap-composite : (case-> [Bitmap Real Real Bitmap Symbol -> Bitmap]
+                                   [Bitmap Real Real Bitmap Real Real Symbol -> Bitmap])
+  (case-lambda
+    [(bmp1 x1 y1 bmp2 op)
+     (bitmap_composite (or (bitmap-operator->integer op) CAIRO_OPERATOR_OVER)
+                       (bitmap-surface bmp1) (bitmap-surface bmp2)
+                       (real->double-flonum x1) (real->double-flonum y1)
+                       (bitmap-density bmp1))]
+    [(bmp1 x1 y1 bmp2 x2 y2 op)
+     (bitmap_composite (or (bitmap-operator->integer op) CAIRO_OPERATOR_OVER)
+                       (bitmap-surface bmp1) (bitmap-surface bmp2)
+                       (- (real->double-flonum x1) (real->double-flonum x2))
+                       (- (real->double-flonum y1) (real->double-flonum y2))
+                       (bitmap-density bmp1))]))
 
 (define bitmap-pin-over : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
   (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
-    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 #:operator 'over)))
+    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 'over)))
 
 (define bitmap-pin-under : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
   (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
-    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 #:operator 'dest-over)))
+    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 'dest-over)))
 
 (define bitmap-pin* : (-> Real Real Real Real Bitmap Bitmap * Bitmap)
   ;;; TODO: what if one or more bmps are larger then the base one
-  ;;; TODO: `flomap-pin*` is defined in terms of `flomap-pin` which blend mode is 'screen,
-  ;;          however, the result flomap of `flomap-pin*` is seemed to be blended with mode 'over.
   (lambda [x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
     (cond [(null? bmps) bmp0]
           [else (bitmap_pin* CAIRO_OPERATOR_OVER
