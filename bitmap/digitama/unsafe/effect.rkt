@@ -9,6 +9,7 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
+  (require (submod "pixman.rkt" unsafe))
   (require (submod "convert.rkt" unsafe))
 
   (define (bitmap_cellophane src alpha density)
@@ -28,11 +29,9 @@
     (memcpy pixels data total _byte)
     (let grayscale ([idx 0])
       (when (unsafe-fx< idx total)
-        (define-values (r g b) (values (unsafe-fx+ idx R) (unsafe-fx+ idx G) (unsafe-fx+ idx B)))
-        (define gray (rgb->gray (unsafe-bytes-ref data r) (unsafe-bytes-ref data g) (unsafe-bytes-ref data b)))
-        (unsafe-bytes-set! pixels r gray)
-        (unsafe-bytes-set! pixels g gray)
-        (unsafe-bytes-set! pixels b gray)
+        (define-values (r g b) (pixels-get-rgb-bytes data idx))
+        (define gray (rgb->gray r g b))
+        (pixels-set-rgb-bytes pixels idx gray gray gray)
         (grayscale (unsafe-fx+ idx 4))))
     (cairo_surface_mark_dirty surface)
     (cairo_destroy cr)

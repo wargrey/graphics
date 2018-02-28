@@ -9,6 +9,7 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
+  (require (submod "pixman.rkt" unsafe))
   (require (submod "convert.rkt" unsafe))
   
   (define (bitmap_section src x y width height density)
@@ -58,7 +59,7 @@
     (unsafe-fx= (unsafe-bytes-ref pixels idx:must-be-alpha) 0))
 
   (define (zero-argb? pixels idx)
-    (unsafe-fx= (integer-bytes->integer pixels #false #true idx (unsafe-fx+ idx 4)) 0)))
+    (unsafe-fx= (pixels-argb-ref pixels idx #true) 0)))
 
 (unsafe/require/provide
  (submod "." unsafe)

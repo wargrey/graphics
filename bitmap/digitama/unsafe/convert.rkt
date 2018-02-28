@@ -111,8 +111,8 @@
 
 (define bitmap-data : (-> Bitmap Bytes)
   (lambda [bmp]
-    (define-values (pixman _) (cairo-surface-data (Bitmap<%>-surface bmp)))
-    pixman))
+    (define-values (pixels _) (cairo-surface-data (Bitmap<%>-surface bmp)))
+    pixels))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-flsize : (case-> [Bitmap -> (Values Positive-Flonum Positive-Flonum)]

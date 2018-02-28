@@ -12,22 +12,20 @@
   
   (require "pangocairo.rkt")
   (require "paint.rkt")
+
+  (require (submod "pixman.rkt" unsafe))
   (require (submod "convert.rkt" unsafe))
   
   (define (λbitmap width height density λargb)
     (define-values (img cr) (make-cairo-image width height density #false))
     (define surface (cairo_get_target cr))
-    (define-values (pixman total stride w h) (cairo-surface-metrics surface 4))
+    (define-values (pixels total stride w h) (cairo-surface-metrics surface 4))
     (let y-loop ([y 0])
       (when (unsafe-fx< y h)
         (let x-loop ([x 0] [idx (unsafe-fx* y stride)])
           (when (unsafe-fx< x w)
-            (define-values (ra rr rg rb) (λargb x y w h))
-            (define alpha (alpha-multiplied-real->byte ra 255))
-            (unsafe-bytes-set! pixman (unsafe-fx+ idx A) alpha)
-            (unsafe-bytes-set! pixman (unsafe-fx+ idx R) (alpha-multiplied-real->byte rr alpha))
-            (unsafe-bytes-set! pixman (unsafe-fx+ idx G) (alpha-multiplied-real->byte rg alpha))
-            (unsafe-bytes-set! pixman (unsafe-fx+ idx B) (alpha-multiplied-real->byte rb alpha))
+            (define-values (a r g b) (λargb x y w h))
+            (pixels-set-argb-reals pixels idx a r g b)
             (x-loop (unsafe-fx+ x 1) (unsafe-fx+ idx 4))))
         (y-loop (unsafe-fx+ y 1))))
     (cairo_surface_mark_dirty surface)
@@ -58,14 +56,6 @@
     img)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (alpha-multiplied-real->byte v alpha)
-    ; WARNING: the color component value cannot be greater than alpha if it is properly scaled
-    (unsafe-fxmax #x00
-                  (unsafe-fxmin alpha
-                                (unsafe-fl->fx
-                                 (unsafe-flround
-                                  (unsafe-fl* (real->double-flonum v) 255.0))))))
-
   (define (frame-metrics line-width line-inset mopen mclose popen pclose size)
     (define-values (flmopen flmclose) (values (~length mopen size) (~length mclose size)))
     (define-values (flpopen flpclose) (values (~length popen size) (~length pclose size)))

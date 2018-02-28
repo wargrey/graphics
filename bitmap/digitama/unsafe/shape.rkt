@@ -11,6 +11,7 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
+  (require "constants.rkt")
   (require "paint.rkt")
   
   (define (bitmap_circle radius border background density)
