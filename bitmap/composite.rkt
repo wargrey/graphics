@@ -8,9 +8,9 @@
 (require "digitama/unsafe/convert.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-composite : (->* (Bitmap Real Real Bitmap) (Symbol Real Real) Bitmap)
-  (lambda [bmp1 x1 y1 bmp2 [op 'over] [x2 0.0] [y2 0.0]]
-    (bitmap_composite (or (bitmap-operator->integer op) (bitmap-operator->integer 'over))
+(define bitmap-composite : (->* (Bitmap Real Real Bitmap) (#:operator Symbol Real Real) Bitmap)
+  (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0] #:operator [op 'over]]
+    (bitmap_composite (or (bitmap-operator->integer op) CAIRO_OPERATOR_OVER)
                       (bitmap-surface bmp1) (bitmap-surface bmp2)
                       (- (real->double-flonum x1) (real->double-flonum x2))
                       (- (real->double-flonum y1) (real->double-flonum y2))
@@ -18,42 +18,46 @@
 
 (define bitmap-pin : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
   (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
-    (bitmap-composite bmp1 x1 y1 bmp2 'screen x2 y2)))
+    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 #:operator 'screen)))
 
 (define bitmap-pin-over : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
   (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
-    (bitmap-composite bmp1 x1 y1 bmp2 'over x2 y2)))
+    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 #:operator 'over)))
 
 (define bitmap-pin-under : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
   (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
-    (bitmap-composite bmp1 x1 y1 bmp2 'dest-over x2 y2)))
+    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 #:operator 'dest-over)))
 
 (define bitmap-pin* : (-> Real Real Real Real Bitmap Bitmap * Bitmap)
   ;;; TODO: what if one or more bmps are larger then the base one
+  ;;; TODO: `flomap-pin*` is defined in terms of `flomap-pin` which blend mode is 'screen,
+  ;;          however, the result flomap of `flomap-pin*` is seemed to be blended with mode 'over.
   (lambda [x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
     (cond [(null? bmps) bmp0]
-          [else (bitmap_pin* (real->double-flonum x1-frac) (real->double-flonum y1-frac)
+          [else (bitmap_pin* CAIRO_OPERATOR_OVER
+                             (real->double-flonum x1-frac) (real->double-flonum y1-frac)
                              (real->double-flonum x2-frac) (real->double-flonum y2-frac)
                              (bitmap-surface bmp0) (map bitmap-surface bmps)
                              (bitmap-density bmp0))])))
 
 (define make-append* : (-> Symbol (-> (Listof Bitmap) [#:gapsize Real] Bitmap))
   (lambda [alignment]
+    (define blend-mode : Integer  CAIRO_OPERATOR_OVER)
     (λ [bitmaps #:gapsize [delta 0.0]]
       (cond [(null? bitmaps) (bitmap-blank)]
             [(null? (cdr bitmaps)) (car bitmaps)]
             [(and (zero? delta) (null? (cddr bitmaps)))
              (let-values ([(base bmp) (values (car bitmaps) (cadr bitmaps))])
                (case alignment
-                 [(vl) (bitmap_pin 0.0 1.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(vc) (bitmap_pin 0.5 1.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(vr) (bitmap_pin 1.0 1.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(ht) (bitmap_pin 1.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(hc) (bitmap_pin 1.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(hb) (bitmap_pin 1.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(vl) (bitmap_pin blend-mode 0.0 1.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(vc) (bitmap_pin blend-mode 0.5 1.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(vr) (bitmap_pin blend-mode 1.0 1.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(ht) (bitmap_pin blend-mode 1.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(hc) (bitmap_pin blend-mode 1.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(hb) (bitmap_pin blend-mode 1.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
                  [else base]))]
             [else (let-values ([(base children) (values (car bitmaps) (cdr bitmaps))])
-                    (bitmap_append alignment
+                    (bitmap_append alignment blend-mode
                                    (bitmap-surface base) (map bitmap-surface children)
                                    (real->double-flonum delta) (bitmap-density base)))]))))
 
@@ -62,25 +66,26 @@
     (define append-apply : (-> (Listof Bitmap) [#:gapsize Real] Bitmap) (make-append* alignment))
     (λ [#:gapsize [delta 0.0] . bitmaps] (append-apply #:gapsize delta bitmaps))))
 
-(define make-superimpose : (-> Symbol (-> Bitmap * Bitmap))
+(define make-superimpose : (-> Symbol (-> [#:operator Symbol] Bitmap * Bitmap))
   (lambda [alignment]
-    (λ bitmaps
+    (λ [#:operator [op 'over] . bitmaps]
+      (define blend-mode : Integer (or (bitmap-operator->integer op) (bitmap-operator->integer 'over)))
       (cond [(null? bitmaps) (bitmap-blank)]
             [(null? (cdr bitmaps)) (car bitmaps)]
             [(null? (cddr bitmaps))
              (let-values ([(base bmp) (values (car bitmaps) (cadr bitmaps))])
                (case alignment
-                 [(lt) (bitmap_pin 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(lc) (bitmap_pin 0.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(lb) (bitmap_pin 0.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(ct) (bitmap_pin 0.5 0.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(cc) (bitmap_pin 0.5 0.5 0.5 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(cb) (bitmap_pin 0.5 1.0 0.5 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(rt) (bitmap_pin 1.0 0.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(rc) (bitmap_pin 1.0 0.5 1.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-                 [(rb) (bitmap_pin 1.0 1.0 1.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(lt) (bitmap_pin blend-mode 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(lc) (bitmap_pin blend-mode 0.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(lb) (bitmap_pin blend-mode 0.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(ct) (bitmap_pin blend-mode 0.5 0.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(cc) (bitmap_pin blend-mode 0.5 0.5 0.5 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(cb) (bitmap_pin blend-mode 0.5 1.0 0.5 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(rt) (bitmap_pin blend-mode 1.0 0.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(rc) (bitmap_pin blend-mode 1.0 0.5 1.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+                 [(rb) (bitmap_pin blend-mode 1.0 1.0 1.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
                  [else base]))]
-            [else (bitmap_superimpose alignment (map bitmap-surface bitmaps) (bitmap-density (car bitmaps)))]))))
+            [else (bitmap_superimpose alignment blend-mode (map bitmap-surface bitmaps) (bitmap-density (car bitmaps)))]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-combiner
