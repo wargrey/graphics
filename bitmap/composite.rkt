@@ -1,11 +1,7 @@
 #lang typed/racket
 
-(provide (except-out (all-defined-out) make-append make-append* make-superimpose))
+(provide (except-out (all-defined-out) make-pin make-append make-append* make-superimpose make-superimpose*))
 (provide (rename-out [bitmap-pin-over bitmap-pin]))
-
-;;; NOTE
-;; flomap composition is alpha blended,
-;; the mode seems the same as CAIRO_OPERATOR_SCREEN.
 
 (require "constructor.rkt")
 (require "digitama/composite.rkt")
@@ -15,28 +11,20 @@
 (define default-pin-operator : (Parameterof Symbol) (make-parameter 'over))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-composite : (case-> [Bitmap Real Real Bitmap Symbol -> Bitmap]
-                                   [Bitmap Real Real Bitmap Real Real Symbol -> Bitmap])
+(define bitmap-composite : (case-> [Symbol Bitmap Real Real Bitmap -> Bitmap]
+                                   [Symbol Bitmap Real Real Bitmap Real Real -> Bitmap])
   (case-lambda
-    [(bmp1 x1 y1 bmp2 op)
+    [(op bmp1 x1 y1 bmp2)
      (bitmap_composite (or (bitmap-operator->integer op) CAIRO_OPERATOR_OVER)
                        (bitmap-surface bmp1) (bitmap-surface bmp2)
                        (real->double-flonum x1) (real->double-flonum y1)
                        (bitmap-density bmp1))]
-    [(bmp1 x1 y1 bmp2 x2 y2 op)
+    [(op bmp1 x1 y1 bmp2 x2 y2)
      (bitmap_composite (or (bitmap-operator->integer op) CAIRO_OPERATOR_OVER)
                        (bitmap-surface bmp1) (bitmap-surface bmp2)
                        (- (real->double-flonum x1) (real->double-flonum x2))
                        (- (real->double-flonum y1) (real->double-flonum y2))
                        (bitmap-density bmp1))]))
-
-(define bitmap-pin-over : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
-  (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
-    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 'over)))
-
-(define bitmap-pin-under : (->* (Bitmap Real Real Bitmap) (Real Real) Bitmap)
-  (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0]]
-    (bitmap-composite bmp1 x1 y1 bmp2 x2 y2 'dest-over)))
 
 (define bitmap-pin* : (-> Real Real Real Real Bitmap Bitmap * Bitmap)
   ;;; TODO: what if one or more bmps are larger then the base one
@@ -47,6 +35,30 @@
                              (real->double-flonum x2-frac) (real->double-flonum y2-frac)
                              (bitmap-surface bmp0) (map bitmap-surface bmps)
                              (bitmap-density bmp0))])))
+
+(define bitmap-table : (->* (Integer (Listof Bitmap))
+                            ((Listof Superimpose-Alignment)
+                             (Listof Superimpose-Alignment)
+                             (Listof Nonnegative-Real)
+                             (Listof Nonnegative-Real))
+                            Bitmap)
+  (lambda [ncols bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
+    (cond [(or (<= ncols 0) (null? bitmaps)) (bitmap-blank)]
+          [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols)])
+                  (define nrows : Nonnegative-Fixnum (+ maybe-nrows (sgn extra-ncols)))
+                  (bitmap_table (map bitmap-surface bitmaps) ncols nrows
+                                (if (null? col-aligns) '(cc) col-aligns)
+                                (if (null? row-aligns) '(cc) row-aligns)
+                                (if (null? col-gaps) '(0.0) (map real->double-flonum col-gaps))
+                                (if (null? row-gaps) '(0.0) (map real->double-flonum col-gaps))
+                                (bitmap-density (car bitmaps))))])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define make-pin : (-> Bitmap-Composition-Operator Bitmap-Pin)
+  (lambda [op]
+    (case-lambda
+      [(bmp1 x1 y1 bmp2) (bitmap-composite 'over bmp1 x1 y1 bmp2)]
+      [(bmp1 x1 y1 bmp2 x2 y2) (bitmap-composite 'over bmp1 x1 y1 bmp2 x2 y2)])))
 
 (define make-append* : (-> Symbol (-> (Listof Bitmap) [#:gapsize Real] Bitmap))
   (lambda [alignment]
@@ -74,9 +86,9 @@
     (define append-apply : (-> (Listof Bitmap) [#:gapsize Real] Bitmap) (make-append* alignment))
     (λ [#:gapsize [delta 0.0] . bitmaps] (append-apply #:gapsize delta bitmaps))))
 
-(define make-superimpose : (-> Symbol (-> Bitmap * Bitmap))
+(define make-superimpose* : (-> Symbol (-> (Listof Bitmap) Bitmap))
   (lambda [alignment]
-    (λ bitmaps
+    (λ [bitmaps]
       (define blend-mode : Integer (or (bitmap-operator->integer (default-pin-operator)) CAIRO_OPERATOR_OVER))
       (cond [(null? bitmaps) (bitmap-blank)]
             [(null? (cdr bitmaps)) (car bitmaps)]
@@ -95,25 +107,16 @@
                  [else base]))]
             [else (bitmap_superimpose alignment blend-mode (map bitmap-surface bitmaps) (bitmap-density (car bitmaps)))]))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-combiner
-  [make-append      "bitmap-~a-append"      (vl vc vr ht hc hb)]
-  [make-append*     "bitmap-~a-append*"     (vl vc vr ht hc hb)]
-  [make-superimpose "bitmap-~a-superimpose" (lt lc lb ct cc cb rt rc rb)])
+(define make-superimpose : (-> Symbol (-> Bitmap * Bitmap))
+  (lambda [alignment]
+    (define superimpose-apply : (-> (Listof Bitmap) Bitmap) (make-superimpose* alignment))
+    (λ bitmaps (superimpose-apply bitmaps))))
 
-(define bitmap-table : (->* (Integer (Listof Bitmap))
-                            ((Listof Superimpose-Alignment)
-                             (Listof Superimpose-Alignment)
-                             (Listof Nonnegative-Real)
-                             (Listof Nonnegative-Real))
-                            Bitmap)
-  (lambda [ncols bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
-    (cond [(or (<= ncols 0) (null? bitmaps)) (bitmap-blank)]
-          [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols)])
-                  (define nrows : Nonnegative-Fixnum (+ maybe-nrows (sgn extra-ncols)))
-                  (bitmap_table (map bitmap-surface bitmaps) ncols nrows
-                                (if (null? col-aligns) '(cc) col-aligns)
-                                (if (null? row-aligns) '(cc) row-aligns)
-                                (if (null? col-gaps) '(0.0) (map real->double-flonum col-gaps))
-                                (if (null? row-gaps) '(0.0) (map real->double-flonum col-gaps))
-                                (bitmap-density (car bitmaps))))])))
+(define-combiner
+  [make-append       "bitmap-~a-append"       (vl vc vr ht hc hb)]
+  [make-append*      "bitmap-~a-append*"      (vl vc vr ht hc hb)]
+  [make-superimpose  "bitmap-~a-superimpose"  (lt lc lb ct cc cb rt rc rb)]
+  [make-superimpose* "bitmap-~a-superimpose*" (lt lc lb ct cc cb rt rc rb)])
+
+(define bitmap-pin-over : Bitmap-Pin (make-pin 'over))
+(define bitmap-pin-under : Bitmap-Pin (make-pin 'dest-over))
