@@ -24,11 +24,11 @@
 (define 3pc (bitmap-pin* 1/8 11/48 0 0 (bitmap-pin* 1/3 0 0 0 red-circle green-circle) blue-circle))
 
 3pc
-(bitmap-pin 3pc 0 0 yellow-circle 64 64)
+(bitmap-pin 3pc 0+0i yellow-circle 64+64i)
 (bitmap-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle)
 (bitmap-cc-superimpose* (list 3pc yellow-circle))
 
 (define sine (time (bitmap-rectangular 100 100 build-flomap)))
 (bitmap-pin* 1/5 1/5 0 0 sine sine)
 (bitmap-pin* 1/2 0 0 0 sine sine)
-(bitmap-composite 'screen sine 50 0 sine)
+(bitmap-composite 'screen sine 50+0i sine)

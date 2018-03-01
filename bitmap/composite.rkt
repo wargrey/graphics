@@ -11,13 +11,18 @@
 (define default-pin-operator : (Parameterof Symbol) (make-parameter 'over))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-composite : (case-> [Symbol Bitmap Real Real Bitmap -> Bitmap]
+(define bitmap-composite : (case-> [Symbol Bitmap Complex Bitmap -> Bitmap]
+                                   [Symbol Bitmap Real Real Bitmap -> Bitmap]
+                                   [Symbol Bitmap Complex Bitmap Complex -> Bitmap]
                                    [Symbol Bitmap Real Real Bitmap Real Real -> Bitmap])
   (case-lambda
-    [(op bmp1 x1 y1 bmp2)
+    [(op bmp1 x/pt y/bmp2 bmp2/pt)
+     (cond [(real? y/bmp2) (bitmap-composite op bmp1 x/pt y/bmp2 bmp2/pt 0.0 0.0)]
+           [else (bitmap-composite op bmp1 (- x/pt bmp2/pt) y/bmp2)])]
+    [(op bmp1 pt bmp2)
      (bitmap_composite (or (bitmap-operator->integer op) CAIRO_OPERATOR_OVER)
                        (bitmap-surface bmp1) (bitmap-surface bmp2)
-                       (real->double-flonum x1) (real->double-flonum y1)
+                       (real->double-flonum (real-part pt)) (real->double-flonum (imag-part pt))
                        (bitmap-density bmp1))]
     [(op bmp1 x1 y1 bmp2 x2 y2)
      (bitmap_composite (or (bitmap-operator->integer op) CAIRO_OPERATOR_OVER)
@@ -57,8 +62,9 @@
 (define make-pin : (-> Bitmap-Composition-Operator Bitmap-Pin)
   (lambda [op]
     (case-lambda
-      [(bmp1 x1 y1 bmp2) (bitmap-composite 'over bmp1 x1 y1 bmp2)]
-      [(bmp1 x1 y1 bmp2 x2 y2) (bitmap-composite 'over bmp1 x1 y1 bmp2 x2 y2)])))
+      [(bmp1 pt bmp2) (bitmap-composite op bmp1 (real-part pt) (imag-part pt) bmp2)]
+      [(bmp1 x/pt y/bmp2 bmp2/pt) (bitmap-composite op bmp1 x/pt y/bmp2 bmp2/pt)]
+      [(bmp1 x1 y1 bmp2 x2 y2) (bitmap-composite op bmp1 x1 y1 bmp2 x2 y2)])))
 
 (define make-append* : (-> Symbol (-> (Listof Bitmap) [#:gapsize Real] Bitmap))
   (lambda [alignment]

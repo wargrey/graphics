@@ -24,7 +24,9 @@
 (define-type Superimpose-Alignment (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
 
 (define-type Bitmap-Pin
-  (case-> [Bitmap Real Real Bitmap -> Bitmap]
+  (case-> [Bitmap Complex Bitmap -> Bitmap]
+          [Bitmap Real Real Bitmap -> Bitmap]
+          [Bitmap Complex Bitmap Complex -> Bitmap]
           [Bitmap Real Real Bitmap Real Real -> Bitmap]))
 
 (define-enumeration* bitmap-composition-operator #:+> Bitmap-Composition-Operator ; order matters
