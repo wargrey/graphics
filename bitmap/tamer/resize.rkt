@@ -25,6 +25,6 @@
 (define text (bitmap-text (string-append "memory: " (number->string (current-memory-use)))))
 (define trimed-text (time (bitmap-trim text #false)))
 (bitmap-frame text)
-(bitmap-enclosing-box text)
+(bitmap-bounding-box text)
 (bitmap-frame trimed-text)
-(bitmap-enclosing-box trimed-text)
+(bitmap-bounding-box trimed-text)
