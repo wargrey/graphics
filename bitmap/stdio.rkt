@@ -24,6 +24,21 @@
 
 (require (for-syntax racket/base))
 
+(define-syntax (define-read-bitmap stx)
+  (syntax-case stx [lambda]
+    [(_ #:-> Bitmap λsexp)
+     (with-syntax ([read-bitmap (datum->syntax #'Bitmap (string->symbol (string-downcase (symbol->string (syntax-e #'Bitmap)))))])
+       #'(define-read-bitmap read-bitmap #:-> Bitmap λsexp))]
+    [(_ bitmap #:-> Bitmap (lambda [/dev/stdin density] sexp ...))
+     (with-syntax ([read-bitmap (datum->syntax #'bitmap (string->symbol (string-append "read-" (symbol->string (syntax-e #'bitmap)))))])
+       #'(define read-bitmap : (->* ((U Path-String Input-Port)) (#:density Positive-Flonum #:try-@2x? Boolean) Bitmap)
+           (lambda [/dev/stdin #:density [density 1.0] #:try-@2x? [try-@2x? #false]]
+             (cond [(input-port? /dev/stdin) sexp ...]
+                   [else (let-values ([(path scale) (select-file@2x /dev/stdin density try-@2x?)])
+                           (call-with-input-file* path #:mode 'binary
+                             (λ [[stdin : Input-Port]]
+                               (read-bitmap stdin #:density scale))))]))))]))
+
 (define-syntax (create-bitmap stx)
   (syntax-case stx [:]
     [(_ [Bitmap convertor] filename density width height palettes depth argl ... decode)
