@@ -3,6 +3,16 @@
 (provide (except-out (all-defined-out) define-integer-parser define-integer-parser*))
 (provide (all-from-out "number.rkt"))
 
+(provide (rename-out [parse-size parse-msize]
+                     [parse-int8 parse-mint8] [parse-uint8 parse-uint8]
+                     [parse-int16 parse-mint16] [parse-uint16 parse-muint16]
+                     [parse-int32 parse-mint32] [parse-uint32 parse-muint32]
+                     [parse-int64 parse-mint64] [parse-uint64 parse-muint64]))
+
+(provide (rename-out [msb-bytes->double parse-double]
+                     [msb-bytes->double parse-mdouble]
+                     [lsb-bytes->double parse-ldouble]))
+
 (require typed/racket/unsafe)
 (unsafe-require/typed racket/base [object-name (-> Procedure Symbol)])
 
@@ -26,28 +36,28 @@
 
 (define-syntax (define-integer-parser stx)
   (syntax-case stx [:]
-    [(_ parse-integer real-bytes->integer [argl : Argl] ... #:-> Integer_t)
+    [(_ parse-integer do-bytes->integer [argl : Argl] ... #:-> Integer_t)
      (with-syntax ([parse-integer* (format-id #'parse-integer "~a*" (syntax-e #'parse-integer))])
        #'(begin (define parse-integer : (-> Bytes Integer Argl ... Integer_t)
                   (lambda [src start argl ...]
-                    (real-bytes->integer src start argl ...)))
+                    (do-bytes->integer src start argl ...)))
                 
                 (define parse-integer* : (All (a) (-> Bytes Integer Argl ... (-> Any Boolean : #:+ a) Throw-Range-Error a))
                   (lambda [src start argl ... subinteger? throw]
-                    (assert* (real-bytes->integer src start argl ...) subinteger? throw)))))]
-    [(_ parse-integer real-bytes->integer signed? #:-> Integer_t)
+                    (assert* (do-bytes->integer src start argl ...) subinteger? throw)))))]
+    [(_ parse-integer do-bytes->integer signed? #:-> Integer_t)
      (with-syntax ([parse-integer* (format-id #'parse-integer "~a*" (syntax-e #'parse-integer))])
-       #'(begin (define (parse-integer [src : Bytes] [start : Integer]) : Integer_t (real-bytes->integer src start signed?))
+       #'(begin (define (parse-integer [src : Bytes] [start : Integer]) : Integer_t (do-bytes->integer src start signed?))
 
                 (define parse-integer* : (All (a) (-> Bytes Integer (-> Any Boolean : #:+ a) Throw-Range-Error a))
                   (lambda [src start subinteger? throw]
-                    (assert* (real-bytes->integer src start signed?) subinteger? throw)))))]))
+                    (assert* (do-bytes->integer src start signed?) subinteger? throw)))))]))
 
 (define-syntax (define-integer-parser* stx)
   (syntax-case stx [:]
-    [(_ [real-bytes->integer [parse-integer #:-> Integer] [parse-uinteger #:-> Natural]] ...)
-     #'(begin (define-integer-parser parse-integer  real-bytes->integer #true  #:-> Integer) ...
-              (define-integer-parser parse-uinteger real-bytes->integer #false #:-> Natural) ...)]))
+    [(_ [do-bytes->integer [parse-integer #:-> Integer] [parse-uinteger #:-> Natural]] ...)
+     #'(begin (define-integer-parser parse-integer  do-bytes->integer #true  #:-> Integer) ...
+              (define-integer-parser parse-uinteger do-bytes->integer #false #:-> Natural) ...)]))
 
 (define parse-boolean : (-> Bytes Fixnum Boolean)
   (lambda [src start]
@@ -63,12 +73,19 @@
        (string->symbol key))]))
 
 (define-integer-parser*
-  [real-bytes->octet [parse-int8  #:-> Fixnum]  [parse-uint8  #:-> Byte]]
-  [real-bytes->short [parse-int16 #:-> Fixnum]  [parse-uint16 #:-> Index]]
-  [real-bytes->int   [parse-int32 #:-> Fixnum]  [parse-uint32 #:-> Nonnegative-Fixnum]]
-  [real-bytes->long  [parse-int64 #:-> Integer] [parse-uint64 #:-> Natural]])
+  [msb-bytes->octet [parse-int8  #:-> Fixnum]  [parse-uint8  #:-> Byte]]
+  [msb-bytes->short [parse-int16 #:-> Fixnum]  [parse-uint16 #:-> Index]]
+  [msb-bytes->int   [parse-int32 #:-> Fixnum]  [parse-uint32 #:-> Nonnegative-Fixnum]]
+  [msb-bytes->long  [parse-int64 #:-> Integer] [parse-uint64 #:-> Natural]])
 
-(define-integer-parser parse-size real-bytes->size [size : Integer] #:-> Index)
+(define-integer-parser*
+  [lsb-bytes->octet [parse-lint8  #:-> Fixnum]  [parse-luint8  #:-> Byte]]
+  [lsb-bytes->short [parse-lint16 #:-> Fixnum]  [parse-luint16 #:-> Index]]
+  [lsb-bytes->int   [parse-lint32 #:-> Fixnum]  [parse-luint32 #:-> Nonnegative-Fixnum]]
+  [lsb-bytes->long  [parse-lint64 #:-> Integer] [parse-luint64 #:-> Natural]])
+
+(define-integer-parser parse-size msb-bytes->size [size : Integer] #:-> Index)
+(define-integer-parser parse-lsize lsb-bytes->size [size : Integer] #:-> Index)
 
 (define parse-nsizes-list : (-> Bytes Integer Integer Integer (Listof Index))
   (lambda [src start size count]
@@ -77,10 +94,6 @@
       (cond [(< idx start) dest]
             [else (let ([n (parse-size src idx size)])
                     (parse (assert (- idx size) index?) (cons n dest)))]))))
-
-(define parse-double : (-> Bytes Integer Flonum)
-  (lambda [src start]
-    (real-bytes->double src start)))
 
 (define parse-nbytes : (-> Bytes Fixnum Fixnum Bytes)
   (lambda [src start bsize]
