@@ -16,14 +16,14 @@
 
   (require racket/unsafe/ops)
 
-  (define (msb-bytes->octet src idx signed?) (integer-bytes->integer src signed? #true idx (unsafe-fx+ idx 1)))
+  (define (msb-bytes->octet src idx signed?) (unsafe-bytes-ref src idx))
   (define (msb-bytes->short src idx signed?) (integer-bytes->integer src signed? #true idx (unsafe-fx+ idx 2)))
   (define (msb-bytes->int src idx signed?) (integer-bytes->integer src signed? #true idx (unsafe-fx+ idx 4)))
   (define (msb-bytes->long src idx signed?) (integer-bytes->integer src signed? #true idx (unsafe-fx+ idx 8)))
   (define (msb-bytes->size src idx size) (integer-bytes->integer src #false #true idx (unsafe-fx+ idx size)))
   (define (msb-bytes->double src idx) (floating-point-bytes->real src #true idx (unsafe-fx+ idx 8)))
 
-  (define (lsb-bytes->octet src idx signed?) (integer-bytes->integer src signed? #false idx (unsafe-fx+ idx 1)))
+  (define (lsb-bytes->octet src idx signed?) (unsafe-bytes-ref src idx))
   (define (lsb-bytes->short src idx signed?) (integer-bytes->integer src signed? #false idx (unsafe-fx+ idx 2)))
   (define (lsb-bytes->int src idx signed?) (integer-bytes->integer src signed? #false idx (unsafe-fx+ idx 4)))
   (define (lsb-bytes->long src idx signed?) (integer-bytes->integer src signed? #false idx (unsafe-fx+ idx 8)))

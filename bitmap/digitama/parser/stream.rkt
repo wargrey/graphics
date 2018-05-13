@@ -47,7 +47,9 @@
                     (assert* (do-bytes->integer src start argl ...) subinteger? throw)))))]
     [(_ parse-integer do-bytes->integer signed? #:-> Integer_t)
      (with-syntax ([parse-integer* (format-id #'parse-integer "~a*" (syntax-e #'parse-integer))])
-       #'(begin (define (parse-integer [src : Bytes] [start : Integer]) : Integer_t (do-bytes->integer src start signed?))
+       #'(begin (define parse-integer : (-> Bytes Integer Integer_t)
+                  (lambda [src start]
+                    (do-bytes->integer src start signed?)))
 
                 (define parse-integer* : (All (a) (-> Bytes Integer (-> Any Boolean : #:+ a) Throw-Range-Error a))
                   (lambda [src start subinteger? throw]
