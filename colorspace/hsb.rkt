@@ -19,7 +19,7 @@
   (lambda [red green blue]
     (define-values (M m chroma hue) (rgb->hue red green blue))
     (define value : Flonum M)
-    (define saturation : Flonum (if (zero? chroma) 0.0 (/ chroma M)))
+    (define saturation : Flonum (if (zero? value) 0.0 (/ chroma value)))
     (values hue saturation value)))
 
 (define hsl->rgb : HSB->RGB
