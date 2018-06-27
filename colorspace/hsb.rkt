@@ -32,7 +32,7 @@
   (lambda [red green blue]
     (define-values (M m chroma hue) (rgb->hue red green blue))
     (define lightness : Flonum (* 0.5 (+ M m)))
-    (define saturation : Flonum (if (zero? chroma) 0.0 (/ chroma (- 1.0 (abs (- (* 2.0 lightness) 1.0))))))
+    (define saturation : Flonum (if (= lightness 1.0) 0.0 (/ chroma (- 1.0 (abs (- (* 2.0 lightness) 1.0))))))
     (values hue saturation lightness)))
 
 (define hsi->rgb : HSB->RGB
