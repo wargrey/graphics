@@ -3,7 +3,7 @@
 ;;; https://www.w3.org/TR/PNG/#7Scanline
 ;;; https://www.w3.org/TR/PNG/#8Interlace
 
-(provide )
+(provide scanline-recombine)
 
 (require bitmap/stdio)
 
