@@ -49,7 +49,8 @@
     [(_ constructor filename density width height palettes depth argl ... decode)
      #'(create-bitmap [constructor #false] filename density width height palettes depth argl ... decode)]))
 
-(define-type Octets (U Bytes (List Bytes Index Index)))
+(define-type Subbytes (List Bytes Index Index))
+(define-type Octets (U Bytes Subbytes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define select-file@2x : (-> Path-String Positive-Flonum Boolean (Values Path-String Positive-Flonum))

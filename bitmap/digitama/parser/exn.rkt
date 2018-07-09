@@ -10,6 +10,12 @@
 (struct exn:fail:syntax:check exn:fail:syntax () #:extra-constructor-name make-exn:syntax:check)
 (struct exn:fail:syntax:range exn:fail:syntax () #:extra-constructor-name make-exn:syntax:range)
 
+(define throw-impossible-error : (-> Input-Port Symbol Nothing)
+  (lambda [/dev/stdin fname]
+    (raise (make-exn:fail:read:eof (format "~a: ~a: [I have a bug report]!" (port-name /dev/stdin) fname)
+                                   (continuation-marks #false)
+                                   null))))
+
 (define throw-eof-error : (-> Input-Port Nothing)
   (lambda [/dev/stdin]
     (raise (make-exn:fail:read:eof (format "~a: unexpected end of file!" (port-name /dev/stdin))
