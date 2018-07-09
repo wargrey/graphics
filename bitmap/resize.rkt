@@ -6,7 +6,7 @@
 (require "digitama/unsafe/resize.rkt")
 (require "digitama/unsafe/convert.rkt")
 
-(define bitmap-section : (case-> [Bitmap Complex (U Exact-Complex Float-Complex) -> Bitmap]
+(define bitmap-section : (case-> [Bitmap Complex Complex -> Bitmap]
                                  [Bitmap Complex Nonnegative-Real Nonnegative-Real -> Bitmap]
                                  [Bitmap Real Real Nonnegative-Real Nonnegative-Real -> Bitmap])
   (case-lambda
