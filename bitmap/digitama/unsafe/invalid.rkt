@@ -10,11 +10,11 @@
   
   (require "pangocairo.rkt")
   
-  (define (bitmap_invalid density)
-    (define-values (img cr) (make-invalid-cairo-image 1.0 1.0 density #true))
+  (define (bitmap_invalid flwidth flheight density)
+    (define-values (img cr) (make-invalid-cairo-image flwidth flheight density #true))
     (cairo_destroy cr)
     img))
 
 (unsafe/require/provide
  (submod "." unsafe)
- [bitmap_invalid (-> Flonum Bitmap)])
+ [bitmap_invalid (-> Flonum Flonum Flonum Bitmap)])
