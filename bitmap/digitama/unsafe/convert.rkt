@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (except-out (all-defined-out) create-argb-bitmap))
+(provide (except-out (all-defined-out) create-argb-bitmap create-invalid-bitmap))
 (provide Bitmap-Surface bitmap-surface? cairo-surface-shadow)
 (provide (rename-out [Bitmap<%>-surface bitmap-surface]))
 (provide (rename-out [Bitmap-density bitmap-density]))
@@ -11,7 +11,7 @@
 (require typed/racket/unsafe)
 (require file/convertible)
 
-(unsafe-provide create-argb-bitmap)
+(unsafe-provide create-argb-bitmap create-invalid-bitmap)
 
 (module unsafe racket/base
   (provide (all-defined-out) phantom-bytes? make-phantom-bytes)
@@ -77,7 +77,7 @@
       (convert self mime fallback))))
 
 (struct Bitmap Bitmap<%>
-  ([srcname : Symbol]
+  ([source : Symbol]
    [density : Positive-Flonum]
    [width : Positive-Index]
    [height : Positive-Index]
@@ -88,6 +88,10 @@
 (define create-argb-bitmap : (-> Bitmap-Surface Positive-Index Positive-Index Positive-Flonum Bitmap)
   (lambda [surface width height density]
     (Bitmap #false (cairo-surface-shadow surface) surface '/dev/ram density width height 4 8)))
+
+(define create-invalid-bitmap : (-> Bitmap-Surface Positive-Index Positive-Index Positive-Flonum Bitmap)
+  (lambda [surface width height density]
+    (Bitmap invalid-convert (cairo-surface-shadow surface) surface (string->uninterned-symbol "/dev/zero") density width height 4 8)))
 
 (define bitmap-size : (-> Bitmap (Values Positive-Index Positive-Index))
   (lambda [bmp]
@@ -113,6 +117,12 @@
   (lambda [bmp]
     (define-values (pixels _) (cairo-surface-data (Bitmap<%>-surface bmp)))
     pixels))
+
+(define bitmap-invalid? : (-> Bitmap Boolean)
+  (lambda [bmp]
+    (let ([src (Bitmap-source bmp)])
+      (not (or (symbol-interned? src)
+               (symbol-unreadable? src))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-flsize : (case-> [Bitmap -> (Values Positive-Flonum Positive-Flonum)]

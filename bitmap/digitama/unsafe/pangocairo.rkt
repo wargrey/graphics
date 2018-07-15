@@ -66,7 +66,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-create-image-surface
-  ; NOTE: (cairo_image_surface_create_for_data) does not work here since Racket bytes maybe moved by GC.
+  ; NOTE: (cairo_image_surface_create_for_data) does not work here since Racket bytes may be moved by GC.
   ; NOTE: CAIRO_FORMAT_ARGB32 is alpha-multiplied.
   (lambda [flwidth flheight density]
     (define width (unsafe-fxmax (~fx (unsafe-fl* flwidth density)) 1))
@@ -90,12 +90,12 @@
                              "density" density))
     (values surface width height)))
 
-(define cairo-create-argb-image
+(define cairo-create-argb-image-surface
   (lambda [flwidth flheight density scale?]
-    (define-values (surface cr width height) (cairo-create-argb-image* flwidth flheight density scale?))
+    (define-values (surface cr width height) (cairo-create-argb-image-surface* flwidth flheight density scale?))
     (values surface cr)))
 
-(define cairo-create-argb-image*
+(define cairo-create-argb-image-surface*
   (lambda [flwidth flheight density scale?]
     (define-values (surface width height) (cairo-create-image-surface flwidth flheight density))
     (define cr (cairo_create surface))
@@ -103,10 +103,17 @@
       (cairo_scale cr density density))
     (values surface cr width height)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-cairo-image
   (lambda [flwidth flheight density scale?]
-    (define-values (surface cr width height) (cairo-create-argb-image* flwidth flheight density scale?))
+    (define-values (surface cr width height) (cairo-create-argb-image-surface* flwidth flheight density scale?))
     (values (create-argb-bitmap surface width height density)
+            cr)))
+
+(define make-invalid-cairo-image
+  (lambda [flwidth flheight density scale?]
+    (define-values (surface cr width height) (cairo-create-argb-image-surface* flwidth flheight density scale?))
+    (values (create-invalid-bitmap surface width height density)
             cr)))
 
 (define make-cairo-image*
@@ -155,4 +162,4 @@
           [else (real->double-flonum %)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-values (the-surface the-cairo) (cairo-create-argb-image 1.0 1.0 1.0 #false))
+(define-values (the-surface the-cairo) (cairo-create-argb-image-surface 1.0 1.0 1.0 #false))

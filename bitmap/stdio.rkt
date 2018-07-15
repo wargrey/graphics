@@ -6,7 +6,8 @@
 (provide (all-from-out "digitama/parser/stream.rkt"))
 (provide (all-from-out "digitama/unsafe/pixman.rkt"))
 (provide (except-out (all-from-out "digitama/unsafe/convert.rkt")
-                     create-argb-bitmap cairo-surface-shadow))
+                     create-argb-bitmap create-invalid-bitmap
+                     cairo-surface-shadow))
 
 (require typed/racket/unsafe)
 

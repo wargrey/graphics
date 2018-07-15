@@ -16,7 +16,6 @@
 (define stroke-paint->source : (-> Stroke-Paint Paint)
   (lambda [paint]
     (cond [(Paint? paint) paint]
-          ;[(bitmap%? paint) (default-stroke)]
           [else (desc-stroke (default-stroke) #:color paint)])))
 
 (define stroke-paint->source* : (-> (Option Stroke-Paint) (Option Paint))
