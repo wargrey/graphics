@@ -39,11 +39,11 @@
   
   (define (bitmap_pin* operator x1% y1% x2% y2% sfc1 sfcs density)
     (define-values (min-width min-height) (cairo-surface-size sfc1 density))
-    (define-values (flwidth flheight lla)
+    (define-values (flwidth flheight all)
       (let compose ([width min-width] [height min-height] [lla (list (vector sfc1 0.0 0.0 min-width min-height))]
                                       [dx 0.0] [dy 0.0]  ; offsets passed to (bitmap_composite), also see (flomap-pin*)
                                       [width1 min-width] [height1 min-height] [children sfcs])
-        (cond [(null? children) (values width height lla)]
+        (cond [(null? children) (values width height (reverse lla))]
               [else (let ([sfc2 (unsafe-car children)])
                       (define-values (width2 height2) (cairo-surface-size sfc2 density))
                       (define nx (unsafe-fl+ dx (unsafe-fl- (unsafe-fl* width1 x1%) (unsafe-fl* width2 x2%))))
@@ -57,7 +57,7 @@
                                (unsafe-cdr children)))])))
     
     (define-values (bmp cr) (make-cairo-image flwidth flheight density #true))
-    (let combine ([all (reverse lla)])
+    (let combine ([all all])
       (unless (null? all)
         (define child (unsafe-car all))
         (cairo-composite cr (unsafe-vector*-ref child 0)
@@ -69,9 +69,9 @@
 
   (define (bitmap_append alignment operator base others gapsize density) ; slight but more efficient than (bitmap_pin*)
     (define-values (min-width min-height) (cairo-surface-size base density))
-    (define-values (flwidth flheight lla)
+    (define-values (flwidth flheight all)
       (let compose ([width min-width] [height min-height] [lla (list (vector base min-width min-height))] [children others])
-        (cond [(null? children) (values width height lla)]
+        (cond [(null? children) (values width height (reverse lla))]
               [else (let-values ([(child rest) (values (unsafe-car children) (unsafe-cdr children))])
                       (define-values (chwidth chheight) (cairo-surface-size child density))
                       (define ++ (unsafe-cons-list (vector child chwidth chheight) lla))
@@ -81,35 +81,38 @@
                         [else #|unreachable|# (compose (unsafe-flmax width chwidth) (unsafe-flmax height chheight) ++ rest)]))])))
     
     (define-values (bmp cr) (make-cairo-image flwidth flheight density #true))
-    (let combine ([all (reverse lla)] [maybe-used-xoff flwidth] [maybe-used-yoff flheight])
+    (let combine ([all all] [maybe-used-x 0.0] [maybe-used-y 0.0])
       (unless (null? all)
         (define child (unsafe-car all))
         (define-values (chwidth chheight) (values (unsafe-vector*-ref child 1) (unsafe-vector*-ref child 2)))
-        (define-values (maybe-used-x maybe-used-y) (values (unsafe-fl- maybe-used-xoff chwidth) (unsafe-fl- maybe-used-yoff chheight)))
         (define-values (dest-x dest-y)
           (case alignment
             [(vl) (values 0.0                                           maybe-used-y)]
-            [(vc) (values (unsafe-fl/ (unsafe-fl- flwidth chwidth) 2.0) maybe-used-y)]
+            [(vc) (values (unsafe-fl* (unsafe-fl- flwidth chwidth) 0.5) maybe-used-y)]
             [(vr) (values (unsafe-fl- flwidth chwidth)                  maybe-used-y)]
             [(ht) (values maybe-used-x                                  0.0)]
-            [(hc) (values maybe-used-x                                  (unsafe-fl/ (unsafe-fl- flheight chheight) 2.0))]
+            [(hc) (values maybe-used-x                                  (unsafe-fl* (unsafe-fl- flheight chheight) 0.5))]
             [(hb) (values maybe-used-x                                  (unsafe-fl- flheight chheight))]
             [else #|unreachable|# (values maybe-used-x                  maybe-used-y)]))
         (cairo-composite cr (unsafe-vector*-ref child 0) dest-x dest-y chwidth chheight CAIRO_FILTER_BILINEAR operator density #true)
-        (combine (unsafe-cdr all) (unsafe-fl- maybe-used-x gapsize) (unsafe-fl- maybe-used-y gapsize))))
+        (combine (unsafe-cdr all)
+                 (unsafe-fl+ maybe-used-x (unsafe-fl+ chwidth gapsize))
+                 (unsafe-fl+ maybe-used-y (unsafe-fl+ chheight gapsize)))))
     bmp)
 
   (define (bitmap_superimpose alignment operator sfcs density)
-    (define-values (flwidth flheight sreyal)
+    (define-values (flwidth flheight layers)
       (let compose ([width 0.0] [height 0.0] [sreyal null] [sfcs sfcs])
-        (cond [(null? sfcs) (values width height sreyal)]
+        (cond [(null? sfcs) (values width height (reverse sreyal))]
               [else (let ([sfc (unsafe-car sfcs)])
                       (define-values (w h) (cairo-surface-size sfc density))
-                      (values (unsafe-flmax width w) (unsafe-flmax height h)
-                              (unsafe-cons-list (cons bmp (make-layer alignment w h)) sreyal)))])))
+                      (compose (unsafe-flmax width w)
+                               (unsafe-flmax height h)
+                               (unsafe-cons-list (cons sfc (make-layer alignment w h)) sreyal)
+                               (unsafe-cdr sfcs)))])))
     
     (define-values (bmp cr) (make-cairo-image flwidth flheight density #true))
-    (let combine ([all (reverse sreyal)])
+    (let combine ([all layers])
       (unless (null? all)
         (define layer (unsafe-car all))
         (define-values (x y) ((unsafe-cdr layer) flwidth flheight))
