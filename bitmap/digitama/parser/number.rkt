@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require typed/racket/unsafe)
-(require "../unsafe/require.rkt")
 
 (define nonnegative-fixnum? : (-> Any Boolean : Nonnegative-Fixnum) (λ [n] (and (fixnum? n) (>= n 0))))
 
@@ -30,7 +29,7 @@
   (define (lsb-bytes->size src idx size) (integer-bytes->integer src #false #false idx (unsafe-fx+ idx size)))
   (define (lsb-bytes->double src idx) (floating-point-bytes->real src #false idx (unsafe-fx+ idx 8))))
 
-(unsafe/require/provide
+(unsafe-require/typed/provide
  (submod "." unsafe)
  [msb-bytes->octet (case-> [Bytes Integer True -> Fixnum] [Bytes Integer False -> Byte])]
  [msb-bytes->short (case-> [Bytes Integer True -> Fixnum] [Bytes Integer False -> Index])]

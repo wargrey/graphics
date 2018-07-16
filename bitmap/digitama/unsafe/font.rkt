@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "require.rkt")
+(require typed/racket/unsafe)
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -133,9 +133,9 @@
                            (unsafe-cons-list (string-append fname. (pango_font_face_get_face_name (unsafe-car fobjects)))
                                              faces))]))))
 
-(unsafe/require/provide
+(unsafe-require/typed/provide
  (submod "." unsafe)
- [#:opaque [Font-Description font-description?]]
+ [#:opaque Font-Description font-description?]
  [system-ui (-> Symbol String String)]
  [bitmap_create_font_desc (-> String Real (Option Integer) (Option Integer) (Option Integer) Font-Description)]
  [font_get_metrics_lines (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]

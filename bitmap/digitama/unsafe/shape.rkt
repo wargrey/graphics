@@ -2,10 +2,11 @@
 
 (provide (all-defined-out))
 
+(require typed/racket/unsafe)
+
 (require "../base.rkt")
 (require "convert.rkt")
 (require "source.rkt")
-(require "require.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -98,7 +99,7 @@
     (cairo_destroy cr)
     img))
 
-(unsafe/require/provide
+(unsafe-require/typed/provide
  (submod "." unsafe)
  [bitmap_circle (-> Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_sector (-> Flonum Real Real (Option Paint) (Option Bitmap-Source) Flonum Boolean Bitmap)]

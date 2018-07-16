@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "require.rkt")
+(require typed/racket/unsafe)
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -63,7 +63,7 @@
       (unsafe-bytes-set! pixels (unsafe-fx+ idx G) (unsafe-fxmin g alpha))
       (unsafe-bytes-set! pixels (unsafe-fx+ idx B) (unsafe-fxmin b alpha)))))
 
-(unsafe/require/provide
+(unsafe-require/typed/provide
  (submod "." unsafe)
  [pixels-set-argb-reals (-> Bytes Integer Real Real Real Real Void)]
  [pixels-set-argb-bytes (-> Bytes Integer Byte Byte Byte Byte Void)]

@@ -2,11 +2,12 @@
 
 (provide (all-defined-out))
 
+(require typed/racket/unsafe)
+
 (require "../base.rkt")
 (require "convert.rkt")
 (require "source.rkt")
 (require "font.rkt")
-(require "require.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -106,7 +107,7 @@
               (set-box! &context context)
               (unbox &context)))))))
 
-(unsafe/require/provide
+(unsafe-require/typed/provide
  (submod "." unsafe)
  [bitmap_text
   (-> String Font-Description (Listof Symbol) Bitmap-Source (Option Bitmap-Source)

@@ -2,8 +2,9 @@
 
 (provide (all-defined-out))
 
+(require typed/racket/unsafe)
+
 (require "convert.rkt")
-(require "require.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -61,7 +62,7 @@
   (define (zero-argb? pixels idx)
     (unsafe-fx= (pixels-argb-ref pixels idx #true) 0)))
 
-(unsafe/require/provide
+(unsafe-require/typed/provide
  (submod "." unsafe)
  [bitmap_section (-> Bitmap-Surface Flonum Flonum Flonum Flonum Flonum Bitmap)]
  [bitmap_scale (-> Bitmap-Surface Flonum Flonum Flonum Bitmap)]

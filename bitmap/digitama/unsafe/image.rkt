@@ -2,10 +2,11 @@
 
 (provide (all-defined-out))
 
+(require typed/racket/unsafe)
+
 (require "../base.rkt")
 (require "convert.rkt")
 (require "source.rkt")
-(require "require.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -75,7 +76,7 @@
 
 (define-type XYWH->ARGB (-> Index Index Index Index (Values Real Real Real Real)))
 
-(unsafe/require/provide
+(unsafe-require/typed/provide
  (submod "." unsafe)
  [list->4:values (All (a) (-> (Listof a) a (Values a a a a)))]
  [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]

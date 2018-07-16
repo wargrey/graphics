@@ -2,8 +2,9 @@
 
 (provide (all-defined-out))
 
+(require typed/racket/unsafe)
+
 (require "convert.rkt")
-(require "require.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out) CAIRO_OPERATOR_OVER)
@@ -220,7 +221,7 @@
           [else (let ([supplement (unsafe-list-ref src (unsafe-fx- count 1))])
                   (list->vector (append src (make-list (unsafe-fx- total count) supplement))))])))
 
-(unsafe/require/provide
+(unsafe-require/typed/provide
  (submod "." unsafe)
  [CAIRO_OPERATOR_OVER Integer]
  [bitmap_composite (-> Integer Bitmap-Surface Bitmap-Surface Flonum Flonum Flonum Bitmap)]

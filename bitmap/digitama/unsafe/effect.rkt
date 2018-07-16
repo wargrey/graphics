@@ -2,8 +2,9 @@
 
 (provide (all-defined-out))
 
+(require typed/racket/unsafe)
+
 (require "convert.rkt")
-(require "require.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -37,7 +38,7 @@
     (cairo_destroy cr)
     img))
 
-(unsafe/require/provide
+(unsafe-require/typed/provide
  (submod "." unsafe)
  [bitmap_cellophane (-> Bitmap-Surface Flonum Flonum Bitmap)]
  [bitmap_grayscale (-> Bitmap-Surface (-> Byte Byte Byte Integer) Flonum Bitmap)])

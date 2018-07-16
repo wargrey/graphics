@@ -2,9 +2,10 @@
 
 (provide (all-defined-out))
 
+(require typed/racket/unsafe)
+
 (require "../base.rkt")
 (require "convert.rkt")
-(require "require.rkt")
 
 (define-type Bitmap-Source (U Bitmap-Surface Bitmap-Pattern FlRGBA))
 (define-type Bitmap-FlSize*
@@ -38,9 +39,9 @@
                                        (unsafe-struct*-ref rgba 2)
                                        (unsafe-struct*-ref rgba 3))))
 
-(unsafe/require/provide
+(unsafe-require/typed/provide
  (submod "." unsafe)
- [#:opaque [Bitmap-Pattern bitmap-pattern?]]
+ [#:opaque Bitmap-Pattern bitmap-pattern?]
  [the-surface Bitmap-Surface]
  [bitmap-linear-gradient-pattern (-> Real Real Real Real (Listof (Pairof Real FlRGBA)) Bitmap-Pattern)]
  [bitmap-radial-gradient-pattern (-> Real Real Real Real Real Real (Listof (Pairof Real FlRGBA)) Bitmap-Pattern)])
