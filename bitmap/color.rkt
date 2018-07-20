@@ -71,6 +71,13 @@
     (and (named-rgba name +nan.0 (λ _ transparent))
          #true)))
 
+(define flcolor->hex : (-> Color Index)
+  (lambda [src]
+    (define flrgba : FlRGBA (rgb* src))
+    (rgb-gamuts->hex (rgba-red flrgba)
+                     (rgba-green flrgba)
+                     (rgba-blue flrgba))))
+
 (define flcolor->byte-list : (-> Color (List Byte Byte Byte))
   (lambda [src]
     (define flrgba : FlRGBA (rgb* src))

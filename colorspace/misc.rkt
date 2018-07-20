@@ -8,7 +8,7 @@
 (define-type HSB->RGB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 (define-type RGB->HSB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 
-(define gamut->byte : (-> Flonum Byte) (λ [r] (min (max (exact-round (* r 255.0))) 0) #xFF))
+(define gamut->byte : (-> Flonum Byte) (λ [r] (min (max (exact-round (* r 255.0)) 0) #xFF)))
 (define byte->gamut : (-> Byte Flonum) (λ [r] (/ (exact->inexact r) 255.0)))
 (define real->gamut : (-> Real Flonum) (λ [r] (max (min (real->double-flonum r) 1.0) 0.0)))
 (define gamut->uint16 : (-> Flonum Index) (λ [r] (assert (min (max (exact-round (* r 65535.0)) 0) 65535) index?)))
