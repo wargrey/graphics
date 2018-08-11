@@ -19,7 +19,7 @@
                                              (string-upcase (format "~x" rc))
                                              monospace))))))
 
-bitmaps
+;; bitmaps
 
 (collect-garbage) ; 6-9ms
 (time (bitmap-table 2 examples '(rc lc) '(ct) '(8) '(8)))
