@@ -15,11 +15,11 @@
 
   (require ffi/unsafe)
   (require ffi/unsafe/atomic)
-  
+
   (require racket/unsafe/ops)
   (require racket/draw/unsafe/cairo)
   (require racket/draw/unsafe/bstr)
-  
+
   (define (cairo-surface-intrinsic-size sfs)
     (values (cairo_image_surface_get_width sfs)
             (cairo_image_surface_get_height sfs)))
@@ -63,15 +63,16 @@
  [cairo-surface->png-bytes (-> Bitmap-Surface Bytes)])
 
 (struct bitmap<%>
-  ([convert : (Option Procedure)]
+  ([convert : (Option (-> Bitmap<%> Symbol Any Any))]
    [shadow : Phantom-Bytes]
    [surface : Bitmap-Surface])
   #:type-name Bitmap<%>
   #:property prop:convertible
   (λ [self mime fallback]
-    (with-handlers ([exn? (λ [e : exn] (invalid-convert self mime fallback))])
-      (define convert (or (bitmap<%>-convert self) graphics-convert))
-      (convert self mime fallback))))
+    (with-handlers ([exn? (λ ([e : exn]) (invalid-convert self mime fallback))])
+      (cond
+        [(bitmap<%>-convert self) => (λ (c) (c self mime fallback))]
+        [(bitmap? self) (graphics-convert self mime fallback)]))))
 
 (struct bitmap bitmap<%>
   ([source : Symbol]
@@ -152,6 +153,6 @@
       [(png-bytes) (cairo-surface->png-bytes surface)]
       [else fallback])))
 
-(define invalid-convert : (-> Bitmap Symbol Any Any)
+(define invalid-convert : (-> Bitmap<%> Symbol Any Any)
   (lambda [self mime fallback]
     #""))
