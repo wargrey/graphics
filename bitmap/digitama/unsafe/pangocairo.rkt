@@ -157,8 +157,8 @@
 (define ~length
   (lambda [% 100%]
     (define fl% (real->double-flonum %))
-    (cond [(flonum? %) %]
-          [(single-flonum? %) (unsafe-fl* (real->double-flonum %) 100%)]
+    (cond [(negative? %) (unsafe-fl* (unsafe-flabs (real->double-flonum %)) 100%)]
+          [(flonum? %) %]
           [else (real->double-flonum %)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

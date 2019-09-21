@@ -22,7 +22,7 @@
 (define default-font : (Parameterof Font) (make-parameter (Font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal)))
 
 (define desc-font : (->* ()
-                         (Font #:family (U String Symbol (Listof (U String Symbol)) False) #:size (U Symbol Nonnegative-Real False)
+                         (Font #:family (U String Symbol (Listof (U String Symbol)) False) #:size (U Symbol Real False)
                                #:style (Option Symbol) #:weight (U Symbol Integer False) #:stretch (Option Symbol))
                          Font)
   (lambda [[basefont (default-font)] #:family [face null] #:size [size +nan.0] #:weight [weight #false] #:style [style #false]
@@ -33,7 +33,7 @@
                 [else (Font-face basefont)])
           (cond [(symbol? size) (generic-font-size-filter size (Font-size basefont) (Font-size (default-font)))]
                 [(or (not size) (nan? size)) (Font-size basefont)]
-                [(single-flonum? size) (* (real->double-flonum size) (Font-size basefont))]
+                [(negative? size) (* (- (real->double-flonum size)) (Font-size basefont))]
                 [else (real->double-flonum size)])
           (cond [(css-font-weight-option? weight) weight]
                 [(eq? weight 'bolder) (memcadr css-font-weight-options (Font-weight basefont))]
