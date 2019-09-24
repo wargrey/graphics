@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (except-out (all-defined-out) define-color-space))
+(provide (struct-out FlRGBA) (struct-out FlColor) Color rgba)
 (provide transparent hilite black)
 
 (require colorspace)
