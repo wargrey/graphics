@@ -14,7 +14,7 @@
 (define bitmap-text* : (-> String Font Bitmap)
   (lambda [text font]
     (define content (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
-                               text (desc-font (desc-font font #:size 'xx-large) #:size 2f0)))
+                               text (desc-font (desc-font font #:size 'xx-large) #:size -2.0)))
     (bitmap-frame content)))
 
 (for/list : (Listof (Pairof String Bitmap)) ([face (in-list (list-font-faces))])
@@ -23,4 +23,4 @@
 (bitmap-vr-append* #:gapsize 16.0
                    (for/list : (Listof Bitmap) ([family (in-list css-font-generic-families)])
                      (define font (desc-font #:family family))
-                     (bitmap-text* (format "~a[~a]: Sphinx" (font-face->family (Font-face font)) (Font-face font)) font)))
+                     (bitmap-text* (format "~a[~a]: Sphinx" (font-face->family (font-face font)) (font-face font)) font)))

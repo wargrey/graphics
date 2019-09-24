@@ -60,4 +60,4 @@
 (bitmap-square 64.0 10.24 #:border (desc-stroke #:color black #:width 0) #:fill hilite)
 (bitmap-square 64.0 10.24 #:border (desc-stroke #:color black #:width 1) #:fill hilite)
 (bitmap-square 64.0 10.24 #:border (desc-stroke #:color black #:width 2) #:fill hilite)
-(bitmap-rectangle 64.0 32.0 0.25f0 #:border (desc-stroke #:color black #:width 4 #:dash 'dot-dash) #:fill hilite)
+(bitmap-rectangle 64.0 32.0 -0.25 #:border (desc-stroke #:color black #:width 4 #:dash 'dot-dash) #:fill hilite)

@@ -2,11 +2,7 @@
 
 (provide (except-out (all-defined-out) create-argb-bitmap create-invalid-bitmap))
 (provide Bitmap-Surface bitmap-surface? cairo-surface-shadow)
-(provide (rename-out [Bitmap<%>-surface bitmap-surface]))
-(provide (rename-out [Bitmap-density bitmap-density]))
-(provide (rename-out [Bitmap-width bitmap-width]))
-(provide (rename-out [Bitmap-height bitmap-height]))
-(provide (rename-out [Bitmap? bitmap?]))
+(provide (rename-out [bitmap<%>-surface bitmap-surface]))
 
 (require typed/racket/unsafe)
 (require file/convertible)
@@ -66,61 +62,63 @@
  [cairo-surface-shadow (-> Bitmap-Surface Phantom-Bytes)]
  [cairo-surface->png-bytes (-> Bitmap-Surface Bytes)])
 
-(struct Bitmap<%>
+(struct bitmap<%>
   ([convert : (Option Procedure)]
    [shadow : Phantom-Bytes]
    [surface : Bitmap-Surface])
+  #:type-name Bitmap<%>
   #:property prop:convertible
   (λ [self mime fallback]
     (with-handlers ([exn? (λ [e : exn] (invalid-convert self mime fallback))])
-      (define convert (or (Bitmap<%>-convert self) graphics-convert))
+      (define convert (or (bitmap<%>-convert self) graphics-convert))
       (convert self mime fallback))))
 
-(struct Bitmap Bitmap<%>
+(struct bitmap bitmap<%>
   ([source : Symbol]
    [density : Positive-Flonum]
    [width : Positive-Index]
    [height : Positive-Index]
    [palettes : Positive-Byte]
    [depth : Positive-Byte])
+  #:type-name Bitmap
   #:transparent)
 
 (define create-argb-bitmap : (-> Bitmap-Surface Positive-Index Positive-Index Positive-Flonum Bitmap)
   (lambda [surface width height density]
-    (Bitmap #false (cairo-surface-shadow surface) surface '/dev/ram density width height 4 8)))
+    (bitmap #false (cairo-surface-shadow surface) surface '/dev/ram density width height 4 8)))
 
 (define create-invalid-bitmap : (-> Bitmap-Surface Positive-Index Positive-Index Positive-Flonum Bitmap)
   (lambda [surface width height density]
-    (Bitmap invalid-convert (cairo-surface-shadow surface) surface (string->uninterned-symbol "/dev/zero") density width height 4 8)))
+    (bitmap invalid-convert (cairo-surface-shadow surface) surface (string->uninterned-symbol "/dev/zero") density width height 4 8)))
 
 (define bitmap-size : (-> Bitmap (Values Positive-Index Positive-Index))
   (lambda [bmp]
-    (values (Bitmap-width bmp)
-            (Bitmap-height bmp))))
+    (values (bitmap-width bmp)
+            (bitmap-height bmp))))
 
 (define bitmap-size+density : (-> Bitmap (Values Positive-Index Positive-Index Positive-Flonum))
   (lambda [bmp]
-    (values (Bitmap-width bmp)
-            (Bitmap-height bmp)
-            (Bitmap-density bmp))))
+    (values (bitmap-width bmp)
+            (bitmap-height bmp)
+            (bitmap-density bmp))))
 
-(define bitmap-depth : (-> Bitmap (Values Positive-Byte Positive-Byte))
+(define bitmap-depth* : (-> Bitmap (Values Positive-Byte Positive-Byte))
   (lambda [bmp]
-    (values (Bitmap-depth bmp)
-            (Bitmap-palettes bmp))))
+    (values (bitmap-depth bmp)
+            (bitmap-palettes bmp))))
 
 (define bitmap-intrinsic-size : (-> Bitmap (Values Positive-Fixnum Positive-Fixnum))
   (lambda [bmp]
-    (cairo-surface-intrinsic-size (Bitmap<%>-surface bmp))))
+    (cairo-surface-intrinsic-size (bitmap<%>-surface bmp))))
 
 (define bitmap-data : (-> Bitmap Bytes)
   (lambda [bmp]
-    (define-values (pixels _) (cairo-surface-data (Bitmap<%>-surface bmp)))
+    (define-values (pixels _) (cairo-surface-data (bitmap<%>-surface bmp)))
     pixels))
 
 (define bitmap-invalid? : (-> Bitmap Boolean)
   (lambda [bmp]
-    (let ([src (Bitmap-source bmp)])
+    (let ([src (bitmap-source bmp)])
       (not (or (symbol-interned? src)
                (symbol-unreadable? src))))))
 
@@ -130,7 +128,7 @@
                                 [Bitmap Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)])
   (let ([flsize : (-> Bitmap Nonnegative-Flonum Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
                  (λ [bmp w% h%] (let-values ([(w h) (bitmap-flsize bmp)]) (values (* w w%) (* h h%))))])
-    (case-lambda [(bmp) (values (exact->inexact (Bitmap-width bmp)) (exact->inexact (Bitmap-height bmp)))]
+    (case-lambda [(bmp) (values (exact->inexact (bitmap-width bmp)) (exact->inexact (bitmap-height bmp)))]
                  [(bmp ratio) (let ([% (real->double-flonum ratio)]) (flsize bmp % %))]
                  [(bmp w% h%) (flsize bmp (real->double-flonum w%) (real->double-flonum h%))])))
 
@@ -142,13 +140,13 @@
 (define bitmap-flsize+density : (-> Bitmap (Values Positive-Flonum Positive-Flonum Positive-Flonum))
   (lambda [bmp]
     (define-values (flw flh) (bitmap-flsize bmp))
-    (values flw flh (Bitmap-density bmp))))
+    (values flw flh (bitmap-density bmp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define graphics-convert : (-> Bitmap Symbol Any Any)
   (lambda [self mime fallback]
-    (define density (Bitmap-density self))
-    (define surface (Bitmap<%>-surface self))
+    (define density (bitmap-density self))
+    (define surface (bitmap<%>-surface self))
     (case mime
       [(png@2x-bytes) (or (and (= density 2.0) (cairo-surface->png-bytes surface)) fallback)]
       [(png-bytes) (cairo-surface->png-bytes surface)]

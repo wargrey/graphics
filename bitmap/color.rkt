@@ -1,7 +1,6 @@
 #lang typed/racket/base
 
 (provide (except-out (all-defined-out) define-color-space))
-(provide (struct-out rgba) (struct-out FlColor) FlRGBA Color)
 (provide transparent hilite black)
 
 (require colorspace)
@@ -18,7 +17,7 @@
      (with-syntax ([clra (format-id #'clr "~aa" (syntax-e #'clr))]
                    [clra? (format-id #'clr "~aa?" (syntax-e #'clr))]
                    [clr* (format-id #'clr "~a*" (syntax-e #'clr))])
-       #'(begin (struct clra FlColor ([com : Flonum] ... [alpha : Flonum]) #:transparent)
+       #'(begin (struct clra flcolor ([com : Flonum] ... [alpha : Flonum]) #:transparent)
                 (define (clr [com : Real] ... [alpha : Real 1.0]) : clra
                   (clra (real->flonum com) ... (real->double-flonum alpha)))
                 (define (clr* [src : Color] [alpha : Real 1.0]) : clra
@@ -27,8 +26,8 @@
                                 (define-values (com ...) (rgb->clr (rgba-red flrgba) (rgba-green flrgba) (rgba-blue flrgba)))
                                 (clra com ... (rgba-alpha flrgba)))]))))]))
 
-(struct hexa FlColor ([digits : Index] [alpha : Flonum]) #:transparent)
-(struct xterma FlColor ([index : Byte] [alpha : Flonum]) #:transparent)
+(struct hexa flcolor ([digits : Index] [alpha : Flonum]) #:transparent)
+(struct xterma flcolor ([index : Byte] [alpha : Flonum]) #:transparent)
 
 (define-color-space hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]) #:* rgb->hsl)
 (define-color-space hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut])      #:* rgb->hsv)
