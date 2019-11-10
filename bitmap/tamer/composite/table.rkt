@@ -21,11 +21,17 @@
 
 ;; bitmaps
 
-(collect-garbage) ; 6-9ms
+(collect-garbage)
+(collect-garbage)
+(collect-garbage) ; 4-6ms
 (time (bitmap-table 2 examples '(rc lc) '(ct) '(8) '(8)))
 
-(collect-garbage) ; 23-28ms
+(collect-garbage)
+(collect-garbage)
+(collect-garbage) ; 17-19ms
 (time (void (bitmap-vl-append* bitmaps)))
 
-(collect-garbage) ; 25-30ms
+(collect-garbage)
+(collect-garbage)
+(collect-garbage) ; 17-19ms
 (time (bitmap-table 26 bitmaps '(rc) '(cc) '(10) '(10)))

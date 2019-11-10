@@ -63,13 +63,13 @@
  [cairo-surface->png-bytes (-> Bitmap-Surface Bytes)])
 
 (struct bitmap<%>
-  ([convert : (Option Procedure)]
+  ([convert : (Option (-> Bitmap<%> Symbol Any Any))]
    [shadow : Phantom-Bytes]
    [surface : Bitmap-Surface])
   #:type-name Bitmap<%>
   #:property prop:convertible
-  (λ [self mime fallback]
-    (with-handlers ([exn? (λ [e : exn] (invalid-convert self mime fallback))])
+  (λ [[self : Bitmap<%>] [mime : Symbol] [fallback : Any]]
+    (with-handlers ([exn? (λ [[e : exn]] (invalid-convert self mime fallback))])
       (define convert (or (bitmap<%>-convert self) graphics-convert))
       (convert self mime fallback))))
 
@@ -143,15 +143,16 @@
     (values flw flh (bitmap-density bmp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define graphics-convert : (-> Bitmap Symbol Any Any)
+(define graphics-convert : (-> Bitmap<%> Symbol Any Any)
   (lambda [self mime fallback]
-    (define density (bitmap-density self))
-    (define surface (bitmap<%>-surface self))
-    (case mime
-      [(png@2x-bytes) (or (and (= density 2.0) (cairo-surface->png-bytes surface)) fallback)]
-      [(png-bytes) (cairo-surface->png-bytes surface)]
-      [else fallback])))
+    (with-asserts ([self bitmap?])
+      (define density (bitmap-density self))
+      (define surface (bitmap<%>-surface self))
+      (case mime
+        [(png@2x-bytes) (or (and (= density 2.0) (cairo-surface->png-bytes surface)) fallback)]
+        [(png-bytes) (cairo-surface->png-bytes surface)]
+        [else fallback]))))
 
-(define invalid-convert : (-> Bitmap Symbol Any Any)
+(define invalid-convert : (-> Bitmap<%> Symbol Any Any)
   (lambda [self mime fallback]
     #""))
