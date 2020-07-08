@@ -17,8 +17,8 @@
                                text (desc-font (desc-font font #:size 'xx-large) #:size -2.0)))
     (bitmap-frame content)))
 
-(for/list : (Listof (Pairof String Bitmap)) ([face (in-list (list-font-faces))])
-  (cons face (bitmap-text* (format "~a: Sphinx" face) (desc-font #:family face))))
+;(for/list : (Listof (Pairof String Bitmap)) ([face (in-list (list-font-faces))])
+;  (cons face (bitmap-text* (format "~a: Sphinx" face) (desc-font #:family face))))
 
 (bitmap-vr-append* #:gapsize 16.0
                    (for/list : (Listof Bitmap) ([family (in-list css-font-generic-families)])

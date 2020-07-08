@@ -1,6 +1,9 @@
 #lang scribble/manual
 
-@title{Bitmap: Functional Pictures}
-@author{wargrey}
+@(require digimon/tamer)
 
-@italic{Sorry, but I will write it when it is ready to use.}
+@handbook-title/pkg-desc[]
+
+@defmodule*/no-declare[(bitmap)]{The docs is on its way...}
+
+@handbook-appendix[#:index? #true]

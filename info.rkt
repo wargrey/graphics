@@ -6,5 +6,5 @@
 
 (define version "1.0")
 (define deps '("base" "math-lib" "draw-lib" "typed-racket-lib" "typed-racket-more"))
-(define build-deps '("scribble-lib" "racket-doc"))
+(define build-deps '("scribble-lib" "racket-doc" "digimon"))
 

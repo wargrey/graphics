@@ -1,6 +1,10 @@
 #lang scribble/manual
 
-@title{Color Space Conversion}
-@author{wargrey}
+@(require digimon/tamer)
 
-@italic{Sorry, but I will write it as soon as possible.}
+@handbook-title/pkg-desc[]
+
+@defmodule*/no-declare[(colorspace)]{The @racketmodname[colorspace] library provides low-level API for
+ whoever are implementing their own graphics library, otherwise, the @racketmodname[bitmap] library should be used instead.}
+
+@handbook-appendix[#:index? #true]
