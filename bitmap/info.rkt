@@ -8,4 +8,4 @@
 (define version "1.0")
 (define test-omit-paths 'all)
 
-(define scribblings '(["tamer/bitmap.scrbl" (main-doc) (gui-library)]))
+(define scribblings '(["tamer/bitmap.scrbl" (main-doc multi-page) (gui-library)]))
