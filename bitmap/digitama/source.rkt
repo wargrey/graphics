@@ -25,8 +25,8 @@
 (define fill-paint->source : (-> Fill-Paint Bitmap-Source)
   (lambda [paint]
     (cond [(bitmap? paint) (bitmap-surface paint)]
-          [(bitmap-pattern? paint) paint]
-          [else (rgb* paint)])))
+          [(color? paint) (rgb* paint)]
+          [else paint])))
 
 (define fill-paint->source* : (-> (Option Fill-Paint) (Option Bitmap-Source))
   (lambda [paint]

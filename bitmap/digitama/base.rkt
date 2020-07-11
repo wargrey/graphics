@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (define-type Color (U Symbol Integer FlColor))
+(define-predicate color? Color)
 
 (struct paint () #:transparent #:type-name Paint)
 (struct flcolor () #:transparent #:type-name FlColor)
