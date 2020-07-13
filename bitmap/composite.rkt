@@ -42,21 +42,50 @@
                              (bitmap-density bmp0))])))
 
 (define bitmap-table : (->* (Integer (Listof Bitmap))
-                            ((Listof Superimpose-Alignment)
-                             (Listof Superimpose-Alignment)
-                             (Listof Nonnegative-Real)
-                             (Listof Nonnegative-Real))
+                            ((U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                             (U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                             (U (Listof Nonnegative-Real) Nonnegative-Real)
+                             (U (Listof Nonnegative-Real) Nonnegative-Real))
                             Bitmap)
   (lambda [ncols bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
     (cond [(or (<= ncols 0) (null? bitmaps)) (bitmap-blank)]
           [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols)])
                   (define nrows : Nonnegative-Fixnum (+ maybe-nrows (sgn extra-ncols)))
                   (bitmap_table (map bitmap-surface bitmaps) ncols nrows
-                                (if (null? col-aligns) '(cc) col-aligns)
-                                (if (null? row-aligns) '(cc) row-aligns)
-                                (if (null? col-gaps) '(0.0) (map real->double-flonum col-gaps))
-                                (if (null? row-gaps) '(0.0) (map real->double-flonum col-gaps))
+                                (cond [(null? col-aligns) '(cc)] [(symbol? col-aligns) (list col-aligns)] [else col-aligns])
+                                (cond [(null? row-aligns) '(cc)] [(symbol? row-aligns) (list row-aligns)] [else row-aligns])
+                                (cond [(null? col-gaps) '(0.0)] [(real? col-gaps) (list (real->double-flonum col-gaps))] [else (map real->double-flonum col-gaps)])
+                                (cond [(null? row-gaps) '(0.0)] [(real? row-gaps) (list (real->double-flonum row-gaps))] [else (map real->double-flonum row-gaps)])
                                 (bitmap-density (car bitmaps))))])))
+
+(define bitmap-table* : (->* ((Listof (Listof Bitmap)))
+                            ((U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                             (U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                             (U (Listof Nonnegative-Real) Nonnegative-Real)
+                             (U (Listof Nonnegative-Real) Nonnegative-Real))
+                             Bitmap)
+  (lambda [bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
+    (define ncols : Index (apply max 0 ((inst map Index (Listof Bitmap)) length bitmaps)))
+    (define nrows : Index (length bitmaps))
+    (define cont : Bitmap (bitmap-blank))
+    (define sont : Bitmap-Surface (bitmap-surface cont))
+
+    (define-values (surfaces density)
+      (for/fold ([surfaces : (Listof Bitmap-Surface) null]
+                 [density : (Option Positive-Flonum) #false])
+                ([rows : (Listof Bitmap) (in-list bitmaps)])
+        (define rsize : Index (length rows))
+        (values (cond [(= ncols rsize) (append surfaces (map bitmap-surface rows))]
+                      [else (append surfaces (map bitmap-surface rows) (make-list (- rsize ncols) sont))])
+                (or density (and (pair? rows) (bitmap-density (car rows)))))))
+    
+    (cond [(not density) cont]
+          [else (bitmap_table surfaces ncols nrows
+                              (cond [(null? col-aligns) '(cc)] [(symbol? col-aligns) (list col-aligns)] [else col-aligns])
+                              (cond [(null? row-aligns) '(cc)] [(symbol? row-aligns) (list row-aligns)] [else row-aligns])
+                              (cond [(null? col-gaps) '(0.0)] [(real? col-gaps) (list (real->double-flonum col-gaps))] [else (map real->double-flonum col-gaps)])
+                              (cond [(null? row-gaps) '(0.0)] [(real? row-gaps) (list (real->double-flonum row-gaps))] [else (map real->double-flonum row-gaps)])
+                              density)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-pin : (-> Bitmap-Composition-Operator Bitmap-Pin)
