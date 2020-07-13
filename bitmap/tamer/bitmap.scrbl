@@ -8,8 +8,6 @@
 
 @defmodule*/no-declare[(bitmap/base bitmap)]
 
-@margin-note{The @the-name is influenced by @racketmodname[pict] and @racketmodname[images/flomap].}
-
 The @the-name is a typed functional picture library which employs @cite{Cairo} and @cite{Pango} via
 @racketmodname[ffi/unsafe] directly. The initial motivation is to provide efficient, professional,
 yet handy graphics APIs that suitable to work with my @racketmodname[css] engine as well as to be
@@ -23,7 +21,7 @@ used standalone for developers and artists.
 
 @handbook-smart-table[]
 
-@include-section{font.rkt}
+@include-section{font.scrbl}
 
 @handbook-appendix[#:index? #true
  (url-bib-entry 'Cairo
