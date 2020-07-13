@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out) font-family->face)
+(provide Font-Weight Font-Style Font-Stretch)
 (provide list-font-families list-font-faces)
 (provide list-monospace-font-families list-monospace-font-faces)
 

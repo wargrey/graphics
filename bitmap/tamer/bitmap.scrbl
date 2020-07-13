@@ -1,6 +1,8 @@
 #lang scribble/manual
 
-@(require "tamer.rkt")
+@(require digimon/tamer)
+
+@(define the-name (racketmodname bitmap))
 
 @handbook-title/pkg-desc[]
 
@@ -8,18 +10,20 @@
 
 @margin-note{The @the-name is influenced by @racketmodname[pict] and @racketmodname[images/flomap].}
 
-The @the-name is a typed functional picture library which wraps @cite{Cairo} and @cite{Pango} directly.
-The initial motivation is to provide high performance, professional, yet handy graphics APIs that
-suitable to work with my @racketmodname[css] engine as well as to be used standalone by developers
-and artists.
+The @the-name is a typed functional picture library which employs @cite{Cairo} and @cite{Pango} via
+@racketmodname[ffi/unsafe] directly. The initial motivation is to provide efficient, professional,
+yet handy graphics APIs that suitable to work with my @racketmodname[css] engine as well as to be
+used standalone for developers and artists.
 
 @emph{WARNING: This library is still experimental and everything is subject to change.}
 
 @emph{WARNING: To keep compatible with other Racket picture libraries is not the goal.}
 
+@;tamer-smart-summary[]
+
 @handbook-smart-table[]
 
-@include-section{font.scrbl}
+@include-section{font.rkt}
 
 @handbook-appendix[#:index? #true
  (url-bib-entry 'Cairo
