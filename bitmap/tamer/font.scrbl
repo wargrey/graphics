@@ -18,22 +18,6 @@
    #:author (org-author-name "W3C"))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@(define exfont (desc-font #:size 'x-large #:family 'system-ui))
-@(define exgap (bitmap-blank))
-
-@(define (font-style-table ex-chars options update-font hgapsize)
-   (bitmap-table*
-    (for/list ([property (in-list (cons '|| options))])
-      (cons (bitmap-text (~a property) exfont #:color 'green)
-            (apply append
-                   (for/list ([exchar (in-list ex-chars)])
-                     (cons exgap
-                           (for/list ([style (in-list css-font-style-options)])
-                             (cond [(eq? property '||) (bitmap-text (~a style) exfont)]
-                                   [else (bitmap-text (~a " " exchar " ")
-                                                      (update-font exfont property style))])))))))
-    'cc 'cc hgapsize (* hgapsize 0.618)))
-
 @(define (font-weigth-element weight)
    (define indexed-elem (tamer-indexed-keyword-element weight))
    (cond [(or (eq? weight 'bolder) (eq? weight 'lighter)) indexed-elem]
@@ -61,22 +45,11 @@ displayed as expected.
 @handbook-scenario{Descriptor and Properties}
 
 @deftogether[(@defidform[Font-Style] @defidform[Font-Stretch] @defidform[Font-Weight])]{
- The basic @tech{font} properties that represented as predefined keywords.
+ The basic @tech{font} properties that represented as predefined keywords. Possible values are:
 
- The possible value of @racket[Font-Style] is one of @tamer-keywords[@css-font-style-options].
- 
- The possible value of @racket[Font-Stretch] is one of @tamer-keywords[@css-font-stretch-options]: 
-
- @centered{@font-style-table[(list "a" "N") css-font-stretch-options
-                             (λ [f p s] (desc-font f #:stretch p #:style s))
-                             (font-size exfont)]}
-
- The possible value of @racket[Font-Weight] is one of @tamer-keywords[@css-font-weight-options]:
- @centered{@font-style-table[(list "A" "永") css-font-weight-options
-                             (λ [f p s] (desc-font f #:weight p #:style s))
-                             (font-size exfont)]}
-
- @;Unfortunately, @cite{Pango} still does not support "unusual" values.
+ @itemlist[@item{@racket[Font-Style]: @tamer-keywords[@css-font-style-options].}
+           @item{@racket[Font-Stretch]: @tamer-keywords[@css-font-stretch-options].} 
+           @item{@racket[Font-Weight] is one of @tamer-keywords[@css-font-weight-options].}]
 }
 
 @tamer-defstruct[font #: Font ([face String]
@@ -102,7 +75,7 @@ displayed as expected.
 
  @itemlist[@item{@racket[family] argument accepts value of any type of
 
-             @itemlist[@item{@racket[Symbol]: one of the predefined keywords in
+             @itemlist[@item{@racket[Symbol]: One of the predefined keywords in
                                      @tamer-indexed-keywords[@css-font-generic-families]. Otherwise,
                                      inherited from @racket[basefont].
                                      
@@ -168,5 +141,46 @@ displayed as expected.
  A parameter that defines the default @racket[font] instance. It is intended to be set at the time
  the application starts. The default is @racket['sans-serif #,(font-size (default-font))px].
 }
+
+@defproc*[([(list-font-faces) (Listof String)]
+           [(list-font-families) (Listof String)])]{
+ Get the list of @tech{font} face names and @tech{family} names available on the current platform.
+}
+
+@defproc*[([(list-monospace-font-faces) (Listof String)]
+           [(list-monospace-font-families) (Listof String)])]{
+ Get the list of monospace @tech{font} face names and @tech{family} names available on the current platform.
+}
+
+@handbook-scenario{Metrics}
+
+@handbook-scenario{Glimpse}
+
+@(define exfont (desc-font #:size 'x-large #:family 'system-ui))
+@(define exgap (bitmap-blank))
+
+@(define (font-style-table ex-chars options update-font hgapsize)
+   (bitmap-table*
+    (for/list ([property (in-list (cons '|| options))])
+      (cons (bitmap-text (~a property) exfont #:color 'green)
+            (apply append
+                   (for/list ([exchar (in-list ex-chars)])
+                     (cons exgap
+                           (for/list ([style (in-list css-font-style-options)])
+                             (cond [(eq? property '||) (bitmap-text (~a style) exfont)]
+                                   [else (bitmap-text (~a " " exchar " ")
+                                                      (update-font exfont property style))])))))))
+    'cc 'cc hgapsize (* hgapsize 0.618)))
+
+This section is trivial since font properties are much more than they do should be supported.
+Here exemplifies the properties of @racket['system] font: 
+
+@centered{@font-style-table[(list "a" "N") css-font-stretch-options
+                            (λ [f p s] (desc-font f #:stretch p #:style s))
+                            (font-size exfont)]}
+
+@centered{@font-style-table[(list "A" "永") css-font-weight-options
+                            (λ [f p s] (desc-font f #:weight p #:style s))
+                            (font-size exfont)]}
 
 @handbook-reference[#:auto-hide? #true]

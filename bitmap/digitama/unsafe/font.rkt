@@ -7,6 +7,8 @@
 (module unsafe racket/base
   (provide (all-defined-out))
   (provide (rename-out [cpointer? font-description?]))
+  (provide (rename-out [cpointer? font-raw-family?]))
+  (provide pango_font_family_is_monospace pango_font_family_get_name)
 
   (require ffi/unsafe/atomic)
   (require (only-in racket/class send))
@@ -61,36 +63,8 @@
     (values (~metric Width) (~metric Height) (~metric (unsafe-fx- Height baseline))
             (~metric ascent) (~metric (unsafe-fx- Height (unsafe-fx+ ascent height)))))
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (list-font-families)
-    (let families++ ([fobjects (pango_font_map_list_families (pango_cairo_font_map_get_default))]
-                     [families null])
-      (cond [(null? fobjects) (sort families string<?)]
-            [else (families++ (unsafe-cdr fobjects) (unsafe-cons-list (pango_font_family_get_name (unsafe-car fobjects)) families))])))
-
-  (define (list-monospace-font-families)
-    (let families++ ([fobjects (pango_font_map_list_families (pango_cairo_font_map_get_default))]
-                     [families null])
-      (cond [(null? fobjects) (sort families string<?)]
-            [else (let ([family (unsafe-car fobjects)])
-                    (families++ (unsafe-cdr fobjects)
-                                  (cond [(not (pango_font_family_is_monospace family)) families]
-                                        [else (unsafe-cons-list (pango_font_family_get_name family) families)])))])))
-  
-  (define (list-font-faces)
-    (let families++ ([fobjects (pango_font_map_list_families (pango_cairo_font_map_get_default))]
-                     [faces null])
-      (cond [(null? fobjects) (sort faces string<?)]
-            [else (families++ (unsafe-cdr fobjects) (family-faces++ (unsafe-car fobjects) faces))])))
-  
-  (define (list-monospace-font-faces)
-    (let families++ ([fobjects (pango_font_map_list_families (pango_cairo_font_map_get_default))]
-                     [faces null])
-      (cond [(null? fobjects) (sort faces string<?)]
-            [else (let* ([family (unsafe-car fobjects)])
-                    (families++ (unsafe-cdr fobjects)
-                                (cond [(not (pango_font_family_is_monospace family)) faces]
-                                      [else (family-faces++ family faces)])))])))
+  (define (font_list_families)
+    (pango_font_map_list_families (pango_cairo_font_map_get_default)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define system-ui
@@ -136,12 +110,13 @@
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [#:opaque Font-Description font-description?]
+ [#:opaque Font-Raw-Family font-raw-family?]
  [system-ui (-> Symbol String String)]
  [bitmap_create_font_desc (-> String Real (Option Integer) (Option Integer) (Option Integer) Font-Description)]
  [font_get_metrics_lines (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]
  [font_get_metrics (-> Font-Description (Listof (Pairof Symbol Nonnegative-Flonum)))]
  [font_get_text_extent (-> Font-Description String (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum))]
- [list-font-families (-> (Listof String))]
- [list-font-faces (-> (Listof String))]
- [list-monospace-font-families (-> (Listof String))]
- [list-monospace-font-faces (-> (Listof String))])
+ [font_list_families (-> (Listof Font-Raw-Family))]
+ [pango_font_family_is_monospace (-> Font-Raw-Family Boolean)]
+ [pango_font_family_get_name (-> Font-Raw-Family String)]
+ [family-faces++ (-> Font-Raw-Family (Listof String) (Listof String))])

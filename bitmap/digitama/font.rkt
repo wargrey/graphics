@@ -16,8 +16,8 @@
   [(fantasy)    (case os [(macosx) "Helvetica"] [(windows) "Arial"] [else "Helvetica"])]
   [(cursive)    (case os [(macosx) "Apple Chancery, Italic"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
   [(system-ui)  (system-ui 'normal-control-font (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"]))]
-  [(emoji)      (case os [else "Symbol"])]
-  [(math)       (case os [else "Symbol"])]
+  [(emoji)      (case os [(macosx) "GB18030 Bitmap"] [else "Symbol"])]
+  [(math)       (case os [(macosx) "Bodoni 72, Book Italic"] [else "Symbol"])]
   [(fangsong)   (case os [(macosx) "ST FangSong"] [(windows) "FangSong"] [else "Symbol"])])
 
 (define-enumeration* css-font-size-option #:as Font-Size
@@ -61,6 +61,40 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define os : Symbol (system-type 'os))
+
+(define list-font-families : (-> (Listof String))
+  (lambda []
+    (let families++ ([fobjects : (Listof Font-Raw-Family) (font_list_families)]
+                     [families : (Listof String) null])
+      (cond [(null? fobjects) (sort families string<?)]
+            [else (families++ (cdr fobjects) (cons (pango_font_family_get_name (car fobjects)) families))]))))
+
+(define list-monospace-font-families : (-> (Listof String))
+  (lambda []
+    (let families++ ([fobjects : (Listof Font-Raw-Family) (font_list_families)]
+                     [families : (Listof String) null])
+      (cond [(null? fobjects) (sort families string<?)]
+            [else (let ([family (car fobjects)])
+                    (families++ (cdr fobjects)
+                                (cond [(not (pango_font_family_is_monospace family)) families]
+                                      [else (cons (pango_font_family_get_name family) families)])))]))))
+
+(define list-font-faces : (-> (Listof String))
+  (lambda []
+    (let face++ ([fobjects : (Listof Font-Raw-Family) (font_list_families)]
+                 [faces : (Listof String) null])
+      (cond [(null? fobjects) (sort faces string<?)]
+            [else (face++ (cdr fobjects) (family-faces++ (car fobjects) faces))]))))
+
+(define list-monospace-font-faces : (-> (Listof String))
+  (lambda []
+    (let face++ ([fobjects : (Listof Font-Raw-Family) (font_list_families)]
+                 [faces : (Listof String) null])
+      (cond [(null? fobjects) (sort faces string<?)]
+            [else (let* ([family (car fobjects)])
+                    (face++ (cdr fobjects)
+                            (cond [(not (pango_font_family_is_monospace family)) faces]
+                                  [else (family-faces++ family faces)])))]))))
 
 (define select-font-face : (-> (Listof (U String Symbol)) (Option String))
   (lambda [value]

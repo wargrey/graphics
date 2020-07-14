@@ -3,16 +3,15 @@
 wargrey
 
 ```racket
- (require bitmap) package: [graphics](https://pkgs.racket-lang.org/package/graphics)
+ (require bitmap/base) package: [graphics](https://pkgs.racket-lang.org/package/graphics)
+ (require bitmap)     
 ```
 
-> The `bitmap` is influenced by `pict` and `images/flomap`.
-
-The `bitmap` is a typed functional picture library which wraps \[Cairo\]
-and \[Pango\] directly. The initial motivation is to provide high
-performance, professional, yet handy graphics APIs that suitable to work
-with my `css` engine as well as to be used standalone by developers and
-artists.
+The `bitmap` is a typed functional picture library which employs
+\[Cairo\] and \[Pango\] via `ffi/unsafe` directly. The initial
+motivation is to provide efficient, professional, yet handy graphics
+APIs that suitable to work with my `css` engine as well as to be used
+standalone for developers and artists.
 
 ​_WARNING: This library is still experimental and everything is subject
 to change._​
