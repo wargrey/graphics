@@ -72,25 +72,26 @@
             (hash-set! &fonts font (make-ephemeron font desc))
             desc)))))
 
-(define font-metrics : (-> Font (Listof (Pairof Symbol Nonnegative-Flonum)))
+(define font-metrics : (->* (Font) ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))
   (let ([&metrics : (HashTable Any (Ephemeronof (Listof (Pairof Symbol Nonnegative-Flonum)))) (make-weak-hash)])
-    (lambda [font]
+    (lambda [font [units null]]
       (define &m (hash-ref &metrics font (λ _ #false)))
-      (or (and &m (ephemeron-value &m))
-          (let ([metrics (font_get_metrics (font-description font))])
-            (hash-set! &metrics font (make-ephemeron font metrics))
-            metrics)))))
+      (define metrics : (Listof (Pairof Symbol Nonnegative-Flonum))
+        (or (and &m (ephemeron-value &m))
+            (let ([metrics (font_get_metrics (font-description font))])
+              (hash-set! &metrics font (make-ephemeron font metrics))
+              metrics)))
+      (cond [(null? units) metrics]
+            [else (for/list : (Listof (Pairof Symbol Nonnegative-Flonum))
+                    ([m (in-list metrics)] #:when (memq (car m) units))
+                    m)]))))
 
-(define font-metrics-ref : (case-> [Font (Listof Symbol) -> (Listof (Pairof Symbol Nonnegative-Flonum))]
-                                   [Font Symbol -> Nonnegative-Flonum])
-  (lambda [font units]
+(define font-metrics-ref : (Font Symbol -> Nonnegative-Flonum)
+  (lambda [font unit]
     (define metrics (font-metrics font))
-    (if (symbol? units)
-        (let ([?m (assq units metrics)])
-          (if ?m (cdr ?m) +nan.0))
-        (for/list : (Listof (Pairof Symbol Nonnegative-Flonum))
-          ([m (in-list metrics)] #:when (memq (car m) units))
-          m))))
+    
+    (let ([?m (assq unit metrics)])
+      (if ?m (cdr ?m) +nan.0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define text-metrics-lines : (->* (String) (Font) (Values Flonum Flonum Flonum Flonum Flonum))

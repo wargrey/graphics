@@ -15,7 +15,7 @@
   (require "pangocairo.rkt")
   (require (submod "font.rkt" unsafe))
 
-  (define (bitmap_text text font-desc lines fgsource bgsource alsource dlsource clsource mlsource blsource density)
+  (define (bitmap_text text font-desc lines fgsource bgsource alsource clsource mlsource blsource dlsource density)
     (define-values (width height distance ascent descent) (font_get_text_extent font-desc text))
     (define-values (bmp cr) (make-text-image width height bgsource density))
     (define layout (bitmap_create_layout the-cairo lines))

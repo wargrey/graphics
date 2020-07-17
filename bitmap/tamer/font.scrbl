@@ -12,9 +12,14 @@
 @(require (for-label typed/racket/base))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@(define-url-bib cssfont
+@(define-url-bib css:font
    "CSS Font Module Level 3" "https://drafts.csswg.org/css-fonts-3"
    #:date 2018
+   #:author (org-author-name "W3C"))
+
+@(define-url-bib css:values
+   "CSS Values and Units Module Level 4" "https://drafts.csswg.org/css-values-4/#font-relative-lengths"
+   #:date 2020
    #:author (org-author-name "W3C"))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -36,7 +41,7 @@ into @tech{font} @deftech{families} classified by a set of standard @tech{font} 
 the shape displayed for a given character can vary by stroke weight, slant or relative width,
 among others. An individual font face is described by a unique combination of these properties.
 
-The @tech{font} and its properties described in this section follow the @~cite[cssfont]. Nonetheless,
+The @tech{font} and its properties described in this section follow the @~cite[css:font]. Nonetheless,
 if properties are not supported by the backend renderer, they are accepted by APIs but will not be
 displayed as expected.
 
@@ -45,7 +50,8 @@ displayed as expected.
 @handbook-scenario{Descriptor and Properties}
 
 @deftogether[(@defidform[Font-Style] @defidform[Font-Stretch] @defidform[Font-Weight])]{
- The basic @tech{font} properties that represented as predefined keywords. Possible values are:
+ The basic @tech{font} properties that represented as predefined keywords.
+ Possible values are as follows:
 
  @itemlist[@item{@racket[Font-Style]: @tamer-keywords[@css-font-style-options].}
            @item{@racket[Font-Stretch]: @tamer-keywords[@css-font-stretch-options].} 
@@ -152,9 +158,72 @@ displayed as expected.
  Get the list of monospace @tech{font} face names and @tech{family} names available on the current platform.
 }
 
-@handbook-scenario{Metrics}
+@handbook-scenario{Typographic Metrics}
 
-@handbook-scenario{Glimpse}
+The @deftech{metrics} correspond to the font-relative @deftech{units} defined in @~cite[css:values].
+
+@defproc[(font-metrics [font Font]
+                       [units (Listof Symbol) null])
+         (Listof (Pairof Symbol Nonnegative-Flonum))]{
+ Returns an association list of font @tech{metrics} of @racket[font]. If @racket[units] is @racket[null],
+ then all @tech{metrics} are returned, otherwise, only specified @tech{metrics} are returned. Possible
+ values in @racket[units] are @tamer-indexed-keywords[(map car (font-metrics (default-font)))].
+
+ Note that, the values of @racket['lh], @racket['rem], and @racket['rlh] are useless out of the
+ @racketmodname[css] environment. The root element is even undefined outside. So just do not rely
+ on them.
+
+ @tamer-action[(font-metrics (default-font) '(em ex cap ch ic))]
+}
+
+@defproc[(font-metrics-ref [font Font]
+                           [unit Symbol])
+         Nonnegative-Flonum]{
+ Returns the specified font @tech{metric} of @racket[font]. Possible value of @racket[unit] is one
+ of: @tamer-indexed-keywords[(map car (font-metrics (default-font))) ", " ", or "]. Otherwise,
+ @racket[+nan.0] is returned.
+}
+
+@defproc[(text-size [text String]
+                    [font Font (default-font)])
+         (Values Nonnegative-Flonum Nonnegative-Flonum)]{
+ Returns the width and height of the @racket[text] as it would be rendered with @racket[font].
+
+ @tamer-action[(text-size "Sphinx")]
+}
+
+@defproc[(text-size* [text String]
+                     [font Font (default-font)])
+         (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum)]{
+ Returns the width, height, distance, ascent, and descent of the @racket[text] as it would be
+ rendered with @racket[font]. Among them, the ascent and the descent are exemplified in the
+ following figure, while the distance is computed downward from baseline.
+ 
+@centered{
+ @image[(build-path (digimon-path 'tamer) "stone" "Sphinx.svg")]{Common Typographic Metrics}
+  
+ Common Typographic Metrics}
+
+ @tamer-action[(text-size* "Sphinx")]
+}
+
+@defproc[(text-metrics-lines [text String]
+                             [font Font (default-font)])
+         (Values Flonum Flonum Flonum Flonum Flonum)]{
+ Returns the 5 common typographic lines of the @racket[text] as it would be
+ rendered with @racket[font]. These lines are identified by their vertical
+ positions computed downward from top.
+ 
+ @tamer-action[(require bitmap/constructor)
+               (require bitmap/constants)
+               (define exfont (desc-font (desc-font #:family 'cursive #:size 'xx-large) #:size -3.14))
+               
+               (text-metrics-lines "Sphinx" exfont)
+               (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
+                            "Sphinx " exfont)]
+}
+
+@handbook-scenario{A Glimpse of Properties}
 
 @(define exfont (desc-font #:size 'x-large #:family 'system-ui))
 @(define exgap (bitmap-blank))

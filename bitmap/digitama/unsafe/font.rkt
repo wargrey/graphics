@@ -41,7 +41,7 @@
     (list (cons 'em (~metric (pango_font_description_get_size font-desc)))
           (cons 'ex (~metric ex)) (cons 'cap (~metric cap))
           (cons 'ch (~metric ch)) (cons 'ic (~metric ic))
-          (cons 'lh #|TODO: line height should be required|# (~metric wH))))
+          (cons 'lh #|this unit is useless outside css engine|# (~metric wH))))
 
   (define (font_get_metrics_lines font-desc content)
     (start-atomic)

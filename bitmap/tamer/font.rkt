@@ -14,7 +14,7 @@
 (define bitmap-text* : (-> String Font Bitmap)
   (lambda [text font]
     (define content (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
-                               text (desc-font (desc-font font #:size 'xx-large) #:size -2.0)))
+                                 text (desc-font (desc-font font #:size 'xx-large) #:size -2.0)))
     (bitmap-frame content)))
 
 
