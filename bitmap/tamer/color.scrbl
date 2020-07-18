@@ -29,10 +29,10 @@
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 @handbook-typed-module-story[bitmap/color]{Color and Colorspace}
 
-A @deftech{color} is a definition (numeric or textual) of the human visual perception of a light
-or a physical object illuminated with light. The objective study of human color perception is
-termed colorimetry. If two objects have different spectra, but produce the same physical sensation,
-we say they have the same @tech{color}.
+A @deftech{color} is a definition of the human visual perception of a light or a physical object
+illuminated with light. The objective study of human color perception is termed colorimetry. If two
+objects have different spectra, but produce the same physical sensation, we say they have the same
+@tech{color}.
 
 A @deftech{colorspace} is an organization of @tech{color}s with respect to an underlying colorimetric
 model, such that there is a clear, objectively-measurable meaning for any color in that @tech{colorspace}.
@@ -48,6 +48,19 @@ expected to hide all those complexities.
 
 @;tamer-smart-summary[]
 
-@handbook-scenario{Colorspaces}
+@handbook-scenario{Color Representations}
+
+@deftogether[(@defidform[Color] @defidform[FlColor])]{
+ @racket[Color] is the general type for any @tech{color} datum that can be represented as any type of:
+
+  @itemlist[
+ @item{@racket[Symbol]: the names of @tech{named color}s.}
+ @item{@racket[FlColor]: the general type of all concrete @tech{colorspace} types.}
+ @item{@racket[Integer]: the 6-digit hexadecimal @tech{color} notation for @tech{sRGB} @tech{colorspace}.
+        
+   As they are usually mapped to 3 consecutive bytes in the memory, negative datum is also acceptable.}]
+}
+
+@handbook-scenario{Named Colors}
 
 @handbook-reference[#:auto-hide? #true]
