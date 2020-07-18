@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (define-type Color (U Symbol Integer FlColor))
-(define-predicate color? Color)
 
 (struct paint () #:transparent #:type-name Paint)
 (struct flcolor () #:transparent #:type-name FlColor)
@@ -12,3 +11,9 @@
 
 (define default-bitmap-density : (Parameterof Positive-Flonum) (make-parameter 2.0))
 (define default-bitmap-icon-height : (Parameterof Nonnegative-Flonum) (make-parameter 24.0))
+
+(define color? : (-> Any Boolean : Color)
+  (lambda [v]
+    (or (flcolor? v)
+        (symbol? v)
+        (exact-integer? v))))

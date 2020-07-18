@@ -37,13 +37,13 @@
 A @deftech{font} provides a resource containing the visual representation of characters. At the
 simplest level it contains information that maps character codes to shapes (called @deftech{glyphs})
 that represent these characters. @tech{Fonts} sharing a common design style are commonly grouped
-into @tech{font} @deftech{families} classified by a set of standard @tech{font} properties. Within a family,
-the shape displayed for a given character can vary by stroke weight, slant or relative width,
-among others. An individual font face is described by a unique combination of these properties.
+into @tech{font} @deftech{families} classified by a set of standard @tech{font} properties. Within
+a family, the shape displayed for a given character can vary by stroke weight, slant or relative
+width, among others. An individual font face is described by a unique combination of these properties.
 
-The @tech{font} and its properties described in this section follow the @~cite[css:font]. Nonetheless,
-if properties are not supported by the backend renderer, they are accepted by APIs but will not be
-displayed as expected.
+The @tech{font} and its properties that described in this section follow the @~cite[css:font].
+Nonetheless, if properties are not supported by the backend renderer, they are accepted by APIs
+but will not be displayed as expected.
 
 @;tamer-smart-summary[]
 

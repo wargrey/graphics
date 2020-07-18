@@ -8,4 +8,4 @@
 (define version "1.0")
 (define test-omit-paths 'all)
 
-(define scribblings '(["tamer/colorspace.scrbl" (main-doc) ("Math and Science")]))
+;(define scribblings '(["tamer/colorspace.scrbl" (main-doc) ("Math and Science")]))

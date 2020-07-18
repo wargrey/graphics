@@ -22,6 +22,7 @@ used standalone for developers and artists.
 @handbook-smart-table[]
 
 @include-section{font.scrbl}
+@include-section{color.scrbl}
 
 @handbook-appendix[#:index? #true
  (url-bib-entry 'Cairo
