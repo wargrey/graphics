@@ -10,14 +10,14 @@
 
 (define-enumeration* [css-font-generic-family css-font-generic-families] #:as Font-Family 
   font-family->face #:-> String
-  [(sans-serif) (case os [(macosx) "Lucida Grande"] [(windows) "Tahoma"] [else "Sans"])]
+  [(sans-serif) (case os [(macosx) "Lucida Grande"] [(windows) "Microsoft YaHei"] [else "Sans"])]
   [(serif)      (case os [(macosx) "Times"] [(windows) "Times New Roman"] [else "Serif"])]
   [(monospace)  (case os [(macosx) "Courier"] [(windows) "Courier New"] [else "Monospace"])]
-  [(fantasy)    (case os [(macosx) "Helvetica"] [(windows) "Arial"] [else "Helvetica"])]
-  [(cursive)    (case os [(macosx) "Apple Chancery, Italic"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
+  [(fantasy)    (case os [(macosx) "Comic Sans MS"] [(windows) "Comic Sans MS"] [else "Helvetica"])]
+  [(cursive)    (case os [(macosx) "Kokonor"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
   [(system-ui)  (system-ui 'normal-control-font (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"]))]
-  [(emoji)      (case os [(macosx) "GB18030 Bitmap"] [else "Symbol"])]
-  [(math)       (case os [(macosx) "Bodoni 72, Book Italic"] [else "Symbol"])]
+  [(emoji)      (case os [(macosx) "GB18030 Bitmap"] [(windows) "Algerian"] [else "Symbol"])]
+  [(math)       (case os [(macosx) "Bodoni 72, Book Italic"] [(windows) "Bodoni MT, Italic"] [else "Symbol"])]
   [(fangsong)   (case os [(macosx) "ST FangSong"] [(windows) "FangSong"] [else "Symbol"])])
 
 (define-enumeration* css-font-size-option #:as Font-Size

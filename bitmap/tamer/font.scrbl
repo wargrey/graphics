@@ -225,7 +225,7 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
 
 @handbook-scenario{A Glimpse of Properties}
 
-@(define exfont (desc-font #:size 'x-large #:family 'system-ui))
+@(define exfont (desc-font #:size 'x-large #:family 'fangsong))
 @(define exgap (bitmap-blank))
 
 @(define (font-style-table ex-chars options update-font hgapsize)
@@ -242,7 +242,7 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
     'cc 'cc hgapsize (* hgapsize 0.618)))
 
 This section is trivial since font properties are much more than they do should be supported.
-Here exemplifies the properties of @racket['system] font: 
+Here exemplifies the properties of @racket['fangsong] font. 
 
 @centered{@font-style-table[(list "a" "N") css-font-stretch-options
                             (λ [f p s] (desc-font f #:stretch p #:style s))
