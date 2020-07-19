@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (except-out (all-defined-out) define-color-space))
-(provide (struct-out FlRGBA) (struct-out FlColor) Color rgba)
+(provide (struct-out FlRGBA) (struct-out FlColor) Color rgba color?)
 (provide transparent hilite black)
 
 (require colorspace)
@@ -16,13 +16,18 @@
   (syntax-case stx [:]
     [(_ clr ([com : real->flonum] ...) #:* rgb->clr)
      (with-syntax ([clra (format-id #'clr "~aa" (syntax-e #'clr))]
+                   [FlCLRA (format-id #'clr "Fl~aA" (string-upcase (symbol->string (syntax-e #'clr))))]
                    [clra? (format-id #'clr "~aa?" (syntax-e #'clr))]
-                   [clr* (format-id #'clr "~a*" (syntax-e #'clr))])
-       #'(begin (struct clra flcolor ([com : Flonum] ... [alpha : Flonum]) #:transparent)
+                   [clr* (format-id #'clr "~a*" (syntax-e #'clr))]
+                   [clr-alpha (format-id #'clr "~aa-alpha" (syntax-e #'clr))]
+                   [(clr-com ...) (for/list ([<c> (in-list (syntax->list #'(com ...)))])
+                                    (format-id <c> "~aa-~a" (syntax-e #'clr) (syntax-e <c>)))])
+       #'(begin (struct clra flcolor ([com : Flonum] ... [alpha : Flonum])
+                  #:transparent #:type-name FlCLRA)
                 (define (clr [com : Real] ... [alpha : Real 1.0]) : clra
-                  (clra (real->flonum com) ... (real->double-flonum alpha)))
+                  (clra (real->flonum com) ... (real->alpha alpha)))
                 (define (clr* [src : Color] [alpha : Real 1.0]) : clra
-                  (cond [(and (clra? src) (= alpha 1.0)) src]
+                  (cond [(clra? src) (if (= alpha 1.0) src (clra (clr-com src) ... (* (clr-alpha src) (real->alpha alpha))))]
                         [else (let ([flrgba (rgb* src alpha)])
                                 (define-values (com ...) (rgb->clr (rgba-red flrgba) (rgba-green flrgba) (rgba-blue flrgba)))
                                 (clra com ... (rgba-alpha flrgba)))]))))]))
@@ -41,11 +46,11 @@
     (rgba (real->gamut red)
           (real->gamut green)
           (real->gamut blue)
-          (real->double-flonum alpha))))
+          (real->alpha alpha))))
 
 (define rgb* : (->* (Color) (Real) FlRGBA)
   (lambda [src [alpha 1.0]]
-    (define flalpha : Flonum (real->double-flonum alpha))
+    (define flalpha : Flonum (real->alpha alpha))
     (cond [(symbol? src) (or (named-rgba src flalpha rgb*) (rgb* fallback-color flalpha))]
           [(exact-integer? src) (let-values ([(r g b) (hex->rgb-gamuts src)]) (rgba r g b flalpha))]
           [(hexa? src) (let-values ([(r g b) (hex->rgb-gamuts (hexa-digits src))]) (rgba r g b (* (hexa-alpha src) flalpha)))]

@@ -4,12 +4,18 @@
 
 (require "base.rkt")
 
+(require/typed
+ racket/symbol
+ [symbol->immutable-string (-> Symbol String)])
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-make-currentcolor : (Parameterof (-> Color)) (make-parameter (λ [] #x000000)))
 (define fallback-color : Color ((default-make-currentcolor)))
 (define transparent : FlRGBA (rgba 0.0 0.0 0.0 0.0))
 (define hilite : FlRGBA (rgba 0.0 0.0 0.0 0.3))
 (define black : FlRGBA (rgba 0.0 0.0 0.0 1.0))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define $ : (-> (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)) Flonum Flonum Flonum Flonum Flonum FlRGBA)
   (lambda [->rgb h s b a alpha]
     (define-values (flr flg flb) (->rgb h s b))
@@ -18,7 +24,7 @@
 (define named-rgba : (->* (Symbol Flonum (-> Color Real FlRGBA)) (Boolean) (Option FlRGBA))
   (lambda [name flalpha rgb* [downcased? #false]]
     (cond [(hash-has-key? css-named-colors name) (rgb* (hash-ref css-named-colors name) flalpha)]
-          [(not downcased?) (named-rgba (string->symbol (string-downcase (symbol->string name))) flalpha rgb* #true)]
+          [(not downcased?) (named-rgba (string->symbol (string-downcase (symbol->immutable-string name))) flalpha rgb* #true)]
           [(eq? name 'transparent) transparent]
           [(eq? name 'currentcolor) (rgb* ((default-make-currentcolor)) flalpha)]
           [else #false])))
@@ -38,6 +44,7 @@
           [else (or (named-rgba (vector-ref xterm-system-colors sgr) flalpha rgb* #true)
                     (rgb* fallback-color flalpha))])))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://drafts.csswg.org/css-color/#named-colors
 (define css-named-colors : (HashTable Symbol Index)
   #hasheq((black . 0) (gold . #xFFD700) (palegoldenrod . #xEEE8AA) (hotpink . #xFF69B4) (darksalmon . #xE9967A) (yellow . #xFFFF00)

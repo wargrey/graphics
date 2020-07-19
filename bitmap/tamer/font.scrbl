@@ -64,7 +64,7 @@ but will not be displayed as expected.
                                [style Font-Style]
                                [stretch Font-Stretch])
                  [#:transparent]]{
- A structure type for the @tech{font} which instance is associated with type name @racket[Font].
+ A structure type for @tech{font} which instance is associated with type name @racket[Font].
  This is a read-only structure, and to make a @tech{font} instance, use @racket[desc-font] instead
  since its arguments accept a much more wider range of values.
 }
@@ -79,7 +79,7 @@ but will not be displayed as expected.
  Functionally create a new @racket[Font] instance by independently updating properties of the
  @racket[basefont]. The default @racket[basefont] is controlled by the parameter @racket[default-font].
 
- @itemlist[@item{@racket[family] argument accepts value of any type of
+ @itemlist[@item{@racket[family] argument accepts datum of any type of
 
              @itemlist[@item{@racket[Symbol]: One of the predefined keywords in
                                      @tamer-indexed-keywords[@css-font-generic-families]. Otherwise,
@@ -98,7 +98,7 @@ but will not be displayed as expected.
 
                        @item{Otherwise, inherited from @racket[basefont].}]}
 
-           @item{@racket[size] argument accepts value of any type of
+           @item{@racket[size] argument accepts datum of any type of
 
              @itemlist[@item{@racket[Symbol]: One of the predefined keywords in
                                      @tamer-indexed-keywords[@css-font-size-options]. Otherwise,
@@ -111,8 +111,8 @@ but will not be displayed as expected.
                        
                        @item{@racket[Real]: Nonnegative @racket[size]s are interpreted as absolute
                                      values, and the used size is exactly the same as @racket[size];
-                                     Negative values are interpreted as percentages which value is
-                                     the additive inverse of @racket[size], and the used size is
+                                     Negative @racket[size]s are interpreted as percentages which value
+                                     is the additive inverse of @racket[size], and the used size is
                                      relative to the size of @racket[basefont]. Otherwise, inherited
                                      from @racket[basefont].}
 
@@ -122,7 +122,7 @@ but will not be displayed as expected.
              @tamer-indexed-keywords[@css-font-style-options]. Otherwise, inherited
              from @racket[basefont].}
 
-           @item{@racket[weight] argument accepts value of any type of
+           @item{@racket[weight] argument accepts datum of any type of
 
              @itemlist[@item{@racket[Symbol]: One of the predefined keywords in
                                      @tamer-make-keywords[font-weigth-element
@@ -197,7 +197,7 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
          (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum)]{
  Returns the width, height, distance, ascent, and descent of the @racket[text] as it would be
  rendered with @racket[font]. Among them, the ascent and the descent are exemplified in the
- following figure, while the distance is computed downward from baseline.
+ following figure, while the distance is measured downward from baseline.
  
 @centered{
  @image[(build-path (digimon-path 'tamer) "stone" "Sphinx.svg")]{Common Typographic Metrics}
@@ -212,7 +212,7 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
          (Values Flonum Flonum Flonum Flonum Flonum)]{
  Returns the 5 common typographic lines of the @racket[text] as it would be
  rendered with @racket[font]. These lines are identified by their vertical
- positions computed downward from top.
+ positions measured downward from top.
  
  @tamer-action[(require bitmap/constructor)
                (require bitmap/constants)
