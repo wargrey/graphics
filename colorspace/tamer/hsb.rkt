@@ -16,10 +16,11 @@
     (cond [(ormap nan? (cons src res)) (andmap nan? (cons src res))]
           [else (for/and ([r (in-list res)])
                   (ormap (λ [[m : Flonum]] (eq? (exact-round (* src m)) (exact-round (* r m))))
-                         (list 1000.0 100.0 10.0)))])))
+                         (list #;1000.0 100.0 10.0)))])))
 
 (define examples : (Listof (List Natural Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum))
-  (list (list #xFFFFFF  1.000  1.000  1.000  +nan.0  +nan.0  1.000  1.000  1.000  1.000  0.000  0.000  0.000)
+  (list #;'(    color     R      G      B     Hue1    Hue2     V      L      I    Y601    Sv      Sl     Si)
+        (list #xFFFFFF  1.000  1.000  1.000  +nan.0  +nan.0  1.000  1.000  1.000  1.000  0.000  0.000  0.000)
         (list #x808080  0.500  0.500  0.500  +nan.0  +nan.0  0.500  0.500  0.500  0.500  0.000  0.000  0.000)
         (list #x000000  0.000  0.000  0.000  +nan.0  +nan.0  0.000  0.000  0.000  0.000  0.000  0.000  0.000)
         (list #xFF0000  1.000  0.000  0.000  0.0     0.0     1.000  0.500  0.333  0.299  1.000  1.000  1.000)
@@ -39,9 +40,9 @@
         (list #x362698  0.211  0.149  0.597  248.3   247.3   0.597  0.373  0.319  0.219  0.750  0.601  0.533)
         (list #x7E7EB8  0.495  0.493  0.721  240.5   240.4   0.721  0.607  0.570  0.520  0.316  0.290  0.135)))
 
-(define test-rgb->hsb : (-> (Listof Datum))
+(define test-rgb->hsb : (-> Void)
   (lambda []
-    (for/list : (Listof Datum) ([tc (in-list examples)])
+    (for ([tc (in-list examples)])
       (define-values (color-name metrics) (values (color->name (first tc)) (take-right (cdr tc) 7)))
       (define-values (R  G  B  H  Hi) (values (second tc) (third tc) (fourth tc) (fifth tc) (sixth tc)))
       (define-values (V  L  I)        (values (first metrics) (second metrics) (third metrics)))
@@ -51,12 +52,14 @@
       (define-values (hi si i)        (rgb->hsi R G B))
       (define src : (Listof Flonum)   (list H  Hi  V  L  I  Sv  Sl  Si))
       (define hsb : (Listof Flonum)   (list hv hi  v  l  i  sv  sl  si))
-      (cond [(andmap datum=? src hsb) (list (cons 'rgb->hsb color-name) R G B H Hi V L I Sv Sl Si)]
-            [else (list* (cons 'rgb->nan color-name) R G B (map (inst cons Flonum Flonum) src hsb))]))))
 
-(define test-hsb->rgb : (-> (Listof Datum))
+      (if (andmap datum=? src hsb)
+          (displayln (list (cons 'rgb->hsb color-name) R G B H Hi V L I Sv Sl Si) (current-output-port))
+          (displayln (list (cons 'rgb->nan color-name) (map (inst cons Flonum) src hsb)) (current-error-port))))))
+
+(define test-hsb->rgb : (-> Void)
   (lambda []
-    (for/list : (Listof Datum) ([tc (in-list examples)])
+    (for ([tc (in-list examples)])
       (define-values (color-name metrics) (values (color->name (first tc)) (take-right (cdr tc) 7)))
       (define-values (R  G  B  H  Hi) (values (second tc) (third tc) (fourth tc) (fifth tc) (sixth tc)))
       (define-values (V  L  I)        (values (first metrics) (second metrics) (third metrics)))
@@ -71,22 +74,26 @@
       (define hsi : (Listof Flonum)   (list ri gi bi))
       (define hsh : (Listof Flonum)   (list rh gh bh))
       (define diff : (Listof Datum) (map (λ [[i : Flonum] [h : Flonum]] (cons (color->flbyte h) (color->flbyte i))) hsi hsh))
-      (cond [(andmap datum=? src hsv hsl hsi) (list* (cons 'hsb->rgb color-name) R G B (cons H Hi) diff)]
-            [else (cons (cons 'hsb->nan color-name) (map (inst list Flonum) src hsv hsl hsi))]))))
 
-(define test-rgb<->hwb : (-> (Listof Datum))
+      (if (andmap datum=? src hsv hsl hsi)
+          (displayln (list* (cons 'hsb->rgb color-name) R G B (cons H Hi) diff) (current-output-port))
+          (displayln (cons (cons 'hsb->nan color-name) (map (inst list Flonum) src hsv hsl hsi)) (current-error-port))))))
+
+(define test-rgb<->hwb : (-> Void)
   (lambda []
-    (for/list : (Listof Datum) ([tc (in-list examples)])
-      (define-values (color-name metrics) (values (color->name (first tc)) (take-right (cdr tc) 7)))
+    (for ([tc (in-list examples)])
+      (define color-name  (color->name (first tc)))
       (define-values (R  G  B  H)   (values (second tc) (third tc) (fourth tc) (fifth tc)))
       (define-values (h w black)    (rgb->hwb R G B))
       (define-values (r g b)        (hwb->rgb h w black))
       (define src : (Listof Flonum) (list R G B H))
       (define hwb : (Listof Flonum) (list r g b h))
-      (cond [(andmap datum=? src hwb) (list (cons 'rgb<>hwb color-name) R G B H)]
-            [else (cons (cons 'hwb<>nan color-name) (map (inst cons Flonum Flonum) src hwb))]))))
+
+      (if (andmap datum=? src hwb)
+          (displayln (list (cons 'rgb<>hwb color-name) R G B H) (current-output-port))
+          (displayln (cons (cons 'hwb<>nan color-name) (map (inst cons Flonum Flonum) src hwb)) (current-error-port))))))
 
 (module+ main
-  (append (test-rgb->hsb)
-          (test-hsb->rgb)
-          (test-rgb<->hwb)))
+  (test-rgb->hsb)
+  (test-hsb->rgb)
+  (test-rgb<->hwb))

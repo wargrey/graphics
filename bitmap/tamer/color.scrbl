@@ -48,7 +48,7 @@ expected to hide all those complexities.
 
 @tamer-defstruct[rgba #: FlRGBA ([red Flonum] [green Flonum] [blue Flonum] [alpha Flonum]) [#:transparent]]{
  A structure type for RGB @tech{color model} whose instance is associated with type name @racket[FlRGBA]. As of
- @racket[alpha], all 3 components of the @racket[FlRGBA] have range of @racketparenfont{[}@racket[0.0]@racketparenfont{,}
+ @racket[alpha], all 3 components of the @racket[FlRGBA] are in the interval @racketparenfont{[}@racket[0.0]@racketparenfont{,}
  @racket[1.0]@racketparenfont{]} as well.
 
  Since RGB @tech{color model} is the most common one supported by electronic systems, and for the sake
@@ -60,8 +60,8 @@ expected to hide all those complexities.
 
 @defproc[(rgb [red Real] [green Real] [blue Real] [alpha Real 1.0]) FlRGBA]{
  The safer constructor of @racket[FlRGBA]. For all fields, the used value is the minorant if the corresponding
- input @racket[Real] datum is less than the minorant of the range, and is the majorant if the corresponding 
- input @racket[Real] datum is greater than the majorant of the range; Otherwise, the used value is the
+ input @racket[Real] datum is less than the minorant of the interval, and is the majorant if the corresponding 
+ input @racket[Real] datum is greater than the majorant of the interval; Otherwise, the used value is the
  @racket[Flonum] datum coerced from the @racket[Real] datum. 
 }
 
@@ -102,15 +102,15 @@ variant of the same hue. The Hue-based color models therefore are invented, they
 use, but still map easily back to RGB @tech{color}s.
 
 For all four hue-based color models, @deftech{HSL}, @deftech{HSV}, @deftech{HSI}, and @deftech{HWB}, defined
-in this section, the range of hue is @racketparenfont{[}@racket[0.0]@racketparenfont{,}
- @racket[360.0]@racketparenfont{)} or @racket[+nan.0], the range of other components are
+in this section, the component @racket[hue] is in the interval @racketparenfont{[}@racket[0.0]@racketparenfont{,}
+ @racket[360.0]@racketparenfont{)} or @racket[+nan.0], and all other components are in the interval
 @racketparenfont{[}@racket[0.0]@racketparenfont{,} @racket[1.0]@racketparenfont{]}.
 
 The @tech{HWB} @tech{color model} is even easier for humen to work with.
 
 @(define font (desc-font #:weight 'bold))
-@(define-values (hsb-cwidth hwb-cwidth cheigth) (values 28.0 28.0 16.0))
-@(define hsb-hs% (list 1.0 0.75 0.50 0.25 0.00))
+@(define-values (hsb-cwidth hwb-cwidth cheigth) (values 30.0 28.0 16.0))
+@(define hsb-hs% (list 1.0 0.75 0.50 0.25 0.0))
 @(define hsb-vs% (list 1.0 0.88 0.75 0.63 0.50 0.38 0.25 0.13 0.00))
 @(define hwb-s% (list 0.0 0.20 0.40 0.60 0.80 1.00))
 
@@ -122,7 +122,7 @@ The @tech{HWB} @tech{color model} is even easier for humen to work with.
  Similar to @racket[rgb] and @racket[rgb*] for RGB @tech{color}s, @racket[hsl] and @racket[hsl*] are the recommanded
  constructors to make @tech{HSL} @tech{color} instance.
 
- @hue-colors*[hsl color-hues hsb-hs% hsb-vs% #:cell-width hsb-cwidth #:cell-height cheigth #:rotate? #false]
+ @contrast-hue-colors*[hsl contrast-color-hues hsb-hs% hsb-vs% #:cell-width hsb-cwidth #:cell-height cheigth]
 }
 
 @deftogether[(@tamer-defstruct[hsva #: FlHSVA ([hue Flonum] [saturation Flonum] [value Flonum] [alpha Flonum]) [#:transparent]]
@@ -133,7 +133,7 @@ The @tech{HWB} @tech{color model} is even easier for humen to work with.
  Similar to @racket[rgb] and @racket[rgb*] for RGB @tech{color}s, @racket[hsv] and @racket[hsv*] are the recommanded
  constructors to make @tech{HSV} @tech{color} instance.
  
- @hue-colors*[hsv color-hues hsb-hs% hsb-vs% #:cell-width hsb-cwidth #:cell-height cheigth #:rotate? #false]
+ @contrast-hue-colors*[hsv contrast-color-hues hsb-hs% hsb-vs% #:cell-width hsb-cwidth #:cell-height cheigth]
 }
 
 @deftogether[(@tamer-defstruct[hsia #: FlHSIA ([hue Flonum] [saturation Flonum] [intensity Flonum] [alpha Flonum]) [#:transparent]]
@@ -144,7 +144,7 @@ The @tech{HWB} @tech{color model} is even easier for humen to work with.
  Similar to @racket[rgb] and @racket[rgb*] for RGB @tech{color}s, @racket[hsi] and @racket[hsi*] are the recommanded
  constructors to make @tech{HSI} @tech{color} instance.
  
- @hue-colors*[hsi color-hues hsb-hs% hsb-vs% #:cell-width hsb-cwidth #:cell-height cheigth #:rotate? #false]
+ @contrast-hue-colors*[hsi contrast-color-hues hsb-hs% hsb-vs% #:cell-width hsb-cwidth #:cell-height cheigth]
 }
 
 @deftogether[(@tamer-defstruct[hwba #: FlHWBA ([hue Flonum] [white Flonum] [black Flonum] [alpha Flonum]) [#:transparent]]
