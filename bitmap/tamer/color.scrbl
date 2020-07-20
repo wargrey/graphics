@@ -17,8 +17,15 @@
    #:date 2020
    #:author (org-author-name "W3C"))
 
+@(define-url-bib HSB
+   "HSL and HSV" "https://en.wikipedia.org/wiki/HSL_and_HSV"
+   #:author (org-author-name "Wikipedia"))
+
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 @handbook-typed-module-story[bitmap/color]{Color, Color Model, and Colorspace}
+
+@margin-note{More about @tech{color} and @tech{colorspace} can be found in @~cite[css:color]. This chapter is
+ expected to hide all those complexities.}
 
 A @deftech{color} is a definition of the human visual perception of a light or a physical object
 illuminated with light. The objective study of human color perception is termed colorimetry. If two
@@ -32,9 +39,6 @@ A @deftech{colorspace} is an organization of @tech{color}s with respect to an un
 such that there is a clear, objectively-measurable meaning for any color in that @tech{colorspace}. This
 also means that the same @tech{color} can be expressed in multiple @tech{colorspace}s, or transformed
 from one @tech{colorspace} to another, while looking the same.
-
-More about @tech{color} and @tech{colorspace} can be found in @~cite[css:color]. This chapter is
-expected to hide all those complexities.
 
 @;tamer-smart-summary[]
 
@@ -95,6 +99,8 @@ expected to hide all those complexities.
 }
 
 @handbook-scenario{Hue-based Color Models}
+
+@margin-note{More about hue-based @tech{color model} can be found in @~cite[HSB].}
 
 The RGB @tech{color model} is convenient for machines and graphic libraries, but very difficult for humans to
 gain an intuitive grasp on. Say, it’s not easy to tell how to alter an RGB @tech{color} to produce a lighter
