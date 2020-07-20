@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (except-out (all-defined-out) define-color-space))
+(provide (except-out (all-defined-out) define-color-model))
 (provide (struct-out FlRGBA) (struct-out FlColor) Color rgba color?)
 (provide transparent hilite black)
 
@@ -12,7 +12,7 @@
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
 
-(define-syntax (define-color-space stx)
+(define-syntax (define-color-model stx)
   (syntax-case stx [:]
     [(_ clr ([com : real->flonum] ...) #:* rgb->clr)
      (with-syntax ([clra (format-id #'clr "~aa" (syntax-e #'clr))]
@@ -35,10 +35,10 @@
 (struct hexa flcolor ([digits : Index] [alpha : Flonum]) #:transparent)
 (struct xterma flcolor ([index : Byte] [alpha : Flonum]) #:transparent)
 
-(define-color-space hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]) #:* rgb->hsl)
-(define-color-space hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut])      #:* rgb->hsv)
-(define-color-space hsi ([hue : real->hue] [saturation : real->gamut] [intensity : real->gamut])  #:* rgb->hsi)
-(define-color-space hwb ([hue : real->hue] [white : real->gamut] [black : real->gamut])           #:* rgb->hwb)
+(define-color-model hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]) #:* rgb->hsl)
+(define-color-model hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut])      #:* rgb->hsv)
+(define-color-model hsi ([hue : real->hue] [saturation : real->gamut] [intensity : real->gamut])  #:* rgb->hsi)
+(define-color-model hwb ([hue : real->hue] [white : real->gamut] [black : real->gamut])           #:* rgb->hwb)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define rgb : (->* (Real Real Real) (Real) FlRGBA)

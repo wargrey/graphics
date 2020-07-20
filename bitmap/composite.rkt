@@ -76,7 +76,7 @@
                 ([rows : (Listof Bitmap) (in-list bitmaps)])
         (define rsize : Index (length rows))
         (values (cond [(= ncols rsize) (append surfaces (map bitmap-surface rows))]
-                      [else (append surfaces (map bitmap-surface rows) (make-list (- rsize ncols) sont))])
+                      [else (append surfaces (map bitmap-surface rows) (make-list (- ncols rsize) sont))])
                 (or density (and (pair? rows) (bitmap-density (car rows)))))))
     
     (cond [(not density) cont]

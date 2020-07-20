@@ -2,7 +2,7 @@
 
 (define collection 'use-pkg-name)
 
-(define pkg-desc "Color Space Conversion")
+(define pkg-desc "Color Model Conversion")
 (define pkg-authors '(wargrey))
 
 (define version "1.0")
