@@ -10,7 +10,7 @@
 
 The @the-name is a typed functional picture library which employs @cite{Cairo} and @cite{Pango} via
 @racketmodname[ffi/unsafe] directly. The initial motivation is to provide efficient, professional,
-yet handy graphics APIs that lay the founddation for my @racketmodname[css] engine as well as to be
+yet handy graphics APIs that lay the foundation for my @racketmodname[css] engine as well as to be
 used standalone for developers and artists.
 
 @emph{WARNING: This library is still experimental and everything is subject to change.}
