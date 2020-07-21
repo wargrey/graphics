@@ -1,6 +1,7 @@
 #lang scribble/manual
 
 @(require digimon/tamer)
+@(require bitmap/misc)
 
 @(define the-name (racketmodname bitmap))
 
@@ -24,12 +25,16 @@ used standalone for developers and artists.
 @include-section{font.scrbl}
 @include-section{color.scrbl}
 
+@include-section{misc.scrbl}
+
 @handbook-appendix[#:index? #true
  (url-bib-entry 'Cairo
                 "Cairo: A Vector Graphics Library"
                 "https://www.cairographics.org"
-                #:author (authors "Keith Packard" "Carl Worth" "Behdad Esfahbod"))
+                #:author (authors "Keith Packard" "Carl Worth" "Behdad Esfahbod")
+                #:note (format "[~a]" (cairo-version-string)))
  (url-bib-entry 'Pango
                 "Pango: Internationalized Text Layout and Rendering"
                 "https://pango.gnome.org"
-                #:author (authors "Owen Taylor" "Raph Levien" "Behdad Esfahbod"))]
+                #:author (authors "Owen Taylor" "Raph Levien" "Behdad Esfahbod")
+                #:note (format "[~a]" (pango-version-string)))]

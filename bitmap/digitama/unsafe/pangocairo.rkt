@@ -35,6 +35,12 @@
 
 (define _gunichar (make-ctype _uint32 char->integer integer->char))
 
+(define-pango pango_version (_cfun -> _int))
+(define-pango pango_version_string (_cfun -> _string))
+
+(define-cairo cairo_version (_cfun -> _int))
+(define-cairo cairo_version_string (_cfun -> _string))
+
 (define-pango pango_context_set_font_description (_pfun PangoContext PangoFontDescription -> _void))
 (define-pango pango_font_description_get_size (_pfun PangoFontDescription -> _int))
 (define-pango pango_font_description_set_stretch (_pfun PangoFontDescription _int -> _void))
@@ -50,8 +56,6 @@
 (define-pango pango_layout_set_wrap (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_ellipsize (_pfun PangoLayout _int -> _void))
 
-(define-cairo cairo_version (_cfun -> _int))
-(define-cairo cairo_version_string (_cfun -> _string))
 (define-cairo cairo_status_to_string (_cfun _int -> _string))
 (define-cairo cairo_new_sub_path (_cfun _cairo_t -> _void))
 (define-cairo cairo_set_miter_limit (_cfun _cairo_t _double* -> _void))
