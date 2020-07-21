@@ -19,11 +19,12 @@
   (define &logical (make-PangoRectangle 0 0 0 0))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_create_font_desc font-face font-size weight style stretch)
+  (define (bitmap_create_font_desc font-face font-size weight style stretch variant)
     (define font-desc (pango_font_description_from_string font-face))
     (when weight (pango_font_description_set_weight font-desc weight))
     (when style (pango_font_description_set_style font-desc style))
     (when stretch (pango_font_description_set_stretch font-desc stretch))
+    (when variant (displayln variant) (pango_font_description_set_variant font-desc variant))
     (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
     font-desc)
   
@@ -112,7 +113,7 @@
  [#:opaque Font-Description font-description?]
  [#:opaque Font-Raw-Family font-raw-family?]
  [system-ui (-> Symbol String String)]
- [bitmap_create_font_desc (-> String Real (Option Integer) (Option Integer) (Option Integer) Font-Description)]
+ [bitmap_create_font_desc (-> String Real (Option Integer) (Option Integer) (Option Integer) (Option Integer) Font-Description)]
  [font_get_metrics_lines (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]
  [font_get_metrics (-> Font-Description (Listof (Pairof Symbol Nonnegative-Flonum)))]
  [font_get_text_extent (-> Font-Description String (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum))]

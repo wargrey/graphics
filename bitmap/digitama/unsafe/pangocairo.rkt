@@ -38,6 +38,7 @@
 (define-pango pango_context_set_font_description (_pfun PangoContext PangoFontDescription -> _void))
 (define-pango pango_font_description_get_size (_pfun PangoFontDescription -> _int))
 (define-pango pango_font_description_set_stretch (_pfun PangoFontDescription _int -> _void))
+(define-pango pango_font_description_set_variant (_pfun PangoFontDescription _int -> _void))
 (define-pango pango_attr_strikethrough_new (_pfun _bool -> PangoAttribute))
 (define-pango pango_attr_underline_new (_pfun _int -> PangoAttribute))
 

@@ -16,19 +16,20 @@
    [size : Nonnegative-Flonum]
    [weight : Font-Weight]
    [style : Font-Style]
-   [stretch : Font-Stretch])
+   [stretch : Font-Stretch]
+   [variant : Font-Variant])
   #:transparent
   #:type-name Font)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-font : (Parameterof Font) (make-parameter (font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal)))
+(define default-font : (Parameterof Font) (make-parameter (font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal 'normal)))
 
 (define desc-font : (->* ()
                          (Font #:family (U String Symbol (Listof (U String Symbol)) False) #:size (U Symbol Real False)
-                               #:style (Option Symbol) #:weight (U Symbol Integer False) #:stretch (Option Symbol))
+                               #:style (Option Symbol) #:weight (U Symbol Integer False) #:stretch (Option Symbol) #:variant (Option Symbol))
                          Font)
   (lambda [[basefont (default-font)] #:family [face null] #:size [size +nan.0] #:weight [weight #false] #:style [style #false]
-                                     #:stretch [stretch #false]]
+                                     #:stretch [stretch #false] #:variant [variant #false]]
     (font (cond [(string? face) (or (face-filter face) (font-face basefont))]
                 [(symbol? face) (or (font-family->face face) (font-face basefont))]
                 [(pair? face) (or (select-font-face face) (font-face basefont))]
@@ -43,7 +44,8 @@
                 [(integer? weight) (integer->font-weight weight)]
                 [else (font-weight basefont)])
           (if (css-font-style-option? style) style (font-style basefont))
-          (if (css-font-stretch-option? stretch) stretch (font-stretch basefont)))))
+          (if (css-font-stretch-option? stretch) stretch (font-stretch basefont))
+          (if (css-font-variant-option? variant) variant (font-variant basefont)))))
 
 (define font-face->family : (-> String (Option Font-Family))
   (lambda [face]
@@ -62,13 +64,17 @@
     (lambda [font]
       (define &font (hash-ref &fonts font (λ _ #false)))
       (or (and &font (ephemeron-value &font))
-          (let-values ([(weight style stretch) (values (font-weight font) (font-style font) (font-stretch font))])
+          (let ([weight (font-weight font)]
+                [style (font-style font)]
+                [stretch (font-stretch font)]
+                [variant (font-variant font)])
             (define desc : Font-Description
               (bitmap_create_font_desc (font-face font)
                                        (font-size font)
                                        (and (not (eq? weight 'normal)) (font-weight->integer weight))
                                        (and (not (eq? style 'normal)) (font-style->integer style))
-                                       (and (not (eq? stretch 'normal)) (font-stretch->integer stretch))))
+                                       (and (not (eq? stretch 'normal)) (font-stretch->integer stretch))
+                                       (and (not (eq? variant 'normal)) (font-variant->integer variant))))
             (hash-set! &fonts font (make-ephemeron font desc))
             desc)))))
 

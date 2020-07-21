@@ -4,6 +4,7 @@
 
 @(require "../digitama/font.rkt")
 @(require "bridge/font.rkt")
+@(require "font.rkt")
 
 @(require "../font.rkt")
 @(require "../constructor.rkt")
@@ -51,20 +52,25 @@ but will not be displayed as expected.
 
 @handbook-scenario{Descriptor and Properties}
 
-@deftogether[(@defidform[Font-Style] @defidform[Font-Stretch] @defidform[Font-Weight])]{
+@deftogether[(@defidform[Font-Style]
+               @defidform[Font-Weight]
+               @defidform[Font-Stretch]
+               @defidform[Font-Variant])]{
  The basic @tech{font} properties that represented as predefined keywords.
- Possible values are as follows:
+ Possible values are:
 
- @itemlist[@item{@racket[Font-Style]: @tamer-keywords[@css-font-style-options].}
-           @item{@racket[Font-Stretch]: @tamer-keywords[@css-font-stretch-options].} 
-           @item{@racket[Font-Weight] is one of @tamer-keywords[@css-font-weight-options].}]
+ @itemlist[@item{@racket[Font-Style]: @tamer-keywords[@css-font-style-options ", " ", or "].}
+           @item{@racket[Font-Weight]: @tamer-keywords[@css-font-weight-options ", " ", or "].}
+           @item{@racket[Font-Stretch]: @tamer-keywords[@css-font-stretch-options ", " ", or "].}
+           @item{@racket[Font-Variant]: @tamer-keywords[@css-font-variant-options ", " ", or "].}]
 }
 
 @tamer-defstruct[font #: Font ([face String]
                                [size Nonnegative-Flonum]
                                [weight Font-Weight]
                                [style Font-Style]
-                               [stretch Font-Stretch])
+                               [stretch Font-Stretch]
+                               [variant Font-Variant])
                  [#:transparent]]{
  A structure type for @tech{font} whose instance is associated with type name @racket[Font].
  This is a read-only structure, and to make a @tech{font} instance, use @racket[desc-font] instead
@@ -76,7 +82,8 @@ but will not be displayed as expected.
                     [#:size size (U Symbol Real False) +nan.0]
                     [#:style style (Option Symbol) #false]
                     [#:weight weight (U Symbol Integer False) #false]
-                    [#:stretch stretch (Option Symbol) #false])
+                    [#:stretch stretch (Option Symbol) #false]
+                    [#:variant variant (Option Symbol) #false])
          Font]{
  Functionally create a new @racket[Font] instance by independently updating properties of the
  @racket[basefont]. The default @racket[basefont] is controlled by the parameter @racket[default-font].
@@ -142,6 +149,10 @@ but will not be displayed as expected.
            
            @item{@racket[stretch] argument accepts one of the predefined keywords in
              @tamer-indexed-keywords[@css-font-stretch-options]. Otherwise, inherited
+             from @racket[basefont].}
+           
+           @item{@racket[variant] argument accepts one of the predefined keywords in
+             @tamer-indexed-keywords[@css-font-variant-options]. Otherwise, inherited
              from @racket[basefont].}]
 }
 
@@ -230,7 +241,8 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
 @(define exfont (desc-font #:size 'x-large #:family 'fangsong))
 
 This section is trivial since font properties are much more than they do should be supported.
-Here exemplifies the properties of @racket['fangsong] font. 
+
+Below exemplifies the properties of @racket['system-ui] font. 
 
 @centered{@font-style-table[exfont
                             (list "a" "N") css-font-stretch-options
@@ -239,5 +251,14 @@ Here exemplifies the properties of @racket['fangsong] font.
 @centered{@font-style-table[exfont
                             (list "A" "永") css-font-weight-options
                             (λ [f p s] (desc-font f #:weight p #:style s))]}
+
+Below exemplifies all generic font families:
+@centered{@(bitmap-vr-append* #:gapsize 16.0
+                              (for/list ([family (in-list css-font-generic-families)])
+                                (define font (desc-font #:family family))
+                                (bitmap-text* (format "~a[~a]: Sphinx 0123456789"
+                                                (font-face->family (font-face font))
+                                                (font-face font))
+                                              font -1.0)))}
 
 @handbook-reference[#:auto-hide? #true]

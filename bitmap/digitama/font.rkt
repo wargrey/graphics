@@ -10,15 +10,15 @@
 
 (define-enumeration* [css-font-generic-family css-font-generic-families] #:as Font-Family 
   font-family->face #:-> String
-  [(sans-serif) (case os [(macosx) "Lucida Grande"] [(windows) "Microsoft YaHei"] [else "Sans"])]
-  [(serif)      (case os [(macosx) "Times"] [(windows) "Times New Roman"] [else "Serif"])]
+  [(sans-serif) (case os [(macosx) "Lucida Grande"] [(windows) "Microsoft YaHei"] [else "Nimbus Sans"])]
+  [(serif)      (case os [(macosx) "Times"] [(windows) "Times New Roman"] [else "DejaVu Serif"])]
   [(monospace)  (case os [(macosx) "Courier"] [(windows) "Courier New"] [else "Monospace"])]
   [(fantasy)    (case os [(macosx) "Comic Sans MS"] [(windows) "Comic Sans MS"] [else "Helvetica"])]
   [(cursive)    (case os [(macosx) "Kokonor"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
   [(system-ui)  (system-ui 'normal-control-font (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"]))]
   [(emoji)      (case os [(macosx) "GB18030 Bitmap"] [(windows) "Algerian"] [else "Symbol"])]
-  [(math)       (case os [(macosx) "Bodoni 72, Book Italic"] [(windows) "Bodoni MT, Italic"] [else "Symbol"])]
-  [(fangsong)   (case os [(macosx) "ST FangSong"] [(windows) "FangSong"] [else "Symbol"])])
+  [(math)       (case os [(macosx) "Bodoni 72, Book Italic"] [(windows) "Bodoni MT, Italic"] [else "URW Bookman, Italic"])]
+  [(fangsong)   (case os [(macosx) "ST FangSong"] [(windows) "FangSong"] [else "FangSong"])])
 
 (define-enumeration* css-font-size-option #:as Font-Size
   generic-font-size-filter #:-> [inheritsize Nonnegative-Flonum] [font-medium Nonnegative-Flonum] Nonnegative-Flonum
@@ -47,6 +47,10 @@
   [thin   100] [ultralight 200] [light    300] [semilight  350] [book 380]
   [normal 400] [medium     500] [semibold 600]
   [bold   700] [ultrabold  800] [heavy    900] [ultraheavy 1000])
+
+(define-enumeration* css-font-variant-option #:+> Font-Variant ; order matters
+  font-variant->integer integer->font-variant
+  [0 normal small-caps])
 
 (define-enumeration* paragraph-wrap-mode #:+> Paragraph-Wrap-Mode ; order matters
   paragraph-wrap-mode->integer integer->paragraph-wrap-mode
