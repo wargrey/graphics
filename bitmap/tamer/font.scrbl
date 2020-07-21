@@ -4,7 +4,6 @@
 
 @(require "../digitama/font.rkt")
 @(require "bridge/font.rkt")
-@(require "font.rkt")
 
 @(require "../font.rkt")
 @(require "../constructor.rkt")
@@ -35,7 +34,7 @@
                      (racketparenfont ")"))]))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@handbook-typed-module-story[bitmap/font]{Font}
+@handbook-typed-module-story[#:requires [bitmap/base bitmap/digitama/font] bitmap/font]{Font}
 
 A @deftech{font} provides a resource containing the visual representation of characters. At the
 simplest level it contains information that maps character codes to shapes (called @deftech{glyphs})
@@ -228,19 +227,28 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
  positions measured downward from top.
  
  @tamer-action[(require bitmap/constructor)
+               (require bitmap/composite)
                (require bitmap/constants)
-               (define exfont (desc-font (desc-font #:family 'cursive #:size 'xx-large) #:size -3.14))
+               (define exfont (desc-font (desc-font cursive #:size 'xx-large) #:size -1.618))
+               (define sphinx "Sphinx 0123456789")
                
-               (text-metrics-lines "Sphinx" exfont)
-               (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
-                            "Sphinx " exfont)]
+               (text-metrics-lines sphinx exfont)
+
+               (default-border (desc-stroke long-dash #:color 'gray #:width 1))
+               (define (frame-text [family : Symbol]) : Bitmap
+                 (bitmap-frame (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
+                                            (format "~a: ~a" family sphinx)
+                                            (desc-font #:family family exfont))))
+
+               @(bitmap-vl-append* #:gapsize 16 (map frame-text css-font-generic-families))]
 }
 
 @handbook-scenario{A Glimpse of Properties}
 
 @(define exfont (desc-font #:size 'x-large #:family 'fangsong))
 
-This section is trivial since font properties are much more than they do should be supported.
+@margin-note{This exemplification is trivial since font properties are much more
+ than they do should be supported.}
 
 Below exemplifies the properties of @racket['system-ui] font. 
 
@@ -251,14 +259,5 @@ Below exemplifies the properties of @racket['system-ui] font.
 @centered{@font-style-table[exfont
                             (list "A" "永") css-font-weight-options
                             (λ [f p s] (desc-font f #:weight p #:style s))]}
-
-Below exemplifies all generic font families:
-@centered{@(bitmap-vr-append* #:gapsize 16.0
-                              (for/list ([family (in-list css-font-generic-families)])
-                                (define font (desc-font #:family family))
-                                (bitmap-text* (format "~a[~a]: Sphinx 0123456789"
-                                                (font-face->family (font-face font))
-                                                (font-face font))
-                                              font -1.0)))}
 
 @handbook-reference[#:auto-hide? #true]
