@@ -102,13 +102,36 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define text-metrics-lines : (->* (String) (Font) (Values Flonum Flonum Flonum Flonum Flonum))
   (lambda [content [font (default-font)]]
-    (font_get_metrics_lines (font-description font) content)))
+    (font_get_metrics_lines* (font-description font) content)))
+
+(define text-unknown-glyphs-count : (->* (String) (Font) Natural)
+  (lambda [content [font (default-font)]]
+    (font_get_unknown_glyphs_count (font-description font) content)))
+
+(define text-glyphs-exist? : (->* (String) (Font) Boolean)
+  (lambda [text [font (default-font)]]
+    (zero? (text-unknown-glyphs-count text font))))
+
+(define text-ascenders-exist? : (->* (String) (Font #:overshoot-tolerance Real) Boolean)
+  (lambda [text [font (default-font)] #:overshoot-tolerance [tolerance 1/8]]
+    (define-values (ascender capline meanline baseline descender)
+      (font_get_metrics_lines (font-description font) text))
+    (define overshoot : Flonum (* (exact->inexact (- baseline meanline)) (real->double-flonum (abs tolerance))))
+    (or (> (- capline ascender) 0)
+        (> (exact->inexact (- meanline ascender)) overshoot))))
+
+(define text-descenders-exist? : (->* (String) (Font #:overshoot-tolerance Flonum) Boolean)
+  (lambda [text [font (default-font)] #:overshoot-tolerance [tolerance 1/8]]
+    (define-values (ascender capline meanline baseline descender)
+      (font_get_metrics_lines (font-description font) text))
+    (define overshoot : Flonum (* (exact->inexact (- baseline meanline)) (real->double-flonum (abs tolerance))))
+    (and (> (- descender baseline) PANGO_SCALE)
+         (> (exact->inexact (- descender baseline)) overshoot))))
 
 (define text-size : (->* (String) (Font) (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [text [font (default-font)]]
-    (define-values (width height distance ascent descent) (font_get_text_extent (font-description font) text))
-    (values width height)))
+    (font_get_text_extent (font-description font) text)))
 
 (define text-size* : (->* (String) (Font) (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum))
   (lambda [text [font (default-font)]]
-    (font_get_text_extent (font-description font) text)))
+    (font_get_text_extent* (font-description font) text)))

@@ -16,23 +16,29 @@
   (require (submod "font.rkt" unsafe))
 
   (define (bitmap_text text font-desc lines fgsource bgsource alsource clsource mlsource blsource dlsource density)
-    (define-values (width height distance ascent descent) (font_get_text_extent font-desc text))
+    (define-values (width height) (font_get_text_extent font-desc text))
     (define-values (bmp cr) (make-text-image width height bgsource density))
     (define layout (bitmap_create_layout the-cairo lines))
+
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
+    
     (cairo-set-source cr fgsource)
     (cairo_move_to cr 0 0)
     (pango_cairo_show_layout cr layout)
     
     (when (or alsource clsource mlsource blsource dlsource)
-      (define-values (ascent capline meanline baseline descent) (font_get_metrics_lines font-desc text))
+      (define-values (ascent capline meanline baseline descent) (font_get_metrics_lines* font-desc text))
       (cairo_set_line_width cr 1.0)
-      (bitmap_decorate cr alsource ascent width)
+
       (bitmap_decorate cr clsource capline width)
+      (bitmap_decorate cr alsource ascent width)
       (bitmap_decorate cr mlsource meanline width)
-      (bitmap_decorate cr blsource baseline width)
-      (bitmap_decorate cr dlsource descent width))
+      (bitmap_decorate cr dlsource descent width)
+      (bitmap_decorate cr blsource baseline width))
+
+    (cairo_destroy cr)
+
     bmp)
   
   (define (bitmap_paragraph text font-desc lines max-width max-height indent spacing wrap ellipsize fgsource bgsource density)
@@ -43,6 +49,7 @@
     (define-values (pango-width pango-height) (pango_layout_get_size layout))
     (define flwidth (~metric pango-width))
     (define flheight (if (flonum? max-height) (unsafe-flmin (~metric pango-height) max-height) (~metric pango-height)))
+
     (define-values (bmp cr draw-text?)
       (if (or (= max-width -1) (unsafe-fl<= flwidth max-width))
           (let-values ([(bmp cr) (make-text-image flwidth flheight bgsource density)])
@@ -52,11 +59,14 @@
             (define smart-flheight (if draw-text? flheight (unsafe-flmin (~metric char-height) flheight)))
             (define-values (bmp cr) (make-text-image max-width smart-flheight bgsource density))
             (values bmp cr draw-text?))))
+
     (when draw-text?
       (cairo-set-source cr fgsource)
       (cairo_move_to cr 0.0 0.0)
       (pango_cairo_show_layout cr layout))
+    
     (cairo_destroy cr)
+    
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

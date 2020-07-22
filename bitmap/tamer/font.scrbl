@@ -34,7 +34,7 @@
                      (racketparenfont ")"))]))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@handbook-typed-module-story[#:requires [bitmap/base bitmap/digitama/font] bitmap/font]{Font}
+@handbook-typed-module-story[#:requires [bitmap/base bitmap/digitama/font racket/list] bitmap/font]{Font}
 
 A @deftech{font} provides a resource containing the visual representation of characters. At the
 simplest level it contains information that maps character codes to shapes (called @deftech{glyphs})
@@ -199,7 +199,8 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
 @defproc[(text-size [text String]
                     [font Font (default-font)])
          (Values Nonnegative-Flonum Nonnegative-Flonum)]{
- Returns the width and height of the @racket[text] as it would be rendered with @racket[font].
+ Returns the @racket[width] and @racket[height] of the @racket[text] as it would be rendered
+ with @racket[font].
 
  @tamer-action[(text-size "Sphinx")]
 }
@@ -207,24 +208,54 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
 @defproc[(text-size* [text String]
                      [font Font (default-font)])
          (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum)]{
- Returns the width, height, distance, ascent, and descent of the @racket[text] as it would be
- rendered with @racket[font]. Among them, the ascent and the descent are exemplified in the
- following figure, while the distance is measured downward from baseline.
- 
-@centered{
- @image[(build-path (digimon-path 'tamer) "stone" "Sphinx.svg")]{Common Typographic Metrics}
-  
- Common Typographic Metrics}
+ Returns the @racket[width] and @racket[height] along with additional mertics of the @racket[text]
+ as it would be rendered with @racket[font]. The extra metrics are:
 
+ @itemlist[
+ @item{@racket[distance]: measured downward from the @tech{baseline} to font bottom,
+   included in @racket[height].}
+  
+ @item{@racket[ascent]: measured upward from the @tech{ascent line} to font top,
+   included in @racket[height]. Do not to be confused with the @tech{ascender}.}
+
+ @item{@racket[descent]: measured downward from the @tech{descent line} to font bottom,
+   included in @racket[distance]. Do not to be confused with the @tech{descender}.}
+ ]
+
+ @margin-note{Be careful this figure is somehow misleading.}
+ 
+ @centered{
+  @image[(build-path (digimon-path 'tamer) "stone" "Sphinx.svg")]{Common Typographic Metrics}
+   
+  Common Typographic Metrics}
+ 
  @tamer-action[(text-size* "Sphinx")]
 }
 
 @defproc[(text-metrics-lines [text String]
                              [font Font (default-font)])
          (Values Flonum Flonum Flonum Flonum Flonum)]{
- Returns the 5 common typographic lines of the @racket[text] as it would be
- rendered with @racket[font]. These lines are identified by their vertical
- positions measured downward from top.
+ Returns the 5 common typographic lines of the @racket[text] as it would be rendered with @racket[font].
+ These lines are identified by their vertical positions measured downward from font top. These lines are:
+
+ @itemlist[
+ @item{@deftech{ascent line}: an imaginary line below which all characters in @racket[text] extend, and
+   the minimum distance between the line and the character is zero.}
+  
+ @item{@deftech{cap line}: an imaginary line below which all capital characters of @racket[font] extend,
+   and the minimum distance between the line and the capital character is zero. @tt{O} is often used as the
+   heuristic frame of reference.}
+ 
+ @item{@deftech{mean line}: an imaginary line below which all flat lowercase characters of @racket[text]
+   extend, and the minimum distance between the line and the flat lowercase character is zero. @tt{x} is
+   often used as the heuristic frame of reference.}
+
+ @item{@deftech{baseline}: an imaginary line where most characters of @racket[font] sit. The distance
+   between the @tech{baseline} and the @tech{mean line} is called @deftech{x-height}.}
+                                                
+ @item{@deftech{descent line}: an imaginary line above which all characters in @racket[text] extend, and
+   the minimum distance between the line and the character is zero.}
+ ]
  
  @tamer-action[(require bitmap/constructor)
                (require bitmap/composite)
@@ -232,15 +263,61 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
                (define exfont (desc-font (desc-font cursive #:size 'xx-large) #:size -1.618))
                (define sphinx "Sphinx 0123456789")
                
-               (text-metrics-lines sphinx exfont)
+               (text-metrics-lines sphinx exfont)]
 
-               (default-border (desc-stroke long-dash #:color 'gray #:width 1))
-               (define (frame-text [family : Symbol]) : Bitmap
+ @margin-note{It is normal to see these generic font families poor in @url{docs.racket-lang.org},
+  and fonts in Linux might not be well selected.}
+ 
+ @tamer-action[(default-border (desc-stroke long-dash #:color 'gray #:width 1))
+               (define (frame-text [family : (U String Symbol)] [text : String sphinx]) : Bitmap
                  (bitmap-frame (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
-                                            (format "~a: ~a" family sphinx)
+                                            (format "~a: ~a" family text)
                                             (desc-font #:family family exfont))))
 
                @(bitmap-vl-append* #:gapsize 16 (map frame-text css-font-generic-families))]
+}
+
+@handbook-scenario{Glyphs Utilities}
+
+Selecting the right font might be a quite time-consuming task, especially in situations of
+cross platform. These utilities are therefore at your service.
+
+@defproc[(text-unknown-glyphs-count [text String] [font Font (default-font)]) Natural]{
+ Returns the number of missing glyphs of @racket[text] as it would be rendered with @racket[font].
+}
+
+@defproc[(text-glyphs-exist? [text String] [font Font (default-font)]) Boolean]{
+ Determine if all characters of @racket[text] are supported by @racket[font].
+}
+
+@deftogether[(@defproc[(text-ascenders-exist? [text String] [font Font (default-font)] [#:overshoot-tolerance Real 1/8]) Boolean]
+               @defproc[(text-descenders-exist? [text String] [font Font (default-font)] [#:overshoot-tolerance Real 1/8]) Boolean])]{
+ Determine if are there any letters in @racket[text] that have @deftech{ascender}s if their parts extend above the
+ @tech{mean line} of @racket[font], or have @deftech{descender}s if their parts extend below the @tech{baseline} of @racket[font].
+
+ @hyperlink["https://en.wikipedia.org/wiki/Overshoot_(typography)"]{Overshoot}s are often seen for many characters, especially for
+ round or pointed ones (e.g. @tt{O}, @tt{A}), hence the extra argument @racket[tolerance], which is defined as the ratio of the
+ overshoot to the @tech{x-height}. That is, @tech{ascender}s or @tech{descender}s that less than (or equal to)
+ @racket[(* x-height tolerance)] are considered as overshoots, and do not contribute to the results.
+ 
+ @tamer-action[(define a-z : (Listof String) (build-list 26 (λ [[i : Integer]] (string (integer->char (+ i 97))))))
+               (filter text-ascenders-exist? a-z)
+               (filter text-descenders-exist? a-z)]
+
+ Say, now we want to find a suitable font for chess unicode characters.
+ @margin-note{Note that do not be surprised if there is no suitable font in server @url{docs.racket-lang.org}.}
+
+ @tamer-action[(define chesses : String "♔♕♖♗♘♙♚♛♜♝♞♟︎")
+               (define (font-okay? [text : String] [face : String]) : Boolean
+                 (define font (desc-font #:family face))
+                 (and (text-descenders-exist? text font)
+                      (text-glyphs-exist? text font)))
+               
+               (bitmap-vl-append*
+                #:gapsize 16
+                (filter-map (λ [[face : String]]
+                              (and (font-okay? chesses face) (frame-text face chesses)))
+                            (list-font-families)))]
 }
 
 @handbook-scenario{A Glimpse of Properties}
