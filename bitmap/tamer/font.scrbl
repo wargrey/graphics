@@ -34,12 +34,12 @@
                      (racketparenfont ")"))]))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@handbook-typed-module-story[#:requires [bitmap/base bitmap/digitama/font racket/list] bitmap/font]{Font}
+@handbook-typed-module-story[#:requires [bitmap/base bitmap/digitama/font] bitmap/font]{Font}
 
 A @deftech{font} provides a resource containing the visual representation of characters. At the
 simplest level it contains information that maps character codes to shapes (called @deftech{glyphs})
 that represent these characters. @tech{Fonts} sharing a common design style are commonly grouped
-into @tech{font} @deftech{families} classified by a set of standard @tech{font} properties. Within
+into font @deftech{families} classified by a set of standard @tech{font} properties. Within
 a family, the shape displayed for a given character can vary by stroke weight, slant or relative
 width, among others. An individual font face is described by a unique combination of these properties.
 
@@ -170,6 +170,23 @@ but will not be displayed as expected.
  Get the list of monospace @tech{font} face names and @tech{family} names available on the current platform.
 }
 
+@defproc[(find-font-families [pred? (U (-> String Boolean Boolean) Symbol) 'all]) (Listof String)]{
+ Get the list of @tech{family} names using the predicate @racket[pred?] on the current platform. The
+ @racket[pred?] argument accepts datum of any type of:
+
+ @itemlist[
+ @item{@racket[Procedure] that accepts two arguments and returns a @racket[Boolean] value, where
+   the first argument is the @tech{family} name, while the second argument indicates if this is a
+   monospace font @tech{family}.
+
+   A font @tech{family} is found when @racket[pred?] applied to the family name returns a true value.}
+
+ @item{@racket[Symbol] of predefined @racket[Procedure]s in @tamer-indexed-keywords['(mono all)],
+   same as invoking @racket[list-monospace-font-families], and @racket[list-font-families],
+   respectively. Otherwise, fall back to @racket[list-font-families].}
+ ]
+}
+
 @handbook-scenario{Typographic Metrics}
 
 The @deftech{metrics} correspond to the font-relative @deftech{units} defined in @~cite[css:values].
@@ -283,41 +300,42 @@ Selecting the right font might be a quite time-consuming task, especially in sit
 cross platform. These utilities are therefore at your service.
 
 @defproc[(text-unknown-glyphs-count [text String] [font Font (default-font)]) Natural]{
- Returns the number of missing glyphs of @racket[text] as it would be rendered with @racket[font].
+ Returns the number of missing @tech{glyph}s of @racket[text] as it would be rendered with @racket[font].
 }
 
 @defproc[(text-glyphs-exist? [text String] [font Font (default-font)]) Boolean]{
  Determine if all characters of @racket[text] are supported by @racket[font].
 }
 
-@deftogether[(@defproc[(text-ascenders-exist? [text String] [font Font (default-font)] [#:overshoot-tolerance Real 1/8]) Boolean]
-               @defproc[(text-descenders-exist? [text String] [font Font (default-font)] [#:overshoot-tolerance Real 1/8]) Boolean])]{
- Determine if are there any letters in @racket[text] that have @deftech{ascender}s if their parts extend above the
- @tech{mean line} of @racket[font], or have @deftech{descender}s if their parts extend below the @tech{baseline} of @racket[font].
+@defproc*[([(text-ascender-exist? [text String] [font Font (default-font)] [#:overshoot-tolerance Real 1/8]) Boolean]
+           [(text-descender-exist? [text String] [font Font (default-font)] [#:overshoot-tolerance Real 1/8]) Boolean])]{
+ Determine if is there any letter in @racket[text] that has an @deftech{ascender} if its part extend above the
+ @tech{mean line} of @racket[font], or has a @deftech{descender} if its part extend below the @tech{baseline}
+ of @racket[font].
 
- @hyperlink["https://en.wikipedia.org/wiki/Overshoot_(typography)"]{Overshoot}s are often seen for many characters, especially for
- round or pointed ones (e.g. @tt{O}, @tt{A}), hence the extra argument @racket[tolerance], which is defined as the ratio of the
- overshoot to the @tech{x-height}. That is, @tech{ascender}s or @tech{descender}s that less than (or equal to)
- @racket[(* x-height tolerance)] are considered as overshoots, and do not contribute to the results.
+ @hyperlink["https://en.wikipedia.org/wiki/Overshoot_(typography)"]{Overshoot}s are often seen for many characters,
+ especially for round or pointed ones (e.g. @tt{O}, @tt{A}), hence the extra argument @racket[tolerance], which is
+ defined as the ratio of the overshoot to the @tech{x-height}. That is, @tech{ascender} and @tech{descender} that
+ less than (or equal to) @racket[(* x-height tolerance)] are considered as overshoots, and do not contribute to
+ the results.
  
  @tamer-action[(define a-z : (Listof String) (build-list 26 (λ [[i : Integer]] (string (integer->char (+ i 97))))))
-               (filter text-ascenders-exist? a-z)
-               (filter text-descenders-exist? a-z)]
+               (filter text-ascender-exist? a-z)
+               (filter text-descender-exist? a-z)]
 
  Say, now we want to find a suitable font for chess unicode characters.
- @margin-note{Note that do not be surprised if there is no suitable font in server @url{docs.racket-lang.org}.}
+ @margin-note{Do not be surprised if there is no suitable font in server @url{docs.racket-lang.org}.}
 
  @tamer-action[(define chesses : String "♔♕♖♗♘♙♚♛♜♝♞♟︎")
-               (define (font-okay? [text : String] [face : String]) : Boolean
-                 (define font (desc-font #:family face))
-                 (and (text-descenders-exist? text font)
-                      (text-glyphs-exist? text font)))
+               (define (font-okay? [family : String] [monospace? : Boolean]) : Boolean
+                 (define font (desc-font #:family family))
+                 (and (text-descender-exist? chesses font)
+                      (text-glyphs-exist? chesses font)))
                
                (bitmap-vl-append*
                 #:gapsize 16
-                (filter-map (λ [[face : String]]
-                              (and (font-okay? chesses face) (frame-text face chesses)))
-                            (list-font-families)))]
+                (map (λ [[face : String]] (frame-text face chesses))
+                     (find-font-families font-okay?)))]
 }
 
 @handbook-scenario{A Glimpse of Properties}

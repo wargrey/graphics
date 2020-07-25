@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out) font-family->face)
-(provide Font-Weight Font-Style Font-Stretch)
+(provide Font-Weight Font-Style Font-Stretch Font-Variant)
 (provide list-font-families list-font-faces)
 (provide list-monospace-font-families list-monospace-font-faces)
 
@@ -112,7 +112,7 @@
   (lambda [text [font (default-font)]]
     (zero? (text-unknown-glyphs-count text font))))
 
-(define text-ascenders-exist? : (->* (String) (Font #:overshoot-tolerance Real) Boolean)
+(define text-ascender-exist? : (->* (String) (Font #:overshoot-tolerance Real) Boolean)
   (lambda [text [font (default-font)] #:overshoot-tolerance [tolerance 1/8]]
     (define-values (ascender capline meanline baseline descender)
       (font_get_metrics_lines (font-description font) text))
@@ -120,7 +120,7 @@
     (or (> (- capline ascender) 0)
         (> (exact->inexact (- meanline ascender)) overshoot))))
 
-(define text-descenders-exist? : (->* (String) (Font #:overshoot-tolerance Flonum) Boolean)
+(define text-descender-exist? : (->* (String) (Font #:overshoot-tolerance Flonum) Boolean)
   (lambda [text [font (default-font)] #:overshoot-tolerance [tolerance 1/8]]
     (define-values (ascender capline meanline baseline descender)
       (font_get_metrics_lines (font-description font) text))
@@ -135,3 +135,10 @@
 (define text-size* : (->* (String) (Font) (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum))
   (lambda [text [font (default-font)]]
     (font_get_text_extent* (font-description font) text)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define find-font-families : (->* () ((U (-> String Boolean Boolean) Symbol)) (Listof String))
+  (lambda [[pred? 'all]]
+    (cond [(procedure? pred?) (filter-font-families pred?)]
+          [(eq? pred? 'mono) (list-monospace-font-families)]
+          [else (list-font-families)])))

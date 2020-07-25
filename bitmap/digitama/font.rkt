@@ -100,6 +100,17 @@
                             (cond [(not (pango_font_family_is_monospace family)) faces]
                                   [else (family-faces++ family faces)])))]))))
 
+(define filter-font-families : (-> (-> String Boolean Boolean) (Listof String))
+  (lambda [pred?]
+    (let families++ ([fobjects : (Listof Font-Raw-Family) (font_list_families)]
+                     [families : (Listof String) null])
+      (cond [(null? fobjects) (sort families string<?)]
+            [else (let* ([family (car fobjects)]
+                         [fname (pango_font_family_get_name family)])
+                    (families++ (cdr fobjects)
+                                (cond [(pred? fname (pango_font_family_is_monospace family)) (cons fname families)]
+                                      [else families])))]))))
+
 (define select-font-face : (-> (Listof (U String Symbol)) (Option String))
   (lambda [value]
     (let select ([families value])

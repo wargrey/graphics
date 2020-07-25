@@ -15,7 +15,7 @@
 
 (define font-okay? : (-> String Font Boolean)
   (lambda [text font]
-    (and (text-descenders-exist? text font)
+    (and (text-descender-exist? text font)
          (text-glyphs-exist? text font))))
 
 (define bitmap-text* : (-> String Font Bitmap)
