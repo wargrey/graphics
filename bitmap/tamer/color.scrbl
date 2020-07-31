@@ -13,7 +13,7 @@
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 @(define-url-bib css:color
-   "CSS Color Module Level 4" "https://drafts.csswg.org/css-color"
+   "CSS Color Module Level 4" "https://drafts.csswg.org/css-color-4"
    #:date 2020
    #:author (org-author-name "W3C"))
 
@@ -51,13 +51,13 @@ from one @tech{colorspace} to another, while looking the same.
 }
 
 @tamer-defstruct[rgba #: FlRGBA ([red Flonum] [green Flonum] [blue Flonum] [alpha Flonum]) [#:transparent]]{
- A structure type for RGB @tech{color model} whose instance is associated with type name @racket[FlRGBA]. As of
+ A structure type for RGB @tech{color model} whose instances are associated with type name @racket[FlRGBA]. As of
  @racket[alpha], all 3 components of the @racket[FlRGBA] are in the interval @racketparenfont{[}@racket[0.0]@racketparenfont{,}
  @racket[1.0]@racketparenfont{]} as well.
 
  Since RGB @tech{color model} is the most common one supported by electronic systems, and for the sake
  of performance, the @racket[FlRGBA] are expected to be used as the low-level representation of @tech{color}s.
- Thus, this structure is only documented for read-only use, and to make an RGB @tech{color} instance, @racket[rgb]
+ Thus, this structure is recommended to be used read-only, and to make an RGB @tech{color} instance, @racket[rgb]
  or @racket[rgb*] should be used instead since they also serve as the guard procedures to ensure the correctness
  of fields.
 }
@@ -102,17 +102,16 @@ from one @tech{colorspace} to another, while looking the same.
 
 @margin-note{More about hue-based @tech{color model} can be found in @~cite[HSB].}
 
-The RGB @tech{color model} is convenient for machines and graphic libraries, but very difficult for humans to
+The RGB @tech{color model} is convenient for machines and graphic libraries, but very difficult for humen to
 gain an intuitive grasp on. Say, it’s not easy to tell how to alter an RGB @tech{color} to produce a lighter
 variant of the same hue. The Hue-based color models therefore are invented, they are much more intuitive to
-use, but still map easily back to RGB @tech{color}s.
+use, but still map easily back to RGB @tech{color}s. The @tech{HWB} @tech{color model} is even easier for
+humen to work with.
 
 For all four hue-based color models, @deftech{HSL}, @deftech{HSV}, @deftech{HSI}, and @deftech{HWB}, defined
 in this section, the component @racket[hue] is in the interval @racketparenfont{[}@racket[0.0]@racketparenfont{,}
  @racket[360.0]@racketparenfont{)} or @racket[+nan.0], and all other components are in the interval
 @racketparenfont{[}@racket[0.0]@racketparenfont{,} @racket[1.0]@racketparenfont{]}.
-
-The @tech{HWB} @tech{color model} is even easier for humen to work with.
 
 @(define font (desc-font #:weight 'bold))
 @(define-values (hsb-cwidth hwb-cwidth cheigth) (values 30.0 28.0 16.0))
@@ -123,10 +122,10 @@ The @tech{HWB} @tech{color model} is even easier for humen to work with.
 @deftogether[(@tamer-defstruct[hsla #: FlHSLA ([hue Flonum] [saturation Flonum] [luminosity Flonum] [alpha Flonum]) [#:transparent]]
                @defproc[(hsl [hue Real] [saturation Real] [luminosity Real] [alpha Real 1.0]) FlHSLA]
                @defproc[(hsl* [c Color] [alpha Real 1.0]) FlHSLA])]{
- A structure type for @tech{HSL} @tech{color model} whose instance is associated with type name @racket[FlHSLA].
+ A structure type for @tech{HSL} @tech{color model} whose instances are associated with type name @racket[FlHSLA].
 
  Similar to @racket[rgb] and @racket[rgb*] for RGB @tech{color}s, @racket[hsl] and @racket[hsl*] are the recommanded
- constructors to make @tech{HSL} @tech{color} instance.
+ constructors to make @tech{HSL} @tech{color} instances.
 
  @contrast-hue-colors*[hsl contrast-color-hues hsb-hs% hsb-vs% #:cell-width hsb-cwidth #:cell-height cheigth]
 }
@@ -134,10 +133,10 @@ The @tech{HWB} @tech{color model} is even easier for humen to work with.
 @deftogether[(@tamer-defstruct[hsva #: FlHSVA ([hue Flonum] [saturation Flonum] [value Flonum] [alpha Flonum]) [#:transparent]]
                @defproc[(hsv [hue Real] [saturation Real] [value Real] [alpha Real 1.0]) FlHSVA]
                @defproc[(hsv* [c Color] [alpha Real 1.0]) FlHSVA])]{
- A structure type for @tech{HSV} @tech{color model} whose instance is associated with type name @racket[FlHSVA].
+ A structure type for @tech{HSV} @tech{color model} whose instances are associated with type name @racket[FlHSVA].
 
  Similar to @racket[rgb] and @racket[rgb*] for RGB @tech{color}s, @racket[hsv] and @racket[hsv*] are the recommanded
- constructors to make @tech{HSV} @tech{color} instance.
+ constructors to make @tech{HSV} @tech{color} instances.
  
  @contrast-hue-colors*[hsv contrast-color-hues hsb-hs% hsb-vs% #:cell-width hsb-cwidth #:cell-height cheigth]
 }
@@ -145,10 +144,10 @@ The @tech{HWB} @tech{color model} is even easier for humen to work with.
 @deftogether[(@tamer-defstruct[hsia #: FlHSIA ([hue Flonum] [saturation Flonum] [intensity Flonum] [alpha Flonum]) [#:transparent]]
                @defproc[(hsi [hue Real] [saturation Real] [intensity Real] [alpha Real 1.0]) FlHSIA]
                @defproc[(hsi* [c Color] [alpha Real 1.0]) FlHSIA])]{
- A structure type for @tech{HSI} @tech{color model} whose instance is associated with type name @racket[FlHSIA].
+ A structure type for @tech{HSI} @tech{color model} whose instances are associated with type name @racket[FlHSIA].
 
  Similar to @racket[rgb] and @racket[rgb*] for RGB @tech{color}s, @racket[hsi] and @racket[hsi*] are the recommanded
- constructors to make @tech{HSI} @tech{color} instance.
+ constructors to make @tech{HSI} @tech{color} instances.
  
  @contrast-hue-colors*[hsi contrast-color-hues hsb-hs% hsb-vs% #:cell-width hsb-cwidth #:cell-height cheigth]
 }
@@ -156,10 +155,10 @@ The @tech{HWB} @tech{color model} is even easier for humen to work with.
 @deftogether[(@tamer-defstruct[hwba #: FlHWBA ([hue Flonum] [white Flonum] [black Flonum] [alpha Flonum]) [#:transparent]]
                @defproc[(hwb [hue Real] [white Real] [black Real] [alpha Real 1.0]) FlHWBA]
                @defproc[(hwb* [c Color] [alpha Real 1.0]) FlHWBA])]{
- A structure type for @tech{HWB} @tech{color model} whose instance is associated with type name @racket[FlHWBA].
+ A structure type for @tech{HWB} @tech{color model} whose instances are associated with type name @racket[FlHWBA].
 
  Similar to @racket[rgb] and @racket[rgb*] for RGB @tech{color}s, @racket[hwb] and @racket[hwb*] are the recommanded
- constructors to make @tech{HWB} @tech{color} instance.
+ constructors to make @tech{HWB} @tech{color} instances.
 
  @hue-colors*[hwb color-hues hwb-s% hwb-s% #:cell-width hwb-cwidth #:cell-height cheigth #:rotate? #true]
 }

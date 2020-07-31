@@ -259,15 +259,15 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
  @item{@deftech{ascent line}: an imaginary line below which all characters in @racket[text] extend, and
    the minimum distance between the line and the character is zero.}
   
- @item{@deftech{cap line}: an imaginary line below which all capital characters of @racket[font] extend,
+ @item{@deftech{cap line}: an imaginary line below which all capital characters in @racket[font] extend,
    and the minimum distance between the line and the capital character is zero. @tt{O} is often used as the
    heuristic frame of reference.}
  
- @item{@deftech{mean line}: an imaginary line below which all flat lowercase characters of @racket[text]
+ @item{@deftech{mean line}: an imaginary line below which all flat lowercase characters in @racket[text]
    extend, and the minimum distance between the line and the flat lowercase character is zero. @tt{x} is
    often used as the heuristic frame of reference.}
 
- @item{@deftech{baseline}: an imaginary line where most characters of @racket[font] sit. The distance
+ @item{@deftech{baseline}: an imaginary line where most characters in @racket[font] sit. The distance
    between the @tech{baseline} and the @tech{mean line} is called @deftech{x-height}.}
                                                 
  @item{@deftech{descent line}: an imaginary line above which all characters in @racket[text] extend, and
@@ -296,7 +296,7 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
 
 @handbook-scenario{Glyphs Utilities}
 
-Selecting the right font might be a quite time-consuming task, especially in situations of
+Selecting the right font might be quite a time-consuming task, especially in situations of
 cross platform. These utilities are therefore at your service.
 
 @defproc[(text-unknown-glyphs-count [text String] [font Font (default-font)]) Natural]{
@@ -304,19 +304,18 @@ cross platform. These utilities are therefore at your service.
 }
 
 @defproc[(text-glyphs-exist? [text String] [font Font (default-font)]) Boolean]{
- Determine if all characters of @racket[text] are supported by @racket[font].
+ Determine if all characters in @racket[text] have @tech{glyph}s as it would be rendered with @racket[font].
 }
 
 @defproc*[([(text-ascender-exist? [text String] [font Font (default-font)] [#:overshoot-tolerance Real 1/8]) Boolean]
            [(text-descender-exist? [text String] [font Font (default-font)] [#:overshoot-tolerance Real 1/8]) Boolean])]{
- Determine if is there any letter in @racket[text] that has an @deftech{ascender} if its part extend above the
- @tech{mean line} of @racket[font], or has a @deftech{descender} if its part extend below the @tech{baseline}
- of @racket[font].
+ Determine if any character in @racket[text] has an @deftech{ascender} if its part extend above the @tech{mean line}
+ of @racket[font], or has a @deftech{descender} if its part extend below the @tech{baseline} of @racket[font].
 
  @hyperlink["https://en.wikipedia.org/wiki/Overshoot_(typography)"]{Overshoot}s are often seen for many characters,
- especially for round or pointed ones (e.g. @tt{O}, @tt{A}), hence the extra argument @racket[tolerance], which is
- defined as the ratio of the overshoot to the @tech{x-height}. That is, @tech{ascender} and @tech{descender} that
- less than (or equal to) @racket[(* x-height tolerance)] are considered as overshoots, and do not contribute to
+ especially for round or pointed ones (e.g. @tt{O}, @tt{A}), hence the extra argument @racket[#:overshoot-tolerance],
+ which is defined as the ratio of the overshoot to the @tech{x-height}. That is, @tech{ascender} and @tech{descender}
+ that less than (or equal to) @racket[(* x-height tolerance)] are considered as overshoots, and do not contribute to
  the results.
  
  @tamer-action[(define a-z : (Listof String) (build-list 26 (λ [[i : Integer]] (string (integer->char (+ i 97))))))
