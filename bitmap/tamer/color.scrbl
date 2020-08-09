@@ -24,8 +24,8 @@
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 @handbook-typed-module-story[bitmap/color]{Color, Color Model, and Colorspace}
 
-@margin-note{More about @tech{color} and @tech{colorspace} can be found in @~cite[css:color]. This chapter is
- expected to hide all those complexities.}
+@margin-note{More about @tech{color} and @tech{colorspace} can be found in @~cite[css:color].
+ This chapter is expected to hide all those complexities.}
 
 A @deftech{color} is a definition of the human visual perception of a light or a physical object
 illuminated with light. The objective study of human color perception is termed colorimetry. If two

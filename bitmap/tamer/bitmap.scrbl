@@ -27,7 +27,7 @@ used standalone for developers and artists.
 
 @include-section{misc.scrbl}
 
-@handbook-appendix[#:index? #true
+@handbook-appendix[#:index-section? #true
  (url-bib-entry 'Cairo
                 "Cairo: A Vector Graphics Library"
                 "https://www.cairographics.org"
