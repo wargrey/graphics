@@ -12,6 +12,7 @@
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-color-model stx)
   (syntax-case stx [:]
     [(_ clr ([com : real->flonum] ...) #:* rgb->clr)
@@ -32,8 +33,8 @@
                                 (define-values (com ...) (rgb->clr (rgba-red flrgba) (rgba-green flrgba) (rgba-blue flrgba)))
                                 (clra com ... (rgba-alpha flrgba)))]))))]))
 
-(struct hexa flcolor ([digits : Index] [alpha : Flonum]) #:transparent)
-(struct xterma flcolor ([index : Byte] [alpha : Flonum]) #:transparent)
+(struct hexa flcolor ([digits : Index] [alpha : Flonum]) #:transparent #:type-name Hexa)
+(struct xterma flcolor ([index : Byte] [alpha : Flonum]) #:transparent #:type-name Xterma)
 
 (define-color-model hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]) #:* rgb->hsl)
 (define-color-model hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut])      #:* rgb->hsv)
@@ -61,6 +62,10 @@
           [(hwba? src) ($ hwb->rgb (hwba-hue src) (hwba-white src) (hwba-black src) (hwba-alpha src) flalpha)]
           [(xterma? src) (xterm256-rgba (xterma-index src) (* (xterma-alpha src) flalpha) rgb*)]
           [else (rgb* fallback-color flalpha)])))
+
+(define xterm : (->* (Byte) (Real) Xterma)
+  (lambda [idx [alpha 1.0]]
+    (xterma idx (real->alpha alpha))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define list-color-names : (-> (Listof Symbol))

@@ -100,6 +100,80 @@ from one @tech{colorspace} to another, while looking the same.
  while some renderers may favor uint16-based representation.
 }
 
+@handbook-action{Named Colors}
+
+@deftech{Named color}s are predefined RGB @tech{color}s with an English names, and written as
+@racket[Symbol]s. It is recommended to write a name in lowercase, although it is actually case insensitive.
+
+@defproc[(named-color? [name Symbol]) Boolean]{
+ The predicate to check if the @racket[name] represents a @tech{named color}.
+}
+
+@defproc[(list-color-names) (Listof Symbol)]{
+ Get the list of all predefined color names in an unspecified order.
+}
+
+@defproc[(in-color-names) (Sequenceof Symbol)]{
+ Returns a sequence of all predefined color names in an unspecified order.
+}
+
+For historical reasons, the named colors are copied from the X11 color set.
+
+@(let ([font (desc-font #:family 'monospace #:size 'large)])
+   (bitmap-table*
+    (for/list ([name (in-color-names)])
+      (define c (rgb* name))
+      (list (bitmap-rectangle 100 24 #:fill c)
+            (bitmap-text (symbol->string name) font)
+            (bitmap-text (~a #\# (string-upcase (~r (flcolor->hex c) #:base 16 #:min-width 6 #:pad-string "0"))) font)
+            (bitmap-text (apply ~a (add-between (flcolor->byte-list c) #\space)) font)))
+    'lc 'cc 16.0 4.0))
+
+@handbook-event{the @racket['transparent] color}
+
+The @racket[Symbol] @tamer-indexed-keywords['(transparent)] is a reserved color name
+and refers to the @racket[transparent] black.
+
+@handbook-event{the @racket['currentcolor] color}
+
+The @racket[Symbol] @tamer-indexed-keywords['(currentcolor)] is a reserved color name
+that only meaningful in the @racketmodname[css] environment, and always refers to the
+@racket[black] outside.
+
+@handbook-action{Indexed Colors}
+
+@margin-note{Do not to be confused with the @emph{indexed color mode} used as a way to store bitmaps.}
+
+Like @tech{named color}, an @deftech{indexed color} is an alternative to represent predefined RGB
+@tech{color}s.
+
+@deftogether[(@tamer-defstruct[xterma #: Xterma ([index Byte] [alpha Flonum]) [#:transparent]]
+               @defproc[(xterm [idx Index] [alpha Real 1.0]) Xterma])]{
+ A structure type for predefined RGB @tech{color}s whose instances are associated with type
+ name @racket[Xterma]. @racket[index] is the Xterm Number defined for xterm 256 color mode.
+ 
+ Similar to @racket[rgb] for RGB @tech{color}s, @racket[xterm] is a more convenient constructor
+ to make @racket[Xterma] instances. 
+ 
+ @(let ([font (desc-font #:family 'monospace #:size 'large)])
+    (bitmap-frame #:fill 'darkgrey #:padding 4.0
+                  (bitmap-table 16
+                                (for/list ([xidx (in-range 256)])
+                                  (bitmap-text #:color (xterm xidx)
+                                               (number->string xidx) font))
+                                'cc 'cc 8.0 8.0)))
+}
+
+@tamer-defstruct[hexa #: Hexa ([digits Index] [alpha Flonum]) [#:transparent]]{
+ A structure type for numerical represented RGB @tech{color model} whose instances are associated with
+ type name @racket[Hexa]. @racket[digits] is suitable to be used as the 6-digit hexadecimal color notation;
+ @racket[alpha] is the alpha in addition to the notation.
+
+ This structure is usually redundant outside the @racketmodname[css] environment as it is designed for
+ the 8-digit hexadecimal color notation, which is always inconvenient to be used directly since raw integers
+ have already been interpreted as the 6-digit hexadecimal color notation representations.
+}
+
 @handbook-scenario{Hue-based Color Models}
 
 @margin-note{More about hue-based @tech{color model} can be found in @~cite[HSB].}
@@ -164,49 +238,5 @@ in this section, the component @racket[hue] is in the interval @racketparenfont{
 
  @hue-colors*[hwb color-hues hwb-s% hwb-s% #:cell-width hwb-cwidth #:cell-height cheigth #:rotate? #true]
 }
-
-@handbook-scenario{Named Colors}
-
-@deftech{named color}s are predefined sRGB colors with an English names, and written as @racket[Symbol]s.
-It is recommended to write a name in lowercase, although it is actually case insensitive.
-
-@defproc[(named-color? [name Symbol]) Boolean]{
- The predicate to check if the @racket[name] represents a @tech{named color}.
-}
-
-@defproc[(list-color-names) (Listof Symbol)]{
- Get the list of all predefined color names in an unspecified order.
-}
-
-@defproc[(in-color-names) (Sequenceof Symbol)]{
- Returns a sequence of all predefined color names in an unspecified order.
-}
-
-For historical reasons, the named colors are copied from the X11 color set.
-
-@(let ([font (desc-font #:family 'monospace #:size 'large)])
-   (bitmap-table*
-    (for/list ([name (in-color-names)])
-      (define c (rgb* name))
-      (list (bitmap-rectangle 100 24 #:fill c)
-            (bitmap-text (symbol->string name) font)
-            (bitmap-text (~a #\# (string-upcase (~r (flcolor->hex c) #:base 16 #:min-width 6 #:pad-string "0"))) font)
-            (bitmap-text (apply ~a (add-between (flcolor->byte-list c) #\space)) font)))
-    'lc 'cc 16.0 4.0))
-
-@handbook-action{the @racket['transparent] color}
-
-The @racket[Symbol] @tamer-indexed-keywords['(transparent)] is a reserved color name
-and refers to the @racket[transparent] black.
-
-@handbook-action{the @racket['currentcolor] color}
-
-The @racket[Symbol] @tamer-indexed-keywords['(currentcolor)] is a reserved color name
-that only meaningful in the @racketmodname[css] environment, and always refers to the
-@racket[black] outside.
-
-@handbook-scenario{Xterm 256 Colors}
-
-
 
 @handbook-reference[#:auto-hide? #true]
