@@ -2,11 +2,13 @@
 
 (provide (all-defined-out))
 
-(require "enumeration.rkt")
+(require digimon/enumeration)
+
 (require "unsafe/convert.rkt")
 
 (require (for-syntax racket/base))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-combiner stx)
   (syntax-case stx []
     [(_ [make frmt (tips ...)] ...)

@@ -2,7 +2,8 @@
 
 (provide (all-defined-out))
 
-(require "enumeration.rkt")
+(require digimon/enumeration)
+
 (require "unsafe/font.rkt")
 
 ;;; https://drafts.csswg.org/css-fonts

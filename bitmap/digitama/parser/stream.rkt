@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (except-out (all-defined-out) define-integer-parser define-integer-parser*))
-(provide (all-from-out "number.rkt"))
+(provide (all-from-out digimon/number))
 
 (provide (rename-out [parse-size parse-msize]
                      [parse-int8 parse-mint8] [parse-uint8 parse-uint8]
@@ -13,27 +13,16 @@
                      [msb-bytes->double parse-mdouble]
                      [lsb-bytes->double parse-ldouble]))
 
-(require typed/racket/unsafe)
-(unsafe-require/typed racket/base [object-name (-> Procedure Symbol)])
+(require digimon/debug)
+(require digimon/number)
 
-(require "number.rkt")
+(require digimon/digitama/ioexn)
+(require digimon/digitama/unsafe/number)
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
 
-(define-type Throw-Range-Error (-> Symbol String Any Nothing))
-
-(define-syntax (assert* stx)
-  (syntax-case stx []
-    [(_ sexp pred throw) #'(assert* sexp pred throw 'assert)]
-    [(_ sexp pred throw src)
-     #`(let ([v sexp]
-             [? pred])
-         #,(syntax-property
-            (quasisyntax/loc stx
-              (if (? v) v (throw src (symbol->string (object-name ?)) v)))
-            'feature-profile:TR-dynamic-check #t))]))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-integer-parser stx)
   (syntax-case stx [:]
     [(_ parse-integer do-bytes->integer [argl : Argl] ... #:-> Integer_t)

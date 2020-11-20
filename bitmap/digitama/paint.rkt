@@ -4,7 +4,7 @@
 
 (require typed/racket/unsafe)
 
-(require "enumeration.rkt")
+(require digimon/enumeration)
 
 (unsafe-provide (rename-out [line-cap->integer linecap->integer]))
 (unsafe-provide (rename-out [line-join->integer linejoin->integer]))
@@ -12,6 +12,7 @@
 ;;; https://svgwg.org/svg2-draft/painting.html
 ;;; (require racket/draw/private/dc)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define solid-dash : (Vectorof Nonnegative-Flonum) '#())
 
 (define-enumeration* stroke-dash-style #:as Stroke-Dash-Style 

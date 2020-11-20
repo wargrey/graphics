@@ -1,18 +1,23 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
-(provide (all-from-out "digitama/enumeration.rkt"))
-(provide (all-from-out "digitama/parser/exn.rkt"))
+(provide (all-defined-out) port-name)
+(provide (all-from-out digimon/stdio))
+(provide (all-from-out digimon/enumeration))
+(provide (all-from-out digimon/digitama/ioexn))
+
 (provide (all-from-out "digitama/parser/stream.rkt"))
 (provide (all-from-out "digitama/unsafe/pixman.rkt"))
 (provide (except-out (all-from-out "digitama/unsafe/convert.rkt")
                      create-argb-bitmap create-invalid-bitmap
                      cairo-surface-shadow))
 
+(require digimon/enumeration)
+(require digimon/stdio)
+
+(require digimon/digitama/ioexn)
+
 (require typed/racket/unsafe)
 
-(require "digitama/enumeration.rkt")
-(require "digitama/parser/exn.rkt")
 (require "digitama/parser/stream.rkt")
 (require "digitama/unsafe/convert.rkt")
 (require "digitama/unsafe/pixman.rkt")
@@ -25,6 +30,7 @@
 
 (require (for-syntax racket/base))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;"
 (define-syntax (define-read-bitmap stx)
   (syntax-case stx [lambda]
     [(_ #:-> Bitmap λsexp)
@@ -50,9 +56,6 @@
     [(_ constructor filename density width height palettes depth argl ... decode)
      #'(create-bitmap [constructor #false] filename density width height palettes depth argl ... decode)]))
 
-(define-type Subbytes (List Bytes Index Index))
-(define-type Octets (U Bytes Subbytes))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define select-file@2x : (-> Path-String Positive-Flonum Boolean (Values Path-String Positive-Flonum))
   (lambda [src density try?]
@@ -65,47 +68,3 @@
 (define bitmap-port-source : (-> Input-Port Symbol)
   (lambda [/dev/stdin]
     (string->unreadable-symbol (port-name /dev/stdin))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define read-n:bytes : (-> Input-Port Natural Bytes)
-  (lambda [/dev/stdin size]
-    (read-nbytes* /dev/stdin (read-uinteger /dev/stdin size))))
-
-(define read-uinteger : (All (a) (case-> [Input-Port Natural -> Natural]
-                                         [Input-Port Natural (-> Any Boolean : a) -> a]
-                                         [Input-Port Natural (-> Any Boolean : a) Throw-Range-Error Symbol -> a]))
-  (case-lambda
-    [(/dev/stdin bsize) (integer-bytes->integer (read-bytes* /dev/stdin bsize) #false #true 0 bsize)]
-    [(/dev/stdin bsize subinteger?) (assert (read-uinteger /dev/stdin bsize) subinteger?)]
-    [(/dev/stdin bsize subinteger? throw src) (assert* (read-uinteger /dev/stdin bsize) subinteger? throw src)]))
-
-(define read-signature : (-> Input-Port Bytes Boolean)
-  (lambda [/dev/stdin signature]
-    (define siglength : Index (bytes-length signature))
-    
-    (and (equal? signature (peek-nbytes* /dev/stdin siglength))
-         (read-bytes siglength /dev/stdin)
-         #true)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define read-bytes* : (-> Input-Port Natural Bytes)
-  (lambda [/dev/stdin size]
-    (define bs : (U Bytes EOF) (read-bytes size /dev/stdin))
-    (if (bytes? bs) bs (throw-eof-error /dev/stdin))))
-
-(define read-nbytes* : (-> Input-Port Natural Bytes)
-  (lambda [/dev/stdin size]
-    (define bs : (U Bytes EOF) (read-bytes size /dev/stdin))
-    (cond [(and (bytes? bs) (= (bytes-length bs) size)) bs]
-          [else (throw-eof-error /dev/stdin)])))
-
-(define peek-bytes* : (->* (Input-Port Natural) (Natural) Bytes)
-  (lambda [/dev/stdin size [skip 0]]
-    (define bs : (U Bytes EOF) (peek-bytes size skip /dev/stdin))
-    (if (bytes? bs) bs (throw-eof-error /dev/stdin))))
-
-(define peek-nbytes* : (->* (Input-Port Natural) (Natural) Bytes)
-  (lambda [/dev/stdin size [skip 0]]
-    (define bs : (U Bytes EOF) (peek-bytes size skip /dev/stdin))
-    (cond [(and (bytes? bs) (= (bytes-length bs) size)) bs]
-          [else (throw-eof-error /dev/stdin)])))

@@ -10,4 +10,7 @@
 (define pkg-authors '(wargrey))
 (define test-omit-paths 'all)
 
+(define msvc-sdk-root "C:\\Program Files (x86)\\Windows Kits\\10")
+(define msvc-sdk-library "10.0.17763.0")
+
 (define scribblings '(["tamer/png.scrbl" (main-doc) (parsing-library)]))
