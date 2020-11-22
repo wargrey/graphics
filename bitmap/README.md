@@ -10,8 +10,8 @@ wargrey
 The `bitmap` is a typed functional picture library which employs
 \[Cairo\] and \[Pango\] via `ffi/unsafe` directly. The initial
 motivation is to provide efficient, professional, yet handy graphics
-APIs that lay the foundation for my `css` engine as well as to be used
-standalone for developers and artists.
+APIs that lay the foundation for my `css` engine and `svg` engine as
+well as to be used standalone for developers and artists.
 
 ​_WARNING: This library is still experimental and everything is subject
 to change._​

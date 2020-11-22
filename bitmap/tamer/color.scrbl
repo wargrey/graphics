@@ -119,14 +119,20 @@ from one @tech{colorspace} to another, while looking the same.
 
 For historical reasons, the named colors are copied from the X11 color set.
 
-@(let ([font (desc-font #:family 'monospace #:size 'large)])
+@(let*-values ([(font) (desc-font #:family 'monospace #:size 'large)]
+               [(all-names) (sort (list-color-names) symbol<?)]
+               [(size mod) (quotient/remainder (length all-names) 2)])
+   (define (name->row name)
+     (define c (rgb* name))
+     (list (bitmap-square (font-size font) #:fill c)
+           (bitmap-text (symbol->string name) font)
+           (bitmap-text (~a #\# (string-upcase (~r (flcolor->hex c) #:base 16 #:min-width 6 #:pad-string "0"))) font)))
+   
    (bitmap-table*
-    (for/list ([name (in-color-names)])
-      (define c (rgb* name))
-      (list (bitmap-rectangle 100 24 #:fill c)
-            (bitmap-text (symbol->string name) font)
-            (bitmap-text (~a #\# (string-upcase (~r (flcolor->hex c) #:base 16 #:min-width 6 #:pad-string "0"))) font)
-            (bitmap-text (apply ~a (add-between (flcolor->byte-list c) #\space)) font)))
+    (append (for/list ([lname (in-list (take all-names size))]
+                       [rname (in-list (take-right all-names size))])
+              (append (name->row lname) (name->row rname)))
+            (if (= mod 0) null (list (name->row (list-ref all-names (add1 size))))))
     'lc 'cc 16.0 4.0))
 
 @handbook-event{the @racket['transparent] color}

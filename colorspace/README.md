@@ -1,5 +1,11 @@
-# Color Space Conversion
+# Color Model Conversion
 
 wargrey
 
-_Sorry, but I will write it as soon as possible._
+```racket
+ (require colorspace) package: [graphics](https://pkgs.racket-lang.org/package/graphics)
+```
+
+The `colorspace` library provides low-level APIs for whoever are
+implementing their own color libraries, otherwise, the `bitmap` library
+should be used instead.

@@ -63,11 +63,11 @@
 (define read-png-chunk : (-> Input-Port (Values Index Bytes Bytes Natural))
   ;;; https://www.w3.org/TR/PNG/#5Chunk-layout
   (lambda [/dev/stdin]
-    (define chlength : Index (read-uinteger /dev/stdin 4 index? throw-range-error 'read-png-thunk))
+    (define chlength : Index (read-muint32 /dev/stdin index? 'read-png-thunk))
     (values chlength
             (read-nbytes* /dev/stdin 4)
             (if (> chlength 0) (read-nbytes* /dev/stdin chlength) #"")
-            (read-uinteger /dev/stdin 4))))
+            (read-muint32 /dev/stdin))))
 
 (define read-png-chunk* : (-> Input-Port (Values Index Bytes Bytes))
   ;;; https://www.w3.org/TR/PNG/#5Chunk-layout
