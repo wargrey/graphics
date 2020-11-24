@@ -16,6 +16,7 @@
 (require racket/math)
 (require racket/string)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-rectangular : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
   (lambda [width height λargb #:density [density (default-bitmap-density)]]
     (λbitmap (real->double-flonum width) (real->double-flonum height)
@@ -67,7 +68,8 @@
     (bitmap_paragraph (if (list? texts) (string-join texts "\n") texts) (font-description font) lines
                       (if (or (infinite? max-width) (nan? max-width)) -1 (real->double-flonum max-width)) smart-height
                       (real->double-flonum indent) (real->double-flonum spacing)
-                      (paragraph-wrap-mode->integer wrap-mode) (paragraph-ellipsize-mode->integer smart-emode)
+                      (paragraph-wrap-mode->integer wrap-mode raise-argument-error)
+                      (paragraph-ellipsize-mode->integer smart-emode raise-argument-error)
                       (fill-paint->source fgsource) (fill-paint->source* bgsource) density)))
 
 (define bitmap-frame : (-> Bitmap [#:border (Option Stroke-Paint)] [#:fill (Option Fill-Paint)]
