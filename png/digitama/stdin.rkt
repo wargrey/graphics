@@ -4,7 +4,6 @@
 
 (provide (all-defined-out))
 
-(require racket/port)
 (require bitmap/stdio)
 
 (require "crc.rkt")
@@ -18,8 +17,7 @@
   ;;; https://www.w3.org/TR/PNG/#11IHDR
   ;;; https://www.w3.org/TR/PNG/#13Error-checking
   (lambda [/dev/stdin]
-    (unless (read-signature /dev/stdin #"\211PNG\r\n\32\n")
-      (throw-signature-error /dev/stdin 'png "unrecognized datastream"))
+    (read-signature /dev/stdin #"\211PNG\r\n\32\n" 'png "unrecognized datastream")
 
     (define header : Bytes (read-png-boundary-chunk* /dev/stdin #"IHDR" 13))
 
@@ -65,8 +63,8 @@
   (lambda [/dev/stdin]
     (define chlength : Index (read-muint32 /dev/stdin index? 'read-png-thunk))
     (values chlength
-            (read-nbytes* /dev/stdin 4)
-            (if (> chlength 0) (read-nbytes* /dev/stdin chlength) #"")
+            (read-nbytes /dev/stdin 4)
+            (if (> chlength 0) (read-nbytes /dev/stdin chlength) #"")
             (read-muint32 /dev/stdin))))
 
 (define read-png-chunk* : (-> Input-Port (Values Index Bytes Bytes))
