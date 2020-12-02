@@ -20,8 +20,9 @@
                       (for/list ([<tip> (in-list (syntax->list <tips>))])
                         (list (datum->syntax <tip> (string->symbol (format frmt (syntax-e <tip>))))
                               <mkcb>)))])
-       #'(begin (define-values (bitmap-combiner ...) (values (make-combiner 'tips) ...))
-                ...))]))
+       (syntax/loc stx
+         (begin (define-values (bitmap-combiner ...) (values (make-combiner 'tips) ...))
+                ...)))]))
 
 (define-type Superimpose-Alignment (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
 

@@ -52,7 +52,8 @@
     [(_ filter-type #:lambda [cline pline fxcount] #:with i [var ref-sexp] ... #:=> sample)
      (with-syntax ([filter-function (format-id #'filter-type "filtering-filter-~a" (syntax-e #'filter-type))]
                    [reconstruct-function (format-id #'filter-type "filtering-reconstruct-~a" (syntax-e #'filter-type))])
-       #'(begin (define filter-function : (-> Bytes Bytes Index Positive-Byte Void)
+       (syntax/loc stx
+         (begin (define filter-function : (-> Bytes Bytes Index Positive-Byte Void)
                   (lambda [cline pline stride fxcount]
                     (let filtering ([i : Positive-Fixnum fxcount])
                       (when (< i stride)
@@ -68,7 +69,7 @@
                         (define x (bytes-ref cline i))
                         (define var ref-sexp) ...
                         (bytes-set! cline i (+ x sample))
-                        (filtering (+ i 1))))))))]))
+                        (filtering (+ i 1)))))))))]))
 
 (define-filter-function sub
   #:lambda [cline pline fxcount]

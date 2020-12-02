@@ -23,7 +23,8 @@
                    [clr-alpha (format-id #'clr "~aa-alpha" (syntax-e #'clr))]
                    [(clr-com ...) (for/list ([<c> (in-list (syntax->list #'(com ...)))])
                                     (format-id <c> "~aa-~a" (syntax-e #'clr) (syntax-e <c>)))])
-       #'(begin (struct clra flcolor ([com : Flonum] ... [alpha : Flonum])
+       (syntax/loc stx
+         (begin (struct clra flcolor ([com : Flonum] ... [alpha : Flonum])
                   #:transparent #:type-name FlCLRA)
                 (define (clr [com : Real] ... [alpha : Real 1.0]) : clra
                   (clra (real->flonum com) ... (real->alpha alpha)))
@@ -31,7 +32,7 @@
                   (cond [(clra? src) (if (= alpha 1.0) src (clra (clr-com src) ... (* (clr-alpha src) (real->alpha alpha))))]
                         [else (let ([flrgba (rgb* src alpha)])
                                 (define-values (com ...) (rgb->clr (rgba-red flrgba) (rgba-green flrgba) (rgba-blue flrgba)))
-                                (clra com ... (rgba-alpha flrgba)))]))))]))
+                                (clra com ... (rgba-alpha flrgba)))])))))]))
 
 (struct hexa flcolor ([digits : Index] [alpha : Flonum]) #:transparent #:type-name Hexa)
 (struct xterma flcolor ([index : Byte] [alpha : Flonum]) #:transparent #:type-name Xterma)

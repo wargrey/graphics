@@ -7,8 +7,9 @@
 (define-syntax (require/provide stx)
   (syntax-case stx []
     [(_ spec ...)
-     #'(begin (provide (all-from-out spec)) ...
-              (require spec) ...)]))
+     (syntax/loc stx
+       (begin (provide (all-from-out spec)) ...
+              (require spec) ...))]))
 
 (define require-image : (-> String Symbol Positive-Real Any)
   (lambda [src.rkt id density]

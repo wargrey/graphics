@@ -35,26 +35,28 @@
   (syntax-case stx [lambda]
     [(_ #:-> Bitmap λsexp)
      (with-syntax ([read-bitmap (datum->syntax #'Bitmap (string->symbol (string-downcase (symbol->string (syntax-e #'Bitmap)))))])
-       #'(define-read-bitmap read-bitmap #:-> Bitmap λsexp))]
+       (syntax/loc stx (define-read-bitmap read-bitmap #:-> Bitmap λsexp)))]
     [(_ bitmap #:-> Bitmap (lambda [/dev/stdin density] sexp ...))
      (with-syntax ([read-bitmap (datum->syntax #'bitmap (string->symbol (string-append "read-" (symbol->string (syntax-e #'bitmap)))))])
-       #'(define read-bitmap : (->* ((U Path-String Input-Port)) (#:density Positive-Flonum #:try-@2x? Boolean) Bitmap)
+       (syntax/loc stx
+         (define read-bitmap : (->* ((U Path-String Input-Port)) (#:density Positive-Flonum #:try-@2x? Boolean) Bitmap)
            (lambda [/dev/stdin #:density [density 1.0] #:try-@2x? [try-@2x? #false]]
              (cond [(input-port? /dev/stdin) sexp ...]
                    [else (let-values ([(path scale) (select-file@2x /dev/stdin density try-@2x?)])
                            (call-with-input-file* path #:mode 'binary
                              (λ [[stdin : Input-Port]]
-                               (read-bitmap stdin #:density scale))))]))))]))
+                               (read-bitmap stdin #:density scale))))])))))]))
 
 (define-syntax (create-bitmap stx)
   (syntax-case stx [:]
     [(_ [Bitmap convertor] filename density width height palettes depth argl ... decode)
-     #'(let-values ([(surface fxwidth fxheight) (cairo-create-image-surface (exact->inexact width) (exact->inexact height) density)])
+     (syntax/loc stx
+       (let-values ([(surface fxwidth fxheight) (cairo-create-image-surface (exact->inexact width) (exact->inexact height) density)])
          (decode (cairo_image_surface_get_data surface) fxwidth fxheight)
          (cairo_surface_mark_dirty surface)
-         (Bitmap convertor (cairo-surface-shadow surface) surface filename density width height palettes depth argl ...))]
+         (Bitmap convertor (cairo-surface-shadow surface) surface filename density width height palettes depth argl ...)))]
     [(_ constructor filename density width height palettes depth argl ... decode)
-     #'(create-bitmap [constructor #false] filename density width height palettes depth argl ... decode)]))
+     (syntax/loc stx (create-bitmap [constructor #false] filename density width height palettes depth argl ... decode))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define select-file@2x : (-> Path-String Positive-Flonum Boolean (Values Path-String Positive-Flonum))

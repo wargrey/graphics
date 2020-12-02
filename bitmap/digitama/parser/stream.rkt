@@ -27,28 +27,31 @@
   (syntax-case stx [:]
     [(_ parse-integer do-bytes->integer [argl : Argl] ... #:-> Integer_t)
      (with-syntax ([parse-integer* (format-id #'parse-integer "~a*" (syntax-e #'parse-integer))])
-       #'(begin (define parse-integer : (-> Bytes Integer Argl ... Integer_t)
+       (syntax/loc stx
+         (begin (define parse-integer : (-> Bytes Integer Argl ... Integer_t)
                   (lambda [src start argl ...]
                     (do-bytes->integer src start argl ...)))
                 
                 (define parse-integer* : (All (a) (-> Bytes Integer Argl ... (-> Any Boolean : #:+ a) Throw-Range-Error a))
                   (lambda [src start argl ... subinteger? throw]
-                    (assert* (do-bytes->integer src start argl ...) subinteger? throw)))))]
+                    (assert* (do-bytes->integer src start argl ...) subinteger? throw))))))]
     [(_ parse-integer do-bytes->integer signed? #:-> Integer_t)
      (with-syntax ([parse-integer* (format-id #'parse-integer "~a*" (syntax-e #'parse-integer))])
-       #'(begin (define parse-integer : (-> Bytes Integer Integer_t)
+       (syntax/loc stx
+         (begin (define parse-integer : (-> Bytes Integer Integer_t)
                   (lambda [src start]
                     (do-bytes->integer src start signed?)))
 
                 (define parse-integer* : (All (a) (-> Bytes Integer (-> Any Boolean : #:+ a) Throw-Range-Error a))
                   (lambda [src start subinteger? throw]
-                    (assert* (do-bytes->integer src start signed?) subinteger? throw)))))]))
+                    (assert* (do-bytes->integer src start signed?) subinteger? throw))))))]))
 
 (define-syntax (define-integer-parser* stx)
   (syntax-case stx [:]
     [(_ [do-bytes->integer [parse-integer #:-> Integer] [parse-uinteger #:-> Natural]] ...)
-     #'(begin (define-integer-parser parse-integer  do-bytes->integer #true  #:-> Integer) ...
-              (define-integer-parser parse-uinteger do-bytes->integer #false #:-> Natural) ...)]))
+     (syntax/loc stx
+       (begin (define-integer-parser parse-integer  do-bytes->integer #true  #:-> Integer) ...
+              (define-integer-parser parse-uinteger do-bytes->integer #false #:-> Natural) ...))]))
 
 (define parse-boolean : (-> Bytes Fixnum Boolean)
   (lambda [src start]
