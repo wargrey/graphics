@@ -8,6 +8,8 @@
 (require ffi/unsafe/define)
 (require ffi/unsafe/alloc)
 
+(require racket/symbol)
+
 (require racket/unsafe/ops)
 (require racket/draw/unsafe/pango)
 (require racket/draw/unsafe/cairo)
@@ -16,6 +18,7 @@
 (require (only-in racket/math pi nan? infinite? sgn))
 (require "convert.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 (define-syntax-rule (_pfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 
@@ -84,7 +87,7 @@
                                    (and (pair? stacks)
                                         (let ([stack (unsafe-car (unsafe-car stacks))])
                                           (or (and (symbol? stack)
-                                                   (let ([$stack (symbol->string stack)])
+                                                   (let ([$stack (symbol->immutable-string stack)])
                                                      (and (unsafe-fx> (string-length $stack) 6)
                                                           (string=? (substring $stack 0 6) "bitmap")))
                                                    stack)

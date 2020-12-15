@@ -11,13 +11,14 @@
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
+(require (for-syntax racket/symbol))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-color-model stx)
   (syntax-case stx [:]
     [(_ clr ([com : real->flonum] ...) #:* rgb->clr)
      (with-syntax ([clra (format-id #'clr "~aa" (syntax-e #'clr))]
-                   [FlCLRA (format-id #'clr "Fl~aA" (string-upcase (symbol->string (syntax-e #'clr))))]
+                   [FlCLRA (format-id #'clr "Fl~aA" (string-upcase (symbol->immutable-string (syntax-e #'clr))))]
                    [clra? (format-id #'clr "~aa?" (syntax-e #'clr))]
                    [clr* (format-id #'clr "~a*" (syntax-e #'clr))]
                    [clr-alpha (format-id #'clr "~aa-alpha" (syntax-e #'clr))]

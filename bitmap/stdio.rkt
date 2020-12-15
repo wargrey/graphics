@@ -29,15 +29,16 @@
  [cairo_surface_mark_dirty (-> Bitmap-Surface Bytes)])
 
 (require (for-syntax racket/base))
+(require (for-syntax racket/symbol))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;"
 (define-syntax (define-read-bitmap stx)
   (syntax-case stx [lambda]
     [(_ #:-> Bitmap λsexp)
-     (with-syntax ([read-bitmap (datum->syntax #'Bitmap (string->symbol (string-downcase (symbol->string (syntax-e #'Bitmap)))))])
+     (with-syntax ([read-bitmap (datum->syntax #'Bitmap (string->symbol (string-downcase (symbol->immutable-string (syntax-e #'Bitmap)))))])
        (syntax/loc stx (define-read-bitmap read-bitmap #:-> Bitmap λsexp)))]
     [(_ bitmap #:-> Bitmap (lambda [/dev/stdin density] sexp ...))
-     (with-syntax ([read-bitmap (datum->syntax #'bitmap (string->symbol (string-append "read-" (symbol->string (syntax-e #'bitmap)))))])
+     (with-syntax ([read-bitmap (datum->syntax #'bitmap (string->symbol (string-append "read-" (symbol->immutable-string (syntax-e #'bitmap)))))])
        (syntax/loc stx
          (define read-bitmap : (->* ((U Path-String Input-Port)) (#:density Positive-Flonum #:try-@2x? Boolean) Bitmap)
            (lambda [/dev/stdin #:density [density 1.0] #:try-@2x? [try-@2x? #false]]

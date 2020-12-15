@@ -3,6 +3,7 @@
 (provide (except-out (all-defined-out) exn-args->message exn-src+args->message))
 
 (require racket/string)
+(require racket/symbol)
 (require racket/format)
 (require racket/path)
 
@@ -74,6 +75,6 @@
 
 (define exn-src+args->message : (-> Symbol (Listof Any) String)
   (lambda [src args]
-    (cond [(null? args) (symbol->string src)]
+    (cond [(null? args) (symbol->immutable-string src)]
           [(string? (car args)) (apply format (string-append "~a: " (car args)) src (cdr args))]
           [else (format "~a: ~s" src args)])))
