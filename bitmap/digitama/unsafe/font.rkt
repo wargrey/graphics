@@ -25,7 +25,7 @@
     (when weight (pango_font_description_set_weight font-desc weight))
     (when style (pango_font_description_set_style font-desc style))
     (when stretch (pango_font_description_set_stretch font-desc stretch))
-    (when variant (displayln variant) (pango_font_description_set_variant font-desc variant))
+    (when variant (pango_font_description_set_variant font-desc variant))
     (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
     font-desc)
 
