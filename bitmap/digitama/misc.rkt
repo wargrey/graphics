@@ -18,5 +18,5 @@
     (define value (dynamic-require src.rkt id fallback))
     (cond [(not (hash? value)) value]
           [else (hash-ref value (exact->inexact density)
-                          (λ [] (let ([all (sort (hash-keys value) >)])
+                          (λ [] (let ([all (sort (assert (hash-keys value) (lambda ([l : (Listof Any)]) (andmap real? l))) >)])
                                   (if (pair? all) (hash-ref value (car all)) value))))])))
