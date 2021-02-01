@@ -79,7 +79,7 @@
                       (case alignment
                         [(vl vc vr) (compose (unsafe-flmax width chwidth) (unsafe-fl+ gapsize (unsafe-fl+ height chheight)) ++ rest)]
                         [(ht hc hb) (compose (unsafe-fl+ gapsize (unsafe-fl+ width chwidth)) (unsafe-flmax height chheight) ++ rest)]
-                        [else #|unreachable|# (compose (unsafe-flmax width chwidth) (unsafe-flmax height chheight) ++ rest)]))])))
+                        [else #| deadcode |# (compose (unsafe-flmax width chwidth) (unsafe-flmax height chheight) ++ rest)]))])))
     
     (define-values (bmp cr) (make-cairo-image flwidth flheight density #true))
     (let combine ([all all] [maybe-used-x 0.0] [maybe-used-y 0.0])
@@ -94,7 +94,7 @@
             [(ht) (values maybe-used-x                                  0.0)]
             [(hc) (values maybe-used-x                                  (unsafe-fl* (unsafe-fl- flheight chheight) 0.5))]
             [(hb) (values maybe-used-x                                  (unsafe-fl- flheight chheight))]
-            [else #|unreachable|# (values maybe-used-x                  maybe-used-y)]))
+            [else #| deadcode |# (values maybe-used-x                   maybe-used-y)]))
         (cairo-composite cr (unsafe-vector*-ref child 0) dest-x dest-y chwidth chheight CAIRO_FILTER_BILINEAR operator density #true)
         (combine (unsafe-cdr all)
                  (unsafe-fl+ maybe-used-x (unsafe-fl+ chwidth gapsize))
@@ -169,6 +169,13 @@
         (combine (unsafe-fx- idx 1))))
     bmp)
 
+  (define (bitmap_heap sfcs leaves-gaps subtree-gaps aligns density)
+    (define-values (flwidth flheight)
+      (values 0.0 0.0))
+    
+    (define-values (bmp cr) (make-cairo-image flwidth flheight density #true))
+    bmp)
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define ((make-layer alignment w h) W H) (superimpose-position alignment W H w h))
   
@@ -179,7 +186,7 @@
       [(lt) (values 0.0 0.0)] [(lc) (values 0.0 cy)] [(lb) (values 0.0 by)]
       [(ct) (values  cx 0.0)] [(cc) (values  cx cy)] [(cb) (values  cx by)]
       [(rt) (values  rx 0.0)] [(rc) (values  rx cy)] [(rb) (values  rx by)]
-      [else #|unreachable|# (values 0.0 0.0)]))
+      [else #| deadcode |# (values 0.0 0.0)]))
 
   (define (superimpose* alignment sllec)
     (define-values (width height)
@@ -229,4 +236,5 @@
  [bitmap_pin* (-> Integer Flonum Flonum Flonum Flonum Bitmap-Surface (Listof Bitmap-Surface) Flonum Bitmap)]
  [bitmap_append (-> Symbol Integer Bitmap-Surface (Listof Bitmap-Surface) Flonum Flonum Bitmap)]
  [bitmap_superimpose (-> Symbol Integer (Listof Bitmap-Surface) Flonum Bitmap)]
- [bitmap_table (-> (Listof Bitmap-Surface) Integer Integer (Listof Symbol) (Listof Symbol) (Listof Flonum) (Listof Flonum) Flonum Bitmap)])
+ [bitmap_table (-> (Listof Bitmap-Surface) Integer Integer (Listof Symbol) (Listof Symbol) (Listof Flonum) (Listof Flonum) Flonum Bitmap)]
+ [bitmap_heap (-> (Listof Bitmap-Surface) Flonum Flonum (Listof Symbol) Flonum Bitmap)])

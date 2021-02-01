@@ -8,6 +8,9 @@
 (require "digitama/unsafe/composite.rkt")
 (require "digitama/unsafe/convert.rkt")
 
+(require (for-syntax racket/base))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-pin-operator : (Parameterof Symbol) (make-parameter 'over))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -52,10 +55,8 @@
           [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols)])
                   (define nrows : Nonnegative-Fixnum (+ maybe-nrows (sgn extra-ncols)))
                   (bitmap_table (map bitmap-surface bitmaps) ncols nrows
-                                (cond [(null? col-aligns) '(cc)] [(symbol? col-aligns) (list col-aligns)] [else col-aligns])
-                                (cond [(null? row-aligns) '(cc)] [(symbol? row-aligns) (list row-aligns)] [else row-aligns])
-                                (cond [(null? col-gaps) '(0.0)] [(real? col-gaps) (list (real->double-flonum col-gaps))] [else (map real->double-flonum col-gaps)])
-                                (cond [(null? row-gaps) '(0.0)] [(real? row-gaps) (list (real->double-flonum row-gaps))] [else (map real->double-flonum row-gaps)])
+                                (bitmap-expand-args col-aligns symbol? 'cc) (bitmap-expand-args row-aligns symbol? 'cc)
+                                (bitmap-expand-args col-gaps real? 0.0 real->double-flonum) (bitmap-expand-args row-gaps real? 0.0 real->double-flonum)
                                 (bitmap-density (car bitmaps))))])))
 
 (define bitmap-table* : (->* ((Listof (Listof Bitmap)))
@@ -81,11 +82,20 @@
     
     (cond [(not density) cont]
           [else (bitmap_table surfaces ncols nrows
-                              (cond [(null? col-aligns) '(cc)] [(symbol? col-aligns) (list col-aligns)] [else col-aligns])
-                              (cond [(null? row-aligns) '(cc)] [(symbol? row-aligns) (list row-aligns)] [else row-aligns])
-                              (cond [(null? col-gaps) '(0.0)] [(real? col-gaps) (list (real->double-flonum col-gaps))] [else (map real->double-flonum col-gaps)])
-                              (cond [(null? row-gaps) '(0.0)] [(real? row-gaps) (list (real->double-flonum row-gaps))] [else (map real->double-flonum row-gaps)])
+                              (bitmap-expand-args col-aligns symbol? 'cc) (bitmap-expand-args row-aligns symbol? 'cc)
+                              (bitmap-expand-args col-gaps real? 0.0 real->double-flonum) (bitmap-expand-args row-gaps real? 0.0 real->double-flonum)
                               density)])))
+
+(define bitmap-heap : (->* ((Listof Bitmap) Nonnegative-Real)
+                            ((Option Nonnegative-Real) (U (Listof Superimpose-Alignment) Superimpose-Alignment))
+                            Bitmap)
+  (lambda [bitmaps leaves-gaps [subtree-gaps #false] [aligns null]]
+    (cond [(null? bitmaps) (bitmap-blank)]
+          [(null? (cdr bitmaps)) (car bitmaps)]
+          [else (bitmap_heap (map bitmap-surface bitmaps)
+                             (real->double-flonum leaves-gaps) (real->double-flonum (or subtree-gaps leaves-gaps))
+                             (bitmap-expand-args aligns symbol? 'cc)
+                             (bitmap-density (car bitmaps)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-pin : (-> Bitmap-Composition-Operator Bitmap-Pin)

@@ -24,6 +24,19 @@
          (begin (define-values (bitmap-combiner ...) (values (make-combiner 'tips) ...))
                 ...)))]))
 
+(define-syntax (bitmap-expand-args  stx)
+  (syntax-case stx []
+    [(_ in type? default)
+     (syntax/loc stx
+       (cond [(null? in) (list default)]
+             [(type? in) (list in)]
+             [else in]))]
+    [(_ in type? default in->out)
+     (syntax/loc stx
+       (cond [(null? in) (list default)]
+             [(type? in) (list (in->out in))]
+             [else (map in->out in)]))]))
+
 (define-type Superimpose-Alignment (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
 
 (define-type Bitmap-Pin
