@@ -7,6 +7,7 @@
 
 (require "../../digitama/unsafe/convert.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define examples : (Listof Bitmap)
   (list (bitmap-text "Field Name: ")    (bitmap-text "Testcase for (bitmap-table)")
         (bitmap-text "Specification: ") (bitmap-paragraph "* Shown in a table of 2 rows;\n* This Field has no examples." #:max-width 300)
@@ -19,19 +20,21 @@
                                              (string-upcase (format "~x" rc))
                                              monospace))))))
 
-;; bitmaps
 
-(collect-garbage)
-(collect-garbage)
-(collect-garbage) ; 4-6ms
-(time (bitmap-table 2 examples '(rc lc) '(ct) '(8) '(8)))
-
-(collect-garbage)
-(collect-garbage)
-(collect-garbage) ; 17-19ms
-(time (void (bitmap-vl-append* bitmaps)))
-
-(collect-garbage)
-(collect-garbage)
-(collect-garbage) ; 17-19ms
-(time (bitmap-table 26 bitmaps '(rc) '(cc) '(10) '(10)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(module+ main
+  (collect-garbage)
+  (collect-garbage)
+  (collect-garbage) ; 4-6ms
+  (time (bitmap-table 2 examples '(rc lc) '(ct) '(8) '(8)))
+  
+  (collect-garbage)
+  (collect-garbage)
+  (collect-garbage) ; 17-19ms
+  (time (void (bitmap-vl-append* bitmaps)))
+  
+  (collect-garbage)
+  (collect-garbage)
+  (collect-garbage) ; 17-19ms
+  (time (bitmap-table 26 bitmaps '(rc) '(cc) '(10) '(10))))
+  

@@ -44,59 +44,6 @@
                              (bitmap-surface bmp0) (map bitmap-surface bmps)
                              (bitmap-density bmp0))])))
 
-(define bitmap-table : (->* (Integer (Listof Bitmap))
-                            ((U (Listof Superimpose-Alignment) Superimpose-Alignment)
-                             (U (Listof Superimpose-Alignment) Superimpose-Alignment)
-                             (U (Listof Nonnegative-Real) Nonnegative-Real)
-                             (U (Listof Nonnegative-Real) Nonnegative-Real))
-                            Bitmap)
-  (lambda [ncols bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
-    (cond [(or (<= ncols 0) (null? bitmaps)) (bitmap-blank)]
-          [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols)])
-                  (define nrows : Nonnegative-Fixnum (+ maybe-nrows (sgn extra-ncols)))
-                  (bitmap_table (map bitmap-surface bitmaps) ncols nrows
-                                (bitmap-expand-args col-aligns symbol? 'cc) (bitmap-expand-args row-aligns symbol? 'cc)
-                                (bitmap-expand-args col-gaps real? 0.0 real->double-flonum) (bitmap-expand-args row-gaps real? 0.0 real->double-flonum)
-                                (bitmap-density (car bitmaps))))])))
-
-(define bitmap-table* : (->* ((Listof (Listof Bitmap)))
-                            ((U (Listof Superimpose-Alignment) Superimpose-Alignment)
-                             (U (Listof Superimpose-Alignment) Superimpose-Alignment)
-                             (U (Listof Nonnegative-Real) Nonnegative-Real)
-                             (U (Listof Nonnegative-Real) Nonnegative-Real))
-                             Bitmap)
-  (lambda [bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
-    (define ncols : Index (apply max 0 ((inst map Index (Listof Bitmap)) length bitmaps)))
-    (define nrows : Index (length bitmaps))
-    (define cont : Bitmap (bitmap-blank))
-    (define sont : Bitmap-Surface (bitmap-surface cont))
-
-    (define-values (surfaces density)
-      (for/fold ([surfaces : (Listof Bitmap-Surface) null]
-                 [density : (Option Positive-Flonum) #false])
-                ([rows : (Listof Bitmap) (in-list bitmaps)])
-        (define rsize : Index (length rows))
-        (values (cond [(= ncols rsize) (append surfaces (map bitmap-surface rows))]
-                      [else (append surfaces (map bitmap-surface rows) (make-list (- ncols rsize) sont))])
-                (or density (and (pair? rows) (bitmap-density (car rows)))))))
-    
-    (cond [(not density) cont]
-          [else (bitmap_table surfaces ncols nrows
-                              (bitmap-expand-args col-aligns symbol? 'cc) (bitmap-expand-args row-aligns symbol? 'cc)
-                              (bitmap-expand-args col-gaps real? 0.0 real->double-flonum) (bitmap-expand-args row-gaps real? 0.0 real->double-flonum)
-                              density)])))
-
-(define bitmap-heap : (->* ((Listof Bitmap) Nonnegative-Real)
-                            ((Option Nonnegative-Real) (U (Listof Superimpose-Alignment) Superimpose-Alignment))
-                            Bitmap)
-  (lambda [bitmaps leaves-gaps [subtree-gaps #false] [aligns null]]
-    (cond [(null? bitmaps) (bitmap-blank)]
-          [(null? (cdr bitmaps)) (car bitmaps)]
-          [else (bitmap_heap (map bitmap-surface bitmaps)
-                             (real->double-flonum leaves-gaps) (real->double-flonum (or subtree-gaps leaves-gaps))
-                             (bitmap-expand-args aligns symbol? 'cc)
-                             (bitmap-density (car bitmaps)))])))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-pin : (-> Bitmap-Composition-Operator Bitmap-Pin)
   (lambda [op]
@@ -165,3 +112,74 @@
 
 (define bitmap-pin-over : Bitmap-Pin (make-pin 'over))
 (define bitmap-pin-under : Bitmap-Pin (make-pin 'dest-over))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define bitmap-table : (->* (Integer (Listof Bitmap))
+                            ((U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                             (U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                             (U (Listof Nonnegative-Real) Nonnegative-Real)
+                             (U (Listof Nonnegative-Real) Nonnegative-Real))
+                            Bitmap)
+  (lambda [ncols bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
+    (cond [(or (<= ncols 0) (null? bitmaps)) (bitmap-blank)]
+          [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols)])
+                  (define nrows : Nonnegative-Fixnum (+ maybe-nrows (sgn extra-ncols)))
+                  (bitmap_table (map bitmap-surface bitmaps) ncols nrows
+                                (bitmap-expand-args col-aligns symbol? 'cc) (bitmap-expand-args row-aligns symbol? 'cc)
+                                (bitmap-expand-args col-gaps real? 0.0 real->double-flonum) (bitmap-expand-args row-gaps real? 0.0 real->double-flonum)
+                                (bitmap-density (car bitmaps))))])))
+
+(define bitmap-table* : (->* ((Listof (Listof Bitmap)))
+                            ((U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                             (U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                             (U (Listof Nonnegative-Real) Nonnegative-Real)
+                             (U (Listof Nonnegative-Real) Nonnegative-Real))
+                             Bitmap)
+  (lambda [bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
+    (define ncols : Index (apply max 0 ((inst map Index (Listof Bitmap)) length bitmaps)))
+    (define nrows : Index (length bitmaps))
+    (define cont : Bitmap (bitmap-blank))
+    (define sont : Bitmap-Surface (bitmap-surface cont))
+
+    (define-values (surfaces density)
+      (for/fold ([surfaces : (Listof Bitmap-Surface) null]
+                 [density : (Option Positive-Flonum) #false])
+                ([rows : (Listof Bitmap) (in-list bitmaps)])
+        (define rsize : Index (length rows))
+        (values (cond [(= ncols rsize) (append surfaces (map bitmap-surface rows))]
+                      [else (append surfaces (map bitmap-surface rows) (make-list (- ncols rsize) sont))])
+                (or density (and (pair? rows) (bitmap-density (car rows)))))))
+    
+    (cond [(not density) cont]
+          [else (bitmap_table surfaces ncols nrows
+                              (bitmap-expand-args col-aligns symbol? 'cc) (bitmap-expand-args row-aligns symbol? 'cc)
+                              (bitmap-expand-args col-gaps real? 0.0 real->double-flonum) (bitmap-expand-args row-gaps real? 0.0 real->double-flonum)
+                              density)])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define bitmap-pyramid : (->* ((Listof Bitmap))
+                              ((U (Listof Superimpose-Alignment) Superimpose-Alignment) Nonnegative-Real (Option Nonnegative-Real))
+                              Bitmap)
+  (lambda [bitmaps [aligns null] [sibling-gaps 0] [sub-gaps #false]]
+    (cond [(null? bitmaps) (bitmap-blank)]
+          [(null? (cdr bitmaps)) (car bitmaps)]
+          [else (bitmap_heap (bitmap-surface (car bitmaps)) (map bitmap-surface (cdr bitmaps)) 2
+                             (real->double-flonum sibling-gaps) (real->double-flonum (or sub-gaps sibling-gaps))
+                             (bitmap-expand-args aligns symbol? 'cc)
+                             (bitmap-density (car bitmaps)))])))
+
+(define bitmap-heap : (->* ((Listof Bitmap))
+                            (#:ary Positive-Index
+                             Nonnegative-Real (Option Nonnegative-Real)
+                             (U (Listof Superimpose-Alignment) Superimpose-Alignment))
+                            Bitmap)
+  (lambda [bitmaps #:ary [ary 2] [sibling-gaps 0] [sub-gaps #false] [aligns null]]
+    (cond [(null? bitmaps) (bitmap-blank)]
+          [(null? (cdr bitmaps)) (car bitmaps)]
+          [else (let ([sibling-gapsize (real->double-flonum sibling-gaps)]
+                      [sub-gapsize (real->double-flonum (or sub-gaps sibling-gaps))]
+                      [aligns (bitmap-expand-args aligns symbol? 'cc)]
+                      [density (bitmap-density (car bitmaps))])
+                  (if (> ary 1)
+                      (bitmap_heap (bitmap-surface (car bitmaps)) (map bitmap-surface (cdr bitmaps)) ary sibling-gapsize sub-gapsize aligns density)
+                      (bitmap_table (map bitmap-surface bitmaps) 1 (length bitmaps) aligns aligns (list sibling-gapsize) (list sub-gapsize) density)))])))
