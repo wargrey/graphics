@@ -7,6 +7,7 @@
 (require "../../constants.rkt")
 (require "../../digitama/base.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (diameter dash-width alpha) (values 192 4 1/3))
 (define yellow-stroke (desc-stroke short-dash #:width dash-width #:opacity 1/2 #:cap 'round))
 (default-stroke (desc-stroke long-dash #:width dash-width #:opacity alpha #:cap 'round))
@@ -25,7 +26,8 @@
 
 3pc
 (bitmap-pin 3pc 0+0i yellow-circle 64+64i)
-(bitmap-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle)
+(bitmap-frame (bitmap-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle))
+(bitmap-frame (bitmap-pin* -1/8 -1/8 0 0 yellow-circle yellow-circle yellow-circle))
 (bitmap-cc-superimpose* (list 3pc yellow-circle))
 
 (define sine (time (bitmap-rectangular 100 100 build-flomap)))

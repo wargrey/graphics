@@ -24,4 +24,4 @@
     (collect-garbage)
     (collect-garbage)
     (collect-garbage)
-    (time (bitmap-heap nodes #:ary ary))))
+    (bitmap-frame (time (bitmap-heap nodes #:ary ary)))))
