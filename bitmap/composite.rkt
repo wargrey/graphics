@@ -99,7 +99,7 @@
     (cond [(null? bitmaps) (bitmap-blank)]
           [(null? (cdr bitmaps)) (car bitmaps)]
           [else (bitmap_pyramid (map bitmap-surface bitmaps)
-                                (real->double-flonum sibling-gaps) (real->double-flonum (or sub-gaps sibling-gaps))
+                                (real->double-flonum sibling-gaps) (real->double-flonum (or sub-gaps (* sibling-gaps 0.618)))
                                 (bitmap-expand-args aligns symbol? 'cc)
                                 (bitmap-density (car bitmaps)))])))
 
@@ -113,11 +113,11 @@
           [(null? (cdr bitmaps)) (car bitmaps)]
           [else (let ([sfcs (map bitmap-surface bitmaps)]
                       [sibling-gapsize (real->double-flonum sibling-gaps)]
-                      [sub-gapsize (real->double-flonum (or sub-gaps sibling-gaps))]
+                      [sub-gapsize (real->double-flonum (or sub-gaps (* sibling-gaps 0.618)))]
                       [aligns (bitmap-expand-args aligns symbol? 'cc)]
                       [density (bitmap-density (car bitmaps))])
                   (if (= ary 1)
-                      (bitmap_table sfcs ary (length bitmaps) aligns aligns (list sibling-gapsize) (list sub-gapsize) density)
+                      (bitmap_pyramid sfcs sibling-gapsize sub-gapsize aligns density)
                       (bitmap_heap sfcs ary sibling-gapsize sub-gapsize aligns density)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

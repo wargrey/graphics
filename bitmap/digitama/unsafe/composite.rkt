@@ -11,6 +11,7 @@
 
   (require (only-in racket/list make-list))
   (require (only-in racket/vector vector-append))
+  (require (only-in racket/flonum make-flvector))
   
   (require "pangocairo.rkt")
   (require "paint.rkt")
@@ -187,6 +188,11 @@
     (define dx (unsafe-fl+ nwidth sibling-gaps))
     
     (define-values (bmp cr) (make-cairo-image flwidth flheight density #true))
+
+    ;;; TODO
+    ; Arithmetic here only involves in addition and subtraction,
+    ; working with flonums directly seems do not lose precision.
+    
     (let combine ([nodes nodes]
                   [y0 0.0]
                   [x0 xtranslate]
@@ -199,37 +205,62 @@
         (if (unsafe-fl< x0 boundary)
             (combine (unsafe-cdr nodes) y0 (unsafe-fl+ x0 dx) boundary)
             (let ([boundary++ (unsafe-fl+ boundary xstep)])
-              (combine (unsafe-cdr nodes) (unsafe-fl+ y0 ystep) (unsafe-fl- 2translate boundary++) boundary++)))))
+              (combine (unsafe-cdr nodes) (unsafe-fl+ y0 ystep)
+                       (unsafe-fl- 2translate boundary++)  ; (t - [b - t]) = 2t - b
+                       boundary++)))))
     bmp)
 
   (define (bitmap_heap sfcs ary sibling-gaps sub-gaps node-aligns density)
     (define n (length sfcs))
+    (define ary-1 (unsafe-fx- ary 1))
     (define flary (unsafe-fx->fl ary))
-    (define depth (unsafe-flfloor (log (unsafe-fx* n (unsafe-fx- ary 1)) ary)))
+    (define depth (unsafe-flfloor (log (unsafe-fx* n ary-1) ary)))
     (define nleaves (unsafe-flexpt flary depth))
     (define-values (nwidth nheight nodes) (list->layers* (list->n:vector node-aligns n) sfcs density))
     (define flwidth (unsafe-fl+ (unsafe-fl* nwidth nleaves) (unsafe-fl* sibling-gaps (unsafe-fl- nleaves 1.0))))
     (define flheight (unsafe-fl+ (unsafe-fl* nheight (unsafe-fl+ depth 1.0)) (unsafe-fl* sub-gaps depth)))
-    (define 2translate (unsafe-fl- flwidth nwidth))
-    (define xtranslate (unsafe-fl* 2translate 0.5))
-    (define xstep (unsafe-fl* (unsafe-fl+ (unsafe-fl* nwidth flary) (unsafe-fl* sibling-gaps (unsafe-fl- flary 1.0))) 0.5))
+    (define xstep (unsafe-fl+ nwidth sibling-gaps))
     (define ystep (unsafe-fl+ nheight sub-gaps))
-    (define dx (unsafe-fl+ nwidth sibling-gaps))
+
+    ; precompute x positions
+    (define leaf0-idx (unsafe-fxquotient (unsafe-fx- (unsafe-fl->fx (unsafe-flexpt flary depth)) 1) ary-1)) ; N = (m ^ (h + 1) - 1) / (m - 1)
+    (define vs (make-flvector (unsafe-fx+ leaf0-idx (unsafe-fl->fx nleaves)) 0.0))
+
+    (let location-precompute ([pos 0])
+      (cond [(unsafe-fx< pos leaf0-idx)
+             (let* ([child-start (unsafe-fx+ (unsafe-fx* pos ary) 1)]
+                    [child-end (unsafe-fx+ child-start ary)])
+               (let locate-child ([child-idx child-start]
+                                  [x-acc 0.0])
+                 (if (unsafe-fx< child-idx child-end)
+                     (let ([x (location-precompute child-idx)])
+                       (locate-child (unsafe-fx+ child-idx 1) (unsafe-fl+ x-acc x)))
+                     (let ([x (unsafe-fl/ x-acc flary)])
+                       (unsafe-flvector-set! vs pos x) x))))]
+            [(unsafe-fx> pos leaf0-idx)
+             (let ([x (unsafe-fl* xstep (unsafe-fx->fl (unsafe-fx- pos leaf0-idx)))])
+               (unsafe-flvector-set! vs pos x) x)]
+            [else 0.0 #| the first leaf is already located at 0 |#]))
     
     (define-values (bmp cr) (make-cairo-image flwidth flheight density #true))
     (let combine ([nodes nodes]
                   [y0 0.0]
-                  [x0 xtranslate]
-                  [boundary xtranslate])
+                  [idx 0]
+                  [boundary 1]
+                  [siblings 1])
       (unless (null? nodes)
         (define node (unsafe-car nodes))
         (define-values (xoff yoff) ((unsafe-cdr node) nwidth nheight))
-        (cairo-composite cr (unsafe-car node) (unsafe-fl+ x0 xoff) (unsafe-fl+ y0 yoff)
+        (define idx++ (unsafe-fx+ idx 1))
+
+        (cairo-composite cr (unsafe-car node) (unsafe-fl+ (unsafe-flvector-ref vs idx) xoff) (unsafe-fl+ y0 yoff)
                          flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #true)
-        (if (unsafe-fl< x0 boundary)
-            (combine (unsafe-cdr nodes) y0 (unsafe-fl+ x0 dx) boundary)
-            (let ([boundary++ (unsafe-fl+ boundary xstep)])
-              (combine (unsafe-cdr nodes) (unsafe-fl+ y0 ystep) (unsafe-fl- 2translate boundary++) boundary++)))))
+
+        (if (unsafe-fx< idx++ boundary)
+            (combine (unsafe-cdr nodes) y0 idx++ boundary siblings)
+            (let ([siblings++ (unsafe-fx* siblings ary)])
+              (combine (unsafe-cdr nodes) (unsafe-fl+ y0 ystep) idx++
+                       (unsafe-fx+ boundary siblings++) siblings++)))))
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -237,7 +268,7 @@
   
   (define (superimpose-position alignment width height w h)
     (define-values (rx by) (values (unsafe-fl- width w) (unsafe-fl- height h)))
-    (define-values (cx cy) (values (unsafe-fl/ rx 2.0) (unsafe-fl/ by 2.0)))
+    (define-values (cx cy) (values (unsafe-fl* rx 0.5) (unsafe-fl* by 0.5)))
     (case alignment
       [(lt) (values 0.0 0.0)] [(lc) (values 0.0 cy)] [(lb) (values 0.0 by)]
       [(ct) (values  cx 0.0)] [(cc) (values  cx cy)] [(cb) (values  cx by)]

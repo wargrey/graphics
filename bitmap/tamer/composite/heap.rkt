@@ -11,7 +11,7 @@
 (define index->node
   (λ [i]
     (define datum (bitmap-text (number->string (add1 i))))
-    (define r (quotient (bitmap-height datum) 2))
+    (define r (* (bitmap-height datum) 0.5))
     (define frame (bitmap-circle r))
     
     (bitmap-cc-superimpose frame datum)))
@@ -24,4 +24,5 @@
     (collect-garbage)
     (collect-garbage)
     (collect-garbage)
-    (bitmap-frame (time (bitmap-heap nodes #:ary ary)))))
+    (bitmap-frame
+     (time (bitmap-heap #:ary ary nodes 16.0)))))
