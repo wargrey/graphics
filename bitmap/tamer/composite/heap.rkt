@@ -11,18 +11,22 @@
 (define index->node
   (λ [i]
     (define datum (bitmap-text (number->string (add1 i))))
-    (define r (* (bitmap-height datum) 0.5))
+    (define r (* (bitmap-height datum) 0.4))
     (define frame (bitmap-circle r))
     
     (bitmap-cc-superimpose frame datum)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (define nodes (build-list 15 index->node))
+  (define nodes (build-list 48 index->node))
+  (define subsize 16.0)
   
-  (for/list ([ary (in-range 1 4)])
-    (collect-garbage)
-    (collect-garbage)
-    (collect-garbage)
-    (bitmap-frame
-     (time (bitmap-heap #:ary ary nodes 16.0)))))
+  (collect-garbage)
+  (collect-garbage)
+  (collect-garbage)
+
+  (bitmap-frame
+   (time (bitmap-heap nodes subsize (* subsize 1.618))))
+
+  (bitmap-frame
+   (time (bitmap-heap nodes subsize (* subsize 0.618)))))

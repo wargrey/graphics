@@ -93,32 +93,33 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-pyramid : (->* ((Listof Bitmap))
-                              ((U (Listof Superimpose-Alignment) Superimpose-Alignment) Nonnegative-Real (Option Nonnegative-Real))
+                              (Nonnegative-Real (Option Nonnegative-Real) (U (Listof Superimpose-Alignment) Superimpose-Alignment))
                               Bitmap)
-  (lambda [bitmaps [aligns null] [sibling-gaps 0] [sub-gaps #false]]
+  (lambda [bitmaps [sub-gaps 0] [sibling-gaps #false] [aligns null]]
     (cond [(null? bitmaps) (bitmap-blank)]
           [(null? (cdr bitmaps)) (car bitmaps)]
           [else (bitmap_pyramid (map bitmap-surface bitmaps)
-                                (real->double-flonum sibling-gaps) (real->double-flonum (or sub-gaps (* sibling-gaps 0.618)))
+                                (real->double-flonum sub-gaps) (real->double-flonum (or sibling-gaps (* sub-gaps 1.618)))
                                 (bitmap-expand-args aligns symbol? 'cc)
                                 (bitmap-density (car bitmaps)))])))
 
+; TODO: find a better ratio between subtree gapsize and leaf gapsize
 (define bitmap-heap : (->* ((Listof Bitmap))
                             (#:ary Positive-Index
                              Nonnegative-Real (Option Nonnegative-Real)
                              (U (Listof Superimpose-Alignment) Superimpose-Alignment))
                             Bitmap)
-  (lambda [bitmaps #:ary [ary 2] [sibling-gaps 0] [sub-gaps #false] [aligns null]]
+  (lambda [bitmaps #:ary [ary 2] [sub-gaps 0] [sibling-gaps #false] [aligns null]]
     (cond [(null? bitmaps) (bitmap-blank)]
           [(null? (cdr bitmaps)) (car bitmaps)]
           [else (let ([sfcs (map bitmap-surface bitmaps)]
-                      [sibling-gapsize (real->double-flonum sibling-gaps)]
-                      [sub-gapsize (real->double-flonum (or sub-gaps (* sibling-gaps 0.618)))]
+                      [sub-gapsize (real->double-flonum sub-gaps)]
+                      [sibling-gapsize (real->double-flonum (or sibling-gaps (* sub-gaps 0.618)))]
                       [aligns (bitmap-expand-args aligns symbol? 'cc)]
                       [density (bitmap-density (car bitmaps))])
                   (if (= ary 1)
-                      (bitmap_pyramid sfcs sibling-gapsize sub-gapsize aligns density)
-                      (bitmap_heap sfcs ary sibling-gapsize sub-gapsize aligns density)))])))
+                      (bitmap_table sfcs 1 (length bitmaps) aligns aligns (list sibling-gapsize) (list sub-gapsize) density)
+                      (bitmap_heap sfcs ary sub-gapsize sibling-gapsize aligns density)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-pin : (-> Bitmap-Composition-Operator Bitmap-Pin)

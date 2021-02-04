@@ -174,7 +174,7 @@
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_pyramid sfcs sibling-gaps sub-gaps node-aligns density)
+  (define (bitmap_pyramid sfcs sub-gaps sibling-gaps node-aligns density)
     (define n (length sfcs))
     (define depth (unsafe-fx->fl (pyramid-depth n)))
     (define nleaves (unsafe-fl+ depth 1.0))
@@ -210,7 +210,7 @@
                        boundary++)))))
     bmp)
 
-  (define (bitmap_heap sfcs ary sibling-gaps sub-gaps node-aligns density)
+  (define (bitmap_heap sfcs ary sub-gaps sibling-gaps node-aligns density)
     (define n (length sfcs))
     (define ary-1 (unsafe-fx- ary 1))
     (define flary (unsafe-fx->fl ary))
