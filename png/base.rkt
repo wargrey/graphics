@@ -23,8 +23,9 @@
     (define-values (flevel adler32 ?dictid) (parse-png-zlib /dev/stdin zlib 0 data-size))
     (when (and ?dictid) (throw-check-error /dev/stdin 'png "unknown preset dictionary ~a is present" ?dictid))
     (define zlib-block-start (if (not ?dictid) 2 6))
-    (define compression-level (integer->compression-level flevel throw-range-error))
+    (define compression-level (integer->compression-level flevel throw-range-error*))
     (define fxcount (png-color-type->sample-count color-type))
+
     (create-bitmap PNG (bitmap-port-source /dev/stdin)
                    density width height fxcount bitdepth color-type
                    compression-method compression-level filter-method interlace-method

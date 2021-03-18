@@ -8,9 +8,11 @@
 
 (require "crc.rkt")
 (require "enum.rkt")
+(require "chunk.rkt")
 
 (require (for-syntax racket/base))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define read-png-header : (-> Input-Port (Values Positive-Index Positive-Index Positive-Byte PNG-Color-Type
                                                  PNG-Compression-Method PNG-Filter-Method PNG-Interlace-Method))
   ;;; https://www.w3.org/TR/PNG/#5PNG-file-signature
@@ -19,15 +21,15 @@
   (lambda [/dev/stdin]
     (read-signature /dev/stdin #"\211PNG\r\n\32\n" 'png "unrecognized datastream")
 
-    (define header : Bytes (read-png-boundary-chunk* /dev/stdin #"IHDR" 13))
-
-    (values (parse-size* header 0 4 positive-index? throw-range-error) ; width
-            (parse-size* header 4 4 positive-index? throw-range-error) ; height
-            (parse-size* header 8 1 positive-byte? throw-range-error)  ; bit-depth
-            (integer->color-type (parse-uint8 header 9) throw-range-error)
-            (integer->compression-method (parse-uint8 header 10) throw-range-error)
-            (integer->filter-method (parse-uint8 header 11) throw-range-error)
-            (integer->interlace-method (parse-uint8 header 12) throw-range-error))))
+    (let ([header (read-png-boundary-chunk-header* /dev/stdin #"IHDR" 13 read-png-ihdr-chunk)])
+      (unless (png-bit-depth-acceptable? (png-ihdr-chunk-bit-depth header) (png-ihdr-chunk-color-type header))
+        (throw-check-error /dev/stdin 'png "unacceptable bit depth ~a for color type ~a"
+                           (png-ihdr-chunk-bit-depth header) (png-ihdr-chunk-color-type header)))
+      
+      (values (png-ihdr-chunk-width header) (png-ihdr-chunk-height header)
+              (png-ihdr-chunk-bit-depth header) (png-ihdr-chunk-color-type header)
+              (png-ihdr-chunk-compression-method header) (png-ihdr-chunk-filter-method header)
+              (png-ihdr-chunk-interlace-method header)))))
 
 (define read-png-nonIDATs : (-> Input-Port PNG-Color-Type (Listof (Pairof Symbol Bytes)))
   ;;; https://www.w3.org/TR/PNG/#5ChunkOrdering
@@ -54,10 +56,24 @@
           (values (apply bytes-append (reverse idats))
                   (let read-extra-chunk ([chunks : (Listof (Pairof Symbol Bytes)) null])
                     (define name : Bytes (peek-bytes* /dev/stdin 4 4))
-                    (cond [(equal? name #"IEND") (read-png-boundary-chunk* /dev/stdin name 0) chunks]
+                    (cond [(equal? name #"IEND") (read-png-boundary-chunk-header* /dev/stdin name 0 void) chunks]
                           [else (read-extra-chunk chunks)])))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define read/peek-png-chunk-info : (-> Input-Port (Values Index Bytes Index))
+  ;;; https://www.w3.org/TR/PNG/#5Chunk-layout
+  (lambda [/dev/stdin]
+    (define chlength : Index (read-muint32 /dev/stdin index? 'read-png-thunk-header))
+    (define checksum : Index (checksum-crc32 (peek-nbytes /dev/stdin (+ chlength 4))))
+    
+    (values chlength (read-nbytes /dev/stdin 4) checksum)))
+
+(define read/check-png-chunk-crc32 : (-> Input-Port Bytes Index Void)
+  ;;; https://www.w3.org/TR/PNG/#5Chunk-layout
+  (lambda [/dev/stdin type exptcrc]
+    (unless (eq? exptcrc (read-muint32 /dev/stdin))
+      (throw-check-error /dev/stdin 'png "~a chunk has been corrupted" type))))
+
 (define read-png-chunk : (-> Input-Port (Values Index Bytes Bytes Natural))
   ;;; https://www.w3.org/TR/PNG/#5Chunk-layout
   (lambda [/dev/stdin]
@@ -77,13 +93,15 @@
       (throw-check-error /dev/stdin 'png "~a chunk has been corrupted" type))
     (values size type data)))
 
-(define read-png-boundary-chunk* : (-> Input-Port Bytes Index Bytes)
+(define read-png-boundary-chunk-header* : (All (a) (-> Input-Port Bytes Index (-> Input-Port a) a))
   ;;; https://www.w3.org/TR/PNG/#11IHDR
   ;;; https://www.w3.org/TR/PNG/#11IEND
-  (lambda [/dev/stdin exptype exptsize]
-    (define-values (size type data) (read-png-chunk* /dev/stdin))
+  (lambda [/dev/stdin exptype exptsize read-data]
+    (define-values (size type crc) (read/peek-png-chunk-info /dev/stdin))
     (unless (equal? type exptype)
       (throw-syntax-error /dev/stdin 'png "~a chunk is absent" exptype))
     (unless (= size exptsize)
       (throw-syntax-error /dev/stdin 'png "~a chunk has an unexpected length" type))
-    data))
+
+    (begin0 (read-data /dev/stdin)
+            (read/check-png-chunk-crc32 /dev/stdin exptype crc))))

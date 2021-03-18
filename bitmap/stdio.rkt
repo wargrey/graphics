@@ -2,6 +2,8 @@
 
 (provide (all-defined-out) port-name)
 (provide (all-from-out digimon/stdio))
+(provide (all-from-out digimon/struct))
+(provide (all-from-out digimon/checksum))
 (provide (all-from-out digimon/enumeration))
 (provide (all-from-out digimon/digitama/ioexn))
 
@@ -11,9 +13,10 @@
                      create-argb-bitmap create-invalid-bitmap
                      cairo-surface-shadow))
 
-(require digimon/enumeration)
 (require digimon/stdio)
-
+(require digimon/struct)
+(require digimon/checksum)
+(require digimon/enumeration)
 (require digimon/digitama/ioexn)
 
 (require typed/racket/unsafe)

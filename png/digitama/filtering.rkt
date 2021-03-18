@@ -11,6 +11,7 @@
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define filter-scanline-reconstruct : (-> Input-Port (Listof Bytes) Positive-Index Positive-Byte PNG-Filter-Method (Listof Bytes))
   (lambda [/dev/stdin blocks fxwidth fxcount filter-method]
     (let reconstruct ([rest : (Listof Bytes) blocks]
@@ -28,6 +29,7 @@
   (lambda [/dev/stdin block fxwidth fxcount senilnacs]
     (define size : Index (bytes-length block))
     (define stride : Index (assert (* fxwidth fxcount) index?))
+    
     (let deserialize ([idx : Index 0]
                       [senilnacs : (Listof Bytes) senilnacs])
       (cond [(= idx size) (values senilnacs #false)]
@@ -43,7 +45,7 @@
                                       [(2) (filtering-reconstruct-up      cline pline stride fxcount)]
                                       [(3) (filtering-reconstruct-average cline pline stride fxcount)]
                                       [(4) (filtering-reconstruct-paeth   cline pline stride fxcount)]
-                                      [else (throw-range-error 'deserialize-block (cons 0 4) filter-type "filter-type")]))
+                                      [else (throw-range-error* 'deserialize-block (cons 0 4) filter-type "filter-type")]))
                                   (deserialize end (cons cline senilnacs)))]))]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
