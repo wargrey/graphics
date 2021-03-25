@@ -15,6 +15,7 @@
 
 (require racket/math)
 (require racket/string)
+(require racket/format)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-rectangular : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
@@ -38,7 +39,7 @@
     (define side : Flonum (real->double-flonum size))
     (bitmap_pattern side side (rgb* color) density)))
 
-(define bitmap-text : (->* (String)
+(define bitmap-text : (->* (Any)
                            (Font #:color Fill-Paint #:background (Option Fill-Paint) #:lines (Listof Symbol)
                                  #:baseline (Option Color) #:capline (Option Color) #:meanline (Option Color)
                                  #:ascent (Option Color) #:descent (Option Color)
@@ -47,7 +48,7 @@
   (lambda [text [font (default-font)] #:color [fgsource black] #:background [bgsource #false] #:lines [lines null]
                 #:ascent [alsource #false] #:descent [dlsource #false] #:capline [clsource #false] #:meanline [mlsource #false]
                 #:baseline [blsource #false] #:density [density (default-bitmap-density)]]
-    (bitmap_text text (font-description font) lines (fill-paint->source fgsource) (fill-paint->source* bgsource)
+    (bitmap_text (~a text) (font-description font) lines (fill-paint->source fgsource) (fill-paint->source* bgsource)
                  (and alsource (rgb* alsource)) (and clsource (rgb* clsource)) (and mlsource (rgb* mlsource))
                  (and blsource (rgb* blsource)) (and dlsource (rgb* dlsource)) density)))
 
