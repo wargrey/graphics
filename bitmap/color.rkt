@@ -27,9 +27,9 @@
        (syntax/loc stx
          (begin (struct clra flcolor ([com : Flonum] ... [alpha : Flonum])
                   #:transparent #:type-name FlCLRA)
-                (define (clr [com : Real] ... [alpha : Real 1.0]) : clra
+                (define (clr [com : Real] ... [alpha : Real 1.0]) : FlCLRA
                   (clra (real->flonum com) ... (real->alpha alpha)))
-                (define (clr* [src : Color] [alpha : Real 1.0]) : clra
+                (define (clr* [src : Color] [alpha : Real 1.0]) : FlCLRA
                   (cond [(clra? src) (if (= alpha 1.0) src (clra (clr-com src) ... (* (clr-alpha src) (real->alpha alpha))))]
                         [else (let ([flrgba (rgb* src alpha)])
                                 (define-values (com ...) (rgb->clr (rgba-red flrgba) (rgba-green flrgba) (rgba-blue flrgba)))

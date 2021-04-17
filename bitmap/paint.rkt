@@ -50,7 +50,7 @@
             (cond [(stroke-line-cap-option? cap) cap] [(eq? dash 'dot) 'round] [else (stroke-linecap baseline)])
             linejoin miterlimit dasharray dashoffset)))
 
-(define desc-border : (->* () (stroke #:color (Option Color) #:width (U Real Symbol False) #:style (Option Symbol)) Stroke)
+(define desc-border : (->* () (Stroke #:color (Option Color) #:width (U Real Symbol False) #:style (Option Symbol)) Stroke)
   (lambda [[baseline (default-border)] #:color [color #false] #:width [width #false] #:style [dash #false]]
     (define no-border? : Boolean (or (eq? dash 'none) (eq? dash 'hidden)))
     (define linewidth : Nonnegative-Flonum
