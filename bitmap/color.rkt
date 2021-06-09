@@ -154,9 +154,16 @@
 (define rgb-transform-shade : (-> Color Nonnegative-Real FlRGBA)
   (lambda [src s0]
     (define s : Nonnegative-Flonum (real->gamut s0))
-    (define black : Nonnegative-Flonum (max (- 1.0 s) 0.0))
+    (define b : Nonnegative-Flonum (max (- 1.0 s) 0.0))
     
-    (rgb* (hwb-transform-modulate src #:hue s #:white s #:black black))))
+    (rgb* (hwb-transform-modulate src #:hue s #:white s #:black b))))
+
+(define rgb-transform-tint : (-> Color Nonnegative-Real FlRGBA)
+  (lambda [src s0]
+    (define s : Nonnegative-Flonum (real->gamut s0))
+    (define w : Nonnegative-Flonum (max (- 1.0 s) 0.0))
+    
+    (rgb* (hwb-transform-modulate src #:hue s #:white w #:black s))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define list-color-names : (-> (Listof Symbol))
