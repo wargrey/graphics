@@ -5,24 +5,26 @@
 (require racket/fixnum)
 (require racket/math)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type HSB->RGB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 (define-type RGB->HSB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define gamut->byte : (-> Flonum Byte) (λ [r] (min (max (exact-round (* r 255.0)) 0) #xFF)))
-(define byte->gamut : (-> Byte Flonum) (λ [r] (/ (exact->inexact r) 255.0)))
-(define real->gamut : (-> Real Flonum) (λ [r] (max (min (real->double-flonum r) 1.0) 0.0)))
-(define real->alpha : (-> Real Flonum) (λ [r] (max (min (real->double-flonum r) 1.0) 0.0)))
+(define byte->gamut : (-> Byte Nonnegative-Flonum) (λ [r] (real->double-flonum (/ r 255))))
+(define real->gamut : (-> Real Nonnegative-Flonum) (λ [r] (max (min (real->double-flonum r) 1.0) 0.0)))
+(define real->alpha : (-> Real Nonnegative-Flonum) (λ [r] (max (min (real->double-flonum r) 1.0) 0.0)))
 (define gamut->uint16 : (-> Flonum Index) (λ [r] (assert (min (max (exact-round (* r 65535.0)) 0) 65535) index?)))
 
-(define real->hue : (-> Real Flonum)
+(define real->hue : (-> Real Nonnegative-Flonum)
   (lambda [hue]
     (cond [(nan? hue) +nan.0]
           [(and (<= 0 hue) (< hue 360)) (real->double-flonum hue)]
           [else (let ([integer-part (modulo (exact-truncate hue) 360)])
                   (cond [(integer? hue) (real->double-flonum integer-part)]
-                        [(positive? hue) (real->double-flonum (+ integer-part (- hue (truncate hue))))]
-                        [(zero? integer-part) (+ 360.0 (real->double-flonum (- hue (truncate hue))))]
-                        [else (real->double-flonum (- integer-part (- (truncate hue) hue)))]))])))
+                        [(positive? hue) (max (real->double-flonum (+ integer-part (- hue (truncate hue)))) 0.0)]
+                        [(zero? integer-part) (max (+ 360.0 (real->double-flonum (- hue (truncate hue)))) 0.0)]
+                        [else (max (real->double-flonum (- integer-part (- (truncate hue) hue))) 0.0)]))])))
 
 (define rgb-bytes->hex : (-> Byte Byte Byte Index)
   (lambda [r g b]
@@ -41,7 +43,7 @@
   (lambda [r g b]
     (rgb-bytes->hex (gamut->byte r) (gamut->byte g) (gamut->byte b))))
 
-(define hex->rgb-gamuts : (-> Integer (Values Flonum Flonum Flonum))
+(define hex->rgb-gamuts : (-> Integer (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [rgb]
     (define-values (r g b) (hex->rgb-bytes rgb))
     (values (byte->gamut r) (byte->gamut g) (byte->gamut b))))
