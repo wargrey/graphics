@@ -9,3 +9,4 @@
 (define test-omit-paths 'all)
 
 (define scribblings '(["tamer/bitmap.scrbl" (main-doc multi-page) (gui-library)]))
+
