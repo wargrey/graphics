@@ -7,8 +7,9 @@
 (require typed/racket/unsafe)
 (require file/convertible)
 
-(unsafe-provide create-argb-bitmap create-invalid-bitmap)
+(unsafe-provide create-argb-bitmap create-invalid-bitmap cairo-surface-save)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base
   (provide (all-defined-out) phantom-bytes? make-phantom-bytes)
   (provide (rename-out [cpointer? bitmap-surface?]))
@@ -42,17 +43,47 @@
   (define (cairo-surface-shadow sfs)
     (make-phantom-bytes (unsafe-bytes-length (cairo_image_surface_get_data sfs))))
 
-  (define (cairo-surface->png-bytes sfs)
-    (define /dev/pngout (open-output-bytes '/dev/pngout))
+  (define (cairo-surface->stream-bytes sfs format name)
+    (define /dev/sfsout (open-output-bytes name))
+    (cairo-surface-save sfs /dev/sfsout format)
+    (get-output-bytes /dev/sfsout))
+
+  (define (cairo-surface-save sfs /dev/sfsout format)
+    (case format
+      [(png) (cairo-surface-save-as-png sfs /dev/sfsout)]
+      [(svg) (cairo-surface-save-as-svg sfs /dev/sfsout)]
+      [else  (cairo-surface-save-as-png sfs /dev/sfsout)]))
+
+  (define (cairo-surface-save-as-png sfs /dev/pngout)
     (define (do-write ignored bstr-ptr len)
       (define bstr (make-bytes len))
       (memcpy bstr bstr-ptr len)
       (write-bytes bstr /dev/pngout)
       CAIRO_STATUS_SUCCESS)
+    
     (start-breakable-atomic)
     (cairo_surface_write_to_png_stream sfs do-write)
+    (end-breakable-atomic))
+
+  (define (cairo-surface-save-as-svg sfs /dev/svgout)
+    (define (do-write bstr-ptr len)
+      (define bstr (make-bytes len))
+      (memcpy bstr bstr-ptr len)
+      (write-bytes bstr /dev/svgout)
+      CAIRO_STATUS_SUCCESS)
+    
+    (define w (cairo_image_surface_get_width sfs))
+    (define h (cairo_image_surface_get_height sfs))
+    (define svg-surface (cairo_svg_surface_create_for_stream do-write w h))
+    (define svg-cr (cairo_create svg-surface))
+
+    (start-breakable-atomic)
+    (cairo_set_source_surface svg-cr sfs 0.0 0.0)
+    (cairo_paint svg-cr)
+    (cairo_surface_flush svg-surface)
     (end-breakable-atomic)
-    (get-output-bytes /dev/pngout)))
+    (cairo_surface_finish svg-surface)
+    (cairo_destroy svg-cr)))
 
 (unsafe-require/typed
  (submod "." unsafe)
@@ -61,8 +92,10 @@
  [cairo-surface-intrinsic-size (-> Bitmap-Surface (Values Positive-Fixnum Positive-Fixnum))]
  [cairo-surface-data (-> Bitmap-Surface (Values Bytes Index))]
  [cairo-surface-shadow (-> Bitmap-Surface Phantom-Bytes)]
- [cairo-surface->png-bytes (-> Bitmap-Surface Bytes)])
+ [cairo-surface->stream-bytes (-> Bitmap-Surface Symbol Symbol Bytes)]
+ [cairo-surface-save (-> Bitmap-Surface Output-Port Symbol Void)])
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct bitmap<%>
   ([convert : (Option (-> Bitmap<%> Symbol Any Any))]
    [shadow : Phantom-Bytes]
@@ -84,6 +117,7 @@
   #:type-name Bitmap
   #:transparent)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define create-argb-bitmap : (-> Bitmap-Surface Positive-Index Positive-Index Positive-Flonum Bitmap)
   (lambda [surface width height density]
     (bitmap #false (cairo-surface-shadow surface) surface '/dev/ram density width height 4 8)))
@@ -150,8 +184,9 @@
       (define density (bitmap-density self))
       (define surface (bitmap<%>-surface self))
       (case mime
-        [(png@2x-bytes) (or (and (= density 2.0) (cairo-surface->png-bytes surface)) fallback)]
-        [(png-bytes) (cairo-surface->png-bytes surface)]
+        [(png@2x-bytes) (or (and (= density 2.0) (cairo-surface->stream-bytes surface 'png '/dev/p2xout)) fallback)]
+        [(png-bytes) (cairo-surface->stream-bytes surface 'png '/dev/pngout)]
+        [(svg-bytes) (cairo-surface->stream-bytes surface 'svg '/dev/svgout)]
         [else fallback]))))
 
 (define invalid-convert : (-> Bitmap<%> Symbol Any Any)

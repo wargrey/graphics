@@ -18,6 +18,8 @@
 (require (only-in racket/math pi nan? infinite? sgn))
 (require "convert.rkt")
 
+(require (for-syntax racket/base))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax-rule (_cfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))
 (define-syntax-rule (_pfun spec ...) (_fun #:lock-name "cairo-pango-lock" spec ...))

@@ -9,6 +9,7 @@
 (require/provide "constructor.rkt" "composite.rkt" "resize.rkt")
 (require/provide "color.rkt" "font.rkt" "paint.rkt" "misc.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-icon : (->* ((U Bitmap Path-String Input-Port))
                            ((-> Bitmap) #:dtrace String #:height Nonnegative-Real #:scale? Boolean)
                            Bitmap)
@@ -87,3 +88,13 @@
     (reverse (for*/fold ([sprite : (Listof Bitmap) null])
                         ([y (in-range rows)] [x (in-range cols)])
                (cons (bitmap-copy bmp (* x width) (* y height) width height) sprite)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define bitmap-save : (->* (Bitmap (U Path-String Output-Port)) (#:format Symbol) Void)
+  (lambda [bmp /dev/bmpout #:format [format 'png]]
+    (if (output-port? /dev/bmpout)
+        (let ([surface (bitmap<%>-surface bmp)])
+          (cairo-surface-save surface /dev/bmpout format))
+        (call-with-output-file* /dev/bmpout #:exists 'truncate/replace
+          (λ [[/dev/bmpout : Output-Port]]
+            (bitmap-save bmp /dev/bmpout #:format format))))))

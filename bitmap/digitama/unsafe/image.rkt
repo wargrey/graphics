@@ -16,7 +16,8 @@
 
   (require (submod "pixman.rkt" unsafe))
   (require (submod "convert.rkt" unsafe))
-  
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (λbitmap width height density λargb)
     (define-values (img cr) (make-cairo-image width height density #false))
     (define surface (cairo_get_target cr))

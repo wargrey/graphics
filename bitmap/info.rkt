@@ -10,3 +10,4 @@
 
 (define scribblings '(["tamer/bitmap.scrbl" (main-doc multi-page) (gui-library)]))
 
+(define wisemon-phony '("digivice/wisemon/phony"))
