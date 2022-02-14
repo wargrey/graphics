@@ -35,13 +35,13 @@
         (define datum (namespace-variable-value sym #false (λ _ #false) ns))
         (append g-specs
                 (cond [(bitmap? datum)
-                       (let ([deps.rkt (scribble-smart-dependencies module.rkt)]
+                       (let ([deps.rkt (racket-smart-dependencies module.rkt)]
                              [sym.png (graphics.png module.rkt sym .ext)])
                          (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
                                              (graphics-note module.rkt sym .ext sym.png)
                                              (bitmap-save datum sym.png #:format 'png))))]
                       [(and (list? datum) (andmap bitmap? datum))
-                       (let ([deps.rkt (scribble-smart-dependencies module.rkt)]
+                       (let ([deps.rkt (racket-smart-dependencies module.rkt)]
                              [sym.png (graphics.png module.rkt sym .ext)]
                              [ncol (max (exact-floor (sqrt (length datum))) 1)])
                          (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
