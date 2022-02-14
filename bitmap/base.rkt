@@ -95,6 +95,8 @@
     (if (output-port? /dev/bmpout)
         (let ([surface (bitmap<%>-surface bmp)])
           (cairo-surface-save surface /dev/bmpout format))
-        (call-with-output-file* /dev/bmpout #:exists 'truncate/replace
-          (λ [[/dev/bmpout : Output-Port]]
-            (bitmap-save bmp /dev/bmpout #:format format))))))
+        (let ()
+          (make-parent-directory* /dev/bmpout)
+          (call-with-output-file* /dev/bmpout #:exists 'truncate/replace
+            (λ [[/dev/bmpout : Output-Port]]
+              (bitmap-save bmp /dev/bmpout #:format format)))))))
