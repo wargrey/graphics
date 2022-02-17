@@ -75,6 +75,7 @@
       [(3) (let ([top (unsafe-car ls)] [right (unsafe-list-ref ls 1)] [bottom (unsafe-list-ref ls 2)]) (values top right bottom right))]
       [else (values (unsafe-car ls) (unsafe-list-ref ls 1) (unsafe-list-ref ls 2) (unsafe-list-ref ls 3))])))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type XYWH->ARGB (-> Index Index Index Index (Values Real Real Real Real)))
 
 (unsafe-require/typed/provide

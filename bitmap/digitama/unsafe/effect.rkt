@@ -13,6 +13,7 @@
   (require (submod "pixman.rkt" unsafe))
   (require (submod "convert.rkt" unsafe))
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap_cellophane src alpha density)
     (define-values (flwidth flheight) (cairo-surface-size src density))
     (define-values (img cr) (make-cairo-image flwidth flheight density #false))
@@ -38,6 +39,7 @@
     (cairo_destroy cr)
     img))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [bitmap_cellophane (-> Bitmap-Surface Flonum Flonum Bitmap)]

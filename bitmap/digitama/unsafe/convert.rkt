@@ -9,7 +9,6 @@
 
 (unsafe-provide create-argb-bitmap create-invalid-bitmap cairo-surface-save)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base
   (provide (all-defined-out) phantom-bytes? make-phantom-bytes)
   (provide (rename-out [cpointer? bitmap-surface?]))
@@ -19,7 +18,8 @@
   
   (require racket/unsafe/ops)
   (require racket/draw/unsafe/cairo)
-  
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
   (define (cairo-surface-intrinsic-size sfs)
     (values (cairo_image_surface_get_width sfs)
             (cairo_image_surface_get_height sfs)))
@@ -49,41 +49,37 @@
     (get-output-bytes /dev/sfsout))
 
   (define (cairo-surface-save sfs /dev/sfsout format)
+    (start-breakable-atomic)
     (case format
       [(png) (cairo-surface-save-as-png sfs /dev/sfsout)]
       [(svg) (cairo-surface-save-as-svg sfs /dev/sfsout)]
-      [else  (cairo-surface-save-as-png sfs /dev/sfsout)]))
-
-  (define (cairo-surface-save-as-png sfs /dev/pngout)
-    (define (do-write ignored bstr-ptr len)
-      (define bstr (make-bytes len))
-      (memcpy bstr bstr-ptr len)
-      (write-bytes bstr /dev/pngout)
-      CAIRO_STATUS_SUCCESS)
-    
-    (start-breakable-atomic)
-    (cairo_surface_write_to_png_stream sfs do-write)
+      [else  (cairo-surface-save-as-png sfs /dev/sfsout)])
     (end-breakable-atomic))
 
+  (define (cairo-surface-save-as-png sfs /dev/pngout)
+    (define (do-write ignored bstr-ptr len) (cairo-write bstr-ptr len /dev/pngout))
+
+    (cairo_surface_write_to_png_stream sfs do-write))
+
   (define (cairo-surface-save-as-svg sfs /dev/svgout)
-    (define (do-write bstr-ptr len)
-      (define bstr (make-bytes len))
-      (memcpy bstr bstr-ptr len)
-      (write-bytes bstr /dev/svgout)
-      CAIRO_STATUS_SUCCESS)
-    
+    (define (do-write bstr-ptr len) (cairo-write bstr-ptr len /dev/svgout))
     (define w (cairo_image_surface_get_width sfs))
     (define h (cairo_image_surface_get_height sfs))
     (define svg-surface (cairo_svg_surface_create_for_stream do-write w h))
     (define svg-cr (cairo_create svg-surface))
 
-    (start-breakable-atomic)
     (cairo_set_source_surface svg-cr sfs 0.0 0.0)
     (cairo_paint svg-cr)
     (cairo_surface_flush svg-surface)
-    (end-breakable-atomic)
     (cairo_surface_finish svg-surface)
-    (cairo_destroy svg-cr)))
+    (cairo_destroy svg-cr))
+
+  (define (cairo-write bstr-ptr len /dev/bmpout)
+    (define bstr (make-bytes len))
+    
+    (memcpy bstr bstr-ptr len)
+    (write-bytes bstr /dev/bmpout)
+    CAIRO_STATUS_SUCCESS))
 
 (unsafe-require/typed
  (submod "." unsafe)

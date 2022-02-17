@@ -12,7 +12,8 @@
   (require "pangocairo.rkt")
   (require (submod "pixman.rkt" unsafe))
   (require (submod "convert.rkt" unsafe))
-  
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap_section src x y width height density)
     (define-values (img cr) (make-cairo-image width height density #false))
     (cairo_set_source_surface cr src (unsafe-fl- 0.0 (unsafe-fl* x density)) (unsafe-fl- 0.0 (unsafe-fl* y density)))
@@ -62,6 +63,7 @@
   (define (zero-argb? pixels idx)
     (unsafe-fx= (pixels-argb-ref pixels idx #true) 0)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [bitmap_section (-> Bitmap-Surface Flonum Flonum Flonum Flonum Flonum Bitmap)]

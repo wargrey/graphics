@@ -85,3 +85,6 @@
 
 (define svg-phony-goal : Wisemon-Phony
   (wisemon-make-phony #:name 'svg #:phony (make~save-as 'svg) #:desc "Export module-level images as SVGs"))
+
+#;(define script-phony-goal : Wisemon-Phony
+  (wisemon-make-phony #:name 'script #:phony (make~save-as 'script) #:desc "Export module-level images as Cairo Scripts"))
