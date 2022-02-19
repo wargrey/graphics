@@ -103,7 +103,7 @@
                                 (bitmap-expand-args aligns symbol? 'cc)
                                 (bitmap-density (car bitmaps)))])))
 
-; TODO: find a better ratio between subtree gapsize and leaf gapsize
+; TODO: find a better ratio between subtree gapsize and the leaf one
 (define bitmap-heap : (->* ((Listof Bitmap))
                             (#:ary Positive-Index
                              Nonnegative-Real (Option Nonnegative-Real)
