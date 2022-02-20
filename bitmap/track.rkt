@@ -63,6 +63,22 @@
   #:=> (make-rectangular (* (real->double-flonum (- xstep)) (dryland-wani-xstepsize wani))
                          (* (real->double-flonum (- ystep)) (dryland-wani-ystepsize wani))))
 
+(define-dryland-wani-biturn-move! up right
+  #:=> [180.0 270.0 1.0  0.0 1.0 -1.0]
+  #:=> [90.0  0.0   0.0 -1.0 1.0 -1.0])
+
+(define-dryland-wani-biturn-move! right down
+  #:=> [-90.0 0.0  0.0 1.0 1.0 1.0]
+  #:=> [180.0 90.0 1.0 0.0 1.0 1.0])
+
+(define-dryland-wani-biturn-move! down left
+  #:=> [0.0   90.0  -1.0 0.0 -1.0 1.0]
+  #:=> [270.0 180.0  0.0 1.0 -1.0 1.0])
+
+(define-dryland-wani-biturn-move! left up
+  #:=> [90.0  180.0  0.0 -1.0 -1.0 -1.0]
+  #:=> [360.0 270.0 -1.0  0.0 -1.0 -1.0])
+
 (define dryland-wani-step-to! : (-> Dryland-Wani Track-Anchor Void)
   (lambda [wani target]
     (track-connect-to wani target)))

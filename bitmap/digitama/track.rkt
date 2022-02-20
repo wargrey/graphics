@@ -5,6 +5,7 @@
 (require "unsafe/path.rkt")
 
 (require (for-syntax racket/base))
+(require (for-syntax racket/math))
 (require (for-syntax racket/syntax))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -49,7 +50,25 @@
                   (track-line-to wani sexp anchor #true))
                 
                 (define (jump! [wani : Dryland-Wani] [step : Integer 1] ... [anchor : (Option Track-Anchor) #false]) : Void
-                    (track-move-to wani sexp anchor #true)))))]))
+                  (track-move-to wani sexp anchor #true)))))]))
+
+(define-syntax (define-dryland-wani-biturn-move! stx)
+  (syntax-case stx []
+    [(_ move1 move2 #:=> [start end clockwise-args ...] #:=> [c-start c-end counterclockwise-args ...])
+     (with-syntax ([turn-1-2! (format-id #'move1 "dryland-wani-turn-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
+                   [turn-2-1! (format-id #'move2 "dryland-wani-turn-~a-~a!" (syntax->datum #'move2) (syntax->datum #'move1))]
+                   [rstart (datum->syntax #'start (degrees->radians (syntax->datum #'start)))]
+                   [rend (datum->syntax #'end (degrees->radians (syntax->datum #'end)))]
+                   [rcstart (datum->syntax #'c-start (degrees->radians (syntax->datum #'c-start)))]
+                   [rcend (datum->syntax #'c-end (degrees->radians (syntax->datum #'c-end)))])
+       (syntax/loc stx
+         (begin (define (turn-1-2! [wani : Dryland-Wani] [anchor : (Option Track-Anchor) #false]) : Void
+                  (track-turn wani (dryland-wani-xradius wani) (dryland-wani-yradius wani)
+                              clockwise-args ... rstart rend anchor #true))
+                
+                (define (turn-2-1! [wani : Dryland-Wani] [anchor : (Option Track-Anchor) #false]) : Void
+                  (track-turn wani (dryland-wani-xradius wani) (dryland-wani-yradius wani)
+                              counterclockwise-args ... rcstart rcend anchor #false)))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define start-of-track : Char #\M)
@@ -106,6 +125,18 @@
     (when (and subpath?)
       (set-track-initial-position! self cpos++))))
 
+(define track-turn : (-> Track Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum (Option Track-Anchor) Boolean Void)
+  (lambda [self rx ry cx cy ex ey start end anchor clockwise?]
+    (define cpos : Float-Complex (track-current-position self))
+    (define cpos++ : Float-Complex (+ (make-rectangular (* ex rx) (* ey ry)) cpos))
+    (define path:arc : Path-Args (path-arc (+ (real-part cpos) (* cx rx)) (+ (imag-part cpos) (* cy ry)) rx ry start end clockwise?))
+
+    (track-check-bounding-box! self cpos++)
+    (track-anchor self anchor cpos++)
+    
+    (set-track-current-position! self cpos++)
+    (set-track-footprints! self (cons (cons #\A path:arc) (track-footprints self)))))
+
 (define track-jump-to : (-> Track (Option Track-Anchor) Void)
   (lambda [self anchor]
     (define pos (track-anchor-location self (or anchor (car (track-traces self)))))
@@ -142,7 +173,3 @@
 (define track-line-to : (-> Track Float-Complex (Option Track-Anchor) Boolean Void)
   (lambda [self dpos anchor relative?]
     (track-move self dpos (if (not relative?) #\L #\l) anchor #false)))
-
-(define track-clockwise-turn : (-> Track Float Float (Option Track-Anchor) Boolean Void)
-  (lambda [self cx cy anchor relative?]
-    (void)))

@@ -23,6 +23,16 @@
   (step-down-left)
   (step-left-up)
 
+  (jump-down 3)
+  (turn-up-right)
+  (turn-right-up)
+  (turn-right-down)
+  (turn-down-right)
+  (turn-down-left)
+  (turn-left-down)
+  (turn-left-up)
+  (turn-up-left)
+
   (jump-back)
   (step-down)
 
