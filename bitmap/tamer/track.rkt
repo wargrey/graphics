@@ -33,6 +33,18 @@
   (turn-left-up)
   (turn-up-left)
 
+  (jump-left 3)
+  (turn-up-right-down)
+  (turn-right-down-left)
+  (turn-down-left-up)
+  (turn-left-up-right)
+
+  (jump-right 8)
+  (turn-up-left-down)
+  (turn-left-down-right)
+  (turn-down-right-up)
+  (turn-right-up-left)
+
   (jump-back)
   (step-down)
 

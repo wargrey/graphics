@@ -42,19 +42,41 @@
 
 (define-syntax (define-dryland-wani-step/jump-move! stx)
   (syntax-case stx []
-    [(_ move #:with wani step ... #:=> sexp)
+    [(_ move #:+> xdelta ydelta)
      (with-syntax ([step! (format-id #'move "dryland-wani-step-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
-         (begin (define (step! [wani : Dryland-Wani] [step : Integer 1] ... [anchor : (Option Track-Anchor) #false]) : Void
-                  (track-line-to wani sexp anchor #true))
+         (begin (define (step! [wani : Dryland-Wani] [xstep : Integer 1] [ystep : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+                  (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani)
+                                 (exact->inexact (* xstep xdelta)) (exact->inexact (* ystep ydelta))
+                                 anchor #true))
                 
-                (define (jump! [wani : Dryland-Wani] [step : Integer 1] ... [anchor : (Option Track-Anchor) #false]) : Void
-                  (track-move-to wani sexp anchor #true)))))]))
+                (define (jump! [wani : Dryland-Wani] [xstep : Integer 1] [ystep : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+                  (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani)
+                                 (exact->inexact (* xstep xdelta)) (exact->inexact (* ystep ydelta))
+                                 anchor #true)))))]
+    [(_ move #:-> xdelta)
+     (with-syntax ([step! (format-id #'move "dryland-wani-step-~a!" (syntax->datum #'move))]
+                   [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
+       (syntax/loc stx
+         (begin (define (step! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+                  (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (exact->inexact (* step xdelta)) 0.0 anchor #true))
+                
+                (define (jump! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+                  (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (exact->inexact (* step xdelta)) 0.0 anchor #true)))))]
+    [(_ move #:!> ydelta)
+     (with-syntax ([step! (format-id #'move "dryland-wani-step-~a!" (syntax->datum #'move))]
+                   [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
+       (syntax/loc stx
+         (begin (define (step! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+                  (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (exact->inexact (* step ydelta)) anchor #true))
+                
+                (define (jump! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+                  (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (exact->inexact (* step ydelta)) anchor #true)))))]))
 
-(define-syntax (define-dryland-wani-biturn-move! stx)
+(define-syntax (define-dryland-wani-turn-move! stx)
   (syntax-case stx []
-    [(_ move1 move2 #:=> [start end clockwise-args ...] #:=> [c-start c-end counterclockwise-args ...])
+    [(_ move1 move2 #:+> [start end clockwise-args ...] #:-> [c-start c-end counterclockwise-args ...])
      (with-syntax ([turn-1-2! (format-id #'move1 "dryland-wani-turn-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
                    [turn-2-1! (format-id #'move2 "dryland-wani-turn-~a-~a!" (syntax->datum #'move2) (syntax->datum #'move1))]
                    [rstart (datum->syntax #'start (degrees->radians (syntax->datum #'start)))]
@@ -64,11 +86,27 @@
        (syntax/loc stx
          (begin (define (turn-1-2! [wani : Dryland-Wani] [anchor : (Option Track-Anchor) #false]) : Void
                   (track-turn wani (dryland-wani-xradius wani) (dryland-wani-yradius wani)
-                              clockwise-args ... rstart rend anchor #true))
+                              clockwise-args ... rstart rend anchor #true #false))
                 
                 (define (turn-2-1! [wani : Dryland-Wani] [anchor : (Option Track-Anchor) #false]) : Void
                   (track-turn wani (dryland-wani-xradius wani) (dryland-wani-yradius wani)
-                              counterclockwise-args ... rcstart rcend anchor #false)))))]))
+                              counterclockwise-args ... rcstart rcend anchor #false #false)))))]
+    [(_ move #:+> [start end clockwise-args ...] #:boundary-guard guard)
+     (with-syntax ([u-turn-move! (format-id #'move "dryland-wani-turn-~a!" (syntax->datum #'move))]
+                   [rstart (datum->syntax #'start (degrees->radians (syntax->datum #'start)))]
+                   [rend (datum->syntax #'end (degrees->radians (syntax->datum #'end)))])
+       (syntax/loc stx
+         (begin (define (u-turn-move! [wani : Dryland-Wani] [anchor : (Option Track-Anchor) #false]) : Void
+                  (track-turn wani (dryland-wani-xradius wani) (dryland-wani-yradius wani)
+                              clockwise-args ... rstart rend anchor #true guard)))))]
+    [(_ move #:-> [start end c-clockwise-args ...] #:boundary-guard guard)
+     (with-syntax ([u-turn-move! (format-id #'move "dryland-wani-turn-~a!" (syntax->datum #'move))]
+                   [rstart (datum->syntax #'start (degrees->radians (syntax->datum #'start)))]
+                   [rend (datum->syntax #'end (degrees->radians (syntax->datum #'end)))])
+       (syntax/loc stx
+         (begin (define (u-turn-move! [wani : Dryland-Wani] [anchor : (Option Track-Anchor) #false]) : Void
+                  (track-turn wani (dryland-wani-xradius wani) (dryland-wani-yradius wani)
+                              c-clockwise-args ... rstart rend anchor #false guard)))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define start-of-track : Char #\M)
@@ -111,8 +149,9 @@
           [(> cy++ (track-by self)) (set-track-by! self cy++)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-move : (-> Track Float-Complex Char (Option Track-Anchor) Boolean Void)
-  (lambda [self dpos op anchor subpath?]
+(define track-move : (-> Track Flonum Flonum Flonum Flonum Char (Option Track-Anchor) Boolean Void)
+  (lambda [self xsize ysize mx my op anchor subpath?]
+    (define dpos : Float-Complex (make-rectangular (* xsize mx) (* ysize my)))
     (define cpos : Float-Complex (track-current-position self))
     (define cpos++ : Float-Complex (+ cpos dpos))
 
@@ -125,13 +164,14 @@
     (when (and subpath?)
       (set-track-initial-position! self cpos++))))
 
-(define track-turn : (-> Track Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum (Option Track-Anchor) Boolean Void)
-  (lambda [self rx ry cx cy ex ey start end anchor clockwise?]
+(define track-turn : (-> Track Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum (Option Track-Anchor) Boolean (Option (U Float Float-Complex)) Void)
+  (lambda [self rx ry cx cy ex ey start end anchor clockwise? guard]
     (define cpos : Float-Complex (track-current-position self))
     (define cpos++ : Float-Complex (+ (make-rectangular (* ex rx) (* ey ry)) cpos))
     (define path:arc : Path-Args (path-arc (+ (real-part cpos) (* cx rx)) (+ (imag-part cpos) (* cy ry)) rx ry start end clockwise?))
 
     (track-check-bounding-box! self cpos++)
+    (when (and guard) (track-check-bounding-box! self (+ cpos (make-rectangular (* (real-part guard) rx) (* (imag-part guard) ry)))))
     (track-anchor self anchor cpos++)
     
     (set-track-current-position! self cpos++)
@@ -166,10 +206,10 @@
     (set-track-footprints! self (cons (cons #\Z path:none) (track-footprints self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-move-to : (-> Track Float-Complex (Option Track-Anchor) Boolean Void)
-  (lambda [self dpos anchor relative?]
-    (track-move self dpos (if (not relative?) #\M #\m) anchor #true)))
+(define track-move-to : (-> Track Flonum Flonum Flonum Flonum (Option Track-Anchor) Boolean Void)
+  (lambda [self xsize ysize mx my anchor relative?]
+    (track-move self xsize ysize mx my (if (not relative?) #\M #\m) anchor #true)))
 
-(define track-line-to : (-> Track Float-Complex (Option Track-Anchor) Boolean Void)
-  (lambda [self dpos anchor relative?]
-    (track-move self dpos (if (not relative?) #\L #\l) anchor #false)))
+(define track-line-to : (-> Track Flonum Flonum Flonum Flonum (Option Track-Anchor) Boolean Void)
+  (lambda [self xsize ysize mx my anchor relative?]
+    (track-move self xsize ysize mx my (if (not relative?) #\L #\l) anchor #false)))

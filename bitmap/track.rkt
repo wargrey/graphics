@@ -42,42 +42,40 @@
       (track-anchor wani anchor home-pos)
       wani)))
 
-(define-dryland-wani-step/jump-move! left #:with wani step #:=> (* (make-rectangular (real->double-flonum (- step)) 0.0) (dryland-wani-xstepsize wani)))
-(define-dryland-wani-step/jump-move! right #:with wani step #:=> (* (make-rectangular (real->double-flonum step) 0.0) (dryland-wani-xstepsize wani)))
-(define-dryland-wani-step/jump-move! up #:with wani step #:=> (* (make-rectangular 0.0 (real->double-flonum (- step))) (dryland-wani-ystepsize wani)))
-(define-dryland-wani-step/jump-move! down #:with wani step #:=> (* (make-rectangular 0.0 (real->double-flonum step)) (dryland-wani-ystepsize wani)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-dryland-wani-step/jump-move! left       #:-> -1)
+(define-dryland-wani-step/jump-move! right      #:->  1)
+(define-dryland-wani-step/jump-move! up         #:!> -1)
+(define-dryland-wani-step/jump-move! down       #:!>  1)
+(define-dryland-wani-step/jump-move! up-right   #:+>  1 -1)
+(define-dryland-wani-step/jump-move! right-down #:+>  1  1)
+(define-dryland-wani-step/jump-move! down-left  #:+> -1  1)
+(define-dryland-wani-step/jump-move! left-up    #:+> -1 -1)
 
-(define-dryland-wani-step/jump-move! up-right #:with wani xstep ystep
-  #:=> (make-rectangular (* (real->double-flonum xstep) (dryland-wani-xstepsize wani))
-                         (* (real->double-flonum (- ystep)) (dryland-wani-ystepsize wani))))
+(define-dryland-wani-turn-move! up-right-down   #:+> [180.0 360.0  1.0  0.0  2.0  0.0] #:boundary-guard -1.0i)
+(define-dryland-wani-turn-move! up-left-down    #:-> [360.0 180.0 -1.0  0.0 -2.0  0.0] #:boundary-guard -1.0i)
+(define-dryland-wani-turn-move! right-down-left #:+> [-90.0  90.0  0.0  1.0  0.0  2.0] #:boundary-guard 1.0)
+(define-dryland-wani-turn-move! right-up-left   #:-> [ 90.0 -90.0  0.0 -1.0  0.0 -2.0] #:boundary-guard 1.0)
+(define-dryland-wani-turn-move! down-left-up    #:+> [  0.0 180.0 -1.0  0.0 -2.0  0.0] #:boundary-guard +1.0i)
+(define-dryland-wani-turn-move! down-right-up   #:-> [180.0   0.0  1.0  0.0  2.0  0.0] #:boundary-guard +1.0i)
+(define-dryland-wani-turn-move! left-up-right   #:+> [ 90.0 270.0  0.0 -1.0  0.0 -2.0] #:boundary-guard -1.0)
+(define-dryland-wani-turn-move! left-down-right #:-> [270.0  90.0  0.0  1.0  0.0  2.0] #:boundary-guard -1.0)
 
-(define-dryland-wani-step/jump-move! right-down #:with wani xstep ystep
-  #:=> (make-rectangular (* (real->double-flonum xstep) (dryland-wani-xstepsize wani))
-                         (* (real->double-flonum ystep) (dryland-wani-ystepsize wani))))
+(define-dryland-wani-turn-move! up right
+  #:+> [180.0 270.0 1.0  0.0 1.0 -1.0]
+  #:-> [ 90.0   0.0 0.0 -1.0 1.0 -1.0])
 
-(define-dryland-wani-step/jump-move! down-left #:with wani xstep ystep
-  #:=> (make-rectangular (* (real->double-flonum (- xstep)) (dryland-wani-xstepsize wani))
-                         (* (real->double-flonum ystep) (dryland-wani-ystepsize wani))))
+(define-dryland-wani-turn-move! right down
+  #:+> [270.0 360.0 0.0 1.0 1.0 1.0]
+  #:-> [180.0  90.0 1.0 0.0 1.0 1.0])
 
-(define-dryland-wani-step/jump-move! left-up #:with wani xstep ystep
-  #:=> (make-rectangular (* (real->double-flonum (- xstep)) (dryland-wani-xstepsize wani))
-                         (* (real->double-flonum (- ystep)) (dryland-wani-ystepsize wani))))
+(define-dryland-wani-turn-move! down left
+  #:+> [  0.0  90.0 -1.0 0.0 -1.0 1.0]
+  #:-> [270.0 180.0  0.0 1.0 -1.0 1.0])
 
-(define-dryland-wani-biturn-move! up right
-  #:=> [180.0 270.0 1.0  0.0 1.0 -1.0]
-  #:=> [90.0  0.0   0.0 -1.0 1.0 -1.0])
-
-(define-dryland-wani-biturn-move! right down
-  #:=> [-90.0 0.0  0.0 1.0 1.0 1.0]
-  #:=> [180.0 90.0 1.0 0.0 1.0 1.0])
-
-(define-dryland-wani-biturn-move! down left
-  #:=> [0.0   90.0  -1.0 0.0 -1.0 1.0]
-  #:=> [270.0 180.0  0.0 1.0 -1.0 1.0])
-
-(define-dryland-wani-biturn-move! left up
-  #:=> [90.0  180.0  0.0 -1.0 -1.0 -1.0]
-  #:=> [360.0 270.0 -1.0  0.0 -1.0 -1.0])
+(define-dryland-wani-turn-move! left up
+  #:+> [ 90.0 180.0  0.0 -1.0 -1.0 -1.0]
+  #:-> [360.0 270.0 -1.0  0.0 -1.0 -1.0])
 
 (define dryland-wani-step-to! : (-> Dryland-Wani Track-Anchor Void)
   (lambda [wani target]
