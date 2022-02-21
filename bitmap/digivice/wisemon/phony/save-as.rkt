@@ -3,11 +3,12 @@
 (provide (all-defined-out))
 
 (require "../path.rkt")
-(require "../../../base.rkt")
+(require "../../../composite.rkt")
+(require "../../../digitama/unsafe/convert.rkt")
 
 (require racket/port)
 (require racket/math)
-(require racket/symbol)
+(require racket/file)
 
 (require digimon/dtrace)
 (require digimon/digitama/system)
@@ -19,6 +20,11 @@
 (require digimon/digivice/wisemon/path)
 (require digimon/digivice/wisemon/racket)
 (require digimon/digivice/wisemon/phony/cc)
+
+(require typed/racket/unsafe)
+(unsafe-require/typed
+ file/convertible
+ [convert (-> Visual-Object<%> Symbol Bytes Bytes)])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-graphics-specs : (-> Info-Ref Symbol String Wisemon-Specification)
@@ -35,25 +41,23 @@
                 ([sym (in-list (namespace-mapped-symbols ns))])
         (define datum (namespace-variable-value sym #false (λ _ #false) ns))
         (append g-specs
-                (cond [(bitmap? datum)
+                (cond [(visual-object<%>? datum)
                        (let ([deps.rkt (racket-smart-dependencies module.rkt)]
                              [sym.png (graphics.png module.rkt sym .ext)])
                          (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
                                              (graphics-note module.rkt sym .ext sym.png)
-                                             (bitmap-save datum sym.png #:format gformat))))]
+                                             (graphics-save-as sym.png datum gformat))))]
                       [(and (list? datum) (andmap bitmap? datum))
                        (let ([deps.rkt (racket-smart-dependencies module.rkt)]
                              [sym.png (graphics.png module.rkt sym .ext)]
                              [ncol (max (exact-floor (sqrt (length datum))) 1)])
                          (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
                                              (graphics-note module.rkt sym .ext sym.png)
-                                             (bitmap-save (bitmap-table ncol datum) sym.png #:format gformat))))]
+                                             (graphics-save-as sym.png (bitmap-table ncol datum) gformat))))]
                       [else null]))))))
   
-(define make~save-as : (-> Symbol Make-Phony)
-  (lambda [gformat]
-    (define .ext : String (string-append "." (symbol->immutable-string gformat)))
-    
+(define make~save-as : (-> Symbol String Make-Phony)
+  (lambda [gformat .ext]
     (λ [digimon info-ref]
       (define natives (map (inst car Path CC-Launcher-Info) (find-digimon-native-launcher-names info-ref)))
     
@@ -79,12 +83,21 @@
   (lambda [module.rkt sym .ext symbol.png]
     (dtrace-note "~a: save-as: ~a" the-name (path->string symbol.png))))
 
+(define graphics-save-as : (-> Path Visual-Object<%> Symbol Void)
+  (lambda [sym.png vobj gformat]
+    (make-parent-directory* sym.png)
+    
+    (call-with-output-file* sym.png #:exists 'truncate/replace
+      (λ [[/dev/stdout : Output-Port]] : Void
+        (write-bytes (convert vobj gformat #"") /dev/stdout)
+        (void)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define png-phony-goal : Wisemon-Phony
-  (wisemon-make-phony #:name 'png #:phony (make~save-as 'png) #:desc "Export module-level images as PNGs"))
+  (wisemon-make-phony #:name 'png #:phony (make~save-as 'png-bytes ".png") #:desc "Export module-level images as PNGs"))
 
 (define svg-phony-goal : Wisemon-Phony
-  (wisemon-make-phony #:name 'svg #:phony (make~save-as 'svg) #:desc "Export module-level images as SVGs"))
+  (wisemon-make-phony #:name 'svg #:phony (make~save-as 'svg-bytes ".svg") #:desc "Export module-level images as SVGs"))
 
 #;(define script-phony-goal : Wisemon-Phony
   (wisemon-make-phony #:name 'script #:phony (make~save-as 'script) #:desc "Export module-level images as Cairo Scripts"))
