@@ -92,16 +92,21 @@
  [cairo-surface-save (-> Bitmap-Surface Output-Port Symbol Void)])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct bitmap<%>
-  ([convert : (Option (-> Bitmap<%> Symbol Any Any))]
-   [shadow : Phantom-Bytes]
-   [surface : Bitmap-Surface])
-  #:type-name Bitmap<%>
+(define-type Visual-Object-Convert (-> Visual-Object<%> Symbol Any Any))
+
+(struct visual-object<%>
+  ([convert : (Option Visual-Object-Convert)])
+  #:type-name Visual-Object<%>
   #:property prop:convertible
-  (λ [[self : Bitmap<%>] [mime : Symbol] [fallback : Any]]
+  (λ [[self : Visual-Object<%>] [mime : Symbol] [fallback : Any]]
     (with-handlers ([exn? (λ [[e : exn]] (invalid-convert self mime fallback))])
-      (define convert (or (bitmap<%>-convert self) graphics-convert))
+      (define convert (or (visual-object<%>-convert self) graphics-convert))
       (convert self mime fallback))))
+
+(struct bitmap<%> visual-object<%>
+  ([shadow : Phantom-Bytes]
+   [surface : Bitmap-Surface])
+  #:type-name Bitmap<%>)
 
 (struct bitmap bitmap<%>
   ([source : Symbol]
@@ -157,8 +162,8 @@
 (define bitmap-flsize : (case-> [Bitmap -> (Values Positive-Flonum Positive-Flonum)]
                                 [Bitmap Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
                                 [Bitmap Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)])
-  (let ([flsize : (-> Bitmap Nonnegative-Flonum Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
-                 (λ [bmp w% h%] (let-values ([(w h) (bitmap-flsize bmp)]) (values (* w w%) (* h h%))))])
+  (let ([flsize (λ [[bmp : Bitmap] [w% : Nonnegative-Flonum] [h% : Nonnegative-Flonum]] : (Values Nonnegative-Flonum Nonnegative-Flonum)
+                  (let-values ([(w h) (bitmap-flsize bmp)]) (values (* w w%) (* h h%))))])
     (case-lambda [(bmp) (values (exact->inexact (bitmap-width bmp)) (exact->inexact (bitmap-height bmp)))]
                  [(bmp ratio) (let ([% (real->double-flonum ratio)]) (flsize bmp % %))]
                  [(bmp w% h%) (flsize bmp (real->double-flonum w%) (real->double-flonum h%))])))
@@ -174,7 +179,7 @@
     (values flw flh (bitmap-density bmp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define graphics-convert : (-> Bitmap<%> Symbol Any Any)
+(define graphics-convert : Visual-Object-Convert
   (lambda [self mime fallback]
     (with-asserts ([self bitmap?])
       (define density (bitmap-density self))
@@ -185,6 +190,6 @@
         [(svg-bytes) (cairo-surface->stream-bytes surface 'svg '/dev/svgout)]
         [else fallback]))))
 
-(define invalid-convert : (-> Bitmap<%> Symbol Any Any)
+(define invalid-convert : Visual-Object-Convert
   (lambda [self mime fallback]
     #""))

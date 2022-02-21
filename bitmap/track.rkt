@@ -1,17 +1,18 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) with-dryland-wani! track-close)
+(provide (except-out (all-defined-out) track-convert))
+(provide with-dryland-wani! track-close)
 (provide Track Dryland-Wani)
 (provide track? dryland-wani?)
 
 (provide
  (rename-out [dryland-wani-step-up-right! dryland-wani-step-right-up!]
-             [dryland-wani-step-right-down! dryland-wani-step-down-rigth!]
+             [dryland-wani-step-right-down! dryland-wani-step-down-right!]
              [dryland-wani-step-down-left! dryland-wani-step-left-down!]
              [dryland-wani-step-left-up! dryland-wani-step-up-left!])
 
  (rename-out [dryland-wani-jump-up-right! dryland-wani-jump-right-up!]
-             [dryland-wani-jump-right-down! dryland-wani-jump-down-rigth!]
+             [dryland-wani-jump-right-down! dryland-wani-jump-down-right!]
              [dryland-wani-jump-down-left! dryland-wani-jump-left-down!]
              [dryland-wani-jump-left-up! dryland-wani-jump-up-left!])
 
@@ -23,6 +24,17 @@
 
 (require "digitama/unsafe/path.rkt")
 (require "digitama/unsafe/convert.rkt")
+
+(require (for-syntax racket/base))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-syntax (define-dryland-wani! stx)
+  (syntax-case stx []
+    [(_ name [args ...] #:- move-expr ...)
+     (syntax/loc stx
+       (define name : Dryland-Wani
+         (with-dryland-wani! (make-dryland-wani args ...)
+           move-expr ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-dryland-wani : (->* (Real) (Real #:big-turn? Boolean #:anchor Keyword #:at Track-Node-Datum) Dryland-Wani)
@@ -36,21 +48,22 @@
       (cond [(and big-turn?) (values xstep ystep)]
             [else (values (* xstep 0.5) (* ystep 0.5))]))
     
-    (let ([wani (dryland-wani (list (cons start-of-track home-pos)) ((inst make-hasheq Any Float-Complex)) (list anchor)
+    (let ([wani (dryland-wani track-convert
+                              (list (cons start-of-track home-pos)) ((inst make-hasheq Any Float-Complex)) (list anchor)
                               home-pos home-pos home-x home-y home-x home-y
                               xstep ystep rx ry)])
       (track-anchor wani anchor home-pos)
       wani)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-dryland-wani-step/jump-move! left       #:-> -1)
-(define-dryland-wani-step/jump-move! right      #:->  1)
-(define-dryland-wani-step/jump-move! up         #:!> -1)
-(define-dryland-wani-step/jump-move! down       #:!>  1)
-(define-dryland-wani-step/jump-move! up-right   #:+>  1 -1)
-(define-dryland-wani-step/jump-move! right-down #:+>  1  1)
-(define-dryland-wani-step/jump-move! down-left  #:+> -1  1)
-(define-dryland-wani-step/jump-move! left-up    #:+> -1 -1)
+(define-dryland-wani-line-move! left            #:-> -1.0)
+(define-dryland-wani-line-move! right           #:->  1.0)
+(define-dryland-wani-line-move! up              #:!> -1.0)
+(define-dryland-wani-line-move! down            #:!>  1.0)
+(define-dryland-wani-line-move! up-right        #:+>  1.0-1.0i)
+(define-dryland-wani-line-move! right-down      #:+>  1.0+1.0i)
+(define-dryland-wani-line-move! down-left       #:+> -1.0+1.0i)
+(define-dryland-wani-line-move! left-up         #:+> -1.0-1.0i)
 
 (define-dryland-wani-turn-move! up-right-down   #:+> [180.0 360.0  1.0  0.0  2.0  0.0] #:boundary-guard -1.0i)
 (define-dryland-wani-turn-move! up-left-down    #:-> [360.0 180.0 -1.0  0.0 -2.0  0.0] #:boundary-guard -1.0i)
@@ -77,6 +90,10 @@
   #:+> [ 90.0 180.0  0.0 -1.0 -1.0 -1.0]
   #:-> [360.0 270.0 -1.0  0.0 -1.0 -1.0])
 
+(define dryland-wani-drift! : (-> Dryland-Wani Flonum Flonum Track-Anchor Void)
+  (lambda [wani xstep ystep anchor]
+    (void)))
+
 (define dryland-wani-step-to! : (-> Dryland-Wani Track-Anchor Void)
   (lambda [wani target]
     (track-connect-to wani target)))
@@ -96,7 +113,7 @@
                   (+ abspos (make-rectangular xoff yoff)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-track : (->* (Dryland-Wani)
+(define bitmap-track : (->* (Track)
                             (#:color Stroke-Paint #:fill (Option Fill-Paint) #:fill-style Symbol #:density Positive-Flonum)
                             Bitmap)
   (lambda [#:color [fgsource black] #:fill [bgsource #false] #:fill-style [fstyle 'winding] #:density [density (default-bitmap-density)]
@@ -106,7 +123,7 @@
 
     bmp))
 
-(define bitmap-track* : (->* (Dryland-Wani)
+(define bitmap-track* : (->* (Track)
                              (#:color Stroke-Paint #:fill (Option Fill-Paint) #:fill-style Symbol #:density Positive-Flonum)
                              (Values Bitmap Float-Complex Float-Complex))
   (lambda [wani #:color [fgsource black] #:fill [bgsource #false] #:fill-style [fstyle 'winding] #:density [density (default-bitmap-density)]]
@@ -118,7 +135,7 @@
                   (stroke-paint->source fgsource) (fill-paint->source* bgsource)
                   fstyle density)))
 
-(define bitmap-track! : (->* (Bitmap Dryland-Wani)
+(define bitmap-track! : (->* (Bitmap Track)
                              (Real Real #:color Stroke-Paint #:fill (Option Fill-Paint) #:fill-style Symbol #:density Positive-Flonum)
                              (Values Float-Complex Float-Complex))
   (lambda [#:color [fgsource black] #:fill [bgsource #false] #:fill-style [fstyle 'winding] #:density [density (default-bitmap-density)]
@@ -127,3 +144,12 @@
                    (stroke-paint->source fgsource) (fill-paint->source* bgsource)
                    (real->double-flonum dx) (real->double-flonum dy)
                    fstyle density)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define track-convert : Visual-Object-Convert
+  (lambda [self mime fallback]
+    (with-asserts ([self track?])
+      (define-values (bmp lt rb)
+        (bitmap-track* self #:color 'royalblue #:fill 'honeydew))
+
+      (graphics-convert bmp mime fallback))))

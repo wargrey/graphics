@@ -2,7 +2,10 @@
 
 (provide (all-defined-out))
 
+(require file/convertible)
+
 (require "unsafe/path.rkt")
+(require "unsafe/convert.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/math))
@@ -13,7 +16,7 @@
 (define-type Track-Anchor (U Symbol Keyword))
 (define-type Track-Node-Datum (U Complex (Pairof Real Real)))
 
-(struct track
+(struct track visual-object<%>
   ([footprints : (Pairof Track-Node (Listof Track-Node))]
    [anchors : (HashTable Any Float-Complex)]
    [traces : (Pairof Keyword (Listof Keyword))]
@@ -40,39 +43,40 @@
            ...
            self)))]))
 
-(define-syntax (define-dryland-wani-step/jump-move! stx)
+(define-syntax (define-dryland-wani-line-move! stx)
   (syntax-case stx []
-    [(_ move #:+> xdelta ydelta)
+    [(_ move #:+> delta)
      (with-syntax ([step! (format-id #'move "dryland-wani-step-~a!" (syntax->datum #'move))]
-                   [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
+                   [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))]
+                   [(xdelta ydelta) (let ([dxy (syntax->datum #'delta)]) (list (datum->syntax #'delta (real-part dxy)) (datum->syntax #'delta (imag-part dxy))))])
        (syntax/loc stx
-         (begin (define (step! [wani : Dryland-Wani] [xstep : Integer 1] [ystep : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+         (begin (define (step! [wani : Dryland-Wani] [xstep : Real 1.0] [ystep : Real 1.0] [anchor : (Option Track-Anchor) #false]) : Void
                   (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani)
-                                 (exact->inexact (* xstep xdelta)) (exact->inexact (* ystep ydelta))
+                                 (* (real->double-flonum xstep) xdelta) (* (real->double-flonum ystep) ydelta)
                                  anchor #true))
                 
-                (define (jump! [wani : Dryland-Wani] [xstep : Integer 1] [ystep : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+                (define (jump! [wani : Dryland-Wani] [xstep : Real 1.0] [ystep : Real 1.0] [anchor : (Option Track-Anchor) #false]) : Void
                   (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani)
-                                 (exact->inexact (* xstep xdelta)) (exact->inexact (* ystep ydelta))
+                                 (* (real->double-flonum xstep) xdelta) (* (real->double-flonum ystep) ydelta)
                                  anchor #true)))))]
     [(_ move #:-> xdelta)
      (with-syntax ([step! (format-id #'move "dryland-wani-step-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
          (begin (define (step! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
-                  (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (exact->inexact (* step xdelta)) 0.0 anchor #true))
+                  (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (* (real->double-flonum step) xdelta) 0.0 anchor #true))
                 
                 (define (jump! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
-                  (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (exact->inexact (* step xdelta)) 0.0 anchor #true)))))]
+                  (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (* (real->double-flonum step) xdelta) 0.0 anchor #true)))))]
     [(_ move #:!> ydelta)
      (with-syntax ([step! (format-id #'move "dryland-wani-step-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
          (begin (define (step! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
-                  (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (exact->inexact (* step ydelta)) anchor #true))
+                  (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (* (real->double-flonum step) ydelta) anchor #true))
                 
                 (define (jump! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
-                  (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (exact->inexact (* step ydelta)) anchor #true)))))]))
+                  (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (* (real->double-flonum step) ydelta) anchor #true)))))]))
 
 (define-syntax (define-dryland-wani-turn-move! stx)
   (syntax-case stx []
@@ -168,7 +172,7 @@
   (lambda [self rx ry cx cy ex ey start end anchor clockwise? guard]
     (define cpos : Float-Complex (track-current-position self))
     (define cpos++ : Float-Complex (+ (make-rectangular (* ex rx) (* ey ry)) cpos))
-    (define path:arc : Path-Args (path-arc (+ (real-part cpos) (* cx rx)) (+ (imag-part cpos) (* cy ry)) rx ry start end clockwise?))
+    (define path:arc : Path-Args (arc (+ cpos (make-rectangular (* cx rx) (* cy ry))) rx ry start end clockwise?))
 
     (track-check-bounding-box! self cpos++)
     (when (and guard) (track-check-bounding-box! self (+ cpos (make-rectangular (* (real-part guard) rx) (* (imag-part guard) ry)))))

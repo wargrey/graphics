@@ -16,36 +16,37 @@
   (require "paint.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_crawl! src key-nodes stroke fill-color dx dy fill-style density)
+  (define (bitmap_crawl! src footprints stroke fill-color dx dy fill-style density)
     (define cr (cairo_create src))
-    (define-values (x1 y1 x2 y2) (cairo_path cr key-nodes dx dy fill-style density))
+    (define-values (x1 y1 x2 y2) (cairo_path cr footprints dx dy fill-style density))
 
     (cairo-render cr stroke fill-color)
     (cairo_destroy cr)
     (values (make-rectangular x1 y1)
             (make-rectangular x2 y2)))
 
-  (define (bitmap_crawl key-nodes flwidth flheight dx dy stroke fill-color fill-style density)
+  (define (bitmap_crawl footprints flwidth flheight dx dy stroke fill-color fill-style density)
     (define line-width (if (struct? stroke) (unsafe-struct-ref stroke 1) 0.0))
     (define inset (unsafe-fl* line-width 0.5))
     (define-values (img cr) (make-cairo-image (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #false))
-    (define-values (x1 y1 x2 y2) (cairo_path cr key-nodes (unsafe-fl+ dx inset) (unsafe-fl+ dy inset) fill-style density))
+    (define-values (x1 y1 x2 y2) (cairo_path cr footprints (unsafe-fl+ dx inset) (unsafe-fl+ dy inset) fill-style density))
 
     (cairo-render cr stroke fill-color)
     (cairo_destroy cr)
     (values img (make-rectangular x1 y1) (make-rectangular x2 y2)))
 
-  (define (cairo_path cr key-nodes dx dy fill-style density)
+  (define (cairo_path cr footprints dx dy fill-style density)
     (cairo_scale cr density density)
     
-    (for ([op+node (in-list (reverse key-nodes))])
-      (define node (cdr op+node))
-      (case (car op+node)
-        [(#\M) (cairo_move_to cr (unsafe-fl+ (real-part node) dx) (unsafe-fl+ (imag-part node) dy))]
-        [(#\m) (cairo_rel_move_to cr (real-part node) (imag-part node))]
-        [(#\L) (cairo_line_to cr (unsafe-fl+ (real-part node) dx) (unsafe-fl+ (imag-part node) dy))]
-        [(#\l) (cairo_rel_line_to cr (real-part node) (imag-part node))]
-        [(#\A) (cairo_elliptical_arc cr node #true dx dy)]
+    (for ([op+footprint (in-list (reverse footprints))])
+      (define footprint (cdr op+footprint))
+      (case (car op+footprint)
+        [(#\M) (cairo_move_to cr (unsafe-fl+ (unsafe-flreal-part footprint) dx) (unsafe-fl+ (unsafe-flimag-part footprint) dy))]
+        [(#\m) (cairo_rel_move_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
+        [(#\L) (cairo_line_to cr (unsafe-fl+ (unsafe-flreal-part footprint) dx) (unsafe-fl+ (unsafe-flimag-part footprint) dy))]
+        [(#\l) (cairo_rel_line_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
+        [(#\A) (cairo_elliptical_arc cr footprint #true dx dy density)]
+        [(#\C) (cairo_cubic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
         [(#\Z #\z) (cairo_close_path cr)]))
 
     (unless (eq? fill-style 'winding)
@@ -53,27 +54,44 @@
     
     (cairo_path_extents cr))
 
-  (define (cairo_elliptical_arc cr path:arc radian? dx dy)
-    (define cx (unsafe-fl+ (unsafe-struct*-ref path:arc 0) dx))
-    (define cy (unsafe-fl+ (unsafe-struct*-ref path:arc 1) dy))
-    (define rx (unsafe-struct*-ref path:arc 2))
-    (define ry (unsafe-struct*-ref path:arc 3))
-    (define start (unsafe-struct*-ref path:arc 4))
-    (define end (unsafe-struct*-ref path:arc 5))
-    (define path-arc (if (unsafe-struct*-ref path:arc 6) cairo_arc cairo_arc_negative))
+  (define (cairo_elliptical_arc cr path:arc radian? dx dy density)
+    (define center (unsafe-struct*-ref path:arc 0))
+    (define cx (unsafe-fl+ (unsafe-flreal-part center) dx))
+    (define cy (unsafe-fl+ (unsafe-flimag-part center) dy))
+    (define rx (unsafe-struct*-ref path:arc 1))
+    (define ry (unsafe-struct*-ref path:arc 2))
+    (define start (unsafe-struct*-ref path:arc 3))
+    (define end (unsafe-struct*-ref path:arc 4))
+    (define cairo-arc (if (unsafe-struct*-ref path:arc 5) cairo_arc cairo_arc_negative))
     (define-values (rstart rend) (if radian? (values start end) (values (~radian start) (~radian end))))
+
+    ;;; WARNING
+    ;; For drawing elliptical arcs
+    ;;   `cairo_translate` is necessary,
+    ;;   or the resulting shapes will be weird.
+    ;; TODO: find the reason;
+    ;; TODO: why not `density` should be used to scale
     
     (cond [(unsafe-fl< rx ry)
            (cairo_save cr)
+           (cairo_translate cr cx cy)
            (cairo_scale cr 1.0 (unsafe-fl/ ry rx))
-           (path-arc cr cx cy rx rstart rend)
+           (cairo-arc cr 0.0 0.0 rx rstart rend)
            (cairo_restore cr)]
           [(unsafe-fl> rx ry)
            (cairo_save cr)
+           (cairo_translate cr cx cy)
            (cairo_scale cr (unsafe-fl/ rx ry) 1.0)
-           (path-arc cr cx cy ry rstart rend)
+           (cairo-arc cr 0.0 0.0 ry rstart rend)
            (cairo_restore cr)]
-          [else (path-arc cr cx cy rx rstart rend)])))
+          [else ; no need to `translate` first for circles
+           (cairo-arc cr cx cy rx rstart rend)]))
+
+  (define (cairo_cubic_bezier cr ctrl1 ctrl2 end dx dy)
+    (cairo_curve_to cr
+                    (unsafe-fl+ (unsafe-flreal-part ctrl1) dx) (unsafe-fl+ (unsafe-flreal-part ctrl1) dy)
+                    (unsafe-fl+ (unsafe-flreal-part ctrl2) dx) (unsafe-fl+ (unsafe-flreal-part ctrl2) dy)
+                    (unsafe-fl+ (unsafe-flreal-part end) dx) (unsafe-fl+ (unsafe-flreal-part end) dy))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
@@ -85,16 +103,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct path-args () #:type-name Path-Args #:transparent)
-(struct path-none path-args () #:transparent)
+(struct none path-args () #:transparent)
+(struct arc path-args ([center : Float-Complex] [rx : Float] [ry : Float] [start : Float] [end : Float] [clockwise? : Boolean]) #:transparent)
+(struct bezier path-args ([ctrl1 : Float-Complex] [ctrl2 : Float-Complex] [end : Float-Complex]) #:transparent)
 
-(struct path-arc path-args
-  ([cx : Float]
-   [cy : Float]
-   [rx : Float]
-   [ry : Float]
-   [start : Float]
-   [end : Float]
-   [clockwise? : Boolean])
-  #:transparent)
-
-(define path:none : Path-Args (path-none))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define path:none : Path-Args (none))
