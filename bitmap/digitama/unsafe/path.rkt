@@ -12,7 +12,6 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
-  (require "constants.rkt")
   (require "paint.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -47,6 +46,7 @@
         [(#\l) (cairo_rel_line_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
         [(#\A) (cairo_elliptical_arc cr footprint #true dx dy density)]
         [(#\C) (cairo_cubic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
+        [(#\Q) (cairo_quadratic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
         [(#\Z #\z) (cairo_close_path cr)]))
 
     (unless (eq? fill-style 'winding)
@@ -86,12 +86,19 @@
            (cairo_restore cr)]
           [else ; no need to `translate` first for circles
            (cairo-arc cr cx cy rx rstart rend)]))
+  
+  ;;; https://pomax.github.io/bezierinfo/
+  ; ctrl1 = (+ cpt 2/3(ctrl - cpt)) = (+ cpt ctrl ctrl)/3
+  ; ctrl2 = (+ ept 2/3(ctrl - ept)) = (+ ept ctrl ctrl)/3
+  (define (cairo_quadratic_bezier cr cpt ctrl ept dx dy)
+    (let ([coefficient (real->double-flonum 1/3)])
+      (cairo_cubic_bezier cr (* (+ cpt ctrl ctrl) coefficient) (* (+ ept ctrl ctrl) coefficient) ept dx dy)))
 
-  (define (cairo_cubic_bezier cr ctrl1 ctrl2 end dx dy)
+  (define (cairo_cubic_bezier cr ctrl1 ctrl2 endpt dx dy)
     (cairo_curve_to cr
-                    (unsafe-fl+ (unsafe-flreal-part ctrl1) dx) (unsafe-fl+ (unsafe-flreal-part ctrl1) dy)
-                    (unsafe-fl+ (unsafe-flreal-part ctrl2) dx) (unsafe-fl+ (unsafe-flreal-part ctrl2) dy)
-                    (unsafe-fl+ (unsafe-flreal-part end) dx) (unsafe-fl+ (unsafe-flreal-part end) dy))))
+                    (unsafe-fl+ (unsafe-flreal-part ctrl1) dx) (unsafe-fl+ (unsafe-flimag-part ctrl1) dy)
+                    (unsafe-fl+ (unsafe-flreal-part ctrl2) dx) (unsafe-fl+ (unsafe-flimag-part ctrl2) dy)
+                    (unsafe-fl+ (unsafe-flreal-part endpt) dx) (unsafe-fl+ (unsafe-flimag-part endpt) dy))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide

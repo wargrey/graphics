@@ -4,20 +4,20 @@
 (require bitmap/digitama/track)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-dryland-wani! drywani [64 32] #:-
+(define-dryland-wani! drywani [64 64] #:-
   (step-left)
   (step-right)
   (step-down 2)
   (step-left)
   (step-up)
   
-  (jump-up 2 '#:2nd-home)
+  (jump-up 2 '#:z)
   (step-left)
   (step-down)
-  (step-left 1 'most-left)
+  (step-left 1 'leftmost)
   (close)
   
-  (jump-right-down 2 1 '#:3rd-home)
+  (jump-right-down 2 1 '#:diamond)
   (step-up-right)
   (step-right-down)
   (step-down-left)
@@ -39,25 +39,26 @@
   (turn-down-left-up)
   (turn-left-up-right)
   
-  (jump-down-right 3)
+  (jump-down-right 2)
   (turn-up-left-down)
   (turn-left-down-right)
   (turn-down-right-up)
   (turn-right-up-left)
   
   (jump-back)
-  (step-down)
+  (drift '#:home '(-0.5+i -0.5-i))
   
   (jump-back)
-  (step-up-right)
+  (drift '#:home '())
   
   (jump-back)
-  (step-left-down 2)
-    
-  (step-to 'most-left))
+  (drift 'leftmost '(-2+i)))
 
-(track-footprints drywani)
-drywani
-
-(track-anchor-position drywani '#:home)
-(track-anchor-position drywani '#:home #:translate? #true)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(module+ main
+  (reverse (track-footprints drywani))
+  (track-anchors drywani)
+  drywani
+  
+  (track-anchor-position drywani '#:home)
+  (track-anchor-position drywani '#:home #:translate? #true))

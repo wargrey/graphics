@@ -1,9 +1,9 @@
 #lang typed/racket/base
 
 (provide (except-out (all-defined-out) track-convert))
-(provide with-dryland-wani! track-close)
 (provide Track Dryland-Wani)
 (provide track? dryland-wani?)
+(provide track-close)
 
 (provide
  (rename-out [dryland-wani-step-up-right! dryland-wani-step-right-up!]
@@ -18,6 +18,8 @@
 
  (rename-out [track-close dryland-wani-close!]))
 
+(require racket/match)
+
 (require "digitama/track.rkt")
 (require "digitama/base.rkt")
 (require "digitama/source.rkt")
@@ -26,6 +28,7 @@
 (require "digitama/unsafe/convert.rkt")
 
 (require (for-syntax racket/base))
+(require (for-syntax racket/syntax))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-dryland-wani! stx)
@@ -36,23 +39,37 @@
          (with-dryland-wani! (make-dryland-wani args ...)
            move-expr ...)))]))
 
+(define-syntax (with-dryland-wani! stx)
+  (syntax-case stx []
+    [(_ wani (move argl ...) ...)
+     (with-syntax* ([(dryland-wani-move ...)
+                     (for/list ([<move> (in-list (syntax->list #'(move ...)))])
+                       (format-id <move> "dryland-wani-~a!" (syntax->datum <move>)))])
+       (syntax/loc stx
+         (let ([self wani])
+           (dryland-wani-move self argl ...)
+           ...
+           self)))]))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-dryland-wani : (->* (Real) (Real #:big-turn? Boolean #:anchor Keyword #:at Track-Node-Datum) Dryland-Wani)
-  (lambda [xstepsize [ystepsize 0.0] #:big-turn? [big-turn? #false] #:anchor [anchor '#:home] #:at [home 0]]
+(define make-dryland-wani : (->* (Real) (Real #:turn-scale Track-Print-Datum #:anchor Keyword #:at Track-Print-Datum) Dryland-Wani)
+  (lambda [xstepsize [ystepsize 0.0] #:turn-scale [turn-scale +nan.0] #:anchor [anchor '#:home] #:at [home 0]]
     (define xstep : Nonnegative-Flonum (if (<= xstepsize 0.0) 1.0 (max (real->double-flonum xstepsize) 0.0)))
     (define ystep : Nonnegative-Flonum (if (<= ystepsize 0.0) xstep (max (real->double-flonum ystepsize) 0.0)))
-    (define home-pos : Float-Complex (track-node-datum home))
+    (define home-pos : Float-Complex (track-print-datum home))
     (define home-x : Flonum (real-part home-pos))
     (define home-y : Flonum (imag-part home-pos))
-    (define-values (#{rx : Nonnegative-Flonum} #{ry : Nonnegative-Flonum})
-      (cond [(and big-turn?) (values xstep ystep)]
-            [else (values (* xstep 0.5) (* ystep 0.5))]))
+    (define-values (#{sx : Nonnegative-Flonum} #{sy : Nonnegative-Flonum})
+      (cond [(flonum? turn-scale) (let ([s (track-turn-scale turn-scale)]) (values s s))]
+            [(list? turn-scale) (values (track-turn-scale (car turn-scale)) (track-turn-scale (cadr turn-scale)))]
+            [(pair? turn-scale) (values (track-turn-scale (car turn-scale)) (track-turn-scale (cdr turn-scale)))]
+            [else (values (track-turn-scale (real-part turn-scale)) (track-turn-scale (imag-part turn-scale)))]))
     
     (let ([wani (dryland-wani track-convert
                               (list (cons start-of-track home-pos)) ((inst make-hasheq Any Float-Complex)) (list anchor)
                               home-pos home-pos home-x home-y home-x home-y
-                              xstep ystep rx ry)])
-      (track-anchor wani anchor home-pos)
+                              xstep ystep (* sx xstep) (* sy ystep))])
+      (track-try-anchor! wani anchor home-pos)
       wani)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -90,9 +107,19 @@
   #:+> [ 90.0 180.0  0.0 -1.0 -1.0 -1.0]
   #:-> [360.0 270.0 -1.0  0.0 -1.0 -1.0])
 
-(define dryland-wani-drift! : (-> Dryland-Wani Flonum Flonum Track-Anchor Void)
-  (lambda [wani xstep ystep anchor]
-    (void)))
+(define dryland-wani-drift! : (->* (Dryland-Wani Track-Bezier-Datum (Listof Track-Bezier-Datum)) ((Option Track-Anchor)) Void)
+  (lambda [wani end-step ctrl-steps [anchor #false]]
+    (define xsize : Flonum (dryland-wani-xstepsize wani))
+    (define ysize : Flonum (dryland-wani-ystepsize wani))
+    (define endpt : Float-Complex (track-bezier-point wani end-step xsize ysize))
+    (define controls : (Listof Float-Complex)
+      (for/list : (Listof Float-Complex) ([ctrl (in-list ctrl-steps)])
+        (track-bezier-point wani ctrl xsize ysize)))
+
+    (match controls
+      [(list ctrl1 ctrl2) (track-cubic-bezier wani endpt ctrl1 ctrl2 anchor)]
+      [(list ctrl) (track-quadratic-bezier wani endpt ctrl anchor)]
+      [(list) (track-linear-bezier wani endpt anchor)])))
 
 (define dryland-wani-step-to! : (-> Dryland-Wani Track-Anchor Void)
   (lambda [wani target]
