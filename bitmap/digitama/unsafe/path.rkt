@@ -91,8 +91,10 @@
   ; ctrl1 = (+ cpt 2/3(ctrl - cpt)) = (+ cpt ctrl ctrl)/3
   ; ctrl2 = (+ ept 2/3(ctrl - ept)) = (+ ept ctrl ctrl)/3
   (define (cairo_quadratic_bezier cr cpt ctrl ept dx dy)
-    (let ([coefficient (real->double-flonum 1/3)])
-      (cairo_cubic_bezier cr (* (+ cpt ctrl ctrl) coefficient) (* (+ ept ctrl ctrl) coefficient) ept dx dy)))
+    (define 2ctrl (+ ctrl ctrl))
+    (define coefficient (real->double-flonum 1/3))
+    
+    (cairo_cubic_bezier cr (* (+ cpt 2ctrl) coefficient) (* (+ ept 2ctrl) coefficient) ept dx dy))
 
   (define (cairo_cubic_bezier cr ctrl1 ctrl2 endpt dx dy)
     (cairo_curve_to cr
@@ -103,16 +105,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [bitmap_crawl! (-> Bitmap-Surface (Listof (Pairof Char (U Float-Complex Path-Args))) (Option Paint) (Option Bitmap-Source) Flonum Flonum Symbol Flonum
+ [bitmap_crawl! (-> Bitmap-Surface (Listof Track-Print) (Option Paint) (Option Bitmap-Source) Flonum Flonum Symbol Flonum
                     (Values Float-Complex Float-Complex))]
- [bitmap_crawl (-> (Listof (Pairof Char (U Float-Complex Path-Args))) Flonum Flonum Flonum Flonum (Option Paint) (Option Bitmap-Source) Symbol Flonum
+ [bitmap_crawl (-> (Listof Track-Print) Flonum Flonum Flonum Flonum (Option Paint) (Option Bitmap-Source) Symbol Flonum
                    (Values Bitmap Float-Complex Float-Complex))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Track-Print (Pairof Char (U Float-Complex Path-Args False)))
+
 (struct path-args () #:type-name Path-Args #:transparent)
-(struct none path-args () #:transparent)
 (struct arc path-args ([center : Float-Complex] [rx : Float] [ry : Float] [start : Float] [end : Float] [clockwise? : Boolean]) #:transparent)
 (struct bezier path-args ([ctrl1 : Float-Complex] [ctrl2 : Float-Complex] [end : Float-Complex]) #:transparent)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define path:none : Path-Args (none))

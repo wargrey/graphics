@@ -1,7 +1,6 @@
 #lang typed/racket/base
 
 (require bitmap/track)
-(require bitmap/digitama/track)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-dryland-wani! drywani [64 64] #:-
@@ -56,6 +55,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
+  (require bitmap/digitama/track)
+  
   (reverse (track-footprints drywani))
   (track-anchors drywani)
   drywani

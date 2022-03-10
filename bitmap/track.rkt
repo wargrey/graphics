@@ -52,25 +52,26 @@
            self)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-dryland-wani : (->* (Real) (Real #:turn-scale Track-Print-Datum #:anchor Keyword #:at Track-Print-Datum) Dryland-Wani)
-  (lambda [xstepsize [ystepsize 0.0] #:turn-scale [turn-scale +nan.0] #:anchor [anchor '#:home] #:at [home 0]]
+(define make-dryland-wani : (->* (Real)
+                                 (Real #:turn-scale Track-Print-Datum #:U-scale Track-Print-Datum
+                                       #:anchor Keyword #:at Track-Print-Datum)
+                                 Dryland-Wani)
+  (lambda [xstepsize [ystepsize 0.0] #:turn-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0] #:anchor [anchor '#:home] #:at [home 0]]
     (define xstep : Nonnegative-Flonum (if (<= xstepsize 0.0) 1.0 (max (real->double-flonum xstepsize) 0.0)))
     (define ystep : Nonnegative-Flonum (if (<= ystepsize 0.0) xstep (max (real->double-flonum ystepsize) 0.0)))
     (define home-pos : Float-Complex (track-print-datum home))
-    (define home-x : Flonum (real-part home-pos))
-    (define home-y : Flonum (imag-part home-pos))
-    (define-values (#{sx : Nonnegative-Flonum} #{sy : Nonnegative-Flonum})
-      (cond [(flonum? turn-scale) (let ([s (track-turn-scale turn-scale)]) (values s s))]
-            [(list? turn-scale) (values (track-turn-scale (car turn-scale)) (track-turn-scale (cadr turn-scale)))]
-            [(pair? turn-scale) (values (track-turn-scale (car turn-scale)) (track-turn-scale (cdr turn-scale)))]
-            [else (values (track-turn-scale (real-part turn-scale)) (track-turn-scale (imag-part turn-scale)))]))
+    (define-values (home-x home-y) (values (real-part home-pos) (imag-part home-pos)))
+    (define-values (tsx tsy) (track-turn-scales t-scale 0.5))
+    (define-values (usx usy) (track-turn-scales u-scale 0.25))
     
-    (let ([wani (dryland-wani track-convert
-                              (list (cons start-of-track home-pos)) ((inst make-hasheq Any Float-Complex)) (list anchor)
-                              home-pos home-pos home-x home-y home-x home-y
-                              xstep ystep (* sx xstep) (* sy ystep))])
-      (track-try-anchor! wani anchor home-pos)
-      wani)))
+    (define wani : Dryland-Wani
+      (dryland-wani track-convert
+                    (list (cons start-of-track home-pos)) ((inst make-hasheq Any Float-Complex)) (list anchor)
+                    home-pos home-pos home-x home-y home-x home-y
+                    xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep)))
+    
+    (track-try-anchor! wani anchor home-pos)
+    wani))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-dryland-wani-line-move! left            #:-> -1.0)

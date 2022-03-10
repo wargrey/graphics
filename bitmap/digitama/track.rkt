@@ -12,7 +12,6 @@
 (require (for-syntax racket/syntax))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Track-Print (Pairof Char (U Float-Complex Path-Args)))
 (define-type Track-Anchor (U Symbol Keyword))
 (define-type Track-Print-Datum (U Complex (Pairof Real Real) (List Real Real)))
 (define-type Track-Bezier-Datum (U Track-Print-Datum Track-Anchor))
@@ -78,11 +77,11 @@
                    [rcend (datum->syntax #'c-end (degrees->radians (syntax->datum #'c-end)))])
        (syntax/loc stx
          (begin (define (turn-1-2! [wani : Dryland-Wani] [anchor : (Option Track-Anchor) #false]) : Void
-                  (track-turn wani (dryland-wani-xradius wani) (dryland-wani-yradius wani)
+                  (track-turn wani (dryland-wani-txradius wani) (dryland-wani-tyradius wani)
                               clockwise-args ... rstart rend anchor #true #false))
                 
                 (define (turn-2-1! [wani : Dryland-Wani] [anchor : (Option Track-Anchor) #false]) : Void
-                  (track-turn wani (dryland-wani-xradius wani) (dryland-wani-yradius wani)
+                  (track-turn wani (dryland-wani-txradius wani) (dryland-wani-tyradius wani)
                               counterclockwise-args ... rcstart rcend anchor #false #false)))))]
     [(_ move clockwise? [start end args ...] guard)
      (with-syntax* ([u-turn-move! (format-id #'move "dryland-wani-turn-~a!" (syntax->datum #'move))]
@@ -90,26 +89,33 @@
                     [rend (datum->syntax #'end (degrees->radians (syntax->datum #'end)))])
        (syntax/loc stx
          (begin (define (u-turn-move! [wani : Dryland-Wani] [anchor : (Option Track-Anchor) #false]) : Void
-                  (track-turn wani (* (dryland-wani-xradius wani) track-U-turn-scale) (* (dryland-wani-yradius wani) track-U-turn-scale)
+                  (track-turn wani (dryland-wani-uxradius wani) (dryland-wani-uyradius wani)
                               args ... rstart rend anchor clockwise? guard)))))]
     [(_ move #:+> args #:boundary-guard guard) (syntax/loc stx (define-dryland-wani-turn-move! move #true args guard))]
     [(_ move #:-> args #:boundary-guard guard) (syntax/loc stx (define-dryland-wani-turn-move! move #false args guard))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define start-of-track : Char #\M)
-(define track-U-turn-scale : Positive-Flonum 0.5)
 
 (struct dryland-wani track
   ([xstepsize : Nonnegative-Flonum]
    [ystepsize : Nonnegative-Flonum]
-   [xradius : Nonnegative-Flonum]
-   [yradius : Nonnegative-Flonum])
+   [txradius : Nonnegative-Flonum]
+   [tyradius : Nonnegative-Flonum]
+   [uxradius : Nonnegative-Flonum]
+   [uyradius : Nonnegative-Flonum])
   #:type-name Dryland-Wani)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-turn-scale : (-> Real Nonnegative-Flonum)
-  (lambda [datum]
-    (if (> datum 0) (real->double-flonum datum) 0.5)))
+(define track-turn-scales : (-> Track-Print-Datum Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [scale default-scale]
+    (define (turn-scale [datum : Real]) : Nonnegative-Flonum
+      (if (> datum 0) (real->double-flonum datum) default-scale))
+    
+    (cond [(flonum? scale) (let ([s (turn-scale scale)]) (values s s))]
+          [(list? scale) (values (turn-scale (car scale)) (turn-scale (cadr scale)))]
+          [(pair? scale) (values (turn-scale (car scale)) (turn-scale (cdr scale)))]
+          [else (values (turn-scale (real-part scale)) (turn-scale (imag-part scale)))])))
 
 (define track-print-datum : (-> Track-Print-Datum Float-Complex)
   (lambda [pos]
@@ -229,7 +235,7 @@
     (define init-pos (track-initial-position self))
     
     (set-track-current-position! self init-pos)
-    (set-track-footprints! self (cons (cons #\Z path:none) (track-footprints self)))))
+    (set-track-footprints! self (cons (cons #\Z #false) (track-footprints self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-move-to : (-> Track Flonum Flonum Flonum Flonum (Option Track-Anchor) Boolean Void)

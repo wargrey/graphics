@@ -4,4 +4,4 @@
 
 (require/provide colorspace)
 
-(require/provide "base.rkt" "effect.rkt")
+(require/provide "base.rkt" "track.rkt" "effect.rkt")
