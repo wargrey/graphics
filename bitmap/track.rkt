@@ -23,6 +23,7 @@
 (require "digitama/track.rkt")
 (require "digitama/base.rkt")
 (require "digitama/source.rkt")
+(require "digitama/dot.rkt")
 
 (require "digitama/unsafe/path.rkt")
 (require "digitama/unsafe/convert.rkt")
@@ -59,7 +60,7 @@
   (lambda [xstepsize [ystepsize 0.0] #:turn-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0] #:anchor [anchor '#:home] #:at [home 0]]
     (define xstep : Nonnegative-Flonum (if (<= xstepsize 0.0) 1.0 (max (real->double-flonum xstepsize) 0.0)))
     (define ystep : Nonnegative-Flonum (if (<= ystepsize 0.0) xstep (max (real->double-flonum ystepsize) 0.0)))
-    (define home-pos : Float-Complex (track-print-datum home))
+    (define home-pos : Float-Complex (~point2d home))
     (define-values (home-x home-y) (values (real-part home-pos) (imag-part home-pos)))
     (define-values (tsx tsy) (track-turn-scales t-scale 0.5))
     (define-values (usx usy) (track-turn-scales u-scale 0.25))

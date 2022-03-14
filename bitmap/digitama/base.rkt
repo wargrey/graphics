@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (define-type Color (U Symbol Integer FlColor))
+(define-type Point2D (U Complex (Pairof Real Real) (List Real Real)))
 
 (struct paint () #:transparent #:type-name Paint)
 (struct flcolor () #:transparent #:type-name FlColor)

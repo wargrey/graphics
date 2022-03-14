@@ -7,13 +7,15 @@
 (require "unsafe/path.rkt")
 (require "unsafe/convert.rkt")
 
+(require "base.rkt")
+
 (require (for-syntax racket/base))
 (require (for-syntax racket/math))
 (require (for-syntax racket/syntax))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Track-Anchor (U Symbol Keyword))
-(define-type Track-Print-Datum (U Complex (Pairof Real Real) (List Real Real)))
+(define-type Track-Print-Datum Point2D)
 (define-type Track-Bezier-Datum (U Track-Print-Datum Track-Anchor))
 
 (struct track visual-object<%>
@@ -116,13 +118,6 @@
           [(list? scale) (values (turn-scale (car scale)) (turn-scale (cadr scale)))]
           [(pair? scale) (values (turn-scale (car scale)) (turn-scale (cdr scale)))]
           [else (values (turn-scale (real-part scale)) (turn-scale (imag-part scale)))])))
-
-(define track-print-datum : (-> Track-Print-Datum Float-Complex)
-  (lambda [pos]
-    (cond [(real? pos) (make-rectangular (real->double-flonum pos) 0.0)]
-          [(list? pos) (make-rectangular (real->double-flonum (car pos)) (real->double-flonum (cadr pos)))]
-          [(pair? pos) (make-rectangular (real->double-flonum (car pos)) (real->double-flonum (cdr pos)))]
-          [else (make-rectangular (real->double-flonum (real-part pos)) (real->double-flonum (imag-part pos)))])))
 
 (define track-bezier-point : (->* (Track Track-Bezier-Datum) (Flonum Flonum) Float-Complex)
   (lambda [self dpos [sx 1.0] [sy 1.0]]

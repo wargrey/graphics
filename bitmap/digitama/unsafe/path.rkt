@@ -38,8 +38,8 @@
     (cairo_scale cr density density)
     
     (for ([op+footprint (in-list (reverse footprints))])
-      (define footprint (cdr op+footprint))
-      (case (car op+footprint)
+      (define footprint (unsafe-cdr op+footprint))
+      (case (unsafe-car op+footprint)
         [(#\M) (cairo_move_to cr (unsafe-fl+ (unsafe-flreal-part footprint) dx) (unsafe-fl+ (unsafe-flimag-part footprint) dy))]
         [(#\m) (cairo_rel_move_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
         [(#\L) (cairo_line_to cr (unsafe-fl+ (unsafe-flreal-part footprint) dx) (unsafe-fl+ (unsafe-flimag-part footprint) dy))]
