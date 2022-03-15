@@ -177,8 +177,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-convert : Visual-Object-Convert
   (lambda [self mime fallback]
-    (with-asserts ([self track?])
-      (define-values (bmp lt rb)
-        (bitmap-track* self #:color 'royalblue #:fill 'honeydew))
-
-      (graphics-convert bmp mime fallback))))
+    (cond [(not (track? self)) fallback]
+          [else (bitmap-track self #:color 'royalblue #:fill 'honeydew)])))

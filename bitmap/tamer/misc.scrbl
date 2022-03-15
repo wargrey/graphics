@@ -1,6 +1,7 @@
 #lang scribble/manual
 
 @(require digimon/tamer)
+@(require bitmap)
 
 @(require (for-label typed/racket/base))
 
@@ -13,7 +14,6 @@
                @defproc[(cairo-version-string) String])]{
  Get the version info of @cite{Cairo} shipped with Racket.
 }
-
 
 @deftogether[(@defproc[(pango-version) Integer]
                @defproc[(pango-version-string) String])]{

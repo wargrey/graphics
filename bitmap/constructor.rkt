@@ -145,7 +145,7 @@
   (lambda [radius #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
     (bitmap_circle (real->double-flonum radius) (stroke-paint->source* border) (fill-paint->source* pattern) density)))
 
-(define bitmap-sector : (-> Real Real Real
+#;(define bitmap-sector : (-> Real Real Real
                             [#:border (Option Stroke-Paint)] [#:fill (Option Fill-Paint)] [#:radian? Boolean] [#:density Positive-Flonum]
                             Bitmap)
   (lambda [radius start end #:border [border (default-stroke)] #:fill [pattern #false] #:radian? [radian? #true]

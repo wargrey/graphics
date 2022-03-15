@@ -99,9 +99,14 @@
   #:type-name Visual-Object<%>
   #:property prop:convertible
   (λ [[self : Visual-Object<%>] [mime : Symbol] [fallback : Any]]
-    (with-handlers ([exn? (λ [[e : exn]] (invalid-convert self mime fallback))])
-      (define convert (or (visual-object<%>-convert self) graphics-convert))
-      (convert self mime fallback))))
+    (define maybe-convert (visual-object<%>-convert self))
+
+    (cond [(not maybe-convert) (graphics-convert self mime fallback)]
+          [else (let* ([sentry (gensym 'convert)]
+                       [datum (maybe-convert self mime sentry)])
+                  (cond [(eq? datum sentry) (graphics-convert self mime fallback)]
+                        [(bitmap<%>? datum) (graphics-convert datum mime fallback)]
+                        [else datum]))])))
 
 (struct bitmap<%> visual-object<%>
   ([shadow : Phantom-Bytes]
@@ -181,14 +186,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define graphics-convert : Visual-Object-Convert
   (lambda [self mime fallback]
-    (with-asserts ([self bitmap?])
-      (define density (bitmap-density self))
-      (define surface (bitmap<%>-surface self))
-      (case mime
-        [(png@2x-bytes) (or (and (= density 2.0) (cairo-surface->stream-bytes surface 'png '/dev/p2xout)) fallback)]
-        [(png-bytes) (cairo-surface->stream-bytes surface 'png '/dev/pngout)]
-        [(svg-bytes) (cairo-surface->stream-bytes surface 'svg '/dev/svgout)]
-        [else fallback]))))
+    (cond [(not (bitmap? self)) fallback]
+          [else (let ([density (bitmap-density self)])
+                  (define surface (bitmap<%>-surface self))
+                  (case mime
+                    [(png@2x-bytes) (or (and (= density 2.0) (cairo-surface->stream-bytes surface 'png '/dev/p2xout)) fallback)]
+                    [(png-bytes) (cairo-surface->stream-bytes surface 'png '/dev/pngout)]
+                    [(svg-bytes) (cairo-surface->stream-bytes surface 'svg '/dev/svgout)]
+                    [else fallback]))])))
 
 (define invalid-convert : Visual-Object-Convert
   (lambda [self mime fallback]
