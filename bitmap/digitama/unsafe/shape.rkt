@@ -134,10 +134,9 @@
       (when (and fill-style)
         (cairo_close_path cr)
         (unless (eq? fill-style 'winding)
-          (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD)))
+          (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD))))
     
-      (cairo-render cr border background))
-    
+    (cairo-render cr border background)
     (cairo_destroy cr)
 
     img))
