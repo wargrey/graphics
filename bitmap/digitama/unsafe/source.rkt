@@ -7,11 +7,13 @@
 (require "../base.rkt")
 (require "convert.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
 (define-type Bitmap-Source (U Bitmap-Surface Bitmap-Pattern FlRGBA))
 (define-type Bitmap-FlSize*
   (case-> [Bitmap Positive-Flonum Positive-Flonum -> (Values Positive-Flonum Positive-Flonum)]
           [Bitmap Nonnegative-Flonum Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum)]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
 (module unsafe racket/base
   (provide (all-defined-out) the-surface)
   (provide (rename-out [cpointer? font-description?]))
