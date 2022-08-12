@@ -16,6 +16,64 @@
   (require "paint.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define (bitmap_line x y dx dy width height border density)
+    (define-values (img cr) (make-cairo-image width height density #true))
+    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define offset (unsafe-fl* line-width 0.5))
+    
+    (cairo_new_sub_path cr)
+
+    (cond [(= dx 0.0) ; vline
+           (cairo_move_to     cr x offset)
+           (cairo_rel_line_to cr dx (unsafe-fl- dy line-width))]
+          [(= dy 0.0) ; hline
+           (cairo_move_to     cr offset y)
+           (cairo_rel_line_to cr (unsafe-fl- dx line-width) dy)]
+          [else ; TODO
+           (cairo_move_to     cr  x  y)
+           (cairo_rel_line_to cr dx dy)])
+    
+    (cairo-render cr border #false)
+    (cairo_destroy cr)
+    
+    img)
+  
+  (define (bitmap_arrow radius start border background density radian? stem-rate)
+    (define fllength (unsafe-fl* radius 2.0))
+    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define r (unsafe-fl- radius (unsafe-fl* line-width 0.5)))
+    (define rdelta (unsafe-fl/ 2pi 3.0))
+    (define-values (img cr) (make-cairo-image fllength fllength density #true))
+    (define rpoint (if radian? start (~radian start)))
+    (define rwing1 (unsafe-fl+ rpoint rdelta))
+    (define rwing2 (unsafe-fl- rpoint rdelta))
+    
+    (cairo_translate cr radius radius)
+
+    (cairo_new_sub_path cr)
+    
+    (when (and (unsafe-fl< 0.0 stem-rate) (unsafe-fl< stem-rate 1.0))
+      (define sr (unsafe-fl/ (unsafe-fl* r stem-rate) (unsafe-flcos (unsafe-fl- rdelta pi/2))))
+      (define sdelta (unsafe-fl+ (unsafe-flacos stem-rate) pi/2))
+      (define stail1 (unsafe-fl+ rpoint sdelta))
+      (define stail2 (unsafe-fl- rpoint sdelta))
+
+      (cairo_move_to cr (unsafe-fl* sr (unsafe-flcos rwing1)) (unsafe-fl* sr (unsafe-flsin rwing1)))
+      (cairo_line_to cr (unsafe-fl* r (unsafe-flcos stail1)) (unsafe-fl* r (unsafe-flsin stail1)))
+      (cairo_line_to cr (unsafe-fl* r (unsafe-flcos stail2)) (unsafe-fl* r (unsafe-flsin stail2)))
+      (cairo_line_to cr (unsafe-fl* sr (unsafe-flcos rwing2)) (unsafe-fl* sr (unsafe-flsin rwing2))))
+
+    
+    (cairo_line_to cr (unsafe-fl* r (unsafe-flcos rwing2)) (unsafe-fl* r (unsafe-flsin rwing2)))
+    (cairo_line_to cr (unsafe-fl* r (unsafe-flcos rpoint)) (unsafe-fl* r (unsafe-flsin rpoint)))
+    (cairo_line_to cr (unsafe-fl* r (unsafe-flcos rwing1)) (unsafe-fl* r (unsafe-flsin rwing1)))
+    (cairo_close_path cr)
+    
+    (cairo-render cr border background)
+    (cairo_destroy cr)
+    
+    img)
+
   (define (bitmap_circle radius border background density)
     (define fllength (unsafe-fl* radius 2.0))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
@@ -166,8 +224,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
+ [bitmap_line (-> Flonum Flonum Flonum Flonum Flonum Flonum (Option Paint) Flonum Bitmap)]
+ [bitmap_arrow (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Boolean Flonum Bitmap)]
  [bitmap_circle (-> Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
- [bitmap_sector (-> Flonum Real Real (Option Paint) (Option Bitmap-Source) Flonum Boolean Bitmap)]
+ [bitmap_sector (-> Flonum Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Boolean Bitmap)]
  [bitmap_ellipse (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_rectangle (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_rounded_rectangle (-> Flonum Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
