@@ -38,35 +38,63 @@
     
     img)
   
-  (define (bitmap_arrow radius start border background density radian? stem-rate)
-    (define fllength (unsafe-fl* radius 2.0))
+  (define (bitmap_arrow head-radius0 start border background density radian? shaft-thickness0 shaft-length0)
+    (define fllength (unsafe-fl* head-radius0 2.0))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
-    (define r (unsafe-fl- radius (unsafe-fl* line-width 0.5)))
+    (define radius-adjustment (unsafe-fl* line-width 0.5))
+    (define head-radius (unsafe-fl- head-radius0 radius-adjustment))
     (define rdelta (unsafe-fl/ 2pi 3.0))
-    (define-values (img cr) (make-cairo-image fllength fllength density #true))
     (define rpoint (if radian? start (~radian start)))
     (define rwing1 (unsafe-fl+ rpoint rdelta))
     (define rwing2 (unsafe-fl- rpoint rdelta))
+    (define-values (rpx rpy) (values (unsafe-fl* head-radius (unsafe-flcos rpoint)) (unsafe-fl* head-radius (unsafe-flsin rpoint))))
+    (define-values (wx1 wy1) (values (unsafe-fl* head-radius (unsafe-flcos rwing1)) (unsafe-fl* head-radius (unsafe-flsin rwing1))))
+    (define-values (wx2 wy2) (values (unsafe-fl* head-radius (unsafe-flcos rwing2)) (unsafe-fl* head-radius (unsafe-flsin rwing2))))
     
-    (cairo_translate cr radius radius)
 
+    (define shaft-length (if (unsafe-fl< shaft-length0 0.0) (unsafe-fl* head-radius0 (unsafe-fl- shaft-length0)) shaft-length0))
+    (define shaft-thickness (if (unsafe-fl< shaft-thickness0 0.0) (unsafe-fl* head-radius (unsafe-fl- shaft-thickness0)) shaft-thickness0))
+    (define shaft-thickness/2 (unsafe-fl* shaft-thickness 0.5))
+    (define draw-shaft? (and (unsafe-fl< 0.0 shaft-thickness/2) (unsafe-fl< shaft-thickness/2 head-radius)))
+    (define wing-theta (unsafe-fl- rdelta pi/2))
+    (define wing-radius (unsafe-fl/ shaft-thickness/2 (unsafe-flcos wing-theta)))
+    (define shaft-minlen (unsafe-fl* shaft-thickness/2 (unsafe-fltan wing-theta)))
+    (define shaft-radius (unsafe-fl- (unsafe-flsqrt (unsafe-fl+ (unsafe-flexpt shaft-thickness/2 2.0) (unsafe-flexpt shaft-length 2.0))) radius-adjustment))
+
+    (define-values (flwidth flheight tx ty shx1 shy1 shx2 shy2)
+      (if (or (not draw-shaft?) (unsafe-fl<= shaft-length shaft-minlen))
+          (values fllength fllength head-radius0 head-radius0 0.0 0.0 0.0 0.0)
+
+          (let*-values ([(shdelta) (unsafe-fl+ (unsafe-flacos (unsafe-fl/ shaft-thickness/2 shaft-radius)) pi/2)]
+                        [(shtail1 shtail2) (values (unsafe-fl+ rpoint shdelta) (unsafe-fl- rpoint shdelta))]
+                        [(shx1 shy1) (values (unsafe-fl* shaft-radius (unsafe-flcos shtail1)) (unsafe-fl* shaft-radius (unsafe-flsin shtail1)))]
+                        [(shx2 shy2) (values (unsafe-fl* shaft-radius (unsafe-flcos shtail2)) (unsafe-fl* shaft-radius (unsafe-flsin shtail2)))])
+            (if (unsafe-fl<= shaft-length head-radius0)
+                (values fllength fllength head-radius0 head-radius0 shx1 shy1 shx2 shy2)
+
+                (let*-values ([(axmin axmax) (values (unsafe-flmin rpx (unsafe-flmin wx1 wx2)) (unsafe-flmax rpx (unsafe-flmax wx1 wx2)))]
+                              [(aymin aymax) (values (unsafe-flmin rpy (unsafe-flmin wy1 wy2)) (unsafe-flmax rpy (unsafe-flmax wy1 wy2)))]
+                              [(shxmin shxmax) (values (unsafe-flmin shx1 shx2) (unsafe-flmax shx1 shx2))]
+                              [(shymin shymax) (values (unsafe-flmin shy1 shy2) (unsafe-flmax shy1 shy2))]
+                              [(xmin xmax) (values (unsafe-flmin axmin shxmin) (unsafe-flmax axmax shxmax))]
+                              [(ymin ymax) (values (unsafe-flmin aymin shymin) (unsafe-flmax aymax shymax))])
+                  (values (unsafe-fl- xmax xmin) (unsafe-fl- ymax ymin) (unsafe-fl- xmin) (unsafe-fl- ymin) shx1 shy1 shx2 shy2))))))
+      
+    (define-values (img cr) (make-cairo-image flwidth flheight density #true))
+    
+    (cairo_translate cr tx ty)
     (cairo_new_sub_path cr)
+    (cairo_move_to cr 0.0 0.0)
     
-    (when (and (unsafe-fl< 0.0 stem-rate) (unsafe-fl< stem-rate 1.0))
-      (define sr (unsafe-fl/ (unsafe-fl* r stem-rate) (unsafe-flcos (unsafe-fl- rdelta pi/2))))
-      (define sdelta (unsafe-fl+ (unsafe-flacos stem-rate) pi/2))
-      (define stail1 (unsafe-fl+ rpoint sdelta))
-      (define stail2 (unsafe-fl- rpoint sdelta))
-
-      (cairo_move_to cr (unsafe-fl* sr (unsafe-flcos rwing1)) (unsafe-fl* sr (unsafe-flsin rwing1)))
-      (cairo_line_to cr (unsafe-fl* r (unsafe-flcos stail1)) (unsafe-fl* r (unsafe-flsin stail1)))
-      (cairo_line_to cr (unsafe-fl* r (unsafe-flcos stail2)) (unsafe-fl* r (unsafe-flsin stail2)))
-      (cairo_line_to cr (unsafe-fl* sr (unsafe-flcos rwing2)) (unsafe-fl* sr (unsafe-flsin rwing2))))
-
+    (when (or draw-shaft?)
+      (cairo_move_to cr (unsafe-fl* wing-radius (unsafe-flcos rwing1)) (unsafe-fl* wing-radius (unsafe-flsin rwing1)))
+      (cairo_line_to cr shx1 shy1)
+      (cairo_line_to cr shx2 shy2)
+      (cairo_line_to cr (unsafe-fl* wing-radius (unsafe-flcos rwing2)) (unsafe-fl* wing-radius (unsafe-flsin rwing2))))
     
-    (cairo_line_to cr (unsafe-fl* r (unsafe-flcos rwing2)) (unsafe-fl* r (unsafe-flsin rwing2)))
-    (cairo_line_to cr (unsafe-fl* r (unsafe-flcos rpoint)) (unsafe-fl* r (unsafe-flsin rpoint)))
-    (cairo_line_to cr (unsafe-fl* r (unsafe-flcos rwing1)) (unsafe-fl* r (unsafe-flsin rwing1)))
+    (cairo_line_to cr wx2 wy2)
+    (cairo_line_to cr rpx rpy)
+    (cairo_line_to cr wx1 wy1)
     (cairo_close_path cr)
     
     (cairo-render cr border background)
@@ -225,7 +253,7 @@
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [bitmap_line (-> Flonum Flonum Flonum Flonum Flonum Flonum (Option Paint) Flonum Bitmap)]
- [bitmap_arrow (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Boolean Flonum Bitmap)]
+ [bitmap_arrow (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Boolean Flonum Flonum Bitmap)]
  [bitmap_circle (-> Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_sector (-> Flonum Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Boolean Bitmap)]
  [bitmap_ellipse (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]

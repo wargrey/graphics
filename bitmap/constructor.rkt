@@ -174,17 +174,26 @@
         (bitmap_ellipse (real->double-flonum width) (real->double-flonum height)
                         (stroke-paint->source* border) (fill-paint->source* pattern) density))))
 
-(define bitmap-arrow : (->* (Real)
-                            (Real #:stem-rate Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:radian? Boolean #:density Positive-Flonum)
+(define bitmap-arrow : (->* (Real Real)
+                            (Real #:shaft-thickness Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint)
+                                  #:radian? Boolean #:density Positive-Flonum)
                             Bitmap)
-  (lambda [radius [start 0.0]#:stem-rate [rate 0.25] #:border [border (default-stroke)] #:fill [pattern #false] #:radian? [radian? #true] #:density [density (default-bitmap-density)]]
-    (bitmap_arrow (real->double-flonum radius) (real->double-flonum start)
-                  (stroke-paint->source* border) (fill-paint->source* pattern) density radian? (real->double-flonum rate))))
+  (lambda [#:shaft-thickness [shaft-thickness -0.3] #:border [border #false] #:fill [pattern 'black]
+           #:radian? [radian? #true] #:density [density (default-bitmap-density)]
+           head-radius shaft-length [start 0.0]]
+    (bitmap_arrow (real->double-flonum head-radius) (real->double-flonum start)
+                  (stroke-paint->source* border) (fill-paint->source* pattern) density radian?
+                  (real->double-flonum shaft-thickness) (real->double-flonum shaft-length))))
 
-(define bitmap-arrowhead : (->* (Real) (Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:radian? Boolean #:density Positive-Flonum) Bitmap)
-  (lambda [radius [start 0.0] #:border [border (default-stroke)] #:fill [pattern #false] #:radian? [radian? #true] #:density [density (default-bitmap-density)]]
+(define bitmap-arrowhead : (->* (Real)
+                                (Real #:shaft-thickness Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:radian? Boolean #:density Positive-Flonum)
+                                Bitmap)
+  (lambda [#:shaft-thickness [shaft-thickness 0.0] #:border [border (default-stroke)] #:fill [pattern #false]
+           #:radian? [radian? #true] #:density [density (default-bitmap-density)]
+           radius [start 0.0]]
     (bitmap_arrow (real->double-flonum radius) (real->double-flonum start)
-                  (stroke-paint->source* border) (fill-paint->source* pattern) density radian? 0.0)))
+                  (stroke-paint->source* border) (fill-paint->source* pattern) density radian?
+                  (real->double-flonum shaft-thickness) -1.0)))
 
 (define bitmap-hline : (->* (Real Real) (#:stroke (Option Stroke-Paint) #:density Positive-Flonum) Bitmap)
   (lambda [width height #:stroke [stroke (default-stroke)] #:density [density (default-bitmap-density)]]

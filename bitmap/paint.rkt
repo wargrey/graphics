@@ -36,7 +36,11 @@
                            Stroke)
   (lambda [[baseline (default-stroke)] #:color [color #false] #:opacity [opacity 1.0] #:width [width #false]
                                        #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]]
-    (define linewidth : Nonnegative-Flonum (if (and (real? width) (>= width 0.0)) (real->double-flonum width) (stroke-width baseline)))
+    (define linewidth : Nonnegative-Flonum
+      (cond [(not width) (stroke-width baseline)]
+            [else (let ([flw (real->double-flonum width)])
+                    (cond [(>= flw 0.0) flw]
+                          [else (* (abs flw) (stroke-width baseline))]))]))
     (define-values (linejoin miterlimit)
       (cond [(stroke-line-join-option? join) (values join (stroke-miterlimit baseline))]
             [(real? join) (values 'miter (real->double-flonum join))]
@@ -55,7 +59,7 @@
     (define no-border? : Boolean (or (eq? dash 'none) (eq? dash 'hidden)))
     (define linewidth : Nonnegative-Flonum
       (cond [(and no-border?) 0.0]
-            [(and (real? width) (>= width 0.0)) (real->double-flonum width)]
+            [(real? width) (let ([flw (real->double-flonum width)]) (if (>= flw 0.0) flw (* (abs flw) (stroke-width baseline))))]
             [(css-border-thickness-option? width) (border-thickness->integer width)]
             [else (stroke-width baseline)]))
     (define-values (dashoffset dasharray)

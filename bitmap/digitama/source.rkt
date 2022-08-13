@@ -10,9 +10,11 @@
 (require "../paint.rkt")
 (require "../color.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Stroke-Paint (U Color Paint))
 (define-type Fill-Paint (U Color Bitmap Bitmap-Pattern))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stroke-paint->source : (-> Stroke-Paint Paint)
   (lambda [paint]
     (cond [(paint? paint) paint]
