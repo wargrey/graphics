@@ -7,7 +7,7 @@
 (require "font.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(void transparent hilite black)
+#;(void transparent hilite black)
 
 (define white   : FlRGBA (rgb* 'white))
 (define gray    : FlRGBA (rgb* 'gray))
