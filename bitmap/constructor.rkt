@@ -101,12 +101,11 @@
 (define bitmap-rectangle : (->* (Real)
                                 (Real (Option Real) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:density Positive-Flonum)
                                 Bitmap)
-  (lambda [w [h #false] [rounded-radius #false] #:border [border (default-stroke)] #:fill [pattern #false]
-             #:density [density (default-bitmap-density)]]
+  (lambda [w [h #false] [corner-radius #false] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
     (define width : Flonum (real->double-flonum w))
     (define height : Flonum (if (not h) width (real->double-flonum h)))
-    (if (and rounded-radius (positive? rounded-radius))
-        (bitmap_rounded_rectangle width height rounded-radius (stroke-paint->source* border) (fill-paint->source* pattern) density)
+    (if (and corner-radius (positive? corner-radius))
+        (bitmap_rounded_rectangle width height corner-radius (stroke-paint->source* border) (fill-paint->source* pattern) density)
         (bitmap_rectangle width height (stroke-paint->source* border) (fill-paint->source* pattern) density))))
 
 (define bitmap-polyline : (->* ((U Point2D (Listof Point2D)))

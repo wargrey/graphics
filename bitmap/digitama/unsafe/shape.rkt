@@ -51,7 +51,6 @@
     (define-values (wx1 wy1) (values (unsafe-fl* head-radius (unsafe-flcos rwing1)) (unsafe-fl* head-radius (unsafe-flsin rwing1))))
     (define-values (wx2 wy2) (values (unsafe-fl* head-radius (unsafe-flcos rwing2)) (unsafe-fl* head-radius (unsafe-flsin rwing2))))
     
-
     (define shaft-length (if (unsafe-fl< shaft-length0 0.0) (unsafe-fl* head-radius0 (unsafe-fl- shaft-length0)) shaft-length0))
     (define shaft-thickness (if (unsafe-fl< shaft-thickness0 0.0) (unsafe-fl* head-radius (unsafe-fl- shaft-thickness0)) shaft-thickness0))
     (define shaft-thickness/2 (unsafe-fl* shaft-thickness 0.5))
@@ -59,13 +58,16 @@
     (define wing-theta (unsafe-fl- rdelta pi/2))
     (define wing-radius (unsafe-fl/ shaft-thickness/2 (unsafe-flcos wing-theta)))
     (define shaft-minlen (unsafe-fl* shaft-thickness/2 (unsafe-fltan wing-theta)))
-    (define shaft-radius (unsafe-fl- (unsafe-flsqrt (unsafe-fl+ (unsafe-flexpt shaft-thickness/2 2.0) (unsafe-flexpt shaft-length 2.0))) radius-adjustment))
-
+    
     (define-values (flwidth flheight tx ty shx1 shy1 shx2 shy2)
       (if (or (not draw-shaft?) (unsafe-fl<= shaft-length shaft-minlen))
           (values fllength fllength head-radius0 head-radius0 0.0 0.0 0.0 0.0)
 
-          (let*-values ([(shdelta) (unsafe-fl+ (unsafe-flacos (unsafe-fl/ shaft-thickness/2 shaft-radius)) pi/2)]
+          (let*-values ([(shaft-radius) (unsafe-fl- (unsafe-flsqrt
+                                                     (unsafe-fl+ (unsafe-fl* shaft-thickness/2 shaft-thickness/2)
+                                                                 (unsafe-fl* shaft-length shaft-length)))
+                                                    radius-adjustment)]
+                        [(shdelta) (unsafe-fl+ (unsafe-flacos (unsafe-fl/ shaft-thickness/2 shaft-radius)) pi/2)]
                         [(shtail1 shtail2) (values (unsafe-fl+ rpoint shdelta) (unsafe-fl- rpoint shdelta))]
                         [(shx1 shy1) (values (unsafe-fl* shaft-radius (unsafe-flcos shtail1)) (unsafe-fl* shaft-radius (unsafe-flsin shtail1)))]
                         [(shx2 shy2) (values (unsafe-fl* shaft-radius (unsafe-flcos shtail2)) (unsafe-fl* shaft-radius (unsafe-flsin shtail2)))])
