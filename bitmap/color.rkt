@@ -7,6 +7,7 @@
 (require colorspace)
 
 (require racket/math)
+(require racket/format)
 
 (require "digitama/base.rkt")
 (require "digitama/color.rkt")
@@ -73,7 +74,17 @@
                       (clr (if (not a:com) com (+ com a:com)) ...
                            (if (not aoff) a (+ a aoff)))))))))]))
 
-(struct hexa flcolor ([digits : Index] [alpha : Flonum]) #:transparent #:type-name Hexa)
+(struct hexa flcolor ([digits : Index] [alpha : Flonum])
+  #:type-name Hexa
+  #:transparent
+  #:property prop:custom-write
+  (λ [[self : Hexa] [/dev/stdout : Output-Port] [mode : (U Zero One Boolean)]]
+    (fprintf /dev/stdout "#(struct:~a #x" (object-name self))
+    (write-string (~r (hexa-digits self) #:base 16 #:min-width 6 #:pad-string "0") /dev/stdout)
+    (write-char #\space /dev/stdout)
+    (write (hexa-alpha self) /dev/stdout)
+    (write-char #\) /dev/stdout)))
+
 (struct xterma flcolor ([index : Byte] [alpha : Flonum]) #:transparent #:type-name Xterma)
 
 (define-color-model hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]) #:* rgb->hsl)
@@ -101,6 +112,7 @@
           [(hsia? src) ($ hsi->rgb (hsia-hue src) (hsia-saturation src) (hsia-intensity src) (hsia-alpha src) flalpha)]
           [(hwba? src) ($ hwb->rgb (hwba-hue src) (hwba-white src) (hwba-black src) (hwba-alpha src) flalpha)]
           [(xterma? src) (xterm256-rgba (xterma-index src) (* (xterma-alpha src) flalpha) rgb*)]
+          [(keyword? src) (or (digits-rgba src flalpha) (rgb* fallback-color flalpha))]
           [else (rgb* fallback-color flalpha)])))
 
 (define xterm : (->* (Byte) (Real) Xterma)

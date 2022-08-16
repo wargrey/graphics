@@ -4,9 +4,16 @@
 
 (require "base.rkt")
 
-(require/typed
- racket/symbol
- [symbol->immutable-string (-> Symbol String)])
+(require colorspace)
+
+(require digimon/number)
+(require digimon/symbol)
+
+(require digimon/digitama/unsafe/release/ops)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(struct rgban rgba ([name : Symbol]) #:transparent #:type-name RGBAN)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-make-currentcolor : (Parameterof (-> Color)) (make-parameter (λ [] #x000000)))
@@ -23,8 +30,8 @@
 
 (define named-rgba : (->* (Symbol Flonum (-> Color Real FlRGBA)) (Boolean) (Option FlRGBA))
   (lambda [name flalpha rgb* [downcased? #false]]
-    (cond [(hash-has-key? css-named-colors name) (rgb* (hash-ref css-named-colors name) flalpha)]
-          [(not downcased?) (named-rgba (string->symbol (string-downcase (symbol->immutable-string name))) flalpha rgb* #true)]
+    (cond [(hash-has-key? css-named-colors name) (rgba-attach-name (rgb* (hash-ref css-named-colors name) flalpha) name)]
+          [(not downcased?) (named-rgba (symbol-downcase name) flalpha rgb* #true)]
           [(eq? name 'transparent) transparent]
           [(eq? name 'currentcolor) (rgb* ((default-make-currentcolor)) flalpha)]
           [else #false])))
@@ -43,6 +50,19 @@
                  flalpha)]
           [else (or (named-rgba (vector-ref xterm-system-colors sgr) flalpha rgb* #true)
                     (rgb* fallback-color flalpha))])))
+
+(define digits-rgba : (-> Keyword Flonum (Option FlRGBA))
+  (lambda [src flalpha]
+    (define-values (hex a) (css-#hex-color->rgba src))
+
+    (and (integer? hex)
+         (let-values ([(r g b) (hex->rgb-gamuts hex)])
+           (rgba r g b (* (/ (exact->inexact a) 255.0) flalpha))))))
+
+(define xterm-color-tuples : (Vectorof Flonum) (vector 0.0 95.0 135.0 175.0 215.0 255.0))
+(define xterm-system-colors : (Vectorof Symbol)
+  (vector 'black 'maroon 'green 'olive 'navy 'purple 'teal 'silver
+          'grey 'red 'lime 'yellow 'blue 'fuchsia 'aqua 'white))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://drafts.csswg.org/css-color/#named-colors
@@ -80,7 +100,53 @@
                       (lightskyblue . #x87CEFA) (gainsboro . #xDCDCDC) (fuchsia . #xFF00FF) (mediumspringgreen . #x00FA9A)
                       (midnightblue . #x191970) (salmon . #xFA8072) (silver . #xC0C0C0)))
 
-(define xterm-color-tuples : (Vectorof Flonum) (vector 0.0 95.0 135.0 175.0 215.0 255.0))
-(define xterm-system-colors : (Vectorof Symbol)
-  (vector 'black 'maroon 'green 'olive 'navy 'purple 'teal 'silver
-          'grey 'red 'lime 'yellow 'blue 'fuchsia 'aqua 'white))
+;;; https://drafts.csswg.org/css-color/#numeric-rgb
+(define css-#hex-color->rgb : (-> (U Keyword String) (U False Symbol Index))
+  (lambda [hex]
+    (define color : String (if (keyword? hex) (keyword->immutable-string hex) hex))
+    (case (string-length color)
+      [(6) (string->index color 16)]
+      [(3) (css-short-color->number color)]
+      [else 'exn:digit])))
+
+(define css-#hex-color->rgba : (-> (U Keyword String) (Values (U False Symbol Index) Byte))
+  (lambda [hex]
+    (define color : String (if (keyword? hex) (keyword->immutable-string hex) hex))
+    (case (string-length color)
+      [(3) (values (css-short-color->number color) #xFF)]
+      [(4) (hex-rgba->rgb-a (css-short-color->number color))]
+      [(6) (values (string->index color 16)  #xFF)]
+      [(8) (hex-rgba->rgb-a (string->index color 16))]
+      [else (values 'exn:digit  #xFF)])))
+
+(define hex-rgba->rgb-a : (-> (Option Index) (Values (Option Index) Byte))
+  (lambda [hex]
+    (cond [(not hex) (values #false #xFF)]
+          [else (values (unsafe-idxrshift hex 8)
+                        (bitwise-and hex #xFF))])))
+
+(define css-short-color->number : (-> String (Option Index))
+  (lambda [color]
+    (let color->hex ([chs : (Listof Char) (string->list color)]
+                     [hex : Index 0])
+      (cond [(null? chs) hex]
+            [else (let ([ch (car chs)])
+                    (define digit : (Option Integer)
+                      (cond [(char-numeric? ch)   (- (char->integer ch) #x30)]
+                            [(char<=? #\A ch #\F) (- (char->integer ch) #x37)]
+                            [(char<=? #\a ch #\f) (- (char->integer ch) #x57)]
+                            [else #false]))
+                    (and (byte? digit)
+                         (color->hex (cdr chs)
+                                     (unsafe-idxior (unsafe-idxlshift hex 8)
+                                                    (unsafe-idxior (unsafe-idxlshift digit 4)
+                                                                   digit)))))]))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define rgba-attach-name : (-> FlRGBA Symbol RGBAN)
+  (lambda [c name]
+    (rgban (rgba-red c)
+           (rgba-green c)
+           (rgba-blue c)
+           (rgba-alpha c)
+           name)))
