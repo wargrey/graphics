@@ -56,7 +56,7 @@
                                              (graphics-save-as sym.png (bitmap-table ncol datum) gformat))))]
                       [else null]))))))
   
-(define make~save-as : (-> Symbol String Make-Phony)
+(define make~save-as : (-> Symbol String Make-Info-Phony)
   (lambda [gformat .ext]
     (λ [digimon info-ref]
       (define natives (map (inst car Path CC-Launcher-Info) (find-digimon-native-launcher-names info-ref)))
@@ -94,10 +94,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define png-phony-goal : Wisemon-Phony
-  (wisemon-make-phony #:name 'png #:phony (make~save-as 'png-bytes ".png") #:desc "Export module-level images as PNGs"))
+  (wisemon-make-info-phony #:name 'png #:phony (make~save-as 'png-bytes ".png") #:desc "Export module-level images as PNGs"))
 
 (define svg-phony-goal : Wisemon-Phony
-  (wisemon-make-phony #:name 'svg #:phony (make~save-as 'svg-bytes ".svg") #:desc "Export module-level images as SVGs"))
-
-#;(define script-phony-goal : Wisemon-Phony
-  (wisemon-make-phony #:name 'script #:phony (make~save-as 'script) #:desc "Export module-level images as Cairo Scripts"))
+  (wisemon-make-info-phony #:name 'svg #:phony (make~save-as 'svg-bytes ".svg") #:desc "Export module-level images as SVGs"))

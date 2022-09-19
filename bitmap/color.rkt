@@ -80,7 +80,7 @@
   #:property prop:custom-write
   (λ [[self : Hexa] [/dev/stdout : Output-Port] [mode : (U Zero One Boolean)]]
     (fprintf /dev/stdout "#(struct:~a #x" (object-name self))
-    (write-string (~r (hexa-digits self) #:base 16 #:min-width 6 #:pad-string "0") /dev/stdout)
+    (write-string (string-upcase (~r (hexa-digits self) #:base 16 #:min-width 6 #:pad-string "0")) /dev/stdout)
     (write-char #\space /dev/stdout)
     (write (hexa-alpha self) /dev/stdout)
     (write-char #\) /dev/stdout)))

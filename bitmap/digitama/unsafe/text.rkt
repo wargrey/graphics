@@ -18,7 +18,7 @@
   (define (bitmap_text text font-desc lines fgsource bgsource alsource clsource mlsource blsource dlsource density)
     (define-values (width height) (font_get_text_extent font-desc text))
     (define-values (bmp cr) (make-text-image width height bgsource density))
-    (define layout (bitmap_create_layout the-cairo lines))
+    (define layout (bitmap_create_layout lines))
 
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
@@ -42,7 +42,7 @@
     bmp)
   
   (define (bitmap_paragraph text font-desc lines max-width max-height indent spacing wrap ellipsize fgsource bgsource density)
-    (define layout (bitmap_create_layout* the-cairo lines max-width max-height indent spacing wrap ellipsize))
+    (define layout (bitmap_create_layout* lines max-width max-height indent spacing wrap ellipsize))
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
 
@@ -75,7 +75,7 @@
         (make-cairo-image width height density #true)
         (make-cairo-image* width height background density #true)))
   
-  (define (bitmap_create_layout cr lines)
+  (define (bitmap_create_layout lines)
     (define context (the-context))
     (define layout (pango_layout_new context))
     (when (pair? lines)
@@ -88,8 +88,8 @@
       (pango_attr_list_unref attrs))
     layout)
   
-  (define (bitmap_create_layout* cr lines width height indent spacing wrap-mode ellipsize-mode)
-    (define layout (bitmap_create_layout cr lines))
+  (define (bitmap_create_layout* lines width height indent spacing wrap-mode ellipsize-mode)
+    (define layout (bitmap_create_layout lines))
     (pango_layout_set_width layout (if (flonum? width) (~size width) width #|-1|#))
     (pango_layout_set_height layout (if (flonum? height) (~size height) height))
     (pango_layout_set_indent layout (~size indent))   ; (~size nan.0) == (~size inf.0) == 0

@@ -11,6 +11,7 @@
 (require "../digitama/unsafe/convert.rkt")
 (require "../digitama/font.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (default-border (desc-stroke long-dash #:color 'gray #:width 1))
 
 (define bitmap-text* : (->* (String Font) (Real) Bitmap)
@@ -21,7 +22,7 @@
 
 
 (module+ main
-  #;(for/list : (Listof (Pairof String Bitmap)) ([face (in-list (list-font-faces))])
+  (for/list : (Listof (Pairof String Bitmap)) ([face (in-list (list-font-faces))])
     (cons face (bitmap-text* (format "~a: Sphinx 0123456789" face) (desc-font #:family face))))
   
   (bitmap-vr-append* #:gapsize 16.0

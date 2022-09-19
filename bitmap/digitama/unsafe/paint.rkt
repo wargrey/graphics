@@ -5,6 +5,7 @@
 (require "pangocairo.rkt")
 (require "../paint.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-set-stroke
   (lambda [cr stroke]
     (cairo-set-source cr (unsafe-struct-ref stroke 0))
