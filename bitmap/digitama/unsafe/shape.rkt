@@ -134,6 +134,20 @@
     
     img)
 
+  (define (bitmap_arc radius start end border density radian?)
+    (define fllength (unsafe-fl* radius 2.0))
+    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define-values (rstart rend) (if radian? (values start end) (values (~radian start) (~radian end))))
+    (define-values (img cr) (make-cairo-image fllength fllength density #true))
+    
+    (cairo_translate cr radius radius)
+    (cairo_arc_negative cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl* line-width 0.5)) (unsafe-fl- 0.0 rstart) (unsafe-fl- 0.0 rend))
+
+    (cairo-render cr border #false)
+    (cairo_destroy cr)
+    
+    img)
+
   (define (bitmap_ellipse width height border background density)
     (define-values (img cr) (make-cairo-image width height density #true))
     (define-values (width/2 height/2) (values (unsafe-fl* width 0.5) (unsafe-fl* height 0.5)))
@@ -258,6 +272,7 @@
  [bitmap_arrow (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Boolean Flonum Flonum Bitmap)]
  [bitmap_circle (-> Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_sector (-> Flonum Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Boolean Bitmap)]
+ [bitmap_arc (-> Flonum Flonum Flonum (Option Paint) Flonum Boolean Bitmap)]
  [bitmap_ellipse (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_rectangle (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_rounded_rectangle (-> Flonum Flonum Real (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]

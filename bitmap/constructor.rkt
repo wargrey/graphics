@@ -166,6 +166,11 @@
     (bitmap_sector (real->double-flonum radius) (real->double-flonum start) (real->double-flonum end)
                    (stroke-paint->source* border) (fill-paint->source* pattern) density radian?)))
 
+(define bitmap-arc : (->* (Real Real Real) (#:stroke (Option Stroke-Paint) #:radian? Boolean #:density Positive-Flonum) Bitmap)
+  (lambda [radius start end #:stroke [stroke (default-stroke)] #:radian? [radian? #true] #:density [density (default-bitmap-density)]]
+    (bitmap_arc (real->double-flonum radius) (real->double-flonum start) (real->double-flonum end)
+                (stroke-paint->source* stroke) density radian?)))
+
 (define bitmap-ellipse : (->* (Real) (Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:density Positive-Flonum) Bitmap)
   (lambda [width [height #false] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
     (if (or (not height) (= width height))

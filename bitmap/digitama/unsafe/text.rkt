@@ -15,6 +15,7 @@
   (require "pangocairo.rkt")
   (require (submod "font.rkt" unsafe))
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap_text text font-desc lines fgsource bgsource alsource clsource mlsource blsource dlsource density)
     (define-values (width height) (font_get_text_extent font-desc text))
     (define-values (bmp cr) (make-text-image width height bgsource density))
@@ -117,6 +118,7 @@
               (set-box! &context context)
               (unbox &context)))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [bitmap_text
