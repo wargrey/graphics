@@ -98,3 +98,6 @@
 
 (define svg-phony-goal : Wisemon-Phony
   (wisemon-make-info-phony #:name 'svg #:phony (make~save-as 'svg-bytes ".svg") #:desc "Export module-level images as SVGs"))
+
+(define pdf-phony-goal : Wisemon-Phony
+  (wisemon-make-info-phony #:name 'pdf #:phony (make~save-as 'pdf-bytes ".pdf") #:desc "Export module-level images as PDFs"))

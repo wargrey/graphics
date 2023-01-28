@@ -53,6 +53,7 @@
     (case format
       [(png) (cairo-surface-save-as-png sfs /dev/sfsout)]
       [(svg) (cairo-surface-save-as-svg sfs /dev/sfsout)]
+      [(pdf) (cairo-surface-save-as-pdf sfs /dev/sfsout)]
       [else  (cairo-surface-save-as-png sfs /dev/sfsout)])
     (end-breakable-atomic))
 
@@ -73,6 +74,19 @@
     (cairo_surface_flush svg-surface)
     (cairo_surface_finish svg-surface)
     (cairo_destroy svg-cr))
+
+  (define (cairo-surface-save-as-pdf sfs /dev/pdfout)
+    (define (do-write bstr-ptr len) (cairo-write bstr-ptr len /dev/pdfout))
+    (define w (cairo_image_surface_get_width sfs))
+    (define h (cairo_image_surface_get_height sfs))
+    (define pdf-surface (cairo_pdf_surface_create_for_stream do-write w h))
+    (define pdf-cr (cairo_create pdf-surface))
+
+    (cairo_set_source_surface pdf-cr sfs 0.0 0.0)
+    (cairo_paint pdf-cr)
+    (cairo_surface_flush pdf-surface)
+    (cairo_surface_finish pdf-surface)
+    (cairo_destroy pdf-cr))
 
   (define (cairo-write bstr-ptr len /dev/bmpout)
     (define bstr (make-bytes len))
@@ -193,6 +207,7 @@
                     [(png@2x-bytes) (or (and (= density 2.0) (cairo-surface->stream-bytes surface 'png '/dev/p2xout)) fallback)]
                     [(png-bytes) (cairo-surface->stream-bytes surface 'png '/dev/pngout)]
                     [(svg-bytes) (cairo-surface->stream-bytes surface 'svg '/dev/svgout)]
+                    [(pdf-bytes) (cairo-surface->stream-bytes surface 'pdf '/dev/pdfout)]
                     [else fallback]))])))
 
 (define invalid-convert : Visual-Object-Convert
