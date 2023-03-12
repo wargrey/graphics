@@ -15,8 +15,8 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap_section src x y width height density)
-    (define-values (img cr) (make-cairo-image width height density #false))
-    (cairo_set_source_surface cr src (unsafe-fl- 0.0 (unsafe-fl* x density)) (unsafe-fl- 0.0 (unsafe-fl* y density)))
+    (define-values (img cr) (make-cairo-image (unsafe-fl/ width density) (unsafe-fl/ height density) density #false))
+    (cairo_set_source_surface cr src (unsafe-fl- 0.0 x) (unsafe-fl- 0.0 y))
     (cairo_paint cr)
     (cairo_destroy cr)
     img)
@@ -34,7 +34,7 @@
 
   (define (bitmap_bounding_box src just-alpha?)
     (define-values (pixels total stride w h) (cairo-surface-metrics src 4))
-    (define-values (zero-dot? dotoff) (if just-alpha? (values zero-alpha? A) (values zero-argb? 0)))
+    (define-values (zero-dot? dotoff) (if just-alpha? (values pixel-alpha-zero? A) (values pixel-zero? 0)))
     (let ([x w] [y h] [X 0] [Y 0])
       (let y-loop ([yn 0] [idx dotoff])
         (when (unsafe-fx< yn h)
@@ -54,14 +54,7 @@
     (values (unsafe-fl/ (unsafe-fx->fl x) density)
             (unsafe-fl/ (unsafe-fx->fl y) density)
             (unsafe-fl/ (unsafe-fx->fl (unsafe-fx- X 1)) density)
-            (unsafe-fl/ (unsafe-fx->fl (unsafe-fx- Y 1)) density)))
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (zero-alpha? pixels idx:must-be-alpha)
-    (unsafe-fx= (unsafe-bytes-ref pixels idx:must-be-alpha) 0))
-
-  (define (zero-argb? pixels idx)
-    (unsafe-fx= (pixels-argb-ref pixels idx #true) 0)))
+            (unsafe-fl/ (unsafe-fx->fl (unsafe-fx- Y 1)) density))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide

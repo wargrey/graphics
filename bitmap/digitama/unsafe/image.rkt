@@ -22,6 +22,7 @@
     (define-values (img cr) (make-cairo-image width height density #false))
     (define surface (cairo_get_target cr))
     (define-values (pixels total stride w h) (cairo-surface-metrics surface 4))
+    (cairo_surface_flush surface)
     (let y-loop ([y 0])
       (when (unsafe-fx< y h)
         (let x-loop ([x 0] [idx (unsafe-fx* y stride)])

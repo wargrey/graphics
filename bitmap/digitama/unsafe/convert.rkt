@@ -9,6 +9,11 @@
 
 (unsafe-provide create-argb-bitmap create-invalid-bitmap cairo-surface-save)
 
+;;; NOTE
+; The density should only affect the displaying of bitmap
+; The size of a bitmap therefore always the same as the actual size of its `surface`
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base
   (provide (all-defined-out) phantom-bytes? make-phantom-bytes)
   (provide (rename-out [cpointer? bitmap-surface?]))
@@ -19,7 +24,12 @@
   (require racket/unsafe/ops)
   (require racket/draw/unsafe/cairo)
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define (cairo-surface-content-size sfs)
+    (unsafe-fx* (unsafe-fx* (cairo_image_surface_get_width sfs)
+                            (cairo_image_surface_get_height sfs))
+                4))
+  
   (define (cairo-surface-intrinsic-size sfs)
     (values (cairo_image_surface_get_width sfs)
             (cairo_image_surface_get_height sfs)))
@@ -30,8 +40,8 @@
             (unsafe-fl/ (unsafe-fx->fl height) density)))
 
   (define (cairo-surface-data sfs)
-    (define data (cairo_image_surface_get_data sfs))
-    (values data (unsafe-bytes-length data)))
+    (values (cairo_image_surface_get_data* sfs)
+            (cairo-surface-content-size sfs)))
 
   (define (cairo-surface-metrics sfs components)
     (define-values (data total) (cairo-surface-data sfs))
@@ -41,7 +51,7 @@
             (unsafe-fxquotient total stride)))
 
   (define (cairo-surface-shadow sfs)
-    (make-phantom-bytes (unsafe-bytes-length (cairo_image_surface_get_data sfs))))
+    (make-phantom-bytes (cairo-surface-content-size sfs)))
 
   (define (cairo-surface->stream-bytes sfs format name density)
     (define /dev/sfsout (open-output-bytes name))
@@ -57,7 +67,8 @@
     (end-breakable-atomic))
 
   (define (cairo-surface-save-as-png sfs /dev/pngout density)
-    (define (do-write ignored bstr-ptr len) (cairo-write bstr-ptr len /dev/pngout))
+    (define (do-write ignored bstr-ptr len)
+      (cairo-write bstr-ptr len /dev/pngout))
 
     (cairo_surface_write_to_png_stream sfs do-write))
 
@@ -187,7 +198,8 @@
                                 [Bitmap Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
                                 [Bitmap Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)])
   (let ([flsize (λ [[bmp : Bitmap] [w% : Nonnegative-Flonum] [h% : Nonnegative-Flonum]] : (Values Nonnegative-Flonum Nonnegative-Flonum)
-                  (let-values ([(w h) (bitmap-flsize bmp)]) (values (* w w%) (* h h%))))])
+                  (let-values ([(w h) (bitmap-flsize bmp)])
+                    (values (* w w%) (* h h%))))])
     (case-lambda [(bmp) (values (exact->inexact (bitmap-width bmp)) (exact->inexact (bitmap-height bmp)))]
                  [(bmp ratio) (let ([% (real->double-flonum ratio)]) (flsize bmp % %))]
                  [(bmp w% h%) (flsize bmp (real->double-flonum w%) (real->double-flonum h%))])))
@@ -209,7 +221,7 @@
           [else (let ([density (bitmap-density self)])
                   (define surface (bitmap<%>-surface self))
                   (case mime
-                    [(png@2x-bytes) (or (and (= density 2.0) (cairo-surface->stream-bytes surface 'png '/dev/p2xout 1.0)) fallback)]
+                    [(png@2x-bytes) (cairo-surface->stream-bytes surface 'png '/dev/p2xout 1.0)]
                     [(png-bytes) (cairo-surface->stream-bytes surface 'png '/dev/pngout density)]
                     [(svg-bytes) (cairo-surface->stream-bytes surface 'svg '/dev/svgout density)]
                     [(pdf-bytes) (cairo-surface->stream-bytes surface 'pdf '/dev/pdfout density)]

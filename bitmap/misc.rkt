@@ -12,11 +12,9 @@
   (lambda [src [dest-density (default-bitmap-density)]]
     (define density : Positive-Flonum (bitmap-density src))
     (cond [(= density dest-density) src]
-          [else (let-values ([(flwidth flheight) (bitmap-flsize src density density)])
-                  (bitmap_section (bitmap-surface src) 0.0 0.0
-                                  (/ flwidth dest-density)
-                                  (/ flheight dest-density)
-                                  dest-density))])))
+          [else (let ([s (/ density dest-density)])
+                  (bitmap_scale (bitmap-surface src)
+                                s s dest-density))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-version : (-> Integer) (lambda [] (cairo_version)))

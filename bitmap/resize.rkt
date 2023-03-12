@@ -48,7 +48,7 @@
   (lambda [bmp [just-alpha? #true]]
     (define surface : Bitmap-Surface (bitmap-surface bmp))
     (define density : Flonum (bitmap-density bmp))
-    (define-values (x y X Y) (bitmap_bounding_box* surface just-alpha? density))
+    (define-values (x y X Y) (bitmap_bounding_box* surface just-alpha? 1.0))
     (bitmap_section surface x y (- X x) (- Y y) density)))
 
 (define bitmap-inset : (case-> [Bitmap Real -> Bitmap]
@@ -60,9 +60,9 @@
     [(bmp vertical horizontal)
      (bitmap-inset bmp vertical horizontal vertical horizontal)]
     [(bmp top right bottom left)
-     (define-values (flleft flright) (values (real->double-flonum left) (real->double-flonum right)))
-     (define-values (fltop flbottom) (values (real->double-flonum top) (real->double-flonum bottom)))
      (define-values (flwidth flheight density) (bitmap-flsize+density bmp))
+     (define-values (flleft flright) (values (* (real->double-flonum left) density) (* (real->double-flonum right) density)))
+     (define-values (fltop flbottom) (values (* (real->double-flonum top) density) (* (real->double-flonum bottom) density)))
      (bitmap_section (bitmap-surface bmp) (- flleft) (- fltop)
                      (+ flwidth flright flleft) (+ flheight flbottom fltop)
                      density)]))
@@ -70,7 +70,8 @@
 (define-cropper bitmap-crop : (-> Bitmap Positive-Real Positive-Real Bitmap)
   (#:lambda [bmp width height left% top%]
     (define-values (W H density) (bitmap-flsize+density bmp))
-    (define-values (w h) (values (min W (real->double-flonum width)) (min H (real->double-flonum height))))
+    (define w (min W (* (real->double-flonum width) density)))
+    (define h (min H (* (real->double-flonum height) density)))
     (bitmap_section (bitmap-surface bmp) (* (- W w) left%) (* (- H h) top%) w h density))
   #:with ("bitmap-~a-crop" [lt 0.0 0.0] [lc 0.0 0.5] [lb 0.0 1.0]
                            [ct 0.5 0.0] [cc 0.5 0.5] [cb 0.5 1.0]

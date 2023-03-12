@@ -4,8 +4,7 @@
 
 (require racket/math)
 
-(require "../misc.rkt")
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define rgb->hue : (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum Flonum))
   (lambda [red green blue]
     (define-values (M m) (values (max red green blue) (min red green blue)))
