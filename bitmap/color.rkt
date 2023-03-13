@@ -100,24 +100,41 @@
           (real->gamut blue)
           (real->alpha alpha))))
 
-(define rgb* : (->* (Color) (Real) FlRGBA)
-  (lambda [src [alpha 1.0]]
-    (define flalpha : Flonum (real->alpha alpha))
-    (cond [(symbol? src) (or (named-rgba src flalpha rgb*) (rgb* fallback-color flalpha))]
-          [(exact-integer? src) (let-values ([(r g b) (hex->rgb-gamuts src)]) (rgba r g b flalpha))]
-          [(hexa? src) (let-values ([(r g b) (hex->rgb-gamuts (hexa-digits src))]) (rgba r g b (* (hexa-alpha src) flalpha)))]
-          [(rgba? src) (if (= flalpha 1.0) src (rgba (rgba-red src) (rgba-green src) (rgba-blue src) (* (rgba-alpha src) flalpha)))]
-          [(hsla? src) ($ hsl->rgb (hsla-hue src) (hsla-saturation src) (hsla-luminosity src) (hsla-alpha src) flalpha)]
-          [(hsva? src) ($ hsv->rgb (hsva-hue src) (hsva-saturation src) (hsva-value src) (hsva-alpha src) flalpha)]
-          [(hsia? src) ($ hsi->rgb (hsia-hue src) (hsia-saturation src) (hsia-intensity src) (hsia-alpha src) flalpha)]
-          [(hwba? src) ($ hwb->rgb (hwba-hue src) (hwba-white src) (hwba-black src) (hwba-alpha src) flalpha)]
-          [(xterma? src) (xterm256-rgba (xterma-index src) (* (xterma-alpha src) flalpha) rgb*)]
-          [(keyword? src) (or (digits-rgba src flalpha) (rgb* fallback-color flalpha))]
-          [else (rgb* fallback-color flalpha)])))
+(define rgb* : (case-> [Color -> FlRGBA]
+                       [Color Real -> FlRGBA]
+                       [Real Real Real -> FlRGBA]
+                       [Real Real Real Real -> FlRGBA])
+  (case-lambda
+    [(src) (rgb* src 1.0)]
+    [(r g b) (rgb* (rgb r g b) 1.0)]
+    [(r g b alpha) (rgb* (rgb r g b) alpha)]
+    [(src alpha)
+     (let ([flalpha (real->alpha alpha)])
+       (cond [(symbol? src) (or (named-rgba src flalpha rgb*) (rgb* fallback-color flalpha))]
+             [(exact-integer? src) (let-values ([(r g b) (hex->rgb-gamuts src)]) (rgba r g b flalpha))]
+             [(hexa? src) (let-values ([(r g b) (hex->rgb-gamuts (hexa-digits src))]) (rgba r g b (* (hexa-alpha src) flalpha)))]
+             [(rgba? src) (if (= flalpha 1.0) src (rgba (rgba-red src) (rgba-green src) (rgba-blue src) (* (rgba-alpha src) flalpha)))]
+             [(hsla? src) ($# hsl->rgb (hsla-hue src) (hsla-saturation src) (hsla-luminosity src) (hsla-alpha src) flalpha)]
+             [(hsva? src) ($# hsv->rgb (hsva-hue src) (hsva-saturation src) (hsva-value src) (hsva-alpha src) flalpha)]
+             [(hsia? src) ($# hsi->rgb (hsia-hue src) (hsia-saturation src) (hsia-intensity src) (hsia-alpha src) flalpha)]
+             [(hwba? src) ($# hwb->rgb (hwba-hue src) (hwba-white src) (hwba-black src) (hwba-alpha src) flalpha)]
+             [(xterma? src) (xterm256-rgba (xterma-index src) (* (xterma-alpha src) flalpha) rgb*)]
+             [(keyword? src) (or (digits-rgba src flalpha) (rgb* fallback-color flalpha))]
+             [else (rgb* fallback-color flalpha)]))]))
 
 (define xterm : (->* (Byte) (Real) Xterma)
   (lambda [idx [alpha 1.0]]
     (xterma idx (real->alpha alpha))))
+
+(define hexa* : (case-> [Color -> Hexa]
+                        [Color Real -> Hexa]
+                        [Real Real Real -> Hexa]
+                        [Real Real Real Real -> Hexa])
+  (case-lambda
+    [(src) (hexa (flcolor->hex src) 1.0)]
+    [(src alpha) (hexa (flcolor->hex src) (real->alpha alpha))]
+    [(r g b) (hexa (flcolor->hex (rgb r g b)) 1.0)]
+    [(r g b alpha) (hexa (flcolor->hex (rgb r g b)) 1.0)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define rgb-transform-replace : (-> Color [#:red (Option Real)] [#:green (Option Real)] [#:blue (Option Real)] [#:alpha (Option Real)] FlRGBA)

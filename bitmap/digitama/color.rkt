@@ -11,7 +11,6 @@
 
 (require digimon/digitama/unsafe/release/ops)
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct rgban rgba ([name : Symbol]) #:transparent #:type-name RGBAN)
 
@@ -23,7 +22,7 @@
 (define black : FlRGBA (rgba 0.0 0.0 0.0 1.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define $ : (-> (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)) Flonum Flonum Flonum Flonum Flonum FlRGBA)
+(define $# : (-> (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)) Flonum Flonum Flonum Flonum Flonum FlRGBA)
   (lambda [->rgb h s b a alpha]
     (define-values (flr flg flb) (->rgb h s b))
     (rgba flr flg flb (* alpha a))))
