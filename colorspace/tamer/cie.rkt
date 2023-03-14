@@ -3,6 +3,8 @@
 (require bitmap/constructor)
 (require bitmap/color)
 
+(require racket/flonum)
+
 (require "../cie.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -32,7 +34,7 @@
 (define zero (make-coordinate 0.0 0.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define chromaticity-diagram-boundary : (-> RGBW-Info Flonum Flonum Flonum Flonum Flonum RGBW-Info)
+(define rgb-triangle-vertices : (-> RGBW-Info Flonum Flonum Flonum Flonum Flonum RGBW-Info)
   (lambda [vertices x y r g b]
     (define red (car vertices))
     (define green (cadr vertices))
@@ -48,7 +50,7 @@
           (if (< fx (car (cadr blue))) (list hexa (make-coordinate x y)) blue)
           (if (> (hexa-digits hexa) (hexa-digits (car white))) (list hexa (make-coordinate x y)) white))))
 
-(define make-chromaticity-diagram-constructor : (->* (CIE-RGB-Weight-Factors) (Flonum) (XYWH->ARGB* RGBW-Info))
+(define make-rgb-color-map-constructor : (->* (CIE-RGB-Weight-Factors) (Flonum) (XYWH->ARGB* RGBW-Info))
   (lambda [tranpose-matrix [L 1.0]]
     (define-values (xyY->RGB _) (CIE-make-xyY-RGB-convertors tranpose-matrix L))
 
@@ -58,10 +60,10 @@
       (define-values (r g b okay?) (xyY->RGB x y))
           
       (if (and okay?)
-          (values 1.0 r g b (chromaticity-diagram-boundary vertices x y r g b))
+          (values 1.0 r g b (rgb-triangle-vertices vertices x y r g b))
           (values 0.0 0.0 0.0 0.0 vertices)))))
 
-(define bitmap-rgb-triangle : (-> CIE-RGB-Weight-Factors Any (Values Bitmap RGBW-Info))
+(define bitmap-rgb-color-map : (-> CIE-RGB-Weight-Factors Any (Values Bitmap RGBW-Info))
   (lambda [transpose-matrix type]
     (define black (hexa* 0.0 0.0 0.0))
     (define zero (make-coordinate 0.0 0.0))
@@ -73,23 +75,30 @@
 
     (printf "====== ~a =====~n" type)
     (bitmap-rectangular* chromaticity-diagram-size chromaticity-diagram-size
-                         (make-chromaticity-diagram-constructor transpose-matrix)
+                         (make-rgb-color-map-constructor transpose-matrix)
                          vertices0)))
 
-(define bitmap-spectral-locus : (-> Bitmap)
-  (lambda []
+(define bitmap-spectral-locus : (-> CIE-XYZ-Function-Samples Bitmap)
+  (lambda [samples]
     (bitmap-irregular chromaticity-diagram-size chromaticity-diagram-size
-                      (λ [[w : Index] [h : Index] [it : Integer]] : (Values Integer Integer Real Real Real Real Integer)
-                        (values it it 1.0 0.0 0.0 0.0 (add1 it)))
-                      0)))
+                      (λ [[w : Index] [h : Index] [samples : CIE-XYZ-Function-Samples]] : (Values Integer Integer Real Real Real Real CIE-XYZ-Function-Samples)
+                        (if (null? samples)
+                            (values -1 -1 0.0 0.0 0.0 0.0 null)
+                            (let* ([XYZ-function-values (cdar samples)]
+                                   [xbar (flvector-ref XYZ-function-values 0)]
+                                   [ybar (flvector-ref XYZ-function-values 1)])
+                              (values (exact-round (* xbar w)) (exact-round (* ybar h))
+                                      1.0 0.0 0.0 0.0
+                                      (cdr samples)))))
+                      samples)))
 
 
 (module+ main
   (pretty-print-columns 80)
   (current-print pretty-print-handler)
-  
-  (bitmap-rgb-triangle CIE-primary 'CIE-Primary)
-  (bitmap-rgb-triangle CIE-sRGB-D65 'sRGB-D65)
-  (bitmap-rgb-triangle CIE-sRGB-D50 'sRGB-D50)
 
-  (bitmap-spectral-locus))
+  (bitmap-spectral-locus (CIE-load-default-XYZ-function-samples))
+  
+  (bitmap-rgb-color-map CIE-primary 'CIE-Primary)
+  (bitmap-rgb-color-map CIE-sRGB-D65 'sRGB-D65)
+  (bitmap-rgb-color-map CIE-sRGB-D50 'sRGB-D50))

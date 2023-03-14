@@ -5,6 +5,7 @@
 (require math/matrix)
 
 (require racket/flonum)
+(require racket/string)
 
 ;;; Resources
 ; http://cvrl.ioo.ucl.ac.uk/index.htm
@@ -40,6 +41,8 @@
 (define-type CIE-RGB->xyY (-> Flonum Flonum Flonum (Values Flonum Flonum)))
 (define-type CIE-Filter (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 
+(define-type CIE-XYZ-Function-Samples (Listof (Pairof Flonum FlVector)))
+
 (define CIE-primary : CIE-RGB-Weight-Factors
   (vector->matrix 3 3
                   (vector 0.49000 0.31000 0.20000
@@ -60,6 +63,35 @@
                           0.2225 0.7169 0.0606
                           0.0139 0.0971 0.7141)))
 
+(define CIE-load-default-XYZ-function-samples : (->* () (Flonum Flonum) CIE-XYZ-Function-Samples)
+  (lambda [[λmin 380.0] [λmax 780.0]]
+    (define src (collection-file-path "spectrum_1nm.csv" "colorspace" "stone"))
+
+    (define locus-rsamples : (Listof (Pairof Flonum FlVector))
+      (call-with-input-file* src
+        (λ [[/dev/csvin : Input-Port]]
+          (for/fold ([rsamples : (Listof (Pairof Flonum FlVector)) null])
+                    ([line (in-port read-line /dev/csvin)])
+            (define tokens (string-split line ","))
+
+            (or (and (> (length tokens) 8)
+                     (let ([λself (string->number (car tokens))]
+                           [xbar (string->number (list-ref tokens 5))]
+                           [ybar (string->number (list-ref tokens 6))]
+                           [zbar (string->number (list-ref tokens 7))])
+                       (and (real? λself)
+                            (<= λmin λself λmax)
+                            (real? xbar) (real? ybar) (real? zbar)
+                            (cons (cons (real->double-flonum λself)
+                                        (flvector (real->double-flonum xbar)
+                                                  (real->double-flonum ybar)
+                                                  (real->double-flonum zbar)))
+                                  rsamples))))
+                rsamples)))))
+
+    (reverse locus-rsamples)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define CIE-RGB-gamma-correct-to-XYZ : (-> Flonum Flonum)
   (lambda [c]
     (if (<= c 0.03928)
@@ -137,3 +169,4 @@
               (define-values (X Y Z) (RGB->XYZ r g b))
 
               (CIE-XYZ->xyY X Y Z)))))
+    
