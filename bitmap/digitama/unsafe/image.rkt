@@ -21,7 +21,7 @@
   (define (λbitmap width height density λargb)
     (define-values (img cr) (make-cairo-image width height density #false))
     (define surface (cairo_get_target cr))
-    (define-values (pixels total stride w h) (cairo-surface-metrics surface 4))
+    (define-values (pixels _ stride w h) (cairo-surface-metrics surface 4))
     (cairo_surface_flush surface)
     (let y-loop ([y 0])
       (when (unsafe-fx< y h)
@@ -38,25 +38,46 @@
   (define (λbitmap* width height density λargb initial)
     (define-values (img cr) (make-cairo-image width height density #false))
     (define surface (cairo_get_target cr))
-    (define-values (pixels total stride w h) (cairo-surface-metrics surface 4))
+    (define-values (pixels _ stride w h) (cairo-surface-metrics surface 4))
     (cairo_surface_flush surface)
 
-    (define datum
-      (let y-loop ([y 0]
-                   [datum0 initial])
-        (if (unsafe-fx< y h)
-            (let x-loop ([x 0]
-                         [idx (unsafe-fx* y stride)]
-                         [datum datum0])
-              (if (unsafe-fx< x w)
-                  (let-values ([(a r g b datum++) (λargb x y w h datum)])
-                    (pixels-set-argb-reals pixels idx a r g b)
-                    (x-loop (unsafe-fx+ x 1) (unsafe-fx+ idx 4) datum++))
-                  (y-loop (unsafe-fx+ y 1) datum)))
-            datum0)))
-    (cairo_surface_mark_dirty surface)
-    (cairo_destroy cr)
-    (values img datum))
+    (let y-loop ([y 0]
+                 [datum0 initial])
+      (if (unsafe-fx< y h)
+
+          (let x-loop ([x 0]
+                       [idx (unsafe-fx* y stride)]
+                       [datum datum0])
+            (if (unsafe-fx< x w)
+                (let-values ([(a r g b datum++) (λargb x y w h datum)])
+                  (pixels-set-argb-reals pixels idx a r g b)
+                  (x-loop (unsafe-fx+ x 1) (unsafe-fx+ idx 4) datum++))
+                (y-loop (unsafe-fx+ y 1) datum)))
+
+          (let ()
+            (cairo_surface_mark_dirty surface)
+            (cairo_destroy cr)
+            (values img datum0)))))
+
+  (define (λbitmap_step width height density λargb initial)
+    (define-values (img cr) (make-cairo-image width height density #false))
+    (define surface (cairo_get_target cr))
+    (define-values (pixels _ stride w h) (cairo-surface-metrics surface 4))
+    (cairo_surface_flush surface)
+
+    (let step ([datum initial])
+      (define-values (x y a r g b datum++) (λargb w h datum))
+
+      (if (and (>= x 0) (< x w) (>= y 0) (< y h))
+
+          (let ([idx (unsafe-fx+ (unsafe-fx* y stride) (unsafe-fx* x 4))])
+            (pixels-set-argb-reals pixels idx a r g b)
+            (step datum++))
+
+          (let ()
+            (cairo_surface_mark_dirty surface)
+            (cairo_destroy cr)
+            (values img datum)))))
   
   (define (bitmap_blank width height density)
     (define-values (img cr) (make-cairo-image width height density #true))
@@ -102,12 +123,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type XYWH->ARGB (-> Index Index Index Index (Values Real Real Real Real)))
 (define-type (XYWH->ARGB* t) (-> Index Index Index Index t (Values Real Real Real Real t)))
+(define-type (ARGB-Step t) (-> Index Index t (Values Integer Integer Real Real Real Real t)))
 
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [list->4:values (All (a) (-> (Listof a) a (Values a a a a)))]
  [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]
  [λbitmap* (All (t) (-> Flonum Flonum Flonum (XYWH->ARGB* t) t (Values Bitmap t)))]
+ [λbitmap_step (All (t) (-> Flonum Flonum Flonum (ARGB-Step t) t (Values Bitmap t)))]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Bitmap-Source Flonum Bitmap)]
  [bitmap_frame (-> Bitmap-Surface Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum

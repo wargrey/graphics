@@ -13,6 +13,7 @@
         (List Hexa Coordinate)
         (List Hexa Coordinate)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define position-filter : (-> Flonum Flonum)
   (lambda [pt]
     (define significent-digits 10000.0)
@@ -26,6 +27,11 @@
           (position-filter g)
           (position-filter b))))
 
+(define chromaticity-diagram-size 300)
+(define black (hexa* 0.0 0.0 0.0))
+(define zero (make-coordinate 0.0 0.0))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define chromaticity-diagram-boundary : (-> RGBW-Info Flonum Flonum Flonum Flonum Flonum RGBW-Info)
   (lambda [vertices x y r g b]
     (define red (car vertices))
@@ -55,9 +61,8 @@
           (values 1.0 r g b (chromaticity-diagram-boundary vertices x y r g b))
           (values 0.0 0.0 0.0 0.0 vertices)))))
 
-(define bitmap-chromaticity-diagram : (-> CIE-RGB-Weight-Factors Any (Values Bitmap RGBW-Info))
+(define bitmap-rgb-triangle : (-> CIE-RGB-Weight-Factors Any (Values Bitmap RGBW-Info))
   (lambda [transpose-matrix type]
-    (define chromaticity-diagram-size 300)
     (define black (hexa* 0.0 0.0 0.0))
     (define zero (make-coordinate 0.0 0.0))
     (define vertices0 : RGBW-Info
@@ -67,15 +72,24 @@
             (list black zero)))
 
     (printf "====== ~a =====~n" type)
-    (build-bitmap* chromaticity-diagram-size chromaticity-diagram-size
-                   (make-chromaticity-diagram-constructor transpose-matrix)
-                   vertices0)))
+    (bitmap-rectangular* chromaticity-diagram-size chromaticity-diagram-size
+                         (make-chromaticity-diagram-constructor transpose-matrix)
+                         vertices0)))
+
+(define bitmap-spectral-locus : (-> Bitmap)
+  (lambda []
+    (bitmap-irregular chromaticity-diagram-size chromaticity-diagram-size
+                      (λ [[w : Index] [h : Index] [it : Integer]] : (Values Integer Integer Real Real Real Real Integer)
+                        (values it it 1.0 0.0 0.0 0.0 (add1 it)))
+                      0)))
 
 
 (module+ main
   (pretty-print-columns 80)
   (current-print pretty-print-handler)
   
-  (bitmap-chromaticity-diagram CIE-primary 'CIE-Primary)
-  (bitmap-chromaticity-diagram CIE-sRGB-D65 'sRGB-D65)
-  (bitmap-chromaticity-diagram CIE-sRGB-D50 'sRGB-D50))
+  (bitmap-rgb-triangle CIE-primary 'CIE-Primary)
+  (bitmap-rgb-triangle CIE-sRGB-D65 'sRGB-D65)
+  (bitmap-rgb-triangle CIE-sRGB-D50 'sRGB-D50)
+
+  (bitmap-spectral-locus))

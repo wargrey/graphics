@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) Bitmap XYWH->ARGB XYWH->ARGB*)
+(provide (all-defined-out))
+(provide Bitmap XYWH->ARGB XYWH->ARGB* ARGB-Step)
 (provide (rename-out [bitmap-polyline bitmap-lines]))
 
 (require "font.rkt")
@@ -20,16 +21,25 @@
 (require racket/format)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define build-bitmap : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
+(define bitmap-rectangular : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
   (lambda [width height λargb #:density [density (default-bitmap-density)]]
     (λbitmap (real->double-flonum width) (real->double-flonum height)
              density λargb)))
 
-(define build-bitmap* : (All (t) (-> Nonnegative-Real Nonnegative-Real (XYWH->ARGB* t) t [#:density Positive-Flonum]
-                                           (Values Bitmap t)))
+(define bitmap-rectangular* : (All (t) (-> Nonnegative-Real Nonnegative-Real (XYWH->ARGB* t) t [#:density Positive-Flonum]
+                                     (Values Bitmap t)))
   (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
     (λbitmap* (real->double-flonum width) (real->double-flonum height)
               density λargb initial)))
+
+(define bitmap-irregular : (All (t) (-> Nonnegative-Real Nonnegative-Real (ARGB-Step t) t [#:density Positive-Flonum] Bitmap))
+  (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
+    (define-values (bmp _) (bitmap-irregular* width height λargb initial #:density density))
+    bmp))
+
+(define bitmap-irregular* : (All (t) (-> Nonnegative-Real Nonnegative-Real (ARGB-Step t) t [#:density Positive-Flonum] (Values Bitmap t)))
+  (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
+    (λbitmap_step (real->double-flonum width) (real->double-flonum height) density λargb initial)))
 
 (define bitmap-blank : (->* () (Real (Option Real) #:density Positive-Flonum) Bitmap)
   (lambda [[width 0.0] [height #false] #:density [density (default-bitmap-density)]]
