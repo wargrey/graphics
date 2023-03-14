@@ -20,12 +20,12 @@
 (require racket/format)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-rectangular : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
+(define build-bitmap : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
   (lambda [width height λargb #:density [density (default-bitmap-density)]]
     (λbitmap (real->double-flonum width) (real->double-flonum height)
              density λargb)))
 
-(define bitmap-rectangular* : (All (t) (-> Nonnegative-Real Nonnegative-Real (XYWH->ARGB* t) t [#:density Positive-Flonum]
+(define build-bitmap* : (All (t) (-> Nonnegative-Real Nonnegative-Real (XYWH->ARGB* t) t [#:density Positive-Flonum]
                                            (Values Bitmap t)))
   (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
     (λbitmap* (real->double-flonum width) (real->double-flonum height)

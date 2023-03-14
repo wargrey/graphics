@@ -3,7 +3,7 @@
 (require "../resize.rkt")
 (require "../constructor.rkt")
 
-(define (build-flomap* [x : Index] [y : Index] [w : Index] [h : Index])
+(define (xy->argb [x : Index] [y : Index] [w : Index] [h : Index])
   (define w+h (+ w h))
   (define w-x (- w x))
   (define h-y (- h y))
@@ -13,13 +13,13 @@
           (/ (+ x h-y)   w+h)))
 
 (printf "====== ~a =====~n" '(density 1.0))
-(time (bitmap-rectangular 100 100 build-flomap* #:density 1.00))
+(time (build-bitmap 100 100 xy->argb #:density 1.00))
 (printf "====== ~a =====~n" '(density 1.75))
-(time (bitmap-rectangular 100 100 build-flomap* #:density 1.75))
+(time (build-bitmap 100 100 xy->argb #:density 1.75))
 (printf "====== ~a =====~n" '(density 2.0))
-(time (bitmap-rectangular 100 100 build-flomap* #:density 2.00))
+(time (build-bitmap 100 100 xy->argb #:density 2.00))
 
-(define plane (time (bitmap-rectangular 100 100 build-flomap* #:density 2.00)))
+(define plane (time (build-bitmap 100 100 xy->argb #:density 2.00)))
 (printf "====== ~a =====~n" 'COPY)
 (bitmap-copy plane)
 (printf "====== ~a =====~n" 'INSET)
