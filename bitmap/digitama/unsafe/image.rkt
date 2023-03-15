@@ -68,16 +68,14 @@
     (let step ([datum initial])
       (define-values (x y a r g b datum++) (λargb w h datum))
 
-      (if (and (>= x 0) (< x w) (>= y 0) (< y h))
-
-          (let ([idx (unsafe-fx+ (unsafe-fx* y stride) (unsafe-fx* x 4))])
-            (pixels-set-argb-reals pixels idx a r g b)
-            (step datum++))
-
-          (let ()
-            (cairo_surface_mark_dirty surface)
-            (cairo_destroy cr)
-            (values img datum)))))
+      (cond [(or (not x) (not y))
+             (cairo_surface_mark_dirty surface)
+             (cairo_destroy cr)
+             (values img datum++)]
+            [(and (>= x 0) (< x w) (>= y 0) (< y h))
+             (pixels-set-argb-reals pixels (unsafe-fx+ (unsafe-fx* y stride) (unsafe-fx* x 4)) a r g b)
+             (step datum++)]
+            [else (step datum++)])))
   
   (define (bitmap_blank width height density)
     (define-values (img cr) (make-cairo-image width height density #true))
@@ -123,7 +121,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type XYWH->ARGB (-> Index Index Index Index (Values Real Real Real Real)))
 (define-type (XYWH->ARGB* t) (-> Index Index Index Index t (Values Real Real Real Real t)))
-(define-type (ARGB-Step t) (-> Index Index t (Values Integer Integer Real Real Real Real t)))
+(define-type (ARGB-Step t) (-> Index Index t (Values (Option Integer) (Option Integer) Real Real Real Real t)))
 
 (unsafe-require/typed/provide
  (submod "." unsafe)

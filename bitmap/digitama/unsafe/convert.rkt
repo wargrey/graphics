@@ -26,9 +26,8 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (cairo-surface-content-size sfs)
-    (unsafe-fx* (unsafe-fx* (cairo_image_surface_get_width sfs)
-                            (cairo_image_surface_get_height sfs))
-                4))
+    (unsafe-fx* (cairo_image_surface_get_stride sfs)
+                (cairo_image_surface_get_height sfs)))
   
   (define (cairo-surface-intrinsic-size sfs)
     (values (cairo_image_surface_get_width sfs)

@@ -3,9 +3,12 @@
 (provide (all-defined-out))
 
 (require math/matrix)
+(require math/flonum)
 
-(require racket/flonum)
 (require racket/string)
+(require racket/fixnum)
+
+(require "digitama/spectrum.rkt")
 
 ;;; Resources
 ; http://cvrl.ioo.ucl.ac.uk/index.htm
@@ -13,26 +16,29 @@
 
 ;;; Terminology and Theory
 ; RGB, the RGB color mode
-; rgb, the transformed color value for RGB
-; XYZ, a bad-named imaginary 3-primary color mode to ensure that all colors are located in the first quadrant (non-negative)
-; xyY, the projection of XYZ in a 2D plane, as the `Y` are designed to be the luminance of any color.
-;        The `x`, `y` are relative values of `X` and `Z`,
-;          and x + y + z = 1.0, x > 0.0, z > 0.0,
+; XYZ, a bad-named imaginary 3-primary color mode to ensure that all colors are located in the first quadrant
+;        This color mode maps the Spectural Power Distribution(SPD) to XYZ tristimulus values.
+;        The matching functions themselves are defined by lookup tables rather than formula that can be
+;          calculated exactly. Thus, the integration(∫) of them is actually summation(Σ).
+; xyY, the projection of XYZ in a 2D plane, as the `Y` is designed to be the luminance of any color.
+;        The `x`, `y` are chromaticity values related to `X` and `Y`,
+;          and x + y + z = 1.0, x > 0.0, y > 0.0, z > 0.0,
 ;          hence just a 2D plane.
 ;        The value of `Y` doesn't affect the resulting chromaticity diagram unless it is a 3D one.
+; xbar, ybar, zbar, rbar, gbar, bbar are coefficients of their corresponding color components,
+;   and they represent the mixing ratios of certain 3 parimaries;
+;   also, they can be computed with transpose matrices.
 
-; Negaive `r`, `g`, `b` means the target color is either out of gamut or cannot be mixed by
+; Negative `rbar`, `gbar`, `bbar` means the target color is either out of gamut or cannot be mixed by
 ;  the 3-primary monochromatic light at certain wavelengths.
 ; Yes, it's true that not all colors can be produced by additive mixing with R, G, and B. Say,
-;     Vibrant BlueGreen       = -38R + 42G + 9B
-;  => Vibrant BlueGreen + 38R =        42G + 9B
+;     Vibrant BlueGreen       = -38R + 42G + 9B
+;  => Vibrant BlueGreen + 38R =        42G + 9B
 ; That is, in the color matching experiment, Some `R` must be added to the target color to trick human eyes.
-; Here the coefficients are irradiance.
+; Here the coefficients are irradiance, as tristimulus values.
 
-; Human eyes favor the Green light,
-;   hence the ratio of RGB are 1.0 : 4.5907 : 0.060 
-; That's why the `Y` are designed for the luminance,
-;   and `X` and `Z` don't affect the luminance.
+; Human eyes favor the Green light, hence the basic ratio of RGB are 1.0 : 4.5907 : 0.060 
+; That's why the `Y` is designed for the luminance, and `X` and `Z` don't affect the luminance.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type CIE-RGB-Weight-Factors (Matrix Flonum))
@@ -41,7 +47,31 @@
 (define-type CIE-RGB->xyY (-> Flonum Flonum Flonum (Values Flonum Flonum)))
 (define-type CIE-Filter (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 
-(define-type CIE-XYZ-Function-Samples (Listof (Pairof Flonum FlVector)))
+(struct CIE-observer
+  ([type : Symbol]
+   [λs : FlVector]
+   [xbars : FlVector]
+   [ybars : FlVector]
+   [zbars : FlVector])
+  #:type-name CIE-Observer
+  #:transparent)
+
+(struct CIE-illuminant
+  ([type : Symbol]
+   [λs : FlVector]
+   [spds : FlVector])
+  #:type-name CIE-Illuminant
+  #:transparent)
+
+(struct CIE-XYZ-matching-curves
+  ([λstart : Flonum]
+   [λend : Flonum]
+   [count : Index]
+   [X : FlVector]
+   [Y : FlVector]
+   [Z : FlVector])
+  #:type-name CIE-XYZ-Matching-Curves
+  #:transparent)
 
 (define CIE-primary : CIE-RGB-Weight-Factors
   (vector->matrix 3 3
@@ -63,33 +93,45 @@
                           0.2225 0.7169 0.0606
                           0.0139 0.0971 0.7141)))
 
-(define CIE-load-default-XYZ-function-samples : (->* () (Flonum Flonum) CIE-XYZ-Function-Samples)
-  (lambda [[λmin 380.0] [λmax 780.0]]
+(define CIE-load-default-spectrum-samples : (->* () (Flonum Flonum) (Values CIE-Observer (List CIE-Illuminant CIE-Illuminant)))
+  (lambda [[λmin 0.0] [λmax 1000.0]]
     (define src (collection-file-path "spectrum_1nm.csv" "colorspace" "stone"))
 
-    (define locus-rsamples : (Listof (Pairof Flonum FlVector))
+    (define rsamples : (List (Listof Flonum) (Listof Flonum) (Listof Flonum) (Listof Flonum) (Listof Flonum) (Listof Flonum))
       (call-with-input-file* src
         (λ [[/dev/csvin : Input-Port]]
-          (for/fold ([rsamples : (Listof (Pairof Flonum FlVector)) null])
+          (for/fold ([ss : (List (Listof Flonum) (Listof Flonum) (Listof Flonum) (Listof Flonum) (Listof Flonum) (Listof Flonum)) (list null null null null null null)])
                     ([line (in-port read-line /dev/csvin)])
             (define tokens (string-split line ","))
-
-            (or (and (> (length tokens) 8)
-                     (let ([λself (string->number (car tokens))]
-                           [xbar (string->number (list-ref tokens 5))]
-                           [ybar (string->number (list-ref tokens 6))]
-                           [zbar (string->number (list-ref tokens 7))])
-                       (and (real? λself)
-                            (<= λmin λself λmax)
-                            (real? xbar) (real? ybar) (real? zbar)
-                            (cons (cons (real->double-flonum λself)
-                                        (flvector (real->double-flonum xbar)
-                                                  (real->double-flonum ybar)
-                                                  (real->double-flonum zbar)))
-                                  rsamples))))
-                rsamples)))))
-
-    (reverse locus-rsamples)))
+            
+            (cond [(> (length tokens) 8)
+                   (let ([λself (string->number (car tokens))]
+                         [A (string->number (list-ref tokens 1))]
+                         [D (string->number (list-ref tokens 2))]
+                         [xbar (string->number (list-ref tokens 5))]
+                         [ybar (string->number (list-ref tokens 6))]
+                         [zbar (string->number (list-ref tokens 7))])
+                     (if (and (real? λself) (<= λmin λself λmax)
+                              (real? A) (real? D)
+                              (real? xbar) (real? ybar) (real? zbar))
+                         (list (cons (real->double-flonum λself) (car ss))
+                               (cons (real->double-flonum A) (cadr ss))
+                               (cons (real->double-flonum D) (caddr ss))
+                               (cons (real->double-flonum xbar) (list-ref ss 3))
+                               (cons (real->double-flonum ybar) (list-ref ss 4))
+                               (cons (real->double-flonum zbar) (list-ref ss 5)))
+                         ss))]
+                  [else ss])))))
+        
+    (let ([λs (list->flvector (reverse (car rsamples)))])
+      (values (CIE-observer '2deg λs
+                            (list->flvector (reverse (list-ref rsamples 3)))
+                            (list->flvector (reverse (list-ref rsamples 4)))
+                            (list->flvector (reverse (list-ref rsamples 5))))
+              (list (CIE-illuminant 'A λs
+                                    (list->flvector (reverse (list-ref rsamples 1))))
+                    (CIE-illuminant 'D65 λs
+                                    (list->flvector (reverse (list-ref rsamples 2)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define CIE-RGB-gamma-correct-to-XYZ : (-> Flonum Flonum)
@@ -126,6 +168,76 @@
     (values (* (/ x y) luminance)
             luminance
             (* (/ z y) luminance))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define CIE-observer->XYZ-matching-curves : (->* (CIE-Observer) (Flonum Flonum #:λ-span Flonum) CIE-XYZ-Matching-Curves)
+  (lambda [spectrum [λstart 380.0] [λend 780.0] #:λ-span [step 5.0]]
+    (define fln : Flonum (flfloor (/ (- λend λstart) step)))
+    (define n : Index (assert (fl->fx fln) index?))
+    (define λs (CIE-observer-λs spectrum))
+    (define X (make-flvector n))
+    (define Y (make-flvector n))
+    (define Z (make-flvector n))
+
+    (for ([i (in-range 0 n)])
+      (define λ0 (lerp (real->double-flonum (/ i n))        λstart λend))
+      (define λ1 (lerp (real->double-flonum (/ (add1 i) n)) λstart λend))
+
+      (flvector-set! X i (spectrum-sample-average λs (CIE-observer-xbars spectrum) λ0 λ1))
+      (flvector-set! Y i (spectrum-sample-average λs (CIE-observer-ybars spectrum) λ0 λ1))
+      (flvector-set! Z i (spectrum-sample-average λs (CIE-observer-zbars spectrum) λ0 λ1)))
+    
+    (CIE-XYZ-matching-curves λstart λend n X Y Z)))
+
+(define CIE-illuminant->color-spectral-power-distribution : (->* (CIE-Illuminant) (Flonum Flonum #:λ-span Flonum) FlVector)
+  (lambda [illuminant [λstart 380.0] [λend 780.0] #:λ-span [step 5.0]]
+    (define fln : Flonum (flfloor (/ (- λend λstart) step)))
+    (define n : Fixnum (fl->fx fln))
+    (define λs (CIE-illuminant-λs illuminant))
+    (define spds (make-flvector n))
+
+    (for ([i (in-range 0 n)])
+      (define λ0 (lerp (real->double-flonum (/ i n))        λstart λend))
+      (define λ1 (lerp (real->double-flonum (/ (add1 i) n)) λstart λend))
+
+      (flvector-set! spds i (spectrum-sample-average λs (CIE-illuminant-spds illuminant) λ0 λ1)))
+    
+    spds))
+
+(define CIE-XYZ-scale : (-> CIE-XYZ-Matching-Curves Flonum)
+  (lambda [cs]
+    (define n : Index (CIE-XYZ-matching-curves-count cs))
+
+    (/ (- (CIE-XYZ-matching-curves-λend cs) (CIE-XYZ-matching-curves-λstart cs))
+       (* ∫Yλdλ (->fl n)))))
+
+(define CIE-spectrum-matching-curves->luminance : (-> CIE-XYZ-Matching-Curves FlVector Flonum)
+  (lambda [observer illuminant]
+    (define k : Flonum (CIE-XYZ-scale observer))
+    (define luminance : Flonum
+      (for/fold ([l : Flonum 0.0])
+                ([y (in-flvector (CIE-XYZ-matching-curves-Y observer))]
+                 [i (in-flvector illuminant)])
+        (+ l (* y i))))
+    
+    (values (* luminance k))))
+
+(define CIE-spectrum-matching-curves->XYZ : (-> CIE-XYZ-Matching-Curves FlVector (Values Flonum Flonum Flonum))
+  (lambda [observer illuminant]
+    (define k : Flonum (CIE-XYZ-scale observer))
+    (define-values (X Y Z)
+      (for/fold ([X : Flonum 0.0]
+                 [Y : Flonum 0.0]
+                 [Z : Flonum 0.0])
+                ([x (in-flvector (CIE-XYZ-matching-curves-X observer))]
+                 [y (in-flvector (CIE-XYZ-matching-curves-Y observer))]
+                 [z (in-flvector (CIE-XYZ-matching-curves-Z observer))]
+                 [i (in-flvector illuminant)])
+        (values (+ X (* x i))
+                (+ Y (* y i))
+                (+ Z (* z i)))))
+    
+    (values (* X k) (* Y k) (* Z k))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define CIE-make-XYZ-RGB-convertors : (-> CIE-RGB-Weight-Factors (Values CIE-Color-Convertor CIE-Color-Convertor))
