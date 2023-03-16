@@ -117,10 +117,8 @@
     (bitmap-irregular chromaticity-diagram-size chromaticity-diagram-size
                       draw-locus 0)))
 
-(define bitmap-color-map : (-> CIE-Observer CIE-RGB-Weight-Factors Any (Values Bitmap ColorMap-Info))
-  (lambda [observer transpose-matrix type]
-    (printf "====== ~a =====~n" type)
-    
+(define bitmap-color-map : (-> CIE-Observer CIE-RGB-Weight-Factors (Values Bitmap ColorMap-Info))
+  (lambda [observer transpose-matrix]
     (define-values (cmap cminfo) (bitmap-rgb-color-map transpose-matrix))
     (define locus (bitmap-spectral-locus observer transpose-matrix))
 
@@ -128,7 +126,7 @@
 
 (define bitmap-chromaticity-diagram : (-> CIE-Observer CIE-RGB-Weight-Factors Bitmap)
   (lambda [observer transpose-matrix]
-    (define curves (CIE-observer->XYZ-matching-curves observer 360.0 800.0 #:λ-span 1.0))
+    (define curves (CIE-observer->XYZ-matching-curves observer #:λ-span 1.0))
     (define dots (CIE-XYZ-matching-curves->dots curves))
     (define window-size (make-rectangular chromaticity-diagram-size chromaticity-diagram-size))
     
@@ -168,8 +166,15 @@
   (define-values (observer illuminants) (CIE-load-default-spectrum-samples))
   
   (bitmap-XYZ-matching-curves observer)
+
+  (printf "====== ~a =====~n" 'CIE-Primary)
   (bitmap-chromaticity-diagram observer CIE-primary)
+  (bitmap-color-map observer CIE-primary)
   
-  (bitmap-color-map observer CIE-primary 'CIE-Primary)
-  (bitmap-color-map observer CIE-sRGB-D65 'sRGB-D65)
-  (bitmap-color-map observer CIE-sRGB-D50 'sRGB-D50))
+  (printf "====== ~a =====~n" 'sRGB-D65)
+  (bitmap-chromaticity-diagram observer CIE-sRGB-D65)
+  (bitmap-color-map observer CIE-sRGB-D65)
+  
+  (printf "====== ~a =====~n" 'sRGB-D50)
+  (bitmap-chromaticity-diagram observer CIE-sRGB-D50)
+  (bitmap-color-map observer CIE-sRGB-D50))
