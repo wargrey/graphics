@@ -7,6 +7,7 @@
 
 (require racket/math)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-cellophane : (-> Bitmap Nonnegative-Real Bitmap)
   (lambda [bmp opacity]
     (define alpha : Flonum (real->double-flonum opacity))

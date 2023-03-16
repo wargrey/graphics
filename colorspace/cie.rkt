@@ -9,25 +9,27 @@
 (require racket/fixnum)
 
 (require "digitama/spectrum.rkt")
+(require "correction.rkt")
+(require "misc.rkt")
 
 ;;; Resources
 ; http://cvrl.ioo.ucl.ac.uk/index.htm
 ; https://www.rit.edu/science/munsell-color-science-lab-educational-resources#useful-color-data
 
-;;; Terminology and Theory
+;;; Terminology and Theorem
 ; RGB, the RGB color mode
-; XYZ, a bad-named imaginary 3-primary color mode to ensure that all colors are located in the first quadrant
+; XYZ, an awful-named imaginary 3-primary color mode to ensure that all colors are located in the first quadrant
 ;        This color mode maps the Spectural Power Distribution(SPD) to XYZ tristimulus values.
-;        The matching functions themselves are defined by lookup tables rather than formula that can be
+;        The matching functions themselves are defined by lookup tables rather than formula that could hardly be
 ;          calculated exactly. Thus, the integration(∫) of them is actually summation(Σ).
 ; xyY, the projection of XYZ in a 2D plane, as the `Y` is designed to be the luminance of any color.
 ;        The `x`, `y` are chromaticity values related to `X` and `Y`,
-;          and x + y + z = 1.0, x > 0.0, y > 0.0, z > 0.0,
+;          and x + y + z = 1.0, x >= 0.0, y >= 0.0, z >= 0.0,
 ;          hence just a 2D plane.
 ;        The value of `Y` doesn't affect the resulting chromaticity diagram unless it is a 3D one.
 ; xbar, ybar, zbar, rbar, gbar, bbar are coefficients of their corresponding color components,
 ;   and they represent the mixing ratios of certain 3 parimaries;
-;   also, they can be computed with transpose matrices.
+;   also, they can be calculated with transpose matrices.
 
 ; Negative `rbar`, `gbar`, `bbar` means the target color is either out of gamut or cannot be mixed by
 ;  the 3-primary monochromatic light at certain wavelengths.
@@ -38,11 +40,12 @@
 ; Here the coefficients are irradiance, as tristimulus values.
 
 ; Human eyes favor the Green light, hence the basic ratio of RGB are 1.0 : 4.5907 : 0.060 
-; That's why the `Y` is designed for the luminance, and `X` and `Z` don't affect the luminance.
+; That's why the `Y` is designed for the luminance, and `X` and `Z` don't contribute to the luminance.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type CIE-RGB-Weight-Factors (Matrix Flonum))
-(define-type CIE-Color-Convertor (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
+(define-type CIE-XYZ->RGB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
+(define-type CIE-RGB->XYZ (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 (define-type CIE-xyY->RGB (-> Flonum Flonum (Values Flonum Flonum Flonum Boolean)))
 (define-type CIE-RGB->xyY (-> Flonum Flonum Flonum (Values Flonum Flonum)))
 (define-type CIE-Filter (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
@@ -134,24 +137,11 @@
                                     (list->flvector (reverse (list-ref rsamples 2)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define CIE-RGB-gamma-correct-to-XYZ : (-> Flonum Flonum)
-  (lambda [c]
-    (if (<= c 0.03928)
-        (/ c 12.92)
-        (flexpt (/ (+ 0.055 c) 1.055) 2.4))))
-
-(define CIE-RGB-gamma-correct-from-XYZ : (-> Flonum Flonum)
-  (lambda [c]
-    (if (<= c 0.0031308)
-        (* c 12.92)
-        (- (* (flexpt c (/ 1.0 2.4)) 1.055) 0.055))))
-
 (define CIE-RGB-normalize : CIE-Filter
   (lambda [r g b]
+    ; Yes, negative colors are acceptable
     (define L (max r g b))
-    (values (/ r L)
-            (/ g L)
-            (/ b L))))
+    (values (/ r L) (/ g L) (/ b L))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define CIE-XYZ->xyY : (-> Flonum Flonum Flonum (Values Flonum Flonum))
@@ -188,6 +178,27 @@
       (flvector-set! Z i (spectrum-sample-average λs (CIE-observer-zbars spectrum) λ0 λ1)))
     
     (CIE-XYZ-matching-curves λstart λend n X Y Z)))
+
+(define CIE-observer->polygon : (->* (CIE-Observer) (Flonum Flonum #:λ-span Flonum) (Listof Float-Complex))
+  (lambda [spectrum [λstart 380.0] [λend 780.0] #:λ-span [step 5.0]]
+    (define fln : Flonum (flfloor (/ (- λend λstart) step)))
+    (define n : Index (assert (fl->fx fln) index?))
+    (define λs (CIE-observer-λs spectrum))
+    (define X (make-flvector n))
+    (define Y (make-flvector n))
+    (define Z (make-flvector n))
+
+    #;(for/list : (Listof Complex-Flonum) : ()
+      (λ [w h idx]
+        (if (>= idx (flvector-length X))
+            (values #false 0 0.0 0.0 0.0 0.0 idx)
+            (let*-values ([(xbar ybar zbar) (values (flvector-ref X idx) (flvector-ref Y idx) (flvector-ref Z idx))]
+                          [(r g b) (XYZ->RGB xbar ybar zbar)]
+                          [(x y) (CIE-XYZ->xyY xbar ybar zbar)])
+              (values (exact-round (* x w)) (exact-round (* (- 1.0 y) h))
+                      1.0 r g b
+                      (add1 idx))))))
+    null))
 
 (define CIE-illuminant->color-spectral-power-distribution : (->* (CIE-Illuminant) (Flonum Flonum #:λ-span Flonum) FlVector)
   (lambda [illuminant [λstart 380.0] [λend 780.0] #:λ-span [step 5.0]]
@@ -240,45 +251,29 @@
     (values (* X k) (* Y k) (* Z k))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define CIE-make-XYZ-RGB-convertors : (-> CIE-RGB-Weight-Factors (Values CIE-Color-Convertor CIE-Color-Convertor))
-  (lambda [m]
+(define CIE-make-XYZ-RGB-convertors : (-> CIE-RGB-Weight-Factors [#:rgb-filter CIE-Filter] [#:gamma? Boolean] (Values CIE-XYZ->RGB CIE-RGB->XYZ))
+  (lambda [m #:rgb-filter [rgb-filter CIE-RGB-normalize] #:gamma? [gamma? #true]]
     (define coRGB m)
     (define coXYZ (matrix-inverse m))
 
     (values (λ [X Y Z]
               (define RGB (matrix* coXYZ (col-matrix [X Y Z])))
-              (values (matrix-ref RGB 0 0)
-                      (matrix-ref RGB 1 0)
-                      (matrix-ref RGB 2 0)))
+              (define R (matrix-ref RGB 0 0))
+              (define G (matrix-ref RGB 1 0))
+              (define B (matrix-ref RGB 2 0))
+
+              (cond [(not gamma?) (rgb-filter R G B)]
+                    [else (let-values ([(r g b) (rgb-filter R G B)])
+                            (values (if (>= r 0.0) (color-component-gamma-encode r) r)
+                                    (if (>= g 0.0) (color-component-gamma-encode g) g)
+                                    (if (>= b 0.0) (color-component-gamma-encode b) b)))]))
 
             (λ [R G B]
-              (define XYZ (matrix* coRGB (col-matrix [R G B])))
+              (define XYZ
+                (cond [(not gamma?) (matrix* coRGB (col-matrix [R G B]))]
+                      [else (let-values ([(r g b) (color-gamma-decode R G B)])
+                              (matrix* coRGB (col-matrix [r g b])))]))
               (values (matrix-ref XYZ 0 0)
                       (matrix-ref XYZ 1 0)
                       (matrix-ref XYZ 2 0))))))
-
-(define CIE-make-xyY-RGB-convertors : (->* (CIE-RGB-Weight-Factors) (Flonum #:filter CIE-Filter) (Values CIE-xyY->RGB CIE-RGB->xyY))
-  (lambda [m [luminance 1.0] #:filter [rgb-filter CIE-RGB-normalize]]
-    (define-values (XYZ->RGB RGB->XYZ) (CIE-make-XYZ-RGB-convertors m))
-
-    (values (λ [x y]
-              (define-values (X Y Z) (CIE-xyY->XYZ x y luminance))
-              (define-values (R G B) (XYZ->RGB X Y Z))
-              (define okay? (and (>= R 0.0) (>= G 0.0) (>= B 0.0)))
-
-              (if (not okay?)
-                  (values R G B okay?)
-                  (let-values ([(r g b) (rgb-filter R G B)])
-                    (values (CIE-RGB-gamma-correct-from-XYZ r)
-                            (CIE-RGB-gamma-correct-from-XYZ g)
-                            (CIE-RGB-gamma-correct-from-XYZ b)
-                            okay?))))
-
-            (λ [R G B]
-              (define r (CIE-RGB-gamma-correct-to-XYZ R))
-              (define g (CIE-RGB-gamma-correct-to-XYZ G))
-              (define b (CIE-RGB-gamma-correct-to-XYZ B))
-              (define-values (X Y Z) (RGB->XYZ r g b))
-
-              (CIE-XYZ->xyY X Y Z)))))
     

@@ -8,6 +8,7 @@
 (require "../../digitama/base.rkt")
 (require "../../digitama/unsafe/convert.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define src : Bitmap (bitmap-rectangle 120 90 #:border #false #:fill (rgba 0.0 0.0 0.9 0.4)))
 (define dest : Bitmap (bitmap-rectangle 120 90 #:border #false #:fill (rgba 0.7 0.0 0.0 0.8)))
 

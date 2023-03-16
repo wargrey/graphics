@@ -65,10 +65,10 @@
                                 (bitmap-density (car bitmaps))))])))
 
 (define bitmap-table* : (->* ((Listof (Listof Bitmap)))
-                            ((U (Listof Superimpose-Alignment) Superimpose-Alignment)
-                             (U (Listof Superimpose-Alignment) Superimpose-Alignment)
-                             (U (Listof Nonnegative-Real) Nonnegative-Real)
-                             (U (Listof Nonnegative-Real) Nonnegative-Real))
+                             ((U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                              (U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                              (U (Listof Nonnegative-Real) Nonnegative-Real)
+                              (U (Listof Nonnegative-Real) Nonnegative-Real))
                              Bitmap)
   (lambda [bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
     (define ncols : Index (apply max 0 ((inst map Index (Listof Bitmap)) length bitmaps)))

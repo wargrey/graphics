@@ -37,3 +37,13 @@
     (cairo_set_operator cr operator)
     (cairo_fill cr)
     (when restore? (cairo_restore cr))))
+
+(define cairo-mask
+  (lambda [cr src dest-x dest-y dest-width dest-height density]
+    (define 1/density (unsafe-fl/ 1.0 density))
+
+    (cairo_save cr)
+    (cairo_translate cr dest-x dest-y)
+    (cairo_scale cr 1/density 1/density) ; order matters
+    (cairo_mask_surface cr src 0.0 0.0)
+    (cairo_restore cr)))

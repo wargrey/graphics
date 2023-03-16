@@ -6,7 +6,7 @@
 (require "digitama/misc.rkt")
 
 (require/provide "digitama/base.rkt" "digitama/stdio.rkt" "digitama/unsafe/convert.rkt")
-(require/provide "constructor.rkt" "composite.rkt" "resize.rkt")
+(require/provide "constructor.rkt" "pixel.rkt" "composite.rkt" "resize.rkt")
 (require/provide "color.rkt" "font.rkt" "paint.rkt" "misc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -3,7 +3,7 @@
 (require bitmap/base)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(bitmap-polygon #:fill 'burlywood #:border 'green '(0+0i -10+20i 60 -10-20i) #:absolute? #false)
+(bitmap-polygon #:fill 'burlywood #:border 'green '(0+0i -10+20i 60 -10-20i) #:window -1.0-1.0i)
 
 (bitmap-polygon #:fill 'silver '((0 . 0) (100 . 0)))
 (bitmap-polygon #:fill 'silver '((0 . 0) (100 . 0) (99.5 . 0.5) (0.5 . 0.5)))

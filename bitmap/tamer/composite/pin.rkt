@@ -1,11 +1,12 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (require "../../constructor.rkt")
 (require "../../composite.rkt")
 (require "../../paint.rkt")
 (require "../../color.rkt")
 (require "../../constants.rkt")
-(require "../../digitama/base.rkt")
+
+(require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (diameter dash-width alpha) (values 192 4 1/3))
@@ -13,9 +14,9 @@
 (default-stroke (desc-stroke long-dash #:width dash-width #:opacity alpha #:cap 'round))
 
 (define (build-flomap [x : Nonnegative-Fixnum] [y : Nonnegative-Fixnum] [w : Nonnegative-Fixnum] [h : Nonnegative-Fixnum])
-  (define grayscale
-    (* 1/2 (+ 1 (sin (sqrt (+ (sqr (- x (/ w 2.0)))
-                              (sqr (- y (/ h 2.0)))))))))
+  (define grayscale : Flonum
+    (real->double-flonum (* 1/2 (+ 1 (sin (sqrt (+ (sqr (- x (/ w 2.0)))
+                                                   (sqr (- y (/ h 2.0))))))))))
   (values 1.0 grayscale grayscale grayscale))
 
 (define red-circle (bitmap-ellipse diameter #:fill (rgb* 'red alpha)))

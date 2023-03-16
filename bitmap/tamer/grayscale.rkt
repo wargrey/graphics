@@ -1,12 +1,14 @@
 #lang typed/racket/base
 
 (require "../digitama/stdio.rkt")
+(require "../constructor.rkt")
 (require "../effect.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define romedalen (read-bitmap (collection-file-path "romedalen.png" "bitmap" "tamer" "cairo") #:backing-scale 2.0))
 
 romedalen
-(bitmap-grayscale/lightness romedalen)
+(time (bitmap-grayscale/lightness romedalen))
 (bitmap-grayscale/average romedalen)
 (bitmap-grayscale/luminosity romedalen)
 

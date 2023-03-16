@@ -2,8 +2,6 @@
 
 (provide (all-defined-out))
 
-(require typed/racket/unsafe)
-
 (module unsafe racket/base
   (provide (all-defined-out))
 
@@ -30,13 +28,13 @@
       (ptr-ref pixels _ubyte (unsafe-fx+ idx A))))
   
   ;;; WARNING: the color component value cannot be greater than alpha if it is properly scaled
-  (define pixels-set-argb-reals
+  (define pixels-set-argb-flonums
     (lambda [pixels idx a r g b]
-      (define alpha (alpha-multiplied-real->byte a 255))
+      (define alpha (alpha-multiplied-flonum->byte a 255))
       (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-real->byte r alpha))
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-real->byte g alpha))
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (alpha-multiplied-real->byte b alpha))))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-flonum->byte r alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-flonum->byte g alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (alpha-multiplied-flonum->byte b alpha))))
   
   (define pixels-set-argb-bytes
     (lambda [pixels idx alpha r g b]
@@ -59,13 +57,17 @@
               (ptr-ref pixels _ubyte (unsafe-fx+ idx G))
               (ptr-ref pixels _ubyte (unsafe-fx+ idx B)))))
 
+  (define pixels-zero
+    (lambda [pixels idx]
+      (memset pixels idx 0 4 _ubyte)))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (alpha-multiplied-real->byte v alpha)
+  (define (alpha-multiplied-flonum->byte v alpha)
     (unsafe-fxmax #x00
                   (unsafe-fxmin alpha
                                 (unsafe-fl->fx
                                  (unsafe-flround
-                                  (unsafe-fl* (real->double-flonum v) 255.0))))))
+                                  (unsafe-fl* v 255.0))))))
 
   (define pixels-set-rgb-bytes/safe
     (lambda [pixels idx alpha r g b]

@@ -51,21 +51,35 @@
           (if (< fx (car (cadr blue))) (list hexa (make-coordinate x y)) blue)
           (if (> (hexa-digits hexa) (hexa-digits (car white))) (list hexa (make-coordinate x y)) white))))
 
-(define make-rgb-color-map-constructor : (->* (CIE-RGB-Weight-Factors) (Flonum) (XYWH->ARGB* ColorMap-Info))
+(define make-rgb-color-map-generator : (->* (CIE-RGB-Weight-Factors) (Flonum) (XYWH->ARGB* ColorMap-Info))
   (lambda [tranpose-matrix [L 1.0]]
-    (define-values (xyY->RGB _) (CIE-make-xyY-RGB-convertors tranpose-matrix L))
+    (define-values (XYZ->RGB _) (CIE-make-XYZ-RGB-convertors tranpose-matrix #:rgb-filter CIE-RGB-normalize #:gamma? #true))
 
     (λ [[px : Index] [py : Index] [w : Index] [h : Index] [vertices : ColorMap-Info]]
       (define x (real->double-flonum (/ px w)))
       (define y (real->double-flonum (/ (- h py) h)))
-      (define-values (r g b okay?) (xyY->RGB x y))
+      (define-values (X Y Z) (CIE-xyY->XYZ x y L))
+      (define-values (r g b) (XYZ->RGB X Y Z))
           
-      (if (and okay?)
+      (if (and (>= r 0.0) (>= g 0.0) (>= b 0.0))
           (values 1.0 r g b (rgb-triangle-vertices vertices x y r g b))
           (values 0.0 0.0 0.0 0.0 vertices)))))
 
-(define bitmap-rgb-color-map : (-> CIE-RGB-Weight-Factors Any (Values Bitmap ColorMap-Info))
-  (lambda [transpose-matrix type]
+(define make-gamut-generator : (->* (CIE-RGB-Weight-Factors) (Flonum) XYWH->ARGB)
+  (lambda [tranpose-matrix [L 1.0]]
+    (define-values (XYZ->RGB _) (CIE-make-XYZ-RGB-convertors tranpose-matrix #:rgb-filter CIE-RGB-normalize #:gamma? #true))
+
+    (λ [[px : Index] [py : Index] [w : Index] [h : Index]]
+      (define x (real->double-flonum (/ px w)))
+      (define y (real->double-flonum (/ (- h py) h)))
+      (define-values (X Y Z) (CIE-xyY->XYZ x y L))
+      (define-values (r g b) (XYZ->RGB X Y Z))
+          
+      (values 1.0 r g b))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define bitmap-rgb-color-map : (-> CIE-RGB-Weight-Factors (Values Bitmap ColorMap-Info))
+  (lambda [transpose-matrix]
     (define black (hexa* 0.0 0.0 0.0))
     (define zero (make-coordinate 0.0 0.0))
     (define vertices0 : ColorMap-Info
@@ -74,12 +88,47 @@
             (list black (make-coordinate 1.0 1.0))
             (list black zero)))
 
-    (printf "====== ~a =====~n" type)
     (bitmap-rectangular* chromaticity-diagram-size chromaticity-diagram-size
-                         (make-rgb-color-map-constructor transpose-matrix)
+                         (make-rgb-color-map-generator transpose-matrix)
                          vertices0)))
 
-(define bitmap-XYZ-matching-function : (-> CIE-Observer Bitmap)
+(define bitmap-spectral-locus : (-> CIE-Observer CIE-RGB-Weight-Factors Bitmap)
+  (lambda [observer transpose-matrix]
+    (define-values (XYZ->RGB RGB->XYZ) (CIE-make-XYZ-RGB-convertors transpose-matrix #:rgb-filter CIE-RGB-normalize #:gamma? #false))
+    (define curves (CIE-observer->XYZ-matching-curves observer #:λ-span 0.1))
+    (define X (CIE-XYZ-matching-curves-X curves))
+    (define Y (CIE-XYZ-matching-curves-Y curves))
+    (define Z (CIE-XYZ-matching-curves-Z curves))
+
+    (define draw-locus : (ARGB-Step Nonnegative-Fixnum)
+      (λ [w h idx]
+        (if (>= idx (flvector-length X))
+            (values #false 0 0.0 0.0 0.0 0.0 idx)
+            (let*-values ([(xbar ybar zbar) (values (flvector-ref X idx) (flvector-ref Y idx) (flvector-ref Z idx))]
+                          [(r g b) (XYZ->RGB xbar ybar zbar)]
+                          [(x y) (CIE-XYZ->xyY xbar ybar zbar)])
+              (values (exact-round (* x w)) (exact-round (* (- 1.0 y) h))
+                      1.0 r g b
+                      (add1 idx))))))
+
+    (bitmap-irregular chromaticity-diagram-size chromaticity-diagram-size
+                      draw-locus 0)))
+
+(define bitmap-color-map : (-> CIE-Observer CIE-RGB-Weight-Factors Any (Values Bitmap ColorMap-Info))
+  (lambda [observer transpose-matrix type]
+    (printf "====== ~a =====~n" type)
+    
+    (define-values (cmap cminfo) (bitmap-rgb-color-map transpose-matrix))
+    (define locus (bitmap-spectral-locus observer transpose-matrix))
+
+    (values (bitmap-cc-superimpose cmap locus) cminfo)))
+
+(define bitmap-chromaticity-diagram : (-> CIE-Observer CIE-RGB-Weight-Factors Bitmap)
+  (lambda [observer transpose-matrix]
+    (bitmap-rectangular chromaticity-diagram-size chromaticity-diagram-size
+                        (make-gamut-generator transpose-matrix))))
+
+(define bitmap-XYZ-matching-curves : (-> CIE-Observer Bitmap)
   (lambda [observer]
     (define curves (CIE-observer->XYZ-matching-curves observer #:λ-span 0.1))
     (define N (CIE-XYZ-matching-curves-count curves))
@@ -104,35 +153,6 @@
     (bitmap-irregular chromaticity-diagram-size (* chromaticity-diagram-size 0.618)
                       draw-curve (cons (list X Y Z) 0))))
 
-(define bitmap-spectral-locus : (-> CIE-Observer CIE-Illuminant Bitmap)
-  (lambda [observer illuminant]
-    (define curves (CIE-observer->XYZ-matching-curves observer #:λ-span 0.1))
-    (define color-spd (CIE-illuminant->color-spectral-power-distribution illuminant #:λ-span 0.1))
-    (define k : Flonum (CIE-XYZ-scale curves))
-    (define X (flvector* (CIE-XYZ-matching-curves-X curves) color-spd))
-    (define Y (flvector* (CIE-XYZ-matching-curves-Y curves) color-spd))
-    (define Z (flvector* (CIE-XYZ-matching-curves-Z curves) color-spd))
-
-    (define draw-locus : (ARGB-Step Nonnegative-Fixnum)
-      (λ [w h idx]
-        (if (>= idx (flvector-length X))
-            (values #false 0 0.0 0.0 0.0 0.0 idx)
-            (let-values ([(x y) (CIE-XYZ->xyY (* (flvector-ref X idx) k) (* (flvector-ref Y idx) k) (* (flvector-ref Z idx) k))])
-              (values (exact-round (* x w)) (exact-round (* (- 1.0 y) h))
-                      1.0 0.0 0.0 0.0
-                      (add1 idx))))))
-
-    (bitmap-irregular chromaticity-diagram-size chromaticity-diagram-size
-                      draw-locus 0)))
-
-(define bitmap-chromaticity-diagram : (-> CIE-Observer CIE-Illuminant CIE-RGB-Weight-Factors Any (Values Bitmap ColorMap-Info))
-  (lambda [observer illuminant transpose-matrix type]
-    (define-values (color-map mapinfo) (bitmap-rgb-color-map transpose-matrix type))
-    (define locus (bitmap-spectral-locus observer illuminant))
-
-    (values (bitmap-cc-superimpose color-map locus)
-            mapinfo)))
-
 
 (module+ main
   (pretty-print-columns 80)
@@ -140,7 +160,9 @@
 
   (define-values (observer illuminants) (CIE-load-default-spectrum-samples))
   
-  (bitmap-XYZ-matching-function observer)
-  (bitmap-chromaticity-diagram observer (car illuminants) CIE-primary 'CIE-Primary)
-  #;(bitmap-chromaticity-diagram observer (car illuminants) CIE-sRGB-D65 'sRGB-D65)
-  #;(bitmap-chromaticity-diagram observer (car illuminants) CIE-sRGB-D50 'sRGB-D50))
+  (bitmap-XYZ-matching-curves observer)
+  (bitmap-chromaticity-diagram observer CIE-primary)
+  
+  (bitmap-color-map observer CIE-primary 'CIE-Primary)
+  (bitmap-color-map observer CIE-sRGB-D65 'sRGB-D65)
+  (bitmap-color-map observer CIE-sRGB-D50 'sRGB-D50))

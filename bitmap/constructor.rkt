@@ -125,29 +125,24 @@
         (bitmap_rectangle width height (stroke-paint->source* border) (fill-paint->source* pattern) density))))
 
 (define bitmap-polyline : (->* ((U Point2D (Listof Point2D)))
-                               (Real Real #:absolute? Boolean #:stroke (Option Stroke-Paint) #:density Positive-Flonum)
+                               (Real Real #:scale Point2D #:window Point2D #:stroke (Option Stroke-Paint) #:density Positive-Flonum)
                                Bitmap)
-  (lambda [pts [dx 0.0] [dy 0.0] #:stroke [stroke (default-stroke)] #:density [density (default-bitmap-density)] #:absolute? [absolute? #true]]
-    (define-values (xs ys lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy))
-    (define-values (xoff yoff width height)
-      (if (not absolute?)
-          (values (- lx) (- ty) (- rx lx) (- by ty))
-          (values 0.0 0.0 rx by)))
+  (lambda [pts [dx 0.0] [dy 0.0] #:scale [scale 1.0] #:stroke [stroke (default-stroke)] #:density [density (default-bitmap-density)] #:window [window 0]]
+    (define-values (xs ys lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
+    (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
 
     (bitmap_polyline width height xs ys xoff yoff
                      (stroke-paint->source* stroke) #false #false
                      density)))
 
 (define bitmap-polygon : (->* ((U Point2D (Listof Point2D)))
-                              (Real Real #:absolute? Boolean #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:fill-style Symbol #:density Positive-Flonum)
+                              (Real Real #:scale Point2D #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:fill-style Symbol
+                                    #:density Positive-Flonum #:window Point2D)
                               Bitmap)
-  (lambda [pts [dx 0.0] [dy 0.0] #:border [border (default-stroke)] #:fill [pattern #false] #:fill-style [fstyle 'winding]
-               #:density [density (default-bitmap-density)] #:absolute? [absolute? #true]]
-    (define-values (xs ys lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy))
-    (define-values (xoff yoff width height)
-      (if (not absolute?)
-          (values (- lx) (- ty) (- rx lx) (- by ty))
-          (values 0.0 0.0 rx by)))
+  (lambda [pts [dx 0.0] [dy 0.0] #:scale [scale 1.0] #:border [border (default-stroke)] #:fill [pattern #false] #:fill-style [fstyle 'winding]
+               #:density [density (default-bitmap-density)] #:window [window 0]]
+    (define-values (xs ys lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
+    (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
 
     (bitmap_polyline width height xs ys xoff yoff
                      (stroke-paint->source* border) (fill-paint->source* pattern) fstyle
