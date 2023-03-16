@@ -179,26 +179,19 @@
     
     (CIE-XYZ-matching-curves λstart λend n X Y Z)))
 
-(define CIE-observer->polygon : (->* (CIE-Observer) (Flonum Flonum #:λ-span Flonum) (Listof Float-Complex))
-  (lambda [spectrum [λstart 380.0] [λend 780.0] #:λ-span [step 5.0]]
+(define CIE-XYZ-matching-curves->dots : (->* (CIE-XYZ-Matching-Curves) (Flonum Flonum #:λ-span Flonum #:vertical-flip? Boolean) (Listof Float-Complex))
+  (lambda [curves [λstart 380.0] [λend 780.0] #:λ-span [step 5.0] #:vertical-flip? [yflip? #true]]
     (define fln : Flonum (flfloor (/ (- λend λstart) step)))
     (define n : Index (assert (fl->fx fln) index?))
-    (define λs (CIE-observer-λs spectrum))
-    (define X (make-flvector n))
-    (define Y (make-flvector n))
-    (define Z (make-flvector n))
+    (define X (CIE-XYZ-matching-curves-X curves))
+    (define Y (CIE-XYZ-matching-curves-Y curves))
+    (define Z (CIE-XYZ-matching-curves-Z curves))
 
-    #;(for/list : (Listof Complex-Flonum) : ()
-      (λ [w h idx]
-        (if (>= idx (flvector-length X))
-            (values #false 0 0.0 0.0 0.0 0.0 idx)
-            (let*-values ([(xbar ybar zbar) (values (flvector-ref X idx) (flvector-ref Y idx) (flvector-ref Z idx))]
-                          [(r g b) (XYZ->RGB xbar ybar zbar)]
-                          [(x y) (CIE-XYZ->xyY xbar ybar zbar)])
-              (values (exact-round (* x w)) (exact-round (* (- 1.0 y) h))
-                      1.0 r g b
-                      (add1 idx))))))
-    null))
+    (for/list : (Listof Float-Complex) ([idx (in-range 0 (flvector-length X))])
+      (define-values (xbar ybar zbar) (values (flvector-ref X idx) (flvector-ref Y idx) (flvector-ref Z idx)))
+      (define-values (x y) (CIE-XYZ->xyY xbar ybar zbar))
+      
+      (make-rectangular x (if (not yflip?) y (- 1.0 y))))))
 
 (define CIE-illuminant->color-spectral-power-distribution : (->* (CIE-Illuminant) (Flonum Flonum #:λ-span Flonum) FlVector)
   (lambda [illuminant [λstart 380.0] [λend 780.0] #:λ-span [step 5.0]]

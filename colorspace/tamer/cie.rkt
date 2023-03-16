@@ -2,6 +2,7 @@
 
 (require bitmap/constructor)
 (require bitmap/composite)
+(require bitmap/pixel)
 (require bitmap/color)
 
 (require math/flonum)
@@ -65,17 +66,19 @@
           (values 1.0 r g b (rgb-triangle-vertices vertices x y r g b))
           (values 0.0 0.0 0.0 0.0 vertices)))))
 
-(define make-gamut-generator : (->* (CIE-RGB-Weight-Factors) (Flonum) XYWH->ARGB)
+(define make-gamut-generator : (->* (CIE-RGB-Weight-Factors) (Flonum) ARGB-Map)
   (lambda [tranpose-matrix [L 1.0]]
     (define-values (XYZ->RGB _) (CIE-make-XYZ-RGB-convertors tranpose-matrix #:rgb-filter CIE-RGB-normalize #:gamma? #true))
 
-    (λ [[px : Index] [py : Index] [w : Index] [h : Index]]
-      (define x (real->double-flonum (/ px w)))
-      (define y (real->double-flonum (/ (- h py) h)))
-      (define-values (X Y Z) (CIE-xyY->XYZ x y L))
-      (define-values (r g b) (XYZ->RGB X Y Z))
+    (λ [[px : Index] [py : Index] [w : Index] [h : Index] [mA : Byte] [mR : Byte] [mG : Byte] [mB : Byte]]
+      (if (> mA 0)
+          (let ([x (real->double-flonum (/ px w))]
+                [y (real->double-flonum (/ (- h py) h))])
+            (define-values (X Y Z) (CIE-xyY->XYZ x y L))
+            (define-values (r g b) (XYZ->RGB X Y Z))
           
-      (values 1.0 r g b))))
+            (values 1.0 r g b))
+          (values 0.0 0.0 0.0 0.0)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-rgb-color-map : (-> CIE-RGB-Weight-Factors (Values Bitmap ColorMap-Info))
@@ -125,8 +128,12 @@
 
 (define bitmap-chromaticity-diagram : (-> CIE-Observer CIE-RGB-Weight-Factors Bitmap)
   (lambda [observer transpose-matrix]
-    (bitmap-rectangular chromaticity-diagram-size chromaticity-diagram-size
-                        (make-gamut-generator transpose-matrix))))
+    (define curves (CIE-observer->XYZ-matching-curves observer 360.0 800.0 #:λ-span 1.0))
+    (define dots (CIE-XYZ-matching-curves->dots curves))
+    (define window-size (make-rectangular chromaticity-diagram-size chromaticity-diagram-size))
+    
+    (bitmap-map (bitmap-polygon dots #:fill 'black #:scale window-size #:window window-size)
+                (make-gamut-generator transpose-matrix))))
 
 (define bitmap-XYZ-matching-curves : (-> CIE-Observer Bitmap)
   (lambda [observer]
