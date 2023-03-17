@@ -8,6 +8,7 @@
 (require math/flonum)
 
 (require "../cie.rkt")
+(require "../misc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Coordinate (List Flonum Flonum Flonum))
@@ -59,11 +60,13 @@
     (λ [[px : Index] [py : Index] [w : Index] [h : Index] [vertices : ColorMap-Info]]
       (define x (real->double-flonum (/ px w)))
       (define y (real->double-flonum (/ (- h py) h)))
-      (define-values (X Y Z) (CIE-xyY->XYZ x y L))
-      (define-values (r g b) (XYZ->RGB X Y Z))
-          
-      (if (and (>= r 0.0) (>= g 0.0) (>= b 0.0))
-          (values 1.0 r g b (rgb-triangle-vertices vertices x y r g b))
+
+      (if (<= (+ x y) 1.0)
+          (let*-values ([(X Y Z) (CIE-xyY->XYZ x y L)]
+                        [(r g b) (XYZ->RGB X Y Z)])
+            (if (and (>= r 0.0) (>= g 0.0) (>= b 0.0))
+                (values 1.0 r g b (rgb-triangle-vertices vertices x y r g b))
+                (values 0.0 0.0 0.0 0.0 vertices)))
           (values 0.0 0.0 0.0 0.0 vertices)))))
 
 (define make-gamut-generator : (->* (CIE-RGB-Weight-Factors) (Flonum) ARGB-Map)
@@ -76,8 +79,7 @@
                 [y (real->double-flonum (/ (- h py) h))])
             (define-values (X Y Z) (CIE-xyY->XYZ x y L))
             (define-values (r g b) (XYZ->RGB X Y Z))
-          
-            (values 1.0 r g b))
+            (values (byte->gamut mA) r g b))
           (values 0.0 0.0 0.0 0.0)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
