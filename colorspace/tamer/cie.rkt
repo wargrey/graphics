@@ -99,7 +99,7 @@
 
 (define bitmap-spectral-locus : (-> CIE-Observer CIE-RGB-Weight-Factors Bitmap)
   (lambda [observer transpose-matrix]
-    (define-values (XYZ->RGB RGB->XYZ) (CIE-make-XYZ-RGB-convertors transpose-matrix #:rgb-filter CIE-RGB-normalize #:gamma? #false))
+    (define-values (XYZ->RGB _) (CIE-make-XYZ-RGB-convertors transpose-matrix #:rgb-filter CIE-RGB-normalize #:gamma? #false))
     (define curves (CIE-observer->XYZ-matching-curves observer #:λ-span 0.1))
     (define X (CIE-XYZ-matching-curves-X curves))
     (define Y (CIE-XYZ-matching-curves-Y curves))
