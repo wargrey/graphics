@@ -22,7 +22,7 @@
 ;        This color mode maps the Spectural Power Distribution(SPD) to XYZ tristimulus values.
 ;        The matching functions themselves are defined by lookup tables rather than formula that could hardly be
 ;          calculated exactly. Thus, the integration(∫) of them is actually summation(Σ).
-; xyY, the projection of XYZ in a 2D plane, as the `Y` is designed to be the luminance of any color.
+; xyY, a non-linear transformation of XYZ in a 2D plane, as the `Y` is designed to be the luminance of any color.
 ;        The `x`, `y` are chromaticity values related to `X` and `Y`,
 ;          and x + y + z = 1.0, x >= 0.0, y >= 0.0, z >= 0.0,
 ;          hence just a 2D plane.
@@ -40,7 +40,7 @@
 ; Here the coefficients are irradiance, as tristimulus values.
 
 ; Human eyes favor the Green light, hence the basic ratio of RGB are 1.0 : 4.5907 : 0.060 
-; That's why the `Y` is designed for the luminance, and `X` and `Z` don't contribute to the luminance.
+; That's why the `Y` is designed for the luminance, and `X` and `Z` only contribute to the chroma.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type CIE-RGB-Weight-Factors (Matrix Flonum))
