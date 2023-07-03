@@ -44,7 +44,8 @@
   [0 normal oblique italic])
 
 (define-enumeration* css-font-weight-option #:+> Font-Weight ; order matters
-  font-weight->integer integer->font-weight #:range Integer
+  font-weight->integer integer->font-weight
+  #:range
   [thin   100] [ultralight 200] [light    300] [semilight  350] [book 380]
   [normal 400] [medium     500] [semibold 600]
   [bold   700] [ultrabold  800] [heavy    900] [ultraheavy 1000])

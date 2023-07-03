@@ -27,7 +27,7 @@
   [0 None Adam7])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-unnamed-enumeration png-bit-depth : Byte #:with png-bit-depth-identity #:-> Positive-Byte [1 2 4 8 16])
+(define-unnamed-enumeration png-bit-depth : Byte #:with png-bit-depth-identity [1 2 4 8 16])
 
 (define png-bit-depth-acceptable? : (-> Byte PNG-Color-Type Boolean : #:+ Positive-Byte)
   (lambda [bit-depth color-type]
