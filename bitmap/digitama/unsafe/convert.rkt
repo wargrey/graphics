@@ -220,10 +220,10 @@
           [else (let ([density (bitmap-density self)])
                   (define surface (bitmap<%>-surface self))
                   (case mime
-                    [(png@2x-bytes) (cairo-surface->stream-bytes surface 'png '/dev/p2xout 1.0)]
-                    [(png-bytes) (cairo-surface->stream-bytes surface 'png '/dev/pngout density)]
                     [(svg-bytes) (cairo-surface->stream-bytes surface 'svg '/dev/svgout density)]
                     [(pdf-bytes) (cairo-surface->stream-bytes surface 'pdf '/dev/pdfout density)]
+                    [(png@2x-bytes) (cairo-surface->stream-bytes surface 'png '/dev/p2xout 1.0)]
+                    [(png-bytes) (cairo-surface->stream-bytes surface 'png '/dev/pngout density)]
                     [else fallback]))])))
 
 (define invalid-convert : Visual-Object-Convert
