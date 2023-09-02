@@ -202,7 +202,7 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
  @racketmodname[css] environment. The root element is even undefined outside. So just do not rely
  on them.
 
- @tamer-action[(font-metrics (default-font) '(em ex cap ch ic))]
+ @tamer-repl[(font-metrics (default-font) '(em ex cap ch ic))]
 }
 
 @defproc[(font-metrics-ref [font Font]
@@ -219,7 +219,7 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
  Returns the @racket[width] and @racket[height] of the @racket[text] as it would be rendered
  with @racket[font].
 
- @tamer-action[(text-size "Sphinx")]
+ @tamer-repl[(text-size "Sphinx")]
 }
 
 @defproc[(text-size* [text String]
@@ -246,7 +246,7 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
    
   Common Typographic Metrics}
  
- @tamer-action[(text-size* "Sphinx")]
+ @tamer-repl[(text-size* "Sphinx")]
 }
 
 @defproc[(text-metrics-lines [text String]
@@ -274,24 +274,24 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
    the minimum distance between the line and the character is zero.}
  ]
  
- @tamer-action[(require bitmap/constructor)
-               (require bitmap/composite)
-               (require bitmap/constants)
-               (define exfont (desc-font (desc-font cursive #:size 'xx-large) #:size -1.618))
-               (define sphinx "Sphinx 0123456789")
-               
-               (text-metrics-lines sphinx exfont)]
-
+ @tamer-repl[(require bitmap/constructor)
+             (require bitmap/composite)
+             (require bitmap/constants)
+             (define exfont (desc-font (desc-font cursive #:size 'xx-large) #:size -1.618))
+             (define sphinx "Sphinx 0123456789")
+             
+             (text-metrics-lines sphinx exfont)]
+ 
  @margin-note{It is normal to see these generic font families poor in @url{docs.racket-lang.org},
   and fonts in Linux might not be well selected.}
  
- @tamer-action[(default-border (desc-stroke long-dash #:color 'gray #:width 1))
-               (define (frame-text [family : (U String Symbol)] [text : String sphinx]) : Bitmap
-                 (bitmap-frame (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
-                                            (format "~a: ~a" family text)
-                                            (desc-font #:family family exfont))))
-
-               @(bitmap-vl-append* #:gapsize 16 (map frame-text css-font-generic-families))]
+ @tamer-repl[(default-border (desc-stroke long-dash #:color 'gray #:width 1))
+             (define (frame-text [family : (U String Symbol)] [text : String sphinx]) : Bitmap
+               (bitmap-frame (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
+                                          (format "~a: ~a" family text)
+                                          (desc-font #:family family exfont))))
+             
+             @(bitmap-vl-append* #:gapsize 16 (map frame-text css-font-generic-families))]
 }
 
 @handbook-scenario{Glyphs Utilities}
@@ -318,23 +318,23 @@ cross platform. These utilities are therefore at your service.
  that less than (or equal to) @racket[(* x-height tolerance)] are considered as overshoots, and do not contribute to
  the results.
  
- @tamer-action[(define a-z : (Listof String) (build-list 26 (λ [[i : Integer]] (string (integer->char (+ i 97))))))
-               (filter text-ascender-exist? a-z)
-               (filter text-descender-exist? a-z)]
+ @tamer-repl[(define a-z : (Listof String) (build-list 26 (λ [[i : Integer]] (string (integer->char (+ i 97))))))
+             (filter text-ascender-exist? a-z)
+             (filter text-descender-exist? a-z)]
 
  Say, now we want to find a suitable font for chess unicode characters.
  @margin-note{Do not be surprised if there is no suitable font in server @url{docs.racket-lang.org}.}
 
- @tamer-action[(define chesses : String "♔♕♖♗♘♙♚♛♜♝♞♟︎")
-               (define (font-okay? [family : String] [monospace? : Boolean]) : Boolean
-                 (define font (desc-font #:family family))
-                 (and (text-descender-exist? chesses font)
-                      (text-glyphs-exist? chesses font)))
-               
-               (bitmap-vl-append*
-                #:gapsize 16
-                (map (λ [[face : String]] (frame-text face chesses))
-                     (find-font-families font-okay?)))]
+ @tamer-repl[(define chesses : String "♔♕♖♗♘♙♚♛♜♝♞♟︎")
+             (define (font-okay? [family : String] [monospace? : Boolean]) : Boolean
+               (define font (desc-font #:family family))
+               (and (text-descender-exist? chesses font)
+                    (text-glyphs-exist? chesses font)))
+             
+             (bitmap-vl-append*
+              #:gapsize 16
+              (map (λ [[face : String]] (frame-text face chesses))
+                   (find-font-families font-okay?)))]
 }
 
 @handbook-scenario{A Glimpse of Properties}
