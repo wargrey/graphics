@@ -11,17 +11,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-combiner stx)
   (syntax-case stx []
-    [(_ [make frmt (tips ...)] ...)
-     (with-syntax ([([(bitmap-combiner make-combiner) ...] ...)
-                    (for/list ([<tips> (in-list (syntax->list #'([tips ...] ...)))]
-                               [<mkcb> (in-list (syntax->list #'(make ...)))]
-                               [<frmt> (in-list (syntax->list #'(frmt ...)))])
-                      (define frmt (syntax-e <frmt>))
-                      (for/list ([<tip> (in-list (syntax->list <tips>))])
-                        (list (datum->syntax <tip> (string->symbol (format frmt (syntax-e <tip>))))
-                              <mkcb>)))])
+    [(_ frmt #:-> (Extra-Type ...) #:with alignment bitmaps [extra-args ...]
+        #:blend-mode [blend blend-expr] #:empty blank-expr
+        #:short-path #:for base bmp #:if short-path-condition ([(tip) short-path-expr] ...) #:do sexp ...)
+     (with-syntax ([(bitmap-combiner ...)
+                    (for/list ([<tip> (in-list (syntax->list #'(tip ...)))])
+                      (datum->syntax <tip> (string->symbol (format (syntax-e #'frmt) (syntax-e <tip>)))))])
        (syntax/loc stx
-         (begin (define-values (bitmap-combiner ...) (values (make-combiner 'tips) ...))
+         (begin (define bitmap-combiner : (-> (Listof Bitmap) Extra-Type ... Bitmap)
+                  (let ([alignment 'tip])
+                    (λ [bitmaps extra-args ...]
+                      (let ([blend blend-expr])
+                        (cond [(null? bitmaps) blank-expr]
+                              [(null? (cdr bitmaps)) (car bitmaps)]
+                              [(and short-path-condition (null? (cddr bitmaps)))
+                               (let-values ([(base bmp) (values (car bitmaps) (cadr bitmaps))])
+                                 short-path-expr)]
+                              [else sexp ...])))))
                 ...)))]))
 
 (define-syntax (bitmap-expand-args  stx)
