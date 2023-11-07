@@ -6,8 +6,9 @@
 
 (require colorspace)
 
-(require racket/math)
 (require racket/format)
+
+(require file/convertible)
 
 (require "digitama/base.rkt")
 (require "digitama/color.rkt")
@@ -20,7 +21,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-color-model stx)
   (syntax-case stx [:]
-    [(_ clr ([com : real->flonum] ...) #:* rgb->clr)
+    [(_ clr ([com : real->flonum] ...) #:* rgb->clr clr->rgb)
      (with-syntax* ([clra (format-id #'clr "~aa" (syntax-e #'clr))]
                     [FlCLRA (format-id #'clr "Fl~aA" (string-upcase (symbol->immutable-string (syntax-e #'clr))))]
                     [clra? (format-id #'clr "~aa?" (syntax-e #'clr))]
@@ -39,7 +40,24 @@
                                      (cons <kw:com> (cons <a:com> args)))])
        (syntax/loc stx
          (begin (struct clra flcolor ([com : Flonum] ... [alpha : Flonum])
-                  #:transparent #:type-name FlCLRA)
+                  #:transparent #:type-name FlCLRA
+                  #:property prop:convertible
+                  (λ [[self : FlCLRA] [mime : Symbol] [fallback : Any]]
+                    (case mime
+                      [(rgb-byte-list rgb-uint8-list)
+                       (let-values ([(r g b) (clr->rgb (clr-com self) ...)])
+                         (list (gamut->byte r)
+                               (gamut->byte g)
+                               (gamut->byte b)))]
+                      [(rgb-uint16-list rgb-word-list)
+                       (let-values ([(r g b) (clr->rgb (clr-com self) ...)])
+                         (list (gamut->uint16 r)
+                               (gamut->uint16 g)
+                               (gamut->uint16 b)))]
+                      [(rgb-uint24 RRGGBB)
+                       (let-values ([(r g b) (clr->rgb (clr-com self) ...)])
+                         (rgb-gamuts->hex r g b))]
+                      [else fallback])))
 
                 (define (clr [com : Real] ... [alpha : Real 1.0]) : FlCLRA
                   (clra (real->flonum com) ... (real->alpha alpha)))
@@ -77,20 +95,38 @@
 (struct hexa flcolor ([digits : Index] [alpha : Flonum])
   #:type-name Hexa
   #:transparent
+
   #:property prop:custom-write
   (λ [[self : Hexa] [/dev/stdout : Output-Port] [mode : (U Zero One Boolean)]]
     (fprintf /dev/stdout "#(struct:~a #x" (object-name self))
     (write-string (string-upcase (~r (hexa-digits self) #:base 16 #:min-width 6 #:pad-string "0")) /dev/stdout)
     (write-char #\space /dev/stdout)
     (write (hexa-alpha self) /dev/stdout)
-    (write-char #\) /dev/stdout)))
+    (write-char #\) /dev/stdout))
 
-(struct xterma flcolor ([index : Byte] [alpha : Flonum]) #:transparent #:type-name Xterma)
+  #:property prop:convertible
+  (λ [[self : Hexa] [mime : Symbol] [fallback : Any]]
+    (case mime
+      [(rgb-byte-list rgb-uint8-list) (let-values ([(r g b) (hex->rgb-bytes (hexa-digits self))]) (list r g b))]
+      [(rgb-uint16-list rgb-word-list) (flcolor->uint16-list self)]
+      [(rgb-uint24 RRGGBB) (hexa-digits self)]
+      [else fallback])))
 
-(define-color-model hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]) #:* rgb->hsl)
-(define-color-model hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut])      #:* rgb->hsv)
-(define-color-model hsi ([hue : real->hue] [saturation : real->gamut] [intensity : real->gamut])  #:* rgb->hsi)
-(define-color-model hwb ([hue : real->hue] [white : real->gamut] [black : real->gamut])           #:* rgb->hwb)
+(struct xterma flcolor ([index : Byte] [alpha : Flonum])
+  #:transparent #:type-name Xterma
+
+  #:property prop:convertible
+  (λ [[self : Xterma] [mime : Symbol] [fallback : Any]]
+    (case mime
+      [(rgb-byte-list rgb-uint8-list) (flcolor->byte-list self)]
+      [(rgb-uint16-list rgb-word-list) (flcolor->uint16-list self)]
+      [(rgb-uint24 RRGGBB) (flcolor->hex self)]
+      [else fallback])))
+
+(define-color-model hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]) #:* rgb->hsl hsl->rgb)
+(define-color-model hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut])      #:* rgb->hsv hsv->rgb)
+(define-color-model hsi ([hue : real->hue] [saturation : real->gamut] [intensity : real->gamut])  #:* rgb->hsi hsi->rgb)
+(define-color-model hwb ([hue : real->hue] [white : real->gamut] [black : real->gamut])           #:* rgb->hwb hwb->rgb)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define rgb : (->* (Real Real Real) (Real) FlRGBA)
