@@ -7,7 +7,6 @@
 
 (require racket/math)
 
-(require "digitama/base.rkt")
 (require "digitama/font.rkt")
 (require "digitama/unsafe/font.rkt")
 

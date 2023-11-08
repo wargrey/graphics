@@ -42,11 +42,18 @@
 (define bitmap-pin* : (-> Real Real Real Real Bitmap Bitmap * Bitmap)
   (lambda [x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
     (cond [(null? bmps) bmp0]
-          [else (bitmap_pin* (or (bitmap-operator->integer (default-pin-operator)) CAIRO_OPERATOR_OVER)
-                             (real->double-flonum x1-frac) (real->double-flonum y1-frac)
-                             (real->double-flonum x2-frac) (real->double-flonum y2-frac)
-                             (bitmap-surface bmp0) (map bitmap-surface bmps)
-                             (bitmap-density bmp0))])))
+          [(null? (cdr bmps))
+           (bitmap_pin (or (bitmap-operator->integer (default-pin-operator)) CAIRO_OPERATOR_OVER)
+                       (real->double-flonum x1-frac) (real->double-flonum y1-frac)
+                       (real->double-flonum x2-frac) (real->double-flonum y2-frac)
+                       (bitmap-surface bmp0) (bitmap-surface (car bmps))
+                       (bitmap-density bmp0))]
+          [else
+           (bitmap_pin* (or (bitmap-operator->integer (default-pin-operator)) CAIRO_OPERATOR_OVER)
+                        (real->double-flonum x1-frac) (real->double-flonum y1-frac)
+                        (real->double-flonum x2-frac) (real->double-flonum y2-frac)
+                        (bitmap-surface bmp0) (map bitmap-surface bmps)
+                        (bitmap-density bmp0))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-table : (->* (Integer (Listof Bitmap))
