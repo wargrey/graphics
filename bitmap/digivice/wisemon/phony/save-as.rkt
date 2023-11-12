@@ -60,8 +60,8 @@
   (lambda [gformat .ext]
     (λ [digimon info-ref]
       (define natives (map (inst car Path CC-Launcher-Info) (find-digimon-native-launcher-names info-ref #false)))
-    
-      (wisemon-make (make-native-library-specs info-ref natives))
+
+      (wisemon-make (make-native-library-specs info-ref natives) px.so)
       (wisemon-compile (current-directory) digimon info-ref)
       
       (wisemon-make (make-graphics-specs info-ref gformat .ext) (current-make-real-targets)))))
