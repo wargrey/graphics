@@ -47,7 +47,7 @@
                          (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
                                              (graphics-note module.rkt sym .ext sym.png)
                                              (graphics-save-as sym.png datum gformat))))]
-                      [(and (list? datum) (andmap bitmap? datum))
+                      [(and (list? datum) (pair? datum) (andmap bitmap? datum))
                        (let ([deps.rkt (racket-smart-dependencies module.rkt)]
                              [sym.png (graphics.png module.rkt sym .ext)]
                              [ncol (max (exact-floor (sqrt (length datum))) 1)])
