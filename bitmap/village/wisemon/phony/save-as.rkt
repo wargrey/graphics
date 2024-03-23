@@ -14,7 +14,7 @@
 (require digimon/digitama/system)
 
 (require digimon/digivice/wisemon/parameter)
-(require digimon/digivice/wisemon/native)
+(require digimon/digivice/wisemon/ffi)
 (require digimon/digivice/wisemon/phony)
 (require digimon/digivice/wisemon/spec)
 (require digimon/digivice/wisemon/path)
@@ -61,7 +61,7 @@
     (λ [digimon info-ref]
       (define natives (map (inst car Path CC-Launcher-Info) (find-digimon-native-launcher-names info-ref #false)))
 
-      (wisemon-make (make-native-library-specs info-ref natives) px.so)
+      (wisemon-make (make-ffi-library-specs info-ref natives) px.so)
       (wisemon-compile (current-directory) digimon info-ref)
       
       (wisemon-make (make-graphics-specs info-ref gformat .ext) (current-make-real-targets)))))
