@@ -7,6 +7,7 @@
 (require colorspace)
 
 (require racket/format)
+(require racket/math)
 
 (require file/convertible)
 
@@ -264,3 +265,11 @@
     (list (gamut->uint16 (rgba-red flrgba))
           (gamut->uint16 (rgba-green flrgba))
           (gamut->uint16 (rgba-blue flrgba)))))
+
+; Scratch uses this color representation
+(define flcolor->hsb-byte100-list : (-> Color (List Byte Byte Byte))
+  (lambda [src]
+    (define flhsva : FlHSVA (hsv* src))
+    (list (gamut->byte100 (/ (hsva-hue flhsva) 360.0))
+          (gamut->byte100 (hsva-saturation flhsva))
+          (gamut->byte100 (hsva-value flhsva)))))

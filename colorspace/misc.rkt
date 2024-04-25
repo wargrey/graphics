@@ -15,6 +15,7 @@
 (define real->gamut : (-> Real Nonnegative-Flonum) (λ [r] (max (min (real->double-flonum r) 1.0) 0.0)))
 (define real->alpha : (-> Real Nonnegative-Flonum) (λ [r] (max (min (real->double-flonum r) 1.0) 0.0)))
 (define gamut->uint16 : (-> Flonum Index) (λ [r] (assert (min (max (exact-round (* r 65535.0)) 0) 65535) index?)))
+(define gamut->byte100 : (-> Flonum Byte) (λ [r] (min (max (exact-round (* r 100.0)) 0) 100)))
 
 (define real->hue : (-> Real Nonnegative-Flonum)
   (lambda [hue]
