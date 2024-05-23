@@ -234,7 +234,7 @@
                                 (Real #:neck-width Real #:neck-height Real #:tube-height Real
                                       #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:density Positive-Flonum)
                                 Bitmap)
-  (lambda [#:neck-width [neck-width -0.1618] #:neck-height [neck-height -0.0618] #:tube-height [tube-height -0.0618]
+  (lambda [#:neck-width [neck-width -0.1618] #:neck-height [neck-height -0.0618] #:tube-height [tube-height 0]
            #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]
            width [height #false]]
     (bitmap_sandglass (real->double-flonum width) (real->double-flonum (if (not height) (* width 1.618) height))

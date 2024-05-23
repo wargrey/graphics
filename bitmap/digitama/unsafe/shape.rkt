@@ -284,21 +284,26 @@
     (define-values (bulb-ty bulb-by) (values (unsafe-fl+ tlset tube-height) (unsafe-fl- ybset tube-height)))
     (define-values (neck-lx neck-rx) (values (unsafe-fl+ tlset bulb-a) (unsafe-fl- xrset bulb-a)))
     (define-values (neck-ty neck-by) (values (unsafe-fl+ bulb-ty bulb-b) (unsafe-fl- bulb-by bulb-b)))
+    (define no-neck? (or (unsafe-fl= neck-a 0.0) (unsafe-fl= neck-b 0.0)))
     
     (cairo_new_sub_path cr)
     (cairo_move_to cr tlset tlset)
+    
     (cairo_line_to cr xrset tlset)
     (cairo_line_to cr xrset bulb-ty)
     (cairo-smart-arc cr neck-rx bulb-ty bulb-a bulb-b 0.0 pi/2)
-    (cairo-smart-arc-negative cr neck-rx cy neck-a neck-b 3pi/2 pi/2)
+    (when (not no-neck?)
+      (cairo-smart-arc-negative cr neck-rx cy neck-a neck-b 3pi/2 pi/2))
     (cairo-smart-arc cr neck-rx bulb-by bulb-a bulb-b (- pi/2) 0.0)
     (cairo_line_to cr xrset ybset)
     (cairo_line_to cr tlset ybset)
     (cairo_line_to cr tlset bulb-by)
     (cairo-smart-arc cr neck-lx bulb-by bulb-a bulb-b pi 3pi/2)
-    (cairo-smart-arc-negative cr neck-lx cy neck-a neck-b pi/2 (- pi/2))
+    (when (not no-neck?)
+      (cairo-smart-arc-negative cr neck-lx cy neck-a neck-b pi/2 (- pi/2)))
     (cairo-smart-arc cr neck-lx bulb-ty bulb-a bulb-b pi/2 pi)
     (cairo_close_path cr)
+    
     (cairo-render cr border background)
     (cairo_destroy cr)
 
