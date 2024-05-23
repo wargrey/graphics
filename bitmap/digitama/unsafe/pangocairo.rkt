@@ -144,6 +144,38 @@
           [(eq? (cpointer-tag src) 'cairo_pattern_t) (cairo_set_source cr src)]
           [else (cairo_set_source_surface cr src 0.0 0.0)])))
 
+(define cairo-smart-arc
+  (lambda [cr cx cy rx ry rstart rend]
+    (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo_arc)))
+
+(define cairo-smart-arc-negative
+  (lambda [cr cx cy rx ry rstart rend]
+    (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo_arc_negative)))
+
+(define cairo-smart-elliptical-arc
+  (lambda [cr cx cy rx ry rstart rend add-arc]
+    ;;; WARNING
+    ;; For drawing elliptical arcs
+    ;;   `cairo_translate` is necessary,
+    ;;   or the resulting shapes will be weird.
+    ;; TODO: find the reason;
+    ;; TODO: why not `density` should be used to scale
+    
+    (cond [(unsafe-fl< rx ry)
+           (cairo_save cr)
+           (cairo_translate cr cx cy)
+           (cairo_scale cr 1.0 (unsafe-fl/ ry rx))
+           (add-arc cr 0.0 0.0 rx rstart rend)
+           (cairo_restore cr)]
+          [(unsafe-fl> rx ry)
+           (cairo_save cr)
+           (cairo_translate cr cx cy)
+           (cairo_scale cr (unsafe-fl/ rx ry) 1.0)
+           (add-arc cr 0.0 0.0 ry rstart rend)
+           (cairo_restore cr)]
+          [else ; no need to `translate` first for circles
+           (add-arc cr cx cy rx rstart rend)])))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ~fx
   (lambda [fl]
@@ -165,11 +197,10 @@
                 (unsafe-fl/ pi 180.0))))
 
 (define ~length
-  (lambda [% 100%]
-    (define fl% (real->double-flonum %))
-    (cond [(negative? %) (unsafe-fl* (unsafe-flabs (real->double-flonum %)) 100%)]
-          [(flonum? %) %]
-          [else (real->double-flonum %)])))
+  (lambda [fl% 100%]
+    (cond [(unsafe-fl< fl% 0.0) (unsafe-fl* (unsafe-flabs fl%) 100%)]
+          [(unsafe-fl>= fl% 0.0) fl%]
+          [else #| nan |# 0.0])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (the-surface the-cairo) (cairo-create-argb-image-surface 1.0 1.0 1.0 #false))

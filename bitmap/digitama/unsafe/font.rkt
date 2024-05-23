@@ -60,7 +60,7 @@
     (define-values (baseline get-extent) (font-desc->get-extent font-desc))
     (define-values (meanline xw eh)     (get-extent "x"))
     (define-values (capline  Ow Oh)     (get-extent "O"))
-    (define-values (ascender   cw height) (get-extent content))
+    (define-values (ascender cw height) (get-extent content))
     (end-atomic)
     
     (values ascender capline meanline baseline (unsafe-fx+ ascender height)))

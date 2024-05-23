@@ -65,27 +65,7 @@
     (define cairo-arc (if (unsafe-struct*-ref path:arc 5) cairo_arc cairo_arc_negative))
     (define-values (rstart rend) (if radian? (values start end) (values (~radian start) (~radian end))))
 
-    ;;; WARNING
-    ;; For drawing elliptical arcs
-    ;;   `cairo_translate` is necessary,
-    ;;   or the resulting shapes will be weird.
-    ;; TODO: find the reason;
-    ;; TODO: why not `density` should be used to scale
-    
-    (cond [(unsafe-fl< rx ry)
-           (cairo_save cr)
-           (cairo_translate cr cx cy)
-           (cairo_scale cr 1.0 (unsafe-fl/ ry rx))
-           (cairo-arc cr 0.0 0.0 rx rstart rend)
-           (cairo_restore cr)]
-          [(unsafe-fl> rx ry)
-           (cairo_save cr)
-           (cairo_translate cr cx cy)
-           (cairo_scale cr (unsafe-fl/ rx ry) 1.0)
-           (cairo-arc cr 0.0 0.0 ry rstart rend)
-           (cairo_restore cr)]
-          [else ; no need to `translate` first for circles
-           (cairo-arc cr cx cy rx rstart rend)]))
+    (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo-arc))
   
   ;;; https://pomax.github.io/bezierinfo/
   ; ctrl1 = (+ cpt 2/3(ctrl - cpt)) = (+ cpt ctrl ctrl)/3
