@@ -7,7 +7,6 @@
 (require colorspace)
 
 (require racket/format)
-(require racket/math)
 
 (require file/convertible)
 
