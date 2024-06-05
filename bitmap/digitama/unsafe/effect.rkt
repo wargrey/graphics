@@ -10,24 +10,25 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
+  (require "surface/bitmap.rkt")
   (require (submod "pixman.rkt" unsafe))
-  (require (submod "convert.rkt" unsafe))
+  (require (submod "visual/bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap_cellophane src alpha density)
-    (define-values (flwidth flheight) (cairo-surface-size src density))
-    (define-values (img cr) (make-cairo-image flwidth flheight density #false))
+    (define-values (flwidth flheight) (bitmap-surface-size src density))
+    (define-values (img cr) (create-argb-bitmap flwidth flheight density #false))
     (cairo_set_source_surface cr src 0.0 0.0)
     (cairo_paint_with_alpha cr alpha)
     (cairo_destroy cr)
     img)
 
   (define (bitmap_grayscale src rgb->gray density)
-    (define-values (flwidth flheight) (cairo-surface-size src density))
-    (define-values (img cr) (make-cairo-image flwidth flheight density #false))
+    (define-values (flwidth flheight) (bitmap-surface-size src density))
+    (define-values (img cr) (create-argb-bitmap flwidth flheight density #false))
     (define surface (cairo_get_target cr))
-    (define-values (data total) (cairo-surface-data src))
-    (define-values (pixels _) (cairo-surface-data surface))
+    (define-values (data total) (bitmap-surface-data src))
+    (define-values (pixels _) (bitmap-surface-data surface))
 
     (cairo_surface_flush surface)
 

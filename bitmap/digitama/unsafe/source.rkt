@@ -20,6 +20,7 @@
   (provide (rename-out [cpointer? bitmap-pattern?]))
   
   (require "pangocairo.rkt")
+  (require "surface/image.rkt")
 
   (define (bitmap-linear-gradient-pattern x0 y0 x1 y1 stops)
     (define gradient (cairo_pattern_create_linear x0 y0 x1 y1))

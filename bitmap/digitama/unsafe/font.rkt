@@ -15,6 +15,7 @@
   (require (only-in racket/class send))
   
   (require "pangocairo.rkt")
+  (require "surface/image.rkt")
 
   (define &ink (make-PangoRectangle 0 0 0 0))
   (define &logical (make-PangoRectangle 0 0 0 0))

@@ -1,6 +1,7 @@
 #lang racket
 
 (require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/surface/bitmap.rkt")
 
 ;;; https://www.cairographics.org/samples/dash/
 ;;; https://www.cairographics.org/samples/fill_and_stroke2/
@@ -11,7 +12,7 @@
 (define density 2.0)
 
 (define (cairo-path width height offset line-width dashes)
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
 
   (cairo_move_to cr 128.0 25.6)
   (cairo_line_to cr 230.4 230.4)
@@ -35,7 +36,7 @@
   bmp)
 
 (define (cairo-fill-style width height style line-width rgb)
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
 
   (cairo_set_line_width cr line-width)
   
@@ -54,7 +55,7 @@
   bmp)
 
 (define (cairo-line-width width height line-width)
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
 
   (cairo_set_line_width cr line-width)
   (cairo_rectangle cr 0.0 0.0 width height)
@@ -75,7 +76,7 @@
   bmp)
 
 (define (cairo-line-cap width height line-cap)
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
   (define spacing (/ height 2.0))
 
   (cairo_set_line_width cr height)
@@ -93,7 +94,7 @@
   bmp)
 
 (define (cairo-line-join width height line-join miter-limit)
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
   (define line-width (/ height 3.0))
   (define delta (/ height (sqrt 2.0)))
 

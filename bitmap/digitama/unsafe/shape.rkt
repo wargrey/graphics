@@ -15,9 +15,11 @@
   (require "constants.rkt")
   (require "paint.rkt")
 
+  (require "surface/bitmap.rkt")
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap_line x y dx dy width height border density)
-    (define-values (img cr) (make-cairo-image width height density #true))
+    (define-values (img cr) (create-argb-bitmap width height density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define offset (unsafe-fl* line-width 0.5))
     
@@ -41,7 +43,7 @@
   (define (bitmap_circle radius border background density)
     (define fllength (unsafe-fl* radius 2.0))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
-    (define-values (img cr) (make-cairo-image fllength fllength density #true))
+    (define-values (img cr) (create-argb-bitmap fllength fllength density #true))
     
     (cairo_translate cr radius radius)
     (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl* line-width 0.5)) 0.0 2pi)
@@ -53,7 +55,7 @@
   (define (bitmap_sector aradius bradius start end border background density radian?)
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define-values (rstart rend) (if radian? (values start end) (values (~radian start) (~radian end))))
-    (define-values (img cr) (make-cairo-image (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
+    (define-values (img cr) (create-argb-bitmap (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
     
     (cairo_translate cr aradius bradius)
 
@@ -74,7 +76,7 @@
   (define (bitmap_arc aradius bradius start end border density radian?)
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define-values (rstart rend) (if radian? (values start end) (values (~radian start) (~radian end))))
-    (define-values (img cr) (make-cairo-image (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
+    (define-values (img cr) (create-argb-bitmap (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
     
     (cairo_translate cr aradius aradius)
 
@@ -89,7 +91,7 @@
     img)
 
   (define (bitmap_ellipse width height border background density)
-    (define-values (img cr) (make-cairo-image width height density #true))
+    (define-values (img cr) (create-argb-bitmap width height density #true))
     (define-values (width/2 height/2) (values (unsafe-fl* width 0.5) (unsafe-fl* height 0.5)))
     (define radius (unsafe-flmin width/2 height/2))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
@@ -107,7 +109,7 @@
     img)
   
   (define (bitmap_rectangle flwidth flheight border background density)
-    (define-values (img cr) (make-cairo-image flwidth flheight density #true))
+    (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset (unsafe-fl* line-width 0.5))
 
@@ -118,7 +120,7 @@
     img)
 
   (define (bitmap_rounded_rectangle flwidth flheight corner-radius border background density)
-    (define-values (img cr) (make-cairo-image flwidth flheight density #true))
+    (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset (unsafe-fl* line-width 0.5))
     (define flradius
@@ -143,7 +145,7 @@
     (define flradius (~length radius fllength))
     (define flheight (unsafe-fl* flradius 2.0))
     (define flwidth (unsafe-fl+ fllength flheight))
-    (define-values (img cr) (make-cairo-image flwidth flheight density #true))
+    (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset-radius (unsafe-fl- flradius (unsafe-fl* line-width 0.5)))
 
@@ -158,7 +160,7 @@
 
   (define (bitmap_polyline flwidth flheight xs ys dx dy border background fill-style density)
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
-    (define-values (img cr) (make-cairo-image (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
+    (define-values (img cr) (create-argb-bitmap (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
     (define inset (unsafe-fl* line-width 0.5))
     (define x0 (unsafe-fl+ dx inset))
     (define y0 (unsafe-fl+ dy inset))
@@ -188,7 +190,7 @@
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define r (unsafe-fl- radius (unsafe-fl* line-width 0.5)))
     (define delta (unsafe-fl/ 2pi fln))
-    (define-values (img cr) (make-cairo-image fllength fllength density #true))
+    (define-values (img cr) (create-argb-bitmap fllength fllength density #true))
     
     (cairo_translate cr radius radius)
     (cairo_new_sub_path cr)
@@ -249,7 +251,7 @@
                               [(ymin ymax) (values (unsafe-flmin aymin shymin) (unsafe-flmax aymax shymax))])
                   (values (unsafe-fl- xmax xmin) (unsafe-fl- ymax ymin) (unsafe-fl- xmin) (unsafe-fl- ymin) shx1 shy1 shx2 shy2))))))
       
-    (define-values (img cr) (make-cairo-image flwidth flheight density #true))
+    (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
     
     (cairo_translate cr tx ty)
     (cairo_new_sub_path cr)
@@ -272,7 +274,7 @@
     img)
 
   (define (bitmap_sandglass flwidth flheight neck-width0 neck-height0 tube-height0 border background density)
-    (define-values (img cr) (make-cairo-image flwidth flheight density #true))
+    (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
     (define-values (neck-width neck-height) (values (~length neck-width0 flwidth) (~length neck-height0 flheight)))
     (define-values (cy neck-a neck-b) (values (unsafe-fl* flheight 0.5) (unsafe-fl* neck-width 0.25) (unsafe-fl* neck-height 0.5)))
     (define tube-height (~length tube-height0 flheight))

@@ -9,11 +9,12 @@
 (require "../../digitama/base.rkt")
 (require "../../digitama/unsafe/convert.rkt")
 (require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/surface/bitmap.rkt")
 (require (only-in (submod "../../digitama/unsafe/font.rkt" unsafe) bitmap_create_font_desc))
 
 (define (cairo_text_polygon words radius context font-face font-weight font-attrs)
   (define-values (width height) (values (* 2.0 radius) (* 2.0 radius)))
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
   (define (draw-text-circle cr context words)
     (define layout (pango_layout_new context))
     (when font-attrs (pango_layout_set_attributes layout font-attrs))

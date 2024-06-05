@@ -1,6 +1,8 @@
 #lang racket
 
 (require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/surface/bitmap.rkt")
+
 (require "../../color.rkt")
 (require "../../paint.rkt")
 (require "../../constructor.rkt")
@@ -12,7 +14,7 @@
 (define (cairo-curve-rectangle x0 y0 rect-width rect-height radius line-width)
   (define-values (x1 y1) (values (+ x0 rect-width) (+ y0 rect-height)))
   (define-values (width/2 height/2) (values (/ rect-width 2) (/ rect-height 2)))
-  (define-values (bmp cr) (make-cairo-image (+ x1 line-width) (+ y1 line-width) density #true))
+  (define-values (bmp cr) (create-argb-bitmap (+ x1 line-width) (+ y1 line-width) density #true))
 
   (if (< width/2 radius)
       (if (< height/2 radius)

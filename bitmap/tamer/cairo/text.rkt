@@ -2,6 +2,7 @@
 
 (require racket/draw/private/utils)
 (require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/surface/bitmap.rkt")
 
 (define-enum 0 CAIRO_FONT_SLANT_NORMAL CAIRO_FONT_SLANT_ITALIC CAIRO_FONT_SLANT_OBLIQUE)
 (define-enum 0 CAIRO_FONT_WEIGHT_NORMAL CAIRO_FONT_WEIGHT_BOLD)
@@ -27,7 +28,7 @@
 ;;; https://www.cairographics.org/samples/text_extents/
 
 (define density 2.0)
-(define-values (_b tcr) (make-cairo-image 1.0 1.0 density #true))
+(define-values (_b tcr) (create-argb-bitmap 1.0 1.0 density #true))
 
 (define (cairo-text-size! face size style weight utf8 &extents)
   (cairo_select_font_face tcr face style weight)
@@ -48,7 +49,7 @@
   (define-values (word-y path-y) (values (+ yw word-baseline) (+ yp path-baseline)))
   (define width (+ (max (+ word-x word-width) (+ path-x path-width)) border-width))
   (define height (+ (max (+ yw word-height) (+ yp path-height)) border-width))
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
 
   (cairo_select_font_face cr face style weight)
   (cairo_set_font_size cr size)
@@ -78,7 +79,7 @@
   
   (define-values (word-width word-height word-baseline) (cairo-text-size! face size style weight word &extents))
   (define-values (width height) (values (max flwidth word-width) (max flheight word-height)))
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
   (define-values (x y) (values (/ (- width word-width) 2.0) (+ (/ (- height word-height) 2.0) word-height)))
 
   (cairo_select_font_face cr face style weight)
@@ -105,7 +106,7 @@
   (define-values (dot-radius line-width) (values 10.0 6.0))
   (define-values (x y) (values (+ x0 line-width) (+ y0 line-width)))
   (define-values (word-width word-height baseline) (cairo-text-size! face size style weight word &extents))
-  (define-values (bmp cr) (make-cairo-image (+ x word-width line-width) (+ y word-height) density #true))
+  (define-values (bmp cr) (create-argb-bitmap (+ x word-width line-width) (+ y word-height) density #true))
 
   (cairo_select_font_face cr face style weight)
   (cairo_set_font_size cr size)

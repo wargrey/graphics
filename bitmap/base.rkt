@@ -94,7 +94,7 @@
   (lambda [bmp /dev/bmpout #:format [format 'png]]
     (if (output-port? /dev/bmpout)
         (let ([surface (bitmap<%>-surface bmp)])
-          (cairo-surface-save surface /dev/bmpout format))
+          (bitmap-surface-save surface /dev/bmpout format (bitmap-density bmp)))
         (let ()
           (make-parent-directory* /dev/bmpout)
           (call-with-output-file* /dev/bmpout #:exists 'truncate/replace

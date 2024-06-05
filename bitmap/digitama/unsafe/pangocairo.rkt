@@ -2,13 +2,12 @@
 
 (provide (all-defined-out) pi nan? infinite? sgn)
 (provide (all-from-out racket/draw/unsafe/cairo racket/draw/unsafe/pango))
-(provide (all-from-out ffi/unsafe racket/unsafe/ops))
+(provide (all-from-out ffi/unsafe racket/unsafe/ops ffi/unsafe/atomic))
 
 (require ffi/unsafe)
 (require ffi/unsafe/define)
 (require ffi/unsafe/alloc)
-
-(require racket/symbol)
+(require ffi/unsafe/atomic)
 
 (require racket/unsafe/ops)
 (require racket/draw/unsafe/pango)
@@ -16,7 +15,6 @@
 (require racket/draw/unsafe/cairo-lib)
 
 (require (only-in racket/math pi nan? infinite? sgn))
-(require "convert.rkt")
 
 (require (for-syntax racket/base))
 
@@ -40,10 +38,7 @@
 
 (define _gunichar (make-ctype _uint32 char->integer integer->char))
 
-(define-pango pango_version (_cfun -> _int))
 (define-pango pango_version_string (_cfun -> _string))
-
-(define-cairo cairo_version (_cfun -> _int))
 (define-cairo cairo_version_string (_cfun -> _string))
 
 (define-pango pango_context_set_font_description (_pfun PangoContext PangoFontDescription -> _void))
@@ -74,65 +69,21 @@
 (define-cairo cairo_mesh_pattern_set_corner_color_rgba (_cfun _cairo_pattern_t _uint _double* _double* _double* _double* -> _void))
 (define-cairo cairo_mesh_pattern_end_patch (_cfun _cairo_pattern_t -> _void))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define cairo-create-image-surface
-  ; NOTE: (cairo_image_surface_create_for_data) does not work here since Racket bytes may be moved by GC.
-  ; NOTE: CAIRO_FORMAT_ARGB32 is alpha-multiplied.
-  (lambda [flwidth flheight density]
-    (define width (unsafe-fxmax (~fx (unsafe-fl* flwidth density)) 1))
-    (define height (unsafe-fxmax (~fx (unsafe-fl* flheight density)) 1))
-    (define surface (cairo_image_surface_create CAIRO_FORMAT_ARGB32 width height))
-    (define status (cairo_surface_status surface))
+(define-cairo cairo_recording_surface_ink_extents
+  (_cfun _cairo_surface_t
+         [lx : (_ptr o _double)] [ty : (_ptr o _double)] [w : (_ptr o _double)] [h : (_ptr o _double)]
+         -> _void -> (values lx ty w h)))
 
-    (unless (unsafe-fx= status CAIRO_STATUS_SUCCESS)
-      (raise-arguments-error (or (let use-next-id ([stacks (reverse (continuation-mark-set->context (current-continuation-marks)))])
-                                   (and (pair? stacks)
-                                        (let ([stack (unsafe-car (unsafe-car stacks))])
-                                          (or (and (symbol? stack)
-                                                   (let ([$stack (symbol->immutable-string stack)])
-                                                     (and (unsafe-fx> (string-length $stack) 6)
-                                                          (string=? (substring $stack 0 6) "bitmap")))
-                                                   stack)
-                                              (use-next-id (unsafe-cdr stacks))))))
-                                 'make-image)
-                             (cairo_status_to_string status)
-                             "width" flwidth "height" flheight
-                             "density" density))
-    (values surface width height)))
-
-(define cairo-create-argb-image-surface
-  (lambda [flwidth flheight density scale?]
-    (define-values (surface cr width height) (cairo-create-argb-image-surface* flwidth flheight density scale?))
-    (values surface cr)))
-
-(define cairo-create-argb-image-surface*
-  (lambda [flwidth flheight density scale?]
-    (define-values (surface width height) (cairo-create-image-surface flwidth flheight density))
-    (define cr (cairo_create surface))
-    (unless (or (not scale?) (unsafe-fl= density 1.0))
-      (cairo_scale cr density density))
-    (values surface cr width height)))
+; it only works for recording surfaces that already have an extent set
+;   in which case those surfaces have limited boundary to clip resulting shapes
+(define-cairo cairo_recording_surface_get_extents
+  (_cfun _cairo_surface_t [box : (_ptr o _cairo_rectangle_t)]
+         -> [okay? : _bool]
+         -> (values okay?
+                    (cairo_rectangle_t-x box) (cairo_rectangle_t-y box)
+                    (cairo_rectangle_t-width box) (cairo_rectangle_t-height box))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-cairo-image
-  (lambda [flwidth flheight density scale?]
-    (define-values (surface cr width height) (cairo-create-argb-image-surface* flwidth flheight density scale?))
-    (values (create-argb-bitmap surface width height density)
-            cr)))
-
-(define make-invalid-cairo-image
-  (lambda [flwidth flheight density scale?]
-    (define-values (surface cr width height) (cairo-create-argb-image-surface* flwidth flheight density scale?))
-    (values (create-invalid-bitmap surface width height density)
-            cr)))
-
-(define make-cairo-image*
-  (lambda [flwidth flheight background density scale?]
-    (define-values (img cr) (make-cairo-image flwidth flheight density scale?))
-    (cairo-set-source cr background)
-    (cairo_paint cr)
-    (values img cr)))
-
 (define cairo-set-source
   (lambda [cr src]
     (cond [(struct? src) ; (rgba? src)
@@ -203,4 +154,25 @@
           [else #| nan |# 0.0])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-values (the-surface the-cairo) (cairo-create-argb-image-surface 1.0 1.0 1.0 #false))
+(define make-cairo-vector-surface-writer
+  (lambda [/dev/strout pool-size]
+    (define pool (make-bytes pool-size))
+    
+    (λ [bstr-ptr len]
+      (let cairo-write ([src-rst len]
+                        [ptr-off 0])
+        (define size (unsafe-fxmin src-rst pool-size))
+        (define rest-- (unsafe-fx- src-rst size))
+
+        (memcpy pool 0 bstr-ptr ptr-off size)
+        (write-bytes pool /dev/strout 0 size)
+        
+        (cond [(unsafe-fx> rest-- 0) (cairo-write rest-- (unsafe-fx+ ptr-off size))]
+              [else CAIRO_STATUS_SUCCESS])))))
+
+(define make-cairo-image-surface-writer
+  (lambda [/dev/strout pool-size]
+    (define cairo-write (make-cairo-vector-surface-writer /dev/strout pool-size))
+
+    (λ [ignored-closure bstr-ptr len]
+      (cairo-write bstr-ptr len))))

@@ -5,6 +5,7 @@
 (require "../path.rkt")
 (require "../../../composite.rkt")
 (require "../../../digitama/unsafe/convert.rkt")
+(require "../../../digitama/unsafe/visual/object.rkt")
 
 (require racket/port)
 (require racket/math)

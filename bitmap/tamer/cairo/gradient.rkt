@@ -3,12 +3,13 @@
 (provide (all-defined-out))
 
 (require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/surface/bitmap.rkt")
 
 ;;; https://www.cairographics.org/samples/gradient/
 
 (define (cairo-gradient xc yc radius light shadow density)
   (define-values (width height) (values (* (max xc radius) 2.0) (* (max yc radius) 2.0)))
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
 
   (define background (cairo_pattern_create_linear 0.0 0.0 0.0 height))
   (apply cairo_pattern_add_color_stop_rgba background 0.0 light)

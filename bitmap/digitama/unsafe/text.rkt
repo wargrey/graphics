@@ -13,6 +13,7 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
+  (require "surface/bitmap.rkt")
   (require (submod "font.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -73,8 +74,8 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (make-text-image width height background density)
     (if (not background)
-        (make-cairo-image width height density #true)
-        (make-cairo-image* width height background density #true)))
+        (create-argb-bitmap width height density #true)
+        (create-argb-bitmap width height background density #true)))
   
   (define (bitmap_create_layout lines)
     (define context (the-context))

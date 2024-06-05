@@ -1,6 +1,7 @@
 #lang racket
 
 (require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/surface/bitmap.rkt")
 
 ;;; https://www.cairographics.org/samples/curve_to/
 ;;; https://pomax.github.io/bezierinfo
@@ -12,7 +13,7 @@
   (define-values (x1 y1) (values (real-part p1) (imag-part p1)))
   (define-values (x2 y2) (values (real-part p2) (imag-part p2)))
   (define-values (width height) (values (+ (max x1 x2) line-width) (+ (max y1 y2) line-width)))
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
 
   (cairo_move_to cr x1 y1)
   (cairo_line_to cr x2 y2)
@@ -34,7 +35,7 @@
   (define-values (y0 ym) (values (min y1 y2 y3 y4) (max y1 y2 y3 y4)))
   (define width (+ xm (max curve-width line-width)))
   (define height (+ ym (max curve-width line-width)))
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
 
   (cairo_move_to cr x1 y1)
   (cairo_curve_to cr x2 y2 x3 y3 x4 y4)

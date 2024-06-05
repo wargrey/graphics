@@ -12,16 +12,17 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
+  (require "surface/bitmap.rkt")
   (require "paint.rkt")
 
   (require (submod "pixman.rkt" unsafe))
-  (require (submod "convert.rkt" unsafe))
+  (require (submod "visual/bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (λbitmap width height density λargb)
-    (define-values (img cr) (make-cairo-image width height density #false))
+    (define-values (img cr) (create-argb-bitmap width height density #false))
     (define surface (cairo_get_target cr))
-    (define-values (pixels _ stride w h) (cairo-surface-metrics surface 4))
+    (define-values (pixels _ stride w h) (bitmap-surface-metrics surface 4))
 
     (cairo_surface_flush surface)
     (let y-loop ([y 0])
@@ -39,9 +40,9 @@
     img)
 
   (define (λbitmap* width height density λargb initial)
-    (define-values (img cr) (make-cairo-image width height density #false))
+    (define-values (img cr) (create-argb-bitmap width height density #false))
     (define surface (cairo_get_target cr))
-    (define-values (pixels _ stride w h) (cairo-surface-metrics surface 4))
+    (define-values (pixels _ stride w h) (bitmap-surface-metrics surface 4))
     (cairo_surface_flush surface)
 
     (let y-loop ([y 0]
@@ -64,9 +65,9 @@
             (values img datum0)))))
 
   (define (λbitmap_step width height density λargb initial)
-    (define-values (img cr) (make-cairo-image width height density #false))
+    (define-values (img cr) (create-argb-bitmap width height density #false))
     (define surface (cairo_get_target cr))
-    (define-values (pixels _ stride w h) (cairo-surface-metrics surface 4))
+    (define-values (pixels _ stride w h) (bitmap-surface-metrics surface 4))
     
     (cairo_surface_flush surface)
     (let step ([datum initial])
@@ -82,11 +83,11 @@
             [else (step datum++)])))
 
   (define (λbitmap_map src density argb-map)
-    (define-values (flwidth flheight) (cairo-surface-size src density))
-    (define-values (img cr) (make-cairo-image flwidth flheight density #false))
+    (define-values (flwidth flheight) (bitmap-surface-size src density))
+    (define-values (img cr) (create-argb-bitmap flwidth flheight density #false))
     (define surface (cairo_get_target cr))
-    (define-values (data total) (cairo-surface-data src))
-    (define-values (pixels _ stride w h) (cairo-surface-metrics surface 4))
+    (define-values (data total) (bitmap-surface-data src))
+    (define-values (pixels _ stride w h) (bitmap-surface-metrics surface 4))
     
     (cairo_surface_flush surface)
 
@@ -107,22 +108,22 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap_blank width height density)
-    (define-values (img cr) (make-cairo-image width height density #true))
+    (define-values (img cr) (create-argb-bitmap width height density #true))
     (cairo_destroy cr)
     img)
 
   (define (bitmap_pattern width height background density)
-    (define-values (img cr) (make-cairo-image* width height background density #true))
+    (define-values (img cr) (create-argb-bitmap width height background density #true))
     (cairo_destroy cr)
     img)
 
   (define (bitmap_frame src mtop mright mbottom mleft ptop pright pbottom pleft border background density)
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define line-inset (unsafe-fl/ line-width 2.0))
-    (define-values (dest-width dest-height) (cairo-surface-size src density))
+    (define-values (dest-width dest-height) (bitmap-surface-size src density))
     (define-values (width border-x border-width dest-x) (frame-metrics line-width line-inset mleft mright pleft pright dest-width))
     (define-values (height border-y border-height dest-y) (frame-metrics line-width line-inset mtop mbottom ptop pbottom dest-height))
-    (define-values (img cr) (make-cairo-image width height density #true))
+    (define-values (img cr) (create-argb-bitmap width height density #true))
     (cairo_rectangle cr border-x border-y border-width border-height)
     (cairo-render cr border background)
     (cairo-composite cr src dest-x dest-y dest-width dest-height CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #false)

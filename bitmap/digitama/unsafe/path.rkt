@@ -5,8 +5,9 @@
 (require typed/racket/unsafe)
 
 (require "../base.rkt")
-(require "convert.rkt")
 (require "source.rkt")
+(require "visual/abstract.rkt")
+(require "visual/bitmap.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -14,25 +15,28 @@
   (require "pangocairo.rkt")
   (require "paint.rkt")
 
+  (require "surface/abstract.rkt")
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_crawl! src footprints stroke fill-color dx dy fill-style density)
-    (define cr (cairo_create src))
-    (define-values (x1 y1 x2 y2) (cairo_path cr footprints dx dy fill-style density))
-
+  (define (path_stamp! target footprints stroke fill-color dx dy fill-style density)
+    (define cr (cairo_create target))
+    
+    (cairo_path cr footprints dx dy fill-style density)
     (cairo-render cr stroke fill-color)
-    (cairo_destroy cr)
-    (values (make-rectangular x1 y1)
-            (make-rectangular x2 y2)))
 
-  (define (bitmap_crawl footprints flwidth flheight dx dy stroke fill-color fill-style density)
+    (let-values ([(x1 y1 x2 y2) (cairo_path_extents cr)])
+      (cairo_destroy cr)
+      (values (make-rectangular x1 y1)
+              (make-rectangular x2 y2))))
+
+  (define (path_stamp footprints dx dy stroke fill-color fill-style density)
     (define line-width (if (struct? stroke) (unsafe-struct-ref stroke 1) 0.0))
     (define inset (unsafe-fl* line-width 0.5))
-    (define-values (img cr) (make-cairo-image (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #false))
-    (define-values (x1 y1 x2 y2) (cairo_path cr footprints (unsafe-fl+ dx inset) (unsafe-fl+ dy inset) fill-style density))
 
-    (cairo-render cr stroke fill-color)
-    (cairo_destroy cr)
-    (values img (make-rectangular x1 y1) (make-rectangular x2 y2)))
+    (make-cairo-abstract-surface 0.0 0.0 density #false
+                                 (λ [cr _inf.w _inf.h]
+                                   (cairo_path cr footprints (unsafe-fl+ dx inset) (unsafe-fl+ dy inset) fill-style density)
+                                   (cairo-render cr stroke fill-color))))
 
   (define (cairo_path cr footprints dx dy fill-style density)
     (cairo_scale cr density density)
@@ -50,9 +54,7 @@
         [(#\Z #\z) (cairo_close_path cr)]))
 
     (unless (eq? fill-style 'winding)
-      (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD))
-    
-    (cairo_path_extents cr))
+      (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD)))
 
   (define (cairo_elliptical_arc cr path:arc radian? dx dy density)
     (define center (unsafe-struct*-ref path:arc 0))
@@ -85,13 +87,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [bitmap_crawl! (-> Bitmap-Surface (Listof Track-Print) (Option Paint) (Option Bitmap-Source) Flonum Flonum Symbol Flonum
-                    (Values Float-Complex Float-Complex))]
- [bitmap_crawl (-> (Listof Track-Print) Flonum Flonum Flonum Flonum (Option Paint) (Option Bitmap-Source) Symbol Flonum
-                   (Values Bitmap Float-Complex Float-Complex))])
+ [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Bitmap-Source) Symbol Flonum Abstract-Surface)]
+ [path_stamp! (-> Bitmap-Surface (Listof Path-Print) (Option Paint) (Option Bitmap-Source) Flonum Flonum Symbol Flonum
+                     (Values Float-Complex Float-Complex))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Track-Print (Pairof Char (U Float-Complex Path-Args False)))
+(define-type Path-Print (Pairof Char (U Float-Complex Path-Args False)))
 
 (struct path-args () #:type-name Path-Args #:transparent)
 (struct arc path-args ([center : Float-Complex] [rx : Float] [ry : Float] [start : Float] [end : Float] [clockwise? : Boolean]) #:transparent)

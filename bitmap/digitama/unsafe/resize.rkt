@@ -10,22 +10,23 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
+  (require "surface/bitmap.rkt")
   (require (submod "pixman.rkt" unsafe))
-  (require (submod "convert.rkt" unsafe))
+  (require (submod "visual/bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap_section src x y width height density)
-    (define-values (img cr) (make-cairo-image (unsafe-fl/ width density) (unsafe-fl/ height density) density #false))
+    (define-values (img cr) (create-argb-bitmap (unsafe-fl/ width density) (unsafe-fl/ height density) density #false))
     (cairo_set_source_surface cr src (unsafe-fl- 0.0 x) (unsafe-fl- 0.0 y))
     (cairo_paint cr)
     (cairo_destroy cr)
     img)
 
   (define (bitmap_scale src xscale yscale density)
-    (define-values (width height) (cairo-surface-size src density))
+    (define-values (width height) (bitmap-surface-size src density))
     (define flwidth (unsafe-fl* width (unsafe-flabs xscale)))
     (define flheight (unsafe-fl* height (unsafe-flabs yscale)))
-    (define-values (img cr) (make-cairo-image flwidth flheight density #false))
+    (define-values (img cr) (create-argb-bitmap flwidth flheight density #false))
     (cairo_scale cr xscale yscale) ; order matters
     (cairo_set_source_surface cr src 0.0 0.0)
     (cairo_paint cr)
@@ -33,7 +34,7 @@
     img)
 
   (define (bitmap_bounding_box src just-alpha?)
-    (define-values (pixels total stride w h) (cairo-surface-metrics src 4))
+    (define-values (pixels total stride w h) (bitmap-surface-metrics src 4))
     (define-values (zero-dot? dotoff) (if just-alpha? (values pixel-alpha-zero? A) (values pixel-zero? 0)))
     (let ([x w] [y h] [X 0] [Y 0])
       (let y-loop ([yn 0] [idx dotoff])

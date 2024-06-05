@@ -3,11 +3,12 @@
 (provide cairo-mesh-pattern) ; for tamer/prefab.rkt
 
 (require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/surface/bitmap.rkt")
 
 ;;; https://www.cairographics.org/manual/cairo-cairo-pattern-t.html#cairo-pattern-create-mesh
 
 (define (cairo-mesh-pattern width height ratio density)
-  (define-values (bmp cr) (make-cairo-image width height density #true))
+  (define-values (bmp cr) (create-argb-bitmap width height density #true))
   (define pattern (cairo_pattern_create_mesh))
   (define-values (side rest) (values (* height ratio) (* height (- 1.0 ratio))))
   (define-values (tx ty) (values (- width (* side 0.5)) (- height (* side 0.5))))
