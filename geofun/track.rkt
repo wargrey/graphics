@@ -24,7 +24,10 @@
 
 (require bitmap/digitama/dot)
 (require bitmap/digitama/base)
+(require bitmap/digitama/source)
 (require bitmap/digitama/unsafe/visual/abstract)
+
+(require bitmap/paint)
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
@@ -139,11 +142,16 @@
                   (+ abspos (make-rectangular xoff yoff)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-save : (->* (Track (U Path-String Output-Port)) (#:format Symbol) Void)
-  (lambda [self /dev/vecout #:format [format 'pdf]]
+(define track-save : (->* (Track (U Path-String Output-Port))
+                          (#:format Symbol #:fill-rule Symbol #:bitmap-density Positive-Flonum
+                           #:color Stroke-Paint #:fill (Option Fill-Paint))
+                          Void)
+  (lambda [#:format [format 'pdf] #:fill-rule [fill-rule 'winding] #:bitmap-density [density (default-bitmap-density)]
+           #:color [stroke (default-stroke)] #:fill [fill #false]
+           self /dev/vecout]
     (if (output-port? /dev/vecout)
-        (let ([surface (track-surface self)])
-          (abstract-surface-save surface /dev/vecout format (default-bitmap-density)))
+        (let ([surface (track-surface self stroke fill fill-rule)])
+          (abstract-surface-save surface /dev/vecout format density))
         (let ()
           (make-parent-directory* /dev/vecout)
           (call-with-output-file* /dev/vecout #:exists 'truncate/replace

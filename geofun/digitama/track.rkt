@@ -9,6 +9,8 @@
 (require bitmap/digitama/base)
 (require bitmap/digitama/source)
 
+(require bitmap/paint)
+
 (require (for-syntax racket/base))
 (require (for-syntax racket/math))
 (require (for-syntax racket/syntax))
@@ -250,17 +252,16 @@
         (track-move self tpos (+ (track-current-position self) tpos) #\l anchor #false))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-surface : (->* (Track) (Stroke-Paint Fill-Paint Symbol Positive-Flonum) Abstract-Surface)
-  (lambda [wani [paint 'black] [fill 'transparent] [fstyle 'winding] [density 1.0]]
+(define track-surface : (->* (Track) (Stroke-Paint (Option Fill-Paint) Symbol Positive-Flonum) Abstract-Surface)
+  (lambda [wani [paint (default-stroke)] [fill #false] [fstyle 'winding]]
     (path_stamp (track-footprints wani)
                 (- (track-lx wani)) (- (track-ty wani))
                 (stroke-paint->source paint) (fill-paint->source* fill)
-                fstyle density)))
+                fstyle)))
 
 (define track-convert : Visual-Object-Convert
   (lambda [self mime fallback]
     (with-asserts ([self track?])
-      (displayln mime)
       (case mime
         [(pdf-bytes)    (abstract-surface->stream-bytes (track-surface self) 'pdf '/dev/pdfout 1.0)]
         [(svg-bytes)    (abstract-surface->stream-bytes (track-surface self) 'svg '/dev/svgout 1.0)]

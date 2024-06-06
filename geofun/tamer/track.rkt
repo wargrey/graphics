@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(require diagram/track)
+(require geofun/track)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-dryland-wani! drywani [64 64] #:-
@@ -55,8 +55,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (require diagram/digitama/track)
-  (require bitmap)
+  (require geofun/digitama/track)
+  (require bitmap/paint)
+
+  (default-stroke (desc-stroke #:color 'crimson))
   
   (reverse (track-footprints drywani))
   (track-anchors drywani)

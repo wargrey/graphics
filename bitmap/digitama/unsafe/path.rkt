@@ -18,29 +18,25 @@
   (require "surface/abstract.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (path_stamp! target footprints stroke fill-color dx dy fill-style density)
-    (define cr (cairo_create target))
-    
-    (cairo_path cr footprints dx dy fill-style density)
-    (cairo-render cr stroke fill-color)
+  (define (path_stamp! bitmap-sfc footprints stroke fill-color dx dy fill-rule density)
+    (define bitmap-cr (cairo_create bitmap-sfc))
 
-    (let-values ([(x1 y1 x2 y2) (cairo_path_extents cr)])
-      (cairo_destroy cr)
+    (cairo_scale bitmap-cr density density)
+    (cairo_path bitmap-cr footprints dx dy fill-rule density)
+    (cairo-render bitmap-cr stroke fill-color)
+
+    (let-values ([(x1 y1 x2 y2) (cairo_path_extents bitmap-cr)])
+      (cairo_destroy bitmap-cr)
       (values (make-rectangular x1 y1)
               (make-rectangular x2 y2))))
 
-  (define (path_stamp footprints dx dy stroke fill-color fill-style density)
-    (define line-width (if (struct? stroke) (unsafe-struct-ref stroke 1) 0.0))
-    (define inset (unsafe-fl* line-width 0.5))
-
-    (make-cairo-abstract-surface 0.0 0.0 density #false
+  (define (path_stamp footprints dx dy stroke fill-color fill-rule)
+    (make-cairo-abstract-surface 0.0 0.0 1.0 #false
                                  (λ [cr _inf.w _inf.h]
-                                   (cairo_path cr footprints (unsafe-fl+ dx inset) (unsafe-fl+ dy inset) fill-style density)
+                                   (cairo_path cr footprints dx dy fill-rule)
                                    (cairo-render cr stroke fill-color))))
 
-  (define (cairo_path cr footprints dx dy fill-style density)
-    (cairo_scale cr density density)
-    
+  (define (cairo_path cr footprints dx dy fill-rule)
     (for ([op+footprint (in-list (reverse footprints))])
       (define footprint (unsafe-cdr op+footprint))
       (case (unsafe-car op+footprint)
@@ -48,15 +44,15 @@
         [(#\m) (cairo_rel_move_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
         [(#\L) (cairo_line_to cr (unsafe-fl+ (unsafe-flreal-part footprint) dx) (unsafe-fl+ (unsafe-flimag-part footprint) dy))]
         [(#\l) (cairo_rel_line_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
-        [(#\A) (cairo_elliptical_arc cr footprint #true dx dy density)]
+        [(#\A) (cairo_elliptical_arc cr footprint #true dx dy)]
         [(#\C) (cairo_cubic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
         [(#\Q) (cairo_quadratic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
         [(#\Z #\z) (cairo_close_path cr)]))
 
-    (unless (eq? fill-style 'winding)
+    (unless (eq? fill-rule 'winding)
       (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD)))
 
-  (define (cairo_elliptical_arc cr path:arc radian? dx dy density)
+  (define (cairo_elliptical_arc cr path:arc radian? dx dy)
     (define center (unsafe-struct*-ref path:arc 0))
     (define cx (unsafe-fl+ (unsafe-flreal-part center) dx))
     (define cy (unsafe-fl+ (unsafe-flimag-part center) dy))
@@ -87,9 +83,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Bitmap-Source) Symbol Flonum Abstract-Surface)]
+ [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Bitmap-Source) Symbol Abstract-Surface)]
  [path_stamp! (-> Bitmap-Surface (Listof Path-Print) (Option Paint) (Option Bitmap-Source) Flonum Flonum Symbol Flonum
-                     (Values Float-Complex Float-Complex))])
+                  (Values Float-Complex Float-Complex))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Path-Print (Pairof Char (U Float-Complex Path-Args False)))
