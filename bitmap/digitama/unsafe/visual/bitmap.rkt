@@ -14,6 +14,10 @@
   (provide (rename-out [cpointer? bitmap-surface?]))
 
   (require "../pangocairo.rkt")
+  
+  (require "../stream/pdf.rkt")
+  (require "../stream/svg.rkt")
+  (require "../stream/png.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap-surface-content-size sfc)
@@ -46,30 +50,22 @@
     (get-output-bytes /dev/sfcout))
 
   (define (bitmap-surface-save bmp-sfc /dev/sfcout format density)
-    (start-breakable-atomic)
     (case format
-      [(svg) (bitmap-surface-save-with cairo_svg_surface_create_for_stream bmp-sfc /dev/sfcout density 4096)]
-      [(pdf) (bitmap-surface-save-with cairo_pdf_surface_create_for_stream bmp-sfc /dev/sfcout density 256)]
-      [else  (bitmap-surface-save-as-png bmp-sfc /dev/sfcout density 4096)])
-    (end-breakable-atomic))
+      [(svg) (bitmap-surface-save-with cairo-svg-stream-write bmp-sfc /dev/sfcout density)]
+      [(pdf) (bitmap-surface-save-with cairo-pdf-stream-write bmp-sfc /dev/sfcout density)]
+      [else  (cairo-png-stream-write /dev/sfcout (λ [] (values bmp-sfc #false)))]))
 
-  (define (bitmap-surface-save-as-png bmp-sfc /dev/pngout density pool-size)
-    (cairo_surface_write_to_png_stream bmp-sfc (make-cairo-image-surface-writer /dev/pngout pool-size)))
-
-  (define (bitmap-surface-save-with create_for_stream bmp-sfc /dev/strout density pool-size)
+  (define (bitmap-surface-save-with stream-write bmp-sfc /dev/strout density)
     (define-values (width height) (bitmap-surface-size bmp-sfc density))
-    (define vec-sfc (create_for_stream (make-cairo-vector-surface-writer /dev/strout pool-size) width height))
-    (define vec-cr (cairo_create vec-sfc))
 
-    (unless (unsafe-fl= density 1.0)
-      (define s (unsafe-fl/ 1.0 density))
-      (cairo_scale vec-cr s s))
-
-    (cairo_set_source_surface vec-cr bmp-sfc 0.0 0.0)
-    (cairo_paint vec-cr)
-    (cairo_surface_flush vec-sfc)
-    (cairo_surface_destroy vec-sfc)
-    (cairo_destroy vec-cr)))
+    (stream-write /dev/strout width height
+                  (λ [vec-cr flwidth flheight]
+                    (unless (unsafe-fl= density 1.0)
+                      (define s (unsafe-fl/ 1.0 density))
+                      (cairo_scale vec-cr s s))
+                    
+                    (cairo_set_source_surface vec-cr bmp-sfc 0.0 0.0)
+                    (cairo_paint vec-cr)))))
 
 (unsafe-require/typed/provide
  (submod "." unsafe)
@@ -78,4 +74,4 @@
  [bitmap-surface-intrinsic-size (-> Bitmap-Surface (Values Positive-Index Positive-Index))]
  [bitmap-surface-data (-> Bitmap-Surface (Values Bytes Index))]
  [bitmap-surface->stream-bytes (-> Bitmap-Surface Symbol Symbol Flonum Bytes)]
- [bitmap-surface-save (-> Bitmap-Surface Output-Port Symbol Positive-Flonum Void)])
+ [bitmap-surface-save (-> Bitmap-Surface (U Output-Port Path-String) Symbol Positive-Flonum Void)])

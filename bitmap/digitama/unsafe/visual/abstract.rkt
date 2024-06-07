@@ -13,6 +13,10 @@
 
   (require "../pangocairo.rkt")
   (require "../surface/image.rkt")
+  
+  (require "../stream/pdf.rkt")
+  (require "../stream/svg.rkt")
+  (require "../stream/png.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (abstract-surface-content-bbox sfc)
@@ -28,14 +32,12 @@
     (get-output-bytes /dev/sfcout))
 
   (define (abstract-surface-save sfc /dev/sfcout format density)
-    (start-breakable-atomic)
     (case format
-      [(svg) (abstract-surface-save-with cairo_svg_surface_create_for_stream sfc /dev/sfcout 4096)]
-      [(pdf) (abstract-surface-save-with cairo_pdf_surface_create_for_stream sfc /dev/sfcout 256)]
-      [else  (abstract-surface-save-as-png sfc /dev/sfcout density 8192)])
-    (end-breakable-atomic))
+      [(svg) (abstract-surface-save-with cairo-svg-stream-write /dev/sfcout sfc)]
+      [(pdf) (abstract-surface-save-with cairo-pdf-stream-write /dev/sfcout sfc)]
+      [else  (cairo-png-stream-write /dev/sfcout (λ [] (abstract-surface->image-surface sfc density)))]))
 
-  (define (abstract-surface-save-as-png abs-sfc /dev/pngout density pool-size)
+  (define (abstract-surface->image-surface abs-sfc density)
     (define-values (lx ty flwidth flheight) (abstract-surface-content-bbox abs-sfc))
     (define-values (png-sfc _width _height) (cairo-create-image-surface flwidth flheight density))
     (define png-cr (cairo_create png-sfc))
@@ -45,22 +47,17 @@
 
     (cairo_set_source_surface png-cr abs-sfc (unsafe-fl- 0.0 lx) (unsafe-fl- 0.0 ty))
     (cairo_paint png-cr)
-    (cairo_surface_flush png-sfc)
-    (cairo_surface_write_to_png_stream png-sfc (make-cairo-image-surface-writer /dev/pngout pool-size))
-    
-    (cairo_surface_destroy png-sfc)
-    (cairo_destroy png-cr))
+    (cairo_destroy png-cr)
 
-  (define (abstract-surface-save-with create_for_stream abs-sfc /dev/strout pool-size)
+    (values png-sfc #true))
+
+  (define (abstract-surface-save-with stream-write /dev/strout abs-sfc)
     (define-values (lx ty width height) (abstract-surface-content-bbox abs-sfc))
-    (define vec-sfc (create_for_stream (make-cairo-vector-surface-writer /dev/strout pool-size) width height))
-    (define vec-cr (cairo_create vec-sfc))
 
-    (cairo_set_source_surface vec-cr abs-sfc (unsafe-fl- 0.0 lx) (unsafe-fl- 0.0 ty))
-    (cairo_paint vec-cr)
-    (cairo_surface_flush vec-sfc)
-    (cairo_surface_destroy vec-sfc)
-    (cairo_destroy vec-cr)))
+    (stream-write /dev/strout width height
+                  (λ [cr flwidth flheight]
+                    (cairo_set_source_surface cr abs-sfc (unsafe-fl- 0.0 lx) (unsafe-fl- 0.0 ty))
+                    (cairo_paint cr)))))
 
 (unsafe-require/typed/provide
  (submod "." unsafe)
@@ -69,4 +66,4 @@
  [#:opaque PDF-Surface pdf-surface?]
  [abstract-surface-content-bbox (-> Abstract-Surface (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))]
  [abstract-surface->stream-bytes (-> Abstract-Surface Symbol Symbol Positive-Flonum Bytes)]
- [abstract-surface-save (-> Abstract-Surface Output-Port Symbol Positive-Flonum Void)])
+ [abstract-surface-save (-> Abstract-Surface (U Output-Port Path-String) Symbol Positive-Flonum Void)])

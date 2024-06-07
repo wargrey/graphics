@@ -1,17 +1,18 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (require "../resize.rkt")
 (require "../constructor.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define (xy->argb [x : Index] [y : Index] [w : Index] [h : Index])
-  (define w+h (+ w h))
-  (define w-x (- w x))
-  (define h-y (- h y))
-  (values (/ (+ x y)     w+h)
-          (/ (+ w-x y)   w+h)
-          (/ (+ w-x h-y) w+h)
-          (/ (+ x h-y)   w+h)))
+(define xy->argb : XYWH->ARGB
+  (lambda [x y w h]
+    (define w+h (+ w h))
+    (define w-x (- w x))
+    (define h-y (- h y))
+    (values (real->double-flonum (/ (+ x y)     w+h))
+            (real->double-flonum (/ (+ w-x y)   w+h))
+            (real->double-flonum (/ (+ w-x h-y) w+h))
+            (real->double-flonum (/ (+ x h-y)   w+h)))))
 
 (printf "====== ~a =====~n" '(density 1.0))
 (time (bitmap-rectangular 100 100 xy->argb #:density 1.00))

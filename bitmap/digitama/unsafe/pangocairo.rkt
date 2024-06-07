@@ -83,6 +83,11 @@
                     (cairo_rectangle_t-x box) (cairo_rectangle_t-y box)
                     (cairo_rectangle_t-width box) (cairo_rectangle_t-height box))))
 
+(define _pdf_metadata (_enum '(title author subject keywords producer ctime mtime)))
+
+(define-cairo cairo_pdf_surface_set_metadata (_cfun _cairo_surface_t _pdf_metadata _string -> _void))
+(define-cairo cairo_pdf_surface_set_page_label (_cfun _cairo_surface_t _string -> _void))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-set-source
   (lambda [cr src]
@@ -152,27 +157,3 @@
     (cond [(unsafe-fl< fl% 0.0) (unsafe-fl* (unsafe-flabs fl%) 100%)]
           [(unsafe-fl>= fl% 0.0) fl%]
           [else #| nan |# 0.0])))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-cairo-vector-surface-writer
-  (lambda [/dev/strout pool-size]
-    (define pool (make-bytes pool-size))
-    
-    (λ [bstr-ptr len]
-      (let cairo-write ([src-rst len]
-                        [ptr-off 0])
-        (define size (unsafe-fxmin src-rst pool-size))
-        (define rest-- (unsafe-fx- src-rst size))
-
-        (memcpy pool 0 bstr-ptr ptr-off size)
-        (write-bytes pool /dev/strout 0 size)
-        
-        (cond [(unsafe-fx> rest-- 0) (cairo-write rest-- (unsafe-fx+ ptr-off size))]
-              [else CAIRO_STATUS_SUCCESS])))))
-
-(define make-cairo-image-surface-writer
-  (lambda [/dev/strout pool-size]
-    (define cairo-write (make-cairo-vector-surface-writer /dev/strout pool-size))
-
-    (λ [ignored-closure bstr-ptr len]
-      (cairo-write bstr-ptr len))))

@@ -149,11 +149,4 @@
   (lambda [#:format [format 'pdf] #:fill-rule [fill-rule 'winding] #:bitmap-density [density (default-bitmap-density)]
            #:color [stroke (default-stroke)] #:fill [fill #false]
            self /dev/vecout]
-    (if (output-port? /dev/vecout)
-        (let ([surface (track-surface self stroke fill fill-rule)])
-          (abstract-surface-save surface /dev/vecout format density))
-        (let ()
-          (make-parent-directory* /dev/vecout)
-          (call-with-output-file* /dev/vecout #:exists 'truncate/replace
-            (λ [[/dev/vecout : Output-Port]]
-              (track-save self /dev/vecout #:format format)))))))
+    (abstract-surface-save (track-surface self stroke fill fill-rule) /dev/vecout format density)))

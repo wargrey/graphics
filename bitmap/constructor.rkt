@@ -27,8 +27,7 @@
     (λbitmap (real->double-flonum width) (real->double-flonum height)
              density λargb)))
 
-(define bitmap-rectangular* : (All (t) (-> Nonnegative-Real Nonnegative-Real (XYWH->ARGB* t) t [#:density Positive-Flonum]
-                                     (Values Bitmap t)))
+(define bitmap-rectangular* : (All (t) (-> Nonnegative-Real Nonnegative-Real (XYWH->ARGB* t) t [#:density Positive-Flonum] (Values Bitmap t)))
   (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
     (λbitmap* (real->double-flonum width) (real->double-flonum height)
               density λargb initial)))

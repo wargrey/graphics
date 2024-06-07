@@ -92,11 +92,4 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-save : (->* (Bitmap (U Path-String Output-Port)) (#:format Symbol) Void)
   (lambda [bmp /dev/bmpout #:format [format 'png]]
-    (if (output-port? /dev/bmpout)
-        (let ([surface (bitmap<%>-surface bmp)])
-          (bitmap-surface-save surface /dev/bmpout format (bitmap-density bmp)))
-        (let ()
-          (make-parent-directory* /dev/bmpout)
-          (call-with-output-file* /dev/bmpout #:exists 'truncate/replace
-            (λ [[/dev/bmpout : Output-Port]]
-              (bitmap-save bmp /dev/bmpout #:format format)))))))
+    (bitmap-surface-save (bitmap<%>-surface bmp) /dev/bmpout format (bitmap-density bmp))))

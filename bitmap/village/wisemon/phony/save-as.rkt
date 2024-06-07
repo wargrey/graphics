@@ -34,28 +34,29 @@
     
     (for/fold ([specs : Wisemon-Specification null])
               ([module.rkt (in-list (find-digimon-files graphics-filter (current-directory)))])
-      (parameterize ([current-output-port /dev/null])
-        (dynamic-require module.rkt #false))
-
-      (define ns (module->namespace module.rkt))
-      (for/fold ([g-specs : Wisemon-Specification specs])
-                ([sym (in-list (namespace-mapped-symbols ns))])
-        (define datum (namespace-variable-value sym #false (λ _ #false) ns))
-        (append g-specs
-                (cond [(visual-object<%>? datum)
-                       (let ([deps.rkt (racket-smart-dependencies module.rkt)]
-                             [sym.png (graphics.png module.rkt sym .ext)])
-                         (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
-                                             (graphics-note module.rkt sym .ext sym.png)
-                                             (graphics-save-as sym.png datum gformat))))]
-                      [(and (list? datum) (pair? datum) (andmap bitmap? datum))
-                       (let ([deps.rkt (racket-smart-dependencies module.rkt)]
-                             [sym.png (graphics.png module.rkt sym .ext)]
-                             [ncol (max (exact-floor (sqrt (length datum))) 1)])
-                         (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
-                                             (graphics-note module.rkt sym .ext sym.png)
-                                             (graphics-save-as sym.png (bitmap-table ncol datum) gformat))))]
-                      [else null]))))))
+      (with-handlers ([exn:fail? (λ [[e : exn:fail]] (dtrace-exception e #:level 'error #:brief? (not (make-verbose))) specs)])
+        (parameterize ([current-output-port /dev/null])
+          (dynamic-require module.rkt #false))
+      
+        (define ns (module->namespace module.rkt))
+        (for/fold ([g-specs : Wisemon-Specification specs])
+                  ([sym (in-list (namespace-mapped-symbols ns))])
+          (define datum (namespace-variable-value sym #false (λ _ #false) ns))
+          (append g-specs
+                  (cond [(visual-object<%>? datum)
+                         (let ([deps.rkt (racket-smart-dependencies module.rkt)]
+                               [sym.png (graphics.png module.rkt sym .ext)])
+                           (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
+                                               (graphics-note module.rkt sym .ext sym.png)
+                                               (graphics-save-as sym.png datum gformat))))]
+                        [(and (list? datum) (pair? datum) (andmap bitmap? datum))
+                         (let ([deps.rkt (racket-smart-dependencies module.rkt)]
+                               [sym.png (graphics.png module.rkt sym .ext)]
+                               [ncol (max (exact-floor (sqrt (length datum))) 1)])
+                           (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
+                                               (graphics-note module.rkt sym .ext sym.png)
+                                               (graphics-save-as sym.png (bitmap-table ncol datum) gformat))))]
+                        [else null])))))))
   
 (define make~save-as : (-> Symbol String Make-Info-Phony)
   (lambda [gformat .ext]
