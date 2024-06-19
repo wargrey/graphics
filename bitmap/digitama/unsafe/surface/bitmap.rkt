@@ -11,7 +11,7 @@
   (case-lambda
     [(width height density scale?)
      (let*-values ([(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?)]
-                   [(shadow) (make-phantom-bytes (unsafe-fx* (unsafe-fx* fxwidth fxheight) 4))])
+                   [(shadow) (cairo-image-shadow-size fxwidth fxheight)])
        (values (bitmap bitmap-convert shadow sfc '/dev/ram density fxwidth fxheight 4 8)
                cr))]
     [(width height background density scale?)
@@ -23,7 +23,7 @@
 (define create-invalid-bitmap
   (lambda [width height density scale?]
     (define-values (sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?))
-    (define shadow (make-phantom-bytes (unsafe-fx* (unsafe-fx* fxwidth fxheight) 4)))
+    (define shadow (cairo-image-shadow-size fxwidth fxheight))
 
     (values (bitmap invalid-convert shadow sfc (string->uninterned-symbol "/dev/zero") density fxwidth fxheight 4 8)
             cr)))
