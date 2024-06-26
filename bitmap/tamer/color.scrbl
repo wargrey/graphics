@@ -122,12 +122,12 @@ For historical reasons, the named colors are copied from the X11 color set.
 
 @(named-color-list)
 
-@handbook-event{the @racket['transparent] color}
+@handbook-scene{the @racket['transparent] color}
 
 The @racket[Symbol] @tamer-indexed-keywords['(transparent)] is a reserved color name
 and refers to the @racket[transparent] black.
 
-@handbook-event{the @racket['currentcolor] color}
+@handbook-scene{the @racket['currentcolor] color}
 
 The @racket[Symbol] @tamer-indexed-keywords['(currentcolor)] is a reserved color name
 that only meaningful in the @racketmodname[css] environment, and always refers to the
