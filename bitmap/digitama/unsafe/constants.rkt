@@ -12,3 +12,6 @@
           (unsafe-fl* pi 2.0)
           (unsafe-fl* pi 0.25)
           (unsafe-fl* pi 0.75)))
+
+(define phi (unsafe-fl/ (unsafe-fl+ 1.0 (unsafe-flsqrt 5.0)) 2.0))
+(define -phi (unsafe-fl- 0.0 phi))

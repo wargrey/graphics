@@ -132,6 +132,16 @@
           [else ; no need to `translate` first for circles
            (add-arc cr cx cy rx rstart rend)])))
 
+(define cairo-add-line
+  (case-lambda
+    [(cr x1 y1 x2 y2)
+     (cairo_move_to cr x1 y1)
+     (cairo_line_to cr x2 y2)]
+    [(cr x1 y1 x2 y2 x3 y3)
+     (cairo_move_to cr x1 y1)
+     (cairo_line_to cr x2 y2)
+     (cairo_line_to cr x3 y3)]))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ~fx
   (lambda [fl]
