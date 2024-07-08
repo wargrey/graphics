@@ -20,13 +20,13 @@
   (require "surface/bitmap.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_icosahedron_side_proj radius type edge background border density)
+  (define (bitmap_icosahedron_side_proj radius type edge background border0 density)
     (define edge-size (icosahedron-radius->edge-length radius type))
     (define-values (a1 aφ) (icoashedron-edge-length->outline edge-size))
     (define fllength (unsafe-fl* aφ 2.0))
     (define-values (img cr) (create-argb-bitmap fllength fllength density #true))
-    (define thickness (or border edge))
-    (define offset (if (struct? thickness) (unsafe-fl* 0.5 (unsafe-struct-ref thickness 1)) 0.0))
+    (define border (or border0 edge))
+    (define offset (if (struct? border) (unsafe-fl* 0.5 (unsafe-struct-ref border 1)) 0.0))
     (define-values (-a1 +a1) (values (unsafe-fl+ (unsafe-fl- 0.0 a1) offset) (unsafe-fl- a1 offset)))
     (define-values (-aφ +aφ) (values (unsafe-fl+ (unsafe-fl- 0.0 aφ) offset) (unsafe-fl- aφ offset)))
 
@@ -61,13 +61,13 @@
     
     img)
 
-  (define (bitmap_icosahedron_over_proj radius0 type rotation edge background border radian? density)
+  (define (bitmap_icosahedron_over_proj radius0 type rotation edge background border0 radian? density)
     (define radius (icosahedron-radius->circumsphere-radius radius0 type))
     (define fllength (unsafe-fl* radius 2.0))
     (define-values (img cr) (create-argb-bitmap fllength fllength density #true))
-    (define thickness (or border edge))
+    (define border (or border0 edge))
     (define delta (unsafe-fl/ 2pi 10.0))
-    (define offset (if (struct? thickness) (unsafe-fl* 0.5 (unsafe-struct-ref thickness 1)) 0.0))
+    (define offset (if (struct? border) (unsafe-fl* 0.5 (unsafe-struct-ref border 1)) 0.0))
     (define R (unsafe-fl- radius offset))
     (define xs (make-flvector 10))
     (define ys (make-flvector 10))

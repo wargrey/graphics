@@ -22,10 +22,11 @@
 
 
 (module+ main
-  (for/list : (Listof (Pairof String Bitmap)) ([face (in-list (list-font-faces))])
-    (cons face (bitmap-text* (format "~a: Sphinx 0123456789" face) (desc-font #:family face))))
+  (for/list : (Listof (Pairof Bitmap String)) ([face (in-list (list-font-faces))])
+    (cons (bitmap-text* (format "λ[~a]: Sphinx 0123456789" face) (desc-font #:family face))
+          face))
   
   (bitmap-vr-append* #:gapsize 16.0
                      (for/list : (Listof Bitmap) ([family (in-list css-font-generic-families)])
                        (define font (desc-font #:family family #:variant 'small-caps))
-                       (bitmap-text* (format "~a[~a]: Sphinx 0123456789" (font-face->family (font-face font)) (font-face font)) font))))
+                       (bitmap-text* (format "~a[~a]: λ Sphinx 0123456789" (font-face->family (font-face font)) (font-face font)) font))))

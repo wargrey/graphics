@@ -207,12 +207,12 @@
     
     img)
 
-  (define (bitmap_arrow head-radius0 start border background density radian? shaft-thickness0 shaft-length0)
+  (define (bitmap_arrow head-radius0 start border background density radian? shaft-thickness0 shaft-length0 wing-angle)
     (define fllength (unsafe-fl* head-radius0 2.0))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
-    (define radius-adjustment (unsafe-fl* line-width 0.5))
-    (define head-radius (unsafe-fl- head-radius0 radius-adjustment))
-    (define rdelta (unsafe-fl/ 2pi 3.0))
+    (define offset (unsafe-fl* line-width 0.5))
+    (define head-radius (unsafe-fl- head-radius0 offset))
+    (define rdelta (if (not wing-angle) (~radian 108.0) (unsafe-fl- pi (unsafe-fl* 0.5 (if (not radian?) (~radian wing-angle) wing-angle)))))
     (define rpoint (if radian? start (~radian start)))
     (define rwing1 (unsafe-fl+ rpoint rdelta))
     (define rwing2 (unsafe-fl- rpoint rdelta))
@@ -235,7 +235,7 @@
           (let*-values ([(shaft-radius) (unsafe-fl- (unsafe-flsqrt
                                                      (unsafe-fl+ (unsafe-fl* shaft-thickness/2 shaft-thickness/2)
                                                                  (unsafe-fl* shaft-length shaft-length)))
-                                                    radius-adjustment)]
+                                                    offset)]
                         [(shdelta) (unsafe-fl+ (unsafe-flacos (unsafe-fl/ shaft-thickness/2 shaft-radius)) pi/2)]
                         [(shtail1 shtail2) (values (unsafe-fl+ rpoint shdelta) (unsafe-fl- rpoint shdelta))]
                         [(shx1 shy1) (values (unsafe-fl* shaft-radius (unsafe-flcos shtail1)) (unsafe-fl* shaft-radius (unsafe-flsin shtail1)))]
@@ -251,9 +251,9 @@
                               [(ymin ymax) (values (unsafe-flmin aymin shymin) (unsafe-flmax aymax shymax))])
                   (values (unsafe-fl- xmax xmin) (unsafe-fl- ymax ymin) (unsafe-fl- xmin) (unsafe-fl- ymin) shx1 shy1 shx2 shy2))))))
       
-    (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
+    (define-values (img cr) (create-argb-bitmap (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
     
-    (cairo_translate cr tx ty)
+    (cairo_translate cr (unsafe-fl+ tx offset) (unsafe-fl+ ty offset))
     (cairo_new_sub_path cr)
     (cairo_move_to cr 0.0 0.0)
     
@@ -324,5 +324,5 @@
  [bitmap_stadium (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
  [bitmap_polyline (-> Flonum Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum (Option Paint) (Option Bitmap-Source) (Option Symbol) Flonum Bitmap)]
  [bitmap_regular_polygon (-> Positive-Index Flonum Flonum (Option Paint) (Option Bitmap-Source) Boolean Boolean Flonum Bitmap)]
- [bitmap_arrow (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Boolean Flonum Flonum Bitmap)]
+ [bitmap_arrow (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Boolean Flonum Flonum (Option Flonum) Bitmap)]
  [bitmap_sandglass (-> Flonum Flonum Flonum Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)])

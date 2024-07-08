@@ -3,7 +3,8 @@
 (provide (all-defined-out))
 (provide Bitmap XYWH->ARGB XYWH->ARGB* ARGB-Step)
 (provide (rename-out [bitmap-polyline bitmap-lines]
-                     [bitmap-sandglass bitmap-hourglass]))
+                     [bitmap-sandglass bitmap-hourglass]
+                     [bitmap-arrowhead bitmap-dart]))
 
 (require "font.rkt")
 
@@ -196,24 +197,27 @@
 
 (define bitmap-arrow : (->* (Real Real)
                             (Real #:shaft-thickness Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint)
-                                  #:radian? Boolean #:density Positive-Flonum)
+                                  #:wing-angle (Option Real) #:radian? Boolean #:density Positive-Flonum)
                             Bitmap)
-  (lambda [#:shaft-thickness [shaft-thickness -0.3] #:border [border #false] #:fill [pattern 'black]
+  (lambda [#:shaft-thickness [shaft-thickness -0.3] #:wing-angle [wing-angle #false] #:border [border #false] #:fill [pattern 'black]
            #:radian? [radian? #true] #:density [density (default-bitmap-density)]
            head-radius shaft-length [start 0.0]]
     (bitmap_arrow (real->double-flonum head-radius) (real->double-flonum start)
                   (stroke-paint->source* border) (fill-paint->source* pattern) density radian?
-                  (real->double-flonum shaft-thickness) (real->double-flonum shaft-length))))
+                  (real->double-flonum shaft-thickness) (real->double-flonum shaft-length)
+                  (and wing-angle (real->double-flonum wing-angle)))))
 
 (define bitmap-arrowhead : (->* (Real)
-                                (Real #:shaft-thickness Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:radian? Boolean #:density Positive-Flonum)
+                                (Real #:shaft-thickness Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint)
+                                      #:wing-angle (Option Real) #:radian? Boolean #:density Positive-Flonum)
                                 Bitmap)
-  (lambda [#:shaft-thickness [shaft-thickness 0.0] #:border [border (default-stroke)] #:fill [pattern #false]
+  (lambda [#:shaft-thickness [shaft-thickness 0.0] #:wing-angle [wing-angle #false] #:border [border (default-stroke)] #:fill [pattern #false]
            #:radian? [radian? #true] #:density [density (default-bitmap-density)]
            radius [start 0.0]]
     (bitmap_arrow (real->double-flonum radius) (real->double-flonum start)
                   (stroke-paint->source* border) (fill-paint->source* pattern) density radian?
-                  (real->double-flonum shaft-thickness) -1.0)))
+                  (real->double-flonum shaft-thickness) -1.0
+                  (and wing-angle (real->double-flonum wing-angle)))))
 
 (define bitmap-hline : (->* (Real Real) (#:stroke (Option Stroke-Paint) #:density Positive-Flonum) Bitmap)
   (lambda [width height #:stroke [stroke (default-stroke)] #:density [density (default-bitmap-density)]]

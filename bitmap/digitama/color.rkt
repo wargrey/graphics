@@ -97,7 +97,7 @@
                       (powderblue . #xB0E0E6) (aqua . #x00FFFF) (khaki . #xF0E68C) (slategray . #x708090) (greenyellow . #xADFF2F)
                       (cadetblue . #x5F9EA0) (slateblue . #x6A5ACD) (olive . #x808000) (orange . #xFFA500) (lightsteelblue . #xB0C4DE)
                       (lightskyblue . #x87CEFA) (gainsboro . #xDCDCDC) (fuchsia . #xFF00FF) (mediumspringgreen . #x00FA9A)
-                      (midnightblue . #x191970) (salmon . #xFA8072) (silver . #xC0C0C0)))
+                      (midnightblue . #x191970) (salmon . #xFA8072) (silver . #xC0C0C0) (violetred . #xC71585)))
 
 ;;; https://drafts.csswg.org/css-color/#numeric-rgb
 (define css-#hex-color->rgb : (-> (U Keyword String) (U False Symbol Index))
