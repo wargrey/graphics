@@ -27,7 +27,7 @@
         (when (string? tips) (log-message (current-logger) 'info tips src.icon #false))
         src.icon))
     (cond [(or (false? size) (false? scale?)) raw.icon]
-          [else (bitmap-scale raw.icon (/ size (bitmap-height raw.icon)))])))
+          [else (bitmap-scale raw.icon (/ size (bitmap-intrinsic-height raw.icon)))])))
 
 (define bitmap : (->* ((U Path-String Input-Port)) (Positive-Flonum) Bitmap)
   ;;; https://drafts.csswg.org/css-images/#image-fragments
@@ -84,7 +84,9 @@
 
 (define bitmap->sprite : (->* (Bitmap) (Positive-Integer Positive-Integer) (Listof Bitmap))
   (lambda [bmp [cols 1] [rows 1]]
-    (define-values (width height) (values (/ (bitmap-width bmp) cols) (/ (bitmap-height bmp) rows)))
+    (define-values (width height)
+      (values (/ (bitmap-intrinsic-width bmp) cols)
+              (/ (bitmap-intrinsic-height bmp) rows)))
     (reverse (for*/fold ([sprite : (Listof Bitmap) null])
                         ([y (in-range rows)] [x (in-range cols)])
                (cons (bitmap-copy bmp (* x width) (* y height) width height) sprite)))))

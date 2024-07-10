@@ -23,7 +23,7 @@
     img)
 
   (define (bitmap_scale src xscale yscale density)
-    (define-values (width height) (bitmap-surface-size src density))
+    (define-values (width height) (bitmap-surface-rendered-size src density))
     (define flwidth (unsafe-fl* width (unsafe-flabs xscale)))
     (define flheight (unsafe-fl* height (unsafe-flabs yscale)))
     (define-values (img cr) (create-argb-bitmap flwidth flheight density #false))

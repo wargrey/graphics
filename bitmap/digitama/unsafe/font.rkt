@@ -11,7 +11,6 @@
   (provide pango_font_family_is_monospace pango_font_family_get_name)
   (provide PANGO_SCALE)
 
-  (require ffi/unsafe/atomic)
   (require (only-in racket/class send))
   
   (require "pangocairo.rkt")

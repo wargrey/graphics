@@ -83,7 +83,7 @@
             [else (step datum++)])))
 
   (define (λbitmap_map src density argb-map)
-    (define-values (flwidth flheight) (bitmap-surface-size src density))
+    (define-values (flwidth flheight) (bitmap-surface-rendered-size src density))
     (define-values (img cr) (create-argb-bitmap flwidth flheight density #false))
     (define surface (cairo_get_target cr))
     (define-values (data total) (bitmap-surface-data src))
@@ -120,7 +120,7 @@
   (define (bitmap_frame src mtop mright mbottom mleft ptop pright pbottom pleft border background density)
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define line-inset (unsafe-fl/ line-width 2.0))
-    (define-values (dest-width dest-height) (bitmap-surface-size src density))
+    (define-values (dest-width dest-height) (bitmap-surface-rendered-size src density))
     (define-values (width border-x border-width dest-x) (frame-metrics line-width line-inset mleft mright pleft pright dest-width))
     (define-values (height border-y border-height dest-y) (frame-metrics line-width line-inset mtop mbottom ptop pbottom dest-height))
     (define-values (img cr) (create-argb-bitmap width height density #true))

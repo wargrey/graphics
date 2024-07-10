@@ -9,6 +9,8 @@
 (require "visual/object.rkt")
 (require "visual/bitmap.rkt")
 
+(require racket/math)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct bitmap<%> visual-object<%>
   ([shadow : Phantom-Bytes]
@@ -18,24 +20,28 @@
 (struct bitmap bitmap<%>
   ([source : Symbol]
    [density : Positive-Flonum]
-   [width : Positive-Index]
-   [height : Positive-Index]
+   [intrinsic-width : Positive-Index]
+   [intrinsic-height : Positive-Index]
    [palettes : Positive-Byte]
    [depth : Positive-Byte])
   #:type-name Bitmap
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-size : (-> Bitmap (Values Positive-Index Positive-Index))
+(define bitmap-width : (-> Bitmap Index)
   (lambda [bmp]
-    (values (bitmap-width bmp)
-            (bitmap-height bmp))))
+    (assert (exact-ceiling (/ (bitmap-intrinsic-width bmp) (bitmap-density bmp))) index?)))
 
-(define bitmap-size+density : (-> Bitmap (Values Positive-Index Positive-Index Positive-Flonum))
+(define bitmap-height : (-> Bitmap Index)
   (lambda [bmp]
-    (values (bitmap-width bmp)
-            (bitmap-height bmp)
-            (bitmap-density bmp))))
+    (assert (exact-ceiling (/ (bitmap-intrinsic-height bmp) (bitmap-density bmp))) index?)))
+
+(define bitmap-size : (-> Bitmap (Values Index Index))
+  (lambda [bmp]
+    (define-values (flw flh) (bitmap-flsize bmp))
+    
+    (values (assert (exact-ceiling flw) index?)
+            (assert (exact-ceiling flh) index?))))
 
 (define bitmap-depth* : (-> Bitmap (Values Positive-Byte Positive-Byte))
   (lambda [bmp]
@@ -44,7 +50,13 @@
 
 (define bitmap-intrinsic-size : (-> Bitmap (Values Positive-Index Positive-Index))
   (lambda [bmp]
-    (bitmap-surface-intrinsic-size (bitmap<%>-surface bmp))))
+    (values (bitmap-intrinsic-width bmp)
+            (bitmap-intrinsic-height bmp))))
+
+(define bitmap-intrinsic-size+density : (-> Bitmap (Values Positive-Index Positive-Index Positive-Flonum))
+  (lambda [bmp]
+    (define-values (fxw fxh) (bitmap-intrinsic-size bmp))
+    (values fxw fxh (bitmap-density bmp))))
 
 (define bitmap-data : (-> Bitmap Bytes)
   (lambda [bmp]
@@ -58,24 +70,26 @@
                (symbol-unreadable? src))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-flsize : (case-> [Bitmap -> (Values Positive-Flonum Positive-Flonum)]
+(define bitmap-flsize : (case-> [Bitmap -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
                                 [Bitmap Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
                                 [Bitmap Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)])
   (let ([flsize (λ [[bmp : Bitmap] [w% : Nonnegative-Flonum] [h% : Nonnegative-Flonum]] : (Values Nonnegative-Flonum Nonnegative-Flonum)
                   (let-values ([(w h) (bitmap-flsize bmp)])
                     (values (* w w%) (* h h%))))])
-    (case-lambda [(bmp) (values (exact->inexact (bitmap-width bmp)) (exact->inexact (bitmap-height bmp)))]
-                 [(bmp ratio) (let ([% (real->double-flonum ratio)]) (flsize bmp % %))]
-                 [(bmp w% h%) (flsize bmp (real->double-flonum w%) (real->double-flonum h%))])))
+    (case-lambda
+      [(bmp w% h%) (flsize bmp (real->double-flonum w%) (real->double-flonum h%))]
+      [(bmp ratio) (let ([% (real->double-flonum ratio)]) (flsize bmp % %))]
+      [(bmp) (let-values ([(flw flh density) (bitmap-intrinsic-flsize+density bmp)])
+               (values (/ flw density) (/ flh density)))])))
 
 (define bitmap-intrinsic-flsize : (-> Bitmap (Values Positive-Flonum Positive-Flonum))
   (lambda [bmp]
     (define-values (w h) (bitmap-intrinsic-size bmp))
     (values (exact->inexact w) (exact->inexact h))))
 
-(define bitmap-flsize+density : (-> Bitmap (Values Positive-Flonum Positive-Flonum Positive-Flonum))
+(define bitmap-intrinsic-flsize+density : (-> Bitmap (Values Positive-Flonum Positive-Flonum Positive-Flonum))
   (lambda [bmp]
-    (define-values (flw flh) (bitmap-flsize bmp))
+    (define-values (flw flh) (bitmap-intrinsic-flsize bmp))
     (values flw flh (bitmap-density bmp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

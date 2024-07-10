@@ -11,7 +11,7 @@
 (define number->node
   (λ [i]
     (define datum (bitmap-text (number->string i)))
-    (define sidelength (* (bitmap-height datum) 1.0))
+    (define sidelength (* (bitmap-intrinsic-height datum) 1.0))
     (define frame (bitmap-square sidelength))
     
     (bitmap-cc-superimpose frame datum)))

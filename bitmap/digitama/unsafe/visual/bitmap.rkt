@@ -28,7 +28,7 @@
     (values (cairo_image_surface_get_width sfc)
             (cairo_image_surface_get_height sfc)))
 
-  (define (bitmap-surface-size sfc density)
+  (define (bitmap-surface-rendered-size sfc density)
     (define-values (width height) (bitmap-surface-intrinsic-size sfc))
     (values (unsafe-fl/ (unsafe-fx->fl width) density)
             (unsafe-fl/ (unsafe-fx->fl height) density)))
@@ -56,7 +56,7 @@
       [else  (cairo-png-stream-write /dev/sfcout (λ [] (values bmp-sfc #false)))]))
 
   (define (bitmap-surface-save-with stream-write bmp-sfc /dev/strout density)
-    (define-values (width height) (bitmap-surface-size bmp-sfc density))
+    (define-values (width height) (bitmap-surface-rendered-size bmp-sfc density))
 
     (stream-write /dev/strout width height
                   (λ [vec-cr flwidth flheight]
@@ -71,7 +71,6 @@
  (submod "." unsafe)
  [#:opaque Bitmap-Surface bitmap-surface?]
  [#:opaque Phantom-Bytes phantom-bytes?]
- [bitmap-surface-intrinsic-size (-> Bitmap-Surface (Values Positive-Index Positive-Index))]
  [bitmap-surface-data (-> Bitmap-Surface (Values Bytes Index))]
  [bitmap-surface->stream-bytes (-> Bitmap-Surface Symbol Symbol Flonum Bytes)]
  [bitmap-surface-save (-> Bitmap-Surface (U Output-Port Path-String) Symbol Positive-Flonum Void)])

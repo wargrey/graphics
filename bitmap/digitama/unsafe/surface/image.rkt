@@ -15,8 +15,10 @@
     
     (let ([status (cairo_surface_status surface)])
       (unless (unsafe-fx= status CAIRO_STATUS_SUCCESS)
-        (raise-arguments-error 'cairo-create-image-surface (cairo_status_to_string status)
-                               "width" flwidth "height" flheight "density" density)))
+        (raise-arguments-error 'cairo-create-image-surface
+                               (cairo_status_to_string status)
+                               "width" flwidth "height" flheight
+                               "density" density)))
     
     (values surface width height)))
 

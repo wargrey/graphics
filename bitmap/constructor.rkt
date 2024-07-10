@@ -50,9 +50,8 @@
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
   (lambda [bmp]
-    (define-values (flw flh density) (bitmap-flsize+density bmp))
-    (bitmap_blank (/ flw density) (/ flh density)
-                  density)))
+    (define-values (flw flh) (bitmap-flsize bmp))
+    (bitmap_blank flw flh (bitmap-density bmp))))
 
 (define bitmap-solid : (->* () (Color Real #:density Positive-Flonum) Bitmap)
   (lambda [[color 'transparent] [size 1] #:density [density (default-bitmap-density)]]

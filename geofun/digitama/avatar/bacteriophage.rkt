@@ -1,21 +1,20 @@
 #lang typed/racket/base
 
+(provide (all-defined-out))
+
 (require bitmap)
 (require bitmap/projection)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bacteriophage-logo : (-> Flonum Bitmap)
-  (lambda [R]
+(define bacteriophage-logo : (->* (Real) (#:sheath-length Real) Bitmap)
+  (lambda [R #:sheath-length [sheath-length -1.618]]
     (define-values (Rdart Rcollar r) (values (* R 0.618) (* R 0.5 0.618) (* R 0.2)))
     (define edge-stroke (desc-stroke #:color 'SkyBlue #:width 1))
     (define head-stroke (desc-stroke #:color 'DeepSkyBlue #:width 2))
     (define node-stroke (desc-stroke #:color 'Snow #:width 2))
+    (define fibre-stroke (desc-stroke #:color 'Teal #:width 2))
     (define body-color : Color 'SteelBlue)
-    (define fibre-color : Color 'Teal)
     (define bg-color : Color 'MintCream)
-    (define fibre-thickness : Flonum 2.0)
-    (define fibre-xlen : Flonum (* R 0.618))
-    (define fibre-ylen : Flonum (* fibre-xlen (sqrt 3.0)))
     
     (define text (bitmap-text "λ" (desc-font #:size (* R 1.4) #:family "Linux Biolinum Shadow, Bold") #:color 'Crimson))
     
@@ -27,18 +26,18 @@
 
     (define body
       (bitmap-vc-append #:gapsize (* Rcollar -0.618)
-                        (bitmap-arrowhead Rcollar 90.0 #:radian? #false #:fill body-color #:border head-stroke #:wing-angle 144.0)
-                        (bitmap-arrow Rdart R 90.0 #:radian? #false #:fill body-color #:shaft-thickness Rcollar #:wing-angle 180.0)))
+                        (bitmap-dart Rcollar 90.0 #:radian? #false #:fill body-color #:border head-stroke #:wing-angle 144.0)
+                        (bitmap-arrow Rdart sheath-length 90.0 #:radian? #false #:fill body-color #:shaft-thickness -0.618 #:wing-angle 180.0)))
 
     (define fibre
-      (bitmap-polyline #:stroke (desc-stroke #:width fibre-thickness #:color fibre-color)
-                       (list (cons 0.0 fibre-ylen) (cons fibre-xlen 0.0) (cons (+ fibre-xlen Rdart Rdart) 0.0)
-                             (cons (+ fibre-xlen fibre-xlen Rdart Rdart) fibre-ylen))))
+      (let* ([fdx Rdart]
+             [fdy (* fdx (sqrt 3.0))])
+        (bitmap-polyline (list (cons 0.0 fdy) (cons fdx 0.0) (cons (* fdx 3.0) 0.0) (cons (* fdx 4.0) fdy)) #:stroke fibre-stroke)))
 
     (define stx-lnode (bitmap-icosahedron-over-projection r 'face #:edge node-stroke #:border (desc-stroke node-stroke #:color 'Blue) #:fill bg-color))
     (define stx-rnode (bitmap-icosahedron-over-projection r 'face #:edge node-stroke #:border (desc-stroke node-stroke #:color 'Lime) #:fill bg-color))
     
-    (bitmap-vc-append #:gapsize (- (* Rdart -1.0) (* fibre-thickness 1.0))
+    (bitmap-vc-append #:gapsize (- (* Rdart -1.0) (* (stroke-width fibre-stroke) 1.0))
                       (bitmap-vc-append #:gapsize (* Rcollar -1.618) protein-coat body)
                       (bitmap-pin* 1.0 1.0 0.5 1.0
                                    (bitmap-pin* 0.0 1.0 0.5 0.5 fibre stx-lnode)

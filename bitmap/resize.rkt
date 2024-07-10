@@ -6,6 +6,7 @@
 (require "digitama/unsafe/resize.rkt")
 (require "digitama/unsafe/convert.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-section : (case-> [Bitmap Complex Complex -> Bitmap]
                                  [Bitmap Complex Nonnegative-Real Nonnegative-Real -> Bitmap]
                                  [Bitmap Real Real Nonnegative-Real Nonnegative-Real -> Bitmap])
@@ -15,7 +16,7 @@
      (bitmap-section bmp (real-part pt0) (imag-part pt0) (max (real-part delta) 0) (max (imag-part delta) 0))]
     [(bmp pt width height) (bitmap-section bmp (real-part pt) (imag-part pt) width height)]
     [(bmp x y width height)
-     (define-values (src-width src-height) (bitmap-flsize bmp))
+     (define-values (src-width src-height) (bitmap-intrinsic-flsize bmp))
      (cond [(and (zero? x) (zero? y) (= width src-width) (= height src-height)) bmp]
            [else (bitmap_section (bitmap-surface bmp) (real->double-flonum x) (real->double-flonum y)
                                  (min (real->double-flonum width) src-width) (min (real->double-flonum height) src-height)
@@ -26,15 +27,15 @@
                               [Bitmap Real Real Nonnegative-Real Nonnegative-Real -> Bitmap])
   (case-lambda
     [(bmp)
-     (define-values (src-width src-height) (bitmap-flsize bmp))
+     (define-values (src-width src-height) (bitmap-intrinsic-flsize bmp))
      (bitmap_section (bitmap-surface bmp) 0.0 0.0 src-width src-height (bitmap-density bmp))]
     [(bmp pt width height)
-     (define-values (src-width src-height) (bitmap-flsize bmp))
+     (define-values (src-width src-height) (bitmap-intrinsic-flsize bmp))
      (bitmap_section (bitmap-surface bmp) (real->double-flonum (real-part pt)) (real->double-flonum (imag-part pt))
                      (min (real->double-flonum width) src-width) (min (real->double-flonum height) src-height)
                      (bitmap-density bmp))]
     [(bmp x y width height)
-     (define-values (src-width src-height) (bitmap-flsize bmp))
+     (define-values (src-width src-height) (bitmap-intrinsic-flsize bmp))
      (bitmap_section (bitmap-surface bmp) (real->double-flonum x) (real->double-flonum y)
                      (min (real->double-flonum width) src-width) (min (real->double-flonum height) src-height)
                      (bitmap-density bmp))]))
@@ -60,7 +61,7 @@
     [(bmp vertical horizontal)
      (bitmap-inset bmp vertical horizontal vertical horizontal)]
     [(bmp top right bottom left)
-     (define-values (flwidth flheight density) (bitmap-flsize+density bmp))
+     (define-values (flwidth flheight density) (bitmap-intrinsic-flsize+density bmp))
      (define-values (flleft flright) (values (* (real->double-flonum left) density) (* (real->double-flonum right) density)))
      (define-values (fltop flbottom) (values (* (real->double-flonum top) density) (* (real->double-flonum bottom) density)))
      (bitmap_section (bitmap-surface bmp) (- flleft) (- fltop)
@@ -69,7 +70,7 @@
 
 (define-cropper bitmap-crop : (-> Bitmap Positive-Real Positive-Real Bitmap)
   (#:lambda [bmp width height left% top%]
-    (define-values (W H density) (bitmap-flsize+density bmp))
+    (define-values (W H density) (bitmap-intrinsic-flsize+density bmp))
     (define w (min W (* (real->double-flonum width) density)))
     (define h (min H (* (real->double-flonum height) density)))
     (bitmap_section (bitmap-surface bmp) (* (- W w) left%) (* (- H h) top%) w h density))
@@ -93,11 +94,11 @@
   (case-lambda
     [(bmp refer)
      (if (not (real? refer))
-         (bitmap-resize bmp (bitmap-width refer) (bitmap-height refer))
+         (bitmap-resize bmp (bitmap-intrinsic-width refer) (bitmap-intrinsic-height refer))
          (bitmap-scale bmp (/ (real->double-flonum refer)
-                              (exact->inexact (min (bitmap-width bmp)
-                                                   (bitmap-height bmp))))))]
+                              (exact->inexact (min (bitmap-intrinsic-width bmp)
+                                                   (bitmap-intrinsic-height bmp))))))]
     [(bmp w h)
      (bitmap-scale bmp
-                   (/ (real->double-flonum w) (exact->inexact (bitmap-width bmp)))
-                   (/ (real->double-flonum h) (exact->inexact (bitmap-height bmp))))]))
+                   (/ (real->double-flonum w) (exact->inexact (bitmap-intrinsic-width bmp)))
+                   (/ (real->double-flonum h) (exact->inexact (bitmap-intrinsic-height bmp))))]))

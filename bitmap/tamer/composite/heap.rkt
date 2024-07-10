@@ -11,7 +11,7 @@
 (define index->node
   (λ [i]
     (define datum (bitmap-text (number->string (add1 i))))
-    (define r (* (bitmap-height datum) 0.4))
+    (define r (* (bitmap-intrinsic-height datum) 0.4))
     (define frame (bitmap-circle r))
     
     (bitmap-cc-superimpose frame datum)))
