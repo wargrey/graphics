@@ -52,7 +52,8 @@
     (define-values (x y X Y) (bitmap_bounding_box* surface just-alpha? 1.0))
     (bitmap_section surface x y (- X x) (- Y y) density)))
 
-(define bitmap-inset : (case-> [Bitmap Real -> Bitmap]
+(define bitmap-inset : (case-> [Bitmap -> Bitmap]
+                               [Bitmap Real -> Bitmap]
                                [Bitmap Real Real -> Bitmap]
                                [Bitmap Real Real Real Real -> Bitmap])
   (case-lambda
@@ -66,7 +67,12 @@
      (define-values (fltop flbottom) (values (* (real->double-flonum top) density) (* (real->double-flonum bottom) density)))
      (bitmap_section (bitmap-surface bmp) (- flleft) (- fltop)
                      (+ flwidth flright flleft) (+ flheight flbottom fltop)
-                     density)]))
+                     density)]
+    [(bmp)
+     (define-values (flw flh) (bitmap-flsize bmp))
+     (cond [(= flw flh) bmp]
+           [(< flw flh) (bitmap-inset bmp 0.0 (* (- flh flw) 0.5))]
+           [else (bitmap-inset bmp (* (- flw flh) 0.5) 0.0)])]))
 
 (define-cropper bitmap-crop : (-> Bitmap Positive-Real Positive-Real Bitmap)
   (#:lambda [bmp width height left% top%]

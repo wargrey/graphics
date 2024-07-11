@@ -8,11 +8,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bacteriophage-logo : (->* (Real) (#:sheath-length Real) Bitmap)
   (lambda [R #:sheath-length [sheath-length -1.618]]
+    (define thickness : Real (/ R 32.0))
     (define-values (Rdart Rcollar r) (values (* R 0.618) (* R 0.5 0.618) (* R 0.2)))
-    (define edge-stroke (desc-stroke #:color 'SkyBlue #:width 1))
-    (define head-stroke (desc-stroke #:color 'DeepSkyBlue #:width 2))
-    (define node-stroke (desc-stroke #:color 'Snow #:width 2))
-    (define fibre-stroke (desc-stroke #:color 'Teal #:width 2))
+    (define edge-stroke (desc-stroke #:color 'SkyBlue #:width thickness))
+    (define head-stroke (desc-stroke #:color 'DeepSkyBlue #:width (* thickness 2.0)))
+    (define node-stroke (desc-stroke #:color 'Snow #:width (* thickness 2.0)))
+    (define fibre-stroke (desc-stroke #:color 'Teal #:width (* thickness 2.0)))
     (define body-color : Color 'SteelBlue)
     (define bg-color : Color 'MintCream)
     
@@ -36,7 +37,7 @@
 
     (define stx-lnode (bitmap-icosahedron-over-projection r 'face #:edge node-stroke #:border (desc-stroke node-stroke #:color 'Blue) #:fill bg-color))
     (define stx-rnode (bitmap-icosahedron-over-projection r 'face #:edge node-stroke #:border (desc-stroke node-stroke #:color 'Lime) #:fill bg-color))
-    
+
     (bitmap-vc-append #:gapsize (- (* Rdart -1.0) (* (stroke-width fibre-stroke) 1.0))
                       (bitmap-vc-append #:gapsize (* Rcollar -1.618) protein-coat body)
                       (bitmap-pin* 1.0 1.0 0.5 1.0
@@ -47,4 +48,9 @@
 
 
 (module+ main
-  (bacteriophage-logo 64.0))
+  (bacteriophage-logo 2.0)
+  (bacteriophage-logo 8.0)
+  (bacteriophage-logo 16.0)
+  (bacteriophage-logo 32.0)
+  (bacteriophage-logo 64.0)
+  (bacteriophage-logo 128.0))
