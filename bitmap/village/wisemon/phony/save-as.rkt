@@ -22,11 +22,6 @@
 (require digimon/digivice/wisemon/racket)
 (require digimon/digivice/wisemon/phony/cc)
 
-(require typed/racket/unsafe)
-(unsafe-require/typed
- file/convertible
- [convert (-> Visual-Object<%> Symbol Bytes Bytes)])
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-graphics-specs : (-> Info-Ref Symbol String Wisemon-Specification)
   (lambda [info-ref gformat .ext]
@@ -91,7 +86,7 @@
     
     (call-with-output-file* sym.png #:exists 'truncate/replace
       (λ [[/dev/stdout : Output-Port]] : Void
-        (write-bytes (convert vobj gformat #"") /dev/stdout)
+        (write-bytes (assert (vobject-convert vobj gformat #"") bytes?) /dev/stdout)
         (void)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
