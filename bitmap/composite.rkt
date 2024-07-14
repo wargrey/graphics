@@ -28,12 +28,12 @@
      (cond [(real? y/bmp2) (bitmap-composite op bmp1 x/pt y/bmp2 bmp2/pt 0.0 0.0)]
            [else (bitmap-composite op bmp1 (- x/pt bmp2/pt) y/bmp2)])]
     [(op bmp1 pt bmp2)
-     (bitmap_composite (or (bitmap-operator->integer op) CAIRO_OPERATOR_OVER)
+     (bitmap_composite (bitmap-operator->integer op)
                        (bitmap-surface bmp1) (bitmap-surface bmp2)
                        (real->double-flonum (real-part pt)) (real->double-flonum (imag-part pt))
                        (bitmap-density bmp1))]
     [(op bmp1 x1 y1 bmp2 x2 y2)
-     (bitmap_composite (or (bitmap-operator->integer op) CAIRO_OPERATOR_OVER)
+     (bitmap_composite (bitmap-operator->integer op)
                        (bitmap-surface bmp1) (bitmap-surface bmp2)
                        (- (real->double-flonum x1) (real->double-flonum x2))
                        (- (real->double-flonum y1) (real->double-flonum y2))
@@ -43,13 +43,13 @@
   (lambda [x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
     (cond [(null? bmps) bmp0]
           [(null? (cdr bmps))
-           (bitmap_pin (or (bitmap-operator->integer (default-pin-operator)) CAIRO_OPERATOR_OVER)
+           (bitmap_pin (bitmap-operator->integer (default-pin-operator))
                        (real->double-flonum x1-frac) (real->double-flonum y1-frac)
                        (real->double-flonum x2-frac) (real->double-flonum y2-frac)
                        (bitmap-surface bmp0) (bitmap-surface (car bmps))
                        (bitmap-density bmp0))]
           [else
-           (bitmap_pin* (or (bitmap-operator->integer (default-pin-operator)) CAIRO_OPERATOR_OVER)
+           (bitmap_pin* (bitmap-operator->integer (default-pin-operator))
                         (real->double-flonum x1-frac) (real->double-flonum y1-frac)
                         (real->double-flonum x2-frac) (real->double-flonum y2-frac)
                         (bitmap-surface bmp0) (map bitmap-surface bmps)
@@ -148,7 +148,7 @@
 
 (define-combiner "bitmap-~a-append*" #:-> ([#:gapsize Real])
   #:with alignment bitmaps [#:gapsize [delta 0.0]]
-  #:blend-mode [blend-mode CAIRO_OPERATOR_OVER]
+  #:blend-mode [blend-mode (bitmap-operator->integer (default-pin-operator))]
   #:empty (bitmap-blank)
   #:short-path #:for base bmp #:if (zero? delta)
   ([(vl) (bitmap_pin blend-mode 0.0 1.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
@@ -164,7 +164,7 @@
 
 (define-combiner "bitmap-~a-superimpose*" #:-> ()
   #:with alignment bitmaps []
-  #:blend-mode [blend-mode (or (bitmap-operator->integer (default-pin-operator)) CAIRO_OPERATOR_OVER)]
+  #:blend-mode [blend-mode (bitmap-operator->integer (default-pin-operator))]
   #:empty (bitmap-blank)
   #:short-path #:for base bmp #:if #true
   ([(lt) (bitmap_pin blend-mode 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
