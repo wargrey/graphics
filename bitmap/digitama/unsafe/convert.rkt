@@ -8,6 +8,7 @@
 
 (require "visual/object.rkt")
 (require "visual/bitmap.rkt")
+(require "visual/ctype.rkt")
 
 (require racket/math)
 
@@ -26,6 +27,12 @@
    [depth : Positive-Byte])
   #:type-name Bitmap
   #:transparent)
+
+(define make-bitmap-from-image-surface : (->* (Bitmap-Surface Positive-Flonum Positive-Index Positive-Index)
+                                              (Visual-Object-Convert Symbol)
+                                              Bitmap)
+  (lambda [sfc density fxwidth fxheight [convert bitmap-convert] [source '/dev/ram]]
+    (bitmap convert (cairo-image-shadow-size sfc) sfc source density fxwidth fxheight 4 8)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-width : (-> Bitmap Index)

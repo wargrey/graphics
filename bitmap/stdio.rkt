@@ -22,12 +22,11 @@
 (require "digitama/parser/stream.rkt")
 (require "digitama/unsafe/pixman.rkt")
 (require "digitama/unsafe/convert.rkt")
+(require "digitama/unsafe/visual/ctype.rkt")
 
 (unsafe-require/typed
  "digitama/unsafe/surface/image.rkt"
- [cairo-create-image-surface (-> Flonum Flonum Flonum (Values Bitmap-Surface Positive-Index Positive-Index))]
- [cairo-image-shadow-size (case-> [Natural Natural -> Phantom-Bytes]
-                                  [Bitmap-Surface -> Phantom-Bytes])])
+ [cairo-create-image-surface (-> Flonum Flonum Flonum (Values Bitmap-Surface Positive-Index Positive-Index))])
 
 (unsafe-require/typed
  "digitama/unsafe/pangocairo.rkt"
@@ -61,7 +60,7 @@
        (let-values ([(surface fxwidth fxheight) (cairo-create-image-surface (exact->inexact width) (exact->inexact height) density)])
          (decode (cairo_image_surface_get_data surface) fxwidth fxheight)
          (cairo_surface_mark_dirty surface)
-         (Bitmap convertor (cairo-image-shadow-size fxwidth fxheight) surface filename density width height palettes depth argl ...)))]
+         (Bitmap convertor (cairo-image-shadow-size surface) surface filename density fxwidth fxheight palettes depth argl ...)))]
     [(_ constructor filename density width height palettes depth argl ... decode)
      (syntax/loc stx (create-bitmap [constructor bitmap-convert] filename density width height palettes depth argl ... decode))]))
 

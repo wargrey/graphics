@@ -10,10 +10,8 @@
 (define create-argb-bitmap
   (case-lambda
     [(width height density scale?)
-     (let*-values ([(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?)]
-                   [(shadow) (cairo-image-shadow-size fxwidth fxheight)])
-       (values (bitmap bitmap-convert shadow sfc '/dev/ram density fxwidth fxheight 4 8)
-               cr))]
+     (let-values ([(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?)])
+       (values (make-bitmap-from-image-surface sfc density fxwidth fxheight) cr))]
     [(width height background density scale?)
      (let-values ([(img cr) (create-argb-bitmap width height density scale?)])
        (cairo-set-source cr background)
@@ -23,7 +21,6 @@
 (define create-invalid-bitmap
   (lambda [width height density scale?]
     (define-values (sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?))
-    (define shadow (cairo-image-shadow-size fxwidth fxheight))
-
-    (values (bitmap invalid-convert shadow sfc (string->uninterned-symbol "/dev/zero") density fxwidth fxheight 4 8)
+    (values (make-bitmap-from-image-surface sfc density fxwidth fxheight
+                                            invalid-convert (string->uninterned-symbol "/dev/zero"))
             cr)))

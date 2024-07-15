@@ -56,13 +56,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   (require geofun/digitama/track)
-  (require bitmap/paint)
+  (require bitmap)
 
   (default-stroke (desc-stroke #:color 'crimson))
   
   (reverse (track-footprints drywani))
   (track-anchors drywani)
   drywani
+  (track-freeze drywani #:color 'ForestGreen)
+
+  (let ([bmp (bitmap-square 256)])
+    (track-freeze! bmp drywani #:color 'RoyalBlue)
+    bmp)
   
   (track-anchor-position drywani '#:home)
   (track-anchor-position drywani '#:home #:translate? #true))

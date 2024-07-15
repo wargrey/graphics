@@ -106,24 +106,21 @@
     (bitmap_frame (bitmap-surface bmp) mtop mright mbottom mleft ptop pright pbottom pleft
                   (stroke-paint->source* stroke) (fill-paint->source* fill) (bitmap-density bmp))))
 
-(define bitmap-square : (->* (Real)
-                             ((Option Real) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:density Positive-Flonum)
-                             Bitmap)
-  (lambda [w [corner-radius #false] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
+(define bitmap-square : (->* (Real) (Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:density Positive-Flonum) Bitmap)
+  (lambda [w [corner-radius 0.0] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
     (define width : Flonum (real->double-flonum w))
-    (if (or (not corner-radius) (zero? corner-radius))
+    (if (zero? corner-radius)
         (bitmap_rectangle width width (stroke-paint->source* border) (fill-paint->source* pattern) density)
         (bitmap_rounded_rectangle width width (real->double-flonum corner-radius) (stroke-paint->source* border) (fill-paint->source* pattern) density))))
 
-(define bitmap-rectangle : (->* (Real)
-                                (Real (Option Real) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:density Positive-Flonum)
-                                Bitmap)
-  (lambda [w [h #false] [corner-radius #false] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
-    (define width : Flonum (real->double-flonum w))
-    (define height : Flonum (if (not h) width (real->double-flonum h)))
-    (if (or (not corner-radius) (zero? corner-radius))
+(define bitmap-rectangle : (->* (Real) (Real Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:density Positive-Flonum) Bitmap)
+  (lambda [w [h -0.618] [corner-radius 0.0] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
+    (define-values (width height) (values (real->double-flonum w) (real->double-flonum h)))
+    (if (zero? corner-radius)
         (bitmap_rectangle width height (stroke-paint->source* border) (fill-paint->source* pattern) density)
-        (bitmap_rounded_rectangle width height (real->double-flonum corner-radius) (stroke-paint->source* border) (fill-paint->source* pattern) density))))
+        (bitmap_rounded_rectangle width height (real->double-flonum corner-radius)
+                                  (stroke-paint->source* border) (fill-paint->source* pattern)
+                                  density))))
 
 (define bitmap-polyline : (->* ((U Point2D (Listof Point2D)))
                                (Real Real #:scale Point2D #:window Point2D #:stroke (Option Stroke-Paint) #:density Positive-Flonum)
@@ -140,8 +137,9 @@
                               (Real Real #:scale Point2D #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:fill-style Symbol
                                     #:density Positive-Flonum #:window Point2D)
                               Bitmap)
-  (lambda [pts [dx 0.0] [dy 0.0] #:scale [scale 1.0] #:border [border (default-stroke)] #:fill [pattern #false] #:fill-style [fstyle 'winding]
-               #:density [density (default-bitmap-density)] #:window [window 0]]
+  (lambda [#:scale [scale 1.0] #:border [border (default-stroke)] #:fill [pattern #false] #:fill-style [fstyle 'winding]
+           #:density [density (default-bitmap-density)] #:window [window 0]
+           pts [dx 0.0] [dy 0.0]]
     (define-values (xs ys lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
 
@@ -153,9 +151,9 @@
                                       (Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:density Positive-Flonum
                                             #:radian? Boolean #:inscribed? Boolean)
                                       Bitmap)
-  (lambda [n radius [rotation 0.0]
-             #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]
-             #:radian? [radian? #true] #:inscribed? [inscribed? #false]]
+  (lambda [#:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]
+           #:radian? [radian? #true] #:inscribed? [inscribed? #false]
+           n radius [rotation 0.0]]
     (if (and (index? n) (> n 0))
         (bitmap_regular_polygon n (real->double-flonum radius) (real->double-flonum rotation)
                                 (stroke-paint->source* border) (fill-paint->source* pattern)
@@ -173,7 +171,7 @@
 
 (define bitmap-sector : (->* (Real Real Real)
                              (#:ratio Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:radian? Boolean #:density Positive-Flonum)
-                            Bitmap)
+                             Bitmap)
   (lambda [#:ratio [ratio 1.0] #:border [border (default-stroke)] #:fill [pattern #false] #:radian? [radian? #true] #:density [density (default-bitmap-density)]
            radius start end]
     (define r (real->double-flonum radius))
@@ -188,7 +186,7 @@
                 (stroke-paint->source* stroke) density radian?)))
 
 (define bitmap-ellipse : (->* (Real) (Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:density Positive-Flonum) Bitmap)
-  (lambda [width [height #false] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
+  (lambda [width [height -0.618] #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]]
     (if (or (not height) (= width height))
         (bitmap_circle (* (real->double-flonum width) 0.5) (stroke-paint->source* border) (fill-paint->source* pattern) density)
         (bitmap_ellipse (real->double-flonum width) (real->double-flonum height)
@@ -238,7 +236,7 @@
                                 Bitmap)
   (lambda [#:neck-width [neck-width -0.1618] #:neck-height [neck-height -0.0618] #:tube-height [tube-height 0]
            #:border [border (default-stroke)] #:fill [pattern #false] #:density [density (default-bitmap-density)]
-           width [height #false]]
-    (bitmap_sandglass (real->double-flonum width) (real->double-flonum (if (not height) (* width 1.618) height))
+           width [height -1.618]]
+    (bitmap_sandglass (real->double-flonum width) (real->double-flonum height)
                       (real->double-flonum neck-width) (real->double-flonum neck-height) (real->double-flonum tube-height)
                       (stroke-paint->source* border) (fill-paint->source* pattern) density)))

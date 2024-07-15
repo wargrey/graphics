@@ -20,14 +20,11 @@
 
 (require "digitama/track.rkt")
 
-(require racket/file)
-
 (require bitmap/digitama/dot)
 (require bitmap/digitama/base)
 (require bitmap/digitama/source)
+(require bitmap/digitama/unsafe/convert)
 (require bitmap/digitama/unsafe/visual/abstract)
-
-(require bitmap/paint)
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
@@ -130,6 +127,19 @@
 (define dryland-wani-jump-back! : (->* (Dryland-Wani) ((Option Track-Anchor)) Void)
   (lambda [wani [target #false]]
     (track-jump-to wani target)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define track-freeze : (->* (Track) (#:color Stroke-Paint #:fill (Option Fill-Paint) #:fill-style Symbol #:density Positive-Flonum) Bitmap)
+  (lambda [self #:color [fgsource (default-stroke)] #:fill [bgsource #false] #:fill-style [fstyle 'winding] #:density [density (default-bitmap-density)]]
+    (track->bitmap self density fgsource bgsource fstyle)))
+
+(define track-freeze! : (->* (Bitmap Track)
+                             (Real Real #:color Stroke-Paint #:fill (Option Fill-Paint) #:fill-style Symbol)
+                             (Values Float-Complex Float-Complex))
+  (lambda [bmp wani [dx 0.0] [dy 0.0] #:color [fgsource (default-stroke)] #:fill [bgsource #false] #:fill-style [fstyle 'winding]]
+    (track-on-bitmap (bitmap-surface bmp) wani (bitmap-density bmp)
+                     (real->double-flonum dx) (real->double-flonum dy)
+                     fgsource bgsource fstyle)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-anchor-position : (->* (Track Track-Anchor) (#:translate? Boolean) Float-Complex)

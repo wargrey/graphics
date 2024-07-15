@@ -4,13 +4,12 @@
 
 (require typed/racket/unsafe)
 
+(require "ctype.rkt")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base
   (provide (all-defined-out))
-  (provide (rename-out [cpointer? abstract-surface?]
-                       [cpointer? svg-surface?]
-                       [cpointer? pdf-surface?]))
-
+  
   (require "../pangocairo.rkt")
   (require "../surface/image.rkt")
   
@@ -35,11 +34,21 @@
     (case format
       [(svg) (abstract-surface-save-with cairo-svg-stream-write /dev/sfcout sfc)]
       [(pdf) (abstract-surface-save-with cairo-pdf-stream-write /dev/sfcout sfc)]
-      [else  (cairo-png-stream-write /dev/sfcout (λ [] (abstract-surface->image-surface sfc density)))]))
+      [else  (cairo-png-stream-write /dev/sfcout
+                                     (λ [] (let-values ([(png-sfc _w _h) (abstract-surface->image-surface sfc density)])
+                                             (values png-sfc #true))))]))
+
+  (define (abstract-surface-save-with stream-write /dev/strout abs-sfc)
+    (define-values (lx ty width height) (abstract-surface-content-bbox abs-sfc))
+
+    (stream-write /dev/strout width height
+                  (λ [cr flwidth flheight]
+                    (cairo_set_source_surface cr abs-sfc (unsafe-fl- 0.0 lx) (unsafe-fl- 0.0 ty))
+                    (cairo_paint cr))))
 
   (define (abstract-surface->image-surface abs-sfc density)
     (define-values (lx ty flwidth flheight) (abstract-surface-content-bbox abs-sfc))
-    (define-values (png-sfc _width _height) (cairo-create-image-surface flwidth flheight density))
+    (define-values (png-sfc fxwidth fxheight) (cairo-create-image-surface flwidth flheight density))
     (define png-cr (cairo_create png-sfc))
 
     (unless (unsafe-fl= density 1.0)
@@ -49,21 +58,11 @@
     (cairo_paint png-cr)
     (cairo_destroy png-cr)
 
-    (values png-sfc #true))
-
-  (define (abstract-surface-save-with stream-write /dev/strout abs-sfc)
-    (define-values (lx ty width height) (abstract-surface-content-bbox abs-sfc))
-
-    (stream-write /dev/strout width height
-                  (λ [cr flwidth flheight]
-                    (cairo_set_source_surface cr abs-sfc (unsafe-fl- 0.0 lx) (unsafe-fl- 0.0 ty))
-                    (cairo_paint cr)))))
+    (values png-sfc fxwidth fxheight)))
 
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [#:opaque Abstract-Surface abstract-surface?]
- [#:opaque SVG-Surface svg-surface?]
- [#:opaque PDF-Surface pdf-surface?]
  [abstract-surface-content-bbox (-> Abstract-Surface (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))]
  [abstract-surface->stream-bytes (-> Abstract-Surface Symbol Symbol Positive-Flonum Bytes)]
+ [abstract-surface->image-surface (-> Abstract-Surface Positive-Flonum (Values Bitmap-Surface Positive-Index Positive-Index))]
  [abstract-surface-save (-> Abstract-Surface (U Output-Port Path-String) Symbol Positive-Flonum Void)])

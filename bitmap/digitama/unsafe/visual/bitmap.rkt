@@ -4,14 +4,15 @@
 
 (require typed/racket/unsafe)
 
+(require "ctype.rkt")
+
 ;;; NOTE
 ; The density should only affect the displaying of bitmap
 ; The size of a bitmap therefore always the same as the actual size of its `surface`
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base
-  (provide (all-defined-out) phantom-bytes?)
-  (provide (rename-out [cpointer? bitmap-surface?]))
+  (provide (all-defined-out))
 
   (require "../pangocairo.rkt")
   
@@ -69,8 +70,6 @@
 
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [#:opaque Bitmap-Surface bitmap-surface?]
- [#:opaque Phantom-Bytes phantom-bytes?]
  [bitmap-surface-data (-> Bitmap-Surface (Values Bytes Index))]
  [bitmap-surface->stream-bytes (-> Bitmap-Surface Symbol Symbol Flonum Bytes)]
  [bitmap-surface-save (-> Bitmap-Surface (U Output-Port Path-String) Symbol Positive-Flonum Void)])

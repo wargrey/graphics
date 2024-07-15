@@ -164,6 +164,6 @@
 
 (define ~length
   (lambda [fl% 100%]
-    (cond [(unsafe-fl< fl% 0.0) (unsafe-fl* (unsafe-flabs fl%) 100%)]
+    (cond [(unsafe-fl< fl% 0.0) (unsafe-fl* (unsafe-fl- 0.0 fl%) 100%)]
           [(unsafe-fl>= fl% 0.0) fl%]
           [else #| nan |# 0.0])))

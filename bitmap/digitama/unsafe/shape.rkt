@@ -90,17 +90,18 @@
     
     img)
 
-  (define (bitmap_ellipse width height border background density)
-    (define-values (img cr) (create-argb-bitmap width height density #true))
-    (define-values (width/2 height/2) (values (unsafe-fl* width 0.5) (unsafe-fl* height 0.5)))
+  (define (bitmap_ellipse flwidth flheight0 border background density)
+    (define height (~length flheight0 flwidth))
+    (define-values (img cr) (create-argb-bitmap flwidth height density #true))
+    (define-values (width/2 height/2) (values (unsafe-fl* flwidth 0.5) (unsafe-fl* height 0.5)))
     (define radius (unsafe-flmin width/2 height/2))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     
     (cairo_translate cr width/2 height/2)
     (cairo_save cr)
     (if (unsafe-fl= radius height/2)
-        (cairo_scale cr (unsafe-fl/ width height) 1.0)
-        (cairo_scale cr 1.0 (unsafe-fl/ height width)))
+        (cairo_scale cr (unsafe-fl/ flwidth height) 1.0)
+        (cairo_scale cr 1.0 (unsafe-fl/ height flwidth)))
     (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl* line-width 0.5)) 0.0 2pi)
     (cairo_restore cr)
     (cairo-render cr border background)
@@ -108,7 +109,8 @@
 
     img)
   
-  (define (bitmap_rectangle flwidth flheight border background density)
+  (define (bitmap_rectangle flwidth flheight0 border background density)
+    (define flheight (~length flheight0 flwidth))
     (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset (unsafe-fl* line-width 0.5))
@@ -119,7 +121,8 @@
 
     img)
 
-  (define (bitmap_rounded_rectangle flwidth flheight corner-radius border background density)
+  (define (bitmap_rounded_rectangle flwidth flheight0 corner-radius border background density)
+    (define flheight (~length flheight0 flwidth))
     (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset (unsafe-fl* line-width 0.5))
@@ -220,8 +223,8 @@
     (define-values (wx1 wy1) (values (unsafe-fl* head-radius (unsafe-flcos rwing1)) (unsafe-fl* head-radius (unsafe-flsin rwing1))))
     (define-values (wx2 wy2) (values (unsafe-fl* head-radius (unsafe-flcos rwing2)) (unsafe-fl* head-radius (unsafe-flsin rwing2))))
     
-    (define shaft-length (if (unsafe-fl< shaft-length0 0.0) (unsafe-fl* head-radius0 (unsafe-fl- shaft-length0)) shaft-length0))
-    (define shaft-thickness (if (unsafe-fl< shaft-thickness0 0.0) (unsafe-fl* head-radius (unsafe-fl- shaft-thickness0)) shaft-thickness0))
+    (define shaft-length (~length shaft-length0 head-radius0))
+    (define shaft-thickness (~length shaft-thickness0 head-radius))
     (define shaft-thickness/2 (unsafe-fl* shaft-thickness 0.5))
     (define draw-shaft? (and (unsafe-fl< 0.0 shaft-thickness/2) (unsafe-fl< shaft-thickness/2 head-radius)))
     (define wing-theta (unsafe-fl- rdelta pi/2))
@@ -273,7 +276,8 @@
     
     img)
 
-  (define (bitmap_sandglass flwidth flheight neck-width0 neck-height0 tube-height0 border background density)
+  (define (bitmap_sandglass flwidth flheight0 neck-width0 neck-height0 tube-height0 border background density)
+    (define flheight (~length flheight0 flwidth))
     (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
     (define-values (neck-width neck-height) (values (~length neck-width0 flwidth) (~length neck-height0 flheight)))
     (define-values (cy neck-a neck-b) (values (unsafe-fl* flheight 0.5) (unsafe-fl* neck-width 0.25) (unsafe-fl* neck-height 0.5)))

@@ -37,13 +37,6 @@
        (values img cr width height))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define cairo-image-shadow-size
-  (case-lambda
-    [(width height) (make-phantom-bytes (unsafe-fx* (unsafe-fx* width height) 4))]
-    [(sfc) (make-phantom-bytes (unsafe-fx* (cairo_image_surface_get_stride sfc)
-                                           (cairo_image_surface_get_height sfc)))]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (the-surface the-cairo)
   (let-values ([(sfc cr w h) (cairo-create-argb-image-surface* 1.0 1.0 1.0 #false)])
     (values sfc cr)))

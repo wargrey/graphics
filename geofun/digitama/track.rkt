@@ -3,6 +3,8 @@
 (provide (all-defined-out))
 
 (require bitmap/digitama/unsafe/path)
+(require bitmap/digitama/unsafe/convert)
+(require bitmap/digitama/unsafe/visual/ctype)
 (require bitmap/digitama/unsafe/visual/object)
 (require bitmap/digitama/unsafe/visual/abstract)
 
@@ -253,12 +255,26 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-surface : (->* (Track) (Stroke-Paint (Option Fill-Paint) Symbol Positive-Flonum) Abstract-Surface)
-  (lambda [wani [paint (default-stroke)] [fill #false] [fstyle 'winding]]
-    (path_stamp (track-footprints wani)
-                (- (track-lx wani)) (- (track-ty wani))
+  (lambda [self [paint (default-stroke)] [fill #false] [fstyle 'winding] [density (default-bitmap-density)]]
+    (path_stamp (track-footprints self)
+                (- (track-lx self)) (- (track-ty self))
                 (stroke-paint->source paint) (fill-paint->source* fill)
                 fstyle)))
 
+(define track->bitmap : (->* (Track Positive-Flonum) (Stroke-Paint (Option Fill-Paint) Symbol) Bitmap)
+  (lambda [self density [paint (default-stroke)] [fill #false] [fstyle 'winding]]
+    (define abs-sfc (track-surface self paint fill fstyle density))
+    (define-values (self-sfc width height) (abstract-surface->image-surface abs-sfc density))
+    
+    (make-bitmap-from-image-surface self-sfc density width height)))
+
+(define track-on-bitmap : (->* (Bitmap-Surface Track Positive-Flonum Flonum Flonum) (Stroke-Paint (Option Fill-Paint) Symbol) (Values Float-Complex Float-Complex))
+  (lambda [target self density dx dy [paint (default-stroke)] [fill #false] [fstyle 'winding]]
+    (path_stamp! target (track-footprints self)
+                 (stroke-paint->source paint) (fill-paint->source* fill)
+                 dx dy fstyle density)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-convert : Visual-Object-Convert
   (lambda [self mime fallback]
     (with-asserts ([self track?])

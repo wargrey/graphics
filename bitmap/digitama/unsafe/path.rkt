@@ -6,8 +6,7 @@
 
 (require "../base.rkt")
 (require "source.rkt")
-(require "visual/abstract.rkt")
-(require "visual/bitmap.rkt")
+(require "visual/ctype.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -22,7 +21,7 @@
     (define bitmap-cr (cairo_create bitmap-sfc))
 
     (cairo_scale bitmap-cr density density)
-    (cairo_path bitmap-cr footprints dx dy fill-rule density)
+    (cairo_path bitmap-cr footprints dx dy fill-rule)
     (cairo-render bitmap-cr stroke fill-color)
 
     (let-values ([(x1 y1 x2 y2) (cairo_path_extents bitmap-cr)])
