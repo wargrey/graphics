@@ -9,28 +9,38 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bacteriophage-logo : (->* (Real)
-                                  (#:sheath-length Real #:perspective-alpha Real
-                                   #:left-foot-color (Option Color) #:right-foot-color (Option Color) #:feet-rotation Real)
+                                  (#:sheath-length Real #:λ-color Color #:fibre-color Color #:fill-color Color #:fill-alpha Real
+                                   #:border-color Color #:edge-color Color #:edge-alpha Real
+                                   #:head-color (Option Color) #:head-alpha (Option Real) #:tail-color (Option Color) #:tail-alpha (Option Real)
+                                   #:feet-fill-color (Option Color) #:feet-alpha (Option Real)
+                                   #:left-foot-border-color (Option Color) #:right-foot-border-color (Option Color) #:feet-rotation Real)
                                   Bitmap)
-  (lambda [R #:sheath-length [sheath-length -1.618] #:perspective-alpha [perspective-alpha 0.618]
-             #:left-foot-color [lfcolor 'Blue] #:right-foot-color [rfcolor 'Lime] #:feet-rotation [foot-rotation 0.0]]
+  (lambda [#:sheath-length [sheath-length -1.618] #:λ-color [λ-color 'Crimson] #:fibre-color [fibre-color 'Teal]
+           #:fill-color [fill-color 'MintCream] #:fill-alpha [fill-alpha 0.618]
+           #:border-color [border-color 'DodgerBlue] #:edge-color [edge-color 'DeepSkyBlue] #:edge-alpha [edge-alpha 0.20]
+           #:head-color [head-fill #false] #:head-alpha [head-alpha #false]
+           #:tail-color [tail-fill 'SeaShell] #:tail-alpha [tail-alpha #false]
+           #:feet-fill-color [feet-fill #false] #:feet-alpha [feet-alpha #false]
+           #:left-foot-border-color [lfcolor 'Blue] #:right-foot-border-color [rfcolor 'Lime] #:feet-rotation [foot-rotation 0.0]
+           R]
     (define-values (Rdart Rcollar) (values (* R 0.618) (* R 0.5 0.618)))
     (define no-sheath? : Boolean (< -1.0 (* sheath-length 1.0) Rdart))
     (define-values (thickness smart-thickness-scale) (values (/ R 32.0) (if no-sheath? 1.0 2.0)))
-    (define edge-stroke (desc-stroke #:color 'SkyBlue #:width thickness))
-    (define ihead-stroke (desc-stroke #:color 'DeepSkyBlue #:width (* thickness 2.0)))
-    (define ohead-stroke (desc-stroke ihead-stroke #:color 'DodgerBlue))
+    (define edge-stroke (desc-stroke #:color (rgb* edge-color edge-alpha) #:width (* thickness 0.5)))
+    (define ihead-stroke (desc-stroke #:color edge-color #:width (* thickness 1.0)))
+    (define ohead-stroke (desc-stroke #:color border-color #:width (* thickness 2.0)))
     (define stx-bstroke (desc-stroke #:width (* thickness smart-thickness-scale)))
-    (define stx-stroke (desc-stroke #:color (rgb* 'Snow perspective-alpha) #:width (* thickness 1.0)))
-    (define fibre-stroke (desc-stroke #:color 'Teal #:width (* thickness smart-thickness-scale)))
-    (define tail-color : Color 'SteelBlue)
-    (define foot-color : Color (rgb* 'MintCream perspective-alpha))
+    (define stx-estroke (desc-stroke #:color (rgb* edge-color edge-alpha) #:width (* thickness 0.5)))
+    (define fibre-stroke (desc-stroke #:color fibre-color #:width (* thickness smart-thickness-scale)))
+    (define head-color : Color (rgb* (or head-fill fill-color) (or head-alpha fill-alpha)))
+    (define tail-color : Color (rgb* (or tail-fill fill-color) (or tail-alpha fill-alpha)))
+    (define feet-color : Color (rgb* (or feet-fill fill-color) (or feet-alpha fill-alpha)))
     (define sin54 : Flonum (sin (degrees->radians 54.0)))
     
     (define protein-coat
       (bitmap-cc-superimpose
-       (bitmap-icosahedron-side-projection R 'edge #:edge #false #:border ohead-stroke #:fill foot-color)
-       (bitmap-text "λ" (desc-font #:size (* R 1.4) #:family "Linux Biolinum Shadow, Bold") #:color 'Crimson)
+       (bitmap-icosahedron-side-projection R 'edge #:edge #false #:border ohead-stroke #:fill head-color)
+       (bitmap-text "λ" (desc-font #:size (* R 1.4) #:family "Linux Biolinum Shadow, Bold") #:color λ-color)
        (bitmap-icosahedron-side-projection R 'vertex #:edge edge-stroke #:border ihead-stroke)))
 
     (define collar (bitmap-dart Rcollar 90.0 #:radian? #false #:fill tail-color #:border ihead-stroke #:wing-angle 144.0))
@@ -47,10 +57,10 @@
 
     (define stx-tree
       (let*-values ([(r fx fy) (values (* Rcollar 0.618 (if (not maybe-sheath) 0.382 1.0)) 0.64 0.28)]
-                    [(lft) (bitmap-icosahedron-over-projection #:border (desc-stroke stx-bstroke #:color lfcolor) #:edge stx-stroke #:fill foot-color
+                    [(lft) (bitmap-icosahedron-over-projection #:border (desc-stroke stx-bstroke #:color lfcolor) #:edge stx-estroke #:fill feet-color
                                                                #:rotation foot-rotation
                                                                r 'face)]
-                    [(rgt) (bitmap-icosahedron-over-projection #:border (desc-stroke stx-bstroke #:color rfcolor) #:edge stx-stroke #:fill foot-color
+                    [(rgt) (bitmap-icosahedron-over-projection #:border (desc-stroke stx-bstroke #:color rfcolor) #:edge stx-estroke #:fill feet-color
                                                                #:rotation foot-rotation
                                                                r 'face)])
         (if (or lfcolor rfcolor)
@@ -64,9 +74,11 @@
         (bitmap-vc-append #:gapsize (* Rcollar -1.618)
                           protein-coat
                           (parameterize ([default-pin-operator 'overlay])
-                            (bitmap-vc-append #:gapsize (- (* Rdart -1.0) (* (stroke-width fibre-stroke) 1.0))
-                                              (parameterize ([default-pin-operator 'over])
-                                                (bitmap-vc-append #:gapsize (* Rcollar -0.618) collar maybe-sheath))
+                            (bitmap-vc-append #:gapsize (- (* Rdart -1.0) (* (stroke-width fibre-stroke) 1.25))
+                                              (bitmap-cb-superimpose
+                                               (parameterize ([default-pin-operator 'clear])
+                                                 (bitmap-pin* 0.5 0.70 0.5 0.0 collar maybe-sheath))
+                                               maybe-sheath)
                                               stx-tree)))
         (parameterize ([default-pin-operator 'dest-over])
           (bitmap-vc-append #:gapsize (- (* Rcollar -0.618) (stroke-width fibre-stroke))
@@ -84,7 +96,5 @@
   (bacteriophage-logo 32.0)
   (bacteriophage-logo 64.0)
   (bacteriophage-logo 128.0)
-  (bacteriophage-logo 64.0 #:sheath-length -0.8)
-
-  (bitmap-frame (bacteriophage-logo 128.0) #:fill 'ForestGreen))
+  (bacteriophage-logo 64.0 #:sheath-length -0.8))
   
