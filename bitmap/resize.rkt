@@ -74,7 +74,7 @@
            [(< flw flh) (bitmap-inset bmp 0.0 (* (- flh flw) 0.5))]
            [else (bitmap-inset bmp (* (- flw flh) 0.5) 0.0)])]))
 
-(define-cropper bitmap-crop : (-> Bitmap Positive-Real Positive-Real Bitmap)
+(define-cropper bitmap-crop : (-> Bitmap Nonnegative-Real Nonnegative-Real Bitmap)
   (#:lambda [bmp width height left% top%]
     (define-values (W H density) (bitmap-intrinsic-flsize+density bmp))
     (define w (min W (* (real->double-flonum width) density)))

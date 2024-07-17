@@ -56,8 +56,15 @@
                                        #:anchor Keyword #:at Track-Print-Datum)
                                  Dryland-Wani)
   (lambda [xstepsize [ystepsize 0.0] #:turn-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0] #:anchor [anchor '#:home] #:at [home 0]]
-    (define xstep : Nonnegative-Flonum (if (<= xstepsize 0.0) 1.0 (max (real->double-flonum xstepsize) 0.0)))
-    (define ystep : Nonnegative-Flonum (if (<= ystepsize 0.0) xstep (max (real->double-flonum ystepsize) 0.0)))
+    (define xstep : Nonnegative-Flonum
+      (cond [(<= xstepsize 0.0) 1.0]
+            [else (max (real->double-flonum xstepsize) 0.0)]))
+    
+    (define ystep : Nonnegative-Flonum
+      (cond [(= ystepsize 0.0) xstep]
+            [(< ystepsize 0.0) (* xstep (- (real->double-flonum ystepsize)))]
+            [else (max (real->double-flonum ystepsize) 0.0)]))
+    
     (define home-pos : Float-Complex (~point2d home))
     (define-values (home-x home-y) (values (real-part home-pos) (imag-part home-pos)))
     (define-values (tsx tsy) (track-turn-scales t-scale 0.5))
@@ -136,10 +143,8 @@
 (define track-freeze! : (->* (Bitmap Track)
                              (Real Real #:color Stroke-Paint #:fill (Option Fill-Paint) #:fill-style Symbol)
                              (Values Float-Complex Float-Complex))
-  (lambda [bmp wani [dx 0.0] [dy 0.0] #:color [fgsource (default-stroke)] #:fill [bgsource #false] #:fill-style [fstyle 'winding]]
-    (track-on-bitmap (bitmap-surface bmp) wani (bitmap-density bmp)
-                     (real->double-flonum dx) (real->double-flonum dy)
-                     fgsource bgsource fstyle)))
+  (lambda [bmp self [dx 0.0] [dy 0.0] #:color [fgsource (default-stroke)] #:fill [bgsource #false] #:fill-style [fstyle 'winding]]
+    (track-on-bitmap (bitmap-surface bmp) self (bitmap-density bmp) dx dy fgsource bgsource fstyle)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-anchor-position : (->* (Track Track-Anchor) (#:translate? Boolean) Float-Complex)

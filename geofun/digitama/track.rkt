@@ -57,19 +57,19 @@
      (with-syntax ([step! (format-id #'move "dryland-wani-step-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
-         (begin (define (step! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+         (begin (define (step! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Track-Anchor) #false]) : Void
                   (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (* (real->double-flonum step) xsgn) 0.0 anchor #true))
                 
-                (define (jump! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+                (define (jump! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Track-Anchor) #false]) : Void
                   (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (* (real->double-flonum step) xsgn) 0.0 anchor #true)))))]
     [(_ move #:!> ysgn)
      (with-syntax ([step! (format-id #'move "dryland-wani-step-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
-         (begin (define (step! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+         (begin (define (step! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Track-Anchor) #false]) : Void
                   (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (* (real->double-flonum step) ysgn) anchor #true))
                 
-                (define (jump! [wani : Dryland-Wani] [step : Integer 1] [anchor : (Option Track-Anchor) #false]) : Void
+                (define (jump! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Track-Anchor) #false]) : Void
                   (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (* (real->double-flonum step) ysgn) anchor #true)))))]))
 
 (define-syntax (define-dryland-wani-turn-move! stx)
@@ -268,11 +268,14 @@
     
     (make-bitmap-from-image-surface self-sfc density width height)))
 
-(define track-on-bitmap : (->* (Bitmap-Surface Track Positive-Flonum Flonum Flonum) (Stroke-Paint (Option Fill-Paint) Symbol) (Values Float-Complex Float-Complex))
+(define track-on-bitmap : (->* (Bitmap-Surface Track Positive-Flonum Real Real)
+                               (Stroke-Paint (Option Fill-Paint) Symbol)
+                               (Values Float-Complex Float-Complex))
   (lambda [target self density dx dy [paint (default-stroke)] [fill #false] [fstyle 'winding]]
     (path_stamp! target (track-footprints self)
                  (stroke-paint->source paint) (fill-paint->source* fill)
-                 dx dy fstyle density)))
+                 (real->double-flonum dx) (real->double-flonum dy)
+                 fstyle density)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-convert : Visual-Object-Convert
