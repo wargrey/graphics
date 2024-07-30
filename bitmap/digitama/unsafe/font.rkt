@@ -104,7 +104,7 @@
     (let ([&layout (box #false)])
       (lambda []
         (or (unbox &layout)
-            (let ([layout (pango_cairo_create_layout the-cairo)])
+            (let ([layout (pango_cairo_create_layout the-image-cairo)])
               (set-box! &layout layout)
               layout)))))
   

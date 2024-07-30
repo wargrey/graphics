@@ -5,6 +5,7 @@
 (require "digitama/resize.rkt")
 (require "digitama/unsafe/resize.rkt")
 (require "digitama/unsafe/convert.rkt")
+(require "digitama/unsafe/visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-section : (case-> [Bitmap Complex Complex -> Bitmap]

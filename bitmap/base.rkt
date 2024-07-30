@@ -4,6 +4,7 @@
 
 (require "digitama/source.rkt")
 (require "digitama/misc.rkt")
+(require "digitama/unsafe/visual/bitmap.rkt")
 
 (require/provide "digitama/base.rkt" "digitama/stdio.rkt" "digitama/unsafe/convert.rkt")
 (require/provide "constructor.rkt" "pixel.rkt" "composite.rkt" "resize.rkt")

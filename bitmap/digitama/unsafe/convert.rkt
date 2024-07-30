@@ -1,8 +1,6 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide Phantom-Bytes Bitmap-Surface)
-(provide bitmap-surface? bitmap-surface-save)
 
 (provide (rename-out [bitmap<%>-surface bitmap-surface]))
 

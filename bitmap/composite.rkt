@@ -7,6 +7,7 @@
 (require "digitama/composite.rkt")
 (require "digitama/unsafe/composite.rkt")
 (require "digitama/unsafe/convert.rkt")
+(require "digitama/unsafe/visual/ctype.rkt")
 
 (require (for-syntax racket/base))
 

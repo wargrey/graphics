@@ -4,22 +4,20 @@
 
 (require typed/racket/unsafe)
 
-(require "../base.rkt")
-(require "convert.rkt")
-(require "source.rkt")
+(require "../../base.rkt")
+(require "../source.rkt")
+(require "../surface/type.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require "pangocairo.rkt")
-  (require "constants.rkt")
-  (require "paint.rkt")
-
-  (require "surface/bitmap.rkt")
+  (require "../pangocairo.rkt")
+  (require "../constants.rkt")
+  (require "../paint.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_line x y dx dy width height border density)
-    (define-values (img cr) (create-argb-bitmap width height density #true))
+  (define (dc_line create-surface x y dx dy width height border density)
+    (define-values (sfs cr) (create-surface width height density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define offset (unsafe-fl* line-width 0.5))
     
@@ -38,24 +36,24 @@
     (cairo-render cr border #false)
     (cairo_destroy cr)
     
-    img)
+    sfs)
 
-  (define (bitmap_circle radius border background density)
+  (define (dc_circle create-surface radius border background density)
     (define fllength (unsafe-fl* radius 2.0))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
-    (define-values (img cr) (create-argb-bitmap fllength fllength density #true))
+    (define-values (sfs cr) (create-surface fllength fllength density #true))
     
     (cairo_translate cr radius radius)
     (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl* line-width 0.5)) 0.0 2pi)
     (cairo-render cr border background)
     (cairo_destroy cr)
     
-    img)
+    sfs)
 
-  (define (bitmap_sector aradius bradius start end border background density radian?)
+  (define (dc_sector create-surface aradius bradius start end border background density radian?)
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define-values (rstart rend) (if radian? (values start end) (values (~radian start) (~radian end))))
-    (define-values (img cr) (create-argb-bitmap (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
+    (define-values (sfs cr) (create-surface (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
     
     (cairo_translate cr aradius bradius)
 
@@ -71,12 +69,12 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
     
-    img)
+    sfs)
 
-  (define (bitmap_arc aradius bradius start end border density radian?)
+  (define (dc_arc aradius create-surface bradius start end border density radian?)
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define-values (rstart rend) (if radian? (values start end) (values (~radian start) (~radian end))))
-    (define-values (img cr) (create-argb-bitmap (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
+    (define-values (sfs cr) (create-surface (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
     
     (cairo_translate cr aradius aradius)
 
@@ -88,11 +86,11 @@
     (cairo-render cr border #false)
     (cairo_destroy cr)
     
-    img)
+    sfs)
 
-  (define (bitmap_ellipse flwidth flheight0 border background density)
+  (define (dc_ellipse create-surface flwidth flheight0 border background density)
     (define height (~length flheight0 flwidth))
-    (define-values (img cr) (create-argb-bitmap flwidth height density #true))
+    (define-values (sfs cr) (create-surface flwidth height density #true))
     (define-values (width/2 height/2) (values (unsafe-fl* flwidth 0.5) (unsafe-fl* height 0.5)))
     (define radius (unsafe-flmin width/2 height/2))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
@@ -107,11 +105,11 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
 
-    img)
+    sfs)
   
-  (define (bitmap_rectangle flwidth flheight0 border background density)
+  (define (dc_rectangle create-surface flwidth flheight0 border background density)
     (define flheight (~length flheight0 flwidth))
-    (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
+    (define-values (sfs cr) (create-surface flwidth flheight density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset (unsafe-fl* line-width 0.5))
 
@@ -119,11 +117,11 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
 
-    img)
+    sfs)
 
-  (define (bitmap_rounded_rectangle flwidth flheight0 corner-radius border background density)
+  (define (dc_rounded_rectangle create-surface flwidth flheight0 corner-radius border background density)
     (define flheight (~length flheight0 flwidth))
-    (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
+    (define-values (sfs cr) (create-surface flwidth flheight density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset (unsafe-fl* line-width 0.5))
     (define flradius
@@ -142,13 +140,13 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
 
-    img)
+    sfs)
 
-  (define (bitmap_stadium fllength radius border background density)
+  (define (dc_stadium create-surface fllength radius border background density)
     (define flradius (~length radius fllength))
     (define flheight (unsafe-fl* flradius 2.0))
     (define flwidth (unsafe-fl+ fllength flheight))
-    (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
+    (define-values (sfs cr) (create-surface flwidth flheight density #true))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define inset-radius (unsafe-fl- flradius (unsafe-fl* line-width 0.5)))
 
@@ -159,11 +157,11 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
 
-    img)
+    sfs)
 
-  (define (bitmap_polyline flwidth flheight xs ys dx dy border background fill-style density)
+  (define (dc_polyline create-surface flwidth flheight xs ys dx dy border background fill-style density)
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
-    (define-values (img cr) (create-argb-bitmap (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
+    (define-values (sfs cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
     (define inset (unsafe-fl* line-width 0.5))
     (define x0 (unsafe-fl+ dx inset))
     (define y0 (unsafe-fl+ dy inset))
@@ -184,16 +182,16 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
     
-    img)
+    sfs)
 
-  (define (bitmap_regular_polygon n radius0 rotation border background radian? inscribed? density)
+  (define (dc_regular_polygon create-surface n radius0 rotation border background radian? inscribed? density)
     (define fln (exact->inexact n))
     (define radius (if (not inscribed?) radius0 (unsafe-fl/ radius0 (unsafe-flcos (unsafe-fl/ pi fln))))) ; r = Rcos(pi/n)
     (define fllength (unsafe-fl* radius 2.0))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define r (unsafe-fl- radius (unsafe-fl* line-width 0.5)))
     (define delta (unsafe-fl/ 2pi fln))
-    (define-values (img cr) (create-argb-bitmap fllength fllength density #true))
+    (define-values (sfs cr) (create-surface fllength fllength density #true))
     
     (cairo_translate cr radius radius)
     (cairo_new_sub_path cr)
@@ -208,9 +206,9 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
     
-    img)
+    sfs)
 
-  (define (bitmap_arrow head-radius0 start border background density radian? shaft-thickness0 shaft-length0 wing-angle)
+  (define (dc_arrow create-surface head-radius0 start border background density radian? shaft-thickness0 shaft-length0 wing-angle)
     (define fllength (unsafe-fl* head-radius0 2.0))
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define offset (unsafe-fl* line-width 0.5))
@@ -254,7 +252,7 @@
                               [(ymin ymax) (values (unsafe-flmin aymin shymin) (unsafe-flmax aymax shymax))])
                   (values (unsafe-fl- xmax xmin) (unsafe-fl- ymax ymin) (unsafe-fl- xmin) (unsafe-fl- ymin) shx1 shy1 shx2 shy2))))))
       
-    (define-values (img cr) (create-argb-bitmap (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
+    (define-values (sfs cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
     
     (cairo_translate cr (unsafe-fl+ tx offset) (unsafe-fl+ ty offset))
     (cairo_new_sub_path cr)
@@ -274,11 +272,11 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
     
-    img)
+    sfs)
 
-  (define (bitmap_sandglass flwidth flheight0 neck-width0 neck-height0 tube-height0 border background density)
+  (define (dc_sandglass create-surface flwidth flheight0 neck-width0 neck-height0 tube-height0 border background density)
     (define flheight (~length flheight0 flwidth))
-    (define-values (img cr) (create-argb-bitmap flwidth flheight density #true))
+    (define-values (sfs cr) (create-surface flwidth flheight density #true))
     (define-values (neck-width neck-height) (values (~length neck-width0 flwidth) (~length neck-height0 flheight)))
     (define-values (cy neck-a neck-b) (values (unsafe-fl* flheight 0.5) (unsafe-fl* neck-width 0.25) (unsafe-fl* neck-height 0.5)))
     (define tube-height (~length tube-height0 flheight))
@@ -313,20 +311,24 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
 
-    img))
+    sfs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [bitmap_line (-> Flonum Flonum Flonum Flonum Flonum Flonum (Option Paint) Flonum Bitmap)]
- [bitmap_circle (-> Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
- [bitmap_sector (-> Flonum Flonum Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Boolean Bitmap)]
- [bitmap_arc (-> Flonum Flonum Flonum Flonum (Option Paint) Flonum Boolean Bitmap)]
- [bitmap_ellipse (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
- [bitmap_rectangle (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
- [bitmap_rounded_rectangle (-> Flonum Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
- [bitmap_stadium (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)]
- [bitmap_polyline (-> Flonum Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum (Option Paint) (Option Bitmap-Source) (Option Symbol) Flonum Bitmap)]
- [bitmap_regular_polygon (-> Positive-Index Flonum Flonum (Option Paint) (Option Bitmap-Source) Boolean Boolean Flonum Bitmap)]
- [bitmap_arrow (-> Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Boolean Flonum Flonum (Option Flonum) Bitmap)]
- [bitmap_sandglass (-> Flonum Flonum Flonum Flonum Flonum (Option Paint) (Option Bitmap-Source) Flonum Bitmap)])
+ [dc_line (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum Flonum (Option Paint) Flonum S))]
+ [dc_circle (All (S) (-> (Cairo-Surface-Create S) Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+ [dc_sector (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum Boolean S))]
+ [dc_arc (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum (Option Paint) Flonum Boolean S))]
+ [dc_ellipse (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+ [dc_rectangle (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+ [dc_rounded_rectangle (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+ [dc_stadium (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+ [dc_regular_polygon (All (S) (-> (Cairo-Surface-Create S) Positive-Index Flonum Flonum (Option Paint) (Option Fill-Source) Boolean Boolean Flonum S))]
+ [dc_arrow (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Option Paint) (Option Fill-Source) Flonum Boolean Flonum Flonum (Option Flonum) S))]
+ [dc_sandglass (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+
+ [dc_polyline (All (S) (-> (Cairo-Surface-Create S)
+                           Flonum Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum
+                           (Option Paint) (Option Fill-Source) (Option Symbol)
+                           Flonum S))])

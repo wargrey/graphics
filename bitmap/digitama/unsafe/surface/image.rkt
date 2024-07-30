@@ -37,6 +37,6 @@
        (values img cr width height))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-values (the-surface the-cairo)
+(define-values (the-image-surface the-image-cairo)
   (let-values ([(sfc cr w h) (cairo-create-argb-image-surface* 1.0 1.0 1.0 #false)])
     (values sfc cr)))

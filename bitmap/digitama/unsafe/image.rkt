@@ -7,6 +7,7 @@
 (require "../base.rkt")
 (require "convert.rkt")
 (require "source.rkt")
+(require "visual/ctype.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -162,6 +163,6 @@
  [λbitmap_step (All (t) (-> Flonum Flonum Flonum (ARGB-Step t) t (Values Bitmap t)))]
  [λbitmap_map (-> Bitmap-Surface Flonum ARGB-Map Bitmap)]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
- [bitmap_pattern (-> Flonum Flonum Bitmap-Source Flonum Bitmap)]
+ [bitmap_pattern (-> Flonum Flonum Fill-Source Flonum Bitmap)]
  [bitmap_frame (-> Bitmap-Surface Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum
-                   (Option Paint) (Option Bitmap-Source) Flonum Bitmap)])
+                   (Option Paint) (Option Fill-Source) Flonum Bitmap)])

@@ -4,27 +4,25 @@
 
 (require typed/racket/unsafe)
 
-(require "../base.rkt")
-(require "convert.rkt")
-(require "source.rkt")
+(require "../../base.rkt")
+(require "../source.rkt")
+(require "../surface/type.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
 
   (require racket/flonum)
   
-  (require "pangocairo.rkt")
-  (require "constants.rkt")
-  (require "paint.rkt")
-
-  (require "surface/bitmap.rkt")
+  (require "../pangocairo.rkt")
+  (require "../constants.rkt")
+  (require "../paint.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_icosahedron_side_proj radius type edge background border0 density)
+  (define (dc_icosahedron_side_proj create-surface radius type edge background border0 density)
     (define edge-size (icosahedron-radius->edge-length radius type))
     (define-values (a1 aφ) (icoashedron-edge-length->outline edge-size))
     (define fllength (unsafe-fl* aφ 2.0))
-    (define-values (img cr) (create-argb-bitmap fllength fllength density #true))
+    (define-values (sfs cr) (create-surface fllength fllength density #true))
     (define border (or border0 edge))
     (define offset (if (struct? border) (unsafe-fl* 0.5 (unsafe-struct-ref border 1)) 0.0))
     (define-values (-a1 +a1) (values (unsafe-fl+ (unsafe-fl- 0.0 a1) offset) (unsafe-fl- a1 offset)))
@@ -59,12 +57,12 @@
     
     (cairo_destroy cr)
     
-    img)
+    sfs)
 
-  (define (bitmap_icosahedron_over_proj radius0 type rotation edge background border0 radian? density)
+  (define (dc_icosahedron_over_proj create-surface radius0 type rotation edge background border0 radian? density)
     (define radius (icosahedron-radius->circumsphere-radius radius0 type))
     (define fllength (unsafe-fl* radius 2.0))
-    (define-values (img cr) (create-argb-bitmap fllength fllength density #true))
+    (define-values (sfs cr) (create-surface fllength fllength density #true))
     (define border (or border0 edge))
     (define delta (unsafe-fl/ 2pi 10.0))
     (define offset (if (struct? border) (unsafe-fl* 0.5 (unsafe-struct-ref border 1)) 0.0))
@@ -108,7 +106,7 @@
     
     (cairo_destroy cr)
     
-    img)
+    sfs)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define icosahedron-side-border-path
@@ -173,5 +171,5 @@
 
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [bitmap_icosahedron_side_proj (-> Flonum 3D-Radius-Type (Option Paint) (Option Bitmap-Source) (Option Paint) Flonum Bitmap)]
- [bitmap_icosahedron_over_proj (-> Flonum 3D-Radius-Type Flonum (Option Paint) (Option Bitmap-Source) (Option Paint) Boolean Flonum Bitmap)])
+ [dc_icosahedron_side_proj (All (S) (-> (Cairo-Surface-Create S) Flonum 3D-Radius-Type (Option Paint) (Option Fill-Source) (Option Paint) Flonum S))]
+ [dc_icosahedron_over_proj (All (S) (-> (Cairo-Surface-Create S) Flonum 3D-Radius-Type Flonum (Option Paint) (Option Fill-Source) (Option Paint) Boolean Flonum S))])

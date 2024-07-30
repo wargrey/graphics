@@ -5,6 +5,7 @@
 (require typed/racket/unsafe)
 
 (require "convert.rkt")
+(require "visual/ctype.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out) CAIRO_OPERATOR_OVER)
@@ -317,7 +318,7 @@
                     (vector sfc w h)))
     (define diff (unsafe-fx- (unsafe-fx* nrows ncols) (unsafe-vector-length cells)))
     (cond [(unsafe-fx<= diff 0) cells]
-          [else (let ([filling (vector the-surface 1.0 1.0)])
+          [else (let ([filling (vector the-image-surface 1.0 1.0)])
                   (vector-append cells (make-vector diff filling)))]))
 
   (define (list->n:vector src total)

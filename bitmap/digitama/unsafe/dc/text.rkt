@@ -4,24 +4,23 @@
 
 (require typed/racket/unsafe)
 
-(require "../base.rkt")
-(require "convert.rkt")
-(require "source.rkt")
-(require "font.rkt")
+(require "../../base.rkt")
+(require "../source.rkt")
+(require "../font.rkt")
+(require "../surface/type.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
-  
-  (require "pangocairo.rkt")
-  (require "surface/bitmap.rkt")
-  (require (submod "font.rkt" unsafe))
+
+  (require "../pangocairo.rkt")
+  (require (submod "../font.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_text text font-desc lines fgsource bgsource alsource clsource mlsource blsource dlsource density)
+  (define (dc_text create-surface text font-desc lines fgsource bgsource alsource clsource mlsource blsource dlsource density)
     (define-values (width height) (font_get_text_extent font-desc text))
-    (define-values (bmp cr) (make-text-image width height bgsource density))
-    (define layout (bitmap_create_layout lines))
-
+    (define-values (sfs cr) (create-surface width height bgsource density #true))
+    (define layout (text_create_layout lines))
+  
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
     
@@ -33,18 +32,18 @@
       (define-values (ascent capline meanline baseline descent) (font_get_metrics_lines* font-desc text))
       (cairo_set_line_width cr 1.0)
 
-      (bitmap_decorate cr clsource capline width)
-      (bitmap_decorate cr alsource ascent width)
-      (bitmap_decorate cr mlsource meanline width)
-      (bitmap_decorate cr dlsource descent width)
-      (bitmap_decorate cr blsource baseline width))
+      (text_decorate cr clsource capline width)
+      (text_decorate cr alsource ascent width)
+      (text_decorate cr mlsource meanline width)
+      (text_decorate cr dlsource descent width)
+      (text_decorate cr blsource baseline width))
 
     (cairo_destroy cr)
 
-    bmp)
+    sfs)
   
-  (define (bitmap_paragraph text font-desc lines max-width max-height indent spacing wrap ellipsize fgsource bgsource density)
-    (define layout (bitmap_create_layout* lines max-width max-height indent spacing wrap ellipsize))
+  (define (dc_paragraph create-surface text font-desc lines max-width max-height indent spacing wrap ellipsize fgsource bgsource density)
+    (define layout (text_create_layout* lines max-width max-height indent spacing wrap ellipsize))
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
 
@@ -52,15 +51,15 @@
     (define flwidth (~metric pango-width))
     (define flheight (if (flonum? max-height) (unsafe-flmin (~metric pango-height) max-height) (~metric pango-height)))
 
-    (define-values (bmp cr draw-text?)
+    (define-values (sfs cr draw-text?)
       (if (or (= max-width -1) (unsafe-fl<= flwidth max-width))
-          (let-values ([(bmp cr) (make-text-image flwidth flheight bgsource density)])
-            (values bmp cr #true))
+          (let-values ([(sfs cr) (create-surface flwidth flheight bgsource density #true)])
+            (values sfs cr #true))
           (let-values ([(char-width char-height) (and (pango_layout_set_text layout " ") (pango_layout_get_size layout))])
             (define draw-text? (unsafe-fl>= max-width (~metric char-width)))
             (define smart-flheight (if draw-text? flheight (unsafe-flmin (~metric char-height) flheight)))
-            (define-values (bmp cr) (make-text-image max-width smart-flheight bgsource density))
-            (values bmp cr draw-text?))))
+            (define-values (sfs cr) (create-surface max-width smart-flheight bgsource density #true))
+            (values sfs cr draw-text?))))
 
     (when draw-text?
       (cairo-set-source cr fgsource)
@@ -69,15 +68,10 @@
     
     (cairo_destroy cr)
     
-    bmp)
+    sfs)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (make-text-image width height background density)
-    (if (not background)
-        (create-argb-bitmap width height density #true)
-        (create-argb-bitmap width height background density #true)))
-  
-  (define (bitmap_create_layout lines)
+  (define (text_create_layout lines)
     (define context (the-context))
     (define layout (pango_layout_new context))
     (when (pair? lines)
@@ -90,8 +84,8 @@
       (pango_attr_list_unref attrs))
     layout)
   
-  (define (bitmap_create_layout* lines width height indent spacing wrap-mode ellipsize-mode)
-    (define layout (bitmap_create_layout lines))
+  (define (text_create_layout* lines width height indent spacing wrap-mode ellipsize-mode)
+    (define layout (text_create_layout lines))
     (pango_layout_set_width layout (if (flonum? width) (~size width) width #|-1|#))
     (pango_layout_set_height layout (if (flonum? height) (~size height) height))
     (pango_layout_set_indent layout (~size indent))   ; (~size nan.0) == (~size inf.0) == 0
@@ -100,7 +94,7 @@
     (pango_layout_set_ellipsize layout ellipsize-mode)
     layout)
 
-  (define (bitmap_decorate cr color y width)
+  (define (text_decorate cr color y width)
     (unless (not color)
       (cairo-set-source cr color)
       (cairo_move_to cr 0.0 y)
@@ -122,11 +116,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [bitmap_text
-  (-> String Font-Description (Listof Symbol) Bitmap-Source (Option Bitmap-Source)
-      (Option FlRGBA) (Option FlRGBA) (Option FlRGBA) (Option FlRGBA) (Option FlRGBA)
-      Flonum Bitmap)]
- [bitmap_paragraph
-  (-> String Font-Description (Listof Symbol) (U Flonum Nonpositive-Integer) (U Flonum Nonpositive-Integer)
-      Flonum Flonum Integer Integer Bitmap-Source (Option Bitmap-Source)
-      Flonum Bitmap)])
+ [dc_text
+  (All (S) (-> (Cairo-Surface-Create+BG S)
+               String Font-Description (Listof Symbol) Fill-Source (Option Fill-Source)
+               (Option FlRGBA) (Option FlRGBA) (Option FlRGBA) (Option FlRGBA) (Option FlRGBA)
+               Flonum S))]
+ [dc_paragraph
+  (All (S) (-> (Cairo-Surface-Create+BG S)
+               String Font-Description (Listof Symbol) (U Flonum Nonpositive-Integer) (U Flonum Nonpositive-Integer)
+               Flonum Flonum Integer Integer Fill-Source (Option Fill-Source)
+               Flonum S))])

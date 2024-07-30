@@ -5,23 +5,20 @@
 (require typed/racket/unsafe)
 
 (require "../base.rkt")
-(require "convert.rkt")
+(require "visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
-(define-type Bitmap-Source (U Bitmap-Surface Bitmap-Pattern FlRGBA))
-(define-type Bitmap-FlSize*
-  (case-> [Bitmap Positive-Flonum Positive-Flonum -> (Values Positive-Flonum Positive-Flonum)]
-          [Bitmap Nonnegative-Flonum Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum)]))
+(define-type Fill-Source (U Abstract-Surface Bitmap-Surface Fill-Pattern FlRGBA))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base
-  (provide (all-defined-out) the-surface)
+  (provide (all-defined-out))
   (provide (rename-out [cpointer? font-description?]))
-  (provide (rename-out [cpointer? bitmap-pattern?]))
+  (provide (rename-out [cpointer? fill-pattern?]))
   
   (require "pangocairo.rkt")
-  (require "surface/image.rkt")
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap-linear-gradient-pattern x0 y0 x1 y1 stops)
     (define gradient (cairo_pattern_create_linear x0 y0 x1 y1))
     (for ([stop (in-list stops)])
@@ -44,7 +41,6 @@
 
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [#:opaque Bitmap-Pattern bitmap-pattern?]
- [the-surface Bitmap-Surface]
- [bitmap-linear-gradient-pattern (-> Real Real Real Real (Listof (Pairof Real FlRGBA)) Bitmap-Pattern)]
- [bitmap-radial-gradient-pattern (-> Real Real Real Real Real Real (Listof (Pairof Real FlRGBA)) Bitmap-Pattern)])
+ [#:opaque Fill-Pattern fill-pattern?]
+ [bitmap-linear-gradient-pattern (-> Real Real Real Real (Listof (Pairof Real FlRGBA)) Fill-Pattern)]
+ [bitmap-radial-gradient-pattern (-> Real Real Real Real Real Real (Listof (Pairof Real FlRGBA)) Fill-Pattern)])

@@ -14,8 +14,9 @@
        (values (make-bitmap-from-image-surface sfc density fxwidth fxheight) cr))]
     [(width height background density scale?)
      (let-values ([(img cr) (create-argb-bitmap width height density scale?)])
-       (cairo-set-source cr background)
-       (cairo_paint cr)
+       (unless (not background)
+         (cairo-set-source cr background)
+         (cairo_paint cr))
        (values img cr))]))
 
 (define create-invalid-bitmap

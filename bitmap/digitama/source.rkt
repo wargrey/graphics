@@ -12,7 +12,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Stroke-Paint (U Color Paint))
-(define-type Fill-Paint (U Color Bitmap Bitmap-Pattern))
+(define-type Fill-Paint (U Color Bitmap Fill-Pattern))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stroke-paint->source : (-> Stroke-Paint Paint)
@@ -24,12 +24,12 @@
   (lambda [paint]
     (and paint (stroke-paint->source paint))))
 
-(define fill-paint->source : (-> Fill-Paint Bitmap-Source)
+(define fill-paint->source : (-> Fill-Paint Fill-Source)
   (lambda [paint]
     (cond [(bitmap? paint) (bitmap-surface paint)]
           [(color? paint) (rgb* paint)]
           [else paint])))
 
-(define fill-paint->source* : (-> (Option Fill-Paint) (Option Bitmap-Source))
+(define fill-paint->source* : (-> (Option Fill-Paint) (Option Fill-Source))
   (lambda [paint]
     (and paint (fill-paint->source paint))))

@@ -5,6 +5,7 @@
 (require typed/racket/unsafe)
 
 (require "convert.rkt")
+(require "visual/ctype.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))

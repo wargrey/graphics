@@ -82,8 +82,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Bitmap-Source) Symbol Abstract-Surface)]
- [path_stamp! (-> Bitmap-Surface (Listof Path-Print) (Option Paint) (Option Bitmap-Source) Flonum Flonum Symbol Flonum
+ [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Abstract-Surface)]
+ [path_stamp! (-> Bitmap-Surface (Listof Path-Print) (Option Paint) (Option Fill-Source) Flonum Flonum Symbol Flonum
                   (Values Float-Complex Float-Complex))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

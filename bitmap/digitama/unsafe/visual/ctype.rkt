@@ -10,7 +10,8 @@
   (provide (rename-out [cpointer? bitmap-surface?]
                        [cpointer? abstract-surface?]
                        [cpointer? svg-surface?]
-                       [cpointer? pdf-surface?]))
+                       [cpointer? pdf-surface?]
+                       [cpointer? cairo-dc?]))
 
   (require "../pangocairo.rkt")
 
@@ -26,4 +27,5 @@
  [#:opaque Bitmap-Surface bitmap-surface?]
  [#:opaque SVG-Surface svg-surface?]
  [#:opaque PDF-Surface pdf-surface?]
+ [#:opaque Cairo-DC cairo-dc?]
  [cairo-image-shadow-size (-> Bitmap-Surface Phantom-Bytes)])
