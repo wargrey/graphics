@@ -2,16 +2,12 @@
 
 (provide (all-defined-out))
 
-(require bitmap/digitama/unsafe/path)
-(require bitmap/digitama/unsafe/convert)
-(require bitmap/digitama/unsafe/visual/ctype)
-(require bitmap/digitama/unsafe/visual/object)
-(require bitmap/digitama/unsafe/visual/abstract)
-
 (require bitmap/digitama/base)
 (require bitmap/digitama/source)
 
-(require bitmap/paint)
+(require "anchor.rkt")
+(require "unsafe/path.rkt")
+(require "unsafe/convert.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/math))
@@ -22,12 +18,11 @@
 (define-type Track-Print-Datum Point2D)
 (define-type Track-Bezier-Datum (U Track-Print-Datum Track-Anchor))
 
-(struct track visual-object<%>
+(struct track geo
   ([footprints : (Pairof Path-Print (Listof Path-Print))]
-   [anchors : (HashTable Any Float-Complex)]
-   [traces : (Pairof Keyword (Listof Keyword))]
-   [initial-position : Float-Complex]
-   [current-position : Float-Complex]
+   [path : (Geo-Pathof Float-Complex)]
+   [origin : Float-Complex]
+   [here : Float-Complex]
    [lx : Flonum]
    [ty : Flonum]
    [rx : Flonum]
@@ -125,28 +120,15 @@
 
 (define track-bezier-point : (->* (Track Track-Bezier-Datum) (Flonum Flonum) Float-Complex)
   (lambda [self dpos [sx 1.0] [sy 1.0]]
-    (define cpos : Float-Complex (track-current-position self))
+    (define cpos : Float-Complex (track-here self))
     
     (cond [(real? dpos) (+ cpos (make-rectangular (* (real->double-flonum dpos) sx) 0.0))]
           [(list? dpos) (+ cpos (make-rectangular (* (real->double-flonum (car dpos)) sx) (* (real->double-flonum (cadr dpos)) sy)))]
           [(pair? dpos) (+ cpos (make-rectangular (* (real->double-flonum (car dpos)) sx) (* (real->double-flonum (cdr dpos)) sy)))]
           [(complex? dpos) (+ cpos (make-rectangular (* (real->double-flonum (real-part dpos)) sx) (* (real->double-flonum (imag-part dpos)) sy)))]
-          [else (track-anchor-location self dpos)])))
+          [else (geo-path-ref (track-path self) dpos)])))
 
-(define track-anchor-location : (-> Track Track-Anchor Float-Complex)
-  (lambda [self anchor]
-    (hash-ref (track-anchors self) anchor
-              (λ [] (hash-ref (track-anchors self) '#:home
-                              (λ [] 0.0+0.0i))))))
-
-(define track-try-anchor! : (-> Track (Option Track-Anchor) Float-Complex Void)
-  (lambda [self anchor pos]
-    (unless (not anchor)
-      (hash-set! (track-anchors self) anchor pos)
-      (when (keyword? anchor)
-        (set-track-traces! self (cons anchor (track-traces self)))))))
-
-(define track-check-bounding-box! : (-> Track Float-Complex Void)
+(define track-adjust-bounding-box! : (-> Track Float-Complex Void)
   (lambda [self pos]
     (define cx++ : Flonum (real-part pos))
     (define cy++ : Flonum (imag-part pos))
@@ -159,47 +141,44 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-move : (-> Track Float-Complex Float-Complex Char (Option Track-Anchor) Boolean Void)
   (lambda [self args endpt op anchor subpath?]
-    (track-check-bounding-box! self endpt)
-    (track-try-anchor! self anchor endpt)
-    (set-track-current-position! self endpt)
+    (track-adjust-bounding-box! self endpt)
+    (geo-path-set! (track-path self) anchor endpt)
+    (set-track-here! self endpt)
     (set-track-footprints! self (cons (cons op args) (track-footprints self)))
 
     (when (and subpath?)
-      (set-track-initial-position! self endpt))))
+      (set-track-origin! self endpt))))
 
 (define track-turn : (-> Track Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum (Option Track-Anchor) Boolean (Option (U Float Float-Complex)) Void)
   (lambda [self rx ry cx cy ex ey start end anchor clockwise? guard]
-    (define cpos : Float-Complex (track-current-position self))
+    (define cpos : Float-Complex (track-here self))
     (define cpos++ : Float-Complex (+ (make-rectangular (* ex rx) (* ey ry)) cpos))
     (define path:arc : Path-Args (arc (+ cpos (make-rectangular (* cx rx) (* cy ry))) rx ry start end clockwise?))
 
-    (track-check-bounding-box! self cpos++)
+    (track-adjust-bounding-box! self cpos++)
     (when (and guard)
-      (track-check-bounding-box! self (+ cpos (make-rectangular (* (real-part guard) rx) (* (imag-part guard) ry)))))
+      (track-adjust-bounding-box! self (+ cpos (make-rectangular (* (real-part guard) rx) (* (imag-part guard) ry)))))
 
-    (track-try-anchor! self anchor cpos++)
-    (set-track-current-position! self cpos++)
+    (geo-path-set! (track-path self) anchor cpos++)
+    (set-track-here! self cpos++)
     (set-track-footprints! self (cons (cons #\A path:arc) (track-footprints self)))))
 
 (define track-jump-to : (-> Track (Option Track-Anchor) Void)
-  (lambda [self anchor]
-    (define pos (track-anchor-location self (or anchor (car (track-traces self)))))
+  (lambda [self auto-anchor]
+    (define anchor (or auto-anchor (geo-path-head-anchor (track-path self))))
+    (define pos (geo-path-ref (track-path self) anchor))
 
-    (when (not anchor)
-      (define traces-- (cdr (track-traces self)))
-
-      (when (pair? traces--)
-        (set-track-traces! self traces--)))
-
-    (set-track-initial-position! self pos)
-    (set-track-current-position! self pos)
+    (geo-path-pop! (track-path self) anchor)
+    
+    (set-track-origin! self pos)
+    (set-track-here! self pos)
     (set-track-footprints! self (cons (cons #\M pos) (track-footprints self)))))
 
 (define track-connect-to : (-> Track Track-Anchor Void)
   (lambda [self anchor]
-    (define pos (track-anchor-location self anchor))
+    (define pos (geo-path-ref (track-path self) anchor))
     
-    (set-track-current-position! self pos)
+    (set-track-here! self pos)
     (set-track-footprints! self (cons (cons #\L pos) (track-footprints self)))))
 
 (define track-linear-bezier : (-> Track Float-Complex (Option Track-Anchor) Void)
@@ -208,32 +187,32 @@
 
 (define track-quadratic-bezier : (-> Track Float-Complex Float-Complex (Option Track-Anchor) Void)
   (lambda [self endpt ctrl anchor]
-    (define path:bezier : Path-Args (bezier (track-current-position self) ctrl endpt))
+    (define path:bezier : Path-Args (bezier (track-here self) ctrl endpt))
 
-    (track-check-bounding-box! self endpt)
-    (track-check-bounding-box! self ctrl)
+    (track-adjust-bounding-box! self endpt)
+    (track-adjust-bounding-box! self ctrl)
     
-    (track-try-anchor! self anchor endpt)
-    (set-track-current-position! self endpt)
+    (geo-path-set! (track-path self) anchor endpt)
+    (set-track-here! self endpt)
     (set-track-footprints! self (cons (cons #\Q path:bezier) (track-footprints self)))))
 
 (define track-cubic-bezier : (-> Track Float-Complex Float-Complex Float-Complex (Option Track-Anchor) Void)
   (lambda [self endpt ctrl1 ctrl2 anchor]
     (define path:bezier : Path-Args (bezier ctrl1 ctrl2 endpt))
 
-    (track-check-bounding-box! self endpt)
-    (track-check-bounding-box! self ctrl1)
-    (track-check-bounding-box! self ctrl2)
+    (track-adjust-bounding-box! self endpt)
+    (track-adjust-bounding-box! self ctrl1)
+    (track-adjust-bounding-box! self ctrl2)
     
-    (track-try-anchor! self anchor endpt)
-    (set-track-current-position! self endpt)
+    (geo-path-set! (track-path self) anchor endpt)
+    (set-track-here! self endpt)
     (set-track-footprints! self (cons (cons #\C path:bezier) (track-footprints self)))))
 
 (define track-close : (-> Track Void)
   (lambda [self]
-    (define init-pos (track-initial-position self))
+    (define init-pos (track-origin self))
     
-    (set-track-current-position! self init-pos)
+    (set-track-here! self init-pos)
     (set-track-footprints! self (cons (cons #\Z #false) (track-footprints self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -243,7 +222,7 @@
     
     (if (not relative?)
         (track-move self tpos tpos #\M anchor #true)
-        (track-move self tpos (+ (track-current-position self) tpos) #\m anchor #true))))
+        (track-move self tpos (+ (track-here self) tpos) #\m anchor #true))))
 
 (define track-line-to : (-> Track Flonum Flonum Flonum Flonum (Option Track-Anchor) Boolean Void)
   (lambda [self xsize ysize mx my anchor relative?]
@@ -251,39 +230,23 @@
     
     (if (not relative?)
         (track-move self tpos tpos #\L anchor #false)
-        (track-move self tpos (+ (track-current-position self) tpos) #\l anchor #false))))
+        (track-move self tpos (+ (track-here self) tpos) #\l anchor #false))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-surface : (->* (Track) (Stroke-Paint (Option Fill-Paint) Symbol Positive-Flonum) Abstract-Surface)
-  (lambda [self [paint (default-stroke)] [fill #false] [fstyle 'winding] [density (default-bitmap-density)]]
-    (path_stamp (track-footprints self)
-                (- (track-lx self)) (- (track-ty self))
-                (stroke-paint->source paint) (fill-paint->source* fill)
-                fstyle)))
-
-(define track->bitmap : (->* (Track Positive-Flonum) (Stroke-Paint (Option Fill-Paint) Symbol) Bitmap)
-  (lambda [self density [paint (default-stroke)] [fill #false] [fstyle 'winding]]
-    (define abs-sfc (track-surface self paint fill fstyle density))
-    (define-values (self-sfc width height) (abstract-surface->image-surface abs-sfc density))
-    
-    (make-bitmap-from-image-surface self-sfc density width height)))
-
-(define track-on-bitmap : (->* (Bitmap-Surface Track Positive-Flonum Real Real)
-                               (Stroke-Paint (Option Fill-Paint) Symbol)
-                               (Values Float-Complex Float-Complex))
-  (lambda [target self density dx dy [paint (default-stroke)] [fill #false] [fstyle 'winding]]
-    (path_stamp! target (track-footprints self)
-                 (stroke-paint->source paint) (fill-paint->source* fill)
-                 (real->double-flonum dx) (real->double-flonum dy)
-                 fstyle density)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-convert : Visual-Object-Convert
-  (lambda [self mime fallback]
+(define track-surface : Geo-Surface-Create
+  (lambda [self [paint (default-stroke)] [fill #false] [fstyle 'winding]]
     (with-asserts ([self track?])
-      (case mime
-        [(pdf-bytes)    (abstract-surface->stream-bytes (track-surface self) 'pdf '/dev/pdfout 1.0)]
-        [(svg-bytes)    (abstract-surface->stream-bytes (track-surface self) 'svg '/dev/svgout 1.0)]
-        [(png@2x-bytes) (abstract-surface->stream-bytes (track-surface self) 'png '/dev/p2xout 2.0)]
-        [(png-bytes)    (abstract-surface->stream-bytes (track-surface self) 'png '/dev/pngout 1.0)]
-        [else fallback]))))
+      (path_stamp (track-footprints self)
+                  (- (track-lx self)) (- (track-ty self))
+                  (stroke-paint->source paint) (fill-paint->source* fill)
+                  fstyle))))
+
+(define track-bbox : Geo-Calculate-BBox
+  (lambda [self [paint (default-stroke)]]
+    (with-asserts ([self track?])
+      (define-values (lx ty) (values (track-lx self) (track-ty self)))
+      (define-values (rx by) (values (track-rx self) (track-by self)))
+
+      (values lx ty
+              (max (- rx lx) 0.0)
+              (max (- by ty) 0.0)))))

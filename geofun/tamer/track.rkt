@@ -6,10 +6,15 @@
 (define-dryland-wani! drywani [64 64] #:-
   (step-left)
   (step-right)
-  (step-down 2)
+  (step-down 2 '#:rr-angle)
+  (step-left 1 '#:lr-angle)
+  (step-up 1 'angle-end)
+  (jump-back)
   (step-left)
-  (step-up)
-  
+  (jump-back)
+  (step-down)
+
+  (jump-back 'angle-end)
   (jump-up 2 '#:z)
   (step-left)
   (step-down)
@@ -56,17 +61,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   (require geofun/digitama/track)
+  (require geofun/digitama/freeze)
+  (require geofun/digitama/unsafe/convert)
   (require bitmap)
 
-  (default-stroke (desc-stroke #:color 'crimson))
+  (default-stroke (desc-stroke #:color 'crimson #:width 2.0))
   
   (reverse (track-footprints drywani))
-  (track-anchors drywani)
   drywani
-  (track-freeze drywani #:color 'ForestGreen)
+  (geo-freeze drywani #:color 'ForestGreen)
 
   (let ([bmp (bitmap-square 256)])
-    (track-freeze! bmp drywani #:color 'RoyalBlue)
+    (geo-freeze! bmp drywani -32 -32 #:color 'RoyalBlue)
     bmp)
   
   (track-anchor-position drywani '#:home)

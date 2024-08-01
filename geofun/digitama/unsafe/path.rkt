@@ -4,31 +4,18 @@
 
 (require typed/racket/unsafe)
 
-(require "../base.rkt")
-(require "source.rkt")
-(require "visual/ctype.rkt")
+(require bitmap/digitama/base)
+(require bitmap/digitama/unsafe/source)
+(require bitmap/digitama/unsafe/visual/ctype)
 
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require "pangocairo.rkt")
-  (require "paint.rkt")
-
-  (require "surface/abstract.rkt")
+  (require bitmap/digitama/unsafe/pangocairo)
+  (require bitmap/digitama/unsafe/paint)
+  (require bitmap/digitama/unsafe/surface/abstract)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (path_stamp! bitmap-sfc footprints stroke fill-color dx dy fill-rule density)
-    (define bitmap-cr (cairo_create bitmap-sfc))
-
-    (cairo_scale bitmap-cr density density)
-    (cairo_path bitmap-cr footprints dx dy fill-rule)
-    (cairo-render bitmap-cr stroke fill-color)
-
-    (let-values ([(x1 y1 x2 y2) (cairo_path_extents bitmap-cr)])
-      (cairo_destroy bitmap-cr)
-      (values (make-rectangular x1 y1)
-              (make-rectangular x2 y2))))
-
   (define (path_stamp footprints dx dy stroke fill-color fill-rule)
     (make-cairo-abstract-surface 0.0 0.0 1.0 #false
                                  (λ [cr _inf.w _inf.h]
@@ -82,9 +69,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Abstract-Surface)]
- [path_stamp! (-> Bitmap-Surface (Listof Path-Print) (Option Paint) (Option Fill-Source) Flonum Flonum Symbol Flonum
-                  (Values Float-Complex Float-Complex))])
+ [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Abstract-Surface)])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Path-Print (Pairof Char (U Float-Complex Path-Args False)))

@@ -71,7 +71,7 @@
     
     sfs)
 
-  (define (dc_arc aradius create-surface bradius start end border density radian?)
+  (define (dc_arc create-surface aradius bradius start end border density radian?)
     (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
     (define-values (rstart rend) (if radian? (values start end) (values (~radian start) (~radian end))))
     (define-values (sfs cr) (create-surface (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))

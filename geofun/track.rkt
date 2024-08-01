@@ -18,13 +18,11 @@
 
  (rename-out [track-close dryland-wani-close!]))
 
+(require "digitama/anchor.rkt")
 (require "digitama/track.rkt")
+(require "digitama/unsafe/convert.rkt")
 
 (require bitmap/digitama/dot)
-(require bitmap/digitama/base)
-(require bitmap/digitama/source)
-(require bitmap/digitama/unsafe/convert)
-(require bitmap/digitama/unsafe/visual/abstract)
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
@@ -53,9 +51,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-dryland-wani : (->* (Real)
                                  (Real #:turn-scale Track-Print-Datum #:U-scale Track-Print-Datum
-                                       #:anchor Keyword #:at Track-Print-Datum)
+                                       #:anchor Keyword #:at Track-Print-Datum #:id Geo-Unique-Identifier)
                                  Dryland-Wani)
-  (lambda [xstepsize [ystepsize 0.0] #:turn-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0] #:anchor [anchor '#:home] #:at [home 0]]
+  (lambda [#:turn-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
+           #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
+           xstepsize [ystepsize 0.0]]
     (define xstep : Nonnegative-Flonum
       (cond [(<= xstepsize 0.0) 1.0]
             [else (max (real->double-flonum xstepsize) 0.0)]))
@@ -70,14 +70,10 @@
     (define-values (tsx tsy) (track-turn-scales t-scale 0.5))
     (define-values (usx usy) (track-turn-scales u-scale 0.25))
     
-    (define wani : Dryland-Wani
-      (dryland-wani track-convert
-                    (list (cons start-of-track home-pos)) ((inst make-hasheq Any Float-Complex)) (list anchor)
-                    home-pos home-pos home-x home-y home-x home-y
-                    xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep)))
-    
-    (track-try-anchor! wani anchor home-pos)
-    wani))
+    (create-geometry-object dryland-wani #:with track-surface #:id (or name (gensym 'track))
+                            (list (cons start-of-track home-pos)) (make-geo-path home-pos)
+                            home-pos home-pos home-x home-y home-x home-y
+                            xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-dryland-wani-line-move! left            #:-> -1.0)
@@ -136,32 +132,12 @@
     (track-jump-to wani target)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-freeze : (->* (Track) (#:color Stroke-Paint #:fill (Option Fill-Paint) #:fill-style Symbol #:density Positive-Flonum) Bitmap)
-  (lambda [self #:color [fgsource (default-stroke)] #:fill [bgsource #false] #:fill-style [fstyle 'winding] #:density [density (default-bitmap-density)]]
-    (track->bitmap self density fgsource bgsource fstyle)))
-
-(define track-freeze! : (->* (Bitmap Track)
-                             (Real Real #:color Stroke-Paint #:fill (Option Fill-Paint) #:fill-style Symbol)
-                             (Values Float-Complex Float-Complex))
-  (lambda [bmp self [dx 0.0] [dy 0.0] #:color [fgsource (default-stroke)] #:fill [bgsource #false] #:fill-style [fstyle 'winding]]
-    (track-on-bitmap (bitmap-surface bmp) self (bitmap-density bmp) dx dy fgsource bgsource fstyle)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-anchor-position : (->* (Track Track-Anchor) (#:translate? Boolean) Float-Complex)
   (lambda [self anchor #:translate? [translate? #false]]
-    (define abspos : Float-Complex (track-anchor-location self anchor))
+    (define abspos : Float-Complex (geo-path-ref (track-path self) anchor))
 
     (cond [(not translate?) abspos]
           [else (let ([xoff (- (track-lx self))]
                       [yoff (- (track-ty self))])
                   (+ abspos (make-rectangular xoff yoff)))])))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-save : (->* (Track (U Path-String Output-Port))
-                          (#:format Symbol #:fill-rule Symbol #:bitmap-density Positive-Flonum
-                           #:color Stroke-Paint #:fill (Option Fill-Paint))
-                          Void)
-  (lambda [#:format [format 'pdf] #:fill-rule [fill-rule 'winding] #:bitmap-density [density (default-bitmap-density)]
-           #:color [stroke (default-stroke)] #:fill [fill #false]
-           self /dev/vecout]
-    (abstract-surface-save (track-surface self stroke fill fill-rule) /dev/vecout format density)))

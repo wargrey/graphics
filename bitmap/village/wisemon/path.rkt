@@ -15,7 +15,8 @@
   (lambda [src.rkt symid .ext]
     (build-path (or (path-only src.rkt) (current-directory))
                 (car (use-compiled-file-paths)) "graphics"
-                (graphics-subpath (assert (file-name-from-path src.rkt) path?) symid .ext))))
+                (graphics-subpath (path-replace-extension (assert (file-name-from-path src.rkt) path?) #"")
+                                  symid .ext))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define graphics-subpath : (-> (Option Path-String) Symbol String Path)

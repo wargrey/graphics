@@ -48,21 +48,34 @@
 
   (define (abstract-surface->image-surface abs-sfc density)
     (define-values (lx ty flwidth flheight) (abstract-surface-content-bbox abs-sfc))
-    (define-values (png-sfc fxwidth fxheight) (cairo-create-image-surface flwidth flheight density))
-    (define png-cr (cairo_create png-sfc))
+    (define-values (bmp-sfc fxwidth fxheight) (cairo-create-image-surface flwidth flheight density))
+    (define bmp-cr (cairo_create bmp-sfc))
 
     (unless (unsafe-fl= density 1.0)
-      (cairo_scale png-cr density density))
+      (cairo_scale bmp-cr density density))
 
-    (cairo_set_source_surface png-cr abs-sfc (unsafe-fl- 0.0 lx) (unsafe-fl- 0.0 ty))
-    (cairo_paint png-cr)
-    (cairo_destroy png-cr)
+    (cairo_set_source_surface bmp-cr abs-sfc (unsafe-fl- 0.0 lx) (unsafe-fl- 0.0 ty))
+    (cairo_paint bmp-cr)
+    (cairo_destroy bmp-cr)
 
-    (values png-sfc fxwidth fxheight)))
+    (values bmp-sfc fxwidth fxheight))
+
+  (define (abstract-surface-stamp-onto-bitmap-surface bmp-sfc abs-sfc dx dy density)
+    (define-values (lx ty flwidth flheight) (abstract-surface-content-bbox abs-sfc))
+    (define bmp-cr (cairo_create bmp-sfc))
+
+    (unless (unsafe-fl= density 1.0)
+      (cairo_scale bmp-cr density density))
+    
+    (cairo_set_source_surface bmp-cr abs-sfc (unsafe-fl- dx lx) (unsafe-fl- dy ty))
+    (cairo_paint bmp-cr)
+    (cairo_destroy bmp-cr)
+    (void)))
 
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [abstract-surface-content-bbox (-> Abstract-Surface (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))]
  [abstract-surface->stream-bytes (-> Abstract-Surface Symbol Symbol Positive-Flonum Bytes)]
  [abstract-surface->image-surface (-> Abstract-Surface Positive-Flonum (Values Bitmap-Surface Positive-Index Positive-Index))]
+ [abstract-surface-stamp-onto-bitmap-surface (-> Bitmap-Surface Abstract-Surface Flonum Flonum Positive-Flonum Void)]
  [abstract-surface-save (-> Abstract-Surface (U Output-Port Path-String) Symbol Positive-Flonum Void)])
