@@ -5,6 +5,7 @@
 (require bitmap/digitama/base)
 (require bitmap/digitama/source)
 
+(require "bbox.rkt")
 (require "anchor.rkt")
 (require "unsafe/path.rkt")
 (require "unsafe/convert.rkt")
@@ -23,10 +24,7 @@
    [path : (Geo-Pathof Float-Complex)]
    [origin : Float-Complex]
    [here : Float-Complex]
-   [lx : Flonum]
-   [ty : Flonum]
-   [rx : Flonum]
-   [by : Flonum])
+   [bbox : Geo-BBox])
   #:type-name Track
   #:transparent
   #:mutable)
@@ -128,20 +126,10 @@
           [(complex? dpos) (+ cpos (make-rectangular (* (real->double-flonum (real-part dpos)) sx) (* (real->double-flonum (imag-part dpos)) sy)))]
           [else (geo-path-ref (track-path self) dpos)])))
 
-(define track-adjust-bounding-box! : (-> Track Float-Complex Void)
-  (lambda [self pos]
-    (define cx++ : Flonum (real-part pos))
-    (define cy++ : Flonum (imag-part pos))
-    
-    (cond [(< cx++ (track-lx self)) (set-track-lx! self cx++)]
-          [(> cx++ (track-rx self)) (set-track-rx! self cx++)])
-    (cond [(< cy++ (track-ty self)) (set-track-ty! self cy++)]
-          [(> cy++ (track-by self)) (set-track-by! self cy++)])))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-move : (-> Track Float-Complex Float-Complex Char (Option Track-Anchor) Boolean Void)
   (lambda [self args endpt op anchor subpath?]
-    (track-adjust-bounding-box! self endpt)
+    (geo-bbox-fit! (track-bbox self) endpt)
     (geo-path-set! (track-path self) anchor endpt)
     (set-track-here! self endpt)
     (set-track-footprints! self (cons (cons op args) (track-footprints self)))
@@ -155,9 +143,11 @@
     (define cpos++ : Float-Complex (+ (make-rectangular (* ex rx) (* ey ry)) cpos))
     (define path:arc : Path-Args (arc (+ cpos (make-rectangular (* cx rx) (* cy ry))) rx ry start end clockwise?))
 
-    (track-adjust-bounding-box! self cpos++)
+    (geo-bbox-fit! (track-bbox self) cpos++)
     (when (and guard)
-      (track-adjust-bounding-box! self (+ cpos (make-rectangular (* (real-part guard) rx) (* (imag-part guard) ry)))))
+      (geo-bbox-fit! (track-bbox self) cpos
+                     (real->double-flonum (* (real-part guard) rx))
+                     (real->double-flonum (* (imag-part guard) ry))))
 
     (geo-path-set! (track-path self) anchor cpos++)
     (set-track-here! self cpos++)
@@ -189,9 +179,8 @@
   (lambda [self endpt ctrl anchor]
     (define path:bezier : Path-Args (bezier (track-here self) ctrl endpt))
 
-    (track-adjust-bounding-box! self endpt)
-    (track-adjust-bounding-box! self ctrl)
-    
+    (geo-bbox-fit! (track-bbox self) endpt)
+    (geo-bbox-fit! (track-bbox self) ctrl)
     (geo-path-set! (track-path self) anchor endpt)
     (set-track-here! self endpt)
     (set-track-footprints! self (cons (cons #\Q path:bezier) (track-footprints self)))))
@@ -200,10 +189,9 @@
   (lambda [self endpt ctrl1 ctrl2 anchor]
     (define path:bezier : Path-Args (bezier ctrl1 ctrl2 endpt))
 
-    (track-adjust-bounding-box! self endpt)
-    (track-adjust-bounding-box! self ctrl1)
-    (track-adjust-bounding-box! self ctrl2)
-    
+    (geo-bbox-fit! (track-bbox self) endpt)
+    (geo-bbox-fit! (track-bbox self) ctrl1)
+    (geo-bbox-fit! (track-bbox self) ctrl2)
     (geo-path-set! (track-path self) anchor endpt)
     (set-track-here! self endpt)
     (set-track-footprints! self (cons (cons #\C path:bezier) (track-footprints self)))))
@@ -236,17 +224,7 @@
 (define track-surface : Geo-Surface-Create
   (lambda [self [paint (default-stroke)] [fill #false] [fstyle 'winding]]
     (with-asserts ([self track?])
-      (path_stamp (track-footprints self)
-                  (- (track-lx self)) (- (track-ty self))
+      (define-values (xoff yoff) (geo-bbox-offset-values (track-bbox self)))
+      (path_stamp (track-footprints self) xoff yoff
                   (stroke-paint->source paint) (fill-paint->source* fill)
                   fstyle))))
-
-(define track-bbox : Geo-Calculate-BBox
-  (lambda [self [paint (default-stroke)]]
-    (with-asserts ([self track?])
-      (define-values (lx ty) (values (track-lx self) (track-ty self)))
-      (define-values (rx by) (values (track-rx self) (track-by self)))
-
-      (values lx ty
-              (max (- rx lx) 0.0)
-              (max (- by ty) 0.0)))))

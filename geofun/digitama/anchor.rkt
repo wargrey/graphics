@@ -13,7 +13,6 @@
   #:type-name Geo-Pathof
   #:mutable)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (Pos) make-geo-path : (->* (Pos) (Geo-Path-Anchor) (Geo-Pathof Pos))
   (lambda [home [anchor '#:home]]
     (if (keyword? anchor)
@@ -27,6 +26,7 @@
                                                        (cons '#:home home)))
          (list '#:home) home))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (Pos Alt) geo-path-ref : (case-> [(Geo-Pathof Pos) Geo-Path-Anchor -> Pos]
                                                   [(Geo-Pathof Pos) Geo-Path-Anchor Alt -> (U Alt Pos)])
   (case-lambda

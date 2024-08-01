@@ -18,6 +18,7 @@
 
  (rename-out [track-close dryland-wani-close!]))
 
+(require "digitama/bbox.rkt")
 (require "digitama/anchor.rkt")
 (require "digitama/track.rkt")
 (require "digitama/unsafe/convert.rkt")
@@ -66,13 +67,12 @@
             [else (max (real->double-flonum ystepsize) 0.0)]))
     
     (define home-pos : Float-Complex (~point2d home))
-    (define-values (home-x home-y) (values (real-part home-pos) (imag-part home-pos)))
     (define-values (tsx tsy) (track-turn-scales t-scale 0.5))
     (define-values (usx usy) (track-turn-scales u-scale 0.25))
     
     (create-geometry-object dryland-wani #:with track-surface #:id (or name (gensym 'track))
                             (list (cons start-of-track home-pos)) (make-geo-path home-pos)
-                            home-pos home-pos home-x home-y home-x home-y
+                            home-pos home-pos (make-geo-bbox home-pos)
                             xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -135,9 +135,7 @@
 (define track-anchor-position : (->* (Track Track-Anchor) (#:translate? Boolean) Float-Complex)
   (lambda [self anchor #:translate? [translate? #false]]
     (define abspos : Float-Complex (geo-path-ref (track-path self) anchor))
-
+    
     (cond [(not translate?) abspos]
-          [else (let ([xoff (- (track-lx self))]
-                      [yoff (- (track-ty self))])
-                  (+ abspos (make-rectangular xoff yoff)))])))
+          [else (- abspos (geo-bbox-position (track-bbox self)))])))
 
