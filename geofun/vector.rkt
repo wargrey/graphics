@@ -10,6 +10,7 @@
 (require/provide "digitama/unsafe/convert.rkt" "digitama/freeze.rkt")
 (require/provide "track.rkt" "constructor.rkt" "composite.rkt" "resize.rkt")
 (require/provide bitmap/color bitmap/font bitmap/paint)
+(require/provide bitmap/digitama/dot bitmap/digitama/unsafe/constants)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-save : (->* (Geo<%> (U Path-String Output-Port))

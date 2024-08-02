@@ -62,7 +62,6 @@
 (module+ main
   (require geofun/digitama/track)
   (require geofun/digitama/freeze)
-  (require geofun/digitama/unsafe/convert)
   (require bitmap)
 
   (default-stroke (desc-stroke #:color 'crimson #:width 2.0))

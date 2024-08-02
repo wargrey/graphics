@@ -1,14 +1,13 @@
 #lang typed/racket
 
-(provide (all-defined-out) Stroke-Paint Fill-Paint)
+(provide (all-defined-out))
 
-(require "digitama/source.rkt")
+(require "digitama/base.rkt")
 (require "digitama/misc.rkt")
 (require "digitama/unsafe/visual/bitmap.rkt")
 
-(require/provide "digitama/base.rkt" "digitama/stdio.rkt" "digitama/unsafe/convert.rkt")
+(require/provide "digitama/stdio.rkt" "digitama/unsafe/convert.rkt")
 (require/provide "constructor.rkt" "pixel.rkt" "composite.rkt" "resize.rkt")
-(require/provide "color.rkt" "font.rkt" "paint.rkt" "misc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-icon : (->* ((U Bitmap Path-String Input-Port))

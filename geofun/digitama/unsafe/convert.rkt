@@ -28,7 +28,6 @@
        (create-geometry-object Geo #:with [surface] rest ...))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Unique-Identifier (U Keyword Symbol))
 (define-type Geo-Surface-Create (->* (Geo<%>) (Stroke-Paint (Option Fill-Paint) Symbol) Abstract-Surface))
 (define-type Geo-Calculate-BBox (->* (Geo<%>) (Stroke-Paint) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum)))
 
@@ -38,7 +37,7 @@
   #:type-name Geo<%>)
 
 (struct geo geo<%>
-  ([id : Geo-Unique-Identifier])
+  ([id : Symbol])
   #:type-name Geo
   #:transparent)
 

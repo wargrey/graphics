@@ -3,6 +3,8 @@
 (provide (all-defined-out))
 
 (require bitmap/base)
+(require bitmap/font)
+(require bitmap/color)
 
 (require racket/format)
 (require racket/list)

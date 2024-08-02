@@ -38,6 +38,7 @@
     (unless (eq? fill-rule 'winding)
       (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD)))
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (cairo_elliptical_arc cr path:arc radian? dx dy)
     (define center (unsafe-struct*-ref path:arc 0))
     (define cx (unsafe-fl+ (unsafe-flreal-part center) dx))

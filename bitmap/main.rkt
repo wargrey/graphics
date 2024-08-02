@@ -1,20 +1,14 @@
 #lang typed/racket/base
 
-(provide pi)
+(provide (all-defined-out) Stroke-Paint Fill-Paint)
 
 (require "digitama/misc.rkt")
-
-(require racket/math)
+(require "digitama/source.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require/provide colorspace)
-(require/provide "base.rkt" "effect.rkt")
+(require/provide geofun/misc)
 
-(require/typed/provide
- "digitama/unsafe/constants.rkt"
- [-pi/2 Negative-Flonum]
- [pi/2 Positive-Flonum]
- [3pi/2 Positive-Flonum]
- [2pi Positive-Flonum]
- [pi/4 Positive-Flonum]
- [3pi/4 Positive-Flonum])
+(require/provide "digitama/base.rkt" "digitama/dot.rkt" "digitama/unsafe/constants.rkt")
+(require/provide "base.rkt" "effect.rkt")
+(require/provide "color.rkt" "font.rkt" "paint.rkt")

@@ -52,7 +52,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-dryland-wani : (->* (Real)
                                  (Real #:turn-scale Track-Print-Datum #:U-scale Track-Print-Datum
-                                       #:anchor Keyword #:at Track-Print-Datum #:id Geo-Unique-Identifier)
+                                       #:anchor Keyword #:at Track-Print-Datum #:id Symbol)
                                  Dryland-Wani)
   (lambda [#:turn-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
@@ -70,9 +70,9 @@
     (define-values (tsx tsy) (track-turn-scales t-scale 0.5))
     (define-values (usx usy) (track-turn-scales u-scale 0.25))
     
-    (create-geometry-object dryland-wani #:with track-surface #:id (or name (gensym 'track))
-                            (list (cons start-of-track home-pos)) (make-geo-path home-pos)
-                            home-pos home-pos (make-geo-bbox home-pos)
+    (create-geometry-object dryland-wani #:with track-surface #:id (or name (gensym 'wani))
+                            (list (cons start-of-track home-pos)) (make-geo-path home-pos anchor)
+                            (make-geo-bbox home-pos) home-pos home-pos
                             xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -110,7 +110,7 @@
   #:+> [ 90.0 180.0  0.0 -1.0 -1.0 -1.0]
   #:-> [360.0 270.0 -1.0  0.0 -1.0 -1.0])
 
-(define dryland-wani-drift! : (->* (Dryland-Wani Track-Bezier-Datum (Listof Track-Bezier-Datum)) ((Option Track-Anchor)) Void)
+(define dryland-wani-drift! : (->* (Dryland-Wani Track-Bezier-Datum (Listof Track-Bezier-Datum)) ((Option Geo-Path-Anchor-Name)) Void)
   (lambda [wani end-step ctrl-steps [anchor #false]]
     (define xsize : Flonum (dryland-wani-xstepsize wani))
     (define ysize : Flonum (dryland-wani-ystepsize wani))
@@ -123,16 +123,16 @@
           [(null? (cdr ctrls)) (track-quadratic-bezier wani endpt (car ctrls) anchor)]
           [else (track-cubic-bezier wani endpt (car ctrls) (cadr ctrls) anchor)])))
 
-(define dryland-wani-step-to! : (-> Dryland-Wani Track-Anchor Void)
+(define dryland-wani-step-to! : (-> Dryland-Wani Geo-Path-Anchor-Name Void)
   (lambda [wani target]
     (track-connect-to wani target)))
 
-(define dryland-wani-jump-back! : (->* (Dryland-Wani) ((Option Track-Anchor)) Void)
+(define dryland-wani-jump-back! : (->* (Dryland-Wani) ((Option Geo-Path-Anchor-Name)) Void)
   (lambda [wani [target #false]]
     (track-jump-to wani target)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-anchor-position : (->* (Track Track-Anchor) (#:translate? Boolean) Float-Complex)
+(define track-anchor-position : (->* (Track Geo-Path-Anchor-Name) (#:translate? Boolean) Float-Complex)
   (lambda [self anchor #:translate? [translate? #false]]
     (define abspos : Float-Complex (geo-path-ref (track-path self) anchor))
     
