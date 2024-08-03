@@ -11,5 +11,4 @@
 (require/provide pangocairo/color pangocairo/font pangocairo/paint)
 (require/provide pangocairo/digitama/dot pangocairo/digitama/constants)
 
-(require/provide "digitama/base.rkt")
 (require/provide "base.rkt" "effect.rkt")

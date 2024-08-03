@@ -4,10 +4,10 @@
 
 (require typed/racket/unsafe)
 
+(require pangocairo/digitama/base)
 (require pangocairo/digitama/unsafe/source)
 (require pangocairo/digitama/unsafe/visual/ctype)
 
-(require "../base.rkt")
 (require "../convert.rkt")
 
 (module unsafe racket/base

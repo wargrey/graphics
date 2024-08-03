@@ -2,11 +2,11 @@
 
 (provide (all-defined-out) 3D-Radius-Type)
 
-(require "digitama/base.rkt")
 (require "digitama/convert.rkt")
 (require "digitama/bitmap.rkt")
 
 (require pangocairo/source)
+(require pangocairo/digitama/base)
 (require pangocairo/digitama/unsafe/dc/icosahedron)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
