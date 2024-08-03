@@ -3,8 +3,7 @@
 (provide font-style-table)
 
 (require bitmap)
-
-(require "../../../digitama/font.rkt")
+(require pangocairo/digitama/font)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define exgap (bitmap-blank))

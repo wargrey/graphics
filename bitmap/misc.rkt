@@ -3,8 +3,8 @@
 (provide (all-defined-out))
 
 (require "digitama/base.rkt")
+(require "digitama/convert.rkt")
 (require "digitama/unsafe/resize.rkt")
-(require "digitama/unsafe/convert.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-alter-density : (->* (Bitmap) (Positive-Flonum) Bitmap)

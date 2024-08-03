@@ -2,7 +2,6 @@
 
 (provide (all-defined-out))
 
-(require "../invalid.rkt")
-(require "../digitama/unsafe/convert.rkt")
+(require bitmap)
 
 (bitmap-invalid? the-invalid-bitmap)

@@ -1,7 +1,6 @@
 #lang typed/racket/base
 
-(require "../resize.rkt")
-(require "../constructor.rkt")
+(require bitmap)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define xy->argb : XYWH->ARGB

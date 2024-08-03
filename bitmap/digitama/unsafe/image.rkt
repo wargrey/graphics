@@ -4,20 +4,21 @@
 
 (require typed/racket/unsafe)
 
+(require pangocairo/digitama/unsafe/source)
+(require pangocairo/digitama/unsafe/visual/ctype)
+
 (require "../base.rkt")
-(require "convert.rkt")
-(require "source.rkt")
-(require "visual/ctype.rkt")
+(require "../convert.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require "pangocairo.rkt")
-  (require "surface/bitmap.rkt")
-  (require "paint.rkt")
+  (require pangocairo/digitama/unsafe/pangocairo)
+  (require pangocairo/digitama/unsafe/paint)
 
+  (require "surface.rkt")
   (require (submod "pixman.rkt" unsafe))
-  (require (submod "visual/bitmap.rkt" unsafe))
+  (require (submod "bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (λbitmap width height density λargb)

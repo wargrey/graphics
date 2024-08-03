@@ -2,15 +2,15 @@
 
 (provide (all-defined-out) Stroke-Paint Fill-Paint)
 
-(require bitmap/digitama/misc)
-(require bitmap/digitama/base)
-(require bitmap/digitama/source)
-(require bitmap/digitama/unsafe/visual/abstract)
+(require pangocairo/source)
+(require pangocairo/digitama/base)
+(require pangocairo/digitama/misc)
+(require pangocairo/digitama/unsafe/visual/abstract)
 
-(require/provide "digitama/unsafe/convert.rkt" "digitama/freeze.rkt")
+(require/provide "digitama/convert.rkt" "digitama/freeze.rkt")
 (require/provide "track.rkt" "constructor.rkt" "composite.rkt" "resize.rkt")
-(require/provide bitmap/color bitmap/font bitmap/paint)
-(require/provide bitmap/digitama/dot bitmap/digitama/unsafe/constants)
+(require/provide pangocairo/color pangocairo/font pangocairo/paint)
+(require/provide pangocairo/digitama/dot pangocairo/digitama/constants)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-save : (->* (Geo<%> (U Path-String Output-Port))

@@ -2,12 +2,10 @@
 
 (require typed/racket/unsafe)
 
-(require "../effect.rkt")
-(require "../digitama/base.rkt")
-(require "../digitama/unsafe/convert.rkt")
+(require bitmap)
 
 (unsafe-require/typed
- "cairo/mesh.rkt"
+ pangocairo/tamer/mesh
  [cairo-mesh-pattern (-> Flonum Flonum Flonum Flonum Bitmap)])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

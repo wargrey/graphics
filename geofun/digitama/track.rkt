@@ -2,13 +2,14 @@
 
 (provide (all-defined-out))
 
-(require bitmap/digitama/dot)
-(require bitmap/digitama/source)
+(require pangocairo/digitama/dot)
+(require pangocairo/source)
 
 (require "bbox.rkt")
 (require "anchor.rkt")
+(require "convert.rkt")
+
 (require "unsafe/path.rkt")
-(require "unsafe/convert.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/math))

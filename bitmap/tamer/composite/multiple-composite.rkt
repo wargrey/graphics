@@ -1,10 +1,6 @@
 #lang typed/racket
 
-(require "../../constructor.rkt")
-(require "../../composite.rkt")
-(require "../../font.rkt")
-(require "../../color.rkt")
-(require "../../paint.rkt")
+(require bitmap)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ring-thickness : Flonum 32.0)

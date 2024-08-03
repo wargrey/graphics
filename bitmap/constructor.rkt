@@ -6,18 +6,19 @@
                      [bitmap-sandglass bitmap-hourglass]
                      [bitmap-arrowhead bitmap-dart]))
 
-(require "font.rkt")
+(require pangocairo/font)
+(require pangocairo/source)
 
-(require "digitama/dot.rkt")
-(require "digitama/base.rkt")
-(require "digitama/font.rkt")
-(require "digitama/source.rkt")
+(require pangocairo/digitama/dot)
+(require pangocairo/digitama/base)
+(require pangocairo/digitama/font)
 
-(require "digitama/unsafe/convert.rkt")
+(require pangocairo/digitama/unsafe/dc/shape)
+(require pangocairo/digitama/unsafe/dc/text)
+
+(require "digitama/convert.rkt")
+(require "digitama/bitmap.rkt")
 (require "digitama/unsafe/image.rkt")
-(require "digitama/unsafe/bitmap.rkt")
-(require "digitama/unsafe/dc/shape.rkt")
-(require "digitama/unsafe/dc/text.rkt")
 
 (require racket/math)
 (require racket/string)

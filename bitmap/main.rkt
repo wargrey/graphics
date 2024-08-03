@@ -2,13 +2,14 @@
 
 (provide (all-defined-out) Stroke-Paint Fill-Paint)
 
-(require "digitama/misc.rkt")
-(require "digitama/source.rkt")
+(require pangocairo/digitama/misc)
+(require pangocairo/source)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require/provide colorspace)
-(require/provide geofun/misc)
+(require/provide pangocairo/constants pangocairo/version)
+(require/provide pangocairo/color pangocairo/font pangocairo/paint)
+(require/provide pangocairo/digitama/dot pangocairo/digitama/constants)
 
-(require/provide "digitama/base.rkt" "digitama/dot.rkt" "digitama/unsafe/constants.rkt")
+(require/provide "digitama/base.rkt")
 (require/provide "base.rkt" "effect.rkt")
-(require/provide "color.rkt" "font.rkt" "paint.rkt")

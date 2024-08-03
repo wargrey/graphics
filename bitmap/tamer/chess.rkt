@@ -1,14 +1,9 @@
 #lang typed/racket
 
-(require "../constructor.rkt")
-(require "../composite.rkt")
-(require "../constants.rkt")
-(require "../paint.rkt")
-(require "../font.rkt")
+(require bitmap)
+(require pangocairo/digitama/font)
 
-(require "../digitama/unsafe/convert.rkt")
-(require "../digitama/font.rkt")
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (default-border (desc-stroke long-dash #:color 'gray #:width 1))
 
 (define chesses : String "♔♕♖♗♘♙♚♛♜♝♞♟︎")
@@ -26,6 +21,7 @@
                       (bitmap-frame (bitmap-text #:meanline green #:baseline red #:descent blue 
                                                  text large-font)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   (for/list : (Listof Bitmap)
     ([font (in-list (map (λ [[family : String]] : Font (desc-font #:family family)) (list-font-families)))]

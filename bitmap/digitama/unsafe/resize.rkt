@@ -4,16 +4,18 @@
 
 (require typed/racket/unsafe)
 
-(require "convert.rkt")
-(require "visual/ctype.rkt")
+(require pangocairo/digitama/unsafe/visual/ctype)
+
+(require "../convert.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require "pangocairo.rkt")
-  (require "surface/bitmap.rkt")
+  (require pangocairo/digitama/unsafe/pangocairo)
+  
+  (require "surface.rkt")
   (require (submod "pixman.rkt" unsafe))
-  (require (submod "visual/bitmap.rkt" unsafe))
+  (require (submod "bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap_section src x y width height density)

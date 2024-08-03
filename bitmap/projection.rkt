@@ -3,11 +3,11 @@
 (provide (all-defined-out) 3D-Radius-Type)
 
 (require "digitama/base.rkt")
-(require "digitama/source.rkt")
+(require "digitama/convert.rkt")
+(require "digitama/bitmap.rkt")
 
-(require "digitama/unsafe/convert.rkt")
-(require "digitama/unsafe/bitmap.rkt")
-(require "digitama/unsafe/dc/icosahedron.rkt")
+(require pangocairo/source)
+(require pangocairo/digitama/unsafe/dc/icosahedron)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-icosahedron-side-projection : (->* (Real)

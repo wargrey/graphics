@@ -4,10 +4,11 @@
 (provide (rename-out [bitmap-pin-over bitmap-pin]))
 
 (require "constructor.rkt")
+(require "digitama/convert.rkt")
 (require "digitama/composite.rkt")
 (require "digitama/unsafe/composite.rkt")
-(require "digitama/unsafe/convert.rkt")
-(require "digitama/unsafe/visual/ctype.rkt")
+
+(require pangocairo/digitama/unsafe/visual/ctype)
 
 (require (for-syntax racket/base))
 

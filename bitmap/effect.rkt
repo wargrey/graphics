@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "digitama/unsafe/convert.rkt")
+(require "digitama/convert.rkt")
 (require "digitama/unsafe/effect.rkt")
 
 (require racket/math)

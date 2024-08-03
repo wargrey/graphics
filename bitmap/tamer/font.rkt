@@ -2,14 +2,8 @@
 
 (provide (all-defined-out))
 
-(require "../constructor.rkt")
-(require "../composite.rkt")
-(require "../constants.rkt")
-(require "../paint.rkt")
-(require "../font.rkt")
-
-(require "../digitama/unsafe/convert.rkt")
-(require "../digitama/font.rkt")
+(require bitmap)
+(require pangocairo/digitama/font)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (default-border (desc-stroke long-dash #:color 'gray #:width 1))

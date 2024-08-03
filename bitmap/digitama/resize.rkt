@@ -4,6 +4,7 @@
 
 (require (for-syntax racket/base))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-cropper stx)
   (syntax-case stx [: ->]
     [(_ bitmap-crop : (-> Args ... Bitmap) (#:lambda λargs λmain ...)

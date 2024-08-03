@@ -4,12 +4,13 @@
 (provide Flow-Chart Culumon)
 (provide flow-chart? culumon?)
 
-(require bitmap/digitama/dot)
+(require pangocairo/digitama/dot)
 
 (require "digitama/bbox.rkt")
 (require "digitama/anchor.rkt")
+(require "digitama/convert.rkt")
+
 (require "digitama/diagram/flowchart.rkt")
-(require "digitama/unsafe/convert.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))

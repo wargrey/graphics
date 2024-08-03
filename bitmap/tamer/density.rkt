@@ -4,13 +4,13 @@
 
 (require typed/racket/unsafe)
 
-(require "../misc.rkt")
-(require "../digitama/unsafe/convert.rkt")
+(require bitmap)
 
 (unsafe-require/typed
- "cairo/gradient.rkt"
+ pangocairo/tamer/gradient
  [cairo-gradient (-> Flonum Flonum Flonum (Listof Flonum) (Listof Flonum) Flonum Bitmap)])
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ball (cairo-gradient 128.0 128.0 76.8 '(1.0 1.0 1.0 1.0) '(0.0 0.0 0.0 1.0) 2.0))
 
 ball

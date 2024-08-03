@@ -2,13 +2,13 @@
 
 (provide (all-defined-out))
 
-(require bitmap/digitama/unsafe/convert)
-(require bitmap/digitama/unsafe/visual/abstract)
+(require bitmap/digitama/convert)
 
-(require bitmap/digitama/base)
-(require bitmap/digitama/source)
+(require pangocairo/source)
+(require pangocairo/digitama/base)
+(require pangocairo/digitama/unsafe/visual/abstract)
 
-(require "unsafe/convert.rkt")
+(require "convert.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-freeze : (->* (Geo<%>)

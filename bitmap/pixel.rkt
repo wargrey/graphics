@@ -3,7 +3,7 @@
 (provide (all-defined-out) ARGB-Map)
 
 (require "digitama/unsafe/image.rkt")
-(require "digitama/unsafe/convert.rkt")
+(require "digitama/convert.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-map : (-> Bitmap ARGB-Map Bitmap)

@@ -2,10 +2,7 @@
 
 (require math/number-theory)
 
-(require "../../constructor.rkt")
-(require "../../composite.rkt")
-
-(require "../../digitama/unsafe/convert.rkt")
+(require bitmap)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define number->node

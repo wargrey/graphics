@@ -2,9 +2,9 @@
 
 (provide (all-defined-out))
 
-(require bitmap/base)
-(require bitmap/font)
-(require bitmap/color)
+(require bitmap)
+(require pangocairo/color)
+(require pangocairo/font)
 
 (require racket/format)
 (require racket/list)

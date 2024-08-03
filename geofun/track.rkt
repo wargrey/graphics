@@ -21,9 +21,9 @@
 (require "digitama/bbox.rkt")
 (require "digitama/anchor.rkt")
 (require "digitama/track.rkt")
-(require "digitama/unsafe/convert.rkt")
+(require "digitama/convert.rkt")
 
-(require bitmap/digitama/dot)
+(require pangocairo/digitama/dot)
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))

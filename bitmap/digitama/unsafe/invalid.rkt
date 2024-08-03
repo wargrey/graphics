@@ -4,14 +4,14 @@
 
 (require typed/racket/unsafe)
 
-(require "convert.rkt")
+(require "../convert.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base
   (provide (all-defined-out))
 
-  (require "pangocairo.rkt")
-  (require "surface/bitmap.rkt")
+  (require pangocairo/digitama/unsafe/pangocairo)
+  (require "surface.rkt")
   
   (define (bitmap_invalid flwidth flheight density)
     (define-values (img cr) (create-invalid-bitmap flwidth flheight density #true))

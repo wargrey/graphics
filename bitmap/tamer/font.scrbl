@@ -2,13 +2,13 @@
 
 @(require digimon/tamer)
 
-@(require "../digitama/font.rkt")
-@(require "bridge/font.rkt")
+@(require pangocairo/font)
+@(require pangocairo/digitama/font)
 
-@(require "../font.rkt")
 @(require "../constructor.rkt")
 @(require "../composite.rkt")
 
+@(require "bridge/font.rkt")
 @(require "composite/table/font.rkt")
 
 @(require (for-label typed/racket/base))
@@ -34,7 +34,7 @@
                      (racketparenfont ")"))]))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@handbook-typed-module-story[#:requires [bitmap/base bitmap/digitama/font] bitmap/font]{Font}
+@handbook-typed-module-story[#:requires [bitmap/base pangocairo/digitama/font] pangocairo/font]{Font}
 
 A @deftech{font} provides a resource containing the visual representation of characters. At the
 simplest level it contains information that maps character codes to shapes (called @deftech{glyphs})

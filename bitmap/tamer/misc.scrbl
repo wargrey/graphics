@@ -1,7 +1,7 @@
 #lang scribble/manual
 
 @(require digimon/tamer)
-@(require bitmap)
+@(require pangocairo/version)
 
 @(require (for-label typed/racket/base))
 

@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../../digitama/font.rkt")
+(require pangocairo/digitama/font)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-font-weight->integer : (-> Symbol (Option Integer))

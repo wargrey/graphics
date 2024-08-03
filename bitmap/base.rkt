@@ -4,10 +4,13 @@
 
 (require "digitama/base.rkt")
 (require "digitama/misc.rkt")
-(require "digitama/unsafe/visual/bitmap.rkt")
+(require "digitama/unsafe/bitmap.rkt")
 
-(require/provide "digitama/stdio.rkt" "digitama/unsafe/convert.rkt")
+(require pangocairo/digitama/misc)
+
+(require/provide "digitama/stdio.rkt" "digitama/convert.rkt")
 (require/provide "constructor.rkt" "pixel.rkt" "composite.rkt" "resize.rkt")
+(require/provide "invalid.rkt" "misc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-icon : (->* ((U Bitmap Path-String Input-Port))

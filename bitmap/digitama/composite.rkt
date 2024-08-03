@@ -4,7 +4,7 @@
 
 (require digimon/enumeration)
 
-(require "unsafe/convert.rkt")
+(require "convert.rkt")
 
 (require (for-syntax racket/base))
 

@@ -4,23 +4,23 @@
 
 (require typed/racket/unsafe)
 
-(require "convert.rkt")
-(require "visual/ctype.rkt")
+(require pangocairo/digitama/unsafe/visual/ctype)
+(require "../convert.rkt")
 
 (module unsafe racket/base
-  (provide (all-defined-out) CAIRO_OPERATOR_OVER)
+  (provide (all-defined-out))
 
   (require (only-in racket/list make-list))
   (require (only-in racket/vector vector-append))
   (require (only-in racket/flonum make-flvector))
 
-  (require "pangocairo.rkt")
-  (require "paint.rkt")
-
-  (require "surface/bitmap.rkt")
-  (require "surface/image.rkt")
+  (require pangocairo/digitama/unsafe/pangocairo)
+  (require pangocairo/digitama/unsafe/surface/image)
+  (require pangocairo/digitama/unsafe/paint)
   
-  (require (submod "visual/bitmap.rkt" unsafe))
+  (require "surface.rkt")
+  
+  (require (submod "bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap_composite operator sfc1 sfc2 dx dy density)

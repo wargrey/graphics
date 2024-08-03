@@ -1,7 +1,7 @@
 #lang scribble/manual
 
 @(require digimon/tamer)
-@(require geofun/misc)
+@(require pangocairo/version)
 
 @(define the-name (racketmodname bitmap))
 

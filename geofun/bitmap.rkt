@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out bitmap))
 
-(require bitmap)
+(require pangocairo/digitama/misc)
+
+(require/provide bitmap)

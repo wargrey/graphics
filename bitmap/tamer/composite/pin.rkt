@@ -1,11 +1,6 @@
 #lang typed/racket/base
 
-(require "../../constructor.rkt")
-(require "../../composite.rkt")
-(require "../../paint.rkt")
-(require "../../color.rkt")
-(require "../../constants.rkt")
-
+(require bitmap)
 (require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -24,14 +19,16 @@
 (define blue-circle (bitmap-ellipse diameter #:fill (rgb* 'blue alpha)))
 (define yellow-circle (bitmap-ellipse 124 #:border yellow-stroke #:fill (rgb* 'yellow 1/2)))
 (define 3pc (bitmap-pin* 1/8 11/48 0 0 (bitmap-pin* 1/3 0 0 0 red-circle green-circle) blue-circle))
-
-3pc
-(bitmap-pin 3pc 0+0i yellow-circle 64+64i)
-(bitmap-frame (bitmap-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle))
-(bitmap-frame (bitmap-pin* -1/8 -1/8 0 0 yellow-circle yellow-circle yellow-circle))
-(bitmap-cc-superimpose* (list 3pc yellow-circle))
-
 (define sine (time (bitmap-rectangular 100 100 build-flomap)))
-(bitmap-pin* 1/5 1/5 0 0 sine sine)
-(bitmap-pin* 1/2 0 0 0 sine sine)
-(bitmap-composite 'screen sine 50+0i sine)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(module+ main
+  3pc
+  (bitmap-pin 3pc 0+0i yellow-circle 64+64i)
+  (bitmap-frame (bitmap-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle))
+  (bitmap-frame (bitmap-pin* -1/8 -1/8 0 0 yellow-circle yellow-circle yellow-circle))
+  (bitmap-cc-superimpose* (list 3pc yellow-circle))
+  
+  (bitmap-pin* 1/5 1/5 0 0 sine sine)
+  (bitmap-pin* 1/2 0 0 0 sine sine)
+  (bitmap-composite 'screen sine 50+0i sine))

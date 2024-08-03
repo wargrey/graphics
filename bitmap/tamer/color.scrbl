@@ -5,12 +5,9 @@
 @(require "composite/table/hue.rkt")
 @(require "bridge/color.rkt")
 
-@(require "../digitama/color.rkt")
-
-@(require "../constructor.rkt")
-@(require "../composite.rkt")
-@(require "../color.rkt")
-@(require "../font.rkt")
+@(require pangocairo/font)
+@(require pangocairo/color)
+@(require pangocairo/digitama/color)
 
 @(require (for-label typed/racket/base))
 
@@ -25,7 +22,7 @@
    #:author (org-author-name "Wikipedia"))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@handbook-typed-module-story[bitmap/color]{Color, Color Model, and Colorspace}
+@handbook-typed-module-story[pangocairo/color]{Color, Color Model, and Colorspace}
 
 @margin-note{More about @tech{color} and @tech{colorspace} can be found in @~cite[css:color].
  This chapter is expected to hide all those complexities.}
