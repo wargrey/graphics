@@ -3,8 +3,8 @@
 (provide (all-defined-out))
 
 (require bitmap)
-(require pangocairo/color)
-(require pangocairo/font)
+(require geofun/color)
+(require geofun/font)
 
 (require racket/format)
 (require racket/list)

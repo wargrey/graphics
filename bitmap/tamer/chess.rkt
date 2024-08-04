@@ -1,7 +1,8 @@
 #lang typed/racket
 
 (require bitmap)
-(require pangocairo/digitama/font)
+(require geofun/digitama/font)
+(require geofun/constants)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (default-border (desc-stroke long-dash #:color 'gray #:width 1))

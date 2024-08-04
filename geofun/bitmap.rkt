@@ -2,6 +2,6 @@
 
 (provide (all-defined-out))
 
-(require pangocairo/digitama/misc)
+(require geofun/digitama/misc)
 
 (require/provide bitmap)

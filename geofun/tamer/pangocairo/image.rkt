@@ -1,6 +1,6 @@
 #lang racket
 
-(require "../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/pangocairo.rkt")
 
 (require racket/draw/private/bitmap)
 (require bitmap/digitama/unsafe/surface)

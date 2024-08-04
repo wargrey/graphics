@@ -4,8 +4,8 @@
 
 (provide (rename-out [bitmap<%>-surface bitmap-surface]))
 
-(require pangocairo/digitama/unsafe/visual/object)
-(require pangocairo/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/visual/object)
+(require geofun/digitama/unsafe/visual/ctype)
 (require "unsafe/bitmap.rkt")
 
 (require racket/math)

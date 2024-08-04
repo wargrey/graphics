@@ -7,7 +7,7 @@
 (require bitmap)
 
 (unsafe-require/typed
- pangocairo/tamer/gradient
+ geofun/tamer/pangocairo/gradient
  [cairo-gradient (-> Flonum Flonum Flonum (Listof Flonum) (Listof Flonum) Flonum Bitmap)])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -2,12 +2,12 @@
 
 (provide (all-defined-out))
 
+(require geofun/digitama/misc)
+
 (require "digitama/misc.rkt")
 (require "digitama/unsafe/bitmap.rkt")
 
-(require pangocairo/digitama/misc)
-
-(require/provide pangocairo/digitama/base)
+(require/provide geofun/digitama/base)
 (require/provide "digitama/stdio.rkt" "digitama/convert.rkt")
 (require/provide "constructor.rkt" "pixel.rkt" "composite.rkt" "resize.rkt")
 (require/provide "invalid.rkt" "misc.rkt")

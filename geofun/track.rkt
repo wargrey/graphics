@@ -22,8 +22,7 @@
 (require "digitama/anchor.rkt")
 (require "digitama/track.rkt")
 (require "digitama/convert.rkt")
-
-(require pangocairo/digitama/dot)
+(require "digitama/dot.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))

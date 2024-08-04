@@ -13,13 +13,16 @@
   (provide (all-defined-out))
 
   (require "../pangocairo.rkt")
+  (require "../paint.rkt")
   (require (submod "../font.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (dc_text create-surface text font-desc lines fgsource bgsource alsource clsource mlsource blsource dlsource density)
     (define-values (width height) (font_get_text_extent font-desc text))
-    (define-values (sfs cr) (create-surface width height bgsource density #true))
+    (define-values (sfc cr) (create-surface width height density #true))
     (define layout (text_create_layout lines))
+
+    (cairo-render-background cr bgsource)
   
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
@@ -40,7 +43,7 @@
 
     (cairo_destroy cr)
 
-    sfs)
+    sfc)
   
   (define (dc_paragraph create-surface text font-desc lines max-width max-height indent spacing wrap ellipsize fgsource bgsource density)
     (define layout (text_create_layout* lines max-width max-height indent spacing wrap ellipsize))
@@ -51,15 +54,17 @@
     (define flwidth (~metric pango-width))
     (define flheight (if (flonum? max-height) (unsafe-flmin (~metric pango-height) max-height) (~metric pango-height)))
 
-    (define-values (sfs cr draw-text?)
+    (define-values (sfc cr draw-text?)
       (if (or (= max-width -1) (unsafe-fl<= flwidth max-width))
-          (let-values ([(sfs cr) (create-surface flwidth flheight bgsource density #true)])
-            (values sfs cr #true))
+          (let-values ([(sfc cr) (create-surface flwidth flheight density #true)])
+            (cairo-render-background cr bgsource)
+            (values sfc cr #true))
           (let-values ([(char-width char-height) (and (pango_layout_set_text layout " ") (pango_layout_get_size layout))])
             (define draw-text? (unsafe-fl>= max-width (~metric char-width)))
             (define smart-flheight (if draw-text? flheight (unsafe-flmin (~metric char-height) flheight)))
-            (define-values (sfs cr) (create-surface max-width smart-flheight bgsource density #true))
-            (values sfs cr draw-text?))))
+            (define-values (sfc cr) (create-surface max-width smart-flheight density #true))
+            (cairo-render-background cr bgsource)
+            (values sfc cr draw-text?))))
 
     (when draw-text?
       (cairo-set-source cr fgsource)
@@ -68,7 +73,7 @@
     
     (cairo_destroy cr)
     
-    sfs)
+    sfc)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (text_create_layout lines)
@@ -117,12 +122,12 @@
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [dc_text
-  (All (S) (-> (Cairo-Surface-Create+BG S)
+  (All (S) (-> (Cairo-Surface-Create S)
                String Font-Description (Listof Symbol) Fill-Source (Option Fill-Source)
                (Option FlRGBA) (Option FlRGBA) (Option FlRGBA) (Option FlRGBA) (Option FlRGBA)
                Flonum S))]
  [dc_paragraph
-  (All (S) (-> (Cairo-Surface-Create+BG S)
+  (All (S) (-> (Cairo-Surface-Create S)
                String Font-Description (Listof Symbol) (U Flonum Nonpositive-Integer) (U Flonum Nonpositive-Integer)
                Flonum Flonum Integer Integer Fill-Source (Option Fill-Source)
                Flonum S))])

@@ -5,7 +5,7 @@
 (require bitmap)
 
 (unsafe-require/typed
- pangocairo/tamer/mesh
+ geofun/tamer/pangocairo/mesh
  [cairo-mesh-pattern (-> Flonum Flonum Flonum Flonum Bitmap)])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

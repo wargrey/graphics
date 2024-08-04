@@ -5,7 +5,7 @@
 (require racket/date)
 
 (require "write.rkt")
-(require "../../pdf.rkt")
+(require "../../parameter/pdf.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-pdf-stream-pool-size 4096)

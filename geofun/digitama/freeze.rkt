@@ -4,11 +4,11 @@
 
 (require bitmap/digitama/convert)
 
-(require pangocairo/source)
-(require pangocairo/digitama/base)
-(require pangocairo/digitama/unsafe/visual/abstract)
-
+(require "base.rkt")
+(require "source.rkt")
 (require "convert.rkt")
+
+(require "unsafe/visual/abstract.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-freeze : (->* (Geo<%>)

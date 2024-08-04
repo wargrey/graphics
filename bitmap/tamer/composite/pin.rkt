@@ -1,6 +1,8 @@
 #lang typed/racket/base
 
 (require bitmap)
+(require geofun/constants)
+
 (require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

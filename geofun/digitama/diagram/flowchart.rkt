@@ -2,10 +2,9 @@
 
 (provide (all-defined-out))
 
-(require pangocairo/source)
-
 (require "../bbox.rkt")
 (require "../anchor.rkt")
+(require "../source.rkt")
 (require "../convert.rkt")
 
 (require "../unsafe/path.rkt")

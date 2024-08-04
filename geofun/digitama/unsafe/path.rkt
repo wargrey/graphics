@@ -4,16 +4,17 @@
 
 (require typed/racket/unsafe)
 
-(require pangocairo/digitama/base)
-(require pangocairo/digitama/unsafe/source)
-(require pangocairo/digitama/unsafe/visual/ctype)
+(require "../base.rkt")
+
+(require "source.rkt")
+(require "visual/ctype.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require pangocairo/digitama/unsafe/pangocairo)
-  (require pangocairo/digitama/unsafe/paint)
-  (require pangocairo/digitama/unsafe/surface/abstract)
+  (require "paint.rkt")
+  (require "pangocairo.rkt")
+  (require "surface/abstract.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (path_stamp footprints dx dy stroke fill-color fill-rule)

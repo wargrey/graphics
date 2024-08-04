@@ -6,15 +6,15 @@
                      [bitmap-sandglass bitmap-hourglass]
                      [bitmap-arrowhead bitmap-dart]))
 
-(require pangocairo/font)
-(require pangocairo/source)
+(require geofun/font)
+(require geofun/digitama/dot)
+(require geofun/digitama/base)
+(require geofun/digitama/font)
+(require geofun/digitama/color)
+(require geofun/digitama/source)
 
-(require pangocairo/digitama/dot)
-(require pangocairo/digitama/base)
-(require pangocairo/digitama/font)
-
-(require pangocairo/digitama/unsafe/dc/shape)
-(require pangocairo/digitama/unsafe/dc/text)
+(require geofun/digitama/unsafe/dc/shape)
+(require geofun/digitama/unsafe/dc/text)
 
 (require "digitama/convert.rkt")
 (require "digitama/bitmap.rkt")
@@ -56,7 +56,7 @@
     (bitmap_blank flw flh (bitmap-density bmp))))
 
 (define bitmap-solid : (->* () (Color Real #:density Positive-Flonum) Bitmap)
-  (lambda [[color 'transparent] [size 1] #:density [density (default-bitmap-density)]]
+  (lambda [[color transparent] [size 1] #:density [density (default-bitmap-density)]]
     (define side : Flonum (real->double-flonum size))
     (bitmap_pattern side side (rgb* color) density)))
 
@@ -216,7 +216,7 @@
                             (Real #:shaft-thickness Real #:border (Option Stroke-Paint) #:fill (Option Fill-Paint)
                                   #:wing-angle (Option Real) #:radian? Boolean #:density Positive-Flonum)
                             Bitmap)
-  (lambda [#:shaft-thickness [shaft-thickness -0.3] #:wing-angle [wing-angle #false] #:border [border #false] #:fill [pattern 'black]
+  (lambda [#:shaft-thickness [shaft-thickness -0.3] #:wing-angle [wing-angle #false] #:border [border #false] #:fill [pattern black]
            #:radian? [radian? #true] #:density [density (default-bitmap-density)]
            head-radius shaft-length [start 0.0]]
     (dc_arrow create-argb-bitmap

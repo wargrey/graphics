@@ -18,18 +18,18 @@
 (require digimon/digitama/ioexn)
 
 (require typed/racket/unsafe)
-(require pangocairo/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/visual/ctype)
 
 (require "digitama/parser/stream.rkt")
 (require "digitama/unsafe/pixman.rkt")
 (require "digitama/convert.rkt")
 
 (unsafe-require/typed
- pangocairo/digitama/unsafe/surface/image
+ geofun/digitama/unsafe/surface/image
  [cairo-create-image-surface (-> Flonum Flonum Flonum (Values Bitmap-Surface Positive-Index Positive-Index))])
 
 (unsafe-require/typed
- pangocairo/digitama/unsafe/pangocairo
+ geofun/digitama/unsafe/pangocairo
  [cairo_image_surface_get_data (-> Bitmap-Surface Bytes)]
  [cairo_surface_mark_dirty (-> Bitmap-Surface Bytes)])
 

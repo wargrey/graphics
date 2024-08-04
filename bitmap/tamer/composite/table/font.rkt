@@ -3,7 +3,7 @@
 (provide font-style-table)
 
 (require bitmap)
-(require pangocairo/digitama/font)
+(require geofun/digitama/font)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define exgap (bitmap-blank))

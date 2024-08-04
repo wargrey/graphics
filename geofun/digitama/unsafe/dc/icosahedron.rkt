@@ -22,7 +22,7 @@
     (define edge-size (icosahedron-radius->edge-length radius type))
     (define-values (a1 aφ) (icoashedron-edge-length->outline edge-size))
     (define fllength (unsafe-fl* aφ 2.0))
-    (define-values (sfs cr) (create-surface fllength fllength density #true))
+    (define-values (sfc cr) (create-surface fllength fllength density #true))
     (define border (or border0 edge))
     (define offset (if (struct? border) (unsafe-fl* 0.5 (unsafe-struct-ref border 1)) 0.0))
     (define-values (-a1 +a1) (values (unsafe-fl+ (unsafe-fl- 0.0 a1) offset) (unsafe-fl- a1 offset)))
@@ -33,7 +33,7 @@
     ;;; fill the shape borders
     (icosahedron-side-border-path cr +a1 +aφ -a1 -aφ)
     (unless (not background)
-      (cairo-render-with-background cr background))
+      (cairo-render-with-fill cr background))
 
     ;;; draw edges inside
     (unless (not edge)
@@ -57,12 +57,12 @@
     
     (cairo_destroy cr)
     
-    sfs)
+    sfc)
 
   (define (dc_icosahedron_over_proj create-surface radius0 type rotation edge background border0 radian? density)
     (define radius (icosahedron-radius->circumsphere-radius radius0 type))
     (define fllength (unsafe-fl* radius 2.0))
-    (define-values (sfs cr) (create-surface fllength fllength density #true))
+    (define-values (sfc cr) (create-surface fllength fllength density #true))
     (define border (or border0 edge))
     (define delta (unsafe-fl/ 2pi 10.0))
     (define offset (if (struct? border) (unsafe-fl* 0.5 (unsafe-struct-ref border 1)) 0.0))
@@ -82,7 +82,7 @@
     ;;; fill the shape
     (icosahedron-over-border-path cr xs ys)
     (unless (not background)
-      (cairo-render-with-background cr background))
+      (cairo-render-with-fill cr background))
 
     ;; draw edges inside
     (unless (not edge)
@@ -106,7 +106,7 @@
     
     (cairo_destroy cr)
     
-    sfs)
+    sfc)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define icosahedron-side-border-path

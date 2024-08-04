@@ -4,7 +4,7 @@
 
 (require typed/racket/unsafe)
 
-(require pangocairo/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/visual/ctype)
 (require "../convert.rkt")
 
 (module unsafe racket/base
@@ -14,9 +14,9 @@
   (require (only-in racket/vector vector-append))
   (require (only-in racket/flonum make-flvector))
 
-  (require pangocairo/digitama/unsafe/pangocairo)
-  (require pangocairo/digitama/unsafe/surface/image)
-  (require pangocairo/digitama/unsafe/paint)
+  (require geofun/digitama/unsafe/pangocairo)
+  (require geofun/digitama/unsafe/surface/image)
+  (require geofun/digitama/unsafe/paint)
   
   (require "surface.rkt")
   

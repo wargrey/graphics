@@ -8,7 +8,7 @@
 (require "digitama/composite.rkt")
 (require "digitama/unsafe/composite.rkt")
 
-(require pangocairo/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/visual/ctype)
 
 (require (for-syntax racket/base))
 

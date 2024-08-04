@@ -6,11 +6,11 @@
                      [geo-intrinsic-size geo-size]
                      [geo-intrinsic-size geo-intrinsic-flsize]))
 
-(require pangocairo/digitama/unsafe/visual/ctype)
-(require pangocairo/digitama/unsafe/visual/object)
-(require pangocairo/digitama/unsafe/visual/abstract)
+(require "source.rkt")
 
-(require pangocairo/source)
+(require "unsafe/visual/ctype.rkt")
+(require "unsafe/visual/object.rkt")
+(require "unsafe/visual/abstract.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))

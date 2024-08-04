@@ -2,9 +2,8 @@
 
 (provide (all-defined-out))
 
-(require pangocairo/digitama/dot)
-(require pangocairo/source)
-
+(require "dot.rkt")
+(require "source.rkt")
 (require "bbox.rkt")
 (require "anchor.rkt")
 (require "convert.rkt")

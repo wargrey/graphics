@@ -5,9 +5,9 @@
 (require "digitama/convert.rkt")
 (require "digitama/bitmap.rkt")
 
-(require pangocairo/source)
-(require pangocairo/digitama/base)
-(require pangocairo/digitama/unsafe/dc/icosahedron)
+(require geofun/digitama/base)
+(require geofun/digitama/source)
+(require geofun/digitama/unsafe/dc/icosahedron)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-icosahedron-side-projection : (->* (Real)

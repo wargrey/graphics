@@ -4,14 +4,14 @@
 
 (require typed/racket/unsafe)
 
-(require pangocairo/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/visual/ctype)
 
 (require "../convert.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require pangocairo/digitama/unsafe/pangocairo)
+  (require geofun/digitama/unsafe/pangocairo)
   
   (require "surface.rkt")
   (require (submod "pixman.rkt" unsafe))

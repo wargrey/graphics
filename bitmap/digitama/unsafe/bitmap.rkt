@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require typed/racket/unsafe)
-(require pangocairo/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/visual/ctype)
 
 ;;; NOTE
 ; The density should only affect the displaying of bitmap
@@ -13,11 +13,11 @@
 (module unsafe racket/base
   (provide (all-defined-out))
 
-  (require pangocairo/digitama/unsafe/pangocairo)
+  (require geofun/digitama/unsafe/pangocairo)
   
-  (require pangocairo/digitama/unsafe/stream/pdf)
-  (require pangocairo/digitama/unsafe/stream/svg)
-  (require pangocairo/digitama/unsafe/stream/png)
+  (require geofun/digitama/unsafe/stream/pdf)
+  (require geofun/digitama/unsafe/stream/svg)
+  (require geofun/digitama/unsafe/stream/png)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap-surface-content-size sfc)

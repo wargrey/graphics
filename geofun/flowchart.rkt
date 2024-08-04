@@ -4,8 +4,7 @@
 (provide Flow-Chart Culumon)
 (provide flow-chart? culumon?)
 
-(require pangocairo/digitama/dot)
-
+(require "digitama/dot.rkt")
 (require "digitama/bbox.rkt")
 (require "digitama/anchor.rkt")
 (require "digitama/convert.rkt")

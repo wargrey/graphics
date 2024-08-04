@@ -6,9 +6,9 @@
 (require bitmap/digitama/unsafe/surface)
 ;(require bitmap/digitama/stdio)
 
-(require "../digitama/base.rkt")
-(require "../digitama/unsafe/pangocairo.rkt")
-(require (only-in (submod "../digitama/unsafe/font.rkt" unsafe) bitmap_create_font_desc))
+(require "../../digitama/base.rkt")
+(require "../../digitama/unsafe/pangocairo.rkt")
+(require (only-in (submod "../../digitama/unsafe/font.rkt" unsafe) bitmap_create_font_desc))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (cairo_text_polygon words radius context font-face font-weight font-attrs)

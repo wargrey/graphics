@@ -10,7 +10,7 @@
 (module unsafe racket/base
   (provide (all-defined-out))
 
-  (require pangocairo/digitama/unsafe/pangocairo)
+  (require geofun/digitama/unsafe/pangocairo)
   (require "surface.rkt")
   
   (define (bitmap_invalid flwidth flheight density)

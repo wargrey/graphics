@@ -5,7 +5,7 @@
 (require "digitama/convert.rkt")
 (require "digitama/unsafe/resize.rkt")
 
-(require pangocairo/digitama/base)
+(require geofun/digitama/base)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-alter-density : (->* (Bitmap) (Positive-Flonum) Bitmap)

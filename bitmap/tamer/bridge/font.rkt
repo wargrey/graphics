@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require pangocairo/digitama/font)
+(require geofun/digitama/font)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define css-font-weight->integer : (-> Symbol (Option Integer))

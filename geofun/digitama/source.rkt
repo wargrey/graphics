@@ -1,16 +1,16 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out "paint.rkt"))
-(provide (all-from-out "color.rkt"))
+(provide (all-from-out "../paint.rkt"))
+(provide (all-from-out "../color.rkt"))
 
-(require "paint.rkt")
-(require "color.rkt")
+(require "../paint.rkt")
+(require "../color.rkt")
 
-(require "digitama/base.rkt")
-(require "digitama/unsafe/source.rkt")
-(require "digitama/unsafe/visual/object.rkt")
-(require "digitama/unsafe/visual/ctype.rkt")
+(require "base.rkt")
+(require "unsafe/source.rkt")
+(require "unsafe/visual/object.rkt")
+(require "unsafe/visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Stroke-Paint (U Color Paint))

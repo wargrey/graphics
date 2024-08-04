@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/pangocairo.rkt")
 (require bitmap/digitama/unsafe/surface)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

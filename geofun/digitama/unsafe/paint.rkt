@@ -20,15 +20,21 @@
     (cairo-set-stroke cr border)
     (cairo_stroke_preserve cr)))
 
-(define cairo-render-with-background
+(define cairo-render-with-fill
   (lambda [cr background]
     (cairo-set-source cr background)
     (cairo_fill_preserve cr)))
 
+(define cairo-render-background
+  (lambda [cr bg]
+    (when (and bg)
+      (cairo-set-source cr bg)
+      (cairo_paint cr))))
+
 (define cairo-render
   (lambda [cr border background]
     (unless (not background)
-      (cairo-render-with-background cr background))
+      (cairo-render-with-fill cr background))
     (unless (not border)
       (cairo-render-with-stroke cr border))))
 
