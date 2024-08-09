@@ -11,7 +11,7 @@
   (provide (all-defined-out))
 
   (require geofun/digitama/unsafe/pangocairo)
-  (require "surface.rkt")
+  (require "../convert.rkt")
   
   (define (bitmap_invalid flwidth flheight density)
     (define-values (img cr) (create-invalid-bitmap flwidth flheight density #true))

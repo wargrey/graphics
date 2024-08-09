@@ -3,7 +3,7 @@
 (require "../../digitama/unsafe/pangocairo.rkt")
 
 (require racket/draw/private/bitmap)
-(require bitmap/digitama/unsafe/surface)
+(require bitmap/digitama/convert)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-cstruct _cairo_matrix_t

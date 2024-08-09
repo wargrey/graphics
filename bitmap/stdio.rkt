@@ -26,7 +26,7 @@
 
 (unsafe-require/typed
  geofun/digitama/unsafe/surface/image
- [cairo-create-image-surface (-> Flonum Flonum Flonum (Values Bitmap-Surface Positive-Index Positive-Index))])
+ [cairo-create-image-surface (-> Flonum Flonum Positive-Flonum (Values Bitmap-Surface Positive-Index Positive-Index))])
 
 (unsafe-require/typed
  geofun/digitama/unsafe/pangocairo

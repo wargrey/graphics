@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require "dot.rkt")
+(require "base.rkt")
 (require "source.rkt")
 (require "bbox.rkt")
 (require "anchor.rkt")
@@ -221,9 +222,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-surface : Geo-Surface-Create
-  (lambda [self [paint (default-stroke)] [fill #false] [fstyle 'winding]]
+  (lambda [self [option #false]]
     (with-asserts ([self track?])
       (define-values (xoff yoff) (geo-bbox-offset-values (track-bbox self)))
       (path_stamp (track-footprints self) xoff yoff
-                  (stroke-paint->source paint) (fill-paint->source* fill)
-                  fstyle))))
+                  (default-stroke) (fill-paint->source* (default-fill-paint)) (default-fill-rule)))))

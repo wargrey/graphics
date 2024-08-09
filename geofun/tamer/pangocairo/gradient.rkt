@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require "../../digitama/unsafe/pangocairo.rkt")
-(require bitmap/digitama/unsafe/surface)
+(require bitmap/digitama/convert)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://www.cairographics.org/samples/gradient/

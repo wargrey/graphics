@@ -15,21 +15,35 @@
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
 
+(require typed/racket/unsafe)
+(unsafe-require/typed
+ "unsafe/surface/abstract.rkt"
+ [cairo-create-abstract-surface* (-> Flonum Flonum Positive-Flonum Boolean
+                                     (Values Abstract-Surface Cairo-DC Positive-Index Positive-Index))])
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-geometry-object stx)
   (syntax-parse stx #:datum-literals [:]
     [(_ Geo
-        (~seq #:with [surface:id (~optional bbox:id #:defaults ([bbox #'geo-calculate-bbox]))])
+        (~seq #:with [surface:expr (~optional bbox:expr #:defaults ([bbox #'geo-calculate-bbox]))])
         (~optional (~seq #:id name) #:defaults ([name #'#false])) argl ...)
-     (syntax/loc stx
-       (Geo geo-convert surface bbox (or name (gensym 'geo)) argl ...))]
+     (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
+       (syntax/loc stx
+         (Geo geo-convert surface bbox (or name (gensym 'geo-prefix)) argl ...)))]
     [(_ Geo (~seq #:with surface:id) rest ...)
      (syntax/loc stx
        (create-geometry-object Geo #:with [surface] rest ...))]))
 
+(define default-abstract-density : (Parameterof Positive-Flonum) (make-parameter 1.0))
+
+(define create-abstract-surface : (Cairo-Surface-Create Abstract-Surface)
+  (lambda [flwidth flheight density scale?]
+    (define-values (surface cr width height) (cairo-create-abstract-surface* flwidth flheight density scale?))
+    (values surface cr)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Surface-Create (->* (Geo<%>) (Stroke-Paint (Option Fill-Paint) Symbol) Abstract-Surface))
-(define-type Geo-Calculate-BBox (->* (Geo<%>) (Stroke-Paint) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum)))
+(define-type Geo-Surface-Create (->* (Geo<%>) (Any) Abstract-Surface))
+(define-type Geo-Calculate-BBox (->* (Geo<%>) (Any) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum)))
 
 (struct geo<%> visual-object<%>
   ([surface : Geo-Surface-Create]
@@ -42,13 +56,14 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-bounding-box : (->* (Geo<%>) (Stroke-Paint) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [geo [stroke (default-stroke)]]
-    ((geo<%>-aabox geo) geo stroke)))
+(define geo-bounding-box : (->* (Geo<%>) (Stroke-Paint #:option Any) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [geo [stroke (default-stroke)] #:option [opt (void)]]
+    (parameterize ([default-stroke (stroke-paint->source stroke)])
+      ((geo<%>-aabox geo) geo opt))))
 
-(define geo-intrinsic-size : (->* (Geo<%>) (Stroke-Paint) (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [geo [stroke (default-stroke)]]
-    (define-values (lx ty width height) (geo-bounding-box geo stroke))
+(define geo-intrinsic-size : (->* (Geo<%>) (Stroke-Paint #:option Any) (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [geo [stroke (default-stroke)] #:option [opt (void)]]
+    (define-values (lx ty width height) (geo-bounding-box geo stroke #:option opt))
     (values width height)))
 
 (define geo-intrinsic-width : (-> Geo<%> Nonnegative-Flonum)
@@ -77,13 +92,71 @@
   (lambda [self mime fallback]
     (with-asserts ([self geo<%>?])
       (case mime
-        [(pdf-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'pdf '/dev/pdfout 1.0)]
-        [(svg-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'svg '/dev/svgout 1.0)]
-        [(png@2x-bytes) (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'png '/dev/p2xout 2.0)]
-        [(png-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'png '/dev/pngout 1.0)]
-        [(cairo-surface) ((geo<%>-surface self) self)]
+        [(pdf-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self #false) 'pdf '/dev/pdfout 1.0)]
+        [(svg-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self #false) 'svg '/dev/svgout 1.0)]
+        [(png@2x-bytes) (abstract-surface->stream-bytes ((geo<%>-surface self) self #false) 'png '/dev/p2xout 2.0)]
+        [(png-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self #false) 'png '/dev/pngout 1.0)]
+        [(cairo-surface) ((geo<%>-surface self) self #false)]
         [else fallback]))))
 
 (define geo-calculate-bbox : Geo-Calculate-BBox
-  (lambda [self [stroke (default-stroke)]]
-    (abstract-surface-content-bbox ((geo<%>-surface self) self stroke #false))))
+  (lambda [self [option (void)]]
+    (abstract-surface-content-bbox
+     (if (void? option)
+         ((geo<%>-surface self) self)
+         ((geo<%>-surface self) self option)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-shape-surface-wrapper : (-> Geo-Surface-Create (Option Stroke) (Option Fill-Paint) (Option Symbol) Geo-Surface-Create)
+  (lambda [λsurface alt-stroke alt-fill alt-rule]
+    (cond [(and alt-stroke alt-fill alt-rule)
+           (λ [self [option (void)]]
+             (parameterize ([default-stroke alt-stroke]
+                            [default-fill-paint alt-fill]
+                            [default-fill-rule alt-rule])
+               (if (void? option) (λsurface self) (λsurface self option))))]
+          [(and alt-stroke alt-fill)
+           (λ [self [option (void)]]
+             (parameterize ([default-stroke alt-stroke]
+                            [default-fill-paint alt-fill]
+                            #;[default-fill-rule alt-rule])
+               (λsurface self option)))]
+          [(and alt-fill alt-rule)
+           (λ [self [option (void)]]
+             (parameterize (#;[default-stroke alt-stroke]
+                            [default-fill-paint alt-fill]
+                            [default-fill-rule alt-rule])
+               (if (void? option) (λsurface self) (λsurface self option))))]
+          [(and alt-stroke alt-rule)
+           (λ [self [option (void)]]
+             (parameterize ([default-stroke alt-stroke]
+                            #;[default-fill-paint alt-fill]
+                            [default-fill-rule alt-rule])
+               (if (void? option) (λsurface self) (λsurface self option))))]
+          [(and alt-stroke)
+           (λ [self [option (void)]]
+             (parameterize ([default-stroke alt-stroke]
+                            #;[default-fill-paint alt-fill]
+                            #;[default-fill-rule alt-rule])
+               (if (void? option) (λsurface self) (λsurface self option))))]
+          [(and alt-fill)
+           (λ [self [option (void)]]
+             (parameterize (#;[default-stroke alt-stroke]
+                            [default-fill-paint alt-fill]
+                            #;[default-fill-rule alt-rule])
+               (if (void? option) (λsurface self) (λsurface self option))))]
+          [(and alt-rule)
+           (λ [self [option (void)]]
+             (parameterize (#;[default-stroke alt-stroke]
+                            #;[default-fill-paint alt-fill]
+                            [default-fill-rule alt-rule])
+               (if (void? option) (λsurface self) (λsurface self option))))]
+          [else λsurface])))
+
+(define geo-shape-bbox-wrapper : (-> Geo-Calculate-BBox (Option Stroke)  Geo-Calculate-BBox)
+  (lambda [λsurface alt-stroke]
+    (if (or alt-stroke)
+        (λ [self [option (void)]]
+          (parameterize ([default-stroke alt-stroke])
+            (if (void? option) (λsurface self) (λsurface self option))))
+        λsurface)))

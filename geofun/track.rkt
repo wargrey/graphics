@@ -69,7 +69,7 @@
     (define-values (tsx tsy) (track-turn-scales t-scale 0.5))
     (define-values (usx usy) (track-turn-scales u-scale 0.25))
     
-    (create-geometry-object dryland-wani #:with track-surface #:id (or name (gensym 'wani))
+    (create-geometry-object dryland-wani #:with track-surface #:id name
                             (list (cons start-of-track home-pos)) (make-geo-path home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))

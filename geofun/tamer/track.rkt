@@ -68,10 +68,10 @@
   
   (reverse (track-footprints drywani))
   drywani
-  (geo-freeze drywani #:color 'ForestGreen)
+  (geo-freeze drywani #:border 'ForestGreen)
 
   (let ([bmp (bitmap-square 256)])
-    (geo-freeze! bmp drywani -32 -32 #:color 'RoyalBlue)
+    (geo-freeze! bmp drywani -32 -32 #:border 'RoyalBlue)
     bmp)
   
   (track-anchor-position drywani '#:home)

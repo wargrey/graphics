@@ -1,7 +1,7 @@
 #lang racket
 
 (require "../../digitama/unsafe/pangocairo.rkt")
-(require bitmap/digitama/unsafe/surface)
+(require bitmap/digitama/convert)
 
 ;;; https://www.cairographics.org/samples/curve_rectangle/
 

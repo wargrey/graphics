@@ -2,7 +2,7 @@
 
 (require "../../digitama/unsafe/pangocairo.rkt")
 
-(require bitmap/digitama/unsafe/surface)
+(require bitmap/digitama/convert)
 (require racket/draw/private/utils)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

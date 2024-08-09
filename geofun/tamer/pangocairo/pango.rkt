@@ -2,8 +2,9 @@
 
 (provide (all-defined-out))
 
-(require bitmap)
-(require bitmap/digitama/unsafe/surface)
+(require geofun/font)
+(require bitmap/constructor)
+(require bitmap/digitama/convert)
 ;(require bitmap/digitama/stdio)
 
 (require "../../digitama/base.rkt")

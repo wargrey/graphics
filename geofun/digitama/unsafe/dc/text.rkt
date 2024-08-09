@@ -7,7 +7,7 @@
 (require "../../base.rkt")
 (require "../source.rkt")
 (require "../font.rkt")
-(require "../surface/type.rkt")
+(require "../visual/ctype.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -55,7 +55,7 @@
     (define flheight (if (flonum? max-height) (unsafe-flmin (~metric pango-height) max-height) (~metric pango-height)))
 
     (define-values (sfc cr draw-text?)
-      (if (or (= max-width -1) (unsafe-fl<= flwidth max-width))
+      (if (or (not max-width) (unsafe-fl<= flwidth max-width))
           (let-values ([(sfc cr) (create-surface flwidth flheight density #true)])
             (cairo-render-background cr bgsource)
             (values sfc cr #true))
@@ -91,7 +91,7 @@
   
   (define (text_create_layout* lines width height indent spacing wrap-mode ellipsize-mode)
     (define layout (text_create_layout lines))
-    (pango_layout_set_width layout (if (flonum? width) (~size width) width #|-1|#))
+    (pango_layout_set_width layout (if (not width) -1 (~size width)))
     (pango_layout_set_height layout (if (flonum? height) (~size height) height))
     (pango_layout_set_indent layout (~size indent))   ; (~size nan.0) == (~size inf.0) == 0
     (pango_layout_set_spacing layout (~size spacing)) ; pango knows the minimum spacing
@@ -128,6 +128,6 @@
                Flonum S))]
  [dc_paragraph
   (All (S) (-> (Cairo-Surface-Create S)
-               String Font-Description (Listof Symbol) (U Flonum Nonpositive-Integer) (U Flonum Nonpositive-Integer)
+               String Font-Description (Listof Symbol) (Option Flonum) (U Flonum Nonpositive-Integer)
                Flonum Flonum Integer Integer Fill-Source (Option Fill-Source)
                Flonum S))])

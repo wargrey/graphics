@@ -14,11 +14,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-save : (->* (Geo<%> (U Path-String Output-Port))
-                        (#:color Stroke-Paint #:fill (Option Fill-Paint) #:fill-rule Symbol
-                         #:format Symbol #:bitmap-density Positive-Flonum)
+                        (#:border Stroke-Paint #:fill (Option Fill-Paint) #:fill-rule Symbol
+                         #:option Any #:format Symbol #:bitmap-density Positive-Flonum)
                         Void)
-  (lambda [#:color [stroke (default-stroke)] #:fill [fill #false] #:fill-rule [fill-rule 'winding]
-           #:format [format 'pdf] #:bitmap-density [density (default-bitmap-density)]
-           geo /dev/geoout]
-    (abstract-surface-save ((geo<%>-surface geo) geo stroke fill fill-rule)
-                           /dev/geoout format density)))
+  (lambda [#:border [stroke (default-stroke)] #:fill [fill (default-fill-paint)] #:fill-rule [fill-rule (default-fill-rule)]
+           #:option [opt (void)] #:format [format 'pdf] #:bitmap-density [density (default-bitmap-density)]
+           self /dev/geoout]
+    (parameterize ([default-stroke (stroke-paint->source stroke)]
+                   [default-fill-paint fill]
+                   [default-fill-rule fill-rule])
+      (abstract-surface-save
+       (if (void? opt)
+           ((geo<%>-surface self) self)
+           ((geo<%>-surface self) self opt))
+       /dev/geoout format density))))

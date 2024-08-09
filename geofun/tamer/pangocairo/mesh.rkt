@@ -3,7 +3,7 @@
 (provide cairo-mesh-pattern) ; for tamer/prefab.rkt
 
 (require "../../digitama/unsafe/pangocairo.rkt")
-(require bitmap/digitama/unsafe/surface)
+(require bitmap/digitama/convert)
 
 ;;; https://www.cairographics.org/manual/cairo-cairo-pattern-t.html#cairo-pattern-create-mesh
 

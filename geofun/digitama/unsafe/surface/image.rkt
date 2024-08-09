@@ -23,18 +23,12 @@
     (values surface width height)))
 
 (define cairo-create-argb-image-surface*
-  (case-lambda
-    [(flwidth flheight density scale?)
-     (let-values ([(surface width height) (cairo-create-image-surface flwidth flheight density)])
-       (define cr (cairo_create surface))
-       (unless (or (not scale?) (unsafe-fl= density 1.0))
-         (cairo_scale cr density density))
-       (values surface cr width height))]
-    [(flwidth flheight background density scale?)
-     (let-values ([(img cr width height) (cairo-create-argb-image-surface* flwidth flheight density scale?)])
-       (cairo-set-source cr background)
-       (cairo_paint cr)
-       (values img cr width height))]))
+  (lambda [flwidth flheight density scale?]
+    (define-values (surface width height) (cairo-create-image-surface flwidth flheight density))
+    (define cr (cairo_create surface))
+    (unless (or (not scale?) (unsafe-fl= density 1.0))
+      (cairo_scale cr density density))
+    (values surface cr width height)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (the-image-surface the-image-cairo)

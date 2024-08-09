@@ -1,7 +1,6 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-
 (provide (rename-out [bitmap<%>-surface bitmap-surface]))
 
 (require geofun/digitama/unsafe/visual/object)
@@ -9,6 +8,12 @@
 (require "unsafe/bitmap.rkt")
 
 (require racket/math)
+
+(require typed/racket/unsafe)
+(unsafe-require/typed
+ geofun/digitama/unsafe/surface/image
+ [cairo-create-argb-image-surface* (-> Flonum Flonum Positive-Flonum Boolean
+                                       (Values Bitmap-Surface Cairo-DC Positive-Index Positive-Index))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct bitmap<%> visual-object<%>
@@ -31,6 +36,18 @@
                                               Bitmap)
   (lambda [sfc density fxwidth fxheight [convert bitmap-convert] [source '/dev/ram]]
     (bitmap convert (cairo-image-shadow-size sfc) sfc source density fxwidth fxheight 4 8)))
+
+(define create-argb-bitmap : (Cairo-Surface-Create Bitmap)
+  (lambda [width height density scale?]
+    (define-values (sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?))
+    (values (make-bitmap-from-image-surface sfc density fxwidth fxheight) cr)))
+
+(define create-invalid-bitmap : (Cairo-Surface-Create Bitmap)
+  (lambda [width height density scale?]
+    (define-values (sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?))
+    (values (make-bitmap-from-image-surface sfc density fxwidth fxheight
+                                            invalid-convert (string->uninterned-symbol "/dev/zero"))
+            cr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-width : (-> Bitmap Index)

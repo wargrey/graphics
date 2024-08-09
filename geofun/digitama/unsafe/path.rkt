@@ -46,11 +46,10 @@
     (define cy (unsafe-fl+ (unsafe-flimag-part center) dy))
     (define rx (unsafe-struct*-ref path:arc 1))
     (define ry (unsafe-struct*-ref path:arc 2))
-    (define start (unsafe-struct*-ref path:arc 3))
-    (define end (unsafe-struct*-ref path:arc 4))
+    (define rstart (~radian (unsafe-struct*-ref path:arc 3) radian?))
+    (define rend (~radian (unsafe-struct*-ref path:arc 4) radian?))
     (define cairo-arc (if (unsafe-struct*-ref path:arc 5) cairo_arc cairo_arc_negative))
-    (define-values (rstart rend) (if radian? (values start end) (values (~radian start) (~radian end))))
-
+    
     (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo-arc))
   
   ;;; https://pomax.github.io/bezierinfo/

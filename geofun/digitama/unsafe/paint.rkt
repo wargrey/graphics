@@ -21,8 +21,8 @@
     (cairo_stroke_preserve cr)))
 
 (define cairo-render-with-fill
-  (lambda [cr background]
-    (cairo-set-source cr background)
+  (lambda [cr pattern]
+    (cairo-set-source cr pattern)
     (cairo_fill_preserve cr)))
 
 (define cairo-render-background
@@ -32,9 +32,9 @@
       (cairo_paint cr))))
 
 (define cairo-render
-  (lambda [cr border background]
-    (unless (not background)
-      (cairo-render-with-fill cr background))
+  (lambda [cr border pattern]
+    (unless (not pattern)
+      (cairo-render-with-fill cr pattern))
     (unless (not border)
       (cairo-render-with-stroke cr border))))
 

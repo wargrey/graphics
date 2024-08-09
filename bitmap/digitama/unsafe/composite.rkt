@@ -17,8 +17,8 @@
   (require geofun/digitama/unsafe/pangocairo)
   (require geofun/digitama/unsafe/surface/image)
   (require geofun/digitama/unsafe/paint)
-  
-  (require "surface.rkt")
+
+  (require "../convert.rkt")
   
   (require (submod "bitmap.rkt" unsafe))
 

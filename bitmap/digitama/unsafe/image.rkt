@@ -16,7 +16,7 @@
   (require geofun/digitama/unsafe/pangocairo)
   (require geofun/digitama/unsafe/paint)
 
-  (require "surface.rkt")
+  (require "../convert.rkt")
   (require (submod "pixman.rkt" unsafe))
   (require (submod "bitmap.rkt" unsafe))
 
@@ -115,12 +115,13 @@
     img)
 
   (define (bitmap_pattern width height background density)
-    (define-values (img cr) (create-argb-bitmap width height background density #true))
+    (define-values (img cr) (create-argb-bitmap width height density #true))
+    (cairo-render-background cr background)
     (cairo_destroy cr)
     img)
 
   (define (bitmap_frame src mtop mright mbottom mleft ptop pright pbottom pleft border background density)
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define line-width (~bdwidth border))
     (define line-inset (unsafe-fl/ line-width 2.0))
     (define-values (dest-width dest-height) (bitmap-surface-rendered-size src density))
     (define-values (width border-x border-width dest-x) (frame-metrics line-width line-inset mleft mright pleft pright dest-width))

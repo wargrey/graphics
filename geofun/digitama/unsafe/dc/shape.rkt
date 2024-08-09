@@ -6,7 +6,7 @@
 
 (require "../../base.rkt")
 (require "../source.rkt")
-(require "../surface/type.rkt")
+(require "../visual/ctype.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -17,8 +17,8 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (dc_line create-surface x y dx dy width height border density)
-    (define-values (sfs cr) (create-surface width height density #true))
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define-values (sfc cr) (create-surface width height density #true))
+    (define line-width (~bdwidth border))
     (define offset (unsafe-fl* line-width 0.5))
     
     (cairo_new_sub_path cr)
@@ -36,24 +36,25 @@
     (cairo-render cr border #false)
     (cairo_destroy cr)
     
-    sfs)
+    sfc)
 
   (define (dc_circle create-surface radius border background density)
     (define fllength (unsafe-fl* radius 2.0))
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
-    (define-values (sfs cr) (create-surface fllength fllength density #true))
+    (define line-width (~bdwidth border))
+    (define-values (sfc cr) (create-surface fllength fllength density #true))
     
     (cairo_translate cr radius radius)
     (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl* line-width 0.5)) 0.0 2pi)
     (cairo-render cr border background)
     (cairo_destroy cr)
     
-    sfs)
+    sfc)
 
   (define (dc_sector create-surface aradius bradius start end border background density radian?)
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
-    (define-values (rstart rend) (if radian? (values start end) (values (~radian start) (~radian end))))
-    (define-values (sfs cr) (create-surface (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
+    (define-values (sfc cr) (create-surface (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
+    (define line-width (~bdwidth border))
+    (define rstart (~radian start radian?))
+    (define rend (~radian end radian?))
     
     (cairo_translate cr aradius bradius)
 
@@ -69,12 +70,13 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
     
-    sfs)
+    sfc)
 
   (define (dc_arc create-surface aradius bradius start end border density radian?)
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
-    (define-values (rstart rend) (if radian? (values start end) (values (~radian start) (~radian end))))
-    (define-values (sfs cr) (create-surface (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
+    (define-values (sfc cr) (create-surface (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
+    (define line-width (~bdwidth border))
+    (define rstart (~radian start radian?))
+    (define rend (~radian end radian?))
     
     (cairo_translate cr aradius aradius)
 
@@ -86,14 +88,14 @@
     (cairo-render cr border #false)
     (cairo_destroy cr)
     
-    sfs)
+    sfc)
 
   (define (dc_ellipse create-surface flwidth flheight0 border background density)
     (define height (~length flheight0 flwidth))
-    (define-values (sfs cr) (create-surface flwidth height density #true))
+    (define-values (sfc cr) (create-surface flwidth height density #true))
     (define-values (width/2 height/2) (values (unsafe-fl* flwidth 0.5) (unsafe-fl* height 0.5)))
     (define radius (unsafe-flmin width/2 height/2))
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define line-width (~bdwidth border))
     
     (cairo_translate cr width/2 height/2)
     (cairo_save cr)
@@ -105,24 +107,24 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
 
-    sfs)
+    sfc)
   
   (define (dc_rectangle create-surface flwidth flheight0 border background density)
     (define flheight (~length flheight0 flwidth))
-    (define-values (sfs cr) (create-surface flwidth flheight density #true))
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define-values (sfc cr) (create-surface flwidth flheight density #true))
+    (define line-width (~bdwidth border))
     (define inset (unsafe-fl* line-width 0.5))
 
     (cairo_rectangle cr inset inset (unsafe-fl- flwidth line-width) (unsafe-fl- flheight line-width))
     (cairo-render cr border background)
     (cairo_destroy cr)
 
-    sfs)
+    sfc)
 
   (define (dc_rounded_rectangle create-surface flwidth flheight0 corner-radius border background density)
     (define flheight (~length flheight0 flwidth))
-    (define-values (sfs cr) (create-surface flwidth flheight density #true))
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define-values (sfc cr) (create-surface flwidth flheight density #true))
+    (define line-width (~bdwidth border))
     (define inset (unsafe-fl* line-width 0.5))
     (define flradius
       (let ([short (unsafe-flmin flwidth flheight)])
@@ -140,14 +142,14 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
 
-    sfs)
+    sfc)
 
   (define (dc_stadium create-surface fllength radius border background density)
     (define flradius (~length radius fllength))
     (define flheight (unsafe-fl* flradius 2.0))
     (define flwidth (unsafe-fl+ fllength flheight))
-    (define-values (sfs cr) (create-surface flwidth flheight density #true))
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define-values (sfc cr) (create-surface flwidth flheight density #true))
+    (define line-width (~bdwidth border))
     (define inset-radius (unsafe-fl- flradius (unsafe-fl* line-width 0.5)))
 
     (cairo_new_sub_path cr)
@@ -157,11 +159,11 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
 
-    sfs)
+    sfc)
 
   (define (dc_polyline create-surface flwidth flheight xs ys dx dy border background fill-style density)
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
-    (define-values (sfs cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
+    (define line-width (~bdwidth border))
+    (define-values (sfc cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
     (define inset (unsafe-fl* line-width 0.5))
     (define x0 (unsafe-fl+ dx inset))
     (define y0 (unsafe-fl+ dy inset))
@@ -182,22 +184,22 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
     
-    sfs)
+    sfc)
 
   (define (dc_regular_polygon create-surface n radius0 rotation border background radian? inscribed? density)
     (define fln (exact->inexact n))
     (define radius (if (not inscribed?) radius0 (unsafe-fl/ radius0 (unsafe-flcos (unsafe-fl/ pi fln))))) ; r = Rcos(pi/n)
     (define fllength (unsafe-fl* radius 2.0))
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define line-width (~bdwidth border))
     (define r (unsafe-fl- radius (unsafe-fl* line-width 0.5)))
     (define delta (unsafe-fl/ 2pi fln))
-    (define-values (sfs cr) (create-surface fllength fllength density #true))
+    (define-values (sfc cr) (create-surface fllength fllength density #true))
     
     (cairo_translate cr radius radius)
     (cairo_new_sub_path cr)
     
     (let draw-polygon ([flidx 0.0]
-                       [theta (if (not radian?) (~radian rotation) rotation)])
+                       [theta (~radian rotation radian?)])
       (when (unsafe-fl< flidx fln)
         (cairo_line_to cr (unsafe-fl* r (unsafe-flcos theta)) (unsafe-fl* r (unsafe-flsin theta)))
         (draw-polygon (unsafe-fl+ flidx 1.0) (unsafe-fl+ theta delta))))
@@ -206,15 +208,15 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
     
-    sfs)
+    sfc)
 
   (define (dc_arrow create-surface head-radius0 start border background density radian? shaft-thickness0 shaft-length0 wing-angle)
     (define fllength (unsafe-fl* head-radius0 2.0))
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define line-width (~bdwidth border))
     (define offset (unsafe-fl* line-width 0.5))
     (define head-radius (unsafe-fl- head-radius0 offset))
-    (define rdelta (if (not wing-angle) (~radian 108.0) (unsafe-fl- pi (unsafe-fl* 0.5 (if (not radian?) (~radian wing-angle) wing-angle)))))
-    (define rpoint (if radian? start (~radian start)))
+    (define rdelta (if (not wing-angle) (~radian 108.0) (unsafe-fl- pi (unsafe-fl* 0.5 (~radian wing-angle radian?)))))
+    (define rpoint (~radian start radian?))
     (define rwing1 (unsafe-fl+ rpoint rdelta))
     (define rwing2 (unsafe-fl- rpoint rdelta))
     (define-values (rpx rpy) (values (unsafe-fl* head-radius (unsafe-flcos rpoint)) (unsafe-fl* head-radius (unsafe-flsin rpoint))))
@@ -252,7 +254,7 @@
                               [(ymin ymax) (values (unsafe-flmin aymin shymin) (unsafe-flmax aymax shymax))])
                   (values (unsafe-fl- xmax xmin) (unsafe-fl- ymax ymin) (unsafe-fl- xmin) (unsafe-fl- ymin) shx1 shy1 shx2 shy2))))))
       
-    (define-values (sfs cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
+    (define-values (sfc cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
     
     (cairo_translate cr (unsafe-fl+ tx offset) (unsafe-fl+ ty offset))
     (cairo_new_sub_path cr)
@@ -272,15 +274,15 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
     
-    sfs)
+    sfc)
 
   (define (dc_sandglass create-surface flwidth flheight0 neck-width0 neck-height0 tube-height0 border background density)
     (define flheight (~length flheight0 flwidth))
-    (define-values (sfs cr) (create-surface flwidth flheight density #true))
+    (define-values (sfc cr) (create-surface flwidth flheight density #true))
     (define-values (neck-width neck-height) (values (~length neck-width0 flwidth) (~length neck-height0 flheight)))
     (define-values (cy neck-a neck-b) (values (unsafe-fl* flheight 0.5) (unsafe-fl* neck-width 0.25) (unsafe-fl* neck-height 0.5)))
     (define tube-height (~length tube-height0 flheight))
-    (define line-width (if (struct? border) (unsafe-struct-ref border 1) 0.0))
+    (define line-width (~bdwidth border))
     (define bulb-a (unsafe-fl* (unsafe-fl- (unsafe-fl- flwidth line-width) neck-width) 0.5))
     (define bulb-b (unsafe-fl* (unsafe-fl- (unsafe-fl- flheight line-width) (unsafe-fl+ (unsafe-fl* tube-height 2.0) neck-height)) 0.5))
     (define tlset (unsafe-fl* line-width 0.5))
@@ -311,7 +313,7 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
 
-    sfs))
+    sfc))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide

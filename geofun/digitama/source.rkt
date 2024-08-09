@@ -13,16 +13,19 @@
 (require "unsafe/visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Stroke-Paint (U Color Paint))
+(define-type Stroke-Paint (U Color Stroke))
 (define-type Fill-Paint (U Color Visual-Object<%> Fill-Pattern))
 
+(define default-fill-paint : (Parameterof (Option Fill-Paint)) (make-parameter #false))
+(define default-fill-rule : (Parameterof Symbol) (make-parameter 'winding))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define stroke-paint->source : (-> Stroke-Paint Paint)
+(define stroke-paint->source : (-> Stroke-Paint Stroke)
   (lambda [paint]
-    (cond [(paint? paint) paint]
+    (cond [(stroke? paint) paint]
           [else (desc-stroke (default-stroke) #:color paint)])))
 
-(define stroke-paint->source* : (-> (Option Stroke-Paint) (Option Paint))
+(define stroke-paint->source* : (-> (Option Stroke-Paint) (Option Stroke))
   (lambda [paint]
     (and paint (stroke-paint->source paint))))
 

@@ -1,7 +1,7 @@
 #lang racket
 
 (require "../../digitama/unsafe/pangocairo.rkt")
-(require bitmap/digitama/unsafe/surface)
+(require bitmap/digitama/convert)
 
 ;;; https://www.cairographics.org/samples/dash/
 ;;; https://www.cairographics.org/samples/fill_and_stroke2/

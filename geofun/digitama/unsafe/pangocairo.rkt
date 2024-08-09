@@ -158,9 +158,13 @@
                 (unsafe-fx->fl PANGO_SCALE))))
 
 (define ~radian
-  (lambda [degree]
-    (unsafe-fl* degree
-                (unsafe-fl/ pi 180.0))))
+  (case-lambda
+    [(degree) (unsafe-fl* degree (unsafe-fl/ pi 180.0))]
+    [(angle radian?) (if (and radian?) angle (~radian angle))]))
+
+(define ~bdwidth
+  (lambda [border]
+    (if (struct? border) (unsafe-struct-ref border 1) 0.0)))
 
 (define ~length
   (lambda [fl% 100%]

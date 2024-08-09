@@ -81,9 +81,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define flow-chart-surface : Geo-Surface-Create
-  (lambda [self [paint (default-stroke)] [fill #false] [fstyle 'winding]]
+  (lambda [self [opt #false]]
     (with-asserts ([self flow-chart?])
       (define-values (xoff yoff) (geo-bbox-offset-values (flow-chart-bbox self)))
       (path_stamp null xoff yoff
-                  (stroke-paint->source paint) (fill-paint->source* fill)
-                  fstyle))))
+                  (default-stroke) (fill-paint->source* (default-fill-paint)) (default-fill-rule)))))

@@ -21,6 +21,7 @@
       (make-phantom-bytes (unsafe-fx* (cairo_image_surface_get_stride sfc)
                                       (cairo_image_surface_get_height sfc))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [#:opaque Phantom-Bytes phantom-bytes?]
@@ -31,3 +32,6 @@
  [#:opaque PDF-Surface pdf-surface?]
  [#:opaque Cairo-DC cairo-dc?]
  [cairo-image-shadow-size (-> Bitmap-Surface Phantom-Bytes)])
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type (Cairo-Surface-Create S) (-> Flonum Flonum Positive-Flonum Boolean (Values S Cairo-DC)))

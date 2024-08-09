@@ -6,7 +6,7 @@
 
 (require "../../base.rkt")
 (require "../source.rkt")
-(require "../surface/type.rkt")
+(require "../visual/ctype.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -71,7 +71,7 @@
     (define ys (make-flvector 10))
     
     (let collect-vectices ([idx 0]
-                           [theta (if (not radian?) (~radian rotation) rotation)])
+                           [theta (~radian rotation radian?)])
       (when (unsafe-fx< idx 10)
         (unsafe-flvector-set! xs idx (unsafe-fl* R (unsafe-flcos theta)))
         (unsafe-flvector-set! ys idx (unsafe-fl* R (unsafe-flsin theta)))

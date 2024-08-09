@@ -3,7 +3,6 @@
 (provide (all-defined-out) 3D-Radius-Type)
 
 (require "digitama/convert.rkt")
-(require "digitama/bitmap.rkt")
 
 (require geofun/digitama/base)
 (require geofun/digitama/source)
