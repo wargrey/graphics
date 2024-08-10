@@ -14,17 +14,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-save : (->* (Geo<%> (U Path-String Output-Port))
-                        (#:border Stroke-Paint #:fill (Option Fill-Paint) #:fill-rule Symbol
-                         #:option Any #:format Symbol #:bitmap-density Positive-Flonum)
+                        (#:stroke (Option Stroke-Paint) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:fill-rule Symbol
+                         #:format Symbol #:bitmap-density Positive-Flonum)
                         Void)
-  (lambda [#:border [stroke (default-stroke)] #:fill [fill (default-fill-paint)] #:fill-rule [fill-rule (default-fill-rule)]
-           #:option [opt (void)] #:format [format 'pdf] #:bitmap-density [density (default-bitmap-density)]
+  (lambda [#:stroke [stroke (default-stroke)] #:border [border (default-border)]
+           #:fill [fill (default-fill-paint)] #:fill-rule [fill-rule (default-fill-rule)]
+           #:format [format 'pdf] #:bitmap-density [density (default-bitmap-density)]
            self /dev/geoout]
-    (parameterize ([default-stroke (stroke-paint->source stroke)]
+    (parameterize ([default-stroke (or (stroke-paint->source* stroke) (default-stroke))]
+                   [default-border (or (stroke-paint->source* border) (default-border))]
                    [default-fill-paint fill]
                    [default-fill-rule fill-rule])
       (abstract-surface-save
-       (if (void? opt)
-           ((geo<%>-surface self) self)
-           ((geo<%>-surface self) self opt))
+       ((geo<%>-surface self) self)
        /dev/geoout format density))))

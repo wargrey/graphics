@@ -222,7 +222,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-surface : Geo-Surface-Create
-  (lambda [self [option #false]]
+  (lambda [self]
     (with-asserts ([self track?])
       (define-values (xoff yoff) (geo-bbox-offset-values (track-bbox self)))
       (path_stamp (track-footprints self) xoff yoff

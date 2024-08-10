@@ -34,7 +34,7 @@
      (syntax/loc stx
        (create-geometry-object Geo #:with [surface] rest ...))]))
 
-(define default-abstract-density : (Parameterof Positive-Flonum) (make-parameter 1.0))
+(define default-geometry-density : (Parameterof Positive-Flonum) (make-parameter 1.0))
 
 (define create-abstract-surface : (Cairo-Surface-Create Abstract-Surface)
   (lambda [flwidth flheight density scale?]
@@ -42,8 +42,8 @@
     (values surface cr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Surface-Create (->* (Geo<%>) (Any) Abstract-Surface))
-(define-type Geo-Calculate-BBox (->* (Geo<%>) (Any) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum)))
+(define-type Geo-Surface-Create (-> Geo<%> Abstract-Surface))
+(define-type Geo-Calculate-BBox (-> Geo<%> (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum)))
 
 (struct geo<%> visual-object<%>
   ([surface : Geo-Surface-Create]
@@ -56,14 +56,14 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-bounding-box : (->* (Geo<%>) (Stroke-Paint #:option Any) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [geo [stroke (default-stroke)] #:option [opt (void)]]
-    (parameterize ([default-stroke (stroke-paint->source stroke)])
-      ((geo<%>-aabox geo) geo opt))))
+(define geo-bounding-box : (->* (Geo<%>) (Stroke-Paint) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [geo [stroke (default-border)]]
+    (parameterize ([default-border (stroke-paint->source stroke)])
+      ((geo<%>-aabox geo) geo))))
 
-(define geo-intrinsic-size : (->* (Geo<%>) (Stroke-Paint #:option Any) (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [geo [stroke (default-stroke)] #:option [opt (void)]]
-    (define-values (lx ty width height) (geo-bounding-box geo stroke #:option opt))
+(define geo-intrinsic-size : (->* (Geo<%>) (Stroke-Paint) (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [geo [stroke (default-border)]]
+    (define-values (lx ty width height) (geo-bounding-box geo stroke))
     (values width height)))
 
 (define geo-intrinsic-width : (-> Geo<%> Nonnegative-Flonum)
@@ -92,71 +92,105 @@
   (lambda [self mime fallback]
     (with-asserts ([self geo<%>?])
       (case mime
-        [(pdf-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self #false) 'pdf '/dev/pdfout 1.0)]
-        [(svg-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self #false) 'svg '/dev/svgout 1.0)]
-        [(png@2x-bytes) (abstract-surface->stream-bytes ((geo<%>-surface self) self #false) 'png '/dev/p2xout 2.0)]
-        [(png-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self #false) 'png '/dev/pngout 1.0)]
-        [(cairo-surface) ((geo<%>-surface self) self #false)]
+        [(pdf-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'pdf '/dev/pdfout 1.0)]
+        [(svg-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'svg '/dev/svgout 1.0)]
+        [(png@2x-bytes) (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'png '/dev/p2xout 2.0)]
+        [(png-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'png '/dev/pngout 1.0)]
+        [(cairo-surface) ((geo<%>-surface self) self)]
         [else fallback]))))
 
 (define geo-calculate-bbox : Geo-Calculate-BBox
-  (lambda [self [option (void)]]
+  (lambda [self]
     (abstract-surface-content-bbox
-     (if (void? option)
-         ((geo<%>-surface self) self)
-         ((geo<%>-surface self) self option)))))
+     ((geo<%>-surface self) self))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-shape-surface-wrapper : (-> Geo-Surface-Create (Option Stroke) (Option Fill-Paint) (Option Symbol) Geo-Surface-Create)
-  (lambda [λsurface alt-stroke alt-fill alt-rule]
-    (cond [(and alt-stroke alt-fill alt-rule)
-           (λ [self [option (void)]]
-             (parameterize ([default-stroke alt-stroke]
-                            [default-fill-paint alt-fill]
-                            [default-fill-rule alt-rule])
-               (if (void? option) (λsurface self) (λsurface self option))))]
-          [(and alt-stroke alt-fill)
-           (λ [self [option (void)]]
-             (parameterize ([default-stroke alt-stroke]
-                            [default-fill-paint alt-fill]
-                            #;[default-fill-rule alt-rule])
-               (λsurface self option)))]
-          [(and alt-fill alt-rule)
-           (λ [self [option (void)]]
-             (parameterize (#;[default-stroke alt-stroke]
-                            [default-fill-paint alt-fill]
-                            [default-fill-rule alt-rule])
-               (if (void? option) (λsurface self) (λsurface self option))))]
-          [(and alt-stroke alt-rule)
-           (λ [self [option (void)]]
-             (parameterize ([default-stroke alt-stroke]
-                            #;[default-fill-paint alt-fill]
-                            [default-fill-rule alt-rule])
-               (if (void? option) (λsurface self) (λsurface self option))))]
-          [(and alt-stroke)
-           (λ [self [option (void)]]
-             (parameterize ([default-stroke alt-stroke]
-                            #;[default-fill-paint alt-fill]
-                            #;[default-fill-rule alt-rule])
-               (if (void? option) (λsurface self) (λsurface self option))))]
-          [(and alt-fill)
-           (λ [self [option (void)]]
-             (parameterize (#;[default-stroke alt-stroke]
-                            [default-fill-paint alt-fill]
-                            #;[default-fill-rule alt-rule])
-               (if (void? option) (λsurface self) (λsurface self option))))]
-          [(and alt-rule)
-           (λ [self [option (void)]]
-             (parameterize (#;[default-stroke alt-stroke]
-                            #;[default-fill-paint alt-fill]
-                            [default-fill-rule alt-rule])
-               (if (void? option) (λsurface self) (λsurface self option))))]
-          [else λsurface])))
+(define geo-shape-surface-wrapper : (case-> [Geo-Surface-Create (Option Stroke) (Option Stroke) (Option Fill-Paint) (Option Symbol) -> Geo-Surface-Create]
+                                            [Geo-Surface-Create (Option Stroke) (Option Fill-Paint) (Option Symbol) -> Geo-Surface-Create]
+                                            [Geo-Surface-Create (Option Stroke) (Option Fill-Paint) -> Geo-Surface-Create]
+                                            [Geo-Surface-Create (Option Stroke) -> Geo-Surface-Create])
+  (case-lambda
+    [(λsurface alt-stroke alt-border-stroke alt-fill alt-rule)
+     (geo-shape-surface-wrapper (geo-shape-surface-wrapper λsurface alt-border-stroke alt-fill alt-rule) alt-stroke)]
+    [(λsurface alt-border-stroke alt-fill alt-rule)
+     (cond [(and alt-border-stroke alt-fill alt-rule)
+            (λ [self]
+              (parameterize ([default-border alt-border-stroke]
+                             [default-fill-paint alt-fill]
+                             [default-fill-rule alt-rule])
+                (λsurface self)))]
+           [(and alt-border-stroke alt-fill)
+            (λ [self]
+              (parameterize ([default-border alt-border-stroke]
+                             [default-fill-paint alt-fill]
+                             #;[default-fill-rule alt-rule])
+                (λsurface self)))]
+           [(and alt-fill alt-rule)
+            (λ [self]
+              (parameterize (#;[default-border alt-border-stroke]
+                             [default-fill-paint alt-fill]
+                             [default-fill-rule alt-rule])
+                (λsurface self)))]
+           [(and alt-border-stroke alt-rule)
+            (λ [self]
+              (parameterize ([default-border alt-border-stroke]
+                             #;[default-fill-paint alt-fill]
+                             [default-fill-rule alt-rule])
+                (λsurface self)))]
+           [(and alt-border-stroke)
+            (λ [self]
+              (parameterize ([default-border alt-border-stroke]
+                             #;[default-fill-paint alt-fill]
+                             #;[default-fill-rule alt-rule])
+                (λsurface self)))]
+           [(and alt-fill)
+            (λ [self]
+              (parameterize (#;[default-border alt-border-stroke]
+                             [default-fill-paint alt-fill]
+                             #;[default-fill-rule alt-rule])
+                (λsurface self)))]
+           [(and alt-rule)
+            (λ [self]
+              (parameterize (#;[default-border alt-border-stroke]
+                             #;[default-fill-paint alt-fill]
+                             [default-fill-rule alt-rule])
+                (λsurface self)))]
+           [else λsurface])]
+    [(λsurface alt-border-stroke alt-fill)
+     (cond [(and alt-border-stroke alt-fill)
+            (λ [self]
+              (parameterize ([default-border alt-border-stroke]
+                             [default-fill-paint alt-fill])
+                (λsurface self)))]
+           [(and alt-fill)
+            (λ [self]
+              (parameterize (#;[default-border alt-border-stroke]
+                             [default-fill-paint alt-fill])
+                (λsurface self)))]
+           [(and alt-border-stroke)
+            (λ [self]
+              (parameterize ([default-border alt-border-stroke]
+                             #;[default-fill-paint alt-fill])
+                (λsurface self)))]
+           [else λsurface])]
+    [(λsurface alt-stroke)
+     (cond [(and alt-stroke)
+            (λ [self]
+              (parameterize ([default-stroke alt-stroke])
+                (λsurface self)))]
+           [else λsurface])]))
+
 
 (define geo-shape-bbox-wrapper : (-> Geo-Calculate-BBox (Option Stroke)  Geo-Calculate-BBox)
-  (lambda [λsurface alt-stroke]
-    (if (or alt-stroke)
-        (λ [self [option (void)]]
-          (parameterize ([default-stroke alt-stroke])
-            (if (void? option) (λsurface self) (λsurface self option))))
+  (lambda [λsurface alt-border-stroke]
+    (if (or alt-border-stroke)
+        (λ [self]
+          (parameterize ([default-border alt-border-stroke])
+            (λsurface self)))
         λsurface)))
+
+(define geo-shape-plain-bbox : (case-> [Nonnegative-Flonum -> Geo-Calculate-BBox]
+                                       [Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-BBox])
+  (case-lambda
+    [(size) (λ [self] (values 0.0 0.0 size size))]
+    [(width height) (λ [self] (values 0.0 0.0 width height))]))

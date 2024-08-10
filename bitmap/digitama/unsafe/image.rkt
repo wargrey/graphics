@@ -134,9 +134,7 @@
     img)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (frame-metrics line-width line-inset mopen mclose popen pclose size)
-    (define-values (flmopen flmclose) (values (~length mopen size) (~length mclose size)))
-    (define-values (flpopen flpclose) (values (~length popen size) (~length pclose size)))
+  (define (frame-metrics line-width line-inset flmopen flmclose flpopen flpclose size)
     (define border-position (unsafe-fl+ flmopen line-inset))
     (define position (unsafe-fl+ (unsafe-fl+ flmopen flpopen) line-width))
     (define border-size (unsafe-fl+ (unsafe-fl+ (unsafe-fl+ flpopen flpclose) size) line-width))
@@ -166,5 +164,7 @@
  [λbitmap_map (-> Bitmap-Surface Flonum ARGB-Map Bitmap)]
  [bitmap_blank (-> Flonum Flonum Flonum Bitmap)]
  [bitmap_pattern (-> Flonum Flonum Fill-Source Flonum Bitmap)]
- [bitmap_frame (-> Bitmap-Surface Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum
+ [bitmap_frame (-> Bitmap-Surface
+                   Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
+                   Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                    (Option Paint) (Option Fill-Source) Flonum Bitmap)])

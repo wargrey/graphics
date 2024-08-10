@@ -50,11 +50,9 @@
     
     sfc)
 
-  (define (dc_sector create-surface aradius bradius start end border background density radian?)
+  (define (dc_sector create-surface aradius bradius rstart rend border background density)
     (define-values (sfc cr) (create-surface (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
     (define line-width (~bdwidth border))
-    (define rstart (~radian start radian?))
-    (define rend (~radian end radian?))
     
     (cairo_translate cr aradius bradius)
 
@@ -72,11 +70,9 @@
     
     sfc)
 
-  (define (dc_arc create-surface aradius bradius start end border density radian?)
+  (define (dc_arc create-surface aradius bradius rstart rend border density)
     (define-values (sfc cr) (create-surface (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
     (define line-width (~bdwidth border))
-    (define rstart (~radian start radian?))
-    (define rend (~radian end radian?))
     
     (cairo_translate cr aradius aradius)
 
@@ -90,18 +86,17 @@
     
     sfc)
 
-  (define (dc_ellipse create-surface flwidth flheight0 border background density)
-    (define height (~length flheight0 flwidth))
-    (define-values (sfc cr) (create-surface flwidth height density #true))
-    (define-values (width/2 height/2) (values (unsafe-fl* flwidth 0.5) (unsafe-fl* height 0.5)))
+  (define (dc_ellipse create-surface flwidth flheight border background density)
+    (define-values (sfc cr) (create-surface flwidth flheight density #true))
+    (define-values (width/2 height/2) (values (unsafe-fl* flwidth 0.5) (unsafe-fl* flheight 0.5)))
     (define radius (unsafe-flmin width/2 height/2))
     (define line-width (~bdwidth border))
     
     (cairo_translate cr width/2 height/2)
     (cairo_save cr)
     (if (unsafe-fl= radius height/2)
-        (cairo_scale cr (unsafe-fl/ flwidth height) 1.0)
-        (cairo_scale cr 1.0 (unsafe-fl/ height flwidth)))
+        (cairo_scale cr (unsafe-fl/ flwidth flheight) 1.0)
+        (cairo_scale cr 1.0 (unsafe-fl/ flheight flwidth)))
     (cairo_arc cr 0.0 0.0 (unsafe-fl- radius (unsafe-fl* line-width 0.5)) 0.0 2pi)
     (cairo_restore cr)
     (cairo-render cr border background)
@@ -109,8 +104,7 @@
 
     sfc)
   
-  (define (dc_rectangle create-surface flwidth flheight0 border background density)
-    (define flheight (~length flheight0 flwidth))
+  (define (dc_rectangle create-surface flwidth flheight border background density)
     (define-values (sfc cr) (create-surface flwidth flheight density #true))
     (define line-width (~bdwidth border))
     (define inset (unsafe-fl* line-width 0.5))
@@ -121,14 +115,13 @@
 
     sfc)
 
-  (define (dc_rounded_rectangle create-surface flwidth flheight0 corner-radius border background density)
-    (define flheight (~length flheight0 flwidth))
+  (define (dc_rounded_rectangle create-surface flwidth flheight corner-radius border background density)
     (define-values (sfc cr) (create-surface flwidth flheight density #true))
     (define line-width (~bdwidth border))
     (define inset (unsafe-fl* line-width 0.5))
     (define flradius
       (let ([short (unsafe-flmin flwidth flheight)])
-        (unsafe-flmin (unsafe-fl* short 0.5) (~length corner-radius short))))
+        (unsafe-flmin (unsafe-fl* short 0.5) corner-radius)))
     (define tlset (unsafe-fl+ inset flradius))
     (define xrset (unsafe-fl- (unsafe-fl- flwidth inset) flradius))
     (define ybset (unsafe-fl- (unsafe-fl- flheight inset) flradius))
@@ -144,8 +137,7 @@
 
     sfc)
 
-  (define (dc_stadium create-surface fllength radius border background density)
-    (define flradius (~length radius fllength))
+  (define (dc_stadium create-surface fllength flradius border background density)
     (define flheight (unsafe-fl* flradius 2.0))
     (define flwidth (unsafe-fl+ fllength flheight))
     (define-values (sfc cr) (create-surface flwidth flheight density #true))
@@ -186,7 +178,7 @@
     
     sfc)
 
-  (define (dc_regular_polygon create-surface n radius0 rotation border background radian? inscribed? density)
+  (define (dc_regular_polygon create-surface n radius0 rotation border background inscribed? density)
     (define fln (exact->inexact n))
     (define radius (if (not inscribed?) radius0 (unsafe-fl/ radius0 (unsafe-flcos (unsafe-fl/ pi fln))))) ; r = Rcos(pi/n)
     (define fllength (unsafe-fl* radius 2.0))
@@ -199,7 +191,7 @@
     (cairo_new_sub_path cr)
     
     (let draw-polygon ([flidx 0.0]
-                       [theta (~radian rotation radian?)])
+                       [theta rotation])
       (when (unsafe-fl< flidx fln)
         (cairo_line_to cr (unsafe-fl* r (unsafe-flcos theta)) (unsafe-fl* r (unsafe-flsin theta)))
         (draw-polygon (unsafe-fl+ flidx 1.0) (unsafe-fl+ theta delta))))
@@ -210,23 +202,20 @@
     
     sfc)
 
-  (define (dc_arrow create-surface head-radius0 start border background density radian? shaft-thickness0 shaft-length0 wing-angle)
+  (define (dc_arrow create-surface head-radius0 rpoint border background density shaft-thickness shaft-length wing-angle)
     (define fllength (unsafe-fl* head-radius0 2.0))
     (define line-width (~bdwidth border))
     (define offset (unsafe-fl* line-width 0.5))
     (define head-radius (unsafe-fl- head-radius0 offset))
-    (define rdelta (if (not wing-angle) (~radian 108.0) (unsafe-fl- pi (unsafe-fl* 0.5 (~radian wing-angle radian?)))))
-    (define rpoint (~radian start radian?))
+    (define rdelta (if (not wing-angle) (unsafe-fl* 0.6 pi #;108.0) (unsafe-fl- pi (unsafe-fl* 0.5 wing-angle))))
     (define rwing1 (unsafe-fl+ rpoint rdelta))
     (define rwing2 (unsafe-fl- rpoint rdelta))
     (define-values (rpx rpy) (values (unsafe-fl* head-radius (unsafe-flcos rpoint)) (unsafe-fl* head-radius (unsafe-flsin rpoint))))
     (define-values (wx1 wy1) (values (unsafe-fl* head-radius (unsafe-flcos rwing1)) (unsafe-fl* head-radius (unsafe-flsin rwing1))))
     (define-values (wx2 wy2) (values (unsafe-fl* head-radius (unsafe-flcos rwing2)) (unsafe-fl* head-radius (unsafe-flsin rwing2))))
     
-    (define shaft-length (~length shaft-length0 head-radius0))
-    (define shaft-thickness (~length shaft-thickness0 head-radius))
     (define shaft-thickness/2 (unsafe-fl* shaft-thickness 0.5))
-    (define draw-shaft? (and (unsafe-fl< 0.0 shaft-thickness/2) (unsafe-fl< shaft-thickness/2 head-radius)))
+    (define draw-shaft? (unsafe-fl< shaft-thickness/2 head-radius))
     (define wing-theta (unsafe-fl- rdelta pi/2))
     (define wing-radius (unsafe-fl/ shaft-thickness/2 (unsafe-flcos wing-theta)))
     (define shaft-minlen (unsafe-fl* shaft-thickness/2 (unsafe-fltan wing-theta)))
@@ -276,12 +265,9 @@
     
     sfc)
 
-  (define (dc_sandglass create-surface flwidth flheight0 neck-width0 neck-height0 tube-height0 border background density)
-    (define flheight (~length flheight0 flwidth))
+  (define (dc_sandglass create-surface flwidth flheight neck-width neck-height tube-height border background density)
     (define-values (sfc cr) (create-surface flwidth flheight density #true))
-    (define-values (neck-width neck-height) (values (~length neck-width0 flwidth) (~length neck-height0 flheight)))
     (define-values (cy neck-a neck-b) (values (unsafe-fl* flheight 0.5) (unsafe-fl* neck-width 0.25) (unsafe-fl* neck-height 0.5)))
-    (define tube-height (~length tube-height0 flheight))
     (define line-width (~bdwidth border))
     (define bulb-a (unsafe-fl* (unsafe-fl- (unsafe-fl- flwidth line-width) neck-width) 0.5))
     (define bulb-b (unsafe-fl* (unsafe-fl- (unsafe-fl- flheight line-width) (unsafe-fl+ (unsafe-fl* tube-height 2.0) neck-height)) 0.5))
@@ -319,15 +305,20 @@
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [dc_line (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum Flonum (Option Paint) Flonum S))]
- [dc_circle (All (S) (-> (Cairo-Surface-Create S) Flonum (Option Paint) (Option Fill-Source) Flonum S))]
- [dc_sector (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum Boolean S))]
- [dc_arc (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum (Option Paint) Flonum Boolean S))]
- [dc_ellipse (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
- [dc_rectangle (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
- [dc_rounded_rectangle (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
- [dc_stadium (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
- [dc_regular_polygon (All (S) (-> (Cairo-Surface-Create S) Positive-Index Flonum Flonum (Option Paint) (Option Fill-Source) Boolean Boolean Flonum S))]
- [dc_arrow (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Option Paint) (Option Fill-Source) Flonum Boolean Flonum Flonum (Option Flonum) S))]
+ [dc_circle (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+ [dc_sector (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+ [dc_arc (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (Option Paint) Flonum S))]
+ [dc_ellipse (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+ [dc_rectangle (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+ [dc_rounded_rectangle (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+ [dc_stadium (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+ [dc_regular_polygon (All (S) (-> (Cairo-Surface-Create S) Positive-Index Flonum Flonum (Option Paint) (Option Fill-Source) Boolean Flonum S))]
+
+ [dc_arrow (All (S) (-> (Cairo-Surface-Create S)
+                        Nonnegative-Flonum Flonum (Option Paint) (Option Fill-Source) Flonum
+                        Nonnegative-Flonum Nonnegative-Flonum (Option Flonum)
+                        S))]
+ 
  [dc_sandglass (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
 
  [dc_polyline (All (S) (-> (Cairo-Surface-Create S)

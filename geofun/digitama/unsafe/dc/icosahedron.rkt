@@ -59,7 +59,7 @@
     
     sfc)
 
-  (define (dc_icosahedron_over_proj create-surface radius0 type rotation edge background border0 radian? density)
+  (define (dc_icosahedron_over_proj create-surface radius0 type rotation edge background border0 density)
     (define radius (icosahedron-radius->circumsphere-radius radius0 type))
     (define fllength (unsafe-fl* radius 2.0))
     (define-values (sfc cr) (create-surface fllength fllength density #true))
@@ -71,7 +71,7 @@
     (define ys (make-flvector 10))
     
     (let collect-vectices ([idx 0]
-                           [theta (~radian rotation radian?)])
+                           [theta rotation])
       (when (unsafe-fx< idx 10)
         (unsafe-flvector-set! xs idx (unsafe-fl* R (unsafe-flcos theta)))
         (unsafe-flvector-set! ys idx (unsafe-fl* R (unsafe-flsin theta)))
@@ -171,5 +171,11 @@
 
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [dc_icosahedron_side_proj (All (S) (-> (Cairo-Surface-Create S) Flonum 3D-Radius-Type (Option Paint) (Option Fill-Source) (Option Paint) Flonum S))]
- [dc_icosahedron_over_proj (All (S) (-> (Cairo-Surface-Create S) Flonum 3D-Radius-Type Flonum (Option Paint) (Option Fill-Source) (Option Paint) Boolean Flonum S))])
+ [dc_icosahedron_side_proj
+  (All (S) (-> (Cairo-Surface-Create S)
+               Nonnegative-Flonum 3D-Radius-Type (Option Paint) (Option Fill-Source) (Option Paint)
+               Flonum S))]
+ [dc_icosahedron_over_proj
+  (All (S) (-> (Cairo-Surface-Create S)
+               Nonnegative-Flonum 3D-Radius-Type Flonum (Option Paint) (Option Fill-Source) (Option Paint)
+               Flonum S))])

@@ -4,6 +4,8 @@
 
 (require "digitama/convert.rkt")
 
+(require digimon/metrics)
+
 (require geofun/digitama/base)
 (require geofun/digitama/source)
 (require geofun/digitama/unsafe/dc/icosahedron)
@@ -16,7 +18,7 @@
   (lambda [#:edge [edge (default-stroke)] #:border [border #false] #:fill [pattern #false] #:density [density (default-bitmap-density)]
            radius [radius-type 'vertex]]
     (dc_icosahedron_side_proj create-argb-bitmap
-                              (real->double-flonum radius) radius-type
+                              (~length radius) radius-type
                               (stroke-paint->source* edge) (fill-paint->source* pattern) (stroke-paint->source* border)
                               density)))
 
@@ -28,6 +30,6 @@
            #:rotation [rotation 0.0] #:radian? [radian? #true] #:density [density (default-bitmap-density)]
            radius [radius-type 'vertex]]
     (dc_icosahedron_over_proj create-argb-bitmap
-                              (real->double-flonum radius) radius-type (real->double-flonum rotation)
+                              (~length radius) radius-type (~radian rotation radian?)
                               (stroke-paint->source* edge) (fill-paint->source* pattern) (stroke-paint->source* border)
-                              radian? density)))
+                              density)))

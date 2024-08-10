@@ -74,7 +74,7 @@
         (dc_text create-abstract-surface
                  (geo:text-content self) (font-description (or alt-font (default-font))) (geo:text-lines self)
                  (fill-paint->source (or alt-fg (rgb* ((default-make-currentcolor))))) (fill-paint->source* alt-bg)
-                 #false #false #false #false #false (default-abstract-density))))))
+                 #false #false #false #false #false (default-geometry-density))))))
 
 (define geo-paragraph-surface-make : (-> (Option Font) (Option Fill-Paint) (Option Fill-Paint) Geo-Surface-Create)
   (lambda [alt-font alt-fg alt-bg]
@@ -86,4 +86,4 @@
                       (geo:para-ident self) (geo:para-space self)
                       (geo:para-wmode self) (geo:para-emode self)
                       (fill-paint->source (or alt-fg (rgb* ((default-make-currentcolor))))) (fill-paint->source* alt-bg)
-                      (default-abstract-density))))))
+                      (default-geometry-density))))))

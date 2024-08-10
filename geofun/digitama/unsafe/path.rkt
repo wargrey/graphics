@@ -31,7 +31,7 @@
         [(#\m) (cairo_rel_move_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
         [(#\L) (cairo_line_to cr (unsafe-fl+ (unsafe-flreal-part footprint) dx) (unsafe-fl+ (unsafe-flimag-part footprint) dy))]
         [(#\l) (cairo_rel_line_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
-        [(#\A) (cairo_elliptical_arc cr footprint #true dx dy)]
+        [(#\A) (cairo_elliptical_arc cr footprint dx dy)]
         [(#\C) (cairo_cubic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
         [(#\Q) (cairo_quadratic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
         [(#\Z #\z) (cairo_close_path cr)]))
@@ -40,14 +40,14 @@
       (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (cairo_elliptical_arc cr path:arc radian? dx dy)
+  (define (cairo_elliptical_arc cr path:arc dx dy)
     (define center (unsafe-struct*-ref path:arc 0))
     (define cx (unsafe-fl+ (unsafe-flreal-part center) dx))
     (define cy (unsafe-fl+ (unsafe-flimag-part center) dy))
     (define rx (unsafe-struct*-ref path:arc 1))
     (define ry (unsafe-struct*-ref path:arc 2))
-    (define rstart (~radian (unsafe-struct*-ref path:arc 3) radian?))
-    (define rend (~radian (unsafe-struct*-ref path:arc 4) radian?))
+    (define rstart (unsafe-struct*-ref path:arc 3))
+    (define rend (unsafe-struct*-ref path:arc 4))
     (define cairo-arc (if (unsafe-struct*-ref path:arc 5) cairo_arc cairo_arc_negative))
     
     (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo-arc))
