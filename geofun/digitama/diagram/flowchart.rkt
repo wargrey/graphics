@@ -9,6 +9,9 @@
 
 (require "../unsafe/path.rkt")
 
+(require "../../paint.rkt")
+(require "../../stroke.rkt")
+
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
 

@@ -7,20 +7,30 @@
 (require "base.rkt")
 (require "source.rkt")
 (require "convert.rkt")
+(require "composite.rkt")
+
+(require "../stroke.rkt")
+(require "../paint.rkt")
 
 (require "unsafe/visual/abstract.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-freeze : (->* (Geo<%>)
-                          (#:stroke (Option Stroke-Paint) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:fill-rule Symbol #:density Positive-Flonum)
+                          (#:stroke Maybe-Stroke-Paint #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule Symbol
+                           #:foreground Maybe-Fill-Paint #:background Maybe-Fill-Paint #:operator Geo-Pin-Operator
+                           #:density Positive-Flonum)
                           Bitmap)
-  (lambda [#:stroke [stroke (default-stroke)] #:border [border (default-border)] #:fill [fill (default-fill-paint)] #:fill-rule [rule (default-fill-rule)]
+  (lambda [#:stroke [stroke (void)] #:border [border (void)] #:fill [fill (void)] #:fill-rule [rule (default-fill-rule)]
+           #:foreground [fgc (void)] #:background [bgc (void)] #:operator [op (default-pin-operator)]
            #:density [density (default-bitmap-density)]
            self]
-    (parameterize ([default-stroke (or (stroke-paint->source* stroke) (default-stroke))]
-                   [default-border (or (stroke-paint->source* border) (default-border))]
+    (parameterize ([default-stroke-paint (stroke-paint->source* stroke)]
+                   [default-border-paint (border-paint->source* border)]
+                   ;[default-foreground-paint fgc]
+                   ;[default-background-paint bgc]
                    [default-fill-rule rule]
-                   [default-fill-paint fill])
+                   [default-fill-paint fill]
+                   [default-pin-operator op])
       (define-values (self-sfc width height)
         (abstract-surface->image-surface
          ((geo<%>-surface self) self)
@@ -29,9 +39,12 @@
       (make-bitmap-from-image-surface self-sfc density width height))))
 
 (define geo-freeze! : (->* (Bitmap Geo<%>)
-                           (Real Real #:stroke (Option Stroke-Paint) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint) #:fill-rule Symbol)
+                           (Real Real
+                                 #:stroke Maybe-Stroke-Paint #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule Symbol
+                                 #:foreground Maybe-Fill-Paint #:background Maybe-Fill-Paint #:operator Geo-Pin-Operator)
                            Void)
-  (lambda [#:stroke [stroke (default-stroke)] #:border [border (default-border)] #:fill [fill (default-fill-paint)] #:fill-rule [rule (default-fill-rule)]
+  (lambda [#:stroke [stroke (void)] #:border [border (void)] #:fill [fill (void)] #:fill-rule [rule (default-fill-rule)]
+           #:foreground [fgc (void)] #:background [bgc (void)] #:operator [op (default-pin-operator)]
            target self [dx 0.0] [dy 0.0]]
     (parameterize ([default-stroke (or (stroke-paint->source* stroke) (default-stroke))]
                    [default-border (or (stroke-paint->source* border) (default-border))]

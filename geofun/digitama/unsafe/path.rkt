@@ -20,10 +20,10 @@
   (define (path_stamp footprints dx dy stroke fill-color fill-rule)
     (make-cairo-abstract-surface 0.0 0.0 1.0 #false
                                  (λ [cr _inf.w _inf.h]
-                                   (cairo_path cr footprints dx dy fill-rule)
-                                   (cairo-render cr stroke fill-color))))
+                                   (cairo_path cr footprints dx dy)
+                                   (cairo-render cr stroke fill-color fill-rule))))
 
-  (define (cairo_path cr footprints dx dy fill-rule)
+  (define (cairo_path cr footprints dx dy)
     (for ([op+footprint (in-list (reverse footprints))])
       (define footprint (unsafe-cdr op+footprint))
       (case (unsafe-car op+footprint)
@@ -34,10 +34,7 @@
         [(#\A) (cairo_elliptical_arc cr footprint dx dy)]
         [(#\C) (cairo_cubic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
         [(#\Q) (cairo_quadratic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
-        [(#\Z #\z) (cairo_close_path cr)]))
-
-    (unless (eq? fill-rule 'winding)
-      (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD)))
+        [(#\Z #\z) (cairo_close_path cr)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (cairo_elliptical_arc cr path:arc dx dy)

@@ -16,9 +16,9 @@
   (require "../paint.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc_line create-surface x y dx dy width height border density)
+  (define (dc_line create-surface x y dx dy width height stroke density)
     (define-values (sfc cr) (create-surface width height density #true))
-    (define line-width (~bdwidth border))
+    (define line-width (~bdwidth stroke))
     (define offset (unsafe-fl* line-width 0.5))
     
     (cairo_new_sub_path cr)
@@ -33,7 +33,7 @@
            (cairo_move_to     cr  x  y)
            (cairo_rel_line_to cr dx dy)])
     
-    (cairo-render cr border #false)
+    (cairo-render cr stroke #false)
     (cairo_destroy cr)
     
     sfc)
@@ -70,9 +70,9 @@
     
     sfc)
 
-  (define (dc_arc create-surface aradius bradius rstart rend border density)
+  (define (dc_arc create-surface aradius bradius rstart rend stroke density)
     (define-values (sfc cr) (create-surface (unsafe-fl* aradius 2.0) (unsafe-fl* bradius 2.0) density #true))
-    (define line-width (~bdwidth border))
+    (define line-width (~bdwidth stroke))
     
     (cairo_translate cr aradius aradius)
 
@@ -81,7 +81,7 @@
     
     (cairo_arc_negative cr 0.0 0.0 (unsafe-fl- aradius (unsafe-fl* line-width 0.5)) (unsafe-fl- 0.0 rstart) (unsafe-fl- 0.0 rend))
 
-    (cairo-render cr border #false)
+    (cairo-render cr stroke #false)
     (cairo_destroy cr)
     
     sfc)
@@ -153,8 +153,8 @@
 
     sfc)
 
-  (define (dc_polyline create-surface flwidth flheight xs ys dx dy border background fill-style density)
-    (define line-width (~bdwidth border))
+  (define (dc_polyline create-surface flwidth flheight xs ys dx dy stroke close? density)
+    (define line-width (~bdwidth stroke))
     (define-values (sfc cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
     (define inset (unsafe-fl* line-width 0.5))
     (define x0 (unsafe-fl+ dx inset))
@@ -168,12 +168,31 @@
         (cairo_line_to cr (unsafe-fl+ x0 (unsafe-car xs)) (unsafe-fl+ y0 (unsafe-car ys)))
         (draw-line (unsafe-cdr xs) (unsafe-cdr ys))))
       
-    (when (and fill-style)
-      (cairo_close_path cr)
-      (unless (eq? fill-style 'winding)
-        (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD)))
+    (when (and close?)
+      (cairo_close_path cr))
     
-    (cairo-render cr border background)
+    (cairo-render cr stroke #false)
+    (cairo_destroy cr)
+    
+    sfc)
+
+  (define (dc_polygon create-surface flwidth flheight xs ys dx dy stroke background fill-rule density)
+    (define line-width (~bdwidth stroke))
+    (define-values (sfc cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
+    (define inset (unsafe-fl* line-width 0.5))
+    (define x0 (unsafe-fl+ dx inset))
+    (define y0 (unsafe-fl+ dy inset))
+
+    (cairo_new_sub_path cr)
+      
+    (let draw-line ([xs xs]
+                    [ys ys])
+      (when (pair? xs)
+        (cairo_line_to cr (unsafe-fl+ x0 (unsafe-car xs)) (unsafe-fl+ y0 (unsafe-car ys)))
+        (draw-line (unsafe-cdr xs) (unsafe-cdr ys))))
+      
+    (cairo_close_path cr)
+    (cairo-render cr stroke background fill-rule)
     (cairo_destroy cr)
     
     sfc)
@@ -304,24 +323,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [dc_line (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum Flonum (Option Paint) Flonum S))]
+ [dc_line (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum Flonum Paint Flonum S))]
+ [dc_arc (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Paint Flonum S))]
+ [dc_polyline (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum Paint Boolean Flonum S))]
+ 
  [dc_circle (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_sector (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
- [dc_arc (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (Option Paint) Flonum S))]
  [dc_ellipse (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_rectangle (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_rounded_rectangle (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_stadium (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_regular_polygon (All (S) (-> (Cairo-Surface-Create S) Positive-Index Flonum Flonum (Option Paint) (Option Fill-Source) Boolean Flonum S))]
-
+ [dc_polygon (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Flonum S))]
+ [dc_sandglass (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_arrow (All (S) (-> (Cairo-Surface-Create S)
                         Nonnegative-Flonum Flonum (Option Paint) (Option Fill-Source) Flonum
                         Nonnegative-Flonum Nonnegative-Flonum (Option Flonum)
-                        S))]
- 
- [dc_sandglass (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
-
- [dc_polyline (All (S) (-> (Cairo-Surface-Create S)
-                           Flonum Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum
-                           (Option Paint) (Option Fill-Source) (Option Symbol)
-                           Flonum S))])
+                        S))])

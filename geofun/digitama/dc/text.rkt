@@ -9,11 +9,13 @@
 (require "../convert.rkt")
 (require "../source.rkt")
 (require "../color.rkt")
+(require "../font.rkt")
 
 (require "../unsafe/dc/text.rkt")
 
-(require "../font.rkt")
 (require "../../font.rkt")
+(require "../../paint.rkt")
+(require "../../stroke.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:text geo
@@ -33,14 +35,14 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-text : (->* (Any) ((Option Font) #:id Symbol #:color (Option Fill-Paint) #:background (Option Fill-Paint) #:lines (Listof Symbol)) Geo:Text)
+(define geo-text : (->* (Any) ((Option Font) #:id (Option Symbol) #:color Maybe-Fill-Paint #:background Maybe-Fill-Paint #:lines (Listof Symbol)) Geo:Text)
   (lambda [text [font #false] #:id [id #false] #:color [fgsource #false] #:background [bgsource #false] #:lines [lines null]]
     (create-geometry-object geo:text
                             #:with [(geo-text-surface-make font fgsource bgsource) (geo-text-calculate-bbox-make font)] #:id id
                             (~a text) lines)))
 
 (define geo-paragraph : (->* ((U String (Listof String)))
-                             (Font #:id Symbol #:color Fill-Paint #:background (Option Fill-Paint) #:lines (Listof Symbol)
+                             (Font #:id (Option Symbol) #:color Maybe-Fill-Paint #:background Maybe-Fill-Paint #:lines (Listof Symbol)
                                    #:max-width Real #:max-height Real #:indent Real #:spacing Real
                                    #:wrap-mode Paragraph-Wrap-Mode #:ellipsize-mode Paragraph-Ellipsize-Mode)
                              Geo:Paragraph)
@@ -62,28 +64,28 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-text-calculate-bbox-make : (-> (Option Font) Geo-Calculate-BBox)
   (lambda [alt-font]
-    (λ [self [option #false]]
+    (λ [self]
       (with-asserts ([self geo:text?])
         (define-values (W H) (text-size (geo:text-content self) (or alt-font (default-font))))
         (values 0.0 0.0 W H)))))
 
-(define geo-text-surface-make : (-> (Option Font) (Option Fill-Paint) (Option Fill-Paint) Geo-Surface-Create)
+(define geo-text-surface-make : (-> (Option Font) Maybe-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
   (lambda [alt-font alt-fg alt-bg]
-    (λ [self [option #false]]
+    (λ [self]
       (with-asserts ([self geo:text?])
         (dc_text create-abstract-surface
                  (geo:text-content self) (font-description (or alt-font (default-font))) (geo:text-lines self)
-                 (fill-paint->source (or alt-fg (rgb* ((default-make-currentcolor))))) (fill-paint->source* alt-bg)
+                 (foreground->source alt-fg) (background->source* alt-bg)
                  #false #false #false #false #false (default-geometry-density))))))
 
-(define geo-paragraph-surface-make : (-> (Option Font) (Option Fill-Paint) (Option Fill-Paint) Geo-Surface-Create)
+(define geo-paragraph-surface-make : (-> (Option Font) Maybe-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
   (lambda [alt-font alt-fg alt-bg]
-    (λ [self [option #false]]
+    (λ [self]
       (with-asserts ([self geo:para?])
         (dc_paragraph create-abstract-surface
                       (geo:text-content self) (font-description (or alt-font (default-font))) (geo:text-lines self)
                       (geo:para-mwidth self) (geo:para-mheight self)
                       (geo:para-ident self) (geo:para-space self)
                       (geo:para-wmode self) (geo:para-emode self)
-                      (fill-paint->source (or alt-fg (rgb* ((default-make-currentcolor))))) (fill-paint->source* alt-bg)
+                      (foreground->source alt-fg) (background->source* alt-bg)
                       (default-geometry-density))))))

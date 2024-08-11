@@ -81,10 +81,10 @@
     (cond [(= icount ocount 0) ipo:p]
           [else (let* ([offset (* b:height -1.0)]
                        [self (cond [(= icount 0) ipo:p]
-                                   [else (parameterize ([default-composition-operator 'dest-over])
+                                   [else (parameterize ([default-pin-operator 'dest-over])
                                            (bitmap-vc-append #:gapsize (+ offset 0.0) ipo:i ipo:p))])]
                        [self (cond [(= ocount 0) self]
-                                   [else (parameterize ([default-composition-operator 'over])
+                                   [else (parameterize ([default-pin-operator 'over])
                                            (bitmap-vc-append #:gapsize (- offset 1.0) self ipo:o))])])
                   self)])))
 

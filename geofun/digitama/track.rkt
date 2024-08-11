@@ -3,13 +3,15 @@
 (provide (all-defined-out))
 
 (require "dot.rkt")
-(require "base.rkt")
 (require "source.rkt")
 (require "bbox.rkt")
 (require "anchor.rkt")
 (require "convert.rkt")
 
 (require "unsafe/path.rkt")
+
+(require "../paint.rkt")
+(require "../stroke.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/math))

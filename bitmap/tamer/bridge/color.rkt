@@ -27,7 +27,7 @@
 
 (define xterm-color-list : (->* () (Color) Bitmap)
   (lambda [[bgcolor 'black]]
-    (bitmap-frame #:fill bgcolor #:padding 4.0
+    (bitmap-frame #:background bgcolor #:padding 4.0
                   (bitmap-table 16
                                 (for/list ([xidx (in-range 256)])
                                   (bitmap-text #:color (xterm (assert xidx byte?))

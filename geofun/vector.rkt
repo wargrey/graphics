@@ -1,8 +1,6 @@
 #lang typed/racket
 
-(provide (all-defined-out) Stroke-Paint Fill-Paint)
-(provide default-fill-paint default-fill-rule)
-(provide default-composition-operator)
+(provide (all-defined-out))
 
 (require "digitama/base.rkt")
 (require "digitama/misc.rkt")
@@ -11,7 +9,7 @@
 
 (require/provide "digitama/convert.rkt" "digitama/freeze.rkt")
 (require/provide "track.rkt" "constructor.rkt" "composite.rkt" "resize.rkt")
-(require/provide "color.rkt" "font.rkt" "paint.rkt")
+(require/provide "color.rkt" "font.rkt" "paint.rkt" "stroke.rkt")
 (require/provide "digitama/dot.rkt" "digitama/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

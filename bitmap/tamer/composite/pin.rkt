@@ -1,14 +1,13 @@
 #lang typed/racket/base
 
 (require bitmap)
-(require geofun/constants)
 
 (require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (diameter dash-width alpha) (values 192 4 1/3))
-(define yellow-stroke (desc-stroke short-dash #:width dash-width #:opacity 1/2 #:cap 'round))
-(default-stroke (desc-stroke long-dash #:width dash-width #:opacity alpha #:cap 'round))
+(define yellow-stroke (desc-stroke #:width dash-width #:opacity 1/2 #:cap 'round #:dash 'short-dash))
+(default-stroke (desc-stroke #:width dash-width #:opacity alpha #:cap 'round #:dash 'long-dash))
 
 (define (build-flomap [x : Nonnegative-Fixnum] [y : Nonnegative-Fixnum] [w : Nonnegative-Fixnum] [h : Nonnegative-Fixnum])
   (define grayscale : Flonum
@@ -26,11 +25,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   3pc
-  (bitmap-pin 3pc 0+0i yellow-circle 64+64i)
+  (bitmap-pin 3pc 0 0 yellow-circle 64 64)
   (bitmap-frame (bitmap-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle))
   (bitmap-frame (bitmap-pin* -1/8 -1/8 0 0 yellow-circle yellow-circle yellow-circle))
   (bitmap-cc-superimpose* (list 3pc yellow-circle))
   
   (bitmap-pin* 1/5 1/5 0 0 sine sine)
   (bitmap-pin* 1/2 0 0 0 sine sine)
-  (bitmap-composite 'screen sine 50+0i sine))
+  (bitmap-composite #:operator 'screen sine 50 0 sine))

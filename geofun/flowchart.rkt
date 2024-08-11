@@ -36,7 +36,7 @@
            self)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-culumon : (->* (Real) (Real #:start Keyword #:at Point2D #:id Symbol) Culumon)
+(define make-culumon : (->* (Real) (Real #:start Keyword #:at Point2D #:id (Option Symbol)) Culumon)
   (lambda [#:start [start '#:start] #:at [home 0] #:id [name #false]
            xstepsize [ystepsize 0.0]]
     (define xstep : Nonnegative-Flonum
@@ -50,7 +50,7 @@
     
     (define home-pos : Float-Complex (~point2d home))
     
-    (create-geometry-object culumon #:with flow-chart-surface #:id (or name (gensym 'culumon))
+    (create-geometry-object culumon #:with flow-chart-surface #:id name
                             null (make-geo-path home-pos start)
                             (make-geo-bbox home-pos) start
                             xstep ystep)))

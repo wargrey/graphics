@@ -30,16 +30,16 @@
 
 (define-syntax (define-pin stx)
   (syntax-case stx []
+    [(_ id #:-> Geo TGeo #:as compose #:with op #:id)
+     (syntax/loc stx
+       (define id : (->* (Geo Real Real Geo) (Real Real #:id (Option Symbol)) TGeo)
+         (lambda [geo1 x1 y1 geo2 [x2 0.0] [y2 0.0] #:id [id #false]]
+           (compose geo1 x1 y1 geo2 x2 y2 #:id id #:operator op))))]
     [(_ id #:-> Geo #:as compose #:with op)
      (syntax/loc stx
-       (define id : (case-> [Geo Complex Geo -> Geo]
-                            [Geo Real Real Geo -> Geo]
-                            [Geo Complex Geo Complex -> Geo]
-                            [Geo Real Real Geo Real Real -> Geo])
-         (case-lambda
-           [(geo1 pt geo2) (compose op geo1 (real-part pt) (imag-part pt) geo2)]
-           [(geo1 x/pt y/geo2 geo2/pt) (compose op geo1 x/pt y/geo2 geo2/pt)]
-           [(geo1 x1 y1 geo2 x2 y2) (compose op geo1 x1 y1 geo2 x2 y2)])))]))
+       (define id : (->* (Geo Real Real Geo) (Real Real) Geo)
+         (lambda [geo1 x1 y1 geo2 [x2 0.0] [y2 0.0]]
+           (compose geo1 x1 y1 geo2 x2 y2 #:operator op))))]))
 
 (define-syntax (geo-expand-args  stx)
   (syntax-case stx []
@@ -56,7 +56,7 @@
 
 (define-type Superimpose-Alignment (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
 
-(define-enumeration* geo-composition-operator #:+> Geo-Composition-Operator ; order matters
+(define-enumeration* geo-pin-operator #:+> Geo-Pin-Operator ; order matters
   geo-operator->integer integer->geo-operator
   [0 clear source over in out atop dest dest-over dest-in dest-out dest-atop xor add saturate
      multiply screen overlay darken lighten color-dodge color-burn hard-light soft-light difference exclusion

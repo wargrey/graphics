@@ -73,16 +73,16 @@
     (if (and maybe-sheath)
         (bitmap-vc-append #:gapsize (* Rcollar -1.618)
                           protein-coat
-                          (parameterize ([default-composition-operator 'overlay])
+                          (parameterize ([default-pin-operator 'overlay])
                             (bitmap-vc-append #:gapsize (- (* Rdart -1.0) (* (stroke-width fibre-stroke) 1.25))
                                               (bitmap-cb-superimpose
-                                               (parameterize ([default-composition-operator 'clear])
+                                               (parameterize ([default-pin-operator 'clear])
                                                  (bitmap-pin* 0.5 0.70 0.5 0.0 collar maybe-sheath))
                                                maybe-sheath)
                                               stx-tree)))
-        (parameterize ([default-composition-operator 'dest-over])
+        (parameterize ([default-pin-operator 'dest-over])
           (bitmap-vc-append #:gapsize (- (* Rcollar -0.618) (stroke-width fibre-stroke))
-                            (parameterize ([default-composition-operator 'over])
+                            (parameterize ([default-pin-operator 'over])
                               (bitmap-vc-append #:gapsize (* Rcollar -1.618) protein-coat collar))
                             stx-tree)))))
 

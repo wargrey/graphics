@@ -8,9 +8,9 @@
     (define w+h (+ w h))
     (define w-x (- w x))
     (define h-y (- h y))
-    (values (real->double-flonum (/ (+ x y)     w+h))
+    (values (real->double-flonum (/ (+ w-x h-y) w+h))
             (real->double-flonum (/ (+ w-x y)   w+h))
-            (real->double-flonum (/ (+ w-x h-y) w+h))
+            (real->double-flonum (/ (+ x y)     w+h))
             (real->double-flonum (/ (+ x h-y)   w+h)))))
 
 (printf "====== ~a =====~n" '(density 1.0))
@@ -30,7 +30,7 @@
 (printf "====== ~a =====~n" 'RB-CROP)
 (bitmap-rb-crop plane 64 64)
 
-(define text (bitmap-text (string-append "memory: " (number->string (current-memory-use)))))
+(define text (bitmap-text (string-append "memory: " (number->string (current-memory-use))) #:color plane))
 (define trimed-text (time (bitmap-trim text #false)))
 (bitmap-frame text)
 (bitmap-bounding-box text)

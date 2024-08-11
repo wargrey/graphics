@@ -1,36 +1,43 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out "../paint.rkt"))
-(provide (all-from-out "../color.rkt"))
+(provide (rename-out [fill-paint->source* background->source*]))
 
 (require "../paint.rkt")
 (require "../color.rkt")
+(require "../stroke.rkt")
 
 (require "base.rkt")
-(require "composite.rkt")
 (require "unsafe/source.rkt")
 (require "unsafe/visual/object.rkt")
 (require "unsafe/visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Stroke-Paint (U Color Stroke))
-(define-type Fill-Paint (U Color Visual-Object<%> Fill-Pattern))
-
-(define default-fill-paint : (Parameterof (Option Fill-Paint)) (make-parameter #false))
-(define default-fill-rule : (Parameterof Symbol) (make-parameter 'winding))
-(define default-composition-operator : (Parameterof Geo-Composition-Operator) (make-parameter 'over))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define stroke-paint->source : (-> Stroke-Paint Stroke)
+(define stroke-paint->source : (-> Maybe-Stroke-Paint Stroke)
   (lambda [paint]
     (cond [(stroke? paint) paint]
+          [(not paint) (default-stroke)]
+          [(void? paint) (default-stroke)]
           [else (desc-stroke (default-stroke) #:color paint)])))
 
-(define stroke-paint->source* : (-> (Option Stroke-Paint) (Option Stroke))
+(define border-paint->source : (-> Maybe-Stroke-Paint Stroke)
   (lambda [paint]
-    (and paint (stroke-paint->source paint))))
+    (cond [(stroke? paint) paint]
+          [(not paint) (default-border)]
+          [(void? paint) (default-border)]
+          [else (desc-stroke (default-border) #:color paint)])))
 
+(define stroke-paint->source* : (-> Maybe-Stroke-Paint (Option Stroke))
+  (lambda [paint]
+    (cond [(not paint) #false]
+          [else (stroke-paint->source paint)])))
+
+(define border-paint->source* : (-> Maybe-Stroke-Paint (Option Stroke))
+  (lambda [paint]
+    (cond [(not paint) #false]
+          [else (border-paint->source paint)])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) fill-paint->source : (case-> [Fill-Paint -> Fill-Source]
                                                   [Fill-Paint S -> (U Fill-Source S)])
   (lambda [paint [fallback transparent]]
@@ -41,7 +48,14 @@
                    [else fallback]))]
           [else paint])))
 
-(define fill-paint->source* : (-> (Option Fill-Paint) (Option Fill-Source))
+(define foreground->source : (-> Maybe-Fill-Paint Fill-Source)
   (lambda [paint]
-    (and paint
-         (fill-paint->source paint #false))))
+    (fill-paint->source
+     (if (or (not paint) (void? paint))
+         (default-foreground-paint)
+         paint))))
+
+(define fill-paint->source* : (-> Maybe-Fill-Paint (Option Fill-Source))
+  (lambda [paint]
+    (cond [(or (not paint) (void? paint)) #false]
+          [else (fill-paint->source paint #false)])))

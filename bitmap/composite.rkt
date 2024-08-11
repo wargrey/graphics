@@ -7,9 +7,10 @@
 (require "digitama/convert.rkt")
 (require "digitama/unsafe/composite.rkt")
 
-(require geofun/digitama/unsafe/visual/ctype)
+(require geofun/paint)
+
 (require geofun/digitama/composite)
-(require geofun/digitama/source)
+(require geofun/digitama/unsafe/visual/ctype)
 
 (require (for-syntax racket/base))
 
@@ -19,26 +20,13 @@
 ; `pict` simply drop parts outside boundary.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-composite : (case-> [Symbol Bitmap Complex Bitmap -> Bitmap]
-                                   [Symbol Bitmap Real Real Bitmap -> Bitmap]
-                                   [Symbol Bitmap Complex Bitmap Complex -> Bitmap]
-                                   [Symbol Bitmap Real Real Bitmap Real Real -> Bitmap])
-  (case-lambda
-    [(op bmp1 x/pt y/bmp2 bmp2/pt)
-     (if (real? y/bmp2)
-         (bitmap-composite op bmp1 x/pt y/bmp2 bmp2/pt 0.0 0.0)
-         (bitmap-composite op bmp1 (- x/pt bmp2/pt) y/bmp2))]
-    [(op bmp1 pt bmp2)
-     (bitmap_composite (geo-operator->integer op)
-                       (bitmap-surface bmp1) (bitmap-surface bmp2)
-                       (real->double-flonum (real-part pt)) (real->double-flonum (imag-part pt))
-                       (bitmap-density bmp1))]
-    [(op bmp1 x1 y1 bmp2 x2 y2)
-     (bitmap_composite (geo-operator->integer op)
-                       (bitmap-surface bmp1) (bitmap-surface bmp2)
-                       (- (real->double-flonum x1) (real->double-flonum x2))
-                       (- (real->double-flonum y1) (real->double-flonum y2))
-                       (bitmap-density bmp1))]))
+(define bitmap-composite : (->* (Bitmap Real Real Bitmap) (Real Real #:operator Symbol) Bitmap)
+  (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0] #:operator [op (default-pin-operator)]]
+    (bitmap_composite (geo-operator->integer op)
+                      (bitmap-surface bmp1) (bitmap-surface bmp2)
+                      (- (real->double-flonum x1) (real->double-flonum x2))
+                      (- (real->double-flonum y1) (real->double-flonum y2))
+                      (bitmap-density bmp1))))
 
 (define-pin bitmap-pin-over  #:-> Bitmap #:as bitmap-composite #:with 'over)
 (define-pin bitmap-pin-under #:-> Bitmap #:as bitmap-composite #:with 'dest-over)
@@ -47,13 +35,13 @@
   (lambda [x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
     (cond [(null? bmps) bmp0]
           [(null? (cdr bmps))
-           (bitmap_pin (geo-operator->integer (default-composition-operator))
+           (bitmap_pin (geo-operator->integer (default-pin-operator))
                        (real->double-flonum x1-frac) (real->double-flonum y1-frac)
                        (real->double-flonum x2-frac) (real->double-flonum y2-frac)
                        (bitmap-surface bmp0) (bitmap-surface (car bmps))
                        (bitmap-density bmp0))]
           [else
-           (bitmap_pin* (geo-operator->integer (default-composition-operator))
+           (bitmap_pin* (geo-operator->integer (default-pin-operator))
                         (real->double-flonum x1-frac) (real->double-flonum y1-frac)
                         (real->double-flonum x2-frac) (real->double-flonum y2-frac)
                         (bitmap-surface bmp0) (map bitmap-surface bmps)
@@ -139,7 +127,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-combiner "bitmap-~a-append*" #:-> (Bitmap [#:gapsize Real])
   #:with alignment bitmaps [#:gapsize [delta 0.0]]
-  #:blend-mode [blend-mode (geo-operator->integer (default-composition-operator))]
+  #:blend-mode [blend-mode (geo-operator->integer (default-pin-operator))]
   #:empty (bitmap-blank)
   #:short-path #:for base bmp #:if (zero? delta)
   ([(vl) (bitmap_pin blend-mode 0.0 1.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
@@ -155,7 +143,7 @@
 
 (define-combiner "bitmap-~a-superimpose*" #:-> (Bitmap)
   #:with alignment bitmaps []
-  #:blend-mode [blend-mode (geo-operator->integer (default-composition-operator))]
+  #:blend-mode [blend-mode (geo-operator->integer (default-pin-operator))]
   #:empty (bitmap-blank)
   #:short-path #:for base bmp #:if #true
   ([(lt) (bitmap_pin blend-mode 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]

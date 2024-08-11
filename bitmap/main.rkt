@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) Stroke-Paint Fill-Paint)
+(provide (all-defined-out))
 
 (require geofun/digitama/misc)
 (require geofun/digitama/source)

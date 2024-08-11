@@ -4,6 +4,9 @@
 
 (require digimon/metrics)
 
+(require "../../paint.rkt")
+(require "../../stroke.rkt")
+
 (require "../source.rkt")
 (require "../convert.rkt")
 
@@ -25,7 +28,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-icosahedron-side-projection : (->* (Real)
-                                               (3D-Radius-Type #:id Symbol #:edge (Option Stroke-Paint) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint))
+                                               (3D-Radius-Type #:id (Option Symbol)
+                                                               #:edge (Option Stroke-Paint) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint))
                                                Geo:Icosahedron:Side)
   (lambda [#:id [id #false] #:edge [edge #false] #:border [border #false] #:fill [pattern #false]
            radius [radius-type 'vertex]]
@@ -34,8 +38,8 @@
                             (~length radius) radius-type)))
 
 (define geo-icosahedron-over-projection : (->* (Real)
-                                               (3D-Radius-Type #:id Symbol #:edge (Option Stroke-Paint) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint)
-                                                               #:rotation Real #:radian? Boolean)
+                                               (3D-Radius-Type #:id (Option Symbol) #:rotation Real #:radian? Boolean
+                                                               #:edge (Option Stroke-Paint) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint))
                                                Geo:Icosahedron:Over)
   (lambda [#:id [id #false] #:edge [edge #false] #:border [border #false] #:fill [pattern #false] #:rotation [rotation 0.0] #:radian? [radian? #true]
            radius [radius-type 'vertex]]

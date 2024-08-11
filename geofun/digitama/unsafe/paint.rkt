@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require "pangocairo.rkt")
-(require "../paint.rkt")
+(require "../stroke.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-set-stroke
@@ -21,9 +21,13 @@
     (cairo_stroke_preserve cr)))
 
 (define cairo-render-with-fill
-  (lambda [cr pattern]
-    (cairo-set-source cr pattern)
-    (cairo_fill_preserve cr)))
+  (case-lambda
+    [(cr pattern)
+     (cairo-set-source cr pattern)
+     (cairo_fill_preserve cr)]
+    [(cr pattern rule)
+     (cairo-set-fill-rule rule)
+     (cairo-render-with-fill cr pattern)]))
 
 (define cairo-render-background
   (lambda [cr bg]
@@ -32,11 +36,22 @@
       (cairo_paint cr))))
 
 (define cairo-render
-  (lambda [cr border pattern]
-    (unless (not pattern)
-      (cairo-render-with-fill cr pattern))
-    (unless (not border)
-      (cairo-render-with-stroke cr border))))
+  (case-lambda
+    [(cr border pattern)
+     (unless (not pattern)
+       (cairo-render-with-fill cr pattern))
+     (unless (not border)
+       (cairo-render-with-stroke cr border))]
+    [(cr border pattern rule)
+     (unless (not pattern)
+       (cairo-render-with-fill cr pattern rule))
+     (unless (not border)
+       (cairo-render-with-stroke cr border))]))
+
+(define cairo-set-fill-rule
+  (lambda [cr fill-rule]
+    (unless (eq? fill-rule 'winding)
+      (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-composite

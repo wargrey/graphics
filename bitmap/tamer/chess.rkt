@@ -2,10 +2,9 @@
 
 (require bitmap)
 (require geofun/digitama/font)
-(require geofun/constants)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(default-border (desc-stroke long-dash #:color 'gray #:width 1))
+(default-border (desc-stroke #:color 'gray #:width 1 #:dash 'long-dash))
 
 (define chesses : String "♔♕♖♗♘♙♚♛♜♝♞♟︎")
 
@@ -19,7 +18,7 @@
     (define large-font (desc-font (desc-font font #:size 'xx-large) #:size -4.0))
 
     (bitmap-vl-append (bitmap-text (font-face font) large-font)
-                      (bitmap-frame (bitmap-text #:meanline green #:baseline red #:descent blue 
+                      (bitmap-frame (bitmap-text #:meanline 'green #:baseline 'red #:descent 'blue 
                                                  text large-font)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

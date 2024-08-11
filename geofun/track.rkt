@@ -51,7 +51,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-dryland-wani : (->* (Real)
                                  (Real #:turn-scale Track-Print-Datum #:U-scale Track-Print-Datum
-                                       #:anchor Keyword #:at Track-Print-Datum #:id Symbol)
+                                       #:anchor Keyword #:at Track-Print-Datum #:id (Option Symbol))
                                  Dryland-Wani)
   (lambda [#:turn-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]

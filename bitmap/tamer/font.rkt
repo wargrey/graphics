@@ -4,14 +4,13 @@
 
 (require bitmap)
 (require geofun/digitama/font)
-(require geofun/constants)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(default-border (desc-stroke long-dash #:color 'gray #:width 1))
+(default-border (desc-stroke #:color 'gray #:width 1 #:dash 'long-dash))
 
 (define bitmap-text* : (->* (String Font) (Real) Bitmap)
   (lambda [text font [size -2.0]]
-    (define content (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
+    (define content (bitmap-text #:ascent 'magenta #:descent 'blue #:capline 'orange #:meanline 'green #:baseline 'red
                                  text (desc-font (desc-font font #:size 'xx-large) #:size size)))
     (bitmap-frame content)))
 
