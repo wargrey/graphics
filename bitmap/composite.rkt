@@ -1,14 +1,15 @@
 #lang typed/racket
 
-(provide (except-out (all-defined-out) make-pin))
+(provide (all-defined-out))
 (provide (rename-out [bitmap-pin-over bitmap-pin]))
 
 (require "constructor.rkt")
 (require "digitama/convert.rkt")
-(require "digitama/composite.rkt")
 (require "digitama/unsafe/composite.rkt")
 
 (require geofun/digitama/unsafe/visual/ctype)
+(require geofun/digitama/composite)
+(require geofun/digitama/source)
 
 (require (for-syntax racket/base))
 
@@ -18,40 +19,41 @@
 ; `pict` simply drop parts outside boundary.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-pin-operator : (Parameterof Symbol) (make-parameter 'over))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-composite : (case-> [Symbol Bitmap Complex Bitmap -> Bitmap]
                                    [Symbol Bitmap Real Real Bitmap -> Bitmap]
                                    [Symbol Bitmap Complex Bitmap Complex -> Bitmap]
                                    [Symbol Bitmap Real Real Bitmap Real Real -> Bitmap])
   (case-lambda
     [(op bmp1 x/pt y/bmp2 bmp2/pt)
-     (cond [(real? y/bmp2) (bitmap-composite op bmp1 x/pt y/bmp2 bmp2/pt 0.0 0.0)]
-           [else (bitmap-composite op bmp1 (- x/pt bmp2/pt) y/bmp2)])]
+     (if (real? y/bmp2)
+         (bitmap-composite op bmp1 x/pt y/bmp2 bmp2/pt 0.0 0.0)
+         (bitmap-composite op bmp1 (- x/pt bmp2/pt) y/bmp2))]
     [(op bmp1 pt bmp2)
-     (bitmap_composite (bitmap-operator->integer op)
+     (bitmap_composite (geo-operator->integer op)
                        (bitmap-surface bmp1) (bitmap-surface bmp2)
                        (real->double-flonum (real-part pt)) (real->double-flonum (imag-part pt))
                        (bitmap-density bmp1))]
     [(op bmp1 x1 y1 bmp2 x2 y2)
-     (bitmap_composite (bitmap-operator->integer op)
+     (bitmap_composite (geo-operator->integer op)
                        (bitmap-surface bmp1) (bitmap-surface bmp2)
                        (- (real->double-flonum x1) (real->double-flonum x2))
                        (- (real->double-flonum y1) (real->double-flonum y2))
                        (bitmap-density bmp1))]))
 
+(define-pin bitmap-pin-over  #:-> Bitmap #:as bitmap-composite #:with 'over)
+(define-pin bitmap-pin-under #:-> Bitmap #:as bitmap-composite #:with 'dest-over)
+
 (define bitmap-pin* : (-> Real Real Real Real Bitmap Bitmap * Bitmap)
   (lambda [x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
     (cond [(null? bmps) bmp0]
           [(null? (cdr bmps))
-           (bitmap_pin (bitmap-operator->integer (default-pin-operator))
+           (bitmap_pin (geo-operator->integer (default-composition-operator))
                        (real->double-flonum x1-frac) (real->double-flonum y1-frac)
                        (real->double-flonum x2-frac) (real->double-flonum y2-frac)
                        (bitmap-surface bmp0) (bitmap-surface (car bmps))
                        (bitmap-density bmp0))]
           [else
-           (bitmap_pin* (bitmap-operator->integer (default-pin-operator))
+           (bitmap_pin* (geo-operator->integer (default-composition-operator))
                         (real->double-flonum x1-frac) (real->double-flonum y1-frac)
                         (real->double-flonum x2-frac) (real->double-flonum y2-frac)
                         (bitmap-surface bmp0) (map bitmap-surface bmps)
@@ -69,8 +71,8 @@
           [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols)])
                   (define nrows : Nonnegative-Fixnum (+ maybe-nrows (sgn extra-ncols)))
                   (bitmap_table (map bitmap-surface bitmaps) ncols nrows
-                                (bitmap-expand-args col-aligns symbol? 'cc) (bitmap-expand-args row-aligns symbol? 'cc)
-                                (bitmap-expand-args col-gaps real? 0.0 real->double-flonum) (bitmap-expand-args row-gaps real? 0.0 real->double-flonum)
+                                (geo-expand-args col-aligns symbol? 'cc) (geo-expand-args row-aligns symbol? 'cc)
+                                (geo-expand-args col-gaps real? 0.0 real->double-flonum) (geo-expand-args row-gaps real? 0.0 real->double-flonum)
                                 (bitmap-density (car bitmaps))))])))
 
 (define bitmap-table* : (->* ((Listof (Listof (Option Bitmap))))
@@ -100,8 +102,8 @@
     
     (cond [(not density) cont]
           [else (bitmap_table surfaces ncols nrows
-                              (bitmap-expand-args col-aligns symbol? 'cc) (bitmap-expand-args row-aligns symbol? 'cc)
-                              (bitmap-expand-args col-gaps real? 0.0 real->double-flonum) (bitmap-expand-args row-gaps real? 0.0 real->double-flonum)
+                              (geo-expand-args col-aligns symbol? 'cc) (geo-expand-args row-aligns symbol? 'cc)
+                              (geo-expand-args col-gaps real? 0.0 real->double-flonum) (geo-expand-args row-gaps real? 0.0 real->double-flonum)
                               density)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -113,7 +115,7 @@
           [(null? (cdr bitmaps)) (car bitmaps)]
           [else (bitmap_pyramid (map bitmap-surface bitmaps)
                                 (real->double-flonum sub-gaps) (real->double-flonum (or sibling-gaps (* sub-gaps 1.618)))
-                                (bitmap-expand-args aligns symbol? 'cc)
+                                (geo-expand-args aligns symbol? 'cc)
                                 (bitmap-density (car bitmaps)))])))
 
 ; TODO: find a better ratio between subtree gapsize and the leaf one
@@ -128,29 +130,16 @@
           [else (let ([sfcs (map bitmap-surface bitmaps)]
                       [sub-gapsize (real->double-flonum sub-gaps)]
                       [sibling-gapsize (real->double-flonum (or sibling-gaps (* sub-gaps 0.618)))]
-                      [aligns (bitmap-expand-args aligns symbol? 'cc)]
+                      [aligns (geo-expand-args aligns symbol? 'cc)]
                       [density (bitmap-density (car bitmaps))])
                   (if (= ary 1)
                       (bitmap_table sfcs 1 (length bitmaps) aligns aligns (list sibling-gapsize) (list sub-gapsize) density)
                       (bitmap_heap sfcs ary sub-gapsize sibling-gapsize aligns density)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-pin : (-> Symbol Bitmap-Composition-Operator Bitmap-Pin)
-  (lambda [name op]
-    (define λpin : Bitmap-Pin
-      (case-lambda
-        [(bmp1 pt bmp2) (bitmap-composite op bmp1 (real-part pt) (imag-part pt) bmp2)]
-        [(bmp1 x/pt y/bmp2 bmp2/pt) (bitmap-composite op bmp1 x/pt y/bmp2 bmp2/pt)]
-        [(bmp1 x1 y1 bmp2 x2 y2) (bitmap-composite op bmp1 x1 y1 bmp2 x2 y2)]))
-    
-    (procedure-rename λpin name)))
-
-(define bitmap-pin-over  : Bitmap-Pin (make-pin 'bitmap-pin-over  'over))
-(define bitmap-pin-under : Bitmap-Pin (make-pin 'bitmap-pin-under 'dest-over))
-
-(define-combiner "bitmap-~a-append*" #:-> ([#:gapsize Real])
+(define-combiner "bitmap-~a-append*" #:-> (Bitmap [#:gapsize Real])
   #:with alignment bitmaps [#:gapsize [delta 0.0]]
-  #:blend-mode [blend-mode (bitmap-operator->integer (default-pin-operator))]
+  #:blend-mode [blend-mode (geo-operator->integer (default-composition-operator))]
   #:empty (bitmap-blank)
   #:short-path #:for base bmp #:if (zero? delta)
   ([(vl) (bitmap_pin blend-mode 0.0 1.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
@@ -164,9 +153,9 @@
                         (bitmap-surface base) (map bitmap-surface children)
                         (real->double-flonum delta) (bitmap-density base))))
 
-(define-combiner "bitmap-~a-superimpose*" #:-> ()
+(define-combiner "bitmap-~a-superimpose*" #:-> (Bitmap)
   #:with alignment bitmaps []
-  #:blend-mode [blend-mode (bitmap-operator->integer (default-pin-operator))]
+  #:blend-mode [blend-mode (geo-operator->integer (default-composition-operator))]
   #:empty (bitmap-blank)
   #:short-path #:for base bmp #:if #true
   ([(lt) (bitmap_pin blend-mode 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]

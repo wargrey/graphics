@@ -33,8 +33,8 @@
                           (unsafe-flmax (unsafe-fl+ dy1 h1) (unsafe-fl+ dy2 h2))
                           density #true))
 
-    (cairo-composite cr sfc1 dx1 dy1 w1 h1 CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_SOURCE density #true)
-    (cairo-composite cr sfc2 dx2 dy2 w2 h2 CAIRO_FILTER_BILINEAR (or operator CAIRO_OPERATOR_OVER) density #false)
+    (cairo-composite cr sfc1 dx1 dy1 w1 h1 CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_SOURCE density)
+    (cairo-composite cr sfc2 dx2 dy2 w2 h2 CAIRO_FILTER_BILINEAR (or operator CAIRO_OPERATOR_OVER) density)
     
     (cairo_destroy cr)
     img)
@@ -77,7 +77,7 @@
         (cairo-composite cr (unsafe-vector*-ref child 0)
                          (unsafe-vector*-ref child 1) (unsafe-vector*-ref child 2)
                          (unsafe-vector*-ref child 3) (unsafe-vector*-ref child 4)
-                         CAIRO_FILTER_BILINEAR operator density #true)
+                         CAIRO_FILTER_BILINEAR operator density)
         (combine (unsafe-cdr all))))
     bmp)
 
@@ -118,7 +118,7 @@
             [(hc) (values maybe-x                                       (unsafe-fl* (unsafe-fl- flheight chheight) 0.5))]
             [(hb) (values maybe-x                                       (unsafe-fl- flheight chheight))]
             [else #| deadcode |# (values maybe-x                        maybe-y)]))
-        (cairo-composite cr (unsafe-vector*-ref child 0) dest-x dest-y chwidth chheight CAIRO_FILTER_BILINEAR operator density #true)
+        (cairo-composite cr (unsafe-vector*-ref child 0) dest-x dest-y chwidth chheight CAIRO_FILTER_BILINEAR operator density)
         (combine (unsafe-cdr all))))
     bmp)
 
@@ -130,7 +130,7 @@
       (unless (null? all)
         (define layer (unsafe-car all))
         (define-values (x y) ((unsafe-cdr layer) flwidth flheight))
-        (cairo-composite cr (unsafe-car layer) x y flwidth flheight CAIRO_FILTER_BILINEAR operator density #true)
+        (cairo-composite cr (unsafe-car layer) x y flwidth flheight CAIRO_FILTER_BILINEAR operator density)
         (combine (unsafe-cdr all))))
     bmp)
 
@@ -181,7 +181,7 @@
       (when (unsafe-fx>= idx 0)
         (define cell (unsafe-vector*-ref table idx))
         (cairo-composite cr (unsafe-vector*-ref cell 0) (unsafe-vector*-ref cell 1) (unsafe-vector*-ref cell 2)
-                         flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #true)
+                         flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
         (combine (unsafe-fx- idx 1))))
     bmp)
 
@@ -213,7 +213,7 @@
         (define node (unsafe-car nodes))
         (define-values (xoff yoff) ((unsafe-cdr node) nwidth nheight))
         (cairo-composite cr (unsafe-car node) (unsafe-fl+ x0 xoff) (unsafe-fl+ y0 yoff)
-                         flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #true)
+                         flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
         (if (unsafe-fl< x0 boundary)
             (combine (unsafe-cdr nodes) y0 (unsafe-fl+ x0 dx) boundary)
             (let ([boundary++ (unsafe-fl+ boundary xstep)])
@@ -266,7 +266,7 @@
         (define idx++ (unsafe-fx+ idx 1))
 
         (cairo-composite cr (unsafe-car node) (unsafe-fl+ (unsafe-flvector-ref vs idx) xoff) (unsafe-fl+ y0 yoff)
-                         flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #true)
+                         flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
 
         (if (unsafe-fx< idx++ boundary)
             (combine (unsafe-cdr nodes) y0 idx++ boundary siblings)
@@ -316,7 +316,7 @@
     (define cells (for/vector ([sfc (in-list sfcs)])
                     (define-values (w h) (bitmap-surface-rendered-size sfc density))
                     (vector sfc w h)))
-    (define diff (unsafe-fx- (unsafe-fx* nrows ncols) (unsafe-vector-length cells)))
+    (define diff (unsafe-fx- (unsafe-fx* nrows ncols) (unsafe-vector*-length cells)))
     (cond [(unsafe-fx<= diff 0) cells]
           [else (let ([filling (vector the-image-surface 1.0 1.0)])
                   (vector-append cells (make-vector diff filling)))]))

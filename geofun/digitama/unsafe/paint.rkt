@@ -38,11 +38,12 @@
     (unless (not border)
       (cairo-render-with-stroke cr border))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-composite
-  (lambda [cr src dest-x dest-y dest-width dest-height filter operator density restore?]
+  (lambda [cr src dest-x dest-y dest-width dest-height filter operator density]
     (define 1/density (unsafe-fl/ 1.0 density))
 
-    (when restore? (cairo_save cr))
+    (cairo_save cr)
     (cairo_translate cr dest-x dest-y)
     (cairo_rectangle cr 0.0 0.0 dest-width dest-height)
     (cairo_scale cr 1/density 1/density) ; order matters
@@ -50,7 +51,7 @@
     (cairo_pattern_set_filter (cairo_get_source cr) filter)
     (cairo_set_operator cr operator)
     (cairo_fill cr)
-    (when restore? (cairo_restore cr))))
+    (cairo_restore cr)))
 
 (define cairo-mask
   (lambda [cr src dest-x dest-y dest-width dest-height density]

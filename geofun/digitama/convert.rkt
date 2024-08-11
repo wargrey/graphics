@@ -7,6 +7,7 @@
                      [geo-intrinsic-size geo-intrinsic-flsize]))
 
 (require "source.rkt")
+(require "composite.rkt")
 
 (require "unsafe/visual/ctype.rkt")
 (require "unsafe/visual/object.rkt")
@@ -36,11 +37,6 @@
 
 (define default-geometry-density : (Parameterof Positive-Flonum) (make-parameter 1.0))
 
-(define create-abstract-surface : (Cairo-Surface-Create Abstract-Surface)
-  (lambda [flwidth flheight density scale?]
-    (define-values (surface cr width height) (cairo-create-abstract-surface* flwidth flheight density scale?))
-    (values surface cr)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Surface-Create (-> Geo<%> Abstract-Surface))
 (define-type Geo-Calculate-BBox (-> Geo<%> (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum)))
@@ -54,6 +50,11 @@
   ([id : Symbol])
   #:type-name Geo
   #:transparent)
+
+(define create-abstract-surface : (Cairo-Surface-Create Abstract-Surface)
+  (lambda [flwidth flheight density scale?]
+    (define-values (surface cr width height) (cairo-create-abstract-surface* flwidth flheight density scale?))
+    (values surface cr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-bounding-box : (->* (Geo<%>) (Stroke-Paint) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
@@ -96,13 +97,17 @@
         [(svg-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'svg '/dev/svgout 1.0)]
         [(png@2x-bytes) (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'png '/dev/p2xout 2.0)]
         [(png-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'png '/dev/pngout 1.0)]
-        [(cairo-surface) ((geo<%>-surface self) self)]
+        [(cairo-surface) (geo-create-surface self)]
         [else fallback]))))
+
+(define geo-create-surface : (-> Geo<%> Abstract-Surface)
+  (lambda [self]
+    ((geo<%>-surface self) self)))
 
 (define geo-calculate-bbox : Geo-Calculate-BBox
   (lambda [self]
     (abstract-surface-content-bbox
-     ((geo<%>-surface self) self))))
+     (geo-create-surface self))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-shape-surface-wrapper : (case-> [Geo-Surface-Create (Option Stroke) (Option Stroke) (Option Fill-Paint) (Option Symbol) -> Geo-Surface-Create]
@@ -179,7 +184,6 @@
               (parameterize ([default-stroke alt-stroke])
                 (λsurface self)))]
            [else λsurface])]))
-
 
 (define geo-shape-bbox-wrapper : (-> Geo-Calculate-BBox (Option Stroke)  Geo-Calculate-BBox)
   (lambda [λsurface alt-border-stroke]

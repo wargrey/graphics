@@ -1,6 +1,8 @@
 #lang typed/racket
 
 (provide (all-defined-out) Stroke-Paint Fill-Paint)
+(provide default-fill-paint default-fill-rule)
+(provide default-composition-operator)
 
 (require "digitama/base.rkt")
 (require "digitama/misc.rkt")

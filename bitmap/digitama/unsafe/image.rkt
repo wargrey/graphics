@@ -129,7 +129,7 @@
     (define-values (img cr) (create-argb-bitmap width height density #true))
     (cairo_rectangle cr border-x border-y border-width border-height)
     (cairo-render cr border background)
-    (cairo-composite cr src dest-x dest-y dest-width dest-height CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density #false)
+    (cairo-composite cr src dest-x dest-y dest-width dest-height CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
     (cairo_destroy cr)
     img)
 

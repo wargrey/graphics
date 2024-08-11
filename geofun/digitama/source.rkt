@@ -8,6 +8,7 @@
 (require "../color.rkt")
 
 (require "base.rkt")
+(require "composite.rkt")
 (require "unsafe/source.rkt")
 (require "unsafe/visual/object.rkt")
 (require "unsafe/visual/ctype.rkt")
@@ -18,6 +19,7 @@
 
 (define default-fill-paint : (Parameterof (Option Fill-Paint)) (make-parameter #false))
 (define default-fill-rule : (Parameterof Symbol) (make-parameter 'winding))
+(define default-composition-operator : (Parameterof Geo-Composition-Operator) (make-parameter 'over))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stroke-paint->source : (-> Stroke-Paint Stroke)

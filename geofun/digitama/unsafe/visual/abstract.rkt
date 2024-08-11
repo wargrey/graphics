@@ -25,6 +25,10 @@
         (cairo_recording_surface_ink_extents sfc)
         (values lx ty w h)))
 
+  (define (abstract-surface-content-size sfc)
+    (define-values (lx ty w h) (abstract-surface-content-bbox sfc))
+    (values w h))
+
   (define (abstract-surface->stream-bytes sfc format name density)
     (define /dev/sfcout (open-output-bytes name))
     (abstract-surface-save sfc /dev/sfcout format density)
@@ -75,6 +79,7 @@
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [abstract-surface-content-bbox (-> Abstract-Surface (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))]
+ [abstract-surface-content-size (-> Abstract-Surface (Values Nonnegative-Flonum Nonnegative-Flonum))]
  [abstract-surface->stream-bytes (-> Abstract-Surface Symbol Symbol Positive-Flonum Bytes)]
  [abstract-surface->image-surface (-> Abstract-Surface Positive-Flonum (Values Bitmap-Surface Positive-Index Positive-Index))]
  [abstract-surface-stamp-onto-bitmap-surface (-> Bitmap-Surface Abstract-Surface Flonum Flonum Positive-Flonum Void)]

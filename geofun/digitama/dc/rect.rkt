@@ -44,8 +44,8 @@
       
       (if (or (zero? cr) (nan? cr))
           (dc_rectangle create-abstract-surface w h
-                        (default-stroke) (fill-paint->source* (default-fill-paint))
+                        (default-border) (fill-paint->source* (default-fill-paint))
                         (default-geometry-density))
           (dc_rounded_rectangle create-abstract-surface w h cr
-                                (default-stroke) (fill-paint->source* (default-fill-paint))
+                                (default-border) (fill-paint->source* (default-fill-paint))
                                 (default-geometry-density))))))

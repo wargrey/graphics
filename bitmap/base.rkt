@@ -1,8 +1,11 @@
 #lang typed/racket
 
-(provide (all-defined-out))
+(provide (all-defined-out) Stroke-Paint Fill-Paint)
+(provide default-fill-paint default-fill-rule)
+(provide default-composition-operator)
 
 (require geofun/digitama/misc)
+(require geofun/digitama/source)
 
 (require "digitama/misc.rkt")
 (require "digitama/unsafe/bitmap.rkt")
