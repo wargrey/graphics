@@ -15,13 +15,16 @@
 (define-type Stroke-Paint (U Color Stroke))
 (define-type Fill-Paint (U Color Visual-Object<%> Fill-Pattern))
 
-(define-type Maybe-Stroke-Paint (U Stroke-Paint False Void))
-(define-type Maybe-Fill-Paint (U Fill-Paint Void False))
+(define-type Option-Stroke-Paint (Option Stroke-Paint))
+(define-type Option-Fill-Paint (Option Fill-Paint))
 
-(define default-stroke-paint : (Parameterof Maybe-Stroke-Paint) (make-parameter (void)))
-(define default-border-paint : (Parameterof Maybe-Stroke-Paint) (make-parameter (void)))
+(define-type Maybe-Stroke-Paint (U Option-Stroke-Paint Void))
+(define-type Maybe-Fill-Paint (U Option-Fill-Paint Void))
+
+(define default-stroke-paint : (Parameterof Option-Stroke-Paint) (make-parameter #false))
+(define default-border-paint : (Parameterof Option-Stroke-Paint) (make-parameter #false))
 (define default-foreground-paint : (Parameterof Fill-Paint) (make-parameter black))
-(define default-background-paint : (Parameterof Maybe-Fill-Paint) (make-parameter (void)))
-(define default-fill-paint : (Parameterof Maybe-Fill-Paint) (make-parameter (void)))
+(define default-background-paint : (Parameterof Option-Fill-Paint) (make-parameter #false))
+(define default-fill-paint : (Parameterof Option-Fill-Paint) (make-parameter #false))
 (define default-fill-rule : (Parameterof Symbol) (make-parameter 'winding))
 (define default-pin-operator : (Parameterof Geo-Pin-Operator) (make-parameter 'over))

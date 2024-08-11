@@ -63,7 +63,7 @@
      hsl-hue hsl-saturation hsl-color hsl-liminosity])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-operator->integer* : (-> (Option Symbol) Symbol (Option Integer))
+(define geo-select-operator : (-> (Option Symbol) Symbol (Option Integer))
   (lambda [op fallback-op]
     (define seq (and op (geo-operator->integer op)))
 

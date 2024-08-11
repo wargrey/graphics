@@ -5,13 +5,10 @@
 (require racket/math)
 (require digimon/metrics)
 
+(require "paint.rkt")
 (require "../convert.rkt")
-(require "../source.rkt")
-
-(require "../unsafe/dc/shape.rkt")
-
 (require "../../paint.rkt")
-(require "../../stroke.rkt")
+(require "../unsafe/dc/shape.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:rect geo
@@ -46,9 +43,5 @@
       (define-values (x y w h) ((geo<%>-aabox self) self))
       
       (if (or (zero? cr) (nan? cr))
-          (dc_rectangle create-abstract-surface w h
-                        (border-paint->source* (default-border-paint)) (fill-paint->source* (default-fill-paint))
-                        (default-geometry-density))
-          (dc_rounded_rectangle create-abstract-surface w h cr
-                                (border-paint->source* (default-border-paint)) (fill-paint->source* (default-fill-paint))
-                                (default-geometry-density))))))
+          (dc_rectangle create-abstract-surface w h (current-border-source) (current-fill-source) (default-geometry-density))
+          (dc_rounded_rectangle create-abstract-surface w h cr (current-border-source) (current-fill-source) (default-geometry-density))))))

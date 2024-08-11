@@ -1,6 +1,7 @@
 #lang typed/racket
 
 (provide (all-defined-out))
+(provide Geo-Pin-Operator geo-pin-operators)
 (provide (rename-out [bitmap-pin-over bitmap-pin]))
 
 (require "constructor.rkt")

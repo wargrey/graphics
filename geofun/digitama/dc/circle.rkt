@@ -4,13 +4,10 @@
 
 (require digimon/metrics)
 
+(require "paint.rkt")
 (require "../convert.rkt")
-(require "../source.rkt")
-
 (require "../unsafe/dc/shape.rkt")
-
 (require "../../paint.rkt")
-(require "../../stroke.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:circle geo
@@ -93,7 +90,7 @@
     (with-asserts ([self geo:circle?])
       (dc_circle create-abstract-surface
                  (geo:circle-radius self)
-                 (border-paint->source* (default-border-paint)) (fill-paint->source* (default-fill-paint))
+                 (current-border-source) (current-fill-source)
                  (default-geometry-density)))))
 
 (define geo-ellipse-surface : Geo-Surface-Create
@@ -101,7 +98,7 @@
     (with-asserts ([self geo:ellipse?])
       (dc_ellipse create-abstract-surface
                   (* (geo:ellipse-a self) 2.0) (* (geo:ellipse-b self) 2.0)
-                  (border-paint->source* (default-border-paint)) (fill-paint->source* (default-fill-paint))
+                  (current-border-source) (current-fill-source)
                   (default-geometry-density)))))
 
 (define geo-arc-surface : Geo-Surface-Create
@@ -110,8 +107,10 @@
       (define-values (ar br) (values (geo:arc-aradius self) (geo:arc-bradius self)))
       (define-values (srad erad) (values (geo:arc-start self) (geo:arc-end self)))
 
-      (dc_arc create-abstract-surface ar br srad erad
-              (stroke-paint->source (default-stroke-paint))
+      (dc_arc create-abstract-surface
+              (geo:arc-aradius self) (geo:arc-bradius self)
+              (geo:arc-start self) (geo:arc-end self)
+              (current-stroke-source*)
               (default-geometry-density)))))
 
 (define geo-sector-surface : Geo-Surface-Create
@@ -121,5 +120,5 @@
       (define-values (srad erad) (values (geo:sector-start self) (geo:sector-end self)))
 
       (dc_sector create-abstract-surface ar br srad erad
-                 (border-paint->source* (default-border-paint)) (fill-paint->source* (default-fill-paint))
+                 (current-border-source) (current-fill-source)
                  (default-geometry-density)))))

@@ -1,7 +1,10 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide Geo-Pin-Operator geo-pin-operators)
 (provide geo-composite geo:group? Geo:Group)
+
+(provide (rename-out [geo-pin-over geo-pin]))
 
 (require "digitama/dc/composite.rkt")
 (require "digitama/composite.rkt")

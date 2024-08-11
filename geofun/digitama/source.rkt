@@ -13,26 +13,24 @@
 (require "unsafe/visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define stroke-paint->source : (-> Maybe-Stroke-Paint Stroke)
+(define stroke-paint->source : (-> Option-Stroke-Paint Stroke)
   (lambda [paint]
     (cond [(stroke? paint) paint]
           [(not paint) (default-stroke)]
-          [(void? paint) (default-stroke)]
           [else (desc-stroke (default-stroke) #:color paint)])))
 
-(define border-paint->source : (-> Maybe-Stroke-Paint Stroke)
+(define border-paint->source : (-> Option-Stroke-Paint Stroke)
   (lambda [paint]
     (cond [(stroke? paint) paint]
           [(not paint) (default-border)]
-          [(void? paint) (default-border)]
           [else (desc-stroke (default-border) #:color paint)])))
 
-(define stroke-paint->source* : (-> Maybe-Stroke-Paint (Option Stroke))
+(define stroke-paint->source* : (-> Option-Stroke-Paint (Option Stroke))
   (lambda [paint]
     (cond [(not paint) #false]
           [else (stroke-paint->source paint)])))
 
-(define border-paint->source* : (-> Maybe-Stroke-Paint (Option Stroke))
+(define border-paint->source* : (-> Option-Stroke-Paint (Option Stroke))
   (lambda [paint]
     (cond [(not paint) #false]
           [else (border-paint->source paint)])))
@@ -48,14 +46,14 @@
                    [else fallback]))]
           [else paint])))
 
-(define foreground->source : (-> Maybe-Fill-Paint Fill-Source)
+(define foreground->source : (-> Option-Fill-Paint Fill-Source)
   (lambda [paint]
     (fill-paint->source
-     (if (or (not paint) (void? paint))
+     (if (not paint)
          (default-foreground-paint)
          paint))))
 
-(define fill-paint->source* : (-> Maybe-Fill-Paint (Option Fill-Source))
+(define fill-paint->source* : (-> Option-Fill-Paint (Option Fill-Source))
   (lambda [paint]
-    (cond [(or (not paint) (void? paint)) #false]
+    (cond [(not paint) #false]
           [else (fill-paint->source paint #false)])))

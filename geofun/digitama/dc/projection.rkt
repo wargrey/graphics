@@ -4,10 +4,8 @@
 
 (require digimon/metrics)
 
+(require "paint.rkt")
 (require "../../paint.rkt")
-(require "../../stroke.rkt")
-
-(require "../source.rkt")
 (require "../convert.rkt")
 
 (require "../unsafe/dc/icosahedron.rkt")
@@ -29,22 +27,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-icosahedron-side-projection : (->* (Real)
                                                (3D-Radius-Type #:id (Option Symbol)
-                                                               #:edge (Option Stroke-Paint) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint))
+                                                               #:edge Maybe-Stroke-Paint #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                                                Geo:Icosahedron:Side)
   (lambda [#:id [id #false] #:edge [edge #false] #:border [border #false] #:fill [pattern #false]
            radius [radius-type 'vertex]]
     (create-geometry-object geo:icosahedron:side
-                            #:with [(geo-shape-surface-wrapper geo-side-surface (stroke-paint->source* edge) (stroke-paint->source* border) pattern #false)] #:id id
+                            #:with [(geo-shape-surface-wrapper geo-side-surface edge border pattern #false)] #:id id
                             (~length radius) radius-type)))
 
 (define geo-icosahedron-over-projection : (->* (Real)
                                                (3D-Radius-Type #:id (Option Symbol) #:rotation Real #:radian? Boolean
-                                                               #:edge (Option Stroke-Paint) #:border (Option Stroke-Paint) #:fill (Option Fill-Paint))
+                                                               #:edge Maybe-Stroke-Paint #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                                                Geo:Icosahedron:Over)
   (lambda [#:id [id #false] #:edge [edge #false] #:border [border #false] #:fill [pattern #false] #:rotation [rotation 0.0] #:radian? [radian? #true]
            radius [radius-type 'vertex]]
     (create-geometry-object geo:icosahedron:over
-                            #:with [(geo-shape-surface-wrapper geo-over-surface (stroke-paint->source* edge) (stroke-paint->source* border) pattern #false)] #:id id
+                            #:with [(geo-shape-surface-wrapper geo-over-surface edge border pattern #false)] #:id id
                             (~length radius) radius-type (~radian rotation radian?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -53,7 +51,7 @@
     (with-asserts ([self geo:icosahedron:side?])
       (dc_icosahedron_side_proj create-abstract-surface
                                 (geo:icosahedron:side-radius self) (geo:icosahedron:side-radius-type self)
-                                (default-stroke) (fill-paint->source* (default-fill-paint)) (default-border)
+                                (current-stroke-source) (current-fill-source) (current-border-source)
                                 (default-geometry-density)))))
 
 (define geo-over-surface : Geo-Surface-Create
@@ -61,5 +59,5 @@
     (with-asserts ([self geo:icosahedron:over?])
       (dc_icosahedron_over_proj create-abstract-surface
                                 (geo:icosahedron:over-radius self) (geo:icosahedron:over-radius-type self) (geo:icosahedron:over-rotation self)
-                                (default-stroke) (fill-paint->source* (default-fill-paint)) (default-border)
+                                (current-stroke-source) (current-fill-source) (current-border-source)
                                 (default-geometry-density)))))

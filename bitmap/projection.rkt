@@ -13,7 +13,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-icosahedron-side-projection : (->* (Real)
-                                                  (3D-Radius-Type #:edge Maybe-Stroke-Paint #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
+                                                  (3D-Radius-Type #:edge Option-Stroke-Paint #:border Option-Stroke-Paint #:fill Option-Fill-Paint
                                                                   #:density Positive-Flonum)
                                                   Bitmap)
   (lambda [#:edge [edge (default-stroke-paint)] #:border [border #false] #:fill [pattern #false] #:density [density (default-bitmap-density)]
@@ -24,7 +24,7 @@
                               density)))
 
 (define bitmap-icosahedron-over-projection : (->* (Real)
-                                                  (3D-Radius-Type #:edge Maybe-Stroke-Paint #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
+                                                  (3D-Radius-Type #:edge Option-Stroke-Paint #:border Option-Stroke-Paint #:fill Option-Fill-Paint
                                                                   #:rotation Real #:radian? Boolean #:density Positive-Flonum)
                                                   Bitmap)
   (lambda [#:edge [edge (default-stroke-paint)] #:border [border #false] #:fill [pattern #false]

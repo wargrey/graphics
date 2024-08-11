@@ -100,9 +100,8 @@
 (define geo-group-surface : Geo-Surface-Create
   (lambda [self]
     (with-asserts ([self geo:group?])
-      (displayln (cons (geo:group-composition-operator self) (default-pin-operator)))
-      (geo_composite (geo-operator->integer* (geo:group-composition-operator self)
-                                             (default-pin-operator))
+      (geo_composite (geo-select-operator (geo:group-composition-operator self)
+                                          (default-pin-operator))
                      (geo:group-layers self) 
                      (default-geometry-density)))))
 
