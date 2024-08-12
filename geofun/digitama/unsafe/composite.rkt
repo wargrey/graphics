@@ -4,15 +4,14 @@
 
 (require typed/racket/unsafe)
 
-(require geofun/digitama/unsafe/visual/ctype)
+(require "visual/ctype.rkt")
 (require "../convert.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
 
-  (require geofun/digitama/unsafe/pangocairo)
-  (require geofun/digitama/unsafe/paint)
-
+  (require "pangocairo.rkt")
+  (require "paint.rkt")
   (require "../convert.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -43,7 +42,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [geo_composite (-> (Option Integer) Geo-Layers Flonum Abstract-Surface)])
+ [geo_composite (-> (Option Integer) Geo-Layer-Group Flonum Abstract-Surface)])
 
 (define-type Geo-Layer (Immutable-Vector Geo<%> Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
-(define-type Geo-Layers (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum (Pairof Geo-Layer (Listof Geo-Layer))))
+(define-type Geo-Layer-List (Pairof Geo-Layer (Listof Geo-Layer)))
+(define-type Geo-Layer-Group (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum Geo-Layer-List))

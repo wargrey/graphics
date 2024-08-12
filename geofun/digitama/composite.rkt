@@ -54,7 +54,7 @@
              [(type? in) (list (in->out in))]
              [else (map in->out in)]))]))
 
-(define-type Superimpose-Alignment (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
+(define-type Geo-Pin-Port (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
 
 (define-enumeration* geo-pin-operator #:+> Geo-Pin-Operator ; order matters
   geo-operator->integer integer->geo-operator

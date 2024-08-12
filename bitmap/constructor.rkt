@@ -16,8 +16,9 @@
 (require geofun/digitama/color)
 (require geofun/digitama/source)
 
-(require geofun/digitama/unsafe/dc/shape)
 (require geofun/digitama/unsafe/dc/text)
+(require geofun/digitama/unsafe/dc/shape)
+(require geofun/digitama/unsafe/dc/plain)
 
 (require "digitama/convert.rkt")
 (require "digitama/unsafe/image.rkt")
@@ -50,19 +51,20 @@
 
 (define bitmap-blank : (->* () (Real (Option Real) #:density Positive-Flonum) Bitmap)
   (lambda [[width 0.0] [height #false] #:density [density (default-bitmap-density)]]
-    (bitmap_blank (real->double-flonum width)
-                  (real->double-flonum (or height width))
-                  density)))
+    (dc_blank create-argb-bitmap
+              (real->double-flonum width)
+              (real->double-flonum (or height width))
+              density)))
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
   (lambda [bmp]
     (define-values (flw flh) (bitmap-flsize bmp))
-    (bitmap_blank flw flh (bitmap-density bmp))))
+    (dc_blank create-argb-bitmap flw flh (bitmap-density bmp))))
 
 (define bitmap-solid : (->* () (Color Real #:density Positive-Flonum) Bitmap)
   (lambda [[color transparent] [size 1] #:density [density (default-bitmap-density)]]
     (define side : Flonum (real->double-flonum size))
-    (bitmap_pattern side side (rgb* color) density)))
+    (dc_pattern create-argb-bitmap side side (rgb* color) density)))
 
 (define bitmap-frame : (-> Bitmap [#:border Option-Stroke-Paint] [#:background Option-Fill-Paint]
                            [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
@@ -75,8 +77,10 @@
     (define-values (ptop pright pbottom pleft)
       (cond [(list? inset) (list->4:values (map real->double-flonum inset) 0.0)]
             [else (let ([fl (real->double-flonum inset)]) (values fl fl fl fl))]))
-    (bitmap_frame (bitmap-surface bmp) mtop mright mbottom mleft ptop pright pbottom pleft
-                  (border-paint->source* border) (background->source* bg-fill) (bitmap-density bmp))))
+    (define-values (flwidth flheight) (bitmap-flsize bmp))
+    (dc_frame create-argb-bitmap (bitmap-surface bmp) flwidth flheight
+              mtop mright mbottom mleft ptop pright pbottom pleft
+              (border-paint->source* border) (background->source* bg-fill) (bitmap-density bmp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-text : (->* (Any)

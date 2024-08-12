@@ -50,8 +50,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-table : (->* (Integer (Listof Bitmap))
-                            ((U (Listof Superimpose-Alignment) Superimpose-Alignment)
-                             (U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                            ((U (Listof Geo-Pin-Port) Geo-Pin-Port)
+                             (U (Listof Geo-Pin-Port) Geo-Pin-Port)
                              (U (Listof Real) Real)
                              (U (Listof Real) Real))
                             Bitmap)
@@ -65,8 +65,8 @@
                                 (bitmap-density (car bitmaps))))])))
 
 (define bitmap-table* : (->* ((Listof (Listof (Option Bitmap))))
-                             ((U (Listof Superimpose-Alignment) Superimpose-Alignment)
-                              (U (Listof Superimpose-Alignment) Superimpose-Alignment)
+                             ((U (Listof Geo-Pin-Port) Geo-Pin-Port)
+                              (U (Listof Geo-Pin-Port) Geo-Pin-Port)
                               (U (Listof Real) Real)
                               (U (Listof Real) Real))
                              Bitmap)
@@ -97,7 +97,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-pyramid : (->* ((Listof Bitmap))
-                              (Nonnegative-Real (Option Nonnegative-Real) (U (Listof Superimpose-Alignment) Superimpose-Alignment))
+                              (Nonnegative-Real (Option Nonnegative-Real) (U (Listof Geo-Pin-Port) Geo-Pin-Port))
                               Bitmap)
   (lambda [bitmaps [sub-gaps 0] [sibling-gaps #false] [aligns null]]
     (cond [(null? bitmaps) (bitmap-blank)]
@@ -111,7 +111,7 @@
 (define bitmap-heap : (->* ((Listof Bitmap))
                             (#:ary Positive-Index
                              Nonnegative-Real (Option Nonnegative-Real)
-                             (U (Listof Superimpose-Alignment) Superimpose-Alignment))
+                             (U (Listof Geo-Pin-Port) Geo-Pin-Port))
                             Bitmap)
   (lambda [bitmaps #:ary [ary 2] [sub-gaps 0] [sibling-gaps #false] [aligns null]]
     (cond [(null? bitmaps) (bitmap-blank)]

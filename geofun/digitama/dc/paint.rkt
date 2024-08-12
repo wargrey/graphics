@@ -23,29 +23,28 @@
 (define current-stroke-source* : (-> Stroke)
   (lambda []
     (define src (default-stroke-source))
-    (cond [(void? src) (default-stroke)]
-          [(not src) (default-stroke)]
+    (cond [(or (void? src) (not src)) (stroke-paint->source (default-stroke-paint))]
           [else src])))
 
 (define current-stroke-source : (-> (Option Stroke))
   (lambda []
     (define src (default-stroke-source))
-    (if (void? src) (default-stroke) src)))
+    (if (void? src) (stroke-paint->source* (default-stroke-paint)) src)))
 
 (define current-border-source : (-> (Option Stroke))
   (lambda []
     (define src (default-border-source))
-    (if (void? src) (default-border) src)))
+    (if (void? src) (border-paint->source* (default-border-paint)) src)))
 
 (define current-background-source : (-> (Option Fill-Source))
   (lambda []
     (define src (default-background-source))
-    (if (void? src) #false src)))
+    (if (void? src) (fill-paint->source* (default-background-paint)) src)))
 
 (define current-fill-source : (-> (Option Fill-Source))
   (lambda []
     (define src (default-fill-source))
-    (if (void? src) #false src)))
+    (if (void? src) (fill-paint->source* (default-fill-paint)) src)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-select-foreground : (-> Option-Fill-Paint Fill-Source)
@@ -59,3 +58,9 @@
     (if (void? alt-bg)
         (current-background-source)
         (fill-paint->source* alt-bg))))
+
+(define geo-select-border-paint : (-> Maybe-Stroke-Paint (Option Stroke))
+  (lambda [alt-bdr]
+    (if (void? alt-bdr)
+        (current-border-source)
+        (border-paint->source* alt-bdr))))
