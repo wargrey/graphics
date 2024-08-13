@@ -6,6 +6,7 @@
 
 (require "visual/ctype.rkt")
 (require "../convert.rkt")
+(require "../composite.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -33,10 +34,10 @@
     geo)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (geo-composite cr child op density)
-    (cairo-composite cr (geo-create-surface (unsafe-vector*-ref child 0))
-                     (unsafe-vector*-ref child 1) (unsafe-vector*-ref child 2)
-                     (unsafe-vector*-ref child 3) (unsafe-vector*-ref child 4)
+  (define (geo-composite cr self op density)
+    (cairo-composite cr (geo-create-surface (unsafe-vector*-ref self 0))
+                     (unsafe-vector*-ref self 1) (unsafe-vector*-ref self 2)
+                     (unsafe-vector*-ref self 3) (unsafe-vector*-ref self 4)
                      CAIRO_FILTER_BILINEAR op density)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -47,3 +48,124 @@
 (define-type Geo-Layer (Immutable-Vector Geo<%> Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
 (define-type Geo-Layer-List (Pairof Geo-Layer (Listof Geo-Layer)))
 (define-type Geo-Layer-Group (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum Geo-Layer-List))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-composite-layers
+  : (case-> [Geo<%> Geo<%> Flonum Flonum -> Geo-Layer-Group]
+            [Geo<%> Geo<%> Flonum Flonum Flonum Flonum -> Geo-Layer-Group]
+            [Geo<%> Geo<%> Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Geo-Layer-Group])
+  (case-lambda
+    [(geo1 geo2 dx dy)
+     (let-values ([(w1 h1) (geo-size geo1)]
+                  [(w2 h2) (geo-size geo2)])
+       (geo-composite-layers geo1 geo2 w1 h1 w2 h2 dx dy))]
+    [(geo1 geo2 x1% y1% x2% y2%)
+     (let-values ([(w1 h1) (geo-size geo1)]
+                  [(w2 h2) (geo-size geo2)])
+       (geo-composite-layers geo1 geo2 w1 h1 w2 h2
+                             (- (* x1% w1) (* x2% w2))
+                             (- (* y1% h1) (* y2% h2))))]
+    [(geo1 geo2 w1 h1 w2 h2 dx dy)
+     (let-values ([(dx1 dy1) (values (max (- 0.0 dx) 0.0) (max (- 0.0 dy) 0.0))]
+                  [(dx2 dy2) (values (max dx 0.0) (max dy 0.0))])
+       (define width  (max (+ dx1 w1) (+ dx2 w2)))
+       (define height (max (+ dy1 h1) (+ dy2 h2)))
+
+       (vector-immutable width height
+                         (list (vector-immutable geo1 dx1 dy1 w1 h1)
+                               (vector-immutable geo2 dx2 dy2 w2 h2))))]))
+
+(define geo-pin-layers : (-> Geo<%> (Listof Geo<%>) Flonum Flonum Flonum Flonum Geo-Layer-Group)
+  (lambda [base siblings x1% y1% x2% y2%]
+    (define-values (min-width min-height) (geo-size base))
+    (let pin ([sreyal : (Listof Geo-Layer) null]
+              [dx : Flonum 0.0] [dy : Flonum 0.0] [w1 : Nonnegative-Flonum min-width] [h1 : Nonnegative-Flonum min-height]
+              [lx : Flonum 0.0] [ty : Flonum 0.0] [rx : Flonum min-width] [by : Flonum min-height] 
+              [siblings : (Listof Geo<%>) siblings])
+      (cond [(pair? siblings)
+             (let ([geo2 (car siblings)])
+               (define-values (w2 h2) (geo-size geo2))
+               (define nx : Flonum (+ dx (- (* w1 x1%) (* w2 x2%))))
+               (define ny : Flonum (+ dy (- (* h1 y1%) (* h2 y2%))))
+               
+               (pin (cons (vector-immutable geo2 nx ny w2 h2) sreyal)
+                    nx ny w2 h2
+                    (min lx nx) (min ty ny) (max rx (+ nx w2)) (max by (+ ny h2))
+                    (cdr siblings)))]
+            [(or (< lx 0.0) (< ty 0.0))
+             (let ([xoff (if (< lx 0.0) (- lx) 0.0)]
+                   [yoff (if (< ty 0.0) (- ty) 0.0)])
+               (let translate ([sreyal : (Listof Geo-Layer) sreyal]
+                               [layers : (Listof Geo-Layer) null])
+                 (if (pair? sreyal)
+                     (let ([layer (car sreyal)])
+                       (translate (cdr sreyal)
+                                  (cons (vector-immutable (vector-ref layer 0)
+                                                          (+ (vector-ref layer 1) xoff) (+ (vector-ref layer 2) yoff)
+                                                          (vector-ref layer 3) (vector-ref layer 4))
+                                        layers)))
+                     (vector-immutable (+ (max rx min-width) xoff) (+ (max by min-height) yoff)
+                                       (cons (vector-immutable base xoff yoff min-width min-height) layers)))))]
+            [else (vector-immutable (max rx min-width) (max by min-height)
+                                    (cons (vector-immutable base 0.0 0.0 min-width min-height)
+                                          (reverse sreyal)))]))))
+
+(define geo-append-layers : (-> Geo-Append-Align Geo<%> (Listof Geo<%>) Flonum Geo-Layer-Group)
+  (lambda [alignment base siblings gapsize]
+    (define-values (min-width min-height) (geo-flsize base))
+    (define-values (flwidth flheight xoff yoff sreyal)
+      (let compose : (Values Nonnegative-Flonum Nonnegative-Flonum  Flonum Flonum (Listof Geo-Layer))
+        ([sreyal : (Listof Geo-Layer) null]
+         [lx : Flonum 0.0] [ty : Flonum 0.0] [rx : Flonum min-width] [by : Flonum min-height]
+         [x : Flonum (+ min-width gapsize)] [y : Flonum (+ min-height gapsize)]
+         [siblings : (Listof Geo<%>) siblings])
+        (cond [(pair? siblings)
+               (let*-values ([(sibling rest) (values (car siblings) (cdr siblings))]
+                             [(swidth sheight) (geo-flsize sibling)])
+                 (case alignment
+                   [(vl vc vr)
+                    (let ([delta (+ sheight gapsize)])
+                      (compose (cons (vector-immutable sibling x y swidth sheight) sreyal)
+                               lx (min ty y) (max rx swidth) (max by (+ y sheight))
+                               x (+ y delta) rest))]
+                   [(ht hc hb)
+                    (let ([delta (+ swidth gapsize)])
+                      (compose (cons (vector-immutable sibling x y swidth sheight) sreyal)
+                               (min lx x) ty (max rx (+ x swidth)) (max by sheight)
+                               (+ x delta) y rest))]
+                   [else #| deadcode |# (compose sreyal lx ty rx by x y rest)]))]
+              [(or (< lx 0.0) (< ty 0.0))
+               (values (max (- rx lx) 0.0) (max (- by ty) 0.0)
+                       (if (< lx 0.0) (- lx) 0.0) (if (< ty 0.0) (- ty) 0.0)
+                       sreyal)]
+              [else (values (max (- rx lx) 0.0) (max (- by ty) 0.0) 0.0 0.0 sreyal)])))
+
+    (vector-immutable flwidth flheight
+                      (let combine ([lla : (Listof Geo-Layer) sreyal]
+                                    [all : (Listof Geo-Layer) null])
+                        (if (pair? lla)
+                            (combine (cdr lla)
+                                     (cons (geo-append-position alignment flwidth flheight (car lla) xoff yoff) all))
+                            (cons (geo-append-position alignment flwidth flheight base xoff yoff min-width min-height)
+                                  all))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-append-position
+  : (case-> [Geo-Append-Align Nonnegative-Flonum Nonnegative-Flonum Geo-Layer Flonum Flonum -> Geo-Layer]
+            [Geo-Append-Align Nonnegative-Flonum Nonnegative-Flonum Geo<%> Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Layer])
+  (case-lambda
+    [(alignment width height layer xoff yoff)
+     (geo-append-position alignment width height (vector-ref layer 0)
+                          (+ (vector-ref layer 1) xoff) (+ (vector-ref layer 2) yoff)
+                          (vector-ref layer 3) (vector-ref layer 4))]
+    [(alignment width height geo maybe-x maybe-y swidth sheight)
+     (define-values (dest-x dest-y)
+       (case alignment
+         [(vl) (values 0.0                      maybe-y)]
+         [(vc) (values (* (- width swidth) 0.5) maybe-y)]
+         [(vr) (values (- width swidth)         maybe-y)]
+         [(ht) (values maybe-x                  0.0)]
+         [(hc) (values maybe-x                  (* (- height sheight) 0.5))]
+         [(hb) (values maybe-x                  (- height sheight))]
+         [else #| deadcode |# (values maybe-x    maybe-y)]))
+     (vector-immutable geo dest-x dest-y swidth sheight)]))

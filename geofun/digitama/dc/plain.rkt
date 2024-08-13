@@ -10,12 +10,12 @@
 (require "../convert.rkt")
 (require "../unsafe/dc/plain.rkt")
 
-;;; TODO
-; deal with compositions with negative parameters.
-; `flomap` will recalculate the locations,
-; `pict` simply drop parts outside boundary.
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(struct geo:blank geo
+  ([body : (Option Geo<%>)])
+  #:type-name Geo:Blank
+  #:transparent)
+
 (struct geo:frame geo
   ([body : Geo<%>]
    [margins : (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum)]
@@ -24,6 +24,22 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-blank : (->* () (Real (Option Real) #:id (Option Symbol)) Geo:Blank)
+  (lambda [[width 0.0] [height #false] #:id [id #false]]
+    (define-values (flwidth flheight) (~size width (or height width)))
+    (displayln (cons flwidth flheight))
+    
+    (create-geometry-object geo:blank
+                            #:with [(geo-blank-surface flwidth flheight) (geo-shape-plain-bbox flwidth flheight)] #:id id
+                            #false)))
+
+(define geo-ghost : (-> Geo<%> [#:id (Option Symbol)] Geo:Blank)
+  (lambda [geo #:id [id #false]]
+    (define-values (flwidth flheight) (geo-flsize geo))
+    (create-geometry-object geo:blank
+                            #:with [(geo-blank-surface flwidth flheight) (geo-shape-plain-bbox geo)] #:id id
+                            geo)))
+
 (define geo-frame : (-> Geo<%> [#:id (Option Symbol)]
                         [#:border Maybe-Stroke-Paint] [#:background Maybe-Fill-Paint]
                         [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
@@ -54,6 +70,13 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-blank-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Surface-Create)
+  (lambda [flwidth flheight]
+    (λ [self]
+      (dc_blank create-abstract-surface
+                flwidth flheight
+                (default-geometry-density)))))
+
 (define geo-frame-surface : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Create)
   (lambda [alt-bdr alt-bg]
     (lambda [self]

@@ -7,12 +7,16 @@
 (define ring-colors : (Listof Symbol) '(royalblue crimson lime purple chocolate khaki))
 (define monospace : Font (desc-font #:family 'monospace #:size 16.0))
 
-(bitmap-vl-append* #:gapsize -8.0
- (build-list 16 (λ [[i : Index]]
+(define colors : (Listof Bitmap)
+  (build-list 16 (λ [[i : Index]]
                   (let ([rc (random #xFFFFFF)])
                     (bitmap-text #:color (rgb* rc)
                                  (string-upcase (format "~a: ~x" (add1 i) rc))
                                  monospace)))))
+
+(bitmap-hb-append #:gapsize 8.0
+                  (bitmap-vl-append* #:gapsize -32.0 colors)
+                  (bitmap-vl-append* colors))
 
 (bitmap-cc-superimpose
  

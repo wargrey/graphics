@@ -32,4 +32,5 @@
   
   (bitmap-pin* 1/5 1/5 0 0 sine sine)
   (bitmap-pin* 1/2 0 0 0 sine sine)
-  (bitmap-composite #:operator 'screen sine 50 0 sine))
+  (bitmap-composite #:operator 'screen sine 50 0 sine)
+  (bitmap-composite yellow-circle -50 0 sine))

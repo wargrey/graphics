@@ -7,10 +7,32 @@
 (require (for-syntax racket/base))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Geo-Pin-Port (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
+(define-type Geo-Append-Align (U 'vl 'vc 'vr 'ht 'hc 'hb))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-combiner stx)
   (syntax-case stx []
-    [(_ frmt #:-> (Geo Extra-Type ...) #:with alignment geobjs [extra-args ...]
-        #:blend-mode [blend blend-expr] #:empty blank-expr
+    [(_ frmt #:-> (Geo<%> Extra-Type ...) #:with alignment geobjs [extra-args ...]
+        #:empty blank-expr
+        #:short-path #:for base geo #:if short-path-condition ([(tip) short-path-expr] ...) #:do sexp ...)
+     (with-syntax ([(geo-combiner ...)
+                    (for/list ([<tip> (in-list (syntax->list #'(tip ...)))])
+                      (datum->syntax <tip> (string->symbol (format (syntax-e #'frmt) (syntax-e <tip>)))))])
+       (syntax/loc stx
+         (begin (define geo-combiner : (-> (Listof Geo<%>) Extra-Type ... Geo<%>)
+                  (let ([alignment 'tip])
+                    (λ [geobjs extra-args ...]
+                      (cond [(null? geobjs) blank-expr]
+                            [(null? (cdr geobjs)) (car geobjs)]
+                            [(and short-path-condition (null? (cddr geobjs)))
+                             (let-values ([(base geo) (values (car geobjs) (cadr geobjs))])
+                               short-path-expr)]
+                            [else sexp ...]))))
+                ...)))]
+    [(_ frmt #:-> (Geo Extra-Type ...) #:with alignment geobjs op->integer [extra-args ...]
+        #:empty blank-expr
+        #:operator-expr op-expr
         #:short-path #:for base geo #:if short-path-condition ([(tip) short-path-expr] ...) #:do sexp ...)
      (with-syntax ([(geo-combiner ...)
                     (for/list ([<tip> (in-list (syntax->list #'(tip ...)))])
@@ -19,13 +41,13 @@
          (begin (define geo-combiner : (-> (Listof Geo) Extra-Type ... Geo)
                   (let ([alignment 'tip])
                     (λ [geobjs extra-args ...]
-                      (let ([blend blend-expr])
-                        (cond [(null? geobjs) blank-expr]
-                              [(null? (cdr geobjs)) (car geobjs)]
-                              [(and short-path-condition (null? (cddr geobjs)))
-                               (let-values ([(base geo) (values (car geobjs) (cadr geobjs))])
-                                 short-path-expr)]
-                              [else sexp ...])))))
+                      (define op->integer op-expr)
+                      (cond [(null? geobjs) blank-expr]
+                            [(null? (cdr geobjs)) (car geobjs)]
+                            [(and short-path-condition (null? (cddr geobjs)))
+                             (let-values ([(base geo) (values (car geobjs) (cadr geobjs))])
+                               short-path-expr)]
+                            [else sexp ...]))))
                 ...)))]))
 
 (define-syntax (define-pin stx)
@@ -54,8 +76,6 @@
              [(type? in) (list (in->out in))]
              [else (map in->out in)]))]))
 
-(define-type Geo-Pin-Port (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
-
 (define-enumeration* geo-pin-operator #:+> Geo-Pin-Operator ; order matters
   geo-operator->integer integer->geo-operator
   [0 clear source over in out atop dest dest-over dest-in dest-out dest-atop xor add saturate
@@ -63,8 +83,8 @@
      hsl-hue hsl-saturation hsl-color hsl-liminosity])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-select-operator : (-> (Option Symbol) Symbol (Option Integer))
+(define geo-select-operator : (-> (Option Symbol) (-> Geo-Pin-Operator) (Option Integer))
   (lambda [op fallback-op]
     (define seq (and op (geo-operator->integer op)))
 
-    (or seq (geo-operator->integer fallback-op))))
+    (or seq (geo-operator->integer (fallback-op)))))

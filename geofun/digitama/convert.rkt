@@ -198,8 +198,11 @@
           [else (λ [self] (parameterize ([default-border-source (border-paint->source* alt-border)])
                             (λsurface self)))])))
 
-(define geo-shape-plain-bbox : (case-> [Nonnegative-Flonum -> Geo-Calculate-BBox]
+(define geo-shape-plain-bbox : (case-> [(U Nonnegative-Flonum Geo<%>) -> Geo-Calculate-BBox]
                                        [Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-BBox])
   (case-lambda
-    [(size) (λ [self] (values 0.0 0.0 size size))]
+    [(size)
+     (if (flonum? size)
+         (λ [self] (values 0.0 0.0 size size))
+         (geo<%>-aabox size))]
     [(width height) (λ [self] (values 0.0 0.0 width height))]))

@@ -51,10 +51,8 @@
 
 (define bitmap-blank : (->* () (Real (Option Real) #:density Positive-Flonum) Bitmap)
   (lambda [[width 0.0] [height #false] #:density [density (default-bitmap-density)]]
-    (dc_blank create-argb-bitmap
-              (real->double-flonum width)
-              (real->double-flonum (or height width))
-              density)))
+    (define-values (flwidth flheight) (~size width (or height width)))
+    (dc_blank create-argb-bitmap flwidth flheight density)))
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
   (lambda [bmp]
