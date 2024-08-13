@@ -30,24 +30,26 @@
 (require digimon/metrics)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-rectangular : (-> Nonnegative-Real Nonnegative-Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
+(define bitmap-rectangular : (-> Real Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
   (lambda [width height λargb #:density [density (default-bitmap-density)]]
-    (λbitmap (real->double-flonum width) (real->double-flonum height)
-             density λargb)))
+    (define-values (w h) (~size width height))
+    (λbitmap w h density λargb)))
 
-(define bitmap-rectangular* : (All (t) (-> Nonnegative-Real Nonnegative-Real (XYWH->ARGB* t) t [#:density Positive-Flonum] (Values Bitmap t)))
+(define bitmap-rectangular* : (All (t) (-> Real Real (XYWH->ARGB* t) t [#:density Positive-Flonum] (Values Bitmap t)))
   (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
-    (λbitmap* (real->double-flonum width) (real->double-flonum height)
-              density λargb initial)))
+    (define-values (w h) (~size width height))
+    (λbitmap* w h density λargb initial)))
 
-(define bitmap-irregular : (All (t) (-> Nonnegative-Real Nonnegative-Real (ARGB-Step t) t [#:density Positive-Flonum] Bitmap))
+(define bitmap-irregular : (All (t) (-> Real Real (ARGB-Step t) t [#:density Positive-Flonum] Bitmap))
   (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
-    (define-values (bmp _) (bitmap-irregular* width height λargb initial #:density density))
+    (define-values (w h) (~size width height))
+    (define-values (bmp _) (bitmap-irregular* w h λargb initial #:density density))
     bmp))
 
-(define bitmap-irregular* : (All (t) (-> Nonnegative-Real Nonnegative-Real (ARGB-Step t) t [#:density Positive-Flonum] (Values Bitmap t)))
+(define bitmap-irregular* : (All (t) (-> Real Real (ARGB-Step t) t [#:density Positive-Flonum] (Values Bitmap t)))
   (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
-    (λbitmap_step (real->double-flonum width) (real->double-flonum height) density λargb initial)))
+    (define-values (w h) (~size width height))
+    (λbitmap_step w h density λargb initial)))
 
 (define bitmap-blank : (->* () (Real (Option Real) #:density Positive-Flonum) Bitmap)
   (lambda [[width 0.0] [height #false] #:density [density (default-bitmap-density)]]

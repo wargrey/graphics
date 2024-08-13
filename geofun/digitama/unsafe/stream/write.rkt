@@ -64,7 +64,7 @@
           (make-parent-directory* /dev/pngout)
           (call-with-output-file* /dev/pngout #:exists 'truncate/replace
             (λ [/dev/pthout]
-              (cairo-vector-stream-write /dev/pthout pool-size λsurface)))))))
+              (cairo-image-stream-write /dev/pthout pool-size λsurface)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-cairo-vector-stream-bytes

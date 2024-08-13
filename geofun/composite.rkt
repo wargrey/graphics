@@ -11,7 +11,6 @@
 (require "digitama/dc/composite.rkt")
 (require "digitama/dc/plain.rkt")
 (require "digitama/unsafe/composite.rkt")
-
 (require "digitama/composite.rkt")
 (require "digitama/convert.rkt")
 (require "paint.rkt")

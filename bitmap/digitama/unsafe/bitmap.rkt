@@ -67,6 +67,7 @@
                     (cairo_set_source_surface vec-cr bmp-sfc 0.0 0.0)
                     (cairo_paint vec-cr)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [bitmap-surface-data (-> Bitmap-Surface (Values Bytes Index))]

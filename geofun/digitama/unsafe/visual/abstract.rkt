@@ -12,6 +12,7 @@
   
   (require "../pangocairo.rkt")
   (require "../surface/image.rkt")
+  (require "../surface/abstract.rkt")
   
   (require "../stream/pdf.rkt")
   (require "../stream/svg.rkt")
@@ -64,6 +65,19 @@
 
     (values bmp-sfc fxwidth fxheight))
 
+  (define (create-abstract-surface-from-image-surface flwidth flheight img-sfc density)
+    (define img-width  (unsafe-fx->fl (cairo_image_surface_get_width img-sfc)))
+    (define img-height (unsafe-fx->fl (cairo_image_surface_get_height img-sfc)))
+    (define-values (abs-sfc abs-width abs-height) (cairo-create-abstract-surface flwidth flheight density))
+    (define abs-cr (cairo_create abs-sfc))
+
+    (cairo_scale abs-cr (unsafe-fl/ abs-width img-width) (unsafe-fl/ abs-height img-height))
+    (cairo_set_source_surface abs-cr img-sfc 0.0 0.0)
+    (cairo_paint abs-cr)
+    (cairo_destroy abs-cr)
+
+    abs-sfc)
+
   (define (abstract-surface-stamp-onto-bitmap-surface bmp-sfc abs-sfc dx dy density)
     (define-values (lx ty flwidth flheight) (abstract-surface-content-bbox abs-sfc))
     (define bmp-cr (cairo_create bmp-sfc))
@@ -83,4 +97,6 @@
  [abstract-surface->stream-bytes (-> Abstract-Surface Symbol Symbol Positive-Flonum Bytes)]
  [abstract-surface->image-surface (-> Abstract-Surface Positive-Flonum (Values Bitmap-Surface Positive-Index Positive-Index))]
  [abstract-surface-stamp-onto-bitmap-surface (-> Bitmap-Surface Abstract-Surface Flonum Flonum Positive-Flonum Void)]
- [abstract-surface-save (-> Abstract-Surface (U Output-Port Path-String) Symbol Positive-Flonum Void)])
+ [abstract-surface-save (-> Abstract-Surface (U Output-Port Path-String) Symbol Positive-Flonum Void)]
+
+ [create-abstract-surface-from-image-surface (-> Nonnegative-Flonum Nonnegative-Flonum Bitmap-Surface Positive-Flonum Abstract-Surface)])

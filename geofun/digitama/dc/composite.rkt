@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require "../../paint.rkt")
-
 (require "../convert.rkt")
 (require "../composite.rkt")
 (require "../unsafe/composite.rkt")
