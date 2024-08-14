@@ -3,6 +3,14 @@
 (provide (all-defined-out))
 (provide Geo-Pin-Operator geo-pin-operators)
 (provide (rename-out [bitmap-pin-over bitmap-pin]))
+(provide (rename-out [bitmap-ct-superimpose bitmap-n-superimpose] [bitmap-ct-superimpose* bitmap-n-superimpose*]
+                     [bitmap-cb-superimpose bitmap-s-superimpose] [bitmap-cb-superimpose* bitmap-s-superimpose*]
+                     [bitmap-lc-superimpose bitmap-w-superimpose] [bitmap-lc-superimpose* bitmap-w-superimpose*]
+                     [bitmap-rc-superimpose bitmap-e-superimpose] [bitmap-rc-superimpose* bitmap-e-superimpose*])
+         (rename-out [bitmap-lt-superimpose bitmap-wn-superimpose] [bitmap-lt-superimpose* bitmap-wn-superimpose*]
+                     [bitmap-rt-superimpose bitmap-en-superimpose] [bitmap-rt-superimpose* bitmap-en-superimpose*]
+                     [bitmap-lb-superimpose bitmap-ws-superimpose] [bitmap-lb-superimpose* bitmap-ws-superimpose*]
+                     [bitmap-rb-superimpose bitmap-es-superimpose] [bitmap-rb-superimpose* bitmap-es-superimpose*]))
 
 (require "constructor.rkt")
 (require "digitama/convert.rkt")
@@ -10,6 +18,7 @@
 
 (require geofun/paint)
 (require geofun/digitama/composite)
+(require geofun/digitama/layer/type)
 (require geofun/digitama/unsafe/visual/ctype)
 
 (require (for-syntax racket/base))

@@ -7,6 +7,14 @@
 (provide geo-frame geo:frame? Geo:Frame)
 
 (provide (rename-out [geo-pin-over geo-pin]))
+(provide (rename-out [geo-ct-superimpose geo-n-superimpose] [geo-ct-superimpose* geo-n-superimpose*]
+                     [geo-cb-superimpose geo-s-superimpose] [geo-cb-superimpose* geo-s-superimpose*]
+                     [geo-lc-superimpose geo-w-superimpose] [geo-lc-superimpose* geo-w-superimpose*]
+                     [geo-rc-superimpose geo-e-superimpose] [geo-rc-superimpose* geo-e-superimpose*])
+         (rename-out [geo-lt-superimpose geo-wn-superimpose] [geo-lt-superimpose* geo-wn-superimpose*]
+                     [geo-rt-superimpose geo-en-superimpose] [geo-rt-superimpose* geo-en-superimpose*]
+                     [geo-lb-superimpose geo-ws-superimpose] [geo-lb-superimpose* geo-ws-superimpose*]
+                     [geo-rb-superimpose geo-es-superimpose] [geo-rb-superimpose* geo-es-superimpose*]))
 
 (require "digitama/dc/composite.rkt")
 (require "digitama/dc/plain.rkt")

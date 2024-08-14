@@ -1,16 +1,17 @@
 #lang typed/racket/base
 
+(require typed/racket/unsafe)
+
 (provide (all-defined-out))
+(unsafe-provide (rename-out [geo-append-position unsafe-append-layer]
+                            [geo-superimpose-position unsafe-superimpose-layer]))
 
 (require "type.rkt")
 
-(require "../convert.rkt")
-(require "../composite.rkt")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-append-position
-  : (case-> [Geo-Append-Align Nonnegative-Flonum Nonnegative-Flonum Geo-Layer Flonum Flonum -> Geo-Layer]
-            [Geo-Append-Align Nonnegative-Flonum Nonnegative-Flonum Geo<%> Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Layer])
+(define #:forall (G) geo-append-position
+  : (case-> [Geo-Append-Align Nonnegative-Flonum Nonnegative-Flonum (GLayerof G) Flonum Flonum -> (GLayerof G)]
+            [Geo-Append-Align Nonnegative-Flonum Nonnegative-Flonum G Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> (GLayerof G)])
   (case-lambda
     [(alignment width height layer xoff yoff)
      (geo-append-position alignment width height (vector-ref layer 0)
@@ -28,10 +29,10 @@
          [else #| deadcode |# (values maybe-x    maybe-y)]))
      (vector-immutable geo dest-x dest-y swidth sheight)]))
 
-(define geo-superimpose-position
+(define #:forall (G) geo-superimpose-position
   : (case-> [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum -> (Values Flonum Flonum)]
-            [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum Geo<%> Nonnegative-Flonum Nonnegative-Flonum -> Geo-Layer]
-            [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum Geo-Layer -> Geo-Layer])
+            [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum G Nonnegative-Flonum Nonnegative-Flonum -> (GLayerof G)]
+            [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum (GLayerof G) -> (GLayerof G)])
   (case-lambda
     [(port Width Height layer)
      (geo-superimpose-position port Width Height (vector-ref layer 0)

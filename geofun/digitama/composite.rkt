@@ -7,10 +7,6 @@
 (require (for-syntax racket/base))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Pin-Port (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
-(define-type Geo-Append-Align (U 'vl 'vc 'vr 'ht 'hc 'hb))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-combiner stx)
   (syntax-case stx []
     [(_ frmt #:-> (Geo<%> Extra-Type ...) #:with alignment geobjs [extra-args ...]

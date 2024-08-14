@@ -2,11 +2,10 @@
 
 (provide (all-defined-out))
 
-(require "../convert.rkt")
-
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Layer (Immutable-Vector Geo<%> Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
-(define-type Geo-Layer-List (Pairof Geo-Layer (Listof Geo-Layer)))
-(define-type Geo-Layer-Group (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum Geo-Layer-List))
+(define-type Geo-Pin-Port (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
+(define-type Geo-Append-Align (U 'vl 'vc 'vr 'ht 'hc 'hb))
+
+(define-type (GLayerof G) (Immutable-Vector G Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+(define-type (GLayer-Listof G) (Pairof (GLayerof G) (Listof (GLayerof G))))
+(define-type (GLayer-Groupof G) (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum (GLayer-Listof G)))
