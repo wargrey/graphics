@@ -7,7 +7,8 @@
 (require "../composite.rkt")
 (require "../unsafe/composite.rkt")
 
-(require (for-syntax racket/base))
+(require "../layer/type.rkt")
+(require "../layer/combine.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:group geo
@@ -37,22 +38,6 @@
                            (geo-pin-layers base siblings
                                            (real->double-flonum x1%) (real->double-flonum y1%)
                                            (real->double-flonum x2%) (real->double-flonum y2%)))])))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-#;(define geo-superimpose-layers : (-> Geo-Pin-Port Geo<%> (Listof Geo<%>) Geo-Layer-Group)
-  (lambda [port base siblings]
-    (let superimpose ([width : Nonnegative-Flonum 0.0]
-                      [height : Nonnegative-Flonum 0.0]
-                      [sreyal : (Listof Geo-Layer) null]
-                      [siblings : (Listof Geo<%>) siblings])
-      (if (pair? siblings)
-          (let ([geo (car siblings)])
-            (define-values (w h) (geo-flsize geo))
-            (superimpose (max width w) (max height h)
-                         (cons (cons geo (make-layer alignment w h)) sreyal)
-                         (cdr siblings)))
-          (values width height (reverse sreyal))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-geo:group : (-> (Option Symbol) (Option Symbol) Geo-Layer-Group Geo:Group)

@@ -10,7 +10,7 @@
 
 (require "digitama/dc/composite.rkt")
 (require "digitama/dc/plain.rkt")
-(require "digitama/unsafe/composite.rkt")
+(require "digitama/layer/combine.rkt")
 (require "digitama/composite.rkt")
 (require "digitama/convert.rkt")
 (require "paint.rkt")
@@ -31,27 +31,79 @@
    [(hb) (make-geo:group id op (geo-composite-layers base sibling 1.0 1.0 0.0 1.0))])
   #:do (make-geo:group id op (geo-append-layers alignment (car geobjs) (cdr geobjs) (real->double-flonum delta))))
 
-(define geo-vl-append : (-> [#:id (Option Symbol)] [#:operator Geo-Pin-Operator] [#:gapsize Real] Geo<%> * Geo<%>)
-  (λ [#:id [id #false] #:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . siblings]
+(define geo-vl-append : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] [#:gapsize Real] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] #:gapsize [delta 0.0] . siblings]
     (geo-vl-append* #:id id #:operator op #:gapsize delta siblings)))
 
-(define geo-vc-append : (-> [#:id (Option Symbol)] [#:operator Geo-Pin-Operator] [#:gapsize Real] Geo<%> * Geo<%>)
-  (λ [#:id [id #false] #:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . siblings]
+(define geo-vc-append : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] [#:gapsize Real] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] #:gapsize [delta 0.0] . siblings]
     (geo-vc-append* #:id id #:operator op #:gapsize delta siblings)))
 
-(define geo-vr-append : (-> [#:id (Option Symbol)] [#:operator Geo-Pin-Operator] [#:gapsize Real] Geo<%> * Geo<%>)
-  (λ [#:id [id #false] #:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . siblings]
+(define geo-vr-append : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] [#:gapsize Real] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] #:gapsize [delta 0.0] . siblings]
     (geo-vr-append* #:id id #:operator op #:gapsize delta siblings)))
 
-(define geo-ht-append : (-> [#:id (Option Symbol)] [#:operator Geo-Pin-Operator] [#:gapsize Real] Geo<%> * Geo<%>)
-  (λ [#:id [id #false] #:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . siblings]
+(define geo-ht-append : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] [#:gapsize Real] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] #:gapsize [delta 0.0] . siblings]
     (geo-ht-append* #:id id #:operator op #:gapsize delta siblings)))
 
-(define geo-hc-append : (-> [#:id (Option Symbol)] [#:operator Geo-Pin-Operator] [#:gapsize Real] Geo<%> * Geo<%>)
-  (λ [#:id [id #false] #:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . siblings]
+(define geo-hc-append : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] [#:gapsize Real] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] #:gapsize [delta 0.0] . siblings]
     (geo-hc-append* #:id id #:operator op #:gapsize delta siblings)))
 
-(define geo-hb-append : (-> [#:id (Option Symbol)] [#:operator Geo-Pin-Operator] [#:gapsize Real] Geo<%> * Geo<%>)
-  (λ [#:id [id #false] #:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . siblings]
+(define geo-hb-append : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] [#:gapsize Real] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] #:gapsize [delta 0.0] . siblings]
     (geo-hb-append* #:id id #:operator op #:gapsize delta siblings)))
 
+(define-combiner "geo-~a-superimpose*" #:-> (Geo<%> [#:operator (Option Geo-Pin-Operator)] [#:id (Option Symbol)])
+  #:with port geobjs [#:operator [op #false] #:gapsize [delta 0.0] #:id [id #false]]
+  #:empty (geo-blank)
+  #:short-path #:for base sibling #:if #true
+  ([(lt) (make-geo:group id op (geo-composite-layers base sibling 0.0 0.0 0.0 0.0))]
+   [(lc) (make-geo:group id op (geo-composite-layers base sibling 0.0 0.5 0.0 0.5))]
+   [(lb) (make-geo:group id op (geo-composite-layers base sibling 0.0 1.0 0.0 1.0))]
+   [(ct) (make-geo:group id op (geo-composite-layers base sibling 0.5 0.0 0.5 0.0))]
+   [(cc) (make-geo:group id op (geo-composite-layers base sibling 0.5 0.5 0.5 0.5))]
+   [(cb) (make-geo:group id op (geo-composite-layers base sibling 0.5 1.0 0.5 1.0))]
+   [(rt) (make-geo:group id op (geo-composite-layers base sibling 1.0 0.0 1.0 0.0))]
+   [(rc) (make-geo:group id op (geo-composite-layers base sibling 1.0 0.5 1.0 0.5))]
+   [(rb) (make-geo:group id op (geo-composite-layers base sibling 1.0 1.0 1.0 1.0))])
+  #:do (make-geo:group id op (geo-superimpose-layers port (car geobjs) (cdr geobjs))))
+
+(define geo-lt-superimpose : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] . geobjs]
+    (geo-lt-superimpose* #:id id #:operator op geobjs)))
+
+(define geo-ct-superimpose : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] . geobjs]
+    (geo-ct-superimpose* #:id id #:operator op geobjs)))
+
+(define geo-rt-superimpose : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] . geobjs]
+    (geo-rt-superimpose* #:id id #:operator op geobjs)))
+
+(define geo-lc-superimpose : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] . geobjs]
+    (geo-lc-superimpose* #:id id #:operator op geobjs)))
+
+(define geo-cc-superimpose : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] . geobjs]
+    (geo-cc-superimpose* #:id id #:operator op geobjs)))
+
+(define geo-rc-superimpose : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] . geobjs]
+    (geo-rc-superimpose* #:id id #:operator op geobjs)))
+
+(define geo-lb-superimpose : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] . geobjs]
+    (geo-lb-superimpose* #:id id #:operator op geobjs)))
+
+(define geo-cb-superimpose : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] . geobjs]
+    (geo-cb-superimpose* #:id id #:operator op geobjs)))
+
+(define geo-rb-superimpose : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] Geo<%> * Geo<%>)
+  (λ [#:id [id #false] #:operator [op #false] . geobjs]
+    (geo-rb-superimpose* #:id id #:operator op geobjs)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
