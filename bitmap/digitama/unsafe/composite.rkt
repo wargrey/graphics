@@ -204,8 +204,10 @@
                   [boundary xtranslate])
       (unless (null? nodes)
         (define node (unsafe-car nodes))
-        (define-values (xoff yoff) ((unsafe-cdr node) nwidth nheight))
-        (cairo-composite cr (unsafe-car node) (unsafe-fl+ x0 xoff) (unsafe-fl+ y0 yoff)
+        (define layer ((unsafe-cdr node) nwidth nheight))
+        (cairo-composite cr (unsafe-car node)
+                         (unsafe-fl+ x0 (unsafe-vector*-ref layer 1))
+                         (unsafe-fl+ y0 (unsafe-vector*-ref layer 2))
                          flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
         (if (unsafe-fl< x0 boundary)
             (combine (unsafe-cdr nodes) y0 (unsafe-fl+ x0 dx) boundary)
@@ -255,10 +257,12 @@
                   [siblings 1])
       (unless (null? nodes)
         (define node (unsafe-car nodes))
-        (define-values (xoff yoff) ((unsafe-cdr node) nwidth nheight))
+        (define layer ((unsafe-cdr node) nwidth nheight))
         (define idx++ (unsafe-fx+ idx 1))
 
-        (cairo-composite cr (unsafe-car node) (unsafe-fl+ (unsafe-flvector-ref vs idx) xoff) (unsafe-fl+ y0 yoff)
+        (cairo-composite cr (unsafe-car node)
+                         (unsafe-fl+ (unsafe-flvector-ref vs idx) (unsafe-vector*-ref layer 1))
+                         (unsafe-fl+ y0 (unsafe-vector*-ref layer 2))
                          flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
 
         (if (unsafe-fx< idx++ boundary)
@@ -300,8 +304,8 @@
             (cond [(null? rest) cells]
                   [else (let ([cell (unsafe-car rest)])
                           (define-values (w h) (values (unsafe-vector*-ref cell 1) (unsafe-vector*-ref cell 2)))
-                          (define-values (x y) (geo-superimpose-position alignment width height (void) w h))
-                          (locate (unsafe-cons-list (vector cell x y) cells)
+                          (define layer (geo-superimpose-position alignment width height cell w h))
+                          (locate (unsafe-cons-list layer cells)
                                   (unsafe-cdr rest)))]))))
 
   (define (find-position sfc psfcs which)
