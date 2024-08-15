@@ -9,8 +9,8 @@
 
 (require "../unsafe/path.rkt")
 
+(require "../dc/paint.rkt")
 (require "../../paint.rkt")
-(require "../../stroke.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
@@ -88,4 +88,5 @@
     (with-asserts ([self flow-chart?])
       (define-values (xoff yoff) (geo-bbox-offset-values (flow-chart-bbox self)))
       (path_stamp null xoff yoff
-                  (default-stroke) (fill-paint->source* (default-fill-paint)) (default-fill-rule)))))
+                  (current-stroke-source) (current-fill-source) (default-fill-rule)
+                  (default-geometry-density)))))

@@ -18,11 +18,21 @@
 
  (rename-out [track-close dryland-wani-close!]))
 
+(require racket/keyword)
+(require racket/symbol)
+
 (require "digitama/bbox.rkt")
 (require "digitama/anchor.rkt")
-(require "digitama/track.rkt")
 (require "digitama/convert.rkt")
 (require "digitama/dot.rkt")
+(require "digitama/composite.rkt")
+
+(require "digitama/dc/text.rkt")
+(require "digitama/dc/track.rkt")
+(require "digitama/dc/composite.rkt")
+
+(require "digitama/layer/type.rkt")
+(require "digitama/layer/position.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
@@ -69,7 +79,7 @@
     (define-values (tsx tsy) (track-turn-scales t-scale 0.5))
     (define-values (usx usy) (track-turn-scales u-scale 0.25))
     
-    (create-geometry-object dryland-wani #:with track-surface #:id name
+    (create-geometry-object dryland-wani #:with [track-surface (geo-path-bbox-wrapper track-bounding-box)] #:id name
                             (list (cons start-of-track home-pos)) (make-geo-path home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))
@@ -129,6 +139,61 @@
 (define dryland-wani-jump-back! : (->* (Dryland-Wani) ((Option Geo-Path-Anchor-Name)) Void)
   (lambda [wani [target #false]]
     (track-jump-to wani target)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Track-Sticker (U Geo<%> (Pairof Geo<%> (U Geo-Pin-Port (Pairof Geo-Pin-Port Float-Complex)))))
+(define-type Track-Anchor->Sticker (-> Track Geo-Path-Anchor-Name Float-Complex Nonnegative-Flonum Nonnegative-Flonum
+                                       (U Track-Sticker (Listof Track-Sticker))))
+
+(define default-track-anchor->sticker : Track-Anchor->Sticker
+  (lambda [self anchor pos Width Height]
+    (if (symbol? anchor)
+        (geo-text (symbol->immutable-string anchor) #:color 'RoyalBlue)
+        (geo-text (keyword->immutable-string anchor) #:color 'Gray))))
+
+(define track-stick : (->* (Track)
+                           (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator) #:trusted-anchors (Option (Listof Geo-Path-Anchor-Name))
+                            #:truncate? Boolean Track-Anchor->Sticker)
+                           (U Geo:Group Track))
+  (lambda [#:trusted-anchors [trusted-anchors #false] #:id [id #false] #:operator [op #false] #:truncate? [truncate? #true]
+           self [anchor->sticker default-track-anchor->sticker]]
+    (define gpath : Geo-Path (track-path self))
+    (define srohcna : (Listof Geo-Path-Anchor-Name) (geo-path-ranchors gpath))
+    (define origin : Float-Complex (geo-bbox-position (track-bbox self)))
+    (define-values (Width Height) (geo-flsize self))
+
+    (let stick ([srohcna : (Listof Geo-Path-Anchor-Name) srohcna]
+                [stickers : (Listof (GLayerof Geo<%>)) null])
+      (cond [(pair? srohcna)
+             (let-values ([(anchor rest) (values (car srohcna) (cdr srohcna))])
+               (if (and trusted-anchors (not (memq anchor trusted-anchors)))
+                   (stick rest stickers)
+
+                   (let* ([pos (- (geo-path-ref gpath anchor) origin)]
+                          [ones (anchor->sticker self anchor pos Width Height)])
+                     (stick rest (for/fold ([stickers : (Listof (GLayerof Geo<%>)) stickers])
+                                           ([one (if (list? ones) (in-list ones) (in-value ones))])
+                                   (define-values (sticker modifier) (if (pair? one) (values (car one) (cdr one)) (values one 'cc)))
+                                   (define-values (width height) (geo-flsize sticker))
+                                   (define layer : (GLayerof Geo<%>)
+                                     (if (pair? modifier)
+                                         (geo-stick-layer (car modifier) pos sticker width height (cdr modifier))
+                                         (geo-stick-layer modifier pos sticker width height 0.0+0.0i)))
+                                   (append stickers (list layer)))))))]
+            [(pair? stickers)
+             (let-values ([(self-layer) (vector-immutable self 0.0 0.0 Width Height)])
+               (or (and (not truncate?)
+                        (let-values ([(lx ty rx by) (geo-group-boundary stickers Width Height)])
+                          (and (or (<= lx 0.0) (<= ty 0.0))
+                               (let ([xoff (if (< lx 0.0) (abs lx) 0.0)]
+                                     [yoff (if (< ty 0.0) (abs ty) 0.0)])
+                                 (make-geo:group id op
+                                                 (vector-immutable (+ rx xoff) (+ by yoff)
+                                                                   (cons (geo-layer-translate self-layer xoff yoff)
+                                                                         (for/list : (Listof (GLayerof Geo<%>)) ([sticker (in-list stickers)])
+                                                                           (geo-layer-translate sticker xoff yoff)))))))))
+                   (make-geo:group id op (vector-immutable Width Height (cons self-layer stickers)))))]
+            [else self]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define track-anchor-position : (->* (Track Geo-Path-Anchor-Name) (#:translate? Boolean) Float-Complex)

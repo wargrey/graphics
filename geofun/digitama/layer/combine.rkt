@@ -99,10 +99,10 @@
 
     (vector-immutable flwidth flheight
                       (let locate ([liat : (Listof (GLayerof Geo<%>)) sreyal]
-                                    [tail : (Listof (GLayerof Geo<%>)) null])
+                                   [tail : (Listof (GLayerof Geo<%>)) null])
                         (if (pair? liat)
                             (locate (cdr liat)
-                                     (cons (geo-append-layer alignment flwidth flheight (car liat) xoff yoff) tail))
+                                    (cons (geo-append-layer alignment flwidth flheight (car liat) xoff yoff) tail))
                             (cons (geo-append-layer alignment flwidth flheight base xoff yoff min-width min-height)
                                   tail))))))
 
@@ -120,9 +120,9 @@
                      (cons (vector-immutable self 0.0 0.0 w h) sreyal)))
           (vector-immutable width height
                             (let locate ([liat : (Listof (GLayerof Geo<%>)) sreyal]
-                                          [tail : (Listof (GLayerof Geo<%>)) null])
+                                         [tail : (Listof (GLayerof Geo<%>)) null])
                               (if (pair? liat)
                                   (locate (cdr liat)
-                                           (cons (geo-superimpose-layer port width height (car liat)) tail))
+                                          (cons (geo-superimpose-layer port width height (car liat)) tail))
                                   (cons (geo-superimpose-layer port width height base min-width min-height)
                                         tail))))))))

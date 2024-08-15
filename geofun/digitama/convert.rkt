@@ -7,8 +7,9 @@
                      [geo-intrinsic-size geo-intrinsic-flsize]))
 
 (require "dc/paint.rkt")
-(require "../paint.rkt")
 (require "source.rkt")
+(require "../paint.rkt")
+(require "../stroke.rkt")
 
 (require "unsafe/visual/ctype.rkt")
 (require "unsafe/visual/object.rkt")
@@ -58,12 +59,12 @@
     (values surface cr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-bounding-box : (->* (Geo<%>) (Option-Stroke-Paint) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+(define geo-bounding-box : (->* (Geo<%>) (Maybe-Stroke-Paint) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [geo [stroke (default-border-paint)]]
     (parameterize ([default-border-source (border-paint->source* stroke)])
       ((geo<%>-aabox geo) geo))))
 
-(define geo-intrinsic-size : (->* (Geo<%>) (Option-Stroke-Paint) (Values Nonnegative-Flonum Nonnegative-Flonum))
+(define geo-intrinsic-size : (->* (Geo<%>) (Maybe-Stroke-Paint) (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [geo [stroke (default-border-paint)]]
     (define-values (lx ty width height) (geo-bounding-box geo stroke))
     (values width height)))
@@ -193,10 +194,20 @@
                              (λsurface self)))])]))
 
 (define geo-shape-bbox-wrapper : (-> Geo-Calculate-BBox Maybe-Stroke-Paint Geo-Calculate-BBox)
-  (lambda [λsurface alt-border]
-    (cond [(void? alt-border) λsurface]
+  (lambda [λbbox alt-border]
+    (cond [(void? alt-border) λbbox]
           [else (λ [self] (parameterize ([default-border-source (border-paint->source* alt-border)])
-                            (λsurface self)))])))
+                            (λbbox self)))])))
+
+(define geo-path-bbox-wrapper : (-> Geo-Calculate-BBox Geo-Calculate-BBox)
+  (lambda [λbbox]
+    (λ [self]
+      (let-values ([(x y width height) (λbbox self)])
+        (define maybe-stroke (current-stroke-source))
+        (if (stroke? maybe-stroke)
+            (let ([linewidth (stroke-width maybe-stroke)])
+              (values x y (+ width linewidth) (+ height linewidth)))
+            (values x y width height))))))
 
 (define geo-shape-plain-bbox : (case-> [(U Nonnegative-Flonum Geo<%>) -> Geo-Calculate-BBox]
                                        [Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-BBox])

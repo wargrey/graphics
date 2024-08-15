@@ -13,24 +13,24 @@
 (require "unsafe/visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define stroke-paint->source : (-> Option-Stroke-Paint Stroke)
+(define stroke-paint->source : (-> Maybe-Stroke-Paint Stroke)
   (lambda [paint]
     (cond [(stroke? paint) paint]
-          [(not paint) (default-stroke)]
+          [(or (not paint) (void? paint)) (default-stroke)]
           [else (desc-stroke (default-stroke) #:color paint)])))
 
-(define border-paint->source : (-> Option-Stroke-Paint Stroke)
+(define border-paint->source : (-> Maybe-Stroke-Paint Stroke)
   (lambda [paint]
     (cond [(stroke? paint) paint]
-          [(not paint) (default-border)]
+          [(or (not paint) (void? paint)) (default-border)]
           [else (desc-stroke (default-border) #:color paint)])))
 
-(define stroke-paint->source* : (-> Option-Stroke-Paint (Option Stroke))
+(define stroke-paint->source* : (-> Maybe-Stroke-Paint (Option Stroke))
   (lambda [paint]
     (cond [(not paint) #false]
           [else (stroke-paint->source paint)])))
 
-(define border-paint->source* : (-> Option-Stroke-Paint (Option Stroke))
+(define border-paint->source* : (-> Maybe-Stroke-Paint (Option Stroke))
   (lambda [paint]
     (cond [(not paint) #false]
           [else (border-paint->source paint)])))

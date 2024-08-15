@@ -38,3 +38,26 @@
           [(memq prow '(ct cc cb)) (case pcol [(lt rt) 'ct] [(lc rc) 'cc] [(lb rb) 'cb] [else pcol])]
           [(memq prow '(rt rc rb)) (case pcol [(lt ct) 'rt] [(lc cc) 'rc] [(lb cb) 'rb] [else pcol])]
           [else 'cc])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (G) geo-group-boundary : (-> (Listof (GLayerof G)) Nonnegative-Flonum Nonnegative-Flonum
+                                              (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [siblings Width Height]
+    (let check-boundary ([lx : Flonum 0.0]
+                         [ty : Flonum 0.0]
+                         [rx : Nonnegative-Flonum Width]
+                         [by : Nonnegative-Flonum Height]
+                         [siblings : (Listof (GLayerof G)) siblings])
+      (if (pair? siblings)
+          (let ([self (car siblings)])
+            (check-boundary (min lx (vector-ref self 1)) (min ty (vector-ref self 2))
+                            (max rx (+ (vector-ref self 1) (vector-ref self 3))) (max by (+ (vector-ref self 2) (vector-ref self 4)))
+                            (cdr siblings)))
+          (values lx ty rx by)))))
+
+(define #:forall (G) geo-layer-translate : (-> (GLayerof G) Flonum Flonum (GLayerof G))
+  (lambda [self xoff yoff]
+    (vector-immutable (vector-ref self 0)
+                      (+ xoff (vector-ref self 1))
+                      (+ yoff (vector-ref self 2))
+                      (vector-ref self 3) (vector-ref self 4))))

@@ -18,18 +18,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (collect-garbage)
-  (collect-garbage)
-  (collect-garbage) ; 4-6ms
-  (time (bitmap-table 2 examples '(rc lc) '(ct) '(8) '(8)))
+  (bitmap-table 2 examples '(rc lc) '(ct) '(8) '(8))
   
   (collect-garbage)
   (collect-garbage)
-  (collect-garbage) ; 17-19ms
+  (collect-garbage) ; 13ms
   (time (void (bitmap-vl-append* bitmaps)))
   
   (collect-garbage)
   (collect-garbage)
-  (collect-garbage) ; 17-19ms
+  (collect-garbage) ; 21ms
   (time (bitmap-table 26 bitmaps '(rc) '(cc) '(10) '(10))))
   

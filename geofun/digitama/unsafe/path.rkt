@@ -17,10 +17,12 @@
   (require "surface/abstract.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (path_stamp footprints dx dy stroke fill-color fill-rule)
-    (make-cairo-abstract-surface 0.0 0.0 1.0 #false
+  (define (path_stamp footprints dx dy stroke fill-color fill-rule density)
+    (define linewidth (~bdwidth stroke))
+    (define offset (unsafe-fl* linewidth 0.5))
+    (make-cairo-abstract-surface 0.0 0.0 density #true
                                  (λ [cr _inf.w _inf.h]
-                                   (cairo_path cr footprints dx dy)
+                                   (cairo_path cr footprints (unsafe-fl+ dx offset) (unsafe-fl+ dy offset))
                                    (cairo-render cr stroke fill-color fill-rule))))
 
   (define (cairo_path cr footprints dx dy)
@@ -67,7 +69,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Abstract-Surface)])
+ [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Positive-Flonum Abstract-Surface)])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Path-Print (Pairof Char (U Float-Complex Path-Args False)))

@@ -2,16 +2,16 @@
 
 (provide (all-defined-out))
 
-(require "dot.rkt")
-(require "source.rkt")
-(require "bbox.rkt")
-(require "anchor.rkt")
-(require "convert.rkt")
+(require "paint.rkt")
+(require "../../paint.rkt")
 
-(require "unsafe/path.rkt")
+(require "../dot.rkt")
+(require "../source.rkt")
+(require "../bbox.rkt")
+(require "../anchor.rkt")
+(require "../convert.rkt")
 
-(require "../paint.rkt")
-(require "../stroke.rkt")
+(require "../unsafe/path.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/math))
@@ -223,9 +223,15 @@
         (track-move self tpos (+ (track-here self) tpos) #\l anchor #false))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define track-bounding-box : Geo-Calculate-BBox
+  (lambda [self]
+    (with-asserts ([self track?])
+      (geo-bbox-values (track-bbox self)))))
+
 (define track-surface : Geo-Surface-Create
   (lambda [self]
     (with-asserts ([self track?])
       (define-values (xoff yoff) (geo-bbox-offset-values (track-bbox self)))
       (path_stamp (track-footprints self) xoff yoff
-                  (default-stroke) (fill-paint->source* (default-fill-paint)) (default-fill-rule)))))
+                  (current-stroke-source*) (current-fill-source) (default-fill-rule)
+                  (default-geometry-density)))))

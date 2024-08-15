@@ -60,18 +60,22 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (require geofun/digitama/track)
-  (require geofun/digitama/freeze)
-  (require bitmap)
+  (require geofun/digitama/dc/track)
+  (require geofun/vector)
+  (require geofun/bitmap)
 
-  (default-stroke (desc-stroke #:color 'crimson #:width 2.0))
+  (default-stroke-paint (desc-stroke #:color 'crimson #:width 2.0))
+
+  (define make-track-sticker : Track-Anchor->Sticker
+    (lambda [self anchor pos Width Height]
+      (geo-text pos)))
   
   (reverse (track-footprints drywani))
-  drywani
-  (geo-freeze drywani #:border 'ForestGreen)
+  (geo-frame (track-stick drywani make-track-sticker))
+  (geo-freeze drywani #:stroke 'ForestGreen)
 
   (let ([bmp (bitmap-square 256)])
-    (geo-freeze! bmp drywani -32 -32 #:border 'RoyalBlue)
+    (geo-freeze! bmp drywani -32 -32 #:stroke 'RoyalBlue)
     bmp)
   
   (track-anchor-position drywani '#:home)

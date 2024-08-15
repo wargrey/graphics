@@ -26,7 +26,7 @@
      (cairo-set-source cr pattern)
      (cairo_fill_preserve cr)]
     [(cr pattern rule)
-     (cairo-set-fill-rule rule)
+     (cairo-set-fill-rule cr rule)
      (cairo-render-with-fill cr pattern)]))
 
 (define cairo-render-background
