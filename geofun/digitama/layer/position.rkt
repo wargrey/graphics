@@ -1,22 +1,22 @@
 #lang typed/racket/base
 
-(require typed/racket/unsafe)
-
 (provide (all-defined-out))
-(unsafe-provide (rename-out [geo-append-position unsafe-append-layer]
-                            [geo-superimpose-position unsafe-superimpose-layer]))
+
+(require typed/racket/unsafe)
+(unsafe-provide (rename-out [geo-append-layer unsafe-append-layer]
+                            [geo-superimpose-layer unsafe-superimpose-layer]))
 
 (require "type.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (G) geo-append-position
+(define #:forall (G) geo-append-layer
   : (case-> [Geo-Append-Align Nonnegative-Flonum Nonnegative-Flonum (GLayerof G) Flonum Flonum -> (GLayerof G)]
             [Geo-Append-Align Nonnegative-Flonum Nonnegative-Flonum G Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> (GLayerof G)])
   (case-lambda
     [(alignment width height layer xoff yoff)
-     (geo-append-position alignment width height (vector-ref layer 0)
-                          (+ (vector-ref layer 1) xoff) (+ (vector-ref layer 2) yoff)
-                          (vector-ref layer 3) (vector-ref layer 4))]
+     (geo-append-layer alignment width height (vector-ref layer 0)
+                       (+ (vector-ref layer 1) xoff) (+ (vector-ref layer 2) yoff)
+                       (vector-ref layer 3) (vector-ref layer 4))]
     [(alignment width height geo maybe-x maybe-y swidth sheight)
      (define-values (dest-x dest-y)
        (case alignment
@@ -29,16 +29,20 @@
          [else #| deadcode |# (values maybe-x    maybe-y)]))
      (vector-immutable geo dest-x dest-y swidth sheight)]))
 
-(define #:forall (G) geo-superimpose-position
+(define #:forall (G) geo-superimpose-layer
   : (case-> [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum -> (Values Flonum Flonum)]
             [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum G Nonnegative-Flonum Nonnegative-Flonum -> (GLayerof G)]
-            [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum (GLayerof G) -> (GLayerof G)])
+            [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum (GLayerof G) -> (GLayerof G)]
+            [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum (GLayerof G) Flonum Flonum Any -> (GLayerof G)])
   (case-lambda
     [(port Width Height layer)
-     (geo-superimpose-position port Width Height (vector-ref layer 0)
-                               (vector-ref layer 3) (vector-ref layer 4))]
+     (geo-superimpose-layer port Width Height (vector-ref layer 0) (vector-ref layer 3) (vector-ref layer 4))]
+    [(port Width Height self xoff yoff _)
+     (let*-values ([(width height) (values (vector-ref self 3) (vector-ref self 4))]
+                   [(x y) (geo-superimpose-layer port Width Height width height)])
+       (vector-immutable (vector-ref self 0) (+ x xoff) (+ y yoff) width height))]
     [(port Width Height self width height)
-     (let-values ([(x y) (geo-superimpose-position port Width Height width height)])
+     (let-values ([(x y) (geo-superimpose-layer port Width Height width height)])
        (vector-immutable self x y width height))]
     [(port Width Height width height)
      (let*-values ([(rx by) (values (- Width width) (- Height height))]

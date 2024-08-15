@@ -59,19 +59,6 @@
          (lambda [geo1 x1 y1 geo2 [x2 0.0] [y2 0.0]]
            (compose geo1 x1 y1 geo2 x2 y2 #:operator op))))]))
 
-(define-syntax (geo-expand-args  stx)
-  (syntax-case stx []
-    [(_ in type? default)
-     (syntax/loc stx
-       (cond [(null? in) (list default)]
-             [(type? in) (list in)]
-             [else in]))]
-    [(_ in type? default in->out)
-     (syntax/loc stx
-       (cond [(null? in) (list default)]
-             [(type? in) (list (in->out in))]
-             [else (map in->out in)]))]))
-
 (define-enumeration* geo-pin-operator #:+> Geo-Pin-Operator ; order matters
   geo-operator->integer integer->geo-operator
   [0 clear source over in out atop dest dest-over dest-in dest-out dest-atop xor add saturate

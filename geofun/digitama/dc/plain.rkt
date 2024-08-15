@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require digimon/metrics)
+(require digimon/sequence)
 
 (require "../../paint.rkt")
 (require "paint.rkt")
@@ -27,7 +28,6 @@
 (define geo-blank : (->* () (Real (Option Real) #:id (Option Symbol)) Geo:Blank)
   (lambda [[width 0.0] [height #false] #:id [id #false]]
     (define-values (flwidth flheight) (~size width (or height width)))
-    (displayln (cons flwidth flheight))
     
     (create-geometry-object geo:blank
                             #:with [(geo-blank-surface flwidth flheight) (geo-shape-plain-bbox flwidth flheight)] #:id id

@@ -5,6 +5,7 @@
 (require typed/racket/unsafe)
 
 (require geofun/digitama/unsafe/visual/ctype)
+
 (require "../convert.rkt")
 
 (module unsafe racket/base
@@ -15,9 +16,13 @@
   (require (only-in racket/flonum make-flvector))
 
   (require geofun/digitama/unsafe/pangocairo)
-  (require geofun/digitama/layer/position)
   (require geofun/digitama/unsafe/surface/image)
   (require geofun/digitama/unsafe/paint)
+  
+  (require geofun/digitama/layer/position)
+  (require geofun/digitama/layer/table)
+
+  (require digimon/sequence)
 
   (require "../convert.rkt")
   
@@ -128,54 +133,18 @@
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_table sfcs ncols nrows col-aligns row-aligns col-gaps row-gaps density)
-    (define alcols (list->n:vector col-aligns ncols))
-    (define alrows (list->n:vector row-aligns nrows))
-    (define gcols (list->n:vector col-gaps ncols))
-    (define grows (list->n:vector row-gaps nrows))
-    (define table (list->table sfcs nrows ncols density))
-    (define table-ref (λ [c r] (unsafe-vector*-ref table (unsafe-fx+ (unsafe-fx* r ncols) c))))
-    (define-values (pbcols pbrows)
-      (values (for/vector ([c (in-range ncols)])
-                (superimpose* (unsafe-vector*-ref alcols c)
-                              (let ++ ([swor null] [r 0])
-                                (cond [(unsafe-fx= r nrows) swor]
-                                      [else (++ (unsafe-cons-list (table-ref c r) swor)
-                                                (unsafe-fx+ r 1))]))))
-              (for/vector ([r (in-range nrows)])
-                (superimpose* (unsafe-vector*-ref alrows r)
-                              (let ++ ([sloc null] [c 0])
-                                (cond [(unsafe-fx= c ncols) sloc]
-                                      [else (++ (unsafe-cons-list (table-ref c r) sloc)
-                                                (unsafe-fx+ c 1))]))))))
+  (define (bitmap_table sfcs ncols nrows alcols alrows gcols grows density)
+    (define table (list->n:vector* sfcs (unsafe-fx* nrows ncols) (table-filling-layer) (bitmap-surface->layer density)))
+    (define size (unsafe-vector*-length table))
+    (define cwidths (unsafe-table-column-widths table nrows ncols size))
+    (define rheights (unsafe-table-row-heights table nrows ncols size))
+    (define layers (unsafe-table-layers table ncols nrows alcols alrows gcols grows cwidths rheights))
     
-    (unsafe-vector*-set! gcols (unsafe-fx- ncols 1) 0.0)
-    (unsafe-vector*-set! grows (unsafe-fx- nrows 1) 0.0)
-
-    (define-values (flwidth flheight)
-      (let compose-row ([width 0.0]
-                        [height 0.0]
-                        [row 0])
-        (cond [(unsafe-fx= row nrows) (values width height)]
-              [else (let ([pbrow (unsafe-vector*-ref pbrows row)])
-                      (define hrow (unsafe-fl+ (unsafe-car (unsafe-cdr pbrow)) (unsafe-vector*-ref grows row)))
-                      (let compose-col ([xoff 0.0] [col 0])
-                        (cond [(unsafe-fx= col ncols) (compose-row xoff (unsafe-fl+ height hrow) (unsafe-fx+ row 1))]
-                              [else (let ([cell (table-ref col row)])
-                                      (define pbcol (unsafe-vector*-ref pbcols col))
-                                      (define wcol (unsafe-fl+ (unsafe-car pbcol) (unsafe-vector*-ref gcols col)))
-                                      (define-values (x y) (values (find-position cell pbcol 1) (find-position cell pbrow 2)))
-                                      (unsafe-vector*-set! cell 1 (unsafe-fl+ x xoff))
-                                      (unsafe-vector*-set! cell 2 (unsafe-fl+ y height))
-                                      (compose-col (unsafe-fl+ xoff wcol) (unsafe-fx+ col 1)))])))])))
-
-    (define-values (bmp cr) (create-argb-bitmap flwidth flheight density #true))
-    (let combine ([idx (unsafe-fx- (unsafe-fx* ncols nrows) 1)])
-      (when (unsafe-fx>= idx 0)
-        (define cell (unsafe-vector*-ref table idx))
-        (cairo-composite cr (unsafe-vector*-ref cell 0) (unsafe-vector*-ref cell 1) (unsafe-vector*-ref cell 2)
-                         flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
-        (combine (unsafe-fx- idx 1))))
+    (define-values (bmp cr) (create-argb-bitmap (unsafe-vector*-ref layers 0) (unsafe-vector*-ref layers 1) density #true))
+    (let combine ([all (unsafe-vector*-ref layers 2)])
+      (unless (null? all)
+        (layer-composite cr (unsafe-car all) CAIRO_OPERATOR_OVER density)
+        (combine (unsafe-cdr all))))
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -183,7 +152,7 @@
     (define n (length sfcs))
     (define depth (unsafe-fx->fl (pyramid-depth n)))
     (define nleaves (unsafe-fl+ depth 1.0))
-    (define-values (nwidth nheight nodes) (list->layers* (list->n:vector node-aligns n) sfcs density))
+    (define-values (nwidth nheight nodes) (list->layers* node-aligns sfcs density))
     (define flwidth (unsafe-fl+ (unsafe-fl* nwidth nleaves) (unsafe-fl* sibling-gaps (unsafe-fl- nleaves 1.0))))
     (define flheight (unsafe-fl+ (unsafe-fl* nheight (unsafe-fl+ depth 1.0)) (unsafe-fl* sub-gaps depth)))
     (define 2translate (unsafe-fl- flwidth nwidth))
@@ -223,7 +192,7 @@
     (define flary (unsafe-fx->fl ary))
     (define depth (unsafe-flfloor (log (unsafe-fx* n ary-1) ary)))
     (define nleaves (unsafe-flexpt flary depth))
-    (define-values (nwidth nheight nodes) (list->layers* (list->n:vector node-aligns n) sfcs density))
+    (define-values (nwidth nheight nodes) (list->layers* node-aligns sfcs density))
     (define flwidth (unsafe-fl+ (unsafe-fl* nwidth nleaves) (unsafe-fl* sibling-gaps (unsafe-fl- nleaves 1.0))))
     (define flheight (unsafe-fl+ (unsafe-fl* nheight (unsafe-fl+ depth 1.0)) (unsafe-fl* sub-gaps depth)))
     (define xstep (unsafe-fl+ nwidth sibling-gaps))
@@ -290,47 +259,12 @@
                         CAIRO_FILTER_BILINEAR operator density)]))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (define (superimpose* alignment sllec)
-    (define-values (width height)
-      (let compose ([width 0.0] [height 0.0] [rest sllec])
-        (cond [(null? rest) (values width height)]
-              [else (let ([cell (unsafe-car rest)])
-                      (compose (unsafe-flmax width (unsafe-vector*-ref cell 1))
-                               (unsafe-flmax height (unsafe-vector*-ref cell 2))
-                               (unsafe-cdr rest)))])))
-    (list width height
-          (let locate ([cells null] [rest sllec])
-            (cond [(null? rest) cells]
-                  [else (let ([cell (unsafe-car rest)])
-                          (define-values (w h) (values (unsafe-vector*-ref cell 1) (unsafe-vector*-ref cell 2)))
-                          (define layer (geo-superimpose-position alignment width height cell w h))
-                          (locate (unsafe-cons-list layer cells)
-                                  (unsafe-cdr rest)))]))))
-
-  (define (find-position sfc psfcs which)
-    (let find ([rest (unsafe-list-ref psfcs 2)])
-      (cond [(null? rest) (values 0.0 0.0)]
-            [else (let ([cell (unsafe-car rest)])
-                    (if (eq? sfc (unsafe-vector*-ref cell 0))
-                        (unsafe-vector*-ref cell which)
-                        (find (unsafe-cdr rest))))])))
-
-  (define (list->table sfcs nrows ncols density)
-    (define cells (for/vector ([sfc (in-list sfcs)])
-                    (define-values (w h) (bitmap-surface-rendered-size sfc density))
-                    (vector sfc w h)))
-    (define diff (unsafe-fx- (unsafe-fx* nrows ncols) (unsafe-vector*-length cells)))
-    (cond [(unsafe-fx<= diff 0) cells]
-          [else (let ([filling (vector the-image-surface 1.0 1.0)])
-                  (vector-append cells (make-vector diff filling)))]))
-
-  (define (list->n:vector src total)
-    ; NOTE: `src` is usually very small.
-    (define count (length src))
-    (cond [(unsafe-fx= total count) (list->vector src)]
-          [else (let ([supplement (unsafe-list-ref src (unsafe-fx- count 1))])
-                  (list->vector (append src (make-list (unsafe-fx- total count) supplement))))]))
+  (define (table-filling-layer)
+    (vector-immutable the-image-surface 0.0 0.0 1.0 1.0))
+  
+  (define ((bitmap-surface->layer density) sfc)
+    (define-values (w h) (bitmap-surface-rendered-size sfc density))
+    (vector-immutable sfc 0.0 0.0 w h))
 
   (define (list->layers alignment sfcs density)
     (let compose ([width 0.0]
@@ -377,6 +311,6 @@
  [bitmap_pin* (-> (Option Integer) Flonum Flonum Flonum Flonum Bitmap-Surface (Listof Bitmap-Surface) Flonum Bitmap)]
  [bitmap_append (-> Symbol (Option Integer) Bitmap-Surface (Listof Bitmap-Surface) Flonum Flonum Bitmap)]
  [bitmap_superimpose (-> Symbol (Option Integer) (Listof Bitmap-Surface) Flonum Bitmap)]
- [bitmap_table (-> (Listof Bitmap-Surface) Integer Integer (Listof Symbol) (Listof Symbol) (Listof Flonum) (Listof Flonum) Flonum Bitmap)]
- [bitmap_heap (-> (Listof Bitmap-Surface) Positive-Index Flonum Flonum (Listof Symbol) Flonum Bitmap)]
- [bitmap_pyramid (-> (Listof Bitmap-Surface) Flonum Flonum (Listof Symbol) Flonum Bitmap)])
+ [bitmap_table (-> (Listof Bitmap-Surface) Natural Natural (Vectorof Symbol) (Vectorof Symbol) (Vectorof Flonum) (Vectorof Flonum) Flonum Bitmap)]
+ [bitmap_heap (-> (Listof Bitmap-Surface) Positive-Index Flonum Flonum (Vectorof Symbol) Flonum Bitmap)]
+ [bitmap_pyramid (-> (Listof Bitmap-Surface) Flonum Flonum (Vectorof Symbol) Flonum Bitmap)])

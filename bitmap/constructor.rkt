@@ -28,6 +28,7 @@
 (require racket/format)
 
 (require digimon/metrics)
+(require digimon/sequence)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-rectangular : (-> Real Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)

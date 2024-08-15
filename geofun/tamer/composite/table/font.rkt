@@ -1,26 +1,28 @@
-#lang racket
+#lang racket/base
 
 (provide font-style-table)
 
-(require bitmap)
+(require geofun/vector)
 (require geofun/digitama/font)
 
+(require racket/format)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define exgap (bitmap-blank))
+(define exgap (geo-blank))
 
 (define (font-style-table exfont ex-chars options update-font)
   (define hgapsize (font-size exfont))
   
-  (bitmap-table*
+  (geo-table*
    (for/list ([property (in-list (cons '|| options))])
-     (cons (bitmap-text (~a property) exfont #:color 'green)
+     (cons (geo-text (~a property) exfont #:color 'green)
            (apply append
                   (for/list ([exchar (in-list ex-chars)])
                     (cons exgap
                           (for/list ([style (in-list css-font-style-options)])
-                            (cond [(eq? property '||) (bitmap-text (~a style) exfont)]
-                                  [else (bitmap-text (~a " " exchar " ")
-                                                     (update-font exfont property style))])))))))
+                            (cond [(eq? property '||) (geo-text (~a style) exfont)]
+                                  [else (geo-text (~a " " exchar " ")
+                                                  (update-font exfont property style))])))))))
    'cc 'cc hgapsize (* hgapsize 0.618)))
 
 (module+ main

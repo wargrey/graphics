@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require digimon/sequence)
+
 (require "../../paint.rkt")
 (require "../convert.rkt")
 (require "../composite.rkt")
@@ -9,12 +11,20 @@
 
 (require "../layer/type.rkt")
 (require "../layer/combine.rkt")
+(require "../layer/table.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:group geo
   ([operator : (Option Symbol)]
    [layers : Geo-Layer-Group])
   #:type-name Geo:Group
+  #:transparent)
+
+(struct geo:table geo:group
+  ([size : (Pairof Positive-Index Positive-Index)]
+   [ports : (Pairof (Vectorof Geo-Pin-Port) (Vectorof Geo-Pin-Port))]
+   [gaps : (Pairof (Vectorof Flonum) (Vectorof Flonum))])
+  #:type-name Geo:Table
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -45,6 +55,27 @@
     (create-geometry-object geo:group
                             #:with [geo-group-surface (geo-group-bbox layers)] #:id id
                             op layers)))
+
+(define make-geo:table : (-> (Option Symbol) (Option Symbol)
+                             (Listof Geo<%>) Positive-Index Positive-Index
+                             (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Real) (Geo-Config-Argof Real) Geo<%>
+                             Geo:Table)
+  (lambda [id op siblings ncols nrows col-ports row-ports col-gaps row-gaps cont]
+    (define pcols : (Vectorof Geo-Pin-Port) (geo-config-expand col-ports ncols 'cc))
+    (define prows : (Vectorof Geo-Pin-Port) (geo-config-expand row-ports nrows 'cc))
+    (define gcols : (Vectorof Flonum) (geo-config-expand col-gaps ncols 0.0 real->double-flonum))
+    (define grows : (Vectorof Flonum) (geo-config-expand row-gaps nrows 0.0 real->double-flonum))
+    (define table : (Vectorof (GLayerof Geo<%>)) (list->n:vector* siblings (* nrows ncols) (geo->layer cont) geo->layer))
+
+    (define size : Index (vector-length table))
+    (define cwidths : (Vectorof Nonnegative-Flonum) (geo-table-column-widths table nrows ncols size))
+    (define rheights : (Vectorof Nonnegative-Flonum) (geo-table-row-heights table nrows ncols size))
+    (define layers : Geo-Layer-Group (geo-table-layers table ncols nrows pcols prows gcols grows cwidths rheights))
+
+    (create-geometry-object geo:table
+                            #:with [geo-group-surface (geo-group-bbox layers)] #:id id
+                            op layers
+                            (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
 
 (define geo-group-surface : Geo-Surface-Create
   (lambda [self]

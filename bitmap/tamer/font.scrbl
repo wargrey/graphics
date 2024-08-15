@@ -2,14 +2,15 @@
 
 @(require digimon/tamer)
 
-@(require pangocairo/font)
-@(require pangocairo/digitama/font)
+@(require geofun/font)
+@(require geofun/digitama/font)
+
+@(require geofun/tamer/composite/table/font)
 
 @(require "../constructor.rkt")
 @(require "../composite.rkt")
 
-@(require "bridge/font.rkt")
-@(require "composite/table/font.rkt")
+@(require "bitmap/bridge/font.rkt")
 
 @(require (for-label typed/racket/base))
 
@@ -34,7 +35,7 @@
                      (racketparenfont ")"))]))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@handbook-typed-module-story[#:requires [bitmap/base pangocairo/digitama/font] pangocairo/font]{Font}
+@handbook-typed-module-story[#:requires [bitmap/base geofun/digitama/font] geofun/font]{Font}
 
 A @deftech{font} provides a resource containing the visual representation of characters. At the
 simplest level it contains information that maps character codes to shapes (called @deftech{glyphs})
@@ -276,8 +277,7 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
  
  @tamer-repl[(require bitmap/constructor)
              (require bitmap/composite)
-             (require bitmap/constants)
-             (define exfont (desc-font (desc-font cursive #:size 'xx-large) #:size -1.618))
+             (define exfont (desc-font (desc-font #:family 'cursive #:size 'xx-large) #:size -1.618))
              (define sphinx "Sphinx 0123456789")
              
              (text-metrics-lines sphinx exfont)]
@@ -285,9 +285,9 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
  @margin-note{It is normal to see these generic font families poor in @url{docs.racket-lang.org},
   and fonts in Linux might not be well selected.}
  
- @tamer-repl[(default-border (desc-stroke long-dash #:color 'gray #:width 1))
+ @tamer-repl[(default-border (desc-stroke #:dash 'long-dash #:color 'gray #:width 1))
              (define (frame-text [family : (U String Symbol)] [text : String sphinx]) : Bitmap
-               (bitmap-frame (bitmap-text #:ascent magenta #:descent blue #:capline orange #:meanline green #:baseline red
+               (bitmap-frame (bitmap-text #:ascent 'magenta #:descent 'blue #:capline 'orange #:meanline 'green #:baseline 'red
                                           (format "~a: ~a" family text)
                                           (desc-font #:family family exfont))))
              
@@ -339,7 +339,7 @@ cross platform. These utilities are therefore at your service.
 
 @handbook-scenario{A Glimpse of Properties}
 
-@(define exfont (desc-font #:size 'x-large #:family 'fangsong))
+@(define exfont (desc-font #:size 'large #:family 'fangsong))
 
 @margin-note{This exemplification is trivial since font properties are much more
  than they do should be supported.}

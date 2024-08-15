@@ -98,12 +98,12 @@
               [else (values (max (- rx lx) 0.0) (max (- by ty) 0.0) 0.0 0.0 sreyal)])))
 
     (vector-immutable flwidth flheight
-                      (let combine ([liat : (Listof (GLayerof Geo<%>)) sreyal]
+                      (let locate ([liat : (Listof (GLayerof Geo<%>)) sreyal]
                                     [tail : (Listof (GLayerof Geo<%>)) null])
                         (if (pair? liat)
-                            (combine (cdr liat)
-                                     (cons (geo-append-position alignment flwidth flheight (car liat) xoff yoff) tail))
-                            (cons (geo-append-position alignment flwidth flheight base xoff yoff min-width min-height)
+                            (locate (cdr liat)
+                                     (cons (geo-append-layer alignment flwidth flheight (car liat) xoff yoff) tail))
+                            (cons (geo-append-layer alignment flwidth flheight base xoff yoff min-width min-height)
                                   tail))))))
 
 (define geo-superimpose-layers : (-> Geo-Pin-Port Geo<%> (Listof Geo<%>) (GLayer-Groupof Geo<%>))
@@ -119,11 +119,10 @@
             (compose (max width w) (max height h) rest
                      (cons (vector-immutable self 0.0 0.0 w h) sreyal)))
           (vector-immutable width height
-                            (let combine ([liat : (Listof (GLayerof Geo<%>)) sreyal]
+                            (let locate ([liat : (Listof (GLayerof Geo<%>)) sreyal]
                                           [tail : (Listof (GLayerof Geo<%>)) null])
                               (if (pair? liat)
-                                  (combine (cdr liat)
-                                           (cons (geo-superimpose-position port width height (car liat)) tail))
-                                  (cons (geo-superimpose-position port width height base min-width min-height)
+                                  (locate (cdr liat)
+                                           (cons (geo-superimpose-layer port width height (car liat)) tail))
+                                  (cons (geo-superimpose-layer port width height base min-width min-height)
                                         tail))))))))
-

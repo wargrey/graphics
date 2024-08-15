@@ -16,9 +16,17 @@
                      [geo-lb-superimpose geo-ws-superimpose] [geo-lb-superimpose* geo-ws-superimpose*]
                      [geo-rb-superimpose geo-es-superimpose] [geo-rb-superimpose* geo-es-superimpose*]))
 
+(require racket/list)
+
+(require digimon/function)
+
 (require "digitama/dc/composite.rkt")
 (require "digitama/dc/plain.rkt")
+
+(require "digitama/layer/type.rkt")
 (require "digitama/layer/combine.rkt")
+(require "digitama/layer/table.rkt")
+
 (require "digitama/composite.rkt")
 (require "digitama/convert.rkt")
 (require "paint.rkt")
@@ -115,3 +123,37 @@
     (geo-rb-superimpose* #:id id #:operator op geobjs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-table : (->* (Integer (Listof Geo<%>))
+                         (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator)
+                          (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
+                         Geo<%>)
+  (lambda [#:id [id #false] #:operator [op #false] ncols siblings [col-ports null] [row-ports null] [col-gaps null] [row-gaps null]]
+    (define size : Index (length siblings))
+    (define cont : Geo<%> (geo-blank))
+    (or (and (> size 0)
+             (> ncols 0) (index? ncols)
+             (let-values ([(maybe-nrows extra-ncols) (quotient/remainder size ncols)])
+               (define nrows : Nonnegative-Fixnum (+ maybe-nrows (if (= extra-ncols 0) 0 1)))
+               (and (> nrows 0) (index? nrows)
+                    (make-geo:table id op siblings ncols nrows col-ports row-ports col-gaps row-gaps cont))))
+        cont)))
+
+(define geo-table* : (->* ((Listof (Listof (Option Geo<%>))))
+                          (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator)
+                           (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
+                          Geo<%>)
+  (lambda [#:id [id #false] #:operator [op #false] siblings [col-ports null] [row-ports null] [col-gaps null] [row-gaps null]]
+    (define ncols : Index (apply max 0 ((inst map Index (Listof (Option Geo<%>))) length siblings)))
+    (define nrows : Index (length siblings))
+    (define cont : Geo<%> (geo-blank))
+    (define fill-row ((inst λoption Geo<%> Geo<%>) values cont))
+
+    (or (and (> ncols 0) (> nrows 0)
+             (make-geo:table id op
+                             (for/fold ([cells : (Listof Geo<%>) null])
+                                       ([rows : (Listof (Option Geo<%>)) (in-list siblings)])
+                               (define rsize : Index (length rows))
+                               (cond [(= ncols rsize) (append cells (map fill-row rows))]
+                                     [else (append cells (map fill-row rows) (make-list (- ncols rsize) cont))]))
+                             ncols nrows col-ports row-ports col-gaps row-gaps cont))
+        cont)))

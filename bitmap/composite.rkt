@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (provide (all-defined-out))
 (provide Geo-Pin-Operator geo-pin-operators)
@@ -16,9 +16,13 @@
 (require "digitama/convert.rkt")
 (require "digitama/unsafe/composite.rkt")
 
+(require racket/math)
+(require racket/list)
+
 (require geofun/paint)
 (require geofun/digitama/composite)
 (require geofun/digitama/layer/type)
+(require geofun/digitama/layer/table)
 (require geofun/digitama/unsafe/visual/ctype)
 
 (require (for-syntax racket/base))
@@ -53,27 +57,21 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-table : (->* (Integer (Listof Bitmap))
-                            ((U (Listof Geo-Pin-Port) Geo-Pin-Port)
-                             (U (Listof Geo-Pin-Port) Geo-Pin-Port)
-                             (U (Listof Real) Real)
-                             (U (Listof Real) Real))
+                            ((Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
                             Bitmap)
-  (lambda [ncols bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
+  (lambda [ncols bitmaps [col-ports null] [row-ports null] [col-gaps null] [row-gaps null]]
     (cond [(or (<= ncols 0) (null? bitmaps)) (bitmap-blank)]
           [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols)])
                   (define nrows : Nonnegative-Fixnum (+ maybe-nrows (sgn extra-ncols)))
                   (bitmap_table (map bitmap-surface bitmaps) ncols nrows
-                                (geo-expand-args col-aligns symbol? 'cc) (geo-expand-args row-aligns symbol? 'cc)
-                                (geo-expand-args col-gaps real? 0.0 real->double-flonum) (geo-expand-args row-gaps real? 0.0 real->double-flonum)
+                                (geo-config-expand col-ports ncols 'cc) (geo-config-expand row-ports nrows 'cc)
+                                (geo-config-expand col-gaps ncols 0.0 real->double-flonum) (geo-config-expand row-gaps nrows 0.0 real->double-flonum)
                                 (bitmap-density (car bitmaps))))])))
 
 (define bitmap-table* : (->* ((Listof (Listof (Option Bitmap))))
-                             ((U (Listof Geo-Pin-Port) Geo-Pin-Port)
-                              (U (Listof Geo-Pin-Port) Geo-Pin-Port)
-                              (U (Listof Real) Real)
-                              (U (Listof Real) Real))
+                             ((Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
                              Bitmap)
-  (lambda [bitmaps [col-aligns null] [row-aligns null] [col-gaps null] [row-gaps null]]
+  (lambda [bitmaps [col-ports null] [row-ports null] [col-gaps null] [row-gaps null]]
     (define ncols : Index (apply max 0 ((inst map Index (Listof (Option Bitmap))) length bitmaps)))
     (define nrows : Index (length bitmaps))
     (define cont : Bitmap (bitmap-blank))
@@ -94,27 +92,25 @@
     
     (cond [(not density) cont]
           [else (bitmap_table surfaces ncols nrows
-                              (geo-expand-args col-aligns symbol? 'cc) (geo-expand-args row-aligns symbol? 'cc)
-                              (geo-expand-args col-gaps real? 0.0 real->double-flonum) (geo-expand-args row-gaps real? 0.0 real->double-flonum)
+                              (geo-config-expand col-ports ncols 'cc) (geo-config-expand row-ports nrows 'cc)
+                              (geo-config-expand col-gaps ncols 0.0 real->double-flonum) (geo-config-expand row-gaps nrows 0.0 real->double-flonum)
                               density)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-pyramid : (->* ((Listof Bitmap))
-                              (Nonnegative-Real (Option Nonnegative-Real) (U (Listof Geo-Pin-Port) Geo-Pin-Port))
+                              (Nonnegative-Real (Option Nonnegative-Real) (Geo-Config-Argof Geo-Pin-Port))
                               Bitmap)
   (lambda [bitmaps [sub-gaps 0] [sibling-gaps #false] [aligns null]]
     (cond [(null? bitmaps) (bitmap-blank)]
           [(null? (cdr bitmaps)) (car bitmaps)]
           [else (bitmap_pyramid (map bitmap-surface bitmaps)
                                 (real->double-flonum sub-gaps) (real->double-flonum (or sibling-gaps (* sub-gaps 1.618)))
-                                (geo-expand-args aligns symbol? 'cc)
+                                (geo-config-expand aligns (length bitmaps) 'cc)
                                 (bitmap-density (car bitmaps)))])))
 
 ; TODO: find a better ratio between subtree gapsize and the leaf one
 (define bitmap-heap : (->* ((Listof Bitmap))
-                            (#:ary Positive-Index
-                             Nonnegative-Real (Option Nonnegative-Real)
-                             (U (Listof Geo-Pin-Port) Geo-Pin-Port))
+                            (#:ary Positive-Index Nonnegative-Real (Option Nonnegative-Real) (Geo-Config-Argof Geo-Pin-Port))
                             Bitmap)
   (lambda [bitmaps #:ary [ary 2] [sub-gaps 0] [sibling-gaps #false] [aligns null]]
     (cond [(null? bitmaps) (bitmap-blank)]
@@ -122,10 +118,10 @@
           [else (let ([sfcs (map bitmap-surface bitmaps)]
                       [sub-gapsize (real->double-flonum sub-gaps)]
                       [sibling-gapsize (real->double-flonum (or sibling-gaps (* sub-gaps 0.618)))]
-                      [aligns (geo-expand-args aligns symbol? 'cc)]
+                      [aligns (geo-config-expand aligns (length bitmaps) 'cc)]
                       [density (bitmap-density (car bitmaps))])
                   (if (= ary 1)
-                      (bitmap_table sfcs 1 (length bitmaps) aligns aligns (list sibling-gapsize) (list sub-gapsize) density)
+                      (bitmap_table sfcs 1 (length bitmaps) aligns aligns (vector sibling-gapsize) (vector sub-gapsize) density)
                       (bitmap_heap sfcs ary sub-gapsize sibling-gapsize aligns density)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

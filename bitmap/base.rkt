@@ -1,6 +1,10 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (provide (all-defined-out))
+
+(require racket/match)
+(require racket/string)
+(require racket/list)
 
 (require geofun/digitama/misc)
 
@@ -30,7 +34,7 @@
                 [else src]))
         (when (string? tips) (log-message (current-logger) 'info tips src.icon #false))
         src.icon))
-    (cond [(or (false? size) (false? scale?)) raw.icon]
+    (cond [(or (not size) (not scale?)) raw.icon]
           [else (bitmap-scale raw.icon (/ size (bitmap-intrinsic-height raw.icon)))])))
 
 (define bitmap : (->* ((U Path-String Input-Port)) (Positive-Flonum) Bitmap)
