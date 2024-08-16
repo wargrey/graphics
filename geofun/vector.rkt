@@ -9,7 +9,7 @@
 (require "digitama/unsafe/visual/abstract.rkt")
 
 (require/provide "digitama/convert.rkt" "digitama/freeze.rkt")
-(require/provide "track.rkt" "constructor.rkt" "composite.rkt" "resize.rkt")
+(require/provide "path.rkt" "constructor.rkt" "composite.rkt" "resize.rkt")
 (require/provide "color.rkt" "font.rkt" "paint.rkt" "stroke.rkt")
 (require/provide "digitama/dot.rkt" "digitama/constants.rkt")
 

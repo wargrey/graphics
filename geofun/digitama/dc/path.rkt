@@ -6,9 +6,8 @@
 (require "../../paint.rkt")
 
 (require "../dot.rkt")
-(require "../source.rkt")
 (require "../bbox.rkt")
-(require "../anchor.rkt")
+(require "../trail.rkt")
 (require "../convert.rkt")
 
 (require "../unsafe/path.rkt")
@@ -18,16 +17,16 @@
 (require (for-syntax racket/syntax))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Track-Print-Datum Point2D)
-(define-type Track-Bezier-Datum (U Track-Print-Datum Geo-Path-Anchor-Name))
+(define-type Geo-Print-Datum Point2D)
+(define-type Geo-Bezier-Datum (U Geo-Print-Datum Geo-Anchor-Name))
 
-(struct track geo
+(struct geo-path geo
   ([footprints : (Pairof Path-Print (Listof Path-Print))]
-   [path : Geo-Path]
+   [trail : Geo-Trail]
    [bbox : Geo-BBox]
    [origin : Float-Complex]
    [here : Float-Complex])
-  #:type-name Track
+  #:type-name Geo-Path
   #:transparent
   #:mutable)
 
@@ -39,33 +38,33 @@
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))]
                    [(xsgn ysgn) (let ([dxy (syntax->datum #'sgn)]) (list (datum->syntax #'sgn (real-part dxy)) (datum->syntax #'sgn (imag-part dxy))))])
        (syntax/loc stx
-         (begin (define (step! [wani : Dryland-Wani] [xstep : Real 1.0] [ystep : Real 1.0] [anchor : (Option Geo-Path-Anchor-Name) #false]) : Void
-                  (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani)
+         (begin (define (step! [wani : Dryland-Wani] [xstep : Real 1.0] [ystep : Real 1.0] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani)
                                  (* (real->double-flonum xstep) xsgn) (* (real->double-flonum ystep) ysgn)
                                  anchor #true))
                 
-                (define (jump! [wani : Dryland-Wani] [xstep : Real 1.0] [ystep : Real 1.0] [anchor : (Option Geo-Path-Anchor-Name) #false]) : Void
-                  (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani)
+                (define (jump! [wani : Dryland-Wani] [xstep : Real 1.0] [ystep : Real 1.0] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani)
                                  (* (real->double-flonum xstep) xsgn) (* (real->double-flonum ystep) ysgn)
                                  anchor #true)))))]
     [(_ move #:-> xsgn)
      (with-syntax ([step! (format-id #'move "dryland-wani-step-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
-         (begin (define (step! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Geo-Path-Anchor-Name) #false]) : Void
-                  (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (* (real->double-flonum step) xsgn) 0.0 anchor #true))
+         (begin (define (step! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (* (real->double-flonum step) xsgn) 0.0 anchor #true))
                 
-                (define (jump! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Geo-Path-Anchor-Name) #false]) : Void
-                  (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (* (real->double-flonum step) xsgn) 0.0 anchor #true)))))]
+                (define (jump! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) (* (real->double-flonum step) xsgn) 0.0 anchor #true)))))]
     [(_ move #:!> ysgn)
      (with-syntax ([step! (format-id #'move "dryland-wani-step-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
-         (begin (define (step! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Geo-Path-Anchor-Name) #false]) : Void
-                  (track-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (* (real->double-flonum step) ysgn) anchor #true))
+         (begin (define (step! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-line-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (* (real->double-flonum step) ysgn) anchor #true))
                 
-                (define (jump! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Geo-Path-Anchor-Name) #false]) : Void
-                  (track-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (* (real->double-flonum step) ysgn) anchor #true)))))]))
+                (define (jump! [wani : Dryland-Wani] [step : Real 1] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-move-to wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani) 0.0 (* (real->double-flonum step) ysgn) anchor #true)))))]))
 
 (define-syntax (define-dryland-wani-turn-move! stx)
   (syntax-case stx []
@@ -77,20 +76,20 @@
                    [rcstart (datum->syntax #'c-start (degrees->radians (syntax->datum #'c-start)))]
                    [rcend (datum->syntax #'c-end (degrees->radians (syntax->datum #'c-end)))])
        (syntax/loc stx
-         (begin (define (turn-1-2! [wani : Dryland-Wani] [anchor : (Option Geo-Path-Anchor-Name) #false]) : Void
-                  (track-turn wani (dryland-wani-txradius wani) (dryland-wani-tyradius wani)
+         (begin (define (turn-1-2! [wani : Dryland-Wani] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-turn wani (dryland-wani-txradius wani) (dryland-wani-tyradius wani)
                               clockwise-args ... rstart rend anchor #true #false))
                 
-                (define (turn-2-1! [wani : Dryland-Wani] [anchor : (Option Geo-Path-Anchor-Name) #false]) : Void
-                  (track-turn wani (dryland-wani-txradius wani) (dryland-wani-tyradius wani)
+                (define (turn-2-1! [wani : Dryland-Wani] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-turn wani (dryland-wani-txradius wani) (dryland-wani-tyradius wani)
                               counterclockwise-args ... rcstart rcend anchor #false #false)))))]
     [(_ move clockwise? [start end args ...] guard)
      (with-syntax* ([u-turn-move! (format-id #'move "dryland-wani-turn-~a!" (syntax->datum #'move))]
                     [rstart (datum->syntax #'start (degrees->radians (syntax->datum #'start)))]
                     [rend (datum->syntax #'end (degrees->radians (syntax->datum #'end)))])
        (syntax/loc stx
-         (begin (define (u-turn-move! [wani : Dryland-Wani] [anchor : (Option Geo-Path-Anchor-Name) #false]) : Void
-                  (track-turn wani (dryland-wani-uxradius wani) (dryland-wani-uyradius wani)
+         (begin (define (u-turn-move! [wani : Dryland-Wani] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-turn wani (dryland-wani-uxradius wani) (dryland-wani-uyradius wani)
                               args ... rstart rend anchor clockwise? guard)))))]
     [(_ move #:+> args #:boundary-guard guard) (syntax/loc stx (define-dryland-wani-turn-move! move #true args guard))]
     [(_ move #:-> args #:boundary-guard guard) (syntax/loc stx (define-dryland-wani-turn-move! move #false args guard))]))
@@ -98,7 +97,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define start-of-track : Char #\M)
 
-(struct dryland-wani track
+(struct dryland-wani geo-path
   ([xstepsize : Nonnegative-Flonum]
    [ystepsize : Nonnegative-Flonum]
    [txradius : Nonnegative-Flonum]
@@ -108,7 +107,7 @@
   #:type-name Dryland-Wani)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-turn-scales : (-> Track-Print-Datum Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
+(define geo-path-turn-scales : (-> Geo-Print-Datum Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [scale default-scale]
     (define (turn-scale [datum : Real]) : Nonnegative-Flonum
       (if (> datum 0) (real->double-flonum datum) default-scale))
@@ -118,120 +117,120 @@
           [(pair? scale) (values (turn-scale (car scale)) (turn-scale (cdr scale)))]
           [else (values (turn-scale (real-part scale)) (turn-scale (imag-part scale)))])))
 
-(define track-bezier-point : (->* (Track Track-Bezier-Datum) (Flonum Flonum) Float-Complex)
+(define geo-path-bezier-point : (->* (Geo-Path Geo-Bezier-Datum) (Flonum Flonum) Float-Complex)
   (lambda [self dpos [sx 1.0] [sy 1.0]]
-    (define cpos : Float-Complex (track-here self))
+    (define cpos : Float-Complex (geo-path-here self))
     
     (cond [(real? dpos) (+ cpos (make-rectangular (* (real->double-flonum dpos) sx) 0.0))]
           [(list? dpos) (+ cpos (make-rectangular (* (real->double-flonum (car dpos)) sx) (* (real->double-flonum (cadr dpos)) sy)))]
           [(pair? dpos) (+ cpos (make-rectangular (* (real->double-flonum (car dpos)) sx) (* (real->double-flonum (cdr dpos)) sy)))]
           [(complex? dpos) (+ cpos (make-rectangular (* (real->double-flonum (real-part dpos)) sx) (* (real->double-flonum (imag-part dpos)) sy)))]
-          [else (geo-path-ref (track-path self) dpos)])))
+          [else (geo-trail-ref (geo-path-trail self) dpos)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-move : (-> Track Float-Complex Float-Complex Char (Option Geo-Path-Anchor-Name) Boolean Void)
+(define geo-path-move : (-> Geo-Path Float-Complex Float-Complex Char (Option Geo-Anchor-Name) Boolean Void)
   (lambda [self step-args endpt op anchor subpath?]
-    (geo-bbox-fit! (track-bbox self) endpt)
-    (and anchor (geo-path-set! (track-path self) anchor endpt))
-    (set-track-here! self endpt)
-    (set-track-footprints! self (cons (cons op step-args) (track-footprints self)))
+    (geo-bbox-fit! (geo-path-bbox self) endpt)
+    (and anchor (geo-trail-set! (geo-path-trail self) anchor endpt))
+    (set-geo-path-here! self endpt)
+    (set-geo-path-footprints! self (cons (cons op step-args) (geo-path-footprints self)))
 
     (when (and subpath?)
-      (set-track-origin! self endpt))))
+      (set-geo-path-origin! self endpt))))
 
-(define track-turn : (-> Track Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum (Option Geo-Path-Anchor-Name) Boolean (Option (U Float Float-Complex)) Void)
+(define geo-path-turn : (-> Geo-Path Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum (Option Geo-Anchor-Name) Boolean (Option (U Float Float-Complex)) Void)
   (lambda [self rx ry cx cy ex ey start end anchor clockwise? guard]
-    (define cpos : Float-Complex (track-here self))
+    (define cpos : Float-Complex (geo-path-here self))
     (define cpos++ : Float-Complex (+ (make-rectangular (* ex rx) (* ey ry)) cpos))
     (define path:arc : Path-Args (arc (+ cpos (make-rectangular (* cx rx) (* cy ry))) rx ry start end clockwise?))
 
-    (geo-bbox-fit! (track-bbox self) cpos++)
+    (geo-bbox-fit! (geo-path-bbox self) cpos++)
     (when (and guard)
-      (geo-bbox-fit! (track-bbox self) cpos
+      (geo-bbox-fit! (geo-path-bbox self) cpos
                      (real->double-flonum (* (real-part guard) rx))
                      (real->double-flonum (* (imag-part guard) ry))))
 
-    (and anchor (geo-path-set! (track-path self) anchor cpos++))
-    (set-track-here! self cpos++)
-    (set-track-footprints! self (cons (cons #\A path:arc) (track-footprints self)))))
+    (and anchor (geo-trail-set! (geo-path-trail self) anchor cpos++))
+    (set-geo-path-here! self cpos++)
+    (set-geo-path-footprints! self (cons (cons #\A path:arc) (geo-path-footprints self)))))
 
-(define track-jump-to : (-> Track (Option Geo-Path-Anchor-Name) Void)
+(define geo-path-jump-to : (-> Geo-Path (Option Geo-Anchor-Name) Void)
   (lambda [self auto-anchor]
-    (define anchor (or auto-anchor (geo-path-head-anchor (track-path self))))
-    (define pos (geo-path-ref (track-path self) anchor))
+    (define anchor (or auto-anchor (geo-trail-head-anchor (geo-path-trail self))))
+    (define pos (geo-trail-ref (geo-path-trail self) anchor))
 
-    (geo-path-pop! (track-path self) anchor)
+    (geo-trail-pop! (geo-path-trail self) anchor)
     
-    (set-track-origin! self pos)
-    (set-track-here! self pos)
-    (set-track-footprints! self (cons (cons #\M pos) (track-footprints self)))))
+    (set-geo-path-origin! self pos)
+    (set-geo-path-here! self pos)
+    (set-geo-path-footprints! self (cons (cons #\M pos) (geo-path-footprints self)))))
 
-(define track-connect-to : (-> Track Geo-Path-Anchor-Name Void)
+(define geo-path-connect-to : (-> Geo-Path Geo-Anchor-Name Void)
   (lambda [self anchor]
-    (define pos (geo-path-ref (track-path self) anchor))
+    (define pos (geo-trail-ref (geo-path-trail self) anchor))
     
-    (set-track-here! self pos)
-    (set-track-footprints! self (cons (cons #\L pos) (track-footprints self)))))
+    (set-geo-path-here! self pos)
+    (set-geo-path-footprints! self (cons (cons #\L pos) (geo-path-footprints self)))))
 
-(define track-linear-bezier : (-> Track Float-Complex (Option Geo-Path-Anchor-Name) Void)
+(define geo-path-linear-bezier : (-> Geo-Path Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt anchor]
-    (track-move self endpt endpt #\L anchor #false)))
+    (geo-path-move self endpt endpt #\L anchor #false)))
 
-(define track-quadratic-bezier : (-> Track Float-Complex Float-Complex (Option Geo-Path-Anchor-Name) Void)
+(define geo-path-quadratic-bezier : (-> Geo-Path Float-Complex Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt ctrl anchor]
-    (define path:bezier : Path-Args (bezier (track-here self) ctrl endpt))
+    (define path:bezier : Path-Args (bezier (geo-path-here self) ctrl endpt))
 
-    (geo-bbox-fit! (track-bbox self) endpt)
-    (geo-bbox-fit! (track-bbox self) ctrl)
-    (and anchor (geo-path-set! (track-path self) anchor endpt))
-    (set-track-here! self endpt)
-    (set-track-footprints! self (cons (cons #\Q path:bezier) (track-footprints self)))))
+    (geo-bbox-fit! (geo-path-bbox self) endpt)
+    (geo-bbox-fit! (geo-path-bbox self) ctrl)
+    (and anchor (geo-trail-set! (geo-path-trail self) anchor endpt))
+    (set-geo-path-here! self endpt)
+    (set-geo-path-footprints! self (cons (cons #\Q path:bezier) (geo-path-footprints self)))))
 
-(define track-cubic-bezier : (-> Track Float-Complex Float-Complex Float-Complex (Option Geo-Path-Anchor-Name) Void)
+(define geo-path-cubic-bezier : (-> Geo-Path Float-Complex Float-Complex Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt ctrl1 ctrl2 anchor]
     (define path:bezier : Path-Args (bezier ctrl1 ctrl2 endpt))
 
-    (geo-bbox-fit! (track-bbox self) endpt)
-    (geo-bbox-fit! (track-bbox self) ctrl1)
-    (geo-bbox-fit! (track-bbox self) ctrl2)
-    (and anchor (geo-path-set! (track-path self) anchor endpt))
-    (set-track-here! self endpt)
-    (set-track-footprints! self (cons (cons #\C path:bezier) (track-footprints self)))))
+    (geo-bbox-fit! (geo-path-bbox self) endpt)
+    (geo-bbox-fit! (geo-path-bbox self) ctrl1)
+    (geo-bbox-fit! (geo-path-bbox self) ctrl2)
+    (and anchor (geo-trail-set! (geo-path-trail self) anchor endpt))
+    (set-geo-path-here! self endpt)
+    (set-geo-path-footprints! self (cons (cons #\C path:bezier) (geo-path-footprints self)))))
 
-(define track-close : (-> Track Void)
+(define geo-path-close : (-> Geo-Path Void)
   (lambda [self]
-    (define init-pos (track-origin self))
+    (define init-pos (geo-path-origin self))
     
-    (set-track-here! self init-pos)
-    (set-track-footprints! self (cons (cons #\Z #false) (track-footprints self)))))
+    (set-geo-path-here! self init-pos)
+    (set-geo-path-footprints! self (cons (cons #\Z #false) (geo-path-footprints self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-move-to : (-> Track Flonum Flonum Flonum Flonum (Option Geo-Path-Anchor-Name) Boolean Void)
+(define geo-path-move-to : (-> Geo-Path Flonum Flonum Flonum Flonum (Option Geo-Anchor-Name) Boolean Void)
   (lambda [self xsize ysize mx my anchor relative?]
     (define arg : Float-Complex (make-rectangular (* xsize mx) (* ysize my)))
     
     (if (not relative?)
-        (track-move self arg arg #\M anchor #true)
-        (track-move self arg (+ (track-here self) arg) #\m anchor #true))))
+        (geo-path-move self arg arg #\M anchor #true)
+        (geo-path-move self arg (+ (geo-path-here self) arg) #\m anchor #true))))
 
-(define track-line-to : (-> Track Flonum Flonum Flonum Flonum (Option Geo-Path-Anchor-Name) Boolean Void)
+(define geo-path-line-to : (-> Geo-Path Flonum Flonum Flonum Flonum (Option Geo-Anchor-Name) Boolean Void)
   (lambda [self xsize ysize mx my anchor relative?]
     (define tpos : Float-Complex (make-rectangular (* xsize mx) (* ysize my)))
     
     (if (not relative?)
-        (track-move self tpos tpos #\L anchor #false)
-        (track-move self tpos (+ (track-here self) tpos) #\l anchor #false))))
+        (geo-path-move self tpos tpos #\L anchor #false)
+        (geo-path-move self tpos (+ (geo-path-here self) tpos) #\l anchor #false))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define track-bounding-box : Geo-Calculate-BBox
+(define geo-path-bounding-box : Geo-Calculate-BBox
   (lambda [self]
-    (with-asserts ([self track?])
-      (geo-bbox-values (track-bbox self)))))
+    (with-asserts ([self geo-path?])
+      (geo-bbox-values (geo-path-bbox self)))))
 
-(define track-surface : Geo-Surface-Create
+(define geo-path-surface : Geo-Surface-Create
   (lambda [self]
-    (with-asserts ([self track?])
-      (define-values (xoff yoff) (geo-bbox-offset-values (track-bbox self)))
-      (path_stamp (track-footprints self) xoff yoff
+    (with-asserts ([self geo-path?])
+      (define-values (xoff yoff) (geo-bbox-offset-values (geo-path-bbox self)))
+      (path_stamp (geo-path-footprints self) xoff yoff
                   (current-stroke-source*) (current-fill-source) (default-fill-rule)
                   (default-geometry-density)))))

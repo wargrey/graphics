@@ -3,4 +3,4 @@
 (require geofun/digitama/misc)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require/provide "vector.rkt" "track.rkt")
+(require/provide "vector.rkt")

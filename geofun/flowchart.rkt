@@ -6,7 +6,7 @@
 
 (require "digitama/dot.rkt")
 (require "digitama/bbox.rkt")
-(require "digitama/anchor.rkt")
+(require "digitama/trail.rkt")
 (require "digitama/convert.rkt")
 
 (require "digitama/diagram/flowchart.rkt")
@@ -51,7 +51,7 @@
     (define home-pos : Float-Complex (~point2d home))
     
     (create-geometry-object culumon #:with flow-chart-surface #:id name
-                            null (make-geo-path home-pos start)
+                            null (make-geo-trail home-pos start)
                             (make-geo-bbox home-pos) start
                             xstep ystep)))
 
@@ -61,6 +61,6 @@
 (define-culumon-flow! u- #:!> -1)
 (define-culumon-flow! d- #:!>  1)
 
-(define culumon-jump-back! : (->* (Culumon) ((Option Geo-Path-Anchor-Name)) Void)
+(define culumon-jump-back! : (->* (Culumon) ((Option Geo-Anchor-Name)) Void)
   (lambda [wani [target #false]]
     (flow-chart-jump-to wani target)))
