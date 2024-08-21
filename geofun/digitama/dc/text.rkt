@@ -9,6 +9,7 @@
 (require "paint.rkt")
 
 (require "../convert.rkt")
+(require "../source.rkt")
 (require "../font.rkt")
 
 (require "../unsafe/dc/text.rkt")
@@ -20,12 +21,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:text geo
   ([content : String]
-   [lines : (Listof Symbol)])
+   [lines : (Listof Symbol)]
+   [aline : Maybe-Stroke-Paint]
+   [dline : Maybe-Stroke-Paint]
+   [cline : Maybe-Stroke-Paint]
+   [mline : Maybe-Stroke-Paint]
+   [bline : Maybe-Stroke-Paint])
   #:type-name Geo:Text
   #:transparent)
 
-(struct geo:para geo:text
-  ([mwidth : (Option Flonum)]
+(struct geo:para geo
+  ([content : String]
+   [lines : (Listof Symbol)]
+   [mwidth : (Option Flonum)]
    [mheight : (U Flonum Nonpositive-Integer)]
    [ident : Flonum]
    [space : Flonum]
@@ -35,11 +43,18 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-text : (->* (Any) ((Option Font) #:id (Option Symbol) #:color Option-Fill-Paint #:background Maybe-Fill-Paint #:lines (Listof Symbol)) Geo:Text)
-  (lambda [text [font #false] #:id [id #false] #:color [fgsource #false] #:background [bgsource (void)] #:lines [lines null]]
+(define geo-text : (->* (Any)
+                        ((Option Font) #:id (Option Symbol) #:color Option-Fill-Paint #:background Maybe-Fill-Paint #:lines (Listof Symbol)
+                                       #:baseline Maybe-Stroke-Paint #:capline Maybe-Stroke-Paint #:meanline Maybe-Stroke-Paint
+                                       #:ascent Maybe-Stroke-Paint #:descent Maybe-Stroke-Paint
+                                 )
+                        Geo:Text)
+  (lambda [#:id [id #false] #:color [fgsource #false] #:background [bgsource (void)] #:lines [lines null]
+           #:ascent [alsource #false] #:descent [dlsource #false] #:capline [clsource #false] #:meanline [mlsource #false] #:baseline [blsource #false]
+           text [font #false] ]
     (create-geometry-object geo:text
                             #:with [(geo-text-surface-make font fgsource bgsource) (geo-text-calculate-bbox-make font)] #:id id
-                            (~a text) lines)))
+                            (~a text) lines alsource dlsource clsource mlsource blsource)))
 
 (define geo-paragraph : (->* ((U String (Listof String)))
                              (Font #:id (Option Symbol) #:color Option-Fill-Paint #:background Maybe-Fill-Paint #:lines (Listof Symbol)
@@ -76,14 +91,17 @@
         (dc_text create-abstract-surface
                  (geo:text-content self) (geo-select-font alt-font) (geo:text-lines self)
                  (geo-select-foreground alt-fg) (geo-select-background alt-bg)
-                 #false #false #false #false #false (default-geometry-density))))))
+                 (stroke-paint->source* (geo:text-aline self)) (stroke-paint->source* (geo:text-cline self))
+                 (stroke-paint->source* (geo:text-mline self))
+                 (stroke-paint->source* (geo:text-bline self)) (stroke-paint->source* (geo:text-dline self))
+                 (default-geometry-density))))))
 
 (define geo-paragraph-surface-make : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
   (lambda [alt-font alt-fg alt-bg]
     (λ [self]
       (with-asserts ([self geo:para?])
         (dc_paragraph create-abstract-surface
-                      (geo:text-content self) (geo-select-font alt-font) (geo:text-lines self)
+                      (geo:para-content self) (geo-select-font alt-font) (geo:para-lines self)
                       (geo:para-mwidth self) (geo:para-mheight self)
                       (geo:para-ident self) (geo:para-space self) (geo:para-wmode self) (geo:para-emode self)
                       (geo-select-foreground alt-fg) (geo-select-background alt-bg)

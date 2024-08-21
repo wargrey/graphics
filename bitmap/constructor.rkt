@@ -86,8 +86,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-text : (->* (Any)
                            (Font #:color Fill-Paint #:background Option-Fill-Paint #:lines (Listof Symbol)
-                                 #:baseline (Option Color) #:capline (Option Color) #:meanline (Option Color)
-                                 #:ascent (Option Color) #:descent (Option Color)
+                                 #:baseline Maybe-Stroke-Paint #:capline Maybe-Stroke-Paint #:meanline Maybe-Stroke-Paint
+                                 #:ascent Maybe-Stroke-Paint #:descent Maybe-Stroke-Paint
                                  #:density Positive-Flonum)
                            Bitmap)
   (lambda [text [font (default-font)] #:color [fgsource (default-foreground-paint)] #:background [bgsource (default-background-paint)] #:lines [lines null]
@@ -95,8 +95,8 @@
                 #:baseline [blsource #false] #:density [density (default-bitmap-density)]]
     (dc_text create-argb-bitmap
              (~a text) (font-description font) lines (foreground->source fgsource) (background->source* bgsource)
-             (and alsource (rgb* alsource)) (and clsource (rgb* clsource)) (and mlsource (rgb* mlsource))
-             (and blsource (rgb* blsource)) (and dlsource (rgb* dlsource)) density)))
+             (stroke-paint->source* alsource) (stroke-paint->source* clsource) (stroke-paint->source* mlsource)
+             (stroke-paint->source* blsource) (stroke-paint->source* dlsource) density)))
 
 (define bitmap-paragraph : (->* ((U String (Listof String)))
                                 (Font #:color Fill-Paint #:background Option-Fill-Paint #:lines (Listof Symbol)

@@ -101,7 +101,7 @@
 
   (define (text_decorate cr color y width)
     (unless (not color)
-      (cairo-set-source cr color)
+      (cairo-set-stroke cr color)
       (cairo_move_to cr 0.0 y)
       (cairo_rel_line_to cr width 0.0)
       (cairo_stroke cr)))
@@ -124,7 +124,7 @@
  [dc_text
   (All (S) (-> (Cairo-Surface-Create S)
                String Font-Description (Listof Symbol) Fill-Source (Option Fill-Source)
-               (Option FlRGBA) (Option FlRGBA) (Option FlRGBA) (Option FlRGBA) (Option FlRGBA)
+               (Option Paint) (Option Paint) (Option Paint) (Option Paint) (Option Paint)
                Flonum S))]
  [dc_paragraph
   (All (S) (-> (Cairo-Surface-Create S)
