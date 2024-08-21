@@ -10,12 +10,12 @@
 (require geofun/color)
 (require geofun/paint)
 
-(require geofun/digitama/dot)
 (require geofun/digitama/base)
 (require geofun/digitama/font)
 (require geofun/digitama/color)
 (require geofun/digitama/source)
 
+(require geofun/digitama/geometry/dot)
 (require geofun/digitama/unsafe/dc/text)
 (require geofun/digitama/unsafe/dc/shape)
 (require geofun/digitama/unsafe/dc/plain)
@@ -180,9 +180,10 @@
            n radius [rotation 0.0]]
     (if (and (index? n) (> n 0))
         (dc_regular_polygon create-argb-bitmap
-                            n (real->double-flonum radius) (~radian rotation radian?)
+                            n (regular-polygon-radius->circumsphere-radius n (~length radius) (if inscribed? 'edge 'vertex))
+                            (~radian rotation radian?)
                             (border-paint->source* border) (fill-paint->source* pattern)
-                            inscribed? density)
+                            density)
         (dc_circle create-argb-bitmap
                    (~length radius) (border-paint->source* border) (fill-paint->source* pattern)
                    density))))
@@ -261,18 +262,18 @@
 
 (define bitmap-hline : (->* (Real Real) (#:stroke Maybe-Stroke-Paint #:density Positive-Flonum) Bitmap)
   (lambda [width height #:stroke [stroke (default-stroke-paint)] #:density [density (default-bitmap-density)]]
-    (define flheight (real->double-flonum height))
+    (define-values (flwidth flheight) (~size width height))
     (dc_line create-argb-bitmap
-             0.0 (* flheight 0.5) (real->double-flonum width) 0.0
-             (real->double-flonum width) flheight (stroke-paint->source stroke)
+             0.0 (* flheight 0.5) flwidth 0.0
+             flwidth flheight (stroke-paint->source stroke)
              density)))
 
 (define bitmap-vline : (->* (Real Real) (#:stroke Maybe-Stroke-Paint #:density Positive-Flonum) Bitmap)
   (lambda [width height #:stroke [stroke (default-stroke-paint)] #:density [density (default-bitmap-density)]]
-    (define flwidth (real->double-flonum width))
+    (define-values (flwidth flheight) (~size width height))
     (dc_line create-argb-bitmap
-             (* flwidth 0.5) 0.0 0.0 (real->double-flonum height)
-             flwidth (real->double-flonum height) (stroke-paint->source stroke)
+             (* flwidth 0.5) 0.0 0.0 flheight
+             flwidth flheight (stroke-paint->source stroke)
              density)))
 
 (define bitmap-sandglass : (->* (Real)

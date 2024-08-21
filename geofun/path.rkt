@@ -4,8 +4,8 @@
 
 (provide Geo-Path Dryland-Wani)
 (provide Geo-Sticker Geo-Anchor->Sticker)
-(provide geo-path? dryland-wani?)
-(provide geo-path-close geo-path-stick)
+(provide geo-path? dryland-wani? geo-sticker?)
+(provide geo-path-close geo-path-stick make-sticker)
 (provide default-track-anchor->sticker)
 
 (provide
@@ -19,12 +19,15 @@
              [dryland-wani-jump-down-left! dryland-wani-jump-left-down!]
              [dryland-wani-jump-left-up! dryland-wani-jump-up-left!])
 
- (rename-out [geo-path-close dryland-wani-close!]))
+ (rename-out [geo-path-close dryland-wani-close!]
+             [make-sticker make-geo-sticker]))
 
-(require "digitama/dot.rkt")
-(require "digitama/bbox.rkt")
-(require "digitama/trail.rkt")
 (require "digitama/convert.rkt")
+
+(require "digitama/geometry/dot.rkt")
+(require "digitama/geometry/bbox.rkt")
+(require "digitama/geometry/trail.rkt")
+
 (require "digitama/dc/path.rkt")
 (require "digitama/layer/sticker.rkt")
 
@@ -133,6 +136,12 @@
 (define dryland-wani-jump-back! : (->* (Dryland-Wani) ((Option Geo-Anchor-Name)) Void)
   (lambda [wani [target #false]]
     (geo-path-jump-to wani target)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; For generating flowchart
+#;(define dryland-wani-d->! : (-> Dryland-Wani Void)
+  (lambda [self]
+    0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-anchor-position : (->* (Geo-Path Geo-Anchor-Name) (#:translate? Boolean) Float-Complex)

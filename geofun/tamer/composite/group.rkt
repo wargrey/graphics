@@ -7,7 +7,7 @@
 (define ring-colors : (Listof Symbol) '(royalblue crimson lime purple chocolate khaki))
 (define monospace : Font (desc-font #:family 'monospace #:size 16.0))
 
-(define colors : (Listof Geo<%>)
+(define colors : (Listof Geo)
   (build-list 16 (λ [[i : Index]]
                   (let ([rc (random #xFFFFFF)])
                     (geo-text #:color (rgb* rc)

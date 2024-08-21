@@ -62,18 +62,18 @@
 
     (values sx sy)))
 
-(define point2d->window : (-> Point2D Flonum Flonum Flonum Flonum (Values Flonum Flonum Flonum Flonum))
+(define point2d->window : (-> Point2D Flonum Flonum Flonum Flonum (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [hint lx ty rx by]
     (define-values (w h) (point2d-values hint))
 
     (define-values (xoff width)
-      (cond [(= w 0.0) (values 0.0 rx)]
+      (cond [(= w 0.0) (values 0.0 (max rx 0.0))]
             [(> w 0.0) (values 0.0 w)]
-            [else (values (- lx) (- rx lx))]))
+            [else (values (- lx) (max (- rx lx) 0.0))]))
     
     (define-values (yoff height)
-      (cond [(= h 0.0) (values 0.0 by)]
+      (cond [(= h 0.0) (values 0.0 (max by 0.0))]
             [(> h 0.0) (values 0.0 h)]
-            [else (values (- ty) (- by ty))]))
+            [else (values (- ty) (max (- by ty) 0.0))]))
 
     (values xoff yoff width height)))

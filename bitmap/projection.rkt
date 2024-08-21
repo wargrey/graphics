@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) 3D-Radius-Type)
+(provide (all-defined-out))
 
 (require "digitama/convert.rkt")
 
@@ -10,6 +10,7 @@
 (require geofun/digitama/base)
 (require geofun/digitama/source)
 (require geofun/digitama/unsafe/dc/icosahedron)
+(require geofun/digitama/geometry/radius)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-icosahedron-side-projection : (->* (Real)
@@ -19,7 +20,7 @@
   (lambda [#:edge [edge (default-stroke-paint)] #:border [border #false] #:fill [pattern #false] #:density [density (default-bitmap-density)]
            radius [radius-type 'vertex]]
     (dc_icosahedron_side_proj create-argb-bitmap
-                              (~length radius) radius-type
+                              (icosahedron-radius->edge-length (~length radius) radius-type)
                               (stroke-paint->source* edge) (fill-paint->source* pattern) (stroke-paint->source* border)
                               density)))
 
@@ -31,6 +32,7 @@
            #:rotation [rotation 0.0] #:radian? [radian? #true] #:density [density (default-bitmap-density)]
            radius [radius-type 'vertex]]
     (dc_icosahedron_over_proj create-argb-bitmap
-                              (~length radius) radius-type (~radian rotation radian?)
+                              (icosahedron-radius->circumsphere-radius (~length radius) radius-type)
+                              (~radian rotation radian?)
                               (stroke-paint->source* edge) (fill-paint->source* pattern) (stroke-paint->source* border)
                               density)))

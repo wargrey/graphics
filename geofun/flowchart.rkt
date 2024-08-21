@@ -4,10 +4,11 @@
 (provide Flow-Chart Culumon)
 (provide flow-chart? culumon?)
 
-(require "digitama/dot.rkt")
-(require "digitama/bbox.rkt")
-(require "digitama/trail.rkt")
 (require "digitama/convert.rkt")
+
+(require "digitama/geometry/dot.rkt")
+(require "digitama/geometry/bbox.rkt")
+(require "digitama/geometry/trail.rkt")
 
 (require "digitama/diagram/flowchart.rkt")
 

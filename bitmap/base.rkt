@@ -1,11 +1,12 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) 2D-Radius-Type 3D-Radius-Type)
 
 (require racket/match)
 (require racket/string)
 (require racket/list)
 
+(require geofun/digitama/geometry/radius)
 (require geofun/digitama/misc)
 
 (require "digitama/misc.rkt")

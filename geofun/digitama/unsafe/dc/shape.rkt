@@ -8,10 +8,13 @@
 (require "../source.rkt")
 (require "../visual/ctype.rkt")
 
+(require "../../geometry/radius.rkt")
+(require "../../geometry/constants.rkt")
+
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require "../../constants.rkt")
+  (require "../../geometry/constants.rkt")
   (require "../pangocairo.rkt")
   (require "../paint.rkt")
 
@@ -197,9 +200,8 @@
     
     sfc)
 
-  (define (dc_regular_polygon create-surface n radius0 rotation border background inscribed? density)
+  (define (dc_regular_polygon create-surface n radius rotation border background density)
     (define fln (exact->inexact n))
-    (define radius (if (not inscribed?) radius0 (unsafe-fl/ radius0 (unsafe-flcos (unsafe-fl/ pi fln))))) ; r = Rcos(pi/n)
     (define fllength (unsafe-fl* radius 2.0))
     (define line-width (~bdwidth border))
     (define r (unsafe-fl- radius (unsafe-fl* line-width 0.5)))
@@ -325,7 +327,7 @@
  (submod "." unsafe)
  [dc_line (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum Flonum Paint Flonum S))]
  [dc_arc (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Paint Flonum S))]
- [dc_polyline (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum Paint Boolean Flonum S))]
+ [dc_polyline (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum Paint Boolean Flonum S))]
  
  [dc_circle (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_sector (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
@@ -333,10 +335,21 @@
  [dc_rectangle (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_rounded_rectangle (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_stadium (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
- [dc_regular_polygon (All (S) (-> (Cairo-Surface-Create S) Positive-Index Flonum Flonum (Option Paint) (Option Fill-Source) Boolean Flonum S))]
- [dc_polygon (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Flonum S))]
+ [dc_regular_polygon (All (S) (-> (Cairo-Surface-Create S) Positive-Index Nonnegative-Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_sandglass (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+
+ [dc_polygon (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum
+                          (Option Paint) (Option Fill-Source) Symbol Flonum
+                          S))]
+ 
  [dc_arrow (All (S) (-> (Cairo-Surface-Create S)
                         Nonnegative-Flonum Flonum (Option Paint) (Option Fill-Source) Flonum
                         Nonnegative-Flonum Nonnegative-Flonum (Option Flonum)
                         S))])
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define regular-polygon-radius->circumsphere-radius : (-> Positive-Index Nonnegative-Flonum 2D-Radius-Type Nonnegative-Flonum)
+  (lambda [n R type]
+    ; r = Rcos(pi/n)
+    (cond [(eq? type 'vertex) R]
+          [else (max (/ R (cos (/ pi (exact->inexact n)))) 0.0)])))

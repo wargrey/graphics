@@ -2,11 +2,12 @@
 
 (provide (all-defined-out))
 
-(require "../bbox.rkt")
-(require "../trail.rkt")
-(require "../convert.rkt")
 
+(require "../convert.rkt")
 (require "../unsafe/path.rkt")
+
+(require "../geometry/bbox.rkt")
+(require "../geometry/trail.rkt")
 
 (require "../dc/paint.rkt")
 (require "../../paint.rkt")

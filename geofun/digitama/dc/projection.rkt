@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) 3D-Radius-Type)
+(provide (all-defined-out))
 
 (require digimon/metrics)
 
@@ -8,6 +8,7 @@
 (require "../../paint.rkt")
 (require "../convert.rkt")
 
+(require "../geometry/radius.rkt")
 (require "../unsafe/dc/icosahedron.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -50,7 +51,8 @@
   (lambda [self]
     (with-asserts ([self geo:icosahedron:side?])
       (dc_icosahedron_side_proj create-abstract-surface
-                                (geo:icosahedron:side-radius self) (geo:icosahedron:side-radius-type self)
+                                (icosahedron-radius->edge-length (geo:icosahedron:side-radius self)
+                                                                 (geo:icosahedron:side-radius-type self))
                                 (current-stroke-source) (current-fill-source) (current-border-source)
                                 (default-geometry-density)))))
 
@@ -58,6 +60,8 @@
   (lambda [self]
     (with-asserts ([self geo:icosahedron:over?])
       (dc_icosahedron_over_proj create-abstract-surface
-                                (geo:icosahedron:over-radius self) (geo:icosahedron:over-radius-type self) (geo:icosahedron:over-rotation self)
+                                (icosahedron-radius->circumsphere-radius (geo:icosahedron:over-radius self)
+                                                                         (geo:icosahedron:over-radius-type self))
+                                (geo:icosahedron:over-rotation self)
                                 (current-stroke-source) (current-fill-source) (current-border-source)
                                 (default-geometry-density)))))

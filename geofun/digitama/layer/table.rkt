@@ -68,7 +68,7 @@
           #;#:deadcode 0.0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo->layer : (-> Geo<%> (GLayerof Geo<%>))
+(define geo->layer : (-> Geo (GLayerof Geo))
   (lambda [self]
     (define-values (w h) (geo-flsize self))
     (vector-immutable self 0.0 0.0 w h)))

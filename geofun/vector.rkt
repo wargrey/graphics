@@ -1,17 +1,18 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) 2D-Radius-Type 3D-Radius-Type)
 
 (require "digitama/base.rkt")
 (require "digitama/misc.rkt")
 (require "digitama/source.rkt")
 (require "digitama/dc/paint.rkt")
+(require "digitama/geometry/radius.rkt")
 (require "digitama/unsafe/visual/abstract.rkt")
 
 (require/provide "digitama/convert.rkt" "digitama/freeze.rkt")
 (require/provide "path.rkt" "constructor.rkt" "composite.rkt" "resize.rkt")
 (require/provide "color.rkt" "font.rkt" "paint.rkt" "stroke.rkt")
-(require/provide "digitama/dot.rkt" "digitama/constants.rkt")
+(require/provide "digitama/geometry/dot.rkt" "digitama/geometry/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-save : (->* (Geo<%> (U Path-String Output-Port))

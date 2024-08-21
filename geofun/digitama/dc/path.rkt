@@ -4,11 +4,11 @@
 
 (require "paint.rkt")
 (require "../../paint.rkt")
-
-(require "../dot.rkt")
-(require "../bbox.rkt")
-(require "../trail.rkt")
 (require "../convert.rkt")
+
+(require "../geometry/dot.rkt")
+(require "../geometry/bbox.rkt")
+(require "../geometry/trail.rkt")
 
 (require "../unsafe/path.rkt")
 

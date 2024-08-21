@@ -9,14 +9,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-combiner stx)
   (syntax-case stx []
-    [(_ frmt #:-> (Geo<%> Extra-Type ...) #:with alignment geobjs [extra-args ...]
+    [(_ frmt #:-> (Geo Extra-Type ...) #:with alignment geobjs [extra-args ...]
         #:empty blank-expr
         #:short-path #:for base geo #:if short-path-condition ([(tip) short-path-expr] ...) #:do sexp ...)
      (with-syntax ([(geo-combiner ...)
                     (for/list ([<tip> (in-list (syntax->list #'(tip ...)))])
                       (datum->syntax <tip> (string->symbol (format (syntax-e #'frmt) (syntax-e <tip>)))))])
        (syntax/loc stx
-         (begin (define geo-combiner : (-> (Listof Geo<%>) Extra-Type ... Geo<%>)
+         (begin (define geo-combiner : (-> (Listof Geo) Extra-Type ... Geo)
                   (let ([alignment 'tip])
                     (λ [geobjs extra-args ...]
                       (cond [(null? geobjs) blank-expr]

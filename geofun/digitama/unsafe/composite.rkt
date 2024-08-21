@@ -45,6 +45,6 @@
  (submod "." unsafe)
  [geo_composite (-> (Option Integer) Geo-Layer-Group Flonum Abstract-Surface)])
 
-(define-type Geo-Layer (GLayerof Geo<%>))
-(define-type Geo-Layer-List (GLayer-Listof Geo<%>))
-(define-type Geo-Layer-Group (GLayer-Groupof Geo<%>))
+(define-type Geo-Layer (GLayerof Geo))
+(define-type Geo-Layer-List (GLayer-Listof Geo))
+(define-type Geo-Layer-Group (GLayer-Groupof Geo))

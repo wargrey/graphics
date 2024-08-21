@@ -7,10 +7,14 @@
 (provide geo-text geo:text? Geo:Text)
 (provide geo-paragraph geo:para? Geo:Paragraph)
 (provide geo-square geo-rectangle geo:rect? Geo:Rectangle)
+(provide geo-vline geo-hline geo:line? Geo:Line)
 (provide geo-circle geo:circle? Geo:Circle)
 (provide geo-ellipse geo:ellipse? Geo:Ellipse)
 (provide geo-arc geo:arc? Geo:Arc)
 (provide geo-sector geo:sector? Geo:Sector)
+(provide geo-regular-polygon geo:regular-polygon? Geo:Regular-Polygon)
+(provide geo-polygon geo:polygon? Geo:Polygon)
+(provide geo-polyline geo:polyline? Geo:Polyline)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require "digitama/dc/text.rkt")
@@ -18,3 +22,5 @@
 (require "digitama/dc/circle.rkt")
 (require "digitama/dc/plain.rkt")
 (require "digitama/dc/raster.rkt")
+(require "digitama/dc/line.rkt")
+(require "digitama/dc/polygon.rkt")

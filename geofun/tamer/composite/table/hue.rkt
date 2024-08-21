@@ -33,7 +33,7 @@
         (cons 330.0 'Magenta-Reds)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define placeholder : Geo<%> (geo-blank))
+(define placeholder : Geo (geo-blank))
 
 (define hue-text% : (-> Real Font Geo:Text)
   (lambda [% font]
@@ -43,17 +43,17 @@
                          (->* (Real Real Real) (Real) FlColor) Real (Listof Real) (Listof Real)
                          [#:font Font] [#:rotate? Boolean]
                          [#:cell-width Nonnegative-Real] [#:cell-height Nonnegative-Real] [#:gapsize Nonnegative-Real]
-                         Geo<%>)
+                         Geo)
   (lambda [label hsb hue hs% vs%
                  #:font [font (default-font)] #:rotate? [rotate? #false]
                  #:cell-width [cwidth 35.0] #:cell-height [cheight 21.0] #:gapsize [gapsize 2.0]]
-    (define &legend : (Boxof (Option Geo<%>)) (box #false))
-    (define title : Geo<%> (geo-text (~a #\space #\space #\space #\space #\space #\space (exact-round hue) #\° #\space label) font))
+    (define &legend : (Boxof (Option Geo)) (box #false))
+    (define title : Geo (geo-text (~a #\space #\space #\space #\space #\space #\space (exact-round hue) #\° #\space label) font))
     
-    (define cblocks : (Listof (Listof Geo<%>))
+    (define cblocks : (Listof (Listof Geo))
       (for/list ([v% (in-list vs%)])
         (cons (hue-text% v% font)
-              (for/list : (Listof Geo<%>) ([h% (in-list hs%)])
+              (for/list : (Listof Geo) ([h% (in-list hs%)])
                 (define flc : FlColor (if rotate? (hsb hue v% h%) (hsb hue h% v%)))
 
                 (unless (unbox &legend)
@@ -65,7 +65,7 @@
                 
                 (geo-rectangle cwidth cheight #:border flc #:fill flc)))))
 
-    (define header : (Listof Geo<%>)
+    (define header : (Listof Geo)
       (cons (or (unbox &legend) (geo-blank))
             (map (λ [[% : Real]] (hue-text% % font)) hs%)))
 
@@ -78,21 +78,21 @@
                                   (->* (Real Real Real) (Real) FlColor) Real (Listof Real) (Listof Real)
                                   [#:font Font] [#:rotate? Boolean]
                                   [#:cell-width Nonnegative-Real] [#:cell-height Nonnegative-Real] [#:gapsize Nonnegative-Real]
-                                  Geo<%>)
+                                  Geo)
   (lambda [label constrast-label hsb hue half-hs% vs%
                  #:font [font (default-font)] #:rotate? [rotate? #false]
                  #:cell-width [cwidth 35.0] #:cell-height [cheight 21.0] #:gapsize [gapsize 2.0]]
-    (define &legend : (Boxof (Option Geo<%>)) (box #false))
+    (define &legend : (Boxof (Option Geo)) (box #false))
     (define contrast-hue : Real (- hue 180.0))
-    (define title : Geo<%> (geo-text (format "    ~a° ~a     ~a ~a°" (exact-round hue) label constrast-label (exact-round contrast-hue)) font))
+    (define title : Geo (geo-text (format "    ~a° ~a     ~a ~a°" (exact-round hue) label constrast-label (exact-round contrast-hue)) font))
     (define hs% : (Listof Real) (append half-hs% (cdr (reverse half-hs%))))
     (define hues : (Listof Real) (append (make-list (sub1 (length half-hs%)) hue) (make-list (length half-hs%) contrast-hue)))
     
-    (define cblocks : (Listof (Listof Geo<%>))
+    (define cblocks : (Listof (Listof Geo))
       (for/list ([v% (in-list vs%)])
         (cons (hue-text% v% font)
-              (for/list : (Listof Geo<%>) ([h% (in-list hs%)]
-                                           [h (in-list hues)])
+              (for/list : (Listof Geo) ([h% (in-list hs%)]
+                                        [h (in-list hues)])
                 (define flc : FlColor (if rotate? (hsb h v% h%) (hsb h h% v%)))
 
                 (unless (unbox &legend)
@@ -104,7 +104,7 @@
                 
                 (geo-rectangle cwidth cheight #:border flc #:fill flc)))))
 
-    (define header : (Listof Geo<%>)
+    (define header : (Listof Geo)
       (cons (or (unbox &legend) (geo-blank))
             (map (λ [[% : Real]] (hue-text% % font)) hs%)))
 
@@ -117,7 +117,7 @@
                           (Listof (Pairof Real Any)) (Listof Real) (Listof Real)
                           [#:font Font] [#:cols Byte] [#:rotate? Boolean]
                           [#:cell-width Nonnegative-Real] [#:cell-height Nonnegative-Real] [#:gapsize Nonnegative-Real]
-                          Geo<%>)
+                          Geo)
   (lambda [hsb hue.labels hs% vs%
                #:cols [cols 3] #:font [font (default-font)] #:rotate? [rotate? #false]
                #:cell-width [cwidth 35.0] #:cell-height [cheight 21.0] #:gapsize [gapsize 2.0]]
@@ -136,7 +136,7 @@
                                    (Listof (List Real Any Any)) (Listof Real) (Listof Real)
                                    [#:font Font] [#:cols Byte] [#:rotate? Boolean]
                                    [#:cell-width Nonnegative-Real] [#:cell-height Nonnegative-Real] [#:gapsize Nonnegative-Real]
-                                   Geo<%>)
+                                   Geo)
   (lambda [hsb hue.labels half-hs% vs%
                #:cols [cols 2] #:font [font (default-font)] #:rotate? [rotate? #false]
                #:cell-width [cwidth 35.0] #:cell-height [cheight 21.0] #:gapsize [gapsize 2.0]]

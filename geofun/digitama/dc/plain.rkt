@@ -13,12 +13,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:blank geo
-  ([body : (Option Geo<%>)])
+  ([body : (Option Geo)])
   #:type-name Geo:Blank
   #:transparent)
 
 (struct geo:frame geo
-  ([body : Geo<%>]
+  ([body : Geo]
    [margins : (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum)]
    [pads :  (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum)])
   #:type-name Geo:Frame
@@ -33,14 +33,14 @@
                             #:with [(geo-blank-surface flwidth flheight) (geo-shape-plain-bbox flwidth flheight)] #:id id
                             #false)))
 
-(define geo-ghost : (-> Geo<%> [#:id (Option Symbol)] Geo:Blank)
+(define geo-ghost : (-> Geo [#:id (Option Symbol)] Geo:Blank)
   (lambda [geo #:id [id #false]]
     (define-values (flwidth flheight) (geo-flsize geo))
     (create-geometry-object geo:blank
                             #:with [(geo-blank-surface flwidth flheight) (geo-shape-plain-bbox geo)] #:id id
                             geo)))
 
-(define geo-frame : (-> Geo<%> [#:id (Option Symbol)]
+(define geo-frame : (-> Geo [#:id (Option Symbol)]
                         [#:border Maybe-Stroke-Paint] [#:background Maybe-Fill-Paint]
                         [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
                         [#:padding (U Nonnegative-Real (Listof Nonnegative-Real))]

@@ -5,8 +5,9 @@
 (require racket/keyword)
 (require racket/symbol)
 
-(require "../bbox.rkt")
-(require "../trail.rkt")
+(require "../geometry/bbox.rkt")
+(require "../geometry/trail.rkt")
+
 (require "../convert.rkt")
 (require "../composite.rkt")
 
@@ -21,9 +22,23 @@
 (require (for-syntax racket/syntax))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Sticker (U Geo<%> (Pairof Geo<%> (U Geo-Pin-Port (Pairof Geo-Pin-Port Complex)))))
+(struct geo-sticker
+  ([self : Geo]
+   [port : Geo-Pin-Port]
+   [offset : Float-Complex])
+  #:type-name Geo-Sticker
+  #:transparent)
+
+(define make-sticker : (->* (Geo) (Geo-Pin-Port Real Real) Geo-Sticker)
+  (lambda [self [port 'cc] [dx 0] [dy 0]]
+    (geo-sticker self port
+                 (make-rectangular (real->double-flonum dx)
+                                   (real->double-flonum dy)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Geo-Sticker-Datum (U Geo-Sticker Geo))
 (define-type Geo-Anchor->Sticker (-> Geo-Path Geo-Anchor-Name Float-Complex Nonnegative-Flonum Nonnegative-Flonum
-                                     (U Geo-Sticker (Listof Geo-Sticker))))
+                                     (U Geo-Sticker-Datum (Listof Geo-Sticker-Datum))))
 
 (define default-track-anchor->sticker : Geo-Anchor->Sticker
   (lambda [self anchor pos Width Height]
@@ -43,7 +58,7 @@
     (define-values (Width Height) (geo-flsize self))
 
     (let stick ([srohcna : (Listof Geo-Anchor-Name) srohcna]
-                [stickers : (Listof (GLayerof Geo<%>)) null])
+                [stickers : (Listof (GLayerof Geo)) null])
       (cond [(pair? srohcna)
              (let-values ([(anchor rest) (values (car srohcna) (cdr srohcna))])
                (if (or (not trusted-anchors) (memq anchor trusted-anchors))
@@ -60,7 +75,7 @@
             [else self]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-path-try-extend : (-> (GLayerof Geo<%>) (Listof (GLayerof Geo<%>)) Nonnegative-Flonum Nonnegative-Flonum (Option (GLayer-Groupof Geo<%>)))
+(define geo-path-try-extend : (-> (GLayerof Geo) (Listof (GLayerof Geo)) Nonnegative-Flonum Nonnegative-Flonum (Option (GLayer-Groupof Geo)))
   (lambda [self stickers Width Height]
     (define-values (lx ty rx by) (geo-group-boundary stickers Width Height))
 
@@ -69,27 +84,27 @@
                [yoff (if (< ty 0.0) (abs ty) 0.0)])
            (vector-immutable (+ rx xoff) (+ by yoff)
                              (cons (geo-layer-translate self xoff yoff)
-                                   (for/list : (Listof (GLayerof Geo<%>)) ([sticker (in-list stickers)])
+                                   (for/list : (Listof (GLayerof Geo)) ([sticker (in-list stickers)])
                                      (geo-layer-translate sticker xoff yoff))))))))
 
-(define geo-stickers->layers : (-> (U Geo-Sticker (Listof Geo-Sticker)) Float-Complex (Listof (GLayerof Geo<%>)))
+(define geo-stickers->layers : (-> (U Geo-Sticker-Datum (Listof Geo-Sticker-Datum)) Float-Complex (Listof (GLayerof Geo)))
   (lambda [self pos]
     (if (list? self)
         (for/list ([one (in-list self)])
           (geo-sticker->layer one pos))
         (list (geo-sticker->layer self pos)))))
 
-(define geo-sticker->layer : (-> Geo-Sticker Float-Complex (GLayerof Geo<%>))
+(define geo-sticker->layer : (-> Geo-Sticker-Datum Float-Complex (GLayerof Geo))
   (lambda [self pos]
-    (define-values (sticker modifier) (if (pair? self) (values (car self) (cdr self)) (values self 'cc)))
+    (define-values (sticker port offset)
+      (if (geo-sticker? self)
+          (values (geo-sticker-self self) (geo-sticker-port self) (geo-sticker-offset self))
+          (values self 'cc 0.0+0.0i)))
     (define-values (width height) (geo-flsize sticker))
-
-    (if (pair? modifier)
-        (geo-stick-layer (car modifier) pos sticker width height (cdr modifier))
-        (geo-stick-layer modifier pos sticker width height 0.0+0.0i))))
+    (geo-stick-layer port pos sticker width height offset)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (G) geo-stick-layer : (-> Geo-Pin-Port Complex G Nonnegative-Flonum Nonnegative-Flonum Complex (GLayerof G))
+(define #:forall (G) geo-stick-layer : (-> Geo-Pin-Port Float-Complex G Nonnegative-Flonum Nonnegative-Flonum Float-Complex (GLayerof G))
   (lambda [port target self width height offset]
     (define-values (dx dy) (geo-superimpose-layer port 0.0 0.0 width height))
     (define pos (+ target offset))

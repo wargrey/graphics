@@ -8,22 +8,24 @@
 (require "../source.rkt")
 (require "../visual/ctype.rkt")
 
+(require "../../geometry/radius.rkt")
+(require "../../geometry/constants.rkt")
+
 (module unsafe racket/base
   (provide (all-defined-out))
 
   (require racket/flonum)
   
-  (require "../../constants.rkt")
+  (require "../../geometry/constants.rkt")
   (require "../pangocairo.rkt")
   (require "../paint.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc_icosahedron_side_proj create-surface radius type edge background border0 density)
-    (define edge-size (icosahedron-radius->edge-length radius type))
+  (define (dc_icosahedron_side_proj create-surface edge-size edge-stroke background border0 density)
     (define-values (a1 aφ) (icoashedron-edge-length->outline edge-size))
     (define fllength (unsafe-fl* aφ 2.0))
     (define-values (sfc cr) (create-surface fllength fllength density #true))
-    (define border (or border0 edge))
+    (define border (or border0 edge-stroke))
     (define offset (if (struct? border) (unsafe-fl* 0.5 (unsafe-struct-ref border 1)) 0.0))
     (define-values (-a1 +a1) (values (unsafe-fl+ (unsafe-fl- 0.0 a1) offset) (unsafe-fl- a1 offset)))
     (define-values (-aφ +aφ) (values (unsafe-fl+ (unsafe-fl- 0.0 aφ) offset) (unsafe-fl- aφ offset)))
@@ -36,7 +38,7 @@
       (cairo-render-with-fill cr background))
 
     ;;; draw edges inside
-    (unless (not edge)
+    (unless (not edge-stroke)
       (cairo_new_path cr)
       (cairo-add-line cr -aφ -a1 +aφ -a1)
       (cairo-add-line cr +aφ +a1 -aφ +a1)
@@ -48,7 +50,7 @@
       (cairo-add-line cr 0.0 +aφ +a1 +a1 +aφ -a1)
       (cairo-add-line cr 0.0 -a1 +a1 +a1)
       (cairo-add-line cr 0.0 +a1 -a1 -a1)
-      (cairo-render-with-stroke cr edge))
+      (cairo-render-with-stroke cr edge-stroke))
 
     ;;; draw the border
     (cairo_new_path cr)
@@ -59,8 +61,7 @@
     
     sfc)
 
-  (define (dc_icosahedron_over_proj create-surface radius0 type rotation edge background border0 density)
-    (define radius (icosahedron-radius->circumsphere-radius radius0 type))
+  (define (dc_icosahedron_over_proj create-surface radius rotation edge background border0 density)
     (define fllength (unsafe-fl* radius 2.0))
     (define-values (sfc cr) (create-surface fllength fllength density #true))
     (define border (or border0 edge))
@@ -128,27 +129,6 @@
       (cairo_close_path cr)))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define 2√3 (unsafe-fl* 2.0 (unsafe-flsqrt 3.0)))
-  (define φ² (unsafe-fl* phi phi))
-  (define sin72º (unsafe-flsin (unsafe-fl* 2pi 0.2)))
-  
-  (define icosahedron-edge-length->circumsphere-radius
-    (lambda [a]
-      (unsafe-fl* a sin72º)))
-  
-  (define icosahedron-radius->edge-length
-    (lambda [r type]
-      (cond [(eq? type 'edge)   (unsafe-fl/ (unsafe-fl* r 2.0) phi)]    ; midsphere    R = a•φ/2
-            [(eq? type 'face)   (unsafe-fl/ (unsafe-fl* r 2√3) φ²)]     ; insphere     R = a•φ²/(2√3)
-            [(eq? type 'vertex) (unsafe-fl/ r sin72º)] ; circumsphere R = a•sin72º = a•√(φ²+1)/2
-            [else '#:deadcode r])))
-
-  (define icosahedron-radius->circumsphere-radius
-    (lambda [r type]
-      (cond [(eq? type 'vertex) r]
-            [else (icosahedron-edge-length->circumsphere-radius
-                   (icosahedron-radius->edge-length r type))])))
-
   (define icoashedron-edge-length->outline
     (lambda [a]
       (define a1 (unsafe-fl* a 0.5))
@@ -167,15 +147,31 @@
       (values a1 aφ))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type 3D-Radius-Type (U 'face 'vertex 'edge))
-
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [dc_icosahedron_side_proj
   (All (S) (-> (Cairo-Surface-Create S)
-               Nonnegative-Flonum 3D-Radius-Type (Option Paint) (Option Fill-Source) (Option Paint)
+               Nonnegative-Flonum (Option Paint) (Option Fill-Source) (Option Paint)
                Flonum S))]
  [dc_icosahedron_over_proj
   (All (S) (-> (Cairo-Surface-Create S)
-               Nonnegative-Flonum 3D-Radius-Type Flonum (Option Paint) (Option Fill-Source) (Option Paint)
+               Nonnegative-Flonum Flonum (Option Paint) (Option Fill-Source) (Option Paint)
                Flonum S))])
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define icosahedron-edge-length->circumsphere-radius : (-> Nonnegative-Flonum Nonnegative-Flonum)
+  (lambda [a]
+    (* a sin72º)))
+
+(define icosahedron-radius->edge-length : (-> Nonnegative-Flonum 3D-Radius-Type Nonnegative-Flonum)
+  (lambda [r type]
+    (cond [(eq? type 'edge)   (* r 2.0 1/phi)] ; midsphere    R = a•φ/2
+          [(eq? type 'face)   (* r 2√3 1/φ²)]  ; insphere     R = a•φ²/(2√3)
+          [(eq? type 'vertex) (* r 1/sin72º)]  ; circumsphere R = a•sin72º = a•√(φ²+1)/2
+          [else '#:deadcode r])))
+
+(define icosahedron-radius->circumsphere-radius : (-> Nonnegative-Flonum 3D-Radius-Type Nonnegative-Flonum)
+  (lambda [r type]
+    (cond [(eq? type 'vertex) r]
+          [else (icosahedron-edge-length->circumsphere-radius
+                 (icosahedron-radius->edge-length r type))])))

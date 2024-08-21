@@ -210,10 +210,12 @@
             (values x y width height))))))
 
 (define geo-shape-plain-bbox : (case-> [(U Nonnegative-Flonum Geo<%>) -> Geo-Calculate-BBox]
-                                       [Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-BBox])
+                                       [Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-BBox]
+                                       [Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-BBox])
   (case-lambda
     [(size)
      (if (flonum? size)
          (λ [self] (values 0.0 0.0 size size))
          (geo<%>-aabox size))]
-    [(width height) (λ [self] (values 0.0 0.0 width height))]))
+    [(width height) (λ [self] (values 0.0 0.0 width height))]
+    [(x y width height) (λ [self] (values x y width height))]))

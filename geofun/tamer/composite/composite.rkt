@@ -8,8 +8,8 @@
 (require geofun/digitama/composite)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define src : Geo<%> (geo-rectangle 120 90 #:border #false #:fill (rgba 0.0 0.0 0.9 0.4)))
-(define dest : Geo<%> (geo-rectangle 120 90 #:border #false #:fill (rgba 0.7 0.0 0.0 0.8)))
+(define src : Geo (geo-rectangle 120 90 #:border #false #:fill (rgba 0.0 0.0 0.9 0.4)))
+(define dest : Geo (geo-rectangle 120 90 #:border #false #:fill (rgba 0.7 0.0 0.0 0.8)))
 
 (define grp : Geo:Group (geo-composite dest 40.0 30.0 src))
 
