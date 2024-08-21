@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 (provide (rename-out [geo-polyline geo-lines]))
 (provide (rename-out [geo-sandglass geo-hourglass]))
+(provide (rename-out [geo-arrowhead geo-dart]))
 
 (provide geo-blank geo-ghost geo:blank? Geo:Blank)
 (provide geo-bitmap geo:bitmap? Geo:Bitmap)
@@ -20,6 +21,7 @@
 (provide geo-polyline geo:polyline? Geo:Polyline)
 (provide geo-stadium geo:stadium? Geo:Stadium)
 (provide geo-sandglass geo:sandglass? Geo:Sandglass)
+(provide geo-arrow geo-arrowhead geo:arrow? Geo:Arrow)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require "digitama/dc/text.rkt")
@@ -29,5 +31,6 @@
 (require "digitama/dc/raster.rkt")
 (require "digitama/dc/line.rkt")
 (require "digitama/dc/polygon.rkt")
+(require "digitama/dc/arrow.rkt")
 
 (require "digitama/dc/more.rkt")

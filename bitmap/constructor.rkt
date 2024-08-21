@@ -231,8 +231,8 @@
         (dc_ellipse create-argb-bitmap w h (border-paint->source* border) (fill-paint->source* pattern) density))))
 
 (define bitmap-arrow : (->* (Real Real)
-                            (Real #:shaft-thickness Real #:border Maybe-Stroke-Paint #:fill Option-Fill-Paint
-                                  #:wing-angle (Option Real) #:radian? Boolean #:density Positive-Flonum)
+                            (Real #:shaft-thickness Real #:wing-angle (Option Real) #:radian? Boolean
+                                  #:border Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum)
                             Bitmap)
   (lambda [#:shaft-thickness [shaft-thickness -0.3] #:wing-angle [wing-angle #false] #:border [border (default-border-paint)] #:fill [pattern (default-fill-paint)]
            #:radian? [radian? #true] #:density [density (default-bitmap-density)]
@@ -246,8 +246,8 @@
               (and wing-angle (real->double-flonum wing-angle)))))
 
 (define bitmap-arrowhead : (->* (Real)
-                                (Real #:shaft-thickness Real #:border Maybe-Stroke-Paint #:fill Option-Fill-Paint
-                                      #:wing-angle (Option Real) #:radian? Boolean #:density Positive-Flonum)
+                                (Real #:shaft-thickness Real #:wing-angle (Option Real) #:radian? Boolean
+                                      #:border Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum)
                                 Bitmap)
   (lambda [#:border [border (default-border-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]
            #:shaft-thickness [shaft-thickness 0.0] #:wing-angle [wing-angle #false] #:radian? [radian? #true]
