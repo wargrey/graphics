@@ -1,6 +1,9 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [geo-polyline geo-lines]))
+(provide (rename-out [geo-sandglass geo-hourglass]))
+
 (provide geo-blank geo-ghost geo:blank? Geo:Blank)
 (provide geo-bitmap geo:bitmap? Geo:Bitmap)
 (provide geo-rectangular geo:λbitmap? Geo:λBitmap)
@@ -15,6 +18,8 @@
 (provide geo-regular-polygon geo:regular-polygon? Geo:Regular-Polygon)
 (provide geo-polygon geo:polygon? Geo:Polygon)
 (provide geo-polyline geo:polyline? Geo:Polyline)
+(provide geo-stadium geo:stadium? Geo:Stadium)
+(provide geo-sandglass geo:sandglass? Geo:Sandglass)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require "digitama/dc/text.rkt")
@@ -24,3 +29,5 @@
 (require "digitama/dc/raster.rkt")
 (require "digitama/dc/line.rkt")
 (require "digitama/dc/polygon.rkt")
+
+(require "digitama/dc/more.rkt")

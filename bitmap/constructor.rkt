@@ -283,7 +283,11 @@
   (lambda [#:neck-width [neck-width -0.1618] #:neck-height [neck-height -0.0618] #:tube-height [tube-height 0]
            #:border [border (default-border-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]
            width [height -1.618]]
+    (define-values (flwidth flheight) (~size width height))
+    (define neck-flwidth (~length neck-width flwidth))
+    (define neck-flheight (~length neck-height flheight))
+    (define tube-flheight (~length tube-height flheight))
+    
     (dc_sandglass create-argb-bitmap
-                  (real->double-flonum width) (real->double-flonum height)
-                  (real->double-flonum neck-width) (real->double-flonum neck-height) (real->double-flonum tube-height)
+                  flwidth flheight neck-flwidth neck-flheight tube-flheight
                   (border-paint->source* border) (fill-paint->source* pattern) density)))

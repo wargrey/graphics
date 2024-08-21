@@ -336,7 +336,11 @@
  [dc_rounded_rectangle (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_stadium (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_regular_polygon (All (S) (-> (Cairo-Surface-Create S) Positive-Index Nonnegative-Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
- [dc_sandglass (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
+
+ [dc_sandglass (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum
+                            Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
+                            (Option Paint) (Option Fill-Source) Flonum
+                            S))]
 
  [dc_polygon (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum
                           (Option Paint) (Option Fill-Source) Symbol Flonum
