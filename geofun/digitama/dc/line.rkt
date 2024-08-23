@@ -22,19 +22,21 @@
 (define geo-hline : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~size width height))
-    (define hl-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox flwidth flheight))
     
     (create-geometry-object geo:line
-                            #:with [(geo-shape-surface-wrapper geo-line-surface stroke (void)) hl-bbox] #:id id
+                            #:surface geo-line-surface stroke
+                            #:bbox (geo-shape-plain-bbox flwidth flheight)
+                            #:id id
                             0.0 (* flheight 0.5) flwidth 0.0)))
 
 (define geo-vline : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~size width height))
-    (define vl-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox flwidth flheight))
     
     (create-geometry-object geo:line
-                            #:with [(geo-shape-surface-wrapper geo-line-surface stroke (void)) vl-bbox] #:id id
+                            #:surface geo-line-surface stroke
+                            #:bbox (geo-shape-plain-bbox flwidth flheight)
+                            #:id id
                             (* flwidth 0.5) 0.0 0.0 flheight)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

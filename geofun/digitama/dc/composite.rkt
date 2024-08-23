@@ -53,7 +53,9 @@
 (define make-geo:group : (-> (Option Symbol) (Option Symbol) Geo-Layer-Group Geo:Group)
   (lambda [id op layers]
     (create-geometry-object geo:group
-                            #:with [geo-group-surface (geo-group-bbox layers)] #:id id
+                            #:surface geo-group-surface
+                            #:bbox (geo-group-bbox layers)
+                            #:id id
                             op layers)))
 
 (define make-geo:table : (-> (Option Symbol) (Option Symbol)
@@ -73,9 +75,10 @@
     (define layers : Geo-Layer-Group (geo-table-layers table ncols nrows pcols prows gcols grows cwidths rheights))
 
     (create-geometry-object geo:table
-                            #:with [geo-group-surface (geo-group-bbox layers)] #:id id
-                            op layers
-                            (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
+                            #:surface geo-group-surface
+                            #:bbox (geo-group-bbox layers)
+                            #:id id
+                            op layers (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
 
 (define geo-group-surface : Geo-Surface-Create
   (lambda [self]

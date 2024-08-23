@@ -48,7 +48,9 @@
     (define rtype : 2D-Radius-Type (if inscribed? 'edge 'vertex))
     
     (create-geometry-object geo:regular-polygon
-                            #:with [(geo-shape-surface-wrapper geo-regular-polygon-surface stroke pattern) geo-regular-polygon-bbox] #:id id
+                            #:surface geo-regular-polygon-surface stroke pattern
+                            #:bbox geo-regular-polygon-bbox
+                            #:id id
                             (if (index? n) n 0) R rtype (~radian rotation radian?))))
 
 (define geo-polygon : (->* ((U Point2D (Listof Point2D)))
@@ -61,9 +63,12 @@
            pts [dx 0.0] [dy 0.0]]
     (define-values (xs ys lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
+    (define polygon-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox width height))
     
     (create-geometry-object geo:polygon
-                            #:with [(geo-shape-surface-wrapper (geo-polygon-surface width height) stroke pattern rule)] #:id id
+                            #:surface (geo-polygon-surface width height) stroke pattern rule
+                            #:bbox (geo-stroke-bbox-wrapper (geo-shape-plain-bbox width height) stroke)
+                            #:id id
                             xs ys xoff yoff)))
 
 (define geo-polyline : (->* ((U Point2D (Listof Point2D)))
@@ -75,7 +80,9 @@
     (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
     
     (create-geometry-object geo:polyline
-                            #:with [(geo-shape-surface-wrapper (geo-polyline-surface width height) stroke)] #:id id
+                            #:surface (geo-polyline-surface width height) stroke
+                            #:bbox (geo-stroke-bbox-wrapper (geo-shape-plain-bbox width height) stroke)
+                            #:id id
                             xs ys xoff yoff close?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

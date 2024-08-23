@@ -51,7 +51,7 @@
     
     (define home-pos : Float-Complex (~point2d home))
     
-    (create-geometry-object culumon #:with flow-chart-surface #:id name
+    (create-geometry-object culumon #:surface flow-chart-surface #:id name
                             null (make-geo-trail home-pos start)
                             (make-geo-bbox home-pos) start
                             xstep ystep)))

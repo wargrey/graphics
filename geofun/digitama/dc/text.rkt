@@ -54,7 +54,9 @@
                             Geo:Toy-Text)
   (lambda [#:id [id #false] #:stroke [outline (void)] #:fill [fill (void)] #:background [bgsource (void)] text [font #false]]
     (create-geometry-object geo:toy-text
-                            #:with [(geo-toy-text-surface-make font outline fill bgsource) (geo-toy-text-calculate-bbox-make font)] #:id id
+                            #:surface (geo-toy-text-surface-make font outline fill bgsource)
+                            #:bbox (geo-toy-text-calculate-bbox-make font)
+                            #:id id
                             (~a text))))
 
 (define geo-text : (->* (Any)
@@ -66,7 +68,9 @@
            #:ascent [alsource #false] #:descent [dlsource #false] #:capline [clsource #false] #:meanline [mlsource #false] #:baseline [blsource #false]
            text [font #false] ]
     (create-geometry-object geo:text
-                            #:with [(geo-text-surface-make font fgsource bgsource) (geo-text-calculate-bbox-make font)] #:id id
+                            #:surface (geo-text-surface-make font fgsource bgsource)
+                            #:bbox (geo-text-calculate-bbox-make font)
+                            #:id id
                             (~a text) lines alsource dlsource clsource mlsource blsource)))
 
 (define geo-paragraph : (->* ((U String (Listof String)))
@@ -82,7 +86,8 @@
             [(negative? max-height) (values (exact-round max-height) ellipsize-mode)]
             [else (values (real->double-flonum max-height) ellipsize-mode)]))
     (create-geometry-object geo:para
-                            #:with [(geo-paragraph-surface-make font fgsource bgsource)] #:id id
+                            #:surface (geo-paragraph-surface-make font fgsource bgsource)
+                            #:id id
                             (if (list? texts) (string-join texts "\n") texts) lines
                             (if (or (infinite? max-width) (nan? max-width)) #false (real->double-flonum max-width)) smart-height
                             (real->double-flonum indent) (real->double-flonum spacing)

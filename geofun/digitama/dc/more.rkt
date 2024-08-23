@@ -30,10 +30,11 @@
     (define flength : Nonnegative-Flonum (~length length))
     (define flradius : Nonnegative-Flonum (~length radius flength))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
-    (define stadium-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox (+ d flength) d))
     
     (create-geometry-object geo:stadium
-                            #:with [(geo-shape-surface-wrapper geo-stadium-surface stroke pattern) stadium-bbox] #:id id
+                            #:surface geo-stadium-surface stroke pattern
+                            #:bbox (geo-shape-plain-bbox (+ d flength) d)
+                            #:id id
                             flength flradius)))
 
 (define geo-sandglass : (->* (Real)
@@ -47,10 +48,11 @@
     (define neck-flwidth (~length neck-width flwidth))
     (define neck-flheight (~length neck-height flheight))
     (define tube-flheight (~length tube-height flheight))
-    (define sandglass-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox flwidth flheight))
     
     (create-geometry-object geo:sandglass
-                            #:with [(geo-shape-surface-wrapper geo-sandglass-surface stroke pattern) sandglass-bbox] #:id id
+                            #:surface (geo-sandglass-surface flwidth flheight) stroke pattern
+                            #:bbox (geo-shape-plain-bbox flwidth flheight)
+                            #:id id
                             neck-flwidth neck-flheight tube-flheight)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -62,12 +64,12 @@
                   (current-stroke-source) (current-fill-source)
                   (default-geometry-density)))))
 
-(define geo-sandglass-surface : Geo-Surface-Create
-  (lambda [self]
-    (with-asserts ([self geo:sandglass?])
-      (define-values (width height) (geo-flsize self))
-      (dc_sandglass create-abstract-surface
-                    width height
-                    (geo:sandglass-neck-width self) (geo:sandglass-neck-height self) (geo:sandglass-tube-height self)
-                    (current-stroke-source) (current-fill-source)
-                    (default-geometry-density)))))
+(define geo-sandglass-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Surface-Create)
+  (lambda [width height]
+    (λ [self]
+      (with-asserts ([self geo:sandglass?])
+        (dc_sandglass create-abstract-surface
+                      width height
+                      (geo:sandglass-neck-width self) (geo:sandglass-neck-height self) (geo:sandglass-tube-height self)
+                      (current-stroke-source) (current-fill-source)
+                      (default-geometry-density))))))

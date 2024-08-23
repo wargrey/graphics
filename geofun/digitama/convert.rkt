@@ -28,14 +28,13 @@
 (define-syntax (create-geometry-object stx)
   (syntax-parse stx #:datum-literals [:]
     [(_ Geo
-        (~seq #:with [surface:expr (~optional bbox:expr #:defaults ([bbox #'geo-calculate-bbox]))])
+        (~seq #:surface surface:expr wrapper:expr ...)
+        (~optional (~seq #:bbox bbox:expr) #:defaults ([bbox #'geo-calculate-bbox]))
         (~optional (~seq #:id name) #:defaults ([name #'#false])) argl ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
-         (Geo geo-convert surface bbox (or name (gensym 'geo-prefix)) argl ...)))]
-    [(_ Geo (~seq #:with surface:id) rest ...)
-     (syntax/loc stx
-       (create-geometry-object Geo #:with [surface] rest ...))]))
+         (Geo geo-convert (geo-shape-surface-wrapper surface wrapper ...) bbox
+              (or name (gensym 'geo-prefix)) argl ...)))]))
 
 (define default-geometry-density : (Parameterof Positive-Flonum) (make-parameter 1.0))
 
@@ -112,13 +111,11 @@
      (geo-create-surface self))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-shape-surface-wrapper : (case-> [Geo-Surface-Create Maybe-Stroke-Paint Maybe-Stroke-Paint Maybe-Fill-Paint (Option Symbol) -> Geo-Surface-Create]
-                                            [Geo-Surface-Create Maybe-Stroke-Paint Maybe-Fill-Paint (Option Symbol) -> Geo-Surface-Create]
+(define geo-shape-surface-wrapper : (case-> [Geo-Surface-Create Maybe-Stroke-Paint Maybe-Fill-Paint (Option Symbol) -> Geo-Surface-Create]
                                             [Geo-Surface-Create Maybe-Stroke-Paint Maybe-Fill-Paint -> Geo-Surface-Create]
-                                            [Geo-Surface-Create Maybe-Stroke-Paint -> Geo-Surface-Create])
+                                            [Geo-Surface-Create Maybe-Stroke-Paint -> Geo-Surface-Create]
+                                            [Geo-Surface-Create -> Geo-Surface-Create])
   (case-lambda
-    [(λsurface alt-border alt-stroke alt-fill alt-rule)
-     (geo-shape-surface-wrapper (geo-shape-surface-wrapper λsurface alt-stroke alt-fill alt-rule) alt-border)]
     [(λsurface alt-stroke alt-fill alt-rule)
      (define-values (stroke-set? fill-set?)
        (values (not (void? alt-stroke))
@@ -177,22 +174,23 @@
               (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)])
                 (λsurface self)))]
            [else λsurface])]
-    [(λsurface alt-border)
-     (cond [(void? alt-border) λsurface]
-           [else (λ [self] (parameterize ([default-border-source (border-paint->source* alt-border)])
-                             (λsurface self)))])]))
+    [(λsurface alt-stroke)
+     (cond [(void? alt-stroke) λsurface]
+           [else (λ [self] (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)])
+                             (λsurface self)))])]
+    [(λsurface) λsurface]))
 
-(define geo-shape-bbox-wrapper : (-> Geo-Calculate-BBox Maybe-Stroke-Paint Geo-Calculate-BBox)
-  (lambda [λbbox alt-outline]
-    (cond [(void? alt-outline) λbbox]
-          [else (λ [self] (parameterize ([default-border-source (border-paint->source* alt-outline)])
+(define geo-border-bbox-wrapper : (-> Geo-Calculate-BBox Maybe-Stroke-Paint Geo-Calculate-BBox)
+  (lambda [λbbox alt-border]
+    (cond [(void? alt-border) λbbox]
+          [else (λ [self] (parameterize ([default-border-source (border-paint->source* alt-border)])
                             (λbbox self)))])))
 
-(define geo-stroke-bbox-wrapper : (-> Geo-Calculate-BBox Geo-Calculate-BBox)
-  (lambda [λbbox]
+(define geo-stroke-bbox-wrapper : (-> Geo-Calculate-BBox Maybe-Stroke-Paint Geo-Calculate-BBox)
+  (lambda [λbbox alt-stroke]
     (λ [self]
       (let-values ([(x y width height) (λbbox self)])
-        (define maybe-stroke (current-stroke-source))
+        (define maybe-stroke (geo-select-stroke-paint alt-stroke))
         (if (stroke? maybe-stroke)
             (let ([linewidth (stroke-width maybe-stroke)])
               (values x y (+ width linewidth) (+ height linewidth)))

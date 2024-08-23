@@ -22,8 +22,9 @@
  (rename-out [geo-path-close dryland-wani-close!]
              [make-sticker make-geo-sticker]))
 
-(require "digitama/convert.rkt")
+(require "paint.rkt")
 
+(require "digitama/convert.rkt")
 (require "digitama/geometry/dot.rkt")
 (require "digitama/geometry/bbox.rkt")
 (require "digitama/geometry/trail.rkt")
@@ -58,10 +59,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-dryland-wani : (->* (Real)
                                  (Real #:turn-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
-                                       #:anchor Keyword #:at Geo-Print-Datum #:id (Option Symbol))
+                                       #:anchor Keyword #:at Geo-Print-Datum #:id (Option Symbol)
+                                       #:stroke Maybe-Stroke-Paint)
                                  Dryland-Wani)
   (lambda [#:turn-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
-           #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
+           #:anchor [anchor '#:home] #:at [home 0] #:id [name #false] #:stroke [stroke (void)]
            xstepsize [ystepsize 0.0]]
     (define xstep : Nonnegative-Flonum
       (cond [(<= xstepsize 0.0) 1.0]
@@ -76,7 +78,10 @@
     (define-values (tsx tsy) (geo-path-turn-scales t-scale 0.5))
     (define-values (usx usy) (geo-path-turn-scales u-scale 0.25))
     
-    (create-geometry-object dryland-wani #:with [geo-path-surface (geo-stroke-bbox-wrapper geo-path-bounding-box)] #:id name
+    (create-geometry-object dryland-wani
+                            #:surface geo-path-surface stroke
+                            #:bbox (geo-stroke-bbox-wrapper geo-path-bounding-box stroke)
+                            #:id name
                             (list (cons start-of-track home-pos)) (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))

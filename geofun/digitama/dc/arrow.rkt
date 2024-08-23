@@ -8,7 +8,7 @@
 (require "../../paint.rkt")
 
 (require "../convert.rkt")
-(require "../unsafe/dc/shape.rkt")
+(require "../unsafe/dc/arrow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:arrow geo
@@ -32,10 +32,11 @@
     (define shaft-flthickness : Nonnegative-Flonum (~length shaft-thickness rhead))
     (define shaft-flength : Nonnegative-Flonum (~length shaft-length rhead))
     (define wing-flangle (and wing-angle (~radian wing-angle radian?)))
-    ;(define arrow-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox (+ d flength) d))
     
     (create-geometry-object geo:arrow
-                            #:with [(geo-shape-surface-wrapper geo-arrow-surface stroke pattern)] #:id id
+                            #:surface geo-arrow-surface stroke pattern
+                            #:bbox (geo-stroke-bbox-wrapper geo-arrow-bbox stroke)
+                            #:id id
                             rhead shaft-flength shaft-flthickness (~radian start radian?) wing-flangle)))
 
 (define geo-arrowhead : (->* (Real)
@@ -48,17 +49,27 @@
     (define flradius : Nonnegative-Flonum (~length radius))
     (define shaft-flthickness : Nonnegative-Flonum (~length shaft-thickness flradius))
     (define wing-flangle (and wing-angle (~radian wing-angle radian?)))
-    (define dart-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox (* 2.0 flradius)))
     
     (create-geometry-object geo:arrow
-                            #:with [(geo-shape-surface-wrapper geo-arrow-surface stroke pattern) dart-bbox] #:id id
+                            #:surface geo-arrow-surface stroke pattern
+                            #:bbox (geo-stroke-bbox-wrapper geo-arrow-bbox stroke)
+                            #:id id
                             flradius 0.0 shaft-flthickness (~radian start radian?) wing-flangle)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-arrow-bbox : Geo-Calculate-BBox
+  (lambda [self]
+    (with-asserts ([self geo:arrow?])
+      (define metrics (dc-arrow-metrics (geo:arrow-head-radius self) (geo:arrow-start-angle self)
+                                        (geo:arrow-shaft-thickness self) (geo:arrow-shaft-length self)
+                                        (geo:arrow-wing-angle self)))
+      (values 0.0 0.0 (vector-ref metrics 3) (vector-ref metrics 4)))))
+
 (define geo-arrow-surface : Geo-Surface-Create
   (lambda [self]
     (with-asserts ([self geo:arrow?])
       (dc_arrow create-abstract-surface
-                (geo:arrow-head-radius self) (geo:arrow-start-angle self)
-                (current-stroke-source) (current-fill-source) (default-geometry-density)
-                (geo:arrow-shaft-thickness self) (geo:arrow-shaft-length self) (geo:arrow-wing-angle self)))))
+                (dc-arrow-metrics (geo:arrow-head-radius self) (geo:arrow-start-angle self)
+                                  (geo:arrow-shaft-thickness self) (geo:arrow-shaft-length self)
+                                  (geo:arrow-wing-angle self))
+                (current-stroke-source) (current-fill-source) (default-geometry-density)))))

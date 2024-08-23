@@ -231,6 +231,6 @@
   (lambda [self]
     (with-asserts ([self geo-path?])
       (define-values (xoff yoff) (geo-bbox-offset-values (geo-path-bbox self)))
-      (path_stamp (geo-path-footprints self) xoff yoff
+      (path_stamp (reverse (geo-path-footprints self)) xoff yoff
                   (current-stroke-source*) (current-fill-source) (default-fill-rule)
                   (default-geometry-density)))))

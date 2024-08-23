@@ -41,10 +41,11 @@
 (define geo-circle : (-> Real [#:id (Option Symbol)] [#:stroke Maybe-Stroke-Paint] [#:fill Maybe-Fill-Paint] Geo:Circle)
   (lambda [radius #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
     (define r : Nonnegative-Flonum (~length radius))
-    (define circle-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox (* 2.0 r)))
     
     (create-geometry-object geo:circle
-                            #:with [(geo-shape-surface-wrapper geo-circle-surface stroke pattern) circle-bbox] #:id id
+                            #:surface geo-circle-surface stroke pattern
+                            #:bbox (geo-shape-plain-bbox (* 2.0 r))
+                            #:id id
                             r)))
 
 (define geo-ellipse : (->* (Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) (U Geo:Circle Geo:Ellipse))
@@ -54,10 +55,14 @@
     
     (if (= w h)
         (create-geometry-object geo:circle
-                                #:with [(geo-shape-surface-wrapper geo-circle-surface stroke pattern) ellipse-bbox] #:id id
+                                #:surface geo-circle-surface stroke pattern
+                                #:bbox ellipse-bbox
+                                #:id id
                                 (* w 0.5))
         (create-geometry-object geo:ellipse
-                                #:with [(geo-shape-surface-wrapper geo-ellipse-surface stroke pattern) ellipse-bbox] #:id id
+                                #:surface geo-ellipse-surface stroke pattern
+                                #:bbox ellipse-bbox
+                                #:id id
                                 (* w 0.5) (* h 0.5)))))
 
 (define geo-sector : (->* (Real Real Real)
@@ -67,10 +72,11 @@
            radius start end]
     (define ar : Nonnegative-Flonum (~length radius))
     (define br : Nonnegative-Flonum (if (> ratio 0.0) (abs (/ ar (real->double-flonum ratio))) ar))
-    (define sector-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox (* 2.0 ar) (* 2.0 br)))
     
     (create-geometry-object geo:sector
-                            #:with [(geo-shape-surface-wrapper geo-sector-surface stroke pattern) sector-bbox] #:id id
+                            #:surface geo-sector-surface stroke pattern
+                            #:bbox (geo-shape-plain-bbox (* 2.0 ar) (* 2.0 br))
+                            #:id id
                             ar br (~radian start radian?) (~radian end radian?))))
 
 (define geo-arc : (->* (Real Real Real) (#:id (Option Symbol) #:ratio Real #:stroke Maybe-Stroke-Paint #:radian? Boolean) Geo:Arc)
@@ -78,10 +84,11 @@
            radius start end]
     (define ar : Nonnegative-Flonum (~length radius))
     (define br : Nonnegative-Flonum (if (> ratio 0.0) (abs (/ ar (real->double-flonum ratio))) ar))
-    (define arc-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox (* 2.0 ar) (* 2.0 br)))
     
     (create-geometry-object geo:arc
-                            #:with [(geo-shape-surface-wrapper geo-arc-surface stroke (void)) arc-bbox] #:id id
+                            #:surface geo-arc-surface stroke
+                            #:bbox (geo-shape-plain-bbox (* 2.0 ar) (* 2.0 br))
+                            #:id id
                             ar br (~radian start radian?) (~radian end radian?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -26,7 +26,7 @@
                                    (cairo-render cr stroke fill-color fill-rule))))
 
   (define (cairo_path cr footprints dx dy)
-    (for ([op+footprint (in-list (reverse footprints))])
+    (for ([op+footprint (in-list footprints)])
       (define footprint (unsafe-cdr op+footprint))
       (case (unsafe-car op+footprint)
         [(#\M) (cairo_move_to cr (unsafe-fl+ (unsafe-flreal-part footprint) dx) (unsafe-fl+ (unsafe-flimag-part footprint) dy))]

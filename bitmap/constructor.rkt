@@ -9,6 +9,7 @@
 (require geofun/font)
 (require geofun/color)
 (require geofun/paint)
+(require geofun/stroke)
 
 (require geofun/digitama/base)
 (require geofun/digitama/font)
@@ -16,8 +17,9 @@
 (require geofun/digitama/source)
 
 (require geofun/digitama/geometry/dot)
-(require geofun/digitama/unsafe/dc/shape)
 (require geofun/digitama/unsafe/dc/plain)
+(require geofun/digitama/unsafe/dc/shape)
+(require geofun/digitama/unsafe/dc/arrow)
 (require geofun/digitama/unsafe/dc/text)
 (require geofun/digitama/unsafe/dc/toytext)
 
@@ -251,10 +253,10 @@
     (define rhead : Nonnegative-Flonum (~length head-radius))
     
     (dc_arrow create-argb-bitmap
-              rhead (~radian start radian?)
-              (stroke-paint->source* outline) (fill-paint->source* pattern) density
-              (~length shaft-thickness rhead) (~length shaft-length rhead)
-              (and wing-angle (~radian wing-angle radian?)))))
+              (dc-arrow-metrics rhead (~radian start radian?)
+                                (~length shaft-thickness rhead) (~length shaft-length rhead)
+                                (and wing-angle (~radian wing-angle radian?)))
+              (stroke-paint->source* outline) (fill-paint->source* pattern) density)))
 
 (define bitmap-arrowhead : (->* (Real)
                                 (Real #:shaft-thickness Real #:wing-angle (Option Real) #:radian? Boolean
@@ -266,10 +268,10 @@
     (define r : Nonnegative-Flonum (~length radius))
     
     (dc_arrow create-argb-bitmap
-              r (~radian start radian?)
-              (stroke-paint->source* outline) (fill-paint->source* pattern) density
-              (~length shaft-thickness r) 0.0
-              (and wing-angle (~radian wing-angle radian?)))))
+              (dc-arrow-metrics r (~radian start radian?)
+                                (~length shaft-thickness r) 0.0
+                                (and wing-angle (~radian wing-angle radian?)))
+              (stroke-paint->source* outline) (fill-paint->source* pattern) density)))
 
 (define bitmap-hline : (->* (Real Real) (#:stroke Maybe-Stroke-Paint #:density Positive-Flonum) Bitmap)
   (lambda [width height #:stroke [stroke (default-stroke-paint)] #:density [density (default-bitmap-density)]]

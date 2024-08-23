@@ -30,14 +30,18 @@
     (define-values (flwidth flheight) (~size width (or height width)))
     
     (create-geometry-object geo:blank
-                            #:with [(geo-blank-surface flwidth flheight) (geo-shape-plain-bbox flwidth flheight)] #:id id
+                            #:surface (geo-blank-surface flwidth flheight)
+                            #:bbox (geo-shape-plain-bbox flwidth flheight)
+                            #:id id
                             #false)))
 
 (define geo-ghost : (-> Geo [#:id (Option Symbol)] Geo:Blank)
   (lambda [geo #:id [id #false]]
     (define-values (flwidth flheight) (geo-flsize geo))
     (create-geometry-object geo:blank
-                            #:with [(geo-blank-surface flwidth flheight) (geo-shape-plain-bbox geo)] #:id id
+                            #:surface (geo-blank-surface flwidth flheight)
+                            #:bbox (geo-shape-plain-bbox geo)
+                            #:id id
                             geo)))
 
 (define geo-frame : (-> Geo [#:id (Option Symbol)]
@@ -63,7 +67,9 @@
         (values 0.0 0.0 w h)))
     
     (create-geometry-object geo:frame
-                            #:with [(geo-frame-surface border bg-fill) geo-frame-bbox] #:id id
+                            #:surface (geo-frame-surface border bg-fill)
+                            #:bbox geo-frame-bbox
+                            #:id id
                             geo
                             (vector-immutable mtop mright mbottom mleft)
                             (vector-immutable ptop pright pbottom pleft))))

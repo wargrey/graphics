@@ -223,69 +223,6 @@
     
     sfc)
 
-  (define (dc_arrow create-surface head-radius0 rpoint border background density shaft-thickness shaft-length wing-angle)
-    (define fllength (unsafe-fl* head-radius0 2.0))
-    (define line-width (~bdwidth border))
-    (define offset (unsafe-fl* line-width 0.5))
-    (define head-radius (unsafe-fl- head-radius0 offset))
-    (define rdelta (if (not wing-angle) (unsafe-fl* 0.6 pi #;108.0) (unsafe-fl- pi (unsafe-fl* 0.5 wing-angle))))
-    (define rwing1 (unsafe-fl+ rpoint rdelta))
-    (define rwing2 (unsafe-fl- rpoint rdelta))
-    (define-values (rpx rpy) (values (unsafe-fl* head-radius (unsafe-flcos rpoint)) (unsafe-fl* head-radius (unsafe-flsin rpoint))))
-    (define-values (wx1 wy1) (values (unsafe-fl* head-radius (unsafe-flcos rwing1)) (unsafe-fl* head-radius (unsafe-flsin rwing1))))
-    (define-values (wx2 wy2) (values (unsafe-fl* head-radius (unsafe-flcos rwing2)) (unsafe-fl* head-radius (unsafe-flsin rwing2))))
-    
-    (define shaft-thickness/2 (unsafe-fl* shaft-thickness 0.5))
-    (define draw-shaft? (unsafe-fl< shaft-thickness/2 head-radius))
-    (define wing-theta (unsafe-fl- rdelta pi/2))
-    (define wing-radius (unsafe-fl/ shaft-thickness/2 (unsafe-flcos wing-theta)))
-    (define shaft-minlen (unsafe-fl* shaft-thickness/2 (unsafe-fltan wing-theta)))
-    
-    (define-values (flwidth flheight tx ty shx1 shy1 shx2 shy2)
-      (if (or (not draw-shaft?) (unsafe-fl<= shaft-length shaft-minlen))
-          (values fllength fllength head-radius0 head-radius0 0.0 0.0 0.0 0.0)
-
-          (let*-values ([(shaft-radius) (unsafe-fl- (unsafe-flsqrt
-                                                     (unsafe-fl+ (unsafe-fl* shaft-thickness/2 shaft-thickness/2)
-                                                                 (unsafe-fl* shaft-length shaft-length)))
-                                                    offset)]
-                        [(shdelta) (unsafe-fl+ (unsafe-flacos (unsafe-fl/ shaft-thickness/2 shaft-radius)) pi/2)]
-                        [(shtail1 shtail2) (values (unsafe-fl+ rpoint shdelta) (unsafe-fl- rpoint shdelta))]
-                        [(shx1 shy1) (values (unsafe-fl* shaft-radius (unsafe-flcos shtail1)) (unsafe-fl* shaft-radius (unsafe-flsin shtail1)))]
-                        [(shx2 shy2) (values (unsafe-fl* shaft-radius (unsafe-flcos shtail2)) (unsafe-fl* shaft-radius (unsafe-flsin shtail2)))])
-            (if (unsafe-fl<= shaft-length head-radius0)
-                (values fllength fllength head-radius0 head-radius0 shx1 shy1 shx2 shy2)
-
-                (let*-values ([(axmin axmax) (values (unsafe-flmin rpx (unsafe-flmin wx1 wx2)) (unsafe-flmax rpx (unsafe-flmax wx1 wx2)))]
-                              [(aymin aymax) (values (unsafe-flmin rpy (unsafe-flmin wy1 wy2)) (unsafe-flmax rpy (unsafe-flmax wy1 wy2)))]
-                              [(shxmin shxmax) (values (unsafe-flmin shx1 shx2) (unsafe-flmax shx1 shx2))]
-                              [(shymin shymax) (values (unsafe-flmin shy1 shy2) (unsafe-flmax shy1 shy2))]
-                              [(xmin xmax) (values (unsafe-flmin axmin shxmin) (unsafe-flmax axmax shxmax))]
-                              [(ymin ymax) (values (unsafe-flmin aymin shymin) (unsafe-flmax aymax shymax))])
-                  (values (unsafe-fl- xmax xmin) (unsafe-fl- ymax ymin) (unsafe-fl- xmin) (unsafe-fl- ymin) shx1 shy1 shx2 shy2))))))
-      
-    (define-values (sfc cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
-    
-    (cairo_translate cr (unsafe-fl+ tx offset) (unsafe-fl+ ty offset))
-    (cairo_new_sub_path cr)
-    (cairo_move_to cr 0.0 0.0)
-    
-    (when (or draw-shaft?)
-      (cairo_move_to cr (unsafe-fl* wing-radius (unsafe-flcos rwing1)) (unsafe-fl* wing-radius (unsafe-flsin rwing1)))
-      (cairo_line_to cr shx1 shy1)
-      (cairo_line_to cr shx2 shy2)
-      (cairo_line_to cr (unsafe-fl* wing-radius (unsafe-flcos rwing2)) (unsafe-fl* wing-radius (unsafe-flsin rwing2))))
-    
-    (cairo_line_to cr wx2 wy2)
-    (cairo_line_to cr rpx rpy)
-    (cairo_line_to cr wx1 wy1)
-    (cairo_close_path cr)
-    
-    (cairo-render cr border background)
-    (cairo_destroy cr)
-    
-    sfc)
-
   (define (dc_sandglass create-surface flwidth flheight neck-width neck-height tube-height border background density)
     (define-values (sfc cr) (create-surface flwidth flheight density #true))
     (define-values (cy neck-a neck-b) (values (unsafe-fl* flheight 0.5) (unsafe-fl* neck-width 0.25) (unsafe-fl* neck-height 0.5)))
@@ -344,12 +281,7 @@
 
  [dc_polygon (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum
                           (Option Paint) (Option Fill-Source) Symbol Flonum
-                          S))]
- 
- [dc_arrow (All (S) (-> (Cairo-Surface-Create S)
-                        Nonnegative-Flonum Flonum (Option Paint) (Option Fill-Source) Flonum
-                        Nonnegative-Flonum Nonnegative-Flonum (Option Flonum)
-                        S))])
+                          S))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define regular-polygon-radius->circumsphere-radius : (-> Positive-Index Nonnegative-Flonum 2D-Radius-Type Nonnegative-Flonum)
