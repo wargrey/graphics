@@ -160,15 +160,15 @@
     (define line-width (~bdwidth stroke))
     (define-values (sfc cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
     (define inset (unsafe-fl* line-width 0.5))
-    (define x0 (unsafe-fl+ dx inset))
-    (define y0 (unsafe-fl+ dy inset))
+    (define xoff (unsafe-fl+ dx inset))
+    (define yoff (unsafe-fl+ dy inset))
 
     (cairo_new_sub_path cr)
       
     (let draw-line ([xs xs]
                     [ys ys])
       (when (pair? xs)
-        (cairo_line_to cr (unsafe-fl+ x0 (unsafe-car xs)) (unsafe-fl+ y0 (unsafe-car ys)))
+        (cairo_line_to cr (unsafe-fl+ xoff (unsafe-car xs)) (unsafe-fl+ yoff (unsafe-car ys)))
         (draw-line (unsafe-cdr xs) (unsafe-cdr ys))))
       
     (when (and close?)
@@ -183,15 +183,15 @@
     (define line-width (~bdwidth stroke))
     (define-values (sfc cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
     (define inset (unsafe-fl* line-width 0.5))
-    (define x0 (unsafe-fl+ dx inset))
-    (define y0 (unsafe-fl+ dy inset))
+    (define xoff (unsafe-fl+ dx inset))
+    (define yoff (unsafe-fl+ dy inset))
 
     (cairo_new_sub_path cr)
       
     (let draw-line ([xs xs]
                     [ys ys])
       (when (pair? xs)
-        (cairo_line_to cr (unsafe-fl+ x0 (unsafe-car xs)) (unsafe-fl+ y0 (unsafe-car ys)))
+        (cairo_line_to cr (unsafe-fl+ xoff (unsafe-car xs)) (unsafe-fl+ yoff (unsafe-car ys)))
         (draw-line (unsafe-cdr xs) (unsafe-cdr ys))))
       
     (cairo_close_path cr)

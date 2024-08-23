@@ -42,7 +42,7 @@
                                          ((-> Bitmap Nonnegative-Real Nonnegative-Real Bitmap))
                                          Bitmap)
       (lambda [label width height font color text-color border [crop bitmap-ct-crop]]
-        (define pipe (crop (bitmap-sandglass width height #:neck-width -0.32 #:neck-height (* b:height 3.0) #:fill color #:border border)
+        (define pipe (crop (bitmap-sandglass width height #:neck-width -0.32 #:neck-height (* b:height 3.0) #:fill color #:stroke border)
                            width (* height 0.5)))
         
         (cond [(not label) pipe]
@@ -66,7 +66,7 @@
       (let* ([wunit (+ io:gapsize io:width)]
              [body-width (max min-width (* wunit (max icount ocount)) (if (not caption) (* wunit 1.0) (+ (bitmap-width caption) io:gapsize)))]
              [body-height (max min-height (if (not caption) (* body-width 0.618) (+ (bitmap-height caption) io:gapsize)))]
-             [body (bitmap-rectangle body-width body-height -0.125 #:fill b:fill #:border border)])
+             [body (bitmap-rectangle body-width body-height -0.125 #:fill b:fill #:stroke border)])
         (cond [(not caption) body]
               [else (bitmap-cc-superimpose body caption)])))
 

@@ -105,7 +105,7 @@
       (cairo_move_to cr 0.0 y)
       (cairo_rel_line_to cr width 0.0)
       (cairo_stroke cr)))
-  
+
   (define the-context
     (let ([&context (box #false)])
       (lambda []
@@ -120,12 +120,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
- (submod "." unsafe)
+ (submod "." unsafe) 
  [dc_text
   (All (S) (-> (Cairo-Surface-Create S)
                String Font-Description (Listof Symbol) Fill-Source (Option Fill-Source)
                (Option Paint) (Option Paint) (Option Paint) (Option Paint) (Option Paint)
                Flonum S))]
+ 
  [dc_paragraph
   (All (S) (-> (Cairo-Surface-Create S)
                String Font-Description (Listof Symbol) (Option Flonum) (U Flonum Nonpositive-Integer)

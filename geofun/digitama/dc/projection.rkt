@@ -14,13 +14,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:icosahedron:side geo
   ([radius : Nonnegative-Flonum]
-   [radius-type : 3D-Radius-Type])
+   [radius-type : 3D-Radius-Type]
+   [edge-length : Nonnegative-Flonum])
   #:type-name Geo:Icosahedron:Side
   #:transparent)
 
 (struct geo:icosahedron:over geo
   ([radius : Nonnegative-Flonum]
    [radius-type : 3D-Radius-Type]
+   [circumsphere-radius : Nonnegative-Flonum]
    [rotation : Flonum])
   #:type-name Geo:Icosahedron:Over
   #:transparent)
@@ -30,38 +32,43 @@
                                                (3D-Radius-Type #:id (Option Symbol)
                                                                #:edge Maybe-Stroke-Paint #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                                                Geo:Icosahedron:Side)
-  (lambda [#:id [id #false] #:edge [edge #false] #:border [border #false] #:fill [pattern #false]
+  (lambda [#:id [id #false] #:edge [edge (void)] #:border [border (void)] #:fill [pattern (void)]
            radius [radius-type 'vertex]]
+    (define r : Nonnegative-Flonum (~length radius))
+    (define sidelength : Nonnegative-Flonum (icosahedron-radius->edge-length r radius-type))
+    (define iside-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox (icosahedron-edge-length->side-outline-size sidelength)))
+    
     (create-geometry-object geo:icosahedron:side
-                            #:with [(geo-shape-surface-wrapper geo-side-surface edge border pattern #false)] #:id id
-                            (~length radius) radius-type)))
+                            #:with [(geo-shape-surface-wrapper geo-side-surface border edge pattern #false) iside-bbox] #:id id
+                            r radius-type sidelength)))
 
 (define geo-icosahedron-over-projection : (->* (Real)
                                                (3D-Radius-Type #:id (Option Symbol) #:rotation Real #:radian? Boolean
                                                                #:edge Maybe-Stroke-Paint #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                                                Geo:Icosahedron:Over)
-  (lambda [#:id [id #false] #:edge [edge #false] #:border [border #false] #:fill [pattern #false] #:rotation [rotation 0.0] #:radian? [radian? #true]
+  (lambda [#:id [id #false] #:edge [edge (void)] #:border [border (void)] #:fill [pattern (void)] #:rotation [rotation 0.0] #:radian? [radian? #true]
            radius [radius-type 'vertex]]
+    (define r : Nonnegative-Flonum (~length radius))
+    (define R : Nonnegative-Flonum (icosahedron-radius->circumsphere-radius r radius-type))
+    (define iover-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox (* 2.0 R)))
+    
     (create-geometry-object geo:icosahedron:over
-                            #:with [(geo-shape-surface-wrapper geo-over-surface edge border pattern #false)] #:id id
-                            (~length radius) radius-type (~radian rotation radian?))))
+                            #:with [(geo-shape-surface-wrapper geo-over-surface border edge pattern #false) iover-bbox] #:id id
+                            r radius-type R (~radian rotation radian?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-side-surface : Geo-Surface-Create
   (lambda [self]
     (with-asserts ([self geo:icosahedron:side?])
       (dc_icosahedron_side_proj create-abstract-surface
-                                (icosahedron-radius->edge-length (geo:icosahedron:side-radius self)
-                                                                 (geo:icosahedron:side-radius-type self))
-                                (current-stroke-source) (current-fill-source) (current-border-source)
+                                (geo:icosahedron:side-edge-length self)
+                                (current-stroke-source) (current-fill-source) (current-stroke-source)
                                 (default-geometry-density)))))
 
 (define geo-over-surface : Geo-Surface-Create
   (lambda [self]
     (with-asserts ([self geo:icosahedron:over?])
       (dc_icosahedron_over_proj create-abstract-surface
-                                (icosahedron-radius->circumsphere-radius (geo:icosahedron:over-radius self)
-                                                                         (geo:icosahedron:over-radius-type self))
-                                (geo:icosahedron:over-rotation self)
-                                (current-stroke-source) (current-fill-source) (current-border-source)
+                                (geo:icosahedron:over-circumsphere-radius self) (geo:icosahedron:over-rotation self)
+                                (current-stroke-source) (current-fill-source) (current-stroke-source)
                                 (default-geometry-density)))))

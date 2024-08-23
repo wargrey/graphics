@@ -76,7 +76,7 @@
     (define-values (tsx tsy) (geo-path-turn-scales t-scale 0.5))
     (define-values (usx usy) (geo-path-turn-scales u-scale 0.25))
     
-    (create-geometry-object dryland-wani #:with [geo-path-surface (geo-path-bbox-wrapper geo-path-bounding-box)] #:id name
+    (create-geometry-object dryland-wani #:with [geo-path-surface (geo-stroke-bbox-wrapper geo-path-bounding-box)] #:id name
                             (list (cons start-of-track home-pos)) (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))

@@ -11,8 +11,6 @@
 (module unsafe racket/base
   (provide (all-defined-out))
 
-  (require (only-in racket/list make-list))
-  (require (only-in racket/vector vector-append))
   (require (only-in racket/flonum make-flvector))
 
   (require geofun/digitama/unsafe/pangocairo)

@@ -28,7 +28,7 @@
 
     (define body
       (bitmap-vc-append #:gapsize (* Rcollar -0.618)
-                        (bitmap-arrowhead Rcollar 90.0 #:radian? #false #:fill body-color #:border head-stroke #:wing-angle 144.0)
+                        (bitmap-arrowhead Rcollar 90.0 #:radian? #false #:fill body-color #:stroke head-stroke #:wing-angle 144.0)
                         (bitmap-arrow Rdart R 90.0 #:radian? #false #:fill body-color #:shaft-thickness Rcollar #:wing-angle 180.0)))
 
     (define fibre

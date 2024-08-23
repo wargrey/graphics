@@ -117,89 +117,78 @@
                                             [Geo-Surface-Create Maybe-Stroke-Paint Maybe-Fill-Paint -> Geo-Surface-Create]
                                             [Geo-Surface-Create Maybe-Stroke-Paint -> Geo-Surface-Create])
   (case-lambda
-    [(λsurface alt-stroke alt-border alt-fill alt-rule)
-     (geo-shape-surface-wrapper (geo-shape-surface-wrapper λsurface alt-border alt-fill alt-rule) alt-stroke)]
-    [(λsurface alt-border alt-fill alt-rule)
-     (define-values (border-set? fill-set?)
-       (values (not (void? alt-border))
+    [(λsurface alt-border alt-stroke alt-fill alt-rule)
+     (geo-shape-surface-wrapper (geo-shape-surface-wrapper λsurface alt-stroke alt-fill alt-rule) alt-border)]
+    [(λsurface alt-stroke alt-fill alt-rule)
+     (define-values (stroke-set? fill-set?)
+       (values (not (void? alt-stroke))
                (not (void? alt-fill))))
      
-     (cond [(and border-set? fill-set? alt-rule)
+     (cond [(and stroke-set? fill-set? alt-rule)
             (λ [self]
-              (parameterize ([default-border-source (border-paint->source* alt-border)]
+              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)]
                              [default-fill-source (fill-paint->source* alt-fill)]
                              [default-fill-rule alt-rule])
                 (λsurface self)))]
-           [(and border-set? fill-set?)
+           [(and stroke-set? fill-set?)
             (λ [self]
-              (parameterize ([default-border-source (border-paint->source* alt-border)]
-                             [default-fill-source (fill-paint->source* alt-fill)]
-                             #;[default-fill-rule alt-rule])
+              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)]
+                             [default-fill-source (fill-paint->source* alt-fill)])
                 (λsurface self)))]
            [(and fill-set? alt-rule)
             (λ [self]
-              (parameterize (#;[default-border-source (border-paint->source* alt-border)]
-                             [default-fill-source (fill-paint->source* alt-fill)]
+              (parameterize ([default-fill-source (fill-paint->source* alt-fill)]
                              [default-fill-rule alt-rule])
                 (λsurface self)))]
-           [(and border-set? alt-rule)
+           [(and stroke-set? alt-rule)
             (λ [self]
-              (parameterize ([default-border-source (border-paint->source* alt-border)]
-                             #;[default-fill-source (fill-paint->source* alt-fill)]
+              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)]
                              [default-fill-rule alt-rule])
                 (λsurface self)))]
-           [(and border-set?)
+           [(and stroke-set?)
             (λ [self]
-              (parameterize ([default-border-source (border-paint->source* alt-border)]
-                             #;[default-fill-source (fill-paint->source* alt-fill)]
-                             #;[default-fill-rule alt-rule])
+              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)])
                 (λsurface self)))]
            [(and fill-set?)
             (λ [self]
-              (parameterize (#;[default-border-source (border-paint->source* alt-border)]
-                             [default-fill-source (fill-paint->source* alt-fill)]
-                             #;[default-fill-rule alt-rule])
+              (parameterize ([default-fill-source (fill-paint->source* alt-fill)])
                 (λsurface self)))]
            [(and alt-rule)
             (λ [self]
-              (parameterize (#;[default-border-source (border-paint->source* alt-border)]
-                             #;[default-fill-source (fill-paint->source* alt-fill)]
-                             [default-fill-rule alt-rule])
+              (parameterize ([default-fill-rule alt-rule])
                 (λsurface self)))]
            [else λsurface])]
-    [(λsurface alt-border alt-fill)
-     (define-values (border-set? fill-set?)
-       (values (not (void? alt-border))
+    [(λsurface alt-stroke alt-fill)
+     (define-values (outline-set? fill-set?)
+       (values (not (void? alt-stroke))
                (not (void? alt-fill))))
      
-     (cond [(and border-set? fill-set?)
+     (cond [(and outline-set? fill-set?)
             (λ [self]
-              (parameterize ([default-border-source (border-paint->source* alt-border)]
+              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)]
                              [default-fill-source (fill-paint->source* alt-fill)])
                 (λsurface self)))]
            [(and fill-set?)
             (λ [self]
-              (parameterize (#;[default-border-source (border-paint->source* alt-border)]
-                             [default-fill-source (fill-paint->source* alt-fill)])
+              (parameterize ([default-fill-source (fill-paint->source* alt-fill)])
                 (λsurface self)))]
-           [(and border-set?)
+           [(and outline-set?)
             (λ [self]
-              (parameterize ([default-border-source (border-paint->source* alt-border)]
-                             #;[default-fill-source (fill-paint->source* alt-fill)])
+              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)])
                 (λsurface self)))]
            [else λsurface])]
-    [(λsurface alt-stroke)
-     (cond [(void? alt-stroke) λsurface]
-           [else (λ [self] (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)])
+    [(λsurface alt-border)
+     (cond [(void? alt-border) λsurface]
+           [else (λ [self] (parameterize ([default-border-source (border-paint->source* alt-border)])
                              (λsurface self)))])]))
 
 (define geo-shape-bbox-wrapper : (-> Geo-Calculate-BBox Maybe-Stroke-Paint Geo-Calculate-BBox)
-  (lambda [λbbox alt-border]
-    (cond [(void? alt-border) λbbox]
-          [else (λ [self] (parameterize ([default-border-source (border-paint->source* alt-border)])
+  (lambda [λbbox alt-outline]
+    (cond [(void? alt-outline) λbbox]
+          [else (λ [self] (parameterize ([default-border-source (border-paint->source* alt-outline)])
                             (λbbox self)))])))
 
-(define geo-path-bbox-wrapper : (-> Geo-Calculate-BBox Geo-Calculate-BBox)
+(define geo-stroke-bbox-wrapper : (-> Geo-Calculate-BBox Geo-Calculate-BBox)
   (lambda [λbbox]
     (λ [self]
       (let-values ([(x y width height) (λbbox self)])

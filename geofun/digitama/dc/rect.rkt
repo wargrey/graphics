@@ -17,22 +17,22 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-square : (->* (Real) (Real #:id (Option Symbol) #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Rectangle)
-  (lambda [width [corner-radius 0.0] #:id [id #false] #:border [border (void)] #:fill [pattern (void)]]
+(define geo-square : (->* (Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Rectangle)
+  (lambda [width [corner-radius 0.0] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
     (define w : Nonnegative-Flonum (~length width))
     (define rect-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox w))
     
     (create-geometry-object geo:rect
-                            #:with [(geo-shape-surface-wrapper geo-rect-surface border pattern) rect-bbox] #:id id
+                            #:with [(geo-shape-surface-wrapper geo-rect-surface stroke pattern) rect-bbox] #:id id
                             (~length corner-radius w))))
 
-(define geo-rectangle : (->* (Real) (Real Real #:id (Option Symbol) #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Rectangle)
-  (lambda [width [height -0.618] [corner-radius 0.0] #:id [id #false] #:border [border (void)] #:fill [pattern (void)]]
+(define geo-rectangle : (->* (Real) (Real Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Rectangle)
+  (lambda [width [height -0.618] [corner-radius 0.0] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
     (define-values (w h) (~size width height))
     (define rect-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox w h))
     
     (create-geometry-object geo:rect
-                            #:with [(geo-shape-surface-wrapper geo-rect-surface border pattern) rect-bbox] #:id id
+                            #:with [(geo-shape-surface-wrapper geo-rect-surface stroke pattern) rect-bbox] #:id id
                             (~length corner-radius (min w h)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -43,5 +43,5 @@
       (define-values (x y w h) ((geo<%>-aabox self) self))
       
       (if (or (zero? cr) (nan? cr))
-          (dc_rectangle create-abstract-surface w h (current-border-source) (current-fill-source) (default-geometry-density))
-          (dc_rounded_rectangle create-abstract-surface w h cr (current-border-source) (current-fill-source) (default-geometry-density))))))
+          (dc_rectangle create-abstract-surface w h (current-stroke-source) (current-fill-source) (default-geometry-density))
+          (dc_rounded_rectangle create-abstract-surface w h cr (current-stroke-source) (current-fill-source) (default-geometry-density))))))

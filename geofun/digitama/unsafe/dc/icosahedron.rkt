@@ -22,11 +22,11 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (dc_icosahedron_side_proj create-surface edge-size edge-stroke background border0 density)
-    (define-values (a1 aφ) (icoashedron-edge-length->outline edge-size))
+    (define-values (a1 aφ) (icosahedron-edge-length->outline edge-size))
     (define fllength (unsafe-fl* aφ 2.0))
     (define-values (sfc cr) (create-surface fllength fllength density #true))
     (define border (or border0 edge-stroke))
-    (define offset (if (struct? border) (unsafe-fl* 0.5 (unsafe-struct-ref border 1)) 0.0))
+    (define offset (~bdwidth border))
     (define-values (-a1 +a1) (values (unsafe-fl+ (unsafe-fl- 0.0 a1) offset) (unsafe-fl- a1 offset)))
     (define-values (-aφ +aφ) (values (unsafe-fl+ (unsafe-fl- 0.0 aφ) offset) (unsafe-fl- aφ offset)))
 
@@ -53,10 +53,11 @@
       (cairo-render-with-stroke cr edge-stroke))
 
     ;;; draw the border
-    (cairo_new_path cr)
-    (icosahedron-side-border-path cr +a1 +aφ -a1 -aφ)
-    (cairo-render-with-stroke cr border)
-    
+    (unless (not border)
+      (cairo_new_path cr)
+      (icosahedron-side-border-path cr +a1 +aφ -a1 -aφ)
+      (cairo-render-with-stroke cr border))
+      
     (cairo_destroy cr)
     
     sfc)
@@ -65,8 +66,8 @@
     (define fllength (unsafe-fl* radius 2.0))
     (define-values (sfc cr) (create-surface fllength fllength density #true))
     (define border (or border0 edge))
-    (define delta (unsafe-fl/ 2pi 10.0))
-    (define offset (if (struct? border) (unsafe-fl* 0.5 (unsafe-struct-ref border 1)) 0.0))
+    (define delta (unsafe-fl* 2pi 0.10))
+    (define offset (~bdwidth border))
     (define R (unsafe-fl- radius offset))
     (define xs (make-flvector 10))
     (define ys (make-flvector 10))
@@ -101,9 +102,10 @@
       (cairo-render-with-stroke cr edge))
 
     ;; draw the border
-    (cairo_new_path cr)
-    (icosahedron-over-border-path cr xs ys)
-    (cairo-render-with-stroke cr border)
+    (unless (not border)
+      (cairo_new_path cr)
+      (icosahedron-over-border-path cr xs ys)
+      (cairo-render-with-stroke cr border))
     
     (cairo_destroy cr)
     
@@ -129,7 +131,7 @@
       (cairo_close_path cr)))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define icoashedron-edge-length->outline
+  (define icosahedron-edge-length->outline
     (lambda [a]
       (define a1 (unsafe-fl* a 0.5))
       (define aφ (unsafe-fl* a1 phi))
@@ -144,11 +146,17 @@
                   (pos +1 +φ 0) (pos +1 -φ 0)
                   (pos -1 +φ 0) (pos -1 -φ 0)))
       
-      (values a1 aφ))))
+      (values a1 aφ)))
+
+  (define icosahedron-edge-length->side-outline-size
+    (lambda [a]
+      (define-values (a1 aφ) (icosahedron-edge-length->outline a))
+      (unsafe-fl* aφ 2.0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
+ [icosahedron-edge-length->side-outline-size (-> Nonnegative-Flonum Nonnegative-Flonum)]
  [dc_icosahedron_side_proj
   (All (S) (-> (Cairo-Surface-Create S)
                Nonnegative-Flonum (Option Paint) (Option Fill-Source) (Option Paint)

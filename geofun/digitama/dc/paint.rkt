@@ -59,8 +59,20 @@
         (current-background-source)
         (fill-paint->source* alt-bg))))
 
+(define geo-select-fill : (-> Maybe-Fill-Paint (Option Fill-Source))
+  (lambda [alt-fill]
+    (if (void? alt-fill)
+        (current-fill-source)
+        (fill-paint->source* alt-fill))))
+
 (define geo-select-border-paint : (-> Maybe-Stroke-Paint (Option Stroke))
   (lambda [alt-bdr]
     (if (void? alt-bdr)
         (current-border-source)
         (border-paint->source* alt-bdr))))
+
+(define geo-select-stroke-paint : (-> Maybe-Stroke-Paint (Option Stroke))
+  (lambda [alt-strk]
+    (if (void? alt-strk)
+        (current-stroke-source)
+        (stroke-paint->source* alt-strk))))

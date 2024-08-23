@@ -7,7 +7,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-values (diameter dash-width alpha) (values 192 4 1/3))
 (define yellow-stroke (desc-stroke #:width dash-width #:opacity 1/2 #:cap 'round #:dash 'short-dash))
-(default-border-paint (desc-stroke #:width dash-width #:opacity alpha #:cap 'round #:dash 'long-dash))
+(default-stroke-paint (desc-stroke #:width dash-width #:opacity alpha #:cap 'round #:dash 'long-dash))
 
 (define (build-flomap [x : Nonnegative-Fixnum] [y : Nonnegative-Fixnum] [w : Nonnegative-Fixnum] [h : Nonnegative-Fixnum])
   (define grayscale : Flonum
@@ -18,7 +18,7 @@
 (define red-circle (bitmap-ellipse diameter #:fill (rgb* 'red alpha)))
 (define green-circle (bitmap-ellipse diameter #:fill (rgb* 'green alpha)))
 (define blue-circle (bitmap-ellipse diameter #:fill (rgb* 'blue alpha)))
-(define yellow-circle (bitmap-ellipse 124 #:border yellow-stroke #:fill (rgb* 'yellow 1/2)))
+(define yellow-circle (bitmap-ellipse 124 #:stroke yellow-stroke #:fill (rgb* 'yellow 1/2)))
 (define 3pc (bitmap-pin* 1/8 11/48 0 0 (bitmap-pin* 1/3 0 0 0 red-circle green-circle) blue-circle))
 (define sine (time (bitmap-rectangular 100 100 build-flomap)))
 

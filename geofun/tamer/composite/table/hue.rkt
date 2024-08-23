@@ -63,7 +63,7 @@
                                   [(hsia? flc) (geo-text "I\\S")]
                                   [else (geo-text "W\\B")])))
                 
-                (geo-rectangle cwidth cheight #:border flc #:fill flc)))))
+                (geo-rectangle cwidth cheight #:stroke flc #:fill flc)))))
 
     (define header : (Listof Geo)
       (cons (or (unbox &legend) (geo-blank))
@@ -102,7 +102,7 @@
                                   [(hsia? flc) (geo-text "I\\S")]
                                   [else (geo-blank)])))
                 
-                (geo-rectangle cwidth cheight #:border flc #:fill flc)))))
+                (geo-rectangle cwidth cheight #:stroke flc #:fill flc)))))
 
     (define header : (Listof Geo)
       (cons (or (unbox &legend) (geo-blank))

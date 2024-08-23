@@ -5,7 +5,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define r : Index 64)
 
-(geo-polygon #:border 'green #:fill 'burlywood '(0+0i -10+20i 60 -10-20i) #:window -1.0-1.0i)
+(geo-frame (geo-polyline #:stroke (desc-stroke #:color 'royalblue #:width 2.0) '(0+0i -10+20i 60 -10-20i) #:window -1.0-1.0i))
+
+(geo-polygon #:stroke 'green #:fill 'burlywood '(0+0i -10+20i 60 -10-20i) #:window -1.0-1.0i)
 
 (geo-polygon #:fill 'silver '((0 . 0) (100 . 0)))
 (geo-polygon #:fill 'silver '((0 . 0) (100 . 0) (99.5 . 0.5) (0.5 . 0.5)))

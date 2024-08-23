@@ -2,8 +2,8 @@
 
 (provide (all-defined-out))
 
-(require bitmap)
-(require bitmap/projection)
+(require geofun/vector)
+(require geofun/projection)
 
 (require racket/math)
 
@@ -14,7 +14,7 @@
                                    #:head-color (Option Color) #:head-alpha (Option Real) #:tail-color (Option Color) #:tail-alpha (Option Real)
                                    #:feet-fill-color (Option Color) #:feet-alpha (Option Real)
                                    #:left-foot-border-color (Option Color) #:right-foot-border-color (Option Color) #:feet-rotation Real)
-                                  Bitmap)
+                                  Geo)
   (lambda [#:sheath-length [sheath-length -1.618] #:λ-color [λ-color 'Crimson] #:fibre-color [fibre-color 'Teal]
            #:fill-color [fill-color 'MintCream] #:fill-alpha [fill-alpha 0.618]
            #:border-color [border-color 'DodgerBlue] #:edge-color [edge-color 'DeepSkyBlue] #:edge-alpha [edge-alpha 0.20]
@@ -38,54 +38,51 @@
     (define sin54 : Flonum (sin (degrees->radians 54.0)))
     
     (define protein-coat
-      (bitmap-cc-superimpose
-       (bitmap-icosahedron-side-projection R 'edge #:edge #false #:border ohead-stroke #:fill head-color)
-       (bitmap-text "λ" (desc-font #:size (* R 1.4) #:family "Linux Biolinum Shadow, Bold") #:color λ-color)
-       (bitmap-icosahedron-side-projection R 'vertex #:edge edge-stroke #:border ihead-stroke)))
+      (geo-cc-superimpose
+       (geo-icosahedron-side-projection R 'edge #:edge #false #:border ohead-stroke #:fill head-color)
+       (geo-text "λ" (desc-font #:size (* R 1.4) #:family "Linux Biolinum Shadow, Bold") #:color λ-color)
+       (geo-icosahedron-side-projection R 'vertex #:edge edge-stroke #:border ihead-stroke)))
 
-    (define collar (bitmap-dart Rcollar 90.0 #:radian? #false #:fill tail-color #:border ihead-stroke #:wing-angle 144.0))
-    (define maybe-sheath : (Option Bitmap)
+    (define collar (geo-dart Rcollar 90.0 #:radian? #false #:fill tail-color #:stroke ihead-stroke #:wing-angle 144.0))
+    (define maybe-sheath : (Option Geo)
       (and (not no-sheath?)
-           (bitmap-arrow Rdart sheath-length 90.0 #:radian? #false #:fill tail-color #:border ohead-stroke #:shaft-thickness -0.618 #:wing-angle 180.0)))
+           (geo-arrow Rdart sheath-length 90.0 #:radian? #false #:fill tail-color #:stroke ohead-stroke #:shaft-thickness -0.618 #:wing-angle 180.0)))
 
     (define fibre
       (let* ([fdx (if (not maybe-sheath) (* Rcollar 0.48) Rdart)]
              [fdy (/ fdx sin54)])
-        (bitmap-polyline #:stroke fibre-stroke
-                         (list (cons 0.0 fdy) (cons fdx 0.0)
-                               (cons (* fdx 3.0) 0.0) (cons (* fdx 4.0) fdy)))))
-
+        (geo-polyline #:stroke fibre-stroke
+                      (list (cons 0.0 fdy) (cons fdx 0.0)
+                            (cons (* fdx 3.0) 0.0) (cons (* fdx 4.0) fdy)))))
+    
     (define stx-tree
       (let*-values ([(r fx fy) (values (* Rcollar 0.618 (if (not maybe-sheath) 0.382 1.0)) 0.64 0.28)]
-                    [(lft) (bitmap-icosahedron-over-projection #:border (desc-stroke stx-bstroke #:color lfcolor) #:edge stx-estroke #:fill feet-color
-                                                               #:rotation foot-rotation
-                                                               r 'face)]
-                    [(rgt) (bitmap-icosahedron-over-projection #:border (desc-stroke stx-bstroke #:color rfcolor) #:edge stx-estroke #:fill feet-color
-                                                               #:rotation foot-rotation
-                                                               r 'face)])
+                    [(lft) (geo-icosahedron-over-projection #:border (desc-stroke stx-bstroke #:color lfcolor) #:edge stx-estroke #:fill feet-color
+                                                            #:rotation foot-rotation
+                                                            r 'face)]
+                    [(rgt) (geo-icosahedron-over-projection #:border (desc-stroke stx-bstroke #:color rfcolor) #:edge stx-estroke #:fill feet-color
+                                                            #:rotation foot-rotation
+                                                            r 'face)])
         (if (or lfcolor rfcolor)
-            (bitmap-pin* 1.0 1.0 (- 1.0 fx) 1.0
-                         (bitmap-pin* 0.0 1.0 fx fy fibre (if (and lfcolor) lft (bitmap-ghost lft)))
-                         (if (and rfcolor) rgt (bitmap-ghost rgt)))
+            (geo-pin* 1.0 1.0 (- 1.0 fx) 1.0
+                      (geo-pin* 0.0 1.0 fx fy fibre (if (and lfcolor) lft (geo-ghost lft)))
+                      (if (and rfcolor) rgt (geo-ghost rgt)))
             fibre)))
 
-
     (if (and maybe-sheath)
-        (bitmap-vc-append #:gapsize (* Rcollar -1.618)
-                          protein-coat
-                          (parameterize ([default-pin-operator 'overlay])
-                            (bitmap-vc-append #:gapsize (- (* Rdart -1.0) (* (stroke-width fibre-stroke) 1.25))
-                                              (bitmap-cb-superimpose
-                                               (parameterize ([default-pin-operator 'clear])
-                                                 (bitmap-pin* 0.5 0.70 0.5 0.0 collar maybe-sheath))
-                                               maybe-sheath)
-                                              stx-tree)))
-        (parameterize ([default-pin-operator 'dest-over])
-          (bitmap-vc-append #:gapsize (- (* Rcollar -0.618) (stroke-width fibre-stroke))
-                            (parameterize ([default-pin-operator 'over])
-                              (bitmap-vc-append #:gapsize (* Rcollar -1.618) protein-coat collar))
-                            stx-tree)))))
-
+        
+        (geo-vc-append #:gapsize (* Rcollar -1.618)
+                       protein-coat
+                       (geo-vc-append #:gapsize (- (* Rdart -1.0) (* (stroke-width fibre-stroke) 1.25))
+                                      #:operator 'overlay
+                                      (geo-cb-superimpose (geo-pin* #:operator 'clear 0.5 0.70 0.5 0.0 collar maybe-sheath)
+                                                          maybe-sheath))
+                       stx-tree)
+        
+        (geo-vc-append #:gapsize (- (* Rcollar -0.618) (stroke-width fibre-stroke))
+                       #:operator 'dest-over
+                       (geo-vc-append #:gapsize (* Rcollar -1.618) #:operator 'over protein-coat collar)
+                       stx-tree))))
 
 
 
@@ -97,4 +94,3 @@
   (bacteriophage-logo 64.0)
   (bacteriophage-logo 128.0)
   (bacteriophage-logo 64.0 #:sheath-length -0.8))
-  

@@ -22,6 +22,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-font : (Parameterof Font) (make-parameter (font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal 'normal)))
+(define default-toy-font : (Parameterof Font) (make-parameter (font (font-family->face 'fantasy) 24.0 'normal 'normal 'normal 'normal)))
 
 (define desc-font : (->* ()
                          (Font #:family (U String Symbol (Listof (U String Symbol)) False) #:size (U Symbol Real False)

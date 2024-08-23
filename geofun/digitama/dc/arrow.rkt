@@ -22,11 +22,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-arrow : (->* (Real Real)
-                         (Real #:id (Option Symbol) #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
+                         (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
                                #:shaft-thickness Real #:wing-angle (Option Real) #:radian? Boolean)
                          Geo:Arrow)
   (lambda [#:id [id #false] #:shaft-thickness [shaft-thickness -0.3] #:wing-angle [wing-angle #false]
-           #:radian? [radian? #true] #:border [border (void)] #:fill [pattern (void)]
+           #:radian? [radian? #true] #:stroke [stroke (void)] #:fill [pattern (void)]
            head-radius shaft-length [start 0.0]]
     (define rhead : Nonnegative-Flonum (~length head-radius))
     (define shaft-flthickness : Nonnegative-Flonum (~length shaft-thickness rhead))
@@ -35,14 +35,14 @@
     ;(define arrow-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox (+ d flength) d))
     
     (create-geometry-object geo:arrow
-                            #:with [(geo-shape-surface-wrapper geo-arrow-surface border pattern)] #:id id
+                            #:with [(geo-shape-surface-wrapper geo-arrow-surface stroke pattern)] #:id id
                             rhead shaft-flength shaft-flthickness (~radian start radian?) wing-flangle)))
 
 (define geo-arrowhead : (->* (Real)
-                             (Real #:id (Option Symbol) #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
+                             (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
                                    #:shaft-thickness Real #:wing-angle (Option Real) #:radian? Boolean)
                              Geo:Arrow)
-  (lambda [#:id [id #false] #:border [border (void)] #:fill [pattern (void)]
+  (lambda [#:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]
            #:shaft-thickness [shaft-thickness 0.0] #:wing-angle [wing-angle #false] #:radian? [radian? #true]
            radius [start 0.0]]
     (define flradius : Nonnegative-Flonum (~length radius))
@@ -51,7 +51,7 @@
     (define dart-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox (* 2.0 flradius)))
     
     (create-geometry-object geo:arrow
-                            #:with [(geo-shape-surface-wrapper geo-arrow-surface border pattern) dart-bbox] #:id id
+                            #:with [(geo-shape-surface-wrapper geo-arrow-surface stroke pattern) dart-bbox] #:id id
                             flradius 0.0 shaft-flthickness (~radian start radian?) wing-flangle)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -60,5 +60,5 @@
     (with-asserts ([self geo:arrow?])
       (dc_arrow create-abstract-surface
                 (geo:arrow-head-radius self) (geo:arrow-start-angle self)
-                (current-border-source) (current-fill-source) (default-geometry-density)
+                (current-stroke-source) (current-fill-source) (default-geometry-density)
                 (geo:arrow-shaft-thickness self) (geo:arrow-shaft-length self) (geo:arrow-wing-angle self)))))

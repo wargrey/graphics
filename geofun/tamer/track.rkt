@@ -2,6 +2,9 @@
 
 (require geofun/path)
 
+(require racket/symbol)
+(require racket/keyword)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-dryland-wani! drywani [108 108] #:-
   (step-left)
@@ -43,12 +46,14 @@
   (turn-right-down-left)
   (turn-down-left-up)
   (turn-left-up-right)
+  (close)
   
   (jump-down-right 2)
   (turn-up-left-down)
   (turn-left-down-right)
   (turn-down-right-up)
   (turn-right-up-left)
+  (close)
   
   (jump-back)
   (drift '#:home '(-0.5+i -0.5-i))
@@ -65,15 +70,19 @@
   (require geofun/vector)
   (require geofun/bitmap)
 
-  (default-stroke-paint (desc-stroke #:color 'crimson #:width 2.0))
-  #;(default-border-paint (desc-border #:color (rgb* 'RoyalBlue 0.618)))
+  (default-stroke-paint (desc-stroke #:color 'crimson #:width 4.0))
+  (default-border-paint (desc-border #:color (rgb* 'RoyalBlue 0.618)))
 
   (define make-anchor-sticker : Geo-Anchor->Sticker
     (lambda [self anchor pos Width Height]
-      (define sticker : Geo (geo-text (format "~a" anchor) #:color (if (keyword? anchor) 'Gray 'Green)))
+      (define sticker : Geo
+        (if (keyword? anchor)
+            (geo-toy-text (keyword->immutable-string anchor) #:stroke #false #:fill 'Gray)
+            (geo-toy-text (symbol->immutable-string  anchor) #:stroke #false #:fill 'Green)))
+
       (case anchor
         [(#:home) sticker]
-        [(#:z #:l) (make-sticker sticker 'ct 8)]
+        [(#:z #:l) (make-sticker sticker 'ct 0 8)]
         [(#:r #:diamond) (make-sticker sticker 'lc 8.0)]
         [(E) (make-sticker sticker 'cb 0.0 -2.0)]
         [(lx) (make-sticker sticker 'lt 2.0 2.0)]

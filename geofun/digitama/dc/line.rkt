@@ -25,7 +25,7 @@
     (define hl-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox flwidth flheight))
     
     (create-geometry-object geo:line
-                            #:with [(geo-shape-surface-wrapper geo-line-surface stroke) hl-bbox] #:id id
+                            #:with [(geo-shape-surface-wrapper geo-line-surface stroke (void)) hl-bbox] #:id id
                             0.0 (* flheight 0.5) flwidth 0.0)))
 
 (define geo-vline : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
@@ -34,7 +34,7 @@
     (define vl-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox flwidth flheight))
     
     (create-geometry-object geo:line
-                            #:with [(geo-shape-surface-wrapper geo-line-surface stroke) vl-bbox] #:id id
+                            #:with [(geo-shape-surface-wrapper geo-line-surface stroke (void)) vl-bbox] #:id id
                             (* flwidth 0.5) 0.0 0.0 flheight)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
