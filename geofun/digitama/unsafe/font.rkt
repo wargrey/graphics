@@ -20,7 +20,7 @@
   (define &logical (make-PangoRectangle 0 0 0 0))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap_create_font_desc font-face font-size weight style stretch variant)
+  (define (geo_create_font_desc font-face font-size weight style stretch variant)
     (define font-desc (pango_font_description_from_string font-face))
     (when weight (pango_font_description_set_weight font-desc weight))
     (when style (pango_font_description_set_style font-desc style))
@@ -141,7 +141,7 @@
  [#:opaque Font-Raw-Family font-raw-family?]
  [PANGO_SCALE Index]
  [system-ui (-> Symbol (-> String) String)]
- [bitmap_create_font_desc (-> String Real (Option Integer) (Option Integer) (Option Integer) (Option Integer) Font-Description)]
+ [geo_create_font_desc (-> String Real (Option Integer) (Option Integer) (Option Integer) (Option Integer) Font-Description)]
  [font_get_unknown_glyphs_count (-> Font-Description String Natural)]
  [font_get_metrics_lines (-> Font-Description String (Values Index Index Index Index Index))]
  [font_get_metrics_lines* (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]

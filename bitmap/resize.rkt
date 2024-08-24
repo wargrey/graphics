@@ -43,7 +43,7 @@
                      (bitmap-density bmp))]))
 
 (define bitmap-bounding-box : (->* (Bitmap) (Boolean)
-                                    (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
+                                   (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [bmp [just-alpha? #true]]
     (bitmap_bounding_box* (bitmap-surface bmp) just-alpha? (bitmap-density bmp))))
 
@@ -78,10 +78,10 @@
 
 (define-cropper bitmap-crop : (-> Bitmap Nonnegative-Real Nonnegative-Real Bitmap)
   (#:lambda [bmp width height left% top%]
-    (define-values (W H density) (bitmap-intrinsic-flsize+density bmp))
-    (define w (min W (* (real->double-flonum width) density)))
-    (define h (min H (* (real->double-flonum height) density)))
-    (bitmap_section (bitmap-surface bmp) (* (- W w) left%) (* (- H h) top%) w h density))
+   (define-values (W H density) (bitmap-intrinsic-flsize+density bmp))
+   (define w (min W (* (real->double-flonum width) density)))
+   (define h (min H (* (real->double-flonum height) density)))
+   (bitmap_section (bitmap-surface bmp) (* (- W w) left%) (* (- H h) top%) w h density))
   #:with ("bitmap-~a-crop" [lt 0.0 0.0] [lc 0.0 0.5] [lb 0.0 1.0]
                            [ct 0.5 0.0] [cc 0.5 0.5] [cb 0.5 1.0]
                            [rt 1.0 0.0] [rc 1.0 0.5] [rb 1.0 1.0]))

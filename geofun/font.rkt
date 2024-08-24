@@ -22,7 +22,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-font : (Parameterof Font) (make-parameter (font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal 'normal)))
-(define default-toy-font : (Parameterof Font) (make-parameter (font (font-family->face 'fantasy) 24.0 'normal 'normal 'normal 'normal)))
+(define default-art-font : (Parameterof Font) (make-parameter (font (font-family->face 'fantasy) 24.0 'normal 'normal 'normal 'normal)))
 
 (define desc-font : (->* ()
                          (Font #:family (U String Symbol (Listof (U String Symbol)) False) #:size (U Symbol Real False)
@@ -69,12 +69,12 @@
                 [stretch (font-stretch font)]
                 [variant (font-variant font)])
             (define desc : Font-Description
-              (bitmap_create_font_desc (font-face font)
-                                       (font-size font)
-                                       (and (not (eq? weight 'normal)) (font-weight->integer weight))
-                                       (and (not (eq? style 'normal)) (font-style->integer style))
-                                       (and (not (eq? stretch 'normal)) (font-stretch->integer stretch))
-                                       (and (not (eq? variant 'normal)) (font-variant->integer variant))))
+              (geo_create_font_desc (font-face font)
+                                    (font-size font)
+                                    (and (not (eq? weight 'normal)) (font-weight->integer weight))
+                                    (and (not (eq? style 'normal)) (font-style->integer style))
+                                    (and (not (eq? stretch 'normal)) (font-stretch->integer stretch))
+                                    (and (not (eq? variant 'normal)) (font-variant->integer variant))))
             (hash-set! &fonts font (make-ephemeron font desc))
             desc)))))
 

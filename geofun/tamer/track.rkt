@@ -77,8 +77,8 @@
     (lambda [self anchor pos Width Height]
       (define sticker : Geo
         (if (keyword? anchor)
-            (geo-toy-text (keyword->immutable-string anchor) #:stroke #false #:fill 'Gray)
-            (geo-toy-text (symbol->immutable-string  anchor) #:stroke #false #:fill 'Green)))
+            (geo-art-text (keyword->immutable-string anchor) #:stroke #false #:fill 'Gray)
+            (geo-art-text (symbol->immutable-string  anchor) #:stroke #false #:fill 'Green)))
 
       (case anchor
         [(#:home) sticker]

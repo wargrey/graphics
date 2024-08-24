@@ -53,6 +53,7 @@
 (define-pango pango_attr_underline_new (_pfun _int -> PangoAttribute))
 
 (define-pango pango_layout_get_size (_pfun PangoLayout [w : (_ptr o _int)] [h : (_ptr o _int)] -> _void -> (values w h)))
+(define-pango pango_layout_get_line_count (_pfun PangoLayout -> _int))
 (define-pango pango_layout_set_indent (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_spacing (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_width (_pfun PangoLayout _int -> _void))
@@ -91,26 +92,6 @@
 
 (define-cairo cairo_pdf_surface_set_metadata (_cfun _cairo_surface_t _pdf_metadata _string -> _void))
 (define-cairo cairo_pdf_surface_set_page_label (_cfun _cairo_surface_t _string -> _void))
-
-; "Toy" APIs for art text
-;;; https://www.cairographics.org/samples/text/
-;;; https://www.cairographics.org/samples/text_extents/
-(define-cstruct _cairo_text_extents_t
-  ([x_bearing _double*]
-   [y_bearing _double*]
-   [width _double*]
-   [height _double*]
-   [x_advance _double*]
-   [y_advance _double*])
-  #:malloc-mode 'atomic-interior)
-
-
-(define-cairo cairo_select_font_face (_cfun _cairo_t _string _int _int -> _void))
-(define-cairo cairo_set_font_size (_cfun _cairo_t _double* -> _void))
-(define-cairo cairo_text_path (_cfun _cairo_t _string -> _void))
-(define-cairo cairo_show_text (_cfun _cairo_t _string -> _void))
-
-(define-cairo cairo_text_extents (_cfun _cairo_t _string _cairo_text_extents_t-pointer -> _void))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-set-source

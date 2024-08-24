@@ -9,7 +9,7 @@
 (provide geo-bitmap geo:bitmap? Geo:Bitmap)
 (provide geo-rectangular geo:λbitmap? Geo:λBitmap)
 (provide geo-text geo:text? Geo:Text)
-(provide geo-toy-text geo:toy-text? Geo:Toy-Text)
+(provide geo-art-text geo:art-text? Geo:Art-Text)
 (provide geo-paragraph geo:para? Geo:Paragraph)
 (provide geo-square geo-rectangle geo:rect? Geo:Rectangle)
 (provide geo-vline geo-hline geo:line? Geo:Line)

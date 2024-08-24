@@ -9,7 +9,7 @@
 
 (require "../../digitama/base.rkt")
 (require "../../digitama/unsafe/pangocairo.rkt")
-(require (only-in (submod "../../digitama/unsafe/font.rkt" unsafe) bitmap_create_font_desc))
+(require (only-in (submod "../../digitama/unsafe/font.rkt" unsafe) geo_create_font_desc))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (cairo_text_polygon words radius context font-face font-weight font-attrs)
@@ -48,7 +48,7 @@
   (cairo_set_source cr brush)
   (cairo_fill cr)
 
-  (define desc (bitmap_create_font_desc font-face (* radius 0.16) font-weight 0 4 0))
+  (define desc (geo_create_font_desc font-face (* radius 0.16) font-weight 0 4 0))
 
   ; Center coordinates on the middle of the region we are drawing
   (cairo_translate cr radius radius)

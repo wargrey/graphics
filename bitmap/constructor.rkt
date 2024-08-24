@@ -21,7 +21,6 @@
 (require geofun/digitama/unsafe/dc/shape)
 (require geofun/digitama/unsafe/dc/arrow)
 (require geofun/digitama/unsafe/dc/text)
-(require geofun/digitama/unsafe/dc/toytext)
 
 (require "digitama/convert.rkt")
 (require "digitama/unsafe/image.rkt")
@@ -87,13 +86,14 @@
               (border-paint->source* border) (background->source* bg-fill) (bitmap-density bmp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-toy-text : (->* (Any)
-                               (Font #:stroke Option-Stroke-Paint #:fill Option-Fill-Paint #:background Option-Fill-Paint #:density Positive-Flonum)
+(define bitmap-art-text : (->* (Any)
+                               (Font #:stroke Option-Stroke-Paint #:fill Option-Fill-Paint #:background Option-Fill-Paint
+                                     #:lines (Listof Symbol) #:density Positive-Flonum)
                                Bitmap)
-  (lambda [text [font (default-toy-font)] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)]
-                #:background [bgsource (default-background-paint)] #:density [density (default-bitmap-density)]]
-    (dc_toy_text create-argb-bitmap
-                 (~a text) (font-description font)
+  (lambda [text [font (default-art-font)] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)]
+                #:background [bgsource (default-background-paint)] #:lines [lines null] #:density [density (default-bitmap-density)]]
+    (dc_art_text create-argb-bitmap
+                 (~a text) (font-description font) lines
                  (stroke-paint->source* outline) (fill-paint->source* pattern)
                  (background->source* bgsource) density)))
 

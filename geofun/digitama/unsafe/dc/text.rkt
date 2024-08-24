@@ -76,6 +76,34 @@
     sfc)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define (dc_art_text create-surface text font-desc lines stroke-source fill-source bgsource density)
+    (define-values (width height) (font_get_text_extent font-desc text))
+    (define-values (sfc cr) (create-surface width height density #true))
+    (define layout (text_create_layout lines))
+
+    (cairo-render-background cr bgsource)
+  
+    (pango_layout_set_font_description layout font-desc)
+    (pango_layout_set_text layout text)
+
+    (let* ([n (pango_layout_get_line_count layout)]
+           [gap (~metric (pango_layout_get_spacing layout))]
+           [baseline (~metric (pango_layout_get_baseline layout))]
+           [delta (unsafe-fl/ (unsafe-fl+ height gap) (unsafe-fx->fl n))])
+      (let draw_line ([idx 0]
+                      [y baseline])
+        (when (unsafe-fx< idx n)
+          (cairo_move_to cr 0.0 y)
+          (pango_cairo_layout_line_path cr (pango_layout_get_line_readonly layout idx))
+          (draw_line (unsafe-fx+ idx 1) (unsafe-fl+ y delta)))))
+    
+    (cairo-render cr stroke-source fill-source)
+    
+    (cairo_destroy cr)
+
+    sfc)
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (text_create_layout lines)
     (define context (the-context))
     (define layout (pango_layout_new context))
@@ -131,4 +159,9 @@
   (All (S) (-> (Cairo-Surface-Create S)
                String Font-Description (Listof Symbol) (Option Flonum) (U Flonum Nonpositive-Integer)
                Flonum Flonum Integer Integer Fill-Source (Option Fill-Source)
+               Flonum S))]
+
+ [dc_art_text
+  (All (S) (-> (Cairo-Surface-Create S)
+               String Font-Description (Listof Symbol) (Option Paint) (Option Fill-Source) (Option Fill-Source)
                Flonum S))])

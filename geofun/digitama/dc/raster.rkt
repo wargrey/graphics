@@ -14,7 +14,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:bitmap geo
-  ([soul : Bitmap])
+  ([source : Bitmap])
   #:type-name Geo:Bitmap
   #:transparent)
 
@@ -48,7 +48,7 @@
     (λ [self]
       (with-asserts ([self geo:bitmap?])
         (make-abstract-surface-from-bitmap
-         flwidth flheight (geo:bitmap-soul self)
+         flwidth flheight (geo:bitmap-source self)
          (default-geometry-density))))))
 
 (define geo-plain-argb-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Surface-Create)

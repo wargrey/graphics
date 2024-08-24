@@ -13,16 +13,16 @@
 (require "../font.rkt")
 
 (require "../unsafe/dc/text.rkt")
-(require "../unsafe/dc/toytext.rkt")
 (require "../unsafe/font.rkt")
 
 (require "../../font.rkt")
 (require "../../paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct geo:toy-text geo
-  ([content : String])
-  #:type-name Geo:Toy-Text
+(struct geo:art-text geo
+  ([content : String]
+   [lines : (Listof Symbol)])
+  #:type-name Geo:Art-Text
   #:transparent)
 
 (struct geo:text geo
@@ -49,15 +49,16 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-toy-text : (->* (Any)
-                            ((Option Font) #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:background Maybe-Fill-Paint)
-                            Geo:Toy-Text)
-  (lambda [#:id [id #false] #:stroke [outline (void)] #:fill [fill (void)] #:background [bgsource (void)] text [font #false]]
-    (create-geometry-object geo:toy-text
-                            #:surface (geo-toy-text-surface-make font outline fill bgsource)
-                            #:bbox (geo-toy-text-calculate-bbox-make font)
+(define geo-art-text : (->* (Any)
+                            ((Option Font) #:id (Option Symbol) #:lines (Listof Symbol)
+                                           #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:background Maybe-Fill-Paint)
+                            Geo:Art-Text)
+  (lambda [#:id [id #false] #:stroke [outline (void)] #:fill [fill (void)] #:background [bgsource (void)] #:lines [lines null] text [font #false]]
+    (create-geometry-object geo:art-text
+                            #:surface (geo-art-text-surface-make font outline fill bgsource)
+                            #:bbox (geo-art-text-calculate-bbox-make font)
                             #:id id
-                            (~a text))))
+                            (~a text) lines)))
 
 (define geo-text : (->* (Any)
                         ((Option Font) #:id (Option Symbol) #:color Option-Fill-Paint #:background Maybe-Fill-Paint #:lines (Listof Symbol)
@@ -102,11 +103,11 @@
         (define-values (W H) (text-size (geo:text-content self) (or alt-font (default-font))))
         (values 0.0 0.0 W H)))))
 
-(define geo-toy-text-calculate-bbox-make : (-> (Option Font) Geo-Calculate-BBox)
+(define geo-art-text-calculate-bbox-make : (-> (Option Font) Geo-Calculate-BBox)
   (lambda [alt-font]
     (λ [self]
-      (with-asserts ([self geo:toy-text?])
-        (define-values (W H) (dc_toy_text_size (geo:toy-text-content self) (geo-select-font alt-font default-toy-font) (current-stroke-source)))
+      (with-asserts ([self geo:art-text?])
+        (define-values (W H) (text-size (geo:art-text-content self) (or alt-font (default-art-font))))
         (values 0.0 0.0 W H)))))
 
 (define geo-text-surface-make : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
@@ -121,12 +122,12 @@
                  (stroke-paint->source* (geo:text-bline self)) (stroke-paint->source* (geo:text-dline self))
                  (default-geometry-density))))))
 
-(define geo-toy-text-surface-make : (-> (Option Font) Maybe-Stroke-Paint Maybe-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
+(define geo-art-text-surface-make : (-> (Option Font) Maybe-Stroke-Paint Maybe-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
   (lambda [alt-font alt-outl alt-fill alt-bg]
     (λ [self]
-      (with-asserts ([self geo:toy-text?])
-        (dc_toy_text create-abstract-surface
-                     (geo:toy-text-content self) (geo-select-font alt-font default-toy-font)
+      (with-asserts ([self geo:art-text?])
+        (dc_art_text create-abstract-surface
+                     (geo:art-text-content self) (geo-select-font alt-font default-art-font) (geo:art-text-lines self)
                      (geo-select-stroke-paint alt-outl) (geo-select-fill alt-fill) (geo-select-background alt-bg)
                      (default-geometry-density))))))
 

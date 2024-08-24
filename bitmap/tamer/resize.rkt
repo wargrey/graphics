@@ -1,18 +1,9 @@
 #lang typed/racket/base
 
 (require bitmap)
+(require geofun/tamer/flomap)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define xy->argb : XYWH->ARGB
-  (lambda [x y w h]
-    (define w+h (+ w h))
-    (define w-x (- w x))
-    (define h-y (- h y))
-    (values (real->double-flonum (/ (+ w-x h-y) w+h))
-            (real->double-flonum (/ (+ w-x y)   w+h))
-            (real->double-flonum (/ (+ x y)     w+h))
-            (real->double-flonum (/ (+ x h-y)   w+h)))))
-
 (printf "====== ~a =====~n" '(density 1.0))
 (time (bitmap-rectangular 100 100 xy->argb #:density 1.00))
 (printf "====== ~a =====~n" '(density 1.75))
@@ -27,8 +18,9 @@
 (bitmap-inset plane 16.0 16.0 -16.0 -16.0)
 (printf "====== ~a =====~n" 'SCALE)
 (bitmap-scale plane 2.0 1.0)
-(printf "====== ~a =====~n" 'RB-CROP)
-(bitmap-rb-crop plane 64 64)
+(bitmap-scale plane -2.0 -1.0)
+(printf "====== ~a =====~n" 'LB-CROP)
+(bitmap-lb-crop plane 64 64)
 
 (define text (bitmap-text (string-append "memory: " (number->string (current-memory-use))) #:color plane))
 (define trimed-text (time (bitmap-trim text #false)))
