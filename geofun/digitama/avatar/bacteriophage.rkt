@@ -28,10 +28,10 @@
     (define-values (thickness smart-thickness-scale) (values (/ R 32.0) (if no-sheath? 1.0 2.0)))
     (define edge-stroke (desc-stroke #:color (rgb* edge-color edge-alpha) #:width (* thickness 0.5)))
     (define ihead-stroke (desc-stroke #:color edge-color #:width (* thickness 1.0)))
-    (define ohead-stroke (desc-stroke #:color border-color #:width (* thickness 2.0)))
+    (define ohead-stroke (desc-stroke #:color border-color #:width (* thickness 2.0) #:join 'round))
     (define stx-bstroke (desc-stroke #:width (* thickness smart-thickness-scale)))
     (define stx-estroke (desc-stroke #:color (rgb* edge-color edge-alpha) #:width (* thickness 0.5)))
-    (define fibre-stroke (desc-stroke #:color fibre-color #:width (* thickness smart-thickness-scale)))
+    (define fibre-stroke (desc-stroke #:color fibre-color #:width (* thickness smart-thickness-scale) #:cap 'round))
     (define head-color : Color (rgb* (or head-fill fill-color) (or head-alpha fill-alpha)))
     (define tail-color : Color (rgb* (or tail-fill fill-color) (or tail-alpha fill-alpha)))
     (define feet-color : Color (rgb* (or feet-fill fill-color) (or feet-alpha fill-alpha)))
@@ -71,16 +71,17 @@
 
     (if (and maybe-sheath)
         
-        (geo-vc-append #:gapsize (* Rcollar -1.618)
+        (geo-vc-append #:gapsize (* Rcollar -1.618) #:operator 'over
                        protein-coat
-                       (geo-vc-append #:gapsize (- (* Rdart -1.0) (* (stroke-width fibre-stroke) 1.25))
-                                      #:operator 'overlay
-                                      (geo-cb-superimpose (geo-pin* #:operator 'clear 0.5 0.70 0.5 0.0 collar maybe-sheath)
-                                                          maybe-sheath))
-                       stx-tree)
+                       (geo-vc-append #:gapsize (- (* Rdart -1.0) (* (stroke-width fibre-stroke) 1.0))
+                                      #:operator 'dest-over
+                                      (geo-vc-append #:gapsize (- (* Rdart -1.0) (* (stroke-width fibre-stroke) 1.25))
+                                                     #:operator 'overlay
+                                                     (geo-cb-superimpose (geo-pin* #:operator 'clear 0.5 0.70 0.5 0.0 collar maybe-sheath)
+                                                                         maybe-sheath))
+                                      stx-tree))
         
-        (geo-vc-append #:gapsize (- (* Rcollar -0.618) (stroke-width fibre-stroke))
-                       #:operator 'dest-over
+        (geo-vc-append #:gapsize (- (* Rcollar -0.618) (* (stroke-width fibre-stroke) 1.5)) #:operator 'dest-over
                        (geo-vc-append #:gapsize (* Rcollar -1.618) #:operator 'over protein-coat collar)
                        stx-tree))))
 
