@@ -58,14 +58,19 @@
     (values surface cr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-bounding-box : (->* (Geo<%>) (Maybe-Stroke-Paint) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [geo [stroke (default-border-paint)]]
-    (parameterize ([default-border-source (border-paint->source* stroke)])
+(define geo-bounding-box : (->* (Geo<%>)
+                                (Maybe-Stroke-Paint #:border Maybe-Stroke-Paint)
+                                (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [geo [stroke (void)] #:border [border (void)]]
+    (parameterize ([default-stroke-source (geo-select-stroke-paint stroke)]
+                   [default-border-source (geo-select-border-paint border)])
       ((geo<%>-aabox geo) geo))))
 
-(define geo-intrinsic-size : (->* (Geo<%>) (Maybe-Stroke-Paint) (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [geo [stroke (default-border-paint)]]
-    (define-values (lx ty width height) (geo-bounding-box geo stroke))
+(define geo-intrinsic-size : (->* (Geo<%>)
+                                  (Maybe-Stroke-Paint #:border Maybe-Stroke-Paint)
+                                  (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [geo [stroke (void)] #:border [border (void)]]
+    (define-values (lx ty width height) (geo-bounding-box geo stroke #:border border))
     (values width height)))
 
 (define geo-intrinsic-width : (-> Geo<%> Nonnegative-Flonum)

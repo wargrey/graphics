@@ -2,45 +2,37 @@
 
 (provide (all-defined-out))
 
-(require "digitama/resize.rkt")
 (require "digitama/unsafe/resize.rkt")
 (require "digitama/convert.rkt")
 
+(require geofun/digitama/resize)
 (require geofun/digitama/unsafe/visual/ctype)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-section : (case-> [Bitmap Complex Complex -> Bitmap]
-                                 [Bitmap Complex Nonnegative-Real Nonnegative-Real -> Bitmap]
-                                 [Bitmap Real Real Nonnegative-Real Nonnegative-Real -> Bitmap])
+                                 [Bitmap Complex Real Real -> Bitmap]
+                                 [Bitmap Real Real Real Real -> Bitmap])
   (case-lambda
-    [(bmp pt0 ptn)
-     (define delta : Complex (- ptn pt0))
-     (bitmap-section bmp (real-part pt0) (imag-part pt0) (max (real-part delta) 0) (max (imag-part delta) 0))]
+    [(bmp pt0 ptn) (let ([delta (- ptn pt0)]) (bitmap-section bmp (real-part pt0) (imag-part pt0) (real-part delta) (imag-part delta)))]
     [(bmp pt width height) (bitmap-section bmp (real-part pt) (imag-part pt) width height)]
     [(bmp x y width height)
-     (define-values (src-width src-height) (bitmap-intrinsic-flsize bmp))
-     (cond [(and (zero? x) (zero? y) (= width src-width) (= height src-height)) bmp]
-           [else (bitmap_section (bitmap-surface bmp) (real->double-flonum x) (real->double-flonum y)
-                                 (min (real->double-flonum width) src-width) (min (real->double-flonum height) src-height)
-                                 (bitmap-density bmp))])]))
+     (let-values ([(src-width src-height) (bitmap-intrinsic-flsize bmp)])
+       (cond [(and (zero? x) (zero? y) (= width src-width) (= height src-height)) bmp]
+             [else (bitmap_section (bitmap-surface bmp) (real->double-flonum x) (real->double-flonum y)
+                                   (min (real->double-flonum width) src-width) (min (real->double-flonum height) src-height)
+                                   (bitmap-density bmp))]))]))
 
 (define bitmap-copy : (case-> [Bitmap -> Bitmap]
-                              [Bitmap Complex Nonnegative-Real Nonnegative-Real -> Bitmap]
-                              [Bitmap Real Real Nonnegative-Real Nonnegative-Real -> Bitmap])
+                              [Bitmap Complex Real Real -> Bitmap]
+                              [Bitmap Real Real Real Real -> Bitmap])
   (case-lambda
-    [(bmp)
-     (define-values (src-width src-height) (bitmap-intrinsic-flsize bmp))
-     (bitmap_section (bitmap-surface bmp) 0.0 0.0 src-width src-height (bitmap-density bmp))]
-    [(bmp pt width height)
-     (define-values (src-width src-height) (bitmap-intrinsic-flsize bmp))
-     (bitmap_section (bitmap-surface bmp) (real->double-flonum (real-part pt)) (real->double-flonum (imag-part pt))
-                     (min (real->double-flonum width) src-width) (min (real->double-flonum height) src-height)
-                     (bitmap-density bmp))]
+    [(bmp) (let-values ([(src-width src-height) (bitmap-intrinsic-flsize bmp)]) (bitmap-copy bmp 0.0 0.0 src-width src-height))]
+    [(bmp pt width height) (bitmap-copy bmp (real-part pt) (imag-part pt) width height)]
     [(bmp x y width height)
-     (define-values (src-width src-height) (bitmap-intrinsic-flsize bmp))
-     (bitmap_section (bitmap-surface bmp) (real->double-flonum x) (real->double-flonum y)
-                     (min (real->double-flonum width) src-width) (min (real->double-flonum height) src-height)
-                     (bitmap-density bmp))]))
+     (let-values ([(src-width src-height) (bitmap-intrinsic-flsize bmp)])
+       (bitmap_section (bitmap-surface bmp) (real->double-flonum x) (real->double-flonum y)
+                       (min (real->double-flonum width) src-width) (min (real->double-flonum height) src-height)
+                       (bitmap-density bmp)))]))
 
 (define bitmap-bounding-box : (->* (Bitmap) (Boolean)
                                    (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
@@ -59,22 +51,20 @@
                                [Bitmap Real Real -> Bitmap]
                                [Bitmap Real Real Real Real -> Bitmap])
   (case-lambda
-    [(bmp inset)
-     (bitmap-inset bmp inset inset inset inset)]
-    [(bmp vertical horizontal)
-     (bitmap-inset bmp vertical horizontal vertical horizontal)]
+    [(bmp inset) (bitmap-inset bmp inset inset inset inset)]
+    [(bmp vertical horizontal) (bitmap-inset bmp vertical horizontal vertical horizontal)]
     [(bmp top right bottom left)
-     (define-values (flwidth flheight density) (bitmap-intrinsic-flsize+density bmp))
-     (define-values (flleft flright) (values (* (real->double-flonum left) density) (* (real->double-flonum right) density)))
-     (define-values (fltop flbottom) (values (* (real->double-flonum top) density) (* (real->double-flonum bottom) density)))
-     (bitmap_section (bitmap-surface bmp) (- flleft) (- fltop)
-                     (+ flwidth flright flleft) (+ flheight flbottom fltop)
-                     density)]
+     (let*-values ([(flwidth flheight density) (bitmap-intrinsic-flsize+density bmp)]
+                   [(flleft flright) (values (* (real->double-flonum left) density) (* (real->double-flonum right) density))]
+                   [(fltop flbottom) (values (* (real->double-flonum top) density) (* (real->double-flonum bottom) density))])
+       (bitmap_section (bitmap-surface bmp) (- flleft) (- fltop)
+                       (+ flwidth flright flleft) (+ flheight flbottom fltop)
+                       density))]
     [(bmp)
-     (define-values (flw flh) (bitmap-flsize bmp))
-     (cond [(= flw flh) bmp]
-           [(< flw flh) (bitmap-inset bmp 0.0 (* (- flh flw) 0.5))]
-           [else (bitmap-inset bmp (* (- flw flh) 0.5) 0.0)])]))
+     (let-values ([(flw flh) (bitmap-flsize bmp)])
+       (cond [(= flw flh) bmp]
+             [(< flw flh) (bitmap-inset bmp 0.0 (* (- flh flw) 0.5))]
+             [else (bitmap-inset bmp (* (- flw flh) 0.5) 0.0)]))]))
 
 (define-cropper bitmap-crop : (-> Bitmap Nonnegative-Real Nonnegative-Real Bitmap)
   (#:lambda [bmp width height left% top%]
