@@ -30,10 +30,17 @@
     (define flwidth (unsafe-fl* width (unsafe-flabs xscale)))
     (define flheight (unsafe-fl* height (unsafe-flabs yscale)))
     (define-values (img cr) (create-argb-bitmap flwidth flheight density #false))
-    (cairo_scale cr xscale yscale) ; order matters
+    (define tx (if (unsafe-fl< xscale 0.0) (unsafe-fl* flwidth density) 0.0))
+    (define ty (if (unsafe-fl< yscale 0.0) (unsafe-fl* flheight density) 0.0))
+
+    ; order matters
+    (cairo_translate cr tx ty)
+    (cairo_scale cr xscale yscale)
+    
     (cairo_set_source_surface cr src 0.0 0.0)
     (cairo_paint cr)
     (cairo_destroy cr)
+    
     img)
 
   (define (bitmap_bounding_box src just-alpha?)
