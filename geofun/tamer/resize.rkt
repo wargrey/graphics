@@ -19,8 +19,8 @@ plane
 (geo-lb-crop plane 128 128)
 
 (define text (geo-text (string-append "memory: " (number->string (current-memory-use))) #:color plane))
-;(define trimed-text (time (geo-trim text #false)))
-;(geo-frame text)
-(geo-extent text)
-;(geo-frame trimed-text)
-;(geo-bounding-box trimed-text)
+(define trimed-text (geo-trim text))
+(geo-frame text)
+(geo-bounding-box text)
+(geo-frame trimed-text)
+(geo-bounding-box trimed-text)

@@ -2,16 +2,10 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
-(require bitmap/digitama/convert)
-(require bitmap/digitama/unsafe/image)
-
 (require "ink.rkt")
 
-(require "../base.rkt")
 (require "../convert.rkt")
 (require "../unsafe/resize.rkt")
-(require "../unsafe/visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:transform geo
