@@ -5,6 +5,8 @@
 (require digimon/metrics)
 (require digimon/sequence)
 
+(require "ink.rkt")
+
 (require "../../paint.rkt")
 (require "paint.rkt")
 
@@ -31,7 +33,7 @@
     
     (create-geometry-object geo:blank
                             #:surface (geo-blank-surface flwidth flheight)
-                            #:bbox (geo-shape-plain-bbox flwidth flheight)
+                            #:extent (geo-blank-extent flwidth flheight)
                             #:id id
                             #false)))
 
@@ -39,8 +41,8 @@
   (lambda [geo #:id [id #false]]
     (define-values (flwidth flheight) (geo-flsize geo))
     (create-geometry-object geo:blank
-                            #:surface (geo-blank-surface flwidth flheight)
-                            #:bbox (geo-shape-plain-bbox geo)
+                            #:surface geo-ghost-surface
+                            #:extent geo-ghost-extent
                             #:id id
                             geo)))
 
@@ -58,24 +60,44 @@
             [else (let ([fl (real->double-flonum inset)]) (values fl fl fl fl))]))
     (define-values (flwidth flheight) (geo-flsize geo))
 
-    (define geo-frame-bbox : Geo-Calculate-BBox
+    (define geo-frame-extent : Geo-Calculate-Extent
       (lambda [self]
-        (define-values (w h)
+        (define-values (W H lx ty w h)
           (dc_frame_size flwidth flheight
                          mtop mright mbottom mleft ptop pright pbottom pleft
                          (geo-select-border-paint border)))
-        (values 0.0 0.0 w h)))
+        (values W H (make-geo-ink lx ty w h))))
     
     (create-geometry-object geo:frame
                             #:surface (geo-frame-surface border bg-fill)
-                            #:bbox geo-frame-bbox
+                            #:extent geo-frame-extent
                             #:id id
                             geo
                             (vector-immutable mtop mright mbottom mleft)
                             (vector-immutable ptop pright pbottom pleft))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; the size of target geometry might be affected by stroke and border
+(define geo-ghost-extent : Geo-Calculate-Extent
+  (lambda [self]
+    (with-asserts ([self geo:blank?])
+      (define-values (w h ?ink) (geo-extent (assert (geo:blank-body self))))
+      (values w h geo-null-ink))))
+
+(define geo-ghost-surface : Geo-Surface-Create
+  (lambda [self]
+    (with-asserts ([self geo:blank?])
+      (define-values (flwidth flheight) (geo-flsize (assert (geo:blank-body self))))
+      (dc_blank create-abstract-surface
+                flwidth flheight
+                (default-geometry-density)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-blank-extent : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Calculate-Extent)
+  (lambda [flwidth flheight]
+    (λ [self]
+      (values flwidth flheight geo-null-ink))))
+
 (define geo-blank-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Surface-Create)
   (lambda [flwidth flheight]
     (λ [self]

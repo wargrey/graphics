@@ -25,7 +25,7 @@
     
     (create-geometry-object geo:line
                             #:surface geo-line-surface stroke
-                            #:bbox (geo-shape-plain-bbox flwidth flheight)
+                            #:extent (geo-shape-plain-extent flwidth flheight)
                             #:id id
                             0.0 (* flheight 0.5) flwidth 0.0)))
 
@@ -35,7 +35,7 @@
     
     (create-geometry-object geo:line
                             #:surface geo-line-surface stroke
-                            #:bbox (geo-shape-plain-bbox flwidth flheight)
+                            #:extent (geo-shape-plain-extent flwidth flheight)
                             #:id id
                             (* flwidth 0.5) 0.0 0.0 flheight)))
 

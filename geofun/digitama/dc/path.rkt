@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 
+(require "ink.rkt")
 (require "paint.rkt")
 (require "../../paint.rkt")
 (require "../convert.rkt")
@@ -222,10 +223,11 @@
         (geo-path-move self tpos (+ (geo-path-here self) tpos) #\l anchor #false))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-path-bounding-box : Geo-Calculate-BBox
+(define geo-path-extent : Geo-Calculate-Extent
   (lambda [self]
     (with-asserts ([self geo-path?])
-      (geo-bbox-values (geo-path-bbox self)))))
+      (define-values (width height pos) (geo-bbox-values (geo-path-bbox self)))
+      (values width height (make-geo-ink pos width height)))))
 
 (define geo-path-surface : Geo-Surface-Create
   (lambda [self]

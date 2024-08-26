@@ -49,7 +49,7 @@
     
     (create-geometry-object geo:regular-polygon
                             #:surface geo-regular-polygon-surface stroke pattern
-                            #:bbox geo-regular-polygon-bbox
+                            #:extent geo-regular-polygon-extent
                             #:id id
                             (if (index? n) n 0) R rtype (~radian rotation radian?))))
 
@@ -63,11 +63,10 @@
            pts [dx 0.0] [dy 0.0]]
     (define-values (xs ys lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
-    (define polygon-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox width height))
     
     (create-geometry-object geo:polygon
                             #:surface (geo-polygon-surface width height) stroke pattern rule
-                            #:bbox (geo-stroke-bbox-wrapper (geo-shape-plain-bbox width height) stroke)
+                            #:extent (geo-stroke-extent-wrapper (geo-shape-plain-extent width height 0.0 0.0) stroke)
                             #:id id
                             xs ys xoff yoff)))
 
@@ -81,12 +80,12 @@
     
     (create-geometry-object geo:polyline
                             #:surface (geo-polyline-surface width height) stroke
-                            #:bbox (geo-stroke-bbox-wrapper (geo-shape-plain-bbox width height) stroke)
+                            #:extent (geo-stroke-extent-wrapper (geo-shape-plain-extent width height 0.0 0.0) stroke)
                             #:id id
                             xs ys xoff yoff close?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-regular-polygon-bbox : Geo-Calculate-BBox
+(define geo-regular-polygon-extent : Geo-Calculate-Extent
   (lambda [self]
     (with-asserts ([self geo:regular-polygon?])
       (define n (geo:regular-polygon-n self))
@@ -97,7 +96,7 @@
                (regular-polygon-radius->circumsphere-radius n R (geo:regular-polygon-raidus-type self))
                R)
            2.0))
-      (values 0.0 0.0 d d))))
+      (values d d #false))))
 
 (define geo-regular-polygon-surface : Geo-Surface-Create
   (lambda [self]

@@ -23,7 +23,7 @@
     sfc)
 
   (define (geo_scale src xscale yscale density)
-    (define-values (width height) (abstract-surface-content-size src))
+    (define-values (_ width height) (abstract-surface-extent* src))
     (define flwidth (unsafe-fl* width (unsafe-flabs xscale)))
     (define flheight (unsafe-fl* height (unsafe-flabs yscale)))
     (define-values (sfc cr actual-flwidth actual-flheight) (cairo-create-abstract-surface* flwidth flheight density #false))

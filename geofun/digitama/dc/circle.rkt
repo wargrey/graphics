@@ -44,24 +44,24 @@
     
     (create-geometry-object geo:circle
                             #:surface geo-circle-surface stroke pattern
-                            #:bbox (geo-shape-plain-bbox (* 2.0 r))
+                            #:extent (geo-shape-plain-extent (* 2.0 r) 0.0 0.0)
                             #:id id
                             r)))
 
 (define geo-ellipse : (->* (Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) (U Geo:Circle Geo:Ellipse))
   (lambda [width [height -0.618] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
     (define-values (w h) (~size width height))
-    (define ellipse-bbox : Geo-Calculate-BBox (geo-shape-plain-bbox w h))
+    (define ellipse-extent : Geo-Calculate-Extent (geo-shape-plain-extent w h 0.0 0.0))
     
     (if (= w h)
         (create-geometry-object geo:circle
                                 #:surface geo-circle-surface stroke pattern
-                                #:bbox ellipse-bbox
+                                #:extent ellipse-extent
                                 #:id id
                                 (* w 0.5))
         (create-geometry-object geo:ellipse
                                 #:surface geo-ellipse-surface stroke pattern
-                                #:bbox ellipse-bbox
+                                #:extent ellipse-extent
                                 #:id id
                                 (* w 0.5) (* h 0.5)))))
 
@@ -75,7 +75,7 @@
     
     (create-geometry-object geo:sector
                             #:surface geo-sector-surface stroke pattern
-                            #:bbox (geo-shape-plain-bbox (* 2.0 ar) (* 2.0 br))
+                            #:extent (geo-shape-plain-extent (* 2.0 ar) (* 2.0 br))
                             #:id id
                             ar br (~radian start radian?) (~radian end radian?))))
 
@@ -87,7 +87,7 @@
     
     (create-geometry-object geo:arc
                             #:surface geo-arc-surface stroke
-                            #:bbox (geo-shape-plain-bbox (* 2.0 ar) (* 2.0 br))
+                            #:extent (geo-shape-plain-extent (* 2.0 ar) (* 2.0 br))
                             #:id id
                             ar br (~radian start radian?) (~radian end radian?))))
 

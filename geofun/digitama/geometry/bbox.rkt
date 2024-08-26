@@ -2,15 +2,13 @@
 
 (provide (all-defined-out))
 
-(require racket/math)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo-bbox
   ([lx : Flonum]
    [ty : Flonum]
    [rx : Flonum]
    [by : Flonum])
-  #:constructor-name unsafe-make-geo-bbox
+  #:constructor-name unsafe-geo-bbox
   #:type-name Geo-BBox
   #:transparent
   #:mutable)
@@ -19,7 +17,7 @@
                                 [Complex Complex -> Geo-BBox]
                                 [Complex -> Geo-BBox])
   (case-lambda
-    [(lx ty rx by) (unsafe-make-geo-bbox (real->double-flonum lx) (real->double-flonum ty) (real->double-flonum rx) (real->double-flonum by))]
+    [(lx ty rx by) (unsafe-geo-bbox (real->double-flonum lx) (real->double-flonum ty) (real->double-flonum rx) (real->double-flonum by))]
     [(lpt rpt) (make-geo-bbox (real-part lpt) (imag-part lpt) (real-part rpt) (imag-part rpt))]
     [(pt) (make-geo-bbox (real-part pt) (imag-part pt) (real-part pt) (imag-part pt))]))
 
@@ -52,9 +50,11 @@
   (lambda [self]
     (values (- (geo-bbox-lx self)) (- (geo-bbox-ty self)))))
 
-(define geo-bbox-values : (-> Geo-BBox (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+(define geo-bbox-values : (-> Geo-BBox (Values Nonnegative-Flonum Nonnegative-Flonum Float-Complex))
   (lambda [self]
     (define-values (lx ty) (values (geo-bbox-lx self) (geo-bbox-ty self)))
     (define-values (rx by) (values (geo-bbox-rx self) (geo-bbox-by self)))
 
-    (values lx ty (max (- rx lx) 0.0) (max (- by ty) 0.0))))
+    (values (max (- rx lx) 0.0)
+            (max (- by ty) 0.0)
+            (make-rectangular lx ty))))

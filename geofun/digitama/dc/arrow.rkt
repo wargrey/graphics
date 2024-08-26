@@ -35,7 +35,7 @@
     
     (create-geometry-object geo:arrow
                             #:surface geo-arrow-surface stroke pattern
-                            #:bbox (geo-stroke-bbox-wrapper geo-arrow-bbox stroke)
+                            #:extent (geo-stroke-extent-wrapper geo-arrow-extent stroke)
                             #:id id
                             rhead shaft-flength shaft-flthickness (~radian start radian?) wing-flangle)))
 
@@ -52,18 +52,19 @@
     
     (create-geometry-object geo:arrow
                             #:surface geo-arrow-surface stroke pattern
-                            #:bbox (geo-stroke-bbox-wrapper geo-arrow-bbox stroke)
+                            #:extent (geo-stroke-extent-wrapper geo-arrow-extent stroke)
                             #:id id
                             flradius 0.0 shaft-flthickness (~radian start radian?) wing-flangle)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-arrow-bbox : Geo-Calculate-BBox
+(define geo-arrow-extent : Geo-Calculate-Extent
   (lambda [self]
     (with-asserts ([self geo:arrow?])
-      (define metrics (dc-arrow-metrics (geo:arrow-head-radius self) (geo:arrow-start-angle self)
-                                        (geo:arrow-shaft-thickness self) (geo:arrow-shaft-length self)
-                                        (geo:arrow-wing-angle self)))
-      (values 0.0 0.0 (vector-ref metrics 3) (vector-ref metrics 4)))))
+      (define metrics
+        (dc-arrow-metrics (geo:arrow-head-radius self) (geo:arrow-start-angle self)
+                          (geo:arrow-shaft-thickness self) (geo:arrow-shaft-length self)
+                          (geo:arrow-wing-angle self)))
+      (values (vector-ref metrics 3) (vector-ref metrics 4) #false))))
 
 (define geo-arrow-surface : Geo-Surface-Create
   (lambda [self]

@@ -39,7 +39,7 @@
     
     (create-geometry-object geo:icosahedron:side
                             #:surface (geo-side-surface border) edge pattern
-                            #:bbox (geo-shape-plain-bbox (icosahedron-edge-length->side-outline-size sidelength))
+                            #:extent (geo-shape-plain-extent (icosahedron-edge-length->side-outline-size sidelength))
                             #:id id
                             r radius-type sidelength)))
 
@@ -54,7 +54,7 @@
     
     (create-geometry-object geo:icosahedron:over
                             #:surface (geo-over-surface border) edge pattern
-                            #:bbox (geo-shape-plain-bbox (* 2.0 R))
+                            #:extent (geo-shape-plain-extent (* 2.0 R))
                             #:id id
                             r radius-type R (~radian rotation radian?))))
 

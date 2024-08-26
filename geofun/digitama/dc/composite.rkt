@@ -54,7 +54,7 @@
   (lambda [id op layers]
     (create-geometry-object geo:group
                             #:surface geo-group-surface
-                            #:bbox (geo-group-bbox layers)
+                            #:extent (geo-group-extent layers)
                             #:id id
                             op layers)))
 
@@ -76,7 +76,7 @@
 
     (create-geometry-object geo:table
                             #:surface geo-group-surface
-                            #:bbox (geo-group-bbox layers)
+                            #:extent (geo-group-extent layers)
                             #:id id
                             op layers (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
 
@@ -87,10 +87,10 @@
                      (geo:group-layers self) 
                      (default-geometry-density)))))
 
-(define geo-group-bbox : (-> Geo-Layer-Group Geo-Calculate-BBox)
+(define geo-group-extent : (-> Geo-Layer-Group Geo-Calculate-Extent)
   (lambda [layers]
     (define w (vector-ref layers 0))
     (define h (vector-ref layers 1))
     
     (λ [self]
-      (values 0.0 0.0 w h))))
+      (values w h #false))))

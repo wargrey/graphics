@@ -80,7 +80,7 @@
     
     (create-geometry-object dryland-wani
                             #:surface geo-path-surface stroke
-                            #:bbox (geo-stroke-bbox-wrapper geo-path-bounding-box stroke)
+                            #:extent (geo-stroke-extent-wrapper geo-path-extent stroke)
                             #:id name
                             (list (cons start-of-track home-pos)) (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos

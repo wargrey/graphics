@@ -44,7 +44,7 @@
     (define-values (width border-x border-width dest-x) (frame-metrics line-width line-inset mleft mright pleft pright dest-width))
     (define-values (height border-y border-height dest-y) (frame-metrics line-width line-inset mtop mbottom ptop pbottom dest-height))
 
-    (values width height))
+    (values width height border-x border-y border-width border-height))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (frame-metrics line-width line-inset flmopen flmclose flpopen flpclose size)
@@ -68,4 +68,6 @@
  [dc_frame_size (-> Nonnegative-Flonum Nonnegative-Flonum
                     Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                     Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
-                    (Option Paint) (Values Nonnegative-Flonum Nonnegative-Flonum))])
+                    (Option Paint)
+                    (Values Nonnegative-Flonum Nonnegative-Flonum
+                            Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))])

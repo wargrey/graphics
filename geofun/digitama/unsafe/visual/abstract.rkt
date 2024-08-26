@@ -9,6 +9,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base
   (provide (all-defined-out))
+  (provide (rename-out [cairo_recording_surface_get_extents abstract-surface-extent]
+                       [cairo_recording_surface_ink_extents abstract-surface-bbox]))
   
   (require "../pangocairo.rkt")
   (require "../surface/image.rkt")
@@ -19,16 +21,12 @@
   (require "../stream/png.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (abstract-surface-content-bbox sfc)
-    (define-values (scale? lx ty w h) (cairo_recording_surface_get_extents sfc))
+  (define (abstract-surface-extent* sfc)
+    (define-values (?lt w h) (cairo_recording_surface_get_extents sfc))
 
-    (if (not scale?)
+    (if (not ?lt)
         (cairo_recording_surface_ink_extents sfc)
-        (values lx ty w h)))
-
-  (define (abstract-surface-content-size sfc)
-    (define-values (lx ty w h) (abstract-surface-content-bbox sfc))
-    (values w h))
+        (values ?lt w h)))
 
   (define (abstract-surface->stream-bytes sfc format name density)
     (define /dev/sfcout (open-output-bytes name))
@@ -44,22 +42,26 @@
                                              (values png-sfc #true))))]))
 
   (define (abstract-surface-save-with stream-write /dev/strout abs-sfc)
-    (define-values (lx ty width height) (abstract-surface-content-bbox abs-sfc))
+    (define-values (pos width height) (abstract-surface-extent* abs-sfc))
 
     (stream-write /dev/strout width height
                   (λ [cr flwidth flheight]
-                    (cairo_set_source_surface cr abs-sfc (unsafe-fl- 0.0 lx) (unsafe-fl- 0.0 ty))
+                    (cairo_set_source_surface cr abs-sfc
+                                              (unsafe-fl- 0.0 (unsafe-flreal-part pos))
+                                              (unsafe-fl- 0.0 (unsafe-flimag-part pos)))
                     (cairo_paint cr))))
 
   (define (abstract-surface->image-surface abs-sfc density)
-    (define-values (lx ty flwidth flheight) (abstract-surface-content-bbox abs-sfc))
+    (define-values (pos flwidth flheight) (abstract-surface-extent* abs-sfc))
     (define-values (bmp-sfc fxwidth fxheight) (cairo-create-image-surface flwidth flheight density))
     (define bmp-cr (cairo_create bmp-sfc))
 
     (unless (unsafe-fl= density 1.0)
       (cairo_scale bmp-cr density density))
 
-    (cairo_set_source_surface bmp-cr abs-sfc (unsafe-fl- 0.0 lx) (unsafe-fl- 0.0 ty))
+    (cairo_set_source_surface bmp-cr abs-sfc
+                              (unsafe-fl- 0.0 (unsafe-flreal-part pos))
+                              (unsafe-fl- 0.0 (unsafe-flimag-part pos)))
     (cairo_paint bmp-cr)
     (cairo_destroy bmp-cr)
 
@@ -79,24 +81,30 @@
     abs-sfc)
 
   (define (abstract-surface-stamp-onto-bitmap-surface bmp-sfc abs-sfc dx dy density)
-    (define-values (lx ty flwidth flheight) (abstract-surface-content-bbox abs-sfc))
+    (define-values (pos flwidth flheight) (abstract-surface-extent* abs-sfc))
     (define bmp-cr (cairo_create bmp-sfc))
 
     (unless (unsafe-fl= density 1.0)
       (cairo_scale bmp-cr density density))
     
-    (cairo_set_source_surface bmp-cr abs-sfc (unsafe-fl- dx lx) (unsafe-fl- dy ty))
+    (cairo_set_source_surface bmp-cr abs-sfc
+                              (unsafe-fl- dx (unsafe-flreal-part pos))
+                              (unsafe-fl- dy (unsafe-flimag-part pos)))
     (cairo_paint bmp-cr)
     (cairo_destroy bmp-cr)
     (void)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [abstract-surface-content-bbox (-> Abstract-Surface (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))]
- [abstract-surface-content-size (-> Abstract-Surface (Values Nonnegative-Flonum Nonnegative-Flonum))]
+ [abstract-surface-extent (-> Abstract-Surface (Values (Option Float-Complex) Nonnegative-Flonum Nonnegative-Flonum))]
+ [abstract-surface-extent* (-> Abstract-Surface (Values Float-Complex Nonnegative-Flonum Nonnegative-Flonum))]
+ [abstract-surface-bbox (-> Abstract-Surface (Values Float-Complex Nonnegative-Flonum Nonnegative-Flonum))]
  [abstract-surface->stream-bytes (-> Abstract-Surface Symbol Symbol Positive-Flonum Bytes)]
  [abstract-surface->image-surface (-> Abstract-Surface Positive-Flonum (Values Bitmap-Surface Positive-Index Positive-Index))]
  [abstract-surface-stamp-onto-bitmap-surface (-> Bitmap-Surface Abstract-Surface Flonum Flonum Positive-Flonum Void)]
  [abstract-surface-save (-> Abstract-Surface (U Output-Port Path-String) Symbol Positive-Flonum Void)]
 
  [create-abstract-surface-from-image-surface (-> Nonnegative-Flonum Nonnegative-Flonum Bitmap-Surface Positive-Flonum Abstract-Surface)])
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

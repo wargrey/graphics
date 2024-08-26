@@ -25,7 +25,7 @@
     
     (create-geometry-object geo:rect
                             #:surface geo-rect-surface stroke pattern
-                            #:bbox (geo-shape-plain-bbox w)
+                            #:extent (geo-shape-plain-extent w 0.0 0.0)
                             #:id id
                             w w (~length corner-radius w))))
 
@@ -35,7 +35,7 @@
     
     (create-geometry-object geo:rect
                             #:surface geo-rect-surface stroke pattern
-                            #:bbox (geo-shape-plain-bbox w h)
+                            #:extent (geo-shape-plain-extent w h 0.0 0.0)
                             #:id id
                             w h (~length corner-radius (min w h)))))
 

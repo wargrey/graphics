@@ -6,8 +6,9 @@
                      [geo-intrinsic-size geo-size]
                      [geo-intrinsic-size geo-intrinsic-flsize]))
 
-(require "dc/paint.rkt")
 (require "source.rkt")
+(require "dc/ink.rkt")
+(require "dc/paint.rkt")
 (require "../paint.rkt")
 (require "../stroke.rkt")
 
@@ -29,22 +30,22 @@
   (syntax-parse stx #:datum-literals [:]
     [(_ Geo
         (~seq #:surface surface:expr wrapper:expr ...)
-        (~optional (~seq #:bbox bbox:expr) #:defaults ([bbox #'geo-calculate-bbox]))
+        (~optional (~seq #:extent extent:expr) #:defaults ([extent #'geo-calculate-extent]))
         (~optional (~seq #:id name) #:defaults ([name #'#false])) argl ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
-         (Geo geo-convert (geo-shape-surface-wrapper surface wrapper ...) bbox
+         (Geo geo-convert (geo-shape-surface-wrapper surface wrapper ...) extent
               (or name (gensym 'geo-prefix)) argl ...)))]))
 
 (define default-geometry-density : (Parameterof Positive-Flonum) (make-parameter 1.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Surface-Create (-> Geo<%> Abstract-Surface))
-(define-type Geo-Calculate-BBox (-> Geo<%> (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum)))
+(define-type Geo-Calculate-Extent (-> Geo<%> (Values Nonnegative-Flonum Nonnegative-Flonum (Option Geo-Ink))))
 
 (struct geo<%> visual-object<%>
   ([surface : Geo-Surface-Create]
-   [aabox : Geo-Calculate-BBox])
+   [extent : Geo-Calculate-Extent])
   #:type-name Geo<%>)
 
 (struct geo geo<%>
@@ -58,19 +59,19 @@
     (values surface cr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-bounding-box : (->* (Geo<%>)
-                                (Maybe-Stroke-Paint #:border Maybe-Stroke-Paint)
-                                (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+(define geo-extent : (->* (Geo<%>)
+                          (Maybe-Stroke-Paint #:border Maybe-Stroke-Paint)
+                          (Values Nonnegative-Flonum Nonnegative-Flonum (Option Geo-Ink)))
   (lambda [geo [stroke (void)] #:border [border (void)]]
     (parameterize ([default-stroke-source (geo-select-stroke-paint stroke)]
                    [default-border-source (geo-select-border-paint border)])
-      ((geo<%>-aabox geo) geo))))
+      ((geo<%>-extent geo) geo))))
 
 (define geo-intrinsic-size : (->* (Geo<%>)
                                   (Maybe-Stroke-Paint #:border Maybe-Stroke-Paint)
                                   (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [geo [stroke (void)] #:border [border (void)]]
-    (define-values (lx ty width height) (geo-bounding-box geo stroke #:border border))
+    (define-values (width height _) (geo-extent geo stroke #:border border))
     (values width height)))
 
 (define geo-intrinsic-width : (-> Geo<%> Nonnegative-Flonum)
@@ -110,10 +111,25 @@
   (lambda [self]
     ((geo<%>-surface self) self)))
 
-(define geo-calculate-bbox : Geo-Calculate-BBox
+(define geo-calculate-extent : Geo-Calculate-Extent
   (lambda [self]
-    (abstract-surface-content-bbox
-     (geo-create-surface self))))
+    (define sfc (geo-create-surface self))
+    (define-values (?pos self-width self-height) (abstract-surface-extent sfc))
+
+    (if (not ?pos)
+        (let-values ([(pos ink-width ink-height) (abstract-surface-bbox sfc)])
+          (values ink-width ink-height (make-geo-ink pos ink-width ink-height)))
+        (values self-width self-height #false))))
+
+(define geo-calculate-extent* : Geo-Calculate-Extent
+  (lambda [self]
+    (define sfc (geo-create-surface self))
+    (define-values (?pos sfc-width sfc-height) (abstract-surface-extent sfc))
+    (define-values (ink-pos ink-width ink-height) (abstract-surface-bbox sfc))
+
+    (if (not ?pos)
+        (values ink-width ink-height (make-geo-ink ink-pos ink-width ink-height))
+        (values sfc-width sfc-height (make-geo-ink ink-pos ink-width ink-height)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-shape-surface-wrapper : (case-> [Geo-Surface-Create Maybe-Stroke-Paint Maybe-Fill-Paint (Option Symbol) -> Geo-Surface-Create]
@@ -185,29 +201,34 @@
                              (λsurface self)))])]
     [(λsurface) λsurface]))
 
-(define geo-border-bbox-wrapper : (-> Geo-Calculate-BBox Maybe-Stroke-Paint Geo-Calculate-BBox)
-  (lambda [λbbox alt-border]
-    (cond [(void? alt-border) λbbox]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-border-extent-wrapper : (-> Geo-Calculate-Extent Maybe-Stroke-Paint Geo-Calculate-Extent)
+  (lambda [λextent alt-border]
+    (cond [(void? alt-border) λextent]
           [else (λ [self] (parameterize ([default-border-source (border-paint->source* alt-border)])
-                            (λbbox self)))])))
+                            (λextent self)))])))
 
-(define geo-stroke-bbox-wrapper : (-> Geo-Calculate-BBox Maybe-Stroke-Paint Geo-Calculate-BBox)
-  (lambda [λbbox alt-stroke]
+(define geo-stroke-extent-wrapper : (-> Geo-Calculate-Extent Maybe-Stroke-Paint Geo-Calculate-Extent)
+  (lambda [λextent alt-stroke]
     (λ [self]
-      (let-values ([(x y width height) (λbbox self)])
+      (let-values ([(width height ?ink) (λextent self)])
         (define maybe-stroke (geo-select-stroke-paint alt-stroke))
         (if (stroke? maybe-stroke)
             (let ([linewidth (stroke-width maybe-stroke)])
-              (values x y (+ width linewidth) (+ height linewidth)))
-            (values x y width height))))))
+              (values (+ width linewidth) (+ height linewidth)
+                      (and ?ink (geo-ink-embolden ?ink linewidth))))
+            (values width height ?ink))))))
 
-(define geo-shape-plain-bbox : (case-> [(U Nonnegative-Flonum Geo<%>) -> Geo-Calculate-BBox]
-                                       [Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-BBox]
-                                       [Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-BBox])
+(define geo-shape-plain-extent : (case-> [Nonnegative-Flonum -> Geo-Calculate-Extent]
+                                         [Nonnegative-Flonum Flonum Flonum -> Geo-Calculate-Extent]
+                                         [Nonnegative-Flonum Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent]
+                                         [Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent]
+                                         [Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Geo-Calculate-Extent]
+                                         [Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent])
   (case-lambda
-    [(size)
-     (if (flonum? size)
-         (λ [self] (values 0.0 0.0 size size))
-         (geo<%>-aabox size))]
-    [(width height) (λ [self] (values 0.0 0.0 width height))]
-    [(x y width height) (λ [self] (values x y width height))]))
+    [(size) (λ [self] (values size size #false))]
+    [(width height) (λ [self] (values width height #false))]
+    [(size x y) (geo-shape-plain-extent size size x y)]
+    [(size x y w h) (geo-shape-plain-extent size size x y w h)]
+    [(width height x y) (λ [self] (values width height (make-geo-ink x y width height)))]
+    [(width height x y w h) (λ [self] (values width height (make-geo-ink x y w h)))]))

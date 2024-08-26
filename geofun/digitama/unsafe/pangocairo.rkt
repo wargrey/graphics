@@ -77,16 +77,17 @@
 (define-cairo cairo_recording_surface_ink_extents
   (_cfun _cairo_surface_t
          [lx : (_ptr o _double)] [ty : (_ptr o _double)] [w : (_ptr o _double)] [h : (_ptr o _double)]
-         -> _void -> (values lx ty w h)))
+         -> _void -> (values (make-rectangular lx ty) w h)))
 
 ; it only works for recording surfaces that already have an extent set
 ;   in which case those surfaces have limited boundary to clip resulting shapes
 (define-cairo cairo_recording_surface_get_extents
   (_cfun _cairo_surface_t [box : (_ptr o _cairo_rectangle_t)]
          -> [okay? : _bool]
-         -> (values okay?
-                    (cairo_rectangle_t-x box) (cairo_rectangle_t-y box)
-                    (cairo_rectangle_t-width box) (cairo_rectangle_t-height box))))
+         -> (if (not okay?)
+                (values #false 0.0 0.0)
+                (values (make-rectangular (cairo_rectangle_t-x box) (cairo_rectangle_t-y box))
+                        (cairo_rectangle_t-width box) (cairo_rectangle_t-height box)))))
 
 (define _pdf_metadata (_enum '(title author subject keywords producer ctime mtime)))
 

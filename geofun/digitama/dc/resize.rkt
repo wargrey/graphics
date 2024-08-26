@@ -6,8 +6,9 @@
 (require bitmap/digitama/convert)
 (require bitmap/digitama/unsafe/image)
 
-(require "../base.rkt")
+(require "ink.rkt")
 
+(require "../base.rkt")
 (require "../convert.rkt")
 (require "../unsafe/resize.rkt")
 (require "../unsafe/visual/ctype.rkt")
@@ -42,7 +43,7 @@
            [else (let ([flsx (real->double-flonum sx)]
                        [flsy (real->double-flonum sy)])
                    (create-geometry-object geo:scale
-                                           #:surface geo-scale-surface #:bbox (geo-scale-bbox flsx flsy) #:id (geo-id self)
+                                           #:surface geo-scale-surface #:extent (geo-scale-extent flsx flsy) #:id (geo-id self)
                                            self flsx flsy))])]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -54,7 +55,7 @@
     (define flh (real->double-flonum height))
 
     (create-geometry-object geo:region
-                            #:surface geo-region-surface #:bbox (geo-shape-plain-bbox flw flh) #:id (geo-id self)
+                            #:surface geo-region-surface #:extent (geo-shape-plain-extent flw flh) #:id (geo-id self)
                             self flx fly flw flh)))
 
 (define geo-region-surface : Geo-Surface-Create
@@ -72,12 +73,10 @@
                  (geo:scale-sx self) (geo:scale-sy self)
                  (default-geometry-density)))))
 
-(define geo-scale-bbox : (-> Flonum Flonum Geo-Calculate-BBox)
+(define geo-scale-extent : (-> Flonum Flonum Geo-Calculate-Extent)
   (lambda [sx sy]
     (λ [self]
       (with-asserts ([self geo:scale?])
-        (define-values (asx asy) (values (abs sx) (abs sy)))
-        (define-values (ox oy owidth oheight) (geo-bounding-box (geo:transform-source self)))
-        (values (if (> sx 0.0) (* sx ox) 0.0)
-                (if (> sy 0.0) (* sy oy) 0.0)
-                (* asx owidth) (* asy oheight))))))
+        (define-values (owidth oheight ?oink) (geo-extent (geo:transform-source self)))
+        (values (* (abs sx) owidth) (* (abs sy) oheight)
+                (and ?oink (geo-ink-scale ?oink sx sy)))))))

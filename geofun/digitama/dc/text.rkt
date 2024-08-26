@@ -55,8 +55,8 @@
                             Geo:Art-Text)
   (lambda [#:id [id #false] #:stroke [outline (void)] #:fill [fill (void)] #:background [bgsource (void)] #:lines [lines null] text [font #false]]
     (create-geometry-object geo:art-text
-                            #:surface (geo-art-text-surface-make font outline fill bgsource)
-                            #:bbox (geo-art-text-calculate-bbox-make font)
+                            #:surface (geo-art-text-surface font outline fill bgsource)
+                            #:extent (geo-art-text-extent font)
                             #:id id
                             (~a text) lines)))
 
@@ -69,8 +69,8 @@
            #:ascent [alsource #false] #:descent [dlsource #false] #:capline [clsource #false] #:meanline [mlsource #false] #:baseline [blsource #false]
            text [font #false] ]
     (create-geometry-object geo:text
-                            #:surface (geo-text-surface-make font fgsource bgsource)
-                            #:bbox (geo-text-calculate-bbox-make font)
+                            #:surface (geo-text-surface font fgsource bgsource)
+                            #:extent (geo-text-extent font)
                             #:id id
                             (~a text) lines alsource dlsource clsource mlsource blsource)))
 
@@ -87,7 +87,7 @@
             [(negative? max-height) (values (exact-round max-height) ellipsize-mode)]
             [else (values (real->double-flonum max-height) ellipsize-mode)]))
     (create-geometry-object geo:para
-                            #:surface (geo-paragraph-surface-make font fgsource bgsource)
+                            #:surface (geo-paragraph-surface font fgsource bgsource)
                             #:id id
                             (if (list? texts) (string-join texts "\n") texts) lines
                             (if (or (infinite? max-width) (nan? max-width)) #false (real->double-flonum max-width)) smart-height
@@ -96,21 +96,21 @@
                             (paragraph-ellipsize-mode->integer smart-emode raise-argument-error))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-text-calculate-bbox-make : (-> (Option Font) Geo-Calculate-BBox)
+(define geo-text-extent : (-> (Option Font) Geo-Calculate-Extent)
   (lambda [alt-font]
     (λ [self]
       (with-asserts ([self geo:text?])
         (define-values (W H) (text-size (geo:text-content self) (or alt-font (default-font))))
-        (values 0.0 0.0 W H)))))
+        (values W H #false)))))
 
-(define geo-art-text-calculate-bbox-make : (-> (Option Font) Geo-Calculate-BBox)
+(define geo-art-text-extent : (-> (Option Font) Geo-Calculate-Extent)
   (lambda [alt-font]
     (λ [self]
       (with-asserts ([self geo:art-text?])
         (define-values (W H) (text-size (geo:art-text-content self) (or alt-font (default-art-font))))
-        (values 0.0 0.0 W H)))))
+        (values W H #false)))))
 
-(define geo-text-surface-make : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
+(define geo-text-surface : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
   (lambda [alt-font alt-fg alt-bg]
     (λ [self]
       (with-asserts ([self geo:text?])
@@ -122,7 +122,7 @@
                  (stroke-paint->source* (geo:text-bline self)) (stroke-paint->source* (geo:text-dline self))
                  (default-geometry-density))))))
 
-(define geo-art-text-surface-make : (-> (Option Font) Maybe-Stroke-Paint Maybe-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
+(define geo-art-text-surface : (-> (Option Font) Maybe-Stroke-Paint Maybe-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
   (lambda [alt-font alt-outl alt-fill alt-bg]
     (λ [self]
       (with-asserts ([self geo:art-text?])
@@ -131,7 +131,7 @@
                      (geo-select-stroke-paint alt-outl) (geo-select-fill alt-fill) (geo-select-background alt-bg)
                      (default-geometry-density))))))
 
-(define geo-paragraph-surface-make : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
+(define geo-paragraph-surface : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
   (lambda [alt-font alt-fg alt-bg]
     (λ [self]
       (with-asserts ([self geo:para?])

@@ -29,7 +29,7 @@
     (define-values (w h) (bitmap-flsize self))
     (create-geometry-object geo:bitmap
                             #:surface (geo-bitmap-surface w h)
-                            #:bbox (geo-shape-plain-bbox w h)
+                            #:extent (geo-shape-plain-extent w h)
                             #:id id
                             self)))
 
@@ -38,7 +38,7 @@
     (define-values (w h) (~size width height))
     (create-geometry-object geo:λbitmap
                             #:surface (geo-plain-argb-surface w h)
-                            #:bbox (geo-shape-plain-bbox w h)
+                            #:extent (geo-shape-plain-extent w h)
                             #:id id
                             λargb)))
 

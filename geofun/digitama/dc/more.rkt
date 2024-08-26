@@ -33,7 +33,7 @@
     
     (create-geometry-object geo:stadium
                             #:surface geo-stadium-surface stroke pattern
-                            #:bbox (geo-shape-plain-bbox (+ d flength) d)
+                            #:extent (geo-shape-plain-extent (+ d flength) d 0.0 0.0)
                             #:id id
                             flength flradius)))
 
@@ -51,7 +51,7 @@
     
     (create-geometry-object geo:sandglass
                             #:surface (geo-sandglass-surface flwidth flheight) stroke pattern
-                            #:bbox (geo-shape-plain-bbox flwidth flheight)
+                            #:extent (geo-shape-plain-extent flwidth flheight 0.0 0.0)
                             #:id id
                             neck-flwidth neck-flheight tube-flheight)))
 
