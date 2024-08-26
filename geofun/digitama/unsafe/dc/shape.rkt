@@ -155,51 +155,7 @@
     (cairo_destroy cr)
 
     sfc)
-
-  (define (dc_polyline create-surface flwidth flheight xs ys dx dy stroke close? density)
-    (define line-width (~bdwidth stroke))
-    (define-values (sfc cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
-    (define inset (unsafe-fl* line-width 0.5))
-    (define xoff (unsafe-fl+ dx inset))
-    (define yoff (unsafe-fl+ dy inset))
-
-    (cairo_new_sub_path cr)
-      
-    (let draw-line ([xs xs]
-                    [ys ys])
-      (when (pair? xs)
-        (cairo_line_to cr (unsafe-fl+ xoff (unsafe-car xs)) (unsafe-fl+ yoff (unsafe-car ys)))
-        (draw-line (unsafe-cdr xs) (unsafe-cdr ys))))
-      
-    (when (and close?)
-      (cairo_close_path cr))
-    
-    (cairo-render cr stroke #false)
-    (cairo_destroy cr)
-    
-    sfc)
-
-  (define (dc_polygon create-surface flwidth flheight xs ys dx dy stroke background fill-rule density)
-    (define line-width (~bdwidth stroke))
-    (define-values (sfc cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
-    (define inset (unsafe-fl* line-width 0.5))
-    (define xoff (unsafe-fl+ dx inset))
-    (define yoff (unsafe-fl+ dy inset))
-
-    (cairo_new_sub_path cr)
-      
-    (let draw-line ([xs xs]
-                    [ys ys])
-      (when (pair? xs)
-        (cairo_line_to cr (unsafe-fl+ xoff (unsafe-car xs)) (unsafe-fl+ yoff (unsafe-car ys)))
-        (draw-line (unsafe-cdr xs) (unsafe-cdr ys))))
-      
-    (cairo_close_path cr)
-    (cairo-render cr stroke background fill-rule)
-    (cairo_destroy cr)
-    
-    sfc)
-
+  
   (define (dc_regular_polygon create-surface n radius rotation border background density)
     (define fln (exact->inexact n))
     (define fllength (unsafe-fl* radius 2.0))
@@ -264,7 +220,6 @@
  (submod "." unsafe)
  [dc_line (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum Flonum Flonum Flonum Paint Flonum S))]
  [dc_arc (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Paint Flonum S))]
- [dc_polyline (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum Paint Boolean Flonum S))]
  
  [dc_circle (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum (Option Paint) (Option Fill-Source) Flonum S))]
  [dc_sector (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (Option Paint) (Option Fill-Source) Flonum S))]
@@ -277,11 +232,7 @@
  [dc_sandglass (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum
                             Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                             (Option Paint) (Option Fill-Source) Flonum
-                            S))]
-
- [dc_polygon (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Flonum) (Listof Flonum) Flonum Flonum
-                          (Option Paint) (Option Fill-Source) Symbol Flonum
-                          S))])
+                            S))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define regular-polygon-radius->circumsphere-radius : (-> Positive-Index Nonnegative-Flonum 2D-Radius-Type Nonnegative-Flonum)

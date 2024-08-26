@@ -17,6 +17,7 @@
 (require geofun/digitama/source)
 
 (require geofun/digitama/geometry/dot)
+(require geofun/digitama/unsafe/path)
 (require geofun/digitama/unsafe/dc/plain)
 (require geofun/digitama/unsafe/dc/shape)
 (require geofun/digitama/unsafe/dc/arrow)
@@ -161,11 +162,11 @@
                                Bitmap)
   (lambda [#:scale [scale 1.0] #:stroke [stroke (default-stroke-paint)] #:close? [close? #false] #:density [density (default-bitmap-density)] #:window [window 0]
            pts [dx 0.0] [dy 0.0]]
-    (define-values (xs ys lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
+    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
 
     (dc_polyline create-argb-bitmap
-                 width height xs ys xoff yoff
+                 width height prints xoff yoff
                  (stroke-paint->source stroke) close?
                  density)))
 
@@ -176,11 +177,11 @@
   (lambda [#:scale [scale 1.0] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:fill-rule [rule (default-fill-rule)]
            #:density [density (default-bitmap-density)] #:window [window 0]
            pts [dx 0.0] [dy 0.0]]
-    (define-values (xs ys lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
+    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
 
     (dc_polygon create-argb-bitmap
-                width height xs ys xoff yoff
+                width height prints xoff yoff
                 (stroke-paint->source* outline) (fill-paint->source* pattern) rule
                 density)))
 

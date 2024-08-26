@@ -26,17 +26,47 @@
                                    (cairo-render cr stroke fill-color fill-rule))))
 
   (define (cairo_path cr footprints dx dy)
-    (for ([op+footprint (in-list footprints)])
-      (define footprint (unsafe-cdr op+footprint))
-      (case (unsafe-car op+footprint)
-        [(#\M) (cairo_move_to cr (unsafe-fl+ (unsafe-flreal-part footprint) dx) (unsafe-fl+ (unsafe-flimag-part footprint) dy))]
-        [(#\m) (cairo_rel_move_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
-        [(#\L) (cairo_line_to cr (unsafe-fl+ (unsafe-flreal-part footprint) dx) (unsafe-fl+ (unsafe-flimag-part footprint) dy))]
-        [(#\l) (cairo_rel_line_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
-        [(#\A) (cairo_elliptical_arc cr footprint dx dy)]
-        [(#\C) (cairo_cubic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
-        [(#\Q) (cairo_quadratic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
-        [(#\Z #\z) (cairo_close_path cr)])))
+    (let draw_path ([anchors footprints])
+      (when (pair? anchors)
+        (define op+footprint (unsafe-car anchors))
+        (define footprint (unsafe-cdr op+footprint))
+        (case (unsafe-car op+footprint)
+          [(#\M) (cairo_move_to cr (unsafe-fl+ (unsafe-flreal-part footprint) dx) (unsafe-fl+ (unsafe-flimag-part footprint) dy))]
+          [(#\L) (cairo_line_to cr (unsafe-fl+ (unsafe-flreal-part footprint) dx) (unsafe-fl+ (unsafe-flimag-part footprint) dy))]
+          [(#\A) (cairo_elliptical_arc cr footprint dx dy)]
+          [(#\C) (cairo_cubic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
+          [(#\Q) (cairo_quadratic_bezier cr (unsafe-struct*-ref footprint 0) (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) dx dy)]
+          [(#\Z #\z) (cairo_close_path cr)]
+          [(#\m) (cairo_rel_move_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
+          [(#\l) (cairo_rel_line_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))])
+
+        (draw_path (unsafe-cdr anchors)))))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define (dc_polyline create-surface flwidth flheight footprints dx dy stroke close? density)
+    (define line-width (~bdwidth stroke))
+    (define-values (sfc cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
+    (define inset (unsafe-fl* line-width 0.5))
+    
+    (cairo_path cr footprints (unsafe-fl+ dx inset) (unsafe-fl+ dy inset))
+    (when (and close?) (cairo_close_path cr))
+    
+    (cairo-render cr stroke #false)
+    (cairo_destroy cr)
+    
+    sfc)
+
+  (define (dc_polygon create-surface flwidth flheight footprints dx dy stroke background fill-rule density)
+    (define line-width (~bdwidth stroke))
+    (define-values (sfc cr) (create-surface (unsafe-fl+ flwidth line-width) (unsafe-fl+ flheight line-width) density #true))
+    (define inset (unsafe-fl* line-width 0.5))
+    
+    (cairo_path cr footprints (unsafe-fl+ dx inset) (unsafe-fl+ dy inset))  
+    (cairo_close_path cr)
+    (cairo-render cr stroke background fill-rule)
+    (cairo_destroy cr)
+    
+    sfc)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (cairo_elliptical_arc cr path:arc dx dy)
@@ -69,7 +99,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Positive-Flonum Abstract-Surface)])
+ [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Positive-Flonum Abstract-Surface)]
+ 
+ [dc_polyline (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Path-Print) Flonum Flonum Paint Boolean Flonum S))]
+ [dc_polygon (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Path-Print) Flonum Flonum
+                          (Option Paint) (Option Fill-Source) Symbol Flonum
+                          S))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Path-Print (Pairof Char (U Float-Complex Path-Args False)))

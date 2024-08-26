@@ -55,6 +55,8 @@
     ;;; All geo vector graphics are accommodated in bounded surfaces,
     ;;; the positions of the bounding boxes are non-negative.
 
+    (displayln pos)
+
     (define x (max (+ (real-part pos) width) 0.0))
     (define y (max (+ (imag-part pos) height) 0.0))
 
