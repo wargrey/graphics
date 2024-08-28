@@ -119,5 +119,5 @@
     
         (dc_frame create-abstract-surface (geo-create-surface body) flwidth flheight
                   mtop mright mbottom mleft ptop pright pbottom pleft
-                  (geo-select-border-paint alt-bdr) (geo-select-background alt-bg)
+                  (geo-select-border-paint alt-bdr) (geo-select-background-source alt-bg)
                   (default-geometry-density))))))

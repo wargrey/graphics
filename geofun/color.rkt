@@ -156,6 +156,7 @@
              [(hwba? src) ($# hwb->rgb (hwba-hue src) (hwba-white src) (hwba-black src) (hwba-alpha src) flalpha)]
              [(xterma? src) (xterm256-rgba (xterma-index src) (* (xterma-alpha src) flalpha) rgb*)]
              [(keyword? src) (or (digits-rgba src flalpha) (rgb* fallback-color flalpha))]
+             [(real? src) ($# hsv->rgb (real->hue src) 1.0 1.0 1.0 flalpha)]
              [else (rgb* fallback-color flalpha)]))]))
 
 (define xterm : (->* (Byte) (Real) Xterma)

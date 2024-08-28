@@ -116,7 +116,7 @@
       (with-asserts ([self geo:text?])
         (dc_text create-abstract-surface
                  (geo:text-content self) (geo-select-font alt-font default-font) (geo:text-lines self)
-                 (geo-select-foreground alt-fg) (geo-select-background alt-bg)
+                 (geo-select-font-source alt-fg) (geo-select-background-source alt-bg)
                  (stroke-paint->source* (geo:text-aline self)) (stroke-paint->source* (geo:text-cline self))
                  (stroke-paint->source* (geo:text-mline self))
                  (stroke-paint->source* (geo:text-bline self)) (stroke-paint->source* (geo:text-dline self))
@@ -128,7 +128,7 @@
       (with-asserts ([self geo:art-text?])
         (dc_art_text create-abstract-surface
                      (geo:art-text-content self) (geo-select-font alt-font default-art-font) (geo:art-text-lines self)
-                     (geo-select-stroke-paint alt-outl) (geo-select-fill alt-fill) (geo-select-background alt-bg)
+                     (geo-select-stroke-paint alt-outl) (geo-select-fill-source alt-fill) (geo-select-background-source alt-bg)
                      (default-geometry-density))))))
 
 (define geo-paragraph-surface : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
@@ -139,7 +139,7 @@
                       (geo:para-content self) (geo-select-font alt-font default-font) (geo:para-lines self)
                       (geo:para-mwidth self) (geo:para-mheight self)
                       (geo:para-ident self) (geo:para-space self) (geo:para-wmode self) (geo:para-emode self)
-                      (geo-select-foreground alt-fg) (geo-select-background alt-bg)
+                      (geo-select-font-source alt-fg) (geo-select-background-source alt-bg)
                       (default-geometry-density))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

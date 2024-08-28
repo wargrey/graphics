@@ -99,15 +99,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [path_stamp (-> (Listof Path-Print) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Positive-Flonum Abstract-Surface)]
+ [path_stamp (-> (Listof Geo-Path-Print) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Positive-Flonum Abstract-Surface)]
  
- [dc_polyline (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Path-Print) Flonum Flonum Paint Boolean Flonum S))]
- [dc_polygon (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Path-Print) Flonum Flonum
+ [dc_polyline (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Geo-Path-Print) Flonum Flonum Paint Boolean Flonum S))]
+ [dc_polygon (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Listof Geo-Path-Print) Flonum Flonum
                           (Option Paint) (Option Fill-Source) Symbol Flonum
                           S))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Path-Print (Pairof Char (U Float-Complex Path-Args False)))
+(define-type Geo-Path-Print (Pairof Char (U Float-Complex Path-Args False)))
 
 (struct path-args () #:type-name Path-Args #:transparent)
 (struct arc path-args ([center : Float-Complex] [rx : Float] [ry : Float] [start : Float] [end : Float] [clockwise? : Boolean]) #:transparent)

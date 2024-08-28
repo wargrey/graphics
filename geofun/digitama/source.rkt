@@ -46,11 +46,11 @@
                    [else fallback]))]
           [else paint])))
 
-(define foreground->source : (-> Option-Fill-Paint Fill-Source)
+(define font-paint->source : (-> Option-Fill-Paint Fill-Source)
   (lambda [paint]
     (fill-paint->source
      (if (not paint)
-         (default-foreground-paint)
+         (default-font-paint)
          paint))))
 
 (define fill-paint->source* : (-> Option-Fill-Paint (Option Fill-Source))

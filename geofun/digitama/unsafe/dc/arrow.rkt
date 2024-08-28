@@ -39,7 +39,7 @@
     sfc))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Arrow-Metrics (Immutable-Vector (Listof Path-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+(define-type Geo-Arrow-Metrics (Immutable-Vector (Listof Geo-Path-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
 
 (unsafe-require/typed/provide
  (submod "." unsafe)
@@ -83,7 +83,7 @@
                               [(ymin ymax) (values (min aymin shymin) (max aymax shymax))])
                   (values (max (- xmax xmin) 0.0) (max (- ymax ymin) 0.0) (- xmin) (- ymin) shx1 shy1 shx2 shy2))))))
 
-    (define shaft-prints : (Listof Path-Print)
+    (define shaft-prints : (Listof Geo-Path-Print)
       (if (or draw-shaft?)
           (list (cons #\M (make-rectangular (* wing-radius (cos rwing1)) (* wing-radius (sin rwing1))))
                 (cons #\L (make-rectangular shx1 shy1))
@@ -91,7 +91,7 @@
                 (cons #\L (make-rectangular (* wing-radius (cos rwing2)) (* wing-radius (sin rwing2)))))
           null))
 
-    (define head-prints : (Listof Path-Print)
+    (define head-prints : (Listof Geo-Path-Print)
       (list (cons #\L (make-rectangular wx2 wy2))
             (cons #\L (make-rectangular rpx rpy))
             (cons #\L (make-rectangular wx1 wy1))

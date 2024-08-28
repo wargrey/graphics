@@ -19,13 +19,13 @@
   (define (geo_composite operator layers density)
     (define width (unsafe-vector*-ref layers 0))
     (define height (unsafe-vector*-ref layers 1))
-    (define geometries (unsafe-vector*-ref layers 2))
+    (define geo-objects (unsafe-vector*-ref layers 2))
     (define-values (geo cr) (create-abstract-surface width height density #true))
     (define op (or operator CAIRO_OPERATOR_OVER))
 
-    (geo-composite-layer cr (unsafe-car geometries) CAIRO_OPERATOR_SOURCE density)
+    (geo-composite-layer cr (unsafe-car geo-objects) CAIRO_OPERATOR_SOURCE density)
 
-    (let combine ([geos (unsafe-cdr geometries)])
+    (let combine ([geos (unsafe-cdr geo-objects)])
       (unless (null? geos)
         (geo-composite-layer cr (unsafe-car geos) op density)
         (combine (unsafe-cdr geos))))

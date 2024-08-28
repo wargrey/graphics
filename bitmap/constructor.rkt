@@ -17,11 +17,14 @@
 (require geofun/digitama/source)
 
 (require geofun/digitama/geometry/dot)
+(require geofun/digitama/geometry/constants)
 (require geofun/digitama/unsafe/path)
 (require geofun/digitama/unsafe/dc/plain)
 (require geofun/digitama/unsafe/dc/shape)
 (require geofun/digitama/unsafe/dc/arrow)
 (require geofun/digitama/unsafe/dc/text)
+
+(require geofun/digitama/geometry/polygon/quadrilateral)
 
 (require "digitama/convert.rkt")
 (require "digitama/unsafe/image.rkt")
@@ -104,11 +107,11 @@
                                  #:ascent Maybe-Stroke-Paint #:descent Maybe-Stroke-Paint
                                  #:density Positive-Flonum)
                            Bitmap)
-  (lambda [text [font (default-font)] #:color [fgsource (default-foreground-paint)] #:background [bgsource (default-background-paint)] #:lines [lines null]
+  (lambda [text [font (default-font)] #:color [ftsource (default-font-paint)] #:background [bgsource (default-background-paint)] #:lines [lines null]
                 #:ascent [alsource #false] #:descent [dlsource #false] #:capline [clsource #false] #:meanline [mlsource #false]
                 #:baseline [blsource #false] #:density [density (default-bitmap-density)]]
     (dc_text create-argb-bitmap
-             (~a text) (font-description font) lines (foreground->source fgsource) (background->source* bgsource)
+             (~a text) (font-description font) lines (font-paint->source ftsource) (background->source* bgsource)
              (stroke-paint->source* alsource) (stroke-paint->source* clsource) (stroke-paint->source* mlsource)
              (stroke-paint->source* blsource) (stroke-paint->source* dlsource) density)))
 
@@ -118,7 +121,7 @@
                                       #:wrap-mode Paragraph-Wrap-Mode #:ellipsize-mode Paragraph-Ellipsize-Mode
                                       #:density Positive-Flonum)
                                 Bitmap)
-  (lambda [texts [font (default-font)] #:color [fgsource (default-foreground-paint)] #:background [bgsource (default-background-paint)] #:lines [lines null]
+  (lambda [texts [font (default-font)] #:color [ftsource (default-font-paint)] #:background [bgsource (default-background-paint)] #:lines [lines null]
                  #:max-width [max-width +inf.0] #:max-height [max-height +inf.0] #:indent [indent 0.0] #:spacing [spacing 0.0]
                  #:wrap-mode [wrap-mode 'word-char] #:ellipsize-mode [ellipsize-mode 'end]
                  #:density [density (default-bitmap-density)]]
@@ -132,7 +135,7 @@
                   (real->double-flonum indent) (real->double-flonum spacing)
                   (paragraph-wrap-mode->integer wrap-mode raise-argument-error)
                   (paragraph-ellipsize-mode->integer smart-emode raise-argument-error)
-                  (foreground->source fgsource) (background->source* bgsource) density)))
+                  (font-paint->source ftsource) (background->source* bgsource) density)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-square : (->* (Real) (Real #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum) Bitmap)
@@ -160,7 +163,8 @@
 (define bitmap-polyline : (->* ((U Point2D (Listof Point2D)))
                                (Real Real #:scale Point2D #:window Point2D #:stroke Maybe-Stroke-Paint #:close? Boolean #:density Positive-Flonum)
                                Bitmap)
-  (lambda [#:scale [scale 1.0] #:stroke [stroke (default-stroke-paint)] #:close? [close? #false] #:density [density (default-bitmap-density)] #:window [window 0]
+  (lambda [#:scale [scale 1.0] #:stroke [stroke (default-stroke-paint)] #:close? [close? #false] #:density [density (default-bitmap-density)]
+           #:window [window -1.0-1.0i]
            pts [dx 0.0] [dy 0.0]]
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
@@ -169,21 +173,6 @@
                  width height prints xoff yoff
                  (stroke-paint->source stroke) close?
                  density)))
-
-(define bitmap-polygon : (->* ((U Point2D (Listof Point2D)))
-                              (Real Real #:scale Point2D #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:fill-rule Symbol
-                                    #:density Positive-Flonum #:window Point2D)
-                              Bitmap)
-  (lambda [#:scale [scale 1.0] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:fill-rule [rule (default-fill-rule)]
-           #:density [density (default-bitmap-density)] #:window [window 0]
-           pts [dx 0.0] [dy 0.0]]
-    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
-    (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
-
-    (dc_polygon create-argb-bitmap
-                width height prints xoff yoff
-                (stroke-paint->source* outline) (fill-paint->source* pattern) rule
-                density)))
 
 (define bitmap-regular-polygon : (->* (Integer Real)
                                       (Real #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum
@@ -201,6 +190,38 @@
         (dc_circle create-argb-bitmap
                    (~length radius) (stroke-paint->source* outline) (fill-paint->source* pattern)
                    density))))
+
+(define bitmap-polygon : (->* ((U Point2D (Listof Point2D)))
+                              (Real Real #:scale Point2D #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:fill-rule Symbol
+                                    #:density Positive-Flonum #:window Point2D)
+                              Bitmap)
+  (lambda [#:scale [scale 1.0] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:fill-rule [rule (default-fill-rule)]
+           #:density [density (default-bitmap-density)] #:window [window -1.0-1.0i]
+           pts [dx 0.0] [dy 0.0]]
+    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
+    (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
+
+    (dc_polygon create-argb-bitmap
+                width height prints xoff yoff
+                (stroke-paint->source* outline) (fill-paint->source* pattern) rule
+                density)))
+
+(define bitmap-parallelogram : (-> Real Real Real
+                                   [#:stroke Maybe-Stroke-Paint] [#:fill Option-Fill-Paint] [#:density Positive-Flonum] [#:radian? Boolean]
+                                   Bitmap)
+  (lambda [#:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)] #:radian? [radian? #true]
+           width height angle]
+    (define-values (flwidth flheight) (~size width height))
+    
+    (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window -1.0-1.0i
+                    (geo-parallelogram-vertices flwidth flheight (~cycle (~radian angle radian?) 2pi 0.0)))))
+
+(define bitmap-rhombus : (-> Real Real [#:stroke Maybe-Stroke-Paint] [#:fill Option-Fill-Paint] [#:density Positive-Flonum] Bitmap)
+  (lambda [width height #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]]
+    (define-values (flwidth flheight) (~size width height))
+    
+    (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window -1.0-1.0i
+                    (geo-rhombus-vertices flwidth flheight))))
 
 (define bitmap-stadium : (-> Real Real [#:stroke Maybe-Stroke-Paint] [#:fill Option-Fill-Paint] [#:density Positive-Flonum] Bitmap)
   (lambda [length radius #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]]

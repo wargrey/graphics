@@ -6,7 +6,7 @@
 (require colorspace)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Color (U Symbol Integer Keyword FlColor))
+(define-type Color (U Symbol Real Keyword FlColor))
 
 (struct paint () #:transparent #:type-name Paint)
 (struct flcolor () #:transparent #:type-name FlColor)
@@ -40,5 +40,5 @@
   (lambda [v]
     (or (flcolor? v)
         (symbol? v)
-        (exact-integer? v)
+        (real? v)
         (keyword? v))))

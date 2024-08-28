@@ -17,12 +17,14 @@
 (provide geo-ellipse geo:ellipse? Geo:Ellipse)
 (provide geo-arc geo:arc? Geo:Arc)
 (provide geo-sector geo:sector? Geo:Sector)
-(provide geo-regular-polygon geo:regular-polygon? Geo:Regular-Polygon)
-(provide geo-polygon geo:polygon? Geo:Polygon)
-(provide geo-polyline geo:polyline? Geo:Polyline)
 (provide geo-stadium geo:stadium? Geo:Stadium)
 (provide geo-sandglass geo:sandglass? Geo:Sandglass)
 (provide geo-arrow geo-arrowhead geo:arrow? Geo:Arrow)
+
+(provide geo-regular-polygon geo:regular-polygon? Geo:Regular-Polygon)
+(provide geo-polygon geo:polygon? Geo:Polygon)
+(provide geo-polyline geo:polyline? Geo:Polyline)
+(provide geo-parallelogram geo-rhombus)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require "digitama/dc/text.rkt")
@@ -31,7 +33,9 @@
 (require "digitama/dc/plain.rkt")
 (require "digitama/dc/raster.rkt")
 (require "digitama/dc/line.rkt")
-(require "digitama/dc/polygon.rkt")
 (require "digitama/dc/arrow.rkt")
 
 (require "digitama/dc/more.rkt")
+
+(require "digitama/dc/polygon.rkt")
+(require "digitama/dc/polygon/quadrilateral.rkt")

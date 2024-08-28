@@ -17,7 +17,7 @@
 (define default-background-source : (Parameterof Maybe-Fill-Source) (make-parameter (void)))
 (define default-fill-source : (Parameterof Maybe-Fill-Source) (make-parameter (void)))
 
-(define default-foreground-source : (Parameterof (Option Fill-Source)) (make-parameter #false))
+(define default-font-source : (Parameterof (Option Fill-Source)) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define current-stroke-source* : (-> Stroke)
@@ -47,19 +47,19 @@
     (if (void? src) (fill-paint->source* (default-fill-paint)) src)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-select-foreground : (-> Option-Fill-Paint Fill-Source)
+(define geo-select-font-source : (-> Option-Fill-Paint Fill-Source)
   (lambda [alt-fg]
-    (cond [(and alt-fg) (foreground->source alt-fg)]
-          [else (let ([fg (default-foreground-source)])
-                  (or fg (foreground->source #false)))])))
+    (cond [(and alt-fg) (font-paint->source alt-fg)]
+          [else (or (default-font-source)
+                    (font-paint->source #false))])))
 
-(define geo-select-background : (-> Maybe-Fill-Paint (Option Fill-Source))
+(define geo-select-background-source : (-> Maybe-Fill-Paint (Option Fill-Source))
   (lambda [alt-bg]
     (if (void? alt-bg)
         (current-background-source)
         (fill-paint->source* alt-bg))))
 
-(define geo-select-fill : (-> Maybe-Fill-Paint (Option Fill-Source))
+(define geo-select-fill-source : (-> Maybe-Fill-Paint (Option Fill-Source))
   (lambda [alt-fill]
     (if (void? alt-fill)
         (current-fill-source)

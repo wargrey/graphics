@@ -37,41 +37,47 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Sticker-Datum (U Geo-Sticker Geo))
-(define-type Geo-Anchor->Sticker (-> Geo-Path Geo-Anchor-Name Float-Complex Nonnegative-Flonum Nonnegative-Flonum
-                                     (U Geo-Sticker-Datum (Listof Geo-Sticker-Datum))))
+(define-type Geo-Trusted-Anchors (U (Listof Geo-Anchor-Name) (-> Geo-Anchor-Name Boolean)))
+(define-type Geo-Anchor->Sticker (-> Geo:Path Geo-Anchor-Name Float-Complex Nonnegative-Flonum Nonnegative-Flonum
+                                     (U Geo-Sticker-Datum (Listof Geo-Sticker-Datum) Void False)))
 
-(define default-track-anchor->sticker : Geo-Anchor->Sticker
+(define default-anchor->sticker : Geo-Anchor->Sticker
   (lambda [self anchor pos Width Height]
     (if (symbol? anchor)
         (geo-text (symbol->immutable-string anchor) #:color 'RoyalBlue)
         (geo-text (keyword->immutable-string anchor) #:color 'Gray))))
 
-(define geo-path-stick : (->* (Geo-Path)
-                              (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator) #:trusted-anchors (Option (Listof Geo-Anchor-Name))
-                               #:truncate? Boolean Geo-Anchor->Sticker)
-                              (U Geo:Group Geo-Path))
-  (lambda [#:trusted-anchors [trusted-anchors #false] #:id [id #false] #:operator [op #false] #:truncate? [truncate? #true]
-           self [anchor->sticker default-track-anchor->sticker]]
-    (define gpath : Geo-Trail (geo-path-trail self))
+(define geo:path-stick : (-> Geo:Path Geo-Anchor->Sticker (-> Geo:Path Geo:Path) (Option Geo-Trusted-Anchors) Boolean
+                             (Option Symbol) (Option Geo-Pin-Operator)
+                             (U Geo:Group Geo:Path))
+  (lambda [master anchor->sticker master->self trusted-anchors truncate? id op]
+    (define self : Geo:Path (master->self master))
+    (define gpath : Geo-Trail (geo:path-trail self))
     (define srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath))
-    (define origin : Float-Complex (geo-bbox-position (geo-path-bbox self)))
+    (define origin : Float-Complex (geo-bbox-position (geo:path-bbox self)))
     (define-values (Width Height) (geo-flsize self))
+    (define path-id : Symbol (or id (gensym 'geo:path:)))
 
     (let stick ([srohcna : (Listof Geo-Anchor-Name) srohcna]
                 [stickers : (Listof (GLayerof Geo)) null])
       (cond [(pair? srohcna)
              (let-values ([(anchor rest) (values (car srohcna) (cdr srohcna))])
-               (if (or (not trusted-anchors) (memq anchor trusted-anchors))
+               (if (or (not trusted-anchors)
+                       (if (list? trusted-anchors)
+                           (memq anchor trusted-anchors)
+                           (trusted-anchors anchor)))
                    (let* ([pos (- (geo-trail-ref gpath anchor) origin)]
                           [ones (anchor->sticker self anchor pos Width Height)])
-                     (stick rest (append stickers (geo-stickers->layers ones pos))))
+                     (if (or (geo-sticker? ones) (geo? ones) (pair? ones))
+                         (stick rest (append stickers (geo-stickers->layers ones pos)))
+                         (stick rest stickers)))
                    (stick rest stickers)))]
             [(pair? stickers)
              (let-values ([(self-layer) (vector-immutable self 0.0 0.0 Width Height)])
                (or (and (not truncate?)
                         (let ([maybe-group (geo-path-try-extend self-layer stickers Width Height)])
-                          (and maybe-group (make-geo:group id op maybe-group))))
-                   (make-geo:group id op (vector-immutable Width Height (cons self-layer stickers)))))]
+                          (and maybe-group (make-geo:group path-id op maybe-group))))
+                   (make-geo:group path-id op (vector-immutable Width Height (cons self-layer stickers)))))]
             [else self]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

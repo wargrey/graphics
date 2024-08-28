@@ -17,18 +17,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-save : (->* (Geo<%> (U Path-String Output-Port))
                         (#:stroke Option-Stroke-Paint #:border Option-Stroke-Paint #:fill Option-Fill-Paint #:fill-rule Symbol
-                         #:foreground Option-Fill-Paint #:background Option-Fill-Paint #:font Font #:operator Geo-Pin-Operator
+                         #:font-paint Option-Fill-Paint #:background Option-Fill-Paint #:font Font #:operator Geo-Pin-Operator
                          #:format Symbol #:bitmap-density Positive-Flonum)
                         Void)
   (lambda [#:stroke [stroke (default-stroke-paint)] #:border [border (default-border-paint)]
            #:fill [fill (default-fill-paint)] #:fill-rule [rule (default-fill-rule)]
-           #:foreground [fgc (default-foreground-paint)] #:background [bgc (default-background-paint)]
+           #:font-paint [fgc (default-font-paint)] #:background [bgc (default-background-paint)]
            #:font [font (default-font)] #:operator [op (default-pin-operator)]
            #:format [format 'pdf] #:bitmap-density [density (default-bitmap-density)]
            self /dev/geoout]
     (parameterize ([default-stroke-source (stroke-paint->source* stroke)]
                    [default-border-source (border-paint->source* border)]
-                   [default-foreground-source (foreground->source fgc)]
+                   [default-font-source (font-paint->source fgc)]
                    [default-background-source (fill-paint->source* bgc)]
                    [default-fill-source (fill-paint->source* fill)]
                    [default-fill-rule rule]

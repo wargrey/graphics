@@ -89,7 +89,7 @@
         [(Dart Flower) (make-sticker sticker 'rb -2.0 -2.0)]
         [else (make-sticker sticker 'cc)])))
   
-  (reverse (geo-path-footprints drywani))
+  (reverse (geo:path-footprints drywani))
   (geo-frame (geo-path-stick drywani make-anchor-sticker #:truncate? #false))
   (geo-freeze drywani #:stroke 'ForestGreen #:fill (rgb* 'RoyalBlue 0.618))
 

@@ -17,17 +17,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-freeze : (->* (Geo<%>)
                           (#:stroke Option-Stroke-Paint #:border Option-Stroke-Paint #:fill Option-Fill-Paint #:fill-rule Symbol
-                           #:foreground Option-Fill-Paint #:background Option-Fill-Paint #:font Font #:operator Geo-Pin-Operator
+                           #:font-paint Option-Fill-Paint #:background Option-Fill-Paint #:font Font #:operator Geo-Pin-Operator
                            #:density Positive-Flonum)
                           Bitmap)
   (lambda [#:stroke [stroke (default-stroke-paint)] #:border [border (default-border-paint)]
            #:fill [fill (default-fill-paint)] #:fill-rule [rule (default-fill-rule)]
-           #:foreground [fgc (default-foreground-paint)] #:background [bgc (default-background-paint)]
+           #:font-paint [fgc (default-font-paint)] #:background [bgc (default-background-paint)]
            #:font [font (default-font)] #:operator [op (default-pin-operator)] #:density [density (default-bitmap-density)]
            self]
     (parameterize ([default-stroke-source (stroke-paint->source* stroke)]
                    [default-border-source (border-paint->source* border)]
-                   [default-foreground-source (foreground->source fgc)]
+                   [default-font-source (font-paint->source fgc)]
                    [default-background-source (fill-paint->source* bgc)]
                    [default-fill-source (fill-paint->source* fill)]
                    [default-fill-rule rule]
@@ -43,16 +43,16 @@
 (define geo-freeze! : (->* (Bitmap Geo<%>)
                            (Real Real
                                  #:stroke Option-Stroke-Paint #:border Option-Stroke-Paint #:fill Option-Fill-Paint #:fill-rule Symbol
-                                 #:foreground Option-Fill-Paint #:background Option-Fill-Paint #:operator Geo-Pin-Operator)
+                                 #:fontcolor Option-Fill-Paint #:background Option-Fill-Paint #:operator Geo-Pin-Operator)
                            Void)
   (lambda [#:stroke [stroke (default-stroke-paint)] #:border [border (default-border-paint)]
            #:fill [fill (default-fill-paint)] #:fill-rule [rule (default-fill-rule)]
-           #:foreground [fgc (default-foreground-paint)] #:background [bgc (default-background-paint)]
+           #:fontcolor [fgc (default-font-paint)] #:background [bgc (default-background-paint)]
            #:font [font (default-font)] #:operator [op (default-pin-operator)]
            target self [dx 0.0] [dy 0.0]]
     (parameterize ([default-stroke-source (stroke-paint->source* stroke)]
                    [default-border-source (border-paint->source* border)]
-                   [default-foreground-source (foreground->source fgc)]
+                   [default-font-source (font-paint->source fgc)]
                    [default-background-source (fill-paint->source* bgc)]
                    [default-fill-source (fill-paint->source* fill)]
                    [default-fill-rule rule]

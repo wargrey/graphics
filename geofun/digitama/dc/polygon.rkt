@@ -57,7 +57,7 @@
                                  #:id (Option Symbol) #:scale Point2D #:window Point2D
                                  #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule (Option Symbol))
                            Geo:Polygon)
-  (lambda [#:id [id #false] #:scale [scale 1.0] #:window [window 0]
+  (lambda [#:id [id #false] #:scale [scale 1.0] #:window [window 0.0-0.0i]
            #:stroke [stroke (void)] #:fill [pattern (void)] #:fill-rule [rule #false]
            pts [dx 0.0] [dy 0.0]]
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
@@ -72,7 +72,7 @@
 (define geo-polyline : (->* ((U Point2D (Listof Point2D)))
                             (Real Real #:id (Option Symbol) #:scale Point2D #:window Point2D #:stroke Maybe-Stroke-Paint #:close? Boolean)
                             Geo:Polyline)
-  (lambda [#:id [id #false] #:scale [scale 1.0] #:window [window 0] #:stroke [stroke (void)] #:close? [close? #false]
+  (lambda [#:id [id #false] #:scale [scale 1.0] #:window [window 0.0-0.0i] #:stroke [stroke (void)] #:close? [close? #false]
            pts [dx 0.0] [dy 0.0]]
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height) (point2d->window window lx ty rx by))

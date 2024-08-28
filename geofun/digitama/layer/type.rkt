@@ -49,9 +49,12 @@
                          [by : Nonnegative-Flonum Height]
                          [siblings : (Listof (GLayerof G)) siblings])
       (if (pair? siblings)
-          (let ([self (car siblings)])
-            (check-boundary (min lx (vector-ref self 1)) (min ty (vector-ref self 2))
-                            (max rx (+ (vector-ref self 1) (vector-ref self 3))) (max by (+ (vector-ref self 2) (vector-ref self 4)))
+          (let* ([self (car siblings)]
+                 [x (vector-ref self 1)]
+                 [y (vector-ref self 2)]
+                 [w (vector-ref self 3)]
+                 [h (vector-ref self 4)])
+            (check-boundary (min lx x) (min ty y) (max rx (+ x w)) (max by (+ y h))
                             (cdr siblings)))
           (values lx ty rx by)))))
 
