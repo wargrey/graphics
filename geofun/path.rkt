@@ -9,10 +9,10 @@
 (provide geo-path-close)
 
 (provide
- (rename-out [dryland-wani-step-up-right! dryland-wani-step-right-up!]
-             [dryland-wani-step-right-down! dryland-wani-step-down-right!]
-             [dryland-wani-step-down-left! dryland-wani-step-left-down!]
-             [dryland-wani-step-left-up! dryland-wani-step-up-left!])
+ (rename-out [dryland-wani-move-up-right! dryland-wani-move-right-up!]
+             [dryland-wani-move-right-down! dryland-wani-move-down-right!]
+             [dryland-wani-move-down-left! dryland-wani-move-left-down!]
+             [dryland-wani-move-left-up! dryland-wani-move-up-left!])
 
  (rename-out [dryland-wani-jump-up-right! dryland-wani-jump-right-up!]
              [dryland-wani-jump-right-down! dryland-wani-jump-down-right!]
@@ -61,7 +61,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-dryland-wani : (->* (Real)
                                  (Real #:turn-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
-                                       #:anchor Keyword #:at Geo-Print-Datum #:id (Option Symbol)
+                                       #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
                                        #:stroke Maybe-Stroke-Paint)
                                  Dryland-Wani)
   (lambda [#:turn-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
@@ -137,7 +137,7 @@
           [(null? (cdr ctrls)) (geo-path-quadratic-bezier wani endpt (car ctrls) anchor)]
           [else (geo-path-cubic-bezier wani endpt (car ctrls) (cadr ctrls) anchor)])))
 
-(define dryland-wani-step-to! : (-> Dryland-Wani Geo-Anchor-Name Void)
+(define dryland-wani-move-to! : (-> Dryland-Wani Geo-Anchor-Name Void)
   (lambda [wani target]
     (geo-path-connect-to wani target)))
 

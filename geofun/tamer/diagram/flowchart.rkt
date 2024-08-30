@@ -4,14 +4,23 @@
 (require geofun/flowchart)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-dryland-wani! flow-chart [64 64 #:anchor '#:Start] #:-
-  (step-down 1 'initialize)
-  (step-down 1 '>>cin)
-  (step-down 1 'okay?)
-  (step-down 1 'process)
-  (step-down 1 'cout<<)
-  (step-down 1 'End$))
+(define-dryland-wani! repl [64 64 #:anchor '^REPL] #:-
+  (move-down 1 'initialization!)
+  (move-down 1 '>>Read)
+  (move-down 1 'exit?)
+  (move-down 1 'Evaluate)
+  (move-down 1 'Print<<)
+
+  (move-left 2)
+  (move-up 3)
+  (move-right 2)
+
+  (jump-back 'exit?)
+  (move-right 2)
+  (move-down 2.5)
+  (move-left 2)
+  (move-down 0.5 'Exit$))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (geo-path-flow flow-chart))
+  (geo-path-flow repl))
