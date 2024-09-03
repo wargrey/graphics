@@ -11,13 +11,14 @@
   (move-down 1 'Evaluate)
   (move-down 1 'Print<<)
 
+  (move-down 0.5)
   (move-left 2)
-  (move-up 3)
+  (move-up 4)
   (move-right 2)
 
   (jump-back 'exit?)
   (move-right 2)
-  (move-down 2.5)
+  (move-down 2.75)
   (move-left 2)
   (move-down 0.5 'Exit$))
 

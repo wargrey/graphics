@@ -147,5 +147,3 @@
                                      [else (append cells (map fill-row rows) (make-list (- ncols rsize) cont))]))
                              ncols nrows col-ports row-ports col-gaps row-gaps cont))
         cont)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

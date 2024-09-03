@@ -25,6 +25,7 @@
 (require geofun/digitama/unsafe/dc/text)
 
 (require geofun/digitama/geometry/polygon/quadrilateral)
+(require geofun/digitama/geometry/polygon/hexagon)
 
 (require "digitama/convert.rkt")
 (require "digitama/unsafe/image.rkt")
@@ -222,6 +223,13 @@
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window -1.0-1.0i
                     (geo-rhombus-vertices flwidth flheight))))
+
+(define bitmap-hexagon-tile : (-> Real Real [#:stroke Maybe-Stroke-Paint] [#:fill Option-Fill-Paint] [#:density Positive-Flonum] Bitmap)
+  (lambda [width height #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]]
+    (define-values (flwidth flheight) (~size width height))
+    
+    (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window -1.0-1.0i
+                    (geo-hexagon-tile-vertices flwidth flheight))))
 
 (define bitmap-stadium : (-> Real Real [#:stroke Maybe-Stroke-Paint] [#:fill Option-Fill-Paint] [#:density Positive-Flonum] Bitmap)
   (lambda [length radius #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]]

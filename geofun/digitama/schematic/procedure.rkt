@@ -21,11 +21,11 @@
                           [else (xterm (remainder (char->integer (string-ref (symbol->immutable-string var) 0)) 255))]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#;(define geo-procedure : (->* ((U False String Geo (-> Nonnegative-Flonum Geo)) (Listof Symbol))
-                                ((U Symbol (Listof Symbol)) #:min-width Real #:min-height Real #:io-width Real #:font Font
-                                                            #:iotext-color Color #:iofill Schematic-Procedure-IO-Fill
-                                                            #:border Stroke #:body-fill Fill-Paint)
-                                Geo)
+(define geo-procedure : (->* ((U False String Geo (-> Nonnegative-Flonum Geo)) (Listof Symbol))
+                             ((U Symbol (Listof Symbol)) #:min-width Real #:min-height Real #:io-width Real #:font Font
+                                                         #:iotext-color Color #:iofill Schematic-Procedure-IO-Fill
+                                                         #:border Stroke #:body-fill Fill-Paint)
+                             Geo)
   (lambda [#:min-width [min-width 0.0] #:min-height [min-height 0.0] #:io-width [io-width -1.618] #:font [font (default-procedure-font)]
            #:iotext-color [text-color (default-procedure-iotext-color)] #:iofill [iofill-color (default-procedure-iofill)]
            #:border [border (default-procedure-border)] #:body-fill [b:fill (default-procedure-body-fill)]
@@ -50,7 +50,7 @@
 
     (define caption : (Option Geo)
       (cond [(not desc) #false]
-            [(bitmap? desc) desc]
+            [(geo? desc) desc]
             [(not (string? desc)) (desc em)]
             [else (geo-text (string-append " " desc " ") font #:color text-color)]))
 
@@ -81,16 +81,14 @@
     (cond [(= icount ocount 0) ipo:p]
           [else (let* ([offset (* b:height -1.0)]
                        [self (cond [(= icount 0) ipo:p]
-                                   [else (parameterize ([default-pin-operator 'dest-over])
-                                           (geo-vc-append #:gapsize (+ offset 0.0) ipo:i ipo:p))])]
+                                   [else (geo-vc-append #:operator 'dest-over #:gapsize (+ offset 0.0) ipo:i ipo:p)])]
                        [self (cond [(= ocount 0) self]
-                                   [else (parameterize ([default-pin-operator 'over])
-                                           (geo-vc-append #:gapsize (- offset 1.0) self ipo:o))])])
+                                   [else (geo-vc-append #:operator 'over #:gapsize (- offset 1.0) self ipo:o)])])
                   self)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  #;(geo-procedure #false null)
-  #;(geo-procedure #false null '(=))
-  #;(geo-procedure #false '(C))
-  #;(geo-procedure "V - E + F = 2" '(V E F) '(=)))
+  (geo-procedure #false null)
+  (geo-procedure #false null '(=))
+  (geo-procedure #false '(C))
+  (geo-procedure "V - E + F = 2" '(V E F) '(=)))

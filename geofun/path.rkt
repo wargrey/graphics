@@ -23,6 +23,7 @@
              [make-sticker make-geo-sticker]))
 
 (require "paint.rkt")
+(require "stroke.rkt")
 
 (require "digitama/convert.rkt")
 (require "digitama/composite.rkt")
@@ -62,10 +63,11 @@
 (define make-dryland-wani : (->* (Real)
                                  (Real #:turn-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
                                        #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
-                                       #:stroke Maybe-Stroke-Paint)
+                                       #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule Symbol)
                                  Dryland-Wani)
   (lambda [#:turn-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
-           #:anchor [anchor '#:home] #:at [home 0] #:id [name #false] #:stroke [stroke (void)]
+           #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
+           #:stroke [stroke (void)] #:fill [fill (void)] #:fill-rule [frule (default-fill-rule)]
            xstepsize [ystepsize 0.0]]
     (define xstep : Nonnegative-Flonum
       (cond [(<= xstepsize 0.0) 1.0]
@@ -81,12 +83,13 @@
     (define-values (usx usy) (geo-path-turn-scales u-scale 0.25))
     
     (create-geometry-object dryland-wani
-                            #:surface geo-path-surface stroke
+                            #:surface geo-path-surface stroke fill frule
                             #:extent (geo-stroke-extent-wrapper geo-path-extent stroke)
                             #:id name
                             (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             (list (cons start-of-track home-pos))
+                            (and (stroke? stroke) (* (stroke-width stroke) 0.5))
                             xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -153,13 +156,16 @@
                               (U Geo:Group Geo:Path))
   (lambda [#:trusted-anchors [trusted-anchors #false] #:id [id #false] #:operator [op #false] #:truncate? [truncate? #true]
            self [anchor->sticker default-anchor->sticker]]
-    (geo:path-stick self anchor->sticker values trusted-anchors truncate?
-                    (or id (gensym 'geo:path:)) op)))
+    (geo:path-stick self anchor->sticker trusted-anchors truncate?
+                    (or id (gensym 'geo:path:)) op
+                    (geo-path-sticker-offset self))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-anchor-position : (->* (Geo:Path Geo-Anchor-Name) (#:translate? Boolean) Float-Complex)
   (lambda [self anchor #:translate? [translate? #false]]
-    (define abspos : Float-Complex (geo-trail-ref (geo:path-trail self) anchor))
+    (define abspos : Float-Complex
+      (+ (geo-trail-ref (geo:path-trail self) anchor)
+         (geo-path-sticker-offset self)))
     
     (cond [(not translate?) abspos]
           [else (- abspos (geo-bbox-position (geo:path-bbox self)))])))

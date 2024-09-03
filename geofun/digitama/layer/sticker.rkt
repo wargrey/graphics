@@ -38,8 +38,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Sticker-Datum (U Geo-Sticker Geo))
 (define-type Geo-Trusted-Anchors (U (Listof Geo-Anchor-Name) (-> Geo-Anchor-Name Boolean)))
-(define-type Geo-Anchor->Sticker (-> Geo:Path Geo-Anchor-Name Float-Complex Nonnegative-Flonum Nonnegative-Flonum
-                                     (U Geo-Sticker-Datum (Listof Geo-Sticker-Datum) Void False)))
+(define-type Geo-Anchor->Sticker (-> Geo:Path Geo-Anchor-Name Float-Complex Nonnegative-Flonum Nonnegative-Flonum (U Geo-Sticker-Datum Void False)))
 
 (define default-anchor->sticker : Geo-Anchor->Sticker
   (lambda [self anchor pos Width Height]
@@ -47,17 +46,24 @@
         (geo-text (symbol->immutable-string anchor) #:color 'RoyalBlue)
         (geo-text (keyword->immutable-string anchor) #:color 'Gray))))
 
-(define geo:path-stick : (-> Geo:Path Geo-Anchor->Sticker (-> Geo:Path Geo:Path) (Option Geo-Trusted-Anchors) Boolean
-                             (Option Symbol) (Option Geo-Pin-Operator)
+(define geo:path-stick : (-> Geo:Path Geo-Anchor->Sticker (Option Geo-Trusted-Anchors) Boolean
+                             (Option Symbol) (Option Geo-Pin-Operator) Float-Complex
                              (U Geo:Group Geo:Path))
-  (lambda [master anchor->sticker master->self trusted-anchors truncate? id op]
-    (define self : Geo:Path (master->self master))
+  (lambda [self anchor->sticker trusted-anchors truncate? id op paint-offset]
+    (define path-id : Symbol (or id (gensym 'geo:path:)))
+    (define layers : (Option (GLayer-Groupof Geo)) (geo:path-stick/list self anchor->sticker trusted-anchors truncate? paint-offset))
+
+    (cond [(or layers) (make-geo:group path-id op layers)]
+          [else self])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo:path-stick/list : (-> Geo:Path Geo-Anchor->Sticker (Option Geo-Trusted-Anchors) Boolean Float-Complex (Option (GLayer-Groupof Geo)))
+  (lambda [self anchor->sticker trusted-anchors truncate? paint-offset]
     (define gpath : Geo-Trail (geo:path-trail self))
     (define srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath))
     (define origin : Float-Complex (geo-bbox-position (geo:path-bbox self)))
     (define-values (Width Height) (geo-flsize self))
-    (define path-id : Symbol (or id (gensym 'geo:path:)))
-
+    
     (let stick ([srohcna : (Listof Geo-Anchor-Name) srohcna]
                 [stickers : (Listof (GLayerof Geo)) null])
       (cond [(pair? srohcna)
@@ -67,18 +73,18 @@
                            (memq anchor trusted-anchors)
                            (trusted-anchors anchor)))
                    (let* ([pos (- (geo-trail-ref gpath anchor) origin)]
-                          [ones (anchor->sticker self anchor pos Width Height)])
-                     (if (or (geo-sticker? ones) (geo? ones) (pair? ones))
-                         (stick rest (append stickers (geo-stickers->layers ones pos)))
+                          [stk (anchor->sticker self anchor pos Width Height)])
+                     (if (or (geo-sticker? stk) (geo? stk))
+                         (stick rest (cons (geo-sticker->layer stk pos paint-offset) stickers))
                          (stick rest stickers)))
                    (stick rest stickers)))]
             [(pair? stickers)
+             ; don't offset the path itself, leave it to the path drawer
              (let-values ([(self-layer) (vector-immutable self 0.0 0.0 Width Height)])
                (or (and (not truncate?)
-                        (let ([maybe-group (geo-path-try-extend self-layer stickers Width Height)])
-                          (and maybe-group (make-geo:group path-id op maybe-group))))
-                   (make-geo:group path-id op (vector-immutable Width Height (cons self-layer stickers)))))]
-            [else self]))))
+                        (geo-path-try-extend self-layer stickers Width Height))
+                   (vector-immutable Width Height (cons self-layer stickers))))]
+            [else #false]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-path-try-extend : (-> (GLayerof Geo) (Listof (GLayerof Geo)) Nonnegative-Flonum Nonnegative-Flonum (Option (GLayer-Groupof Geo)))
@@ -93,29 +99,27 @@
                                    (for/list : (Listof (GLayerof Geo)) ([sticker (in-list stickers)])
                                      (geo-layer-translate sticker xoff yoff))))))))
 
-(define geo-stickers->layers : (-> (U Geo-Sticker-Datum (Listof Geo-Sticker-Datum)) Float-Complex (Listof (GLayerof Geo)))
-  (lambda [self pos]
-    (if (list? self)
-        (for/list ([one (in-list self)])
-          (geo-sticker->layer one pos))
-        (list (geo-sticker->layer self pos)))))
+(define geo-path-sticker-dictionary : (-> (Listof (GLayerof Geo)) (Immutable-HashTable Symbol (GLayerof Geo)))
+  (lambda [stickers]
+    (for/hasheq : (Immutable-HashTable Symbol (GLayerof Geo)) ([sticker (in-list stickers)])
+      (values (geo-id (vector-ref sticker 0)) sticker))))
 
-(define geo-sticker->layer : (-> Geo-Sticker-Datum Float-Complex (GLayerof Geo))
-  (lambda [self pos]
+(define geo-sticker->layer : (-> Geo-Sticker-Datum Float-Complex Float-Complex (GLayerof Geo))
+  (lambda [self pos paint-offset]
     (define-values (sticker port offset)
       (if (geo-sticker? self)
           (values (geo-sticker-self self) (geo-sticker-port self) (geo-sticker-offset self))
           (values self 'cc 0.0+0.0i)))
     (define-values (width height) (geo-flsize sticker))
-    (geo-stick-layer port pos sticker width height offset)))
+    (geo-stick-layer port pos sticker width height offset paint-offset)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (G) geo-stick-layer : (-> Geo-Pin-Port Float-Complex G Nonnegative-Flonum Nonnegative-Flonum Float-Complex (GLayerof G))
-  (lambda [port target self width height offset]
+(define #:forall (G) geo-stick-layer : (-> Geo-Pin-Port Float-Complex G Nonnegative-Flonum Nonnegative-Flonum Float-Complex Float-Complex (GLayerof G))
+  (lambda [port target self width height offset paint-offset]
     (define-values (dx dy) (geo-superimpose-layer port 0.0 0.0 width height))
-    (define pos (+ target offset))
+    (define pos (+ target offset paint-offset))
 
     (vector-immutable self
-                      (+ (real->double-flonum (real-part pos)) dx)
-                      (+ (real->double-flonum (imag-part pos)) dy)
+                      (+ (real-part pos) dx)
+                      (+ (imag-part pos) dy)
                       width height)))

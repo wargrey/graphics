@@ -39,8 +39,7 @@
                         [wgap (max (vector-ref gcols col) 0.0)]
                         [port (geo-port-merge (vector-ref prows row) (vector-ref pcols col))])
                     (compose-col (+ xoff wcol wgap) (+ col 1)
-                                 (cons (geo-superimpose-layer (geo-port-merge (vector-ref prows row) (vector-ref pcols col))
-                                                              wcol hrow cell xoff height 'placeholder)
+                                 (cons (geo-superimpose-layer port wcol hrow cell xoff height 'placeholder)
                                        rlayers)))
                   (compose-row xoff (+ height hrow hgap) (+ row 1) (cons (reverse rlayers) layers)))))
 

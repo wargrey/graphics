@@ -78,13 +78,14 @@
                             #:surface geo-group-surface
                             #:extent (geo-group-extent layers)
                             #:id id
-                            op layers (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
+                            op layers
+                            (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
 
 (define geo-group-surface : Geo-Surface-Create
   (lambda [self]
     (with-asserts ([self geo:group?])
       (geo_composite (geo-select-operator (geo:group-operator self) default-pin-operator)
-                     (geo:group-layers self) 
+                     (geo:group-layers self)
                      (default-geometry-density)))))
 
 (define geo-group-extent : (-> Geo-Layer-Group Geo-Calculate-Extent)

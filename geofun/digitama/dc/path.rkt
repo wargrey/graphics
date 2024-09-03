@@ -5,6 +5,7 @@
 (require "ink.rkt")
 (require "paint.rkt")
 (require "../../paint.rkt")
+(require "../../stroke.rkt")
 (require "../convert.rkt")
 
 (require "../geometry/dot.rkt")
@@ -26,7 +27,8 @@
    [bbox : Geo-BBox]
    [origin : Float-Complex]
    [here : Float-Complex]
-   [footprints : (Pairof Geo-Path-Print (Listof Geo-Path-Print))])
+   [footprints : (Pairof Geo-Path-Print (Listof Geo-Path-Print))]
+   [sticker-offset : (Option Flonum)])
   #:type-name Geo:Path
   #:transparent
   #:mutable)
@@ -223,6 +225,17 @@
         (geo-path-do-move self tpos (+ (geo:path-here self) tpos) #\l anchor #false))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-path-sticker-offset : (-> Geo:Path Float-Complex)
+  (lambda [self]
+    (define maybe-offset : (Option Flonum) (geo:path-sticker-offset self))
+
+    (cond [(and maybe-offset) (make-rectangular maybe-offset maybe-offset)]
+          [else (let* ([default-paint (default-stroke-paint)])
+                  (if  (stroke? default-paint)
+                       (let ([default-offset (* (stroke-width default-paint) 0.5)])
+                         (make-rectangular default-offset default-offset))
+                       0.0+0.0i))])))
+
 (define geo-path-extent : Geo-Calculate-Extent
   (lambda [self]
     (with-asserts ([self geo:path?])

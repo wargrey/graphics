@@ -34,9 +34,9 @@
 (define geo-port-merge : (-> Geo-Pin-Port Geo-Pin-Port Geo-Pin-Port)
   (lambda [prow pcol]
     (cond [(eq? prow pcol) prow]
-          [(memq prow '(lt lc lb)) (case pcol [(ct rt) 'lt] [(cc rc) 'lc] [(cb rb) 'lb] [else pcol])]
-          [(memq prow '(ct cc cb)) (case pcol [(lt rt) 'ct] [(lc rc) 'cc] [(lb rb) 'cb] [else pcol])]
-          [(memq prow '(rt rc rb)) (case pcol [(lt ct) 'rt] [(lc cc) 'rc] [(lb cb) 'rb] [else pcol])]
+          [(memq pcol '(lt lc lb)) (case prow [(ct rt) 'lt] [(cc rc) 'lc] [(cb rb) 'lb] [else prow])]
+          [(memq pcol '(ct cc cb)) (case prow [(lt rt) 'ct] [(lc rc) 'cc] [(lb rb) 'cb] [else prow])]
+          [(memq pcol '(rt rc rb)) (case prow [(lt ct) 'rt] [(lc cc) 'rc] [(lb cb) 'rb] [else prow])]
           [else 'cc])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
