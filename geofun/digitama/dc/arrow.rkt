@@ -8,7 +8,8 @@
 (require "../../paint.rkt")
 
 (require "../convert.rkt")
-(require "../unsafe/dc/arrow.rkt")
+(require "../unsafe/path.rkt")
+(require "../geometry/polygon/arrow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:arrow geo
@@ -60,17 +61,20 @@
 (define geo-arrow-extent : Geo-Calculate-Extent
   (lambda [self]
     (with-asserts ([self geo:arrow?])
-      (define metrics
-        (dc-arrow-metrics (geo:arrow-head-radius self) (geo:arrow-start-angle self)
-                          (geo:arrow-shaft-thickness self) (geo:arrow-shaft-length self)
-                          (geo:arrow-wing-angle self)))
-      (values (vector-ref metrics 3) (vector-ref metrics 4) #false))))
+      (define-values (prints tx ty width height)
+        (geo-arrow-metrics (geo:arrow-head-radius self) (geo:arrow-start-angle self)
+                           (geo:arrow-shaft-thickness self) (geo:arrow-shaft-length self)
+                           (geo:arrow-wing-angle self)))
+      (values width height #false))))
 
 (define geo-arrow-surface : Geo-Surface-Create
   (lambda [self]
     (with-asserts ([self geo:arrow?])
-      (dc_arrow create-abstract-surface
-                (dc-arrow-metrics (geo:arrow-head-radius self) (geo:arrow-start-angle self)
-                                  (geo:arrow-shaft-thickness self) (geo:arrow-shaft-length self)
-                                  (geo:arrow-wing-angle self))
-                (current-stroke-source) (current-fill-source) (default-geometry-density)))))
+      (define-values (prints tx ty width height)
+        (geo-arrow-metrics (geo:arrow-head-radius self) (geo:arrow-start-angle self)
+                           (geo:arrow-shaft-thickness self) (geo:arrow-shaft-length self)
+                           (geo:arrow-wing-angle self)))
+      
+      (dc_polygon create-abstract-surface width height prints tx ty #true #true
+                  (current-stroke-source) (current-fill-source) (default-fill-rule)
+                  (default-geometry-density)))))

@@ -9,7 +9,6 @@
 (require geofun/font)
 (require geofun/color)
 (require geofun/paint)
-(require geofun/stroke)
 
 (require geofun/digitama/base)
 (require geofun/digitama/font)
@@ -21,11 +20,11 @@
 (require geofun/digitama/unsafe/path)
 (require geofun/digitama/unsafe/dc/plain)
 (require geofun/digitama/unsafe/dc/shape)
-(require geofun/digitama/unsafe/dc/arrow)
 (require geofun/digitama/unsafe/dc/text)
 
 (require geofun/digitama/geometry/polygon/quadrilateral)
 (require geofun/digitama/geometry/polygon/hexagon)
+(require geofun/digitama/geometry/polygon/arrow)
 
 (require "digitama/convert.rkt")
 (require "digitama/unsafe/image.rkt")
@@ -162,16 +161,16 @@
                               density))))
 
 (define bitmap-polyline : (->* ((U Point2D (Listof Point2D)))
-                               (Real Real #:scale Point2D #:window Point2D #:stroke Maybe-Stroke-Paint #:close? Boolean #:density Positive-Flonum)
+                               (Real Real #:scale Point2D #:window (Option Point2D) #:stroke Maybe-Stroke-Paint #:close? Boolean #:density Positive-Flonum)
                                Bitmap)
   (lambda [#:scale [scale 1.0] #:stroke [stroke (default-stroke-paint)] #:close? [close? #false] #:density [density (default-bitmap-density)]
-           #:window [window -1.0-1.0i]
+           #:window [window #false]
            pts [dx 0.0] [dy 0.0]]
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
-    (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
+    (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
 
     (dc_polyline create-argb-bitmap
-                 width height prints xoff yoff
+                 width height prints xoff yoff x-stroke? y-stroke?
                  (stroke-paint->source stroke) close?
                  density)))
 
@@ -194,16 +193,16 @@
 
 (define bitmap-polygon : (->* ((U Point2D (Listof Point2D)))
                               (Real Real #:scale Point2D #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:fill-rule Symbol
-                                    #:density Positive-Flonum #:window Point2D)
+                                    #:density Positive-Flonum #:window (Option Point2D))
                               Bitmap)
   (lambda [#:scale [scale 1.0] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:fill-rule [rule (default-fill-rule)]
-           #:density [density (default-bitmap-density)] #:window [window -1.0-1.0i]
+           #:density [density (default-bitmap-density)] #:window [window #false]
            pts [dx 0.0] [dy 0.0]]
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
-    (define-values (xoff yoff width height) (point2d->window window lx ty rx by))
+    (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
 
     (dc_polygon create-argb-bitmap
-                width height prints xoff yoff
+                width height prints xoff yoff x-stroke? y-stroke?
                 (stroke-paint->source* outline) (fill-paint->source* pattern) rule
                 density)))
 
@@ -214,21 +213,21 @@
            width height angle]
     (define-values (flwidth flheight) (~size width height))
     
-    (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window -1.0-1.0i
+    (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
                     (geo-parallelogram-vertices flwidth flheight (~cycle (~radian angle radian?) 2pi 0.0)))))
 
 (define bitmap-rhombus : (-> Real Real [#:stroke Maybe-Stroke-Paint] [#:fill Option-Fill-Paint] [#:density Positive-Flonum] Bitmap)
   (lambda [width height #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]]
     (define-values (flwidth flheight) (~size width height))
     
-    (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window -1.0-1.0i
+    (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
                     (geo-rhombus-vertices flwidth flheight))))
 
 (define bitmap-hexagon-tile : (-> Real Real [#:stroke Maybe-Stroke-Paint] [#:fill Option-Fill-Paint] [#:density Positive-Flonum] Bitmap)
   (lambda [width height #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]]
     (define-values (flwidth flheight) (~size width height))
     
-    (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window -1.0-1.0i
+    (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
                     (geo-hexagon-tile-vertices flwidth flheight))))
 
 (define bitmap-stadium : (-> Real Real [#:stroke Maybe-Stroke-Paint] [#:fill Option-Fill-Paint] [#:density Positive-Flonum] Bitmap)
@@ -281,12 +280,14 @@
            #:radian? [radian? #true] #:density [density (default-bitmap-density)]
            head-radius shaft-length [start 0.0]]
     (define rhead : Nonnegative-Flonum (~length head-radius))
+    (define-values (prints tx ty width height)
+      (geo-arrow-metrics rhead (~radian start radian?)
+                         (~length shaft-thickness rhead) (~length shaft-length rhead)
+                         (and wing-angle (~radian wing-angle radian?))))
     
-    (dc_arrow create-argb-bitmap
-              (dc-arrow-metrics rhead (~radian start radian?)
-                                (~length shaft-thickness rhead) (~length shaft-length rhead)
-                                (and wing-angle (~radian wing-angle radian?)))
-              (stroke-paint->source* outline) (fill-paint->source* pattern) density)))
+    (dc_polygon create-argb-bitmap width height prints tx ty #true #true
+                (stroke-paint->source* outline) (fill-paint->source* pattern)
+                (default-fill-rule) density)))
 
 (define bitmap-arrowhead : (->* (Real)
                                 (Real #:shaft-thickness Real #:wing-angle (Option Real) #:radian? Boolean
@@ -296,12 +297,14 @@
            #:shaft-thickness [shaft-thickness 0.0] #:wing-angle [wing-angle #false] #:radian? [radian? #true]
            radius [start 0.0]]
     (define r : Nonnegative-Flonum (~length radius))
+    (define-values (prints tx ty width height)
+      (geo-arrow-metrics r (~radian start radian?)
+                         (~length shaft-thickness r) (~length shaft-thickness r)
+                         (and wing-angle (~radian wing-angle radian?))))
     
-    (dc_arrow create-argb-bitmap
-              (dc-arrow-metrics r (~radian start radian?)
-                                (~length shaft-thickness r) 0.0
-                                (and wing-angle (~radian wing-angle radian?)))
-              (stroke-paint->source* outline) (fill-paint->source* pattern) density)))
+    (dc_polygon create-argb-bitmap width height prints tx ty #true #true
+                (stroke-paint->source* outline) (fill-paint->source* pattern)
+                (default-fill-rule) density)))
 
 (define bitmap-hline : (->* (Real Real) (#:stroke Maybe-Stroke-Paint #:density Positive-Flonum) Bitmap)
   (lambda [width height #:stroke [stroke (default-stroke-paint)] #:density [density (default-bitmap-density)]]

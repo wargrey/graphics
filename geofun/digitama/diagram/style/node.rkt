@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../../geometry/trail.rkt")
+(require "../../geometry/anchor.rkt")
 
 (require "../../convert.rkt")
 (require "../../dc/text.rkt")
@@ -12,8 +12,8 @@
 (require "../../../stroke.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Geo-Node-Style-Refine* G) (-> Symbol G Geo-Anchor-Name G))
-(define-type Geo-Node-Style-Refine (Geo-Node-Style-Refine* Geo-Node-Style))
+(define-type (Geo-Node-Style-Make* S) (-> Symbol Geo-Anchor-Name (Option S)))
+(define-type Geo-Node-Style-Make (Geo-Node-Style-Make* Geo-Node-Style))
 
 (struct geo-node-style
   ([width : (Option Nonnegative-Flonum)]
@@ -83,11 +83,12 @@
     (if (void? paint) fallback-paint paint)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (C) geo-node-style-refine : (-> String Geo-Anchor-Name (-> Symbol String)
-                                                      (-> C) (Option (Geo-Node-Style-Refine* C))
-                                                      (Values String C))
-  (lambda [text anchor mk-label mk-style refine]
+(define #:forall (S) geo-node-style-construct : (-> String Geo-Anchor-Name (-> Symbol String)
+                                                    (Option (Geo-Node-Style-Make* S)) (-> S)
+                                                    (Values String S))
+  (lambda [text anchor mk-label mk-style mk-fallback-style]
     (define key : Symbol (string->symbol text))
-    (if (not refine)
-        (values (mk-label key) (mk-style))
-        (values (mk-label key) (refine key (mk-style) anchor)))))
+
+    (values (mk-label key)
+            (or (and mk-style (mk-style key anchor))
+                (mk-fallback-style)))))

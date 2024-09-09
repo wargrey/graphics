@@ -2,9 +2,9 @@
 
 (provide (all-defined-out))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Anchor-Name (U Symbol Keyword))
+(require "anchor.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo-trail
   ([positions : (HashTable Geo-Anchor-Name Float-Complex)]
    [traces : (Pairof Keyword (Listof Keyword))]
@@ -47,6 +47,11 @@
     (define anchor (geo-trail-head-anchor self))    
     (values anchor (geo-trail-ref self anchor))))
 
+(define geo-trail-try-set! : (-> Geo-Trail (Option Geo-Anchor-Name) Float-Complex Void)
+  (lambda [self anchor pos]
+    (unless (not anchor)
+      (geo-trail-set! self anchor pos))))
+
 (define geo-trail-set! : (-> Geo-Trail Geo-Anchor-Name Float-Complex Void)
   (lambda [self anchor pos]
     (when (hash-has-key? (geo-trail-positions self) anchor)
@@ -63,3 +68,11 @@
     (let ([trace-rest (memq anchor trace-positions)])
       (when (and trace-rest (pair? (cdr trace-rest)))
         (set-geo-trail-traces! self (cdr trace-rest))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-trail-anchored-positions : (->* (Geo-Trail) ((Option Geo-Trusted-Anchors)) (Immutable-HashTable Float-Complex Geo-Anchor-Name))
+  (lambda [self [trusted-anchors #false]]
+    (for/hasheqv : (Immutable-HashTable Float-Complex Geo-Anchor-Name)
+      ([(anchor position) (in-hash (geo-trail-positions self))]
+       #:when (geo-anchor-trusted? anchor trusted-anchors))
+      (values position anchor))))

@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (all-from-out "digitama/geometry/anchor.rkt"))
 
 (provide Geo:Path Dryland-Wani)
 (provide Geo-Sticker Geo-Anchor->Sticker)
@@ -30,6 +31,7 @@
 (require "digitama/geometry/dot.rkt")
 (require "digitama/geometry/bbox.rkt")
 (require "digitama/geometry/trail.rkt")
+(require "digitama/geometry/anchor.rkt")
 
 (require "digitama/dc/path.rkt")
 (require "digitama/dc/composite.rkt")

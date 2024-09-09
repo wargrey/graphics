@@ -11,6 +11,8 @@
 (require "../geometry/dot.rkt")
 (require "../geometry/bbox.rkt")
 (require "../geometry/trail.rkt")
+(require "../geometry/anchor.rkt")
+(require "../geometry/footprint.rkt")
 
 (require "../unsafe/path.rkt")
 
@@ -43,13 +45,13 @@
        (syntax/loc stx
          (begin (define (step! [wani : Dryland-Wani] [xstep : Real 1.0] [ystep : Real 1.0] [anchor : (Option Geo-Anchor-Name) #false]) : Void
                   (geo-path-L wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani)
-                                 (* (real->double-flonum xstep) xsgn) (* (real->double-flonum ystep) ysgn)
-                                 anchor #true))
+                              (* (real->double-flonum xstep) xsgn) (* (real->double-flonum ystep) ysgn)
+                              anchor #true))
                 
                 (define (jump! [wani : Dryland-Wani] [xstep : Real 1.0] [ystep : Real 1.0] [anchor : (Option Geo-Anchor-Name) #false]) : Void
                   (geo-path-M wani (dryland-wani-xstepsize wani) (dryland-wani-ystepsize wani)
-                                 (* (real->double-flonum xstep) xsgn) (* (real->double-flonum ystep) ysgn)
-                                 anchor #true)))))]
+                              (* (real->double-flonum xstep) xsgn) (* (real->double-flonum ystep) ysgn)
+                              anchor #true)))))]
     [(_ move #:-> xsgn)
      (with-syntax ([step! (format-id #'move "dryland-wani-move-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
@@ -135,7 +137,7 @@
   (lambda [self rx ry cx cy ex ey start end anchor clockwise? guard]
     (define cpos : Float-Complex (geo:path-here self))
     (define cpos++ : Float-Complex (+ (make-rectangular (* ex rx) (* ey ry)) cpos))
-    (define path:arc : Path-Args (arc (+ cpos (make-rectangular (* cx rx) (* cy ry))) rx ry start end clockwise?))
+    (define path:arc (gpp:arc cpos++ (+ (make-rectangular (* cx rx) (* cy ry)) cpos) rx ry start end clockwise?))
 
     (geo-bbox-fit! (geo:path-bbox self) cpos++)
     (when (and guard)
@@ -143,7 +145,7 @@
                      (real->double-flonum (* (real-part guard) rx))
                      (real->double-flonum (* (imag-part guard) ry))))
 
-    (and anchor (geo-trail-set! (geo:path-trail self) anchor cpos++))
+    (geo-trail-try-set! (geo:path-trail self) anchor cpos++)
     (set-geo:path-here! self cpos++)
     (set-geo:path-footprints! self (cons (cons #\A path:arc) (geo:path-footprints self)))))
 
@@ -167,26 +169,26 @@
 
 (define geo-path-linear-bezier : (-> Geo:Path Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt anchor]
-    (geo-path-do-move self endpt endpt #\L anchor #false)))
+    (geo-path-do-move self endpt #\L anchor #false)))
 
 (define geo-path-quadratic-bezier : (-> Geo:Path Float-Complex Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt ctrl anchor]
-    (define path:bezier : Path-Args (bezier (geo:path-here self) ctrl endpt))
+    (define path:bezier (gpp:bezier endpt (geo:path-here self) ctrl))
 
     (geo-bbox-fit! (geo:path-bbox self) endpt)
     (geo-bbox-fit! (geo:path-bbox self) ctrl)
-    (and anchor (geo-trail-set! (geo:path-trail self) anchor endpt))
+    (geo-trail-try-set! (geo:path-trail self) anchor endpt)
     (set-geo:path-here! self endpt)
     (set-geo:path-footprints! self (cons (cons #\Q path:bezier) (geo:path-footprints self)))))
 
 (define geo-path-cubic-bezier : (-> Geo:Path Float-Complex Float-Complex Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt ctrl1 ctrl2 anchor]
-    (define path:bezier : Path-Args (bezier ctrl1 ctrl2 endpt))
+    (define path:bezier (gpp:bezier endpt ctrl1 ctrl2))
 
     (geo-bbox-fit! (geo:path-bbox self) endpt)
     (geo-bbox-fit! (geo:path-bbox self) ctrl1)
     (geo-bbox-fit! (geo:path-bbox self) ctrl2)
-    (and anchor (geo-trail-set! (geo:path-trail self) anchor endpt))
+    (geo-trail-try-set! (geo:path-trail self) anchor endpt)
     (set-geo:path-here! self endpt)
     (set-geo:path-footprints! self (cons (cons #\C path:bezier) (geo:path-footprints self)))))
 
@@ -198,31 +200,31 @@
     (set-geo:path-footprints! self (cons (cons #\Z #false) (geo:path-footprints self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-path-do-move : (-> Geo:Path Float-Complex Float-Complex Char (Option Geo-Anchor-Name) Boolean Void)
-  (lambda [self step-args endpt op anchor subpath?]
+(define geo-path-do-move : (-> Geo:Path Float-Complex Char (Option Geo-Anchor-Name) Boolean Void)
+  (lambda [self endpt op anchor subpath?]
     (geo-bbox-fit! (geo:path-bbox self) endpt)
-    (and anchor (geo-trail-set! (geo:path-trail self) anchor endpt))
+    (geo-trail-try-set! (geo:path-trail self) anchor endpt)
     (set-geo:path-here! self endpt)
-    (set-geo:path-footprints! self (cons (cons op step-args) (geo:path-footprints self)))
+    (set-geo:path-footprints! self (cons (cons op endpt) (geo:path-footprints self)))
 
     (when (and subpath?)
       (set-geo:path-origin! self endpt))))
 
 (define geo-path-M : (-> Geo:Path Flonum Flonum Flonum Flonum (Option Geo-Anchor-Name) Boolean Void)
   (lambda [self xsize ysize mx my anchor relative?]
-    (define arg : Float-Complex (make-rectangular (* xsize mx) (* ysize my)))
+    (define tpos : Float-Complex (make-rectangular (* xsize mx) (* ysize my)))
     
-    (if (not relative?)
-        (geo-path-do-move self arg arg #\M anchor #true)
-        (geo-path-do-move self arg (+ (geo:path-here self) arg) #\m anchor #true))))
+    (geo-path-do-move self
+                      (if (not relative?) tpos (+ (geo:path-here self) tpos))
+                      #\M anchor #true)))
 
 (define geo-path-L : (-> Geo:Path Flonum Flonum Flonum Flonum (Option Geo-Anchor-Name) Boolean Void)
   (lambda [self xsize ysize mx my anchor relative?]
     (define tpos : Float-Complex (make-rectangular (* xsize mx) (* ysize my)))
     
-    (if (not relative?)
-        (geo-path-do-move self tpos tpos #\L anchor #false)
-        (geo-path-do-move self tpos (+ (geo:path-here self) tpos) #\l anchor #false))))
+    (geo-path-do-move self
+                      (if (not relative?) tpos (+ (geo:path-here self) tpos))
+                      #\L anchor #false)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-path-sticker-offset : (-> Geo:Path Float-Complex)
@@ -230,11 +232,11 @@
     (define maybe-offset : (Option Flonum) (geo:path-sticker-offset self))
 
     (cond [(and maybe-offset) (make-rectangular maybe-offset maybe-offset)]
-          [else (let* ([default-paint (default-stroke-paint)])
-                  (if  (stroke? default-paint)
-                       (let ([default-offset (* (stroke-width default-paint) 0.5)])
-                         (make-rectangular default-offset default-offset))
-                       0.0+0.0i))])))
+          [else (let* ([fallback (current-stroke-source)])
+                  (if (stroke? fallback)
+                      (let ([fallback-offset (* (stroke-width fallback) 0.5)])
+                        (make-rectangular fallback-offset fallback-offset))
+                      0.0+0.0i))])))
 
 (define geo-path-extent : Geo-Calculate-Extent
   (lambda [self]

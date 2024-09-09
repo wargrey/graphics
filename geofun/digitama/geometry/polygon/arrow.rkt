@@ -2,51 +2,12 @@
 
 (provide (all-defined-out))
 
-(require typed/racket/unsafe)
-
-(require "../path.rkt")
-(require "../source.rkt")
-(require "../visual/ctype.rkt")
-
-(require "../../base.rkt")
-(require "../../geometry/constants.rkt")
-
-(module unsafe racket/base
-  (provide (all-defined-out))
-  
-  (require "../pangocairo.rkt")
-  (require "../paint.rkt")
-  
-  (require (submod "../path.rkt" unsafe))
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc_arrow create-surface metrics stroke background density)
-    (define linewidth (~bdwidth stroke))
-    (define offset (unsafe-fl* linewidth 0.5))
-    (define-values (sfc cr)
-      (create-surface (unsafe-fl+ (unsafe-vector*-ref metrics 3) linewidth)
-                      (unsafe-fl+ (unsafe-vector*-ref metrics 4) linewidth)
-                      density #true))
-    
-    (cairo_translate cr (unsafe-fl+ (unsafe-vector*-ref metrics 1) offset) (unsafe-fl+ (unsafe-vector*-ref metrics 2) offset))
-    (cairo_new_sub_path cr)
-    (cairo_move_to cr 0.0 0.0)
-    (cairo_path cr (unsafe-vector*-ref metrics 0) 0.0 0.0)
-    
-    (cairo-render cr stroke background)
-    (cairo_destroy cr)
-    
-    sfc))
+(require "../constants.rkt")
+(require "../footprint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Arrow-Metrics (Immutable-Vector (Listof Geo-Path-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
-
-(unsafe-require/typed/provide
- (submod "." unsafe)
- [dc_arrow (All (S) (-> (Cairo-Surface-Create S) Geo-Arrow-Metrics (Option Paint) (Option Fill-Source) Flonum S))])
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc-arrow-metrics : (-> Nonnegative-Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Geo-Arrow-Metrics)
+(define geo-arrow-metrics : (-> Nonnegative-Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Flonum)
+                                (Values (Listof Geo-Path-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [head-radius rpoint shaft-thickness shaft-length wing-angle]
     (define fllength : Nonnegative-Flonum (* head-radius 2.0))
     (define rdelta : Flonum (if (not wing-angle) (* 0.6 pi #;108.0) (- pi (* 0.5 wing-angle))))
@@ -89,7 +50,7 @@
                 (cons #\L (make-rectangular shx1 shy1))
                 (cons #\L (make-rectangular shx2 shy2))
                 (cons #\L (make-rectangular (* wing-radius (cos rwing2)) (* wing-radius (sin rwing2)))))
-          null))
+          (list (cons #\M 0.0+0.0i))))
 
     (define head-prints : (Listof Geo-Path-Print)
       (list (cons #\L (make-rectangular wx2 wy2))
@@ -97,5 +58,5 @@
             (cons #\L (make-rectangular wx1 wy1))
             (cons #\Z #false)))
       
-    (vector-immutable (append shaft-prints head-prints)
-                      tx ty flwidth flheight)))
+    (values (append shaft-prints head-prints)
+            tx ty flwidth flheight)))

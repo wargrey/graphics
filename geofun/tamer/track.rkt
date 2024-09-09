@@ -70,7 +70,7 @@
   (require geofun/vector)
   (require geofun/bitmap)
 
-  (default-stroke-paint (desc-stroke #:color 'crimson #:width 4.0))
+  (default-stroke-paint (desc-stroke #:color 'Crimson #:width 4.0))
   (default-border-paint (desc-border #:color (rgb* 'RoyalBlue 0.618)))
 
   (define make-anchor-sticker : Geo-Anchor->Sticker

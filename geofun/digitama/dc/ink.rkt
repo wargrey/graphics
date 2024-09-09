@@ -19,12 +19,16 @@
     [(pos width height) (unsafe-geo-ink pos width height)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-ink-embolden : (-> Geo-Ink Nonnegative-Flonum Geo-Ink)
-  (lambda [self thickness]
-    (unsafe-geo-ink (geo-ink-pos self)
-                    (+ (geo-ink-width self) thickness)
-                    (+ (geo-ink-height self) thickness))))
-
+(define geo-ink-embolden : (->* (Geo-Ink Nonnegative-Flonum) (Boolean Boolean) Geo-Ink)
+  (lambda [self thickness [xstroke? #true] [ystroke? #true]]
+    (if (or xstroke? ystroke?)
+        (let ([w (geo-ink-width self)]
+              [h (geo-ink-height self)])
+          (unsafe-geo-ink (geo-ink-pos self)
+                          (if (or xstroke?) (+ w thickness) w)
+                          (if (or ystroke?) (+ h thickness) h)))
+        self)))
+  
 (define geo-ink-scale : (-> Geo-Ink Flonum Flonum Geo-Ink)
   (lambda [self sx sy]
     (define-values (ow oh) (values (geo-ink-width self) (geo-ink-height self)))

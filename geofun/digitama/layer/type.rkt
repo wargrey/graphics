@@ -40,11 +40,12 @@
           [else 'cc])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (G) geo-group-boundary : (-> (Listof (GLayerof G)) Nonnegative-Flonum Nonnegative-Flonum
-                                              (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [siblings Width Height]
-    (let check-boundary ([lx : Flonum 0.0]
-                         [ty : Flonum 0.0]
+(define #:forall (G) geo-group-boundary : (->* ((Listof (GLayerof G)) Nonnegative-Flonum Nonnegative-Flonum)
+                                               (Flonum Flonum)
+                                               (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [siblings Width Height [x0 0.0] [y0 0.0]]
+    (let check-boundary ([lx : Flonum x0]
+                         [ty : Flonum y0]
                          [rx : Nonnegative-Flonum Width]
                          [by : Nonnegative-Flonum Height]
                          [siblings : (Listof (GLayerof G)) siblings])

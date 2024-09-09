@@ -21,7 +21,6 @@
     [(lpt rpt) (make-geo-bbox (real-part lpt) (imag-part lpt) (real-part rpt) (imag-part rpt))]
     [(pt) (make-geo-bbox (real-part pt) (imag-part pt) (real-part pt) (imag-part pt))]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-bbox-fit! : (case-> [Geo-BBox Float-Complex -> Void]
                                 [Geo-BBox Float-Complex Flonum Flonum -> Void]
                                 [Geo-BBox Flonum Flonum -> Void])
@@ -34,6 +33,7 @@
      (cond [(< y (geo-bbox-ty self)) (set-geo-bbox-ty! self y)]
            [(> y (geo-bbox-by self)) (set-geo-bbox-by! self y)])]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-bbox-position : (-> Geo-BBox Float-Complex)
   (lambda [self]
     (make-rectangular (geo-bbox-lx self) (geo-bbox-ty self))))

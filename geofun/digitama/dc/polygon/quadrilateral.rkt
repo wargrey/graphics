@@ -18,14 +18,14 @@
            width height angle]
     (define-values (flwidth flheight) (~size width height))
     
-    (geo-polygon #:id (or id (gensym 'geo:polygon:parallelogram:)) #:stroke outline #:fill pattern #:window -1.0-1.0i
+    (geo-polygon #:id (or id (gensym 'geo:polygon:parallelogram:)) #:stroke outline #:fill pattern #:window +nan.0+nan.0i
                  (geo-parallelogram-vertices flwidth flheight (~cycle (~radian angle radian?) 2pi 0.0)))))
 
 (define geo-rhombus : (-> Real Real [#:id (Option Symbol)] [#:stroke Maybe-Stroke-Paint] [#:fill Maybe-Fill-Paint] Geo:Polygon)
   (lambda [width height #:id [id #false] #:stroke [outline (void)] #:fill [pattern (void)]]
     (define-values (flwidth flheight) (~size width height))
     
-    (geo-polygon #:id (or id (gensym 'geo:polygon:rhombus:)) #:stroke outline #:fill pattern #:window -1.0-1.0i
+    (geo-polygon #:id (or id (gensym 'geo:polygon:rhombus:)) #:stroke outline #:fill pattern #:window +nan.0+nan.0i
                  (geo-rhombus-vertices flwidth flheight))))
 
   

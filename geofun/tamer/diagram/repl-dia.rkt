@@ -20,8 +20,22 @@
   (move-right 2)
   (move-down 2.75)
   (move-left 2)
-  (move-down 0.5 'Exit$))
+  (move-down 0.5 'Exit$)
+
+  (move-down))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (geo-path-flow repl))
+  (define colorful-edge : Geo-Edge-Style-Make
+    (lambda [source target]
+      (case source
+        [(#:home Exit$) (make-geo-flow-arrow-style #:line-paint 'Gray)]
+        [(initialization!) (make-geo-flow-arrow-style #:line-paint 'Red)]
+        [(>>Read Print<<) (make-geo-flow-arrow-style #:line-paint 'Lime)]
+        [(exit?) (make-geo-flow-arrow-style #:line-paint (if (eq? target 'Evaluate) 'Green 'Blue))]
+        [(Evaluate) (make-geo-flow-arrow-style #:line-paint 'Orange)]
+        [else #false])))
+
+  (default-flow-arrow-style-make colorful-edge)
+  
+  (geo-frame (geo-path-flow repl)))

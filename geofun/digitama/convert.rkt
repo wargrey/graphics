@@ -208,17 +208,20 @@
           [else (λ [self] (parameterize ([default-border-source (border-paint->source* alt-border)])
                             (λextent self)))])))
 
-(define geo-stroke-extent-wrapper : (-> Geo-Calculate-Extent Maybe-Stroke-Paint Geo-Calculate-Extent)
-  (lambda [λextent alt-stroke]
-    (λ [self]
-      (let-values ([(width height ?ink) (λextent self)])
-        (define maybe-stroke (geo-select-stroke-paint alt-stroke))
-        (if (stroke? maybe-stroke)
-            (let ([linewidth (stroke-width maybe-stroke)])
-              (values (+ width linewidth) (+ height linewidth)
-                      (and ?ink (geo-ink-embolden ?ink linewidth))))
-            (values width height ?ink))))))
-
+(define geo-stroke-extent-wrapper : (->* (Geo-Calculate-Extent Maybe-Stroke-Paint) (Boolean Boolean) Geo-Calculate-Extent)
+  (lambda [λextent alt-stroke [xstroke? #true] [ystroke? #true]]
+    (if (or xstroke? ystroke?)
+        (λ [self]
+          (let ([maybe-stroke (geo-select-stroke-paint alt-stroke)])
+            (if (stroke? maybe-stroke)
+                (let-values ([(linewidth) (stroke-width maybe-stroke)]
+                             [(width height ?ink) (λextent self)])
+                  (values (if (or xstroke?) (+ width linewidth) width)
+                          (if (or ystroke?) (+ height linewidth) height)
+                          (and ?ink (geo-ink-embolden ?ink linewidth xstroke? ystroke?))))
+                (λextent self))))
+        λextent)))
+  
 (define geo-shape-plain-extent : (case-> [Nonnegative-Flonum -> Geo-Calculate-Extent]
                                          [Nonnegative-Flonum Flonum Flonum -> Geo-Calculate-Extent]
                                          [Nonnegative-Flonum Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent]

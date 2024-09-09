@@ -7,6 +7,7 @@
                             [geo-superimpose-layer unsafe-superimpose-layer]))
 
 (require "type.rkt")
+(require "../convert.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (G) geo-append-layer
@@ -52,3 +53,15 @@
          [(ct) (values  cx 0.0)] [(cc) (values  cx cy)] [(cb) (values  cx by)]
          [(rt) (values  rx 0.0)] [(rc) (values  rx cy)] [(rb) (values  rx by)]
          [else #| deadcode |# (values 0.0 0.0)]))]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (G) geo-own-layer : (-> Geo-Pin-Port Float-Complex (∩ G Geo<%>) Float-Complex (GLayerof G))
+  (lambda [port target self offset]
+    (define-values (width height) (geo-flsize self))
+    (define-values (dx dy) (geo-superimpose-layer port 0.0 0.0 width height))
+    (define pos (+ target offset))
+
+    (vector-immutable self
+                      (+ (real-part pos) dx)
+                      (+ (imag-part pos) dy)
+                      width height)))

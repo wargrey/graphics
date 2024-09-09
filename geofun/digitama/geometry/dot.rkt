@@ -64,18 +64,20 @@
 
     (values sx sy)))
 
-(define point2d->window : (-> Point2D Flonum Flonum Flonum Flonum (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+(define point2d->window : (-> Point2D Flonum Flonum Flonum Flonum (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Boolean Boolean))
   (lambda [hint lx ty rx by]
     (define-values (w h) (point2d-values hint))
 
-    (define-values (xoff width)
-      (cond [(= w 0.0) (values 0.0 (max rx 0.0))]
-            [(> w 0.0) (values 0.0 w)]
-            [else (values (- lx) (max (- rx lx) 0.0))]))
+    (define-values (xoff width x-stroke?)
+      (cond [(= w 0.0) (values 0.0 (max rx 0.0) #true)]
+            [(> w 0.0) (values 0.0 w #false)]
+            [(< w 0.0) (values (- w) (max (- rx w) 0.0) #false)]
+            [else (values (- lx) (max (- rx lx) 0.0) #true)]))
     
-    (define-values (yoff height)
-      (cond [(= h 0.0) (values 0.0 (max by 0.0))]
-            [(> h 0.0) (values 0.0 h)]
-            [else (values (- ty) (max (- by ty) 0.0))]))
+    (define-values (yoff height y-stroke?)
+      (cond [(= h 0.0) (values 0.0 (max by 0.0) #true)]
+            [(> h 0.0) (values 0.0 h #false)]
+            [(< h 0.0) (values (- h) (max (- by h) 0.0) #false)]
+            [else (values (- ty) (max (- by ty) 0.0) #true)]))
 
-    (values xoff yoff width height)))
+    (values xoff yoff width height x-stroke? y-stroke?)))
