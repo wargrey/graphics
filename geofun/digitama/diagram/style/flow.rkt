@@ -1,15 +1,16 @@
 #lang typed/racket/base
 
-(provide (except-out (all-defined-out) geo-flow-node-style-construct))
+(provide (all-defined-out))
+(provide (all-from-out "eshape/arrow.rkt"))
+(provide (all-from-out "node.rkt" "edge.rkt"))
 
 (require digimon/struct)
-
 (require racket/string)
-(require racket/symbol)
-(require racket/keyword)
 
 (require "node.rkt")
 (require "edge.rkt")
+(require "eshape/type.rkt")
+(require "eshape/arrow.rkt")
 
 (require "../../../font.rkt")
 (require "../../../stroke.rkt")
@@ -39,9 +40,9 @@
   #:format "default-flow-edge-~a"
   ([font : (Option Font) (desc-font #:size 'small)]
    [font-paint : Option-Fill-Paint #false]
-   [line-paint : Maybe-Stroke-Paint (desc-stroke #:width 2.0 #:color 'DimGray)]
+   [line-paint : Maybe-Stroke-Paint (desc-stroke #:width 2.0 #:color 'DimGray #:join 'round #:cap 'round)]
    [source-shape : Option-Edge-Shape #false]
-   [target-shape : Option-Edge-Shape 'arrow]))
+   [target-shape : Option-Edge-Shape (make-geo-edge-arrow)]))
 
 (define-configuration geo-flow-arrow-style : Geo-Flow-Arrow-Style #:as geo-edge-style
   #:format "default-flow-arrow-~a"
@@ -52,7 +53,9 @@
    [target-shape : Maybe-Edge-Shape (void)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-flow-label-construct : (Parameterof (-> Symbol String)) (make-parameter symbol->immutable-string))
+(define default-flow-label-construct : (Parameterof (-> Symbol String)) (make-parameter geo-anchor->string))
+(define default-flow-canonical-start-name : (Parameterof String) (make-parameter ""))
+(define default-flow-canonical-stop-name : (Parameterof String) (make-parameter ""))
 
 (define default-flow-input-style-make : (Parameterof (Option (Geo-Node-Style-Make* Geo-Flow-Input-Style))) (make-parameter #false))
 (define default-flow-output-style-make : (Parameterof (Option (Geo-Node-Style-Make* Geo-Flow-Output-Style))) (make-parameter #false))
@@ -214,41 +217,40 @@
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-flow-block-detect : (-> Geo-Anchor-Name (Values String (Option Geo-Node-Style)))
+(define geo-flow-block-detect : (-> Geo-Anchor-Name (Values Symbol (Option Geo-Node-Style)))
   (lambda [anchor]
     (if (keyword? anchor)
-        (let ([text (keyword->immutable-string anchor)])
+        (let ([text (geo-anchor->string anchor)])
           (cond [(or (string-ci=? text "home") (string-ci=? text "start"))
-                 (geo-flow-node-style-construct text anchor make-geo-flow-start-style (default-flow-start-style-make))]
+                 (geo-flow-node-style-construct (default-flow-canonical-start-name) anchor (default-flow-start-style-make) make-geo-flow-start-style)]
                 [(or (string-ci=? text "end") (string-ci=? text "terminate"))
-                 (geo-flow-node-style-construct text anchor make-geo-flow-stop-style (default-flow-stop-style-make))]
-                [else (values "who-cares" #false)]))
-        (let ([text (symbol->immutable-string anchor)])
+                 (geo-flow-node-style-construct (default-flow-canonical-stop-name) anchor (default-flow-stop-style-make) make-geo-flow-stop-style)]
+                [else (values 'who-cares #false)]))
+        (let ([text (geo-anchor->string anchor)])
           (define size (string-length text))
           (cond [(string-suffix? text "?")
-                 (geo-flow-node-style-construct text anchor make-geo-flow-decision-style (default-flow-decision-style-make))]
+                 (geo-flow-node-style-construct text anchor (default-flow-decision-style-make) make-geo-flow-decision-style)]
                 [(string-suffix? text "!")
-                 (geo-flow-node-style-construct text anchor make-geo-flow-preparation-style (default-flow-preparation-style-make))]
+                 (geo-flow-node-style-construct text anchor (default-flow-preparation-style-make) make-geo-flow-preparation-style)]
                 [(string-prefix? text "^")
-                 (geo-flow-node-style-construct (substring text 1 size) anchor make-geo-flow-start-style (default-flow-start-style-make))]
+                 (geo-flow-node-style-construct (substring text 1 size) anchor (default-flow-start-style-make) make-geo-flow-start-style)]
                 [(string-suffix? text "$")
-                 (geo-flow-node-style-construct (substring text 0 (sub1 size)) anchor make-geo-flow-stop-style (default-flow-stop-style-make))]
+                 (geo-flow-node-style-construct (substring text 0 (sub1 size)) anchor (default-flow-stop-style-make) make-geo-flow-stop-style)]
                 [(string-prefix? text ">>")
-                 (geo-flow-node-style-construct (substring text 2 size) anchor make-geo-flow-input-style (default-flow-input-style-make))]
+                 (geo-flow-node-style-construct (substring text 2 size) anchor (default-flow-input-style-make) make-geo-flow-input-style)]
                 [(string-suffix? text "<<")
-                 (geo-flow-node-style-construct (substring text 0 (- size 2)) anchor make-geo-flow-output-style (default-flow-output-style-make))]
+                 (geo-flow-node-style-construct (substring text 0 (- size 2)) anchor (default-flow-output-style-make) make-geo-flow-output-style)]
                 [(string-prefix? text "//")
-                 (geo-flow-node-style-construct (substring text 2 size) anchor make-geo-flow-comment-style (default-flow-comment-style-make))]
+                 (geo-flow-node-style-construct (substring text 2 size) anchor (default-flow-comment-style-make) make-geo-flow-comment-style)]
                 [(string-prefix? text "->")
-                 (geo-flow-node-style-construct (substring text 2 size) anchor make-geo-flow-subroutine-style (default-flow-subroutine-style-make))]
+                 (geo-flow-node-style-construct (substring text 2 size) anchor (default-flow-subroutine-style-make) make-geo-flow-subroutine-style)]
                 [(string-prefix? text "@")
-                 (geo-flow-node-style-construct (substring text 1 size) anchor make-geo-flow-inspection-style (default-flow-inspection-style-make))]
+                 (geo-flow-node-style-construct (substring text 1 size) anchor (default-flow-inspection-style-make) make-geo-flow-inspection-style)]
                 [(string-prefix? text "&")
-                 (geo-flow-node-style-construct (substring text 1 size) anchor make-geo-flow-reference-style (default-flow-reference-style-make))]
-                [(> size 0) (geo-flow-node-style-construct text anchor make-geo-flow-process-style (default-flow-process-style-make))]
-                [else (values "who-cares" #false)])))))
+                 (geo-flow-node-style-construct (substring text 1 size) anchor (default-flow-reference-style-make) make-geo-flow-reference-style)]
+                [(> size 0) (geo-flow-node-style-construct text anchor (default-flow-process-style-make) make-geo-flow-process-style)]
+                [else (values 'who-cares #false)])))))
 
-(define #:forall (S) geo-flow-node-style-construct : (-> String Geo-Anchor-Name (-> S) (Option (Geo-Node-Style-Make* S)) (Values String S))
-  (lambda [text anchor mk-fallback-style mk-style]
-    (geo-node-style-construct text anchor (default-flow-label-construct)
-                              mk-style mk-fallback-style)))
+(define #:forall (S) geo-flow-node-style-construct : (-> String Geo-Anchor-Name (Option (Geo-Node-Style-Make* S)) (-> S) (Values Symbol S))
+  (lambda [text anchor mk-style mk-fallback-style]
+    (geo-node-style-construct text anchor mk-style mk-fallback-style)))

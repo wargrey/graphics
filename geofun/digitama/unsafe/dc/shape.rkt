@@ -24,7 +24,7 @@
     (define line-width (~bdwidth stroke))
     (define offset (unsafe-fl* line-width 0.5))
     
-    (cairo_new_sub_path cr)
+    (cairo_new_path cr)
 
     (cond [(= dx 0.0) ; vline
            (cairo_move_to     cr x offset)
@@ -129,7 +129,7 @@
     (define xrset (unsafe-fl- (unsafe-fl- flwidth inset) flradius))
     (define ybset (unsafe-fl- (unsafe-fl- flheight inset) flradius))
 
-    (cairo_new_sub_path cr)
+    (cairo_new_path cr)
     (cairo_arc cr xrset tlset flradius -pi/2 0.0)
     (cairo_arc cr xrset ybset flradius 0.0   pi/2)
     (cairo_arc cr tlset ybset flradius pi/2  pi)
@@ -147,7 +147,7 @@
     (define line-width (~bdwidth border))
     (define inset-radius (unsafe-fl- flradius (unsafe-fl* line-width 0.5)))
 
-    (cairo_new_sub_path cr)
+    (cairo_new_path cr)
     (cairo_arc_negative cr flradius                       flradius inset-radius -pi/2 pi/2)
     (cairo_arc_negative cr (unsafe-fl+ flradius fllength) flradius inset-radius pi/2  3pi/2)
     (cairo_close_path cr)
@@ -164,8 +164,8 @@
     (define delta (unsafe-fl/ 2pi fln))
     (define-values (sfc cr) (create-surface fllength fllength density #true))
     
+    (cairo_new_path cr)
     (cairo_translate cr radius radius)
-    (cairo_new_sub_path cr)
     
     (let draw-polygon ([flidx 0.0]
                        [theta rotation])
@@ -192,7 +192,7 @@
     (define-values (neck-ty neck-by) (values (unsafe-fl+ bulb-ty bulb-b) (unsafe-fl- bulb-by bulb-b)))
     (define no-neck? (or (unsafe-fl= neck-a 0.0) (unsafe-fl= neck-b 0.0)))
     
-    (cairo_new_sub_path cr)
+    (cairo_new_path cr)
     (cairo_move_to cr tlset tlset)
     
     (cairo_line_to cr xrset tlset)

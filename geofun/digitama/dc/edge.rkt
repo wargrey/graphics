@@ -11,6 +11,10 @@
 
 (require "../geometry/dot.rkt")
 (require "../geometry/footprint.rkt")
+(require "../diagram/style/edge.rkt")
+(require "../diagram/style/eshape/type.rkt")
+(require "../diagram/style/eshape/metrics.rkt")
+(require "../diagram/style/eshape/arrow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:edge geo
@@ -18,26 +22,40 @@
    [source : Float-Complex]
    [target : Float-Complex]
    [origin : Float-Complex]
-   [draw-offset : Float-Complex]
-   [thickness-offset : (Option Float-Complex)]
-   [wing-angle : (Option Flonum)])
+   [bbox-offset : Float-Complex]
+   [line-offset : (Option Float-Complex)]
+   [source-shape : (Listof Geo-Path-Clean-Print)]
+   [target-shape : (Listof Geo-Path-Clean-Print)])
   #:type-name Geo:Edge
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-edge : (->* ((Listof Geo-Path-Print)) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Edge)
-  (lambda [footprints #:id [id #false] #:stroke [stroke (void)]]
-    (define-values (lx ty w h source target) (geo-path-ink-box* footprints))
-    (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window +nan.0+nan.0i lx ty (+ lx w) (+ ty h)))
-    (define thickness-offset (if (stroke? stroke) (* (stroke-width stroke) 0.5) 0.0))
+(define geo-edge : (->* ((List* Geo-Path-Clean-Print Geo-Path-Clean-Print (Listof Geo-Path-Clean-Print)))
+                        (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint
+                         #:source-shape (Option Geo-Edge-Shape) #:target-shape (Option Geo-Edge-Shape))
+                        Geo:Edge)
+  (lambda [footprints #:id [id #false] #:stroke [stroke (void)] #:source-shape [src-shape #false] #:target-shape [tgt-shape #false]]
+    (define thickness : Nonnegative-Flonum (let ([s (geo-edge-select-line-paint stroke)]) (if (stroke? s) (stroke-width s) 0.0)))
+    (define line-offset : Nonnegative-Flonum (* thickness 0.5))
+    (define-values (spt srad ept erad) (geo-path-end-points footprints))
+    (define-values (e.x e.y e.w e.h) (geo-path-ink-box footprints))
 
+    ;; NOTE: we move the end shapes to their absolute position, and no need to translate them when drawing
+    (define-values (src-prints s.x s.y s.w s.h) (geo-edge-shape-metrics src-shape thickness srad spt))
+    (define-values (tgt-prints t.x t.y t.w t.h) (geo-edge-shape-metrics tgt-shape thickness erad ept))
+
+    ;; NOTE: for shapes having outline stroke, simply add the thickness here
+    (define-values (lx ty) (values (min e.x s.x t.x) (min e.y s.y t.y)))
+    (define-values (rx by) (values (max (+ e.x e.w) (+ s.x s.w) (+ t.x t.w)) (max (+ e.y e.h) (+ s.y s.h) (+ t.y t.h))))
+    (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window +nan.0+nan.0i lx ty rx by))
+    
     (create-geometry-object geo:edge
                             #:surface (geo-edge-surface width height x-stroke? y-stroke?) stroke
                             #:extent (geo-stroke-extent-wrapper (geo-shape-plain-extent width height 0.0 0.0) stroke x-stroke? y-stroke?)
                             #:id id
-                            footprints source target (make-rectangular lx ty)
-                            (make-rectangular xoff yoff) (make-rectangular thickness-offset thickness-offset)
-                            #false)))
+                            footprints spt ept (make-rectangular lx ty)
+                            (make-rectangular xoff yoff) (make-rectangular line-offset line-offset)
+                            src-prints tgt-prints)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-edge-pin-at-position : (->* (Geo:Edge) ((Option Float-Complex)) Float-Complex)
@@ -49,7 +67,7 @@
     (- (or maybe-pt S)
        (make-rectangular (abs (real-part ->S))
                          (abs (imag-part ->S)))
-       (or (geo:edge-thickness-offset self)
+       (or (geo:edge-line-offset self)
            0.0+0.0i))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -57,8 +75,12 @@
   (lambda [width height x-stroke? y-stroke?]
     (λ [self]
       (with-asserts ([self geo:edge?])
-        (define offset (geo:edge-draw-offset self))
+        (define offset (geo:edge-bbox-offset self))
+        (define stroke (current-stroke-source))
+        (define color (and stroke (stroke-color stroke)))
         (dc_edge create-abstract-surface
-                 width height (geo:edge-footprints self) (real-part offset) (imag-part offset) x-stroke? y-stroke?
-                 (current-stroke-source) (default-geometry-density))))))
+                 width height (geo:edge-footprints self) (real-part offset) (imag-part offset) x-stroke? y-stroke? stroke
+                 (vector-immutable (geo:edge-source-shape self) #false color)
+                 (vector-immutable (geo:edge-target-shape self) #false color)
+                 (default-geometry-density))))))
   

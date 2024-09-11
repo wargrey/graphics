@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 (provide (rename-out [geo-polyline geo-lines]))
 (provide (rename-out [geo-sandglass geo-hourglass]))
-(provide (rename-out [geo-arrowhead geo-dart]))
+(provide (rename-out [geo-dart geo-arrowhead]))
 
 (provide geo-blank geo-ghost geo:blank? Geo:Blank)
 (provide geo-bitmap geo:bitmap? Geo:Bitmap)
@@ -19,7 +19,8 @@
 (provide geo-sector geo:sector? Geo:Sector)
 (provide geo-stadium geo:stadium? Geo:Stadium)
 (provide geo-sandglass geo:sandglass? Geo:Sandglass)
-(provide geo-arrow geo-arrowhead geo:arrow? Geo:Arrow)
+(provide geo-arrow geo:arrow? Geo:Arrow)
+(provide geo-dart geo:dart? Geo:Dart)
 
 (provide geo-regular-polygon geo:regular-polygon? Geo:Regular-Polygon)
 (provide geo-polygon geo:polygon? Geo:Polygon)

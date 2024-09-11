@@ -23,8 +23,8 @@
 (define current-stroke-source* : (-> Stroke)
   (lambda []
     (define src (default-stroke-source))
-    (cond [(or (void? src) (not src)) (stroke-paint->source (default-stroke-paint))]
-          [else src])))
+    (cond [(stroke? src) src]
+          [else (stroke-paint->source (default-stroke-paint))])))
 
 (define current-stroke-source : (-> (Option Stroke))
   (lambda []

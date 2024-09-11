@@ -42,7 +42,7 @@
   (define (dc_polygon create-surface flwidth flheight footprints dx dy x-stroke? y-stroke? stroke background fill-rule density)
     (define-values (flw flh tx ty) (dc-path-window flwidth flheight dx dy stroke x-stroke? y-stroke?))
     (define-values (sfc cr) (create-surface flw flh density #true))
-    
+
     (cairo_path cr footprints tx ty)  
     (cairo_close_path cr)
     (cairo-render cr stroke background fill-rule)

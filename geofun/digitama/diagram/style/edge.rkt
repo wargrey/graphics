@@ -2,9 +2,9 @@
 
 (provide (all-defined-out))
 
+(require "eshape/type.rkt")
+
 (require "../../geometry/anchor.rkt")
-(require "../../geometry/footprint.rkt")
-(require "../../layer/sticker.rkt")
 
 (require "../../../font.rkt")
 (require "../../../paint.rkt")
@@ -13,10 +13,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Geo-Edge-Style-Make* S) (-> Geo-Anchor-Name (Option Geo-Anchor-Name) (Option S)))
 (define-type Geo-Edge-Style-Make (Geo-Edge-Style-Make* Geo-Edge-Style))
-(define-type Geo-Edge-Shape (U 'arrow))
-
-(define-type Option-Edge-Shape (Option Geo-Edge-Shape))
-(define-type Maybe-Edge-Shape (U Void Option-Edge-Shape))
 
 (struct geo-edge-style
   ([font : (Option Font)]
@@ -45,9 +41,9 @@
   (make-parameter make-null-edge-style))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-edge-select-line-paint : (-> Geo-Edge-Style Maybe-Stroke-Paint)
+(define geo-edge-select-line-paint : (-> (U Geo-Edge-Style Maybe-Stroke-Paint) Maybe-Stroke-Paint)
   (lambda [this-style]
-    (define paint : Maybe-Stroke-Paint (geo-edge-style-line-paint this-style))
+    (define paint : Maybe-Stroke-Paint (if (geo-edge-style? this-style) (geo-edge-style-line-paint this-style) this-style))
     (define fallback-paint : Maybe-Stroke-Paint (geo-edge-base-style-line-paint ((default-geo-edge-base-style))))
     (cond [(void? paint) fallback-paint]
           [(stroke? paint) paint]

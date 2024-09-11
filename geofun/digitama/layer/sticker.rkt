@@ -2,9 +2,6 @@
 
 (provide (all-defined-out))
 
-(require racket/keyword)
-(require racket/symbol)
-
 (require "../geometry/bbox.rkt")
 (require "../geometry/trail.rkt")
 (require "../geometry/anchor.rkt")
@@ -40,8 +37,8 @@
 (define default-anchor->sticker : Geo-Anchor->Sticker
   (lambda [self anchor pos Width Height]
     (if (symbol? anchor)
-        (geo-text (symbol->immutable-string anchor) #:color 'RoyalBlue)
-        (geo-text (keyword->immutable-string anchor) #:color 'Gray))))
+        (geo-text (geo-anchor->string anchor) #:color 'RoyalBlue)
+        (geo-text (geo-anchor->string anchor) #:color 'Gray))))
 
 (define geo:path-stick : (-> Geo:Path Geo-Anchor->Sticker (Option Geo-Trusted-Anchors) Boolean
                              (Option Symbol) (Option Geo-Pin-Operator) Float-Complex

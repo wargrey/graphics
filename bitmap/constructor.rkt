@@ -290,17 +290,14 @@
                 (default-fill-rule) density)))
 
 (define bitmap-arrowhead : (->* (Real)
-                                (Real #:shaft-thickness Real #:wing-angle (Option Real) #:radian? Boolean
+                                (Real #:wing-angle (Option Real) #:radian? Boolean
                                       #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum)
                                 Bitmap)
-  (lambda [#:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]
-           #:shaft-thickness [shaft-thickness 0.0] #:wing-angle [wing-angle #false] #:radian? [radian? #true]
+  (lambda [#:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)]
+           #:wing-angle [wing-angle #false] #:radian? [radian? #true] #:density [density (default-bitmap-density)]
            radius [start 0.0]]
     (define r : Nonnegative-Flonum (~length radius))
-    (define-values (prints tx ty width height)
-      (geo-arrow-metrics r (~radian start radian?)
-                         (~length shaft-thickness r) (~length shaft-thickness r)
-                         (and wing-angle (~radian wing-angle radian?))))
+    (define-values (prints tx ty width height) (geo-dart-metrics r (~radian start radian?) (and wing-angle (~radian wing-angle radian?))))
     
     (dc_polygon create-argb-bitmap width height prints tx ty #true #true
                 (stroke-paint->source* outline) (fill-paint->source* pattern)

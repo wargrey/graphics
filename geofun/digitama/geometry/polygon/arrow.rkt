@@ -6,8 +6,26 @@
 (require "../footprint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Dart-Key-Vertices (List Float-Complex Float-Complex Float-Complex Float-Complex))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-dart-metrics : (->* (Nonnegative-Flonum Flonum (Option Flonum)) (Float-Complex)
+                                (Values (Listof Geo-Path-Clean-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [head-radius rpoint wing-angle [offset 0.0+0.0i]]
+    (define fllength : Nonnegative-Flonum (* head-radius 2.0))
+    (define rdelta : Flonum (if (not wing-angle) (* 0.6 pi #;108.0) (- pi (* 0.5 wing-angle))))
+    
+    (values (list (cons #\M offset)
+                  (cons #\L (+ (make-polar head-radius (+ rpoint rdelta)) offset))
+                  (cons #\L (+ (make-polar head-radius rpoint) offset))
+                  (cons #\L (+ (make-polar head-radius (- rpoint rdelta)) offset))
+                  (cons #\L offset))
+            (+ head-radius (real-part offset))
+            (+ head-radius (imag-part offset))
+            fllength fllength)))
+
 (define geo-arrow-metrics : (-> Nonnegative-Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Flonum)
-                                (Values (Listof Geo-Path-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+                                (Values (Listof Geo-Path-Clean-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [head-radius rpoint shaft-thickness shaft-length wing-angle]
     (define fllength : Nonnegative-Flonum (* head-radius 2.0))
     (define rdelta : Flonum (if (not wing-angle) (* 0.6 pi #;108.0) (- pi (* 0.5 wing-angle))))
@@ -24,9 +42,7 @@
     (define shaft-minlen : Flonum (* shaft-thickness/2 (tan wing-theta)))
     
     (define-values (flwidth flheight tx ty shx1 shy1 shx2 shy2)
-      (if (or (not draw-shaft?) (<= shaft-length shaft-minlen))
-          (values fllength fllength head-radius head-radius 0.0 0.0 0.0 0.0)
-
+      (if (and draw-shaft? (> shaft-length shaft-minlen))
           (let*-values ([(shaft-radius) (sqrt (+ (* shaft-thickness/2 shaft-thickness/2)
                                                  (* shaft-length shaft-length)))]
                         [(shdelta) (+ (acos (/ shaft-thickness/2 shaft-radius)) pi/2)]
@@ -42,21 +58,22 @@
                               [(shymin shymax) (values (min shy1 shy2) (max shy1 shy2))]
                               [(xmin xmax) (values (min axmin shxmin) (max axmax shxmax))]
                               [(ymin ymax) (values (min aymin shymin) (max aymax shymax))])
-                  (values (max (- xmax xmin) 0.0) (max (- ymax ymin) 0.0) (- xmin) (- ymin) shx1 shy1 shx2 shy2))))))
+                  (values (max (- xmax xmin) 0.0) (max (- ymax ymin) 0.0) (- xmin) (- ymin) shx1 shy1 shx2 shy2))))
+          (values fllength fllength head-radius head-radius 0.0 0.0 0.0 0.0)))
 
-    (define shaft-prints : (Listof Geo-Path-Print)
+    (define-values (pos0 shaft-prints)
       (if (or draw-shaft?)
-          (list (cons #\M (make-rectangular (* wing-radius (cos rwing1)) (* wing-radius (sin rwing1))))
-                (cons #\L (make-rectangular shx1 shy1))
-                (cons #\L (make-rectangular shx2 shy2))
-                (cons #\L (make-rectangular (* wing-radius (cos rwing2)) (* wing-radius (sin rwing2)))))
-          (list (cons #\M 0.0+0.0i))))
+          (values (make-polar wing-radius rwing1)
+                  (list (cons #\L (make-rectangular shx1 shy1))
+                        (cons #\L (make-rectangular shx2 shy2))
+                        (cons #\L (make-polar wing-radius rwing2))))
+          (values 0.0+0.0i null)))
 
-    (define head-prints : (Listof Geo-Path-Print)
+    (define head-prints : (Listof Geo-Path-Clean-Print)
       (list (cons #\L (make-rectangular wx2 wy2))
             (cons #\L (make-rectangular rpx rpy))
             (cons #\L (make-rectangular wx1 wy1))
-            (cons #\Z #false)))
+            (cons #\L pos0)))
       
-    (values (append shaft-prints head-prints)
+    (values (cons (cons #\M pos0) (append shaft-prints head-prints))
             tx ty flwidth flheight)))

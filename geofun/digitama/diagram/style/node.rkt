@@ -44,12 +44,13 @@
   (make-parameter make-null-node-style))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-node-extent : (-> String Geo-Node-Style (Values Geo:Text Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [text this-style]
+(define geo-node-extent : (-> Symbol String Geo-Node-Style (Values Geo:Text Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [node-key text this-style]
     (define fallback-style : Geo-Node-Base-Style ((default-geo-node-base-style)))
     
     (define label : Geo:Text
-      (geo-text #:color (or (geo-node-style-font-paint this-style)
+      (geo-text #:id (string->symbol (string-append "~" (geo-anchor->string node-key)))
+                #:color (or (geo-node-style-font-paint this-style)
                             (geo-node-base-style-font-paint fallback-style))
                 text (or (geo-node-style-font this-style)
                          (geo-node-base-style-font fallback-style))))
@@ -83,12 +84,10 @@
     (if (void? paint) fallback-paint paint)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) geo-node-style-construct : (-> String Geo-Anchor-Name (-> Symbol String)
-                                                    (Option (Geo-Node-Style-Make* S)) (-> S)
-                                                    (Values String S))
-  (lambda [text anchor mk-label mk-style mk-fallback-style]
+(define #:forall (S) geo-node-style-construct : (-> String Geo-Anchor-Name (Option (Geo-Node-Style-Make* S)) (-> S) (Values Symbol S))
+  (lambda [text anchor mk-style mk-fallback-style]
     (define key : Symbol (string->symbol text))
 
-    (values (mk-label key)
+    (values key
             (or (and mk-style (mk-style key anchor))
                 (mk-fallback-style)))))

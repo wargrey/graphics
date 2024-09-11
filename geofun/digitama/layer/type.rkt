@@ -13,6 +13,25 @@
 (define-type (GLayer-Groupof G) (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum (GLayer-Listof G)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (G) geo-layer-center-position-values : (-> (GLayerof G) (Values Flonum Flonum))
+  (lambda [self]
+    (values (+ (vector-ref self 1) (* (vector-ref self 3) 0.5))
+            (+ (vector-ref self 2) (* (vector-ref self 4) 0.5)))))
+
+(define #:forall (G) geo-layer-center-position : (-> (GLayerof G) Float-Complex)
+  (lambda [self]
+    (define-values (x y) (geo-layer-center-position-values self))
+    (make-rectangular x y)))
+
+(define #:forall (G) geo-layer-size : (case-> [(GLayerof G) -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
+                                              [(GLayerof G) Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
+                                              [(GLayerof G) Nonnegative-Flonum Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum)])
+  (case-lambda
+    [(self) (values (vector-ref self 3) (vector-ref self 4))]
+    [(self s) (values (* (vector-ref self 3) s) (* (vector-ref self 4) s))]
+    [(self sw sh) (values (* (vector-ref self 3) sw) (* (vector-ref self 4) sh))]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Geo-Config-Argof T) (U (Listof T) (∩ T (U Symbol Number))))
 
 (define #:forall (T D) geo-config-expand : (case-> [(Geo-Config-Argof T) Natural T -> (Vectorof T)]

@@ -24,7 +24,7 @@
 
         (unsafe-geo-trail
          ((inst make-hasheq Geo-Anchor-Name Float-Complex) (list (cons anchor home)
-                                                                  (cons '#:home home)))
+                                                                 (cons '#:home home)))
          (list '#:home) (list anchor) home))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -72,7 +72,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-trail-anchored-positions : (->* (Geo-Trail) ((Option Geo-Trusted-Anchors)) (Immutable-HashTable Float-Complex Geo-Anchor-Name))
   (lambda [self [trusted-anchors #false]]
-    (for/hasheqv : (Immutable-HashTable Float-Complex Geo-Anchor-Name)
-      ([(anchor position) (in-hash (geo-trail-positions self))]
-       #:when (geo-anchor-trusted? anchor trusted-anchors))
-      (values position anchor))))
+    (for/fold ([positions : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (hasheq)])
+              ([(anchor pos) (in-hash (geo-trail-positions self))]
+               #:when (geo-anchor-trusted? anchor trusted-anchors))
+      (define Eanchor : (Option Geo-Anchor-Name) (hash-ref positions pos (λ [] #false)))
+
+      (cond [(not Eanchor) (hash-set positions pos anchor)]
+            [(symbol? anchor) (hash-set positions pos anchor)] ; usually it's an alias of '#:home
+            [else positions]))))
