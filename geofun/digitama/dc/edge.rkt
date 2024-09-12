@@ -2,6 +2,10 @@
 
 (provide (all-defined-out))
 
+(require "edge/style.rkt")
+(require "edge/type.rkt")
+(require "edge/metrics.rkt")
+
 (require "paint.rkt")
 (require "../../paint.rkt")
 (require "../../stroke.rkt")
@@ -11,10 +15,6 @@
 
 (require "../geometry/dot.rkt")
 (require "../geometry/footprint.rkt")
-(require "../diagram/style/edge.rkt")
-(require "../diagram/style/eshape/type.rkt")
-(require "../diagram/style/eshape/metrics.rkt")
-(require "../diagram/style/eshape/arrow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:edge geo
@@ -45,8 +45,9 @@
     (define-values (tgt-prints t.x t.y t.w t.h) (geo-edge-shape-metrics tgt-shape thickness erad ept))
 
     ;; NOTE: for shapes having outline stroke, simply add the thickness here
-    (define-values (lx ty) (values (min e.x s.x t.x) (min e.y s.y t.y)))
-    (define-values (rx by) (values (max (+ e.x e.w) (+ s.x s.w) (+ t.x t.w)) (max (+ e.y e.h) (+ s.y s.h) (+ t.y t.h))))
+    (define ssoffset : Nonnegative-Flonum (* (stroke-width default-shape-stroke) 0.5))
+    (define-values (lx ty) (values (min e.x (- s.x ssoffset) (- t.x ssoffset)) (min e.y (- s.y ssoffset) (- t.y ssoffset))))
+    (define-values (rx by) (values (max (+ e.x e.w) (+ s.x s.w ssoffset) (+ t.x t.w ssoffset)) (max (+ e.y e.h) (+ s.y s.h ssoffset) (+ t.y t.h ssoffset))))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window +nan.0+nan.0i lx ty rx by))
     
     (create-geometry-object geo:edge
@@ -78,9 +79,10 @@
         (define offset (geo:edge-bbox-offset self))
         (define stroke (current-stroke-source))
         (define color (and stroke (stroke-color stroke)))
+        (define shape-stroke (desc-stroke default-shape-stroke #:color color))
         (dc_edge create-abstract-surface
                  width height (geo:edge-footprints self) (real-part offset) (imag-part offset) x-stroke? y-stroke? stroke
-                 (vector-immutable (geo:edge-source-shape self) #false color)
-                 (vector-immutable (geo:edge-target-shape self) #false color)
+                 (vector-immutable (geo:edge-source-shape self) shape-stroke color)
+                 (vector-immutable (geo:edge-target-shape self) shape-stroke color)
                  (default-geometry-density))))))
   

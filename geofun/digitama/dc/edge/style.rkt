@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "eshape/type.rkt")
+(require "type.rkt")
 
 (require "../../geometry/anchor.rkt")
 

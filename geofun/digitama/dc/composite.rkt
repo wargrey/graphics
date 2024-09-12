@@ -8,10 +8,22 @@
 (require "../convert.rkt")
 (require "../composite.rkt")
 (require "../unsafe/composite.rkt")
-
 (require "../layer/type.rkt")
 (require "../layer/combine.rkt")
 (require "../layer/table.rkt")
+
+(require (for-syntax racket/base))
+(require (for-syntax syntax/parse))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-syntax (create-geometry-group stx)
+  (syntax-parse stx #:datum-literals [:]
+    [(_ Geo (~optional (~seq #:id name) #:defaults ([name #'#false])) op layers argl ...)
+     (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
+       (syntax/loc stx
+         (Geo geo-convert geo-group-surface (geo-group-extent layers)
+              (or name (gensym 'geo-prefix))
+              op layers argl ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:group geo
@@ -74,12 +86,8 @@
     (define rheights : (Vectorof Nonnegative-Flonum) (geo-table-row-heights table nrows ncols size))
     (define layers : Geo-Layer-Group (geo-table-layers table ncols nrows pcols prows gcols grows cwidths rheights))
 
-    (create-geometry-object geo:table
-                            #:surface geo-group-surface
-                            #:extent (geo-group-extent layers)
-                            #:id id
-                            op layers
-                            (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
+    (create-geometry-group geo:table #:id id
+                           op layers (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
 
 (define geo-group-surface : Geo-Surface-Create
   (lambda [self]
