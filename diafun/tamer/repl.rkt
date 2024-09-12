@@ -24,7 +24,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (define colorful-edge : Geo-Edge-Style-Make
+  (define colorful-edge : Dia-Edge-Style-Make
     (lambda [source target]
       (case source
         [(#:home Exit$) (make-diaflow-arrow-style #:line-paint 'Gray)]

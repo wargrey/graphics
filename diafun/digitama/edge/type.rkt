@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Option-Edge-Shape (Option Geo-Edge-Shape))
+(define-type Option-Edge-Shape (Option Dia-Edge-Shape))
 (define-type Maybe-Edge-Shape (U Void Option-Edge-Shape))
 
-(struct Geo-Edge-Shape ())
+(struct Dia-Edge-Shape ())

@@ -4,19 +4,19 @@
 
 (require typed/racket/unsafe)
 
-(require "../visual/ctype.rkt")
+(require geofun/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/source)
 
-(require "../source.rkt")
-(require "../../base.rkt")
-(require "../../geometry/footprint.rkt")
+(require geofun/digitama/base)
+(require geofun/digitama/geometry/footprint)
 
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require "../pangocairo.rkt")
-  (require "../paint.rkt")
+  (require geofun/digitama/unsafe/pangocairo)
+  (require geofun/digitama/unsafe/paint)
   
-  (require (submod "../path.rkt" unsafe))
+  (require (submod geofun/digitama/unsafe/path unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (dc_edge create-surface flwidth flheight footprints dx dy x-stroke? y-stroke? stroke source target density)

@@ -4,24 +4,23 @@
 
 (require "style/flow.rkt")
 (require "node/flow.rkt")
+(require "edge/style.rkt")
+(require "edge/dc.rkt")
 
 (require geofun/digitama/convert)
 (require geofun/digitama/geometry/trail)
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/geometry/footprint)
-(require geofun/digitama/dc/edge/style)
 
 (require geofun/digitama/layer/sticker)
 (require geofun/digitama/layer/type)
-
-(require geofun/digitama/dc/edge)
 (require geofun/digitama/dc/path)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type DiaFlow-Arrow-Endpoint (Pairof Geo-Anchor-Name Geo))
 (define-type DiaFlow-Arrow->Edge (-> Geo:Path DiaFlow-Arrow-Endpoint (Option DiaFlow-Arrow-Endpoint)
                                      (List* Geo-Path-Clean-Print Geo-Path-Clean-Print (Listof Geo-Path-Clean-Print))
-                                     (Option Geo:Edge)))
+                                     (Option Dia:Edge)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflow-node-constructor : Geo-Anchor->Sticker
@@ -45,15 +44,15 @@
     (define tgt-id : (Option String) (and target (geo-anchor->string (geo-id (cdr target)))))
     (define edge-id : String (if (not tgt-id) (string-append src-id "-.") (string-append src-id "->" tgt-id)))
     
-    (define style : Geo-Edge-Style
-      (geo-edge-style-construct (car source) (and target (car target))
+    (define style : Dia-Edge-Style
+      (dia-edge-style-construct (car source) (and target (car target))
                                 (default-diaflow-arrow-style-make)
                                 make-diaflow-arrow-style))
 
-    (geo-edge #:id (string->symbol edge-id)
-              #:stroke (geo-edge-select-line-paint style)
-              #:source-shape (geo-edge-select-source-shape style)
-              #:target-shape (and target (geo-edge-select-target-shape style))
+    (dia-edge #:id (string->symbol edge-id)
+              #:stroke (dia-edge-select-line-paint style)
+              #:source-shape (dia-edge-select-source-shape style)
+              #:target-shape (and target (dia-edge-select-target-shape style))
               tracks)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -100,7 +99,7 @@
   (lambda [master source target tracks make-arrow arrows]
     (define clean-tracks : (Listof Geo-Path-Clean-Print) (geo-path-cleanse tracks))
 
-    (define arrow : (Option Geo:Edge)
+    (define arrow : (Option Dia:Edge)
       (and (pair? clean-tracks)
            (pair? (cdr clean-tracks))
            (make-arrow master
@@ -110,8 +109,8 @@
                            (dia-2-tracks-relocate-endpoints source target clean-tracks)
                            (dia-more-tracks-relocate-endpoints source target clean-tracks)))))
 
-    (if (geo:edge? arrow)
-        (let ([ppos (geo-edge-pin-at-position arrow #false)])
+    (if (and arrow)
+        (let ([ppos (dia-edge-pin-at-position arrow #false)])
           (define-values (awidth aheight) (geo-flsize arrow))
           (define alayer (vector-immutable arrow (real-part ppos) (imag-part ppos) awidth aheight))
           (cons alayer arrows))

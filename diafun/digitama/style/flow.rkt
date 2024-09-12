@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 (provide (all-from-out "../node/style.rkt"))
-(provide (all-from-out geofun/digitama/dc/edge/style geofun/digitama/dc/edge/arrow))
+(provide (all-from-out "../edge/style.rkt" "../edge/arrow.rkt"))
 
 (require digimon/struct)
 (require racket/string)
@@ -11,12 +11,12 @@
 (require geofun/stroke)
 (require geofun/paint)
 
-(require geofun/digitama/dc/edge/style)
-(require geofun/digitama/dc/edge/type)
-(require geofun/digitama/dc/edge/arrow)
 (require geofun/digitama/geometry/anchor)
 
 (require "../node/style.rkt")
+(require "../edge/style.rkt")
+(require "../edge/type.rkt")
+(require "../edge/arrow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Some aliases
@@ -34,17 +34,17 @@
      'Database 'Document 'Operation 'Keyboard 'Preparation))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diaflow-arrow-style-make : (Parameterof (Option Geo-Edge-Style-Make)) (make-parameter #false))
+(define default-diaflow-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
 
-(define-configuration diaflow-edge-style : GeoFlow-Edge-Style #:as geo-edge-base-style
+(define-configuration diaflow-edge-style : GeoFlow-Edge-Style #:as dia-edge-base-style
   #:format "default-diaflow-edge-~a"
   ([font : (Option Font) (desc-font #:size 'small)]
    [font-paint : Option-Fill-Paint #false]
    [line-paint : Maybe-Stroke-Paint (desc-stroke #:width 2.0 #:color 'DimGray #:join 'round #:cap 'round)]
    [source-shape : Option-Edge-Shape #false]
-   [target-shape : Option-Edge-Shape (make-geo-edge-arrow)]))
+   [target-shape : Option-Edge-Shape (make-dia-edge-arrow)]))
 
-(define-configuration diaflow-arrow-style : GeoFlow-Arrow-Style #:as geo-edge-style
+(define-configuration diaflow-arrow-style : GeoFlow-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-arrow-~a"
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]

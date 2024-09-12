@@ -7,7 +7,6 @@
 
 (provide default-diaflow-node-constructor)
 (provide default-diaflow-arrow-constructor)
-(provide geo-edge geo:edge? Geo:Edge)
 
 (require geofun/path)
 
@@ -17,9 +16,7 @@
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/layer/sticker)
 (require geofun/digitama/layer/type)
-
 (require geofun/digitama/dc/composite)
-(require geofun/digitama/dc/edge)
 
 (require "digitama/flowchart.rkt")
 (require "digitama/style/flow.rkt")
@@ -32,7 +29,7 @@
   (lambda [#:id [id #false] #:operator [op #false] #:trusted-anchors [trusted-anchors #false] #:start-name [start #false]
            #:λnode [make-node default-diaflow-node-constructor] #:λarrow [make-arrow default-diaflow-arrow-constructor]
            self]
-    (parameterize ([default-geo-edge-base-style make-diaflow-edge-style]
+    (parameterize ([default-dia-edge-base-style make-diaflow-edge-style]
                    [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))])
       (define stickers : (Listof (GLayerof Geo)) (diaflow-stick self make-node make-arrow trusted-anchors))
 
