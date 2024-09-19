@@ -12,9 +12,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct dia-edge-arrow : Dia-Edge-Arrow #:-> Dia-Edge-Shape
-  ([radius : Real -2.5]
+  ([radius : Real -3.0]
    [wing.deg : (Option Real) #false]
-   [t : Nonnegative-Flonum 0.92])
+   [t : Nonnegative-Flonum 0.90])
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

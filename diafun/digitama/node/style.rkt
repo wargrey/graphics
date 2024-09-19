@@ -2,18 +2,23 @@
 
 (provide (all-defined-out))
 
+(require racket/string)
+
 (require geofun/digitama/geometry/anchor)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
+(require geofun/digitama/dc/composite)
 
 (require geofun/font)
 (require geofun/paint)
 (require geofun/stroke)
+(require geofun/composite)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Node-Style-Make* S) (-> Symbol Geo-Anchor-Name (Option S)))
+(define-type (Dia-Node-Style-Make* S) (-> Symbol Geo-Anchor-Name (U False Void S)))
 (define-type Dia-Node-Style-Make (Dia-Node-Style-Make* Dia-Node-Style))
+(define-type Dia-Node-Id->String (-> Symbol (U String Void False)))
 
 (struct dia-node-style
   ([width : (Option Nonnegative-Flonum)]
@@ -44,32 +49,39 @@
   (make-parameter make-null-node-style))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-node-extent : (-> Symbol String Dia-Node-Style (Values Geo:Text Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [node-key text this-style]
+(define dia-node-extent : (-> Symbol String Dia-Node-Style (Values (Option Geo) Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [node-key text0 this-style]
     (define fallback-style : Dia-Node-Base-Style ((default-dia-node-base-style)))
+    (define font : (Option Font) (or (dia-node-style-font this-style) (dia-node-base-style-font fallback-style)))
+    (define paint : Option-Fill-Paint (or (dia-node-style-font-paint this-style) (dia-node-base-style-font-paint fallback-style)))
+    (define tid : Symbol (string->symbol (string-append "~" (geo-anchor->string node-key))))
+    (define text : String (string-trim text0))
     
-    (define label : Geo:Text
-      (geo-text #:id (string->symbol (string-append "~" (geo-anchor->string node-key)))
-                #:color (or (dia-node-style-font-paint this-style)
-                            (dia-node-base-style-font-paint fallback-style))
-                text (or (dia-node-style-font this-style)
-                         (dia-node-base-style-font fallback-style))))
+    (define label : (Option Geo)
+      (cond [(regexp-match? #px"[\r\n]+" text)
+             (geo-vc-append* #:id tid
+                             (for/list : (Listof Geo:Text)
+                               ([l (in-lines (open-input-string text))])
+                               (geo-text #:color paint (string-trim l) font)))]
+            [(non-empty-string? text) (geo-text #:id tid #:color paint text font)]
+            [else #false]))
     
     (define-values (width height)
-      (values (or (dia-node-style-width this-style) (dia-node-base-style-width fallback-style))
+      (values (or (dia-node-style-width this-style)  (dia-node-base-style-width  fallback-style))
               (or (dia-node-style-height this-style) (dia-node-base-style-height fallback-style))))
     
     (define-values (used-width used-height)
       (cond [(and (> width 0.0) (> height 0.0)) (values width height)]
+            [(not label) (values 0.0 0.0)]
             [else (let-values ([(lwidth lheight) (geo-flsize label)])
-                    (values (if (> width 0.0) width lwidth)
+                    (values (if (> width 0.0)  width  lwidth)
                             (if (> height 0.0) height lheight)))]))
 
     (values label used-width used-height)))
 
 (define dia-node-select-stroke-paint : (-> Dia-Node-Style Maybe-Stroke-Paint)
-  (lambda [this-style]
-    (define paint : Maybe-Stroke-Paint (dia-node-style-stroke-paint this-style))
+  (lambda [self]
+    (define paint : Maybe-Stroke-Paint (dia-node-style-stroke-paint self))
     (define fallback-paint : Maybe-Stroke-Paint (dia-node-base-style-stroke-paint ((default-dia-node-base-style))))
     (cond [(void? paint) fallback-paint]
           [(stroke? paint) paint]
@@ -77,11 +89,11 @@
           [else paint])))
 
 (define dia-node-select-fill-paint : (-> Dia-Node-Style Maybe-Fill-Paint)
-  (lambda [this-style]
-    (define paint : Maybe-Fill-Paint (dia-node-style-fill-paint this-style))
-    (define fallback-paint : Maybe-Fill-Paint (dia-node-base-style-fill-paint ((default-dia-node-base-style))))
-    
-    (if (void? paint) fallback-paint paint)))
+  (lambda [self]
+    (define paint : Maybe-Fill-Paint (dia-node-style-fill-paint self))
+
+    (cond [(not (void? paint)) paint]
+          [else (dia-node-base-style-fill-paint ((default-dia-node-base-style)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-node-style-construct : (-> String Geo-Anchor-Name (Option (Dia-Node-Style-Make* S)) (-> S) (Values Symbol S))
@@ -89,5 +101,7 @@
     (define key : Symbol (string->symbol text))
 
     (values key
-            (or (and mk-style (mk-style key anchor))
-                (mk-fallback-style)))))
+            (let ([maybe-style (and mk-style (mk-style key anchor))])
+              (if (or (not maybe-style) (void? maybe-style))
+                  (mk-fallback-style)
+                  maybe-style)))))

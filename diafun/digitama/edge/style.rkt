@@ -4,6 +4,8 @@
 
 (require "type.rkt")
 
+(require racket/symbol)
+
 (require geofun/digitama/geometry/anchor)
 
 (require geofun/font)
@@ -11,7 +13,7 @@
 (require geofun/stroke)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Edge-Style-Make* S) (-> Geo-Anchor-Name (Option Geo-Anchor-Name) (Option S)))
+(define-type (Dia-Edge-Style-Make* S) (-> Geo-Anchor-Name (Option Geo-Anchor-Name) (U False Void S)))
 (define-type Dia-Edge-Style-Make (Dia-Edge-Style-Make* Dia-Edge-Style))
 
 (struct dia-edge-style
@@ -40,6 +42,16 @@
 (define default-dia-edge-base-style : (Parameterof (-> Dia-Edge-Base-Style))
   (make-parameter make-null-edge-style))
 
+(define dia-edge-id-merge : (-> Symbol (Option Symbol) Boolean Symbol)
+  (lambda [source-id target-id directed?]
+    (define src-id : String (symbol->immutable-string source-id))
+    (define tgt-id : (Option String) (and target-id (symbol->immutable-string target-id)))
+    
+    (string->symbol
+     (cond [(not tgt-id) (string-append src-id "-.")]
+           [(not directed?) (string-append src-id "->" tgt-id)]
+           [else (string-append src-id "->" tgt-id)]))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-edge-select-line-paint : (-> (U Dia-Edge-Style Maybe-Stroke-Paint) Maybe-Stroke-Paint)
   (lambda [this-style]
@@ -60,8 +72,21 @@
     (define shape : Maybe-Edge-Shape (dia-edge-style-target-shape this-style))
     (if (void? shape) (dia-edge-base-style-target-shape ((default-dia-edge-base-style))) shape)))
 
+(define dia-edge-select-font : (-> Dia-Edge-Style (Option Font))
+  (lambda [this-style]
+    (or (dia-edge-style-font this-style)
+        (dia-edge-base-style-font ((default-dia-edge-base-style))))))
+
+(define dia-edge-select-font-paint : (-> Dia-Edge-Style Option-Fill-Paint)
+  (lambda [this-style]
+    (or (dia-edge-style-font-paint this-style)
+        (dia-edge-base-style-font-paint ((default-dia-edge-base-style))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-edge-style-construct : (-> Geo-Anchor-Name (Option Geo-Anchor-Name) (Option (Dia-Edge-Style-Make* S)) (-> S) S)
   (lambda [source target mk-style mk-fallback-style]
-    (or (and mk-style (mk-style source target))
-        (mk-fallback-style))))
+    (define maybe-style (and mk-style (mk-style source target)))
+
+    (if (or (not maybe-style) (void? maybe-style))
+        (mk-fallback-style)
+        maybe-style)))

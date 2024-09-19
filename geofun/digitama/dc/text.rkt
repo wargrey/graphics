@@ -75,9 +75,9 @@
                             (~a text) lines alsource dlsource clsource mlsource blsource)))
 
 (define geo-paragraph : (->* ((U String (Listof String)))
-                             (Font #:id (Option Symbol) #:color Option-Fill-Paint #:background Maybe-Fill-Paint #:lines (Listof Symbol)
-                                   #:max-width Real #:max-height Real #:indent Real #:spacing Real
-                                   #:wrap-mode Paragraph-Wrap-Mode #:ellipsize-mode Paragraph-Ellipsize-Mode)
+                             ((Option Font) #:id (Option Symbol) #:color Option-Fill-Paint #:background Maybe-Fill-Paint #:lines (Listof Symbol)
+                                            #:max-width Real #:max-height Real #:indent Real #:spacing Real
+                                            #:wrap-mode Paragraph-Wrap-Mode #:ellipsize-mode Paragraph-Ellipsize-Mode)
                              Geo:Paragraph)
   (lambda [texts [font #false] #:id [id #false] #:color [fgsource #false] #:background [bgsource (void)] #:lines [lines null]
                  #:max-width [max-width +inf.0] #:max-height [max-height +inf.0] #:indent [indent 0.0] #:spacing [spacing 0.0]

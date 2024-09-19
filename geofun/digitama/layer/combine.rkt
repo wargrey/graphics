@@ -126,3 +126,9 @@
                                           (cons (geo-superimpose-layer port width height (car liat)) tail))
                                   (cons (geo-superimpose-layer port width height base min-width min-height)
                                         tail))))))))
+
+(define geo-own-layers : (-> Geo (GLayer-Groupof Geo))
+  (lambda [base]
+    (define-values (width height) (geo-flsize base))
+    (vector-immutable width height
+                      (list (vector-immutable base 0.0 0.0 width height)))))

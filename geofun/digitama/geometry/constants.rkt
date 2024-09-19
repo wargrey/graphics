@@ -4,7 +4,6 @@
 (provide (all-from-out digimon/constant))
 
 (require digimon/constant)
-(require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define 2√3 : Nonnegative-Flonum (* 2.0 (sqrt 3.0)))

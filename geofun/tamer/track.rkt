@@ -2,9 +2,6 @@
 
 (require geofun/path)
 
-(require racket/symbol)
-(require racket/keyword)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-dryland-wani! drywani [108 108] #:-
   (move-left)
@@ -77,12 +74,12 @@
     (lambda [self anchor pos Width Height]
       (define sticker : Geo
         (if (keyword? anchor)
-            (geo-art-text (keyword->immutable-string anchor) #:stroke #false #:fill 'Gray)
-            (geo-art-text (symbol->immutable-string  anchor) #:stroke #false #:fill 'Green)))
+            (geo-art-text (geo-anchor->string anchor) #:stroke #false #:fill 'Gray)
+            (geo-art-text (geo-anchor->string anchor) #:stroke #false #:fill 'Green)))
 
       (case anchor
         [(#:home) sticker]
-        [(#:z #:l) (make-sticker sticker 'ct 0 8)]
+        [(#:z #:l) (make-sticker sticker 'ct 0 6)]
         [(#:r #:diamond) (make-sticker sticker 'lc 8.0)]
         [(E) (make-sticker sticker 'cb 0.0 -2.0)]
         [(lx) (make-sticker sticker 'lt 2.0 2.0)]

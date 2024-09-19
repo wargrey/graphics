@@ -19,8 +19,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct dia:edge geo
   ([footprints : (Listof Geo-Path-Print)]
-   [source : Float-Complex]
-   [target : Float-Complex]
+   [source : (Pairof Float-Complex Flonum)]
+   [target : (Pairof Float-Complex Flonum)]
    [origin : Float-Complex]
    [bbox-offset : Float-Complex]
    [line-offset : (Option Float-Complex)]
@@ -54,14 +54,14 @@
                             #:surface (dia-edge-surface width height x-stroke? y-stroke?) stroke
                             #:extent (geo-stroke-extent-wrapper (geo-shape-plain-extent width height 0.0 0.0) stroke x-stroke? y-stroke?)
                             #:id id
-                            footprints spt ept (make-rectangular lx ty)
+                            footprints (cons spt srad) (cons ept erad) (make-rectangular lx ty)
                             (make-rectangular xoff yoff) (make-rectangular line-offset line-offset)
                             src-prints tgt-prints)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-edge-pin-at-position : (->* (Dia:Edge) ((Option Float-Complex)) Float-Complex)
   (lambda [self [maybe-pt #false]]
-    (define S : Float-Complex (dia:edge-source self))
+    (define S : Float-Complex (car (dia:edge-source self)))
     (define O : Float-Complex (dia:edge-origin self))
     (define ->S : Float-Complex (- S O))
     
@@ -76,12 +76,13 @@
   (lambda [width height x-stroke? y-stroke?]
     (λ [self]
       (with-asserts ([self dia:edge?])
-        (define offset (dia:edge-bbox-offset self))
-        (define stroke (current-stroke-source))
-        (define color (and stroke (stroke-color stroke)))
+        (define paint (current-stroke-source))
+        (define color (and paint (stroke-color paint)))
         (define shape-stroke (desc-stroke default-dia-shape-stroke #:color color))
+        (define offset (dia:edge-bbox-offset self))
+
         (dc_edge create-abstract-surface
-                 width height (dia:edge-footprints self) (real-part offset) (imag-part offset) x-stroke? y-stroke? stroke
+                 width height (dia:edge-footprints self) (real-part offset) (imag-part offset) x-stroke? y-stroke? paint
                  (vector-immutable (dia:edge-source-shape self) shape-stroke color)
                  (vector-immutable (dia:edge-target-shape self) shape-stroke color)
                  (default-geometry-density))))))

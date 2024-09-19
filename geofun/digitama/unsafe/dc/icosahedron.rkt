@@ -37,7 +37,7 @@
     (unless (not background)
       (cairo-render-with-fill cr background))
 
-    ;;; draw edges inside
+    ;;; draw inside edges
     (unless (not edge-stroke)
       (cairo_new_path cr)
       (cairo-add-line cr -aφ -a1 +aφ -a1)

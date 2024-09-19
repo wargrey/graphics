@@ -100,3 +100,17 @@
      (bitmap-scale bmp
                    (/ (real->double-flonum w) (exact->inexact (bitmap-intrinsic-width bmp)))
                    (/ (real->double-flonum h) (exact->inexact (bitmap-intrinsic-height bmp))))]))
+
+(define bitmap-fit : (case-> [Bitmap Bitmap -> Bitmap]
+                             [Bitmap Nonnegative-Real Nonnegative-Real -> Bitmap]
+                             [Bitmap Bitmap Nonnegative-Real Nonnegative-Real -> Bitmap])
+  (case-lambda
+    [(self refer) (bitmap-fit self refer 1.0 1.0)]
+    [(self refer wratio hratio)
+     (let-values ([(flwidth flheight) (bitmap-flsize refer)])
+       (bitmap-fit self (* flwidth (real->double-flonum wratio)) (* flheight (real->double-flonum hratio))))]
+    [(self width height)
+     (let-values ([(flwidth flheight) (bitmap-flsize self)])
+       (bitmap-scale self
+                     (min (/ (min flwidth  (real->double-flonum width))  flwidth)
+                          (/ (min flheight (real->double-flonum height)) flheight))))]))

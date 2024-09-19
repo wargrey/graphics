@@ -72,7 +72,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-trail-anchored-positions : (->* (Geo-Trail) ((Option Geo-Trusted-Anchors)) (Immutable-HashTable Float-Complex Geo-Anchor-Name))
   (lambda [self [trusted-anchors #false]]
-    (for/fold ([positions : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (hasheq)])
+    (for/fold ([positions : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (hasheqv)])
               ([(anchor pos) (in-hash (geo-trail-positions self))]
                #:when (geo-anchor-trusted? anchor trusted-anchors))
       (define Eanchor : (Option Geo-Anchor-Name) (hash-ref positions pos (λ [] #false)))

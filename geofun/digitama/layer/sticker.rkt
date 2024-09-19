@@ -63,7 +63,7 @@
       (cond [(pair? srohcna)
              (let-values ([(anchor rest) (values (car srohcna) (cdr srohcna))])
                (if (geo-anchor-trusted? anchor trusted-anchors)
-                   (let ([slayer (geo-sticker-layer self anchor->sticker anchor (geo-trail-ref gpath anchor) origin offset Width Height)])
+                   (let ([slayer (geo-sticker-layer self anchor->sticker anchor (- (geo-trail-ref gpath anchor) origin) offset Width Height)])
                      (stick rest (if (not slayer) stickers (cons slayer stickers))))
                    (stick rest stickers)))]
             [(pair? stickers)
@@ -100,14 +100,13 @@
                                         (geo-layer-translate sticker xoff yoff)))))))]))
 
 (define geo-sticker-layer : (-> Geo:Path Geo-Anchor->Sticker Geo-Anchor-Name
-                                Float-Complex Float-Complex Float-Complex Nonnegative-Flonum Nonnegative-Flonum
+                                Float-Complex Float-Complex Nonnegative-Flonum Nonnegative-Flonum
                                 (Option (GLayerof Geo)))
-  (lambda [self anchor->sticker anchor position origin offset Width Height]
-    (define pos (- position origin))
-    (define stk (anchor->sticker self anchor pos Width Height))
+  (lambda [self anchor->sticker anchor position offset Width Height]
+    (define stk (anchor->sticker self anchor position Width Height))
     
     (and (or (geo-sticker? stk) (geo? stk))
-         (geo-sticker->layer stk pos offset))))
+         (geo-sticker->layer stk position offset))))
 
 (define geo-sticker->layer : (-> Geo-Sticker-Datum Float-Complex Float-Complex (GLayerof Geo))
   (lambda [self pos offset]
