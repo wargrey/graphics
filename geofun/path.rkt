@@ -52,22 +52,22 @@
 (define-syntax (with-dryland-wani! stx)
   (syntax-case stx []
     [(_ wani (move argl ...) ...)
-     (with-syntax* ([(dryland-wani-move ...)
+     (with-syntax* ([(dryland-wani-move! ...)
                      (for/list ([<move> (in-list (syntax->list #'(move ...)))])
                        (format-id <move> "dryland-wani-~a!" (syntax->datum <move>)))])
-       (syntax/loc stx
+       (quasisyntax/loc stx
          (let ([self wani])
-           (dryland-wani-move self argl ...)
+           (dryland-wani-move! self argl ...)
            ...
            self)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-dryland-wani : (->* (Real)
-                                 (Real #:turn-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
+                                 (Real #:T-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
                                        #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
                                        #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule Symbol)
                                  Dryland-Wani)
-  (lambda [#:turn-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
+  (lambda [#:T-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
            #:stroke [stroke (void)] #:fill [fill (void)] #:fill-rule [frule (default-fill-rule)]
            xstepsize [ystepsize 0.0]]
@@ -90,7 +90,7 @@
                             #:id name
                             (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
-                            (list (cons start-of-track home-pos))
+                            (list (cons start-of-track home-pos)) (make-hash)
                             (and (stroke? stroke) (* (stroke-width stroke) 0.5))
                             xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))
 

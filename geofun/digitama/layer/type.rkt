@@ -5,7 +5,7 @@
 (require digimon/sequence)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Pin-Port (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
+(define-type Geo-Pin-Anchor (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
 (define-type Geo-Append-Align (U 'vl 'vc 'vr 'ht 'hc 'hb))
 
 (define-type (GLayerof G) (Immutable-Vector G Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
@@ -50,7 +50,7 @@
              (make-vector n defval))
          (make-vector n (->v config)))]))
 
-(define geo-port-merge : (-> Geo-Pin-Port Geo-Pin-Port Geo-Pin-Port)
+(define geo-anchor-merge : (-> Geo-Pin-Anchor Geo-Pin-Anchor Geo-Pin-Anchor)
   (lambda [prow pcol]
     (cond [(eq? prow pcol) prow]
           [(memq pcol '(lt lc lb)) (case prow [(ct rt) 'lt] [(cc rc) 'lc] [(cb rb) 'lb] [else prow])]

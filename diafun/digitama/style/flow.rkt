@@ -55,6 +55,7 @@
 (define default-diaflow-node-label-string : (Parameterof Dia-Node-Id->String) (make-parameter geo-anchor->string))
 (define default-diaflow-canonical-start-name : (Parameterof String) (make-parameter ""))
 (define default-diaflow-canonical-stop-name : (Parameterof String) (make-parameter ""))
+(define default-diaflow-arrow-label-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Arrow-Label-Style))) (make-parameter #false))
 
 (define default-diaflow-input-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Input-Style))) (make-parameter #false))
 (define default-diaflow-output-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Output-Style))) (make-parameter #false))
@@ -72,12 +73,21 @@
 
 (define-configuration diaflow-node-base-style : GeoFlow-Node-Style #:as dia-node-base-style
   #:format "default-diaflow-~a"
-  ([block-width : Nonnegative-Flonum 256.0]
-   [block-height : Nonnegative-Flonum 64.0]
+  ([block-width : Nonnegative-Flonum 200.0]
+   [block-height : Nonnegative-Flonum 50.0]
    [font : (Option Font) (desc-font #:size 'xx-large)]
    [font-paint : Option-Fill-Paint #false]
    [stroke-paint : Maybe-Stroke-Paint (desc-stroke #:width 2.0 #:color 'DarkGray)]
    [fill-paint : Maybe-Fill-Paint 'GhostWhite]))
+
+(define-configuration diaflow-arrow-label-style : GeoFlow-Arrow-Label-Style #:as dia-node-style
+  #:format "default-diaflow-arrow-label-~a"
+  ([block-width : (Option Flonum) -1.2]
+   [block-height : (Option Flonum) -1.2]
+   [font : (Option Font) (desc-font #:size 'normal #:family 'monospace)]
+   [font-paint : Option-Fill-Paint 'DimGray]
+   [stroke-paint : Maybe-Stroke-Paint #false]
+   [fill-paint : Maybe-Fill-Paint #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration diaflow-start-style : GeoFlow-Start-Style #:as dia-node-style

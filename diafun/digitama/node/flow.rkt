@@ -6,12 +6,24 @@
 (require "../node/dc.rkt")
 
 (require geofun/constructor)
+(require geofun/composite)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/geometry/constants)
 (require geofun/digitama/geometry/polygon/quadrilateral)
 (require geofun/digitama/geometry/polygon/hexagon)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define diaflow-block-in-arrow-label : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum Dia:Node)
+  (lambda [node-key label style width height]
+    (create-dia-node dia:node:label
+                     #:id node-key
+                     (geo-rectangle #:id (diaflow-node-shape-id node-key)
+                                    #:stroke (dia-node-select-stroke-paint style)
+                                    #:fill (dia-node-select-fill-paint style)
+                                    width height)
+                     label)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diaflow-block-process : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum Dia:Node)
@@ -21,6 +33,20 @@
                                     #:stroke (dia-node-select-stroke-paint style)
                                     #:fill (dia-node-select-fill-paint style)
                                     width height)
+                     label)))
+
+(define diaflow-block-subroutine : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum Dia:Node)
+  (lambda [node-key label style width height]
+    (define stroke (dia-node-select-stroke-paint style))
+    (define width-ratio : Nonnegative-Flonum 0.85)
+    
+    (create-dia-node #:id node-key
+                     #:fit-ratio width-ratio 1.0
+                     (geo-cc-superimpose #:id (diaflow-node-shape-id node-key)
+                                         (geo-rectangle #:stroke stroke #:fill (dia-node-select-fill-paint style)
+                                                        width height)
+                                         (geo-rectangle #:stroke stroke #:fill #false
+                                                        (* width width-ratio) height))
                      label)))
 
 (define diaflow-block-decision : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum Dia:Node)

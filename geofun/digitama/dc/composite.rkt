@@ -34,7 +34,7 @@
 
 (struct geo:table geo:group
   ([size : (Pairof Positive-Index Positive-Index)]
-   [ports : (Pairof (Vectorof Geo-Pin-Port) (Vectorof Geo-Pin-Port))]
+   [anchors : (Pairof (Vectorof Geo-Pin-Anchor) (Vectorof Geo-Pin-Anchor))]
    [gaps : (Pairof (Vectorof Flonum) (Vectorof Flonum))])
   #:type-name Geo:Table
   #:transparent)
@@ -72,11 +72,11 @@
 
 (define make-geo:table : (-> (Option Symbol) (Option Symbol)
                              (Listof Geo) Positive-Index Positive-Index
-                             (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Real) (Geo-Config-Argof Real) Geo
+                             (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real) Geo
                              Geo:Table)
-  (lambda [id op siblings ncols nrows col-ports row-ports col-gaps row-gaps cont]
-    (define pcols : (Vectorof Geo-Pin-Port) (geo-config-expand col-ports ncols 'cc))
-    (define prows : (Vectorof Geo-Pin-Port) (geo-config-expand row-ports nrows 'cc))
+  (lambda [id op siblings ncols nrows col-anchors row-anchors col-gaps row-gaps cont]
+    (define pcols : (Vectorof Geo-Pin-Anchor) (geo-config-expand col-anchors ncols 'cc))
+    (define prows : (Vectorof Geo-Pin-Anchor) (geo-config-expand row-anchors nrows 'cc))
     (define gcols : (Vectorof Flonum) (geo-config-expand col-gaps ncols 0.0 real->double-flonum))
     (define grows : (Vectorof Flonum) (geo-config-expand row-gaps nrows 0.0 real->double-flonum))
     (define table : (Vectorof (GLayerof Geo)) (list->n:vector* siblings (* nrows ncols) (geo->layer cont) geo->layer))

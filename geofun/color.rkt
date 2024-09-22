@@ -7,7 +7,6 @@
 (require colorspace)
 
 (require racket/format)
-
 (require file/convertible)
 
 (require "digitama/base.rkt")

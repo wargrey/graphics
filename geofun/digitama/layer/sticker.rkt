@@ -19,14 +19,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo-sticker
   ([self : Geo]
-   [port : Geo-Pin-Port]
+   [anchor : Geo-Pin-Anchor]
    [offset : Float-Complex])
   #:type-name Geo-Sticker
   #:transparent)
 
-(define make-sticker : (->* (Geo) (Geo-Pin-Port Real Real) Geo-Sticker)
-  (lambda [self [port 'cc] [dx 0] [dy 0]]
-    (geo-sticker self port
+(define make-sticker : (->* (Geo) (Geo-Pin-Anchor Real Real) Geo-Sticker)
+  (lambda [self [anchor 'cc] [dx 0] [dy 0]]
+    (geo-sticker self anchor
                  (make-rectangular (real->double-flonum dx)
                                    (real->double-flonum dy)))))
 
@@ -112,5 +112,5 @@
   (lambda [self pos offset]
     (if (geo? self)
         (geo-own-layer 'cc pos self offset)
-        (geo-own-layer (geo-sticker-port self) pos (geo-sticker-self self)
+        (geo-own-layer (geo-sticker-anchor self) pos (geo-sticker-self self)
                        (+ (geo-sticker-offset self) offset)))))

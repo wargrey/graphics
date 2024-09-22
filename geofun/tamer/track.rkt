@@ -75,7 +75,7 @@
       (define sticker : Geo
         (if (keyword? anchor)
             (geo-art-text (geo-anchor->string anchor) #:stroke #false #:fill 'Gray)
-            (geo-art-text (geo-anchor->string anchor) #:stroke #false #:fill 'Green)))
+            (geo-art-text (geo-anchor->string anchor) #:id anchor #:stroke #false #:fill 'Green)))
 
       (case anchor
         [(#:home) sticker]

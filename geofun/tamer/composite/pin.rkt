@@ -19,6 +19,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   3pc
+  (geo-flsize 3pc)
+  (geo-lt-find 3pc red-circle)
+  (geo-rt-find 3pc green-circle)
+  (geo-cb-find 3pc blue-circle)
+  (geo-cc-find 3pc sine)
+  
   (geo-composite green-circle -50 0 blue-circle)
   (geo-pin 3pc 0 0 yellow-circle 64 64)
   (geo-frame (geo-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle))

@@ -76,22 +76,42 @@
                       interpts)))))
         null)))
 
-(define geo-line-polygon-intersect/first : (->* (Float-Complex Float-Complex (Listof Float-Complex)) (#:translate Float-Complex) (Option Float-Complex))
+(define geo-line-polygon-intersect/first : (->* (Float-Complex Float-Complex (List* Float-Complex Float-Complex (Listof Float-Complex)))
+                                                (#:translate Float-Complex)
+                                                (Option Float-Complex))
   (lambda [A B vertices #:translate [offset 0.0+0.0i]]
-    (and (pair? vertices)
-         (pair? (cdr vertices))
+    (define head (+ (car vertices) offset))
+    
+    (let intersect ([prev : Float-Complex head]
+                    [vtcs : (Listof Float-Complex) (cdr vertices)])
+      (if (pair? vtcs)
+          (let ([vtx (+ (car vtcs) offset)])
+            (or (geo-actually-intersected-point (geo-line-line-intersect A B prev vtx))
+                (intersect vtx (cdr vtcs))))
+          (geo-actually-intersected-point
+           (geo-line-line-intersect A B prev head))))))
 
-         (let ([head (+ (car vertices) offset)])
-           (let intersect ([prev : Float-Complex head]
-                           [vtcs : (Listof Float-Complex) (cdr vertices)])
-             (if (pair? vtcs)
-                 (let* ([vtx (+ (car vtcs) offset)]
-                        [maybe-pt (geo-line-line-intersect A B prev vtx)])
-                   (if (and maybe-pt (geo-actually-intersected? maybe-pt))
-                       (vector-ref maybe-pt 0)
-                       (intersect vtx (cdr vtcs))))
-                 (geo-actually-intersected-point
-                  (geo-line-line-intersect A B prev head))))))))
+(define geo-line-polygon-intersect/codir-first : (->* (Float-Complex Float-Complex (List* Float-Complex Float-Complex (Listof Float-Complex)))
+                                                      (#:translate Float-Complex)
+                                                      (Option Float-Complex))
+  (lambda [A B vertices #:translate [offset 0.0+0.0i]]
+    (define head (+ (car vertices) offset))
+
+    (let intersect ([prev : Float-Complex head]
+                    [vtcs : (Listof Float-Complex) (cdr vertices)])
+      (if (pair? vtcs)
+          (let ([vtx (+ (car vtcs) offset)])
+            (or (geo-codir-intersected-point (geo-line-line-intersect A B prev vtx))
+                (intersect vtx (cdr vtcs))))
+          (geo-codir-intersected-point
+           (geo-line-line-intersect A B prev head))))))
+
+(define geo-line-polygon-intersect/first* : (->* (Float-Complex Float-Complex (List* Float-Complex Float-Complex (Listof Float-Complex)))
+                                                 (#:translate Float-Complex)
+                                                 (Option Float-Complex))
+  (lambda [A B vertices #:translate [offset 0.0+0.0i]]
+    (or (geo-line-polygon-intersect/first A B vertices #:translate offset)
+        (geo-line-polygon-intersect/codir-first A B vertices #:translate offset))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-actually-intersected? : (-> Geo-Intersection Boolean)
@@ -99,8 +119,19 @@
     (and (<= 0.0 (vector-ref intersection 1) 1.0)
          (<= 0.0 (vector-ref intersection 2) 1.0))))
 
+(define geo-codir-intersected? : (-> Geo-Intersection Boolean)
+  (lambda [intersection]
+    (and (>= (vector-ref intersection 1) 0.0)
+         (<= 0.0 (vector-ref intersection 2) 1.0))))
+
 (define geo-actually-intersected-point : (-> (Option Geo-Intersection) (Option Float-Complex))
   (lambda [intersection]
     (and intersection
          (geo-actually-intersected? intersection)
+         (vector-ref intersection 0))))
+
+(define geo-codir-intersected-point : (-> (Option Geo-Intersection) (Option Float-Complex))
+  (lambda [intersection]
+    (and intersection
+         (geo-codir-intersected? intersection)
          (vector-ref intersection 0))))

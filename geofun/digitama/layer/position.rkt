@@ -31,34 +31,34 @@
      (vector-immutable geo dest-x dest-y swidth sheight)]))
 
 (define #:forall (G) geo-superimpose-layer
-  : (case-> [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum -> (Values Flonum Flonum)]
-            [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum G Nonnegative-Flonum Nonnegative-Flonum -> (GLayerof G)]
-            [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum (GLayerof G) -> (GLayerof G)]
-            [Geo-Pin-Port Nonnegative-Flonum Nonnegative-Flonum (GLayerof G) Flonum Flonum Any -> (GLayerof G)])
+  : (case-> [Geo-Pin-Anchor Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum -> (Values Flonum Flonum)]
+            [Geo-Pin-Anchor Nonnegative-Flonum Nonnegative-Flonum G Nonnegative-Flonum Nonnegative-Flonum -> (GLayerof G)]
+            [Geo-Pin-Anchor Nonnegative-Flonum Nonnegative-Flonum (GLayerof G) -> (GLayerof G)]
+            [Geo-Pin-Anchor Nonnegative-Flonum Nonnegative-Flonum (GLayerof G) Flonum Flonum Any -> (GLayerof G)])
   (case-lambda
-    [(port Width Height layer)
-     (geo-superimpose-layer port Width Height (vector-ref layer 0) (vector-ref layer 3) (vector-ref layer 4))]
-    [(port Width Height self xoff yoff _)
+    [(anchor Width Height layer)
+     (geo-superimpose-layer anchor Width Height (vector-ref layer 0) (vector-ref layer 3) (vector-ref layer 4))]
+    [(anchor Width Height self xoff yoff _)
      (let*-values ([(width height) (values (vector-ref self 3) (vector-ref self 4))]
-                   [(x y) (geo-superimpose-layer port Width Height width height)])
+                   [(x y) (geo-superimpose-layer anchor Width Height width height)])
        (vector-immutable (vector-ref self 0) (+ x xoff) (+ y yoff) width height))]
-    [(port Width Height self width height)
-     (let-values ([(x y) (geo-superimpose-layer port Width Height width height)])
+    [(anchor Width Height self width height)
+     (let-values ([(x y) (geo-superimpose-layer anchor Width Height width height)])
        (vector-immutable self x y width height))]
-    [(port Width Height width height)
+    [(anchor Width Height width height)
      (let*-values ([(rx by) (values (- Width width) (- Height height))]
                    [(cx cy) (values (* rx 0.5)  (* by 0.5))])
-       (case port
+       (case anchor
          [(lt) (values 0.0 0.0)] [(lc) (values 0.0 cy)] [(lb) (values 0.0 by)]
          [(ct) (values  cx 0.0)] [(cc) (values  cx cy)] [(cb) (values  cx by)]
          [(rt) (values  rx 0.0)] [(rc) (values  rx cy)] [(rb) (values  rx by)]
          [else #| deadcode |# (values 0.0 0.0)]))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (G) geo-own-layer : (-> Geo-Pin-Port Float-Complex (∩ G Geo<%>) Float-Complex (GLayerof G))
-  (lambda [port target self offset]
+(define #:forall (G) geo-own-layer : (-> Geo-Pin-Anchor Float-Complex (∩ G Geo<%>) Float-Complex (GLayerof G))
+  (lambda [anchor target self offset]
     (define-values (width height) (geo-flsize self))
-    (define-values (dx dy) (geo-superimpose-layer port 0.0 0.0 width height))
+    (define-values (dx dy) (geo-superimpose-layer anchor 0.0 0.0 width height))
     (define pos (+ target offset))
 
     (vector-immutable self

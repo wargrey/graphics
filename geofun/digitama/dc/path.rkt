@@ -24,6 +24,7 @@
 (define-type Geo-Print-Datum Point2D)
 (define-type Geo-Step-Datum (U Real Geo-Anchor-Name))
 (define-type Geo-Bezier-Datum (U Geo-Print-Datum Geo-Anchor-Name))
+(define-type Geo-Path-Infobase (HashTable (Pairof Float-Complex Float-Complex) Any))
 
 (struct geo:path geo
   ([trail : Geo-Trail]
@@ -31,6 +32,7 @@
    [origin : Float-Complex]
    [here : Float-Complex]
    [footprints : (Pairof Geo-Path-Print (Listof Geo-Path-Print))]
+   [foot-infos : Geo-Path-Infobase]
    [sticker-offset : (Option Flonum)])
   #:type-name Geo:Path
   #:transparent
@@ -43,28 +45,34 @@
      (with-syntax ([step! (format-id #'move "dryland-wani-move-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
-         (begin (define (step! [wani : Dryland-Wani] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0] [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-path-L wani xstep ystep xsgn ysgn anchor))
+         (begin (define (step! [wani : Dryland-Wani] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
+                               [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
+                  (geo-path-L wani xstep ystep xsgn ysgn anchor info))
                 
-                (define (jump! [wani : Dryland-Wani] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                (define (jump! [wani : Dryland-Wani] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
+                               [anchor : (Option Geo-Anchor-Name) #false]) : Void
                   (geo-path-M wani xstep ystep xsgn ysgn anchor)))))]
     [(_ move #:-> xsgn)
      (with-syntax ([step! (format-id #'move "dryland-wani-move-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
-         (begin (define (step! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0] [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-path-L wani step 0.0 xsgn 0.0 anchor))
+         (begin (define (step! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0]
+                               [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
+                  (geo-path-L wani step 0.0 xsgn 0.0 anchor info))
                 
-                (define (jump! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                (define (jump! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0]
+                               [anchor : (Option Geo-Anchor-Name) #false]) : Void
                   (geo-path-M wani step 0.0 xsgn 0.0 anchor)))))]
     [(_ move #:!> ysgn)
      (with-syntax ([step! (format-id #'move "dryland-wani-move-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
-         (begin (define (step! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0] [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-path-L wani 0.0 step 0.0 ysgn anchor))
+         (begin (define (step! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0]
+                               [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
+                  (geo-path-L wani 0.0 step 0.0 ysgn anchor info))
                 
-                (define (jump! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                (define (jump! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0]
+                               [anchor : (Option Geo-Anchor-Name) #false]) : Void
                   (geo-path-M wani 0.0 step 0.0 ysgn anchor)))))]))
 
 (define-syntax (define-dryland-wani-turn-move! stx)
@@ -91,8 +99,8 @@
        (syntax/loc stx
          (begin (define (u-turn-move! [wani : Dryland-Wani] [anchor : (Option Geo-Anchor-Name) #false]) : Void
                   (geo-path-turn wani (dryland-wani-uxradius wani) (dryland-wani-uyradius wani)
-                              args ... rstart rend anchor clockwise? guard)))))]
-    [(_ move #:+> args #:boundary-guard guard) (syntax/loc stx (define-dryland-wani-turn-move! move #true args guard))]
+                                 args ... rstart rend anchor clockwise? guard)))))]
+    [(_ move #:+> args #:boundary-guard guard) (syntax/loc stx (define-dryland-wani-turn-move! move #true  args guard))]
     [(_ move #:-> args #:boundary-guard guard) (syntax/loc stx (define-dryland-wani-turn-move! move #false args guard))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -165,7 +173,7 @@
 
 (define geo-path-linear-bezier : (-> Geo:Path Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt anchor]
-    (geo-path-do-move self endpt #\L anchor #false)))
+    (geo-path-do-move self endpt #\L anchor #false #false)))
 
 (define geo-path-quadratic-bezier : (-> Geo:Path Float-Complex Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt ctrl anchor]
@@ -196,8 +204,13 @@
     (set-geo:path-footprints! self (cons (cons #\Z #false) (geo:path-footprints self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-path-do-move : (-> Geo:Path Float-Complex Char (Option Geo-Anchor-Name) Boolean Void)
-  (lambda [self endpt op anchor subpath?]
+(define geo-path-do-move : (-> Geo:Path Float-Complex Char (Option Geo-Anchor-Name) Any Boolean Void)
+  (lambda [self endpt op anchor info subpath?]
+    (unless (not info)
+      (hash-set! (geo:path-foot-infos self)
+                 (cons (geo:path-here self) endpt)
+                 info))
+    
     (geo-bbox-fit! (geo:path-bbox self) endpt)
     (geo-trail-try-set! (geo:path-trail self) anchor endpt)
     (set-geo:path-here! self endpt)
@@ -208,11 +221,11 @@
 
 (define geo-path-M : (-> Dryland-Wani Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Void)
   (lambda [self xstep ystep xsgn ysgn anchor]
-    (geo-path-do-move self (geo-path-target-position self xstep ystep xsgn ysgn) #\M anchor #true)))
+    (geo-path-do-move self (geo-path-target-position self xstep ystep xsgn ysgn) #\M anchor #false #true)))
 
-(define geo-path-L : (-> Dryland-Wani Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Void)
-  (lambda [self xstep ystep xsgn ysgn anchor]
-    (geo-path-do-move self (geo-path-target-position self xstep ystep xsgn ysgn) #\L anchor #false)))
+(define geo-path-L : (-> Dryland-Wani Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Any Void)
+  (lambda [self xstep ystep xsgn ysgn anchor info]
+    (geo-path-do-move self (geo-path-target-position self xstep ystep xsgn ysgn) #\L anchor info #false)))
 
 (define geo-path-target-position : (-> Dryland-Wani Geo-Step-Datum Geo-Step-Datum Flonum Flonum Float-Complex)
   (lambda [self xstep ystep xsgn ysgn]

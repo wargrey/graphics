@@ -43,10 +43,11 @@
        (geo-text "λ" (desc-font #:size (* R 1.4) #:family "Linux Biolinum Shadow, Bold") #:color λ-color)
        (geo-icosahedron-side-projection R 'vertex #:edge edge-stroke #:border ihead-stroke)))
 
-    (define collar (geo-dart Rcollar 90.0 #:radian? #false #:fill tail-color #:stroke ihead-stroke #:wing-angle 144.0))
+    (define collar (geo-dart Rcollar 90.0 #:id 'collar #:radian? #false #:fill tail-color #:stroke ihead-stroke #:wing-angle 144.0))
     (define maybe-sheath : (Option Geo)
       (and (not no-sheath?)
-           (geo-arrow Rdart sheath-length 90.0 #:radian? #false #:fill tail-color #:stroke ohead-stroke #:shaft-thickness -0.618 #:wing-angle 180.0)))
+           (geo-arrow #:radian? #false #:fill tail-color #:stroke ohead-stroke #:shaft-thickness -0.618 #:wing-angle 180.0
+                      Rdart sheath-length 90.0)))
 
     (define fibre
       (let* ([fdx (if (not maybe-sheath) (* Rcollar 0.48) Rdart)]

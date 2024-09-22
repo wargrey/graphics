@@ -14,6 +14,7 @@
 
 (require "digitama/layer/type.rkt")
 (require "digitama/layer/combine.rkt")
+(require "digitama/layer/find.rkt")
 
 (require "digitama/dc/composite.rkt")
 (require "digitama/dc/plain.rkt")
@@ -62,7 +63,7 @@
     (geo-hb-append* #:id id #:operator op #:gapsize delta siblings)))
 
 (define-combiner "geo-~a-superimpose*" #:-> (Geo [#:operator (Option Geo-Pin-Operator)] [#:id (Option Symbol)])
-  #:with port geobjs [#:operator [op #false] #:gapsize [delta 0.0] #:id [id #false]]
+  #:with anchor geobjs [#:operator [op #false] #:gapsize [delta 0.0] #:id [id #false]]
   #:empty (geo-blank)
   #:short-path #:for base sibling #:if #true
   ([(lt) (make-geo:group id op (geo-composite-layers base sibling 0.0 0.0 0.0 0.0))]
@@ -74,7 +75,7 @@
    [(rt) (make-geo:group id op (geo-composite-layers base sibling 1.0 0.0 1.0 0.0))]
    [(rc) (make-geo:group id op (geo-composite-layers base sibling 1.0 0.5 1.0 0.5))]
    [(rb) (make-geo:group id op (geo-composite-layers base sibling 1.0 1.0 1.0 1.0))])
-  #:do (make-geo:group id op (geo-superimpose-layers port (car geobjs) (cdr geobjs))))
+  #:do (make-geo:group id op (geo-superimpose-layers anchor (car geobjs) (cdr geobjs))))
 
 (define geo-lt-superimpose : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] Geo * Geo)
   (λ [#:id [id #false] #:operator [op #false] . geobjs]
@@ -113,11 +114,22 @@
     (geo-rb-superimpose* #:id id #:operator op geobjs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-lt-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'lt master target)))
+(define geo-ct-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'ct master target)))
+(define geo-rt-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'rt master target)))
+(define geo-lc-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'lc master target)))
+(define geo-cc-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'cc master target)))
+(define geo-rc-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'rc master target)))
+(define geo-lb-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'lb master target)))
+(define geo-cb-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'cb master target)))
+(define geo-rb-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'rb master target)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-table : (->* (Integer (Listof Geo))
                          (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator)
-                          (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
+                          (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
                          Geo)
-  (lambda [#:id [id #false] #:operator [op #false] ncols siblings [col-ports null] [row-ports null] [col-gaps null] [row-gaps null]]
+  (lambda [#:id [id #false] #:operator [op #false] ncols siblings [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
     (define size : Index (length siblings))
     (define cont : Geo (geo-blank))
     (or (and (> size 0)
@@ -125,14 +137,14 @@
              (let-values ([(maybe-nrows extra-ncols) (quotient/remainder size ncols)])
                (define nrows : Nonnegative-Fixnum (+ maybe-nrows (if (= extra-ncols 0) 0 1)))
                (and (> nrows 0) (index? nrows)
-                    (make-geo:table id op siblings ncols nrows col-ports row-ports col-gaps row-gaps cont))))
+                    (make-geo:table id op siblings ncols nrows col-anchors row-anchors col-gaps row-gaps cont))))
         cont)))
 
 (define geo-table* : (->* ((Listof (Listof (Option Geo))))
                           (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator)
-                           (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
+                           (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
                           Geo)
-  (lambda [#:id [id #false] #:operator [op #false] siblings [col-ports null] [row-ports null] [col-gaps null] [row-gaps null]]
+  (lambda [#:id [id #false] #:operator [op #false] siblings [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
     (define ncols : Index (apply max 0 ((inst map Index (Listof (Option Geo))) length siblings)))
     (define nrows : Index (length siblings))
     (define cont : Geo (geo-blank))
@@ -145,5 +157,5 @@
                                (define rsize : Index (length rows))
                                (cond [(= ncols rsize) (append cells (map fill-row rows))]
                                      [else (append cells (map fill-row rows) (make-list (- ncols rsize) cont))]))
-                             ncols nrows col-ports row-ports col-gaps row-gaps cont))
+                             ncols nrows col-anchors row-anchors col-gaps row-gaps cont))
         cont)))

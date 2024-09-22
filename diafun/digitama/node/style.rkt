@@ -5,10 +5,8 @@
 (require racket/string)
 
 (require geofun/digitama/geometry/anchor)
-
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
-(require geofun/digitama/dc/composite)
 
 (require geofun/font)
 (require geofun/paint)
@@ -21,8 +19,8 @@
 (define-type Dia-Node-Id->String (-> Symbol (U String Void False)))
 
 (struct dia-node-style
-  ([width : (Option Nonnegative-Flonum)]
-   [height : (Option Nonnegative-Flonum)]
+  ([width : (Option Flonum)]
+   [height : (Option Flonum)]
    [font : (Option Font)]
    [font-paint : Option-Fill-Paint]
    [stroke-paint : Maybe-Stroke-Paint]
@@ -73,9 +71,9 @@
     (define-values (used-width used-height)
       (cond [(and (> width 0.0) (> height 0.0)) (values width height)]
             [(not label) (values 0.0 0.0)]
-            [else (let-values ([(lwidth lheight) (geo-flsize label)])
-                    (values (if (> width 0.0)  width  lwidth)
-                            (if (> height 0.0) height lheight)))]))
+            [else (let-values ([(w h) (geo-flsize label)])
+                    (values (cond [(> width 0.0)  width]  [(< width 0.0)  (* w (abs width))]  [else w])
+                            (cond [(> height 0.0) height] [(< height 0.0) (* h (abs height))] [else h])))]))
 
     (values label used-width used-height)))
 
@@ -84,6 +82,7 @@
     (define paint : Maybe-Stroke-Paint (dia-node-style-stroke-paint self))
     (define fallback-paint : Maybe-Stroke-Paint (dia-node-base-style-stroke-paint ((default-dia-node-base-style))))
     (cond [(void? paint) fallback-paint]
+          [(not paint) #false]
           [(stroke? paint) paint]
           [(stroke? fallback-paint) (desc-stroke fallback-paint #:color paint)]
           [else paint])))

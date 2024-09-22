@@ -15,7 +15,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (G) geo-table-layers : (-> (Vectorof (GLayerof G)) Positive-Index Positive-Index
-                                            (Vectorof Geo-Pin-Port) (Vectorof Geo-Pin-Port) (Vectorof Flonum) (Vectorof Flonum)
+                                            (Vectorof Geo-Pin-Anchor) (Vectorof Geo-Pin-Anchor) (Vectorof Flonum) (Vectorof Flonum)
                                             (Vectorof Nonnegative-Flonum) (Vectorof Nonnegative-Flonum)
                                             (GLayer-Groupof G))
   (lambda [table ncols nrows pcols prows gcols grows cwidths rheights]
@@ -37,9 +37,9 @@
                   (let ([cell (vector-ref table (+ ridx col))]
                         [wcol (vector-ref cwidths col)]
                         [wgap (max (vector-ref gcols col) 0.0)]
-                        [port (geo-port-merge (vector-ref prows row) (vector-ref pcols col))])
+                        [anchor (geo-anchor-merge (vector-ref prows row) (vector-ref pcols col))])
                     (compose-col (+ xoff wcol wgap) (+ col 1)
-                                 (cons (geo-superimpose-layer port wcol hrow cell xoff height 'placeholder)
+                                 (cons (geo-superimpose-layer anchor wcol hrow cell xoff height 'placeholder)
                                        rlayers)))
                   (compose-row xoff (+ height hrow hgap) (+ row 1) (cons (reverse rlayers) layers)))))
 

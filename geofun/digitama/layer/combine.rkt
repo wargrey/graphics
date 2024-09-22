@@ -106,8 +106,8 @@
                             (cons (geo-append-layer alignment flwidth flheight base xoff yoff min-width min-height)
                                   tail))))))
 
-(define geo-superimpose-layers : (-> Geo-Pin-Port Geo (Listof Geo) (GLayer-Groupof Geo))
-  (lambda [port base siblings]
+(define geo-superimpose-layers : (-> Geo-Pin-Anchor Geo (Listof Geo) (GLayer-Groupof Geo))
+  (lambda [anchor base siblings]
     (define-values (min-width min-height) (geo-flsize base))
     (let compose ([width : Nonnegative-Flonum min-width]
                   [height : Nonnegative-Flonum min-height]
@@ -123,8 +123,8 @@
                                          [tail : (Listof (GLayerof Geo)) null])
                               (if (pair? liat)
                                   (locate (cdr liat)
-                                          (cons (geo-superimpose-layer port width height (car liat)) tail))
-                                  (cons (geo-superimpose-layer port width height base min-width min-height)
+                                          (cons (geo-superimpose-layer anchor width height (car liat)) tail))
+                                  (cons (geo-superimpose-layer anchor width height base min-width min-height)
                                         tail))))))))
 
 (define geo-own-layers : (-> Geo (GLayer-Groupof Geo))

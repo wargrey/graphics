@@ -44,6 +44,11 @@
   #:type-name Dia:Node
   #:transparent)
 
+(struct dia:node:label dia:node
+  ()
+  #:type-name Dia:Node:Label
+  #:transparent)
+
 (struct dia:node:polygon dia:node
   ([vertices : (Listof Float-Complex)])
   #:type-name Dia:Node:Polygon

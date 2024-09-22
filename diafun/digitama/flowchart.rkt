@@ -2,9 +2,6 @@
 
 (provide (all-defined-out))
 
-(require racket/string)
-(require racket/symbol)
-
 (require geofun/digitama/convert)
 (require geofun/digitama/geometry/trail)
 (require geofun/digitama/geometry/anchor)
@@ -19,48 +16,38 @@
 (require "node/dc.rkt")
 (require "edge/style.rkt")
 (require "edge/dc.rkt")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type DiaFlow-Anchor->Node (-> Geo:Path Geo-Anchor-Name Float-Complex Symbol Dia-Node-Style (U Geo-Sticker-Datum Void False)))
-
-(define-type DiaFlow-Arrow-Endpoint (Pairof Geo-Anchor-Name Geo))
-(define-type DiaFlow-Arrow->Edge (-> Geo:Path DiaFlow-Arrow-Endpoint (Option DiaFlow-Arrow-Endpoint) Dia-Edge-Style
-                                     (List* Geo-Path-Clean-Print Geo-Path-Clean-Print (Listof Geo-Path-Clean-Print))
-                                     (U Dia:Edge Void False)))
-
-(define-type DiaFlow-Arrow-Label-Stickers (-> Geo:Path DiaFlow-Arrow-Endpoint (Option DiaFlow-Arrow-Endpoint) Dia-Edge-Style
-                                              (Pairof Float-Complex Flonum) (Pairof Float-Complex Flonum)
-                                              (Values (U Geo-Sticker-Datum Void False) (U Geo-Sticker-Datum Void False))))
+(require "interface/flow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflow-node-constructor : DiaFlow-Anchor->Node
   (lambda [master anchor pos node-id style]
     (define maybe-label : (U String Void False) ((default-diaflow-node-label-string) node-id))
-    (define label-text : String (if (string? maybe-label) maybe-label (symbol->immutable-string node-id)))
-    (define-values (label width height) (dia-node-extent node-id (if (string? maybe-label) maybe-label (symbol->immutable-string node-id)) style))
+    (define label-text : String (if (string? maybe-label) maybe-label (geo-anchor->string node-id)))
+    (define-values (label width height) (dia-node-extent node-id label-text style))
     
     (cond [(diaflow-process-style? style) (diaflow-block-process node-id label style width height)]
           [(diaflow-decision-style? style) (diaflow-block-decision node-id label style width height)]
           [(diaflow-input-style? style) (diaflow-block-dataIO node-id label style width height)]
           [(diaflow-output-style? style) (diaflow-block-dataIO node-id label style width height)]
+          [(diaflow-subroutine-style? style) (diaflow-block-subroutine node-id label style width height)]
           [(diaflow-preparation-style? style) (diaflow-block-preparation node-id label style width height)]
           [(diaflow-start-style? style) (diaflow-block-terminal node-id label style width height)]
-          [(diaflow-stop-style? style) (diaflow-block-terminal node-id label style width height)])))
+          [(diaflow-stop-style? style) (diaflow-block-terminal node-id label style width height)]
+          [(diaflow-arrow-label-style? style) (diaflow-block-in-arrow-label node-id label style width height)])))
 
 (define default-diaflow-arrow-constructor : DiaFlow-Arrow->Edge
   (lambda [master source target style tracks]
     (dia-edge #:id (dia-edge-id-merge (geo-id (cdr source)) (and target (geo-id (cdr target))) #true)
               #:stroke (dia-edge-select-line-paint style)
               #:source-shape (dia-edge-select-source-shape style)
-              #:target-shape (and target (dia-edge-select-target-shape style))
+              #:target-shape (and target (not (dia:node:label? (cdr target))) (dia-edge-select-target-shape style))
               tracks)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-stick : (->* (Geo:Path DiaFlow-Anchor->Node DiaFlow-Arrow->Edge (Option DiaFlow-Arrow-Label-Stickers))
+(define diaflow-stick : (->* (Geo:Path Geo-Anchor->Sticker DiaFlow-Arrow->Edge (Option DiaFlow-Arrow-Info-Stickers))
                              ((Option Geo-Trusted-Anchors))
                              (Listof (GLayerof Geo)))
-  (lambda [master make-node make-arrow make-label [trusted-anchors #false]]
-    (define make-node-stick : Geo-Anchor->Sticker (diaflow-node-sticker make-node))
+  (lambda [master make-node-sticker make-arrow make-label [trusted-anchors #false]]
     (define gpath : Geo-Trail (geo:path-trail master))
     (define apositions : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath trusted-anchors))
     (define-values (Width Height) (geo-flsize master))
@@ -84,7 +71,7 @@
             (define-values (source nodes++)
               (cond [(not anchor) (values #false nodes)]
                     [(hash-has-key? nodes anchor) (values (hash-ref nodes anchor) nodes)]
-                    [else (let ([new-node (cons anchor (geo-sticker-layer master make-node-stick anchor next-pt 0.0+0.0i Width Height))])
+                    [else (let ([new-node (cons anchor (geo-sticker-layer master make-node-sticker anchor next-pt 0.0+0.0i Width Height))])
                             (cond [(not new-node) (values #false nodes)]
                                   [else (values new-node (hash-set nodes anchor new-node))]))]))
             
@@ -130,51 +117,6 @@
           (define alayer (vector-immutable arrow (real-part ppos) (imag-part ppos) awidth aheight))
           (values (cons alayer arrows) alabels))
     (values arrows alabels))))
-
-(define diaflow-node-sticker : (-> DiaFlow-Anchor->Node Geo-Anchor->Sticker)
-  (lambda [make-node]
-    (λ [master anchor pos Width Height]
-      (define-values (node-key style) (diaflow-block-detect anchor))
-      (and style (make-node master anchor pos node-key style)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-block-detect : (-> Geo-Anchor-Name (Values Symbol (Option Dia-Node-Style)))
-  (lambda [anchor]
-    (if (keyword? anchor)
-        (let ([text (geo-anchor->string anchor)])
-          (cond [(or (string-ci=? text "home") (string-ci=? text "start"))
-                 (diaflow-node-style-construct (default-diaflow-canonical-start-name) anchor (default-diaflow-start-style-make) make-diaflow-start-style)]
-                [(or (string-ci=? text "end") (string-ci=? text "terminate"))
-                 (diaflow-node-style-construct (default-diaflow-canonical-stop-name) anchor (default-diaflow-stop-style-make) make-diaflow-stop-style)]
-                [else (values 'who-cares #false)]))
-        (let ([text (geo-anchor->string anchor)])
-          (define size (string-length text))
-          (cond [(string-suffix? text "?")
-                 (diaflow-node-style-construct text anchor (default-diaflow-decision-style-make) make-diaflow-decision-style)]
-                [(string-suffix? text "!")
-                 (diaflow-node-style-construct text anchor (default-diaflow-preparation-style-make) make-diaflow-preparation-style)]
-                [(string-prefix? text "^")
-                 (diaflow-node-style-construct (substring text 1 size) anchor (default-diaflow-start-style-make) make-diaflow-start-style)]
-                [(string-suffix? text "$")
-                 (diaflow-node-style-construct (substring text 0 (sub1 size)) anchor (default-diaflow-stop-style-make) make-diaflow-stop-style)]
-                [(string-prefix? text ">>")
-                 (diaflow-node-style-construct (substring text 2 size) anchor (default-diaflow-input-style-make) make-diaflow-input-style)]
-                [(string-suffix? text "<<")
-                 (diaflow-node-style-construct (substring text 0 (- size 2)) anchor (default-diaflow-output-style-make) make-diaflow-output-style)]
-                [(string-prefix? text "//")
-                 (diaflow-node-style-construct (substring text 2 size) anchor (default-diaflow-comment-style-make) make-diaflow-comment-style)]
-                [(string-prefix? text "->")
-                 (diaflow-node-style-construct (substring text 2 size) anchor (default-diaflow-subroutine-style-make) make-diaflow-subroutine-style)]
-                [(string-prefix? text "@")
-                 (diaflow-node-style-construct (substring text 1 size) anchor (default-diaflow-inspection-style-make) make-diaflow-inspection-style)]
-                [(string-prefix? text "&")
-                 (diaflow-node-style-construct (substring text 1 size) anchor (default-diaflow-reference-style-make) make-diaflow-reference-style)]
-                [(> size 0) (diaflow-node-style-construct text anchor (default-diaflow-process-style-make) make-diaflow-process-style)]
-                [else (values 'who-cares #false)])))))
-
-(define #:forall (S) diaflow-node-style-construct : (-> String Geo-Anchor-Name (Option (Dia-Node-Style-Make* S)) (-> S) (Values Symbol S))
-  (lambda [text anchor mk-style mk-fallback-style]
-    (dia-node-style-construct text anchor mk-style mk-fallback-style)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; TODO: deal with curved prints
