@@ -2,8 +2,8 @@
 
 (provide (all-defined-out))
 
+(require "tip.rkt")
 (require "style.rkt")
-(require "type.rkt")
 (require "metrics.rkt")
 
 (require "../unsafe/edge.rkt")
@@ -32,7 +32,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-edge : (->* ((List* Geo-Path-Clean-Print Geo-Path-Clean-Print (Listof Geo-Path-Clean-Print)))
                         (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint
-                         #:source-shape (Option Dia-Edge-Shape) #:target-shape (Option Dia-Edge-Shape))
+                         #:source-shape (Option Dia-Edge-Tip-Shape) #:target-shape (Option Dia-Edge-Tip-Shape))
                         Dia:Edge)
   (lambda [footprints #:id [id #false] #:stroke [stroke (void)] #:source-shape [src-shape #false] #:target-shape [tgt-shape #false]]
     (define thickness : Nonnegative-Flonum (let ([s (dia-edge-select-line-paint stroke)]) (if (stroke? s) (stroke-width s) 0.0)))
@@ -40,9 +40,9 @@
     (define-values (spt srad ept erad) (geo-path-end-points footprints))
     (define-values (e.x e.y e.w e.h) (geo-path-ink-box footprints))
 
-    ;; NOTE: we move the end shapes to their absolute position, and no need to translate them when drawing
-    (define-values (src-prints s.x s.y s.w s.h) (dia-edge-shape-metrics src-shape thickness srad spt))
-    (define-values (tgt-prints t.x t.y t.w t.h) (dia-edge-shape-metrics tgt-shape thickness erad ept))
+    ;; NOTE: we move the end shapes to their absolute positions, and no need to translate them when drawing
+    (define-values (src-prints s.x s.y s.w s.h) (dia-edge-tip-metrics src-shape thickness srad spt))
+    (define-values (tgt-prints t.x t.y t.w t.h) (dia-edge-tip-metrics tgt-shape thickness erad ept))
 
     ;; NOTE: for shapes having outline stroke, simply add the thickness here
     (define ssoffset : Nonnegative-Flonum (* (stroke-width default-dia-shape-stroke) 0.5))

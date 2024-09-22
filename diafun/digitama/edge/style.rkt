@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "type.rkt")
+(require "tip.rkt")
 
 (require racket/symbol)
 
@@ -20,8 +20,8 @@
   ([font : (Option Font)]
    [font-paint : Option-Fill-Paint]
    [line-paint : Maybe-Stroke-Paint]
-   [source-shape : Maybe-Edge-Shape]
-   [target-shape : Maybe-Edge-Shape])
+   [source-shape : Maybe-Edge-Tip-Shape]
+   [target-shape : Maybe-Edge-Tip-Shape])
   #:type-name Dia-Edge-Style
   #:transparent)
 
@@ -30,8 +30,8 @@
   ([font : (Option Font)]
    [font-paint : Option-Fill-Paint]
    [line-paint : Maybe-Stroke-Paint]
-   [source-shape : Option-Edge-Shape]
-   [target-shape : Option-Edge-Shape])
+   [source-shape : Option-Edge-Tip-Shape]
+   [target-shape : Option-Edge-Tip-Shape])
   #:type-name Dia-Edge-Base-Style
   #:transparent)
 
@@ -62,14 +62,14 @@
           [(stroke? fallback-paint) (desc-stroke fallback-paint #:color paint)]
           [else paint])))
 
-(define dia-edge-select-source-shape : (-> Dia-Edge-Style Option-Edge-Shape)
+(define dia-edge-select-source-shape : (-> Dia-Edge-Style Option-Edge-Tip-Shape)
   (lambda [this-style]
-    (define shape : Maybe-Edge-Shape (dia-edge-style-source-shape this-style))
+    (define shape : Maybe-Edge-Tip-Shape (dia-edge-style-source-shape this-style))
     (if (void? shape) (dia-edge-base-style-source-shape ((default-dia-edge-base-style))) shape)))
 
-(define dia-edge-select-target-shape : (-> Dia-Edge-Style Option-Edge-Shape)
+(define dia-edge-select-target-shape : (-> Dia-Edge-Style Option-Edge-Tip-Shape)
   (lambda [this-style]
-    (define shape : Maybe-Edge-Shape (dia-edge-style-target-shape this-style))
+    (define shape : Maybe-Edge-Tip-Shape (dia-edge-style-target-shape this-style))
     (if (void? shape) (dia-edge-base-style-target-shape ((default-dia-edge-base-style))) shape)))
 
 (define dia-edge-select-font : (-> Dia-Edge-Style (Option Font))

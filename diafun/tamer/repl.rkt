@@ -12,8 +12,8 @@
   (move-down 1 Read)
   (move-down 1 '->Evaluate)
   (move-down 1 'Exit?)
-  (move-down 1 'Void?)
-  (move-down 1 Print)
+  (move-down 1 'Void? "No")
+  (move-down 1 Print "No")
 
   (move-down 0.5)
   (move-left 1.0)
@@ -27,7 +27,7 @@
 
   (jump-back 'Exit?)
   (move-right 1.0 '#:YES)
-  (move-right 0.15)
+  (move-right 0.2)
   (turn-right-down)
   (move-down Print)
   (move-down 0.75)

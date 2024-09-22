@@ -240,7 +240,7 @@
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define ((make-layer port sfc w h) W H) (unsafe-superimpose-layer port W H sfc w h))
+  (define ((make-layer anchor sfc w h) W H) (unsafe-superimpose-layer anchor W H sfc w h))
 
   (define layer-composite
     (case-lambda

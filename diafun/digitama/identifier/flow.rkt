@@ -10,7 +10,7 @@
 (require "../interface/flow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diaflow-block-identifier : DiaFlow-Block-Identifier
+(define default-diaflow-block-identify : DiaFlow-Block-Identifier
   (lambda [anchor]
     (if (keyword? anchor)
 

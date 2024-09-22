@@ -51,7 +51,7 @@
 
 (define diaflow-block-decision : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum Dia:Node)
   (lambda [node-key label style width height]
-    (define vertices : (Listof Float-Complex) (geo-rhombus-vertices width height))
+    (define vertices : Quadrilateral-Vertices (geo-rhombus-vertices width height))
     (define rhombus : Geo
       (geo-polygon #:id (diaflow-node-shape-id node-key)
                    #:stroke (dia-node-select-stroke-paint style)
@@ -66,7 +66,7 @@
 
 (define diaflow-block-preparation : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum Dia:Node)
   (lambda [node-key label style width height]
-    (define vertices : (Listof Float-Complex) (geo-hexagon-tile-vertices width height))
+    (define vertices : Hexagon-Vertices (geo-hexagon-tile-vertices width height))
     (define hexagon : Geo
       (geo-polygon #:id (diaflow-node-shape-id node-key)
                    #:stroke (dia-node-select-stroke-paint style)
@@ -93,7 +93,7 @@
 
 (define diaflow-block-dataIO : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum Dia:Node)
   (lambda [node-key label style width height]
-    (define vertices : (Listof Float-Complex) (geo-parallelogram-vertices width height (/ pi 3.0)))
+    (define vertices : Quadrilateral-Vertices (geo-parallelogram-vertices width height (/ pi 3.0)))
     (define parallelogram : Geo
       (geo-polygon #:id (diaflow-node-shape-id node-key)
                    #:stroke (dia-node-select-stroke-paint style)

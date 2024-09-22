@@ -57,21 +57,21 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-table : (->* (Integer (Listof Bitmap))
-                            ((Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
+                            ((Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
                             Bitmap)
-  (lambda [ncols bitmaps [col-ports null] [row-ports null] [col-gaps null] [row-gaps null]]
+  (lambda [ncols bitmaps [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
     (cond [(or (<= ncols 0) (null? bitmaps)) (bitmap-blank)]
           [else (let-values ([(maybe-nrows extra-ncols) (quotient/remainder (length bitmaps) ncols)])
                   (define nrows : Nonnegative-Fixnum (+ maybe-nrows (sgn extra-ncols)))
                   (bitmap_table (map bitmap-surface bitmaps) ncols nrows
-                                (geo-config-expand col-ports ncols 'cc) (geo-config-expand row-ports nrows 'cc)
+                                (geo-config-expand col-anchors ncols 'cc) (geo-config-expand row-anchors nrows 'cc)
                                 (geo-config-expand col-gaps ncols 0.0 real->double-flonum) (geo-config-expand row-gaps nrows 0.0 real->double-flonum)
                                 (bitmap-density (car bitmaps))))])))
 
 (define bitmap-table* : (->* ((Listof (Listof (Option Bitmap))))
-                             ((Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Geo-Pin-Port) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
+                             ((Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
                              Bitmap)
-  (lambda [bitmaps [col-ports null] [row-ports null] [col-gaps null] [row-gaps null]]
+  (lambda [bitmaps [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
     (define ncols : Index (apply max 0 ((inst map Index (Listof (Option Bitmap))) length bitmaps)))
     (define nrows : Index (length bitmaps))
     (define cont : Bitmap (bitmap-blank))
@@ -92,13 +92,13 @@
     
     (cond [(not density) cont]
           [else (bitmap_table surfaces ncols nrows
-                              (geo-config-expand col-ports ncols 'cc) (geo-config-expand row-ports nrows 'cc)
+                              (geo-config-expand col-anchors ncols 'cc) (geo-config-expand row-anchors nrows 'cc)
                               (geo-config-expand col-gaps ncols 0.0 real->double-flonum) (geo-config-expand row-gaps nrows 0.0 real->double-flonum)
                               density)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-pyramid : (->* ((Listof Bitmap))
-                              (Nonnegative-Real (Option Nonnegative-Real) (Geo-Config-Argof Geo-Pin-Port))
+                              (Nonnegative-Real (Option Nonnegative-Real) (Geo-Config-Argof Geo-Pin-Anchor))
                               Bitmap)
   (lambda [bitmaps [sub-gaps 0] [sibling-gaps #false] [aligns null]]
     (cond [(null? bitmaps) (bitmap-blank)]
@@ -110,7 +110,7 @@
 
 ; TODO: find a better ratio between subtree gapsize and the leaf one
 (define bitmap-heap : (->* ((Listof Bitmap))
-                            (#:ary Positive-Index Nonnegative-Real (Option Nonnegative-Real) (Geo-Config-Argof Geo-Pin-Port))
+                            (#:ary Positive-Index Nonnegative-Real (Option Nonnegative-Real) (Geo-Config-Argof Geo-Pin-Anchor))
                             Bitmap)
   (lambda [bitmaps #:ary [ary 2] [sub-gaps 0] [sibling-gaps #false] [aligns null]]
     (cond [(null? bitmaps) (bitmap-blank)]

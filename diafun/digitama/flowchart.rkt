@@ -15,11 +15,12 @@
 (require "node/flow.rkt")
 (require "node/dc.rkt")
 (require "edge/style.rkt")
+(require "edge/refine.rkt")
 (require "edge/dc.rkt")
 (require "interface/flow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diaflow-node-constructor : DiaFlow-Anchor->Node
+(define default-diaflow-node-construct : DiaFlow-Anchor->Node
   (lambda [master anchor pos node-id style]
     (define maybe-label : (U String Void False) ((default-diaflow-node-label-string) node-id))
     (define label-text : String (if (string? maybe-label) maybe-label (geo-anchor->string node-id)))
@@ -35,7 +36,7 @@
           [(diaflow-stop-style? style) (diaflow-block-terminal node-id label style width height)]
           [(diaflow-arrow-label-style? style) (diaflow-block-in-arrow-label node-id label style width height)])))
 
-(define default-diaflow-arrow-constructor : DiaFlow-Arrow->Edge
+(define default-diaflow-arrow-construct : DiaFlow-Arrow->Edge
   (lambda [master source target style tracks]
     (dia-edge #:id (dia-edge-id-merge (geo-id (cdr source)) (and target (geo-id (cdr target))) #true)
               #:stroke (dia-edge-select-line-paint style)
@@ -43,19 +44,23 @@
               #:target-shape (and target (not (dia:node:label? (cdr target))) (dia-edge-select-target-shape style))
               tracks)))
 
+(define default-diaflow-arrow-label-construct : DiaFlow-Arrow-Label-Sticker
+  (lambda [master source target style start-pos end-pos label]
+    (void)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-stick : (->* (Geo:Path Geo-Anchor->Sticker DiaFlow-Arrow->Edge (Option DiaFlow-Arrow-Info-Stickers))
+(define diaflow-stick : (->* (Geo:Path Geo-Anchor->Sticker DiaFlow-Arrow->Edge DiaFlow-Arrow-Label-Sticker Geo-Path-Infobase)
                              ((Option Geo-Trusted-Anchors))
                              (Listof (GLayerof Geo)))
-  (lambda [master make-node-sticker make-arrow make-label [trusted-anchors #false]]
+  (lambda [master make-node-sticker make-arrow make-label infobase [trusted-anchors #false]]
     (define gpath : Geo-Trail (geo:path-trail master))
-    (define apositions : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath trusted-anchors))
+    (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath trusted-anchors))
     (define-values (Width Height) (geo-flsize master))
 
     ; WARNING: the footprints are initially reversed
     (let stick ([stnirp : (Listof Geo-Path-Print) (geo:path-footprints master)]
                 [arrows : (Listof (GLayerof Geo)) null]
-                [alabels : (Listof (GLayerof Geo)) null]
+                [labels : (Listof (GLayerof Geo)) null]
                 [nodes : (HashTable Geo-Anchor-Name (Pairof Geo-Anchor-Name (Option (GLayerof Geo)))) (hasheq)]
                 [tracks : (Listof Geo-Path-Print) null]
                 [target : (Option (Pairof Geo-Anchor-Name (GLayerof Geo))) #false]
@@ -65,7 +70,7 @@
           (let*-values ([(self rest) (values (car stnirp) (cdr stnirp))])
             (define maybe-pt : (Option Float-Complex) (geo-path-print-position self last-pt))
             (define next-pt : Float-Complex (or maybe-pt last-pt))
-            (define anchor : (Option Geo-Anchor-Name) (hash-ref apositions maybe-pt (λ [] #false)))
+            (define anchor : (Option Geo-Anchor-Name) (hash-ref anchor-base maybe-pt (λ [] #false)))
             (define tracks++ : (Pairof Geo-Path-Print (Listof Geo-Path-Print)) (cons self tracks))
             
             (define-values (source nodes++)
@@ -77,91 +82,46 @@
             
             (if (and source (cdr source))
                 (cond [(eq? (car self) #\M)
-                       (let-values ([(arrows++ labels++) (dia-arrow-cons master source target tracks++ make-arrow arrows alabels)])
+                       (let-values ([(arrows++ labels++) (dia-arrow-cons master source target tracks++ make-arrow arrows make-label infobase labels)])
                          (stick rest arrows++ labels++ nodes++ null #false next-pt))]
                       [(and target)
-                       (let-values ([(arrows++ labels++) (dia-arrow-cons master source target tracks++ make-arrow arrows alabels)])
+                       (let-values ([(arrows++ labels++) (dia-arrow-cons master source target tracks++ make-arrow arrows make-label infobase labels)])
                          (stick rest arrows++ labels++ nodes++ (list self) source next-pt))]
                       [(pair? tracks)
-                       (let-values ([(arrows++ labels++) (dia-arrow-cons master source #false tracks++ make-arrow arrows alabels)])
+                       (let-values ([(arrows++ labels++) (dia-arrow-cons master source #false tracks++ make-arrow arrows make-label infobase labels)])
                          (stick rest arrows++ labels++ nodes++ (list self) source next-pt))]
-                      [else (stick rest arrows alabels nodes++ tracks++ source next-pt)])
-                (stick rest arrows alabels nodes tracks++ target next-pt)))
+                      [else (stick rest arrows labels nodes++ tracks++ source next-pt)])
+                (stick rest arrows labels nodes tracks++ target next-pt)))
           
-          (append arrows alabels
+          (append arrows labels
                   (for/list : (Listof (GLayerof Geo)) ([n (in-hash-values nodes)] #:when (cdr n))
                     (cdr n)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-arrow-cons : (-> Geo:Path (Pairof Geo-Anchor-Name (GLayerof Geo)) (Option (Pairof Geo-Anchor-Name (GLayerof Geo)))
-                             (Listof Geo-Path-Print) DiaFlow-Arrow->Edge (Listof (GLayerof Geo)) (Listof (GLayerof Geo))
+                             (Listof Geo-Path-Print) DiaFlow-Arrow->Edge (Listof (GLayerof Geo))
+                             DiaFlow-Arrow-Label-Sticker Geo-Path-Infobase (Listof (GLayerof Geo))
                              (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo))))
-  (lambda [master source target tracks make-arrow arrows alabels]
-    (define clean-tracks : (Listof Geo-Path-Clean-Print) (geo-path-cleanse tracks))
+  (lambda [master source target tracks make-arrow arrows make-label infobase alabels]
     (define src-anchor : Geo-Anchor-Name (car source))
     (define tgt-anchor : (Option Geo-Anchor-Name) (and target (car target)))
-
+    (define src-endpt : DiaFlow-Arrow-Endpoint (cons src-anchor (vector-ref (cdr source) 0)))
+    (define tgt-endpt : (Option DiaFlow-Arrow-Endpoint) (and target (cons (car target) (vector-ref (cdr target) 0))))
+    
     (define arrow : (U Dia:Edge Void False)
-      (and (pair? clean-tracks)
-           (pair? (cdr clean-tracks))
-           (make-arrow master
-                       (cons src-anchor (vector-ref (cdr source) 0)) (and target (cons (car target) (vector-ref (cdr target) 0)))
-                       (dia-edge-style-construct src-anchor tgt-anchor (default-diaflow-arrow-style-make) make-diaflow-arrow-style)
-                       (if (null? (cddr clean-tracks))
-                           (dia-2-tracks-relocate-endpoints source target clean-tracks)
-                           (dia-more-tracks-relocate-endpoints source target clean-tracks)))))
+      (let ([ct (geo-path-cleanse tracks)])
+        (and (pair? ct) (pair? (cdr ct))
+             (make-arrow master src-endpt tgt-endpt
+                         (dia-edge-style-construct src-anchor tgt-anchor (default-diaflow-arrow-style-make) make-diaflow-arrow-style)
+                         (if (null? (cddr ct))
+                             (dia-2-tracks-relocate-endpoints source target ct)
+                             (dia-more-tracks-relocate-endpoints source target ct))))))
     
     (if (dia:edge? arrow)
+        
         (let ([ppos (dia-edge-pin-at-position arrow #false)])
           (define-values (awidth aheight) (geo-flsize arrow))
           (define alayer (vector-immutable arrow (real-part ppos) (imag-part ppos) awidth aheight))
           (values (cons alayer arrows) alabels))
-    (values arrows alabels))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; TODO: deal with curved prints
-(define dia-2-tracks-relocate-source : (-> (Pairof Geo-Anchor-Name (GLayerof Geo)) Geo-Path-Clean-Print Geo-Path-Clean-Print Geo-Path-Clean-Print)
-  (lambda [source a:track b:track]
-    (define A : Float-Complex (geo-path-clean-print-position a:track))
-    (define B : Float-Complex (geo-path-clean-print-position b:track))
-    
-    (cons (car b:track)
-          (or (dia-line-node-intersect (cdr source) A B A)
-              A))))
-
-(define dia-2-tracks-relocate-target : (-> (Pairof Geo-Anchor-Name (GLayerof Geo)) Geo-Path-Clean-Print Geo-Path-Clean-Print Geo-Path-Clean-Print)
-  (lambda [target a:track b:track]
-    (define A : Float-Complex (geo-path-clean-print-position a:track))
-    (define B : Float-Complex (geo-path-clean-print-position b:track))
-
-    (cons (car b:track)
-          (or (dia-line-node-intersect (cdr target) A B B)
-              B))))
-
-(define dia-2-tracks-relocate-endpoints : (-> (Option (Pairof Geo-Anchor-Name (GLayerof Geo))) (Option (Pairof Geo-Anchor-Name (GLayerof Geo)))
-                                              (List Geo-Path-Clean-Print Geo-Path-Clean-Print)
-                                              (List Geo-Path-Clean-Print Geo-Path-Clean-Print))
-  (lambda [source target tracks]
-    (define a:track : Geo-Path-Clean-Print (car tracks))
-    (define b:track : Geo-Path-Clean-Print (cadr tracks))
-    
-    (list (if (not source) a:track (dia-2-tracks-relocate-source source a:track b:track))
-          (if (not target) b:track (dia-2-tracks-relocate-target target a:track b:track)))))
-
-(define dia-more-tracks-relocate-endpoints : (-> (Pairof Geo-Anchor-Name (GLayerof Geo)) (Option (Pairof Geo-Anchor-Name (GLayerof Geo)))
-                                                 (List* Geo-Path-Clean-Print Geo-Path-Clean-Print Geo-Path-Clean-Print (Listof Geo-Path-Clean-Print))
-                                                 (List* Geo-Path-Clean-Print Geo-Path-Clean-Print (Listof Geo-Path-Clean-Print)))
-  (lambda [source target tracks]
-    (define h1st : Geo-Path-Clean-Print (car tracks))
-    (define h2nd : Geo-Path-Clean-Print (cadr tracks))
-    (define re:head : Geo-Path-Clean-Print (dia-2-tracks-relocate-source source h1st h2nd))
-    
-    (let relocate ([t2nd : Geo-Path-Clean-Print h2nd]
-                   [t1st : Geo-Path-Clean-Print (caddr tracks)]
-                   [skcart : (Listof Geo-Path-Clean-Print) (list h2nd)]
-                   [tracks : (Listof Geo-Path-Clean-Print) (cdddr tracks)])
-      (if (null? tracks)
-          (let-values ([(re:tail) (if (not target) t1st (dia-2-tracks-relocate-target target t2nd t1st))]
-                       [(body) (assert (reverse skcart) pair?)])
-            (list* re:head (car body) (append (cdr body) (list re:tail))))
-          (relocate t1st (car tracks) (cons t1st skcart) (cdr tracks))))))
+        (values arrows alabels))))

@@ -14,7 +14,7 @@
 
 (require "../node/style.rkt")
 (require "../edge/style.rkt")
-(require "../edge/type.rkt")
+(require "../edge/tip.rkt")
 (require "../edge/arrow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -40,16 +40,16 @@
   ([font : (Option Font) (desc-font #:size 'small)]
    [font-paint : Option-Fill-Paint #false]
    [line-paint : Maybe-Stroke-Paint (desc-stroke #:width 2.0 #:color 'DimGray #:join 'round #:cap 'butt)]
-   [source-shape : Option-Edge-Shape #false]
-   [target-shape : Option-Edge-Shape (make-dia-edge-arrow)]))
+   [source-shape : Option-Edge-Tip-Shape #false]
+   [target-shape : Option-Edge-Tip-Shape (make-dia-arrow-tip)]))
 
 (define-configuration diaflow-arrow-style : GeoFlow-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-arrow-~a"
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [line-paint : Maybe-Stroke-Paint (void)]
-   [source-shape : Maybe-Edge-Shape (void)]
-   [target-shape : Maybe-Edge-Shape (void)]))
+   [source-shape : Maybe-Edge-Tip-Shape (void)]
+   [target-shape : Maybe-Edge-Tip-Shape (void)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflow-node-label-string : (Parameterof Dia-Node-Id->String) (make-parameter geo-anchor->string))
@@ -137,7 +137,7 @@
 
 (define-configuration diaflow-decision-style : GeoFlow-Decision-Style #:as dia-node-style
   #:format "default-diaflow-decision-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
+  ([block-width : (Option Nonnegative-Flonum) 180.0]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]

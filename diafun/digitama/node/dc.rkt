@@ -44,13 +44,12 @@
   #:type-name Dia:Node
   #:transparent)
 
-(struct dia:node:label dia:node
-  ()
+(struct dia:node:label dia:node ()
   #:type-name Dia:Node:Label
   #:transparent)
 
 (struct dia:node:polygon dia:node
-  ([vertices : (Listof Float-Complex)])
+  ([vertices : (List* Float-Complex Float-Complex (Listof Float-Complex))])
   #:type-name Dia:Node:Polygon
   #:transparent)
 
@@ -60,11 +59,11 @@
     (define-values (+ox +oy) (geo-layer-size nlayer 0.50))
     (define-values (-ox -oy) (values (- +ox) (- +oy)))
 
-    (geo-line-polygon-intersect/first #:translate N A B
-                                      (list (make-rectangular -ox -oy)
-                                            (make-rectangular +ox -oy)
-                                            (make-rectangular +ox +oy)
-                                            (make-rectangular -ox +oy)))))
+    (geo-line-polygon-intersect/first* #:translate N A B
+                                       (list (make-rectangular -ox -oy)
+                                             (make-rectangular +ox -oy)
+                                             (make-rectangular +ox +oy)
+                                             (make-rectangular -ox +oy)))))
 
 (define dia-polygon-intersect : Dia-Node-Intersect
   (lambda [A B N nlayer]
@@ -79,9 +78,9 @@
     (and (dia:node:polygon? g)
          (let-values ([(ox oy) (geo-layer-size nlayer 0.5)])
            (define origin : Float-Complex (make-rectangular ox oy))
-
-           (geo-line-polygon-intersect/first #:translate (- N origin) A B
-                                             (dia:node:polygon-vertices g))))))
+           
+           (geo-line-polygon-intersect/first* #:translate (- N origin) A B
+                                              (dia:node:polygon-vertices g))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-line-node-intersect : (-> (GLayerof Geo) Float-Complex Float-Complex Float-Complex (Option Float-Complex))
