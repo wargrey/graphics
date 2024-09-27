@@ -12,6 +12,7 @@
   (provide (all-defined-out))
   
   (require geofun/digitama/unsafe/pangocairo)
+  (require geofun/digitama/geometry/affine)
   
   (require "../convert.rkt")
   (require (submod "pixman.rkt" unsafe))
@@ -43,6 +44,20 @@
     
     img)
 
+  (define (bitmap_rotate src theta.rad density)
+    (define-values (ow oh) (bitmap-surface-rendered-size src 1.0))
+    (define-values (rw rh) (geo-size-rotate ow oh theta.rad))
+    (define-values (img cr) (create-argb-bitmap (unsafe-fl/ rw density) (unsafe-fl/ rh density) density #false))
+    
+    (cairo_translate cr (unsafe-fl* rw 0.5) (unsafe-fl* rh 0.5))
+    (cairo_rotate cr theta.rad)
+    (cairo_set_source_surface cr src (unsafe-fl* ow -0.5) (unsafe-fl* oh -0.5))
+    
+    (cairo_paint cr)
+    (cairo_destroy cr)
+
+    img)
+
   (define (bitmap_bounding_box src just-alpha?)
     (define-values (pixels total stride w h) (bitmap-surface-metrics src 4))
     (define-values (zero-dot? dotoff) (if just-alpha? (values pixel-alpha-zero? A) (values pixel-zero? 0)))
@@ -70,8 +85,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [bitmap_section (-> Bitmap-Surface Flonum Flonum Flonum Flonum Flonum Bitmap)]
- [bitmap_scale (-> Bitmap-Surface Flonum Flonum Flonum Bitmap)]
+ [bitmap_section (-> Bitmap-Surface Flonum Flonum Flonum Flonum Positive-Flonum Bitmap)]
+ [bitmap_scale (-> Bitmap-Surface Flonum Flonum Positive-Flonum Bitmap)]
+ [bitmap_rotate (-> Bitmap-Surface Flonum Positive-Flonum Bitmap)]
  [bitmap_bounding_box (-> Bitmap-Surface Boolean (Values Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum))]
  [bitmap_bounding_box* (-> Bitmap-Surface Boolean Flonum
                            (Values Nonnegative-Flonum Nonnegative-Flonum

@@ -8,6 +8,7 @@
 
 (define-type Geo-Path-Print (Pairof Char Geo-Path-Print-Datum))
 (define-type Geo-Path-Clean-Print (Pairof Char Geo-Path-Clean-Print-Datum))
+(define-type Geo-Path-Clean-Prints (List* Geo-Path-Clean-Print Geo-Path-Clean-Print (Listof Geo-Path-Clean-Print)))
 
 (struct gpath:print
   ([end-here : Float-Complex])

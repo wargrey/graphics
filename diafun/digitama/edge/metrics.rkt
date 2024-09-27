@@ -15,4 +15,4 @@
                                    (Values (Listof Geo-Path-Clean-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self 100% angle.rad offset]
     (cond [(dia-arrow-tip? self) (dia-arrow-tip-vertices self 100% angle.rad offset)]
-          [else (values null 0.0 0.0 0.0 0.0)])))
+          [else (values null (real-part offset) (imag-part offset) 0.0 0.0)])))

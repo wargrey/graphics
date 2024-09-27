@@ -20,10 +20,10 @@
 
 (define-type DiaFlow-Arrow->Edge
   (-> Geo:Path DiaFlow-Arrow-Endpoint (Option DiaFlow-Arrow-Endpoint) Dia-Edge-Style
-      (List* Geo-Path-Clean-Print Geo-Path-Clean-Print (Listof Geo-Path-Clean-Print))
-      (U Dia:Edge Void False)))
+      Geo-Path-Clean-Prints (Listof Dia-Edge-Label)
+      (U Dia:Edge Dia:Labeled-Edge Void False)))
 
-(define-type DiaFlow-Arrow-Label-Sticker
+(define-type DiaFlow-Arrow->Edge-Label
   (-> Geo:Path DiaFlow-Arrow-Endpoint (Option DiaFlow-Arrow-Endpoint) Dia-Edge-Style
-      Float-Complex Float-Complex (Option String)
-      (U Geo-Sticker-Datum Void False)))
+      Float-Complex Float-Complex Any
+      (U Dia-Edge-Label Void False)))

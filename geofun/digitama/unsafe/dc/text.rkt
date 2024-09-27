@@ -110,6 +110,7 @@
     (when (pair? lines)
       (define attrs (pango_attr_list_new))
       (when (memq 'line-through lines) (pango_attr_list_insert attrs (pango_attr_strikethrough_new #true)))
+      ;(when (memq 'overline lines) (pango_attr_list_insert attrs (pango_attr_overline_new 1))) ; since Pango 1.46
       (cond [(memq 'undercurl lines) (pango_attr_list_insert attrs (pango_attr_underline_new PANGO_UNDERLINE_ERROR))]
             [(memq 'underdouble lines) (pango_attr_list_insert attrs (pango_attr_underline_new PANGO_UNDERLINE_DOUBLE))]
             [(memq 'underline lines) (pango_attr_list_insert attrs (pango_attr_underline_new PANGO_UNDERLINE_SINGLE))])

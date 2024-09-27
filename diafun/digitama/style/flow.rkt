@@ -137,8 +137,8 @@
 
 (define-configuration diaflow-decision-style : GeoFlow-Decision-Style #:as dia-node-style
   #:format "default-diaflow-decision-~a"
-  ([block-width : (Option Nonnegative-Flonum) 180.0]
-   [block-height : (Option Nonnegative-Flonum) #false]
+  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width)  0.90)]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.90)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-paint : Maybe-Stroke-Paint 'Crimson]

@@ -10,6 +10,7 @@
 (provide default-diaflow-arrow-construct)
 (provide default-diaflow-arrow-label-construct)
 
+(require digimon/metrics)
 (require geofun/path)
 
 (require geofun/digitama/dc/path)
@@ -26,11 +27,34 @@
 (require "digitama/identifier/flow.rkt")
 (require "digitama/interface/flow.rkt")
 
+(require (for-syntax racket/base))
+(require (for-syntax syntax/parse))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-syntax (define-flowchart! stx)
+  (syntax-parse stx #:literals []
+    [(_ name
+        (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'-0.618]))
+              (~optional (~seq #:grid-height gh) #:defaults ([gh #'-1.618]))
+              (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.030])))
+        ...
+        [args ...] #:- move-expr ...)
+     (syntax/loc stx
+       (define name : Dryland-Wani
+         (with-dryland-wani!
+             (let* ([grid-width  (~length gw (default-diaflow-block-width))]
+                    [grid-height (~length gh (default-diaflow-block-height))]
+                    [scale (make-rectangular ts (* ts (/ grid-width grid-height)))])
+               (make-dryland-wani #:T-scale scale #:U-scale scale
+                                  grid-width grid-height
+                                  args ...))
+           move-expr ...)))]))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-path-flow : (->* (Geo:Path)
                              (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator) #:trusted-anchors (Option Geo-Trusted-Anchors)
                               #:λblock DiaFlow-Block-Identifier #:λnode DiaFlow-Anchor->Node
-                              #:λarrow DiaFlow-Arrow->Edge #:λlabel DiaFlow-Arrow-Label-Sticker
+                              #:λarrow DiaFlow-Arrow->Edge #:λlabel DiaFlow-Arrow->Edge-Label
                               #:start-name (Option String))
                              (U Geo:Group Geo:Path))
   (lambda [#:id [id #false] #:operator [op #false] #:trusted-anchors [trusted-anchors #false] #:start-name [start #false]

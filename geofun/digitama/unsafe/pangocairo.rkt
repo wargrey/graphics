@@ -51,6 +51,7 @@
 (define-pango pango_font_description_set_variant (_pfun PangoFontDescription _int -> _void))
 (define-pango pango_attr_strikethrough_new (_pfun _bool -> PangoAttribute))
 (define-pango pango_attr_underline_new (_pfun _int -> PangoAttribute))
+;(define-pango pango_attr_overline_new (_pfun _int -> PangoAttribute)) ; since Pango 1.46
 
 (define-pango pango_layout_get_size (_pfun PangoLayout [w : (_ptr o _int)] [h : (_ptr o _int)] -> _void -> (values w h)))
 (define-pango pango_layout_get_line_count (_pfun PangoLayout -> _int))

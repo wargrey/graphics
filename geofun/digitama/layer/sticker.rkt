@@ -75,7 +75,7 @@
             [else #false]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-path-try-extend/list : (case-> [(GLayerof Geo) (Listof (GLayerof Geo))  -> (Option (GLayer-Groupof Geo))]
+(define geo-path-try-extend/list : (case-> [(GLayerof Geo) (Listof (GLayerof Geo)) -> (Option (GLayer-Groupof Geo))]
                                            [(Pairof (GLayerof Geo) (Listof (GLayerof Geo))) Nonnegative-Flonum Nonnegative-Flonum -> (Option (GLayer-Groupof Geo))])
   (case-lambda
     [(master stickers)
@@ -99,6 +99,14 @@
                                       (for/list : (Listof (GLayerof Geo)) ([sticker (in-list (cdr stickers))])
                                         (geo-layer-translate sticker xoff yoff)))))))]))
 
+(define geo-path-layers-merge : (-> (GLayer-Groupof Geo) (Listof (GLayerof Geo)) (GLayer-Groupof Geo))
+  (lambda [group layers]
+    (define layers++ : (Pairof (GLayerof Geo) (Listof (GLayerof Geo))) (append (vector-ref group 2) layers))
+    (define-values (W H) (values (vector-ref group 0) (vector-ref group 1)))
+
+    (or (geo-path-try-extend/list layers++ W H)
+        (vector-immutable W H layers++))))
+
 (define geo-sticker-layer : (-> Geo:Path Geo-Anchor->Sticker Geo-Anchor-Name
                                 Float-Complex Float-Complex Nonnegative-Flonum Nonnegative-Flonum
                                 (Option (GLayerof Geo)))
@@ -108,8 +116,8 @@
     (and (or (geo-sticker? stk) (geo? stk))
          (geo-sticker->layer stk position offset))))
 
-(define geo-sticker->layer : (-> Geo-Sticker-Datum Float-Complex Float-Complex (GLayerof Geo))
-  (lambda [self pos offset]
+(define geo-sticker->layer : (->* (Geo-Sticker-Datum Float-Complex) (Float-Complex) (GLayerof Geo))
+  (lambda [self pos [offset 0.0+0.0i]]
     (if (geo? self)
         (geo-own-layer 'cc pos self offset)
         (geo-own-layer (geo-sticker-anchor self) pos (geo-sticker-self self)

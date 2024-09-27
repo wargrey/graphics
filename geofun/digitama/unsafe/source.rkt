@@ -19,13 +19,13 @@
   (require "pangocairo.rkt")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (bitmap-linear-gradient-pattern x0 y0 x1 y1 stops)
+  (define (geo-linear-gradient-pattern x0 y0 x1 y1 stops)
     (define gradient (cairo_pattern_create_linear x0 y0 x1 y1))
     (for ([stop (in-list stops)])
       (gradient-add-color-stop gradient (unsafe-car stop) (unsafe-cdr stop)))
     gradient)
   
-  (define (bitmap-radial-gradient-pattern x0 y0 r0 x1 y1 r1 stops)
+  (define (geo-radial-gradient-pattern x0 y0 r0 x1 y1 r1 stops)
     (define gradient (cairo_pattern_create_radial x0 y0 r0 x1 y1 r1))
     (for ([stop (in-list stops)])
       (gradient-add-color-stop gradient (unsafe-car stop) (unsafe-cdr stop)))
@@ -42,5 +42,5 @@
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [#:opaque Fill-Pattern fill-pattern?]
- [bitmap-linear-gradient-pattern (-> Real Real Real Real (Listof (Pairof Real FlRGBA)) Fill-Pattern)]
- [bitmap-radial-gradient-pattern (-> Real Real Real Real Real Real (Listof (Pairof Real FlRGBA)) Fill-Pattern)])
+ [geo-linear-gradient-pattern (-> Real Real Real Real (Listof (Pairof Real FlRGBA)) Fill-Pattern)]
+ [geo-radial-gradient-pattern (-> Real Real Real Real Real Real (Listof (Pairof Real FlRGBA)) Fill-Pattern)])

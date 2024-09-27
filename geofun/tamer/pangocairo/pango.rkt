@@ -9,29 +9,28 @@
 
 (require "../../digitama/base.rkt")
 (require "../../digitama/unsafe/pangocairo.rkt")
+(require (submod "../../digitama/unsafe/dc/text.rkt" unsafe))
 (require (only-in (submod "../../digitama/unsafe/font.rkt" unsafe) geo_create_font_desc))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define (cairo_text_polygon words radius context font-face font-weight font-attrs)
+(define (cairo_text_polygon words radius font-face font-weight font-attr-lines)
   (define-values (width height) (values (* 2.0 radius) (* 2.0 radius)))
   (define-values (bmp cr) (create-argb-bitmap width height density #true))
-  (define (draw-text-circle cr context words)
-    (define layout (pango_layout_new context))
-    (when font-attrs (pango_layout_set_attributes layout font-attrs))
-
+  
+  (define (draw-text-circle cr layout words)
     (define n (length words))
     (for ([i (in-range n)])
       (define angle (/ (* 360.0 i) n))
       (cairo_save cr)
 
-      ; Gradient from red at angle == 60 to blue at angle == 240
-      (define red (/ (+ 1 (cos (degrees->radians (- angle 60)))) 2))
+      ; Gradient from red at 60deg to blue at 240deg
+      (define c (/ (+ 1 (cos (degrees->radians (- angle 60)))) 2))
       (pango_layout_set_text layout (list-ref words i))
-      (cairo_set_source_rgb cr red 0 (- 1.0 red))
+      (cairo_set_source_rgb cr c 0 (- 1.0 c))
       (cairo_rotate cr (degrees->radians angle))
 
       (define-values (width height) (pango_layout_get_size layout))
-      (cairo_move_to cr (/ (~metric width) -2) (- radius))
+      (cairo_move_to cr (* (~metric width) -0.5) (* radius -1.0))
       (pango_cairo_show_layout cr layout)
 
       (cairo_restore cr)))
@@ -49,25 +48,25 @@
   (cairo_fill cr)
 
   (define desc (geo_create_font_desc font-face (* radius 0.16) font-weight 0 4 0))
+  (define layout (text_create_layout font-attr-lines))
+  (pango_layout_set_font_description layout desc)
 
   ; Center coordinates on the middle of the region we are drawing
   (cairo_translate cr radius radius)
-  (pango_context_set_font_description context desc)
-  ; (pango_cairo_update_context cr context) ; this is not neccessary?
-  
-  (draw-text-circle cr context (string-split words))
+  (draw-text-circle cr layout (string-split words))
   
   (pango_font_description_free desc)
   (cairo_destroy cr)
   (cairo_pattern_destroy brush)
   bmp)
 
-(define (cairo-text-polygon words radius context font-face font-weight font-attrs)
-  (define bmp (cairo_text_polygon words radius context font-face font-weight font-attrs))
+(define (cairo-text-polygon words radius font-face font-weight font-attrs)
+  (define bmp (cairo_text_polygon words radius font-face font-weight font-attrs))
   (define temp.png (make-temporary-file))
   (displayln temp.png)
   (cairo_surface_write_to_png (bitmap-surface bmp) temp.png)
-  #;(read-bitmap temp.png #:backing-scale density))
+  #;(read-bitmap temp.png #:backing-scale density)
+  bmp)
 
 (define (cairo-paragraph)
   (define-values (width height indent spacing) (values 256.0 128.0 32.0 4.0))
@@ -98,19 +97,7 @@
 (define density 2.0)
 
 (module+ main
-  (define pango-font-map (benchmark pango_cairo_font_map_get_default))
-  (define context (pango_font_map_create_context pango-font-map))
-  (define font-options (benchmark cairo_font_options_create))
-  (cairo_font_options_set_antialias font-options CAIRO_ANTIALIAS_DEFAULT)
-  (pango_cairo_context_set_font_options context font-options)
-  
-  (define double-attrs (pango_attr_list_new))
-  (pango_attr_list_insert double-attrs (pango_attr_underline_new PANGO_UNDERLINE_DOUBLE))
-  
-  (define delete-attrs (pango_attr_list_new))
-  (pango_attr_list_insert delete-attrs (pango_attr_strikethrough_new #true))
-  
-  (benchmark cairo-text-polygon "Using Pango with Cairo to Draw Regular Polygon" 150 context "Courier" 700 double-attrs)
-  (benchmark cairo-text-polygon "Test Global Cairo Context and Pango Layout" 100 context "Helvetica Neue" 100 delete-attrs)
+  (benchmark cairo-text-polygon "Using Pango with Cairo to Draw Regular Polygon" 150 "Courier" 700 '(underdouble))
+  (benchmark cairo-text-polygon "Test Global Cairo Context and Pango Layout" 100 "Helvetica Neue" 100 '(line-through))
   (benchmark cairo-paragraph))
   

@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require "../geometry/affine.rkt")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo-ink
   ([pos : Float-Complex]
@@ -39,6 +41,18 @@
     (unsafe-geo-ink (make-rectangular (if (>= sx 0.0) (* sx lx) (+ (* sx rx) nw))
                                       (if (>= sy 0.0) (* sy ty) (+ (* sy by) nh)))
                     nw nh)))
+
+;;; TODO: this might not be correct.
+(define geo-ink-rotate : (-> Geo-Ink Flonum Geo-Ink)
+  (lambda [self theta.rad]
+    (define-values (ox oy) (values (real-part (geo-ink-pos self)) (imag-part (geo-ink-pos self))))
+    (define-values (ow oh) (values (geo-ink-width self) (geo-ink-height self)))
+    (define-values (lx ty rx by) (geo-rectangle-rotate ow oh theta.rad))
+
+    (unsafe-geo-ink (make-rectangular (max (+ lx ox) 0.0)
+                                      (max (+ ty oy) 0.0))
+                    (max (- rx lx) 0.0)
+                    (max (- by ty) 0.0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-null-ink : Geo-Ink (make-geo-ink 0.0 0.0 0.0 0.0))

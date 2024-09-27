@@ -2,11 +2,13 @@
 
 (provide (all-defined-out))
 
-(require "digitama/unsafe/resize.rkt")
+(require "digitama/unsafe/adjust.rkt")
 (require "digitama/convert.rkt")
 
 (require geofun/digitama/resize)
 (require geofun/digitama/unsafe/visual/ctype)
+
+(require digimon/metrics)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-section : (case-> [Bitmap Complex Complex -> Bitmap]
@@ -42,7 +44,7 @@
 (define bitmap-trim : (->* (Bitmap) (Boolean) Bitmap)
   (lambda [bmp [just-alpha? #true]]
     (define surface : Bitmap-Surface (bitmap-surface bmp))
-    (define density : Flonum (bitmap-density bmp))
+    (define density : Positive-Flonum (bitmap-density bmp))
     (define-values (x y X Y) (bitmap_bounding_box* surface just-alpha? 1.0))
     (bitmap_section surface x y (- X x) (- Y y) density)))
 
@@ -75,6 +77,13 @@
   #:with ("bitmap-~a-crop" [lt 0.0 0.0] [lc 0.0 0.5] [lb 0.0 1.0]
                            [ct 0.5 0.0] [cc 0.5 0.5] [cb 0.5 1.0]
                            [rt 1.0 0.0] [rc 1.0 0.5] [rb 1.0 1.0]))
+
+(define bitmap-rotate : (->* (Bitmap Real) (Boolean) Bitmap)
+  (lambda [bmp theta [radian? #true]]
+    (define rad (~radian theta radian?))
+    
+    (cond [(= rad 0.0) bmp]
+          [else (bitmap_rotate (bitmap-surface bmp) rad (bitmap-density bmp))])))
 
 (define bitmap-scale : (->* (Bitmap Real) (Real) Bitmap)
   (case-lambda

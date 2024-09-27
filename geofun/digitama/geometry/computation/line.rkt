@@ -9,6 +9,17 @@
 (define-type Geo-Intersection (Immutable-Vector Float-Complex Flonum Flonum))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-line-line-perpendicular? : (-> Float-Complex Float-Complex Float-Complex Float-Complex Boolean)
+  (lambda [A B C D]
+    (zero? (real-part (/ (- B A)
+                         (- D C))))))
+
+(define geo-line-line-parallel? : (-> Float-Complex Float-Complex Float-Complex Float-Complex Boolean)
+  (lambda [A B C D]
+    (zero? (imag-part (* (- B A)
+                         (conjugate (- D C)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-line-line-intersect : (-> Float-Complex Float-Complex Float-Complex Float-Complex (Option Geo-Intersection))
   (lambda [A B C D]
     #| Theorem
@@ -39,6 +50,15 @@
            (vector-immutable (+ A (* t1 Vab)) #| or (+ C (* t1 Vcd)) |#
                              t1 t2)))))
 
+(define geo-line-parallel-normal : (-> Float-Complex Float-Complex Flonum Float-Complex)
+  ;;; find the |d|-length normal vectors of line AB, the vector should be on the left side(d > 0.0) or right side(d < 0.0) of the segment
+  (lambda [A B d]
+    (define V (- B A))
+    (define scale (/ d (magnitude V)))
+    
+    (conjugate (* V scale))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-line-polyline-intersect : (->* (Float-Complex Float-Complex (Listof Float-Complex)) (Boolean #:translate Float-Complex) (Listof Geo-Intersection))
   (lambda [A B vertices [closed? #true] #:translate [offset 0.0+0.0i]]
     (if (and (pair? vertices) (pair? (cdr vertices)))

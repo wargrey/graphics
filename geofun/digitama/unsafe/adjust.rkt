@@ -11,6 +11,7 @@
   
   (require "pangocairo.rkt")
   (require "surface/abstract.rkt")
+  (require "../geometry/affine.rkt")
   
   (require (submod "visual/abstract.rkt" unsafe))
 
@@ -26,9 +27,9 @@
     (define-values (_ width height) (abstract-surface-extent* src))
     (define flwidth (unsafe-fl* width (unsafe-flabs xscale)))
     (define flheight (unsafe-fl* height (unsafe-flabs yscale)))
-    (define-values (sfc cr actual-flwidth actual-flheight) (cairo-create-abstract-surface* flwidth flheight density #false))
-    (define tx (if (unsafe-fl< xscale 0.0) actual-flwidth 0.0))
-    (define ty (if (unsafe-fl< yscale 0.0) actual-flheight 0.0))
+    (define-values (sfc cr used-width used-flheight) (cairo-create-abstract-surface* flwidth flheight density #false))
+    (define tx (if (unsafe-fl< xscale 0.0) used-width 0.0))
+    (define ty (if (unsafe-fl< yscale 0.0) used-flheight 0.0))
 
     ; order matters
     (cairo_translate cr tx ty)
@@ -38,10 +39,26 @@
     (cairo_paint cr)
     (cairo_destroy cr)
     
+    sfc)
+
+  (define (geo_rotate src theta.rad density)
+    (define-values (_ ow oh) (abstract-surface-extent* src))
+    (define-values (flwidth flheight) (geo-size-rotate ow oh theta.rad))
+    (define-values (sfc cr rw rh) (cairo-create-abstract-surface* flwidth flheight density #false))
+
+    ; order matters
+    (cairo_translate cr (unsafe-fl* rw 0.5) (unsafe-fl* rh 0.5))
+    (cairo_rotate cr theta.rad)
+    (cairo_set_source_surface cr src (unsafe-fl* ow -0.5) (unsafe-fl* oh -0.5))
+    
+    (cairo_paint cr)
+    (cairo_destroy cr)
+
     sfc))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [geo_section (-> Abstract-Surface Flonum Flonum Flonum Flonum Flonum Abstract-Surface)]
- [geo_scale (-> Abstract-Surface Flonum Flonum Flonum Abstract-Surface)])
+ [geo_section (-> Abstract-Surface Flonum Flonum Flonum Flonum Positive-Flonum Abstract-Surface)]
+ [geo_scale (-> Abstract-Surface Flonum Flonum Positive-Flonum Abstract-Surface)]
+ [geo_rotate (-> Abstract-Surface Flonum Positive-Flonum Abstract-Surface)])

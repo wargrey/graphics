@@ -37,19 +37,19 @@
           [(diaflow-arrow-label-style? style) (diaflow-block-in-arrow-label node-id label style width height)])))
 
 (define default-diaflow-arrow-construct : DiaFlow-Arrow->Edge
-  (lambda [master source target style tracks]
+  (lambda [master source target style tracks labels]
     (dia-edge #:id (dia-edge-id-merge (geo-id (cdr source)) (and target (geo-id (cdr target))) #true)
               #:stroke (dia-edge-select-line-paint style)
               #:source-shape (dia-edge-select-source-shape style)
               #:target-shape (and target (not (dia:node:label? (cdr target))) (dia-edge-select-target-shape style))
               tracks)))
 
-(define default-diaflow-arrow-label-construct : DiaFlow-Arrow-Label-Sticker
-  (lambda [master source target style start-pos end-pos label]
+(define default-diaflow-arrow-label-construct : DiaFlow-Arrow->Edge-Label
+  (lambda [master source target style start end info]
     (void)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-stick : (->* (Geo:Path Geo-Anchor->Sticker DiaFlow-Arrow->Edge DiaFlow-Arrow-Label-Sticker Geo-Path-Infobase)
+(define diaflow-stick : (->* (Geo:Path Geo-Anchor->Sticker DiaFlow-Arrow->Edge DiaFlow-Arrow->Edge-Label Geo-Path-Infobase)
                              ((Option Geo-Trusted-Anchors))
                              (Listof (GLayerof Geo)))
   (lambda [master make-node-sticker make-arrow make-label infobase [trusted-anchors #false]]
@@ -100,28 +100,40 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-arrow-cons : (-> Geo:Path (Pairof Geo-Anchor-Name (GLayerof Geo)) (Option (Pairof Geo-Anchor-Name (GLayerof Geo)))
                              (Listof Geo-Path-Print) DiaFlow-Arrow->Edge (Listof (GLayerof Geo))
-                             DiaFlow-Arrow-Label-Sticker Geo-Path-Infobase (Listof (GLayerof Geo))
+                             DiaFlow-Arrow->Edge-Label Geo-Path-Infobase (Listof (GLayerof Geo))
                              (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo))))
   (lambda [master source target tracks make-arrow arrows make-label infobase alabels]
     (define src-anchor : Geo-Anchor-Name (car source))
     (define tgt-anchor : (Option Geo-Anchor-Name) (and target (car target)))
     (define src-endpt : DiaFlow-Arrow-Endpoint (cons src-anchor (vector-ref (cdr source) 0)))
     (define tgt-endpt : (Option DiaFlow-Arrow-Endpoint) (and target (cons (car target) (vector-ref (cdr target) 0))))
-    
-    (define arrow : (U Dia:Edge Void False)
+    (define edge-style : Dia-Edge-Style (dia-edge-style-construct src-anchor tgt-anchor (default-diaflow-arrow-style-make) make-diaflow-arrow-style))
+
+    (define maybe-tracks : (Option (Pairof Geo-Path-Clean-Prints Geo-Path-Clean-Prints))
       (let ([ct (geo-path-cleanse tracks)])
         (and (pair? ct) (pair? (cdr ct))
-             (make-arrow master src-endpt tgt-endpt
-                         (dia-edge-style-construct src-anchor tgt-anchor (default-diaflow-arrow-style-make) make-diaflow-arrow-style)
-                         (if (null? (cddr ct))
-                             (dia-2-tracks-relocate-endpoints source target ct)
-                             (dia-more-tracks-relocate-endpoints source target ct))))))
+             (cons ct
+                   (if (null? (cddr ct))
+                       (dia-2-tracks-relocate-endpoints source target ct)
+                       (dia-more-tracks-relocate-endpoints source target ct))))))
     
-    (if (dia:edge? arrow)
+    (define arrow : (U Dia:Edge Dia:Labeled-Edge Void False)
+      (and maybe-tracks
+           (make-arrow master src-endpt tgt-endpt edge-style
+                       (cdr maybe-tracks) null)))
+    
+    (if (and maybe-tracks (geo? arrow))
         
-        (let ([ppos (dia-edge-pin-at-position arrow #false)])
+        (let ([ppos (dia-edge-self-pin-position arrow #false)])
           (define-values (awidth aheight) (geo-flsize arrow))
           (define alayer (vector-immutable arrow (real-part ppos) (imag-part ppos) awidth aheight))
           (values (cons alayer arrows) alabels))
 
         (values arrows alabels))))
+
+#;(define dia-arrow-label-filter : (-> Geo-Path-Infobase Geo-Edge-Clean-Prints Geo-Edge-Clean-Prints (Listof Dia-Arrow-Label-Info))
+  (lambda [infobase tracks refined-tracks]
+    (let info-filter ([labels : (Listof Dia-Arrow-Label-Info) null]
+                      [osrc : Float-Complex (geo-path-clean-print-position (car tracks))]
+                      [rsrc : Geo-Path-Clean-Print (car refined-tracks)])
+      labels)))

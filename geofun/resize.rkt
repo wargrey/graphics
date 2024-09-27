@@ -2,7 +2,8 @@
 
 (provide (all-defined-out))
 (provide geo:transform? geo:region? Geo:Transform Geo:Region)
-(provide geo-scale geo:scale? Geo:Scale)
+(provide geo-scale geo:scaling? Geo:Scaling)
+(provide geo-rotate geo:rotation? Geo:Rotation)
 
 (require "digitama/dc/resize.rkt")
 (require "digitama/convert.rkt")
