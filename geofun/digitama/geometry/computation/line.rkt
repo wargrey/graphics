@@ -50,13 +50,22 @@
            (vector-immutable (+ A (* t1 Vab)) #| or (+ C (* t1 Vcd)) |#
                              t1 t2)))))
 
-(define geo-line-parallel-normal : (-> Float-Complex Float-Complex Flonum Float-Complex)
-  ;;; find the |d|-length normal vectors of line AB, the vector should be on the left side(d > 0.0) or right side(d < 0.0) of the segment
-  (lambda [A B d]
-    (define V (- B A))
-    (define scale (/ d (magnitude V)))
+(define geo-parallel-point : (-> Float-Complex Float-Complex Flonum Float-Complex)
+  ;;; find the |d|-distance point of vector v at A, the point should be on the left side(d > 0.0) or right side(d < 0.0) of the vector
+  (lambda [A v d]
+    (define normal : Float-Complex
+      (* (/ v (magnitude v))
+         (make-polar d (* pi -0.5))))
     
-    (conjugate (* V scale))))
+    (+ A normal)))
+
+(define geo-parallel-segment : (-> Float-Complex Float-Complex Flonum (Values Float-Complex Float-Complex))
+  ;;; find the |d|-distance segment of segment AB, the segment should be on the left side(d > 0.0) or right side(d < 0.0) of the segment
+  (lambda [A B d]
+    (define V : Float-Complex (- B A))
+    (define P : Float-Complex (geo-parallel-point A V d))
+    
+    (values P (+ P V))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-line-polyline-intersect : (->* (Float-Complex Float-Complex (Listof Float-Complex)) (Boolean #:translate Float-Complex) (Listof Geo-Intersection))

@@ -24,11 +24,22 @@
   #:type-name Geo-Sticker
   #:transparent)
 
-(define make-sticker : (->* (Geo) (Geo-Pin-Anchor Real Real) Geo-Sticker)
-  (lambda [self [anchor 'cc] [dx 0] [dy 0]]
-    (geo-sticker self anchor
-                 (make-rectangular (real->double-flonum dx)
-                                   (real->double-flonum dy)))))
+(define make-sticker : (case-> [Geo -> Geo-Sticker]
+                               [Geo Geo-Pin-Anchor -> Geo-Sticker]
+                               [Geo Geo-Pin-Anchor Complex -> Geo-Sticker]
+                               [Geo Geo-Pin-Anchor Real Real -> Geo-Sticker])
+  (case-lambda
+    [(self) (geo-sticker self 'cc 0.0+0.0i)]
+    [(self anchor) (geo-sticker self anchor 0.0+0.0i)]
+    [(self anchor offset)
+     (if (real? offset)
+         (geo-sticker self anchor (make-rectangular (real->double-flonum offset) 0.0))
+         (geo-sticker self anchor (make-rectangular (real->double-flonum (real-part offset))
+                                                    (real->double-flonum (imag-part offset)))))]
+    [(self anchor dx dy)
+     (geo-sticker self anchor
+                  (make-rectangular (real->double-flonum dx)
+                                    (real->double-flonum dy)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Sticker-Datum (U Geo-Sticker Geo))
