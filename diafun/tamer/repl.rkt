@@ -12,16 +12,16 @@
   (move-down 1 Read)
   (move-down 1 '->Evaluate)
   (move-down 1 '#:Exit?)
-  (move-down 1 '#:Void? "No")
-  (move-down 1 Print "No")
+  (move-down 1 '#:Void? "False")
+  (move-down 1 Print "False")
 
   (move-down 0.5)
   (move-left 1.0)
-  (move-up Read)
+  (move-up Read #false "LOOP")
   (move-right Read)
 
   (jump-back)
-  (move-left 1.0)
+  (move-left 1.0 #false "True")
 
   (jump-back)
   (move-right 1.0 '-YES-)
@@ -39,7 +39,7 @@
     (lambda [source target]
       (cond [(memq source (list Read Print)) (make-diaflow-arrow-style #:line-paint 'ForestGreen)]
             [else (case source
-                    [(#:home Exit$) (make-diaflow-arrow-style #:line-paint 'Gray)]
+                    [(#:home Exit$) (make-diaflow-arrow-style #:line-paint 'DimGray)]
                     [(Initialization!) (make-diaflow-arrow-style #:line-paint 'Red)]
                     [(#:Exit? -YES-) (make-diaflow-arrow-style #:line-paint (if (not target) 'SeaGreen 'Blue))]
                     [(#:Void?) (make-diaflow-arrow-style #:line-paint (if (not target) (desc-stroke #:color 'SeaGreen #:width 2.0 #:dash 'long-dash) 'Blue))]
@@ -50,4 +50,4 @@
   (default-diaflow-stop-stroke-paint 'Chocolate)
   (default-diaflow-fill-paint #false)
   
-  (geo-frame (dia-path-flow repl #:start-name "REPL")))
+  (geo-frame (dia-path-flow repl #:start-name "REPL\n(Shell)")))

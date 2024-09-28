@@ -50,20 +50,23 @@
            (vector-immutable (+ A (* t1 Vab)) #| or (+ C (* t1 Vcd)) |#
                              t1 t2)))))
 
-(define geo-parallel-point : (-> Float-Complex Float-Complex Flonum Float-Complex)
-  ;;; find the |d|-distance point of vector v at A, the point should be on the left side(d > 0.0) or right side(d < 0.0) of the vector
-  (lambda [A v d]
-    (define normal : Float-Complex
+(define geo-perpendicular-point : (->* (Float-Complex Float-Complex Flonum) (Flonum) Float-Complex)
+  ;;; find the |d|-distance perpendicular point of the direction vector v located at A,
+  ;     the resulting point should be on the left side(d > 0.0) or right side(d < 0.0) of the vector,
+  ;     and its foot is blended by `t` with respect to A.
+  (lambda [A v d [t 0.0]]
+    (define Pv : Float-Complex
       (* (/ v (magnitude v))
          (make-polar d (* pi -0.5))))
     
-    (+ A normal)))
+    (+ A Pv (* v t))))
 
 (define geo-parallel-segment : (-> Float-Complex Float-Complex Flonum (Values Float-Complex Float-Complex))
-  ;;; find the |d|-distance segment of segment AB, the segment should be on the left side(d > 0.0) or right side(d < 0.0) of the segment
+  ;;; find the |d|-distance segment of segment AB
+  ;     the resulting segment should be on the left side(d > 0.0) or right side(d < 0.0) of AB
   (lambda [A B d]
     (define V : Float-Complex (- B A))
-    (define P : Float-Complex (geo-parallel-point A V d))
+    (define P : Float-Complex (geo-perpendicular-point A V d))
     
     (values P (+ P V))))
 

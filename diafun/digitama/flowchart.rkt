@@ -15,6 +15,7 @@
 (require "node/flow.rkt")
 (require "node/dc.rkt")
 (require "edge/style.rkt")
+(require "edge/label.rkt")
 (require "edge/refine.rkt")
 (require "edge/dc.rkt")
 (require "interface/flow.rkt")
@@ -38,15 +39,20 @@
 
 (define default-diaflow-arrow-construct : DiaFlow-Arrow->Edge
   (lambda [master source target style tracks labels]
-    (dia-edge #:id (dia-edge-id-merge (geo-id (cdr source)) (and target (geo-id (cdr target))) #true)
-              #:stroke (dia-edge-select-line-paint style)
-              #:source-shape (dia-edge-select-source-shape style)
-              #:target-shape (and target (not (dia:node:label? (cdr target))) (dia-edge-select-target-shape style))
-              tracks)))
+    (dia-edge-attach-label
+     (dia-edge #:id (dia-edge-id-merge (geo-id (cdr source)) (and target (geo-id (cdr target))) #true)
+               #:stroke (dia-edge-select-line-paint style)
+               #:source-shape (dia-edge-select-source-shape style)
+               #:target-shape (and target (not (dia:node:label? (cdr target))) (dia-edge-select-target-shape style))
+               tracks)
+     labels)))
 
 (define default-diaflow-arrow-label-construct : DiaFlow-Arrow->Edge-Label
   (lambda [master source target style start end info]
-    (void)))
+    (make-dia-edge-labels #:font (dia-edge-select-font style)
+                          #:font-paint (dia-edge-select-font-paint style)
+                          #:rotate? (default-diaflow-edge-label-rotate?)
+                          start end info)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diaflow-stick : (->* (Geo:Path Geo-Anchor->Sticker DiaFlow-Arrow->Edge DiaFlow-Arrow->Edge-Label Geo-Path-Infobase)
@@ -119,8 +125,9 @@
     
     (define arrow : (U Dia:Edge Dia:Labeled-Edge Void False)
       (and maybe-tracks
-           (make-arrow master src-endpt tgt-endpt edge-style
-                       (cdr maybe-tracks) null)))
+           (make-arrow master src-endpt tgt-endpt edge-style (cdr maybe-tracks)
+                       (dia-arrow-label-filter master src-endpt tgt-endpt edge-style make-label
+                                               infobase (car maybe-tracks) (cdr maybe-tracks)))))
     
     (if (and maybe-tracks (geo? arrow))
         
@@ -131,9 +138,40 @@
 
         (values arrows alabels))))
 
-#;(define dia-arrow-label-filter : (-> Geo-Path-Infobase Geo-Edge-Clean-Prints Geo-Edge-Clean-Prints (Listof Dia-Arrow-Label-Info))
-  (lambda [infobase tracks refined-tracks]
-    (let info-filter ([labels : (Listof Dia-Arrow-Label-Info) null]
-                      [osrc : Float-Complex (geo-path-clean-print-position (car tracks))]
-                      [rsrc : Geo-Path-Clean-Print (car refined-tracks)])
-      labels)))
+(define dia-arrow-label-filter : (-> Geo:Path DiaFlow-Arrow-Endpoint (Option DiaFlow-Arrow-Endpoint) Dia-Edge-Style
+                                     DiaFlow-Arrow->Edge-Label Geo-Path-Infobase Geo-Path-Clean-Prints Geo-Path-Clean-Prints
+                                     (Listof Dia-Edge-Label))
+  (lambda [master src-endpt tgt-endpt edge-style make-label infobase tracks refined-tracks]
+    (let label-filter ([labels : (Listof Dia-Edge-Label) null]
+                       [otracks : (Listof Geo-Path-Clean-Print) tracks]
+                       [rtracks : (Listof Geo-Path-Clean-Print) refined-tracks]
+                       [osrc : (Option Float-Complex) #false]
+                       [rsrc : Float-Complex 0.0+0.0i])
+      (if (and (pair? otracks) (pair? rtracks))
+
+          (let ([oself (car otracks)]
+                [rself (car rtracks)])
+            (cond [(eq? (car oself) #\M)
+                   (label-filter labels (cdr otracks) (cdr rtracks)
+                                 (geo-path-clean-print-position oself)
+                                 (geo-path-clean-print-position rself))]
+                  [(eq? (car oself) #\L)
+                   (let ([otarget (geo-path-clean-print-position oself)]
+                         [rtarget (geo-path-clean-print-position rself)])
+                     (or (and osrc
+                              (let ([info (hash-ref infobase (cons osrc otarget) (λ [] #false))])
+                                (and (dia-edge-label-datum? info)
+                                     (let ([maybe-labels (make-label master src-endpt tgt-endpt edge-style rsrc rtarget info)])
+                                       (cond [(pair? maybe-labels)
+                                              (label-filter (append labels maybe-labels)
+                                                            (cdr otracks) (cdr rtracks) otarget rtarget)]
+                                             [(dia-edge-label? maybe-labels)
+                                              (label-filter (append labels (list maybe-labels))
+                                                            (cdr otracks) (cdr rtracks) otarget rtarget)]
+                                             [else #false])))))
+                         (label-filter labels (cdr otracks) (cdr rtracks) otarget rtarget)))]
+
+                  ;;; TODO: deal with curves
+                  [else (label-filter labels (cdr otracks) (cdr rtracks) osrc rsrc)]))
+          
+          labels))))

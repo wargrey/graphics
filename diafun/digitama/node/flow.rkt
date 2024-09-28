@@ -61,6 +61,7 @@
     
     (create-dia-node dia:node:polygon
                      #:id node-key
+                     #:intersect dia-polygon-intersect
                      #:fit-ratio 0.50 0.50
                      rhombus label vertices)))
 

@@ -53,6 +53,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflow-node-label-string : (Parameterof Dia-Node-Id->String) (make-parameter geo-anchor->string))
+(define default-diaflow-edge-label-rotate? : (Parameterof Boolean) (make-parameter #true))
 (define default-diaflow-canonical-start-name : (Parameterof String) (make-parameter ""))
 (define default-diaflow-canonical-stop-name : (Parameterof String) (make-parameter ""))
 (define default-diaflow-arrow-label-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Arrow-Label-Style))) (make-parameter #false))

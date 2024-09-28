@@ -4,18 +4,16 @@
 
 (require "tip.rkt")
 (require "style.rkt")
+(require "label.rkt")
 (require "metrics.rkt")
 
 (require "../unsafe/edge.rkt")
 
 (require geofun/paint)
 (require geofun/stroke)
-(require geofun/font)
 
 (require geofun/digitama/dc/paint)
-(require geofun/digitama/dc/text)
 (require geofun/digitama/dc/composite)
-(require geofun/digitama/dc/resize)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/layer/type)
@@ -24,44 +22,6 @@
 (require geofun/digitama/geometry/dot)
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/geometry/computation/line)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct dia-edge-label
-  ([pt : Float-Complex]
-   [v : Float-Complex]
-   [sticker : Geo]
-   [t : Flonum]
-   [distance : Flonum])
-  #:type-name Dia-Edge-Label
-  #:constructor-name unsafe-dia-edge-label
-  #:transparent)
-
-(define make-dia-edge-label : (->* (Float-Complex Float-Complex Geo) (Flonum #:distance (Option Flonum)) Dia-Edge-Label)
-  (lambda [start end label [t 0.5] #:distance [distance #false]]
-    (unsafe-dia-edge-label start (- end start) label t
-                           (cond [(and distance) distance]
-                                 [else 0.0]))))
-
-(define make-dia-edge-labels : (->* (Float-Complex Float-Complex (U String (Pairof (Option String) (Option String))))
-                                    (Flonum #:font (Option Font) #:font-paint Option-Fill-Paint #:distance (Option Flonum))
-                                    (Listof Dia-Edge-Label))
-  (lambda [start end label [head-position 0.2] #:font [font #false] #:font-paint [font-paint #false] #:distance [distance #false]]
-    (define gs : (Listof (Pairof Geo Flonum))
-      (if (pair? label)
-        
-          (let-values ([(head tail) (values (car label) (cdr label))])
-            (cond [(and head tail)
-                   (list (cons (geo-text head font #:color font-paint) head-position)
-                         (cons (geo-text tail font #:color font-paint) (- 1.0 head-position)))]
-                  [(or head) (list (cons (geo-text head font #:color font-paint) head-position))]
-                  [(or tail) (list (cons (geo-text tail font #:color font-paint) (- 1.0 head-position)))]
-                  [else null]))
-          
-          (list (cons (geo-text label font #:color font-paint) 0.5))))
-
-    (for/list ([g (in-list gs)])
-      (make-dia-edge-label #:distance (or distance (* (geo-height (car g)) 0.618))
-                           start end (car g) (cdr g)))))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct dia:edge geo
@@ -108,6 +68,28 @@
                             (make-rectangular xoff yoff) (make-rectangular line-offset line-offset)
                             src-prints tgt-prints)))
 
+(define dia-edge-attach-label : (-> (U Dia:Edge Dia:Labeled-Edge) (U Dia-Edge-Label (Listof Dia-Edge-Label)) (U Dia:Edge Dia:Labeled-Edge))
+  (lambda [self label]
+    (cond [(null? label) self]
+          [(dia:edge? self)
+           (let-values ([(w h) (geo-flsize self)])
+             (dia-edge-attach-label (create-geometry-group dia:labeled-edge #false (geo-own-layers self)) label))]
+          [else (let* ([edge (dia-edge-unlabel self)]
+                       [O (dia:edge-origin edge)])
+                  (let attach ([labels : (Listof Dia-Edge-Label) (if (list? label) label (list label))]
+                               [layers : (Listof (GLayerof Geo)) null])
+                    (if (pair? labels)
+                        (let* ([label (car labels)]
+                               [V (dia-edge-label-dir label)])
+                          (attach (cdr labels)
+                                  (cons (geo-sticker->layer (dia-edge-label-sticker label)
+                                                            (geo-perpendicular-point (- (dia-edge-label-pos label) O) V
+                                                                                     (dia-edge-label-distance label)
+                                                                                     (dia-edge-label-ratio label)))
+                                        layers)))
+                        (create-geometry-group dia:labeled-edge #false
+                                               (geo-path-layers-merge (geo:group-layers self) layers)))))])))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-edge-self-pin-position : (->* ((U Dia:Edge Dia:Labeled-Edge)) ((Option Float-Complex)) Float-Complex)
   (lambda [self [maybe-pt #false]]
@@ -121,28 +103,6 @@
         (let ([slayer (car (vector-ref (geo:group-layers self) 2))])
           (- (dia-edge-self-pin-position (assert (vector-ref slayer 0) dia:edge?))
              (make-rectangular (vector-ref slayer 1) (vector-ref slayer 2)))))))
-
-(define dia-edge-attach-label : (-> (U Dia:Edge Dia:Labeled-Edge) (U Dia-Edge-Label (Listof Dia-Edge-Label)) [#:rotate? Boolean] (U Dia:Edge Dia:Labeled-Edge))
-  (lambda [self label #:rotate? [rotate? #true]]
-    (cond [(null? label) self]
-          [(dia:edge? self)
-           (let-values ([(w h) (geo-flsize self)])
-             (dia-edge-attach-label (create-geometry-group dia:labeled-edge #false (geo-own-layers self)) label))]
-          [else (let* ([edge (dia-edge-unlabel self)]
-                       [O (dia:edge-origin edge)])
-                  (let attach ([labels : (Listof Dia-Edge-Label) (if (list? label) label (list label))]
-                               [layers : (Listof (GLayerof Geo)) null])
-                    (if (pair? labels)
-                        (let* ([label (car labels)]
-                               [g (dia-edge-label-sticker label)]
-                               [V (dia-edge-label-v label)])
-                          (attach (cdr labels)
-                                  (cons (geo-sticker->layer (if (not rotate?) g (geo-rotate g (angle V)))
-                                                            (+ (geo-parallel-point (- (dia-edge-label-pt label) O) V
-                                                                                   (dia-edge-label-distance label))
-                                                               (* V (dia-edge-label-t label))))
-                                        layers)))
-                        (create-geometry-group dia:labeled-edge #false (geo-path-layers-merge (geo:group-layers self) layers)))))])))
 
 (define dia-edge-unlabel : (-> Dia:Labeled-Edge Dia:Edge)
   (lambda [g]

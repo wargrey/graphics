@@ -11,6 +11,7 @@
 
 (require "../node/style.rkt")
 (require "../edge/style.rkt")
+(require "../edge/label.rkt")
 (require "../edge/dc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -25,5 +26,5 @@
 
 (define-type DiaFlow-Arrow->Edge-Label
   (-> Geo:Path DiaFlow-Arrow-Endpoint (Option DiaFlow-Arrow-Endpoint) Dia-Edge-Style
-      Float-Complex Float-Complex Any
-      (U Dia-Edge-Label Void False)))
+      Float-Complex Float-Complex Dia-Edge-Label-Datum
+      (U Dia-Edge-Label (Listof Dia-Edge-Label) Void False)))
