@@ -91,12 +91,18 @@
 
 (define geo-fit : (case-> [Geo Geo -> Geo]
                           [Geo Nonnegative-Real Nonnegative-Real -> Geo]
-                          [Geo Geo Nonnegative-Real Nonnegative-Real -> Geo])
+                          [Geo Geo Nonnegative-Real Nonnegative-Real -> Geo]
+                          [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real -> Geo]
+                          [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real Nonnegative-Real -> Geo])
   (case-lambda
     [(self refer) (geo-fit self refer 1.0 1.0)]
-    [(self refer wratio hratio)
+    [(self refer wratio hratio) (geo-fit self refer wratio hratio 0.0 0.0)]
+    [(self refer wratio hratio pad) (geo-fit self refer wratio hratio pad pad)]
+    [(self refer wratio hratio wpad hpad)
      (let-values ([(flwidth flheight) (geo-flsize refer)])
-       (geo-fit self (* flwidth (real->double-flonum wratio)) (* flheight (real->double-flonum hratio))))]
+       (geo-fit self
+                (max (- (* flwidth  (real->double-flonum wratio)) (real->double-flonum wpad)) 0.0)
+                (max (- (* flheight (real->double-flonum hratio)) (real->double-flonum hpad)) 0.0)))]
     [(self width height)
      (let-values ([(flwidth flheight) (geo-flsize self)])
        (geo-scale self

@@ -21,12 +21,22 @@
 (require "interface/flow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diaflow-node-construct : DiaFlow-Anchor->Node
-  (lambda [master anchor pos node-id style]
-    (define maybe-label : (U String Void False) ((default-diaflow-node-label-string) node-id))
-    (define label-text : String (if (string? maybe-label) maybe-label (geo-anchor->string node-id)))
-    (define-values (label width height) (dia-node-extent node-id label-text style))
+(define default-diaflow-node-label-construct : DiaFlow-Anchor->Node-Label
+  (lambda [master anchor label style pos]
+    (define maybe-label : (U String Void False)
+      (let ([labels (default-diaflow-node-label-string)])
+        (and labels
+             (if (hash? labels)
+                 (hash-ref labels anchor (λ [] #false))
+                 (labels anchor)))))
     
+    (dia-node-text-label anchor (if (string? maybe-label) maybe-label label) style)))
+
+(define default-diaflow-node-construct : DiaFlow-Anchor->Node-Shape
+  (lambda [master anchor label style hint]
+    (define-values (width height) (dia-node-smart-size label style))
+    (define node-id : Symbol (geo-anchor->symbol anchor))
+
     (cond [(diaflow-process-style? style) (diaflow-block-process node-id label style width height)]
           [(diaflow-decision-style? style) (diaflow-block-decision node-id label style width height)]
           [(diaflow-input-style? style) (diaflow-block-dataIO node-id label style width height)]
@@ -35,6 +45,8 @@
           [(diaflow-preparation-style? style) (diaflow-block-preparation node-id label style width height)]
           [(diaflow-start-style? style) (diaflow-block-terminal node-id label style width height)]
           [(diaflow-stop-style? style) (diaflow-block-terminal node-id label style width height)]
+          [(diaflow-inspection-style? style) (diaflow-block-inspection node-id label style width height hint)]
+          [(diaflow-reference-style? style) (diaflow-block-reference node-id label style width height hint)]
           [(diaflow-arrow-label-style? style) (diaflow-block-in-arrow-label node-id label style width height)])))
 
 (define default-diaflow-arrow-construct : DiaFlow-Arrow->Edge
@@ -55,12 +67,10 @@
                           start end info)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-stick : (->* (Geo:Path Geo-Anchor->Sticker DiaFlow-Arrow->Edge DiaFlow-Arrow->Edge-Label Geo-Path-Infobase)
-                             ((Option Geo-Trusted-Anchors))
-                             (Listof (GLayerof Geo)))
-  (lambda [master make-node-sticker make-arrow make-label infobase [trusted-anchors #false]]
+(define diaflow-stick : (-> Geo:Path Geo-Anchor->Sticker DiaFlow-Arrow->Edge DiaFlow-Arrow->Edge-Label Geo-Path-Infobase (Listof (GLayerof Geo)))
+  (lambda [master make-node-sticker make-arrow make-label infobase]
     (define gpath : Geo-Trail (geo:path-trail master))
-    (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath trusted-anchors))
+    (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath))
     (define-values (Width Height) (geo-flsize master))
 
     ; WARNING: the footprints are initially reversed

@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/string)
+(require racket/symbol)
 
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/convert)
@@ -14,9 +15,9 @@
 (require geofun/composite)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Node-Style-Make* S) (-> Symbol Geo-Anchor-Name (U False Void S)))
-(define-type Dia-Node-Style-Make (Dia-Node-Style-Make* Dia-Node-Style))
-(define-type Dia-Node-Id->String (-> Symbol (U String Void False)))
+(define-type (Dia-Node-Style-Make* S H) (-> Geo-Anchor-Name H (U S False Void)))
+(define-type (Dia-Node-Style-Make H) (Dia-Node-Style-Make* Dia-Node-Style H))
+(define-type Dia-Node-Id->String (U (HashTable Geo-Anchor-Name String) (-> Geo-Anchor-Name (U String Void False))))
 
 (struct dia-node-style
   ([width : (Option Flonum)]
@@ -43,39 +44,39 @@
   (lambda []
     (dia-node-base-style 0.0 0.0 #false #false (void) (void))))
 
-(define default-dia-node-base-style : (Parameterof (-> Dia-Node-Base-Style))
-  (make-parameter make-null-node-style))
+(define default-dia-node-margin : (Parameterof Nonnegative-Flonum) (make-parameter 8.0))
+(define default-dia-node-base-style : (Parameterof (-> Dia-Node-Base-Style)) (make-parameter make-null-node-style))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-node-extent : (-> Symbol String Dia-Node-Style (Values (Option Geo) Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [node-key text0 this-style]
+(define dia-node-text-label : (-> Geo-Anchor-Name String Dia-Node-Style (Option Geo))
+  (lambda [anchor desc this-style]
     (define fallback-style : Dia-Node-Base-Style ((default-dia-node-base-style)))
     (define font : (Option Font) (or (dia-node-style-font this-style) (dia-node-base-style-font fallback-style)))
     (define paint : Option-Fill-Paint (or (dia-node-style-font-paint this-style) (dia-node-base-style-font-paint fallback-style)))
-    (define tid : Symbol (string->symbol (string-append "~" (geo-anchor->string node-key))))
-    (define text : String (string-trim text0))
+    (define text : String (string-trim desc))
+    (define text-id : Symbol (dia-node-label-id anchor))
     
-    (define label : (Option Geo)
-      (cond [(regexp-match? #px"[\r\n]+" text)
-             (geo-vc-append* #:id tid
-                             (for/list : (Listof Geo:Text)
-                               ([l (in-lines (open-input-string text))])
-                               (geo-text #:color paint (string-trim l) font)))]
-            [(non-empty-string? text) (geo-text #:id tid #:color paint text font)]
-            [else #false]))
+    (cond [(regexp-match? #px"[\r\n]+" text)
+           (geo-vc-append* #:id text-id
+                           (for/list : (Listof Geo:Text)
+                             ([l (in-lines (open-input-string text))])
+                             (geo-text #:color paint (string-trim l) font)))]
+          [(non-empty-string? text) (geo-text #:id text-id #:color paint text font)]
+          [else #false])))
+
+(define dia-node-smart-size : (-> (Option Geo) Dia-Node-Style (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [label this-style]
+    (define fallback-style : Dia-Node-Base-Style ((default-dia-node-base-style)))
     
     (define-values (width height)
       (values (or (dia-node-style-width this-style)  (dia-node-base-style-width  fallback-style))
               (or (dia-node-style-height this-style) (dia-node-base-style-height fallback-style))))
     
-    (define-values (used-width used-height)
-      (cond [(and (> width 0.0) (> height 0.0)) (values width height)]
-            [(not label) (values 0.0 0.0)]
-            [else (let-values ([(w h) (geo-flsize label)])
-                    (values (cond [(> width 0.0)  width]  [(< width 0.0)  (* w (abs width))]  [else w])
-                            (cond [(> height 0.0) height] [(< height 0.0) (* h (abs height))] [else h])))]))
-
-    (values label used-width used-height)))
+    (cond [(and (> width 0.0) (> height 0.0)) (values width height)]
+          [(not label) (values 0.0 0.0)]
+          [else (let-values ([(w h) (geo-flsize label)])
+                  (values (cond [(> width 0.0)  width]  [(< width 0.0)  (* w (abs width))]  [else w])
+                          (cond [(> height 0.0) height] [(< height 0.0) (* h (abs height))] [else h])))])))
 
 (define dia-node-select-stroke-paint : (-> Dia-Node-Style Maybe-Stroke-Paint)
   (lambda [self]
@@ -94,13 +95,27 @@
     (cond [(not (void? paint)) paint]
           [else (dia-node-base-style-fill-paint ((default-dia-node-base-style)))])))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-node-style-construct : (-> String Geo-Anchor-Name (Option (Dia-Node-Style-Make* S)) (-> S) (Values Symbol S))
-  (lambda [text anchor mk-style mk-fallback-style]
-    (define key : Symbol (string->symbol text))
+(define dia-node-id-merge : (-> Symbol (Option Symbol) Symbol)
+  (lambda [node-key hint]
+    (if (or hint)
+        (string->symbol (string-append (symbol->immutable-string node-key) ":"
+                                       (symbol->immutable-string hint)))
+        node-key)))
 
-    (values key
-            (let ([maybe-style (and mk-style (mk-style key anchor))])
-              (if (or (not maybe-style) (void? maybe-style))
-                  (mk-fallback-style)
-                  maybe-style)))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dia-node-label-id : (-> Geo-Anchor-Name Symbol)
+  (lambda [anchor]
+    (string->symbol (string-append "~" (geo-anchor->string anchor)))))
+
+(define dia-node-shape-id : (-> Geo-Anchor-Name Symbol)
+  (lambda [anchor]
+    (string->symbol (string-append "&" (geo-anchor->string anchor)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (S H) dia-node-style-construct : (-> Geo-Anchor-Name (Option (Dia-Node-Style-Make* S H)) (-> S) H S)
+  (lambda [anchor mk-style mk-fallback-style hint]
+    (define maybe-style (and mk-style (mk-style anchor hint)))
+
+    (if (or (not maybe-style) (void? maybe-style))
+        (mk-fallback-style)
+        maybe-style)))

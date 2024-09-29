@@ -112,12 +112,19 @@
 
 (define bitmap-fit : (case-> [Bitmap Bitmap -> Bitmap]
                              [Bitmap Nonnegative-Real Nonnegative-Real -> Bitmap]
-                             [Bitmap Bitmap Nonnegative-Real Nonnegative-Real -> Bitmap])
+                             [Bitmap Bitmap Nonnegative-Real Nonnegative-Real -> Bitmap]
+                             [Bitmap Bitmap Nonnegative-Real Nonnegative-Real -> Bitmap]
+                             [Bitmap Bitmap Nonnegative-Real Nonnegative-Real Nonnegative-Real -> Bitmap]
+                             [Bitmap Bitmap Nonnegative-Real Nonnegative-Real Nonnegative-Real Nonnegative-Real -> Bitmap])
   (case-lambda
     [(self refer) (bitmap-fit self refer 1.0 1.0)]
-    [(self refer wratio hratio)
+    [(self refer wratio hratio) (bitmap-fit self refer wratio hratio 0.0 0.0)]
+    [(self refer wratio hratio pad) (bitmap-fit self refer wratio hratio pad pad)]
+    [(self refer wratio hratio wpad hpad)
      (let-values ([(flwidth flheight) (bitmap-flsize refer)])
-       (bitmap-fit self (* flwidth (real->double-flonum wratio)) (* flheight (real->double-flonum hratio))))]
+       (bitmap-fit self
+                   (max (- (* flwidth  (real->double-flonum wratio)) (real->double-flonum wpad)) 0.0)
+                   (max (- (* flheight (real->double-flonum hratio)) (real->double-flonum hpad)) 0.0)))]
     [(self width height)
      (let-values ([(flwidth flheight) (bitmap-flsize self)])
        (bitmap-scale self

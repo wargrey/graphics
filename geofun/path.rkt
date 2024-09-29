@@ -99,10 +99,10 @@
 (define-dryland-wani-line-move! right           #:-> +1.0)
 (define-dryland-wani-line-move! up              #:!> -1.0)
 (define-dryland-wani-line-move! down            #:!> +1.0)
-(define-dryland-wani-line-move! up-right        #:+> +1.0 -1.0)
-(define-dryland-wani-line-move! right-down      #:+> +1.0 +1.0)
-(define-dryland-wani-line-move! down-left       #:+> -1.0 +1.0)
-(define-dryland-wani-line-move! left-up         #:+> -1.0 -1.0)
+(define-dryland-wani-line-move! up right        #:+> +1.0 -1.0)
+(define-dryland-wani-line-move! right down      #:+> +1.0 +1.0)
+(define-dryland-wani-line-move! down left       #:+> -1.0 +1.0)
+(define-dryland-wani-line-move! left up         #:+> -1.0 -1.0)
 
 (define-dryland-wani-turn-move! up-right-down   #:+> [180.0 360.0  1.0  0.0  2.0  0.0] #:boundary-guard -1.0i)
 (define-dryland-wani-turn-move! up-left-down    #:-> [360.0 180.0 -1.0  0.0 -2.0  0.0] #:boundary-guard -1.0i)
@@ -142,13 +142,17 @@
           [(null? (cdr ctrls)) (geo-path-quadratic-bezier wani endpt (car ctrls) anchor)]
           [else (geo-path-cubic-bezier wani endpt (car ctrls) (cadr ctrls) anchor)])))
 
-(define dryland-wani-move-to! : (-> Dryland-Wani Geo-Anchor-Name Void)
-  (lambda [wani target]
-    (geo-path-connect-to wani target)))
+(define dryland-wani-move-to! : (->* (Dryland-Wani (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
+  (lambda [wani target [anchor #false]]
+    (geo-path-connect-to wani target anchor)))
 
-(define dryland-wani-jump-back! : (->* (Dryland-Wani) ((Option Geo-Anchor-Name)) Void)
-  (lambda [wani [target #false]]
-    (geo-path-jump-to wani target)))
+(define dryland-wani-jump-to! : (->* (Dryland-Wani (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
+  (lambda [wani target [anchor #false]]
+    (geo-path-jump-to wani target anchor)))
+
+(define dryland-wani-jump-back! : (->* (Dryland-Wani) ((U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name)) Void)
+  (lambda [wani [target #false] [anchor #false]]
+    (geo-path-jump-to wani target anchor)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-path-stick : (->* (Geo:Path)

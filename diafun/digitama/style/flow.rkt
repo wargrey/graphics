@@ -10,15 +10,13 @@
 (require geofun/stroke)
 (require geofun/paint)
 
-(require geofun/digitama/geometry/anchor)
-
 (require "../node/style.rkt")
 (require "../edge/style.rkt")
 (require "../edge/tip.rkt")
 (require "../edge/arrow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Some aliases
+;;; Some standarded aliases
 ; Annotation -> Comment
 ; Predefined-Process -> Subroutine
 ; On-Page-Connector -> Inspection
@@ -34,11 +32,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflow-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
+(define default-diaflow-edge-label-rotate? : (Parameterof Boolean) (make-parameter #false))
 
 (define-configuration diaflow-edge-base-style : GeoFlow-Edge-Style #:as dia-edge-base-style
   #:format "default-diaflow-edge-~a"
-  ([font : (Option Font) (desc-font #:size 'small)]
-   [font-paint : Option-Fill-Paint #false]
+  ([font : (Option Font) (desc-font #:size 'small #:family 'monospace)]
+   [font-paint : Option-Fill-Paint 'DimGray]
    [line-paint : Maybe-Stroke-Paint (desc-stroke #:width 2.0 #:color 'DimGray #:join 'round #:cap 'butt)]
    [source-shape : Option-Edge-Tip-Shape #false]
    [target-shape : Option-Edge-Tip-Shape (make-dia-arrow-tip)]))
@@ -52,25 +51,27 @@
    [target-shape : Maybe-Edge-Tip-Shape (void)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diaflow-node-label-string : (Parameterof Dia-Node-Id->String) (make-parameter geo-anchor->string))
-(define default-diaflow-edge-label-rotate? : (Parameterof Boolean) (make-parameter #true))
+(define-type (DiaFlow-Node-Style-Make S) (Dia-Node-Style-Make* S (Option Symbol)))
+
 (define default-diaflow-canonical-start-name : (Parameterof String) (make-parameter ""))
 (define default-diaflow-canonical-stop-name : (Parameterof String) (make-parameter ""))
-(define default-diaflow-arrow-label-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Arrow-Label-Style))) (make-parameter #false))
 
-(define default-diaflow-input-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Input-Style))) (make-parameter #false))
-(define default-diaflow-output-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Output-Style))) (make-parameter #false))
-(define default-diaflow-start-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Start-Style))) (make-parameter #false))
-(define default-diaflow-stop-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Stop-Style))) (make-parameter #false))
-(define default-diaflow-process-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Process-Style))) (make-parameter #false))
-(define default-diaflow-decision-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Decision-Style))) (make-parameter #false))
-(define default-diaflow-comment-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Comment-Style))) (make-parameter #false))
-(define default-diaflow-subroutine-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Subroutine-Style))) (make-parameter #false))
-(define default-diaflow-inspection-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Inspection-Style))) (make-parameter #false))
-(define default-diaflow-reference-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Reference-Style))) (make-parameter #false))
-(define default-diaflow-database-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Database-Style))) (make-parameter #false))
-(define default-diaflow-document-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Document-Style))) (make-parameter #false))
-(define default-diaflow-preparation-style-make : (Parameterof (Option (Dia-Node-Style-Make* GeoFlow-Preparation-Style))) (make-parameter #false))
+(define default-diaflow-node-label-string : (Parameterof (Option Dia-Node-Id->String)) (make-parameter #false))
+(define default-diaflow-arrow-label-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Arrow-Label-Style))) (make-parameter #false))
+
+(define default-diaflow-input-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Input-Style))) (make-parameter #false))
+(define default-diaflow-output-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Output-Style))) (make-parameter #false))
+(define default-diaflow-start-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Start-Style))) (make-parameter #false))
+(define default-diaflow-stop-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Stop-Style))) (make-parameter #false))
+(define default-diaflow-process-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Process-Style))) (make-parameter #false))
+(define default-diaflow-decision-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Decision-Style))) (make-parameter #false))
+(define default-diaflow-comment-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Comment-Style))) (make-parameter #false))
+(define default-diaflow-subroutine-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Subroutine-Style))) (make-parameter #false))
+(define default-diaflow-inspection-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Inspection-Style))) (make-parameter #false))
+(define default-diaflow-reference-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Reference-Style))) (make-parameter #false))
+(define default-diaflow-database-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Database-Style))) (make-parameter #false))
+(define default-diaflow-document-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Document-Style))) (make-parameter #false))
+(define default-diaflow-preparation-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make GeoFlow-Preparation-Style))) (make-parameter #false))
 
 (define-configuration diaflow-node-base-style : GeoFlow-Node-Style #:as dia-node-base-style
   #:format "default-diaflow-~a"
@@ -165,8 +166,8 @@
 
 (define-configuration diaflow-inspection-style : GeoFlow-Inspection-Style #:as dia-node-style
   #:format "default-diaflow-inspection-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
-   [block-height : (Option Nonnegative-Flonum) #false]
+  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width)  0.384)]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-paint : Maybe-Stroke-Paint (void)]
@@ -174,7 +175,7 @@
 
 (define-configuration diaflow-reference-style : GeoFlow-Reference-Style #:as dia-node-style
   #:format "default-diaflow-reference-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
+  ([block-width : (Option Nonnegative-Flonum) (* (default-diaflow-block-width) 0.384)]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]

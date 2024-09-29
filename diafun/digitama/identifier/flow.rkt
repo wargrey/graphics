@@ -16,15 +16,15 @@
 
         (let ([text (geo-anchor->string anchor)])
           (cond [(or (string-ci=? text "home") (string-ci=? text "start"))
-                 (diaflow-node-style-construct (default-diaflow-canonical-start-name) anchor (default-diaflow-start-style-make) make-diaflow-start-style)]
+                 (diaflow-node-style-construct anchor (default-diaflow-canonical-start-name) (default-diaflow-start-style-make) make-diaflow-start-style)]
                 [(or (string-ci=? text "end") (string-ci=? text "terminate"))
-                 (diaflow-node-style-construct (default-diaflow-canonical-stop-name) anchor (default-diaflow-stop-style-make) make-diaflow-stop-style)]
+                 (diaflow-node-style-construct anchor (default-diaflow-canonical-stop-name) (default-diaflow-stop-style-make) make-diaflow-stop-style)]
                 [else (diaflow-block-text-identify anchor text)]))
 
         (diaflow-block-text-identify anchor (geo-anchor->string anchor)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-block-text-identify : (-> Geo-Anchor-Name String (Option (Pairof Symbol Dia-Node-Style)))
+(define diaflow-block-text-identify : (-> Geo-Anchor-Name String (Option DiaFlow-Block-Datum))
   (lambda [anchor text]
     (define size (string-length text))
     
@@ -33,38 +33,43 @@
                 [idx$2 (- size 2)]
                 [ch0 (string-ref text 0)]
                 [ch$ (string-ref text idx$)])
-           (or (cond [(eq? ch0 #\^) ; also, consider it's a flowchart of predicate function
-                      (diaflow-node-style-construct (substring text 1 size) anchor (default-diaflow-start-style-make) make-diaflow-start-style)]
+           (or (cond [(eq? ch0 #\^) ; also, check it before #\? for flowcharts of predicate functions
+                      (diaflow-node-style-construct anchor (substring text 1 size) (default-diaflow-start-style-make) make-diaflow-start-style)]
                      [(eq? ch$ #\?)
-                      (diaflow-node-style-construct text anchor (default-diaflow-decision-style-make) make-diaflow-decision-style)]
+                      (diaflow-node-style-construct anchor text (default-diaflow-decision-style-make) make-diaflow-decision-style)]
                      [(eq? ch$ #\!)
-                      (diaflow-node-style-construct text anchor (default-diaflow-preparation-style-make) make-diaflow-preparation-style)]
+                      (diaflow-node-style-construct anchor text (default-diaflow-preparation-style-make) make-diaflow-preparation-style)]
                      [(eq? ch$ #\$)
-                      (diaflow-node-style-construct (substring text 0 idx$) anchor (default-diaflow-stop-style-make) make-diaflow-stop-style)]
+                      (diaflow-node-style-construct anchor (substring text 0 idx$) (default-diaflow-stop-style-make) make-diaflow-stop-style)]
                      [(eq? ch0 #\>)
                       (and (string-prefix? text ">>")
-                           (diaflow-node-style-construct (substring text 2 size) anchor (default-diaflow-input-style-make) make-diaflow-input-style))]
+                           (diaflow-node-style-construct anchor (substring text 2 size) (default-diaflow-input-style-make) make-diaflow-input-style))]
                      [(eq? ch$ #\<)
                       (and (string-suffix? text "<<")
-                           (diaflow-node-style-construct (substring text 0 idx$2) anchor (default-diaflow-output-style-make) make-diaflow-output-style))]
+                           (diaflow-node-style-construct anchor (substring text 0 idx$2) (default-diaflow-output-style-make) make-diaflow-output-style))]
                      [(eq? ch0 #\/)
                       (and (string-prefix? text "//")
-                           (diaflow-node-style-construct (substring text 2 size) anchor (default-diaflow-comment-style-make) make-diaflow-comment-style))]
+                           (diaflow-node-style-construct anchor (substring text 2 size) (default-diaflow-comment-style-make) make-diaflow-comment-style))]
                      [(eq? ch0 #\-)
                       (cond [(string-prefix? text "->")
-                             (diaflow-node-style-construct (substring text 2 size) anchor (default-diaflow-subroutine-style-make) make-diaflow-subroutine-style)]
+                             (diaflow-node-style-construct anchor (substring text 2 size) (default-diaflow-subroutine-style-make) make-diaflow-subroutine-style)]
                             [(eq? ch$ #\-)
-                             (diaflow-node-style-construct (substring text 1 idx$) anchor (default-diaflow-arrow-label-make) make-diaflow-arrow-label-style)]
+                             (diaflow-node-style-construct anchor (substring text 1 idx$) (default-diaflow-arrow-label-make) make-diaflow-arrow-label-style)]
                             [else #false])]
                      [(eq? ch0 #\@)
-                      (diaflow-node-style-construct (substring text 1 size) anchor (default-diaflow-inspection-style-make) make-diaflow-inspection-style)]
+                      (if (eq? ch$ #\.)
+                          (diaflow-node-style-construct anchor (substring text 1 idx$) (default-diaflow-inspection-style-make) make-diaflow-inspection-style 'sink)
+                          (diaflow-node-style-construct anchor (substring text 1 size) (default-diaflow-inspection-style-make) make-diaflow-inspection-style 'root))]
                      [(eq? ch0 #\&)
-                      (diaflow-node-style-construct (substring text 1 size) anchor (default-diaflow-reference-style-make) make-diaflow-reference-style)]
+                      (if (eq? ch$ #\.)
+                          (diaflow-node-style-construct anchor (substring text 1 idx$) (default-diaflow-reference-style-make) make-diaflow-reference-style 'sink)
+                          (diaflow-node-style-construct anchor (substring text 1 size) (default-diaflow-reference-style-make) make-diaflow-reference-style 'root))]
                      [else #false])
-               (diaflow-node-style-construct text anchor (default-diaflow-process-style-make) make-diaflow-process-style))))))
+               (diaflow-node-style-construct anchor text (default-diaflow-process-style-make) make-diaflow-process-style))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) diaflow-node-style-construct : (-> String Geo-Anchor-Name (Option (Dia-Node-Style-Make* S)) (-> S) (Pairof Symbol S))
-  (lambda [text anchor mk-style mk-fallback-style]
-    (define-values (node-key style) (dia-node-style-construct text anchor mk-style mk-fallback-style))
-    (cons node-key style)))
+(define #:forall (S) diaflow-node-style-construct : (->* (Geo-Anchor-Name String (Option (DiaFlow-Node-Style-Make (∩ S Dia-Node-Style))) (-> (∩ S Dia-Node-Style)))
+                                                         ((Option Symbol))
+                                                         DiaFlow-Block-Datum)
+  (lambda [anchor text mk-style mk-fallback-style [hint #false]]
+    (list text (dia-node-style-construct anchor mk-style mk-fallback-style hint) hint)))

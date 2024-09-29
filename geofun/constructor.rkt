@@ -25,7 +25,7 @@
 (provide geo-regular-polygon geo:regular-polygon? Geo:Regular-Polygon)
 (provide geo-polygon geo:polygon? Geo:Polygon)
 (provide geo-polyline geo:polyline? Geo:Polyline)
-(provide geo-parallelogram geo-rhombus geo-hexagon-tile)
+(provide geo-parallelogram geo-rhombus geo-house geo-invhouse geo-hexagon-tile)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require "digitama/dc/text.rkt")
@@ -40,4 +40,5 @@
 
 (require "digitama/dc/polygon.rkt")
 (require "digitama/dc/polygon/quadrilateral.rkt")
+(require "digitama/dc/polygon/pentagon.rkt")
 (require "digitama/dc/polygon/hexagon.rkt")

@@ -15,9 +15,17 @@
 (require "../edge/dc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type DiaFlow-Block-Identifier (-> Geo-Anchor-Name (Option (Pairof Symbol Dia-Node-Style))))
-(define-type DiaFlow-Anchor->Node (-> Geo:Path Geo-Anchor-Name Float-Complex Symbol Dia-Node-Style (U Geo-Sticker-Datum Void False)))
+(define-type DiaFlow-Block-Datum (List String Dia-Node-Style (Option Symbol)))
+(define-type DiaFlow-Block-Identifier (-> Geo-Anchor-Name (Option DiaFlow-Block-Datum)))
 (define-type DiaFlow-Arrow-Endpoint (Pairof Geo-Anchor-Name Geo))
+
+(define-type DiaFlow-Anchor->Node-Label
+  (-> Geo:Path Geo-Anchor-Name String Dia-Node-Style Float-Complex
+      (Option Geo)))
+
+(define-type DiaFlow-Anchor->Node-Shape
+  (-> Geo:Path Geo-Anchor-Name (Option Geo) Dia-Node-Style (Option Symbol)
+      (U Geo-Sticker-Datum Void False)))
 
 (define-type DiaFlow-Arrow->Edge
   (-> Geo:Path DiaFlow-Arrow-Endpoint (Option DiaFlow-Arrow-Endpoint) Dia-Edge-Style
