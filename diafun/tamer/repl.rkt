@@ -2,6 +2,7 @@
 
 (require geofun/vector)
 (require diafun/flowchart)
+(require diafun/digitama/style/shared)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define Read : Symbol (string->symbol ">>Read\nExpression"))
@@ -40,33 +41,35 @@
 
   (jump-back)
   (move-down-right 1 1 '|Exit with Error Status| "No")
-  (move-down 1 '&P2)
+  (move-down 1 '&Page2)
   
   (jump-back)
   (step-left-down 'Exit$ "No")
 
-  ; Portion on Page 2, referenced by Page 1
-  ; Located at Grid (2, 8)
-  (jump-to 2+8i '&P1.)
+  ; Portion on Page 2, located at Grid (2, 8)
+  ; Referenced by Page 1
+  (jump-to 2+8i '&Page1.)
   (move-down 1 '|Report Error|)
-  (move-down 0.5))
+  (move-down 0.5 '#:.hide)
+
+  ; Free Edges are designed for drawing separators
+  (jump-to -1.0+7.5i)
+  (move-right 6 #false "=== PAGE SEPARATOR ==="))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   (define colorful-edge : Dia-Edge-Style-Make
     (lambda [source target]
-      (cond [(memq source (list Read Print)) (make-diaflow-arrow-style #:line-paint 'ForestGreen)]
+      (cond [(memq source (list Read Print)) (make-diaflow-arrow-style #:line-paint 'LimeGreen)]
             [else (case source
                     [(#:home Exit$) (make-diaflow-arrow-style #:line-paint 'DimGray)]
                     [(Initialization!) (make-diaflow-arrow-style #:line-paint 'Red)]
-                    [(#:Exit? -YES-) (make-diaflow-arrow-style #:line-paint (if (not target) 'SeaGreen 'Blue))]
-                    [(#:Void?) (make-diaflow-arrow-style #:line-paint (if (not target) (desc-stroke #:color 'SeaGreen #:width 2.0 #:dash 'long-dash) 'Blue))]
-                    [(#:Byte?) (make-diaflow-arrow-style #:line-paint (if (eq? target 'Exit$) (desc-stroke #:color 'SeaGreen #:width 2.0 #:dash 'long-dash) 'Blue))]
+                    [(#:Exit? -YES-) (make-diaflow-arrow-style #:line-paint (if (not target) 'LimeGreen 'Blue))]
+                    [(#:Void?) (make-diaflow-arrow-style #:line-paint (if (not target) (desc-stroke default-free-edge-stroke #:color 'LimeGreen) 'Blue))]
+                    [(#:Byte?) (make-diaflow-arrow-style #:line-paint (if (eq? target 'Exit$) (desc-stroke default-free-edge-stroke #:color 'LimeGreen) 'Blue))]
                     [(->Evaluate) (make-diaflow-arrow-style #:line-paint 'Orange)])])))
 
   (default-diaflow-arrow-style-make colorful-edge)
-  (default-diaflow-start-stroke-paint 'Chocolate)
-  (default-diaflow-stop-stroke-paint 'Chocolate)
-  (default-diaflow-fill-paint #false)
+  ;(default-diaflow-fill-paint #false)
   
-  (geo-frame (dia-path-flow repl #:start-name "REPL\n(Shell)")))
+  (geo-frame (dia-path-flow repl #:start-name "REPL\n(Shell)") #:background 'White))

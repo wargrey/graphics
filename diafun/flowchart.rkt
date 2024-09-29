@@ -5,10 +5,9 @@
 (provide (all-from-out geofun/path))
 (provide (rename-out [dia-path-flow geo-path-flow]))
 
-(provide default-diaflow-block-identify)
-(provide default-diaflow-node-construct)
-(provide default-diaflow-arrow-construct)
-(provide default-diaflow-arrow-label-construct)
+(provide default-diaflow-block-identify default-diaflow-node-construct)
+(provide default-diaflow-arrow-construct default-diaflow-arrow-label-construct)
+(provide default-diaflow-free-track-construct default-diaflow-free-track-label-construct)
 
 (require digimon/metrics)
 (require geofun/path)
@@ -54,11 +53,13 @@
                              (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator)
                               #:start-name (Option String) #:λblock DiaFlow-Block-Identifier
                               #:λnode DiaFlow-Anchor->Node-Shape #:λnode-label DiaFlow-Anchor->Node-Label
-                              #:λarrow DiaFlow-Arrow->Edge #:λedge-label DiaFlow-Arrow->Edge-Label)
+                              #:λarrow DiaFlow-Arrow->Edge #:λarrow-label DiaFlow-Arrow->Edge-Label
+                              #:λfree-track DiaFlow-Free-Track->Edge #:λfree-track-label DiaFlow-Free-Track->Edge-Label)
                              (U Geo:Group Geo:Path))
   (lambda [#:id [id #false] #:operator [op #false] #:start-name [start #false] #:λblock [block-detect default-diaflow-block-identify]
            #:λnode [make-node default-diaflow-node-construct] #:λnode-label [make-node-label default-diaflow-node-label-construct]
-           #:λarrow [make-arrow default-diaflow-arrow-construct] #:λedge-label [make-edge-label default-diaflow-arrow-label-construct]
+           #:λarrow [make-arrow default-diaflow-arrow-construct] #:λarrow-label [make-arrow-label default-diaflow-arrow-label-construct]
+           #:λfree-track [make-free-track default-diaflow-free-track-construct] #:λfree-track-label [make-free-label default-diaflow-free-track-label-construct]
            self]
     (parameterize ([default-dia-node-base-style make-diaflow-node-base-style]
                    [default-dia-edge-base-style make-diaflow-edge-base-style]
@@ -70,11 +71,11 @@
                (let ([style (cadr blk-datum)])
                  (make-node master anchor
                             (make-node-label master anchor (car blk-datum) style pos)
-                            style (caddr blk-datum))))))
+                            style pos (caddr blk-datum))))))
 
       (define stickers : (Listof (GLayerof Geo))
-        (diaflow-stick self node-sticker make-arrow
-                       make-edge-label (geo:path-foot-infos self)))
+        (diaflow-stick self node-sticker make-arrow make-arrow-label
+                       make-free-track make-free-label (geo:path-foot-infos self)))
 
       (if (pair? stickers)
           (let ([maybe-group (geo-path-try-extend/list stickers 0.0 0.0)])

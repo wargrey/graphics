@@ -4,8 +4,6 @@
 
 (require "tip.rkt")
 
-(require racket/symbol)
-
 (require geofun/digitama/geometry/anchor)
 
 (require geofun/font)
@@ -13,8 +11,11 @@
 (require geofun/stroke)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Edge-Style-Make* S) (-> Geo-Anchor-Name (Option Geo-Anchor-Name) (U False Void S)))
-(define-type Dia-Edge-Style-Make (Dia-Edge-Style-Make* Dia-Edge-Style))
+(define-type Dia-Free-Edge-Endpoint (U Geo-Anchor-Name Float-Complex))
+
+(define-type (Dia-Edge-Style-Make* Src Tgt S) (-> Src Tgt (U False Void S)))
+(define-type Dia-Edge-Style-Make (Dia-Edge-Style-Make* Geo-Anchor-Name (Option Geo-Anchor-Name) Dia-Edge-Style))
+(define-type Dia-Free-Edge-Style-Make (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint Dia-Edge-Style))
 
 (struct dia-edge-style
   ([font : (Option Font)]
@@ -42,15 +43,16 @@
 (define default-dia-edge-base-style : (Parameterof (-> Dia-Edge-Base-Style))
   (make-parameter make-null-edge-style))
 
-(define dia-edge-id-merge : (-> Symbol (Option Symbol) Boolean Symbol)
+(define dia-edge-id-merge : (-> (Option Dia-Free-Edge-Endpoint) (Option Dia-Free-Edge-Endpoint) Boolean (Option Symbol))
   (lambda [source-id target-id directed?]
-    (define src-id : String (symbol->immutable-string source-id))
-    (define tgt-id : (Option String) (and target-id (symbol->immutable-string target-id)))
-    
-    (string->symbol
-     (cond [(not tgt-id) (string-append src-id "-.")]
-           [(not directed?) (string-append src-id "->" tgt-id)]
-           [else (string-append src-id "->" tgt-id)]))))
+    (define src-id : (Option String) (and source-id (if (complex? source-id) #false (geo-anchor->string source-id))))
+    (define tgt-id : (Option String) (and target-id (if (complex? target-id) #false (geo-anchor->string target-id))))
+
+    (and src-id
+         (string->symbol
+          (cond [(not tgt-id) (string-append src-id "-.")]
+                [(not directed?) (string-append src-id "->" tgt-id)]
+                [else (string-append src-id "->" tgt-id)])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-edge-select-line-paint : (-> (U Dia-Edge-Style Maybe-Stroke-Paint) Maybe-Stroke-Paint)
@@ -83,7 +85,7 @@
         (dia-edge-base-style-font-paint ((default-dia-edge-base-style))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-edge-style-construct : (-> Geo-Anchor-Name (Option Geo-Anchor-Name) (Option (Dia-Edge-Style-Make* S)) (-> S) S)
+(define #:forall (Src Tgt S) dia-edge-style-construct : (-> Src Tgt (Option (Dia-Edge-Style-Make* Src Tgt S)) (-> S) S)
   (lambda [source target mk-style mk-fallback-style]
     (define maybe-style (and mk-style (mk-style source target)))
 

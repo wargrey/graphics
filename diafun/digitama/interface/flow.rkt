@@ -24,7 +24,7 @@
       (Option Geo)))
 
 (define-type DiaFlow-Anchor->Node-Shape
-  (-> Geo:Path Geo-Anchor-Name (Option Geo) Dia-Node-Style (Option Symbol)
+  (-> Geo:Path Geo-Anchor-Name (Option Geo) Dia-Node-Style Float-Complex (Option Symbol)
       (U Geo-Sticker-Datum Void False)))
 
 (define-type DiaFlow-Arrow->Edge
@@ -36,3 +36,14 @@
   (-> Geo:Path DiaFlow-Arrow-Endpoint (Option DiaFlow-Arrow-Endpoint) Dia-Edge-Style
       Float-Complex Float-Complex Dia-Edge-Label-Datum
       (U Dia-Edge-Label (Listof Dia-Edge-Label) Void False)))
+
+(define-type DiaFlow-Free-Track->Edge
+  (-> Geo:Path Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint Dia-Edge-Style
+      Geo-Path-Clean-Prints (Listof Dia-Edge-Label)
+      (U Dia:Edge Dia:Labeled-Edge Void False)))
+
+(define-type DiaFlow-Free-Track->Edge-Label
+  (-> Geo:Path Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint Dia-Edge-Style
+      Float-Complex Float-Complex Dia-Edge-Label-Datum
+      (U Dia-Edge-Label (Listof Dia-Edge-Label) Void False)))
+

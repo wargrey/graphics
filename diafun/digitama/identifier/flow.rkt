@@ -54,7 +54,7 @@
                       (cond [(string-prefix? text "->")
                              (diaflow-node-style-construct anchor (substring text 2 size) (default-diaflow-subroutine-style-make) make-diaflow-subroutine-style)]
                             [(eq? ch$ #\-)
-                             (diaflow-node-style-construct anchor (substring text 1 idx$) (default-diaflow-arrow-label-make) make-diaflow-arrow-label-style)]
+                             (diaflow-node-style-construct anchor (substring text 1 idx$) (default-diaflow-arrow-label-style-make) make-diaflow-arrow-label-style)]
                             [else #false])]
                      [(eq? ch0 #\@)
                       (if (eq? ch$ #\.)
@@ -65,7 +65,8 @@
                           (diaflow-node-style-construct anchor (substring text 1 idx$) (default-diaflow-reference-style-make) make-diaflow-reference-style 'sink)
                           (diaflow-node-style-construct anchor (substring text 1 size) (default-diaflow-reference-style-make) make-diaflow-reference-style 'root))]
                      [else #false])
-               (diaflow-node-style-construct anchor text (default-diaflow-process-style-make) make-diaflow-process-style))))))
+               (and (not (eq? ch0 #\.))
+                    (diaflow-node-style-construct anchor text (default-diaflow-process-style-make) make-diaflow-process-style)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) diaflow-node-style-construct : (->* (Geo-Anchor-Name String (Option (DiaFlow-Node-Style-Make (∩ S Dia-Node-Style))) (-> (∩ S Dia-Node-Style)))

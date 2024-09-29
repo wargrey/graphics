@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 
+(require racket/math)
 (require geofun/resize)
 
 (require geofun/digitama/convert)
@@ -36,9 +37,7 @@
         (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))
         shape label argl ...)
      (syntax/loc stx
-       (let ([layers (cond [(not label) (geo-own-layers shape)]
-                           [else (geo-composite-layers shape (geo-fit label shape wratio hratio (default-dia-node-margin))
-                                                       wpos hpos 0.5 0.5)])])
+       (let ([layers (dia-node-layers label shape wratio hratio wpos hpos)])
          (Geo geo-convert geo-group-surface (geo-group-extent layers) name #false
               layers intersect argl ...)))]))
 
@@ -112,3 +111,10 @@
     (let ([g (vector-ref nlayer 0)])
       (and (dia:node? g)
            ((dia:node-intersect g) A B node-pos nlayer)))))
+
+(define dia-node-layers : (-> (Option Geo) Geo Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (GLayer-Groupof Geo))
+  (lambda [label shape wratio hratio wpos hpos]
+    (cond [(not label) (geo-own-layers shape)]
+          [(or (nan? wratio) (nan? hratio)) (geo-composite-layers shape label wpos hpos 0.5 0.5)]
+          [else (let ([fit-label (geo-fit label shape wratio hratio (default-dia-node-margin))])
+                  (geo-composite-layers shape fit-label wpos hpos 0.5 0.5))])))

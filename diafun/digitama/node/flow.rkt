@@ -9,7 +9,6 @@
 (require geofun/composite)
 
 (require geofun/digitama/convert)
-(require geofun/digitama/geometry/anchor)
 (require geofun/digitama/geometry/constants)
 (require geofun/digitama/geometry/polygon/quadrilateral)
 (require geofun/digitama/geometry/polygon/pentagon)
@@ -20,6 +19,7 @@
   (lambda [node-key label style width height]
     (create-dia-node dia:node:label
                      #:id node-key
+                     #:fit-ratio +nan.0 1.0
                      (geo-rectangle #:id (dia-node-shape-id node-key)
                                     #:stroke (dia-node-select-stroke-paint style)
                                     #:fill (dia-node-select-fill-paint style)
@@ -63,7 +63,7 @@
     (create-dia-node dia:node:polygon
                      #:id node-key
                      #:intersect dia-polygon-intersect
-                     #:fit-ratio 0.50 0.50
+                     #:fit-ratio 0.64 0.75
                      rhombus label vertices)))
 
 (define diaflow-block-preparation : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum Dia:Node)
