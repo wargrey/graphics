@@ -68,10 +68,11 @@
         (λ [master anchor pos Width Height]
           (define blk-datum (block-detect anchor))
           (and blk-datum
-               (let ([style (cadr blk-datum)])
+               (let ([style (cadr blk-datum)]
+                     [hint (caddr blk-datum)])
                  (make-node master anchor
-                            (make-node-label master anchor (car blk-datum) style pos)
-                            style pos (caddr blk-datum))))))
+                            (make-node-label master anchor (car blk-datum) style pos hint)
+                            style pos hint)))))
 
       (define stickers : (Listof (GLayerof Geo))
         (diaflow-stick self node-sticker make-arrow make-arrow-label

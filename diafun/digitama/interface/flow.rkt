@@ -20,7 +20,7 @@
 (define-type DiaFlow-Arrow-Endpoint (Pairof Geo-Anchor-Name Geo))
 
 (define-type DiaFlow-Anchor->Node-Label
-  (-> Geo:Path Geo-Anchor-Name String Dia-Node-Style Float-Complex
+  (-> Geo:Path Geo-Anchor-Name String Dia-Node-Style Float-Complex (Option Symbol)
       (Option Geo)))
 
 (define-type DiaFlow-Anchor->Node-Shape

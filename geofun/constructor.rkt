@@ -4,6 +4,7 @@
 (provide (rename-out [geo-polyline geo-lines]))
 (provide (rename-out [geo-sandglass geo-hourglass]))
 (provide (rename-out [geo-dart geo-arrowhead]))
+(provide (rename-out [geo-trapezium geo-trapezoid]))
 
 (provide geo-blank geo-ghost geo:blank? Geo:Blank)
 (provide geo-bitmap geo:bitmap? Geo:Bitmap)
@@ -25,7 +26,7 @@
 (provide geo-regular-polygon geo:regular-polygon? Geo:Regular-Polygon)
 (provide geo-polygon geo:polygon? Geo:Polygon)
 (provide geo-polyline geo:polyline? Geo:Polyline)
-(provide geo-parallelogram geo-rhombus geo-house geo-invhouse geo-hexagon-tile)
+(provide geo-parallelogram geo-rhombus geo-trapezium geo-keyboard geo-house geo-hexagon-tile)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require "digitama/dc/text.rkt")

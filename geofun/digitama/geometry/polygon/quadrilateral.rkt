@@ -37,3 +37,27 @@
 
     (list (make-rectangular w/2 0.0) (make-rectangular width h/2)
           (make-rectangular w/2 height) (make-rectangular 0.0 h/2))))
+
+(define geo-keyboard-vertices : (-> Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Quadrilateral-Vertices)
+  (lambda [width height left/right]
+    (if (<= left/right 1.0)
+        (let* ([left (* height left/right)]
+               [off (- height left)])
+          (list (make-rectangular 0.0 off) (make-rectangular width 0.0)
+                (make-rectangular width height) (make-rectangular 0.0 height)))
+        (let* ([right (/ height left/right)]
+               [off (- height right)])
+          (list 0.0+0.0i (make-rectangular width off)
+                (make-rectangular width height) (make-rectangular 0.0 height))))))
+
+(define geo-isosceles-trapezium-vertices : (-> Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Quadrilateral-Vertices)
+  (lambda [width height upper/lower]
+    (if (<= upper/lower 1.0)
+        (let* ([upper (* width upper/lower)]
+               [off (* (- width upper) 0.5)])
+          (list (make-rectangular off 0.0) (make-rectangular (+ off upper) 0.0)
+                (make-rectangular width height) (make-rectangular 0.0 height)))
+        (let* ([lower (/ width upper/lower)]
+               [off (* (- width lower) 0.5)])
+          (list 0.0+0.0i (make-rectangular width 0.0)
+                (make-rectangular (+ off lower) height) (make-rectangular off height))))))

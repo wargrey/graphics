@@ -15,8 +15,8 @@
 (require geofun/composite)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Node-Style-Make* S H) (-> Geo-Anchor-Name H (U S False Void)))
-(define-type (Dia-Node-Style-Make H) (Dia-Node-Style-Make* Dia-Node-Style H))
+(define-type (Dia-Node-Style-Make* S Hint) (-> Geo-Anchor-Name Hint (U S False Void)))
+(define-type (Dia-Node-Style-Make Hint) (Dia-Node-Style-Make* Dia-Node-Style Hint))
 (define-type Dia-Node-Id->String (U (HashTable Geo-Anchor-Name String) (-> Geo-Anchor-Name (U String Void False))))
 
 (struct dia-node-style
@@ -94,13 +94,6 @@
 
     (cond [(not (void? paint)) paint]
           [else (dia-node-base-style-fill-paint ((default-dia-node-base-style)))])))
-
-(define dia-node-id-merge : (-> Symbol (Option Symbol) Symbol)
-  (lambda [node-key hint]
-    (if (or hint)
-        (string->symbol (string-append (symbol->immutable-string node-key) ":"
-                                       (symbol->immutable-string hint)))
-        node-key)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-node-label-id : (-> Geo-Anchor-Name Symbol)

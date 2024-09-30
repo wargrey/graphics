@@ -4,7 +4,8 @@
 (provide Bitmap XYWH->ARGB XYWH->ARGB* ARGB-Step)
 (provide (rename-out [bitmap-polyline bitmap-lines]
                      [bitmap-sandglass bitmap-hourglass]
-                     [bitmap-arrowhead bitmap-dart]))
+                     [bitmap-arrowhead bitmap-dart]
+                     [bitmap-trapezium bitmap-trapezoid]))
 
 (require geofun/font)
 (require geofun/color)
@@ -330,19 +331,26 @@
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
                     (geo-rhombus-vertices flwidth flheight))))
 
-(define bitmap-house : (->* (Real Real) (Nonnegative-Real #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum) Bitmap)
+(define bitmap-house : (->* (Real Real) (Real #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum) Bitmap)
   (lambda [width height [t 0.618] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]]
     (define-values (flwidth flheight) (~size width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
                     (geo-house-vertices flwidth flheight (real->double-flonum t)))))
 
-(define bitmap-invhouse : (->* (Real Real) (Nonnegative-Real #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum) Bitmap)
+(define bitmap-trapezium : (->* (Real Real) (Nonnegative-Real #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum) Bitmap)
   (lambda [width height [t 0.618] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]]
     (define-values (flwidth flheight) (~size width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
-                    (geo-invhouse-vertices flwidth flheight (real->double-flonum t)))))
+                    (geo-isosceles-trapezium-vertices flwidth flheight (real->double-flonum t)))))
+
+(define bitmap-keyboard : (->* (Real Real) (Nonnegative-Real #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum) Bitmap)
+  (lambda [width height [t 0.618] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]]
+    (define-values (flwidth flheight) (~size width height))
+    
+    (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
+                    (geo-keyboard-vertices flwidth flheight (real->double-flonum t)))))
 
 (define bitmap-hexagon-tile : (-> Real Real [#:stroke Maybe-Stroke-Paint] [#:fill Option-Fill-Paint] [#:density Positive-Flonum] Bitmap)
   (lambda [width height #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]]

@@ -82,6 +82,7 @@
 (define default-diaflow-reference-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Reference-Style))) (make-parameter #false))
 (define default-diaflow-database-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Database-Style))) (make-parameter #false))
 (define default-diaflow-document-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Document-Style))) (make-parameter #false))
+(define default-diaflow-operation-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Operation-Style))) (make-parameter #false))
 (define default-diaflow-preparation-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Preparation-Style))) (make-parameter #false))
 
 (define-configuration diaflow-node-base-style : DiaFlow-Node-Style #:as dia-node-base-style
@@ -118,8 +119,8 @@
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
-   [stroke-paint : Maybe-Stroke-Paint 'Chocolate]
-   [fill-paint : Maybe-Fill-Paint 'SeaShell]))
+   [stroke-paint : Maybe-Stroke-Paint 'DarkSlateGray]
+   [fill-paint : Maybe-Fill-Paint 'Gainsboro]))
 
 (define-configuration diaflow-input-style : DiaFlow-Input-Style #:as dia-node-style
   #:format "default-diaflow-input-~a"
@@ -127,7 +128,7 @@
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
-   [stroke-paint : Maybe-Stroke-Paint 'Orchid]
+   [stroke-paint : Maybe-Stroke-Paint 'Chocolate]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-configuration diaflow-output-style : DiaFlow-Output-Style #:as dia-node-style
@@ -217,7 +218,7 @@
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
-   [stroke-paint : Maybe-Stroke-Paint (void)]
+   [stroke-paint : Maybe-Stroke-Paint 'Burlywood]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-configuration diaflow-keyboard-style : DiaFlow-Keyboard-Style #:as dia-node-style

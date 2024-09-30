@@ -24,7 +24,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflow-node-label-construct : DiaFlow-Anchor->Node-Label
-  (lambda [master anchor label style pos]
+  (lambda [master anchor label style pos hint]
     (define maybe-label : (U String Void False)
       (let ([labels (default-diaflow-node-label-string)])
         (and labels
@@ -41,15 +41,16 @@
 
     (cond [(diaflow-process-style? style) (diaflow-block-process node-id label style width height)]
           [(diaflow-decision-style? style) (diaflow-block-decision node-id label style width height)]
-          [(diaflow-input-style? style) (diaflow-block-dataIO node-id label style width height)]
-          [(diaflow-output-style? style) (diaflow-block-dataIO node-id label style width height)]
+          [(diaflow-input-style? style) (diaflow-block-input node-id label style width height hint)]
+          [(diaflow-output-style? style) (diaflow-block-output node-id label style width height hint)]
           [(diaflow-subroutine-style? style) (diaflow-block-subroutine node-id label style width height)]
           [(diaflow-preparation-style? style) (diaflow-block-preparation node-id label style width height)]
           [(diaflow-start-style? style) (diaflow-block-terminal node-id label style width height)]
           [(diaflow-stop-style? style) (diaflow-block-terminal node-id label style width height)]
           [(diaflow-inspection-style? style) (diaflow-block-inspection node-id label style width height hint)]
           [(diaflow-reference-style? style) (diaflow-block-reference node-id label style width height hint)]
-          [(diaflow-arrow-label-style? style) (diaflow-block-in-arrow-label node-id label style width height)])))
+          [(diaflow-arrow-label-style? style) (diaflow-block-in-arrow-label node-id label style width height)]
+          [(diaflow-operation-style? style) (diaflow-block-manual-operation node-id label style width height)])))
 
 (define default-diaflow-arrow-construct : DiaFlow-Arrow->Edge
   (lambda [master source target style tracks labels]
