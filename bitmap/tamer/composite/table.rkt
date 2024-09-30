@@ -23,7 +23,8 @@
   (collect-garbage)
   (collect-garbage)
   (collect-garbage) ; 13ms
-  (time (void (bitmap-vl-append* bitmaps)))
+  (time (void (with-handlers ([exn:fail? void])
+                (bitmap-vl-append* bitmaps))))
   
   (collect-garbage)
   (collect-garbage)

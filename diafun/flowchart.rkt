@@ -38,12 +38,12 @@
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (define name : Dryland-Wani
-         (with-dryland-wani!
+       (define name : Gomamon
+         (with-gomamon!
              (let* ([grid-width  (~length gw (default-diaflow-block-width))]
                     [grid-height (~length gh (default-diaflow-block-height))]
                     [scale (make-rectangular ts (* ts (/ grid-width grid-height)))])
-               (make-dryland-wani #:T-scale scale #:U-scale scale
+               (make-gomamon #:T-scale scale #:U-scale scale
                                   grid-width grid-height
                                   args ...))
            move-expr ...)))]))
@@ -84,5 +84,5 @@
                             (cond [(or maybe-group) maybe-group]
                                   [else #;#:deadcode
                                         (let-values ([(Width Height) (geo-flsize self)])
-                                          (vector-immutable Width Height stickers))])))
+                                          (glayer-group Width Height stickers))])))
           self))))

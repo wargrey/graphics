@@ -11,7 +11,6 @@
 
 (require "type.rkt")
 (require "position.rkt")
-(require "../convert.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (G) geo-table-layers : (-> (Vectorof (GLayerof G)) Positive-Index Positive-Index
@@ -43,7 +42,7 @@
                                        rlayers)))
                   (compose-row xoff (+ height hrow hgap) (+ row 1) (cons (reverse rlayers) layers)))))
 
-          (vector-immutable width height (assert (apply append (reverse layers)) pair?))))))
+          (glayer-group width height (assert (apply append (reverse layers)) pair?))))))
 
 (define #:forall (G) geo-table-column-widths : (-> (Vectorof (GLayerof G)) Positive-Index Positive-Index Index (Vectorof Nonnegative-Flonum))
   (lambda [table row col max-index]
@@ -51,7 +50,7 @@
       (let compose : Nonnegative-Flonum ([width : Nonnegative-Flonum 0.0]
                                          [idx : Nonnegative-Fixnum c])
         (if (< idx max-index)
-            (compose (max width (vector-ref (vector-ref table idx) 3)) (+ idx col))
+            (compose (max width (glayer-width (vector-ref table idx))) (+ idx col))
             width)))))
 
 (define #:forall (G) geo-table-row-heights : (-> (Vectorof (GLayerof G)) Positive-Index Positive-Index Index (Vectorof Nonnegative-Flonum))
@@ -62,12 +61,6 @@
           (let compose : Nonnegative-Flonum ([height : Nonnegative-Flonum 0.0]
                                              [idx : Nonnegative-Fixnum r])
             (if (< idx next-r)
-                (compose (max height (vector-ref (vector-ref table idx) 4)) (+ idx 1))
+                (compose (max height (glayer-height (vector-ref table idx))) (+ idx 1))
                 height))
           #;#:deadcode 0.0))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo->layer : (-> Geo (GLayerof Geo))
-  (lambda [self]
-    (define-values (w h) (geo-flsize self))
-    (vector-immutable self 0.0 0.0 w h)))

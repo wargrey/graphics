@@ -39,93 +39,93 @@
   #:mutable)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-syntax (define-dryland-wani-line-move! stx)
+(define-syntax (define-gomamon-line-move! stx)
   (syntax-case stx []
     [(_ move1 move2 #:+> xsgn ysgn)
-     (with-syntax ([move! (format-id #'move1 "dryland-wani-move-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
-                   [jump! (format-id #'move1 "dryland-wani-jump-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
-                   [step-1-2! (format-id #'move1 "dryland-wani-step-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
-                   [step-2-1! (format-id #'move2 "dryland-wani-step-~a-~a!" (syntax->datum #'move2) (syntax->datum #'move1))]
-                   [move1! (format-id #'move1 "dryland-wani-move-~a!" (syntax->datum #'move1))]
-                   [move2! (format-id #'move2 "dryland-wani-move-~a!" (syntax->datum #'move2))])
+     (with-syntax ([move! (format-id #'move1 "gomamon-move-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
+                   [jump! (format-id #'move1 "gomamon-jump-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
+                   [step-1-2! (format-id #'move1 "gomamon-step-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
+                   [step-2-1! (format-id #'move2 "gomamon-step-~a-~a!" (syntax->datum #'move2) (syntax->datum #'move1))]
+                   [move1! (format-id #'move1 "gomamon-move-~a!" (syntax->datum #'move1))]
+                   [move2! (format-id #'move2 "gomamon-move-~a!" (syntax->datum #'move2))])
        (syntax/loc stx
-         (begin (define (move! [wani : Dryland-Wani] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
+         (begin (define (move! [goma : Gomamon] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
-                  (geo-path-L wani xstep ystep xsgn ysgn anchor info))
+                  (geo-path-L goma xstep ystep xsgn ysgn anchor info))
 
-                (define (jump! [wani : Dryland-Wani] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
+                (define (jump! [goma : Gomamon] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-path-M wani xstep ystep xsgn ysgn anchor))
+                  (geo-path-M goma xstep ystep xsgn ysgn anchor))
 
-                (define (step-1-2! [wani : Dryland-Wani] [target : Geo-Anchor-Name] [info1 : Any #false] [info2 : Any #false]) : Void
-                  (move1! wani target #false info1)
-                  (move2! wani target #false info2))
+                (define (step-1-2! [goma : Gomamon] [target : Geo-Anchor-Name] [info1 : Any #false] [info2 : Any #false]) : Void
+                  (move1! goma target #false info1)
+                  (move2! goma target #false info2))
 
-                (define (step-2-1! [wani : Dryland-Wani] [target : Geo-Anchor-Name] [info2 : Any #false] [info1 : Any #false]) : Void
-                  (move2! wani target #false info2)
-                  (move1! wani target #false info1)))))]
+                (define (step-2-1! [goma : Gomamon] [target : Geo-Anchor-Name] [info2 : Any #false] [info1 : Any #false]) : Void
+                  (move2! goma target #false info2)
+                  (move1! goma target #false info1)))))]
     [(_ move #:-> xsgn)
-     (with-syntax ([move! (format-id #'move "dryland-wani-move-~a!" (syntax->datum #'move))]
-                   [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
+     (with-syntax ([move! (format-id #'move "gomamon-move-~a!" (syntax->datum #'move))]
+                   [jump! (format-id #'move "gomamon-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
-         (begin (define (move! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0]
+         (begin (define (move! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
-                  (geo-path-L wani step 0.0 xsgn 0.0 anchor info))
+                  (geo-path-L goma step 0.0 xsgn 0.0 anchor info))
                 
-                (define (jump! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0]
+                (define (jump! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-path-M wani step 0.0 xsgn 0.0 anchor)))))]
+                  (geo-path-M goma step 0.0 xsgn 0.0 anchor)))))]
     [(_ move #:!> ysgn)
-     (with-syntax ([move! (format-id #'move "dryland-wani-move-~a!" (syntax->datum #'move))]
-                   [jump! (format-id #'move "dryland-wani-jump-~a!" (syntax->datum #'move))])
+     (with-syntax ([move! (format-id #'move "gomamon-move-~a!" (syntax->datum #'move))]
+                   [jump! (format-id #'move "gomamon-jump-~a!" (syntax->datum #'move))])
        (syntax/loc stx
-         (begin (define (move! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0]
+         (begin (define (move! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
-                  (geo-path-L wani 0.0 step 0.0 ysgn anchor info))
+                  (geo-path-L goma 0.0 step 0.0 ysgn anchor info))
                 
-                (define (jump! [wani : Dryland-Wani] [step : Geo-Step-Datum 1.0]
+                (define (jump! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-path-M wani 0.0 step 0.0 ysgn anchor)))))]))
+                  (geo-path-M goma 0.0 step 0.0 ysgn anchor)))))]))
 
-(define-syntax (define-dryland-wani-turn-move! stx)
+(define-syntax (define-gomamon-turn-move! stx)
   (syntax-case stx []
     [(_ move1 move2 #:+> [start end clockwise-args ...] #:-> [c-start c-end counterclockwise-args ...])
-     (with-syntax ([turn-1-2! (format-id #'move1 "dryland-wani-turn-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
-                   [turn-2-1! (format-id #'move2 "dryland-wani-turn-~a-~a!" (syntax->datum #'move2) (syntax->datum #'move1))]
+     (with-syntax ([turn-1-2! (format-id #'move1 "gomamon-turn-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
+                   [turn-2-1! (format-id #'move2 "gomamon-turn-~a-~a!" (syntax->datum #'move2) (syntax->datum #'move1))]
                    [rstart (datum->syntax #'start (degrees->radians (syntax->datum #'start)))]
                    [rend (datum->syntax #'end (degrees->radians (syntax->datum #'end)))]
                    [rcstart (datum->syntax #'c-start (degrees->radians (syntax->datum #'c-start)))]
                    [rcend (datum->syntax #'c-end (degrees->radians (syntax->datum #'c-end)))])
        (syntax/loc stx
-         (begin (define (turn-1-2! [wani : Dryland-Wani] [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-path-turn wani (dryland-wani-txradius wani) (dryland-wani-tyradius wani)
+         (begin (define (turn-1-2! [goma : Gomamon] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-turn goma (gomamon-txradius goma) (gomamon-tyradius goma)
                                  clockwise-args ... rstart rend anchor #true #false))
                 
-                (define (turn-2-1! [wani : Dryland-Wani] [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-path-turn wani (dryland-wani-txradius wani) (dryland-wani-tyradius wani)
+                (define (turn-2-1! [goma : Gomamon] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-turn goma (gomamon-txradius goma) (gomamon-tyradius goma)
                                  counterclockwise-args ... rcstart rcend anchor #false #false)))))]
     [(_ move clockwise? [start end args ...] guard)
-     (with-syntax* ([u-turn-move! (format-id #'move "dryland-wani-turn-~a!" (syntax->datum #'move))]
+     (with-syntax* ([u-turn-move! (format-id #'move "gomamon-turn-~a!" (syntax->datum #'move))]
                     [rstart (datum->syntax #'start (degrees->radians (syntax->datum #'start)))]
                     [rend (datum->syntax #'end (degrees->radians (syntax->datum #'end)))])
        (syntax/loc stx
-         (begin (define (u-turn-move! [wani : Dryland-Wani] [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-path-turn wani (dryland-wani-uxradius wani) (dryland-wani-uyradius wani)
+         (begin (define (u-turn-move! [goma : Gomamon] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-path-turn goma (gomamon-uxradius goma) (gomamon-uyradius goma)
                                  args ... rstart rend anchor clockwise? guard)))))]
-    [(_ move #:+> args #:boundary-guard guard) (syntax/loc stx (define-dryland-wani-turn-move! move #true  args guard))]
-    [(_ move #:-> args #:boundary-guard guard) (syntax/loc stx (define-dryland-wani-turn-move! move #false args guard))]))
+    [(_ move #:+> args #:boundary-guard guard) (syntax/loc stx (define-gomamon-turn-move! move #true  args guard))]
+    [(_ move #:-> args #:boundary-guard guard) (syntax/loc stx (define-gomamon-turn-move! move #false args guard))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define start-of-track : Char #\M)
 
-(struct dryland-wani geo:path
+(struct gomamon geo:path
   ([xstepsize : Nonnegative-Flonum]
    [ystepsize : Nonnegative-Flonum]
    [txradius : Nonnegative-Flonum]
    [tyradius : Nonnegative-Flonum]
    [uxradius : Nonnegative-Flonum]
    [uyradius : Nonnegative-Flonum])
-  #:type-name Dryland-Wani)
+  #:type-name Gomamon)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-path-turn-scales : (-> Geo-Print-Datum Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
@@ -236,15 +236,15 @@
     (when (and subpath?)
       (set-geo:path-origin! self endpt))))
 
-(define geo-path-M : (-> Dryland-Wani Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Void)
+(define geo-path-M : (-> Gomamon Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Void)
   (lambda [self xstep ystep xsgn ysgn anchor]
     (geo-path-do-move self (geo-path-target-position self xstep ystep xsgn ysgn) #\M anchor #false #true)))
 
-(define geo-path-L : (-> Dryland-Wani Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Any Void)
+(define geo-path-L : (-> Gomamon Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Any Void)
   (lambda [self xstep ystep xsgn ysgn anchor info]
     (geo-path-do-move self (geo-path-target-position self xstep ystep xsgn ysgn) #\L anchor info #false)))
 
-(define geo-path-target-position : (case-> [Dryland-Wani Geo-Step-Datum Geo-Step-Datum Flonum Flonum -> Float-Complex]
+(define geo-path-target-position : (case-> [Gomamon Geo-Step-Datum Geo-Step-Datum Flonum Flonum -> Float-Complex]
                                            [Geo:Path (U Geo-Anchor-Name Complex) -> Float-Complex])
   (case-lambda
     [(self xstep ystep xsgn ysgn)
@@ -252,18 +252,18 @@
      
       (if (real? xstep)
           (+ (real-part (geo:path-here self))
-             (* (dryland-wani-xstepsize self) (real->double-flonum xstep) xsgn))
+             (* (gomamon-xstepsize self) (real->double-flonum xstep) xsgn))
           (real-part (geo-trail-ref (geo:path-trail self) xstep)))
       
       (if (real? ystep)
           (+ (imag-part (geo:path-here self))
-             (* (dryland-wani-ystepsize self) (real->double-flonum ystep) ysgn))
+             (* (gomamon-ystepsize self) (real->double-flonum ystep) ysgn))
           (imag-part (geo-trail-ref (geo:path-trail self) ystep))))]
     [(self target)
      (cond [(not (complex? target)) (geo-trail-ref (geo:path-trail self) target)]
-           [(dryland-wani? self)
-            (make-rectangular (* (dryland-wani-xstepsize self) (real->double-flonum (real-part target)))
-                              (* (dryland-wani-ystepsize self) (real->double-flonum (imag-part target))))]
+           [(gomamon? self)
+            (make-rectangular (* (gomamon-xstepsize self) (real->double-flonum (real-part target)))
+                              (* (gomamon-ystepsize self) (real->double-flonum (imag-part target))))]
            [else (make-rectangular (real->double-flonum (real-part target))
                                    (real->double-flonum (imag-part target)))])]))
 

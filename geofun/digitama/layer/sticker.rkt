@@ -79,10 +79,10 @@
                    (stick rest stickers)))]
             [(pair? stickers)
              ; don't offset the `self` path itself, leave it to the path drawer
-             (let-values ([(self-layer) (vector-immutable self 0.0 0.0 Width Height)])
+             (let-values ([(self-layer) (glayer self 0.0 0.0 Width Height)])
                (or (and (not truncate?)
                         (geo-path-try-extend/list self-layer stickers))
-                   (vector-immutable Width Height (cons self-layer stickers))))]
+                   ((inst glayer-group Geo) Width Height (cons self-layer stickers))))]
             [else #false]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -91,32 +91,32 @@
   (case-lambda
     [(master stickers)
      ; TODO: deal with the initial position of the `master` sticker
-     (define-values (Width Height) (values (vector-ref master 3) (vector-ref master 4)))
+     (define-values (Width Height) (values (glayer-width master) (glayer-height master)))
      (let-values ([(lx ty rx by) (geo-group-boundary stickers Width Height)])
        (and (or (< lx 0.0) (< ty 0.0) (> rx Width) (> by Height))
             (let ([xoff (if (< lx 0.0) (abs lx) 0.0)]
                   [yoff (if (< ty 0.0) (abs ty) 0.0)])
-              (vector-immutable (+ (max rx Width) xoff) (+ (max by Height) yoff)
-                                (cons (geo-layer-translate master xoff yoff)
-                                      (for/list : (Listof (GLayerof Geo)) ([sticker (in-list stickers)])
-                                        (geo-layer-translate sticker xoff yoff)))))))]
+              ((inst glayer-group Geo) (+ (max rx Width) xoff) (+ (max by Height) yoff)
+                                       (cons (geo-layer-translate master xoff yoff)
+                                             (for/list : (Listof (GLayerof Geo)) ([sticker (in-list stickers)])
+                                               (geo-layer-translate sticker xoff yoff)))))))]
     [(stickers Width Height)
      (let-values ([(lx ty rx by) (geo-group-boundary stickers Width Height)])
        (and (or (< lx 0.0) (< ty 0.0) (> rx Width) (> by Height))
             (let ([xoff (if (< lx 0.0) (abs lx) 0.0)]
                   [yoff (if (< ty 0.0) (abs ty) 0.0)])
-              (vector-immutable (+ (max rx Width) xoff) (+ (max by Height) yoff)
-                                (cons (geo-layer-translate (car stickers) xoff yoff)
-                                      (for/list : (Listof (GLayerof Geo)) ([sticker (in-list (cdr stickers))])
-                                        (geo-layer-translate sticker xoff yoff)))))))]))
+              ((inst glayer-group Geo) (+ (max rx Width) xoff) (+ (max by Height) yoff)
+                                       (cons (geo-layer-translate (car stickers) xoff yoff)
+                                             (for/list : (Listof (GLayerof Geo)) ([sticker (in-list (cdr stickers))])
+                                               (geo-layer-translate sticker xoff yoff)))))))]))
 
 (define geo-path-layers-merge : (-> (GLayer-Groupof Geo) (Listof (GLayerof Geo)) (GLayer-Groupof Geo))
   (lambda [group layers]
-    (define layers++ : (Pairof (GLayerof Geo) (Listof (GLayerof Geo))) (append (vector-ref group 2) layers))
-    (define-values (W H) (values (vector-ref group 0) (vector-ref group 1)))
+    (define layers++ : (Pairof (GLayerof Geo) (Listof (GLayerof Geo))) (append (glayer-group-layers group) layers))
+    (define-values (W H) (values (glayer-group-width group) (glayer-group-height group)))
 
     (or (geo-path-try-extend/list layers++ W H)
-        (vector-immutable W H layers++))))
+        (glayer-group W H layers++))))
 
 (define geo-sticker-layer : (-> Geo:Path Geo-Anchor->Sticker Geo-Anchor-Name
                                 Float-Complex Float-Complex Nonnegative-Flonum Nonnegative-Flonum

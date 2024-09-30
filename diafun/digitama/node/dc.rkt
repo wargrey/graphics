@@ -77,7 +77,7 @@
 
 (define dia-polygon-intersect : Dia-Node-Intersect
   (lambda [A B node-pos nlayer]
-    (define g (vector-ref nlayer 0))
+    (define g (glayer-master nlayer))
 
     ;;; NOTE
     ; We don't deal with stroke here,
@@ -94,7 +94,7 @@
 
 (define dia-circle-intersect : Dia-Node-Intersect
   (lambda [A B node-pos nlayer]
-    (define g (vector-ref nlayer 0))
+    (define g (glayer-master nlayer))
     
     (and (dia:node:circle? g)
          (let* ([V (- B A)]
@@ -108,9 +108,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-line-node-intersect : (-> (GLayerof Geo) Float-Complex Float-Complex Float-Complex (Option Float-Complex))
   (lambda [nlayer A B node-pos]
-    (let ([g (vector-ref nlayer 0)])
-      (and (dia:node? g)
-           ((dia:node-intersect g) A B node-pos nlayer)))))
+    (define g (glayer-master nlayer))
+
+    (and (dia:node? g)
+         ((dia:node-intersect g) A B node-pos nlayer))))
 
 (define dia-node-layers : (-> (Option Geo) Geo Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (GLayer-Groupof Geo))
   (lambda [label shape wratio hratio wpos hpos]

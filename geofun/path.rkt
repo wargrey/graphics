@@ -3,24 +3,24 @@
 (provide (all-defined-out))
 (provide (all-from-out "digitama/geometry/anchor.rkt"))
 
-(provide Geo:Path Dryland-Wani)
+(provide Geo:Path Gomamon)
 (provide Geo-Sticker Geo-Anchor->Sticker)
-(provide geo:path? dryland-wani? geo-sticker?)
+(provide geo:path? gomamon? geo-sticker?)
 (provide make-sticker default-anchor->sticker)
 (provide geo-path-close)
 
 (provide
- (rename-out [dryland-wani-move-up-right! dryland-wani-move-right-up!]
-             [dryland-wani-move-right-down! dryland-wani-move-down-right!]
-             [dryland-wani-move-down-left! dryland-wani-move-left-down!]
-             [dryland-wani-move-left-up! dryland-wani-move-up-left!])
+ (rename-out [gomamon-move-up-right! gomamon-move-right-up!]
+             [gomamon-move-right-down! gomamon-move-down-right!]
+             [gomamon-move-down-left! gomamon-move-left-down!]
+             [gomamon-move-left-up! gomamon-move-up-left!])
 
- (rename-out [dryland-wani-jump-up-right! dryland-wani-jump-right-up!]
-             [dryland-wani-jump-right-down! dryland-wani-jump-down-right!]
-             [dryland-wani-jump-down-left! dryland-wani-jump-left-down!]
-             [dryland-wani-jump-left-up! dryland-wani-jump-up-left!])
+ (rename-out [gomamon-jump-up-right! gomamon-jump-right-up!]
+             [gomamon-jump-right-down! gomamon-jump-down-right!]
+             [gomamon-jump-down-left! gomamon-jump-left-down!]
+             [gomamon-jump-left-up! gomamon-jump-up-left!])
 
- (rename-out [geo-path-close dryland-wani-close!]
+ (rename-out [geo-path-close gomamon-close!]
              [make-sticker make-geo-sticker]))
 
 (require "paint.rkt")
@@ -41,32 +41,32 @@
 (require (for-syntax racket/syntax))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-syntax (define-dryland-wani! stx)
+(define-syntax (define-gomamon! stx)
   (syntax-case stx []
     [(_ name [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (define name : Dryland-Wani
-         (with-dryland-wani! (make-dryland-wani args ...)
+       (define name : Gomamon
+         (with-gomamon! (make-gomamon args ...)
            move-expr ...)))]))
 
-(define-syntax (with-dryland-wani! stx)
+(define-syntax (with-gomamon! stx)
   (syntax-case stx []
     [(_ wani (move argl ...) ...)
-     (with-syntax* ([(dryland-wani-move! ...)
+     (with-syntax* ([(gomamon-move! ...)
                      (for/list ([<move> (in-list (syntax->list #'(move ...)))])
-                       (format-id <move> "dryland-wani-~a!" (syntax->datum <move>)))])
+                       (format-id <move> "gomamon-~a!" (syntax->datum <move>)))])
        (quasisyntax/loc stx
          (let ([self wani])
-           (dryland-wani-move! self argl ...)
+           (gomamon-move! self argl ...)
            ...
            self)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-dryland-wani : (->* (Real)
-                                 (Real #:T-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
-                                       #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
-                                       #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule Symbol)
-                                 Dryland-Wani)
+(define make-gomamon : (->* (Real)
+                            (Real #:T-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
+                                  #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
+                                  #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule Symbol)
+                            Gomamon)
   (lambda [#:T-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
            #:stroke [stroke (void)] #:fill [fill (void)] #:fill-rule [frule (default-fill-rule)]
@@ -84,7 +84,7 @@
     (define-values (tsx tsy) (geo-path-turn-scales t-scale 0.5))
     (define-values (usx usy) (geo-path-turn-scales u-scale 0.25))
     
-    (create-geometry-object dryland-wani
+    (create-geometry-object gomamon
                             #:surface geo-path-surface stroke fill frule
                             #:extent (geo-stroke-extent-wrapper geo-path-extent stroke)
                             #:id name
@@ -95,44 +95,44 @@
                             xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-dryland-wani-line-move! left            #:-> -1.0)
-(define-dryland-wani-line-move! right           #:-> +1.0)
-(define-dryland-wani-line-move! up              #:!> -1.0)
-(define-dryland-wani-line-move! down            #:!> +1.0)
-(define-dryland-wani-line-move! up right        #:+> +1.0 -1.0)
-(define-dryland-wani-line-move! right down      #:+> +1.0 +1.0)
-(define-dryland-wani-line-move! down left       #:+> -1.0 +1.0)
-(define-dryland-wani-line-move! left up         #:+> -1.0 -1.0)
+(define-gomamon-line-move! left            #:-> -1.0)
+(define-gomamon-line-move! right           #:-> +1.0)
+(define-gomamon-line-move! up              #:!> -1.0)
+(define-gomamon-line-move! down            #:!> +1.0)
+(define-gomamon-line-move! up right        #:+> +1.0 -1.0)
+(define-gomamon-line-move! right down      #:+> +1.0 +1.0)
+(define-gomamon-line-move! down left       #:+> -1.0 +1.0)
+(define-gomamon-line-move! left up         #:+> -1.0 -1.0)
 
-(define-dryland-wani-turn-move! up-right-down   #:+> [180.0 360.0  1.0  0.0  2.0  0.0] #:boundary-guard -1.0i)
-(define-dryland-wani-turn-move! up-left-down    #:-> [360.0 180.0 -1.0  0.0 -2.0  0.0] #:boundary-guard -1.0i)
-(define-dryland-wani-turn-move! right-down-left #:+> [-90.0  90.0  0.0  1.0  0.0  2.0] #:boundary-guard +1.0)
-(define-dryland-wani-turn-move! right-up-left   #:-> [ 90.0 -90.0  0.0 -1.0  0.0 -2.0] #:boundary-guard +1.0)
-(define-dryland-wani-turn-move! down-left-up    #:+> [  0.0 180.0 -1.0  0.0 -2.0  0.0] #:boundary-guard +1.0i)
-(define-dryland-wani-turn-move! down-right-up   #:-> [180.0   0.0  1.0  0.0  2.0  0.0] #:boundary-guard +1.0i)
-(define-dryland-wani-turn-move! left-up-right   #:+> [ 90.0 270.0  0.0 -1.0  0.0 -2.0] #:boundary-guard -1.0)
-(define-dryland-wani-turn-move! left-down-right #:-> [270.0  90.0  0.0  1.0  0.0  2.0] #:boundary-guard -1.0)
+(define-gomamon-turn-move! up-right-down   #:+> [180.0 360.0  1.0  0.0  2.0  0.0] #:boundary-guard -1.0i)
+(define-gomamon-turn-move! up-left-down    #:-> [360.0 180.0 -1.0  0.0 -2.0  0.0] #:boundary-guard -1.0i)
+(define-gomamon-turn-move! right-down-left #:+> [-90.0  90.0  0.0  1.0  0.0  2.0] #:boundary-guard +1.0)
+(define-gomamon-turn-move! right-up-left   #:-> [ 90.0 -90.0  0.0 -1.0  0.0 -2.0] #:boundary-guard +1.0)
+(define-gomamon-turn-move! down-left-up    #:+> [  0.0 180.0 -1.0  0.0 -2.0  0.0] #:boundary-guard +1.0i)
+(define-gomamon-turn-move! down-right-up   #:-> [180.0   0.0  1.0  0.0  2.0  0.0] #:boundary-guard +1.0i)
+(define-gomamon-turn-move! left-up-right   #:+> [ 90.0 270.0  0.0 -1.0  0.0 -2.0] #:boundary-guard -1.0)
+(define-gomamon-turn-move! left-down-right #:-> [270.0  90.0  0.0  1.0  0.0  2.0] #:boundary-guard -1.0)
 
-(define-dryland-wani-turn-move! up right
+(define-gomamon-turn-move! up right
   #:+> [180.0 270.0 1.0  0.0 1.0 -1.0]
   #:-> [ 90.0   0.0 0.0 -1.0 1.0 -1.0])
 
-(define-dryland-wani-turn-move! right down
+(define-gomamon-turn-move! right down
   #:+> [270.0 360.0 0.0 1.0 1.0 1.0]
   #:-> [180.0  90.0 1.0 0.0 1.0 1.0])
 
-(define-dryland-wani-turn-move! down left
+(define-gomamon-turn-move! down left
   #:+> [  0.0  90.0 -1.0 0.0 -1.0 1.0]
   #:-> [270.0 180.0  0.0 1.0 -1.0 1.0])
 
-(define-dryland-wani-turn-move! left up
+(define-gomamon-turn-move! left up
   #:+> [ 90.0 180.0  0.0 -1.0 -1.0 -1.0]
   #:-> [360.0 270.0 -1.0  0.0 -1.0 -1.0])
 
-(define dryland-wani-drift! : (->* (Dryland-Wani Geo-Bezier-Datum (Listof Geo-Bezier-Datum)) ((Option Geo-Anchor-Name)) Void)
+(define gomamon-drift! : (->* (Gomamon Geo-Bezier-Datum (Listof Geo-Bezier-Datum)) ((Option Geo-Anchor-Name)) Void)
   (lambda [wani end-step ctrl-steps [anchor #false]]
-    (define xsize : Flonum (dryland-wani-xstepsize wani))
-    (define ysize : Flonum (dryland-wani-ystepsize wani))
+    (define xsize : Flonum (gomamon-xstepsize wani))
+    (define ysize : Flonum (gomamon-ystepsize wani))
     (define endpt : Float-Complex (geo-path-bezier-point wani end-step xsize ysize))
     (define ctrls : (Listof Float-Complex)
       (for/list : (Listof Float-Complex) ([ctrl (in-list ctrl-steps)])
@@ -142,15 +142,15 @@
           [(null? (cdr ctrls)) (geo-path-quadratic-bezier wani endpt (car ctrls) anchor)]
           [else (geo-path-cubic-bezier wani endpt (car ctrls) (cadr ctrls) anchor)])))
 
-(define dryland-wani-move-to! : (->* (Dryland-Wani (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
+(define gomamon-move-to! : (->* (Gomamon (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
   (lambda [wani target [anchor #false]]
     (geo-path-connect-to wani target anchor)))
 
-(define dryland-wani-jump-to! : (->* (Dryland-Wani (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
+(define gomamon-jump-to! : (->* (Gomamon (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
   (lambda [wani target [anchor #false]]
     (geo-path-jump-to wani target anchor)))
 
-(define dryland-wani-jump-back! : (->* (Dryland-Wani) ((U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name)) Void)
+(define gomamon-jump-back! : (->* (Gomamon) ((U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name)) Void)
   (lambda [wani [target #false] [anchor #false]]
     (geo-path-jump-to wani target anchor)))
 

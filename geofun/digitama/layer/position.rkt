@@ -15,9 +15,9 @@
             [Geo-Append-Align Nonnegative-Flonum Nonnegative-Flonum G Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> (GLayerof G)])
   (case-lambda
     [(alignment width height layer xoff yoff)
-     (geo-append-layer alignment width height (vector-ref layer 0)
-                       (+ (vector-ref layer 1) xoff) (+ (vector-ref layer 2) yoff)
-                       (vector-ref layer 3) (vector-ref layer 4))]
+     (geo-append-layer alignment width height (glayer-master layer)
+                       (+ (glayer-x layer) xoff) (+ (glayer-y layer) yoff)
+                       (glayer-width layer) (glayer-height layer))]
     [(alignment width height geo maybe-x maybe-y swidth sheight)
      (define-values (dest-x dest-y)
        (case alignment
@@ -28,7 +28,7 @@
          [(hc) (values maybe-x                  (* (- height sheight) 0.5))]
          [(hb) (values maybe-x                  (- height sheight))]
          [else #| deadcode |# (values maybe-x    maybe-y)]))
-     (vector-immutable geo dest-x dest-y swidth sheight)]))
+     (glayer geo dest-x dest-y swidth sheight)]))
 
 (define #:forall (G) geo-superimpose-layer
   : (case-> [Geo-Pin-Anchor Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum -> (Values Flonum Flonum)]
@@ -37,14 +37,14 @@
             [Geo-Pin-Anchor Nonnegative-Flonum Nonnegative-Flonum (GLayerof G) Flonum Flonum Any -> (GLayerof G)])
   (case-lambda
     [(anchor Width Height layer)
-     (geo-superimpose-layer anchor Width Height (vector-ref layer 0) (vector-ref layer 3) (vector-ref layer 4))]
+     (geo-superimpose-layer anchor Width Height (glayer-master layer) (glayer-width layer) (glayer-height layer))]
     [(anchor Width Height self xoff yoff _)
-     (let*-values ([(width height) (values (vector-ref self 3) (vector-ref self 4))]
+     (let*-values ([(width height) (values (glayer-width self) (glayer-height self))]
                    [(x y) (geo-superimpose-layer anchor Width Height width height)])
-       (vector-immutable (vector-ref self 0) (+ x xoff) (+ y yoff) width height))]
+       (glayer (glayer-master self) (+ x xoff) (+ y yoff) width height))]
     [(anchor Width Height self width height)
      (let-values ([(x y) (geo-superimpose-layer anchor Width Height width height)])
-       (vector-immutable self x y width height))]
+       (glayer self x y width height))]
     [(anchor Width Height width height)
      (let*-values ([(rx by) (values (- Width width) (- Height height))]
                    [(cx cy) (values (* rx 0.5)  (* by 0.5))])
@@ -61,7 +61,7 @@
     (define-values (dx dy) (geo-superimpose-layer anchor 0.0 0.0 width height))
     (define pos (+ target offset))
 
-    (vector-immutable self
-                      (+ (real-part pos) dx)
-                      (+ (imag-part pos) dy)
-                      width height)))
+    (glayer self
+            (+ (real-part pos) dx)
+            (+ (imag-part pos) dy)
+            width height)))

@@ -8,15 +8,29 @@
 (define-type Geo-Pin-Anchor (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
 (define-type Geo-Append-Align (U 'vl 'vc 'vr 'ht 'hc 'hb))
 
-(define-type (GLayerof G) (Immutable-Vector G Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
 (define-type (GLayer-Listof G) (Pairof (GLayerof G) (Listof (GLayerof G))))
-(define-type (GLayer-Groupof G) (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum (GLayer-Listof G)))
+
+(struct (G) glayer
+  ([master : G]
+   [x : Flonum]
+   [y : Flonum]
+   [width : Nonnegative-Flonum]
+   [height : Nonnegative-Flonum])
+  #:type-name GLayerof
+  #:transparent)
+
+(struct (G) glayer-group
+  ([width : Nonnegative-Flonum]
+   [height : Nonnegative-Flonum]
+   [layers : (GLayer-Listof G)])
+  #:type-name GLayer-Groupof
+  #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (G) geo-layer-center-position-values : (-> (GLayerof G) (Values Flonum Flonum))
   (lambda [self]
-    (values (+ (vector-ref self 1) (* (vector-ref self 3) 0.5))
-            (+ (vector-ref self 2) (* (vector-ref self 4) 0.5)))))
+    (values (+ (glayer-x self) (* (glayer-width self) 0.5))
+            (+ (glayer-y self) (* (glayer-height self) 0.5)))))
 
 (define #:forall (G) geo-layer-center-position : (-> (GLayerof G) Float-Complex)
   (lambda [self]
@@ -27,9 +41,9 @@
                                               [(GLayerof G) Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
                                               [(GLayerof G) Nonnegative-Flonum Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum)])
   (case-lambda
-    [(self) (values (vector-ref self 3) (vector-ref self 4))]
-    [(self s) (values (* (vector-ref self 3) s) (* (vector-ref self 4) s))]
-    [(self sw sh) (values (* (vector-ref self 3) sw) (* (vector-ref self 4) sh))]))
+    [(self) (values (glayer-width self) (glayer-height self))]
+    [(self s) (values (* (glayer-width self) s) (* (glayer-height self) s))]
+    [(self sw sh) (values (* (glayer-width self) sw) (* (glayer-height self) sh))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Geo-Config-Argof T) (U (Listof T) (∩ T (U Symbol Number))))
@@ -70,17 +84,16 @@
                          [siblings : (Listof (GLayerof G)) siblings])
       (if (pair? siblings)
           (let* ([self (car siblings)]
-                 [x (vector-ref self 1)]
-                 [y (vector-ref self 2)]
-                 [w (vector-ref self 3)]
-                 [h (vector-ref self 4)])
-            (check-boundary (min lx x) (min ty y) (max rx (+ x w)) (max by (+ y h))
+                 [x (glayer-x self)]
+                 [y (glayer-y self)])
+            (check-boundary (min lx x) (min ty y)
+                            (max rx (+ x (glayer-width self)))
+                            (max by (+ y (glayer-height self)))
                             (cdr siblings)))
           (values lx ty rx by)))))
 
 (define #:forall (G) geo-layer-translate : (-> (GLayerof G) Flonum Flonum (GLayerof G))
   (lambda [self xoff yoff]
-    (vector-immutable (vector-ref self 0)
-                      (+ xoff (vector-ref self 1))
-                      (+ yoff (vector-ref self 2))
-                      (vector-ref self 3) (vector-ref self 4))))
+    (glayer (glayer-master self)
+            (+ xoff (glayer-x self)) (+ yoff (glayer-y self))
+            (glayer-width self) (glayer-height self))))

@@ -8,12 +8,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-set-stroke
   (lambda [cr stroke]
-    (cairo-set-source cr (unsafe-struct-ref stroke 0))
-    (cairo_set_line_width cr (unsafe-struct-ref stroke 1))
-    (cairo_set_line_cap cr (linecap->integer (unsafe-struct-ref stroke 2)))
-    (cairo_set_line_join cr (linejoin->integer (unsafe-struct-ref stroke 3)))
-    (let ([ml (unsafe-struct-ref stroke 4)]) (unless (nan? ml) (cairo_set_miter_limit cr ml)))
-    (cairo_set_dash cr (unsafe-struct-ref stroke 5) (unsafe-struct-ref stroke 6))))
+    (cairo-set-source cr (unsafe-struct*-ref stroke 0))
+    (cairo_set_line_width cr (unsafe-struct*-ref stroke 1))
+    (cairo_set_line_cap cr (linecap->integer (unsafe-struct*-ref stroke 2)))
+    (cairo_set_line_join cr (linejoin->integer (unsafe-struct*-ref stroke 3)))
+    (let ([ml (unsafe-struct*-ref stroke 4)]) (unless (nan? ml) (cairo_set_miter_limit cr ml)))
+    (cairo_set_dash cr (unsafe-struct*-ref stroke 5) (unsafe-struct*-ref stroke 6))))
 
 (define cairo-render-with-stroke
   (lambda [cr border]

@@ -28,7 +28,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:group geo
   ([operator : (Option Symbol)]
-   [layers : Geo-Layer-Group])
+   [selves : Geo-Layer-Group])
   #:type-name Geo:Group
   #:transparent)
 
@@ -79,7 +79,7 @@
     (define prows : (Vectorof Geo-Pin-Anchor) (geo-config-expand row-anchors nrows 'cc))
     (define gcols : (Vectorof Flonum) (geo-config-expand col-gaps ncols 0.0 real->double-flonum))
     (define grows : (Vectorof Flonum) (geo-config-expand row-gaps nrows 0.0 real->double-flonum))
-    (define table : (Vectorof (GLayerof Geo)) (list->n:vector* siblings (* nrows ncols) (geo->layer cont) geo->layer))
+    (define table : (Vectorof (GLayerof Geo)) (list->n:vector* siblings (* nrows ncols) (geo-own-layer cont) geo-own-layer))
 
     (define size : Index (vector-length table))
     (define cwidths : (Vectorof Nonnegative-Flonum) (geo-table-column-widths table nrows ncols size))
@@ -93,13 +93,13 @@
   (lambda [self]
     (with-asserts ([self geo:group?])
       (geo_composite (geo-select-operator (geo:group-operator self) default-pin-operator)
-                     (geo:group-layers self)
+                     (geo:group-selves self)
                      (default-geometry-density)))))
 
 (define geo-group-extent : (-> Geo-Layer-Group Geo-Calculate-Extent)
   (lambda [layers]
-    (define w (vector-ref layers 0))
-    (define h (vector-ref layers 1))
+    (define w (glayer-group-width layers))
+    (define h (glayer-group-height layers))
     
     (λ [self]
       (values w h #false))))

@@ -37,15 +37,15 @@
   (define geo-composite-layer
     (case-lambda
       [(cr self op density)
-       (cairo-composite cr (geo-create-surface (unsafe-vector*-ref self 0))
-                        (unsafe-vector*-ref self 1) (unsafe-vector*-ref self 2)
-                        (unsafe-vector*-ref self 3) (unsafe-vector*-ref self 4)
+       (cairo-composite cr (geo-create-surface (unsafe-struct*-ref self 0))
+                        (unsafe-struct*-ref self 1) (unsafe-struct*-ref self 2)
+                        (unsafe-struct*-ref self 3) (unsafe-struct*-ref self 4)
                         CAIRO_FILTER_BILINEAR op density)]
       [(cr self op dx dy density)
-       (cairo-composite cr (geo-create-surface (unsafe-vector*-ref self 0))
-                        (unsafe-fl+ (unsafe-vector*-ref self 1) dx)
-                        (unsafe-fl+ (unsafe-vector*-ref self 2) dy)
-                        (unsafe-vector*-ref self 3) (unsafe-vector*-ref self 4)
+       (cairo-composite cr (geo-create-surface (unsafe-struct*-ref self 0))
+                        (unsafe-fl+ (unsafe-struct*-ref self 1) dx)
+                        (unsafe-fl+ (unsafe-struct*-ref self 2) dy)
+                        (unsafe-struct*-ref self 3) (unsafe-struct*-ref self 4)
                         CAIRO_FILTER_BILINEAR op density)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

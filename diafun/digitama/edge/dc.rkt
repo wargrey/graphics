@@ -88,7 +88,7 @@
                                                                                      (dia-edge-label-ratio label)))
                                         layers)))
                         (create-geometry-group dia:labeled-edge #false
-                                               (geo-path-layers-merge (geo:group-layers self) layers)))))])))
+                                               (geo-path-layers-merge (geo:group-selves self) layers)))))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-edge-self-pin-position : (->* ((U Dia:Edge Dia:Labeled-Edge)) ((Option Float-Complex)) Float-Complex)
@@ -100,13 +100,13 @@
           (- (or maybe-pt S)
              (make-rectangular (abs (real-part ->S)) (abs (imag-part ->S)))
              (or (dia:edge-line-offset self) 0.0+0.0i)))
-        (let ([slayer (car (vector-ref (geo:group-layers self) 2))])
-          (- (dia-edge-self-pin-position (assert (vector-ref slayer 0) dia:edge?))
-             (make-rectangular (vector-ref slayer 1) (vector-ref slayer 2)))))))
+        (let ([slayer (car (glayer-group-layers (geo:group-selves self)))])
+          (- (dia-edge-self-pin-position (assert (glayer-master slayer) dia:edge?))
+             (make-rectangular (glayer-x slayer) (glayer-y slayer)))))))
 
 (define dia-edge-unlabel : (-> Dia:Labeled-Edge Dia:Edge)
   (lambda [g]
-    (assert (vector-ref (car (vector-ref (geo:group-layers g) 2)) 0) dia:edge?)))
+    (assert (glayer-master (car (glayer-group-layers (geo:group-selves g)))) dia:edge?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-edge-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Boolean Boolean Geo-Surface-Create)

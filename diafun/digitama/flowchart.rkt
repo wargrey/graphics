@@ -151,8 +151,8 @@
   (lambda [master source target tracks make-arrow arrows make-label infobase alabels]
     (define src-anchor : Geo-Anchor-Name (car source))
     (define tgt-anchor : (Option Geo-Anchor-Name) (and target (car target)))
-    (define src-endpt : DiaFlow-Arrow-Endpoint (cons src-anchor (vector-ref (cdr source) 0)))
-    (define tgt-endpt : (Option DiaFlow-Arrow-Endpoint) (and target (cons (car target) (vector-ref (cdr target) 0))))
+    (define src-endpt : DiaFlow-Arrow-Endpoint (cons src-anchor (glayer-master (cdr source))))
+    (define tgt-endpt : (Option DiaFlow-Arrow-Endpoint) (and target (cons (car target) (glayer-master (cdr target)))))
     (define edge-style : Dia-Edge-Style (dia-edge-style-construct src-anchor tgt-anchor (default-diaflow-arrow-style-make) make-diaflow-arrow-style))
 
     (define maybe-tracks : (Option (Pairof Geo-Path-Clean-Prints Geo-Path-Clean-Prints))
@@ -265,6 +265,6 @@
   (lambda [arrow arrows alabels]
     (define ppos : Float-Complex (dia-edge-self-pin-position arrow #false))
     (define-values (awidth aheight) (geo-flsize arrow))
-    (define alayer (vector-immutable arrow (real-part ppos) (imag-part ppos) awidth aheight))
+    (define alayer (glayer arrow (real-part ppos) (imag-part ppos) awidth aheight))
 
     (values (cons alayer arrows) alabels)))

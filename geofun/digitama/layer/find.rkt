@@ -13,15 +13,15 @@
   (lambda [anchor master target]
     (cond [(geo:group? master)
            (let find ([offset : Float-Complex 0.0+0.0i]
-                      [layers : (Listof (GLayerof Geo)) (vector-ref (geo:group-layers master) 2)])
+                      [layers : (Listof (GLayerof Geo)) (glayer-group-layers (geo:group-selves master))])
              (and (pair? layers)
                   (let* ([self (car layers)]
-                         [subg (vector-ref self 0)]
-                         [loc (make-rectangular (vector-ref self 1) (vector-ref self 2))])
+                         [subg (glayer-master self)]
+                         [loc (make-rectangular (glayer-x self) (glayer-y self))])
                     (or (and (geo:group? subg)
-                             (find (+ offset loc) (vector-ref (geo:group-layers subg) 2)))
+                             (find (+ offset loc) (glayer-group-layers (geo:group-selves subg))))
                         (and (geo-found? subg target)
-                             (let*-values ([(gw gh) (values (vector-ref self 3) (vector-ref self 4))]
+                             (let*-values ([(gw gh) (values (glayer-width self) (glayer-height self))]
                                            [(ax ay) (geo-superimpose-layer anchor (* gw 2.0) (* gh 2.0) gw gh)])
                                (+ offset loc (make-rectangular ax ay))))
                         (find offset (cdr layers))))))]

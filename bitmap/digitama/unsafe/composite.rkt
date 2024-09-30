@@ -138,8 +138,8 @@
     (define rheights (unsafe-table-row-heights table nrows ncols size))
     (define layers (unsafe-table-layers table ncols nrows alcols alrows gcols grows cwidths rheights))
     
-    (define-values (bmp cr) (create-argb-bitmap (unsafe-vector*-ref layers 0) (unsafe-vector*-ref layers 1) density #true))
-    (let combine ([all (unsafe-vector*-ref layers 2)])
+    (define-values (bmp cr) (create-argb-bitmap (unsafe-struct*-ref layers 0) (unsafe-struct*-ref layers 1) density #true))
+    (let combine ([all (unsafe-struct*-ref layers 2)])
       (unless (null? all)
         (layer-composite cr (unsafe-car all) CAIRO_OPERATOR_OVER density)
         (combine (unsafe-cdr all))))
@@ -173,8 +173,8 @@
         (define node (unsafe-car nodes))
         (define layer ((unsafe-cdr node) nwidth nheight))
         (cairo-composite cr (unsafe-car node)
-                         (unsafe-fl+ x0 (unsafe-vector*-ref layer 1))
-                         (unsafe-fl+ y0 (unsafe-vector*-ref layer 2))
+                         (unsafe-fl+ x0 (unsafe-struct*-ref layer 1))
+                         (unsafe-fl+ y0 (unsafe-struct*-ref layer 2))
                          flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
         (if (unsafe-fl< x0 boundary)
             (combine (unsafe-cdr nodes) y0 (unsafe-fl+ x0 dx) boundary)
@@ -228,8 +228,8 @@
         (define idx++ (unsafe-fx+ idx 1))
 
         (cairo-composite cr (unsafe-car node)
-                         (unsafe-fl+ (unsafe-flvector-ref vs idx) (unsafe-vector*-ref layer 1))
-                         (unsafe-fl+ y0 (unsafe-vector*-ref layer 2))
+                         (unsafe-fl+ (unsafe-flvector-ref vs idx) (unsafe-struct*-ref layer 1))
+                         (unsafe-fl+ y0 (unsafe-struct*-ref layer 2))
                          flwidth flheight CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)
 
         (if (unsafe-fx< idx++ boundary)
@@ -245,15 +245,15 @@
   (define layer-composite
     (case-lambda
       [(cr self operator density)
-       (cairo-composite cr (unsafe-vector*-ref self 0)
-                        (unsafe-vector*-ref self 1) (unsafe-vector*-ref self 2)
-                        (unsafe-vector*-ref self 3) (unsafe-vector*-ref self 4)
+       (cairo-composite cr (unsafe-struct*-ref self 0)
+                        (unsafe-struct*-ref self 1) (unsafe-struct*-ref self 2)
+                        (unsafe-struct*-ref self 3) (unsafe-struct*-ref self 4)
                         CAIRO_FILTER_BILINEAR operator density)]
       [(cr self operator density xoff yoff)
-       (cairo-composite cr (unsafe-vector*-ref self 0)
-                        (unsafe-fl+ (unsafe-vector*-ref self 1) xoff)
-                        (unsafe-fl+ (unsafe-vector*-ref self 2) yoff)
-                        (unsafe-vector*-ref self 3) (unsafe-vector*-ref self 4)
+       (cairo-composite cr (unsafe-struct*-ref self 0)
+                        (unsafe-fl+ (unsafe-struct*-ref self 1) xoff)
+                        (unsafe-fl+ (unsafe-struct*-ref self 2) yoff)
+                        (unsafe-struct*-ref self 3) (unsafe-struct*-ref self 4)
                         CAIRO_FILTER_BILINEAR operator density)]))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -3,7 +3,7 @@
 (require geofun/path)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-dryland-wani! drywani [108 108] #:-
+(define-gomamon! goma [108 108] #:-
   (move-left)
   (move-right)
   (move-down 2 '#:r)
@@ -86,13 +86,13 @@
         [(Dart Flower) (make-sticker sticker 'rb -2.0 -2.0)]
         [else (make-sticker sticker 'cc)])))
   
-  (reverse (geo:path-footprints drywani))
-  (geo-frame (geo-path-stick drywani make-anchor-sticker #:truncate? #false))
-  (geo-freeze drywani #:stroke 'ForestGreen #:fill (rgb* 'RoyalBlue 0.618))
+  (reverse (geo:path-footprints goma))
+  (geo-frame (geo-path-stick goma make-anchor-sticker #:truncate? #false))
+  (geo-freeze goma #:stroke 'ForestGreen #:fill (rgb* 'RoyalBlue 0.618))
 
   (let ([bmp (bitmap-square 512)])
-    (geo-freeze! bmp drywani -32 -32 #:stroke 'Orange)
+    (geo-freeze! bmp goma -32 -32 #:stroke 'Orange)
     bmp)
   
-  (geo-anchor-position drywani '#:home)
-  (geo-anchor-position drywani '#:home #:translate? #true))
+  (geo-anchor-position goma '#:home)
+  (geo-anchor-position goma '#:home #:translate? #true))
