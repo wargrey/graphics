@@ -11,26 +11,25 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; TODO: deal with curved prints
-(define dia-2-tracks-relocate-source : (-> (Pairof Geo-Anchor-Name (GLayerof Geo)) Geo-Path-Clean-Print Geo-Path-Clean-Print Geo-Path-Clean-Print)
+(define dia-2-tracks-relocate-source : (-> (GLayerof Geo) Geo-Path-Clean-Print Geo-Path-Clean-Print Geo-Path-Clean-Print)
   (lambda [source a:track b:track]
     (define A : Float-Complex (geo-path-clean-print-position a:track))
     (define B : Float-Complex (geo-path-clean-print-position b:track))
     
     (cons (car b:track)
-          (or (dia-line-node-intersect (cdr source) A B A)
+          (or (dia-line-node-intersect source A B A)
               A))))
 
-(define dia-2-tracks-relocate-target : (-> (Pairof Geo-Anchor-Name (GLayerof Geo)) Geo-Path-Clean-Print Geo-Path-Clean-Print Geo-Path-Clean-Print)
+(define dia-2-tracks-relocate-target : (-> (GLayerof Geo) Geo-Path-Clean-Print Geo-Path-Clean-Print Geo-Path-Clean-Print)
   (lambda [target a:track b:track]
     (define A : Float-Complex (geo-path-clean-print-position a:track))
     (define B : Float-Complex (geo-path-clean-print-position b:track))
 
     (cons (car b:track)
-          (or (dia-line-node-intersect (cdr target) A B B)
+          (or (dia-line-node-intersect target A B B)
               B))))
 
-(define dia-2-tracks-relocate-endpoints : (-> (Option (Pairof Geo-Anchor-Name (GLayerof Geo))) (Option (Pairof Geo-Anchor-Name (GLayerof Geo)))
-                                              (List Geo-Path-Clean-Print Geo-Path-Clean-Print)
+(define dia-2-tracks-relocate-endpoints : (-> (Option (GLayerof Geo)) (Option (GLayerof Geo)) (List Geo-Path-Clean-Print Geo-Path-Clean-Print)
                                               (List Geo-Path-Clean-Print Geo-Path-Clean-Print))
   (lambda [source target tracks]
     (define a:track : Geo-Path-Clean-Print (car tracks))
@@ -39,7 +38,7 @@
     (list (if (not source) a:track (dia-2-tracks-relocate-source source a:track b:track))
           (if (not target) b:track (dia-2-tracks-relocate-target target a:track b:track)))))
 
-(define dia-more-tracks-relocate-endpoints : (-> (Pairof Geo-Anchor-Name (GLayerof Geo)) (Option (Pairof Geo-Anchor-Name (GLayerof Geo)))
+(define dia-more-tracks-relocate-endpoints : (-> (GLayerof Geo) (Option (GLayerof Geo))
                                                  (List* Geo-Path-Clean-Print Geo-Path-Clean-Print Geo-Path-Clean-Print (Listof Geo-Path-Clean-Print))
                                                  Geo-Path-Clean-Prints)
   (lambda [source target tracks]

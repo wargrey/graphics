@@ -3,8 +3,10 @@
 (provide (all-defined-out))
 
 (require "tip.rkt")
+(require "label.rkt")
 
 (require geofun/digitama/geometry/anchor)
+(require geofun/digitama/convert)
 
 (require geofun/font)
 (require geofun/paint)
@@ -13,8 +15,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Free-Edge-Endpoint (U Geo-Anchor-Name Float-Complex))
 
-(define-type (Dia-Edge-Style-Make* Src Tgt S) (-> Src Tgt (U False Void S)))
-(define-type Dia-Edge-Style-Make (Dia-Edge-Style-Make* Geo-Anchor-Name (Option Geo-Anchor-Name) Dia-Edge-Style))
+(define-type (Dia-Edge-Style-Make* Src Tgt S) (-> Src Tgt (Listof Dia-Edge-Label-Datum) (U S Void False)))
+(define-type Dia-Edge-Style-Make (Dia-Edge-Style-Make* Geo (Option Geo) Dia-Edge-Style))
 (define-type Dia-Free-Edge-Style-Make (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint Dia-Edge-Style))
 
 (struct dia-edge-style
@@ -85,9 +87,9 @@
         (dia-edge-base-style-font-paint ((default-dia-edge-base-style))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (Src Tgt S) dia-edge-style-construct : (-> Src Tgt (Option (Dia-Edge-Style-Make* Src Tgt S)) (-> S) S)
-  (lambda [source target mk-style mk-fallback-style]
-    (define maybe-style (and mk-style (mk-style source target)))
+(define #:forall (Src Tgt S) dia-edge-style-construct : (-> Src Tgt (Listof Dia-Edge-Label-Datum) (Option (Dia-Edge-Style-Make* Src Tgt S)) (-> S) S)
+  (lambda [source target label mk-style mk-fallback-style]
+    (define maybe-style (and mk-style (mk-style source target label)))
 
     (if (or (not maybe-style) (void? maybe-style))
         (mk-fallback-style)

@@ -19,15 +19,18 @@
 (require "../../paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct geo:art-text geo
-  ([content : String]
-   [lines : (Listof Symbol)])
+(struct geo:string geo
+  ([body : String])
+  #:type-name Geo:String
+  #:transparent)
+
+(struct geo:art-text geo:string
+  ([lines : (Listof Symbol)])
   #:type-name Geo:Art-Text
   #:transparent)
 
-(struct geo:text geo
-  ([content : String]
-   [lines : (Listof Symbol)]
+(struct geo:text geo:string
+  ([lines : (Listof Symbol)]
    [aline : Maybe-Stroke-Paint]
    [dline : Maybe-Stroke-Paint]
    [cline : Maybe-Stroke-Paint]
@@ -36,9 +39,8 @@
   #:type-name Geo:Text
   #:transparent)
 
-(struct geo:para geo
-  ([content : String]
-   [lines : (Listof Symbol)]
+(struct geo:para geo:string
+  ([lines : (Listof Symbol)]
    [mwidth : (Option Flonum)]
    [mheight : (U Flonum Nonpositive-Integer)]
    [ident : Flonum]
@@ -100,14 +102,14 @@
   (lambda [alt-font]
     (λ [self]
       (with-asserts ([self geo:text?])
-        (define-values (W H) (text-size (geo:text-content self) (or alt-font (default-font))))
+        (define-values (W H) (text-size (geo:string-body self) (or alt-font (default-font))))
         (values W H #false)))))
 
 (define geo-art-text-extent : (-> (Option Font) Geo-Calculate-Extent)
   (lambda [alt-font]
     (λ [self]
       (with-asserts ([self geo:art-text?])
-        (define-values (W H) (text-size (geo:art-text-content self) (or alt-font (default-art-font))))
+        (define-values (W H) (text-size (geo:string-body self) (or alt-font (default-art-font))))
         (values W H #false)))))
 
 (define geo-text-surface : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Create)
@@ -115,7 +117,7 @@
     (λ [self]
       (with-asserts ([self geo:text?])
         (dc_text create-abstract-surface
-                 (geo:text-content self) (geo-select-font alt-font default-font) (geo:text-lines self)
+                 (geo:string-body self) (geo-select-font alt-font default-font) (geo:text-lines self)
                  (geo-select-font-source alt-fg) (geo-select-background-source alt-bg)
                  (stroke-paint->source* (geo:text-aline self)) (stroke-paint->source* (geo:text-cline self))
                  (stroke-paint->source* (geo:text-mline self))
@@ -127,7 +129,7 @@
     (λ [self]
       (with-asserts ([self geo:art-text?])
         (dc_art_text create-abstract-surface
-                     (geo:art-text-content self) (geo-select-font alt-font default-art-font) (geo:art-text-lines self)
+                     (geo:string-body self) (geo-select-font alt-font default-art-font) (geo:art-text-lines self)
                      (geo-select-stroke-paint alt-outl) (geo-select-fill-source alt-fill) (geo-select-background-source alt-bg)
                      (default-geometry-density))))))
 
@@ -136,7 +138,7 @@
     (λ [self]
       (with-asserts ([self geo:para?])
         (dc_paragraph create-abstract-surface
-                      (geo:para-content self) (geo-select-font alt-font default-font) (geo:para-lines self)
+                      (geo:string-body self) (geo-select-font alt-font default-font) (geo:para-lines self)
                       (geo:para-mwidth self) (geo:para-mheight self)
                       (geo:para-ident self) (geo:para-space self) (geo:para-wmode self) (geo:para-emode self)
                       (geo-select-font-source alt-fg) (geo-select-background-source alt-bg)

@@ -77,4 +77,20 @@
         (and (pair? info)
              (string? (car info))
              (string? (cdr info))))))
-  
+
+(define dia-edge-label-flatten : (-> (Listof Dia-Edge-Label-Datum) (Listof String))
+  (lambda [labels]
+    (let flatten ([strs : (Listof String) null]
+                  [labels : (Listof Dia-Edge-Label-Datum) labels])
+      (if (pair? labels)
+          (let ([self (car labels)])
+            (if (string? self)
+                (flatten (cons self strs) (cdr labels))
+                (flatten (append (filter string? (list (car self) (cdr self))) strs) (cdr labels))))
+          strs))))
+
+(define dia-edge-label-match? : (-> (Listof String) (Listof String) Boolean)
+  (lambda [labels keywords]
+    (for/or : Boolean ([label (in-list labels)])
+      (for/or : Boolean ([keyword (in-list keywords)])
+        (string-ci=? label keyword)))))

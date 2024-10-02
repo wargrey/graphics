@@ -1,13 +1,14 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out "digitama/style/flow.rkt" "digitama/interface/flow.rkt"))
 (provide (all-from-out geofun/path))
+(provide (all-from-out "digitama/style/flow.rkt" "digitama/interface/flow.rkt"))
 (provide (rename-out [dia-path-flow geo-path-flow]))
 
-(provide default-diaflow-block-identify default-diaflow-node-construct)
-(provide default-diaflow-arrow-construct default-diaflow-arrow-label-construct)
-(provide default-diaflow-free-track-construct default-diaflow-free-track-label-construct)
+(provide default-diaflow-block-identify default-diaflow-arrow-identify)
+(provide default-diaflow-node-construct default-diaflow-node-label-construct)
+(provide default-diaflow-edge-construct default-diaflow-edge-label-construct)
+(provide default-diaflow-free-edge-construct default-diaflow-free-edge-label-construct)
 
 (require digimon/metrics)
 (require geofun/path)
@@ -20,10 +21,11 @@
 (require geofun/digitama/layer/type)
 (require geofun/digitama/dc/composite)
 
-(require "digitama/flowchart.rkt")
+(require "digitama/node/flow.rkt")
 (require "digitama/style/flow.rkt")
 (require "digitama/identifier/flow.rkt")
 (require "digitama/interface/flow.rkt")
+(require "digitama/flowchart.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
@@ -50,32 +52,23 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-path-flow : (->* (Geo:Path)
-                             (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator)
-                              #:start-name (Option String) #:λblock DiaFlow-Block-Identifier
+                             (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator) #:start-name (Option String)
+                              #:λblock DiaFlow-Block-Identifier #:λarrow DiaFlow-Arrow-Identifier
                               #:λnode DiaFlow-Anchor->Node-Shape #:λnode-label DiaFlow-Anchor->Node-Label
-                              #:λarrow DiaFlow-Arrow->Edge #:λarrow-label DiaFlow-Arrow->Edge-Label
-                              #:λfree-track DiaFlow-Free-Track->Edge #:λfree-track-label DiaFlow-Free-Track->Edge-Label)
+                              #:λedge DiaFlow-Arrow->Edge #:λedge-label DiaFlow-Arrow->Edge-Label
+                              #:λfree-edge DiaFlow-Free-Track->Edge #:λfree-edge-label DiaFlow-Free-Track->Edge-Label)
                              (U Geo:Group Geo:Path))
-  (lambda [#:id [id #false] #:operator [op #false] #:start-name [start #false] #:λblock [block-detect default-diaflow-block-identify]
+  (lambda [#:id [id #false] #:operator [op #false] #:start-name [start #false]
+           #:λblock [block-detect default-diaflow-block-identify] #:λarrow [arrow-detect default-diaflow-arrow-identify]
            #:λnode [make-node default-diaflow-node-construct] #:λnode-label [make-node-label default-diaflow-node-label-construct]
-           #:λarrow [make-arrow default-diaflow-arrow-construct] #:λarrow-label [make-arrow-label default-diaflow-arrow-label-construct]
-           #:λfree-track [make-free-track default-diaflow-free-track-construct] #:λfree-track-label [make-free-label default-diaflow-free-track-label-construct]
+           #:λedge [make-edge default-diaflow-edge-construct] #:λedge-label [make-edge-label default-diaflow-edge-label-construct]
+           #:λfree-edge [make-free-track default-diaflow-free-edge-construct] #:λfree-edge-label [make-free-label default-diaflow-free-edge-label-construct]
            self]
     (parameterize ([default-dia-node-base-style make-diaflow-node-base-style]
                    [default-dia-edge-base-style make-diaflow-edge-base-style]
                    [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))])
-      (define node-sticker : Geo-Anchor->Sticker
-        (λ [master anchor pos Width Height]
-          (define blk-datum (block-detect anchor))
-          (and blk-datum
-               (let ([style (cadr blk-datum)]
-                     [hint (caddr blk-datum)])
-                 (make-node master anchor
-                            (make-node-label master anchor (car blk-datum) style pos hint)
-                            style pos hint)))))
-
       (define stickers : (Listof (GLayerof Geo))
-        (diaflow-stick self node-sticker make-arrow make-arrow-label
+        (diaflow-stick self block-detect make-node make-node-label arrow-detect make-edge make-edge-label
                        make-free-track make-free-label (geo:path-foot-infos self)))
 
       (if (pair? stickers)

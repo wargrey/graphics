@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require racket/string)
-(require racket/symbol)
 
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/convert)

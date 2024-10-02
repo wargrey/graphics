@@ -3,9 +3,10 @@
 (provide (all-defined-out))
 
 (require racket/string)
-
 (require geofun/digitama/geometry/anchor)
 
+(require "../node/dc.rkt")
+(require "../edge/label.rkt")
 (require "../style/flow.rkt")
 (require "../interface/flow.rkt")
 
@@ -23,6 +24,30 @@
 
         (diaflow-block-text-identify anchor (geo-anchor->string anchor)))))
 
+(define default-diaflow-arrow-identify : DiaFlow-Arrow-Identifier
+  (lambda [source target labels]
+    (define stype : Symbol (dia:node-type source))
+    (define ttype : (Option Symbol) (and target (dia:node-type target)))
+
+    (cond [(eq? stype 'Decision)
+           (let ([hints (dia-edge-label-flatten labels)])
+             (cond [(dia-edge-label-match? hints (default-diaflow-success-decision-keywords))
+                    (dia-edge-style-construct source target labels (default-diaflow-success-arrow-style-make) make-diaflow-success-arrow-style)]
+                   [(dia-edge-label-match? hints (default-diaflow-failure-decision-keywords))
+                    (dia-edge-style-construct source target labels (default-diaflow-failure-arrow-style-make) make-diaflow-failure-arrow-style)]
+                   [else (dia-edge-style-construct source target labels (default-diaflow-decision-arrow-style-make) make-diaflow-decision-arrow-style)]))]
+          [(or (eq? stype 'Label) (eq? ttype 'Label))
+           (let ([text (cond [(dia:node:label? source) (dia:node:label-body source)]
+                             [(dia:node:label? target) (dia:node:label-body target)]
+                             [else #false])])
+             (or (and text
+                      (or (and (dia-edge-label-match? (list text) (default-diaflow-success-decision-keywords))
+                               (dia-edge-style-construct source target labels (default-diaflow-success-arrow-style-make) make-diaflow-success-arrow-style))
+                          (and (dia-edge-label-match? (list text) (default-diaflow-failure-decision-keywords))
+                               (dia-edge-style-construct source target labels (default-diaflow-failure-arrow-style-make) make-diaflow-failure-arrow-style))))
+                 (dia-edge-style-construct source target labels (default-diaflow-arrow-style-make) make-diaflow-arrow-style)))]
+          [else (dia-edge-style-construct source target labels (default-diaflow-arrow-style-make) make-diaflow-arrow-style)])))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; TODO:
 ; `~text`   for collate (data filter)
@@ -37,13 +62,13 @@
                 [ch0 (string-ref text 0)]
                 [ch$ (string-ref text idx$)])
            (or (cond [(eq? ch0 #\^) ; also, check it before #\? for flowcharts of predicate functions
-                      (diaflow-node-style-construct anchor (substring text 1 size) (default-diaflow-start-style-make) make-diaflow-start-style)]
+                      (diaflow-node-style-construct anchor (substring text 1 size) (default-diaflow-start-style-make) make-diaflow-start-style 'Start)]
                      [(eq? ch$ #\?)
                       (diaflow-node-style-construct anchor text (default-diaflow-decision-style-make) make-diaflow-decision-style)]
                      [(eq? ch$ #\!)
                       (diaflow-node-style-construct anchor text (default-diaflow-preparation-style-make) make-diaflow-preparation-style)]
                      [(eq? ch$ #\$)
-                      (diaflow-node-style-construct anchor (substring text 0 idx$) (default-diaflow-stop-style-make) make-diaflow-stop-style)]
+                      (diaflow-node-style-construct anchor (substring text 0 idx$) (default-diaflow-stop-style-make) make-diaflow-stop-style 'Stop)]
                      [(eq? ch0 #\>)
                       (cond [(string-prefix? text ">>:")
                              (diaflow-node-style-construct anchor (substring text 3 size) (default-diaflow-input-style-make) make-diaflow-input-style 'manual)]

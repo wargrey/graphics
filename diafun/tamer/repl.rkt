@@ -60,18 +60,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (define colorful-edge : Dia-Edge-Style-Make
-    (lambda [source target]
-      (cond [(memq source (list Read Print)) (make-diaflow-arrow-style #:line-paint 'LimeGreen)]
-            [else (case source
-                    [(#:home Exit$) (make-diaflow-arrow-style #:line-paint 'DimGray)]
-                    [(Initialization!) (make-diaflow-arrow-style #:line-paint 'Red)]
-                    [(#:Exit? -YES-) (make-diaflow-arrow-style #:line-paint (if (not target) 'LimeGreen 'Blue))]
-                    [(#:Void?) (make-diaflow-arrow-style #:line-paint (if (not target) (desc-stroke default-free-edge-stroke #:color 'LimeGreen) 'Blue))]
-                    [(#:Byte?) (make-diaflow-arrow-style #:line-paint (if (eq? target 'Exit$) (desc-stroke default-free-edge-stroke #:color 'LimeGreen) 'Blue))]
-                    [(->Evaluate) (make-diaflow-arrow-style #:line-paint 'Orange)])])))
-
-  (default-diaflow-arrow-style-make colorful-edge)
   ;(default-diaflow-fill-paint #false)
   
   (geo-frame (dia-path-flow repl #:start-name "REPL\n(Shell)") #:background 'White))

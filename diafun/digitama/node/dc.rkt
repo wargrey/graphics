@@ -21,35 +21,42 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-dia-node stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ (~seq #:id name)
+    [(_ (~seq #:id name) (~seq #:type type subtype)
         (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
         (~optional (~seq #:fit-ratio wratio hratio) #:defaults ([wratio #'1.0] [hratio #'1.0]))
         (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))
         shape label argl ...)
      (syntax/loc stx
-       (create-dia-node dia:node #:id name #:intersect intersect
+       (create-dia-node dia:node
+                        #:id name #:type type subtype
+                        #:intersect intersect
                         #:fit-ratio wratio hratio
                         #:position wpos hpos
                         shape label argl ...))]
-    [(_ Geo (~seq #:id name)
+    [(_ Geo (~seq #:id name) (~seq #:type type subtype)
         (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
         (~optional (~seq #:fit-ratio wratio hratio) #:defaults ([wratio #'1.0] [hratio #'1.0]))
         (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))
         shape label argl ...)
      (syntax/loc stx
        (let ([layers (dia-node-layers label shape wratio hratio wpos hpos)])
-         (Geo geo-convert geo-group-surface (geo-group-extent layers) name #false
-              layers intersect argl ...)))]))
+         (Geo geo-convert geo-group-surface (geo-group-extent layers)
+              name #false layers
+              intersect type subtype
+              argl ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Node-Intersect (-> Float-Complex Float-Complex Float-Complex (GLayerof Geo) (Option Float-Complex)))
 
 (struct dia:node geo:group
-  ([intersect : Dia-Node-Intersect])
+  ([intersect : Dia-Node-Intersect]
+   [type : Symbol]
+   [subtype : (Option Symbol)])
   #:type-name Dia:Node
   #:transparent)
 
-(struct dia:node:label dia:node ()
+(struct dia:node:label dia:node
+  ([body : (Option String)])
   #:type-name Dia:Node:Label
   #:transparent)
 

@@ -7,7 +7,6 @@
 (require digimon/struct)
 
 (require geofun/font)
-(require geofun/stroke)
 (require geofun/paint)
 
 (require "../node/style.rkt")
@@ -34,8 +33,14 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflow-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
+(define default-diaflow-decision-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
+(define default-diaflow-success-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
+(define default-diaflow-failure-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
 (define default-diaflow-free-track-style-make : (Parameterof (Option Dia-Free-Edge-Style-Make)) (make-parameter #false))
 (define default-diaflow-edge-label-rotate? : (Parameterof Boolean) (make-parameter #false))
+
+(define default-diaflow-success-decision-keywords : (Parameterof (Listof String)) (make-parameter (list "T" "Y" "TRUE" "YES")))
+(define default-diaflow-failure-decision-keywords : (Parameterof (Listof String)) (make-parameter (list "F" "N" "FALSE" "NO")))
 
 (define-configuration diaflow-edge-base-style : DiaFlow-Edge-Style #:as dia-edge-base-style
   #:format "default-diaflow-edge-~a"
@@ -50,6 +55,30 @@
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [line-paint : Maybe-Stroke-Paint (void)]
+   [source-shape : Maybe-Edge-Tip-Shape (void)]
+   [target-shape : Maybe-Edge-Tip-Shape (void)]))
+
+(define-configuration diaflow-decision-arrow-style : DiaFlow-Decision-Arrow-Style #:as dia-edge-style
+  #:format "default-diaflow-decision-arrow-~a"
+  ([font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [line-paint : Maybe-Stroke-Paint 'Orange]
+   [source-shape : Maybe-Edge-Tip-Shape (void)]
+   [target-shape : Maybe-Edge-Tip-Shape (void)]))
+
+(define-configuration diaflow-success-arrow-style : DiaFlow-Success-Arrow-Style #:as dia-edge-style
+  #:format "default-diaflow-success-arrow-~a"
+  ([font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [line-paint : Maybe-Stroke-Paint 'LimeGreen]
+   [source-shape : Maybe-Edge-Tip-Shape (void)]
+   [target-shape : Maybe-Edge-Tip-Shape (void)]))
+
+(define-configuration diaflow-failure-arrow-style : DiaFlow-Failure-Arrow-Style #:as dia-edge-style
+  #:format "default-diaflow-failure-arrow-~a"
+  ([font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [line-paint : Maybe-Stroke-Paint 'Teal]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]))
 
@@ -110,8 +139,8 @@
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
-   [stroke-paint : Maybe-Stroke-Paint 'MediumSeaGreen]
-   [fill-paint : Maybe-Fill-Paint 'Honeydew]))
+   [stroke-paint : Maybe-Stroke-Paint 'ForestGreen]
+   [fill-paint : Maybe-Fill-Paint 'LightCyan]))
 
 (define-configuration diaflow-stop-style : DiaFlow-Stop-Style #:as dia-node-style
   #:format "default-diaflow-stop-~a"
@@ -121,6 +150,24 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-paint : Maybe-Stroke-Paint 'DarkSlateGray]
    [fill-paint : Maybe-Fill-Paint 'Gainsboro]))
+
+(define-configuration diaflow-inspection-style : DiaFlow-Inspection-Style #:as dia-node-style
+  #:format "default-diaflow-inspection-~a"
+  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width)  0.384)]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-paint : Maybe-Stroke-Paint 'DeepSkyBlue]
+   [fill-paint : Maybe-Fill-Paint 'LightCyan]))
+
+(define-configuration diaflow-reference-style : DiaFlow-Reference-Style #:as dia-node-style
+  #:format "default-diaflow-reference-~a"
+  ([block-width : (Option Nonnegative-Flonum) (* (default-diaflow-block-width) 0.24)]
+   [block-height : (Option Nonnegative-Flonum) #false]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-paint : Maybe-Stroke-Paint 'MediumSeaGreen]
+   [fill-paint : Maybe-Fill-Paint 'Honeydew]))
 
 (define-configuration diaflow-input-style : DiaFlow-Input-Style #:as dia-node-style
   #:format "default-diaflow-input-~a"
@@ -175,24 +222,6 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-paint : Maybe-Stroke-Paint 'DodgerBlue]
    [fill-paint : Maybe-Fill-Paint (void)]))
-
-(define-configuration diaflow-inspection-style : DiaFlow-Inspection-Style #:as dia-node-style
-  #:format "default-diaflow-inspection-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width)  0.384)]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
-   [font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-paint : Maybe-Stroke-Paint 'DeepSkyBlue]
-   [fill-paint : Maybe-Fill-Paint 'LightCyan]))
-
-(define-configuration diaflow-reference-style : DiaFlow-Reference-Style #:as dia-node-style
-  #:format "default-diaflow-reference-~a"
-  ([block-width : (Option Nonnegative-Flonum) (* (default-diaflow-block-width) 0.24)]
-   [block-height : (Option Nonnegative-Flonum) #false]
-   [font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-paint : Maybe-Stroke-Paint 'ForestGreen]
-   [fill-paint : Maybe-Fill-Paint 'LightCyan]))
 
 (define-configuration diaflow-database-style : DiaFlow-Database-Style #:as dia-node-style
   #:format "default-diaflow-database-~a"
