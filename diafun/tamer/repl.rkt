@@ -2,7 +2,6 @@
 
 (require geofun/vector)
 (require diafun/flowchart)
-(require diafun/digitama/style/shared)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define Read : Symbol (string->symbol ">>:Read\nExpression"))
@@ -60,7 +59,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   ;(default-diaflow-fill-paint #false)
-  ;(default-diaflow-edge-label-rotate? #true)
-  ;(default-diaflow-edge-label-inline? #false)
   
   (geo-frame (dia-path-flow repl #:start-name "REPL\n(Shell)") #:background 'White))

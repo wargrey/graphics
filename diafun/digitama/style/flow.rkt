@@ -77,7 +77,7 @@
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
    [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) (void)]))
+   [label-inline? : (U Boolean Void) #false]))
 
 (define-configuration diaflow-success-arrow-style : DiaFlow-Success-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-success-arrow-~a"
@@ -89,7 +89,7 @@
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
    [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) (void)]))
+   [label-inline? : (U Boolean Void) #false]))
 
 (define-configuration diaflow-failure-arrow-style : DiaFlow-Failure-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-failure-arrow-~a"
@@ -101,7 +101,7 @@
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
    [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) (void)]))
+   [label-inline? : (U Boolean Void) #false]))
 
 (define-configuration diaflow-loop-arrow-style : DiaFlow-Loop-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-loop-arrow-~a"
