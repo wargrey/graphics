@@ -61,12 +61,12 @@
     
     (+ A Pv (* v t))))
 
-(define geo-parallel-segment : (-> Float-Complex Float-Complex Flonum (Values Float-Complex Float-Complex))
+(define geo-parallel-segment : (->* (Float-Complex Float-Complex Flonum) (Flonum) (Values Float-Complex Float-Complex))
   ;;; find the |d|-distance segment of segment AB
   ;     the resulting segment should be on the left side(d > 0.0) or right side(d < 0.0) of AB
-  (lambda [A B d]
+  (lambda [A B d [t 0.0]]
     (define V : Float-Complex (- B A))
-    (define P : Float-Complex (geo-perpendicular-point A V d))
+    (define P : Float-Complex (geo-perpendicular-point A V d t))
     
     (values P (+ P V))))
 

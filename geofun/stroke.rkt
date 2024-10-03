@@ -34,7 +34,7 @@
 (define desc-stroke : (->* ()
                            (Stroke #:color (Option Color) #:opacity Real #:width (Option Real)
                                    #:cap (Option Symbol) #:join (U Symbol Real False)
-                                   #:dash (U Symbol (Vectorof Nonnegative-Flonum) False) #:offset (Option Real))
+                                   #:dash (Option Stroke-Dash-Datum) #:offset (Option Real))
                            Stroke)
   (lambda [[baseline (default-stroke)] #:color [color #false] #:opacity [opacity 1.0] #:width [width #false]
                                        #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]]

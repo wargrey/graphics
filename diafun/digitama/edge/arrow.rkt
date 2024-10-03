@@ -14,7 +14,7 @@
 (define-struct dia-arrow-tip : Dia-Arrow-Tip #:-> Dia-Edge-Tip-Shape
   ([radius : Real -3.0]
    [wing.deg : (Option Real) #false]
-   [t : Nonnegative-Flonum 0.90])
+   [t : Nonnegative-Flonum 1.00])
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

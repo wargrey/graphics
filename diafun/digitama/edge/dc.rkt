@@ -87,7 +87,7 @@
                                                                                      (dia-edge-label-distance label)
                                                                                      (dia-edge-label-ratio label)))
                                         layers)))
-                        (create-geometry-group dia:labeled-edge #false
+                        (create-geometry-group dia:labeled-edge 'source
                                                (geo-path-layers-merge (geo:group-selves self) layers)))))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

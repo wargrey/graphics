@@ -55,7 +55,8 @@
                             ((Option Font) #:id (Option Symbol) #:lines (Listof Symbol)
                                            #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:background Maybe-Fill-Paint)
                             Geo:Art-Text)
-  (lambda [#:id [id #false] #:stroke [outline (void)] #:fill [fill (void)] #:background [bgsource (void)] #:lines [lines null] text [font #false]]
+  (lambda [#:id [id #false] #:stroke [outline (void)] #:fill [fill (void)] #:background [bgsource (void)] #:lines [lines null]
+           text [font #false]]
     (create-geometry-object geo:art-text
                             #:surface (geo-art-text-surface font outline fill bgsource)
                             #:extent (geo-art-text-extent font)
@@ -63,11 +64,11 @@
                             (~a text) lines)))
 
 (define geo-text : (->* (Any)
-                        ((Option Font) #:id (Option Symbol) #:color Option-Fill-Paint #:background Maybe-Fill-Paint #:lines (Listof Symbol)
+                        ((Option Font) #:id (Option Symbol) #:lines (Listof Symbol) #:color Option-Fill-Paint #:background Maybe-Fill-Paint
                                        #:baseline Maybe-Stroke-Paint #:capline Maybe-Stroke-Paint #:meanline Maybe-Stroke-Paint
                                        #:ascent Maybe-Stroke-Paint #:descent Maybe-Stroke-Paint)
                         Geo:Text)
-  (lambda [#:id [id #false] #:color [fgsource #false] #:background [bgsource (void)] #:lines [lines null]
+  (lambda [#:id [id #false] #:lines [lines null] #:color [fgsource #false] #:background [bgsource (void)]
            #:ascent [alsource #false] #:descent [dlsource #false] #:capline [clsource #false] #:meanline [mlsource #false] #:baseline [blsource #false]
            text [font #false] ]
     (create-geometry-object geo:text

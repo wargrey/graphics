@@ -38,7 +38,8 @@
 
     (when (pair? prints)
       (define offset (unsafe-vector*-ref shape 1))
-      
+
+      ;(cairo_set_operator cr CAIRO_OPERATOR_SOURCE)
       (cairo_new_path cr)
       (cairo_path cr prints 0.0 0.0)
       (cairo-render cr (unsafe-vector*-ref shape 1) (unsafe-vector*-ref shape 2)))))

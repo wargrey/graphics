@@ -42,7 +42,7 @@
             [(or rotate?) (* (geo-height label) (if (negative? (real-part v)) -0.618 0.618))]
             [else (let*-values ([(lw lh) (geo-flsize label)]
                                 [(theta) (angle v)])
-                    (* (magnitude (make-rectangular (* lw (sin theta)) (* lh (cos theta)))) 0.618
+                    (* (magnitude (make-rectangular (* lw (sin theta)) (* lh (cos theta)))) 0.72
                        (if (negative? (real-part v)) -1.0 1.0)))]))
     
     (unsafe-dia-edge-label sticker start v t smart-distance)))
@@ -75,8 +75,10 @@
   (lambda [info]
     (or (string? info)
         (and (pair? info)
-             (string? (car info))
-             (string? (cdr info))))))
+             (let ([src (car info)]
+                   [tgt (cdr info)])
+               (and (or (not src) (string? src))
+                    (or (not tgt) (string? tgt))))))))
 
 (define dia-edge-label-flatten : (-> (Listof Dia-Edge-Label-Datum) (Listof String))
   (lambda [labels]
@@ -89,8 +91,11 @@
                 (flatten (append (filter string? (list (car self) (cdr self))) strs) (cdr labels))))
           strs))))
 
-(define dia-edge-label-match? : (-> (Listof String) (Listof String) Boolean)
+(define dia-edge-label-match? : (-> (Listof String) (U (Listof String) Regexp) Boolean)
   (lambda [labels keywords]
-    (for/or : Boolean ([label (in-list labels)])
-      (for/or : Boolean ([keyword (in-list keywords)])
-        (string-ci=? label keyword)))))
+    (if (list? keywords)
+        (for/or : Boolean ([label (in-list labels)])
+          (for/or : Boolean ([keyword (in-list keywords)])
+            (string-ci=? label keyword)))
+        (for/or : Boolean ([label (in-list labels)])
+          (regexp-match? keywords label)))))

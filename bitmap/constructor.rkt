@@ -96,8 +96,9 @@
                                (Font #:stroke Option-Stroke-Paint #:fill Option-Fill-Paint #:background Option-Fill-Paint
                                      #:lines (Listof Symbol) #:density Positive-Flonum)
                                Bitmap)
-  (lambda [text [font (default-art-font)] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)]
-                #:background [bgsource (default-background-paint)] #:lines [lines null] #:density [density (default-bitmap-density)]]
+  (lambda [#:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:background [bgsource (default-background-paint)]
+           #:margin [margin #false] #:lines [lines null] #:density [density (default-bitmap-density)]
+           text [font (default-art-font)]]
     (dc_art_text create-argb-bitmap
                  (~a text) (font-description font) lines
                  (stroke-paint->source* outline) (fill-paint->source* pattern)
@@ -113,7 +114,8 @@
                 #:ascent [alsource #false] #:descent [dlsource #false] #:capline [clsource #false] #:meanline [mlsource #false]
                 #:baseline [blsource #false] #:density [density (default-bitmap-density)]]
     (dc_text create-argb-bitmap
-             (~a text) (font-description font) lines (font-paint->source ftsource) (background->source* bgsource)
+             (~a text) (font-description font) lines
+             (font-paint->source ftsource) (background->source* bgsource)
              (stroke-paint->source* alsource) (stroke-paint->source* clsource) (stroke-paint->source* mlsource)
              (stroke-paint->source* blsource) (stroke-paint->source* dlsource) density)))
 

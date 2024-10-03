@@ -28,26 +28,23 @@
   (lambda [source target labels]
     (define stype : Symbol (dia:node-type source))
     (define ttype : (Option Symbol) (and target (dia:node-type target)))
+    (define hints : (Listof String) (dia-edge-label-flatten labels))
 
-    (cond [(eq? stype 'Decision)
-           (let ([hints (dia-edge-label-flatten labels)])
-             (cond [(dia-edge-label-match? hints (default-diaflow-success-decision-keywords))
+    (define edge-style : Dia-Edge-Style
+      (cond [(eq? stype 'Decision)
+             (cond [(dia-edge-label-match? hints (default-diaflow-success-decision-labels))
                     (dia-edge-style-construct source target labels (default-diaflow-success-arrow-style-make) make-diaflow-success-arrow-style)]
-                   [(dia-edge-label-match? hints (default-diaflow-failure-decision-keywords))
+                   [(dia-edge-label-match? hints (default-diaflow-failure-decision-labels))
                     (dia-edge-style-construct source target labels (default-diaflow-failure-arrow-style-make) make-diaflow-failure-arrow-style)]
-                   [else (dia-edge-style-construct source target labels (default-diaflow-decision-arrow-style-make) make-diaflow-decision-arrow-style)]))]
-          [(or (eq? stype 'Label) (eq? ttype 'Label))
-           (let ([text (cond [(dia:node:label? source) (dia:node:label-body source)]
-                             [(dia:node:label? target) (dia:node:label-body target)]
-                             [else #false])])
-             (or (and text
-                      (or (and (dia-edge-label-match? (list text) (default-diaflow-success-decision-keywords))
-                               (dia-edge-style-construct source target labels (default-diaflow-success-arrow-style-make) make-diaflow-success-arrow-style))
-                          (and (dia-edge-label-match? (list text) (default-diaflow-failure-decision-keywords))
-                               (dia-edge-style-construct source target labels (default-diaflow-failure-arrow-style-make) make-diaflow-failure-arrow-style))))
-                 (dia-edge-style-construct source target labels (default-diaflow-arrow-style-make) make-diaflow-arrow-style)))]
-          [else (dia-edge-style-construct source target labels (default-diaflow-arrow-style-make) make-diaflow-arrow-style)])))
+                   [else (dia-edge-style-construct source target labels (default-diaflow-decision-arrow-style-make) make-diaflow-decision-arrow-style)])]
+            [(dia-edge-label-match? hints (default-diaflow-loop-label-regexp))
+             (dia-edge-style-construct source target labels (default-diaflow-loop-arrow-style-make) make-diaflow-loop-arrow-style)]
+            [else (dia-edge-style-construct source target labels (default-diaflow-arrow-style-make) make-diaflow-arrow-style)]))
 
+    (if (or (eq? stype 'Alternate) (eq? ttype 'Alternate))
+        (dia-edge-swap-dash-style edge-style 'long-dash)
+        edge-style)))
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; TODO:
 ; `~text`   for collate (data filter)
@@ -78,15 +75,13 @@
                      [(eq? ch$ #\<)
                       (and (string-suffix? text "<<")
                            (diaflow-node-style-construct anchor (substring text 0 idx$2) (default-diaflow-output-style-make) make-diaflow-output-style))]
-                     [(eq? ch0 #\/)
-                      (and (string-prefix? text "//")
-                           (diaflow-node-style-construct anchor (substring text 2 size) (default-diaflow-comment-style-make) make-diaflow-comment-style))]
+                     [(eq? ch0 #\λ)
+                      (diaflow-node-style-construct anchor (substring text 1 size) (default-diaflow-prefab-style-make) make-diaflow-prefab-style)]
                      [(eq? ch0 #\-)
-                      (cond [(string-prefix? text "->")
-                             (diaflow-node-style-construct anchor (substring text 2 size) (default-diaflow-subroutine-style-make) make-diaflow-subroutine-style)]
-                            [(eq? ch$ #\-)
-                             (diaflow-node-style-construct anchor (substring text 1 idx$) (default-diaflow-arrow-label-style-make) make-diaflow-arrow-label-style)]
-                            [else #false])]
+                      (and (string-prefix? text "--")
+                           (if (string-suffix? text "--")
+                               (diaflow-node-style-construct anchor (substring text 2 idx$2) (default-diaflow-alternate-style-make) make-diaflow-alternate-style)
+                               (diaflow-node-style-construct anchor (substring text 2 size)  (default-diaflow-alternate-style-make) make-diaflow-alternate-style)))]
                      [(eq? ch0 #\@)
                       (if (eq? ch$ #\.)
                           (diaflow-node-style-construct anchor (substring text 1 idx$) (default-diaflow-inspection-style-make) make-diaflow-inspection-style 'sink)

@@ -59,14 +59,14 @@
           [(diaflow-decision-style? style) (diaflow-block-decision node-id label style width height hint)]
           [(diaflow-input-style? style) (diaflow-block-input node-id label style width height hint)]
           [(diaflow-output-style? style) (diaflow-block-output node-id label style width height hint)]
-          [(diaflow-subroutine-style? style) (diaflow-block-subroutine node-id label style width height hint)]
+          [(diaflow-prefab-style? style) (diaflow-block-prefab node-id label style width height hint)]
           [(diaflow-preparation-style? style) (diaflow-block-preparation node-id label style width height hint)]
           [(diaflow-start-style? style) (diaflow-block-terminal node-id label style width height hint)]
           [(diaflow-stop-style? style) (diaflow-block-terminal node-id label style width height hint)]
           [(diaflow-inspection-style? style) (diaflow-block-inspection node-id label style width height hint)]
           [(diaflow-reference-style? style) (diaflow-block-reference node-id label style width height hint)]
-          [(diaflow-arrow-label-style? style) (diaflow-block-in-arrow-label node-id label style width height hint)]
-          [(diaflow-operation-style? style) (diaflow-block-manual-operation node-id label style width height hint)])))
+          [(diaflow-operation-style? style) (diaflow-block-manual-operation node-id label style width height hint)]
+          [(diaflow-alternate-style? style) (diaflow-block-alternate node-id label style width height hint)])))
 
 (define default-diaflow-edge-construct : DiaFlow-Arrow->Edge
   (lambda [master source target style tracks labels]
@@ -82,7 +82,8 @@
   (lambda [master source target style start end info]
     (make-dia-edge-labels #:font (dia-edge-select-font style)
                           #:font-paint (dia-edge-select-font-paint style)
-                          #:rotate? (default-diaflow-edge-label-rotate?)
+                          #:rotate? (dia-edge-select-label-rotate? style)
+                          #:distance (and (dia-edge-select-label-inline? style) 0.0)
                           start end info)))
 
 (define default-diaflow-free-edge-construct : DiaFlow-Free-Track->Edge
@@ -99,7 +100,8 @@
   (lambda [master source target style start end info]
     (make-dia-edge-labels #:font (dia-edge-select-font style)
                           #:font-paint (dia-edge-select-font-paint style)
-                          #:rotate? (default-diaflow-edge-label-rotate?)
+                          #:rotate? (dia-edge-select-label-rotate? style)
+                          #:distance (and (dia-edge-select-label-inline? style) 0.0)
                           start end info)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

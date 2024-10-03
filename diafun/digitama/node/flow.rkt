@@ -9,24 +9,10 @@
 (require geofun/composite)
 
 (require geofun/digitama/convert)
-(require geofun/digitama/dc/text)
 (require geofun/digitama/geometry/constants)
 (require geofun/digitama/geometry/polygon/quadrilateral)
 (require geofun/digitama/geometry/polygon/pentagon)
 (require geofun/digitama/geometry/polygon/hexagon)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-block-in-arrow-label : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Symbol) Dia:Node)
-  (lambda [node-key label style width height hint]
-    (create-dia-node dia:node:label
-                     #:id node-key #:type 'Label hint
-                     #:fit-ratio +nan.0 1.0
-                     (geo-rectangle #:id (dia-node-shape-id node-key)
-                                    #:stroke (dia-node-select-stroke-paint style)
-                                    #:fill (dia-node-select-fill-paint style)
-                                    width height)
-                     label (and (geo:string? label)
-                                (geo:string-body label)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diaflow-block-process : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Symbol) Dia:Node)
@@ -38,16 +24,27 @@
                                     width height)
                      label)))
 
-(define diaflow-block-subroutine : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Symbol) Dia:Node)
+(define diaflow-block-prefab : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Symbol) Dia:Node)
   (lambda [node-key label style width height hint]
     (define stroke (dia-node-select-stroke-paint style))
     (define width-ratio : Nonnegative-Flonum 0.85)
     
-    (create-dia-node #:id node-key #:type 'Subroutine hint
+    (create-dia-node #:id node-key #:type 'Prefab hint
                      #:fit-ratio width-ratio 1.0
                      (geo-cc-superimpose #:id (dia-node-shape-id node-key)
                                          (geo-rectangle width height #:stroke stroke #:fill (dia-node-select-fill-paint style))
                                          (geo-rectangle (* width width-ratio) height #:stroke stroke #:fill #false))
+                     label)))
+
+(define diaflow-block-alternate : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Symbol) Dia:Node)
+  (lambda [node-key label style width height hint]
+    (define stroke (dia-node-select-stroke-paint style))
+    (define width-ratio : Nonnegative-Flonum 0.85)
+    
+    (create-dia-node #:id node-key #:type 'Alternate hint
+                     #:fit-ratio width-ratio 1.0
+                     (geo-cc-superimpose #:id (dia-node-shape-id node-key)
+                                         (geo-rectangle width height -0.1618 #:stroke stroke #:fill (dia-node-select-fill-paint style)))
                      label)))
 
 (define diaflow-block-decision : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Symbol) Dia:Node)

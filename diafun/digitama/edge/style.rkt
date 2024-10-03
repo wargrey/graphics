@@ -7,6 +7,8 @@
 
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/convert)
+(require geofun/digitama/base)
+(require geofun/digitama/source)
 
 (require geofun/font)
 (require geofun/paint)
@@ -22,9 +24,13 @@
 (struct dia-edge-style
   ([font : (Option Font)]
    [font-paint : Option-Fill-Paint]
-   [line-paint : Maybe-Stroke-Paint]
+   [width : (Option Flonum)]
+   [color : (U Color Void False)]
+   [dash : (Option Stroke-Dash-Datum)]
    [source-shape : Maybe-Edge-Tip-Shape]
-   [target-shape : Maybe-Edge-Tip-Shape])
+   [target-shape : Maybe-Edge-Tip-Shape]
+   [label-rotate? : (U Boolean Void)]
+   [label-inline? : (U Boolean Void)])
   #:type-name Dia-Edge-Style
   #:transparent)
 
@@ -34,13 +40,16 @@
    [font-paint : Option-Fill-Paint]
    [line-paint : Maybe-Stroke-Paint]
    [source-shape : Option-Edge-Tip-Shape]
-   [target-shape : Option-Edge-Tip-Shape])
+   [target-shape : Option-Edge-Tip-Shape]
+   [label-rotate? : Boolean]
+   [label-inline? : Boolean])
   #:type-name Dia-Edge-Base-Style
   #:transparent)
 
 (define make-null-edge-style : (-> Dia-Edge-Base-Style)
   (lambda []
-    (dia-edge-base-style #false #false (void) #false #false)))
+    (dia-edge-base-style #false #false (void)
+                         #false #false #false #false)))
 
 (define default-dia-edge-base-style : (Parameterof (-> Dia-Edge-Base-Style))
   (make-parameter make-null-edge-style))
@@ -57,34 +66,55 @@
                 [else (string-append src-id "->" tgt-id)])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-edge-select-line-paint : (-> (U Dia-Edge-Style Maybe-Stroke-Paint) Maybe-Stroke-Paint)
-  (lambda [this-style]
-    (define paint : Maybe-Stroke-Paint (if (dia-edge-style? this-style) (dia-edge-style-line-paint this-style) this-style))
-    (define fallback-paint : Maybe-Stroke-Paint (dia-edge-base-style-line-paint ((default-dia-edge-base-style))))
-    (cond [(void? paint) fallback-paint]
-          [(stroke? paint) paint]
-          [(stroke? fallback-paint) (desc-stroke fallback-paint #:color paint)]
-          [else paint])))
+(define dia-edge-select-line-paint : (-> (U Dia-Edge-Style Maybe-Stroke-Paint) Option-Stroke-Paint)
+  (lambda [s]
+    (define fallback-paint : (Option Stroke) (stroke-paint->source* (dia-edge-base-style-line-paint ((default-dia-edge-base-style)))))
+    
+    (cond [(void? s) fallback-paint]
+          [(or (not s) (stroke? s)) s]
+          [(dia-edge-style? s)
+           (let ([c (dia-edge-style-color s)])
+             (and c (desc-stroke #:color (and (not (void? c)) c) #:width (dia-edge-style-width s) #:dash (dia-edge-style-dash s)
+                                 (if (stroke? fallback-paint) fallback-paint (default-stroke)))))]
+          [(stroke? fallback-paint) (desc-stroke fallback-paint #:color s)]
+          [else s])))
 
 (define dia-edge-select-source-shape : (-> Dia-Edge-Style Option-Edge-Tip-Shape)
-  (lambda [this-style]
-    (define shape : Maybe-Edge-Tip-Shape (dia-edge-style-source-shape this-style))
+  (lambda [s]
+    (define shape : Maybe-Edge-Tip-Shape (dia-edge-style-source-shape s))
     (if (void? shape) (dia-edge-base-style-source-shape ((default-dia-edge-base-style))) shape)))
 
 (define dia-edge-select-target-shape : (-> Dia-Edge-Style Option-Edge-Tip-Shape)
-  (lambda [this-style]
-    (define shape : Maybe-Edge-Tip-Shape (dia-edge-style-target-shape this-style))
+  (lambda [s]
+    (define shape : Maybe-Edge-Tip-Shape (dia-edge-style-target-shape s))
     (if (void? shape) (dia-edge-base-style-target-shape ((default-dia-edge-base-style))) shape)))
 
 (define dia-edge-select-font : (-> Dia-Edge-Style (Option Font))
-  (lambda [this-style]
-    (or (dia-edge-style-font this-style)
+  (lambda [s]
+    (or (dia-edge-style-font s)
         (dia-edge-base-style-font ((default-dia-edge-base-style))))))
 
 (define dia-edge-select-font-paint : (-> Dia-Edge-Style Option-Fill-Paint)
-  (lambda [this-style]
-    (or (dia-edge-style-font-paint this-style)
+  (lambda [s]
+    (or (dia-edge-style-font-paint s)
         (dia-edge-base-style-font-paint ((default-dia-edge-base-style))))))
+
+(define dia-edge-select-label-rotate? : (-> Dia-Edge-Style Boolean)
+  (lambda [s]
+    (define b : (U Boolean Void) (dia-edge-style-label-rotate? s))
+    
+    (if (void? b) (dia-edge-base-style-label-rotate? ((default-dia-edge-base-style))) b)))
+
+(define dia-edge-select-label-inline? : (-> Dia-Edge-Style Boolean)
+  (lambda [s]
+    (define b : (U Boolean Void) (dia-edge-style-label-inline? s))
+    
+    (if (void? b) (dia-edge-base-style-label-inline? ((default-dia-edge-base-style))) b)))
+
+(define dia-edge-swap-dash-style : (-> Dia-Edge-Style Stroke-Dash-Datum Dia-Edge-Style)
+  (lambda [s dash-datum]
+    (struct-copy dia-edge-style s
+                 [dash dash-datum])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (Src Tgt S) dia-edge-style-construct : (-> Src Tgt (Listof Dia-Edge-Label-Datum) (Option (Dia-Edge-Style-Make* Src Tgt S)) (-> S) S)

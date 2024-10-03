@@ -5,8 +5,11 @@
 (require racket/string)
 
 (require geofun/digitama/geometry/anchor)
-(require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
+
+(require geofun/digitama/convert)
+(require geofun/digitama/source)
+(require geofun/digitama/base)
 
 (require geofun/font)
 (require geofun/paint)
@@ -23,7 +26,9 @@
    [height : (Option Flonum)]
    [font : (Option Font)]
    [font-paint : Option-Fill-Paint]
-   [stroke-paint : Maybe-Stroke-Paint]
+   [stroke-width : (Option Flonum)]
+   [stroke-color : (U Color Void False)]
+   [stroke-dash : (Option Stroke-Dash-Datum)]
    [fill-paint : Maybe-Fill-Paint])
   #:type-name Dia-Node-Style
   #:transparent)
@@ -48,10 +53,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-node-text-label : (-> Geo-Anchor-Name String Dia-Node-Style (Option Geo))
-  (lambda [anchor desc this-style]
+  (lambda [anchor desc s]
     (define fallback-style : Dia-Node-Base-Style ((default-dia-node-base-style)))
-    (define font : (Option Font) (or (dia-node-style-font this-style) (dia-node-base-style-font fallback-style)))
-    (define paint : Option-Fill-Paint (or (dia-node-style-font-paint this-style) (dia-node-base-style-font-paint fallback-style)))
+    (define font : (Option Font) (or (dia-node-style-font s) (dia-node-base-style-font fallback-style)))
+    (define paint : Option-Fill-Paint (or (dia-node-style-font-paint s) (dia-node-base-style-font-paint fallback-style)))
     (define text : String (string-trim desc))
     (define text-id : Symbol (dia-node-label-id anchor))
     
@@ -64,12 +69,12 @@
           [else #false])))
 
 (define dia-node-smart-size : (-> (Option Geo) Dia-Node-Style (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [label this-style]
+  (lambda [label s]
     (define fallback-style : Dia-Node-Base-Style ((default-dia-node-base-style)))
     
     (define-values (width height)
-      (values (or (dia-node-style-width this-style)  (dia-node-base-style-width  fallback-style))
-              (or (dia-node-style-height this-style) (dia-node-base-style-height fallback-style))))
+      (values (or (dia-node-style-width s)  (dia-node-base-style-width  fallback-style))
+              (or (dia-node-style-height s) (dia-node-base-style-height fallback-style))))
     
     (cond [(and (> width 0.0) (> height 0.0)) (values width height)]
           [(not label) (values 0.0 0.0)]
@@ -79,13 +84,17 @@
 
 (define dia-node-select-stroke-paint : (-> Dia-Node-Style Maybe-Stroke-Paint)
   (lambda [self]
-    (define paint : Maybe-Stroke-Paint (dia-node-style-stroke-paint self))
-    (define fallback-paint : Maybe-Stroke-Paint (dia-node-base-style-stroke-paint ((default-dia-node-base-style))))
-    (cond [(void? paint) fallback-paint]
-          [(not paint) #false]
-          [(stroke? paint) paint]
-          [(stroke? fallback-paint) (desc-stroke fallback-paint #:color paint)]
-          [else paint])))
+    (define fallback-paint : (Option Stroke) (stroke-paint->source* (dia-node-base-style-stroke-paint ((default-dia-node-base-style)))))
+    (cond [(void? self) fallback-paint]
+          [(not self) #false]
+          [(dia-node-style? self)
+           (let ([c (dia-node-style-stroke-color self)])
+             (and c (desc-stroke #:color (and (not (void? c)) c)
+                                 #:width (dia-node-style-stroke-width self)
+                                 #:dash (dia-node-style-stroke-dash self)
+                                 (if (stroke? fallback-paint) fallback-paint (default-stroke)))))]
+          [(stroke? fallback-paint) (desc-stroke fallback-paint #:color self)]
+          [else self])))
 
 (define dia-node-select-fill-paint : (-> Dia-Node-Style Maybe-Fill-Paint)
   (lambda [self]

@@ -149,7 +149,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
- (submod "." unsafe) 
+ (submod "." unsafe)
+ [dc_art_text
+  (All (S) (-> (Cairo-Surface-Create S) String Font-Description (Listof Symbol)
+               (Option Paint) (Option Fill-Source) (Option Fill-Source)
+               Flonum S))]
+ 
  [dc_text
   (All (S) (-> (Cairo-Surface-Create S)
                String Font-Description (Listof Symbol) Fill-Source (Option Fill-Source)
@@ -160,9 +165,4 @@
   (All (S) (-> (Cairo-Surface-Create S)
                String Font-Description (Listof Symbol) (Option Flonum) (U Flonum Nonpositive-Integer)
                Flonum Flonum Integer Integer Fill-Source (Option Fill-Source)
-               Flonum S))]
-
- [dc_art_text
-  (All (S) (-> (Cairo-Surface-Create S)
-               String Font-Description (Listof Symbol) (Option Paint) (Option Fill-Source) (Option Fill-Source)
                Flonum S))])
