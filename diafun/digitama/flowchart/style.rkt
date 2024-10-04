@@ -15,7 +15,7 @@
 (require "../edge/tip.rkt")
 (require "../edge/arrow.rkt")
 
-(require "shared.rkt")
+(require "../shared.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Some standarded aliases
@@ -28,7 +28,7 @@
 ; Manual-Input -> Keyboard
 ; Initialization -> Preparation
 (define-type DiaFlow-Node-Type
-  (U 'Start 'Stop 'Inspection 'Reference
+  (U 'Start 'Stop 'Inspection 'Reference 'Junction
      'Input 'Output 'Operation 'Keyboard
      'Preparation 'Decision 'Process 'Prefab 'Alternate
      'Database 'Document))
@@ -84,7 +84,7 @@
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'LimeGreen]
+   [color : (U Color Void False) 'MediumSeaGreen]
    [dash : (Option Stroke-Dash-Datum) #false]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
@@ -96,7 +96,7 @@
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'Orange]
+   [color : (U Color Void False) 'Goldenrod]
    [dash : (Option Stroke-Dash-Datum) #false]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
@@ -108,7 +108,7 @@
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'Teal]
+   [color : (U Color Void False) 'SteelBlue]
    [dash : (Option Stroke-Dash-Datum) #false]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
@@ -121,7 +121,7 @@
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
-   [dash : (Option Stroke-Dash-Datum) 'long-dash]
+   [dash : (Option Stroke-Dash-Datum) 'dot-dash]
    [source-shape : Maybe-Edge-Tip-Shape #false]
    [target-shape : Maybe-Edge-Tip-Shape #false]
    [label-rotate? : (U Boolean Void) #true]
@@ -135,6 +135,8 @@
 
 (define default-diaflow-node-label-string : (Parameterof (Option Dia-Node-Id->String)) (make-parameter #false))
 
+(define default-diaflow-keyboard-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Operation-Style))) (make-parameter #false))
+(define default-diaflow-display-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Operation-Style))) (make-parameter #false))
 (define default-diaflow-input-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Input-Style))) (make-parameter #false))
 (define default-diaflow-output-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Output-Style))) (make-parameter #false))
 (define default-diaflow-start-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Start-Style))) (make-parameter #false))
@@ -145,10 +147,12 @@
 (define default-diaflow-alternate-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Alternate-Style))) (make-parameter #false))
 (define default-diaflow-inspection-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Inspection-Style))) (make-parameter #false))
 (define default-diaflow-reference-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Reference-Style))) (make-parameter #false))
-(define default-diaflow-database-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Database-Style))) (make-parameter #false))
-(define default-diaflow-document-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Document-Style))) (make-parameter #false))
+(define default-diaflow-junction-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Junction-Style))) (make-parameter #false))
 (define default-diaflow-operation-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Operation-Style))) (make-parameter #false))
 (define default-diaflow-preparation-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Preparation-Style))) (make-parameter #false))
+(define default-diaflow-delay-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Delay-Style))) (make-parameter #false))
+(define default-diaflow-database-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Database-Style))) (make-parameter #false))
+(define default-diaflow-document-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Document-Style))) (make-parameter #false))
 
 (define-configuration diaflow-node-base-style : DiaFlow-Node-Style #:as dia-node-base-style
   #:format "default-diaflow-~a"
@@ -195,7 +199,7 @@
 
 (define-configuration diaflow-reference-style : DiaFlow-Reference-Style #:as dia-node-style
   #:format "default-diaflow-reference-~a"
-  ([block-width : (Option Nonnegative-Flonum) (* (default-diaflow-block-width) 0.24)]
+  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width)  0.24)]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -203,6 +207,17 @@
    [stroke-color : (U Color Void False) 'MediumSeaGreen]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint 'Honeydew]))
+
+(define-configuration diaflow-junction-style : DiaFlow-Junction-Style #:as dia-node-style
+  #:format "default-diaflow-junction-~a"
+  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width)  0.384)]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Flonum) #false]
+   [stroke-color : (U Color Void False) 'Orange]
+   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
 
 (define-configuration diaflow-input-style : DiaFlow-Input-Style #:as dia-node-style
   #:format "default-diaflow-input-~a"
@@ -270,6 +285,40 @@
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
+(define-configuration diaflow-operation-style : DiaFlow-Operation-Style #:as dia-node-style
+  #:format "default-diaflow-operation-~a"
+  ([block-width : (Option Nonnegative-Flonum) #false]
+   [block-height : (Option Nonnegative-Flonum) #false]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Flonum) #false]
+   [stroke-color : (U Color Void False) 'Teal]
+   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [fill-paint : Maybe-Fill-Paint (void)]))
+
+(define-configuration diaflow-preparation-style : DiaFlow-Preparation-Style #:as dia-node-style
+  #:format "default-diaflow-preparation-~a"
+  ([block-width : (Option Nonnegative-Flonum) #false]
+   [block-height : (Option Nonnegative-Flonum) #false]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Flonum) #false]
+   [stroke-color : (U Color Void False) 'Maroon]
+   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [fill-paint : Maybe-Fill-Paint (void)]))
+
+(define-configuration diaflow-delay-style : DiaFlow-Delay-Style #:as dia-node-style
+  #:format "default-diaflow-delay-~a"
+  ([block-width : (Option Nonnegative-Flonum)  #false]
+   [block-height : (Option Nonnegative-Flonum) #false]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Flonum) #false]
+   [stroke-color : (U Color Void False) 'DarkOliveGreen]
+   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [fill-paint : Maybe-Fill-Paint (void)]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration diaflow-database-style : DiaFlow-Database-Style #:as dia-node-style
   #:format "default-diaflow-database-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
@@ -289,38 +338,5 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) (void)]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
-
-(define-configuration diaflow-operation-style : DiaFlow-Operation-Style #:as dia-node-style
-  #:format "default-diaflow-operation-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
-   [block-height : (Option Nonnegative-Flonum) #false]
-   [font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) 'Burlywood]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
-
-(define-configuration diaflow-keyboard-style : DiaFlow-Keyboard-Style #:as dia-node-style
-  #:format "default-diaflow-keyboard-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
-   [block-height : (Option Nonnegative-Flonum) #false]
-   [font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) (void)]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
-
-(define-configuration diaflow-preparation-style : DiaFlow-Preparation-Style #:as dia-node-style
-  #:format "default-diaflow-preparation-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
-   [block-height : (Option Nonnegative-Flonum) #false]
-   [font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) 'Maroon]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))

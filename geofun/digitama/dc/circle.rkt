@@ -11,13 +11,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:circle geo
-  ([radius : Nonnegative-Flonum])
+  ([radius : Nonnegative-Flonum]
+   [diameters : (Listof Flonum)])
   #:type-name Geo:Circle
   #:transparent)
 
 (struct geo:ellipse geo
   ([a : Nonnegative-Flonum]
-   [b : Nonnegative-Flonum])
+   [b : Nonnegative-Flonum]
+   [diameters : (Listof Flonum)])
   #:type-name Geo:Ellipse
   #:transparent)
 
@@ -38,32 +40,38 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-circle : (-> Real [#:id (Option Symbol)] [#:stroke Maybe-Stroke-Paint] [#:fill Maybe-Fill-Paint] Geo:Circle)
-  (lambda [radius #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
+(define geo-circle : (-> Real [#:id (Option Symbol)] [#:stroke Maybe-Stroke-Paint] [#:fill Maybe-Fill-Paint]
+                         [#:diameters (Listof Real)] [#:radian? Boolean]
+                         Geo:Circle)
+  (lambda [radius #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)] #:diameters [diameters null] #:radian? [radian? #true]]
     (define r : Nonnegative-Flonum (~length radius))
     
     (create-geometry-object geo:circle
                             #:surface geo-circle-surface stroke pattern
                             #:extent (geo-shape-plain-extent (* 2.0 r) 0.0 0.0)
                             #:id id
-                            r)))
+                            r (for/list : (Listof Flonum) ([d (in-list diameters)])
+                                (~radian d radian?)))))
 
-(define geo-ellipse : (->* (Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) (U Geo:Circle Geo:Ellipse))
-  (lambda [width [height -0.618] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
+(define geo-ellipse : (->* (Real)
+                           (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:diameters (Listof Real) #:radian? Boolean)
+                           (U Geo:Circle Geo:Ellipse))
+  (lambda [width [height -0.618] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)] #:diameters [diameters null] #:radian? [radian? #true]]
     (define-values (w h) (~size width height))
     (define ellipse-extent : Geo-Calculate-Extent (geo-shape-plain-extent w h 0.0 0.0))
+    (define rads : (Listof Flonum) (for/list ([d (in-list diameters)]) (~radian d radian?)))
     
     (if (= w h)
         (create-geometry-object geo:circle
                                 #:surface geo-circle-surface stroke pattern
                                 #:extent ellipse-extent
                                 #:id id
-                                (* w 0.5))
+                                (* w 0.5) rads)
         (create-geometry-object geo:ellipse
                                 #:surface geo-ellipse-surface stroke pattern
                                 #:extent ellipse-extent
                                 #:id id
-                                (* w 0.5) (* h 0.5)))))
+                                (* w 0.5) (* h 0.5) rads))))
 
 (define geo-sector : (->* (Real Real Real)
                           (#:id (Option Symbol) #:ratio Real #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:radian? Boolean)
@@ -98,6 +106,7 @@
       (dc_circle create-abstract-surface
                  (geo:circle-radius self)
                  (current-stroke-source) (current-fill-source)
+                 (geo:circle-diameters self)
                  (default-geometry-density)))))
 
 (define geo-ellipse-surface : Geo-Surface-Create
@@ -106,6 +115,7 @@
       (dc_ellipse create-abstract-surface
                   (* (geo:ellipse-a self) 2.0) (* (geo:ellipse-b self) 2.0)
                   (current-stroke-source) (current-fill-source)
+                  (geo:ellipse-diameters self)
                   (default-geometry-density)))))
 
 (define geo-arc-surface : Geo-Surface-Create

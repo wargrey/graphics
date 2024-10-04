@@ -2,7 +2,8 @@
 
 (provide (all-defined-out))
 (provide (all-from-out geofun/path))
-(provide (all-from-out "digitama/style/flow.rkt" "digitama/interface/flow.rkt"))
+(provide (all-from-out "digitama/flowchart/style.rkt"))
+(provide (all-from-out "digitama/flowchart/interface.rkt"))
 (provide (rename-out [dia-path-flow geo-path-flow]))
 
 (provide default-diaflow-block-identify default-diaflow-arrow-identify)
@@ -21,11 +22,11 @@
 (require geofun/digitama/layer/type)
 (require geofun/digitama/dc/composite)
 
-(require "digitama/node/flow.rkt")
-(require "digitama/style/flow.rkt")
-(require "digitama/identifier/flow.rkt")
-(require "digitama/interface/flow.rkt")
-(require "digitama/flowchart.rkt")
+(require "digitama/flowchart/node.rkt")
+(require "digitama/flowchart/style.rkt")
+(require "digitama/flowchart/identifier.rkt")
+(require "digitama/flowchart/interface.rkt")
+(require "digitama/flowchart/stick.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))

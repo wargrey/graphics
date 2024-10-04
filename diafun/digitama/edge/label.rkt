@@ -42,7 +42,7 @@
             [(or rotate?) (* (geo-height label) (if (negative? (real-part v)) -0.618 0.618))]
             [else (let*-values ([(lw lh) (geo-flsize label)]
                                 [(theta) (angle v)])
-                    (* (magnitude (make-rectangular (* lw (sin theta)) (* lh (cos theta)))) 0.72
+                    (* (magnitude (make-rectangular (* (max lw 16.0) (sin theta)) (* lh (cos theta)))) 0.75
                        (if (negative? (real-part v)) -1.0 1.0)))]))
     
     (unsafe-dia-edge-label sticker start v t smart-distance)))

@@ -112,7 +112,7 @@
                               (default-geometry-density))
           (dc_circle create-abstract-surface
                      R (current-stroke-source) (current-fill-source)
-                     (default-geometry-density))))))
+                     null (default-geometry-density))))))
 
 (define geo-polygon-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Boolean Boolean Geo-Surface-Create)
   (lambda [width height xstroke? ystroke?]

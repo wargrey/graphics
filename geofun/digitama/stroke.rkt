@@ -18,7 +18,7 @@
 (define-enumeration* stroke-dash-style #:as Stroke-Dash-Style 
   line-dash->array #:-> [linewidth Nonnegative-Flonum] (Values Flonum (Vectorof Nonnegative-Flonum))
   [(dot)        (values (* 2.0 linewidth) (dasharray-normalize #(0.1 2.0) linewidth))]
-  [(dot-dash)   (values (* 4.0 linewidth) (dasharray-normalize #(0.1 2.0 4.0 2.0) linewidth))]
+  [(dot-dash)   (values (* 4.0 linewidth) (dasharray-normalize #(1.0 2.0 4.0 2.0) linewidth))]
   [(short-dash) (values (* 2.0 linewidth) (dasharray-normalize #(2.0 2.0) linewidth))]
   [(long-dash)  (values (* 2.0 linewidth) (dasharray-normalize #(4.0 2.0) linewidth))]
   [(solid)      (values 0.0 solid-dash)]

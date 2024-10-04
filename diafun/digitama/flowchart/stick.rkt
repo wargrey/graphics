@@ -13,14 +13,15 @@
 (require geofun/digitama/layer/position)
 (require geofun/digitama/dc/path)
 
-(require "style/flow.rkt")
-(require "node/flow.rkt")
-(require "node/dc.rkt")
-(require "edge/style.rkt")
-(require "edge/label.rkt")
-(require "edge/refine.rkt")
-(require "edge/dc.rkt")
-(require "interface/flow.rkt")
+(require "style.rkt")
+(require "node.rkt")
+(require "interface.rkt")
+
+(require "../node/dc.rkt")
+(require "../edge/style.rkt")
+(require "../edge/label.rkt")
+(require "../edge/refine.rkt")
+(require "../edge/dc.rkt")
 
 (require (for-syntax racket/base))
 
@@ -51,22 +52,24 @@
     (dia-node-text-label anchor (if (string? maybe-label) maybe-label label) style)))
 
 (define default-diaflow-node-construct : DiaFlow-Anchor->Node-Shape
-  (lambda [master anchor label style pos hint]
+  (lambda [master anchor label style pos dir hint]
     (define-values (width height) (dia-node-smart-size label style))
     (define node-id : Symbol (geo-anchor->symbol anchor))
 
-    (cond [(diaflow-process-style? style) (diaflow-block-process node-id label style width height hint)]
-          [(diaflow-decision-style? style) (diaflow-block-decision node-id label style width height hint)]
-          [(diaflow-input-style? style) (diaflow-block-input node-id label style width height hint)]
-          [(diaflow-output-style? style) (diaflow-block-output node-id label style width height hint)]
-          [(diaflow-prefab-style? style) (diaflow-block-prefab node-id label style width height hint)]
-          [(diaflow-preparation-style? style) (diaflow-block-preparation node-id label style width height hint)]
-          [(diaflow-start-style? style) (diaflow-block-terminal node-id label style width height hint)]
-          [(diaflow-stop-style? style) (diaflow-block-terminal node-id label style width height hint)]
-          [(diaflow-inspection-style? style) (diaflow-block-inspection node-id label style width height hint)]
-          [(diaflow-reference-style? style) (diaflow-block-reference node-id label style width height hint)]
-          [(diaflow-operation-style? style) (diaflow-block-manual-operation node-id label style width height hint)]
-          [(diaflow-alternate-style? style) (diaflow-block-alternate node-id label style width height hint)])))
+    (cond [(diaflow-process-style? style) (diaflow-block-process node-id label style width height dir hint)]
+          [(diaflow-decision-style? style) (diaflow-block-decision node-id label style width height dir hint)]
+          [(diaflow-input-style? style) (diaflow-block-input node-id label style width height dir hint)]
+          [(diaflow-output-style? style) (diaflow-block-output node-id label style width height dir hint)]
+          [(diaflow-prefab-style? style) (diaflow-block-prefab node-id label style width height dir hint)]
+          [(diaflow-preparation-style? style) (diaflow-block-preparation node-id label style width height dir hint)]
+          [(diaflow-start-style? style) (diaflow-block-terminal node-id label style width height dir hint)]
+          [(diaflow-stop-style? style) (diaflow-block-terminal node-id label style width height dir hint)]
+          [(diaflow-inspection-style? style) (diaflow-block-inspection node-id label style width height dir hint)]
+          [(diaflow-reference-style? style) (diaflow-block-reference node-id label style width height dir hint)]
+          [(diaflow-junction-style? style) (diaflow-block-junction node-id label style width height dir hint)]
+          [(diaflow-delay-style? style) (diaflow-block-delay node-id label style width height dir hint)]
+          [(diaflow-operation-style? style) (diaflow-block-manual-operation node-id label style width height dir hint)]
+          [(diaflow-alternate-style? style) (diaflow-block-alternate node-id label style width height dir hint)])))
 
 (define default-diaflow-edge-construct : DiaFlow-Arrow->Edge
   (lambda [master source target style tracks labels]
@@ -120,19 +123,19 @@
                 [nodes : (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Node))) (hasheq)]
                 [tracks : (Listof Geo-Path-Print) null]
                 [target : (Option (GLayerof Dia:Node)) #false]
-                [last-pt : Float-Complex 0.0+0.0i])
+                [last-pt : (Option Float-Complex) #false])
       (if (pair? stnirp)
 
           (let*-values ([(self rest) (values (car stnirp) (cdr stnirp))])
-            (define maybe-pt : (Option Float-Complex) (geo-path-print-position self last-pt))
-            (define next-pt : Float-Complex (or maybe-pt last-pt))
-            (define anchor : (Option Geo-Anchor-Name) (hash-ref anchor-base maybe-pt (λ [] #false)))
+            (define next-pt : (Option Float-Complex) (geo-path-print-position self last-pt))
+            (define anchor : (Option Geo-Anchor-Name) (and next-pt (hash-ref anchor-base next-pt (λ [] #false))))
             (define tracks++ : (Pairof Geo-Path-Print (Listof Geo-Path-Print)) (cons self tracks))
             
             (define-values (source nodes++)
-              (cond [(not anchor) (values #false nodes)]
+              (cond [(or (not anchor) (not next-pt)) (values #false nodes)]
                     [(hash-has-key? nodes anchor) (values (hash-ref nodes anchor) nodes)]
-                    [else (let ([new-node (dia-make-node master block-identify make-node make-node-label anchor next-pt)])
+                    [else (let* ([direction (and last-pt (angle (- last-pt next-pt)))]
+                                 [new-node (dia-make-node master block-identify make-node make-node-label anchor next-pt direction)])
                             (values new-node (hash-set nodes anchor new-node)))]))
             
             (cond [(glayer? source)
@@ -156,13 +159,20 @@
 
                    [else (stick rest arrows nodes tracks++ target next-pt)]))
 
-          (append arrows
-                  (let sort : (Listof (GLayerof Geo)) ([ordered-nodes : (Listof (GLayerof Geo)) null]
-                                                       [srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath)])
-                    (if (pair? srohcna)
-                        (let ([node (hash-ref nodes (car srohcna) (λ [] #false))])
-                          (sort (if (not node) ordered-nodes (cons node ordered-nodes)) (cdr srohcna)))
-                        ordered-nodes)))))))
+          (append
+
+           ;;; NOTE
+           ; We need to draw arrows backwards,
+           ;   as we usually create archtectural path before jumping back for various branches.
+           ;   So that drawing backwards allow main loop path hiding branch paths sharing same routes.
+           (reverse arrows)
+
+           (let sort : (Listof (GLayerof Geo)) ([ordered-nodes : (Listof (GLayerof Geo)) null]
+                                                [srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath)])
+             (if (pair? srohcna)
+                 (let ([node (hash-ref nodes (car srohcna) (λ [] #false))])
+                   (sort (if (not node) ordered-nodes (cons node ordered-nodes)) (cdr srohcna)))
+                 ordered-nodes)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-arrow-cons : (-> Geo:Path (GLayerof Dia:Node) (Option (GLayerof Dia:Node)) (Listof Geo-Path-Print)
@@ -249,15 +259,15 @@
     (if (geo? arrow) (dia-cons-arrows arrow arrows) arrows)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-make-node : (-> Geo:Path DiaFlow-Block-Identifier DiaFlow-Anchor->Node-Shape DiaFlow-Anchor->Node-Label Geo-Anchor-Name Float-Complex
+(define dia-make-node : (-> Geo:Path DiaFlow-Block-Identifier DiaFlow-Anchor->Node-Shape DiaFlow-Anchor->Node-Label Geo-Anchor-Name Float-Complex (Option Flonum)
                             (Option (GLayerof Dia:Node)))
-  (lambda [master block-identify make-node make-node-label anchor position]
+  (lambda [master block-identify make-node make-node-label anchor position direction]
     (define blk-datum (block-identify anchor))
 
     (and blk-datum
          (let-values ([(style hint) (values (cadr blk-datum) (caddr blk-datum))])
            (define label : (Option Geo) (make-node-label master anchor (car blk-datum) style position hint))
-           (define node : (U Dia:Node Void False) (make-node master anchor label style position hint))
+           (define node : (U Dia:Node Void False) (make-node master anchor label style position direction hint))
 
            (and (dia:node? node)
                 (geo-own-layer 'cc position node 0.0+0.0i))))))

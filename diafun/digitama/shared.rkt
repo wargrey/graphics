@@ -5,8 +5,8 @@
 (require geofun/font)
 (require geofun/stroke)
 
-(require "../edge/tip.rkt")
-(require "../edge/arrow.rkt")
+(require "edge/tip.rkt")
+(require "edge/arrow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-edge-label-font : Font (desc-font #:size 'small #:family 'monospace))

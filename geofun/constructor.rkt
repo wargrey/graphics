@@ -18,10 +18,12 @@
 (provide geo-ellipse geo:ellipse? Geo:Ellipse)
 (provide geo-arc geo:arc? Geo:Arc)
 (provide geo-sector geo:sector? Geo:Sector)
-(provide geo-stadium geo:stadium? Geo:Stadium)
-(provide geo-sandglass geo:sandglass? Geo:Sandglass)
 (provide geo-arrow geo:arrow? Geo:Arrow)
 (provide geo-dart geo:dart? Geo:Dart)
+
+(provide geo-stadium geo-half-stadium geo:stadium? Geo:Stadium)
+(provide geo-bullet geo:bullet? Geo:Bullet)
+(provide geo-sandglass geo:sandglass? Geo:Sandglass)
 
 (provide geo-regular-polygon geo:regular-polygon? Geo:Regular-Polygon)
 (provide geo-polygon geo:polygon? Geo:Polygon)

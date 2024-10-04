@@ -16,6 +16,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type DiaFlow-Block-Datum (List String Dia-Node-Style (Option Symbol)))
 
+(define-type DiaFlow-Block-Create (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol) Dia:Node))
 (define-type DiaFlow-Block-Identifier (-> Geo-Anchor-Name (Option DiaFlow-Block-Datum)))
 (define-type DiaFlow-Arrow-Identifier (-> Dia:Node (Option Dia:Node) (Listof Dia-Edge-Label-Datum) (Option Dia-Edge-Style)))
 
@@ -24,7 +25,7 @@
       (Option Geo)))
 
 (define-type DiaFlow-Anchor->Node-Shape
-  (-> Geo:Path Geo-Anchor-Name (Option Geo) Dia-Node-Style Float-Complex (Option Symbol)
+  (-> Geo:Path Geo-Anchor-Name (Option Geo) Dia-Node-Style Float-Complex (Option Flonum) (Option Symbol)
       (U Dia:Node Void False)))
 
 (define-type DiaFlow-Arrow->Edge

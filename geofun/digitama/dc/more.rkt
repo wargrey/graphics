@@ -8,13 +8,21 @@
 (require "../../paint.rkt")
 
 (require "../convert.rkt")
-(require "../unsafe/dc/shape.rkt")
+(require "../unsafe/dc/more.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:stadium geo
   ([length : Nonnegative-Flonum]
-   [radius : Nonnegative-Flonum])
+   [radius : Nonnegative-Flonum]
+   [half? : Boolean])
   #:type-name Geo:Stadium
+  #:transparent)
+
+(struct geo:bullet geo
+  ([ogive-length : Nonnegative-Flonum]
+   [barrel-length : Nonnegative-Flonum]
+   [radius : Nonnegative-Flonum])
+  #:type-name Geo:Bullet
   #:transparent)
 
 (struct geo:sandglass geo
@@ -35,7 +43,31 @@
                             #:surface geo-stadium-surface stroke pattern
                             #:extent (geo-shape-plain-extent (+ d flength) d 0.0 0.0)
                             #:id id
-                            flength flradius)))
+                            flength flradius #false)))
+
+(define geo-half-stadium : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Stadium)
+  (lambda [length radius #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
+    (define flength : Nonnegative-Flonum (~length length))
+    (define flradius : Nonnegative-Flonum (~length radius flength))
+    (define d : Nonnegative-Flonum (* 2.0 flradius))
+    
+    (create-geometry-object geo:stadium
+                            #:surface geo-stadium-surface stroke pattern
+                            #:extent (geo-shape-plain-extent (+ flradius flength) d 0.0 0.0)
+                            #:id id
+                            flength flradius #true)))
+
+(define geo-bullet : (->* (Real Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Bullet)
+  (lambda [ogive radius [barrel -0.384] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
+    (define-values (flogive flbarrel) (~size ogive barrel))
+    (define flradius : Nonnegative-Flonum (~length radius (+ flogive flbarrel)))
+    (define d : Nonnegative-Flonum (* 2.0 flradius))
+    
+    (create-geometry-object geo:bullet
+                            #:surface geo-bullet-surface stroke pattern
+                            #:extent (geo-shape-plain-extent (+ flogive flbarrel) d 0.0 0.0)
+                            #:id id
+                            flogive flbarrel flradius)))
 
 (define geo-sandglass : (->* (Real)
                              (Real #:id (Option Symbol) #:neck-width Real #:neck-height Real #:tube-height Real
@@ -59,10 +91,23 @@
 (define geo-stadium-surface : Geo-Surface-Create
   (lambda [self]
     (with-asserts ([self geo:stadium?])
-      (dc_stadium create-abstract-surface
-                  (geo:stadium-length self) (geo:stadium-radius self)
-                  (current-stroke-source) (current-fill-source)
-                  (default-geometry-density)))))
+      (if (geo:stadium-half? self)
+          (dc_half_stadium create-abstract-surface
+                           (geo:stadium-length self) (geo:stadium-radius self)
+                           (current-stroke-source) (current-fill-source)
+                           (default-geometry-density))
+          (dc_stadium create-abstract-surface
+                      (geo:stadium-length self) (geo:stadium-radius self)
+                      (current-stroke-source) (current-fill-source)
+                      (default-geometry-density))))))
+
+(define geo-bullet-surface : Geo-Surface-Create
+  (lambda [self]
+    (with-asserts ([self geo:bullet?])
+      (dc_bullet create-abstract-surface
+                 (geo:bullet-ogive-length self) (geo:bullet-barrel-length self) (geo:bullet-radius self)
+                 (current-stroke-source) (current-fill-source)
+                 (default-geometry-density)))))
 
 (define geo-sandglass-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Surface-Create)
   (lambda [width height]
