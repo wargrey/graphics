@@ -12,6 +12,8 @@
 
 (module unsafe racket/base
   (provide (all-defined-out))
+
+  (require racket/case)
   
   (require "paint.rkt")
   (require "pangocairo.rkt")
@@ -58,7 +60,7 @@
       (when (pair? anchors)
         (define op+footprint (unsafe-car anchors))
         (define footprint (unsafe-cdr op+footprint))
-        (case (unsafe-car op+footprint)
+        (case/eq (unsafe-car op+footprint)
           [(#\M) (cairo_move_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
           [(#\L) (cairo_line_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
           [(#\A) (cairo_elliptical_arc cr footprint)]
@@ -69,6 +71,37 @@
           [(#\l) (cairo_rel_line_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))])
 
         (draw_path (unsafe-cdr anchors)))))
+
+  (define (cairo_clean_path cr footprints dx dy src-adjust tgt-adjust)
+    (cairo_translate cr dx dy)
+
+    (define source-adjusted-footprints
+      (if (and src-adjust (pair? footprints))
+          (let ([source (unsafe-car footprints)])
+            (case/eq (unsafe-car source)
+              [(#\M) (cons (cons #\M (+ (unsafe-cdr source) src-adjust)) (unsafe-cdr footprints))]
+              [(#\L) (cons (cons #\L (+ (unsafe-cdr source) src-adjust)) (unsafe-cdr footprints))]
+              [else footprints]))
+          footprints))
+    
+    (let draw_clean_path ([anchors source-adjusted-footprints])
+      (when (pair? anchors)
+        (define op+footprint (unsafe-car anchors))
+        (define rest (unsafe-cdr anchors))
+        (define footprint (unsafe-cdr op+footprint))
+        (case/eq (unsafe-car op+footprint)
+          [(#\M) (cairo_move_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint))]
+          [(#\L)
+           (if (and (null? rest) tgt-adjust)
+               (cairo_line_to cr
+                              (unsafe-fl- (unsafe-flreal-part footprint) (unsafe-flreal-part tgt-adjust))
+                              (unsafe-fl- (unsafe-flimag-part footprint) (unsafe-flimag-part tgt-adjust)))
+               (cairo_line_to cr (unsafe-flreal-part footprint) (unsafe-flimag-part footprint)))]
+          [(#\A) (cairo_elliptical_arc cr footprint)]
+          [(#\C) (cairo_cubic_bezier cr (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) (unsafe-struct*-ref footprint 0))]
+          [(#\Q) (cairo_quadratic_bezier cr (unsafe-struct*-ref footprint 1) (unsafe-struct*-ref footprint 2) (unsafe-struct*-ref footprint 0))])
+
+        (draw_clean_path rest))))
   
   (define (cairo_elliptical_arc cr gpath:arc)
     (define center (unsafe-struct*-ref gpath:arc 1))

@@ -19,12 +19,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-arrow-tip-vertices : (-> Dia-Arrow-Tip Nonnegative-Flonum Flonum Float-Complex
-                                     (Values (Listof Geo-Path-Clean-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+                                     (Values (Listof Geo-Path-Clean-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Float-Complex)))
   (lambda [self 100% angle.rad dot]
     (define r : Nonnegative-Flonum (~length (dia-arrow-tip-radius self) 100%))
     (define wing : (Option Real) (dia-arrow-tip-wing.deg self))
     (define offset : Float-Complex (make-polar (* r (dia-arrow-tip-t self)) angle.rad))
-    (define-values (prints _x _y _w _h) (geo-dart-metrics r angle.rad (and wing (~radian wing)) (- dot offset)))
+    (define-values (prints _x _y _w _h) (geo-curved-dart-metrics r angle.rad (and wing (~radian wing)) (- dot offset)))
     (define-values (lx ty width height) (geo-path-ink-box prints))
     
-    (values prints lx ty width height)))
+    (values prints lx ty width height offset)))

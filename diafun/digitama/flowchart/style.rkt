@@ -18,20 +18,7 @@
 (require "../shared.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Some standarded aliases
-; Annotation -> Comment
-; Predefined-Process -> Subroutine -> Prefab
-; On-Page-Connector -> Inspection
-; Off-Page-Connector -> Reference
-; DataFile -> Database
-; Manual-Operation -> Operation
-; Manual-Input -> Keyboard
-; Initialization -> Preparation
-(define-type DiaFlow-Node-Type
-  (U 'Start 'Stop 'Inspection 'Reference 'Junction
-     'Input 'Output 'Operation 'Keyboard
-     'Preparation 'Decision 'Process 'Prefab 'Alternate
-     'Database 'Document))
+;;; https://creately.com/guides/flowchart-symbols/
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflow-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
@@ -76,7 +63,7 @@
    [dash : (Option Stroke-Dash-Datum) #false]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
-   [label-rotate? : (U Boolean Void) (void)]
+   [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]))
 
 (define-configuration diaflow-success-arrow-style : DiaFlow-Success-Arrow-Style #:as dia-edge-style
@@ -135,24 +122,35 @@
 
 (define default-diaflow-node-label-string : (Parameterof (Option Dia-Node-Id->String)) (make-parameter #false))
 
-(define default-diaflow-keyboard-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Operation-Style))) (make-parameter #false))
-(define default-diaflow-display-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Operation-Style))) (make-parameter #false))
-(define default-diaflow-input-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Input-Style))) (make-parameter #false))
-(define default-diaflow-output-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Output-Style))) (make-parameter #false))
 (define default-diaflow-start-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Start-Style))) (make-parameter #false))
 (define default-diaflow-stop-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Stop-Style))) (make-parameter #false))
 (define default-diaflow-decision-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Decision-Style))) (make-parameter #false))
-(define default-diaflow-process-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Process-Style))) (make-parameter #false))
-(define default-diaflow-prefab-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Prefab-Style))) (make-parameter #false))
-(define default-diaflow-alternate-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Alternate-Style))) (make-parameter #false))
-(define default-diaflow-inspection-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Inspection-Style))) (make-parameter #false))
-(define default-diaflow-reference-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Reference-Style))) (make-parameter #false))
-(define default-diaflow-junction-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Junction-Style))) (make-parameter #false))
+(define default-diaflow-collation-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Collation-Style))) (make-parameter #false))
+(define default-diaflow-sort-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Sort-Style))) (make-parameter #false))
 (define default-diaflow-operation-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Operation-Style))) (make-parameter #false))
 (define default-diaflow-preparation-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Preparation-Style))) (make-parameter #false))
 (define default-diaflow-delay-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Delay-Style))) (make-parameter #false))
-(define default-diaflow-database-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Database-Style))) (make-parameter #false))
-(define default-diaflow-document-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Document-Style))) (make-parameter #false))
+
+(define default-diaflow-process-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Process-Style))) (make-parameter #false))
+(define default-diaflow-prefab-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Process-Style))) (make-parameter #false))
+(define default-diaflow-alternate-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Process-Style))) (make-parameter #false))
+
+(define default-diaflow-inspection-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Inspection-Style))) (make-parameter #false))
+(define default-diaflow-reference-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Reference-Style))) (make-parameter #false))
+(define default-diaflow-selection-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Selection-Style))) (make-parameter #false))
+(define default-diaflow-junction-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Junction-Style))) (make-parameter #false))
+(define default-diaflow-extract-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Extract-Style))) (make-parameter #false))
+(define default-diaflow-merge-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Merge-Style))) (make-parameter #false))
+
+(define default-diaflow-keyboard-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Input-Style))) (make-parameter #false))
+(define default-diaflow-display-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Output-Style))) (make-parameter #false))
+(define default-diaflow-input-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Input-Style))) (make-parameter #false))
+(define default-diaflow-output-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Output-Style))) (make-parameter #false))
+
+(define default-diaflow-memory-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Storage-Style))) (make-parameter #false))
+(define default-diaflow-database-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Storage-Style))) (make-parameter #false))
+(define default-diaflow-document-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Storage-Style))) (make-parameter #false))
+(define default-diaflow-storage-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Storage-Style))) (make-parameter #false))
 
 (define-configuration diaflow-node-base-style : DiaFlow-Node-Style #:as dia-node-base-style
   #:format "default-diaflow-~a"
@@ -186,10 +184,11 @@
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint 'Gainsboro]))
 
+; On-Page-Connector -> Inspection
 (define-configuration diaflow-inspection-style : DiaFlow-Inspection-Style #:as dia-node-style
   #:format "default-diaflow-inspection-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width)  0.384)]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
+  ([block-width : (Option Nonnegative-Flonum)  #false]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height)  0.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
@@ -197,27 +196,17 @@
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint 'LightCyan]))
 
+; Off-Page-Connector -> Reference
 (define-configuration diaflow-reference-style : DiaFlow-Reference-Style #:as dia-node-style
   #:format "default-diaflow-reference-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width)  0.24)]
+  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-height)  0.618 1.618)]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) 'MediumSeaGreen]
+   [stroke-color : (U Color Void False) 'DeepSkyBlue]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
-   [fill-paint : Maybe-Fill-Paint 'Honeydew]))
-
-(define-configuration diaflow-junction-style : DiaFlow-Junction-Style #:as dia-node-style
-  #:format "default-diaflow-junction-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width)  0.384)]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
-   [font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) 'Orange]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
-   [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
+   [fill-paint : Maybe-Fill-Paint 'LightCyan]))
 
 (define-configuration diaflow-input-style : DiaFlow-Input-Style #:as dia-node-style
   #:format "default-diaflow-input-~a"
@@ -252,6 +241,7 @@
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
+; Predefined-Process -> Subroutine -> Prefab
 (define-configuration diaflow-process-style : DiaFlow-Process-Style #:as dia-node-style
   #:format "default-diaflow-process-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
@@ -263,9 +253,9 @@
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
-(define-configuration diaflow-prefab-style : DiaFlow-Prefab-Style #:as dia-node-style
-  #:format "default-diaflow-prefab-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
+(define-configuration diaflow-collation-style : DiaFlow-Collation-Style #:as dia-node-style
+  #:format "default-diaflow-collation-~a"
+  ([block-width : (Option Nonnegative-Flonum) (max (/ (default-diaflow-block-height) (sqrt 3.0) 0.5) 0.0)]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -274,17 +264,18 @@
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
-(define-configuration diaflow-alternate-style : DiaFlow-Alternate-Style #:as dia-node-style
-  #:format "default-diaflow-alternate-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
+(define-configuration diaflow-sort-style : DiaFlow-Sort-Style #:as dia-node-style
+  #:format "default-diaflow-sort-~a"
+  ([block-width : (Option Nonnegative-Flonum) (max (/ (default-diaflow-block-height) (sqrt 3.0) 0.5) 0.0)]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) 'CornflowerBlue]
+   [stroke-color : (U Color Void False) 'DodgerBlue]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
+; Manual-Operation -> Operation
 (define-configuration diaflow-operation-style : DiaFlow-Operation-Style #:as dia-node-style
   #:format "default-diaflow-operation-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
@@ -296,6 +287,7 @@
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
+; Initialization -> Preparation
 (define-configuration diaflow-preparation-style : DiaFlow-Preparation-Style #:as dia-node-style
   #:format "default-diaflow-preparation-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
@@ -318,25 +310,59 @@
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-configuration diaflow-database-style : DiaFlow-Database-Style #:as dia-node-style
-  #:format "default-diaflow-database-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
-   [block-height : (Option Nonnegative-Flonum) #false]
+; Or -> Selection, when a decision produces exclusive multiple outcomes
+(define-configuration diaflow-selection-style : DiaFlow-Selection-Style #:as dia-node-style
+  #:format "default-diaflow-selection-~a"
+  ([block-width : (Option Nonnegative-Flonum)  #false]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) (void)]
+   [stroke-color : (U Color Void False) 'Tomato]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
+   [fill-paint : Maybe-Fill-Paint 'SeaShell]))
 
-(define-configuration diaflow-document-style : DiaFlow-Document-Style #:as dia-node-style
-  #:format "default-diaflow-document-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
+(define-configuration diaflow-junction-style : DiaFlow-Junction-Style #:as dia-node-style
+  #:format "default-diaflow-junction-~a"
+  ([block-width : (Option Nonnegative-Flonum)  #false]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Flonum) #false]
+   [stroke-color : (U Color Void False) 'Orange]
+   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
+
+; Normal dividing of a flow into multiple parallel ones
+(define-configuration diaflow-extract-style : DiaFlow-Extract-Style #:as dia-node-style
+  #:format "default-diaflow-extract-~a"
+  ([block-width : (Option Nonnegative-Flonum)  (max (/ (default-diaflow-block-height) (sqrt 3.0) 0.5 1.618) 0.0)]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Flonum) #false]
+   [stroke-color : (U Color Void False) 'DarkOrange]
+   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [fill-paint : Maybe-Fill-Paint 'MistyRose]))
+
+(define-configuration diaflow-merge-style : DiaFlow-Merge-Style #:as dia-node-style
+  #:format "default-diaflow-merge-~a"
+  ([block-width : (Option Nonnegative-Flonum)  (max (/ (default-diaflow-block-height) (sqrt 3.0) 0.5 1.618) 0.0)]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Flonum) #false]
+   [stroke-color : (U Color Void False) 'Orange]
+   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
+
+(define-configuration diaflow-storage-style : DiaFlow-Storage-Style #:as dia-node-style
+  #:format "default-diaflow-storage-~a"
+  ([block-width : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 1.618)]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) (void)]
+   [stroke-color : (U Color Void False) 'MediumSeaGreen]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
+   [fill-paint : Maybe-Fill-Paint 'Honeydew]))

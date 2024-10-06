@@ -19,12 +19,13 @@
   (require (submod geofun/digitama/unsafe/path unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc_edge create-surface flwidth flheight footprints dx dy x-stroke? y-stroke? stroke source target density)
+  (define (dc_edge create-surface flwidth flheight footprints offset x-stroke? y-stroke? stroke source target adjust-offset density)
+    (define-values (dx dy) (values (unsafe-flreal-part offset) (unsafe-flimag-part offset)))
     (define-values (flw flh tx ty) (dc-path-window flwidth flheight dx dy stroke x-stroke? y-stroke?))
     (define-values (sfc cr) (create-surface flw flh density #true))
     
     (cairo_new_path cr)
-    (cairo_path cr footprints tx ty)
+    (cairo_clean_path cr footprints tx ty (unsafe-car adjust-offset) (unsafe-cdr adjust-offset))
     (cairo-render cr stroke #false)
     (dc-edge-draw-shape cr source)
     (dc-edge-draw-shape cr target)
@@ -48,8 +49,9 @@
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [dc_edge (All (S) (-> (Cairo-Surface-Create S) 
-                       Nonnegative-Flonum Nonnegative-Flonum (Listof Geo-Path-Print) Flonum Flonum Boolean Boolean (Option Paint)
+                       Nonnegative-Flonum Nonnegative-Flonum (Listof Geo-Path-Clean-Print) Float-Complex Boolean Boolean (Option Paint)
                        (Immutable-Vector (Listof Geo-Path-Print) (Option Paint) (Option Fill-Source))
                        (Immutable-Vector (Listof Geo-Path-Print) (Option Paint) (Option Fill-Source))
+                       (Pairof (Option Float-Complex) (Option Float-Complex))
                        Positive-Flonum
                        S))])

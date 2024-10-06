@@ -24,6 +24,27 @@
             (+ head-radius (imag-part offset))
             fllength fllength)))
 
+(define geo-curved-dart-metrics : (->* (Nonnegative-Flonum Flonum (Option Flonum)) (Float-Complex)
+                                       (Values (Listof Geo-Path-Clean-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [head-radius rpoint wing-angle [offset 0.0+0.0i]]
+    (define fllength : Nonnegative-Flonum (* head-radius 2.0))
+    (define rdelta : Flonum (if (not wing-angle) (* 0.6 pi #;108.0) (- pi (* 0.5 wing-angle))))
+    (define arrow-top : Float-Complex (make-polar head-radius rpoint))
+    (define arrow : Float-Complex (+ arrow-top offset))
+    (define wing1 : Float-Complex (+ (make-polar head-radius (+ rpoint rdelta)) offset))
+    (define wing2 : Float-Complex (+ (make-polar head-radius (- rpoint rdelta)) offset))
+    (define ctrl : Float-Complex (+ (* arrow-top 0.5) offset))
+    
+    (values (list (cons #\M offset)
+                  (cons #\L wing1)
+                  (cons #\Q (gpp:bezier arrow wing1 ctrl))
+                  (cons #\Q (gpp:bezier wing2 arrow ctrl))
+                  (cons #\L wing2)
+                  (cons #\L offset))
+            (+ head-radius (real-part offset))
+            (+ head-radius (imag-part offset))
+            fllength fllength)))
+
 (define geo-arrow-metrics : (-> Nonnegative-Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Flonum)
                                 (Values (Listof Geo-Path-Clean-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [head-radius rpoint shaft-thickness shaft-length wing-angle]

@@ -13,6 +13,7 @@
 
 (require geofun/digitama/convert)
 (require geofun/digitama/geometry/constants)
+(require geofun/digitama/geometry/polygon/triangle)
 (require geofun/digitama/geometry/polygon/quadrilateral)
 (require geofun/digitama/geometry/polygon/pentagon)
 (require geofun/digitama/geometry/polygon/hexagon)
@@ -20,36 +21,36 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diaflow-block-process : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
+    (cond [(eq? hint 'Predefined) (diaflow-block-prefab node-key label style width height direction hint)]
+          [(eq? hint 'Alternate)  (diaflow-block-alternate node-key label style width height direction hint)]
+          [else (create-dia-node #:id node-key #:type 'Process hint
+                                 (geo-rectangle #:id (dia-node-shape-id node-key)
+                                                #:stroke (dia-node-select-stroke-paint style)
+                                                #:fill (dia-node-select-fill-paint style)
+                                                width height)
+                                 label)])))
+
+(define diaflow-block-prefab : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (define width-ratio : Nonnegative-Flonum 0.84)
+    (define vline : Flonum (* (- 1.0 width-ratio) 0.5))
+    
     (create-dia-node #:id node-key #:type 'Process hint
-                     (geo-rectangle #:id (dia-node-shape-id node-key)
+                     #:fit-ratio width-ratio 1.0
+                     (geo-rectangle #:id (dia-node-shape-id node-key) #:vlines (list vline (- vline))
                                     #:stroke (dia-node-select-stroke-paint style)
                                     #:fill (dia-node-select-fill-paint style)
                                     width height)
                      label)))
 
-(define diaflow-block-prefab : DiaFlow-Block-Create
-  (lambda [node-key label style width height direction hint]
-    (define stroke (dia-node-select-stroke-paint style))
-    (define width-ratio : Nonnegative-Flonum 0.84)
-    (define vline : Flonum (* (- 1.0 width-ratio) 0.5))
-    
-    (create-dia-node #:id node-key #:type 'Prefab hint
-                     #:fit-ratio width-ratio 1.0
-                     (geo-rectangle #:id (dia-node-shape-id node-key) #:vlines (list vline (- vline))
-                                    #:stroke stroke #:fill (dia-node-select-fill-paint style)
-                                    width height)
-                     label)))
-
 (define diaflow-block-alternate : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (define stroke (dia-node-select-stroke-paint style))
-    (define width-ratio : Nonnegative-Flonum 0.85)
-    
     (create-dia-node #:id node-key #:type 'Alternate hint
-                     #:fit-ratio width-ratio 1.0
+                     #:fit-ratio 0.85 1.0
                      (geo-rectangle #:id (dia-node-shape-id node-key)
-                                    #:stroke stroke #:fill (dia-node-select-fill-paint style)
-                                    width height -0.1618)
+                                    #:stroke (dia-node-select-stroke-paint style)
+                                    #:fill (dia-node-select-fill-paint style)
+                                    width height -0.25)
                      label)))
 
 (define diaflow-block-decision : DiaFlow-Block-Create
@@ -103,9 +104,9 @@
 (define diaflow-block-output : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
     (if (eq? hint 'user)
-        (let-values ([(ogive r) (values (* width 0.5) (* height 0.5))])
+        (let-values ([(ogive r) (values (* width 0.384) (* height 0.5))])
           (create-dia-node #:id node-key #:type 'Output hint
-                           #:fit-ratio 0.80 1.00
+                           #:fit-ratio 0.75 1.00
                            (geo-bullet #:id (dia-node-shape-id node-key)
                                        #:stroke (dia-node-select-stroke-paint style)
                                        #:fill (dia-node-select-fill-paint style)
@@ -117,7 +118,7 @@
   (lambda [node-key label style width height direction hint]
     (define r : Nonnegative-Flonum (* (min width height) 0.5))
     (create-dia-node dia:node:circle
-                     #:id node-key #:type 'Inspection hint
+                     #:id node-key #:type 'Connector (or hint 'Inspection)
                      #:intersect dia-circle-intersect
                      #:fit-ratio 0.75 0.75
                      (geo-circle #:id (dia-node-shape-id node-key)
@@ -133,11 +134,25 @@
     (define vertices : Pentagon-Vertices (geo-house-vertices w h (- ratio)))
     
     (create-dia-node dia:node:polygon
-                     #:id node-key #:type 'Reference hint
+                     #:id node-key #:type 'Connector (or hint 'Reference)
                      #:intersect dia-polygon-intersect
                      #:fit-ratio 1.00 ratio
                      #:position 0.5 (* ratio 0.5)
                      (diaflow-polygon-shape node-key style stroke vertices) label vertices)))
+
+(define diaflow-block-selection : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (define r : Nonnegative-Flonum (* (min width height) 0.5))
+    (create-dia-node dia:node:circle
+                     #:id node-key #:type 'Selection hint
+                     #:intersect dia-circle-intersect
+                     #:fit-ratio 0.75 0.75
+                     (geo-circle #:id (dia-node-shape-id node-key)
+                                  #:stroke (dia-node-select-stroke-paint style)
+                                  #:fill (dia-node-select-fill-paint style)
+                                  #:diameters (list 0.0 pi/2)
+                                  r)
+                     #false r)))
 
 (define diaflow-block-junction : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
@@ -149,7 +164,7 @@
                      (geo-circle #:id (dia-node-shape-id node-key)
                                   #:stroke (dia-node-select-stroke-paint style)
                                   #:fill (dia-node-select-fill-paint style)
-                                  #:diameters (if (eq? hint '+) (list 0.0 pi/2) (list pi/4 3pi/4))
+                                  #:diameters (list pi/4 3pi/4)
                                   r)
                      #false r)))
 
@@ -165,6 +180,26 @@
                      #:fit-ratio ratio 1.00
                      (diaflow-polygon-shape node-key style stroke vertices) label vertices)))
 
+(define diaflow-block-extract : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (define-values (w h stroke) (diaflow-polygon-size width height style))
+    (define vertices : Triangle-Vertices (geo-isosceles-upwards-triangle-vertices w h))
+    
+    (create-dia-node dia:node:polygon
+                     #:id node-key #:type 'Extract hint
+                     #:intersect dia-polygon-intersect
+                     (diaflow-polygon-shape node-key style stroke vertices) #false vertices)))
+
+(define diaflow-block-merge : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (define-values (w h stroke) (diaflow-polygon-size width height style))
+    (define vertices : Triangle-Vertices (geo-isosceles-downwards-triangle-vertices w h))
+    
+    (create-dia-node dia:node:polygon
+                     #:id node-key #:type 'Merge hint
+                     #:intersect dia-polygon-intersect
+                     (diaflow-polygon-shape node-key style stroke vertices) #false vertices)))
+
 (define diaflow-block-delay : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
     (define r : Flonum (* height 0.5))
@@ -174,6 +209,59 @@
                                        #:stroke (dia-node-select-stroke-paint style)
                                        #:fill (dia-node-select-fill-paint style)
                                        (- width r) r)
+                     label)))
+
+(define diaflow-block-storage : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (cond [(eq? hint 'Memory) (diaflow-block-memory node-key label style width height direction hint)]
+          [(eq? hint 'File) (diaflow-block-document node-key label style width height direction hint)]
+          [(eq? hint 'Database) (diaflow-block-database node-key label style width height direction hint)]
+          [else (diaflow-block-memory node-key label style width height direction hint)])))
+
+(define diaflow-block-memory : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (define line-ratio : Nonnegative-Flonum 0.1618)
+    (define label-pos : Nonnegative-Flonum (min (* width line-ratio) (* height line-ratio)))
+    (define label-zone-width : Flonum  (- width label-pos))
+    (define label-zone-height : Flonum (- height label-pos))
+    
+    (create-dia-node #:id node-key #:type 'Stroage hint
+                     #:fit-ratio (max (/ label-zone-width width) 0.0) (max (/ label-zone-width height) 0.0)
+                     #:position (max (/ (+ label-pos (* label-zone-width 0.5)) width) 0.0) (max (/ (+ label-pos (* label-zone-height 0.5)) height) 0.0)
+                     (geo-rectangle #:id (dia-node-shape-id node-key) #:vlines (list label-pos) #:hlines (list label-pos)
+                                    #:stroke (dia-node-select-stroke-paint style)
+                                    #:fill (dia-node-select-fill-paint style)
+                                    width height)
+                     label)))
+
+(define diaflow-block-document : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (define hratio : Nonnegative-Flonum 0.75)
+    (create-dia-node #:id node-key #:type 'Stroage hint
+                     #:fit-ratio 1.0 hratio
+                     #:position 0.5 (* hratio 0.5)
+                     (geo-document #:id (dia-node-shape-id node-key)
+                                   #:stroke (dia-node-select-stroke-paint style)
+                                   #:fill (dia-node-select-fill-paint style)
+                                   width height (* (- hratio 1.0) 0.5))
+                     label)))
+
+(define diaflow-block-database : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (define extra-n : Index 2)
+    (define bradius : Nonnegative-Flonum (* height 0.1618))
+    (define gapsize : Nonnegative-Flonum (* bradius 0.618))
+    (define label-zone-height : Flonum (- height (* bradius 3.0) (* gapsize (exact->inexact extra-n))))
+    (define hratio : Nonnegative-Flonum (abs (/ label-zone-height height)))
+    
+    (create-dia-node #:id node-key #:type 'Stroage hint
+                     #:fit-ratio 1.0 hratio
+                     #:position 0.5 (+ 0.5 (* hratio 0.5))
+                     (geo-database #:id (dia-node-shape-id node-key)
+                                   #:stroke (dia-node-select-stroke-paint style)
+                                   #:fill (dia-node-select-fill-paint style)
+                                   #:extra-n extra-n #:gapsize gapsize
+                                   width height bradius)
                      label)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

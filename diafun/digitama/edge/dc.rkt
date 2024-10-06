@@ -32,7 +32,8 @@
    [bbox-offset : Float-Complex]
    [line-offset : (Option Float-Complex)]
    [source-shape : (Listof Geo-Path-Clean-Print)]
-   [target-shape : (Listof Geo-Path-Clean-Print)])
+   [target-shape : (Listof Geo-Path-Clean-Print)]
+   [adjust-offset : (Pairof (Option Float-Complex) (Option Float-Complex))])
   #:type-name Dia:Edge
   #:transparent)
 
@@ -51,8 +52,8 @@
     (define-values (e.x e.y e.w e.h) (geo-path-ink-box footprints))
 
     ;; NOTE: we move the end shapes to their absolute positions, and no need to translate them when drawing
-    (define-values (src-prints s.x s.y s.w s.h) (dia-edge-tip-metrics src-shape thickness srad spt))
-    (define-values (tgt-prints t.x t.y t.w t.h) (dia-edge-tip-metrics tgt-shape thickness erad ept))
+    (define-values (src-prints s.x s.y s.w s.h s.off) (dia-edge-tip-metrics src-shape thickness srad spt))
+    (define-values (tgt-prints t.x t.y t.w t.h t.off) (dia-edge-tip-metrics tgt-shape thickness erad ept))
 
     ;; NOTE: for shapes having outline stroke, simply add the thickness here
     (define ssoffset : Nonnegative-Flonum (* (stroke-width default-dia-shape-stroke) 0.5))
@@ -66,7 +67,7 @@
                             #:id id
                             footprints (cons spt srad) (cons ept erad) (make-rectangular lx ty)
                             (make-rectangular xoff yoff) (make-rectangular line-offset line-offset)
-                            src-prints tgt-prints)))
+                            src-prints tgt-prints (cons s.off t.off))))
 
 (define dia-edge-attach-label : (-> (U Dia:Edge Dia:Labeled-Edge) (U Dia-Edge-Label (Listof Dia-Edge-Label)) (U Dia:Edge Dia:Labeled-Edge))
   (lambda [self label]
@@ -116,10 +117,10 @@
         (define paint (current-stroke-source))
         (define color (and paint (stroke-color paint)))
         (define shape-stroke (desc-stroke default-dia-shape-stroke #:color color))
-        (define offset (dia:edge-bbox-offset self))
 
         (dc_edge create-abstract-surface
-                 width height (dia:edge-footprints self) (real-part offset) (imag-part offset) x-stroke? y-stroke? paint
+                 width height (dia:edge-footprints self) (dia:edge-bbox-offset self) x-stroke? y-stroke? paint
                  (vector-immutable (dia:edge-source-shape self) shape-stroke color)
                  (vector-immutable (dia:edge-target-shape self) shape-stroke color)
+                 (dia:edge-adjust-offset self)
                  (default-geometry-density))))))

@@ -24,6 +24,8 @@
 (provide geo-stadium geo-half-stadium geo:stadium? Geo:Stadium)
 (provide geo-bullet geo:bullet? Geo:Bullet)
 (provide geo-sandglass geo:sandglass? Geo:Sandglass)
+(provide geo-document geo:document? Geo:Document)
+(provide geo-database geo:database? Geo:Database)
 
 (provide geo-regular-polygon geo:regular-polygon? Geo:Regular-Polygon)
 (provide geo-polygon geo:polygon? Geo:Polygon)

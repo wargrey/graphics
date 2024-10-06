@@ -37,7 +37,7 @@
     [(_ name
         (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'-0.618]))
               (~optional (~seq #:grid-height gh) #:defaults ([gh #'-1.618]))
-              (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.030])))
+              (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.050])))
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
@@ -47,19 +47,19 @@
                     [grid-height (~length gh (default-diaflow-block-height))]
                     [scale (make-rectangular ts (* ts (/ grid-width grid-height)))])
                (make-gomamon #:T-scale scale #:U-scale scale
-                                  grid-width grid-height
-                                  args ...))
+                             grid-width grid-height
+                             args ...))
            move-expr ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-path-flow : (->* (Geo:Path)
-                             (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator) #:start-name (Option String)
+                             (#:id (Option Symbol) #:draw-operator (Option Geo-Pin-Operator) #:start-name (Option String)
                               #:λblock DiaFlow-Block-Identifier #:λarrow DiaFlow-Arrow-Identifier
                               #:λnode DiaFlow-Anchor->Node-Shape #:λnode-label DiaFlow-Anchor->Node-Label
                               #:λedge DiaFlow-Arrow->Edge #:λedge-label DiaFlow-Arrow->Edge-Label
                               #:λfree-edge DiaFlow-Free-Track->Edge #:λfree-edge-label DiaFlow-Free-Track->Edge-Label)
                              (U Geo:Group Geo:Path))
-  (lambda [#:id [id #false] #:operator [op #false] #:start-name [start #false]
+  (lambda [#:id [id #false] #:draw-operator [op #false] #:start-name [start #false]
            #:λblock [block-detect default-diaflow-block-identify] #:λarrow [arrow-detect default-diaflow-arrow-identify]
            #:λnode [make-node default-diaflow-node-construct] #:λnode-label [make-node-label default-diaflow-node-label-construct]
            #:λedge [make-edge default-diaflow-edge-construct] #:λedge-label [make-edge-label default-diaflow-edge-label-construct]

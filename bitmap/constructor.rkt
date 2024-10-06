@@ -275,8 +275,8 @@
                             (Real #:shaft-thickness Real #:wing-angle (Option Real) #:radian? Boolean
                                   #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum)
                             Bitmap)
-  (lambda [#:shaft-thickness [shaft-thickness -0.3] #:wing-angle [wing-angle #false] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)]
-           #:radian? [radian? #true] #:density [density (default-bitmap-density)]
+  (lambda [#:shaft-thickness [shaft-thickness -0.3] #:wing-angle [wing-angle #false] #:radian? [radian? #true]
+           #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]
            head-radius shaft-length [start 0.0]]
     (define rhead : Nonnegative-Flonum (~length head-radius))
     (define-values (prints tx ty width height)
@@ -336,7 +336,8 @@
                      density)))
 
 (define bitmap-bullet : (->* (Real Real) (Real #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum) Bitmap)
-  (lambda [ogive radius [barrel -0.384] #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]]
+  (lambda [#:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)] #:density [density (default-bitmap-density)]
+           ogive radius [barrel -0.16]]
     (define-values (flogive flbarrel) (~size ogive barrel))
     (dc_bullet create-argb-bitmap
                flogive flbarrel (~length radius (+ flogive flbarrel))
@@ -358,6 +359,38 @@
     (dc_sandglass create-argb-bitmap
                   flwidth flheight neck-flwidth neck-flheight tube-flheight
                   (stroke-paint->source* outline) (fill-paint->source* pattern) density)))
+
+(define bitmap-document : (->* (Real Real)
+                               (Real #:extra-n Index #:gapsize Real #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum)
+                               Bitmap)
+  (lambda [#:extra-n [extra-n 0] #:gapsize [gapsize -0.384]
+           #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)]
+           #:density [density (default-bitmap-density)]
+           width height [wave-height -0.25]]
+    (define-values (flwidth flheight) (~size width height))
+    (define flwave (~length wave-height flheight))
+    
+    (dc_document create-argb-bitmap
+                 flwidth flheight flwave (~length gapsize flwave) extra-n
+                 (stroke-paint->source* outline) (fill-paint->source* pattern)
+                 density)))
+
+(define bitmap-database : (->* (Real Real)
+                               (Real #:extra-n Index #:gapsize Real #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint #:density Positive-Flonum)
+                               Bitmap)
+  (lambda [#:extra-n [extra-n 2] #:gapsize [gapsize -0.618]
+           #:stroke [outline (default-stroke-paint)] #:fill [pattern (default-fill-paint)]
+           #:density [density (default-bitmap-density)]
+           width height [bradius -0.1618]]
+    (define-values (flwidth flheight) (~size width height))
+    (define flb (~length bradius flheight))
+    
+    (dc_database create-argb-bitmap
+                 flwidth flheight flb (~length gapsize flb) extra-n
+                 (stroke-paint->source* outline) (fill-paint->source* pattern)
+                 density)))
+
+(bitmap-database 200 50)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-parallelogram : (-> Real Real Real

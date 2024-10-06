@@ -110,6 +110,83 @@
     (cairo-render cr border background)
     (cairo_destroy cr)
 
+    sfc)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define (dc_document create-surface flwidth flheight flhwave gapsize n border background density)
+    (define-values (sfc cr) (create-surface flwidth flheight density #true))
+    (define line-width (~bdwidth border))
+    (define inset (unsafe-fl* line-width 0.5))
+    (define rx (unsafe-fl- flwidth inset))
+    (define by (unsafe-fl- flheight flhwave))
+    (define ctrl-yoff (* flhwave 2.5)) ;; TODO
+    (define ctrl-x1 (unsafe-fl* flwidth 0.25))
+    (define ctrl-y1 (unsafe-fl+ by ctrl-yoff))
+    (define ctrl-x2 (unsafe-fl- flwidth ctrl-x1))
+    (define ctrl-y2 (unsafe-fl- by ctrl-yoff))
+
+    (cairo_new_path cr)
+    (cairo_move_to cr inset inset)
+    (cairo_line_to cr inset by)
+    (cairo_curve_to cr ctrl-x1 ctrl-y1 ctrl-x2 ctrl-y2 rx by)
+    (cairo_line_to cr rx inset)
+    (cairo_close_path cr)
+    
+    (cairo-render cr border background)
+    (cairo_destroy cr)
+
+    sfc)
+  
+  (define (dc_database create-surface flwidth flheight bradius gapsize n border background density)
+    (define-values (sfc cr) (create-surface flwidth flheight density #true))
+    (define line-width (~bdwidth border))
+    (define inset (unsafe-fl* line-width 0.5))
+    (define rx (unsafe-fl- flwidth inset))
+    (define by (unsafe-fl- flheight bradius))
+    (define cx (unsafe-fl* flwidth 0.5))
+    (define inset-aradius (unsafe-fl- cx inset))
+    (define inset-bradius (unsafe-fl- bradius inset))
+    
+    (cairo_new_path cr)
+    (cairo_move_to cr inset bradius)
+    (cairo_line_to cr inset by)
+    (cairo-smart-elliptical-arc cr cx by inset-aradius inset-bradius pi 0.0 cairo_arc_negative)
+    (cairo_line_to cr rx bradius)
+    (cairo-smart-elliptical-arc cr cx bradius inset-aradius inset-bradius 0.0 pi cairo_arc_negative)
+    (cairo_close_path cr)
+
+    (let draw-sides ([y bradius]
+                     [i 0])
+      (when (unsafe-fx<= i n)
+        (cairo_move_to cr inset y)
+        (cairo-smart-elliptical-arc cr cx y inset-aradius inset-bradius pi 0.0 cairo_arc_negative)
+        (draw-sides (unsafe-fl+ y gapsize) (unsafe-fx+ i 1))))
+    
+    (cairo-render cr border background)
+    (cairo_destroy cr)
+
+    sfc)
+
+  #;(define (dc_storage create-surface flwidth flheight bradius n border background density)
+    (define-values (sfc cr) (create-surface flwidth flheight density #true))
+    (define line-width (~bdwidth border))
+    (define inset (unsafe-fl* line-width 0.5))
+    (define rx (unsafe-fl- flwidth inset))
+    (define by (unsafe-fl- flheight inset))
+    (define cx (unsafe-fl* flwidth 0.5))
+    (define inset-aradius (unsafe-fl- cx inset))
+    (define inset-bradius (unsafe-fl- (unsafe-fl* cx 0.384) inset))
+    
+    (cairo_new_path cr)
+    (cairo_move_to cr inset inset)
+    (cairo_line_to cr inset by)
+    (cairo-smart-elliptical-arc cr cx (unsafe-fl- by inset-bradius) inset-aradius inset-bradius pi 0.0 cairo_arc_negative)
+    (cairo_line_to cr rx inset)
+    (cairo-smart-elliptical-arc cr cx inset inset-aradius inset-bradius 0.0 pi cairo_arc_negative)
+    (cairo_close_path cr)
+    (cairo-render cr border background)
+    (cairo_destroy cr)
+
     sfc))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -118,6 +195,14 @@
  [dc_half_stadium (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Positive-Flonum S))]
  [dc_stadium (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Positive-Flonum S))]
  [dc_bullet (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Positive-Flonum S))]
+
+ [dc_document (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Index
+                           (Option Paint) (Option Fill-Source) Positive-Flonum
+                           S))]
+ 
+ [dc_database (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Index
+                           (Option Paint) (Option Fill-Source) Positive-Flonum
+                           S))]
  
  [dc_sandglass (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum
                             Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum

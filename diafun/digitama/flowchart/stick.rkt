@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/list)
+(require racket/case)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/geometry/trail)
@@ -56,20 +57,26 @@
     (define-values (width height) (dia-node-smart-size label style))
     (define node-id : Symbol (geo-anchor->symbol anchor))
 
-    (cond [(diaflow-process-style? style) (diaflow-block-process node-id label style width height dir hint)]
-          [(diaflow-decision-style? style) (diaflow-block-decision node-id label style width height dir hint)]
-          [(diaflow-input-style? style) (diaflow-block-input node-id label style width height dir hint)]
-          [(diaflow-output-style? style) (diaflow-block-output node-id label style width height dir hint)]
-          [(diaflow-prefab-style? style) (diaflow-block-prefab node-id label style width height dir hint)]
-          [(diaflow-preparation-style? style) (diaflow-block-preparation node-id label style width height dir hint)]
-          [(diaflow-start-style? style) (diaflow-block-terminal node-id label style width height dir hint)]
-          [(diaflow-stop-style? style) (diaflow-block-terminal node-id label style width height dir hint)]
-          [(diaflow-inspection-style? style) (diaflow-block-inspection node-id label style width height dir hint)]
-          [(diaflow-reference-style? style) (diaflow-block-reference node-id label style width height dir hint)]
-          [(diaflow-junction-style? style) (diaflow-block-junction node-id label style width height dir hint)]
-          [(diaflow-delay-style? style) (diaflow-block-delay node-id label style width height dir hint)]
-          [(diaflow-operation-style? style) (diaflow-block-manual-operation node-id label style width height dir hint)]
-          [(diaflow-alternate-style? style) (diaflow-block-alternate node-id label style width height dir hint)])))
+    (case/eq (object-name style)
+      [(diaflow-start-style) (diaflow-block-terminal node-id label style width height dir hint)]
+      [(diaflow-stop-style) (diaflow-block-terminal node-id label style width height dir hint)]
+      [(diaflow-inspection-style) (diaflow-block-inspection node-id label style width height dir hint)]
+      [(diaflow-reference-style) (diaflow-block-reference node-id label style width height dir hint)]
+
+      [(diaflow-preparation-style) (diaflow-block-preparation node-id label style width height dir hint)]
+      [(diaflow-input-style) (diaflow-block-input node-id label style width height dir hint)]
+      [(diaflow-output-style) (diaflow-block-output node-id label style width height dir hint)]
+      [(diaflow-process-style) (diaflow-block-process node-id label style width height dir hint)]
+      [(diaflow-decision-style) (diaflow-block-decision node-id label style width height dir hint)]
+      [(diaflow-delay-style) (diaflow-block-delay node-id label style width height dir hint)]
+      [(diaflow-operation-style) (diaflow-block-manual-operation node-id label style width height dir hint)]
+      
+      [(diaflow-selection-style) (diaflow-block-selection node-id label style width height dir hint)]
+      [(diaflow-junction-style) (diaflow-block-junction node-id label style width height dir hint)]
+      [(diaflow-extract-style) (diaflow-block-extract node-id label style width height dir hint)]
+      [(diaflow-merge-style) (diaflow-block-merge node-id label style width height dir hint)]
+      
+      [(diaflow-storage-style) (diaflow-block-storage node-id label style width height dir hint)])))
 
 (define default-diaflow-edge-construct : DiaFlow-Arrow->Edge
   (lambda [master source target style tracks labels]
@@ -160,7 +167,7 @@
                    [else (stick rest arrows nodes tracks++ target next-pt)]))
 
           (append
-
+           
            ;;; NOTE
            ; We need to draw arrows backwards,
            ;   as we usually create archtectural path before jumping back for various branches.
