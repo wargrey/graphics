@@ -113,31 +113,42 @@
     sfc)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc_document create-surface flwidth flheight flhwave gapsize n border background density)
+  (define (dc_document create-surface flwidth flheight flhwave gapsize extra-n border background density)
     (define-values (sfc cr) (create-surface flwidth flheight density #true))
+    (define ngap (unsafe-fl* (unsafe-fx->fl extra-n) gapsize))
     (define line-width (~bdwidth border))
     (define inset (unsafe-fl* line-width 0.5))
-    (define rx (unsafe-fl- flwidth inset))
-    (define by (unsafe-fl- flheight flhwave))
-    (define ctrl-yoff (* flhwave 2.5)) ;; TODO
-    (define ctrl-x1 (unsafe-fl* flwidth 0.25))
-    (define ctrl-y1 (unsafe-fl+ by ctrl-yoff))
-    (define ctrl-x2 (unsafe-fl- flwidth ctrl-x1))
-    (define ctrl-y2 (unsafe-fl- by ctrl-yoff))
+    (define ctrl-xoff (unsafe-fl* (unsafe-fl- flwidth ngap) 0.25))
+    (define ctrl-yoff (* flhwave 2.5)) ;; TODO, calculate the exact position
 
-    (cairo_new_path cr)
-    (cairo_move_to cr inset inset)
-    (cairo_line_to cr inset by)
-    (cairo_curve_to cr ctrl-x1 ctrl-y1 ctrl-x2 ctrl-y2 rx by)
-    (cairo_line_to cr rx inset)
-    (cairo_close_path cr)
+    (let draw-docs ([lx (unsafe-fl+ ngap inset)]
+                    [rx (unsafe-fl- flwidth inset)]
+                    [ty inset]
+                    [by (unsafe-fl- (unsafe-fl- flheight ngap) flhwave)]
+                    [i 0])
+      (when (unsafe-fx<= i extra-n)
+        (define ctrl-x1 (unsafe-fl+ lx ctrl-xoff))
+        (define ctrl-y1 (unsafe-fl+ by ctrl-yoff))
+        (define ctrl-x2 (unsafe-fl- rx ctrl-xoff))
+        (define ctrl-y2 (unsafe-fl- by ctrl-yoff))
+        
+        (cairo_new_path cr)
+        (cairo_move_to cr lx ty)
+        (cairo_line_to cr lx by)
+        (cairo_curve_to cr ctrl-x1 ctrl-y1 ctrl-x2 ctrl-y2 rx by)
+        (cairo_line_to cr rx ty)
+        (cairo_close_path cr)
+        (cairo-render cr border background)
+        
+        (draw-docs (unsafe-fl- lx gapsize) (unsafe-fl- rx gapsize)
+                   (unsafe-fl+ ty gapsize) (unsafe-fl+ by gapsize)
+                   (unsafe-fx+ i 1))))
     
-    (cairo-render cr border background)
     (cairo_destroy cr)
 
     sfc)
   
-  (define (dc_database create-surface flwidth flheight bradius gapsize n border background density)
+  (define (dc_database create-surface flwidth flheight bradius gapsize extra-n border background density)
     (define-values (sfc cr) (create-surface flwidth flheight density #true))
     (define line-width (~bdwidth border))
     (define inset (unsafe-fl* line-width 0.5))
@@ -157,7 +168,7 @@
 
     (let draw-sides ([y bradius]
                      [i 0])
-      (when (unsafe-fx<= i n)
+      (when (unsafe-fx<= i extra-n)
         (cairo_move_to cr inset y)
         (cairo-smart-elliptical-arc cr cx y inset-aradius inset-bradius pi 0.0 cairo_arc_negative)
         (draw-sides (unsafe-fl+ y gapsize) (unsafe-fx+ i 1))))
@@ -167,22 +178,17 @@
 
     sfc)
 
-  #;(define (dc_storage create-surface flwidth flheight bradius n border background density)
+  (define (dc_general_storage create-surface flwidth flheight aradius border background density)
     (define-values (sfc cr) (create-surface flwidth flheight density #true))
     (define line-width (~bdwidth border))
     (define inset (unsafe-fl* line-width 0.5))
-    (define rx (unsafe-fl- flwidth inset))
-    (define by (unsafe-fl- flheight inset))
-    (define cx (unsafe-fl* flwidth 0.5))
-    (define inset-aradius (unsafe-fl- cx inset))
-    (define inset-bradius (unsafe-fl- (unsafe-fl* cx 0.384) inset))
+    (define cy (unsafe-fl* flheight 0.5))
+    (define inset-aradius (unsafe-fl- aradius inset))
+    (define inset-bradius (unsafe-fl- cy inset))
     
     (cairo_new_path cr)
-    (cairo_move_to cr inset inset)
-    (cairo_line_to cr inset by)
-    (cairo-smart-elliptical-arc cr cx (unsafe-fl- by inset-bradius) inset-aradius inset-bradius pi 0.0 cairo_arc_negative)
-    (cairo_line_to cr rx inset)
-    (cairo-smart-elliptical-arc cr cx inset inset-aradius inset-bradius 0.0 pi cairo_arc_negative)
+    (cairo-smart-elliptical-arc cr aradius cy inset-aradius inset-bradius -pi/2  pi/2 cairo_arc_negative)
+    (cairo-smart-elliptical-arc cr flwidth cy inset-aradius inset-bradius  pi/2 3pi/2 cairo_arc)
     (cairo_close_path cr)
     (cairo-render cr border background)
     (cairo_destroy cr)
@@ -196,15 +202,19 @@
  [dc_stadium (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Positive-Flonum S))]
  [dc_bullet (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) Positive-Flonum S))]
 
+ [dc_sandglass (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum
+                            Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
+                            (Option Paint) (Option Fill-Source) Positive-Flonum
+                            S))]
+
+ [dc_general_storage (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                  (Option Paint) (Option Fill-Source) Positive-Flonum
+                                  S))]
+
  [dc_document (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Index
                            (Option Paint) (Option Fill-Source) Positive-Flonum
                            S))]
  
  [dc_database (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Index
                            (Option Paint) (Option Fill-Source) Positive-Flonum
-                           S))]
- 
- [dc_sandglass (All (S) (-> (Cairo-Surface-Create S) Nonnegative-Flonum Nonnegative-Flonum
-                            Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
-                            (Option Paint) (Option Fill-Source) Positive-Flonum
-                            S))])
+                           S))])

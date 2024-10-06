@@ -21,12 +21,13 @@
 ;;; https://creately.com/guides/flowchart-symbols/
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diaflow-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
-(define default-diaflow-decision-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
-(define default-diaflow-success-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
-(define default-diaflow-failure-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
-(define default-diaflow-loop-arrow-style-make : (Parameterof (Option Dia-Edge-Style-Make)) (make-parameter #false))
-(define default-diaflow-free-track-style-make : (Parameterof (Option Dia-Free-Edge-Style-Make)) (make-parameter #false))
+(define default-diaflow-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaFlow-Arrow-Style))) (make-parameter #false))
+(define default-diaflow-decision-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaFlow-Decision-Arrow-Style))) (make-parameter #false))
+(define default-diaflow-success-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaFlow-Success-Arrow-Style))) (make-parameter #false))
+(define default-diaflow-failure-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaFlow-Failure-Arrow-Style))) (make-parameter #false))
+(define default-diaflow-loop-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaFlow-Loop-Arrow-Style))) (make-parameter #false))
+(define default-diaflow-storage-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaFlow-Storage-Arrow-Style))) (make-parameter #false))
+(define default-diaflow-free-track-style-make : (Parameterof (Option (Dia-Free-Edge-Style-Make DiaFlow-Free-Track-Style))) (make-parameter #false))
 
 (define default-diaflow-success-decision-labels : (Parameterof (U (Listof String) Regexp)) (make-parameter #px"^([Tt]([Rr][Uu][Ee])?|[Yy]([Ee][Ss])?)$"))
 (define default-diaflow-failure-decision-labels : (Parameterof (U (Listof String) Regexp)) (make-parameter #px"^([Ff]([Aa][Ll][Ss][Ee])?|[Nn]([Oo])?)$"))
@@ -59,7 +60,7 @@
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'Sienna]
+   [color : (U Color Void False) 'DarkSlateGray]
    [dash : (Option Stroke-Dash-Datum) #false]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
@@ -83,7 +84,7 @@
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'Goldenrod]
+   [color : (U Color Void False) 'DarkGoldenrod]
    [dash : (Option Stroke-Dash-Datum) #false]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
@@ -96,6 +97,18 @@
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'SteelBlue]
+   [dash : (Option Stroke-Dash-Datum) #false]
+   [source-shape : Maybe-Edge-Tip-Shape (void)]
+   [target-shape : Maybe-Edge-Tip-Shape (void)]
+   [label-rotate? : (U Boolean Void) #true]
+   [label-inline? : (U Boolean Void) #false]))
+
+(define-configuration diaflow-storage-arrow-style : DiaFlow-Storage-Arrow-Style #:as dia-edge-style
+  #:format "default-diaflow-storage-arrow-~a"
+  ([font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [width : (Option Flonum) #false]
+   [color : (U Color Void False) 'DodgerBlue]
    [dash : (Option Stroke-Dash-Datum) #false]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
@@ -118,8 +131,6 @@
 (define-type (DiaFlow-Node-Style-Make S) (Dia-Node-Style-Make* S (Option Symbol)))
 
 (define default-diaflow-canonical-start-name : (Parameterof String) (make-parameter ""))
-(define default-diaflow-canonical-stop-name : (Parameterof String) (make-parameter ""))
-
 (define default-diaflow-node-label-string : (Parameterof (Option Dia-Node-Id->String)) (make-parameter #false))
 
 (define default-diaflow-start-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Start-Style))) (make-parameter #false))
@@ -147,10 +158,10 @@
 (define default-diaflow-input-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Input-Style))) (make-parameter #false))
 (define default-diaflow-output-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Output-Style))) (make-parameter #false))
 
-(define default-diaflow-memory-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Storage-Style))) (make-parameter #false))
-(define default-diaflow-database-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Storage-Style))) (make-parameter #false))
-(define default-diaflow-document-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Storage-Style))) (make-parameter #false))
 (define default-diaflow-storage-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Storage-Style))) (make-parameter #false))
+(define default-diaflow-memory-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Storage-Style))) (make-parameter #false))
+(define default-diaflow-document-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Storage-Style))) (make-parameter #false))
+(define default-diaflow-database-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Database-Style))) (make-parameter #false))
 
 (define-configuration diaflow-node-base-style : DiaFlow-Node-Style #:as dia-node-base-style
   #:format "default-diaflow-~a"
@@ -215,9 +226,9 @@
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) 'Chocolate]
+   [stroke-color : (U Color Void False) 'LightSeaGreen]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
+   [fill-paint : Maybe-Fill-Paint 'MintCream]))
 
 (define-configuration diaflow-output-style : DiaFlow-Output-Style #:as dia-node-style
   #:format "default-diaflow-output-~a"
@@ -226,7 +237,7 @@
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) 'Purple]
+   [stroke-color : (U Color Void False) 'DarkOrchid]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
@@ -306,7 +317,7 @@
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) 'DarkOliveGreen]
+   [stroke-color : (U Color Void False) 'Peru]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
@@ -318,7 +329,7 @@
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) 'Tomato]
+   [stroke-color : (U Color Void False) 'IndianRed]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint 'SeaShell]))
 
@@ -358,8 +369,19 @@
 
 (define-configuration diaflow-storage-style : DiaFlow-Storage-Style #:as dia-node-style
   #:format "default-diaflow-storage-~a"
-  ([block-width : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 1.618)]
-   [block-height : (Option Nonnegative-Flonum) #false]
+  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width) 0.618)]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 1.618)]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Flonum) #false]
+   [stroke-color : (U Color Void False) 'MediumSeaGreen]
+   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [fill-paint : Maybe-Fill-Paint 'Honeydew]))
+
+(define-configuration diaflow-database-style : DiaFlow-Database-Style #:as dia-node-style
+  #:format "default-diaflow-database-~a"
+  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width) 0.618)]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-width) 0.618 1.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]

@@ -35,16 +35,16 @@
 (define-syntax (define-flowchart! stx)
   (syntax-parse stx #:literals []
     [(_ name
-        (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'-0.618]))
-              (~optional (~seq #:grid-height gh) #:defaults ([gh #'-1.618]))
-              (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.050])))
+        (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'-0.80]))
+              (~optional (~seq #:grid-height gh) #:defaults ([gh #'-0.50]))
+              (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.05])))
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
        (define name : Gomamon
          (with-gomamon!
              (let* ([grid-width  (~length gw (default-diaflow-block-width))]
-                    [grid-height (~length gh (default-diaflow-block-height))]
+                    [grid-height (~length gh grid-width)]
                     [scale (make-rectangular ts (* ts (/ grid-width grid-height)))])
                (make-gomamon #:T-scale scale #:U-scale scale
                              grid-width grid-height

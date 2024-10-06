@@ -24,13 +24,15 @@
 (provide geo-stadium geo-half-stadium geo:stadium? Geo:Stadium)
 (provide geo-bullet geo:bullet? Geo:Bullet)
 (provide geo-sandglass geo:sandglass? Geo:Sandglass)
-(provide geo-document geo:document? Geo:Document)
-(provide geo-database geo:database? Geo:Database)
 
 (provide geo-regular-polygon geo:regular-polygon? Geo:Regular-Polygon)
 (provide geo-polygon geo:polygon? Geo:Polygon)
 (provide geo-polyline geo:polyline? Geo:Polyline)
 (provide geo-parallelogram geo-rhombus geo-trapezium geo-keyboard geo-house geo-hexagon-tile)
+
+(provide geo-storage geo:storage? Geo:Storage)
+(provide geo-document geo:document? Geo:Document)
+(provide geo-database geo:database? Geo:Database)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require "digitama/dc/text.rkt")
@@ -41,9 +43,9 @@
 (require "digitama/dc/line.rkt")
 (require "digitama/dc/arrow.rkt")
 
-(require "digitama/dc/more.rkt")
-
 (require "digitama/dc/polygon.rkt")
 (require "digitama/dc/polygon/quadrilateral.rkt")
 (require "digitama/dc/polygon/pentagon.rkt")
 (require "digitama/dc/polygon/hexagon.rkt")
+
+(require "digitama/dc/more.rkt")

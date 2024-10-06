@@ -390,8 +390,6 @@
                  (stroke-paint->source* outline) (fill-paint->source* pattern)
                  density)))
 
-(bitmap-database 200 50)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-parallelogram : (-> Real Real Real
                                    [#:stroke Maybe-Stroke-Paint] [#:fill Option-Fill-Paint] [#:density Positive-Flonum] [#:radian? Boolean]

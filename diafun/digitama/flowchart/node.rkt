@@ -7,7 +7,6 @@
 (require "interface.rkt")
 
 (require geofun/constructor)
-(require geofun/composite)
 (require geofun/paint)
 (require geofun/stroke)
 
@@ -68,12 +67,13 @@
   (lambda [node-key label style width height direction hint]
     (define-values (w h stroke) (diaflow-polygon-size width height style))
     (define vertices : Hexagon-Vertices (geo-hexagon-tile-vertices w h))
-    
-    (create-dia-node dia:node:polygon
+
+    ; TODO: these vertices have trouble in intersecting with arrows
+    (create-dia-node ;dia:node:polygon
                      #:id node-key #:type 'Preparation hint
-                     #:intersect dia-polygon-intersect
+                     ;#:intersect dia-polygon-intersect
                      #:fit-ratio 0.75 1.00
-                     (diaflow-polygon-shape node-key style stroke vertices) label vertices)))
+                     (diaflow-polygon-shape node-key style stroke vertices) label #;vertices)))
 
 (define diaflow-block-terminal : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
@@ -215,8 +215,16 @@
   (lambda [node-key label style width height direction hint]
     (cond [(eq? hint 'Memory) (diaflow-block-memory node-key label style width height direction hint)]
           [(eq? hint 'File) (diaflow-block-document node-key label style width height direction hint)]
+          [(eq? hint 'Directory) (diaflow-block-multiple-document node-key label style width height direction hint)]
           [(eq? hint 'Database) (diaflow-block-database node-key label style width height direction hint)]
-          [else (diaflow-block-memory node-key label style width height direction hint)])))
+          [else (let ([aradius (* height 0.5 0.384)])
+                  (create-dia-node #:id node-key #:type 'Stroage hint
+                                   #:position (max (- 0.5 (* (/ aradius width) 0.5)) 0.0) 0.5
+                                   (geo-storage #:id (dia-node-shape-id node-key)
+                                                #:stroke (dia-node-select-stroke-paint style)
+                                                #:fill (dia-node-select-fill-paint style)
+                                                width height aradius)
+                                   label))])))
 
 (define diaflow-block-memory : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
@@ -225,7 +233,7 @@
     (define label-zone-width : Flonum  (- width label-pos))
     (define label-zone-height : Flonum (- height label-pos))
     
-    (create-dia-node #:id node-key #:type 'Stroage hint
+    (create-dia-node #:id node-key #:type 'Storage hint
                      #:fit-ratio (max (/ label-zone-width width) 0.0) (max (/ label-zone-width height) 0.0)
                      #:position (max (/ (+ label-pos (* label-zone-width 0.5)) width) 0.0) (max (/ (+ label-pos (* label-zone-height 0.5)) height) 0.0)
                      (geo-rectangle #:id (dia-node-shape-id node-key) #:vlines (list label-pos) #:hlines (list label-pos)
@@ -237,13 +245,35 @@
 (define diaflow-block-document : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
     (define hratio : Nonnegative-Flonum 0.75)
-    (create-dia-node #:id node-key #:type 'Stroage hint
+    (create-dia-node #:id node-key #:type 'Storage hint
                      #:fit-ratio 1.0 hratio
                      #:position 0.5 (* hratio 0.5)
                      (geo-document #:id (dia-node-shape-id node-key)
                                    #:stroke (dia-node-select-stroke-paint style)
                                    #:fill (dia-node-select-fill-paint style)
                                    width height (* (- hratio 1.0) 0.5))
+                     label)))
+
+(define diaflow-block-multiple-document : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (define extra-n : Index 2)
+    (define gapsize : Nonnegative-Flonum (* height 0.1))
+    (define ngap : Nonnegative-Flonum (* gapsize (real->double-flonum extra-n)))
+    (define wgr : Flonum (/ ngap width))
+    (define hgr : Flonum (/ ngap width))
+    (define wave-ratio : Nonnegative-Flonum 0.25)
+    (define wratio : Nonnegative-Flonum (abs (- 1.00 wgr)))
+    (define hratio : Nonnegative-Flonum (abs (- 1.00 wave-ratio hgr)))
+    
+    (create-dia-node #:id node-key #:type 'Storage hint
+                     #:fit-ratio wratio hratio
+                     #:position (abs (- 0.5 (* wgr 0.5))) (abs (+ hgr (* hratio 0.5)))
+                     (geo-document #:id (dia-node-shape-id node-key)
+                                   #:stroke (dia-node-select-stroke-paint style)
+                                   #:fill (dia-node-select-fill-paint style)
+                                   #:gapsize gapsize
+                                   #:extra-n extra-n
+                                   width height (* wave-ratio -0.5))
                      label)))
 
 (define diaflow-block-database : DiaFlow-Block-Create
@@ -254,7 +284,7 @@
     (define label-zone-height : Flonum (- height (* bradius 3.0) (* gapsize (exact->inexact extra-n))))
     (define hratio : Nonnegative-Flonum (abs (/ label-zone-height height)))
     
-    (create-dia-node #:id node-key #:type 'Stroage hint
+    (create-dia-node #:id node-key #:type 'Storage hint
                      #:fit-ratio 1.0 hratio
                      #:position 0.5 (+ 0.5 (* hratio 0.5))
                      (geo-database #:id (dia-node-shape-id node-key)

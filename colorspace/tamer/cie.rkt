@@ -3,7 +3,7 @@
 (require bitmap/constructor)
 (require bitmap/composite)
 (require bitmap/pixel)
-(require pangocairo/color)
+(require geofun/color)
 
 (require math/flonum)
 

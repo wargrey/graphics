@@ -32,6 +32,13 @@
   #:type-name Geo:Sandglass
   #:transparent)
 
+(struct geo:storage geo
+  ([width : Nonnegative-Flonum]
+   [height : Nonnegative-Flonum]
+   [aradius : Nonnegative-Flonum])
+  #:type-name Geo:Storage
+  #:transparent)
+
 (struct geo:document geo
   ([width : Nonnegative-Flonum]
    [height : Nonnegative-Flonum]
@@ -105,6 +112,17 @@
                             #:id id
                             neck-flwidth neck-flheight tube-flheight)))
 
+(define geo-storage : (->* (Real Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Storage)
+  (lambda [width height [aradius -0.384] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
+    (define-values (flwidth flheight) (~size width height))
+    (define fla : Nonnegative-Flonum (~length aradius (* flheight 0.5)))
+    
+    (create-geometry-object geo:storage
+                            #:surface geo-storage-surface stroke pattern
+                            #:extent (geo-shape-plain-extent flwidth flheight 0.0 0.0)
+                            #:id id
+                            flwidth flheight fla)))
+
 (define geo-document : (->* (Real Real) (Real #:id (Option Symbol) #:extra-n Index #:gapsize Real #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Document)
   (lambda [width height [wave -0.384] #:extra-n [extra-n 0] #:id [id #false] #:gapsize [gapsize -0.618] #:stroke [stroke (void)] #:fill [pattern (void)]]
     (define-values (flwidth flheight) (~size width height))
@@ -158,6 +176,14 @@
                       (geo:sandglass-neck-width self) (geo:sandglass-neck-height self) (geo:sandglass-tube-height self)
                       (current-stroke-source) (current-fill-source)
                       (default-geometry-density))))))
+
+(define geo-storage-surface : Geo-Surface-Create
+  (lambda [self]
+    (with-asserts ([self geo:storage?])
+      (dc_general_storage create-abstract-surface
+                          (geo:storage-width self) (geo:storage-height self) (geo:storage-aradius self)
+                          (current-stroke-source) (current-fill-source)
+                          (default-geometry-density)))))
 
 (define geo-document-surface : Geo-Surface-Create
   (lambda [self]

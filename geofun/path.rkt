@@ -142,9 +142,9 @@
           [(null? (cdr ctrls)) (geo-path-quadratic-bezier wani endpt (car ctrls) anchor)]
           [else (geo-path-cubic-bezier wani endpt (car ctrls) (cadr ctrls) anchor)])))
 
-(define gomamon-move-to! : (->* (Gomamon (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
-  (lambda [wani target [anchor #false]]
-    (geo-path-connect-to wani target anchor)))
+(define gomamon-move-to! : (->* (Gomamon (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name) Any) Void)
+  (lambda [wani target [anchor #false] [info #false]]
+    (geo-path-connect-to wani target anchor info)))
 
 (define gomamon-jump-to! : (->* (Gomamon (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
   (lambda [wani target [anchor #false]]
@@ -153,6 +153,26 @@
 (define gomamon-jump-back! : (->* (Gomamon) ((U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name)) Void)
   (lambda [wani [target #false] [anchor #false]]
     (geo-path-jump-to wani target anchor)))
+
+(define gomamon-T-step! : (->* (Gomamon (U Geo-Anchor-Name Complex)) (Any Any) Void)
+  (lambda [goma target [info1 #false] [info2 #false]]
+    (define-values (hstep vstep)
+      (cond [(not (complex? target)) (values target target)]
+            [(real? target) (values target target)]
+            [else (values (real-part target) (imag-part target))]))
+    
+    (gomamon-move-right! goma hstep #false info1)
+    (gomamon-move-down!  goma vstep #false info2)))
+  
+(define gomamon-L-step! : (->* (Gomamon (U Geo-Anchor-Name Complex)) (Any Any) Void)
+  (lambda [goma target [info1 #false] [info2 #false]]
+    (define-values (hstep vstep)
+      (cond [(not (complex? target)) (values target target)]
+            [(real? target) (values target target)]
+            [else (values (real-part target) (imag-part target))]))
+    
+    (gomamon-move-down!  goma vstep #false info1)
+    (gomamon-move-right! goma hstep #false info2)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-path-stick : (->* (Geo:Path)

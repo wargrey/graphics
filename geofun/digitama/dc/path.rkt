@@ -43,11 +43,7 @@
   (syntax-case stx []
     [(_ move1 move2 #:+> xsgn ysgn)
      (with-syntax ([move! (format-id #'move1 "gomamon-move-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
-                   [jump! (format-id #'move1 "gomamon-jump-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
-                   [step-1-2! (format-id #'move1 "gomamon-step-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
-                   [step-2-1! (format-id #'move2 "gomamon-step-~a-~a!" (syntax->datum #'move2) (syntax->datum #'move1))]
-                   [move1! (format-id #'move1 "gomamon-move-~a!" (syntax->datum #'move1))]
-                   [move2! (format-id #'move2 "gomamon-move-~a!" (syntax->datum #'move2))])
+                   [jump! (format-id #'move1 "gomamon-jump-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))])
        (syntax/loc stx
          (begin (define (move! [goma : Gomamon] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
@@ -55,15 +51,7 @@
 
                 (define (jump! [goma : Gomamon] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-path-M goma xstep ystep xsgn ysgn anchor))
-
-                (define (step-1-2! [goma : Gomamon] [target : Geo-Anchor-Name] [info1 : Any #false] [info2 : Any #false]) : Void
-                  (move1! goma target #false info1)
-                  (move2! goma target #false info2))
-
-                (define (step-2-1! [goma : Gomamon] [target : Geo-Anchor-Name] [info2 : Any #false] [info1 : Any #false]) : Void
-                  (move2! goma target #false info2)
-                  (move1! goma target #false info1)))))]
+                  (geo-path-M goma xstep ystep xsgn ysgn anchor)))))]
     [(_ move #:-> xsgn)
      (with-syntax ([move! (format-id #'move "gomamon-move-~a!" (syntax->datum #'move))]
                    [jump! (format-id #'move "gomamon-jump-~a!" (syntax->datum #'move))])
@@ -178,9 +166,14 @@
     (set-geo:path-here! self pos)
     (set-geo:path-footprints! self (cons (cons #\M pos) (geo:path-footprints self)))))
 
-(define geo-path-connect-to : (-> Geo:Path (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Void)
-  (lambda [self target pos-anchor]
+(define geo-path-connect-to : (-> Geo:Path (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Any Void)
+  (lambda [self target pos-anchor info]
     (define pos : Float-Complex (geo-path-target-position self target))
+
+    (unless (not info)
+      (hash-set! (geo:path-foot-infos self)
+                 (cons (geo:path-here self) pos)
+                 info))
 
     (when (complex? target)
         (geo-trail-try-set! (geo:path-trail self) pos-anchor pos))

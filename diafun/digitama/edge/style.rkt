@@ -18,8 +18,8 @@
 (define-type Dia-Free-Edge-Endpoint (U Geo-Anchor-Name Float-Complex))
 
 (define-type (Dia-Edge-Style-Make* Src Tgt S) (-> Src Tgt (Listof Dia-Edge-Label-Datum) (U S Void False)))
-(define-type Dia-Edge-Style-Make (Dia-Edge-Style-Make* Geo (Option Geo) Dia-Edge-Style))
-(define-type Dia-Free-Edge-Style-Make (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint Dia-Edge-Style))
+(define-type (Dia-Edge-Style-Make S) (Dia-Edge-Style-Make* Geo (Option Geo) S))
+(define-type (Dia-Free-Edge-Style-Make S) (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint S))
 
 (struct dia-edge-style
   ([font : (Option Font)]

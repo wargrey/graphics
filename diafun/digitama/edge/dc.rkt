@@ -78,17 +78,20 @@
           [else (let* ([edge (dia-edge-unlabel self)]
                        [O (dia:edge-origin edge)])
                   (let attach ([labels : (Listof Dia-Edge-Label) (if (list? label) label (list label))]
-                               [layers : (Listof (GLayerof Geo)) null])
+                               [layers : (Listof (GLayerof Geo)) null]
+                               [op : (Option Symbol) 'source])
                     (if (pair? labels)
                         (let* ([label (car labels)]
-                               [V (dia-edge-label-dir label)])
+                               [V (dia-edge-label-dir label)]
+                               [distance (dia-edge-label-distance label)])
+                          
                           (attach (cdr labels)
                                   (cons (geo-sticker->layer (dia-edge-label-sticker label)
                                                             (geo-perpendicular-point (- (dia-edge-label-pos label) O) V
-                                                                                     (dia-edge-label-distance label)
-                                                                                     (dia-edge-label-ratio label)))
-                                        layers)))
-                        (create-geometry-group dia:labeled-edge 'source
+                                                                                     distance (dia-edge-label-ratio label)))
+                                        layers)
+                                  (if (and distance (zero? distance)) op #false)))
+                        (create-geometry-group dia:labeled-edge op
                                                (geo-path-layers-merge (geo:group-selves self) layers)))))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -4,48 +4,66 @@
 (require diafun/flowchart)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define Wait : Symbol (string->symbol "Wait User..."))
-(define Read : Keyword (string->keyword ">>:Read\nExpression"))
+(define Wait : Symbol (string->symbol "Wait User Type..."))
+(define Read : Symbol (string->symbol ">>:Read\nExpression"))
+(define Select : Symbol (string->symbol ">>Select Expression\nFrom History List"))
+(define Create : Keyword (string->keyword "/proc/Create\nHistory List"))
+(define Update : Symbol (string->symbol "/proc/Update\nHistory List"))
+(define Sync : Keyword (string->keyword "/proc/Sync\nHistory List"))
 (define Print : Symbol (string->symbol "<<:Print\nResult"))
 (define Print-Error : Symbol (string->symbol "<<:Show\nError Message"))
 
 (define-flowchart! repl [] #:-
   ; Portion on Page 1
   (move-down 1 'Initialization!)
+  (move-down 1 Create)
   (move-down 1 Wait)
+  (move-down 1 '#:-type+)
+  (move-down 0.5)
+  (move-left 0.75 #false "Input Expression")
   (move-down 1 Read)
+  (move-down 1)
+  (move-right 0.75)
+  (move-down 0.5 '=expr-)
+  (move-down 1 Update)
+  
+  (jump-back)
+  (move-down 0.5)
+  (move-right 0.75 #false "Pressed Up/Down")
+  (move-down 1 Select)
+  (move-down 1)
+  (move-left 0.75)
+  
+  (jump-to Update)
   (move-down 1 'λEvaluate)
   (move-down 1 '#:-+)
-  (move-down 1 '#:Exit?)
-  (move-down 1 '#:Void? "False")
-  (move-down 1 Print "No")
-
-  (move-down 0.5)
+  (move-down 1.2 '#:Void? "datum")
+  (move-left 1.5 Print "No")
   (move-left 1.0 '.loop)
-  (step-up-right Wait "LOOP")
+  (L-step Wait "LOOP")
 
   (jump-back)
-  (move-left '.loop #false "Yes")
+  (move-down 0.5 #false "Yes")
+  (T-step '.loop)
 
   (jump-back)
-  (move-right 1.0 #false "True")
-  (move-down Print)
-  (move-down 0.425)
-  (turn-left-down)
-  (turn-down-right)
-  (move-down 0.5 '@E)
+  (move-right 1.5 #false "Exit")
+  (move-down '#:Void?)
+  (move-down 0.75)
+  (move-left '#:Void?)
+  (move-down 0.50 '@E)
 
-  (jump-back)
-  (move-right 2 #false "Error/Failure")
-  (move-down Print Print-Error)
-  (step-down-left '.loop)
+  (jump-back '#:-+)
+  (move-left 1.5 Print-Error "Fatal")
   (move-left '.loop)
   
   (jump-back)
-  (move-right 2 '/db=/|Append to .history|)
+  (jump-right 2 '/doc/.history)
+  (move-to Create #false "load")
 
-  ; Portion on the same page, located at Grid (5, 0)
-  (jump-to 5 '@E.)
+  ; Portion on the same page, located at Grid (4, 0)
+  (jump-to 4 '@E.)
+  (move-down 1 Sync)
   (move-down 1 'λ|Call Exit Handler|)
   (move-down 1 '#:Byte? "Check Exit Status")
   (move-down 1 '#:Zero? "Y")
@@ -56,25 +74,28 @@
   (move-down 1 '&Page2)
   
   (jump-back)
-  (step-left-down 'Exit$ "N")
+  (T-step 'Exit$ "N")
 
-  ; Portion on Page 2, located at Grid (9, 0)
+  (jump-back)
+  (T-step '/doc/.history "save")
+
+  ; Portion on Page 2, located at Grid (7, 0)
   ; Referenced by Page 1
-  (jump-to 8 '&Page1.)
+  (jump-to 7 '&Page1.)
   (move-down 1 '|Report Error|)
   (move-down 1 '#:-.+)
-  (move-down 2 '=continue- "Ignored")
+  (move-down 3 '=continue- "Ignored")
   
   (jump-back)
-  (move-right 1.5)
-  (move-down 0.5 '--|Awkward and Check|--)
+  (move-right 1)
+  (move-down 1 '--|Awkward and Check|--)
   (move-down 1 '--Confirm--)
-  (step-down-left '=continue-)
-  (move-down 0.5 '#:.hide)
+  (L-step '=continue-)
+  (move-down 0.5)
 
   ; Free Edges are designed for drawing decorative things,
   ;   such as separators, swimlanes
-  (jump-to 7)
+  (jump-to 6)
   (move-down '@E #false "= PAGE SEPARATOR ="))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

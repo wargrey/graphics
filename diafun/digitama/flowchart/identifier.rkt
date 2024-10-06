@@ -17,10 +17,10 @@
     (if (keyword? anchor)
 
         (let ([text (geo-anchor->string anchor)])
-          (cond [(or (string-ci=? text "home") (string-ci=? text "start"))
+          (cond [(or (string-ci=? text "home") (string-ci=? text "start") (string-ci=? text "begin"))
                  (diaflow-node-style-construct anchor (default-diaflow-canonical-start-name) (default-diaflow-start-style-make) make-diaflow-start-style)]
-                [(or (string-ci=? text "end") (string-ci=? text "terminate"))
-                 (diaflow-node-style-construct anchor (default-diaflow-canonical-stop-name) (default-diaflow-stop-style-make) make-diaflow-stop-style)]
+                [(or (string-ci=? text "end") (string-ci=? text "terminate") (string-ci=? text "exit") (string-ci=? text "return"))
+                 (diaflow-node-style-construct anchor text (default-diaflow-stop-style-make) make-diaflow-stop-style)]
                 [else (let ([size (string-length text)])
                         (and (> size 0)
                              (diaflow-block-text-identify anchor text size)))]))
@@ -45,6 +45,8 @@
                    [else (dia-edge-style-construct source target labels (default-diaflow-decision-arrow-style-make) make-diaflow-decision-arrow-style)])]
             [(eq? stype 'Selection)
              (dia-edge-style-construct source target labels (default-diaflow-decision-arrow-style-make) make-diaflow-decision-arrow-style)]
+            [(or (eq? stype 'Storage) (eq? ttype 'Storage))
+             (dia-edge-style-construct source target labels (default-diaflow-storage-arrow-style-make) make-diaflow-storage-arrow-style)]
             [(dia-edge-label-match? hints (default-diaflow-loop-label-regexp))
              (dia-edge-style-construct source target labels (default-diaflow-loop-arrow-style-make) make-diaflow-loop-arrow-style)]
             [else (dia-edge-style-construct source target labels (default-diaflow-arrow-style-make) make-diaflow-arrow-style)]))
@@ -104,18 +106,18 @@
                (diaflow-node-style-construct anchor (substring text 1 size) (default-diaflow-inspection-style-make) make-diaflow-inspection-style 'root))]
           [(eq? ch0 #\&)
            (if (eq? ch$ #\.)
-               (diaflow-node-style-construct anchor (substring text 1 idx$) (default-diaflow-reference-style-make) make-diaflow-reference-style 'sink)
-               (diaflow-node-style-construct anchor (substring text 1 size) (default-diaflow-reference-style-make) make-diaflow-reference-style 'root))]
+               (diaflow-node-style-construct anchor (substring text 1 idx$) (default-diaflow-reference-style-make) make-diaflow-reference-style 'page-sink)
+               (diaflow-node-style-construct anchor (substring text 1 size) (default-diaflow-reference-style-make) make-diaflow-reference-style 'page-root))]
           [(eq? ch$ #\.)
            (and (string-suffix? text "...")
                 (diaflow-node-style-construct anchor (substring text 0 (- idx$2 1)) (default-diaflow-delay-style-make) make-diaflow-delay-style))]
           [(eq? ch0 #\/)
            (cond [(string-prefix? text "/doc/")
                   (if (eq? ch$ #\/)
-                      (diaflow-node-style-construct anchor (substring text 1 idx$) (default-diaflow-document-style-make) make-diaflow-storage-style 'Directory)
+                      (diaflow-node-style-construct anchor (substring text 5 idx$) (default-diaflow-document-style-make) make-diaflow-storage-style 'Directory)
                       (diaflow-node-style-construct anchor (substring text 5 size) (default-diaflow-document-style-make) make-diaflow-storage-style 'File))]
                  [(string-prefix? text "/db/")
-                  (diaflow-node-style-construct anchor (substring text 4 size) (default-diaflow-database-style-make) make-diaflow-storage-style 'Database)]
+                  (diaflow-node-style-construct anchor (substring text 4 size) (default-diaflow-database-style-make) make-diaflow-database-style 'Database)]
                  [(string-prefix? text "/proc/")
                   (diaflow-node-style-construct anchor (substring text 6 size) (default-diaflow-memory-style-make) make-diaflow-storage-style 'Memory)]
                  [else (diaflow-node-style-construct anchor (substring text 1 size) (default-diaflow-storage-style-make) make-diaflow-storage-style)])]
