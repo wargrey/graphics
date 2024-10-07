@@ -46,7 +46,9 @@
             [(eq? stype 'Selection)
              (dia-edge-style-construct source target labels (default-diaflow-decision-arrow-style-make) make-diaflow-decision-arrow-style)]
             [(or (eq? stype 'Storage) (eq? ttype 'Storage))
-             (dia-edge-style-construct source target labels (default-diaflow-storage-arrow-style-make) make-diaflow-storage-arrow-style)]
+             (if (pair? labels)
+                 (dia-edge-style-construct source target labels (default-diaflow-storage-arrow-style-make) make-diaflow-storage-arrow-style)
+                 (dia-edge-style-construct source target labels (default-diaflow-arrow-style-make) make-diaflow-arrow-style))]
             [(dia-edge-label-match? hints (default-diaflow-loop-label-regexp))
              (dia-edge-style-construct source target labels (default-diaflow-loop-arrow-style-make) make-diaflow-loop-arrow-style)]
             [else (dia-edge-style-construct source target labels (default-diaflow-arrow-style-make) make-diaflow-arrow-style)]))

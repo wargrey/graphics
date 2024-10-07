@@ -4,7 +4,7 @@
 (require diafun/flowchart)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define Wait : Symbol (string->symbol "Wait User Type..."))
+(define Wait : Symbol (string->symbol "Wait for You to Type..."))
 (define Read : Symbol (string->symbol ">>:Read\nExpression"))
 (define Select : Symbol (string->symbol ">>Select Expression\nFrom History List"))
 (define Create : Keyword (string->keyword "/proc/Create\nHistory List"))
@@ -13,7 +13,7 @@
 (define Print : Symbol (string->symbol "<<:Print\nResult"))
 (define Print-Error : Symbol (string->symbol "<<:Show\nError Message"))
 
-(define-flowchart! repl [] #:-
+(define-flowchart! repl [#:start-name "REPL\n(Shell)"] #:-
   ; Portion on Page 1
   (move-down 1 'Initialization!)
   (move-down 1 Create)
@@ -101,5 +101,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   ;(default-diaflow-fill-paint #false)
-  
-  (geo-frame (dia-path-flow repl #:start-name "REPL\n(Shell)") #:background 'White))
+  (define repl.dia (geo-frame repl #:background 'White))
+
+  #;(geo-save repl.dia (build-path (find-system-path 'desk-dir) "repl.png") #:format 'png)
+  repl.dia)

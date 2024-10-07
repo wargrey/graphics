@@ -29,27 +29,31 @@
 (require "digitama/flowchart/stick.rkt")
 
 (require (for-syntax racket/base))
+(require (for-syntax racket/syntax))
 (require (for-syntax syntax/parse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-flowchart! stx)
   (syntax-parse stx #:literals []
     [(_ name
+        (~optional (~seq #:with gomamon) #:defaults ([gomamon #'_gomamon]))
         (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'-0.80]))
               (~optional (~seq #:grid-height gh) #:defaults ([gh #'-0.50]))
-              (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.05])))
+              (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.05]))
+              (~optional (~seq #:at home) #:defaults ([home #'0])))
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (define name : Gomamon
-         (with-gomamon!
-             (let* ([grid-width  (~length gw (default-diaflow-block-width))]
-                    [grid-height (~length gh grid-width)]
-                    [scale (make-rectangular ts (* ts (/ grid-width grid-height)))])
-               (make-gomamon #:T-scale scale #:U-scale scale
-                             grid-width grid-height
-                             args ...))
-           move-expr ...)))]))
+       (begin
+         (define gomamon : Gomamon
+           (with-gomamon!
+               (let* ([grid-width  (~length gw (default-diaflow-block-width))]
+                      [grid-height (~length gh grid-width)]
+                      [scale (make-rectangular ts (* ts (/ grid-width grid-height)))])
+                 (make-gomamon #:T-scale scale #:U-scale scale #:at home grid-width grid-height))
+             move-expr ...))
+         
+         (define name (dia-path-flow gomamon args ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-path-flow : (->* (Geo:Path)

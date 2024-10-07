@@ -76,7 +76,9 @@
       [(diaflow-extract-style) (diaflow-block-extract node-id label style width height dir hint)]
       [(diaflow-merge-style) (diaflow-block-merge node-id label style width height dir hint)]
       
-      [(diaflow-storage-style) (diaflow-block-storage node-id label style width height dir hint)])))
+      [(diaflow-storage-style) (diaflow-block-storage node-id label style width height dir hint)]
+      [(diaflow-collation-style) (diaflow-block-collation node-id label style width height dir hint)]
+      [(diaflow-sort-style) (diaflow-block-sort node-id label style width height dir hint)])))
 
 (define default-diaflow-edge-construct : DiaFlow-Arrow->Edge
   (lambda [master source target style tracks labels]

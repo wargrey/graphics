@@ -106,10 +106,10 @@
 (define-configuration diaflow-storage-arrow-style : DiaFlow-Storage-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-storage-arrow-~a"
   ([font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
+   [font-paint : Option-Fill-Paint 'DodgerBlue]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DodgerBlue]
-   [dash : (Option Stroke-Dash-Datum) #false]
+   [dash : (Option Stroke-Dash-Datum) 'dot]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
    [label-rotate? : (U Boolean Void) #true]
@@ -264,28 +264,6 @@
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
-(define-configuration diaflow-collation-style : DiaFlow-Collation-Style #:as dia-node-style
-  #:format "default-diaflow-collation-~a"
-  ([block-width : (Option Nonnegative-Flonum) (max (/ (default-diaflow-block-height) (sqrt 3.0) 0.5) 0.0)]
-   [block-height : (Option Nonnegative-Flonum) #false]
-   [font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) 'DodgerBlue]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
-
-(define-configuration diaflow-sort-style : DiaFlow-Sort-Style #:as dia-node-style
-  #:format "default-diaflow-sort-~a"
-  ([block-width : (Option Nonnegative-Flonum) (max (/ (default-diaflow-block-height) (sqrt 3.0) 0.5) 0.0)]
-   [block-height : (Option Nonnegative-Flonum) #false]
-   [font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) 'DodgerBlue]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
-
 ; Manual-Operation -> Operation
 (define-configuration diaflow-operation-style : DiaFlow-Operation-Style #:as dia-node-style
   #:format "default-diaflow-operation-~a"
@@ -367,6 +345,28 @@
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
 
+(define-configuration diaflow-collation-style : DiaFlow-Collation-Style #:as dia-node-style
+  #:format "default-diaflow-collation-~a"
+  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-height) 1.618 1.618)]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 1.618)]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Flonum) #false]
+   [stroke-color : (U Color Void False) 'MediumTurquoise]
+   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [fill-paint : Maybe-Fill-Paint (void)]))
+
+(define-configuration diaflow-sort-style : DiaFlow-Sort-Style #:as dia-node-style
+  #:format "default-diaflow-sort-~a"
+  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-height) 1.618 1.618)]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 1.618)]
+   [font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Flonum) #false]
+   [stroke-color : (U Color Void False) 'MediumTurquoise]
+   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [fill-paint : Maybe-Fill-Paint (void)]))
+
 (define-configuration diaflow-storage-style : DiaFlow-Storage-Style #:as dia-node-style
   #:format "default-diaflow-storage-~a"
   ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width) 0.618)]
@@ -380,8 +380,8 @@
 
 (define-configuration diaflow-database-style : DiaFlow-Database-Style #:as dia-node-style
   #:format "default-diaflow-database-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width) 0.618)]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-width) 0.618 1.618)]
+  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-height) 1.618 1.618)]
+   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 1.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]

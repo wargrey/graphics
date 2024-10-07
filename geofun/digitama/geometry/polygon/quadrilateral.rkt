@@ -61,3 +61,8 @@
                [off (* (- width lower) 0.5)])
           (list 0.0+0.0i (make-rectangular width 0.0)
                 (make-rectangular (+ off lower) height) (make-rectangular off height))))))
+
+(define geo-poor-hourglass-vertices : (-> Nonnegative-Flonum Nonnegative-Flonum Quadrilateral-Vertices)
+  (lambda [width height]
+    (list 0.0+0.0i (make-rectangular width 0.0)
+          (make-rectangular 0.0 height) (make-rectangular width height))))

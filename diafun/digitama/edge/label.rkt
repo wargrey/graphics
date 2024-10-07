@@ -3,7 +3,9 @@
 (provide (all-defined-out))
 
 (require racket/math)
+(require racket/string)
 
+(require geofun/composite)
 (require geofun/paint)
 (require geofun/font)
 
@@ -56,21 +58,32 @@
     (define gs : (Listof (Pairof Geo Flonum))
       (if (pair? label)
         
-          (let-values ([(head tail) (values (car label) (cdr label))])
+          (let*-values ([(head0 tail0) (values (car label) (cdr label))]
+                        [(head) (and (non-empty-string? head0) head0)]
+                        [(tail) (and (non-empty-string? tail0) tail0)])
             (cond [(and head tail)
-                   (list (cons (geo-text head font #:color font-paint) head-position)
-                         (cons (geo-text tail font #:color font-paint) (- 1.0 head-position)))]
-                  [(or head) (list (cons (geo-text head font #:color font-paint) head-position))]
-                  [(or tail) (list (cons (geo-text tail font #:color font-paint) (- 1.0 head-position)))]
+                   (list (cons (dia-label-text head #false font font-paint) head-position)
+                         (cons (dia-label-text tail #false font font-paint) (- 1.0 head-position)))]
+                  [(or head) (list (cons (dia-label-text head #false font font-paint) head-position))]
+                  [(or tail) (list (cons (dia-label-text tail #false font font-paint) (- 1.0 head-position)))]
                   [else null]))
           
-          (list (cons (geo-text label font #:color font-paint) 0.5))))
+          (list (cons (dia-label-text label #false font font-paint) 0.5))))
 
     (for/list ([g (in-list gs)])
       (make-dia-edge-label #:distance distance #:adjust-angle adjust #:rotate? rotate?
                            start end (car g) (cdr g)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dia-label-text : (-> String (Option Symbol) (Option Font) Option-Fill-Paint Geo)
+  (lambda [text text-id font paint]
+    (if (regexp-match? #px"[\r\n]+" text)
+        (geo-vc-append* #:id text-id
+                        (for/list : (Listof Geo:Text)
+                          ([l (in-lines (open-input-string text))])
+                          (geo-text #:color paint (string-trim l) font)))
+        (geo-text #:id text-id #:color paint text font))))
+
 (define dia-edge-label-datum? : (-> Any Boolean : #:+ Dia-Edge-Label-Datum)
   (lambda [info]
     (or (string? info)

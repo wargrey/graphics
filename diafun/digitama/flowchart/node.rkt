@@ -7,6 +7,7 @@
 (require "interface.rkt")
 
 (require geofun/constructor)
+(require geofun/composite)
 (require geofun/paint)
 (require geofun/stroke)
 
@@ -211,6 +212,35 @@
                                        (- width r) r)
                      label)))
 
+(define diaflow-block-collation : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (define-values (w h stroke) (diaflow-polygon-size width height style))
+    (define vertices : Quadrilateral-Vertices (geo-poor-hourglass-vertices w h))
+    
+    (create-dia-node dia:node:polygon
+                     #:id node-key #:type 'Collate hint
+                     #:intersect dia-polygon-intersect
+                     #:fit-ratio 0.5 0.375
+                     #:position 0.5 0.20
+                     (diaflow-polygon-shape node-key style stroke vertices) label vertices)))
+
+(define diaflow-block-sort : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (define-values (w h stroke) (diaflow-polygon-size width height style))
+    (define h/2 : Nonnegative-Flonum (* h 0.5))
+    
+    (create-dia-node dia:node:polygon
+                     #:id node-key #:type 'Sort hint
+                     #:intersect dia-polygon-intersect
+                     #:fit-ratio 0.5 0.375
+                     #:position 0.5 0.30
+                     (geo-vc-append #:id (dia-node-shape-id node-key)
+                                    (diaflow-polygon-shape #false style stroke
+                                                           (geo-isosceles-upwards-triangle-vertices w h/2))
+                                    (diaflow-polygon-shape #false style stroke
+                                                           (geo-isosceles-downwards-triangle-vertices w h/2)))
+                     label (geo-rhombus-vertices w h))))
+
 (define diaflow-block-storage : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
     (cond [(eq? hint 'Memory) (diaflow-block-memory node-key label style width height direction hint)]
@@ -316,9 +346,9 @@
           (values (max (- width thickness) 0.0) (max (- height thickness) 0.0) stroke))
         (values width height stroke))))
 
-(define diaflow-polygon-shape : (-> Symbol Dia-Node-Style Maybe-Stroke-Paint (Listof Float-Complex) Geo)
+(define diaflow-polygon-shape : (-> (Option Symbol) Dia-Node-Style Maybe-Stroke-Paint (Listof Float-Complex) Geo)
   (lambda [node-key style stroke vertices]
-    (geo-polygon #:id (dia-node-shape-id node-key)
+    (geo-polygon #:id (and node-key (dia-node-shape-id node-key))
                  #:stroke stroke
                  #:fill (dia-node-select-fill-paint style)
                  #:window +nan.0+nan.0i
