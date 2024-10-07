@@ -13,7 +13,7 @@
   font-family->face #:-> String
   [(sans-serif) (case os [(macosx) "Lucida Grande"] [(windows) "Microsoft YaHei"] [else "Nimbus Sans"])]
   [(serif)      (case os [(macosx) "Times"] [(windows) "Times New Roman"] [else "DejaVu Serif"])]
-  [(monospace)  (case os [(macosx) "Menlo"] [(windows) "Courier New"] [else "Monospace"])]
+  [(monospace)  (case os [(macosx) "Menlo"] [(windows) "KaiTi"] [else "Monospace"])]
   [(fantasy)    (case os [(macosx) "Comic Sans MS"] [(windows) "Comic Sans MS"] [else "Helvetica"])]
   [(cursive)    (case os [(macosx) "Kokonor"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
   [(system-ui)  (system-ui 'normal-control-font (λ [] (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"])))]
