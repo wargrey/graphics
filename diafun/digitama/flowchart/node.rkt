@@ -249,6 +249,7 @@
           [(eq? hint 'Database) (diaflow-block-database node-key label style width height direction hint)]
           [else (let ([aradius (* height 0.5 0.384)])
                   (create-dia-node #:id node-key #:type 'Stroage hint
+                                   #:fit-ratio (abs (- 1.0 (/ (* aradius 2.0) width))) 1.0
                                    #:position (max (- 0.5 (* (/ aradius width) 0.5)) 0.0) 0.5
                                    (geo-storage #:id (dia-node-shape-id node-key)
                                                 #:stroke (dia-node-select-stroke-paint style)
