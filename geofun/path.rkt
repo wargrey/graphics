@@ -80,7 +80,8 @@
             [(< ystepsize 0.0) (* xstep (- (real->double-flonum ystepsize)))]
             [else (max (real->double-flonum ystepsize) 0.0)]))
     
-    (define home-pos : Float-Complex (~point2d home))
+    (define loc : Float-Complex (~point2d home))
+    (define home-pos : Float-Complex (make-rectangular (* (real-part loc) xstep) (* (imag-part loc) ystep)))
     (define-values (tsx tsy) (geo-path-turn-scales t-scale 0.5))
     (define-values (usx usy) (geo-path-turn-scales u-scale 0.25))
     

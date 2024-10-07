@@ -50,7 +50,8 @@
                (let* ([grid-width  (~length gw (default-diaflow-block-width))]
                       [grid-height (~length gh grid-width)]
                       [scale (make-rectangular ts (* ts (/ grid-width grid-height)))])
-                 (make-gomamon #:T-scale scale #:U-scale scale #:at home grid-width grid-height))
+                 (make-gomamon #:T-scale scale #:U-scale scale #:at home
+                               grid-width grid-height))
              move-expr ...))
          
          (define name (dia-path-flow gomamon args ...))))]))
