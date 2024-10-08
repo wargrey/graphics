@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 (provide (all-from-out geofun/path))
+(provide (all-from-out "digitama/flowchart/self.rkt"))
 (provide (all-from-out "digitama/flowchart/style.rkt"))
 (provide (all-from-out "digitama/flowchart/interface.rkt"))
 (provide (rename-out [dia-path-flow geo-path-flow]))
@@ -22,6 +23,7 @@
 (require geofun/digitama/layer/type)
 (require geofun/digitama/dc/composite)
 
+(require "digitama/flowchart/self.rkt")
 (require "digitama/flowchart/node.rkt")
 (require "digitama/flowchart/style.rkt")
 (require "digitama/flowchart/identifier.rkt")
@@ -36,7 +38,6 @@
 (define-syntax (define-flowchart! stx)
   (syntax-parse stx #:literals []
     [(_ name
-        (~optional (~seq #:with gomamon) #:defaults ([gomamon #'_gomamon]))
         (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'-0.80]))
               (~optional (~seq #:grid-height gh) #:defaults ([gh #'-0.50]))
               (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.05]))
@@ -44,17 +45,16 @@
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (begin
-         (define gomamon : Gomamon
-           (with-gomamon!
-               (let* ([grid-width  (~length gw (default-diaflow-block-width))]
-                      [grid-height (~length gh grid-width)]
-                      [scale (make-rectangular ts (* ts (/ grid-width grid-height)))])
-                 (make-gomamon #:T-scale scale #:U-scale scale #:at home
-                               grid-width grid-height))
-             move-expr ...))
-         
-         (define name (dia-path-flow gomamon args ...))))]))
+       (define name
+         (dia-path-flow
+          (with-gomamon!
+              (let* ([grid-width  (~length gw (default-diaflow-block-width))]
+                     [grid-height (~length gh grid-width)]
+                     [scale (make-rectangular ts (* ts (/ grid-width grid-height)))])
+                (make-gomamon #:T-scale scale #:U-scale scale #:at home
+                              grid-width grid-height))
+            move-expr ...)
+          args ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-path-flow : (->* (Geo:Path)
@@ -63,7 +63,7 @@
                               #:λnode DiaFlow-Anchor->Node-Shape #:λnode-label DiaFlow-Anchor->Node-Label
                               #:λedge DiaFlow-Arrow->Edge #:λedge-label DiaFlow-Arrow->Edge-Label
                               #:λfree-edge DiaFlow-Free-Track->Edge #:λfree-edge-label DiaFlow-Free-Track->Edge-Label)
-                             (U Geo:Group Geo:Path))
+                             (U Dia:Flow Geo:Path))
   (lambda [#:id [id #false] #:draw-operator [op #false] #:start-name [start #false]
            #:λblock [block-detect default-diaflow-block-identify] #:λarrow [arrow-detect default-diaflow-arrow-identify]
            #:λnode [make-node default-diaflow-node-construct] #:λnode-label [make-node-label default-diaflow-node-label-construct]
@@ -79,9 +79,11 @@
 
       (if (pair? stickers)
           (let ([maybe-group (geo-path-try-extend/list stickers 0.0 0.0)])
-            (make-geo:group (or id (gensym 'dia:flow:)) op
-                            (cond [(or maybe-group) maybe-group]
-                                  [else #;#:deadcode
-                                        (let-values ([(Width Height) (geo-flsize self)])
-                                          (glayer-group Width Height stickers))])))
+            (create-geometry-group dia:flow
+                                   #:id id op
+                                   (cond [(or maybe-group) maybe-group]
+                                         [else #;#:deadcode
+                                               (let-values ([(Width Height) (geo-flsize self)])
+                                                 (glayer-group Width Height stickers))])
+                                   self))
           self))))
