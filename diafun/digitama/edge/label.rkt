@@ -81,7 +81,7 @@
         (geo-vc-append* #:id text-id
                         (for/list : (Listof Geo:Text)
                           ([l (in-lines (open-input-string text))])
-                          (geo-text #:color paint (string-trim l) font)))
+                          (geo-text #:color paint l font)))
         (geo-text #:id text-id #:color paint text font))))
 
 (define dia-edge-label-datum? : (-> Any Boolean : #:+ Dia-Edge-Label-Datum)
