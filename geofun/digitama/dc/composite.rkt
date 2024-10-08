@@ -5,6 +5,7 @@
 (require digimon/sequence)
 
 (require "../../paint.rkt")
+(require "../source.rkt")
 (require "../convert.rkt")
 (require "../composite.rkt")
 (require "../unsafe/composite.rkt")
@@ -18,17 +19,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-geometry-group stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ Geo (~optional (~seq #:id name) #:defaults ([name #'#false])) op layers argl ...)
+    [(_ Geo
+        (~alt (~optional (~seq #:id name) #:defaults ([name #'#false]))
+              (~optional (~seq #:background bgsource) #:defaults ([bgsource #'#false])))
+        ...
+        op layers argl ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
          (Geo geo-convert geo-group-surface (geo-group-extent layers)
               (or name (gensym 'geo-prefix))
-              op layers argl ...)))]))
+              op layers bgsource argl ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:group geo
   ([operator : (Option Symbol)]
-   [selves : Geo-Layer-Group])
+   [selves : Geo-Layer-Group]
+   [background : Option-Fill-Paint])
   #:type-name Geo:Group
   #:transparent)
 
@@ -62,13 +68,13 @@
                                            (real->double-flonum x2%) (real->double-flonum y2%)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-geo:group : (-> (Option Symbol) (Option Symbol) Geo-Layer-Group Geo:Group)
-  (lambda [id op layers]
+(define make-geo:group : (->* ((Option Symbol) (Option Symbol)) (Geo-Layer-Group Option-Fill-Paint) Geo:Group)
+  (lambda [id op layers [background #false]]
     (create-geometry-object geo:group
                             #:surface geo-group-surface
                             #:extent (geo-group-extent layers)
                             #:id id
-                            op layers)))
+                            op layers background)))
 
 (define make-geo:table : (-> (Option Symbol) (Option Symbol)
                              (Listof Geo) Positive-Index Positive-Index
@@ -93,7 +99,7 @@
   (lambda [self]
     (with-asserts ([self geo:group?])
       (geo_composite (geo-select-operator (geo:group-operator self) default-pin-operator)
-                     (geo:group-selves self)
+                     (geo:group-selves self) (fill-paint->source* (geo:group-background self))
                      (default-geometry-density)))))
 
 (define geo-group-extent : (-> Geo-Layer-Group Geo-Calculate-Extent)

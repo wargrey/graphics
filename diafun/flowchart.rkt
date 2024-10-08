@@ -14,17 +14,17 @@
 
 (require digimon/metrics)
 (require geofun/path)
+(require geofun/paint)
 
-(require geofun/digitama/dc/path)
 (require geofun/digitama/composite)
 (require geofun/digitama/convert)
 
+(require geofun/digitama/dc/path)
+(require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/sticker)
 (require geofun/digitama/layer/type)
-(require geofun/digitama/dc/composite)
 
 (require "digitama/flowchart/self.rkt")
-(require "digitama/flowchart/node.rkt")
 (require "digitama/flowchart/style.rkt")
 (require "digitama/flowchart/identifier.rkt")
 (require "digitama/flowchart/interface.rkt")
@@ -58,13 +58,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-path-flow : (->* (Geo:Path)
-                             (#:id (Option Symbol) #:draw-operator (Option Geo-Pin-Operator) #:start-name (Option String)
+                             (#:id (Option Symbol) #:draw-operator (Option Geo-Pin-Operator) #:background Option-Fill-Paint #:start-name (Option String)
                               #:λblock DiaFlow-Block-Identifier #:λarrow DiaFlow-Arrow-Identifier
                               #:λnode DiaFlow-Anchor->Node-Shape #:λnode-label DiaFlow-Anchor->Node-Label
                               #:λedge DiaFlow-Arrow->Edge #:λedge-label DiaFlow-Arrow->Edge-Label
                               #:λfree-edge DiaFlow-Free-Track->Edge #:λfree-edge-label DiaFlow-Free-Track->Edge-Label)
                              (U Dia:Flow Geo:Path))
-  (lambda [#:id [id #false] #:draw-operator [op #false] #:start-name [start #false]
+  (lambda [#:id [id #false] #:draw-operator [op #false] #:background [bg #false] #:start-name [start #false]
            #:λblock [block-detect default-diaflow-block-identify] #:λarrow [arrow-detect default-diaflow-arrow-identify]
            #:λnode [make-node default-diaflow-node-construct] #:λnode-label [make-node-label default-diaflow-node-label-construct]
            #:λedge [make-edge default-diaflow-edge-construct] #:λedge-label [make-edge-label default-diaflow-edge-label-construct]
@@ -80,7 +80,8 @@
       (if (pair? stickers)
           (let ([maybe-group (geo-path-try-extend/list stickers 0.0 0.0)])
             (create-geometry-group dia:flow
-                                   #:id id op
+                                   #:id id #:background bg
+                                   op
                                    (cond [(or maybe-group) maybe-group]
                                          [else #;#:deadcode
                                                (let-values ([(Width Height) (geo-flsize self)])

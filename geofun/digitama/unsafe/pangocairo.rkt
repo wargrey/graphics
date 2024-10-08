@@ -62,6 +62,9 @@
 (define-pango pango_layout_set_wrap (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_ellipsize (_pfun PangoLayout _int -> _void))
 
+(define-cairo cairo_push_group (_cfun _cairo_t -> _void))
+(define-cairo cairo_pop_group_to_source (_cfun _cairo_t -> _void))
+
 (define-cairo cairo_status_to_string (_cfun _int -> _string))
 (define-cairo cairo_new_sub_path (_cfun _cairo_t -> _void))
 (define-cairo cairo_set_miter_limit (_cfun _cairo_t _double* -> _void))
