@@ -13,7 +13,7 @@
 (define Print : Symbol (string->symbol "<<:Print\nResult"))
 (define Print-Error : Symbol (string->symbol "<<:Show\nError Message"))
 
-(define-flowchart! repl [#:start-name "REPL\n(Shell)"] #:-
+(define-flowchart! repl.dia [#:start-name "REPL\n(Shell)" #:border (default-border-paint)] #:-
   ; Portion on Page 1
   (move-down 1 'Initialization!)
   (move-down 1 Create)
@@ -99,7 +99,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   ;(default-diaflow-fill-paint #false)
-  (define repl.dia (geo-frame repl #:background 'White))
 
   #;(geo-save repl.dia (build-path (find-system-path 'desk-dir) "repl.png") #:format 'png)
   repl.dia)

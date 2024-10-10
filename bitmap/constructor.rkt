@@ -30,6 +30,7 @@
 (require geofun/digitama/geometry/polygon/arrow)
 
 (require "digitama/convert.rkt")
+(require "digitama/unsafe/frame.rkt")
 (require "digitama/unsafe/image.rkt")
 
 (require racket/math)
@@ -88,9 +89,9 @@
       (cond [(list? inset) (list->4:values (map real->double-flonum inset) 0.0)]
             [else (let ([fl (real->double-flonum inset)]) (values fl fl fl fl))]))
     (define-values (flwidth flheight) (bitmap-flsize bmp))
-    (dc_frame create-argb-bitmap (bitmap-surface bmp) flwidth flheight
-              mtop mright mbottom mleft ptop pright pbottom pleft
-              (border-paint->source* border) (background->source* bg-fill) (bitmap-density bmp))))
+    (bitmap_frame (bitmap-surface bmp) flwidth flheight
+                  mtop mright mbottom mleft ptop pright pbottom pleft
+                  (border-paint->source* border) (background->source* bg-fill) (bitmap-density bmp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-art-text : (->* (Any)

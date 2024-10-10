@@ -26,8 +26,8 @@
 (module+ main
   3pc
   (bitmap-pin 3pc 0 0 yellow-circle 64 64)
-  (bitmap-frame (bitmap-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle))
-  (bitmap-frame (bitmap-pin* -1/8 -1/8 0 0 yellow-circle yellow-circle yellow-circle))
+  (bitmap-frame (bitmap-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle) #:margin 8.0)
+  (bitmap-frame (bitmap-pin* -1/8 -1/8 0 0 yellow-circle yellow-circle yellow-circle) #:padding 8.0)
   (bitmap-cc-superimpose* (list 3pc yellow-circle))
   
   (bitmap-pin* 1/5 1/5 0 0 sine sine)

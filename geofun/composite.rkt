@@ -4,7 +4,6 @@
 (provide Geo-Pin-Operator geo-pin-operators)
 (provide geo-composite geo-pin* geo:group? Geo:Group)
 (provide geo-blank geo-ghost geo:blank? Geo:Blank)
-(provide geo-frame geo:frame? Geo:Frame)
 (provide geo:table? Geo:Table)
 
 (provide (rename-out [geo-pin-over geo-pin]))
@@ -21,6 +20,7 @@
 
 (require "digitama/composite.rkt")
 (require "digitama/convert.rkt")
+(require "paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-pin geo-pin-over  #:-> Geo Geo:Group #:as geo-composite #:with 'over #:id)
@@ -125,6 +125,15 @@
 (define geo-rb-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'rb master target)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-frame : (-> Geo [#:id (Option Symbol)]
+                        [#:border Maybe-Stroke-Paint] [#:background Maybe-Fill-Paint]
+                        [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
+                        [#:padding (U Nonnegative-Real (Listof Nonnegative-Real))]
+                        Geo:Group)
+  (lambda [geo #:id [id #false] #:margin [margin 0.0] #:padding [inset 0.0] #:border [border (void)] #:background [bg-fill (void)]]
+    (make-geo:group id #false (geo-own-layers geo) margin inset border bg-fill)))
+
+
 (define geo-table : (->* (Integer (Listof Geo))
                          (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator)
                           (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))

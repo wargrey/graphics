@@ -41,7 +41,7 @@
      (syntax/loc stx
        (let ([layers (dia-node-layers label shape wratio hratio wpos hpos)])
          (Geo geo-convert geo-group-surface (geo-group-extent layers)
-              name #false layers #false
+              name #false layers geo-frame-empty geo-frame-empty
               intersect type subtype
               argl ...)))]))
 
