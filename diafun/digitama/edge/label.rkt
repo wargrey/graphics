@@ -45,7 +45,10 @@
             [else (let*-values ([(lw lh) (geo-flsize label)]
                                 [(theta) (angle v)])
                     (* (magnitude (make-rectangular (* (max lw 16.0) (sin theta)) (* lh (cos theta)))) 0.75
-                       (if (negative? (real-part v)) -1.0 1.0)))]))
+                       (let ([Re (real-part v)])
+                         (cond [(positive? Re) 1.0]
+                               [(zero? Re) (if (positive? (imag-part v)) 1.0 -1.0)]
+                               [else -1.0]))))]))
     
     (unsafe-dia-edge-label sticker start v t smart-distance)))
 
