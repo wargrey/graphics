@@ -94,7 +94,7 @@
     (define-values (width border-x border-width dest-x) (frame-metrics line-width line-inset mleft mright pleft pright dest-width))
     (define-values (height border-y border-height dest-y) (frame-metrics line-width line-inset mtop mbottom ptop pbottom dest-height))
 
-    (values width height border-x border-y border-width border-height))
+    (values width height border-x border-y border-width border-height dest-x dest-y))
   
   (define (frame-metrics line-width line-inset flmopen flmclose flpopen flpclose size)
     (define border-position (unsafe-fl+ flmopen line-inset))
@@ -118,7 +118,8 @@
                     Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                     (Option Paint)
                     (Values Nonnegative-Flonum Nonnegative-Flonum
-                            Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))])
+                            Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
+                            Nonnegative-Flonum Nonnegative-Flonum))])
 
 (define-type Geo-Layer (GLayerof Geo))
 (define-type Geo-Layer-List (GLayer-Listof Geo))

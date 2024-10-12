@@ -29,7 +29,7 @@
        (syntax/loc stx
          (Geo geo-convert geo-group-surface (geo-group-extent layers)
               (or name (gensym 'geo-prefix)) op layers
-              geo-frame-empty geo-frame-empty
+              0.0+0.0i geo-frame-empty geo-frame-empty
               argl ...)))]
     [(_ Geo
         (~alt (~optional (~seq #:id name) #:defaults ([name #'#false]))
@@ -41,9 +41,9 @@
         op layers argl ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
-         (let-values ([(geo-frame-extent margins insets) (geo-group-frame-extent margin inset layers bdr)])
+         (let-values ([(geo-frame-extent O margins insets) (geo-group-frame-extent margin inset layers bdr)])
            (Geo geo-convert (geo-framed-group-surface bdr bgsource) geo-frame-extent
-                (or name (gensym 'geo-prefix)) op layers margins insets
+                (or name (gensym 'geo-prefix)) op layers O margins insets
                 argl ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -55,6 +55,7 @@
 (struct geo:group geo
   ([operator : (Option Symbol)]
    [selves : Geo-Layer-Group]
+   [origin : Float-Complex]
    [margins : Geo-Frame-Blank]
    [pads :  Geo-Frame-Blank])
   #:type-name Geo:Group
@@ -101,16 +102,16 @@
                              #:surface geo-group-surface
                              #:extent (geo-group-extent layers)
                              #:id id
-                             op layers geo-frame-empty geo-frame-empty)]
+                             op layers 0.0+0.0i geo-frame-empty geo-frame-empty)]
     [(id op layers margin inset border background)
      (if (or margin inset border background)
 
-         (let-values ([(geo-frame-extent margins insets) (geo-group-frame-extent margin inset layers border)])   
+         (let-values ([(geo-frame-extent O margins insets) (geo-group-frame-extent margin inset layers border)])   
            (create-geometry-object geo:group
                                    #:surface (geo-framed-group-surface border background)
                                    #:extent geo-frame-extent
                                    #:id id
-                                   op layers margins insets))
+                                   op layers O margins insets))
 
          (make-geo:group id op layers))]))
 
@@ -164,7 +165,7 @@
       (values w h #false))))
 
 (define geo-group-frame-extent : (-> (Option Geo-Frame-Blank-Datum) (Option Geo-Frame-Blank-Datum) Geo-Layer-Group Maybe-Stroke-Paint
-                                     (Values Geo-Calculate-Extent Geo-Frame-Blank Geo-Frame-Blank))
+                                     (Values Geo-Calculate-Extent Float-Complex Geo-Frame-Blank Geo-Frame-Blank))
   (lambda [margin inset layers border]
     (define-values (mtop mright mbottom mleft)
       (cond [(list? margin) (list->4:values (map real->double-flonum margin) 0.0)]
@@ -177,15 +178,16 @@
             [else (values 0.0 0.0 0.0 0.0)]))
     
     (define-values (flwidth flheight) (values (glayer-group-width layers) (glayer-group-height layers)))
-    
-    (define geo-frame-extent : Geo-Calculate-Extent
-      (lambda [self]
-        (define-values (W H lx ty w h)
+    (define-values (W H lx ty w h ox oy)
           (dc_frame_size flwidth flheight
                          mtop mright mbottom mleft ptop pright pbottom pleft
                          (geo-select-border-paint border)))
+    
+    (define geo-frame-extent : Geo-Calculate-Extent
+      (lambda [self]
         (values W H (make-geo-ink lx ty w h))))
     
     (values geo-frame-extent
+            (make-rectangular ox oy)
             (vector-immutable mtop mright mbottom mleft)
             (vector-immutable ptop pright pbottom pleft))))
