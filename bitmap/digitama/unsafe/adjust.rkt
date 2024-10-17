@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require typed/racket/unsafe)
-
 (require geofun/digitama/unsafe/visual/ctype)
 
 (require "../convert.rkt")
@@ -15,7 +14,7 @@
   (require geofun/digitama/geometry/affine)
   
   (require "../convert.rkt")
-  (require (submod "pixman.rkt" unsafe))
+  (require "pixman.rkt")
   (require (submod "bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -61,6 +60,7 @@
   (define (bitmap_bounding_box src just-alpha?)
     (define-values (pixels total stride w h) (bitmap-surface-metrics src 4))
     (define-values (zero-dot? dotoff) (if just-alpha? (values pixel-alpha-zero? A) (values pixel-zero? 0)))
+    
     (let ([x w] [y h] [X 0] [Y 0])
       (let y-loop ([yn 0] [idx dotoff])
         (when (unsafe-fx< yn h)

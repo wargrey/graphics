@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require typed/racket/unsafe)
-
 (require geofun/digitama/unsafe/visual/ctype)
 
 (require "../convert.rkt")
@@ -12,16 +11,15 @@
   (provide (all-defined-out))
 
   (require (only-in racket/flonum make-flvector))
+  (require digimon/sequence)
 
   (require geofun/digitama/unsafe/pangocairo)
-  (require geofun/digitama/unsafe/surface/image)
-  (require geofun/digitama/unsafe/paint)
-  
   (require geofun/digitama/layer/position)
   (require geofun/digitama/layer/table)
 
-  (require digimon/sequence)
-
+  (require (submod geofun/digitama/unsafe/surface/image unsafe))
+  (require (submod geofun/digitama/unsafe/paint unsafe))
+  
   (require "../convert.rkt")
   
   (require (submod "bitmap.rkt" unsafe))

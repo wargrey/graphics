@@ -11,7 +11,7 @@
     (define-values (x y) (point2d-values dt))
     (make-rectangular x y)))
 
-(define ~point2ds : (->* ((Listof Point2D)) (Real Real Point2D) (Values (Listof (Pairof Char Float-Complex)) Flonum Flonum Flonum Flonum))
+(define ~point2ds : (->* ((Listof Point2D)) (Real Real Point2D) (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum))
   (lambda [raws [dx 0.0] [dy 0.0] [scale 1.0]]
     (define xoff : Flonum (real->double-flonum dx))
     (define yoff : Flonum (real->double-flonum dy))
@@ -20,7 +20,7 @@
     (define-values (xflip? yflip?) (values (< fx 0.0) (< fy 0.0)))
     
     (let normalize ([dots : (Listof Point2D) raws]
-                    [stod : (Listof (Pairof Char Float-Complex)) null]
+                    [stod : (Listof Float-Complex) null]
                     [lx : Flonum +inf.0]
                     [ty : Flonum +inf.0]
                     [rx : Flonum -inf.0]
@@ -30,20 +30,18 @@
                            [(x0 y0) (point2d-values self)]
                            [(x y) (values (+ (* x0 afx) xoff) (+ (* y0 afy) yoff))])
                (normalize rest
-                          (cons (cons #\L (make-rectangular x y)) stod)
+                          (cons (make-rectangular x y) stod)
                           (min lx x) (min ty y)
                           (max rx x) (max by y)))]
             [(or xflip? yflip?)
-             (let flip ([stod : (Listof (Pairof Char Float-Complex)) stod]
-                        [dots : (Listof (Pairof Char Float-Complex)) null])
+             (let flip ([stod : (Listof Float-Complex) stod]
+                        [dots : (Listof Float-Complex) null])
                (if (pair? stod)
                    (flip (cdr stod)
-                         (let* ([op+dot (car stod)]
-                                [x (real-part (cdr op+dot))]
-                                [y (imag-part (cdr op+dot))])
-                           (cons (cons (car op+dot)
-                                       (make-rectangular (if xflip? (- rx (- x lx)) x)
-                                                         (if yflip? (- by (- y ty)) y)))
+                         (let ([x (real-part (car stod))]
+                               [y (imag-part (car stod))])
+                           (cons (make-rectangular (if xflip? (- rx (- x lx)) x)
+                                                   (if yflip? (- by (- y ty)) y))
                                  dots)))
                    (values dots lx ty rx by)))]
             [else (values (reverse stod) lx ty rx by)]))))
@@ -81,3 +79,14 @@
             [else (values (- ty) (max (- by ty) 0.0) #true)]))
 
     (values xoff yoff width height x-stroke? y-stroke?)))
+
+(define path-window-adjust : (-> Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Boolean Boolean
+                                 (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [dx dy flw flh thickness x-stroke? y-stroke?]
+    (if (and (or x-stroke? y-stroke?) (> thickness 0.0))
+        (let ([inset (* thickness 0.5)])
+          (values (if (and x-stroke?) (+ dx inset) dx)
+                  (if (and y-stroke?) (+ dy inset) dy)
+                  (if (and x-stroke?) (+ flw thickness) flw)
+                  (if (and y-stroke?) (+ flh thickness) flh)))
+        (values dx dy flw flh))))

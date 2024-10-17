@@ -8,7 +8,6 @@
 (provide (all-from-out digimon/digitama/ioexn))
 
 (provide (all-from-out "digitama/parser/stream.rkt"))
-(provide (all-from-out "digitama/unsafe/pixman.rkt"))
 (provide (all-from-out "digitama/convert.rkt"))
 
 (require digimon/stdio)
@@ -17,21 +16,12 @@
 (require digimon/enumeration)
 (require digimon/digitama/ioexn)
 
-(require typed/racket/unsafe)
 (require geofun/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/surface/image)
+(require geofun/digitama/unsafe/cairo)
 
 (require "digitama/parser/stream.rkt")
-(require "digitama/unsafe/pixman.rkt")
 (require "digitama/convert.rkt")
-
-(unsafe-require/typed
- geofun/digitama/unsafe/surface/image
- [cairo-create-image-surface (-> Flonum Flonum Positive-Flonum (Values Bitmap-Surface Positive-Index Positive-Index))])
-
-(unsafe-require/typed
- geofun/digitama/unsafe/pangocairo
- [cairo_image_surface_get_data (-> Bitmap-Surface Bytes)]
- [cairo_surface_mark_dirty (-> Bitmap-Surface Bytes)])
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/symbol))

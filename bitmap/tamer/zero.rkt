@@ -1,7 +1,13 @@
 #lang typed/racket/base
 
-(require bitmap)
+(provide (all-defined-out))
+
+(require bitmap/base)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stadium (bitmap-stadium 32 32 #:stroke (desc-stroke #:width 0.0 #:dash 'solid) #:fill 'orange))
-(bitmap-frame stadium #:border (desc-border #:width 0.0 #:style 'dotted))
+(define frame (bitmap-frame stadium #:border (desc-border #:width 2.0 #:style 'dotted)))
+
+(module+ main
+  stadium
+  frame)

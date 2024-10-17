@@ -74,3 +74,8 @@
             (if (eq? dash 'dotted) 'round (stroke-linecap baseline))
             (stroke-linejoin baseline) (stroke-miterlimit baseline)
             dasharray dashoffset)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define stroke-maybe-width : (-> (Option Stroke) Nonnegative-Flonum)
+  (lambda [s]
+    (if (not s) 0.0 (stroke-width s))))

@@ -13,12 +13,13 @@
                        [cairo_recording_surface_ink_extents abstract-surface-bbox]))
   
   (require "../pangocairo.rkt")
-  (require "../surface/image.rkt")
-  (require "../surface/abstract.rkt")
   
   (require "../stream/pdf.rkt")
   (require "../stream/svg.rkt")
   (require "../stream/png.rkt")
+
+  (require (submod "../surface/abstract.rkt" unsafe))
+  (require (submod "../surface/image.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (abstract-surface-extent* sfc)
@@ -45,11 +46,12 @@
     (define-values (pos width height) (abstract-surface-extent* abs-sfc))
 
     (stream-write /dev/strout width height
-                  (λ [cr flwidth flheight]
+                  (λ [master cr x0 y0 flwidth flheight]
                     (cairo_set_source_surface cr abs-sfc
-                                              (unsafe-fl- 0.0 (unsafe-flreal-part pos))
-                                              (unsafe-fl- 0.0 (unsafe-flimag-part pos)))
-                    (cairo_paint cr))))
+                                              (unsafe-fl- x0 (unsafe-flreal-part pos))
+                                              (unsafe-fl- y0 (unsafe-flimag-part pos)))
+                    (cairo_paint cr))
+                  #false 0.0 0.0))
 
   (define (abstract-surface->image-surface abs-sfc density)
     (define-values (pos flwidth flheight) (abstract-surface-extent* abs-sfc))
@@ -106,5 +108,3 @@
  [abstract-surface-save (-> Abstract-Surface (U Output-Port Path-String) Symbol Positive-Flonum Void)]
 
  [create-abstract-surface-from-image-surface (-> Nonnegative-Flonum Nonnegative-Flonum Bitmap-Surface Positive-Flonum Abstract-Surface)])
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

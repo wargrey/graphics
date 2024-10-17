@@ -5,19 +5,12 @@
 (require typed/racket/unsafe)
 (require geofun/digitama/unsafe/visual/ctype)
 
-;;; NOTE
-; The density should only affect the displaying of bitmap
-; The size of a bitmap therefore always the same as the actual size of its `surface`
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base
   (provide (all-defined-out))
 
-  (require geofun/digitama/unsafe/pangocairo)
-  
-  (require geofun/digitama/unsafe/stream/pdf)
-  (require geofun/digitama/unsafe/stream/svg)
-  (require geofun/digitama/unsafe/stream/png)
+  (require racket/unsafe/ops)
+  (require racket/draw/unsafe/cairo)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap-surface-content-size sfc)
@@ -42,34 +35,10 @@
     (define stride (cairo_image_surface_get_stride sfc))
     (values data total stride
             (unsafe-fxquotient stride components)
-            (unsafe-fxquotient total stride)))
-
-  (define (bitmap-surface->stream-bytes sfc format name density)
-    (define /dev/sfcout (open-output-bytes name))
-    (bitmap-surface-save sfc /dev/sfcout format density)
-    (get-output-bytes /dev/sfcout))
-
-  (define (bitmap-surface-save bmp-sfc /dev/sfcout format density)
-    (case format
-      [(svg) (bitmap-surface-save-with cairo-svg-stream-write bmp-sfc /dev/sfcout density)]
-      [(pdf) (bitmap-surface-save-with cairo-pdf-stream-write bmp-sfc /dev/sfcout density)]
-      [else  (cairo-png-stream-write /dev/sfcout (λ [] (values bmp-sfc #false)))]))
-
-  (define (bitmap-surface-save-with stream-write bmp-sfc /dev/strout density)
-    (define-values (width height) (bitmap-surface-rendered-size bmp-sfc density))
-
-    (stream-write /dev/strout width height
-                  (λ [vec-cr flwidth flheight]
-                    (unless (unsafe-fl= density 1.0)
-                      (define s (unsafe-fl/ 1.0 density))
-                      (cairo_scale vec-cr s s))
-                    
-                    (cairo_set_source_surface vec-cr bmp-sfc 0.0 0.0)
-                    (cairo_paint vec-cr)))))
+            (unsafe-fxquotient total stride))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [bitmap-surface-data (-> Bitmap-Surface (Values Bytes Index))]
- [bitmap-surface->stream-bytes (-> Bitmap-Surface Symbol Symbol Flonum Bytes)]
- [bitmap-surface-save (-> Bitmap-Surface (U Output-Port Path-String) Symbol Positive-Flonum Void)])
+ [bitmap-surface-rendered-size (-> Bitmap-Surface Positive-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))])

@@ -5,6 +5,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (for/list : (Listof Bitmap) ([angle (in-range 0.0 361.0 10.0)])
   (bitmap-frame
-   (bitmap-cc-superimpose
-    (bitmap-parallelogram 100 50 angle #:radian? #false #:stroke angle)
-    (bitmap-text angle #:color angle))))
+   (bitmap-arrow 4 64 angle #:radian? #false #:fill angle #:stroke #false)))
+
+(for/list : (Listof Bitmap) ([angle (in-range 0.0 361.0 10.0)])
+  (bitmap-frame
+   (bitmap-arrowhead 64 angle #:radian? #false #:stroke angle)))

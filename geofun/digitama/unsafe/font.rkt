@@ -14,7 +14,8 @@
   (require (only-in racket/class send))
   
   (require "pangocairo.rkt")
-  (require "surface/image.rkt")
+  (require "metrics.rkt")
+  (require (submod "surface/image.rkt" unsafe))
 
   (define &ink (make-PangoRectangle 0 0 0 0))
   (define &logical (make-PangoRectangle 0 0 0 0))
@@ -135,6 +136,7 @@
                            (unsafe-cons-list (string-append fname. (pango_font_face_get_face_name (unsafe-car fobjects)))
                                              faces))]))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [#:opaque Font-Description font-description?]

@@ -28,6 +28,6 @@
   
   (collect-garbage)
   (collect-garbage)
-  (collect-garbage) ; 21ms
+  (collect-garbage) ; 20ms
   (time (bitmap-table 26 bitmaps '(rc) '(cc) '(10) '(10))))
   

@@ -15,10 +15,15 @@
 (require "unsafe/visual/ctype.rkt")
 (require "unsafe/visual/object.rkt")
 (require "unsafe/visual/abstract.rkt")
-(require "unsafe/surface/abstract.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
+
+(require typed/racket/unsafe)
+(unsafe-require/typed
+ "unsafe/surface/abstract.rkt"
+ [cairo-create-abstract-surface* (-> Flonum Flonum Positive-Flonum Boolean
+                                     (Values Abstract-Surface Cairo-Ctx Positive-Index Positive-Index))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-geometry-object stx)
@@ -47,11 +52,6 @@
   ([id : Symbol])
   #:type-name Geo
   #:transparent)
-
-(define create-abstract-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Boolean (Values Abstract-Surface Cairo-Ctx))
-  (lambda [flwidth flheight density scale?]
-    (define-values (surface cr width height) (cairo-create-abstract-surface* flwidth flheight density scale?))
-    (values surface cr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-extent : (->* (Geo<%>)
@@ -95,17 +95,19 @@
   (lambda [self mime fallback]
     (with-asserts ([self geo<%>?])
       (case mime
-        ;[(pdf-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'pdf '/dev/pdfout 1.0)]
-        ;[(svg-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'svg '/dev/svgout 1.0)]
-        ;[(png@2x-bytes) (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'png '/dev/p2xout 2.0)]
-        ;[(png-bytes)    (abstract-surface->stream-bytes ((geo<%>-surface self) self) 'png '/dev/pngout 1.0)]
-        ;[(cairo-surface) (geo-create-surface self)]
+        ;[(pdf-bytes)    (abstract-surface->stream-bytes ((geo<%>-draw! self) self) 'pdf '/dev/pdfout 1.0)]
+        ;[(svg-bytes)    (abstract-surface->stream-bytes ((geo<%>-draw! self) self) 'svg '/dev/svgout 1.0)]
+        ;[(png@2x-bytes) (abstract-surface->stream-bytes ((geo<%>-draw! self) self) 'png '/dev/p2xout 2.0)]
+        ;[(png-bytes)    (abstract-surface->stream-bytes ((geo<%>-draw! self) self) 'png '/dev/pngout 1.0)]
+        [(cairo-surface) (geo-create-surface self)]
         [else fallback]))))
 
-(define geo-create-surface : (-> Geo<%> Abstract-Surface)
-  (lambda [self]
-    (define-values (flwidth flheight _ink) (geo-extent self))
-    (define-values (surface cr width height) (cairo-create-abstract-surface* flwidth flheight (default-geometry-density) #true))
+(define geo-create-surface : (->* (Geo<%>) (Positive-Flonum #:scale? Boolean) Abstract-Surface)
+  (lambda [self [density (default-geometry-density)] #:scale? [scale? #true]]
+    (define-values (flwidth flheight ink) ((geo<%>-extent self) self))
+    (define-values (surface cr width height) (cairo-create-abstract-surface* flwidth flheight density scale?))
+
+    ((geo<%>-draw! self) self cr 0.0 0.0 flwidth flheight)
     surface))
 
 (define geo-calculate-extent : Geo-Calculate-Extent
@@ -129,96 +131,6 @@
         (values sfc-width sfc-height (make-geo-ink ink-pos ink-width ink-height)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#;(define geo-shape-surface-wrapper : (case-> [Geo-Surface-Create Maybe-Stroke-Paint Maybe-Fill-Paint (Option Symbol) -> Geo-Surface-Create]
-                                            [Geo-Surface-Create Maybe-Stroke-Paint Maybe-Fill-Paint -> Geo-Surface-Create]
-                                            [Geo-Surface-Create Maybe-Stroke-Paint -> Geo-Surface-Create]
-                                            [Geo-Surface-Create -> Geo-Surface-Create])
-  (case-lambda
-    [(λsurface alt-stroke alt-fill alt-rule)
-     (define-values (stroke-set? fill-set?)
-       (values (not (void? alt-stroke))
-               (not (void? alt-fill))))
-     
-     (cond [(and stroke-set? fill-set? alt-rule)
-            (λ [self]
-              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)]
-                             [default-fill-source (fill-paint->source* alt-fill)]
-                             [default-fill-rule alt-rule])
-                (λsurface self)))]
-           [(and stroke-set? fill-set?)
-            (λ [self]
-              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)]
-                             [default-fill-source (fill-paint->source* alt-fill)])
-                (λsurface self)))]
-           [(and fill-set? alt-rule)
-            (λ [self]
-              (parameterize ([default-fill-source (fill-paint->source* alt-fill)]
-                             [default-fill-rule alt-rule])
-                (λsurface self)))]
-           [(and stroke-set? alt-rule)
-            (λ [self]
-              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)]
-                             [default-fill-rule alt-rule])
-                (λsurface self)))]
-           [(and stroke-set?)
-            (λ [self]
-              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)])
-                (λsurface self)))]
-           [(and fill-set?)
-            (λ [self]
-              (parameterize ([default-fill-source (fill-paint->source* alt-fill)])
-                (λsurface self)))]
-           [(and alt-rule)
-            (λ [self]
-              (parameterize ([default-fill-rule alt-rule])
-                (λsurface self)))]
-           [else λsurface])]
-    [(λsurface alt-stroke alt-fill)
-     (define-values (outline-set? fill-set?)
-       (values (not (void? alt-stroke))
-               (not (void? alt-fill))))
-     
-     (cond [(and outline-set? fill-set?)
-            (λ [self]
-              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)]
-                             [default-fill-source (fill-paint->source* alt-fill)])
-                (λsurface self)))]
-           [(and fill-set?)
-            (λ [self]
-              (parameterize ([default-fill-source (fill-paint->source* alt-fill)])
-                (λsurface self)))]
-           [(and outline-set?)
-            (λ [self]
-              (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)])
-                (λsurface self)))]
-           [else λsurface])]
-    [(λsurface alt-stroke)
-     (cond [(void? alt-stroke) λsurface]
-           [else (λ [self] (parameterize ([default-stroke-source (stroke-paint->source* alt-stroke)])
-                             (λsurface self)))])]
-    [(λsurface) λsurface]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-border-extent-wrapper : (-> Geo-Calculate-Extent Maybe-Stroke-Paint Geo-Calculate-Extent)
-  (lambda [λextent alt-border]
-    (cond [(void? alt-border) λextent]
-          [else (λ [self] (parameterize ([default-border-source (border-paint->source* alt-border)])
-                            (λextent self)))])))
-
-(define geo-stroke-extent-wrapper : (->* (Geo-Calculate-Extent Maybe-Stroke-Paint) (Boolean Boolean) Geo-Calculate-Extent)
-  (lambda [λextent alt-stroke [xstroke? #true] [ystroke? #true]]
-    (if (or xstroke? ystroke?)
-        (λ [self]
-          (let ([maybe-stroke (geo-select-stroke-paint alt-stroke)])
-            (if (stroke? maybe-stroke)
-                (let-values ([(linewidth) (stroke-width maybe-stroke)]
-                             [(width height ?ink) (λextent self)])
-                  (values (if (or xstroke?) (+ width linewidth) width)
-                          (if (or ystroke?) (+ height linewidth) height)
-                          (and ?ink (geo-ink-embolden ?ink linewidth xstroke? ystroke?))))
-                (λextent self))))
-        λextent)))
-  
 (define geo-shape-plain-extent : (case-> [Nonnegative-Flonum -> Geo-Calculate-Extent]
                                          [Nonnegative-Flonum Flonum Flonum -> Geo-Calculate-Extent]
                                          [Nonnegative-Flonum Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent]

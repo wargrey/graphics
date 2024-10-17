@@ -13,7 +13,7 @@
   (require geofun/digitama/unsafe/pangocairo)
 
   (require "../convert.rkt")
-  (require (submod "pixman.rkt" unsafe))
+  (require "pixman.rkt")
   (require (submod "bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

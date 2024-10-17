@@ -1,12 +1,10 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [cairo_version cairo-version]
+                     [pango_version pango-version]
 
-(require "digitama/unsafe/version.rkt")
+                     [cairo_version_string cairo-version-string]
+                     [pango_version_string pango-version-string]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define cairo-version : (-> Integer) (lambda [] (cairo_version)))
-(define pango-version : (-> Integer) (lambda [] (pango_version)))
-
-(define cairo-version-string : (-> String) (lambda [] (cairo_version_string)))
-(define pango-version-string : (-> String) (lambda [] (pango_version_string)))
+(require "digitama/unsafe/more.rkt")

@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
-(require bitmap)
+(require bitmap/invalid)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+the-invalid-bitmap
 (bitmap-invalid? the-invalid-bitmap)

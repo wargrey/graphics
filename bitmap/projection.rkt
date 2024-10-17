@@ -7,6 +7,7 @@
 (require digimon/metrics)
 
 (require geofun/paint)
+(require geofun/stroke)
 (require geofun/digitama/base)
 (require geofun/digitama/source)
 (require geofun/digitama/unsafe/dc/icosahedron)
@@ -19,10 +20,12 @@
                                                   Bitmap)
   (lambda [#:edge [edge (default-stroke-paint)] #:border [border #false] #:fill [pattern #false] #:density [density (default-bitmap-density)]
            radius [radius-type 'vertex]]
-    (dc_icosahedron_side_proj create-argb-bitmap
-                              (icosahedron-radius->edge-length (~length radius) radius-type)
-                              (stroke-paint->source* edge) (fill-paint->source* pattern) (stroke-paint->source* border)
-                              density)))
+    (define sidelength : Nonnegative-Flonum (icosahedron-radius->edge-length (~length radius) radius-type))
+    (define fllength : Nonnegative-Flonum (icosahedron-edge-length->side-outline-size sidelength))
+    (define-values (es bs) (values (stroke-paint->source* edge) (stroke-paint->source* border)))
+    
+    (draw-bitmap dc_icosahedron_side_proj #:with [fllength fllength density #true (or bs es)]
+                 [es (fill-paint->source* pattern)] [])))
 
 (define bitmap-icosahedron-over-projection : (->* (Real)
                                                   (3D-Radius-Type #:edge Option-Stroke-Paint #:border Option-Stroke-Paint #:fill Option-Fill-Paint
@@ -31,8 +34,9 @@
   (lambda [#:edge [edge (default-stroke-paint)] #:border [border #false] #:fill [pattern #false]
            #:rotation [rotation 0.0] #:radian? [radian? #true] #:density [density (default-bitmap-density)]
            radius [radius-type 'vertex]]
-    (dc_icosahedron_over_proj create-argb-bitmap
-                              (icosahedron-radius->circumsphere-radius (~length radius) radius-type)
-                              (~radian rotation radian?)
-                              (stroke-paint->source* edge) (fill-paint->source* pattern) (stroke-paint->source* border)
-                              density)))
+    (define R : Nonnegative-Flonum (icosahedron-radius->circumsphere-radius (~length radius) radius-type))
+    (define fllength : Nonnegative-Flonum (* R 0.5))
+    (define-values (es bs) (values (stroke-paint->source* edge) (stroke-paint->source* border)))
+    
+    (draw-bitmap dc_icosahedron_over_proj #:with [fllength fllength density #true (or bs es)]
+                 [(~radian rotation radian?) es (fill-paint->source* pattern)] [])))

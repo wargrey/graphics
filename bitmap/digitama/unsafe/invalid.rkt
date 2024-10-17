@@ -2,23 +2,29 @@
 
 (provide (all-defined-out))
 
-(require typed/racket/unsafe)
+(require geofun/digitama/unsafe/surface/image)
+(require geofun/digitama/unsafe/visual/object)
+(require geofun/digitama/unsafe/visual/ctype)
 
 (require "../convert.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module unsafe racket/base
-  (provide (all-defined-out))
+(define bitmap_invalid : (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Bitmap)
+  (lambda [flwidth flheight density]
+    (define-values (img-sfc fxwidth fxheight) (cairo-create-image-surface flwidth flheight density))
+    
+    (bitmap invalid-convert (cairo-image-shadow-size img-sfc)
+            img-sfc (string->uninterned-symbol "/dev/zero")
+            density
+            fxwidth fxheight 4 8)))
 
-  (require geofun/digitama/unsafe/pangocairo)
-  (require "../convert.rkt")
-  
-  (define (bitmap_invalid flwidth flheight density)
-    (define-values (img cr) (create-invalid-bitmap flwidth flheight density #true))
-    (cairo_destroy cr)
-    img))
+(define bitmap-invalid? : (-> Bitmap Boolean)
+  (lambda [bmp]
+    (let ([src (bitmap-source bmp)])
+      (not (or (symbol-interned? src)
+               (symbol-unreadable? src))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(unsafe-require/typed/provide
- (submod "." unsafe)
- [bitmap_invalid (-> Flonum Flonum Flonum Bitmap)])
+(define invalid-convert : Visual-Object-Convert
+  (lambda [self mime fallback]
+    #""))

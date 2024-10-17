@@ -3,7 +3,7 @@
 (require bitmap)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define romedalen (read-bitmap (collection-file-path "romedalen.png" "bitmap" "tamer" "cairo") #:backing-scale 2.0))
+(define romedalen (read-bitmap (collection-file-path "romedalen.png" "geofun" "tamer" "pangocairo") #:backing-scale 2.0))
 
 romedalen
 (time (bitmap-grayscale/lightness romedalen))

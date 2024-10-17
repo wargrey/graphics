@@ -9,14 +9,16 @@
 
 (require "../base.rkt")
 (require "../layer/type.rkt")
-(require "../convert.rkt")
+(require "../self.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
 
   (require "pangocairo.rkt")
-  (require "paint.rkt")
   (require "../convert.rkt")
+  (require "../../stroke.rkt")
+
+  (require (submod "paint.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (geo_composite operator layers density)
@@ -39,7 +41,7 @@
     (define dest-width (unsafe-vector*-ref layers 0))
     (define dest-height (unsafe-vector*-ref layers 1))
     (define geo-objects (unsafe-vector*-ref layers 2))
-    (define line-width (~bdwidth border))
+    (define line-width (stroke-maybe-width border))
     (define line-inset (unsafe-fl* line-width 0.5))
     (define-values (width  border-x border-width  dest-x) (frame-metrics line-width line-inset mleft mright pleft pright dest-width))
     (define-values (height border-y border-height dest-y) (frame-metrics line-width line-inset mtop mbottom ptop pbottom dest-height))
@@ -89,7 +91,7 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (dc_frame_size dest-width dest-height mtop mright mbottom mleft ptop pright pbottom pleft border)
-    (define line-width (~bdwidth border))
+    (define line-width (stroke-maybe-width border))
     (define line-inset (unsafe-fl* line-width 0.5))
     (define-values (width border-x border-width dest-x) (frame-metrics line-width line-inset mleft mright pleft pright dest-width))
     (define-values (height border-y border-height dest-y) (frame-metrics line-width line-inset mtop mbottom ptop pbottom dest-height))
@@ -98,8 +100,8 @@
   
   (define (frame-metrics line-width line-inset flmopen flmclose flpopen flpclose size)
     (define border-position (unsafe-fl+ flmopen line-inset))
-    (define body-position (unsafe-fl+ (unsafe-fl+ flmopen flpopen) line-inset))
-    (define border-size (unsafe-fl+ (unsafe-fl+ flpopen flpclose) size))
+    (define body-position (unsafe-fl+ (unsafe-fl+ flmopen flpopen) line-width))
+    (define border-size (unsafe-fl+ (unsafe-fl+ (unsafe-fl+ flpopen flpclose) size) line-width))
     (define frame-size (unsafe-fl+ (unsafe-fl+ (unsafe-fl+ border-position border-size) flmclose) line-inset))
     
     (values frame-size border-position border-size body-position)))

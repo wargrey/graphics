@@ -179,9 +179,9 @@
     
     (define-values (flwidth flheight) (values (glayer-group-width layers) (glayer-group-height layers)))
     (define-values (W H lx ty w h ox oy)
-          (dc_frame_size flwidth flheight
-                         mtop mright mbottom mleft ptop pright pbottom pleft
-                         (geo-select-border-paint border)))
+      (dc_frame_size flwidth flheight
+                     mtop mright mbottom mleft ptop pright pbottom pleft
+                     (geo-select-border-paint border)))
     
     (define geo-frame-extent : Geo-Calculate-Extent
       (lambda [self]

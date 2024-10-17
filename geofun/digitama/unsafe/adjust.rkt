@@ -4,7 +4,7 @@
 
 (require typed/racket/unsafe)
 
-(require geofun/digitama/unsafe/visual/ctype)
+(require "visual/ctype.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))

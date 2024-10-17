@@ -2,31 +2,23 @@
 
 (provide (all-defined-out))
 
-(require typed/racket/unsafe)
+(require geofun/digitama/base)
 
+(require "../cairo.rkt")
+(require "../paint.rkt")
 (require "../source.rkt")
 (require "../visual/ctype.rkt")
 
-(module unsafe racket/base
-  (provide (all-defined-out))
-  
-  (require "../pangocairo.rkt")
-  (require "../paint.rkt")
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc_blank create-surface width height density)
-    (define-values (img cr) (create-surface width height density #true))
-    (cairo_destroy cr)
-    img)
-
-  (define (dc_pattern create-surface width height background density)
-    (define-values (img cr) (create-surface width height density #true))
-    (cairo-render-background cr background)
-    (cairo_destroy cr)
-    img))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(unsafe-require/typed/provide
- (submod "." unsafe)
- [dc_blank (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Flonum S))]
- [dc_pattern (All (S) (-> (Cairo-Surface-Create S) Flonum Flonum Fill-Source Flonum S))])
+(define dc_pattern : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Fill-Source Any)
+  (lambda [cr x0 y0 width height background]
+    (cairo-render-background cr background)))
+
+(define dc_frame : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Bitmap-Surface
+                       Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                       Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                       (Option Paint) (Option Fill-Source) Positive-Flonum Any)
+  (lambda [cr x0 y0 width height src border-x border-y border-width border-height dest-x dest-y dest-width dest-height border background density]
+    (cairo_rectangle cr border-x border-y border-width border-height)
+    (cairo-render cr border background)
+    (cairo-composite cr src dest-x dest-y dest-width dest-height density)))
