@@ -6,14 +6,13 @@
 (provide (rename-out [geo-dart geo-arrowhead]))
 (provide (rename-out [geo-trapezium geo-trapezoid]))
 
-(provide geo-blank geo-ghost geo:blank? Geo:Blank)
-(provide geo-bitmap geo:bitmap? Geo:Bitmap)
-(provide geo-rectangular geo:λbitmap? Geo:λBitmap)
+(provide geo-blank geo-ghost geo-solid geo:blank? Geo:Blank Geo:Solid)
+(provide geo-bitmap geo-rectangular geo:bitmap? Geo:Bitmap)
 (provide geo-text geo:text? Geo:Text)
 (provide geo-art-text geo:art-text? Geo:Art-Text)
 (provide geo-paragraph geo:para? Geo:Paragraph)
 (provide geo-square geo-rectangle geo:rect? Geo:Rectangle)
-(provide geo-vline geo-hline geo:line? Geo:Line)
+(provide geo-vline geo-hline geo-diagonal geo-anti-diagonal geo:line? Geo:Line)
 (provide geo-circle geo:circle? Geo:Circle)
 (provide geo-ellipse geo:ellipse? Geo:Ellipse)
 (provide geo-arc geo:arc? Geo:Arc)
@@ -21,7 +20,7 @@
 (provide geo-arrow geo:arrow? Geo:Arrow)
 (provide geo-dart geo:dart? Geo:Dart)
 
-(provide geo-stadium geo-half-stadium geo:stadium? Geo:Stadium)
+(provide geo-stadium geo-lstadium geo-rstadium geo:stadium? Geo:Stadium)
 (provide geo-bullet geo:bullet? Geo:Bullet)
 (provide geo-sandglass geo:sandglass? Geo:Sandglass)
 

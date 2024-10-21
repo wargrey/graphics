@@ -29,8 +29,7 @@
            width [corner-radius 0.0]]
     (define w : Nonnegative-Flonum (~length width))
     
-    (create-geometry-object geo:rect
-                            #:surface geo-rect-surface stroke pattern
+    (create-geometry-object geo:rect (geo-draw-rectangle stroke pattern)
                             #:extent (geo-shape-plain-extent w 0.0 0.0)
                             #:id id
                             w w (~length corner-radius w)
@@ -45,8 +44,7 @@
            width [height -0.618] [corner-radius 0.0]]
     (define-values (w h) (~size width height))
     
-    (create-geometry-object geo:rect
-                            #:surface geo-rect-surface stroke pattern
+    (create-geometry-object geo:rect (geo-draw-rectangle stroke pattern)
                             #:extent (geo-shape-plain-extent w h 0.0 0.0)
                             #:id id
                             w h (~length corner-radius (min w h))
@@ -54,15 +52,14 @@
                             (map real->double-flonum hlines))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-rect-surface : Geo-Surface-Create
-  (lambda [self]
-    (with-asserts ([self geo:rect?])
-      (define cr : Nonnegative-Flonum (geo:rect-corner-radius self))
-      (define w : Nonnegative-Flonum (geo:rect-width self))
-      (define h : Nonnegative-Flonum (geo:rect-height self))
-      (define vls : (Listof Flonum) (geo:rect-vlines self))
-      (define hls : (Listof Flonum) (geo:rect-hlines self))
-      
-      (if (or (zero? cr) (nan? cr))
-          (dc_rectangle create-abstract-surface w h (current-stroke-source) (current-fill-source) vls hls (default-geometry-density))
-          (dc_rounded_rectangle create-abstract-surface w h cr (current-stroke-source) (current-fill-source) vls hls (default-geometry-density))))))
+(define geo-draw-rectangle : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:rect? self)
+        (define cradius : Nonnegative-Flonum (geo:rect-corner-radius self))
+        (define vls : (Listof Flonum) (geo:rect-vlines self))
+        (define hls : (Listof Flonum) (geo:rect-hlines self))
+        
+        (if (or (zero? cradius) (nan? cradius))
+            (dc_rectangle cr x0 y0 width height (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill) vls hls)
+            (dc_rounded_rectangle cr x0 y0 width height cradius (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill) vls hls))))))

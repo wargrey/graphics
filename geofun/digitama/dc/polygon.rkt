@@ -24,14 +24,14 @@
   #:transparent)
 
 (struct geo:polygon geo
-  ([prints : (Listof (Pairof Char Float-Complex))]
+  ([prints : (Listof Float-Complex)]
    [tx : Flonum]
    [ty : Flonum])
   #:type-name Geo:Polygon
   #:transparent)
 
 (struct geo:polyline geo
-  ([prints : (Listof (Pairof Char Float-Complex))]
+  ([prints : (Listof Float-Complex)]
    [tx : Flonum]
    [ty : Flonum]
    [closed? : Boolean])
@@ -44,13 +44,17 @@
                                    Geo:Regular-Polygon)
   (lambda [n radius [rotation 0.0] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)] #:radian? [radian? #true] #:inscribed? [inscribed? #false]]
     (define R : Nonnegative-Flonum (~length radius))
+    (define N : Index (if (index? n) n 0))
     (define rtype : 2D-Radius-Type (if inscribed? 'edge 'vertex))
+    (define d : Nonnegative-Flonum
+      (* 2.0 (if (> N 0)
+                 (regular-polygon-radius->circumsphere-radius N R rtype)
+                 R)))
     
-    (create-geometry-object geo:regular-polygon
-                            #:surface geo-regular-polygon-surface stroke pattern
-                            #:extent geo-regular-polygon-extent
+    (create-geometry-object geo:regular-polygon (geo-regular-polygon-surface stroke pattern)
+                            #:extent (geo-shape-plain-extent d d 0.0 0.0)
                             #:id id
-                            (if (index? n) n 0) R rtype (~radian rotation radian?))))
+                            N R rtype (~radian rotation radian?))))
 
 (define geo-polygon : (->* ((U Point2D (Listof Point2D)))
                            (Real Real
@@ -63,9 +67,8 @@
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
-    (create-geometry-object geo:polygon
-                            #:surface (geo-polygon-surface width height x-stroke? y-stroke?) stroke pattern rule
-                            #:extent (geo-stroke-extent-wrapper (geo-shape-plain-extent width height 0.0 0.0) stroke x-stroke? y-stroke?)
+    (create-geometry-object geo:polygon (geo-polygon-surface stroke pattern rule)
+                            #:extent (geo-shape-plain-extent width height 0.0 0.0)
                             #:id id
                             prints xoff yoff)))
 
@@ -77,58 +80,38 @@
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
-    (create-geometry-object geo:polyline
-                            #:surface (geo-polyline-surface width height x-stroke? y-stroke?) stroke
-                            #:extent (geo-stroke-extent-wrapper (geo-shape-plain-extent width height 0.0 0.0) stroke x-stroke? y-stroke?)
+    (create-geometry-object geo:polyline (geo-polyline-surface stroke)
+                            #:extent (geo-shape-plain-extent width height 0.0 0.0)
                             #:id id
                             prints xoff yoff close?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-regular-polygon-extent : Geo-Calculate-Extent
-  (lambda [self]
-    (with-asserts ([self geo:regular-polygon?])
-      (define n (geo:regular-polygon-n self))
-      (define R (geo:regular-polygon-radius self))
+(define geo-regular-polygon-surface : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:regular-polygon? self)
+        (define n (geo:regular-polygon-n self))
+        
+        (if (> n 0)
+            (dc_regular_polygon cr x0 y0 width height n 
+                                (geo:regular-polygon-rotation self)
+                                (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))
+            (dc_ellipse cr x0 y0 width height
+                        (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
+                        null))))))
 
-      (define d : Nonnegative-Flonum
-        (* 2.0
-           (if (> n 0)
-               (regular-polygon-radius->circumsphere-radius n R (geo:regular-polygon-raidus-type self))
-               R)))
-      
-      (values d d #false))))
+(define geo-polygon-surface : (-> Maybe-Stroke-Paint Maybe-Fill-Paint (Option Symbol) Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill alt-rule]
+    (λ [self cr x0 y0 width height]
+      (when (geo:polygon? self)
+        (dc_polygon cr x0 y0 width height (geo:polygon-prints self)
+                    (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
+                    (or alt-rule (default-fill-rule)))))))
 
-(define geo-regular-polygon-surface : Geo-Surface-Create
-  (lambda [self]
-    (with-asserts ([self geo:regular-polygon?])
-      (define n (geo:regular-polygon-n self))
-      (define R (geo:regular-polygon-radius self))
-
-      (if (> n 0)
-          (dc_regular_polygon create-abstract-surface
-                              n (regular-polygon-radius->circumsphere-radius n R (geo:regular-polygon-raidus-type self))
-                              (geo:regular-polygon-rotation self)
-                              (current-stroke-source) (current-fill-source)
-                              (default-geometry-density))
-          (dc_circle create-abstract-surface
-                     R (current-stroke-source) (current-fill-source)
-                     null (default-geometry-density))))))
-
-(define geo-polygon-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Boolean Boolean Geo-Surface-Create)
-  (lambda [width height xstroke? ystroke?]
-    (λ [self]
-      (with-asserts ([self geo:polygon?])
-        (dc_polygon create-abstract-surface
-                    width height (geo:polygon-prints self) (geo:polygon-tx self) (geo:polygon-ty self) xstroke? ystroke?
-                    (current-stroke-source) (current-fill-source) (default-fill-rule)
-                    (default-geometry-density))))))
-
-(define geo-polyline-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Boolean Boolean Geo-Surface-Create)
-  (lambda [width height xstroke? ystroke?]
-    (λ [self]
-      (with-asserts ([self geo:polyline?])
-        (dc_polyline create-abstract-surface
-                     width height (geo:polyline-prints self) (geo:polyline-tx self) (geo:polyline-ty self) xstroke? ystroke?
-                     (current-stroke-source*) (geo:polyline-closed? self)
-                     (default-geometry-density))))))
-  
+(define geo-polyline-surface : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke]
+    (λ [self cr x0 y0 width height]
+      (when (geo:polyline? self)
+        (dc_polyline cr x0 y0 width height (geo:polyline-prints self)
+                     ;(geo:polyline-tx self) (geo:polyline-ty self) xstroke? ystroke?
+                     (geo-select-stroke-paint* alt-stroke) (geo:polyline-closed? self))))))

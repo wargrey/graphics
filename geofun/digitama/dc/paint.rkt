@@ -76,3 +76,9 @@
     (if (void? alt-strk)
         (current-stroke-source)
         (stroke-paint->source* alt-strk))))
+
+(define geo-select-stroke-paint* : (-> Maybe-Stroke-Paint Stroke)
+  (lambda [alt-strk]
+    (if (void? alt-strk)
+        (current-stroke-source*)
+        (stroke-paint->source alt-strk))))

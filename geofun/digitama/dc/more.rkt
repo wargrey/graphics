@@ -14,7 +14,7 @@
 (struct geo:stadium geo
   ([length : Nonnegative-Flonum]
    [radius : Nonnegative-Flonum]
-   [half? : Boolean])
+   [side : Symbol])
   #:type-name Geo:Stadium
   #:transparent)
 
@@ -64,23 +64,32 @@
     (define flradius : Nonnegative-Flonum (~length radius flength))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
-    (create-geometry-object geo:stadium
-                            #:surface geo-stadium-surface stroke pattern
+    (create-geometry-object geo:stadium (geo-draw-stadium stroke pattern)
                             #:extent (geo-shape-plain-extent (+ d flength) d 0.0 0.0)
                             #:id id
-                            flength flradius #false)))
+                            flength flradius 'both)))
 
-(define geo-half-stadium : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Stadium)
+(define geo-lstadium : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Stadium)
   (lambda [length radius #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
     (define flength : Nonnegative-Flonum (~length length))
     (define flradius : Nonnegative-Flonum (~length radius flength))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
-    (create-geometry-object geo:stadium
-                            #:surface geo-stadium-surface stroke pattern
+    (create-geometry-object geo:stadium (geo-draw-stadium stroke pattern)
                             #:extent (geo-shape-plain-extent (+ flradius flength) d 0.0 0.0)
                             #:id id
-                            flength flradius #true)))
+                            flength flradius 'left)))
+
+(define geo-rstadium : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Stadium)
+  (lambda [length radius #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
+    (define flength : Nonnegative-Flonum (~length length))
+    (define flradius : Nonnegative-Flonum (~length radius flength))
+    (define d : Nonnegative-Flonum (* 2.0 flradius))
+    
+    (create-geometry-object geo:stadium (geo-draw-stadium stroke pattern)
+                            #:extent (geo-shape-plain-extent (+ flradius flength) d 0.0 0.0)
+                            #:id id
+                            flength flradius 'right)))
 
 (define geo-bullet : (->* (Real Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Bullet)
   (lambda [ogive radius [barrel -0.384] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
@@ -88,8 +97,7 @@
     (define flradius : Nonnegative-Flonum (~length radius (+ flogive flbarrel)))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
-    (create-geometry-object geo:bullet
-                            #:surface geo-bullet-surface stroke pattern
+    (create-geometry-object geo:bullet (geo-draw-bullet stroke pattern)
                             #:extent (geo-shape-plain-extent (+ flogive flbarrel) d 0.0 0.0)
                             #:id id
                             flogive flbarrel flradius)))
@@ -106,8 +114,7 @@
     (define neck-flheight (~length neck-height flheight))
     (define tube-flheight (~length tube-height flheight))
     
-    (create-geometry-object geo:sandglass
-                            #:surface (geo-sandglass-surface flwidth flheight) stroke pattern
+    (create-geometry-object geo:sandglass (geo-draw-sandglass stroke pattern)
                             #:extent (geo-shape-plain-extent flwidth flheight 0.0 0.0)
                             #:id id
                             neck-flwidth neck-flheight tube-flheight)))
@@ -117,19 +124,17 @@
     (define-values (flwidth flheight) (~size width height))
     (define fla : Nonnegative-Flonum (~length aradius (* flheight 0.5)))
     
-    (create-geometry-object geo:storage
-                            #:surface geo-storage-surface stroke pattern
+    (create-geometry-object geo:storage (geo-draw-storage stroke pattern)
                             #:extent (geo-shape-plain-extent flwidth flheight 0.0 0.0)
                             #:id id
                             flwidth flheight fla)))
 
 (define geo-document : (->* (Real Real) (Real #:id (Option Symbol) #:extra-n Index #:gapsize Real #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Document)
-  (lambda [width height [wave -0.384] #:extra-n [extra-n 0] #:id [id #false] #:gapsize [gapsize -0.618] #:stroke [stroke (void)] #:fill [pattern (void)]]
+  (lambda [width height [wave -0.1618] #:extra-n [extra-n 0] #:id [id #false] #:gapsize [gapsize -0.618] #:stroke [stroke (void)] #:fill [pattern (void)]]
     (define-values (flwidth flheight) (~size width height))
     (define flwave : Nonnegative-Flonum (~length wave flheight))
     
-    (create-geometry-object geo:document
-                            #:surface geo-document-surface stroke pattern
+    (create-geometry-object geo:document (geo-draw-document stroke pattern)
                             #:extent (geo-shape-plain-extent flwidth flheight 0.0 0.0)
                             #:id id
                             flwidth flheight flwave (~length gapsize flwave) extra-n)))
@@ -139,66 +144,62 @@
     (define-values (flwidth flheight) (~size width height))
     (define flb : Nonnegative-Flonum (~length bradius flheight))
     
-    (create-geometry-object geo:database
-                            #:surface geo-database-surface stroke pattern
+    (create-geometry-object geo:database (geo-draw-database stroke pattern)
                             #:extent (geo-shape-plain-extent flwidth flheight 0.0 0.0)
                             #:id id
                             flwidth flheight flb (~length gapsize flb) extra-n)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-stadium-surface : Geo-Surface-Create
-  (lambda [self]
-    (with-asserts ([self geo:stadium?])
-      (if (geo:stadium-half? self)
-          (dc_half_stadium create-abstract-surface
-                           (geo:stadium-length self) (geo:stadium-radius self)
-                           (current-stroke-source) (current-fill-source)
-                           (default-geometry-density))
-          (dc_stadium create-abstract-surface
-                      (geo:stadium-length self) (geo:stadium-radius self)
-                      (current-stroke-source) (current-fill-source)
-                      (default-geometry-density))))))
+(define geo-draw-stadium : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:stadium? self)
+        (define semicircle-side (geo:stadium-side self))
+        (cond [(eq? semicircle-side 'left)
+               (dc_half_stadium cr x0 y0 width height
+                                (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
+                                #true)]
+              [(eq? semicircle-side 'right)
+               (dc_half_stadium cr x0 y0 width height
+                                (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
+                                #false)]
+              [else (dc_stadium cr x0 y0 width height
+                                (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))])))))
 
-(define geo-bullet-surface : Geo-Surface-Create
-  (lambda [self]
-    (with-asserts ([self geo:bullet?])
-      (dc_bullet create-abstract-surface
-                 (geo:bullet-ogive-length self) (geo:bullet-barrel-length self) (geo:bullet-radius self)
-                 (current-stroke-source) (current-fill-source)
-                 (default-geometry-density)))))
+(define geo-draw-bullet : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:bullet? self)
+        (dc_bullet cr x0 y0 width height (geo:bullet-ogive-length self)
+                   (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))))))
 
-(define geo-sandglass-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Surface-Create)
-  (lambda [width height]
-    (λ [self]
-      (with-asserts ([self geo:sandglass?])
-        (dc_sandglass create-abstract-surface
-                      width height
+(define geo-draw-sandglass : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:sandglass? self)
+        (dc_sandglass cr x0 y0 width height
                       (geo:sandglass-neck-width self) (geo:sandglass-neck-height self) (geo:sandglass-tube-height self)
-                      (current-stroke-source) (current-fill-source)
-                      (default-geometry-density))))))
+                      (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))))))
 
-(define geo-storage-surface : Geo-Surface-Create
-  (lambda [self]
-    (with-asserts ([self geo:storage?])
-      (dc_general_storage create-abstract-surface
-                          (geo:storage-width self) (geo:storage-height self) (geo:storage-aradius self)
-                          (current-stroke-source) (current-fill-source)
-                          (default-geometry-density)))))
+(define geo-draw-storage : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:storage? self)
+        (dc_general_storage cr x0 y0 width height (geo:storage-aradius self)
+                            (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))))))
 
-(define geo-document-surface : Geo-Surface-Create
-  (lambda [self]
-    (with-asserts ([self geo:document?])
-      (dc_document create-abstract-surface
-                   (geo:document-width self) (geo:document-height self) (geo:document-wave-height self)
-                   (geo:document-gapsize self) (geo:document-extra-n self)
-                   (current-stroke-source) (current-fill-source)
-                   (default-geometry-density)))))
+(define geo-draw-document : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:document? self)
+        (dc_document cr x0 y0 width height (geo:document-wave-height self)
+                     (geo:document-gapsize self) (geo:document-extra-n self)
+                     (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))))))
 
-(define geo-database-surface : Geo-Surface-Create
-  (lambda [self]
-    (with-asserts ([self geo:database?])
-      (dc_database create-abstract-surface
-                   (geo:database-width self) (geo:database-height self) (geo:database-bradius self)
-                   (geo:database-gapsize self) (geo:database-extra-n self)
-                   (current-stroke-source) (current-fill-source)
-                   (default-geometry-density)))))
+(define geo-draw-database : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:database? self)
+        (dc_database cr x0 y0 width height (geo:database-bradius self)
+                     (geo:database-gapsize self) (geo:database-extra-n self)
+                     (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))))))

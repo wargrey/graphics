@@ -85,9 +85,8 @@
     (define-values (tsx tsy) (geo-path-turn-scales t-scale 0.5))
     (define-values (usx usy) (geo-path-turn-scales u-scale 0.25))
     
-    (create-geometry-object gomamon
-                            #:surface geo-path-surface stroke fill frule
-                            #:extent (geo-stroke-extent-wrapper geo-path-extent stroke)
+    (create-geometry-object gomamon  (geo-draw-path stroke fill frule)
+                            #:extent geo-path-extent
                             #:id name
                             (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos

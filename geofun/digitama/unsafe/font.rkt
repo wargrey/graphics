@@ -14,7 +14,6 @@
   (require (only-in racket/class send))
   
   (require "pangocairo.rkt")
-  (require "metrics.rkt")
   (require (submod "surface/image.rkt" unsafe))
 
   (define &ink (make-PangoRectangle 0 0 0 0))
@@ -51,17 +50,17 @@
     
     (define ex  (unsafe-fx- baseline xy))
     (define cap (unsafe-fx- baseline Oy))
-    (list (cons 'em (~metric (pango_font_description_get_size font-desc)))
-          (cons 'ex (~metric ex)) (cons 'cap (~metric cap))
-          (cons 'ch (~metric ch)) (cons 'ic (~metric ic))
-          (cons 'lh #|this is useless outside css engine|# (~metric wH))))
+    (list (cons 'em (~pango-metric (pango_font_description_get_size font-desc)))
+          (cons 'ex (~pango-metric ex)) (cons 'cap (~pango-metric cap))
+          (cons 'ch (~pango-metric ch)) (cons 'ic (~pango-metric ic))
+          (cons 'lh #|this is useless outside css engine|# (~pango-metric wH))))
 
   (define (font_get_metrics_lines font-desc content)
     (start-atomic)
     (define-values (baseline get-extent) (font-desc->get-extent font-desc))
-    (define-values (meanline xw eh)     (get-extent "x"))
-    (define-values (capline  Ow Oh)     (get-extent "O"))
-    (define-values (ascender cw height) (get-extent content))
+    (define-values (meanline xw eh)      (get-extent "x"))
+    (define-values (capline  Ow Oh)      (get-extent "O"))
+    (define-values (ascender cw height)  (get-extent content))
     (end-atomic)
     
     (values ascender capline meanline baseline (unsafe-fx+ ascender height)))
@@ -69,8 +68,8 @@
   (define (font_get_metrics_lines* font-desc content)
     (define-values (ascender capline meanline baseline descender) (font_get_metrics_lines font-desc content))
     
-    (values (~metric ascender) (~metric capline) (~metric meanline)
-            (~metric baseline) (~metric descender)))
+    (values (~pango-metric ascender) (~pango-metric capline) (~pango-metric meanline)
+            (~pango-metric baseline) (~pango-metric descender)))
 
   (define (font_get_text_extent font-desc content)
     (start-atomic)
@@ -78,7 +77,7 @@
     (define-values (ascent _ height Width Height) (get-extent content #true))
     (end-atomic)
     
-    (values (~metric Width) (~metric Height)))
+    (values (~pango-metric Width) (~pango-metric Height)))
 
   (define (font_get_text_extent* font-desc content)
     (start-atomic)
@@ -86,8 +85,8 @@
     (define-values (ascent _ height Width Height) (get-extent content #true))
     (end-atomic)
     
-    (values (~metric Width) (~metric Height) (~metric (unsafe-fx- Height baseline))
-            (~metric ascent) (~metric (unsafe-fx- Height (unsafe-fx+ ascent height)))))
+    (values (~pango-metric Width) (~pango-metric Height) (~pango-metric (unsafe-fx- Height baseline))
+            (~pango-metric ascent) (~pango-metric (unsafe-fx- Height (unsafe-fx+ ascent height)))))
 
   (define (font_list_families)
     (pango_font_map_list_families (pango_cairo_font_map_get_default)))

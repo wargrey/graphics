@@ -10,6 +10,6 @@
   (lambda [bmp ext]
     (bitmap-save bmp (build-path (find-system-path 'desk-dir) (format "tamer.~a" ext)) #:format ext)))
 
-(tamer-save frame 'png)
-(tamer-save frame 'pdf)
-(tamer-save frame 'svg)
+;(tamer-save frame 'png)
+;(tamer-save frame 'pdf)
+;(tamer-save frame 'svg)

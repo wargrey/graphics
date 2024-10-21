@@ -11,8 +11,21 @@
 
   (require "pangocairo.rkt")
   (require "../stroke.rkt")
+
+  (require racket/math)
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define cairo-set-source
+    (lambda [cr src]
+      (cond [(struct? src) ; (rgba? src)
+             (cairo_set_source_rgba cr
+                                    (unsafe-struct*-ref src 0)
+                                    (unsafe-struct*-ref src 1)
+                                    (unsafe-struct*-ref src 2)
+                                    (unsafe-struct*-ref src 3))]
+            [(eq? (cpointer-tag src) 'cairo_pattern_t) (cairo_set_source cr src)]
+            [else (cairo_set_source_surface cr src 0.0 0.0)])))
+  
   (define cairo-set-stroke
     (lambda [cr stroke]
       (cairo-set-source cr (unsafe-struct*-ref stroke 0))
@@ -22,6 +35,7 @@
       (let ([ml (unsafe-struct*-ref stroke 4)]) (unless (nan? ml) (cairo_set_miter_limit cr ml)))
       (cairo_set_dash cr (unsafe-struct*-ref stroke 5) (unsafe-struct*-ref stroke 6))))
   
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define cairo-render-with-stroke
     (lambda [cr border]
       (cairo-set-stroke cr border)
@@ -62,22 +76,17 @@
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define cairo-composite
-    (case-lambda
-      [(cr src dest-x dest-y dest-width dest-height density)
-       (cairo-composite cr src dest-x dest-y dest-width dest-height CAIRO_FILTER_BILINEAR CAIRO_OPERATOR_OVER density)]
-      [(cr src dest-x dest-y dest-width dest-height operator density)
-       (cairo-composite cr src dest-x dest-y dest-width dest-height CAIRO_FILTER_BILINEAR operator density)]
-      [(cr src dest-x dest-y dest-width dest-height filter operator density)
-       (let ([1/density (unsafe-fl/ 1.0 density)])
-         (cairo_save cr)
-         (cairo_translate cr dest-x dest-y)
-         (cairo_rectangle cr 0.0 0.0 dest-width dest-height)
-         (cairo_scale cr 1/density 1/density) ; order matters
-         (cairo_set_source_surface cr src 0.0 0.0)
-         (cairo_pattern_set_filter (cairo_get_source cr) filter)
-         (cairo_set_operator cr operator)
-         (cairo_fill cr)
-         (cairo_restore cr))]))
+    (lambda [cr src dest-x dest-y dest-width dest-height density]
+      (cairo_save cr)
+      (cairo_translate cr dest-x dest-y)
+
+      (unless (unsafe-fl= density 1.0)
+        (let ([1/density (unsafe-fl/ 1.0 density)])
+          (cairo_scale cr 1/density 1/density)))
+
+      (cairo_set_source_surface cr src 0.0 0.0)
+      (cairo_fill cr)
+      (cairo_restore cr)))
   
   (define cairo-mask
     (lambda [cr src dest-x dest-y dest-width dest-height density]

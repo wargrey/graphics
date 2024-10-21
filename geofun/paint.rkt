@@ -6,6 +6,7 @@
 (require "color.rkt")
 
 (require "digitama/color.rkt")
+(require "digitama/pattern.rkt")
 (require "digitama/composite.rkt")
 
 (require "digitama/unsafe/source.rkt")
@@ -27,4 +28,6 @@
 (define default-font-paint : (Parameterof Fill-Paint) (make-parameter black))
 (define default-fill-paint : (Parameterof Option-Fill-Paint) (make-parameter #false))
 (define default-fill-rule : (Parameterof Symbol) (make-parameter 'winding))
+
 (define default-pin-operator : (Parameterof Geo-Pin-Operator) (make-parameter 'over))
+(define default-pattern-filter : (Parameterof Geo-Pattern-Filter) (make-parameter 'bilinear))

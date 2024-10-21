@@ -1,6 +1,6 @@
 #lang racket/base
 
-(provide (all-defined-out) pi nan? infinite? sgn)
+(provide (all-defined-out))
 (provide (all-from-out racket/draw/unsafe/cairo racket/draw/unsafe/pango))
 (provide (all-from-out ffi/unsafe racket/unsafe/ops ffi/unsafe/atomic))
 
@@ -13,8 +13,6 @@
 (require racket/draw/unsafe/pango)
 (require racket/draw/unsafe/cairo)
 (require racket/draw/unsafe/cairo-lib)
-
-(require (only-in racket/math pi nan? infinite? sgn))
 
 (require (for-syntax racket/base))
 
@@ -99,14 +97,12 @@
 (define-cairo cairo_pdf_surface_set_page_label (_cfun _cairo_surface_t _string -> _void))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define cairo-set-source
-  (lambda [cr src]
-    (cond [(struct? src) ; (rgba? src)
-           (cairo_set_source_rgba cr
-                                  (unsafe-struct*-ref src 0)
-                                  (unsafe-struct*-ref src 1)
-                                  (unsafe-struct*-ref src 2)
-                                  (unsafe-struct*-ref src 3))]
-          [(eq? (cpointer-tag src) 'cairo_pattern_t) (cairo_set_source cr src)]
-          [else (cairo_set_source_surface cr src 0.0 0.0)])))
+(define ~pango-size
+  (lambda [size]
+    (unsafe-fx* (unsafe-fl->fx (unsafe-flceiling size))
+                PANGO_SCALE)))
 
+(define ~pango-metric
+  (lambda [val]
+    (unsafe-fl/ (unsafe-fx->fl val)
+                (unsafe-fx->fl PANGO_SCALE))))

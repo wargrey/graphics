@@ -27,7 +27,7 @@
         op:expr layers:expr argl:expr ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
-         (Geo geo-convert geo-group-surface (geo-group-extent layers)
+         (Geo geo-convert geo-draw-group (geo-group-extent layers)
               (or name (gensym 'geo-prefix)) op layers
               0.0+0.0i geo-frame-empty geo-frame-empty
               argl ...)))]
@@ -42,7 +42,7 @@
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
          (let-values ([(geo-frame-extent O margins insets) (geo-group-frame-extent margin inset layers bdr)])
-           (Geo geo-convert (geo-framed-group-surface bdr bgsource) geo-frame-extent
+           (Geo geo-convert (geo-draw-framed-group bdr bgsource) geo-frame-extent
                 (or name (gensym 'geo-prefix)) op layers O margins insets
                 argl ...))))]))
 
@@ -98,8 +98,7 @@
                                                   -> Geo:Group])
   (case-lambda
     [(id op layers)
-     (create-geometry-object geo:group
-                             #:surface geo-group-surface
+     (create-geometry-object geo:group geo-draw-group
                              #:extent (geo-group-extent layers)
                              #:id id
                              op layers 0.0+0.0i geo-frame-empty geo-frame-empty)]
@@ -107,8 +106,7 @@
      (if (or margin inset border background)
 
          (let-values ([(geo-frame-extent O margins insets) (geo-group-frame-extent margin inset layers border)])   
-           (create-geometry-object geo:group
-                                   #:surface (geo-framed-group-surface border background)
+           (create-geometry-object geo:group (geo-draw-framed-group border background)
                                    #:extent geo-frame-extent
                                    #:id id
                                    op layers O margins insets))
@@ -135,15 +133,15 @@
                            op layers (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-group-surface : Geo-Surface-Create
-  (lambda [self]
+(define geo-draw-group : Geo-Surface-Draw!
+  (lambda [self cr x0 y0 width height]
     (with-asserts ([self geo:group?])
       (geo_composite (geo-select-operator (geo:group-operator self) default-pin-operator)
                      (geo:group-selves self) (default-geometry-density)))))
 
-(define geo-framed-group-surface : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Create)
+(define geo-draw-framed-group : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
   (lambda [alt-bdr alt-bg]
-    (lambda [self]
+    (lambda [self cr x0 y0 width height]
       (with-asserts ([self geo:group?])
         (define margins (geo:group-margins self))
         (define pads (geo:group-pads self))

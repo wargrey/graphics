@@ -47,7 +47,7 @@
   (syntax-case stx [:]
     [(_ [Bitmap convertor] filename density width height palettes depth argl ... decode)
      (syntax/loc stx
-       (let-values ([(surface fxwidth fxheight) (cairo-create-image-surface (exact->inexact width) (exact->inexact height) density)])
+       (let-values ([(surface fxwidth fxheight) (cairo-create-argb-image-surface (exact->inexact width) (exact->inexact height) density #false)])
          (decode (cairo_image_surface_get_data surface) fxwidth fxheight)
          (cairo_surface_mark_dirty surface)
          (Bitmap convertor (cairo-image-shadow-size surface) surface filename density fxwidth fxheight palettes depth argl ...)))]

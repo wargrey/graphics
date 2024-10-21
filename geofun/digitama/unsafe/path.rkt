@@ -11,15 +11,11 @@
 (require "visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#;(define path_stamp : (-> (Listof Geo-Path-Print) Flonum Flonum (Option Paint) (Option Fill-Source) Symbol Positive-Flonum Abstract-Surface)
-  (lambda [footprints dx dy stroke fill-color fill-rule density]
-    (define thickness (~bdwidth stroke))
-    (define inset (* thickness 0.5))
-    
-    (make-cairo-abstract-surface 0.0 0.0 density #true
-                                 (λ [cr inf.w inf.h]
-                                   (cairo_path cr footprints (+ dx inset) (+ dy inset))
-                                   (cairo-render cr stroke fill-color fill-rule)))))
+(define dc_path : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints
+                      (Option Paint) (Option Fill-Source) Symbol Any)
+  (lambda [cr x0 y0 width height footprints stroke fill-color fill-rule]
+    (cairo_path cr footprints x0 y0)
+    (cairo-render cr stroke fill-color fill-rule)))
 
 (define dc_polyline : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) Paint Boolean Any)
   (lambda [cr x0 y0 flwidth flheight vertices stroke close?]

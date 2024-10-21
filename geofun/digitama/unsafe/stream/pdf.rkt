@@ -32,6 +32,7 @@
       (cairo-set-pdf-metadata surface 'subject (default-pdf-subject))
       (cairo-set-pdf-metadata surface 'keywords (default-pdf-keywords))
       (cairo-set-pdf-metadata surface 'producer (default-pdf-producer))
+      (cairo_pattern_set_filter surface CAIRO_FILTER_BEST)
       
       (parameterize ([date-display-format 'iso-8601])
         #;(cairo-set-pdf-metadata surface 'ctime (date->string (seconds->date (cairo-path-create-seconds /dev/pdfout) #true) #true))
@@ -63,19 +64,19 @@
 (define default-pdf-stream-pool-size : Positive-Index 4096)
 
 (define #:forall (Master) cairo-pdf-stream-write : (Cairo-Vector-Stream-Write Master)
-  (lambda [/dev/pdfout flwidth flheight λdc master x0 y0]
+  (lambda [/dev/pdfout Width Height λdc master x0 y0 flwidth flheight]
     (cairo-vector-stream-write /dev/pdfout cairo-create-pdf-stream-surface
-                               flwidth flheight default-pdf-stream-pool-size λdc
-                               master x0 y0)))
+                               Width Height default-pdf-stream-pool-size
+                               λdc master x0 y0 flwidth flheight)))
 
 (define #:forall (Master) make-cairo-pdf-stream-bytes : (Cairo-Vector-Stream->Bytes Master)
-  (lambda [flwidth flheight λdc master x0 y0]
+  (lambda [Width Height density scale? λdc master x0 y0 flwidth flheight]
     (make-cairo-vector-stream-bytes cairo-create-pdf-stream-surface
-                                    flwidth flheight default-pdf-stream-pool-size λdc
-                                    master x0 y0)))
+                                    Width Height default-pdf-stream-pool-size
+                                    λdc master x0 y0 flwidth flheight)))
 
 (define #:forall (Master) open-cairo-input-pdf-stream : (Open-Cairo-Input-Vector-Port Master)
-  (lambda [flwidth flheight λdc master x0 y0]
+  (lambda [Width Height density scale? λdc master x0 y0 flwidth flheight]
     (open-cairo-input-vector-stream cairo-create-pdf-stream-surface
-                                    flwidth flheight default-pdf-stream-pool-size λdc
-                                    master x0 y0)))
+                                    Width Height default-pdf-stream-pool-size
+                                    λdc master x0 y0 flwidth flheight)))

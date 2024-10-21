@@ -41,4 +41,5 @@
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [bitmap-surface-data (-> Bitmap-Surface (Values Bytes Index))]
+ [bitmap-surface-intrinsic-size (-> Bitmap-Surface (Values Positive-Index Positive-Index))]
  [bitmap-surface-rendered-size (-> Bitmap-Surface Positive-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))])

@@ -8,5 +8,4 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-map : (-> Bitmap ARGB-Map Bitmap)
   (lambda [src λargb-map]
-    (λbitmap_map (bitmap-surface src) (bitmap-density src) λargb-map)))
-
+    (λbitmap_map (bitmap-surface src) (bitmap-density src) #false λargb-map)))

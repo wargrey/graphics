@@ -108,3 +108,6 @@
                         [(x width)  (if (>= w 0.0) (values lx w) (values 0.0 0.0))]
                         [(y height) (if (>= h 0.0) (values ty h) (values 0.0 0.0))])
             (values x y width height))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define the-Z : GPP:Close (gpp:close #\Z))

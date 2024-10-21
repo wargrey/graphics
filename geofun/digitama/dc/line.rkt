@@ -23,8 +23,7 @@
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~size width height))
     
-    (create-geometry-object geo:line
-                            #:surface geo-line-surface stroke
+    (create-geometry-object geo:line (geo-draw-surface stroke)
                             #:extent (geo-shape-plain-extent flwidth flheight)
                             #:id id
                             0.0 (* flheight 0.5) flwidth 0.0)))
@@ -33,19 +32,35 @@
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~size width height))
     
-    (create-geometry-object geo:line
-                            #:surface geo-line-surface stroke
+    (create-geometry-object geo:line (geo-draw-surface stroke)
                             #:extent (geo-shape-plain-extent flwidth flheight)
                             #:id id
                             (* flwidth 0.5) 0.0 0.0 flheight)))
 
+(define geo-diagonal : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
+  (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
+    (define-values (flwidth flheight) (~size width height))
+    
+    (create-geometry-object geo:line (geo-draw-surface stroke)
+                            #:extent (geo-shape-plain-extent flwidth flheight)
+                            #:id id
+                            0.0 0.0 flwidth flheight)))
+
+(define geo-anti-diagonal : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
+  (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
+    (define-values (flwidth flheight) (~size width height))
+    
+    (create-geometry-object geo:line (geo-draw-surface stroke)
+                            #:extent (geo-shape-plain-extent flwidth flheight)
+                            #:id id
+                            0.0 flheight flwidth (- flheight))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-line-surface : Geo-Surface-Create
-  (lambda [self]
-    (with-asserts ([self geo:line?])
-      (define-values (w h) (geo-flsize self))
-      
-      (dc_line create-abstract-surface
-              (geo:line-x self) (geo:line-y self) (geo:line-dx self) (geo:line-dy self)
-              w h (current-stroke-source*)
-              (default-geometry-density)))))
+(define geo-draw-surface : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke]
+    (λ [self cr x0 y0 width height]
+      (when (geo:line? self)
+        (dc_line cr x0 y0 width height
+                 (geo:line-x self) (geo:line-y self) (geo:line-dx self) (geo:line-dy self)
+                 (geo-select-stroke-paint* alt-stroke))))))
+  

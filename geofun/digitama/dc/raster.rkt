@@ -9,60 +9,40 @@
 (require "../base.rkt")
 
 (require "../convert.rkt")
-(require "../unsafe/visual/abstract.rkt")
-(require "../unsafe/visual/ctype.rkt")
+(require "../unsafe/dc/plain.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:bitmap geo
-  ([source : Bitmap])
+  ([source : (U Bitmap XYWH->ARGB)])
   #:type-name Geo:Bitmap
-  #:transparent)
-
-(struct geo:λbitmap geo
-  ([build : XYWH->ARGB])
-  #:type-name Geo:λBitmap
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-bitmap : (-> Bitmap [#:id (Option Symbol)] Geo:Bitmap)
   (lambda [self #:id [id #false]]
     (define-values (w h) (bitmap-flsize self))
-    (create-geometry-object geo:bitmap
-                            #:surface (geo-bitmap-surface w h)
+    (create-geometry-object geo:bitmap (geo-draw-bitmap w h)
                             #:extent (geo-shape-plain-extent w h)
                             #:id id
                             self)))
 
-(define geo-rectangular : (-> Real Real XYWH->ARGB [#:id (Option Symbol)] Geo:λBitmap)
+(define geo-rectangular : (-> Real Real XYWH->ARGB [#:id (Option Symbol)] Geo:Bitmap)
   (lambda [width height λargb #:id [id #false]]
     (define-values (w h) (~size width height))
-    (create-geometry-object geo:λbitmap
-                            #:surface (geo-plain-argb-surface w h)
+    (create-geometry-object geo:bitmap (geo-draw-bitmap w h)
                             #:extent (geo-shape-plain-extent w h)
                             #:id id
                             λargb)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-bitmap-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Surface-Create)
+(define geo-draw-bitmap : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Surface-Draw!)
   (lambda [flwidth flheight]
-    (λ [self]
-      (with-asserts ([self geo:bitmap?])
-        (make-abstract-surface-from-bitmap
-         flwidth flheight (geo:bitmap-source self)
-         (default-geometry-density))))))
+    (λ [self cr x0 y0 width height]
+      (when (geo:bitmap? self)
+        (define src (geo:bitmap-source self))
+        
+        (if (bitmap? src)
+            (dc_image cr x0 y0 width height (bitmap-surface src))
 
-(define geo-plain-argb-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Surface-Create)
-  (lambda [flwidth flheight]
-    (λ [self]
-      (with-asserts ([self geo:λbitmap?])
-        (make-abstract-surface-from-bitmap
-         flwidth flheight
-         (λbitmap flwidth flheight (default-bitmap-density)
-                  (geo:λbitmap-build self))
-         (default-geometry-density))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-abstract-surface-from-bitmap : (-> Nonnegative-Flonum Nonnegative-Flonum Bitmap Positive-Flonum Abstract-Surface)
-  (lambda [flwidth flheight bmp density]
-    (create-abstract-surface-from-image-surface
-     flwidth flheight (bitmap-surface bmp) density)))
+            (let ([bmp (λbitmap flwidth flheight (default-bitmap-density) src)])
+              (dc_image cr x0 y0 width height (bitmap-surface bmp))))))))

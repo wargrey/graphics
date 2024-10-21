@@ -15,8 +15,11 @@
 (unsafe-require/typed/provide
  racket/draw/unsafe/cairo
  [CAIRO_FILTER_BILINEAR Positive-Byte]
+ [CAIRO_FILTER_BEST Positive-Byte]
  [CAIRO_OPERATOR_OVER Positive-Byte]
- [CAIRO_STATUS_SUCCESS Byte])
+ [CAIRO_OPERATOR_SOURCE Positive-Byte]
+ [CAIRO_STATUS_SUCCESS Byte]
+ [CAIRO_FORMAT_ARGB32 Byte])
 
 (unsafe-require/typed/provide
  racket/draw/unsafe/cairo
@@ -25,6 +28,7 @@
  [cairo_paint (-> Cairo-Ctx Void)]
  [cairo_paint_with_alpha (-> Cairo-Ctx Flonum Void)]
  [cairo_create (-> (U Cairo-Surface Cairo-Stream-Surface) Cairo-Ctx)]
+ [cairo_set_operator (-> Cairo-Ctx Byte Void)]
  [cairo_set_source_surface (-> Cairo-Ctx (U Cairo-Surface Cairo-Stream-Surface) Flonum Flonum Void)]
  [cairo_destroy (-> Cairo-Ctx Void)])
 
@@ -63,9 +67,22 @@
 
 (unsafe-require/typed/provide
  racket/draw/unsafe/cairo
- [cairo_image_surface_get_data (-> Bitmap-Surface Bytes)])
+ [cairo_pattern_set_filter (-> (U Cairo-Surface Cairo-Stream-Surface) Byte Void)])
+
+(unsafe-require/typed/provide
+ racket/draw/unsafe/cairo
+ [cairo_image_surface_create (-> Byte Nonnegative-Flonum Nonnegative-Flonum Bitmap-Surface)]
+ [cairo_image_surface_get_data (-> Bitmap-Surface Bytes)]
+ [cairo_image_surface_get_width (-> Bitmap-Surface Index)]
+ [cairo_image_surface_get_height (-> Bitmap-Surface Index)]
+ [cairo_image_surface_get_stride (-> Bitmap-Surface Index)])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define cairo-backend-scale : (-> Cairo-Ctx Positive-Flonum Boolean Void)
+  (lambda [cr density scale?]
+    (unless (or (not scale?) (= density 1.0))
+      (cairo_scale cr density density))))
+
 (define cairo-positive-arc : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Void)
   (lambda [cr cx cy rx ry rstart rend]
     (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo_arc)))

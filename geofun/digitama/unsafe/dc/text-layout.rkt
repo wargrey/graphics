@@ -13,8 +13,6 @@
   (provide (all-defined-out))
 
   (require "../pangocairo.rkt")
-  (require "../metrics.rkt")
-  
   (require (submod "../paint.rkt" unsafe))
   (require (submod "../font.rkt" unsafe))
 
@@ -50,11 +48,10 @@
     (pango_layout_set_text layout text)
 
     (let* ([n (pango_layout_get_line_count layout)]
-           [gap (~metric (pango_layout_get_spacing layout))]
-           [baseline (~metric (pango_layout_get_baseline layout))]
-           [delta (unsafe-fl/ (unsafe-fl+ height gap) (unsafe-fx->fl n))])
+           [delta (unsafe-fl/ (unsafe-fl+ height (~pango-metric (pango_layout_get_spacing layout)))
+                              (unsafe-fx->fl n))])
       (let draw_line ([idx 0]
-                      [y (unsafe-fl+ y0 baseline)])
+                      [y (unsafe-fl+ y0 (~pango-metric (pango_layout_get_baseline layout)))])
         (when (unsafe-fx< idx n)
           (cairo_move_to cr x0 y)
           (pango_cairo_layout_line_path cr (pango_layout_get_line_readonly layout idx))
@@ -63,32 +60,35 @@
     (cairo-render cr stroke-source fill-source))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc_paragraph cr x0 y0 flwidth flheight draw-text? text font-desc lines max-width max-height indent spacing wrap ellipsize fgsource bgsource)
+  (define (dc_paragraph cr x0 y0 flwidth flheight text font-desc lines max-width max-height indent spacing wrap ellipsize fgsource bgsource)
     (define layout (text_create_layout* lines max-width max-height indent spacing wrap ellipsize))
+
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
 
     (cairo-render-background cr bgsource)
-    
-    (when draw-text?
-      (cairo-set-source cr fgsource)
-      (cairo_move_to cr x0 y0)
-      (pango_cairo_show_layout cr layout)))
+    (cairo-set-source cr fgsource)
+    (cairo_move_to cr x0 y0)
+    (pango_cairo_show_layout cr layout))
 
   (define (dc_paragraph_size text font-desc lines max-width max-height indent spacing wrap ellipsize)
     (define layout (text_create_layout* lines max-width max-height indent spacing wrap ellipsize))
+
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
 
     (define-values (pango-width pango-height) (pango_layout_get_size layout))
-    (define flwidth (~metric pango-width))
-    (define flheight (if (flonum? max-height) (unsafe-flmin (~metric pango-height) max-height) (~metric pango-height)))
+    (define flwidth (~pango-metric pango-width))
+    (define flheight
+      (if (flonum? max-height)
+          (unsafe-flmin (~pango-metric pango-height) max-height)
+          (~pango-metric pango-height)))
 
-    (cond [(or (not max-width) (unsafe-fl<= flwidth max-width)) (values flwidth flheight #true)]
+    (cond [(or (not max-width) (unsafe-fl<= flwidth max-width)) (values flwidth flheight)]
           [else (let-values ([(char-width char-height) (and (pango_layout_set_text layout " ") (pango_layout_get_size layout))])
-                  (define draw-text? (unsafe-fl>= max-width (~metric char-width)))
-                  (define smart-flheight (if draw-text? flheight (unsafe-flmin (~metric char-height) flheight)))
-                  (values max-width smart-flheight draw-text?))]))
+                  (define draw-text? (unsafe-fl>= max-width (~pango-metric char-width)))
+                  (define smart-flheight (if draw-text? flheight (unsafe-flmin (~pango-metric char-height) flheight)))
+                  (values max-width smart-flheight))]))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (text_create_layout lines)
@@ -107,10 +107,10 @@
   
   (define (text_create_layout* lines width height indent spacing wrap-mode ellipsize-mode)
     (define layout (text_create_layout lines))
-    (pango_layout_set_width layout (if (not width) -1 (~size width)))
-    (pango_layout_set_height layout (if (flonum? height) (~size height) height))
-    (pango_layout_set_indent layout (~size indent))   ; (~size nan.0) == (~size inf.0) == 0
-    (pango_layout_set_spacing layout (~size spacing)) ; pango knows the minimum spacing
+    (pango_layout_set_width layout (if (not width) -1 (~pango-size width)))
+    (pango_layout_set_height layout (if (flonum? height) (~pango-size height) height))
+    (pango_layout_set_indent layout (~pango-size indent))   ; (~pango-size nan.0) == (~pango-size inf.0) == 0
+    (pango_layout_set_spacing layout (~pango-size spacing)) ; pango knows the minimum spacing
     (pango_layout_set_wrap layout wrap-mode)
     (pango_layout_set_ellipsize layout ellipsize-mode)
     layout)
@@ -150,11 +150,11 @@
       Any)]
  
  [dc_paragraph
-  (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Boolean
+  (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
       String Font-Description (Listof Symbol) (Option Flonum) (U Flonum Nonpositive-Integer)
       Flonum Flonum Integer Integer Fill-Source (Option Fill-Source)
       Any)]
 
  [dc_paragraph_size
   (-> String Font-Description (Listof Symbol) (Option Flonum) (U Flonum Nonpositive-Integer) Flonum Flonum Integer Integer
-      (Values Nonnegative-Flonum Nonnegative-Flonum Boolean))])
+      (Values Nonnegative-Flonum Nonnegative-Flonum))])

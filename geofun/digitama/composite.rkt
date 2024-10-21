@@ -65,12 +65,8 @@
      multiply screen overlay darken lighten color-dodge color-burn hard-light soft-light difference exclusion
      hsl-hue hsl-saturation hsl-color hsl-liminosity])
 
-(define-enumeration* geo-filter-algorithm #:+> Geo-Filter-Algorithm ; order matters
-  geo-filter-algorithm->integer integer->geo-filter-algorithm
-  [0 fast good best nearest bilinear gaussian])
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-select-operator : (-> (Option Symbol) (-> Geo-Pin-Operator) (Option Integer))
+(define geo-select-operator : (-> (Option Symbol) (-> Geo-Pin-Operator) (Option Byte))
   (lambda [op fallback-op]
     (define seq (and op (geo-operator->integer op)))
 

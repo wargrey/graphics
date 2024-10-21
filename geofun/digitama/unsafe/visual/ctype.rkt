@@ -37,6 +37,18 @@
 (define-type Cairo-Surface (U Bitmap-Surface Abstract-Surface))
 (define-type Cairo-Stream-Surface (U PDF-Surface SVG-Surface))
 
+(define-type (Gairo-Surface-Draw! Master)
+  (-> Master Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Any))
+
+(define-type (Cairo-Create-Surface SFC)
+  (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum (Option Byte)
+      (Values SFC Nonnegative-Flonum Nonnegative-Flonum)))
+
+(define-type (Cairo-Create-Surface+Ctx SFC)
+  (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Boolean (Option Byte)
+      (Values Abstract-Surface Cairo-Ctx Nonnegative-Flonum Nonnegative-Flonum)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo-surface? : (-> Any Boolean : Cairo-Surface)
   (lambda [v]
     (or (bitmap-surface? v)

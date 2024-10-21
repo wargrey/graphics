@@ -10,11 +10,11 @@
   (provide (all-defined-out))
   
   (require "pangocairo.rkt")
-  (require "surface/abstract.rkt")
   (require "../geometry/affine.rkt")
-  
-  (require (submod "visual/abstract.rkt" unsafe))
 
+  (require (submod "visual/abstract.rkt" unsafe))
+  (require (submod "surface/abstract.rkt" unsafe))
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (geo_section src x y width height density)
     (define-values (sfc cr _w _h) (cairo-create-abstract-surface* (unsafe-fl/ width density) (unsafe-fl/ height density) density #false))

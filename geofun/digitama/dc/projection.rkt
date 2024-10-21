@@ -37,8 +37,7 @@
     (define r : Nonnegative-Flonum (~length radius))
     (define sidelength : Nonnegative-Flonum (icosahedron-radius->edge-length r radius-type))
     
-    (create-geometry-object geo:icosahedron:side
-                            #:surface (geo-side-surface border) edge pattern
+    (create-geometry-object geo:icosahedron:side (geo-draw-side-projection border edge pattern)
                             #:extent (geo-shape-plain-extent (icosahedron-edge-length->side-outline-size sidelength))
                             #:id id
                             r radius-type sidelength)))
@@ -52,27 +51,25 @@
     (define r : Nonnegative-Flonum (~length radius))
     (define R : Nonnegative-Flonum (icosahedron-radius->circumsphere-radius r radius-type))
     
-    (create-geometry-object geo:icosahedron:over
-                            #:surface (geo-over-surface border) edge pattern
+    (create-geometry-object geo:icosahedron:over (geo-draw-over-projection border edge pattern)
                             #:extent (geo-shape-plain-extent (* 2.0 R))
                             #:id id
                             r radius-type R (~radian rotation radian?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-side-surface : (-> Maybe-Stroke-Paint Geo-Surface-Create)
-  (lambda [alt-bdr]
-    (λ [self]
-      (with-asserts ([self geo:icosahedron:side?])
-        (dc_icosahedron_side_proj create-abstract-surface
-                                  (geo:icosahedron:side-edge-length self)
-                                  (current-stroke-source) (current-fill-source) (geo-select-stroke-paint alt-bdr)
-                                  (default-geometry-density))))))
+(define geo-draw-side-projection : (-> Maybe-Stroke-Paint Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-bdr alt-edge alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:icosahedron:side? self)
+        (dc_icosahedron_side_proj cr x0 y0 width height
+                                  (geo-select-stroke-paint alt-edge) (geo-select-fill-source alt-fill)
+                                  (geo-select-border-paint alt-bdr))))))
 
-(define geo-over-surface : (-> Maybe-Stroke-Paint Geo-Surface-Create)
-  (lambda [alt-bdr]
-    (λ [self]
-      (with-asserts ([self geo:icosahedron:over?])
-        (dc_icosahedron_over_proj create-abstract-surface
-                                  (geo:icosahedron:over-circumsphere-radius self) (geo:icosahedron:over-rotation self)
-                                  (current-stroke-source) (current-fill-source) (geo-select-stroke-paint alt-bdr)
-                                  (default-geometry-density))))))
+(define geo-draw-over-projection : (-> Maybe-Stroke-Paint Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-bdr alt-edge alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:icosahedron:over? self)
+        (dc_icosahedron_over_proj cr x0 y0 width height
+                                  (geo:icosahedron:over-rotation self)
+                                  (geo-select-stroke-paint alt-edge) (geo-select-fill-source alt-fill)
+                                  (geo-select-border-paint alt-bdr))))))

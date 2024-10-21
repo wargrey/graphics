@@ -17,8 +17,8 @@
   (require (submod "bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (λbitmap width height density λargb)
-    (define-values (img cr) (create-argb-bitmap width height density #false))
+  (define (λbitmap width height density filter λargb)
+    (define-values (img cr) (create-argb-bitmap width height density #false filter))
     (define surface (cairo_get_target cr))
     (define-values (pixels _ stride w h) (bitmap-surface-metrics surface 4))
 
@@ -37,8 +37,8 @@
     (cairo_destroy cr)
     img)
 
-  (define (λbitmap* width height density λargb initial)
-    (define-values (img cr) (create-argb-bitmap width height density #false))
+  (define (λbitmap* width height density filter λargb initial)
+    (define-values (img cr) (create-argb-bitmap width height density #false filter))
     (define surface (cairo_get_target cr))
     (define-values (pixels _ stride w h) (bitmap-surface-metrics surface 4))
     (cairo_surface_flush surface)
@@ -62,8 +62,8 @@
             (cairo_destroy cr)
             (values img datum0)))))
 
-  (define (λbitmap_step width height density λargb initial)
-    (define-values (img cr) (create-argb-bitmap width height density #false))
+  (define (λbitmap_step width height density filter λargb initial)
+    (define-values (img cr) (create-argb-bitmap width height density #false filter))
     (define surface (cairo_get_target cr))
     (define-values (pixels _ stride w h) (bitmap-surface-metrics surface 4))
     
@@ -80,9 +80,9 @@
              (step datum++)]
             [else (step datum++)])))
 
-  (define (λbitmap_map src density argb-map)
+  (define (λbitmap_map src density filter argb-map)
     (define-values (flwidth flheight) (bitmap-surface-rendered-size src density))
-    (define-values (img cr) (create-argb-bitmap flwidth flheight density #false))
+    (define-values (img cr) (create-argb-bitmap flwidth flheight density #false filter))
     (define surface (cairo_get_target cr))
     (define-values (data total) (bitmap-surface-data src))
     (define-values (pixels _ stride w h) (bitmap-surface-metrics surface 4))
@@ -112,7 +112,7 @@
 
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [λbitmap (-> Flonum Flonum Flonum XYWH->ARGB Bitmap)]
- [λbitmap* (All (t) (-> Flonum Flonum Flonum (XYWH->ARGB* t) t (Values Bitmap t)))]
- [λbitmap_step (All (t) (-> Flonum Flonum Flonum (ARGB-Step t) t (Values Bitmap t)))]
- [λbitmap_map (-> Bitmap-Surface Flonum ARGB-Map Bitmap)])
+ [λbitmap (-> Flonum Flonum Positive-Flonum (Option Symbol) XYWH->ARGB Bitmap)]
+ [λbitmap* (All (t) (-> Flonum Flonum Positive-Flonum (Option Symbol) (XYWH->ARGB* t) t (Values Bitmap t)))]
+ [λbitmap_step (All (t) (-> Flonum Flonum Positive-Flonum (Option Symbol) (ARGB-Step t) t (Values Bitmap t)))]
+ [λbitmap_map (-> Bitmap-Surface Positive-Flonum (Option Symbol) ARGB-Map Bitmap)])

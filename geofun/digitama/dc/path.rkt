@@ -31,7 +31,7 @@
    [bbox : Geo-BBox]
    [origin : Float-Complex]
    [here : Float-Complex]
-   [footprints : (Pairof Geo-Path-Print (Listof Geo-Path-Print))]
+   [footprints : Geo-Path-Prints]
    [foot-infos : Geo-Path-Infobase]
    [sticker-offset : (Option Flonum)])
   #:type-name Geo:Path
@@ -137,11 +137,13 @@
           [else (geo-trail-ref (geo:path-trail self) dpos)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-path-turn : (-> Geo:Path Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum (Option Geo-Anchor-Name) Boolean (Option (U Float Float-Complex)) Void)
+(define geo-path-turn : (-> Geo:Path Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum Flonum
+                            Flonum Flonum (Option Geo-Anchor-Name) Boolean (Option (U Float Float-Complex))
+                            Void)
   (lambda [self rx ry cx cy ex ey start end anchor clockwise? guard]
     (define cpos : Float-Complex (geo:path-here self))
     (define cpos++ : Float-Complex (+ (make-rectangular (* ex rx) (* ey ry)) cpos))
-    (define path:arc (gpp:arc cpos++ (+ (make-rectangular (* cx rx) (* cy ry)) cpos) rx ry start end clockwise?))
+    (define path:arc (gpp:arc #\A cpos++ (+ (make-rectangular (* cx rx) (* cy ry)) cpos) rx ry start end clockwise?))
 
     (geo-bbox-fit! (geo:path-bbox self) cpos++)
     (when (and guard)
@@ -151,7 +153,7 @@
 
     (geo-trail-try-set! (geo:path-trail self) anchor cpos++)
     (set-geo:path-here! self cpos++)
-    (set-geo:path-footprints! self (cons (cons #\A path:arc) (geo:path-footprints self)))))
+    (set-geo:path-footprints! self (cons path:arc (geo:path-footprints self)))))
 
 (define geo-path-jump-to : (-> Geo:Path (U Geo-Anchor-Name Complex False) (Option Geo-Anchor-Name) Void)
   (lambda [self target pos-anchor]
@@ -164,7 +166,7 @@
     
     (set-geo:path-origin! self pos)
     (set-geo:path-here! self pos)
-    (set-geo:path-footprints! self (cons (cons #\M pos) (geo:path-footprints self)))))
+    (set-geo:path-footprints! self (cons (gpp:point #\M pos) (geo:path-footprints self)))))
 
 (define geo-path-connect-to : (-> Geo:Path (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Any Void)
   (lambda [self target pos-anchor info]
@@ -179,7 +181,7 @@
         (geo-trail-try-set! (geo:path-trail self) pos-anchor pos))
     
     (set-geo:path-here! self pos)
-    (set-geo:path-footprints! self (cons (cons #\L pos) (geo:path-footprints self)))))
+    (set-geo:path-footprints! self (cons (gpp:point #\L pos) (geo:path-footprints self)))))
 
 (define geo-path-linear-bezier : (-> Geo:Path Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt anchor]
@@ -187,31 +189,31 @@
 
 (define geo-path-quadratic-bezier : (-> Geo:Path Float-Complex Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt ctrl anchor]
-    (define path:bezier (gpp:bezier endpt (geo:path-here self) ctrl))
+    (define path:bezier (gpp:bezier #\Q endpt (geo:path-here self) ctrl))
 
     (geo-bbox-fit! (geo:path-bbox self) endpt)
     (geo-bbox-fit! (geo:path-bbox self) ctrl)
     (geo-trail-try-set! (geo:path-trail self) anchor endpt)
     (set-geo:path-here! self endpt)
-    (set-geo:path-footprints! self (cons (cons #\Q path:bezier) (geo:path-footprints self)))))
+    (set-geo:path-footprints! self (cons path:bezier (geo:path-footprints self)))))
 
 (define geo-path-cubic-bezier : (-> Geo:Path Float-Complex Float-Complex Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt ctrl1 ctrl2 anchor]
-    (define path:bezier (gpp:bezier endpt ctrl1 ctrl2))
+    (define path:bezier (gpp:bezier #\C endpt ctrl1 ctrl2))
 
     (geo-bbox-fit! (geo:path-bbox self) endpt)
     (geo-bbox-fit! (geo:path-bbox self) ctrl1)
     (geo-bbox-fit! (geo:path-bbox self) ctrl2)
     (geo-trail-try-set! (geo:path-trail self) anchor endpt)
     (set-geo:path-here! self endpt)
-    (set-geo:path-footprints! self (cons (cons #\C path:bezier) (geo:path-footprints self)))))
+    (set-geo:path-footprints! self (cons path:bezier (geo:path-footprints self)))))
 
 (define geo-path-close : (-> Geo:Path Void)
   (lambda [self]
     (define init-pos (geo:path-origin self))
     
     (set-geo:path-here! self init-pos)
-    (set-geo:path-footprints! self (cons (cons #\Z #false) (geo:path-footprints self)))))
+    (set-geo:path-footprints! self (cons the-Z (geo:path-footprints self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-path-do-move : (-> Geo:Path Float-Complex Char (Option Geo-Anchor-Name) Any Boolean Void)
@@ -224,7 +226,7 @@
     (geo-bbox-fit! (geo:path-bbox self) endpt)
     (geo-trail-try-set! (geo:path-trail self) anchor endpt)
     (set-geo:path-here! self endpt)
-    (set-geo:path-footprints! self (cons (cons op endpt) (geo:path-footprints self)))
+    (set-geo:path-footprints! self (cons (gpp:point op endpt) (geo:path-footprints self)))
 
     (when (and subpath?)
       (set-geo:path-origin! self endpt))))
@@ -278,10 +280,11 @@
       (define-values (width height pos) (geo-bbox-values (geo:path-bbox self)))
       (values width height (make-geo-ink pos width height)))))
 
-(define geo-path-surface : Geo-Surface-Create
-  (lambda [self]
-    (with-asserts ([self geo:path?])
-      (define-values (xoff yoff) (geo-bbox-offset-values (geo:path-bbox self)))
-      (path_stamp (reverse (geo:path-footprints self)) xoff yoff
-                  (current-stroke-source*) (current-fill-source) (default-fill-rule)
-                  (default-geometry-density)))))
+(define geo-draw-path : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:path? self)
+        (define-values (xoff yoff) (geo-bbox-offset-values (geo:path-bbox self)))
+        (dc_path cr (+ x0 xoff) (+ y0 yoff) width height (reverse (geo:path-footprints self))
+                    (geo-select-stroke-paint* alt-stroke) (geo-select-fill-source alt-fill)
+                    (default-fill-rule))))))
