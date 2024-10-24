@@ -2,17 +2,17 @@
 
 (provide (all-defined-out))
 
-(require "../base.rkt")
-(require "../geometry/footprint.rkt")
+(require "../../base.rkt")
+(require "../../geometry/footprint.rkt")
 
-(require "paint.rkt")
-(require "cairo.rkt")
-(require "source.rkt")
-(require "visual/ctype.rkt")
+(require "../paint.rkt")
+(require "../source.rkt")
+
+(require "../typed/cairo.rkt")
+(require "../visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc_path : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints
-                      (Option Paint) (Option Fill-Source) Symbol Any)
+(define dc_path : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Paint) (Option Fill-Source) Fill-Rule Any)
   (lambda [cr x0 y0 width height footprints stroke fill-color fill-rule]
     (cairo_path cr footprints x0 y0)
     (cairo-render cr stroke fill-color fill-rule)))
@@ -27,7 +27,7 @@
     
     (cairo-render cr stroke #false)))
 
-(define dc_polygon : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) (Option Paint) (Option Fill-Source) Symbol Any)
+(define dc_polygon : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) (Option Paint) (Option Fill-Source) Fill-Rule Any)
   (lambda [cr x0 y0 flwidth flheight vertices stroke background fill-rule]
     (cairo_new_path cr)
     (cairo_simple_path cr vertices x0 y0)
@@ -45,7 +45,7 @@
     
     (cairo-render cr stroke #false)))
 
-(define dc_polygon* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Paint) (Option Fill-Source) Symbol Any)
+(define dc_polygon* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Paint) (Option Fill-Source) Fill-Rule Any)
   (lambda [cr x0 y0 flwidth flheight footprints stroke background fill-rule]
     (cairo_new_path cr)
     (cairo_path cr footprints x0 y0)

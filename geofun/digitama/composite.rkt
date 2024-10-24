@@ -26,24 +26,23 @@
                                short-path-expr)]
                             [else sexp ...]))))
                 ...)))]
-    [(_ frmt #:-> (Geo Extra-Type ...) #:with alignment geobjs op->integer [extra-args ...]
+    [(_ frmt #:-> Geo #:with [geobjs extra-args ...]
         #:empty blank-expr
-        #:operator-expr op-expr
-        #:short-path #:for base geo #:if short-path-condition ([(tip) short-path-expr] ...) #:do sexp ...)
+        #:config-expr fltr-expr op-expr
+        #:short-path #:for base geo #:if short-path-condition ([(tip) (fshort-path short-path-argv ...)] ...)
+        #:do (fdo argv ...))
      (with-syntax ([(geo-combiner ...)
                     (for/list ([<tip> (in-list (syntax->list #'(tip ...)))])
                       (datum->syntax <tip> (string->symbol (format (syntax-e #'frmt) (syntax-e <tip>)))))])
        (syntax/loc stx
-         (begin (define geo-combiner : (-> (Listof Geo) Extra-Type ... Geo)
-                  (let ([alignment 'tip])
-                    (λ [geobjs extra-args ...]
-                      (define op->integer op-expr)
-                      (cond [(null? geobjs) blank-expr]
-                            [(null? (cdr geobjs)) (car geobjs)]
-                            [(and short-path-condition (null? (cddr geobjs)))
-                             (let-values ([(base geo) (values (car geobjs) (cadr geobjs))])
-                               short-path-expr)]
-                            [else sexp ...]))))
+         (begin (define geo-combiner
+                  (lambda [[geobjs : (Listof Geo)] extra-args ...] : Geo
+                    (cond [(null? geobjs) blank-expr]
+                          [(null? (cdr geobjs)) (car geobjs)]
+                          [(and short-path-condition (null? (cddr geobjs)))
+                           (let-values ([(base geo) (values (car geobjs) (cadr geobjs))])
+                             (fshort-path fltr-expr op-expr short-path-argv ...))]
+                          [else (let ([base (car geobjs)]) (fdo 'tip fltr-expr op-expr argv ...))])))
                 ...)))]))
 
 (define-syntax (define-pin stx)
@@ -66,7 +65,7 @@
      hsl-hue hsl-saturation hsl-color hsl-liminosity])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-select-operator : (-> (Option Symbol) (-> Geo-Pin-Operator) (Option Byte))
+(define geo-select-operator : (-> (Option Symbol) (-> Geo-Pin-Operator) Byte)
   (lambda [op fallback-op]
     (define seq (and op (geo-operator->integer op)))
 

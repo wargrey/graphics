@@ -1,7 +1,7 @@
 #lang racket
 
-(require "../../digitama/unsafe/pangocairo.rkt")
-(require bitmap/digitama/convert)
+(require racket/draw/unsafe/cairo)  
+(require bitmap/digitama/convert)  
 
 ;;; https://www.cairographics.org/samples/clip/
 

@@ -22,13 +22,13 @@
 (define bitmap-art-text
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:background [bgsource : Option-Fill-Paint (default-background-paint)] #:lines [lines : (Listof Symbol) null]
-           #:filter [filter : Symbol (default-pattern-filter)] #:density [density : Positive-Flonum (default-bitmap-density)]
+           #:density [density : Positive-Flonum (default-bitmap-density)]
            [text : Any] [font : Font (default-art-font)]] : Bitmap
     (define body : String (~a text))
     (define desc : Font-Description (font-description font))
     (define-values (width height) (font_get_text_extent desc body))
     
-    (draw-bitmap dc_art_text #:with [width height density #true filter (stroke-paint->source* outline)]
+    (draw-bitmap dc_art_text #:with [width height density #true (stroke-paint->source* outline)]
                  [body desc lines]
                  [(fill-paint->source* pattern) (background->source* bgsource)])))
 
@@ -37,13 +37,13 @@
            #:lines [lines : (Listof Symbol) null] #:baseline [blsource : Maybe-Stroke-Paint #false]
            #:ascent [alsource : Maybe-Stroke-Paint #false] #:descent [dlsource : Maybe-Stroke-Paint #false]
            #:capline [clsource : Maybe-Stroke-Paint #false] #:meanline [mlsource : Maybe-Stroke-Paint #false]
-           #:filter [filter : Symbol (default-pattern-filter)] #:density [density : Positive-Flonum (default-bitmap-density)]
+           #:density [density : Positive-Flonum (default-bitmap-density)]
            [text : Any] [font : Font (default-font)]] : Bitmap
     (define body : String (~a text))
     (define desc : Font-Description (font-description font))
     (define-values (width height) (font_get_text_extent desc body))
     
-    (draw-bitmap dc_text #:with [width height density #true filter]
+    (draw-bitmap dc_text #:with [width height density #true]
                  body desc lines
                  (font-paint->source ftsource) (background->source* bgsource)
                  (stroke-paint->source* alsource) (stroke-paint->source* clsource) (stroke-paint->source* mlsource)
@@ -55,7 +55,7 @@
            #:max-width [max-width : Real +inf.0] #:max-height [max-height : Real +inf.0]
            #:indent [indent : Real 0.0] #:spacing [spacing : Real 0.0]
            #:wrap-mode [wrap-mode : Paragraph-Wrap-Mode 'word-char] #:ellipsize-mode [ellipsize-mode : Paragraph-Ellipsize-Mode 'end]
-           #:filter [filter : Symbol (default-pattern-filter)] #:density [density : Positive-Flonum (default-bitmap-density)]
+           #:density [density : Positive-Flonum (default-bitmap-density)]
            [texts : (U String (Listof String))] [font : Font (default-font)]] : Bitmap
     (define smart-width : (Option Flonum) (if (or (infinite? max-width) (nan? max-width)) #false (real->double-flonum max-width)))
     (define-values (smart-height smart-emode)
@@ -69,6 +69,6 @@
     (define desc : Font-Description (font-description font))
     (define-values (flwidth flheight) (dc_paragraph_size body desc lines smart-width smart-height flindent flspacing fxwmode fxemode))
     
-    (draw-bitmap dc_paragraph #:with [flwidth flheight density #true filter]
+    (draw-bitmap dc_paragraph #:with [flwidth flheight density #true]
                  body desc lines smart-width smart-height flindent flspacing fxwmode fxemode
                  (font-paint->source ftsource) (background->source* bgsource))))

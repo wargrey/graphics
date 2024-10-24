@@ -11,9 +11,10 @@
   (provide (all-defined-out))
   (provide (rename-out [cairo_recording_surface_get_extents abstract-surface-extent]
                        [cairo_recording_surface_ink_extents abstract-surface-bbox]))
-  
-  (require "../pangocairo.rkt")
 
+  (require racket/unsafe/ops)
+  
+  (require "../cairo.rkt")
   (require (submod "../surface/image.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -36,8 +37,6 @@
                               (unsafe-fl- 0.0 (unsafe-flreal-part pos))
                               (unsafe-fl- 0.0 (unsafe-flimag-part pos)))
     (cairo_paint bmp-cr)
-    (cairo_destroy bmp-cr)
-
     (values bmp-sfc fxwidth fxheight))
 
   (define (abstract-surface-stamp-onto-bitmap-surface bmp-sfc abs-sfc dx dy density)
@@ -51,7 +50,6 @@
                               (unsafe-fl- dx (unsafe-flreal-part pos))
                               (unsafe-fl- dy (unsafe-flimag-part pos)))
     (cairo_paint bmp-cr)
-    (cairo_destroy bmp-cr)
     (void)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

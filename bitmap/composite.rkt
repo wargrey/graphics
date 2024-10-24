@@ -20,17 +20,20 @@
 (require racket/list)
 
 (require geofun/paint)
+(require geofun/digitama/pattern)
 (require geofun/digitama/composite)
 (require geofun/digitama/layer/type)
-(require geofun/digitama/layer/table)
 (require geofun/digitama/unsafe/visual/ctype)
 
 (require (for-syntax racket/base))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-composite : (->* (Bitmap Real Real Bitmap) (Real Real #:operator Geo-Pin-Operator) Bitmap)
-  (lambda [bmp1 x1 y1 bmp2 [x2 0.0] [y2 0.0] #:operator [op (default-pin-operator)]]
-    (bitmap_composite (geo-select-operator op default-pin-operator)
+(define bitmap-composite
+  (lambda [#:operator [op : Geo-Pin-Operator (default-pin-operator)]
+           #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
+           [bmp1 : Bitmap] [x1 : Real] [y1 : Real] [bmp2 : Bitmap]
+           [x2 : Real 0.0] [y2 : Real 0.0]]
+    (bitmap_composite (geo-pattern-filter->integer filter) (geo-operator->integer op)
                       (bitmap-surface bmp1) (bitmap-surface bmp2)
                       (- (real->double-flonum x1) (real->double-flonum x2))
                       (- (real->double-flonum y1) (real->double-flonum y2))
@@ -39,17 +42,17 @@
 (define-pin bitmap-pin-over  #:-> Bitmap #:as bitmap-composite #:with 'over)
 (define-pin bitmap-pin-under #:-> Bitmap #:as bitmap-composite #:with 'dest-over)
 
-(define bitmap-pin* : (-> Real Real Real Real Bitmap [#:operator Geo-Pin-Operator] Bitmap * Bitmap)
-  (lambda [#:operator [op (default-pin-operator)] x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
+(define bitmap-pin* : (-> Real Real Real Real Bitmap [#:filter Geo-Pattern-Filter] [#:operator Geo-Pin-Operator] Bitmap * Bitmap)
+  (lambda [#:filter [filter (default-pattern-filter)] #:operator [op (default-pin-operator)] x1-frac y1-frac x2-frac y2-frac bmp0 . bmps]
     (cond [(null? bmps) bmp0]
           [(null? (cdr bmps))
-           (bitmap_pin (geo-select-operator op default-pin-operator)
+           (bitmap_pin (geo-pattern-filter->integer filter) (geo-operator->integer op)
                        (real->double-flonum x1-frac) (real->double-flonum y1-frac)
                        (real->double-flonum x2-frac) (real->double-flonum y2-frac)
                        (bitmap-surface bmp0) (bitmap-surface (car bmps))
                        (bitmap-density bmp0))]
           [else
-           (bitmap_pin* (geo-select-operator op default-pin-operator)
+           (bitmap_pin* (geo-pattern-filter->integer filter) (geo-operator->integer op)
                         (real->double-flonum x1-frac) (real->double-flonum y1-frac)
                         (real->double-flonum x2-frac) (real->double-flonum y2-frac)
                         (bitmap-surface bmp0) (map bitmap-surface bmps)
@@ -66,7 +69,7 @@
                   (bitmap_table (map bitmap-surface bitmaps) ncols nrows
                                 (geo-config-expand col-anchors ncols 'cc) (geo-config-expand row-anchors nrows 'cc)
                                 (geo-config-expand col-gaps ncols 0.0 real->double-flonum) (geo-config-expand row-gaps nrows 0.0 real->double-flonum)
-                                (bitmap-density (car bitmaps))))])))
+                                (geo-pattern-filter->integer (default-pattern-filter)) (bitmap-density (car bitmaps))))])))
 
 (define bitmap-table* : (->* ((Listof (Listof (Option Bitmap))))
                              ((Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
@@ -94,7 +97,7 @@
           [else (bitmap_table surfaces ncols nrows
                               (geo-config-expand col-anchors ncols 'cc) (geo-config-expand row-anchors nrows 'cc)
                               (geo-config-expand col-gaps ncols 0.0 real->double-flonum) (geo-config-expand row-gaps nrows 0.0 real->double-flonum)
-                              density)])))
+                              (geo-pattern-filter->integer (default-pattern-filter)) density)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-pyramid : (->* ((Listof Bitmap))
@@ -106,7 +109,7 @@
           [else (bitmap_pyramid (map bitmap-surface bitmaps)
                                 (real->double-flonum sub-gaps) (real->double-flonum (or sibling-gaps (* sub-gaps 1.618)))
                                 (geo-config-expand aligns (length bitmaps) 'cc)
-                                (bitmap-density (car bitmaps)))])))
+                                (geo-pattern-filter->integer (default-pattern-filter)) (bitmap-density (car bitmaps)))])))
 
 ; TODO: find a better ratio between subtree gapsize and the leaf one
 (define bitmap-heap : (->* ((Listof Bitmap))
@@ -119,43 +122,45 @@
                       [sub-gapsize (real->double-flonum sub-gaps)]
                       [sibling-gapsize (real->double-flonum (or sibling-gaps (* sub-gaps 0.618)))]
                       [aligns (geo-config-expand aligns (length bitmaps) 'cc)]
+                      [filter (geo-pattern-filter->integer (default-pattern-filter))]
                       [density (bitmap-density (car bitmaps))])
                   (if (= ary 1)
-                      (bitmap_table sfcs 1 (length bitmaps) aligns aligns (vector sibling-gapsize) (vector sub-gapsize) density)
-                      (bitmap_heap sfcs ary sub-gapsize sibling-gapsize aligns density)))])))
+                      (bitmap_table sfcs 1 (length bitmaps) aligns aligns (vector sibling-gapsize) (vector sub-gapsize) filter density)
+                      (bitmap_heap sfcs ary sub-gapsize sibling-gapsize aligns filter density)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-combiner "bitmap-~a-append*" #:-> (Bitmap [#:operator Geo-Pin-Operator] [#:gapsize Real])
-  #:with alignment bitmaps op->integer [#:operator [op (default-pin-operator)] #:gapsize [delta 0.0]]
+(define-combiner "bitmap-~a-append*" #:-> Bitmap
+  #:with [bitmaps #:filter [fltr : Geo-Pattern-Filter (default-pattern-filter)]
+                  #:operator [op : Geo-Pin-Operator (default-pin-operator)]
+                  #:gapsize [delta : Real 0.0]]
   #:empty (bitmap-blank)
-  #:operator-expr (geo-select-operator op default-pin-operator)
+  #:config-expr (geo-pattern-filter->integer fltr) (geo-operator->integer op)
   #:short-path #:for base bmp #:if (zero? delta)
-  ([(vl) (bitmap_pin op->integer 0.0 1.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(vc) (bitmap_pin op->integer 0.5 1.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(vr) (bitmap_pin op->integer 1.0 1.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(ht) (bitmap_pin op->integer 1.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(hc) (bitmap_pin op->integer 1.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(hb) (bitmap_pin op->integer 1.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))])
-  #:do (let ([base (car bitmaps)])
-         (bitmap_append alignment op->integer
-                        (bitmap-surface base) (map bitmap-surface (cdr bitmaps))
-                        (real->double-flonum delta) (bitmap-density base))))
+  ([(vl) (bitmap_pin 0.0 1.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(vc) (bitmap_pin 0.5 1.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(vr) (bitmap_pin 1.0 1.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(ht) (bitmap_pin 1.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(hc) (bitmap_pin 1.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(hb) (bitmap_pin 1.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))])
+  #:do (bitmap_append (bitmap-surface base) (map bitmap-surface (cdr bitmaps))
+                      (real->double-flonum delta) (bitmap-density base)))
 
-(define-combiner "bitmap-~a-superimpose*" #:-> (Bitmap [#:operator Geo-Pin-Operator])
-  #:with alignment bitmaps op->integer [#:operator [op (default-pin-operator)]]
+(define-combiner "bitmap-~a-superimpose*" #:-> Bitmap
+  #:with [bitmaps #:filter [fltr : Geo-Pattern-Filter (default-pattern-filter)]
+                  #:operator [op : Geo-Pin-Operator (default-pin-operator)]]
   #:empty (bitmap-blank)
-  #:operator-expr (geo-select-operator op default-pin-operator)
+  #:config-expr (geo-pattern-filter->integer fltr) (geo-operator->integer op)
   #:short-path #:for base bmp #:if #true
-  ([(lt) (bitmap_pin op->integer 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(lc) (bitmap_pin op->integer 0.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(lb) (bitmap_pin op->integer 0.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(ct) (bitmap_pin op->integer 0.5 0.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(cc) (bitmap_pin op->integer 0.5 0.5 0.5 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(cb) (bitmap_pin op->integer 0.5 1.0 0.5 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(rt) (bitmap_pin op->integer 1.0 0.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(rc) (bitmap_pin op->integer 1.0 0.5 1.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(rb) (bitmap_pin op->integer 1.0 1.0 1.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))])
-  #:do (bitmap_superimpose alignment op->integer (map bitmap-surface bitmaps) (bitmap-density (car bitmaps))))
+  ([(lt) (bitmap_pin 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(lc) (bitmap_pin 0.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(lb) (bitmap_pin 0.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(ct) (bitmap_pin 0.5 0.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(cc) (bitmap_pin 0.5 0.5 0.5 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(cb) (bitmap_pin 0.5 1.0 0.5 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(rt) (bitmap_pin 1.0 0.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(rc) (bitmap_pin 1.0 0.5 1.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(rb) (bitmap_pin 1.0 1.0 1.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))])
+  #:do (bitmap_superimpose (map bitmap-surface bitmaps) (bitmap-density base)))
 
 (define bitmap-vl-append : (-> [#:operator Geo-Pin-Operator] [#:gapsize Real] Bitmap * Bitmap)
   (λ [#:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . bitmaps]

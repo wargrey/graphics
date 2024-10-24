@@ -8,6 +8,7 @@
 
 (require geofun/digitama/base)
 (require geofun/digitama/source)
+(require geofun/digitama/pattern)
 (require geofun/digitama/unsafe/frame)
 (require geofun/digitama/unsafe/dc/plain)
 
@@ -20,23 +21,23 @@
 (define bitmap-blank : (->* () (Real (Option Real) #:density Positive-Flonum) Bitmap)
   (lambda [[width 0.0] [height #false] #:density [density (default-bitmap-density)]]
     (define-values (flwidth flheight) (~size width (or height width)))
-    (create-blank-bitmap flwidth flheight density (default-pattern-filter))))
+    (create-blank-bitmap flwidth flheight density)))
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
   (lambda [bmp]
     (define-values (flw flh) (bitmap-flsize bmp))
-    (create-blank-bitmap flw flh (bitmap-density bmp) (default-pattern-filter))))
+    (create-blank-bitmap flw flh (bitmap-density bmp))))
 
 (define bitmap-solid : (->* () (Color Real #:density Positive-Flonum) Bitmap)
   (lambda [[color transparent] [size 1] #:density [density (default-bitmap-density)]]
     (define side : Nonnegative-Flonum (~length size))
-    (draw-bitmap dc_pattern #:with [side side density #true (default-pattern-filter)]
+    (draw-bitmap dc_pattern #:with [side side density #true]
                  (rgb* color))))
 
 (define bitmap-frame
   (lambda [#:margin [margin : (U Nonnegative-Real (Listof Nonnegative-Real)) 0.0] #:padding [inset : (U Nonnegative-Real (Listof Nonnegative-Real)) 0.0]
            #:border [border : Maybe-Stroke-Paint (default-border-paint)] #:background [bg-fill : Option-Fill-Paint (default-background-paint)]
-           #:filter [filter : Symbol (default-pattern-filter)]
+           #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
            [bmp : Bitmap]] : Bitmap
     (define-values (mtop mright mbottom mleft)
       (cond [(list? margin) (list->4:values (map real->double-flonum margin) 0.0)]
@@ -50,6 +51,8 @@
     (define-values (W H bdx bdy bdw bdh bmpx bmpy)
       (dc_frame_size bmpw bmph mtop mright mbottom mleft ptop pright pbottom pleft s))
 
-    (draw-bitmap dc_frame #:with [W H density #true filter]
+    (draw-bitmap dc_frame #:with [W H density #true]
                  sfc bdx bdy bdw bdh bmpx bmpy bmpw bmph
-                 s (background->source* bg-fill) density)))
+                 s (background->source* bg-fill)
+                 (geo-pattern-filter->integer filter)
+                 density)))

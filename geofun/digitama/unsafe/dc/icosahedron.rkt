@@ -2,12 +2,13 @@
 
 (provide (all-defined-out))
 
-(require "../../base.rkt")
 (require "../source.rkt")
 (require "../paint.rkt")
-(require "../cairo.rkt")
+
+(require "../typed/cairo.rkt")
 (require "../visual/ctype.rkt")
 
+(require "../../base.rkt")
 (require "../../geometry/radius.rkt")
 (require "../../geometry/constants.rkt")
 

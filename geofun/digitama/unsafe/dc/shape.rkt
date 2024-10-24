@@ -4,7 +4,7 @@
 
 (require "../source.rkt")
 (require "../paint.rkt")
-(require "../cairo.rkt")
+(require "../typed/cairo.rkt")
 (require "../visual/ctype.rkt")
 
 (require "../../base.rkt")

@@ -10,7 +10,7 @@
 (require "dc/paint.rkt")
 (require "../stroke.rkt")
 
-(require "unsafe/cairo.rkt")
+(require "unsafe/typed/cairo.rkt")
 (require "unsafe/visual/ctype.rkt")
 (require "unsafe/visual/object.rkt")
 (require "unsafe/visual/abstract.rkt")
@@ -140,8 +140,6 @@
     (define-values (sfc cr fxwidth fxheight) (create-surface (+ flwidth thickness) (+ flheight thickness) density #true))
     
     ((geo<%>-draw! self) self cr offset offset flwidth flheight)
-    (cairo_destroy cr)
-
     sfc))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  

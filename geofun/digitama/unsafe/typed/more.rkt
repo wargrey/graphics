@@ -4,15 +4,12 @@
 
 (require typed/racket/unsafe)
 
-(require "visual/ctype.rkt")
+(require "../visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
- "pangocairo.rkt"
- [pango_version (-> Integer)]
+ "../cairo.rkt"
  [cairo_version (-> Integer)]
- 
- [pango_version_string (-> String)]
  [cairo_version_string (-> String)]
 
  [cairo_push_group (-> Cairo-Ctx Void)]

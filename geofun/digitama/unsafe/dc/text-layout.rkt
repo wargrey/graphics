@@ -12,7 +12,11 @@
 (module unsafe racket/base
   (provide (all-defined-out))
 
-  (require "../pangocairo.rkt")
+  (require racket/draw/unsafe/cairo)
+  (require racket/unsafe/ops)
+  
+  (require "../pango.rkt")
+  
   (require (submod "../paint.rkt" unsafe))
   (require (submod "../font.rkt" unsafe))
 

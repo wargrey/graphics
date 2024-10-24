@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../../digitama/unsafe/pangocairo.rkt")
+(require racket/draw/unsafe/cairo)
 (require bitmap/digitama/convert)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

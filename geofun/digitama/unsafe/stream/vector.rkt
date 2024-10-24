@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
   
-(require "../cairo.rkt")
+(require "../typed/cairo.rkt")
 (require "../visual/ctype.rkt")
 
 (require racket/file)
@@ -36,7 +36,6 @@
                [cr (cairo_create surface)])
           (start-breakable-atomic)
           (λdc master cr x0 y0 flwidth flheight)
-          (cairo_destroy cr)
           (cairo_surface_flush surface)
           (cairo_surface_destroy surface)
           (end-breakable-atomic))

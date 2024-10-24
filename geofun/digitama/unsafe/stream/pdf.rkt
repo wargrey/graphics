@@ -10,8 +10,9 @@
   (provide (all-defined-out))
 
   (require racket/date)
+  (require racket/unsafe/ops)
 
-  (require "../pangocairo.rkt")
+  (require "../cairo.rkt")
   (require "../../parameter/pdf.rkt")
   
   (require (submod "writer.rkt" unsafe))
@@ -32,7 +33,6 @@
       (cairo-set-pdf-metadata surface 'subject (default-pdf-subject))
       (cairo-set-pdf-metadata surface 'keywords (default-pdf-keywords))
       (cairo-set-pdf-metadata surface 'producer (default-pdf-producer))
-      (cairo_pattern_set_filter surface CAIRO_FILTER_BEST)
       
       (parameterize ([date-display-format 'iso-8601])
         #;(cairo-set-pdf-metadata surface 'ctime (date->string (seconds->date (cairo-path-create-seconds /dev/pdfout) #true) #true))

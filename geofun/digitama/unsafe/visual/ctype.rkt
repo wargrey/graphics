@@ -41,11 +41,11 @@
   (-> Master Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Any))
 
 (define-type (Cairo-Create-Surface SFC)
-  (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum (Option Byte)
+  (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum
       (Values SFC Nonnegative-Flonum Nonnegative-Flonum)))
 
 (define-type (Cairo-Create-Surface+Ctx SFC)
-  (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Boolean (Option Byte)
+  (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Boolean
       (Values Abstract-Surface Cairo-Ctx Nonnegative-Flonum Nonnegative-Flonum)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

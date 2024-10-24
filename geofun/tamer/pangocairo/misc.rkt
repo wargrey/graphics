@@ -1,6 +1,6 @@
 #lang racket
 
-(require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/cairo.rkt")
 (require bitmap/digitama/convert)
 
 ;;; https://www.cairographics.org/samples/dash/

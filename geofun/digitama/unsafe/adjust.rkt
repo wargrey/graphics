@@ -8,8 +8,10 @@
 
 (module unsafe racket/base
   (provide (all-defined-out))
+
+  (require racket/draw/unsafe/cairo)
+  (require racket/unsafe/ops)
   
-  (require "pangocairo.rkt")
   (require "../geometry/affine.rkt")
 
   (require (submod "visual/abstract.rkt" unsafe))
@@ -20,7 +22,6 @@
     (define-values (sfc cr _w _h) (cairo-create-abstract-surface* (unsafe-fl/ width density) (unsafe-fl/ height density) density #false))
     (cairo_set_source_surface cr src (unsafe-fl- 0.0 x) (unsafe-fl- 0.0 y))
     (cairo_paint cr)
-    (cairo_destroy cr)
     sfc)
 
   (define (geo_scale src xscale yscale density)
@@ -37,7 +38,6 @@
     
     (cairo_set_source_surface cr src 0.0 0.0)
     (cairo_paint cr)
-    (cairo_destroy cr)
     
     sfc)
 
@@ -52,7 +52,6 @@
     (cairo_set_source_surface cr src (unsafe-fl* ow -0.5) (unsafe-fl* oh -0.5))
     
     (cairo_paint cr)
-    (cairo_destroy cr)
 
     sfc))
 

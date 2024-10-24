@@ -13,12 +13,12 @@
 (define bitmap-rectangular : (-> Real Real XYWH->ARGB [#:density Positive-Flonum] Bitmap)
   (lambda [width height λargb #:density [density (default-bitmap-density)]]
     (define-values (w h) (~size width height))
-    (λbitmap w h density #false λargb)))
+    (λbitmap w h density λargb)))
 
 (define bitmap-rectangular* : (All (t) (-> Real Real (XYWH->ARGB* t) t [#:density Positive-Flonum] (Values Bitmap t)))
   (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
     (define-values (w h) (~size width height))
-    (λbitmap* w h density #false λargb initial)))
+    (λbitmap* w h density λargb initial)))
 
 (define bitmap-irregular : (All (t) (-> Real Real (ARGB-Step t) t [#:density Positive-Flonum] Bitmap))
   (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
@@ -29,4 +29,4 @@
 (define bitmap-irregular* : (All (t) (-> Real Real (ARGB-Step t) t [#:density Positive-Flonum] (Values Bitmap t)))
   (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
     (define-values (w h) (~size width height))
-    (λbitmap_step w h density #false λargb initial)))
+    (λbitmap_step w h density λargb initial)))

@@ -3,7 +3,7 @@
 (provide (all-defined-out))
   
 (require "writer.rkt")
-(require "../cairo.rkt")
+(require "../typed/cairo.rkt")
 (require "../visual/ctype.rkt")
 
 (require racket/file)

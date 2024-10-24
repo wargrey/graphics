@@ -41,8 +41,6 @@
       (define-values (bmp cr) (create-argb-bitmap (+ flwidth thickness) (+ flheight thickness) density #true))
       
       ((geo<%>-draw! self) self cr offset offset flwidth flheight)
-      (cairo_destroy cr)
-
       bmp)))
 
 (define geo-freeze! : (->* (Bitmap Geo<%>)
@@ -68,4 +66,4 @@
 
       (cairo-backend-scale cr (bitmap-density target) #true)
       ((geo<%>-draw! self) self cr (real->double-flonum dx) (real->double-flonum dy) flwidth flheight)
-      (cairo_destroy cr))))
+      (void))))

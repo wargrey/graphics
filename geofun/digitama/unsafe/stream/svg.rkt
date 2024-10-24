@@ -2,12 +2,11 @@
 
 (provide (all-defined-out))
 
-(require typed/racket/unsafe)
-
 (require "vector.rkt")
 (require "writer.rkt")
-(require "../cairo.rkt")
+
 (require "../more.rkt")
+(require "../typed/cairo.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-svg-stream-pool-size : Positive-Index 4096)
@@ -23,7 +22,6 @@
         (raise-arguments-error 'cairo-create-svg-stream-surface (cairo_status_to_string status)
                                "width" flwidth "height" flheight "pool size" pool-size)))
 
-    (cairo_pattern_set_filter surface CAIRO_FILTER_BEST)
     surface))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

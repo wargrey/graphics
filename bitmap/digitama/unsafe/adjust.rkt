@@ -10,11 +10,14 @@
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require geofun/digitama/unsafe/pangocairo)
   (require geofun/digitama/geometry/affine)
+
+  (require racket/draw/unsafe/cairo)
+  (require racket/unsafe/ops)
   
   (require "../convert.rkt")
   (require "pixman.rkt")
+  
   (require (submod "bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -22,7 +25,6 @@
     (define-values (img cr) (create-argb-bitmap (unsafe-fl/ width density) (unsafe-fl/ height density) density #false))
     (cairo_set_source_surface cr src (unsafe-fl- 0.0 x) (unsafe-fl- 0.0 y))
     (cairo_paint cr)
-    (cairo_destroy cr)
     img)
 
   (define (bitmap_scale src xscale yscale density)
@@ -39,8 +41,6 @@
     
     (cairo_set_source_surface cr src 0.0 0.0)
     (cairo_paint cr)
-    (cairo_destroy cr)
-    
     img)
 
   (define (bitmap_rotate src theta.rad density)
@@ -51,10 +51,7 @@
     (cairo_translate cr (unsafe-fl* rw 0.5) (unsafe-fl* rh 0.5))
     (cairo_rotate cr theta.rad)
     (cairo_set_source_surface cr src (unsafe-fl* ow -0.5) (unsafe-fl* oh -0.5))
-    
     (cairo_paint cr)
-    (cairo_destroy cr)
-
     img)
 
   (define (bitmap_bounding_box src just-alpha?)

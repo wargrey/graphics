@@ -22,12 +22,6 @@
   
   (collect-garbage)
   (collect-garbage)
-  (collect-garbage) ; 13ms
-  (time (void (with-handlers ([exn:fail? void])
-                (bitmap-vl-append* bitmaps))))
-  
-  (collect-garbage)
-  (collect-garbage)
   (collect-garbage) ; 20ms
   (time (bitmap-table 26 bitmaps '(rc) '(cc) '(10) '(10))))
   

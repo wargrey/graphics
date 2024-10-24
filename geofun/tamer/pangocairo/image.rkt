@@ -1,6 +1,8 @@
 #lang racket
 
-(require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/cairo.rkt")
+
+(require ffi/unsafe)
 
 (require racket/draw/private/bitmap)
 (require bitmap/digitama/convert)
@@ -27,10 +29,11 @@
 (define &matrix (make-cairo_matrix_t 0.0 0.0 0.0 0.0 0.0 0.0))
 
 (define (cairo-image xc yc)
-  (define-values (width height) (values (* xc 2.0) (* yc 2.0)))
+  (define-values (width height) (values (* xc 3.0) (* yc 3.0)))
   (define-values (bmp cr) (create-argb-bitmap width height density #true))
   
   (cairo_translate cr xc yc)
+  (cairo_translate cr (* xc 0.5) (* yc 0.5))
   (cairo_rotate cr (degrees->radians 45.0))
   (cairo_scale cr (/ width w) (/ height h))
   (cairo_translate cr (* -0.5 w) (* -0.5 h))
@@ -43,6 +46,7 @@
   (define-values (width height) (values (* xc 2.0) (* yc 2.0)))
   (define-values (bmp cr) (create-argb-bitmap width height density #true))
   (define pattern (cairo_pattern_create_for_surface image))
+  (define src (cairo_get_source cr))
 
   (cairo_pattern_set_extend pattern CAIRO_EXTEND_REPEAT)
   (cairo_translate cr xc yc)
@@ -55,7 +59,7 @@
   (cairo_set_source cr pattern)
   (cairo_rectangle cr 0 0 w h)
   (cairo_fill cr)
-
+  
   (cairo_pattern_destroy pattern)
   bmp)
 

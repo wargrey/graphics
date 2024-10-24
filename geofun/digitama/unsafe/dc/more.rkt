@@ -5,8 +5,9 @@
 (require digimon/constant)
 
 (require "../source.rkt")
-(require "../cairo.rkt")
 (require "../paint.rkt")
+
+(require "../typed/cairo.rkt")
 (require "../visual/ctype.rkt")
 
 (require "../../base.rkt")
@@ -43,6 +44,7 @@
           (cairo_arc cr cx cy flradius -pi/2 pi/2)
           (cairo_line_to cr x0 (+ y0 flheight))
           (cairo_line_to cr x0 y0)))
+    
     (cairo_close_path cr)
     (cairo-render cr stroke background)))
 
@@ -99,8 +101,8 @@
     (cairo-render cr stroke background)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc_document : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Index
-                          (Option Paint) (Option Fill-Source) Any)
+(define dc_document : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                          Nonnegative-Flonum Nonnegative-Flonum Index (Option Paint) (Option Fill-Source) Any)
   (lambda [cr x0 y0 flwidth flheight flhwave gapsize extra-n stroke background]
     (define ngap (* (real->double-flonum extra-n) gapsize))
     (define ctrl-xoff (* (- flwidth ngap) 0.25))

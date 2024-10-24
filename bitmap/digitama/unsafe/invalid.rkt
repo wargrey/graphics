@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap_invalid : (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Bitmap)
   (lambda [flwidth flheight density]
-    (define-values (img-sfc fxwidth fxheight) (cairo-create-argb-image-surface flwidth flheight density #false))
+    (define-values (img-sfc fxwidth fxheight) (cairo-create-argb-image-surface flwidth flheight density))
     
     (bitmap invalid-convert (cairo-image-shadow-size img-sfc)
             img-sfc (string->uninterned-symbol "/dev/zero")

@@ -9,6 +9,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
 (define-type Fill-Source (U Cairo-Surface Fill-Pattern FlRGBA))
+(define-type Fill-Rule (U 'winding 'even-odd))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base
@@ -16,7 +17,9 @@
   (provide (rename-out [cpointer? font-description?]))
   (provide (rename-out [cpointer? fill-pattern?]))
   
-  (require "pangocairo.rkt")
+  (require racket/draw/unsafe/cairo)
+  (require racket/unsafe/ops)
+  (require ffi/unsafe)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (geo-linear-gradient-pattern x0 y0 x1 y1 stops)

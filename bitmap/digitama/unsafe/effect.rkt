@@ -10,7 +10,9 @@
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require geofun/digitama/unsafe/pangocairo)
+  (require racket/draw/unsafe/cairo)
+  (require racket/unsafe/ops)
+  (require ffi/unsafe)
 
   (require "../convert.rkt")
   (require "pixman.rkt")
@@ -22,7 +24,6 @@
     (define-values (img cr) (create-argb-bitmap flwidth flheight density #false))
     (cairo_set_source_surface cr src 0.0 0.0)
     (cairo_paint_with_alpha cr alpha)
-    (cairo_destroy cr)
     img)
 
   (define (bitmap_grayscale src rgb->gray density)
@@ -44,7 +45,6 @@
         (grayscale (unsafe-fx+ idx 4))))
 
     (cairo_surface_mark_dirty surface)
-    (cairo_destroy cr)
     img))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

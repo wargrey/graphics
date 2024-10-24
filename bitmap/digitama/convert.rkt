@@ -6,7 +6,7 @@
 (require geofun/digitama/unsafe/visual/object)
 (require geofun/digitama/unsafe/visual/ctype)
 (require geofun/digitama/unsafe/surface/image)
-(require geofun/digitama/unsafe/cairo)
+(require geofun/digitama/unsafe/typed/cairo)
 (require geofun/digitama/pattern)
 (require geofun/stroke)
 (require geofun/paint)
@@ -25,24 +25,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (draw-bitmap stx)
   (syntax-case stx []
-    [(_ dc #:with [width height density scale? fltr outline] [args ...] [paint-args ...])
+    [(_ dc #:with [width height density scale? outline] [args ...] [paint-args ...])
      (syntax/loc stx
-       (let*-values ([(s filter) (values outline (geo-select-filter fltr default-pattern-filter))]
+       (let*-values ([(s) (values outline)]
                      [(linewidth) (stroke-maybe-width s)]
                      [(offset) (* linewidth 0.5)]
-                     [(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* (+ linewidth width) (+ linewidth height) density scale? filter)])
+                     [(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* (+ linewidth width) (+ linewidth height) density scale?)])
          (dc cr offset offset width height args ... s paint-args ...)
-         (make-bitmap-from-image-surface* cr sfc density fxwidth fxheight bitmap-convert 'dc)))]
-    [(_ dc #:with [width height density scale? fltr] args ...)
+         (make-bitmap-from-image-surface sfc density fxwidth fxheight bitmap-convert 'dc)))]
+    [(_ dc #:with [width height density scale?] args ...)
      (syntax/loc stx
-       (let-values ([(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale? (geo-select-filter fltr default-pattern-filter))])
+       (let-values ([(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?)])
          (dc cr 0.0 0.0 width height args ...)
-         (make-bitmap-from-image-surface* cr sfc density fxwidth fxheight bitmap-convert 'dc)))]
-    [(_ dc #:with [x y width height density scale? fltr] args ...)
+         (make-bitmap-from-image-surface sfc density fxwidth fxheight bitmap-convert 'dc)))]
+    [(_ dc #:with [x y width height density scale?] args ...)
      (syntax/loc stx
-       (let-values ([(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale? (geo-select-filter fltr default-pattern-filter))])
+       (let-values ([(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?)])
          (dc cr x y width height args ...)
-         (make-bitmap-from-image-surface* cr sfc density fxwidth fxheight bitmap-convert 'dc)))]))
+         (make-bitmap-from-image-surface sfc density fxwidth fxheight bitmap-convert 'dc)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct bitmap<%> visual-object<%>
@@ -66,24 +66,15 @@
   (lambda [sfc density fxwidth fxheight [convert bitmap-convert] [source '/dev/ram]]
     (bitmap convert (cairo-image-shadow-size sfc) sfc source density fxwidth fxheight 4 8)))
 
-(define make-bitmap-from-image-surface* : (->* (Cairo-Ctx Bitmap-Surface Positive-Flonum Positive-Index Positive-Index)
-                                               (Visual-Object-Convert Symbol)
-                                               Bitmap)
-  (lambda [cr sfc density fxwidth fxheight [convert bitmap-convert] [source '/dev/ram]]
-    (cairo_destroy cr)
-    (make-bitmap-from-image-surface sfc density fxwidth fxheight convert source)))
-
-(define create-argb-bitmap : (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Boolean (Option Symbol) (Values Bitmap Cairo-Ctx))
-  (lambda [width height density scale? filter]
-    (define fltr-seq : (Option Byte) (geo-select-filter filter default-pattern-filter))
-    (define-values (sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale? fltr-seq))
+(define create-argb-bitmap : (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Boolean (Values Bitmap Cairo-Ctx))
+  (lambda [width height density scale?]
+    (define-values (sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?))
     
     (values (make-bitmap-from-image-surface sfc density fxwidth fxheight) cr)))
 
-(define create-blank-bitmap : (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum (Option Symbol) Bitmap)
-  (lambda [width height density filter]
-    (define fltr-seq : (Option Byte) (geo-select-filter filter default-pattern-filter))
-    (define-values (sfc fxwidth fxheight) (cairo-create-argb-image-surface width height density fltr-seq))
+(define create-blank-bitmap : (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Bitmap)
+  (lambda [width height density]
+    (define-values (sfc fxwidth fxheight) (cairo-create-argb-image-surface width height density))
     
     (make-bitmap-from-image-surface sfc density fxwidth fxheight)))
 

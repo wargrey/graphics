@@ -13,7 +13,7 @@
 (module unsafe racket/base
   (provide (all-defined-out))
   
-  (require geofun/digitama/unsafe/pangocairo)
+  (require geofun/digitama/unsafe/cairo)
   (require geofun/digitama/unsafe/paint)
   
   (require (submod geofun/digitama/unsafe/path unsafe))
@@ -26,7 +26,7 @@
     
     (cairo_new_path cr)
     (cairo_clean_path cr footprints tx ty (unsafe-car adjust-offset) (unsafe-cdr adjust-offset))
-    (cairo-render cr stroke #false)
+    (cairo-render cr stroke)
     (dc-edge-draw-shape cr source)
     (dc-edge-draw-shape cr target)
     (cairo_destroy cr)

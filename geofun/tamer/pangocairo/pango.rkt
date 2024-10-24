@@ -8,7 +8,8 @@
 ;(require bitmap/digitama/stdio)
 
 (require "../../digitama/base.rkt")
-(require "../../digitama/unsafe/pangocairo.rkt")
+(require "../../digitama/unsafe/cairo.rkt")
+(require "../../digitama/unsafe/pango.rkt")
 (require (submod "../../digitama/unsafe/dc/text.rkt" unsafe))
 (require (only-in (submod "../../digitama/unsafe/font.rkt" unsafe) geo_create_font_desc))
 
@@ -30,7 +31,7 @@
       (cairo_rotate cr (degrees->radians angle))
 
       (define-values (width height) (pango_layout_get_size layout))
-      (cairo_move_to cr (* (~metric width) -0.5) (* radius -1.0))
+      (cairo_move_to cr (* (~pango-metric width) -0.5) (* radius -1.0))
       (pango_cairo_show_layout cr layout)
 
       (cairo_restore cr)))

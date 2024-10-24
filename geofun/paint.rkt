@@ -27,7 +27,8 @@
 (define default-border-paint : (Parameterof Maybe-Stroke-Paint) (make-parameter (void)))
 (define default-font-paint : (Parameterof Fill-Paint) (make-parameter black))
 (define default-fill-paint : (Parameterof Option-Fill-Paint) (make-parameter #false))
-(define default-fill-rule : (Parameterof Symbol) (make-parameter 'winding))
+(define default-fill-rule : (Parameterof Fill-Rule) (make-parameter 'winding))
 
 (define default-pin-operator : (Parameterof Geo-Pin-Operator) (make-parameter 'over))
 (define default-pattern-filter : (Parameterof Geo-Pattern-Filter) (make-parameter 'bilinear))
+(define default-pattern-extend : (Parameterof (Option Geo-Pattern-Extend)) (make-parameter #false))

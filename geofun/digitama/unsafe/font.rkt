@@ -12,8 +12,12 @@
   (provide PANGO_SCALE)
 
   (require (only-in racket/class send))
+  (require racket/unsafe/ops)
   
-  (require "pangocairo.rkt")
+  (require ffi/unsafe)
+  (require ffi/unsafe/atomic)
+  
+  (require "pango.rkt")
   (require (submod "surface/image.rkt" unsafe))
 
   (define &ink (make-PangoRectangle 0 0 0 0))

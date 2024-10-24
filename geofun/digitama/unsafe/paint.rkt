@@ -8,32 +8,38 @@
 
 (module unsafe racket/base
   (provide (all-defined-out))
-
-  (require "pangocairo.rkt")
-  (require "../stroke.rkt")
-
+  
   (require racket/math)
+  (require racket/unsafe/ops)
+  (require ffi/unsafe)
+  
+  (require "../stroke.rkt")
+  (require "cairo.rkt")
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define cairo-set-rgba
+    (lambda [cr src]
+      (cairo_set_source_rgba cr
+                             (unsafe-struct*-ref src 0)
+                             (unsafe-struct*-ref src 1)
+                             (unsafe-struct*-ref src 2)
+                             (unsafe-struct*-ref src 3))))
+  
   (define cairo-set-source
     (lambda [cr src]
-      (cond [(struct? src) ; (rgba? src)
-             (cairo_set_source_rgba cr
-                                    (unsafe-struct*-ref src 0)
-                                    (unsafe-struct*-ref src 1)
-                                    (unsafe-struct*-ref src 2)
-                                    (unsafe-struct*-ref src 3))]
+      (cond [(struct? src) #;(rgba? src) (cairo-set-rgba cr src)]
             [(eq? (cpointer-tag src) 'cairo_pattern_t) (cairo_set_source cr src)]
             [else (cairo_set_source_surface cr src 0.0 0.0)])))
   
   (define cairo-set-stroke
     (lambda [cr stroke]
-      (cairo-set-source cr (unsafe-struct*-ref stroke 0))
+      (cairo-set-rgba cr (unsafe-struct*-ref stroke 0))
       (cairo_set_line_width cr (unsafe-struct*-ref stroke 1))
       (cairo_set_line_cap cr (linecap->integer (unsafe-struct*-ref stroke 2)))
       (cairo_set_line_join cr (linejoin->integer (unsafe-struct*-ref stroke 3)))
-      (let ([ml (unsafe-struct*-ref stroke 4)]) (unless (nan? ml) (cairo_set_miter_limit cr ml)))
-      (cairo_set_dash cr (unsafe-struct*-ref stroke 5) (unsafe-struct*-ref stroke 6))))
+      (cairo_set_dash cr (unsafe-struct*-ref stroke 5) (unsafe-struct*-ref stroke 6))
+      (let ([ml (unsafe-struct*-ref stroke 4)])
+        (unless (nan? ml) (cairo_set_miter_limit cr ml)))))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define cairo-render-with-stroke
@@ -71,20 +77,19 @@
   
   (define cairo-set-fill-rule
     (lambda [cr fill-rule]
-      (unless (eq? fill-rule 'winding)
-        (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD))))
+      (if (eq? fill-rule 'winding)
+          (cairo_set_fill_rule cr CAIRO_FILL_RULE_WINDING)
+          (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD))))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define cairo-composite
-    (lambda [cr src dest-x dest-y dest-width dest-height density]
+    (lambda [cr src dest-x dest-y dest-width dest-height filter sx sy]
       (cairo_save cr)
       (cairo_translate cr dest-x dest-y)
-
-      (unless (unsafe-fl= density 1.0)
-        (let ([1/density (unsafe-fl/ 1.0 density)])
-          (cairo_scale cr 1/density 1/density)))
-
+      (cairo_rectangle cr 0.0 0.0 dest-width dest-height)
+      (cairo_scale cr sx sy)
       (cairo_set_source_surface cr src 0.0 0.0)
+      (cairo_pattern_set_filter (cairo_get_source cr) filter)
       (cairo_fill cr)
       (cairo_restore cr)))
   
@@ -105,16 +110,12 @@
  [cairo-render-with-stroke (-> Cairo-Ctx Paint Void)]
  [cairo-render-background (-> Cairo-Ctx (Option Fill-Source) Void)]
  [cairo-set-fill-rule (-> Cairo-Ctx Symbol Void)]
+ [cairo-composite (-> Cairo-Ctx Cairo-Surface Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Byte Flonum Flonum Void)]
 
  [cairo-render-with-fill
   (case-> [Cairo-Ctx Fill-Source -> Void]
-          [Cairo-Ctx Fill-Source Symbol -> Void])]
+          [Cairo-Ctx Fill-Source Fill-Rule -> Void])]
 
  [cairo-render
   (case-> [Cairo-Ctx (Option Paint) (Option Fill-Source) -> Void]
-          [Cairo-Ctx (Option Paint) (Option Fill-Source) Symbol -> Void])]
-
- [cairo-composite
-  (case-> [Cairo-Ctx Cairo-Surface Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum -> Void]
-          [Cairo-Ctx Cairo-Surface Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Integer Positive-Flonum -> Void]
-          [Cairo-Ctx Cairo-Surface Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Integer Integer Positive-Flonum -> Void])])
+          [Cairo-Ctx (Option Paint) (Option Fill-Source) Fill-Rule -> Void])])
