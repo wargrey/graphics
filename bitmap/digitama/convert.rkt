@@ -7,9 +7,7 @@
 (require geofun/digitama/unsafe/visual/ctype)
 (require geofun/digitama/unsafe/surface/image)
 (require geofun/digitama/unsafe/typed/cairo)
-(require geofun/digitama/pattern)
 (require geofun/stroke)
-(require geofun/paint)
 
 (require geofun/digitama/unsafe/stream/vector)
 (require geofun/digitama/unsafe/stream/pdf)

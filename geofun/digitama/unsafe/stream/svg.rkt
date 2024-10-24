@@ -5,8 +5,8 @@
 (require "vector.rkt")
 (require "writer.rkt")
 
-(require "../more.rkt")
 (require "../typed/cairo.rkt")
+(require "../typed/more.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-svg-stream-pool-size : Positive-Index 4096)

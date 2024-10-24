@@ -2,19 +2,19 @@
 
 (provide (all-defined-out))
 
-(require "ink.rkt")
-(require "paint.rkt")
+(require "../paint.rkt")
 (require "../../paint.rkt")
 (require "../../stroke.rkt")
 (require "../convert.rkt")
 
 (require "../geometry/dot.rkt")
+(require "../geometry/ink.rkt")
 (require "../geometry/bbox.rkt")
 (require "../geometry/trail.rkt")
 (require "../geometry/anchor.rkt")
 (require "../geometry/footprint.rkt")
 
-(require "../unsafe/path.rkt")
+(require "../unsafe/dc/path.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/math))

@@ -7,32 +7,37 @@
 (require bitmap/digitama/unsafe/image)
 
 (require "../base.rkt")
-
 (require "../convert.rkt")
+(require "../pattern.rkt")
 (require "../unsafe/dc/plain.rkt")
+
+(require "../../paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:bitmap geo
-  ([source : (U Bitmap XYWH->ARGB)])
+  ([source : (U Bitmap XYWH->ARGB)]
+   [filter : Geo-Pattern-Filter])
   #:type-name Geo:Bitmap
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-bitmap : (-> Bitmap [#:id (Option Symbol)] Geo:Bitmap)
-  (lambda [self #:id [id #false]]
+(define geo-bitmap
+  (lambda [#:id [id : (Option Symbol) #false] #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
+           [self : Bitmap]] : Geo:Bitmap
     (define-values (w h) (bitmap-flsize self))
     (create-geometry-object geo:bitmap (geo-draw-bitmap w h)
                             #:extent (geo-shape-plain-extent w h)
                             #:id id
-                            self)))
+                            self filter)))
 
-(define geo-rectangular : (-> Real Real XYWH->ARGB [#:id (Option Symbol)] Geo:Bitmap)
-  (lambda [width height λargb #:id [id #false]]
+(define geo-rectangular
+  (lambda [#:id [id : (Option Symbol) #false] #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
+           [width : Real] [height : Real] [λargb : XYWH->ARGB]] : Geo:Bitmap
     (define-values (w h) (~size width height))
     (create-geometry-object geo:bitmap (geo-draw-bitmap w h)
                             #:extent (geo-shape-plain-extent w h)
                             #:id id
-                            λargb)))
+                            λargb filter)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-bitmap : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Surface-Draw!)
@@ -40,9 +45,10 @@
     (λ [self cr x0 y0 width height]
       (when (geo:bitmap? self)
         (define src (geo:bitmap-source self))
+        (define filter (geo-pattern-filter->integer (geo:bitmap-filter self)))
         
         (if (bitmap? src)
-            (dc_image cr x0 y0 width height (bitmap-surface src))
+            (dc_image cr x0 y0 width height filter (bitmap-surface src))
 
             (let ([bmp (λbitmap flwidth flheight (default-bitmap-density) src)])
-              (dc_image cr x0 y0 width height (bitmap-surface bmp))))))))
+              (dc_image cr x0 y0 width height filter (bitmap-surface bmp))))))))

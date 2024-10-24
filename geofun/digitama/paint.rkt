@@ -2,11 +2,11 @@
 
 (provide (all-defined-out))
 
-(require "../../paint.rkt")
-(require "../../stroke.rkt")
+(require "../paint.rkt")
+(require "../stroke.rkt")
 
-(require "../source.rkt")
-(require "../unsafe/source.rkt")
+(require "source.rkt")
+(require "unsafe/source.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Maybe-Stroke-Source (U Stroke False Void))

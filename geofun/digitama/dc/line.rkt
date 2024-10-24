@@ -4,10 +4,11 @@
 
 (require digimon/metrics)
 
-(require "paint.rkt")
+(require "../paint.rkt")
+(require "../../paint.rkt")
+
 (require "../convert.rkt")
 (require "../unsafe/dc/shape.rkt")
-(require "../../paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:line geo

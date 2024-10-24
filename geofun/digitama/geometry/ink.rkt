@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../geometry/affine.rkt")
+(require "affine.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo-ink

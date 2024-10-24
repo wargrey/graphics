@@ -4,10 +4,10 @@
 
 (require digimon/metrics)
 
-(require "paint.rkt")
+(require "../paint.rkt")
 (require "../../paint.rkt")
-(require "../convert.rkt")
 
+(require "../convert.rkt")
 (require "../geometry/radius.rkt")
 (require "../unsafe/dc/icosahedron.rkt")
 
@@ -28,12 +28,10 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-icosahedron-side-projection : (->* (Real)
-                                               (3D-Radius-Type #:id (Option Symbol)
-                                                               #:edge Maybe-Stroke-Paint #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
-                                               Geo:Icosahedron:Side)
-  (lambda [#:id [id #false] #:edge [edge (void)] #:border [border (void)] #:fill [pattern (void)]
-           radius [radius-type 'vertex]]
+(define geo-icosahedron-side-projection
+  (lambda [#:edge [edge : Maybe-Stroke-Paint (void)] #:border [border : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           [radius : Real] [radius-type : 3D-Radius-Type 'vertex]] : Geo:Icosahedron:Side
     (define r : Nonnegative-Flonum (~length radius))
     (define sidelength : Nonnegative-Flonum (icosahedron-radius->edge-length r radius-type))
     
@@ -42,12 +40,10 @@
                             #:id id
                             r radius-type sidelength)))
 
-(define geo-icosahedron-over-projection : (->* (Real)
-                                               (3D-Radius-Type #:id (Option Symbol) #:rotation Real #:radian? Boolean
-                                                               #:edge Maybe-Stroke-Paint #:border Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
-                                               Geo:Icosahedron:Over)
-  (lambda [#:id [id #false] #:edge [edge (void)] #:border [border (void)] #:fill [pattern (void)] #:rotation [rotation 0.0] #:radian? [radian? #true]
-           radius [radius-type 'vertex]]
+(define geo-icosahedron-over-projection
+  (lambda [#:edge [edge : Maybe-Stroke-Paint (void)] #:border [border : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false] #:rotation [rotation : Real 0.0] #:radian? [radian? : Boolean #true]
+           [radius : Real] [radius-type : 3D-Radius-Type 'vertex]] : Geo:Icosahedron:Over
     (define r : Nonnegative-Flonum (~length radius))
     (define R : Nonnegative-Flonum (icosahedron-radius->circumsphere-radius r radius-type))
     

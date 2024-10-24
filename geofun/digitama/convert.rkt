@@ -6,10 +6,10 @@
                      [geo-intrinsic-size   geo-size]
                      [geo-intrinsic-size   geo-intrinsic-flsize]))
 
-(require "dc/ink.rkt")
-(require "dc/paint.rkt")
 (require "../stroke.rkt")
 
+(require "paint.rkt")
+(require "geometry/ink.rkt")
 (require "unsafe/typed/cairo.rkt")
 (require "unsafe/visual/ctype.rkt")
 (require "unsafe/visual/object.rkt")

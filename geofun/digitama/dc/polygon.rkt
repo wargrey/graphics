@@ -4,11 +4,12 @@
 
 (require digimon/metrics)
 
-(require "paint.rkt")
+(require "../paint.rkt")
 (require "../../paint.rkt")
 
 (require "../convert.rkt")
-(require "../unsafe/path.rkt")
+(require "../unsafe/source.rkt")
+(require "../unsafe/dc/path.rkt")
 (require "../unsafe/dc/shape.rkt")
 
 (require "../geometry/dot.rkt")
@@ -39,10 +40,10 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-regular-polygon : (->* (Integer Real)
-                                   (Real #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:radian? Boolean #:inscribed? Boolean #:id (Option Symbol))
-                                   Geo:Regular-Polygon)
-  (lambda [n radius [rotation 0.0] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)] #:radian? [radian? #true] #:inscribed? [inscribed? #false]]
+(define geo-regular-polygon
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false] #:radian? [radian? : Boolean #true] #:inscribed? [inscribed? : Boolean #false]
+           [n : Integer] [radius : Real] [rotation : Real 0.0]] : Geo:Regular-Polygon
     (define R : Nonnegative-Flonum (~length radius))
     (define N : Index (if (index? n) n 0))
     (define rtype : 2D-Radius-Type (if inscribed? 'edge 'vertex))
@@ -56,14 +57,10 @@
                             #:id id
                             N R rtype (~radian rotation radian?))))
 
-(define geo-polygon : (->* ((U Point2D (Listof Point2D)))
-                           (Real Real
-                                 #:id (Option Symbol) #:scale Point2D #:window (Option Point2D)
-                                 #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule (Option Symbol))
-                           Geo:Polygon)
-  (lambda [#:id [id #false] #:scale [scale 1.0] #:window [window #false]
-           #:stroke [stroke (void)] #:fill [pattern (void)] #:fill-rule [rule #false]
-           pts [dx 0.0] [dy 0.0]]
+(define geo-polygon
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)] #:fill-rule [rule : Fill-Rule (default-fill-rule)]
+           #:id [id : (Option Symbol) #false] #:scale [scale : Point2D 1.0] #:window [window : (Option Point2D) #false]
+           [pts : (U Point2D (Listof Point2D))] [dx : Real 0.0] [dy : Real 0.0]] : Geo:Polygon
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
@@ -72,11 +69,10 @@
                             #:id id
                             prints xoff yoff)))
 
-(define geo-polyline : (->* ((U Point2D (Listof Point2D)))
-                            (Real Real #:id (Option Symbol) #:scale Point2D #:window (Option Point2D) #:stroke Maybe-Stroke-Paint #:close? Boolean)
-                            Geo:Polyline)
-  (lambda [#:id [id #false] #:scale [scale 1.0] #:window [window #false] #:stroke [stroke (void)] #:close? [close? #false]
-           pts [dx 0.0] [dy 0.0]]
+(define geo-polyline
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:id [id : (Option Symbol) #false] #:scale [scale : Point2D 1.0] #:window [window : (Option Point2D) #false] #:close? [close? : Boolean #false]
+           [pts : (U Point2D (Listof Point2D))] [dx : Real 0.0] [dy : Real 0.0]] : Geo:Polyline
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
@@ -100,7 +96,7 @@
                         (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
                         null))))))
 
-(define geo-polygon-surface : (-> Maybe-Stroke-Paint Maybe-Fill-Paint (Option Symbol) Geo-Surface-Draw!)
+(define geo-polygon-surface : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Fill-Rule Geo-Surface-Draw!)
   (lambda [alt-stroke alt-fill alt-rule]
     (λ [self cr x0 y0 width height]
       (when (geo:polygon? self)

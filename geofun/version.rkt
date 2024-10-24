@@ -7,4 +7,5 @@
                      [cairo_version_string cairo-version-string]
                      [pango_version_string pango-version-string]))
 
-(require "digitama/unsafe/more.rkt")
+(require "digitama/unsafe/typed/more.rkt")
+(require "digitama/unsafe/typed/pango.rkt")

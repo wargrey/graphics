@@ -5,9 +5,10 @@
 (require racket/math)
 (require digimon/metrics)
 
-(require "paint.rkt")
-(require "../convert.rkt")
 (require "../../paint.rkt")
+
+(require "../paint.rkt")
+(require "../convert.rkt")
 (require "../unsafe/dc/shape.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -21,12 +22,10 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-square : (->* (Real)
-                          (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
-                                #:vlines (Listof Real) #:hlines (Listof Real))
-                          Geo:Rectangle)
-  (lambda [#:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)] #:vlines [vlines null] #:hlines [hlines null]
-           width [corner-radius 0.0]]
+(define geo-square
+  (lambda [#:id [id : (Option Symbol) #false] #:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:vlines [vlines : (Listof Real) null] #:hlines [hlines : (Listof Real) null]
+           [width : Real] [corner-radius : Real 0.0]] : Geo:Rectangle
     (define w : Nonnegative-Flonum (~length width))
     
     (create-geometry-object geo:rect (geo-draw-rectangle stroke pattern)
@@ -36,12 +35,10 @@
                             (map real->double-flonum vlines)
                             (map real->double-flonum hlines))))
 
-(define geo-rectangle : (->* (Real)
-                             (Real Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
-                                   #:vlines (Listof Real) #:hlines (Listof Real))
-                             Geo:Rectangle)
-  (lambda [#:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)] #:vlines [vlines null] #:hlines [hlines null]
-           width [height -0.618] [corner-radius 0.0]]
+(define geo-rectangle
+  (lambda [#:id [id : (Option Symbol) #false] #:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:vlines [vlines : (Listof Real) null] #:hlines [hlines : (Listof Real) null]
+           [width : Real] [height : Real -0.618] [corner-radius : Real 0.0]]
     (define-values (w h) (~size width height))
     
     (create-geometry-object geo:rect (geo-draw-rectangle stroke pattern)

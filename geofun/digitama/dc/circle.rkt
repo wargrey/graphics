@@ -4,10 +4,11 @@
 
 (require digimon/metrics)
 
-(require "paint.rkt")
+(require "../paint.rkt")
+(require "../../paint.rkt")
+
 (require "../convert.rkt")
 (require "../unsafe/dc/shape.rkt")
-(require "../../paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:circle geo
@@ -40,10 +41,10 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-circle : (-> Real [#:id (Option Symbol)] [#:stroke Maybe-Stroke-Paint] [#:fill Maybe-Fill-Paint]
-                         [#:diameters (Listof Real)] [#:radian? Boolean]
-                         Geo:Circle)
-  (lambda [radius #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)] #:diameters [diameters null] #:radian? [radian? #true]]
+(define geo-circle
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false] #:diameters [diameters : (Listof Real) null] #:radian? [radian? : Boolean #true]
+           [radius : Real]] : Geo:Circle
     (define r : Nonnegative-Flonum (~length radius))
     
     (create-geometry-object geo:circle (geo-draw-ellipse stroke pattern)
@@ -52,10 +53,10 @@
                             r (for/list : (Listof Flonum) ([d (in-list diameters)])
                                 (~radian d radian?)))))
 
-(define geo-ellipse : (->* (Real)
-                           (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:diameters (Listof Real) #:radian? Boolean)
-                           (U Geo:Circle Geo:Ellipse))
-  (lambda [width [height -0.618] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)] #:diameters [diameters null] #:radian? [radian? #true]]
+(define geo-ellipse
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false] #:diameters [diameters : (Listof Real) null] #:radian? [radian? : Boolean #true]
+           [width : Real] [height : Real -0.618]]
     (define-values (w h) (~size width height))
     (define ellipse-extent : Geo-Calculate-Extent (geo-shape-plain-extent w h 0.0 0.0))
     (define rads : (Listof Flonum) (for/list ([d (in-list diameters)]) (~radian d radian?)))
@@ -70,11 +71,10 @@
                                 #:id id
                                 (* w 0.5) (* h 0.5) rads))))
 
-(define geo-sector : (->* (Real Real Real)
-                          (#:id (Option Symbol) #:ratio Real #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:radian? Boolean)
-                          Geo:Sector)
-  (lambda [#:id [id #false] #:ratio [ratio 1.0] #:stroke [stroke (void)] #:fill [pattern (void)] #:radian? [radian? #true]
-           radius start end]
+(define geo-sector
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false] #:ratio [ratio : Real 1.0] #:radian? [radian? : Boolean #true]
+           [radius : Real] [start : Real] [end : Real]] : Geo:Sector
     (define ar : Nonnegative-Flonum (~length radius))
     (define br : Nonnegative-Flonum (if (> ratio 0.0) (abs (/ ar (real->double-flonum ratio))) ar))
     
@@ -83,9 +83,10 @@
                             #:id id
                             ar br (~radian start radian?) (~radian end radian?))))
 
-(define geo-arc : (->* (Real Real Real) (#:id (Option Symbol) #:ratio Real #:stroke Maybe-Stroke-Paint #:radian? Boolean) Geo:Arc)
-  (lambda [#:id [id #false] #:ratio [ratio 1.0] #:stroke [stroke (void)] #:radian? [radian? #true]
-           radius start end]
+(define geo-arc
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:radian? [radian? : Boolean #true]
+           #:id [id : (Option Symbol) #false] #:ratio [ratio : Real 1.0]
+           [radius : Real] [start : Real] [end : Real]]
     (define ar : Nonnegative-Flonum (~length radius))
     (define br : Nonnegative-Flonum (if (> ratio 0.0) (abs (/ ar (real->double-flonum ratio))) ar))
     

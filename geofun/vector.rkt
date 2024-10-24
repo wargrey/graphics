@@ -5,8 +5,11 @@
 (require "digitama/base.rkt")
 (require "digitama/misc.rkt")
 (require "digitama/source.rkt")
-(require "digitama/dc/paint.rkt")
+(require "digitama/pattern.rkt")
+(require "digitama/paint.rkt")
 (require "digitama/geometry/radius.rkt")
+
+(require "digitama/unsafe/source.rkt")
 (require "digitama/unsafe/visual/abstract.rkt")
 
 (require/provide "digitama/convert.rkt" "digitama/freeze.rkt")
@@ -15,23 +18,21 @@
 (require/provide "digitama/geometry/dot.rkt" "digitama/geometry/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-save : (->* (Geo<%> (U Path-String Output-Port))
-                        (#:stroke Option-Stroke-Paint #:border Option-Stroke-Paint #:fill Option-Fill-Paint #:fill-rule Symbol
-                         #:font-paint Option-Fill-Paint #:background Option-Fill-Paint #:font Font #:operator Geo-Pin-Operator
-                         #:format Symbol #:bitmap-density Positive-Flonum)
-                        Void)
-  (lambda [#:stroke [stroke (default-stroke-paint)] #:border [border (default-border-paint)]
-           #:fill [fill (default-fill-paint)] #:fill-rule [rule (default-fill-rule)]
-           #:font-paint [fgc (default-font-paint)] #:background [bgc (default-background-paint)]
-           #:font [font (default-font)] #:operator [op (default-pin-operator)]
-           #:format [format 'pdf] #:bitmap-density [density (default-bitmap-density)]
-           self /dev/geoout]
+(define geo-save
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)] #:border [border : Maybe-Stroke-Paint (default-border-paint)]
+           #:fill [fill : Option-Fill-Paint (default-fill-paint)] #:fill-rule [rule : Fill-Rule (default-fill-rule)]
+           #:font [font : Font (default-font)] #:font-paint [fgc : Option-Fill-Paint (default-font-paint)]
+           #:background [bgc : Option-Fill-Paint (default-background-paint)]
+           #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)] #:operator [op (default-pin-operator)]
+           #:format [format : Symbol 'pdf] #:bitmap-density [density : Positive-Flonum (default-bitmap-density)]
+           [self : Geo<%>] [/dev/geoout : (U Path-String Output-Port)]] : Void
     (parameterize ([default-stroke-source (stroke-paint->source* stroke)]
                    [default-border-source (border-paint->source* border)]
                    [default-font-source (font-paint->source fgc)]
                    [default-background-source (fill-paint->source* bgc)]
                    [default-fill-source (fill-paint->source* fill)]
                    [default-fill-rule rule]
+                   [default-pattern-filter filter]
                    [default-pin-operator op]
                    [default-font font])
       (abstract-surface-save

@@ -4,13 +4,13 @@
 
 (require digimon/sequence)
 
-(require "ink.rkt")
-(require "paint.rkt")
+(require "../paint.rkt")
 (require "../../paint.rkt")
 
 (require "../convert.rkt")
 (require "../composite.rkt")
 
+(require "../geometry/ink.rkt")
 (require "../layer/type.rkt")
 (require "../layer/combine.rkt")
 (require "../layer/table.rkt")

@@ -4,11 +4,12 @@
 
 (require typed/racket/unsafe)
 
-(require "visual/ctype.rkt")
 (require "source.rkt")
 (require "paint.rkt")
-(require "cairo.rkt")
-(require "more.rkt")
+
+(require "typed/cairo.rkt")
+(require "typed/more.rkt")
+(require "visual/ctype.rkt")
 
 (require "../base.rkt")
 (require "../convert.rkt")

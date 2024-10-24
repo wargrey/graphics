@@ -4,11 +4,11 @@
 
 (require digimon/metrics)
 
-(require "paint.rkt")
+(require "../paint.rkt")
 (require "../../paint.rkt")
 
 (require "../convert.rkt")
-(require "../unsafe/path.rkt")
+(require "../unsafe/dc/path.rkt")
 (require "../geometry/polygon/arrow.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -29,12 +29,10 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-dart : (->* (Real)
-                        (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
-                              #:wing-angle (Option Real) #:radian? Boolean)
-                        Geo:Dart)
-  (lambda [#:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)] #:wing-angle [wing-angle #false] #:radian? [radian? #true]
-           radius [start 0.0]]
+(define geo-dart
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false] #:wing-angle [wing-angle : (Option Real) #false] #:radian? [radian? : Boolean #true]
+           [radius : Real] [start : Real 0.0]] : Geo:Dart
     (define flradius : Nonnegative-Flonum (~length radius))
     (define wing-flangle (and wing-angle (~radian wing-angle radian?)))
     
@@ -43,13 +41,11 @@
                             #:id id
                             flradius (~radian start radian?) wing-flangle)))
 
-(define geo-arrow : (->* (Real Real)
-                         (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
-                               #:shaft-thickness Real #:wing-angle (Option Real) #:radian? Boolean)
-                         Geo:Arrow)
-  (lambda [#:id [id #false] #:shaft-thickness [shaft-thickness -0.3] #:wing-angle [wing-angle #false]
-           #:radian? [radian? #true] #:stroke [stroke (void)] #:fill [pattern (void)]
-           head-radius shaft-length [start 0.0]]
+(define geo-arrow
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false] #:radian? [radian? : Boolean #true]
+           #:shaft-thickness [shaft-thickness : Real -0.3] #:wing-angle [wing-angle : (Option Real) #false]
+           [head-radius : Real] [shaft-length : Real] [start : Real 0.0]] : Geo:Arrow
     (define rhead : Nonnegative-Flonum (~length head-radius))
     (define shaft-flthickness : Nonnegative-Flonum (~length shaft-thickness rhead))
     (define shaft-flength : Nonnegative-Flonum (~length shaft-length rhead))

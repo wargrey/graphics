@@ -4,10 +4,10 @@
 
 (require digimon/metrics)
 
-(require "ink.rkt")
-
 (require "../convert.rkt")
 (require "../unsafe/adjust.rkt")
+
+(require "../geometry/ink.rkt")
 (require "../geometry/affine.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

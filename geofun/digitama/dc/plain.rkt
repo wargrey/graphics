@@ -4,12 +4,11 @@
 
 (require digimon/metrics)
 
-(require "ink.rkt")
+(require "../geometry/ink.rkt")
+(require "../unsafe/dc/plain.rkt")
 
-(require "../base.rkt")
 (require "../convert.rkt")
 (require "../../color.rkt")
-(require "../unsafe/dc/plain.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:blank geo

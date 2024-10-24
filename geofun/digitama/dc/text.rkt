@@ -6,8 +6,7 @@
 (require racket/string)
 (require racket/math)
 
-(require "paint.rkt")
-
+(require "../paint.rkt")
 (require "../convert.rkt")
 (require "../source.rkt")
 (require "../font.rkt")
@@ -51,38 +50,32 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-art-text : (->* (Any)
-                            ((Option Font) #:id (Option Symbol) #:lines (Listof Symbol)
-                                           #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:background Maybe-Fill-Paint)
-                            Geo:Art-Text)
-  (lambda [#:id [id #false] #:stroke [outline (void)] #:fill [fill (void)] #:background [bgsource (void)] #:lines [lines null]
-           text [font #false]]
+(define geo-art-text
+  (lambda [#:stroke [outline : Maybe-Stroke-Paint (void)] #:fill [fill : Maybe-Fill-Paint (void)] #:background [bgsource : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Symbol) null]
+           [text : Any] [font : (Option Font) #false]] : Geo:Art-Text
     (create-geometry-object geo:art-text (geo-draw-art-text font outline fill bgsource)
                             #:extent (geo-art-text-extent font)
                             #:id id
                             (~a text) lines)))
 
-(define geo-text : (->* (Any)
-                        ((Option Font) #:id (Option Symbol) #:lines (Listof Symbol) #:color Option-Fill-Paint #:background Maybe-Fill-Paint
-                                       #:baseline Maybe-Stroke-Paint #:capline Maybe-Stroke-Paint #:meanline Maybe-Stroke-Paint
-                                       #:ascent Maybe-Stroke-Paint #:descent Maybe-Stroke-Paint)
-                        Geo:Text)
-  (lambda [#:id [id #false] #:lines [lines null] #:color [fgsource #false] #:background [bgsource (void)]
-           #:ascent [alsource #false] #:descent [dlsource #false] #:capline [clsource #false] #:meanline [mlsource #false] #:baseline [blsource #false]
-           text [font #false] ]
+(define geo-text
+  (lambda [#:color [fgsource : Option-Fill-Paint #false] #:background [bgsource : Maybe-Fill-Paint (void)]
+           #:ascent [alsource : Maybe-Stroke-Paint #false] #:descent [dlsource : Maybe-Stroke-Paint #false] #:capline [clsource : Maybe-Stroke-Paint #false]
+           #:meanline [mlsource : Maybe-Stroke-Paint #false] #:baseline [blsource : Maybe-Stroke-Paint #false]
+           #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Symbol) null]
+           [text : Any] [font : (Option Font) #false]] : Geo:Text
     (create-geometry-object geo:text (geo-draw-text font fgsource bgsource)
                             #:extent (geo-text-extent font)
                             #:id id
                             (~a text) lines alsource dlsource clsource mlsource blsource)))
 
-(define geo-paragraph : (->* ((U String (Listof String)))
-                             ((Option Font) #:id (Option Symbol) #:color Option-Fill-Paint #:background Maybe-Fill-Paint #:lines (Listof Symbol)
-                                            #:max-width Real #:max-height Real #:indent Real #:spacing Real
-                                            #:wrap-mode Paragraph-Wrap-Mode #:ellipsize-mode Paragraph-Ellipsize-Mode)
-                             Geo:Paragraph)
-  (lambda [texts [font #false] #:id [id #false] #:color [fgsource #false] #:background [bgsource (void)] #:lines [lines null]
-                 #:max-width [max-width +inf.0] #:max-height [max-height +inf.0] #:indent [indent 0.0] #:spacing [spacing 0.0]
-                 #:wrap-mode [wrap-mode 'word-char] #:ellipsize-mode [ellipsize-mode 'end]]
+(define geo-paragraph
+  (lambda [#:color [fgsource : Option-Fill-Paint #false] #:background [bgsource : Maybe-Fill-Paint (void)]
+           #:max-width [max-width : Real +inf.0] #:max-height [max-height : Real +inf.0] #:indent [indent : Real 0.0] #:spacing [spacing : Real 0.0]
+           #:wrap-mode [wrap-mode : Paragraph-Wrap-Mode 'word-char] #:ellipsize-mode [ellipsize-mode : Paragraph-Ellipsize-Mode 'end]
+           #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Symbol) null]
+           [texts : (U String (Listof String))] [font : (Option Font) #false]]
     (define smart-width : (Option Flonum) (if (or (infinite? max-width) (nan? max-width)) #false (real->double-flonum max-width)))
     (define-values (smart-height smart-emode)
       (cond [(or (infinite? max-height) (nan? max-height)) (values -1 'none)]

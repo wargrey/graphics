@@ -4,7 +4,7 @@
 
 (require digimon/metrics)
 
-(require "paint.rkt")
+(require "../paint.rkt")
 (require "../../paint.rkt")
 
 (require "../convert.rkt")
