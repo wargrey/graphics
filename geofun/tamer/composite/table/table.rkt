@@ -1,6 +1,6 @@
 #lang typed/racket
 
-(require geofun)
+(require geofun/vector)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define examples : (Listof Geo)
@@ -22,11 +22,11 @@
   
   (collect-garbage)
   (collect-garbage)
-  (collect-garbage) ; 13ms
+  (collect-garbage) ; 36ms
   (geo-flsize (time (geo-vl-append* geobjs)))
   
   (collect-garbage)
   (collect-garbage)
-  (collect-garbage) ; 21ms
-  (time (geo-table 26 geobjs '(rc) '(cc) '(10) '(10))))
+  (collect-garbage) ; 36ms
+  (time (geo-freeze (geo-table 26 geobjs '(rc) '(cc) '(10) '(10)))))
   

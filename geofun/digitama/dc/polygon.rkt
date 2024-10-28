@@ -52,7 +52,7 @@
                  (regular-polygon-radius->circumsphere-radius N R rtype)
                  R)))
     
-    (create-geometry-object geo:regular-polygon (geo-regular-polygon-surface stroke pattern)
+    (create-geometry-object geo:regular-polygon (geo-draw-regular-polygon stroke pattern)
                             #:extent (geo-shape-plain-extent d d 0.0 0.0)
                             #:id id
                             N R rtype (~radian rotation radian?))))
@@ -64,7 +64,7 @@
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
-    (create-geometry-object geo:polygon (geo-polygon-surface stroke pattern rule)
+    (create-geometry-object geo:polygon (geo-draw-polygon stroke pattern rule)
                             #:extent (geo-shape-plain-extent width height 0.0 0.0)
                             #:id id
                             prints xoff yoff)))
@@ -76,13 +76,13 @@
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
-    (create-geometry-object geo:polyline (geo-polyline-surface stroke)
+    (create-geometry-object geo:polyline (geo-draw-polyline stroke)
                             #:extent (geo-shape-plain-extent width height 0.0 0.0)
                             #:id id
                             prints xoff yoff close?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-regular-polygon-surface : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+(define geo-draw-regular-polygon : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
   (lambda [alt-stroke alt-fill]
     (λ [self cr x0 y0 width height]
       (when (geo:regular-polygon? self)
@@ -96,18 +96,19 @@
                         (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
                         null))))))
 
-(define geo-polygon-surface : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Fill-Rule Geo-Surface-Draw!)
+(define geo-draw-polygon : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Fill-Rule Geo-Surface-Draw!)
   (lambda [alt-stroke alt-fill alt-rule]
     (λ [self cr x0 y0 width height]
       (when (geo:polygon? self)
-        (dc_polygon cr x0 y0 width height (geo:polygon-prints self)
+        (dc_polygon cr (+ x0 (geo:polygon-tx self)) (+ y0 (geo:polygon-ty self)) width height
+                    (geo:polygon-prints self)
                     (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
-                    (or alt-rule (default-fill-rule)))))))
+                    alt-rule)))))
 
-(define geo-polyline-surface : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)
+(define geo-draw-polyline : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)
   (lambda [alt-stroke]
     (λ [self cr x0 y0 width height]
       (when (geo:polyline? self)
-        (dc_polyline cr x0 y0 width height (geo:polyline-prints self)
-                     ;(geo:polyline-tx self) (geo:polyline-ty self) xstroke? ystroke?
+        (dc_polyline cr (+ x0 (geo:polyline-tx self)) (+ y0 (geo:polyline-ty self)) width height
+                     (geo:polyline-prints self)
                      (geo-select-stroke-paint* alt-stroke) (geo:polyline-closed? self))))))
