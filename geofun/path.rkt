@@ -32,10 +32,13 @@
 (require "digitama/geometry/bbox.rkt")
 (require "digitama/geometry/trail.rkt")
 (require "digitama/geometry/anchor.rkt")
+(require "digitama/geometry/footprint.rkt")
 
 (require "digitama/dc/path.rkt")
 (require "digitama/dc/composite.rkt")
 (require "digitama/layer/sticker.rkt")
+
+(require "digitama/unsafe/source.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
@@ -65,7 +68,7 @@
 (define make-gomamon : (->* (Real)
                             (Real #:T-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
                                   #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
-                                  #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule Symbol)
+                                  #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule Fill-Rule)
                             Gomamon)
   (lambda [#:T-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
@@ -85,12 +88,12 @@
     (define-values (tsx tsy) (geo-path-turn-scales t-scale 0.5))
     (define-values (usx usy) (geo-path-turn-scales u-scale 0.25))
     
-    (create-geometry-object gomamon  (geo-draw-path stroke fill frule)
+    (create-geometry-object gomamon (geo-draw-path! stroke fill frule)
                             #:extent geo-path-extent
                             #:id name
                             (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
-                            (list (cons start-of-track home-pos)) (make-hash)
+                            (list (gpp:point #\M home-pos)) (make-hash)
                             (and (stroke? stroke) (* (stroke-width stroke) 0.5))
                             xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))
 

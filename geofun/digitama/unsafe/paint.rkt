@@ -92,6 +92,14 @@
       (cairo_pattern_set_filter (cairo_get_source cr) filter)
       (cairo_fill cr)
       (cairo_restore cr)))
+
+  (define cairo-composite!
+    (lambda [master cr draw! dest-x dest-y dest-width dest-height]
+      (cairo_push_group cr)
+      (cairo_new_path cr)
+      (draw! master cr dest-x dest-y dest-width dest-height)
+      (cairo_pop_group_to_source cr)
+      (cairo_paint cr)))
   
   (define cairo-mask
     (lambda [cr src dest-x dest-y dest-width dest-height density]
@@ -110,7 +118,18 @@
  [cairo-render-with-stroke (-> Cairo-Ctx Paint Void)]
  [cairo-render-background (-> Cairo-Ctx (Option Fill-Source) Void)]
  [cairo-set-fill-rule (-> Cairo-Ctx Symbol Void)]
- [cairo-composite (-> Cairo-Ctx Cairo-Surface Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Byte Flonum Flonum Void)]
+ 
+ [cairo-composite
+  (-> Cairo-Ctx Cairo-Surface
+      Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+      Byte Flonum Flonum
+      Void)]
+ 
+ [cairo-composite!
+  (All (Master)
+       (-> Master Cairo-Ctx (Gairo-Surface-Draw! Master)
+           Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+           Void))]
 
  [cairo-render-with-fill
   (case-> [Cairo-Ctx Fill-Source -> Void]

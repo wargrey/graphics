@@ -2,9 +2,9 @@
 
 (provide (all-defined-out))
 
-(require "../paint.rkt")
-(require "../../paint.rkt")
 (require "../../stroke.rkt")
+(require "../../paint.rkt")
+(require "../paint.rkt")
 (require "../convert.rkt")
 
 (require "../geometry/dot.rkt")
@@ -14,6 +14,7 @@
 (require "../geometry/anchor.rkt")
 (require "../geometry/footprint.rkt")
 
+(require "../unsafe/source.rkt")
 (require "../unsafe/dc/path.rkt")
 
 (require (for-syntax racket/base))
@@ -104,8 +105,6 @@
     [(_ move #:-> args #:boundary-guard guard) (syntax/loc stx (define-gomamon-turn-move! move #false args guard))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define start-of-track : Char #\M)
-
 (struct gomamon geo:path
   ([xstepsize : Nonnegative-Flonum]
    [ystepsize : Nonnegative-Flonum]
@@ -280,11 +279,11 @@
       (define-values (width height pos) (geo-bbox-values (geo:path-bbox self)))
       (values width height (make-geo-ink pos width height)))))
 
-(define geo-draw-path : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
-  (lambda [alt-stroke alt-fill]
+(define geo-draw-path! : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Fill-Rule Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill frule]
     (λ [self cr x0 y0 width height]
       (when (geo:path? self)
         (define-values (xoff yoff) (geo-bbox-offset-values (geo:path-bbox self)))
         (dc_path cr (+ x0 xoff) (+ y0 yoff) width height (reverse (geo:path-footprints self))
                     (geo-select-stroke-paint* alt-stroke) (geo-select-fill-source alt-fill)
-                    (default-fill-rule))))))
+                    frule)))))

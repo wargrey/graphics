@@ -3,7 +3,7 @@
 (require geofun/vector)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define r : Index 128)
+(define r : Index 64)
 
 (for/list : (Listof Geo) ([n (in-range 17)])
   (geo-cc-superimpose (geo-regular-polygon n r #:fill 'azure)

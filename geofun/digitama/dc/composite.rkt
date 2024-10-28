@@ -16,6 +16,7 @@
 (require "../layer/table.rkt")
 
 (require "../unsafe/composite.rkt")
+(require "../unsafe/frame.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
@@ -29,7 +30,7 @@
        (syntax/loc stx
          (Geo geo-convert geo-draw-group (geo-group-extent layers)
               (or name (gensym 'geo-prefix)) op layers
-              0.0+0.0i geo-frame-empty geo-frame-empty
+              0.0+0.0i geo-frame-zero-border
               argl ...)))]
     [(_ Geo
         (~alt (~optional (~seq #:id name) #:defaults ([name #'#false]))
@@ -41,23 +42,22 @@
         op layers argl ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
-         (let-values ([(geo-frame-extent O margins insets) (geo-group-frame-extent margin inset layers bdr)])
+         (let-values ([(geo-frame-extent O frame) (geo-group-frame-extent margin inset layers bdr)])
            (Geo geo-convert (geo-draw-framed-group bdr bgsource) geo-frame-extent
-                (or name (gensym 'geo-prefix)) op layers O margins insets
+                (or name (gensym 'geo-prefix)) op layers O frame
                 argl ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Frame-Blank-Datum (U Nonnegative-Real (Listof Nonnegative-Real)))
-(define-type Geo-Frame-Blank (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
+(define-type Geo-Frame-Border (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
 
-(define geo-frame-empty : Geo-Frame-Blank #(0.0 0.0 0.0 0.0))
+(define geo-frame-zero-border : Geo-Frame-Border #(0.0 0.0 0.0 0.0))
 
 (struct geo:group geo
   ([operator : (Option Symbol)]
    [selves : Geo-Layer-Group]
    [origin : Float-Complex]
-   [margins : Geo-Frame-Blank]
-   [pads :  Geo-Frame-Blank])
+   [border : Geo-Frame-Border])
   #:type-name Geo:Group
   #:transparent)
 
@@ -101,15 +101,15 @@
      (create-geometry-object geo:group geo-draw-group
                              #:extent (geo-group-extent layers)
                              #:id id
-                             op layers 0.0+0.0i geo-frame-empty geo-frame-empty)]
+                             op layers 0.0+0.0i geo-frame-zero-border)]
     [(id op layers margin inset border background)
      (if (or margin inset border background)
 
-         (let-values ([(geo-frame-extent O margins insets) (geo-group-frame-extent margin inset layers border)])   
+         (let-values ([(geo-frame-extent O frame) (geo-group-frame-extent margin inset layers border)])   
            (create-geometry-object geo:group (geo-draw-framed-group border background)
                                    #:extent geo-frame-extent
                                    #:id id
-                                   op layers O margins insets))
+                                   op layers O frame))
 
          (make-geo:group id op layers))]))
 
@@ -136,23 +136,22 @@
 (define geo-draw-group : Geo-Surface-Draw!
   (lambda [self cr x0 y0 width height]
     (with-asserts ([self geo:group?])
-      (geo_composite (geo-select-operator (geo:group-operator self) default-pin-operator)
-                     (geo:group-selves self) (default-geometry-density)))))
+      (geo_composite cr x0 y0 width height
+                     (geo-select-operator (geo:group-operator self) default-pin-operator)
+                     (geo:group-selves self)))))
 
 (define geo-draw-framed-group : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
   (lambda [alt-bdr alt-bg]
     (lambda [self cr x0 y0 width height]
       (with-asserts ([self geo:group?])
-        (define margins (geo:group-margins self))
-        (define pads (geo:group-pads self))
-        (define-values (mtop mright mbottom mleft ptop pright pbottom pleft)
-          (values (vector-ref margins 0) (vector-ref margins 1) (vector-ref margins 2) (vector-ref margins 3)
-                  (vector-ref pads 0)    (vector-ref pads 1)    (vector-ref pads 2)    (vector-ref pads 3)))
-    
-        (geo_framed_composite (geo-select-operator (geo:group-operator self) default-pin-operator) (geo:group-selves self)
-                              mtop mright mbottom mleft ptop pright pbottom pleft
-                              (geo-select-border-paint alt-bdr) (geo-select-background-source alt-bg)
-                              (default-geometry-density))))))
+        (define origin (geo:group-origin self))
+        (define border (geo:group-border self))
+
+        (geo_framed_composite cr x0 y0 width height
+                              (geo-select-operator (geo:group-operator self) default-pin-operator)
+                              (geo:group-selves self) (real-part origin) (imag-part origin)
+                              (vector-ref border 0) (vector-ref border 1) (vector-ref border 2) (vector-ref border 3)
+                              (geo-select-border-paint alt-bdr) (geo-select-background-source alt-bg))))))
 
 (define geo-group-extent : (-> Geo-Layer-Group Geo-Calculate-Extent)
   (lambda [layers]
@@ -163,7 +162,7 @@
       (values w h #false))))
 
 (define geo-group-frame-extent : (-> (Option Geo-Frame-Blank-Datum) (Option Geo-Frame-Blank-Datum) Geo-Layer-Group Maybe-Stroke-Paint
-                                     (Values Geo-Calculate-Extent Float-Complex Geo-Frame-Blank Geo-Frame-Blank))
+                                     (Values Geo-Calculate-Extent Float-Complex Geo-Frame-Border))
   (lambda [margin inset layers border]
     (define-values (mtop mright mbottom mleft)
       (cond [(list? margin) (list->4:values (map real->double-flonum margin) 0.0)]
@@ -176,16 +175,15 @@
             [else (values 0.0 0.0 0.0 0.0)]))
     
     (define-values (flwidth flheight) (values (glayer-group-width layers) (glayer-group-height layers)))
-    (define-values (W H lx ty w h ox oy)
+    (define-values (W H bx by bw bh ox oy)
       (dc_frame_size flwidth flheight
                      mtop mright mbottom mleft ptop pright pbottom pleft
                      (geo-select-border-paint border)))
     
     (define geo-frame-extent : Geo-Calculate-Extent
       (lambda [self]
-        (values W H (make-geo-ink lx ty w h))))
+        (values W H (make-geo-ink bx by bw bh))))
     
     (values geo-frame-extent
             (make-rectangular ox oy)
-            (vector-immutable mtop mright mbottom mleft)
-            (vector-immutable ptop pright pbottom pleft))))
+            (vector-immutable bx by bw bh))))

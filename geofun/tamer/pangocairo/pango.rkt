@@ -10,7 +10,7 @@
 (require "../../digitama/base.rkt")
 (require "../../digitama/unsafe/cairo.rkt")
 (require "../../digitama/unsafe/pango.rkt")
-(require (submod "../../digitama/unsafe/dc/text.rkt" unsafe))
+(require (submod "../../digitama/unsafe/dc/text-layout.rkt" unsafe))
 (require (only-in (submod "../../digitama/unsafe/font.rkt" unsafe) geo_create_font_desc))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

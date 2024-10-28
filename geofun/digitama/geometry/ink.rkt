@@ -20,6 +20,12 @@
     [(x y width height) (make-geo-ink (make-rectangular x y) width height)]
     [(pos width height) (unsafe-geo-ink pos width height)]))
 
+(define geo-ink-values : (-> Geo-Ink (Values Float-Complex Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [self]
+    (values (geo-ink-pos self)
+            (geo-ink-width self)
+            (geo-ink-height self))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-ink-embolden : (->* (Geo-Ink Nonnegative-Flonum) (Boolean Boolean) Geo-Ink)
   (lambda [self thickness [xstroke? #true] [ystroke? #true]]

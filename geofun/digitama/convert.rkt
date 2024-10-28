@@ -41,6 +41,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Surface-Draw! (Gairo-Surface-Draw! Geo<%>))
 (define-type Geo-Calculate-Extent (-> Geo<%> (Values Nonnegative-Flonum Nonnegative-Flonum (Option Geo-Ink))))
+(define-type Geo-Calculate-Extent* (-> Geo<%> (Values Nonnegative-Flonum Nonnegative-Flonum Geo-Ink)))
 
 (struct geo<%> visual-object<%>
   ([draw! : Geo-Surface-Draw!]
@@ -51,11 +52,6 @@
   ([id : Symbol])
   #:type-name Geo
   #:transparent)
-
-(define create-abstract-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Boolean (Values Abstract-Surface Cairo-Ctx))
-  (lambda [flwidth flheight density scale?]
-    (define-values (surface cr width height) (cairo-create-abstract-surface* flwidth flheight density scale?))
-    (values surface cr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-extent : (-> Geo<%> (Values Nonnegative-Flonum Nonnegative-Flonum (Option Geo-Ink)))
@@ -153,7 +149,7 @@
           (values ink-width ink-height (make-geo-ink pos ink-width ink-height)))
         (values self-width self-height #false))))
 
-(define geo-calculate-extent* : Geo-Calculate-Extent
+(define geo-calculate-extent* : Geo-Calculate-Extent*
   (lambda [self]
     (define-values (sfc cr _w _h) (cairo-create-abstract-surface* 0.0 0.0 (default-geometry-density) #true))
     (define-values (?pos sfc-width sfc-height) (abstract-surface-extent sfc))
@@ -164,11 +160,11 @@
         (values sfc-width sfc-height (make-geo-ink ink-pos ink-width ink-height)))))
 
 (define geo-shape-plain-extent : (case-> [Nonnegative-Flonum -> Geo-Calculate-Extent]
-                                         [Nonnegative-Flonum Flonum Flonum -> Geo-Calculate-Extent]
-                                         [Nonnegative-Flonum Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent]
                                          [Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent]
-                                         [Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Geo-Calculate-Extent]
-                                         [Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent])
+                                         [Nonnegative-Flonum Flonum Flonum -> Geo-Calculate-Extent*]
+                                         [Nonnegative-Flonum Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent*]
+                                         [Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Geo-Calculate-Extent*]
+                                         [Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent*])
   (case-lambda
     [(size) (λ [self] (values size size #false))]
     [(width height) (λ [self] (values width height #false))]

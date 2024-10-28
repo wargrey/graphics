@@ -5,11 +5,14 @@
 (provide geo-scale geo:scaling? Geo:Scaling)
 (provide geo-rotate geo:rotation? Geo:Rotation)
 
-(require "digitama/dc/resize.rkt")
 (require "digitama/convert.rkt")
 (require "digitama/resize.rkt")
 
+(require "digitama/dc/resize.rkt")
+(require "digitama/geometry/ink.rkt")
+
 (require "digitama/unsafe/visual/abstract.rkt")
+(require "digitama/unsafe/surface/abstract.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-section : (case-> [Geo Complex Complex -> Geo]
@@ -51,12 +54,11 @@
 
 (define geo-bounding-box : (-> Geo (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self]
-    (define-values (pos width height) (abstract-surface-bbox (geo-create-surface self)))
-
+    (define-values (_w _h ink) (geo-calculate-extent* self))
+    (define-values (pos width height) (geo-ink-values ink))
+    
     ;;; All geo vector graphics are accommodated in bounded surfaces,
     ;;; the positions of the bounding boxes are non-negative.
-
-    (displayln pos)
 
     (define x (max (+ (real-part pos) width) 0.0))
     (define y (max (+ (imag-part pos) height) 0.0))
@@ -65,7 +67,8 @@
 
 (define geo-trim : (-> Geo Geo)
   (lambda [self]
-    (define-values (pos width height) (abstract-surface-bbox (geo-create-surface self)))
+    (define-values (_w _h ink) (geo-calculate-extent* self))
+    (define-values (pos width height) (geo-ink-values ink))
     (geo-section self (real-part pos) (imag-part pos) width height)))
 
 (define-cropper geo-crop : (-> Geo Nonnegative-Real Nonnegative-Real Geo)

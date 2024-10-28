@@ -7,6 +7,7 @@
 (require "digitama/source.rkt")
 (require "digitama/pattern.rkt")
 (require "digitama/paint.rkt")
+(require "digitama/convert.rkt")
 (require "digitama/geometry/radius.rkt")
 
 (require "digitama/unsafe/source.rkt")
@@ -19,12 +20,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-save
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)] #:border [border : Maybe-Stroke-Paint (default-border-paint)]
-           #:fill [fill : Option-Fill-Paint (default-fill-paint)] #:fill-rule [rule : Fill-Rule (default-fill-rule)]
-           #:font [font : Font (default-font)] #:font-paint [fgc : Option-Fill-Paint (default-font-paint)]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)]
+           #:border [border : Maybe-Stroke-Paint (default-border-paint)]
+           #:fill [fill : Option-Fill-Paint (default-fill-paint)]
+           #:fill-rule [rule : Fill-Rule (default-fill-rule)]
+           #:font [font : Font (default-font)]
+           #:font-paint [fgc : Option-Fill-Paint (default-font-paint)]
            #:background [bgc : Option-Fill-Paint (default-background-paint)]
-           #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)] #:operator [op (default-pin-operator)]
-           #:format [format : Symbol 'pdf] #:bitmap-density [density : Positive-Flonum (default-bitmap-density)]
+           #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
+           #:operator [op : Geo-Pin-Operator (default-pin-operator)]
+           #:format [format : Symbol 'pdf]
+           #:bitmap-density [density : Positive-Flonum (default-bitmap-density)]
            [self : Geo<%>] [/dev/geoout : (U Path-String Output-Port)]] : Void
     (parameterize ([default-stroke-source (stroke-paint->source* stroke)]
                    [default-border-source (border-paint->source* border)]
@@ -35,6 +41,4 @@
                    [default-pattern-filter filter]
                    [default-pin-operator op]
                    [default-font font])
-      (abstract-surface-save
-       ((geo<%>-surface self) self)
-       /dev/geoout format density))))
+      (geo-object-save self /dev/geoout format density))))
