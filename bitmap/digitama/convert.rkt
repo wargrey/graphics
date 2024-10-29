@@ -3,8 +3,7 @@
 (provide (all-defined-out))
 (provide (rename-out [bitmap<%>-surface bitmap-surface]))
 
-(require geofun/digitama/unsafe/visual/object)
-(require geofun/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/visual)
 (require geofun/digitama/unsafe/surface/image)
 (require geofun/digitama/unsafe/typed/cairo)
 (require geofun/stroke)

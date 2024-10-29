@@ -25,18 +25,16 @@
   (lambda [#:id [id : (Option Symbol) #false] #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
            [self : Bitmap]] : Geo:Bitmap
     (define-values (w h) (bitmap-flsize self))
-    (create-geometry-object geo:bitmap (geo-draw-bitmap w h)
-                            #:extent (geo-shape-plain-extent w h)
-                            #:id id
+    (create-geometry-object geo:bitmap
+                            #:with [id (geo-draw-bitmap w h) (geo-shape-plain-extent w h)]
                             self filter)))
 
 (define geo-rectangular
   (lambda [#:id [id : (Option Symbol) #false] #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
            [width : Real] [height : Real] [λargb : XYWH->ARGB]] : Geo:Bitmap
     (define-values (w h) (~size width height))
-    (create-geometry-object geo:bitmap (geo-draw-bitmap w h)
-                            #:extent (geo-shape-plain-extent w h)
-                            #:id id
+    (create-geometry-object geo:bitmap
+                            #:with [id (geo-draw-bitmap w h) (geo-shape-plain-extent w h)]
                             λargb filter)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

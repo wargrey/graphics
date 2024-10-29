@@ -27,8 +27,11 @@
   
   (geo-composite green-circle -50 0 blue-circle)
   (geo-pin 3pc 0 0 yellow-circle 64 64)
-  (geo-frame (geo-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle))
-  (geo-frame (geo-frame (geo-pin* -1/8 -1/8 0 0 yellow-circle yellow-circle yellow-circle)))
+
+  (geo-vl-append #:gapsize 4.0
+   (geo-frame (geo-pin* 1/8 1/8 0 0 yellow-circle yellow-circle yellow-circle) #:background 'Azure)
+   (geo-frame (geo-frame (geo-pin* -1/8 -1/8 0 0 yellow-circle yellow-circle yellow-circle) #:background 'Azure)))
+  
   (geo-cc-superimpose* (list 3pc yellow-circle))
   
   (geo-pin* 1/5 1/5 0 0 sine sine)

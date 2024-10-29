@@ -4,60 +4,42 @@
 
 (require typed/racket/unsafe)
 
-(require "visual/ctype.rkt")
+(require "paint.rkt")
+(require "typed/cairo.rkt")
 
-(module unsafe racket/base
-  (provide (all-defined-out))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (Master) geo_section : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum
+                                            (Cairo-Surface-Draw! Master) Master Nonnegative-Flonum Nonnegative-Flonum
+                                            Any)
+  (lambda [cr x0 y0 width height x y draw! master owidth oheight]
+    (cairo_save cr)
+    (cairo-clip cr x0 y0 width height)
+    (draw! master cr (- x0 x) (- y0 y) owidth oheight)
+    (cairo_restore cr)))
 
-  (require racket/draw/unsafe/cairo)
-  (require racket/unsafe/ops)
-  
-  (require "../geometry/affine.rkt")
+(define #:forall (Master) geo_scale : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum
+                                          (Cairo-Surface-Draw! Master) Master Nonnegative-Flonum Nonnegative-Flonum
+                                          Any)
+  (lambda [cr x0 y0 width height xscale yscale draw! master owidth oheight]
+    (define tx (if (< xscale 0.0) (+ x0 width)  x0))
+    (define ty (if (< yscale 0.0) (+ y0 height) y0))
 
-  (require (submod "visual/abstract.rkt" unsafe))
-  (require (submod "surface/abstract.rkt" unsafe))
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (geo_section src x y width height density)
-    (define-values (sfc cr _w _h) (cairo-create-abstract-surface* (unsafe-fl/ width density) (unsafe-fl/ height density) density #false))
-    (cairo_set_source_surface cr src (unsafe-fl- 0.0 x) (unsafe-fl- 0.0 y))
-    (cairo_paint cr)
-    sfc)
-
-  (define (geo_scale src xscale yscale density)
-    (define-values (_ width height) (abstract-surface-extent* src))
-    (define flwidth (unsafe-fl* width (unsafe-flabs xscale)))
-    (define flheight (unsafe-fl* height (unsafe-flabs yscale)))
-    (define-values (sfc cr used-width used-flheight) (cairo-create-abstract-surface* flwidth flheight density #false))
-    (define tx (if (unsafe-fl< xscale 0.0) used-width 0.0))
-    (define ty (if (unsafe-fl< yscale 0.0) used-flheight 0.0))
-
+    (cairo_save cr)
     ; order matters
     (cairo_translate cr tx ty)
     (cairo_scale cr xscale yscale)
-    
-    (cairo_set_source_surface cr src 0.0 0.0)
-    (cairo_paint cr)
-    
-    sfc)
+    (draw! master cr 0.0 0.0 owidth oheight)
+    (cairo_restore cr)))
 
-  (define (geo_rotate src theta.rad density)
-    (define-values (_ ow oh) (abstract-surface-extent* src))
-    (define-values (flwidth flheight) (geo-size-rotate ow oh theta.rad))
-    (define-values (sfc cr rw rh) (cairo-create-abstract-surface* flwidth flheight density #false))
-
+(define #:forall (Master) geo_rotate : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum
+                                           (Cairo-Surface-Draw! Master) Master Nonnegative-Flonum Nonnegative-Flonum
+                                           Any)
+  (lambda [cr x0 y0 width height theta.rad draw! master owidth oheight]
+    (define-values (ow oh) (values (* width 0.5) (* height 0.5)))
+    
+    (cairo_save cr)
     ; order matters
-    (cairo_translate cr (unsafe-fl* rw 0.5) (unsafe-fl* rh 0.5))
+    (cairo_translate cr (+ x0 ow) (+ y0 oh))
     (cairo_rotate cr theta.rad)
-    (cairo_set_source_surface cr src (unsafe-fl* ow -0.5) (unsafe-fl* oh -0.5))
-    
-    (cairo_paint cr)
-
-    sfc))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(unsafe-require/typed/provide
- (submod "." unsafe)
- [geo_section (-> Abstract-Surface Flonum Flonum Flonum Flonum Positive-Flonum Abstract-Surface)]
- [geo_scale (-> Abstract-Surface Flonum Flonum Positive-Flonum Abstract-Surface)]
- [geo_rotate (-> Abstract-Surface Flonum Positive-Flonum Abstract-Surface)])
+    (draw! master cr (* owidth -0.5) (* oheight -0.5) owidth oheight)
+    (cairo_restore cr)))

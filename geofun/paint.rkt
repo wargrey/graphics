@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) Fill-Rule Geo-Pin-Operator Geo-Pattern-Filter)
 
 (require "stroke.rkt")
 (require "color.rkt")
@@ -10,7 +10,7 @@
 (require "digitama/composite.rkt")
 
 (require "digitama/unsafe/source.rkt")
-(require "digitama/unsafe/visual/object.rkt")
+(require "digitama/unsafe/visual.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Stroke-Paint (U Color Stroke))

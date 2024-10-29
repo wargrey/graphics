@@ -64,9 +64,9 @@
     (define flradius : Nonnegative-Flonum (~length radius flength))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
-    (create-geometry-object geo:stadium (geo-draw-stadium stroke pattern)
-                            #:extent (geo-shape-plain-extent (+ d flength) d 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:stadium
+                            #:with [id (geo-draw-stadium stroke pattern)
+                                       (geo-shape-plain-extent (+ d flength) d 0.0 0.0)]
                             flength flradius 'both)))
 
 (define geo-lstadium : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Stadium)
@@ -75,9 +75,9 @@
     (define flradius : Nonnegative-Flonum (~length radius flength))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
-    (create-geometry-object geo:stadium (geo-draw-stadium stroke pattern)
-                            #:extent (geo-shape-plain-extent (+ flradius flength) d 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:stadium
+                            #:with [id (geo-draw-stadium stroke pattern)
+                                       (geo-shape-plain-extent (+ flradius flength) d 0.0 0.0)]
                             flength flradius 'left)))
 
 (define geo-rstadium : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Stadium)
@@ -86,9 +86,9 @@
     (define flradius : Nonnegative-Flonum (~length radius flength))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
-    (create-geometry-object geo:stadium (geo-draw-stadium stroke pattern)
-                            #:extent (geo-shape-plain-extent (+ flradius flength) d 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:stadium
+                            #:with [id (geo-draw-stadium stroke pattern)
+                                       (geo-shape-plain-extent (+ flradius flength) d 0.0 0.0)]
                             flength flradius 'right)))
 
 (define geo-bullet : (->* (Real Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Bullet)
@@ -97,9 +97,9 @@
     (define flradius : Nonnegative-Flonum (~length radius (+ flogive flbarrel)))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
-    (create-geometry-object geo:bullet (geo-draw-bullet stroke pattern)
-                            #:extent (geo-shape-plain-extent (+ flogive flbarrel) d 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:bullet
+                            #:with [id (geo-draw-bullet stroke pattern)
+                                       (geo-shape-plain-extent (+ flogive flbarrel) d 0.0 0.0)]
                             flogive flbarrel flradius)))
 
 (define geo-sandglass : (->* (Real)
@@ -114,9 +114,9 @@
     (define neck-flheight (~length neck-height flheight))
     (define tube-flheight (~length tube-height flheight))
     
-    (create-geometry-object geo:sandglass (geo-draw-sandglass stroke pattern)
-                            #:extent (geo-shape-plain-extent flwidth flheight 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:sandglass
+                            #:with [id (geo-draw-sandglass stroke pattern)
+                                       (geo-shape-plain-extent flwidth flheight 0.0 0.0)]
                             neck-flwidth neck-flheight tube-flheight)))
 
 (define geo-storage : (->* (Real Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Storage)
@@ -124,9 +124,9 @@
     (define-values (flwidth flheight) (~size width height))
     (define fla : Nonnegative-Flonum (~length aradius (* flheight 0.5)))
     
-    (create-geometry-object geo:storage (geo-draw-storage stroke pattern)
-                            #:extent (geo-shape-plain-extent flwidth flheight 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:storage
+                            #:with [id (geo-draw-storage stroke pattern)
+                                       (geo-shape-plain-extent flwidth flheight 0.0 0.0)]
                             flwidth flheight fla)))
 
 (define geo-document : (->* (Real Real) (Real #:id (Option Symbol) #:extra-n Index #:gapsize Real #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Document)
@@ -134,9 +134,9 @@
     (define-values (flwidth flheight) (~size width height))
     (define flwave : Nonnegative-Flonum (~length wave flheight))
     
-    (create-geometry-object geo:document (geo-draw-document stroke pattern)
-                            #:extent (geo-shape-plain-extent flwidth flheight 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:document
+                            #:with [id (geo-draw-document stroke pattern)
+                                       (geo-shape-plain-extent flwidth flheight 0.0 0.0)]
                             flwidth flheight flwave (~length gapsize flwave) extra-n)))
 
 (define geo-database : (->* (Real Real) (Real #:id (Option Symbol) #:extra-n Index #:gapsize Real #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Database)
@@ -144,9 +144,9 @@
     (define-values (flwidth flheight) (~size width height))
     (define flb : Nonnegative-Flonum (~length bradius flheight))
     
-    (create-geometry-object geo:database (geo-draw-database stroke pattern)
-                            #:extent (geo-shape-plain-extent flwidth flheight 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:database
+                            #:with [id (geo-draw-database stroke pattern)
+                                       (geo-shape-plain-extent flwidth flheight 0.0 0.0)]
                             flwidth flheight flb (~length gapsize flb) extra-n)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

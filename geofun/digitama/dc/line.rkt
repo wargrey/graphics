@@ -24,36 +24,36 @@
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~size width height))
     
-    (create-geometry-object geo:line (geo-draw-surface stroke)
-                            #:extent (geo-shape-plain-extent flwidth flheight)
-                            #:id id
+    (create-geometry-object geo:line
+                            #:with [id (geo-draw-surface stroke)
+                                       (geo-shape-plain-extent flwidth flheight)]
                             0.0 (* flheight 0.5) flwidth 0.0)))
 
 (define geo-vline : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~size width height))
     
-    (create-geometry-object geo:line (geo-draw-surface stroke)
-                            #:extent (geo-shape-plain-extent flwidth flheight)
-                            #:id id
+    (create-geometry-object geo:line
+                            #:with [id (geo-draw-surface stroke)
+                                       (geo-shape-plain-extent flwidth flheight)]
                             (* flwidth 0.5) 0.0 0.0 flheight)))
 
 (define geo-diagonal : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~size width height))
     
-    (create-geometry-object geo:line (geo-draw-surface stroke)
-                            #:extent (geo-shape-plain-extent flwidth flheight)
-                            #:id id
+    (create-geometry-object geo:line
+                            #:with [id (geo-draw-surface stroke)
+                                       (geo-shape-plain-extent flwidth flheight)]
                             0.0 0.0 flwidth flheight)))
 
 (define geo-anti-diagonal : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~size width height))
     
-    (create-geometry-object geo:line (geo-draw-surface stroke)
-                            #:extent (geo-shape-plain-extent flwidth flheight)
-                            #:id id
+    (create-geometry-object geo:line
+                            #:with [id (geo-draw-surface stroke)
+                                       (geo-shape-plain-extent flwidth flheight)]
                             0.0 flheight flwidth (- flheight))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

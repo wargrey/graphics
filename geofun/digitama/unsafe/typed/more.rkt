@@ -4,7 +4,7 @@
 
 (require typed/racket/unsafe)
 
-(require "../visual/ctype.rkt")
+(require "c.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide

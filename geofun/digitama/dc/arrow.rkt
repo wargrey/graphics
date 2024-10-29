@@ -36,9 +36,9 @@
     (define flradius : Nonnegative-Flonum (~length radius))
     (define wing-flangle (and wing-angle (~radian wing-angle radian?)))
     
-    (create-geometry-object geo:dart (geo-draw-dart stroke pattern)
-                            #:extent geo-dart-extent
-                            #:id id
+    (create-geometry-object geo:dart
+                            #:with [id (geo-draw-dart stroke pattern)
+                                       geo-dart-extent]
                             flradius (~radian start radian?) wing-flangle)))
 
 (define geo-arrow
@@ -51,9 +51,9 @@
     (define shaft-flength : Nonnegative-Flonum (~length shaft-length rhead))
     (define wing-flangle (and wing-angle (~radian wing-angle radian?)))
     
-    (create-geometry-object geo:arrow (geo-draw-arrow stroke pattern)
-                            #:extent geo-arrow-extent
-                            #:id id
+    (create-geometry-object geo:arrow
+                            #:with [id (geo-draw-arrow stroke pattern)
+                                       geo-arrow-extent]
                             rhead shaft-flength shaft-flthickness (~radian start radian?) wing-flangle)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

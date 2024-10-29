@@ -14,7 +14,6 @@
 (require "../geometry/anchor.rkt")
 (require "../geometry/footprint.rkt")
 
-(require "../unsafe/source.rkt")
 (require "../unsafe/dc/path.rkt")
 
 (require (for-syntax racket/base))
@@ -33,8 +32,7 @@
    [origin : Float-Complex]
    [here : Float-Complex]
    [footprints : Geo-Path-Prints]
-   [foot-infos : Geo-Path-Infobase]
-   [sticker-offset : (Option Flonum)])
+   [foot-infos : Geo-Path-Infobase])
   #:type-name Geo:Path
   #:transparent
   #:mutable)
@@ -262,17 +260,6 @@
                                    (real->double-flonum (imag-part target)))])]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-path-sticker-offset : (-> Geo:Path Float-Complex)
-  (lambda [self]
-    (define maybe-offset : (Option Flonum) (geo:path-sticker-offset self))
-
-    (cond [(and maybe-offset) (make-rectangular maybe-offset maybe-offset)]
-          [else (let* ([fallback (current-stroke-source)])
-                  (if (stroke? fallback)
-                      (let ([fallback-offset (* (stroke-width fallback) 0.5)])
-                        (make-rectangular fallback-offset fallback-offset))
-                      0.0+0.0i))])))
-
 (define geo-path-extent : Geo-Calculate-Extent
   (lambda [self]
     (with-asserts ([self geo:path?])

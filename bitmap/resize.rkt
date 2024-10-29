@@ -6,7 +6,7 @@
 (require "digitama/convert.rkt")
 
 (require geofun/digitama/resize)
-(require geofun/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/typed/c)
 
 (require digimon/metrics)
 

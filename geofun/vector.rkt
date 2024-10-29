@@ -5,13 +5,9 @@
 (require "digitama/base.rkt")
 (require "digitama/misc.rkt")
 (require "digitama/source.rkt")
-(require "digitama/pattern.rkt")
 (require "digitama/paint.rkt")
 (require "digitama/convert.rkt")
 (require "digitama/geometry/radius.rkt")
-
-(require "digitama/unsafe/source.rkt")
-(require "digitama/unsafe/visual/abstract.rkt")
 
 (require/provide "digitama/convert.rkt" "digitama/freeze.rkt")
 (require/provide "path.rkt" "constructor.rkt" "composite.rkt" "resize.rkt")

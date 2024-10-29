@@ -27,7 +27,6 @@
 (require "stroke.rkt")
 
 (require "digitama/convert.rkt")
-(require "digitama/composite.rkt")
 (require "digitama/geometry/dot.rkt")
 (require "digitama/geometry/bbox.rkt")
 (require "digitama/geometry/trail.rkt")
@@ -37,8 +36,6 @@
 (require "digitama/dc/path.rkt")
 (require "digitama/dc/composite.rkt")
 (require "digitama/layer/sticker.rkt")
-
-(require "digitama/unsafe/source.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
@@ -88,13 +85,11 @@
     (define-values (tsx tsy) (geo-path-turn-scales t-scale 0.5))
     (define-values (usx usy) (geo-path-turn-scales u-scale 0.25))
     
-    (create-geometry-object gomamon (geo-draw-path! stroke fill frule)
-                            #:extent geo-path-extent
-                            #:id name
+    (create-geometry-object gomamon
+                            #:with [name (geo-draw-path! stroke fill frule) geo-path-extent]
                             (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             (list (gpp:point #\M home-pos)) (make-hash)
-                            (and (stroke? stroke) (* (stroke-width stroke) 0.5))
                             xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -186,15 +181,12 @@
   (lambda [#:trusted-anchors [trusted-anchors #false] #:id [id #false] #:operator [op #false] #:truncate? [truncate? #true]
            self [anchor->sticker default-anchor->sticker]]
     (geo:path-stick self anchor->sticker trusted-anchors truncate?
-                    (or id (gensym 'geo:path:)) op
-                    (geo-path-sticker-offset self))))
+                    (or id (gensym 'geo:path:)) op 0.0+0.0i)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-anchor-position : (->* (Geo:Path Geo-Anchor-Name) (#:translate? Boolean) Float-Complex)
   (lambda [self anchor #:translate? [translate? #false]]
-    (define abspos : Float-Complex
-      (+ (geo-trail-ref (geo:path-trail self) anchor)
-         (geo-path-sticker-offset self)))
+    (define abspos : Float-Complex (geo-trail-ref (geo:path-trail self) anchor))
     
     (cond [(not translate?) abspos]
           [else (- abspos (geo-bbox-position (geo:path-bbox self)))])))

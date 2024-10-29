@@ -27,6 +27,6 @@
   
   (collect-garbage)
   (collect-garbage)
-  (collect-garbage) ; 36ms
+  (collect-garbage) ; 112ms
   (time (geo-freeze (geo-table 26 geobjs '(rc) '(cc) '(10) '(10)))))
   

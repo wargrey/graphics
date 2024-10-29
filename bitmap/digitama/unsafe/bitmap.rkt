@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require typed/racket/unsafe)
-(require geofun/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/typed/c)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base

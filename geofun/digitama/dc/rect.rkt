@@ -28,9 +28,8 @@
            [width : Real] [corner-radius : Real 0.0]] : Geo:Rectangle
     (define w : Nonnegative-Flonum (~length width))
     
-    (create-geometry-object geo:rect (geo-draw-rectangle stroke pattern)
-                            #:extent (geo-shape-plain-extent w 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:rect
+                            #:with [id (geo-draw-rectangle stroke pattern) (geo-shape-plain-extent w 0.0 0.0)]
                             w w (~length corner-radius w)
                             (map real->double-flonum vlines)
                             (map real->double-flonum hlines))))
@@ -41,9 +40,9 @@
            [width : Real] [height : Real -0.618] [corner-radius : Real 0.0]]
     (define-values (w h) (~size width height))
     
-    (create-geometry-object geo:rect (geo-draw-rectangle stroke pattern)
-                            #:extent (geo-shape-plain-extent w h 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:rect
+                            #:with [id (geo-draw-rectangle stroke pattern)
+                                       (geo-shape-plain-extent w h 0.0 0.0)]
                             w h (~length corner-radius (min w h))
                             (map real->double-flonum vlines)
                             (map real->double-flonum hlines))))

@@ -37,7 +37,7 @@
 (define-type Cairo-Surface (U Bitmap-Surface Abstract-Surface))
 (define-type Cairo-Stream-Surface (U PDF-Surface SVG-Surface))
 
-(define-type (Gairo-Surface-Draw! Master)
+(define-type (Cairo-Surface-Draw! Master)
   (-> Master Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Any))
 
 (define-type (Cairo-Create-Surface SFC)

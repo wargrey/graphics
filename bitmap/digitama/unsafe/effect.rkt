@@ -4,7 +4,7 @@
 
 (require typed/racket/unsafe)
 
-(require geofun/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/typed/c)
 (require "../convert.rkt")
 
 (module unsafe racket/base

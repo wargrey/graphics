@@ -3,8 +3,8 @@
 (require typed/racket/unsafe)
 
 (require "../base.rkt")
-(require "visual/ctype.rkt")
 (require "source.rkt")
+(require "typed/c.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -95,11 +95,15 @@
 
   (define cairo-composite!
     (lambda [master cr draw! dest-x dest-y dest-width dest-height]
-      (cairo_push_group cr)
+      (cairo_save cr)
       (cairo_new_path cr)
       (draw! master cr dest-x dest-y dest-width dest-height)
-      (cairo_pop_group_to_source cr)
-      (cairo_paint cr)))
+      (cairo_restore cr)))
+
+  (define cairo-clip
+    (lambda [cr x y width height]
+      (cairo_rectangle cr x y width height)
+      (cairo_clip cr)))
   
   (define cairo-mask
     (lambda [cr src dest-x dest-y dest-width dest-height density]
@@ -118,6 +122,7 @@
  [cairo-render-with-stroke (-> Cairo-Ctx Paint Void)]
  [cairo-render-background (-> Cairo-Ctx (Option Fill-Source) Void)]
  [cairo-set-fill-rule (-> Cairo-Ctx Symbol Void)]
+ [cairo-clip (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Void)]
  
  [cairo-composite
   (-> Cairo-Ctx Cairo-Surface
@@ -127,7 +132,7 @@
  
  [cairo-composite!
   (All (Master)
-       (-> Master Cairo-Ctx (Gairo-Surface-Draw! Master)
+       (-> Master Cairo-Ctx (Cairo-Surface-Draw! Master)
            Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
            Void))]
 

@@ -24,10 +24,10 @@
 (define frame-metrics : (-> Nonnegative-Flonum Nonnegative-Flonum
                             Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                             (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [line-width line-inset flmopen flmclose flpopen flpclose size]
+  (lambda [line-width line-inset flmopen flmclose flpopen flpclose content-size]
     (define border-position (+ flmopen line-inset))
     (define body-position (+ flmopen flpopen line-width))
-    (define border-size (+ flpopen flpclose size line-width))
+    (define border-size (+ flpopen flpclose content-size line-width))
     (define frame-size (+ border-position border-size flmclose line-inset))
     
     (values frame-size border-position border-size body-position)))

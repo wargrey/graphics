@@ -1,11 +1,11 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [cairo_recording_surface_get_extents abstract-surface-extent]
+                     [cairo_recording_surface_ink_extents abstract-surface-bbox]))
 
 (require typed/racket/unsafe)
-
 (require "../typed/cairo.rkt")
-(require "../visual/ctype.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -48,13 +48,16 @@
  [cairo-create-abstract-surface (Cairo-Create-Surface Abstract-Surface)]
  [cairo-create-abstract-surface* (Cairo-Create-Surface+Ctx Abstract-Surface)])
 
+(unsafe-require/typed/provide
+ "../cairo.rkt"
+ [cairo_recording_surface_get_extents (-> Abstract-Surface (Values (Option Flonum) Flonum Nonnegative-Flonum Nonnegative-Flonum))]
+ [cairo_recording_surface_ink_extents (-> Abstract-Surface (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))])
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-cairo-abstract-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Boolean (Gairo-Surface-Draw! False) Abstract-Surface)
-  (lambda [flwidth flheight density scale? λmake]
-    (define-values (surface cr width height) (cairo-create-abstract-surface* flwidth flheight density scale?))
-
-    (start-breakable-atomic)
-    (λmake #false cr 0.0 0.0 flwidth flheight)
-    (end-breakable-atomic)
-
-    surface))
+(define abstract-surface-extent* : (-> Abstract-Surface (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [sfc]
+    (define-values (?x y w h) (cairo_recording_surface_get_extents sfc))
+  
+    (if (not ?x)
+        (cairo_recording_surface_ink_extents sfc)
+        (values ?x y w h))))

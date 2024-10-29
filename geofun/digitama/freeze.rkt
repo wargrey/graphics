@@ -9,13 +9,10 @@
 (require "../font.rkt")
 
 (require "base.rkt")
+(require "paint.rkt")
 (require "source.rkt")
 (require "convert.rkt")
-(require "pattern.rkt")
-(require "composite.rkt")
-(require "paint.rkt")
 
-(require "unsafe/source.rkt")
 (require "unsafe/typed/cairo.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

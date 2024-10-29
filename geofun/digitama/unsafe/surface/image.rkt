@@ -4,7 +4,6 @@
 
 (require typed/racket/unsafe)
 
-(require "../visual/ctype.rkt")
 (require "../typed/cairo.rkt")
 
 (module unsafe racket/base

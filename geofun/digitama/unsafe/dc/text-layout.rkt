@@ -5,9 +5,9 @@
 (require typed/racket/unsafe)
 
 (require "../../base.rkt")
+(require "../typed/c.rkt")
 (require "../source.rkt")
 (require "../font.rkt")
-(require "../visual/ctype.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))

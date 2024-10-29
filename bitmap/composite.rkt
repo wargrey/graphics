@@ -23,7 +23,7 @@
 (require geofun/digitama/pattern)
 (require geofun/digitama/composite)
 (require geofun/digitama/layer/type)
-(require geofun/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/typed/c)
 
 (require (for-syntax racket/base))
 

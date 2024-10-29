@@ -8,7 +8,6 @@
 (require "../../paint.rkt")
 
 (require "../convert.rkt")
-(require "../unsafe/source.rkt")
 (require "../unsafe/dc/path.rkt")
 (require "../unsafe/dc/shape.rkt")
 
@@ -52,9 +51,9 @@
                  (regular-polygon-radius->circumsphere-radius N R rtype)
                  R)))
     
-    (create-geometry-object geo:regular-polygon (geo-draw-regular-polygon stroke pattern)
-                            #:extent (geo-shape-plain-extent d d 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:regular-polygon
+                            #:with [id (geo-draw-regular-polygon stroke pattern)
+                                       (geo-shape-plain-extent d d 0.0 0.0)]
                             N R rtype (~radian rotation radian?))))
 
 (define geo-polygon
@@ -64,9 +63,9 @@
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
-    (create-geometry-object geo:polygon (geo-draw-polygon stroke pattern rule)
-                            #:extent (geo-shape-plain-extent width height 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:polygon
+                            #:with [id (geo-draw-polygon stroke pattern rule)
+                                       (geo-shape-plain-extent width height 0.0 0.0)]
                             prints xoff yoff)))
 
 (define geo-polyline
@@ -76,9 +75,9 @@
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
-    (create-geometry-object geo:polyline (geo-draw-polyline stroke)
-                            #:extent (geo-shape-plain-extent width height 0.0 0.0)
-                            #:id id
+    (create-geometry-object geo:polyline
+                            #:with [id (geo-draw-polyline stroke)
+                                       (geo-shape-plain-extent width height 0.0 0.0)]
                             prints xoff yoff close?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

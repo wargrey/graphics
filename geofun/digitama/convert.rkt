@@ -10,10 +10,9 @@
 
 (require "paint.rkt")
 (require "geometry/ink.rkt")
+
+(require "unsafe/visual.rkt")
 (require "unsafe/typed/cairo.rkt")
-(require "unsafe/visual/ctype.rkt")
-(require "unsafe/visual/object.rkt")
-(require "unsafe/visual/abstract.rkt")
 (require "unsafe/surface/abstract.rkt")
 (require "unsafe/surface/image.rkt")
 
@@ -28,9 +27,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-geometry-object stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ Geo draw!:expr
-        (~optional (~seq #:extent extent:expr) #:defaults ([extent #'geo-calculate-extent]))
-        (~optional (~seq #:id name) #:defaults ([name #'#false])) argl ...)
+    [(_ Geo #:with [name draw!:expr extent:expr] argl ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
          (Geo geo-convert draw! extent
@@ -39,7 +36,7 @@
 (define default-geometry-density : (Parameterof Positive-Flonum) (make-parameter 1.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Surface-Draw! (Gairo-Surface-Draw! Geo<%>))
+(define-type Geo-Surface-Draw! (Cairo-Surface-Draw! Geo<%>))
 (define-type Geo-Calculate-Extent (-> Geo<%> (Values Nonnegative-Flonum Nonnegative-Flonum (Option Geo-Ink))))
 (define-type Geo-Calculate-Extent* (-> Geo<%> (Values Nonnegative-Flonum Nonnegative-Flonum Geo-Ink)))
 
@@ -57,6 +54,16 @@
 (define geo-extent : (-> Geo<%> (Values Nonnegative-Flonum Nonnegative-Flonum (Option Geo-Ink)))
   (lambda [geo]
     ((geo<%>-extent geo) geo)))
+
+(define geo-extent* : Geo-Calculate-Extent*
+  (lambda [self]
+    (define-values (width height ink) (geo-extent self))
+    
+    (if (not ink)
+        (let*-values ([(sfc) (geo-object->surface self 1.0 cairo-create-abstract-surface*)]
+                      [(ink-x ink-y ink-width ink-height) (abstract-surface-bbox sfc)])
+          (values width height (make-geo-ink ink-x ink-y ink-width ink-height)))
+        (values width height ink))))
 
 (define geo-intrinsic-size : (-> Geo<%> (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [geo]
@@ -139,26 +146,6 @@
     sfc))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
-(define geo-calculate-extent : Geo-Calculate-Extent
-  (lambda [self]
-    (define-values (sfc cr _w _h) (cairo-create-abstract-surface* 0.0 0.0 (default-geometry-density) #true))
-    (define-values (?pos self-width self-height) (abstract-surface-extent sfc))
-
-    (if (not ?pos)
-        (let-values ([(pos ink-width ink-height) (abstract-surface-bbox sfc)])
-          (values ink-width ink-height (make-geo-ink pos ink-width ink-height)))
-        (values self-width self-height #false))))
-
-(define geo-calculate-extent* : Geo-Calculate-Extent*
-  (lambda [self]
-    (define-values (sfc cr _w _h) (cairo-create-abstract-surface* 0.0 0.0 (default-geometry-density) #true))
-    (define-values (?pos sfc-width sfc-height) (abstract-surface-extent sfc))
-    (define-values (ink-pos ink-width ink-height) (abstract-surface-bbox sfc))
-
-    (if (not ?pos)
-        (values ink-width ink-height (make-geo-ink ink-pos ink-width ink-height))
-        (values sfc-width sfc-height (make-geo-ink ink-pos ink-width ink-height)))))
-
 (define geo-shape-plain-extent : (case-> [Nonnegative-Flonum -> Geo-Calculate-Extent]
                                          [Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent]
                                          [Nonnegative-Flonum Flonum Flonum -> Geo-Calculate-Extent*]

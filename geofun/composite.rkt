@@ -26,17 +26,17 @@
 (define-pin geo-pin-over  #:-> Geo Geo:Group #:as geo-composite #:with 'over #:id)
 (define-pin geo-pin-under #:-> Geo Geo:Group #:as geo-composite #:with 'dest-over #:id)
 
-(define-combiner "geo-~a-append*" #:-> (Geo [#:operator (Option Geo-Pin-Operator)] [#:gapsize Real] [#:id (Option Symbol)])
-  #:with alignment geobjs [#:operator [op #false] #:gapsize [delta 0.0] #:id [id #false]]
+(define-combiner "geo-~a-append*" #:-> Geo
+  #:with [geobjs #:operator [op : (Option Geo-Pin-Operator) #false] #:gapsize [delta : Real 0.0] #:id [id : (Option Symbol) #false]]
   #:empty (geo-blank)
-  #:short-path #:for base sibling #:if (zero? delta)
+  #:short-path #:for alignment base sibling #:if (zero? delta)
   ([(vl) (make-geo:group id op (geo-composite-layers base sibling 0.0 1.0 0.0 0.0))]
    [(vc) (make-geo:group id op (geo-composite-layers base sibling 0.5 1.0 0.5 0.0))]
    [(vr) (make-geo:group id op (geo-composite-layers base sibling 1.0 1.0 1.0 0.0))]
    [(ht) (make-geo:group id op (geo-composite-layers base sibling 1.0 0.0 0.0 0.0))]
    [(hc) (make-geo:group id op (geo-composite-layers base sibling 1.0 0.5 0.0 0.5))]
    [(hb) (make-geo:group id op (geo-composite-layers base sibling 1.0 1.0 0.0 1.0))])
-  #:do (make-geo:group id op (geo-append-layers alignment (car geobjs) (cdr geobjs) (real->double-flonum delta))))
+  #:do (make-geo:group id op (geo-append-layers alignment base (cdr geobjs) (real->double-flonum delta))))
 
 (define geo-vl-append : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] [#:gapsize Real] Geo * Geo)
   (λ [#:id [id #false] #:operator [op #false] #:gapsize [delta 0.0] . siblings]
@@ -62,10 +62,10 @@
   (λ [#:id [id #false] #:operator [op #false] #:gapsize [delta 0.0] . siblings]
     (geo-hb-append* #:id id #:operator op #:gapsize delta siblings)))
 
-(define-combiner "geo-~a-superimpose*" #:-> (Geo [#:operator (Option Geo-Pin-Operator)] [#:id (Option Symbol)])
-  #:with anchor geobjs [#:operator [op #false] #:gapsize [delta 0.0] #:id [id #false]]
+(define-combiner "geo-~a-superimpose*" #:-> Geo
+  #:with [geobjs #:operator [op : (Option Geo-Pin-Operator) #false] #:gapsize [delta : Real 0.0] #:id [id : (Option Symbol) #false]]
   #:empty (geo-blank)
-  #:short-path #:for base sibling #:if #true
+  #:short-path #:for anchor base sibling #:if #true
   ([(lt) (make-geo:group id op (geo-composite-layers base sibling 0.0 0.0 0.0 0.0))]
    [(lc) (make-geo:group id op (geo-composite-layers base sibling 0.0 0.5 0.0 0.5))]
    [(lb) (make-geo:group id op (geo-composite-layers base sibling 0.0 1.0 0.0 1.0))]
@@ -75,7 +75,7 @@
    [(rt) (make-geo:group id op (geo-composite-layers base sibling 1.0 0.0 1.0 0.0))]
    [(rc) (make-geo:group id op (geo-composite-layers base sibling 1.0 0.5 1.0 0.5))]
    [(rb) (make-geo:group id op (geo-composite-layers base sibling 1.0 1.0 1.0 1.0))])
-  #:do (make-geo:group id op (geo-superimpose-layers anchor (car geobjs) (cdr geobjs))))
+  #:do (make-geo:group id op (geo-superimpose-layers anchor base (cdr geobjs))))
 
 (define geo-lt-superimpose : (-> [#:id (Option Symbol)] [#:operator (Option Geo-Pin-Operator)] Geo * Geo)
   (λ [#:id [id #false] #:operator [op #false] . geobjs]

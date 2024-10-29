@@ -5,7 +5,7 @@
 (require typed/racket/unsafe)
 
 (require "../base.rkt")
-(require "visual/ctype.rkt")
+(require "typed/c.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
 (define-type Fill-Source (U Cairo-Surface Fill-Pattern FlRGBA))

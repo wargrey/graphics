@@ -4,7 +4,7 @@
 
 (require typed/racket/unsafe)
 
-(require geofun/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/typed/c)
 (require geofun/digitama/unsafe/source)
 
 (require geofun/digitama/base)

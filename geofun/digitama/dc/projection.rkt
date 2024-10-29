@@ -35,9 +35,9 @@
     (define r : Nonnegative-Flonum (~length radius))
     (define sidelength : Nonnegative-Flonum (icosahedron-radius->edge-length r radius-type))
     
-    (create-geometry-object geo:icosahedron:side (geo-draw-side-projection border edge pattern)
-                            #:extent (geo-shape-plain-extent (icosahedron-edge-length->side-outline-size sidelength))
-                            #:id id
+    (create-geometry-object geo:icosahedron:side
+                            #:with [id (geo-draw-side-projection border edge pattern)
+                                       (geo-shape-plain-extent (icosahedron-edge-length->side-outline-size sidelength))]
                             r radius-type sidelength)))
 
 (define geo-icosahedron-over-projection
@@ -47,9 +47,9 @@
     (define r : Nonnegative-Flonum (~length radius))
     (define R : Nonnegative-Flonum (icosahedron-radius->circumsphere-radius r radius-type))
     
-    (create-geometry-object geo:icosahedron:over (geo-draw-over-projection border edge pattern)
-                            #:extent (geo-shape-plain-extent (* 2.0 R))
-                            #:id id
+    (create-geometry-object geo:icosahedron:over
+                            #:with [id (geo-draw-over-projection border edge pattern)
+                                       (geo-shape-plain-extent (* 2.0 R))]
                             r radius-type R (~radian rotation radian?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

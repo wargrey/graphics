@@ -3,8 +3,8 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/unsafe/surface/image)
-(require geofun/digitama/unsafe/visual/object)
-(require geofun/digitama/unsafe/visual/ctype)
+(require geofun/digitama/unsafe/typed/c)
+(require geofun/digitama/unsafe/visual)
 
 (require "../convert.rkt")
 

@@ -7,9 +7,7 @@
 
 (require "../paint.rkt")
 (require "../source.rkt")
-
 (require "../typed/cairo.rkt")
-(require "../visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_path : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Paint) (Option Fill-Source) Fill-Rule Any)

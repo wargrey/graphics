@@ -16,9 +16,9 @@
 (require digimon/enumeration)
 (require digimon/digitama/ioexn)
 
-(require geofun/digitama/unsafe/visual/ctype)
-(require geofun/digitama/unsafe/surface/image)
 (require geofun/digitama/unsafe/cairo)
+(require geofun/digitama/unsafe/typed/c)
+(require geofun/digitama/unsafe/surface/image)
 
 (require "digitama/parser/stream.rkt")
 (require "digitama/convert.rkt")

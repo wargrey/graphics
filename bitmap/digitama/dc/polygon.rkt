@@ -21,7 +21,6 @@
 (require geofun/digitama/geometry/polygon/arrow)
 
 (require geofun/digitama/unsafe/dc/path)
-(require geofun/digitama/unsafe/source)
 
 (require "../convert.rkt")
 

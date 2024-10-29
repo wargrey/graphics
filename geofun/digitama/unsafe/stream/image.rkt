@@ -4,7 +4,6 @@
   
 (require "writer.rkt")
 (require "../typed/cairo.rkt")
-(require "../visual/ctype.rkt")
 
 (require racket/file)
 

@@ -56,8 +56,8 @@
             (cond [(stroke-line-cap-option? cap) cap] [(eq? dash 'dot) 'round] [else (stroke-linecap baseline)])
             linejoin miterlimit dasharray dashoffset)))
 
-(define desc-border : (->* () (Stroke #:color (Option Color) #:width (U Real Symbol False) #:style (Option Symbol)) Stroke)
-  (lambda [[baseline (default-border)] #:color [color #false] #:width [width #false] #:style [dash #false]]
+(define desc-border : (->* () (Stroke #:color (Option Color) #:opacity Real #:width (U Real Symbol False) #:style (Option Symbol)) Stroke)
+  (lambda [[baseline (default-border)] #:color [color #false] #:opacity [alpha 1.0] #:width [width #false] #:style [dash #false]]
     (define no-border? : Boolean (or (eq? dash 'none) (eq? dash 'hidden)))
     (define linewidth : Nonnegative-Flonum
       (cond [(and no-border?) 0.0]
@@ -70,7 +70,7 @@
         [(dotted) (line-dash->array 'dot linewidth)]
         [(dashed) (line-dash->array 'long-dash linewidth)]
         [else (values (stroke-offset baseline) (dasharray-normalize (stroke-dash baseline) linewidth (stroke-width baseline)))]))
-    (stroke (if (not color) (stroke-color baseline) (rgb* color)) linewidth
+    (stroke (rgb* (or color (stroke-color baseline)) alpha) linewidth
             (if (eq? dash 'dotted) 'round (stroke-linecap baseline))
             (stroke-linejoin baseline) (stroke-miterlimit baseline)
             dasharray dashoffset)))

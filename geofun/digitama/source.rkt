@@ -9,8 +9,8 @@
 
 (require "base.rkt")
 (require "unsafe/source.rkt")
-(require "unsafe/visual/object.rkt")
-(require "unsafe/visual/ctype.rkt")
+(require "unsafe/visual.rkt")
+(require "unsafe/typed/c.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stroke-paint->source : (-> Maybe-Stroke-Paint Stroke)

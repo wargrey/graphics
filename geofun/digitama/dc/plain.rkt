@@ -26,25 +26,22 @@
   (lambda [[width 0.0] [height #false] #:id [id #false]]
     (define-values (flwidth flheight) (~size width (or height width)))
     
-    (create-geometry-object geo:blank void
-                            #:extent (geo-blank-extent flwidth flheight)
-                            #:id id
+    (create-geometry-object geo:blank
+                            #:with [id void (geo-blank-extent flwidth flheight)]
                             #false)))
 
 (define geo-ghost : (-> Geo [#:id (Option Symbol)] Geo:Blank)
   (lambda [geo #:id [id #false]]
     (define-values (flwidth flheight) (geo-flsize geo))
-    (create-geometry-object geo:blank void
-                            #:extent geo-ghost-extent
-                            #:id id
+    (create-geometry-object geo:blank
+                            #:with [id void geo-ghost-extent]
                             geo)))
 
 (define geo-solid : (->* () (Color Real #:id (Option Symbol)) Geo:Solid)
   (lambda [[color transparent] [size 1] #:id [id #false]]
     (define edge-size : Nonnegative-Flonum (~length size))
-    (create-geometry-object geo:solid void
-                            #:extent geo-ghost-extent
-                            #:id id
+    (create-geometry-object geo:solid
+                            #:with [id geo-draw-solid (geo-shape-plain-extent (~length size))]
                             (rgb* color))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

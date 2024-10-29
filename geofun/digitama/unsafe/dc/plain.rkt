@@ -6,14 +6,15 @@
 
 (require "../paint.rkt")
 (require "../source.rkt")
-
 (require "../typed/cairo.rkt")
-(require "../visual/ctype.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_pattern : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Fill-Source Any)
   (lambda [cr x0 y0 width height background]
-    (cairo-render-background cr background)))
+    (cairo_save cr)
+    (cairo-clip cr x0 y0 width height)
+    (cairo-render-background cr background)
+    (cairo_restore cr)))
 
 (define dc_image : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Byte Bitmap-Surface Any)
   (lambda [cr x0 y0 width height filter img-sfc]

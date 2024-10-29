@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require "../path.rkt")
-(require "../../../digitama/unsafe/visual/object.rkt")
+(require "../../../digitama/unsafe/visual.rkt")
 
 (require bitmap/composite)
 (require bitmap/digitama/convert)

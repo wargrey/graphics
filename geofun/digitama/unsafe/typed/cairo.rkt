@@ -1,8 +1,9 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (all-from-out "c.rkt"))
 
-(require "../visual/ctype.rkt")
+(require "c.rkt")
 
 (require typed/racket/unsafe)
 
@@ -25,6 +26,7 @@
  racket/draw/unsafe/cairo
  [cairo_save (-> Cairo-Ctx Void)]
  [cairo_restore (-> Cairo-Ctx Void)]
+ [cairo_clip (-> Cairo-Ctx Void)]
  [cairo_paint (-> Cairo-Ctx Void)]
  [cairo_paint_with_alpha (-> Cairo-Ctx Flonum Void)]
  [cairo_create (-> (U Cairo-Surface Cairo-Stream-Surface) Cairo-Ctx)]

@@ -11,9 +11,6 @@
 (require "digitama/dc/resize.rkt")
 (require "digitama/geometry/ink.rkt")
 
-(require "digitama/unsafe/visual/abstract.rkt")
-(require "digitama/unsafe/surface/abstract.rkt")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-section : (case-> [Geo Complex Complex -> Geo]
                               [Geo Complex Real Real -> Geo]
@@ -54,21 +51,21 @@
 
 (define geo-bounding-box : (-> Geo (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self]
-    (define-values (_w _h ink) (geo-calculate-extent* self))
+    (define-values (_w _h ink) (geo-extent* self))
     (define-values (pos width height) (geo-ink-values ink))
     
     ;;; All geo vector graphics are accommodated in bounded surfaces,
     ;;; the positions of the bounding boxes are non-negative.
 
-    (define x (max (+ (real-part pos) width) 0.0))
-    (define y (max (+ (imag-part pos) height) 0.0))
-
-    (values x y (+ x width) (+ y height))))
+    (values (max (real-part pos) 0.0)
+            (max (imag-part pos) 0.0)
+            width height)))
 
 (define geo-trim : (-> Geo Geo)
   (lambda [self]
-    (define-values (_w _h ink) (geo-calculate-extent* self))
+    (define-values (_w _h ink) (geo-extent* self))
     (define-values (pos width height) (geo-ink-values ink))
+    
     (geo-section self (real-part pos) (imag-part pos) width height)))
 
 (define-cropper geo-crop : (-> Geo Nonnegative-Real Nonnegative-Real Geo)

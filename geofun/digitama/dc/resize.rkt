@@ -42,8 +42,8 @@
     [(self sx sy)
      (cond [(and (= sx 1.0) (= sy 1.0)) self]
            [(geo:scaling? self) (geo-scale (geo:transform-source self) (* sx (geo:scaling-sx self)) (* sy (geo:scaling-sy self)))]
-           [else (create-geometry-object geo:scaling geo-draw/scaling!
-                                         #:extent geo-scaling-extent #:id (geo-id self)
+           [else (create-geometry-object geo:scaling
+                                         #:with [(geo-id self) geo-draw/scaling! geo-scaling-extent]
                                          self (real->double-flonum sx) (real->double-flonum sy))])]))
 
 (define geo-rotate : (->* (Geo Real) (Boolean) Geo)
@@ -51,7 +51,8 @@
     (define fltheta : Flonum (~radian theta radian?))
     (cond [(= fltheta 0.0) self]
           [(geo:rotation? self) (geo-rotate (geo:transform-source self) (+ fltheta (geo:rotation-theta self)))]
-          [else (create-geometry-object geo:rotation geo-draw/rotation! #:extent geo-rotation-extent #:id (geo-id self)
+          [else (create-geometry-object geo:rotation
+                                        #:with [(geo-id self) geo-draw/rotation! geo-rotation-extent]
                                         self fltheta)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -62,25 +63,29 @@
     (define flw (real->double-flonum width))
     (define flh (real->double-flonum height))
 
-    (create-geometry-object geo:region geo-draw/region! #:extent (geo-shape-plain-extent flw flh) #:id (geo-id self)
+    (create-geometry-object geo:region
+                            #:with [(geo-id self) geo-draw/region! (geo-shape-plain-extent flw flh)]
                             self flx fly flw flh)))
 
 (define geo-draw/region! : Geo-Surface-Draw!
   (lambda [self dc x0 y0 width height]
     (with-asserts ([self geo:region?])
-      #;(geo_section (geo-create-surface (geo:transform-source self))
+      (define master : Geo<%> (geo:transform-source self))
+      (define-values (src-width src-height) (geo-intrinsic-size master))
+      
+      (geo_section dc x0 y0 width height
                    (geo:region-x self) (geo:region-y self)
-                   (geo:region-width self) (geo:region-height self)
-                   (default-geometry-density))
-      (void))))
+                   (geo<%>-draw! master) master src-width src-height))))
 
 (define geo-draw/scaling! : Geo-Surface-Draw!
   (lambda [self dc x0 y0 width height]
     (with-asserts ([self geo:scaling?])
-      #;(geo_scale (geo-create-surface (geo:transform-source self))
+      (define master : Geo<%> (geo:transform-source self))
+      (define-values (src-width src-height) (geo-intrinsic-size master))
+
+      (geo_scale dc x0 y0 width height
                  (geo:scaling-sx self) (geo:scaling-sy self)
-                 (default-geometry-density))
-      (void))))
+                 (geo<%>-draw! master) master src-width src-height))))
 
 (define geo-scaling-extent : Geo-Calculate-Extent
   (lambda [self]
@@ -93,9 +98,12 @@
 (define geo-draw/rotation! : Geo-Surface-Draw!
   (lambda [self dc x0 y0 width height]
     (with-asserts ([self geo:rotation?])
-      #;(geo_rotate (geo-create-surface (geo:transform-source self)) (geo:rotation-theta self)
-                  (default-geometry-density))
-      (void))))
+      (define master : Geo<%> (geo:transform-source self))
+      (define-values (src-width src-height) (geo-intrinsic-size master))
+
+      (geo_rotate dc x0 y0 width height
+                  (geo:rotation-theta self)
+                  (geo<%>-draw! master) master src-width src-height))))
 
 (define geo-rotation-extent : Geo-Calculate-Extent
   (lambda [self]
