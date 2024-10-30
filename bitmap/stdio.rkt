@@ -16,8 +16,7 @@
 (require digimon/enumeration)
 (require digimon/digitama/ioexn)
 
-(require geofun/digitama/unsafe/cairo)
-(require geofun/digitama/unsafe/typed/c)
+(require geofun/digitama/unsafe/typed/cairo)
 (require geofun/digitama/unsafe/surface/image)
 
 (require "digitama/parser/stream.rkt")
@@ -47,7 +46,7 @@
   (syntax-case stx [:]
     [(_ [Bitmap convertor] filename density width height palettes depth argl ... decode)
      (syntax/loc stx
-       (let-values ([(surface fxwidth fxheight) (cairo-create-argb-image-surface (exact->inexact width) (exact->inexact height) density #false)])
+       (let-values ([(surface fxwidth fxheight) (cairo-create-argb-image-surface (exact->inexact width) (exact->inexact height) density)])
          (decode (cairo_image_surface_get_data surface) fxwidth fxheight)
          (cairo_surface_mark_dirty surface)
          (Bitmap convertor (cairo-image-shadow-size surface) surface filename density fxwidth fxheight palettes depth argl ...)))]

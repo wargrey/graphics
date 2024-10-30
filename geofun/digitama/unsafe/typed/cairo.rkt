@@ -40,7 +40,7 @@
  [cairo_surface_finish (-> (U Cairo-Surface Cairo-Stream-Surface) Void)]
  [cairo_surface_destroy (-> (U Cairo-Surface Cairo-Stream-Surface) Void)]
  [cairo_surface_status (-> (U Cairo-Surface Cairo-Stream-Surface) Fixnum)]
- [cairo_surface_mark_dirty (-> Bitmap-Surface Void)]
+ [cairo_surface_mark_dirty (-> Cairo-Surface Void)]
  
  [cairo_surface_write_to_png_stream (-> Bitmap-Surface (-> Any Bytes Index Index) Void)]
  [cairo_pdf_surface_create_for_stream (-> (-> Bytes Index Index) Nonnegative-Flonum Nonnegative-Flonum PDF-Surface)]

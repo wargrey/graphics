@@ -9,7 +9,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  "../cairo.rkt"
- [cairo_version (-> Integer)]
+ [cairo_version (-> Index)]
  [cairo_version_string (-> String)]
 
  [cairo_push_group (-> Cairo-Ctx Void)]

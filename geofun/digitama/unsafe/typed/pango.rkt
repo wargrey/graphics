@@ -7,5 +7,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  "../pango.rkt"
- [pango_version (-> Integer)]
+ [pango_version (-> Index)]
  [pango_version_string (-> String)])
