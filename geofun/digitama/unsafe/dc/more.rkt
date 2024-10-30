@@ -58,7 +58,7 @@
     (cairo_new_path cr)
     (cairo-positive-arc cr rcx cy aradius flradius -pi/2 pi/2)
     (cairo_line_to cr lcx by)
-    (cairo_curve_to cr ctrlx by ctrlx by  x0 flradius)
+    (cairo_curve_to cr ctrlx by ctrlx by  x0 cy)
     (cairo_curve_to cr ctrlx y0 ctrlx y0 lcx y0)
     (cairo_close_path cr)
     (cairo-render cr stroke background)))

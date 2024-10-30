@@ -2,8 +2,6 @@
 
 (provide (all-defined-out))
 
-(require typed/racket/unsafe)
-
 (require "paint.rkt")
 (require "typed/cairo.rkt")
 

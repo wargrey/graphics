@@ -19,7 +19,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-arrow-tip-vertices : (-> Dia-Arrow-Tip Nonnegative-Flonum Flonum Float-Complex
-                                     (Values (Listof Geo-Path-Clean-Print) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Float-Complex)))
+                                     (Values Geo-Path-Clean-Prints Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Float-Complex)))
   (lambda [self 100% angle.rad dot]
     (define r : Nonnegative-Flonum (~length (dia-arrow-tip-radius self) 100%))
     (define wing : (Option Real) (dia-arrow-tip-wing.deg self))

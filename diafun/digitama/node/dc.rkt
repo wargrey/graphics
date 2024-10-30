@@ -27,23 +27,20 @@
         (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))
         shape label argl ...)
      (syntax/loc stx
-       (create-dia-node dia:node
-                        #:id name #:type type subtype
-                        #:intersect intersect
-                        #:fit-ratio wratio hratio
-                        #:position wpos hpos
-                        shape label argl ...))]
+       (create-geometry-group dia:node name #false
+                              (dia-node-layers label shape wratio hratio wpos hpos)
+                              intersect type subtype
+                              argl ...))]
     [(_ Geo (~seq #:id name) (~seq #:type type subtype)
         (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
         (~optional (~seq #:fit-ratio wratio hratio) #:defaults ([wratio #'1.0] [hratio #'1.0]))
         (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))
         shape label argl ...)
      (syntax/loc stx
-       (let ([layers (dia-node-layers label shape wratio hratio wpos hpos)])
-         (Geo geo-convert geo-group-surface (geo-group-extent layers)
-              name #false layers 0.0+0.0i geo-frame-empty geo-frame-empty
-              intersect type subtype
-              argl ...)))]))
+       (create-geometry-group Geo name #false
+                              (dia-node-layers label shape wratio hratio wpos hpos)
+                              intersect type subtype
+                              argl ...))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Node-Intersect (-> Float-Complex Float-Complex Float-Complex (GLayerof Geo) (Option Float-Complex)))

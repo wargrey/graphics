@@ -64,6 +64,9 @@
   
   (define cairo-render
     (case-lambda
+      [(cr border)
+       (unless (not border)
+         (cairo-render-with-stroke cr border))]
       [(cr border pattern)
        (unless (not pattern)
          (cairo-render-with-fill cr pattern))
@@ -141,5 +144,6 @@
           [Cairo-Ctx Fill-Source Fill-Rule -> Void])]
 
  [cairo-render
-  (case-> [Cairo-Ctx (Option Paint) (Option Fill-Source) -> Void]
+  (case-> [Cairo-Ctx (Option Paint) -> Void]
+          [Cairo-Ctx (Option Paint) (Option Fill-Source) -> Void]
           [Cairo-Ctx (Option Paint) (Option Fill-Source) Fill-Rule -> Void])])

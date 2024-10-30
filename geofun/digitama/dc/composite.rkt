@@ -24,25 +24,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-geometry-group stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ Geo (~optional (~seq #:id name) #:defaults ([name #'#false])) ...
-        op:expr layers:expr argl:expr ...)
+    [(_ Geo name op:expr layers0:expr argl:expr ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
-         (Geo geo-convert geo-draw-group! (geo-group-extent layers)
-              (or name (gensym 'geo-prefix)) op layers
-              0.0+0.0i geo-frame-zero-border
-              argl ...)))]
-    [(_ Geo
-        (~alt (~optional (~seq #:id name) #:defaults ([name #'#false]))
-              (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
+         (let ([layers layers0])
+           (Geo geo-convert geo-draw-group! (geo-group-extent layers)
+                (or name (gensym 'geo-prefix)) op layers
+                0.0+0.0i geo-frame-zero-border
+                argl ...))))]
+    [(_ Geo name op
+        (~alt (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
               (~optional (~seq #:padding inset) #:defaults ([inset #'#false]))
               (~optional (~seq #:border bdr) #:defaults ([bdr #'#false]))
               (~optional (~seq #:background bgsource) #:defaults ([bgsource #'#false])))
         ...
-        op layers argl ...)
+        layers0 argl ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
-         (let-values ([(geo-frame-extent O frame) (geo-group-frame-extent margin inset layers bdr)])
+         (let*-values ([(layers) layers0]
+                       [(geo-frame-extent O frame) (geo-group-frame-extent margin inset layers bdr)])
            (Geo geo-convert (geo-draw-framed-group! bdr bgsource) geo-frame-extent
                 (or name (gensym 'geo-prefix)) op layers O frame
                 argl ...))))]))
@@ -127,8 +127,8 @@
     (define rheights : (Vectorof Nonnegative-Flonum) (geo-table-row-heights table nrows ncols size))
     (define layers : Geo-Layer-Group (geo-table-layers table ncols nrows pcols prows gcols grows cwidths rheights))
 
-    (create-geometry-group geo:table #:id id
-                           op layers (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
+    (create-geometry-group geo:table id op layers
+                           (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-group! : Geo-Surface-Draw!

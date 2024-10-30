@@ -222,10 +222,10 @@
     (define r : Flonum (* height 0.5))
     (create-dia-node #:id node-key #:type 'Delay hint
                      #:fit-ratio (max (/ (- width r) width) 0.0) 1.00
-                     (geo-half-stadium #:id (dia-node-shape-id node-key)
-                                       #:stroke (dia-node-select-stroke-paint style)
-                                       #:fill (dia-node-select-fill-paint style)
-                                       (- width r) r)
+                     (geo-rstadium #:id (dia-node-shape-id node-key)
+                                   #:stroke (dia-node-select-stroke-paint style)
+                                   #:fill (dia-node-select-fill-paint style)
+                                   (- width r) r)
                      label)))
 
 (define diaflow-block-collation : DiaFlow-Block-Create

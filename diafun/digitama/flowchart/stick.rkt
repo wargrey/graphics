@@ -127,10 +127,10 @@
     (define-values (Width Height) (geo-flsize master))
 
     ; NOTICE: the footprints are initially reversed
-    (let stick ([stnirp : (Listof Geo-Path-Print) (geo:path-footprints master)]
+    (let stick ([stnirp : Geo-Path-Prints (geo:path-footprints master)]
                 [arrows : (Listof (GLayerof Geo)) null]
                 [nodes : (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Node))) (hasheq)]
-                [tracks : (Listof Geo-Path-Print) null]
+                [tracks : Geo-Path-Prints null]
                 [target : (Option (GLayerof Dia:Node)) #false]
                 [last-pt : (Option Float-Complex) #false])
       (if (pair? stnirp)
@@ -138,7 +138,7 @@
           (let*-values ([(self rest) (values (car stnirp) (cdr stnirp))])
             (define next-pt : (Option Float-Complex) (geo-path-print-position self last-pt))
             (define anchor : (Option Geo-Anchor-Name) (and next-pt (hash-ref anchor-base next-pt (λ [] #false))))
-            (define tracks++ : (Pairof Geo-Path-Print (Listof Geo-Path-Print)) (cons self tracks))
+            (define tracks++ : (Pairof GPath:Datum Geo-Path-Prints) (cons self tracks))
             
             (define-values (source nodes++)
               (cond [(or (not anchor) (not next-pt)) (values #false nodes)]
@@ -148,7 +148,7 @@
                             (values new-node (hash-set nodes anchor new-node)))]))
             
             (cond [(glayer? source)
-                   (cond [(eq? (car self) #\M)
+                   (cond [(eq? (gpath:datum-cmd self) #\M)
                           (let ([arrows++ (dia-arrow-cons master source target tracks++ arrow-identify make-arrow arrows make-arrow-label infobase)])
                             (stick rest arrows++ nodes++ null #false next-pt))]
                          [(and target)
@@ -159,7 +159,7 @@
                             (stick rest arrows++ nodes++ (list self) source next-pt))]
                          [else (stick rest arrows nodes++ tracks++ source next-pt)])]
                    
-                   [(eq? (car self) #\M)
+                   [(eq? (gpath:datum-cmd self) #\M)
                     (let ([ct (geo-path-cleanse tracks++)])
                       (if (and (pair? ct) (pair? (cdr ct)))
                           (let ([arrows++ (dia-free-track-cons master anchor-base ct make-free-track arrows make-free-label infobase)])
@@ -184,19 +184,19 @@
                  ordered-nodes)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-arrow-cons : (-> Geo:Path (GLayerof Dia:Node) (Option (GLayerof Dia:Node)) (Listof Geo-Path-Print)
+(define dia-arrow-cons : (-> Geo:Path (GLayerof Dia:Node) (Option (GLayerof Dia:Node)) Geo-Path-Prints
                              DiaFlow-Arrow-Identifier DiaFlow-Arrow->Edge (Listof (GLayerof Geo))
                              DiaFlow-Arrow->Edge-Label Geo-Path-Infobase
                              (Listof (GLayerof Geo)))
   (lambda [master src-layer tgt-layer tracks arrow-identify make-arrow arrows make-label infobase]
-    (define ctracks : (Listof Geo-Path-Clean-Print) (geo-path-cleanse tracks))
+    (define ctracks : Geo-Path-Clean-Prints (geo-path-cleanse tracks))
 
     (or (and (pair? ctracks)
              (pair? (cdr ctracks))
 
              (let ([source (glayer-master src-layer)]
                    [target (and tgt-layer (glayer-master tgt-layer))])
-               (define retracks : Geo-Path-Clean-Prints
+               (define retracks : Geo-Path-Clean-Prints+
                  (if (null? (cddr ctracks))
                      (dia-2-tracks-relocate-endpoints src-layer tgt-layer ctracks)
                      (dia-more-tracks-relocate-endpoints src-layer tgt-layer ctracks)))
@@ -218,19 +218,19 @@
   (lambda [infobase tracks refined-tracks]
     (let label-filter ([sofni : (Listof DiaFlow-Arrow-Label-Info) null]
                        [slebal : (Listof Dia-Edge-Label-Datum) null]
-                       [otracks : (Listof Geo-Path-Clean-Print) tracks]
-                       [rtracks : (Listof Geo-Path-Clean-Print) refined-tracks]
+                       [otracks : Geo-Path-Clean-Prints tracks]
+                       [rtracks : Geo-Path-Clean-Prints refined-tracks]
                        [osrc : (Option Float-Complex) #false]
                        [rsrc : Float-Complex 0.0+0.0i])
       (if (and (pair? otracks) (pair? rtracks))
 
           (let ([oself (car otracks)]
                 [rself (car rtracks)])
-            (cond [(eq? (car oself) #\M)
+            (cond [(eq? (gpath:datum-cmd oself) #\M)
                    (label-filter sofni slebal (cdr otracks) (cdr rtracks)
                                  (geo-path-clean-print-position oself)
                                  (geo-path-clean-print-position rself))]
-                  [(eq? (car oself) #\L)
+                  [(eq? (gpath:datum-cmd oself) #\L)
                    (let ([otarget (geo-path-clean-print-position oself)]
                          [rtarget (geo-path-clean-print-position rself)])
                      (define maybe-info : (Option Dia-Edge-Label-Datum)
@@ -250,7 +250,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-free-track-cons : (-> Geo:Path (Immutable-HashTable Float-Complex Geo-Anchor-Name)
-                                  Geo-Path-Clean-Prints DiaFlow-Free-Track->Edge (Listof (GLayerof Geo))
+                                  Geo-Path-Clean-Prints+ DiaFlow-Free-Track->Edge (Listof (GLayerof Geo))
                                   DiaFlow-Free-Track->Edge-Label Geo-Path-Infobase
                                   (Listof (GLayerof Geo)))
   (lambda [master anchorbase tracks make-edge arrows make-label infobase]

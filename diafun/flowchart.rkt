@@ -82,11 +82,9 @@
 
       (if (pair? stickers)
           (let ([maybe-group (geo-path-try-extend/list stickers 0.0 0.0)])
-            (create-geometry-group dia:flow
-                                   #:id id
+            (create-geometry-group dia:flow id op
                                    #:border bdr #:background bg
                                    #:margin margin #:padding padding
-                                   op
                                    (cond [(or maybe-group) maybe-group]
                                          [else #;#:deadcode
                                                (let-values ([(Width Height) (geo-flsize self)])

@@ -2,56 +2,37 @@
 
 (provide (all-defined-out))
 
-(require typed/racket/unsafe)
-
-(require geofun/digitama/unsafe/typed/c)
+(require geofun/digitama/unsafe/typed/cairo)
+(require geofun/digitama/unsafe/dc/path)
 (require geofun/digitama/unsafe/source)
+(require geofun/digitama/unsafe/paint)
 
 (require geofun/digitama/base)
 (require geofun/digitama/geometry/footprint)
 
-(module unsafe racket/base
-  (provide (all-defined-out))
-  
-  (require geofun/digitama/unsafe/cairo)
-  (require geofun/digitama/unsafe/paint)
-  
-  (require (submod geofun/digitama/unsafe/path unsafe))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Geo-Edge-Marker (Immutable-Vector Geo-Path-Prints (Option Paint) (Option Fill-Source)))
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc_edge create-surface flwidth flheight footprints offset x-stroke? y-stroke? stroke source target adjust-offset density)
-    (define-values (dx dy) (values (unsafe-flreal-part offset) (unsafe-flimag-part offset)))
-    (define-values (flw flh tx ty) (dc-path-window flwidth flheight dx dy stroke x-stroke? y-stroke?))
-    (define-values (sfc cr) (create-surface flw flh density #true))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dc_edge : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                      Geo-Path-Clean-Prints Float-Complex (Option Paint)
+                      Geo-Edge-Marker Geo-Edge-Marker (Pairof (Option Float-Complex) (Option Float-Complex))
+                      Any)
+  (lambda [cr x0 y0 flwidth flheight footprints offset stroke source target adjust-offset]
+    (define-values (dx dy) (values (real-part offset) (imag-part offset)))
     
     (cairo_new_path cr)
-    (cairo_clean_path cr footprints tx ty (unsafe-car adjust-offset) (unsafe-cdr adjust-offset))
+    (cairo_clean_path cr footprints (+ x0 dx) (+ y0 dy) (car adjust-offset) (cdr adjust-offset))
     (cairo-render cr stroke)
     (dc-edge-draw-shape cr source)
-    (dc-edge-draw-shape cr target)
-    (cairo_destroy cr)
+    (dc-edge-draw-shape cr target)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dc-edge-draw-shape : (-> Cairo-Ctx Geo-Edge-Marker Void)
+  (lambda [cr marker]
+    (define prints : Geo-Path-Prints (vector-ref marker 0))
     
-    sfc)
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc-edge-draw-shape cr shape)
-    (define prints (unsafe-vector*-ref shape 0))
-
     (when (pair? prints)
-      (define offset (unsafe-vector*-ref shape 1))
-
-      ;(cairo_set_operator cr CAIRO_OPERATOR_SOURCE)
       (cairo_new_path cr)
       (cairo_path cr prints 0.0 0.0)
-      (cairo-render cr (unsafe-vector*-ref shape 1) (unsafe-vector*-ref shape 2)))))
-  
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(unsafe-require/typed/provide
- (submod "." unsafe)
- [dc_edge (All (S) (-> (Cairo-Surface-Create S) 
-                       Nonnegative-Flonum Nonnegative-Flonum (Listof Geo-Path-Clean-Print) Float-Complex Boolean Boolean (Option Paint)
-                       (Immutable-Vector (Listof Geo-Path-Print) (Option Paint) (Option Fill-Source))
-                       (Immutable-Vector (Listof Geo-Path-Print) (Option Paint) (Option Fill-Source))
-                       (Pairof (Option Float-Complex) (Option Float-Complex))
-                       Positive-Flonum
-                       S))])
+      (cairo-render cr (vector-ref marker 1) (vector-ref marker 2)))))

@@ -12,7 +12,7 @@
 (require geofun/paint)
 (require geofun/stroke)
 
-(require geofun/digitama/dc/paint)
+(require geofun/digitama/paint)
 (require geofun/digitama/dc/composite)
 
 (require geofun/digitama/convert)
@@ -31,8 +31,8 @@
    [origin : Float-Complex]
    [bbox-offset : Float-Complex]
    [line-offset : (Option Float-Complex)]
-   [source-shape : (Listof Geo-Path-Clean-Print)]
-   [target-shape : (Listof Geo-Path-Clean-Print)]
+   [source-shape : Geo-Path-Clean-Prints]
+   [target-shape : Geo-Path-Clean-Prints]
    [adjust-offset : (Pairof (Option Float-Complex) (Option Float-Complex))])
   #:type-name Dia:Edge
   #:transparent)
@@ -42,7 +42,7 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-edge : (->* (Geo-Path-Clean-Prints)
+(define dia-edge : (->* (Geo-Path-Clean-Prints+)
                         (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:source-shape (Option Dia-Edge-Tip-Shape) #:target-shape (Option Dia-Edge-Tip-Shape))
                          Dia:Edge)
   (lambda [#:id [id #false] #:stroke [stroke (void)] #:source-shape [src-shape #false] #:target-shape [tgt-shape #false] footprints]
@@ -62,9 +62,8 @@
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window +nan.0+nan.0i lx ty rx by))
 
     (create-geometry-object dia:edge
-                            #:surface (dia-edge-surface width height x-stroke? y-stroke?) stroke
-                            #:extent (geo-stroke-extent-wrapper (geo-shape-plain-extent width height 0.0 0.0) stroke x-stroke? y-stroke?)
-                            #:id id
+                            #:with [id (dia-draw-edge! stroke x-stroke? y-stroke?)
+                                       (geo-shape-plain-extent width height 0.0 0.0)]
                             footprints (cons spt srad) (cons ept erad) (make-rectangular lx ty)
                             (make-rectangular xoff yoff) (make-rectangular line-offset line-offset)
                             src-prints tgt-prints (cons s.off t.off))))
@@ -74,7 +73,7 @@
     (cond [(null? label) self]
           [(dia:edge? self)
            (let-values ([(w h) (geo-flsize self)])
-             (dia-edge-attach-label (create-geometry-group dia:labeled-edge #false (geo-own-layers self)) label))]
+             (dia-edge-attach-label (create-geometry-group dia:labeled-edge #false #false (geo-own-layers self)) label))]
           [else (let* ([edge (dia-edge-unlabel self)]
                        [O (dia:edge-origin edge)])
                   (let attach ([labels : (Listof Dia-Edge-Label) (if (list? label) label (list label))]
@@ -91,7 +90,7 @@
                                                                                      distance (dia-edge-label-ratio label)))
                                         layers)
                                   (if (and distance (zero? distance)) op #false)))
-                        (create-geometry-group dia:labeled-edge op
+                        (create-geometry-group dia:labeled-edge #false op
                                                (geo-path-layers-merge (geo:group-selves self) layers)))))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -113,17 +112,16 @@
     (assert (glayer-master (car (glayer-group-layers (geo:group-selves g)))) dia:edge?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-edge-surface : (-> Nonnegative-Flonum Nonnegative-Flonum Boolean Boolean Geo-Surface-Create)
-  (lambda [width height x-stroke? y-stroke?]
-    (λ [self]
+(define dia-draw-edge! : (-> Maybe-Stroke-Paint Boolean Boolean Geo-Surface-Draw!)
+  (lambda [alt-stroke x-stroke? y-stroke?]
+    (λ [self cr x0 y0 width height]
       (with-asserts ([self dia:edge?])
-        (define paint (current-stroke-source))
+        (define paint (geo-select-stroke-paint alt-stroke))
         (define color (and paint (stroke-color paint)))
         (define shape-stroke (desc-stroke default-dia-shape-stroke #:color color))
 
-        (dc_edge create-abstract-surface
-                 width height (dia:edge-footprints self) (dia:edge-bbox-offset self) x-stroke? y-stroke? paint
+        (dc_edge cr x0 y0 width height
+                 (dia:edge-footprints self) (dia:edge-bbox-offset self) paint
                  (vector-immutable (dia:edge-source-shape self) shape-stroke color)
                  (vector-immutable (dia:edge-target-shape self) shape-stroke color)
-                 (dia:edge-adjust-offset self)
-                 (default-geometry-density))))))
+                 (dia:edge-adjust-offset self))))))
