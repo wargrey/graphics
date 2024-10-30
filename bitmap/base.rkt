@@ -10,7 +10,6 @@
 (require geofun/digitama/misc)
 
 (require "digitama/misc.rkt")
-(require "digitama/unsafe/bitmap.rkt")
 
 (require/provide geofun/digitama/base)
 (require/provide geofun/font geofun/color geofun/stroke geofun/paint)

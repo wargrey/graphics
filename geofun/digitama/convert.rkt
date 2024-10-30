@@ -96,15 +96,15 @@
   (lambda [self mime fallback]
     (with-asserts ([self geo<%>?])
       (case mime
-        [(pdf-bytes)     (geo-object->stream-bytes self 'pdf '/dev/pdfout 1.0)]
-        [(svg-bytes)     (geo-object->stream-bytes self 'svg '/dev/svgout 1.0)]
-        [(png@2x-bytes)  (geo-object->stream-bytes self 'png '/dev/p2xout 2.0)]
-        [(png-bytes)     (geo-object->stream-bytes self 'png '/dev/pngout 1.0)]
+        [(pdf-bytes)     (geo-object->stream-bytes self 'pdf 1.0 '/dev/pdfout)]
+        [(svg-bytes)     (geo-object->stream-bytes self 'svg 1.0 '/dev/svgout)]
+        [(png@2x-bytes)  (geo-object->stream-bytes self 'png 2.0 '/dev/p2xout)]
+        [(png-bytes)     (geo-object->stream-bytes self 'png 1.0 '/dev/pngout)]
         [(cairo-surface) (geo-object->surface self 1.0 cairo-create-abstract-surface*)]
         [else fallback]))))
 
-(define geo-object->stream-bytes : (-> Geo<%> Symbol Symbol Positive-Flonum Bytes)
-  (lambda [self format name density]
+(define geo-object->stream-bytes : (->* (Geo<%> Symbol) (Positive-Flonum Symbol) Bytes)
+  (lambda [self format [density 1.0] [name #false]]
     (define /dev/geoout : Output-Port (open-output-bytes name))
     (geo-object-save self /dev/geoout format density)
     (get-output-bytes /dev/geoout)))
@@ -118,18 +118,21 @@
 
 (define geo-object-save-vector-with : (-> (Cairo-Vector-Stream-Write Geo<%>) Geo<%> (U Path-String Output-Port) Positive-Flonum Void)
   (lambda [stream-write self /dev/strout density]
+    (define s : (Option Stroke) (current-stroke-source))
+    (define thickness (stroke-maybe-width s))
+    (define offset (* thickness 0.5))
     (define-values (width height _ink) ((geo<%>-extent self) self))
   
-    (stream-write /dev/strout width height
+    (stream-write /dev/strout (+ width thickness) (+ height thickness)
                   (λ [[master : Geo<%>] [vec-cr : Cairo-Ctx]
                                         [x0 : Flonum] [y0 : Flonum]
                                         [flwidth : Nonnegative-Flonum] [flheight : Nonnegative-Flonum]] : Any
                     (unless (= density 1.0)
                       (define s (/ 1.0 density))
                       (cairo_scale vec-cr s s))
-                    
+
                     ((geo<%>-draw! self) self vec-cr x0 y0 flwidth flheight))
-                  self 0.0 0.0 width height)))
+                  self offset offset width height)))
 
 (define #:forall (Sfc S) geo-object->surface : (-> Geo<%> Positive-Flonum
                                                    (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Boolean

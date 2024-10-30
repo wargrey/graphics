@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 
 (require "../../digitama/unsafe/cairo.rkt")
 (require (submod "../../digitama/unsafe/surface/abstract.rkt" unsafe))

@@ -11,12 +11,11 @@
 (define-type Cairo-Image-Surface-Writer (-> Any Bytes Index Index))
 (define-type Cairo-Image-Stream-Source-Make (-> (Values Bitmap-Surface Boolean)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-cairo-image-surface-writer : (-> Output-Port Positive-Index Cairo-Image-Surface-Writer)
-  (lambda [/dev/imgout pool-size]
-    (define cairo-write (make-cairo-vector-surface-writer /dev/imgout pool-size))
-    
-    (λ [ignored-closure bstr-ptr len]
+  (lambda [/dev/pngout pool-size]
+    (define cairo-write (make-cairo-vector-surface-writer /dev/pngout pool-size))
+
+    (λ [closure bstr-ptr len]
       (cairo-write bstr-ptr len))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

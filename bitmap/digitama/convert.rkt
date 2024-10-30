@@ -27,18 +27,21 @@
        (let*-values ([(s) (values outline)]
                      [(linewidth) (stroke-maybe-width s)]
                      [(offset) (* linewidth 0.5)]
-                     [(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* (+ linewidth width) (+ linewidth height) density scale?)])
-         (dc cr offset offset width height args ... s paint-args ...)
+                     [(sfc png-cr fxwidth fxheight) (cairo-create-argb-image-surface* (+ linewidth width) (+ linewidth height) density scale?)])
+         (dc png-cr offset offset width height args ... s paint-args ...)
+         (cairo_destroy png-cr)
          (make-bitmap-from-image-surface sfc density fxwidth fxheight bitmap-convert 'dc)))]
     [(_ dc #:with [width height density scale?] args ...)
      (syntax/loc stx
-       (let-values ([(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?)])
-         (dc cr 0.0 0.0 width height args ...)
+       (let-values ([(sfc png-cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?)])
+         (dc png-cr 0.0 0.0 width height args ...)
+         (cairo_destroy png-cr)
          (make-bitmap-from-image-surface sfc density fxwidth fxheight bitmap-convert 'dc)))]
     [(_ dc #:with [x y width height density scale?] args ...)
      (syntax/loc stx
-       (let-values ([(sfc cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?)])
-         (dc cr x y width height args ...)
+       (let-values ([(sfc png-cr fxwidth fxheight) (cairo-create-argb-image-surface* width height density scale?)])
+         (dc png-cr x y width height args ...)
+         (cairo_destroy png-cr)
          (make-bitmap-from-image-surface sfc density fxwidth fxheight bitmap-convert 'dc)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -143,19 +146,18 @@
   (lambda [self mime fallback]
     (cond [(not (bitmap? self)) fallback]
           [else (let ([density (bitmap-density self)])
-                  (define surface (bitmap<%>-surface self))
                   (case mime
-                    [(pdf-bytes) (bitmap-surface->stream-bytes surface 'pdf '/dev/pdfout density)]
-                    [(svg-bytes) (bitmap-surface->stream-bytes surface 'svg '/dev/svgout density)]
-                    [(png@2x-bytes) (bitmap-surface->stream-bytes surface 'png '/dev/p2xout 1.0)]
-                    [(png-bytes) (bitmap-surface->stream-bytes surface 'png '/dev/pngout density)]
-                    [(cairo-surface) surface]
+                    [(pdf-bytes)     (bitmap->stream-bytes self 'pdf density '/dev/pdfout)]
+                    [(svg-bytes)     (bitmap->stream-bytes self 'svg density '/dev/svgout)]
+                    [(png@2x-bytes)  (bitmap->stream-bytes self 'png 1.0     '/dev/p2xout)]
+                    [(png-bytes)     (bitmap->stream-bytes self 'png density '/dev/pngout)]
+                    [(cairo-surface) (bitmap<%>-surface self)]
                     [else fallback]))])))
 
-(define bitmap-surface->stream-bytes : (-> Bitmap-Surface Symbol Symbol Positive-Flonum Bytes)
-  (lambda [sfc format name density]
+(define bitmap->stream-bytes : (->* (Bitmap Symbol) (Positive-Flonum Symbol) Bytes)
+  (lambda [self format [density 2.0] [name #false]]
     (define /dev/sfcout : Output-Port (open-output-bytes name))
-    (bitmap-surface-save sfc /dev/sfcout format density)
+    (bitmap-surface-save (bitmap<%>-surface self) /dev/sfcout format density)
     (get-output-bytes /dev/sfcout)))
 
 (define bitmap-surface-save : (-> Bitmap-Surface (U Path-String Output-Port) Symbol Positive-Flonum Void)

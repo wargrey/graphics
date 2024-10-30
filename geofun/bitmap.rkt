@@ -4,4 +4,4 @@
 
 (require geofun/digitama/misc)
 
-(require/provide bitmap)
+(require/provide bitmap/main)

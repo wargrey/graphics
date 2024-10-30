@@ -32,11 +32,14 @@
   (lambda [/dev/vecout λsurface Width Height pool-size λdc master x0 y0 flwidth flheight]
     (if (output-port? /dev/vecout)
         (let* ([surface (λsurface /dev/vecout Width Height pool-size)]
-               [cr (cairo_create surface)])
+               [vec-cr (cairo_create surface)])
+          ; WARNING: Either `cairo_destroy` or `cairo_surface_finish` is required to flush the writer
           (start-breakable-atomic)
-          (λdc master cr x0 y0 flwidth flheight)
+          (λdc master vec-cr x0 y0 flwidth flheight)
           (cairo_surface_flush surface)
+          (cairo_surface_finish surface)
           (cairo_surface_destroy surface)
+          (cairo_destroy vec-cr)
           (end-breakable-atomic))
         (let ()
           (make-parent-directory* /dev/vecout)
