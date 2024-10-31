@@ -38,13 +38,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-scale : (->* (Geo Real) (Real) Geo)
   (case-lambda
-    [(self s) (if (= s 1.0) self (geo-scale self s s))]
-    [(self sx sy)
-     (cond [(and (= sx 1.0) (= sy 1.0)) self]
-           [(geo:scaling? self) (geo-scale (geo:transform-source self) (* sx (geo:scaling-sx self)) (* sy (geo:scaling-sy self)))]
-           [else (create-geometry-object geo:scaling
-                                         #:with [(geo-id self) geo-draw/scaling! geo-scaling-extent]
-                                         self (real->double-flonum sx) (real->double-flonum sy))])]))
+    [(self s) (geo-scale self s s)] 
+    [(self sx0 sy0)
+     (let-values ([(sx sy) (values (real->double-flonum sx0) (real->double-flonum sy0))])
+       (cond [(and (= sx 1.0) (= sy 1.0)) self]
+             [(not (geo:scaling? self))
+              (create-geometry-object geo:scaling
+                                      #:with [(geo-id self) geo-draw/scaling! geo-scaling-extent
+                                                            (geo-pad-scale (geo-outline self) sx sy)]
+                                      self sx sy)]
+             [else (geo-scale (geo:transform-source self) (* sx (geo:scaling-sx self)) (* sy (geo:scaling-sy self)))]))]))
 
 (define geo-rotate : (->* (Geo Real) (Boolean) Geo)
   (lambda [self theta [radian? #true]]
@@ -52,7 +55,7 @@
     (cond [(= fltheta 0.0) self]
           [(geo:rotation? self) (geo-rotate (geo:transform-source self) (+ fltheta (geo:rotation-theta self)))]
           [else (create-geometry-object geo:rotation
-                                        #:with [(geo-id self) geo-draw/rotation! geo-rotation-extent]
+                                        #:with [(geo-id self) geo-draw/rotation! geo-rotation-extent (geo-outline self)]
                                         self fltheta)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -64,7 +67,7 @@
     (define flh (real->double-flonum height))
 
     (create-geometry-object geo:region
-                            #:with [(geo-id self) geo-draw/region! (geo-shape-plain-extent flw flh)]
+                            #:with [(geo-id self) geo-draw/region! (geo-shape-extent flw flh) geo-zero-pads]
                             self flx fly flw flh)))
 
 (define geo-draw/region! : Geo-Surface-Draw!

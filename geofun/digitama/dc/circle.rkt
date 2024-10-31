@@ -49,24 +49,25 @@
     
     (create-geometry-object geo:circle
                             #:with [id (geo-draw-ellipse stroke pattern)
-                                       (geo-shape-plain-extent (* 2.0 r) 0.0 0.0)]
+                                       (geo-shape-extent (* 2.0 r) 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             r (for/list : (Listof Flonum) ([d (in-list diameters)])
                                 (~radian d radian?)))))
 
 (define geo-ellipse
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false] #:diameters [diameters : (Listof Real) null] #:radian? [radian? : Boolean #true]
-           [width : Real] [height : Real -0.618]]
+           [width : Real] [height : Real -0.618]] : (U Geo:Circle Geo:Ellipse)
     (define-values (w h) (~size width height))
-    (define ellipse-extent : Geo-Calculate-Extent (geo-shape-plain-extent w h 0.0 0.0))
+    (define ellipse-extent : Geo-Calculate-Extent (geo-shape-extent w h 0.0 0.0))
     (define rads : (Listof Flonum) (for/list ([d (in-list diameters)]) (~radian d radian?)))
     
     (if (= w h)
         (create-geometry-object geo:circle
-                                #:with [id (geo-draw-ellipse stroke pattern) ellipse-extent]
+                                #:with [id (geo-draw-ellipse stroke pattern) ellipse-extent (geo-shape-outline stroke)]
                                 (* w 0.5) rads)
         (create-geometry-object geo:ellipse
-                                #:with [id (geo-draw-ellipse stroke pattern) ellipse-extent]
+                                #:with [id (geo-draw-ellipse stroke pattern) ellipse-extent (geo-shape-outline stroke)]
                                 (* w 0.5) (* h 0.5) rads))))
 
 (define geo-sector
@@ -78,19 +79,21 @@
     
     (create-geometry-object geo:sector
                             #:with [id (geo-draw-sector stroke pattern)
-                                       (geo-shape-plain-extent (* 2.0 ar) (* 2.0 br))]
+                                       (geo-shape-extent (* 2.0 ar) (* 2.0 br))
+                                       (geo-shape-outline stroke)]
                             ar br (~radian start radian?) (~radian end radian?))))
 
 (define geo-arc
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:radian? [radian? : Boolean #true]
            #:id [id : (Option Symbol) #false] #:ratio [ratio : Real 1.0]
-           [radius : Real] [start : Real] [end : Real]]
+           [radius : Real] [start : Real] [end : Real]] : Geo:Arc
     (define ar : Nonnegative-Flonum (~length radius))
     (define br : Nonnegative-Flonum (if (> ratio 0.0) (abs (/ ar (real->double-flonum ratio))) ar))
     
     (create-geometry-object geo:arc
                             #:with [id (geo-draw-arc stroke)
-                                       (geo-shape-plain-extent (* 2.0 ar) (* 2.0 br))]
+                                       (geo-shape-extent (* 2.0 ar) (* 2.0 br))
+                                       (geo-shape-outline stroke)]
                             ar br (~radian start radian?) (~radian end radian?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

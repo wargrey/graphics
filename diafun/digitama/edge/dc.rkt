@@ -63,7 +63,8 @@
 
     (create-geometry-object dia:edge
                             #:with [id (dia-draw-edge! stroke x-stroke? y-stroke?)
-                                       (geo-shape-plain-extent width height 0.0 0.0)]
+                                       (geo-shape-extent width height 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             footprints (cons spt srad) (cons ept erad) (make-rectangular lx ty)
                             (make-rectangular xoff yoff) (make-rectangular line-offset line-offset)
                             src-prints tgt-prints (cons s.off t.off))))

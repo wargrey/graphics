@@ -56,7 +56,8 @@
            [text : Any] [font : (Option Font) #false]] : Geo:Art-Text
     (create-geometry-object geo:art-text
                             #:with [id (geo-draw-art-text font outline fill bgsource)
-                                       (geo-art-text-extent font)]
+                                       (geo-art-text-extent font)
+                                       (geo-shape-outline outline)]
                             (~a text) lines)))
 
 (define geo-text
@@ -67,7 +68,8 @@
            [text : Any] [font : (Option Font) #false]] : Geo:Text
     (create-geometry-object geo:text
                             #:with [id (geo-draw-text font fgsource bgsource)
-                                       (geo-text-extent font)]
+                                       (geo-text-extent font)
+                                       geo-zero-pads]
                             (~a text) lines alsource dlsource clsource mlsource blsource)))
 
 (define geo-paragraph
@@ -85,7 +87,8 @@
     
     (create-geometry-object geo:para
                             #:with [id (geo-draw-paragraph font fgsource bgsource)
-                                       (geo-paragraph-extent font)]
+                                       (geo-paragraph-extent font)
+                                       geo-zero-pads]
                             body lines smart-width smart-height
                             (real->double-flonum indent) (real->double-flonum spacing)
                             (paragraph-wrap-mode->integer wrap-mode raise-argument-error)

@@ -53,7 +53,8 @@
     
     (create-geometry-object geo:regular-polygon
                             #:with [id (geo-draw-regular-polygon stroke pattern)
-                                       (geo-shape-plain-extent d d 0.0 0.0)]
+                                       (geo-shape-extent d d 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             N R rtype (~radian rotation radian?))))
 
 (define geo-polygon
@@ -65,7 +66,8 @@
     
     (create-geometry-object geo:polygon
                             #:with [id (geo-draw-polygon stroke pattern rule)
-                                       (geo-shape-plain-extent width height 0.0 0.0)]
+                                       (geo-shape-extent width height 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             prints xoff yoff)))
 
 (define geo-polyline
@@ -77,7 +79,8 @@
     
     (create-geometry-object geo:polyline
                             #:with [id (geo-draw-polyline stroke)
-                                       (geo-shape-plain-extent width height 0.0 0.0)]
+                                       (geo-shape-extent width height 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             prints xoff yoff close?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

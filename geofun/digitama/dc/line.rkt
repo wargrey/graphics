@@ -26,7 +26,8 @@
     
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
-                                       (geo-shape-plain-extent flwidth flheight)]
+                                       (geo-shape-extent flwidth flheight)
+                                       geo-zero-pads]
                             0.0 (* flheight 0.5) flwidth 0.0)))
 
 (define geo-vline : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
@@ -35,7 +36,8 @@
     
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
-                                       (geo-shape-plain-extent flwidth flheight)]
+                                       (geo-shape-extent flwidth flheight)
+                                       geo-zero-pads]
                             (* flwidth 0.5) 0.0 0.0 flheight)))
 
 (define geo-diagonal : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
@@ -44,7 +46,8 @@
     
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
-                                       (geo-shape-plain-extent flwidth flheight)]
+                                       (geo-shape-extent flwidth flheight)
+                                       (geo-shape-outline stroke)]
                             0.0 0.0 flwidth flheight)))
 
 (define geo-anti-diagonal : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
@@ -53,7 +56,8 @@
     
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
-                                       (geo-shape-plain-extent flwidth flheight)]
+                                       (geo-shape-extent flwidth flheight)
+                                       (geo-shape-outline stroke)]
                             0.0 flheight flwidth (- flheight))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

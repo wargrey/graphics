@@ -37,7 +37,8 @@
     
     (create-geometry-object geo:icosahedron:side
                             #:with [id (geo-draw-side-projection border edge pattern)
-                                       (geo-shape-plain-extent (icosahedron-edge-length->side-outline-size sidelength))]
+                                       (geo-shape-extent (icosahedron-edge-length->side-outline-size sidelength))
+                                       (geo-shape-outline border)]
                             r radius-type sidelength)))
 
 (define geo-icosahedron-over-projection
@@ -49,7 +50,8 @@
     
     (create-geometry-object geo:icosahedron:over
                             #:with [id (geo-draw-over-projection border edge pattern)
-                                       (geo-shape-plain-extent (* 2.0 R))]
+                                       (geo-shape-extent (* 2.0 R))
+                                       (geo-shape-outline border)]
                             r radius-type R (~radian rotation radian?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

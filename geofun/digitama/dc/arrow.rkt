@@ -37,8 +37,7 @@
     (define wing-flangle (and wing-angle (~radian wing-angle radian?)))
     
     (create-geometry-object geo:dart
-                            #:with [id (geo-draw-dart stroke pattern)
-                                       geo-dart-extent]
+                            #:with [id (geo-draw-dart stroke pattern) geo-dart-extent (geo-shape-outline stroke)]
                             flradius (~radian start radian?) wing-flangle)))
 
 (define geo-arrow
@@ -52,8 +51,7 @@
     (define wing-flangle (and wing-angle (~radian wing-angle radian?)))
     
     (create-geometry-object geo:arrow
-                            #:with [id (geo-draw-arrow stroke pattern)
-                                       geo-arrow-extent]
+                            #:with [id (geo-draw-arrow stroke pattern) geo-arrow-extent (geo-shape-outline stroke)]
                             rhead shaft-flength shaft-flthickness (~radian start radian?) wing-flangle)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

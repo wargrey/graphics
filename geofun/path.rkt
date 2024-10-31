@@ -86,7 +86,7 @@
     (define-values (usx usy) (geo-path-turn-scales u-scale 0.25))
     
     (create-geometry-object gomamon
-                            #:with [name (geo-draw-path! stroke fill frule) geo-path-extent]
+                            #:with [name (geo-draw-path! stroke fill frule) geo-path-extent (geo-shape-outline stroke)]
                             (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             (list (gpp:point #\M home-pos)) (make-hash)

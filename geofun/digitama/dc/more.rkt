@@ -66,7 +66,8 @@
     
     (create-geometry-object geo:stadium
                             #:with [id (geo-draw-stadium stroke pattern)
-                                       (geo-shape-plain-extent (+ d flength) d 0.0 0.0)]
+                                       (geo-shape-extent (+ d flength) d 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             flength flradius 'both)))
 
 (define geo-lstadium : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Stadium)
@@ -77,7 +78,8 @@
     
     (create-geometry-object geo:stadium
                             #:with [id (geo-draw-stadium stroke pattern)
-                                       (geo-shape-plain-extent (+ flradius flength) d 0.0 0.0)]
+                                       (geo-shape-extent (+ flradius flength) d 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             flength flradius 'left)))
 
 (define geo-rstadium : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Stadium)
@@ -88,7 +90,8 @@
     
     (create-geometry-object geo:stadium
                             #:with [id (geo-draw-stadium stroke pattern)
-                                       (geo-shape-plain-extent (+ flradius flength) d 0.0 0.0)]
+                                       (geo-shape-extent (+ flradius flength) d 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             flength flradius 'right)))
 
 (define geo-bullet : (->* (Real Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Bullet)
@@ -99,7 +102,8 @@
     
     (create-geometry-object geo:bullet
                             #:with [id (geo-draw-bullet stroke pattern)
-                                       (geo-shape-plain-extent (+ flogive flbarrel) d 0.0 0.0)]
+                                       (geo-shape-extent (+ flogive flbarrel) d 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             flogive flbarrel flradius)))
 
 (define geo-sandglass : (->* (Real)
@@ -116,7 +120,8 @@
     
     (create-geometry-object geo:sandglass
                             #:with [id (geo-draw-sandglass stroke pattern)
-                                       (geo-shape-plain-extent flwidth flheight 0.0 0.0)]
+                                       (geo-shape-extent flwidth flheight 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             neck-flwidth neck-flheight tube-flheight)))
 
 (define geo-storage : (->* (Real Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Storage)
@@ -126,7 +131,8 @@
     
     (create-geometry-object geo:storage
                             #:with [id (geo-draw-storage stroke pattern)
-                                       (geo-shape-plain-extent flwidth flheight 0.0 0.0)]
+                                       (geo-shape-extent flwidth flheight 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             flwidth flheight fla)))
 
 (define geo-document : (->* (Real Real) (Real #:id (Option Symbol) #:extra-n Index #:gapsize Real #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Document)
@@ -136,7 +142,8 @@
     
     (create-geometry-object geo:document
                             #:with [id (geo-draw-document stroke pattern)
-                                       (geo-shape-plain-extent flwidth flheight 0.0 0.0)]
+                                       (geo-shape-extent flwidth flheight 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             flwidth flheight flwave (~length gapsize flwave) extra-n)))
 
 (define geo-database : (->* (Real Real) (Real #:id (Option Symbol) #:extra-n Index #:gapsize Real #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Database)
@@ -146,7 +153,8 @@
     
     (create-geometry-object geo:database
                             #:with [id (geo-draw-database stroke pattern)
-                                       (geo-shape-plain-extent flwidth flheight 0.0 0.0)]
+                                       (geo-shape-extent flwidth flheight 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             flwidth flheight flb (~length gapsize flb) extra-n)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -28,7 +28,7 @@
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
          (let ([layers layers0])
-           (Geo geo-convert geo-draw-group! (geo-group-extent layers)
+           (Geo geo-convert geo-draw-group! (geo-group-extent layers) (geo-group-outline layers)
                 (or name (gensym 'geo-prefix)) op layers
                 0.0+0.0i geo-frame-zero-border
                 argl ...))))]
@@ -43,7 +43,7 @@
        (syntax/loc stx
          (let*-values ([(layers) layers0]
                        [(geo-frame-extent O frame) (geo-group-frame-extent margin inset layers bdr)])
-           (Geo geo-convert (geo-draw-framed-group! bdr bgsource) geo-frame-extent
+           (Geo geo-convert (geo-draw-framed-group! bdr bgsource) geo-frame-extent (geo-group-outline layers)
                 (or name (gensym 'geo-prefix)) op layers O frame
                 argl ...))))]))
 
@@ -99,14 +99,14 @@
   (case-lambda
     [(id op layers)
      (create-geometry-object geo:group
-                             #:with [id geo-draw-group! (geo-group-extent layers)]
+                             #:with [id geo-draw-group! (geo-group-extent layers) (geo-group-outline layers)]
                              op layers 0.0+0.0i geo-frame-zero-border)]
     [(id op layers margin inset border background)
      (if (or margin inset border background)
 
          (let-values ([(geo-frame-extent O frame) (geo-group-frame-extent margin inset layers border)])   
            (create-geometry-object geo:group
-                                   #:with [id (geo-draw-framed-group! border background) geo-frame-extent]
+                                   #:with [id (geo-draw-framed-group! border background) geo-frame-extent geo-zero-pads]
                                    op layers O frame))
 
          (make-geo:group id op layers))]))
@@ -159,9 +159,31 @@
     (λ [self]
       (values w h #false))))
 
+(define geo-group-outline : (-> Geo-Layer-Group Geo-Calculate-Outline)
+  (lambda [layers]
+    (define W (glayer-group-width layers))
+    (define H (glayer-group-height layers))
+    
+    (λ [[master : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Pad
+      (let check-boundary ([lx : Flonum 0.0]
+                           [ty : Flonum 0.0]
+                           [rx : Nonnegative-Flonum W]
+                           [by : Nonnegative-Flonum H]
+                           [siblings : (Listof (GLayerof Geo)) (glayer-group-layers layers)])
+        (cond [(pair? siblings)
+               (let*-values ([(self rest) (values (car siblings) (cdr siblings))]
+                             [(x y w h) (values (glayer-x self) (glayer-y self) (glayer-width self) (glayer-height self))]
+                             [(outline) (geo-outline* (glayer-master self) stroke border)]
+                             [(l t) (values (geo-pad-left outline) (geo-pad-top outline))]
+                             [(r b) (values (geo-pad-right outline) (geo-pad-bottom outline))])
+                 (check-boundary (min lx (- x l)) (min ty (- y t)) (max rx (+ x w r)) (max by (+ y h b)) rest))]
+              [(or (< lx 0.0) (< ty 0.0) (> rx W) (> by H))
+               (geo-pad (abs ty) (abs (- rx W)) (abs (- by H)) (abs lx))]
+              [else geo-zero-pads])))))
+
 (define geo-group-frame-extent : (-> (Option Geo-Frame-Blank-Datum) (Option Geo-Frame-Blank-Datum) Geo-Layer-Group Maybe-Stroke-Paint
-                                     (Values Geo-Calculate-Extent Float-Complex Geo-Frame-Border))
-  (lambda [margin inset layers border]
+                                   (Values Geo-Calculate-Extent Float-Complex Geo-Frame-Border))
+  (lambda [margin inset layers maybe-border]
     (define-values (mtop mright mbottom mleft)
       (cond [(list? margin) (list->4:values (map real->double-flonum margin) 0.0)]
             [(real? margin) (let ([fl (real->double-flonum margin)]) (values fl fl fl fl))]
@@ -171,17 +193,18 @@
       (cond [(list? inset) (list->4:values (map real->double-flonum inset) 0.0)]
             [(real? inset) (let ([fl (real->double-flonum inset)]) (values fl fl fl fl))]
             [else (values 0.0 0.0 0.0 0.0)]))
-    
+
     (define-values (flwidth flheight) (values (glayer-group-width layers) (glayer-group-height layers)))
+    
     (define-values (W H bx by bw bh ox oy)
       (dc_frame_size flwidth flheight
                      mtop mright mbottom mleft ptop pright pbottom pleft
-                     (geo-select-border-paint border)))
+                     (geo-select-border-paint maybe-border)))
     
-    (define geo-frame-extent : Geo-Calculate-Extent
-      (lambda [self]
+    (define geo-frame-static-extent : Geo-Calculate-Extent
+      (lambda [self]    
         (values W H (make-geo-ink bx by bw bh))))
     
-    (values geo-frame-extent
+    (values geo-frame-static-extent
             (make-rectangular ox oy)
             (vector-immutable bx by bw bh))))

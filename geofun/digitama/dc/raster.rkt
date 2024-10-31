@@ -26,7 +26,7 @@
            [self : Bitmap]] : Geo:Bitmap
     (define-values (w h) (bitmap-flsize self))
     (create-geometry-object geo:bitmap
-                            #:with [id (geo-draw-bitmap w h) (geo-shape-plain-extent w h)]
+                            #:with [id (geo-draw-bitmap w h) (geo-shape-extent w h) geo-zero-pads]
                             self filter)))
 
 (define geo-rectangular
@@ -34,7 +34,7 @@
            [width : Real] [height : Real] [λargb : XYWH->ARGB]] : Geo:Bitmap
     (define-values (w h) (~size width height))
     (create-geometry-object geo:bitmap
-                            #:with [id (geo-draw-bitmap w h) (geo-shape-plain-extent w h)]
+                            #:with [id (geo-draw-bitmap w h) (geo-shape-extent w h) geo-zero-pads]
                             λargb filter)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

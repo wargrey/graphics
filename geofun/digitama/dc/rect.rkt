@@ -29,7 +29,9 @@
     (define w : Nonnegative-Flonum (~length width))
     
     (create-geometry-object geo:rect
-                            #:with [id (geo-draw-rectangle stroke pattern) (geo-shape-plain-extent w 0.0 0.0)]
+                            #:with [id (geo-draw-rectangle stroke pattern)
+                                       (geo-shape-extent w 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             w w (~length corner-radius w)
                             (map real->double-flonum vlines)
                             (map real->double-flonum hlines))))
@@ -42,7 +44,8 @@
     
     (create-geometry-object geo:rect
                             #:with [id (geo-draw-rectangle stroke pattern)
-                                       (geo-shape-plain-extent w h 0.0 0.0)]
+                                       (geo-shape-extent w h 0.0 0.0)
+                                       (geo-shape-outline stroke)]
                             w h (~length corner-radius (min w h))
                             (map real->double-flonum vlines)
                             (map real->double-flonum hlines))))

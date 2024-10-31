@@ -25,8 +25,9 @@
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [self : Geo<%>]] : Bitmap
     (define s : (Option Stroke) (stroke-paint->source* stroke))
+    (define b : (Option Stroke) (border-paint->source* border))
     (parameterize ([default-stroke-source s]
-                   [default-border-source (border-paint->source* border)]
+                   [default-border-source b]
                    [default-font-source (font-paint->source fgc)]
                    [default-background-source (fill-paint->source* bgc)]
                    [default-fill-source (fill-paint->source* fill)]
@@ -34,12 +35,9 @@
                    [default-pattern-filter filter]
                    [default-pin-operator op]
                    [default-font font])
-      (define thickness (stroke-maybe-width s))
-      (define offset (* thickness 0.5))
-      (define-values (flwidth flheight _ink) ((geo<%>-extent self) self))
-      (define-values (bmp cr) (create-argb-bitmap (+ flwidth thickness) (+ flheight thickness) density #true))
-      
-      ((geo<%>-draw! self) self cr offset offset flwidth flheight)
+      (define-values (xoff yoff width height Width Height) (geo-surface-region self))
+      (define-values (bmp cr) (create-argb-bitmap Width Height density #true))
+      ((geo<%>-draw! self) self cr xoff yoff width height)
       (cairo_destroy cr)
       bmp)))
 
