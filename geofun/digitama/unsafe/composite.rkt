@@ -20,7 +20,7 @@
   (lambda [cr x0 y0 width height operator group]
     (define geo-objects (glayer-group-layers group))
 
-    (cairo_set_operator cr CAIRO_OPERATOR_SOURCE)
+    (cairo_set_operator cr CAIRO_OPERATOR_OVER)
     (geo-composite-layer cr (car geo-objects) x0 y0)
     (cairo_set_operator cr (or operator CAIRO_OPERATOR_OVER))
     
