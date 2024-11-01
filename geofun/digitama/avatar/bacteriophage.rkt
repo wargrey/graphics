@@ -75,7 +75,7 @@
 
     (if (and maybe-sheath)
         
-        (geo-vc-append #:gapsize (* Rdart -1.0) #:operator 'multiply
+        (geo-vc-append #:gapsize (* Rdart -1.0) #:operator 'dest-over
                        (geo-vc-append #:gapsize (* Rcollar -1.5) #:operator 'over
                                       protein-coat
                                       (geo-cb-superimpose (geo-pin* #:operator 'clear 0.5 0.80 0.5 0.0 collar maybe-sheath)

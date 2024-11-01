@@ -67,7 +67,7 @@
     (define flh (real->double-flonum height))
 
     (create-geometry-object geo:region
-                            #:with [(geo-id self) geo-draw/region! (geo-shape-extent flw flh) geo-zero-pads]
+                            #:with [(geo-id self) geo-draw/region! (geo-shape-extent flw flh) (geo-outline self)]
                             self flx fly flw flh)))
 
 (define geo-draw/region! : Geo-Surface-Draw!

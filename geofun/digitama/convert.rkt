@@ -219,8 +219,9 @@
     (case-lambda
       [(stroke)
        (cond [(void? stroke) #false]
+             [(not stroke) geo-zero-pads]
              [(stroke? stroke) (geo-stroke->outline stroke)]
-             [else geo-zero-pads])])))
+             [else #false])])))
 
 (define geo-stroke->outline : (-> Stroke Geo-Pad)
   (let ([insets : (HashTable Flonum Geo-Pad) (make-hasheq)])
