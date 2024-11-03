@@ -19,7 +19,7 @@
                          [subg (glayer-master self)]
                          [loc (make-rectangular (glayer-x self) (glayer-y self))])
                     (or (and (geo:group? subg)
-                             (find (+ offset loc (geo:group-origin subg))
+                             (find (+ offset loc (geo-group-origin subg))
                                    (glayer-group-layers (geo:group-selves subg))))
                         (and (geo-found? subg target)
                              (let*-values ([(gw gh) (values (glayer-width self) (glayer-height self))]

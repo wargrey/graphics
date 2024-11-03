@@ -30,7 +30,6 @@
          (let ([layers layers0])
            (Geo geo-convert geo-draw-group! (geo-group-extent layers) (geo-group-outline layers)
                 (or name (gensym 'geo-prefix)) op layers
-                0.0+0.0i geo-frame-zero-border
                 argl ...))))]
     [(_ Geo name op
         (~alt (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
@@ -51,13 +50,9 @@
 (define-type Geo-Frame-Blank-Datum (U Nonnegative-Real (Listof Nonnegative-Real)))
 (define-type Geo-Frame-Border (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
 
-(define geo-frame-zero-border : Geo-Frame-Border #(0.0 0.0 0.0 0.0))
-
 (struct geo:group geo
   ([operator : (Option Symbol)]
-   [selves : Geo-Layer-Group]
-   [origin : Float-Complex]
-   [border : Geo-Frame-Border])
+   [selves : Geo-Layer-Group])
   #:type-name Geo:Group
   #:transparent)
 
@@ -67,6 +62,20 @@
    [gaps : (Pairof (Vectorof Flonum) (Vectorof Flonum))])
   #:type-name Geo:Table
   #:transparent)
+
+(struct geo-frame-ink geo-ink
+  ([body-origin : Float-Complex])
+  #:type-name Geo-Frame-Ink
+  #:transparent)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-group-origin : (-> Geo:Group Float-Complex)
+  (lambda [self]
+    (define-values (W H ink) (geo-extent self))
+
+    (if (geo-frame-ink? ink)
+        (geo-frame-ink-body-origin ink)
+        0.0+0.0i)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-composite : (->* (Geo Real Real Geo) (Real Real #:operator (Option Symbol) #:id (Option Symbol)) Geo:Group)
@@ -100,14 +109,14 @@
     [(id op layers)
      (create-geometry-object geo:group
                              #:with [id geo-draw-group! (geo-group-extent layers) (geo-group-outline layers)]
-                             op layers 0.0+0.0i geo-frame-zero-border)]
+                             op layers)]
     [(id op layers margin inset border background)
      (if (or margin inset border background)
 
-         (let-values ([(geo-frame-extent O frame) (geo-group-frame-extent margin inset layers border)])   
+         (let ([geo-frame-extent (geo-group-frame-extent margin inset layers border)])
            (create-geometry-object geo:group
                                    #:with [id (geo-draw-framed-group! border background) geo-frame-extent geo-zero-pads]
-                                   op layers O frame))
+                                   op layers))
 
          (make-geo:group id op layers))]))
 
@@ -142,14 +151,16 @@
   (lambda [alt-bdr alt-bg]
     (lambda [self cr x0 y0 width height]
       (with-asserts ([self geo:group?])
-        (define origin (geo:group-origin self))
-        (define border (geo:group-border self))
+        (define-values (W H ink) (geo-extent self))
 
-        (geo_framed_composite cr x0 y0 width height
-                              (geo-select-operator (geo:group-operator self) default-pin-operator)
-                              (geo:group-selves self) (real-part origin) (imag-part origin)
-                              (vector-ref border 0) (vector-ref border 1) (vector-ref border 2) (vector-ref border 3)
-                              (geo-select-border-paint alt-bdr) (geo-select-background-source alt-bg))))))
+        (when (geo-frame-ink? ink)
+          (let ([border (geo-ink-pos ink)]
+                [origin (geo-frame-ink-body-origin ink)])
+            (geo_framed_composite cr x0 y0 width height
+                                  (geo-select-operator (geo:group-operator self) default-pin-operator)
+                                  (geo:group-selves self) (real-part origin) (imag-part origin)
+                                  (real-part border) (imag-part border) (geo-ink-width ink) (geo-ink-height ink)
+                                  (geo-select-border-paint alt-bdr) (geo-select-background-source alt-bg))))))))
 
 (define geo-group-extent : (-> Geo-Layer-Group Geo-Calculate-Extent)
   (lambda [layers]
@@ -182,7 +193,7 @@
               [else geo-zero-pads])))))
 
 (define geo-group-frame-extent : (-> (Option Geo-Frame-Blank-Datum) (Option Geo-Frame-Blank-Datum) Geo-Layer-Group Maybe-Stroke-Paint
-                                   (Values Geo-Calculate-Extent Float-Complex Geo-Frame-Border))
+                                     Geo-Calculate-Extent)
   (lambda [margin inset layers maybe-border]
     (define-values (mtop mright mbottom mleft)
       (cond [(list? margin) (list->4:values (map real->double-flonum margin) 0.0)]
@@ -194,17 +205,18 @@
             [(real? inset) (let ([fl (real->double-flonum inset)]) (values fl fl fl fl))]
             [else (values 0.0 0.0 0.0 0.0)]))
 
-    (define-values (flwidth flheight) (values (glayer-group-width layers) (glayer-group-height layers)))
-    
-    (define-values (W H bx by bw bh ox oy)
-      (dc_frame_size flwidth flheight
-                     mtop mright mbottom mleft ptop pright pbottom pleft
-                     (geo-select-border-paint maybe-border)))
-    
-    (define geo-frame-static-extent : Geo-Calculate-Extent
-      (lambda [self]    
-        (values W H (make-geo-ink bx by bw bh))))
-    
-    (values geo-frame-static-extent
-            (make-rectangular ox oy)
-            (vector-immutable bx by bw bh))))
+    (define frame-outline : Geo-Calculate-Outline (geo-group-outline layers))
+    (define-values (gwidth gheight) (values (glayer-group-width layers) (glayer-group-height layers)))
+
+    (λ [[self : Geo<%>]]
+      (define frame-pads : Geo-Pad (frame-outline self (current-stroke-source) (current-border-source)))
+      (define-values (dx dy flwidth flheight) (geo-pad-expand frame-pads gwidth gheight))
+      
+      (define-values (W H bx by bw bh ox oy)
+        (dc_frame_size flwidth flheight
+                       mtop mright mbottom mleft ptop pright pbottom pleft
+                       (geo-select-border-paint maybe-border)))
+      
+      (values W H
+              (geo-frame-ink (make-rectangular bx by) bw bh
+                         (make-rectangular (+ ox dx) (+ oy dy)))))))

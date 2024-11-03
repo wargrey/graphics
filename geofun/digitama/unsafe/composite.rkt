@@ -31,7 +31,7 @@
 
 (define geo_framed_composite : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                                    (Option Byte) Geo-Layer-Group Flonum Flonum
-                                   Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                   Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                                    (Option Stroke) (Option Fill-Source) Any)
   (lambda [cr x0 y0 width height operator group dest-x dest-y border-x border-y border-width border-height border background]
     (define geo-objects (glayer-group-layers group))
