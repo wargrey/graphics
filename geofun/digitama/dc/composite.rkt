@@ -31,7 +31,7 @@
            (Geo geo-convert geo-draw-group! (geo-group-extent layers) (geo-group-outline layers)
                 (or name (gensym 'geo-prefix)) op layers
                 argl ...))))]
-    [(_ Geo name op
+    [(_ Geo name op:expr
         (~alt (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
               (~optional (~seq #:padding inset) #:defaults ([inset #'#false]))
               (~optional (~seq #:border bdr) #:defaults ([bdr #'#false]))
@@ -40,11 +40,16 @@
         layers0 argl ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
-         (let*-values ([(layers) layers0]
-                       [(geo-frame-extent O frame) (geo-group-frame-extent margin inset layers bdr)])
-           (Geo geo-convert (geo-draw-framed-group! bdr bgsource) geo-frame-extent (geo-group-outline layers)
-                (or name (gensym 'geo-prefix)) op layers O frame
-                argl ...))))]))
+         (let* ([layers layers0]
+                [outline (geo-group-outline layers)]
+                [id (or name (gensym 'geo-prefix))])
+           (if (or margin inset bdr bgsource)
+               (Geo geo-convert
+                    (geo-draw-framed-group! bdr bgsource) (geo-group-frame-extent margin inset layers bdr) outline
+                    id op layers argl ...)
+               (Geo geo-convert
+                    geo-draw-group! (geo-group-extent layers) outline
+                    id op layers argl ...)))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Frame-Blank-Datum (U Nonnegative-Real (Listof Nonnegative-Real)))
@@ -192,8 +197,7 @@
                (geo-pad (abs ty) (abs (- rx W)) (abs (- by H)) (abs lx))]
               [else geo-zero-pads])))))
 
-(define geo-group-frame-extent : (-> (Option Geo-Frame-Blank-Datum) (Option Geo-Frame-Blank-Datum) Geo-Layer-Group Maybe-Stroke-Paint
-                                     Geo-Calculate-Extent)
+(define geo-group-frame-extent : (-> (Option Geo-Frame-Blank-Datum) (Option Geo-Frame-Blank-Datum) Geo-Layer-Group Maybe-Stroke-Paint Geo-Calculate-Extent)
   (lambda [margin inset layers maybe-border]
     (define-values (mtop mright mbottom mleft)
       (cond [(list? margin) (list->4:values (map real->double-flonum margin) 0.0)]
@@ -210,13 +214,14 @@
 
     (λ [[self : Geo<%>]]
       (define frame-pads : Geo-Pad (frame-outline self (current-stroke-source) (current-border-source)))
-      (define-values (dx dy flwidth flheight) (geo-pad-expand frame-pads gwidth gheight))
+      (define-values (dx dy body-width body-height) (geo-pad-expand frame-pads gwidth gheight))
       
-      (define-values (W H bx by bw bh ox oy)
-        (dc_frame_size flwidth flheight
+      (define-values (W H bx by border-width border-height ox oy)
+        (dc_frame_size body-width body-height
                        mtop mright mbottom mleft ptop pright pbottom pleft
                        (geo-select-border-paint maybe-border)))
       
       (values W H
-              (geo-frame-ink (make-rectangular bx by) bw bh
-                         (make-rectangular (+ ox dx) (+ oy dy)))))))
+              (geo-frame-ink (make-rectangular bx by)
+                             border-width border-height
+                             (make-rectangular (+ ox dx) (+ oy dy)))))))

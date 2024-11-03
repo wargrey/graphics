@@ -26,6 +26,7 @@
   (move-right-down)
   (move-down-left)
   (move-left-up)
+  #;(close)
   
   (jump-down 3 'Dart)
   (turn-up-right)
@@ -79,9 +80,9 @@
 
       (case anchor
         [(#:home) sticker]
-        [(#:z #:l) (make-sticker sticker 'ct 0 6)]
+        [(#:z #:l) (make-sticker sticker 'ct 0 4)]
         [(#:r #:diamond) (make-sticker sticker 'lc 8.0)]
-        [(E) (make-sticker sticker 'cb 0.0 -2.0)]
+        [(E) (make-sticker sticker 'cb 0.0 0.0)]
         [(lx) (make-sticker sticker 'lt 2.0 2.0)]
         [(Dart Flower) (make-sticker sticker 'rb -2.0 -2.0)]
         [else (make-sticker sticker 'cc)])))

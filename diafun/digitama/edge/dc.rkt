@@ -30,7 +30,6 @@
    [target : (Pairof Float-Complex Flonum)]
    [origin : Float-Complex]
    [bbox-offset : Float-Complex]
-   [line-offset : (Option Float-Complex)]
    [source-shape : Geo-Path-Clean-Prints]
    [target-shape : Geo-Path-Clean-Prints]
    [adjust-offset : (Pairof (Option Float-Complex) (Option Float-Complex))])
@@ -47,7 +46,6 @@
                          Dia:Edge)
   (lambda [#:id [id #false] #:stroke [stroke (void)] #:source-shape [src-shape #false] #:target-shape [tgt-shape #false] footprints]
     (define thickness : Nonnegative-Flonum (let ([s (dia-edge-select-line-paint stroke)]) (if (stroke? s) (stroke-width s) 0.0)))
-    (define line-offset : Nonnegative-Flonum (* thickness 0.5))
     (define-values (spt srad ept erad) (geo-path-end-points footprints))
     (define-values (e.x e.y e.w e.h) (geo-path-ink-box footprints))
 
@@ -55,18 +53,16 @@
     (define-values (src-prints s.x s.y s.w s.h s.off) (dia-edge-tip-metrics src-shape thickness srad spt))
     (define-values (tgt-prints t.x t.y t.w t.h t.off) (dia-edge-tip-metrics tgt-shape thickness erad ept))
 
-    ;; NOTE: for shapes having outline stroke, simply add the thickness here
-    (define ssoffset : Nonnegative-Flonum (* (stroke-width default-dia-shape-stroke) 0.5))
-    (define-values (lx ty) (values (min e.x (- s.x ssoffset) (- t.x ssoffset)) (min e.y (- s.y ssoffset) (- t.y ssoffset))))
-    (define-values (rx by) (values (max (+ e.x e.w) (+ s.x s.w ssoffset) (+ t.x t.w ssoffset)) (max (+ e.y e.h) (+ s.y s.h ssoffset) (+ t.y t.h ssoffset))))
+    (define-values (lx ty) (values (min e.x s.x t.x) (min e.y s.y t.y)))
+    (define-values (rx by) (values (max (+ e.x e.w) (+ s.x s.w) (+ t.x t.w)) (max (+ e.y e.h) (+ s.y s.h) (+ t.y t.h))))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window +nan.0+nan.0i lx ty rx by))
 
     (create-geometry-object dia:edge
                             #:with [id (dia-draw-edge! stroke x-stroke? y-stroke?)
                                        (geo-shape-extent width height 0.0 0.0)
-                                       (geo-shape-outline stroke)]
-                            footprints (cons spt srad) (cons ept erad) (make-rectangular lx ty)
-                            (make-rectangular xoff yoff) (make-rectangular line-offset line-offset)
+                                       (geo-shape-outline stroke x-stroke? y-stroke?)]
+                            footprints (cons spt srad) (cons ept erad)
+                            (make-rectangular lx ty) (make-rectangular xoff yoff)
                             src-prints tgt-prints (cons s.off t.off))))
 
 (define dia-edge-attach-label : (-> (U Dia:Edge Dia:Labeled-Edge) (U Dia-Edge-Label (Listof Dia-Edge-Label)) (U Dia:Edge Dia:Labeled-Edge))
@@ -102,8 +98,7 @@
                [O (dia:edge-origin self)]
                [->S (- S O)])
           (- (or maybe-pt S)
-             (make-rectangular (abs (real-part ->S)) (abs (imag-part ->S)))
-             (or (dia:edge-line-offset self) 0.0+0.0i)))
+             (make-rectangular (abs (real-part ->S)) (abs (imag-part ->S)))))
         (let ([slayer (car (glayer-group-layers (geo:group-selves self)))])
           (- (dia-edge-self-pin-position (assert (glayer-master slayer) dia:edge?))
              (make-rectangular (glayer-x slayer) (glayer-y slayer)))))))

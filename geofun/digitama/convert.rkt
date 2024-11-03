@@ -214,14 +214,27 @@
     [(width height x y) (λ [self] (values width height (make-geo-ink x y width height)))]
     [(width height x y w h) (λ [self] (values width height (make-geo-ink x y w h)))]))
 
-(define geo-shape-outline : (case-> [Maybe-Stroke-Paint -> (Option Geo-Pad)])
+(define geo-shape-outline : (case-> [Maybe-Stroke-Paint -> (Option Geo-Pad)]
+                                    [Maybe-Stroke-Paint Boolean Boolean -> (Option Geo-Pad)])
   (let ([insets : (HashTable Flonum Geo-Pad) (make-hasheq)])
     (case-lambda
       [(stroke)
        (cond [(void? stroke) #false]
              [(not stroke) geo-zero-pads]
              [(stroke? stroke) (geo-stroke->outline stroke)]
-             [else #false])])))
+             [else #false])]
+      [(stroke x? y?)
+       (cond [(void? stroke) #false]
+             [(not stroke) geo-zero-pads]
+             [(not (stroke? stroke)) #false]
+             [(and x? y?) (geo-stroke->outline stroke)]
+             [(or x? y?)
+              (let* ([thickness (stroke-width stroke)]
+                     [offset (* thickness 0.5)]
+                     [hoff (if (and x?) offset 0.0)]
+                     [voff (if (and y?) offset 0.0)])
+                (geo-pad voff hoff voff hoff))]
+             [else geo-zero-pads])])))
 
 (define geo-stroke->outline : (-> Stroke Geo-Pad)
   (let ([insets : (HashTable Flonum Geo-Pad) (make-hasheq)])

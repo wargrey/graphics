@@ -67,7 +67,7 @@
     (create-geometry-object geo:polygon
                             #:with [id (geo-draw-polygon stroke pattern rule)
                                        (geo-shape-extent width height 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-outline stroke x-stroke? y-stroke?)]
                             prints xoff yoff)))
 
 (define geo-polyline
@@ -80,7 +80,7 @@
     (create-geometry-object geo:polyline
                             #:with [id (geo-draw-polyline stroke)
                                        (geo-shape-extent width height 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-outline stroke x-stroke? y-stroke?)]
                             prints xoff yoff close?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

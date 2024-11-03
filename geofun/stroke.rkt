@@ -26,9 +26,9 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-stroke : (Parameterof Stroke) (make-parameter (stroke black 1.0 'butt 'miter +nan.0 solid-dash 0.0)))
+(define default-stroke : (Parameterof Stroke) (make-parameter (stroke black 1.0 'butt 'round +nan.0 solid-dash 0.0)))
 (define default-border : (Parameterof Stroke) (make-parameter (stroke hilite (border-thickness->integer 'medium)
-                                                                      'butt 'miter +nan.0 solid-dash 0.0)))
+                                                                      'butt 'round +nan.0 solid-dash 0.0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define desc-stroke : (->* ()
