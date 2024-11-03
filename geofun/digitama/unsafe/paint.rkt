@@ -57,11 +57,14 @@
        (cairo-render-with-fill cr pattern)]))
   
   (define cairo-render-background
-    (lambda [cr bg]
+    (lambda [cr bg x y w h]
       (when (and bg)
+        (cairo_save cr)
+        (cairo-clip cr x y w h)
         (cairo-set-source cr bg)
-        (cairo_paint cr))))
-  
+        (cairo_paint cr)
+        (cairo_restore cr))))
+
   (define cairo-render
     (case-lambda
       [(cr border)
@@ -123,7 +126,7 @@
  (submod "." unsafe)
  [cairo-set-stroke (-> Cairo-Ctx Paint Void)]
  [cairo-render-with-stroke (-> Cairo-Ctx Paint Void)]
- [cairo-render-background (-> Cairo-Ctx (Option Fill-Source) Void)]
+ [cairo-render-background (-> Cairo-Ctx (Option Fill-Source) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Void)]
  [cairo-set-fill-rule (-> Cairo-Ctx Symbol Void)]
  [cairo-clip (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Void)]
  

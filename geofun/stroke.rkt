@@ -78,4 +78,4 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stroke-maybe-width : (-> (Option Stroke) Nonnegative-Flonum)
   (lambda [s]
-    (if (not s) 0.0 (stroke-width s))))
+    (if (stroke? s) (stroke-width s) 0.0)))

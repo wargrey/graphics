@@ -24,28 +24,32 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-geometry-group stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ Geo name op:expr layers0:expr argl:expr ...)
+    [(_ Geo name op:expr
+        (~optional (~seq #:outline outline) #:defaults ([outline #'#false]))
+        layers0:expr argl:expr ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
          (let ([layers layers0])
-           (Geo geo-convert geo-draw-group! (geo-group-extent layers) (geo-group-outline layers)
+           (Geo geo-convert geo-draw-group! (geo-group-extent layers)
+                (or outline (geo-group-outline layers))
                 (or name (gensym 'geo-prefix)) op layers
                 argl ...))))]
     [(_ Geo name op:expr
-        (~alt (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
+        (~alt (~optional (~seq #:outline alt-outline) #:defaults ([alt-outline #'#false]))
+              (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
               (~optional (~seq #:padding inset) #:defaults ([inset #'#false]))
-              (~optional (~seq #:border bdr) #:defaults ([bdr #'#false]))
+              (~optional (~seq #:border border) #:defaults ([border #'#false]))
               (~optional (~seq #:background bgsource) #:defaults ([bgsource #'#false])))
         ...
         layers0 argl ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
          (let* ([layers layers0]
-                [outline (geo-group-outline layers)]
+                [outline (or alt-outline (geo-group-outline layers))]
                 [id (or name (gensym 'geo-prefix))])
-           (if (or margin inset bdr bgsource)
+           (if (or margin inset border bgsource)
                (Geo geo-convert
-                    (geo-draw-framed-group! bdr bgsource) (geo-group-frame-extent margin inset layers bdr) outline
+                    (geo-draw-framed-group! border bgsource) (geo-group-frame-extent margin inset layers border) outline
                     id op layers argl ...)
                (Geo geo-convert
                     geo-draw-group! (geo-group-extent layers) outline
@@ -175,28 +179,6 @@
     (λ [self]
       (values w h #false))))
 
-(define geo-group-outline : (-> Geo-Layer-Group Geo-Calculate-Outline)
-  (lambda [layers]
-    (define W (glayer-group-width layers))
-    (define H (glayer-group-height layers))
-    
-    (λ [[master : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Pad
-      (let check-boundary ([lx : Flonum 0.0]
-                           [ty : Flonum 0.0]
-                           [rx : Nonnegative-Flonum W]
-                           [by : Nonnegative-Flonum H]
-                           [siblings : (Listof (GLayerof Geo)) (glayer-group-layers layers)])
-        (cond [(pair? siblings)
-               (let*-values ([(self rest) (values (car siblings) (cdr siblings))]
-                             [(x y w h) (values (glayer-x self) (glayer-y self) (glayer-width self) (glayer-height self))]
-                             [(outline) (geo-outline* (glayer-master self) stroke border)]
-                             [(l t) (values (geo-pad-left outline) (geo-pad-top outline))]
-                             [(r b) (values (geo-pad-right outline) (geo-pad-bottom outline))])
-                 (check-boundary (min lx (- x l)) (min ty (- y t)) (max rx (+ x w r)) (max by (+ y h b)) rest))]
-              [(or (< lx 0.0) (< ty 0.0) (> rx W) (> by H))
-               (geo-pad (abs ty) (abs (- rx W)) (abs (- by H)) (abs lx))]
-              [else geo-zero-pads])))))
-
 (define geo-group-frame-extent : (-> (Option Geo-Frame-Blank-Datum) (Option Geo-Frame-Blank-Datum) Geo-Layer-Group Maybe-Stroke-Paint Geo-Calculate-Extent)
   (lambda [margin inset layers maybe-border]
     (define-values (mtop mright mbottom mleft)
@@ -225,3 +207,26 @@
               (geo-frame-ink (make-rectangular bx by)
                              border-width border-height
                              (make-rectangular (+ ox dx) (+ oy dy)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-group-outline : (-> Geo-Layer-Group Geo-Calculate-Outline)
+  (lambda [layers]
+    (define W (glayer-group-width layers))
+    (define H (glayer-group-height layers))
+    
+    (λ [[master : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Pad
+      (let check-boundary ([lx : Flonum 0.0]
+                           [ty : Flonum 0.0]
+                           [rx : Nonnegative-Flonum W]
+                           [by : Nonnegative-Flonum H]
+                           [siblings : (Listof (GLayerof Geo)) (glayer-group-layers layers)])
+        (cond [(pair? siblings)
+               (let*-values ([(self rest) (values (car siblings) (cdr siblings))]
+                             [(x y w h) (values (glayer-x self) (glayer-y self) (glayer-width self) (glayer-height self))]
+                             [(outline) (geo-outline* (glayer-master self) stroke border)]
+                             [(l t) (values (geo-pad-left outline) (geo-pad-top outline))]
+                             [(r b) (values (geo-pad-right outline) (geo-pad-bottom outline))])
+                 (check-boundary (min lx (- x l)) (min ty (- y t)) (max rx (+ x w r)) (max by (+ y h b)) rest))]
+              [(or (< lx 0.0) (< ty 0.0) (> rx W) (> by H))
+               (geo-pad (abs ty) (abs (- rx W)) (abs (- by H)) (abs lx))]
+              [else geo-zero-pads])))))

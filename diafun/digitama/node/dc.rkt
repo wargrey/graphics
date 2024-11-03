@@ -27,7 +27,7 @@
         (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))
         shape label argl ...)
      (syntax/loc stx
-       (create-geometry-group dia:node name #false
+       (create-geometry-group dia:node name #false #:outline (geo-outline shape)
                               (dia-node-layers label shape wratio hratio wpos hpos)
                               intersect type subtype
                               argl ...))]
@@ -37,7 +37,7 @@
         (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))
         shape label argl ...)
      (syntax/loc stx
-       (create-geometry-group Geo name #false
+       (create-geometry-group Geo name #false #:outline (geo-outline shape)
                               (dia-node-layers label shape wratio hratio wpos hpos)
                               intersect type subtype
                               argl ...))]))
@@ -82,12 +82,6 @@
 (define dia-polygon-intersect : Dia-Node-Intersect
   (lambda [A B node-pos nlayer]
     (define g (glayer-master nlayer))
-
-    ;;; NOTE
-    ; We don't deal with stroke here,
-    ; the node size might be larger then the actual bounding box of the polygon,
-    ; and decorative cap styles might cause some pixels of the arrow overlapping nodes
-    ; when the node has transparent fill.
     
     (and (dia:node:polygon? g)
          (let-values ([(ox oy) (geo-layer-size nlayer 0.5)])

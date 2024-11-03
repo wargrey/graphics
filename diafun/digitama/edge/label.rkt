@@ -12,6 +12,7 @@
 (require geofun/digitama/dc/text)
 (require geofun/digitama/dc/resize)
 (require geofun/digitama/convert)
+(require geofun/digitama/color)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Edge-Label-Datum (U String (Pairof (Option String) (Option String))))
@@ -85,7 +86,7 @@
                         (for/list : (Listof Geo:Text)
                           ([l (in-lines (open-input-string text))])
                           (geo-text #:color paint l font)))
-        (geo-text #:id text-id #:color paint text font))))
+        (geo-text #:id text-id #:color paint #:background transparent text font))))
 
 (define dia-edge-label-datum? : (-> Any Boolean : #:+ Dia-Edge-Label-Datum)
   (lambda [info]

@@ -58,7 +58,7 @@
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window +nan.0+nan.0i lx ty rx by))
 
     (create-geometry-object dia:edge
-                            #:with [id (dia-draw-edge! stroke x-stroke? y-stroke?)
+                            #:with [id (dia-draw-edge! stroke)
                                        (geo-shape-extent width height 0.0 0.0)
                                        (geo-shape-outline stroke x-stroke? y-stroke?)]
                             footprints (cons spt srad) (cons ept erad)
@@ -108,8 +108,8 @@
     (assert (glayer-master (car (glayer-group-layers (geo:group-selves g)))) dia:edge?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-draw-edge! : (-> Maybe-Stroke-Paint Boolean Boolean Geo-Surface-Draw!)
-  (lambda [alt-stroke x-stroke? y-stroke?]
+(define dia-draw-edge! : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke]
     (λ [self cr x0 y0 width height]
       (with-asserts ([self dia:edge?])
         (define paint (geo-select-stroke-paint alt-stroke))

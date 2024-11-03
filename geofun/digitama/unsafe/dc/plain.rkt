@@ -11,10 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_pattern : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Fill-Source Any)
   (lambda [cr x0 y0 width height background]
-    (cairo_save cr)
-    (cairo-clip cr x0 y0 width height)
-    (cairo-render-background cr background)
-    (cairo_restore cr)))
+    (cairo-render-background cr background x0 y0 width height)))
 
 (define dc_image : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Byte Bitmap-Surface Any)
   (lambda [cr x0 y0 width height filter img-sfc]

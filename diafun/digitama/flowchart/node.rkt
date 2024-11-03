@@ -8,8 +8,6 @@
 
 (require geofun/constructor)
 (require geofun/composite)
-(require geofun/paint)
-(require geofun/stroke)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/geometry/constants)
@@ -55,27 +53,21 @@
 
 (define diaflow-block-decision : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (define-values (w h stroke) (diaflow-polygon-size width height style))
-    
     (create-dia-node dia:node:polygon
                      #:id node-key  #:type 'Decision hint
                      #:intersect dia-polygon-intersect
                      #:fit-ratio 0.64 0.75
-                     (diaflow-polygon-shape node-key style stroke
-                                            (geo-rhombus-vertices w h))
+                     (diaflow-polygon-shape node-key style (geo-rhombus-vertices width height))
                      label
                      (geo-rhombus-vertices width height))))
 
 (define diaflow-block-preparation : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (define-values (w h stroke) (diaflow-polygon-size width height style))
-
     (create-dia-node dia:node:polygon
                      #:id node-key #:type 'Preparation hint
                      #:intersect dia-polygon-intersect
                      #:fit-ratio 0.75 1.00
-                     (diaflow-polygon-shape node-key style stroke
-                                            (geo-hexagon-tile-vertices w h))
+                     (diaflow-polygon-shape node-key style (geo-hexagon-tile-vertices width height))
                      label
                      (geo-hexagon-tile-vertices width height))))
 
@@ -94,15 +86,13 @@
 (define diaflow-block-input : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
     (if (eq? hint 'user)
-        (let*-values ([(ratio) 0.75]
-                      [(w h stroke) (diaflow-polygon-size width height style)])
+        (let ([ratio 0.75])
           (create-dia-node dia:node:polygon
                            #:id node-key #:type 'Input hint
                            #:intersect dia-polygon-intersect
                            #:fit-ratio 1.0 ratio
                            #:position 0.5 (max (- 1.0 (* ratio 0.5)) 0.0)
-                           (diaflow-polygon-shape node-key style stroke
-                                                  (geo-keyboard-vertices w h ratio))
+                           (diaflow-polygon-shape node-key style (geo-keyboard-vertices width height ratio))
                            label
                            (geo-keyboard-vertices width height ratio)))
         (diaflow-block-dataIO node-key label style width height 'Input hint))))
@@ -137,15 +127,13 @@
 (define diaflow-block-reference : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
     (define ratio : Nonnegative-Flonum 0.618)
-    (define-values (w h stroke) (diaflow-polygon-size width height style))
     
     (create-dia-node dia:node:polygon
                      #:id node-key #:type 'Connector (or hint 'Reference)
                      #:intersect dia-polygon-intersect
                      #:fit-ratio 1.00 ratio
                      #:position 0.5 (* ratio 0.5)
-                     (diaflow-polygon-shape node-key style stroke
-                                            (geo-house-vertices w h (- ratio)))
+                     (diaflow-polygon-shape node-key style (geo-house-vertices width height (- ratio)))
                      label
                      (geo-house-vertices width height (- ratio)))))
 
@@ -182,38 +170,30 @@
   (lambda [node-key label style width height direction hint]
     (define ratio : Nonnegative-Flonum 0.75)
     (define t-ratio : Nonnegative-Flonum (max (/ 1.0 ratio) 0.0))
-    (define-values (w h stroke) (diaflow-polygon-size width height style))
     
     (create-dia-node dia:node:polygon
                      #:id node-key #:type 'Operation hint
                      #:intersect dia-polygon-intersect
                      #:fit-ratio ratio 1.00
-                     (diaflow-polygon-shape node-key style stroke
-                                            (geo-isosceles-trapezium-vertices w h t-ratio))
+                     (diaflow-polygon-shape node-key style (geo-isosceles-trapezium-vertices width height t-ratio))
                      label
                      (geo-isosceles-trapezium-vertices width height t-ratio))))
 
 (define diaflow-block-extract : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (define-values (w h stroke) (diaflow-polygon-size width height style))
-    
     (create-dia-node dia:node:polygon
                      #:id node-key #:type 'Extract hint
                      #:intersect dia-polygon-intersect
-                     (diaflow-polygon-shape node-key style stroke
-                                            (geo-isosceles-upwards-triangle-vertices w h))
+                     (diaflow-polygon-shape node-key style (geo-isosceles-upwards-triangle-vertices width height))
                      #false
                      (geo-isosceles-upwards-triangle-vertices width height))))
 
 (define diaflow-block-merge : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (define-values (w h stroke) (diaflow-polygon-size width height style))
-    
     (create-dia-node dia:node:polygon
                      #:id node-key #:type 'Merge hint
                      #:intersect dia-polygon-intersect
-                     (diaflow-polygon-shape node-key style stroke
-                                            (geo-isosceles-downwards-triangle-vertices w h))
+                     (diaflow-polygon-shape node-key style (geo-isosceles-downwards-triangle-vertices width height))
                      #false
                      (geo-isosceles-downwards-triangle-vertices width height))))
 
@@ -230,19 +210,15 @@
 
 (define diaflow-block-collation : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (define-values (w h stroke) (diaflow-polygon-size width height style))
-    
     (create-dia-node #:id node-key #:type 'Collate hint
                      #:fit-ratio 0.5 0.375
                      #:position 0.5 0.20
-                     (diaflow-polygon-shape node-key style stroke
-                                            (geo-poor-hourglass-vertices w h))
+                     (diaflow-polygon-shape node-key style (geo-poor-hourglass-vertices width height))
                      label)))
 
 (define diaflow-block-sort : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (define-values (w h stroke) (diaflow-polygon-size width height style))
-    (define h/2 : Nonnegative-Flonum (* h 0.5))
+    (define h/2 : Nonnegative-Flonum (* height 0.5))
     
     (create-dia-node dia:node:polygon
                      #:id node-key #:type 'Sort hint
@@ -250,10 +226,8 @@
                      #:fit-ratio 0.5 0.375
                      #:position 0.5 0.30
                      (geo-vc-append #:id (dia-node-shape-id node-key)
-                                    (diaflow-polygon-shape #false style stroke
-                                                           (geo-isosceles-upwards-triangle-vertices w h/2))
-                                    (diaflow-polygon-shape #false style stroke
-                                                           (geo-isosceles-downwards-triangle-vertices w h/2)))
+                                    (diaflow-polygon-shape #false style (geo-isosceles-upwards-triangle-vertices width h/2))
+                                    (diaflow-polygon-shape #false style (geo-isosceles-downwards-triangle-vertices width h/2)))
                      label (geo-rhombus-vertices width height))))
 
 (define diaflow-block-storage : DiaFlow-Block-Create
@@ -343,32 +317,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diaflow-block-dataIO : (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum Symbol (Option Symbol) Dia:Node)
   (lambda [node-key label style width height type subtype]
-    (define-values (w h stroke) (diaflow-polygon-size width height style))
     (define rad : Flonum (/ pi 3.0))
     
     (create-dia-node dia:node:polygon
                      #:id node-key #:type type subtype
                      #:intersect dia-polygon-intersect
                      #:fit-ratio (max (- 1.0 (/ (* height (sqrt 3.0) 2/3) width)) 0.0) 1.0
-                     (diaflow-polygon-shape node-key style stroke
-                                            (geo-parallelogram-vertices w h rad))
+                     (diaflow-polygon-shape node-key style (geo-parallelogram-vertices width height rad))
                      label
                      (geo-parallelogram-vertices width height rad))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-polygon-size : (-> Nonnegative-Flonum Nonnegative-Flonum Dia-Node-Style (Values Nonnegative-Flonum Nonnegative-Flonum Maybe-Stroke-Paint))
-  (lambda [width height style]
-    (define stroke (dia-node-select-stroke-paint style))
-
-    (if (stroke? stroke)
-        (let ([thickness (stroke-width stroke)])
-          (values (max (- width thickness) 0.0) (max (- height thickness) 0.0) stroke))
-        (values width height stroke))))
-
-(define diaflow-polygon-shape : (-> (Option Symbol) Dia-Node-Style Maybe-Stroke-Paint (Listof Float-Complex) Geo)
-  (lambda [node-key style stroke vertices]
+(define diaflow-polygon-shape : (-> (Option Symbol) Dia-Node-Style (Listof Float-Complex) Geo)
+  (lambda [node-key style vertices]
     (geo-polygon #:id (and node-key (dia-node-shape-id node-key))
-                 #:stroke stroke
+                 #:stroke (dia-node-select-stroke-paint style)
                  #:fill (dia-node-select-fill-paint style)
                  #:window +nan.0+nan.0i
                  vertices)))

@@ -24,7 +24,7 @@
   (define (dc_text cr x0 y0 width height text font-desc lines fgsource bgsource alsource clsource mlsource blsource dlsource)
     (define layout (text_create_layout lines))
 
-    (cairo-render-background cr bgsource)
+    (cairo-render-background cr bgsource x0 y0 width height)
   
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
@@ -46,7 +46,7 @@
   (define (dc_art_text cr x0 y0 width height text font-desc lines stroke-source fill-source bgsource)
     (define layout (text_create_layout lines))
 
-    (cairo-render-background cr bgsource)
+    (cairo-render-background cr bgsource x0 y0 width height)
   
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
@@ -64,13 +64,13 @@
     (cairo-render cr stroke-source fill-source))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc_paragraph cr x0 y0 flwidth flheight text font-desc lines max-width max-height indent spacing wrap ellipsize fgsource bgsource)
+  (define (dc_paragraph cr x0 y0 width height text font-desc lines max-width max-height indent spacing wrap ellipsize fgsource bgsource)
     (define layout (text_create_layout* lines max-width max-height indent spacing wrap ellipsize))
 
     (pango_layout_set_font_description layout font-desc)
     (pango_layout_set_text layout text)
 
-    (cairo-render-background cr bgsource)
+    (cairo-render-background cr bgsource x0 y0 width height)
     (cairo-set-source cr fgsource)
     (cairo_move_to cr x0 y0)
     (pango_cairo_show_layout cr layout))

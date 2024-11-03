@@ -101,4 +101,6 @@
   ;(default-diaflow-fill-paint #false)
 
   #;(geo-save repl.dia (build-path (find-system-path 'desk-dir) "repl.png") #:format 'png)
-  repl.dia)
+
+  ; 36ms
+  (time (geo-freeze repl.dia)))
