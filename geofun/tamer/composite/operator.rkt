@@ -11,9 +11,7 @@
 (define src : Geo (geo-circle 64 #:stroke #false #:fill (rgba 0.0 0.0 0.9 0.9)))
 (define dest : Geo (geo-rectangle 120 90 #:stroke #false #:fill (rgba 0.7 0.0 0.0 0.9)))
 
-(define grp : Geo:Group (geo-composite dest 40.0 30.0 src))
-
 (for/list : (Listof Any) ([op (in-list geo-pin-operators)])
-  (parameterize ([default-pin-operator op])
-    (geo-freeze (geo-composite #:operator 'over
-                               grp 2.0 0.0 (geo-text op)))))
+  (geo-freeze (geo-composite (geo-composite #:operator op dest 40.0 30.0 src)
+                             2.0 0.0
+                             (geo-text op))))

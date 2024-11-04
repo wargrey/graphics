@@ -27,7 +27,7 @@
         (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))
         shape label argl ...)
      (syntax/loc stx
-       (create-geometry-group dia:node name #false #:outline (geo-outline shape)
+       (create-geometry-group dia:node name #false #false #:outline (geo-outline shape)
                               (dia-node-layers label shape wratio hratio wpos hpos)
                               intersect type subtype
                               argl ...))]
@@ -37,7 +37,7 @@
         (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))
         shape label argl ...)
      (syntax/loc stx
-       (create-geometry-group Geo name #false #:outline (geo-outline shape)
+       (create-geometry-group Geo name #false #false #:outline (geo-outline shape)
                               (dia-node-layers label shape wratio hratio wpos hpos)
                               intersect type subtype
                               argl ...))]))

@@ -63,8 +63,10 @@
      hsl-hue hsl-saturation hsl-color hsl-liminosity])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-select-operator : (-> (Option Symbol) (-> Geo-Pin-Operator) Byte)
-  (lambda [op fallback-op]
-    (define seq (and op (geo-operator->integer op)))
-
-    (or seq (geo-operator->integer (fallback-op)))))
+(define geo-operator->integer* : (case-> [(Option Symbol) -> (Option Byte)]
+                                         [(Option Symbol) (-> Geo-Pin-Operator) -> Byte])
+  (case-lambda
+    [(op) (and op (geo-operator->integer op))]
+    [(op fallback-op)
+     (or (and op (geo-operator->integer op))
+         (geo-operator->integer (fallback-op)))]))

@@ -22,13 +22,13 @@
 (define cairo-image-stream-write : (-> (U Path-String Output-Port) Positive-Index Cairo-Image-Stream-Source-Make Void)
   (lambda [/dev/pngout pool-size λsurface]
     (if (output-port? /dev/pngout)
-        (let ([png-write (make-cairo-image-surface-writer /dev/pngout pool-size)])
+        (let*-values ([(png-write) (make-cairo-image-surface-writer /dev/pngout pool-size)]
+                      [(surface destroy?) (λsurface)])
           (start-breakable-atomic)
-          (let-values ([(surface destroy?) (λsurface)])
-            (cairo_surface_flush surface)
-            (cairo_surface_write_to_png_stream surface png-write)
-            (when destroy? (cairo_surface_destroy surface))
-            (end-breakable-atomic)))
+          (cairo_surface_flush surface)
+          (cairo_surface_write_to_png_stream surface png-write)
+          (when destroy? (cairo_surface_destroy surface))
+          (end-breakable-atomic))
         (let ()
           (make-parent-directory* /dev/pngout)
           (call-with-output-file* /dev/pngout #:exists 'truncate/replace

@@ -52,14 +52,14 @@
         (geo-text (geo-anchor->string anchor) #:color 'Gray))))
 
 (define geo:path-stick : (-> Geo:Path Geo-Anchor->Sticker (Option Geo-Trusted-Anchors) Boolean
-                             (Option Symbol) (Option Geo-Pin-Operator) Float-Complex
+                             (Option Symbol) (Option Geo-Pin-Operator) (Option Geo-Pin-Operator) Float-Complex
                              (U Geo:Group Geo:Path))
-  (lambda [self anchor->sticker trusted-anchors truncate? id op offset]
+  (lambda [self anchor->sticker trusted-anchors truncate? id base-op sibs-op offset]
     (define layers : (Option (GLayer-Groupof Geo)) (geo:path-stick/list self anchor->sticker trusted-anchors offset truncate?))
     (define gp-id : Symbol (or id (gensym 'geo:path:)))
 
     (cond [(not layers) self]
-          [else (make-geo:group gp-id op layers)])))
+          [else (make-geo:group gp-id base-op sibs-op layers)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo:path-stick/list : (-> Geo:Path Geo-Anchor->Sticker (Option Geo-Trusted-Anchors) Float-Complex Boolean (Option (GLayer-Groupof Geo)))

@@ -11,6 +11,7 @@
 (require "../paint.rkt")
 
 (require "paint.rkt")
+(require "composite.rkt")
 (require "geometry/ink.rkt")
 
 (require "unsafe/visual.rkt")
@@ -184,6 +185,7 @@
                       (define s (/ 1.0 density))
                       (cairo_scale vec-cr s s))
 
+                    (cairo_set_operator vec-cr (geo-operator->integer (default-pin-operator)))
                     ((geo<%>-draw! self) self vec-cr x0 y0 flwidth flheight))
                   self xoff yoff width height)))
 
@@ -194,7 +196,7 @@
   (lambda [self density create-surface]
     (define-values (xoff yoff width height Width Height) (geo-surface-region self))
     (define-values (sfc cr fxwidth fxheight) (create-surface Width Height density #true))
-    
+
     ((geo<%>-draw! self) self cr xoff yoff width height)
     (cairo_destroy cr)
     sfc))

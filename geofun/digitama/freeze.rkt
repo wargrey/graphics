@@ -12,6 +12,7 @@
 (require "paint.rkt")
 (require "source.rkt")
 (require "convert.rkt")
+(require "composite.rkt")
 
 (require "unsafe/typed/cairo.rkt")
 
@@ -21,7 +22,7 @@
            #:fill [fill : Option-Fill-Paint (default-fill-paint)] #:fill-rule [rule : Fill-Rule (default-fill-rule)]
            #:font [font : Font (default-font)] #:font-paint [fgc : Option-Fill-Paint (default-font-paint)]
            #:background [bgc : Option-Fill-Paint (default-background-paint)]
-           #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)] #:operator [op : Geo-Pin-Operator (default-pin-operator)]
+           #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [self : Geo<%>]] : Bitmap
     (define s : (Option Stroke) (stroke-paint->source* stroke))
@@ -33,10 +34,10 @@
                    [default-fill-source (fill-paint->source* fill)]
                    [default-fill-rule rule]
                    [default-pattern-filter filter]
-                   [default-pin-operator op]
                    [default-font font])
       (define-values (xoff yoff width height Width Height) (geo-surface-region self))
       (define-values (bmp cr) (create-argb-bitmap Width Height density #true))
+
       ((geo<%>-draw! self) self cr xoff yoff width height)
       (cairo_destroy cr)
       bmp)))
@@ -46,7 +47,7 @@
            #:fill [fill : Option-Fill-Paint (default-fill-paint)] #:fill-rule [rule : Fill-Rule (default-fill-rule)]
            #:font [font : Font (default-font)] #:font-paint [fgc : Option-Fill-Paint (default-font-paint)]
            #:background [bgc : Option-Fill-Paint (default-background-paint)]
-           #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)] #:operator [op : Geo-Pin-Operator (default-pin-operator)]
+           #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [target : Bitmap] [self : Geo<%>] [dx : Real 0.0] [dy : Real 0.0]] : Void
     (parameterize ([default-stroke-source (stroke-paint->source* stroke)]
@@ -56,7 +57,6 @@
                    [default-fill-source (fill-paint->source* fill)]
                    [default-fill-rule rule]
                    [default-pattern-filter filter]
-                   [default-pin-operator op]
                    [default-font font])
       (define-values (flwidth flheight _ink) ((geo<%>-extent self) self))
       (define cr (cairo_create (bitmap-surface target)))

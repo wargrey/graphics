@@ -174,14 +174,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-path-stick : (->* (Geo:Path)
-                              (#:id (Option Symbol) #:operator (Option Geo-Pin-Operator)
-                               #:trusted-anchors (Option Geo-Trusted-Anchors) #:truncate? Boolean
-                               Geo-Anchor->Sticker)
+                              (Geo-Anchor->Sticker
+                               #:id (Option Symbol) #:base-operator (Option Geo-Pin-Operator) #:operator (Option Geo-Pin-Operator)
+                               #:trusted-anchors (Option Geo-Trusted-Anchors) #:truncate? Boolean #:offset Float-Complex)
                               (U Geo:Group Geo:Path))
-  (lambda [#:trusted-anchors [trusted-anchors #false] #:id [id #false] #:operator [op #false] #:truncate? [truncate? #true]
+  (lambda [#:trusted-anchors [trusted-anchors #false] #:truncate? [truncate? #true] #:offset [offset 0.0+0.0i]
+           #:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false]
            self [anchor->sticker default-anchor->sticker]]
     (geo:path-stick self anchor->sticker trusted-anchors truncate?
-                    (or id (gensym 'geo:path:)) op 0.0+0.0i)))
+                    (or id (gensym 'geo:path:)) base-op sibs-op offset)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-anchor-position : (->* (Geo:Path Geo-Anchor-Name) (#:translate? Boolean) Float-Complex)

@@ -13,7 +13,7 @@
 (define Print : Symbol (string->symbol "<<:Print\nResult"))
 (define Print-Error : Symbol (string->symbol "<<:Show\nError Message"))
 
-(define-flowchart! repl.dia [#:start-name "REPL\n(Shell)" #:border (default-border-paint)] #:-
+(define-flowchart! repl.dia [#:start-name "REPL\n(Shell)" #:border (default-border-paint) #:background 'Azure] #:-
   ; Portion on Page 1
   (move-down 1 'Initialization!)
   (move-down 1 Create)

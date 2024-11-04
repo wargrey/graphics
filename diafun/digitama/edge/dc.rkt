@@ -70,7 +70,7 @@
     (cond [(null? label) self]
           [(dia:edge? self)
            (let-values ([(w h) (geo-flsize self)])
-             (dia-edge-attach-label (create-geometry-group dia:labeled-edge #false #false (geo-own-layers self)) label))]
+             (dia-edge-attach-label (create-geometry-group dia:labeled-edge #false #false #false (geo-own-layers self)) label))]
           [else (let* ([edge (dia-edge-unlabel self)]
                        [O (dia:edge-origin edge)])
                   (let attach ([labels : (Listof Dia-Edge-Label) (if (list? label) label (list label))]
@@ -87,7 +87,7 @@
                                                                                      distance (dia-edge-label-ratio label)))
                                         layers)
                                   (if (and distance (zero? distance)) op #false)))
-                        (create-geometry-group dia:labeled-edge #false op
+                        (create-geometry-group dia:labeled-edge #false #false op
                                                (geo-path-layers-merge (geo:group-selves self) layers)))))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

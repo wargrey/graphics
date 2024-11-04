@@ -31,6 +31,7 @@
  [cairo_paint_with_alpha (-> Cairo-Ctx Flonum Void)]
  [cairo_create (-> (U Cairo-Surface Cairo-Stream-Surface) Cairo-Ctx)]
  [cairo_set_operator (-> Cairo-Ctx Byte Void)]
+ [cairo_get_operator (-> Cairo-Ctx Byte)]
  [cairo_set_source_surface (-> Cairo-Ctx (U Cairo-Surface Cairo-Stream-Surface) Flonum Flonum Void)]
  [cairo_destroy (-> Cairo-Ctx Void)])
 

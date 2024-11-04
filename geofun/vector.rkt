@@ -35,6 +35,5 @@
                    [default-fill-source (fill-paint->source* fill)]
                    [default-fill-rule rule]
                    [default-pattern-filter filter]
-                   [default-pin-operator op]
                    [default-font font])
       (geo-object-save self /dev/geoout format density))))

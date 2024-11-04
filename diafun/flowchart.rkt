@@ -57,22 +57,20 @@
           args ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-path-flow : (->* (Geo:Path)
-                             (#:id (Option Symbol) #:draw-operator (Option Geo-Pin-Operator) #:start-name (Option String)
-                              #:border Maybe-Stroke-Paint #:background Maybe-Fill-Paint
-                              #:margin (Option Geo-Frame-Blank-Datum) #:padding (Option Geo-Frame-Blank-Datum)
-                              #:λblock DiaFlow-Block-Identifier #:λarrow DiaFlow-Arrow-Identifier
-                              #:λnode DiaFlow-Anchor->Node-Shape #:λnode-label DiaFlow-Anchor->Node-Label
-                              #:λedge DiaFlow-Arrow->Edge #:λedge-label DiaFlow-Arrow->Edge-Label
-                              #:λfree-edge DiaFlow-Free-Track->Edge #:λfree-edge-label DiaFlow-Free-Track->Edge-Label)
-                             (U Dia:Flow Geo:Path))
-  (lambda [#:id [id #false] #:draw-operator [op #false] #:start-name [start #false]
-           #:border [bdr #false] #:background [bg #false] #:margin [margin #false] #:padding [padding #false]
-           #:λblock [block-detect default-diaflow-block-identify] #:λarrow [arrow-detect default-diaflow-arrow-identify]
-           #:λnode [make-node default-diaflow-node-construct] #:λnode-label [make-node-label default-diaflow-node-label-construct]
-           #:λedge [make-edge default-diaflow-edge-construct] #:λedge-label [make-edge-label default-diaflow-edge-label-construct]
-           #:λfree-edge [make-free-track default-diaflow-free-edge-construct] #:λfree-edge-label [make-free-label default-diaflow-free-edge-label-construct]
-           self]
+(define dia-path-flow
+  (lambda [#:id [id : (Option Symbol) #false] #:start-name [start : (Option String) #false]
+           #:path-operator [path-op : (Option Geo-Pin-Operator) #false] #:flow-operator [flow-op : (Option Geo-Pin-Operator) #false] 
+           #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
+           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:λblock [block-detect : DiaFlow-Block-Identifier default-diaflow-block-identify]
+           #:λarrow [arrow-detect : DiaFlow-Arrow-Identifier default-diaflow-arrow-identify]
+           #:λnode [make-node : DiaFlow-Anchor->Node-Shape default-diaflow-node-construct]
+           #:λnode-label [make-node-label : DiaFlow-Anchor->Node-Label default-diaflow-node-label-construct]
+           #:λedge [make-edge : DiaFlow-Arrow->Edge default-diaflow-edge-construct]
+           #:λedge-label [make-edge-label : DiaFlow-Arrow->Edge-Label default-diaflow-edge-label-construct]
+           #:λfree-edge [make-free-track : DiaFlow-Free-Track->Edge default-diaflow-free-edge-construct]
+           #:λfree-edge-label [make-free-label : DiaFlow-Free-Track->Edge-Label default-diaflow-free-edge-label-construct]
+           [self : Geo:Path]] : (U Dia:Flow Geo:Path)
     (parameterize ([default-dia-node-base-style make-diaflow-node-base-style]
                    [default-dia-edge-base-style make-diaflow-edge-base-style]
                    [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))])
@@ -82,7 +80,7 @@
 
       (if (pair? stickers)
           (let ([maybe-group (geo-path-try-extend/list stickers 0.0 0.0)])
-            (create-geometry-group dia:flow id op
+            (create-geometry-group dia:flow id path-op flow-op
                                    #:border bdr #:background bg
                                    #:margin margin #:padding padding
                                    (cond [(or maybe-group) maybe-group]
