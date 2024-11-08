@@ -25,13 +25,8 @@
     (define-values (aradius bradius) (values (* flwidth 0.5) (* flheight 0.5)))
     
     (cairo_translate cr (+ x0 aradius) (+ y0 bradius))
-    (cond [(= flwidth flheight) (cairo_arc cr 0.0 0.0 aradius 0.0 2pi)]
-          [else (let ([sy (/ bradius aradius)])
-                  (cairo_save cr)
-                  (cairo_scale cr 1.0 sy)
-                  (cairo_arc cr 0.0 0.0 aradius 0.0 2pi)
-                  (cairo_restore cr))])
-        
+    (cairo-negative-arc cr aradius bradius (- 2pi) 0.0)
+    
     (let draw-d ([as diameters])
       (when (pair? as)
         (define theta (car as))
@@ -47,12 +42,7 @@
     (define-values (aradius bradius) (values (* flwidth 0.5) (* flheight 0.5)))
 
     (cairo_translate cr (+ x0 aradius) (+ y0 bradius))
-    (cond [(= aradius bradius) (cairo_arc_negative cr 0.0 0.0 aradius (- 0.0 rstart) (- 0.0 rend))]
-          [else (let ([sy (/ bradius aradius)])
-                  (cairo_save cr)
-                  (cairo_scale cr 1.0 sy)
-                  (cairo_arc_negative cr 0.0 0.0 aradius (- 0.0 rstart) (- 0.0 rend))
-                  (cairo_restore cr))])
+    (cairo-positive-arc cr aradius bradius rstart rend)
     
     (when (and sector? (<= (abs (- rend rstart)) 2pi))
       (cairo_line_to cr 0.0 0.0)

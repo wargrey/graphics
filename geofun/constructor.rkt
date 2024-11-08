@@ -19,6 +19,7 @@
 (provide geo-sector geo:sector? Geo:Sector)
 (provide geo-arrow geo:arrow? Geo:Arrow)
 (provide geo-dart geo:dart? Geo:Dart)
+(provide geo-gear geo:gear? Geo:Gear)
 
 (provide geo-stadium geo-lstadium geo-rstadium geo:stadium? Geo:Stadium)
 (provide geo-bullet geo:bullet? Geo:Bullet)
@@ -36,11 +37,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require "digitama/dc/text.rkt")
 (require "digitama/dc/rect.rkt")
-(require "digitama/dc/circle.rkt")
+(require "digitama/dc/arc.rkt")
 (require "digitama/dc/plain.rkt")
 (require "digitama/dc/raster.rkt")
 (require "digitama/dc/line.rkt")
 (require "digitama/dc/arrow.rkt")
+(require "digitama/dc/gear.rkt")
 
 (require "digitama/dc/polygon.rkt")
 (require "digitama/dc/polygon/quadrilateral.rkt")

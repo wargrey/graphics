@@ -12,6 +12,7 @@
  [cairo_version (-> Index)]
  [cairo_version_string (-> String)]
 
+ [cairo_new_sub_path (-> Cairo-Ctx Void)]
  [cairo_push_group (-> Cairo-Ctx Void)]
  [cairo_pop_group_to_source (-> Cairo-Ctx Void)]
 

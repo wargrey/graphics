@@ -91,7 +91,7 @@
     (define-values (flwidth flheight) (~size width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
-                    (geo-parallelogram-vertices flwidth flheight (~cycle (~radian angle radian?) 2pi 0.0)))))
+                    (geo-parallelogram-vertices flwidth flheight (~wrap (~radian angle radian?) 2pi 0.0)))))
 
 (define bitmap-rhombus
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]

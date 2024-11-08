@@ -86,39 +86,52 @@
     (unless (or (not scale?) (= density 1.0))
       (cairo_scale cr density density))))
 
-(define cairo-positive-arc : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Void)
-  (lambda [cr cx cy rx ry rstart rend]
-    (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo_arc)))
+(define cairo-positive-arc : (case-> [Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Void]
+                                     [Cairo-Ctx Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Void])
+  (case-lambda
+    [(cr cx cy rx ry rstart rend) (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo_arc)]
+    [(cr rx ry rstart rend) (cairo-smart-elliptical-arc cr rx ry rstart rend cairo_arc)]))
 
-(define cairo-negative-arc : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Void)
-  (lambda [cr cx cy rx ry rstart rend]
-    (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo_arc_negative)))
+(define cairo-negative-arc : (case-> [Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Void]
+                                     [Cairo-Ctx Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Void])
+  (case-lambda
+    [(cr cx cy rx ry rstart rend) (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo_arc_negative)]
+    [(cr rx ry rstart rend) (cairo-smart-elliptical-arc cr rx ry rstart rend cairo_arc_negative)]))
 
-(define cairo-smart-elliptical-arc : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum
-                                         (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Flonum Flonum Void)
-                                         Void)
-  (lambda [cr cx cy rx ry rstart rend add-arc]
-    ;;; WARNING
-    ;; For drawing elliptical arcs
-    ;;   `cairo_translate` is necessary,
-    ;;   or the resulting shapes will be weird.
-    ;; TODO: find the reason;
-    ;; TODO: why not `density` should be used to scale
-    
-    (cond [(< rx ry)
+(define cairo-smart-elliptical-arc
+  : (case-> [Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Flonum Flonum Void) -> Void]
+            [Cairo-Ctx Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Flonum Flonum Void) -> Void])
+  (case-lambda
+    [(cr cx cy rx ry rstart rend add-arc)
+     ;;; WARNING
+     ;; For drawing elliptical arcs
+     ;;   `cairo_translate` is necessary,
+     ;;   or the resulting shapes will be weird.
+     ;; TODO: find the reason;
+     ;; TODO: why not `density` should be used to scale
+     
+     (cond [(< rx ry)
+            (cairo_save cr)
+            (cairo_translate cr cx cy)
+            (cairo_scale cr 1.0 (/ ry rx))
+            (add-arc cr 0.0 0.0 rx rstart rend)
+            (cairo_restore cr)]
+           [(> rx ry)
+            (cairo_save cr)
+            (cairo_translate cr cx cy)
+            (cairo_scale cr (/ rx ry) 1.0)
+            (add-arc cr 0.0 0.0 ry rstart rend)
+            (cairo_restore cr)]
+           [else ; no need to `translate` for circles
+            (add-arc cr cx cy rx rstart rend)])]
+    [(cr rx ry rstart rend add-arc)
+     (if (not (= rx ry))
+         (let ([sy (/ ry rx)])
            (cairo_save cr)
-           (cairo_translate cr cx cy)
-           (cairo_scale cr 1.0 (/ ry rx))
-           (add-arc cr 0.0 0.0 rx rstart rend)
-           (cairo_restore cr)]
-          [(> rx ry)
-           (cairo_save cr)
-           (cairo_translate cr cx cy)
-           (cairo_scale cr (/ rx ry) 1.0)
-           (add-arc cr 0.0 0.0 ry rstart rend)
-           (cairo_restore cr)]
-          [else ; no need to `translate` for circles
-           (add-arc cr cx cy rx rstart rend)])))
+           (cairo_scale cr 1.0 sy)
+           (cairo_arc cr 0.0 0.0 rx rstart rend)
+           (cairo_restore cr))
+         (cairo_arc cr 0.0 0.0 rx rstart rend))]))
 
 (define cairo-add-line : (case-> [Cairo-Ctx Float-Complex Float-Complex -> Void]
                                  [Cairo-Ctx Float-Complex Float-Complex Float-Complex -> Void]
