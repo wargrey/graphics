@@ -34,7 +34,7 @@
            [width : Real] [height : Real -0.618] [corner-radius : Real 0.0]] : Bitmap
     (define flvls : (Listof Flonum) (map real->double-flonum vlines))
     (define flhls : (Listof Flonum) (map real->double-flonum hlines))
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     
     (if (zero? corner-radius)
         (draw-bitmap dc_rectangle #:with [w h density #true (stroke-paint->source* outline)]
@@ -58,7 +58,7 @@
            #:diameters [diameters : (Listof Real) null] #:radian? [radian? : Boolean #true]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real -0.618]] : Bitmap
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     (define flrads : (Listof Flonum) (for/list ([d (in-list diameters)]) (~radian d radian?)))
     
     (draw-bitmap dc_ellipse #:with [w h density #true (stroke-paint->source* outline)]
@@ -103,27 +103,27 @@
 (define bitmap-hline
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)] #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real]] : Bitmap
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     (draw-bitmap dc_line #:with [w h density #true]
                  0.0 (* h 0.5) w 0.0 (stroke-paint->source stroke))))
 
 (define bitmap-vline
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)] #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real]] : Bitmap
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     (draw-bitmap dc_line #:with [w h density #true]
                  (* w 0.5) 0.0 0.0 h (stroke-paint->source stroke))))
 
 (define bitmap-diagonal
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)] #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real]] : Bitmap
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     (draw-bitmap dc_line #:with [w h density #true]
                  0.0 0.0 w h (stroke-paint->source stroke))))
 
 (define bitmap-anti-diagonal
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)] #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real]] : Bitmap
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     (draw-bitmap dc_line #:with [w h density #true]
                  0.0 h w (- h) (stroke-paint->source stroke))))

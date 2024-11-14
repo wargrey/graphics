@@ -17,7 +17,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [length : Real] [radius : Real]] : Bitmap
-    (define-values (fllength flradius) (~size length radius))
+    (define-values (fllength flradius) (~extent length radius))
     (define h : Nonnegative-Flonum (* flradius 2.0))
     (define w : Nonnegative-Flonum (+ fllength h))
     
@@ -28,7 +28,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [length : Real] [radius : Real]] : Bitmap
-    (define-values (fllength flradius) (~size length radius))
+    (define-values (fllength flradius) (~extent length radius))
     (define w : Nonnegative-Flonum (+ fllength flradius))
     (define h : Nonnegative-Flonum (* flradius 2.0))
     
@@ -39,7 +39,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [length : Real] [radius : Real]] : Bitmap
-    (define-values (fllength flradius) (~size length radius))
+    (define-values (fllength flradius) (~extent length radius))
     (define w : Nonnegative-Flonum (+ fllength flradius))
     (define h : Nonnegative-Flonum (* flradius 2.0))
     
@@ -50,7 +50,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [ogive : Real] [radius : Real] [barrel : Real -0.1618]] : Bitmap
-    (define-values (flogive flbarrel) (~size ogive barrel))
+    (define-values (flogive flbarrel) (~extent ogive barrel))
     (define w : Nonnegative-Flonum (+ flogive flbarrel))
     (define h : Nonnegative-Flonum (* (~length radius w) 2.0))
     
@@ -62,7 +62,7 @@
            #:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real -1.618]] : Bitmap
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     (define neck-flwidth (~length neck-width w))
     (define neck-flheight (~length neck-height h))
     (define tube-flheight (~length tube-height h))
@@ -76,7 +76,7 @@
            #:extra-n [extra-n : Index 0] #:gapsize [gapsize : Real -0.384]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real] [wave-height : Real -0.1618]] : Bitmap
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     (define flwave (~length wave-height h))
     
     (draw-bitmap dc_document #:with [w h density #true (stroke-paint->source* outline)]
@@ -87,7 +87,7 @@
            #:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real] [bradius : Real -0.1618]] : Bitmap
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     (define flb (~length bradius h))
     
     (draw-bitmap dc_database #:with [w h density #true (stroke-paint->source* outline)]

@@ -96,7 +96,7 @@
 
 (define geo-bullet : (->* (Real Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Bullet)
   (lambda [ogive radius [barrel -0.384] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
-    (define-values (flogive flbarrel) (~size ogive barrel))
+    (define-values (flogive flbarrel) (~extent ogive barrel))
     (define flradius : Nonnegative-Flonum (~length radius (+ flogive flbarrel)))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
@@ -113,7 +113,7 @@
   (lambda [#:neck-width [neck-width -0.1618] #:neck-height [neck-height -0.0618] #:tube-height [tube-height 0]
            #:stroke [stroke (void)] #:fill [pattern (void)] #:id [id #false]
            width [height -1.618]]
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     (define neck-flwidth (~length neck-width flwidth))
     (define neck-flheight (~length neck-height flheight))
     (define tube-flheight (~length tube-height flheight))
@@ -126,7 +126,7 @@
 
 (define geo-storage : (->* (Real Real) (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Storage)
   (lambda [width height [aradius -0.384] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     (define fla : Nonnegative-Flonum (~length aradius (* flheight 0.5)))
     
     (create-geometry-object geo:storage
@@ -137,7 +137,7 @@
 
 (define geo-document : (->* (Real Real) (Real #:id (Option Symbol) #:extra-n Index #:gapsize Real #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Document)
   (lambda [width height [wave -0.1618] #:extra-n [extra-n 0] #:id [id #false] #:gapsize [gapsize -0.618] #:stroke [stroke (void)] #:fill [pattern (void)]]
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     (define flwave : Nonnegative-Flonum (~length wave flheight))
     
     (create-geometry-object geo:document
@@ -148,7 +148,7 @@
 
 (define geo-database : (->* (Real Real) (Real #:id (Option Symbol) #:extra-n Index #:gapsize Real #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint) Geo:Database)
   (lambda [width height [bradius -0.1618] #:extra-n [extra-n 2] #:id [id #false] #:gapsize [gapsize -0.618] #:stroke [stroke (void)] #:fill [pattern (void)]]
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     (define flb : Nonnegative-Flonum (~length bradius flheight))
     
     (create-geometry-object geo:database

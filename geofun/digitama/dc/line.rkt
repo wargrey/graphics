@@ -22,7 +22,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-hline : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
@@ -32,7 +32,7 @@
 
 (define geo-vline : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
@@ -42,7 +42,7 @@
 
 (define geo-diagonal : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
@@ -52,7 +52,7 @@
 
 (define geo-anti-diagonal : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)

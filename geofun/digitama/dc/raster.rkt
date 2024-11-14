@@ -32,7 +32,7 @@
 (define geo-rectangular
   (lambda [#:id [id : (Option Symbol) #false] #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
            [width : Real] [height : Real] [λargb : XYWH->ARGB]] : Geo:Bitmap
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     (create-geometry-object geo:bitmap
                             #:with [id (geo-draw-bitmap w h) (geo-shape-extent w h) geo-zero-pads]
                             λargb filter)))

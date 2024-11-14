@@ -20,7 +20,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-blank : (->* () (Real (Option Real) #:density Positive-Flonum) Bitmap)
   (lambda [[width 0.0] [height #false] #:density [density (default-bitmap-density)]]
-    (define-values (flwidth flheight) (~size width (or height width)))
+    (define-values (flwidth flheight) (~extent width (or height width)))
     (create-blank-bitmap flwidth flheight density)))
 
 (define bitmap-ghost : (-> Bitmap Bitmap)

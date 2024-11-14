@@ -88,7 +88,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:radian? [radian? : Boolean #true] #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real] [angle : Real]] : Bitmap
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
                     (geo-parallelogram-vertices flwidth flheight (~wrap (~radian angle radian?) 2pi 0.0)))))
@@ -97,7 +97,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real]] : Bitmap
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
                     (geo-rhombus-vertices flwidth flheight))))
@@ -106,7 +106,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real] [t : Real 0.618]] : Bitmap
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
                     (geo-house-vertices flwidth flheight (real->double-flonum t)))))
@@ -115,7 +115,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real] [t : Nonnegative-Real 0.618]] : Bitmap
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
                     (geo-isosceles-trapezium-vertices flwidth flheight (real->double-flonum t)))))
@@ -124,7 +124,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real] [t : Nonnegative-Real 0.618]] : Bitmap
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
                     (geo-keyboard-vertices flwidth flheight (real->double-flonum t)))))
@@ -133,7 +133,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [width : Real] [height : Real]] : Bitmap
-    (define-values (flwidth flheight) (~size width height))
+    (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
                     (geo-hexagon-tile-vertices flwidth flheight))))

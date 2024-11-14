@@ -58,7 +58,7 @@
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false] #:diameters [diameters : (Listof Real) null] #:radian? [radian? : Boolean #true]
            [width : Real] [height : Real -0.618]] : (U Geo:Circle Geo:Ellipse)
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     (define ellipse-extent : Geo-Calculate-Extent (geo-shape-extent w h 0.0 0.0))
     (define rads : (Listof Flonum) (for/list ([d (in-list diameters)]) (~radian d radian?)))
     

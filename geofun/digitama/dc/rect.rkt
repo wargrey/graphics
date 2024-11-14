@@ -40,7 +40,7 @@
   (lambda [#:id [id : (Option Symbol) #false] #:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
            #:vlines [vlines : (Listof Real) null] #:hlines [hlines : (Listof Real) null]
            [width : Real] [height : Real -0.618] [corner-radius : Real 0.0]]
-    (define-values (w h) (~size width height))
+    (define-values (w h) (~extent width height))
     
     (create-geometry-object geo:rect
                             #:with [id (geo-draw-rectangle stroke pattern)

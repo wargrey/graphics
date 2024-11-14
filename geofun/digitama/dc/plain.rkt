@@ -24,7 +24,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-blank : (->* () (Real (Option Real) #:id (Option Symbol)) Geo:Blank)
   (lambda [[width 0.0] [height #false] #:id [id #false]]
-    (define-values (flwidth flheight) (~size width (or height width)))
+    (define-values (flwidth flheight) (~extent width (or height width)))
     
     (create-geometry-object geo:blank
                             #:with [id void (geo-blank-extent flwidth flheight) geo-zero-pads]
