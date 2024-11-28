@@ -41,17 +41,18 @@
           (append g-specs
                   (cond [(visual-object<%>? datum)
                          (let ([deps.rkt (racket-smart-dependencies module.rkt)]
-                               [sym.png (graphics.ext module.rkt sym .ext)])
+                               [sym.png (graphics.ext module.rkt sym .ext #false)])
                            (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
                                                (graphics-note module.rkt sym .ext sym.png)
                                                (graphics-save-as sym.png datum gformat))))]
-                        [(and (list? datum) (pair? datum) (andmap bitmap? datum))
-                         (let ([deps.rkt (racket-smart-dependencies module.rkt)]
-                               [sym.png (graphics.ext module.rkt sym .ext)]
-                               [ncol (max (exact-floor (sqrt (length datum))) 1)])
-                           (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
-                                               (graphics-note module.rkt sym .ext sym.png)
-                                               (graphics-save-as sym.png (bitmap-table ncol datum) gformat))))]
+                        [(and (list? datum) (pair? datum) (andmap visual-object<%>? datum))
+                         (let ([deps.rkt (racket-smart-dependencies module.rkt)])
+                           (for/list : (Listof Wisemon-Spec) ([subdatum (in-list datum)]
+                                                              [idx (in-naturals 1)])
+                             (define sym.png (graphics.ext module.rkt sym .ext idx))
+                             (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
+                                           (graphics-note module.rkt sym .ext sym.png)
+                                           (graphics-save-as sym.png subdatum gformat))))]
                         [else null])))))))
   
 (define make~save-as : (-> Symbol String Make-Info-Phony)
@@ -71,11 +72,11 @@
          (with-handlers ([exn:fail? (λ _ #false)])
            (module-declared? file #true)))))
 
-(define graphics.ext : (-> Path Symbol String Path)
-  (lambda [module.rkt sym .ext]
+(define graphics.ext : (-> Path Symbol String (Option Integer) Path)
+  (lambda [module.rkt sym .ext subidx]
     (if (digimon-stone-path? module.rkt)
-        (graphics-target-path module.rkt sym .ext)
-        (graphics-target-path/compiled module.rkt sym .ext))))
+        (graphics-target-path module.rkt sym .ext subidx)
+        (graphics-target-path/compiled module.rkt sym .ext subidx))))
 
 (define graphics-note : (-> Path Symbol String Path Void)
   (lambda [module.rkt sym .ext symbol.png]

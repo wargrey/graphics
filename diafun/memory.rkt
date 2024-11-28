@@ -2,149 +2,97 @@
 
 (provide (all-defined-out))
 
-(require racket/sequence)
 (require racket/keyword)
+(require racket/place)
 
-(require digimon/format)
 (require digimon/metrics)
 
 (require geofun/font)
 (require geofun/paint)
-(require geofun/stroke)
 (require geofun/composite)
-
 (require geofun/digitama/base)
 (require geofun/digitama/convert)
-(require geofun/digitama/dc/rect)
-(require geofun/digitama/dc/text)
-(require geofun/digitama/dc/arrow)
+
+(require "digitama/memory/interface.rkt")
+(require "digitama/memory/byte-bag.rkt")
+(require "digitama/memory/exec.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Memory-Variable (U Keyword Symbol))
-(define-type Dia-Memory-State-Procedure (-> (-> Dia-Memory-Variable Byte Void) (-> Dia-Memory-Variable Byte) (->* () (Symbol) Void) Any))
-(define-type Dia-Memory-State-Snapshot (->* (Bytes (Listof Dia-Memory-Variable)) (Index) Geo))
+(define-type Dia-Reversed-Variables C-Variables)
+(define-type Dia-Memory-Snapshot (-> Dia-Reversed-Variables Geo))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-memory-snapshot
-  (lambda [#:id [id : (Option Symbol) #false] #:gapsize [gapsize : Real 8.0] #:reverse? [reverse? : Boolean #false]
-           #:address-offset [address0 : Index #x20000] #:value-base [vbase : Byte 10]
-           #:font [font : Font (desc-font #:family 'monospace)] #:grid-width [width : Real -1.0] #:grid-height [height : Real -2.8]
+  (lambda [#:id [id : (Option Symbol) #false] #:gapsize [gapsize : Real 8.0] #:reverse-address? [reverse? : Boolean #true]
+           #:address-offset [address0 : Index #x20000] #:no-padding? [no-padding? : Boolean #false]
+           #:no-binary-datum? [no-binary? #false] #:integer-base [fxbase : Byte 10] #:memory-base [mbase : Byte 16]
+           #:font [font : Font (desc-font #:family 'monospace)] #:grid-width [width : Real -10.0] #:grid-height [height : Real -2.8]
            #:memory-stroke [stroke : Maybe-Stroke-Paint 'Black] #:memory-fill [fill : Maybe-Fill-Paint 'GhostWhite]
            #:variable-color [vcolor : Color 'ForestGreen] #:variable-fill [vfill : (Option Color) #false]
            #:temp-color [tcolor : Color 'DodgerBlue] #:temp-fill [tfill : (Option Color) #false]
-           #:raw-color [rcolor : Color 'DimGray] #:raw-fill [rfill : (Option Color) 'LightGray]
-           #:ignored-color [igr-color : Color 'LightGray]
-           [memory : Bytes] [variables : (Listof Dia-Memory-Variable)] [body-idx : Index 0]] : Geo
-    (define-values (byte-width byte-height) (text-size "0000000000" font))
+           #:pad-color [pcolor : Color 'DimGray] #:pad-fill [pfill : (Option Color) 'LightGray]
+           #:address-color [acolor : Color 'Black] #:ignored-color [igr-color : Color 'LightGray]
+           [variables : Dia-Reversed-Variables]] : Geo
+    (define-values (byte-width byte-height) (text-size "0" font))
     (define larger-font : Font (desc-font font #:size 'larger))
-    (define grid-width  (max (~length width  byte-width)  byte-width))
+    (define grid-width  (max (~length width  byte-width)  (* byte-width 10.0)))
     (define grid-height (max (~length height byte-height) (* byte-height 2.0)))
-    (define memory-idx : Index (bytes-length memory))
 
     (define memory-units : (Listof (Listof (Option Geo)))
-      (let gen-row : (Listof (Listof (Option Geo))) ([idx : Nonnegative-Fixnum 0]
-                                                     [vars : (Listof Dia-Memory-Variable) variables]
+      (let gen-row : (Listof (Listof (Option Geo))) ([vars : (Listof (U C-Variable C-Pad)) variables]
                                                      [swor : (Listof (Listof (Option Geo))) null])
-        (cond [(>= idx memory-idx) (if reverse? swor (reverse swor))]
-              [else (let-values ([(self rest) (cond [(< idx body-idx) (values #false vars)]
-                                                    [(pair? vars) (values (car vars) (cdr vars))]
-                                                    [else (values #false null)])])
-                      (define address-desc : String (string-append "0x" (~hexstring (+ address0 idx))))
-                      (define datum : Byte (bytes-ref memory idx))
-                      (define binary-desc : String (~binstring datum 8))
-                      (define datum-desc : (Option String)
-                        (case vbase
-                          [(10) (number->string datum)]
-                          [(16) (string-append "0x" (~r datum #:base '(up 16)))]
-                          [(8)  (string-append "0"  (~r datum #:base 8))]
-                          [else #false]))
-                      
-                      (define row : (Listof (Option Geo))
-                        (cond [(symbol? self)
-                               (list (geo-vr-append (geo-text self font #:color tcolor)
-                                                    (geo-text address-desc font #:lines '(line-through) #:color igr-color))
-                                     (geo-cc-superimpose (geo-rectangle #:id self #:stroke stroke #:fill (or tfill fill)
-                                                                        grid-width grid-height)
-                                                         (if (and datum-desc)
-                                                             (geo-cc-superimpose
-                                                              (geo-text binary-desc font #:lines '(line-through) #:color igr-color)
-                                                              (geo-text datum-desc larger-font #:color tcolor))
-                                                             (geo-text binary-desc font #:color tcolor))))]
-                              [(keyword? self)
-                               (let ([vname (keyword->immutable-string self)])
-                                 (list (geo-vr-append (geo-text vname font #:color vcolor)
-                                                      (geo-text address-desc font #:lines '(line-through) #:color igr-color))
-                                       (geo-cc-superimpose (geo-rectangle #:id (string->symbol vname) #:stroke stroke #:fill (or vfill fill)
-                                                                          grid-width grid-height)
-                                                           (if (and datum-desc)
-                                                               (geo-cc-superimpose
-                                                                (geo-text binary-desc font #:lines '(line-through) #:color igr-color)
-                                                                (geo-text datum-desc larger-font #:color vcolor))
-                                                               (geo-text binary-desc font #:color vcolor)))))]
-                              [else ; padded bytes
-                               (list (geo-text address-desc font)
-                                     (geo-cc-superimpose (geo-rectangle grid-width grid-height #:stroke stroke #:fill (or rfill fill))
-                                                         (geo-text binary-desc font #:color rcolor)))]))
-                      (gen-row (+ idx 1) rest (cons row swor)))])))
+        (cond [(null? vars) (if reverse? swor (reverse swor))]
+              [else (let*-values ([(self rest) (values (car vars) (cdr vars))]
+                                  [(address raw) (values (c-placeholder-addr self) (c-placeholder-raw self))])
+                      (cond [(c-padding? self)
+                             (cond [(and no-padding?) (gen-row rest swor)]
+                                   [else (let ([rows (dia-padding-bytes #:color pcolor #:stroke stroke #:fill (or pfill fill) #:address-color acolor
+                                                                        grid-width grid-height address raw font)])
+                                           (gen-row rest (append swor rows)))])]
+                            [(keyword? (c-variable-name self))
+                             (let ([vname (string->symbol (keyword->immutable-string (c-variable-name self)))])
+                               (define rows : (Listof (Listof (Option Geo)))
+                                 (if (and no-binary?)
+                                     (dia-variable-datum #:color vcolor #:stroke stroke #:fill (or vfill fill) #:ignored-color igr-color
+                                                         grid-width grid-height byte-width vname address (unbox (c-variable-datum self)) fxbase font larger-font)
+                                     (dia-variable-raw #:color vcolor #:stroke stroke #:fill (or vfill fill) #:ignored-color igr-color
+                                                       grid-width grid-height vname address raw mbase font larger-font)))
+                               (gen-row rest (append swor rows)))]
+                            [else ; temp variable
+                             (let ([vname (c-variable-name self)])
+                               (define rows : (Listof (Listof (Option Geo)))
+                                 (if (and no-binary?)
+                                     (dia-variable-datum #:color tcolor #:stroke stroke #:fill (or tfill fill) #:ignored-color igr-color
+                                                         grid-width grid-height byte-width vname address (unbox (c-variable-datum self)) fxbase font larger-font)
+                                     (dia-variable-raw #:color tcolor #:stroke stroke #:fill (or tfill fill) #:ignored-color igr-color
+                                                       grid-width grid-height vname address raw mbase font larger-font)))
+                               (gen-row rest (append swor rows)))]))])))
 
     (geo-table* #:id id memory-units '(rc lc) 'cc gapsize 0.0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-memory-states : (->* (Dia-Memory-State-Procedure (Listof Dia-Memory-Variable))
-                                 (Dia-Memory-State-Snapshot #:memory-head (U Bytes Index) #:memory-tail (U Bytes Index) #:memset (U Boolean Byte Bytes))
-                                 (Pairof Geo (Listof Geo)))
-  (lambda [#:arrow-length [arrow-length -0.618]
-           #:memory-head [head #""] #:memory-tail [tail #""] #:memset [memset #false]
-           f variables [take-snapshot dia-memory-snapshot]]
-    (define body-idx : Index (if (bytes? head) (bytes-length head) head))
-    (define tail-idx : Nonnegative-Fixnum (+ body-idx (length variables)))
-    (define memory-size : Nonnegative-Fixnum (+ body-idx (length variables) (if (bytes? tail) (bytes-length tail) tail)))
-    (define addresses : (Immutable-HashTable Dia-Memory-Variable Integer)
-      (for/hasheq : (Immutable-HashTable Dia-Memory-Variable Integer)
-        ([var (in-list variables)]
-         [idx (in-naturals body-idx)])
-        (values var idx)))
-
-    (define memory : Bytes (make-bytes memory-size (if (byte? memset) memset 0)))
+(define dia-memory-snapshots : (->* (Module-Path Symbol)
+                                    (Dia-Memory-Snapshot #:c-argv (Listof Any) #:callback-names (Option (Pairof Symbol Symbol)) #:optimize? Boolean)
+                                    (Listof Geo))
+  (lambda [#:c-argv [cargv null] #:callback-names [callbacks '(watch_variable . take_snapshot)] #:optimize? [optimize? #true]
+           crkt cfun-name [take-snapshot dia-memory-snapshot]]
+    (define modpath : Module-Path
+      (cond [(not (or (path? crkt) (string? crkt))) crkt]
+            [(not (regexp-match? #px"\\.rkt$" crkt)) (c-build (if (string? crkt) (string->path crkt) crkt) optimize?)]
+            [(path? crkt) `(file ,(path->string crkt))]
+            [(string? crkt) `(file ,crkt)]
+            [else crkt]))
     
-    (cond [(not memset)
-           (for ([idx (in-range (bytes-length memory))])
-             (bytes-set! memory idx (random 256)))]
-          [(bytes? memset) (bytes-copy! memory 0 memset 0 (min memory-size (bytes-length memset)))])
-    
-    (when (bytes? head)
-      (bytes-copy! memory 0 head 0 (bytes-length head)))
-    
-    (when (bytes? tail)
-      (bytes-copy! memory tail-idx tail 0 (bytes-length tail)))
-    
-    (define (memset! [var : Dia-Memory-Variable] [v : Byte]) : Void
-      (bytes-set! memory (hash-ref addresses var) v))
+    (define ghostcat (dynamic-place 'diafun/digitama/unsafe/memory (if (path? modpath) 'c-run 'c-rkt-run)))
 
-    (define (memref [var : Dia-Memory-Variable]) : Byte
-      (bytes-ref memory (hash-ref addresses var)))
+    (place-channel-put ghostcat modpath)
+    (place-channel-put ghostcat cfun-name)
+    (place-channel-put ghostcat cargv)
+    (place-channel-put ghostcat callbacks)
 
-    (define flow-arrow : Geo (geo-arrow 8.0 (~length arrow-length)))
-    
-    (call-in-nested-thread
-     (λ [] (let ([this-thread (current-thread)])
-             (define task-evt : (Evtof Any) (wrap-evt (thread-receive-evt) (λ _ (thread-receive))))
-
-             (define (yield [op : Symbol '||]) : Void
-               (thread-send this-thread 'snapshot)
-               (void (thread-receive)))
-
-             (define task-thread : Thread
-               (thread (λ [] (void (f memset! memref yield)
-                                   (thread-send this-thread '#:done)
-                                   (thread-receive)))))
-
-             (define snapshot0 : Geo (take-snapshot memory null body-idx))
-             (let wsl : (Pairof Geo (Listof Geo)) ([snapshots : (Listof Geo) null])
-               (define operator (sync/enable-break task-evt))
-               (define snapshot : Geo (take-snapshot memory variables body-idx)) 
-
-               (thread-send task-thread 'continue)
-               (if (eq? operator '#:done)
-                   (cons snapshot0 (reverse snapshots))
-                   (wsl (cons snapshot snapshots)))))))))
+    (let wsl : (Listof Geo) ([snapshots : (Listof Geo) null])
+      (define message (sync/enable-break ghostcat))
+      
+      (cond [(c-memory-snapshot? message) (wsl (cons (take-snapshot (cdr message)) snapshots))]
+            [(string? message) (error 'dia-memory-snapshots "~a" message)]
+            [else (reverse snapshots)]))))
