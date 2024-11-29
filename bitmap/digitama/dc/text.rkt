@@ -21,7 +21,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-art-text
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
-           #:background [bgsource : Option-Fill-Paint (default-background-paint)] #:lines [lines : (Listof Symbol) null]
+           #:background [bgsource : Option-Fill-Paint (default-background-paint)] #:lines [lines : (Listof Geo-Text-Line) null]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [text : Any] [font : Font (default-art-font)]] : Bitmap
     (define body : String (~a text))
@@ -34,7 +34,7 @@
 
 (define bitmap-text
   (lambda [#:color [ftsource : Fill-Paint (default-font-paint)] #:background [bgsource : Option-Fill-Paint (default-background-paint)]
-           #:lines [lines : (Listof Symbol) null] #:baseline [blsource : Maybe-Stroke-Paint #false]
+           #:lines [lines : (Listof Geo-Text-Line) null] #:baseline [blsource : Maybe-Stroke-Paint #false]
            #:ascent [alsource : Maybe-Stroke-Paint #false] #:descent [dlsource : Maybe-Stroke-Paint #false]
            #:capline [clsource : Maybe-Stroke-Paint #false] #:meanline [mlsource : Maybe-Stroke-Paint #false]
            #:density [density : Positive-Flonum (default-bitmap-density)]
@@ -51,7 +51,7 @@
 
 (define bitmap-paragraph
   (lambda [#:color [ftsource : Fill-Paint (default-font-paint)] #:background [bgsource : Option-Fill-Paint (default-background-paint)]
-           #:lines [lines : (Listof Symbol) null]
+           #:lines [lines : (Listof Geo-Text-Line) null]
            #:max-width [max-width : Real +inf.0] #:max-height [max-height : Real +inf.0]
            #:indent [indent : Real 0.0] #:spacing [spacing : Real 0.0]
            #:wrap-mode [wrap-mode : Paragraph-Wrap-Mode 'word-char] #:ellipsize-mode [ellipsize-mode : Paragraph-Ellipsize-Mode 'end]

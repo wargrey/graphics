@@ -139,26 +139,28 @@
               (unbox &context)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Geo-Text-Line (U 'line-through 'underline 'undercurl 'underdouble))
+
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [dc_art_text
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-      String Font-Description (Listof Symbol)
+      String Font-Description (Listof Geo-Text-Line)
       (Option Paint) (Option Fill-Source) (Option Fill-Source)
       Any)]
  
  [dc_text
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-      String Font-Description (Listof Symbol) Fill-Source (Option Fill-Source)
+      String Font-Description (Listof Geo-Text-Line) Fill-Source (Option Fill-Source)
       (Option Paint) (Option Paint) (Option Paint) (Option Paint) (Option Paint)
       Any)]
  
  [dc_paragraph
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-      String Font-Description (Listof Symbol) (Option Flonum) (U Flonum Nonpositive-Integer)
+      String Font-Description (Listof Geo-Text-Line) (Option Flonum) (U Flonum Nonpositive-Integer)
       Flonum Flonum Integer Integer Fill-Source (Option Fill-Source)
       Any)]
 
  [dc_paragraph_size
-  (-> String Font-Description (Listof Symbol) (Option Flonum) (U Flonum Nonpositive-Integer) Flonum Flonum Integer Integer
+  (-> String Font-Description (Listof Geo-Text-Line) (Option Flonum) (U Flonum Nonpositive-Integer) Flonum Flonum Integer Integer
       (Values Nonnegative-Flonum Nonnegative-Flonum))])

@@ -2,7 +2,9 @@
 
 (provide (all-defined-out))
 
+(require racket/vector)
 (require digimon/sequence)
+(require digimon/function)
 
 (require "../paint.rkt")
 (require "../../paint.rkt")
@@ -54,6 +56,18 @@
                (Geo geo-convert
                     geo-draw-group! (geo-group-extent layers) outline
                     id base-op sibs-op layers argl ...)))))]))
+
+(define-syntax (create-geometry-table stx)
+  (syntax-parse stx #:datum-literals [:]
+    [(_ Geo name base-op:expr sibs-op:expr
+        (~optional (~seq #:outline outline) #:defaults ([outline #'#false]))
+        table:expr ncols nrows col-anchors row-anchors col-gaps row-gaps argl:expr ...)
+     (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
+       (syntax/loc stx
+         (let-values ([(layers size anchors gaps) (geo-table-metrics table ncols nrows col-anchors row-anchors col-gaps row-gaps)])
+           (create-geometry-group Geo name base-op sibs-op
+                                  #:outline outline
+                                  layers size anchors gaps argl ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Frame-Blank-Datum (U Nonnegative-Real (Listof Nonnegative-Real)))
@@ -134,24 +148,38 @@
 
          (make-geo:group id base-op sibs-op layers))]))
 
-(define make-geo:table : (-> (Option Symbol) (Option Symbol) (Option Symbol)
-                             (Listof Geo) Positive-Index Positive-Index
-                             (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real) Geo
-                             Geo:Table)
-  (lambda [id base-op sibs-op siblings ncols nrows col-anchors row-anchors col-gaps row-gaps cont]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-siblings->table : (-> (Listof Geo) Positive-Integer (GLayerof Geo) (Vectorof (GLayerof Geo)))
+  (lambda [siblings size cont]
+    (list->n:vector* siblings size cont geo-own-layer)))
+
+(define geo-siblings*->table : (-> (Listof (Listof (Option Geo))) Positive-Index (GLayerof Geo) (Vectorof (GLayerof Geo)))
+  (lambda [siblings ncols cont]
+    (define fill-row ((inst λoption Geo (GLayerof Geo)) geo-own-layer cont))
+
+    (apply vector-append
+           (for/list : (Listof (Vectorof (GLayerof Geo))) ([rows : (Listof (Option Geo)) (in-list siblings)])
+             (list->n:vector* rows ncols cont fill-row)))))
+
+(define geo-table-metrics : (-> (Vectorof (GLayerof Geo)) Positive-Index Positive-Index
+                                (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor)
+                                (Geo-Config-Argof Real) (Geo-Config-Argof Real)
+                                (Values Geo-Layer-Group
+                                        (Pairof Positive-Index Positive-Index)
+                                        (Pairof (Vectorof Geo-Pin-Anchor) (Vectorof Geo-Pin-Anchor))
+                                        (Pairof (Vectorof Flonum) (Vectorof Flonum))))
+  (lambda [table ncols nrows col-anchors row-anchors col-gaps row-gaps]
     (define pcols : (Vectorof Geo-Pin-Anchor) (geo-config-expand col-anchors ncols 'cc))
     (define prows : (Vectorof Geo-Pin-Anchor) (geo-config-expand row-anchors nrows 'cc))
     (define gcols : (Vectorof Flonum) (geo-config-expand col-gaps ncols 0.0 real->double-flonum))
     (define grows : (Vectorof Flonum) (geo-config-expand row-gaps nrows 0.0 real->double-flonum))
-    (define table : (Vectorof (GLayerof Geo)) (list->n:vector* siblings (* nrows ncols) (geo-own-layer cont) geo-own-layer))
-
+    
     (define size : Index (vector-length table))
     (define cwidths : (Vectorof Nonnegative-Flonum) (geo-table-column-widths table nrows ncols size))
     (define rheights : (Vectorof Nonnegative-Flonum) (geo-table-row-heights table nrows ncols size))
     (define layers : Geo-Layer-Group (geo-table-layers table ncols nrows pcols prows gcols grows cwidths rheights))
 
-    (create-geometry-group geo:table id base-op sibs-op layers
-                           (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
+    (values layers (cons ncols nrows) (cons pcols prows) (cons gcols grows))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-group! : Geo-Surface-Draw!

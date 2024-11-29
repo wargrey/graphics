@@ -27,7 +27,8 @@
          (let ([decltype (c-variable-decltype v)])
            (or (not decltype)
                (symbol? decltype)))
-         (exact-nonnegative-integer? (c-variable-addr1 v)))))
+         (exact-nonnegative-integer? (c-variable-addr1 v))
+         (symbol? (c-variable-segment v)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define c-typename->ctype
@@ -57,51 +58,53 @@
         (string->keyword name))))
 
 (define c-run-callbacks
-  (lambda [deal-with-snapshot [deal-with-variable void]]
-    (define &min (box #false))
-    (define &max (box #false))
+  (lambda [deal-with-snapshot [deal-with-variable void] #:lookahead-size [ahead 0] #:lookbehind-size [behind 0] #:body-limit [limit 1024]]
+    (define addr-spaces (make-hasheq))
     (define variables (make-hash))
     
-    (define (watch-variable name typename addr0)
+    (define (watch-variable name typename addr0 segment)
       (define type (c-typename->ctype typename))
       (define size (ctype-sizeof type))
       (define addr1 (+ addr0 size))
-      
-      (if (unsafe-unbox* &min)
-          (unsafe-set-box*! &min (min addr0 (unsafe-unbox &min)))
-          (unsafe-set-box*! &min addr0))
-      
-      (if (unsafe-unbox* &max)
-          (unsafe-set-box*! &max (max addr1 (unsafe-unbox &max)))
-          (unsafe-set-box*! &max addr1))
+      (define addr-space (hash-ref addr-spaces segment (λ [] #false)))
+
+      (hash-set! addr-spaces segment
+                 (if (pair? addr-space)
+                     (cons (min addr0 (unsafe-car addr-space))
+                           (max addr1 (unsafe-cdr addr-space)))
+                     (cons addr0 addr1)))
+
+      (displayln (list segment name (number->string addr0 16)))
 
       (let* ([vptr (cast addr0 _uintptr _pointer)]
-             [self (make-variable addr0 (make-bytes size) (box (ptr-ref vptr type)) (c-vname->symbol name) typename addr1)])
+             [self (make-variable addr0 (make-bytes size) (box (ptr-ref vptr type)) (c-vname->symbol name) typename addr1 segment)])
         (memmove (c-placeholder-raw self) 0 vptr 0 1 type)
         (hash-set! variables addr0 (cons type self))
         (deal-with-variable self)
         (void)))
     
     (define (take-snapshot state)
-      (define addr0 (or (unsafe-unbox* &min) 0))
-      (define ptr0 (cast addr0 _uintptr _pointer))
-      (define ptr$ (cast (or (unsafe-unbox* &max) 0) _uintptr _pointer))
-      
-      (let collect ([ptr ptr0]
-                    [addr addr0]
-                    [srav null])
-        (if (not (ptr-equal? ptr ptr$))
-            (let* ([vinfo (hash-ref variables addr (λ [] #false))])
-              (if (pair? vinfo)
-                  (let* ([self (cdr vinfo)]
-                         [p++ (memory-step* ptr (car vinfo) (c-placeholder-raw self) (c-variable-datum self))])
-                    (collect p++ (c-variable-addr1 self) (cons self srav)))
-                  (let pad ([count 1])
-                    (define addr++ (+ addr count))
-                    (cond [(not (hash-has-key? variables addr++)) (pad (+ count 1))]
-                          [else (let-values ([(raw p++) (memory-step-for-bytes ptr _byte count)])
-                                  (collect p++ addr++ (cons (make-pad addr raw) srav)))]))))
-            (void (deal-with-snapshot (cons state srav))))))
+      (for ([(segment addr-space) (in-hash addr-spaces)])
+        (define-values (start end) (values (unsafe-car addr-space) (unsafe-cdr addr-space)))
+        (define addr0 (- start behind))
+        (define addr$ (+ (if (> limit 0) (min end (+ start limit)) end) ahead))
+        (define ptr0 (cast addr0 _uintptr _pointer))
+
+        (let collect ([ptr ptr0]
+                      [addr addr0]
+                      [srav null])
+          (if (< addr addr$)
+              (let* ([vinfo (hash-ref variables addr (λ [] #false))])
+                (if (pair? vinfo)
+                    (let* ([self (cdr vinfo)]
+                           [p++ (memory-step* ptr (car vinfo) (c-placeholder-raw self) (c-variable-datum self))])
+                      (collect p++ (c-variable-addr1 self) (cons self srav)))
+                    (let pad ([count 1])
+                      (define addr++ (+ addr count))
+                      (cond [(not (hash-has-key? variables addr++)) (pad (+ count 1))]
+                            [else (let-values ([(raw p++) (memory-step-for-bytes ptr _byte count)])
+                                    (collect p++ addr++ (cons (make-pad addr raw) srav)))]))))
+              (void (deal-with-snapshot (cons segment (cons state srav))))))))
 
     (values watch-variable take-snapshot)))
 
@@ -113,9 +116,13 @@
       (define unsafe-cfun (place-channel-get master))
       (define cargv (place-channel-get master))
       (define callbacks (place-channel-get master))
-      
-      (define (send-to-master snapshots) (place-channel-put master snapshots))
-      (define-values (watch-variable take-snapshot) (c-run-callbacks send-to-master))
+      (define config (place-channel-get master))
+
+      (define-values (watch-variable take-snapshot)
+        (c-run-callbacks #:lookahead-size (car config)
+                         #:lookbehind-size (cadr config)
+                         #:body-limit (caddr config)
+                         (λ [snapshots] (place-channel-put master snapshots))))
       
       (define retcode
         (with-handlers ([exn:fail? values])
@@ -151,9 +158,13 @@
       (define unsafe-cfun (place-channel-get master))
       (define cargv (place-channel-get master))
       (define callbacks (place-channel-get master))
+      (define config (place-channel-get master))
       
-      (define (send-to-master snapshots) (place-channel-put master snapshots))
-      (define-values (watch-variable take-snapshot) (c-run-callbacks send-to-master))
+      (define-values (watch-variable take-snapshot)
+        (c-run-callbacks #:lookahead-size (car config)
+                         #:lookbehind-size (cadr config)
+                         #:body-limit (caddr config)
+                         (λ [snapshots] (place-channel-put master snapshots))))
       
       (define retcode
         (with-handlers ([exn:fail? values])

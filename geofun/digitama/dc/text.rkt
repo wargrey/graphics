@@ -24,12 +24,12 @@
   #:transparent)
 
 (struct geo:art-text geo:string
-  ([lines : (Listof Symbol)])
+  ([lines : (Listof Geo-Text-Line)])
   #:type-name Geo:Art-Text
   #:transparent)
 
 (struct geo:text geo:string
-  ([lines : (Listof Symbol)]
+  ([lines : (Listof Geo-Text-Line)]
    [aline : Maybe-Stroke-Paint]
    [dline : Maybe-Stroke-Paint]
    [cline : Maybe-Stroke-Paint]
@@ -39,7 +39,7 @@
   #:transparent)
 
 (struct geo:para geo:string
-  ([lines : (Listof Symbol)]
+  ([lines : (Listof Geo-Text-Line)]
    [mwidth : (Option Flonum)]
    [mheight : (U Flonum Nonpositive-Integer)]
    [ident : Flonum]
@@ -52,7 +52,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-art-text
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (void)] #:fill [fill : Maybe-Fill-Paint (void)] #:background [bgsource : Maybe-Fill-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Symbol) null]
+           #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null]
            [text : Any] [font : (Option Font) #false]] : Geo:Art-Text
     (create-geometry-object geo:art-text
                             #:with [id (geo-draw-art-text font outline fill bgsource)
@@ -64,7 +64,7 @@
   (lambda [#:color [fgsource : Option-Fill-Paint #false] #:background [bgsource : Maybe-Fill-Paint (void)]
            #:ascent [alsource : Maybe-Stroke-Paint #false] #:descent [dlsource : Maybe-Stroke-Paint #false] #:capline [clsource : Maybe-Stroke-Paint #false]
            #:meanline [mlsource : Maybe-Stroke-Paint #false] #:baseline [blsource : Maybe-Stroke-Paint #false]
-           #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Symbol) null]
+           #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null]
            [text : Any] [font : (Option Font) #false]] : Geo:Text
     (create-geometry-object geo:text
                             #:with [id (geo-draw-text font fgsource bgsource)
@@ -76,7 +76,7 @@
   (lambda [#:color [fgsource : Option-Fill-Paint #false] #:background [bgsource : Maybe-Fill-Paint (void)]
            #:max-width [max-width : Real +inf.0] #:max-height [max-height : Real +inf.0] #:indent [indent : Real 0.0] #:spacing [spacing : Real 0.0]
            #:wrap-mode [wrap-mode : Paragraph-Wrap-Mode 'word-char] #:ellipsize-mode [ellipsize-mode : Paragraph-Ellipsize-Mode 'end]
-           #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Symbol) null]
+           #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null]
            [texts : (U String (Listof String))] [font : (Option Font) #false]]
     (define smart-width : (Option Flonum) (if (or (infinite? max-width) (nan? max-width)) #false (real->double-flonum max-width)))
     (define-values (smart-height smart-emode)

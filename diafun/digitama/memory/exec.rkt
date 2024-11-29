@@ -19,7 +19,7 @@
     (define specs : Wisemon-Specification
       (list (wisemon-spec c.o #:^ (list src.c)
                           #:- (c-compile #:standard 2017 #:cpp? cpp? #:verbose? verbose? #:optimize? optimize?
-                                         #:macros (list '__racket__ '__memory__)
+                                         #:macros (list '__racket__)
                                          src.c c.o))
             
             (wisemon-spec c.so #:^ (list c.o)
@@ -27,7 +27,7 @@
                                       #:subsystem #false #:entry #false
                                       c.o c.so))))
 
-    (call-with-dtrace (λ [] (wisemon-make specs (list c.so) #:name 'dia-memory)))
+    (wisemon-make specs (list c.so) #:name 'dia-memory)
     c.so))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

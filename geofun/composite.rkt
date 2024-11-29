@@ -8,9 +8,6 @@
 
 (provide (rename-out [geo-pin-over geo-pin]))
 
-(require racket/list)
-(require digimon/function)
-
 (require "digitama/layer/type.rkt")
 (require "digitama/layer/combine.rkt")
 (require "digitama/layer/find.rkt")
@@ -150,7 +147,9 @@
              (let-values ([(maybe-nrows extra-ncols) (quotient/remainder size ncols)])
                (define nrows : Nonnegative-Fixnum (+ maybe-nrows (if (= extra-ncols 0) 0 1)))
                (and (> nrows 0) (index? nrows)
-                    (make-geo:table id base-op sibs-op siblings ncols nrows col-anchors row-anchors col-gaps row-gaps cont))))
+                    (create-geometry-table geo:table id base-op sibs-op
+                                           (geo-siblings->table siblings (* nrows ncols) (geo-own-layer cont))
+                                           ncols nrows col-anchors row-anchors col-gaps row-gaps))))
         cont)))
 
 (define geo-table* : (->* ((Listof (Listof (Option Geo))))
@@ -162,14 +161,9 @@
     (define ncols : Index (apply max 0 ((inst map Index (Listof (Option Geo))) length siblings)))
     (define nrows : Index (length siblings))
     (define cont : Geo (geo-blank))
-    (define fill-row ((inst λoption Geo Geo) values cont))
 
     (or (and (> ncols 0) (> nrows 0)
-             (make-geo:table id base-op sibs-op
-                             (for/fold ([cells : (Listof Geo) null])
-                                       ([rows : (Listof (Option Geo)) (in-list siblings)])
-                               (define rsize : Index (length rows))
-                               (cond [(= ncols rsize) (append cells (map fill-row rows))]
-                                     [else (append cells (map fill-row rows) (make-list (- ncols rsize) cont))]))
-                             ncols nrows col-anchors row-anchors col-gaps row-gaps cont))
+             (create-geometry-table geo:table id base-op sibs-op
+                                    (geo-siblings*->table siblings ncols (geo-own-layer cont))
+                                    ncols nrows col-anchors row-anchors col-gaps row-gaps))
         cont)))

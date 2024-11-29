@@ -7,18 +7,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type C-Variables (Listof (U C-Variable C-Pad)))
 
-(struct c-memory-snapshot
-  ([state : String]
-   [addr0 : Natural]
-   [size : Index]
-   [reversed-variables : (Listof C-Variables)])
-  #:type-name C-Memory-Snapshot
-  #:constructor-name make-memory-snapshot
-  #:prefab)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct c-placeholder
-  ([addr : Natural]
+  ([addr : Index]
    [raw : Bytes])
   #:type-name C-Placeholder
   #:prefab)
@@ -27,7 +18,8 @@
   ([datum : (Boxof Real)]
    [name : (U Keyword Symbol)]
    [decltype : (Option Symbol)]
-   [addr1 : Natural])
+   [addr1 : Index]
+   [segment : Symbol])
   #:type-name C-Variable
   #:constructor-name make-variable
   #:prefab)
@@ -40,7 +32,7 @@
 (define c-padding*? : (-> Any Boolean : C-Pad)
   (lambda [v]
     (and (c-padding? v)
-         (exact-nonnegative-integer? (c-placeholder-addr v))
+         (index? (c-placeholder-addr v))
          (bytes? (c-placeholder-raw v)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
