@@ -52,13 +52,22 @@
 (define default-dia-node-base-style : (Parameterof (-> Dia-Node-Base-Style)) (make-parameter make-null-node-style))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-node-text-label : (-> Geo-Anchor-Name String Dia-Node-Style (Option Geo))
-  (lambda [anchor desc s]
-    (define fallback-style : Dia-Node-Base-Style ((default-dia-node-base-style)))
-    (define font : (Option Font) (or (dia-node-style-font s) (dia-node-base-style-font fallback-style)))
-    (define paint : Option-Fill-Paint (or (dia-node-style-font-paint s) (dia-node-base-style-font-paint fallback-style)))
+(define dia-node-text-label : (->* (Geo-Anchor-Name String Dia-Node-Style)
+                                   (#:id (Option Symbol) #:color Option-Fill-Paint #:font (Option Font))
+                                   (Option Geo))
+  (lambda [anchor desc s #:id [alt-id #false] #:color [alt-color #false] #:font [alt-font #false]]
+    (define maybe-font : (Option Font) (or alt-font (dia-node-style-font s)))
+    (define maybe-paint : Option-Fill-Paint (or alt-color (dia-node-style-font-paint s)))
+
+    (define fallback-style : Dia-Node-Base-Style
+      (if (and maybe-font maybe-paint)
+          (make-null-node-style) ; useless but a bit more efficient
+          ((default-dia-node-base-style))))
+
+    (define font : (Option Font) (or maybe-font (dia-node-base-style-font fallback-style)))
+    (define paint : Option-Fill-Paint (or maybe-paint (dia-node-base-style-font-paint fallback-style)))
     (define text : String (string-trim desc))
-    (define text-id : Symbol (dia-node-label-id anchor))
+    (define text-id : Symbol (or alt-id (dia-node-label-id anchor)))
     
     (cond [(regexp-match? #px"[\r\n]+" text)
            (geo-vc-append* #:id text-id
@@ -70,11 +79,16 @@
 
 (define dia-node-smart-size : (-> (Option Geo) Dia-Node-Style (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [label s]
-    (define fallback-style : Dia-Node-Base-Style ((default-dia-node-base-style)))
+    (define maybe-width  (dia-node-style-width s))
+    (define maybe-height (dia-node-style-height s))
+
+    (define fallback-style : Dia-Node-Base-Style
+      (if (and maybe-width maybe-height)
+          (make-null-node-style) ; useless but a bit more efficient
+          ((default-dia-node-base-style))))
     
-    (define-values (width height)
-      (values (or (dia-node-style-width s)  (dia-node-base-style-width  fallback-style))
-              (or (dia-node-style-height s) (dia-node-base-style-height fallback-style))))
+    (define width  (or maybe-width  (dia-node-base-style-width  fallback-style)))
+    (define height (or maybe-height (dia-node-base-style-height fallback-style)))
     
     (cond [(and (> width 0.0) (> height 0.0)) (values width height)]
           [(not label) (values 0.0 0.0)]
@@ -82,9 +96,11 @@
                   (values (cond [(> width 0.0)  width]  [(< width 0.0)  (* w (abs width))]  [else w])
                           (cond [(> height 0.0) height] [(< height 0.0) (* h (abs height))] [else h])))])))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-node-select-stroke-paint : (-> Dia-Node-Style Maybe-Stroke-Paint)
   (lambda [self]
     (define fallback-paint : (Option Stroke) (stroke-paint->source* (dia-node-base-style-stroke-paint ((default-dia-node-base-style)))))
+    
     (cond [(void? self) fallback-paint]
           [(not self) #false]
           [(dia-node-style? self)
@@ -96,12 +112,46 @@
           [(stroke? fallback-paint) (desc-stroke fallback-paint #:color self)]
           [else self])))
 
-(define dia-node-select-fill-paint : (-> Dia-Node-Style Maybe-Fill-Paint)
-  (lambda [self]
-    (define paint : Maybe-Fill-Paint (dia-node-style-fill-paint self))
+(define #:forall (T) dia-node-select-fill-paint : (case-> [Dia-Node-Style -> Maybe-Fill-Paint]
+                                                          [Maybe-Fill-Paint (-> Dia-Node-Base-Style Maybe-Fill-Paint) -> Maybe-Fill-Paint]
+                                                          [Maybe-Fill-Paint (-> Any Boolean : T) (-> T Maybe-Fill-Paint) -> Maybe-Fill-Paint])
+  (case-lambda
+    [(self)
+    (let ([paint (dia-node-style-fill-paint self)])
+      (cond [(not (void? paint)) paint]
+            [else (dia-node-base-style-fill-paint ((default-dia-node-base-style)))]))]
+    [(self style-fill-paint)
+     (cond [(not (void? self)) self]
+           [else (style-fill-paint ((default-dia-node-base-style)))])]
+    [(self fallback? fallback-fill-paint)
+     (cond [(not (void? self)) self]
+           [else (let ([base ((default-dia-node-base-style))])
+                   (and (fallback? base)
+                        (fallback-fill-paint base)))])]))
 
-    (cond [(not (void? paint)) paint]
-          [else (dia-node-base-style-fill-paint ((default-dia-node-base-style)))])))
+(define #:forall (T) dia-node-select-font : (case-> [Dia-Node-Style -> (Option Font)]
+                                                    [(Option Font) (-> Dia-Node-Base-Style (Option Font)) -> (Option Font)]
+                                                    [(Option Font) (-> Any Boolean : T) (-> T (Option Font)) -> (Option Font)])
+  (case-lambda
+    [(self) (or (dia-node-style-font self) (dia-node-base-style-font ((default-dia-node-base-style))))]
+    [(self style-font) (or self (style-font ((default-dia-node-base-style))))]
+    [(self fallback? fallback-font)
+     (or self
+         (let ([base ((default-dia-node-base-style))])
+           (and (fallback? base)
+                (fallback-font base))))]))
+
+(define #:forall (T) dia-node-select-font-paint : (case-> [Dia-Node-Style -> Option-Fill-Paint]
+                                                          [Option-Fill-Paint (-> Dia-Node-Base-Style Option-Fill-Paint) -> Option-Fill-Paint]
+                                                          [Option-Fill-Paint (-> Any Boolean : T) (-> T Option-Fill-Paint) -> Option-Fill-Paint])
+  (case-lambda
+    [(self) (or (dia-node-style-font-paint self) (dia-node-base-style-font-paint ((default-dia-node-base-style))))]
+    [(self style-font-paint) (or self (style-font-paint ((default-dia-node-base-style))))]
+    [(self fallback? fallback-font-paint)
+     (or self
+         (let ([base ((default-dia-node-base-style))])
+           (and (fallback? base)
+                (fallback-font-paint base))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-node-label-id : (-> Geo-Anchor-Name Symbol)

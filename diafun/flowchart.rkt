@@ -16,9 +16,7 @@
 (require geofun/path)
 (require geofun/paint)
 
-(require geofun/digitama/composite)
 (require geofun/digitama/convert)
-
 (require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/sticker)
@@ -71,8 +69,8 @@
            #:λfree-edge [make-free-track : DiaFlow-Free-Track->Edge default-diaflow-free-edge-construct]
            #:λfree-edge-label [make-free-label : DiaFlow-Free-Track->Edge-Label default-diaflow-free-edge-label-construct]
            [self : Geo:Path]] : (U Dia:Flow Geo:Path)
-    (parameterize ([default-dia-node-base-style make-diaflow-node-base-style]
-                   [default-dia-edge-base-style make-diaflow-edge-base-style]
+    (parameterize ([default-dia-node-base-style make-diaflow-node-fallback-style]
+                   [default-dia-edge-base-style make-diaflow-edge-fallback-style]
                    [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))])
       (define stickers : (Listof (GLayerof Geo))
         (diaflow-stick self block-detect make-node make-node-label arrow-detect make-edge make-edge-label

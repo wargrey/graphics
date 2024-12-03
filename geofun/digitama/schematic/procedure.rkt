@@ -5,8 +5,6 @@
 (require geofun/vector)
 (require racket/symbol)
 
-(require "../avatar/bacteriophage.rkt")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Schematic-Procedure-IO-Fill (-> Symbol Fill-Paint))
 
@@ -51,16 +49,16 @@
     (define caption : (Option Geo)
       (cond [(not desc) #false]
             [(geo? desc) desc]
-            [(not (string? desc)) (desc em)]
-            [else (geo-text (string-append " " desc " ") font #:color text-color)]))
+            [(string? desc) (geo-text (string-append " " desc " ") font #:color text-color)]
+            [else (desc em)]))
 
     (define ipo:i : Geo
       (geo-trim
        (geo-hc-append* #:gapsize io:gapsize
-                          (for/list : (Listof Geo) ([in (in-list is)]
-                                                    [idx (in-naturals 0)])
-                            (geo-procedure-pipe (string-append " " (symbol->immutable-string in) " ")
-                                                   io:width io:height font (iofill-color in) text-color border)))))
+                       (for/list : (Listof Geo) ([in (in-list is)]
+                                                 [idx (in-naturals 0)])
+                         (geo-procedure-pipe (string-append " " (symbol->immutable-string in) " ")
+                                             io:width io:height font (iofill-color in) text-color border)))))
     
     (define ipo:p : Geo
       (let* ([wunit (+ io:gapsize io:width)]
@@ -68,7 +66,7 @@
              [body-height (max min-height (if (not caption) (* body-width 0.618) (+ (geo-height caption) io:gapsize)))]
              [body (geo-rectangle body-width body-height -0.125 #:fill b:fill #:stroke border)])
         (cond [(not caption) body]
-              [else (geo-cc-superimpose body caption)])))
+              [else (geo-cc-superimpose #:operator 'over body caption)])))
 
     (define ipo:o : Geo
       (geo-trim

@@ -74,8 +74,6 @@
                            (max addr1 (unsafe-cdr addr-space)))
                      (cons addr0 addr1)))
 
-      (displayln (list segment name (number->string addr0 16)))
-
       (let* ([vptr (cast addr0 _uintptr _pointer)]
              [self (make-variable addr0 (make-bytes size) (box (ptr-ref vptr type)) (c-vname->symbol name) typename addr1 segment)])
         (memmove (c-placeholder-raw self) 0 vptr 0 1 type)
@@ -100,10 +98,11 @@
                            [p++ (memory-step* ptr (car vinfo) (c-placeholder-raw self) (c-variable-datum self))])
                       (collect p++ (c-variable-addr1 self) (cons self srav)))
                     (let pad ([count 1])
-                      (define addr++ (+ addr count))
-                      (cond [(not (hash-has-key? variables addr++)) (pad (+ count 1))]
-                            [else (let-values ([(raw p++) (memory-step-for-bytes ptr _byte count)])
-                                    (collect p++ addr++ (cons (make-pad addr raw) srav)))]))))
+                      (define addr++ (unsafe-fx+ addr count))
+                      (if (or (hash-has-key? variables addr++) (>= #;'#:deadcode addr++ addr$))
+                          (let-values ([(raw p++) (memory-step-for-bytes ptr _byte count)])
+                            (collect p++ addr++ (cons (make-pad addr raw) srav)))
+                          (pad (unsafe-fx+ count 1))))))
               (void (deal-with-snapshot (cons segment (cons state srav))))))))
 
     (values watch-variable take-snapshot)))
@@ -119,30 +118,22 @@
       (define config (place-channel-get master))
 
       (define-values (watch-variable take-snapshot)
-        (c-run-callbacks #:lookahead-size (car config)
-                         #:lookbehind-size (cadr config)
-                         #:body-limit (caddr config)
+        (c-run-callbacks #:lookahead-size (car config) #:lookbehind-size (cadr config) #:body-limit (caddr config)
                          (λ [snapshots] (place-channel-put master snapshots))))
       
       (define retcode
         (with-handlers ([exn:fail? values])
-          (when (pair? callbacks)
-            (define watch! (dynamic-require crkt-path (unsafe-car callbacks) (λ [] #false)))
-            (define take!  (dynamic-require crkt-path (unsafe-cdr callbacks) (λ [] #false)))
+          (define watch! (dynamic-require crkt-path (unsafe-car callbacks) (λ [] #false)))
+          (define take!  (dynamic-require crkt-path (unsafe-cdr callbacks) (λ [] #false)))
             
-            (when (procedure? watch!) (watch! watch-variable))
-            (when (procedure? take!)  (take!  take-snapshot)))
+          (when (procedure? watch!) (watch! watch-variable))
+          (when (procedure? take!)  (take!  take-snapshot))
           
           (define cfun (dynamic-require crkt-path unsafe-cfun))
           
-          (if (null? cargv)
-              (if (procedure-arity-includes? cfun 2)
-                  (cfun watch-variable take-snapshot)
-                  (cfun))
-              (apply cfun
-                     (if (procedure-arity-includes? cfun (+ (length cargv) 2))
-                         (append cargv (list watch-variable take-snapshot))
-                         cargv)))))
+          (if (pair? cargv)
+              (apply cfun cargv)
+              (cfun))))
 
       (when (exn? retcode)
         (place-channel-put master (exn-message retcode))
@@ -171,9 +162,8 @@
           (define c.dylib (ffi-lib c.so #:custodian (current-custodian)))
           (define cfun (get-ffi-obj unsafe-cfun c.dylib (_fun -> _int)))
           
-          (when (pair? callbacks)
-            (set-ffi-obj! (unsafe-car callbacks) c.dylib _watch_variable_t watch-variable)
-            (set-ffi-obj! (unsafe-cdr callbacks) c.dylib _take_memory_snapshot_t take-snapshot))
+          (set-ffi-obj! (unsafe-car callbacks) c.dylib _watch_variable_t watch-variable)
+          (set-ffi-obj! (unsafe-cdr callbacks) c.dylib _take_memory_snapshot_t take-snapshot)
           
           (cfun)))
 

@@ -33,7 +33,7 @@
 (define default-diaflow-failure-decision-labels : (Parameterof (U (Listof String) Regexp)) (make-parameter #px"^([Ff]([Aa][Ll][Ss][Ee])?|[Nn]([Oo])?)$"))
 (define default-diaflow-loop-label-regexp : (Parameterof Regexp) (make-parameter #px"[Ll][Oo][Oo][Pp]$"))
 
-(define-configuration diaflow-edge-base-style : DiaFlow-Edge-Style #:as dia-edge-base-style
+(define-configuration diaflow-edge-fallback-style : DiaFlow-Edge-Style #:as dia-edge-base-style
   #:format "default-diaflow-edge-~a"
   ([font : (Option Font) default-edge-label-font]
    [font-paint : Option-Fill-Paint 'DimGray]
@@ -163,7 +163,7 @@
 (define default-diaflow-document-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Storage-Style))) (make-parameter #false))
 (define default-diaflow-database-style-make : (Parameterof (Option (DiaFlow-Node-Style-Make DiaFlow-Database-Style))) (make-parameter #false))
 
-(define-configuration diaflow-node-base-style : DiaFlow-Node-Style #:as dia-node-base-style
+(define-configuration diaflow-node-fallback-style : DiaFlow-Node-Style #:as dia-node-base-style
   #:format "default-diaflow-~a"
   ([block-width : Nonnegative-Flonum 200.0]
    [block-height : Nonnegative-Flonum 50.0]
