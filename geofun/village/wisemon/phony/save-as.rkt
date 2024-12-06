@@ -7,7 +7,7 @@
 
 (require racket/port)
 (require racket/file)
-(require racket/list)
+(require racket/path)
 (require racket/string)
 
 (require digimon/dtrace)
@@ -30,7 +30,8 @@
     (for/fold ([specs : Wisemon-Specification null])
               ([module.rkt (in-list (find-digimon-files graphics-filter (current-directory)))])
       (with-handlers ([exn:fail? (λ [[e : exn:fail]] (dtrace-exception e #:level 'error #:brief? (not (make-verbose))) specs)])
-        (parameterize ([current-output-port /dev/null])
+        (parameterize ([current-output-port /dev/null]
+                       [current-directory (or (path-only module.rkt) (current-directory))])
           (dynamic-require module.rkt #false))
       
         (define ns (module->namespace module.rkt))

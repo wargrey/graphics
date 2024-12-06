@@ -7,10 +7,12 @@
 (require digimon/cc)
 (require digimon/dtrace)
 (require digimon/wisemon)
+(require digimon/filesystem)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define c-build : (-> Path Boolean Path)
-  (lambda [src.c optimize?]
+  (lambda [path optimize?]
+    (define src.c : Path (path->smart-absolute-path path))
     (define c.o : Path (c-optimized-path (assert (c-source->object-file src.c)) optimize?))
     (define c.so : Path (c-optimized-path (assert (c-source->shared-object-file src.c #false #:lib-prefixed? #false)) optimize?))
     (define cpp? : Boolean (not (regexp-match? #px"\\.c$" src.c)))

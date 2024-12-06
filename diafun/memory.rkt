@@ -81,7 +81,7 @@
             [(path? crkt) `(file ,(path->string crkt))]
             [(string? crkt) `(file ,crkt)]
             [else crkt]))
-    
+
     (define ghostcat (dynamic-place 'diafun/digitama/unsafe/memory (if (path? modpath) 'c-run 'c-rkt-run)))
 
     (place-channel-put ghostcat modpath)
