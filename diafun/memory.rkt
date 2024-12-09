@@ -87,7 +87,7 @@
                                     Dia-Memory-Snapshots)
   (lambda [#:main [cfun-name 'main] #:c-argv [cargv null] #:take_snapshot [take 'take_snapshot]
            #:register_variable [register-variable 'register_variable] #:register_array [register-array 'register_array]
-           #:optimize? [optimize? #true] #:lookahead-size [ahead 0] #:lookbehind-size [behind 0] #:body-limit [limit 1024]
+           #:optimize? [optimize? #false] #:lookahead-size [ahead 0] #:lookbehind-size [behind 0] #:body-limit [limit 1024]
            crkt [take-snapshot dia-memory-snapshot]]
     (define modpath : Module-Path
       (cond [(not (or (path? crkt) (string? crkt))) crkt]

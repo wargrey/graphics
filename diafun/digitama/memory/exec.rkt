@@ -37,5 +37,5 @@
   (lambda [p optimize?]
     (cond [(and optimize?) p]
           [else (build-path (assert (path-only p))
-                            "raw"
+                            "O0"
                             (assert (file-name-from-path p)))])))
