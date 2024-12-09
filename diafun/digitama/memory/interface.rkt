@@ -11,25 +11,27 @@
 (unsafe-require/typed/provide
  "../unsafe/memory.rkt"
  [c-variable*? (-> Any Boolean : C-Variable)]
+ [c-vector*? (-> Any Boolean : C-Vector)]
  [c-rkt-run (-> Place Void)]
  [c-run (-> Place Void)]
  
  [c-run-callbacks (->* ((-> C-Reversed-Memory-Snapshot Void))
                        ((-> C-Variable Void) #:lookahead-size Byte #:lookbehind-size Byte #:body-limit Index)
-                       (Values C-Watch-Variable C-Take-Snapshot))])
+                       (Values C-Take-Snapshot C-Register-Variable C-Register-Array))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type C-Variables (Listof (U C-Variable C-Pad)))
 (define-type C-Reversed-Memory-Snapshot (Pairof String C-Variables))
 (define-type C-Memory-Segment-Snapshot (Pairof Symbol C-Reversed-Memory-Snapshot))
-(define-type C-Watch-Variable (-> String Symbol Natural Symbol Void))
+(define-type C-Register-Variable (-> String Symbol Natural Symbol Void))
+(define-type C-Register-Array (-> String Symbol Natural Symbol Index Void))
 (define-type C-Take-Snapshot (-> String Void))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define c-placeholder*? : (-> Any Boolean : (U C-Variable C-Pad))
+(define c-placeholder*? : (-> Any Boolean : (U C-Variable C-Vector C-Pad))
   (lambda [v]
     (or (c-padding*? v)
-        (c-variable*? v))))
+        (c-variable*? v)
+        (c-vector*? v))))
 
 (define c-variables? : (-> Any Boolean : C-Variables)
   (lambda [vs]

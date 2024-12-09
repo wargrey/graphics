@@ -5,21 +5,21 @@
 (require racket/path)
 
 (require digimon/cc)
-(require digimon/dtrace)
 (require digimon/wisemon)
-(require digimon/filesystem)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define the-name : Symbol 'dia-memory)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define c-build : (-> Path Boolean Path)
-  (lambda [path optimize?]
-    (define src.c : Path (path->smart-absolute-path path))
+  (lambda [src.c optimize?]
     (define c.o : Path (c-optimized-path (assert (c-source->object-file src.c)) optimize?))
     (define c.so : Path (c-optimized-path (assert (c-source->shared-object-file src.c #false #:lib-prefixed? #false)) optimize?))
     (define cpp? : Boolean (not (regexp-match? #px"\\.c$" src.c)))
     (define verbose? : Boolean #false)
 
     (define specs : Wisemon-Specification
-      (list (wisemon-spec c.o #:^ (list src.c)
+      (list (wisemon-spec c.o #:^ (cons src.c (c-include-headers src.c #:topic the-name))
                           #:- (c-compile #:standard 2017 #:cpp? cpp? #:verbose? verbose? #:optimize? optimize?
                                          #:macros (list '__racket__)
                                          src.c c.o))
@@ -29,7 +29,7 @@
                                       #:subsystem #false #:entry #false
                                       c.o c.so))))
 
-    (wisemon-make specs (list c.so) #:name 'dia-memory)
+    (wisemon-make specs (list c.so) #:name the-name)
     c.so))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

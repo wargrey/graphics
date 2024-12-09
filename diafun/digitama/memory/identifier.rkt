@@ -8,13 +8,19 @@
 (require "variable.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define memory-identify : (-> (U C-Variable C-Pad) Symbol (Values Symbol (Option Memory-Location-Style)))
+(define memory-identify : (-> C-Variable-Datum Symbol (Values Symbol (Option Memory-Location-Style)))
   (lambda [self segment]
-    (cond [(c-padding? self) (memory-style-construct '|| segment (default-memory-padding-style-make) make-memory-padding-style)]
-          [(keyword? (c-variable-name self))
-           (let ([vname (string->symbol (keyword->immutable-string (c-variable-name self)))])
-             (memory-style-construct vname segment (default-memory-variable-style-make) make-memory-variable-style))]
-          [else (memory-style-construct (c-variable-name self) segment (default-memory-temporary-style-make) make-memory-temporary-style)])))
+    (cond [(c-variable? self)
+           (if (keyword? (c-variable-name self))
+               (let ([vname (string->symbol (keyword->immutable-string (c-variable-name self)))])
+                 (memory-style-construct vname segment (default-memory-pointer-style-make) make-memory-pointer-style))
+               (memory-style-construct (c-variable-name self) segment (default-memory-variable-style-make) make-memory-variable-style))]
+          [(c-vector? self)
+           (if (keyword? (c-vector-name self))
+               (let ([vname (string->symbol (keyword->immutable-string (c-vector-name self)))])
+                 (memory-style-construct vname segment (default-memory-pointer-style-make) make-memory-pointer-style))
+               (memory-style-construct (c-vector-name self) segment (default-memory-array-style-make) make-memory-array-style))]
+          [else (memory-style-construct '|| segment (default-memory-padding-style-make) make-memory-padding-style)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) memory-style-construct : (-> Symbol Symbol (Option (Memory-Location-Style-Make (∩ S Memory-Location-Style)))

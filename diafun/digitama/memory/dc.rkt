@@ -18,7 +18,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-variable-raw
   (lambda [#:segment [vsegment : Symbol] #:rendering-segment [rsegment : (Option Symbol)]
-           [style : Memory-Location-Style] [id : Symbol] [addr0 : Index] [memory : Bytes] [base : Byte]] : (Listof (List Geo Geo))
+           [style : Memory-Location-Style] [id : Symbol] [addr0 : Index] [mask : (Option Natural)] [readable? : Boolean]
+           [memory : Bytes] [base : Byte]] : (Listof (List Geo Geo))
     (define size : Index (bytes-length memory))
     (define font : (Option Font) (dia-node-select-font style))
     (define color : Option-Fill-Paint (dia-node-select-font-paint style))
@@ -32,7 +33,7 @@
                   [swor : (Listof (List Geo Geo)) null])
       (if (< idx size)
           (let ([address (+ addr0 idx)])
-            (define address-desc : String (string-append "0x" (~hexstring address)))
+            (define address-desc : String (string-append "0x" (memory-address->string address mask readable?)))
             (define raw-datum : Byte (bytes-ref memory idx))
             (define binary-desc : String (~binstring raw-datum 8))
             (define datum-desc : (Option String)
@@ -65,16 +66,9 @@
 
 (define dia-variable-datum
   (lambda [#:segment [vsegment : Symbol] #:rendering-segment [rsegment : (Option Symbol)]
-           [style : Memory-Location-Style] [id : Symbol] [address : Index] [datum : Any] [base : Byte]] : (List (List Geo Geo))
-    (define datum-desc : String
-      (if (exact-integer? datum)
-          (case base
-            [(10) (number->string datum)]
-            [(16) (string-append "0x" (~r datum #:base 16))]
-            [(8)  (string-append "0"  (~r datum #:base 8))]
-            [else (string-append "0b" (~r datum #:base 2))])
-          (format "~a" datum)))
-
+           [style : Memory-Location-Style] [id : Symbol] [address : Natural] [mask : (Option Natural)] [readable? : Boolean]
+           [datum : Any] [base : Byte]] : (List (List Geo Geo))
+    (define datum-desc : String (memory-datum->string style datum base mask readable?))
     (define font : (Option Font) (dia-node-select-font style))
     (define color : Option-Fill-Paint (dia-node-select-font-paint style))
     (define label : (Option Geo) (dia-node-text-label id datum-desc style #:color color #:font font))
@@ -94,12 +88,33 @@
                                #:color (dia-node-select-font-paint (memory-location-style-ignored-paint style)
                                                                    memory-location-fallback-style?
                                                                    memory-location-base-style-ignored-paint)
-                               (string-append "0x" (~hexstring address)) font)))
+                               (memory-address->string address mask readable?) font)))
     
     (list (memory-location-fitted-row addr label loc-box))))
 
+(define dia-variable-data
+  (lambda [#:segment [vsegment : Symbol] #:rendering-segment [rsegment : (Option Symbol)]
+           [style : Memory-Location-Style] [id : Symbol] [addr0 : Natural] [type-size : Byte] [mask : (Option Natural)] [readable? : Boolean]
+           [data : (Vectorof Any)] [base : Byte]] : (Listof (List Geo Geo))
+    (define size : Index (vector-length data))
+    
+    (let gen-row ([idx : Nonnegative-Fixnum 0]
+                  [swor : (Listof (List Geo Geo)) null])
+      (if (< idx size)
+          (gen-row (+ idx 1)
+                   (append (dia-variable-datum #:segment vsegment #:rendering-segment rsegment
+                                               style (string->symbol (if (= idx 0)
+                                                                         (format "~a[~a]" id idx)
+                                                                         (format "[~a]" idx)))
+                                               (+ addr0 (* idx type-size)) mask readable?
+                                               (vector-ref data idx) base)
+                           swor))
+          swor))))
+
 (define dia-padding-raw
-  (lambda [[style : Memory-Location-Style] [addr0 : Index] [memory : Bytes] [base : Byte] [maybe-limit : (Option Index)]] : (Listof (List Geo Geo))
+  (lambda [[style : Memory-Location-Style]
+           [addr0 : Index] [mask : (Option Natural)] [readable? : Boolean]
+           [memory : Bytes] [base : Byte] [maybe-limit : (Option Index)]] : (Listof (List Geo Geo))
     (define size : Index (bytes-length memory))
     (define limit : Index (min size (or maybe-limit size)))
     (define font : (Option Font) (dia-node-select-font style))
@@ -122,16 +137,42 @@
               (define label : Geo (geo-text datum-desc font #:color color))
               (define-values (loc-width loc-height) (dia-node-smart-size label style))
               (define loc-box : Geo (geo-rectangle #:id (memory-address->id address) #:stroke loc-stroke #:fill loc-fill loc-width loc-height))
-              (define addr : Geo (geo-text (string-append "0x" (~hexstring address)) font #:color color))
+              (define addr : Geo (geo-text (memory-address->string address mask readable?) font #:color color))
               
               (gen-row (+ idx 1)
                        (cons (memory-location-fitted-row addr label loc-box) swor)))
             swor))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define memory-address->id : (-> Nonnegative-Fixnum Symbol)
+(define memory-address->id : (-> Natural Symbol)
   (lambda [address]
     (string->symbol (string-append "0x" (~hexstring address)))))
+
+(define memory-address->string : (-> Natural (Option Natural) Boolean String)
+  (lambda [address mask readable?]
+    ; TODO: make the address readable for humans
+    (string-append "0x" (~r (if (not mask) address (bitwise-and mask address)) #:base 16))))
+
+(define memory-datum->string : (-> Memory-Location-Style Any Byte (Option Natural) Boolean String)
+  (lambda [style datum base mask readable?]
+    (cond [(and (memory-pointer-style? style) (exact-nonnegative-integer? datum))
+           (memory-address->string datum mask readable?)]
+          [(exact-integer? datum)
+           (case base
+             [(10) (number->string datum)]
+             [(16) (string-append "0x" (~r datum #:base 16))]
+             [(8)  (string-append "0"  (~r datum #:base 8))]
+             [else (string-append "0b" (~r datum #:base 2))])]
+          [(char? datum)
+           (cond [(char-graphic? datum) (format "'~a'" datum)]
+                 [else (case datum
+                         [(#\null) "'\\0'"]
+                         [(#\space) "' '"]
+                         [(#\tab) "'\\t'"]
+                         [(#\newline) "'\\n'"]
+                         [(#\return) "'\\r'"]
+                         [else (format "~s" datum)])])]
+          [else (format "~a" datum)])))
 
 (define memory-location-fitted-row : (-> Geo (Option Geo) Geo (List Geo Geo))
   (lambda [address label loc-box]

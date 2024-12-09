@@ -10,10 +10,11 @@
 (require geofun/digitama/layer/combine)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+(define default-c-source : (Parameterof (Option Path)) (make-parameter #false))
 
 (struct dia:memory geo:table
-  ([segment : Symbol]
+  ([source : (Option Path)]
+   [segment : Symbol]
    [range : (Pairof Index Index)]
    [state : String])
   #:type-name Dia:Memory
@@ -32,6 +33,7 @@
                            (for/vector : (Vectorof (GLayerof Geo)) ([g (in-list (apply append siblings))])
                              (geo-own-layer g))
                            ncols nrows col-anchors row-anchors col-gaps 0.0
+                           (default-c-source)
                            segment range state)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

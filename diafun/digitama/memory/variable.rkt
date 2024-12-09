@@ -5,7 +5,8 @@
 (require racket/format)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type C-Variables (Listof (U C-Variable C-Pad)))
+(define-type C-Variable-Datum (U C-Variable C-Vector C-Pad))
+(define-type C-Variables (Listof C-Variable-Datum))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct c-placeholder
@@ -15,7 +16,7 @@
   #:prefab)
 
 (struct c-variable c-placeholder
-  ([datum : (Boxof Real)]
+  ([datum : (Boxof Any)]
    [name : (U Keyword Symbol)]
    [decltype : (Option Symbol)]
    [addr1 : Index]
@@ -24,11 +25,23 @@
   #:constructor-name make-variable
   #:prefab)
 
+(struct c-vector c-placeholder
+  ([data : (Vectorof Any)]
+   [name : (U Keyword Symbol)]
+   [decltype : (Option Symbol)]
+   [addr1 : Index]
+   [type-size : Byte]
+   [segment : Symbol])
+  #:type-name C-Vector
+  #:constructor-name make-array
+  #:prefab)
+
 (struct c-padding c-placeholder ()
   #:type-name C-Pad
   #:constructor-name make-pad
   #:prefab)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define c-padding*? : (-> Any Boolean : C-Pad)
   (lambda [v]
     (and (c-padding? v)

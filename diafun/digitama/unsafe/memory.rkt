@@ -18,9 +18,7 @@
     (and (c-variable? v)
          (exact-nonnegative-integer? (c-placeholder-addr v))
          (bytes? (c-placeholder-raw v))
-         (let ([datum (c-variable-datum v)])
-           (and (box? datum)
-                (real? (unbox datum))))
+         (box? (c-variable-datum v))
          (let ([name (c-variable-name v)])
            (or (symbol? name)
                (keyword? name)))
@@ -29,6 +27,22 @@
                (symbol? decltype)))
          (exact-nonnegative-integer? (c-variable-addr1 v))
          (symbol? (c-variable-segment v)))))
+
+(define c-vector*?
+  (lambda [v]
+    (and (c-vector? v)
+         (exact-nonnegative-integer? (c-placeholder-addr v))
+         (bytes? (c-placeholder-raw v))
+         (vector? (c-vector-data v))
+         (let ([name (c-vector-name v)])
+           (or (symbol? name)
+               (keyword? name)))
+         (let ([decltype (c-vector-decltype v)])
+           (or (not decltype)
+               (symbol? decltype)))
+         (exact-nonnegative-integer? (c-vector-addr1 v))
+         (byte? (c-vector-type-size v))
+         (symbol? (c-vector-segment v)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define c-typename->ctype
@@ -43,44 +57,27 @@
              [(short word sword int16 sint16 int16_t sint16_t) _int16]
              [(ushort uword uint16 uint16_t) _uint16]
              [(int8 sint8 int8_t sint8_t) _sbyte]
-             [(uchar uint8 uint8_t) _ubyte]
+             [(uint8 uint8_t) _ubyte]
              [(intptr intptr_t) _intptr]
              [(uintptr uintptr_t) _uintptr]
              [(intmax intmax_t) _intmax]
              [(uintmax uintmax_t) _uintmax]
              [(ldouble) _longdouble]
+             [(uchar uchar_t) _uchar]
+             [(char char_t) _char]
              [else _byte])))
 
 (define c-vname->symbol
-  (lambda [name]
-    (if (eq? (string-ref name 0) #\_)
-        (string->symbol name)
-        (string->keyword name))))
+  (lambda [name type]
+    (if (eq? type _uintptr)
+        (string->keyword name)
+        (string->symbol name))))
 
 (define c-run-callbacks
   (lambda [deal-with-snapshot [deal-with-variable void] #:lookahead-size [ahead 0] #:lookbehind-size [behind 0] #:body-limit [limit 1024]]
     (define addr-spaces (make-hasheq))
     (define variables (make-hash))
-    
-    (define (watch-variable name typename addr0 segment)
-      (define type (c-typename->ctype typename))
-      (define size (ctype-sizeof type))
-      (define addr1 (+ addr0 size))
-      (define addr-space (hash-ref addr-spaces segment (λ [] #false)))
 
-      (hash-set! addr-spaces segment
-                 (if (pair? addr-space)
-                     (cons (min addr0 (unsafe-car addr-space))
-                           (max addr1 (unsafe-cdr addr-space)))
-                     (cons addr0 addr1)))
-
-      (let* ([vptr (cast addr0 _uintptr _pointer)]
-             [self (make-variable addr0 (make-bytes size) (box (ptr-ref vptr type)) (c-vname->symbol name) typename addr1 segment)])
-        (memmove (c-placeholder-raw self) 0 vptr 0 1 type)
-        (hash-set! variables addr0 (cons type self))
-        (deal-with-variable self)
-        (void)))
-    
     (define (take-snapshot state)
       (for ([(segment addr-space) (in-hash addr-spaces)])
         (define-values (start end) (values (unsafe-car addr-space) (unsafe-cdr addr-space)))
@@ -94,18 +91,55 @@
           (if (< addr addr$)
               (let* ([vinfo (hash-ref variables addr (λ [] #false))])
                 (if (pair? vinfo)
-                    (let* ([self (cdr vinfo)]
-                           [p++ (memory-step* ptr (car vinfo) (c-placeholder-raw self) (c-variable-datum self))])
-                      (collect p++ (c-variable-addr1 self) (cons self srav)))
+                    (let-values ([(type self) (values (unsafe-car vinfo) (unsafe-cdr vinfo))])
+                      (cond [(c-vector? self)
+                             (let ([p++ (memory-step* ptr (unsafe-car vinfo) (c-placeholder-raw self) (c-vector-data self))])
+                               (collect p++ (c-vector-addr1 self) (unsafe-cons-list self srav)))]
+                            [else ; normal variables
+                             (let ([p++ (memory-step* ptr (unsafe-car vinfo) (c-placeholder-raw self) (c-variable-datum self))])
+                               (collect p++ (c-variable-addr1 self) (unsafe-cons-list self srav)))]))
                     (let pad ([count 1])
                       (define addr++ (unsafe-fx+ addr count))
                       (if (or (hash-has-key? variables addr++) (>= #;'#:deadcode addr++ addr$))
                           (let-values ([(raw p++) (memory-step-for-bytes ptr _byte count)])
-                            (collect p++ addr++ (cons (make-pad addr raw) srav)))
+                            (collect p++ addr++ (unsafe-cons-list (make-pad addr raw) srav)))
                           (pad (unsafe-fx+ count 1))))))
-              (void (deal-with-snapshot (cons segment (cons state srav))))))))
+              (void (deal-with-snapshot (unsafe-cons-list segment (unsafe-cons-list state srav))))))))
+    
+    (define (register-variable name typename addr0 segment)
+      (define type (c-typename->ctype typename))
+      (define size (ctype-sizeof type))
+      (define addr1 (+ addr0 size))
 
-    (values watch-variable take-snapshot)))
+      (c-update-address-range! addr-spaces segment addr0 addr1)
+      (let* ([vptr (cast addr0 _uintptr _pointer)]
+             [self (make-variable addr0 (make-bytes size) (box (ptr-ref vptr type)) (c-vname->symbol name type) typename addr1 segment)])
+        #;(memmove (c-placeholder-raw self) 0 vptr 0 1 type)
+        (hash-set! variables addr0 (cons type self))
+        (deal-with-variable self)
+        (void)))
+
+    (define (register-array name typename addr0 segment length)
+      (define type (c-typename->ctype typename))
+      (define type-size (ctype-sizeof type))
+      (define total (* type-size length))
+      (define addr1 (+ addr0 total))
+
+      (c-update-address-range! addr-spaces segment addr0 addr1)
+      (let ([self (make-array addr0 (make-bytes total) (make-vector length) (c-vname->symbol name type) typename addr1 type-size segment)])
+        #;(memmove (c-placeholder-raw self) 0 vptr 0 1 type)
+        (hash-set! variables addr0 (cons type self))
+        (deal-with-variable self)
+        (void)))
+
+    (values take-snapshot register-variable register-array)))
+
+(define c-run-callbacks*
+  (lambda [master config]
+    (c-run-callbacks #:lookahead-size (car config)
+                     #:lookbehind-size (cadr config)
+                     #:body-limit (caddr config)
+                     (λ [snapshots] (place-channel-put master snapshots)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define c-rkt-run
@@ -116,31 +150,23 @@
       (define cargv (place-channel-get master))
       (define callbacks (place-channel-get master))
       (define config (place-channel-get master))
-
-      (define-values (watch-variable take-snapshot)
-        (c-run-callbacks #:lookahead-size (car config) #:lookbehind-size (cadr config) #:body-limit (caddr config)
-                         (λ [snapshots] (place-channel-put master snapshots))))
+      (define-values (take-snapshot register-variable register-array) (c-run-callbacks* master config))
       
-      (define retcode
-        (with-handlers ([exn:fail? values])
-          (define watch! (dynamic-require crkt-path (unsafe-car callbacks) (λ [] #false)))
-          (define take!  (dynamic-require crkt-path (unsafe-cdr callbacks) (λ [] #false)))
-            
-          (when (procedure? watch!) (watch! watch-variable))
-          (when (procedure? take!)  (take!  take-snapshot))
-          
-          (define cfun (dynamic-require crkt-path unsafe-cfun))
-          
-          (if (pair? cargv)
-              (apply cfun cargv)
-              (cfun))))
-
-      (when (exn? retcode)
-        (place-channel-put master (exn-message retcode))
-        (exit 95 #;'FATAL))
-          
-      (place-channel-put master retcode)
-      retcode)))
+      (c-exit master
+              (with-handlers ([exn:fail? values])
+                (define take-snapshot!     (dynamic-require crkt-path (unsafe-vector*-ref callbacks 0) (λ [] #false)))
+                (define register-variable! (dynamic-require crkt-path (unsafe-vector*-ref callbacks 1) (λ [] #false)))
+                (define register-array!    (dynamic-require crkt-path (unsafe-vector*-ref callbacks 2) (λ [] #false)))
+                
+                (when (procedure? take-snapshot!)     (take-snapshot!     take-snapshot))
+                (when (procedure? register-variable!) (register-variable! register-variable))
+                (when (procedure? register-array!)    (register-array!    register-array))
+                
+                (define cfun (dynamic-require crkt-path unsafe-cfun))
+                
+                (if (pair? cargv)
+                    (apply cfun cargv)
+                    (cfun)))))))
 
 (define c-run
   (lambda [master]
@@ -150,26 +176,35 @@
       (define cargv (place-channel-get master))
       (define callbacks (place-channel-get master))
       (define config (place-channel-get master))
+      (define-values (take-snapshot register-variable register-array) (c-run-callbacks* master config))
       
-      (define-values (watch-variable take-snapshot)
-        (c-run-callbacks #:lookahead-size (car config)
-                         #:lookbehind-size (cadr config)
-                         #:body-limit (caddr config)
-                         (λ [snapshots] (place-channel-put master snapshots))))
-      
-      (define retcode
-        (with-handlers ([exn:fail? values])
-          (define c.dylib (ffi-lib c.so #:custodian (current-custodian)))
-          (define cfun (get-ffi-obj unsafe-cfun c.dylib (_fun -> _int)))
-          
-          (set-ffi-obj! (unsafe-car callbacks) c.dylib _watch_variable_t watch-variable)
-          (set-ffi-obj! (unsafe-cdr callbacks) c.dylib _take_memory_snapshot_t take-snapshot)
-          
-          (cfun)))
+      (c-exit master
+              (with-handlers ([exn:fail? values])
+                (define c.dylib (ffi-lib c.so #:custodian (current-custodian)))
+                (define cfun (get-ffi-obj unsafe-cfun c.dylib (_fun [_int = (length argv)] [argv : (_list i _any_string)] -> _int)))
+                
+                (set-ffi-obj! (unsafe-vector*-ref callbacks 0) c.dylib _take_memory_snapshot_t take-snapshot)
+                (set-ffi-obj! (unsafe-vector*-ref callbacks 1) c.dylib _register_variable_t register-variable)
+                (set-ffi-obj! (unsafe-vector*-ref callbacks 2) c.dylib _register_array_t register-array)
+                
+                (cfun (cons c.so cargv)))))))
 
-      (when (exn? retcode)
-        (place-channel-put master (exn-message retcode))
-        (exit 95 #;'FATAL))
-          
-      (place-channel-put master retcode)
-      retcode)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define c-update-address-range!
+  (lambda [addr-spaces segment addr0 addr1]
+    (define addr-space (hash-ref addr-spaces segment (λ [] #false)))
+    
+    (hash-set! addr-spaces segment
+               (if (pair? addr-space)
+                   (cons (min addr0 (unsafe-car addr-space))
+                         (max addr1 (unsafe-cdr addr-space)))
+                   (cons addr0 addr1)))))
+
+(define c-exit
+  (lambda [master retcode]
+    (when (exn? retcode)
+      (place-channel-put master (exn-message retcode))
+      (exit 95 #;'FATAL))
+    
+    (place-channel-put master retcode)
+    retcode))
