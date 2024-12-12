@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require typed/racket/unsafe)
+(require digimon/enumeration)
 
 (require "../../base.rkt")
 (require "../typed/c.rkt")
@@ -139,8 +140,6 @@
               (unbox &context)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Text-Line (U 'line-through 'underline 'undercurl 'underdouble))
-
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [dc_art_text
@@ -164,3 +163,7 @@
  [dc_paragraph_size
   (-> String Font-Description (Listof Geo-Text-Line) (Option Flonum) (U Flonum Nonpositive-Integer) Flonum Flonum Integer Integer
       (Values Nonnegative-Flonum Nonnegative-Flonum))])
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-enumeration geo-text-line : Geo-Text-Line
+  [line-through overline underline undercurl underdouble])

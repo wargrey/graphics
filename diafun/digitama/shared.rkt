@@ -12,6 +12,7 @@
 (define default-edge-label-font : Font (desc-font #:size 'normal #:family 'monospace))
 (define default-node-label-font : Font (desc-font #:size 'xx-large))
 (define default-number-font : Font (desc-font #:family 'monospace))
+(define default-table-header-font : Font (desc-font #:size 'large #:weight 'bold))
 
 (define default-arrow-tip : Dia-Edge-Tip-Shape (make-dia-arrow-tip))
 

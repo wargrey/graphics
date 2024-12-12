@@ -24,15 +24,26 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-memory-fixnum-radix :  (Parameterof Byte) (make-parameter 10))
-(define default-memory-padding-radix : (Parameterof Byte) (make-parameter 2))
-(define default-memory-raw-data-radix : (Parameterof Byte) (make-parameter 16))
+(define default-memory-fixnum-radix :  (Parameterof Positive-Byte) (make-parameter 10))
+(define default-memory-padding-radix : (Parameterof Positive-Byte) (make-parameter 2))
+(define default-memory-raw-data-radix : (Parameterof Positive-Byte) (make-parameter 16))
 
-(define default-memory-combine-datum? : (Parameterof Boolean) (make-parameter #true))
+(define default-memory-human-readable? : (Parameterof Boolean) (make-parameter #false))
 (define default-memory-no-padding? : (Parameterof Boolean) (make-parameter #false))
-(define default-memory-padding-limit : (Parameterof Index) (make-parameter 0))
-(define default-memory-address-mask : (Parameterof (Option Natural)) (make-parameter #xFFFFFFFF))
-(define default-memory-address-human-readable? : (Parameterof Boolean) (make-parameter #false))
+(define default-memory-padding-limit : (Parameterof Index) (make-parameter 4))
+(define default-memory-address-mask : (Parameterof Natural) (make-parameter #xFFFFFFFF))
+
+(define default-memory-optimize? : (Parameterof Boolean) (make-parameter #false))
+(define default-memory-reverse-address? : (Parameterof Boolean) (make-parameter #true))
+
+(define default-memory-entry : (Parameterof Symbol) (make-parameter 'main))
+(define default-memory-lookahead-size : (Parameterof Index) (make-parameter 0))
+(define default-memory-lookbehind-size : (Parameterof Index) (make-parameter 0))
+(define default-memory-body-limit : (Parameterof Index) (make-parameter 1024))
+
+(define default-memory-location-gapsize : (Parameterof Nonnegative-Flonum) (make-parameter 8.0))
+(define default-memory-segment-gapsize : (Parameterof Nonnegative-Flonum) (make-parameter 16.0))
+(define default-memory-snapshot-gapsize : (Parameterof Nonnegative-Flonum) (make-parameter 64.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Memory-Location-Style-Make S) (Dia-Node-Style-Make* S Symbol))

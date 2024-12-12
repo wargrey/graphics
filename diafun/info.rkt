@@ -7,3 +7,5 @@
 
 (define version "1.0")
 (define test-omit-paths 'all)
+
+(define nanomon-shell '("village/nanomon/shell"))

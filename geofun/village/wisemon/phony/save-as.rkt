@@ -2,17 +2,15 @@
 
 (provide (all-defined-out))
 
-(require "../path.rkt")
+(require "../save.rkt")
 (require "../../../digitama/unsafe/visual.rkt")
 
 (require racket/port)
-(require racket/file)
 (require racket/path)
 (require racket/string)
 
 (require digimon/dtrace)
 (require digimon/predicate)
-(require digimon/digitama/system)
 
 (require digimon/digivice/wisemon/parameter)
 (require digimon/digivice/wisemon/ffi)
@@ -36,34 +34,31 @@
       
         (define ns (module->namespace module.rkt))
         (for/fold ([g-specs : Wisemon-Specification specs])
-                  ([sym (in-list (namespace-mapped-symbols ns))])
-          (define datum (namespace-variable-value sym #false (λ _ #false) ns))
+                  ([id (in-list (namespace-mapped-symbols ns))])
+          (define datum (namespace-variable-value id #false (λ _ #false) ns))
           (append g-specs
                   (cond [(visual-object<%>? datum)
                          (let ([deps.rkt (racket-smart-dependencies module.rkt)]
-                               [sym.png (graphics.ext module.rkt sym .ext #false)])
-                           (list (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
-                                               (graphics-note module.rkt sym .ext sym.png)
-                                               (graphics-save-as sym.png datum gformat))))]
+                               [sym.ext (graphics.ext module.rkt id .ext #false)])
+                           (list (wisemon-spec sym.ext #:^ (cons module.rkt deps.rkt) #:-
+                                               (graphics-save-as the-name module.rkt id sym.ext datum gformat))))]
                         [(and (list? datum) (pair? datum) (andmap visual-object<%>? datum))
                          (let ([deps.rkt (racket-smart-dependencies module.rkt)])
                            (for/list : (Listof Wisemon-Spec) ([subdatum (in-list datum)]
                                                               [idx (in-naturals 1)])
-                             (define sym.png (graphics.ext module.rkt sym .ext (number->string idx)))
-                             (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
-                                           (graphics-note module.rkt sym .ext sym.png)
-                                           (graphics-save-as sym.png subdatum gformat))))]
+                             (define sym.ext (graphics.ext module.rkt id .ext (number->string idx)))
+                             (wisemon-spec sym.ext #:^ (cons module.rkt deps.rkt) #:-
+                                           (graphics-save-as the-name module.rkt id sym.ext subdatum gformat))))]
                         [(and (hash? datum) (immutable? datum))
                          (or (let ([content (hash-values datum)])
                                (cond [(andmap visual-object<%>? content)
                                       (let ([deps.rkt (racket-smart-dependencies module.rkt)])
                                         (for/list : (Listof Wisemon-Spec) ([(key subdatum) (in-hash datum)])
-                                          (define sym.png : Path
-                                            (graphics.ext module.rkt sym .ext
+                                          (define sym.ext : Path
+                                            (graphics.ext module.rkt id .ext
                                                           (string-replace (format "~a" key) "." "_")))
-                                          (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
-                                                        (graphics-note module.rkt sym .ext sym.png)
-                                                        (graphics-save-as sym.png (assert subdatum visual-object<%>?) gformat))))]
+                                          (wisemon-spec sym.ext #:^ (cons module.rkt deps.rkt) #:-
+                                                        (graphics-save-as the-name module.rkt id sym.ext (assert subdatum visual-object<%>?) gformat))))]
                                      [(andmap listof-visual-object<%>? content)
                                       (let ([deps.rkt (racket-smart-dependencies module.rkt)])
                                         (apply append
@@ -71,12 +66,11 @@
                                                                                            [subdata (in-list content)])
                                                  (for/list : (Listof Wisemon-Spec) ([subdatum (in-list subdata)]
                                                                                     [idx (in-naturals 1)])
-                                                   (define sym.png : Path
-                                                     (graphics.ext module.rkt sym .ext
+                                                   (define sym.ext : Path
+                                                     (graphics.ext module.rkt id .ext
                                                                    (string-replace (format "~a-~a" key idx) "." "_")))
-                                                   (wisemon-spec sym.png #:^ (cons module.rkt deps.rkt) #:-
-                                                                 (graphics-note module.rkt sym .ext sym.png)
-                                                                 (graphics-save-as sym.png subdatum gformat))))))]
+                                                   (wisemon-spec sym.ext #:^ (cons module.rkt deps.rkt) #:-
+                                                                 (graphics-save-as the-name module.rkt id sym.ext subdatum gformat))))))]
                                      [else null]))
                              null)]
                         [else null])))))))
@@ -99,25 +93,6 @@
     (and (file-exists? file)
          (with-handlers ([exn:fail? (λ _ #false)])
            (module-declared? file #true)))))
-
-(define graphics.ext : (-> Path Symbol String (Option Path-String) Path)
-  (lambda [module.rkt sym .ext subid]
-    (if (digimon-stone-path? module.rkt)
-        (graphics-target-path module.rkt sym .ext subid)
-        (graphics-target-path/compiled module.rkt sym .ext subid))))
-
-(define graphics-note : (-> Path Symbol String Path Void)
-  (lambda [module.rkt sym .ext symbol.png]
-    (dtrace-note "~a: save-as: ~a" the-name (path->string symbol.png))))
-
-(define graphics-save-as : (-> Path Visual-Object<%> Symbol Void)
-  (lambda [sym.png vobj gformat]
-    (make-parent-directory* sym.png)
-    
-    (call-with-output-file* sym.png #:exists 'truncate/replace
-      (λ [[/dev/stdout : Output-Port]] : Void
-        (write-bytes (assert (vobject-convert vobj gformat #"") bytes?) /dev/stdout)
-        (void)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define png-phony-goal : Wisemon-Phony

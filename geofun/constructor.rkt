@@ -8,7 +8,7 @@
 
 (provide geo-blank geo-ghost geo-solid geo:blank? Geo:Blank Geo:Solid)
 (provide geo-bitmap geo-rectangular geo:bitmap? Geo:Bitmap)
-(provide geo-text geo:text? Geo:Text)
+(provide geo-text geo:text? Geo:Text Geo-Text-Line geo-text-line?)
 (provide geo-art-text geo:art-text? Geo:Art-Text)
 (provide geo-paragraph geo:para? Geo:Paragraph)
 (provide geo-square geo-rectangle geo:rect? Geo:Rectangle)
@@ -43,10 +43,11 @@
 (require "digitama/dc/line.rkt")
 (require "digitama/dc/arrow.rkt")
 (require "digitama/dc/gear.rkt")
+(require "digitama/dc/more.rkt")
 
 (require "digitama/dc/polygon.rkt")
 (require "digitama/dc/polygon/quadrilateral.rkt")
 (require "digitama/dc/polygon/pentagon.rkt")
 (require "digitama/dc/polygon/hexagon.rkt")
 
-(require "digitama/dc/more.rkt")
+(require "digitama/unsafe/dc/text-layout.rkt")

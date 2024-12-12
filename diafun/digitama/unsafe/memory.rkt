@@ -181,13 +181,14 @@
       (c-exit master
               (with-handlers ([exn:fail? values])
                 (define c.dylib (ffi-lib c.so #:custodian (current-custodian)))
-                (define cfun (get-ffi-obj unsafe-cfun c.dylib (_fun [_int = (length argv)] [argv : (_list i _any_string)] -> _int)))
+                (define cfun (get-ffi-obj unsafe-cfun c.dylib (_fun [argc : _int] [argv : (_list i _any_string)] -> _int)))
                 
                 (set-ffi-obj! (unsafe-vector*-ref callbacks 0) c.dylib _take_memory_snapshot_t take-snapshot)
                 (set-ffi-obj! (unsafe-vector*-ref callbacks 1) c.dylib _register_variable_t register-variable)
                 (set-ffi-obj! (unsafe-vector*-ref callbacks 2) c.dylib _register_array_t register-array)
                 
-                (cfun (cons c.so cargv)))))))
+                (cfun (unsafe-fx+ (length cargv) 1)
+                      (cons c.so cargv)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define c-update-address-range!

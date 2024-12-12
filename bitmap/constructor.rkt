@@ -1,8 +1,10 @@
 #lang typed/racket/base
 
 (provide (all-defined-out) Bitmap)
+(provide Geo-Text-Line geo-text-line?)
 
 (require geofun/digitama/misc)
+(require geofun/digitama/unsafe/dc/text-layout)
 
 (require "digitama/convert.rkt")
 
