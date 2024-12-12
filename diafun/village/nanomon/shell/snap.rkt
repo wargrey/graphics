@@ -23,8 +23,11 @@
 (define snap-output-pdf? : (Parameterof Boolean) (make-parameter #false))
 (define snap-output-svg? : (Parameterof Boolean) (make-parameter #false))
 (define snap-output-png? : (Parameterof Boolean) (make-parameter #false))
+
 (define snap-split-table? : (Parameterof Boolean) (make-parameter #false))
 (define snap-open-file? : (Parameterof Boolean) (make-parameter #false))
+(define snap-no-segment? : (Parameterof Boolean) (make-parameter #false))
+(define snap-no-states? : (Parameterof Boolean) (make-parameter #false))
 
 (define-cmdlet-option snap-flags #: Snap-Flags
   #:program the-shell
@@ -59,18 +62,20 @@
    [(pad-radix pad-base)      #:=> cmdopt-string+>radix N #: Positive-Byte
                               ["display padding in base-~1 (default: ~a)" (default-memory-padding-radix)]]
 
-   [(#\d dest)                #:=> cmdopt-string->path dir #: Path
-                              "write output to ~1"]
-   [(pdf)                     #:=> snap-output-pdf?
-                              "save snapshots as PDFs (default)"]
-   [(svg)                     #:=> snap-output-svg?
-                              "save snapshots as SVGs"]
-   [(png)                     #:=> snap-output-png?
-                              "save snapshots as PNGs"]
-   [(split)                   #:=> snap-split-table?
-                              "split snapshots into subdirectories"]
-   [(show)                    #:=> snap-open-file?
-                              "open graphics after saving"]])
+   [(segment-gap seg-gap)     #:=> cmdopt-string+>flonum size #: Nonnegative-Flonum
+                              ["use ~1 as the gapsize of segments (default: ~a)" (default-memory-segment-gapsize)]]
+   [(snapshot-gap snap-gap)   #:=> cmdopt-string+>flonum size #: Nonnegative-Flonum
+                              ["use ~1 as the gapsize of snapshots (default: ~a)" (default-memory-snapshot-gapsize)]]
+
+   [(no-segment hide-segment) #:=> snap-no-segment?                "hide segment names"]
+   [(no-state hide-state)     #:=> snap-no-states?                 "hide states"]
+
+   [(#\d dest)                #:=> cmdopt-string->path dir #: Path "write output to ~1"]
+   [(pdf)                     #:=> snap-output-pdf?                "save snapshots as PDFs (default)"]
+   [(svg)                     #:=> snap-output-svg?                "save snapshots as SVGs"]
+   [(png)                     #:=> snap-output-png?                "save snapshots as PNGs"]
+   [(split)                   #:=> snap-split-table?               "split snapshots into subdirectories"]
+   [(show)                    #:=> snap-open-file?                 "open graphics after saving"]])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define shell-snap : (-> Path Snap-Flags (Listof String) Any)
@@ -96,7 +101,11 @@
               [idx (in-naturals 1)])
           (shell-snap-save src.c entry destdir snapshot (string-replace (format "~a-~a" segment idx) "." "_")))))
 
-    (define snapshot-table (dia-memory-snapshots->table snapshots))
+    (define snapshot-table
+      (dia-memory-snapshots->table #:hide-segment-names? (snap-no-segment?)
+                                   #:hide-states? (snap-no-states?)
+                                   snapshots))
+    
     (define maybe-graphics (shell-snap-save src.c entry destdir snapshot-table #false))
 
     (when (snap-open-file?)

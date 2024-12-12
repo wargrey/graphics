@@ -119,8 +119,8 @@
 (define dia-memory-snapshots->table
   (lambda [#:id [id : (Option Symbol) #false]
            #:segments [specific-segments : (Listof Symbol) null] #:reverse-address? [reverse? : Boolean (default-memory-reverse-address?)]
-           #:make-row-label [make-row-label : (-> Symbol Geo) dia-memory-table-label] #:no-row-names? [no-row-name? : Boolean #false]
-           #:make-column-label [make-col-label : (-> String Geo) dia-memory-table-label] #:no-column-names? [no-col-name? : Boolean #false]
+           #:make-row-label [make-row-label : (-> Symbol Geo) dia-memory-table-label] #:hide-segment-names? [no-col-name? : Boolean #false]
+           #:make-column-label [make-col-label : (-> String Geo) dia-memory-table-label] #:hide-states? [no-row-name? : Boolean #false]
            #:segment-gapsize [segment-gapsize : Real (default-memory-segment-gapsize)]
            #:gapsize [gapsize : Real (default-memory-snapshot-gapsize)]
            [all-snapshots : Dia-Memory-Snapshots]] : Geo

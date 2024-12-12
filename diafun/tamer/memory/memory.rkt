@@ -8,7 +8,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define swap-snapshots : Dia-Memory-Snapshots
   (parameterize ([default-memory-fixnum-radix 16]
-                 [default-memory-address-mask #xFFFFFFFFFFFF])
+                 [default-memory-address-mask #xFFFFFFFFFFFF]
+                 [default-memory-padding-limit 0]
+                 [default-memory-human-readable? #true])
     (dia-memory-snapshots #:body-limit 0 #:optimize? #false
                           (collection-file-path "memory.c" "diafun" "tamer" "memory"))))
 
