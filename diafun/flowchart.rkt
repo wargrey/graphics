@@ -15,6 +15,7 @@
 (require digimon/metrics)
 (require geofun/path)
 (require geofun/paint)
+(require geofun/stroke)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/path)
@@ -90,12 +91,12 @@
            #:λnode [make-node : DiaFlow-Anchor->Node-Shape default-diaflow-node-construct]
            #:λnode-label [make-node-label : DiaFlow-Anchor->Node-Label default-diaflow-node-label-construct]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Node)
-    (define s : Nonnegative-Flonum (if (> scale 0) (real->double-flonum scale) 1.0))
-    (parameterize ([default-diaflow-block-width  (* (default-diaflow-block-width)  s)]
-                   [default-diaflow-block-height (* (default-diaflow-block-height) s)]
-                   [default-dia-node-margin (* (default-dia-node-margin) s)]
+    (define ns : Nonnegative-Flonum (if (> scale 0) (real->double-flonum scale) 1.0))
+    (parameterize ([default-diaflow-block-width  (* ((default-diaflow-block-width))  ns)]
+                   [default-diaflow-block-height (* ((default-diaflow-block-height)) ns)]
+                   [default-dia-node-margin (* (default-dia-node-margin) ns)]
                    [default-dia-node-base-style make-diaflow-node-fallback-style])
-      (dia-make-node (dia-singletion-path )
+      (dia-make-node (dia-singletion-path)
                      block-detect make-node make-node-label
                      (cond [(symbol? caption) caption]
                            [(keyword? caption) caption]

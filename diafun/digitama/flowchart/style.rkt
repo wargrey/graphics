@@ -199,7 +199,7 @@
 (define-configuration diaflow-inspection-style : DiaFlow-Inspection-Style #:as dia-node-style
   #:format "default-diaflow-inspection-~a"
   ([block-width : (Option Nonnegative-Flonum)  #false]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height)  0.618)]
+   [block-height : (Option Nonnegative-Flonum) (* ((default-diaflow-block-height))  0.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
@@ -210,7 +210,7 @@
 ; Off-Page-Connector -> Reference
 (define-configuration diaflow-reference-style : DiaFlow-Reference-Style #:as dia-node-style
   #:format "default-diaflow-reference-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-height)  0.618 1.618)]
+  ([block-width : (Option Nonnegative-Flonum)  (* ((default-diaflow-block-height))  0.618 1.618)]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -243,8 +243,8 @@
 
 (define-configuration diaflow-decision-style : DiaFlow-Decision-Style #:as dia-node-style
   #:format "default-diaflow-decision-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width)  0.85)]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.85)]
+  ([block-width : (Option Nonnegative-Flonum)  (* ((default-diaflow-block-width))  0.85)]
+   [block-height : (Option Nonnegative-Flonum) (* ((default-diaflow-block-height)) 0.85)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
@@ -303,7 +303,7 @@
 (define-configuration diaflow-selection-style : DiaFlow-Selection-Style #:as dia-node-style
   #:format "default-diaflow-selection-~a"
   ([block-width : (Option Nonnegative-Flonum)  #false]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
+   [block-height : (Option Nonnegative-Flonum) (* ((default-diaflow-block-height)) 0.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
@@ -314,7 +314,7 @@
 (define-configuration diaflow-junction-style : DiaFlow-Junction-Style #:as dia-node-style
   #:format "default-diaflow-junction-~a"
   ([block-width : (Option Nonnegative-Flonum)  #false]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
+   [block-height : (Option Nonnegative-Flonum) (* ((default-diaflow-block-height)) 0.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
@@ -325,8 +325,8 @@
 ; Normal dividing of a flow into multiple parallel ones
 (define-configuration diaflow-extract-style : DiaFlow-Extract-Style #:as dia-node-style
   #:format "default-diaflow-extract-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (max (/ (default-diaflow-block-height) (sqrt 3.0) 0.5 1.618) 0.0)]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
+  ([block-width : (Option Nonnegative-Flonum)  (max (/ ((default-diaflow-block-height)) (sqrt 3.0) 0.5 1.618) 0.0)]
+   [block-height : (Option Nonnegative-Flonum) (* ((default-diaflow-block-height)) 0.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
@@ -336,8 +336,8 @@
 
 (define-configuration diaflow-merge-style : DiaFlow-Merge-Style #:as dia-node-style
   #:format "default-diaflow-merge-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (max (/ (default-diaflow-block-height) (sqrt 3.0) 0.5 1.618) 0.0)]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 0.618)]
+  ([block-width : (Option Nonnegative-Flonum)  (max (/ ((default-diaflow-block-height)) (sqrt 3.0) 0.5 1.618) 0.0)]
+   [block-height : (Option Nonnegative-Flonum) (* ((default-diaflow-block-height)) 0.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
@@ -347,8 +347,8 @@
 
 (define-configuration diaflow-collation-style : DiaFlow-Collation-Style #:as dia-node-style
   #:format "default-diaflow-collation-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-height) 1.618 1.618)]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 1.618)]
+  ([block-width : (Option Nonnegative-Flonum)  (* ((default-diaflow-block-height)) 1.618 1.618)]
+   [block-height : (Option Nonnegative-Flonum) (* ((default-diaflow-block-height)) 1.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
@@ -358,8 +358,8 @@
 
 (define-configuration diaflow-sort-style : DiaFlow-Sort-Style #:as dia-node-style
   #:format "default-diaflow-sort-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-height) 1.618 1.618)]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 1.618)]
+  ([block-width : (Option Nonnegative-Flonum)  (* ((default-diaflow-block-height)) 1.618 1.618)]
+   [block-height : (Option Nonnegative-Flonum) (* ((default-diaflow-block-height)) 1.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
@@ -369,8 +369,8 @@
 
 (define-configuration diaflow-storage-style : DiaFlow-Storage-Style #:as dia-node-style
   #:format "default-diaflow-storage-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-width) 0.618)]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 1.618)]
+  ([block-width : (Option Nonnegative-Flonum)  (* ((default-diaflow-block-width)) 0.618)]
+   [block-height : (Option Nonnegative-Flonum) (* ((default-diaflow-block-height)) 1.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
@@ -380,8 +380,8 @@
 
 (define-configuration diaflow-database-style : DiaFlow-Database-Style #:as dia-node-style
   #:format "default-diaflow-database-~a"
-  ([block-width : (Option Nonnegative-Flonum)  (* (default-diaflow-block-height) 1.618 1.618)]
-   [block-height : (Option Nonnegative-Flonum) (* (default-diaflow-block-height) 1.618)]
+  ([block-width : (Option Nonnegative-Flonum)  (* ((default-diaflow-block-height)) 1.618 1.618)]
+   [block-height : (Option Nonnegative-Flonum) (* ((default-diaflow-block-height)) 1.618)]
    [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
