@@ -22,6 +22,7 @@
 (require geofun/digitama/layer/sticker)
 (require geofun/digitama/layer/type)
 
+(require "digitama/node/dc.rkt")
 (require "digitama/flowchart/self.rkt")
 (require "digitama/flowchart/style.rkt")
 (require "digitama/flowchart/identifier.rkt")
@@ -39,20 +40,15 @@
         (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'-0.80]))
               (~optional (~seq #:grid-height gh) #:defaults ([gh #'-0.50]))
               (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.05]))
-              (~optional (~seq #:at home) #:defaults ([home #'0])))
+              (~optional (~seq #:path-id pid) #:defaults ([pid #'#false]))
+              (~optional (~seq #:at home) #:defaults ([home #'0.0+0.0i])))
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
        (define name
-         (dia-path-flow
-          (with-gomamon!
-              (let* ([grid-width  (~length gw (default-diaflow-block-width))]
-                     [grid-height (~length gh grid-width)]
-                     [scale (make-rectangular ts (* ts (/ grid-width grid-height)))])
-                (make-gomamon #:T-scale scale #:U-scale scale #:at home
-                              grid-width grid-height))
-            move-expr ...)
-          args ...)))]))
+         (let* ([goma (dia-initial-path pid gw gh ts home)]
+                [chart (with-gomamon! goma move-expr ...)])
+           (dia-path-flow chart args ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-path-flow
@@ -87,3 +83,13 @@
                                                  (glayer-group Width Height stickers))])
                                    self))
           self))))
+
+(define dia-flow-node
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:λblock [block-detect : DiaFlow-Block-Identifier default-diaflow-block-identify]
+           #:λnode [make-node : DiaFlow-Anchor->Node-Shape default-diaflow-node-construct]
+           #:λnode-label [make-node-label : DiaFlow-Anchor->Node-Label default-diaflow-node-label-construct]
+           [caption : Geo-Anchor-Name] [direction : (Option Float) #false]] : (Option Dia:Node)
+    (parameterize ([default-dia-node-base-style make-diaflow-node-fallback-style])
+      (dia-make-node (dia-singletion-path) block-detect make-node make-node-label
+                     caption 0.0+0.0i direction))))

@@ -51,12 +51,12 @@
 
 (define-syntax (with-gomamon! stx)
   (syntax-case stx []
-    [(_ wani (move argl ...) ...)
+    [(_ goma (move argl ...) ...)
      (with-syntax* ([(gomamon-move! ...)
                      (for/list ([<move> (in-list (syntax->list #'(move ...)))])
                        (format-id <move> "gomamon-~a!" (syntax->datum <move>)))])
        (quasisyntax/loc stx
-         (let ([self wani])
+         (let ([self goma])
            (gomamon-move! self argl ...)
            ...
            self)))]))
@@ -128,29 +128,29 @@
   #:-> [360.0 270.0 -1.0  0.0 -1.0 -1.0])
 
 (define gomamon-drift! : (->* (Gomamon Geo-Bezier-Datum (Listof Geo-Bezier-Datum)) ((Option Geo-Anchor-Name)) Void)
-  (lambda [wani end-step ctrl-steps [anchor #false]]
-    (define xsize : Flonum (gomamon-xstepsize wani))
-    (define ysize : Flonum (gomamon-ystepsize wani))
-    (define endpt : Float-Complex (geo-path-bezier-point wani end-step xsize ysize))
+  (lambda [goma end-step ctrl-steps [anchor #false]]
+    (define xsize : Flonum (gomamon-xstepsize goma))
+    (define ysize : Flonum (gomamon-ystepsize goma))
+    (define endpt : Float-Complex (geo-path-bezier-point goma end-step xsize ysize))
     (define ctrls : (Listof Float-Complex)
       (for/list : (Listof Float-Complex) ([ctrl (in-list ctrl-steps)])
-        (geo-path-bezier-point wani ctrl xsize ysize)))
+        (geo-path-bezier-point goma ctrl xsize ysize)))
 
-    (cond [(null? ctrls) (geo-path-linear-bezier wani endpt anchor)]
-          [(null? (cdr ctrls)) (geo-path-quadratic-bezier wani endpt (car ctrls) anchor)]
-          [else (geo-path-cubic-bezier wani endpt (car ctrls) (cadr ctrls) anchor)])))
+    (cond [(null? ctrls) (geo-path-linear-bezier goma endpt anchor)]
+          [(null? (cdr ctrls)) (geo-path-quadratic-bezier goma endpt (car ctrls) anchor)]
+          [else (geo-path-cubic-bezier goma endpt (car ctrls) (cadr ctrls) anchor)])))
 
 (define gomamon-move-to! : (->* (Gomamon (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name) Any) Void)
-  (lambda [wani target [anchor #false] [info #false]]
-    (geo-path-connect-to wani target anchor info)))
+  (lambda [goma target [anchor #false] [info #false]]
+    (geo-path-connect-to goma target anchor info)))
 
 (define gomamon-jump-to! : (->* (Gomamon (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
-  (lambda [wani target [anchor #false]]
-    (geo-path-jump-to wani target anchor)))
+  (lambda [goma target [anchor #false]]
+    (geo-path-jump-to goma target anchor)))
 
 (define gomamon-jump-back! : (->* (Gomamon) ((U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name)) Void)
-  (lambda [wani [target #false] [anchor #false]]
-    (geo-path-jump-to wani target anchor)))
+  (lambda [goma [target #false] [anchor #false]]
+    (geo-path-jump-to goma target anchor)))
 
 (define gomamon-T-step! : (->* (Gomamon (U Geo-Anchor-Name Complex)) (Any Any) Void)
   (lambda [goma target [info1 #false] [info2 #false]]

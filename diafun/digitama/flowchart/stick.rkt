@@ -53,32 +53,32 @@
     (dia-node-text-label anchor (if (string? maybe-label) maybe-label label) style)))
 
 (define default-diaflow-node-construct : DiaFlow-Anchor->Node-Shape
-  (lambda [master anchor label style pos dir hint]
+  (lambda [master anchor label style pos direction hint]
     (define-values (width height) (dia-node-smart-size label style))
     (define node-id : Symbol (geo-anchor->symbol anchor))
 
     (case/eq (object-name style)
-      [(diaflow-start-style) (diaflow-block-terminal node-id label style width height dir hint)]
-      [(diaflow-stop-style) (diaflow-block-terminal node-id label style width height dir hint)]
-      [(diaflow-inspection-style) (diaflow-block-inspection node-id label style width height dir hint)]
-      [(diaflow-reference-style) (diaflow-block-reference node-id label style width height dir hint)]
+      [(diaflow-start-style) (diaflow-block-terminal node-id label style width height direction hint)]
+      [(diaflow-stop-style) (diaflow-block-terminal node-id label style width height direction hint)]
+      [(diaflow-inspection-style) (diaflow-block-inspection node-id label style width height direction hint)]
+      [(diaflow-reference-style) (diaflow-block-reference node-id label style width height direction hint)]
 
-      [(diaflow-preparation-style) (diaflow-block-preparation node-id label style width height dir hint)]
-      [(diaflow-input-style) (diaflow-block-input node-id label style width height dir hint)]
-      [(diaflow-output-style) (diaflow-block-output node-id label style width height dir hint)]
-      [(diaflow-process-style) (diaflow-block-process node-id label style width height dir hint)]
-      [(diaflow-decision-style) (diaflow-block-decision node-id label style width height dir hint)]
-      [(diaflow-delay-style) (diaflow-block-delay node-id label style width height dir hint)]
-      [(diaflow-operation-style) (diaflow-block-manual-operation node-id label style width height dir hint)]
+      [(diaflow-preparation-style) (diaflow-block-preparation node-id label style width height direction hint)]
+      [(diaflow-input-style) (diaflow-block-input node-id label style width height direction hint)]
+      [(diaflow-output-style) (diaflow-block-output node-id label style width height direction hint)]
+      [(diaflow-process-style) (diaflow-block-process node-id label style width height direction hint)]
+      [(diaflow-decision-style) (diaflow-block-decision node-id label style width height direction hint)]
+      [(diaflow-delay-style) (diaflow-block-delay node-id label style width height direction hint)]
+      [(diaflow-operation-style) (diaflow-block-manual-operation node-id label style width height direction hint)]
       
-      [(diaflow-selection-style) (diaflow-block-selection node-id label style width height dir hint)]
-      [(diaflow-junction-style) (diaflow-block-junction node-id label style width height dir hint)]
-      [(diaflow-extract-style) (diaflow-block-extract node-id label style width height dir hint)]
-      [(diaflow-merge-style) (diaflow-block-merge node-id label style width height dir hint)]
+      [(diaflow-selection-style) (diaflow-block-selection node-id label style width height direction hint)]
+      [(diaflow-junction-style) (diaflow-block-junction node-id label style width height direction hint)]
+      [(diaflow-extract-style) (diaflow-block-extract node-id label style width height direction hint)]
+      [(diaflow-merge-style) (diaflow-block-merge node-id label style width height direction hint)]
       
-      [(diaflow-storage-style) (diaflow-block-storage node-id label style width height dir hint)]
-      [(diaflow-collation-style) (diaflow-block-collation node-id label style width height dir hint)]
-      [(diaflow-sort-style) (diaflow-block-sort node-id label style width height dir hint)])))
+      [(diaflow-storage-style) (diaflow-block-storage node-id label style width height direction hint)]
+      [(diaflow-collation-style) (diaflow-block-collation node-id label style width height direction hint)]
+      [(diaflow-sort-style) (diaflow-block-sort node-id label style width height direction hint)])))
 
 (define default-diaflow-edge-construct : DiaFlow-Arrow->Edge
   (lambda [master source target style tracks labels]
@@ -144,7 +144,7 @@
               (cond [(or (not anchor) (not next-pt)) (values #false nodes)]
                     [(hash-has-key? nodes anchor) (values (hash-ref nodes anchor) nodes)]
                     [else (let* ([direction (and last-pt (angle (- last-pt next-pt)))]
-                                 [new-node (dia-make-node master block-identify make-node make-node-label anchor next-pt direction)])
+                                 [new-node (dia-make-node-layer master block-identify make-node make-node-label anchor next-pt direction)])
                             (values new-node (hash-set nodes anchor new-node)))]))
             
             (cond [(glayer? source)
@@ -269,7 +269,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-make-node : (-> Geo:Path DiaFlow-Block-Identifier DiaFlow-Anchor->Node-Shape DiaFlow-Anchor->Node-Label Geo-Anchor-Name Float-Complex (Option Flonum)
-                            (Option (GLayerof Dia:Node)))
+                            (Option Dia:Node))
   (lambda [master block-identify make-node make-node-label anchor position direction]
     (define blk-datum (block-identify anchor))
 
@@ -278,8 +278,15 @@
            (define label : (Option Geo) (make-node-label master anchor (car blk-datum) style position hint))
            (define node : (U Dia:Node Void False) (make-node master anchor label style position direction hint))
 
-           (and (dia:node? node)
-                (geo-own-layer 'cc position node 0.0+0.0i))))))
+           (and (dia:node? node) node)))))
+
+(define dia-make-node-layer : (-> Geo:Path DiaFlow-Block-Identifier DiaFlow-Anchor->Node-Shape DiaFlow-Anchor->Node-Label Geo-Anchor-Name Float-Complex (Option Flonum)
+                                  (Option (GLayerof Dia:Node)))
+  (lambda [master block-identify make-node make-node-label anchor position direction]
+    (define maybe-node (dia-make-node master block-identify make-node make-node-label anchor position direction))
+
+    (and maybe-node
+         (geo-own-layer 'cc position maybe-node 0.0+0.0i))))
 
 (define dia-cons-arrows : (-> (U Dia:Edge Dia:Labeled-Edge) (Listof (GLayerof Geo)) (Listof (GLayerof Geo)))
   (lambda [arrow arrows]
