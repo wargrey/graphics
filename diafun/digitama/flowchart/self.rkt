@@ -28,8 +28,8 @@
      #:T-scale scale #:U-scale scale
      grid-width grid-height)))
 
-(define dia-singletion-path : (-> Geo:Path)
-  (let ([&path : (Boxof (Option Geo:Path)) (box #false)])
+(define dia-singletion-path : (-> Gomamon)
+  (let ([&path : (Boxof (Option Gomamon)) (box #false)])
     (lambda []
       (unless (unbox &path)
         (set-box! &path

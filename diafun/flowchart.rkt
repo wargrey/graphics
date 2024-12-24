@@ -85,11 +85,21 @@
           self))))
 
 (define dia-flow-node
-  (lambda [#:id [id : (Option Symbol) #false]
+  (lambda [#:id [id : (Option Symbol) #false] #:scale [scale : Real 0.5]
            #:λblock [block-detect : DiaFlow-Block-Identifier default-diaflow-block-identify]
            #:λnode [make-node : DiaFlow-Anchor->Node-Shape default-diaflow-node-construct]
            #:λnode-label [make-node-label : DiaFlow-Anchor->Node-Label default-diaflow-node-label-construct]
-           [caption : Geo-Anchor-Name] [direction : (Option Float) #false]] : (Option Dia:Node)
-    (parameterize ([default-dia-node-base-style make-diaflow-node-fallback-style])
-      (dia-make-node (dia-singletion-path) block-detect make-node make-node-label
-                     caption 0.0+0.0i direction))))
+           [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Node)
+    (define s : Nonnegative-Flonum (if (> scale 0) (real->double-flonum scale) 1.0))
+    (parameterize ([default-diaflow-block-width  (* (default-diaflow-block-width)  s)]
+                   [default-diaflow-block-height (* (default-diaflow-block-height) s)]
+                   [default-dia-node-margin (* (default-dia-node-margin) s)]
+                   [default-dia-node-base-style make-diaflow-node-fallback-style])
+      (dia-make-node (dia-singletion-path )
+                     block-detect make-node make-node-label
+                     (cond [(symbol? caption) caption]
+                           [(keyword? caption) caption]
+                           [(string? caption) (string->symbol caption)]
+                           [else (string->symbol (format "~a" caption))])
+                     0.0+0.0i direction))))
+
