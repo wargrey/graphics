@@ -14,6 +14,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Axis-Real-Datum (U Complex (Pairof Complex Any) (List Complex Any)))
 
+(define plot-axis-reals-from-vector : (-> (Vectorof Any) (Listof (Pairof Index Any)))
+  (lambda [vs]
+    (for/list : (Listof (Pairof Index Any)) ([v (in-vector vs)]
+                                             [i (in-naturals 0)]
+                                             #:when (index? i))
+      (cons i v))))
+
 (define plot-axis-real-values : (-> Plot-Axis-Real-Datum (Values Flonum Any))
   (lambda [r]
     (cond [(complex? r) (values (real->double-flonum (real-part r)) r)]

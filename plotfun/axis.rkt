@@ -43,7 +43,7 @@
            #:tick-digit-offset [digit-offset : Real 0.0]
            #:tick-digit-filter [digit-filter : (Option (-> Integer (Option String))) #false]
            #:tick-digit->sticker [digit->label : Plot-Axis-Digit->Sticker default-plot-axis-digit->sticker]
-           #:reals [real-list : (Listof Plot-Axis-Real-Datum) null]
+           #:reals [real-list : (U (Listof Plot-Axis-Real-Datum) (Vectorof Any)) null]
            #:real-color [real-color : Option-Fill-Paint #false]
            #:real-font [real-font : (Option Font) (default-axis-real-font)]
            #:real-offset [real-label-offset : Real 0.0]
@@ -79,7 +79,7 @@
                                           tick-offset ticks fltick-min fltick-max
                                           (cons gtick tick-anchor)))
                 (for/fold ([reals : (Listof (GLayerof Geo)) null])
-                          ([real (in-list real-list)])
+                          ([real (in-list (if (vector? real-list) (plot-axis-reals-from-vector real-list) real-list))])
                   (define-values (val obj) ((default-plot-axis-real-filter) real))
                   
                   (if (and val)
