@@ -4,7 +4,6 @@
 
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/composite)
-(require geofun/digitama/unsafe/composite)
 
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/combine)

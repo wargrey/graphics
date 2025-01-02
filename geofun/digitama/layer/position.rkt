@@ -55,7 +55,7 @@
          [else #| deadcode |# (values 0.0 0.0)]))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (G) geo-own-layer : (-> Geo-Pin-Anchor Float-Complex (∩ G Geo<%>) Float-Complex (GLayerof G))
+(define #:forall (G) geo-own-pin-layer : (-> Geo-Pin-Anchor Float-Complex (∩ G Geo<%>) Float-Complex (GLayerof G))
   (lambda [anchor target self offset]
     (define-values (width height) (geo-flsize self))
     (define-values (dx dy) (geo-superimpose-layer anchor 0.0 0.0 width height))

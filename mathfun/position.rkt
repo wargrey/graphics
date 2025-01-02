@@ -5,9 +5,7 @@
 (require digimon/metrics)
 (require racket/list)
 
-(require geofun/paint)
 (require geofun/font)
-
 (require geofun/constructor)
 (require geofun/composite)
 (require geofun/digitama/convert)

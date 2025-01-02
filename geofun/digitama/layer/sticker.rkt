@@ -61,6 +61,11 @@
     (cond [(not layers) self]
           [else (make-geo:group gp-id base-op sibs-op layers)])))
 
+(define geo-sticker-datum? : (-> Any Boolean : Geo-Sticker-Datum)
+  (lambda [maybe]
+    (or (geo-sticker? maybe)
+        (geo? maybe))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo:path-stick/list : (-> Geo:Path Geo-Anchor->Sticker (Option Geo-Trusted-Anchors) Float-Complex Boolean (Option (GLayer-Groupof Geo)))
   (lambda [self anchor->sticker trusted-anchors offset truncate?]
@@ -124,12 +129,12 @@
   (lambda [self anchor->sticker anchor position offset Width Height]
     (define stk (anchor->sticker self anchor position Width Height))
     
-    (and (or (geo-sticker? stk) (geo? stk))
+    (and (geo-sticker-datum? stk)
          (geo-sticker->layer stk position offset))))
 
 (define geo-sticker->layer : (->* (Geo-Sticker-Datum Float-Complex) (Float-Complex) (GLayerof Geo))
   (lambda [self pos [offset 0.0+0.0i]]
     (if (geo? self)
-        (geo-own-layer 'cc pos self offset)
-        (geo-own-layer (geo-sticker-anchor self) pos (geo-sticker-self self)
-                       (+ (geo-sticker-offset self) offset)))))
+        (geo-own-pin-layer 'cc pos self offset)
+        (geo-own-pin-layer (geo-sticker-anchor self) pos (geo-sticker-self self)
+                           (+ (geo-sticker-offset self) offset)))))

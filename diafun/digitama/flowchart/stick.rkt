@@ -286,7 +286,7 @@
     (define maybe-node (dia-make-node master block-identify make-node make-node-label anchor position direction))
 
     (and maybe-node
-         (geo-own-layer 'cc position maybe-node 0.0+0.0i))))
+         (geo-own-pin-layer 'cc position maybe-node 0.0+0.0i))))
 
 (define dia-cons-arrows : (-> (U Dia:Edge Dia:Labeled-Edge) (Listof (GLayerof Geo)) (Listof (GLayerof Geo)))
   (lambda [arrow arrows]
