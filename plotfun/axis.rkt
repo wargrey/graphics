@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 (provide (all-from-out "digitama/axis/interface.rkt"))
+(provide Plot:Axis plot:axis? plot-axis-real-values)
 (provide default-plot-axis-digit->sticker default-plot-axis-real->dot)
 (provide default-plot-axis-digit-filter default-plot-axis-real-filter)
 
@@ -28,11 +29,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis
   (lambda [#:id [id : (Option Symbol) #false]
-           #:axis-thickness [axis-thickness : Real 2.0]
+           #:axis-thickness [axis-thickness : Real 1.5]
            #:axis-paint [axis-paint : Fill-Paint 'black]
            #:axis-label [axis-label : (Option String) #false]
            #:axis-label-color [label-color : Option-Fill-Paint #false]
-           #:tick-thickness [tick-thickness : Real 1.5]
+           #:tick-thickness [tick-thickness : Real 1.0]
            #:tick-length [tick-length : Real -3.0]
            #:tick-paint [tick-paint : Option-Fill-Paint #false]
            #:tick-range [tick-hint : (U Real (Pairof Real Real) (Listof Real)) null]
@@ -43,19 +44,16 @@
            #:tick-digit-filter [digit-filter : (Option (-> Integer (Option String))) #false]
            #:tick-digit->sticker [digit->label : Plot-Axis-Digit->Sticker default-plot-axis-digit->sticker]
            #:reals [real-list : (Listof Plot-Axis-Real-Datum) null]
-           #:dot-stroke [dot-stroke : Option-Stroke-Paint #false]
-           #:dot-fill [dot-fill : Option-Fill-Paint #false]
-           #:dot-radius [dot-radius : Real -1.0]
            #:real-color [real-color : Option-Fill-Paint #false]
            #:real-font [real-font : (Option Font) (default-axis-real-font)]
            #:real-offset [real-label-offset : Real 0.0]
            #:real-filter [real-filter : (Option Plot-Axis-Real-Filter) #false]
            #:real->sticker [real->label : Plot-Axis-Real->Sticker default-plot-axis-real->sticker]
+           #:real->dot [real->dot : Plot-Axis-Real->Dot default-plot-axis-real->dot]
            [length : Real] [origin : Real] [unit-length : Real -0.1]] : Plot:Axis
     (define fllength : Nonnegative-Flonum (~length length))
     (define flunit : Nonnegative-Flonum (~length unit-length fllength))
     (define flthickness : Nonnegative-Flonum (~length axis-thickness))
-    (define fldot-radius : Nonnegative-Flonum (~length dot-radius flthickness))
     (define fltick-thickness : Nonnegative-Flonum (~length tick-thickness flthickness))
     (define fltick-length : Nonnegative-Flonum (~length tick-length flthickness))
     (define fltick-min : Nonnegative-Flonum (* fltick-thickness 0.5))
@@ -65,7 +63,6 @@
 
     (define arrow : Geo (geo-arrow flrhead (+ fllength fltick-thickness) #:shaft-thickness flthickness #:stroke #false #:fill axis-paint))
     (define gtick : Geo (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill (or tick-paint axis-paint)))
-    (define gdot : Geo (geo-circle fldot-radius #:stroke dot-stroke #:fill (or dot-fill axis-paint)))
     (define arrow-y : Nonnegative-Flonum (* (geo-height arrow) 0.5))
 
     (define flc-origin : Float-Complex (make-rectangular (+ (* fllength (real->double-flonum origin)) fltick-min) arrow-y))
@@ -83,12 +80,17 @@
                                           (cons gtick tick-anchor)))
                 (for/fold ([reals : (Listof (GLayerof Geo)) null])
                           ([real (in-list real-list)])
-                  (define label (real->label id real (or real-font digit-font) (or real-color axis-paint)))
-
-                  (if (pair? label)
-                      (plot-axis-sticker-cons (cdr label) 'cb (+ flc-origin (* (car label) flunit))
-                                              real-offset reals fltick-min fltick-max
-                                              (cons gdot 'cc))
+                  (define-values (val obj) ((default-plot-axis-real-filter) real))
+                  
+                  (if (and val)
+                      (let ([label (cond [(geo? obj) obj]
+                                         [else (real->label id val obj (or real-font digit-font) (or real-color axis-paint))])])
+                        (plot-axis-sticker-cons label 'cb (+ flc-origin (* val flunit))
+                                                real-offset reals fltick-min fltick-max
+                                                (let ([dot (real->dot id val obj flthickness axis-paint)])
+                                                  (cond [(geo? dot) (cons dot 'cc)]
+                                                        [(pair? dot) dot]
+                                                        [else #false]))))
                       reals)))))
 
     (define layers : (Option (GLayer-Groupof Geo))

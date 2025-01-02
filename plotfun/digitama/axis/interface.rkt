@@ -6,13 +6,15 @@
 (require geofun/font)
 
 (require geofun/digitama/convert)
+(require geofun/digitama/layer/type)
 
 (require "self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Axis-Digit->Sticker (-> (Option Symbol) Integer (Option Font) Option-Fill-Paint (U Geo Void False)))
-(define-type Plot-Axis-Real->Sticker (-> (Option Symbol) Plot-Axis-Real-Datum (Option Font) Option-Fill-Paint (U (Pairof Flonum Geo) Void False)))
-(define-type Plot-Axis-Real->Dot (-> (Option Symbol) Plot-Axis-Real-Datum Nonnegative-Flonum Option-Fill-Paint (U Geo Void False)))
+(define-type Plot-Axis-Real->Sticker (-> (Option Symbol) Flonum Any (Option Font) Option-Fill-Paint (U Geo Void False)))
+(define-type Plot-Axis-Real->Dot (-> (Option Symbol) Flonum Any Nonnegative-Flonum Option-Fill-Paint (U Geo (Pairof Geo Geo-Pin-Anchor) Void False)))
+
 (define-type Plot-Axis-Real-Filter (-> Plot-Axis-Real-Datum (Values (Option Flonum) (U Complex Any))))
 
 (define default-plot-axis-digit-filter : (Parameterof (-> Integer (Option String))) (make-parameter number->string))

@@ -20,16 +20,11 @@
          (geo-text label font #:color color))))
 
 (define default-plot-axis-real->sticker : Plot-Axis-Real->Sticker
-  (lambda [id datum font color]
-    (define-values (value label) ((default-plot-axis-real-filter) datum))
-
-    (and value
-         (cons value
-               (cond [(geo? label) label]
-                     [else (geo-text label font #:color color)])))))
+  (lambda [id real datum font color]
+    (geo-text datum font #:color color)))
 
 (define default-plot-axis-real->dot : Plot-Axis-Real->Dot
-  (lambda [id datum axis-thickness color]
+  (lambda [id real datum axis-thickness color]
     (geo-circle axis-thickness #:fill color #:stroke #false)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
