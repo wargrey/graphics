@@ -11,8 +11,8 @@
 (require "self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Plot-Axis-Digit->Sticker (-> (Option Symbol) Integer (Option Font) Option-Fill-Paint (U Geo Void False)))
-(define-type Plot-Axis-Real->Sticker (-> (Option Symbol) Flonum Any (Option Font) Option-Fill-Paint (U Geo Void False)))
+(define-type Plot-Axis-Digit->Sticker (-> (Option Symbol) Integer Font Fill-Paint (U Geo Void False)))
+(define-type Plot-Axis-Real->Sticker (-> (Option Symbol) Flonum Any Nonnegative-Flonum Font Fill-Paint (U Geo (Pairof Geo Geo-Pin-Anchor) Void False)))
 (define-type Plot-Axis-Real->Dot (-> (Option Symbol) Flonum Any Nonnegative-Flonum Option-Fill-Paint (U Geo (Pairof Geo Geo-Pin-Anchor) Void False)))
 
 (define-type Plot-Axis-Real-Filter (-> Plot-Axis-Real-Datum (Values (Option Flonum) (U Complex Any))))
@@ -21,4 +21,4 @@
 (define default-plot-axis-real-filter : (Parameterof Plot-Axis-Real-Filter) (make-parameter plot-axis-real-values))
 
 (define default-axis-digit-font : (Parameterof Font) (make-parameter (font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal 'normal)))
-(define default-axis-real-font : (Parameterof Font) (make-parameter (font (font-family->face 'math) 12.0 'normal 'normal 'normal 'normal)))
+(define default-axis-real-font : (Parameterof (Option Font)) (make-parameter #false))

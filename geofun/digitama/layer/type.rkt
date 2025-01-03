@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require digimon/sequence)
+(require racket/case)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Pin-Anchor (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
@@ -27,6 +28,15 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (G) geo-layer-position-values : (-> (GLayerof G) (Values Flonum Flonum))
+  (lambda [self]
+    (values (glayer-x self) (glayer-y self))))
+
+(define #:forall (G) geo-layer-position : (-> (GLayerof G) Float-Complex)
+  (lambda [self]
+    (define-values (x y) (geo-layer-position-values self))
+    (make-rectangular x y)))
+
 (define #:forall (G) geo-layer-center-position-values : (-> (GLayerof G) (Values Flonum Flonum))
   (lambda [self]
     (values (+ (glayer-x self) (* (glayer-width self) 0.5))
@@ -67,9 +77,9 @@
 (define geo-anchor-merge : (-> Geo-Pin-Anchor Geo-Pin-Anchor Geo-Pin-Anchor)
   (lambda [prow pcol]
     (cond [(eq? prow pcol) prow]
-          [(memq pcol '(lt lc lb)) (case prow [(ct rt) 'lt] [(cc rc) 'lc] [(cb rb) 'lb] [else prow])]
-          [(memq pcol '(ct cc cb)) (case prow [(lt rt) 'ct] [(lc rc) 'cc] [(lb rb) 'cb] [else prow])]
-          [(memq pcol '(rt rc rb)) (case prow [(lt ct) 'rt] [(lc cc) 'rc] [(lb cb) 'rb] [else prow])]
+          [(memq pcol '(lt lc lb)) (case/eq prow [(ct rt) 'lt] [(cc rc) 'lc] [(cb rb) 'lb] [else prow])]
+          [(memq pcol '(ct cc cb)) (case/eq prow [(lt rt) 'ct] [(lc rc) 'cc] [(lb rb) 'cb] [else prow])]
+          [(memq pcol '(rt rc rb)) (case/eq prow [(lt ct) 'rt] [(lc cc) 'rc] [(lb cb) 'rb] [else prow])]
           [else 'cc])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -97,3 +107,19 @@
     (glayer (glayer-master self)
             (+ xoff (glayer-x self)) (+ yoff (glayer-y self))
             (glayer-width self) (glayer-height self))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-pin-anchor? : (-> Any Boolean : Geo-Pin-Anchor)
+  (lambda [v]
+    (case/eq v
+             [(lt lc lb) #true]
+             [(ct cc cb) #true]
+             [(rt rc rb) #true]
+             [else #false])))
+    
+(define geo-append-align? : (-> Any Boolean : Geo-Append-Align)
+  (lambda [v]
+    (case/eq v
+             [(vl vc vr) #true]
+             [(ht hc hb) #true]
+             [else #false])))

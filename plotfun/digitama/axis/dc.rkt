@@ -2,6 +2,9 @@
 
 (provide (all-defined-out))
 
+(require geofun/font)
+(require geofun/paint)
+
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
 (require geofun/digitama/dc/arc)
@@ -9,6 +12,7 @@
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/position)
 
+(require "self.rkt")
 (require "interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -20,12 +24,12 @@
          (geo-text label font #:color color))))
 
 (define default-plot-axis-real->sticker : Plot-Axis-Real->Sticker
-  (lambda [id real datum font color]
+  (lambda [id real datum unit font color]
     (geo-text datum font #:color color)))
 
 (define default-plot-axis-real->dot : Plot-Axis-Real->Dot
-  (lambda [id real datum axis-thickness color]
-    (geo-circle axis-thickness #:fill color #:stroke #false)))
+  (lambda [id real datum flunit color]
+    (geo-circle (* flunit 0.0618) #:fill color #:stroke #false)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-sticker-cons : (-> (U Geo Void False) Geo-Pin-Anchor Float-Complex Float-Complex (Listof (GLayerof Geo))
@@ -40,3 +44,20 @@
                                                    (car maybe-tick) 0.0+0.0i)
                                 digits)]))
         digits)))
+
+(define plot-axis-real-label-values : (-> (Option Symbol) Flonum Any Geo-Pin-Anchor
+                                       Plot-Axis-Real->Sticker Plot-Axis-Real->Dot Nonnegative-Flonum Font Option-Fill-Paint Fill-Paint
+                                       (Values (Pairof (U Geo Void False) Geo-Pin-Anchor)
+                                               (Option (Pairof Geo Geo-Pin-Anchor))))
+  (lambda [id val obj real-anchor real->label real->dot flunit font paint axis-paint]
+    (define maybe-label
+      (cond [(geo? obj) obj]
+            [(and (pair? obj) (geo? (car obj)) (geo-pin-anchor? (cdr obj))) obj]
+            [else (real->label id val obj flunit font (or paint axis-paint))]))
+    (define dot (real->dot id val obj flunit axis-paint))
+    
+    (values (cond [(pair? maybe-label) maybe-label]
+                  [else (cons maybe-label real-anchor)])
+            (cond [(geo? dot) (cons dot 'cc)]
+                  [(pair? dot) dot]
+                  [else #false]))))
