@@ -8,7 +8,7 @@
 
 (require digimon/metrics)
 
-(require geofun/paint)
+(require geofun/color)
 (require geofun/font)
 
 (require geofun/constructor)
@@ -30,24 +30,24 @@
 (define plot-axis
   (lambda [#:id [id : (Option Symbol) #false]
            #:axis-thickness [axis-thickness : Real 1.5]
-           #:axis-paint [axis-paint : Fill-Paint 'black]
+           #:axis-color [axis-color : Color (default-axis-color)]
            #:axis-label [axis-label : (Option String) #false]
-           #:axis-label-color [label-color : Option-Fill-Paint #false]
+           #:axis-label-color [label-color : (Option Color) #false]
            #:tick-thickness [tick-thickness : Real 1.0]
            #:tick-length [tick-length : Real -3.0]
-           #:tick-paint [tick-paint : Option-Fill-Paint #false]
+           #:tick-color [tick-color : (Option Color) #false]
            #:tick-range [tick-hint : (U Real (Pairof Real Real) (Listof Real)) null]
            #:tick-anchor [tick-anchor : Geo-Pin-Anchor 'cb]
-           #:tick-digit-color [digit-color : Option-Fill-Paint #false]
+           #:tick-digit-color [digit-color : (Option Color) #false]
            #:tick-digit-font [digit-font : Font (default-axis-digit-font)]
-           #:tick-digit-position [digit-position : Real 0.618]
+           #:tick-digit-position [digit-position : Real -0.618]
            #:tick-digit-anchor [digit-anchor : Geo-Pin-Anchor 'ct]
            #:tick-digit-filter [digit-filter : (Option (-> Integer (Option String))) #false]
            #:tick-digit->sticker [digit->label : Plot-Axis-Digit->Sticker default-plot-axis-digit->sticker]
            #:reals [real-list : (U (Listof Plot-Axis-Real-Datum) (Vectorof Any) (-> Integer Any)) null]
-           #:real-color [real-color : Option-Fill-Paint #false]
+           #:real-color [real-color : (Option Color) #false]
            #:real-font [real-font : (Option Font) (default-axis-real-font)]
-           #:real-position [real-position : Real -1.0]
+           #:real-position [real-position : Real 1.0]
            #:real-anchor [real-anchor : Geo-Pin-Anchor 'cb]
            #:real-filter [real-filter : (Option Plot-Axis-Real-Filter) #false]
            #:real->sticker [real->label : Plot-Axis-Real->Sticker default-plot-axis-real->sticker]
@@ -63,30 +63,30 @@
     (define tick-digits : (Listof Integer) (plot-axis-ticks tick-hint))
     (define flrhead : Nonnegative-Flonum (* flthickness 3.14))
 
-    (define arrow : Geo (geo-arrow flrhead (+ fllength fltick-thickness) #:shaft-thickness flthickness #:stroke #false #:fill axis-paint))
+    (define arrow : Geo (geo-arrow flrhead (+ fllength fltick-thickness) #:shaft-thickness flthickness #:stroke #false #:fill axis-color))
     (define gtick : (Option (Pairof Geo Geo-Pin-Anchor))
       (and (> fltick-length 0.0)
-           (cons (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill (or tick-paint axis-paint))
+           (cons (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill (or tick-color axis-color))
                  tick-anchor)))
 
     (define arrow-y : Nonnegative-Flonum (* (geo-height arrow) 0.5))
-    (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
+    (define -em : Flonum (- (font-metrics-ref digit-font 'em)))
     (define flc-origin : Float-Complex (make-rectangular (+ (* fllength (real->double-flonum origin)) fltick-min) arrow-y))
-    (define tick-offset : Float-Complex (make-rectangular 0.0 (* (real->double-flonum digit-position) em)))
-    (define real-offset : Float-Complex (make-rectangular 0.0 (* (real->double-flonum real-position)  em)))
+    (define tick-offset : Float-Complex (make-rectangular 0.0 (* (real->double-flonum digit-position) -em)))
+    (define real-offset : Float-Complex (make-rectangular 0.0 (* (real->double-flonum real-position)  -em)))
 
     (define layers : (Listof (GLayerof Geo))
       (parameterize ([default-plot-axis-real-filter (or real-filter (default-plot-axis-real-filter))]
                      [default-plot-axis-digit-filter (or digit-filter (default-plot-axis-digit-filter))])
         (append (cond [(not axis-label) null]
                       [else (let* ([f (desc-font digit-font #:family 'math)]
-                                   [g (geo-text axis-label f #:color (or label-color axis-paint))])
+                                   [g (geo-text axis-label f #:color (or label-color axis-color))])
                               (plot-axis-sticker-cons g digit-anchor (make-rectangular fltick-max arrow-y)
                                                       tick-offset null fltick-min fltick-max #false))])
 
                 (for/fold ([ticks : (Listof (GLayerof Geo)) null])
                           ([tick (if (pair? tick-digits) (in-list tick-digits) (in-value 0))])
-                  (plot-axis-sticker-cons (digit->label id tick digit-font (or digit-color axis-paint)) digit-anchor
+                  (plot-axis-sticker-cons (digit->label id tick digit-font (or digit-color axis-color)) digit-anchor
                                           (+ flc-origin (* (exact->inexact tick) flunit))
                                           tick-offset ticks fltick-min fltick-max gtick))
 
@@ -98,7 +98,7 @@
                   
                   (if (or val)
                       (let-values ([(label dot) (plot-axis-real-label-values id val obj real-anchor real->label real->dot flunit
-                                                                             (or real-font digit-font) real-color axis-paint)])
+                                                                             (or real-font digit-font) real-color axis-color)])
                         (plot-axis-sticker-cons (car label) (cdr label)
                                                 (+ flc-origin (* val flunit))
                                                 real-offset reals fltick-min fltick-max dot))

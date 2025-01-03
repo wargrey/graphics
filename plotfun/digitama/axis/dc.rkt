@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require geofun/font)
-(require geofun/paint)
+(require geofun/color)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
@@ -46,15 +46,15 @@
         digits)))
 
 (define plot-axis-real-label-values : (-> (Option Symbol) Flonum Any Geo-Pin-Anchor
-                                       Plot-Axis-Real->Sticker Plot-Axis-Real->Dot Nonnegative-Flonum Font Option-Fill-Paint Fill-Paint
+                                       Plot-Axis-Real->Sticker Plot-Axis-Real->Dot Nonnegative-Flonum Font (Option Color) Color
                                        (Values (Pairof (U Geo Void False) Geo-Pin-Anchor)
                                                (Option (Pairof Geo Geo-Pin-Anchor))))
-  (lambda [id val obj real-anchor real->label real->dot flunit font paint axis-paint]
+  (lambda [id val obj real-anchor real->label real->dot flunit font color axis-color]
     (define maybe-label
       (cond [(geo? obj) obj]
             [(and (pair? obj) (geo? (car obj)) (geo-pin-anchor? (cdr obj))) obj]
-            [else (real->label id val obj flunit font (or paint axis-paint))]))
-    (define dot (real->dot id val obj flunit axis-paint))
+            [else (real->label id val obj flunit font (or color axis-color))]))
+    (define dot (real->dot id val obj flunit axis-color))
     
     (values (cond [(pair? maybe-label) maybe-label]
                   [else (cons maybe-label real-anchor)])

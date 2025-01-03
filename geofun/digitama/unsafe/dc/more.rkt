@@ -67,7 +67,7 @@
                            Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                            (Option Paint) (Option Fill-Source) Any)
   (lambda [cr x0 y0 flwidth flheight neck-width neck-height tube-height stroke background]
-    (define-values (cy neck-a neck-b) (values (* flheight 0.5) (* neck-width 0.25) (* neck-height 0.5)))
+    (define-values (cy neck-a neck-b) (values (+ y0 (* flheight 0.5)) (* neck-width 0.25) (* neck-height 0.5)))
     (define bulb-a (* (max 0.0 (- flwidth neck-width)) 0.5))
     (define bulb-b (* (max 0.0 (- flheight tube-height tube-height neck-height)) 0.5))
     (define-values (xlset ytset) (values x0 y0))

@@ -48,7 +48,7 @@
 
 (define time-line
   (plot-axis #:tick-range (cons 0 9) #:reals fib
-             #:real-position 2.5 #:real-anchor 'ct
+             #:real-position -2.5 #:real-anchor 'ct
              #:real->sticker time-sticker
              #:axis-label "n"
              360 0.0))
