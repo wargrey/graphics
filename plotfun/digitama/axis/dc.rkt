@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require digimon/metrics)
+
 (require geofun/font)
 (require geofun/color)
 
@@ -12,8 +14,10 @@
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/position)
 
-(require "self.rkt")
 (require "interface.rkt")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define default-plot-axis-real-dot-radius : (Parameterof Real) (make-parameter -0.05))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-plot-axis-digit->sticker : Plot-Axis-Digit->Sticker
@@ -29,7 +33,8 @@
 
 (define default-plot-axis-real->dot : Plot-Axis-Real->Dot
   (lambda [id real datum flunit color]
-    (geo-circle (* flunit 0.0618) #:fill color #:stroke #false)))
+    (geo-circle #:fill color #:stroke #false
+                (~length (default-plot-axis-real-dot-radius) flunit))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-sticker-cons : (-> (U Geo Void False) Geo-Pin-Anchor Float-Complex Float-Complex (Listof (GLayerof Geo))
@@ -54,7 +59,7 @@
       (cond [(geo? obj) obj]
             [(and (pair? obj) (geo? (car obj)) (geo-pin-anchor? (cdr obj))) obj]
             [else (real->label id val obj flunit font (or color axis-color))]))
-    (define dot (real->dot id val obj flunit axis-color))
+    (define dot (real->dot id val obj flunit (or color axis-color)))
     
     (values (cond [(pair? maybe-label) maybe-label]
                   [else (cons maybe-label real-anchor)])

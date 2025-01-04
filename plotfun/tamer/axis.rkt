@@ -7,8 +7,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define number-sticker : Plot-Axis-Real->Sticker
-  (lambda [id r datum unit font axis-color]
-    (define c (rgb* 'black (/ (+ r 1.0) 10.0)))
+  (lambda [id r datum unit font color]
+    (define c (rgb* color (/ (+ r 1.0) 10.0)))
     (define g (geo-vc-append (geo-text "+1" font #:color c)
                              (geo-arc (* unit 0.5) pi 0.0 #:stroke c #:ratio 0.618)))
     
@@ -18,8 +18,8 @@
           'lc)))
 
 (define time-sticker : Plot-Axis-Real->Sticker
-  (lambda [id r datum unit font axis-color]
-    (define c (rgb* 'black (/ (+ r 1.0) 10.0)))
+  (lambda [id r datum unit font color]
+    (define c (rgb* color (/ (+ r 1.0) 10.0)))
     (define arrow (geo-arrow 4.0 (* unit 0.5) (* pi 0.5) #:fill c #:stroke #false))
     (define label (geo-text datum font #:color c))
 

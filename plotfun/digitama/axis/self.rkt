@@ -21,10 +21,10 @@
           [else (values (real->double-flonum (real-part (car r))) (cdr r))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-axis-reals-from-vector : (-> (Vectorof Any) (Listof (Pairof Index Any)))
-  (lambda [vs]
+(define plot-axis-reals-from-vector : (->* ((Vectorof Any)) (Index) (Listof (Pairof Index Any)))
+  (lambda [vs [base 0]]
     (for/list : (Listof (Pairof Index Any)) ([v (in-vector vs)]
-                                             [i (in-naturals 0)]
+                                             [i (in-naturals base)]
                                              #:when (index? i))
       (cons i v))))
 

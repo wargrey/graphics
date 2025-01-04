@@ -5,6 +5,7 @@
 (provide Plot:Axis plot:axis? plot-axis-real-values)
 (provide default-plot-axis-digit->sticker default-plot-axis-real->dot)
 (provide default-plot-axis-digit-filter default-plot-axis-real-filter)
+(provide default-plot-axis-real-dot-radius)
 
 (require digimon/metrics)
 
@@ -52,6 +53,8 @@
            #:real-filter [real-filter : (Option Plot-Axis-Real-Filter) #false]
            #:real->sticker [real->label : Plot-Axis-Real->Sticker default-plot-axis-real->sticker]
            #:real->dot [real->dot : Plot-Axis-Real->Dot default-plot-axis-real->dot]
+           #:real-exclude-zero? [exclude-zero? : Boolean #false]
+           #:real-dot-radius [real-dot-radius : (Option Real) #false]
            [length : Real] [origin : Real] [unit-length : Real -0.1]] : Plot:Axis
     (define fllength : Nonnegative-Flonum (~length length))
     (define flunit : Nonnegative-Flonum (~length unit-length fllength))
@@ -76,8 +79,9 @@
     (define real-offset : Float-Complex (make-rectangular 0.0 (* (real->double-flonum real-position)  -em)))
 
     (define layers : (Listof (GLayerof Geo))
-      (parameterize ([default-plot-axis-real-filter (or real-filter (default-plot-axis-real-filter))]
-                     [default-plot-axis-digit-filter (or digit-filter (default-plot-axis-digit-filter))])
+      (parameterize ([default-plot-axis-real-filter ((if (not exclude-zero?) values plot-axis-nonzero-values-wrap) (or real-filter (default-plot-axis-real-filter)))]
+                     [default-plot-axis-digit-filter (or digit-filter (default-plot-axis-digit-filter))]
+                     [default-plot-axis-real-dot-radius (or real-dot-radius (default-plot-axis-real-dot-radius))])
         (append (cond [(not axis-label) null]
                       [else (let* ([f (desc-font digit-font #:family 'math)]
                                    [g (geo-text axis-label f #:color (or label-color axis-color))])

@@ -23,3 +23,11 @@
 (define default-axis-color : (Parameterof Color) (make-parameter (rgb* 'DarkSlateGray)))
 (define default-axis-digit-font : (Parameterof Font) (make-parameter (font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal 'normal)))
 (define default-axis-real-font : (Parameterof (Option Font)) (make-parameter #false))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define plot-axis-nonzero-values-wrap : (->* () (Plot-Axis-Real-Filter) Plot-Axis-Real-Filter)
+  (lambda [[real-values plot-axis-real-values]]
+    (λ [[r : Plot-Axis-Real-Datum]]
+      (define-values (val obj) (real-values r))
+      (values (and val (if (zero? val) #false val))
+              obj))))
