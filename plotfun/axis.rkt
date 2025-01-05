@@ -96,7 +96,7 @@
 
                 (for/fold ([reals : (Listof (GLayerof Geo)) null])
                           ([real (in-list (cond [(list? real-list) real-list]
-                                                [(vector? real-list) (plot-axis-reals-from-vector real-list)]
+                                                [(vector? real-list) (plot-axis-reals-from-vector real-list (if (not exclude-zero?) 0 1))]
                                                 [else (plot-axis-reals-from-producer real-list tick-digits)]))])
                   (define-values (val obj) ((default-plot-axis-real-filter) real))
                   

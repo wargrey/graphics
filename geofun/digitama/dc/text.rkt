@@ -2,7 +2,6 @@
 
 (provide (all-defined-out))
 
-(require racket/format)
 (require racket/string)
 (require racket/math)
 
@@ -58,7 +57,7 @@
                             #:with [id (geo-draw-art-text font outline fill bgsource)
                                        (geo-art-text-extent font)
                                        (geo-shape-outline outline)]
-                            (~a text) lines)))
+                            (format "~a" text) lines)))
 
 (define geo-text
   (lambda [#:color [fgsource : Option-Fill-Paint #false] #:background [bgsource : Maybe-Fill-Paint (void)]
@@ -70,7 +69,7 @@
                             #:with [id (geo-draw-text font fgsource bgsource)
                                        (geo-text-extent font)
                                        geo-zero-pads]
-                            (~a text) lines alsource dlsource clsource mlsource blsource)))
+                            (format "~a" text) lines alsource dlsource clsource mlsource blsource)))
 
 (define geo-paragraph
   (lambda [#:color [fgsource : Option-Fill-Paint #false] #:background [bgsource : Maybe-Fill-Paint (void)]
