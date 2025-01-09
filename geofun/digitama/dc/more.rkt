@@ -108,7 +108,7 @@
 
 (define geo-sandglass : (->* (Real)
                              (Real #:id (Option Symbol) #:neck-width Real #:neck-height Real #:tube-height Real
-                                   #:stroke Maybe-Stroke-Paint #:fill Option-Fill-Paint)
+                                   #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                              Geo:Sandglass)
   (lambda [#:neck-width [neck-width -0.1618] #:neck-height [neck-height -0.0618] #:tube-height [tube-height 0]
            #:stroke [stroke (void)] #:fill [pattern (void)] #:id [id #false]

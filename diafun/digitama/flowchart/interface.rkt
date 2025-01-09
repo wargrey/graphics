@@ -16,17 +16,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type DiaFlow-Block-Datum (List String Dia-Node-Style (Option Symbol)))
 
-(define-type DiaFlow-Block-Create (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol) Dia:Node))
 (define-type DiaFlow-Block-Identifier (-> Geo-Anchor-Name (Option DiaFlow-Block-Datum)))
 (define-type DiaFlow-Arrow-Identifier (-> Dia:Node (Option Dia:Node) (Listof Dia-Edge-Label-Datum) (Option Dia-Edge-Style)))
+(define-type DiaFlow-Block-Create (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol) Dia:Node))
 
-(define-type DiaFlow-Anchor->Node-Label
-  (-> Geo:Path Geo-Anchor-Name String Dia-Node-Style Float-Complex (Option Symbol)
+(define-type DiaFlow-Id->Node-Label
+  (-> Geo:Path Symbol String Dia-Node-Style (Option Symbol)
       (Option Geo)))
 
-(define-type DiaFlow-Anchor->Node-Shape
-  (-> Geo:Path Geo-Anchor-Name (Option Geo) Dia-Node-Style Float-Complex (Option Flonum) (Option Symbol)
-      (U Dia:Node Void False)))
+(define-type DiaFlow-Id->Node-Shape
+  (-> Geo:Path Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol)
+      (U Void  ; use default
+         False ; invisible node
+         Dia:Node)))
 
 (define-type DiaFlow-Arrow->Edge
   (-> Geo:Path Dia:Node (Option Dia:Node) Dia-Edge-Style

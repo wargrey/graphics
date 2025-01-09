@@ -53,7 +53,7 @@
 
 (define diaflow-block-decision : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (create-dia-node dia:node:polygon
+    (create-dia-node #:node dia:node:polygon
                      #:id node-key  #:type 'Decision hint
                      #:intersect dia-polygon-intersect
                      #:fit-ratio 0.64 0.75
@@ -63,7 +63,7 @@
 
 (define diaflow-block-preparation : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (create-dia-node dia:node:polygon
+    (create-dia-node #:node dia:node:polygon
                      #:id node-key #:type 'Preparation hint
                      #:intersect dia-polygon-intersect
                      #:fit-ratio 0.75 1.00
@@ -87,7 +87,7 @@
   (lambda [node-key label style width height direction hint]
     (if (eq? hint 'user)
         (let ([ratio 0.75])
-          (create-dia-node dia:node:polygon
+          (create-dia-node #:node dia:node:polygon
                            #:id node-key #:type 'Input hint
                            #:intersect dia-polygon-intersect
                            #:fit-ratio 1.0 ratio
@@ -114,7 +114,7 @@
   (lambda [node-key label style width height direction hint]
     (define r : Nonnegative-Flonum (* (min width height) 0.5))
     
-    (create-dia-node dia:node:circle
+    (create-dia-node #:node dia:node:circle
                      #:id node-key #:type 'Connector (or hint 'Inspection)
                      #:intersect dia-circle-intersect
                      #:fit-ratio 0.75 0.75
@@ -128,7 +128,7 @@
   (lambda [node-key label style width height direction hint]
     (define ratio : Nonnegative-Flonum 0.618)
     
-    (create-dia-node dia:node:polygon
+    (create-dia-node #:node dia:node:polygon
                      #:id node-key #:type 'Connector (or hint 'Reference)
                      #:intersect dia-polygon-intersect
                      #:fit-ratio 1.00 ratio
@@ -141,7 +141,7 @@
   (lambda [node-key label style width height direction hint]
     (define r : Nonnegative-Flonum (* (min width height) 0.5))
     
-    (create-dia-node dia:node:circle
+    (create-dia-node #:node dia:node:circle
                      #:id node-key #:type 'Selection hint
                      #:intersect dia-circle-intersect
                      #:fit-ratio 0.75 0.75
@@ -155,7 +155,7 @@
 (define diaflow-block-junction : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
     (define r : Nonnegative-Flonum (* (min width height) 0.5))
-    (create-dia-node dia:node:circle
+    (create-dia-node #:node dia:node:circle
                      #:id node-key #:type 'Junction hint
                      #:intersect dia-circle-intersect
                      #:fit-ratio 0.75 0.75
@@ -171,7 +171,7 @@
     (define ratio : Nonnegative-Flonum 0.75)
     (define t-ratio : Nonnegative-Flonum (max (/ 1.0 ratio) 0.0))
     
-    (create-dia-node dia:node:polygon
+    (create-dia-node #:node dia:node:polygon
                      #:id node-key #:type 'Operation hint
                      #:intersect dia-polygon-intersect
                      #:fit-ratio ratio 1.00
@@ -181,7 +181,7 @@
 
 (define diaflow-block-extract : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (create-dia-node dia:node:polygon
+    (create-dia-node #:node dia:node:polygon
                      #:id node-key #:type 'Extract hint
                      #:intersect dia-polygon-intersect
                      (diaflow-polygon-shape node-key style (geo-isosceles-upwards-triangle-vertices width height))
@@ -190,7 +190,7 @@
 
 (define diaflow-block-merge : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (create-dia-node dia:node:polygon
+    (create-dia-node #:node dia:node:polygon
                      #:id node-key #:type 'Merge hint
                      #:intersect dia-polygon-intersect
                      (diaflow-polygon-shape node-key style (geo-isosceles-downwards-triangle-vertices width height))
@@ -220,7 +220,7 @@
   (lambda [node-key label style width height direction hint]
     (define h/2 : Nonnegative-Flonum (* height 0.5))
     
-    (create-dia-node dia:node:polygon
+    (create-dia-node #:node dia:node:polygon
                      #:id node-key #:type 'Sort hint
                      #:intersect dia-polygon-intersect
                      #:fit-ratio 0.5 0.375
@@ -319,7 +319,7 @@
   (lambda [node-key label style width height type subtype]
     (define rad : Flonum (/ pi 3.0))
     
-    (create-dia-node dia:node:polygon
+    (create-dia-node #:node dia:node:polygon
                      #:id node-key #:type type subtype
                      #:intersect dia-polygon-intersect
                      #:fit-ratio (max (- 1.0 (/ (* height (sqrt 3.0) 2/3) width)) 0.0) 1.0

@@ -21,20 +21,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-dia-node stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ (~seq #:id name) (~seq #:type type subtype)
-        (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
-        (~optional (~seq #:fit-ratio wratio hratio) #:defaults ([wratio #'1.0] [hratio #'1.0]))
-        (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))
-        shape label argl ...)
-     (syntax/loc stx
-       (create-geometry-group dia:node name #false #false #:outline (geo-outline shape)
-                              (dia-node-layers label shape wratio hratio wpos hpos)
-                              intersect type subtype
-                              argl ...))]
-    [(_ Geo (~seq #:id name) (~seq #:type type subtype)
-        (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
-        (~optional (~seq #:fit-ratio wratio hratio) #:defaults ([wratio #'1.0] [hratio #'1.0]))
-        (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))
+    [(_ (~alt (~optional (~seq #:node Geo) #:defaults ([Geo #'dia:node]))
+              (~optional (~seq #:id name) #:defaults ([name #'#false]))
+              (~optional (~seq #:type type subtype) #:defaults ([type #''Customized] [subtype #'#false]))
+              (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
+              (~optional (~seq #:fit-ratio wratio hratio) #:defaults ([wratio #'1.0] [hratio #'1.0]))
+              (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))) ...
         shape label argl ...)
      (syntax/loc stx
        (create-geometry-group Geo name #false #false #:outline (geo-outline shape)
