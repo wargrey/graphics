@@ -34,13 +34,13 @@
   (lambda [source target labels]
     (define stype : Symbol (dia:node-type source))
     (define ttype : (Option Symbol) (and target (dia:node-type target)))
-    (define hints : (Listof String) (dia-edge-label-flatten labels))
+    (define hints : (Listof Bytes) (dia-edge-label-flatten labels))
 
     (define edge-style : Dia-Edge-Style
       (cond [(eq? stype 'Decision)
-             (cond [(dia-edge-label-match? hints (default-diaflow-success-decision-labels))
+             (cond [(dia-edge-label-match? hints (default-diaflow-success-decision-regexp))
                     (dia-edge-style-construct source target labels (default-diaflow-success-arrow-style-make) make-diaflow-success-arrow-style)]
-                   [(dia-edge-label-match? hints (default-diaflow-failure-decision-labels))
+                   [(dia-edge-label-match? hints (default-diaflow-failure-decision-regexp))
                     (dia-edge-style-construct source target labels (default-diaflow-failure-arrow-style-make) make-diaflow-failure-arrow-style)]
                    [else (dia-edge-style-construct source target labels (default-diaflow-decision-arrow-style-make) make-diaflow-decision-arrow-style)])]
             [(eq? stype 'Selection)

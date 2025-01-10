@@ -29,9 +29,9 @@
 (define default-diaflow-storage-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaFlow-Storage-Arrow-Style))) (make-parameter #false))
 (define default-diaflow-free-track-style-make : (Parameterof (Option (Dia-Free-Edge-Style-Make DiaFlow-Free-Track-Style))) (make-parameter #false))
 
-(define default-diaflow-success-decision-labels : (Parameterof (U (Listof String) Regexp)) (make-parameter #px"^([Tt]([Rr][Uu][Ee])?|[Yy]([Ee][Ss])?)$"))
-(define default-diaflow-failure-decision-labels : (Parameterof (U (Listof String) Regexp)) (make-parameter #px"^([Ff]([Aa][Ll][Ss][Ee])?|[Nn]([Oo])?)$"))
-(define default-diaflow-loop-label-regexp : (Parameterof Regexp) (make-parameter #px"[Ll][Oo][Oo][Pp]$"))
+(define default-diaflow-success-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^([Tt]([Rr][Uu][Ee])?|[Yy]([Ee][Ss])?)$"))
+(define default-diaflow-failure-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^([Ff]([Aa][Ll][Ss][Ee])?|[Nn]([Oo])?)$"))
+(define default-diaflow-loop-label-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"[Ll][Oo][Oo][Pp]$"))
 
 (define-configuration diaflow-edge-fallback-style : DiaFlow-Edge-Style #:as dia-edge-base-style
   #:format "default-diaflow-edge-~a"

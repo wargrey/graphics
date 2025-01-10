@@ -11,6 +11,7 @@
 (provide geo-text geo:text? Geo:Text Geo-Text-Line geo-text-line?)
 (provide geo-art-text geo:art-text? Geo:Art-Text)
 (provide geo-paragraph geo:para? Geo:Paragraph)
+(provide geo-markup geo:markup? Geo:Markup)
 (provide geo-square geo-rectangle geo:rect? Geo:Rectangle)
 (provide geo-vline geo-hline geo-diagonal geo-anti-diagonal geo:line? Geo:Line)
 (provide geo-circle geo:circle? Geo:Circle)

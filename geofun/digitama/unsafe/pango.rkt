@@ -5,6 +5,7 @@
 
 (require ffi/unsafe)
 (require ffi/unsafe/define)
+(require ffi/unsafe/alloc)
 
 (require racket/unsafe/ops)
 (require racket/draw/unsafe/pango)
@@ -27,6 +28,8 @@
 (define PangoLayout (_cpointer 'PangoLayout))
 (define PangoFontDescription (_cpointer 'PangoFontDescription))
 (define PangoAttribute (_cpointer 'PangoAttribute))
+(define PangoAttrList (_cpointer/null 'PangoAttrList))
+(define PangoAttrIterator (_cpointer 'PangoAttrIterator))
 
 (define-pango pango_version_string (_pfun -> _string))
 
@@ -50,6 +53,52 @@
 (define-pango pango_layout_set_height (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_wrap (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_ellipsize (_pfun PangoLayout _int -> _void))
+(define-pango pango_layout_set_alignment (_pfun PangoLayout _int -> _void))
+
+;;; The returned attrlist is owned bu the layout, so don't need to release it
+(define-pango pango_layout_get_attributes (_pfun PangoLayout -> PangoAttrList))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-cstruct _GError
+  ([domain  _uint32]
+   [code    _int]
+   [message _bytes]))
+
+(define-pango g_error_free (_pfun _GError-pointer -> _void)
+  #:wrap (deallocator))
+
+(define-pango pango_attribute_destroy (_pfun PangoAttrIterator -> _void)
+  #:wrap (deallocator))
+
+(define-pango pango_attr_list_get_iterator (_pfun PangoAttrList -> PangoAttrIterator)
+  #:wrap (allocator pango_attribute_destroy))
+
+(define-pango pango_attr_iterator_next (_pfun PangoAttrIterator -> _bool))
+
+(define-pango pango_layout_set_markup
+  (_pfun [layout : PangoLayout]
+         [markup-text : _bytes]
+         [length : _int = (bytes-length markup-text)]
+         -> _void))
+
+(define-pango pango_parse_markup
+  (_pfun [markup-text : _bytes]
+         [length : _int = (bytes-length markup-text)]
+         [accelerator_marker : _byte = 0]
+         [attr-list : (_ptr io PangoAttrList) = #false]
+         [text : (_ptr io _pointer) = #false]
+         [accelerator : (_or-null _pointer) = #false]
+         [error : (_ptr io _pointer) = #false]
+         -> [okay? : _bool]
+         -> (if okay?
+                (let ([plaintext (bytes->string/utf-8 (cast text _pointer _bytes))])
+                  (register-finalizer attr-list pango_attr_list_unref)
+                  (g_free text)
+                  (cons attr-list plaintext))
+                (let* ([e (cast error _pointer _GError-pointer)]
+                       [errmsg (GError-message e)])
+                  (g_error_free e)
+                  errmsg))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ~pango-size

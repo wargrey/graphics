@@ -69,13 +69,9 @@
     (define text : String (string-trim desc))
     (define text-id : Symbol (or alt-id (dia-node-label-id anchor)))
     
-    (cond [(regexp-match? #px"[\r\n]+" text)
-           (geo-vc-append* #:id text-id
-                           (for/list : (Listof Geo:Text)
-                             ([l (in-lines (open-input-string text))])
-                             (geo-text #:color paint (string-trim l) font)))]
-          [(non-empty-string? text) (geo-text #:id text-id #:color paint text font)]
-          [else #false])))
+    (and (non-empty-string? text)
+         (geo-markup #:id text-id #:color paint #:alignment 'center
+                     text font))))
 
 (define dia-node-smart-size : (-> (Option Geo) Dia-Node-Style (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [label s]

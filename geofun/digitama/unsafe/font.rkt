@@ -26,11 +26,13 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (geo_create_font_desc font-face font-size weight style stretch variant)
     (define font-desc (pango_font_description_from_string font-face))
+
     (when weight (pango_font_description_set_weight font-desc weight))
     (when style (pango_font_description_set_style font-desc style))
     (when stretch (pango_font_description_set_stretch font-desc stretch))
     (when variant (pango_font_description_set_variant font-desc variant))
     (pango_font_description_set_absolute_size font-desc (* font-size PANGO_SCALE))
+
     font-desc)
 
   (define (font_get_unknown_glyphs_count font-desc content)

@@ -233,7 +233,7 @@
                      (define maybe-info : (Option Dia-Edge-Label-Datum)
                        (and osrc
                             (let ([info (hash-ref infobase (cons osrc otarget) (λ [] #false))])
-                              (and (dia-edge-label-datum? info) info))))
+                              (dia-edge-label-datum-filter info))))
                      
                      (if (not maybe-info)
                          (label-filter sofni slebal (cdr otracks) (cdr rtracks) otarget rtarget)

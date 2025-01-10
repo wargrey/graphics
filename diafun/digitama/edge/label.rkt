@@ -3,9 +3,8 @@
 (provide (all-defined-out))
 
 (require racket/math)
-(require racket/string)
+(require racket/match)
 
-(require geofun/composite)
 (require geofun/paint)
 (require geofun/font)
 
@@ -13,9 +12,10 @@
 (require geofun/digitama/dc/resize)
 (require geofun/digitama/convert)
 (require geofun/digitama/color)
+(require geofun/digitama/markup)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Edge-Label-Datum (U String (Pairof (Option String) (Option String))))
+(define-type Dia-Edge-Label-Datum (U Bytes (Pairof Bytes Bytes) (List #;head Bytes) (Boxof #;tail Bytes)))
 
 (struct dia-edge-label
   ([sticker : Geo]
@@ -60,59 +60,66 @@
   (lambda [#:font [font #false] #:font-paint [font-paint #false] #:distance [distance #false] #:adjust-angle [adjust #false] #:rotate? [rotate? #true]
            start end label [head-position 0.25]]
     (define gs : (Listof (Pairof Geo Flonum))
-      (if (pair? label)
-        
-          (let*-values ([(head0 tail0) (values (car label) (cdr label))]
-                        [(head) (and (non-empty-string? head0) head0)]
-                        [(tail) (and (non-empty-string? tail0) tail0)])
-            (cond [(and head tail)
-                   (list (cons (dia-label-text head #false font font-paint) head-position)
-                         (cons (dia-label-text tail #false font font-paint) (- 1.0 head-position)))]
-                  [(or head) (list (cons (dia-label-text head #false font font-paint) head-position))]
-                  [(or tail) (list (cons (dia-label-text tail #false font font-paint) (- 1.0 head-position)))]
-                  [else null]))
-          
-          (list (cons (dia-label-text label #false font font-paint) 0.5))))
+      (cond [(bytes? label) (list (cons (dia-edge-label-text label         #false font font-paint) 0.5))]
+            [(list? label)  (list (cons (dia-edge-label-text (car label)   #false font font-paint) head-position))]
+            [(pair? label)  (list (cons (dia-edge-label-text (car label)   #false font font-paint) head-position)
+                                  (cons (dia-edge-label-text (cdr label)   #false font font-paint) (- 1.0 head-position)))]
+            [else           (list (cons (dia-edge-label-text (unbox label) #false font font-paint) (- 1.0 head-position)))]))
 
     (for/list ([g (in-list gs)])
       (make-dia-edge-label #:distance distance #:adjust-angle adjust #:rotate? rotate?
                            start end (car g) (cdr g)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-label-text : (-> String (Option Symbol) (Option Font) Option-Fill-Paint Geo)
+(define dia-edge-label-text : (-> (U Bytes PExpr) (Option Symbol) (Option Font) Option-Fill-Paint Geo)
   (lambda [text text-id font paint]
-    (if (regexp-match? #px"[\r\n]+" text)
-        (geo-vc-append* #:id text-id
-                        (for/list : (Listof Geo:Text)
-                          ([l (in-lines (open-input-string text))])
-                          (geo-text #:color paint l font)))
-        (geo-text #:id text-id #:color paint #:background transparent text font))))
+    ;;; TODO
+    ; transparent makes the label clear underneath arrows
+    ;   but doesn't work for pdf
+    (geo-markup #:id text-id #:alignment 'center
+                #:color paint #:background transparent
+                #:error-color 'GhostWhite #:error-background 'Firebrick
+                text font)))
 
-(define dia-edge-label-datum? : (-> Any Boolean : #:+ Dia-Edge-Label-Datum)
+(define dia-edge-label-datum-filter : (-> Any (Option Dia-Edge-Label-Datum))
   (lambda [info]
-    (or (string? info)
-        (and (pair? info)
-             (let ([src (car info)]
-                   [tgt (cdr info)])
-               (and (or (not src) (string? src))
-                    (or (not tgt) (string? tgt))))))))
+    (cond [(dia-edge-label-description? info) (dc-markup-datum->text info)]
+          [(pair? info)
+           (if (list? info)
+               (match info
+                 [(list #false (? dia-edge-label-description? tail)) (box (dc-markup-datum->text tail))]
+                 [(list (? dia-edge-label-description? head) #false) (list (dc-markup-datum->text head))]
+                 [(list (? dia-edge-label-description? head) (? dia-edge-label-description? tail))
+                  (cons (dc-markup-datum->text head) (dc-markup-datum->text tail))]
+                 [(list (? dia-edge-label-description? head)) (list (dc-markup-datum->text head))]
+                 [_ #false])
+               (match info
+                 [(cons #false (? dia-edge-label-description? tail)) (box (dc-markup-datum->text tail))]
+                 [(cons (? dia-edge-label-description? head) (? dia-edge-label-description? tail))
+                  (cons (dc-markup-datum->text head) (dc-markup-datum->text tail))]
+                 [(cons (? dia-edge-label-description? head) #false) (list (dc-markup-datum->text head))]
+                 [_ #false]))]
+          [else #false])))
 
-(define dia-edge-label-flatten : (-> (Listof Dia-Edge-Label-Datum) (Listof String))
+(define dia-edge-label-flatten : (-> (Listof Dia-Edge-Label-Datum) (Listof Bytes))
   (lambda [labels]
-    (let flatten ([strs : (Listof String) null]
+    (let flatten ([strs : (Listof Bytes) null]
                   [labels : (Listof Dia-Edge-Label-Datum) labels])
       (if (pair? labels)
           (let ([self (car labels)])
-            (if (string? self)
-                (flatten (cons self strs) (cdr labels))
-                (flatten (append (filter string? (list (car self) (cdr self))) strs) (cdr labels))))
+            (cond [(bytes? self) (flatten (cons self strs) (cdr labels))]
+                  [(list? self) (flatten (cons (car self) strs) (cdr labels))]
+                  [(pair? self) (flatten (list* (car self) (cdr self) strs) (cdr labels))]
+                  [else (flatten (cons (unbox self) strs) (cdr labels))]))
           strs))))
 
-(define dia-edge-label-match? : (-> (Listof String) (U (Listof String) Regexp) Boolean)
+(define dia-edge-label-match? : (-> (Listof Bytes) (U Byte-Regexp Regexp) Boolean)
   (lambda [labels keywords]
-    (if (list? keywords)
-        (for/or : Boolean ([label (in-list labels)])
-          (for/or : Boolean ([keyword (in-list keywords)])
-            (string-ci=? label keyword)))
-        (for/or : Boolean ([label (in-list labels)])
-          (regexp-match? keywords label)))))
+    (for/or : Boolean ([label (in-list labels)])
+      (regexp-match? keywords label))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dia-edge-label-description? : (-> Any Boolean : (U String PExpr-Element))
+  (lambda [info]
+    (or (string? info)
+        (pexpr-element? info))))

@@ -6,12 +6,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define Wait : Symbol (string->symbol "Wait for You to Type..."))
 (define Read : Symbol (string->symbol ">>:Read\nExpression"))
-(define Select : Symbol (string->symbol ">>Select Expression\nFrom History List"))
+(define Select : Symbol (string->symbol ">>Select Expression\nFrom The History List"))
 (define Create : Keyword (string->keyword "/proc/Create\nHistory List"))
 (define Update : Symbol (string->symbol "/proc/Update\nHistory List"))
 (define Sync : Keyword (string->keyword "/proc/Sync\nHistory List"))
 (define Print : Symbol (string->symbol "<<:Print\nResult"))
 (define Print-Error : Symbol (string->symbol "<<:Show\nError Message"))
+
+(define Page1 : Symbol (string->symbol "&Page<sub>1</sub>."))
+(define Page2 : Symbol (string->symbol "&Page<sub>2</sub>"))
 
 (define-flowchart! repl.dia [#:start-name "REPL\n(Shell)" #:border (default-border-paint) #:background 'Azure] #:-
   ; Portion on Page 1
@@ -69,7 +72,7 @@
 
   (jump-back)
   (move-down-right 1 1 '|Exit with Error Status| "False")
-  (move-down 1 '&Page2)
+  (move-down 1 Page2)
   
   (jump-back)
   (T-step 'Exit$ "N")
@@ -79,10 +82,10 @@
 
   ; Portion on Page 2, located at Grid (7, 0)
   ; Referenced by Page 1
-  (jump-to 7 '&Page1.)
+  (jump-to 7 Page1)
   (move-down 1 '|Report Error|)
   (move-down 1 '#:-.+)
-  (move-down 3 '=continue- "Ignored")
+  (move-down 3 '=continue- '(span ([strikethrough . true]) ("Ignored")))
   
   (jump-back)
   (move-right 1)
