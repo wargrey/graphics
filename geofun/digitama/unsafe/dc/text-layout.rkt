@@ -113,8 +113,9 @@
     (define maybe-markup (pango_parse_markup raw))
 
     (if (pair? maybe-markup)
-        (let ([iter (pango_attr_list_get_iterator (unsafe-car maybe-markup))])
-          (values (unsafe-cdr maybe-markup) (pango_attr_iterator_next iter)))
+        (let* ([iter (pango_attr_list_get_iterator (unsafe-car maybe-markup))]
+               [has-attr? (pango_attr_iterator_next iter)])
+          (values (unsafe-cdr maybe-markup) has-attr?))
         (values maybe-markup #false)))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

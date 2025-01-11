@@ -75,7 +75,7 @@
   (lambda [text text-id font paint]
     ;;; TODO
     ; transparent makes the label clear underneath arrows
-    ;   but doesn't work for pdf
+    ;   but sometimes doesn't work for pdf
     (geo-markup #:id text-id #:alignment 'center
                 #:color paint #:background transparent
                 #:error-color 'GhostWhite #:error-background 'Firebrick

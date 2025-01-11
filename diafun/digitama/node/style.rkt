@@ -71,6 +71,7 @@
     
     (and (non-empty-string? text)
          (geo-markup #:id text-id #:color paint #:alignment 'center
+                     #:error-color 'GhostWhite #:error-background 'Firebrick
                      text font))))
 
 (define dia-node-smart-size : (-> (Option Geo) Dia-Node-Style (Values Nonnegative-Flonum Nonnegative-Flonum))

@@ -67,11 +67,11 @@
 (define-pango g_error_free (_pfun _GError-pointer -> _void)
   #:wrap (deallocator))
 
-(define-pango pango_attribute_destroy (_pfun PangoAttrIterator -> _void)
+(define-pango pango_attr_iterator_destroy (_pfun PangoAttrIterator -> _void)
   #:wrap (deallocator))
 
 (define-pango pango_attr_list_get_iterator (_pfun PangoAttrList -> PangoAttrIterator)
-  #:wrap (allocator pango_attribute_destroy))
+  #:wrap (allocator pango_attr_iterator_destroy))
 
 (define-pango pango_attr_iterator_next (_pfun PangoAttrIterator -> _bool))
 
