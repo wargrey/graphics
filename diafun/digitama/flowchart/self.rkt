@@ -17,14 +17,14 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-initial-path : (-> (Option Symbol) Real Real Real Geo-Print-Datum Gomamon)
-  (lambda [id gw gh ts home]
+(define dia-initial-path : (-> (Option Symbol) Real Real Real Geo-Print-Datum Geo-Anchor-Name Gomamon)
+  (lambda [id gw gh ts home anchor]
     (define grid-width  (~length gw ((default-diaflow-block-width))))
     (define grid-height (~length gh grid-width))
     (define scale (make-rectangular ts (* ts (/ grid-width grid-height))))
     
     (make-gomamon
-     #:id id #:at home
+     #:id id #:at home #:anchor anchor
      #:T-scale scale #:U-scale scale
      grid-width grid-height)))
 
@@ -33,6 +33,6 @@
     (lambda []
       (unless (unbox &path)
         (set-box! &path
-                  (dia-initial-path 'diaflow:singleton:ghostcat 1.0 1.0 1.0 0.0)))
+                  (dia-initial-path 'diaflow:singleton:ghostcat 1.0 1.0 1.0 0.0 '#:home)))
 
       (assert (unbox &path)))))

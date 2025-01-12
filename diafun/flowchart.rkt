@@ -8,9 +8,9 @@
 (provide (rename-out [dia-path-flow geo-path-flow]))
 
 (provide default-diaflow-block-identify default-diaflow-arrow-identify)
-(provide default-diaflow-node-label-construct create-dia-node)
-(provide default-diaflow-edge-construct default-diaflow-edge-label-construct)
+(provide default-diaflow-node-label-construct default-diaflow-edge-construct default-diaflow-edge-label-construct)
 (provide default-diaflow-free-edge-construct default-diaflow-free-edge-label-construct)
+(provide default-dia-node-margin create-dia-node)
 
 (require digimon/metrics)
 (require geofun/path)
@@ -35,21 +35,26 @@
 (require (for-syntax syntax/parse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-syntax (define-flowchart! stx)
+(define-syntax (make-flowchart! stx)
   (syntax-parse stx #:literals []
-    [(_ name
-        (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'-0.80]))
+    [(_ (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'-0.80]))
               (~optional (~seq #:grid-height gh) #:defaults ([gh #'-0.50]))
               (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.05]))
               (~optional (~seq #:path-id pid) #:defaults ([pid #'#false]))
+              (~optional (~seq #:start anchor) #:defaults ([anchor #''#:home]))
               (~optional (~seq #:at home) #:defaults ([home #'0.0+0.0i])))
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (define name
-         (let* ([goma (dia-initial-path pid gw gh ts home)]
-                [chart (with-gomamon! goma move-expr ...)])
-           (dia-path-flow chart args ...))))]))
+       (let* ([goma (dia-initial-path pid gw gh ts home anchor)]
+              [chart (with-gomamon! goma move-expr ...)])
+         (dia-path-flow chart args ...)))]))
+
+(define-syntax (define-flowchart! stx)
+  (syntax-parse stx #:literals []
+    [(_ name argv ...)
+     (syntax/loc stx
+       (define name (make-flowchart! argv ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-path-flow
