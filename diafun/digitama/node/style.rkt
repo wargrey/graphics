@@ -19,7 +19,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Dia-Node-Style-Make* S Hint) (-> Geo-Anchor-Name Hint (U S False Void)))
 (define-type (Dia-Node-Style-Make Hint) (Dia-Node-Style-Make* Dia-Node-Style Hint))
-(define-type Dia-Node-Id->String (U (HashTable Geo-Anchor-Name String) (-> Geo-Anchor-Name (U String Void False))))
+(define-type Dia-Node-Id->String (U (HashTable Geo-Anchor-Name String) (-> Geo-Anchor-Name String (U String Void False))))
 
 (struct dia-node-style
   ([width : (Option Flonum)]
@@ -97,17 +97,12 @@
 (define dia-node-select-stroke-paint : (-> Dia-Node-Style Maybe-Stroke-Paint)
   (lambda [self]
     (define fallback-paint : (Option Stroke) (stroke-paint->source* (dia-node-base-style-stroke-paint ((default-dia-node-base-style)))))
-    
-    (cond [(void? self) fallback-paint]
-          [(not self) #false]
-          [(dia-node-style? self)
-           (let ([c (dia-node-style-stroke-color self)])
-             (and c (desc-stroke #:color (and (not (void? c)) c)
-                                 #:width (dia-node-style-stroke-width self)
-                                 #:dash (dia-node-style-stroke-dash self)
-                                 (if (stroke? fallback-paint) fallback-paint (default-stroke)))))]
-          [(stroke? fallback-paint) (desc-stroke fallback-paint #:color self)]
-          [else self])))
+    (define c (dia-node-style-stroke-color self))
+
+    (desc-stroke #:color (and (not (void? c)) c)
+                 #:width (dia-node-style-stroke-width self)
+                 #:dash (dia-node-style-stroke-dash self)
+                 (if (stroke? fallback-paint) fallback-paint (default-stroke)))))
 
 (define #:forall (T) dia-node-select-fill-paint : (case-> [Dia-Node-Style -> Maybe-Fill-Paint]
                                                           [Maybe-Fill-Paint (-> Dia-Node-Base-Style Maybe-Fill-Paint) -> Maybe-Fill-Paint]

@@ -1,6 +1,8 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) 2D-Radius-Type 3D-Radius-Type)
+(provide (all-defined-out))
+(provide 2D-Radius-Type 3D-Radius-Type)
+(provide geo-id)
 
 (require "digitama/base.rkt")
 (require "digitama/misc.rkt")

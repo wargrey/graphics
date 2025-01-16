@@ -32,15 +32,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc-markup-datum->text : (-> Any Bytes)
   (lambda [src]
-    (cond [(string? src) (string->bytes/utf-8 src)]
+    (cond [(string? src) (pexpr->bytes src)]
           [(bytes? src) src]
           [(pexpr-element? src) (pexpr->bytes src)]
-          [else (string->bytes/utf-8 (format "~a" src))])))
+          [else (pexpr->bytes (format "~a" src))])))
 
 (define dc-markup-datum->maybe-text : (-> Any (Option Bytes))
   (lambda [src]
     (and src
          (dc-markup-datum->text src))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type DC-Markup-Text (U String PExpr-Element Bytes))
+
+(define dc-markup-text? : (-> Any Boolean : DC-Markup-Text)
+  (lambda [info]
+    (or (string? info)
+        (pexpr-element? info)
+        (bytes? info))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define pexpr? : (-> Any Boolean : PExpr)

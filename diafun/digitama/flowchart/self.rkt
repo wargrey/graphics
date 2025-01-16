@@ -27,12 +27,3 @@
      #:id id #:at home #:anchor anchor
      #:T-scale scale #:U-scale scale
      grid-width grid-height)))
-
-(define dia-singletion-path : (-> Gomamon)
-  (let ([&path : (Boxof (Option Gomamon)) (box #false)])
-    (lambda []
-      (unless (unbox &path)
-        (set-box! &path
-                  (dia-initial-path 'diaflow:singleton:ghostcat 1.0 1.0 1.0 0.0 '#:home)))
-
-      (assert (unbox &path)))))

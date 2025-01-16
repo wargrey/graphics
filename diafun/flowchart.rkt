@@ -12,10 +12,8 @@
 (provide default-diaflow-free-edge-construct default-diaflow-free-edge-label-construct)
 (provide default-dia-node-margin create-dia-node)
 
-(require digimon/metrics)
 (require geofun/path)
 (require geofun/paint)
-(require geofun/stroke)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/path)
@@ -31,7 +29,6 @@
 (require "digitama/flowchart/stick.rkt")
 
 (require (for-syntax racket/base))
-(require (for-syntax racket/syntax))
 (require (for-syntax syntax/parse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -74,7 +71,8 @@
            [self : Geo:Path]] : (U Dia:Flow Geo:Path)
     (parameterize ([default-dia-node-base-style make-diaflow-node-fallback-style]
                    [default-dia-edge-base-style make-diaflow-edge-fallback-style]
-                   [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))])
+                   [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))]
+                   [current-master-path self])
       (define stickers : (Listof (GLayerof Geo))
         (diaflow-stick self block-detect make-node make-node-label arrow-detect make-edge make-edge-label
                        make-free-track make-free-label (geo:path-foot-infos self) ignore))
@@ -102,9 +100,9 @@
     (parameterize ([default-diaflow-block-width  (* ((default-diaflow-block-width))  ns)]
                    [default-diaflow-block-height (* ((default-diaflow-block-height)) ns)]
                    [default-dia-node-margin (* (default-dia-node-margin) ns)]
-                   [default-dia-node-base-style make-diaflow-node-fallback-style])
-      (dia-make-node (dia-singletion-path)
-                     block-detect make-node make-node-label
+                   [default-dia-node-base-style make-diaflow-node-fallback-style]
+                   [current-master-path #false])
+      (dia-make-node block-detect make-node make-node-label
                      (cond [(symbol? caption) caption]
                            [(keyword? caption) caption]
                            [(string? caption) (string->symbol caption)]

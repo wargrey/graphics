@@ -72,7 +72,7 @@
   (default-border-paint (desc-border #:color (rgb* 'RoyalBlue 0.618)))
 
   (define make-anchor-sticker : Geo-Anchor->Sticker
-    (lambda [self anchor pos Width Height]
+    (lambda [anchor pos Width Height]
       (define sticker : Geo
         (if (keyword? anchor)
             (geo-art-text (geo-anchor->string anchor) #:stroke #false #:fill 'Gray)

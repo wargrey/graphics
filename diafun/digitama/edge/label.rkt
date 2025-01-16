@@ -83,21 +83,21 @@
 
 (define dia-edge-label-datum-filter : (-> Any (Option Dia-Edge-Label-Datum))
   (lambda [info]
-    (cond [(dia-edge-label-description? info) (dc-markup-datum->text info)]
+    (cond [(dc-markup-text? info) (dc-markup-datum->text info)]
           [(pair? info)
            (if (list? info)
                (match info
-                 [(list #false (? dia-edge-label-description? tail)) (box (dc-markup-datum->text tail))]
-                 [(list (? dia-edge-label-description? head) #false) (list (dc-markup-datum->text head))]
-                 [(list (? dia-edge-label-description? head) (? dia-edge-label-description? tail))
+                 [(list #false (? dc-markup-text? tail)) (box (dc-markup-datum->text tail))]
+                 [(list (? dc-markup-text? head) #false) (list (dc-markup-datum->text head))]
+                 [(list (? dc-markup-text? head) (? dc-markup-text? tail))
                   (cons (dc-markup-datum->text head) (dc-markup-datum->text tail))]
-                 [(list (? dia-edge-label-description? head)) (list (dc-markup-datum->text head))]
+                 [(list (? dc-markup-text? head)) (list (dc-markup-datum->text head))]
                  [_ #false])
                (match info
-                 [(cons #false (? dia-edge-label-description? tail)) (box (dc-markup-datum->text tail))]
-                 [(cons (? dia-edge-label-description? head) (? dia-edge-label-description? tail))
+                 [(cons #false (? dc-markup-text? tail)) (box (dc-markup-datum->text tail))]
+                 [(cons (? dc-markup-text? head) (? dc-markup-text? tail))
                   (cons (dc-markup-datum->text head) (dc-markup-datum->text tail))]
-                 [(cons (? dia-edge-label-description? head) #false) (list (dc-markup-datum->text head))]
+                 [(cons (? dc-markup-text? head) #false) (list (dc-markup-datum->text head))]
                  [_ #false]))]
           [else #false])))
 
@@ -117,9 +117,3 @@
   (lambda [labels keywords]
     (for/or : Boolean ([label (in-list labels)])
       (regexp-match? keywords label))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-edge-label-description? : (-> Any Boolean : (U String PExpr-Element))
-  (lambda [info]
-    (or (string? info)
-        (pexpr-element? info))))

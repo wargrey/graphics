@@ -56,7 +56,7 @@
     (create-dia-node #:node dia:node:polygon
                      #:id node-key  #:type 'Decision hint
                      #:intersect dia-polygon-intersect
-                     #:fit-ratio 0.64 0.75
+                     #:fit-ratio 0.64 0.64
                      (diaflow-polygon-shape node-key style (geo-rhombus-vertices width height))
                      label
                      (geo-rhombus-vertices width height))))

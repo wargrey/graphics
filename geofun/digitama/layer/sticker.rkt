@@ -43,10 +43,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Sticker-Datum (U Geo-Sticker Geo))
-(define-type Geo-Anchor->Sticker (-> Geo:Path Geo-Anchor-Name Float-Complex Nonnegative-Flonum Nonnegative-Flonum (U Geo-Sticker-Datum Void False)))
+(define-type Geo-Anchor->Sticker (-> Geo-Anchor-Name Float-Complex Nonnegative-Flonum Nonnegative-Flonum (U Geo-Sticker-Datum Void False)))
+
+(define current-master-path : (Parameterof (Option Geo:Path)) (make-parameter #false))
 
 (define default-anchor->sticker : Geo-Anchor->Sticker
-  (lambda [self anchor pos Width Height]
+  (lambda [anchor pos Width Height]
     (if (symbol? anchor)
         (geo-text (geo-anchor->string anchor) #:color 'RoyalBlue)
         (geo-text (geo-anchor->string anchor) #:color 'Gray))))
@@ -55,11 +57,12 @@
                              (Option Symbol) (Option Geo-Pin-Operator) (Option Geo-Pin-Operator) Float-Complex
                              (U Geo:Group Geo:Path))
   (lambda [self anchor->sticker trusted-anchors truncate? id base-op sibs-op offset]
-    (define layers : (Option (GLayer-Groupof Geo)) (geo:path-stick/list self anchor->sticker trusted-anchors offset truncate?))
-    (define gp-id : Symbol (or id (gensym 'geo:path:)))
+    (parameterize ([current-master-path self])
+      (define layers : (Option (GLayer-Groupof Geo)) (geo:path-stick/list self anchor->sticker trusted-anchors offset truncate?))
+      (define gp-id : Symbol (or id (gensym 'geo:path:)))
 
-    (cond [(not layers) self]
-          [else (make-geo:group gp-id base-op sibs-op layers)])))
+      (cond [(not layers) self]
+            [else (make-geo:group gp-id base-op sibs-op layers)]))))
 
 (define geo-sticker-datum? : (-> Any Boolean : Geo-Sticker-Datum)
   (lambda [maybe]
@@ -79,7 +82,7 @@
       (cond [(pair? srohcna)
              (let-values ([(anchor rest) (values (car srohcna) (cdr srohcna))])
                (if (geo-anchor-trusted? anchor trusted-anchors)
-                   (let ([slayer (geo-sticker-layer self anchor->sticker anchor (- (geo-trail-ref gpath anchor) origin) offset Width Height)])
+                   (let ([slayer (geo-sticker-layer anchor->sticker anchor (- (geo-trail-ref gpath anchor) origin) offset Width Height)])
                      (stick rest (if (not slayer) stickers (cons slayer stickers))))
                    (stick rest stickers)))]
             [(pair? stickers)
@@ -123,11 +126,11 @@
     (or (geo-path-try-extend/list layers++ W H)
         (glayer-group W H layers++))))
 
-(define geo-sticker-layer : (-> Geo:Path Geo-Anchor->Sticker Geo-Anchor-Name
+(define geo-sticker-layer : (-> Geo-Anchor->Sticker Geo-Anchor-Name
                                 Float-Complex Float-Complex Nonnegative-Flonum Nonnegative-Flonum
                                 (Option (GLayerof Geo)))
-  (lambda [self anchor->sticker anchor position offset Width Height]
-    (define stk (anchor->sticker self anchor position Width Height))
+  (lambda [anchor->sticker anchor position offset Width Height]
+    (define stk (anchor->sticker anchor position Width Height))
     
     (and (geo-sticker-datum? stk)
          (geo-sticker->layer stk position offset))))

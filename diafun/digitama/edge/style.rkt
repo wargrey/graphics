@@ -74,8 +74,10 @@
           [(or (not s) (stroke? s)) s]
           [(dia-edge-style? s)
            (let ([c (dia-edge-style-color s)])
-             (and c (desc-stroke #:color (and (not (void? c)) c) #:width (dia-edge-style-width s) #:dash (dia-edge-style-dash s)
-                                 (if (stroke? fallback-paint) fallback-paint (default-stroke)))))]
+             (desc-stroke #:color (and (not (void? c)) c)
+                          #:width (dia-edge-style-width s)
+                          #:dash (dia-edge-style-dash s)
+                          (if (stroke? fallback-paint) fallback-paint (default-stroke))))]
           [(stroke? fallback-paint) (desc-stroke fallback-paint #:color s)]
           [else s])))
 

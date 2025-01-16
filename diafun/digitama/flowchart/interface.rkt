@@ -21,32 +21,32 @@
 (define-type DiaFlow-Block-Create (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol) Dia:Node))
 
 (define-type DiaFlow-Id->Node-Label
-  (-> Geo:Path Symbol String Dia-Node-Style (Option Symbol)
+  (-> Symbol String Dia-Node-Style (Option Symbol)
       (Option Geo)))
 
 (define-type DiaFlow-Id->Node-Shape
-  (-> Geo:Path Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol)
+  (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol)
       (U Void  ; use default
          False ; invisible node
          Dia:Node)))
 
 (define-type DiaFlow-Arrow->Edge
-  (-> Geo:Path Dia:Node (Option Dia:Node) Dia-Edge-Style
+  (-> Dia:Node (Option Dia:Node) Dia-Edge-Style
       Geo-Path-Clean-Prints+ (Listof Dia-Edge-Label)
       (U Dia:Edge Dia:Labeled-Edge Void False)))
 
 (define-type DiaFlow-Arrow->Edge-Label
-  (-> Geo:Path Dia:Node (Option Dia:Node) Dia-Edge-Style
+  (-> Dia:Node (Option Dia:Node) Dia-Edge-Style
       Float-Complex Float-Complex Dia-Edge-Label-Datum
       (U Dia-Edge-Label (Listof Dia-Edge-Label) Void False)))
 
 (define-type DiaFlow-Free-Track->Edge
-  (-> Geo:Path Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint Dia-Edge-Style
+  (-> Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint Dia-Edge-Style
       Geo-Path-Clean-Prints+ (Listof Dia-Edge-Label)
       (U Dia:Edge Dia:Labeled-Edge Void False)))
 
 (define-type DiaFlow-Free-Track->Edge-Label
-  (-> Geo:Path Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint Dia-Edge-Style
+  (-> Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint Dia-Edge-Style
       Float-Complex Float-Complex Dia-Edge-Label-Datum
       (U Dia-Edge-Label (Listof Dia-Edge-Label) Void False)))
 

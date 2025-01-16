@@ -7,7 +7,7 @@
 (provide Geo-Sticker Geo-Anchor->Sticker)
 (provide geo:path? gomamon? geo-sticker?)
 (provide make-sticker default-anchor->sticker)
-(provide geo-path-close)
+(provide current-master-path geo-path-close)
 
 (provide
  (rename-out [gomamon-move-up-right! gomamon-move-right-up!]
