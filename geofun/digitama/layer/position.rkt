@@ -4,10 +4,18 @@
 
 (require typed/racket/unsafe)
 (unsafe-provide (rename-out [geo-append-layer unsafe-append-layer]
-                            [geo-superimpose-layer unsafe-superimpose-layer]))
+                            [geo-superimpose-layer unsafe-superimpose-layer]
+                            [geo-superimpose-layer-make unsafe-superimpose-layer-make]))
 
 (require "type.rkt")
 (require "../convert.rkt")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (G) geo-superimpose-layer-make : (-> Geo-Pin-Anchor G Nonnegative-Flonum Nonnegative-Flonum
+                                                  (-> Nonnegative-Flonum Nonnegative-Flonum (GLayerof G)))
+  (lambda [anchor sfc w h]
+    (λ [[W : Nonnegative-Flonum] [H : Nonnegative-Flonum]] : (GLayerof G)
+      (geo-superimpose-layer anchor W H sfc w h))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (G) geo-append-layer
@@ -27,7 +35,7 @@
          [(ht) (values maybe-x                  0.0)]
          [(hc) (values maybe-x                  (* (- height sheight) 0.5))]
          [(hb) (values maybe-x                  (- height sheight))]
-         [else #| deadcode |# (values maybe-x    maybe-y)]))
+         [else #;'deadcode (values maybe-x maybe-y)]))
      (glayer geo dest-x dest-y swidth sheight)]))
 
 (define #:forall (G) geo-superimpose-layer
@@ -52,7 +60,7 @@
          [(lt) (values 0.0 0.0)] [(lc) (values 0.0 cy)] [(lb) (values 0.0 by)]
          [(ct) (values  cx 0.0)] [(cc) (values  cx cy)] [(cb) (values  cx by)]
          [(rt) (values  rx 0.0)] [(rc) (values  rx cy)] [(rb) (values  rx by)]
-         [else #| deadcode |# (values 0.0 0.0)]))]))
+         [else (values (* (random) rx) (* (random) by))]))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (G) geo-own-pin-layer : (-> Geo-Pin-Anchor Float-Complex (∩ G Geo<%>) Float-Complex (GLayerof G))

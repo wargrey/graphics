@@ -151,15 +151,15 @@
   #:empty (bitmap-blank)
   #:config-expr (geo-pattern-filter->integer fltr) (geo-operator->integer op)
   #:short-path #:for base bmp #:if #true
-  ([(lt) (bitmap_pin 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(lc) (bitmap_pin 0.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(lb) (bitmap_pin 0.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(ct) (bitmap_pin 0.5 0.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(cc) (bitmap_pin 0.5 0.5 0.5 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(cb) (bitmap_pin 0.5 1.0 0.5 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(rt) (bitmap_pin 1.0 0.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(rc) (bitmap_pin 1.0 0.5 1.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(rb) (bitmap_pin 1.0 1.0 1.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))])
+  ([(lt)  (bitmap_pin 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(lc)  (bitmap_pin 0.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(lb)  (bitmap_pin 0.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(ct)  (bitmap_pin 0.5 0.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(cc)  (bitmap_pin 0.5 0.5 0.5 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(cb)  (bitmap_pin 0.5 1.0 0.5 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(rt)  (bitmap_pin 1.0 0.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(rc)  (bitmap_pin 1.0 0.5 1.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(rb)  (bitmap_pin 1.0 1.0 1.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))])
   #:do (bitmap_superimpose (map bitmap-surface bitmaps) (bitmap-density base)))
 
 (define bitmap-vl-append : (-> [#:operator Geo-Pin-Operator] [#:gapsize Real] Bitmap * Bitmap)

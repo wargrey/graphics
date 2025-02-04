@@ -249,8 +249,6 @@
     bmp)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define ((make-layer anchor sfc w h) W H) (unsafe-superimpose-layer anchor W H sfc w h))
-
   (define layer-composite
     (case-lambda
       [(cr self filter scale)
@@ -283,7 +281,7 @@
                     (define-values (w h) (bitmap-surface-rendered-size sfc density))
                     (compose (unsafe-flmax width w)
                              (unsafe-flmax height h)
-                             (unsafe-cons-list (make-layer alignment sfc w h) sreyal)
+                             (unsafe-cons-list (unsafe-superimpose-layer-make alignment sfc w h) sreyal)
                              (unsafe-cdr sfcs)))])))
 
   (define (list->layers* aligns sfcs density)
@@ -297,7 +295,7 @@
                     (define-values (w h) (bitmap-surface-rendered-size sfc density))
                     (compose (unsafe-flmax width w)
                              (unsafe-flmax height h)
-                             (unsafe-cons-list (cons sfc (make-layer (unsafe-vector*-ref aligns aidx) sfc w h)) sreyal)
+                             (unsafe-cons-list (cons sfc (unsafe-superimpose-layer-make (unsafe-vector*-ref aligns aidx) sfc w h)) sreyal)
                              (unsafe-cdr sfcs)
                              (unsafe-fx+ aidx 1)))])))
 

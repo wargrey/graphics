@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require racket/math)
+
 (require geofun/vector)
 (require geofun/projection)
 (require geofun/digitama/geometry/constants)
@@ -12,10 +14,11 @@
            #:fill-color [fill-color : Color 'MintCream] #:fill-alpha [fill-alpha : Real 1/phi]
            #:border-color [border-color : Color 'DodgerBlue] #:edge-color [edge-color : Color 'DeepSkyBlue] #:edge-alpha [edge-alpha : Real 0.20]
            #:head-color [head-fill : (Option Color) #false] #:head-alpha [head-alpha : (Option Real) #false]
-           #:tail-color [tail-fill : (Option Color) 'SeaShell] #:tail-alpha [tail-alpha : (Option Real) #false]
+           #:tail-color [tail-fill : (Option Color) 'SeaShell] #:tail-alpha [tail-alpha : (Option Real) #false] #:tail.deg [tail.deg : Real +nan.0]
            #:feet-fill-color [feet-fill : (Option Real) #false] #:feet-alpha [feet-alpha : (Option Real) #false]
            #:left-foot-border-color [lfcolor : (Option Color) 'Blue] #:right-foot-border-color [rfcolor : (Option Color) 'Lime]
            #:feet-rotation [foot-rotation : Real 0.0] #:id [id : (Option Symbol) 'bacteriophage]
+           #:symbol [symtext : Char #\λ]
            [R : Real]] : Geo
     (define-values (Rdart Rcollar) (values (* R 1/phi) (* R 0.5 1/phi)))
     (define no-sheath? : Boolean (< -1.0 (* sheath-length 1.0) Rdart))
@@ -33,7 +36,7 @@
     (define protein-coat
       (geo-cc-superimpose #:id 'protein-coat
        (geo-icosahedron-side-projection R 'edge   #:id 'coat/out #:edge #false #:border ohead-stroke #:fill head-color)
-       (geo-text "λ" (desc-font #:size (* R 1.4) #:family "Linux Biolinum Shadow, Bold") #:id 'lambda #:color λ-color)
+       (geo-trim (geo-text symtext (desc-font #:size (* R 1.4) #:family "Linux Biolinum Shadow, Bold") #:id 'lambda #:color λ-color))
        (geo-icosahedron-side-projection R 'vertex #:id 'coat/in #:edge edge-stroke #:border ihead-stroke)))
 
     (define collar (geo-dart Rcollar pi/2 #:id 'collar #:fill tail-color #:stroke ihead-stroke #:wing-angle 4pi/5 #:radian? #true))
@@ -42,16 +45,20 @@
            (geo-arrow #:id 'sheath #:fill tail-color #:stroke ohead-stroke #:shaft-thickness -1/phi #:wing-angle pi #:radian? #true
                       Rdart sheath-length pi/2)))
 
+    (define tail.rad : Flonum
+      (real->double-flonum
+       (degrees->radians (if (<= 10.0 tail.deg 80.0) tail.deg 54.0))))
+    
     (define fibre
       (let* ([fdx (if (not maybe-sheath) (* Rcollar 0.32) Rdart)]
-             [fdy (* fdx tan54º)])
+             [fdy (* fdx (tan tail.rad))])
         (geo-polyline #:id 'fibre #:stroke fibre-stroke
                       (list (cons 0.0 fdy) (cons fdx 0.0)
                             (cons (* fdx 3.0) 0.0) (cons (* fdx 4.0) fdy)))))
-    
+
     (define stx-tree
-      (let* ([fx (* (+ 1.0 cos54º) 0.5)]
-             [fy (* (- 1.0 sin54º) 0.25)]
+      (let* ([fx (* (+ 1.0 (cos tail.rad)) 0.5)]
+             [fy (* (- 1.0 (sin tail.rad)) 0.25)]
              [r (* Rcollar 1/phi (if (not maybe-sheath) 0.382 1.0))]
              [lft (geo-icosahedron-over-projection #:id 'lfoot #:rotation foot-rotation
                                                    #:border (desc-stroke stx-bstroke #:color lfcolor) #:edge stx-estroke #:fill feet-color

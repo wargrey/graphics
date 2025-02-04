@@ -152,6 +152,14 @@
   (lambda [goma [target #false] [anchor #false]]
     (geo-path-jump-to goma target anchor)))
 
+(define gomamon-random-walk! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
+  (lambda [goma xstep ystep [anchor #false] [info #false]]
+    (geo-path-L goma (* (- (* (random) 2.0) 1.0) xstep) (* (- (* (random) 2.0) 1.0) ystep) 1.0 1.0 anchor info)))
+
+(define gomamon-random-jump! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name)) Void)
+  (lambda [goma xstep ystep [anchor #false]]
+    (geo-path-M goma (* (- (* (random) 2.0) 1.0) xstep) (* (- (* (random) 2.0) 1.0) ystep) 1.0 1.0 anchor)))
+
 (define gomamon-T-step! : (->* (Gomamon (U Geo-Anchor-Name Complex)) (Any Any) Void)
   (lambda [goma target [info1 #false] [info2 #false]]
     (define-values (hstep vstep)

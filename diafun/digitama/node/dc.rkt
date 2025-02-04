@@ -23,14 +23,17 @@
   (syntax-parse stx #:datum-literals [:]
     [(_ (~alt (~optional (~seq #:node Geo) #:defaults ([Geo #'dia:node]))
               (~optional (~seq #:id name) #:defaults ([name #'#false]))
+              (~optional (~seq #:base-operator base-op) #:defaults ([base-op #'#false]))
+              (~optional (~seq #:operator op) #:defaults ([op #'#false]))
               (~optional (~seq #:type type subtype) #:defaults ([type #''Customized] [subtype #'#false]))
               (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
               (~optional (~seq #:fit-ratio wratio hratio) #:defaults ([wratio #'1.0] [hratio #'1.0]))
-              (~optional (~seq #:position wpos hpos) #:defaults ([wpos #'0.5] [hpos #'0.5]))) ...
+              (~optional (~seq #:position wpos hpos (~optional (~seq lwpos lhpos)))
+                         #:defaults ([wpos #'0.5] [hpos #'0.5] [lwpos #'0.5] [lhpos #'0.5]))) ...
         shape label argl ...)
      (syntax/loc stx
-       (create-geometry-group Geo name #false #false #:outline (geo-outline shape)
-                              (dia-node-layers label shape wratio hratio wpos hpos)
+       (create-geometry-group Geo name base-op op #:outline (geo-outline shape)
+                              (dia-node-layers label shape wratio hratio wpos hpos lwpos lhpos)
                               intersect type subtype
                               argl ...))]))
 
@@ -103,9 +106,11 @@
     (and (dia:node? g)
          ((dia:node-intersect g) A B node-pos nlayer))))
 
-(define dia-node-layers : (-> (Option Geo) Geo Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (GLayer-Groupof Geo))
-  (lambda [label shape wratio hratio wpos hpos]
+(define dia-node-layers : (-> (Option Geo) Geo Nonnegative-Flonum Nonnegative-Flonum
+                              Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
+                              (GLayer-Groupof Geo))
+  (lambda [label shape wratio hratio wpos hpos lwpos lhpos]
     (cond [(not label) (geo-own-layers shape)]
-          [(or (nan? wratio) (nan? hratio)) (geo-composite-layers shape label wpos hpos 0.5 0.5)]
+          [(or (nan? wratio) (nan? hratio)) (geo-composite-layers shape label wpos hpos lwpos lhpos)]
           [else (let ([fit-label (geo-fit label shape wratio hratio (default-dia-node-margin))])
-                  (geo-composite-layers shape fit-label wpos hpos 0.5 0.5))])))
+                  (geo-composite-layers shape fit-label wpos hpos lwpos lhpos))])))

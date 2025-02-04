@@ -6,7 +6,7 @@
 (require racket/case)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Pin-Anchor (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb))
+(define-type Geo-Pin-Anchor (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb 'rnd))
 (define-type Geo-Append-Align (U 'vl 'vc 'vr 'ht 'hc 'hb))
 
 (define-type (GLayer-Listof G) (Pairof (GLayerof G) (Listof (GLayerof G))))
@@ -115,6 +115,7 @@
              [(lt lc lb) #true]
              [(ct cc cb) #true]
              [(rt rc rb) #true]
+             [(rnd) #true]
              [else #false])))
     
 (define geo-append-align? : (-> Any Boolean : Geo-Append-Align)

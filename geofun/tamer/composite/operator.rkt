@@ -8,7 +8,7 @@
 (require geofun/digitama/composite)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define src : Geo (geo-circle 64 #:stroke #false #:fill (rgba 0.0 0.0 0.9 0.9)))
+(define src : Geo (geo-sandglass 64 #:stroke 'Grey #:fill (rgba 0.0 0.0 0.9 0.9)))
 (define dest : Geo (geo-rectangle 120 90 #:stroke #false #:fill (rgba 0.7 0.0 0.0 0.9)))
 
 (for/list : (Listof Any) ([op (in-list geo-pin-operators)])

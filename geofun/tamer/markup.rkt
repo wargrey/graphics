@@ -11,7 +11,7 @@
 (define font (desc-font #:family 'math #:size 'xx-large))
 
 (define pango-markup-xexprs : (Listof PExpr)
-  (list '(span)
+  (list #;'(span)
         '(markup (lt "plain" 169 "plteen.fun" gt))
         '(span ([letter_spacing . 1.0])
                ("x" (sub ("n+" (span ([style . normal]

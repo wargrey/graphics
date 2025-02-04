@@ -8,8 +8,11 @@
 
 (provide (rename-out [geo-pin-over geo-pin]))
 
+(require digimon/digitama/unsafe/release/ops)
+
 (require "digitama/layer/type.rkt")
 (require "digitama/layer/combine.rkt")
+(require "digitama/layer/pyramid.rkt")
 (require "digitama/layer/find.rkt")
 
 (require "digitama/dc/composite.rkt")
@@ -65,15 +68,16 @@
                  #:gapsize [delta : Real 0.0] #:id [id : (Option Symbol) #false]]
   #:empty (geo-blank)
   #:short-path #:for anchor base sibling #:if #true
-  ([(lt) (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.0 0.0 0.0 0.0))]
-   [(lc) (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.0 0.5 0.0 0.5))]
-   [(lb) (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.0 1.0 0.0 1.0))]
-   [(ct) (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.5 0.0 0.5 0.0))]
-   [(cc) (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.5 0.5 0.5 0.5))]
-   [(cb) (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.5 1.0 0.5 1.0))]
-   [(rt) (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 1.0 0.0 1.0 0.0))]
-   [(rc) (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 1.0 0.5 1.0 0.5))]
-   [(rb) (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 1.0 1.0 1.0 1.0))])
+  ([(lt)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.0 0.0 0.0 0.0))]
+   [(lc)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.0 0.5 0.0 0.5))]
+   [(lb)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.0 1.0 0.0 1.0))]
+   [(ct)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.5 0.0 0.5 0.0))]
+   [(cc)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.5 0.5 0.5 0.5))]
+   [(cb)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.5 1.0 0.5 1.0))]
+   [(rt)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 1.0 0.0 1.0 0.0))]
+   [(rc)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 1.0 0.5 1.0 0.5))]
+   [(rb)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 1.0 1.0 1.0 1.0))]
+   [(rnd) (make-geo:group id base-op sibs-op (geo-superimpose-layers 'rnd base (cdr geobjs)))])
   #:do (make-geo:group id base-op sibs-op (geo-superimpose-layers anchor base (cdr geobjs))))
 
 (define geo-lt-superimpose : (-> [#:id (Option Symbol)] [#:base-operator (Option Geo-Pin-Operator)] [#:operator (Option Geo-Pin-Operator)] Geo * Geo)
@@ -167,3 +171,38 @@
                                     (geo-siblings*->table siblings ncols (geo-own-layer cont))
                                     ncols nrows col-anchors row-anchors col-gaps row-gaps))
         cont)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-pyramid : (->* ((Listof Geo))
+                           (#:id (Option Symbol) #:base-operator (Option Geo-Pin-Operator) #:operator (Option Geo-Pin-Operator) #:extra (Option Geo)
+                            Real (Option Real) (Geo-Config-Argof Geo-Pin-Anchor))
+                           Geo)
+  (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false] #:extra [defobjs #false]
+           siblings [sub-gaps 0] [sibling-gaps #false] [aligns null]]
+    (cond [(null? siblings) (geo-blank)]
+          [(null? (cdr siblings)) (car siblings)]
+          [else (let ([n (length siblings)]
+                       [layer-gap (real->double-flonum (or sibling-gaps sub-gaps))])
+                  (define-values (layers width height extra) (geo-list->pyramid (car siblings) (cdr siblings) defobjs))
+                  (define anchors : (Vectorof Geo-Pin-Anchor) (geo-config-expand aligns n 'cc))
+                  (define cell : Geo (geo-blank width height))
+                  (geo-vc-append* #:gapsize sub-gaps #:id id #:base-operator base-op #:operator sibs-op
+                                  (let compose : (Listof Geo) ([rest : (Listof (Listof Geo)) layers]
+                                                               [idx : Index 0]
+                                                               [sreyal : (Listof Geo) null])
+                                    (if (pair? rest)
+                                        (let-values ([(layer tail) (values (car rest) (cdr rest))])
+                                          (compose tail (unsafe-idx+ idx (length layer))
+                                                   (cons (geo-hc-append* #:gapsize layer-gap
+                                                                         (for/list : (Listof Geo) ([g (in-list layer)]
+                                                                                                   [i (in-naturals idx)])
+                                                                           (define-values (w h) (geo-flsize g))
+                                                                           (if (or (< w width) (< h height))
+                                                                               (if (< i n)
+                                                                                   (make-geo:group id base-op sibs-op
+                                                                                                   (geo-superimpose-layers (vector-ref anchors i)
+                                                                                                                           cell (list g)))
+                                                                                   cell)
+                                                                               g)))
+                                                         sreyal)))
+                                        (reverse sreyal)))))])))

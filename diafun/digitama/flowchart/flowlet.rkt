@@ -26,24 +26,31 @@
 (define diaflow-delim-format : String (string-append diaflow-delim "~a" diaflow-delim ":~a"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflowlet-input-desc : (case-> [Any -> String]
-                                        [Any (Option DC-Markup-Text) -> DC-Markup-Text])
+(define #:forall (In) diaflowlet-input-desc : (case-> [Any -> String]
+                                                      [In (U False DC-Markup-Text (-> In (U Void DC-Markup-Text))) -> DC-Markup-Text])
   (case-lambda
-    [(v alt-in) (or alt-in (diaflowlet-input-desc v))]
-    [(v) (pretty-format #:mode 'display
-                        (if (port? v) (object-name v) v))]))
+    [(v alt-in)
+     (cond [(procedure? alt-in) (let ([r (alt-in v)]) (if (void? r) #"" r))]
+           [(and alt-in) alt-in]
+           [else (diaflowlet-input-desc v)])]
+    [(v)
+     (pretty-format #:mode 'display
+                    (cond [(port? v) (object-name v)]
+                          [(void? v) #""]
+                          [else v]))]))
 
-(define #:forall (In) diaflowlet-output-desc : (case-> [Any -> DC-Markup-Text]
-                                                       [Any (Option (-> Any (Option DC-Markup-Text))) -> DC-Markup-Text]
-                                                       [(Option DC-Markup-Text) (U (-> In Any) Datum) In -> DC-Markup-Text])
+(define #:forall (In Out)
+  diaflowlet-output-desc : (case-> [Any -> DC-Markup-Text]
+                                   [Any (Option (-> Any (U Void DC-Markup-Text))) -> DC-Markup-Text]
+                                   [(U False DC-Markup-Text (-> Out (U Void DC-Markup-Text))) (U (-> In Out) Datum) In -> DC-Markup-Text])
   (case-lambda
     [(alt-out f in)
-     (cond [(procedure? f) (if (not alt-out) (diaflowlet-output-desc (f in)) alt-out)]
-           [(and alt-out) alt-out]
-           [else #""])]
+     (cond [(procedure? alt-out) (if (procedure? f) (let ([r (alt-out (f in))]) (if (void? r) #"" r)) (diaflowlet-output-desc f))]
+           [(procedure? f) (if (not alt-out) (diaflowlet-output-desc (f in)) alt-out)]
+           [else (or alt-out (diaflowlet-input-desc f))])]
     [(v f)
      (cond [(not f) (diaflowlet-output-desc v)]
-           [else (or (f v) (diaflowlet-output-desc v))])]
+           [else (diaflowlet-output-desc (f v))])]
     [(v) #;|Yes, reuse the one for input| (diaflowlet-input-desc v)]))
 
 (define diaflowlet-function->anchor : (-> Any (U Symbol Keyword))

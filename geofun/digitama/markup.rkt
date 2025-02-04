@@ -24,9 +24,9 @@
 
 (define-type PExpr-Full-Element (Rec elem (U (List Symbol PExpr-AttList (Listof (U PExpr-Datum PExpr-Element elem))))))
 (define-type PExpr-Children-Element (Rec elem (List Symbol (Listof (U PExpr-Datum PExpr-Element elem)))))
-(define-type PExpr-Empty-Element (U (List Symbol) (List Symbol (Listof PExpr-Attribute))))
+#;(define-type PExpr-Empty-Element (U (List Symbol) (List Symbol (Listof PExpr-Attribute))))
 
-(define-type PExpr-Element (U PExpr-Full-Element PExpr-Children-Element PExpr-Empty-Element))
+(define-type PExpr-Element (U PExpr-Full-Element PExpr-Children-Element #;PExpr-Empty-Element))
 (define-type PExpr (U PExpr-Datum PExpr-Element))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -66,7 +66,7 @@
                   (write-pexpr-element (car x) null (cadr x) /dev/pmlout)]
                  [(pexpr-full-element? x)
                   (write-pexpr-element (car x) (cadr x) (caddr x) /dev/pmlout)]
-                 [(pexpr-empty-element? x)
+                 #;[(pexpr-empty-element? x)
                   (write-char #\< /dev/pmlout)
                   (write (car x) /dev/pmlout)
                   (let ([maybe-attrs (cdr x)])
@@ -204,7 +204,7 @@
     (and (pair? e)
          (or (pexpr-children-element? e)
              (pexpr-full-element? e)
-             (pexpr-empty-element? e)))))
+             #;(pexpr-empty-element? e)))))
 
 (define pexpr-full-element? : (-> (Pairof Any Any) Boolean : PExpr-Full-Element)
   (lambda [e]
@@ -222,7 +222,7 @@
          (null? (cddr e))
          (pexpr-list? (cadr e)))))
 
-(define pexpr-empty-element? : (-> (Pairof Any Any) Boolean : PExpr-Empty-Element)
+#;(define pexpr-empty-element? : (-> (Pairof Any Any) Boolean : PExpr-Empty-Element)
   (lambda [e]
     (and (symbol? (car e))
          (or (null? (cdr e))
