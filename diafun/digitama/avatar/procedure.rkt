@@ -70,8 +70,8 @@
 
         (define port
           (cond [(not label) pipe]
-                [(geo? label) (create-dia-node #:type type #false #:fit-ratio 1.00 1.00 #:position 0.50 vpos pipe label)]
-                [else (create-dia-node #:type type #false #:fit-ratio 1.00 1.00 #:position 0.50 vpos
+                [(geo? label) (create-dia-node #:type type #false #:fit-ratio 0.90 1.00 #:position 0.50 vpos pipe label)]
+                [else (create-dia-node #:type type #false #:fit-ratio 0.90 1.00 #:position 0.50 vpos
                                        pipe (geo-text maybe-label font #:color text-color))]))
 
         (if (and datum)

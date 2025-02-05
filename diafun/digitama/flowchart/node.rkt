@@ -264,7 +264,7 @@
 
 (define diaflow-block-document : DiaFlow-Block-Create
   (lambda [node-key label style width height direction hint]
-    (define hratio : Nonnegative-Flonum 0.75)
+    (define hratio : Nonnegative-Flonum 0.85)
     (create-dia-node #:id node-key #:type 'Storage hint
                      #:fit-ratio 1.0 hratio
                      #:position 0.5 (* hratio 0.5)

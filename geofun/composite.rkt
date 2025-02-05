@@ -116,6 +116,10 @@
   (λ [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false] . geobjs]
     (geo-rb-superimpose* #:id id #:base-operator base-op #:operator sibs-op geobjs)))
 
+(define geo-rnd-superimpose : (-> [#:id (Option Symbol)] [#:base-operator (Option Geo-Pin-Operator)] [#:operator (Option Geo-Pin-Operator)] Geo * Geo)
+  (λ [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false] . geobjs]
+    (geo-rnd-superimpose* #:id id #:base-operator base-op #:operator sibs-op geobjs)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-lt-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'lt master target)))
 (define geo-ct-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'ct master target)))
