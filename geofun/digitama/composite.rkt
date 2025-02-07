@@ -25,22 +25,23 @@
                            short-path-expr ...)]
                         [else (let-values ([(base anchor) (values (car geobjs) 'tip)]) expr ...)]))
                 ...)))]
-    [(_ frmt #:-> Geo #:with [geobjs extra-args ...]
+    [(_ frmt #:-> Bitmap #:with [bitmaps extra-args ...]
         #:empty blank-expr
         #:config-expr fltr-expr op-expr
-        #:short-path #:for base geo #:if short-path-condition ([(tip) (fshort-path short-path-argv ...)] ...)
-        #:do (fdo argv ...))
+        #:short-path #:for anchor base bmps fltr op #:if short-path-condition ([(tip) short-path-expr ...] ...)
+        #:do expr ...)
      (with-syntax ([(geo-combiner ...)
                     (for/list ([<tip> (in-list (syntax->list #'(tip ...)))])
                       (datum->syntax <tip> (string->symbol (format (syntax-e #'frmt) (syntax-e <tip>)))))])
        (syntax/loc stx
-         (begin (define (geo-combiner [geobjs : (Listof Geo)] extra-args ...) : Geo
-                  (cond [(null? geobjs) blank-expr]
-                        [(null? (cdr geobjs)) (car geobjs)]
-                        [(and short-path-condition (null? (cddr geobjs)))
-                         (let-values ([(base geo) (values (car geobjs) (cadr geobjs))])
-                           (fshort-path fltr-expr op-expr short-path-argv ...))]
-                        [else (let ([base (car geobjs)]) (fdo 'tip fltr-expr op-expr argv ...))]))
+         (begin (define (geo-combiner [bitmaps : (Listof Bitmap)] extra-args ...) : Bitmap
+                  (define-values (fltr op) (values fltr-expr op-expr))
+                  (cond [(null? bitmaps) blank-expr]
+                        [(null? (cdr bitmaps)) (car bitmaps)]
+                        [(and short-path-condition (null? (cddr bitmaps)))
+                         (let-values ([(base bmps) (values (car bitmaps) (cadr bitmaps))])
+                           short-path-expr ...)]
+                        [else (let-values ([(base anchor) (values (car bitmaps) 'tip)]) expr ...)]))
                 ...)))]))
 
 (define-syntax (define-pin stx)

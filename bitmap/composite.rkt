@@ -10,7 +10,16 @@
          (rename-out [bitmap-lt-superimpose bitmap-wn-superimpose] [bitmap-lt-superimpose* bitmap-wn-superimpose*]
                      [bitmap-rt-superimpose bitmap-en-superimpose] [bitmap-rt-superimpose* bitmap-en-superimpose*]
                      [bitmap-lb-superimpose bitmap-ws-superimpose] [bitmap-lb-superimpose* bitmap-ws-superimpose*]
-                     [bitmap-rb-superimpose bitmap-es-superimpose] [bitmap-rb-superimpose* bitmap-es-superimpose*]))
+                     [bitmap-rb-superimpose bitmap-es-superimpose] [bitmap-rb-superimpose* bitmap-es-superimpose*])
+         (rename-out [bitmap-h?-append bitmap-hx-append] [bitmap-h?-append* bitmap-hx-append*]
+                     [bitmap-v?-append bitmap-vx-append] [bitmap-v?-append* bitmap-vx-append*]
+                     [bitmap-l?-superimpose bitmap-lx-superimpose] [bitmap-l?-superimpose* bitmap-lx-superimpose*]
+                     [bitmap-c?-superimpose bitmap-cx-superimpose] [bitmap-c?-superimpose* bitmap-cx-superimpose*]
+                     [bitmap-r?-superimpose bitmap-rx-superimpose] [bitmap-r?-superimpose* bitmap-rx-superimpose*]
+                     [bitmap-?t-superimpose bitmap-xt-superimpose] [bitmap-?t-superimpose* bitmap-xt-superimpose*]
+                     [bitmap-?c-superimpose bitmap-xc-superimpose] [bitmap-?c-superimpose* bitmap-xc-superimpose*]
+                     [bitmap-?b-superimpose bitmap-xb-superimpose] [bitmap-?b-superimpose* bitmap-xb-superimpose*]
+                     [bitmap-??-superimpose bitmap-xx-superimpose] [bitmap-??-superimpose* bitmap-xx-superimpose*]))
 
 (require "constructor.rkt")
 (require "digitama/convert.rkt")
@@ -130,37 +139,45 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-combiner "bitmap-~a-append*" #:-> Bitmap
-  #:with [bitmaps #:filter [fltr : Geo-Pattern-Filter (default-pattern-filter)]
-                  #:operator [op : Geo-Pin-Operator (default-pin-operator)]
+  #:with [bitmaps #:filter [fltr0 : Geo-Pattern-Filter (default-pattern-filter)]
+                  #:operator [op0 : Geo-Pin-Operator (default-pin-operator)]
                   #:gapsize [delta : Real 0.0]]
   #:empty (bitmap-blank)
-  #:config-expr (geo-pattern-filter->integer fltr) (geo-operator->integer op)
-  #:short-path #:for base bmp #:if (zero? delta)
-  ([(vl) (bitmap_pin 0.0 1.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(vc) (bitmap_pin 0.5 1.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(vr) (bitmap_pin 1.0 1.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(ht) (bitmap_pin 1.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(hc) (bitmap_pin 1.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(hb) (bitmap_pin 1.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))])
-  #:do (bitmap_append (bitmap-surface base) (map bitmap-surface (cdr bitmaps))
-                      (real->double-flonum delta) (bitmap-density base)))
+  #:config-expr (geo-pattern-filter->integer fltr0) (geo-operator->integer op0)
+  #:short-path #:for anchor base bmp fltr op #:if (zero? delta)
+  ([(vl) (bitmap_pin fltr op 0.0 1.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(vc) (bitmap_pin fltr op 0.5 1.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(vr) (bitmap_pin fltr op 1.0 1.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(v?) (bitmap_append 'v? fltr op (bitmap-surface base) (map bitmap-surface (cdr bitmaps)) (real->double-flonum delta) (bitmap-density base))]
+   [(ht) (bitmap_pin fltr op 1.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(hc) (bitmap_pin fltr op 1.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(hb) (bitmap_pin fltr op 1.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(h?) (bitmap_append 'h? fltr op (bitmap-surface base) (map bitmap-surface (cdr bitmaps)) (real->double-flonum delta) (bitmap-density base))])
+  #:do (bitmap_append anchor fltr op (bitmap-surface base) (map bitmap-surface (cdr bitmaps)) (real->double-flonum delta) (bitmap-density base)))
 
 (define-combiner "bitmap-~a-superimpose*" #:-> Bitmap
-  #:with [bitmaps #:filter [fltr : Geo-Pattern-Filter (default-pattern-filter)]
-                  #:operator [op : Geo-Pin-Operator (default-pin-operator)]]
+  #:with [bitmaps #:filter [fltr0 : Geo-Pattern-Filter (default-pattern-filter)]
+                  #:operator [op0 : Geo-Pin-Operator (default-pin-operator)]]
   #:empty (bitmap-blank)
-  #:config-expr (geo-pattern-filter->integer fltr) (geo-operator->integer op)
-  #:short-path #:for base bmp #:if #true
-  ([(lt)  (bitmap_pin 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(lc)  (bitmap_pin 0.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(lb)  (bitmap_pin 0.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(ct)  (bitmap_pin 0.5 0.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(cc)  (bitmap_pin 0.5 0.5 0.5 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(cb)  (bitmap_pin 0.5 1.0 0.5 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(rt)  (bitmap_pin 1.0 0.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(rc)  (bitmap_pin 1.0 0.5 1.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
-   [(rb)  (bitmap_pin 1.0 1.0 1.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))])
-  #:do (bitmap_superimpose (map bitmap-surface bitmaps) (bitmap-density base)))
+  #:config-expr (geo-pattern-filter->integer fltr0) (geo-operator->integer op0)
+  #:short-path #:for anchor base bmp fltr op #:if #true
+  ([(lt)  (bitmap_pin fltr op 0.0 0.0 0.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(lc)  (bitmap_pin fltr op 0.0 0.5 0.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(lb)  (bitmap_pin fltr op 0.0 1.0 0.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(ct)  (bitmap_pin fltr op 0.5 0.0 0.5 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(cc)  (bitmap_pin fltr op 0.5 0.5 0.5 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(cb)  (bitmap_pin fltr op 0.5 1.0 0.5 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(rt)  (bitmap_pin fltr op 1.0 0.0 1.0 0.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(rc)  (bitmap_pin fltr op 1.0 0.5 1.0 0.5 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(rb)  (bitmap_pin fltr op 1.0 1.0 1.0 1.0 (bitmap-surface base) (bitmap-surface bmp) (bitmap-density base))]
+   [(l?) (bitmap_superimpose 'l? fltr op (map bitmap-surface bitmaps) (bitmap-density base))]
+   [(c?) (bitmap_superimpose 'c? fltr op (map bitmap-surface bitmaps) (bitmap-density base))]
+   [(r?) (bitmap_superimpose 'r? fltr op (map bitmap-surface bitmaps) (bitmap-density base))]
+   [(?t) (bitmap_superimpose '?t fltr op (map bitmap-surface bitmaps) (bitmap-density base))]
+   [(?c) (bitmap_superimpose '?c fltr op (map bitmap-surface bitmaps) (bitmap-density base))]
+   [(?b) (bitmap_superimpose '?b fltr op (map bitmap-surface bitmaps) (bitmap-density base))]
+   [(??) (bitmap_superimpose '?? fltr op (map bitmap-surface bitmaps) (bitmap-density base))])
+  #:do (bitmap_superimpose anchor fltr op (map bitmap-surface bitmaps) (bitmap-density base)))
 
 (define bitmap-vl-append : (-> [#:operator Geo-Pin-Operator] [#:gapsize Real] Bitmap * Bitmap)
   (λ [#:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . bitmaps]
@@ -174,6 +191,10 @@
   (λ [#:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . bitmaps]
     (bitmap-vr-append* #:operator op #:gapsize delta bitmaps)))
 
+(define bitmap-v?-append : (-> [#:operator Geo-Pin-Operator] [#:gapsize Real] Bitmap * Bitmap)
+  (λ [#:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . bitmaps]
+    (bitmap-v?-append* #:operator op #:gapsize delta bitmaps)))
+
 (define bitmap-ht-append : (-> [#:operator Geo-Pin-Operator] [#:gapsize Real] Bitmap * Bitmap)
   (λ [#:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . bitmaps]
     (bitmap-ht-append* #:operator op #:gapsize delta bitmaps)))
@@ -185,6 +206,10 @@
 (define bitmap-hb-append : (-> [#:operator Geo-Pin-Operator] [#:gapsize Real] Bitmap * Bitmap)
   (λ [#:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . bitmaps]
     (bitmap-hb-append* #:operator op #:gapsize delta bitmaps)))
+
+(define bitmap-h?-append : (-> [#:operator Geo-Pin-Operator] [#:gapsize Real] Bitmap * Bitmap)
+  (λ [#:operator [op (default-pin-operator)] #:gapsize [delta 0.0] . bitmaps]
+    (bitmap-h?-append* #:operator op #:gapsize delta bitmaps)))
 
 (define bitmap-lt-superimpose : (-> [#:operator Geo-Pin-Operator] Bitmap * Bitmap)
   (λ [#:operator [op (default-pin-operator)] . bitmaps]
@@ -221,3 +246,31 @@
 (define bitmap-rb-superimpose : (-> [#:operator Geo-Pin-Operator] Bitmap * Bitmap)
   (λ [#:operator [op (default-pin-operator)] . bitmaps]
     (bitmap-rb-superimpose* #:operator op bitmaps)))
+
+(define bitmap-l?-superimpose : (-> [#:operator Geo-Pin-Operator] Bitmap * Bitmap)
+  (λ [#:operator [op (default-pin-operator)] . bitmaps]
+    (bitmap-l?-superimpose* #:operator op bitmaps)))
+
+(define bitmap-c?-superimpose : (-> [#:operator Geo-Pin-Operator] Bitmap * Bitmap)
+  (λ [#:operator [op (default-pin-operator)] . bitmaps]
+    (bitmap-c?-superimpose* #:operator op bitmaps)))
+
+(define bitmap-r?-superimpose : (-> [#:operator Geo-Pin-Operator] Bitmap * Bitmap)
+  (λ [#:operator [op (default-pin-operator)] . bitmaps]
+    (bitmap-r?-superimpose* #:operator op bitmaps)))
+
+(define bitmap-?t-superimpose : (-> [#:operator Geo-Pin-Operator] Bitmap * Bitmap)
+  (λ [#:operator [op (default-pin-operator)] . bitmaps]
+    (bitmap-?t-superimpose* #:operator op bitmaps)))
+
+(define bitmap-?c-superimpose : (-> [#:operator Geo-Pin-Operator] Bitmap * Bitmap)
+  (λ [#:operator [op (default-pin-operator)] . bitmaps]
+    (bitmap-?c-superimpose* #:operator op bitmaps)))
+
+(define bitmap-?b-superimpose : (-> [#:operator Geo-Pin-Operator] Bitmap * Bitmap)
+  (λ [#:operator [op (default-pin-operator)] . bitmaps]
+    (bitmap-?b-superimpose* #:operator op bitmaps)))
+
+(define bitmap-??-superimpose : (-> [#:operator Geo-Pin-Operator] Bitmap * Bitmap)
+  (λ [#:operator [op (default-pin-operator)] . bitmaps]
+    (bitmap-??-superimpose* #:operator op bitmaps)))

@@ -6,8 +6,8 @@
 (require racket/case)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Pin-Anchor (U 'lt 'lc 'lb 'ct 'cc 'cb 'rt 'rc 'rb 'rnd))
-(define-type Geo-Append-Align (U 'vl 'vc 'vr 'ht 'hc 'hb))
+(define-type Geo-Pin-Anchor (U 'lt 'lc 'lb 'l? 'ct 'cc 'cb 'c? 'rt 'rc 'rb 'r? '?t '?c '?b '??))
+(define-type Geo-Append-Align (U 'vl 'vc 'vr 'v? 'ht 'hc 'hb 'h?))
 
 (define-type (GLayer-Listof G) (Pairof (GLayerof G) (Listof (GLayerof G))))
 
@@ -77,9 +77,10 @@
 (define geo-anchor-merge : (-> Geo-Pin-Anchor Geo-Pin-Anchor Geo-Pin-Anchor)
   (lambda [prow pcol]
     (cond [(eq? prow pcol) prow]
-          [(memq pcol '(lt lc lb)) (case/eq prow [(ct rt) 'lt] [(cc rc) 'lc] [(cb rb) 'lb] [else prow])]
-          [(memq pcol '(ct cc cb)) (case/eq prow [(lt rt) 'ct] [(lc rc) 'cc] [(lb rb) 'cb] [else prow])]
-          [(memq pcol '(rt rc rb)) (case/eq prow [(lt ct) 'rt] [(lc cc) 'rc] [(lb cb) 'rb] [else prow])]
+          [(memq pcol '(lt lc lb l?)) (case/eq prow [(ct rt ?t) 'lt] [(cc rc ?c) 'lc] [(cb rb ?b) 'lb] [else prow])]
+          [(memq pcol '(ct cc cb c?)) (case/eq prow [(lt rt ?t) 'ct] [(lc rc ?c) 'cc] [(lb rb ?b) 'cb] [else prow])]
+          [(memq pcol '(rt rc rb r?)) (case/eq prow [(lt ct ?t) 'rt] [(lc cc ?c) 'rc] [(lb cb ?b) 'rb] [else prow])]
+          [(memq pcol '(?t ?c ?b ??)) (case/eq prow [(lt ct rt) '?t] [(lc cc rc) '?c] [(lb cb rb) '?b] [else prow])]
           [else 'cc])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -115,12 +116,15 @@
              [(lt lc lb) #true]
              [(ct cc cb) #true]
              [(rt rc rb) #true]
-             [(rnd) #true]
-             [else #false])))
+             [else (case/eq v
+                            [(l? c? r?) #true]
+                            [(?t ?c ?b) #true]
+                            [(??) #true]
+                            [else #false])])))
     
 (define geo-append-align? : (-> Any Boolean : Geo-Append-Align)
   (lambda [v]
     (case/eq v
-             [(vl vc vr) #true]
-             [(ht hc hb) #true]
+             [(vl vc vr v?) #true]
+             [(ht hc hb h?) #true]
              [else #false])))

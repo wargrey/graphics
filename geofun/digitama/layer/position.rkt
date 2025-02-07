@@ -29,12 +29,14 @@
     [(alignment width height geo maybe-x maybe-y swidth sheight)
      (define-values (dest-x dest-y)
        (case alignment
-         [(vl) (values 0.0                      maybe-y)]
-         [(vc) (values (* (- width swidth) 0.5) maybe-y)]
-         [(vr) (values (- width swidth)         maybe-y)]
-         [(ht) (values maybe-x                  0.0)]
-         [(hc) (values maybe-x                  (* (- height sheight) 0.5))]
-         [(hb) (values maybe-x                  (- height sheight))]
+         [(vl) (values 0.0                           maybe-y)]
+         [(vc) (values (* (- width swidth) 0.5)      maybe-y)]
+         [(vr) (values (- width swidth)              maybe-y)]
+         [(v?) (values (* (- width swidth) (random)) maybe-y)]
+         [(ht) (values maybe-x                       0.0)]
+         [(hc) (values maybe-x                      (* (- height sheight) 0.5))]
+         [(hb) (values maybe-x                      (- height sheight))]
+         [(h?) (values maybe-x                      (* (- height sheight) (random)))]
          [else #;'deadcode (values maybe-x maybe-y)]))
      (glayer geo dest-x dest-y swidth sheight)]))
 
@@ -57,9 +59,12 @@
      (let*-values ([(rx by) (values (- Width width) (- Height height))]
                    [(cx cy) (values (* rx 0.5)  (* by 0.5))])
        (case anchor
-         [(lt) (values 0.0 0.0)] [(lc) (values 0.0 cy)] [(lb) (values 0.0 by)]
-         [(ct) (values  cx 0.0)] [(cc) (values  cx cy)] [(cb) (values  cx by)]
-         [(rt) (values  rx 0.0)] [(rc) (values  rx cy)] [(rb) (values  rx by)]
+         [(lt) (values 0.0 0.0)] [(lc) (values 0.0 cy)] [(lb) (values 0.0 by)] [(l?) (values 0.0 (* (random) by))]
+         [(ct) (values  cx 0.0)] [(cc) (values  cx cy)] [(cb) (values  cx by)] [(c?) (values  cx (* (random) by))]
+         [(rt) (values  rx 0.0)] [(rc) (values  rx cy)] [(rb) (values  rx by)] [(r?) (values  rx (* (random) by))]
+         [(?t) (values (* (random) rx) 0.0)]
+         [(?c) (values (* (random) rx) cy)]
+         [(?b) (values (* (random) rx) by)]
          [else (values (* (random) rx) (* (random) by))]))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

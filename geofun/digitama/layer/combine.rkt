@@ -88,12 +88,12 @@
                (let*-values ([(sibling rest) (values (car siblings) (cdr siblings))]
                              [(swidth sheight) (geo-flsize sibling)])
                  (case alignment
-                   [(vl vc vr)
+                   [(vl vc vr v?)
                     (let ([delta (+ sheight gapsize)])
                       (compose (cons (glayer sibling x y swidth sheight) sreyal)
                                lx (min ty y) (max rx swidth) (max by (+ y sheight))
                                x (+ y delta) rest))]
-                   [(ht hc hb)
+                   [(ht hc hb h?)
                     (let ([delta (+ swidth gapsize)])
                       (compose (cons (glayer sibling x y swidth sheight) sreyal)
                                (min lx x) ty (max rx (+ x swidth)) (max by sheight)
