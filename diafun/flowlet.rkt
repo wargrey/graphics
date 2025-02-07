@@ -4,6 +4,7 @@
 (provide diaflowlet-node-construct diaflowlet-arrow-identify)
 
 (require racket/symbol)
+(require racket/list)
 
 (require digimon/metrics)
 (require digimon/sequence)
@@ -151,8 +152,9 @@
       
       (assert flowlet dia:flow?))))
 
-(define #:forall (In) dia-flowlet-andmap
+(define #:forall (In) dia-flowlet-join
   (lambda [#:id [id : (Option Symbol) #false]
+           #:and? [and? : Boolean #true]
            #:downward? [downward? : Boolean #false] #:rotate-label? [rotation? : Boolean (not downward?)]
            #:block-width [block-width : Real (default-diaflowlet-block-width)]
            #:block-height [block-height : Real (default-diaflowlet-block-height)]
@@ -186,32 +188,111 @@
                    [default-diaflow-process-stroke-width (if stroke-width (~length stroke-width) ((default-diaflow-process-stroke-width)))]
                    [default-diaflow-storage-font (or node-font ((default-diaflow-storage-font)))]
                    [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
+                   [default-diaflow-selection-block-height (* base-height 0.25)]
                    [default-diaflow-junction-block-height (* base-height 0.25)]
                    [default-diaflow-node-label-string func-descs]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
       (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home))
+      (define symbol-anchor (if and? '=* '-+))
       
       (if (or downward?)
-          (let ([xand (* (sub1 size) xstep 0.5)])
-            (gomamon-jump-to! path (make-rectangular xand (* ystep 2.0)) '=*)
+          (let ([xjoin (* (sub1 size) xstep 0.5)])
+            (gomamon-jump-to! path (make-rectangular xjoin (* ystep 2.0)) symbol-anchor)
             (gomamon-move-down! path (* ystep 0.5) '$)
             (for ([f (in-list funcs)]
                   [in (in-list ins)]
                   [idx (in-naturals)])
               (with-gomamon! path
-                (jump-to (make-rectangular (* idx xstep) 0) (gensym '^))
+                (jump-to (make-rectangular (* idx xstep) 0.0) (diaflowlet-start->anchor idx))
                 (move-down ystep (diaflowlet-function->anchor f) (diaflowlet-input-desc in (vector-ref in-descs idx)))
-                (L-step '=* (diaflowlet-output-desc (vector-ref out-descs idx) f in)))))
-          (let ([yand (* (sub1 size) ystep 0.5)])
-            (gomamon-jump-to! path (make-rectangular (* xstep 2.0) yand) '=*)
+                (L-step symbol-anchor (diaflowlet-output-desc (vector-ref out-descs idx) f in)))))
+          (let ([yjoin (* (sub1 size) ystep 0.5)])
+            (gomamon-jump-to! path (make-rectangular (* xstep 2.0) yjoin) symbol-anchor)
             (gomamon-move-right! path (* xstep 0.5) '$)
             (for ([f (in-list funcs)]
                   [in (in-list ins)]
                   [idx (in-naturals)])
               (with-gomamon! path
-                (jump-to (make-rectangular 0 (* idx ystep)) (gensym '^))
+                (jump-to (make-rectangular 0.0 (* idx ystep)) (diaflowlet-start->anchor idx))
                 (move-right xstep (diaflowlet-function->anchor f) (diaflowlet-input-desc in (vector-ref in-descs idx)))
-                (T-step '=* (diaflowlet-output-desc (vector-ref out-descs idx) f in))))))
+                (T-step symbol-anchor (diaflowlet-output-desc (vector-ref out-descs idx) f in))))))
+          
+      (define flowlet
+        (dia-path-flow path
+                       #:id id #:path-operator path-op #:flow-operator flow-op 
+                       #:border bdr #:background bg #:margin margin #:padding padding
+                       #:λblock block-detect #:λarrow arrow-detect
+                       #:λnode make-node #:λnode-label make-node-label
+                       #:λedge make-edge #:λedge-label make-edge-label))
+      
+      (assert flowlet dia:flow?))))
+
+(define #:forall (In Out) dia-flowlet-fork
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:or? [or? : Boolean #true]
+           #:downward? [downward? : Boolean #false] #:rotate-label? [rotation? : Boolean (not downward?)]
+           #:block-width [block-width : Real (default-diaflowlet-block-width)]
+           #:block-height [block-height : Real (default-diaflowlet-block-height)]
+           #:grid-width [grid-width : Real -0.65] #:grid-height [grid-height : Real -0.65]
+           #:xstep [xstep : Real 1.0] #:ystep [ystep : Real 1.0]
+           #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
+           #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
+           #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
+           #:path-operator [path-op : (Option Geo-Pin-Operator) #false] #:flow-operator [flow-op : (Option Geo-Pin-Operator) #false] 
+           #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
+           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:λblock [block-detect : DiaFlow-Block-Identifier default-diaflow-block-identify]
+           #:λarrow [arrow-detect : DiaFlow-Arrow-Identifier diaflowlet-arrow-identify]
+           #:λnode [make-node : (Option DiaFlow-Id->Node-Shape) diaflowlet-node-construct]
+           #:λnode-label [make-node-label : DiaFlow-Id->Node-Label default-diaflow-node-label-construct]
+           #:λedge [make-edge : DiaFlow-Arrow->Edge default-diaflow-edge-construct]
+           #:λedge-label [make-edge-label : DiaFlow-Arrow->Edge-Label default-diaflow-edge-label-construct]
+           #:input-desc [alt-in : (Option DC-Markup-Text) #false]
+           #:output-desc [alt-out : (Listof (U False DC-Markup-Text (-> Out (U Void DC-Markup-Text)))) null]
+           [f : (-> In Out)] [ins : (Pairof In (Listof In))]] : Dia:Flow
+    (define outs : (Listof (Listof Out)) ((inst group-by Out Out) values (map f ins)))
+    (define size : Index (length outs))
+    (define out-descs (list->n:vector alt-out size #false))
+    (define base-width  (~length block-width  ((default-diaflow-block-width))))
+    (define base-height (~length block-height ((default-diaflow-block-height))))
+    
+    (parameterize ([default-diaflow-block-width  base-width]
+                   [default-diaflow-block-height base-height]
+                   [default-diaflow-process-stroke-width (if stroke-width (~length stroke-width) ((default-diaflow-process-stroke-width)))]
+                   [default-diaflow-storage-font (or node-font ((default-diaflow-storage-font)))]
+                   [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
+                   [default-diaflow-selection-block-height (* base-height 0.25)]
+                   [default-diaflow-junction-block-height (* base-height 0.25)]
+                   [default-diaflow-storage-arrow-label-rotate? rotation?])
+      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home))
+      (define symbol-anchor (if or? '-+ '=*))
+      (define in-ratio (if downward? 1.0 0.85))
+      (define din-ratio (* in-ratio 2.0))
+      (define out-ratio (- 2.5 din-ratio))
+      
+      (if (or downward?)
+          (let ([xfork (* (sub1 size) xstep 0.5)])
+            (gomamon-jump-right! path xfork '^)
+            (gomamon-move-down! path (* xstep in-ratio) (diaflowlet-function->anchor f) alt-in)
+            (gomamon-move-down! path (* xstep in-ratio) symbol-anchor)
+            (for ([out (in-list outs)]
+                  [idx (in-naturals)])
+              (with-gomamon! path
+                (jump-to symbol-anchor)
+                (move-to (make-rectangular (* xstep idx) (* ystep din-ratio)))
+                (move-down (* ystep out-ratio) (diaflowlet-terminal->anchor idx)
+                           (diaflowlet-output-desc (vector-ref out-descs idx) (inst car Out) out)))))
+          (let ([yfork (* (sub1 size) ystep 0.5)])
+            (gomamon-jump-down! path yfork '^)
+            (gomamon-move-right! path (* xstep in-ratio) (diaflowlet-function->anchor f) alt-in)
+            (gomamon-move-right! path (* xstep in-ratio) symbol-anchor)
+            (for ([out (in-list outs)]
+                  [idx (in-naturals)])
+              (with-gomamon! path
+                (jump-to symbol-anchor)
+                (move-to (make-rectangular (* xstep din-ratio) (* idx ystep)))
+                (move-right (* xstep out-ratio) (diaflowlet-terminal->anchor idx)
+                            (diaflowlet-output-desc (vector-ref out-descs idx) (inst car Out) out))))))
           
       (define flowlet
         (dia-path-flow path

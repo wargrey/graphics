@@ -34,7 +34,7 @@
            [(and alt-in) alt-in]
            [else (diaflowlet-input-desc v)])]
     [(v)
-     (pretty-format #:mode 'display
+     (pretty-format #:mode (if (char? v) 'write 'display)
                     (cond [(port? v) (object-name v)]
                           [(void? v) #""]
                           [else v]))]))
@@ -52,6 +52,15 @@
      (cond [(not f) (diaflowlet-output-desc v)]
            [else (diaflowlet-output-desc (f v))])]
     [(v) #;|Yes, reuse the one for input| (diaflowlet-input-desc v)]))
+
+
+(define diaflowlet-start->anchor : (-> Any (U Symbol))
+  (lambda [postfix]
+    (gensym (format "^~a" postfix))))
+
+(define diaflowlet-terminal->anchor : (-> Any (U Symbol))
+  (lambda [prefix]
+    (string->symbol (format "~a$" prefix))))
 
 (define diaflowlet-function->anchor : (-> Any (U Symbol Keyword))
   (lambda [f]
