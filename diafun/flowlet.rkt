@@ -173,7 +173,7 @@
            #:λedge [make-edge : DiaFlow-Arrow->Edge default-diaflow-edge-construct]
            #:λedge-label [make-edge-label : DiaFlow-Arrow->Edge-Label default-diaflow-edge-label-construct]
            #:input-desc [alt-in : (Listof (Option DC-Markup-Text)) null]
-           #:output-desc [alt-out : (Listof (Option DC-Markup-Text)) null]
+           #:output-desc [alt-out : (Listof (U False DC-Markup-Text (-> Any (U Void DC-Markup-Text)))) null]
            [f : (U (-> In Any) (Pairof (-> In Any) (Listof (-> In Any))))] [ins : (Pairof In (Listof In))]] : Dia:Flow
     (define size : Index (length ins))
     (define fs (if (pair? f) (list->n:vector f size) (make-vector size f)))
