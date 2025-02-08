@@ -87,7 +87,9 @@
          (let-values ([(w h) (geo-flsize self)]) (geo-scale self (/ refer (min w h)))))]
     [(self w h)
      (let-values ([(flwidth flheight) (geo-flsize self)])
-       (geo-scale self (/ w flwidth) (/ h flheight)))]))
+       (geo-scale self
+                  (if (zero? w) 1.0 (/ w flwidth))
+                  (if (zero? h) 1.0 (/ h flheight))))]))
 
 (define geo-fit : (case-> [Geo Geo -> Geo]
                           [Geo Nonnegative-Real Nonnegative-Real -> Geo]
@@ -105,7 +107,11 @@
                 (max (- (* flheight (real->double-flonum hratio)) (real->double-flonum hpad)) 0.0)))]
     [(self width height)
      (let-values ([(flwidth flheight) (geo-flsize self)])
-       (geo-scale self
-                  (min (/ (min flwidth  (real->double-flonum width))  flwidth)
-                       (/ (min flheight (real->double-flonum height)) flheight))))]))
+       (cond [(and (positive? width) (positive? height))
+              (geo-scale self
+                         (min (/ (min flwidth  (real->double-flonum width))  flwidth)
+                              (/ (min flheight (real->double-flonum height)) flheight)))]
+             [(positive? width)  (geo-scale self (/ (min flwidth  (real->double-flonum width))  flwidth))]
+             [(positive? height) (geo-scale self (/ (min flheight (real->double-flonum height)) flheight))]
+             [else self]))]))
     

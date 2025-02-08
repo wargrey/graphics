@@ -36,6 +36,7 @@
     [(v)
      (pretty-format #:mode (if (char? v) 'write 'display)
                     (cond [(port? v) (object-name v)]
+                          [(eof-object? v) #"<eof>"]
                           [(void? v) #""]
                           [else v]))]))
 
@@ -108,7 +109,9 @@
     (case/eq (object-name style)
              [(diaflow-process-style) (diaflowlet-block-process  id label style width height direction hint)]
              [(diaflow-start-style)   (diaflowlet-block-terminal id label style width height direction hint)]
-             [(diaflow-stop-style)    (diaflowlet-block-terminal id label style width height direction hint)])))
+             [(diaflow-stop-style)    (diaflowlet-block-terminal id label style width height direction hint)]
+             [(diaflow-storage-style) (when (eq? hint 'File)
+                                        (diaflowlet-block-document id label style width height direction hint))])))
 
 (define diaflowlet-arrow-identify : DiaFlow-Arrow-Identifier
   (lambda [source target labels]
@@ -131,3 +134,17 @@
   (lambda [id label style width height direction hint]
     (create-dia-node #:id id #:type 'Storage #false
                      diaflowlet-blank #false)))
+
+(define diaflowlet-block-document : DiaFlow-Block-Create
+  (lambda [node-key label style width height direction hint]
+    (define hratio : Nonnegative-Flonum 0.85)
+    (define xpos : Nonnegative-Flonum (max (* (/ (default-dia-node-margin) width)  0.5) 0.0))
+    (define ypos : Nonnegative-Flonum (max (* (/ (default-dia-node-margin) height) 0.5) 0.0))
+    (create-dia-node #:id node-key #:type 'Storage hint
+                     #:fit-ratio 1.0 hratio
+                     #:position xpos ypos 0.0 0.0
+                     (geo-document #:id (dia-node-shape-id node-key)
+                                   #:stroke (dia-node-select-stroke-paint style)
+                                   #:fill (dia-node-select-fill-paint style)
+                                   width height (* (- hratio 1.0) 0.5))
+                     label)))

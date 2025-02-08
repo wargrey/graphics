@@ -15,14 +15,16 @@
 (require geofun/digitama/dc/composite)
 
 (require "flowchart.rkt")
+(require "digitama/node/style.rkt")
 (require "digitama/flowchart/flowlet.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflowlet-block-width : (Parameterof Nonnegative-Flonum) (make-parameter 150.0))
 (define default-diaflowlet-block-height : (Parameterof Nonnegative-Flonum) (make-parameter (* (default-diaflowlet-block-width) 0.50)))
 
-(define default-diaflowlet-node-font : (Parameterof Font) (make-parameter (desc-font #:family 'math #:size 'xx-large)))
-(define default-diaflowlet-edge-font : (Parameterof Font) (make-parameter (desc-font #:family 'math #:size 'x-large)))
+(define default-diaflowlet-node-font : (Parameterof Font) (make-parameter (desc-font #:family 'math      #:size 'xx-large)))
+(define default-diaflowlet-edge-font : (Parameterof Font) (make-parameter (desc-font #:family 'math      #:size 'x-large)))
+(define default-diaflowlet-file-font : (Parameterof Font) (make-parameter (desc-font #:family 'monospace #:size 'xx-large)))
 (define default-diaflowlet-stroke-thickness : (Parameterof Nonnegative-Flonum) (make-parameter 1.5))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -36,6 +38,7 @@
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
            #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
            #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
+           #:file-font [file-font : (Option Font) (default-diaflowlet-file-font)]
            #:path-operator [path-op : (Option Geo-Pin-Operator) #false] #:flow-operator [flow-op : (Option Geo-Pin-Operator) #false] 
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
@@ -60,10 +63,12 @@
                    [default-diaflow-process-stroke-width (if stroke-width (~length stroke-width) ((default-diaflow-process-stroke-width)))]
                    [default-diaflow-storage-block-width  (* base-height 0.80)]
                    [default-diaflow-storage-block-height (* base-height 0.618)]
-                   [default-diaflow-storage-font (or node-font ((default-diaflow-storage-font)))]
+                   [default-diaflow-storage-font (or file-font ((default-diaflow-storage-font)))]
                    [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
                    [default-diaflow-node-label-string diaflowlet-node-label-string]
-                   [default-diaflow-storage-arrow-label-rotate? rotation?])
+                   [default-diaflow-storage-arrow-label-rotate? rotation?]
+                   [default-dia-node-text-alignment 'left]
+                   [default-dia-node-text-trim? #false])
       (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home))
 
       (if (or downward?)

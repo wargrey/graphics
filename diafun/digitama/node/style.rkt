@@ -6,6 +6,7 @@
 
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/dc/text)
+(require geofun/digitama/unsafe/dc/text-layout)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/source)
@@ -49,6 +50,8 @@
     (dia-node-base-style 0.0 0.0 #false #false (void) (void))))
 
 (define default-dia-node-margin : (Parameterof Nonnegative-Flonum) (make-parameter 8.0))
+(define default-dia-node-text-alignment : (Parameterof Geo-Text-Alignment) (make-parameter 'center))
+(define default-dia-node-text-trim? : (Parameterof Boolean) (make-parameter #true))
 (define default-dia-node-base-style : (Parameterof (-> Dia-Node-Base-Style)) (make-parameter make-null-node-style))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -66,11 +69,11 @@
 
     (define font : (Option Font) (or maybe-font (dia-node-base-style-font fallback-style)))
     (define paint : Option-Fill-Paint (or maybe-paint (dia-node-base-style-font-paint fallback-style)))
-    (define text : String (string-trim desc))
+    (define text : String (if (default-dia-node-text-trim?) (string-trim desc) desc))
     (define text-id : Symbol (or alt-id (dia-node-label-id anchor)))
     
     (and (non-empty-string? text)
-         (geo-markup #:id text-id #:color paint #:alignment 'center
+         (geo-markup #:id text-id #:color paint #:alignment (default-dia-node-text-alignment)
                      #:error-color 'GhostWhite #:error-background 'Firebrick
                      text font))))
 
