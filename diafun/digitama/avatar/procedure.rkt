@@ -63,16 +63,16 @@
     (define geo-procedure-pipe : (-> Avatar-Procedure-Label Symbol Nonnegative-Flonum Any Geo)
       (lambda [maybe-label type vpos value]
         (define label (avatar-caption maybe-label em font text-color))
-        (define datum (and value (if (geo? value) value (geo-text value font #:color datum-color))))
+        (define datum (and value (if (geo? value) value (geo-text value font #:color datum-color #:alignment 'center))))
         (define fill-color (iofill-color (if (procedure? maybe-label) label maybe-label)))
         (define iobox (geo-sandglass io:width io:height #:neck-width -0.32 #:neck-height (* b:height 3.0) #:fill fill-color #:stroke border))
         (define pipe ((if (eq? type 'Input) geo-ct-crop geo-cb-crop) iobox io:width (* io:height 0.5)))
 
         (define port
           (cond [(not label) pipe]
-                [(geo? label) (create-dia-node #:type type #false #:fit-ratio 0.90 1.00 #:position 0.50 vpos pipe label)]
-                [else (create-dia-node #:type type #false #:fit-ratio 0.90 1.00 #:position 0.50 vpos
-                                       pipe (geo-text maybe-label font #:color text-color))]))
+                [(geo? label) (create-dia-node #:type type #false #:fit-ratio 0.75 0.85 #:position 0.5 vpos pipe label)]
+                [else (create-dia-node #:type type #false #:fit-ratio 0.75 0.85 #:position 0.5 vpos
+                                       pipe (geo-text maybe-label font #:color text-color #:alignment 'center))]))
 
         (if (and datum)
             (let ([s (min 1.0 (/ v:width (geo-width datum)))])
@@ -134,10 +134,10 @@
     (cond [(not desc) #false]
           [(geo? desc) desc]
           [(procedure? desc) (desc em)]
-          [(string? desc) (geo-text desc font #:color fgcolor)]
-          [(symbol? desc) (geo-text (format " ~a " desc) font #:color fgcolor #:id desc)]
+          [(string? desc) (geo-text desc font #:color fgcolor #:alignment 'center)]
+          [(symbol? desc) (geo-text (format " ~a " desc) font #:color fgcolor #:id desc #:alignment 'center)]
           [(not (keyword? desc)) (geo-markup desc font #:color fgcolor #:error-color 'Crimson)]
-          [else (geo-text #:color fgcolor #:id (string->symbol (keyword->immutable-string desc))
+          [else (geo-text #:color fgcolor #:id (string->symbol (keyword->immutable-string desc)) #:alignment 'center
                           (format " ~a " desc) font)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

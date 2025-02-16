@@ -36,7 +36,6 @@
     [(v)
      (pretty-format #:mode (if (char? v) 'write 'display)
                     (cond [(port? v) (object-name v)]
-                          [(eof-object? v) #"<eof>"]
                           [(void? v) #""]
                           [else v]))]))
 
@@ -75,7 +74,7 @@
     (define body (peek-string amount 0 in))
     
     (string->keyword
-     (cond [(eof-object? body) (string-append "/doc/" diaflow-delim "<eof>" (symbol->immutable-string (gensym diaflow-delim)))]
+     (cond [(eof-object? body) (string-append "/doc/" diaflow-delim "#<eof>" (symbol->immutable-string (gensym diaflow-delim)))]
            [(eof-object? (peek-byte in amount)) (string-append "/doc/"  body)]
            [else (string-append "/doc/" diaflow-delim body "..." (symbol->immutable-string (gensym diaflow-delim)))]))))
 
