@@ -70,10 +70,14 @@
         (define pipe ((if (eq? type 'Input) geo-ct-crop geo-cb-crop) iobox io:width (* io:height 0.5)))
 
         (define port
-          (cond [(not label) pipe]
-                [(geo? label) (create-dia-node #:type type #false #:fit-ratio 0.75 0.85 #:position 0.5 vpos pipe label)]
-                [else (create-dia-node #:type type #false #:fit-ratio 0.75 0.85 #:position 0.5 vpos
-                                       pipe (geo-text maybe-label font #:color text-color #:alignment 'center))]))
+          (if (and label)
+              (create-dia-node #:type type #false
+                               #:fit-ratio 0.65 0.85
+                               #:position 0.5 vpos
+                               pipe (cond [(geo? label) label]
+                                          [else (geo-text #:color text-color #:alignment 'center
+                                                          maybe-label font)]))
+              pipe))
 
         (if (and datum)
             (let ([s (min 1.0 (/ v:width (geo-width datum)))])
@@ -95,7 +99,7 @@
          (geo-hb-append* #:gapsize io:gapsize
                          (for/list : (Listof Geo) ([in (in-list is)]
                                                    [idx (in-naturals 0)])
-                           (geo-procedure-pipe in 'Input 0.45
+                           (geo-procedure-pipe in 'Input 0.42
                                                (and (< idx boundary)
                                                     (list-ref args idx))))))))
     
