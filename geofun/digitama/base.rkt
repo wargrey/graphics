@@ -7,7 +7,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Color (U Symbol Real Keyword FlColor))
-(define-type Stroke-Dash-Datum (U Symbol (Vectorof Nonnegative-Flonum)))
+(define-type Stroke-Dash-Datum (U (U 'solid 'dot 'dot-dash 'short-dash 'long-dash) (Vectorof Nonnegative-Flonum)))
 
 (struct paint () #:transparent #:type-name Paint)
 (struct flcolor () #:transparent #:type-name FlColor)

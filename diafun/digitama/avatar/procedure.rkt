@@ -13,7 +13,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Avatar-Procedure-Label-Datum (U False String Symbol PExpr-Element Keyword Geo))
 (define-type Avatar-Procedure-Label (U Avatar-Procedure-Label-Datum (-> Nonnegative-Flonum Geo)))
-(define-type Avatar-Procedure-IO-Fill (-> Avatar-Procedure-Label-Datum Fill-Paint))
+(define-type Avatar-Procedure-IO-Fill (-> Avatar-Procedure-Label-Datum Symbol Fill-Paint))
 
 (define default-procedure-font : (Parameterof Font) (make-parameter (desc-font #:family 'math #:size 48)))
 (define default-procedure-border : (Parameterof Stroke) (make-parameter (desc-stroke #:color 'GhostWhite #:width 2.0)))
@@ -22,7 +22,7 @@
 (define default-procedure-datum-color : (Parameterof Color) (make-parameter 'DimGrey))
 
 (define default-procedure-iofill : (Parameterof Avatar-Procedure-IO-Fill)
-  (make-parameter (λ [[label : Avatar-Procedure-Label-Datum]] : Fill-Paint
+  (make-parameter (λ [[label : Avatar-Procedure-Label-Datum] [type : Symbol]] : Fill-Paint
                     (let label->fill ([lbl : Avatar-Procedure-Label-Datum label])
                       (cond [(or (not lbl) (eq? lbl '||) (eq? lbl '#:||)) (default-procedure-body-fill)]
                             [(geo? lbl) (label->fill (geo-id lbl))]
@@ -63,8 +63,8 @@
     (define geo-procedure-pipe : (-> Avatar-Procedure-Label Symbol Nonnegative-Flonum Any Geo)
       (lambda [maybe-label type vpos value]
         (define label (avatar-caption maybe-label em font text-color))
-        (define datum (and value (if (geo? value) value (geo-text value font #:color datum-color #:alignment 'center))))
-        (define fill-color (iofill-color (if (procedure? maybe-label) label maybe-label)))
+        (define datum (and value (if (geo? value) value (geo-text (if (procedure? value) (object-name value) value) font #:color datum-color #:alignment 'center))))
+        (define fill-color (iofill-color (if (procedure? maybe-label) label maybe-label) type))
         (define iobox (geo-sandglass io:width io:height #:neck-width -0.32 #:neck-height (* b:height 3.0) #:fill fill-color #:stroke border))
         (define pipe ((if (eq? type 'Input) geo-ct-crop geo-cb-crop) iobox io:width (* io:height 0.5)))
 
