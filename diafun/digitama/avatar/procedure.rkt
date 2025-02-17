@@ -35,7 +35,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-procedure
-  (lambda [#:min-width [min-width : Real 0.0] #:min-height [min-height : Real 0.0] #:io-width [io-width : Real -1.618]
+  (lambda [#:min-width [min-width : Real 0.0] #:min-height [min-height : Real 0.0]
+           #:io-width [io-width : Real -1.618] #:io-datum-width [iov-width : Real -0.95]
            #:font [font : Font (default-procedure-font)]
            #:text-color [text-color : Color (default-procedure-text-color)]
            #:datum-color [datum-color : Color (default-procedure-datum-color)]
@@ -53,9 +54,9 @@
     (define em : Nonnegative-Flonum (font-metrics-ref font 'em))
     (define b:height : Nonnegative-Flonum (stroke-width border))
     (define io:width : Nonnegative-Flonum (let ([w (real->double-flonum io-width)]) (cond [(> w 0.0) w] [(< w 0.0) (* em (- w))] [else (* em 1.618)])))
+    (define v:width : Nonnegative-Flonum (let ([w (real->double-flonum iov-width)]) (cond [(> w 0.0) w] [(< w 0.0) (* io:width (- w))] [else io:width])))
     (define io:height : Nonnegative-Flonum (* io:width 1.618))
     (define io:gapsize : Nonnegative-Flonum (* em 0.618))
-    (define v:width : Nonnegative-Flonum (* io:width 0.95))
     (define v:gapsize : Nonnegative-Flonum (* em 0.0618))
     (define icount : Index (length is))
     (define ocount : Index (if (list? os) (length os) 1))
