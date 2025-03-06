@@ -231,12 +231,3 @@
                            delta-origin xtick-digits ytick-digits
                            dot->pos)))
   
-(plot-cartesian #:xtick-range (cons 0 9) #:ytick-range (cons 0 9) #:tick-digit-position -0.382
-                360 0.0)
-
-(plot-cartesian #:xtick-range (cons -5 4) #:ytick-range (cons -5 4) #:tick-digit-position +0.382
-                360 0.5+0.5i)
-
-(plot-cartesian #:xtick-range (cons -5 4) #:ytick-range (cons -5 4) #:tick-digit-position -0.618-384i
-                360 0.5+0.5i)
-
