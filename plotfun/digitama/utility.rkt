@@ -30,3 +30,28 @@
                                    (pseudo-sort (min left head)
                                                 (max right head)
                                                 tail))])))])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (T) plot-cartesian-settings : (case-> [Complex -> (Values Flonum Flonum)]
+                                                       [Complex (-> Real T) -> (Values T T)])
+  (case-lambda
+    [(config) (plot-cartesian-settings config real->double-flonum)]
+    [(config real->datum)
+     (define x (real->datum (real-part config)))
+     (define y (if (real? config) x (real->datum (imag-part config))))
+     
+     (values x y)]))
+
+(define #:forall (T) plot-cartesian-settings* : (case-> [Complex (case-> [Real -> T] [Real T -> T]) -> (Values T T)]
+                                                        [Complex (-> Real T T) T -> (Values T T)])
+  (case-lambda
+    [(config real->datum)
+     (define x (real->datum (real-part config)))
+     (define y (if (real? config) x (real->datum (imag-part config) x)))
+     
+     (values x y)]
+    [(config real->datum 100%)
+     (define x (real->datum (real-part config) 100%))
+     (define y (if (real? config) x (real->datum (imag-part config) 100%)))
+     
+     (values x y)]))

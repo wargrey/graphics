@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require racket/math)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Point2D (U Complex (Pairof Real Real) (List Real Real)))
 
@@ -29,10 +31,11 @@
              (let*-values ([(self rest) (values (car dots) (cdr dots))]
                            [(x0 y0) (point2d-values self)]
                            [(x y) (values (+ (* x0 afx) xoff) (+ (* y0 afy) yoff))])
-               (normalize rest
-                          (cons (make-rectangular x y) stod)
-                          (min lx x) (min ty y)
-                          (max rx x) (max by y)))]
+               (if (or (nan? x) (nan? y))
+                   (normalize rest (cons +nan.0+nan.0i stod)
+                              lx ty rx by)
+                   (normalize rest (cons (make-rectangular x y) stod)
+                              (min lx x) (min ty y) (max rx x) (max by y))))]
             [(or xflip? yflip?)
              (let flip ([stod : (Listof Float-Complex) stod]
                         [dots : (Listof Float-Complex) null])
@@ -51,14 +54,14 @@
   (lambda [dt]
     (cond [(real? dt) (values (real->double-flonum dt) 0.0)]
           [(list? dt) (values (real->double-flonum (car dt)) (real->double-flonum (cadr dt)))]
-          [(pair? dt) (values (real->double-flonum (car dt)) (real->double-flonum (cdr dt)))]
+          [(pair? dt) (values (real->double-flonum (car dt)) (real->double-flonum  (cdr dt)))]
           [else (values (real->double-flonum (real-part dt)) (real->double-flonum (imag-part dt)))])))
 
 (define point2d-scale-values : (-> Point2D (Values Flonum Flonum))
   (lambda [st]
     (define-values (sx0 sy0) (point2d-values st))
     (define sx (if (= sx0 0.0) 1.0 sx0))
-    (define sy (if (= sy0 0.0) sx sy0))
+    (define sy (if (= sy0 0.0)  sx sy0))
 
     (values sx sy)))
 

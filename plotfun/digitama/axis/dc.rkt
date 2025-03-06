@@ -17,7 +17,7 @@
 (require "interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-plot-axis-real-dot-radius : (Parameterof Real) (make-parameter -0.05))
+(define default-plot-axis-datum-dot-radius : (Parameterof Real) (make-parameter -0.05))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-plot-axis-digit->sticker : Plot-Axis-Digit->Sticker
@@ -34,15 +34,15 @@
 (define default-plot-axis-real->dot : Plot-Axis-Real->Dot
   (lambda [id real datum flunit color]
     (geo-circle #:fill color #:stroke #false
-                (~length (default-plot-axis-real-dot-radius) flunit))))
+                (~length (default-plot-axis-datum-dot-radius) flunit))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-sticker-cons : (-> (U Geo Void False) Geo-Pin-Anchor Float-Complex Float-Complex (Listof (GLayerof Geo))
-                                     Nonnegative-Flonum Nonnegative-Flonum
+                                     Flonum (-> Float-Complex Flonum) Flonum
                                      (Option (Pairof Geo Geo-Pin-Anchor))
                                      (Listof (GLayerof Geo)))
-  (lambda [sticker anchor pos offset digits tick-min tick-max maybe-tick]
-    (if (and (geo? sticker) (<= tick-min (real-part pos) tick-max))
+  (lambda [sticker anchor pos offset digits tick-min part tick-max maybe-tick]
+    (if (and (geo? sticker) (<= tick-min (part (+ pos offset)) tick-max))
         (cons (geo-own-pin-layer anchor pos sticker offset)
               (cond [(not maybe-tick) digits]
                     [else (cons (geo-own-pin-layer (cdr maybe-tick) pos

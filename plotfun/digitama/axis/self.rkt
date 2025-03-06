@@ -5,10 +5,26 @@
 (require geofun/digitama/dc/composite)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Plot-Axis-Position-Map (-> Flonum Float-Complex))
+
+(define-type Plot-Cartesian-Position-Map
+  (case-> [Flonum Flonum -> Float-Complex]
+          [Float-Complex -> Float-Complex]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot:axis geo:group
   ([origin : Float-Complex]
-   [tick-digits : (Listof Integer)])
+   [tick-digits : (Listof Integer)]
+   [map : Plot-Axis-Position-Map])
   #:type-name Plot:Axis
+  #:transparent)
+
+(struct plot:cartesian geo:group
+  ([origin : Float-Complex]
+   [xtick-digits : (Listof Integer)]
+   [ytick-digits : (Listof Integer)]
+   [map : Plot-Cartesian-Position-Map])
+  #:type-name Plot:Cartesian
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

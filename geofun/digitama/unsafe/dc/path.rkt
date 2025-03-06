@@ -2,12 +2,16 @@
 
 (provide (all-defined-out))
 
+(require racket/math)
+
 (require "../../base.rkt")
 (require "../../geometry/footprint.rkt")
 
 (require "../paint.rkt")
 (require "../source.rkt")
+
 (require "../typed/cairo.rkt")
+(require "../typed/more.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_path : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Paint) (Option Fill-Source) Fill-Rule Any)
@@ -18,7 +22,7 @@
 (define dc_polyline : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) Paint Boolean Any)
   (lambda [cr x0 y0 flwidth flheight vertices stroke close?]
     (cairo_new_path cr)
-    (cairo_simple_path cr vertices x0 y0)
+    (cairo_simple_path cr vertices x0 y0 #false)
 
     (when (and close?)
       (cairo_close_path cr))
@@ -28,10 +32,9 @@
 (define dc_polygon : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) (Option Paint) (Option Fill-Source) Fill-Rule Any)
   (lambda [cr x0 y0 flwidth flheight vertices stroke background fill-rule]
     (cairo_new_path cr)
-    (cairo_simple_path cr vertices x0 y0)
+    (cairo_simple_path cr vertices x0 y0 #true)
     (cairo_close_path cr)
     (cairo-render cr stroke background fill-rule)))
-
 
 (define dc_polyline* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints Paint Boolean Any)
   (lambda [cr x0 y0 flwidth flheight footprints stroke close?]
@@ -51,18 +54,17 @@
     (cairo-render cr stroke background fill-rule)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define cairo_simple_path : (-> Cairo-Ctx (Listof Float-Complex) Flonum Flonum Void)
-  (lambda [cr vertices dx dy]
+(define cairo_simple_path : (-> Cairo-Ctx (Listof Float-Complex) Flonum Flonum Boolean Void)
+  (lambda [cr vertices dx dy ignore-nan?]
     (when (pair? vertices)
       (cairo_translate cr dx dy)
-      (cairo_move_to cr (real-part (car vertices)) (imag-part (car vertices)))
       
-      (let draw_path : Void ([prints (cdr vertices)])
-        (when (pair? prints)
-          (define self (car prints))
-          
-          (cairo_line_to cr (real-part self) (imag-part self))
-          (draw_path (cdr prints)))))))
+      (for ([pt (in-list vertices)])
+        (define x (real-part pt))
+        (define y (imag-part pt))
+
+        (cond [(not (or (nan? x) (nan? y))) (cairo_line_to cr (real-part pt) (imag-part pt))]
+              [(not ignore-nan?) (cairo_new_sub_path cr)])))))
 
 (define cairo_path : (-> Cairo-Ctx Geo-Path-Prints Flonum Flonum Void)
   (lambda [cr footprints dx dy]

@@ -77,10 +77,10 @@
 (define geo-anchor-merge : (-> Geo-Pin-Anchor Geo-Pin-Anchor Geo-Pin-Anchor)
   (lambda [prow pcol]
     (cond [(eq? prow pcol) prow]
-          [(memq pcol '(lt lc lb l?)) (case/eq prow [(ct rt ?t) 'lt] [(cc rc ?c) 'lc] [(cb rb ?b) 'lb] [else prow])]
-          [(memq pcol '(ct cc cb c?)) (case/eq prow [(lt rt ?t) 'ct] [(lc rc ?c) 'cc] [(lb rb ?b) 'cb] [else prow])]
-          [(memq pcol '(rt rc rb r?)) (case/eq prow [(lt ct ?t) 'rt] [(lc cc ?c) 'rc] [(lb cb ?b) 'rb] [else prow])]
-          [(memq pcol '(?t ?c ?b ??)) (case/eq prow [(lt ct rt) '?t] [(lc cc rc) '?c] [(lb cb rb) '?b] [else prow])]
+          [(memq pcol '(lt lc lb l?)) (case/eq prow [(lt ct rt ?t) 'lt] [(lc cc rc ?c) 'lc] [(lb cb rb ?b) 'lb] [else 'l?])]
+          [(memq pcol '(ct cc cb c?)) (case/eq prow [(lt ct rt ?t) 'ct] [(lc cc rc ?c) 'cc] [(lb cb rb ?b) 'cb] [else 'c?])]
+          [(memq pcol '(rt rc rb r?)) (case/eq prow [(lt ct rt ?t) 'rt] [(lc cc rc ?c) 'rc] [(lb cb rb ?b) 'rb] [else 'r?])]
+          [(memq pcol '(?t ?c ?b ??)) (case/eq prow [(lt ct rt ?t) '?t] [(lc cc rc ?c) '?c] [(lb cb rb ?b) '?b] [else '??])]
           [else 'cc])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -11,20 +11,24 @@
 (require "../node/dc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Avatar-Procedure-Label-Datum (U False String Symbol PExpr-Element Keyword Geo))
-(define-type Avatar-Procedure-Label (U Avatar-Procedure-Label-Datum (-> Nonnegative-Flonum Geo)))
-(define-type Avatar-Procedure-IO-Fill (-> Avatar-Procedure-Label-Datum Symbol Fill-Paint))
+(define-type Dia-Procedure-Label-Datum (U False Void String Symbol PExpr-Element Keyword Geo))
+(define-type Dia-Procedure-Label (U Dia-Procedure-Label-Datum (-> Nonnegative-Flonum Geo)))
+(define-type Dia-Procedure-IO-Fill (-> Dia-Procedure-Label-Datum Symbol Fill-Paint))
 
-(define default-procedure-font : (Parameterof Font) (make-parameter (desc-font #:family 'math #:size 48)))
+(define default-procedure-label-font : (Parameterof Font) (make-parameter (desc-font #:family 'math #:size 48)))
+(define default-procedure-datum-font : (Parameterof Font) (make-parameter (desc-font #:family 'monospace #:size 48)))
+(define default-procedure-input-format : (Parameterof String) (make-parameter "~a"))
+(define default-procedure-output-format : (Parameterof String) (make-parameter "~a"))
+
 (define default-procedure-border : (Parameterof Stroke) (make-parameter (desc-stroke #:color 'GhostWhite #:width 2.0)))
 (define default-procedure-body-fill : (Parameterof Fill-Paint) (make-parameter 'DimGrey))
 (define default-procedure-text-color : (Parameterof Color) (make-parameter 'LightCyan))
 (define default-procedure-datum-color : (Parameterof Color) (make-parameter 'DimGrey))
 
-(define default-procedure-iofill : (Parameterof Avatar-Procedure-IO-Fill)
-  (make-parameter (λ [[label : Avatar-Procedure-Label-Datum] [type : Symbol]] : Fill-Paint
-                    (let label->fill ([lbl : Avatar-Procedure-Label-Datum label])
-                      (cond [(or (not lbl) (eq? lbl '||) (eq? lbl '#:||)) (default-procedure-body-fill)]
+(define default-procedure-iofill : (Parameterof Dia-Procedure-IO-Fill)
+  (make-parameter (λ [[label : Dia-Procedure-Label-Datum] [type : Symbol]] : Fill-Paint
+                    (let label->fill ([lbl : Dia-Procedure-Label-Datum label])
+                      (cond [(or (not lbl) (eq? lbl '||) (eq? lbl '#:||) (void? lbl)) (default-procedure-body-fill)]
                             [(geo? lbl) (label->fill (geo-id lbl))]
                             [else (let ([label (cond [(symbol? lbl)  (string->bytes/utf-8 (symbol->immutable-string lbl))]
                                                      [(keyword? lbl) (string->bytes/utf-8 (keyword->immutable-string lbl))]
@@ -37,43 +41,59 @@
 (define dia-procedure
   (lambda [#:min-width [min-width : Real 0.0] #:min-height [min-height : Real 0.0]
            #:io-width [io-width : Real -1.618] #:io-datum-width [iov-width : Real -0.95]
-           #:font [font : Font (default-procedure-font)]
+           #:label-font [label-font : Font (default-procedure-label-font)]
+           #:datum-font [datum-font : Font (default-procedure-datum-font)]
            #:text-color [text-color : Color (default-procedure-text-color)]
            #:datum-color [datum-color : Color (default-procedure-datum-color)]
-           #:iofill [iofill-color : Avatar-Procedure-IO-Fill (default-procedure-iofill)]
+           #:data-append [data-append* : (Option (-> (Listof Geo) [#:gapsize Real] Geo)) geo-vc-append*]
+           #:data-gapsize [gapsize : Real 0.0]
+           #:input-format [input-format : String (default-procedure-input-format)]
+           #:output-format [output-format : String (default-procedure-output-format)]
+           #:iofill [iofill-color : Dia-Procedure-IO-Fill (default-procedure-iofill)]
            #:border [border : Stroke (default-procedure-border)]
            #:body-operator [body-op : (Option Geo-Pin-Operator) 'over]
            #:body-fill [b:fill : Fill-Paint (default-procedure-body-fill)]
            #:body-position [body-pos : Complex 0.5]
            #:corner-radius [cr : Real -0.125]
-           [desc : Avatar-Procedure-Label]
-           [is : (Listof Avatar-Procedure-Label)]
-           [os : (U Avatar-Procedure-Label (Listof Avatar-Procedure-Label)) null]
-           [args : (Listof Any) null]
+           [desc : Dia-Procedure-Label]
+           [is : (U (Listof Dia-Procedure-Label) (Immutable-Vectorof Dia-Procedure-Label)) null]
+           [opt-os : (U Null Dia-Procedure-Label (Immutable-Vectorof Dia-Procedure-Label)) null]
+           [args : (U (Listof Any) (Vectorof Any)) null]
            . [results : Any *]] : Geo
-    (define em : Nonnegative-Flonum (font-metrics-ref font 'em))
-    (define b:height : Nonnegative-Flonum (stroke-width border))
+    (define em : Nonnegative-Flonum (font-metrics-ref label-font 'em))
     (define io:width : Nonnegative-Flonum (let ([w (real->double-flonum io-width)]) (cond [(> w 0.0) w] [(< w 0.0) (* em (- w))] [else (* em 1.618)])))
     (define v:width : Nonnegative-Flonum (let ([w (real->double-flonum iov-width)]) (cond [(> w 0.0) w] [(< w 0.0) (* io:width (- w))] [else io:width])))
+    (define b:height : Nonnegative-Flonum (stroke-width border))
     (define io:height : Nonnegative-Flonum (* io:width 1.618))
     (define io:gapsize : Nonnegative-Flonum (* em 0.618))
     (define v:gapsize : Nonnegative-Flonum (* em 0.0618))
-    (define icount : Index (length is))
-    (define ocount : Index (if (list? os) (length os) 1))
     
-    (define geo-procedure-pipe : (-> Avatar-Procedure-Label Symbol Nonnegative-Flonum Any Geo)
-      (lambda [maybe-label type vpos value]
-        (define label (avatar-caption maybe-label em font text-color))
+    (define os : (Immutable-Vectorof Dia-Procedure-Label) (cond [(vector? opt-os) opt-os] [(null? opt-os) (vector-immutable)] [else (vector-immutable opt-os)]))
+    (define icount : Index (if (list? is) (length is) (vector-length is)))
+    (define ocount : Index (vector-length os))
+
+    (define dia-procedure-datum : (case-> [Any True  String -> Geo]
+                                          [Any False String -> (Option Geo)])
+      (lambda [v allow-void? fmt]
+        (cond [(geo? v) v]
+              [(procedure? v) (geo-text (object-name v) datum-font #:color datum-color #:alignment 'center)]
+              [(or allow-void? (not (void? v))) (geo-text (format fmt v) datum-font #:color datum-color #:alignment 'center)]
+              [else #false])))
+    
+    (define dia-procedure-pipe : (-> Dia-Procedure-Label Symbol Nonnegative-Flonum String Any Geo)
+      (lambda [maybe-label type vpos fmt value]
+        (define label (dia-procedure-caption maybe-label em label-font text-color))
         (define fill-color (iofill-color (if (procedure? maybe-label) label maybe-label) type))
         (define iobox (geo-sandglass io:width io:height #:neck-width -0.32 #:neck-height (* b:height 3.0) #:fill fill-color #:stroke border))
         (define pipe ((if (eq? type 'Input) geo-ct-crop geo-cb-crop) iobox io:width (* io:height 0.5)))
 
-        (define datum
-          (cond [(geo? value) value]
-                [(procedure? value) (geo-text (object-name value) font #:color datum-color #:alignment 'center)]
-                [(not (void? value)) (geo-text value font #:color datum-color #:alignment 'center)]
-                [else #false]))
-
+        (define datum : (Option Geo)
+          (if (and data-append* (list? value))
+              (data-append* #:gapsize gapsize
+                            (for/list : (Listof Geo) ([subv (in-list value)])
+                              (dia-procedure-datum subv #true fmt)))
+              (dia-procedure-datum value #false fmt)))
+          
         (define port
           (if (and label)
               (create-dia-node #:type type #false
@@ -81,7 +101,7 @@
                                #:position 0.5 vpos
                                pipe (cond [(geo? label) label]
                                           [else (geo-text #:color text-color #:alignment 'center
-                                                          maybe-label font)]))
+                                                          maybe-label label-font)]))
               pipe))
 
         (if (and datum)
@@ -91,7 +111,7 @@
                   (geo-vc-append #:gapsize v:gapsize port (geo-scale datum s))))
             port)))
 
-    (define description : (Option Geo) (avatar-caption desc em font text-color))
+    (define description : (Option Geo) (dia-procedure-caption desc em label-font text-color))
     (define-values (body-wratio body-hratio)
       (if (real? body-pos)
           (values 0.5 (max 0.0 (real->double-flonum body-pos)))
@@ -99,14 +119,16 @@
                   (max 0.0 (real->double-flonum (imag-part body-pos))))))
 
     (define ipo:i : Geo
-      (let ([boundary (length args)])
+      (let ([boundary (if (list? args) (length args) (vector-length args))])
         (geo-trim
          (geo-hb-append* #:gapsize io:gapsize
-                         (for/list : (Listof Geo) ([in (in-list is)]
+                         (for/list : (Listof Geo) ([in (if (list? is) (in-list is) (in-vector is))]
                                                    [idx (in-naturals 0)])
-                           (geo-procedure-pipe in 'Input 0.42
-                                               (and (< idx boundary)
-                                                    (list-ref args idx))))))))
+                           (dia-procedure-pipe in 'Input 0.42 input-format
+                                               (when (< idx boundary)
+                                                 (if (list? args)
+                                                     (list-ref args idx)
+                                                     (vector-ref args idx)))))))))
     
     (define ipo:p : Geo
       (let* ([wunit (+ io:gapsize io:width)]
@@ -123,13 +145,11 @@
       (let ([boundary (length results)])
         (geo-trim
          (geo-ht-append* #:gapsize io:gapsize
-                         (for/list : (Listof Geo) ([out (cond [(not (list? os)) (in-value os)]
-                                                              [(pexpr-element? os) (in-value os)]
-                                                              [else (in-list os)])]
+                         (for/list : (Listof Geo) ([out (in-vector os)]
                                                    [idx (in-naturals 0)])
-                           (geo-procedure-pipe out 'Output 0.55
-                                               (and (< idx boundary)
-                                                    (list-ref results idx))))))))
+                           (dia-procedure-pipe out 'Output 0.55 output-format
+                                               (when (< idx boundary)
+                                                 (list-ref results idx))))))))
 
     (cond [(= icount ocount 0) ipo:p]
           [else (let* ([offset (* b:height -1.0)]
@@ -139,35 +159,35 @@
                                    [else (geo-vc-append #:operator 'over #:gapsize (+ offset 2.0) self ipo:o)])])
                   self)])))
 
-(define avatar-caption : (-> Avatar-Procedure-Label Nonnegative-Flonum Font Color (Option Geo))
+(define dia-procedure-caption : (-> Dia-Procedure-Label Nonnegative-Flonum Font Color (Option Geo))
   (lambda [desc em font fgcolor]
-    (cond [(not desc) #false]
-          [(geo? desc) desc]
+    (cond [(geo? desc) desc]
           [(procedure? desc) (desc em)]
           [(string? desc) (geo-text desc font #:color fgcolor #:alignment 'center)]
           [(symbol? desc) (geo-text (format " ~a " desc) font #:color fgcolor #:id desc #:alignment 'center)]
-          [(not (keyword? desc)) (geo-markup desc font #:color fgcolor #:error-color 'Crimson)]
-          [else (geo-text #:color fgcolor #:id (string->symbol (keyword->immutable-string desc)) #:alignment 'center
-                          (format " ~a " desc) font)])))
+          [(keyword? desc) (geo-text #:color fgcolor #:id (string->symbol (keyword->immutable-string desc)) #:alignment 'center
+                                     (format " ~a " desc) font)]
+          [(or (not desc) (void? desc)) #false]
+          [else (geo-markup desc font #:color fgcolor #:error-color 'Crimson)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   (dia-procedure #false null)
-  (dia-procedure #false null '(=))
-  (dia-procedure #false '(C))
-  (dia-procedure "V - E + F = 2" '(V E F) '(=) (list 8 12 6) 2)
+  (dia-procedure #false null #(=))
+  (dia-procedure #false #(C))
+  (dia-procedure "V - E + F = 2" #(V E F) #(=) #(8 12 6) 2)
   
   (let* ([ds (list 1 2 3 4 5 6)]
          [result (apply + ds)])
     (dia-procedure #:body-fill 'LightGrey
                    (geo-scale (dia-procedure #:body-fill 'Grey
-                                             '+ (build-list (length ds)
-                                                            (λ [[i : Index]] : Avatar-Procedure-Label-Datum
-                                                              `(span ("a" (sub (,(number->string (add1 i))))))))
-                                             '(sum) ds result)
+                                             '+
+                                             (build-list (length ds)
+                                                         (λ [[i : Index]] : Dia-Procedure-Label-Datum
+                                                           `(span ("a" (sub (,(number->string (add1 i))))))))
+                                             #(sum)
+                                             ds result)
                               0.36)
-                   (list 'λ 'list)
-                   '(sum)
-                   (list '+ ds)
-                   result)))
+                   #(λ list) #(sum)
+                   (list '+ ds) result)))
   

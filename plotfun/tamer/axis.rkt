@@ -11,8 +11,8 @@
     (define c (rgb* color (/ (+ r 1.0) 10.0)))
     (define g (geo-vc-append (geo-text "+1" font #:color c)
                              (geo-arc (* unit 0.5) pi 0.0 #:stroke c #:ratio 0.618)))
-    
-    (cons (if (eq? datum 'arrow)
+
+    (cons (if (equal? '(arrow) datum)
               (geo-pin* 1.0 0.56 0.5 0.5 g (geo-dart (* unit 0.1) (* pi 0.5) #:fill c #:stroke #false))
               g)
           'lc)))
@@ -30,7 +30,7 @@
                        arrow
                        (geo-pin* 0.5 0.25 0.5 0.5
                                  (geo-sandglass (* unit 0.618) #:fill c #:stroke #false)
-                                 (geo-text (object-name fib) font #:color 'GhostWhite))
+                                 (geo-scale (geo-text (object-name fib) font #:color 'GhostWhite) 0.618))
                        arrow
                        label))))
 
@@ -41,19 +41,19 @@
            (fib (- n 2))))))
 
 (define number-line
-  (plot-axis #:tick-range (cons 0 8) #:reals '(0 1 2 3 4 5 6 7 (8 arrow))
+  (plot-axis #:tick-range (cons -1 7) #:reals '(-1 0 1 2 3 4 5 6 (7 arrow))
              #:real->sticker number-sticker
              #:axis-label "i"
-             360 0.0))
+             360 0.1))
 
 (define time-line
-  (plot-axis #:tick-range (cons 0 9) #:reals fib
+  (plot-axis #:tick-range (cons -1 8) #:reals fib
              #:real-position -2.5 #:real-anchor 'ct
              #:real->sticker time-sticker
              #:axis-label "n"
-             360 0.0))
+             360 0.1))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   number-line
   time-line)

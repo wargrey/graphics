@@ -21,8 +21,9 @@
 (define default-plot-axis-real-filter : (Parameterof Plot-Axis-Real-Filter) (make-parameter plot-axis-real-values))
 
 (define default-axis-color : (Parameterof Color) (make-parameter (rgb* 'DarkSlateGray)))
-(define default-axis-digit-font : (Parameterof Font) (make-parameter (font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal 'normal)))
-(define default-axis-real-font : (Parameterof (Option Font)) (make-parameter #false))
+(define default-axis-digit-font : (Parameterof Font) (make-parameter (desc-font #:family 'monospace #:size 12.0)))
+(define default-axis-label-font : (Parameterof (Option Font)) (make-parameter #false))
+(define default-axis-datum-font : (Parameterof (Option Font)) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-nonzero-values-wrap : (->* () (Plot-Axis-Real-Filter) Plot-Axis-Real-Filter)
