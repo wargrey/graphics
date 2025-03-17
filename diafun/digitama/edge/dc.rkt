@@ -9,6 +9,8 @@
 
 (require "../unsafe/edge.rkt")
 
+(require racket/math)
+
 (require geofun/paint)
 (require geofun/stroke)
 
@@ -50,7 +52,7 @@
     (define-values (e.x e.y e.w e.h) (geo-path-ink-box footprints))
 
     ;; NOTE: we move the end shapes to their absolute positions, and no need to translate them when drawing
-    (define-values (src-prints s.x s.y s.w s.h s.off) (dia-edge-tip-metrics src-shape thickness srad spt))
+    (define-values (src-prints s.x s.y s.w s.h s.off) (dia-edge-tip-metrics src-shape thickness (+ srad pi) spt))
     (define-values (tgt-prints t.x t.y t.w t.h t.off) (dia-edge-tip-metrics tgt-shape thickness erad ept))
 
     (define-values (lx ty) (values (min e.x s.x t.x) (min e.y s.y t.y)))

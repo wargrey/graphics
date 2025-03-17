@@ -6,6 +6,8 @@
 (provide (rename-out [geo-dart geo-arrowhead]))
 (provide (rename-out [geo-trapezium geo-trapezoid]))
 
+(provide default-geo-function-samples default-geo-coordinate-transform)
+
 (provide geo-blank geo-ghost geo-solid geo:blank? Geo:Blank Geo:Solid)
 (provide geo-bitmap geo-rectangular geo:bitmap? Geo:Bitmap)
 (provide geo-text geo:text? Geo:Text Geo-Text-Line geo-text-line?)
@@ -30,6 +32,7 @@
 (provide geo-polygon geo:polygon? Geo:Polygon)
 (provide geo-polyline geo:polyline? Geo:Polyline)
 (provide geo-parallelogram geo-rhombus geo-trapezium geo-keyboard geo-house geo-hexagon-tile)
+(provide geo-cartesian)
 
 (provide geo-storage geo:storage? Geo:Storage)
 (provide geo-document geo:document? Geo:Document)
@@ -47,6 +50,7 @@
 (require "digitama/dc/more.rkt")
 
 (require "digitama/dc/polygon.rkt")
+(require "digitama/dc/function.rkt")
 (require "digitama/dc/polygon/quadrilateral.rkt")
 (require "digitama/dc/polygon/pentagon.rkt")
 (require "digitama/dc/polygon/hexagon.rkt")

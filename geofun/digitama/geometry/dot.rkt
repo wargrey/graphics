@@ -13,7 +13,7 @@
     (define-values (x y) (point2d-values dt))
     (make-rectangular x y)))
 
-(define ~point2ds : (->* ((Listof Point2D)) (Real Real Point2D) (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum))
+(define ~point2ds : (-> (Listof Point2D) Real Real Point2D (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum))
   (lambda [raws [dx 0.0] [dy 0.0] [scale 1.0]]
     (define xoff : Flonum (real->double-flonum dx))
     (define yoff : Flonum (real->double-flonum dy))
@@ -54,7 +54,7 @@
   (lambda [dt]
     (cond [(real? dt) (values (real->double-flonum dt) 0.0)]
           [(list? dt) (values (real->double-flonum (car dt)) (real->double-flonum (cadr dt)))]
-          [(pair? dt) (values (real->double-flonum (car dt)) (real->double-flonum  (cdr dt)))]
+          [(pair? dt) (values (real->double-flonum (car dt)) (real->double-flonum (cdr dt)))]
           [else (values (real->double-flonum (real-part dt)) (real->double-flonum (imag-part dt)))])))
 
 (define point2d-scale-values : (-> Point2D (Values Flonum Flonum))

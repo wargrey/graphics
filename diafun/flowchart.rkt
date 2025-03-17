@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 (provide (all-from-out geofun/path))
+(provide (all-from-out "digitama/shared.rkt"))
 (provide (all-from-out "digitama/flowchart/self.rkt"))
 (provide (all-from-out "digitama/flowchart/style.rkt"))
 (provide (all-from-out "digitama/flowchart/interface.rkt"))
@@ -21,6 +22,7 @@
 (require geofun/digitama/layer/sticker)
 (require geofun/digitama/layer/type)
 
+(require "digitama/shared.rkt")
 (require "digitama/node/dc.rkt")
 (require "digitama/flowchart/self.rkt")
 (require "digitama/flowchart/style.rkt")
@@ -39,13 +41,15 @@
               (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.05]))
               (~optional (~seq #:path-id pid) #:defaults ([pid #'#false]))
               (~optional (~seq #:start anchor) #:defaults ([anchor #''#:home]))
-              (~optional (~seq #:at home) #:defaults ([home #'0.0+0.0i])))
+              (~optional (~seq #:at home) #:defaults ([home #'0.0+0.0i]))
+              (~optional (~seq #:parameterize pexpr) #:defaults ([pexpr #'()])))
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
        (let* ([goma (dia-initial-path pid gw gh ts home anchor)]
               [chart (with-gomamon! goma move-expr ...)])
-         (dia-path-flow chart args ...)))]))
+         (parameterize pexpr
+           (dia-path-flow chart args ...))))]))
 
 (define-syntax (define-flowchart! stx)
   (syntax-parse stx #:literals []
