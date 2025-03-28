@@ -13,17 +13,15 @@
 (require "unsafe/typed/c.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define stroke-paint->source : (-> Maybe-Stroke-Paint Stroke)
-  (lambda [paint]
+(define stroke-paint->source : (->* (Maybe-Stroke-Paint) (Stroke) Stroke)
+  (lambda [paint [fallback-stroke (default-stroke)]]
     (cond [(stroke? paint) paint]
-          [(or (not paint) (void? paint)) (default-stroke)]
-          [else (desc-stroke (default-stroke) #:color paint)])))
+          [(or (not paint) (void? paint)) fallback-stroke]
+          [else (desc-stroke fallback-stroke #:color paint)])))
 
 (define border-paint->source : (-> Maybe-Stroke-Paint Stroke)
   (lambda [paint]
-    (cond [(stroke? paint) paint]
-          [(or (not paint) (void? paint)) (default-border)]
-          [else (desc-stroke (default-border) #:color paint)])))
+    (stroke-paint->source paint (default-border))))
 
 (define stroke-paint->source* : (-> Maybe-Stroke-Paint (Option Stroke))
   (lambda [paint]
@@ -33,7 +31,7 @@
 (define border-paint->source* : (-> Maybe-Stroke-Paint (Option Stroke))
   (lambda [paint]
     (cond [(not paint) #false]
-          [else (border-paint->source paint)])))
+          [else (stroke-paint->source paint (default-border))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) fill-paint->source : (case-> [Fill-Paint -> Fill-Source]

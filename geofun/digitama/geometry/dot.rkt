@@ -32,8 +32,9 @@
                            [(x0 y0) (point2d-values self)]
                            [(x y) (values (+ (* x0 afx) xoff) (+ (* y0 afy) yoff))])
                (if (or (nan? x) (nan? y))
-                   (normalize rest (cons +nan.0+nan.0i stod)
-                              lx ty rx by)
+                   (if (and (pair? stod) (eq? (car stod) +nan.0+nan.0i))
+                       (normalize rest stod lx ty rx by)
+                       (normalize rest (cons +nan.0+nan.0i stod) lx ty rx by))
                    (normalize rest (cons (make-rectangular x y) stod)
                               (min lx x) (min ty y) (max rx x) (max by y))))]
             [(or xflip? yflip?)

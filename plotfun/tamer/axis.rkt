@@ -1,8 +1,12 @@
 #lang typed/racket/base
 
 (require geofun)
-(require plotfun/axis)
 
+(require plotfun/axis)
+(require plotfun/digitama/axis/style)
+(require plotfun/digitama/axis/interface)
+
+(require racket/list)
 (require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -41,19 +45,28 @@
            (fib (- n 2))))))
 
 (define number-line
-  (plot-axis #:tick-range (cons -1 7) #:reals '(-1 0 1 2 3 4 5 6 (7 arrow))
-             #:real->sticker number-sticker
-             #:axis-label "i"
-             360 0.1))
+  (plot-integer-axis #:integer->sticker number-sticker
+                     #:unit-length -0.1
+                     #:label "x"
+                     '(-1 0 1 2 3 4 5 6 (7 arrow))))
 
 (define time-line
-  (plot-axis #:tick-range (cons -1 8) #:reals fib
-             #:real-position -2.5 #:real-anchor 'ct
-             #:real->sticker time-sticker
-             #:axis-label "n"
-             360 0.1))
+  (plot-integer-axis #:range (cons -1 9)
+                     #:unit-length -0.1
+                     #:integer-style (make-plot-axis-real-style #:position -2.5 #:anchor 'ct)
+                     #:integer->sticker time-sticker
+                     #:label "n"
+                     fib))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   number-line
-  time-line)
+  time-line
+
+  (plot-integer-axis #:range (cons 0 10) #:label "N")
+  (plot-axis #:range (cons 0 10) #:label "R")
+  (plot-axis #:range (cons +1 +7/2) #:label "R")
+  (plot-axis #:range (cons -7 -5/2) #:label "R")
+  (plot-axis #:range (cons -70 30) #:label "R")
+  (plot-axis #:range (cons -0.001 +0.007) #:label "R")
+  (plot-axis #:range (range -6.28 +6.29 3.14) #:label "R"))

@@ -4,31 +4,46 @@
 
 (require geofun/font)
 (require geofun/color)
+(require geofun/stroke)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/layer/type)
+(require geofun/digitama/geometry/dot)
 
-(require "self.rkt")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Plot-Axis-Digit->Sticker (-> (Option Symbol) Integer Font Color (U Geo Void False)))
-(define-type Plot-Axis-Real->Sticker (-> (Option Symbol) Flonum Any Nonnegative-Flonum Font Color (U Geo (Pairof Geo Geo-Pin-Anchor) Void False)))
-(define-type Plot-Axis-Real->Dot (-> (Option Symbol) Flonum Any Nonnegative-Flonum Color (U Geo (Pairof Geo Geo-Pin-Anchor) Void False)))
-
-(define-type Plot-Axis-Real-Filter (-> Plot-Axis-Real-Datum (Values (Option Flonum) (U Complex Any))))
-
-(define default-plot-axis-digit-filter : (Parameterof (-> Integer (Option String))) (make-parameter number->string))
-(define default-plot-axis-real-filter : (Parameterof Plot-Axis-Real-Filter) (make-parameter plot-axis-real-values))
-
-(define default-axis-color : (Parameterof Color) (make-parameter (rgb* 'DarkSlateGray)))
-(define default-axis-digit-font : (Parameterof Font) (make-parameter (desc-font #:family 'monospace #:size 12.0)))
-(define default-axis-label-font : (Parameterof (Option Font)) (make-parameter #false))
-(define default-axis-datum-font : (Parameterof (Option Font)) (make-parameter #false))
+(require "real.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-axis-nonzero-values-wrap : (->* () (Plot-Axis-Real-Filter) Plot-Axis-Real-Filter)
-  (lambda [[real-values plot-axis-real-values]]
-    (λ [[r : Plot-Axis-Real-Datum]]
-      (define-values (val obj) (real-values r))
+(define-type Plot-Axis-Tick->Sticker (-> (Option Symbol) String Font Color (U Geo Void False)))
+(define-type Plot-Axis-Real->Sticker (-> (Option Symbol) Real Any Nonnegative-Flonum Font Color (U Geo (Pairof Geo Geo-Pin-Anchor) Void False)))
+(define-type Plot-Axis-Real->Dot (-> (Option Symbol) Real Any Nonnegative-Flonum Color Nonnegative-Flonum (U Geo (Pairof Geo Geo-Pin-Anchor) Void False)))
+
+(define-type Plot-Axis-Real-Filter (-> Plot-Axis-Real-Datum (Values (Option Flonum) Any)))
+(define-type Plot-Axis-Integer-Filter (-> Plot-Axis-Integer-Datum (Values (Option Integer) Any)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define plot-axis-nonzero-values-wrap : (->* () (Plot-Axis-Integer-Filter) Plot-Axis-Integer-Filter)
+  (lambda [[integer-values plot-axis-integer-values]]
+    (λ [[r : Plot-Axis-Integer-Datum]]
+      (define-values (val obj) (integer-values r))
       (values (and val (if (zero? val) #false val))
               obj))))
+
+(define plot-cartesian-dot : (-> Flonum Flonum Float-Complex)
+  (lambda [x y]
+    (make-rectangular x (- y))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define default-plot-axis-real-filter : (Parameterof Plot-Axis-Real-Filter) (make-parameter plot-axis-real-values))
+(define default-plot-axis-integer-filter : (Parameterof Plot-Axis-Integer-Filter) (make-parameter plot-axis-integer-values))
+
+(define default-plot-axis-desired-ticks : (Parameterof Positive-Index) (make-parameter 7))
+(define default-plot-axis-real-tick-steps : (Parameterof (Listof Positive-Index)) (make-parameter (list 1 2 4 5)))
+(define default-plot-axis-length : (Parameterof Real) (make-parameter 400.0))
+(define default-plot-axis-unit-length : (Parameterof (Option Real)) (make-parameter #false))
+
+(define default-plot-cartesian-width : (Parameterof Real) (make-parameter 400.0))
+(define default-plot-cartesian-height : (Parameterof Real) (make-parameter -1.0))
+(define default-plot-renderer-scale : (Parameterof Point2D) (make-parameter 64.0+64.0i))
+(define default-plot-renderer-samples : (Parameterof Positive-Index) (make-parameter 512))
+
+(define default-plot-function-stroke : (Parameterof Stroke) (make-parameter (desc-stroke #:width 2.0 #:join 'round #:cap 'butt)))

@@ -12,7 +12,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (G) geo-superimpose-layer-make : (-> Geo-Pin-Anchor G Nonnegative-Flonum Nonnegative-Flonum
-                                                  (-> Nonnegative-Flonum Nonnegative-Flonum (GLayerof G)))
+                                                      (-> Nonnegative-Flonum Nonnegative-Flonum (GLayerof G)))
   (lambda [anchor sfc w h]
     (λ [[W : Nonnegative-Flonum] [H : Nonnegative-Flonum]] : (GLayerof G)
       (geo-superimpose-layer anchor W H sfc w h))))

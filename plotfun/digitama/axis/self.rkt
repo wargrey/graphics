@@ -5,6 +5,7 @@
 (require geofun/digitama/dc/composite)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Plot-Axis-Ticks (U (Pairof Real Real) (Listof Real) False))
 (define-type Plot-Axis-Position-Map (-> Flonum Float-Complex))
 
 (define-type Plot-Cartesian-Position-Map
@@ -14,37 +15,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot:axis geo:group
   ([origin : Float-Complex]
-   [tick-digits : (Listof Integer)]
+   [ticks : (Listof Real)]
    [map : Plot-Axis-Position-Map])
+  #:property prop:procedure (struct-field-index map)
   #:type-name Plot:Axis
   #:transparent)
 
 (struct plot:cartesian geo:group
   ([origin : Float-Complex]
-   [xtick-digits : (Listof Integer)]
-   [ytick-digits : (Listof Integer)]
+   [xticks : Plot-Axis-Ticks]
+   [yticks : Plot-Axis-Ticks]
    [map : Plot-Cartesian-Position-Map])
+  #:property prop:procedure (struct-field-index map)
   #:type-name Plot:Cartesian
   #:transparent)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; for the sake of simplicity, removed `(List Complex Any)`
-(define-type Plot-Axis-Real-Datum (U Complex (Pairof Complex Any)))
-
-(define plot-axis-real-values : (-> Plot-Axis-Real-Datum (Values Flonum Any))
-  (lambda [r]
-    (cond [(complex? r) (values (real->double-flonum (real-part r)) r)]
-          [else (values (real->double-flonum (real-part (car r))) (cdr r))])))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-axis-reals-from-vector : (->* ((Vectorof Any)) (Index) (Listof (Pairof Index Any)))
-  (lambda [vs [base 0]]
-    (for/list : (Listof (Pairof Index Any)) ([v (in-vector vs)]
-                                             [i (in-naturals base)]
-                                             #:when (index? i))
-      (cons i v))))
-
-(define plot-axis-reals-from-producer : (-> (-> Integer Any) (Listof Integer) (Listof (Pairof Integer Any)))
-  (lambda [f xs]
-    (for/list : (Listof (Pairof Integer Any)) ([x (in-list xs)])
-      (cons x (f x)))))
