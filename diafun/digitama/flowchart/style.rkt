@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 (provide (all-from-out "../node/style.rkt"))
-(provide (all-from-out "../edge/style.rkt" "../edge/arrow.rkt"))
+(provide (all-from-out "../edge/style.rkt"))
 
 (require digimon/struct)
 
@@ -13,7 +13,6 @@
 (require "../node/style.rkt")
 (require "../edge/style.rkt")
 (require "../edge/tip.rkt")
-(require "../edge/arrow.rkt")
 
 (require "../shared.rkt")
 

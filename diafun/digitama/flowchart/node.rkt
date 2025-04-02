@@ -4,7 +4,7 @@
 
 (require "../node/style.rkt")
 (require "../node/dc.rkt")
-(require "interface.rkt")
+(require "../path/interface.rkt")
 
 (require geofun/constructor)
 (require geofun/composite)
@@ -17,7 +17,7 @@
 (require geofun/digitama/geometry/polygon/hexagon)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-block-process : DiaFlow-Block-Create
+(define diaflow-block-process : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (cond [(eq? hint 'Predefined) (diaflow-block-prefab node-key label style width height direction hint)]
           [(eq? hint 'Alternate)  (diaflow-block-alternate node-key label style width height direction hint)]
@@ -28,7 +28,7 @@
                                                 width height)
                                  label)])))
 
-(define diaflow-block-prefab : DiaFlow-Block-Create
+(define diaflow-block-prefab : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define width-ratio : Nonnegative-Flonum 0.84)
     (define vline : Flonum (* (- 1.0 width-ratio) 0.5))
@@ -41,7 +41,7 @@
                                     width height)
                      label)))
 
-(define diaflow-block-alternate : DiaFlow-Block-Create
+(define diaflow-block-alternate : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (create-dia-node #:id node-key #:type 'Alternate hint
                      #:fit-ratio 0.85 1.0
@@ -51,7 +51,7 @@
                                     width height -0.25)
                      label)))
 
-(define diaflow-block-decision : DiaFlow-Block-Create
+(define diaflow-block-decision : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (create-dia-node #:node dia:node:polygon
                      #:id node-key  #:type 'Decision hint
@@ -61,7 +61,7 @@
                      label
                      (geo-rhombus-vertices width height))))
 
-(define diaflow-block-preparation : DiaFlow-Block-Create
+(define diaflow-block-preparation : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (create-dia-node #:node dia:node:polygon
                      #:id node-key #:type 'Preparation hint
@@ -71,7 +71,7 @@
                      label
                      (geo-hexagon-tile-vertices width height))))
 
-(define diaflow-block-terminal : DiaFlow-Block-Create
+(define diaflow-block-terminal : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define r : Flonum (* height 0.5))
     
@@ -83,7 +83,7 @@
                                   (- width (* r 2.0)) r)
                      label)))
 
-(define diaflow-block-input : DiaFlow-Block-Create
+(define diaflow-block-input : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (if (eq? hint 'user)
         (let ([ratio 0.75])
@@ -97,7 +97,7 @@
                            (geo-keyboard-vertices width height ratio)))
         (diaflow-block-dataIO node-key label style width height 'Input hint))))
 
-(define diaflow-block-output : DiaFlow-Block-Create
+(define diaflow-block-output : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (if (eq? hint 'user)
         (let-values ([(ogive r) (values (* width 0.384) (* height 0.5))])
@@ -110,7 +110,7 @@
                            label))
         (diaflow-block-dataIO node-key label style width height 'Output hint))))
 
-(define diaflow-block-inspection : DiaFlow-Block-Create
+(define diaflow-block-inspection : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define r : Nonnegative-Flonum (* (min width height) 0.5))
     
@@ -124,7 +124,7 @@
                                   r)
                      label r)))
 
-(define diaflow-block-reference : DiaFlow-Block-Create
+(define diaflow-block-reference : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define ratio : Nonnegative-Flonum 0.618)
     
@@ -137,7 +137,7 @@
                      label
                      (geo-house-vertices width height (- ratio)))))
 
-(define diaflow-block-selection : DiaFlow-Block-Create
+(define diaflow-block-selection : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define r : Nonnegative-Flonum (* (min width height) 0.5))
     
@@ -152,7 +152,7 @@
                                   r)
                      #false r)))
 
-(define diaflow-block-junction : DiaFlow-Block-Create
+(define diaflow-block-junction : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define r : Nonnegative-Flonum (* (min width height) 0.5))
     (create-dia-node #:node dia:node:circle
@@ -166,7 +166,7 @@
                                   r)
                      #false r)))
 
-(define diaflow-block-manual-operation : DiaFlow-Block-Create
+(define diaflow-block-manual-operation : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define ratio : Nonnegative-Flonum 0.75)
     (define t-ratio : Nonnegative-Flonum (max (/ 1.0 ratio) 0.0))
@@ -179,7 +179,7 @@
                      label
                      (geo-isosceles-trapezium-vertices width height t-ratio))))
 
-(define diaflow-block-extract : DiaFlow-Block-Create
+(define diaflow-block-extract : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (create-dia-node #:node dia:node:polygon
                      #:id node-key #:type 'Extract hint
@@ -188,7 +188,7 @@
                      #false
                      (geo-isosceles-upwards-triangle-vertices width height))))
 
-(define diaflow-block-merge : DiaFlow-Block-Create
+(define diaflow-block-merge : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (create-dia-node #:node dia:node:polygon
                      #:id node-key #:type 'Merge hint
@@ -197,7 +197,7 @@
                      #false
                      (geo-isosceles-downwards-triangle-vertices width height))))
 
-(define diaflow-block-delay : DiaFlow-Block-Create
+(define diaflow-block-delay : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define r : Flonum (* height 0.5))
     (create-dia-node #:id node-key #:type 'Delay hint
@@ -208,7 +208,7 @@
                                    (- width r) r)
                      label)))
 
-(define diaflow-block-collation : DiaFlow-Block-Create
+(define diaflow-block-collation : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (create-dia-node #:id node-key #:type 'Collate hint
                      #:fit-ratio 0.5 0.375
@@ -216,7 +216,7 @@
                      (diaflow-polygon-shape node-key style (geo-poor-hourglass-vertices width height))
                      label)))
 
-(define diaflow-block-sort : DiaFlow-Block-Create
+(define diaflow-block-sort : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define h/2 : Nonnegative-Flonum (* height 0.5))
     
@@ -230,7 +230,7 @@
                                     (diaflow-polygon-shape #false style (geo-isosceles-downwards-triangle-vertices width h/2)))
                      label (geo-rhombus-vertices width height))))
 
-(define diaflow-block-storage : DiaFlow-Block-Create
+(define diaflow-block-storage : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (cond [(eq? hint 'Memory) (diaflow-block-memory node-key label style width height direction hint)]
           [(eq? hint 'File) (diaflow-block-document node-key label style width height direction hint)]
@@ -246,7 +246,7 @@
                                                 width height aradius)
                                    label))])))
 
-(define diaflow-block-memory : DiaFlow-Block-Create
+(define diaflow-block-memory : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define line-ratio : Nonnegative-Flonum 0.1618)
     (define label-pos : Nonnegative-Flonum (min (* width line-ratio) (* height line-ratio)))
@@ -262,7 +262,7 @@
                                     width height)
                      label)))
 
-(define diaflow-block-document : DiaFlow-Block-Create
+(define diaflow-block-document : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define hratio : Nonnegative-Flonum 0.85)
     (create-dia-node #:id node-key #:type 'Storage hint
@@ -274,7 +274,7 @@
                                    width height (* (- hratio 1.0) 0.5))
                      label)))
 
-(define diaflow-block-multiple-document : DiaFlow-Block-Create
+(define diaflow-block-multiple-document : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define extra-n : Index 2)
     (define gapsize : Nonnegative-Flonum (* height 0.1))
@@ -296,7 +296,7 @@
                                    width height (* wave-ratio -0.5))
                      label)))
 
-(define diaflow-block-database : DiaFlow-Block-Create
+(define diaflow-block-database : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define extra-n : Index 2)
     (define bradius : Nonnegative-Flonum (* height 0.1618))

@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require racket/list)
-(require racket/case)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/geometry/trail)
@@ -14,11 +13,10 @@
 (require geofun/digitama/layer/position)
 (require geofun/digitama/dc/path)
 
-(require "style.rkt")
-(require "node.rkt")
 (require "interface.rkt")
 
 (require "../node/dc.rkt")
+(require "../node/style.rkt")
 (require "../edge/style.rkt")
 (require "../edge/label.rkt")
 (require "../edge/refine.rkt")
@@ -27,98 +25,28 @@
 (require (for-syntax racket/base))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type DiaFlow-Arrow-Label-Info (List Float-Complex Float-Complex Dia-Edge-Label-Datum))
+(define-type Dia-Path-Arrow-Label-Info (List Float-Complex Float-Complex Dia-Edge-Label-Datum))
 
 (define-syntax (dia-label-info->label stx)
   (syntax-case stx []
     [(_ source target edge-style make-label rinfos)
      (syntax/loc stx
        (let info->label ([labels : (Listof Dia-Edge-Label) null]
-                         [sofni : (Listof DiaFlow-Arrow-Label-Info) rinfos])
+                         [sofni : (Listof Dia-Path-Arrow-Label-Info) rinfos])
          (if (pair? sofni)
              (let ([label (apply make-label source target edge-style (car sofni))])
                (info->label (dia-cons-labels label labels) (cdr sofni)))
              labels)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diaflow-node-label-construct : DiaFlow-Id->Node-Label
-  (lambda [id label style hint]
-    (define maybe-label : (U String Void False)
-      (let ([labels (default-diaflow-node-label-string)])
-        (and labels
-             (if (hash? labels)
-                 (hash-ref labels id (λ [] #false))
-                 (labels id label)))))
-    
-    (dia-node-text-label id (if (string? maybe-label) maybe-label label) style)))
-
-(define default-diaflow-node-fallback-construct : DiaFlow-Id->Node-Shape
-  (lambda [id label style width height direction hint]
-    (case/eq (object-name style)
-             [(diaflow-start-style) (diaflow-block-terminal id label style width height direction hint)]
-             [(diaflow-stop-style) (diaflow-block-terminal id label style width height direction hint)]
-             [(diaflow-inspection-style) (diaflow-block-inspection id label style width height direction hint)]
-             [(diaflow-reference-style) (diaflow-block-reference id label style width height direction hint)]
-             
-             [(diaflow-preparation-style) (diaflow-block-preparation id label style width height direction hint)]
-             [(diaflow-input-style) (diaflow-block-input id label style width height direction hint)]
-             [(diaflow-output-style) (diaflow-block-output id label style width height direction hint)]
-             [(diaflow-process-style) (diaflow-block-process id label style width height direction hint)]
-             [(diaflow-decision-style) (diaflow-block-decision id label style width height direction hint)]
-             [(diaflow-delay-style) (diaflow-block-delay id label style width height direction hint)]
-             [(diaflow-operation-style) (diaflow-block-manual-operation id label style width height direction hint)]
-             
-             [(diaflow-selection-style) (diaflow-block-selection id label style width height direction hint)]
-             [(diaflow-junction-style) (diaflow-block-junction id label style width height direction hint)]
-             [(diaflow-extract-style) (diaflow-block-extract id label style width height direction hint)]
-             [(diaflow-merge-style) (diaflow-block-merge id label style width height direction hint)]
-             
-             [(diaflow-storage-style) (diaflow-block-storage id label style width height direction hint)]
-             [(diaflow-collation-style) (diaflow-block-collation id label style width height direction hint)]
-             [(diaflow-sort-style) (diaflow-block-sort id label style width height direction hint)])))
-
-(define default-diaflow-edge-construct : DiaFlow-Arrow->Edge
-  (lambda [source target style tracks labels]
-    (dia-edge-attach-label
-     (dia-edge #:id (dia-edge-id-merge (geo-id source) (and target (geo-id target)) #true)
-               #:stroke (dia-edge-select-line-paint style)
-               #:source-shape (dia-edge-select-source-shape style)
-               #:target-shape (and target (not (dia:node:label? target)) (dia-edge-select-target-shape style))
-               tracks)
-     labels)))
-
-(define default-diaflow-edge-label-construct : DiaFlow-Arrow->Edge-Label
-  (lambda [source target style start end info]
-    (make-dia-edge-labels #:font (dia-edge-select-font style)
-                          #:font-paint (dia-edge-select-font-paint style)
-                          #:rotate? (dia-edge-select-label-rotate? style)
-                          #:distance (and (dia-edge-select-label-inline? style) 0.0)
-                          start end info)))
-
-(define default-diaflow-free-edge-construct : DiaFlow-Free-Track->Edge
-  (lambda [source target style tracks labels]
-    (dia-edge-attach-label
-     (dia-edge #:id (dia-edge-id-merge source target #false)
-               #:stroke (dia-edge-select-line-paint style)
-               #:source-shape (dia-edge-select-source-shape style)
-               #:target-shape (dia-edge-select-target-shape style)
-               tracks)
-     labels)))
-
-(define default-diaflow-free-edge-label-construct : DiaFlow-Free-Track->Edge-Label
-  (lambda [source target style start end info]
-    (make-dia-edge-labels #:font (dia-edge-select-font style)
-                          #:font-paint (dia-edge-select-font-paint style)
-                          #:rotate? (dia-edge-select-label-rotate? style)
-                          #:distance (and (dia-edge-select-label-inline? style) 0.0)
-                          start end info)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-stick : (-> Geo:Path DiaFlow-Block-Identifier (Option DiaFlow-Id->Node-Shape) DiaFlow-Id->Node-Label
-                            DiaFlow-Arrow-Identifier DiaFlow-Arrow->Edge DiaFlow-Arrow->Edge-Label
-                            DiaFlow-Free-Track->Edge DiaFlow-Free-Track->Edge-Label Geo-Path-Infobase (Listof Symbol)
-                            (Listof (GLayerof Geo)))
-  (lambda [master block-identify make-node make-node-label arrow-identify make-arrow make-arrow-label make-free-track make-free-label infobase ignore]
+(define #:forall (S) diaflow-stick
+  (lambda [[master : Geo:Path]
+           [block-identify : Dia-Path-Block-Identifier] [make-node : (Option Dia-Path-Id->Node-Shape)] [make-node-label : Dia-Path-Id->Node-Label]
+           [arrow-identify : Dia-Path-Arrow-Identifier] [make-arrow : Dia-Path-Arrow->Edge] [make-arrow-label : Dia-Path-Arrow->Edge-Label]
+           [make-free-track : Dia-Path-Free-Track->Edge] [make-free-label : Dia-Path-Free-Track->Edge-Label]
+           [make-free-style : (Option (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint (∩ Dia-Edge-Style S)))]
+           [fallback-node : Dia-Path-Id->Node-Shape] [fallback-free-style : (-> (∩ Dia-Edge-Style S))]
+           [infobase : Geo-Path-Infobase] [ignore : (Listof Symbol)]] : (Listof (GLayerof Geo))
     (define gpath : Geo-Trail (geo:path-trail master))
     (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath))
     (define-values (Width Height) (geo-flsize master))
@@ -141,7 +69,7 @@
               (cond [(or (not anchor) (not next-pt)) (values #false nodes)]
                     [(hash-has-key? nodes anchor) (values (hash-ref nodes anchor) nodes)]
                     [else (let* ([direction (and last-pt (angle (- last-pt next-pt)))]
-                                 [new-node (dia-make-node-layer block-identify make-node make-node-label anchor next-pt direction ignore)])
+                                 [new-node (dia-make-node-layer block-identify make-node make-node-label fallback-node anchor next-pt direction ignore)])
                             (values new-node (hash-set nodes anchor new-node)))]))
             
             (cond [(glayer? source)
@@ -159,7 +87,8 @@
                    [(eq? (gpath:datum-cmd self) #\M)
                     (let ([ct (geo-path-cleanse tracks++)])
                       (if (and (pair? ct) (pair? (cdr ct)))
-                          (let ([arrows++ (dia-free-track-cons anchor-base ct make-free-track arrows make-free-label infobase)])
+                          (let ([arrows++ (dia-free-track-cons anchor-base ct make-free-track arrows make-free-label infobase
+                                                               make-free-style fallback-free-style)])
                             (stick rest arrows++ nodes++ null #false next-pt))
                           (stick rest arrows nodes null #false next-pt)))]
 
@@ -182,8 +111,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-arrow-cons : (-> (GLayerof Dia:Node) (Option (GLayerof Dia:Node)) Geo-Path-Prints
-                             DiaFlow-Arrow-Identifier DiaFlow-Arrow->Edge (Listof (GLayerof Geo))
-                             DiaFlow-Arrow->Edge-Label Geo-Path-Infobase
+                             Dia-Path-Arrow-Identifier Dia-Path-Arrow->Edge (Listof (GLayerof Geo))
+                             Dia-Path-Arrow->Edge-Label Geo-Path-Infobase
                              (Listof (GLayerof Geo)))
   (lambda [src-layer tgt-layer tracks arrow-identify make-arrow arrows make-label infobase]
     (define ctracks : Geo-Path-Clean-Prints (geo-path-cleanse tracks))
@@ -211,9 +140,9 @@
         arrows)))
 
 (define dia-arrow-label-info-filter : (-> Geo-Path-Infobase Geo-Path-Clean-Prints Geo-Path-Clean-Prints
-                                          (Values (Listof Dia-Edge-Label-Datum) (Listof DiaFlow-Arrow-Label-Info)))
+                                          (Values (Listof Dia-Edge-Label-Datum) (Listof Dia-Path-Arrow-Label-Info)))
   (lambda [infobase tracks refined-tracks]
-    (let label-filter ([sofni : (Listof DiaFlow-Arrow-Label-Info) null]
+    (let label-filter ([sofni : (Listof Dia-Path-Arrow-Label-Info) null]
                        [slebal : (Listof Dia-Edge-Label-Datum) null]
                        [otracks : Geo-Path-Clean-Prints tracks]
                        [rtracks : Geo-Path-Clean-Prints refined-tracks]
@@ -246,17 +175,19 @@
           (values (reverse slebal) sofni)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name)
-                                  Geo-Path-Clean-Prints+ DiaFlow-Free-Track->Edge (Listof (GLayerof Geo))
-                                  DiaFlow-Free-Track->Edge-Label Geo-Path-Infobase
-                                  (Listof (GLayerof Geo)))
-  (lambda [anchorbase tracks make-edge arrows make-label infobase]
+(define #:forall (S) dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name)
+                                               Geo-Path-Clean-Prints+ Dia-Path-Free-Track->Edge (Listof (GLayerof Geo))
+                                               Dia-Path-Free-Track->Edge-Label Geo-Path-Infobase
+                                               (Option (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint (∩ Dia-Edge-Style S)))
+                                               (-> (∩ Dia-Edge-Style S))
+                                               (Listof (GLayerof Geo)))
+  (lambda [anchorbase tracks make-edge arrows make-label infobase make-free-style fallback-free-style]
     (define src-endpt : Float-Complex (geo-path-clean-print-position (car tracks)))
     (define tgt-endpt : Float-Complex (geo-path-clean-print-position (last tracks)))
     (define source : Dia-Free-Edge-Endpoint (hash-ref anchorbase src-endpt (λ [] src-endpt)))
     (define target : Dia-Free-Edge-Endpoint (hash-ref anchorbase tgt-endpt (λ [] tgt-endpt)))
     (define-values (labels sofni) (dia-arrow-label-info-filter infobase tracks tracks))
-    (define edge-style : Dia-Edge-Style (dia-edge-style-construct source target labels (default-diaflow-free-track-style-make) make-diaflow-free-track-style))
+    (define edge-style : Dia-Edge-Style (dia-edge-style-construct source target labels make-free-style fallback-free-style))
 
     (define arrow : (U Dia:Edge Dia:Labeled-Edge Void False)
       (make-edge source target edge-style tracks
@@ -265,9 +196,10 @@
     (if (geo? arrow) (dia-cons-arrows arrow arrows) arrows)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-make-node : (-> DiaFlow-Block-Identifier (Option DiaFlow-Id->Node-Shape) DiaFlow-Id->Node-Label Geo-Anchor-Name (Option Flonum) (Listof Symbol)
+(define dia-make-node : (-> Dia-Path-Block-Identifier (Option Dia-Path-Id->Node-Shape) Dia-Path-Id->Node-Label Dia-Path-Id->Node-Shape
+                            Geo-Anchor-Name (Option Flonum) (Listof Symbol)
                             (Option Dia:Node))
-  (lambda [block-identify make-node make-node-label anchor direction ignore]
+  (lambda [block-identify make-node make-node-label fallback-node anchor direction ignore]
     (define blk-datum (block-identify anchor))
 
     (and blk-datum
@@ -281,16 +213,16 @@
                    [else (make-node id label style width height direction hint)]))
 
            (if (void? node)
-               (let ([fallback-node (default-diaflow-node-fallback-construct id label style width height direction hint)])
+               (let ([fallback-node (fallback-node id label style width height direction hint)])
                  (and (dia:node? fallback-node)
                       fallback-node))
                node)))))
 
-(define dia-make-node-layer : (-> DiaFlow-Block-Identifier (Option DiaFlow-Id->Node-Shape) DiaFlow-Id->Node-Label Geo-Anchor-Name
-                                  Float-Complex (Option Flonum) (Listof Symbol)
+(define dia-make-node-layer : (-> Dia-Path-Block-Identifier (Option Dia-Path-Id->Node-Shape) Dia-Path-Id->Node-Label Dia-Path-Id->Node-Shape
+                                  Geo-Anchor-Name Float-Complex (Option Flonum) (Listof Symbol)
                                   (Option (GLayerof Dia:Node)))
-  (lambda [block-identify make-node make-node-label anchor position direction ignore]
-    (define maybe-node (dia-make-node block-identify make-node make-node-label anchor direction ignore))
+  (lambda [block-identify make-node make-node-label fallback-node anchor position direction ignore]
+    (define maybe-node (dia-make-node block-identify make-node make-node-label fallback-node anchor direction ignore))
 
     (and maybe-node
          (geo-own-pin-layer 'cc position maybe-node 0.0+0.0i))))

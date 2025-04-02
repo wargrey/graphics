@@ -13,8 +13,8 @@
 (define Print : Symbol (string->symbol "<<:Print\nResult"))
 (define Print-Error : Symbol (string->symbol "<<:Show\nError Message"))
 
-(define Page1 : Symbol (string->symbol "&Page<sub>1</sub>."))
-(define Page2 : Symbol (string->symbol "&Page<sub>2</sub>"))
+(define Page1 : Symbol (string->symbol "&Page 1."))
+(define Page2 : Symbol (string->symbol "&Page 2"))
 
 (define-flowchart! repl.dia [#:start-name "REPL\n(Shell)" #:border (default-border-paint) #:background 'Azure] #:-
   ; Portion on Page 1

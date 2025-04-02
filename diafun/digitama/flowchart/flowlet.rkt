@@ -15,10 +15,10 @@
 (require geofun/resize)
 
 (require "../flowchart/style.rkt")
-(require "../flowchart/interface.rkt")
 
 (require "../node/dc.rkt")
 (require "../edge/style.rkt")
+(require "../path/interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diaflowlet-blank : Geo:Blank (geo-blank))
@@ -103,7 +103,7 @@
                 (car ts))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflowlet-node-construct : DiaFlow-Id->Node-Shape
+(define diaflowlet-node-construct : Dia-Path-Id->Node-Shape
   (lambda [id label style width height direction hint]
     (case/eq (object-name style)
              [(diaflow-process-style) (diaflowlet-block-process  id label style width height direction hint)]
@@ -112,12 +112,12 @@
              [(diaflow-storage-style) (when (eq? hint 'File)
                                         (diaflowlet-block-document id label style width height direction hint))])))
 
-(define diaflowlet-arrow-identify : DiaFlow-Arrow-Identifier
+(define diaflowlet-arrow-identify : Dia-Path-Arrow-Identifier
   (lambda [source target labels]
     (dia-edge-style-construct source target labels (default-diaflow-storage-arrow-style-make) make-diaflow-storage-arrow-style)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflowlet-block-process : DiaFlow-Block-Create
+(define diaflowlet-block-process : Dia-Path-Block-Create
   (lambda [id label style width height direction hint]
     (define fbox : Geo:Sandglass
       (geo-sandglass #:fill (dia-node-select-fill-paint style)
@@ -129,12 +129,12 @@
         (create-dia-node #:id id #:type 'Process hint #:fit-ratio 1.00 0.36 #:position 0.50 0.20 fbox label)
         (create-dia-node #:id id #:type 'Process hint #:fit-ratio 1.00 0.64 #:position 0.50 0.48 (geo-rotate fbox (- direction (* pi 0.5))) label))))
 
-(define diaflowlet-block-terminal : DiaFlow-Block-Create
+(define diaflowlet-block-terminal : Dia-Path-Block-Create
   (lambda [id label style width height direction hint]
     (create-dia-node #:id id #:type 'Storage #false
                      diaflowlet-blank #false)))
 
-(define diaflowlet-block-document : DiaFlow-Block-Create
+(define diaflowlet-block-document : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define hratio : Nonnegative-Flonum 0.85)
     (define xpos : Nonnegative-Flonum (max (* (/ (default-dia-node-margin) width)  0.5) 0.0))

@@ -7,12 +7,12 @@
 
 (require "../node/dc.rkt")
 (require "../edge/label.rkt")
+(require "../path/interface.rkt")
 
 (require "style.rkt")
-(require "interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diaflow-block-identify : DiaFlow-Block-Identifier
+(define default-diaflow-block-identify : Dia-Path-Block-Identifier
   (lambda [anchor]
     (if (keyword? anchor)
 
@@ -30,7 +30,7 @@
           (and (> size 0)
                (diaflow-block-text-identify anchor text size))))))
 
-(define default-diaflow-arrow-identify : DiaFlow-Arrow-Identifier
+(define default-diaflow-arrow-identify : Dia-Path-Arrow-Identifier
   (lambda [source target labels]
     (define stype : Symbol (dia:node-type source))
     (define ttype : (Option Symbol) (and target (dia:node-type target)))
@@ -58,7 +58,7 @@
         edge-style)))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-block-text-identify : (-> Geo-Anchor-Name String Positive-Index (Option DiaFlow-Block-Datum))
+(define diaflow-block-text-identify : (-> Geo-Anchor-Name String Positive-Index (Option Dia-Path-Block-Datum))
   (lambda [anchor text size]
     (define-values (idx$ idx$2) (values (- size 1) (- size 2)))
     (define-values (ch0 ch$) (values (string-ref text 0) (string-ref text idx$)))
@@ -129,6 +129,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) diaflow-node-style-construct : (->* (Geo-Anchor-Name String (Option (DiaFlow-Node-Style-Make (∩ S Dia-Node-Style))) (-> (∩ S Dia-Node-Style)))
                                                          ((Option Symbol))
-                                                         DiaFlow-Block-Datum)
+                                                         Dia-Path-Block-Datum)
   (lambda [anchor text mk-style mk-fallback-style [hint #false]]
     (list text (dia-node-style-construct anchor mk-style mk-fallback-style hint) hint)))

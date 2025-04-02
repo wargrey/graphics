@@ -13,11 +13,12 @@
           [Float-Complex -> Float-Complex]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; NOTE: the `prop:property` forbids struct from being used in untyped code
+
 (struct plot:axis geo:group
   ([origin : Float-Complex]
    [ticks : (Listof Real)]
    [map : Plot-Axis-Position-Map])
-  #:property prop:procedure (struct-field-index map)
   #:type-name Plot:Axis
   #:transparent)
 
@@ -26,6 +27,5 @@
    [xticks : Plot-Axis-Ticks]
    [yticks : Plot-Axis-Ticks]
    [map : Plot-Cartesian-Position-Map])
-  #:property prop:procedure (struct-field-index map)
   #:type-name Plot:Cartesian
   #:transparent)
