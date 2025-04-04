@@ -62,6 +62,12 @@
   #:type-name Dia:Node:Circle
   #:transparent)
 
+(struct dia:node:ellipse dia:node
+  ([a : Nonnegative-Flonum]
+   [b : Nonnegative-Flonum])
+  #:type-name Dia:Node:Ellipse
+  #:transparent)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-default-intersect : Dia-Node-Intersect
   (lambda [A B node-pos nlayer]
@@ -97,6 +103,20 @@
                 (if (= node-pos A)
                     (+ A (* V (/ r d)))
                     (- B (* V (/ r d)))))))))
+
+(define dia-ellipse-intersect : Dia-Node-Intersect
+  (lambda [A B node-pos nlayer]
+    (define g (glayer-master nlayer))
+    
+    (and (dia:node:ellipse? g)
+         (let* ([V (- B A)]
+                [vx/a (/ (real-part V) (dia:node:ellipse-a g))]
+                [vy/b (/ (imag-part V) (dia:node:ellipse-b g))]
+                [t (/ 1.0 (magnitude (make-rectangular vx/a vy/b)))])
+           (and (<= 0.0 t 1.0)
+                (if (= node-pos A)
+                    (+ A (* t V))
+                    (- B (* t V))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-line-node-intersect : (-> (GLayerof Geo) Float-Complex Float-Complex Float-Complex (Option Float-Complex))

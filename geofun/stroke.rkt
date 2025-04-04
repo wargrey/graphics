@@ -76,6 +76,6 @@
             dasharray dashoffset)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define stroke-maybe-width : (-> (Option Stroke) Nonnegative-Flonum)
+(define stroke-maybe-width : (-> Any Nonnegative-Flonum)
   (lambda [s]
     (if (stroke? s) (stroke-width s) 0.0)))

@@ -39,9 +39,10 @@
              labels)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) diaflow-stick
+(define #:forall (S) dia-path-stick
   (lambda [[master : Geo:Path]
-           [block-identify : Dia-Path-Block-Identifier] [make-node : (Option Dia-Path-Id->Node-Shape)] [make-node-label : Dia-Path-Id->Node-Label]
+           [block-identify : Dia-Path-Block-Identifier] [make-node : (Option Dia-Path-Id->Node-Shape)]
+           [make-node-label : Dia-Path-Id->Node-Label] [node-desc : (Option Dia-Path-Id->Label-String)]
            [arrow-identify : Dia-Path-Arrow-Identifier] [make-arrow : Dia-Path-Arrow->Edge] [make-arrow-label : Dia-Path-Arrow->Edge-Label]
            [make-free-track : Dia-Path-Free-Track->Edge] [make-free-label : Dia-Path-Free-Track->Edge-Label]
            [make-free-style : (Option (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint (∩ Dia-Edge-Style S)))]
@@ -69,7 +70,8 @@
               (cond [(or (not anchor) (not next-pt)) (values #false nodes)]
                     [(hash-has-key? nodes anchor) (values (hash-ref nodes anchor) nodes)]
                     [else (let* ([direction (and last-pt (angle (- last-pt next-pt)))]
-                                 [new-node (dia-make-node-layer block-identify make-node make-node-label fallback-node anchor next-pt direction ignore)])
+                                 [new-node (dia-make-node-layer block-identify make-node make-node-label node-desc
+                                                                fallback-node anchor next-pt direction ignore)])
                             (values new-node (hash-set nodes anchor new-node)))]))
             
             (cond [(glayer? source)
@@ -196,16 +198,22 @@
     (if (geo? arrow) (dia-cons-arrows arrow arrows) arrows)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-make-node : (-> Dia-Path-Block-Identifier (Option Dia-Path-Id->Node-Shape) Dia-Path-Id->Node-Label Dia-Path-Id->Node-Shape
-                            Geo-Anchor-Name (Option Flonum) (Listof Symbol)
+(define dia-make-node : (-> Dia-Path-Block-Identifier (Option Dia-Path-Id->Node-Shape) Dia-Path-Id->Node-Label (Option Dia-Path-Id->Label-String)
+                            Dia-Path-Id->Node-Shape Geo-Anchor-Name (Option Flonum) (Listof Symbol)
                             (Option Dia:Node))
-  (lambda [block-identify make-node make-node-label fallback-node anchor direction ignore]
+  (lambda [block-identify make-node make-node-label node-desc fallback-node anchor direction ignore]
     (define blk-datum (block-identify anchor))
 
     (and blk-datum
          (let-values ([(id) (geo-anchor->symbol anchor)]
                       [(style hint) (values (cadr blk-datum) (caddr blk-datum))])
-           (define label : (Option Geo) (make-node-label id (car blk-datum) style hint))
+           (define maybe-desc : (U String Void False)
+             (and node-desc
+                  (if (hash? node-desc)
+                      (hash-ref node-desc anchor (λ [] #false))
+                      (node-desc anchor (car blk-datum)))))
+           
+           (define label : (Option Geo) (make-node-label id (if (string? maybe-desc) maybe-desc (car blk-datum)) style hint))
            (define-values (width height) (dia-node-smart-size label style))
            (define node : (U Dia:Node Void False)
              (cond [(memq id ignore) #false]
@@ -218,11 +226,11 @@
                       fallback-node))
                node)))))
 
-(define dia-make-node-layer : (-> Dia-Path-Block-Identifier (Option Dia-Path-Id->Node-Shape) Dia-Path-Id->Node-Label Dia-Path-Id->Node-Shape
-                                  Geo-Anchor-Name Float-Complex (Option Flonum) (Listof Symbol)
+(define dia-make-node-layer : (-> Dia-Path-Block-Identifier (Option Dia-Path-Id->Node-Shape) Dia-Path-Id->Node-Label (Option Dia-Path-Id->Label-String)
+                                  Dia-Path-Id->Node-Shape Geo-Anchor-Name Float-Complex (Option Flonum) (Listof Symbol)
                                   (Option (GLayerof Dia:Node)))
-  (lambda [block-identify make-node make-node-label fallback-node anchor position direction ignore]
-    (define maybe-node (dia-make-node block-identify make-node make-node-label fallback-node anchor direction ignore))
+  (lambda [block-identify make-node make-node-label node-desc fallback-node anchor position direction ignore]
+    (define maybe-node (dia-make-node block-identify make-node make-node-label node-desc fallback-node anchor direction ignore))
 
     (and maybe-node
          (geo-own-pin-layer 'cc position maybe-node 0.0+0.0i))))

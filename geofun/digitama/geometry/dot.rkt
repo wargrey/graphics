@@ -53,10 +53,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define point2d-values : (-> Point2D (Values Flonum Flonum))
   (lambda [dt]
-    (cond [(real? dt) (values (real->double-flonum dt) 0.0)]
+    (cond [(complex? dt) (values (real->double-flonum (real-part dt)) (real->double-flonum (imag-part dt)))]
           [(list? dt) (values (real->double-flonum (car dt)) (real->double-flonum (cadr dt)))]
-          [(pair? dt) (values (real->double-flonum (car dt)) (real->double-flonum (cdr dt)))]
-          [else (values (real->double-flonum (real-part dt)) (real->double-flonum (imag-part dt)))])))
+          [else (values (real->double-flonum (car dt)) (real->double-flonum (cdr dt)))])))
 
 (define point2d-scale-values : (-> Point2D (Values Flonum Flonum))
   (lambda [st]

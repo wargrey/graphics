@@ -20,7 +20,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Dia-Node-Style-Make* S Hint) (-> Geo-Anchor-Name Hint (U S False Void)))
 (define-type (Dia-Node-Style-Make Hint) (Dia-Node-Style-Make* Dia-Node-Style Hint))
-(define-type Dia-Node-Id->String (U (HashTable Geo-Anchor-Name String) (-> Geo-Anchor-Name String (U String Void False))))
+(define-type (Dia-Path-Node-Style-Make S) (Dia-Node-Style-Make* S (Option Symbol)))
 
 (struct dia-node-style
   ([width : (Option Flonum)]

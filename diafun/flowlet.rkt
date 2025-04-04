@@ -15,6 +15,7 @@
 (require geofun/digitama/dc/composite)
 
 (require "flowchart.rkt")
+(require "digitama/path/self.rkt")
 (require "digitama/node/style.rkt")
 (require "digitama/flowchart/flowlet.rkt")
 
@@ -45,9 +46,10 @@
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
            #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
            #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-diaflow-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-diaflow-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-diaflow-edge-label-construct]
+           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
+           #:node-desc [node-desc : (Option Dia-Path-Id->Label-String) #false]
+           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
+           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
            #:input-desc [alt-in : (Option DC-Markup-Text) #false]
            #:output-desc [alt-out : (Option (-> Any (U Void DC-Markup-Text))) #false]
            #:reader [f : (-> Input-Port Any) read] #:peek-size [peek-size : Index 8]
@@ -65,11 +67,10 @@
                    [default-diaflow-storage-block-height (* base-height 0.618)]
                    [default-diaflow-storage-font (or file-font ((default-diaflow-storage-font)))]
                    [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
-                   [default-diaflow-node-label-string diaflowlet-node-label-string]
                    [default-diaflow-storage-arrow-label-rotate? rotation?]
                    [default-dia-node-text-alignment 'left]
                    [default-dia-node-text-trim? #false])
-      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home))
+      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
 
       (if (or downward?)
           (for ([idx (in-range (+ repeats 1))]
@@ -104,7 +105,7 @@
                        #:id id #:path-operator path-op #:flow-operator flow-op 
                        #:border bdr #:background bg #:margin margin #:padding padding
                        #:λblock block-detect #:λarrow arrow-detect
-                       #:λnode make-node #:λnode-label make-node-label
+                       #:λnode make-node #:λnode-label make-node-label #:node-desc node-desc
                        #:λedge make-edge #:λedge-label make-edge-label))
       
       (assert flowlet dia:flow?))))
@@ -125,19 +126,21 @@
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
            #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
            #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-diaflow-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-diaflow-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-diaflow-edge-label-construct]
+           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
+           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
+           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
            #:input-desc [alt-in : (U False DC-Markup-Text (-> In (U Void DC-Markup-Text))) #false]
            #:output-desc [alt-out : (U False DC-Markup-Text (-> Out (U Void DC-Markup-Text))) #false]
            [f : (U (-> In Out) Symbol String)] [in : In]] : Dia:Flow
-    (parameterize ([default-diaflow-block-width  (~length block-width  ((default-diaflow-block-width)))]
+    (define base-width  (~length block-width  ((default-diaflow-block-width))))
+    
+    (parameterize ([default-diaflow-block-width  base-width]
                    [default-diaflow-block-height (~length block-height ((default-diaflow-block-height)))]
                    [default-diaflow-process-stroke-width (if stroke-width (~length stroke-width) ((default-diaflow-process-stroke-width)))]
                    [default-diaflow-storage-font (or node-font ((default-diaflow-storage-font)))]
                    [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
-      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home))
+      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
       
       (if (or downward?)
           (with-gomamon! path
@@ -174,9 +177,9 @@
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
            #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
            #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-diaflow-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-diaflow-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-diaflow-edge-label-construct]
+           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
+           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
+           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
            #:input-desc [alt-in : (Listof (Option DC-Markup-Text)) null]
            #:output-desc [alt-out : (Listof (U False DC-Markup-Text (-> Any (U Void DC-Markup-Text)))) null]
            [f : (U (-> In Any) (Pairof (-> In Any) (Listof (-> In Any))))] [ins : (Pairof In (Listof In))]] : Dia:Flow
@@ -195,9 +198,8 @@
                    [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
                    [default-diaflow-selection-block-height (* base-height 0.25)]
                    [default-diaflow-junction-block-height (* base-height 0.25)]
-                   [default-diaflow-node-label-string func-descs]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
-      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home))
+      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
       (define symbol-anchor (if and? '=* '-+))
       
       (if (or downward?)
@@ -227,7 +229,7 @@
                        #:id id #:path-operator path-op #:flow-operator flow-op 
                        #:border bdr #:background bg #:margin margin #:padding padding
                        #:λblock block-detect #:λarrow arrow-detect
-                       #:λnode make-node #:λnode-label make-node-label
+                       #:λnode make-node #:λnode-label make-node-label #:node-desc func-descs
                        #:λedge make-edge #:λedge-label make-edge-label))
       
       (assert flowlet dia:flow?))))
@@ -249,9 +251,9 @@
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
            #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
            #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-diaflow-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-diaflow-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-diaflow-edge-label-construct]
+           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
+           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
+           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
            #:input-desc [alt-in : (Option DC-Markup-Text) #false]
            #:output-desc [alt-out : (Listof (U False DC-Markup-Text (-> Out (U Void DC-Markup-Text)))) null]
            [f : (-> In Out)] [ins : (Pairof In (Listof In))]] : Dia:Flow
@@ -269,7 +271,7 @@
                    [default-diaflow-selection-block-height (* base-height 0.25)]
                    [default-diaflow-junction-block-height (* base-height 0.25)]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
-      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home))
+      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
       (define symbol-anchor (if or? '-+ '=*))
       (define in-ratio (if downward? 1.0 0.85))
       (define din-ratio (* in-ratio 2.0))
@@ -325,9 +327,9 @@
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
            #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
            #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-diaflow-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-diaflow-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-diaflow-edge-label-construct]
+           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
+           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
+           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
            #:read-desc [read-desc : Any "Read"] #:write-desc [write-desc : Any "Write"]
            [variable : Symbol] [f : Symbol] [out-desc : Any]] : Dia:Flow
     (define base-width  : Nonnegative-Flonum (~length block-width  ((default-diaflow-block-width))))
@@ -341,7 +343,7 @@
                    [default-diaflow-storage-font (or edge-font ((default-diaflow-storage-font)))]
                    [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))])
       (define v : Symbol (string->symbol (format "/proc/~a" variable)))
-      (define path (dia-initial-path #false grid-width grid-height 0.5 0.0+0.0i v))
+      (define path (dia-initial-path #false grid-width grid-height 0.5 0.0+0.0i v base-width))
     
       (with-gomamon! path
         (move-right xstep f (cons read-desc (symbol->immutable-string variable)))

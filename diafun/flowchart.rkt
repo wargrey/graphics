@@ -5,11 +5,11 @@
 (provide (all-from-out "digitama/shared.rkt"))
 (provide (all-from-out "digitama/path/interface.rkt"))
 (provide (all-from-out "digitama/flowchart/interface.rkt"))
+(provide (all-from-out "digitama/flowchart/identifier.rkt"))
 (provide (all-from-out "digitama/flowchart/self.rkt"))
 (provide (all-from-out "digitama/flowchart/style.rkt"))
 (provide (rename-out [dia-path-flow geo-path-flow]))
 
-(provide default-diaflow-block-identify default-diaflow-arrow-identify)
 (provide default-dia-node-margin create-dia-node)
 
 (require geofun/path)
@@ -22,6 +22,7 @@
 (require geofun/digitama/layer/type)
 
 (require "digitama/shared.rkt")
+(require "digitama/path/self.rkt")
 (require "digitama/path/interface.rkt")
 (require "digitama/path/stick.rkt")
 (require "digitama/node/dc.rkt")
@@ -47,7 +48,7 @@
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (let* ([goma (dia-initial-path pid gw gh ts home anchor)]
+       (let* ([goma (dia-initial-path pid gw gh ts home anchor ((default-diaflow-block-width)))]
               [chart (with-gomamon! goma move-expr ...)])
          (parameterize pexpr
            (dia-path-flow chart args ...))))]))
@@ -67,11 +68,12 @@
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
            #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier default-diaflow-arrow-identify]
            #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) #false]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-diaflow-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-diaflow-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-diaflow-edge-label-construct]
-           #:λfree-edge [make-free-track : Dia-Path-Free-Track->Edge default-diaflow-free-edge-construct]
-           #:λfree-edge-label [make-free-label : Dia-Path-Free-Track->Edge-Label default-diaflow-free-edge-label-construct]
+           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
+           #:node-desc [node-desc : (Option Dia-Path-Id->Label-String) #false]
+           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
+           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
+           #:λfree-edge [make-free-track : Dia-Path-Free-Track->Edge default-dia-path-free-edge-construct]
+           #:λfree-edge-label [make-free-label : Dia-Path-Free-Track->Edge-Label default-dia-path-free-edge-label-construct]
            #:ignore [ignore : (Listof Symbol) null]
            [self : Geo:Path]] : (U Dia:Flow Geo:Path)
     (parameterize ([default-dia-node-base-style make-diaflow-node-fallback-style]
@@ -79,10 +81,11 @@
                    [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))]
                    [current-master-path self])
       (define stickers : (Listof (GLayerof Geo))
-        (diaflow-stick self block-detect make-node make-node-label arrow-detect make-edge make-edge-label
-                       make-free-track make-free-label (default-diaflow-free-track-style-make)
-                       default-diaflow-node-fallback-construct make-diaflow-free-track-style
-                       (geo:path-foot-infos self) ignore))
+        (dia-path-stick self block-detect make-node make-node-label node-desc
+                        arrow-detect make-edge make-edge-label
+                        make-free-track make-free-label (default-diaflow-free-track-style-make)
+                        default-diaflow-node-fallback-construct make-diaflow-free-track-style
+                        (geo:path-foot-infos self) ignore))
 
       (if (pair? stickers)
           (let ([maybe-group (geo-path-try-extend/list stickers 0.0 0.0)])
@@ -101,7 +104,8 @@
   (lambda [#:id [id : (Option Symbol) #false] #:scale [scale : Real 0.5]
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
            #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) #false]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-diaflow-node-label-construct]
+           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
+           #:node-desc [node-desc : (Option Dia-Path-Id->Label-String) #false]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Node)
     (define ns : Nonnegative-Flonum (if (> scale 0) (real->double-flonum scale) 1.0))
     (parameterize ([default-diaflow-block-width  (* ((default-diaflow-block-width))  ns)]
@@ -109,7 +113,8 @@
                    [default-dia-node-margin (* (default-dia-node-margin) ns)]
                    [default-dia-node-base-style make-diaflow-node-fallback-style]
                    [current-master-path #false])
-      (dia-make-node block-detect make-node make-node-label default-diaflow-node-fallback-construct
+      (dia-make-node block-detect make-node make-node-label node-desc
+                     default-diaflow-node-fallback-construct
                      (cond [(symbol? caption) caption]
                            [(keyword? caption) caption]
                            [(string? caption) (string->symbol caption)]

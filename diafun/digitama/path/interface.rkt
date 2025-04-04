@@ -8,6 +8,7 @@
 
 (require "../node/style.rkt")
 (require "../node/dc.rkt")
+
 (require "../edge/style.rkt")
 (require "../edge/label.rkt")
 (require "../edge/dc.rkt")
@@ -18,6 +19,7 @@
 (define-type Dia-Path-Block-Identifier (-> Geo-Anchor-Name (Option Dia-Path-Block-Datum)))
 (define-type Dia-Path-Arrow-Identifier (-> Dia:Node (Option Dia:Node) (Listof Dia-Edge-Label-Datum) (Option Dia-Edge-Style)))
 (define-type Dia-Path-Block-Create (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol) Dia:Node))
+(define-type Dia-Path-Id->Label-String (U (HashTable Geo-Anchor-Name String) (-> Geo-Anchor-Name String (U String Void False))))
 
 (define-type Dia-Path-Id->Node-Label
   (-> Symbol String Dia-Node-Style (Option Symbol)
@@ -49,3 +51,52 @@
       Float-Complex Float-Complex Dia-Edge-Label-Datum
       (U Dia-Edge-Label (Listof Dia-Edge-Label) Void False)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define default-dia-path-node-label-construct : Dia-Path-Id->Node-Label
+  (lambda [id label style hint]
+    (dia-node-text-label id label style)))
+
+(define default-dia-path-edge-construct : Dia-Path-Arrow->Edge
+  (lambda [source target style tracks labels]
+    (dia-edge-attach-label
+     (dia-edge #:id (dia-edge-id-merge (geo-id source) (and target (geo-id target)) #true)
+               #:stroke (dia-edge-select-line-paint style)
+               #:source-shape (dia-edge-select-source-shape style)
+               #:target-shape (and target (not (dia:node:label? target)) (dia-edge-select-target-shape style))
+               tracks)
+     labels)))
+
+(define default-dia-path-edge-label-construct : Dia-Path-Arrow->Edge-Label
+  (lambda [source target style start end info]
+    (make-dia-edge-labels #:font (dia-edge-select-font style)
+                          #:font-paint (dia-edge-select-font-paint style)
+                          #:rotate? (dia-edge-select-label-rotate? style)
+                          #:distance (and (dia-edge-select-label-inline? style) 0.0)
+                          start end info)))
+
+(define default-dia-path-free-edge-construct : Dia-Path-Free-Track->Edge
+  (lambda [source target style tracks labels]
+    (dia-edge-attach-label
+     (dia-edge #:id (dia-edge-id-merge source target #false)
+               #:stroke (dia-edge-select-line-paint style)
+               #:source-shape (dia-edge-select-source-shape style)
+               #:target-shape (dia-edge-select-target-shape style)
+               tracks)
+     labels)))
+
+(define default-dia-path-free-edge-label-construct : Dia-Path-Free-Track->Edge-Label
+  (lambda [source target style start end info]
+    (make-dia-edge-labels #:font (dia-edge-select-font style)
+                          #:font-paint (dia-edge-select-font-paint style)
+                          #:rotate? (dia-edge-select-label-rotate? style)
+                          #:distance (and (dia-edge-select-label-inline? style) 0.0)
+                          start end info)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (S) dia-path-block-style-construct : (->* (Geo-Anchor-Name String
+                                                                            (Option (Dia-Node-Style-Make* (∩ S Dia-Node-Style) (Option Symbol)))
+                                                                            (-> (∩ S Dia-Node-Style)))
+                                                           ((Option Symbol))
+                                                           Dia-Path-Block-Datum)
+  (lambda [anchor text mk-style mk-fallback-style [hint #false]]
+    (list text (dia-node-style-construct anchor mk-style mk-fallback-style hint) hint)))

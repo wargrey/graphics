@@ -5,6 +5,7 @@
 (provide (rename-out [geo-sandglass geo-hourglass]))
 (provide (rename-out [geo-dart geo-arrowhead]))
 (provide (rename-out [geo-trapezium geo-trapezoid]))
+(provide (all-from-out "digitama/skeleton/stickman/interface.rkt"))
 
 (provide geo-blank geo-ghost geo-solid geo:blank? Geo:Blank Geo:Solid)
 (provide geo-bitmap geo-rectangular geo:bitmap? Geo:Bitmap)
@@ -21,6 +22,7 @@
 (provide geo-arrow geo:arrow? Geo:Arrow)
 (provide geo-dart geo:dart? Geo:Dart)
 (provide geo-gear geo:gear? Geo:Gear)
+(provide geo-stickman geo:stickman? Geo:Stickman)
 
 (provide geo-stadium geo-lstadium geo-rstadium geo:stadium? Geo:Stadium)
 (provide geo-bullet geo:bullet? Geo:Bullet)
@@ -44,6 +46,7 @@
 (require "digitama/dc/line.rkt")
 (require "digitama/dc/arrow.rkt")
 (require "digitama/dc/gear.rkt")
+(require "digitama/dc/stickman.rkt")
 (require "digitama/dc/more.rkt")
 
 (require "digitama/dc/polygon.rkt")
@@ -52,3 +55,5 @@
 (require "digitama/dc/polygon/hexagon.rkt")
 
 (require "digitama/unsafe/dc/text-layout.rkt")
+
+(require "digitama/skeleton/stickman/interface.rkt")

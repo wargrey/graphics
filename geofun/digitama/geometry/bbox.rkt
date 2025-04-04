@@ -15,11 +15,23 @@
 
 (define make-geo-bbox : (case-> [Real Real Real Real -> Geo-BBox]
                                 [Complex Complex -> Geo-BBox]
-                                [Complex -> Geo-BBox])
+                                [(U Complex (Pairof Complex (Listof Complex))) -> Geo-BBox])
   (case-lambda
     [(lx ty rx by) (unsafe-geo-bbox (real->double-flonum lx) (real->double-flonum ty) (real->double-flonum rx) (real->double-flonum by))]
     [(lpt rpt) (make-geo-bbox (real-part lpt) (imag-part lpt) (real-part rpt) (imag-part rpt))]
-    [(pt) (make-geo-bbox (real-part pt) (imag-part pt) (real-part pt) (imag-part pt))]))
+    [(pt) (if (complex? pt)
+              (make-geo-bbox (real-part pt) (imag-part pt) (real-part pt) (imag-part pt))
+              (let traverse ([lx : Flonum +inf.0]
+                             [ty : Flonum +inf.0]
+                             [rx : Flonum -inf.0]
+                             [by : Flonum -inf.0]
+                             [pts : (Listof Complex) pt])
+                (if (pair? pts)
+                    (let* ([self (car pts)]
+                           [x (real->double-flonum (real-part self))]
+                           [y (real->double-flonum (imag-part self))])
+                      (traverse (min x lx) (min y ty) (max rx x) (max by y) (cdr pts)))
+                    (unsafe-geo-bbox lx ty rx by))))]))
 
 (define geo-bbox-fit! : (case-> [Geo-BBox Float-Complex -> Void]
                                 [Geo-BBox Float-Complex Flonum Flonum -> Void]

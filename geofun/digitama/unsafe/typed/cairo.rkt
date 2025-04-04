@@ -27,6 +27,10 @@
  [cairo_save (-> Cairo-Ctx Void)]
  [cairo_restore (-> Cairo-Ctx Void)]
  [cairo_clip (-> Cairo-Ctx Void)]
+ [cairo_stroke (-> Cairo-Ctx Void)]
+ [cairo_stroke_preserve (-> Cairo-Ctx Void)]
+ [cairo_fill (-> Cairo-Ctx Void)]
+ [cairo_fill_preserve (-> Cairo-Ctx Void)]
  [cairo_paint (-> Cairo-Ctx Void)]
  [cairo_paint_with_alpha (-> Cairo-Ctx Flonum Void)]
  [cairo_create (-> (U Cairo-Surface Cairo-Stream-Surface) Cairo-Ctx)]
@@ -87,15 +91,19 @@
       (cairo_scale cr density density))))
 
 (define cairo-positive-arc : (case-> [Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Void]
+                                     [Cairo-Ctx Float-Complex Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Void]
                                      [Cairo-Ctx Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Void])
   (case-lambda
-    [(cr cx cy rx ry rstart rend) (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo_arc)]
+    [(cr ox oy rx ry rstart rend) (cairo-smart-elliptical-arc cr ox oy rx ry rstart rend cairo_arc)]
+    [(cr o rx ry rstart rend) (cairo-smart-elliptical-arc cr (real-part o) (imag-part o) rx ry rstart rend cairo_arc)]
     [(cr rx ry rstart rend) (cairo-smart-elliptical-arc cr rx ry rstart rend cairo_arc)]))
 
 (define cairo-negative-arc : (case-> [Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Void]
+                                     [Cairo-Ctx Float-Complex Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Void]
                                      [Cairo-Ctx Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum -> Void])
   (case-lambda
-    [(cr cx cy rx ry rstart rend) (cairo-smart-elliptical-arc cr cx cy rx ry rstart rend cairo_arc_negative)]
+    [(cr ox oy rx ry rstart rend) (cairo-smart-elliptical-arc cr ox oy rx ry rstart rend cairo_arc_negative)]
+    [(cr o rx ry rstart rend) (cairo-smart-elliptical-arc cr (real-part o) (imag-part o) rx ry rstart rend cairo_arc_negative)]
     [(cr rx ry rstart rend) (cairo-smart-elliptical-arc cr rx ry rstart rend cairo_arc_negative)]))
 
 (define cairo-smart-elliptical-arc
@@ -152,3 +160,16 @@
      (cairo_move_to cr x1 y1)
      (cairo_line_to cr x2 y2)
      (cairo_line_to cr x3 y3)]))
+
+(define cairo-add-lines : (case-> [Cairo-Ctx (Listof Float-Complex) -> Void]
+                                  [Cairo-Ctx Float-Complex (Listof Float-Complex) -> Void]
+                                  [Cairo-Ctx Flonum Flonum (Listof Float-Complex) -> Void])
+  (case-lambda
+    [(cr pt pts) (cairo-add-lines cr (real-part pt) (imag-part pt) pts)]
+    [(cr pts)
+     (when (pair? pts)
+       (cairo-add-lines cr (car pts) (cdr pts)))]
+    [(cr x y pts)
+     (cairo_move_to cr x y)
+     (for ([pt (in-list pts)])
+        (cairo_line_to cr (real-part pt) (imag-part pt)))]))
