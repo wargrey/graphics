@@ -9,30 +9,29 @@
 (require "../paint.rkt")
 
 (require "../../base.rkt")
-(require "../../../paint.rkt")
 (require "../../../stroke.rkt")
 
 (require "../../skeleton/stickman/self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_stickman : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                          Geo-Stickman-Skeleton Nonnegative-Flonum
+                          Geo-Stickman-Skeleton Nonnegative-Flonum Nonnegative-Flonum
                           (Option Paint) (Option Fill-Source) (Option Fill-Source) (Option Fill-Source)
                           Any)
-  (lambda [cr x0 y0 flwidth flheight self scale stroke head-fill body-fill arm-fill]
-    (define thickness (* (if (stroke? stroke) (stroke-width stroke) 1.0) scale))
+  (lambda [cr x0 y0 flwidth flheight self scale fallback-thickness stroke head-fill body-fill arm-fill]
+    (define thickness (* (stroke-maybe-width stroke fallback-thickness) scale))
     (define rhead : Nonnegative-Flonum (* (geo-stickman-skeleton-head-radius self) scale))
     (define torso-width : Nonnegative-Flonum (* (geo-stickman-skeleton-torso-width self) scale))
     (define leg-width : Nonnegative-Flonum (* (geo-stickman-skeleton-leg-width self) scale))
     (define arm-width : Nonnegative-Flonum (* (geo-stickman-skeleton-arm-width self) scale))
-    (define origin : Float-Complex (make-rectangular (+ x0 (* flwidth 0.5)) y0))
+    (define origin : Float-Complex (make-rectangular (+ x0 (* flwidth 0.5)) (+ y0 (* thickness 0.5))))
 
     (define (transform [pt : Float-Complex]) : Float-Complex
       (+ (* pt scale) origin))
 
     (define head : Float-Complex (transform (geo-stickman-skeleton-head self)))
     (define neck : Float-Complex (transform (geo-stickman-skeleton-neck self)))
-    (define hip : Float-Complex (transform (geo-stickman-skeleton-hip self)))
+    (define hip : Float-Complex  (transform (geo-stickman-skeleton-hip  self)))
     (define lft-arm-pts : (Listof Float-Complex) (stickman-arm-points (geo-stickman-skeleton-left-arm self) transform))
     (define rgt-arm-pts : (Listof Float-Complex) (stickman-arm-points (geo-stickman-skeleton-right-arm self) transform))
     (define lft-leg-pts : (Listof Float-Complex) (stickman-leg-points (geo-stickman-skeleton-left-leg self) transform))

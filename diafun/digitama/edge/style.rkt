@@ -30,7 +30,8 @@
    [source-shape : Maybe-Edge-Tip-Shape]
    [target-shape : Maybe-Edge-Tip-Shape]
    [label-rotate? : (U Boolean Void)]
-   [label-inline? : (U Boolean Void)])
+   [label-inline? : (U Boolean Void)]
+   [label-distance : (U Flonum Void)])
   #:type-name Dia-Edge-Style
   #:transparent)
 
@@ -42,14 +43,16 @@
    [source-shape : Option-Edge-Tip-Shape]
    [target-shape : Option-Edge-Tip-Shape]
    [label-rotate? : Boolean]
-   [label-inline? : Boolean])
+   [label-inline? : Boolean]
+   [label-distance : (Option Flonum)])
   #:type-name Dia-Edge-Base-Style
   #:transparent)
 
 (define make-null-edge-style : (-> Dia-Edge-Base-Style)
   (lambda []
     (dia-edge-base-style #false #false (void)
-                         #false #false #false #false)))
+                         #false #false #false #false
+                         #false)))
 
 (define default-dia-edge-base-style : (Parameterof (-> Dia-Edge-Base-Style))
   (make-parameter make-null-edge-style))
@@ -112,6 +115,12 @@
     (define b : (U Boolean Void) (dia-edge-style-label-inline? s))
     
     (if (void? b) (dia-edge-base-style-label-inline? ((default-dia-edge-base-style))) b)))
+
+(define dia-edge-select-label-distance : (-> Dia-Edge-Style (Option Flonum))
+  (lambda [s]
+    (define fl : (U Flonum Void) (dia-edge-style-label-distance s))
+    
+    (if (void? fl) (dia-edge-base-style-label-distance ((default-dia-edge-base-style))) fl)))
 
 (define dia-edge-swap-dash-style : (-> Dia-Edge-Style Stroke-Dash-Datum Dia-Edge-Style)
   (lambda [s dash-datum]

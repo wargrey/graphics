@@ -23,6 +23,8 @@
  (rename-out [geo-path-close gomamon-close!]
              [make-sticker make-geo-sticker]))
 
+(require racket/math)
+
 (require "paint.rkt")
 (require "stroke.rkt")
 
@@ -151,6 +153,14 @@
 (define gomamon-jump-back! : (->* (Gomamon) ((U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name)) Void)
   (lambda [goma [target #false] [anchor #false]]
     (geo-path-jump-to goma target anchor)))
+
+(define gomamon-radial-move! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
+  (lambda [goma length degrees [anchor #false] [info #false]]
+    (define here : Float-Complex (geo:path-here goma))
+    (define delta : Complex (make-polar length (degrees->radians degrees)))
+
+    (geo-path-connect-to goma delta anchor info here)
+    (geo-path-jump-to goma here)))
 
 (define gomamon-random-walk! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
   (lambda [goma xstep ystep [anchor #false] [info #false]]

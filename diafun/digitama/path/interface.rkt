@@ -89,7 +89,7 @@
     (make-dia-edge-labels #:font (dia-edge-select-font style)
                           #:font-paint (dia-edge-select-font-paint style)
                           #:rotate? (dia-edge-select-label-rotate? style)
-                          #:distance (and (dia-edge-select-label-inline? style) 0.0)
+                          #:distance (if (dia-edge-select-label-inline? style) 0.0 (dia-edge-select-label-distance style))
                           start end info)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

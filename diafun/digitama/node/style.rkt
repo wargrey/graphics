@@ -97,15 +97,26 @@
                           (cond [(> height 0.0) height] [(< height 0.0) (* h (abs height))] [else h])))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dia-node-select-stroke-width : (-> Dia-Node-Style Nonnegative-Flonum)
+  (lambda [self]
+    (define paint (stroke-paint->source (dia-node-base-style-stroke-paint ((default-dia-node-base-style)))))
+    (define width (dia-node-style-stroke-width self))
+
+    (cond [(not width) (stroke-width paint)]
+          [(>= width 0.0) width]
+          [(< width 0.0) (abs (* (stroke-width paint) width))]
+          [else (stroke-width paint)])))
+
 (define dia-node-select-stroke-paint : (-> Dia-Node-Style Maybe-Stroke-Paint)
   (lambda [self]
     (define fallback-paint : (Option Stroke) (stroke-paint->source* (dia-node-base-style-stroke-paint ((default-dia-node-base-style)))))
     (define c (dia-node-style-stroke-color self))
 
-    (desc-stroke #:color (and (not (void? c)) c)
-                 #:width (dia-node-style-stroke-width self)
-                 #:dash (dia-node-style-stroke-dash self)
-                 (if (stroke? fallback-paint) fallback-paint (default-stroke)))))
+    (and c
+         (desc-stroke #:color (and (not (void? c)) c)
+                      #:width (dia-node-style-stroke-width self)
+                      #:dash (dia-node-style-stroke-dash self)
+                      (if (stroke? fallback-paint) fallback-paint (default-stroke))))))
 
 (define #:forall (T) dia-node-select-fill-paint : (case-> [Dia-Node-Style -> Maybe-Fill-Paint]
                                                           [Maybe-Fill-Paint (-> Dia-Node-Base-Style Maybe-Fill-Paint) -> Maybe-Fill-Paint]

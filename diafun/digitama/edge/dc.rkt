@@ -52,15 +52,15 @@
     (define-values (e.x e.y e.w e.h) (geo-path-ink-box footprints))
 
     ;; NOTE: we move the end shapes to their absolute positions, and no need to translate them when drawing
-    (define-values (src-prints s.x s.y s.w s.h s.off) (dia-edge-tip-metrics src-shape thickness (+ srad pi) spt))
-    (define-values (tgt-prints t.x t.y t.w t.h t.off) (dia-edge-tip-metrics tgt-shape thickness erad ept))
+    (define-values (src-prints s.x s.y s.w s.h s.off s.fill?) (dia-edge-tip-metrics src-shape thickness srad spt #false))
+    (define-values (tgt-prints t.x t.y t.w t.h t.off t.fill?) (dia-edge-tip-metrics tgt-shape thickness erad ept #true))
 
     (define-values (lx ty) (values (min e.x s.x t.x) (min e.y s.y t.y)))
     (define-values (rx by) (values (max (+ e.x e.w) (+ s.x s.w) (+ t.x t.w)) (max (+ e.y e.h) (+ s.y s.h) (+ t.y t.h))))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window +nan.0+nan.0i lx ty rx by))
 
     (create-geometry-object dia:edge
-                            #:with [id (dia-draw-edge! stroke)
+                            #:with [id (dia-draw-edge! stroke s.fill? t.fill?)
                                        (geo-shape-extent width height 0.0 0.0)
                                        (geo-shape-outline stroke x-stroke? y-stroke?)]
                             footprints (cons spt srad) (cons ept erad)
@@ -110,8 +110,8 @@
     (assert (glayer-master (car (glayer-group-layers (geo:group-selves g)))) dia:edge?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-draw-edge! : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)
-  (lambda [alt-stroke]
+(define dia-draw-edge! : (-> Maybe-Stroke-Paint Boolean Boolean Geo-Surface-Draw!)
+  (lambda [alt-stroke sfill? tfill?]
     (λ [self cr x0 y0 width height]
       (with-asserts ([self dia:edge?])
         (define paint (geo-select-stroke-paint alt-stroke))
@@ -120,6 +120,6 @@
 
         (dc_edge cr x0 y0 width height
                  (dia:edge-footprints self) (dia:edge-bbox-offset self) paint
-                 (vector-immutable (dia:edge-source-shape self) shape-stroke color)
-                 (vector-immutable (dia:edge-target-shape self) shape-stroke color)
+                 (vector-immutable (dia:edge-source-shape self) shape-stroke (and sfill? color))
+                 (vector-immutable (dia:edge-target-shape self) shape-stroke (and tfill? color))
                  (dia:edge-adjust-offset self))))))

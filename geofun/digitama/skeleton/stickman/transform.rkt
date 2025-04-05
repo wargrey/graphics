@@ -59,13 +59,13 @@
                            neck lft-arm rgt-arm
                            hip lft-leg rgt-leg)))
 
-(define geo-standing-stickman-size : (-> Geo-Stickman-Skeleton [#:stroke (Option Paint)] (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [self #:stroke [stroke #false]]
-    (define thickness : Nonnegative-Real (* (stroke-maybe-width stroke) 2.0))
+(define geo-standing-stickman-size : (->* (Geo-Stickman-Skeleton) (Nonnegative-Flonum #:stroke (Option Paint)) (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [self [fallback-thickness 0.0] #:stroke [stroke #false]]
+    (define thick-ext : Nonnegative-Flonum (* (stroke-maybe-width stroke fallback-thickness) 2.0))
     (define leg-width : Nonnegative-Flonum (geo-stickman-skeleton-leg-width self))
     (define arm-width : Nonnegative-Flonum (geo-stickman-skeleton-arm-width self))
     (define bbox : Geo-BBox (make-geo-bbox (cons 0.0+0.0i (geo-stickman-skeleton-points self))))
     (define-values (width height _) (geo-bbox-values bbox))
 
-    (values (+ width arm-width thickness)
-            (+ height (* leg-width 0.5) thickness))))
+    (values (+ width arm-width thick-ext)
+            (+ height (* leg-width 0.36) thick-ext))))

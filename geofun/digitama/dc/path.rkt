@@ -152,22 +152,26 @@
     (set-geo:path-here! self cpos++)
     (set-geo:path-footprints! self (cons path:arc (geo:path-footprints self)))))
 
-(define geo-path-jump-to : (-> Geo:Path (U Geo-Anchor-Name Complex False) (Option Geo-Anchor-Name) Void)
-  (lambda [self target pos-anchor]
-    (define anchor : (U Geo-Anchor-Name Complex) (or target (geo-trail-head-anchor (geo:path-trail self))))
-    (define pos : Float-Complex (geo-path-target-position self anchor))
+(define geo-path-jump-to : (case-> [Geo:Path (U Geo-Anchor-Name Complex False) (Option Geo-Anchor-Name) -> Void]
+                                   [Geo:Path Float-Complex -> Void])
+  (case-lambda
+    [(self target pos-anchor)
+     (define anchor : (U Geo-Anchor-Name Complex) (or target (geo-trail-head-anchor (geo:path-trail self))))
+     (define pos : Float-Complex (geo-path-target-position self anchor))
+     
+     (if (complex? anchor)
+         (geo-trail-try-set! (geo:path-trail self) pos-anchor pos)
+         (geo-trail-pop! (geo:path-trail self) anchor))
+     
+     (geo-path-jump-to self pos)]
+    [(self pos)
+     (set-geo:path-origin! self pos)
+     (set-geo:path-here! self pos)
+     (set-geo:path-footprints! self (cons (gpp:point #\M pos) (geo:path-footprints self)))]))
 
-    (if (complex? anchor)
-        (geo-trail-try-set! (geo:path-trail self) pos-anchor pos)
-        (geo-trail-pop! (geo:path-trail self) anchor))
-    
-    (set-geo:path-origin! self pos)
-    (set-geo:path-here! self pos)
-    (set-geo:path-footprints! self (cons (gpp:point #\M pos) (geo:path-footprints self)))))
-
-(define geo-path-connect-to : (-> Geo:Path (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Any Void)
-  (lambda [self target pos-anchor info]
-    (define pos : Float-Complex (geo-path-target-position self target))
+(define geo-path-connect-to : (->* (Geo:Path (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Any) (Float-Complex) Void)
+  (lambda [self target pos-anchor info [offset 0.0+0.0i]]
+    (define pos : Float-Complex (geo-path-target-position self target offset))
 
     (unless (not info)
       (hash-set! (geo:path-foot-infos self)
@@ -237,6 +241,7 @@
     (geo-path-do-move self (geo-path-target-position self xstep ystep xsgn ysgn) #\L anchor info #false)))
 
 (define geo-path-target-position : (case-> [Gomamon Geo-Step-Datum Geo-Step-Datum Flonum Flonum -> Float-Complex]
+                                           [Geo:Path (U Geo-Anchor-Name Complex) Float-Complex -> Float-Complex]
                                            [Geo:Path (U Geo-Anchor-Name Complex) -> Float-Complex])
   (case-lambda
     [(self xstep ystep xsgn ysgn)
@@ -257,7 +262,8 @@
             (make-rectangular (* (gomamon-xstepsize self) (real->double-flonum (real-part target)))
                               (* (gomamon-ystepsize self) (real->double-flonum (imag-part target))))]
            [else (make-rectangular (real->double-flonum (real-part target))
-                                   (real->double-flonum (imag-part target)))])]))
+                                   (real->double-flonum (imag-part target)))])]
+    [(self target offset) (+ offset (geo-path-target-position self target))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-path-extent : Geo-Calculate-Extent

@@ -76,6 +76,6 @@
             dasharray dashoffset)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define stroke-maybe-width : (-> Any Nonnegative-Flonum)
-  (lambda [s]
-    (if (stroke? s) (stroke-width s) 0.0)))
+(define #:forall (T) stroke-maybe-width : (->* (Any) (T) (U Nonnegative-Flonum T))
+  (lambda [s [fallback-width 0.0]]
+    (if (stroke? s) (stroke-width s) fallback-width)))

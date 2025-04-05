@@ -41,7 +41,8 @@
    [source-shape : Option-Edge-Tip-Shape #false]
    [target-shape : Option-Edge-Tip-Shape default-arrow-tip]
    [label-rotate? : Boolean #false]
-   [label-inline? : Boolean #true]))
+   [label-inline? : Boolean #true]
+   [label-distance : (Option Flonum) #false]))
 
 (define-configuration diaflow-arrow-style : DiaFlow-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-arrow-~a"
@@ -53,7 +54,8 @@
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
    [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) (void)]))
+   [label-inline? : (U Boolean Void) (void)]
+   [label-distance : (U Void Flonum) (void)]))
 
 (define-configuration diaflow-decision-arrow-style : DiaFlow-Decision-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-decision-arrow-~a"
@@ -65,7 +67,8 @@
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
    [label-rotate? : (U Boolean Void) #true]
-   [label-inline? : (U Boolean Void) #false]))
+   [label-inline? : (U Boolean Void) #false]
+   [label-distance : (U Void Flonum) (void)]))
 
 (define-configuration diaflow-success-arrow-style : DiaFlow-Success-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-success-arrow-~a"
@@ -77,7 +80,8 @@
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
    [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) #false]))
+   [label-inline? : (U Boolean Void) #false]
+   [label-distance : (U Void Flonum) (void)]))
 
 (define-configuration diaflow-failure-arrow-style : DiaFlow-Failure-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-failure-arrow-~a"
@@ -89,7 +93,8 @@
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
    [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) #false]))
+   [label-inline? : (U Boolean Void) #false]
+   [label-distance : (U Void Flonum) (void)]))
 
 (define-configuration diaflow-loop-arrow-style : DiaFlow-Loop-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-loop-arrow-~a"
@@ -101,7 +106,8 @@
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
    [label-rotate? : (U Boolean Void) #true]
-   [label-inline? : (U Boolean Void) #false]))
+   [label-inline? : (U Boolean Void) #false]
+   [label-distance : (U Void Flonum) (void)]))
 
 (define-configuration diaflow-storage-arrow-style : DiaFlow-Storage-Arrow-Style #:as dia-edge-style
   #:format "default-diaflow-storage-arrow-~a"
@@ -113,7 +119,8 @@
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
    [label-rotate? : (U Boolean Void) #true]
-   [label-inline? : (U Boolean Void) #false]))
+   [label-inline? : (U Boolean Void) #false]
+   [label-distance : (U Void Flonum) (void)]))
 
 (define-configuration diaflow-free-track-style : DiaFlow-Free-Track-Style #:as dia-edge-style
   #:format "default-diaflow-free-track-~a"
@@ -125,7 +132,8 @@
    [source-shape : Maybe-Edge-Tip-Shape #false]
    [target-shape : Maybe-Edge-Tip-Shape #false]
    [label-rotate? : (U Boolean Void) #true]
-   [label-inline? : (U Boolean Void) #true]))
+   [label-inline? : (U Boolean Void) #true]
+   [label-distance : (U Void Flonum) (void)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflow-canonical-start-name : (Parameterof String) (make-parameter ""))
