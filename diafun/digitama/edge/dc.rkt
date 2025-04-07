@@ -116,10 +116,11 @@
       (with-asserts ([self dia:edge?])
         (define paint (geo-select-stroke-paint alt-stroke))
         (define color (and paint (stroke-color paint)))
-        (define shape-stroke (desc-stroke default-dia-shape-stroke #:color color))
+        (define (shape-stroke [fill? : Boolean]) : (Option Stroke)
+          (if (not fill?) paint (desc-stroke #:width 1.0 #:color color)))
 
         (dc_edge cr x0 y0 width height
                  (dia:edge-footprints self) (dia:edge-bbox-offset self) paint
-                 (vector-immutable (dia:edge-source-shape self) shape-stroke (and sfill? color))
-                 (vector-immutable (dia:edge-target-shape self) shape-stroke (and tfill? color))
+                 (vector-immutable (dia:edge-source-shape self) (shape-stroke sfill?) (and sfill? color))
+                 (vector-immutable (dia:edge-target-shape self) (shape-stroke tfill?) (and tfill? color))
                  (dia:edge-adjust-offset self))))))

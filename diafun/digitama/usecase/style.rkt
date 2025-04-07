@@ -32,7 +32,7 @@
    [source-shape : Option-Edge-Tip-Shape #false]
    [target-shape : Option-Edge-Tip-Shape default-arrow-tip]
    [label-rotate? : Boolean #true]
-   [label-inline? : Boolean #true]
+   [label-inline? : Boolean #false]
    [label-distance : (Option Flonum) #false]))
 
 (define-configuration diauc-error-arrow-style : DiaUC-Error-Arrow-Style #:as dia-edge-style
@@ -67,11 +67,11 @@
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumSeaGreen]
-   [dash : (Option Stroke-Dash-Datum) 'long-dash]
+   [dash : (Option Stroke-Dash-Datum) 'short-dash]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape (void)]
    [label-rotate? : (U Boolean Void) #true]
-   [label-inline? : (U Boolean Void) #true]
+   [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
 
 (define-configuration diauc-extend-arrow-style : DiaUC-Extend-Arrow-Style #:as dia-edge-style
@@ -80,11 +80,11 @@
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'RoyalBlue]
-   [dash : (Option Stroke-Dash-Datum) 'long-dash]
+   [dash : (Option Stroke-Dash-Datum) 'short-dash]
    [source-shape : Maybe-Edge-Tip-Shape default-arrow-tip]
    [target-shape : Maybe-Edge-Tip-Shape #false]
    [label-rotate? : (U Boolean Void) #true]
-   [label-inline? : (U Boolean Void) #true]
+   [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
 
 (define-configuration diauc-generalization-arrow-style : DiaUC-Generalization-Arrow-Style #:as dia-edge-style
@@ -92,7 +92,7 @@
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'DarkGoldenrod]
+   [color : (U Color Void False) 'MediumPurple]
    [dash : (Option Stroke-Dash-Datum) #false]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape default-generalization-tip]

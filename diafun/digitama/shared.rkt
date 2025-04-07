@@ -15,8 +15,8 @@
 (define default-table-header-font : Font (desc-font #:size 'large #:weight 'bold))
 
 (define default-arrow-tip : Dia-Edge-Tip-Shape (make-dia-arrow-tip))
-(define default-generalization-tip : Dia-Edge-Tip-Shape (make-dia-arrow-tip #:wing.deg 180.0 #:curved? #false #:fill? #false))
+(define default-generalization-tip : Dia-Edge-Tip-Shape (make-dia-arrow-tip #:radius -5.0 #:wing.deg 180.0 #:curved? #false #:fill? #false))
 
-(define default-edge-stroke : Stroke (desc-stroke #:width 2.0 #:color 'DimGrey #:join 'round #:cap 'butt))
+(define default-edge-stroke : Stroke (desc-stroke #:width 2.0 #:color 'DimGrey #:join 'round #:cap 'round))
 (define default-node-stroke : Stroke (desc-stroke #:width 2.0 #:color 'DarkGrey))
 (define default-black-stroke : Stroke (desc-stroke #:width 2.0 #:color 'Black))

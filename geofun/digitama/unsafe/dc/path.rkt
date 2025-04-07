@@ -114,8 +114,8 @@
         (cond [(gpp:point? self)
                (let ([cmd (gpath:datum-cmd self)]
                      [pt (gpath:print-end-here self)])
-                 (if (and tgt-adjust (null? rest))
-                     (let ([apt (- pt tgt-adjust)])
+                 (if (and (null? rest) tgt-adjust)
+                     (let ([apt (+ pt tgt-adjust)])
                        (cairo_line_to cr (real-part apt) (imag-part apt)))
                      (cairo_line_to cr (real-part pt) (imag-part pt))))]
               [(gpp:arc? self) #\A (cairo_elliptical_arc cr self)]

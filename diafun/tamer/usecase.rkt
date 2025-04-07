@@ -18,18 +18,18 @@
   (radial-move 2 +45 Management)
 
   (jump-to Development)
-  (radial-move 2.5 -15 Test "<<include>>")
-  (radial-move 2.5 +15 Debug "<<include>>")
+  (radial-move 2.5 -15 Test " <<include>> ")
+  (radial-move 2.5 +15 Debug " <<include>> ")
 
   (jump-to +3i Engineer)
   (radial-move 1.5 0 Design)
   (move-to ':Coder)
 
   (jump-to Design)
-  (radial-move 2.5 0 Readability "<<extend>>")
+  (radial-move 2.5 0 Readability " <<extend>> ")
 
   (jump-to 0.5-3.5i '.ucase)
-  (move-right 4.5 #false "用例图")
+  (move-right 4.5 #false "Use Case Diagram")
   (move-down 8.0)
   (move-left 4.5)
   (move-up '.ucase))

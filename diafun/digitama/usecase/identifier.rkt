@@ -35,7 +35,7 @@
                     (dia-edge-style-construct source target labels (default-diauc-include-arrow-style-make) make-diauc-include-arrow-style)]
                    [(dia-edge-label-match? hints #px"[Ee][Xx][Tt][Ee][Nn][Dd]")
                     (dia-edge-style-construct source target labels (default-diauc-extend-arrow-style-make) make-diauc-extend-arrow-style)]
-                   [else (dia-edge-style-construct source target labels (default-diauc-error-arrow-style-make) make-diauc-error-arrow-style)])]
+                   [else (dia-edge-style-construct source target labels (default-diauc-generalization-arrow-style-make) make-diauc-generalization-arrow-style)])]
             [(or ttype) (dia-edge-style-construct source target labels (default-diauc-association-arrow-style-make) make-diauc-association-arrow-style)]
             [else (dia-edge-style-construct source target labels (default-diauc-error-arrow-style-make) make-diauc-error-arrow-style)]))
 
