@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 (provide (all-from-out geofun/path))
-(provide (all-from-out "digitama/shared.rkt"))
+(provide (all-from-out "digitama/shared.rkt" "digitama/edge/tip/shared.rkt"))
 (provide (all-from-out "digitama/path/interface.rkt"))
 (provide (all-from-out "digitama/usecase/interface.rkt"))
 (provide (all-from-out "digitama/usecase/self.rkt"))
@@ -23,6 +23,7 @@
 
 (require "digitama/shared.rkt")
 (require "digitama/node/dc.rkt")
+(require "digitama/edge/tip/shared.rkt")
 
 (require "digitama/path/interface.rkt")
 (require "digitama/path/stick.rkt")

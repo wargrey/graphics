@@ -53,9 +53,9 @@
                    pos))
              (gpath:print-end-here self)))))
 
-(define geo-path-cleanse : (->* ((Listof GPath:Datum)) (Float-Complex) (Listof GPath:Print))
+(define geo-path-cleanse : (->* ((Listof (U GPath:Datum Float-Complex))) (Float-Complex) (Listof GPath:Print))
   (lambda [footprints [pos0 0.0+0.0i]]
-    (let traverse ([prints : (Listof GPath:Datum) footprints]
+    (let traverse ([prints : (Listof (U GPath:Datum Float-Complex)) footprints]
                    [path0 : (Option Float-Complex) #false]
                    [stnirp : (Listof GPath:Print) null]
                    [curpos : Float-Complex pos0])
@@ -73,6 +73,10 @@
                            [(not path0) (traverse rest pos (cons (gpp:point #\M pos) stnirp) pos)]
                            [else (traverse rest path0 (cons (gpp:point #\L pos) stnirp) pos)]))]
                   [(gpath:print? self) (traverse rest path0 (cons self stnirp) (gpath:print-end-here self))]
+                  [(complex? self)
+                   (if (and path0)
+                       (traverse rest path0 (cons (gpp:point #\L self) stnirp) self)
+                       (traverse rest self (cons (gpp:point #\M self) stnirp) self))]
                   [else '#:deadcode (traverse rest path0 stnirp curpos)]))
           (reverse stnirp)))))
 

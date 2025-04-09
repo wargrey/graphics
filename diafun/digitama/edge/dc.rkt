@@ -32,8 +32,8 @@
    [target : (Pairof Float-Complex Flonum)]
    [origin : Float-Complex]
    [bbox-offset : Float-Complex]
-   [source-shape : Geo-Path-Clean-Prints]
-   [target-shape : Geo-Path-Clean-Prints]
+   [source-shape : Geo-Path-Prints]
+   [target-shape : Geo-Path-Prints]
    [adjust-offset : (Pairof (Option Float-Complex) (Option Float-Complex))])
   #:type-name Dia:Edge
   #:transparent)

@@ -2,7 +2,6 @@
 
 (provide (all-defined-out))
 
-(require "../dot.rkt")
 (require "../constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -30,13 +29,24 @@
               (list (make-rectangular 0.0 x) (make-rectangular 0.0 (+ height x x))
                     (make-rectangular width (+ height x)) (make-rectangular width 0.0)))))))
 
-(define geo-rhombus-vertices : (-> Nonnegative-Flonum Nonnegative-Flonum Quadrilateral-Vertices)
-  (lambda [width height]
-    (define w/2 : Nonnegative-Flonum (* width 0.5))
-    (define h/2 : Nonnegative-Flonum (* height 0.5))
+(define geo-rhombus-vertices : (case-> [Nonnegative-Flonum Nonnegative-Flonum -> Quadrilateral-Vertices]
+                                       [Nonnegative-Flonum Nonnegative-Flonum Flonum Float-Complex -> Quadrilateral-Vertices])
+  (case-lambda
+    [(width height)
+     (define w/2 : Nonnegative-Flonum (* width 0.5))
+     (define h/2 : Nonnegative-Flonum (* height 0.5))
+     
+     (list (make-rectangular w/2 0.0) (make-rectangular width h/2)
+           (make-rectangular w/2 height) (make-rectangular 0.0 h/2))]
+    [(width height normalized.rad offset)
+     (define w/2 : Nonnegative-Flonum (* width 0.5))
+     (define h/2 : Nonnegative-Flonum (* height 0.5))
+     (define O : Float-Complex (+ (make-rectangular w/2 h/2) offset))
 
-    (list (make-rectangular w/2 0.0) (make-rectangular width h/2)
-          (make-rectangular w/2 height) (make-rectangular 0.0 h/2))))
+     (list (+ O (make-polar w/2 normalized.rad))
+           (+ O (make-polar h/2 (+ normalized.rad pi/2)))
+           (+ O (make-polar w/2 (+ normalized.rad pi)))
+           (+ O (make-polar h/2 (+ normalized.rad 3pi/2))))]))
 
 (define geo-keyboard-vertices : (-> Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Quadrilateral-Vertices)
   (lambda [width height left/right]

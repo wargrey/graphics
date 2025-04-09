@@ -2,9 +2,6 @@
 
 (provide (all-defined-out))
 
-(require "../dot.rkt")
-(require "../constants.rkt")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Pentagon-Vertices (List Float-Complex Float-Complex Float-Complex Float-Complex Float-Complex))
 

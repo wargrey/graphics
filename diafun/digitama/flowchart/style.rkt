@@ -13,6 +13,7 @@
 (require "../node/style.rkt")
 (require "../edge/style.rkt")
 (require "../edge/tip.rkt")
+(require "../edge/tip/arrow.rkt")
 
 (require "../shared.rkt")
 
