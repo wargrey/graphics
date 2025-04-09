@@ -54,14 +54,19 @@
                             (dia-edge-style-construct source target labels
                                                       (default-diacls-association-arrow-style-make)
                                                       make-diacls-association-arrow-style)]
-                           [else (if (eq? (dia:node-type source)
-                                          (dia:node-type target))
-                                     (dia-edge-style-construct source target labels
-                                                               (default-diacls-generalization-arrow-style-make)
-                                                               make-diacls-generalization-arrow-style)
-                                     (dia-edge-style-construct source target labels
-                                                               (default-diacls-realization-arrow-style-make)
-                                                               make-diacls-realization-arrow-style))])]))
+                           [else (let ([stype (dia:node-type source)]
+                                       [ttype (dia:node-type target)])
+                                   (cond [(eq? stype ttype)
+                                          (dia-edge-style-construct source target labels
+                                                                    (default-diacls-generalization-arrow-style-make)
+                                                                    make-diacls-generalization-arrow-style)]
+                                         [(eq? stype 'Class)
+                                          (dia-edge-style-construct source target labels
+                                                                    (default-diacls-realization-arrow-style-make)
+                                                                    make-diacls-realization-arrow-style)]
+                                         [else (dia-edge-style-construct source target labels
+                                                                         (default-diacls-association-arrow-style-make)
+                                                                         make-diacls-association-arrow-style)]))])]))
 
     edge-style))
   
