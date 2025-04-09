@@ -117,7 +117,9 @@
         (define paint (geo-select-stroke-paint alt-stroke))
         (define color (and paint (stroke-color paint)))
         (define (shape-stroke [fill? : Boolean]) : (Option Stroke)
-          (if (not fill?) paint (desc-stroke #:width 1.0 #:color color)))
+          (if (not fill?)
+              (and paint (desc-stroke paint #:color color #:dash 'solid))
+              (desc-stroke #:width 1.0 #:color color)))
 
         (dc_edge cr x0 y0 width height
                  (dia:edge-footprints self) (dia:edge-bbox-offset self) paint

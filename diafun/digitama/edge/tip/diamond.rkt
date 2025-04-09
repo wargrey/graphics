@@ -12,8 +12,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct dia-diamond-tip : Dia-Diamond-Tip #:-> Dia-Edge-Tip-Shape
-  ([width : Real -8.0]
-   [height : Real -6.0]
+  ([width : Real -6.0]
+   [height : Real -4.0]
    [fill? : Boolean #true])
   #:transparent)
 

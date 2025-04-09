@@ -18,7 +18,6 @@
 (require "../shared.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diauc-error-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaUC-Error-Arrow-Style))) (make-parameter #false))
 (define default-diauc-association-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaUC-Association-Arrow-Style))) (make-parameter #false))
 (define default-diauc-include-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaUC-Include-Arrow-Style))) (make-parameter #false))
 (define default-diauc-extend-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaUC-Extend-Arrow-Style))) (make-parameter #false))
@@ -35,19 +34,6 @@
    [label-rotate? : Boolean #true]
    [label-inline? : Boolean #false]
    [label-distance : (Option Flonum) #false]))
-
-(define-configuration diauc-error-arrow-style : DiaUC-Error-Arrow-Style #:as dia-edge-style
-  #:format "default-diauc-error-arrow-~a"
-  ([font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'Crimson]
-   [dash : (Option Stroke-Dash-Datum) #false]
-   [source-shape : Maybe-Edge-Tip-Shape (void)]
-   [target-shape : Maybe-Edge-Tip-Shape (void)]
-   [label-rotate? : (U Boolean Void) #true]
-   [label-inline? : (U Boolean Void) #false]
-   [label-distance : (U Void Flonum) (void)]))
 
 (define-configuration diauc-association-arrow-style : DiaUC-Association-Arrow-Style #:as dia-edge-style
   #:format "default-diauc-association-arrow-~a"

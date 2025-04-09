@@ -8,8 +8,8 @@
 (require "../path/interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diauc-node-fallback-construct : Dia-Path-Id->Node-Shape
+(define default-diacls-node-fallback-construct : Dia-Path-Id->Node-Shape
   (lambda [id label style width height direction hint]
     (case/eq (object-name style)
-             [(diauc-actor-style) (diauc-block-actor id label style width height direction hint)]
-             [(diauc-ucase-style) (diauc-block-ucase id label style width height direction hint)])))
+             [(diacls-interface-style) (diacls-block-interface id label style width height direction hint)]
+             [(diacls-class-style)     (diacls-block-class id label style width height direction hint)])))

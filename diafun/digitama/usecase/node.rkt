@@ -6,7 +6,6 @@
 (require "../node/dc.rkt")
 (require "../path/interface.rkt")
 
-(require geofun/digitama/base)
 (require geofun/digitama/dc/arc)
 (require geofun/digitama/dc/stickman)
 

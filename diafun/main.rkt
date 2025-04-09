@@ -5,6 +5,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require/provide "flowchart.rkt")
 (require/provide "usecase.rkt")
+(require/provide "class.rkt")
 (require/provide "flowlet.rkt")
 
 (require/provide "memory.rkt")
