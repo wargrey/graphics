@@ -68,8 +68,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'CornflowerBlue]
    [dash : (Option Stroke-Dash-Datum) 'short-dash]
-   [source-shape : Maybe-Edge-Tip-Shape default-arrow-tip]
-   [target-shape : Maybe-Edge-Tip-Shape #false]
+   [source-shape : Maybe-Edge-Tip-Shape (void)]
+   [target-shape : Maybe-Edge-Tip-Shape default-arrow-tip]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))

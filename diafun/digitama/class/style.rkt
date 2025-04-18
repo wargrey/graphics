@@ -20,6 +20,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diacls-association-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaCls-Association-Arrow-Style))) (make-parameter #false))
+(define default-diacls-bidirection-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaCls-Bidirection-Arrow-Style))) (make-parameter #false))
 (define default-diacls-composition-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaCls-Composition-Arrow-Style))) (make-parameter #false))
 (define default-diacls-aggregation-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaCls-Aggregation-Arrow-Style))) (make-parameter #false))
 (define default-diacls-generalization-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaCls-Generalization-Arrow-Style))) (make-parameter #false))
@@ -43,7 +44,7 @@
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'CornflowerBlue]
+   [color : (U Color Void False) 'MediumPurple]
    [dash : (Option Stroke-Dash-Datum) #false]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape default-generalization-tip]
@@ -56,7 +57,7 @@
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'CornflowerBlue]
+   [color : (U Color Void False) 'MediumPurple]
    [dash : (Option Stroke-Dash-Datum) 'short-dash]
    [source-shape : Maybe-Edge-Tip-Shape (void)]
    [target-shape : Maybe-Edge-Tip-Shape default-generalization-tip]
@@ -82,7 +83,7 @@
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'MediumAquamarine]
+   [color : (U Color Void False) 'Turquoise]
    [dash : (Option Stroke-Dash-Datum) #false]
    [source-shape : Maybe-Edge-Tip-Shape default-aggregation-tip]
    [target-shape : Maybe-Edge-Tip-Shape default-arrow-tip]
@@ -103,6 +104,19 @@
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 
+(define-configuration diacls-bidirection-arrow-style : DiaCls-Bidirection-Arrow-Style #:as dia-edge-style
+  #:format "default-diacls-bidirection-arrow-~a"
+  ([font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [width : (Option Flonum) #false]
+   [color : (U Color Void False) 'DimGray]
+   [dash : (Option Stroke-Dash-Datum) #false]
+   [source-shape : Maybe-Edge-Tip-Shape #false]
+   [target-shape : Maybe-Edge-Tip-Shape #false]
+   [label-rotate? : (U Boolean Void) (void)]
+   [label-inline? : (U Boolean Void) (void)]
+   [label-distance : (U Void Flonum) (void)]))
+
 (define-configuration diacls-dependency-arrow-style : DiaCls-Dependency-Arrow-Style #:as dia-edge-style
   #:format "default-diacls-dependency-arrow-~a"
   ([font : (Option Font) #false]
@@ -112,7 +126,7 @@
    [dash : (Option Stroke-Dash-Datum) 'short-dash]
    [source-shape : Maybe-Edge-Tip-Shape #false]
    [target-shape : Maybe-Edge-Tip-Shape default-arrow-tip]
-   [label-rotate? : (U Boolean Void) (void)]
+   [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 

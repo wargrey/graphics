@@ -117,3 +117,7 @@
   (lambda [labels keywords]
     (for/or : Boolean ([label (in-list labels)])
       (regexp-match? keywords label))))
+
+(define dia-edge-label-double-angle-bracketed? : (-> (Listof Bytes) Boolean)
+  (lambda [labels]
+    (dia-edge-label-match? labels #px"^&lt;&lt;\\w+&gt;&gt;$")))

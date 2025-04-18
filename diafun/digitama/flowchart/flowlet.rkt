@@ -113,7 +113,7 @@
                                         (diaflowlet-block-document id label style width height direction hint))])))
 
 (define diaflowlet-arrow-identify : Dia-Path-Arrow-Identifier
-  (lambda [source target labels]
+  (lambda [source target labels extra]
     (dia-edge-style-construct source target labels (default-diaflow-storage-arrow-style-make) make-diaflow-storage-arrow-style)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

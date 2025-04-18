@@ -129,8 +129,8 @@
                      (dia-2-tracks-relocate-endpoints src-layer tgt-layer ctracks)
                      (dia-more-tracks-relocate-endpoints src-layer tgt-layer ctracks)))
                
-               (define-values (labels sofni) (dia-arrow-label-info-filter infobase ctracks retracks))
-               (define edge-style : (Option Dia-Edge-Style) (arrow-identify source target labels))
+               (define-values (labels sofni extra-info) (dia-arrow-label-info-filter infobase ctracks retracks))
+               (define edge-style : (Option Dia-Edge-Style) (arrow-identify source target labels extra-info))
 
                (define arrow : (U Dia:Edge Dia:Labeled-Edge Void False)
                  (and edge-style
@@ -142,39 +142,47 @@
         arrows)))
 
 (define dia-arrow-label-info-filter : (-> Geo-Path-Infobase Geo-Path-Clean-Prints Geo-Path-Clean-Prints
-                                          (Values (Listof Dia-Edge-Label-Datum) (Listof Dia-Path-Arrow-Label-Info)))
+                                          (Values (Listof Dia-Edge-Label-Datum) (Listof Dia-Path-Arrow-Label-Info) (Listof Any)))
   (lambda [infobase tracks refined-tracks]
     (let label-filter ([sofni : (Listof Dia-Path-Arrow-Label-Info) null]
                        [slebal : (Listof Dia-Edge-Label-Datum) null]
-                       [otracks : Geo-Path-Clean-Prints tracks]
-                       [rtracks : Geo-Path-Clean-Prints refined-tracks]
-                       [osrc : (Option Float-Complex) #false]
-                       [rsrc : Float-Complex 0.0+0.0i])
-      (if (and (pair? otracks) (pair? rtracks))
+                       [sartxe : (Listof Any) null]
+                       [orig-tracks : Geo-Path-Clean-Prints tracks]
+                       [refd-tracks : Geo-Path-Clean-Prints refined-tracks]
+                       [orig-src : (Option Float-Complex) #false]
+                       [refd-src : Float-Complex 0.0+0.0i])
+      (if (and (pair? orig-tracks) (pair? refd-tracks))
 
-          (let ([oself (car otracks)]
-                [rself (car rtracks)])
+          (let ([oself (car orig-tracks)]
+                [rself (car refd-tracks)])
             (cond [(eq? (gpath:datum-cmd oself) #\M)
-                   (label-filter sofni slebal (cdr otracks) (cdr rtracks)
+                   (label-filter sofni slebal sartxe (cdr orig-tracks) (cdr refd-tracks)
                                  (geo-path-clean-print-position oself)
                                  (geo-path-clean-print-position rself))]
                   [(eq? (gpath:datum-cmd oself) #\L)
                    (let ([otarget (geo-path-clean-print-position oself)]
                          [rtarget (geo-path-clean-print-position rself)])
-                     (define maybe-info : (Option Dia-Edge-Label-Datum)
-                       (and osrc
-                            (let ([info (hash-ref infobase (cons osrc otarget) (λ [] #false))])
-                              (dia-edge-label-datum-filter info))))
+                     (define-values (maybe-label sartxe++)
+                       (if (not orig-src)
+                           (values #false sartxe)
+                           (let ([info (hash-ref infobase (cons orig-src otarget) (λ [] #false))])
+                             (if (geo:path:info? info)
+                                 (let ([labels (cons (geo:path:info-start-label info) (geo:path:info-end-label info))]
+                                       [extra (geo:path:info-extra info)])
+                                   (if (not extra)
+                                       (values (dia-edge-label-datum-filter labels) sartxe)
+                                       (values (dia-edge-label-datum-filter labels) (cons extra sartxe))))
+                                 (values (dia-edge-label-datum-filter info) sartxe)))))
                      
-                     (if (not maybe-info)
-                         (label-filter sofni slebal (cdr otracks) (cdr rtracks) otarget rtarget)
-                         (label-filter (cons (list rsrc rtarget maybe-info) sofni) (cons maybe-info slebal)
-                                       (cdr otracks) (cdr rtracks) otarget rtarget)))]
+                     (if (not maybe-label)
+                         (label-filter sofni slebal sartxe++ (cdr orig-tracks) (cdr refd-tracks) otarget rtarget)
+                         (label-filter (cons (list refd-src rtarget maybe-label) sofni) (cons maybe-label slebal) sartxe++
+                                       (cdr orig-tracks) (cdr refd-tracks) otarget rtarget)))]
 
                   ;;; TODO: deal with curves
-                  [else (label-filter sofni slebal (cdr otracks) (cdr rtracks) osrc rsrc)]))
+                  [else (label-filter sofni slebal sartxe (cdr orig-tracks) (cdr refd-tracks) orig-src refd-src)]))
           
-          (values (reverse slebal) sofni)))))
+          (values (reverse slebal) sofni (reverse sartxe))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name)
@@ -188,7 +196,7 @@
     (define tgt-endpt : Float-Complex (geo-path-clean-print-position (last tracks)))
     (define source : Dia-Free-Edge-Endpoint (hash-ref anchorbase src-endpt (λ [] src-endpt)))
     (define target : Dia-Free-Edge-Endpoint (hash-ref anchorbase tgt-endpt (λ [] tgt-endpt)))
-    (define-values (labels sofni) (dia-arrow-label-info-filter infobase tracks tracks))
+    (define-values (labels sofni extra-info) (dia-arrow-label-info-filter infobase tracks tracks))
     (define edge-style : Dia-Edge-Style (dia-edge-style-construct source target labels make-free-style fallback-free-style))
 
     (define arrow : (U Dia:Edge Dia:Labeled-Edge Void False)

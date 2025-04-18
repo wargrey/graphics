@@ -15,7 +15,6 @@
 (require geofun/font)
 (require geofun/paint)
 (require geofun/stroke)
-(require geofun/composite)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Dia-Node-Style-Make* S Hint) (-> Geo-Anchor-Name Hint (U S False Void)))

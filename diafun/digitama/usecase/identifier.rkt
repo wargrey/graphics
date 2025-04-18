@@ -17,10 +17,13 @@
     (define size (string-length text))
     
     (and (> size 0)
-         (diauc-block-text-identify anchor text size))))
+         (not (eq? (string-ref text 0) #\.))
+         (if (symbol? anchor)
+             (dia-path-block-style-construct anchor text (default-diauc-ucase-style-make) make-diauc-ucase-style)
+             (dia-path-block-style-construct anchor text (default-diauc-actor-style-make) make-diauc-actor-style)))))
 
 (define default-diauc-arrow-identify : Dia-Path-Arrow-Identifier
-  (lambda [source target labels]
+  (lambda [source target labels extra-info]
     (define stype : Symbol (dia:node-type source))
     (define ttype : (Option Symbol) (and target (dia:node-type target)))
     (define hints : (Listof Bytes) (dia-edge-label-flatten labels))
@@ -37,12 +40,3 @@
             [else (dia-edge-style-construct source target labels (default-diauc-association-arrow-style-make) make-diauc-association-arrow-style)]))
 
     edge-style))
-  
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diauc-block-text-identify : (-> Geo-Anchor-Name String Positive-Index (Option Dia-Path-Block-Datum))
-  (lambda [anchor text size]
-    (define ch0 : Char (string-ref text 0))
-
-    (cond [(eq? ch0 #\:) (dia-path-block-style-construct anchor (substring text 1 size) (default-diauc-actor-style-make) make-diauc-actor-style)]
-          [(not (eq? ch0 #\.)) (dia-path-block-style-construct anchor text (default-diauc-ucase-style-make) make-diauc-ucase-style)]
-          [else #false])))

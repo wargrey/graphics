@@ -17,7 +17,7 @@
 (define-type Dia-Path-Block-Datum (List String Dia-Node-Style (Option Symbol)))
 
 (define-type Dia-Path-Block-Identifier (-> Geo-Anchor-Name (Option Dia-Path-Block-Datum)))
-(define-type Dia-Path-Arrow-Identifier (-> Dia:Node (Option Dia:Node) (Listof Dia-Edge-Label-Datum) (Option Dia-Edge-Style)))
+(define-type Dia-Path-Arrow-Identifier (-> Dia:Node (Option Dia:Node) (Listof Dia-Edge-Label-Datum) (Listof Any) (Option Dia-Edge-Style)))
 (define-type Dia-Path-Block-Create (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol) Dia:Node))
 (define-type Dia-Path-Id->Label-String (U (HashTable Geo-Anchor-Name String) (-> Geo-Anchor-Name String (U String Void False))))
 

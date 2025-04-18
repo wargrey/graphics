@@ -2,7 +2,6 @@
 
 (provide (all-defined-out))
 
-(require "../../stroke.rkt")
 (require "../../paint.rkt")
 (require "../paint.rkt")
 (require "../convert.rkt")
@@ -36,6 +35,12 @@
   #:type-name Geo:Path
   #:transparent
   #:mutable)
+
+(struct geo:path:info
+  ([start-label : Any]
+   [end-label : Any]
+   [extra : Any])
+  #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-gomamon-line-move! stx)
@@ -103,6 +108,12 @@
     [(_ move #:-> args #:boundary-guard guard) (syntax/loc stx (define-gomamon-turn-move! move #false args guard))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#;(define-syntax (gomamon-case! stx)
+  (syntax-case stx []
+    [(_ self [case ...] ...)
+     (syntax/loc)]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct gomamon geo:path
   ([xstepsize : Nonnegative-Flonum]
    [ystepsize : Nonnegative-Flonum]
@@ -153,6 +164,7 @@
     (set-geo:path-footprints! self (cons path:arc (geo:path-footprints self)))))
 
 (define geo-path-jump-to : (case-> [Geo:Path (U Geo-Anchor-Name Complex False) (Option Geo-Anchor-Name) -> Void]
+                                   [Geo:Path Complex (Option Geo-Anchor-Name) Float-Complex -> Void]
                                    [Geo:Path Float-Complex -> Void])
   (case-lambda
     [(self target pos-anchor)
@@ -164,25 +176,33 @@
          (geo-trail-pop! (geo:path-trail self) anchor))
      
      (geo-path-jump-to self pos)]
+    [(self target anchor offset)
+     (let ([pos (geo-path-target-position self target offset)])
+       (geo-trail-try-set! (geo:path-trail self) anchor pos)
+       (geo-path-jump-to self pos))]
     [(self pos)
      (set-geo:path-origin! self pos)
      (set-geo:path-here! self pos)
      (set-geo:path-footprints! self (cons (gpp:point #\M pos) (geo:path-footprints self)))]))
 
-(define geo-path-connect-to : (->* (Geo:Path (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Any) (Float-Complex) Void)
-  (lambda [self target pos-anchor info [offset 0.0+0.0i]]
-    (define pos : Float-Complex (geo-path-target-position self target offset))
-
-    (unless (not info)
-      (hash-set! (geo:path-foot-infos self)
-                 (cons (geo:path-here self) pos)
-                 info))
-
-    (when (complex? target)
-        (geo-trail-try-set! (geo:path-trail self) pos-anchor pos))
-    
-    (set-geo:path-here! self pos)
-    (set-geo:path-footprints! self (cons (gpp:point #\L pos) (geo:path-footprints self)))))
+(define geo-path-connect-to : (case-> [Geo:Path (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Any Float-Complex -> Void]
+                                      [Geo:Path (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Any -> Void]
+                                      [Geo:Path Float-Complex Any -> Void])
+  (case-lambda
+    [(self target pos-anchor info) (geo-path-connect-to self target pos-anchor info 0.0+0.0i)]
+    [(self target pos-anchor info offset)
+     (let ([pos (geo-path-target-position self target offset)])
+       (when (complex? target)
+         (geo-trail-try-set! (geo:path-trail self) pos-anchor pos))
+       (geo-path-connect-to self pos info))]
+    [(self pos info)
+     (unless (not info)
+       (hash-set! (geo:path-foot-infos self)
+                  (cons (geo:path-here self) pos)
+                  info))
+       
+     (set-geo:path-here! self pos)
+     (set-geo:path-footprints! self (cons (gpp:point #\L pos) (geo:path-footprints self)))]))
 
 (define geo-path-linear-bezier : (-> Geo:Path Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt anchor]

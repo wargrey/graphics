@@ -20,7 +20,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-arrow-tip : Dia-Edge-Tip-Shape (make-dia-arrow-tip))
-(define default-generalization-tip : Dia-Edge-Tip-Shape (make-dia-arrow-tip #:radius -4.0 #:wing.deg 180.0 #:curved? #false #:fill? #false))
+(define default-generalization-tip : Dia-Edge-Tip-Shape (make-dia-arrow-tip #:radius -3.5 #:wing.deg 180.0 #:curved? #false #:fill? #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-arrow-tip-vertices : (-> Dia-Arrow-Tip Nonnegative-Flonum Flonum Float-Complex

@@ -35,8 +35,11 @@
 (define #:forall (Alt) geo-trail-ref : (case-> [Geo-Trail Geo-Anchor-Name -> Float-Complex]
                                                [Geo-Trail Geo-Anchor-Name Alt -> (U Alt Float-Complex)])
   (case-lambda
-    [(self anchor) (hash-ref (geo-trail-positions self) anchor (λ [] (geo-trail-home self)))]
-    [(self anchor defval) (hash-ref (geo-trail-positions self) anchor (λ [] defval))]))
+    [(self anchor)
+     (hash-ref (geo-trail-positions self) anchor
+               (λ [] (raise-user-error 'geo-trail-ref "no such an anchor: ~a" anchor)))]
+    [(self anchor defval)
+     (hash-ref (geo-trail-positions self) anchor (λ [] defval))]))
 
 (define geo-trail-head-anchor : (-> Geo-Trail Geo-Anchor-Name)
   (lambda [self]
@@ -55,7 +58,7 @@
 (define geo-trail-set! : (-> Geo-Trail Geo-Anchor-Name Float-Complex Void)
   (lambda [self anchor pos]
     (when (hash-has-key? (geo-trail-positions self) anchor)
-      (raise-user-error 'geo-trail "duplicate anchor name: ~a" anchor))
+      (raise-user-error 'geo-trail-set! "duplicate anchor name: ~a" anchor))
     (hash-set! (geo-trail-positions self) anchor pos)
     (set-geo-trail-ranchors! self (cons anchor (geo-trail-ranchors self)))
     (when (keyword? anchor)

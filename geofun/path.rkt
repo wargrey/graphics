@@ -162,6 +162,14 @@
     (geo-path-connect-to goma delta anchor info here)
     (geo-path-jump-to goma here)))
 
+(define gomamon-radial-back! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
+  (lambda [goma length degrees [anchor #false] [info #false]]
+    (define here : Float-Complex (geo:path-here goma))
+    (define delta : Complex (make-polar length (degrees->radians degrees)))
+
+    (geo-path-jump-to goma delta anchor here)
+    (geo-path-connect-to goma here info)))
+
 (define gomamon-random-walk! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
   (lambda [goma xstep ystep [anchor #false] [info #false]]
     (geo-path-L goma (* (- (* (random) 2.0) 1.0) xstep) (* (- (* (random) 2.0) 1.0) ystep) 1.0 1.0 anchor info)))
@@ -201,6 +209,10 @@
            self [anchor->sticker default-anchor->sticker]]
     (geo:path-stick self anchor->sticker trusted-anchors truncate?
                     (or id (gensym 'geo:path:)) base-op sibs-op offset)))
+
+(define gpinfo : (->* (Any) (Any Any) geo:path:info)
+  (lambda [start [end #false] [extra #false]]
+    (geo:path:info start end extra)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-anchor-position : (->* (Geo:Path Geo-Anchor-Name) (#:translate? Boolean) Float-Complex)

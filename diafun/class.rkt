@@ -9,7 +9,7 @@
 (provide (all-from-out "digitama/class/style.rkt"))
 (provide (rename-out [dia-path-simple-class geo-path-simple-class]))
 
-(provide DiaCls-Association-Type DiaCls-Association-Identifier)
+(provide DiaCls-RelationShip-Type DiaCls-RelationShip-Identifier)
 (provide default-diacls-block-identify default-diacls-arrow-identify)
 (provide default-dia-node-margin create-dia-node)
 
@@ -72,7 +72,7 @@
            #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier default-diacls-arrow-identify]
            #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) #false]
            #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
-           #:relationship [class-type : (Option DiaCls-Association-Identifier) (default-diacls-association-identifier)]
+           #:relationship [class-type : (Option DiaCls-RelationShip-Identifier) (default-diacls-relationship-identifier)]
            #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
            #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
            #:λfree-edge [make-free-track : Dia-Path-Free-Track->Edge default-dia-path-free-edge-construct]
@@ -81,7 +81,7 @@
            [self : Geo:Path]] : (U Dia:Class Geo:Path)
     (parameterize ([default-dia-node-base-style make-diacls-node-fallback-style]
                    [default-dia-edge-base-style make-diacls-edge-fallback-style]
-                   [default-diacls-association-identifier class-type]
+                   [default-diacls-relationship-identifier class-type]
                    [current-master-path self])
       (define stickers : (Listof (GLayerof Geo))
         (dia-path-stick self block-detect make-node make-node-label #false

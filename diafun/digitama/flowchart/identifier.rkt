@@ -31,7 +31,7 @@
                (diaflow-block-text-identify anchor text size))))))
 
 (define default-diaflow-arrow-identify : Dia-Path-Arrow-Identifier
-  (lambda [source target labels]
+  (lambda [source target labels extra-info]
     (define stype : Symbol (dia:node-type source))
     (define ttype : (Option Symbol) (and target (dia:node-type target)))
     (define hints : (Listof Bytes) (dia-edge-label-flatten labels))
