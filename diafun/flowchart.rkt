@@ -1,18 +1,13 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out geofun/path))
-(provide (all-from-out "digitama/shared.rkt" "digitama/edge/tip/shared.rkt"))
-(provide (all-from-out "digitama/path/interface.rkt"))
+(provide (all-from-out "digitama/base.rkt"))
 (provide (all-from-out "digitama/flowchart/interface.rkt"))
 (provide (all-from-out "digitama/flowchart/identifier.rkt"))
 (provide (all-from-out "digitama/flowchart/self.rkt"))
 (provide (all-from-out "digitama/flowchart/style.rkt"))
 (provide (rename-out [dia-path-flow geo-path-flow]))
 
-(provide default-dia-node-margin create-dia-node)
-
-(require geofun/path)
 (require geofun/paint)
 
 (require geofun/digitama/convert)
@@ -21,12 +16,9 @@
 (require geofun/digitama/layer/sticker)
 (require geofun/digitama/layer/type)
 
-(require "digitama/shared.rkt")
+(require "digitama/base.rkt")
 (require "digitama/path/self.rkt")
-(require "digitama/path/interface.rkt")
 (require "digitama/path/stick.rkt")
-(require "digitama/node/dc.rkt")
-(require "digitama/edge/tip/shared.rkt")
 
 (require "digitama/flowchart/self.rkt")
 (require "digitama/flowchart/style.rkt")
@@ -63,7 +55,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-path-flow
   (lambda [#:id [id : (Option Symbol) #false] #:start-name [start : (Option String) #false]
-           #:path-operator [path-op : (Option Geo-Pin-Operator) #false] #:flow-operator [flow-op : (Option Geo-Pin-Operator) #false] 
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
@@ -81,16 +72,17 @@
                    [default-dia-edge-base-style make-diaflow-edge-fallback-style]
                    [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))]
                    [current-master-path self])
-      (define stickers : (Listof (GLayerof Geo))
+      (define-values (nodes edges)
         (dia-path-stick self block-detect make-node make-node-label node-desc
                         arrow-detect make-edge make-edge-label
                         make-free-track make-free-label (default-diaflow-free-track-style-make)
                         default-diaflow-node-fallback-construct make-diaflow-free-track-style
                         (geo:path-foot-infos self) ignore))
+      (define stickers : (Listof (GLayerof Geo)) (append edges nodes))
 
       (if (pair? stickers)
           (let ([maybe-group (geo-path-try-extend/list stickers 0.0 0.0)])
-            (create-geometry-group dia:flow id path-op flow-op
+            (create-geometry-group dia:flow id #false #false
                                    #:border bdr #:background bg
                                    #:margin margin #:padding padding
                                    (cond [(or maybe-group) maybe-group]

@@ -1,9 +1,11 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (all-from-out "digitama/path/self.rkt"))
 (provide (all-from-out "digitama/geometry/anchor.rkt"))
 
 (provide Geo:Path Gomamon)
+(provide Geo-Path-Label-Datum Geo-Path-Labels)
 (provide Geo-Sticker Geo-Anchor->Sticker)
 (provide geo:path? gomamon? geo-sticker?)
 (provide make-sticker default-anchor->sticker)
@@ -26,7 +28,10 @@
 (require racket/math)
 
 (require "paint.rkt")
-(require "stroke.rkt")
+
+(require "digitama/path/self.rkt")
+(require "digitama/path/datum.rkt")
+(require "digitama/path/gomamon.rkt")
 
 (require "digitama/convert.rkt")
 (require "digitama/geometry/dot.rkt")
@@ -210,9 +215,24 @@
     (geo:path-stick self anchor->sticker trusted-anchors truncate?
                     (or id (gensym 'geo:path:)) base-op sibs-op offset)))
 
-(define gpinfo : (->* (Any) (Any Any) geo:path:info)
-  (lambda [start [end #false] [extra #false]]
-    (geo:path:info start end extra)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define gpmult : (->* (Geo-Path-Multiplicity+Label Geo-Path-Multiplicity+Label) (#:t Nonnegative-Flonum) #:rest Geo-Path-Info-Datum Geo:Path:Info)
+  (lambda [start end #:t [t (default-path-multiplicity-base-position)] . extra]
+    (define-values (mstart lstart) (if (pair? start) (values (car start) (cdr start)) (values start #false)))
+    (define-values (m-end  l-end)  (if (pair? end)   (values (car end)   (cdr end))   (values end #false)))
+    
+    (geo-path-info/paired-labels (default-path-label-base-position) lstart l-end
+                                 (and (or mstart m-end)
+                                      (geo:path:multiplicity mstart m-end t))
+                                 extra)))
+
+(define gplabel : (->* (Geo-Path-Label-Datum Geo-Path-Label-Datum) (#:t Nonnegative-Flonum) #:rest Geo-Path-Info-Datum Geo:Path:Info)
+  (lambda [start end #:t [t (default-path-label-base-position)] . extra]
+    (geo-path-info/paired-labels t start end #false extra)))
+
+(define gplabel* : (->* ((Listof Geo-Path-Label-Datum)) (#:t Nonnegative-Flonum) #:rest Geo-Path-Info-Datum Geo:Path:Info)
+  (lambda [labels #:t [t (default-path-label-base-position)] . extra]
+    (geo-path-info/labels t labels #false extra)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-anchor-position : (->* (Geo:Path Geo-Anchor-Name) (#:translate? Boolean) Float-Complex)

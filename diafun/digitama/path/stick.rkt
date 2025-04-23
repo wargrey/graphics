@@ -11,7 +11,9 @@
 
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/position)
+
 (require geofun/digitama/dc/path)
+(require geofun/digitama/path/self)
 
 (require "interface.rkt")
 
@@ -25,7 +27,7 @@
 (require (for-syntax racket/base))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Path-Arrow-Label-Info (List Float-Complex Float-Complex Dia-Edge-Label-Datum))
+(define-type Dia-Path-Arrow-Label-Info (List Float-Complex Float-Complex Dia-Edge-Label-Datum Nonnegative-Flonum))
 
 (define-syntax (dia-label-info->label stx)
   (syntax-case stx []
@@ -47,7 +49,7 @@
            [make-free-track : Dia-Path-Free-Track->Edge] [make-free-label : Dia-Path-Free-Track->Edge-Label]
            [make-free-style : (Option (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint (∩ Dia-Edge-Style S)))]
            [fallback-node : Dia-Path-Id->Node-Shape] [fallback-free-style : (-> (∩ Dia-Edge-Style S))]
-           [infobase : Geo-Path-Infobase] [ignore : (Listof Symbol)]] : (Listof (GLayerof Geo))
+           [infobase : Geo-Path-Infobase] [ignore : (Listof Symbol)]] : (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo)))
     (define gpath : Geo-Trail (geo:path-trail master))
     (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath))
     (define-values (Width Height) (geo-flsize master))
@@ -96,20 +98,19 @@
 
                    [else (stick rest arrows nodes tracks++ target next-pt)]))
 
-          (append
-           
-           ;;; NOTE
-           ; We need to draw arrows backwards,
-           ;   as we usually create archtectural path before jumping back for various branches.
-           ;   So that drawing backwards allow main loop path hiding branch paths sharing same routes.
-           (reverse arrows)
-
+          (values
            (let sort : (Listof (GLayerof Geo)) ([ordered-nodes : (Listof (GLayerof Geo)) null]
                                                 [srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath)])
              (if (pair? srohcna)
                  (let ([node (hash-ref nodes (car srohcna) (λ [] #false))])
                    (sort (if (not node) ordered-nodes (cons node ordered-nodes)) (cdr srohcna)))
-                 ordered-nodes)))))))
+                 ordered-nodes))
+           
+           ;;; NOTE
+           ; We need to draw arrows backwards,
+           ;   as we usually create archtectural path before jumping back for various branches.
+           ;   So that drawing backwards allow main loop path hiding branch paths sharing same routes.
+           (reverse arrows))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-arrow-cons : (-> (GLayerof Dia:Node) (Option (GLayerof Dia:Node)) Geo-Path-Prints
@@ -142,11 +143,12 @@
         arrows)))
 
 (define dia-arrow-label-info-filter : (-> Geo-Path-Infobase Geo-Path-Clean-Prints Geo-Path-Clean-Prints
-                                          (Values (Listof Dia-Edge-Label-Datum) (Listof Dia-Path-Arrow-Label-Info) (Listof Any)))
+                                          (Values (Listof Dia-Edge-Label-Datum) (Listof Dia-Path-Arrow-Label-Info)
+                                                  (Listof Geo-Path-Info-Datum)))
   (lambda [infobase tracks refined-tracks]
     (let label-filter ([sofni : (Listof Dia-Path-Arrow-Label-Info) null]
                        [slebal : (Listof Dia-Edge-Label-Datum) null]
-                       [sartxe : (Listof Any) null]
+                       [extra-infos : (Listof Geo-Path-Info-Datum) null]
                        [orig-tracks : Geo-Path-Clean-Prints tracks]
                        [refd-tracks : Geo-Path-Clean-Prints refined-tracks]
                        [orig-src : (Option Float-Complex) #false]
@@ -156,33 +158,47 @@
           (let ([oself (car orig-tracks)]
                 [rself (car refd-tracks)])
             (cond [(eq? (gpath:datum-cmd oself) #\M)
-                   (label-filter sofni slebal sartxe (cdr orig-tracks) (cdr refd-tracks)
+                   (label-filter sofni slebal extra-infos (cdr orig-tracks) (cdr refd-tracks)
                                  (geo-path-clean-print-position oself)
                                  (geo-path-clean-print-position rself))]
                   [(eq? (gpath:datum-cmd oself) #\L)
-                   (let ([otarget (geo-path-clean-print-position oself)]
-                         [rtarget (geo-path-clean-print-position rself)])
-                     (define-values (maybe-label sartxe++)
-                       (if (not orig-src)
-                           (values #false sartxe)
-                           (let ([info (hash-ref infobase (cons orig-src otarget) (λ [] #false))])
-                             (if (geo:path:info? info)
-                                 (let ([labels (cons (geo:path:info-start-label info) (geo:path:info-end-label info))]
-                                       [extra (geo:path:info-extra info)])
-                                   (if (not extra)
-                                       (values (dia-edge-label-datum-filter labels) sartxe)
-                                       (values (dia-edge-label-datum-filter labels) (cons extra sartxe))))
-                                 (values (dia-edge-label-datum-filter info) sartxe)))))
-                     
-                     (if (not maybe-label)
-                         (label-filter sofni slebal sartxe++ (cdr orig-tracks) (cdr refd-tracks) otarget rtarget)
-                         (label-filter (cons (list refd-src rtarget maybe-label) sofni) (cons maybe-label slebal) sartxe++
-                                       (cdr orig-tracks) (cdr refd-tracks) otarget rtarget)))]
+                   (let* ([otarget (geo-path-clean-print-position oself)]
+                          [rtarget (geo-path-clean-print-position rself)]
+                          [info (and orig-src (hash-ref infobase (cons orig-src otarget) (λ [] #false)))])
+                     (define-values (maybe-label base-position maybe-mult extra++)
+                       (if (geo:path:info? info)
+                           (let ([labels (geo:path:info-labels info)]
+                                 [t (geo:path:info-base-position info)]
+                                 [mult (geo:path:info-multiplicity info)]
+                                 [extra (geo:path:info-extra info)])
+                             (if (null? extra)
+                                 (values (dia-edge-label-map labels) t mult extra-infos)
+                                 (values (dia-edge-label-map labels) t mult (append extra-infos extra))))
+                           (values #false 0.0 #false extra-infos)))
+
+                     (define-values (label-info slabel++)
+                       (if (or maybe-label)
+                           (values (list refd-src rtarget maybe-label base-position)
+                                   (cons maybe-label slebal))
+                           (values #false slebal)))
+
+                     (define mult-info : (Option Dia-Path-Arrow-Label-Info)
+                       (let ([labels (and maybe-mult (dia-edge-multiplicities-map (geo:path:multiplicity-source maybe-mult)
+                                                                                  (geo:path:multiplicity-target maybe-mult)))])
+                         (and labels
+                              (list refd-src rtarget labels
+                                    (geo:path:multiplicity-base-position maybe-mult)))))
+                   
+                     (label-filter (cond [(and label-info mult-info) (list* label-info mult-info sofni)]
+                                         [(and label-info) (cons label-info sofni)]
+                                         [(and mult-info) (cons mult-info sofni)]
+                                         [else sofni])
+                                   slabel++ extra++ (cdr orig-tracks) (cdr refd-tracks) otarget rtarget))]
 
                   ;;; TODO: deal with curves
-                  [else (label-filter sofni slebal sartxe (cdr orig-tracks) (cdr refd-tracks) orig-src refd-src)]))
+                  [else (label-filter sofni slebal extra-infos (cdr orig-tracks) (cdr refd-tracks) orig-src refd-src)]))
           
-          (values (reverse slebal) sofni (reverse sartxe))))))
+          (values (reverse slebal) sofni extra-infos)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name)

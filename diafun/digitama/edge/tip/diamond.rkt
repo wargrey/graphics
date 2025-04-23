@@ -22,7 +22,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-diamond-tip-vertices : (-> Dia-Diamond-Tip Nonnegative-Flonum Flonum Float-Complex
-                                       (Values Geo-Path-Prints Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Float-Complex) Boolean))
+                                       (Values Geo-Path-Prints Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Float-Complex Boolean))
   (lambda [self 100% angle.rad dot]
     (define w : Nonnegative-Flonum (~length (dia-diamond-tip-width self) 100%))
     (define h : Nonnegative-Flonum (~length (dia-diamond-tip-height self) 100%))

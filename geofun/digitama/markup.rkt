@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [pexpr pml]))
 
 (require digimon/symbol)
 (require racket/format)
@@ -21,13 +22,28 @@
 (define-type PExpr-Attribute (U (Pairof Symbol PExpr-Attribute-Value) (List Symbol PExpr-Attribute-Value)))
 (define-type PExpr-AttList (Listof PExpr-Attribute))
 (define-type PExpr-Datum (U String Index Char Symbol))
-
-(define-type PExpr-Full-Element (Rec elem (U (List Symbol PExpr-AttList (Listof (U PExpr-Datum PExpr-Element elem))))))
-(define-type PExpr-Children-Element (Rec elem (List Symbol (Listof (U PExpr-Datum PExpr-Element elem)))))
-#;(define-type PExpr-Empty-Element (U (List Symbol) (List Symbol (Listof PExpr-Attribute))))
-
-(define-type PExpr-Element (U PExpr-Full-Element PExpr-Children-Element #;PExpr-Empty-Element))
 (define-type PExpr (U PExpr-Datum PExpr-Element))
+
+(struct pexpr-element
+  ([name : Symbol]
+   [attrs : PExpr-AttList]
+   [children : (Listof PExpr)])
+  #:type-name PExpr-Element)
+
+(define pexpr : (case-> [Symbol -> PExpr-Element]
+                        [Symbol (U (Listof PExpr) PExpr-Datum) -> PExpr-Element]
+                        [Symbol PExpr-AttList (U (Listof PExpr) PExpr-Datum) -> PExpr-Element])
+  (let ([db : (HashTable Symbol PExpr-Element) (make-hasheq)])
+    (case-lambda
+      [(name) (hash-ref! db name (λ [] (pexpr-element name null null)))]
+      [(name children)
+       (if (null? children)
+           (pexpr name)
+           (pexpr-element name null (if (list? children) children (list children))))]
+      [(name attlist children)
+       (if (and (null? attlist) (null? children))
+           (pexpr name)
+           (pexpr-element name attlist (if (list? children) children (list children))))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc-markup-datum->text : (-> Any Bytes)
@@ -51,6 +67,11 @@
         (pexpr-element? info)
         (bytes? info))))
 
+(define dc-markup-maybe-text? : (-> Any Boolean : (Option DC-Markup-Text))
+  (lambda [info]
+    (or (dc-markup-text? info)
+        (not info))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define pexpr? : (-> Any Boolean : PExpr)
   (lambda [v]
@@ -61,18 +82,8 @@
   (lambda [x [/dev/pmlout (current-output-port)]]
     (cond [(string? x)
            (write-pexpr-string x /dev/pmlout)]
-          [(pair? x)
-           (cond [(pexpr-children-element? x)
-                  (write-pexpr-element (car x) null (cadr x) /dev/pmlout)]
-                 [(pexpr-full-element? x)
-                  (write-pexpr-element (car x) (cadr x) (caddr x) /dev/pmlout)]
-                 #;[(pexpr-empty-element? x)
-                  (write-char #\< /dev/pmlout)
-                  (write (car x) /dev/pmlout)
-                  (let ([maybe-attrs (cdr x)])
-                    (when (pair? maybe-attrs)
-                      (write-pexpr-attrlist (car maybe-attrs) /dev/pmlout)))
-                  (write-bytes #"/>" /dev/pmlout)])]
+          [(pexpr-element? x)
+           (write-pexpr-element (pexpr-element-name x) (pexpr-element-attrs x) (pexpr-element-children x) /dev/pmlout)]
           [(symbol? x)
            (write-char #\& /dev/pmlout)
            (write x /dev/pmlout)
@@ -198,35 +209,3 @@
   (lambda [a]
     (and (list? a)
          (andmap pexpr? a))))
-
-(define pexpr-element? : (-> Any Boolean : PExpr-Element)
-  (lambda [e]
-    (and (pair? e)
-         (or (pexpr-children-element? e)
-             (pexpr-full-element? e)
-             #;(pexpr-empty-element? e)))))
-
-(define pexpr-full-element? : (-> (Pairof Any Any) Boolean : PExpr-Full-Element)
-  (lambda [e]
-    (and (symbol? (car e))
-         (pair? (cdr e))
-         (pexpr-attlist? (cadr e))
-         (pair? (cddr e))
-         (null? (cdddr e))
-         (pexpr-list? (caddr e)))))
-
-(define pexpr-children-element? : (-> (Pairof Any Any) Boolean : PExpr-Children-Element)
-  (lambda [e]
-    (and (symbol? (car e))
-         (pair? (cdr e))
-         (null? (cddr e))
-         (pexpr-list? (cadr e)))))
-
-#;(define pexpr-empty-element? : (-> (Pairof Any Any) Boolean : PExpr-Empty-Element)
-  (lambda [e]
-    (and (symbol? (car e))
-         (or (null? (cdr e))
-             (and (pair? (cdr e))
-                  (pexpr-attlist? (cadr e))
-                  (null? (cddr e)))))))
-

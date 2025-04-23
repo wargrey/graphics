@@ -34,7 +34,7 @@
    [bbox-offset : Float-Complex]
    [source-shape : Geo-Path-Prints]
    [target-shape : Geo-Path-Prints]
-   [adjust-offset : (Pairof (Option Float-Complex) (Option Float-Complex))])
+   [adjust-offset : (Pairof Float-Complex Float-Complex)])
   #:type-name Dia:Edge
   #:transparent)
 
@@ -80,13 +80,13 @@
                                [op : (Option Symbol) 'source])
                     (if (pair? labels)
                         (let* ([label (car labels)]
-                               [V (dia-edge-label-dir label)]
+                               [dir (dia-edge-label-dir label)]
                                [distance (dia-edge-label-distance label)])
-                          
+
                           (attach (cdr labels)
                                   (cons (geo-sticker->layer (dia-edge-label-sticker label)
-                                                            (geo-perpendicular-point (- (dia-edge-label-pos label) O) V
-                                                                                     distance (dia-edge-label-ratio label)))
+                                                            (geo-perpendicular-point (- (dia-edge-label-pos label) O) dir
+                                                                                     distance (dia-edge-label-t label)))
                                         layers)
                                   (if (and distance (zero? distance)) op #false)))
                         (create-geometry-group dia:labeled-edge #false #false op

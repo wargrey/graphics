@@ -162,13 +162,13 @@
 (define dia-procedure-caption : (-> Dia-Procedure-Label Nonnegative-Flonum Font Color (Option Geo))
   (lambda [desc em font fgcolor]
     (cond [(geo? desc) desc]
+          [(pexpr-element? desc) (geo-markup desc font #:color fgcolor #:error-color 'Crimson)]
           [(procedure? desc) (desc em)]
           [(string? desc) (geo-text desc font #:color fgcolor #:alignment 'center)]
           [(symbol? desc) (geo-text (format " ~a " desc) font #:color fgcolor #:id desc #:alignment 'center)]
           [(keyword? desc) (geo-text #:color fgcolor #:id (string->symbol (keyword->immutable-string desc)) #:alignment 'center
                                      (format " ~a " desc) font)]
-          [(or (not desc) (void? desc)) #false]
-          [else (geo-markup desc font #:color fgcolor #:error-color 'Crimson)])))
+          [else #false])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
@@ -184,7 +184,7 @@
                                              '+
                                              (build-list (length ds)
                                                          (λ [[i : Index]] : Dia-Procedure-Label-Datum
-                                                           `(span ("a" (sub (,(number->string (add1 i))))))))
+                                                           (pexpr 'span (list "a" (pexpr 'sub (number->string (add1 i)))))))
                                              #(sum)
                                              ds result)
                               0.36)

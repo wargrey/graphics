@@ -40,21 +40,19 @@
            #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
            #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
            #:file-font [file-font : (Option Font) (default-diaflowlet-file-font)]
-           #:path-operator [path-op : (Option Geo-Pin-Operator) #false] #:flow-operator [flow-op : (Option Geo-Pin-Operator) #false] 
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
            #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
            #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
            #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
-           #:node-desc [node-desc : (Option Dia-Path-Id->Label-String) #false]
            #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
            #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
            #:input-desc [alt-in : (Option DC-Markup-Text) #false]
            #:output-desc [alt-out : (Option (-> Any (U Void DC-Markup-Text))) #false]
            #:reader [f : (-> Input-Port Any) read] #:peek-size [peek-size : Index 8]
            [in : Input-Port] [repeats : Index 1]] : Dia:Flow
-    (define-values (funcs func-descs) (diaflowlet-funcion-rename (list->n:vector (list f) (+ repeats 1)) diaflow-delim-format))
+    (define funcs (diaflowlet-function-rename (list->n:vector (list f) (+ repeats 1))))
     (define base-width  : Nonnegative-Flonum (~length block-width  ((default-diaflow-block-width))))
     (define base-height : Nonnegative-Flonum (~length block-height ((default-diaflow-block-height))))
     (define in-desc (diaflowlet-input-desc in alt-in))
@@ -102,10 +100,9 @@
             
       (define flowlet
         (dia-path-flow path
-                       #:id id #:path-operator path-op #:flow-operator flow-op 
-                       #:border bdr #:background bg #:margin margin #:padding padding
+                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
                        #:λblock block-detect #:λarrow arrow-detect
-                       #:λnode make-node #:λnode-label make-node-label #:node-desc node-desc
+                       #:λnode make-node #:λnode-label make-node-label #:node-desc diaflowlet-node-label-string
                        #:λedge make-edge #:λedge-label make-edge-label))
       
       (assert flowlet dia:flow?))))
@@ -120,7 +117,6 @@
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
            #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
            #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
-           #:path-operator [path-op : (Option Geo-Pin-Operator) #false] #:flow-operator [flow-op : (Option Geo-Pin-Operator) #false] 
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
@@ -152,8 +148,7 @@
       
       (define flowlet
         (dia-path-flow path
-                       #:id id #:path-operator path-op #:flow-operator flow-op 
-                       #:border bdr #:background bg #:margin margin #:padding padding
+                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
                        #:λblock block-detect #:λarrow arrow-detect
                        #:λnode make-node #:λnode-label make-node-label
                        #:λedge make-edge #:λedge-label make-edge-label))
@@ -171,7 +166,6 @@
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
            #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
            #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
-           #:path-operator [path-op : (Option Geo-Pin-Operator) #false] #:flow-operator [flow-op : (Option Geo-Pin-Operator) #false] 
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
@@ -187,7 +181,7 @@
     (define fs (if (pair? f) (list->n:vector f size) (make-vector size f)))
     (define in-descs (list->n:vector alt-in size #false))
     (define out-descs (list->n:vector alt-out size #false))
-    (define-values (funcs func-descs) (diaflowlet-funcion-rename fs))
+    (define funcs (diaflowlet-function-rename fs))
     (define base-width  (~length block-width  ((default-diaflow-block-width))))
     (define base-height (~length block-height ((default-diaflow-block-height))))
     
@@ -226,10 +220,9 @@
           
       (define flowlet
         (dia-path-flow path
-                       #:id id #:path-operator path-op #:flow-operator flow-op 
-                       #:border bdr #:background bg #:margin margin #:padding padding
+                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
                        #:λblock block-detect #:λarrow arrow-detect
-                       #:λnode make-node #:λnode-label make-node-label #:node-desc func-descs
+                       #:λnode make-node #:λnode-label make-node-label #:node-desc diaflowlet-node-label-string
                        #:λedge make-edge #:λedge-label make-edge-label))
       
       (assert flowlet dia:flow?))))
@@ -245,7 +238,6 @@
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
            #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
            #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
-           #:path-operator [path-op : (Option Geo-Pin-Operator) #false] #:flow-operator [flow-op : (Option Geo-Pin-Operator) #false] 
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
@@ -303,8 +295,7 @@
           
       (define flowlet
         (dia-path-flow path
-                       #:id id #:path-operator path-op #:flow-operator flow-op 
-                       #:border bdr #:background bg #:margin margin #:padding padding
+                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
                        #:λblock block-detect #:λarrow arrow-detect
                        #:λnode make-node #:λnode-label make-node-label
                        #:λedge make-edge #:λedge-label make-edge-label))
@@ -321,7 +312,6 @@
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
            #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
            #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
-           #:path-operator [path-op : (Option Geo-Pin-Operator) #false] #:flow-operator [flow-op : (Option Geo-Pin-Operator) #false] 
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
@@ -353,8 +343,7 @@
       
       (define flowlet
         (dia-path-flow path
-                       #:id id #:path-operator path-op #:flow-operator flow-op 
-                       #:border bdr #:background bg #:margin margin #:padding padding
+                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
                        #:λblock block-detect #:λarrow arrow-detect
                        #:λnode make-node #:λnode-label make-node-label
                        #:λedge make-edge #:λedge-label make-edge-label))

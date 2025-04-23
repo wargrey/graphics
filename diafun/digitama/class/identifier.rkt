@@ -2,9 +2,9 @@
 
 (provide (all-defined-out))
 
-(require racket/string)
 (require racket/case)
 
+(require geofun/digitama/path/self)
 (require geofun/digitama/convert)
 (require geofun/digitama/geometry/anchor)
 
@@ -43,7 +43,7 @@
       [(dia-edge-label-double-angle-bracketed? hints)
        (dia-edge-style-construct source target labels (default-diacls-dependency-arrow-style-make)  make-diacls-dependency-arrow-style)]
       [else ; dependency and association
-       (case/eq (diacls-association-identify (geo-id source) (geo-id target) extra-info)
+       (case/eq (diacls-association-identify (geo-id source) (geo-id target) (filter symbol? extra-info))
          [(composition) (dia-edge-style-construct source target labels (default-diacls-composition-arrow-style-make) make-diacls-composition-arrow-style)]
          [(aggregation) (dia-edge-style-construct source target labels (default-diacls-aggregation-arrow-style-make) make-diacls-aggregation-arrow-style)]
          [(association) (dia-edge-style-construct source target labels (default-diacls-association-arrow-style-make) make-diacls-association-arrow-style)]
@@ -60,7 +60,7 @@
                                                make-diacls-generalization-arrow-style)))])])))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diacls-association-identify : (-> Symbol Symbol (Listof Any) (Option DiaCls-RelationShip-Type))
+(define diacls-association-identify : (-> Symbol Symbol (Listof Symbol) (Option DiaCls-RelationShip-Type))
   (lambda [source target extra-info]
     (if (pair? extra-info)
         (let-values ([(self rest) (values (car extra-info) (cdr extra-info))])

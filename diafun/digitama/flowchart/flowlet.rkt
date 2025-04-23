@@ -26,11 +26,13 @@
 (define diaflow-delim-format : String (string-append diaflow-delim "~a" diaflow-delim ":~a"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (In) diaflowlet-input-desc : (case-> [Any -> String]
-                                                      [In (U False DC-Markup-Text (-> In (U Void DC-Markup-Text))) -> DC-Markup-Text])
+(define #:forall (In)
+  diaflowlet-input-desc : (case-> [Any -> String]
+                                  [In (U False DC-Markup-Text (-> In (U Void DC-Markup-Text))) -> DC-Markup-Text])
   (case-lambda
     [(v alt-in)
-     (cond [(procedure? alt-in) (let ([r (alt-in v)]) (if (void? r) #"" r))]
+     (cond [(pexpr-element? alt-in) alt-in]
+           [(procedure? alt-in) (let ([r (alt-in v)]) (if (void? r) #"" r))]
            [(and alt-in) alt-in]
            [else (diaflowlet-input-desc v)])]
     [(v)
@@ -45,7 +47,8 @@
                                    [(U False DC-Markup-Text (-> Out (U Void DC-Markup-Text))) (U (-> In Out) Datum) In -> DC-Markup-Text])
   (case-lambda
     [(alt-out f in)
-     (cond [(procedure? alt-out) (if (procedure? f) (let ([r (alt-out (f in))]) (if (void? r) #"" r)) (diaflowlet-output-desc f))]
+     (cond [(pexpr-element? alt-out) alt-out]
+           [(procedure? alt-out) (if (procedure? f) (let ([r (alt-out (f in))]) (if (void? r) #"" r)) (diaflowlet-output-desc f))]
            [(procedure? f) (if (not alt-out) (diaflowlet-output-desc (f in)) alt-out)]
            [else (or alt-out (diaflowlet-input-desc f))])]
     [(v f)
@@ -78,26 +81,19 @@
            [(eof-object? (peek-byte in amount)) (string-append "/doc/"  body)]
            [else (string-append "/doc/" diaflow-delim body "..." (symbol->immutable-string (gensym diaflow-delim)))]))))
 
-(define #:forall (F) diaflowlet-funcion-rename : (->* ((U (Listof (∩ F Procedure)) (Vectorof (∩ F Procedure)))) (String)
-                                                      (Values (Listof F) (Immutable-HashTable Symbol String)))
-  (lambda [fs [fmt "~a:~a"]]
-   (define-values (func-seman func-anchors)
-     (for/fold ([names : (Listof F) null]
-                [anchors : (Immutable-HashTable Symbol String) (hasheq)])
-               ([f (if (list? fs) (in-list fs) (in-vector fs))]
-                [idx (in-naturals 1)])
-       (define desc (format "~a" (object-name f)))
-       (define name (string->symbol (format fmt desc idx)))
-       
-       (values (cons ((inst procedure-rename F) f name) names)
-               (hash-set anchors name desc))))
-
-    (values (reverse func-seman) func-anchors)))
+(define #:forall (F) diaflowlet-function-rename : (-> (U (Listof (∩ F Procedure)) (Vectorof (∩ F Procedure))) (Listof F))
+  (lambda [fs]
+    (for/list ([f (if (list? fs) (in-list fs) (in-vector fs))]
+               [idx (in-naturals 1)])
+      (define desc (format "~a" (object-name f)))
+      (define name (string->symbol (format diaflow-delim-format desc idx)))
+      
+      ((inst procedure-rename F) f name))))
 
 (define diaflowlet-node-label-string : (-> Geo-Anchor-Name String (U String Void False))
   (lambda [id text]
     (and (> (string-length text) 0)
-         (eq? (string-ref text 0) #\rubout)
+         (eq? (string-ref text 0) (string-ref diaflow-delim 0))
          (let ([ts (string-split text diaflow-delim)])
            (and (pair? ts)
                 (car ts))))))
