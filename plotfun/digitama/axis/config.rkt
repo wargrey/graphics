@@ -43,12 +43,25 @@
   (lambda [self direction]
     (plot-cartesian-value (plot-axis-style-tick-length self) direction)))
 
-(define plot-axis-length-values : (-> Plot-Axis-Style Real (Values Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [self length]
-    (define fllength : Nonnegative-Flonum (~length length))
-    (define-values (neg-margin pos-margin) (plot-cartesian-settings (plot-axis-style-margin self)))
+(define plot-axis-length-values : (case-> [Plot-Axis-Style Real -> (Values Nonnegative-Flonum Nonnegative-Flonum
+                                                                           Nonnegative-Flonum Nonnegative-Flonum)]
+                                          [Plot-Axis-Style Real Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum
+                                                                                              Nonnegative-Flonum Nonnegative-Flonum)])
+  (case-lambda
+    [(self length 100%) (plot-axis-length-values* self (~length length 100%))]
+    [(self length) (plot-axis-length-values* self (~length length))]))
 
-    (values fllength (~length neg-margin fllength) (~length pos-margin fllength))))
+(define plot-axis-length-values* : (-> Plot-Axis-Style Nonnegative-Flonum
+                                       (Values Nonnegative-Flonum Nonnegative-Flonum
+                                               Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [self fllength]
+    (define-values (n-margin p-margin) (plot-cartesian-settings (plot-axis-style-margin self)))
+    (define neg-margin (~length n-margin fllength))
+    (define pos-margin (~length p-margin fllength))
+    
+    (values fllength
+            (max (- fllength neg-margin pos-margin) 1.0)
+            neg-margin pos-margin)))
 
 (define plot-axis-real-style-values : (-> (Option Plot-Axis-Real-Style) Plot-Axis-Style
                                           (Values Font Color Flonum Geo-Pin-Anchor Nonnegative-Flonum))
@@ -81,6 +94,17 @@
      (define y (if (real? config) x (real->datum (imag-part config))))
      
      (values x y)]))
+
+(define #:forall (T) plot-cartesian-maybe-settings : (case-> [Complex -> (Values Flonum Flonum)]
+                                                             [Complex (-> Real T) -> (Values T T)]
+                                                             [(Option Complex) -> (Values (Option Flonum) (Option Flonum))]
+                                                             [(Option Complex) (-> Real T) -> (Values (Option T) (Option T))])
+  (case-lambda
+    [(config) (plot-cartesian-maybe-settings config real->double-flonum)]
+    [(config real->datum)
+     (if (not config)
+         (values #false #false)
+         (plot-cartesian-maybe-settings config real->datum))]))
 
 (define #:forall (T) plot-cartesian-value : (case-> [Complex Symbol -> Flonum]
                                                     [Complex Symbol (-> Real T) -> T]

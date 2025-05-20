@@ -5,6 +5,8 @@
 (provide (rename-out [geo-sandglass geo-hourglass]))
 (provide (rename-out [geo-dart geo-arrowhead]))
 (provide (rename-out [geo-trapezium geo-trapezoid]))
+(provide (rename-out [geo-regular-polygon geo-regular-convex-polygon]))
+(provide (rename-out [geo-star-polygon geo-regular-star-polygon]))
 (provide (all-from-out "digitama/skeleton/stickman/interface.rkt"))
 
 (provide geo-blank geo-ghost geo-solid geo:blank? Geo:Blank Geo:Solid)
@@ -28,10 +30,10 @@
 (provide geo-bullet geo:bullet? Geo:Bullet)
 (provide geo-sandglass geo:sandglass? Geo:Sandglass)
 
-(provide geo-regular-polygon geo:regular-polygon? Geo:Regular-Polygon)
+(provide geo-regular-polygon geo-star-polygon geo:regular-polygon? Geo:Regular-Polygon)
 (provide geo-polygon geo:polygon? Geo:Polygon)
 (provide geo-polyline geo:polyline? Geo:Polyline)
-(provide geo-parallelogram geo-rhombus geo-trapezium geo-keyboard geo-house geo-hexagon-tile)
+(provide geo-parallelogram geo-rhombus geo-trapezium geo-keyboard geo-house geo-star geo-hexagon-tile)
 
 (provide geo-storage geo:storage? Geo:Storage)
 (provide geo-document geo:document? Geo:Document)

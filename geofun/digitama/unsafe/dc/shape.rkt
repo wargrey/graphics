@@ -113,11 +113,16 @@
     
     (cairo-render cr stroke background)))
 
-(define dc_regular_polygon : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Positive-Index Flonum (Option Paint) (Option Fill-Source) Any)
-  (lambda [cr x0 y0 width height n rotation stroke background]
+(define dc_regular_polygon : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                 Positive-Index Positive-Index Flonum (Option Paint) (Option Fill-Source)
+                                 Any)
+  (lambda [cr x0 y0 width height n k rotation stroke background]
     (define-values (aradius bradius) (values (* width 0.5) (* height 0.5)))
     (define fln (exact->inexact n))
-    (define delta (/ 2pi fln))
+    (define delta
+      (if (= k 1)
+          (/ 2pi fln)
+          (/ (* 2pi (exact->inexact k)) fln)))
     
     (cairo_new_path cr)
     (cairo_translate cr (+ x0 aradius) (+ y0 bradius))

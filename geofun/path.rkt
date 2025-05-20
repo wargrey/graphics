@@ -29,6 +29,7 @@
 
 (require "paint.rkt")
 
+(require "digitama/path/dsl.rkt")
 (require "digitama/path/self.rkt")
 (require "digitama/path/datum.rkt")
 (require "digitama/path/gomamon.rkt")
@@ -58,15 +59,12 @@
 
 (define-syntax (with-gomamon! stx)
   (syntax-case stx []
-    [(_ goma (move argl ...) ...)
-     (with-syntax* ([(gomamon-move! ...)
-                     (for/list ([<move> (in-list (syntax->list #'(move ...)))])
-                       (format-id <move> "gomamon-~a!" (syntax->datum <move>)))])
-       (quasisyntax/loc stx
-         (let ([self goma])
-           (gomamon-move! self argl ...)
-           ...
-           self)))]))
+    [(_ goma move-expr ...)
+     (quasisyntax/loc stx
+       (let ([self goma])
+         (gomamon-dsl self move-expr)
+         ...
+         self))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-gomamon : (->* (Real)
@@ -155,9 +153,12 @@
   (lambda [goma target [anchor #false]]
     (geo-path-jump-to goma target anchor)))
 
-(define gomamon-jump-back! : (->* (Gomamon) ((U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name)) Void)
-  (lambda [goma [target #false] [anchor #false]]
-    (geo-path-jump-to goma target anchor)))
+(define gomamon-radial-move*! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
+  (lambda [goma length degrees [anchor #false] [info #false]]
+    (define here : Float-Complex (geo:path-here goma))
+    (define delta : Complex (make-polar length (degrees->radians degrees)))
+
+    (geo-path-connect-to goma delta anchor info here)))
 
 (define gomamon-radial-move! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
   (lambda [goma length degrees [anchor #false] [info #false]]

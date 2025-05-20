@@ -17,6 +17,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:regular-polygon geo
   ([n : Index]
+   [k : Positive-Index]
    [radius : Nonnegative-Flonum]
    [raidus-type : 2D-Radius-Type]
    [rotation : Flonum])
@@ -55,7 +56,26 @@
                             #:with [id (geo-draw-regular-polygon stroke pattern)
                                        (geo-shape-extent d d 0.0 0.0)
                                        (geo-shape-outline stroke)]
-                            N R rtype (~radian rotation radian?))))
+                            N 1 R rtype (~radian rotation radian?))))
+
+(define geo-star-polygon
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false] #:radian? [radian? : Boolean #true] #:inscribed? [inscribed? : Boolean #false]
+           [n : Integer] [step : Integer] [radius : Real] [rotation : Real 0.0]] : Geo:Regular-Polygon
+    (define R : Nonnegative-Flonum (~length radius))
+    (define N : Index (if (index? n) n 0))
+    (define K : Positive-Index (if (and (index? step) (> step 0)) step 1))
+    (define rtype : 2D-Radius-Type (if inscribed? 'edge 'vertex))
+    (define d : Nonnegative-Flonum
+      (* 2.0 (if (> N 0)
+                 (regular-polygon-radius->circumsphere-radius N R rtype)
+                 R)))
+    
+    (create-geometry-object geo:regular-polygon
+                            #:with [id (geo-draw-regular-polygon stroke pattern)
+                                       (geo-shape-extent d d 0.0 0.0)
+                                       (geo-shape-outline stroke)]
+                            N K R rtype (~radian rotation radian?))))
 
 (define geo-polygon
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)] #:fill-rule [rule : Fill-Rule (default-fill-rule)]
@@ -92,7 +112,7 @@
         
         (if (> n 0)
             (dc_regular_polygon cr x0 y0 width height n 
-                                (geo:regular-polygon-rotation self)
+                                (geo:regular-polygon-k self) (geo:regular-polygon-rotation self)
                                 (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))
             (dc_ellipse cr x0 y0 width height
                         (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)

@@ -9,6 +9,8 @@
 
 (require "../../arithmetics.rkt")
 
+(require (for-syntax racket/base))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Plot-Ticks R) (Listof (Pairof (Plot-Tick R) String)))
 (define-type (Plot-Ticks-Generate R) (-> (Pairof (∩ R Real) (∩ R Real)) (Plot-Ticks (∩ R Real))))
@@ -16,6 +18,14 @@
 (define-type (Plot-Tick-Format R) (-> (∩ R Real) Integer String))
 (define-type (Plot-Ticks-Layout* R Arg) (-> R R (Values (Listof Plot-Tick) Arg)))
 (define-type (Plot-Ticks-Format* R Arg) (-> R R Plot-Tick Arg String))
+
+(define-syntax (ticks-select stx)
+  (syntax-case stx []
+    [(_ tick-hint ticks ticks-generate)
+     (syntax/loc stx
+       (cond [(list? tick-hint) (plot-fixed-ticks-generate tick-hint)]
+             [(pair? ticks) (ticks-generate ticks)]
+             [else (plot-fixed-ticks-generate (list 0))]))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct (R) plot-tick

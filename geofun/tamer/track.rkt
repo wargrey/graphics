@@ -6,22 +6,24 @@
 (define-gomamon! goma [108 108] #:-
   (move-left)
   (move-right)
-  (move-down 2 '#:r)
-  (move-left 1 '#:l)
-  (move-up 1 'E)
-  (jump-back)
-  (move-left)
-  (jump-back)
-  (move-down)
 
-  (jump-back 'E)
+  [#:seq
+   [(move-down 2 '#:r) #:=> (move-down)]
+   [(move-left 1 '#:l) #:=> (move-left)]]
+  
+  (move-up 1 'E)
+  
   (jump-up 2 '#:z)
+  [=> (drift '#:home '())]
+  
   (move-left)
   (move-down)
   (move-left 1 'lx)
   (close)
   
   (jump-right-down 2 1 '#:diamond)
+  [=> (drift '#:home '(-0.5+i -0.5-i))]
+  
   (move-up-right)
   (move-right-down)
   (move-down-left)
@@ -51,16 +53,7 @@
   (turn-left-down-right)
   (turn-down-right-up)
   (turn-right-up-left)
-  (close)
-  
-  (jump-back)
-  (drift '#:home '(-0.5+i -0.5-i))
-  
-  (jump-back)
-  (drift '#:home '())
-  
-  (jump-back)
-  (drift 'leftmost '(-2+i)))
+  (close))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main

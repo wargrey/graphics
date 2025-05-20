@@ -8,8 +8,6 @@
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/tick/self.rkt"))
 
-(require racket/list)
-
 (require digimon/metrics)
 
 (require geofun/font)
@@ -18,7 +16,6 @@
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
 (require geofun/digitama/dc/composite)
-
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/combine)
 (require geofun/digitama/layer/sticker)
@@ -49,16 +46,12 @@
            #:real->sticker [real->label : Plot-Axis-Real->Sticker default-plot-axis-real->sticker]
            #:real->dot [real->dot : Plot-Axis-Real->Dot default-plot-axis-real->dot]
            [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Axis
-    (define-values (fllength neg-margin pos-margin) (plot-axis-length-values axis-style length))
-    (define used-length : Nonnegative-Flonum (max (- fllength neg-margin pos-margin) 1.0))
+    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style length))
     (define-values (ticks origin flunit)
       (plot-axis-metrics tick-hint (plot-axis-real-range real-list)
                          maybe-origin used-length maybe-unit))
 
-    (define actual-ticks : (Plot-Ticks Real)
-      (cond [(list? tick-hint) (plot-fixed-ticks-generate tick-hint)]
-            [(pair? ticks) (ticks-generate ticks)]
-            [else (plot-fixed-ticks-generate (list 0))]))
+    (define actual-ticks : (Plot-Ticks Real) (ticks-select tick-hint ticks ticks-generate))
     (define actual-tick-values (map (inst plot-tick-value* Real) actual-ticks))
     
     (define flthickness : Nonnegative-Flonum (plot-axis-style-thickness axis-style))
@@ -141,16 +134,12 @@
            #:integer->dot [int->dot : Plot-Axis-Real->Dot default-plot-axis-real->dot]
            #:exclude-zero? [exclude-zero? : Boolean #true]
            [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Axis
-    (define-values (fllength neg-margin pos-margin) (plot-axis-length-values axis-style length))
-    (define used-length : Nonnegative-Flonum (max (- fllength neg-margin pos-margin) 1.0))
+    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style length))
     (define-values (ticks origin flunit)
       (plot-axis-metrics tick-hint (plot-axis-integer-range number-sequence exclude-zero?)
                          maybe-origin used-length maybe-unit))
     
-    (define actual-ticks : (Plot-Ticks Integer)
-      (cond [(list? tick-hint) (plot-fixed-ticks-generate tick-hint)]
-            [(pair? ticks) (ticks-generate ticks)]
-            [else (plot-fixed-ticks-generate (list 0))]))
+    (define actual-ticks : (Plot-Ticks Integer) (ticks-select tick-hint ticks ticks-generate))
     (define actual-tick-values (map (inst plot-tick-value* Integer) actual-ticks))
     
     (define flthickness : Nonnegative-Flonum (plot-axis-style-thickness axis-style))
@@ -189,9 +178,9 @@
                                                       flc-offset null fltick-min real-part flaxis-max #false))])
 
                 (for/fold ([ticks : (Listof (GLayerof Geo)) null])
-                          ([digit actual-ticks])
-                  (plot-axis-sticker-cons (digit->label id (cdr digit) digit-font digit-color) digit-anchor
-                                          (dot->pos (real->double-flonum (plot-tick-value* digit)))
+                          ([tick actual-ticks])
+                  (plot-axis-sticker-cons (digit->label id (cdr tick) digit-font digit-color) digit-anchor
+                                          (dot->pos (real->double-flonum (plot-tick-value* tick)))
                                           flc-offset ticks fltick-min real-part fltick-max gtick))
 
                 (let-values ([(int-font int-color int-position int-anchor dot-radius) (plot-axis-real-style-values int-style axis-style)])

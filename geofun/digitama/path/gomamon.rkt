@@ -133,17 +133,15 @@
     (set-geo:path-here! self cpos++)
     (set-geo:path-footprints! self (cons path:arc (geo:path-footprints self)))))
 
-(define geo-path-jump-to : (case-> [Geo:Path (U Geo-Anchor-Name Complex False) (Option Geo-Anchor-Name) -> Void]
+(define geo-path-jump-to : (case-> [Geo:Path (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) -> Void]
                                    [Geo:Path Complex (Option Geo-Anchor-Name) Float-Complex -> Void]
                                    [Geo:Path Float-Complex -> Void])
   (case-lambda
-    [(self target pos-anchor)
-     (define anchor : (U Geo-Anchor-Name Complex) (or target (geo-trail-head-anchor (geo:path-trail self))))
+    [(self anchor pos-anchor)
      (define pos : Float-Complex (geo-path-target-position self anchor))
      
-     (if (complex? anchor)
-         (geo-trail-try-set! (geo:path-trail self) pos-anchor pos)
-         (geo-trail-pop! (geo:path-trail self) anchor))
+     (when (complex? anchor)
+       (geo-trail-try-set! (geo:path-trail self) pos-anchor pos))
      
      (geo-path-jump-to self pos)]
     [(self target anchor offset)

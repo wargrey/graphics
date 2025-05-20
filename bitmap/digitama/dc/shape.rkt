@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require digimon/metrics)
+(require digimon/constant)
 (require geofun/paint)
 
 (require geofun/digitama/base)
@@ -94,11 +95,36 @@
         (let* ([w (* (regular-polygon-radius->circumsphere-radius n (~length radius) (if inscribed? 'edge 'vertex)) 2.0)]
                [h (if (> ratio 0.0) (max 0.0 (/ w ratio)) w)])
           (draw-bitmap dc_regular_polygon #:with [w h density #true (stroke-paint->source* outline)]
-                       [n (~radian rotation radian?)] [(fill-paint->source* pattern)]))
+                       [n 1 (~radian rotation radian?)] [(fill-paint->source* pattern)]))
         (let* ([w (* (~length radius) 2.0)]
                [h (if (> ratio 0.0) (max 0.0 (/ w ratio)) w)])
           (draw-bitmap dc_ellipse #:with [w h density #true (stroke-paint->source* outline)]
                        [] [(fill-paint->source* pattern) null])))))
+
+(define bitmap-star-polygon
+  (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
+           #:ratio [ratio : Real 1.0] #:radian? [radian? : Boolean #true] #:inscribed? [inscribed? : Boolean #false]
+           #:density [density : Positive-Flonum (default-bitmap-density)]
+           [n : Integer] [step : Integer] [radius : Real] [rotation : Real 0.0]] : Bitmap
+    (if (and (index? n) (> n 0))
+        (let* ([w (* (regular-polygon-radius->circumsphere-radius n (~length radius) (if inscribed? 'edge 'vertex)) 2.0)]
+               [h (if (> ratio 0.0) (max 0.0 (/ w ratio)) w)]
+               [k (or (and (index? step) (> step 0) step) 1)])
+          (draw-bitmap dc_regular_polygon #:with [w h density #true (stroke-paint->source* outline)]
+                       [n k (~radian rotation radian?)] [(fill-paint->source* pattern)]))
+        (let* ([w (* (~length radius) 2.0)]
+               [h (if (> ratio 0.0) (max 0.0 (/ w ratio)) w)])
+          (draw-bitmap dc_ellipse #:with [w h density #true (stroke-paint->source* outline)]
+                       [] [(fill-paint->source* pattern) null])))))
+
+(define bitmap-star
+  (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
+           #:ratio [ratio : Real 1.0] #:radian? [radian? : Boolean #true] #:inscribed? [inscribed? : Boolean #false]
+           #:density [density : Positive-Flonum (default-bitmap-density)]
+           [radius : Real] [rotation : Real -pi/2]] : Bitmap
+    (bitmap-star-polygon #:stroke outline #:fill pattern #:ratio ratio
+                         #:radian? radian? #:inscribed? inscribed? #:density density
+                         5 2 radius rotation)))
 
 (define bitmap-hline
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)] #:density [density : Positive-Flonum (default-bitmap-density)]

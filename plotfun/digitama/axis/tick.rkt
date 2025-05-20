@@ -3,24 +3,31 @@
 (provide (all-defined-out))
 
 (require digimon/metrics)
-
 (require racket/list)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (R) plot-axis-metrics : (-> (U (∩ R Real) (Pairof (∩ R Real) (∩ R Real)) (Listof (∩ R Real)) False) (Option (Pairof (∩ R Real) (∩ R Real)))
-                                             (Option Real) Nonnegative-Flonum (Option Real)
-                                             (Values (Option (Pairof (U R Zero) (U R Zero))) Real Nonnegative-Flonum))
-  (lambda [tick-rng real-rng maybe-origin axis-length maybe-unit-length]
-    (define ticks : (Option (Pairof (U R Zero) (U R Zero)))
-      (cond [(or tick-rng) ((inst plot-tick-range R) tick-rng)]
-            [(or real-rng) ((inst plot-tick-range* R) (car real-rng) (cdr real-rng))]
-            [else #false]))
-    
-    (cond [(and maybe-origin maybe-unit-length) (values ticks maybe-origin (~length maybe-unit-length axis-length))]
-          [(and (pair? ticks) (real? (car ticks)) (real? (cdr ticks)))
-           (let* ([unit-length (plot-auto-unit-length axis-length maybe-unit-length ticks)])
-             (values ticks (or maybe-origin (plot-auto-origin ticks unit-length axis-length)) unit-length))]
-          [else (values ticks (or maybe-origin 0.5) (min (~length (or maybe-unit-length -0.1) axis-length)))])))
+(define #:forall (R C) plot-axis-metrics
+  : (case-> [-> (U (∩ R Real) (Pairof (∩ R Real) (∩ R Real)) (Listof (∩ R Real)) False) (Option (Pairof (∩ R Real) (∩ R Real)))
+                (Option Real) Nonnegative-Flonum (Option Real)
+                (Values (Option (Pairof (U R Zero) (U R Zero))) Real Nonnegative-Flonum)]
+            [-> (U (∩ R Real) (Pairof (∩ R Real) (∩ R Real)) (Listof (∩ R Real)) False) (Option (Pairof (∩ R Real) (∩ R Real)))
+                (Option Real) Nonnegative-Flonum (Option Real) (-> Nonnegative-Flonum C)
+                (Values (Option (Pairof (U R Zero) (U R Zero))) Real C)])
+  (case-lambda
+    [(tick-rng real-rng maybe-origin axis-length maybe-unit-length)
+     (define ticks : (Option (Pairof (U R Zero) (U R Zero)))
+       (cond [(or tick-rng) ((inst plot-tick-range R) tick-rng)]
+             [(or real-rng) ((inst plot-tick-range* R) (car real-rng) (cdr real-rng))]
+             [else #false]))
+     
+     (cond [(and maybe-origin maybe-unit-length) (values ticks maybe-origin (~length maybe-unit-length axis-length))]
+           [(and (pair? ticks) (real? (car ticks)) (real? (cdr ticks)))
+            (let* ([unit-length (plot-auto-unit-length axis-length maybe-unit-length ticks)])
+              (values ticks (or maybe-origin (plot-auto-origin ticks unit-length axis-length)) unit-length))]
+           [else (values ticks (or maybe-origin 0.5) (min (~length (or maybe-unit-length -0.1) axis-length)))])]
+    [(tick-rng real-rng maybe-origin axis-length maybe-unit-length unit-transform)
+     (define-values (ticks origin flunit) ((inst plot-axis-metrics R) tick-rng real-rng maybe-origin axis-length maybe-unit-length))
+     (values ticks origin (unit-transform flunit))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (R) plot-tick-range* : (-> (∩ R Real) (∩ R Real) (Option (Pairof (U R Zero) (U R Zero))))
