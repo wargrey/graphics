@@ -7,6 +7,7 @@
 (provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/tick/self.rkt"))
+(provide (all-from-out "digitama/axis/tick/real.rkt"))
 
 (require digimon/metrics)
 
@@ -47,11 +48,11 @@
            #:real->dot [real->dot : Plot-Axis-Real->Dot default-plot-axis-real->dot]
            [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Axis
     (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style length))
-    (define-values (ticks origin flunit)
+    (define-values (tick-range origin flunit)
       (plot-axis-metrics tick-hint (plot-axis-real-range real-list)
                          maybe-origin used-length maybe-unit))
 
-    (define actual-ticks : (Plot-Ticks Real) (ticks-select tick-hint ticks ticks-generate))
+    (define actual-ticks : (Plot-Ticks Real) (ticks-select tick-hint tick-range ticks-generate))
     (define actual-tick-values (map (inst plot-tick-value* Real) actual-ticks))
     
     (define flthickness : Nonnegative-Flonum (plot-axis-style-thickness axis-style))
@@ -98,7 +99,7 @@
                 (for/fold ([reals : (Listof (GLayerof Geo)) null])
                           ([real (in-list (cond [(list? real-list) real-list]
                                                 [(list? tick-hint) (plot-axis-reals-from-producer real-list tick-hint)]
-                                                [(or ticks) (plot-axis-reals-from-producer real-list actual-tick-values)]
+                                                [(or tick-range) (plot-axis-reals-from-producer real-list actual-tick-values)]
                                                 [else null]))])
                   (define-values (val obj) ((or real-filter (default-plot-axis-real-filter)) real))
                   

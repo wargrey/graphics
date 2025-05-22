@@ -63,10 +63,15 @@
   number-line
   time-line
 
+  (plot-integer-axis)
+  (plot-axis #:range (cons -inf.0 +inf.0))
+  
   (plot-integer-axis #:range (cons 0 10) #:label "N")
+  (plot-integer-axis #:range (cons -5 5) #:label "N")
   (plot-axis #:range (cons 0 10) #:label "R")
   (plot-axis #:range (cons +1 +7/2) #:label "R")
   (plot-axis #:range (cons -7 -5/2) #:label "R")
   (plot-axis #:range (cons -70 30) #:label "R")
   (plot-axis #:range (cons -0.001 +0.007) #:label "R")
+  (plot-axis #:range (cons -0.618 +0.618) #:label "R")
   (plot-axis #:range (range -6.28 +6.29 3.14) #:label "R"))

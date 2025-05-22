@@ -31,13 +31,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (R) plot-tick-range* : (-> (∩ R Real) (∩ R Real) (Option (Pairof (U R Zero) (U R Zero))))
-  (lambda [left right]
-    (cond [(< left right) (cons left right)]
-          [(> left right) (cons right left)]
-          [(negative? left) (cons left 0)]
-          [(positive? left) (cons 0 left)]
+  (lambda [lft rgt]
+    (cond [(and (rational? lft) (rational? rgt))
+           (cond [(< lft rgt) (cons lft rgt)]
+                 [(> lft rgt) (cons rgt lft)]
+                 [(negative? lft) (cons lft 0)]
+                 [(positive? lft) (cons 0 lft)]
+                 [else #false])]
+          [(rational? lft) ((inst plot-tick-range* R) lft lft)]
+          [(rational? rgt) ((inst plot-tick-range* R) rgt rgt)]
           [else #false])))
-
+  
 (define #:forall (R) plot-tick-range : (-> (U (∩ R Real) (Listof (∩ R Real)) (Pairof (∩ R Real) (∩ R Real))) (Option (Pairof (U R Zero) (U R Zero))))
   (lambda [rng]
      (cond [(real? rng) ((inst plot-tick-range* R) rng rng)]

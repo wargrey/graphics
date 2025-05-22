@@ -43,6 +43,7 @@
 
 (define default-plot-cartesian-width : (Parameterof Real) (make-parameter 400.0))
 (define default-plot-cartesian-height : (Parameterof Real) (make-parameter -1.0))
+(define default-plot-renderer-domain-range : (Parameterof (Pairof Real Real)) (make-parameter (cons -5 5)))
 (define default-plot-renderer-scale : (Parameterof Point2D) (make-parameter 64.0+64.0i))
 (define default-plot-renderer-samples : (Parameterof Positive-Index) (make-parameter 512))
 

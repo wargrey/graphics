@@ -2,8 +2,10 @@
 
 (provide (all-defined-out))
 (provide Plot:Cartesian plot:cartesian?)
+(provide  Plot:Function plot:function? function)
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/tick/self.rkt"))
+(provide (all-from-out "digitama/axis/tick/real.rkt"))
 (provide (all-from-out "digitama/axis/style.rkt"))
 
 (require digimon/metrics)
@@ -24,6 +26,8 @@
 (require geofun/digitama/layer/sticker)
 (require geofun/digitama/layer/position)
 
+(require "digitama/arithmetics.rkt")
+
 (require "digitama/axis/self.rkt")
 (require "digitama/axis/style.rkt")
 (require "digitama/axis/config.rkt")
@@ -35,6 +39,7 @@
 (require "digitama/axis/tick/real.rkt")
 
 (require "digitama/axis/renderer/self.rkt")
+(require "digitama/axis/renderer/function.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-cartesian
@@ -49,23 +54,30 @@
            #:y-label [ylabel : (Option String) "y"]
            #:x-range [xtick-hint : (U Real (Pairof Real Real) (Listof Real) False) #false]
            #:y-range [ytick-hint : (U Real (Pairof Real Real) (Listof Real) False) #false]
-           #:x-ticks [xticks-generate : (Plot-Ticks-Generate Real) (plot-real-ticks)]
-           #:y-ticks [yticks-generate : (Plot-Ticks-Generate Real) (plot-real-ticks)]
+           #:x-ticks [xticks-generate : (Plot-Ticks-Generate Real) (plot-real-ticks*)]
+           #:y-ticks [yticks-generate : (Plot-Ticks-Generate Real) (plot-real-ticks*)]
            #:x-digit->sticker [xdigit->label : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
            #:y-digit->sticker [ydigit->label : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
+           #:domain-range [fallback-dom : (Pairof Real Real) (default-plot-renderer-domain-range)]
            . [tree : (U Plot:Renderer Plot-Renderer-Tree) *]] : Plot:Cartesian
-    (define-values (renderers xrng) (plot-renderer-tree-flatten tree))
+    (define-values (renderers maybe-xivl maybe-yivl) (plot-renderer-tree-flatten tree))
+    (define-values (used-dom used-ran)
+      (plot-renderer-ranges renderers
+                            (and xtick-hint (plot-tick-range xtick-hint))
+                            (and ytick-hint (plot-tick-range ytick-hint))
+                            maybe-xivl maybe-yivl fallback-dom))
+
     (define-values (flwidth  used-width  x-neg-margin x-pos-margin) (plot-axis-length-values as width))
     (define-values (flheight used-height y-neg-margin y-pos-margin) (plot-axis-length-values as height flwidth))
     (define-values (maybe-xorig maybe-yorig) (plot-cartesian-maybe-settings maybe-origin))
     (define-values (maybe-xunit maybe-yunit) (plot-cartesian-maybe-settings maybe-unit))
 
-    (define-values (xticks xO xunit) (plot-axis-metrics xtick-hint (cons -4 -4) maybe-xorig used-width maybe-xunit))
-    (define-values (yticks yO yunit) (plot-axis-metrics ytick-hint (cons -4 -4) maybe-yorig used-height maybe-yunit flc-ri))
+    (define-values (xtick-range xO xunit) (plot-axis-metrics #false used-dom maybe-xorig  used-width maybe-xunit))
+    (define-values (ytick-range yO yunit) (plot-axis-metrics #false used-ran maybe-yorig used-height maybe-yunit flc-ri))
 
-    (define actual-xticks : (Plot-Ticks Real) (ticks-select xtick-hint xticks xticks-generate))
+    (define actual-xticks : (Plot-Ticks Real) (ticks-select xtick-hint xtick-range xticks-generate))
     (define actual-xtick-values (map (inst plot-tick-value* Real) actual-xticks))
-    (define actual-yticks : (Plot-Ticks Real) (ticks-select ytick-hint yticks yticks-generate))
+    (define actual-yticks : (Plot-Ticks Real) (ticks-select ytick-hint ytick-range yticks-generate))
     (define actual-ytick-values (map (inst plot-tick-value* Real) actual-yticks))
     
     (define-values (digit-font label-font axis-color digit-color tick-color label-color) (plot-axis-visual-values as))
@@ -103,6 +115,11 @@
            (cons (geo-rectangle ytick-length fltick-thickness #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor as 'y))))
 
+    (define origin-dot->pos : Plot-Cartesian-Position-Map
+      (case-lambda
+        [(x y) (+ Origin (* x xunit) (* (- y) yunit))]
+        [(dot) (dot->pos (real-part dot) (imag-part dot))]))
+
     (define layers : (Listof (GLayerof Geo))
       (parameterize ()
         (append (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
@@ -116,10 +133,9 @@
                 (for/fold ([xticks : (Listof (GLayerof Geo)) null])
                           ([xtick (in-list actual-xticks)])
                   (define xval : Flonum (real->double-flonum (plot-tick-value (car xtick))))
-                  (if (not (zero? xval))
+                  (if (not (zero? (scaled-round xval)))
                       (plot-axis-sticker-cons (xdigit->label id (cdr xtick) digit-font (or digit-color axis-color)) xdigit-anchor
-                                              (+ Origin (* xval xunit))
-                                              xoffset xticks xtick-min real-part xtick-max gxtick)
+                                              (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max gxtick)
                       xticks))
 
                 (cond [(not ylabel) null]
@@ -130,11 +146,14 @@
                 (for/fold ([yticks : (Listof (GLayerof Geo)) null])
                           ([ytick (in-list actual-yticks)])
                   (define yval : Flonum (real->double-flonum (plot-tick-value (car ytick))))
-                  (if (not (zero? yval))
+                  (if (not (zero? (scaled-round yval)))
                       (plot-axis-sticker-cons (ydigit->label id (cdr ytick) digit-font (or digit-color axis-color)) ydigit-anchor
-                                              (+ Origin (* (- yval) yunit))
-                                              yoffset yticks -inf.0 imag-part +inf.0 gytick)
-                      yticks)))))
+                                              (origin-dot->pos 0.0 yval) yoffset yticks -inf.0 imag-part +inf.0 gytick)
+                      yticks))
+
+                (for/list : (Listof (GLayerof Geo)) ([r (in-list renderers)])
+                  (define-values (graph pos) ((plot:renderer-realize r) used-dom used-ran origin-dot->pos))
+                  (geo-own-pin-layer 'lt pos graph 0.0+0.0i)))))
     
     (define translated-layers : (Option (GLayer-Groupof Geo))
       (geo-path-try-extend/list (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)

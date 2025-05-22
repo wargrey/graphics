@@ -2,35 +2,39 @@
 
 (require geofun/vector)
 
-(require plotfun/digitama/axis/renderer/function)
+(require plotfun/cartesian)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stroke (desc-stroke #:width 2.0 #:cap 'round))
 
-(define discrete-floor : (-> Flonum (Option Flonum))
+(define discrete-floor : (-> Real (Option Real))
   (lambda [x]
     (define sx (* (- x (round x)) 100.0))
 
     (when (zero? (floor sx))
-      (displayln x))
+      (displayln (cons 'floor x)))
 
     (and (not (zero? (floor sx)))
          (floor x))))
 
-(define discrete-ceiling : (-> Flonum (Option Flonum))
+(define discrete-ceiling : (-> Real (Option Real))
   (lambda [x]
     (define sx (* (- x (round x)) 100.0))
 
     (when (zero? (floor sx))
-      (displayln x))
+      (displayln (cons 'ceiling x)))
 
     (and (not (zero? (floor sx)))
          (ceiling x))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#;(geo-cc-superimpose
- (plot:function #:scale +100+100i #:stroke 'orange      sin -3 +3)
- (plot:function #:scale +100+100i #:stroke 'crimson     sin -3.0 +3.0 -0.618 +0.618)
- (plot:function #:scale +100-100i #:stroke 'purple      sqr -2 +2)
- (plot:function #:scale +100+100i #:stroke 'forestgreen discrete-floor -3.0 +3.0)
- (plot:function #:scale +100+100i #:stroke 'royalblue   discrete-ceiling -3.0 +3.0))
+(module+ main
+  (plot-cartesian
+   (function #:stroke 'forestgreen            discrete-floor -3.0 +3.0)
+   (function #:stroke 'royalblue              discrete-ceiling -3.0 +3.0)
+   (function #:stroke 'purple                 sqr  -2 +2)
+   (function #:stroke 'crimson                sqrt -2 +2))
+
+  (plot-cartesian
+   (function #:stroke 'orange      sin -2 +2)
+   (function #:stroke 'crimson     sin -3.0 +3.0 -3/5 +3/5)))

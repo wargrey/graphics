@@ -5,61 +5,27 @@
 (require racket/list)
 
 (require "self.rkt")
-(require "shared.rkt")
+(require "layout.rkt")
 
 (require "../interface.rkt")
-(require "../../arithmetics.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-real-ticks : (-> [#:base Positive-Byte] [#:desired-ticks Positive-Index] [#:steps (Listof Positive-Index)] (Plot-Ticks-Generate Real))
-  (lambda [#:base [base 10] #:desired-ticks [desired-ticks (default-plot-axis-desired-ticks)] #:steps [divisors (default-plot-axis-real-tick-steps)]]
-    (define layout : (Plot-Ticks-Layout Real)
-      (λ [tmin tmax]
-        (define R : Real (- tmax tmin))
-        (define order : Positive-Exact-Rational (magnitude-order R base))
-        (define epsilon : Positive-Exact-Rational (expt base (- (tick-precision tmin tmax))))
-       
-        (define-values (step num-diff)
-          (for*/fold ([step : (U Real #f) #f]
-                      [num-diff : Real +inf.0])
-                     ([s (in-range (floor-log desired-ticks base) -2 -1)]
-                      [d (in-list divisors)])
-            (define scaled-step : Positive-Exact-Rational (/ order d (expt base s)))
-            (define-values (refined-min refined-max refined-num) (plot-range-refine tmin tmax scaled-step))
-            
-            ;; don't count on endpoints for contours, but also good for other renderers
-            (define final-num : Integer
-              (- refined-num
-                 (if (< (abs (- refined-min tmin)) epsilon) 1 0)
-                 (if (< (abs (- refined-max tmax)) epsilon) 1 0)))
-            
-            (define refined-diff (abs (- final-num desired-ticks)))
-            
-            (if (<= refined-diff num-diff)
-                (values scaled-step refined-diff)
-                (values step num-diff))))
-       
-        (range tmin (+ tmax 1) (or step (/ R desired-ticks)))))
-    
-    (plot-ticks-generator layout)))
-
 (define plot-integer-ticks : (-> [#:base Positive-Byte] [#:desired-ticks Positive-Index] (Plot-Ticks-Generate Integer))
   (lambda [#:base [base 10] #:desired-ticks [desired-ticks (default-plot-axis-desired-ticks)]]
-    (define layout : (Plot-Ticks-Layout Integer)
-      (λ [tmin tmax]
-        (define R : Integer (- tmax tmin))
-        (define Δinitialized : Exact-Rational (/ R desired-ticks))
-        (define order : Positive-Exact-Rational (magnitude-order Δinitialized base))
-        
-        (define step : Natural
-          (if (exact-integer? order)
-              (let ([normalized (/ Δinitialized order)])
-                (cond [(< normalized 3/2)  order]
-                      [(< normalized 3) (* order 2)]
-                      [(< normalized 7) (* order (if (= (remainder R 3) 0) 3 5))]
-                      [else             (* order (if (= (remainder R 7) 0) 7 10))]))
-              1))
+    (plot-ticks-generator
+     (λ [[tmin : Integer] [tmax : Integer]]
+       (plot-integer-tick-layout tmin tmax base desired-ticks)))))
 
-        (range tmin (+ tmax 1) step)))
+(define plot-real-ticks : (-> [#:base Positive-Byte] [#:desired-ticks Positive-Index] [#:steps (Listof Positive-Index)] (Plot-Ticks-Generate Real))
+  (lambda [#:base [base 10] #:desired-ticks [desired-ticks (default-plot-axis-desired-ticks)] #:steps [divisors (default-plot-axis-real-tick-steps)]]
+    (plot-ticks-generator
+     (λ [[tmin : Real] [tmax : Real]]
+       (plot-real-tick-layout tmin tmax base desired-ticks divisors)))))
 
-    (plot-ticks-generator layout)))
+(define plot-real-ticks* : (-> [#:base Positive-Byte] [#:desired-ticks Positive-Index] [#:steps (Listof Positive-Index)] (Plot-Ticks-Generate Real))
+  (lambda [#:base [base 10] #:desired-ticks [desired-ticks (default-plot-axis-desired-ticks)] #:steps [divisors (default-plot-axis-real-tick-steps)]]
+    (plot-ticks-generator
+     (λ [[tmin : Real] [tmax : Real]]
+       (if (and (exact-integer? tmin) (exact-integer? tmax))
+           (plot-integer-tick-layout tmin tmax base desired-ticks)
+           (plot-real-tick-layout tmin tmax base desired-ticks divisors))))))
