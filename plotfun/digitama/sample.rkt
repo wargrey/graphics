@@ -4,11 +4,6 @@
 
 (require racket/list)
 
-(require "arithmetics.rkt")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-geo-function-samples : (Parameterof Positive-Index) (make-parameter 512))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ~y-bounds : (-> (-> Real (Option Number)) (Listof Real) (Values Real Real))
   (lambda [f xs]
@@ -21,7 +16,7 @@
           (values ymin         ymax)))))
 
 (define ~cartesian2ds : (-> (-> Real (Option Number)) (Listof Real) Real Real (-> Flonum Flonum Float-Complex)
-                            (Values (Listof Float-Complex) Float-Complex Nonnegative-Flonum Nonnegative-Flonum))
+                            (Values (Listof Float-Complex) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [f xs ymin ymax transform]
     (define-values (flmin flmax) (values (real->double-flonum ymin) (real->double-flonum ymax)))
     (let normalize ([xs : (Listof Real) xs]
@@ -42,14 +37,8 @@
                                    (max rx scr-x) (max by scr-y)))]
                      [(and (pair? stod) (eq? (car stod) +nan.0+nan.0i)) (normalize rest stod lx ty rx by)]
                      [else (normalize rest (cons +nan.0+nan.0i stod) lx ty rx by)]))]
-            [(rational? lx)
-             (let ([pos (make-rectangular lx ty)])
-               (let translate ([stod : (Listof Float-Complex) stod]
-                               [dots : (Listof Float-Complex) null])
-                 (if (pair? stod)
-                     (translate (cdr stod) (cons (- (car stod) pos) dots))
-                     (values dots pos (max (- rx lx) 0.0) (max (- by ty) 0.0)))))]
-            [else (values (reverse stod) 0.0+0.0i 0.0 0.0)]))))
+            [(rational? lx) (values (reverse stod) lx ty (max (- rx lx) 0.0) (max (- by ty) 0.0))]
+            [else (values (reverse stod) 0.0 0.0 0.0 0.0)]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-linear-samples : (->* (Real Real Positive-Index) (#:start? Boolean #:end? Boolean) (Listof Real))

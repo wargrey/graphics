@@ -1,7 +1,6 @@
 #lang typed/racket
 
 (require geofun/vector)
-
 (require plotfun/cartesian)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -11,9 +10,6 @@
   (lambda [x]
     (define sx (* (- x (round x)) 100.0))
 
-    (when (zero? (floor sx))
-      (displayln (cons 'floor x)))
-
     (and (not (zero? (floor sx)))
          (floor x))))
 
@@ -21,20 +17,26 @@
   (lambda [x]
     (define sx (* (- x (round x)) 100.0))
 
-    (when (zero? (floor sx))
-      (displayln (cons 'ceiling x)))
-
     (and (not (zero? (floor sx)))
          (ceiling x))))
+
+(define normal-dist : (-> Real (Option Real))
+  (lambda [x]
+    (/ (exp (/ (sqr x) -2.0))
+       (sqrt 2pi))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   (plot-cartesian
-   (function #:stroke 'forestgreen            discrete-floor -3.0 +3.0)
-   (function #:stroke 'royalblue              discrete-ceiling -3.0 +3.0)
-   (function #:stroke 'purple                 sqr  -2 +2)
-   (function #:stroke 'crimson                sqrt -2 +2))
+   (function #:stroke (plot-desc-pen #:color 'grey #:dash 'long-dash) values)
+   (function #:stroke 'forestgreen discrete-floor -3.0)
+   (function #:stroke 'royalblue   discrete-ceiling)
+   (function #:stroke 'cyan        cos)
+   (function #:stroke 'orange      cos  -1 +1)
+   (function #:stroke 'purple      sqr  -2 +2)
+   (function #:stroke 'crimson     sqrt +0 +4))
 
   (plot-cartesian
-   (function #:stroke 'orange      sin -2 +2)
-   (function #:stroke 'crimson     sin -3.0 +3.0 -3/5 +3/5)))
+   (function #:stroke 'crimson     sin -4.0 +4.0 -1 +1)
+   (function #:stroke 'orange      sin -1/2 +1/2 -4/5 +4/5)
+   (function #:stroke 'forestgreen normal-dist)))

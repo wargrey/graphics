@@ -38,8 +38,8 @@
 (require "digitama/axis/tick/self.rkt")
 (require "digitama/axis/tick/real.rkt")
 
-(require "digitama/axis/renderer/self.rkt")
-(require "digitama/axis/renderer/function.rkt")
+(require "digitama/axis/visualizer/self.rkt")
+(require "digitama/axis/visualizer/function.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-cartesian
@@ -58,14 +58,14 @@
            #:y-ticks [yticks-generate : (Plot-Ticks-Generate Real) (plot-real-ticks*)]
            #:x-digit->sticker [xdigit->label : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
            #:y-digit->sticker [ydigit->label : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
-           #:domain-range [fallback-dom : (Pairof Real Real) (default-plot-renderer-domain-range)]
-           . [tree : (U Plot:Renderer Plot-Renderer-Tree) *]] : Plot:Cartesian
-    (define-values (renderers maybe-xivl maybe-yivl) (plot-renderer-tree-flatten tree))
+           #:domain-range [fallback-dom : (Pairof Real Real) (default-plot-visualizer-domain-range)]
+           . [tree : (U Plot:Visualizer Plot-Visualizer-Tree) *]] : Plot:Cartesian
+    (define-values (visualizers maybe-xivl maybe-yivl) (plot-visualizer-tree-flatten tree))
     (define-values (used-dom used-ran)
-      (plot-renderer-ranges renderers
-                            (and xtick-hint (plot-tick-range xtick-hint))
-                            (and ytick-hint (plot-tick-range ytick-hint))
-                            maybe-xivl maybe-yivl fallback-dom))
+      (plot-visualizer-ranges visualizers
+                              (and xtick-hint (plot-tick-range xtick-hint))
+                              (and ytick-hint (plot-tick-range ytick-hint))
+                              maybe-xivl maybe-yivl fallback-dom))
 
     (define-values (flwidth  used-width  x-neg-margin x-pos-margin) (plot-axis-length-values as width))
     (define-values (flheight used-height y-neg-margin y-pos-margin) (plot-axis-length-values as height flwidth))
@@ -151,8 +151,10 @@
                                               (origin-dot->pos 0.0 yval) yoffset yticks -inf.0 imag-part +inf.0 gytick)
                       yticks))
 
-                (for/list : (Listof (GLayerof Geo)) ([r (in-list renderers)])
-                  (define-values (graph pos) ((plot:renderer-realize r) used-dom used-ran origin-dot->pos))
+                (for/list : (Listof (GLayerof Geo)) ([r (in-list visualizers)])
+                  (define this-dom (plot-range-select (plot:visualizer-xrng r) used-dom))
+                  (define this-ran (plot-range-select (plot:visualizer-yrng r) used-ran))
+                  (define-values (graph pos) ((plot:visualizer-realize r) this-dom this-ran origin-dot->pos))
                   (geo-own-pin-layer 'lt pos graph 0.0+0.0i)))))
     
     (define translated-layers : (Option (GLayer-Groupof Geo))

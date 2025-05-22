@@ -1,11 +1,12 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [plot-desc-stroke plot-desc-pen]))
 
 (require geofun/font)
-(require geofun/color)
 (require geofun/stroke)
 
+(require geofun/digitama/base)
 (require geofun/digitama/convert)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/geometry/dot)
@@ -32,6 +33,18 @@
   (lambda [x y]
     (make-rectangular x (- y))))
 
+(define plot-desc-stroke : (->* ()
+                                (Stroke #:color (Option Color) #:opacity Real #:width (Option Real)
+                                        #:cap (Option Symbol) #:join (U Symbol Real False)
+                                        #:dash (Option Stroke-Dash-Datum) #:offset (Option Real))
+                                Stroke)
+  (lambda [#:color [color #false] #:opacity [opacity 1.0] #:width [width #false]
+           #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]
+           [baseline (default-plot-function-stroke)]]
+    (desc-stroke #:color color #:opacity opacity #:width width
+                 #:cap cap #:join join #:dash dash #:offset offset
+                 baseline)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-plot-axis-real-filter : (Parameterof Plot-Axis-Real-Filter) (make-parameter plot-axis-real-values))
 (define default-plot-axis-integer-filter : (Parameterof Plot-Axis-Integer-Filter) (make-parameter plot-axis-integer-values))
@@ -43,8 +56,7 @@
 
 (define default-plot-cartesian-width : (Parameterof Real) (make-parameter 400.0))
 (define default-plot-cartesian-height : (Parameterof Real) (make-parameter -1.0))
-(define default-plot-renderer-domain-range : (Parameterof (Pairof Real Real)) (make-parameter (cons -5 5)))
-(define default-plot-renderer-scale : (Parameterof Point2D) (make-parameter 64.0+64.0i))
-(define default-plot-renderer-samples : (Parameterof Positive-Index) (make-parameter 512))
+(define default-plot-visualizer-domain-range : (Parameterof (Pairof Real Real)) (make-parameter (cons -5 5)))
+(define default-plot-visualizer-samples : (Parameterof Positive-Index) (make-parameter 512))
 
-(define default-plot-function-stroke : (Parameterof Stroke) (make-parameter (desc-stroke #:width 2.0 #:join 'round #:cap 'butt)))
+(define default-plot-function-stroke : (Parameterof Stroke) (make-parameter (desc-stroke #:width 1.5 #:join 'round #:cap 'butt)))

@@ -6,39 +6,39 @@
 (require geofun/digitama/convert)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Plot-Renderer-Tree (Listof (U Plot:Renderer Plot-Renderer-Tree)))
+(define-type Plot-Visualizer-Tree (Listof (U Plot:Visualizer Plot-Visualizer-Tree)))
 
-(define-type Plot-Renderer-Tick-Range (Pairof (Option Real) (Option Real)))
-(define-type Plot-Renderer-Data-Range (-> Real Real (Pairof Real Real)))
-(define-type Plot-Renderer-Realize (-> (Pairof Real Real) (Pairof Real Real) (-> Flonum Flonum Float-Complex) (Values Geo Float-Complex)))
+(define-type Plot-Visualizer-Tick-Range (Pairof (Option Real) (Option Real)))
+(define-type Plot-Visualizer-Data-Range (-> Real Real (Pairof Real Real)))
+(define-type Plot-Visualizer-Realize (-> (Pairof Real Real) (Pairof Real Real) (-> Flonum Flonum Float-Complex) (Values Geo Float-Complex)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct plot:renderer
-  ([realize : Plot-Renderer-Realize]
+(struct plot:visualizer
+  ([realize : Plot-Visualizer-Realize]
    [label : Any]
-   [xrng : Plot-Renderer-Tick-Range]
-   [yrng : Plot-Renderer-Tick-Range]
+   [xrng : Plot-Visualizer-Tick-Range]
+   [yrng : Plot-Visualizer-Tick-Range]
    [color : FlRGBA]
-   [range : Plot-Renderer-Data-Range])
-  #:type-name Plot:Renderer
+   [range : Plot-Visualizer-Data-Range])
+  #:type-name Plot:Visualizer
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-renderer-tree-flatten : (-> Plot-Renderer-Tree (Values (Listof Plot:Renderer) Plot-Renderer-Tick-Range Plot-Renderer-Tick-Range))
+(define plot-visualizer-tree-flatten : (-> Plot-Visualizer-Tree (Values (Listof Plot:Visualizer) Plot-Visualizer-Tick-Range Plot-Visualizer-Tick-Range))
   (lambda [tree]
     (define-values (sreredner xmin xmax ymin ymax)
-      (let flatten : (Values (Listof Plot:Renderer) Real Real Real Real)
-        ([ts : Plot-Renderer-Tree tree]
+      (let flatten : (Values (Listof Plot:Visualizer) Real Real Real Real)
+        ([ts : Plot-Visualizer-Tree tree]
          [xmin : Real +inf.0] [xmax : Real -inf.0]
          [ymin : Real +inf.0] [ymax : Real -inf.0]
-         [sreredner : (Listof Plot:Renderer) null])
+         [sreredner : (Listof Plot:Visualizer) null])
         (if (pair? ts)
             (let-values ([(self rest) (values (car ts) (cdr ts))])
               (if (list? self)
                   (let-values ([(sbus xsmin xsmax ysmin ysmax) (flatten self xmin xmax ymin ymax sreredner)])
                     (flatten rest xsmin xsmax ysmin ysmax sbus))
-                  (let ([xrng (plot:renderer-xrng self)]
-                        [yrng (plot:renderer-yrng self)])
+                  (let ([xrng (plot:visualizer-xrng self)]
+                        [yrng (plot:visualizer-yrng self)])
                     (flatten rest
                              (min xmin (or (car xrng) +inf.0)) (max xmax (or (cdr xrng) -inf.0))
                              (min ymin (or (car yrng) +inf.0)) (max ymax (or (cdr yrng) -inf.0))
@@ -49,9 +49,9 @@
             (plot-range-normalize xmin xmax)
             (plot-range-normalize ymin ymax))))
 
-(define plot-renderer-ranges : (-> (Listof Plot:Renderer) (Option (Pairof Real Real)) (Option (Pairof Real Real))
-                                   Plot-Renderer-Tick-Range Plot-Renderer-Tick-Range (Pairof Real Real)
-                                   (Values (Pairof Real Real) (Pairof Real Real)))
+(define plot-visualizer-ranges : (-> (Listof Plot:Visualizer) (Option (Pairof Real Real)) (Option (Pairof Real Real))
+                                     Plot-Visualizer-Tick-Range Plot-Visualizer-Tick-Range (Pairof Real Real)
+                                     (Values (Pairof Real Real) (Pairof Real Real)))
   (lambda [selves xtick-rng ytick-rng maybe-xrng maybe-yrng fallback-dom]
     (if (not (and xtick-rng ytick-rng))
         (let*-values ([(xmin xmax) (if (or xtick-rng) (plot-range-values xtick-rng) (plot-range-values maybe-xrng))]
@@ -60,30 +60,37 @@
           (if (not (and ymin ymax))
               (let bounds ([top : Real (or ymin +inf.0)]
                            [btm : Real (or ymax -inf.0)]
-                           [rs : (Listof Plot:Renderer) selves])
+                           [rs : (Listof Plot:Visualizer) selves])
                 (cond [(null? rs) (values (cons left rght) (cons top btm))]
-                      [else (let* ([vrng ((plot:renderer-range (car rs)) left rght)])
+                      [else (let* ([self (car rs)]
+                                   [xrng (plot:visualizer-xrng self)]
+                                   [vrng ((plot:visualizer-range self) (or (car xrng) left) (or (cdr xrng) rght))])
                               (bounds (min top (car vrng)) (max btm (cdr vrng)) (cdr rs)))]))
               (values (cons left rght) (cons ymin ymax))))
         (values xtick-rng ytick-rng))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-renderer-real-filter : (-> (Option Real) (Option Real))
+(define plot-visualizer-real-filter : (-> (Option Real) (Option Real))
   (lambda [v]
     (and (rational? v)
          v)))
 
-(define plot-range-normalize : (case-> [(Option Real) (Option Real) -> Plot-Renderer-Tick-Range]
-                                       [(Option Real) (Option Real) (Option Real) (Option Real) -> (Values Plot-Renderer-Tick-Range Plot-Renderer-Tick-Range)])
+(define plot-range-normalize : (case-> [(Option Real) (Option Real) -> Plot-Visualizer-Tick-Range]
+                                       [(Option Real) (Option Real) (Option Real) (Option Real) -> (Values Plot-Visualizer-Tick-Range Plot-Visualizer-Tick-Range)])
   (case-lambda
     [(rmin rmax)
-     (cons (plot-renderer-real-filter rmin)
-           (plot-renderer-real-filter rmax))]
+     (cons (plot-visualizer-real-filter rmin)
+           (plot-visualizer-real-filter rmax))]
     [(xmin xmax ymin ymax)
      (values (plot-range-normalize xmin xmax)
              (plot-range-normalize ymin ymax))]))
 
 (define plot-range-values : (case-> [(Pairof Real Real) -> (Values Real Real)]
-                                    [Plot-Renderer-Tick-Range -> (Values (Option Real) (Option Real))])
+                                    [Plot-Visualizer-Tick-Range -> (Values (Option Real) (Option Real))])
   (lambda [rng]
     (values (car rng) (cdr rng))))
+
+(define plot-range-select : (-> Plot-Visualizer-Tick-Range (Pairof Real Real) (Pairof Real Real))
+  (lambda [rng fallback]
+    (cons (or (car rng) (car fallback))
+          (or (cdr rng) (cdr fallback)))))
