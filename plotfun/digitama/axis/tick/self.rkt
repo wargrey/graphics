@@ -5,93 +5,108 @@
 (require racket/format)
 (require racket/list)
 
-(require digimon/sequence)
-
 (require "../../arithmetics.rkt")
 
 (require (for-syntax racket/base))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Plot-Ticks R) (Listof (Pairof (Plot-Tick R) String)))
-(define-type (Plot-Ticks-Generate R) (-> (Pairof (∩ R Real) (∩ R Real)) (Plot-Ticks (∩ R Real))))
-(define-type (Plot-Ticks-Layout R) (-> R R (Listof (∩ R Real))))
-(define-type (Plot-Tick-Format R) (-> (∩ R Real) Integer String))
-(define-type (Plot-Ticks-Layout* R Arg) (-> R R (Values (Listof Plot-Tick) Arg)))
-(define-type (Plot-Ticks-Format* R Arg) (-> R R Plot-Tick Arg String))
+(define-type Plot-Ticks (Listof (Pairof Plot-Tick String)))
+(define-type Plot-Ticks-Generate (->* (Plot-Tick-Engine (Option (Pairof Real Real))) ((Option Plot-Tick-Format)) (Values Plot-Ticks (Option Real))))
+(define-type Plot-Ticks-Layout (-> Real Real (Values (Listof Real) (Option Real))))
+(define-type Plot-Tick-Format (-> Real Integer String))
+;(define-type (Plot-Ticks-Layout* Arg) (-> Real Real (Values (Listof Plot-Tick) Arg)))
+;(define-type (Plot-Ticks-Format* Arg) (-> Real Real Plot-Tick Arg String))
 
-(define-syntax (ticks-select stx)
-  (syntax-case stx []
-    [(_ tick-hint ticks ticks-generate)
-     (syntax/loc stx
-       (cond [(list? tick-hint) (plot-fixed-ticks-generate tick-hint)]
-             [(pair? ticks) (ticks-generate ticks)]
-             [else (plot-fixed-ticks-generate (list 0))]))]))
+(define-type Plot-Fixed-Tick-Format (U False Plot-Tick-Format (Listof (Option String))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct (R) plot-tick
-  ([value : R])
+(struct plot-tick-engine
+  ([layout : Plot-Ticks-Layout]
+   [format : Plot-Tick-Format]
+   [range : (Option (Pairof Real Real))])
+  #:constructor-name unsafe-plot-tick-engine
+  #:type-name Plot-Tick-Engine
+  #:transparent)
+
+(struct plot-tick
+  ([value : Real])
   #:type-name Plot-Tick
   #:transparent)
 
-(define #:forall (R) plot-tick-value* : (-> (U (Plot-Tick R) (Pairof (Plot-Tick R) String)) R)
+(define plot-tick-value* : (-> (U Plot-Tick (Pairof Plot-Tick String)) Real)
   (lambda [self]
     (if (pair? self)
         (plot-tick-value* (car self))
         (plot-tick-value self))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (R) plot-fixed-ticks-generate : (->* ((Listof (∩ R Real))) ((Option (Listof (Option String)))) (Plot-Ticks R))
-  (lambda [ticks [labels #false]]
-    (if (pair? ticks)
-        (((inst plot-fixed-ticks R) ticks labels) (cons (car ticks) (last ticks)))
-        null)))
-
-(define #:forall (R) plot-ticks-generator : (->* ((Plot-Ticks-Layout R)) ((Option (Plot-Tick-Format R))) (Plot-Ticks-Generate R))
-  (lambda [g [f0 #false]]
-    (define f (or f0 plot-tick->label-string))
+(define plot-ticks-generate : Plot-Ticks-Generate
+  (lambda [self range [alt-format #false]]
+    (define rng (or (plot-tick-engine-range self) range))
     
-    (λ [tick-range]
-      (define-values (tmin tmax) (values (car tick-range) (cdr tick-range)))
-      (define precision : Integer (tick-precision tmin tmax))
-
-      (for/list ([val (in-list (g tmin tmax))])
-        (cons (plot-tick val) (f val precision))))))
-
-(define #:forall (R Arg) plot-ticks-generator* : (-> (Plot-Ticks-Layout* R Arg) (Plot-Ticks-Format* R Arg) (Plot-Ticks-Generate R))
-  (lambda [g f]
-    (λ [tick-range]
-      (define-values (tmin tmax) (values (car tick-range) (cdr tick-range)))
-      (define-values (ticks para) (g tmin tmax))
-
-      (for/list ([val (in-list ticks)])
-        (cons val (f tmin tmax val para))))))
-
+    (if (pair? rng)
+        (let*-values ([(g) (plot-tick-engine-layout self)]
+                      [(f) (or alt-format (plot-tick-engine-format self))]
+                      [(tmin tmax) (values (car rng) (cdr rng))]
+                      [(precision) (tick-precision tmin tmax)]
+                      [(ticks maybe-stable-step) (g tmin tmax)])
+          (values (for/list ([val (in-list ticks)])
+                    (cons (plot-tick val) (f val precision)))
+                  maybe-stable-step))
+        (values null #false))))
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (R) plot-fixed-ticks : (->* ((Listof (∩ R Real))) ((Option (Listof (Option String)))) (Plot-Ticks-Generate R))
-  (lambda [ticks [labels #false]]
-    (define n : Index (length ticks))
-    (define ls : (Vectorof (Option String)) (if (list? labels) (list->n:vector labels n #false) (make-vector n #false)))
-    
-    (λ [who-cares]
-      (define-values (tmin tmax) (values (car who-cares) (cdr who-cares)))
-      (define precision : Integer (tick-precision tmin tmax))
+(define plot-fixed-ticks : (case-> [(Listof Real) -> Plot-Tick-Engine]
+                                   [(Listof Real) Plot-Fixed-Tick-Format -> Plot-Tick-Engine]
+                                   [Real Real Real -> Plot-Tick-Engine]
+                                   [Real Real Real Plot-Fixed-Tick-Format -> Plot-Tick-Engine])
+  (case-lambda
+    [(ticks labels)
+     (define ordered-ticks : (Listof Real) (sort ticks <))
+     
+     (if (pair? ordered-ticks)
+         (let ([rng (cons (car ordered-ticks) (last ordered-ticks))]
+               [layout (λ [tmin tmax] (values ticks #false))])
+           (cond [(and (list? labels) (pair? (filter values labels)))
+                  (let* ([lbls (for/hasheqv : (HashTable Real (Option String)) ([t (in-list ticks)]
+                                                                                [s (in-list labels)]
+                                                                                #:when s)
+                                 (values t s))]
+                         [predefine-labels (lambda [[tval : Real] [para : Integer]]
+                                             (or (hash-ref lbls tval (λ [] #false))
+                                                 (plot-tick->label-string tval para)))])
+                    (unsafe-plot-tick-engine layout predefine-labels rng))]
+                 [(procedure? labels) (unsafe-plot-tick-engine layout labels rng)]
+                 [else (unsafe-plot-tick-engine layout plot-tick->label-string rng)]))
+         plot-no-ticks)]
+    [(ticks) (plot-fixed-ticks ticks plot-tick->label-string)]
+    [(tmin tmax step) (plot-fixed-ticks (range tmin tmax step) plot-tick->label-string)]
+    [(tmin tmax step format) (plot-fixed-ticks (range tmin tmax step) format)]))
 
-      (for/list ([t (in-list ticks)]
-                 [l (in-vector ls)])
-        (cons (plot-tick t)
-              (or l (plot-tick->label-string t precision)))))))
-
-(define #:forall (R) plot-single-ticks : (->* ((∩ R Real)) ((Option String)) (Plot-Ticks-Generate R))
+(define plot-single-ticks : (->* (Real) ((Option String)) Plot-Tick-Engine)
   (lambda [tick [label #false]]
-    ((inst plot-fixed-ticks R) (list tick) (list label))))
+    (plot-fixed-ticks (list tick) (list label))))
 
-(define #:forall (R) plot-no-ticks : (Plot-Ticks-Generate R)
-  (λ [who-cares]
-    null))
+(define plot-interval-ticks : (->* (Real) ((Option Plot-Tick-Format)) Plot-Tick-Engine)
+  (lambda [step [format #false]]
+    (unsafe-plot-tick-engine
+     (λ [[tmin : Real] [tmax : Real]]
+       (if (positive? step)
+           (values (range tmin (+ tmax (* step 0.5)) step) step)
+           (values (list tmin) #false)))
+     (or format plot-tick->label-string)
+     #false)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (R) plot-tick->label-string : (Plot-Tick-Format R)
+(define plot-tick->label-string : Plot-Tick-Format
   (lambda [tval para]
     (cond [(exact? tval) (number->string tval)]
           [(integer? tval) (number->string (inexact->exact tval))]
           [else (~r tval #:precision para)])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define plot-no-ticks : Plot-Tick-Engine
+  (unsafe-plot-tick-engine
+   (λ [[tmin : Real] [tmax : Real]] (values null #false))
+   plot-tick->label-string
+   #false))

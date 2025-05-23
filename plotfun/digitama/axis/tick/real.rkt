@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require racket/list)
+(require racket/math)
 
 (require "self.rkt")
 (require "layout.rkt")
@@ -10,22 +10,36 @@
 (require "../interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-integer-ticks : (-> [#:base Positive-Byte] [#:desired-ticks Positive-Index] (Plot-Ticks-Generate Integer))
-  (lambda [#:base [base 10] #:desired-ticks [desired-ticks (default-plot-axis-desired-ticks)]]
-    (plot-ticks-generator
-     (λ [[tmin : Integer] [tmax : Integer]]
-       (plot-integer-tick-layout tmin tmax base desired-ticks)))))
-
-(define plot-real-ticks : (-> [#:base Positive-Byte] [#:desired-ticks Positive-Index] [#:steps (Listof Positive-Index)] (Plot-Ticks-Generate Real))
-  (lambda [#:base [base 10] #:desired-ticks [desired-ticks (default-plot-axis-desired-ticks)] #:steps [divisors (default-plot-axis-real-tick-steps)]]
-    (plot-ticks-generator
+(define plot-integer-ticks
+  (lambda [#:format [format : Plot-Tick-Format plot-tick->label-string]
+           #:desired-ticks [desired-ticks : Positive-Index (default-plot-axis-desired-ticks)]
+           #:base [base : Positive-Byte 10]] : Plot-Tick-Engine
+    (unsafe-plot-tick-engine
      (λ [[tmin : Real] [tmax : Real]]
-       (plot-real-tick-layout tmin tmax base desired-ticks divisors)))))
+       (plot-integer-tick-layout (exact-floor tmin) (exact-ceiling tmax) base desired-ticks))
+     format
+     #false)))
 
-(define plot-real-ticks* : (-> [#:base Positive-Byte] [#:desired-ticks Positive-Index] [#:steps (Listof Positive-Index)] (Plot-Ticks-Generate Real))
-  (lambda [#:base [base 10] #:desired-ticks [desired-ticks (default-plot-axis-desired-ticks)] #:steps [divisors (default-plot-axis-real-tick-steps)]]
-    (plot-ticks-generator
+(define plot-real-ticks
+  (lambda [#:format [format : Plot-Tick-Format plot-tick->label-string]
+           #:desired-ticks [desired-ticks : Positive-Index (default-plot-axis-desired-ticks)]
+           #:steps [divisors : (Listof Positive-Index) (default-plot-axis-real-tick-steps)]
+           #:base [base : Positive-Byte 10]] : Plot-Tick-Engine
+    (unsafe-plot-tick-engine
+     (λ [[tmin : Real] [tmax : Real]]
+       (plot-real-tick-layout tmin tmax base desired-ticks divisors))
+     format
+     #false)))
+
+(define plot-real-ticks*
+  (lambda [#:format [format : Plot-Tick-Format plot-tick->label-string]
+           #:desired-ticks [desired-ticks : Positive-Index (default-plot-axis-desired-ticks)]
+           #:steps [divisors : (Listof Positive-Index) (default-plot-axis-real-tick-steps)]
+           #:base [base : Positive-Byte 10]] : Plot-Tick-Engine
+    (unsafe-plot-tick-engine
      (λ [[tmin : Real] [tmax : Real]]
        (if (and (exact-integer? tmin) (exact-integer? tmax))
            (plot-integer-tick-layout tmin tmax base desired-ticks)
-           (plot-real-tick-layout tmin tmax base desired-ticks divisors))))))
+           (plot-real-tick-layout tmin tmax base desired-ticks divisors)))
+     format
+     #false)))

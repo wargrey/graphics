@@ -65,6 +65,8 @@
 
   (plot-integer-axis)
   (plot-axis #:range (cons -inf.0 +inf.0))
+  (plot-axis #:ticks (plot-fixed-ticks (list 3.14)) #:label "R")
+  (plot-axis #:range (cons -5 5) #:ticks (plot-fixed-ticks (list 3.14)) #:label "R")
   
   (plot-integer-axis #:range (cons 0 10) #:label "N")
   (plot-integer-axis #:range (cons -5 5) #:label "N")
@@ -74,4 +76,4 @@
   (plot-axis #:range (cons -70 30) #:label "R")
   (plot-axis #:range (cons -0.001 +0.007) #:label "R")
   (plot-axis #:range (cons -0.618 +0.618) #:label "R")
-  (plot-axis #:range (range -6.28 +6.29 3.14) #:label "R"))
+  (plot-axis #:ticks (plot-fixed-ticks -6.28 +6.29 3.14) #:label "R"))

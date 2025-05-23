@@ -8,7 +8,7 @@
 (require "../../arithmetics.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-real-tick-layout : (-> Real Real Positive-Byte Positive-Index (Listof Positive-Index) (Listof Real))
+(define plot-real-tick-layout : (-> Real Real Positive-Byte Positive-Index (Listof Positive-Index) (Values (Listof Real) (Option Real)))
   (lambda [tmin tmax base desired-ticks divisors]
     (define R : Real (- tmax tmin))
     (define order : Positive-Exact-Rational (magnitude-order R base))
@@ -35,9 +35,9 @@
             (values step num-diff))))
 
     (let ([step (or step0 (/ R desired-ticks))])
-      (range tmin (+ tmax (* step 0.5)) step))))
+      (values (range tmin (+ tmax (* step 0.5)) step) step))))
 
-(define plot-integer-tick-layout : (-> Integer Integer Positive-Byte Positive-Index (Listof Integer))
+(define plot-integer-tick-layout : (-> Integer Integer Positive-Byte Positive-Index (Values (Listof Integer) (Option Natural)))
   (lambda [tmin tmax base desired-ticks]
     (define R : Integer (- tmax tmin))
     (define Δinitialized : Exact-Rational (/ R desired-ticks))
@@ -52,4 +52,4 @@
                   [else             (* order (if (= (remainder R 7) 0) 7 10))]))
           1))
     
-    (range tmin (+ tmax 1) step)))
+    (values (range tmin (+ tmax 1) step) step)))

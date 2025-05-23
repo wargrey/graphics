@@ -51,13 +51,27 @@
     [(self length 100%) (plot-axis-length-values* self (~length length 100%))]
     [(self length) (plot-axis-length-values* self (~length length))]))
 
+(define plot-axis-height-values : (-> Plot-Axis-Style Nonnegative-Flonum Real (Values Nonnegative-Flonum Nonnegative-Flonum
+                                                                                      Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [self view-width ratio]
+    (define view-height : Nonnegative-Flonum (max (real->double-flonum (* view-width ratio)) 1.0))
+    (define-values (neg-margin pos-margin) (plot-axis-margin-values self view-width))
+
+    (values (+ view-height neg-margin pos-margin)
+            view-height neg-margin pos-margin)))
+
+(define plot-axis-margin-values : (-> Plot-Axis-Style Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [self fllength]
+    (define-values (n-margin p-margin) (plot-cartesian-settings (plot-axis-style-margin self)))
+
+    (values (~length n-margin fllength)
+            (~length p-margin fllength))))
+
 (define plot-axis-length-values* : (-> Plot-Axis-Style Nonnegative-Flonum
                                        (Values Nonnegative-Flonum Nonnegative-Flonum
                                                Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self fllength]
-    (define-values (n-margin p-margin) (plot-cartesian-settings (plot-axis-style-margin self)))
-    (define neg-margin (~length n-margin fllength))
-    (define pos-margin (~length p-margin fllength))
+    (define-values (neg-margin pos-margin) (plot-axis-margin-values self fllength))
     
     (values fllength
             (max (- fllength neg-margin pos-margin) 1.0)
@@ -102,9 +116,8 @@
   (case-lambda
     [(config) (plot-cartesian-maybe-settings config real->double-flonum)]
     [(config real->datum)
-     (if (not config)
-         (values #false #false)
-         (plot-cartesian-maybe-settings config real->datum))]))
+     (cond [(not config) (values #false #false)]
+           [else (plot-cartesian-settings config real->datum)])]))
 
 (define #:forall (T) plot-cartesian-value : (case-> [Complex Symbol -> Flonum]
                                                     [Complex Symbol (-> Real T) -> T]

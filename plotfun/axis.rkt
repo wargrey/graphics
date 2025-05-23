@@ -39,9 +39,10 @@
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (make-plot-axis-style #:tick-anchor 'cb #:tick-length -3.0)]
            #:label [axis-label : (Option String) #false]
-           #:range [tick-hint : (U Real (Pairof Real Real) (Listof Real) False) #false]
-           #:ticks [ticks-generate : (Plot-Ticks-Generate Real) (plot-real-ticks)]
-           #:tick->sticker [digit->label : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
+           #:range [tick-hint : (U Real (Pairof Real Real) False) #false]
+           #:ticks [ticks-engine : Plot-Tick-Engine (plot-real-ticks)]
+           #:tick-format [alt-format : (Option Plot-Tick-Format) #false]
+           #:tick->sticker [tick->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
            #:real-style [real-style : (Option Plot-Axis-Real-Style) #false]
            #:real-filter [real-filter : (Option Plot-Axis-Real-Filter) #false]
            #:real->sticker [real->label : Plot-Axis-Real->Sticker default-plot-axis-real->sticker]
@@ -49,11 +50,12 @@
            [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Axis
     (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style length))
     (define-values (tick-range origin flunit)
-      (plot-axis-metrics tick-hint (plot-axis-real-range real-list)
+      (plot-axis-metrics (or tick-hint (plot-tick-engine-range ticks-engine))
+                         (plot-axis-real-range real-list)
                          maybe-origin used-length maybe-unit))
 
-    (define actual-ticks : (Plot-Ticks Real) (ticks-select tick-hint tick-range ticks-generate))
-    (define actual-tick-values (map (inst plot-tick-value* Real) actual-ticks))
+    (define-values (actual-ticks _) (plot-ticks-generate ticks-engine tick-range alt-format))
+    (define actual-tick-values (map plot-tick-value* actual-ticks))
     
     (define flthickness : Nonnegative-Flonum (plot-axis-style-thickness axis-style))
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
@@ -91,16 +93,14 @@
               
               (for/fold ([ticks : (Listof (GLayerof Geo)) null])
                         ([tick (in-list actual-ticks)])
-                (plot-axis-sticker-cons (digit->label id (cdr tick) digit-font digit-color) digit-anchor
+                (plot-axis-sticker-cons (tick->sticker id (cdr tick) digit-font digit-color) digit-anchor
                                         (dot->pos (real->double-flonum (plot-tick-value (car tick))))
                                         flc-offset ticks fltick-min real-part fltick-max gtick))
               
               (let-values ([(real-font real-color real-position real-anchor dot-radius) (plot-axis-real-style-values real-style axis-style)])
                 (for/fold ([reals : (Listof (GLayerof Geo)) null])
                           ([real (in-list (cond [(list? real-list) real-list]
-                                                [(list? tick-hint) (plot-axis-reals-from-producer real-list tick-hint)]
-                                                [(or tick-range) (plot-axis-reals-from-producer real-list actual-tick-values)]
-                                                [else null]))])
+                                                [else (plot-axis-reals-from-producer real-list actual-tick-values)]))])
                   (define-values (val obj) ((or real-filter (default-plot-axis-real-filter)) real))
                   
                   (if (or val)
@@ -126,9 +126,10 @@
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (make-plot-axis-style #:tick-anchor 'cb #:tick-length -3.0)]
            #:label [axis-label : (Option String) #false]
-           #:range [tick-hint : (U Integer (Pairof Integer Integer) (Listof Integer) False) #false]
-           #:ticks [ticks-generate : (Plot-Ticks-Generate Integer) (plot-integer-ticks)]
-           #:tick->sticker [digit->label : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
+           #:range [tick-hint : (U Integer (Pairof Integer Integer) False) #false]
+           #:ticks [ticks-engine : Plot-Tick-Engine (plot-integer-ticks)]
+           #:tick-format [alt-format : (Option Plot-Tick-Format) #false]
+           #:tick->sticker [tick->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
            #:integer-style [int-style : (Option Plot-Axis-Real-Style) #false]
            #:integer-filter [int-filter : (Option Plot-Axis-Integer-Filter) #false]
            #:integer->sticker [int->label : Plot-Axis-Real->Sticker default-plot-axis-real->sticker]
@@ -136,12 +137,13 @@
            #:exclude-zero? [exclude-zero? : Boolean #true]
            [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Axis
     (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style length))
-    (define-values (ticks origin flunit)
-      (plot-axis-metrics tick-hint (plot-axis-integer-range number-sequence exclude-zero?)
+    (define-values (tick-range origin flunit)
+      (plot-axis-metrics (or (plot-tick-engine-range ticks-engine) tick-hint)
+                         (plot-axis-integer-range number-sequence exclude-zero?)
                          maybe-origin used-length maybe-unit))
     
-    (define actual-ticks : (Plot-Ticks Integer) (ticks-select tick-hint ticks ticks-generate))
-    (define actual-tick-values (map (inst plot-tick-value* Integer) actual-ticks))
+    (define-values (actual-ticks _) (plot-ticks-generate ticks-engine tick-range alt-format))
+    (define actual-tick-values (filter exact-integer? (map plot-tick-value* actual-ticks)))
     
     (define flthickness : Nonnegative-Flonum (plot-axis-style-thickness axis-style))
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
@@ -180,7 +182,7 @@
 
                 (for/fold ([ticks : (Listof (GLayerof Geo)) null])
                           ([tick actual-ticks])
-                  (plot-axis-sticker-cons (digit->label id (cdr tick) digit-font digit-color) digit-anchor
+                  (plot-axis-sticker-cons (tick->sticker id (cdr tick) digit-font digit-color) digit-anchor
                                           (dot->pos (real->double-flonum (plot-tick-value* tick)))
                                           flc-offset ticks fltick-min real-part fltick-max gtick))
 
@@ -188,9 +190,7 @@
                   (for/fold ([reals : (Listof (GLayerof Geo)) null])
                             ([real (in-list (cond [(list? number-sequence) number-sequence]
                                                   [(vector? number-sequence) (plot-axis-reals-from-vector number-sequence (if (not exclude-zero?) 0 1))]
-                                                  [(list? tick-hint) (plot-axis-reals-from-producer number-sequence tick-hint)]
-                                                  [(or ticks) (plot-axis-reals-from-producer number-sequence actual-tick-values)]
-                                                  [else null]))])
+                                                  [else (plot-axis-reals-from-producer number-sequence actual-tick-values)]))])
                     (define-values (val obj) ((default-plot-axis-integer-filter) real))
                     
                     (if (or val)
