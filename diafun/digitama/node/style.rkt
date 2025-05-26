@@ -8,9 +8,11 @@
 (require geofun/digitama/dc/text)
 (require geofun/digitama/unsafe/dc/text-layout)
 
-(require geofun/digitama/convert)
-(require geofun/digitama/source)
 (require geofun/digitama/base)
+(require geofun/digitama/convert)
+
+(require geofun/digitama/paint/self)
+(require geofun/digitama/paint/source)
 
 (require geofun/font)
 (require geofun/paint)

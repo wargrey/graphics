@@ -10,13 +10,12 @@
 (unsafe-provide (rename-out [line-join->integer linejoin->integer]))
 
 ;;; https://svgwg.org/svg2-draft/painting.html
-;;; (require racket/draw/private/dc)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define solid-dash : (Vectorof Nonnegative-Flonum) '#())
+(define solid-dash : (Immutable-Vectorof Nonnegative-Flonum) '#())
 
 (define-enumeration* stroke-dash-style #:as Stroke-Dash-Style 
-  line-dash->array #:-> [linewidth Nonnegative-Flonum] (Values Flonum (Vectorof Nonnegative-Flonum))
+  line-dash->array #:-> [linewidth Nonnegative-Flonum] (Values Flonum (Immutable-Vectorof Nonnegative-Flonum))
   [(dot)        (values (* 2.0 linewidth) (dasharray-normalize #(0.1 2.0) linewidth))]
   [(dot-dash)   (values (* 4.0 linewidth) (dasharray-normalize #(1.0 2.0 4.0 2.0) linewidth))]
   [(short-dash) (values (* 2.0 linewidth) (dasharray-normalize #(2.0 2.0) linewidth))]
@@ -46,13 +45,14 @@
   [none hidden dotted dashed solid groove ridge inset outset])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dasharray-normalize : (case-> [(Vectorof Nonnegative-Flonum) Nonnegative-Flonum -> (Vectorof Nonnegative-Flonum)]
-                                      [(Vectorof Nonnegative-Flonum) Flonum Flonum -> (Vectorof Nonnegative-Flonum)])
+(define dasharray-normalize : (case-> [(Vectorof Nonnegative-Flonum) Nonnegative-Flonum -> (Immutable-Vectorof Nonnegative-Flonum)]
+                                      [(Vectorof Nonnegative-Flonum) Flonum Flonum -> (Immutable-Vectorof Nonnegative-Flonum)])
   (case-lambda
     [(dasharray linewidth basewidth)
      (dasharray-normalize dasharray (max (/ linewidth basewidth) 0.0))]
     [(dasharray linewidth)
-     (cond [(= linewidth 1.0) dasharray]
-           [(= linewidth 0.0) dasharray]
-           [else (for/vector : (Vectorof Nonnegative-Flonum) ([dash (in-vector dasharray)])
-                   (* dash linewidth))])]))
+     (cond [(= linewidth 1.0) (if (immutable? dasharray) dasharray (vector->immutable-vector dasharray))]
+           [(= linewidth 0.0) (if (immutable? dasharray) dasharray (vector->immutable-vector dasharray))]
+           [else (vector->immutable-vector
+                  (for/vector : (Vectorof Nonnegative-Flonum) ([dash (in-vector dasharray)])
+                    (* dash linewidth)))])]))

@@ -9,13 +9,13 @@
 (require "../typed/cairo.rkt")
 (require "../typed/more.rkt")
 
-(require "../../base.rkt")
+(require "../../paint/self.rkt")
 (require "../../geometry/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_gear : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                       Positive-Index Flonum Nonnegative-Flonum Nonnegative-Flonum
-                      Nonnegative-Flonum Flonum (Option Paint) (Option Fill-Source)
+                      Nonnegative-Flonum Flonum (Option Stroke) (Option Fill-Source)
                       Any)
   (lambda [cr x0 y0 width height z pressure-angle root-ratio ref-ratio inner-ratio rotation stroke background]
     (define rTip (* width 0.5))

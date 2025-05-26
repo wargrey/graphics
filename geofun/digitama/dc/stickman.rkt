@@ -2,9 +2,6 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
-(require digimon/constant)
-
 (require "../../paint.rkt")
 
 (require "../paint.rkt")

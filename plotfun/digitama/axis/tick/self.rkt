@@ -62,10 +62,10 @@
                                    [Real Real Real Plot-Fixed-Tick-Format -> Plot-Tick-Engine])
   (case-lambda
     [(ticks labels)
-     (define ordered-ticks : (Listof Real) (sort ticks <))
+     (define ordered-ticks : (Listof Real) (remove-duplicates (sort ticks <) =))
      
      (if (pair? ordered-ticks)
-         (let ([rng (cons (car ordered-ticks) (last ordered-ticks))]
+         (let ([rng (and #;(pair? (cdr ordered-ticks)) (cons (car ordered-ticks) (last ordered-ticks)))]
                [layout (λ [tmin tmax] (values ticks #false))])
            (cond [(and (list? labels) (pair? (filter values labels)))
                   (let* ([lbls (for/hasheqv : (HashTable Real (Option String)) ([t (in-list ticks)]

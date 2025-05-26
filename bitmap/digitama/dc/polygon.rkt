@@ -6,11 +6,11 @@
                      [bitmap-trapezium bitmap-trapezoid]))
 
 (require digimon/metrics)
-(require geofun/paint)
-(require geofun/stroke)
 
+(require geofun/paint)
 (require geofun/digitama/base)
-(require geofun/digitama/source)
+(require geofun/digitama/paint/self)
+(require geofun/digitama/paint/source)
 
 (require geofun/digitama/geometry/dot)
 (require geofun/digitama/geometry/constants)

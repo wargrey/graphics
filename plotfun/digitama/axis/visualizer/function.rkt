@@ -3,14 +3,11 @@
 (provide (all-defined-out))
 
 (require geofun/paint)
-(require geofun/stroke)
 
-(require geofun/digitama/source)
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/polygon)
-(require geofun/digitama/geometry/dot)
-
-(require geofun/digitama/unsafe/dc/path)
+(require geofun/digitama/paint/self)
+(require geofun/digitama/paint/source)
 
 (require "self.rkt")
 (require "../interface.rkt")

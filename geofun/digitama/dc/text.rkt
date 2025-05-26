@@ -7,10 +7,10 @@
 
 (require "../paint.rkt")
 (require "../convert.rkt")
-(require "../source.rkt")
 (require "../markup.rkt")
 (require "../font.rkt")
 
+(require "../paint/source.rkt")
 (require "../unsafe/dc/text-layout.rkt")
 (require "../unsafe/font.rkt")
 

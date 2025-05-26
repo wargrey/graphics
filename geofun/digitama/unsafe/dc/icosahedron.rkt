@@ -6,7 +6,7 @@
 (require "../source.rkt")
 (require "../typed/cairo.rkt")
 
-(require "../../base.rkt")
+(require "../../paint/self.rkt")
 (require "../../geometry/radius.rkt")
 (require "../../geometry/constants.rkt")
 
@@ -16,7 +16,7 @@
           Float-Complex Float-Complex Float-Complex Float-Complex Float-Complex))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc_icosahedron_side_proj : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Paint) (Option Fill-Source) (Option Paint) Any)
+(define dc_icosahedron_side_proj : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Stroke) (Option Fill-Source) (Option Stroke) Any)
   (lambda [cr x0 y0 flwidth flheight edge-stroke background border-stroke]
     (define-values (+a1 +aφ) (icosahedron-side-outline-size->outline flwidth))
     (define-values (-a1 -aφ) (values (- +a1) (- +aφ)))
@@ -49,7 +49,7 @@
       (icosahedron-side-border-path cr +a1 +aφ -a1 -aφ)
       (cairo-render-with-stroke cr (or border-stroke edge-stroke)))))
 
-(define dc_icosahedron_over_proj : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum (Option Paint) (Option Fill-Source) (Option Paint) Any)
+(define dc_icosahedron_over_proj : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum (Option Stroke) (Option Fill-Source) (Option Stroke) Any)
   (lambda [cr x0 y0 flwidth flheight rotation edge background border0]
     (define border (or border0 edge))
     (define delta (* 2pi 0.10))

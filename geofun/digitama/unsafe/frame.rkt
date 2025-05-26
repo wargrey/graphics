@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../../stroke.rkt")
+(require "../paint/self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_frame_size : (-> Nonnegative-Flonum Nonnegative-Flonum

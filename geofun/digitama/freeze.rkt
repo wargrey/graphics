@@ -5,14 +5,14 @@
 (require bitmap/digitama/convert)
 
 (require "../paint.rkt")
-(require "../stroke.rkt")
 (require "../font.rkt")
 
 (require "base.rkt")
 (require "paint.rkt")
-(require "source.rkt")
 (require "convert.rkt")
-(require "composite.rkt")
+
+(require "paint/self.rkt")
+(require "paint/source.rkt")
 
 (require "unsafe/typed/cairo.rkt")
 

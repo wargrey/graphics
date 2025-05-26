@@ -8,9 +8,10 @@
 
 (require geofun/paint)
 (require geofun/digitama/base)
-(require geofun/digitama/source)
-(require geofun/digitama/unsafe/dc/icosahedron)
+(require geofun/digitama/paint/source)
 (require geofun/digitama/geometry/radius)
+
+(require geofun/digitama/unsafe/dc/icosahedron)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-icosahedron-side-projection

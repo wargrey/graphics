@@ -4,8 +4,6 @@
 (require plotfun/cartesian)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define stroke (desc-stroke #:width 2.0 #:cap 'round))
-
 (define discrete-floor : (-> Real (Option Real))
   (lambda [x]
     (define sx (* (- x (round x)) 100.0))
@@ -38,5 +36,5 @@
 
   (plot-cartesian
    (function #:stroke 'crimson     sin -4.0 +4.0 -1 +1)
-   (function #:stroke 'orange      sin -1/2 +1/2 -4/5 +4/5)
+   (function #:stroke 'orange      sin -3 +3 -4/5 +4/5)
    (function #:stroke 'forestgreen normal-dist)))

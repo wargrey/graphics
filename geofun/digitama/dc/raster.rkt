@@ -8,7 +8,7 @@
 
 (require "../base.rkt")
 (require "../convert.rkt")
-(require "../pattern.rkt")
+(require "../paint/pattern.rkt")
 (require "../unsafe/dc/plain.rkt")
 
 (require "../../paint.rkt")

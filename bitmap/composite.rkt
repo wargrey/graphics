@@ -29,8 +29,8 @@
 (require racket/list)
 
 (require geofun/paint)
-(require geofun/digitama/pattern)
 (require geofun/digitama/composite)
+(require geofun/digitama/paint/pattern)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/unsafe/typed/c)
 

@@ -7,15 +7,15 @@
 (require geofun/digitama/unsafe/source)
 (require geofun/digitama/unsafe/paint)
 
-(require geofun/digitama/base)
+(require geofun/digitama/paint/self)
 (require geofun/digitama/geometry/footprint)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Edge-Marker (Immutable-Vector Geo-Path-Prints (Option Paint) (Option Fill-Source)))
+(define-type Geo-Edge-Marker (Immutable-Vector Geo-Path-Prints (Option Stroke) (Option Fill-Source)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_edge : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                      Geo-Path-Clean-Prints Float-Complex (Option Paint)
+                      Geo-Path-Clean-Prints Float-Complex (Option Stroke)
                       Geo-Edge-Marker Geo-Edge-Marker (Pairof (Option Float-Complex) (Option Float-Complex))
                       Any)
   (lambda [cr x0 y0 flwidth flheight footprints offset stroke source target adjust-offset]

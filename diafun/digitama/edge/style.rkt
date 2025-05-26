@@ -5,10 +5,11 @@
 (require "tip.rkt")
 (require "label.rkt")
 
-(require geofun/digitama/geometry/anchor)
-(require geofun/digitama/convert)
 (require geofun/digitama/base)
-(require geofun/digitama/source)
+(require geofun/digitama/convert)
+(require geofun/digitama/paint/self)
+(require geofun/digitama/paint/source)
+(require geofun/digitama/geometry/anchor)
 
 (require geofun/font)
 (require geofun/paint)

@@ -7,11 +7,11 @@
                      [geo-intrinsic-size   geo-intrinsic-flsize]
                      [geo<%>-outline       geo-outline]))
 
-(require "../stroke.rkt")
 (require "../paint.rkt")
 
 (require "paint.rkt")
 (require "composite.rkt")
+(require "paint/self.rkt")
 (require "geometry/ink.rkt")
 
 (require "unsafe/visual.rkt")

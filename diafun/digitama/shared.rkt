@@ -5,6 +5,8 @@
 (require geofun/font)
 (require geofun/stroke)
 
+(require geofun/digitama/paint/self)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-edge-label-font : Font (desc-font #:size 'normal #:family 'monospace))
 (define default-label-tag-font : Font (desc-font #:size 'normal #:family 'monospace))

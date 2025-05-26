@@ -5,7 +5,7 @@
 (require typed/racket/unsafe)
 (require digimon/enumeration)
 
-(require "../../base.rkt")
+(require "../../paint/self.rkt")
 (require "../typed/c.rkt")
 (require "../source.rkt")
 (require "../font.rkt")
@@ -199,13 +199,13 @@
  [dc_art_text
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
       String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment
-      (Option Paint) (Option Fill-Source) (Option Fill-Source)
+      (Option Stroke) (Option Fill-Source) (Option Fill-Source)
       Any)]
  
  [dc_text
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
       String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Fill-Source (Option Fill-Source)
-      (Option Paint) (Option Paint) (Option Paint) (Option Paint) (Option Paint)
+      (Option Stroke) (Option Stroke) (Option Stroke) (Option Stroke) (Option Stroke)
       Any)]
  
  [dc_paragraph

@@ -8,13 +8,10 @@
 (provide (all-from-out "digitama/axis/tick/real.rkt"))
 (provide (all-from-out "digitama/axis/style.rkt"))
 
-(require racket/list)
-
 (require digimon/metrics)
 (require digimon/complex)
 (require digimon/constant)
 
-(require geofun/color)
 (require geofun/font)
 (require geofun/constructor)
 
@@ -58,7 +55,7 @@
            #:y-tick-format [ytick-format : (Option Plot-Tick-Format) #false]
            #:x-tick->sticker [xdigit->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
            #:y-tick->sticker [ydigit->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
-           #:domain-range [fallback-dom : (Pairof Real Real) (default-plot-visualizer-domain-range)]
+           #:fallback-range [fallback-dom : (Pairof Real Real) (default-plot-visualizer-domain-range)]
            . [tree : (U Plot:Visualizer Plot-Visualizer-Tree) *]] : Plot:Cartesian
     (define-values (visualizers maybe-xivl maybe-yivl) (plot-visualizer-tree-flatten tree))
     (define-values (xview yview)
@@ -67,24 +64,22 @@
                               (if (not ytick-hint) (plot-tick-engine-range yticks-engine) (plot-tick-range ytick-hint))
                               maybe-xivl maybe-yivl fallback-dom))
 
-    (define view-ratio (/ (- (cdr yview) (car yview)) (- (cdr xview) (car xview))))
     (define-values (maybe-xorig maybe-yorig) (plot-cartesian-maybe-settings maybe-origin))
     (define-values (maybe-xunit maybe-yunit) (plot-cartesian-maybe-settings maybe-unit))
     (define-values (flwidth   view-width x-neg-margin x-pos-margin) (plot-axis-length-values as width))
     (define-values (flheight view-height y-neg-margin y-pos-margin)
       (cond [(rational? height) (plot-axis-length-values as height flwidth)]
-            [(= (cdr xview) (car xview)) (values flwidth view-width x-neg-margin x-pos-margin)]
             [else (plot-axis-height-values as view-width (/ (- (cdr yview) (car yview))
                                                             (- (cdr xview) (car xview))))]))
     
     (define-values (xtick-range xO xunit) (plot-axis-metrics  xview maybe-xorig  view-width maybe-xunit))
     (define-values (ytick-range yO yunit) (plot-axis-metrics* yview maybe-yorig view-height (if (rational? height) maybe-yunit xunit) flc-ri))
 
-    (define-values (actual-xticks maybe-stable-step) (plot-ticks-generate xticks-engine xtick-range xtick-format))
+    (define-values (actual-xticks maybe-step) (plot-ticks-generate xticks-engine xtick-range xtick-format))
     (define-values (actual-yticks _)
       (cond [(rational? height) (plot-ticks-generate yticks-engine ytick-range ytick-format)]
-            [(not (and (rational? maybe-stable-step) (positive? maybe-stable-step))) (plot-ticks-generate yticks-engine ytick-range ytick-format)]
-            [else (plot-ticks-generate (plot-interval-ticks maybe-stable-step (plot-tick-engine-format yticks-engine)) ytick-range ytick-format)]))
+            [(not (and (rational? maybe-step) (positive? maybe-step))) (plot-ticks-generate yticks-engine ytick-range ytick-format)]
+            [else (plot-ticks-generate (plot-interval-ticks maybe-step (plot-tick-engine-format yticks-engine)) ytick-range ytick-format)]))
     
     (define-values (digit-font label-font axis-color digit-color tick-color label-color) (plot-axis-visual-values as))
     (define-values (xdigit-position xdigit-anchor) (plot-axis-digit-position-values as 'x))
@@ -126,6 +121,10 @@
         [(x y) (+ Origin (* x xunit) (* (- y) yunit))]
         [(dot) (origin-dot->pos (real-part dot) (imag-part dot))]))
 
+    (define 0-as-xdigit? : Boolean
+      (and (< (imag-part Oshadow) (imag-part xoffset))
+           (null? actual-yticks)))
+
     (define layers : (Listof (GLayerof Geo))
       (parameterize ()
         (append (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
@@ -139,10 +138,13 @@
                 (for/fold ([xticks : (Listof (GLayerof Geo)) null])
                           ([xtick (in-list actual-xticks)])
                   (define xval : Flonum (real->double-flonum (plot-tick-value (car xtick))))
-                  (if (not (zero? (scaled-round xval)))
-                      (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font (or digit-color axis-color)) xdigit-anchor
-                                              (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max gxtick)
-                      xticks))
+                  (cond [(not (zero? (scaled-round xval)))
+                         (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font (or digit-color axis-color)) xdigit-anchor
+                                                 (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max gxtick)]
+                        [(or 0-as-xdigit?)
+                         (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font (or digit-color axis-color)) xdigit-anchor
+                                                 (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max #false)]
+                        [else xticks]))
 
                 (cond [(not ylabel) null]
                       [else (let ([ygeo (geo-text ylabel label-font #:color label-color)])
@@ -164,9 +166,12 @@
                   (geo-own-pin-layer 'lt pos graph 0.0+0.0i)))))
     
     (define translated-layers : (Option (GLayer-Groupof Geo))
-      (geo-path-try-extend/list (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)
-                                                   Origin zero (+ yoffset xoffset))
-                                layers))
+      (if (not 0-as-xdigit?)
+          (geo-path-try-extend/list (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)
+                                                       Origin zero (+ yoffset xoffset))
+                                    layers)
+          (and (pair? layers)
+               (geo-path-try-extend/list layers 0.0 0.0))))
     
     (define delta-origin : Float-Complex
       (if (or translated-layers)

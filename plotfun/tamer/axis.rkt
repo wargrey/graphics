@@ -1,12 +1,8 @@
 #lang typed/racket/base
 
 (require geofun)
-
 (require plotfun/axis)
-(require plotfun/digitama/axis/style)
-(require plotfun/digitama/axis/interface)
 
-(require racket/list)
 (require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -63,13 +59,8 @@
   number-line
   time-line
 
-  (plot-integer-axis)
-  (plot-axis #:range (cons -inf.0 +inf.0))
-  (plot-axis #:ticks (plot-fixed-ticks (list 3.14)) #:label "R")
-  (plot-axis #:range (cons -5 5) #:ticks (plot-fixed-ticks (list 3.14)) #:label "R")
-  
-  (plot-integer-axis #:range (cons 0 10) #:label "N")
   (plot-integer-axis #:range (cons -5 5) #:label "N")
+  (plot-integer-axis #:range (cons 0 10) #:label "N")
   (plot-axis #:range (cons 0 10) #:label "R")
   (plot-axis #:range (cons +1 +7/2) #:label "R")
   (plot-axis #:range (cons -7 -5/2) #:label "R")

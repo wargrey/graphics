@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require geofun/digitama/base)
+(require geofun/digitama/paint/self)
 
 (require "../paint.rkt")
 (require "../source.rkt")
@@ -24,7 +24,7 @@
 (define dc_frame : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Bitmap-Surface
                        Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                        Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
-                       (Option Paint) (Option Fill-Source) Byte Positive-Flonum Any)
+                       (Option Stroke) (Option Fill-Source) Byte Positive-Flonum Any)
   (lambda [cr x0 y0 width height src
               border-x border-y border-width border-height dest-x dest-y dest-width dest-height
               border background filter density]

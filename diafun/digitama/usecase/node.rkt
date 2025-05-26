@@ -8,9 +8,9 @@
 
 (require geofun/digitama/dc/arc)
 (require geofun/digitama/dc/stickman)
+(require geofun/digitama/paint/self)
 
 (require geofun/paint)
-(require geofun/stroke)
 (require geofun/color)
 (require geofun/composite)
 

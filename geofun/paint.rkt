@@ -2,12 +2,14 @@
 
 (provide (all-defined-out) Fill-Rule Geo-Pin-Operator Geo-Pattern-Filter)
 
-(require "stroke.rkt")
 (require "color.rkt")
+(require "stroke.rkt")
 
 (require "digitama/color.rkt")
-(require "digitama/pattern.rkt")
 (require "digitama/composite.rkt")
+
+(require "digitama/paint/self.rkt")
+(require "digitama/paint/pattern.rkt")
 
 (require "digitama/unsafe/source.rkt")
 (require "digitama/unsafe/visual.rkt")

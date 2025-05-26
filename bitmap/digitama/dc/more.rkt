@@ -7,7 +7,7 @@
 (require geofun/paint)
 
 (require geofun/digitama/base)
-(require geofun/digitama/source)
+(require geofun/digitama/paint/source)
 (require geofun/digitama/unsafe/dc/more)
 
 (require "../convert.rkt")

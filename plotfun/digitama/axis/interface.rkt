@@ -5,6 +5,7 @@
 
 (require geofun/font)
 (require geofun/stroke)
+(require geofun/digitama/paint/self)
 
 (require geofun/digitama/base)
 (require geofun/digitama/convert)
@@ -33,11 +34,11 @@
     (make-rectangular x (- y))))
 
 (define plot-desc-stroke : (->* ()
-                                (Stroke #:color (Option Color) #:opacity Real #:width (Option Real)
+                                (Stroke #:color (Option Color) #:opacity (Option Real) #:width (Option Real)
                                         #:cap (Option Symbol) #:join (U Symbol Real False)
                                         #:dash (Option Stroke-Dash-Datum) #:offset (Option Real))
                                 Stroke)
-  (lambda [#:color [color #false] #:opacity [opacity 1.0] #:width [width #false]
+  (lambda [#:color [color #false] #:opacity [opacity #false] #:width [width #false]
            #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]
            [baseline (default-plot-function-stroke)]]
     (desc-stroke #:color color #:opacity opacity #:width width
@@ -58,4 +59,4 @@
 (define default-plot-visualizer-domain-range : (Parameterof (Pairof Real Real)) (make-parameter (cons -5 5)))
 (define default-plot-visualizer-samples : (Parameterof Positive-Index) (make-parameter 512))
 
-(define default-plot-function-stroke : (Parameterof Stroke) (make-parameter (desc-stroke #:width 1.5 #:join 'round #:cap 'butt)))
+(define default-plot-function-stroke : (Parameterof Stroke) (make-parameter (desc-stroke #:width 1.5 #:join 'round #:cap 'round #:opacity 0.75)))

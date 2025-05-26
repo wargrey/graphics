@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require digimon/metrics)
-(require racket/list)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (R) plot-axis-metrics
@@ -14,16 +13,18 @@
                 (Values (Option (Pairof (U R Zero) (U R Zero))) Real Nonnegative-Flonum)])
   (case-lambda
     [(tick-rng real-rng maybe-origin axis-length maybe-unit-length)
-     (define ticks : (Option (Pairof (U R Zero) (U R Zero)))
+     (define ticks : (Option (Pairof (U (∩ R Real) Zero) (U (∩ R Real) Zero)))
        (cond [(or tick-rng) ((inst plot-tick-range R) tick-rng)]
              [(or real-rng) ((inst plot-tick-range* R) (car real-rng) (cdr real-rng))]
              [else #false]))
-     
-     (cond [(and maybe-origin maybe-unit-length) (values ticks maybe-origin (~length maybe-unit-length axis-length))]
-           [(and (pair? ticks) (real? (car ticks)) (real? (cdr ticks)))
-            (let* ([unit-length (plot-auto-unit-length axis-length maybe-unit-length ticks)])
-              (values ticks (or maybe-origin (plot-auto-origin ticks unit-length axis-length)) unit-length))]
-           [else (values ticks (or maybe-origin 0.5) (min (~length (or maybe-unit-length -0.1) axis-length)))])]
+
+     (define maybe-orig (and (rational? maybe-origin) maybe-origin))
+     (define maybe-unit (and (rational? maybe-unit-length) maybe-unit-length))
+     (cond [(and maybe-orig maybe-unit) (values ticks maybe-orig (~length maybe-unit axis-length))]
+           [(pair? ticks)
+            (let* ([unit-length (plot-auto-unit-length axis-length maybe-unit ticks)])
+              (values ticks (or maybe-orig (plot-auto-origin ticks unit-length axis-length)) unit-length))]
+           [else (values ticks (or maybe-orig 0.5) (min (~length (or maybe-unit -0.1) axis-length)))])]
     [(real-rng maybe-origin axis-length maybe-unit-length)
      ((inst plot-axis-metrics R) #false real-rng maybe-origin axis-length maybe-unit-length)]))
 
@@ -42,7 +43,8 @@
      (values ticks origin (unit-transform flunit))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (R) plot-tick-range* : (-> (∩ R Real) (∩ R Real) (Option (Pairof (U R Zero) (U R Zero))))
+(define #:forall (R) plot-tick-range* : (-> (∩ R Real) (∩ R Real)
+                                            (Option (Pairof (U (∩ R Real) Zero) (U (∩ R Real) Zero))))
   (lambda [lft rgt]
     (cond [(and (rational? lft) (rational? rgt))
            (cond [(< lft rgt) (cons lft rgt)]
@@ -54,7 +56,8 @@
           [(rational? rgt) ((inst plot-tick-range* R) rgt rgt)]
           [else #false])))
   
-(define #:forall (R) plot-tick-range : (-> (U (∩ R Real) (Pairof (∩ R Real) (∩ R Real))) (Option (Pairof (U R Zero) (U R Zero))))
+(define #:forall (R) plot-tick-range : (-> (U (∩ R Real) (Pairof (∩ R Real) (∩ R Real)))
+                                           (Option (Pairof (U (∩ R Real) Zero) (U (∩ R Real) Zero))))
   (lambda [rng]
      (cond [(real? rng) ((inst plot-tick-range* R) rng rng)]
            [else ((inst plot-tick-range* R) (car rng) (cdr rng))])))

@@ -4,11 +4,11 @@
 
 (require geofun/color)
 (require geofun/paint)
-(require geofun/stroke)
 
 (require geofun/digitama/base)
-(require geofun/digitama/source)
-(require geofun/digitama/pattern)
+(require geofun/digitama/paint/self)
+(require geofun/digitama/paint/source)
+(require geofun/digitama/paint/pattern)
 (require geofun/digitama/unsafe/frame)
 (require geofun/digitama/unsafe/dc/plain)
 

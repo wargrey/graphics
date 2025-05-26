@@ -15,6 +15,7 @@
 (require geofun/stroke)
 
 (require geofun/digitama/paint)
+(require geofun/digitama/paint/self)
 (require geofun/digitama/dc/composite)
 
 (require geofun/digitama/convert)

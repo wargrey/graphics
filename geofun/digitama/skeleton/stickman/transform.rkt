@@ -5,8 +5,7 @@
 (require digimon/constant)
 (require digimon/metrics)
 
-(require "../../base.rkt")
-(require "../../../stroke.rkt")
+(require "../../paint/self.rkt")
 (require "../../geometry/bbox.rkt")
 
 (require "self.rkt")
@@ -59,7 +58,9 @@
                            neck lft-arm rgt-arm
                            hip lft-leg rgt-leg)))
 
-(define geo-standing-stickman-size : (->* (Geo-Stickman-Skeleton) (Nonnegative-Flonum #:stroke (Option Paint)) (Values Nonnegative-Flonum Nonnegative-Flonum))
+(define geo-standing-stickman-size : (->* (Geo-Stickman-Skeleton)
+                                          (Nonnegative-Flonum #:stroke (Option Stroke))
+                                          (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self [fallback-thickness 0.0] #:stroke [stroke #false]]
     (define thick-ext : Nonnegative-Flonum (* (stroke-maybe-width stroke fallback-thickness) 2.0))
     (define leg-width : Nonnegative-Flonum (geo-stickman-skeleton-leg-width self))

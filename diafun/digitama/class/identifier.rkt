@@ -4,8 +4,8 @@
 
 (require racket/case)
 
-(require geofun/digitama/path/self)
 (require geofun/digitama/convert)
+(require geofun/digitama/path/self)
 (require geofun/digitama/geometry/anchor)
 
 (require "../node/dc.rkt")

@@ -8,8 +8,8 @@
 (require "typed/more.rkt")
 
 (require "../convert.rkt")
+(require "../paint/self.rkt")
 (require "../layer/type.rkt")
-(require "../../stroke.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Layer (GLayerof Geo))

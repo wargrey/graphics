@@ -11,8 +11,8 @@
 
 (require geofun/digitama/base)
 (require geofun/digitama/font)
-(require geofun/digitama/source)
 (require geofun/digitama/markup)
+(require geofun/digitama/paint/source)
 
 (require geofun/digitama/unsafe/font)
 (require geofun/digitama/unsafe/dc/text-layout)

@@ -3,9 +3,9 @@
 (provide (all-defined-out))
 
 (require "../paint.rkt")
-(require "../stroke.rkt")
 
-(require "source.rkt")
+(require "paint/self.rkt")
+(require "paint/source.rkt")
 (require "unsafe/source.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
