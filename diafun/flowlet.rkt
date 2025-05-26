@@ -155,6 +155,62 @@
       
       (assert flowlet dia:flow?))))
 
+(define #:forall (T) dia-flowlet-functions
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:downward? [downward? : Boolean #false] #:rotate-label? [rotation? : Boolean (not downward?)]
+           #:block-width [block-width : Real (default-diaflowlet-block-width)]
+           #:block-height [block-height : Real (default-diaflowlet-block-height)]
+           #:grid-width [grid-width : Real -0.81] #:grid-height [grid-height : Real -0.81]
+           #:xstep [xstep : Real 1.0] #:ystep [ystep : Real 1.0]
+           #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
+           #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
+           #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
+           #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
+           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
+           #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
+           #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
+           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
+           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
+           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
+           #:input-desc [alt-in : (Option DC-Markup-Text) #false]
+           #:output-desc [alt-out : (Option (-> Any (U Void DC-Markup-Text))) #false]
+           [fs : (Listof (-> T T))] [in : T]] : Dia:Flow
+    (define funcs (diaflowlet-function-rename fs))
+    (define base-width  : Nonnegative-Flonum (~length block-width  ((default-diaflow-block-width))))
+    (define in-desc (diaflowlet-input-desc in alt-in))
+    
+    (parameterize ([default-diaflow-block-width  base-width]
+                   [default-diaflow-block-height (~length block-height ((default-diaflow-block-height)))]
+                   [default-diaflow-process-stroke-width (if stroke-width (~length stroke-width) ((default-diaflow-process-stroke-width)))]
+                   [default-diaflow-storage-font (or node-font ((default-diaflow-storage-font)))]
+                   [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
+                   [default-diaflow-storage-arrow-label-rotate? rotation?])
+      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
+
+      (if (or downward?)
+          (let ([out (for/fold ([v : T in])
+                               ([f (in-list funcs)]
+                                [idx (in-naturals)])
+                       (gomamon-move-down! path ystep (diaflowlet-function->anchor f) (if (> idx 0) (diaflowlet-output-desc v alt-out) in-desc))
+                       (f v))])
+            (gomamon-move-down! path ystep '$ (diaflowlet-output-desc out alt-out)))
+          (let ([out (for/fold ([v : T in])
+                               ([f (in-list funcs)]
+                                [idx (in-naturals)])
+                       (gomamon-move-right! path xstep (diaflowlet-function->anchor f) (if (> idx 0) (diaflowlet-output-desc v alt-out) in-desc))
+                       (f v))])
+            (gomamon-move-right! path xstep '$ (diaflowlet-output-desc out alt-out))))
+            
+      (define flowlet
+        (dia-path-flow path
+                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
+                       #:λblock block-detect #:λarrow arrow-detect
+                       #:λnode make-node #:λnode-label make-node-label #:node-desc diaflowlet-node-label-string
+                       #:λedge make-edge #:λedge-label make-edge-label))
+      
+      (assert flowlet dia:flow?))))
+
 (define #:forall (In) dia-flowlet-join
   (lambda [#:id [id : (Option Symbol) #false]
            #:and? [and? : Boolean #true]
