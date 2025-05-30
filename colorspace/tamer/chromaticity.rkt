@@ -7,8 +7,11 @@
 
 (require math/flonum)
 
-(require "../cie.rkt")
-(require "../misc.rkt")
+(require colorspace/cie)
+(require colorspace/misc)
+
+(require colorspace/digitama/cie)
+(require colorspace/digitama/constants)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Coordinate (List Flonum Flonum Flonum))

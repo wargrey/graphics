@@ -2,6 +2,7 @@
 
 (require geofun/vector)
 (require colorspace/cie)
+(require colorspace/ok)
 
 (require "misc.rkt")
 
