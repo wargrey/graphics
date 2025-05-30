@@ -2,6 +2,9 @@
 
 (provide (all-defined-out))
 
+(require digimon/metrics)
+(require digimon/digitama/predicate)
+
 (require racket/fixnum)
 (require racket/math)
 
@@ -10,12 +13,37 @@
 (define-type RGB->HSB (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define gamut->byte : (-> Flonum Byte) (λ [r] (min (max (exact-round (* r 255.0)) 0) #xFF)))
+(define gamut->byte : (-> Flonum Byte) (λ [r] (min (max 0 (exact-round (* r 255.0))) #xFF)))
 (define byte->gamut : (-> Byte Nonnegative-Flonum) (λ [r] (real->double-flonum (/ r 255))))
-(define real->gamut : (-> Real Nonnegative-Flonum) (λ [r] (max (min (real->double-flonum r) 1.0) 0.0)))
-(define real->alpha : (-> Real Nonnegative-Flonum) (λ [r] (max (min (real->double-flonum r) 1.0) 0.0)))
-(define gamut->uint16 : (-> Flonum Index) (λ [r] (assert (min (max (exact-round (* r 65535.0)) 0) 65535) index?)))
-(define gamut->byte100 : (-> Flonum Byte) (λ [r] (min (max (exact-round (* r 100.0)) 0) 100)))
+(define real->gamut : (-> Real Nonnegative-Flonum) (λ [r] (~clamp r 0.0 1.0)))
+(define real->alpha : (-> Real Nonnegative-Flonum) (λ [r] (~clamp r 0.0 1.0)))
+(define gamut->uint16 : (-> Flonum Index) (λ [r] (assert (min (max 0 (exact-round (* r 65535.0))) 65535) index?)))
+(define gamut->byte100 : (-> Flonum Byte) (λ [r] (min (max 0 (exact-round (* r 100.0))) 100)))
+
+; theoretically, a <- [-86, 98], b <- [-108, 94]
+(define real->chroma-axis : (-> Real Flonum)
+  (λ [c]
+    (if (exact-fraction? c)
+        (* (~clamp c 1.0) 125.0)
+        (real->double-flonum c))))
+
+(define real->chroma : (-> Real Flonum)
+  (λ [c]
+    (if (exact-fraction? c)
+        (* (~clamp c 0.0 1.0) 150.0)
+        (max (real->double-flonum c) 0.0))))
+
+(define real->ok-chroma-axis : (-> Real Flonum)
+  (lambda [c]
+    (if (exact-fraction? c)
+        (* (~clamp c 1.0) 0.4)
+        (~clamp c 0.4))))
+
+(define real->ok-chroma : (-> Real Nonnegative-Flonum)
+  (lambda [c]
+    (if (exact-fraction? c)
+        (* (~clamp c 0.0 1.0) 0.4)
+        (~clamp c 0.0 0.4))))
 
 (define real->hue : (-> Real Nonnegative-Flonum)
   (lambda [hue]

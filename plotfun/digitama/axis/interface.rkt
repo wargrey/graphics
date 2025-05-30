@@ -5,10 +5,11 @@
 
 (require geofun/font)
 (require geofun/stroke)
-(require geofun/digitama/paint/self)
 
 (require geofun/digitama/base)
 (require geofun/digitama/convert)
+
+(require geofun/digitama/paint/self)
 (require geofun/digitama/layer/type)
 
 (require "real.rkt")

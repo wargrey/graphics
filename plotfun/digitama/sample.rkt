@@ -5,10 +5,11 @@
 (require racket/list)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define ~y-bounds : (-> (-> Real (Option Number)) (Listof Real) (Values Real Real))
+(define ~y-bounds : (-> (-> Real (Option Number)) (Listof Real) (Pairof Real Real))
   (lambda [f xs]
     (for/fold ([ymin : Real +inf.0]
-               [ymax : Real -inf.0])
+               [ymax : Real -inf.0]
+               #:result (cons ymin ymax))
               ([x (in-list xs)])
       (define y (f x))
       (if (rational? y)

@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out) Fill-Rule Geo-Pin-Operator Geo-Pattern-Filter)
+(provide (rename-out [stroke-maybe-rgba stroke-maybe-color]))
 
 (require "color.rkt")
 (require "stroke.rkt")
@@ -34,3 +35,10 @@
 (define default-pin-operator : (Parameterof Geo-Pin-Operator) (make-parameter 'over))
 (define default-pattern-filter : (Parameterof Geo-Pattern-Filter) (make-parameter 'bilinear))
 (define default-pattern-extend : (Parameterof (Option Geo-Pattern-Extend)) (make-parameter #false))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define stroke-maybe-rgba : (-> Any (Option FlRGBA))
+  (lambda [s]
+    (cond [(stroke? s) (stroke-color s)]
+          [(color? s) (rgb* s)]
+          [else #false])))

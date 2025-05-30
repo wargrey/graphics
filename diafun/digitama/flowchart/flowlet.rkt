@@ -118,7 +118,7 @@
     (define fbox : Geo:Sandglass
       (geo-sandglass #:fill (dia-node-select-fill-paint style)
                      #:stroke (dia-node-select-stroke-paint style)
-                     #:neck-width (* width 0.16) #:neck-height (* width 0.10)
+                     #:neck-width (* width 0.22) #:neck-height (* width 0.12)
                      (* width 0.25)))
     
     (if (or (not direction) (not (zero? direction)))

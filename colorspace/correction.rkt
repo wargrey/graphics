@@ -21,14 +21,21 @@
             (color-component-gamma-decode b))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; https://drafts.csswg.org/css-color/#color-conversion-code
 (define color-component-gamma-encode : (-> Flonum Flonum)
   (lambda [c]
-    (if (<= c 0.0031308)
-        (* c 12.92)
-        (- (* (flexpt c (/ 1.0 2.4)) 1.055) 0.055))))
+    (define sgn (if (negative? c) -1.0 1.0))
+    (define abs (flabs c))
+    
+    (if (fl<= abs 0.0031308)
+        (fl* c 12.92)
+        (fl* sgn (fl- (fl* (flexpt abs (fl/ 1.0 2.4)) 1.055) 0.055)))))
 
 (define color-component-gamma-decode : (-> Flonum Flonum)
   (lambda [c]
-    (if (<= c 0.04045) ; 0.03928 is outdated
-        (/ c 12.92)
-        (flexpt (/ (+ 0.055 c) 1.055) 2.4))))
+    (define sgn (if (negative? c) -1.0 1.0))
+    (define abs (flabs c))
+
+    (if (fl<= abs 0.04045)
+        (fl/ c 12.92)
+        (fl* sgn (flexpt (fl/ (fl+ 0.055 abs) 1.055) 2.4)))))

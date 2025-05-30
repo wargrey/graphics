@@ -10,7 +10,8 @@
 
 (define-type Plot-Visualizer-Tick-Range (Pairof (Option Real) (Option Real)))
 (define-type Plot-Visualizer-Data-Range (-> Real Real (Pairof Real Real)))
-(define-type Plot-Visualizer-Realize (-> (Pairof Real Real) (Pairof Real Real) (-> Flonum Flonum Float-Complex) (Values Geo Float-Complex)))
+(define-type Plot-Visualizer-Realize (-> Integer (Pairof Real Real) (Pairof Real Real) (-> Flonum Flonum Float-Complex)
+                                         (Values Geo Float-Complex (Option FlRGBA))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot:visualizer
@@ -18,8 +19,7 @@
    [label : Any]
    [xrng : Plot-Visualizer-Tick-Range]
    [yrng : Plot-Visualizer-Tick-Range]
-   [color : FlRGBA]
-   [range : Plot-Visualizer-Data-Range])
+   [λrange : Plot-Visualizer-Data-Range])
   #:type-name Plot:Visualizer
   #:transparent)
 
@@ -64,7 +64,7 @@
                 (cond [(null? rs) (values (cons left rght) (cons top btm))]
                       [else (let* ([self (car rs)]
                                    [xrng (plot:visualizer-xrng self)]
-                                   [vrng ((plot:visualizer-range self) (or (car xrng) left) (or (cdr xrng) rght))])
+                                   [vrng ((plot:visualizer-λrange self) (or (car xrng) left) (or (cdr xrng) rght))])
                               (bounds (min top (car vrng)) (max btm (cdr vrng)) (cdr rs)))]))
               (values (cons left rght) (cons ymin ymax))))
         (values xtick-rng ytick-rng))))

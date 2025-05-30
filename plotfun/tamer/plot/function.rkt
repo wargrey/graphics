@@ -23,18 +23,23 @@
     (/ (exp (/ (sqr x) -2.0))
        (sqrt 2pi))))
 
+(define 1/x : (-> Real (Option Real))
+  (lambda [x]
+    (/ 1 x)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   (plot-cartesian
    (function #:stroke (plot-desc-pen #:color 'grey #:dash 'long-dash) values)
-   (function #:stroke 'forestgreen discrete-floor -3.0)
-   (function #:stroke 'royalblue   discrete-ceiling)
-   (function #:stroke 'cyan        cos)
-   (function #:stroke 'orange      cos  -1 +1)
-   (function #:stroke 'purple      sqr  -2 +2)
-   (function #:stroke 'crimson     sqrt +0 +4))
+   (function discrete-floor -3.0)
+   (function discrete-ceiling)
+   (function cos)
+   (function cos  -1 +1)
+   (function sqr  -2 +2)
+   (function sqrt +0 +4)
+   (function 1/x  -3 +0 #:fast-range (λ [[xmin : Real] [xmax : Real]] (cons xmin xmax))))
 
   (plot-cartesian
-   (function #:stroke 'crimson     sin -4.0 +4.0 -1 +1)
-   (function #:stroke 'orange      sin -3 +3 -4/5 +4/5)
-   (function #:stroke 'forestgreen normal-dist)))
+   (function sin -4 +4   -1   +1)
+   (function sin -3 +3 -4/5 +4/5)
+   (function normal-dist)))

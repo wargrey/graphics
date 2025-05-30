@@ -13,6 +13,7 @@
 (require digimon/constant)
 
 (require geofun/font)
+(require geofun/color)
 (require geofun/constructor)
 
 (require geofun/digitama/convert)
@@ -125,6 +126,15 @@
       (and (< (imag-part Oshadow) (imag-part xoffset))
            (null? actual-yticks)))
 
+    (define vlayers : (Listof (Pairof (GLayerof Geo) (Option FlRGBA)))
+      (for/list ([r (in-list visualizers)]
+                 [idx (in-naturals 1)])
+        (define this-dom (plot-range-select (plot:visualizer-xrng r) xview))
+        (define this-ran (plot-range-select (plot:visualizer-yrng r) yview))
+        (define-values (graph pos legend-color) ((plot:visualizer-realize r) idx this-dom this-ran origin-dot->pos))
+        
+        (cons (geo-own-pin-layer 'lt pos graph 0.0+0.0i) legend-color)))
+
     (define layers : (Listof (GLayerof Geo))
       (parameterize ()
         (append (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
@@ -159,11 +169,7 @@
                                               (origin-dot->pos 0.0 yval) yoffset yticks -inf.0 imag-part +inf.0 gytick)
                       yticks))
 
-                (for/list : (Listof (GLayerof Geo)) ([r (in-list visualizers)])
-                  (define this-dom (plot-range-select (plot:visualizer-xrng r) xview))
-                  (define this-ran (plot-range-select (plot:visualizer-yrng r) yview))
-                  (define-values (graph pos) ((plot:visualizer-realize r) this-dom this-ran origin-dot->pos))
-                  (geo-own-pin-layer 'lt pos graph 0.0+0.0i)))))
+                (map (inst car (GLayerof Geo) (Option FlRGBA)) vlayers))))
     
     (define translated-layers : (Option (GLayer-Groupof Geo))
       (if (not 0-as-xdigit?)

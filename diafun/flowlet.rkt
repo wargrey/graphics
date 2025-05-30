@@ -175,8 +175,8 @@
            #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
            #:input-desc [alt-in : (Option DC-Markup-Text) #false]
            #:output-desc [alt-out : (Option (-> Any (U Void DC-Markup-Text))) #false]
-           [fs : (Listof (-> T T))] [in : T]] : Dia:Flow
-    (define funcs (diaflowlet-function-rename fs))
+           [in : T] [f : (-> T T)] . [fs : (-> T T) *]] : Dia:Flow
+    (define funcs (diaflowlet-function-rename (cons f fs)))
     (define base-width  : Nonnegative-Flonum (~length block-width  ((default-diaflow-block-width))))
     (define in-desc (diaflowlet-input-desc in alt-in))
     

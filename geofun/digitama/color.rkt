@@ -58,10 +58,10 @@
          (let-values ([(r g b) (hex->rgb-gamuts hex)])
            (rgba r g b (* (/ (exact->inexact a) 255.0) flalpha))))))
 
-(define xterm-color-tuples : (Vectorof Flonum) (vector 0.0 95.0 135.0 175.0 215.0 255.0))
-(define xterm-system-colors : (Vectorof Symbol)
-  (vector 'black 'maroon 'green 'olive 'navy 'purple 'teal 'silver
-          'grey 'red 'lime 'yellow 'blue 'fuchsia 'aqua 'white))
+(define xterm-color-tuples : (Immutable-Vectorof Flonum) #(0.0 95.0 135.0 175.0 215.0 255.0))
+(define xterm-system-colors : (Immutable-Vectorof Symbol)
+  (vector-immutable 'black 'maroon 'green 'olive 'navy 'purple 'teal 'silver
+                    'grey 'red 'lime 'yellow 'blue 'fuchsia 'aqua 'white))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://drafts.csswg.org/css-color/#named-colors

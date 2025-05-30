@@ -122,10 +122,15 @@
       [(rgb-uint24 RRGGBB) (flcolor->hex self)]
       [else fallback])))
 
-(define-color-model hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut]) #:* rgb->hsl hsl->rgb)
-(define-color-model hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut])      #:* rgb->hsv hsv->rgb)
-(define-color-model hsi ([hue : real->hue] [saturation : real->gamut] [intensity : real->gamut])  #:* rgb->hsi hsi->rgb)
-(define-color-model hwb ([hue : real->hue] [white : real->gamut] [black : real->gamut])           #:* rgb->hwb hwb->rgb)
+(define-color-model hsl ([hue : real->hue] [saturation : real->gamut] [luminosity : real->gamut])           #:* rgb->hsl   hsl->rgb)
+(define-color-model hsv ([hue : real->hue] [saturation : real->gamut] [value : real->gamut])                #:* rgb->hsv   hsv->rgb)
+(define-color-model hsi ([hue : real->hue] [saturation : real->gamut] [intensity : real->gamut])            #:* rgb->hsi   hsi->rgb)
+(define-color-model hwb ([hue : real->hue] [white : real->gamut] [black : real->gamut])                     #:* rgb->hwb   hwb->rgb)
+
+(define-color-model lab ([lightness : real->gamut] [a : real->chroma-axis] [b : real->chroma-axis])         #:* rgb->lab   lab->rgb)
+(define-color-model lch ([lightness : real->gamut] [chroma : real->chroma] [hue : real->hue])               #:* rgb->lch   lch->rgb)
+(define-color-model oklab ([lightness : real->gamut] [a : real->ok-chroma-axis] [b : real->ok-chroma-axis]) #:* rgb->oklab oklab->rgb)
+(define-color-model oklch ([lightness : real->gamut] [chroma : real->ok-chroma] [hue : real->hue])          #:* rgb->oklch oklch->rgb)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define rgb : (->* (Real Real Real) (Real) FlRGBA)
@@ -149,10 +154,14 @@
              [(exact-integer? src) (let-values ([(r g b) (hex->rgb-gamuts src)]) (rgba r g b flalpha))]
              [(hexa? src) (let-values ([(r g b) (hex->rgb-gamuts (hexa-digits src))]) (rgba r g b (* (hexa-alpha src) flalpha)))]
              [(rgba? src) (if (= flalpha 1.0) src (rgba (rgba-red src) (rgba-green src) (rgba-blue src) (* (rgba-alpha src) flalpha)))]
+             [(oklcha? src) ($# oklch->rgb (oklcha-lightness src) (oklcha-chroma src) (oklcha-hue src) (oklcha-alpha src) flalpha)]
              [(hsla? src) ($# hsl->rgb (hsla-hue src) (hsla-saturation src) (hsla-luminosity src) (hsla-alpha src) flalpha)]
              [(hsva? src) ($# hsv->rgb (hsva-hue src) (hsva-saturation src) (hsva-value src) (hsva-alpha src) flalpha)]
              [(hsia? src) ($# hsi->rgb (hsia-hue src) (hsia-saturation src) (hsia-intensity src) (hsia-alpha src) flalpha)]
              [(hwba? src) ($# hwb->rgb (hwba-hue src) (hwba-white src) (hwba-black src) (hwba-alpha src) flalpha)]
+             [(oklaba? src) ($# oklab->rgb (oklaba-lightness src) (oklaba-a src) (oklaba-b src) (oklaba-alpha src) flalpha)]
+             [(lcha? src) ($# lch->rgb (lcha-lightness src) (lcha-chroma src) (lcha-hue src) (lcha-alpha src) flalpha)]
+             [(laba? src) ($# lab->rgb (laba-lightness src) (laba-a src) (laba-b src) (laba-alpha src) flalpha)]
              [(xterma? src) (xterm256-rgba (xterma-index src) (* (xterma-alpha src) flalpha) rgb*)]
              [(keyword? src) (or (digits-rgba src flalpha) (rgb* fallback-color flalpha))]
              [(real? src) ($# hsv->rgb (real->hue src) 1.0 1.0 1.0 flalpha)]
