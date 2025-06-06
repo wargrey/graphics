@@ -53,7 +53,7 @@
                    pos))
              (gpath:print-end-here self)))))
 
-(define geo-path-cleanse : (->* ((Listof (U GPath:Datum Float-Complex))) (Float-Complex) (Listof GPath:Print))
+(define geo-path-cleanse : (->* ((Listof (U GPath:Datum Float-Complex))) (Float-Complex) Geo-Path-Clean-Prints)
   (lambda [footprints [pos0 0.0+0.0i]]
     (let traverse ([prints : (Listof (U GPath:Datum Float-Complex)) footprints]
                    [path0 : (Option Float-Complex) #false]
@@ -115,3 +115,4 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define the-Z : GPP:Close (gpp:close #\Z))
+(define the-M0 : GPP:Point (gpp:point #\M 0.0+0.0i))

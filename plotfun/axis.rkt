@@ -6,25 +6,31 @@
 (provide default-plot-axis-integer-filter default-plot-axis-real-filter)
 (provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
+(provide (all-from-out "digitama/axis/singleton.rkt"))
 (provide (all-from-out "digitama/axis/tick/self.rkt"))
 (provide (all-from-out "digitama/axis/tick/real.rkt"))
 
 (require digimon/metrics)
 
 (require geofun/font)
+(require geofun/stroke)
 (require geofun/constructor)
 
+(require geofun/digitama/markup)
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
+(require geofun/digitama/dc/edge)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/combine)
 (require geofun/digitama/layer/sticker)
+(require geofun/digitama/geometry/footprint)
 
 (require "digitama/axis/self.rkt")
 (require "digitama/axis/real.rkt")
 (require "digitama/axis/sticker.rkt")
 (require "digitama/axis/interface.rkt")
+(require "digitama/axis/singleton.rkt")
 (require "digitama/axis/style.rkt")
 (require "digitama/axis/config.rkt")
 (require "digitama/axis/tick.rkt")
@@ -38,7 +44,8 @@
            #:unit-length [maybe-unit : (Option Real) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (make-plot-axis-style #:tick-anchor 'cb #:tick-length -3.0)]
-           #:label [axis-label : (Option String) #false]
+           #:marker [marker : Plot-Axis-Marker-Style (make-plot-axis-marker-style)]
+           #:label [axis-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
            #:range [tick-hint : (U Real (Pairof Real Real) False) #false]
            #:ticks [ticks-engine : Plot-Tick-Engine (plot-real-ticks)]
            #:tick-format [alt-format : (Option Plot-Tick-Format) #false]
@@ -48,7 +55,7 @@
            #:real->sticker [real->label : Plot-Axis-Real->Sticker default-plot-axis-real->sticker]
            #:real->dot [real->dot : Plot-Axis-Real->Dot default-plot-axis-real->dot]
            [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Axis
-    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style length))
+    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style marker length))
     (define-values (tick-range origin flunit)
       (plot-axis-metrics (or tick-hint (plot-tick-engine-range ticks-engine))
                          (plot-axis-real-range real-list)
@@ -56,28 +63,33 @@
 
     (define-values (actual-ticks _) (plot-ticks-generate ticks-engine tick-range alt-format))
     (define actual-tick-values (map plot-tick-value* actual-ticks))
-    
+
+    (define-values (digit-font label-font axis-color digit-color tick-color label-color) (plot-axis-visual-values axis-style))
+    (define-values (digit-position digit-anchor) (plot-axis-digit-position-values axis-style 'x))
+    (define -em : Flonum (- (font-metrics-ref digit-font 'em)))
+
     (define flthickness : Nonnegative-Flonum (plot-axis-style-thickness axis-style))
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
     (define fltick-length : Nonnegative-Flonum (~length (plot-axis-tick-length axis-style 'x) flthickness))
     (define fltick-min : Nonnegative-Flonum (+ neg-margin (* fltick-thickness 0.5)))
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
-    (define flaxis-max : Nonnegative-Flonum (+ fltick-max pos-margin))
+    
+    (define main-axis : Geo:Edge
+      (geo-edge* #:stroke (desc-stroke #:color axis-color #:width flthickness) #:marker-placement 'inside
+                 #:source-marker (plot-axis-marker-style-negative-shape marker)
+                 #:target-marker (plot-axis-marker-style-positive-shape marker)
+                 (list the-M0 (gpp:point #\L (make-rectangular fllength 0.0)))))
 
-    (define-values (digit-font label-font axis-color digit-color tick-color label-color) (plot-axis-visual-values axis-style))
-    (define-values (digit-position digit-anchor) (plot-axis-digit-position-values axis-style 'x))
-    
-    (define arrow : Geo (geo-arrow #:shaft-thickness flthickness #:stroke #false #:fill axis-color
-                                   (~length (plot-axis-style-arrow-radius axis-style) flthickness)
-                                   (+ fllength fltick-thickness)))
-    
+    (define-values (soff eoff) (geo-edge-endpoint-offsets main-axis))
+    (define flaxis-min : Flonum (- fltick-min neg-margin (- (real-part soff))))
+    (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
+
     (define gtick : (Option (Pairof Geo Geo-Pin-Anchor))
       (and (> fltick-length 0.0)
            (cons (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor axis-style 'x))))
 
-    (define -em : Flonum (- (font-metrics-ref digit-font 'em)))
-    (define arrow-half : Nonnegative-Flonum (* (geo-height arrow) 0.5))
+    (define arrow-half : Nonnegative-Flonum (* (geo-height main-axis) 0.5))
     (define flc-origin : Float-Complex (make-rectangular (+ (* used-length origin) fltick-min) arrow-half))
     (define flc-offset : Float-Complex (make-rectangular 0.0 (* digit-position -em)))
     
@@ -86,10 +98,16 @@
         (+ flc-origin (* x flunit))))
 
     (define layers : (Listof (GLayerof Geo))
-      (append (cond [(not axis-label) null]
-                    [else (let ([g (geo-text axis-label label-font #:color label-color)])
-                            (plot-axis-sticker-cons g digit-anchor (make-rectangular flaxis-max arrow-half)
-                                                    flc-offset null fltick-min real-part flaxis-max #false))])
+      (append (for/fold ([labels : (Listof (GLayerof Geo)) null])
+                        ([lbl (if (pair? axis-label)
+                                  (in-list (list (cons (car axis-label) flaxis-min)
+                                                 (cons (cdr axis-label) flaxis-max)))
+                                  (in-value (cons axis-label flaxis-max)))])
+                (if (car lbl)
+                    (plot-axis-sticker-cons (geo-markup (car lbl) label-font #:color label-color)
+                                            digit-anchor (make-rectangular (cdr lbl) arrow-half)
+                                            flc-offset labels flaxis-min real-part flaxis-max #false)
+                    labels))
               
               (for/fold ([ticks : (Listof (GLayerof Geo)) null])
                         ([tick (in-list actual-ticks)])
@@ -111,13 +129,13 @@
                                                 real-offset reals fltick-min real-part fltick-max dot))
                       reals)))))
   
-    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer arrow) layers))
+    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer main-axis) layers))
     
     (if (or translated-layers)
         (let ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))])
           (create-geometry-group plot:axis id #false #false translated-layers delta-origin actual-tick-values
                                  (λ [[x : Flonum]] (+ delta-origin (* x flunit)))))
-        (create-geometry-group plot:axis id #false #false (geo-own-layers arrow) flc-origin actual-tick-values dot->pos))))
+        (create-geometry-group plot:axis id #false #false (geo-own-layers main-axis) flc-origin actual-tick-values dot->pos))))
 
 (define plot-integer-axis
   (lambda [#:id [id : (Option Symbol) #false]
@@ -125,7 +143,8 @@
            #:unit-length [maybe-unit : (Option Real) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (make-plot-axis-style #:tick-anchor 'cb #:tick-length -3.0)]
-           #:label [axis-label : (Option String) #false]
+           #:marker [marker : Plot-Axis-Marker-Style (make-plot-axis-marker-style)]
+           #:label [axis-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
            #:range [tick-hint : (U Integer (Pairof Integer Integer) False) #false]
            #:ticks [ticks-engine : Plot-Tick-Engine (plot-integer-ticks)]
            #:tick-format [alt-format : (Option Plot-Tick-Format) #false]
@@ -136,7 +155,7 @@
            #:integer->dot [int->dot : Plot-Axis-Real->Dot default-plot-axis-real->dot]
            #:exclude-zero? [exclude-zero? : Boolean #true]
            [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Axis
-    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style length))
+    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style marker length))
     (define-values (tick-range origin flunit)
       (plot-axis-metrics (or (plot-tick-engine-range ticks-engine) tick-hint)
                          (plot-axis-integer-range number-sequence exclude-zero?)
@@ -144,28 +163,33 @@
     
     (define-values (actual-ticks _) (plot-ticks-generate ticks-engine tick-range alt-format))
     (define actual-tick-values (filter exact-integer? (map plot-tick-value* actual-ticks)))
+
+    (define-values (digit-font label-font axis-color digit-color tick-color label-color) (plot-axis-visual-values axis-style))
+    (define-values (digit-position digit-anchor) (plot-axis-digit-position-values axis-style 'x))
+    (define -em : Flonum (- (font-metrics-ref digit-font 'em)))
     
     (define flthickness : Nonnegative-Flonum (plot-axis-style-thickness axis-style))
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
     (define fltick-length : Nonnegative-Flonum (~length (plot-axis-tick-length axis-style 'x) flthickness))
     (define fltick-min : Nonnegative-Flonum (+ neg-margin (* fltick-thickness 0.5)))
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
-    (define flaxis-max : Nonnegative-Flonum (+ fltick-max pos-margin))
+    
+    (define main-axis : Geo:Edge
+      (geo-edge* #:stroke (desc-stroke #:color axis-color #:width flthickness) #:marker-placement 'inside
+                 #:source-marker (plot-axis-marker-style-negative-shape marker)
+                 #:target-marker (plot-axis-marker-style-positive-shape marker)
+                 (list the-M0 (gpp:point #\L (make-rectangular fllength 0.0)))))
 
-    (define-values (digit-font label-font axis-color digit-color tick-color label-color) (plot-axis-visual-values axis-style))
-    (define-values (digit-position digit-anchor) (plot-axis-digit-position-values axis-style 'x))
-    
-    (define arrow : Geo (geo-arrow #:shaft-thickness flthickness #:stroke #false #:fill axis-color
-                                   (~length (plot-axis-style-arrow-radius axis-style) flthickness)
-                                   (+ fllength fltick-thickness)))
-    
+    (define-values (soff eoff) (geo-edge-endpoint-offsets main-axis))
+    (define flaxis-min : Flonum (- fltick-min neg-margin (- (real-part soff))))
+    (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
+
     (define gtick : (Option (Pairof Geo Geo-Pin-Anchor))
       (and (> fltick-length 0.0)
            (cons (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor axis-style 'x))))
 
-    (define -em : Flonum (- (font-metrics-ref digit-font 'em)))
-    (define arrow-half : Nonnegative-Flonum (* (geo-height arrow) 0.5))
+    (define arrow-half : Nonnegative-Flonum (* (geo-height main-axis) 0.5))
     (define flc-origin : Float-Complex (make-rectangular (+ (* used-length origin) fltick-min) arrow-half))
     (define flc-offset : Float-Complex (make-rectangular 0.0 (* digit-position -em)))
     
@@ -175,10 +199,16 @@
 
     (define layers : (Listof (GLayerof Geo))
       (parameterize ([default-plot-axis-integer-filter ((if (not exclude-zero?) values plot-axis-nonzero-values-wrap) (or int-filter (default-plot-axis-integer-filter)))])
-        (append (cond [(not axis-label) null]
-                      [else (let ([g (geo-text axis-label label-font #:color label-color)])
-                              (plot-axis-sticker-cons g digit-anchor (make-rectangular flaxis-max arrow-half)
-                                                      flc-offset null fltick-min real-part flaxis-max #false))])
+        (append (for/fold ([labels : (Listof (GLayerof Geo)) null])
+                          ([lbl (if (pair? axis-label)
+                                  (in-list (list (cons (car axis-label) flaxis-min)
+                                                 (cons (cdr axis-label) flaxis-max)))
+                                  (in-value (cons axis-label flaxis-max)))])
+                  (if (car lbl)
+                      (plot-axis-sticker-cons (geo-markup (car lbl) label-font #:color label-color)
+                                              digit-anchor (make-rectangular (cdr lbl) arrow-half)
+                                              flc-offset labels flaxis-min real-part flaxis-max #false)
+                      labels))
 
                 (for/fold ([ticks : (Listof (GLayerof Geo)) null])
                           ([tick actual-ticks])
@@ -202,11 +232,11 @@
                                                   real-offset reals fltick-min real-part fltick-max dot))
                         reals))))))
 
-    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer arrow) layers))
+    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer main-axis) layers))
 
     (if (or translated-layers)
         (let ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))])
           (create-geometry-group plot:axis id #false #false translated-layers delta-origin actual-tick-values
                                  (λ [[x : Flonum]] (+ delta-origin (* x flunit)))))
-        (create-geometry-group plot:axis id #false #false (geo-own-layers arrow) flc-origin actual-tick-values dot->pos))))
+        (create-geometry-group plot:axis id #false #false (geo-own-layers main-axis) flc-origin actual-tick-values dot->pos))))
   

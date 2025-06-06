@@ -43,38 +43,41 @@
   (lambda [self direction]
     (plot-cartesian-value (plot-axis-style-tick-length self) direction)))
 
-(define plot-axis-length-values : (case-> [Plot-Axis-Style Real -> (Values Nonnegative-Flonum Nonnegative-Flonum
-                                                                           Nonnegative-Flonum Nonnegative-Flonum)]
-                                          [Plot-Axis-Style Real Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum
-                                                                                              Nonnegative-Flonum Nonnegative-Flonum)])
+(define plot-axis-length-values : (case-> [Plot-Axis-Style Plot-Axis-Marker-Style Real
+                                                           -> (Values Nonnegative-Flonum Nonnegative-Flonum
+                                                                      Nonnegative-Flonum Nonnegative-Flonum)]
+                                          [Plot-Axis-Style Plot-Axis-Marker-Style Real Nonnegative-Flonum
+                                                           -> (Values Nonnegative-Flonum Nonnegative-Flonum
+                                                                      Nonnegative-Flonum Nonnegative-Flonum)])
   (case-lambda
-    [(self length 100%) (plot-axis-length-values* self (~length length 100%))]
-    [(self length) (plot-axis-length-values* self (~length length))]))
+    [(self marker length 100%) (plot-axis-length-values* self marker (~length length 100%))]
+    [(self marker length) (plot-axis-length-values* self marker (~length length))]))
 
-(define plot-axis-height-values : (-> Plot-Axis-Style Nonnegative-Flonum Real (Values Nonnegative-Flonum Nonnegative-Flonum
-                                                                                      Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [self view-width ratio]
+(define plot-axis-height-values : (-> Plot-Axis-Style Plot-Axis-Marker-Style Nonnegative-Flonum Real
+                                      (Values Nonnegative-Flonum Nonnegative-Flonum
+                                              Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [self marker view-width ratio]
     (define view-height : Nonnegative-Flonum (max (real->double-flonum (* view-width ratio)) 1.0))
-    (define-values (neg-margin pos-margin) (plot-axis-margin-values self view-width))
+    (define-values (neg-margin pos-margin) (plot-axis-margin-values marker view-width))
 
-    (values (+ view-height neg-margin pos-margin)
+    (values (+ view-height neg-margin pos-margin (plot-axis-style-thickness self))
             view-height neg-margin pos-margin)))
 
-(define plot-axis-margin-values : (-> Plot-Axis-Style Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
+(define plot-axis-margin-values : (-> Plot-Axis-Marker-Style Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self fllength]
-    (define-values (n-margin p-margin) (plot-cartesian-settings (plot-axis-style-margin self)))
+    (define-values (n-margin p-margin) (plot-cartesian-settings (plot-axis-marker-style-margin self)))
 
     (values (~length n-margin fllength)
             (~length p-margin fllength))))
 
-(define plot-axis-length-values* : (-> Plot-Axis-Style Nonnegative-Flonum
+(define plot-axis-length-values* : (-> Plot-Axis-Style Plot-Axis-Marker-Style Nonnegative-Flonum
                                        (Values Nonnegative-Flonum Nonnegative-Flonum
                                                Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [self fllength]
-    (define-values (neg-margin pos-margin) (plot-axis-margin-values self fllength))
+  (lambda [self marker fllength]
+    (define-values (neg-margin pos-margin) (plot-axis-margin-values marker fllength))
     
     (values fllength
-            (max (- fllength neg-margin pos-margin) 1.0)
+            (max (- fllength neg-margin pos-margin (plot-axis-style-thickness self)) 1.0)
             neg-margin pos-margin)))
 
 (define plot-axis-real-style-values : (-> (Option Plot-Axis-Real-Style) Plot-Axis-Style

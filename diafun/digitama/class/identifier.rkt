@@ -6,10 +6,10 @@
 
 (require geofun/digitama/convert)
 (require geofun/digitama/path/self)
+(require geofun/digitama/edge/label)
 (require geofun/digitama/geometry/anchor)
 
 (require "../node/dc.rkt")
-(require "../edge/label.rkt")
 (require "../path/interface.rkt")
 
 (require "style.rkt")
@@ -35,12 +35,12 @@
 
 (define default-diacls-arrow-identify : Dia-Path-Arrow-Identifier
   (lambda [source target labels extra-info]
-    (define hints : (Listof Bytes) (dia-edge-label-flatten labels))
+    (define hints : (Listof Bytes) (geo-edge-label-flatten labels))
 
     (cond
       [(or (eq? source target) (not target)) ; for self associated classes
        (dia-edge-style-construct source target labels (default-diacls-association-arrow-style-make) make-diacls-association-arrow-style)]
-      [(dia-edge-label-double-angle-bracketed? hints)
+      [(geo-edge-label-double-angle-bracketed? hints)
        (dia-edge-style-construct source target labels (default-diacls-dependency-arrow-style-make)  make-diacls-dependency-arrow-style)]
       [else ; dependency and association
        (case/eq (diacls-association-identify (geo-id source) (geo-id target) (filter symbol? extra-info))

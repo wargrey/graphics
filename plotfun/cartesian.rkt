@@ -4,31 +4,37 @@
 (provide Plot:Cartesian plot:cartesian?)
 (provide Plot:Function plot:function? function)
 (provide (all-from-out "digitama/axis/interface.rkt"))
+(provide (all-from-out "digitama/axis/singleton.rkt"))
 (provide (all-from-out "digitama/axis/tick/self.rkt"))
 (provide (all-from-out "digitama/axis/tick/real.rkt"))
 (provide (all-from-out "digitama/axis/style.rkt"))
 
 (require digimon/metrics)
 (require digimon/complex)
-(require digimon/constant)
 
 (require geofun/font)
 (require geofun/color)
+(require geofun/stroke)
 (require geofun/constructor)
 
+(require geofun/digitama/markup)
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
+(require geofun/digitama/dc/edge)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/combine)
 (require geofun/digitama/layer/sticker)
 (require geofun/digitama/layer/position)
+(require geofun/digitama/paint/self)
+(require geofun/digitama/geometry/footprint)
 
 (require "digitama/arithmetics.rkt")
 (require "digitama/axis/self.rkt")
 (require "digitama/axis/style.rkt")
 (require "digitama/axis/config.rkt")
 (require "digitama/axis/interface.rkt")
+(require "digitama/axis/singleton.rkt")
 (require "digitama/axis/sticker.rkt")
 (require "digitama/axis/tick.rkt")
 (require "digitama/axis/tick/self.rkt")
@@ -46,8 +52,10 @@
            #:width [width : Real (default-plot-cartesian-width)]
            #:height [height : Real (default-plot-cartesian-height)]
            #:style [as : Plot-Axis-Style (make-plot-axis-style)]
-           #:x-label [xlabel : (Option String) "x"]
-           #:y-label [ylabel : (Option String) "y"]
+           #:x-marker [x-marker : Plot-Axis-Marker-Style (make-plot-axis-marker-style)]
+           #:y-marker [y-marker : (Option Plot-Axis-Marker-Style) #false]
+           #:x-label [x-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "x"]
+           #:y-label [y-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "y"]
            #:x-range [xtick-hint : (U Real (Pairof Real Real) False) #false]
            #:y-range [ytick-hint : (U Real (Pairof Real Real) False) #false]
            #:x-ticks [xticks-engine : Plot-Tick-Engine (plot-real-ticks*)]
@@ -67,11 +75,12 @@
 
     (define-values (maybe-xorig maybe-yorig) (plot-cartesian-maybe-settings maybe-origin))
     (define-values (maybe-xunit maybe-yunit) (plot-cartesian-maybe-settings maybe-unit))
-    (define-values (flwidth   view-width x-neg-margin x-pos-margin) (plot-axis-length-values as width))
+    (define-values (flwidth   view-width x-neg-margin x-pos-margin) (plot-axis-length-values as x-marker width))
     (define-values (flheight view-height y-neg-margin y-pos-margin)
-      (cond [(rational? height) (plot-axis-length-values as height flwidth)]
-            [else (plot-axis-height-values as view-width (/ (- (cdr yview) (car yview))
-                                                            (- (cdr xview) (car xview))))]))
+      (cond [(rational? height) (plot-axis-length-values as (or y-marker x-marker) height flwidth)]
+            [else (plot-axis-height-values as (or y-marker x-marker) view-width
+                                           (/ (- (cdr yview) (car yview))
+                                              (- (cdr xview) (car xview))))]))
     
     (define-values (xtick-range xO xunit) (plot-axis-metrics  xview maybe-xorig  view-width maybe-xunit))
     (define-values (ytick-range yO yunit) (plot-axis-metrics* yview maybe-yorig view-height (if (rational? height) maybe-yunit xunit) flc-ri))
@@ -85,6 +94,7 @@
     (define-values (digit-font label-font axis-color digit-color tick-color label-color) (plot-axis-visual-values as))
     (define-values (xdigit-position xdigit-anchor) (plot-axis-digit-position-values as 'x))
     (define-values (ydigit-position ydigit-anchor) (plot-axis-digit-position-values as 'y))
+    
     (define flthickness : Nonnegative-Flonum (plot-axis-style-thickness as))
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness as) flthickness))
     (define fltick-min : Nonnegative-Flonum (* fltick-thickness 0.5))
@@ -92,9 +102,7 @@
     (define ytick-min : Nonnegative-Flonum (+ fltick-min y-neg-margin))
     (define xtick-max : Nonnegative-Flonum (+ xtick-min view-width))
     (define ytick-max : Nonnegative-Flonum (+ ytick-min view-height))
-    (define xaxis-max : Nonnegative-Flonum (+ xtick-max x-pos-margin))
-    (define yaxis-max : Nonnegative-Flonum (+ ytick-max y-pos-margin))
-    (define flrhead : Nonnegative-Flonum (* flthickness pi))
+    (define axis-pen : Stroke (desc-stroke #:color axis-color #:width flthickness))
 
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
     (define zero : Geo (geo-text (string chO) digit-font #:color digit-color))
@@ -103,19 +111,36 @@
     (define Oshadow : Float-Complex (make-rectangular (+ (* view-width xO) xtick-min) (+ (* view-height yO) ytick-min)))
     (define Origin : Float-Complex (make-rectangular (real-part Oshadow) 0.0))
 
-    (define xaxis : Geo (geo-arrow flrhead (+ flwidth fltick-thickness) #:shaft-thickness flthickness #:stroke #false #:fill axis-color))
+    (define xaxis : Geo:Edge
+      (geo-edge* #:stroke axis-pen #:marker-placement 'inside
+                 #:source-marker (plot-axis-marker-style-negative-shape x-marker)
+                 #:target-marker (plot-axis-marker-style-positive-shape x-marker)
+                 (list the-M0 (gpp:point #\L (make-rectangular flwidth 0.0)))))
+    
     (define xoffset : Float-Complex (make-rectangular 0.0 (* xdigit-position em -1.0)))
     (define gxtick : (Option (Pairof Geo Geo-Pin-Anchor))
       (and (> xtick-length 0.0)
            (cons (geo-rectangle fltick-thickness xtick-length #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor as 'x))))
 
-    (define yaxis : Geo (geo-arrow flrhead (+ flheight fltick-thickness) -pi/2 #:shaft-thickness flthickness #:stroke #false #:fill axis-color))
+    (define yaxis : Geo:Edge
+      (geo-edge* #:stroke axis-pen #:marker-placement 'inside
+                 #:source-marker (plot-axis-marker-style-negative-shape (or y-marker x-marker))
+                 #:target-marker (plot-axis-marker-style-positive-shape (or y-marker x-marker))
+                 (list the-M0 (gpp:point #\L (flc-ri (- flheight))))))
+    
     (define yoffset : Float-Complex (make-rectangular (* ydigit-position em) 0.0))
     (define gytick : (Option (Pairof Geo Geo-Pin-Anchor))
       (and (> ytick-length 0.0)
            (cons (geo-rectangle ytick-length fltick-thickness #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor as 'y))))
+
+    (define-values (xsoff xeoff) (geo-edge-endpoint-offsets xaxis))
+    (define-values (ysoff yeoff) (geo-edge-endpoint-offsets yaxis))
+    (define xaxis-min : Flonum (- xtick-min x-neg-margin (- (real-part xsoff))))
+    (define xaxis-max : Flonum (+ xtick-max x-pos-margin (real-part xeoff)))
+    (define yaxis-min : Flonum (- ytick-min y-neg-margin (imag-part ysoff)))
+    (define yaxis-max : Flonum (+ ytick-max y-pos-margin (- (imag-part yeoff))))
 
     (define origin-dot->pos : Plot-Cartesian-Position-Map
       (case-lambda
@@ -140,10 +165,16 @@
         (append (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
                       (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oshadow))
 
-                (cond [(not xlabel) null]
-                      [else (let ([xgeo (geo-text xlabel label-font #:color label-color)])
-                              (plot-axis-sticker-cons xgeo xdigit-anchor (make-rectangular xaxis-max 0.0)
-                                                      xoffset null -inf.0 real-part +inf.0 #false))])
+                (for/fold ([labels : (Listof (GLayerof Geo)) null])
+                          ([lbl (if (pair? x-label)
+                                    (in-list (list (cons (car x-label) xaxis-min)
+                                                   (cons (cdr x-label) xaxis-max)))
+                                    (in-value (cons x-label xaxis-max)))])
+                (if (car lbl)
+                    (plot-axis-sticker-cons (geo-markup (car lbl) label-font #:color label-color)
+                                            xdigit-anchor (make-rectangular (cdr lbl) 0.0)
+                                            xoffset labels -inf.0 real-part +inf.0 #false)
+                    labels))
 
                 (for/fold ([xticks : (Listof (GLayerof Geo)) null])
                           ([xtick (in-list actual-xticks)])
@@ -156,10 +187,16 @@
                                                  (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max #false)]
                         [else xticks]))
 
-                (cond [(not ylabel) null]
-                      [else (let ([ygeo (geo-text ylabel label-font #:color label-color)])
-                              (plot-axis-sticker-cons ygeo ydigit-anchor (make-rectangular 0.0 (- yaxis-max))
-                                                      (+ Oshadow yoffset) null -inf.0 imag-part +inf.0 #false))])
+                (for/fold ([labels : (Listof (GLayerof Geo)) null])
+                          ([lbl (if (pair? y-label)
+                                    (in-list (list (cons (car y-label) yaxis-min)
+                                                   (cons (cdr y-label) yaxis-max)))
+                                    (in-value (cons y-label yaxis-max)))])
+                  (if (car lbl)
+                      (plot-axis-sticker-cons (geo-markup (car lbl) label-font #:color label-color)
+                                              ydigit-anchor (make-rectangular 0.0 (- (cdr lbl)))
+                                              (+ Oshadow yoffset) labels -inf.0 imag-part +inf.0 #false)
+                      labels))
 
                 (for/fold ([yticks : (Listof (GLayerof Geo)) null])
                           ([ytick (in-list actual-yticks)])

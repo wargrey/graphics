@@ -242,4 +242,3 @@
     
     (cond [(not translate?) abspos]
           [else (- abspos (geo-bbox-position (geo:path-bbox self)))])))
-

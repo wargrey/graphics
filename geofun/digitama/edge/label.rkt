@@ -5,34 +5,34 @@
 (require racket/math)
 (require racket/match)
 
-(require geofun/paint)
-(require geofun/font)
+(require "../../paint.rkt")
+(require "../../font.rkt")
 
-(require geofun/digitama/path/self)
+(require "../path/self.rkt")
 
-(require geofun/digitama/dc/text)
-(require geofun/digitama/dc/resize)
-(require geofun/digitama/convert)
-(require geofun/digitama/color)
-(require geofun/digitama/markup)
+(require "../dc/text.rkt")
+(require "../dc/resize.rkt")
+(require "../convert.rkt")
+(require "../color.rkt")
+(require "../markup.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Edge-Label-Datum (U Bytes (Pairof Bytes Bytes) (Listof (Option Bytes))))
+(define-type Geo-Edge-Label-Datum (U Bytes (Pairof Bytes Bytes) (Listof (Option Bytes))))
 
-(struct dia-edge-label
+(struct geo-edge-label
   ([sticker : Geo]
    [pos : Float-Complex]
    [dir : Float-Complex]
    [t : Flonum]
    [distance : Flonum])
-  #:type-name Dia-Edge-Label
-  #:constructor-name unsafe-dia-edge-label
+  #:type-name Geo-Edge-Label
+  #:constructor-name unsafe-geo-edge-label
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-dia-edge-label : (->* (Float-Complex Float-Complex Geo)
+(define make-geo-edge-label : (->* (Float-Complex Float-Complex Geo)
                                    (Flonum #:rotate? Boolean #:distance (Option Flonum) #:adjust-angle (Option Flonum))
-                                   Dia-Edge-Label)
+                                   Geo-Edge-Label)
   (lambda [start end label [t 0.5] #:rotate? [rotate? #true] #:distance [distance #false] #:adjust-angle [adjust #false]]
     (define dir : Float-Complex (- end start))
 
@@ -53,32 +53,32 @@
                                [(zero? Re) (if (positive? (imag-part dir)) 1.0 -1.0)]
                                [else -1.0]))))]))
     
-    (unsafe-dia-edge-label sticker start dir t smart-distance)))
+    (unsafe-geo-edge-label sticker start dir t smart-distance)))
 
-(define make-dia-edge-labels : (->* (Float-Complex Float-Complex Dia-Edge-Label-Datum)
+(define make-geo-edge-labels : (->* (Float-Complex Float-Complex Geo-Edge-Label-Datum)
                                     (Flonum #:font (Option Font) #:font-paint Option-Fill-Paint #:distance (Option Flonum)
                                             #:rotate? Boolean #:adjust-angle (Option Flonum))
-                                    (Listof Dia-Edge-Label))
+                                    (Listof Geo-Edge-Label))
   (lambda [#:font [font #false] #:font-paint [font-paint #false] #:distance [distance #false] #:adjust-angle [adjust #false] #:rotate? [rotate? #true]
            start end label [base-position 0.25]]
     (define glabels : (Listof (Pairof Geo Flonum))
-      (cond [(bytes? label) (list (cons (dia-edge-label-text label #false font font-paint) 0.5))]
+      (cond [(bytes? label) (list (cons (geo-edge-label-text label #false font font-paint) 0.5))]
             [(list? label) ; single-item list also works as designed
              (let ([step (/ (- 1.0 base-position base-position) (max 1 (sub1 (length label))))])
                (for/list : (Listof (Pairof Geo Flonum)) ([lbl (in-list label)]
                                                          [pos (in-range base-position 1.1 step)]
                                                          #:when (bytes? lbl))
-                 (cons (dia-edge-label-text lbl #false font font-paint) pos)))]
-            [else (list (cons (dia-edge-label-text (car label) #false font font-paint) base-position)
-                        (cons (dia-edge-label-text (cdr label) #false font font-paint) (- 1.0 base-position)))]))
+                 (cons (geo-edge-label-text lbl #false font font-paint) pos)))]
+            [else (list (cons (geo-edge-label-text (car label) #false font font-paint) base-position)
+                        (cons (geo-edge-label-text (cdr label) #false font font-paint) (- 1.0 base-position)))]))
 
     (for/list ([g (in-list glabels)])
-      (make-dia-edge-label #:distance distance #:adjust-angle adjust #:rotate? rotate?
+      (make-geo-edge-label #:distance distance #:adjust-angle adjust #:rotate? rotate?
                            start end (car g) (cdr g)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; TODO: transparent color makes the label clear underneath arrows but sometimes doesn't work for pdf
-(define dia-edge-label-text : (-> (U Bytes PExpr) (Option Symbol) (Option Font) Option-Fill-Paint Geo)
+(define geo-edge-label-text : (-> (U Bytes PExpr) (Option Symbol) (Option Font) Option-Fill-Paint Geo)
   (lambda [text text-id font paint]
     (geo-markup #:id text-id #:alignment 'center
                 #:color paint #:background transparent
@@ -86,26 +86,26 @@
                 text font)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-edge-label-map : (-> Geo-Path-Labels (Option Dia-Edge-Label-Datum))
+(define geo-edge-label-map : (-> Geo-Path-Labels (Option Geo-Edge-Label-Datum))
   (lambda [info]
     (cond [(list? info) (map dc-markup-datum->maybe-text info)]
           [(pair? info) (cons (dc-markup-datum->text (car info)) (dc-markup-datum->text (cdr info)))]
           [else (dc-markup-datum->maybe-text info)])))
 
-(define dia-edge-multiplicity-map : (-> Geo-Path-Multiplicity-Datum (Option Bytes))
+(define geo-edge-multiplicity-map : (-> Geo-Path-Multiplicity-Datum (Option Bytes))
   (lambda [mult]
     (and mult (string->bytes/utf-8 (format "~a" mult)))))
 
-(define dia-edge-multiplicities-map : (-> Geo-Path-Multiplicity-Datum Geo-Path-Multiplicity-Datum (Option Dia-Edge-Label-Datum))
+(define geo-edge-multiplicities-map : (-> Geo-Path-Multiplicity-Datum Geo-Path-Multiplicity-Datum (Option Geo-Edge-Label-Datum))
   (lambda [source target]
-    (define src (dia-edge-multiplicity-map source))
-    (define tgt (dia-edge-multiplicity-map target))
+    (define src (geo-edge-multiplicity-map source))
+    (define tgt (geo-edge-multiplicity-map target))
 
     (cond [(and src tgt) (cons src tgt)]
           [(or  src tgt) (list src tgt)]
           [else #false])))
 
-(define dia-edge-label-filter : (-> Any (Option Dia-Edge-Label-Datum))
+(define geo-edge-label-filter : (-> Any (Option Geo-Edge-Label-Datum))
   (lambda [info]
     (cond [(dc-markup-text? info) (dc-markup-datum->text info)]
           [(pair? info)
@@ -124,10 +124,10 @@
                  [_ #false]))]
           [else #false])))
 
-(define dia-edge-label-flatten : (-> (Listof Dia-Edge-Label-Datum) (Listof Bytes))
+(define geo-edge-label-flatten : (-> (Listof Geo-Edge-Label-Datum) (Listof Bytes))
   (lambda [labels]
     (let flatten ([bs : (Listof Bytes) null]
-                  [labels : (Listof Dia-Edge-Label-Datum) labels])
+                  [labels : (Listof Geo-Edge-Label-Datum) labels])
       (if (pair? labels)
           (let ([self (car labels)])
             (cond [(bytes? self) (flatten (cons self bs) (cdr labels))]
@@ -135,11 +135,11 @@
                   [else (flatten (list* (car self) (cdr self) bs) (cdr labels))]))
           bs))))
 
-(define dia-edge-label-match? : (-> (Listof Bytes) (U Byte-Regexp Regexp) Boolean)
+(define geo-edge-label-match? : (-> (Listof Bytes) (U Byte-Regexp Regexp) Boolean)
   (lambda [labels keywords]
     (for/or : Boolean ([label (in-list labels)])
       (regexp-match? keywords label))))
 
-(define dia-edge-label-double-angle-bracketed? : (-> (Listof Bytes) Boolean)
+(define geo-edge-label-double-angle-bracketed? : (-> (Listof Bytes) Boolean)
   (lambda [labels]
-    (dia-edge-label-match? labels #px"^&lt;&lt;\\w+&gt;&gt;$")))
+    (geo-edge-label-match? labels #px"^&lt;&lt;\\w+&gt;&gt;$")))

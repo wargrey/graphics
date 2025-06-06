@@ -8,12 +8,13 @@
 
 (require geofun/font)
 (require geofun/paint)
+
 (require geofun/digitama/base)
+(require geofun/digitama/edge/marker/self)
+(require geofun/digitama/edge/marker/arrow)
 
 (require "../node/style.rkt")
 (require "../edge/style.rkt")
-(require "../edge/tip.rkt")
-(require "../edge/tip/arrow.rkt")
 
 (require "../shared.rkt")
 
@@ -39,8 +40,8 @@
   ([font : (Option Font) default-edge-label-font]
    [font-paint : Option-Fill-Paint 'DimGray]
    [line-paint : Maybe-Stroke-Paint default-edge-stroke]
-   [source-shape : Option-Edge-Tip-Shape #false]
-   [target-shape : Option-Edge-Tip-Shape default-arrow-tip]
+   [source-marker : Option-Geo-Marker #false]
+   [target-marker : Option-Geo-Marker default-arrow-marker]
    [label-rotate? : Boolean #false]
    [label-inline? : Boolean #true]
    [label-distance : (Option Flonum) #false]))
@@ -52,8 +53,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) (void)]
    [dash : (Option Stroke-Dash-Datum) #false]
-   [source-shape : Maybe-Edge-Tip-Shape (void)]
-   [target-shape : Maybe-Edge-Tip-Shape (void)]
+   [source-marker : Maybe-Geo-Marker (void)]
+   [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
@@ -65,8 +66,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DarkSlateGray]
    [dash : (Option Stroke-Dash-Datum) #false]
-   [source-shape : Maybe-Edge-Tip-Shape (void)]
-   [target-shape : Maybe-Edge-Tip-Shape (void)]
+   [source-marker : Maybe-Geo-Marker (void)]
+   [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
@@ -78,8 +79,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumSeaGreen]
    [dash : (Option Stroke-Dash-Datum) #false]
-   [source-shape : Maybe-Edge-Tip-Shape (void)]
-   [target-shape : Maybe-Edge-Tip-Shape (void)]
+   [source-marker : Maybe-Geo-Marker (void)]
+   [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
@@ -91,8 +92,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DarkGoldenrod]
    [dash : (Option Stroke-Dash-Datum) #false]
-   [source-shape : Maybe-Edge-Tip-Shape (void)]
-   [target-shape : Maybe-Edge-Tip-Shape (void)]
+   [source-marker : Maybe-Geo-Marker (void)]
+   [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
@@ -104,8 +105,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'SteelBlue]
    [dash : (Option Stroke-Dash-Datum) #false]
-   [source-shape : Maybe-Edge-Tip-Shape (void)]
-   [target-shape : Maybe-Edge-Tip-Shape (void)]
+   [source-marker : Maybe-Geo-Marker (void)]
+   [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
@@ -117,8 +118,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DodgerBlue]
    [dash : (Option Stroke-Dash-Datum) 'dot]
-   [source-shape : Maybe-Edge-Tip-Shape (void)]
-   [target-shape : Maybe-Edge-Tip-Shape (void)]
+   [source-marker : Maybe-Geo-Marker (void)]
+   [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
@@ -130,8 +131,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash-Datum) 'dot-dash]
-   [source-shape : Maybe-Edge-Tip-Shape #false]
-   [target-shape : Maybe-Edge-Tip-Shape #false]
+   [source-marker : Maybe-Geo-Marker #false]
+   [target-marker : Maybe-Geo-Marker #false]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #true]
    [label-distance : (U Void Flonum) (void)]))

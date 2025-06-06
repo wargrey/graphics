@@ -1,7 +1,6 @@
 #lang typed/racket/base
 
 (require geofun/vector)
-(require colorspace/cie)
 (require colorspace/ok)
 
 (require "misc.rkt")
@@ -63,21 +62,38 @@
              (geo-solid (oklch 0.42100 4825/10000 328.4000) size)))
  'rc 'cc 16.0 16.0)
 
-(geo-hc-append #:gapsize 16.0
-               (geo-table*
-                (for/list : (Listof (Listof Geo)) ([chroma (in-range 0.0 101.0 1.0)])
-                  (for/list : (Listof Geo) ([hue (in-range 360)])
-                    (geo-rectangle 1 2 #:stroke #false #:fill (hsv hue (* chroma 0.01) 1.0))))
-                'rc 'cc '(8.0 0.0))
-               
-               (geo-table*
-                (for/list : (Listof (Listof Geo)) ([chroma (in-range 101)])
-                  (for/list : (Listof Geo) ([hue (in-range 360)])
-                    (geo-rectangle 1 2 #:stroke #false #:fill (lch 1.0 (/ chroma 100) hue))))
-                'rc 'cc '(8.0 0.0))
-               
-               (geo-table*
-                (for/list : (Listof (Listof Geo)) ([chroma (in-range 101)])
-                  (for/list : (Listof Geo) ([hue (in-range 360)])
-                    (geo-rectangle 1 2 #:stroke #false #:fill (oklch 1.0 (/ chroma 100) hue))))
-                'rc 'cc '(8.0 0.0)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-display-hcl : (-> Nonnegative-Real Geo)
+  (lambda [light]
+    (geo-ht-append #:gapsize 16.0
+                 (geo-text (format "light: ~a%" (* light 100)))
+                 
+                 (geo-table*
+                  (for/list : (Listof (Listof Geo)) ([chroma (in-range 101)])
+                    (for/list : (Listof Geo) ([hue (in-range 1 360)])
+                      (geo-rectangle 1 2 #:stroke #false #:fill (lch light (/ chroma 100) hue))))
+                  'rc 'cc '(8.0 0.0))
+                 
+                 (geo-table*
+                  (for/list : (Listof (Listof Geo)) ([chroma (in-range 101)])
+                    (for/list : (Listof Geo) ([hue (in-range 1 360)])
+                      (geo-rectangle 1 2 #:stroke #false #:fill (oklch light (/ chroma 100) hue))))
+                  'rc 'cc '(8.0 0.0)))))
+
+'HSV
+(geo-table*
+ (for/list : (Listof (Listof Geo)) ([chroma (in-range 0.0 101.0 1.0)])
+   (for/list : (Listof Geo) ([hue (in-range 360)])
+     (geo-rectangle 1 2 #:stroke #false #:fill (hsv hue (* chroma 0.01) 1.0))))
+ 'rc 'cc '(8.0 0.0))
+
+(geo-display-hcl 0.1)
+(geo-display-hcl 0.2)
+(geo-display-hcl 0.3)
+(geo-display-hcl 0.4)
+(geo-display-hcl 0.5)
+(geo-display-hcl 0.6)
+(geo-display-hcl 0.7)
+(geo-display-hcl 0.8)
+(geo-display-hcl 0.9)
+(geo-display-hcl 1.0)

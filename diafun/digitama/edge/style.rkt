@@ -2,8 +2,8 @@
 
 (provide (all-defined-out))
 
-(require "tip.rkt")
-(require "label.rkt")
+(require geofun/digitama/edge/label)
+(require geofun/digitama/edge/marker/self)
 
 (require geofun/digitama/base)
 (require geofun/digitama/convert)
@@ -18,7 +18,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Free-Edge-Endpoint (U Geo-Anchor-Name Float-Complex))
 
-(define-type (Dia-Edge-Style-Make* Src Tgt S) (-> Src Tgt (Listof Dia-Edge-Label-Datum) (U S Void False)))
+(define-type (Dia-Edge-Style-Make* Src Tgt S) (-> Src Tgt (Listof Geo-Edge-Label-Datum) (U S Void False)))
 (define-type (Dia-Edge-Style-Make S) (Dia-Edge-Style-Make* Geo (Option Geo) S))
 (define-type (Dia-Free-Edge-Style-Make S) (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint S))
 
@@ -28,8 +28,8 @@
    [width : (Option Flonum)]
    [color : (U Color Void False)]
    [dash : (Option Stroke-Dash-Datum)]
-   [source-shape : Maybe-Edge-Tip-Shape]
-   [target-shape : Maybe-Edge-Tip-Shape]
+   [source-marker : Maybe-Geo-Marker]
+   [target-marker : Maybe-Geo-Marker]
    [label-rotate? : (U Boolean Void)]
    [label-inline? : (U Boolean Void)]
    [label-distance : (U Flonum Void)])
@@ -41,8 +41,8 @@
   ([font : (Option Font)]
    [font-paint : Option-Fill-Paint]
    [line-paint : Maybe-Stroke-Paint]
-   [source-shape : Option-Edge-Tip-Shape]
-   [target-shape : Option-Edge-Tip-Shape]
+   [source-marker : Option-Geo-Marker]
+   [target-marker : Option-Geo-Marker]
    [label-rotate? : Boolean]
    [label-inline? : Boolean]
    [label-distance : (Option Flonum)])
@@ -85,15 +85,15 @@
           [(stroke? fallback-paint) (desc-stroke fallback-paint #:color s)]
           [else s])))
 
-(define dia-edge-select-source-shape : (-> Dia-Edge-Style Option-Edge-Tip-Shape)
+(define dia-edge-select-source-marker : (-> Dia-Edge-Style Option-Geo-Marker)
   (lambda [s]
-    (define shape : Maybe-Edge-Tip-Shape (dia-edge-style-source-shape s))
-    (if (void? shape) (dia-edge-base-style-source-shape ((default-dia-edge-base-style))) shape)))
+    (define shape : Maybe-Geo-Marker (dia-edge-style-source-marker s))
+    (if (void? shape) (dia-edge-base-style-source-marker ((default-dia-edge-base-style))) shape)))
 
-(define dia-edge-select-target-shape : (-> Dia-Edge-Style Option-Edge-Tip-Shape)
+(define dia-edge-select-target-marker : (-> Dia-Edge-Style Option-Geo-Marker)
   (lambda [s]
-    (define shape : Maybe-Edge-Tip-Shape (dia-edge-style-target-shape s))
-    (if (void? shape) (dia-edge-base-style-target-shape ((default-dia-edge-base-style))) shape)))
+    (define shape : Maybe-Geo-Marker (dia-edge-style-target-marker s))
+    (if (void? shape) (dia-edge-base-style-target-marker ((default-dia-edge-base-style))) shape)))
 
 (define dia-edge-select-font : (-> Dia-Edge-Style (Option Font))
   (lambda [s]
@@ -129,7 +129,7 @@
                  [dash dash-datum])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (Src Tgt S) dia-edge-style-construct : (-> Src Tgt (Listof Dia-Edge-Label-Datum) (Option (Dia-Edge-Style-Make* Src Tgt S)) (-> S) S)
+(define #:forall (Src Tgt S) dia-edge-style-construct : (-> Src Tgt (Listof Geo-Edge-Label-Datum) (Option (Dia-Edge-Style-Make* Src Tgt S)) (-> S) S)
   (lambda [source target label mk-style mk-fallback-style]
     (define maybe-style (and mk-style (mk-style source target label)))
 

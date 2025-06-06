@@ -24,8 +24,7 @@
     (define label (geo-text datum font #:color c))
 
     (if (< r 2)
-        (geo-vc-append #:gapsize 4.0
-                       arrow label)
+        (geo-vc-append #:gapsize 4.0 arrow label)
         (geo-vc-append #:gapsize 4.0
                        arrow
                        (geo-pin* 0.5 0.25 0.5 0.5
