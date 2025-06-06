@@ -64,6 +64,7 @@
                 #:stroke (dia-edge-select-line-paint style)
                 #:source-marker (dia-edge-select-source-marker style)
                 #:target-marker (and target (not (dia:node:label? target)) (dia-edge-select-target-marker style))
+                #:marker-placement 'inside
                 tracks)
      labels)))
 
@@ -82,6 +83,7 @@
                 #:stroke (dia-edge-select-line-paint style)
                 #:source-marker (dia-edge-select-source-marker style)
                 #:target-marker (dia-edge-select-target-marker style)
+                #:marker-placement 'inside
                 tracks)
      labels)))
 
