@@ -12,7 +12,7 @@
 (require "misc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Palette-Index->Pen+Brush-Colors (-> Positive-Index (Option FlRGBA) (Pairof FlRGBA FlRGBA)))
+(define-type Palette-Index->Pen+Brush-Colors (-> Index (Option FlRGBA) (Pairof FlRGBA FlRGBA)))
 (define-type Palette-Brightness-Threshold (U Nonnegative-Flonum (Pairof Nonnegative-Flonum Nonnegative-Flonum)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -44,9 +44,15 @@
             [else (values (max 0.0 (- 0.5 T)) (min 1.0 (+ 0.5 T)))]))
     (define interpolate (oklch-palette-sigmoid-interpolator sigmoid #:threshold T #:k k #:dark-range drk-rng #:light-range lgt-rng))
 
-    (define (gen-color [idx : Positive-Index] [bgL : Flonum] [bgC : Flonum]) : (Pairof FlRGBA FlRGBA)
-      (define H (real->hue (+ (if (rational? hue0) hue0 fallback-hue0) (* (sub1 idx) hue-delta))))
+    (define (gen-color [idx : Index] [bgL : Flonum] [bgC : Flonum] [bgH : Flonum]) : (Pairof FlRGBA FlRGBA)
       (define Lf (interpolate bgL))
+
+      (define H
+        (real->hue (+ (cond [(rational? hue0) hue0]
+                            [(rational? bgH) (+ bgH 150)]
+                            [else fallback-hue0])
+                      (* idx hue-delta))))
+      
       (define Cf (* C0
                     (cond [(< bgL Tdark)  (+ 0.8 (* 0.4 bgL))]
                           [(> bgL Tlight) (- 1.5 (* 0.5 bgL))]
@@ -58,8 +64,8 @@
       (define Ls
         (cond [(<= bgL Tdark)  (+ Lf ΔL (* 0.25 (log (max 0.0 (- 2.0 bgL)))))]
               [(>= bgL Tlight) (- Lf ΔL (* 0.05 bgL))]
-              [(<= Lf 0.5) (+ Lf ΔL (* 0.05 bgL))]
-              [else (- Lf ΔL (* 0.05 bgL))]))
+              [(<= Lf 0.5) (+ Lf ΔL (* 0.1 (- 1.0 bgL)))]
+              [else (- Lf ΔL (* 0.1 bgL))]))
       
       (define Cs (* Cf (- 1.0 (* 0.1 (/ Ls Lf)))))
       
@@ -74,7 +80,8 @@
             (rgb->oklch (rgba-red bg) (rgba-green bg) (rgba-blue bg))
             (values 1.0 0.0 +nan.0)))
         
-      (hash-ref! color-db (cons idx bgL) (λ [] (gen-color idx bgL bgC))))))
+      (hash-ref! color-db (list idx bgL bgC bgH)
+                 (λ [] (gen-color idx bgL bgC bgH))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define oklch-palette-sigmoid-interpolator : (->* ((-> Flonum Flonum))
@@ -130,3 +137,6 @@
   (lambda [Lf bgL]
     (/ (+ (max Lf bgL) 0.05)
        (+ (min Lf bgL) 0.05))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define the-oklch-palette : Palette-Index->Pen+Brush-Colors (oklch-palette-create))

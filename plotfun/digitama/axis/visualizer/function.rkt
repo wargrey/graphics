@@ -3,23 +3,23 @@
 (provide (all-defined-out))
 
 (require geofun/paint)
-(require geofun/color)
 
 (require geofun/digitama/base)
+(require geofun/digitama/paint)
 (require geofun/digitama/markup)
 (require geofun/digitama/convert)
-(require geofun/digitama/dc/polygon)
 
 (require geofun/digitama/paint/self)
-(require geofun/digitama/paint/source)
+(require geofun/digitama/unsafe/dc/path)
 
 (require "self.rkt")
 (require "../interface.rkt")
 (require "../../sample.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct plot:function geo:polyline
-  ([samples : Positive-Index])
+(struct plot:function geo:visualizer
+  ([dots : (Listof Float-Complex)]
+   [samples : Positive-Index])
   #:type-name Plot:Function
   #:transparent)
 
@@ -33,11 +33,11 @@
            #:fast-range [fast-range : (Option Plot-Visualizer-Data-Range) #false]
            [f : (-> Real (Option Number))]
            [maybe-xmin : (Option Real) #false] [maybe-xmax : (Option Real) #false]
-           [maybe-ymin : (Option Real) #false] [maybe-ymax : (Option Real) #false]] : Plot:Visualizer
+           [maybe-ymin : (Option Real) #false] [maybe-ymax : (Option Real) #false]] : Plot-Visualizer
     (define-values (xrange yrange) (plot-range-normalize maybe-xmin maybe-xmax maybe-ymin maybe-ymax))
     
     (define plot-function-realize : Plot-Visualizer-Realize
-      (lambda [idx xtick-rng ytick-rng transform L-bg]
+      (lambda [idx xtick-rng ytick-rng transform bg-color]
         (define xs : (Listof Real) (geo-linear-samples (car xtick-rng) (cdr xtick-rng) samples))
         (define-values (dots x y width height)
           (let-values ([(dots x y width height)
@@ -50,16 +50,15 @@
         (define pen : Stroke
           (plot-desc-pen #:width pen-width #:dash pen-dash
                          #:color (or pen-color
-                                     (let ([cs ((default-plot-palette) idx L-bg)])
+                                     (let ([cs ((default-plot-palette) idx bg-color)])
                                        (car cs)))))
         
-        (values (create-geometry-object plot:function
-                                        #:with [id (geo-draw-polyline pen)
-                                                   (geo-shape-extent width height 0.0 0.0)
-                                                   (geo-shape-outline pen #true #true)]
-                                        dots (- x) (- y) #false samples)
-                (make-rectangular x y)
-                #false)))
+        (create-geometry-object plot:function
+                                #:with [id (geo-draw-function pen)
+                                           (geo-shape-extent width height 0.0 0.0)
+                                           (geo-shape-outline pen #true #true)]
+                                (make-rectangular x y) #false
+                                dots samples)))
 
     (define plot-function-range : Plot-Visualizer-Data-Range
       (lambda [xmin xmax]
@@ -71,7 +70,7 @@
                            (or maybe-range
                                (~y-bounds (plot-safe-function f) xs)))))))
 
-    (plot:visualizer plot-function-realize xrange yrange
+    (plot-visualizer plot-function-realize xrange yrange
                      (or fast-range plot-function-range))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -84,3 +83,13 @@
        (with-handlers ([exn:fail? (λ _ #false)])
          (f x)))
      (assert (object-name f) symbol?))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-draw-function : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke]
+    (λ [self cr x0 y0 width height]
+      (when (plot:function? self)
+        (define pos (geo:visualizer-position self))
+        (dc_polyline cr (- x0 (real-part pos)) (- y0 (imag-part pos)) width height
+                     (plot:function-dots self)
+                     (geo-select-stroke-paint* alt-stroke) #false)))))

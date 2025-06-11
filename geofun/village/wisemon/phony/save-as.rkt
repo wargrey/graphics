@@ -67,31 +67,33 @@
                          null)]
                     [else null])))))
 
-(define make-graphics-specs : (-> Info-Ref Symbol String (Listof Path) Wisemon-Specification)
+(define make-graphics-specs : (-> (Option Info-Ref) Symbol String (Listof Path) Wisemon-Specification)
   (lambda [info-ref gformat .ext modules]
     (define /dev/null : Output-Port (open-output-nowhere))
     
     (for/fold ([specs : Wisemon-Specification null])
-              ([module.rkt (in-list (find-digimon-files graphics-filter (current-directory)))])
-      (if (or (null? modules) (member module.rkt modules))
-          (with-handlers ([exn:fail? (λ [[e : exn:fail]] (dtrace-exception e #:level 'error #:brief? (not (make-verbose))) specs)])
-            (parameterize ([current-output-port /dev/null]
-                           [current-directory (or (path-only module.rkt) (current-directory))])
-              (dynamic-require module.rkt #false))
-            
-            (make-module-specs module.rkt gformat .ext specs))
-          specs))))
+              ([module.rkt (in-list (cond [(pair? modules) modules]
+                                          [(not info-ref) (find-digimon-files graphics-filter (current-directory))]
+                                          [else null]))])
+      (with-handlers ([exn:fail? (λ [[e : exn:fail]] (dtrace-exception e #:level 'error #:brief? (not (make-verbose))) specs)])
+        (parameterize ([current-output-port /dev/null]
+                       [current-directory (or (path-only module.rkt) (current-directory))])
+          (dynamic-require module.rkt #false))
+        
+        (make-module-specs module.rkt gformat .ext specs)))))
   
-(define make~save-as : (-> Symbol String Make-Info-Phony)
+(define make~save-as : (-> Symbol String Make-Free-Phony)
   (lambda [gformat .ext]
     (λ [digimon info-ref]
-      (define natives (map (inst car Path CC-Launcher-Info) (find-digimon-native-launcher-names info-ref #false)))
+      (unless (not info-ref)
+        (define natives (map (inst car Path CC-Launcher-Info) (find-digimon-native-launcher-names info-ref #false)))
+        
+        (wisemon-make (make-ffi-library-specs info-ref natives) px.so)
+        (wisemon-compile (current-directory) digimon info-ref))
+
       (define-values (modules targets)
         (partition (λ [[p : Path]] (regexp-match? #px"[.]rkt$" p))
                    (current-make-real-targets)))
-
-      (wisemon-make (make-ffi-library-specs info-ref natives) px.so)
-      (wisemon-compile (current-directory) digimon info-ref)
 
       (wisemon-make (make-graphics-specs info-ref gformat .ext modules) targets))))
 
@@ -106,10 +108,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define png-phony-goal : Wisemon-Phony
-  (wisemon-make-info-phony #:name 'png #:phony (make~save-as 'png-bytes ".png") #:desc "Export module-level images as PNGs"))
+  (wisemon-make-free-phony #:name 'png #:phony (make~save-as 'png-bytes ".png") #:desc "Export module-level images as PNGs"))
 
 (define svg-phony-goal : Wisemon-Phony
-  (wisemon-make-info-phony #:name 'svg #:phony (make~save-as 'svg-bytes ".svg") #:desc "Export module-level images as SVGs"))
+  (wisemon-make-free-phony #:name 'svg #:phony (make~save-as 'svg-bytes ".svg") #:desc "Export module-level images as SVGs"))
 
 (define pdf-phony-goal : Wisemon-Phony
-  (wisemon-make-info-phony #:name 'pdf #:phony (make~save-as 'pdf-bytes ".pdf") #:desc "Export module-level images as PDFs"))
+  (wisemon-make-free-phony #:name 'pdf #:phony (make~save-as 'pdf-bytes ".pdf") #:desc "Export module-level images as PDFs"))

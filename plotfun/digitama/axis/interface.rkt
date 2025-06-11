@@ -64,4 +64,4 @@
 (define default-plot-visualizer-samples : (Parameterof Positive-Index) (make-parameter 512))
 
 (define default-plot-function-stroke : (Parameterof Stroke) (make-parameter (desc-stroke #:width 1.5 #:join 'round #:cap 'round #:opacity 0.75)))
-(define default-plot-palette : (Parameterof Palette-Index->Pen+Brush-Colors) (make-parameter (oklch-palette-create)))
+(define default-plot-palette : (Parameterof Palette-Index->Pen+Brush-Colors) (make-parameter the-oklch-palette))

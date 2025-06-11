@@ -8,12 +8,14 @@
 (require geofun/vector)
 (require geofun/digitama/markup)
 
+(require colorspace/palette)
+
 (require "../node/dc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Procedure-Label-Datum (U False Void String Symbol PExpr-Element Keyword Geo))
 (define-type Dia-Procedure-Label (U Dia-Procedure-Label-Datum (-> Nonnegative-Flonum Geo)))
-(define-type Dia-Procedure-IO-Fill (-> Dia-Procedure-Label-Datum Symbol Fill-Paint))
+(define-type Dia-Procedure-IO-Fill (-> Index Dia-Procedure-Label-Datum Symbol Fill-Paint))
 
 (define default-procedure-label-font : (Parameterof Font) (make-parameter (desc-font #:family 'math #:size 48)))
 (define default-procedure-datum-font : (Parameterof Font) (make-parameter (desc-font #:family 'monospace #:size 48)))
@@ -26,16 +28,18 @@
 (define default-procedure-datum-color : (Parameterof Color) (make-parameter 'DimGrey))
 
 (define default-procedure-iofill : (Parameterof Dia-Procedure-IO-Fill)
-  (make-parameter (λ [[label : Dia-Procedure-Label-Datum] [type : Symbol]] : Fill-Paint
-                    (let label->fill ([lbl : Dia-Procedure-Label-Datum label])
-                      (cond [(or (not lbl) (eq? lbl '||) (eq? lbl '#:||) (void? lbl)) (default-procedure-body-fill)]
-                            [(geo? lbl) (label->fill (geo-id lbl))]
-                            [else (let ([label (cond [(symbol? lbl)  (string->bytes/utf-8 (symbol->immutable-string lbl))]
-                                                     [(keyword? lbl) (string->bytes/utf-8 (keyword->immutable-string lbl))]
-                                                     [(string? lbl)  (string->bytes/utf-8 lbl)]
-                                                     [else (dc-markup-datum->text lbl)])])
-                                    (cond [(bytes=? label #"") (default-procedure-body-fill)]
-                                          [else (xterm (bytes-ref label 0))]))])))))
+  (make-parameter (λ [[idx : Index] [label : Dia-Procedure-Label-Datum] [type : Symbol]] : Fill-Paint
+                    (if (eq? type 'Input)
+                        (cdr (the-oklch-palette idx #false))
+                        (let label->fill ([lbl : Dia-Procedure-Label-Datum label])
+                          (cond [(or (not lbl) (eq? lbl '||) (eq? lbl '#:||) (void? lbl)) (default-procedure-body-fill)]
+                                [(geo? lbl) (label->fill (geo-id lbl))]
+                                [else (let ([label (cond [(symbol? lbl)  (string->bytes/utf-8 (symbol->immutable-string lbl))]
+                                                         [(keyword? lbl) (string->bytes/utf-8 (keyword->immutable-string lbl))]
+                                                         [(string? lbl)  (string->bytes/utf-8 lbl)]
+                                                         [else (dc-markup-datum->text lbl)])])
+                                        (cond [(bytes=? label #"") (default-procedure-body-fill)]
+                                              [else (car (the-oklch-palette (bytes-ref label 0) #false))]))]))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-procedure
@@ -80,10 +84,10 @@
               [(or allow-void? (not (void? v))) (geo-text (format fmt v) datum-font #:color datum-color #:alignment 'center)]
               [else #false])))
     
-    (define dia-procedure-pipe : (-> Dia-Procedure-Label Symbol Nonnegative-Flonum String Any Geo)
-      (lambda [maybe-label type vpos fmt value]
+    (define dia-procedure-pipe : (-> Index Dia-Procedure-Label Symbol Nonnegative-Flonum String Any Geo)
+      (lambda [idx maybe-label type vpos fmt value]
         (define label (dia-procedure-caption maybe-label em label-font text-color))
-        (define fill-color (iofill-color (if (procedure? maybe-label) label maybe-label) type))
+        (define fill-color (iofill-color idx (if (procedure? maybe-label) label maybe-label) type))
         (define iobox (geo-sandglass io:width io:height #:neck-width -0.32 #:neck-height (* b:height 3.0) #:fill fill-color #:stroke border))
         (define pipe ((if (eq? type 'Input) geo-ct-crop geo-cb-crop) iobox io:width (* io:height 0.5)))
 
@@ -124,7 +128,7 @@
          (geo-hb-append* #:gapsize io:gapsize
                          (for/list : (Listof Geo) ([in (if (list? is) (in-list is) (in-vector is))]
                                                    [idx (in-naturals 0)])
-                           (dia-procedure-pipe in 'Input 0.42 input-format
+                           (dia-procedure-pipe (assert idx index?) in 'Input 0.42 input-format
                                                (when (< idx boundary)
                                                  (if (list? args)
                                                      (list-ref args idx)
@@ -147,7 +151,7 @@
          (geo-ht-append* #:gapsize io:gapsize
                          (for/list : (Listof Geo) ([out (in-vector os)]
                                                    [idx (in-naturals 0)])
-                           (dia-procedure-pipe out 'Output 0.55 output-format
+                           (dia-procedure-pipe (assert idx index?) out 'Output 0.55 output-format
                                                (when (< idx boundary)
                                                  (list-ref results idx))))))))
 

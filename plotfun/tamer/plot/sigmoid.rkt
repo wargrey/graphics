@@ -43,7 +43,7 @@
        (chroma-H x))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(module+ main
+(define sigmoid.plot
   (geo-hb-append #:gapsize 16.0
                  (plot-cartesian
                   #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
@@ -70,8 +70,9 @@
                   (function (sigmoid palette-sigmoid/algebraic #:k 20.0))
                   (function (sigmoid palette-sigmoid/algebraic #:k 30.0))
                   (function (sigmoid palette-sigmoid/algebraic #:k 40.0))
-                  (function (sigmoid palette-sigmoid/algebraic #:k 50.0))))
-  
+                  (function (sigmoid palette-sigmoid/algebraic #:k 50.0)))))
+
+(define brightness.plot
   (geo-hb-append #:gapsize 16.0
                  (plot-cartesian
                   #:x-range (cons 0.0 1.0) #:y-range (cons 0.0 1.0)
@@ -98,8 +99,9 @@
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 20.0))
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 30.0))
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 40.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 50.0))))
+                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 50.0)))))
 
+(define chroma.plot
   (plot-cartesian
    #:x-range (cons 0.0 360) #:y-range (cons 0.0 0.4) #:height 200.0
    #:x-label "H" #:y-label "C"
@@ -109,3 +111,9 @@
    (function (chroma 2/5 0.0 0.0))
    (function (chroma 2/5 0.5 0.0))
    (function (chroma 2/5 1.0 0.0))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(module+ main
+  sigmoid.plot
+  brightness.plot
+  chroma.plot)
