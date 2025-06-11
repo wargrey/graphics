@@ -4,19 +4,19 @@
 
 (require geofun/digitama/base)
 (require geofun/digitama/convert)
+(require geofun/digitama/markup)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Visualizer-Tree (Listof (U Plot:Visualizer Plot-Visualizer-Tree)))
 
 (define-type Plot-Visualizer-Tick-Range (Pairof (Option Real) (Option Real)))
 (define-type Plot-Visualizer-Data-Range (-> Real Real (Pairof Real Real)))
-(define-type Plot-Visualizer-Realize (-> Integer (Pairof Real Real) (Pairof Real Real) (-> Flonum Flonum Float-Complex)
-                                         (Values Geo Float-Complex (Option FlRGBA))))
+(define-type Plot-Visualizer-Realize (-> Positive-Index (Pairof Real Real) (Pairof Real Real) (-> Flonum Flonum Float-Complex) (Option FlRGBA)
+                                         (Values Geo Float-Complex (Option (Pairof Geo DC-Markup-Text)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot:visualizer
   ([realize : Plot-Visualizer-Realize]
-   [label : Any]
    [xrng : Plot-Visualizer-Tick-Range]
    [yrng : Plot-Visualizer-Tick-Range]
    [λrange : Plot-Visualizer-Data-Range])
@@ -91,6 +91,6 @@
     (values (car rng) (cdr rng))))
 
 (define plot-range-select : (-> Plot-Visualizer-Tick-Range (Pairof Real Real) (Pairof Real Real))
-  (lambda [rng fallback]
-    (cons (or (car rng) (car fallback))
-          (or (cdr rng) (cdr fallback)))))
+  (lambda [rng view]
+    (cons (if (car rng) (max (car view) (car rng)) (car view))
+          (if (cdr rng) (min (cdr view) (cdr rng)) (cdr view)))))

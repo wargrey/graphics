@@ -27,7 +27,7 @@
    [font-paint : Option-Fill-Paint]
    [width : (Option Flonum)]
    [color : (U Color Void False)]
-   [dash : (Option Stroke-Dash-Datum)]
+   [dash : (Option Stroke-Dash+Offset)]
    [source-marker : Maybe-Geo-Marker]
    [target-marker : Maybe-Geo-Marker]
    [label-rotate? : (U Boolean Void)]
@@ -77,10 +77,12 @@
     (cond [(void? s) fallback-paint]
           [(or (not s) (stroke? s)) s]
           [(dia-edge-style? s)
-           (let ([c (dia-edge-style-color s)])
+           (let*-values ([(c) (dia-edge-style-color s)]
+                         [(d+o) (dia-edge-style-dash s)]
+                         [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))])
              (desc-stroke #:color (and (not (void? c)) c)
                           #:width (dia-edge-style-width s)
-                          #:dash (dia-edge-style-dash s)
+                          #:dash dash #:offset offset
                           (if (stroke? fallback-paint) fallback-paint (default-stroke))))]
           [(stroke? fallback-paint) (desc-stroke fallback-paint #:color s)]
           [else s])))

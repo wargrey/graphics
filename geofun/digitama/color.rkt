@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [gray grey]))
 
 (require "base.rkt")
 
@@ -20,6 +21,8 @@
 (define transparent : FlRGBA (rgba 0.0 0.0 0.0 0.0))
 (define hilite : FlRGBA (rgba 0.0 0.0 0.0 0.3))
 (define black : FlRGBA (rgba 0.0 0.0 0.0 1.0))
+(define white : FlRGBA (rgba 1.0 1.0 1.0 1.0))
+(define gray : FlRGBA (rgba 0.5 0.5 0.5 1.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define $# : (-> (-> Flonum Flonum Flonum (Values Flonum Flonum Flonum)) Flonum Flonum Flonum Flonum Flonum FlRGBA)

@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require digimon/metrics)
+
 (require math/matrix)
 (require math/flonum)
 
@@ -244,18 +246,22 @@
     (define XYZn (if (eq? m 'D65) CIE-XYZn-D65 CIE-XYZn-D50))
 
     (values (λ [L a b]
-              (define Y* (/ (+ L 0.16) 1.16))
-              (XYZ->RGB (* (vector-ref XYZn 0) (CIE-lightness-transformation⁻¹ (+ Y* (/ a 500.0))))
-                        (* (vector-ref XYZn 1) (CIE-lightness-transformation⁻¹ Y*))
-                        (* (vector-ref XYZn 2) (CIE-lightness-transformation⁻¹ (- Y* (/ b 200.0))))))
+              (if (and (zero? a) (zero? b))
+                  (let ([gray (color-component-gamma-encode L)])
+                    (values gray gray gray))
+                  (let ([Y* (/ (+ L 0.16) 1.16)])
+                    (XYZ->RGB (* (vector-ref XYZn 0) (CIE-lightness-transformation⁻¹ (+ Y* (/ a 500.0))))
+                              (* (vector-ref XYZn 1) (CIE-lightness-transformation⁻¹ Y*))
+                              (* (vector-ref XYZn 2) (CIE-lightness-transformation⁻¹ (- Y* (/ b 200.0))))))))
             
             (λ [R G B]
-              (define-values (X Y Z) (RGB->XYZ R G B))
-              (define-values (X* Y* Z*) (CIE-XYZ-normalize X Y Z XYZn))
-              (values (- (* 1.160 (CIE-lightness-transformation Y*)) 0.16)
-                      (* 500.0 (- (CIE-lightness-transformation X*) (CIE-lightness-transformation Y*)))
-                      (* 200.0 (- (CIE-lightness-transformation Y*) (CIE-lightness-transformation Z*))))))))
-
+              (cond [(= R G B) (values (color-component-gamma-decode R) 0.0 0.0)]
+                    [else (let*-values ([(X Y Z) (RGB->XYZ R G B)]
+                                        [(X* Y* Z*) (CIE-XYZ-normalize X Y Z XYZn)])
+                            (values (~clamp (- (* 1.160 (CIE-lightness-transformation Y*)) 0.16) 0.0 1.0)
+                                    (* 500.0 (- (CIE-lightness-transformation X*) (CIE-lightness-transformation Y*)))
+                                    (* 200.0 (- (CIE-lightness-transformation Y*) (CIE-lightness-transformation Z*)))))])))))
+    
 (define CIE-make-LCH-RGB-convertors : (-> CIE-Illuminant-Type [#:rgb-filter CIE-Filter] (Values CIE<->RGB CIE<->RGB))
   (lambda [m #:rgb-filter [rgb-filter values]]
     (define-values (Lab->RGB RGB->Lab) (CIE-make-LAB-RGB-convertors m #:rgb-filter rgb-filter))

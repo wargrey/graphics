@@ -30,7 +30,7 @@
    [font-paint : Option-Fill-Paint]
    [stroke-width : (Option Flonum)]
    [stroke-color : (U Color Void False)]
-   [stroke-dash : (Option Stroke-Dash-Datum)]
+   [stroke-dash : (Option Stroke-Dash+Offset)]
    [fill-paint : Maybe-Fill-Paint])
   #:type-name Dia-Node-Style
   #:transparent)
@@ -114,10 +114,12 @@
     (define c (dia-node-style-stroke-color self))
 
     (and c
-         (desc-stroke #:color (and (not (void? c)) c)
-                      #:width (dia-node-style-stroke-width self)
-                      #:dash (dia-node-style-stroke-dash self)
-                      (if (stroke? fallback-paint) fallback-paint (default-stroke))))))
+         (let*-values ([(d+o) (dia-node-style-stroke-dash self)]
+                       [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))])
+           (desc-stroke #:color (and (not (void? c)) c)
+                        #:width (dia-node-style-stroke-width self)
+                        #:dash dash #:offset offset
+                        (if (stroke? fallback-paint) fallback-paint (default-stroke)))))))
 
 (define #:forall (T) dia-node-select-fill-paint : (case-> [Dia-Node-Style -> Maybe-Fill-Paint]
                                                           [Maybe-Fill-Paint (-> Dia-Node-Base-Style Maybe-Fill-Paint) -> Maybe-Fill-Paint]

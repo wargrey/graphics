@@ -59,9 +59,10 @@
 
 (define CIE-LCh->Lab : (-> Flonum Flonum (Values Flonum Flonum))
   (lambda [C h]
-    (define polar (make-polar C (degrees->radians h)))
-    (values (real-part polar) (imag-part polar))))
-            
+    (cond [(or (zero? C) (nan? h)) (values 0.0 0.0)]
+          [else (let ([polar (make-polar C (degrees->radians h))])
+                  (values (real-part polar) (imag-part polar)))])))
+
 (define CIE-Lab->LCh : (-> Flonum Flonum Flonum (Values Flonum Flonum))
   (λ [a b epsilon]
     (define polar (make-rectangular a b))

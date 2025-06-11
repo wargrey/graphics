@@ -42,3 +42,8 @@
     (cond [(stroke? s) (stroke-color s)]
           [(color? s) (rgb* s)]
           [else #false])))
+
+(define brush-maybe-rgba : (-> Any (Option FlRGBA))
+  (lambda [s]
+    (cond [(color? s) (rgb* s)]
+          [else #false])))

@@ -34,7 +34,7 @@
             [(real? join) (values 'miter (real->double-flonum join))]
             [else (values (stroke-linejoin baseline) (stroke-miterlimit baseline))]))
     (define-values (preoffset dasharray)
-      (cond [(stroke-dash-style? dash) (line-dash->array dash linewidth)]
+      (cond [(symbol? dash) (line-dash->array dash linewidth)]
             [(vector? dash) (values (stroke-offset baseline) (dasharray-normalize dash linewidth))]
             [else (values (stroke-offset baseline) (dasharray-normalize (stroke-dash baseline) linewidth (stroke-width baseline)))]))
     (define dashoffset : Flonum (if (not offset) preoffset (real->double-flonum offset)))

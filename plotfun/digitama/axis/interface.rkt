@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (rename-out [plot-desc-stroke plot-desc-pen]))
+(provide (rename-out [Palette-Index->Pen+Brush-Colors Plot-Palette]))
 
 (require geofun/font)
 (require geofun/stroke)
@@ -11,6 +11,8 @@
 
 (require geofun/digitama/paint/self)
 (require geofun/digitama/layer/type)
+
+(require colorspace/palette)
 
 (require "real.rkt")
 
@@ -34,16 +36,17 @@
   (lambda [x y]
     (make-rectangular x (- y))))
 
-(define plot-desc-stroke : (->* ()
-                                (Stroke #:color (Option Color) #:opacity (Option Real) #:width (Option Real)
-                                        #:cap (Option Symbol) #:join (U Symbol Real False)
-                                        #:dash (Option Stroke-Dash-Datum) #:offset (Option Real))
-                                Stroke)
-  (lambda [#:color [color #false] #:opacity [opacity #false] #:width [width #false]
-           #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]
+(define plot-desc-pen : (->* ()
+                             (Stroke #:color (Option Color) #:opacity (Option Real) #:width (Option Real) #:dash (Option Stroke-Dash+Offset))
+                             Stroke)
+  (lambda [#:color [color #false] #:opacity [opacity #false] #:width [width #false] #:dash [dash+offset #false]
            [baseline (default-plot-function-stroke)]]
-    (desc-stroke #:color color #:opacity opacity #:width width
-                 #:cap cap #:join join #:dash dash #:offset offset
+    (define-values (dash offset)
+      (if (pair? dash+offset)
+          (values (car dash+offset) (cdr dash+offset))
+          (values dash+offset #false)))
+    
+    (desc-stroke #:color color #:opacity opacity #:width width #:dash dash #:offset offset
                  baseline)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -61,3 +64,4 @@
 (define default-plot-visualizer-samples : (Parameterof Positive-Index) (make-parameter 512))
 
 (define default-plot-function-stroke : (Parameterof Stroke) (make-parameter (desc-stroke #:width 1.5 #:join 'round #:cap 'round #:opacity 0.75)))
+(define default-plot-palette : (Parameterof Palette-Index->Pen+Brush-Colors) (make-parameter (oklch-palette-create)))

@@ -2,7 +2,7 @@
 
 (provide (except-out (all-defined-out) define-color-model))
 (provide (struct-out FlRGBA) (struct-out FlColor) Color rgba color?)
-(provide transparent hilite black)
+(provide transparent hilite black white grey gray)
 
 (require colorspace)
 

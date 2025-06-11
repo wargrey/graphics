@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 (provide Plot:Cartesian plot:cartesian?)
 (provide Plot:Function plot:function? function)
+(provide Plot-Visualizer-Tree Plot:Visualizer plot:visualizer?)
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/singleton.rkt"))
 (provide (all-from-out "digitama/axis/tick/self.rkt"))
@@ -13,7 +14,7 @@
 (require digimon/complex)
 
 (require geofun/font)
-(require geofun/color)
+(require geofun/paint)
 (require geofun/stroke)
 (require geofun/constructor)
 
@@ -64,7 +65,12 @@
            #:y-tick-format [ytick-format : (Option Plot-Tick-Format) #false]
            #:x-tick->sticker [xdigit->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
            #:y-tick->sticker [ydigit->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
+           #:palette [palette : Plot-Palette (default-plot-palette)]
            #:fallback-range [fallback-dom : (Pairof Real Real) (default-plot-visualizer-domain-range)]
+           #:border [bdr : Maybe-Stroke-Paint #false]
+           #:background [bg : Maybe-Fill-Paint #false]
+           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false]
+           #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            . [tree : (U Plot:Visualizer Plot-Visualizer-Tree) *]] : Plot:Cartesian
     (define-values (visualizers maybe-xivl maybe-yivl) (plot-visualizer-tree-flatten tree))
     (define-values (xview yview)
@@ -149,17 +155,27 @@
 
     (define 0-as-xdigit? : Boolean
       (and (< (imag-part Oshadow) (imag-part xoffset))
-           (null? actual-yticks)))
+           (negative? (car xview))
+           #;(null? actual-yticks)))
 
-    (define vlayers : (Listof (Pairof (GLayerof Geo) (Option FlRGBA)))
-      (for/list ([r (in-list visualizers)]
-                 [idx (in-naturals 1)])
-        (define this-dom (plot-range-select (plot:visualizer-xrng r) xview))
-        (define this-ran (plot-range-select (plot:visualizer-yrng r) yview))
-        (define-values (graph pos legend-color) ((plot:visualizer-realize r) idx this-dom this-ran origin-dot->pos))
-        
-        (cons (geo-own-pin-layer 'lt pos graph 0.0+0.0i) legend-color)))
-
+    (define vlayers : (Listof (Pairof (GLayerof Geo) (Option (Pairof Geo DC-Markup-Text))))
+      (parameterize ([default-plot-palette palette])
+        (let ([N (length visualizers)])
+          (if (> N 0)
+              (let realize ([visualizers : (Listof Plot:Visualizer) visualizers]
+                            [idx : Positive-Fixnum 1]
+                            [sreyalv : (Listof (Pairof (GLayerof Geo) (Option (Pairof Geo DC-Markup-Text)))) null])
+                (if (and (pair? visualizers) (<= idx N))
+                    (let*-values ([(self) (car visualizers)]
+                                  [(this-dom) (plot-range-select (plot:visualizer-xrng self) xview)]
+                                  [(this-ran) (plot-range-select (plot:visualizer-yrng self) yview)]
+                                  [(graph pos legend) ((plot:visualizer-realize self) idx this-dom this-ran origin-dot->pos (brush-maybe-rgba bg))])
+                      (realize (cdr visualizers) (+ idx 1)
+                               (cons (cons (geo-own-pin-layer 'lt pos graph 0.0+0.0i) legend)
+                                     sreyalv)))
+                    (reverse sreyalv)))
+              null))))
+      
     (define layers : (Listof (GLayerof Geo))
       (parameterize ()
         (append (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
@@ -206,7 +222,7 @@
                                               (origin-dot->pos 0.0 yval) yoffset yticks -inf.0 imag-part +inf.0 gytick)
                       yticks))
 
-                (map (inst car (GLayerof Geo) (Option FlRGBA)) vlayers))))
+                (map (inst car (GLayerof Geo) (Option (Pairof Geo DC-Markup-Text))) vlayers))))
     
     (define translated-layers : (Option (GLayer-Groupof Geo))
       (if (not 0-as-xdigit?)
@@ -222,11 +238,17 @@
           Origin))
 
     (if (not translated-layers) ; just in case. say, infinite width
-        (create-geometry-group plot:cartesian id #false #false (geo-own-layers zero) delta-origin null null
+        (create-geometry-group plot:cartesian id #false #false
+                               #:border bdr #:background bg
+                               #:margin margin #:padding padding
+                               (geo-own-layers zero) delta-origin null null
                                (case-lambda
                                  [(x y) (make-rectangular x y)]
                                  [(dot) dot]))
-        (create-geometry-group plot:cartesian id #false #false translated-layers delta-origin
+        (create-geometry-group plot:cartesian id #false #false
+                               #:border bdr #:background bg
+                               #:margin margin #:padding padding
+                               translated-layers delta-origin
                                (map plot-tick-value* actual-xticks)
                                (map plot-tick-value* actual-yticks)
                                (let ([dot->pos (λ [[x : Flonum] [y : Flonum]] : Float-Complex (+ delta-origin (* x xunit) (* (- y) yunit)))])

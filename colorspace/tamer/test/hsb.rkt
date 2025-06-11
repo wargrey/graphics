@@ -1,9 +1,11 @@
 #lang typed/racket/base
 
-(require racket/list)
+(provide examples)
 
-(require "../hsb.rkt")
-(require "misc.rkt")
+(require racket/list)
+(require colorspace/hsb)
+
+(require "../misc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define examples : (Listof (List Natural Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum Flonum))

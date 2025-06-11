@@ -5,6 +5,8 @@
 (require geofun/paint)
 (require geofun/color)
 
+(require geofun/digitama/base)
+(require geofun/digitama/markup)
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/polygon)
 
@@ -23,9 +25,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define function
-  (lambda [#:id [id : (Option Symbol) #false] #:label [label : Any #false]
+  (lambda [#:id [id : (Option Symbol) #false] #:label [label : (Option DC-Markup-Text) #false]
            #:samples [samples : Positive-Index (default-plot-visualizer-samples)]
-           #:stroke [stroke : Option-Stroke-Paint #false]
+           #:color [pen-color : (Option Color) #false]
+           #:width [pen-width : (Option Real) #false]
+           #:dash [pen-dash : (Option Stroke-Dash+Offset) #false]
            #:fast-range [fast-range : (Option Plot-Visualizer-Data-Range) #false]
            [f : (-> Real (Option Number))]
            [maybe-xmin : (Option Real) #false] [maybe-xmax : (Option Real) #false]
@@ -33,8 +37,7 @@
     (define-values (xrange yrange) (plot-range-normalize maybe-xmin maybe-xmax maybe-ymin maybe-ymax))
     
     (define plot-function-realize : Plot-Visualizer-Realize
-      (lambda [idx xtick-rng ytick-rng transform]
-        (define pen : Stroke (stroke-paint->source (or stroke (rgb* (* idx 128.0))) (default-plot-function-stroke)))
+      (lambda [idx xtick-rng ytick-rng transform L-bg]
         (define xs : (Listof Real) (geo-linear-samples (car xtick-rng) (cdr xtick-rng) samples))
         (define-values (dots x y width height)
           (let-values ([(dots x y width height)
@@ -43,6 +46,12 @@
             (if (not dots)
                 (~cartesian2ds (plot-safe-function f) xs (car ytick-rng) (cdr ytick-rng) transform)
                 (values dots x y width height))))
+
+        (define pen : Stroke
+          (plot-desc-pen #:width pen-width #:dash pen-dash
+                         #:color (or pen-color
+                                     (let ([cs ((default-plot-palette) idx L-bg)])
+                                       (car cs)))))
         
         (values (create-geometry-object plot:function
                                         #:with [id (geo-draw-polyline pen)
@@ -62,8 +71,7 @@
                            (or maybe-range
                                (~y-bounds (plot-safe-function f) xs)))))))
 
-    (plot:visualizer plot-function-realize
-                     (or label (object-name f)) xrange yrange
+    (plot:visualizer plot-function-realize xrange yrange
                      (or fast-range plot-function-range))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -52,7 +52,7 @@
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) (void)]
-   [dash : (Option Stroke-Dash-Datum) #false]
+   [dash : (Option Stroke-Dash+Offset) #false]
    [source-marker : Maybe-Geo-Marker (void)]
    [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) (void)]
@@ -65,7 +65,7 @@
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DarkSlateGray]
-   [dash : (Option Stroke-Dash-Datum) #false]
+   [dash : (Option Stroke-Dash+Offset) #false]
    [source-marker : Maybe-Geo-Marker (void)]
    [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) #true]
@@ -78,7 +78,7 @@
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumSeaGreen]
-   [dash : (Option Stroke-Dash-Datum) #false]
+   [dash : (Option Stroke-Dash+Offset) #false]
    [source-marker : Maybe-Geo-Marker (void)]
    [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) (void)]
@@ -91,7 +91,7 @@
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DarkGoldenrod]
-   [dash : (Option Stroke-Dash-Datum) #false]
+   [dash : (Option Stroke-Dash+Offset) #false]
    [source-marker : Maybe-Geo-Marker (void)]
    [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) (void)]
@@ -104,7 +104,7 @@
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'SteelBlue]
-   [dash : (Option Stroke-Dash-Datum) #false]
+   [dash : (Option Stroke-Dash+Offset) #false]
    [source-marker : Maybe-Geo-Marker (void)]
    [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) #true]
@@ -117,7 +117,7 @@
    [font-paint : Option-Fill-Paint 'DodgerBlue]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DodgerBlue]
-   [dash : (Option Stroke-Dash-Datum) 'dot]
+   [dash : (Option Stroke-Dash+Offset) 'dot]
    [source-marker : Maybe-Geo-Marker (void)]
    [target-marker : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) #true]
@@ -130,7 +130,7 @@
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
-   [dash : (Option Stroke-Dash-Datum) 'dot-dash]
+   [dash : (Option Stroke-Dash+Offset) 'dot-dash]
    [source-marker : Maybe-Geo-Marker #false]
    [target-marker : Maybe-Geo-Marker #false]
    [label-rotate? : (U Boolean Void) #true]
@@ -188,7 +188,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'ForestGreen]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LightCyan]))
 
 (define-configuration diaflow-stop-style : DiaFlow-Stop-Style #:as dia-node-style
@@ -199,7 +199,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'DarkSlateGray]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Gainsboro]))
 
 ; On-Page-Connector -> Inspection
@@ -211,7 +211,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'DeepSkyBlue]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LightCyan]))
 
 ; Off-Page-Connector -> Reference
@@ -223,7 +223,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'DeepSkyBlue]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LightCyan]))
 
 (define-configuration diaflow-input-style : DiaFlow-Input-Style #:as dia-node-style
@@ -234,7 +234,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'LightSeaGreen]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'MintCream]))
 
 (define-configuration diaflow-output-style : DiaFlow-Output-Style #:as dia-node-style
@@ -245,7 +245,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'DarkOrchid]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-configuration diaflow-decision-style : DiaFlow-Decision-Style #:as dia-node-style
@@ -256,7 +256,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'Crimson]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 ; Predefined-Process -> Subroutine -> Prefab
@@ -268,7 +268,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'RoyalBlue]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 ; Manual-Operation -> Operation
@@ -280,7 +280,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'Teal]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 ; Initialization -> Preparation
@@ -292,7 +292,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'Maroon]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-configuration diaflow-delay-style : DiaFlow-Delay-Style #:as dia-node-style
@@ -303,7 +303,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'Peru]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 ; Or -> Selection, when a decision produces exclusive multiple outcomes
@@ -315,7 +315,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'IndianRed]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'SeaShell]))
 
 (define-configuration diaflow-junction-style : DiaFlow-Junction-Style #:as dia-node-style
@@ -326,7 +326,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'Orange]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
 
 ; Normal dividing of a flow into multiple parallel ones
@@ -338,7 +338,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'DarkOrange]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'MistyRose]))
 
 (define-configuration diaflow-merge-style : DiaFlow-Merge-Style #:as dia-node-style
@@ -349,7 +349,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'Orange]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
 
 (define-configuration diaflow-collation-style : DiaFlow-Collation-Style #:as dia-node-style
@@ -360,7 +360,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'MediumTurquoise]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-configuration diaflow-sort-style : DiaFlow-Sort-Style #:as dia-node-style
@@ -371,7 +371,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'MediumTurquoise]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-configuration diaflow-storage-style : DiaFlow-Storage-Style #:as dia-node-style
@@ -382,7 +382,7 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'MediumSeaGreen]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Honeydew]))
 
 (define-configuration diaflow-database-style : DiaFlow-Database-Style #:as dia-node-style
@@ -393,5 +393,5 @@
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) 'MediumSeaGreen]
-   [stroke-dash : (Option Stroke-Dash-Datum) #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Honeydew]))

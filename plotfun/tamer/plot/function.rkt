@@ -29,17 +29,24 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (plot-cartesian
-   (function #:stroke (plot-desc-pen #:color 'grey #:dash 'long-dash) values)
-   (function discrete-floor -3.0)
-   (function discrete-ceiling)
-   (function cos)
-   (function cos  -1 +1)
-   (function sqr  -2 +2)
-   (function sqrt +0 +4)
-   (function 1/x  -3 +0 #:fast-range (λ [[xmin : Real] [xmax : Real]] (cons xmin xmax))))
+  (define vtree : (Listof Plot:Visualizer)
+    (list (function #:color 'grey #:dash 'long-dash values)
+          (function discrete-floor -3.0)
+          (function discrete-ceiling)
+          (function cos)
+          (function exp  -3 +1.2)
+          (function cos  -1 +1)
+          (function sqr  -2 +2)
+          (function sqrt +0 +4)
+          (function log  +1 #f)
+          (function 1/x  -3 +0 #:fast-range (λ [[xmin : Real] [xmax : Real]] (cons xmin xmax)))))
+  
+  (geo-hb-append #:gapsize 32.0
+                 (plot-cartesian vtree)
+                 (plot-cartesian #:background black #:style (make-plot-axis-style #:color 'lightgray) vtree)
+                 (plot-cartesian #:background grey  vtree))
 
   (plot-cartesian
-   (function sin -4 +4   -1   +1)
-   (function sin -3 +3 -4/5 +4/5)
+   (function sin  -4 +4   -1   +1)
+   (function sin  -3 +3 -4/5 +4/5)
    (function normal-dist)))

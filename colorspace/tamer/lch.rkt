@@ -16,14 +16,6 @@
         (rgb 0.3829 0.6727 0.9385)
         (rgb 0.5020 0.0000 0.5020)))
 
-(for ([RGB (in-list rgbs)])
-  (define Lab (oklab* RGB))
-  (define-values (R G B) (oklab->rgb (oklaba-lightness Lab) (oklaba-a Lab) (oklaba-b Lab)))
-  (unless (and (datum=? (rgba-red   RGB) R)
-               (datum=? (rgba-green RGB) G)
-               (datum=? (rgba-blue  RGB) B))
-    (displayln (list Lab RGB (list R G B)))))
-
 (geo-table*
  (list (cons (geo-text 'RGB)
              (for/list : (Listof Geo) ([rgb (in-list rgbs)])
@@ -66,26 +58,26 @@
 (define geo-display-hcl : (-> Nonnegative-Real Geo)
   (lambda [light]
     (geo-ht-append #:gapsize 16.0
-                 (geo-text (format "light: ~a%" (* light 100)))
+                   (geo-text (format "light: ~a%" (* light 100)))
                  
-                 (geo-table*
-                  (for/list : (Listof (Listof Geo)) ([chroma (in-range 101)])
-                    (for/list : (Listof Geo) ([hue (in-range 1 360)])
-                      (geo-rectangle 1 2 #:stroke #false #:fill (lch light (/ chroma 100) hue))))
-                  'rc 'cc '(8.0 0.0))
-                 
-                 (geo-table*
-                  (for/list : (Listof (Listof Geo)) ([chroma (in-range 101)])
-                    (for/list : (Listof Geo) ([hue (in-range 1 360)])
-                      (geo-rectangle 1 2 #:stroke #false #:fill (oklch light (/ chroma 100) hue))))
-                  'rc 'cc '(8.0 0.0)))))
+                   (geo-table*
+                    (for/list : (Listof (Listof Geo)) ([chroma (in-range 101)])
+                      (for/list : (Listof Geo) ([hue (in-range 1 360)])
+                        (geo-rectangle 1 2 #:stroke #false #:fill (lch light (/ chroma 100) hue))))
+                    'rc 'cc)
+                   
+                   (geo-table*
+                    (for/list : (Listof (Listof Geo)) ([chroma (in-range 101)])
+                      (for/list : (Listof Geo) ([hue (in-range 1 360)])
+                        (geo-rectangle 1 2 #:stroke #false #:fill (oklch light (/ chroma 100) hue))))
+                    'rc 'cc))))
 
 'HSV
 (geo-table*
  (for/list : (Listof (Listof Geo)) ([chroma (in-range 0.0 101.0 1.0)])
    (for/list : (Listof Geo) ([hue (in-range 360)])
      (geo-rectangle 1 2 #:stroke #false #:fill (hsv hue (* chroma 0.01) 1.0))))
- 'rc 'cc '(8.0 0.0))
+ 'rc 'cc)
 
 (geo-display-hcl 0.1)
 (geo-display-hcl 0.2)
