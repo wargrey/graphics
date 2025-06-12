@@ -13,16 +13,15 @@
 
 (define-type Plot-Visualizer-Tick-Range (Pairof (Option Real) (Option Real)))
 (define-type Plot-Visualizer-Data-Range (-> Real Real (Pairof Real Real)))
-(define-type Plot-Visualizer-Realize (-> Index (Pairof Real Real) (Pairof Real Real) (-> Flonum Flonum Float-Complex) (Option FlRGBA) Geo:Visualizer))
+(define-type Plot-Visualizer-Realize (-> Index (Pairof Real Real) Real Real (-> Flonum Flonum Float-Complex) (Option FlRGBA) Geo:Visualizer))
 
 (define-syntax (plot-realize stx)
   (syntax-case stx []
     [(_ self idx xview yview args ...)
      (syntax/loc stx
-       ((plot-visualizer-realize self) idx
-                                       (plot-range-select (plot-visualizer-xrng self) xview)
-                                       (plot-range-select (plot-visualizer-yrng self) yview)
-                                       args ...))]))
+       (let-values ([(xrng) (plot-range-select (plot-visualizer-xrng self) xview)]
+                    [(ymin ymax) (plot-range-values (plot-range-select (plot-visualizer-yrng self) yview))])
+         ((plot-visualizer-realize self) idx xrng ymin ymax args ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot-visualizer

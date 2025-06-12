@@ -25,7 +25,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define function
-  (lambda [#:id [id : (Option Symbol) #false] #:label [label : (Option DC-Markup-Text) #false]
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:label [label : (Option DC-Markup-Text) #false]
            #:samples [samples : Positive-Index (default-plot-visualizer-samples)]
            #:color [pen-color : (Option Color) #false]
            #:width [pen-width : (Option Real) #false]
@@ -36,22 +37,16 @@
            [maybe-ymin : (Option Real) #false] [maybe-ymax : (Option Real) #false]] : Plot-Visualizer
     (define-values (xrange yrange) (plot-range-normalize maybe-xmin maybe-xmax maybe-ymin maybe-ymax))
     
-    (define plot-function-realize : Plot-Visualizer-Realize
-      (lambda [idx xtick-rng ytick-rng transform bg-color]
+    (define function-realize : Plot-Visualizer-Realize
+      (lambda [idx xtick-rng ymin ymax transform bg-color]
         (define xs : (Listof Real) (geo-linear-samples (car xtick-rng) (cdr xtick-rng) samples))
         (define-values (dots x y width height)
-          (let-values ([(dots x y width height)
-                        (with-handlers ([exn:fail? (λ _ (values #false 0.0 0.0 0.0 0.0))])
-                          (~cartesian2ds f xs (car ytick-rng) (cdr ytick-rng) transform))])
-            (if (not dots)
-                (~cartesian2ds (plot-safe-function f) xs (car ytick-rng) (cdr ytick-rng) transform)
-                (values dots x y width height))))
+          (with-handlers ([exn:fail? (λ [_] (~cartesian2ds (plot-safe-function f) xs ymin ymax transform))])
+            (~cartesian2ds f xs ymin ymax transform)))
 
         (define pen : Stroke
           (plot-desc-pen #:width pen-width #:dash pen-dash
-                         #:color (or pen-color
-                                     (let ([cs ((default-plot-palette) idx bg-color)])
-                                       (car cs)))))
+                         #:color (plot-select-pen-color pen-color idx bg-color)))
         
         (create-geometry-object plot:function
                                 #:with [id (geo-draw-function pen)
@@ -60,22 +55,22 @@
                                 (make-rectangular x y) #false
                                 dots samples)))
 
-    (define plot-function-range : Plot-Visualizer-Data-Range
-      (lambda [xmin xmax]
+    (plot-visualizer function-realize xrange yrange
+                     (or fast-range (plot-function-range f samples)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define plot-function-range : (-> (-> Real (Option Number)) Positive-Index Plot-Visualizer-Data-Range)
+  (let ([plot-function-range-db : (Weak-HashTable Any (Pairof Real Real)) (make-weak-hash)])
+    (lambda [f samples]
+      (λ [xmin xmax]
         (hash-ref! plot-function-range-db (list f xmin xmax samples)
                    (λ [] (let ([xs (geo-linear-samples xmin xmax samples)])
                            (define maybe-range
                              (with-handlers ([exn:fail? (λ _ #false)])
                                (~y-bounds f xs)))
                            (or maybe-range
-                               (~y-bounds (plot-safe-function f) xs)))))))
-
-    (plot-visualizer plot-function-realize xrange yrange
-                     (or fast-range plot-function-range))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-function-range-db : (Weak-HashTable Any (Pairof Real Real)) (make-weak-hash))
-
+                               (~y-bounds (plot-safe-function f) xs)))))))))
+  
 (define #:forall (R) plot-safe-function : (-> (-> R (Option Number)) (-> R (Option Number)))
   (lambda [f]
     ((inst procedure-rename (-> R (Option Number)))

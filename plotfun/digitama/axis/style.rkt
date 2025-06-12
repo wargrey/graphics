@@ -8,7 +8,7 @@
 (require geofun/font)
 
 (require geofun/digitama/layer/type)
-(require geofun/digitama/edge/marker/self)
+(require geofun/digitama/edge/tip/self)
 
 (require "singleton.rkt")
 
@@ -27,10 +27,10 @@
    [digit-font : Font default-digit-font]
    [digit-position : Complex -0.618]))
 
-(define-configuration plot-axis-marker-style : Plot-Axis-Marker-Style
-  #:format "default-plot-axis-marker-~a"
-  ([positive-shape : (Option Geo-Marker) default-axis-arrow]
-   [negative-shape : (Option Geo-Marker) #false]
+(define-configuration plot-axis-tip-style : Plot-Axis-Tip-Style
+  #:format "default-plot-axis-tip-~a"
+  ([positive-shape : (Option Geo-Tip) default-axis-arrow]
+   [negative-shape : (Option Geo-Tip) #false]
    [margin : Complex 0.0-0.08i]))
 
 (define-configuration plot-axis-real-style : Plot-Axis-Real-Style

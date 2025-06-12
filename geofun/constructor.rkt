@@ -9,7 +9,7 @@
 (provide (rename-out [geo-star-polygon geo-regular-star-polygon]))
 
 (provide (all-from-out "digitama/edge/label.rkt"))
-(provide (all-from-out "digitama/edge/marker/self.rkt" "digitama/edge/markers.rkt"))
+(provide (all-from-out "digitama/edge/tip/self.rkt" "digitama/edge/tips.rkt"))
 (provide (all-from-out "digitama/skeleton/stickman/interface.rkt"))
 
 (provide geo-blank geo-ghost geo-solid geo:blank? Geo:Blank Geo:Solid)
@@ -65,8 +65,8 @@
 (require "digitama/dc/polygon/hexagon.rkt")
 
 (require "digitama/edge/label.rkt")
-(require "digitama/edge/markers.rkt")
-(require "digitama/edge/marker/self.rkt")
+(require "digitama/edge/tips.rkt")
+(require "digitama/edge/tip/self.rkt")
 
 (require "digitama/skeleton/stickman/interface.rkt")
 

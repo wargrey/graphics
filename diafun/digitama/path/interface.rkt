@@ -62,9 +62,9 @@
     (geo-edge-attach-label
      (geo-edge* #:id (dia-edge-id-merge (geo-id source) (and target (geo-id target)) #true)
                 #:stroke (dia-edge-select-line-paint style)
-                #:source-marker (dia-edge-select-source-marker style)
-                #:target-marker (and target (not (dia:node:label? target)) (dia-edge-select-target-marker style))
-                #:marker-placement 'inside
+                #:source-tip (dia-edge-select-source-tip style)
+                #:target-tip (and target (not (dia:node:label? target)) (dia-edge-select-target-tip style))
+                #:tip-placement 'inside
                 tracks)
      labels)))
 
@@ -81,9 +81,9 @@
     (geo-edge-attach-label
      (geo-edge* #:id (dia-edge-id-merge source target #false)
                 #:stroke (dia-edge-select-line-paint style)
-                #:source-marker (dia-edge-select-source-marker style)
-                #:target-marker (dia-edge-select-target-marker style)
-                #:marker-placement 'inside
+                #:source-tip (dia-edge-select-source-tip style)
+                #:target-tip (dia-edge-select-target-tip style)
+                #:tip-placement 'inside
                 tracks)
      labels)))
 

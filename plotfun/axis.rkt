@@ -44,7 +44,7 @@
            #:unit-length [maybe-unit : (Option Real) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (make-plot-axis-style #:tick-anchor 'cb #:tick-length -3.0)]
-           #:marker [marker : Plot-Axis-Marker-Style (make-plot-axis-marker-style)]
+           #:tip [tip : Plot-Axis-Tip-Style (make-plot-axis-tip-style)]
            #:label [axis-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
            #:range [tick-hint : (U Real (Pairof Real Real) False) #false]
            #:ticks [ticks-engine : Plot-Tick-Engine (plot-real-ticks)]
@@ -55,7 +55,7 @@
            #:real->sticker [real->label : Plot-Axis-Real->Sticker default-plot-axis-real->sticker]
            #:real->dot [real->dot : Plot-Axis-Real->Dot default-plot-axis-real->dot]
            [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Axis
-    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style marker length))
+    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip length))
     (define-values (tick-range origin flunit)
       (plot-axis-metrics (or tick-hint (plot-tick-engine-range ticks-engine))
                          (plot-axis-real-range real-list)
@@ -75,9 +75,9 @@
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
     
     (define main-axis : Geo:Edge
-      (geo-edge* #:stroke (desc-stroke #:color axis-color #:width flthickness) #:marker-placement 'inside
-                 #:source-marker (plot-axis-marker-style-negative-shape marker)
-                 #:target-marker (plot-axis-marker-style-positive-shape marker)
+      (geo-edge* #:stroke (desc-stroke #:color axis-color #:width flthickness) #:tip-placement 'inside
+                 #:source-tip (plot-axis-tip-style-negative-shape tip)
+                 #:target-tip (plot-axis-tip-style-positive-shape tip)
                  (list the-M0 (gpp:point #\L (make-rectangular fllength 0.0)))))
 
     (define-values (soff eoff) (geo-edge-endpoint-offsets main-axis))
@@ -143,7 +143,7 @@
            #:unit-length [maybe-unit : (Option Real) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (make-plot-axis-style #:tick-anchor 'cb #:tick-length -3.0)]
-           #:marker [marker : Plot-Axis-Marker-Style (make-plot-axis-marker-style)]
+           #:tip [tip : Plot-Axis-Tip-Style (make-plot-axis-tip-style)]
            #:label [axis-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
            #:range [tick-hint : (U Integer (Pairof Integer Integer) False) #false]
            #:ticks [ticks-engine : Plot-Tick-Engine (plot-integer-ticks)]
@@ -155,7 +155,7 @@
            #:integer->dot [int->dot : Plot-Axis-Real->Dot default-plot-axis-real->dot]
            #:exclude-zero? [exclude-zero? : Boolean #true]
            [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Axis
-    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style marker length))
+    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip length))
     (define-values (tick-range origin flunit)
       (plot-axis-metrics (or (plot-tick-engine-range ticks-engine) tick-hint)
                          (plot-axis-integer-range number-sequence exclude-zero?)
@@ -175,9 +175,9 @@
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
     
     (define main-axis : Geo:Edge
-      (geo-edge* #:stroke (desc-stroke #:color axis-color #:width flthickness) #:marker-placement 'inside
-                 #:source-marker (plot-axis-marker-style-negative-shape marker)
-                 #:target-marker (plot-axis-marker-style-positive-shape marker)
+      (geo-edge* #:stroke (desc-stroke #:color axis-color #:width flthickness) #:tip-placement 'inside
+                 #:source-tip (plot-axis-tip-style-negative-shape tip)
+                 #:target-tip (plot-axis-tip-style-positive-shape tip)
                  (list the-M0 (gpp:point #\L (make-rectangular fllength 0.0)))))
 
     (define-values (soff eoff) (geo-edge-endpoint-offsets main-axis))

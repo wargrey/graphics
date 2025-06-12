@@ -25,6 +25,23 @@
 (define-type Plot-Axis-Integer-Filter (-> Plot-Axis-Integer-Datum (Values (Option Integer) Any)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define default-plot-axis-real-filter : (Parameterof Plot-Axis-Real-Filter) (make-parameter plot-axis-real-values))
+(define default-plot-axis-integer-filter : (Parameterof Plot-Axis-Integer-Filter) (make-parameter plot-axis-integer-values))
+
+(define default-plot-axis-desired-ticks : (Parameterof Positive-Index) (make-parameter 7))
+(define default-plot-axis-real-tick-steps : (Parameterof (Listof Positive-Index)) (make-parameter (list 1 2 4 5)))
+(define default-plot-axis-length : (Parameterof Real) (make-parameter 400.0))
+(define default-plot-axis-unit-length : (Parameterof (Option Real)) (make-parameter #false))
+
+(define default-plot-cartesian-width : (Parameterof Real) (make-parameter 400.0))
+(define default-plot-cartesian-height : (Parameterof Real) (make-parameter +inf.0))
+(define default-plot-visualizer-domain-range : (Parameterof (Pairof Real Real)) (make-parameter (cons -5 5)))
+(define default-plot-visualizer-samples : (Parameterof Positive-Index) (make-parameter 512))
+
+(define default-plot-function-stroke : (Parameterof Stroke) (make-parameter (desc-stroke #:width 1.5 #:join 'round #:cap 'round #:opacity 0.75)))
+(define default-plot-palette : (Parameterof Palette-Index->Pen+Brush-Colors) (make-parameter the-oklch-palette))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-nonzero-values-wrap : (->* () (Plot-Axis-Integer-Filter) Plot-Axis-Integer-Filter)
   (lambda [[integer-values plot-axis-integer-values]]
     (λ [[r : Plot-Axis-Integer-Datum]]
@@ -50,18 +67,14 @@
                  baseline)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-plot-axis-real-filter : (Parameterof Plot-Axis-Real-Filter) (make-parameter plot-axis-real-values))
-(define default-plot-axis-integer-filter : (Parameterof Plot-Axis-Integer-Filter) (make-parameter plot-axis-integer-values))
+(define plot-select-pen-color : (-> (Option Color) Index (Option FlRGBA) Color)
+  (lambda [alt-color idx bg-color]
+    (or alt-color
+        (let ([cs ((default-plot-palette) idx bg-color)])
+          (car cs)))))
 
-(define default-plot-axis-desired-ticks : (Parameterof Positive-Index) (make-parameter 7))
-(define default-plot-axis-real-tick-steps : (Parameterof (Listof Positive-Index)) (make-parameter (list 1 2 4 5)))
-(define default-plot-axis-length : (Parameterof Real) (make-parameter 400.0))
-(define default-plot-axis-unit-length : (Parameterof (Option Real)) (make-parameter #false))
-
-(define default-plot-cartesian-width : (Parameterof Real) (make-parameter 400.0))
-(define default-plot-cartesian-height : (Parameterof Real) (make-parameter +inf.0))
-(define default-plot-visualizer-domain-range : (Parameterof (Pairof Real Real)) (make-parameter (cons -5 5)))
-(define default-plot-visualizer-samples : (Parameterof Positive-Index) (make-parameter 512))
-
-(define default-plot-function-stroke : (Parameterof Stroke) (make-parameter (desc-stroke #:width 1.5 #:join 'round #:cap 'round #:opacity 0.75)))
-(define default-plot-palette : (Parameterof Palette-Index->Pen+Brush-Colors) (make-parameter the-oklch-palette))
+(define plot-select-brush-color : (-> (Option Color) Index (Option FlRGBA) Color)
+  (lambda [alt-color idx bg-color]
+    (or alt-color
+        (let ([cs ((default-plot-palette) idx bg-color)])
+          (cdr cs)))))

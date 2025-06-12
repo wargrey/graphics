@@ -43,38 +43,38 @@
   (lambda [self direction]
     (plot-cartesian-value (plot-axis-style-tick-length self) direction)))
 
-(define plot-axis-length-values : (case-> [Plot-Axis-Style Plot-Axis-Marker-Style Real
+(define plot-axis-length-values : (case-> [Plot-Axis-Style Plot-Axis-Tip-Style Real
                                                            -> (Values Nonnegative-Flonum Nonnegative-Flonum
                                                                       Nonnegative-Flonum Nonnegative-Flonum)]
-                                          [Plot-Axis-Style Plot-Axis-Marker-Style Real Nonnegative-Flonum
+                                          [Plot-Axis-Style Plot-Axis-Tip-Style Real Nonnegative-Flonum
                                                            -> (Values Nonnegative-Flonum Nonnegative-Flonum
                                                                       Nonnegative-Flonum Nonnegative-Flonum)])
   (case-lambda
-    [(self marker length 100%) (plot-axis-length-values* self marker (~length length 100%))]
-    [(self marker length) (plot-axis-length-values* self marker (~length length))]))
+    [(self tip length 100%) (plot-axis-length-values* self tip (~length length 100%))]
+    [(self tip length) (plot-axis-length-values* self tip (~length length))]))
 
-(define plot-axis-height-values : (-> Plot-Axis-Style Plot-Axis-Marker-Style Nonnegative-Flonum Real
+(define plot-axis-height-values : (-> Plot-Axis-Style Plot-Axis-Tip-Style Nonnegative-Flonum Real
                                       (Values Nonnegative-Flonum Nonnegative-Flonum
                                               Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [self marker view-width ratio]
+  (lambda [self tip view-width ratio]
     (define view-height : Nonnegative-Flonum (max (real->double-flonum (* view-width ratio)) 1.0))
-    (define-values (neg-margin pos-margin) (plot-axis-margin-values marker view-width))
+    (define-values (neg-margin pos-margin) (plot-axis-margin-values tip view-width))
 
     (values (+ view-height neg-margin pos-margin (plot-axis-style-thickness self))
             view-height neg-margin pos-margin)))
 
-(define plot-axis-margin-values : (-> Plot-Axis-Marker-Style Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
+(define plot-axis-margin-values : (-> Plot-Axis-Tip-Style Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self fllength]
-    (define-values (n-margin p-margin) (plot-cartesian-settings (plot-axis-marker-style-margin self)))
+    (define-values (n-margin p-margin) (plot-cartesian-settings (plot-axis-tip-style-margin self)))
 
     (values (~length n-margin fllength)
             (~length p-margin fllength))))
 
-(define plot-axis-length-values* : (-> Plot-Axis-Style Plot-Axis-Marker-Style Nonnegative-Flonum
+(define plot-axis-length-values* : (-> Plot-Axis-Style Plot-Axis-Tip-Style Nonnegative-Flonum
                                        (Values Nonnegative-Flonum Nonnegative-Flonum
                                                Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [self marker fllength]
-    (define-values (neg-margin pos-margin) (plot-axis-margin-values marker fllength))
+  (lambda [self tip fllength]
+    (define-values (neg-margin pos-margin) (plot-axis-margin-values tip fllength))
     
     (values fllength
             (max (- fllength neg-margin pos-margin (plot-axis-style-thickness self)) 1.0)

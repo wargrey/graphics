@@ -53,8 +53,8 @@
            #:width [width : Real (default-plot-cartesian-width)]
            #:height [height : Real (default-plot-cartesian-height)]
            #:style [as : Plot-Axis-Style (make-plot-axis-style)]
-           #:x-marker [x-marker : Plot-Axis-Marker-Style (make-plot-axis-marker-style)]
-           #:y-marker [y-marker : (Option Plot-Axis-Marker-Style) #false]
+           #:x-tip [x-tip : Plot-Axis-Tip-Style (make-plot-axis-tip-style)]
+           #:y-tip [y-tip : (Option Plot-Axis-Tip-Style) #false]
            #:x-label [x-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "x"]
            #:y-label [y-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "y"]
            #:x-range [xtick-hint : (U Real (Pairof Real Real) False) #false]
@@ -81,10 +81,10 @@
 
     (define-values (maybe-xorig maybe-yorig) (plot-cartesian-maybe-settings maybe-origin))
     (define-values (maybe-xunit maybe-yunit) (plot-cartesian-maybe-settings maybe-unit))
-    (define-values (flwidth   view-width x-neg-margin x-pos-margin) (plot-axis-length-values as x-marker width))
+    (define-values (flwidth   view-width x-neg-margin x-pos-margin) (plot-axis-length-values as x-tip width))
     (define-values (flheight view-height y-neg-margin y-pos-margin)
-      (cond [(rational? height) (plot-axis-length-values as (or y-marker x-marker) height flwidth)]
-            [else (plot-axis-height-values as (or y-marker x-marker) view-width
+      (cond [(rational? height) (plot-axis-length-values as (or y-tip x-tip) height flwidth)]
+            [else (plot-axis-height-values as (or y-tip x-tip) view-width
                                            (/ (- (cdr yview) (car yview))
                                               (- (cdr xview) (car xview))))]))
     
@@ -118,9 +118,9 @@
     (define Origin : Float-Complex (make-rectangular (real-part Oshadow) 0.0))
 
     (define xaxis : Geo:Edge
-      (geo-edge* #:stroke axis-pen #:marker-placement 'inside
-                 #:source-marker (plot-axis-marker-style-negative-shape x-marker)
-                 #:target-marker (plot-axis-marker-style-positive-shape x-marker)
+      (geo-edge* #:stroke axis-pen #:tip-placement 'inside
+                 #:source-tip (plot-axis-tip-style-negative-shape x-tip)
+                 #:target-tip (plot-axis-tip-style-positive-shape x-tip)
                  (list the-M0 (gpp:point #\L (make-rectangular flwidth 0.0)))))
     
     (define xoffset : Float-Complex (make-rectangular 0.0 (* xdigit-position em -1.0)))
@@ -130,9 +130,9 @@
                  (plot-axis-tick-anchor as 'x))))
 
     (define yaxis : Geo:Edge
-      (geo-edge* #:stroke axis-pen #:marker-placement 'inside
-                 #:source-marker (plot-axis-marker-style-negative-shape (or y-marker x-marker))
-                 #:target-marker (plot-axis-marker-style-positive-shape (or y-marker x-marker))
+      (geo-edge* #:stroke axis-pen #:tip-placement 'inside
+                 #:source-tip (plot-axis-tip-style-negative-shape (or y-tip x-tip))
+                 #:target-tip (plot-axis-tip-style-positive-shape (or y-tip x-tip))
                  (list the-M0 (gpp:point #\L (flc-ri (- flheight))))))
     
     (define yoffset : Float-Complex (make-rectangular (* ydigit-position em) 0.0))

@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/edge/label)
-(require geofun/digitama/edge/marker/self)
+(require geofun/digitama/edge/tip/self)
 
 (require geofun/digitama/base)
 (require geofun/digitama/convert)
@@ -28,8 +28,8 @@
    [width : (Option Flonum)]
    [color : (U Color Void False)]
    [dash : (Option Stroke-Dash+Offset)]
-   [source-marker : Maybe-Geo-Marker]
-   [target-marker : Maybe-Geo-Marker]
+   [source-tip : Maybe-Geo-Tip]
+   [target-tip : Maybe-Geo-Tip]
    [label-rotate? : (U Boolean Void)]
    [label-inline? : (U Boolean Void)]
    [label-distance : (U Flonum Void)])
@@ -41,8 +41,8 @@
   ([font : (Option Font)]
    [font-paint : Option-Fill-Paint]
    [line-paint : Maybe-Stroke-Paint]
-   [source-marker : Option-Geo-Marker]
-   [target-marker : Option-Geo-Marker]
+   [source-tip : Option-Geo-Tip]
+   [target-tip : Option-Geo-Tip]
    [label-rotate? : Boolean]
    [label-inline? : Boolean]
    [label-distance : (Option Flonum)])
@@ -87,15 +87,15 @@
           [(stroke? fallback-paint) (desc-stroke fallback-paint #:color s)]
           [else s])))
 
-(define dia-edge-select-source-marker : (-> Dia-Edge-Style Option-Geo-Marker)
+(define dia-edge-select-source-tip : (-> Dia-Edge-Style Option-Geo-Tip)
   (lambda [s]
-    (define shape : Maybe-Geo-Marker (dia-edge-style-source-marker s))
-    (if (void? shape) (dia-edge-base-style-source-marker ((default-dia-edge-base-style))) shape)))
+    (define shape : Maybe-Geo-Tip (dia-edge-style-source-tip s))
+    (if (void? shape) (dia-edge-base-style-source-tip ((default-dia-edge-base-style))) shape)))
 
-(define dia-edge-select-target-marker : (-> Dia-Edge-Style Option-Geo-Marker)
+(define dia-edge-select-target-tip : (-> Dia-Edge-Style Option-Geo-Tip)
   (lambda [s]
-    (define shape : Maybe-Geo-Marker (dia-edge-style-target-marker s))
-    (if (void? shape) (dia-edge-base-style-target-marker ((default-dia-edge-base-style))) shape)))
+    (define shape : Maybe-Geo-Tip (dia-edge-style-target-tip s))
+    (if (void? shape) (dia-edge-base-style-target-tip ((default-dia-edge-base-style))) shape)))
 
 (define dia-edge-select-font : (-> Dia-Edge-Style (Option Font))
   (lambda [s]

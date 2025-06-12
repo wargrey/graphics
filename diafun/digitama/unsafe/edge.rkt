@@ -11,12 +11,12 @@
 (require geofun/digitama/geometry/footprint)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Edge-Marker (Immutable-Vector Geo-Path-Prints (Option Stroke) (Option Fill-Source)))
+(define-type Geo-Edge-Tip (Immutable-Vector Geo-Path-Prints (Option Stroke) (Option Fill-Source)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_edge : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                       Geo-Path-Clean-Prints Float-Complex (Option Stroke)
-                      Geo-Edge-Marker Geo-Edge-Marker (Pairof (Option Float-Complex) (Option Float-Complex))
+                      Geo-Edge-Tip Geo-Edge-Tip (Pairof (Option Float-Complex) (Option Float-Complex))
                       Any)
   (lambda [cr x0 y0 flwidth flheight footprints offset stroke source target adjust-offset]
     (define-values (dx dy) (values (real-part offset) (imag-part offset)))
@@ -28,7 +28,7 @@
     (dc-edge-draw-shape cr target)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc-edge-draw-shape : (-> Cairo-Ctx Geo-Edge-Marker Void)
+(define dc-edge-draw-shape : (-> Cairo-Ctx Geo-Edge-Tip Void)
   (lambda [cr marker]
     (define prints : Geo-Path-Prints (vector-ref marker 0))
     

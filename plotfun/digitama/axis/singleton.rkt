@@ -5,11 +5,11 @@
 (require geofun/color)
 (require geofun/font)
 
-(require geofun/digitama/edge/marker/arrow)
+(require geofun/digitama/edge/tip/arrow)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-digit-font : Font (desc-font #:family 'monospace #:size 12.0))
 (define default-label-font : Font (desc-font #:family 'math #:size 12.0))
 
 (define default-axis-color : FlRGBA (rgb* 'DarkSlateGray))
-(define default-axis-arrow : Geo:Mkr:Arrow (make-geo:mkr:arrow #:radius -2.5))
+(define default-axis-arrow : Geo:Tip:Arrow (make-geo:tip:arrow #:radius -2.5))

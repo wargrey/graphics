@@ -10,9 +10,9 @@
 (require geofun/paint)
 
 (require geofun/digitama/base)
-(require geofun/digitama/edge/marker/self)
-(require geofun/digitama/edge/marker/arrow)
-(require geofun/digitama/edge/marker/diamond)
+(require geofun/digitama/edge/tip/self)
+(require geofun/digitama/edge/tip/arrow)
+(require geofun/digitama/edge/tip/diamond)
 
 (require "../node/style.rkt")
 (require "../edge/style.rkt")
@@ -34,8 +34,8 @@
   ([font : (Option Font) default-edge-label-font]
    [font-paint : Option-Fill-Paint 'DimGray]
    [line-paint : Maybe-Stroke-Paint default-edge-stroke]
-   [source-marker : Option-Geo-Marker #false]
-   [target-marker : Option-Geo-Marker default-arrow-marker]
+   [source-tip : Option-Geo-Tip #false]
+   [target-tip : Option-Geo-Tip default-arrow-tip]
    [label-rotate? : Boolean #false]
    [label-inline? : Boolean #false]
    [label-distance : (Option Flonum) #false]))
@@ -47,8 +47,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumPurple]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [source-marker : Maybe-Geo-Marker (void)]
-   [target-marker : Maybe-Geo-Marker default-generalization-marker]
+   [source-tip : Maybe-Geo-Tip (void)]
+   [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
@@ -60,8 +60,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumPurple]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
-   [source-marker : Maybe-Geo-Marker (void)]
-   [target-marker : Maybe-Geo-Marker default-generalization-marker]
+   [source-tip : Maybe-Geo-Tip (void)]
+   [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
@@ -73,8 +73,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumAquamarine]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [source-marker : Maybe-Geo-Marker default-composition-marker]
-   [target-marker : Maybe-Geo-Marker default-arrow-marker]
+   [source-tip : Maybe-Geo-Tip default-composition-tip]
+   [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
@@ -86,8 +86,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'Turquoise]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [source-marker : Maybe-Geo-Marker default-aggregation-marker]
-   [target-marker : Maybe-Geo-Marker default-arrow-marker]
+   [source-tip : Maybe-Geo-Tip default-aggregation-tip]
+   [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
@@ -99,8 +99,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [source-marker : Maybe-Geo-Marker #false]
-   [target-marker : Maybe-Geo-Marker default-arrow-marker]
+   [source-tip : Maybe-Geo-Tip #false]
+   [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
@@ -112,8 +112,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [source-marker : Maybe-Geo-Marker #false]
-   [target-marker : Maybe-Geo-Marker #false]
+   [source-tip : Maybe-Geo-Tip #false]
+   [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
@@ -125,8 +125,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
-   [source-marker : Maybe-Geo-Marker #false]
-   [target-marker : Maybe-Geo-Marker default-arrow-marker]
+   [source-tip : Maybe-Geo-Tip #false]
+   [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
@@ -138,8 +138,8 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'Gray]
    [dash : (Option Stroke-Dash+Offset) 'solid]
-   [source-marker : Maybe-Geo-Marker #false]
-   [target-marker : Maybe-Geo-Marker #false]
+   [source-tip : Maybe-Geo-Tip #false]
+   [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
