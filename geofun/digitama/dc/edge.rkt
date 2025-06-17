@@ -68,8 +68,10 @@
     
     ;; NOTE: we move the end shapes to their absolute positions, and no need to translate them when drawing
     (define thickness : Nonnegative-Flonum (stroke-width (if (stroke? stroke) stroke (default-stroke))))
-    (define-values (src-prints s.x s.y s.w s.h s.off s.fill?) (geo-edge-tip-metrics src-tip thickness srad spt #false (or src-pos tip-pos)))
-    (define-values (tgt-prints t.x t.y t.w t.h t.off t.fill?) (geo-edge-tip-metrics tgt-tip thickness erad ept #true  (or tgt-pos tip-pos)))
+    (define-values (src-prints s.x0 s.y0 s.w s.h s.off s.fill?) (geo-edge-tip-path src-tip thickness srad #false (or src-pos tip-pos)))
+    (define-values (tgt-prints t.x0 t.y0 t.w t.h t.off t.fill?) (geo-edge-tip-path tgt-tip thickness erad #true  (or tgt-pos tip-pos)))
+    (define-values (s.x s.y) (values (+ (real-part spt) s.x0) (+ (imag-part spt) s.y0)))
+    (define-values (t.x t.y) (values (+ (real-part ept) t.x0) (+ (imag-part ept) t.y0)))
     
     (define-values (lx ty) (values (min e.x s.x t.x) (min e.y s.y t.y)))
     (define-values (rx by) (values (max (+ e.x e.w) (+ s.x s.w) (+ t.x t.w)) (max (+ e.y e.h) (+ s.y s.h) (+ t.y t.h))))
@@ -153,6 +155,6 @@
 
         (dc_edge cr x0 y0 width height
                  (geo:edge-footprints self) (geo:edge-bbox-offset self) paint
-                 (geo:edge-source-tip self) (shape-stroke sfill?) (and sfill? color)
-                 (geo:edge-target-tip self) (shape-stroke tfill?) (and tfill? color)
+                 (geo:edge-source-tip self) (shape-stroke sfill?) (and sfill? color) (car (geo:edge-source self))
+                 (geo:edge-target-tip self) (shape-stroke tfill?) (and tfill? color) (car (geo:edge-target self))
                  (geo:edge-adjust-offset self))))))

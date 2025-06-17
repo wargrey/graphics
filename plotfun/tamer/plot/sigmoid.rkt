@@ -32,7 +32,7 @@
 
 (define chroma-H : (-> Real Real)
   (lambda [H]
-    (+ (* 0.25 (cos (degrees->radians (- H 240.0))))
+    (+ (* 0.3 (cos (degrees->radians (- H 240.0))))
        1.0)))
 
 (define (chroma [C0 : Real] [bgL : Flonum] [bgC : Flonum]) : (-> Real Real)
@@ -47,7 +47,7 @@
   (geo-hb-append #:gapsize 16.0
                  (plot-cartesian
                   #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
-                  #:x-label "L" #:y-label "logistic"
+                  #:x-label "L" #:y-label "L" #:y-desc "logistic"
                   (function (sigmoid palette-sigmoid/logistic #:k 10.0))
                   (function (sigmoid palette-sigmoid/logistic #:k 20.0))
                   (function (sigmoid palette-sigmoid/logistic #:k 30.0))
@@ -56,7 +56,7 @@
                  
                  (plot-cartesian
                   #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
-                  #:x-label "L" #:y-label "tanh"
+                  #:x-label "L" #:y-label "L" #:y-desc "tanh"
                   (function (sigmoid palette-sigmoid/tanh #:k 10.0))
                   (function (sigmoid palette-sigmoid/tanh #:k 20.0))
                   (function (sigmoid palette-sigmoid/tanh #:k 30.0))
@@ -65,7 +65,7 @@
                  
                  (plot-cartesian
                   #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
-                  #:x-label "L" #:y-label "algebraic"
+                  #:x-label "L" #:y-label "L" #:y-desc "algebraic"
                   (function (sigmoid palette-sigmoid/algebraic #:k 10.0))
                   (function (sigmoid palette-sigmoid/algebraic #:k 20.0))
                   (function (sigmoid palette-sigmoid/algebraic #:k 30.0))
@@ -76,7 +76,7 @@
   (geo-hb-append #:gapsize 16.0
                  (plot-cartesian
                   #:x-range (cons 0.0 1.0) #:y-range (cons 0.0 1.0)
-                  #:x-label "L" #:y-label "logistic"
+                  #:x-label "L" #:y-label "L" #:y-desc "logistic"
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:k 10.0))
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:k 20.0))
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:k 30.0))
@@ -85,7 +85,7 @@
                  
                  (plot-cartesian
                   #:x-range (cons 0.0 1.0) #:y-range (cons 0.0 1.0)
-                  #:x-label "L" #:y-label "tanh"
+                  #:x-label "L" #:y-label "L" #:y-desc "tanh"
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/tanh #:k 10.0))
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/tanh #:k 20.0))
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/tanh #:k 30.0))
@@ -94,17 +94,26 @@
                  
                  (plot-cartesian
                   #:x-range (cons 0.0 1.0) #:y-range (cons 0.0 1.0)
-                  #:x-label "L" #:y-label "algebraic"
+                  #:x-label "L" #:y-label "L" #:y-desc "algebraic"
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 10.0))
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 20.0))
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 30.0))
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 40.0))
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 50.0)))))
 
+(define brightness/vector.plot
+  (plot-cartesian
+   #:x-range (cons 0.0 1.0) #:y-range (cons 0.0 1.0)
+   #:x-label "L" #:y-label "L" #:y-desc "logistic"
+   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:smooth-vector #(0.4 0.3 0.5)))
+   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:smooth-vector #(0.5 0.4 0.6)))
+   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:smooth-vector #(0.6 0.5 0.7)))
+   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:smooth-vector #(0.7 0.6 0.8)))))
+
 (define chroma.plot
   (plot-cartesian
    #:x-range (cons 0.0 360) #:y-range (cons 0.0 0.4) #:height 200.0
-   #:x-label "H" #:y-label "C"
+   #:x-label "Hue" #:y-label "Chroma"
    (function (chroma 1/4 0.0 0.0))
    (function (chroma 1/4 0.5 0.0))
    (function (chroma 1/4 1.0 0.0))
@@ -115,5 +124,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   sigmoid.plot
-  brightness.plot
+  brightness/vector.plot
   chroma.plot)

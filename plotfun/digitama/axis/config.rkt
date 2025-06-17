@@ -4,9 +4,10 @@
 
 (require digimon/metrics)
 
-(require geofun/color)
 (require geofun/font)
+(require geofun/color)
 
+(require geofun/digitama/markup)
 (require geofun/digitama/layer/type)
 
 (require "style.rkt")
@@ -19,24 +20,43 @@
         (if (pair? anchor) (car anchor) anchor)
         (if (pair? anchor) (cdr anchor) anchor))))
 
-(define plot-axis-visual-values : (-> Plot-Axis-Style (Values Font Font FlRGBA Color Color Color))
-  (lambda [self]
-    (define digit-font : Font (plot-axis-style-digit-font self))
-    (define axis-color : FlRGBA (rgb* (plot-axis-style-color self)))
-    
-    (values digit-font
-            (or (plot-axis-style-label-font self) digit-font)
-            axis-color
-            (or (plot-axis-style-digit-color self) axis-color)
-            (or (plot-axis-style-tick-color self) axis-color)
-            (or (plot-axis-style-label-color self) axis-color))))
+(define #:forall (C) plot-axis-visual-values : (case-> [Plot-Axis-Style -> (Values Font Font Font FlRGBA Color Color Color Color)]
+                                                       [Plot-Axis-Style (-> Color C) -> (Values Font Font Font C C C C C)])
+  (case-lambda
+    [(self)
+     (let ([axis-font (plot-axis-style-font self)]
+           [axis-color (rgb* (plot-axis-style-color self))]
+           [label-color (plot-axis-style-label-color self)])    
+       (values (or (plot-axis-style-digit-font self) axis-font)
+               (or (plot-axis-style-label-font self) axis-font)
+               (or (plot-axis-style-desc-font self) axis-font)
+               axis-color
+               (or (plot-axis-style-digit-color self) axis-color)
+               (or (plot-axis-style-tick-color self) axis-color)
+               (or label-color axis-color)
+               (or (plot-axis-style-desc-color self) label-color axis-color)))]
+    [(self adjust)
+     (let* ([axis-font (plot-axis-style-font self)]
+            [axis-color (adjust (rgb* (plot-axis-style-color self)))]
+            [digit-color (plot-axis-style-digit-color self)]
+            [tick-color (plot-axis-style-tick-color self)]
+            [label-color (if (plot-axis-style-label-color self) (adjust (plot-axis-style-label-color self)) axis-color)]
+            [desc-color (plot-axis-style-label-color self)])    
+       (values (or (plot-axis-style-digit-font self) axis-font)
+               (or (plot-axis-style-label-font self) axis-font)
+               (or (plot-axis-style-desc-font self) axis-font)
+               axis-color
+               (if (not digit-color) axis-color (adjust digit-color))
+               (if (not tick-color) axis-color (adjust tick-color))
+               label-color
+               (if (not desc-color) label-color (adjust desc-color))))]))
 
 (define plot-axis-digit-position-values : (-> Plot-Axis-Style Symbol (Values Flonum Geo-Pin-Anchor))
   (lambda [self direction]
     (define-values (xpos ypos) (plot-cartesian-settings (plot-axis-style-digit-position self)))
     
     (if (eq? direction 'x)
-        (values xpos (if (< xpos 0.0) 'ct 'cb))
+        (values xpos (if (< xpos 0.0) 'cc 'cc))
         (values ypos (if (< ypos 0.0) 'rc 'lc)))))
 
 (define plot-axis-tick-length : (-> Plot-Axis-Style Symbol Flonum)
@@ -80,26 +100,19 @@
             (max (- fllength neg-margin pos-margin (plot-axis-style-thickness self)) 1.0)
             neg-margin pos-margin)))
 
-(define plot-axis-real-style-values : (-> (Option Plot-Axis-Real-Style) Plot-Axis-Style
-                                          (Values Font Color Flonum Geo-Pin-Anchor Nonnegative-Flonum))
+(define plot-mark-style-values : (-> (Option Plot-Mark-Style) Plot-Axis-Style
+                                     (Values Font Color Flonum Geo-Pin-Anchor Nonnegative-Flonum))
   (lambda [self master]
-    (if (not self)
-        (values (plot-axis-style-digit-font master)
-                (or (plot-axis-style-digit-color master)
+    (if (or self)
+        (values (or (plot-mark-style-font self)
+                    (plot-axis-style-font master))
+                (or (plot-mark-style-color self)
                     (plot-axis-style-color master))
-                ((default-plot-axis-real-position))
-                ((default-plot-axis-real-anchor))
-                (~length ((default-plot-axis-real-dot-radius))
+                (plot-mark-style-position self)
+                (plot-mark-style-anchor self)
+                (~length (plot-mark-style-dot-radius self)
                          (plot-axis-style-thickness master)))
-        (values (or (plot-axis-real-style-font self)
-                    (plot-axis-style-digit-font master))
-                (or (plot-axis-real-style-color self)
-                    (plot-axis-style-digit-color master)
-                    (plot-axis-style-color master))
-                (plot-axis-real-style-position self)
-                (plot-axis-real-style-anchor self)
-                (~length (plot-axis-real-style-dot-radius self)
-                         (plot-axis-style-thickness master))))))
+        (plot-mark-style-values (default-plot-mark-style) master))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (T) plot-cartesian-settings : (case-> [Complex -> (Values Flonum Flonum)]
@@ -133,3 +146,16 @@
           (let* ([x (real->datum (real-part config))]
                  [y (if (real? config) x (real->datum (imag-part config)))])
             (if (eq? direction 'x) x y)))]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define plot-axis-label-settings : (-> (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
+                                       (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
+                                       Flonum Flonum Flonum
+                                       (Listof (List (Option DC-Markup-Text) Flonum (Option DC-Markup-Text) Geo-Pin-Anchor)))
+  (lambda [label desc flmin flmax offset]
+    (define descs (if (pair? desc) desc (cons #false desc)))
+    
+    (if (pair? label)
+        (list (list (car label) (- flmin offset) (car descs) 'rc)
+              (list (cdr label) (+ flmax offset) (cdr descs) 'lc))
+        (list (list label (+ flmax offset) (cdr descs) 'lc)))))

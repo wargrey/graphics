@@ -4,7 +4,9 @@
 
 (require geofun/font)
 (require geofun/color)
+(require geofun/composite)
 
+(require geofun/digitama/markup)
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
 (require geofun/digitama/dc/arc)
@@ -27,6 +29,26 @@
 (define default-plot-axis-real->dot : Plot-Axis-Real->Dot
   (lambda [axis-id real datum flunit color radius]
     (geo-circle radius #:fill color #:stroke #false)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define plot-x-axis-label : (-> DC-Markup-Text Font Color (Option DC-Markup-Text) (Option Font) (Option Color) Flonum Geo)
+  (lambda [name font color desc desc-font desc-color gapsize]
+    (cond [(zero? gapsize) (plot-y-axis-label name font color desc desc-font desc-color)]
+          [else (geo-hc-append #:gapsize (- gapsize 1.0)
+                               (geo-blank)
+                               (plot-y-axis-label name font color desc desc-font desc-color)
+                               (geo-blank))])))
+
+(define plot-y-axis-label : (-> DC-Markup-Text Font Color (Option DC-Markup-Text) (Option Font) (Option Color) Geo)
+  (lambda [name font color desc desc-font desc-color]
+    (if (or desc)
+        (let ([dfont (or desc-font font)]
+              [dcolor (or desc-color color)])
+          (geo-hc-append (geo-markup name font #:color color)
+                         (geo-text " (" dfont #:color dcolor)
+                         (geo-markup desc dfont #:color dcolor)
+                         (geo-text ")" dfont #:color dcolor)))
+        (geo-markup name font #:color color))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-sticker-cons : (-> (U Geo Void False) Geo-Pin-Anchor Float-Complex Float-Complex (Listof (GLayerof Geo))

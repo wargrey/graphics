@@ -16,6 +16,7 @@
 (struct rgba flcolor ([red : Flonum] [green : Flonum] [blue : Flonum] [alpha : Flonum])
   #:type-name FlRGBA
   #:transparent
+  
   #:property prop:convertible
   (λ [[self : FlRGBA] [mime : Symbol] [fallback : Any]]
     (case mime

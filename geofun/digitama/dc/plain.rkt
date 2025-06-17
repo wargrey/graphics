@@ -23,12 +23,14 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-blank : (->* () (Real (Option Real) #:id (Option Symbol)) Geo:Blank)
-  (lambda [[width 0.0] [height #false] #:id [id #false]]
-    (define-values (flwidth flheight) (~extent width (or height width)))
-    
-    (create-geometry-object geo:blank
-                            #:with [id void (geo-blank-extent flwidth flheight) geo-zero-pads]
-                            #false)))
+  (let ([blank-db : (Weak-HashTable Any Geo:Blank) (make-weak-hash)])
+    (lambda [[width 0.0] [height #false] #:id [id #false]]
+      (define-values (flwidth flheight) (~extent width (or height width)))
+
+      (hash-ref! blank-db (cons flwidth flheight)
+                 (λ [] (create-geometry-object geo:blank
+                                               #:with [id void (geo-blank-extent flwidth flheight) geo-zero-pads]
+                                               #false))))))
 
 (define geo-ghost : (-> Geo [#:id (Option Symbol)] Geo:Blank)
   (lambda [geo #:id [id #false]]

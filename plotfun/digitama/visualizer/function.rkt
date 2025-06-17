@@ -13,8 +13,8 @@
 (require geofun/digitama/unsafe/dc/path)
 
 (require "self.rkt")
-(require "../interface.rkt")
-(require "../../sample.rkt")
+(require "../sample.rkt")
+(require "../axis/interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot:function geo:visualizer
@@ -56,7 +56,8 @@
                                 dots samples)))
 
     (plot-visualizer function-realize xrange yrange
-                     (or fast-range (plot-function-range f samples)))))
+                     (or fast-range (plot-function-range f samples))
+                     (and pen-color #true))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-function-range : (-> (-> Real (Option Number)) Positive-Index Plot-Visualizer-Data-Range)

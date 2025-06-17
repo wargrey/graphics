@@ -28,7 +28,8 @@
   ([realize : Plot-Visualizer-Realize]
    [xrng : Plot-Visualizer-Tick-Range]
    [yrng : Plot-Visualizer-Tick-Range]
-   [λrange : Plot-Visualizer-Data-Range])
+   [λrange : Plot-Visualizer-Data-Range]
+   [skip-palette? : Boolean])
   #:type-name Plot-Visualizer
   #:transparent)
 

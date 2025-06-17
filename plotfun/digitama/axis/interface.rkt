@@ -4,6 +4,7 @@
 (provide (rename-out [Palette-Index->Pen+Brush-Colors Plot-Palette]))
 
 (require geofun/font)
+(require geofun/color)
 (require geofun/stroke)
 
 (require geofun/digitama/base)
@@ -67,14 +68,22 @@
                  baseline)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-select-pen-color : (-> (Option Color) Index (Option FlRGBA) Color)
+(define plot-select-pen-color : (-> (Option Color) Index (Option FlRGBA) FlRGBA)
   (lambda [alt-color idx bg-color]
-    (or alt-color
-        (let ([cs ((default-plot-palette) idx bg-color)])
-          (car cs)))))
+    (if (not alt-color)
+        (car ((default-plot-palette) idx bg-color))
+        ((default-plot-palette) (rgb* alt-color) bg-color))))
 
-(define plot-select-brush-color : (-> (Option Color) Index (Option FlRGBA) Color)
+(define plot-select-brush-color : (-> (Option Color) Index (Option FlRGBA) FlRGBA)
   (lambda [alt-color idx bg-color]
-    (or alt-color
-        (let ([cs ((default-plot-palette) idx bg-color)])
-          (cdr cs)))))
+    (if (not alt-color)
+        (cdr ((default-plot-palette) idx bg-color))
+        ((default-plot-palette) (rgb* alt-color) bg-color))))
+
+(define plot-adjust-pen-color : (-> Palette-Index->Pen+Brush-Colors Color (Option FlRGBA) FlRGBA)
+  (lambda [palette color bg-color]
+    (palette (rgb* color) bg-color)))
+
+(define plot-adjust-brush-color : (-> Palette-Index->Pen+Brush-Colors Color (Option FlRGBA) FlRGBA)
+  (lambda [palette color bg-color]
+    (palette (rgb* color) bg-color)))

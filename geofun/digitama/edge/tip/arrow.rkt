@@ -23,9 +23,8 @@
 (define default-generalization-tip : Geo-Tip (make-geo:tip:arrow #:radius -3.5 #:wing.deg 180.0 #:curved? #false #:fill? #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-arrow-vertices : (-> Geo:Tip:Arrow Nonnegative-Flonum Flonum Float-Complex Geo-Tip-Placement
-                                 (Values Geo-Path-Prints Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Float-Complex Boolean))
-  (lambda [self 100% angle.rad dot pos]
+(define geo-arrow-path : (-> Geo:Tip:Arrow Nonnegative-Flonum Flonum Geo-Tip-Placement Geo-Tip-Datum)
+  (lambda [self 100% angle.rad pos]
     (define-values (pos-rfrac pos-afrac)
       (cond [(eq? pos 'inside) (values -1.0 -0.5)]
             [(eq? pos 'center) (values -0.5 0.25)]
@@ -37,8 +36,8 @@
     (define offset : Float-Complex (+ (make-polar (* r pos-rfrac) angle.rad) (make-polar (* 100% pos-afrac) angle.rad)))
     (define-values (arrow _x _y _w _h)
       (if (geo:tip:arrow-curved? self)
-          (geo-curved-dart-metrics r angle.rad (and wing (~radian wing)) (+ dot offset))
-          (geo-dart-metrics r angle.rad (and wing (~radian wing)) (+ dot offset))))
+          (geo-curved-dart-metrics r angle.rad (and wing (~radian wing)) offset)
+          (geo-dart-metrics r angle.rad (and wing (~radian wing)) offset)))
     (define-values (lx ty width height) (geo-path-ink-box arrow))
 
-    (values arrow lx ty width height offset fill?)))
+    (vector-immutable arrow lx ty width height offset fill?)))

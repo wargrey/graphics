@@ -41,6 +41,7 @@
 
 (define number-line
   (plot-integer-axis #:integer->sticker number-sticker
+                     #:style (make-plot-axis-style #:label-position 'axis)
                      #:unit-length -0.1
                      #:label "x"
                      '(-1 0 1 2 3 4 5 6 (7 arrow))))
@@ -48,7 +49,8 @@
 (define time-line
   (plot-integer-axis #:range (cons -1 9)
                      #:unit-length -0.1
-                     #:integer-style (make-plot-axis-real-style #:position -2.5 #:anchor 'ct)
+                     #:style (make-plot-axis-style #:label-position 'digit)
+                     #:integer-style (make-plot-mark-style #:position -2.5 #:anchor 'ct)
                      #:integer->sticker time-sticker
                      #:label "n"
                      fib))

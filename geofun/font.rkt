@@ -43,7 +43,9 @@
                 [(eq? weight 'lighter) (memcadr (reverse css-font-weight-options) (font-weight basefont))]
                 [(integer? weight) (integer->font-weight weight)]
                 [else (font-weight basefont)])
-          (if (css-font-style-option? style) style (font-style basefont))
+          (cond [(css-font-style-option? style) style]
+                [(eq? face 'math) 'italic]
+                [else (font-style basefont)])
           (if (css-font-stretch-option? stretch) stretch (font-stretch basefont))
           (if (css-font-variant-option? variant) variant (font-variant basefont)))))
 

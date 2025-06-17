@@ -12,4 +12,7 @@
   (plot-cartesian #:x-range (cons 0 0) #:unit-length -0.1 #:x-label "Zero"
                   #:x-tip (make-plot-axis-tip-style #:margin -0.01-0.06i))
   
+  (plot-cartesian #:x-range (cons 0 0) #:unit-length -0.1 #:x-label "x"
+                  #:style (make-plot-axis-style #:label-position 'digit))
+  
   (plot-cartesian #:width +inf.0 #:height 0))

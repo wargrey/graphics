@@ -12,13 +12,13 @@
 (define-enumeration* [css-font-generic-family css-font-generic-families] #:as Font-Family 
   font-family->face #:-> String
   [(sans-serif) (case os [(macosx) "Lucida Grande"] [(windows) "Microsoft YaHei"] [else "Nimbus Sans"])]
-  [(serif)      (case os [(macosx) "Times"] [(windows) "Times New Roman"] [else "DejaVu Serif"])]
+  [(serif)      (case os [(macosx) "Times New Roman"] [(windows) "Times New Roman"] [else "DejaVu Serif"])]
   [(monospace)  (case os [(macosx) "Menlo"] [(windows) "KaiTi"] [else "Monospace"])]
   [(fantasy)    (case os [(macosx) "Comic Sans MS"] [(windows) "Comic Sans MS"] [else "Helvetica"])]
   [(cursive)    (case os [(macosx) "Kokonor"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
   [(system-ui)  (system-ui 'normal-control-font (λ [] (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"])))]
   [(emoji)      (case os [(macosx) "GB18030 Bitmap"] [(windows) "Algerian"] [else "Symbol"])]
-  [(math)       (case os [(macosx) "Bodoni 72, Book Italic"] [(windows) "Bodoni MT, Italic"] [else "URW Bookman, Italic"])]
+  [(math)       (case os [(macosx) "Bodoni 72, Book"] [(windows) "Bodoni MT"] [else "URW Bookman"])]
   [(fangsong)   (case os [(macosx) "ST FangSong"] [(windows) "FangSong"] [else "FangSong"])])
 
 (define-enumeration* css-font-size-option #:as Font-Size
