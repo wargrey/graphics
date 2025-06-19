@@ -34,7 +34,7 @@
 
 (define-type Dia-Path-Arrow->Edge
   (-> Dia:Node (Option Dia:Node) Dia-Edge-Style
-      Geo-Path-Clean-Prints+ (Listof Geo-Edge-Label)
+      Geo-Path-Clean-Prints* (Listof Geo-Edge-Label)
       (U Geo:Edge Geo:Labeled-Edge Void False)))
 
 (define-type Dia-Path-Arrow->Edge-Label
@@ -44,7 +44,7 @@
 
 (define-type Dia-Path-Free-Track->Edge
   (-> Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint Dia-Edge-Style
-      Geo-Path-Clean-Prints+ (Listof Geo-Edge-Label)
+      Geo-Path-Clean-Prints* (Listof Geo-Edge-Label)
       (U Geo:Edge Geo:Labeled-Edge Void False)))
 
 (define-type Dia-Path-Free-Track->Edge-Label

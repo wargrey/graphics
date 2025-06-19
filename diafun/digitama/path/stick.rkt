@@ -126,7 +126,7 @@
 
              (let ([source (glayer-master src-layer)]
                    [target (and tgt-layer (glayer-master tgt-layer))])
-               (define retracks : Geo-Path-Clean-Prints+
+               (define retracks : Geo-Path-Clean-Prints*
                  (if (null? (cddr ctracks))
                      (dia-2-tracks-relocate-endpoints src-layer tgt-layer ctracks)
                      (dia-more-tracks-relocate-endpoints src-layer tgt-layer ctracks)))
@@ -203,7 +203,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name)
-                                               Geo-Path-Clean-Prints+ Dia-Path-Free-Track->Edge (Listof (GLayerof Geo))
+                                               Geo-Path-Clean-Prints* Dia-Path-Free-Track->Edge (Listof (GLayerof Geo))
                                                Dia-Path-Free-Track->Edge-Label Geo-Path-Infobase
                                                (Option (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint (∩ Dia-Edge-Style S)))
                                                (-> (∩ Dia-Edge-Style S))

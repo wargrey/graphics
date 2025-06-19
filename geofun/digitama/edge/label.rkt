@@ -16,6 +16,10 @@
 (require "../color.rkt")
 (require "../markup.rkt")
 
+(require "../layer/type.rkt")
+(require "../layer/sticker.rkt")
+(require "../geometry/computation/line.rkt")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Edge-Label-Datum (U Bytes (Pairof Bytes Bytes) (Listof (Option Bytes))))
 
@@ -78,12 +82,21 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; TODO: transparent color makes the label clear underneath arrows but sometimes doesn't work for pdf
-(define geo-edge-label-text : (-> (U Bytes PExpr) (Option Symbol) (Option Font) Option-Fill-Paint Geo)
+(define geo-edge-label-text : (-> DC-Markup-Text (Option Symbol) (Option Font) Option-Fill-Paint Geo)
   (lambda [text text-id font paint]
     (geo-markup #:id text-id #:alignment 'center
                 #:color paint #:background transparent
                 #:error-color 'GhostWhite #:error-background 'Firebrick
                 text font)))
+
+(define geo-edge-label-layer : (->* (Geo-Edge-Label) (Float-Complex) (GLayerof Geo))
+  (lambda [label [O 0.0+0.0i]]
+    (define dir (geo-edge-label-dir label))
+    (define distance (geo-edge-label-distance label))
+    
+    (geo-sticker->layer (geo-edge-label-sticker label)
+                        (geo-perpendicular-point (- (geo-edge-label-pos label) O) dir
+                                                 distance (geo-edge-label-t label)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-edge-label-map : (-> Geo-Path-Labels (Option Geo-Edge-Label-Datum))

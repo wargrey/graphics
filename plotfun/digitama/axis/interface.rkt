@@ -34,8 +34,8 @@
 (define default-plot-axis-length : (Parameterof Real) (make-parameter 400.0))
 (define default-plot-axis-unit-length : (Parameterof (Option Real)) (make-parameter #false))
 
-(define default-plot-cartesian-width : (Parameterof Real) (make-parameter 400.0))
-(define default-plot-cartesian-height : (Parameterof Real) (make-parameter +inf.0))
+(define default-plot-cartesian-view-width : (Parameterof Real) (make-parameter 400.0))
+(define default-plot-cartesian-view-height : (Parameterof Real) (make-parameter +inf.0))
 (define default-plot-visualizer-domain-range : (Parameterof (Pairof Real Real)) (make-parameter (cons -5 5)))
 (define default-plot-visualizer-samples : (Parameterof Positive-Index) (make-parameter 512))
 

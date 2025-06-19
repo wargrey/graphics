@@ -53,11 +53,12 @@
               (if (list? self)
                   (let-values ([(sbus xsmin xsmax ysmin ysmax) (flatten self xmin xmax ymin ymax sreredner)])
                     (flatten rest xsmin xsmax ysmin ysmax sbus))
-                  (let ([xrng (plot-visualizer-xrng self)]
-                        [yrng (plot-visualizer-yrng self)])
+                  (let*-values ([(sxrng syrng) (values (plot-visualizer-xrng self) (plot-visualizer-yrng self))]
+                                [(sxmin sxmax) (values (car sxrng) (cdr sxrng))]
+                                [(symin symax) (values (car syrng) (cdr syrng))])
                     (flatten rest
-                             (min xmin (or (car xrng) +inf.0)) (max xmax (or (cdr xrng) -inf.0))
-                             (min ymin (or (car yrng) +inf.0)) (max ymax (or (cdr yrng) -inf.0))
+                             (if (rational? sxmin) (min xmin sxmin) xmin) (if (rational? sxmax) (max xmax sxmax) xmax)
+                             (if (rational? symin) (min ymin symin) ymin) (if (rational? symax) (max ymax symax) ymax)
                              (cons self sreredner)))))
             (values sreredner xmin xmax ymin ymax))))
     
@@ -80,8 +81,12 @@
                 (cond [(null? rs) (values (cons left rght) (cons top btm))]
                       [else (let* ([self (car rs)]
                                    [xrng (plot-visualizer-xrng self)]
-                                   [vrng ((plot-visualizer-λrange self) (or (car xrng) left) (or (cdr xrng) rght))])
-                              (bounds (min top (car vrng)) (max btm (cdr vrng)) (cdr rs)))]))
+                                   [yrng ((plot-visualizer-λrange self) (or (car xrng) left) (or (cdr xrng) rght))]
+                                   [ymin (car yrng)]
+                                   [ymax (cdr yrng)])
+                              (bounds (if (rational? ymin) (min top ymin) top)
+                                      (if (rational? ymax) (max btm ymax) btm)
+                                      (cdr rs)))]))
               (values (cons left rght) (cons ymin ymax))))
         (values xtick-rng ytick-rng))))
 

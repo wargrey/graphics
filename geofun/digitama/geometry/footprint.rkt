@@ -2,10 +2,13 @@
 
 (provide (all-defined-out))
 
+(require racket/math)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Path-Prints (Listof GPath:Datum))
 (define-type Geo-Path-Clean-Prints (Listof GPath:Print))
-(define-type Geo-Path-Clean-Prints+ (List* GPath:Print GPath:Print Geo-Path-Clean-Prints))
+(define-type Geo-Path-Clean-Prints+ (Pairof GPath:Print Geo-Path-Clean-Prints))
+(define-type Geo-Path-Clean-Prints* (List* GPath:Print GPath:Print Geo-Path-Clean-Prints))
 
 (struct gpath:datum
   ([cmd : Char])
@@ -56,43 +59,54 @@
 (define geo-path-cleanse : (->* ((Listof (U GPath:Datum Float-Complex))) (Float-Complex) Geo-Path-Clean-Prints)
   (lambda [footprints [pos0 0.0+0.0i]]
     (let traverse ([prints : (Listof (U GPath:Datum Float-Complex)) footprints]
-                   [path0 : (Option Float-Complex) #false]
+                   [p-head : (Option Float-Complex) #false]
                    [stnirp : (Listof GPath:Print) null]
                    [curpos : Float-Complex pos0])
       (if (pair? prints)
-          ; TODO: deal with curves
+          ; TODO: deal with curves, remove duplicate prints
           (let-values ([(self rest) (values (car prints) (cdr prints))])
             (cond [(gpp:close? self)
-                   (if (and path0)
-                       (traverse rest #false (cons (gpp:point #\L path0) stnirp) path0)
-                       (traverse rest path0 stnirp curpos))]
+                   (if (and p-head)
+                       (traverse rest #false (cons (gpp:point #\L p-head) stnirp) p-head)
+                       (traverse rest p-head stnirp curpos))]
                   [(gpp:vector? self)
                    (let ([cmd (gpath:datum-cmd self)]
                          [pos (+ curpos (gpath:print-end-here self))])
                      (cond [(eq? cmd #\m) (traverse rest pos (cons (gpp:point #\M pos) stnirp) pos)]
-                           [(not path0) (traverse rest pos (cons (gpp:point #\M pos) stnirp) pos)]
-                           [else (traverse rest path0 (cons (gpp:point #\L pos) stnirp) pos)]))]
-                  [(gpath:print? self) (traverse rest path0 (cons self stnirp) (gpath:print-end-here self))]
+                           [(not p-head) (traverse rest pos (cons (gpp:point #\M pos) stnirp) pos)]
+                           [(= pos curpos) (traverse rest p-head stnirp pos)]
+                           [else (traverse rest p-head (cons (gpp:point #\L pos) stnirp) pos)]))]
+                  [(gpath:print? self) ; take care ellipses
+                   (let ([cmd (gpath:datum-cmd self)]
+                         [pos (gpath:print-end-here self)])
+                     (cond [(eq? cmd #\M) (traverse rest pos (cons self stnirp) pos)]
+                           [(not p-head) (traverse rest pos (cons (gpp:point #\M pos) stnirp) pos)]
+                           [(= pos curpos) (traverse rest p-head stnirp pos)]
+                           [else (traverse rest p-head (cons self stnirp) pos)]))]
                   [(complex? self)
-                   (if (and path0)
-                       (traverse rest path0 (cons (gpp:point #\L self) stnirp) self)
-                       (traverse rest self (cons (gpp:point #\M self) stnirp) self))]
-                  [else '#:deadcode (traverse rest path0 stnirp curpos)]))
+                   (cond [(not p-head) (traverse rest self (cons (gpp:point #\M self) stnirp) self)]
+                         [(= curpos self) (traverse rest p-head stnirp curpos)]
+                         [else (traverse rest p-head (cons (gpp:point #\L self) stnirp) self)])]
+                  [else '#:deadcode (traverse rest p-head stnirp curpos)]))
           (reverse stnirp)))))
 
 (define geo-path-end-points
   : (case-> [Geo-Path-Clean-Prints+ -> (Values Float-Complex Flonum Float-Complex Flonum)]
             [Geo-Path-Clean-Prints -> (Values (Option Float-Complex) Flonum (Option Float-Complex) Flonum)])
   (lambda [footprints]
-    (if (and (pair? footprints) (pair? (cdr footprints)))
-        (let ([h1st (geo-path-clean-print-position (car footprints))]
-              [h2nd (geo-path-clean-print-position (cadr footprints))])
-          (let traverse ([t2nd : Float-Complex h1st]
-                         [t1st : Float-Complex h2nd]
-                         [prints : (Listof GPath:Print) (cddr footprints)])
-            (if (pair? prints)
-                (traverse t1st (geo-path-clean-print-position (car prints)) (cdr prints))
-                (values h1st (angle (- h2nd h1st)) t1st (angle (- t1st t2nd))))))
+    (if (pair? footprints)
+        (if (pair? (cdr footprints))
+            (let ([h1st (geo-path-clean-print-position (car footprints))]
+                  [h2nd (geo-path-clean-print-position (cadr footprints))])
+              (let traverse ([t2nd : Float-Complex h1st]
+                             [t1st : Float-Complex h2nd]
+                             [prints : (Listof GPath:Print) (cddr footprints)])
+                (if (pair? prints)
+                    (traverse t1st (geo-path-clean-print-position (car prints)) (cdr prints))
+                    (values h1st (angle (- h2nd h1st)) t1st (angle (- t1st t2nd))))))
+            (let* ([pos (geo-path-clean-print-position (car footprints))]
+                   [rad (angle pos)])
+              (values pos rad pos rad)))
         (values #false 0.0 #false 0.0))))
 
 (define geo-path-ink-box : (-> Geo-Path-Clean-Prints (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))

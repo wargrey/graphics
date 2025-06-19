@@ -11,8 +11,16 @@
 (require geofun/digitama/layer/type)
 
 (require "style.rkt")
+(require "../mark/style.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define plot-axis-tip : (-> Plot-Axis-Style Symbol Plot-Axis-Tip-Style)
+  (lambda [self direction]
+    (define tip (plot-axis-style-tip self))
+    (if (eq? direction 'x)
+        (if (pair? tip) (car tip) tip)
+        (if (pair? tip) (cdr tip) tip))))
+
 (define plot-axis-tick-anchor : (-> Plot-Axis-Style Symbol Geo-Pin-Anchor)
   (lambda [self direction]
     (define anchor (plot-axis-style-tick-anchor self))
@@ -100,19 +108,19 @@
             (max (- fllength neg-margin pos-margin (plot-axis-style-thickness self)) 1.0)
             neg-margin pos-margin)))
 
-(define plot-mark-style-values : (-> (Option Plot-Mark-Style) Plot-Axis-Style
-                                     (Values Font Color Flonum Geo-Pin-Anchor Nonnegative-Flonum))
+(define plot-marker-style-values : (-> (Option Plot-Marker-Style) Plot-Axis-Style
+                                       (Values Font Color Flonum Geo-Pin-Anchor Nonnegative-Flonum))
   (lambda [self master]
     (if (or self)
-        (values (or (plot-mark-style-font self)
+        (values (or (plot-marker-style-font self)
                     (plot-axis-style-font master))
-                (or (plot-mark-style-color self)
+                (or (plot-marker-style-color self)
                     (plot-axis-style-color master))
-                (plot-mark-style-position self)
-                (plot-mark-style-anchor self)
-                (~length (plot-mark-style-dot-radius self)
+                (plot-marker-style-position self)
+                (plot-marker-style-anchor self)
+                (~length (plot-marker-style-dot-radius self)
                          (plot-axis-style-thickness master)))
-        (plot-mark-style-values (default-plot-mark-style) master))))
+        (plot-marker-style-values (default-plot-marker-style) master))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (T) plot-cartesian-settings : (case-> [Complex -> (Values Flonum Flonum)]

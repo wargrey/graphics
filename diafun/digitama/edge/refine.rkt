@@ -39,7 +39,7 @@
 
 (define dia-more-tracks-relocate-endpoints : (-> (GLayerof Geo) (Option (GLayerof Geo))
                                                  (List* GPath:Print GPath:Print GPath:Print (Listof GPath:Print))
-                                                 Geo-Path-Clean-Prints+)
+                                                 Geo-Path-Clean-Prints*)
   (lambda [source target tracks]
     (define h1st : GPath:Print (car tracks))
     (define h2nd : GPath:Print (cadr tracks))

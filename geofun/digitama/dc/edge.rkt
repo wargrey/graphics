@@ -2,11 +2,10 @@
 
 (provide (all-defined-out))
 
-(require "plain.rkt")
-
 (require "../edge/label.rkt")
 (require "../edge/tip/self.rkt")
 (require "../edge/tip.rkt")
+(require "../edge/tips.rkt")
 
 (require "../../paint.rkt")
 (require "../../stroke.rkt")
@@ -21,7 +20,6 @@
 (require "../layer/sticker.rkt")
 (require "../geometry/dot.rkt")
 (require "../geometry/footprint.rkt")
-(require "../geometry/computation/line.rkt")
 (require "../unsafe/dc/edge.rkt")
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -45,31 +43,29 @@
 (define geo-edge : (->* ((Listof Point2D))
                         (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:source-tip (Option Geo-Tip) #:target-tip (Option Geo-Tip)
                          #:tip-placement Geo-Tip-Placement #:source-tip-placement (Option Geo-Tip-Placement) #:target-tip-placement (Option Geo-Tip-Placement))
-                        (U Geo:Edge Geo:Blank))
+                        Geo:Edge)
   (lambda [#:id [id #false] #:stroke [stroke (void)] #:source-tip [src-tip #false] #:target-tip [tgt-tip #false]
            #:tip-placement [tip-pos 'center] #:source-tip-placement [src-pos #false] #:target-tip-placement [tgt-pos #false]
            dots]
-    (define footprints (geo-path-cleanse (map ~point2d dots)))
-    (if (and (pair? footprints) (pair? (cdr footprints)))
-        (geo-edge* #:id id #:stroke stroke #:source-tip src-tip #:target-tip tgt-tip
-                   #:tip-placement tip-pos #:source-tip-placement src-pos #:target-tip-placement tgt-pos
-                   footprints)
-        (geo-blank #:id id))))
+    (geo-edge* #:id id #:stroke stroke #:source-tip src-tip #:target-tip tgt-tip
+               #:tip-placement tip-pos #:source-tip-placement src-pos #:target-tip-placement tgt-pos
+               (geo-path-cleanse (map ~point2d dots)))))
 
-(define geo-edge* : (->* (Geo-Path-Clean-Prints+)
+(define geo-edge* : (->* (Geo-Path-Clean-Prints)
                          (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:source-tip (Option Geo-Tip) #:target-tip (Option Geo-Tip)
                           #:tip-placement Geo-Tip-Placement #:source-tip-placement (Option Geo-Tip-Placement) #:target-tip-placement (Option Geo-Tip-Placement))
                          Geo:Edge)
   (lambda [#:id [id #false] #:stroke [stroke (void)] #:source-tip [src-tip #false] #:target-tip [tgt-tip #false]
            #:tip-placement [tip-pos 'center] #:source-tip-placement [src-pos #false] #:target-tip-placement [tgt-pos #false]
-           footprints]
+           footprints0]
+    (define footprints : (Pairof GPath:Print Geo-Path-Clean-Prints) (if (pair? footprints0) footprints0 (list the-M0)))
     (define-values (spt srad ept erad) (geo-path-end-points footprints))
     (define-values (e.x e.y e.w e.h) (geo-path-ink-box footprints))
     
     ;; NOTE: we move the end shapes to their absolute positions, and no need to translate them when drawing
     (define thickness : Nonnegative-Flonum (stroke-width (if (stroke? stroke) stroke (default-stroke))))
-    (define-values (src-prints s.x0 s.y0 s.w s.h s.off s.fill?) (geo-edge-tip-path src-tip thickness srad #false (or src-pos tip-pos)))
-    (define-values (tgt-prints t.x0 t.y0 t.w t.h t.off t.fill?) (geo-edge-tip-path tgt-tip thickness erad #true  (or tgt-pos tip-pos)))
+    (define-values (src-prints s.x0 s.y0 s.w s.h s.off s.cfg) (geo-tip-path (geo-tip-filter src-tip) thickness srad #false (or src-pos tip-pos)))
+    (define-values (tgt-prints t.x0 t.y0 t.w t.h t.off t.cfg) (geo-tip-path (geo-tip-filter tgt-tip) thickness erad #true  (or tgt-pos tip-pos)))
     (define-values (s.x s.y) (values (+ (real-part spt) s.x0) (+ (imag-part spt) s.y0)))
     (define-values (t.x t.y) (values (+ (real-part ept) t.x0) (+ (imag-part ept) t.y0)))
     
@@ -78,7 +74,7 @@
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window +nan.0+nan.0i lx ty rx by))
     
     (create-geometry-object geo:edge
-                            #:with [id (geo-draw-edge! stroke s.fill? t.fill?)
+                            #:with [id (geo-draw-edge! stroke s.cfg t.cfg)
                                        (geo-shape-extent width height 0.0 0.0)
                                        (geo-shape-outline stroke x-stroke? y-stroke?)]
                             footprints (cons spt srad) (cons ept erad)
@@ -98,14 +94,9 @@
                                [op : (Option Symbol) 'source])
                     (if (pair? labels)
                         (let* ([label (car labels)]
-                               [dir (geo-edge-label-dir label)]
                                [distance (geo-edge-label-distance label)])
-
                           (attach (cdr labels)
-                                  (cons (geo-sticker->layer (geo-edge-label-sticker label)
-                                                            (geo-perpendicular-point (- (geo-edge-label-pos label) O) dir
-                                                                                     distance (geo-edge-label-t label)))
-                                        layers)
+                                  (cons (geo-edge-label-layer label O) layers)
                                   (if (and distance (zero? distance)) op #false)))
                         (create-geometry-group geo:labeled-edge #false #false op
                                                (geo-path-layers-merge (geo:group-selves self) layers)))))])))
@@ -142,19 +133,19 @@
     (assert (glayer-master (car (glayer-group-layers (geo:group-selves g)))) geo:edge?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-draw-edge! : (-> Maybe-Stroke-Paint Boolean Boolean Geo-Surface-Draw!)
-  (lambda [alt-stroke sfill? tfill?]
+(define geo-draw-edge! : (-> Maybe-Stroke-Paint Geo-Tip-Config Geo-Tip-Config Geo-Surface-Draw!)
+  (lambda [alt-stroke scfg tcfg]
     (λ [self cr x0 y0 width height]
       (with-asserts ([self geo:edge?])
         (define paint (geo-select-stroke-paint alt-stroke))
         (define color (and paint (stroke-color paint)))
-        (define (shape-stroke [fill? : Boolean]) : (Option Stroke)
-          (if (not fill?)
-              (and paint (desc-stroke paint #:color color #:dash 'solid))
-              (desc-stroke #:width 1.0 #:color color)))
+        (define (shape-stroke [cfg : Geo-Tip-Config]) : (Option Stroke)
+          (if (geo-tip-config-fill? cfg)
+              (desc-stroke #:width 1.0 #:color color)
+              (and paint (desc-stroke paint #:color color #:dash 'solid #:width (geo-tip-config-thickness cfg)))))
 
         (dc_edge cr x0 y0 width height
                  (geo:edge-footprints self) (geo:edge-bbox-offset self) paint
-                 (geo:edge-source-tip self) (shape-stroke sfill?) (and sfill? color) (car (geo:edge-source self))
-                 (geo:edge-target-tip self) (shape-stroke tfill?) (and tfill? color) (car (geo:edge-target self))
+                 (geo:edge-source-tip self) (shape-stroke scfg) (and (geo-tip-config-fill? scfg) color) (car (geo:edge-source self))
+                 (geo:edge-target-tip self) (shape-stroke tcfg) (and (geo-tip-config-fill? tcfg) color) (car (geo:edge-target self))
                  (geo:edge-adjust-offset self))))))

@@ -10,7 +10,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-dart-metrics : (->* (Nonnegative-Flonum Flonum (Option Flonum)) (Float-Complex)
-                                (Values Geo-Path-Clean-Prints+ Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+                                (Values Geo-Path-Clean-Prints* Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [head-radius rpoint wing-angle [offset 0.0+0.0i]]
     (define fllength : Nonnegative-Flonum (* head-radius 2.0))
     (define rdelta : Flonum (if (not wing-angle) (* 0.6 pi #;108.0) (- pi (* 0.5 wing-angle))))
@@ -25,7 +25,7 @@
             fllength fllength)))
 
 (define geo-curved-dart-metrics : (->* (Nonnegative-Flonum Flonum (Option Flonum)) (Float-Complex Flonum)
-                                       (Values Geo-Path-Clean-Prints+ Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+                                       (Values Geo-Path-Clean-Prints* Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [head-radius rpoint wing-angle [offset 0.0+0.0i] [ctrl-ratio 0.5]]
     (define fllength : Nonnegative-Flonum (* head-radius 2.0))
     (define rdelta : Flonum (if (not wing-angle) (* 0.6 pi #;108.0) (- pi (* 0.5 wing-angle))))
@@ -46,7 +46,7 @@
             fllength fllength)))
 
 (define geo-arrow-metrics : (-> Nonnegative-Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Flonum)
-                                (Values Geo-Path-Clean-Prints+ Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+                                (Values Geo-Path-Clean-Prints* Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [head-radius rpoint shaft-thickness shaft-length wing-angle]
     (define fllength : Nonnegative-Flonum (* head-radius 2.0))
     (define rdelta : Flonum (if (not wing-angle) (* 0.6 pi #;108.0) (- pi (* 0.5 wing-angle))))
@@ -90,7 +90,7 @@
                         (gpp:point #\L (make-polar wing-radius rwing2))))
           (values 0.0+0.0i null)))
 
-    (define head-prints : Geo-Path-Clean-Prints+
+    (define head-prints : Geo-Path-Clean-Prints*
       (let ([ctrl (* (make-rectangular rpx rpy) 0.5)])
         (list (gpp:point #\L (make-rectangular wx2 wy2))
               (gpp:point #\L (make-rectangular rpx rpy))

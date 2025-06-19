@@ -4,12 +4,13 @@
 (provide Plot:Cartesian plot:cartesian?)
 (provide Plot:Function plot:function? function)
 (provide Plot-Visualizer-Tree Plot-Visualizer plot-visualizer?)
+(provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/singleton.rkt"))
 (provide (all-from-out "digitama/axis/tick/self.rkt"))
 (provide (all-from-out "digitama/axis/tick/real.rkt"))
-(provide (all-from-out "digitama/axis/mark/self.rkt"))
-(provide (all-from-out "digitama/axis/style.rkt"))
+(provide (all-from-out "digitama/mark/self.rkt"))
+(provide (all-from-out "digitama/mark/style.rkt"))
 
 (require digimon/metrics)
 (require digimon/complex)
@@ -43,7 +44,8 @@
 (require "digitama/axis/tick/self.rkt")
 (require "digitama/axis/tick/real.rkt")
 
-(require "digitama/axis/mark/self.rkt")
+(require "digitama/mark/self.rkt")
+(require "digitama/mark/style.rkt")
 
 (require "digitama/visualizer/self.rkt")
 (require "digitama/visualizer/function.rkt")
@@ -54,11 +56,9 @@
            #:O [chO : Char #\O]
            #:origin [maybe-origin : (Option Complex) #false]
            #:unit-length [maybe-unit : (Option Complex) #false]
-           #:width [width : Real (default-plot-cartesian-width)]
-           #:height [height : Real (default-plot-cartesian-height)]
+           #:width [width : Real (default-plot-cartesian-view-width)]
+           #:height [height : Real (default-plot-cartesian-view-height)]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
-           #:x-tip [x-tip : Plot-Axis-Tip-Style (default-plot-axis-tip-style)]
-           #:y-tip [y-tip : (Option Plot-Axis-Tip-Style) #false]
            #:x-label [x-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "x"]
            #:y-label [y-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "y"]
            #:x-desc [x-desc : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
@@ -87,10 +87,11 @@
 
     (define-values (maybe-xorig maybe-yorig) (plot-cartesian-maybe-settings maybe-origin))
     (define-values (maybe-xunit maybe-yunit) (plot-cartesian-maybe-settings maybe-unit))
+    (define-values (x-tip y-tip) (values (plot-axis-tip axis-style 'x) (plot-axis-tip axis-style 'y)))
     (define-values ( flwidth  view-width x-neg-margin x-pos-margin) (plot-axis-length-values axis-style x-tip width))
     (define-values (flheight view-height y-neg-margin y-pos-margin)
-      (cond [(rational? height) (plot-axis-length-values axis-style (or y-tip x-tip) height flwidth)]
-            [else (plot-axis-height-values axis-style (or y-tip x-tip) view-width
+      (cond [(rational? height) (plot-axis-length-values axis-style y-tip height flwidth)]
+            [else (plot-axis-height-values axis-style y-tip view-width
                                            (/ (- (cdr yview) (car yview))
                                               (- (cdr xview) (car xview))))]))
     

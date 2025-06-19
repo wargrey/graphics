@@ -4,6 +4,7 @@
 (provide Plot:Axis plot:axis?)
 (provide plot-axis-real-values plot-axis-integer-values)
 (provide default-plot-axis-integer-filter default-plot-axis-real-filter)
+(provide (all-from-out "digitama/mark/style.rkt"))
 (provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/singleton.rkt"))
@@ -38,6 +39,8 @@
 (require "digitama/axis/tick/self.rkt")
 (require "digitama/axis/tick/real.rkt")
 
+(require "digitama/mark/style.rkt")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis
   (lambda [#:id [id : (Option Symbol) #false]
@@ -45,14 +48,13 @@
            #:unit-length [maybe-unit : (Option Real) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
-           #:tip [tip : Plot-Axis-Tip-Style (default-plot-axis-tip-style)]
            #:label [axis-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
            #:desc [axis-desc : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
            #:range [tick-hint : (U Real (Pairof Real Real) False) #false]
            #:ticks [ticks-engine : Plot-Tick-Engine (plot-real-ticks)]
            #:tick-format [alt-format : (Option Plot-Tick-Format) #false]
            #:tick->sticker [tick->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
-           #:real-style [real-style : (Option Plot-Mark-Style) #false]
+           #:real-style [real-style : (Option Plot-Marker-Style) #false]
            #:real-filter [real-filter : (Option Plot-Axis-Real-Filter) #false]
            #:real->sticker [real->label : Plot-Axis-Real->Sticker default-plot-axis-real->sticker]
            #:real->dot [real->dot : Plot-Axis-Real->Dot default-plot-axis-real->dot]
@@ -61,6 +63,7 @@
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false]
            #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Axis
+    (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
     (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip length))
     (define-values (tick-range origin flunit)
       (plot-axis-metrics (or tick-hint (plot-tick-engine-range ticks-engine))
@@ -120,7 +123,7 @@
                                         (dot->pos (real->double-flonum (plot-tick-value (car tick))))
                                         flc-offset ticks fltick-min real-part fltick-max gtick))
               
-              (let-values ([(real-font real-color real-position real-anchor dot-radius) (plot-mark-style-values real-style axis-style)])
+              (let-values ([(real-font real-color real-position real-anchor dot-radius) (plot-marker-style-values real-style axis-style)])
                 (for/fold ([reals : (Listof (GLayerof Geo)) null])
                           ([real (in-list (cond [(list? real-list) real-list]
                                                 [else (plot-axis-reals-from-producer real-list actual-tick-values)]))])
@@ -155,14 +158,13 @@
            #:unit-length [maybe-unit : (Option Real) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
-           #:tip [tip : Plot-Axis-Tip-Style (default-plot-axis-tip-style)]
            #:label [axis-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
            #:desc [axis-desc : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
            #:range [tick-hint : (U Integer (Pairof Integer Integer) False) #false]
            #:ticks [ticks-engine : Plot-Tick-Engine (plot-integer-ticks)]
            #:tick-format [alt-format : (Option Plot-Tick-Format) #false]
            #:tick->sticker [tick->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
-           #:integer-style [int-style : (Option Plot-Mark-Style) #false]
+           #:integer-style [int-style : (Option Plot-Marker-Style) #false]
            #:integer-filter [int-filter : (Option Plot-Axis-Integer-Filter) #false]
            #:integer->sticker [int->label : Plot-Axis-Real->Sticker default-plot-axis-real->sticker]
            #:integer->dot [int->dot : Plot-Axis-Real->Dot default-plot-axis-real->dot]
@@ -172,6 +174,7 @@
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false]
            #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Axis
+    (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
     (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip length))
     (define-values (tick-range origin flunit)
       (plot-axis-metrics (or (plot-tick-engine-range ticks-engine) tick-hint)
@@ -233,7 +236,7 @@
                                           (dot->pos (real->double-flonum (plot-tick-value* tick)))
                                           flc-offset ticks fltick-min real-part fltick-max gtick))
 
-                (let-values ([(int-font int-color int-position int-anchor dot-radius) (plot-mark-style-values int-style axis-style)])
+                (let-values ([(int-font int-color int-position int-anchor dot-radius) (plot-marker-style-values int-style axis-style)])
                   (for/fold ([reals : (Listof (GLayerof Geo)) null])
                             ([real (in-list (cond [(list? number-sequence) number-sequence]
                                                   [(vector? number-sequence) (plot-axis-reals-from-vector number-sequence (if (not exclude-zero?) 0 1))]

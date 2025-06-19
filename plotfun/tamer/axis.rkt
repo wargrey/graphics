@@ -50,7 +50,7 @@
   (plot-integer-axis #:range (cons -1 9)
                      #:unit-length -0.1
                      #:style (make-plot-axis-style #:label-position 'digit)
-                     #:integer-style (make-plot-mark-style #:position -2.5 #:anchor 'ct)
+                     #:integer-style (make-plot-marker-style #:position -2.5 #:anchor 'ct)
                      #:integer->sticker time-sticker
                      #:label "n"
                      fib))
