@@ -39,10 +39,10 @@
        (geo-trim (geo-text symtext (desc-font #:size (* R 1.4) #:family "Linux Biolinum Shadow, Bold") #:id 'lambda #:color λ-color))
        (geo-icosahedron-side-projection R 'vertex #:id 'coat/in #:edge edge-stroke #:border ihead-stroke)))
 
-    (define collar (geo-dart Rcollar pi/2 #:id 'collar #:fill tail-color #:stroke ihead-stroke #:wing-angle 4pi/5 #:radian? #true))
+    (define collar (geo-dart Rcollar pi/2 #:id 'collar #:fill tail-color #:stroke ihead-stroke #:wing-angle 4pi/5))
     (define maybe-sheath : (Option Geo)
       (and (not no-sheath?)
-           (geo-arrow #:id 'sheath #:fill tail-color #:stroke ohead-stroke #:shaft-thickness -1/phi #:wing-angle pi #:radian? #true
+           (geo-arrow #:id 'sheath #:fill tail-color #:stroke ohead-stroke #:shaft-thickness -1/phi #:wing-angle pi
                       Rdart sheath-length pi/2)))
 
     (define tail.rad : Flonum

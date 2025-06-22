@@ -29,7 +29,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-icosahedron-side-projection
-  (lambda [#:edge [edge : Maybe-Stroke-Paint (void)] #:border [border : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
+  (lambda [#:edge [edge : Maybe-Stroke-Paint (void)]
+           #:border [border : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false]
            [radius : Real] [radius-type : 3D-Radius-Type 'vertex]] : Geo:Icosahedron:Side
     (define r : Nonnegative-Flonum (~length radius))
@@ -42,8 +44,11 @@
                             r radius-type sidelength)))
 
 (define geo-icosahedron-over-projection
-  (lambda [#:edge [edge : Maybe-Stroke-Paint (void)] #:border [border : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:rotation [rotation : Real 0.0] #:radian? [radian? : Boolean #true]
+  (lambda [#:edge [edge : Maybe-Stroke-Paint (void)]
+           #:border [border : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           #:rotation [rotation : Real 0.0]
            [radius : Real] [radius-type : 3D-Radius-Type 'vertex]] : Geo:Icosahedron:Over
     (define r : Nonnegative-Flonum (~length radius))
     (define R : Nonnegative-Flonum (icosahedron-radius->circumsphere-radius r radius-type))
@@ -52,7 +57,7 @@
                             #:with [id (geo-draw-over-projection border edge pattern)
                                        (geo-shape-extent (* 2.0 R))
                                        (geo-side-projection-outline edge border)]
-                            r radius-type R (~radian rotation radian?))))
+                            r radius-type R (real->double-flonum rotation))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-side-projection : (-> Maybe-Stroke-Paint Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)

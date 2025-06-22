@@ -31,9 +31,8 @@
  (bitmap-cc-superimpose*
   (build-list (length ring-colors)
               (λ [[i : Index]]
-                (let ([arclength (/ 360.0 (length ring-colors))])
+                (let ([arclength (degrees->radians (/ 360.0 (length ring-colors)))])
                   (bitmap-arc #:stroke (desc-stroke #:width ring-thickness #:color (list-ref ring-colors i))
-                              #:radian? #false
                               (* ring-thickness 4.0)
                               (* i arclength)
                               (* (+ i 1) arclength)))))))
@@ -41,9 +40,8 @@
 (bitmap-cc-superimpose*
  (build-list (length ring-colors)
              (λ [[i : Index]]
-                 (let ([arclength (/ 360.0 (length ring-colors))])
+                 (let ([arclength (degrees->radians (/ 360.0 (length ring-colors)))])
                    (bitmap-sector #:fill (list-ref ring-colors i) #:stroke 'ghostwhite
-                                  #:radian? #false
                                   (* ring-thickness 4.0)
                                   (* i arclength)
                                   (* (+ i 1) arclength))))))

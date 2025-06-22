@@ -4,7 +4,8 @@
 
 (require geofun/digitama/base)
 (require geofun/digitama/convert)
-(require geofun/digitama/markup)
+
+(require "../marker/self.rkt")
 
 (require (for-syntax racket/base))
 
@@ -13,15 +14,15 @@
 
 (define-type Plot-Visualizer-Tick-Range (Pairof (Option Real) (Option Real)))
 (define-type Plot-Visualizer-Data-Range (-> Real Real (Pairof Real Real)))
-(define-type Plot-Visualizer-Realize (-> Index (Pairof Real Real) Real Real (-> Flonum Flonum Float-Complex) (Option FlRGBA) Geo:Visualizer))
+(define-type Plot-Visualizer-Realize (-> Index Positive-Index Real Real Real Real (-> Flonum Flonum Float-Complex) (Option FlRGBA) Geo:Visualizer))
 
 (define-syntax (plot-realize stx)
   (syntax-case stx []
-    [(_ self idx xview yview args ...)
+    [(_ self idx total xview yview args ...)
      (syntax/loc stx
-       (let-values ([(xrng) (plot-range-select (plot-visualizer-xrng self) xview)]
-                    [(ymin ymax) (plot-range-values (plot-range-select (plot-visualizer-yrng self) yview))])
-         ((plot-visualizer-realize self) idx xrng ymin ymax args ...)))]))
+       (let-values ([(xmin xmax) (plot-range-select (plot-visualizer-xrng self) xview)]
+                    [(ymin ymax) (plot-range-select (plot-visualizer-yrng self) yview)])
+         ((plot-visualizer-realize self) idx total xmin xmax ymin ymax args ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot-visualizer
@@ -35,7 +36,9 @@
 
 (struct geo:visualizer geo
   ([position : Float-Complex]
-   [legend : (Option (Pairof Geo DC-Markup-Text))])
+   [color : FlRGBA]
+   [label : (Option Plot:Mark)]
+   [legend : (Option Geo)])
   #:type-name Geo:Visualizer
   #:transparent)
 
@@ -111,7 +114,7 @@
   (lambda [rng]
     (values (car rng) (cdr rng))))
 
-(define plot-range-select : (-> Plot-Visualizer-Tick-Range (Pairof Real Real) (Pairof Real Real))
+(define plot-range-select : (-> Plot-Visualizer-Tick-Range (Pairof Real Real) (Values Real Real))
   (lambda [rng view]
-    (cons (if (car rng) (max (car view) (car rng)) (car view))
-          (if (cdr rng) (min (cdr view) (cdr rng)) (cdr view)))))
+    (values (if (car rng) (max (car view) (car rng)) (car view))
+            (if (cdr rng) (min (cdr view) (cdr rng)) (cdr view)))))

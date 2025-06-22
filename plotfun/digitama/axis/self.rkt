@@ -6,9 +6,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Axis-Ticks (U (Pairof Real Real) (Listof Real) False))
-(define-type Plot-Axis-Position-Map (-> Flonum Float-Complex))
 
-(define-type Plot-Cartesian-Position-Map
+(define-type Plot-Position-Transform
   (case-> [Flonum Flonum -> Float-Complex]
           [Float-Complex -> Float-Complex]))
 
@@ -18,7 +17,7 @@
 (struct plot:axis geo:group
   ([origin : Float-Complex]
    [ticks : (Listof Real)]
-   [map : Plot-Axis-Position-Map])
+   [map : Plot-Position-Transform])
   #:type-name Plot:Axis
   #:transparent)
 
@@ -26,6 +25,6 @@
   ([origin : Float-Complex]
    [xticks : Plot-Axis-Ticks]
    [yticks : Plot-Axis-Ticks]
-   [map : Plot-Cartesian-Position-Map])
+   [map : Plot-Position-Transform])
   #:type-name Plot:Cartesian
   #:transparent)

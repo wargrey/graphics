@@ -8,6 +8,7 @@
 (require geofun/font)
 
 (require geofun/digitama/layer/type)
+(require geofun/digitama/paint/self)
 (require geofun/digitama/edge/tip/self)
 
 (require "singleton.rkt")
@@ -23,8 +24,7 @@
    [margin : Complex 0.0-0.08i]))
 
 (define-struct/parameter plot-axis-style : Plot-Axis-Style
-  ([thickness : Nonnegative-Flonum 1.5]
-   [color : Color default-axis-color]
+  ([stroke : Stroke default-axis-stroke]
    [font : Font default-axis-font]
    [tick-thickness : Nonnegative-Flonum 1.0]
    [tick-length : Complex -3.0]

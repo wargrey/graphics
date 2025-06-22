@@ -42,8 +42,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-circle
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:diameters [diameters : (Listof Real) null] #:radian? [radian? : Boolean #true]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           #:diameters [diameters : (Listof Real) null]
            [radius : Real]] : Geo:Circle
     (define r : Nonnegative-Flonum (~length radius))
     
@@ -52,15 +54,19 @@
                                        (geo-shape-extent (* 2.0 r) 0.0 0.0)
                                        (geo-shape-outline stroke)]
                             r (for/list : (Listof Flonum) ([d (in-list diameters)])
-                                (~radian d radian?)))))
+                                (real->double-flonum d)))))
 
 (define geo-ellipse
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:diameters [diameters : (Listof Real) null] #:radian? [radian? : Boolean #true]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           #:diameters [diameters : (Listof Real) null]
            [width : Real] [height : Real -0.618]] : (U Geo:Circle Geo:Ellipse)
     (define-values (w h) (~extent width height))
     (define ellipse-extent : Geo-Calculate-Extent (geo-shape-extent w h 0.0 0.0))
-    (define rads : (Listof Flonum) (for/list ([d (in-list diameters)]) (~radian d radian?)))
+    (define rads : (Listof Flonum)
+      (for/list ([d (in-list diameters)])
+        (real->double-flonum d)))
     
     (if (= w h)
         (create-geometry-object geo:circle
@@ -71,8 +77,10 @@
                                 (* w 0.5) (* h 0.5) rads))))
 
 (define geo-sector
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:ratio [ratio : Real 1.0] #:radian? [radian? : Boolean #true]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           #:ratio [ratio : Real 1.0]
            [radius : Real] [start : Real] [end : Real]] : Geo:Sector
     (define ar : Nonnegative-Flonum (~length radius))
     (define br : Nonnegative-Flonum (if (> ratio 0.0) (abs (/ ar (real->double-flonum ratio))) ar))
@@ -81,11 +89,12 @@
                             #:with [id (geo-draw-sector stroke pattern)
                                        (geo-shape-extent (* 2.0 ar) (* 2.0 br))
                                        (geo-shape-outline stroke)]
-                            ar br (~radian start radian?) (~radian end radian?))))
+                            ar br (real->double-flonum start) (real->double-flonum end))))
 
 (define geo-arc
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:radian? [radian? : Boolean #true]
-           #:id [id : (Option Symbol) #false] #:ratio [ratio : Real 1.0]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           #:ratio [ratio : Real 1.0]
            [radius : Real] [start : Real] [end : Real]] : Geo:Arc
     (define ar : Nonnegative-Flonum (~length radius))
     (define br : Nonnegative-Flonum (if (> ratio 0.0) (abs (/ ar (real->double-flonum ratio))) ar))
@@ -94,7 +103,7 @@
                             #:with [id (geo-draw-arc stroke)
                                        (geo-shape-extent (* 2.0 ar) (* 2.0 br))
                                        (geo-shape-outline stroke)]
-                            ar br (~radian start radian?) (~radian end radian?))))
+                            ar br (real->double-flonum start) (real->double-flonum end))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-ellipse : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)

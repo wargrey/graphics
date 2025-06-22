@@ -11,24 +11,13 @@
 (require geofun/digitama/convert)
 
 (require geofun/digitama/paint/self)
-(require geofun/digitama/layer/type)
 
 (require colorspace/palette)
 
-(require "real.rkt")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Axis-Tick->Sticker (-> (Option Symbol) String Font Color (U Geo Void False)))
-(define-type Plot-Axis-Real->Sticker (-> (Option Symbol) Real Any Nonnegative-Flonum Font Color (U Geo (Pairof Geo Geo-Pin-Anchor) Void False)))
-(define-type Plot-Axis-Real->Dot (-> (Option Symbol) Real Any Nonnegative-Flonum Color Nonnegative-Flonum (U Geo (Pairof Geo Geo-Pin-Anchor) Void False)))
-
-(define-type Plot-Axis-Real-Filter (-> Plot-Axis-Real-Datum (Values (Option Flonum) Any)))
-(define-type Plot-Axis-Integer-Filter (-> Plot-Axis-Integer-Datum (Values (Option Integer) Any)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-plot-axis-real-filter : (Parameterof Plot-Axis-Real-Filter) (make-parameter plot-axis-real-values))
-(define default-plot-axis-integer-filter : (Parameterof Plot-Axis-Integer-Filter) (make-parameter plot-axis-integer-values))
-
 (define default-plot-axis-desired-ticks : (Parameterof Positive-Index) (make-parameter 7))
 (define default-plot-axis-real-tick-steps : (Parameterof (Listof Positive-Index)) (make-parameter (list 1 2 4 5)))
 (define default-plot-axis-length : (Parameterof Real) (make-parameter 400.0))
@@ -38,22 +27,12 @@
 (define default-plot-cartesian-view-height : (Parameterof Real) (make-parameter +inf.0))
 (define default-plot-visualizer-domain-range : (Parameterof (Pairof Real Real)) (make-parameter (cons -5 5)))
 (define default-plot-visualizer-samples : (Parameterof Positive-Index) (make-parameter 512))
+(define default-plot-visualizer-label-position% : (Parameterof Real) (make-parameter +nan.0))
 
 (define default-plot-function-stroke : (Parameterof Stroke) (make-parameter (desc-stroke #:width 1.5 #:join 'round #:cap 'round #:opacity 0.75)))
 (define default-plot-palette : (Parameterof Palette-Index->Pen+Brush-Colors) (make-parameter the-oklch-palette))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-axis-nonzero-values-wrap : (->* () (Plot-Axis-Integer-Filter) Plot-Axis-Integer-Filter)
-  (lambda [[integer-values plot-axis-integer-values]]
-    (λ [[r : Plot-Axis-Integer-Datum]]
-      (define-values (val obj) (integer-values r))
-      (values (and val (if (zero? val) #false val))
-              obj))))
-
-(define plot-cartesian-dot : (-> Flonum Flonum Float-Complex)
-  (lambda [x y]
-    (make-rectangular x (- y))))
-
 (define plot-desc-pen : (->* ()
                              (Stroke #:color (Option Color) #:opacity (Option Real) #:width (Option Real) #:dash (Option Stroke-Dash+Offset))
                              Stroke)

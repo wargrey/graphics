@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out) font-family->face)
-(provide Font-Weight Font-Style Font-Stretch Font-Variant)
+(provide Font-Weight Font-Style Font-Stretch Font-Variant Font-Unit)
 (provide list-font-families list-font-faces)
 (provide list-monospace-font-families list-monospace-font-faces)
 
@@ -80,21 +80,21 @@
             (hash-set! &fonts font (make-ephemeron font desc))
             desc)))))
 
-(define font-metrics : (->* (Font) ((Listof Symbol)) (Listof (Pairof Symbol Nonnegative-Flonum)))
-  (let ([&metrics : (HashTable Any (Ephemeronof (Listof (Pairof Symbol Nonnegative-Flonum)))) (make-weak-hash)])
+(define font-metrics : (->* (Font) ((Listof Font-Unit)) (Listof (Pairof Font-Unit Nonnegative-Flonum)))
+  (let ([&metrics : (HashTable Any (Ephemeronof (Listof (Pairof Font-Unit Nonnegative-Flonum)))) (make-weak-hash)])
     (lambda [font [units null]]
       (define &m (hash-ref &metrics font (λ _ #false)))
-      (define metrics : (Listof (Pairof Symbol Nonnegative-Flonum))
+      (define metrics : (Listof (Pairof Font-Unit Nonnegative-Flonum))
         (or (and &m (ephemeron-value &m))
             (let ([metrics (font_get_metrics (font-description font))])
               (hash-set! &metrics font (make-ephemeron font metrics))
               metrics)))
       (cond [(null? units) metrics]
-            [else (for/list : (Listof (Pairof Symbol Nonnegative-Flonum))
+            [else (for/list : (Listof (Pairof Font-Unit Nonnegative-Flonum))
                     ([m (in-list metrics)] #:when (memq (car m) units))
                     m)]))))
 
-(define font-metrics-ref : (Font Symbol -> Nonnegative-Flonum)
+(define font-metrics-ref : (Font Font-Unit -> Nonnegative-Flonum)
   (lambda [font unit]
     (define metrics (font-metrics font))
     

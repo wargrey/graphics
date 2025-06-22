@@ -6,12 +6,13 @@
 
 (require geofun/font)
 (require geofun/color)
+(require geofun/stroke)
 
 (require geofun/digitama/markup)
 (require geofun/digitama/layer/type)
+(require geofun/digitama/paint/self)
 
 (require "style.rkt")
-(require "../mark/style.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-tip : (-> Plot-Axis-Style Symbol Plot-Axis-Tip-Style)
@@ -28,44 +29,50 @@
         (if (pair? anchor) (car anchor) anchor)
         (if (pair? anchor) (cdr anchor) anchor))))
 
-(define #:forall (C) plot-axis-visual-values : (case-> [Plot-Axis-Style -> (Values Font Font Font FlRGBA Color Color Color Color)]
-                                                       [Plot-Axis-Style (-> Color C) -> (Values Font Font Font C C C C C)])
+(define plot-axis-visual-values : (case-> [Plot-Axis-Style -> (Values Font Font Font Stroke Nonnegative-Flonum Color Color Color Color)]
+                                          [Plot-Axis-Style (-> Color FlRGBA) -> (Values Font Font Font Stroke Nonnegative-Flonum FlRGBA FlRGBA FlRGBA FlRGBA)])
   (case-lambda
     [(self)
-     (let ([axis-font (plot-axis-style-font self)]
-           [axis-color (rgb* (plot-axis-style-color self))]
-           [label-color (plot-axis-style-label-color self)])    
+     (let* ([axis-pen (plot-axis-style-stroke self)]
+            [axis-color (stroke-color axis-pen)]
+            [label-color (plot-axis-style-label-color self)]
+            [axis-font (plot-axis-style-font self)])    
        (values (or (plot-axis-style-digit-font self) axis-font)
                (or (plot-axis-style-label-font self) axis-font)
                (or (plot-axis-style-desc-font self) axis-font)
-               axis-color
+               axis-pen (stroke-width axis-pen)
                (or (plot-axis-style-digit-color self) axis-color)
                (or (plot-axis-style-tick-color self) axis-color)
                (or label-color axis-color)
                (or (plot-axis-style-desc-color self) label-color axis-color)))]
     [(self adjust)
-     (let* ([axis-font (plot-axis-style-font self)]
-            [axis-color (adjust (rgb* (plot-axis-style-color self)))]
+     (let* ([axis-pen (plot-axis-style-stroke self)]
+            [axis-color (stroke-color axis-pen)]
+            [adjusted-color (adjust axis-color)]
             [digit-color (plot-axis-style-digit-color self)]
             [tick-color (plot-axis-style-tick-color self)]
-            [label-color (if (plot-axis-style-label-color self) (adjust (plot-axis-style-label-color self)) axis-color)]
-            [desc-color (plot-axis-style-label-color self)])    
+            [label-color (if (plot-axis-style-label-color self) (adjust (plot-axis-style-label-color self)) adjusted-color)]
+            [desc-color (plot-axis-style-label-color self)]
+            [axis-font (plot-axis-style-font self)])    
        (values (or (plot-axis-style-digit-font self) axis-font)
                (or (plot-axis-style-label-font self) axis-font)
                (or (plot-axis-style-desc-font self) axis-font)
-               axis-color
-               (if (not digit-color) axis-color (adjust digit-color))
-               (if (not tick-color) axis-color (adjust tick-color))
+               (if (equal? adjusted-color axis-color) axis-pen (desc-stroke axis-pen #:color adjusted-color))
+               (stroke-width axis-pen)
+               (if (not digit-color) adjusted-color (adjust digit-color))
+               (if (not tick-color) adjusted-color (adjust tick-color))
                label-color
                (if (not desc-color) label-color (adjust desc-color))))]))
 
 (define plot-axis-digit-position-values : (-> Plot-Axis-Style Symbol (Values Flonum Geo-Pin-Anchor))
   (lambda [self direction]
-    (define-values (xpos ypos) (plot-cartesian-settings (plot-axis-style-digit-position self)))
+    (define pos-cfg (plot-axis-style-digit-position self))
+    (define-values (xpos ypos) (plot-cartesian-settings pos-cfg))
     
     (if (eq? direction 'x)
         (values xpos (if (< xpos 0.0) 'cc 'cc))
-        (values ypos (if (< ypos 0.0) 'rc 'lc)))))
+        (values (if (real? pos-cfg) (* ypos 0.5) ypos) ; because digits in x-axis are aligned by 'cc
+                (if (< ypos 0.0) 'rc 'lc)))))
 
 (define plot-axis-tick-length : (-> Plot-Axis-Style Symbol Flonum)
   (lambda [self direction]
@@ -88,7 +95,7 @@
     (define view-height : Nonnegative-Flonum (max (real->double-flonum (* view-width ratio)) 1.0))
     (define-values (neg-margin pos-margin) (plot-axis-margin-values tip view-width))
 
-    (values (+ view-height neg-margin pos-margin (plot-axis-style-thickness self))
+    (values (+ view-height neg-margin pos-margin (stroke-width (plot-axis-style-stroke self)))
             view-height neg-margin pos-margin)))
 
 (define plot-axis-margin-values : (-> Plot-Axis-Tip-Style Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
@@ -105,22 +112,8 @@
     (define-values (neg-margin pos-margin) (plot-axis-margin-values tip fllength))
     
     (values fllength
-            (max (- fllength neg-margin pos-margin (plot-axis-style-thickness self)) 1.0)
+            (max (- fllength neg-margin pos-margin (stroke-width (plot-axis-style-stroke self))) 1.0)
             neg-margin pos-margin)))
-
-(define plot-marker-style-values : (-> (Option Plot-Marker-Style) Plot-Axis-Style
-                                       (Values Font Color Flonum Geo-Pin-Anchor Nonnegative-Flonum))
-  (lambda [self master]
-    (if (or self)
-        (values (or (plot-marker-style-font self)
-                    (plot-axis-style-font master))
-                (or (plot-marker-style-color self)
-                    (plot-axis-style-color master))
-                (plot-marker-style-position self)
-                (plot-marker-style-anchor self)
-                (~length (plot-marker-style-dot-radius self)
-                         (plot-axis-style-thickness master)))
-        (plot-marker-style-values (default-plot-marker-style) master))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (T) plot-cartesian-settings : (case-> [Complex -> (Values Flonum Flonum)]

@@ -19,9 +19,11 @@
                  (geo-house-vertices flwidth flheight (real->double-flonum t)))))
 
 (define geo-star
-  (lambda [#:stroke [outline : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:radian? [radian? : Boolean #true] #:inscribed? [inscribed? : Boolean #false]
+  (lambda [#:stroke [outline : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           #:inscribed? [inscribed? : Boolean #false]
            [radius : Real] [rotation : Real -pi/2]] : Geo:Regular-Polygon
     (geo-star-polygon #:id (or id (gensym 'geo:polygon:star:)) #:stroke outline #:fill pattern
-                      #:inscribed? inscribed? #:radian? radian?
+                      #:inscribed? inscribed?
                       5 2 radius rotation)))

@@ -41,8 +41,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-regular-polygon
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:radian? [radian? : Boolean #true] #:inscribed? [inscribed? : Boolean #false]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           #:inscribed? [inscribed? : Boolean #false]
            [n : Integer] [radius : Real] [rotation : Real 0.0]] : Geo:Regular-Polygon
     (define R : Nonnegative-Flonum (~length radius))
     (define N : Index (if (index? n) n 0))
@@ -56,11 +58,13 @@
                             #:with [id (geo-draw-regular-polygon stroke pattern)
                                        (geo-shape-extent d d 0.0 0.0)
                                        (geo-shape-outline stroke)]
-                            N 1 R rtype (~radian rotation radian?))))
+                            N 1 R rtype (real->double-flonum rotation))))
 
 (define geo-star-polygon
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:radian? [radian? : Boolean #true] #:inscribed? [inscribed? : Boolean #false]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           #:inscribed? [inscribed? : Boolean #false]
            [n : Integer] [step : Integer] [radius : Real] [rotation : Real 0.0]] : Geo:Regular-Polygon
     (define R : Nonnegative-Flonum (~length radius))
     (define N : Index (if (index? n) n 0))
@@ -75,11 +79,15 @@
                             #:with [id (geo-draw-regular-polygon stroke pattern)
                                        (geo-shape-extent d d 0.0 0.0)
                                        (geo-shape-outline stroke)]
-                            N K R rtype (~radian rotation radian?))))
+                            N K R rtype (real->double-flonum rotation))))
 
 (define geo-polygon
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)] #:fill-rule [rule : Fill-Rule (default-fill-rule)]
-           #:id [id : (Option Symbol) #false] #:scale [scale : Point2D 1.0] #:window [window : (Option Point2D) #false]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:fill-rule [rule : Fill-Rule (default-fill-rule)]
+           #:id [id : (Option Symbol) #false]
+           #:scale [scale : Point2D 1.0]
+           #:window [window : (Option Point2D) #false]
            [pts : (U Point2D (Listof Point2D))] [dx : Real 0.0] [dy : Real 0.0]] : Geo:Polygon
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
@@ -92,7 +100,10 @@
 
 (define geo-polyline
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:scale [scale : Point2D 1.0] #:window [window : (Option Point2D) #false] #:close? [close? : Boolean #false]
+           #:id [id : (Option Symbol) #false]
+           #:scale [scale : Point2D 1.0]
+           #:window [window : (Option Point2D) #false]
+           #:close? [close? : Boolean #false]
            [pts : (U Point2D (Listof Point2D))] [dx : Real 0.0] [dy : Real 0.0]] : Geo:Polyline
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))

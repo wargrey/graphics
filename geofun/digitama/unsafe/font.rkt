@@ -4,6 +4,8 @@
 
 (require typed/racket/unsafe)
 
+(define-type Font-Unit (U 'em 'ex 'ch 'lh))
+
 (module unsafe racket/base
   (provide (all-defined-out))
   (provide (rename-out [cpointer? font-description?]))
@@ -59,7 +61,7 @@
     (list (cons 'em (~pango-metric (pango_font_description_get_size font-desc)))
           (cons 'ex (~pango-metric ex)) (cons 'cap (~pango-metric cap))
           (cons 'ch (~pango-metric ch)) (cons 'ic (~pango-metric ic))
-          (cons 'lh #|this is useless outside css engine|# (~pango-metric wH))))
+          (cons 'lh #|useless outside css engine|# (~pango-metric wH))))
 
   (define (font_get_metrics_lines font-desc content)
     (start-atomic)
@@ -152,7 +154,7 @@
  [font_get_unknown_glyphs_count (-> Font-Description String Natural)]
  [font_get_metrics_lines (-> Font-Description String (Values Index Index Index Index Index))]
  [font_get_metrics_lines* (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]
- [font_get_metrics (-> Font-Description (Listof (Pairof Symbol Nonnegative-Flonum)))]
+ [font_get_metrics (-> Font-Description (Listof (Pairof Font-Unit Nonnegative-Flonum)))]
  [font_get_text_extent (-> Font-Description String (Values Nonnegative-Flonum Nonnegative-Flonum))]
  [font_get_text_extent* (-> Font-Description String (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum))]
  [font_list_families (-> (Listof Font-Raw-Family))]

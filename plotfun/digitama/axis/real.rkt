@@ -2,45 +2,44 @@
 
 (provide (all-defined-out))
 
+(require "../marker/self.rkt")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; for the sake of simplicity, removed `(List Complex Any)`
-(define-type Plot-Axis-Real-Datum (U Complex (Pairof Complex Any)))
-(define-type Plot-Axis-Integer-Datum (U Integer (Pairof Integer Any)))
+(define-type Plot-Axis-Real-Datum (U Complex Plot:Mark))
+(define-type Plot-Axis-Integer-Datum (U Integer Plot:Mark))
 
-(define plot-axis-real-values : (-> Plot-Axis-Real-Datum (Values Flonum Any))
-  (lambda [r]
-    (cond [(complex? r) (values (real->double-flonum (real-part r)) r)]
-          [else (values (real->double-flonum (real-part (car r))) (cdr r))])))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define plot-axis-list->marks : (-> (Listof (U Plot-Axis-Real-Datum Plot-Axis-Integer-Datum)) Plot-Mark->Description (Listof Plot:Mark))
+  (lambda [vs desc]
+    (for/list : (Listof Plot:Mark) ([v (in-list vs)])
+      (cond [(complex? v) (plot-real (real-part v) #:desc desc #:datum v)]
+            [(eq? (plot:mark-desc v) desc) v]
+            [else (remake-plot:mark v #:desc desc)]))))
 
-(define plot-axis-integer-values : (-> Plot-Axis-Integer-Datum (Values Integer Any))
-  (lambda [r]
-    (cond [(exact-integer? r) (values r r)]
-          [else (values (car r) (cdr r))])))
+(define plot-axis-vector->marks : (->* ((U (Listof Any) (Vectorof Any)) Plot-Mark->Description) (Index) (Listof Plot:Mark))
+  (lambda [vs desc [base 0]]
+    (for/list : (Listof Plot:Mark) ([v (if (list? vs) (in-list vs) (in-vector vs))]
+                                    [i (in-naturals base)])
+      (plot-real i #:desc desc #:datum v))))
 
+(define #:forall (R) plot-axis-produce-marks : (-> (-> R Any) (Listof (∩ R Real)) Plot-Mark->Description (Listof Plot:Mark))
+  (lambda [f xs desc]
+    (for/list : (Listof Plot:Mark) ([x (in-list xs)])
+      (plot-real x #:desc desc #:datum (f x)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-real-value : (-> Plot-Axis-Real-Datum Real)
   (lambda [r]
     (cond [(complex? r) (real-part r)]
-          [else (real-part (car r))])))
+          [else (real-part (plot:mark-point r))])))
 
 (define plot-axis-integer-value : (-> Plot-Axis-Integer-Datum Integer)
   (lambda [r]
     (cond [(exact-integer? r) r]
-          [else (car r)])))
+          [else (let ([pt (plot:mark-point r)])
+                  (cond [(exact-integer? pt) pt]
+                        [else (raise-argument-error 'plot-integer-axis "integer?" pt)]))])))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-axis-reals-from-vector : (->* ((U (Listof Any) (Vectorof Any))) (Index) (Listof (Pairof Index Any)))
-  (lambda [vs [base 0]]
-    (for/list : (Listof (Pairof Index Any)) ([v (if (list? vs) (in-list vs) (in-vector vs))]
-                                             [i (in-naturals base)]
-                                             #:when (index? i))
-      (cons i v))))
-
-(define #:forall (R) plot-axis-reals-from-producer : (-> (-> R Any) (Listof R) (Listof (Pairof R Any)))
-  (lambda [f xs]
-    (for/list : (Listof (Pairof R Any)) ([x (in-list xs)])
-      (cons x (f x)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-real-range : (-> (U (Listof Plot-Axis-Real-Datum) Procedure) (Option (Pairof Real Real)))
   (lambda [reals]
     (and (pair? reals)

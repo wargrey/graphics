@@ -30,29 +30,33 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-dart
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:wing-angle [wing-angle : (Option Real) #false] #:radian? [radian? : Boolean #true]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           #:wing-angle [wing-angle : (Option Real) #false]
            [radius : Real] [start : Real 0.0]] : Geo:Dart
     (define flradius : Nonnegative-Flonum (~length radius))
-    (define wing-flangle (and wing-angle (~radian wing-angle radian?)))
+    (define wing-flangle (and wing-angle (real->double-flonum wing-angle)))
     
     (create-geometry-object geo:dart
                             #:with [id (geo-draw-dart stroke pattern) geo-dart-extent (geo-shape-outline stroke)]
-                            flradius (~radian start radian?) wing-flangle)))
+                            flradius (real->double-flonum start) wing-flangle)))
 
 (define geo-arrow
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:radian? [radian? : Boolean #true]
-           #:shaft-thickness [shaft-thickness : Real -0.3] #:wing-angle [wing-angle : (Option Real) #false]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           #:shaft-thickness [shaft-thickness : Real -0.3]
+           #:wing-angle [wing-angle : (Option Real) #false]
            [head-radius : Real] [shaft-length : Real] [start : Real 0.0]] : Geo:Arrow
     (define rhead : Nonnegative-Flonum (~length head-radius))
     (define shaft-flthickness : Nonnegative-Flonum (~length shaft-thickness rhead))
     (define shaft-flength : Nonnegative-Flonum (~length shaft-length rhead))
-    (define wing-flangle (and wing-angle (~radian wing-angle radian?)))
+    (define wing-flangle (and wing-angle (real->double-flonum wing-angle)))
     
     (create-geometry-object geo:arrow
                             #:with [id (geo-draw-arrow stroke pattern) geo-arrow-extent (geo-shape-outline stroke)]
-                            rhead shaft-flength shaft-flthickness (~radian start radian?) wing-flangle)))
+                            rhead shaft-flength shaft-flthickness (real->double-flonum start) wing-flangle)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-dart-extent : Geo-Calculate-Extent

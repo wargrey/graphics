@@ -1,24 +1,29 @@
 #lang typed/racket/base
 
-(require geofun)
+(require geofun/vector)
 (require plotfun/axis)
 
 (require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define number-sticker : Plot-Axis-Real->Sticker
-  (lambda [id r datum unit font color]
-    (define c (rgb* color (/ (+ r 1.0) 10.0)))
-    (define g (geo-vc-append (geo-text "+1" font #:color c)
-                             (geo-arc (* unit 0.5) pi 0.0 #:stroke c #:ratio 0.618)))
+(define number-sticker : Plot-Mark->Description
+  (lambda [pt datum font color transform]
+    (define r (real->double-flonum (real-part pt)))
 
-    (cons (if (equal? '(arrow) datum)
-              (geo-pin* 1.0 0.56 0.5 0.5 g (geo-dart (* unit 0.1) (* pi 0.5) #:fill c #:stroke #false))
-              g)
-          'lc)))
+    (when (>= r 0.0)
+      (define unit (real-part (- (transform (+ r 1.0) 0.0) (transform r 0.0))))
+      (define c (rgb* color (/ (+ r 1.0) 10.0)))
+      (define g (geo-vc-append (geo-text "+1" font #:color c)
+                               (geo-arc (* unit 0.5) pi 0.0 #:stroke c #:ratio 0.618)))
+      
+      (if (equal? 'arrow datum)
+          (geo-pin* 1.0 0.56 0.5 0.5 g (geo-dart (* unit 0.1) (* pi 0.5) #:fill c #:stroke #false))
+          g))))
 
-(define time-sticker : Plot-Axis-Real->Sticker
-  (lambda [id r datum unit font color]
+(define time-sticker : Plot-Mark->Description
+  (lambda [pt datum font color transform]
+    (define r (real->double-flonum (real-part pt)))
+    (define unit (real-part (- (transform (+ r 1.0) 0.0) (transform r 0.0))))
     (define c (rgb* color (/ (+ r 1.0) 10.0)))
     (define arrow (geo-arrow 4.0 (* unit 0.5) (* pi 0.5) #:fill c #:stroke #false))
     (define label (geo-text datum font #:color c))
@@ -39,24 +44,31 @@
         (+ (fib (- n 1))
            (fib (- n 2))))))
 
+(define real-line
+  (plot-axis #:style (make-plot-axis-style #:label-position 'axis)
+             #:unit-length -0.15
+             #:label "x"
+             '(0 1/2 22/7 550/89)))
+
 (define number-line
-  (plot-integer-axis #:integer->sticker number-sticker
-                     #:style (make-plot-axis-style #:label-position 'axis)
+  (plot-integer-axis #:marker-template number-sticker
+                     #:marker-style (make-plot-marker-style #:anchor 'lb)
                      #:unit-length -0.1
-                     #:label "x"
-                     '(-1 0 1 2 3 4 5 6 (7 arrow))))
+                     #:label "n"
+                     (list -1 0 1 2 3 4 5 6
+                           (plot-integer 7 0.0 #:datum 'arrow))))
 
 (define time-line
   (plot-integer-axis #:range (cons -1 9)
+                     #:marker-template time-sticker
+                     #:marker-style (make-plot-marker-style #:gap-length 2.5 #:anchor 'ct)
                      #:unit-length -0.1
-                     #:style (make-plot-axis-style #:label-position 'digit)
-                     #:integer-style (make-plot-marker-style #:position -2.5 #:anchor 'ct)
-                     #:integer->sticker time-sticker
                      #:label "n"
                      fib))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
+  real-line
   number-line
   time-line
 

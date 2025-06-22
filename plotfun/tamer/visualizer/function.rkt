@@ -1,6 +1,7 @@
 #lang typed/racket
 
 (require geofun/vector)
+(require geofun/markup)
 (require plotfun/cartesian)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -34,16 +35,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define vtree : (Listof Plot-Visualizer)
     (list (function #:color 'grey #:dash 'long-dash values)
-          (function -1/x +0   +4 #:fast-range (λ [[xmin : Real] [xmax : Real]] (cons xmin xmax)))
-          (function discrete-floor -3.0)
-          (function discrete-ceiling)
-          (function normal-dist)
-          (function cos)
-          (function tan  -3   -1.8)
-          (function exp  -3   +1.2)
-          (function sqr  -2   +2)
-          (function sqrt -3   +4)
-          (function log  +1/4 #f)))
+          (function -1/x +0   +4 #:fast-range (λ [[xmin : Real] [xmax : Real]] (cons xmin xmax)) #:label "1/x")
+          (function discrete-floor -3.0 #:label "floor(x)")
+          (function discrete-ceiling #:label "ceiling(x)")
+          (function normal-dist #:label "N(x)")
+          (function cos #:label "cos(x)")
+          (function tan  -3   -1.8 #:label "tan(x)")
+          (function exp  -3   +1.2 #:label (<span> null "e" (<sup> "x")))
+          (function sqr  -2   +2 #:label (<span> null "x" (<sup> "2")))
+          (function sqrt -3   +4 #:label "sqrt(x)")
+          (function log  +1/4 #f #:label "lnx")))
 
 (define white-cart (plot-cartesian #:background white vtree))
 (define  grey-cart (plot-cartesian #:background grey  vtree))

@@ -135,9 +135,11 @@
     (and (geo-sticker-datum? stk)
          (geo-sticker->layer stk position offset))))
 
-(define geo-sticker->layer : (->* (Geo-Sticker-Datum Float-Complex) (Float-Complex) (GLayerof Geo))
-  (lambda [self pos [offset 0.0+0.0i]]
+(define geo-sticker->layer : (->* (Geo-Sticker-Datum Float-Complex)
+                                  (Float-Complex #:default-anchor (Option Geo-Pin-Anchor))
+                                  (GLayerof Geo))
+  (lambda [self pos [offset 0.0+0.0i] #:default-anchor [default-anchor #false]]
     (if (geo? self)
-        (geo-own-pin-layer 'cc pos self offset)
+        (geo-own-pin-layer (or default-anchor 'cc) pos self offset)
         (geo-own-pin-layer (geo-sticker-anchor self) pos (geo-sticker-self self)
                            (+ (geo-sticker-offset self) offset)))))

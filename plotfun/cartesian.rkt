@@ -9,8 +9,8 @@
 (provide (all-from-out "digitama/axis/singleton.rkt"))
 (provide (all-from-out "digitama/axis/tick/self.rkt"))
 (provide (all-from-out "digitama/axis/tick/real.rkt"))
-(provide (all-from-out "digitama/mark/self.rkt"))
-(provide (all-from-out "digitama/mark/style.rkt"))
+(provide (all-from-out "digitama/marker/self.rkt"))
+(provide (all-from-out "digitama/marker/style.rkt"))
 
 (require digimon/metrics)
 (require digimon/complex)
@@ -44,8 +44,10 @@
 (require "digitama/axis/tick/self.rkt")
 (require "digitama/axis/tick/real.rkt")
 
-(require "digitama/mark/self.rkt")
-(require "digitama/mark/style.rkt")
+(require "digitama/marker/dc.rkt")
+(require "digitama/marker/self.rkt")
+(require "digitama/marker/style.rkt")
+(require "digitama/marker/config.rkt")
 
 (require "digitama/visualizer/self.rkt")
 (require "digitama/visualizer/function.rkt")
@@ -59,6 +61,7 @@
            #:width [width : Real (default-plot-cartesian-view-width)]
            #:height [height : Real (default-plot-cartesian-view-height)]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
+           #:marker-style [marker-style : (Option Plot-Marker-Style) #false]
            #:x-label [x-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "x"]
            #:y-label [y-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "y"]
            #:x-desc [x-desc : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
@@ -106,18 +109,15 @@
 
     (define bg-color : (Option FlRGBA) (brush-maybe-rgba bg))
     (define adjust-color (λ [[c : Color]] (plot-adjust-pen-color palette (rgb* c) bg-color)))
-    (define-values (digit-font label-font desc-font axis-color digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style adjust-color))
-    (define-values (xdigit-position xdigit-anchor) (plot-axis-digit-position-values axis-style 'x))
-    (define-values (ydigit-position ydigit-anchor) (plot-axis-digit-position-values axis-style 'y))
+    (define-values (digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color)
+      (plot-axis-visual-values axis-style adjust-color))
     
-    (define flthickness : Nonnegative-Flonum (plot-axis-style-thickness axis-style))
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
     (define fltick-min : Nonnegative-Flonum (* fltick-thickness 0.5))
     (define xtick-min : Nonnegative-Flonum (+ fltick-min x-neg-margin))
     (define ytick-min : Nonnegative-Flonum (+ fltick-min y-neg-margin))
     (define xtick-max : Nonnegative-Flonum (+ xtick-min view-width))
     (define ytick-max : Nonnegative-Flonum (+ ytick-min view-height))
-    (define axis-pen : Stroke (desc-stroke #:color axis-color #:width flthickness))
 
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
     (define zero : Geo (geo-text (string chO) digit-font #:color digit-color))
@@ -126,6 +126,9 @@
     (define Oshadow : Float-Complex (make-rectangular (+ (* view-width xO) xtick-min) (+ (* view-height yO) ytick-min)))
     (define Origin : Float-Complex (make-rectangular (real-part Oshadow) 0.0))
 
+    (define-values (xdigit-position xdigit-anchor) (plot-axis-digit-position-values axis-style 'x))
+    (define-values (ydigit-position ydigit-anchor) (plot-axis-digit-position-values axis-style 'y))
+    
     (define xaxis : Geo:Edge
       (geo-edge* #:stroke axis-pen #:tip-placement 'inside
                  #:source-tip (plot-axis-tip-style-negative-shape x-tip)
@@ -158,7 +161,7 @@
     (define yaxis-min : Flonum (- ytick-min y-neg-margin (imag-part ysoff)))
     (define yaxis-max : Flonum (+ ytick-max y-pos-margin (- (imag-part yeoff))))
 
-    (define origin-dot->pos : Plot-Cartesian-Position-Map
+    (define origin-dot->pos : Plot-Position-Transform
       (case-lambda
         [(x y) (+ Origin (* x xunit) (* (- y) yunit))]
         [(dot) (origin-dot->pos (real-part dot) (imag-part dot))]))
@@ -179,7 +182,7 @@
                     (let ([self (car visualizers)])
                       (realize (cdr visualizers)
                                (if (plot-visualizer-skip-palette? self) idx (+ idx 1))
-                               (cons (plot-realize self idx xview yview origin-dot->pos bg-color)
+                               (cons (plot-realize self idx N xview yview origin-dot->pos bg-color)
                                      sreyalv)))
                     (reverse sreyalv)))
               null))))
@@ -187,6 +190,9 @@
     (define layers : (Listof (GLayerof Geo))
       (append (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
                     (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oshadow))
+
+              (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)])
+                (geo-own-pin-layer 'lt (geo:visualizer-position self) self 0.0+0.0i))
 
               (for/fold ([labels : (Listof (GLayerof Geo)) null])
                         ([lbl (in-list (plot-axis-label-settings x-label x-desc xaxis-min xaxis-max (if (or label-as-digit?) 0.0 (* em 0.6))))])
@@ -201,10 +207,10 @@
                         ([xtick (in-list actual-xticks)])
                 (define xval : Flonum (real->double-flonum (plot-tick-value (car xtick))))
                 (cond [(not (zero? (scaled-round xval)))
-                       (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font (or digit-color axis-color)) xdigit-anchor
+                       (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font digit-color) xdigit-anchor
                                                (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max gxtick)]
                       [(or 0-as-xdigit?)
-                       (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font (or digit-color axis-color)) xdigit-anchor
+                       (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font digit-color) xdigit-anchor
                                                (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max #false)]
                       [else xticks]))
               
@@ -222,12 +228,14 @@
                         ([ytick (in-list actual-yticks)])
                 (define yval : Flonum (real->double-flonum (plot-tick-value (car ytick))))
                 (if (not (zero? (scaled-round yval)))
-                    (plot-axis-sticker-cons (ydigit->sticker id (cdr ytick) digit-font (or digit-color axis-color)) ydigit-anchor
+                    (plot-axis-sticker-cons (ydigit->sticker id (cdr ytick) digit-font digit-color) ydigit-anchor
                                             (origin-dot->pos 0.0 yval) yoffset yticks -inf.0 imag-part +inf.0 gytick)
                     yticks))
-              
-              (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)])
-                (geo-own-pin-layer 'lt (geo:visualizer-position self) self 0.0+0.0i))))
+
+              (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)]
+                                                   #:when (geo:visualizer-label self))
+                (geo-edge-self-pin-layer (plot-marker #:color (geo:visualizer-color self) 
+                                                      (geo:visualizer-label self) origin-dot->pos)))))
     
     (define translated-layers : (Option (GLayer-Groupof Geo))
       (if (not 0-as-xdigit?)
@@ -247,16 +255,15 @@
                                #:border bdr #:background bg
                                #:margin margin #:padding padding
                                (geo-own-layers zero) delta-origin null null
-                               (case-lambda
-                                 [(x y) (make-rectangular x y)]
-                                 [(dot) dot]))
+                               origin-dot->pos)
         (create-geometry-group plot:cartesian id #false #false
                                #:border bdr #:background bg
                                #:margin margin #:padding padding
                                translated-layers delta-origin
                                (map plot-tick-value* actual-xticks)
                                (map plot-tick-value* actual-yticks)
-                               (let ([dot->pos (λ [[x : Flonum] [y : Flonum]] : Float-Complex (+ delta-origin (* x xunit) (* (- y) yunit)))])
+                               (let ([dot->pos (λ [[x : Flonum] [y : Flonum]] : Float-Complex
+                                                 (+ delta-origin (* x xunit) (* (- y) yunit)))])
                                  (case-lambda
                                    [(x y) (dot->pos x y)]
                                    [(dot) (dot->pos (real-part dot) (imag-part dot))]))))))

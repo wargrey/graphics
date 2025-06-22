@@ -14,6 +14,10 @@
 
 (require "self.rkt")
 (require "../sample.rkt")
+
+(require "../marker/self.rkt")
+(require "../marker/quirk.rkt")
+
 (require "../axis/interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -26,7 +30,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define function
   (lambda [#:id [id : (Option Symbol) #false]
-           #:label [label : (Option DC-Markup-Text) #false]
+           #:label [label : (U False DC-Markup-Text Plot:Mark) #false]
            #:samples [samples : Positive-Index (default-plot-visualizer-samples)]
            #:color [pen-color : (Option Color) #false]
            #:width [pen-width : (Option Real) #false]
@@ -36,12 +40,13 @@
            [maybe-xmin : (Option Real) #false] [maybe-xmax : (Option Real) #false]
            [maybe-ymin : (Option Real) #false] [maybe-ymax : (Option Real) #false]] : Plot-Visualizer
     (define-values (xrange yrange) (plot-range-normalize maybe-xmin maybe-xmax maybe-ymin maybe-ymax))
+    (define real-f : (-> Real Real) (plot-safe-function f))
     
     (define function-realize : Plot-Visualizer-Realize
-      (lambda [idx xtick-rng ymin ymax transform bg-color]
-        (define xs : (Listof Real) (geo-linear-samples (car xtick-rng) (cdr xtick-rng) samples))
+      (lambda [idx total xmin xmax ymin ymax transform bg-color]
+        (define xs : (Listof Real) (geo-linear-samples xmin xmax samples))
         (define-values (dots x y width height)
-          (with-handlers ([exn:fail? (λ [_] (~cartesian2ds (plot-safe-function f) xs ymin ymax transform))])
+          (with-handlers ([exn:fail? (λ [_] (~cartesian2ds real-f xs ymin ymax transform))])
             (~cartesian2ds f xs ymin ymax transform)))
 
         (define pen : Stroke
@@ -52,7 +57,10 @@
                                 #:with [id (geo-draw-function pen)
                                            (geo-shape-extent width height 0.0 0.0)
                                            (geo-shape-outline pen #true #true)]
-                                (make-rectangular x y) #false
+                                (make-rectangular x y) (stroke-color pen)
+                                (plot-function-mark-filter real-f label (+ idx 1) total xmin xmax ymin ymax
+                                                           (default-plot-visualizer-label-position%))
+                                #false
                                 dots samples)))
 
     (plot-visualizer function-realize xrange yrange
@@ -71,13 +79,27 @@
                                (~y-bounds f xs)))
                            (or maybe-range
                                (~y-bounds (plot-safe-function f) xs)))))))))
+
+(define plot-function-mark-filter : (-> (-> Real Real) (U False DC-Markup-Text Plot:Mark)
+                                        Positive-Fixnum Positive-Index Real Real Real Real Real
+                                        (Option Plot:Mark))
+  (lambda [fx label idx total xmin xmax ymin ymax frac]
+    (cond [(plot:mark? label)
+           (let ([dot (plot-mark-point-filter (plot:mark-point label) fx idx total xmin xmax ymin ymax frac)])
+             (and dot (remake-plot:mark label #:point dot)))]
+          [(or label)
+           (let ([dot (plot-mark-point-filter +nan.0 fx idx total xmin xmax ymin ymax frac)])
+             (and dot (plot-label label #:at dot)))]
+          [else #false])))
   
-(define #:forall (R) plot-safe-function : (-> (-> R (Option Number)) (-> R (Option Number)))
+(define #:forall (R) plot-safe-function : (-> (-> R (Option Number)) (-> R Real))
   (lambda [f]
-    ((inst procedure-rename (-> R (Option Number)))
+    ((inst procedure-rename (-> R Real))
      (λ [[x : R]]
-       (with-handlers ([exn:fail? (λ _ #false)])
-         (f x)))
+       (with-handlers ([exn:fail? (λ _ +nan.0)])
+         (let ([y (f x)])
+           (cond [(not y) +nan.0]
+                 [else (real-part y)]))))
      (assert (object-name f) symbol?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

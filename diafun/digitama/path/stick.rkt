@@ -139,7 +139,7 @@
                       (make-arrow source target edge-style retracks
                                   (dia-label-info->label source target edge-style make-label sofni))))
 
-               (and (geo? arrow) (dia-cons-arrows arrow arrows))))
+               (and (geo? arrow) (cons (geo-edge-self-pin-layer arrow) arrows))))
         
         arrows)))
 
@@ -220,7 +220,7 @@
       (make-edge source target edge-style tracks
                  (dia-label-info->label source target edge-style make-label sofni)))
     
-    (if (geo? arrow) (dia-cons-arrows arrow arrows) arrows)))
+    (if (geo? arrow) (cons (geo-edge-self-pin-layer arrow) arrows) arrows)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-make-node : (-> Dia-Path-Block-Identifier (Option Dia-Path-Id->Node-Shape) Dia-Path-Id->Node-Label (Option Dia-Path-Id->Label-String)
@@ -259,14 +259,6 @@
 
     (and maybe-node
          (geo-own-pin-layer 'cc position maybe-node 0.0+0.0i))))
-
-(define dia-cons-arrows : (-> (U Geo:Edge Geo:Labeled-Edge) (Listof (GLayerof Geo)) (Listof (GLayerof Geo)))
-  (lambda [arrow arrows]
-    (define ppos : Float-Complex (geo-edge-self-pin-position arrow #false))
-    (define-values (awidth aheight) (geo-flsize arrow))
-    (define alayer : (GLayerof Geo) (glayer arrow (real-part ppos) (imag-part ppos) awidth aheight))
-
-    (cons alayer arrows)))
 
 (define dia-cons-labels : (-> (U (Listof Geo-Edge-Label) Geo-Edge-Label Void False) (Listof Geo-Edge-Label) (Listof Geo-Edge-Label))
   (lambda [label alabels]

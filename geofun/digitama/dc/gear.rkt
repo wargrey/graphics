@@ -26,15 +26,18 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-gear
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:id [id : (Option Symbol) #false] #:radian? [radian? : Boolean #true] #:pressure-angle [angle : Real (/ pi 9.0)]
-           #:root-radius [root-radius : Real -0.81] #:inner-radius [inner-radius : Real -0.618]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           #:pressure-angle [angle : Real (/ pi 9.0)]
+           #:root-radius [root-radius : Real -0.81]
+           #:inner-radius [inner-radius : Real -0.618]
            #:reference-ratio [ref-ratio : Nonnegative-Real 5/9]
            [n : Integer] [tip-radius : Real] [rotation : Real 0.0]] : Geo:Gear
     (define Rt : Nonnegative-Flonum (~length tip-radius))
     (define Rr : Nonnegative-Flonum (~length root-radius Rt))
     (define Ri : Nonnegative-Flonum (~length inner-radius Rt))
-    (define α : Flonum (~radian angle radian?))
+    (define α : Flonum (real->double-flonum angle))
     (define z : Index (if (index? n) n 0))
     (define d : Nonnegative-Flonum (* 2.0 Rt))
     
@@ -43,7 +46,7 @@
                                        (geo-shape-extent d d 0.0 0.0)
                                        (geo-shape-outline stroke)]
                             z α Rt Rr (~clamp ref-ratio 0.0 1.0)
-                            Ri (~radian rotation radian?))))
+                            Ri (real->double-flonum rotation))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-gear : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
