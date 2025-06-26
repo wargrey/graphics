@@ -27,7 +27,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-polyline
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)]
-           #:scale [scale : Point2D 1.0] #:close? [close? : Boolean #false] #:window [window : (Option Point2D) #false]
+           #:scale [scale : Point2D 1.0]
+           #:close? [close? : Boolean #false]
+           #:window [window : (Option Point2D) #false]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [pts : (U Point2D (Listof Point2D))] [dx : Real 0.0] [dy : Real 0.0]] : Bitmap
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
@@ -38,9 +40,12 @@
     (draw-bitmap dc_polyline #:with [x0 y0 w h density #true] prints s close?)))
 
 (define bitmap-polygon
-  (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)] #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
-           #:fill-rule [rule : Fill-Rule (default-fill-rule)] #:close? [close? : Boolean #false]
-           #:scale [scale : Point2D 1.0]  #:window [window : (Option Point2D) #false]
+  (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)]
+           #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
+           #:fill-rule [rule : Fill-Rule (default-fill-rule)]
+           #:close? [close? : Boolean #false]
+           #:scale [scale : Point2D 1.0]
+           #:window [window : (Option Point2D) #false]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [pts : (U Point2D (Listof Point2D))] [dx : Real 0.0] [dy : Real 0.0]] : Bitmap
     (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
@@ -53,12 +58,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-arrow
-  (lambda [#:shaft-thickness [shaft-thickness : Real -0.3]
+  (lambda [#:shaft-thickness [shaft-thickness : Real+% '(30 %)]
            #:wing-angle [wing-angle : (Option Real) #false]
            #:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)]
            #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
-           [head-radius : Real] [shaft-length : Real] [start : Real 0.0]] : Bitmap
+           [head-radius : Real] [shaft-length : Real+%] [start : Real 0.0]] : Bitmap
     (define rhead : Nonnegative-Flonum (~length head-radius))
     (define-values (prints tx ty width height)
       (geo-arrow-metrics rhead (real->double-flonum start)
@@ -91,7 +96,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)]
            #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
-           [width : Real] [height : Real] [angle : Real]] : Bitmap
+           [width : Real] [height : Real+%] [angle : Real]] : Bitmap
     (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
@@ -101,7 +106,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)]
            #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
-           [width : Real] [height : Real]] : Bitmap
+           [width : Real] [height : Real+%]] : Bitmap
     (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
@@ -111,7 +116,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)]
            #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
-           [width : Real] [height : Real] [t : Real 0.618]] : Bitmap
+           [width : Real] [height : Real+%] [t : Real 0.618]] : Bitmap
     (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
@@ -121,7 +126,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)]
            #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
-           [width : Real] [height : Real] [t : Nonnegative-Real 0.618]] : Bitmap
+           [width : Real] [height : Real+%] [t : Nonnegative-Real 0.618]] : Bitmap
     (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
@@ -131,7 +136,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)]
            #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
-           [width : Real] [height : Real] [t : Nonnegative-Real 0.618]] : Bitmap
+           [width : Real] [height : Real+%] [t : Nonnegative-Real 0.618]] : Bitmap
     (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i
@@ -141,7 +146,7 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (default-stroke-paint)]
            #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
-           [width : Real] [height : Real]] : Bitmap
+           [width : Real] [height : Real+%]] : Bitmap
     (define-values (flwidth flheight) (~extent width height))
     
     (bitmap-polygon #:stroke outline #:fill pattern #:density density #:window +nan.0+nan.0i

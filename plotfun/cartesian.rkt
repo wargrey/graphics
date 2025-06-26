@@ -57,7 +57,7 @@
   (lambda [#:id [id : (Option Symbol) #false]
            #:O [chO : Char #\O]
            #:origin [maybe-origin : (Option Complex) #false]
-           #:unit-length [maybe-unit : (Option Complex) #false]
+           #:unit-length [maybe-unit : (Option Complex+%) #false]
            #:width [width : Real (default-plot-cartesian-view-width)]
            #:height [height : Real (default-plot-cartesian-view-height)]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
@@ -113,6 +113,7 @@
       (plot-axis-visual-values axis-style adjust-color))
     
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
+    (define fltick-length : Nonnegative-Flonum (~length (plot-axis-style-tick-length axis-style) flthickness))
     (define fltick-min : Nonnegative-Flonum (* fltick-thickness 0.5))
     (define xtick-min : Nonnegative-Flonum (+ fltick-min x-neg-margin))
     (define ytick-min : Nonnegative-Flonum (+ fltick-min y-neg-margin))
@@ -121,8 +122,6 @@
 
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
     (define zero : Geo (geo-text (string chO) digit-font #:color digit-color))
-    (define xtick-length : Nonnegative-Flonum (~length (plot-axis-tick-length axis-style 'x) flthickness))
-    (define ytick-length : Nonnegative-Flonum (~length (plot-axis-tick-length axis-style 'y) flthickness))
     (define Oshadow : Float-Complex (make-rectangular (+ (* view-width xO) xtick-min) (+ (* view-height yO) ytick-min)))
     (define Origin : Float-Complex (make-rectangular (real-part Oshadow) 0.0))
 
@@ -137,8 +136,8 @@
     
     (define xoffset : Float-Complex (flc-ri (* xdigit-position em -1.0)))
     (define gxtick : (Option (Pairof Geo Geo-Pin-Anchor))
-      (and (> xtick-length 0.0)
-           (cons (geo-rectangle fltick-thickness xtick-length #:stroke #false #:fill tick-color)
+      (and (> fltick-length 0.0)
+           (cons (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor axis-style 'x))))
 
     (define yaxis : Geo:Edge
@@ -149,13 +148,13 @@
     
     (define yoffset : Float-Complex (make-rectangular (* ydigit-position em) 0.0))
     (define gytick : (Option (Pairof Geo Geo-Pin-Anchor))
-      (and (> ytick-length 0.0)
-           (cons (geo-rectangle ytick-length fltick-thickness #:stroke #false #:fill tick-color)
+      (and (> fltick-length 0.0)
+           (cons (geo-rectangle fltick-length fltick-thickness #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor axis-style 'y))))
 
     (define-values (xsoff xeoff) (geo-edge-endpoint-offsets xaxis))
     (define-values (ysoff yeoff) (geo-edge-endpoint-offsets yaxis))
-    (define label-as-digit? : Boolean (eq? (plot-axis-style-label-position axis-style) 'digit))
+    (define label-as-digit? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'digit))
     (define xaxis-min : Flonum (- xtick-min x-neg-margin (- (real-part xsoff))))
     (define xaxis-max : Flonum (+ xtick-max x-pos-margin (real-part xeoff)))
     (define yaxis-min : Flonum (- ytick-min y-neg-margin (imag-part ysoff)))

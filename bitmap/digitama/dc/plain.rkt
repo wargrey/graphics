@@ -18,9 +18,9 @@
 (require digimon/sequence)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-blank : (->* () (Real (Option Real) #:density Positive-Flonum) Bitmap)
+(define bitmap-blank : (->* () (Real (Option Real+%) #:density Positive-Flonum) Bitmap)
   (lambda [[width 0.0] [height #false] #:density [density (default-bitmap-density)]]
-    (define-values (flwidth flheight) (~extent width (or height width)))
+    (define-values (flwidth flheight) (~extent* width height))
     (create-blank-bitmap flwidth flheight density)))
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
@@ -35,8 +35,10 @@
                  (rgb* color))))
 
 (define bitmap-frame
-  (lambda [#:margin [margin : (U Nonnegative-Real (Listof Nonnegative-Real)) 0.0] #:padding [inset : (U Nonnegative-Real (Listof Nonnegative-Real)) 0.0]
-           #:border [border : Maybe-Stroke-Paint (default-border-paint)] #:background [bg-fill : Option-Fill-Paint (default-background-paint)]
+  (lambda [#:margin [margin : (U Nonnegative-Real (Listof Nonnegative-Real)) 0.0]
+           #:padding [inset : (U Nonnegative-Real (Listof Nonnegative-Real)) 0.0]
+           #:border [border : Maybe-Stroke-Paint (default-border-paint)]
+           #:background [bg-fill : Option-Fill-Paint (default-background-paint)]
            #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
            [bmp : Bitmap]] : Bitmap
     (define-values (mtop mright mbottom mleft)

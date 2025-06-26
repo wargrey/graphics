@@ -20,8 +20,8 @@
            #:fill [pattern : Option-Fill-Paint (default-fill-paint)]
            #:pressure-angle [angle : Real (/ pi 9.0)]
            #:reference-ratio [ref-ratio : Nonnegative-Real 5/9]
-           #:root-radius [root-radius : Real -0.81]
-           #:inner-radius [inner-radius : Real -0.618]
+           #:root-radius [root-radius : Real+% '(81 %)]
+           #:inner-radius [inner-radius : Real+% '(61.8 %)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [n : Integer] [tip-radius : Real] [rotation : Real 0.0]] : Bitmap
     (define Rt : Nonnegative-Flonum (~length tip-radius))

@@ -81,7 +81,7 @@
 (define geo-side-projection-outline : (-> Maybe-Stroke-Paint Maybe-Stroke-Paint Geo-Calculate-Outline)
   (lambda [alt-edge alt-bdr]
     (λ [self cur-edge cur-bdr]
-      (define edge (if (void? alt-edge) cur-edge alt-edge))
+      (define edge   (if (void? alt-edge) cur-edge alt-edge))
       (define border (if (void? alt-bdr) cur-bdr alt-bdr))
       
       (or (geo-shape-outline (or border edge))

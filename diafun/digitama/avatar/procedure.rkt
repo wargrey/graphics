@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require digimon/metrics)
+
 (require racket/symbol)
 (require racket/keyword)
 
@@ -58,7 +60,7 @@
            #:body-operator [body-op : (Option Geo-Pin-Operator) 'over]
            #:body-fill [b:fill : Fill-Paint (default-procedure-body-fill)]
            #:body-position [body-pos : Complex 0.5]
-           #:corner-radius [cr : Real -0.125]
+           #:corner-radius [cr : Real+% '(12.5 %)]
            [desc : Dia-Procedure-Label]
            [is : (U (Listof Dia-Procedure-Label) (Immutable-Vectorof Dia-Procedure-Label)) null]
            [opt-os : (U Null Dia-Procedure-Label (Immutable-Vectorof Dia-Procedure-Label)) null]
@@ -88,7 +90,7 @@
       (lambda [idx maybe-label type vpos fmt value]
         (define label (dia-procedure-caption maybe-label em label-font text-color))
         (define fill-color (iofill-color idx (if (procedure? maybe-label) label maybe-label) type))
-        (define iobox (geo-sandglass io:width io:height #:neck-width -0.32 #:neck-height (* b:height 3.0) #:fill fill-color #:stroke border))
+        (define iobox (geo-sandglass io:width io:height #:neck-width '(32 %) #:neck-height (* b:height 3.0) #:fill fill-color #:stroke border))
         (define pipe ((if (eq? type 'Input) geo-ct-crop geo-cb-crop) iobox io:width (* io:height 0.5)))
 
         (define datum : (Option Geo)

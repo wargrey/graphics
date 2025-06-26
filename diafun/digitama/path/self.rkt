@@ -15,7 +15,9 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-initial-path : (-> (Option Symbol) Real Real Real Geo-Print-Datum Geo-Anchor-Name Nonnegative-Flonum Gomamon)
+(define dia-initial-path : (-> (Option Symbol) Real+% Real+% Real
+                               Geo-Print-Datum Geo-Anchor-Name Nonnegative-Flonum
+                               Gomamon)
   (lambda [id gw gh ts home anchor 100%]
     (define grid-width  (~length gw 100%))
     (define grid-height (~length gh grid-width))

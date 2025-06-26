@@ -47,7 +47,7 @@
 (define plot-axis
   (lambda [#:id [id : (Option Symbol) #false]
            #:length [length : Real (default-plot-axis-length)]
-           #:unit-length [maybe-unit : (Option Real) (default-plot-axis-unit-length)]
+           #:unit-length [maybe-unit : (Option Real+%) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
            #:label [axis-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
@@ -78,7 +78,7 @@
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
 
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
-    (define fltick-length : Nonnegative-Flonum (~length (plot-axis-tick-length axis-style 'x) flthickness))
+    (define fltick-length : Nonnegative-Flonum (~length (plot-axis-style-tick-length axis-style) flthickness))
     (define fltick-min : Nonnegative-Flonum (+ neg-margin (* fltick-thickness 0.5)))
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
     
@@ -93,7 +93,7 @@
     (define flc-offset : Float-Complex (make-rectangular 0.0 (* digit-position (- em))))
     
     (define-values (soff eoff) (geo-edge-endpoint-offsets main-axis))
-    (define label-as-digit? : Boolean (eq? (plot-axis-style-label-position axis-style) 'digit))
+    (define label-as-digit? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'digit))
     (define flaxis-min : Flonum (- fltick-min neg-margin (- (real-part soff))))
     (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
 
@@ -155,7 +155,7 @@
 (define plot-integer-axis
   (lambda [#:id [id : (Option Symbol) #false]
            #:length [length : Real (default-plot-axis-length)]
-           #:unit-length [maybe-unit : (Option Real) (default-plot-axis-unit-length)]
+           #:unit-length [maybe-unit : (Option Real+%) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
            #:label [axis-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
@@ -187,7 +187,7 @@
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
     
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
-    (define fltick-length : Nonnegative-Flonum (~length (plot-axis-tick-length axis-style 'x) flthickness))
+    (define fltick-length : Nonnegative-Flonum (~length (plot-axis-style-tick-length axis-style) flthickness))
     (define fltick-min : Nonnegative-Flonum (+ neg-margin (* fltick-thickness 0.5)))
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
     
@@ -202,7 +202,7 @@
     (define flc-offset : Float-Complex (make-rectangular 0.0 (* digit-position (- em))))
 
     (define-values (soff eoff) (geo-edge-endpoint-offsets main-axis))
-    (define label-as-digit? : Boolean (eq? (plot-axis-style-label-position axis-style) 'digit))
+    (define label-as-digit? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'digit))
     (define flaxis-min : Flonum (- fltick-min neg-margin (- (real-part soff))))
     (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
 

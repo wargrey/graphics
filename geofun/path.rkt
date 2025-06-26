@@ -26,6 +26,7 @@
              [make-sticker make-geo-sticker]))
 
 (require racket/math)
+(require digimon/metrics)
 
 (require "paint.rkt")
 
@@ -68,26 +69,23 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-gomamon : (->* (Real)
-                            (Real #:T-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
-                                  #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
-                                  #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule Fill-Rule)
+                            (Real+% #:T-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
+                                    #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
+                                    #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule Fill-Rule)
                             Gomamon)
   (lambda [#:T-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
            #:stroke [stroke (void)] #:fill [fill (void)] #:fill-rule [frule (default-fill-rule)]
-           xstepsize [ystepsize 0.0]]
+           xstepsize [ystepsize '(100.0 %)]]
     (define xstep : Nonnegative-Flonum
       (cond [(<= xstepsize 0.0) 1.0]
             [else (max (real->double-flonum xstepsize) 0.0)]))
     
-    (define ystep : Nonnegative-Flonum
-      (cond [(= ystepsize 0.0) xstep]
-            [(< ystepsize 0.0) (* xstep (- (real->double-flonum ystepsize)))]
-            [else (max (real->double-flonum ystepsize) 0.0)]))
+    (define ystep : Nonnegative-Flonum (~length ystepsize xstep))
     
     (define loc : Float-Complex (~point2d home))
     (define home-pos : Float-Complex (make-rectangular (* (real-part loc) xstep) (* (imag-part loc) ystep)))
-    (define-values (tsx tsy) (geo-path-turn-scales t-scale 0.5))
+    (define-values (tsx tsy) (geo-path-turn-scales t-scale 0.50))
     (define-values (usx usy) (geo-path-turn-scales u-scale 0.25))
     
     (create-geometry-object gomamon

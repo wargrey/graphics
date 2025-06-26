@@ -20,7 +20,7 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-hline : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
+(define geo-hline : (->* (Real Real+%) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~extent width height))
     
@@ -30,7 +30,7 @@
                                        geo-zero-pads]
                             0.0 (* flheight 0.5) flwidth 0.0)))
 
-(define geo-vline : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
+(define geo-vline : (->* (Real Real+%) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~extent width height))
     
@@ -40,7 +40,7 @@
                                        geo-zero-pads]
                             (* flwidth 0.5) 0.0 0.0 flheight)))
 
-(define geo-diagonal : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
+(define geo-diagonal : (->* (Real Real+%) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~extent width height))
     
@@ -50,7 +50,7 @@
                                        (geo-shape-outline stroke)]
                             0.0 0.0 flwidth flheight)))
 
-(define geo-anti-diagonal : (->* (Real Real) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
+(define geo-anti-diagonal : (->* (Real Real+%) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
   (lambda [#:id [id #false] #:stroke [stroke (void)] width height]
     (define-values (flwidth flheight) (~extent width height))
     

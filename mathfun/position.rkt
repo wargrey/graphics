@@ -16,7 +16,7 @@
   (lambda [#:base [base : Byte 10]
            #:nslots [min-slots : Index 0]
            #:font [font : Font (default-font)]
-           #:line-height [line-height : Real -1.618]
+           #:line-height [line-height : Real+% '(161.8 %)]
            #:gapsize [gapsize : Real 2.0]
            [n : Integer] [shift : Integer 0]] : Geo
     (define slot-size : Nonnegative-Flonum (~length line-height (font-metrics-ref font 'em)))

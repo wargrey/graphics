@@ -49,7 +49,7 @@
                      (geo-rectangle #:id (dia-node-shape-id node-key)
                                     #:stroke (dia-node-select-stroke-paint style)
                                     #:fill (dia-node-select-fill-paint style)
-                                    width height -0.25)
+                                    width height '(25 %))
                      label)))
 
 (define diaflow-block-decision : Dia-Path-Block-Create
@@ -74,7 +74,7 @@
 
 (define diaflow-block-terminal : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
-    (define r : Flonum (* height 0.5))
+    (define r : Nonnegative-Flonum (* height 0.5))
     
     (create-dia-node #:id node-key #:type 'Terminal hint
                      #:fit-ratio (max (/ (- width r) width) 0.0) 1.00
@@ -101,13 +101,13 @@
 (define diaflow-block-output : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (if (eq? hint 'user)
-        (let-values ([(ogive r) (values (* width 0.384) (* height 0.5))])
+        (let-values ([(ogive barrel r) (values (* width 0.384) (* width 0.618) (* height 0.5))])
           (create-dia-node #:id node-key #:type 'Output hint
                            #:fit-ratio 0.75 1.00
                            (geo-bullet #:id (dia-node-shape-id node-key)
                                        #:stroke (dia-node-select-stroke-paint style)
                                        #:fill (dia-node-select-fill-paint style)
-                                       ogive r (- width ogive))
+                                       ogive r barrel)
                            label))
         (diaflow-block-dataIO node-key label style width height 'Output hint))))
 
@@ -200,7 +200,7 @@
 
 (define diaflow-block-delay : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
-    (define r : Flonum (* height 0.5))
+    (define r : Nonnegative-Flonum (* height 0.5))
     (create-dia-node #:id node-key #:type 'Delay hint
                      #:fit-ratio (max (/ (- width r) width) 0.0) 1.00
                      (geo-rstadium #:id (dia-node-shape-id node-key)
@@ -272,7 +272,7 @@
                      (geo-document #:id (dia-node-shape-id node-key)
                                    #:stroke (dia-node-select-stroke-paint style)
                                    #:fill (dia-node-select-fill-paint style)
-                                   width height (* (- hratio 1.0) 0.5))
+                                   width height `(,(* (- 1.0 hratio) 0.5) :))
                      label)))
 
 (define diaflow-block-multiple-document : Dia-Path-Block-Create
@@ -294,7 +294,7 @@
                                    #:fill (dia-node-select-fill-paint style)
                                    #:gapsize gapsize
                                    #:extra-n extra-n
-                                   width height (* wave-ratio -0.5))
+                                   width height `(,(* wave-ratio 0.5) :))
                      label)))
 
 (define diaflow-block-database : Dia-Path-Block-Create

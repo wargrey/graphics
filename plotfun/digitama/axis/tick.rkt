@@ -7,9 +7,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (R) plot-axis-metrics
   : (case-> [-> (U (∩ R Real) (Pairof (∩ R Real) (∩ R Real)) False) (Option (Pairof (∩ R Real) (∩ R Real)))
-                (Option Real) Nonnegative-Flonum (Option Real)
+                (Option Real) Nonnegative-Flonum (Option Real+%)
                 (Values (Option (Pairof (U R Zero) (U R Zero))) Flonum Nonnegative-Flonum)]
-            [-> (Option (Pairof (∩ R Real) (∩ R Real))) (Option Real) Nonnegative-Flonum (Option Real)
+            [-> (Option (Pairof (∩ R Real) (∩ R Real))) (Option Real) Nonnegative-Flonum (Option Real+%)
                 (Values (Option (Pairof (U R Zero) (U R Zero))) Flonum Nonnegative-Flonum)])
   (case-lambda
     [(tick-rng real-rng maybe-origin axis-length maybe-unit-length)
@@ -19,21 +19,21 @@
              [else #false]))
 
      (define maybe-orig (and (rational? maybe-origin) (real->double-flonum maybe-origin)))
-     (define maybe-unit (and (rational? maybe-unit-length) (real->double-flonum maybe-unit-length)))
+     (define maybe-unit (and maybe-unit-length (~length maybe-unit-length axis-length)))
      
-     (cond [(and maybe-orig maybe-unit) (values ticks maybe-orig (~length maybe-unit axis-length))]
+     (cond [(and maybe-orig maybe-unit) (values ticks maybe-orig maybe-unit)]
            [(pair? ticks)
-            (let* ([unit-length (plot-auto-unit-length axis-length maybe-unit ticks)])
+            (let* ([unit-length (or maybe-unit (plot-auto-unit-length axis-length ticks))])
               (values ticks (or maybe-orig (plot-auto-origin ticks unit-length axis-length)) unit-length))]
-           [else (values ticks (or maybe-orig 0.5) (min (~length (or maybe-unit -0.1) axis-length)))])]
+           [else (values ticks (or maybe-orig 0.5) (or maybe-unit (* axis-length 0.1)))])]
     [(real-rng maybe-origin axis-length maybe-unit-length)
      ((inst plot-axis-metrics R) #false real-rng maybe-origin axis-length maybe-unit-length)]))
 
 (define #:forall (R C) plot-axis-metrics*
-  : (case-> [-> (Option (Pairof (∩ R Real) (∩ R Real))) (Option Real) Nonnegative-Flonum (Option Real) (-> Nonnegative-Flonum C)
+  : (case-> [-> (Option (Pairof (∩ R Real) (∩ R Real))) (Option Real) Nonnegative-Flonum (Option Real+%) (-> Nonnegative-Flonum C)
                 (Values (Option (Pairof (U R Zero) (U R Zero))) Flonum C)]
             [-> (U (∩ R Real) (Pairof (∩ R Real) (∩ R Real)) False) (Option (Pairof (∩ R Real) (∩ R Real)))
-                (Option Real) Nonnegative-Flonum (Option Real) (-> Nonnegative-Flonum C)
+                (Option Real) Nonnegative-Flonum (Option Real+%) (-> Nonnegative-Flonum C)
                 (Values (Option (Pairof (U R Zero) (U R Zero))) Flonum C)])
   (case-lambda
     [(real-rng maybe-origin axis-length maybe-unit-length unit-transform)
@@ -70,8 +70,9 @@
                                unit-length))
        fllength)))
 
-(define plot-auto-unit-length : (-> Nonnegative-Flonum (Option Real) (Pairof Real Real) Nonnegative-Flonum)
-  (lambda [fllength maybe-unit-length ticks]
-    (if (not maybe-unit-length)
-        (max (/ fllength (- (cdr ticks) (car ticks))) 0.0)
-        (~length maybe-unit-length fllength))))
+(define plot-auto-unit-length : (-> Nonnegative-Flonum (Pairof Real Real) Nonnegative-Flonum)
+  (lambda [fllength ticks]
+    (max (/ fllength
+            (- (cdr ticks)
+               (car ticks)))
+         0.0)))

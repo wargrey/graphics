@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 
+(require racket/case)
 (require digimon/metrics)
 
 (require geofun/font)
@@ -24,10 +25,12 @@
 
 (define plot-axis-tick-anchor : (-> Plot-Axis-Style Symbol Geo-Pin-Anchor)
   (lambda [self direction]
-    (define anchor (plot-axis-style-tick-anchor self))
-    (if (eq? direction 'x)
-        (if (pair? anchor) (car anchor) anchor)
-        (if (pair? anchor) (cdr anchor) anchor))))
+    (define placement (plot-axis-style-tick-placement self))
+
+    (case/eq placement
+             [(positive) (if (eq? direction 'x) 'cb 'lc)]
+             [(negative) (if (eq? direction 'x) 'ct 'rc)]
+             [else 'cc])))
 
 (define plot-axis-visual-values : (case-> [Plot-Axis-Style -> (Values Font Font Font Stroke Nonnegative-Flonum Color Color Color Color)]
                                           [Plot-Axis-Style (-> Color FlRGBA) -> (Values Font Font Font Stroke Nonnegative-Flonum FlRGBA FlRGBA FlRGBA FlRGBA)])
@@ -71,17 +74,13 @@
     
     (if (eq? direction 'x)
         (values xpos (if (< xpos 0.0) 'cc 'cc))
-        (values (if (real? pos-cfg) (* ypos 0.5) ypos) ; because digits in x-axis are aligned by 'cc
+        (values (if (real? pos-cfg) (* ypos 0.5) ypos) ; given that digits in x-axis are aligned by 'cc
                 (if (< ypos 0.0) 'rc 'lc)))))
-
-(define plot-axis-tick-length : (-> Plot-Axis-Style Symbol Flonum)
-  (lambda [self direction]
-    (plot-cartesian-value (plot-axis-style-tick-length self) direction)))
 
 (define plot-axis-length-values : (case-> [Plot-Axis-Style Plot-Axis-Tip-Style Real
                                                            -> (Values Nonnegative-Flonum Nonnegative-Flonum
                                                                       Nonnegative-Flonum Nonnegative-Flonum)]
-                                          [Plot-Axis-Style Plot-Axis-Tip-Style Real Nonnegative-Flonum
+                                          [Plot-Axis-Style Plot-Axis-Tip-Style Real+% Nonnegative-Flonum
                                                            -> (Values Nonnegative-Flonum Nonnegative-Flonum
                                                                       Nonnegative-Flonum Nonnegative-Flonum)])
   (case-lambda
@@ -100,8 +99,9 @@
 
 (define plot-axis-margin-values : (-> Plot-Axis-Tip-Style Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self fllength]
-    (define-values (n-margin p-margin) (plot-cartesian-settings (plot-axis-tip-style-margin self)))
-
+    (define n-margin (plot-axis-tip-style-negative-margin self))
+    (define p-margin (plot-axis-tip-style-positive-margin self))
+    
     (values (~length n-margin fllength)
             (~length p-margin fllength))))
 
@@ -126,15 +126,18 @@
      
      (values x y)]))
 
-(define #:forall (T) plot-cartesian-maybe-settings : (case-> [Complex -> (Values Flonum Flonum)]
-                                                             [Complex (-> Real T) -> (Values T T)]
-                                                             [(Option Complex) -> (Values (Option Flonum) (Option Flonum))]
-                                                             [(Option Complex) (-> Real T) -> (Values (Option T) (Option T))])
+(define plot-cartesian-maybe-settings : (case-> [Complex -> (Values Real Real)]
+                                                [Complex+% -> (Values Real+% Real+%)]
+                                                [(Option Complex) -> (Values (Option Real) (Option Real))]
+                                                [(Option Complex+%) -> (Values (Option Real+%) (Option Real+%))])
   (case-lambda
-    [(config) (plot-cartesian-maybe-settings config real->double-flonum)]
-    [(config real->datum)
+    [(config)
      (cond [(not config) (values #false #false)]
-           [else (plot-cartesian-settings config real->datum)])]))
+           [(real? config) (values config config)]
+           [(complex? config) (plot-cartesian-settings config)]
+           [else (let-values ([(x y) (plot-cartesian-settings (car config))]
+                              [(rto) (cadr config)])
+                   (values (list x rto) (list y rto)))])]))
 
 (define #:forall (T) plot-cartesian-value : (case-> [Complex Symbol -> Flonum]
                                                     [Complex Symbol (-> Real T) -> T]

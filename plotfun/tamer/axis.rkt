@@ -23,7 +23,7 @@
 (define time-sticker : Plot-Mark->Description
   (lambda [pt datum font color transform]
     (define r (real->double-flonum (real-part pt)))
-    (define unit (real-part (- (transform (+ r 1.0) 0.0) (transform r 0.0))))
+    (define unit (max (real-part (- (transform (+ r 1.0) 0.0) (transform r 0.0))) 0.0))
     (define c (rgb* color (/ (+ r 1.0) 10.0)))
     (define arrow (geo-arrow 4.0 (* unit 0.5) (* pi 0.5) #:fill c #:stroke #false))
     (define label (geo-text datum font #:color c))
@@ -45,15 +45,15 @@
            (fib (- n 2))))))
 
 (define real-line
-  (plot-axis #:style (make-plot-axis-style #:label-position 'axis)
-             #:unit-length -0.15
+  (plot-axis #:style (make-plot-axis-style #:label-placement 'axis)
+             #:unit-length '(15 %)
              #:label "x"
              '(0 1/2 22/7 550/89)))
 
 (define number-line
   (plot-integer-axis #:marker-template number-sticker
                      #:marker-style (make-plot-marker-style #:anchor 'lb)
-                     #:unit-length -0.1
+                     #:unit-length '(10 %)
                      #:label "n"
                      (list -1 0 1 2 3 4 5 6
                            (plot-integer 7 0.0 #:datum 'arrow))))
@@ -62,7 +62,7 @@
   (plot-integer-axis #:range (cons -1 9)
                      #:marker-template time-sticker
                      #:marker-style (make-plot-marker-style #:gap-length 2.5 #:anchor 'ct)
-                     #:unit-length -0.1
+                     #:unit-length '(10 %)
                      #:label "n"
                      fib))
 

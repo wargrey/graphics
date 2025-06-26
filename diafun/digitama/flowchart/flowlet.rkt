@@ -141,5 +141,5 @@
                      (geo-document #:id (dia-node-shape-id node-key)
                                    #:stroke (dia-node-select-stroke-paint style)
                                    #:fill (dia-node-select-fill-paint style)
-                                   width height (* (- hratio 1.0) 0.5))
+                                   width height `(,(* (- 1.0 hratio) 0.5) :))
                      label)))

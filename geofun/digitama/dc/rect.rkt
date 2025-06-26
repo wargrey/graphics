@@ -23,9 +23,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-square
-  (lambda [#:id [id : (Option Symbol) #false] #:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:vlines [vlines : (Listof Real) null] #:hlines [hlines : (Listof Real) null]
-           [width : Real] [corner-radius : Real 0.0]] : Geo:Rectangle
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:vlines [vlines : (Listof Real) null]
+           #:hlines [hlines : (Listof Real) null]
+           [width : Real] [corner-radius : Real+% 0.0]] : Geo:Rectangle
     (define w : Nonnegative-Flonum (~length width))
     
     (create-geometry-object geo:rect
@@ -37,9 +40,12 @@
                             (map real->double-flonum hlines))))
 
 (define geo-rectangle
-  (lambda [#:id [id : (Option Symbol) #false] #:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:vlines [vlines : (Listof Real) null] #:hlines [hlines : (Listof Real) null]
-           [width : Real] [height : Real -0.618] [corner-radius : Real 0.0]]
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:vlines [vlines : (Listof Real) null]
+           #:hlines [hlines : (Listof Real) null]
+           [width : Real] [height : Real+% '(61.8 %)] [corner-radius : Real+% 0.0]]
     (define-values (w h) (~extent width height))
     
     (create-geometry-object geo:rect

@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 
+(require digimon/metrics)
 (require racket/math)
 
 (require geofun/vector)
@@ -10,7 +11,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bacteriophage-logo
-  (lambda [#:sheath-length [sheath-length : Real -phi] #:λ-color [λ-color : Color 'Crimson] #:fibre-color [fibre-color : Color 'Teal]
+  (lambda [#:sheath-length [sheath-length : Real+% `(,phi :)] #:λ-color [λ-color : Color 'Crimson] #:fibre-color [fibre-color : Color 'Teal]
            #:fill-color [fill-color : Color 'MintCream] #:fill-alpha [fill-alpha : Real 1/phi]
            #:border-color [border-color : Color 'DodgerBlue] #:edge-color [edge-color : Color 'DeepSkyBlue] #:edge-alpha [edge-alpha : Real 0.20]
            #:head-color [head-fill : (Option Color) #false] #:head-alpha [head-alpha : (Option Real) #false]
@@ -20,8 +21,9 @@
            #:feet-rotation [foot-rotation : Real 0.0] #:id [id : (Option Symbol) 'bacteriophage]
            #:symbol [symtext : Char #\λ]
            [R : Real]] : Geo
-    (define-values (Rdart Rcollar) (values (* R 1/phi) (* R 0.5 1/phi)))
-    (define no-sheath? : Boolean (< -1.0 (* sheath-length 1.0) Rdart))
+    (define-values (Rdart Rcollar) (values (~length (* R 1/phi)) (~length (* R 0.5 1/phi))))
+    (define used-sheath-length (~length sheath-length Rdart))
+    (define no-sheath? : Boolean (< used-sheath-length Rdart))
     (define-values (thickness smart-thickness-scale) (values (/ R 32.0) (if no-sheath? 1.0 2.0)))
     (define edge-stroke (desc-stroke #:color (rgb* edge-color edge-alpha) #:width (* thickness 0.5)))
     (define ihead-stroke (desc-stroke #:color edge-color #:width (* thickness 1.0)))
@@ -42,8 +44,8 @@
     (define collar (geo-dart Rcollar pi/2 #:id 'collar #:fill tail-color #:stroke ihead-stroke #:wing-angle 4pi/5))
     (define maybe-sheath : (Option Geo)
       (and (not no-sheath?)
-           (geo-arrow #:id 'sheath #:fill tail-color #:stroke ohead-stroke #:shaft-thickness -1/phi #:wing-angle pi
-                      Rdart sheath-length pi/2)))
+           (geo-arrow #:id 'sheath #:fill tail-color #:stroke ohead-stroke #:shaft-thickness `(,1/phi :) #:wing-angle pi
+                      Rdart used-sheath-length pi/2)))
 
     (define tail.rad : Flonum
       (real->double-flonum
@@ -96,4 +98,4 @@
   (bacteriophage-logo 32.0)
   (bacteriophage-logo 64.0)
   (bacteriophage-logo 128.0)
-  (bacteriophage-logo 128.0 #:sheath-length -0.8))
+  (bacteriophage-logo 128.0 #:sheath-length '(80 %)))

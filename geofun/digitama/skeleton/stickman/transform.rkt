@@ -14,12 +14,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-standing-stickman-snapshot : (-> Geo-Standing-Stickman Geo-Stickman-Skeleton)
   (lambda [self]
-    (define radian? : Boolean (geo-standing-stickman-radian? self))
     (define-values (torso-width torso-length)
       (values (~length (geo-standing-stickman-torso-width self)
-                       (~length (geo-standing-stickman-torso-width the-standing-stickman)))
+                       (~length (geo-standing-stickman-torso-width the-standing-stickman) 100.0))
               (~length (geo-standing-stickman-torso-length self)
-                       (~length (geo-standing-stickman-torso-length the-standing-stickman)))))
+                       (~length (geo-standing-stickman-torso-length the-standing-stickman) 100.0))))
     
     (define-values (leg-width arm-width)
       (values (~length (geo-standing-stickman-leg-width self) torso-width)
@@ -31,9 +30,9 @@
 
     (define-values (lft-arm rgt-arm)
       (let* ([half-shoulder (* (~length (geo-standing-stickman-shoulder-breadth self) torso-width) 0.5)]
-             [rgt-arm-angle (~radian (geo-standing-stickman-arm-angle self) radian?)]
+             [rgt-arm-angle (real->double-flonum (geo-standing-stickman-arm-angle self))]
              [lft-arm-angle (- pi rgt-arm-angle)]
-             [elb-angle (~radian (geo-standing-stickman-elbow-angle self) radian?)]
+             [elb-angle (real->double-flonum (geo-standing-stickman-elbow-angle self))]
              [upper-length (~length (geo-standing-stickman-upper-arm-length self) torso-length)]
              [lower-length (~length (geo-standing-stickman-lower-arm-length self) torso-length)]
              [lft-shoulder (- neck half-shoulder)]
@@ -46,7 +45,7 @@
                 (stickman-arm rgt-shoulder rgt-elbow rgt-hand))))
 
     (define-values (lft-leg rgt-leg)
-      (let*-values ([(leg-angle) (~radian (geo-standing-stickman-leg-angle self) radian?)]
+      (let*-values ([(leg-angle) (real->double-flonum (geo-standing-stickman-leg-angle self))]
                     [(leg-length) (~length (geo-standing-stickman-leg-length self) torso-length)]
                     [(foot.pt) (make-polar leg-length (+ (* leg-angle 0.5) pi/2))]
                     [(dx dy) (values (real-part foot.pt) (imag-part foot.pt))])

@@ -19,7 +19,7 @@
                      (geo-rectangle #:id (dia-node-shape-id node-key)
                                     #:stroke (dia-node-select-stroke-paint style)
                                     #:fill (dia-node-select-fill-paint style)
-                                    width height -0.125)
+                                    width height '(12.5 %))
                      (and label
                           (geo-vc-append #:gapsize 2.0
                                          (geo-text #:color (dia-node-select-font-paint style)
@@ -33,5 +33,5 @@
                      (geo-rectangle #:id (dia-node-shape-id node-key)
                                     #:stroke (dia-node-select-stroke-paint style)
                                     #:fill (dia-node-select-fill-paint style)
-                                    width height -0.125)
+                                    width height '(12.5 %))
                      label)))
