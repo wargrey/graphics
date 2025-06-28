@@ -8,7 +8,6 @@
 (require geofun/color)
 (require geofun/font)
 
-(require geofun/digitama/layer/type)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/edge/tip/self)
 

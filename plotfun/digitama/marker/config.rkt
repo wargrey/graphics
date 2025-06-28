@@ -10,23 +10,24 @@
 (require geofun/digitama/layer/type)
 (require geofun/digitama/paint/self)
 
-(require "../axis/style.rkt")
 (require "style.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-marker-style-values : (->* ((Option Plot-Marker-Style) Plot-Axis-Style)
-                                        ((Option Stroke))
-                                        (Values Stroke Font Color Plot-Marker-Length-Unit Flonum Flonum Geo-Pin-Anchor))
-  (lambda [self master [pen #false]]
+(define plot-mark-style-values : (-> (Option Plot-Mark-Style) Font Stroke
+                                     Nonnegative-Flonum Real Real
+                                     (Values Stroke Font Color Float-Complex Float-Complex Geo-Pin-Anchor))
+  (lambda [self fallback-font fallback-pen 100% pin-angle gap-angle]
     (if (or self)
-        (values (or (plot-marker-style-pin-stroke self)
-                    pen (plot-axis-style-stroke master))
-                (or (plot-marker-style-font self)
-                    (plot-axis-style-font master))
-                (or (plot-marker-style-color self)
-                    (stroke-color (or pen (plot-axis-style-stroke master))))
-                (plot-marker-style-length-unit self)
-                (plot-marker-style-gap-length self)
-                (plot-marker-style-pin-length self)
-                (plot-marker-style-anchor self))
-        (plot-marker-style-values (default-plot-marker-style) master pen))))
+        (values (or (plot-mark-style-pin-stroke self) fallback-pen)
+                (or (plot-mark-style-font self) fallback-font)
+                (or (plot-mark-style-color self) (stroke-color fallback-pen))
+                (make-polar (~length (plot-mark-style-pin-length self) 100%)
+                            (let ([a (plot-mark-style-pin-angle self)])
+                              (real->double-flonum (if (rational? a) a pin-angle))))
+                (make-polar (~length (plot-mark-style-gap-length self) 100%)
+                            (let ([a (plot-mark-style-gap-angle self)])
+                              (real->double-flonum (if (rational? a) a gap-angle))))
+                (plot-mark-style-anchor self))
+        (plot-mark-style-values (default-plot-mark-style)
+                                fallback-font fallback-pen
+                                100% pin-angle gap-angle))))

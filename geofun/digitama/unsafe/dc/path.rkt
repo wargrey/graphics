@@ -87,7 +87,7 @@
                        [(eq? cmd #\Q) (cairo_quadratic_bezier cr (gpp:bezier-ctrl1 self) (gpp:bezier-ctrl2 self) endpt)]))]
               [(gpp:vector? self)
                (let ([cmd (gpath:datum-cmd self)]
-                     [pt (gpath:print-end-here self)])
+                     [pt (gpp:vector-rel-end self)])
                  (cond [(eq? cmd #\l) (cairo_rel_line_to cr (real-part pt) (imag-part pt))]
                        [(eq? cmd #\m) (cairo_rel_move_to cr (real-part pt) (imag-part pt))]))]
               [(gpp:close? self) #\Z #\z (cairo_close_path cr)])
@@ -114,10 +114,16 @@
         (cond [(gpp:point? self)
                (let ([cmd (gpath:datum-cmd self)]
                      [pt (gpath:print-end-here self)])
-                 (if (and (null? rest) tgt-adjust)
-                     (let ([apt (+ pt tgt-adjust)])
-                       (cairo_line_to cr (real-part apt) (imag-part apt)))
-                     (cairo_line_to cr (real-part pt) (imag-part pt))))]
+                 (cond [(eq? cmd #\L)
+                        (if (and (null? rest) tgt-adjust)
+                            (let ([apt (+ pt tgt-adjust)])
+                              (cairo_line_to cr (real-part apt) (imag-part apt)))
+                            (cairo_line_to cr (real-part pt) (imag-part pt)))]
+                       [(eq? cmd #\M)
+                        (if (and (null? rest) tgt-adjust)
+                            (let ([apt (+ pt tgt-adjust)])
+                              (cairo_move_to cr (real-part apt) (imag-part apt)))
+                            (cairo_move_to cr (real-part pt) (imag-part pt)))]))]
               [(gpp:arc? self) #\A (cairo_elliptical_arc cr self)]
               [(gpp:bezier? self)
                (let ([cmd (gpath:datum-cmd self)]

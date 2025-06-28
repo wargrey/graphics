@@ -3,8 +3,6 @@
 (require geofun/vector)
 (require plotfun/axis)
 
-(require racket/math)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define number-sticker : Plot-Mark->Description
   (lambda [pt datum font color transform]
@@ -14,11 +12,13 @@
       (define unit (real-part (- (transform (+ r 1.0) 0.0) (transform r 0.0))))
       (define c (rgb* color (/ (+ r 1.0) 10.0)))
       (define g (geo-vc-append (geo-text "+1" font #:color c)
-                               (geo-arc (* unit 0.5) pi 0.0 #:stroke c #:ratio 0.618)))
+                               (geo-arc (* unit 0.5) 3.4 6.0 #:stroke c #:ratio 1.618)))
       
-      (if (equal? 'arrow datum)
-          (geo-pin* 1.0 0.56 0.5 0.5 g (geo-dart (* unit 0.1) (* pi 0.5) #:fill c #:stroke #false))
-          g))))
+      (make-geo-sticker (if (equal? 'arrow datum)
+                            (geo-pin* 0.975 0.60 0.5 0.5 g (geo-dart (* unit 0.1) (* pi 0.375) #:fill c #:stroke #false))
+                            g)
+                        'lb
+                        (make-rectangular 0.0 (* unit 0.25))))))
 
 (define time-sticker : Plot-Mark->Description
   (lambda [pt datum font color transform]
@@ -46,13 +46,14 @@
 
 (define real-line
   (plot-axis #:style (make-plot-axis-style #:label-placement 'axis)
-             #:unit-length '(15 %)
-             #:label "x"
-             '(0 1/2 22/7 550/89)))
+             #:range (cons 0 6)
+             #:unit-length '(24 %)
+             #:label "R"
+             '(0 55/89 89/55 19/7 22/7)))
 
 (define number-line
-  (plot-integer-axis #:marker-template number-sticker
-                     #:marker-style (make-plot-marker-style #:anchor 'lb)
+  (plot-integer-axis #:mark-template number-sticker
+                     #:mark-style (make-plot-mark-style #:anchor 'lb #:pin-length 0.0)
                      #:unit-length '(10 %)
                      #:label "n"
                      (list -1 0 1 2 3 4 5 6
@@ -60,8 +61,7 @@
 
 (define time-line
   (plot-integer-axis #:range (cons -1 9)
-                     #:marker-template time-sticker
-                     #:marker-style (make-plot-marker-style #:gap-length 2.5 #:anchor 'ct)
+                     #:mark-template (plot-template '(220 %) pi/2 #:desc time-sticker #:pin? #false #:anchor 'ct)
                      #:unit-length '(10 %)
                      #:label "n"
                      fib))

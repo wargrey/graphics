@@ -32,15 +32,16 @@
              [(negative) (if (eq? direction 'x) 'ct 'rc)]
              [else 'cc])))
 
-(define plot-axis-visual-values : (case-> [Plot-Axis-Style -> (Values Font Font Font Stroke Nonnegative-Flonum Color Color Color Color)]
-                                          [Plot-Axis-Style (-> Color FlRGBA) -> (Values Font Font Font Stroke Nonnegative-Flonum FlRGBA FlRGBA FlRGBA FlRGBA)])
+(define plot-axis-visual-values : (case-> [Plot-Axis-Style -> (Values Font Font Font Font Stroke Nonnegative-Flonum Color Color Color Color)]
+                                          [Plot-Axis-Style (-> Color FlRGBA) -> (Values Font Font Font Font Stroke Nonnegative-Flonum FlRGBA FlRGBA FlRGBA FlRGBA)])
   (case-lambda
     [(self)
      (let* ([axis-pen (plot-axis-style-stroke self)]
             [axis-color (stroke-color axis-pen)]
             [label-color (plot-axis-style-label-color self)]
             [axis-font (plot-axis-style-font self)])    
-       (values (or (plot-axis-style-digit-font self) axis-font)
+       (values axis-font
+               (or (plot-axis-style-digit-font self) axis-font)
                (or (plot-axis-style-label-font self) axis-font)
                (or (plot-axis-style-desc-font self) axis-font)
                axis-pen (stroke-width axis-pen)
@@ -57,7 +58,8 @@
             [label-color (if (plot-axis-style-label-color self) (adjust (plot-axis-style-label-color self)) adjusted-color)]
             [desc-color (plot-axis-style-label-color self)]
             [axis-font (plot-axis-style-font self)])    
-       (values (or (plot-axis-style-digit-font self) axis-font)
+       (values axis-font
+               (or (plot-axis-style-digit-font self) axis-font)
                (or (plot-axis-style-label-font self) axis-font)
                (or (plot-axis-style-desc-font self) axis-font)
                (if (equal? adjusted-color axis-color) axis-pen (desc-stroke axis-pen #:color adjusted-color))

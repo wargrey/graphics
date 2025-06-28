@@ -16,6 +16,10 @@
   #:transparent)
 
 (struct gpp:close gpath:datum () #:type-name GPP:Close #:transparent)
+(struct gpp:vector gpath:datum
+  ([rel-end : Float-Complex])
+  #:type-name GPP:Vector
+  #:transparent)
 
 (struct gpath:print gpath:datum
   ([end-here : Float-Complex])
@@ -23,7 +27,6 @@
   #:transparent)
 
 (struct gpp:point gpath:print () #:type-name GPP:Point #:transparent)
-(struct gpp:vector gpath:print () #:type-name GPP:Vector #:transparent)
 
 (struct gpp:arc gpath:print
   ([center : Float-Complex]
@@ -71,7 +74,7 @@
                        (traverse rest p-head stnirp curpos))]
                   [(gpp:vector? self)
                    (let ([cmd (gpath:datum-cmd self)]
-                         [pos (+ curpos (gpath:print-end-here self))])
+                         [pos (+ curpos (gpp:vector-rel-end self))])
                      (cond [(eq? cmd #\m) (traverse rest pos (cons (gpp:point #\M pos) stnirp) pos)]
                            [(not p-head) (traverse rest pos (cons (gpp:point #\M pos) stnirp) pos)]
                            [(= pos curpos) (traverse rest p-head stnirp pos)]

@@ -11,6 +11,7 @@
 (provide (all-from-out "digitama/marker/style.rkt"))
 
 (require digimon/metrics)
+(require digimon/constant)
 
 (require geofun/font)
 (require geofun/paint)
@@ -56,8 +57,8 @@
            #:ticks [ticks-engine : Plot-Tick-Engine (plot-real-ticks)]
            #:tick-format [alt-format : (Option Plot-Tick-Format) #false]
            #:tick->sticker [tick->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
-           #:marker-style [real-style : (Option Plot-Marker-Style) #false]
-           #:desc-mark [desc-real : Plot-Mark->Description plot-desc-real]
+           #:mark-style [real-style : (Option Plot-Mark-Style) #false]
+           #:mark-template [desc-real : (U Plot-Mark->Description Plot:Mark) plot-desc-real]
            #:border [bdr : Maybe-Stroke-Paint #false]
            #:background [bg : Maybe-Fill-Paint #false]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false]
@@ -73,7 +74,7 @@
     (define-values (actual-ticks _) (plot-ticks-generate ticks-engine tick-range alt-format))
     (define actual-tick-values (map plot-tick-value* actual-ticks))
 
-    (define-values (digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
+    (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
     (define-values (digit-position digit-anchor) (plot-axis-digit-position-values axis-style 'x))
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
 
@@ -123,12 +124,13 @@
                                         (dot->pos (real->double-flonum (plot-tick-value (car tick))) 0.0)
                                         flc-offset ticks fltick-min real-part fltick-max gtick))
               
-              (let-values ([(pin-pen real-font real-color real-unit gap-length pin-length real-anchor) (plot-marker-style-values real-style axis-style axis-pen)])
+              (let-values ([(pin-pen real-font real-color real-pin real-gap real-anchor) (plot-mark-style-values real-style axis-font axis-pen em -pi/2 -pi/2)])
                 (for/fold ([reals : (Listof (GLayerof Geo)) null])
                           ([mark (in-list (cond [(list? real-list) (plot-axis-list->marks real-list desc-real)]
                                                 [else (plot-axis-produce-marks real-list actual-tick-values desc-real)]))])
                   (define self : Plot:Marker (plot-marker #:color real-color #:font real-font #:pin-stroke pin-pen
-                                                          #:length-scale (if (flonum? real-unit) real-unit em)
+                                                          #:fallback-pin real-pin #:fallback-gap real-gap
+                                                          #:fallback-anchor real-anchor #:length-scale em
                                                           mark dot->pos))
                   
                   (plot-axis-sticker-cons (geo-edge-self-pin-layer self) (geo-edge-self-pin-position self)
@@ -164,8 +166,8 @@
            #:ticks [ticks-engine : Plot-Tick-Engine (plot-integer-ticks)]
            #:tick-format [alt-format : (Option Plot-Tick-Format) #false]
            #:tick->sticker [tick->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
-           #:marker-style [int-style : (Option Plot-Marker-Style) #false]
-           #:marker-template [desc-int : Plot-Mark->Description plot-desc-real]
+           #:mark-style [int-style : (Option Plot-Mark-Style) #false]
+           #:mark-template [desc-int : (U Plot-Mark->Description Plot:Mark) plot-desc-real]
            #:exclude-zero? [exclude-zero? : Boolean #true]
            #:border [bdr : Maybe-Stroke-Paint #false]
            #:background [bg : Maybe-Fill-Paint #false]
@@ -182,7 +184,7 @@
     (define-values (actual-ticks _) (plot-ticks-generate ticks-engine tick-range alt-format))
     (define actual-tick-values (filter exact-integer? (map plot-tick-value* actual-ticks)))
 
-    (define-values (digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
+    (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
     (define-values (digit-position digit-anchor) (plot-axis-digit-position-values axis-style 'x))
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
     
@@ -232,20 +234,21 @@
                                         (dot->pos (real->double-flonum (plot-tick-value* tick)) 0.0)
                                         flc-offset ticks fltick-min real-part fltick-max gtick))
               
-              (let-values ([(pin-pen int-font int-color int-unit gap-length pin-length int-anchor) (plot-marker-style-values int-style axis-style axis-pen)])
+              (let-values ([(pin-pen int-font int-color int-pin int-gap int-anchor) (plot-mark-style-values int-style axis-font axis-pen em -pi/2 -pi/2)])
                 (for/fold ([reals : (Listof (GLayerof Geo)) null])
                           ([mark (in-list (cond [(list? number-sequence) (plot-axis-list->marks number-sequence desc-int)]
                                                 [(vector? number-sequence) (plot-axis-vector->marks number-sequence desc-int (if (not exclude-zero?) 0 1))]
                                                 [else (plot-axis-produce-marks number-sequence actual-tick-values desc-int)]))]
                            #:when (not (and exclude-zero? (zero? (plot:mark-point mark)))))
                   (define self : Plot:Marker (plot-marker #:pin-stroke pin-pen #:color int-color #:font int-font
-                                                          #:length-scale em
+                                                          #:fallback-pin int-pin #:fallback-gap int-gap
+                                                          #:fallback-anchor int-anchor #:length-scale em
                                                           mark dot->pos))
 
                   (plot-axis-sticker-cons (geo-edge-self-pin-layer self) (geo-edge-self-pin-position self)
                                           reals fltick-min real-part fltick-max)))))
   
-  (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer main-axis) layers))
+    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer main-axis) layers))
     
     (if (or translated-layers)
         (let* ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))]

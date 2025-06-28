@@ -9,23 +9,31 @@
 (define-type Plot-Axis-Integer-Datum (U Integer Plot:Mark))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-axis-list->marks : (-> (Listof (U Plot-Axis-Real-Datum Plot-Axis-Integer-Datum)) Plot-Mark->Description (Listof Plot:Mark))
+(define plot-axis-list->marks : (-> (Listof (U Plot-Axis-Real-Datum Plot-Axis-Integer-Datum)) (U Plot-Mark->Description Plot:Mark) (Listof Plot:Mark))
   (lambda [vs desc]
     (for/list : (Listof Plot:Mark) ([v (in-list vs)])
-      (cond [(complex? v) (plot-real (real-part v) #:desc desc #:datum v)]
-            [(eq? (plot:mark-desc v) desc) v]
-            [else (remake-plot:mark v #:desc desc)]))))
+      (if (complex? v)
+          (if (plot:mark? desc)
+              (remake-plot:mark desc #:point (real-part v) #:datum v)
+              (plot-real (real-part v) #:desc desc #:datum v))
+          (cond [(plot:mark? desc) (plot-mark-sync-with-template v desc)]
+                [(eq? (plot:mark-desc v) desc) v]
+                [else (remake-plot:mark v #:desc desc)])))))
 
-(define plot-axis-vector->marks : (->* ((U (Listof Any) (Vectorof Any)) Plot-Mark->Description) (Index) (Listof Plot:Mark))
+(define plot-axis-vector->marks : (->* ((U (Listof Any) (Vectorof Any)) (U Plot-Mark->Description Plot:Mark)) (Index) (Listof Plot:Mark))
   (lambda [vs desc [base 0]]
     (for/list : (Listof Plot:Mark) ([v (if (list? vs) (in-list vs) (in-vector vs))]
                                     [i (in-naturals base)])
-      (plot-real i #:desc desc #:datum v))))
+      (if (plot:mark? desc)
+          (remake-plot:mark desc #:point i #:datum v)
+          (plot-real i #:desc desc #:datum v)))))
 
-(define #:forall (R) plot-axis-produce-marks : (-> (-> R Any) (Listof (∩ R Real)) Plot-Mark->Description (Listof Plot:Mark))
+(define #:forall (R) plot-axis-produce-marks : (-> (-> R Any) (Listof (∩ R Real)) (U Plot-Mark->Description Plot:Mark) (Listof Plot:Mark))
   (lambda [f xs desc]
     (for/list : (Listof Plot:Mark) ([x (in-list xs)])
-      (plot-real x #:desc desc #:datum (f x)))))
+      (if (plot:mark? desc)
+          (remake-plot:mark desc #:point x #:datum (f x))
+          (plot-real x #:desc desc #:datum (f x))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-real-value : (-> Plot-Axis-Real-Datum Real)

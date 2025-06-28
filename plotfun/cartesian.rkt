@@ -61,7 +61,7 @@
            #:width [width : Real (default-plot-cartesian-view-width)]
            #:height [height : Real (default-plot-cartesian-view-height)]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
-           #:marker-style [marker-style : (Option Plot-Marker-Style) #false]
+           #:mark-style [mark-style : (Option Plot-Mark-Style) #false]
            #:x-label [x-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "x"]
            #:y-label [y-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "y"]
            #:x-desc [x-desc : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
@@ -109,7 +109,7 @@
 
     (define bg-color : (Option FlRGBA) (brush-maybe-rgba bg))
     (define adjust-color (λ [[c : Color]] (plot-adjust-pen-color palette (rgb* c) bg-color)))
-    (define-values (digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color)
+    (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color)
       (plot-axis-visual-values axis-style adjust-color))
     
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))

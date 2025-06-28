@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 
+(require digimon/metrics)
 (require digimon/struct)
 
 (require geofun/color)
@@ -13,14 +14,12 @@
 (require "../axis/singleton.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Plot-Marker-Length-Unit (U Flonum 'em))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-struct/parameter plot-marker-style : Plot-Marker-Style
+(define-struct/parameter plot-mark-style : Plot-Mark-Style
   ([font : (Option Font) #false]
    [color : (Option Color) #false]
-   [length-unit : Plot-Marker-Length-Unit 'em]
-   [gap-length : Flonum 1.0]
-   [pin-length : Flonum 1.0]
    [pin-stroke : (Option Stroke) default-marker-pin-stroke]
+   [pin-length : Real+% '(100 %)]
+   [pin-angle : Real +nan.0]
+   [gap-length : Real+% 0.0]
+   [gap-angle : Real +nan.0]
    [anchor : Geo-Pin-Anchor 'cb]))

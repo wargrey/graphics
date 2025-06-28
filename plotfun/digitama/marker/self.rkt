@@ -3,12 +3,12 @@
 (provide (all-defined-out))
 
 (require digimon/struct)
+(require digimon/metrics)
 (require digimon/constant)
 
 (require geofun/font)
 
 (require geofun/digitama/base)
-(require geofun/digitama/convert)
 (require geofun/digitama/markup)
 
 (require geofun/digitama/dc/text)
@@ -30,12 +30,19 @@
   ([point : Complex 0]
    [desc : (Option Plot-Mark-Description) #false]
    [shape : (Option Geo-Tip) #false]
-   [pin : (Option Float-Complex) #false]
-   [gap : Float-Complex +nan.0+nan.0i]
+   [pin : (Option FlComplex+%) #false]
+   [gap : FlComplex+% +nan.0+nan.0i]
    [rotate? : Boolean #false]
    [anchor : (Option Geo-Pin-Anchor) #false]
    [datum : Any #false])
   #:transparent)
+
+(define plot-mark-sync-with-template : (-> Plot:Mark (U False Plot:Mark Plot-Mark-Description) Plot:Mark)
+  (lambda [self template]
+    (cond [(not template) self]
+          [(plot:mark? template) (remake-plot:mark template #:point (plot:mark-point self) #:datum (plot:mark-datum self))]
+          [(eq? (plot:mark-desc self) template) self]
+          [else (remake-plot:mark self #:desc template)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-integer
@@ -44,13 +51,14 @@
            #:shape [shape : (Option Geo-Tip) 'dot]
            #:rotate? [rotate? : Boolean #false]
            #:pin? [pin? : Boolean #true]
-           #:pin-angle [p-angle : (Option Real) #false]
-           #:pin-length [p-length : (Option Real) #false]
+           #:pin-length [p-length : (Option Real+%) #false]
+           #:pin-angle [p-angle : (Option Real) -pi/2]
            #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
-           [x : Integer] [length : Real +nan.0] [angle : Real pi/2]] : Plot:Mark
-    (make-plot:mark #:point x #:desc desc #:datum datum #:shape shape #:rotate? rotate?
-                    #:gap (plot-mark-vector angle length)
-                    #:pin (plot-mark-pin-vector pin? p-angle p-length))))
+           [x : Integer] [length : Real+% +nan.0] [angle : Real +nan.0]] : Plot:Mark
+    (make-plot:mark #:point x #:datum datum #:shape shape #:rotate? rotate?
+                    #:desc desc #:anchor anchor
+                    #:pin (plot-mark-pin-vector pin? p-length p-angle)
+                    #:gap (plot-mark-vector length angle))))
 
 (define plot-real
   (lambda [#:datum [datum : Any #false]
@@ -58,13 +66,14 @@
            #:shape [shape : (Option Geo-Tip) 'dot]
            #:rotate? [rotate? : Boolean #false]
            #:pin? [pin? : Boolean #true]
-           #:pin-angle [p-angle : (Option Real) #false]
-           #:pin-length [p-length : (Option Real) #false]
+           #:pin-length [p-length : (Option Real+%) #false]
+           #:pin-angle [p-angle : (Option Real) -pi/2]
            #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
-           [x : Real] [length : Real +nan.0] [angle : Real pi/2]] : Plot:Mark
-    (make-plot:mark #:point x #:desc desc #:datum datum #:shape shape #:rotate? rotate?
-                    #:gap (plot-mark-vector angle length)
-                    #:pin (plot-mark-pin-vector pin? p-angle p-length))))
+           [x : Real] [length : Real+% +nan.0] [angle : Real +nan.0]] : Plot:Mark
+    (make-plot:mark #:point x #:datum datum #:shape shape #:rotate? rotate?
+                    #:desc desc #:anchor anchor
+                    #:pin (plot-mark-pin-vector pin? p-length p-angle)
+                    #:gap (plot-mark-vector length angle))))
 
 (define plot-point
   (lambda [#:datum [datum : Any #false]
@@ -73,11 +82,13 @@
            #:rotate? [rotate? : Boolean #false]
            #:pin? [pin? : Boolean #true]
            #:pin-angle [p-angle : (Option Real) #false]
-           #:pin-length [p-length : (Option Real) #false]
-           [x : Complex] [length : Real 0.0] [angle : Real 0.0]] : Plot:Mark
-    (make-plot:mark #:point x #:desc desc #:datum datum #:shape shape #:rotate? rotate?
-                    #:gap (plot-mark-vector angle length)
-                    #:pin (plot-mark-pin-vector pin? p-angle p-length))))
+           #:pin-length [p-length : (Option Real+%) #false]
+           #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
+           [x : Complex] [length : Real+% 0.0] [angle : Real 0.0]] : Plot:Mark
+    (make-plot:mark #:point x #:datum datum #:shape shape #:rotate? rotate?
+                    #:desc desc #:anchor anchor
+                    #:pin (plot-mark-pin-vector pin? p-length p-angle)
+                    #:gap (plot-mark-vector length angle))))
 
 (define plot-label
   (lambda [#:datum [datum : Any #false]
@@ -86,11 +97,27 @@
            #:rotate? [rotate? : Boolean #false]
            #:pin? [pin? : Boolean #true]
            #:pin-angle [p-angle : (Option Real) #false]
-           #:pin-length [p-length : (Option Real) #false]
-           [desc : Plot-Mark-Static-Description] [length : Real +nan.0] [angle : Real 0.0]] : Plot:Mark
-    (make-plot:mark #:point x #:desc desc #:datum datum #:shape shape #:rotate? rotate?
-                    #:gap (plot-mark-vector angle length)
-                    #:pin (plot-mark-pin-vector pin? p-angle p-length))))
+           #:pin-length [p-length : (Option Real+%) #false]
+           #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
+           [desc : Plot-Mark-Static-Description] [length : Real+% +nan.0] [angle : Real 0.0]] : Plot:Mark
+    (make-plot:mark #:point x #:datum datum #:shape shape #:rotate? rotate?
+                    #:desc desc #:anchor anchor
+                    #:pin (plot-mark-pin-vector pin? p-length p-angle)
+                    #:gap (plot-mark-vector length angle))))
+
+(define plot-template
+  (lambda [#:shape [shape : (Option Geo-Tip) 'dot]
+           #:rotate? [rotate? : Boolean #false]
+           #:pin? [pin? : Boolean #true]
+           #:pin-angle [p-angle : (Option Real) #false]
+           #:pin-length [p-length : (Option Real+%) #false]
+           #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
+           #:desc [desc : (Option Plot-Mark-Description) plot-desc-point]
+           [length : Real+%] [angle : Real 0.0]] : Plot:Mark
+    (make-plot:mark #:shape shape #:rotate? rotate?
+                    #:desc desc #:anchor anchor
+                    #:pin (plot-mark-pin-vector pin? p-length p-angle)
+                    #:gap (plot-mark-vector length angle))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-desc-real : Plot-Mark->Description
