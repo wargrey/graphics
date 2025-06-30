@@ -13,12 +13,12 @@
 (require geofun/digitama/unsafe/dc/path)
 
 (require "self.rkt")
-(require "../sample.rkt")
+(require "interface.rkt")
 
+(require "../sample.rkt")
 (require "../marker/self.rkt")
 (require "../marker/quirk.rkt")
-
-(require "../axis/interface.rkt")
+(require "../marker/guard.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot:function geo:visualizer
@@ -85,10 +85,12 @@
                                         (Option Plot:Mark))
   (lambda [fx label idx total xmin xmax ymin ymax frac]
     (cond [(plot:mark? label)
-           (let ([dot (plot-mark-point-filter (plot:mark-point label) fx idx total xmin xmax ymin ymax frac)])
-             (and dot (remake-plot:mark label #:point dot)))]
+           (let* ([raw (plot:mark-point label)]
+                  [dot (plot-mark-point-guard raw fx idx total xmin xmax ymin ymax frac)])
+             (and dot (cond [(and (= raw dot)) label]
+                            [else (remake-plot:mark label #:point dot)])))]
           [(or label)
-           (let ([dot (plot-mark-point-filter +nan.0 fx idx total xmin xmax ymin ymax frac)])
+           (let ([dot (plot-mark-point-guard +nan.0 fx idx total xmin xmax ymin ymax frac)])
              (and dot (plot-label label #:at dot)))]
           [else #false])))
   

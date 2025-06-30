@@ -6,15 +6,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define number-sticker : Plot-Mark->Description
   (lambda [pt datum font color transform]
-    (define r (real->double-flonum (real-part pt)))
+    (define n (real->double-flonum (real-part pt)))
 
-    (when (>= r 0.0)
-      (define unit (real-part (- (transform (+ r 1.0) 0.0) (transform r 0.0))))
-      (define c (rgb* color (/ (+ r 1.0) 10.0)))
+    (when (>= n 0.0)
+      (define unit (real-part (- (transform (+ n 1.0) 0.0) (transform n 0.0))))
+      (define c (rgb* color (/ (+ n 1.0) 8.0)))
       (define g (geo-vc-append (geo-text "+1" font #:color c)
                                (geo-arc (* unit 0.5) 3.4 6.0 #:stroke c #:ratio 1.618)))
       
-      (make-geo-sticker (if (equal? 'arrow datum)
+      (make-geo-sticker (if (eq? 'arrow datum)
                             (geo-pin* 0.975 0.60 0.5 0.5 g (geo-dart (* unit 0.1) (* pi 0.375) #:fill c #:stroke #false))
                             g)
                         'lb
@@ -22,13 +22,13 @@
 
 (define time-sticker : Plot-Mark->Description
   (lambda [pt datum font color transform]
-    (define r (real->double-flonum (real-part pt)))
-    (define unit (max (real-part (- (transform (+ r 1.0) 0.0) (transform r 0.0))) 0.0))
-    (define c (rgb* color (/ (+ r 1.0) 10.0)))
+    (define n (real->double-flonum (real-part pt)))
+    (define unit (max (real-part (- (transform (+ n 1.0) 0.0) (transform n 0.0))) 0.0))
+    (define c (rgb* color (/ (+ n 1.0) 10.0)))
     (define arrow (geo-arrow 4.0 (* unit 0.5) (* pi 0.5) #:fill c #:stroke #false))
     (define label (geo-text datum font #:color c))
 
-    (if (< r 2)
+    (if (< n 1)
         (geo-vc-append #:gapsize 4.0 arrow label)
         (geo-vc-append #:gapsize 4.0
                        arrow
@@ -53,11 +53,12 @@
 
 (define number-line
   (plot-integer-axis #:mark-template number-sticker
-                     #:mark-style (make-plot-mark-style #:anchor 'lb #:pin-length 0.0)
+                     #:mark-style (make-plot-mark-style #:pin-length 0.0)
                      #:unit-length '(10 %)
+                     #:exclude-zero? #false
                      #:label "n"
                      (list -1 0 1 2 3 4 5 6
-                           (plot-integer 7 0.0 #:datum 'arrow))))
+                           (plot-integer 7 #:gap-length 0.0 #:datum 'arrow))))
 
 (define time-line
   (plot-integer-axis #:range (cons -1 9)

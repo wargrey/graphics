@@ -74,11 +74,7 @@
       (when (pair? prints)
         (define self (car prints))
 
-        (cond [(gpp:point? self)
-               (let ([cmd (gpath:datum-cmd self)]
-                     [pt (gpath:print-end-here self)])
-                 (cond [(eq? cmd #\L) (cairo_line_to cr (real-part pt) (imag-part pt))]
-                       [(eq? cmd #\M) (cairo_move_to cr (real-part pt) (imag-part pt))]))]
+        (cond [(gpp:point? self) (cairo_straight-line cr (gpath:datum-cmd self) (gpath:print-end-here self))]
               [(gpp:arc? self) #\A (cairo_elliptical_arc cr self)]
               [(gpp:bezier? self)
                (let ([cmd (gpath:datum-cmd self)]
@@ -114,16 +110,9 @@
         (cond [(gpp:point? self)
                (let ([cmd (gpath:datum-cmd self)]
                      [pt (gpath:print-end-here self)])
-                 (cond [(eq? cmd #\L)
-                        (if (and (null? rest) tgt-adjust)
-                            (let ([apt (+ pt tgt-adjust)])
-                              (cairo_line_to cr (real-part apt) (imag-part apt)))
-                            (cairo_line_to cr (real-part pt) (imag-part pt)))]
-                       [(eq? cmd #\M)
-                        (if (and (null? rest) tgt-adjust)
-                            (let ([apt (+ pt tgt-adjust)])
-                              (cairo_move_to cr (real-part apt) (imag-part apt)))
-                            (cairo_move_to cr (real-part pt) (imag-part pt)))]))]
+                 (if (and (null? rest) tgt-adjust)
+                     (cairo_straight-line cr cmd (+ pt tgt-adjust))
+                     (cairo_straight-line cr cmd pt)))]
               [(gpp:arc? self) #\A (cairo_elliptical_arc cr self)]
               [(gpp:bezier? self)
                (let ([cmd (gpath:datum-cmd self)]
@@ -132,7 +121,13 @@
                        [(eq? cmd #\Q) (cairo_quadratic_bezier cr (gpp:bezier-ctrl1 self) (gpp:bezier-ctrl2 self) endpt)]))])
 
         (draw_clean_path rest)))))
-  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define cairo_straight-line : (-> Cairo-Ctx Char Float-Complex Void)
+  (lambda [cr cmd pt]
+    (cond [(eq? cmd #\L) (cairo_line_to cr (real-part pt) (imag-part pt))]
+          [(eq? cmd #\M) (cairo_move_to cr (real-part pt) (imag-part pt))])))
+
 (define cairo_elliptical_arc : (-> Cairo-Ctx GPP:Arc Void)
   (lambda [cr gpath:arc]
     (define center (gpp:arc-center gpath:arc))

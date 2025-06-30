@@ -11,6 +11,7 @@
 (provide (all-from-out "digitama/axis/tick/real.rkt"))
 (provide (all-from-out "digitama/marker/self.rkt"))
 (provide (all-from-out "digitama/marker/style.rkt"))
+(provide (all-from-out "digitama/visualizer/interface.rkt"))
 
 (require digimon/metrics)
 (require digimon/complex)
@@ -50,6 +51,7 @@
 (require "digitama/marker/config.rkt")
 
 (require "digitama/visualizer/self.rkt")
+(require "digitama/visualizer/interface.rkt")
 (require "digitama/visualizer/function.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

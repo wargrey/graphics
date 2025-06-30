@@ -61,18 +61,3 @@
              (make-polar (~length (if (not l-ok?) length (list len (cadr self))) 100%)
                          (if (not a-ok?) (real->double-flonum theta) rad)))]
           [else #false])))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-mark-point-filter : (-> Complex (-> Real Real) Positive-Fixnum Positive-Index Real Real Real Real Real (Option Complex))
-  (lambda [pt x->dot idx total xmin xmax ymin ymax frac]
-    (if (real? pt)
-        (cond [(<= xmin pt xmax) (plot-mark-point-filter (make-rectangular pt (x->dot pt)) x->dot idx total xmin xmax ymin ymax frac)]
-              [(< pt xmin) (plot-mark-point-filter xmin x->dot idx total xmin xmax ymin ymax frac)]
-              [(> pt xmax) (plot-mark-point-filter xmax x->dot idx total xmin xmax ymin ymax frac)]         
-              [else (let ([t (if (rational? frac) frac (/ (- idx 1/2) total))])
-                      (plot-mark-point-filter (+ (* (- xmax xmin) t) xmin) x->dot idx total xmin xmax ymin ymax frac))])
-        (let ([x (real-part pt)]
-              [y (imag-part pt)])
-          (if (<= xmin x xmax)
-              (and (<= ymin y ymax) pt)
-              (plot-mark-point-filter x x->dot idx total xmin xmax ymin ymax frac))))))
