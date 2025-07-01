@@ -4,7 +4,7 @@
 (require plotfun/axis)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define number-sticker : Plot-Mark->Description
+(define succ-desc : Plot-Mark->Description
   (lambda [pt datum font color transform]
     (define n (real->double-flonum (real-part pt)))
 
@@ -20,7 +20,7 @@
                         'lb
                         (make-rectangular 0.0 (* unit 0.25))))))
 
-(define time-sticker : Plot-Mark->Description
+(define fib-desc : Plot-Mark->Description
   (lambda [pt datum font color transform]
     (define n (real->double-flonum (real-part pt)))
     (define unit (max (real-part (- (transform (+ n 1.0) 0.0) (transform n 0.0))) 0.0))
@@ -52,17 +52,17 @@
              '(0 55/89 89/55 19/7 22/7)))
 
 (define number-line
-  (plot-integer-axis #:mark-template number-sticker
+  (plot-integer-axis #:mark-template succ-desc
                      #:mark-style (make-plot-mark-style #:pin-length 0.0)
                      #:unit-length '(10 %)
                      #:exclude-zero? #false
                      #:label "n"
-                     (list -1 0 1 2 3 4 5 6
+                     (list 0 1 2 3 4 5 6
                            (plot-integer 7 #:gap-length 0.0 #:datum 'arrow))))
 
 (define time-line
-  (plot-integer-axis #:range (cons -1 9)
-                     #:mark-template (plot-template '(220 %) pi/2 #:desc time-sticker #:pin? #false #:anchor 'ct)
+  (plot-integer-axis #:range (cons 0 9)
+                     #:mark-template (plot-template '(220 %) pi/2 #:desc fib-desc #:pin? #false #:anchor 'ct)
                      #:unit-length '(10 %)
                      #:label "n"
                      fib))

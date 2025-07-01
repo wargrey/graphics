@@ -72,14 +72,14 @@
     ;; NOTE: we move the end shapes to their absolute positions, and no need to translate them when drawing
     (define thickness : Nonnegative-Flonum (stroke-width (if (stroke? stroke) stroke (default-stroke))))
     (define-values (src-prints s.x0 s.y0 s.w s.h s.off s.cfg) (geo-tip-path (geo-tip-filter src-tip) thickness srad #false (or src-pos tip-pos)))
-    (define-values (tgt-prints t.x0 t.y0 t.w t.h t.off t.cfg) (geo-tip-path (geo-tip-filter tgt-tip) thickness erad #true  (or tgt-pos tip-pos)))
+    (define-values (tgt-prints t.x0 t.y0 t.w t.h t.off t.cfg) (geo-tip-path (geo-tip-filter tgt-tip) thickness erad  #true (or tgt-pos tip-pos)))
     (define-values (s.x s.y) (values (+ (real-part spt) s.x0) (+ (imag-part spt) s.y0)))
     (define-values (t.x t.y) (values (+ (real-part ept) t.x0) (+ (imag-part ept) t.y0)))
     
     (define-values (lx ty) (values (min e.x s.x t.x) (min e.y s.y t.y)))
     (define-values (rx by) (values (max (+ e.x e.w) (+ s.x s.w) (+ t.x t.w)) (max (+ e.y e.h) (+ s.y s.h) (+ t.y t.h))))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window +nan.0+nan.0i lx ty rx by))
-    
+
     (create-geometry-object geo:edge
                             #:with [id (geo-draw-edge! stroke (or src-clr tip-clr) (or tgt-clr tip-clr) s.cfg t.cfg)
                                        (geo-shape-extent width height 0.0 0.0)

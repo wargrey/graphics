@@ -122,10 +122,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-desc-real : Plot-Mark->Description
   (lambda [dot datum font color transform]
-   (geo-text (real-part dot) font #:color color)))
+   (geo-text #:color color
+             (or datum (real-part dot)) font)))
 
 (define plot-desc-point : Plot-Mark->Description
   (lambda [dot datum font color transform]
     (geo-text #:color color
-              (format "(~a, ~a)" (real-part dot) (imag-part dot))
+              (or datum (format "(~a, ~a)" (real-part dot) (imag-part dot)))
               font)))

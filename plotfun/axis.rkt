@@ -132,9 +132,9 @@
                                                           #:fallback-pin real-pin #:fallback-gap real-gap
                                                           #:fallback-anchor real-anchor #:length-scale em
                                                           mark dot->pos))
-                  
-                  (plot-axis-sticker-cons (geo-edge-self-pin-layer self) (geo-edge-self-pin-position self)
-                                          reals fltick-min real-part fltick-max)))))
+                  (define-values (src-pos _) (geo-edge-endpoints self))
+
+                  (plot-axis-sticker-cons (geo-edge-self-pin-layer self) src-pos reals fltick-min real-part fltick-max)))))
   
     (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer main-axis) layers))
     
@@ -235,7 +235,7 @@
                                         flc-offset ticks fltick-min real-part fltick-max gtick))
               
               (let-values ([(pin-pen int-font int-color int-pin int-gap int-anchor) (plot-mark-style-values int-style axis-font axis-pen em -pi/2 -pi/2)])
-                (for/fold ([reals : (Listof (GLayerof Geo)) null])
+                (for/fold ([integers : (Listof (GLayerof Geo)) null])
                           ([mark (in-list (cond [(list? number-sequence) (plot-axis-list->marks number-sequence desc-int)]
                                                 [(vector? number-sequence) (plot-axis-vector->marks number-sequence desc-int (if (not exclude-zero?) 0 1))]
                                                 [else (plot-axis-produce-marks number-sequence actual-tick-values desc-int)]))]
@@ -244,9 +244,9 @@
                                                           #:fallback-pin int-pin #:fallback-gap int-gap
                                                           #:fallback-anchor int-anchor #:length-scale em
                                                           mark dot->pos))
+                  (define-values (src-pos _) (geo-edge-endpoints self))
 
-                  (plot-axis-sticker-cons (geo-edge-self-pin-layer self) (geo-edge-self-pin-position self)
-                                          reals fltick-min real-part fltick-max)))))
+                  (plot-axis-sticker-cons (geo-edge-self-pin-layer self) src-pos integers -inf.0 real-part fltick-max)))))
   
     (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer main-axis) layers))
     
