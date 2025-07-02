@@ -18,7 +18,7 @@
 (require geofun/digitama/layer/sticker)
 
 (require "../axis/self.rkt")
-(require "quirk.rkt")
+(require "guard.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Mark-Datum (U Plot:Mark Complex))
@@ -30,8 +30,8 @@
   ([point : Complex 0]
    [desc : (Option Plot-Mark-Description) #false]
    [shape : (Option Geo-Tip) #false]
-   [pin : (Option FlComplex+%) #false]
-   [gap : FlComplex+% +nan.0+nan.0i]
+   [pin : (Option Plot-Mark-Vector) #false]
+   [gap : Plot-Mark-Vector plot-mark-null-vector]
    [rotate? : Boolean #false]
    [anchor : (Option Geo-Pin-Anchor) #false]
    [datum : Any #false])
@@ -98,7 +98,7 @@
            #:pin? [pin? : Boolean #true]
            #:pin-length [p-length : (Option Real+%) #false] #:pin-angle [p-angle : (Option Real) +nan.0]
            #:gap-length [g-length : Real+% +nan.0] #:gap-angle [g-angle : Real +nan.0]
-           #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
+           #:anchor [anchor : (Option Geo-Pin-Anchor) 'lc]
            [desc : Plot-Mark-Static-Description]] : Plot:Mark
     (make-plot:mark #:point x #:datum datum #:shape shape #:rotate? rotate?
                     #:desc desc #:anchor anchor

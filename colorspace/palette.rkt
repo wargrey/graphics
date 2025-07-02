@@ -14,7 +14,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Palette-Brightness-Threshold (U Nonnegative-Flonum (Pairof Nonnegative-Flonum Nonnegative-Flonum)))
 (define-type Palette-Index->Pen+Brush-Colors
-  (case-> [Index (Option FlRGBA) -> (Pairof FlRGBA FlRGBA)]
+  (case-> [Natural (Option FlRGBA) -> (Pairof FlRGBA FlRGBA)]
           [FlRGBA (Option FlRGBA) -> FlRGBA]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -73,7 +73,7 @@
             [(< (abs (- L bgL)) ΔL) (stroke-lightness L bgL)]
             [else #false]))
 
-    (define (index->hue [idx : Index] [bgH : Flonum]) : Nonnegative-Flonum
+    (define (index->hue [idx : Natural] [bgH : Flonum]) : Nonnegative-Flonum
       (real->hue (+ (cond [(rational? hue0) hue0]
                           [(rational? bgH) (+ bgH 150)]
                           [else hue-delta])
@@ -105,7 +105,7 @@
             (rgb->oklch (rgba-red bg) (rgba-green bg) (rgba-blue bg))
             (values 1.0 0.0 +nan.0)))
 
-      (if (index? idx)
+      (if (exact-integer? idx)
           (hash-ref! color-db (list idx bgL bgC bgH)
                      (λ [] (gen-color (index->hue idx bgH) bgL bgC)))
           (adjust-color idx bgL)))))

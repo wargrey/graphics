@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (require geofun/vector)
-(require plotfun/axis)
+(require plotfun/line)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define succ-desc : Plot-Mark->Description
@@ -45,14 +45,14 @@
            (fib (- n 2))))))
 
 (define real-line
-  (plot-axis #:style (make-plot-axis-style #:label-placement 'axis)
-             #:range (cons 0 6)
-             #:unit-length '(24 %)
-             #:label "R"
-             '(0 55/89 89/55 19/7 22/7)))
+  (plot-real-line #:style (make-plot-axis-style #:label-placement 'axis)
+                  #:range (cons 0 6)
+                  #:unit-length '(24 %)
+                  #:label "R"
+                  '(0 55/89 89/55 19/7 22/7)))
 
-(define number-line
-  (plot-integer-axis #:mark-template succ-desc
+(define seq-line
+  (plot-integer-line #:mark-template succ-desc
                      #:mark-style (make-plot-mark-style #:pin-length 0.0)
                      #:unit-length '(10 %)
                      #:exclude-zero? #false
@@ -61,7 +61,7 @@
                            (plot-integer 7 #:gap-length 0.0 #:datum 'arrow))))
 
 (define time-line
-  (plot-integer-axis #:range (cons 0 9)
+  (plot-integer-line #:range (cons 0 9)
                      #:mark-template (plot-template '(220 %) pi/2 #:desc fib-desc #:pin? #false #:anchor 'ct)
                      #:unit-length '(10 %)
                      #:label "n"
@@ -70,15 +70,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
   real-line
-  number-line
+  seq-line
   time-line
 
-  (plot-integer-axis #:range (cons -5 5) #:label "N")
-  (plot-integer-axis #:range (cons 0 10) #:label "N")
-  (plot-axis #:range (cons 0 10) #:label "R")
-  (plot-axis #:range (cons +1 +7/2) #:label "R")
-  (plot-axis #:range (cons -7 -5/2) #:label "R")
-  (plot-axis #:range (cons -70 30) #:label "R")
-  (plot-axis #:range (cons -0.001 +0.007) #:label "R")
-  (plot-axis #:range (cons -0.618 +0.618) #:label "R")
-  (plot-axis #:ticks (plot-fixed-ticks -6.28 +6.29 3.14) #:label "R"))
+  (plot-integer-line #:range (cons -5 5) #:label "N")
+  (plot-integer-line #:range (cons 0 10) #:label "N")
+  (plot-real-line #:range (cons 0 10) #:label "R")
+  (plot-real-line #:range (cons +1 +7/2) #:label "R")
+  (plot-real-line #:range (cons -7 -5/2) #:label "R")
+  (plot-real-line #:range (cons -70 30) #:label "R")
+  (plot-real-line #:range (cons -0.001 +0.007) #:label "R")
+  (plot-real-line #:range (cons -0.618 +0.618) #:label "R")
+  (plot-real-line #:ticks (plot-fixed-ticks -6.28 +6.29 3.14) #:label "R"))

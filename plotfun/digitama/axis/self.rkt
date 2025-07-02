@@ -14,11 +14,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; NOTE: the `prop:property` forbids struct from being used in untyped code
 
-(struct plot:axis geo:group
+(struct plot:line geo:group
   ([origin : Float-Complex]
    [ticks : (Listof Real)]
    [map : Plot-Position-Transform])
-  #:type-name Plot:Axis
+  #:type-name Plot:Line
   #:transparent)
 
 (struct plot:cartesian geo:group

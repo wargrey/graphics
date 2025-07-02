@@ -11,6 +11,8 @@
 
 (require colorspace/palette)
 
+(require "reference.rkt")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-plot-cartesian-view-width : (Parameterof Real) (make-parameter 400.0))
 (define default-plot-cartesian-view-height : (Parameterof Real) (make-parameter +inf.0))
@@ -36,17 +38,27 @@
                  baseline)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-select-pen-color : (-> (Option Color) Index (Option FlRGBA) FlRGBA)
+(define plot-select-pen-color : (-> (Option Color) Natural (Option FlRGBA) FlRGBA)
   (lambda [alt-color idx bg-color]
-    (if (not alt-color)
-        (car ((default-plot-palette) idx bg-color))
-        ((default-plot-palette) (rgb* alt-color) bg-color))))
+    (cond [(not alt-color) (car ((default-plot-palette) idx bg-color))]
+          [(and (exact-integer? alt-color) (< alt-color 0))
+           (let* ([cidx (max (+ idx alt-color) 0)]
+                  [cpool (current-visualizer-color-pool)]
+                  [prev-c (and cpool (hash-ref cpool cidx (λ _ #false)))])
+             (cond [(or prev-c) prev-c]
+                   [else '#:deadcode (car ((default-plot-palette) cidx bg-color))]))]
+          [else ((default-plot-palette) (rgb* alt-color) bg-color)])))
 
-(define plot-select-brush-color : (-> (Option Color) Index (Option FlRGBA) FlRGBA)
+(define plot-select-brush-color : (-> (Option Color) Natural (Option FlRGBA) FlRGBA)
   (lambda [alt-color idx bg-color]
-    (if (not alt-color)
-        (cdr ((default-plot-palette) idx bg-color))
-        ((default-plot-palette) (rgb* alt-color) bg-color))))
+    (cond [(not alt-color) (cdr ((default-plot-palette) idx bg-color))]
+          [(and (exact-integer? alt-color) (< alt-color 0))
+           (let* ([cidx (max (+ idx alt-color) 0)]
+                  [cpool (current-visualizer-color-pool)] ; TODO: set another pool for brush colors
+                  [prev-c (and cpool (hash-ref cpool cidx (λ _ #false)))])
+             (cond [(or prev-c) prev-c]
+                   [else '#:deadcode (car ((default-plot-palette) cidx bg-color))]))]
+          [else ((default-plot-palette) (rgb* alt-color) bg-color)])))
 
 (define plot-adjust-pen-color : (-> Palette-Index->Pen+Brush-Colors Color (Option FlRGBA) FlRGBA)
   (lambda [palette color bg-color]

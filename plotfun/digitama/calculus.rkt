@@ -63,20 +63,6 @@
                   [else #false]))
           d))))
 
-(define (f [x : Real]) : (Option Real)
-  (/ (+ (* x x) x -2)
-     (- (* x x) x)))
-
-(cons (df/dx sin 1) (cos 1))
-(cons (df/dx exp 1) (exp 1))
-(df/dx f 1)
-(df/dx abs 0)
-(df/dx sqrt 1/2)
-(df/dx sqrt 1)
-(df/dx sqrt 0.0)
-(df/dx (λ [x] (* x (sin (/ 1 x)))) 0)
-(df/dx (λ [x] (expt x 3/2)) 0)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define differentiable? : (-> (-> Real (Option Real)) Real Boolean)
   (lambda [f x]

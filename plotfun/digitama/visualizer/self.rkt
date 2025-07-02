@@ -14,7 +14,9 @@
 
 (define-type Plot-Visualizer-Tick-Range (Pairof (Option Real) (Option Real)))
 (define-type Plot-Visualizer-Data-Range (-> Real Real (Pairof Real Real)))
-(define-type Plot-Visualizer-Realize (-> Index Positive-Index Real Real Real Real (-> Flonum Flonum Float-Complex) (Option FlRGBA) Geo:Visualizer))
+(define-type Plot-Visualizer-Realize (-> Index Positive-Index Real Real Real Real
+                                         (-> Flonum Flonum Float-Complex) (Option FlRGBA)
+                                         Geo:Visualizer))
 
 (define-syntax (plot-realize stx)
   (syntax-case stx []
@@ -38,7 +40,9 @@
   ([position : Float-Complex]
    [color : FlRGBA]
    [label : (Option Plot:Mark)]
-   [legend : (Option Geo)])
+   [legend : (Option Geo)]
+   [pin-angle : (Option (-> Real (Option Real)))]
+   [gap-angle : (Option (-> Real (Option Real)))])
   #:type-name Geo:Visualizer
   #:transparent)
 
@@ -60,8 +64,10 @@
                                 [(sxmin sxmax) (values (car sxrng) (cdr sxrng))]
                                 [(symin symax) (values (car syrng) (cdr syrng))])
                     (flatten rest
-                             (if (rational? sxmin) (min xmin sxmin) xmin) (if (rational? sxmax) (max xmax sxmax) xmax)
-                             (if (rational? symin) (min ymin symin) ymin) (if (rational? symax) (max ymax symax) ymax)
+                             (if (rational? sxmin) (min xmin sxmin) xmin)
+                             (if (rational? sxmax) (max xmax sxmax) xmax)
+                             (if (rational? symin) (min ymin symin) ymin)
+                             (if (rational? symax) (max ymax symax) ymax)
                              (cons self sreredner)))))
             (values sreredner xmin xmax ymin ymax))))
     

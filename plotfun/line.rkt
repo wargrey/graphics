@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide Plot:Axis plot:axis?)
+(provide Plot:Line plot:line?)
+(provide (rename-out [plot-real-line plot-line]))
 (provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/singleton.rkt"))
@@ -15,12 +16,10 @@
 
 (require geofun/font)
 (require geofun/paint)
-(require geofun/stroke)
 (require geofun/constructor)
 
 (require geofun/digitama/markup)
 (require geofun/digitama/convert)
-(require geofun/digitama/dc/text)
 (require geofun/digitama/dc/edge)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/type)
@@ -45,7 +44,7 @@
 (require "digitama/marker/config.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-axis
+(define plot-real-line
   (lambda [#:id [id : (Option Symbol) #false]
            #:length [length : Real (default-plot-axis-length)]
            #:unit-length [maybe-unit : (Option Real+%) (default-plot-axis-unit-length)]
@@ -63,7 +62,7 @@
            #:background [bg : Maybe-Fill-Paint #false]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false]
            #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
-           [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Axis
+           [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Line
     (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
     (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip length))
     (define-values (tick-range origin flunit)
@@ -124,37 +123,39 @@
                                         (dot->pos (real->double-flonum (plot-tick-value (car tick))) 0.0)
                                         flc-offset ticks fltick-min real-part fltick-max gtick))
               
-              (let-values ([(pin-pen real-font real-color real-pin real-gap real-anchor) (plot-mark-style-values real-style axis-font axis-pen em -pi/2 -pi/2)])
+              (let-values ([(pin-pen real-font real-color real-anchor) (plot-mark-visual-values real-style axis-font axis-pen)]
+                           [(real-pin real-gap) (plot-mark-vector-values real-style -pi/2 -pi/2)])
                 (for/fold ([reals : (Listof (GLayerof Geo)) null])
                           ([mark (in-list (cond [(list? real-list) (plot-axis-list->marks real-list desc-real)]
                                                 [else (plot-axis-produce-marks real-list actual-tick-values desc-real)]))])
-                  (define self : Plot:Marker (plot-marker #:color real-color #:font real-font #:pin-stroke pin-pen
-                                                          #:fallback-pin real-pin #:fallback-gap real-gap
-                                                          #:fallback-anchor real-anchor #:length-scale em
-                                                          mark dot->pos))
-                  (define-values (src-pos _) (geo-edge-endpoints self))
+                  (define marker : Plot:Marker
+                    (plot-marker #:color real-color #:font real-font #:pin-stroke pin-pen
+                                 #:fallback-pin real-pin #:fallback-gap real-gap
+                                 #:fallback-anchor real-anchor #:length-base em
+                                 mark dot->pos))
+                  (define-values (src-pos _) (geo-edge-endpoints marker))
 
-                  (plot-axis-sticker-cons (geo-edge-self-pin-layer self) src-pos reals fltick-min real-part fltick-max)))))
+                  (plot-axis-sticker-cons (geo-edge-self-pin-layer marker) src-pos reals fltick-min real-part fltick-max)))))
   
     (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer main-axis) layers))
     
     (if (or translated-layers)
         (let* ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))]
                [dot->pos (λ [[x : Flonum]] : Float-Complex (+ delta-origin (* x flunit)))])
-          (create-geometry-group plot:axis id #false #false
+          (create-geometry-group plot:line id #false #false
                                  #:border bdr #:background bg
                                  #:margin margin #:padding padding
                                  translated-layers delta-origin actual-tick-values
                                  (case-lambda
                                    [(x y) (dot->pos x)]
                                    [(pt) (dot->pos (real-part pt))])))
-        (create-geometry-group plot:axis id #false #false
+        (create-geometry-group plot:line id #false #false
                                #:border bdr #:background bg
                                #:margin margin #:padding padding
                                (geo-own-layers main-axis) flc-origin actual-tick-values
                                dot->pos))))
 
-(define plot-integer-axis
+(define plot-integer-line
   (lambda [#:id [id : (Option Symbol) #false]
            #:length [length : Real (default-plot-axis-length)]
            #:unit-length [maybe-unit : (Option Real+%) (default-plot-axis-unit-length)]
@@ -173,7 +174,7 @@
            #:background [bg : Maybe-Fill-Paint #false]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false]
            #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
-           [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Axis
+           [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Line
     (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
     (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip length))
     (define-values (tick-range origin flunit)
@@ -234,33 +235,35 @@
                                         (dot->pos (real->double-flonum (plot-tick-value* tick)) 0.0)
                                         flc-offset ticks fltick-min real-part fltick-max gtick))
               
-              (let-values ([(pin-pen int-font int-color int-pin int-gap int-anchor) (plot-mark-style-values int-style axis-font axis-pen em -pi/2 -pi/2)])
+              (let-values ([(pin-pen int-font int-color int-anchor) (plot-mark-visual-values int-style axis-font axis-pen)]
+                           [(int-pin int-gap) (plot-mark-vector-values int-style -pi/2 -pi/2)])
                 (for/fold ([integers : (Listof (GLayerof Geo)) null])
                           ([mark (in-list (cond [(list? number-sequence) (plot-axis-list->marks number-sequence desc-int)]
                                                 [(vector? number-sequence) (plot-axis-vector->marks number-sequence desc-int (if (not exclude-zero?) 0 1))]
                                                 [else (plot-axis-produce-marks number-sequence actual-tick-values desc-int)]))]
                            #:when (not (and exclude-zero? (zero? (plot:mark-point mark)))))
-                  (define self : Plot:Marker (plot-marker #:pin-stroke pin-pen #:color int-color #:font int-font
-                                                          #:fallback-pin int-pin #:fallback-gap int-gap
-                                                          #:fallback-anchor int-anchor #:length-scale em
-                                                          mark dot->pos))
-                  (define-values (src-pos _) (geo-edge-endpoints self))
+                  (define marker : Plot:Marker
+                    (plot-marker #:pin-stroke pin-pen #:color int-color #:font int-font
+                                 #:fallback-pin int-pin #:fallback-gap int-gap
+                                 #:fallback-anchor int-anchor #:length-base em
+                                 mark dot->pos))
+                  (define-values (src-pos _) (geo-edge-endpoints marker))
 
-                  (plot-axis-sticker-cons (geo-edge-self-pin-layer self) src-pos integers -inf.0 real-part fltick-max)))))
+                  (plot-axis-sticker-cons (geo-edge-self-pin-layer marker) src-pos integers fltick-min real-part fltick-max)))))
   
     (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer main-axis) layers))
     
     (if (or translated-layers)
         (let* ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))]
                [dot->pos (λ [[x : Flonum]] : Float-Complex (+ delta-origin (* x flunit)))])
-          (create-geometry-group plot:axis id #false #false
+          (create-geometry-group plot:line id #false #false
                                  #:border bdr #:background bg
                                  #:margin margin #:padding padding
                                  translated-layers delta-origin actual-tick-values
                                  (case-lambda
                                    [(x y) (dot->pos x)]
                                    [(pt) (dot->pos (real-part pt))])))
-        (create-geometry-group plot:axis id #false #false
+        (create-geometry-group plot:line id #false #false
                                #:border bdr #:background bg
                                #:margin margin #:padding padding
                                (geo-own-layers main-axis) flc-origin actual-tick-values

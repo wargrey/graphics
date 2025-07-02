@@ -51,7 +51,8 @@
                       [(precision) (tick-precision tmin tmax)]
                       [(ticks maybe-stable-step) (g tmin tmax)])
           (values (for/list ([val (in-list ticks)])
-                    (cons (plot-tick val) (f val precision)))
+                    (cons (plot-tick val)
+                          (f val precision)))
                   maybe-stable-step))
         (values null #false))))
   
@@ -102,7 +103,8 @@
   (lambda [tval para]
     (cond [(exact? tval) (number->string tval)]
           [(integer? tval) (number->string (inexact->exact tval))]
-          [else (~r tval #:precision para)])))
+          [(>= para 0) (~r tval #:precision para)]
+          [else (~a tval)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-no-ticks : Plot-Tick-Engine

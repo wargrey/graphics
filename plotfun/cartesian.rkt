@@ -53,6 +53,7 @@
 (require "digitama/visualizer/self.rkt")
 (require "digitama/visualizer/interface.rkt")
 (require "digitama/visualizer/function.rkt")
+(require "digitama/visualizer/reference.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-cartesian
@@ -113,6 +114,7 @@
     (define adjust-color (λ [[c : Color]] (plot-adjust-pen-color palette (rgb* c) bg-color)))
     (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color)
       (plot-axis-visual-values axis-style adjust-color))
+    (define-values (pin-pen mark-font mark-color mark-anchor) (plot-mark-visual-values mark-style axis-font axis-pen adjust-color))
     
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
     (define fltick-length : Nonnegative-Flonum (~length (plot-axis-style-tick-length axis-style) flthickness))
@@ -172,8 +174,10 @@
            (negative? (car xview))
            #;(null? actual-yticks)))
 
+    (define color-pool : (HashTable Natural FlRGBA) (make-hasheq))
     (define plots : (Listof Geo:Visualizer)
-      (parameterize ([default-plot-palette palette])
+      (parameterize ([default-plot-palette palette]
+                     [current-visualizer-color-pool color-pool])
         (let ([N (length visualizers)])
           (if (> N 0)
               (let realize ([visualizers : (Listof Plot-Visualizer) visualizers]
@@ -181,62 +185,82 @@
                             [sreyalv : (Listof Geo:Visualizer) null])
                 (if (and (pair? visualizers) (<= idx N))
                     (let ([self (car visualizers)])
+                      (define visualizer (plot-realize self idx N xview yview origin-dot->pos bg-color))
+                      (unless (plot-visualizer-skip-palette? self)
+                        (hash-set! color-pool idx (geo:visualizer-color visualizer)))
                       (realize (cdr visualizers)
                                (if (plot-visualizer-skip-palette? self) idx (+ idx 1))
-                               (cons (plot-realize self idx N xview yview origin-dot->pos bg-color)
-                                     sreyalv)))
+                               (cons visualizer sreyalv)))
                     (reverse sreyalv)))
               null))))
       
     (define layers : (Listof (GLayerof Geo))
-      (append (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
-                    (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oshadow))
+      (append
 
-              (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)])
-                (geo-own-pin-layer 'lt (geo:visualizer-position self) self 0.0+0.0i))
+       ; arrows
+       (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
+             (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oshadow))
 
-              (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                        ([lbl (in-list (plot-axis-label-settings x-label x-desc xaxis-min xaxis-max (if (or label-as-digit?) 0.0 (* em 0.6))))])
-                (if (car lbl)
-                    (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color (* em 0.4))])
-                      (if (or label-as-digit?)
-                          (plot-axis-sticker-cons lbl.geo 'cc (+ (cadr lbl) xoffset) 0.0+0.0i labels -inf.0 real-part +inf.0 #false)
-                          (plot-axis-sticker-cons lbl.geo (cadddr lbl) (make-rectangular (cadr lbl) +0.0) 0.0+0.0i labels -inf.0 real-part +inf.0 #false)))
-                    labels))
-              
-              (for/fold ([xticks : (Listof (GLayerof Geo)) null])
-                        ([xtick (in-list actual-xticks)])
-                (define xval : Flonum (real->double-flonum (plot-tick-value (car xtick))))
-                (cond [(not (zero? (scaled-round xval)))
-                       (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font digit-color) xdigit-anchor
-                                               (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max gxtick)]
-                      [(or 0-as-xdigit?)
-                       (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font digit-color) xdigit-anchor
-                                               (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max #false)]
-                      [else xticks]))
-              
-              (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                        ([lbl (in-list (plot-axis-label-settings y-label y-desc yaxis-min yaxis-max (if (or label-as-digit?) 0.0 (* em 1.5))))])
-                (if (car lbl)
-                    (if (or label-as-digit?)
-                        (plot-axis-sticker-cons (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)
-                                                ydigit-anchor (flc-ri (- (cadr lbl))) (+ Oshadow yoffset) labels -inf.0 imag-part +inf.0 #false)
-                        (plot-axis-sticker-cons (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)
-                                                'cc (flc-ri (- (cadr lbl))) Oshadow labels -inf.0 imag-part +inf.0 #false))
-                    labels))
-              
-              (for/fold ([yticks : (Listof (GLayerof Geo)) null])
-                        ([ytick (in-list actual-yticks)])
-                (define yval : Flonum (real->double-flonum (plot-tick-value (car ytick))))
-                (if (not (zero? (scaled-round yval)))
-                    (plot-axis-sticker-cons (ydigit->sticker id (cdr ytick) digit-font digit-color) ydigit-anchor
-                                            (origin-dot->pos 0.0 yval) yoffset yticks -inf.0 imag-part +inf.0 gytick)
-                    yticks))
+       ; visualizers' labels
+       (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)]
+                                            #:when (geo:visualizer-label self))
+         (define-values (real-pin real-gap)
+           (plot-mark-vector-values mark-style
+                                    (or (geo:visualizer-pin-angle self) 0.0)
+                                    (or (geo:visualizer-gap-angle self) 0.0)))
+         
+         ;; visualizer should ensure its label being pinned at visible point 
+         (geo-edge-self-pin-layer
+          (plot-marker #:color (geo:visualizer-color self) #:font mark-font #:pin-stroke pin-pen
+                       #:fallback-pin real-pin #:fallback-gap real-gap
+                       #:fallback-anchor mark-anchor #:length-base em
+                       (geo:visualizer-label self) origin-dot->pos)))
+       
+       ; visualizers
+       (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)])
+         (geo-own-pin-layer 'lt (geo:visualizer-position self) self 0.0+0.0i))
 
-              (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)]
-                                                   #:when (geo:visualizer-label self))
-                (geo-edge-self-pin-layer (plot-marker #:color (geo:visualizer-color self) 
-                                                      (geo:visualizer-label self) origin-dot->pos)))))
+       ; x-axis's labels
+       (for/fold ([labels : (Listof (GLayerof Geo)) null])
+                 ([lbl (in-list (plot-axis-label-settings x-label x-desc xaxis-min xaxis-max (if (or label-as-digit?) 0.0 (* em 0.6))))])
+         (if (car lbl)
+             (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color (* em 0.4))])
+               (if (or label-as-digit?)
+                   (plot-axis-sticker-cons lbl.geo 'cc (+ (cadr lbl) xoffset) 0.0+0.0i labels -inf.0 real-part +inf.0 #false)
+                   (plot-axis-sticker-cons lbl.geo (cadddr lbl) (make-rectangular (cadr lbl) +0.0) 0.0+0.0i labels -inf.0 real-part +inf.0 #false)))
+             labels))
+
+       ; x-axis's ticks
+       (for/fold ([xticks : (Listof (GLayerof Geo)) null])
+                 ([xtick (in-list actual-xticks)])
+         (define xval : Flonum (real->double-flonum (plot-tick-value (car xtick))))
+         (cond [(not (zero? (scaled-round xval)))
+                (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font digit-color) xdigit-anchor
+                                        (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max gxtick)]
+               [(or 0-as-xdigit?)
+                (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font digit-color) xdigit-anchor
+                                        (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max #false)]
+               [else xticks]))
+       
+       ; y-axis's labels
+       (for/fold ([labels : (Listof (GLayerof Geo)) null])
+                 ([lbl (in-list (plot-axis-label-settings y-label y-desc yaxis-min yaxis-max (if (or label-as-digit?) 0.0 (* em 1.5))))])
+         (if (car lbl)
+             (if (or label-as-digit?)
+                 (plot-axis-sticker-cons (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)
+                                         ydigit-anchor (flc-ri (- (cadr lbl))) (+ Oshadow yoffset) labels -inf.0 imag-part +inf.0 #false)
+                 (plot-axis-sticker-cons (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)
+                                         'cc (flc-ri (- (cadr lbl))) Oshadow labels -inf.0 imag-part +inf.0 #false))
+             labels))
+
+       ; y-axis's ticks
+       (for/fold ([yticks : (Listof (GLayerof Geo)) null])
+                 ([ytick (in-list actual-yticks)])
+         (define yval : Flonum (real->double-flonum (plot-tick-value (car ytick))))
+         (if (not (zero? (scaled-round yval)))
+             (plot-axis-sticker-cons (ydigit->sticker id (cdr ytick) digit-font digit-color) ydigit-anchor
+                                     (origin-dot->pos 0.0 yval) yoffset yticks -inf.0 imag-part +inf.0 gytick)
+             yticks))))
     
     (define translated-layers : (Option (GLayer-Groupof Geo))
       (if (not 0-as-xdigit?)

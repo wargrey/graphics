@@ -2,32 +2,51 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
-
 (require geofun/font)
 (require geofun/color)
+(require geofun/stroke)
 
 (require geofun/digitama/layer/type)
 (require geofun/digitama/paint/self)
 
 (require "style.rkt")
+(require "guard.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-mark-style-values : (-> (Option Plot-Mark-Style) Font Stroke
-                                     Nonnegative-Flonum Real Real
-                                     (Values Stroke Font Color Float-Complex Float-Complex Geo-Pin-Anchor))
-  (lambda [self fallback-font fallback-pen 100% pin-angle gap-angle]
+(define plot-mark-visual-values : (case-> [(Option Plot-Mark-Style) Font Stroke (-> Color FlRGBA) -> (Values Stroke Font FlRGBA Geo-Pin-Anchor)]
+                                          [(Option Plot-Mark-Style) Font Stroke -> (Values Stroke Font Color Geo-Pin-Anchor)])
+  (case-lambda
+    [(self fallback-font fallback-pen)
+     (if (or self)
+         (values (or (plot-mark-style-pin-stroke self) fallback-pen)
+                 (or (plot-mark-style-font self) fallback-font)
+                 (or (plot-mark-style-color self) (stroke-color fallback-pen))
+                 (plot-mark-style-anchor self))
+         (plot-mark-visual-values (default-plot-mark-style) fallback-font fallback-pen))]
+    [(self fallback-font fallback-pen adjust)
+     (if (or self)
+         (values (let ([pen (plot-mark-style-pin-stroke self)])
+                   (if (and pen)
+                       (let* ([pc (stroke-color pen)]
+                              [ac (adjust pc)])
+                         (cond [(equal? ac pc) pen]
+                               [else (desc-stroke pen #:color ac)]))
+                       fallback-pen))
+                 (or (plot-mark-style-font self) fallback-font)
+                 (let ([c (plot-mark-style-color self)])
+                   (cond [(and c) (adjust c)]
+                         [else (stroke-color fallback-pen)]))
+                 (plot-mark-style-anchor self))
+         (plot-mark-visual-values (default-plot-mark-style) fallback-font fallback-pen adjust))]))
+
+(define plot-mark-vector-values : (-> (Option Plot-Mark-Style) Plot-Mark-Fallback-Angle Plot-Mark-Fallback-Angle
+                                      (Values (Option Plot-Mark-Fallback-Vector) (Option Plot-Mark-Fallback-Vector)))
+  (lambda [self pin-angle gap-angle]
     (if (or self)
-        (values (or (plot-mark-style-pin-stroke self) fallback-pen)
-                (or (plot-mark-style-font self) fallback-font)
-                (or (plot-mark-style-color self) (stroke-color fallback-pen))
-                (make-polar (~length (plot-mark-style-pin-length self) 100%)
-                            (let ([a (plot-mark-style-pin-angle self)])
-                              (real->double-flonum (if (rational? a) a pin-angle))))
-                (make-polar (~length (plot-mark-style-gap-length self) 100%)
-                            (let ([a (plot-mark-style-gap-angle self)])
-                              (real->double-flonum (if (rational? a) a gap-angle))))
-                (plot-mark-style-anchor self))
-        (plot-mark-style-values (default-plot-mark-style)
-                                fallback-font fallback-pen
-                                100% pin-angle gap-angle))))
+        (values (plot-mark-fallback-vector-guard (plot-mark-style-pin-length self)
+                                                 (plot-mark-style-pin-angle self)
+                                                 pin-angle)
+                (plot-mark-fallback-vector-guard (plot-mark-style-gap-length self)
+                                                 (plot-mark-style-gap-angle self)
+                                                 gap-angle))
+        (plot-mark-vector-values (default-plot-mark-style) pin-angle gap-angle))))

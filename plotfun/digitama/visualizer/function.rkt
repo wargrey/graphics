@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require racket/math)
+
 (require geofun/paint)
 
 (require geofun/digitama/base)
@@ -16,8 +18,9 @@
 (require "interface.rkt")
 
 (require "../sample.rkt")
+(require "../calculus.rkt")
+
 (require "../marker/self.rkt")
-(require "../marker/quirk.rkt")
 (require "../marker/guard.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -36,6 +39,7 @@
            #:width [pen-width : (Option Real) #false]
            #:dash [pen-dash : (Option Stroke-Dash+Offset) #false]
            #:fast-range [fast-range : (Option Plot-Visualizer-Data-Range) #false]
+           #:fast-slope [fast-slope : (Option (-> Real (Option Real))) #false]
            [f : (-> Real (Option Number))]
            [maybe-xmin : (Option Real) #false] [maybe-xmax : (Option Real) #false]
            [maybe-ymin : (Option Real) #false] [maybe-ymax : (Option Real) #false]] : Plot-Visualizer
@@ -58,9 +62,9 @@
                                            (geo-shape-extent width height 0.0 0.0)
                                            (geo-shape-outline pen #true #true)]
                                 (make-rectangular x y) (stroke-color pen)
-                                (plot-function-mark-filter real-f label (+ idx 1) total xmin xmax ymin ymax
-                                                           (default-plot-visualizer-label-position%))
-                                #false
+                                (plot-function-mark-guard real-f label (+ idx 1) total xmin xmax ymin ymax
+                                                          (default-plot-visualizer-label-position%))
+                                #false (plot-function-pin-angle real-f fast-slope) #false
                                 dots samples)))
 
     (plot-visualizer function-realize xrange yrange
@@ -80,9 +84,19 @@
                            (or maybe-range
                                (~y-bounds (plot-safe-function f) xs)))))))))
 
-(define plot-function-mark-filter : (-> (-> Real Real) (U False DC-Markup-Text Plot:Mark)
-                                        Positive-Fixnum Positive-Index Real Real Real Real Real
-                                        (Option Plot:Mark))
+(define plot-function-pin-angle : (-> (-> Real Real) (Option (-> Real (Option Real))) (-> Real (Option Real)))
+  (lambda [f fast-slope]
+    (if (not fast-slope)
+        (λ [x]
+          (define k (df/dx f x))
+          (and k (+ (atan k) (* pi 0.0))))
+        (λ [x]
+          (define k (fast-slope x))
+          (and k (+ (atan k) (* pi 0.0)))))))
+  
+(define plot-function-mark-guard : (-> (-> Real Real) (U False DC-Markup-Text Plot:Mark)
+                                       Positive-Fixnum Positive-Index Real Real Real Real Real
+                                       (Option Plot:Mark))
   (lambda [fx label idx total xmin xmax ymin ymax frac]
     (cond [(plot:mark? label)
            (let* ([raw (plot:mark-point label)]
