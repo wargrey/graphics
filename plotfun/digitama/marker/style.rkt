@@ -8,9 +8,9 @@
 (require geofun/color)
 (require geofun/font)
 
-(require geofun/digitama/layer/type)
 (require geofun/digitama/paint/self)
 
+(require "anchor.rkt")
 (require "../axis/singleton.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -22,4 +22,4 @@
    [pin-angle : Real +nan.0]
    [gap-length : Real+% 0.0]
    [gap-angle : Real +nan.0]
-   [anchor : Geo-Pin-Anchor 'cb]))
+   [anchor : Plot-Mark-Auto-Anchor plot-mark-auto-anchor]))

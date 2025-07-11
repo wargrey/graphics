@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/math)
+(require racket/case)
 
 (require geofun/paint)
 
@@ -25,33 +26,38 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot:function geo:visualizer
-  ([dots : (Listof Float-Complex)]
-   [samples : Positive-Index])
+  ([dots : (Listof Float-Complex)])
   #:type-name Plot:Function
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define function
   (lambda [#:id [id : (Option Symbol) #false]
-           #:label [label : (U False DC-Markup-Text Plot:Mark) #false]
-           #:samples [samples : Positive-Index (default-plot-visualizer-samples)]
+           #:label [label : (U False DC-Markup-Text Plot:Mark 'name) 'name]
+           #:label-position [at-frac : Real (default-plot-visualizer-label-position)]
+           #:label-position-range [rng-frac : (Pairof Real Real) (default-plot-visualizer-label-position-range)]
+           #:label-placement [placement : Plot-Visualizer-Label-Placement (default-plot-visualizer-label-placement)]
+           #:density [density : Byte (default-plot-visualizer-sample-density)]
            #:color [pen-color : (Option Color) #false]
            #:width [pen-width : (Option Real) #false]
            #:dash [pen-dash : (Option Stroke-Dash+Offset) #false]
            #:fast-range [fast-range : (Option Plot-Visualizer-Data-Range) #false]
-           #:fast-slope [fast-slope : (Option (-> Real (Option Real))) #false]
+           #:safe-slope [alt-slope : (Option (-> Real Real)) #false]
            [f : (-> Real (Option Number))]
            [maybe-xmin : (Option Real) #false] [maybe-xmax : (Option Real) #false]
            [maybe-ymin : (Option Real) #false] [maybe-ymax : (Option Real) #false]] : Plot-Visualizer
     (define-values (xrange yrange) (plot-range-normalize maybe-xmin maybe-xmax maybe-ymin maybe-ymax))
-    (define real-f : (-> Real Real) (plot-safe-function f))
+    (define safe-f : (-> Real Real) (safe-real-function f))
     
     (define function-realize : Plot-Visualizer-Realize
       (lambda [idx total xmin xmax ymin ymax transform bg-color]
+        (define samples (geo-sample-count xmin xmax transform density))
         (define xs : (Listof Real) (geo-linear-samples xmin xmax samples))
         (define-values (dots x y width height)
-          (with-handlers ([exn:fail? (λ [_] (~cartesian2ds real-f xs ymin ymax transform))])
-            (~cartesian2ds f xs ymin ymax transform)))
+          (parameterize ([plot-sampling? #true])
+            (with-handlers ([exn:fail? (λ [_] (~cartesian2ds safe-f xs ymin ymax transform))])
+              (~cartesian2ds f xs ymin ymax transform))))
+        (define dynamic-angle (plot-function-pin-angle safe-f alt-slope placement))
 
         (define pen : Stroke
           (plot-desc-pen #:width pen-width #:dash pen-dash
@@ -62,61 +68,59 @@
                                            (geo-shape-extent width height 0.0 0.0)
                                            (geo-shape-outline pen #true #true)]
                                 (make-rectangular x y) (stroke-color pen)
-                                (plot-function-mark-guard real-f label (+ idx 1) total xmin xmax ymin ymax
-                                                          (default-plot-visualizer-label-position%))
-                                #false (plot-function-pin-angle real-f fast-slope) #false
-                                dots samples)))
+                                (plot-function-mark-guard safe-f label (+ idx 1) total xmin xmax ymin ymax at-frac rng-frac)
+                                #false dynamic-angle dynamic-angle
+                                dots)))
 
     (plot-visualizer function-realize xrange yrange
-                     (or fast-range (plot-function-range f samples))
+                     (or fast-range (plot-function-range safe-f 500))
                      (and pen-color #true))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-function-range : (-> (-> Real (Option Number)) Positive-Index Plot-Visualizer-Data-Range)
-  (let ([plot-function-range-db : (Weak-HashTable Any (Pairof Real Real)) (make-weak-hash)])
+  (let ([range-db : (Weak-HashTable Any (Pairof Real Real)) (make-weak-hash)])
     (lambda [f samples]
       (λ [xmin xmax]
-        (hash-ref! plot-function-range-db (list f xmin xmax samples)
-                   (λ [] (let ([xs (geo-linear-samples xmin xmax samples)])
+        (hash-ref! range-db (list f xmin xmax)
+                   (λ [] (parameterize ([plot-sampling? #false])
+                           (define xs (geo-linear-samples xmin xmax samples))
                            (define maybe-range
                              (with-handlers ([exn:fail? (λ _ #false)])
                                (~y-bounds f xs)))
                            (or maybe-range
-                               (~y-bounds (plot-safe-function f) xs)))))))))
+                               (~y-bounds (safe-real-function f) xs)))))))))
 
-(define plot-function-pin-angle : (-> (-> Real Real) (Option (-> Real (Option Real))) (-> Real (Option Real)))
-  (lambda [f fast-slope]
-    (if (not fast-slope)
-        (λ [x]
-          (define k (df/dx f x))
-          (and k (+ (atan k) (* pi 0.0))))
-        (λ [x]
-          (define k (fast-slope x))
-          (and k (+ (atan k) (* pi 0.0)))))))
+(define plot-function-pin-angle : (-> (-> Real Real) (Option (-> Real Real)) Plot-Visualizer-Label-Placement (-> Real (Option Real)))
+  (let ([angle-db : (Weak-HashTable Any (Option Real)) (make-weak-hash)])
+    (lambda [f alt-slope placement]
+      (if (not alt-slope)
+          (λ [[x : Real]]
+            (hash-ref! angle-db (list f x placement)
+                       (λ [] (let* ([k (df/dx f x)]
+                                    [c (or (ddf/dxx f x) 0)]
+                                    [theta (and k (atan k))])
+                               (and theta (case/eq placement
+                                                   [(auto) (- (* pi (if (> c 0) 0.5 1.5)) theta)]
+                                                   [(flip) (- (* pi (if (> c 0) 1.5 0.5)) theta)]
+                                                   [(left) (- (* pi 1.5) theta)]
+                                                   [else   (- (* pi 0.5) theta)]))))))
+          (plot-function-pin-angle alt-slope #false placement)))))
   
-(define plot-function-mark-guard : (-> (-> Real Real) (U False DC-Markup-Text Plot:Mark)
-                                       Positive-Fixnum Positive-Index Real Real Real Real Real
+(define plot-function-mark-guard : (-> (-> Real Real) (U False DC-Markup-Text Plot:Mark 'name)
+                                       Positive-Fixnum Positive-Index Real Real Real Real
+                                       Real (Pairof Real Real)
                                        (Option Plot:Mark))
-  (lambda [fx label idx total xmin xmax ymin ymax frac]
+  (lambda [fx label idx total xmin xmax ymin ymax at-frac frac-rng]
     (cond [(plot:mark? label)
-           (let* ([raw (plot:mark-point label)]
-                  [dot (plot-mark-point-guard raw fx idx total xmin xmax ymin ymax frac)])
-             (and dot (cond [(and (= raw dot)) label]
+           (let* ([origin (plot:mark-point label)]
+                  [dot (plot-mark-point-guard origin fx idx total xmin xmax ymin ymax at-frac frac-rng)])
+             (and dot (cond [(and (= origin dot)) label]
                             [else (remake-plot:mark label #:point dot)])))]
           [(or label)
-           (let ([dot (plot-mark-point-guard +nan.0 fx idx total xmin xmax ymin ymax frac)])
-             (and dot (plot-label label #:at dot)))]
+           (let ([dot (plot-mark-point-guard +nan.0 fx idx total xmin xmax ymin ymax at-frac frac-rng)])
+             (and dot (let ([func-name (if (eq? label 'name) (format "~a" (object-name fx)) label)])
+                        (plot-label func-name #:at dot))))]
           [else #false])))
-  
-(define #:forall (R) plot-safe-function : (-> (-> R (Option Number)) (-> R Real))
-  (lambda [f]
-    ((inst procedure-rename (-> R Real))
-     (λ [[x : R]]
-       (with-handlers ([exn:fail? (λ _ +nan.0)])
-         (let ([y (f x)])
-           (cond [(not y) +nan.0]
-                 [else (real-part y)]))))
-     (assert (object-name f) symbol?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-function : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)

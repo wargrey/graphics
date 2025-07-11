@@ -8,8 +8,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (sigmoid #:k [k : Nonnegative-Flonum] [sig : (-> Flonum Flonum)]) : (-> Real Real)
-  (lambda [x]
-    (sig (real->double-flonum(* k x)))))
+  (procedure-rename
+   (λ [[x : Real]] (sig (real->double-flonum(* k x))))
+   (string->symbol (format "k = ~a" k))))
 
 (define ΔL/log1 : (-> Real Real)
   (lambda [bgL]
@@ -36,41 +37,43 @@
        1.0)))
 
 (define (chroma [C0 : Real] [bgL : Flonum] [bgC : Flonum]) : (-> Real Real)
-  (lambda [x]
-    (* (real->ok-chroma C0)
-       (chroma-L bgL)
-       (chroma-C bgC)
-       (chroma-H x))))
+  (procedure-rename
+   (λ [[x : Real]] (* (real->ok-chroma C0)
+                      (chroma-L bgL)
+                      (chroma-C bgC)
+                      (chroma-H x)))
+   (string->symbol (format "C = ~a on ~a" C0 bgL))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define sigmoid.plot
-  (geo-hb-append #:gapsize 16.0
-                 (plot-cartesian
-                  #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
-                  #:x-label "L" #:y-label "L" #:y-desc "logistic"
-                  (function (sigmoid palette-sigmoid/logistic #:k 10.0))
-                  (function (sigmoid palette-sigmoid/logistic #:k 20.0))
-                  (function (sigmoid palette-sigmoid/logistic #:k 30.0))
-                  (function (sigmoid palette-sigmoid/logistic #:k 40.0))
-                  (function (sigmoid palette-sigmoid/logistic #:k 50.0)))
-                 
-                 (plot-cartesian
-                  #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
-                  #:x-label "L" #:y-label "L" #:y-desc "tanh"
-                  (function (sigmoid palette-sigmoid/tanh #:k 10.0))
-                  (function (sigmoid palette-sigmoid/tanh #:k 20.0))
-                  (function (sigmoid palette-sigmoid/tanh #:k 30.0))
-                  (function (sigmoid palette-sigmoid/tanh #:k 40.0))
-                  (function (sigmoid palette-sigmoid/tanh #:k 50.0)))
-                 
-                 (plot-cartesian
-                  #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
-                  #:x-label "L" #:y-label "L" #:y-desc "algebraic"
-                  (function (sigmoid palette-sigmoid/algebraic #:k 10.0))
-                  (function (sigmoid palette-sigmoid/algebraic #:k 20.0))
-                  (function (sigmoid palette-sigmoid/algebraic #:k 30.0))
-                  (function (sigmoid palette-sigmoid/algebraic #:k 40.0))
-                  (function (sigmoid palette-sigmoid/algebraic #:k 50.0)))))
+  (parameterize ([default-plot-visualizer-label-position-range (cons 0.4 0.6)])
+    (geo-hb-append #:gapsize 16.0
+                   (plot-cartesian
+                    #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
+                    #:x-label "L" #:y-label "L" #:y-desc "logistic"
+                    (function (sigmoid palette-sigmoid/logistic #:k 10.0))
+                    (function (sigmoid palette-sigmoid/logistic #:k 20.0))
+                    (function (sigmoid palette-sigmoid/logistic #:k 30.0))
+                    (function (sigmoid palette-sigmoid/logistic #:k 40.0))
+                    (function (sigmoid palette-sigmoid/logistic #:k 50.0)))
+                   
+                   (plot-cartesian
+                    #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
+                    #:x-label "L" #:y-label "L" #:y-desc "tanh"
+                    (function (sigmoid palette-sigmoid/tanh #:k 10.0))
+                    (function (sigmoid palette-sigmoid/tanh #:k 20.0))
+                    (function (sigmoid palette-sigmoid/tanh #:k 30.0))
+                    (function (sigmoid palette-sigmoid/tanh #:k 40.0))
+                    (function (sigmoid palette-sigmoid/tanh #:k 50.0)))
+                   
+                   (plot-cartesian
+                    #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
+                    #:x-label "L" #:y-label "L" #:y-desc "algebraic"
+                    (function (sigmoid palette-sigmoid/algebraic #:k 10.0))
+                    (function (sigmoid palette-sigmoid/algebraic #:k 20.0))
+                    (function (sigmoid palette-sigmoid/algebraic #:k 30.0))
+                    (function (sigmoid palette-sigmoid/algebraic #:k 40.0))
+                    (function (sigmoid palette-sigmoid/algebraic #:k 50.0))))))
 
 (define brightness.plot
   (geo-hb-append #:gapsize 16.0
@@ -102,24 +105,36 @@
                   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 50.0)))))
 
 (define brightness/vector.plot
-  (plot-cartesian
-   #:x-range (cons 0.0 1.0) #:y-range (cons 0.0 1.0)
-   #:x-label "L" #:y-label "L" #:y-desc "logistic"
-   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:smooth-vector #(0.4 0.3 0.5)))
-   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:smooth-vector #(0.5 0.4 0.6)))
-   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:smooth-vector #(0.6 0.5 0.7)))
-   (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:smooth-vector #(0.7 0.6 0.8)))))
+  (parameterize ([default-plot-visualizer-label-position-range (cons 0.1 0.3)]
+                 [default-plot-visualizer-label-placement 'flip])
+    (plot-cartesian
+     #:x-range (cons 0.0 1.0) #:y-range (cons 0.0 1.0)
+     #:x-label "L" #:y-label "L" #:y-desc "logistic"
+     (function (oklch-palette-sigmoid-interpolator
+                #:smooth-vector #(0.4 0.3 0.5) #:name (format "~a" #(0.4 0.3 0.5))
+                palette-sigmoid/logistic))
+     (function (oklch-palette-sigmoid-interpolator
+                #:smooth-vector #(0.5 0.4 0.6) #:name (format "~a" #(0.5 0.4 0.6))
+                palette-sigmoid/logistic))
+     (function (oklch-palette-sigmoid-interpolator
+                #:smooth-vector #(0.6 0.5 0.7) #:name (format "~a" #(0.6 0.5 0.7))
+                palette-sigmoid/logistic))
+     (function (oklch-palette-sigmoid-interpolator
+                #:smooth-vector #(0.7 0.6 0.8) #:name (format "~a" #(0.7 0.6 0.8))
+                palette-sigmoid/logistic)))))
 
 (define chroma.plot
-  (plot-cartesian
-   #:x-range (cons 0.0 360) #:y-range (cons 0.0 0.4) #:height 200.0
-   #:x-label "Hue" #:y-label "Chroma"
-   (function (chroma 1/4 0.0 0.0))
-   (function (chroma 1/4 0.5 0.0))
-   (function (chroma 1/4 1.0 0.0))
-   (function (chroma 2/5 0.0 0.0))
-   (function (chroma 2/5 0.5 0.0))
-   (function (chroma 2/5 1.0 0.0))))
+  (parameterize ([default-plot-visualizer-label-position 1.0])
+    (plot-cartesian
+     #:x-range (cons 0.0 360) #:y-range (cons 0.0 0.4) #:height 200.0
+     #:x-label "Hue" #:y-label "Chroma"
+     #:mark-style (make-plot-mark-style #:pin-angle 0.0 #:gap-angle 0.0)
+     (function (chroma 1/4 0.0 0.0))
+     (function (chroma 1/4 0.5 0.0))
+     (function (chroma 1/4 1.0 0.0))
+     (function (chroma 2/5 0.0 0.0))
+     (function (chroma 2/5 0.5 0.0))
+     (function (chroma 2/5 1.0 0.0)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main

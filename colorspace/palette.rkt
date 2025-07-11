@@ -112,7 +112,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define oklch-palette-sigmoid-interpolator : (->* ((-> Flonum Flonum))
-                                                  (#:name (Option Symbol)
+                                                  (#:name (U False Symbol String)
                                                    #:threshold Palette-Brightness-Threshold #:k Nonnegative-Flonum
                                                    #:dark-range (Pairof Nonnegative-Flonum Nonnegative-Flonum)
                                                    #:light-range (Pairof Nonnegative-Flonum Nonnegative-Flonum)
@@ -148,9 +148,11 @@
       (+ (* Wdrk Ldrk) (* Wlgt Llgt) (* Wneu Lneu)))
     
     (procedure-rename sigmoid-smooth-interpolate
-                      (or name (string->symbol
-                                (format "~a-interpolate"
-                                  (object-name sigmoid)))))))
+                      (cond [(symbol? name) name]
+                            [(string? name) (string->symbol name)]
+                            [else (string->symbol
+                                   (format "~a-interpolate"
+                                     (object-name sigmoid)))]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define palette-sigmoid/logistic : (-> Flonum Flonum)

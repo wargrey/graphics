@@ -58,11 +58,14 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (void)] #:fill [fill : Maybe-Fill-Paint (void)] #:background [bgsource : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null] #:alignment [align : Geo-Text-Alignment 'left]
            [text : Any] [font : (Option Font) #false]] : Geo:Art-Text
+    (define body (format "~a" text))
+    
     (create-geometry-object geo:art-text
-                            #:with [id (geo-draw-art-text font outline fill bgsource)
-                                       (geo-art-text-extent font)
-                                       (geo-shape-outline outline)]
-                            (format "~a" text) lines align)))
+                            #:with [(or id (string->symbol body))
+                                    (geo-draw-art-text font outline fill bgsource)
+                                    (geo-art-text-extent font)
+                                    (geo-shape-outline outline)]
+                            body lines align)))
 
 (define geo-text
   (lambda [#:color [fgsource : Option-Fill-Paint #false] #:background [bgsource : Maybe-Fill-Paint (void)]
@@ -70,11 +73,14 @@
            #:meanline [mlsource : Maybe-Stroke-Paint #false] #:baseline [blsource : Maybe-Stroke-Paint #false]
            #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null] #:alignment [align : Geo-Text-Alignment 'left]
            [text : Any] [font : (Option Font) #false]] : Geo:Text
+    (define body (format "~a" text))
+    
     (create-geometry-object geo:text
-                            #:with [id (geo-draw-text font fgsource bgsource)
-                                       (geo-text-extent font)
-                                       geo-zero-pads]
-                            (format "~a" text) lines align alsource dlsource clsource mlsource blsource)))
+                            #:with [(or id (string->symbol body))
+                                    (geo-draw-text font fgsource bgsource)
+                                    (geo-text-extent font)
+                                    geo-zero-pads]
+                            body lines align alsource dlsource clsource mlsource blsource)))
 
 (define geo-paragraph
   (lambda [#:color [fgsource : Option-Fill-Paint #false] #:background [bgsource : Maybe-Fill-Paint (void)]
@@ -90,9 +96,10 @@
     (define body : String (if (list? texts) (string-join texts "\n") texts))
     
     (create-geometry-object geo:para
-                            #:with [id (geo-draw-paragraph font fgsource bgsource)
-                                       (geo-paragraph-extent font)
-                                       geo-zero-pads]
+                            #:with [(or id (string->symbol body))
+                                    (geo-draw-paragraph font fgsource bgsource)
+                                    (geo-paragraph-extent font)
+                                    geo-zero-pads]
                             body lines align smart-width smart-height
                             (real->double-flonum indent) (real->double-flonum spacing)
                             (paragraph-wrap-mode->integer wrap-mode raise-argument-error)
@@ -110,12 +117,16 @@
     (cond [(string? plain)
            (if (not has-attrs?)
                (create-geometry-object geo:text
-                                       #:with [id (geo-draw-text font fgsource bgsource)
-                                                  (geo-text-extent font)
-                                                  geo-zero-pads]
+                                       #:with [(or id (string->symbol plain))
+                                               (geo-draw-text font fgsource bgsource)
+                                               (geo-text-extent font)
+                                               geo-zero-pads]
                                        plain lines align #false #false #false #false #false)
                (create-geometry-object geo:markup
-                                       #:with [id (geo-draw-markup font fgsource bgsource) (geo-markup-extent font) geo-zero-pads]
+                                       #:with [(or id (string->symbol plain))
+                                               (geo-draw-markup font fgsource bgsource)
+                                               (geo-markup-extent font)
+                                               geo-zero-pads]
                                        plain lines align markup))]
           [(or errfg errbg)
            (geo-text (bytes-append plain #"\n" markup) font #:id id #:color errfg #:background errbg #:alignment align)]

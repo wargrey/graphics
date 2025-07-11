@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) Plot-Mark-Auto-Anchor)
 (provide Plot:Cartesian plot:cartesian?)
 (provide Plot:Function plot:function? function)
 (provide Plot-Visualizer-Tree Plot-Visualizer plot-visualizer?)
@@ -49,6 +49,7 @@
 (require "digitama/marker/self.rkt")
 (require "digitama/marker/style.rkt")
 (require "digitama/marker/config.rkt")
+(require "digitama/marker/anchor.rkt")
 
 (require "digitama/visualizer/self.rkt")
 (require "digitama/visualizer/interface.rkt")
@@ -104,11 +105,12 @@
     (define-values (xtick-range xO xunit) (plot-axis-metrics  xview maybe-xorig  view-width maybe-xunit))
     (define-values (ytick-range yO yunit) (plot-axis-metrics* yview maybe-yorig view-height (if (rational? height) maybe-yunit xunit) flc-ri))
 
-    (define-values (actual-xticks maybe-step) (plot-ticks-generate xticks-engine xtick-range xtick-format))
-    (define-values (actual-yticks _)
+    (define-values (actual-xticks maybe-xstep xminor-count) (plot-ticks-generate xticks-engine xtick-range xtick-format))
+    (define-values (actual-yticks maybe-ystep yminor-count)
       (cond [(rational? height) (plot-ticks-generate yticks-engine ytick-range ytick-format)]
-            [(not (and (rational? maybe-step) (positive? maybe-step))) (plot-ticks-generate yticks-engine ytick-range ytick-format)]
-            [else (plot-ticks-generate (plot-interval-ticks maybe-step (plot-tick-engine-format yticks-engine)) ytick-range ytick-format)]))
+            [(not (and (rational? maybe-xstep) (positive? maybe-xstep))) (plot-ticks-generate yticks-engine ytick-range ytick-format)]
+            [else (plot-ticks-generate (plot-interval-ticks #:minor-count xminor-count maybe-xstep (plot-tick-engine-format yticks-engine))
+                                       ytick-range ytick-format)]))
 
     (define bg-color : (Option FlRGBA) (brush-maybe-rgba bg))
     (define adjust-color (λ [[c : Color]] (plot-adjust-pen-color palette (rgb* c) bg-color)))
@@ -118,6 +120,7 @@
     
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
     (define fltick-length : Nonnegative-Flonum (~length (plot-axis-style-tick-length axis-style) flthickness))
+    (define fltick-sublen : Nonnegative-Flonum (~length (plot-axis-style-minor-tick-length axis-style) fltick-length))
     (define fltick-min : Nonnegative-Flonum (* fltick-thickness 0.5))
     (define xtick-min : Nonnegative-Flonum (+ fltick-min x-neg-margin))
     (define ytick-min : Nonnegative-Flonum (+ fltick-min y-neg-margin))
@@ -139,9 +142,14 @@
                  (list the-M0 (gpp:point #\L (make-rectangular flwidth 0.0)))))
     
     (define xoffset : Float-Complex (flc-ri (* xdigit-position em -1.0)))
-    (define gxtick : (Option (Pairof Geo Geo-Pin-Anchor))
+    (define xmajor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
       (and (> fltick-length 0.0)
            (cons (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill tick-color)
+                 (plot-axis-tick-anchor axis-style 'x))))
+    (define xminor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
+      (and (> xminor-count 0)
+           (> fltick-length 0.0)
+           (cons (geo-rectangle fltick-thickness fltick-sublen #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor axis-style 'x))))
 
     (define yaxis : Geo:Edge
@@ -151,9 +159,14 @@
                  (list the-M0 (gpp:point #\L (flc-ri (- flheight))))))
     
     (define yoffset : Float-Complex (make-rectangular (* ydigit-position em) 0.0))
-    (define gytick : (Option (Pairof Geo Geo-Pin-Anchor))
+    (define ymajor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
       (and (> fltick-length 0.0)
            (cons (geo-rectangle fltick-length fltick-thickness #:stroke #false #:fill tick-color)
+                 (plot-axis-tick-anchor axis-style 'y))))
+    (define yminor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
+      (and (> yminor-count 0)
+           (> fltick-length 0.0)
+           (cons (geo-rectangle fltick-sublen fltick-thickness #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor axis-style 'y))))
 
     (define-values (xsoff xeoff) (geo-edge-endpoint-offsets xaxis))
@@ -200,21 +213,6 @@
        ; arrows
        (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
              (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oshadow))
-
-       ; visualizers' labels
-       (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)]
-                                            #:when (geo:visualizer-label self))
-         (define-values (real-pin real-gap)
-           (plot-mark-vector-values mark-style
-                                    (or (geo:visualizer-pin-angle self) 0.0)
-                                    (or (geo:visualizer-gap-angle self) 0.0)))
-         
-         ;; visualizer should ensure its label being pinned at visible point 
-         (geo-edge-self-pin-layer
-          (plot-marker #:color (geo:visualizer-color self) #:font mark-font #:pin-stroke pin-pen
-                       #:fallback-pin real-pin #:fallback-gap real-gap
-                       #:fallback-anchor mark-anchor #:length-base em
-                       (geo:visualizer-label self) origin-dot->pos)))
        
        ; visualizers
        (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)])
@@ -233,13 +231,18 @@
        ; x-axis's ticks
        (for/fold ([xticks : (Listof (GLayerof Geo)) null])
                  ([xtick (in-list actual-xticks)])
-         (define xval : Flonum (real->double-flonum (plot-tick-value (car xtick))))
+         (define xval : Flonum (real->double-flonum (plot-tick-value xtick)))
+         (define-values (maybe-sticker gtick)
+           (if (plot-tick-major? xtick)
+               (values (xdigit->sticker id (plot-tick-desc xtick) digit-font digit-color) xmajor-tick)
+               (values 'minor xminor-tick)))
+
          (cond [(not (zero? (scaled-round xval)))
-                (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font digit-color) xdigit-anchor
-                                        (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max gxtick)]
+                (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
+                                        xoffset xticks xtick-min real-part xtick-max gtick)]
                [(or 0-as-xdigit?)
-                (plot-axis-sticker-cons (xdigit->sticker id (cdr xtick) digit-font digit-color) xdigit-anchor
-                                        (origin-dot->pos xval 0.0) xoffset xticks xtick-min real-part xtick-max #false)]
+                (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
+                                        xoffset xticks xtick-min real-part xtick-max #false)]
                [else xticks]))
        
        ; y-axis's labels
@@ -256,11 +259,31 @@
        ; y-axis's ticks
        (for/fold ([yticks : (Listof (GLayerof Geo)) null])
                  ([ytick (in-list actual-yticks)])
-         (define yval : Flonum (real->double-flonum (plot-tick-value (car ytick))))
+         (define yval : Flonum (real->double-flonum (plot-tick-value ytick)))
+         (define-values (maybe-sticker gtick)
+           (if (plot-tick-major? ytick)
+               (values (ydigit->sticker id (plot-tick-desc ytick) digit-font digit-color) ymajor-tick)
+               (values 'minor yminor-tick)))
+
          (if (not (zero? (scaled-round yval)))
-             (plot-axis-sticker-cons (ydigit->sticker id (cdr ytick) digit-font digit-color) ydigit-anchor
-                                     (origin-dot->pos 0.0 yval) yoffset yticks -inf.0 imag-part +inf.0 gytick)
-             yticks))))
+             (plot-axis-sticker-cons maybe-sticker ydigit-anchor (origin-dot->pos 0.0 yval)
+                                     yoffset yticks -inf.0 imag-part +inf.0 gtick)
+             yticks))
+
+       ; visualizers' labels
+       (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)]
+                                            #:when (geo:visualizer-label self))
+         (define-values (real-pin real-gap)
+           (plot-mark-vector-values mark-style
+                                    (or (geo:visualizer-pin-angle self) 0.0)
+                                    (or (geo:visualizer-gap-angle self) 0.0)))
+         
+         ;; visualizer should ensure its label being pinned at visible point 
+         (geo-edge-self-pin-layer
+          (plot-marker #:color (geo:visualizer-color self) #:font mark-font #:pin-stroke pin-pen
+                       #:fallback-pin real-pin #:fallback-gap real-gap
+                       #:fallback-anchor mark-anchor #:length-base em
+                       (geo:visualizer-label self) origin-dot->pos)))))
     
     (define translated-layers : (Option (GLayer-Groupof Geo))
       (if (not 0-as-xdigit?)

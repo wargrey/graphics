@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/list)
+(require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ~y-bounds : (-> (-> Real (Option Number)) (Listof Real) (Pairof Real Real))
@@ -42,6 +43,24 @@
             [else (values (reverse stod) 0.0 0.0 0.0 0.0)]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-sample-count : (case-> [Real Real Index -> Positive-Index]
+                                   [Real Real (-> Flonum Flonum Float-Complex) Index -> Positive-Index])
+  (case-lambda
+    [(xmin xmax density)
+     (let ([count (exact-ceiling (* (abs (- xmax xmin)) (if (> density 0) density 2)))])
+       (max (assert count index?) 1))]
+    [(xmin xmax transform density)
+     (let* ([vmin (real-part (transform (real->double-flonum xmin) 0.0))]
+            [vmax (real-part (transform (real->double-flonum xmax) 0.0))])
+       (define fldensity
+         (cond [(> density 0) (exact->inexact density)]
+               [else (let ([y/x (/ (abs (imag-part (- (transform 0.0 1.0) (transform 0.0 0.0))))
+                                   (abs (real-part (- (transform 1.0 0.0) (transform 0.0 0.0)))))])
+                       (* 2.0 (max y/x 1.0)))]))
+
+       (let ([count (exact-ceiling (* (abs (- vmax vmin)) fldensity))])
+         (max (assert count index?) 1)))]))
+
 (define geo-linear-samples : (->* (Real Real Positive-Index) (#:start? Boolean #:end? Boolean) (Listof Real))
   (let ([sample-db : (Weak-HashTable Any (Listof Real)) (make-weak-hash)])
     (lambda [start end num #:start? [start? #true] #:end? [end? #true]]
@@ -50,9 +69,9 @@
             [else (hash-ref! sample-db (list start end num start? end?)
                              (λ [] (let ([size (- end start)])
                                      (define step : Real
-                                       (/ size (cond [(and start? end?)  (- num 1)]
-                                                     [(or start? end?)   (- num 1/2)]
-                                                     [else               num])))
+                                       (/ size (cond [(and start? end?) (- num 1)]
+                                                     [(or start? end?)  (- num 1/2)]
+                                                     [else              num])))
                                      (define real-start
                                        (cond [start?  start]
                                              [else    (+ start (* 1/2 step))]))
@@ -66,7 +85,6 @@
   (lambda [start step num [min-val start] [max-val (+ start (* (- num 1) step))]]
     (define n-start (max 0 (inexact->exact (floor (/ (- min-val start) step)))))
     (define n-end (min num (+ (inexact->exact (ceiling (/ (- max-val start) step))) 1)))
-    (define precision 10000.0)
 
     (for*/list : (Listof Real) ([n (in-range n-start n-end)]
                                 [x (in-value (+ start (* n step)))]

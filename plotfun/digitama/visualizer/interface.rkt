@@ -14,14 +14,20 @@
 (require "reference.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Plot-Visualizer-Label-Placement (U 'left 'right 'auto 'flip))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-plot-cartesian-view-width : (Parameterof Real) (make-parameter 400.0))
 (define default-plot-cartesian-view-height : (Parameterof Real) (make-parameter +inf.0))
 (define default-plot-visualizer-domain-range : (Parameterof (Pairof Real Real)) (make-parameter (cons -5 5)))
-(define default-plot-visualizer-samples : (Parameterof Positive-Index) (make-parameter 512))
-(define default-plot-visualizer-label-position% : (Parameterof Real) (make-parameter +nan.0))
+(define default-plot-visualizer-sample-density : (Parameterof Byte) (make-parameter 0))
+(define default-plot-visualizer-label-position : (Parameterof Real) (make-parameter +nan.0))
+(define default-plot-visualizer-label-position-range : (Parameterof (Pairof Real Real)) (make-parameter (cons 0.0 1.0)))
+(define default-plot-visualizer-label-placement : (Parameterof Plot-Visualizer-Label-Placement) (make-parameter 'auto))
 
-(define default-plot-function-stroke : (Parameterof Stroke) (make-parameter (desc-stroke #:width 1.5 #:join 'round #:cap 'round #:opacity 0.75)))
+(define default-plot-function-stroke : (Parameterof Stroke) (make-parameter default-function-stroke))
 (define default-plot-palette : (Parameterof Palette-Index->Pen+Brush-Colors) (make-parameter the-oklch-palette))
+(define plot-sampling? : (Parameterof Boolean) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-desc-pen : (->* ()

@@ -48,9 +48,9 @@
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-mark-vector-guard : (-> (Option Plot-Mark-Vector) (Option Plot-Mark-Fallback-Vector) Nonnegative-Flonum Real
-                                     (Option Float-Complex))
+                                     (Values (Option Float-Complex) (Option Flonum)))
   (lambda [self fallback-vctr 100% x]
-    (define-values (length angle)
+    (define-values (length fb.rad)
       (cond [(list? fallback-vctr)
              (values (list (car fallback-vctr) (caddr fallback-vctr))
                      (cadr fallback-vctr))]
@@ -58,15 +58,18 @@
              (values (car fallback-vctr) (cdr fallback-vctr))]
             [else (values +nan.0 +nan.0)]))
 
-    (define (guard [guarded-len : Flonum] [rad : Flonum]) : (Option Float-Complex)
+    (define (guard [guarded-len : Flonum] [rad : Flonum]) : (Values (Option Float-Complex) (Option Flonum))
       (define guarded-rad
         (cond [(rational? rad) rad]
-              [(procedure? angle) (real->double-flonum (or (angle x) +nan.0))]
-              [else (real->double-flonum angle)]))
+              [(procedure? fb.rad) (real->double-flonum (or (fb.rad x) +nan.0))]
+              [else (real->double-flonum fb.rad)]))
 
-      (and (rational? guarded-len)
-           (rational? guarded-rad)
-           (make-polar guarded-len guarded-rad)))
+      (values (and (rational? guarded-len)
+                   (> guarded-len 0.0)
+                   (rational? guarded-rad)
+                   (make-polar guarded-len guarded-rad))
+              (and (rational? guarded-rad)
+                   (angle (make-polar 1.0 guarded-rad)))))
     
     (cond [(list? self)
            (let* ([len (car self)]
@@ -77,24 +80,28 @@
            (let ([len (car self)])
              (guard (if (rational? len) len (~length length 100%))
                     (cdr self)))]
-          [else #false])))
+          [else (values #false #false)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-mark-point-guard : (-> Complex (-> Real Real) Positive-Fixnum Positive-Index Real Real Real Real Real (Option Complex))
-  (lambda [pt x->dot idx total xmin xmax ymin ymax frac]
+(define plot-mark-point-guard : (-> Complex (-> Real Real) Positive-Fixnum Positive-Index Real Real Real Real Real (Pairof Real Real) (Option Complex))
+  (lambda [pt x->dot idx total xmin xmax ymin ymax frac frac-rng]
     (if (real? pt)
         (let ([delta : Real (* (- xmax xmin) 1/8)])
           (cond [(<= xmin pt xmax) (plot-mark-point-try-filter pt delta x->dot xmin xmax ymin ymax)]
                 [(< pt xmin) (plot-mark-point-try-filter xmin     delta x->dot xmin xmax ymin ymax)]
                 [(> pt xmax) (plot-mark-point-try-filter xmax (- delta) x->dot xmin xmax ymin ymax)]         
-                [else (let ([t (if (< 0.0 frac 1.0) frac (/ (- idx 1/2) total))])
-                        (plot-mark-point-try-filter (+ (* (- xmax xmin) t) xmin)
+                [else (let* ([span (- xmax xmin)]
+                             [s (+ (* span (max (min (car frac-rng) (cdr frac-rng)) 0.0)) xmin)]
+                             [e (+ (* span (min (max (car frac-rng) (cdr frac-rng)) 1.0)) xmin)]
+                             [t (if (<= 0.0 frac 1.0) frac (/ (- idx 1/2) total))])
+                        (plot-mark-point-try-filter (+ (* (- e s) t) s)
                                                     delta x->dot xmin xmax ymin ymax))]))
         (let ([x (real-part pt)]
               [y (imag-part pt)])
           (if (<= xmin x xmax)
               (and (<= ymin y ymax) pt)
-              (plot-mark-point-guard x x->dot idx total xmin xmax ymin ymax frac))))))
+              (plot-mark-point-guard x x->dot idx total xmin xmax ymin ymax
+                                     frac frac-rng))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-mark-point-try-filter : (-> Real Real (-> Real Real) Real Real Real Real (Option Complex))

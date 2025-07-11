@@ -62,7 +62,7 @@
 
 (define time-line
   (plot-integer-line #:range (cons 0 9)
-                     #:mark-template (plot-template '(220 %) pi/2 #:desc fib-desc #:pin? #false #:anchor 'ct)
+                     #:mark-template (plot-template '(220 %) pi/2 #:desc fib-desc #:pin? #false)
                      #:unit-length '(10 %)
                      #:label "n"
                      fib))

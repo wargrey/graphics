@@ -31,6 +31,7 @@
    [tick-length : Real+% '(300 %)]
    [tick-color : (Option Color) #false]
    [tick-placement : Plot-Axis-Tick-Placement 'positive]
+   [minor-tick-length : Real+% '(61.8 %)]
    [digit-color : (Option Color) #false]
    [digit-font : (Option Font) default-axis-digit-font]
    [digit-position : Complex -1.2-0.618i]

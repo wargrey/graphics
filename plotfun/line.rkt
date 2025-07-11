@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 (provide Plot:Line plot:line?)
+(provide Plot-Mark-Auto-Anchor)
 (provide (rename-out [plot-real-line plot-line]))
 (provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
@@ -42,6 +43,7 @@
 (require "digitama/marker/self.rkt")
 (require "digitama/marker/style.rkt")
 (require "digitama/marker/config.rkt")
+(require "digitama/marker/anchor.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-real-line
@@ -70,7 +72,7 @@
                          (plot-axis-real-range real-list)
                          maybe-origin used-length maybe-unit))
 
-    (define-values (actual-ticks _) (plot-ticks-generate ticks-engine tick-range alt-format))
+    (define-values (actual-ticks maybe-stable-step minor-count) (plot-ticks-generate ticks-engine tick-range alt-format))
     (define actual-tick-values (map plot-tick-value* actual-ticks))
 
     (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
@@ -79,6 +81,7 @@
 
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
     (define fltick-length : Nonnegative-Flonum (~length (plot-axis-style-tick-length axis-style) flthickness))
+    (define fltick-sublen : Nonnegative-Flonum (~length (plot-axis-style-minor-tick-length axis-style) fltick-length))
     (define fltick-min : Nonnegative-Flonum (+ neg-margin (* fltick-thickness 0.5)))
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
     
@@ -97,9 +100,15 @@
     (define flaxis-min : Flonum (- fltick-min neg-margin (- (real-part soff))))
     (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
 
-    (define gtick : (Option (Pairof Geo Geo-Pin-Anchor))
+    (define major-tick : (Option (Pairof Geo Geo-Pin-Anchor))
       (and (> fltick-length 0.0)
            (cons (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill tick-color)
+                 (plot-axis-tick-anchor axis-style 'x))))
+
+    (define minor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
+      (and (> minor-count 0)
+           (> fltick-sublen 0.0)
+           (cons (geo-rectangle fltick-thickness fltick-sublen #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor axis-style 'x))))
 
     (define dot->pos : Plot-Position-Transform
@@ -119,8 +128,12 @@
               
               (for/fold ([ticks : (Listof (GLayerof Geo)) null])
                         ([tick (in-list actual-ticks)])
-                (plot-axis-sticker-cons (tick->sticker id (cdr tick) digit-font digit-color) digit-anchor
-                                        (dot->pos (real->double-flonum (plot-tick-value (car tick))) 0.0)
+                (define-values (maybe-sticker gtick)
+                  (if (plot-tick-major? tick)
+                      (values (tick->sticker id (plot-tick-desc tick) digit-font digit-color) major-tick)
+                      (values 'minor minor-tick)))
+                
+                (plot-axis-sticker-cons maybe-sticker digit-anchor (dot->pos (real->double-flonum (plot-tick-value tick)) 0.0)
                                         flc-offset ticks fltick-min real-part fltick-max gtick))
               
               (let-values ([(pin-pen real-font real-color real-anchor) (plot-mark-visual-values real-style axis-font axis-pen)]
@@ -182,7 +195,7 @@
                          (plot-axis-integer-range number-sequence exclude-zero?)
                          maybe-origin used-length maybe-unit))
     
-    (define-values (actual-ticks _) (plot-ticks-generate ticks-engine tick-range alt-format))
+    (define-values (actual-ticks maybe-stable-step minor-count) (plot-ticks-generate ticks-engine tick-range alt-format))
     (define actual-tick-values (filter exact-integer? (map plot-tick-value* actual-ticks)))
 
     (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
@@ -191,6 +204,7 @@
     
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
     (define fltick-length : Nonnegative-Flonum (~length (plot-axis-style-tick-length axis-style) flthickness))
+    (define fltick-sublen : Nonnegative-Flonum (~length (plot-axis-style-minor-tick-length axis-style) fltick-length))
     (define fltick-min : Nonnegative-Flonum (+ neg-margin (* fltick-thickness 0.5)))
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
     
@@ -209,9 +223,14 @@
     (define flaxis-min : Flonum (- fltick-min neg-margin (- (real-part soff))))
     (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
 
-    (define gtick : (Option (Pairof Geo Geo-Pin-Anchor))
+    (define major-tick : (Option (Pairof Geo Geo-Pin-Anchor))
       (and (> fltick-length 0.0)
            (cons (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill tick-color)
+                 (plot-axis-tick-anchor axis-style 'x))))
+    (define minor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
+      (and (> minor-count 0)
+           (> fltick-length 0.0)
+           (cons (geo-rectangle fltick-thickness fltick-sublen #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor axis-style 'x))))
 
     (define dot->pos : Plot-Position-Transform
@@ -231,8 +250,12 @@
               
               (for/fold ([ticks : (Listof (GLayerof Geo)) null])
                         ([tick actual-ticks])
-                (plot-axis-sticker-cons (tick->sticker id (cdr tick) digit-font digit-color) digit-anchor
-                                        (dot->pos (real->double-flonum (plot-tick-value* tick)) 0.0)
+                (define-values (maybe-sticker gtick)
+                  (if (plot-tick-major? tick)
+                      (values (tick->sticker id (plot-tick-desc tick) digit-font digit-color) major-tick)
+                      (values 'minor minor-tick)))
+                
+                (plot-axis-sticker-cons maybe-sticker digit-anchor (dot->pos (real->double-flonum (plot-tick-value tick)) 0.0)
                                         flc-offset ticks fltick-min real-part fltick-max gtick))
               
               (let-values ([(pin-pen int-font int-color int-anchor) (plot-mark-visual-values int-style axis-font axis-pen)]

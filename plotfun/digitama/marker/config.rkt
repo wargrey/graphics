@@ -11,10 +11,11 @@
 
 (require "style.rkt")
 (require "guard.rkt")
+(require "anchor.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-mark-visual-values : (case-> [(Option Plot-Mark-Style) Font Stroke (-> Color FlRGBA) -> (Values Stroke Font FlRGBA Geo-Pin-Anchor)]
-                                          [(Option Plot-Mark-Style) Font Stroke -> (Values Stroke Font Color Geo-Pin-Anchor)])
+(define plot-mark-visual-values : (case-> [(Option Plot-Mark-Style) Font Stroke (-> Color FlRGBA) -> (Values Stroke Font FlRGBA Plot-Mark-Auto-Anchor)]
+                                          [(Option Plot-Mark-Style) Font Stroke -> (Values Stroke Font Color Plot-Mark-Auto-Anchor)])
   (case-lambda
     [(self fallback-font fallback-pen)
      (if (or self)

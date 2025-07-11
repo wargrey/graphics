@@ -43,26 +43,30 @@
         (geo-markup name font #:color color))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-axis-sticker-cons : (case-> [(U Geo Void False) Geo-Pin-Anchor Float-Complex Float-Complex (Listof (GLayerof Geo))
-                                                             Flonum (-> Float-Complex Flonum) Flonum
-                                                             (Option (Pairof Geo Geo-Pin-Anchor))
-                                                             -> (Listof (GLayerof Geo))]
-                                         [(GLayerof Geo) Float-Complex (Listof (GLayerof Geo)) Flonum (-> Float-Complex Flonum) Flonum
+(define plot-axis-sticker-cons : (case-> [(GLayerof Geo) Float-Complex (Listof (GLayerof Geo)) Flonum (-> Float-Complex Flonum) Flonum
                                                          -> (Listof (GLayerof Geo))]
-                                         [(GLayerof Geo) Float-Complex (Listof (GLayerof Geo)) (Option (Pairof Geo Geo-Pin-Anchor))
-                                                         -> (Listof (GLayerof Geo))])
+                                         [(U Geo Void False 'minor) Geo-Pin-Anchor Float-Complex Float-Complex (Listof (GLayerof Geo))
+                                                                    Flonum (-> Float-Complex Flonum) Flonum
+                                                                    (Option (Pairof Geo Geo-Pin-Anchor))
+                                                                    -> (Listof (GLayerof Geo))]
+                                         [(Option (GLayerof Geo)) Float-Complex (Listof (GLayerof Geo)) (Option (Pairof Geo Geo-Pin-Anchor))
+                                                                  -> (Listof (GLayerof Geo))])
   (case-lambda
     [(self anchor pos offset stickers tick-min part tick-max maybe-tick)
-     (if (and (geo? self) (<= (scaled-round tick-min) (scaled-round (part (+ pos offset))) (scaled-round tick-max)))
-         (plot-axis-sticker-cons (geo-own-pin-layer anchor pos self offset) pos stickers maybe-tick)
+     (if (<= (scaled-round tick-min) (scaled-round (part (+ pos offset))) (scaled-round tick-max))
+         (cond [(geo? self) (plot-axis-sticker-cons (geo-own-pin-layer anchor pos self offset) pos stickers maybe-tick)]
+               [(eq? self 'minor) (plot-axis-sticker-cons #false pos stickers maybe-tick)]
+               [else stickers])
          stickers)]
     [(self pos stickers tick-min part tick-max)
      (if (<= (scaled-round tick-min) (scaled-round (part pos)) (scaled-round tick-max))
          (plot-axis-sticker-cons self pos stickers #false)
          stickers)]
     [(self pos stickers maybe-tick)
-     (cons self
-           (cond [(not maybe-tick) stickers]
-                 [else (cons (geo-own-pin-layer (cdr maybe-tick) pos
-                                                (car maybe-tick) 0.0+0.0i)
-                             stickers)]))]))
+     (define tick+stickers
+       (cond [(not maybe-tick) stickers]
+             [else (cons (geo-own-pin-layer (cdr maybe-tick) pos
+                                            (car maybe-tick) 0.0+0.0i)
+                         stickers)]))
+     (cond [(not self) tick+stickers]
+           [else (cons self tick+stickers)])]))

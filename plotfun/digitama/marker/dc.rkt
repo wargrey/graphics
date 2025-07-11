@@ -24,6 +24,7 @@
 
 (require "self.rkt")
 (require "guard.rkt")
+(require "anchor.rkt")
 (require "../axis/self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -37,7 +38,7 @@
   (lambda [#:id [id : (Option Symbol) #false]
            #:font [font : (Option Font) #false] #:color [color : (Option Color) #false] #:pin-stroke [pin-stroke : Maybe-Stroke-Paint (void)]
            #:fallback-pin [fallback-pin : (Option Plot-Mark-Fallback-Vector) #false] #:fallback-gap [fallback-gap : (Option Plot-Mark-Fallback-Vector) #false]
-           #:fallback-anchor [fallback-anchor : (Option Geo-Pin-Anchor) #false] #:length-base [length-base : Nonnegative-Flonum 100.0]
+           #:fallback-anchor [fallback-anchor : Plot-Mark-Auto-Anchor plot-mark-auto-anchor] #:length-base [length-base : Nonnegative-Flonum 100.0]
            [self : Plot:Mark] [transform : Plot-Position-Transform]] : Plot:Marker
     (define label : (Option Geo-Sticker-Datum)
       (let ([desc (plot:mark-desc self)])
@@ -52,7 +53,7 @@
                             [(dc-markup-text? desc.geo) (geo-edge-label-text desc.geo #false font color)]
                             [else #false]))])))
 
-    (define-values (prints location) (plot-mark->footprints self transform length-base fallback-pin fallback-gap))
+    (define-values (prints location angle) (plot-mark->footprints self transform length-base fallback-pin fallback-gap))
     
     (define edge : Geo:Edge
       (geo-edge* #:id id #:stroke pin-stroke
@@ -62,7 +63,8 @@
 
     (define label-layer
       (and label
-           (geo-sticker->layer #:default-anchor (or (plot:mark-anchor self) fallback-anchor)
+           (geo-sticker->layer #:default-anchor (or (plot:mark-anchor self)
+                                                    (fallback-anchor location angle))
                                label (- location (geo:edge-origin edge)))))
     
     (create-geometry-group plot:marker id #false #false
@@ -75,7 +77,7 @@
 ; WARNING: It's better for callers to ensure valid inputs as specifications vary across visualizers. 
 (define plot-mark->footprints : (-> Plot:Mark Plot-Position-Transform Nonnegative-Flonum
                                     (Option Plot-Mark-Fallback-Vector) (Option Plot-Mark-Fallback-Vector)
-                                    (Values Geo-Path-Clean-Prints+ Float-Complex))
+                                    (Values Geo-Path-Clean-Prints+ Float-Complex (Option Flonum)))
   (lambda [self transform length-base fallback-pin fallback-gap]
     (define pt : Complex (plot:mark-point self))
     (define-values (x y)
@@ -83,8 +85,8 @@
               (real->double-flonum (imag-part pt))))
 
     (define start : Float-Complex (transform x y))
-    (define pin : (Option Float-Complex) (plot-mark-vector-guard (plot:mark-pin self) fallback-pin length-base x))
-    (define gap : (Option Float-Complex) (plot-mark-vector-guard (plot:mark-gap self) fallback-gap length-base x))
+    (define-values (pin pin.rad) (plot-mark-vector-guard (plot:mark-pin self) fallback-pin length-base x))
+    (define-values (gap gap.rad) (plot-mark-vector-guard (plot:mark-gap self) fallback-gap length-base x))
 
     (cond [(and pin gap)
            (let* ([pin-end (+ start   pin)]
@@ -92,16 +94,20 @@
              (values (list (gpp:point #\M start)
                            (gpp:point #\L pin-end)
                            (gpp:point #\M gap-end))
-                     gap-end))]
+                     gap-end
+                     (or gap.rad pin.rad)))]
           [(or pin)
            (let ([pin-end (+ start pin)])
              (values (list (gpp:point #\M start)
                            (gpp:point #\L pin-end))
-                     pin-end))]
+                     pin-end
+                     (or gap.rad pin.rad)))]
           [(or gap)
            (let ([gap-end (+ start gap)])
              (values (list (gpp:point #\M start)
                            (gpp:point #\M gap-end))
-                     gap-end))]
+                     gap-end
+                     (or gap.rad pin.rad)))]
           [else (values (list (gpp:point #\M start))
-                        start)])))
+                        start
+                        (or gap.rad pin.rad))])))
