@@ -13,7 +13,6 @@
 (require geofun/digitama/convert)
 
 (require geofun/digitama/paint/self)
-(require geofun/digitama/unsafe/dc/path)
 
 (require "self.rkt")
 (require "interface.rkt")
@@ -23,6 +22,8 @@
 
 (require "../marker/self.rkt")
 (require "../marker/guard.rkt")
+
+(require "../unsafe/function.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot:function geo:visualizer
@@ -128,6 +129,6 @@
     (λ [self cr x0 y0 width height]
       (when (plot:function? self)
         (define pos (geo:visualizer-position self))
-        (dc_polyline cr (- x0 (real-part pos)) (- y0 (imag-part pos)) width height
+        (dc_function cr (- x0 (real-part pos)) (- y0 (imag-part pos)) width height
                      (plot:function-dots self)
-                     (geo-select-stroke-paint* alt-stroke) #false)))))
+                     (geo-select-stroke-paint* alt-stroke))))))

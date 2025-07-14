@@ -87,9 +87,10 @@
            #:fill-rule [rule : Fill-Rule (default-fill-rule)]
            #:id [id : (Option Symbol) #false]
            #:scale [scale : Point2D 1.0]
+           #:offset [offset : Complex 0.0+0.0i]
            #:window [window : (Option Point2D) #false]
-           [pts : (U Point2D (Listof Point2D))] [dx : Real 0.0] [dy : Real 0.0]] : Geo:Polygon
-    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
+           [pts : (U Point2D (Listof Point2D))]] : Geo:Polygon
+    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) offset scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
     (create-geometry-object geo:polygon
@@ -102,10 +103,11 @@
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:id [id : (Option Symbol) #false]
            #:scale [scale : Point2D 1.0]
+           #:offset [offset : Complex 0.0+0.0i]
            #:window [window : (Option Point2D) #false]
            #:close? [close? : Boolean #false]
-           [pts : (U Point2D (Listof Point2D))] [dx : Real 0.0] [dy : Real 0.0]] : Geo:Polyline
-    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
+           [pts : (U Point2D (Listof Point2D))]] : Geo:Polyline
+    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) offset scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
     (create-geometry-object geo:polyline

@@ -6,6 +6,7 @@
 (define vertex '(0+0i -40+80i +nan.0 +nan.0 240 -40-80i))
 
 (geo-frame (geo-polyline #:stroke (desc-stroke #:color 'royalblue #:width 4.0 #:cap 'round) vertex))
+(geo-frame (geo-polyline #:stroke (desc-stroke #:color 'royalblue #:width 4.0 #:cap 'round) #:scale -1.0 vertex))
 (geo-frame (geo-polygon  #:stroke (desc-stroke #:color 'green #:join 'round) #:fill 'burlywood vertex))
 
 (geo-polygon #:fill 'silver '((0 . 0) (100 . 0)))

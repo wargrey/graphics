@@ -17,14 +17,14 @@
 
 ; a smaller ϵ might cause unstable results for `y = kx + b`,
 ; yet still doesn't increase the precision for other functions.
-(define the-1st-ϵ : Positive-Exact-Rational 1/10000000) #;|10√(machine ϵ)|
+(define the-ϵ/1st-order : Positive-Exact-Rational 1/10000000) #;|10√(machine ϵ)|
 
 ; a smaller ϵ for d²f/dx² would result in 0
-(define the-2nd-ϵ : Positive-Exact-Rational 1/10000) #;|√√(machine ϵ)|
+(define the-ϵ/2nd-order : Positive-Exact-Rational 1/10000) #;|√√(machine ϵ)|
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define df/dx : DF/DX
-  (lambda [f x [ϵ the-1st-ϵ]]
+  (lambda [f x [ϵ the-ϵ/1st-order]]
     (define fx : Complex (f x))
 
     (let refine ([δx : Nonnegative-Real (* ϵ (+ 1 (abs x)))]
@@ -48,7 +48,7 @@
           (slope-guard slopes ϵ)))))
 
 (define df/dx+ : DF/DX
-  (lambda [f x [ϵ the-1st-ϵ]]
+  (lambda [f x [ϵ the-ϵ/1st-order]]
     (define fx : Complex (f x))
 
     (and (rational? fx)
@@ -67,7 +67,7 @@
                (slope-guard slopes ϵ))))))
 
 (define df/dx- : DF/DX
-  (lambda [f x [ϵ the-1st-ϵ]]
+  (lambda [f x [ϵ the-ϵ/1st-order]]
     (define fx : Complex (f x))
 
     (and (rational? fx)
@@ -86,7 +86,7 @@
                (slope-guard slopes ϵ))))))
 
 (define d²f/dx² : DF/DX
-  (lambda [f x0 [ϵ the-2nd-ϵ]]
+  (lambda [f x0 [ϵ the-ϵ/2nd-order]]
     (define fx : Complex (f x0))
 
     (and (rational? fx)
@@ -120,7 +120,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define tangent-line : (->* ((-> Real Complex) Real) (#:%.lf Integer #:df/dx DF/DX Positive-Real) (Option (-> Real Real)))
-  (lambda [f x [ϵ the-1st-ϵ] #:%.lf [%.lf 2] #:df/dx [df/dx df/dx]]
+  (lambda [f x [ϵ the-ϵ/1st-order] #:%.lf [%.lf 2] #:df/dx [df/dx df/dx]]
     (define fx : Complex (f x))
     (define k (df/dx  f x ϵ))
 

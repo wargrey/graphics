@@ -42,42 +42,30 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-edge : (->* ((Listof Point2D))
-                        (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:source-tip (Option Geo-Tip) #:target-tip (Option Geo-Tip)
-                         #:tip-color (Option Color) #:source-color (Option Color) #:target-color (Option Color)
-                         #:tip-placement Geo-Tip-Placement #:source-placement (Option Geo-Tip-Placement) #:target-placement (Option Geo-Tip-Placement))
-                        Geo:Edge)
-  (lambda [#:id [id #false] #:stroke [stroke (void)] #:source-tip [src-tip #false] #:target-tip [tgt-tip #false]
-           #:tip-color [tip-clr #false] #:source-color [src-clr #false] #:target-color [tgt-clr #false]
-           #:tip-placement [tip-pos 'center] #:source-placement [src-pos #false] #:target-placement [tgt-pos #false]
-           dots]
-    (geo-edge* #:id id #:stroke stroke #:source-tip src-tip #:target-tip tgt-tip
-               #:tip-color tip-clr #:source-color src-clr #:target-color tgt-clr
-               #:tip-placement tip-pos #:source-placement src-pos #:target-placement tgt-pos
-               (geo-path-cleanse (map ~point2d dots)))))
-
-(define geo-edge* : (->* (Geo-Path-Clean-Prints)
-                         (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:source-tip (Option Geo-Tip) #:target-tip (Option Geo-Tip)
-                          #:tip-color (Option Color) #:source-color (Option Color) #:target-color (Option Color)
-                          #:tip-placement Geo-Tip-Placement #:source-placement (Option Geo-Tip-Placement) #:target-placement (Option Geo-Tip-Placement))
-                         Geo:Edge)
-  (lambda [#:id [id #false] #:stroke [stroke (void)] #:source-tip [src-tip #false] #:target-tip [tgt-tip #false]
-           #:tip-color [tip-clr #false] #:source-color [src-clr #false] #:target-color [tgt-clr #false]
-           #:tip-placement [tip-pos 'center] #:source-placement [src-pos #false] #:target-placement [tgt-pos #false]
-           footprints0]
+(define geo-edge*
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:source-tip [src-tip : (Option Geo-Tip) #false]
+           #:target-tip [tgt-tip : (Option Geo-Tip) #false]
+           #:tip-color [tip-clr : (Option Color) #false]
+           #:source-color [src-clr : (Option Color) #false]
+           #:target-color [tgt-clr : (Option Color) #false]
+           #:tip-placement [tip-plm : Geo-Tip-Placement 'center]
+           #:source-placement [src-plm : (Option Geo-Tip-Placement) #false]
+           #:target-placement [tgt-plm : (Option Geo-Tip-Placement) #false]
+           [footprints0 : Geo-Path-Clean-Prints]] : Geo:Edge
     (define footprints : (Pairof GPath:Print Geo-Path-Clean-Prints) (if (pair? footprints0) footprints0 (list the-M0)))
     (define-values (spt srad ept erad) (geo-path-end-points footprints))
-    (define-values (e.x e.y e.w e.h) (geo-path-ink-box footprints))
+    (define-values (ik.x ik.y ik.w ik.h) (geo-path-ink-box footprints))
     
-    ;; NOTE: we move the end shapes to their absolute positions, and no need to translate them when drawing
     (define thickness : Nonnegative-Flonum (stroke-width (if (stroke? stroke) stroke (default-stroke))))
-    (define-values (src-prints s.x0 s.y0 s.w s.h s.off s.cfg) (geo-tip-path (geo-tip-filter src-tip) thickness srad #false (or src-pos tip-pos)))
-    (define-values (tgt-prints t.x0 t.y0 t.w t.h t.off t.cfg) (geo-tip-path (geo-tip-filter tgt-tip) thickness erad  #true (or tgt-pos tip-pos)))
-    (define-values (s.x s.y) (values (+ (real-part spt) s.x0) (+ (imag-part spt) s.y0)))
-    (define-values (t.x t.y) (values (+ (real-part ept) t.x0) (+ (imag-part ept) t.y0)))
+    (define-values (src-shape s.x0 s.y0 s.w s.h s.off s.cfg) (geo-tip-path (geo-tip-filter src-tip) thickness srad #false (or src-plm tip-plm)))
+    (define-values (tgt-shape t.x0 t.y0 t.w t.h t.off t.cfg) (geo-tip-path (geo-tip-filter tgt-tip) thickness erad  #true (or tgt-plm tip-plm)))
+    (define-values (s.x s.y) (values (+ (real-part spt) (real-part s.off) s.x0) (+ (imag-part spt) (imag-part s.off) s.y0)))
+    (define-values (t.x t.y) (values (+ (real-part ept) (real-part t.off) t.x0) (+ (imag-part ept) (imag-part t.off) t.y0)))
     
-    (define-values (lx ty) (values (min e.x s.x t.x) (min e.y s.y t.y)))
-    (define-values (rx by) (values (max (+ e.x e.w) (+ s.x s.w) (+ t.x t.w)) (max (+ e.y e.h) (+ s.y s.h) (+ t.y t.h))))
+    (define-values (lx ty) (values (min ik.x s.x t.x) (min ik.y s.y t.y)))
+    (define-values (rx by) (values (max (+ ik.x ik.w) (+ s.x s.w) (+ t.x t.w)) (max (+ ik.y ik.h) (+ s.y s.h) (+ t.y t.h))))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window +nan.0+nan.0i lx ty rx by))
 
     (create-geometry-object geo:edge
@@ -86,7 +74,26 @@
                                        (geo-shape-outline stroke x-stroke? y-stroke?)]
                             footprints (cons spt srad) (cons ept erad)
                             (make-rectangular lx ty) (make-rectangular xoff yoff)
-                            src-prints tgt-prints (cons s.off t.off))))
+                            src-shape tgt-shape (cons s.off t.off))))
+
+(define geo-edge
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:source-tip [src-tip : (Option Geo-Tip) #false]
+           #:target-tip [tgt-tip : (Option Geo-Tip) #false]
+           #:tip-color [tip-clr : (Option Color) #false]
+           #:source-color [src-clr : (Option Color) #false]
+           #:target-color [tgt-clr : (Option Color) #false]
+           #:tip-placement [tip-plm : Geo-Tip-Placement 'center]
+           #:source-placement [src-plm : (Option Geo-Tip-Placement) #false]
+           #:target-placement [tgt-plm : (Option Geo-Tip-Placement) #false]
+           #:bezier-samples [samples : Index 200]
+           [segments : (Listof (U Point2D (Listof Point2D)))]] : Geo:Edge
+    (geo-edge* #:id id #:stroke stroke #:source-tip src-tip #:target-tip tgt-tip
+               #:tip-color tip-clr #:source-color src-clr #:target-color tgt-clr
+               #:tip-placement tip-plm #:source-placement src-plm #:target-placement tgt-plm
+               (let-values ([(prints lx ty rx by) (~point2ds* segments 0.0+0.0i 1.0)])
+                 (geo-path-cleanse prints)))))
 
 (define geo-edge-attach-label : (-> (U Geo:Edge Geo:Labeled-Edge) (U Geo-Edge-Label (Listof Geo-Edge-Label)) (U Geo:Edge Geo:Labeled-Edge))
   (lambda [self label]

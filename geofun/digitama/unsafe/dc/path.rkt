@@ -6,6 +6,7 @@
 
 (require "../../paint/self.rkt")
 (require "../../geometry/footprint.rkt")
+(require "../../geometry/bezier.rkt")
 
 (require "../paint.rkt")
 (require "../source.rkt")
@@ -76,11 +77,7 @@
 
         (cond [(gpp:point? self) (cairo_straight-line cr (gpath:datum-cmd self) (gpath:print-end-here self))]
               [(gpp:arc? self) #\A (cairo_elliptical_arc cr self)]
-              [(gpp:bezier? self)
-               (let ([cmd (gpath:datum-cmd self)]
-                     [endpt (gpath:print-end-here self)])
-                 (cond [(eq? cmd #\C) (cairo_cubic_bezier     cr (gpp:bezier-ctrl1 self) (gpp:bezier-ctrl2 self) endpt)]
-                       [(eq? cmd #\Q) (cairo_quadratic_bezier cr (gpp:bezier-ctrl1 self) (gpp:bezier-ctrl2 self) endpt)]))]
+              [(gpp:bezier? self) (cairo_bezier_curve cr self 0.0+0.0i 0.0+0.0i)]
               [(gpp:vector? self)
                (let ([cmd (gpath:datum-cmd self)]
                      [pt (gpp:vector-rel-end self)])
@@ -94,16 +91,19 @@
   (lambda [cr footprints dx dy src-adjust tgt-adjust]
     (cairo_translate cr dx dy)
 
-    (define source-adjusted-footprints
+    (define source-adjusted-footprints : Geo-Path-Clean-Prints
       (if (and src-adjust (pair? footprints))
           (let ([source (car footprints)])
             (cond [(gpp:point? source)
-                   (let ([pt (+ (gpath:print-end-here source) src-adjust)])
-                     (cons (gpp:point (gpath:datum-cmd source) pt) (cdr footprints)))]
+                   (cairo_straight-line cr (gpath:datum-cmd source) (+ (gpath:print-end-here source) src-adjust))
+                   (cdr footprints)]
+                  ; meanwhile, the head point of a bezier curve is also taken out of the storage
+                  ; so there is no need to deal with it.
                   [else footprints]))
           footprints))
     
-    (let draw_clean_path : Void ([prints source-adjusted-footprints])
+    (let draw_clean_path : Void ([prints : Geo-Path-Clean-Prints source-adjusted-footprints]
+                                 [head? : Boolean #true])
       (when (pair? prints)
         (define-values (self rest) (values (car prints) (cdr prints)))
 
@@ -114,13 +114,11 @@
                      (cairo_straight-line cr cmd (+ pt tgt-adjust))
                      (cairo_straight-line cr cmd pt)))]
               [(gpp:arc? self) #\A (cairo_elliptical_arc cr self)]
-              [(gpp:bezier? self)
-               (let ([cmd (gpath:datum-cmd self)]
-                     [endpt (gpath:print-end-here self)])
-                 (cond [(eq? cmd #\C) (cairo_cubic_bezier     cr (gpp:bezier-ctrl1 self) (gpp:bezier-ctrl2 self) endpt)]
-                       [(eq? cmd #\Q) (cairo_quadratic_bezier cr (gpp:bezier-ctrl1 self) (gpp:bezier-ctrl2 self) endpt)]))])
-
-        (draw_clean_path rest)))))
+              [(gpp:bezier? self) (cairo_bezier_curve cr self
+                                                      (or (and head? src-adjust) 0.0+0.0i)
+                                                      (or (and (null? rest) tgt-adjust) 0.0+0.0i))])
+        
+        (draw_clean_path rest #false)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo_straight-line : (-> Cairo-Ctx Char Float-Complex Void)
@@ -129,28 +127,39 @@
           [(eq? cmd #\M) (cairo_move_to cr (real-part pt) (imag-part pt))])))
 
 (define cairo_elliptical_arc : (-> Cairo-Ctx GPP:Arc Void)
-  (lambda [cr gpath:arc]
-    (define center (gpp:arc-center gpath:arc))
+  (lambda [cr self]
+    (define center (gpp:arc-center self))
     (define cx (real-part center))
     (define cy (imag-part center))
-    (define rx (gpp:arc-rx gpath:arc))
-    (define ry (gpp:arc-ry gpath:arc))
-    (define rstart (gpp:arc-start gpath:arc))
-    (define rend (gpp:arc-end gpath:arc))
+    (define rx (gpp:arc-rx self))
+    (define ry (gpp:arc-ry self))
+    (define rstart (gpp:arc-start self))
+    (define rend (gpp:arc-end self))
 
-    (if (gpp:arc-clockwise? gpath:arc)
+    (if (gpp:arc-clockwise? self)
         (cairo-positive-arc cr cx cy rx ry rstart rend)
         (cairo-negative-arc cr cx cy rx ry rstart rend))))
-  
-  ;;; https://pomax.github.io/bezierinfo/
-  ; ctrl1 = (+ cpt 2/3(ctrl - cpt)) = (+ cpt ctrl ctrl)/3
-  ; ctrl2 = (+ ept 2/3(ctrl - ept)) = (+ ept ctrl ctrl)/3
+
+;;; https://pomax.github.io/bezierinfo/#reordering
+(define cairo_bezier_curve : (-> Cairo-Ctx GPP:Bezier Float-Complex Float-Complex Void)
+  (lambda [cr self src-offset end-offset]
+    (define endpt (+ (gpath:print-end-here self) end-offset))
+
+    (cond [(gpp:bezier:cubic? self)
+           (cairo_cubic_bezier cr (gpp:bezier:cubic-ctrl1 self) (gpp:bezier:cubic-ctrl2 self) endpt)]
+          [(gpp:bezier:quadratic? self)
+           (cairo_quadratic_bezier cr (+ (gpp:bezier-start-here self) src-offset) (gpp:bezier:quadratic-ctrl self) endpt)]
+          [(gpp:bezier:nth? self)
+           (cairo_nth_bezier cr (+ (gpp:bezier-start-here self) src-offset) (gpp:bezier:nth-ctrls+endpoint self) (gpp:bezier:nth-samples self))])))
+
+; ctrl1 = (+ spt 2/3(ctrl - spt)) = (+ spt ctrl ctrl)/3
+; ctrl2 = (+ ept 2/3(ctrl - ept)) = (+ ept ctrl ctrl)/3
 (define cairo_quadratic_bezier : (-> Cairo-Ctx Float-Complex Float-Complex Float-Complex Void)
-  (lambda [cr cpt ctrl ept]
-    (define 2ctrl (+ ctrl ctrl))
-    (define coefficient (real->double-flonum 1/3))
-    
-    (cairo_cubic_bezier cr (* (+ cpt 2ctrl) coefficient) (* (+ ept 2ctrl) coefficient) ept)))
+  (let ([coefficient (real->double-flonum 1/3)])
+    (lambda [cr spt ctrl ept]
+      (define 2ctrl (+ ctrl ctrl))
+      
+      (cairo_cubic_bezier cr (* (+ spt 2ctrl) coefficient) (* (+ ept 2ctrl) coefficient) ept))))
 
 (define cairo_cubic_bezier : (-> Cairo-Ctx Float-Complex Float-Complex Float-Complex Void)
   (lambda [cr ctrl1 ctrl2 endpt]
@@ -158,4 +167,13 @@
                     (real-part ctrl1) (imag-part ctrl1)
                     (real-part ctrl2) (imag-part ctrl2)
                     (real-part endpt) (imag-part endpt))))
-  
+
+(define cairo_nth_bezier : (-> Cairo-Ctx Float-Complex (Listof Float-Complex) Index Void)
+  (lambda [cr head tail samples]
+    (define fbezier (bezier-function head tail #:derivative 0))
+
+    (unless (not fbezier)
+      (define delta (real->double-flonum (/ 1.0 (exact->inexact (max samples 1)))))
+      (for ([t (in-range 0.0 (+ 1.0 delta) delta)])
+        (define dot (fbezier t))
+        (cairo_line_to cr (real-part dot) (imag-part dot))))))

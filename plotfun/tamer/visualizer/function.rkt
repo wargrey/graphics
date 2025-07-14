@@ -61,7 +61,6 @@
           (function discrete-floor -3.0 #:label "floor(x)")
           (function discrete-ceiling #:label "ceiling(x)")
           (function normal-dist #:label "N(x)")
-          (function cos)
           (function tan  -3   -1.8)
           (function exp  -3   +1.2 #:label (<span> null "e" (<sup> "x")))
           (function sqr  -2   +2 #:label (<span> null "x" (<sup> "2")))

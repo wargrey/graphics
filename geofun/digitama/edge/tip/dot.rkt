@@ -32,11 +32,11 @@
             [else (values -1.0 0.0)]))
     
     (define r : Nonnegative-Flonum (~length (geo:tip:dot-radius self) 100%))
-    (define size : Nonnegative-Flonum (* r 2.0))
+    (define size : Nonnegative-Flonum (* (+ r 1.0) 2.0))
     (define endpoint-offset : Float-Complex
       (+ (make-polar (* r pos-rfrac) angle.rad)
          (make-polar (* 100% pos-afrac) angle.rad)))
     (define center : Float-Complex (+ (make-polar r angle.rad) endpoint-offset))
 
     (vector-immutable (list (gpp:arc #\A 0.0+0.0i center r r 0.0 2pi #true))
-                      (- r) (- r) size size endpoint-offset)))
+                      (* size -0.5) (* size -0.5) size size endpoint-offset)))

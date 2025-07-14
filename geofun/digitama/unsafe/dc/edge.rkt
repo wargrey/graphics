@@ -19,21 +19,27 @@
                       (Pairof (Option Float-Complex) (Option Float-Complex))
                       Any)
   (lambda [cr x0 y0 flwidth flheight footprints offset stroke
-              src-mkr-prints src-mkr-pen src-mkr-brush src-offset
-              tgt-mkr-prints tgt-mkr-pen tgt-mkr-brush tgt-offset
+              src-mkr-prints src-mkr-pen src-mkr-brush src-pos
+              tgt-mkr-prints tgt-mkr-pen tgt-mkr-brush tgt-pos
               adjust-offset]
     (define-values (dx dy) (values (real-part offset) (imag-part offset)))
     
     (cairo_new_path cr)
     (cairo_clean_path cr footprints (+ x0 dx) (+ y0 dy) (car adjust-offset) (cdr adjust-offset))
     (cairo-render cr stroke)
-    (dc-edge-draw-shape cr src-mkr-prints src-mkr-pen src-mkr-brush src-offset)
-    (dc-edge-draw-shape cr tgt-mkr-prints tgt-mkr-pen tgt-mkr-brush tgt-offset)))
+
+    ; `cairo_clear_path` above hsa already translated by `(dx, dy)`
+    (dc-edge-draw-shape cr src-mkr-prints src-mkr-pen src-mkr-brush src-pos)
+    (dc-edge-draw-shape cr tgt-mkr-prints tgt-mkr-pen tgt-mkr-brush tgt-pos)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc-edge-draw-shape : (-> Cairo-Ctx Geo-Path-Prints (Option Stroke) (Option Fill-Source) Float-Complex Void)
-  (lambda [cr prints stroke brush offset]
+  (lambda [cr prints stroke brush position]
     (when (pair? prints)
+      (define px (real-part position))
+      (define py (imag-part position))
+      
       (cairo_new_path cr)
-      (cairo_path cr prints (real-part offset) (imag-part offset))
+      (cairo_path cr prints px py)
+      (cairo_translate cr (- px) (- py))
       (cairo-render cr stroke brush))))

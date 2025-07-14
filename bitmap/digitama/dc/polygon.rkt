@@ -28,11 +28,12 @@
 (define bitmap-polyline
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)]
            #:scale [scale : Point2D 1.0]
+           #:offset [offset : Complex 0.0+0.0i]
            #:close? [close? : Boolean #false]
            #:window [window : (Option Point2D) #false]
            #:density [density : Positive-Flonum (default-bitmap-density)]
-           [pts : (U Point2D (Listof Point2D))] [dx : Real 0.0] [dy : Real 0.0]] : Bitmap
-    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
+           [pts : (U Point2D (Listof Point2D))]] : Bitmap
+    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) offset scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     (define s : Stroke (stroke-paint->source stroke))
     (define-values (x0 y0 w h) (path-window-adjust xoff yoff width height (stroke-width s) x-stroke? y-stroke?))
@@ -45,10 +46,11 @@
            #:fill-rule [rule : Fill-Rule (default-fill-rule)]
            #:close? [close? : Boolean #false]
            #:scale [scale : Point2D 1.0]
+           #:offset [offset : Complex 0.0+0.0i]
            #:window [window : (Option Point2D) #false]
            #:density [density : Positive-Flonum (default-bitmap-density)]
-           [pts : (U Point2D (Listof Point2D))] [dx : Real 0.0] [dy : Real 0.0]] : Bitmap
-    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) dx dy scale))
+           [pts : (U Point2D (Listof Point2D))]] : Bitmap
+    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) offset scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     (define s : (Option Stroke) (stroke-paint->source outline))
     (define-values (x0 y0 w h) (path-window-adjust xoff yoff width height (stroke-maybe-width s) x-stroke? y-stroke?))

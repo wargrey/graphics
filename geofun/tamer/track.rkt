@@ -85,7 +85,7 @@
   (geo-freeze goma #:stroke 'ForestGreen #:fill (rgb* 'RoyalBlue 0.618))
 
   (let ([bmp (bitmap-square 512)])
-    (geo-freeze! bmp goma -32 -32 #:stroke 'Orange)
+    (geo-freeze! bmp goma -32 -32 #:stroke (desc-stroke #:color 'Orange #:dash 'long-dash))
     bmp)
   
   (geo-anchor-position goma '#:home)
