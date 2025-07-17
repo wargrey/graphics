@@ -42,6 +42,10 @@
   (edge-examplify (list (list 220+60i 20+110i 70+250i))
                   default-bullet-tip default-generalization-tip
                   bezier-pen)
+
+  (edge-examplify (list (list 25+128i 102.4+230.4i 153.6+25.6i 230.4+128i))
+                  default-bullet-tip default-composition-tip
+                  bezier-pen)
   
   (edge-examplify (list (list 198+18i   34+57i 18+156i 221+90i
                         186+177i   14+82i 12+236i 45+290i

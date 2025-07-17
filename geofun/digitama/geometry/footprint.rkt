@@ -82,9 +82,9 @@
              (gpath:print-end-here self)))))
 
 (define geo-path-cleanse : (->* ((Listof (U GPath:Datum Float-Complex (Listof Float-Complex))))
-                                (Float-Complex #:higher-order-bezier-samples Index)
+                                (Float-Complex #:bezier-samples Index)
                                 Geo-Path-Clean-Prints)
-  (lambda [footprints [pos0 0.0+0.0i] #:higher-order-bezier-samples [samples 200]]
+  (lambda [footprints [pos0 0.0+0.0i] #:bezier-samples [samples 200]]
     (let traverse ([prints : (Listof (U GPath:Datum Float-Complex (Listof Float-Complex))) footprints]
                    [p-head : (Option Float-Complex) #false]
                    [stnirp : (Listof GPath:Print) null]
@@ -197,11 +197,15 @@
                          [ept (gpath:print-end-here self)])
                      (define-values (rmin imin rmax imax)
                        (cond [(gpp:bezier:quadratic? self)
-                              (flc-interval (list spt (gpp:bezier:quadratic-ctrl self) ept) lx ty rx by)]
+                              (let ([ctrl (gpp:bezier:quadratic-ctrl self)])
+                                (flc-interval (list* spt ept (bezier-quadratic-extremities spt ctrl ept)) lx ty rx by))]
                              [(gpp:bezier:cubic? self)
-                              (flc-interval (list spt (gpp:bezier:cubic-ctrl1 self) (gpp:bezier:cubic-ctrl2 self) ept) lx ty rx by)]
+                              (let ([ctrl1 (gpp:bezier:cubic-ctrl1 self)]
+                                    [ctrl2 (gpp:bezier:cubic-ctrl2 self)])
+                                (flc-interval (list* spt ept (bezier-cubic-extremities spt ctrl1 ctrl2 ept)) lx ty rx by))]
                              [(gpp:bezier:nth? self)
-                              (flc-interval (cons spt (gpp:bezier:nth-ctrls+endpoint self)) lx ty rx by)]
+                              (let ([tail (gpp:bezier:nth-ctrls+endpoint self)])
+                                (flc-interval (list* spt ept (bezier-nth-extremities spt tail (gpp:bezier:nth-samples self))) lx ty rx by))]
                              [else '#:deadcode (values lx ty rx by)]))
                      (traverse rmin imin rmax imax rest))]
                   [else ; TODO: deal with arcs

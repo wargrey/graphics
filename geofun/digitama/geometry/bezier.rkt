@@ -4,29 +4,94 @@
 
 (provide (all-defined-out))
 
+(require (only-in racket/list last remove-duplicates))
 (require racket/flonum)
-(require math/number-theory)
 
+(require digimon/complex)
+(require math/number-theory)
 (require plotfun/digitama/sample)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bezier-extremities : (->* (Float-Complex (Listof Float-Complex)) (Positive-Index) (Listof Float-Complex))
+(define bezier-quadratic-extremities : (-> Float-Complex Float-Complex Float-Complex (Listof Float-Complex))
+  ; B'(t) = (b - a)t + a => t = a/(a - b)
+  (lambda [head ctrl end]
+    (define fbezier  (bezier-function #:derivative 0 head (list ctrl end)))
+    (define a (- ctrl head))
+    (define b (- end ctrl))
+
+    (cond [(or (= a b) (not fbezier)) null]
+          [else (let ([tx (/ (real-part a) (real-part (- a b)))]
+                      [ty (/ (imag-part a) (imag-part (- a b)))])
+                  (cond [(< 0.0 tx 1.0) (list (fbezier tx))]
+                        [(< 0.0 ty 1.0) (list (fbezier ty))]
+                        [else null]))])))
+
+(define bezier-cubic-extremities : (-> Float-Complex Float-Complex Float-Complex Float-Complex (Listof Float-Complex))
+  ; B'(t) = at^2 + bt + c
+  ; a = 3(-p1 + 3p2 - 3p3 + p4)
+  ; b = 6(p1 - 2p2 + p3)
+  ; c = 3(p2 - p1)
+  (lambda [head ctrl1 ctrl2 end]
+    (define fbezier  (bezier-function #:derivative 0 head (list ctrl1 end)))
+    (define a (+ (* 9.0 (- ctrl1 ctrl2)) (* 3.0 (- end head))))
+    (define b (* 6.0 (+ head (* -2.0 ctrl1) ctrl2)))
+    (define c (* 3.0 (- ctrl1 head)))
+    (define txs (quadratic-solutions (real-part a) (real-part b) (real-part c)))
+    (define tys (quadratic-solutions (imag-part a) (imag-part b) (imag-part c)))
+
+    (cond [(not fbezier) null]
+          [else (for/list ([t (in-list (append txs tys))]
+                           #:when (< 0.0 t 1.0))
+                  (fbezier (real->double-flonum t)))])))
+
+(define bezier-nth-extremities : (->* (Float-Complex (Listof Float-Complex)) (Index) (Listof Float-Complex))
   (lambda [head tail [samples 200]]
     (define fbezier   (bezier-function #:derivative 0 head tail))
-    (define fbezier~  (bezier-function #:derivative 1 head tail))
-    (define fbezier~~ (bezier-function #:derivative 2 head tail))
-    
-    (if (and fbezier fbezier~ fbezier~~)
-        (reverse (for/fold ([extremities : (Listof Float-Complex) null])
-                           ([t (in-list (geo-linear-samples 0.0 1.0 samples))])
-                   (let newton-raphson ([tn : Flonum (real->double-flonum t)])
-                     (if (<= 0.0 tn 1.0)
-                         (let ([f~tn (imag-part (fbezier~ tn))])
-                           (cond [(< (abs f~tn) 1/10000000) (cons (fbezier tn) extremities)]
-                                 [else (newton-raphson (- tn (/ f~tn (imag-part (fbezier~~ tn)))))]))
-                         extremities))))
-         null)))
+    (define f~bezier  (bezier-function #:derivative 1 head tail))
+    (define f~~bezier (bezier-function #:derivative 2 head tail))
 
+    (if (and fbezier f~bezier f~~bezier)
+        (let ([ts (map real->double-flonum (geo-linear-samples 0.0 1.0 (max 3 samples)))])
+          (define (solve [part : (-> Float-Complex Flonum)]) : (Listof Flonum)
+            (for/fold ([tseqs : (Listof Flonum) null])
+                      ([tseq (in-list ts)])
+              (let newton-raphson ([t : Flonum tseq]
+                                   [trials : Index 0])
+                (if (and (<= 0.0 t 1.0) (< trials 16))
+                    (let* ([f~t (part (f~bezier t))])
+                      (if (< (abs f~t) 1e-11)
+                          (if (or (null? tseqs) (not (= t (car tseqs))))
+                              (cons t tseqs)
+                              tseqs)
+                          (let* ([f~~t (part (f~~bezier t))]
+                                 [dt (/ f~t f~~t)])
+                            (cond [(< (abs dt) 1e-8) tseqs]
+                                  [else (newton-raphson (- t dt)
+                                                        (+ trials 1))]))))
+                    tseqs))))
+          (reverse (for/list : (Listof Float-Complex) ([t (in-list (remove-duplicates (append (solve real-part) (solve imag-part))))]
+                                                       #:when (< 0.0 t 1.0))
+                     (fbezier t))))
+        null)))
+
+(define bezier-extremities : (->* (Float-Complex (Listof Float-Complex)) (Index) (Listof Float-Complex))
+  (lambda [head tail [samples 200]]
+    (cond [(null? tail) null]
+          [(null? (cdr tail)) null]
+          [(null? (cddr tail))  (bezier-quadratic-extremities head (car tail) (cadr tail))]
+          [(null? (cdddr tail)) (bezier-cubic-extremities head (car tail) (cadr tail) (caddr tail))]
+          [else (bezier-nth-extremities head tail samples)])))
+
+(define bezier-bounding-box : (->* (Float-Complex (Listof Float-Complex)) (Index) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [head tail [samples 200]]
+    (define extremities (bezier-extremities head tail samples))
+    (define-values (lx ty rx by) (flc-interval (list* head (last tail) (bezier-extremities head tail samples))))
+
+    (values lx ty
+            (max 0.0 (- rx lx))
+            (max 0.0 (- by ty)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bezier-derivative-weights : (-> Float-Complex (Listof Float-Complex) [#:order Byte] (Listof Float-Complex))
   (lambda [head tail #:order [order 1]]
     (define fln : Flonum (exact->inexact (length tail)))
@@ -76,6 +141,3 @@
       (let* ([tan-p (make-tangent-point t)])
         (make-rectangular (- (imag-part tan-p))
                           (real-part tan-p))))))
-
-#;(bezier-extremities (list 60.0+105.0i  75.0+30.0i   215.0+115.0i 140.0+160.0i))
-#;(bezier-extremities (list 120.0+160.0i 35.0+200.0i  220.0+260.0i 220.0+40.0i))

@@ -7,13 +7,12 @@
 (require digimon/constant)
 
 (require geofun/font)
+(require geofun/composite)
 
 (require geofun/digitama/base)
 (require geofun/digitama/markup)
-
 (require geofun/digitama/dc/text)
 (require geofun/digitama/edge/tip/self)
-
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/sticker)
 
@@ -21,9 +20,12 @@
 (require "guard.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Plot-Mark->Description
+  (-> Complex Any Font Color Plot-Position-Transform
+      (U Geo-Sticker-Datum DC-Markup-Text (Listof (U Geo-Sticker-Datum DC-Markup-Text)) False Void)))
+
 (define-type Plot-Mark-Datum (U Plot:Mark Complex))
-(define-type Plot-Mark->Description (-> Complex Any Font Color Plot-Position-Transform (U Geo-Sticker-Datum DC-Markup-Text False Void)))
-(define-type Plot-Mark-Static-Description (U DC-Markup-Text Geo-Sticker-Datum))
+(define-type Plot-Mark-Static-Description (U DC-Markup-Text Geo-Sticker-Datum (Listof (U Geo-Sticker-Datum DC-Markup-Text))))
 (define-type Plot-Mark-Description (U Plot-Mark-Static-Description Plot-Mark->Description))
 
 (define-struct plot:mark : Plot:Mark
@@ -116,8 +118,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-desc-real : Plot-Mark->Description
   (lambda [dot datum font color transform]
-   (geo-text #:color color
-             (or datum (real-part dot)) font)))
+    (geo-text #:color color
+              (or datum (real-part dot)) font)))
 
 (define plot-desc-point : Plot-Mark->Description
   (lambda [dot datum font color transform]

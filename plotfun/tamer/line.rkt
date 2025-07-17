@@ -11,14 +11,13 @@
     (when (>= n 0.0)
       (define unit (real-part (- (transform (+ n 1.0) 0.0) (transform n 0.0))))
       (define c (rgb* color (/ (+ n 1.0) 8.0)))
-      (define g (geo-vc-append #:gapsize (* unit -0.20)
-                               (geo-text "+1" font #:color c)
-                               (geo-edge #:target-tip default-arrow-tip #:stroke c
-                                         (list (list (* unit 0.1) (make-rectangular (* unit 0.5) -16.0) (* unit 0.9))))))
       
-      (make-geo-sticker g
+      (make-geo-sticker (geo-vc-append (geo-text "+1" font #:color c)
+                                       (geo-edge #:scale unit #:tip-placement 'center
+                                                 #:target-tip default-arrow-tip #:stroke c
+                                                 (list (list 0.1 0.5-0.16i 0.9))))
                         'lb
-                        (make-rectangular (* unit 0.1) (* unit -0.25))))))
+                        (* unit 0.1-0.25i)))))
 
 (define fib-desc : Plot-Mark->Description
   (lambda [pt datum font color transform]

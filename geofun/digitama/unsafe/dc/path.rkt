@@ -17,7 +17,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_path : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Stroke) (Option Fill-Source) Fill-Rule Any)
   (lambda [cr x0 y0 width height footprints stroke fill-color fill-rule]
-    (cairo_path cr footprints x0 y0)
+    (cairo_path cr footprints x0 y0 #false)
     (cairo-render cr stroke fill-color fill-rule)))
 
 (define dc_polyline : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) Stroke Boolean Any)
@@ -37,20 +37,32 @@
     (cairo_close_path cr)
     (cairo-render cr stroke background fill-rule)))
 
-(define dc_polyline* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints Stroke Boolean Any)
-  (lambda [cr x0 y0 flwidth flheight footprints stroke close?]
+(define dc_polyline* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Stroke) (Option Fill-Source) Fill-Rule Boolean Any)
+  (lambda [cr x0 y0 flwidth flheight footprints stroke background fill-rule close?]
     (cairo_new_path cr)
-    (cairo_path cr footprints x0 y0)
 
-    (when (and close?)
-      (cairo_close_path cr))
-    
-    (cairo-render cr stroke #false)))
+    (define M : Natural
+      (if (or background)
+          (let ([M (cairo_path cr footprints x0 y0 #true)])
+            (cairo-render-with-fill cr background fill-rule)
+            (cairo_translate cr (- x0) (- y0))
+            M)
+          2))
+
+    (when (and stroke)
+      (when (> M 1)
+        (cairo_new_path cr)
+        (cairo_path cr footprints x0 y0 #false))
+
+      (when (and close?)
+        (cairo_close_path cr))
+
+      (cairo-render-with-stroke cr stroke))))
 
 (define dc_polygon* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Stroke) (Option Fill-Source) Fill-Rule Any)
   (lambda [cr x0 y0 flwidth flheight footprints stroke background fill-rule]
     (cairo_new_path cr)
-    (cairo_path cr footprints x0 y0)
+    (cairo_path cr footprints x0 y0 #false)
     (cairo_close_path cr)
     (cairo-render cr stroke background fill-rule)))
 
@@ -67,35 +79,37 @@
         (cond [(not (or (nan? x) (nan? y))) (cairo_line_to cr (real-part pt) (imag-part pt))]
               [(not ignore-nan?) (cairo_new_sub_path cr)])))))
 
-(define cairo_path : (-> Cairo-Ctx Geo-Path-Prints Flonum Flonum Void)
-  (lambda [cr footprints dx dy]
+(define cairo_path : (-> Cairo-Ctx Geo-Path-Prints Flonum Flonum Boolean Natural)
+  (lambda [cr footprints dx dy treat-M-as-L?]
     (cairo_translate cr dx dy)
     
-    (let draw_path : Void ([prints footprints])
-      (when (pair? prints)
-        (define self (car prints))
+    (let draw_path : Natural ([prints footprints]
+                              [M : Natural 0])
+      (if (pair? prints)
+          (draw_path (cdr prints)
+                     (let ([self (car prints)])
+                       (cond [(gpp:point? self) (cairo_straight-line cr (gpath:datum-cmd self) (gpath:print-end-here self) treat-M-as-L? M)]
+                             [(gpp:arc? self) #\A (cairo_elliptical_arc cr self) M]
+                             [(gpp:bezier? self) (cairo_bezier_curve cr self 0.0+0.0i 0.0+0.0i) M]
+                             [(gpp:vector? self)
+                              (let ([cmd (gpath:datum-cmd self)]
+                                    [pt (gpp:vector-rel-end self)])
+                                (cond [(eq? cmd #\l) (cairo_rel_line_to cr (real-part pt) (imag-part pt))]
+                                      [(eq? cmd #\m) (cairo_rel_move_to cr (real-part pt) (imag-part pt))])
+                                M)]
+                             [(gpp:close? self) #\Z #\z (cairo_close_path cr) M]
+                             [else M])))
+          M))))
 
-        (cond [(gpp:point? self) (cairo_straight-line cr (gpath:datum-cmd self) (gpath:print-end-here self))]
-              [(gpp:arc? self) #\A (cairo_elliptical_arc cr self)]
-              [(gpp:bezier? self) (cairo_bezier_curve cr self 0.0+0.0i 0.0+0.0i)]
-              [(gpp:vector? self)
-               (let ([cmd (gpath:datum-cmd self)]
-                     [pt (gpp:vector-rel-end self)])
-                 (cond [(eq? cmd #\l) (cairo_rel_line_to cr (real-part pt) (imag-part pt))]
-                       [(eq? cmd #\m) (cairo_rel_move_to cr (real-part pt) (imag-part pt))]))]
-              [(gpp:close? self) #\Z #\z (cairo_close_path cr)])
-
-        (draw_path (cdr prints))))))
-
-(define cairo_clean_path : (-> Cairo-Ctx Geo-Path-Clean-Prints Flonum Flonum (Option Float-Complex) (Option Float-Complex) Void)
-  (lambda [cr footprints dx dy src-adjust tgt-adjust]
+(define cairo_clean_path : (-> Cairo-Ctx Geo-Path-Clean-Prints Flonum Flonum (Option Float-Complex) (Option Float-Complex) Boolean Void)
+  (lambda [cr footprints dx dy src-adjust tgt-adjust treat-M-as-L?]
     (cairo_translate cr dx dy)
 
     (define source-adjusted-footprints : Geo-Path-Clean-Prints
       (if (and src-adjust (pair? footprints))
           (let ([source (car footprints)])
             (cond [(gpp:point? source)
-                   (cairo_straight-line cr (gpath:datum-cmd source) (+ (gpath:print-end-here source) src-adjust))
+                   (cairo_straight-line cr (gpath:datum-cmd source) (+ (gpath:print-end-here source) src-adjust) treat-M-as-L? 0)
                    (cdr footprints)]
                   ; meanwhile, the head point of a bezier curve is also taken out of the storage
                   ; so there is no need to deal with it.
@@ -111,8 +125,8 @@
                (let ([cmd (gpath:datum-cmd self)]
                      [pt (gpath:print-end-here self)])
                  (if (and (null? rest) tgt-adjust)
-                     (cairo_straight-line cr cmd (+ pt tgt-adjust))
-                     (cairo_straight-line cr cmd pt)))]
+                     (cairo_straight-line cr cmd (+ pt tgt-adjust) treat-M-as-L? 0)
+                     (cairo_straight-line cr cmd pt treat-M-as-L? 0)))]
               [(gpp:arc? self) #\A (cairo_elliptical_arc cr self)]
               [(gpp:bezier? self) (cairo_bezier_curve cr self
                                                       (or (and head? src-adjust) 0.0+0.0i)
@@ -121,10 +135,16 @@
         (draw_clean_path rest #false)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define cairo_straight-line : (-> Cairo-Ctx Char Float-Complex Void)
-  (lambda [cr cmd pt]
-    (cond [(eq? cmd #\L) (cairo_line_to cr (real-part pt) (imag-part pt))]
-          [(eq? cmd #\M) (cairo_move_to cr (real-part pt) (imag-part pt))])))
+(define cairo_straight-line : (-> Cairo-Ctx Char Float-Complex Boolean Natural Natural)
+  (lambda [cr cmd pt treat-M-as-L? M]
+    (cond [(eq? cmd #\L)
+           (cairo_line_to cr (real-part pt) (imag-part pt)) M]
+          [(eq? cmd #\M)
+           (if (not treat-M-as-L?)
+               (cairo_move_to cr (real-part pt) (imag-part pt))
+               (cairo_line_to cr (real-part pt) (imag-part pt)))
+           (+ M 1)]
+          [else M])))
 
 (define cairo_elliptical_arc : (-> Cairo-Ctx GPP:Arc Void)
   (lambda [cr self]

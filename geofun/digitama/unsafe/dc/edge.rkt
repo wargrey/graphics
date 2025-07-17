@@ -25,7 +25,7 @@
     (define-values (dx dy) (values (real-part offset) (imag-part offset)))
     
     (cairo_new_path cr)
-    (cairo_clean_path cr footprints (+ x0 dx) (+ y0 dy) (car adjust-offset) (cdr adjust-offset))
+    (cairo_clean_path cr footprints (+ x0 dx) (+ y0 dy) (car adjust-offset) (cdr adjust-offset) #false)
     (cairo-render cr stroke)
 
     ; `cairo_clear_path` above hsa already translated by `(dx, dy)`
@@ -40,6 +40,6 @@
       (define py (imag-part position))
       
       (cairo_new_path cr)
-      (cairo_path cr prints px py)
+      (cairo_path cr prints px py #false)
       (cairo_translate cr (- px) (- py))
       (cairo-render cr stroke brush))))

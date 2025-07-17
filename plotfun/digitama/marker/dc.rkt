@@ -40,18 +40,18 @@
            #:fallback-pin [fallback-pin : (Option Plot-Mark-Fallback-Vector) #false] #:fallback-gap [fallback-gap : (Option Plot-Mark-Fallback-Vector) #false]
            #:fallback-anchor [fallback-anchor : Plot-Mark-Auto-Anchor plot-mark-auto-anchor] #:length-base [length-base : Nonnegative-Flonum 100.0]
            [self : Plot:Mark] [transform : Plot-Position-Transform]] : Plot:Marker
-    (define label : (Option Geo-Sticker-Datum)
-      (let ([desc (plot:mark-desc self)])
-        (cond [(geo? desc) desc]
-              [(geo-sticker? desc) desc]
-              [(dc-markup-text? desc) (geo-edge-label-text desc #false font color)]
-              [else (let ([desc.geo (and desc (desc (plot:mark-point self) (plot:mark-datum self)
-                                                    (or font (default-font)) (or color hilite)
-                                                    transform))])
-                      (cond [(geo? desc.geo) desc.geo]
-                            [(geo-sticker? desc.geo) desc.geo]
-                            [(dc-markup-text? desc.geo) (geo-edge-label-text desc.geo #false font color)]
-                            [else #false]))])))
+    (define labels : (Listof Geo-Sticker-Datum)
+      (let sticker-filter ([desc (plot:mark-desc self)])
+        (cond [(geo? desc) (list desc)]
+              [(geo-sticker? desc) (list desc)]
+              [(dc-markup-text? desc) (list (geo-edge-label-text desc #false font color))]
+              [(list? desc) (apply append (map sticker-filter desc))]
+              [(not desc) null]
+              [else (let ([desc.geo (desc (plot:mark-point self) (plot:mark-datum self)
+                                          (or font (default-font)) (or color hilite)
+                                          transform)])
+                      (cond [(void? desc.geo) null]
+                            [else (sticker-filter desc.geo)]))])))
 
     (define-values (prints location angle) (plot-mark->footprints self transform length-base fallback-pin fallback-gap))
     
@@ -61,16 +61,16 @@
                  #:tip-placement 'center #:tip-color color
                  prints))
 
-    (define label-layer
-      (and label
-           (geo-sticker->layer #:default-anchor (or (plot:mark-anchor self)
-                                                    (fallback-anchor location angle))
-                               label (- location (geo:edge-origin edge)))))
+    (define label-layers
+      (for/list : (Listof (GLayerof Geo)) ([label (in-list labels)])
+        (geo-sticker->layer #:default-anchor (or (plot:mark-anchor self)
+                                                 (fallback-anchor location angle))
+                            label (- location (geo:edge-origin edge)))))
     
     (create-geometry-group plot:marker id #false #false
-                           (cond [(not label-layer) (geo-own-layers edge)]
+                           (cond [(null? label-layers) (geo-own-layers edge)]
                                  [else (geo-path-layers-merge (geo-own-layers edge)
-                                                              (list label-layer))])
+                                                              label-layers)])
                            self)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

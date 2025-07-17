@@ -12,7 +12,7 @@
     (geo-cc-superimpose
      (geo-polybezier #:stroke aux #:close? #t ctrl2 ctrl1 spt (list ctrl1 ctrl2 ept))
      (geo-polybezier #:stroke pen #:close? #f spt (list ctrl1 ctrl2 ept))
-     (geo-bezier #:stroke otl #:close? #f spt ctrl1 ctrl2 ept))))
+     (geo-trim (geo-bezier #:stroke otl #:close? #f spt ctrl1 ctrl2 ept)))))
 
 (define linear-bezier
   (geo-hc-append
