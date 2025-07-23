@@ -6,11 +6,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Point2D (U Complex (Pairof Real Real) (List Real Real)))
+(define-type PolyCurve2D (U Point2D (Listof Point2D)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define ~point2d : (-> Point2D Float-Complex)
   (lambda [dt]
     (define-values (x y) (point2d-values dt))
+    (make-rectangular x y)))
+
+(define ~point2d-real : (-> Point2D Complex)
+  (lambda [dt]
+    (define-values (x y) (point2d-real-values dt))
     (make-rectangular x y)))
 
 (define ~point2ds : (case-> [(Listof Point2D) Complex Point2D -> (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum)]
@@ -33,9 +39,7 @@
                             [(x0 y0) (point2d-values self)]
                             [(x y) (values (+ (* x0 afx) xoff) (+ (* y0 afy) yoff))])
                 (if (or (nan? x) (nan? y))
-                    (if (or ignore-nan? (and (pair? stod) (eq? (car stod) +nan.0+nan.0i)))
-                        (normalize rest stod lx ty rx by)
-                        (normalize rest (cons +nan.0+nan.0i stod) lx ty rx by))
+                    (normalize rest (point2ds-nan-cons stod ignore-nan?) lx ty rx by)
                     (normalize rest (cons (make-rectangular x y) stod)
                                (min lx x) (min ty y) (max rx x) (max by y))))]
              [(or xflip? yflip?)
@@ -43,14 +47,14 @@
                       lx ty rx by)]
              [else (values (reverse stod) lx ty rx by)]))]))
 
-(define ~point2ds* : (-> (Listof (U Point2D (Listof Point2D))) Complex Point2D (Values (Listof (U Float-Complex (Listof Float-Complex))) Flonum Flonum Flonum Flonum))
+(define ~polycurves : (-> (Listof PolyCurve2D) Complex Point2D (Values (Listof (U Float-Complex (Listof Float-Complex))) Flonum Flonum Flonum Flonum))
   (lambda [raws offset scale]
     (define-values (xoff yoff) (point2d-values offset))
     (define-values (fx fy) (point2d-scale-values scale))
     (define-values (afx afy) (values (abs fx) (abs fy)))
     (define-values (xflip? yflip?) (values (< fx 0.0) (< fy 0.0)))
     
-    (let normalize ([dots : (Listof (U Point2D (Listof Point2D))) raws]
+    (let normalize ([dots : (Listof PolyCurve2D) raws]
                     [stod : (Listof (U Float-Complex (Listof Float-Complex))) null]
                     [lx : Flonum +inf.0]
                     [ty : Flonum +inf.0]
@@ -66,9 +70,7 @@
                    (let*-values ([(x0 y0) (point2d-values self)]
                                  [(x y) (values (+ (* x0 afx) xoff) (+ (* y0 afy) yoff))])
                      (if (or (nan? x) (nan? y))
-                         (if (and (pair? stod) (eq? (car stod) +nan.0+nan.0i))
-                             (normalize rest stod lx ty rx by)
-                             (normalize rest (cons +nan.0+nan.0i stod) lx ty rx by))
+                         (normalize rest (point2ds-nan-cons stod) lx ty rx by)
                          (normalize rest (cons (make-rectangular x y) stod)
                                     (min lx x) (min ty y) (max rx x) (max by y))))))]
             [(or xflip? yflip?)
@@ -91,6 +93,12 @@
           [(list? dt) (values (real->double-flonum (car dt)) (real->double-flonum (cadr dt)))]
           [else (values (real->double-flonum (car dt)) (real->double-flonum (cdr dt)))])))
 
+(define point2d-real-values : (-> Point2D (Values Real Real))
+  (lambda [dt]
+    (cond [(complex? dt) (values (real-part dt) (imag-part dt))]
+          [(list? dt) (values (car dt) (cadr dt))]
+          [else (values (car dt) (cdr dt))])))
+
 (define point2d-scale-values : (-> Point2D (Values Flonum Flonum))
   (lambda [st]
     (define-values (sx0 sy0) (point2d-values st))
@@ -99,6 +107,7 @@
 
     (values sx sy)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define point2d-flip : (-> Float-Complex Flonum Flonum Flonum Flonum Boolean Boolean Float-Complex)
   (lambda [dt lx ty rx by xflip? yflip?]
     (let ([x (real-part dt)]
@@ -115,6 +124,22 @@
                 (cons (point2d-flip (car stod) lx ty rx by xflip? yflip?) dots))
           dots))))
 
+(define point2ds-rational-reverse : (-> (Listof Float-Complex) Flonum Flonum Flonum Flonum
+                                        (Values (Listof Float-Complex) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [stod lx ty rx by]
+    (if (rational? lx)
+        (values (reverse stod) lx ty (max (- rx lx) 0.0) (max (- by ty) 0.0))
+        (values (reverse stod) 0.0 0.0 0.0 0.0))))
+
+(define #:forall (F) point2ds-nan-cons : (case-> [(Listof F) Boolean -> (Listof (U Float-Complex F))]
+                                                 [(Listof F) -> (Listof (U Float-Complex F))])
+  (case-lambda
+    [(stod ignore-nan?) (if (or ignore-nan?) stod (point2ds-nan-cons stod))]
+    [(stod)
+     (cond [(and (pair? stod) (eq? (car stod) +nan.0+nan.0i)) stod]
+           [else (cons +nan.0+nan.0i stod)])]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define point2d->window : (-> Point2D Flonum Flonum Flonum Flonum (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Boolean Boolean))
   (lambda [hint lx ty rx by]
     (define-values (w h) (point2d-values hint))

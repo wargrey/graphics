@@ -45,7 +45,8 @@
 ; Both the head and tail tips may require some offset,
 ;   in which case the resulting curves may differ in a subtle way.
 (struct gpp:bezier gpath:print
-  ([start-here : Float-Complex])
+  ([start-here : Float-Complex]
+   [samples : Index])
   #:type-name GPP:Bezier
   #:transparent)
 
@@ -61,8 +62,7 @@
   #:transparent)
 
 (struct gpp:bezier:nth gpp:bezier
-  ([ctrls+endpoint : (Listof Float-Complex)]
-   [samples : Index])
+  ([ctrls+endpoint : (Listof Float-Complex)])
   #:type-name GPP:Bezier:Nth
   #:transparent)
 
@@ -124,19 +124,19 @@
                           (traverse (cons (car self) rest) p-head stnirp curpos)]
                          [(null? (cddr self))
                           (if (or p-head)
-                              (let ([Q (gpp:bezier:quadratic #\Q (cadr self) curpos (car self))])
+                              (let ([Q (gpp:bezier:quadratic #\Q (cadr self) curpos samples (car self))])
                                 (traverse rest p-head (cons Q stnirp) (gpath:print-end-here Q)))
                               ; decay to two points
                               (traverse (append self rest) p-head stnirp curpos))]
                          [(null? (cdddr self))
                           (if (or p-head)
-                              (let ([C (gpp:bezier:cubic #\C (caddr self) curpos (car self) (cadr self))])
+                              (let ([C (gpp:bezier:cubic #\C (caddr self) curpos samples (car self) (cadr self))])
                                 (traverse rest p-head (cons C stnirp) (gpath:print-end-here C)))
                               ; decay to the head point and a bezier stroage of controls
                               (traverse (cons (car self) (cons (cdr self) rest)) p-head stnirp curpos))]
                          [else ; n-th order bezier
                           (if (or p-head)
-                              (let-values ([(B) (gpp:bezier:nth #\null (last self) curpos self samples)])
+                              (let-values ([(B) (gpp:bezier:nth #\null (last self) curpos samples self)])
                                 (traverse rest p-head (cons B stnirp) (gpath:print-end-here B)))
                               ; decay to the head point and a bezier stroage of controls
                               (traverse (cons (car self) (cons (cdr self) rest)) p-head stnirp curpos))])]
@@ -205,13 +205,15 @@
                                 (flc-interval (list* spt ept (bezier-cubic-extremities spt ctrl1 ctrl2 ept)) lx ty rx by))]
                              [(gpp:bezier:nth? self)
                               (let ([tail (gpp:bezier:nth-ctrls+endpoint self)])
-                                (flc-interval (list* spt ept (bezier-nth-extremities spt tail (gpp:bezier:nth-samples self))) lx ty rx by))]
+                                (flc-interval (list* spt ept (bezier-nth-extremities spt tail (gpp:bezier-samples self))) lx ty rx by))]
                              [else '#:deadcode (values lx ty rx by)]))
                      (traverse rmin imin rmax imax rest))]
                   [else ; TODO: deal with arcs
                    (let*-values ([(pt) (geo-path-clean-print-position self)]
                                  [(x y) (values (real-part pt) (imag-part pt))])
-                     (traverse (min x lx) (min y ty) (max rx x) (max by y) rest))]))
+                     (traverse (min x lx) (min y ty)
+                               (max rx x) (max by y)
+                               rest))]))
           (let*-values ([(w h) (values (- rx lx) (- by ty))]
                         [(x width)  (if (>= w 0.0) (values lx w) (values 0.0 0.0))]
                         [(y height) (if (>= h 0.0) (values ty h) (values 0.0 0.0))])

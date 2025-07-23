@@ -37,8 +37,8 @@
     
     (values (list (gpp:point #\M offset)
                   (gpp:point #\L wing1)
-                  (gpp:bezier:quadratic #\Q arrow wing1 ctrl)
-                  (gpp:bezier:quadratic #\Q wing2 arrow ctrl)
+                  (gpp:bezier:quadratic #\Q arrow wing1 #;#:|useless ->| 200 ctrl)
+                  (gpp:bezier:quadratic #\Q wing2 arrow #;#:|useless ->| 200 ctrl)
                   (gpp:point #\L wing2)
                   (gpp:point #\L offset))
             (+ head-radius (real-part offset))

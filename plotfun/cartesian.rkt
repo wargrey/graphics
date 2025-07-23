@@ -2,8 +2,7 @@
 
 (provide (all-defined-out) Plot-Mark-Auto-Anchor)
 (provide Plot:Cartesian plot:cartesian?)
-(provide Plot:Function plot:function? function)
-(provide Plot-Visualizer-Tree Plot-Visualizer plot-visualizer?)
+
 (provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/singleton.rkt"))
@@ -11,7 +10,7 @@
 (provide (all-from-out "digitama/axis/tick/real.rkt"))
 (provide (all-from-out "digitama/marker/self.rkt"))
 (provide (all-from-out "digitama/marker/style.rkt"))
-(provide (all-from-out "digitama/visualizer/interface.rkt"))
+(provide (all-from-out "digitama/visualizer.rkt"))
 
 (require digimon/metrics)
 (require digimon/complex)
@@ -34,6 +33,7 @@
 (require geofun/digitama/paint/self)
 (require geofun/digitama/geometry/footprint)
 
+(require "digitama/visualizer.rkt")
 (require "digitama/arithmetics.rkt")
 (require "digitama/axis/self.rkt")
 (require "digitama/axis/style.rkt")
@@ -53,7 +53,6 @@
 
 (require "digitama/visualizer/self.rkt")
 (require "digitama/visualizer/interface.rkt")
-(require "digitama/visualizer/function.rkt")
 (require "digitama/visualizer/reference.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -20,8 +20,9 @@
     (define b (- end ctrl))
 
     (cond [(or (= a b) (not fbezier)) null]
-          [else (let ([tx (/ (real-part a) (real-part (- a b)))]
-                      [ty (/ (imag-part a) (imag-part (- a b)))])
+          [else (let* ([v (- a b)]
+                       [tx (/ (real-part a) (real-part v))]
+                       [ty (/ (imag-part a) (imag-part v))])
                   (cond [(< 0.0 tx 1.0) (list (fbezier tx))]
                         [(< 0.0 ty 1.0) (list (fbezier ty))]
                         [else null]))])))
@@ -32,8 +33,8 @@
   ; b = 6(p1 - 2p2 + p3)
   ; c = 3(p2 - p1)
   (lambda [head ctrl1 ctrl2 end]
-    (define fbezier  (bezier-function #:derivative 0 head (list ctrl1 end)))
-    (define a (+ (* 9.0 (- ctrl1 ctrl2)) (* 3.0 (- end head))))
+    (define fbezier  (bezier-function #:derivative 0 head (list ctrl1 ctrl2 end)))
+    (define a (* 3.0 (+ (* 3.0 (- ctrl1 ctrl2)) (- end head))))
     (define b (* 6.0 (+ head (* -2.0 ctrl1) ctrl2)))
     (define c (* 3.0 (- ctrl1 head)))
     (define txs (quadratic-solutions (real-part a) (real-part b) (real-part c)))
@@ -65,7 +66,7 @@
                               tseqs)
                           (let* ([f~~t (part (f~~bezier t))]
                                  [dt (/ f~t f~~t)])
-                            (cond [(< (abs dt) 1e-8) tseqs]
+                            (cond [(< (abs dt) 1e-9) tseqs]
                                   [else (newton-raphson (- t dt)
                                                         (+ trials 1))]))))
                     tseqs))))

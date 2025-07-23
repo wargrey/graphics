@@ -3,11 +3,11 @@
 (require geofun/vector)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define path : (Listof (U Point2D (Listof Point2D))) (list 100.0 200.0 (list 175+75i 125+25i 100+50i) 100-64i (list 121-72i 142-64i) 142))
+(define path : (Listof PolyCurve2D) (list 100.0 200.0 (list 175+75i 125+25i 100+50i) 100-64i (list 121-72i 142-64i) 142))
 (define pen : Stroke (desc-stroke #:width 2.0))
 (define bezier-pen : Stroke (desc-stroke #:width 1.5 #:dash 'long-dash))
 
-(define edge-examplify : (-> (Listof (U Point2D (Listof Point2D))) Option-Geo-Tip Option-Geo-Tip Stroke Geo)
+(define edge-examplify : (-> (Listof PolyCurve2D) Option-Geo-Tip Option-Geo-Tip Stroke Geo)
   (lambda [path smkr emkr pen]
     (geo-hc-append #:gapsize 16.0
                    (geo-edge #:stroke (desc-stroke pen #:color 'RoyalBlue)

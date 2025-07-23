@@ -163,14 +163,26 @@
 ;;; https://pomax.github.io/bezierinfo/#reordering
 (define cairo_bezier_curve : (-> Cairo-Ctx GPP:Bezier Float-Complex Float-Complex Void)
   (lambda [cr self src-offset end-offset]
-    (define endpt (+ (gpath:print-end-here self) end-offset))
+    (define srcpt (gpp:bezier-start-here self))
+    (define endpt (gpath:print-end-here self))
+    (define samples (gpp:bezier-samples self))
+    (define no-offset? (and (= src-offset 0.0+0.0i) (= end-offset 0.0+0.0i)))
 
     (cond [(gpp:bezier:cubic? self)
-           (cairo_cubic_bezier cr (gpp:bezier:cubic-ctrl1 self) (gpp:bezier:cubic-ctrl2 self) endpt)]
+           (if (or no-offset?)
+               (cairo_cubic_bezier cr (gpp:bezier:cubic-ctrl1 self) (gpp:bezier:cubic-ctrl2 self) endpt)
+               (cairo_nth_bezier cr srcpt (list (gpp:bezier:cubic-ctrl1 self) (gpp:bezier:cubic-ctrl2 self) endpt)
+                                 samples src-offset end-offset))]
           [(gpp:bezier:quadratic? self)
-           (cairo_quadratic_bezier cr (+ (gpp:bezier-start-here self) src-offset) (gpp:bezier:quadratic-ctrl self) endpt)]
+           (if (or no-offset?)
+               (cairo_quadratic_bezier cr (gpp:bezier-start-here self) (gpp:bezier:quadratic-ctrl self) endpt)
+               (cairo_nth_bezier cr srcpt (list (gpp:bezier:quadratic-ctrl self) endpt)
+                                 samples src-offset end-offset))]
           [(gpp:bezier:nth? self)
-           (cairo_nth_bezier cr (+ (gpp:bezier-start-here self) src-offset) (gpp:bezier:nth-ctrls+endpoint self) (gpp:bezier:nth-samples self))])))
+           (if (or no-offset?)
+               (cairo_nth_bezier cr srcpt (gpp:bezier:nth-ctrls+endpoint self) samples)
+               (cairo_nth_bezier cr srcpt (gpp:bezier:nth-ctrls+endpoint self)
+                                 samples src-offset end-offset))])))
 
 ; ctrl1 = (+ spt 2/3(ctrl - spt)) = (+ spt ctrl ctrl)/3
 ; ctrl2 = (+ ept 2/3(ctrl - ept)) = (+ ept ctrl ctrl)/3
@@ -188,12 +200,49 @@
                     (real-part ctrl2) (imag-part ctrl2)
                     (real-part endpt) (imag-part endpt))))
 
-(define cairo_nth_bezier : (-> Cairo-Ctx Float-Complex (Listof Float-Complex) Index Void)
-  (lambda [cr head tail samples]
-    (define fbezier (bezier-function head tail #:derivative 0))
+(define cairo_nth_bezier : (case-> [Cairo-Ctx Float-Complex (Listof Float-Complex) Index -> Void]
+                                   [Cairo-Ctx Float-Complex (Listof Float-Complex) Index Float-Complex Float-Complex -> Void])
+  (case-lambda
+    [(cr head tail samples)
+     (let ([fbezier (bezier-function head tail #:derivative 0)])
+       (unless (not fbezier)
+         (define delta (real->double-flonum (/ 1.0 (exact->inexact (max samples 1)))))
+         
+         (for ([t (in-range 0.0 (+ 1.0 delta) delta)])
+           (define dot (fbezier t))
+           (cairo_line_to cr (real-part dot) (imag-part dot)))))]
+    [(cr head tail samples src-offset end-offset)
+     (let ([fbezier (bezier-function head tail #:derivative 0)])
+       (unless (not fbezier)
+         (define offset-delta : Positive-Exact-Rational 1/500)
+         (define head-offsize : Nonnegative-Flonum (magnitude src-offset))
+         (define tail-offsize : Nonnegative-Flonum (magnitude end-offset))
 
-    (unless (not fbezier)
-      (define delta (real->double-flonum (/ 1.0 (exact->inexact (max samples 1)))))
-      (for ([t (in-range 0.0 (+ 1.0 delta) delta)])
-        (define dot (fbezier t))
-        (cairo_line_to cr (real-part dot) (imag-part dot))))))
+         (define t0 : Flonum
+           (let head-offset ([t : Positive-Exact-Rational offset-delta]
+                             [prev : Float-Complex (fbezier 0.0)]
+                             [acc-len : Nonnegative-Flonum 0.0])
+             (if (< t 1)
+                 (let* ([here (fbezier (exact->inexact t))]
+                        [accl (+ acc-len (magnitude (- here prev)))])
+                   (if (> accl head-offsize)
+                       (exact->inexact (- t offset-delta))
+                       (head-offset (+ t offset-delta) here accl)))
+                 1.0)))
+         
+         (define tn : Flonum
+           (let tail-offset ([t : Exact-Rational (- 1 offset-delta)]
+                             [next : Float-Complex (fbezier 1.0)]
+                             [acc-len : Nonnegative-Flonum 0.0])
+             (if (> t 0)
+                 (let* ([here (fbezier (exact->inexact t))]
+                        [accl (+ acc-len (magnitude (- next here)))])
+                   (if (< accl tail-offsize)
+                       (tail-offset (- t offset-delta) here accl)
+                       (exact->inexact (+ t offset-delta))))
+                 0.0)))
+
+         (define delta (/ 1.0 (exact->inexact (max samples 1))))
+         (for ([t (in-range t0 (+ tn delta) delta)])
+           (define dot (fbezier t))
+           (cairo_line_to cr (real-part dot) (imag-part dot)))))]))

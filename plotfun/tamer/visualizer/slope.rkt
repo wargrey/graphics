@@ -4,6 +4,8 @@
 (require plotfun/cartesian)
 (require plotfun/digitama/calculus)
 
+(require racket/math)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (|(x²+x-2)/(x²-x)| [x : Real]) : (Option Real)
   (and (or (not (plot-sampling?))
@@ -24,18 +26,28 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define vfuncs : (->* ((-> Real (Option Complex)) (U Real (Listof Real))) () (Listof Plot-Visualizer))
    (lambda [f xs]
-    (define safe-f (safe-real-function f))
-    (define delta 0.618)
+     (define seq (if (list? xs) (in-list xs) (in-value xs)))
+     (define safe-f (safe-real-function f))
+     (define t-delta 0.618)
+     (define n-delta 0.1618)
     
-    (list* (function safe-f)
-           
-           (filter plot-visualizer?
-                   (for/list : (Listof (Option Plot-Visualizer)) ([x (if (list? xs) (in-list xs) (in-value xs))])
-                     (define tanline (tangent-line safe-f x))
+     (list* (function safe-f)
+            
+            (append (filter plot-visualizer?
+                            (for/list : (Listof (Option Plot-Visualizer)) ([x seq])
+                              (define k.b (tangent-line safe-f x))
 
-                     (and tanline
-                          (function #:label 'name #:safe-slope safe-f
-                                    tanline (- x delta) (+ x delta))))))))
+                              (and k.b
+                                   (f:linear #:label 'name
+                                             (car k.b) (cdr k.b) (- x t-delta) (+ x t-delta)))))
+                    
+                    (filter plot-visualizer?
+                            (for/list : (Listof (Option Plot-Visualizer)) ([x seq])
+                              (define k.b (normal-line safe-f x))
+                              
+                              (and k.b
+                                   (f:linear #:label #false #:dash 'dot
+                                             (car k.b) (cdr k.b) (- x n-delta) (+ x n-delta)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (geo-hb-append
@@ -61,5 +73,5 @@
   #:width 1000.0
   #:x-range (cons -2 2)
   #:y-range (cons -1 2)
-  (list (vfuncs abs '(0 1))
+  (list (vfuncs abs '(-1 1))
         (vfuncs |xsin(1/x)| '(-1 0 1)))))

@@ -87,15 +87,15 @@
            #:tip-placement [tip-plm : Geo-Tip-Placement 'center]
            #:source-placement [src-plm : (Option Geo-Tip-Placement) #false]
            #:target-placement [tgt-plm : (Option Geo-Tip-Placement) #false]
-           #:bezier-samples [samples : Index 200]
+           #:bezier-samples [samples : Index (default-bezier-samples)]
            #:scale [scale : Point2D 1.0]
            #:offset [offset : Float-Complex 0.0+0.0i]
-           [segments : (Listof (U Point2D (Listof Point2D)))]] : Geo:Edge
+           [segments : (Listof PolyCurve2D)]] : Geo:Edge
     (geo-edge* #:id id #:stroke stroke #:source-tip src-tip #:target-tip tgt-tip
                #:tip-color tip-clr #:source-color src-clr #:target-color tgt-clr
                #:tip-placement tip-plm #:source-placement src-plm #:target-placement tgt-plm
-               (let-values ([(prints lx ty rx by) (~point2ds* segments offset scale)])
-                 (geo-path-cleanse prints #:bezier-samples samples)))))
+               (let-values ([(curves lx ty rx by) (~polycurves segments offset scale)])
+                 (geo-path-cleanse curves #:bezier-samples samples)))))
 
 (define geo-edge-attach-label : (-> (U Geo:Edge Geo:Labeled-Edge) (U Geo-Edge-Label (Listof Geo-Edge-Label)) (U Geo:Edge Geo:Labeled-Edge))
   (lambda [self label]

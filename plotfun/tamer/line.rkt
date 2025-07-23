@@ -77,7 +77,7 @@
   (plot-real-line #:range (cons 0 10) #:label "R")
   (plot-real-line #:range (cons +1 +7/2) #:label "R")
   (plot-real-line #:range (cons -7 -5/2) #:label "R")
-  (plot-real-line #:range (cons -70 30) #:label "R")
+  (plot-real-line #:range (cons -70 +30) #:label "R")
   (plot-real-line #:range (cons -0.001 +0.007) #:label "R")
   (plot-real-line #:range (cons -0.618 +0.618) #:label "R")
   (plot-real-line #:ticks (plot-fixed-ticks -6.28 +6.29 3.14) #:label "R"))

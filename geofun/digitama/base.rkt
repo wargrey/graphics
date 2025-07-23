@@ -37,6 +37,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-bitmap-density : (Parameterof Positive-Flonum) (make-parameter 2.0))
 (define default-bitmap-icon-height : (Parameterof Nonnegative-Flonum) (make-parameter 24.0))
+(define default-bezier-samples : (Parameterof Positive-Index) (make-parameter 200))
 
 (define color? : (-> Any Boolean : Color)
   (lambda [v]

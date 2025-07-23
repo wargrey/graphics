@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require "datum.rkt")
+(require "../base.rkt")
 (require "../dc/path.rkt")
 
 (require "../geometry/bbox.rkt")
@@ -178,7 +179,7 @@
 
 (define geo-path-quadratic-bezier : (-> Geo:Path Float-Complex Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt ctrl anchor]
-    (define path:bezier (gpp:bezier:quadratic #\Q endpt (geo:path-here self) ctrl))
+    (define path:bezier (gpp:bezier:quadratic #\Q endpt (geo:path-here self) (default-bezier-samples) ctrl))
 
     (geo-bbox-fit! (geo:path-bbox self) endpt)
     (geo-bbox-fit! (geo:path-bbox self) ctrl)
@@ -188,7 +189,7 @@
 
 (define geo-path-cubic-bezier : (-> Geo:Path Float-Complex Float-Complex Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt ctrl1 ctrl2 anchor]
-    (define path:bezier (gpp:bezier:cubic #\C endpt (geo:path-here self) ctrl1 ctrl2))
+    (define path:bezier (gpp:bezier:cubic #\C endpt (geo:path-here self) (default-bezier-samples) ctrl1 ctrl2))
 
     (geo-bbox-fit! (geo:path-bbox self) endpt)
     (geo-bbox-fit! (geo:path-bbox self) ctrl1)

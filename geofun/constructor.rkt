@@ -29,8 +29,8 @@
 (provide geo-gear geo:gear? Geo:Gear)
 (provide geo-stickman geo:stickman? Geo:Stickman)
 
-(provide geo-bezier geo-bezier* geo:bezier? Geo:Bezier)
-(provide geo-polybezier geo-polybezier*)
+(provide geo-bezier geo-bezier*)
+(provide geo-polycurve geo-polycurve* geo:polycurve? Geo:Polycurve)
 
 (provide geo-edge geo-edge* geo:edge? Geo:Edge)
 (provide geo-edge-attach-label geo-edge-unlabel geo:labeled-edge? Geo:Labeled-Edge)
@@ -62,7 +62,7 @@
 (require "digitama/dc/stickman.rkt")
 (require "digitama/dc/more.rkt")
 
-(require "digitama/dc/bezier.rkt")
+(require "digitama/dc/polycurve.rkt")
 (require "digitama/dc/polygon.rkt")
 (require "digitama/dc/polygon/quadrilateral.rkt")
 (require "digitama/dc/polygon/pentagon.rkt")

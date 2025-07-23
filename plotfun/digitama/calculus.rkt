@@ -5,7 +5,7 @@
                      [d²f/dx² ddf/dxx]
                      [d²f/dx² d2f/dx2]))
 
-(require racket/format)
+(require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type DF/DX (->* ((-> Real Complex) Real) (Positive-Real) (Option Real)))
@@ -21,6 +21,18 @@
 
 ; a smaller ϵ for d²f/dx² would result in 0
 (define the-ϵ/2nd-order : Positive-Exact-Rational 1/10000) #;|√√(machine ϵ)|
+
+(define limit : DF/DX
+  (lambda [f x [ϵ the-ϵ/1st-order]]
+    (define fx : Complex (f x))
+    
+    (cond [(rational? fx) fx]
+          [else (let ([lim- (f (- x ϵ))]
+                      [lim+ (f (+ x ϵ))])
+                  (cond [(and (rational? lim-) (rational? lim+)) (* (+ lim- lim+) 1/2)]
+                        [(rational? lim-) lim-]
+                        [(rational? lim+) lim+]
+                        [else #false]))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define df/dx : DF/DX
@@ -119,32 +131,46 @@
                  (car vs)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define tangent-line : (->* ((-> Real Complex) Real) (#:%.lf Integer #:df/dx DF/DX Positive-Real) (Option (-> Real Real)))
-  (lambda [f x [ϵ the-ϵ/1st-order] #:%.lf [%.lf 2] #:df/dx [df/dx df/dx]]
-    (define fx : Complex (f x))
-    (define k (df/dx  f x ϵ))
+(define tangent-line : (->* ((-> Real Complex) Real) (#:df/dx DF/DX Positive-Real) (Option (Pairof Real Real)))
+  (lambda [f x [ϵ the-ϵ/1st-order] #:df/dx [df/dx df/dx]]
+    (define k (df/dx f x ϵ))
 
     (and (rational? k)
-         (let* ([y (cond [(rational? fx) fx]
-                         [else (let ([lim- (f (- x ϵ))]
-                                     [lim+ (f (+ x ϵ))])
-                                 (cond [(and (rational? lim-) (rational? lim+)) (* (+ lim- lim+) 1/2)]
-                                       [(rational? lim-) lim-]
-                                       [(rational? lim+) lim+]
-                                      [else #false]))])]
+         (let* ([y (limit f x ϵ)]
                 [b (and y (- y (* k x)))])
            (and b
-                (procedure-rename
-                 (λ [[x : Real]]
-                   (+ (* k x) b))
-                 (let ([K (~r k #:precision %.lf)]
-                       [B (~r (abs b) #:precision %.lf)])
-                   (string->symbol
-                    (cond [(string=? K "0") (format "y = ~a" B)]
-                          [(string=? B "0") (format "y = ~ax" (case K [("1") '||] [("-1") '-] [else K]))]
-                          [else (format "y = ~ax ~a ~a"
-                                  (case K [("1") '||] [("-1") '-] [else K])
-                                  (if (< b 0.0) '- '+) B)])))))))))
+                (cons k b))))))
+
+(define normal-line : (->* ((-> Real Complex) Real) (#:df/dx DF/DX Positive-Real) (Option (Pairof Real Real)))
+  (lambda [f x [ϵ the-ϵ/1st-order] #:df/dx [df/dx df/dx]]
+    (define k (df/dx f x ϵ))
+
+    (cond [(rational? k)
+           (and (not (zero? k))
+                (let* ([-1/k (/ -1.0 k)]
+                       [y (limit f x ϵ)]
+                       [b (and y (- y (* -1/k x)))])
+                  (and b (cons -1/k b))))]
+          [(and k (infinite? k))
+           (let ([y (limit f x ϵ)])
+             (and y (cons 0.0 y)))]
+          [else #false])))
+                
+(define tangent-vector : (->* ((-> Real Complex) Real) (#:df/dx DF/DX Positive-Real) (Option Complex))
+  (lambda [f x [ϵ the-ϵ/1st-order] #:df/dx [df/dx df/dx]]
+    (define k (df/dx f x ϵ))
+
+    (and (rational? k)
+         (let ([v (make-rectangular 1 k)])
+           (/ v (magnitude v))))))
+
+(define normal-vector : (->* ((-> Real Complex) Real) (#:df/dx DF/DX Positive-Real) (Option Complex))
+  (lambda [f x [ϵ the-ϵ/1st-order] #:df/dx [df/dx df/dx]]
+    (define k (df/dx f x ϵ))
+
+    (and (rational? k)
+         (let ([n (make-rectangular k -1)])
+           (/ n (magnitude n))))))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (R) safe-real-function : (-> (-> R (Option Complex)) (-> R Real))

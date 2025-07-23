@@ -46,6 +46,11 @@
   #:type-name Geo:Visualizer
   #:transparent)
 
+(struct geo:line:visualizer geo:visualizer
+  ([dots : (Listof Float-Complex)])
+  #:type-name Geo:Line:Visualizer
+  #:transparent)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-visualizer-tree-flatten : (-> Plot-Visualizer-Tree (Values (Listof Plot-Visualizer) Plot-Visualizer-Tick-Range Plot-Visualizer-Tick-Range))
   (lambda [tree]
