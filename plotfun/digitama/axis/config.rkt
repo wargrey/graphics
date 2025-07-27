@@ -114,7 +114,9 @@
     (define-values (neg-margin pos-margin) (plot-axis-margin-values tip fllength))
     
     (values fllength
-            (max (- fllength neg-margin pos-margin (stroke-width (plot-axis-style-stroke self))) 1.0)
+            (max (- fllength neg-margin pos-margin
+                    (~length (plot-axis-style-tick-thickness self)
+                             (stroke-width (plot-axis-style-stroke self)))) 1.0)
             neg-margin pos-margin)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

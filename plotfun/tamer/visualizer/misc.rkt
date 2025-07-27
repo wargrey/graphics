@@ -33,6 +33,9 @@
            (+ (* x x +1) (* 2 x) 1)
            (+ (* x x -1) (* 2 x) 1))))
 
+(define (|x^4-2x^2+2| [x : Real]) : Real
+  (+ (* x x x x) (* -2 x x) 2))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (plot-cartesian
  #:x-range (cons -8 6)
@@ -55,3 +58,10 @@
  #:x-range (cons -2 2)
  #:y-range (cons 0 9)
  (list (function |f(x)|)))
+
+(plot-cartesian
+ #:width 400.0
+ #:height 400.0
+ #:x-range (cons -2 2)
+ #:y-range (cons 0 9)
+ (list (function |x^4-2x^2+2| #:label #false)))
