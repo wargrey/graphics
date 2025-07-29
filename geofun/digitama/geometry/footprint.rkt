@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require digimon/complex)
+(require digimon/digitama/unsafe/ops)
 (require racket/list)
 
 (require "bezier.rkt")
@@ -143,7 +144,7 @@
                   [else '#:deadcode (traverse rest p-head stnirp curpos)]))
           (reverse stnirp)))))
 
-(define geo-path-end-points
+(define geo-path-endpoint-vectors
   : (case-> [Geo-Path-Clean-Prints+ -> (Values Float-Complex Flonum Float-Complex Flonum)]
             [Geo-Path-Clean-Prints -> (Values (Option Float-Complex) Flonum (Option Float-Complex) Flonum)])
   (lambda [footprints]
@@ -156,7 +157,7 @@
                                 [prints : (Listof GPath:Print) (cddr footprints)])
                    (if (null? prints)
                        (let-values ([(hpt hrad)
-                                     (cond [(gpp:bezier? h2nd) ; WARNING: A bezier storage couldn't be the first one, an the storage know the head point.
+                                     (cond [(gpp:bezier? h2nd) ; NOTE: A bezier storage couldn't be the first one, an the storage know the head point.
                                             (let-values ([(hpt hrad tpt trad) (geo-path-bezier-endpoints h2nd)])
                                               (values hpt hrad))]
                                            [(gpp:bezier? h1st) ; WARNING: rarely happen, but who knows.
@@ -182,6 +183,31 @@
                       [rad (angle pos)])
                  (values pos rad pos rad))])
         (values #false 0.0 #false 0.0))))
+
+(define geo-path-directional-vector : (-> Geo-Path-Clean-Prints Integer Float (Option (Pairof Float-Complex Float-Complex)))
+  (lambda [footprints index t]
+    (let traverse ([curpos : (Option Float-Complex) #false]
+                   [prints : Geo-Path-Clean-Prints footprints]
+                   [idx : Index 0])
+      (and (pair? prints)
+           (let-values ([(self rest) (values (car prints) (cdr prints))])
+             (cond [(gpp:point? self)
+                    (let ([endpos (geo-path-clean-print-position self)])
+                      (cond [(or (not curpos) (eq? (gpath:datum-cmd self) #\M)) (traverse endpos rest idx)]
+                            [(< idx index) (traverse endpos rest (unsafe-idx+ idx 1))]
+                            [else (let ([dir (- endpos curpos)])
+                                    (cons (+ (* dir t) curpos)
+                                          dir))]))]
+                   [(gpp:bezier? self) ; NOTE: A bezier storage couldn't be the first one, an the storage know the head point.
+                    (if (= idx index)
+                        (let ([bezier (geo-path-bezier-function self 0)]
+                              [derivative (geo-path-bezier-function self 1)])
+                          (and bezier derivative
+                               (let ([pos (bezier t)]
+                                     [dp (derivative t)])
+                                 (cons pos (/ dp (magnitude dp))))))
+                        (traverse (geo-path-clean-print-position self) rest (unsafe-idx+ idx 1)))]
+                   [else '#:deadcode (traverse curpos rest idx)]))))))
 
 (define geo-path-ink-box : (-> Geo-Path-Clean-Prints (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [footprints]
@@ -227,14 +253,7 @@
         (hash-ref! pts-db self
                    (λ [] (let ([spt (gpp:bezier-start-here self)]
                                [ept (gpath:print-end-here self)])
-                           (define derivative : (Option (-> Flonum Float-Complex))
-                             (cond [(gpp:bezier:cubic? self)
-                                    (bezier-function #:derivative 1 spt (list (gpp:bezier:cubic-ctrl1 self) (gpp:bezier:cubic-ctrl2 self) ept))]
-                                   [(gpp:bezier:quadratic? self)
-                                    (bezier-function #:derivative 1 spt (list (gpp:bezier:quadratic-ctrl self) ept))]
-                                   [(gpp:bezier:nth? self)
-                                    (bezier-function #:derivative 1 spt (gpp:bezier:nth-ctrls+endpoint self))]
-                                   [else '#:deadcode (bezier-function #:derivative 1 spt (list ept))]))
+                           (define derivative : (Option (-> Flonum Float-Complex)) (geo-path-bezier-function self 1))
                            
                            (if (not derivative)
                                (list spt 0.0 ept 0.0)
@@ -242,6 +261,19 @@
                                      ept (angle (derivative 1.0))))))))
       (values (car results)   (cadr results)
               (caddr results) (cadddr results)))))
+
+(define geo-path-bezier-function : (-> GPP:Bezier Byte (Option (-> Flonum Float-Complex)))
+  (lambda [self order]
+    (define spt (gpp:bezier-start-here self))
+    (define ept (gpath:print-end-here self))
+    
+    (cond [(gpp:bezier:cubic? self)
+           (bezier-function #:derivative order spt (list (gpp:bezier:cubic-ctrl1 self) (gpp:bezier:cubic-ctrl2 self) ept))]
+          [(gpp:bezier:quadratic? self)
+           (bezier-function #:derivative order spt (list (gpp:bezier:quadratic-ctrl self) ept))]
+          [(gpp:bezier:nth? self)
+           (bezier-function #:derivative order spt (gpp:bezier:nth-ctrls+endpoint self))]
+          [else '#:deadcode (bezier-function #:derivative order spt (list ept))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define the-Z : GPP:Close (gpp:close #\Z))

@@ -55,7 +55,7 @@
            #:target-placement [tgt-plm : (Option Geo-Tip-Placement) #false]
            [footprints0 : Geo-Path-Clean-Prints]] : Geo:Edge
     (define footprints : (Pairof GPath:Print Geo-Path-Clean-Prints) (if (pair? footprints0) footprints0 (list the-M0)))
-    (define-values (spt srad ept erad) (geo-path-end-points footprints))
+    (define-values (spt srad ept erad) (geo-path-endpoint-vectors footprints))
     (define-values (ik.x ik.y ik.w ik.h) (geo-path-ink-box footprints))
     
     (define thickness : Nonnegative-Flonum (stroke-width (if (stroke? stroke) stroke (default-stroke))))
@@ -76,6 +76,31 @@
                             (make-rectangular lx ty) (make-rectangular xoff yoff)
                             src-shape tgt-shape (cons s.off t.off))))
 
+(define geo-edge-attach-label : (-> (U Geo:Edge Geo:Labeled-Edge) (U Geo-Edge-Label (Listof Geo-Edge-Label)) (U Geo:Edge Geo:Labeled-Edge))
+  (lambda [self label]
+    (cond [(null? label) self]
+          [(geo:edge? self)
+           (let-values ([(w h) (geo-flsize self)])
+             (geo-edge-attach-label (create-geometry-group geo:labeled-edge #false #false #false (geo-own-layers self)) label))]
+          [else (let* ([edge (geo-edge-unlabel self)]
+                       [O (geo:edge-origin edge)])
+                  (define labels-vectors : (HashTable Any (Option (Pairof Float-Complex Float-Complex))) (make-hash))
+                  (define (this-label-vector [idx : Integer] [t : Flonum]) : (Option (Pairof Float-Complex Float-Complex))
+                    (hash-ref! labels-vectors (cons idx t)
+                               (λ [] (geo-path-directional-vector (geo:edge-footprints edge) idx t))))
+                  (let attach ([labels : (Listof Geo-Edge-Label) (if (list? label) label (list label))]
+                               [layers : (Listof (GLayerof Geo)) null]
+                               [op : (Option Symbol) 'source])
+                    (if (pair? labels)
+                        (let* ([label (car labels)]
+                               [V (this-label-vector (geo-edge-label-idx label) (geo-edge-label-t label))])
+                          (if (and V)
+                              (let-values ([(layer distance) (geo-edge-label-layer+distance label (- (car V) O) (cdr V))])
+                                (attach (cdr labels) (cons layer layers) (if (zero? distance) op #false)))
+                              (attach labels layers op)))
+                        (create-geometry-group geo:labeled-edge #false #false op
+                                               (geo-path-layers-merge (geo:group-selves self) layers)))))])))
+
 (define geo-edge
   (lambda [#:id [id : (Option Symbol) #false]
            #:stroke [stroke : Maybe-Stroke-Paint (void)]
@@ -90,32 +115,17 @@
            #:bezier-samples [samples : Index (default-bezier-samples)]
            #:scale [scale : Point2D 1.0]
            #:offset [offset : Float-Complex 0.0+0.0i]
-           [segments : (Listof PolyCurve2D)]] : Geo:Edge
-    (geo-edge* #:id id #:stroke stroke #:source-tip src-tip #:target-tip tgt-tip
-               #:tip-color tip-clr #:source-color src-clr #:target-color tgt-clr
-               #:tip-placement tip-plm #:source-placement src-plm #:target-placement tgt-plm
-               (let-values ([(curves lx ty rx by) (~polycurves segments offset scale)])
-                 (geo-path-cleanse curves #:bezier-samples samples)))))
+           #:labels [labels : (U Geo-Edge-Label (Listof Geo-Edge-Label) False) #false]
+           [segments : (Listof PolyCurve2D)]] : (U Geo:Edge Geo:Labeled-Edge)
+    (define me : Geo:Edge
+      (geo-edge* #:id id #:stroke stroke #:source-tip src-tip #:target-tip tgt-tip
+                 #:tip-color tip-clr #:source-color src-clr #:target-color tgt-clr
+                 #:tip-placement tip-plm #:source-placement src-plm #:target-placement tgt-plm
+                 (let-values ([(curves lx ty rx by) (~polycurves segments offset scale)])
+                   (geo-path-cleanse curves #:bezier-samples samples))))
 
-(define geo-edge-attach-label : (-> (U Geo:Edge Geo:Labeled-Edge) (U Geo-Edge-Label (Listof Geo-Edge-Label)) (U Geo:Edge Geo:Labeled-Edge))
-  (lambda [self label]
-    (cond [(null? label) self]
-          [(geo:edge? self)
-           (let-values ([(w h) (geo-flsize self)])
-             (geo-edge-attach-label (create-geometry-group geo:labeled-edge #false #false #false (geo-own-layers self)) label))]
-          [else (let* ([edge (geo-edge-unlabel self)]
-                       [O (geo:edge-origin edge)])
-                  (let attach ([labels : (Listof Geo-Edge-Label) (if (list? label) label (list label))]
-                               [layers : (Listof (GLayerof Geo)) null]
-                               [op : (Option Symbol) 'source])
-                    (if (pair? labels)
-                        (let* ([label (car labels)]
-                               [distance (geo-edge-label-distance label)])
-                          (attach (cdr labels)
-                                  (cons (geo-edge-label-layer label O) layers)
-                                  (if (and distance (zero? distance)) op #false)))
-                        (create-geometry-group geo:labeled-edge #false #false op
-                                               (geo-path-layers-merge (geo:group-selves self) layers)))))])))
+    (cond [(or (not labels) (null? labels)) me]
+          [else (geo-edge-attach-label me labels)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-edge-self-pin-position : (->* ((U Geo:Edge Geo:Labeled-Edge)) ((Option Float-Complex)) Float-Complex)

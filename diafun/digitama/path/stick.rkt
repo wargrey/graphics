@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/list)
+(require digimon/digitama/unsafe/ops)
 
 (require geofun/digitama/convert)
 (require geofun/digitama/geometry/trail)
@@ -28,7 +29,7 @@
 (require (for-syntax racket/base))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Path-Arrow-Label-Info (List Float-Complex Float-Complex Geo-Edge-Label-Datum Nonnegative-Flonum))
+(define-type Dia-Path-Arrow-Label-Info (List Index Geo-Path-Labels Nonnegative-Flonum))
 
 (define-syntax (dia-label-info->label stx)
   (syntax-case stx []
@@ -144,16 +145,16 @@
         arrows)))
 
 (define dia-arrow-label-info-filter : (-> Geo-Path-Infobase Geo-Path-Clean-Prints Geo-Path-Clean-Prints
-                                          (Values (Listof Geo-Edge-Label-Datum) (Listof Dia-Path-Arrow-Label-Info)
+                                          (Values (Listof Geo-Path-Labels) (Listof Dia-Path-Arrow-Label-Info)
                                                   (Listof Geo-Path-Info-Datum)))
   (lambda [infobase tracks refined-tracks]
     (let label-filter ([sofni : (Listof Dia-Path-Arrow-Label-Info) null]
-                       [slebal : (Listof Geo-Edge-Label-Datum) null]
+                       [slebal : (Listof Geo-Path-Labels) null]
                        [extra-infos : (Listof Geo-Path-Info-Datum) null]
                        [orig-tracks : Geo-Path-Clean-Prints tracks]
                        [refd-tracks : Geo-Path-Clean-Prints refined-tracks]
                        [orig-src : (Option Float-Complex) #false]
-                       [refd-src : Float-Complex 0.0+0.0i])
+                       [idx : Index 0])
       (if (and (pair? orig-tracks) (pair? refd-tracks))
 
           (let ([oself (car orig-tracks)]
@@ -161,7 +162,7 @@
             (cond [(eq? (gpath:datum-cmd oself) #\M)
                    (label-filter sofni slebal extra-infos (cdr orig-tracks) (cdr refd-tracks)
                                  (geo-path-clean-print-position oself)
-                                 (geo-path-clean-print-position rself))]
+                                 idx)]
                   [(eq? (gpath:datum-cmd oself) #\L)
                    (let* ([otarget (geo-path-clean-print-position oself)]
                           [rtarget (geo-path-clean-print-position rself)]
@@ -173,13 +174,13 @@
                                  [mult (geo:path:info-multiplicity info)]
                                  [extra (geo:path:info-extra info)])
                              (if (null? extra)
-                                 (values (geo-edge-label-map labels) t mult extra-infos)
-                                 (values (geo-edge-label-map labels) t mult (append extra-infos extra))))
+                                 (values labels t mult extra-infos)
+                                 (values labels t mult (append extra-infos extra))))
                            (values #false 0.0 #false extra-infos)))
 
                      (define-values (label-info slabel++)
                        (if (or maybe-label)
-                           (values (list refd-src rtarget maybe-label base-position)
+                           (values (list idx maybe-label base-position)
                                    (cons maybe-label slebal))
                            (values #false slebal)))
 
@@ -187,17 +188,20 @@
                        (let ([labels (and maybe-mult (geo-edge-multiplicities-map (geo:path:multiplicity-source maybe-mult)
                                                                                   (geo:path:multiplicity-target maybe-mult)))])
                          (and labels
-                              (list refd-src rtarget labels
+                              (list idx labels
                                     (geo:path:multiplicity-base-position maybe-mult)))))
                    
                      (label-filter (cond [(and label-info mult-info) (list* label-info mult-info sofni)]
                                          [(and label-info) (cons label-info sofni)]
                                          [(and mult-info) (cons mult-info sofni)]
                                          [else sofni])
-                                   slabel++ extra++ (cdr orig-tracks) (cdr refd-tracks) otarget rtarget))]
+                                   slabel++ extra++ (cdr orig-tracks) (cdr refd-tracks) otarget
+                                   (unsafe-idx+ idx 1)))]
 
                   ;;; TODO: deal with curves
-                  [else (label-filter sofni slebal extra-infos (cdr orig-tracks) (cdr refd-tracks) orig-src refd-src)]))
+                  [else (label-filter sofni slebal extra-infos
+                                      (cdr orig-tracks) (cdr refd-tracks) orig-src
+                                      (unsafe-idx+ idx 1))]))
           
           (values (reverse slebal) sofni extra-infos)))))
 

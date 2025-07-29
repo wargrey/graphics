@@ -18,7 +18,7 @@
 (define-type Dia-Path-Block-Datum (List String Dia-Node-Style (Option Symbol)))
 
 (define-type Dia-Path-Block-Identifier (-> Geo-Anchor-Name (Option Dia-Path-Block-Datum)))
-(define-type Dia-Path-Arrow-Identifier (-> Dia:Node (Option Dia:Node) (Listof Geo-Edge-Label-Datum) (Listof Geo-Path-Info-Datum) (Option Dia-Edge-Style)))
+(define-type Dia-Path-Arrow-Identifier (-> Dia:Node (Option Dia:Node) (Listof Geo-Path-Labels) (Listof Geo-Path-Info-Datum) (Option Dia-Edge-Style)))
 (define-type Dia-Path-Block-Create (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol) Dia:Node))
 (define-type Dia-Path-Id->Label-String (U (HashTable Geo-Anchor-Name String) (-> Geo-Anchor-Name String (U String Void False))))
 
@@ -39,7 +39,7 @@
 
 (define-type Dia-Path-Arrow->Edge-Label
   (-> Dia:Node (Option Dia:Node) Dia-Edge-Style
-      Float-Complex Float-Complex Geo-Edge-Label-Datum Nonnegative-Flonum
+      Index Geo-Path-Labels Nonnegative-Flonum
       (U Geo-Edge-Label (Listof Geo-Edge-Label) Void False)))
 
 (define-type Dia-Path-Free-Track->Edge
@@ -49,7 +49,7 @@
 
 (define-type Dia-Path-Free-Track->Edge-Label
   (-> Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint Dia-Edge-Style
-      Float-Complex Float-Complex Geo-Edge-Label-Datum Nonnegative-Flonum
+      Index Geo-Path-Labels Nonnegative-Flonum
       (U Geo-Edge-Label (Listof Geo-Edge-Label) Void False)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -69,12 +69,13 @@
      labels)))
 
 (define default-dia-path-edge-label-construct : Dia-Path-Arrow->Edge-Label
-  (lambda [source target style start end label base-position]
+  (lambda [source target style idx label base-position]
     (make-geo-edge-labels #:font (dia-edge-select-font style)
-                          #:font-paint (dia-edge-select-font-paint style)
+                          #:color (dia-edge-select-font-paint style)
                           #:rotate? (dia-edge-select-label-rotate? style)
                           #:distance (and (dia-edge-select-label-inline? style) 0.0)
-                          start end label base-position)))
+                          #:index idx
+                          label base-position)))
 
 (define default-dia-path-free-edge-construct : Dia-Path-Free-Track->Edge
   (lambda [source target style tracks labels]
@@ -88,12 +89,13 @@
      labels)))
 
 (define default-dia-path-free-edge-label-construct : Dia-Path-Free-Track->Edge-Label
-  (lambda [source target style start end label base-position]
+  (lambda [source target style idx label base-position]
     (make-geo-edge-labels #:font (dia-edge-select-font style)
-                          #:font-paint (dia-edge-select-font-paint style)
+                          #:color (dia-edge-select-font-paint style)
                           #:rotate? (dia-edge-select-label-rotate? style)
                           #:distance (if (dia-edge-select-label-inline? style) 0.0 (dia-edge-select-label-distance style))
-                          start end label base-position)))
+                          #:index idx
+                          label base-position)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-path-block-style-construct : (->* (Geo-Anchor-Name String

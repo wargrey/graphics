@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require geofun/digitama/edge/label)
+(require geofun/digitama/path/self)
 (require geofun/digitama/edge/tip/self)
 
 (require geofun/digitama/base)
@@ -18,7 +18,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Free-Edge-Endpoint (U Geo-Anchor-Name Float-Complex))
 
-(define-type (Dia-Edge-Style-Make* Src Tgt S) (-> Src Tgt (Listof Geo-Edge-Label-Datum) (U S Void False)))
+(define-type (Dia-Edge-Style-Make* Src Tgt S) (-> Src Tgt (Listof Geo-Path-Labels) (U S Void False)))
 (define-type (Dia-Edge-Style-Make S) (Dia-Edge-Style-Make* Geo (Option Geo) S))
 (define-type (Dia-Free-Edge-Style-Make S) (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint S))
 
@@ -131,7 +131,7 @@
                  [dash dash-datum])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (Src Tgt S) dia-edge-style-construct : (-> Src Tgt (Listof Geo-Edge-Label-Datum) (Option (Dia-Edge-Style-Make* Src Tgt S)) (-> S) S)
+(define #:forall (Src Tgt S) dia-edge-style-construct : (-> Src Tgt (Listof Geo-Path-Labels) (Option (Dia-Edge-Style-Make* Src Tgt S)) (-> S) S)
   (lambda [source target label mk-style mk-fallback-style]
     (define maybe-style (and mk-style (mk-style source target label)))
 
