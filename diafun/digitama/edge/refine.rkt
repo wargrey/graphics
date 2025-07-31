@@ -12,8 +12,8 @@
 ; TODO: deal with curved prints
 (define dia-2-tracks-relocate-source : (-> (GLayerof Geo) GPath:Print GPath:Print GPath:Print)
   (lambda [source a:track b:track]
-    (define A : Float-Complex (geo-path-clean-print-position a:track))
-    (define B : Float-Complex (geo-path-clean-print-position b:track))
+    (define A : Float-Complex (gpp-clean-position a:track))
+    (define B : Float-Complex (gpp-clean-position b:track))
     
     (gpp:point (gpath:datum-cmd b:track)
                (or (dia-line-node-intersect source A B A)
@@ -21,8 +21,8 @@
 
 (define dia-2-tracks-relocate-target : (-> (GLayerof Geo) GPath:Print GPath:Print GPath:Print)
   (lambda [target a:track b:track]
-    (define A : Float-Complex (geo-path-clean-print-position a:track))
-    (define B : Float-Complex (geo-path-clean-print-position b:track))
+    (define A : Float-Complex (gpp-clean-position a:track))
+    (define B : Float-Complex (gpp-clean-position b:track))
 
     (gpp:point (gpath:datum-cmd b:track)
                (or (dia-line-node-intersect target A B B)

@@ -34,7 +34,7 @@
 
 (provide Geo-Path Geo:Path Geo:Path:Self)
 (provide geo-path geo-path* geo:path? geo:path:self?)
-(provide geo-path-ungroup geo-path-self-pin-position)
+(provide geo-path-ungroup geo-path-self-pin-position geo-path-length)
 (provide geo-path-endpoints geo-path-endpoint-offsets)
 
 (provide geo-stadium geo-lstadium geo-rstadium geo:stadium? Geo:Stadium)

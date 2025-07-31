@@ -214,33 +214,8 @@
     [(cr head tail samples src-offset end-offset)
      (let ([fbezier (bezier-function head tail #:derivative 0)])
        (unless (not fbezier)
-         (define offset-delta : Positive-Exact-Rational 1/500)
-         (define head-offsize : Nonnegative-Flonum (magnitude src-offset))
-         (define tail-offsize : Nonnegative-Flonum (magnitude end-offset))
-
-         (define t0 : Flonum
-           (let head-offset ([t : Positive-Exact-Rational offset-delta]
-                             [prev : Float-Complex (fbezier 0.0)]
-                             [acc-len : Nonnegative-Flonum 0.0])
-             (if (< t 1)
-                 (let* ([here (fbezier (exact->inexact t))]
-                        [accl (+ acc-len (magnitude (- here prev)))])
-                   (if (> accl head-offsize)
-                       (exact->inexact (- t offset-delta))
-                       (head-offset (+ t offset-delta) here accl)))
-                 1.0)))
-         
-         (define tn : Flonum
-           (let tail-offset ([t : Exact-Rational (- 1 offset-delta)]
-                             [next : Float-Complex (fbezier 1.0)]
-                             [acc-len : Nonnegative-Flonum 0.0])
-             (if (> t 0)
-                 (let* ([here (fbezier (exact->inexact t))]
-                        [accl (+ acc-len (magnitude (- next here)))])
-                   (if (< accl tail-offsize)
-                       (tail-offset (- t offset-delta) here accl)
-                       (exact->inexact (+ t offset-delta))))
-                 0.0)))
+         (define t0 (exact->inexact (bezier-reparameterize-by-length head tail (magnitude src-offset) samples #:t0 0 #:tn 1)))
+         (define tn (exact->inexact (bezier-reparameterize-by-length head tail (magnitude end-offset) samples #:t0 1 #:tn 0)))
 
          (define delta (/ 1.0 (exact->inexact (max samples 1))))
          (for ([t (in-range t0 (+ tn delta) delta)])

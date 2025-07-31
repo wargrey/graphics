@@ -35,8 +35,8 @@
            [path : (Listof PolyCurve2D)]] : Geo:Polycurve
     (define-values (prints lx ty rx by) (~polycurves path offset scale))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
-    (define clean-prints (geo-path-cleanse prints #:bezier-samples samples))
-    (define-values (inkx inky inkw inkh) (geo-path-ink-box clean-prints))
+    (define clean-prints (gpp-cleanse prints #:bezier-samples samples))
+    (define-values (inkx inky inkw inkh) (gpp-ink-box clean-prints))
     
     (create-geometry-object geo:polycurve
                             #:with [id (geo-draw-bezier stroke pattern rule)

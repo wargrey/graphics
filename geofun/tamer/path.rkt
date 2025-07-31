@@ -12,7 +12,7 @@
     (define glabels
       (and label
            (make-geo-path-labels (map string (string->list label)) 0.25)))
-    
+
     (geo-hc-append #:gapsize 16.0
                    (geo-path #:stroke (desc-stroke pen #:color 'RoyalBlue)
                              #:tip-placement 'inside
@@ -55,7 +55,7 @@
                   bezier-pen "cubic bezier")
   
   (path-examplify (list (list 198+18i   34+57i 18+156i 221+90i
-                        186+177i   14+82i 12+236i 45+290i
-                        218+294i 248+188i))
+                              186+177i   14+82i 12+236i 45+290i
+                              218+294i 248+188i))
                   default-aggregation-tip default-arrow-tip
                   bezier-pen "high-order bezier"))

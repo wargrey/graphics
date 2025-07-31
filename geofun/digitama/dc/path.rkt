@@ -58,8 +58,8 @@
            #:target-placement [tgt-plm : (Option Geo-Tip-Placement) #false]
            [footprints0 : Geo-Path-Clean-Prints]] : Geo:Path:Self
     (define footprints : (Pairof GPath:Print Geo-Path-Clean-Prints) (if (pair? footprints0) footprints0 (list the-M0)))
-    (define-values (spt srad ept erad) (geo-path-endpoint-vectors footprints))
-    (define-values (ik.x ik.y ik.w ik.h) (geo-path-ink-box footprints))
+    (define-values (spt srad ept erad) (gpp-endpoint-vectors footprints))
+    (define-values (ik.x ik.y ik.w ik.h) (gpp-ink-box footprints))
     
     (define thickness : Nonnegative-Flonum (stroke-width (if (stroke? stroke) stroke (default-stroke))))
     (define-values (src-shape s.x0 s.y0 s.w s.h s.off s.cfg) (geo-tip-shape (geo-tip-filter src-tip) thickness srad #false (or src-plm tip-plm)))
@@ -93,7 +93,7 @@
                     [O (geo:path:self-origin self)])
                (define (this-label-vector [idx : Integer] [t : Flonum]) : (Option (Pairof Float-Complex Float-Complex))
                  (hash-ref! labels-vectors (list footprints idx t)
-                            (λ [] (geo-path-directional-vector footprints idx t))))
+                            (λ [] (gpp-directional-vector footprints idx t))))
                (let attach ([labels : (Listof Geo:Path:Label) (if (list? label) label (list label))]
                             [layers : (Listof (GLayerof Geo)) null]
                             [op : (Option Symbol) 'source])
@@ -130,7 +130,7 @@
                  #:tip-color tip-clr #:source-color src-clr #:target-color tgt-clr
                  #:tip-placement tip-plm #:source-placement src-plm #:target-placement tgt-plm
                  (let-values ([(curves lx ty rx by) (~polycurves segments offset scale)])
-                   (geo-path-cleanse curves #:bezier-samples samples))))
+                   (gpp-cleanse curves #:bezier-samples samples))))
 
     (cond [(or (not labels) (null? labels)) me]
           [else (geo-path-attach-label me labels)])))
@@ -161,6 +161,12 @@
         (values (car (geo:path:self-adjust-offset master))
                 (cdr (geo:path:self-adjust-offset master)))
         (geo-path-endpoint-offsets (geo-path-ungroup master)))))
+
+(define geo-path-length : (-> Geo-Path Nonnegative-Flonum)
+  (lambda [master]
+    (if (geo:path:self? master)
+        (gpp-length (geo:path:self-footprints master))
+        (geo-path-length (geo-path-ungroup master)))))
 
 (define geo-path-ungroup : (-> Geo:Path Geo:Path:Self)
   (lambda [master]

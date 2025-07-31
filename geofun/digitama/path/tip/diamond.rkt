@@ -35,7 +35,7 @@
     (define origin : Float-Complex (+ (make-polar (* w pos-ofrac) angle.rad)))
     (define balanced : Float-Complex (make-rectangular (* w -0.5) (* h -0.5)))
     (define rhombus : Quadrilateral-Vertices (geo-rhombus-vertices w h angle.rad (+ origin balanced)))
-    (define diamond : Geo-Path-Clean-Prints (geo-path-cleanse rhombus))
-    (define-values (lx ty width height) (geo-path-ink-box diamond))
+    (define diamond : Geo-Path-Clean-Prints (gpp-cleanse rhombus))
+    (define-values (lx ty width height) (gpp-ink-box diamond))
 
     (vector-immutable (append diamond (list the-Z)) lx ty width height endpoint-offset)))

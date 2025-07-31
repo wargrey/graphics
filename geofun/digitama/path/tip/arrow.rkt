@@ -43,6 +43,6 @@
       (if (geo:tip:arrow-curved? self)
           (geo-curved-dart-metrics r angle.rad (and wing (real->double-flonum wing)) endpoint-offset)
           (geo-dart-metrics r angle.rad (and wing (real->double-flonum wing)) endpoint-offset)))
-    (define-values (lx ty width height) (geo-path-ink-box arrow))
+    (define-values (lx ty width height) (gpp-ink-box arrow))
 
     (vector-immutable arrow lx ty width height endpoint-offset)))

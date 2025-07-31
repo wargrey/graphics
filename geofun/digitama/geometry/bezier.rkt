@@ -45,8 +45,8 @@
                            #:when (< 0.0 t 1.0))
                   (fbezier (real->double-flonum t)))])))
 
-(define bezier-nth-extremities : (->* (Float-Complex (Listof Float-Complex)) (Index) (Listof Float-Complex))
-  (lambda [head tail [samples 200]]
+(define bezier-nth-extremities : (-> Float-Complex (Listof Float-Complex) Index (Listof Float-Complex))
+  (lambda [head tail samples]
     (define fbezier   (bezier-function #:derivative 0 head tail))
     (define f~bezier  (bezier-function #:derivative 1 head tail))
     (define f~~bezier (bezier-function #:derivative 2 head tail))
@@ -75,16 +75,16 @@
                      (fbezier t))))
         null)))
 
-(define bezier-extremities : (->* (Float-Complex (Listof Float-Complex)) (Index) (Listof Float-Complex))
-  (lambda [head tail [samples 200]]
+(define bezier-extremities : (-> Float-Complex (Listof Float-Complex) Index (Listof Float-Complex))
+  (lambda [head tail samples]
     (cond [(null? tail) null]
           [(null? (cdr tail)) null]
           [(null? (cddr tail))  (bezier-quadratic-extremities head (car tail) (cadr tail))]
           [(null? (cdddr tail)) (bezier-cubic-extremities head (car tail) (cadr tail) (caddr tail))]
           [else (bezier-nth-extremities head tail samples)])))
 
-(define bezier-bounding-box : (->* (Float-Complex (Listof Float-Complex)) (Index) (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [head tail [samples 200]]
+(define bezier-bounding-box : (-> Float-Complex (Listof Float-Complex) Index (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [head tail samples]
     (define extremities (bezier-extremities head tail samples))
     (define-values (lx ty rx by) (flc-interval (list* head (last tail) (bezier-extremities head tail samples))))
 
@@ -92,9 +92,52 @@
             (max 0.0 (- rx lx))
             (max 0.0 (- by ty)))))
 
-(define bezier-length : (->* (Float-Complex (Listof Float-Complex)) (Index) Nonnegative-Flonum)
-  (lambda [head tail [samples 200]]
-    0.0))
+(define bezier-length : (->* (Float-Complex (Listof Float-Complex) Index)
+                             (#:t0 Nonnegative-Exact-Rational #:tn Nonnegative-Exact-Rational)
+                             Nonnegative-Flonum)
+  (lambda [head tail samples #:t0 [tmin 0] #:tn [tmax 1]]
+    (define fbezier (bezier-function head tail #:derivative 0))
+    (define t0 : Nonnegative-Exact-Rational (min tmin 1))
+    (define tn : Nonnegative-Exact-Rational (min tmax 1))
+    (define op : (-> Exact-Rational Exact-Rational Boolean) (if (<= tmin tmax) <= >=))
+    (define delta : Exact-Rational (/ (- tn t0) (if (> samples 0) samples 500)))
+
+    (if (and fbezier (not (zero? delta)))
+        (let approximate ([t : Exact-Rational (+ t0 delta)]
+                          [prev : Float-Complex (fbezier (exact->inexact t0))]
+                          [acc-len : Nonnegative-Flonum 0.0])
+          (if (op t tn)
+              (let ([here (fbezier (exact->inexact t))])
+                (approximate (+ t delta) here
+                             (+ acc-len (magnitude (- here prev)))))
+              acc-len))
+        #;'#:deadcode 0.0)))
+
+(define bezier-reparameterize-by-length : (->* (Float-Complex (Listof Float-Complex) Nonnegative-Flonum Index)
+                                               (#:t0 Nonnegative-Exact-Rational #:tn Nonnegative-Exact-Rational)
+                                               Nonnegative-Exact-Rational)
+  (lambda [head tail size samples #:t0 [tmin 0] #:tn [tmax 1]]
+    (define fbezier (bezier-function head tail #:derivative 0))
+    (define t0 : Nonnegative-Exact-Rational (min tmin 1))
+    (define tn : Nonnegative-Exact-Rational (min tmax 1))
+    (define op : (-> Exact-Rational Exact-Rational Boolean) (if (<= tmin tmax) <= >=))
+    (define delta : Exact-Rational (/ (- tn t0) (if (> samples 0) samples 500)))
+    
+    (if (and fbezier (not (zero? delta)))
+        (let peek ([t : Exact-Rational (+ t0 delta)]
+                   [prev : Float-Complex (fbezier (exact->inexact t0))]
+                   [acc-len : Nonnegative-Flonum 0.0])
+          (if (op t tn)
+              (let* ([here (fbezier (exact->inexact t))]
+                     [dlen (magnitude (- here prev))]
+                     [len++ (+ acc-len dlen)])
+                (cond [(< len++ size) (peek (+ t delta) here len++)]
+                      [(= len++ size) (abs t)]
+                      [else (let ([diff (/ (- len++ size) dlen)])
+                              (abs (- t (* delta (/ (inexact->exact (numerator diff))
+                                                    (inexact->exact (denominator diff)))))))]))
+              tn))
+        t0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bezier-derivative-weights : (-> Float-Complex (Listof Float-Complex) [#:order Byte] (Listof Float-Complex))

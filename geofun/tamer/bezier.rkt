@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (require geofun/vector)
+(require geofun/digitama/geometry/bezier)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define pen (desc-stroke #:color 'RoyalBlue #:dash 'long-dash))
@@ -13,6 +14,14 @@
      (geo-polycurve #:stroke aux #:close? #t ctrl2 ctrl1 spt (list ctrl1 ctrl2 ept))
      (geo-polycurve #:stroke pen #:close? #f spt (list ctrl1 ctrl2 ept))
      (geo-trim (geo-bezier #:stroke otl #:close? #f spt ctrl1 ctrl2 ept)))))
+
+(define beizer-curve-length : (-> (Pairof Float-Complex (Listof Float-Complex)) (Listof Nonnegative-Flonum))
+  (lambda [selves]
+    (define-values (head tail) (values (car selves) (cdr selves)))
+    
+    (list (bezier-length head tail 100 #:t0 1 #:tn 0)
+          (bezier-length head tail 200)
+          (bezier-length head tail 500))))
 
 (define linear-bezier
   (geo-hc-append
@@ -54,4 +63,9 @@
   flipped-bezier
 
   (cubic-bezier-curve 60+105i 75+30i 215+115i 140+160i)
-  (cubic-bezier-curve 25+128i 102.4+230.4i 153.6+25.6i 230.4+128i))
+  (cubic-bezier-curve 25+128i 102.4+230.4i 153.6+25.6i 230.4+128i)
+
+  '(length 281.95)
+  (beizer-curve-length (list 220.0+60.0i 20.0+110.0i 70.0+250.0i))
+  '(length 272.87)
+  (beizer-curve-length (list 110.0+150.0i 25.0+190.0i 210.0+250.0i 210.0+30.0i)))
