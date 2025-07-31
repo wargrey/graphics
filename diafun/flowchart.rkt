@@ -6,19 +6,18 @@
 (provide (all-from-out "digitama/flowchart/identifier.rkt"))
 (provide (all-from-out "digitama/flowchart/self.rkt"))
 (provide (all-from-out "digitama/flowchart/style.rkt"))
-(provide (rename-out [dia-path-flow geo-path-flow]))
 
 (require geofun/paint)
 
 (require geofun/digitama/convert)
-(require geofun/digitama/dc/path)
+(require geofun/digitama/dc/track)
 (require geofun/digitama/dc/composite)
-(require geofun/digitama/layer/sticker)
+(require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/type)
 
 (require "digitama/base.rkt")
 (require "digitama/path/self.rkt")
-(require "digitama/path/stick.rkt")
+(require "digitama/path/sticker.rkt")
 
 (require "digitama/flowchart/self.rkt")
 (require "digitama/flowchart/style.rkt")
@@ -67,21 +66,21 @@
            #:λfree-edge [make-free-track : Dia-Path-Free-Track->Edge default-dia-path-free-edge-construct]
            #:λfree-edge-label [make-free-label : Dia-Path-Free-Track->Edge-Label default-dia-path-free-edge-label-construct]
            #:ignore [ignore : (Listof Symbol) null]
-           [self : Geo:Path]] : (U Dia:Flow Geo:Path)
+           [self : Geo:Track]] : (U Dia:Flow Geo:Track)
     (parameterize ([default-dia-node-base-style make-diaflow-node-fallback-style]
                    [default-dia-edge-base-style make-diaflow-edge-fallback-style]
                    [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))]
-                   [current-master-path self])
+                   [current-master-track self])
       (define-values (nodes edges)
         (dia-path-stick self block-detect make-node make-node-label node-desc
                         arrow-detect make-edge make-edge-label
                         make-free-track make-free-label (default-diaflow-free-track-style-make)
                         default-diaflow-node-fallback-construct make-diaflow-free-track-style
-                        (geo:path-foot-infos self) ignore))
+                        (geo:track-foot-infos self) ignore))
       (define stickers : (Listof (GLayerof Geo)) (append edges nodes))
 
       (if (pair? stickers)
-          (let ([maybe-group (geo-path-try-extend/list stickers 0.0 0.0)])
+          (let ([maybe-group (geo-layers-try-extend stickers 0.0 0.0)])
             (create-geometry-group dia:flow id #false #false
                                    #:border bdr #:background bg
                                    #:margin margin #:padding padding
@@ -105,7 +104,7 @@
                    [default-diaflow-block-height (* ((default-diaflow-block-height)) ns)]
                    [default-dia-node-margin (* (default-dia-node-margin) ns)]
                    [default-dia-node-base-style make-diaflow-node-fallback-style]
-                   [current-master-path #false])
+                   [current-master-track #false])
       (dia-make-node block-detect make-node make-node-label node-desc
                      default-diaflow-node-fallback-construct
                      (cond [(symbol? caption) caption]

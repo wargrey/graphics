@@ -10,8 +10,8 @@
 (require geofun/paint)
 
 (require geofun/digitama/base)
-(require geofun/digitama/edge/tip/self)
-(require geofun/digitama/edge/tip/arrow)
+(require geofun/digitama/path/tip/self)
+(require geofun/digitama/path/tip/arrow)
 
 (require "../node/style.rkt")
 (require "../edge/style.rkt")

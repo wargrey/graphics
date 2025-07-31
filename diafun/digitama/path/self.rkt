@@ -4,13 +4,13 @@
 
 (require digimon/metrics)
 
-(require geofun/path)
-(require geofun/digitama/dc/path)
+(require geofun/track)
+(require geofun/digitama/dc/track)
 (require geofun/digitama/dc/composite)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct dia:path geo:group
-  ([skeleton : Geo:Path])
+  ([skeleton : Geo:Track])
   #:type-name Dia:Path
   #:transparent)
 

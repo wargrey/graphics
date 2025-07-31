@@ -13,10 +13,10 @@
 (require "tip/diamond.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-tip-path : (-> (Option geo-tip) Nonnegative-Flonum Flonum Boolean Geo-Tip-Placement
-                           (Values Geo-Path-Prints
-                                   Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                                   Float-Complex Geo-Tip-Config))
+(define geo-tip-shape : (-> (Option geo-tip) Nonnegative-Flonum Flonum Boolean Geo-Tip-Placement
+                            (Values Geo-Path-Prints
+                                    Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                    Float-Complex Geo-Tip-Config))
   (lambda [self 100% angle.rad forward? placement]
     (define angle (if (not forward?) (+ angle.rad pi) angle.rad))
     

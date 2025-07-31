@@ -21,11 +21,11 @@
 
 (require geofun/digitama/markup)
 (require geofun/digitama/convert)
-(require geofun/digitama/dc/edge)
+(require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/combine)
-(require geofun/digitama/layer/sticker)
+(require geofun/digitama/layer/merge)
 (require geofun/digitama/geometry/footprint)
 
 (require "digitama/axis/self.rkt")
@@ -85,17 +85,17 @@
     (define fltick-min : Nonnegative-Flonum (+ neg-margin (* fltick-thickness 0.5)))
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
     
-    (define main-axis : Geo:Edge
-      (geo-edge* #:stroke axis-pen #:tip-placement 'inside
+    (define main-axis : Geo:Path:Self
+      (geo-path* #:stroke axis-pen #:tip-placement 'inside
                  #:source-tip (plot-axis-tip-style-negative-shape tip)
                  #:target-tip (plot-axis-tip-style-positive-shape tip)
                  (list the-M0 (gpp:point #\L (make-rectangular fllength 0.0)))))
-
+    
     (define arrow-half : Nonnegative-Flonum (* (geo-height main-axis) 0.5))
     (define flc-origin : Float-Complex (make-rectangular (+ (* used-length origin) fltick-min) arrow-half))
     (define flc-offset : Float-Complex (make-rectangular 0.0 (* digit-position (- em))))
     
-    (define-values (soff eoff) (geo-edge-endpoint-offsets main-axis))
+    (define-values (soff eoff) (geo-path-endpoint-offsets main-axis))
     (define label-as-digit? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'digit))
     (define flaxis-min : Flonum (- fltick-min neg-margin (- (real-part soff))))
     (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
@@ -146,11 +146,11 @@
                                  #:fallback-pin real-pin #:fallback-gap real-gap
                                  #:fallback-anchor real-anchor #:length-base em
                                  mark dot->pos))
-                  (define-values (src-pos _) (geo-edge-endpoints marker))
+                  (define-values (src-pos _) (geo-path-endpoints marker))
 
-                  (plot-axis-sticker-cons (geo-edge-self-pin-layer marker) src-pos reals fltick-min real-part fltick-max)))))
+                  (plot-axis-sticker-cons (geo-path-self-pin-layer marker) src-pos reals fltick-min real-part fltick-max)))))
   
-    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer main-axis) layers))
+    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend (geo-own-layer main-axis) layers))
     
     (if (or translated-layers)
         (let* ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))]
@@ -208,8 +208,8 @@
     (define fltick-min : Nonnegative-Flonum (+ neg-margin (* fltick-thickness 0.5)))
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
     
-    (define main-axis : Geo:Edge
-      (geo-edge* #:stroke axis-pen #:tip-placement 'inside
+    (define main-axis : Geo:Path:Self
+      (geo-path* #:stroke axis-pen #:tip-placement 'inside
                  #:source-tip (plot-axis-tip-style-negative-shape tip)
                  #:target-tip (plot-axis-tip-style-positive-shape tip)
                  (list the-M0 (gpp:point #\L (make-rectangular fllength 0.0)))))
@@ -218,7 +218,7 @@
     (define flc-origin : Float-Complex (make-rectangular (+ (* used-length origin) fltick-min) arrow-half))
     (define flc-offset : Float-Complex (make-rectangular 0.0 (* digit-position (- em))))
 
-    (define-values (soff eoff) (geo-edge-endpoint-offsets main-axis))
+    (define-values (soff eoff) (geo-path-endpoint-offsets main-axis))
     (define label-as-digit? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'digit))
     (define flaxis-min : Flonum (- fltick-min neg-margin (- (real-part soff))))
     (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
@@ -270,11 +270,11 @@
                                  #:fallback-pin int-pin #:fallback-gap int-gap
                                  #:fallback-anchor int-anchor #:length-base em
                                  mark dot->pos))
-                  (define-values (src-pos _) (geo-edge-endpoints marker))
+                  (define-values (src-pos _) (geo-path-endpoints marker))
 
-                  (plot-axis-sticker-cons (geo-edge-self-pin-layer marker) src-pos integers fltick-min real-part fltick-max)))))
+                  (plot-axis-sticker-cons (geo-path-self-pin-layer marker) src-pos integers fltick-min real-part fltick-max)))))
   
-    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-path-try-extend/list (geo-own-layer main-axis) layers))
+    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend (geo-own-layer main-axis) layers))
     
     (if (or translated-layers)
         (let* ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))]

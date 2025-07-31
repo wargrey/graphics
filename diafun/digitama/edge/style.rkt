@@ -2,8 +2,8 @@
 
 (provide (all-defined-out))
 
-(require geofun/digitama/path/self)
-(require geofun/digitama/edge/tip/self)
+(require geofun/digitama/path/label)
+(require geofun/digitama/path/tip/self)
 
 (require geofun/digitama/base)
 (require geofun/digitama/convert)

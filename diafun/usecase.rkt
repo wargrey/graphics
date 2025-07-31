@@ -5,22 +5,20 @@
 (provide (all-from-out "digitama/usecase/interface.rkt"))
 (provide (all-from-out "digitama/usecase/self.rkt"))
 (provide (all-from-out "digitama/usecase/style.rkt"))
-(provide (rename-out [dia-path-use-case geo-path-use-case]))
 
 (provide default-diauc-block-identify default-diauc-arrow-identify)
 (provide default-dia-node-margin create-dia-node)
 
-(require geofun/path)
 (require geofun/paint)
 
 (require geofun/digitama/convert)
-(require geofun/digitama/dc/path)
+(require geofun/digitama/dc/track)
 (require geofun/digitama/dc/composite)
-(require geofun/digitama/layer/sticker)
+(require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/type)
 
 (require "digitama/base.rkt")
-(require "digitama/path/stick.rkt")
+(require "digitama/path/sticker.rkt")
 (require "digitama/path/self.rkt")
 
 (require "digitama/usecase/self.rkt")
@@ -72,20 +70,20 @@
            #:λfree-edge [make-free-track : Dia-Path-Free-Track->Edge default-dia-path-free-edge-construct]
            #:λfree-edge-label [make-free-label : Dia-Path-Free-Track->Edge-Label default-dia-path-free-edge-label-construct]
            #:ignore [ignore : (Listof Symbol) null]
-           [self : Geo:Path]] : (U Dia:Use-Case Geo:Path)
+           [self : Geo:Track]] : (U Dia:Use-Case Geo:Track)
     (parameterize ([default-dia-node-base-style make-diauc-node-fallback-style]
                    [default-dia-edge-base-style make-diauc-edge-fallback-style]
-                   [current-master-path self])
+                   [current-master-track self])
       (define-values (nodes edges)
         (dia-path-stick self block-detect make-node make-node-label node-desc
                         arrow-detect make-edge make-edge-label
                         make-free-track make-free-label (default-diauc-free-track-style-make)
                         default-diauc-node-fallback-construct make-diauc-free-track-style
-                        (geo:path-foot-infos self) ignore))
+                        (geo:track-foot-infos self) ignore))
       (define stickers : (Listof (GLayerof Geo)) (append edges nodes))
 
       (if (pair? stickers)
-          (let ([maybe-group (geo-path-try-extend/list stickers 0.0 0.0)])
+          (let ([maybe-group (geo-layers-try-extend stickers 0.0 0.0)])
             (create-geometry-group dia:use-case id base-op sibs-op
                                    #:border bdr #:background bg
                                    #:margin margin #:padding padding

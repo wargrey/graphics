@@ -7,12 +7,11 @@
 (require digimon/constant)
 
 (require geofun/font)
-(require geofun/composite)
 
 (require geofun/digitama/base)
 (require geofun/digitama/markup)
 (require geofun/digitama/dc/text)
-(require geofun/digitama/edge/tip/self)
+(require geofun/digitama/path/tip/self)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/sticker)
 

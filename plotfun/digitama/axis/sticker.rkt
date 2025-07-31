@@ -9,7 +9,7 @@
 (require geofun/digitama/markup)
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
-(require geofun/digitama/dc/edge)
+(require geofun/digitama/dc/path)
 
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/position)

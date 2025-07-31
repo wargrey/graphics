@@ -7,7 +7,7 @@
 (require geofun/stroke)
 
 (require geofun/digitama/paint/self)
-(require geofun/digitama/edge/tip/arrow)
+(require geofun/digitama/path/tip/arrow)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-axis-font : Font (desc-font #:size 12.0))

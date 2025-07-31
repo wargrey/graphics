@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(require geofun/path)
+(require geofun/track)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-gomamon! goma [108 108] #:-
@@ -57,14 +57,14 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (require geofun/digitama/dc/path)
+  (require geofun/digitama/dc/track)
   (require geofun/vector)
   (require geofun/bitmap)
 
   (default-stroke-paint (desc-stroke #:color 'Crimson #:width 4.0))
   (default-border-paint (desc-border #:color (rgb* 'RoyalBlue 0.618)))
 
-  (define make-anchor-sticker : Geo-Anchor->Sticker
+  (define make-anchor-sticker : Geo-Track-Anchor->Sticker
     (lambda [anchor pos Width Height]
       (define sticker : Geo
         (if (keyword? anchor)
@@ -80,13 +80,13 @@
         [(Dart Flower) (make-sticker sticker 'rb -2.0 -2.0)]
         [else (make-sticker sticker 'cc)])))
   
-  (reverse (geo:path-footprints goma))
-  (geo-frame (geo-path-stick goma make-anchor-sticker #:truncate? #false))
+  (reverse (geo:track-footprints goma))
+  (geo-frame (geo-track-stick goma make-anchor-sticker #:truncate? #false))
   (geo-freeze goma #:stroke 'ForestGreen #:fill (rgb* 'RoyalBlue 0.618))
 
   (let ([bmp (bitmap-square 512)])
     (geo-freeze! bmp goma -32 -32 #:stroke (desc-stroke #:color 'Orange #:dash 'long-dash))
     bmp)
   
-  (geo-anchor-position goma '#:home)
-  (geo-anchor-position goma '#:home #:translate? #true))
+  (geo-track-anchor-position goma '#:home)
+  (geo-track-anchor-position goma '#:home #:translate? #true))

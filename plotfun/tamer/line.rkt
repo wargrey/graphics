@@ -13,7 +13,7 @@
       (define c (rgb* color (/ (+ n 1.0) 8.0)))
       
       (make-geo-sticker (geo-vc-append (geo-text "+1" font #:color c)
-                                       (geo-edge #:scale unit #:tip-placement 'center
+                                       (geo-path #:scale unit #:tip-placement 'center
                                                  #:target-tip default-arrow-tip #:stroke c
                                                  (list (list 0.1 0.5-0.16i 0.9))))
                         'lb

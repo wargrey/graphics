@@ -11,7 +11,7 @@
 (require "digitama/paint/source.rkt")
 (require "digitama/geometry/radius.rkt")
 
-(require/provide "path.rkt" "constructor.rkt" "composite.rkt" "resize.rkt")
+(require/provide "track.rkt" "constructor.rkt" "composite.rkt" "resize.rkt")
 (require/provide "color.rkt" "font.rkt" "paint.rkt" "stroke.rkt")
 
 (require/provide "digitama/paint/self.rkt")

@@ -8,8 +8,8 @@
 (provide (rename-out [geo-regular-polygon geo-regular-convex-polygon]))
 (provide (rename-out [geo-star-polygon geo-regular-star-polygon]))
 
-(provide (all-from-out "digitama/edge/label.rkt"))
-(provide (all-from-out "digitama/edge/tips.rkt"))
+(provide (all-from-out "digitama/path/label.rkt"))
+(provide (all-from-out "digitama/path/tips.rkt"))
 (provide (all-from-out "digitama/skeleton/stickman/interface.rkt"))
 
 (provide geo-blank geo-ghost geo-solid geo:blank? Geo:Blank Geo:Solid)
@@ -32,9 +32,10 @@
 (provide geo-bezier geo-bezier*)
 (provide geo-polycurve geo-polycurve* geo:polycurve? Geo:Polycurve)
 
-(provide geo-edge geo-edge* geo:edge? Geo:Edge)
-(provide geo-edge-attach-label geo-edge-unlabel geo:labeled-edge? Geo:Labeled-Edge)
-(provide geo-edge-self-pin-position geo-edge-endpoints geo-edge-endpoint-offsets)
+(provide Geo-Path Geo:Path Geo:Path:Self)
+(provide geo-path geo-path* geo:path? geo:path:self?)
+(provide geo-path-ungroup geo-path-self-pin-position)
+(provide geo-path-endpoints geo-path-endpoint-offsets)
 
 (provide geo-stadium geo-lstadium geo-rstadium geo:stadium? Geo:Stadium)
 (provide geo-bullet geo:bullet? Geo:Bullet)
@@ -57,7 +58,6 @@
 (require "digitama/dc/raster.rkt")
 (require "digitama/dc/line.rkt")
 (require "digitama/dc/arrow.rkt")
-(require "digitama/dc/edge.rkt")
 (require "digitama/dc/gear.rkt")
 (require "digitama/dc/stickman.rkt")
 (require "digitama/dc/more.rkt")
@@ -68,8 +68,9 @@
 (require "digitama/dc/polygon/pentagon.rkt")
 (require "digitama/dc/polygon/hexagon.rkt")
 
-(require "digitama/edge/label.rkt")
-(require "digitama/edge/tips.rkt")
+(require "digitama/dc/path.rkt")
+(require "digitama/path/label.rkt")
+(require "digitama/path/tips.rkt")
 
 (require "digitama/skeleton/stickman/interface.rkt")
 

@@ -13,11 +13,12 @@
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/position)
 
-(require geofun/digitama/dc/path)
-(require geofun/digitama/path/self)
+(require geofun/digitama/dc/track)
+(require geofun/digitama/track/self)
+(require geofun/digitama/track/mult)
 
-(require geofun/digitama/dc/edge)
-(require geofun/digitama/edge/label)
+(require geofun/digitama/dc/path)
+(require geofun/digitama/path/label)
 
 (require "interface.rkt")
 
@@ -35,7 +36,7 @@
   (syntax-case stx []
     [(_ source target edge-style make-label rinfos)
      (syntax/loc stx
-       (let info->label ([labels : (Listof Geo-Edge-Label) null]
+       (let info->label ([labels : (Listof Geo:Path:Label) null]
                          [sofni : (Listof Dia-Path-Arrow-Label-Info) rinfos])
          (if (pair? sofni)
              (let ([label (apply make-label source target edge-style (car sofni))])
@@ -44,20 +45,20 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-path-stick
-  (lambda [[master : Geo:Path]
+  (lambda [[master : Geo:Track]
            [block-identify : Dia-Path-Block-Identifier] [make-node : (Option Dia-Path-Id->Node-Shape)]
            [make-node-label : Dia-Path-Id->Node-Label] [node-desc : (Option Dia-Path-Id->Label-String)]
            [arrow-identify : Dia-Path-Arrow-Identifier] [make-arrow : Dia-Path-Arrow->Edge] [make-arrow-label : Dia-Path-Arrow->Edge-Label]
            [make-free-track : Dia-Path-Free-Track->Edge] [make-free-label : Dia-Path-Free-Track->Edge-Label]
            [make-free-style : (Option (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint (∩ Dia-Edge-Style S)))]
            [fallback-node : Dia-Path-Id->Node-Shape] [fallback-free-style : (-> (∩ Dia-Edge-Style S))]
-           [infobase : Geo-Path-Infobase] [ignore : (Listof Symbol)]] : (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo)))
-    (define gpath : Geo-Trail (geo:path-trail master))
+           [infobase : Geo-Track-Infobase] [ignore : (Listof Symbol)]] : (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo)))
+    (define gpath : Geo-Trail (geo:track-trail master))
     (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath))
     (define-values (Width Height) (geo-flsize master))
 
     ; NOTICE: the footprints are initially reversed
-    (let stick ([stnirp : Geo-Path-Prints (geo:path-footprints master)]
+    (let stick ([stnirp : Geo-Path-Prints (geo:track-footprints master)]
                 [arrows : (Listof (GLayerof Geo)) null]
                 [nodes : (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Node))) (hasheq)]
                 [tracks : Geo-Path-Prints null]
@@ -117,7 +118,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-arrow-cons : (-> (GLayerof Dia:Node) (Option (GLayerof Dia:Node)) Geo-Path-Prints
                              Dia-Path-Arrow-Identifier Dia-Path-Arrow->Edge (Listof (GLayerof Geo))
-                             Dia-Path-Arrow->Edge-Label Geo-Path-Infobase
+                             Dia-Path-Arrow->Edge-Label Geo-Track-Infobase
                              (Listof (GLayerof Geo)))
   (lambda [src-layer tgt-layer tracks arrow-identify make-arrow arrows make-label infobase]
     (define ctracks : Geo-Path-Clean-Prints (geo-path-cleanse tracks))
@@ -135,22 +136,22 @@
                (define-values (labels sofni extra-info) (dia-arrow-label-info-filter infobase ctracks retracks))
                (define edge-style : (Option Dia-Edge-Style) (arrow-identify source target labels extra-info))
 
-               (define arrow : (U Geo:Edge Geo:Labeled-Edge Void False)
+               (define arrow : (U Geo:Path Void False)
                  (and edge-style
                       (make-arrow source target edge-style retracks
                                   (dia-label-info->label source target edge-style make-label sofni))))
 
-               (and (geo? arrow) (cons (geo-edge-self-pin-layer arrow) arrows))))
+               (and (geo? arrow) (cons (geo-path-self-pin-layer arrow) arrows))))
         
         arrows)))
 
-(define dia-arrow-label-info-filter : (-> Geo-Path-Infobase Geo-Path-Clean-Prints Geo-Path-Clean-Prints
+(define dia-arrow-label-info-filter : (-> Geo-Track-Infobase Geo-Path-Clean-Prints Geo-Path-Clean-Prints
                                           (Values (Listof Geo-Path-Labels) (Listof Dia-Path-Arrow-Label-Info)
-                                                  (Listof Geo-Path-Info-Datum)))
+                                                  (Listof Geo-Track-Info-Datum)))
   (lambda [infobase tracks refined-tracks]
     (let label-filter ([sofni : (Listof Dia-Path-Arrow-Label-Info) null]
                        [slebal : (Listof Geo-Path-Labels) null]
-                       [extra-infos : (Listof Geo-Path-Info-Datum) null]
+                       [extra-infos : (Listof Geo-Track-Info-Datum) null]
                        [orig-tracks : Geo-Path-Clean-Prints tracks]
                        [refd-tracks : Geo-Path-Clean-Prints refined-tracks]
                        [orig-src : (Option Float-Complex) #false]
@@ -168,11 +169,11 @@
                           [rtarget (geo-path-clean-print-position rself)]
                           [info (and orig-src (hash-ref infobase (cons orig-src otarget) (λ [] #false)))])
                      (define-values (maybe-label base-position maybe-mult extra++)
-                       (if (geo:path:info? info)
-                           (let ([labels (geo:path:info-labels info)]
-                                 [t (geo:path:info-base-position info)]
-                                 [mult (geo:path:info-multiplicity info)]
-                                 [extra (geo:path:info-extra info)])
+                       (if (geo:track:info? info)
+                           (let ([labels (geo:track:info-labels info)]
+                                 [t (geo:track:info-base-position info)]
+                                 [mult (geo:track:info-multiplicity info)]
+                                 [extra (geo:track:info-extra info)])
                              (if (null? extra)
                                  (values labels t mult extra-infos)
                                  (values labels t mult (append extra-infos extra))))
@@ -185,11 +186,11 @@
                            (values #false slebal)))
 
                      (define mult-info : (Option Dia-Path-Arrow-Label-Info)
-                       (let ([labels (and maybe-mult (geo-edge-multiplicities-map (geo:path:multiplicity-source maybe-mult)
-                                                                                  (geo:path:multiplicity-target maybe-mult)))])
+                       (let ([labels (and maybe-mult (geo-track-multiplicities-map (geo:track:multiplicity-source maybe-mult)
+                                                                                   (geo:track:multiplicity-target maybe-mult)))])
                          (and labels
                               (list idx labels
-                                    (geo:path:multiplicity-base-position maybe-mult)))))
+                                    (geo:track:multiplicity-base-position maybe-mult)))))
                    
                      (label-filter (cond [(and label-info mult-info) (list* label-info mult-info sofni)]
                                          [(and label-info) (cons label-info sofni)]
@@ -208,7 +209,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name)
                                                Geo-Path-Clean-Prints* Dia-Path-Free-Track->Edge (Listof (GLayerof Geo))
-                                               Dia-Path-Free-Track->Edge-Label Geo-Path-Infobase
+                                               Dia-Path-Free-Track->Edge-Label Geo-Track-Infobase
                                                (Option (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint (∩ Dia-Edge-Style S)))
                                                (-> (∩ Dia-Edge-Style S))
                                                (Listof (GLayerof Geo)))
@@ -220,11 +221,11 @@
     (define-values (labels sofni extra-info) (dia-arrow-label-info-filter infobase tracks tracks))
     (define edge-style : Dia-Edge-Style (dia-edge-style-construct source target labels make-free-style fallback-free-style))
 
-    (define arrow : (U Geo:Edge Geo:Labeled-Edge Void False)
+    (define arrow : (U Geo:Path Void False)
       (make-edge source target edge-style tracks
                  (dia-label-info->label source target edge-style make-label sofni)))
     
-    (if (geo? arrow) (cons (geo-edge-self-pin-layer arrow) arrows) arrows)))
+    (if (geo? arrow) (cons (geo-path-self-pin-layer arrow) arrows) arrows)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-make-node : (-> Dia-Path-Block-Identifier (Option Dia-Path-Id->Node-Shape) Dia-Path-Id->Node-Label (Option Dia-Path-Id->Label-String)
@@ -264,8 +265,8 @@
     (and maybe-node
          (geo-own-pin-layer 'cc position maybe-node 0.0+0.0i))))
 
-(define dia-cons-labels : (-> (U (Listof Geo-Edge-Label) Geo-Edge-Label Void False) (Listof Geo-Edge-Label) (Listof Geo-Edge-Label))
+(define dia-cons-labels : (-> (U (Listof Geo:Path:Label) Geo:Path:Label Void False) (Listof Geo:Path:Label) (Listof Geo:Path:Label))
   (lambda [label alabels]
     (cond [(list? label) (append label alabels)]
-          [(geo-edge-label? label) (cons label alabels)]
+          [(geo:path:label? label) (cons label alabels)]
           [else alabels])))

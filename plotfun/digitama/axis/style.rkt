@@ -9,7 +9,7 @@
 (require geofun/font)
 
 (require geofun/digitama/paint/self)
-(require geofun/digitama/edge/tip/self)
+(require geofun/digitama/path/tip/self)
 
 (require "singleton.rkt")
 

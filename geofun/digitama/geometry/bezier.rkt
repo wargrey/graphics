@@ -92,6 +92,10 @@
             (max 0.0 (- rx lx))
             (max 0.0 (- by ty)))))
 
+(define bezier-length : (->* (Float-Complex (Listof Float-Complex)) (Index) Nonnegative-Flonum)
+  (lambda [head tail [samples 200]]
+    0.0))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bezier-derivative-weights : (-> Float-Complex (Listof Float-Complex) [#:order Byte] (Listof Float-Complex))
   (lambda [head tail #:order [order 1]]

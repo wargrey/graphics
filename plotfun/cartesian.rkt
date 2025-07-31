@@ -24,11 +24,11 @@
 (require geofun/digitama/markup)
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
-(require geofun/digitama/dc/edge)
+(require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/combine)
-(require geofun/digitama/layer/sticker)
+(require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/position)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/geometry/footprint)
@@ -134,8 +134,8 @@
     (define-values (xdigit-position xdigit-anchor) (plot-axis-digit-position-values axis-style 'x))
     (define-values (ydigit-position ydigit-anchor) (plot-axis-digit-position-values axis-style 'y))
     
-    (define xaxis : Geo:Edge
-      (geo-edge* #:stroke axis-pen #:tip-placement 'inside
+    (define xaxis : Geo:Path:Self
+      (geo-path* #:stroke axis-pen #:tip-placement 'inside
                  #:source-tip (plot-axis-tip-style-negative-shape x-tip)
                  #:target-tip (plot-axis-tip-style-positive-shape x-tip)
                  (list the-M0 (gpp:point #\L (make-rectangular flwidth 0.0)))))
@@ -151,8 +151,8 @@
            (cons (geo-rectangle fltick-thickness fltick-sublen #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor axis-style 'x))))
 
-    (define yaxis : Geo:Edge
-      (geo-edge* #:stroke axis-pen #:tip-placement 'inside
+    (define yaxis : Geo:Path:Self
+      (geo-path* #:stroke axis-pen #:tip-placement 'inside
                  #:source-tip (plot-axis-tip-style-negative-shape (or y-tip x-tip))
                  #:target-tip (plot-axis-tip-style-positive-shape (or y-tip x-tip))
                  (list the-M0 (gpp:point #\L (flc-ri (- flheight))))))
@@ -168,8 +168,8 @@
            (cons (geo-rectangle fltick-sublen fltick-thickness #:stroke #false #:fill tick-color)
                  (plot-axis-tick-anchor axis-style 'y))))
 
-    (define-values (xsoff xeoff) (geo-edge-endpoint-offsets xaxis))
-    (define-values (ysoff yeoff) (geo-edge-endpoint-offsets yaxis))
+    (define-values (xsoff xeoff) (geo-path-endpoint-offsets xaxis))
+    (define-values (ysoff yeoff) (geo-path-endpoint-offsets yaxis))
     (define label-as-digit? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'digit))
     (define xaxis-min : Flonum (- xtick-min x-neg-margin (- (real-part xsoff))))
     (define xaxis-max : Flonum (+ xtick-max x-pos-margin (real-part xeoff)))
@@ -278,7 +278,7 @@
                                     (or (geo:visualizer-gap-angle self) 0.0)))
          
          ;; visualizer should ensure its label being pinned at visible point 
-         (geo-edge-self-pin-layer
+         (geo-path-self-pin-layer
           (plot-marker #:color (geo:visualizer-color self) #:font mark-font #:pin-stroke pin-pen
                        #:fallback-pin real-pin #:fallback-gap real-gap
                        #:fallback-anchor mark-anchor #:length-base em
@@ -286,11 +286,11 @@
     
     (define translated-layers : (Option (GLayer-Groupof Geo))
       (if (not 0-as-xdigit?)
-          (geo-path-try-extend/list (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)
-                                                       Origin zero (+ yoffset xoffset))
-                                    layers)
+          (geo-layers-try-extend (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)
+                                                    Origin zero (+ yoffset xoffset))
+                                 layers)
           (and (pair? layers)
-               (geo-path-try-extend/list layers 0.0 0.0))))
+               (geo-layers-try-extend layers 0.0 0.0))))
     
     (define delta-origin : Float-Complex
       (if (or translated-layers)

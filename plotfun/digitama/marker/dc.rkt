@@ -11,14 +11,15 @@
 (require geofun/digitama/convert)
 (require geofun/digitama/color)
 (require geofun/digitama/markup)
-(require geofun/digitama/edge/label)
+(require geofun/digitama/path/label)
 
-(require geofun/digitama/dc/edge)
+(require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)
 
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/combine)
 (require geofun/digitama/layer/sticker)
+(require geofun/digitama/layer/merge)
 
 (require geofun/digitama/geometry/footprint)
 
@@ -28,7 +29,7 @@
 (require "../axis/self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct plot:marker geo:labeled-edge
+(struct plot:marker geo:path
   ([self : Plot:Mark])
   #:type-name Plot:Marker
   #:transparent)
@@ -44,7 +45,7 @@
       (let sticker-filter ([desc (plot:mark-desc self)])
         (cond [(geo? desc) (list desc)]
               [(geo-sticker? desc) (list desc)]
-              [(dc-markup-text? desc) (list (geo-edge-label-text desc #false font color))]
+              [(dc-markup-text? desc) (list (geo-path-label-text desc #false font color))]
               [(list? desc) (apply append (map sticker-filter desc))]
               [(not desc) null]
               [else (let ([desc.geo (desc (plot:mark-point self) (plot:mark-datum self)
@@ -55,8 +56,8 @@
 
     (define-values (prints location angle) (plot-mark->footprints self transform length-base fallback-pin fallback-gap))
     
-    (define edge : Geo:Edge
-      (geo-edge* #:id id #:stroke pin-stroke
+    (define path : Geo:Path:Self
+      (geo-path* #:id id #:stroke pin-stroke
                  #:source-tip (plot:mark-shape self) #:target-tip #false
                  #:tip-placement 'center #:tip-color color
                  prints))
@@ -65,13 +66,13 @@
       (for/list : (Listof (GLayerof Geo)) ([label (in-list labels)])
         (geo-sticker->layer #:default-anchor (or (plot:mark-anchor self)
                                                  (fallback-anchor location angle))
-                            label (- location (geo:edge-origin edge)))))
+                            label (- location (geo:path:self-origin path)))))
     
     (create-geometry-group plot:marker id #false #false
-                           (cond [(null? label-layers) (geo-own-layers edge)]
-                                 [else (geo-path-layers-merge (geo-own-layers edge)
-                                                              label-layers)])
-                           self)))
+                           (cond [(null? label-layers) (geo-own-layers path)]
+                                 [else (geo-layers-merge (geo-own-layers path)
+                                                         label-layers)])
+                           path self)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; WARNING: It's better for callers to ensure valid inputs as specifications vary across visualizers. 
