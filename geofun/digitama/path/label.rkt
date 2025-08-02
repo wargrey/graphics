@@ -25,9 +25,9 @@
 (define-type Geo-Path-Label-Bytes (U Bytes (Pairof Bytes Bytes) (Listof (Option Bytes))))
 
 (struct geo:path:label
-  ([idx : Integer]
+  ([idx : (Option Integer)]
    [sticker : Geo]
-   [t : Flonum]
+   [time : Flonum]
    [distance : (Option Flonum)]
    [rotate? : Boolean]
    [adjust-angle : (Option Flonum)])
@@ -37,7 +37,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-geo-path-label : (->* (DC-Markup-Text)
-                                   (Flonum #:index Integer #:font (Option Font) #:color Option-Fill-Paint #:distance (Option Flonum)
+                                   (Flonum #:index (Option Integer) #:font (Option Font) #:color Option-Fill-Paint #:distance (Option Flonum)
                                            #:rotate? Boolean #:adjust-angle (Option Flonum))
                                    Geo:Path:Label)
   (lambda [#:index [idx 0] #:font [font #false] #:color [font-paint #false]
@@ -49,10 +49,10 @@
     (unsafe-geo:path:label idx glabel position distance rotate? adjust)))
 
 (define make-geo-path-labels : (->* (Geo-Path-Labels)
-                                    (Flonum #:index Integer #:font (Option Font) #:color Option-Fill-Paint #:distance (Option Flonum)
-                                            #:rotate? Boolean #:adjust-angle (Option Flonum))
+                                    (Flonum #:index (Option Integer) #:font (Option Font) #:color Option-Fill-Paint #:distance (Option Flonum)
+                                            #:rotate? Boolean #:adjust-angle (Option Flonum) #:reverse? Boolean)
                                     (Listof Geo:Path:Label))
-  (lambda [#:index [idx 0] #:font [font #false] #:color [font-paint #false]
+  (lambda [#:index [idx 0] #:font [font #false] #:color [font-paint #false] #:reverse? [reverse? #false]
            #:distance [distance #false] #:adjust-angle [adjust #false] #:rotate? [rotate? #true]
            labels [base-position 0.25]]
     (define selves : (Option Geo-Path-Label-Bytes) (geo-path-label-map labels))
@@ -60,13 +60,16 @@
       (cond [(bytes? selves) (list (cons (geo-path-label-text selves #false font font-paint) 0.5))]
             [(list? selves) ; single-item list also works as designed
              (let ([step (/ (- 1.0 base-position base-position) (max 1 (sub1 (length selves))))])
-               (for/list : (Listof (Pairof Geo Flonum)) ([lbl (in-list selves)]
-                                                         [pos (in-range base-position 1.1 step)]
+               (for/list : (Listof (Pairof Geo Flonum)) ([lbl (in-list (if (not reverse?) selves (reverse selves)))]
+                                                         [pos (in-range base-position (+ 1.0 step) step)]
                                                          #:when (bytes? lbl))
                  (cons (geo-path-label-text lbl #false font font-paint) pos)))]
             [(pair? selves)
-             (list (cons (geo-path-label-text (car selves) #false font font-paint) base-position)
-                   (cons (geo-path-label-text (cdr selves) #false font font-paint) (- 1.0 base-position)))]
+             (if (not reverse?)
+                 (list (cons (geo-path-label-text (car selves) #false font font-paint) base-position)
+                       (cons (geo-path-label-text (cdr selves) #false font font-paint) (- 1.0 base-position)))
+                 (list (cons (geo-path-label-text (cdr selves) #false font font-paint) base-position)
+                       (cons (geo-path-label-text (car selves) #false font font-paint) (- 1.0 base-position))))]
             [else null]))
 
     (for/list ([g (in-list glabels)])

@@ -35,7 +35,8 @@
 (provide Geo-Path Geo:Path Geo:Path:Self)
 (provide geo-path geo-path* geo:path? geo:path:self?)
 (provide geo-path-ungroup geo-path-self-pin-position geo-path-length)
-(provide geo-path-endpoints geo-path-endpoint-offsets)
+(provide geo-path-endpoints geo-path-endpoint-offsets geo-path-tip-sizes)
+(provide geo-path-tangent-vector geo-path-normal-vector)
 
 (provide geo-stadium geo-lstadium geo-rstadium geo:stadium? Geo:Stadium)
 (provide geo-bullet geo:bullet? Geo:Bullet)

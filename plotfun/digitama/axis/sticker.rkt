@@ -14,7 +14,10 @@
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/position)
 
+(require geofun/digitama/geometry/computation/line)
+
 (require "interface.rkt")
+(require "../marker/dc.rkt")
 (require "../arithmetics.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -49,19 +52,53 @@
                                                                     Flonum (-> Float-Complex Flonum) Flonum
                                                                     (Option (Pairof Geo Geo-Pin-Anchor))
                                                                     -> (Listof (GLayerof Geo))]
-                                         [(Option (GLayerof Geo)) Float-Complex (Listof (GLayerof Geo)) (Option (Pairof Geo Geo-Pin-Anchor))
-                                                                  -> (Listof (GLayerof Geo))])
+                                         [Plot:Marker (Listof (GLayerof Geo)) Flonum (-> Float-Complex Flonum) Flonum
+                                                      -> (Listof (GLayerof Geo))]
+
+                                         [(U Geo Void False 'minor) Geo-Pin-Anchor Float-Complex Float-Complex (Listof (GLayerof Geo))
+                                                                    Float-Complex Float-Complex
+                                                                    (Option (Pairof Geo Geo-Pin-Anchor))
+                                                                    -> (Listof (GLayerof Geo))]
+                                         [Plot:Marker (Listof (GLayerof Geo)) Float-Complex Float-Complex
+                                                      -> (Listof (GLayerof Geo))])
   (case-lambda
     [(self anchor pos offset stickers tick-min part tick-max maybe-tick)
-     (if (<= (scaled-round tick-min) (scaled-round (part (+ pos offset))) (scaled-round tick-max))
-         (cond [(geo? self) (plot-axis-sticker-cons (geo-own-pin-layer anchor pos self offset) pos stickers maybe-tick)]
-               [(eq? self 'minor) (plot-axis-sticker-cons #false pos stickers maybe-tick)]
-               [else stickers])
+     (if (<= (scaled-round tick-min) (scaled-round (part pos)) (scaled-round tick-max))
+         (plot-axis-sticker-cons* self anchor pos offset stickers maybe-tick)
          stickers)]
     [(self pos stickers tick-min part tick-max)
      (if (<= (scaled-round tick-min) (scaled-round (part pos)) (scaled-round tick-max))
-         (plot-axis-sticker-cons self pos stickers #false)
+         (plot-axis-sticker-cons* self pos stickers)
          stickers)]
+    [(self stickers tick-min part tick-max)
+     (let-values ([(src-pos end-pos) (geo-path-endpoints self)])
+       (if (<= (scaled-round tick-min) (scaled-round (part src-pos)) (scaled-round tick-max))
+           (cons (geo-path-self-pin-layer self) stickers)
+           stickers))]
+    [(self anchor pos offset stickers tick-start tick-end maybe-tick)
+     (if (geo-dot-on-line? pos tick-start tick-end)
+         (plot-axis-sticker-cons* self anchor pos offset stickers maybe-tick)
+         stickers)]
+    [(self stickers tick-start tick-end)
+     (let-values ([(src-pos end-pos) (geo-path-endpoints self)])
+       (if (geo-dot-on-line? src-pos tick-start tick-end)
+           (cons (geo-path-self-pin-layer self) stickers)
+           stickers))]))
+
+(define plot-axis-sticker-cons* : (case-> [(U Geo Void False 'minor) Geo-Pin-Anchor Float-Complex Float-Complex (Listof (GLayerof Geo))
+                                                                     (Option (Pairof Geo Geo-Pin-Anchor))
+                                                                     -> (Listof (GLayerof Geo))]
+                                          [(U Geo Void False 'minor) Geo-Pin-Anchor Float-Complex Float-Complex (Listof (GLayerof Geo))
+                                                                     -> (Listof (GLayerof Geo))]
+                                          [(Option (GLayerof Geo)) Float-Complex (Listof (GLayerof Geo)) (Option (Pairof Geo Geo-Pin-Anchor))
+                                                                   -> (Listof (GLayerof Geo))]
+                                          [(Option (GLayerof Geo)) Float-Complex (Listof (GLayerof Geo))
+                                                                   -> (Listof (GLayerof Geo))])
+  (case-lambda
+    [(self anchor pos offset stickers maybe-tick)
+     (cond [(geo? self) (plot-axis-sticker-cons* (geo-own-pin-layer anchor pos self offset) pos stickers maybe-tick)]
+           [(eq? self 'minor) (plot-axis-sticker-cons* #false pos stickers maybe-tick)]
+           [else stickers])]
     [(self pos stickers maybe-tick)
      (define tick+stickers
        (cond [(not maybe-tick) stickers]
@@ -69,4 +106,6 @@
                                             (car maybe-tick) 0.0+0.0i)
                          stickers)]))
      (cond [(not self) tick+stickers]
-           [else (cons self tick+stickers)])]))
+           [else (cons self tick+stickers)])]
+    [(self anchor pos offset stickers) (plot-axis-sticker-cons* self anchor pos offset stickers #false)]
+    [(self pos stickers) (plot-axis-sticker-cons* self pos stickers #false)]))

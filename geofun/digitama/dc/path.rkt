@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require digimon/metrics)
+
 (require "../path/label.rkt")
 (require "../path/tip/self.rkt")
 (require "../path/tip.rkt")
@@ -35,6 +37,7 @@
    [bbox-offset : Float-Complex]
    [source-tip : Geo-Path-Prints]
    [target-tip : Geo-Path-Prints]
+   [tip-sizes : (Pairof Float-Complex Float-Complex)]
    [adjust-offset : (Pairof Float-Complex Float-Complex)])
   #:type-name Geo:Path:Self
   #:transparent)
@@ -60,7 +63,7 @@
     (define footprints : (Pairof GPath:Print Geo-Path-Clean-Prints) (if (pair? footprints0) footprints0 (list the-M0)))
     (define-values (spt srad ept erad) (gpp-endpoint-vectors footprints))
     (define-values (ik.x ik.y ik.w ik.h) (gpp-ink-box footprints))
-    
+
     (define thickness : Nonnegative-Flonum (stroke-width (if (stroke? stroke) stroke (default-stroke))))
     (define-values (src-shape s.x0 s.y0 s.w s.h s.off s.cfg) (geo-tip-shape (geo-tip-filter src-tip) thickness srad #false (or src-plm tip-plm)))
     (define-values (tgt-shape t.x0 t.y0 t.w t.h t.off t.cfg) (geo-tip-shape (geo-tip-filter tgt-tip) thickness erad  #true (or tgt-plm tip-plm)))
@@ -77,7 +80,9 @@
                                        (geo-shape-outline stroke x-stroke? y-stroke?)]
                             footprints (cons spt srad) (cons ept erad)
                             (make-rectangular lx ty) (make-rectangular xoff yoff)
-                            src-shape tgt-shape (cons s.off t.off))))
+                            src-shape tgt-shape
+                            (cons (make-rectangular s.w s.h) (make-rectangular t.w t.h))
+                            (cons s.off t.off))))
 
 (define geo-path-attach-label : (-> Geo-Path (U Geo:Path:Label (Listof Geo:Path:Label)) Geo:Path)
   (let ([labels-vectors : (HashTable Any (Option (Pairof Float-Complex Float-Complex))) (make-weak-hash)])
@@ -87,11 +92,11 @@
               (create-geometry-group geo:path #false #false #false
                                      (geo-own-layers master) master)
               label)]
-            [(pair? label)
+            [(or (pair? label) (geo:path:label? label))
              (let* ([self (geo-path-ungroup master)]
                     [footprints (geo:path:self-footprints self)]
                     [O (geo:path:self-origin self)])
-               (define (this-label-vector [idx : Integer] [t : Flonum]) : (Option (Pairof Float-Complex Float-Complex))
+               (define (this-label-vector [idx : (Option Integer)] [t : Flonum]) : (Option (Pairof Float-Complex Float-Complex))
                  (hash-ref! labels-vectors (list footprints idx t)
                             (λ [] (gpp-directional-vector footprints idx t))))
                (let attach ([labels : (Listof Geo:Path:Label) (if (list? label) label (list label))]
@@ -99,7 +104,7 @@
                             [op : (Option Symbol) 'source])
                  (if (pair? labels)
                      (let* ([label (car labels)]
-                            [V (this-label-vector (geo:path:label-idx label) (geo:path:label-t label))])
+                            [V (this-label-vector (geo:path:label-idx label) (geo:path:label-time label))])
                        (if (and V)
                            (let-values ([(layer distance) (geo-path-label-layer+distance label (- (car V) O) (cdr V))])
                              (attach (cdr labels) (cons layer layers) (if (zero? distance) op #false)))
@@ -162,11 +167,34 @@
                 (cdr (geo:path:self-adjust-offset master)))
         (geo-path-endpoint-offsets (geo-path-ungroup master)))))
 
+(define geo-path-tip-sizes : (-> Geo-Path (Values Float-Complex Float-Complex))
+  (lambda [master]
+    (if (geo:path:self? master)
+        (values (car (geo:path:self-tip-sizes master))
+                (cdr (geo:path:self-tip-sizes master)))
+        (geo-path-tip-sizes (geo-path-ungroup master)))))
+
 (define geo-path-length : (-> Geo-Path Nonnegative-Flonum)
   (lambda [master]
     (if (geo:path:self? master)
-        (gpp-length (geo:path:self-footprints master))
+        (gpp-arclength (geo:path:self-footprints master))
         (geo-path-length (geo-path-ungroup master)))))
+
+(define geo-path-tangent-vector : (-> Geo-Path (-> Real (Option Float-Complex)))
+  (lambda [master]
+    (if (geo:path:self? master)
+        (λ [[t : Real]] : (Option Float-Complex)
+          (define v (gpp-directional-vector (geo:path:self-footprints master) t))
+          (and v (cdr v)))
+        (geo-path-tangent-vector (geo-path-ungroup master)))))
+
+(define geo-path-normal-vector : (-> Geo-Path (-> Real (Option Float-Complex)))
+  (lambda [master]
+    (if (geo:path:self? master)
+        (λ [[t : Real]] : (Option Float-Complex)
+          (define v (gpp-directional-vector (geo:path:self-footprints master) t))
+          (and v (* (cdr v) 0.0+1.0i)))
+        (geo-path-normal-vector (geo-path-ungroup master)))))
 
 (define geo-path-ungroup : (-> Geo:Path Geo:Path:Self)
   (lambda [master]
@@ -191,6 +219,7 @@
         (define paint (geo-select-stroke-paint alt-stroke))
         (define color (and paint (stroke-color paint)))
         (define-values (sclr tclr) (values (or alt-srgba color) (or alt-trgba color)))
+
         (define (tip-stroke [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Stroke)
           (if (geo-tip-config-fill? cfg)
               (desc-stroke #:width 1.0 #:color clr)

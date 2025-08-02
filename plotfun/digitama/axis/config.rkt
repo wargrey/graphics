@@ -69,15 +69,18 @@
                label-color
                (if (not desc-color) label-color (adjust desc-color))))]))
 
-(define plot-axis-digit-position-values : (-> Plot-Axis-Style Symbol (Values Flonum Geo-Pin-Anchor))
+(define plot-axis-digit-position-values : (-> Plot-Axis-Style Symbol (Values Flonum Geo-Pin-Anchor Geo-Pin-Anchor))
   (lambda [self direction]
     (define pos-cfg (plot-axis-style-digit-position self))
     (define-values (xpos ypos) (plot-cartesian-settings pos-cfg))
     
     (if (eq? direction 'x)
-        (values xpos (if (< xpos 0.0) 'cc 'cc))
+        (values xpos
+                (if (< xpos 0.0) 'cc 'cc)
+                (if (< xpos 0.0) 'cc 'cc))
         (values (if (real? pos-cfg) (* ypos 0.5) ypos) ; given that digits in x-axis are aligned by 'cc
-                (if (< ypos 0.0) 'rc 'lc)))))
+                (if (< ypos 0.0) 'rc 'lc)
+                (if (< ypos 0.0) 'lc 'rc)))))
 
 (define plot-axis-length-values : (case-> [Plot-Axis-Style Plot-Axis-Tip-Style Real
                                                            -> (Values Nonnegative-Flonum Nonnegative-Flonum
@@ -156,14 +159,24 @@
             (if (eq? direction 'x) x y)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-axis-label-settings : (-> (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
-                                       (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
-                                       Flonum Flonum Flonum
-                                       (Listof (List (Option DC-Markup-Text) Flonum (Option DC-Markup-Text) Geo-Pin-Anchor)))
-  (lambda [label desc flmin flmax offset]
-    (define descs (if (pair? desc) desc (cons #false desc)))
-    
-    (if (pair? label)
-        (list (list (car label) (- flmin offset) (car descs) 'rc)
-              (list (cdr label) (+ flmax offset) (cdr descs) 'lc))
-        (list (list label (+ flmax offset) (cdr descs) 'lc)))))
+(define plot-axis-label-settings : (case-> [(U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
+                                            (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
+                                            Flonum Flonum Flonum
+                                            -> (Listof (List (Option DC-Markup-Text) Flonum (Option DC-Markup-Text) Geo-Pin-Anchor))]
+                                           [(U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
+                                            (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
+                                            Float-Complex Float-Complex
+                                            -> (Listof (List (Option DC-Markup-Text) Float-Complex (Option DC-Markup-Text) Boolean))])
+  (case-lambda
+    [(label desc flmin flmax offset)
+     (let ([descs (if (pair? desc) desc (cons #false desc))])
+       (if (pair? label)
+           (list (list (car label) (- flmin offset) (car descs) 'rc)
+                 (list (cdr label) (+ flmax offset) (cdr descs) 'lc))
+           (list (list label (+ flmax offset) (cdr descs) 'lc))))]
+    [(label desc src tgt)
+     (let ([descs (if (pair? desc) desc (cons #false desc))])
+       (if (pair? label)
+           (list (list (car label) src (car descs) #false)
+                 (list (cdr label) tgt (cdr descs) #true))
+           (list (list label tgt (cdr descs) #true))))]))

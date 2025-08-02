@@ -12,6 +12,8 @@
 (provide (all-from-out "digitama/marker/style.rkt"))
 (provide (all-from-out "digitama/visualizer.rkt"))
 
+(require racket/case)
+
 (require digimon/metrics)
 (require digimon/complex)
 
@@ -131,8 +133,8 @@
     (define Oshadow : Float-Complex (make-rectangular (+ (* view-width xO) xtick-min) (+ (* view-height yO) ytick-min)))
     (define Origin : Float-Complex (make-rectangular (real-part Oshadow) 0.0))
 
-    (define-values (xdigit-position xdigit-anchor) (plot-axis-digit-position-values axis-style 'x))
-    (define-values (ydigit-position ydigit-anchor) (plot-axis-digit-position-values axis-style 'y))
+    (define-values (xdigit-position xdigit-anchor xmirro-anchor) (plot-axis-digit-position-values axis-style 'x))
+    (define-values (ydigit-position ydigit-anchor ymirro-anchor) (plot-axis-digit-position-values axis-style 'y))
     
     (define xaxis : Geo:Path:Self
       (geo-path* #:stroke axis-pen #:tip-placement 'inside
@@ -140,7 +142,8 @@
                  #:target-tip (plot-axis-tip-style-positive-shape x-tip)
                  (list the-M0 (gpp:point #\L (make-rectangular flwidth 0.0)))))
     
-    (define xoffset : Float-Complex (flc-ri (* xdigit-position em -1.0)))
+    (define xdigit-offset : Float-Complex (flc-ri (* xdigit-position em -1.0)))
+    (define xmirro-offset :  Float-Complex (flc-ri (* xdigit-position em +1.0)))
     (define xmajor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
       (and (> fltick-length 0.0)
            (cons (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill tick-color)
@@ -157,7 +160,8 @@
                  #:target-tip (plot-axis-tip-style-positive-shape (or y-tip x-tip))
                  (list the-M0 (gpp:point #\L (flc-ri (- flheight))))))
     
-    (define yoffset : Float-Complex (make-rectangular (* ydigit-position em) 0.0))
+    (define ydigit-offset : Float-Complex (make-rectangular (* ydigit-position em) 0.0))
+    (define ymirro-offset : Float-Complex (make-rectangular (* ydigit-position (- em)) 0.0))
     (define ymajor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
       (and (> fltick-length 0.0)
            (cons (geo-rectangle fltick-length fltick-thickness #:stroke #false #:fill tick-color)
@@ -170,11 +174,11 @@
 
     (define-values (xsoff xeoff) (geo-path-endpoint-offsets xaxis))
     (define-values (ysoff yeoff) (geo-path-endpoint-offsets yaxis))
-    (define label-as-digit? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'digit))
-    (define xaxis-min : Flonum (- xtick-min x-neg-margin (- (real-part xsoff))))
+    (define label-at-axis? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'axis))
+    (define xaxis-min : Flonum (- xtick-min x-neg-margin (real-part xsoff)))
     (define xaxis-max : Flonum (+ xtick-max x-pos-margin (real-part xeoff)))
     (define yaxis-min : Flonum (- ytick-min y-neg-margin (imag-part ysoff)))
-    (define yaxis-max : Flonum (+ ytick-max y-pos-margin (- (imag-part yeoff))))
+    (define yaxis-max : Flonum (+ ytick-max y-pos-margin (imag-part yeoff)))
 
     (define origin-dot->pos : Plot-Position-Transform
       (case-lambda
@@ -182,7 +186,7 @@
         [(dot) (origin-dot->pos (real-part dot) (imag-part dot))]))
 
     (define 0-as-xdigit? : Boolean
-      (and (< (imag-part Oshadow) (imag-part xoffset))
+      (and (< (imag-part Oshadow) (imag-part xdigit-offset))
            (negative? (car xview))
            #;(null? actual-yticks)))
 
@@ -219,12 +223,13 @@
 
        ; x-axis's labels
        (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                 ([lbl (in-list (plot-axis-label-settings x-label x-desc xaxis-min xaxis-max (if (or label-as-digit?) 0.0 (* em 0.6))))])
+                 ([lbl (in-list (plot-axis-label-settings x-label x-desc xaxis-min xaxis-max (if (not label-at-axis?) 0.0 (* em 0.6))))])
          (if (car lbl)
              (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color (* em 0.4))])
-               (if (or label-as-digit?)
-                   (plot-axis-sticker-cons lbl.geo 'cc (+ (cadr lbl) xoffset) 0.0+0.0i labels -inf.0 real-part +inf.0 #false)
-                   (plot-axis-sticker-cons lbl.geo (cadddr lbl) (make-rectangular (cadr lbl) +0.0) 0.0+0.0i labels -inf.0 real-part +inf.0 #false)))
+               (case/eq (plot-axis-style-label-placement axis-style)
+                 [(digit) (plot-axis-sticker-cons* lbl.geo xdigit-anchor (+ (cadr lbl) xdigit-offset) 0.0+0.0i labels)]
+                 [(mirro) (plot-axis-sticker-cons* lbl.geo xmirro-anchor (+ (cadr lbl) xmirro-offset) 0.0+0.0i labels)]
+                 [else (plot-axis-sticker-cons* lbl.geo (cadddr lbl) (make-rectangular (cadr lbl) +0.0) 0.0+0.0i labels)]))
              labels))
 
        ; x-axis's ticks
@@ -238,21 +243,21 @@
 
          (cond [(not (zero? (scaled-round xval)))
                 (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
-                                        xoffset xticks xtick-min real-part xtick-max gtick)]
+                                        xdigit-offset xticks xtick-min real-part xtick-max gtick)]
                [(or 0-as-xdigit?)
                 (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
-                                        xoffset xticks xtick-min real-part xtick-max #false)]
+                                        xdigit-offset xticks xtick-min real-part xtick-max #false)]
                [else xticks]))
        
        ; y-axis's labels
        (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                 ([lbl (in-list (plot-axis-label-settings y-label y-desc yaxis-min yaxis-max (if (or label-as-digit?) 0.0 (* em 1.5))))])
+                 ([lbl (in-list (plot-axis-label-settings y-label y-desc yaxis-min yaxis-max (if (not label-at-axis?) 0.0 (* em 1.5))))])
          (if (car lbl)
-             (if (or label-as-digit?)
-                 (plot-axis-sticker-cons (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)
-                                         ydigit-anchor (flc-ri (- (cadr lbl))) (+ Oshadow yoffset) labels -inf.0 imag-part +inf.0 #false)
-                 (plot-axis-sticker-cons (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)
-                                         'cc (flc-ri (- (cadr lbl))) Oshadow labels -inf.0 imag-part +inf.0 #false))
+             (let ([lbl.geo (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)])
+               (case/eq (plot-axis-style-label-placement axis-style)
+                 [(digit) (plot-axis-sticker-cons* lbl.geo ydigit-anchor (flc-ri (- (cadr lbl))) (+ Oshadow ydigit-offset) labels)]
+                 [(mirro) (plot-axis-sticker-cons* lbl.geo ymirro-anchor (flc-ri (- (cadr lbl))) (+ Oshadow ymirro-offset) labels)]
+                 [else (plot-axis-sticker-cons* lbl.geo 'cc (flc-ri (- (cadr lbl))) Oshadow labels)]))
              labels))
 
        ; y-axis's ticks
@@ -265,8 +270,7 @@
                (values 'minor yminor-tick)))
 
          (if (not (zero? (scaled-round yval)))
-             (plot-axis-sticker-cons maybe-sticker ydigit-anchor (origin-dot->pos 0.0 yval)
-                                     yoffset yticks -inf.0 imag-part +inf.0 gtick)
+             (plot-axis-sticker-cons* maybe-sticker ydigit-anchor (origin-dot->pos 0.0 yval) ydigit-offset yticks gtick)
              yticks))
 
        ; visualizers' labels
@@ -287,7 +291,7 @@
     (define translated-layers : (Option (GLayer-Groupof Geo))
       (if (not 0-as-xdigit?)
           (geo-layers-try-extend (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)
-                                                    Origin zero (+ yoffset xoffset))
+                                                    Origin zero (+ ydigit-offset xdigit-offset))
                                  layers)
           (and (pair? layers)
                (geo-layers-try-extend layers 0.0 0.0))))

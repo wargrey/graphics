@@ -4,7 +4,9 @@
 
 (require digimon/complex)
 (require digimon/digitama/unsafe/ops)
+
 (require racket/list)
+(require racket/math)
 
 (require "bezier.rkt")
 
@@ -184,31 +186,65 @@
                  (values pos rad pos rad))])
         (values #false 0.0 #false 0.0))))
 
-(define gpp-directional-vector : (-> Geo-Path-Clean-Prints Integer Float (Option (Pairof Float-Complex Float-Complex)))
-  (lambda [footprints index t]
-    (let traverse ([curpos : (Option Float-Complex) #false]
-                   [prints : Geo-Path-Clean-Prints footprints]
-                   [idx : Index 0])
-      (and (pair? prints)
-           (let-values ([(self rest) (values (car prints) (cdr prints))])
-             (cond [(gpp:point? self)
-                    (let ([endpos (gpp-clean-position self)])
-                      (cond [(or (not curpos) (eq? (gpath:datum-cmd self) #\M)) (traverse endpos rest idx)]
-                            [(< idx index) (traverse endpos rest (unsafe-idx+ idx 1))]
-                            [else (let ([dir (- endpos curpos)])
-                                    (cons (+ (* dir t) curpos)
-                                          (/ dir (magnitude dir))))]))]
-                   [(gpp:bezier? self) ; NOTE: A bezier storage couldn't be the first one, an the storage know the head point.
-                    (if (= idx index)
-                        (let ([bezier (gpp-bezier-function self 0)]
-                              [derivative (gpp-bezier-function self 1)])
-                          (and bezier derivative
-                               (let* ([t-by-length (gpp-bezier-reparameterize-by-arclength self t)]
-                                      [pos (bezier t-by-length)]
-                                      [dp (derivative t-by-length)])
-                                 (cons pos (/ dp (magnitude dp))))))
-                        (traverse (gpp-clean-position self) rest (unsafe-idx+ idx 1)))]
-                   [else '#:deadcode (traverse curpos rest idx)]))))))
+(define gpp-directional-vector : (case-> [Geo-Path-Clean-Prints (Option Integer) Real -> (Option (Pairof Float-Complex Float-Complex))]
+                                         [Geo-Path-Clean-Prints Real -> (Option (Pairof Float-Complex Float-Complex))])
+  (case-lambda
+    [(footprints idx0 t-by-length)
+     (if (or idx0)
+         (let ([count (gpp-segment-count footprints)])
+           (and (> count 0)
+                (let traverse ([curpos : (Option Float-Complex) #false]
+                               [prints : Geo-Path-Clean-Prints footprints]
+                               [idx : Nonnegative-Fixnum (let wrap ([idx : Integer idx0])
+                                                           (cond [(>= idx 0) (remainder idx count)]
+                                                                 [else (wrap (+ idx count))]))])
+                  (and (pair? prints)
+                       (let-values ([(self rest) (values (car prints) (cdr prints))])
+                         (cond [(gpp:point? self)
+                                (let ([endpos (gpp-clean-position self)])
+                                  (cond [(or (not curpos) (eq? (gpath:datum-cmd self) #\M)) (traverse endpos rest idx)]
+                                        [(> idx 0) (traverse endpos rest (- idx 1))]
+                                        [else (let ([dir (- endpos curpos)])
+                                                (cons (+ (* dir t-by-length) curpos)
+                                                      (/ dir (magnitude dir))))]))]
+                               [(gpp:bezier? self) ; NOTE: A bezier storage couldn't be the first one, an the storage know the head point.
+                                (cond [(> idx 0) (traverse (gpp-clean-position self) rest (- idx 1))]
+                                      [else (let ([bezier (gpp-bezier-function self 0)]
+                                                  [derivative (gpp-bezier-function self 1)])
+                                              (and bezier derivative
+                                                   (let* ([t (gpp-bezier-reparameterize-by-arclength self t-by-length)]
+                                                          [pos (bezier t)]
+                                                          [dp (derivative t)])
+                                                     (cons pos (/ dp (magnitude dp))))))])]
+                               [else '#:deadcode (traverse curpos rest idx)]))))))
+         (gpp-directional-vector footprints t-by-length))]
+    [(footprints t-by-length)
+     (let traverse ([curpos : (Option Float-Complex) #false]
+                    [prints : Geo-Path-Clean-Prints footprints]
+                    [distance : Flonum (* (gpp-arclength footprints) (real->double-flonum t-by-length))])
+       (and (pair? prints) (>= distance 0.0)
+            (let-values ([(self rest) (values (car prints) (cdr prints))])
+              (cond [(gpp:point? self)
+                     (let ([endpos (gpp-clean-position self)])
+                       (cond [(or (not curpos) (eq? (gpath:datum-cmd self) #\M)) (traverse endpos rest distance)]
+                             [else (let* ([dir (- endpos curpos)]
+                                          [len (magnitude dir)]
+                                          [diff (- distance len)])
+                                     (cond [(positive? diff) (traverse endpos rest diff)]
+                                           [else (cons (+ (* dir (/ distance len)) curpos)
+                                                       (/ dir (magnitude dir)))]))]))]
+                    [(gpp:bezier? self) ; NOTE: A bezier storage couldn't be the first one, an the storage know the head point.
+                     (let* ([len (gpp-bezier-arclength self)]
+                            [diff (- distance len)])
+                       (cond [(positive? diff) (traverse (gpp-clean-position self) rest diff)]
+                             [else (let ([bezier (gpp-bezier-function self 0)]
+                                         [derivative (gpp-bezier-function self 1)])
+                                     (and bezier derivative
+                                          (let* ([t (gpp-bezier-reparameterize-by-arclength self (/ distance len))]
+                                                 [pos (bezier t)]
+                                                 [dp (derivative t)])
+                                            (cons pos (/ dp (magnitude dp))))))]))]
+                    [else '#:deadcode (traverse curpos rest distance)]))))]))
 
 (define gpp-ink-box : (-> Geo-Path-Clean-Prints (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [footprints]
@@ -246,7 +282,7 @@
                         [(y height) (if (>= h 0.0) (values ty h) (values 0.0 0.0))])
             (values x y width height))))))
 
-(define gpp-length : (-> Geo-Path-Clean-Prints Nonnegative-Flonum)
+(define gpp-arclength : (-> Geo-Path-Clean-Prints Nonnegative-Flonum)
   (lambda [footprints]
     (let traverse ([prints : Geo-Path-Clean-Prints footprints]
                    [prev : (Option Float-Complex) #false]
@@ -256,7 +292,7 @@
             (cond [(gpp:bezier? self)
                    (traverse rest
                              (gpath:print-end-here self)
-                             (+ size (gpp-bezier-length self)))]
+                             (+ size (gpp-bezier-arclength self)))]
                   [else ; TODO: deal with arcs
                    (let ([cmd (gpath:datum-cmd self)]
                          [pt (gpp-clean-position self)])
@@ -264,6 +300,17 @@
                            [(not prev) (traverse rest pt size)]
                            [else (traverse rest pt (+ size (magnitude (- pt prev))))]))]))
           size))))
+
+(define gpp-segment-count : (-> Geo-Path-Clean-Prints Index)
+  (lambda [footprints]
+    (let traverse ([prints : Geo-Path-Clean-Prints footprints]
+                   [count : Index 0])
+      (if (pair? prints)
+          (let*-values ([(self rest) (values (car prints) (cdr prints))]
+                        [(cmd) (gpath:datum-cmd self)])
+            (cond [(eq? cmd #\M) (traverse rest count)]
+                  [else (traverse rest (unsafe-idx+ count 1))]))
+          count))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define gpp-bezier-endpoints : (-> GPP:Bezier (Values Float-Complex Flonum Float-Complex Flonum))
@@ -297,7 +344,7 @@
            (gpp:bezier:nth-ctrls+endpoint self)]
           [else '#:deadcode null])))
 
-(define gpp-bezier-length : (-> GPP:Bezier Nonnegative-Flonum)
+(define gpp-bezier-arclength : (-> GPP:Bezier Nonnegative-Flonum)
   (let ([size-db : (HashTable Any Nonnegative-Flonum) (make-weak-hash)])
     (lambda [self]
       (hash-ref! size-db self
@@ -305,14 +352,14 @@
                                       (gpp-bezier-tail-points self)
                                       (gpp:bezier-samples self)))))))
 
-(define gpp-bezier-reparameterize-by-arclength : (-> GPP:Bezier Flonum Nonnegative-Flonum)
-  (let ([lookup-table : (Weak-HashTable Any (HashTable Flonum (Pairof Nonnegative-Exact-Rational Nonnegative-Flonum))) (make-weak-hash)])
+(define gpp-bezier-reparameterize-by-arclength : (-> GPP:Bezier Real Nonnegative-Flonum)
+  (let ([lookup-table : (Weak-HashTable Any (HashTable Real (Pairof Nonnegative-Exact-Rational Nonnegative-Flonum))) (make-weak-hash)])
     (lambda [self t]
-      (define reparameterize : (-> (HashTable Flonum (Pairof Nonnegative-Exact-Rational Nonnegative-Flonum)) Flonum
+      (define reparameterize : (-> (HashTable Real (Pairof Nonnegative-Exact-Rational Nonnegative-Flonum)) Real
                                    (Pairof Nonnegative-Exact-Rational Nonnegative-Flonum))
         (lambda [lut t]
-          (define bsize (gpp-bezier-length self))
-          (define distance (abs (* bsize t)))
+          (define bsize (gpp-bezier-arclength self))
+          (define distance (abs (* bsize (real->double-flonum t))))
           (define head (gpp:bezier-start-here self))
           (define tail (gpp-bezier-tail-points self))
           (define samples (gpp:bezier-samples self))
@@ -333,13 +380,16 @@
                   [else ; for the first one
                    (values 0 1 distance)]))
           (define t-by-len : Nonnegative-Exact-Rational
-            (bezier-reparameterize-by-length head tail len samples #:t0 t0 #:tn tn))
+            (bezier-reparameterize-by-length #:t0 t0 #:tn tn
+                                             head tail len
+                                             (exact-round (* (- tn t0)
+                                                             samples))))
             
           (cons t-by-len distance)))
       
       (cond [(<= t 0) 0.0]
             [(>= t 1) 1.0]
-            [else (let ([lut (hash-ref! lookup-table self (inst make-hasheqv Flonum (Pairof Nonnegative-Exact-Rational Nonnegative-Flonum)))])
+            [else (let ([lut (hash-ref! lookup-table self (inst make-hasheqv Real (Pairof Nonnegative-Exact-Rational Nonnegative-Flonum)))])
                     (real->double-flonum (car (hash-ref! lut t (λ [] (reparameterize lut t))))))]))))
 
 (define gpp-bezier-function : (-> GPP:Bezier Byte (Option (-> Flonum Float-Complex)))

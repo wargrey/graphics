@@ -7,16 +7,18 @@
 (require "../convert.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-own-layer : (-> Geo (GLayerof Geo))
-  (lambda [base]
+(define geo-own-layer : (->* (Geo) (Float-Complex) (GLayerof Geo))
+  (lambda [base [offset 0.0+0.0i]]
     (define-values (width height) (geo-flsize base))
-    (glayer base 0.0 0.0 width height)))
+    (glayer base (real-part offset) (imag-part offset) width height)))
 
-(define geo-own-layers : (-> Geo (GLayer-Groupof Geo))
-  (lambda [base]
+(define geo-own-layers : (->* (Geo) (Float-Complex) (GLayer-Groupof Geo))
+  (lambda [base [offset 0.0+0.0i]]
     (define-values (width height) (geo-flsize base))
     (glayer-group width height
-                  (list (glayer base 0.0 0.0 width height)))))
+                  (list (glayer base
+                                (real-part offset) (imag-part offset)
+                                width height)))))
 
 (define geo-composite-layers
   : (case-> [Geo Geo Flonum Flonum -> (GLayer-Groupof Geo)]

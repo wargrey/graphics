@@ -47,9 +47,9 @@
                     (cons (real->double-flonum length) angle)))))))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-mark-vector-guard : (-> (Option Plot-Mark-Vector) (Option Plot-Mark-Fallback-Vector) Nonnegative-Flonum Real
+(define plot-mark-vector-guard : (-> (Option Plot-Mark-Vector) (Option Plot-Mark-Fallback-Vector) Nonnegative-Flonum Real Flonum
                                      (Values (Option Float-Complex) (Option Flonum)))
-  (lambda [self fallback-vctr 100% x]
+  (lambda [self fallback-vctr 100% x rotate]
     (define-values (length fb.rad)
       (cond [(list? fallback-vctr)
              (values (list (car fallback-vctr) (caddr fallback-vctr))
@@ -67,9 +67,9 @@
       (values (and (rational? guarded-len)
                    (> guarded-len 0.0)
                    (rational? guarded-rad)
-                   (make-polar guarded-len guarded-rad))
+                   (make-polar guarded-len (+ guarded-rad rotate)))
               (and (rational? guarded-rad)
-                   (angle (make-polar 1.0 guarded-rad)))))
+                   (angle (make-polar 1.0 (+ guarded-rad rotate))))))
     
     (cond [(list? self)
            (let* ([len (car self)]

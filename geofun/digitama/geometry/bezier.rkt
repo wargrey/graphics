@@ -92,7 +92,7 @@
             (max 0.0 (- rx lx))
             (max 0.0 (- by ty)))))
 
-(define bezier-length : (->* (Float-Complex (Listof Float-Complex) Index)
+(define bezier-length : (->* (Float-Complex (Listof Float-Complex) Integer)
                              (#:t0 Nonnegative-Exact-Rational #:tn Nonnegative-Exact-Rational)
                              Nonnegative-Flonum)
   (lambda [head tail samples #:t0 [tmin 0] #:tn [tmax 1]]
@@ -113,7 +113,7 @@
               acc-len))
         #;'#:deadcode 0.0)))
 
-(define bezier-reparameterize-by-length : (->* (Float-Complex (Listof Float-Complex) Nonnegative-Flonum Index)
+(define bezier-reparameterize-by-length : (->* (Float-Complex (Listof Float-Complex) Nonnegative-Flonum Integer)
                                                (#:t0 Nonnegative-Exact-Rational #:tn Nonnegative-Exact-Rational)
                                                Nonnegative-Exact-Rational)
   (lambda [head tail size samples #:t0 [tmin 0] #:tn [tmax 1]]

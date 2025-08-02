@@ -19,6 +19,20 @@
     (zero? (imag-part (* (- B A)
                          (conjugate (- D C)))))))
 
+(define geo-dot-line-orientation-test : (case-> [Float-Complex Float-Complex Float-Complex -> Flonum]
+                                                [Float-Complex Float-Complex -> Flonum])
+  (case-lambda
+    [(z V) (imag-part (* (conjugate V) z))]
+    [(z A B) (geo-dot-line-orientation-test z (- B A))]))
+
+(define geo-dot-on-line? : (-> Float-Complex Float-Complex Float-Complex Boolean)
+  (lambda [z A B]
+    (define t (/ (- z A) (- B A)))
+
+    (and (< (abs (imag-part t)) 1e-12)
+         (let ([r (round (* (real-part t) 1e12))])
+           (<= 0.0 r 1e12)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-line-line-intersect : (-> Float-Complex Float-Complex Float-Complex Float-Complex (Option Geo-Intersection))
   (lambda [A B C D]

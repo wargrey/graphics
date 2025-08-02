@@ -6,12 +6,14 @@
 
 (require geofun/font)
 (require geofun/paint)
+(require geofun/stroke)
 
 (require geofun/digitama/base)
 (require geofun/digitama/convert)
 (require geofun/digitama/color)
 (require geofun/digitama/markup)
 (require geofun/digitama/path/label)
+(require geofun/digitama/paint/self)
 
 (require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)
@@ -40,7 +42,11 @@
            #:font [font : (Option Font) #false] #:color [color : (Option Color) #false] #:pin-stroke [pin-stroke : Maybe-Stroke-Paint (void)]
            #:fallback-pin [fallback-pin : (Option Plot-Mark-Fallback-Vector) #false] #:fallback-gap [fallback-gap : (Option Plot-Mark-Fallback-Vector) #false]
            #:fallback-anchor [fallback-anchor : Plot-Mark-Auto-Anchor plot-mark-auto-anchor] #:length-base [length-base : Nonnegative-Flonum 100.0]
-           [self : Plot:Mark] [transform : Plot-Position-Transform]] : Plot:Marker
+           #:rotate [rotate : Real 0.0] #:debug? [debug0? : Boolean #false]
+           [self : Plot:Mark] [transform0 : (Option Plot-Position-Transform) #false]] : Plot:Marker
+    (define transform : Plot-Position-Transform (or transform0 plot-mark-values))
+    (define maybe-debugger : (U Boolean Stroke) (plot:mark-debug? self))
+    (define debug? : Boolean (or debug0? (and maybe-debugger #true)))
     (define labels : (Listof Geo-Sticker-Datum)
       (let sticker-filter ([desc (plot:mark-desc self)])
         (cond [(geo? desc) (list desc)]
@@ -54,11 +60,18 @@
                       (cond [(void? desc.geo) null]
                             [else (sticker-filter desc.geo)]))])))
 
-    (define-values (prints location angle) (plot-mark->footprints self transform length-base fallback-pin fallback-gap))
+    (define-values (prints location angle)
+      (plot-mark->footprints self transform length-base
+                             fallback-pin fallback-gap
+                             (real->double-flonum rotate)))
     
     (define path : Geo:Path:Self
-      (geo-path* #:id id #:stroke pin-stroke
-                 #:source-tip (plot:mark-shape self) #:target-tip #false
+      (geo-path* #:id id
+                 #:stroke (cond [(not debug?) pin-stroke]
+                                [(stroke? maybe-debugger) maybe-debugger]
+                                [else plot-mark-debugger])
+                 #:source-tip (or (plot:mark-shape self) (and debug? 'dot))
+                 #:target-tip (and debug? 'arrow)
                  #:tip-placement 'center #:tip-color color
                  prints))
 
@@ -77,17 +90,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; WARNING: It's better for callers to ensure valid inputs as specifications vary across visualizers. 
 (define plot-mark->footprints : (-> Plot:Mark Plot-Position-Transform Nonnegative-Flonum
-                                    (Option Plot-Mark-Fallback-Vector) (Option Plot-Mark-Fallback-Vector)
+                                    (Option Plot-Mark-Fallback-Vector) (Option Plot-Mark-Fallback-Vector) Flonum
                                     (Values Geo-Path-Clean-Prints+ Float-Complex (Option Flonum)))
-  (lambda [self transform length-base fallback-pin fallback-gap]
+  (lambda [self transform length-base fallback-pin fallback-gap rotate]
     (define pt : Complex (plot:mark-point self))
     (define-values (x y)
       (values (real->double-flonum (real-part pt))
               (real->double-flonum (imag-part pt))))
 
     (define start : Float-Complex (transform x y))
-    (define-values (pin pin.rad) (plot-mark-vector-guard (plot:mark-pin self) fallback-pin length-base x))
-    (define-values (gap gap.rad) (plot-mark-vector-guard (plot:mark-gap self) fallback-gap length-base x))
+    (define-values (pin pin.rad) (plot-mark-vector-guard (plot:mark-pin self) fallback-pin length-base x rotate))
+    (define-values (gap gap.rad) (plot-mark-vector-guard (plot:mark-gap self) fallback-gap length-base x rotate))
 
     (cond [(and pin gap)
            (let* ([pin-end (+ start   pin)]
@@ -95,20 +108,24 @@
              (values (list (gpp:point #\M start)
                            (gpp:point #\L pin-end)
                            (gpp:point #\M gap-end))
-                     gap-end
-                     (or gap.rad pin.rad)))]
+                     gap-end gap.rad))]
           [(or pin)
            (let ([pin-end (+ start pin)])
              (values (list (gpp:point #\M start)
                            (gpp:point #\L pin-end))
-                     pin-end
-                     (or gap.rad pin.rad)))]
+                     pin-end pin.rad))]
           [(or gap)
            (let ([gap-end (+ start gap)])
              (values (list (gpp:point #\M start)
                            (gpp:point #\M gap-end))
-                     gap-end
-                     (or gap.rad pin.rad)))]
+                     gap-end gap.rad))]
           [else (values (list (gpp:point #\M start))
-                        start
-                        (or gap.rad pin.rad))])))
+                        start (or gap.rad pin.rad))])))
+
+(define plot-mark-values : Plot-Position-Transform
+  (case-lambda
+    [(x y) (make-rectangular x y)]
+    [(pt) pt]))
+
+(define plot-mark-debugger : Stroke
+  (desc-stroke #:color 'firebrick))
