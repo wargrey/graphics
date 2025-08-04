@@ -5,6 +5,8 @@
 (provide geo-composite geo-pin* geo:group? Geo:Group)
 (provide geo-blank geo-ghost geo:blank? Geo:Blank)
 (provide geo:table? Geo:Table)
+(provide geo:path:group? Geo:Path:Group)
+(provide geo-path-group geo-path-group*)
 
 (provide (rename-out [geo-pin-over geo-pin])
          (rename-out [geo-ct-superimpose geo-n-superimpose] [geo-ct-superimpose* geo-n-superimpose*]
@@ -34,6 +36,8 @@
 
 (require "digitama/dc/composite.rkt")
 (require "digitama/dc/plain.rkt")
+
+(require "digitama/path/group.rkt")
 
 (require "digitama/composite.rkt")
 (require "digitama/convert.rkt")

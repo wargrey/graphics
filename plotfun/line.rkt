@@ -91,7 +91,7 @@
     (define vertical? : Boolean (zero? cosα))
 
     (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
-    (define-values (digit-position digit-anchor mirro-anchor) (plot-axis-digit-position-values axis-style (if (not vertical?) 'x 'y)))
+    (define-values (digit-position digit-anchor miror-anchor) (plot-axis-digit-position-values axis-style (if (not vertical?) 'x 'y)))
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
 
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
@@ -146,7 +146,7 @@
                     (let ([lbl.geo (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)]
                           [angle.rad (case/eq (plot-axis-style-label-placement axis-style)
                                        [(digit) (if (positive? (geo-dot-line-orientation-test digit-offset Vself))  pi/2 -pi/2)]
-                                       [(mirro) (if (positive? (geo-dot-line-orientation-test digit-offset Vself)) -pi/2  pi/2)]
+                                       [(mirror) (if (positive? (geo-dot-line-orientation-test digit-offset Vself)) -pi/2  pi/2)]
                                        [else (if (cadddr lbl) 0.0 (- pi))])]
                           [length (cond [(not label-at-axis?) em]
                                         [(zero? cosα) (* em 1.5)]
@@ -231,7 +231,7 @@
     (define actual-tick-values (filter exact-integer? (map plot-tick-value* actual-ticks)))
 
     (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
-    (define-values (digit-position digit-anchor mirro-anchor) (plot-axis-digit-position-values axis-style 'x))
+    (define-values (digit-position digit-anchor miror-anchor) (plot-axis-digit-position-values axis-style 'x))
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
     
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
@@ -248,7 +248,7 @@
 
     (define view-offset : Float-Complex (- (geo:path:self-origin main-axis)))
     (define digit-offset : Float-Complex (make-rectangular 0.0 (* digit-position (- em))))
-    (define mirro-offset :  Float-Complex (make-rectangular 0.0 (* digit-position (+ em))))
+    (define miror-offset :  Float-Complex (make-rectangular 0.0 (* digit-position (+ em))))
     (define flc-origin : Float-Complex (+ (make-rectangular (+ (* used-length origin) fltick-min) 0.0) view-offset))
 
     (define-values (soff eoff) (geo-path-endpoint-offsets main-axis))
@@ -277,8 +277,8 @@
                 (if (car lbl)
                     (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color (* em 0.4))])
                       (case/eq (plot-axis-style-label-placement axis-style)
-                        [(digit) (plot-axis-sticker-cons* lbl.geo digit-anchor (+ (cadr lbl) digit-offset) view-offset labels)]
-                        [(mirro) (plot-axis-sticker-cons* lbl.geo mirro-anchor (+ (cadr lbl) mirro-offset) view-offset labels)]
+                        [(digit)  (plot-axis-sticker-cons* lbl.geo digit-anchor (+ (cadr lbl) digit-offset) view-offset labels)]
+                        [(mirror) (plot-axis-sticker-cons* lbl.geo miror-anchor (+ (cadr lbl) miror-offset) view-offset labels)]
                         [else (plot-axis-sticker-cons* lbl.geo (cadddr lbl) (make-rectangular (cadr lbl) 0.0) view-offset labels)]))
                     labels))
               

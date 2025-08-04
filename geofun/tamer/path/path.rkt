@@ -67,4 +67,4 @@
             #:target-tip default-arrow-tip
             #:labels (make-geo-path-labels #:index #false
                                            (map string (string->list "labels parameterized along the full path")) 0.02)
-            (list 60+100i 160+140i 368+166i (list 368+166i 645+166i 645+0i 750+166i) 800+166i)))
+            (list 60+20i 60+140i 368+166i (list 368+166i 645+166i 645+0i 750+166i) 800+166i)))

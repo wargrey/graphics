@@ -2,8 +2,6 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
-
 (require "../path/label.rkt")
 (require "../path/tip/self.rkt")
 (require "../path/tip.rkt")
@@ -84,14 +82,14 @@
                             (cons (make-rectangular s.w s.h) (make-rectangular t.w t.h))
                             (cons s.off t.off))))
 
-(define geo-path-attach-label : (-> Geo-Path (U Geo:Path:Label (Listof Geo:Path:Label)) Geo:Path)
+(define geo-path-attach-label : (-> Geo-Path (U Geo:Path:Label (Listof Geo:Path:Label)) [#:id (Option Symbol)] Geo:Path)
   (let ([labels-vectors : (HashTable Any (Option (Pairof Float-Complex Float-Complex))) (make-weak-hash)])
-    (lambda [master label]
+    (lambda [master label #:id [name #false]]
       (cond [(geo:path:self? master)
-             (geo-path-attach-label
-              (create-geometry-group geo:path #false #false #false
-                                     (geo-own-layers master) master)
-              label)]
+             (geo-path-attach-label #:id name
+                                    (create-geometry-group geo:path name #false #false
+                                                           (geo-own-layers master) master)
+                                    label)]
             [(or (pair? label) (geo:path:label? label))
              (let* ([self (geo-path-ungroup master)]
                     [footprints (geo:path:self-footprints self)]
@@ -109,7 +107,7 @@
                            (let-values ([(layer distance) (geo-path-label-layer+distance label (- (car V) O) (cdr V))])
                              (attach (cdr labels) (cons layer layers) (if (zero? distance) op #false)))
                            (attach labels layers op)))
-                     (create-geometry-group geo:path #false #false op
+                     (create-geometry-group geo:path name #false op
                                             (geo-layers-merge (geo:group-selves master) layers)
                                             self))))]
             [else master]))))

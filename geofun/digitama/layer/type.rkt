@@ -103,11 +103,15 @@
                             (cdr siblings)))
           (values lx ty rx by)))))
 
-(define #:forall (G) geo-layer-translate : (-> (GLayerof G) Flonum Flonum (GLayerof G))
-  (lambda [self xoff yoff]
-    (glayer (glayer-master self)
-            (+ xoff (glayer-x self)) (+ yoff (glayer-y self))
-            (glayer-width self) (glayer-height self))))
+(define #:forall (G) geo-layer-translate : (case-> [(GLayerof G) Flonum Flonum -> (GLayerof G)]
+                                                   [(GLayerof G) Float-Complex -> (GLayerof G)])
+  (case-lambda
+    [(self xoff yoff)
+     (glayer (glayer-master self)
+             (+ xoff (glayer-x self)) (+ yoff (glayer-y self))
+             (glayer-width self) (glayer-height self))]
+    [(self offset)
+     (geo-layer-translate self (real-part offset) (imag-part offset))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-pin-anchor? : (-> Any Boolean : Geo-Pin-Anchor)

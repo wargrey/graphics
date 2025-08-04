@@ -15,7 +15,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Axis-Tick-Placement (U 'positive 'center 'negative))
-(define-type Plot-Axis-Label-Placement (U 'axis 'digit 'mirro))
+(define-type Plot-Axis-Label-Placement (U 'axis 'digit 'mirror))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter plot-axis-tip-style : Plot-Axis-Tip-Style

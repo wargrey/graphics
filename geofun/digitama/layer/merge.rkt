@@ -30,10 +30,18 @@
                                              (for/list : (Listof (GLayerof Geo)) ([sticker (in-list (cdr stickers))])
                                                (geo-layer-translate sticker xoff yoff)))))))]))
 
-(define geo-layers-merge : (-> (GLayer-Groupof Geo) (Listof (GLayerof Geo)) (GLayer-Groupof Geo))
-  (lambda [group layers]
-    (define layers++ : (Pairof (GLayerof Geo) (Listof (GLayerof Geo))) (append (glayer-group-layers group) layers))
-    (define-values (W H) (values (glayer-group-width group) (glayer-group-height group)))
-
-    (or (geo-layers-try-extend layers++ W H)
-        (glayer-group W H layers++))))
+(define geo-layers-merge : (case-> [(GLayer-Groupof Geo) (Listof (GLayerof Geo)) -> (GLayer-Groupof Geo)]
+                                   [(Pairof (GLayerof Geo) (Listof (GLayerof Geo))) -> (GLayer-Groupof Geo)])
+  (case-lambda
+    [(group layers)
+     (let*-values ([(layers++) (append (glayer-group-layers group) layers)]
+                   [(W H) (values (glayer-group-width group) (glayer-group-height group))])
+       (or (geo-layers-try-extend layers++ W H)
+           (glayer-group W H layers++)))]
+    [(layers)
+     (let-values ([(pos) (geo-layer-position (car layers))]
+                  [(W H) (geo-layer-size (car layers))])
+       (or (geo-layers-try-extend layers
+                                  (max (+ W (real-part pos)) 0.0)
+                                  (max (+ H (imag-part pos)) 0.0))
+           (glayer-group W H layers)))]))
