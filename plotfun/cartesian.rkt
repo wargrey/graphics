@@ -17,6 +17,7 @@
 
 (require digimon/metrics)
 (require digimon/complex)
+(require digimon/flonum)
 
 (require geofun/font)
 (require geofun/color)
@@ -39,7 +40,6 @@
 (require geofun/digitama/geometry/footprint)
 
 (require "digitama/visualizer.rkt")
-(require "digitama/arithmetics.rkt")
 (require "digitama/axis/self.rkt")
 (require "digitama/axis/style.rkt")
 (require "digitama/axis/config.rkt")
@@ -249,7 +249,7 @@
                (values (xdigit->sticker id (plot-tick-desc xtick) digit-font digit-color) xmajor-tick)
                (values 'minor xminor-tick)))
 
-         (cond [(not (zero? (scaled-round xval)))
+         (cond [(not (flnear? xval 0.0))
                 (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
                                         xdigit-offset xticks xtick-min real-part xtick-max gtick)]
                [(or 0-as-xdigit?)
@@ -277,7 +277,7 @@
                (values (ydigit->sticker id (plot-tick-desc ytick) digit-font digit-color) ymajor-tick)
                (values 'minor yminor-tick)))
 
-         (if (not (zero? (scaled-round yval)))
+         (if (not (flnear? yval 0.0))
              (plot-axis-sticker-cons* maybe-sticker ydigit-anchor (origin-dot->pos 0.0 yval) ydigit-offset yticks gtick)
              yticks))
 

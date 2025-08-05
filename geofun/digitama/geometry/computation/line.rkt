@@ -3,7 +3,9 @@
 (provide (all-defined-out))
 
 (require racket/math)
+
 (require digimon/sequence)
+(require digimon/flonum)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Intersection (Immutable-Vector Float-Complex Flonum Flonum))
@@ -29,9 +31,8 @@
   (lambda [z A B]
     (define t (/ (- z A) (- B A)))
 
-    (and (< (abs (imag-part t)) 1e-12)
-         (let ([r (round (* (real-part t) 1e12))])
-           (<= 0.0 r 1e12)))))
+    (and (flnear? (imag-part t) 0.0)
+         (flbetween-inclusive? 0.0 (real-part t) 1.0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-line-line-intersect : (-> Float-Complex Float-Complex Float-Complex Float-Complex (Option Geo-Intersection))

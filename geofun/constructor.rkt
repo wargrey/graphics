@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) Geo-Tick-Placement)
 (provide (rename-out [geo-polyline geo-lines]))
 (provide (rename-out [geo-sandglass geo-hourglass]))
 (provide (rename-out [geo-dart geo-arrowhead]))
@@ -34,6 +34,7 @@
 
 (provide Geo-Path Geo:Path Geo:Path:Self)
 (provide geo-path geo-path* geo:path? geo:path:self?)
+(provide geo-path-attach-label geo-path-attach-ticks)
 (provide geo-path-ungroup geo-path-self-pin-position geo-path-length)
 (provide geo-path-endpoints geo-path-endpoint-offsets geo-path-tip-sizes)
 (provide geo-path-tangent-vector geo-path-normal-vector)
@@ -72,6 +73,7 @@
 (require "digitama/dc/path.rkt")
 (require "digitama/path/label.rkt")
 (require "digitama/path/tips.rkt")
+(require "digitama/path/tick.rkt")
 
 (require "digitama/skeleton/stickman/interface.rkt")
 

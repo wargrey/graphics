@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require digimon/flonum)
+
 (require geofun/font)
 (require geofun/color)
 (require geofun/composite)
@@ -18,7 +20,6 @@
 
 (require "interface.rkt")
 (require "../marker/dc.rkt")
-(require "../arithmetics.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-plot-axis-tick->sticker : Plot-Axis-Tick->Sticker
@@ -59,16 +60,16 @@
                                        -> (Listof (GLayerof Geo))])
   (case-lambda
     [(self anchor pos offset stickers tick-min part tick-max maybe-tick)
-     (if (<= (scaled-round tick-min) (scaled-round (part pos)) (scaled-round tick-max))
+     (if (flbetween-inclusive? tick-min (part pos) tick-max)
          (plot-axis-sticker-cons* self anchor pos offset stickers maybe-tick)
          stickers)]
     [(self pos stickers tick-min part tick-max)
-     (if (<= (scaled-round tick-min) (scaled-round (part pos)) (scaled-round tick-max))
+     (if (flbetween-inclusive? tick-min (part pos) tick-max)
          (plot-axis-sticker-cons* self pos stickers)
          stickers)]
     [(self stickers tick-min part tick-max)
      (let-values ([(src-pos end-pos) (geo-path-endpoints self)])
-       (if (<= (scaled-round tick-min) (scaled-round (part src-pos)) (scaled-round tick-max))
+       (if (flbetween-inclusive? tick-min (part src-pos) tick-max)
            (cons (geo-path-self-pin-layer self) stickers)
            stickers))]
     [(self anchor pos offset stickers tick-start tick-end maybe-tick)

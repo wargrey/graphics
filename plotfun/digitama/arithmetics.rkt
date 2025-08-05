@@ -5,10 +5,6 @@
 (require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define scaled-round : (->* (Flonum) (Nonnegative-Flonum) Flonum)
-  (lambda [fl [precision 10000.0]]
-    (round (* fl precision))))
-
 (define exact-log : (-> Positive-Real Exact-Rational)
   (lambda [x]
     (define y (log x))
