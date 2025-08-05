@@ -2,17 +2,18 @@
 
 (provide (all-defined-out) Plot-Mark-Auto-Anchor)
 (provide Plot:Cartesian plot:cartesian?)
-
+(provide (all-from-out geofun/digitama/path/tips))
 (provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/singleton.rkt"))
-(provide (all-from-out "digitama/axis/tick/self.rkt"))
-(provide (all-from-out "digitama/axis/tick/real.rkt"))
 (provide (all-from-out "digitama/marker/self.rkt"))
 (provide (all-from-out "digitama/marker/style.rkt"))
+(provide (all-from-out "digitama/axis/tick/self.rkt"))
+(provide (all-from-out "digitama/axis/tick/real.rkt"))
 (provide (all-from-out "digitama/visualizer.rkt"))
 
 (require racket/case)
+(require racket/math)
 
 (require digimon/metrics)
 (require digimon/complex)
@@ -33,6 +34,8 @@
 (require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/position)
 (require geofun/digitama/paint/self)
+(require geofun/digitama/path/tips)
+(require geofun/digitama/path/tick)
 (require geofun/digitama/geometry/footprint)
 
 (require "digitama/visualizer.rkt")
@@ -135,6 +138,7 @@
 
     (define-values (xdigit-position xdigit-anchor xmirro-anchor) (plot-axis-digit-position-values axis-style 'x))
     (define-values (ydigit-position ydigit-anchor ymirro-anchor) (plot-axis-digit-position-values axis-style 'y))
+    (define tick-pen : Stroke (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
     
     (define xaxis : Geo:Path:Self
       (geo-path* #:stroke axis-pen #:tip-placement 'inside
@@ -144,15 +148,17 @@
     
     (define xdigit-offset : Float-Complex (flc-ri (* xdigit-position em -1.0)))
     (define xmirro-offset :  Float-Complex (flc-ri (* xdigit-position em +1.0)))
-    (define xmajor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
+    (define xmajor-tick : (Option Geo-Path)
       (and (> fltick-length 0.0)
-           (cons (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill tick-color)
-                 (plot-axis-tick-anchor axis-style 'x))))
-    (define xminor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
+           (geo-path* #:stroke tick-pen
+                      (geo-xtick-footprints fltick-length 0.0
+                                            (plot-axis-style-tick-placement axis-style)))))
+    (define xminor-tick : (Option Geo-Path)
       (and (> xminor-count 0)
            (> fltick-length 0.0)
-           (cons (geo-rectangle fltick-thickness fltick-sublen #:stroke #false #:fill tick-color)
-                 (plot-axis-tick-anchor axis-style 'x))))
+           (geo-path* #:stroke tick-pen
+                      (geo-xtick-footprints fltick-sublen 0.0
+                                            (plot-axis-style-tick-placement axis-style)))))
 
     (define yaxis : Geo:Path:Self
       (geo-path* #:stroke axis-pen #:tip-placement 'inside
@@ -162,15 +168,17 @@
     
     (define ydigit-offset : Float-Complex (make-rectangular (* ydigit-position em) 0.0))
     (define ymirro-offset : Float-Complex (make-rectangular (* ydigit-position (- em)) 0.0))
-    (define ymajor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
+    (define ymajor-tick : (Option Geo-Path)
       (and (> fltick-length 0.0)
-           (cons (geo-rectangle fltick-length fltick-thickness #:stroke #false #:fill tick-color)
-                 (plot-axis-tick-anchor axis-style 'y))))
-    (define yminor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
+           (geo-path* #:stroke tick-pen
+                      (geo-ytick-footprints fltick-length 0.0
+                                            (plot-axis-style-tick-placement axis-style)))))
+    (define yminor-tick : (Option Geo-Path)
       (and (> yminor-count 0)
            (> fltick-length 0.0)
-           (cons (geo-rectangle fltick-sublen fltick-thickness #:stroke #false #:fill tick-color)
-                 (plot-axis-tick-anchor axis-style 'y))))
+           (geo-path* #:stroke tick-pen
+                      (geo-ytick-footprints fltick-sublen 0.0
+                                            (plot-axis-style-tick-placement axis-style)))))
 
     (define-values (xsoff xeoff) (geo-path-endpoint-offsets xaxis))
     (define-values (ysoff yeoff) (geo-path-endpoint-offsets yaxis))

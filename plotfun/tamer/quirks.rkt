@@ -17,6 +17,6 @@
                   #:style (make-plot-axis-style #:label-placement 'digit))
   
   (plot-cartesian #:x-range (cons 0 0) #:unit-length '(10 %) #:x-label "x"
-                  #:style (make-plot-axis-style #:label-placement 'mirro))
+                  #:style (make-plot-axis-style #:label-placement 'mirror))
   
   (plot-cartesian #:width +inf.0 #:height 0))

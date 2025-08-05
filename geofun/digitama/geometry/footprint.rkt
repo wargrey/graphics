@@ -353,16 +353,16 @@
                                       (gpp:bezier-samples self)))))))
 
 (define gpp-bezier-reparameterize-by-arclength : (-> GPP:Bezier Real Nonnegative-Flonum)
-  (let ([lookup-table : (Weak-HashTable Any (HashTable Real (Pairof Nonnegative-Exact-Rational Nonnegative-Flonum))) (make-weak-hash)])
+  (let ([lookup-table : (Weak-HashTable Any (HashTable Real (Pairof Nonnegative-Flonum Nonnegative-Flonum))) (make-weak-hash)])
     (lambda [self t]
-      (define reparameterize : (-> (HashTable Real (Pairof Nonnegative-Exact-Rational Nonnegative-Flonum)) Real
-                                   (Pairof Nonnegative-Exact-Rational Nonnegative-Flonum))
+      (define reparameterize : (-> (HashTable Real (Pairof Nonnegative-Flonum Nonnegative-Flonum)) Real
+                                   (Pairof Nonnegative-Flonum Nonnegative-Flonum))
         (lambda [lut t]
           (define bsize (gpp-bezier-arclength self))
           (define distance (abs (* bsize (real->double-flonum t))))
           (define head (gpp:bezier-start-here self))
           (define tail (gpp-bezier-tail-points self))
-          (define samples (gpp:bezier-samples self))
+          (define samples0 (gpp:bezier-samples self))
                                                     
           (define ts (sort (hash-keys lut) <))
           (define i (index-of ts (λ [[cached-t : Flonum]] (> t cached-t))))
@@ -371,26 +371,26 @@
             (cond [(or i)
                    (let ([prev-i (- i 1)]
                          [cache (hash-ref lut (list-ref ts i))])
-                     (cond [(< prev-i 0) (values 0 (car cache) distance)]
+                     (cond [(< prev-i 0) (values 0.0 (car cache) distance)]
                            [else (let ([pc (hash-ref lut (list-ref ts prev-i))])
                                    (values (car pc) (car cache) (max (- distance (cdr pc)) 0.0)))]))]
                   [(pair? ts)
                    (let ([cache (hash-ref lut (last ts))])
-                     (values (car cache) 1 (max (- distance (cdr cache)) 0.0)))]
+                     (values (car cache) 1.0 (max (- distance (cdr cache)) 0.0)))]
                   [else ; for the first one
-                   (values 0 1 distance)]))
-          (define t-by-len : Nonnegative-Exact-Rational
-            (bezier-reparameterize-by-length #:t0 t0 #:tn tn
-                                             head tail len
-                                             (exact-round (* (- tn t0)
-                                                             samples))))
-            
+                   (values 0.0 1.0 distance)]))
+          
+          (define samples : Flonum (* (- tn t0) (exact->inexact samples0)))
+          (define t-by-len : Nonnegative-Flonum
+            (bezier-reparameterize-by-fllength #:t0 t0 #:tn tn
+                                               head tail len samples))
+          
           (cons t-by-len distance)))
       
       (cond [(<= t 0) 0.0]
             [(>= t 1) 1.0]
-            [else (let ([lut (hash-ref! lookup-table self (inst make-hasheqv Real (Pairof Nonnegative-Exact-Rational Nonnegative-Flonum)))])
-                    (real->double-flonum (car (hash-ref! lut t (λ [] (reparameterize lut t))))))]))))
+            [else (let ([lut (hash-ref! lookup-table self (inst make-hasheqv Real (Pairof Nonnegative-Flonum Nonnegative-Flonum)))])
+                    (car (hash-ref! lut t (λ [] (reparameterize lut t)))))]))))
 
 (define gpp-bezier-function : (-> GPP:Bezier Byte (Option (-> Flonum Float-Complex)))
   (lambda [self order]

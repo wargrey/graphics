@@ -6,6 +6,7 @@
 
 (require (only-in racket/list last remove-duplicates))
 (require racket/flonum)
+(require racket/math)
 
 (require digimon/complex)
 (require math/number-theory)
@@ -114,9 +115,9 @@
         #;'#:deadcode 0.0)))
 
 (define bezier-reparameterize-by-length : (->* (Float-Complex (Listof Float-Complex) Nonnegative-Flonum Integer)
-                                               (#:t0 Nonnegative-Exact-Rational #:tn Nonnegative-Exact-Rational)
+                                               (#:t0 Nonnegative-Exact-Rational #:tn Nonnegative-Exact-Rational #:tolerance Positive-Exact-Rational)
                                                Nonnegative-Exact-Rational)
-  (lambda [head tail size samples #:t0 [tmin 0] #:tn [tmax 1]]
+  (lambda [head tail size samples #:t0 [tmin 0] #:tn [tmax 1] #:tolerance [tolerance 1/10000]]
     (define fbezier (bezier-function head tail #:derivative 0))
     (define t0 : Nonnegative-Exact-Rational (min tmin 1))
     (define tn : Nonnegative-Exact-Rational (min tmax 1))
@@ -134,8 +135,33 @@
                 (cond [(< len++ size) (peek (+ t delta) here len++)]
                       [(= len++ size) (abs t)]
                       [else (let ([diff (/ (- len++ size) dlen)])
-                              (abs (- t (* delta (/ (inexact->exact (numerator diff))
-                                                    (inexact->exact (denominator diff)))))))]))
+                              (abs (- t (* delta (rationalize (inexact->exact diff)
+                                                              tolerance)))))]))
+              tn))
+        t0)))
+
+(define bezier-reparameterize-by-fllength : (->* (Float-Complex (Listof Float-Complex) Nonnegative-Flonum Flonum)
+                                                 (#:t0 Nonnegative-Flonum #:tn Nonnegative-Flonum)
+                                                 Nonnegative-Flonum)
+  (lambda [head tail size samples #:t0 [tmin 0.0] #:tn [tmax 1.0]]
+    (define fbezier (bezier-function head tail #:derivative 0))
+    (define t0 : Nonnegative-Flonum (min tmin 1.0))
+    (define tn : Nonnegative-Flonum (min tmax 1.0))
+    (define op : (-> Flonum Flonum Boolean) (if (<= tmin tmax) <= >=))
+    (define delta : Flonum (/ (- tn t0) (if (> samples 0) samples 500.0)))
+    
+    (if (and fbezier (not (zero? delta)))
+        (let peek ([t : Flonum (+ t0 delta)]
+                   [prev : Float-Complex (fbezier t0)]
+                   [acc-len : Nonnegative-Flonum 0.0])
+          (if (op t tn)
+              (let* ([here (fbezier t)]
+                     [dlen (magnitude (- here prev))]
+                     [len++ (+ acc-len dlen)])
+                (cond [(< len++ size) (peek (+ t delta) here len++)]
+                      [(= len++ size) (abs t)]
+                      [else (let ([diff (/ (- len++ size) dlen)])
+                              (abs (- t (* delta diff))))]))
               tn))
         t0)))
 

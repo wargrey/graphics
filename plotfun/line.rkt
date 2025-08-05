@@ -4,13 +4,14 @@
 (provide Plot:Line plot:line?)
 (provide Plot-Mark-Auto-Anchor)
 (provide (rename-out [plot-real-line plot-line]))
+(provide (all-from-out geofun/digitama/path/tips))
 (provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/singleton.rkt"))
-(provide (all-from-out "digitama/axis/tick/self.rkt"))
-(provide (all-from-out "digitama/axis/tick/real.rkt"))
 (provide (all-from-out "digitama/marker/self.rkt"))
 (provide (all-from-out "digitama/marker/style.rkt"))
+(provide (all-from-out "digitama/axis/tick/self.rkt"))
+(provide (all-from-out "digitama/axis/tick/real.rkt"))
 
 (require racket/case)
 (require racket/math)
@@ -33,6 +34,7 @@
 (require geofun/digitama/paint/self)
 (require geofun/digitama/path/tip)
 (require geofun/digitama/path/tips)
+(require geofun/digitama/path/tick)
 
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/geometry/computation/line)
@@ -88,10 +90,9 @@
     (define α : Flonum (real->double-flonum rotate))
     (define e^αi : Float-Complex (make-polar 1.0 α))
     (define cosα : Flonum (cos α))
-    (define vertical? : Boolean (zero? cosα))
 
     (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
-    (define-values (digit-position digit-anchor miror-anchor) (plot-axis-digit-position-values axis-style (if (not vertical?) 'x 'y)))
+    (define-values (digit-position digit-anchor miror-anchor) (plot-axis-digit-position-values axis-style 'x))
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
 
     (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
@@ -117,23 +118,25 @@
 
     ;;; NOTE
     ; we don't need to care about the tip sizes here,
-    ; since they only contribute to compute the position of label in other coordinate system,
+    ; since they only contribute to compute the label's position like in other coordinate system,
     ; and for this rotated number line, we've worked in a completely different way for that purpose.
     ; Besides, taking care about the sizes might cause the last tick out of the axis.
     (define tick-bgn : Float-Complex (+ (make-polar (floor fltick-min) α)   view-offset))
     (define tick-end : Float-Complex (+ (make-polar (ceiling fltick-max) α) view-offset))
-    
-    (define major-tick : (Option (Pairof Geo Geo-Pin-Anchor))
-      (and (> fltick-length 0.0)
-           (cons (geo-path* (list the-M0 (gpp:point #\L (* (make-polar fltick-length α) 0.0+1.0i))) #:stroke tick-pen)
-                 (plot-axis-tick-anchor axis-style (if (not vertical?) 'x 'y)))))
 
-    (define minor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
+    (define major-tick : (Option Geo-Path)
+      (and (> fltick-length 0.0)
+           (geo-path* #:stroke tick-pen
+                      (geo-xtick-footprints fltick-length α
+                                            (plot-axis-style-tick-placement axis-style)))))
+
+    (define minor-tick : (Option Geo-Path)
       (and (> minor-count 0)
            (> fltick-sublen 0.0)
-           (cons (geo-path* (list the-M0 (gpp:point #\L (* (make-polar fltick-sublen α) 0.0+1.0i))) #:stroke tick-pen)
-                 (plot-axis-tick-anchor axis-style (if (not vertical?) 'x 'y)))))
-
+           (geo-path* #:stroke tick-pen
+                      (geo-xtick-footprints fltick-sublen α
+                                            (plot-axis-style-tick-placement axis-style)))))
+    
     (define dot->pos : Plot-Position-Transform
       (case-lambda
         [(x y) (+ flc-origin (make-polar (* x flunit) α))]
@@ -166,8 +169,7 @@
                       (values (tick->sticker id (plot-tick-desc tick) digit-font digit-color) major-tick)
                       (values 'minor minor-tick)))
                 
-                (plot-axis-sticker-cons maybe-sticker digit-anchor
-                                        (dot->pos (real->double-flonum (plot-tick-value tick)) 0.0)
+                (plot-axis-sticker-cons maybe-sticker digit-anchor (dot->pos (real->double-flonum (plot-tick-value tick)) 0.0)
                                         digit-offset ticks tick-bgn tick-end gtick))
               
               (let-values ([(pin-pen real-font real-color real-anchor) (plot-mark-visual-values real-style axis-font axis-pen)]
@@ -251,20 +253,23 @@
     (define miror-offset :  Float-Complex (make-rectangular 0.0 (* digit-position (+ em))))
     (define flc-origin : Float-Complex (+ (make-rectangular (+ (* used-length origin) fltick-min) 0.0) view-offset))
 
+    (define tick-pen : Stroke (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
     (define-values (soff eoff) (geo-path-endpoint-offsets main-axis))
     (define label-at-axis? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'axis))
     (define flaxis-min : Flonum (- fltick-min neg-margin (real-part soff)))
     (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
 
-    (define major-tick : (Option (Pairof Geo Geo-Pin-Anchor))
+    (define major-tick : (Option Geo-Path)
       (and (> fltick-length 0.0)
-           (cons (geo-rectangle fltick-thickness fltick-length #:stroke #false #:fill tick-color)
-                 (plot-axis-tick-anchor axis-style 'x))))
-    (define minor-tick : (Option (Pairof Geo Geo-Pin-Anchor))
+           (geo-path* #:stroke tick-pen
+                      (geo-xtick-footprints fltick-length 0.0
+                                            (plot-axis-style-tick-placement axis-style)))))
+    (define minor-tick : (Option Geo-Path)
       (and (> minor-count 0)
            (> fltick-length 0.0)
-           (cons (geo-rectangle fltick-thickness fltick-sublen #:stroke #false #:fill tick-color)
-                 (plot-axis-tick-anchor axis-style 'x))))
+           (geo-path* #:stroke tick-pen
+                      (geo-xtick-footprints fltick-sublen 0.0
+                                            (plot-axis-style-tick-placement axis-style)))))
 
     (define dot->pos : Plot-Position-Transform
       (case-lambda

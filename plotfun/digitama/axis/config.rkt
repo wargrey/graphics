@@ -23,15 +23,6 @@
         (if (pair? tip) (car tip) tip)
         (if (pair? tip) (cdr tip) tip))))
 
-(define plot-axis-tick-anchor : (-> Plot-Axis-Style Symbol Geo-Pin-Anchor)
-  (lambda [self direction]
-    (define placement (plot-axis-style-tick-placement self))
-
-    (case/eq placement
-             [(positive) (if (eq? direction 'x) 'cb 'lc)]
-             [(negative) (if (eq? direction 'x) 'ct 'rc)]
-             [else 'cc])))
-
 (define plot-axis-visual-values : (case-> [Plot-Axis-Style -> (Values Font Font Font Font Stroke Nonnegative-Flonum Color Color Color Color)]
                                           [Plot-Axis-Style (-> Color FlRGBA) -> (Values Font Font Font Font Stroke Nonnegative-Flonum FlRGBA FlRGBA FlRGBA FlRGBA)])
   (case-lambda

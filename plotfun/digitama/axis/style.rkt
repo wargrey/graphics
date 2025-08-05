@@ -9,12 +9,12 @@
 (require geofun/font)
 
 (require geofun/digitama/paint/self)
+(require geofun/digitama/path/tick)
 (require geofun/digitama/path/tip/self)
 
 (require "singleton.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Plot-Axis-Tick-Placement (U 'positive 'center 'negative))
 (define-type Plot-Axis-Label-Placement (U 'axis 'digit 'mirror))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -30,7 +30,7 @@
    [tick-thickness : Real+% 1.0]
    [tick-length : Real+% '(300 %)]
    [tick-color : (Option Color) #false]
-   [tick-placement : Plot-Axis-Tick-Placement 'positive]
+   [tick-placement : Geo-Tick-Placement 'positive]
    [minor-tick-length : Real+% '(61.8 %)]
    [digit-color : (Option Color) #false]
    [digit-font : (Option Font) default-axis-digit-font]
