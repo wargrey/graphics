@@ -16,7 +16,7 @@
                         #:tip (make-plot-axis-tip-style #:positive-margin 0 #:negative-margin 0
                                                         #:negative-shape 'arrow)))
 
-(define tick@center (make-plot-axis-style #:tick-placement 'center))
+(define tick@center (make-plot-axis-style #:tick-placement 'cross))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main

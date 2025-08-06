@@ -7,7 +7,7 @@
 (require "../geometry/footprint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Tick-Placement (U 'positive 'center 'negative))
+(define-type Geo-Tick-Placement (U 'positive 'cross 'negative))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-path-tick-footprints : (-> Nonnegative-Flonum Float-Complex Float-Complex Geo-Tick-Placement Geo-Path-Clean-Prints+)
