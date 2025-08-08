@@ -10,7 +10,7 @@
 
 (require digimon/ffi)
 
-(require "../memory/variable.rkt")
+(require "../ram/variable.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define c-variable*?
@@ -93,15 +93,15 @@
                 (if (pair? vinfo)
                     (let-values ([(type self) (values (unsafe-car vinfo) (unsafe-cdr vinfo))])
                       (cond [(c-vector? self)
-                             (let ([p++ (memory-step* ptr (unsafe-car vinfo) (c-placeholder-raw self) (c-vector-data self))])
+                             (let ([p++ (ram-step* ptr (unsafe-car vinfo) (c-placeholder-raw self) (c-vector-data self))])
                                (collect p++ (c-vector-addr1 self) (unsafe-cons-list self srav)))]
                             [else ; normal variables
-                             (let ([p++ (memory-step* ptr (unsafe-car vinfo) (c-placeholder-raw self) (c-variable-datum self))])
+                             (let ([p++ (ram-step* ptr (unsafe-car vinfo) (c-placeholder-raw self) (c-variable-datum self))])
                                (collect p++ (c-variable-addr1 self) (unsafe-cons-list self srav)))]))
                     (let pad ([count 1])
                       (define addr++ (unsafe-fx+ addr count))
                       (if (or (hash-has-key? variables addr++) (>= #;'#:deadcode addr++ addr$))
-                          (let-values ([(raw p++) (memory-step-for-bytes ptr _byte count)])
+                          (let-values ([(raw p++) (ram-step-for-bytes ptr _byte count)])
                             (collect p++ addr++ (unsafe-cons-list (make-pad addr raw) srav)))
                           (pad (unsafe-fx+ count 1))))))
               (void (deal-with-snapshot (unsafe-cons-list segment (unsafe-cons-list state srav))))))))
@@ -183,7 +183,7 @@
                 (define c.dylib (ffi-lib c.so #:custodian (current-custodian)))
                 (define cfun (get-ffi-obj unsafe-cfun c.dylib (_fun [argc : _int] [argv : (_list i _any_string)] -> _int)))
                 
-                (set-ffi-obj! (unsafe-vector*-ref callbacks 0) c.dylib _take_memory_snapshot_t take-snapshot)
+                (set-ffi-obj! (unsafe-vector*-ref callbacks 0) c.dylib _take_ram_snapshot_t take-snapshot)
                 (set-ffi-obj! (unsafe-vector*-ref callbacks 1) c.dylib _register_variable_t register-variable)
                 (set-ffi-obj! (unsafe-vector*-ref callbacks 2) c.dylib _register_array_t register-array)
                 

@@ -9,19 +9,19 @@
 
 (require typed/racket/unsafe)
 (unsafe-require/typed/provide
- "../unsafe/memory.rkt"
+ "../unsafe/ram.rkt"
  [c-variable*? (-> Any Boolean : C-Variable)]
  [c-vector*? (-> Any Boolean : C-Vector)]
  [c-rkt-run (-> Place Void)]
  [c-run (-> Place Void)]
  
- [c-run-callbacks (->* ((-> C-Reversed-Memory-Snapshot Void))
+ [c-run-callbacks (->* ((-> C-Reversed-RAM-Snapshot Void))
                        ((-> C-Variable Void) #:lookahead-size Byte #:lookbehind-size Byte #:body-limit Index)
                        (Values C-Take-Snapshot C-Register-Variable C-Register-Array))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type C-Reversed-Memory-Snapshot (Pairof String C-Variables))
-(define-type C-Memory-Segment-Snapshot (Pairof Symbol C-Reversed-Memory-Snapshot))
+(define-type C-Reversed-RAM-Snapshot (Pairof String C-Variables))
+(define-type C-RAM-Segment-Snapshot (Pairof Symbol C-Reversed-RAM-Snapshot))
 (define-type C-Register-Variable (-> String Symbol Natural Symbol Void))
 (define-type C-Register-Array (-> String Symbol Natural Symbol Index Void))
 (define-type C-Take-Snapshot (-> String Void))
@@ -37,10 +37,10 @@
   (lambda [vs]
     (listof? vs c-placeholder*?)))
 
-(define c-memory-snapshot? : (-> Any Boolean : C-Reversed-Memory-Snapshot)
+(define c-ram-snapshot? : (-> Any Boolean : C-Reversed-RAM-Snapshot)
   (lambda [v]
     (pairof? v string? c-variables?)))
 
-(define c-memory-segment-snapshot? : (-> Any Boolean : C-Memory-Segment-Snapshot)
+(define c-ram-segment-snapshot? : (-> Any Boolean : C-RAM-Segment-Snapshot)
   (lambda [v]
-    (pairof? v symbol? c-memory-snapshot?)))
+    (pairof? v symbol? c-ram-snapshot?)))

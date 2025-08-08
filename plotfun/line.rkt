@@ -59,7 +59,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-real-line
   (lambda [#:id [id : (Option Symbol) #false]
-           #:length [length : Real (default-plot-axis-length)]
+           #:length [line-length : Real (default-plot-axis-length)]
            #:unit-length [maybe-unit : (Option Real+%) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
@@ -78,7 +78,7 @@
            #:rotate [rotate : Real 0.0]
            [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Line
     (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
-    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip length))
+    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip line-length))
     (define-values (tick-range origin flunit)
       (plot-axis-metrics (or tick-hint (plot-tick-engine-range ticks-engine))
                          (plot-axis-real-range real-list)
@@ -183,9 +183,10 @@
                                                        #:rotate rotate
                                                        mark dot->pos)
                                           reals tick-bgn tick-end)))))
-  
-    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend (geo-own-layer main-axis) layers))
-    
+
+    (define the-main-axis-layer : (GLayerof Geo) (geo-own-layer main-axis))
+    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend the-main-axis-layer layers))
+
     (if (or translated-layers)
         (let* ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))]
                [dot->pos (λ [[x : Flonum]] : Float-Complex (+ delta-origin (make-polar (* x flunit) α)))])
@@ -199,12 +200,13 @@
         (create-geometry-group plot:line id #false #false
                                #:border bdr #:background bg
                                #:margin margin #:padding padding
-                               (geo-own-layers main-axis) flc-origin actual-tick-values
+                               (geo-layers-merge (cons the-main-axis-layer layers))
+                               flc-origin actual-tick-values
                                dot->pos))))
 
 (define plot-integer-line
   (lambda [#:id [id : (Option Symbol) #false]
-           #:length [length : Real (default-plot-axis-length)]
+           #:length [line-length : Real (default-plot-axis-length)]
            #:unit-length [maybe-unit : (Option Real+%) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
@@ -223,7 +225,7 @@
            #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Line
     (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
-    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip length))
+    (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip line-length))
     (define-values (tick-range origin flunit)
       (plot-axis-metrics (or (plot-tick-engine-range ticks-engine) tick-hint)
                          (plot-axis-integer-range number-sequence exclude-zero?)
@@ -309,8 +311,9 @@
                                                        #:fallback-anchor int-anchor #:length-base em
                                                        mark dot->pos)
                                           integers fltick-min real-part fltick-max)))))
-  
-    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend (geo-own-layer main-axis) layers))
+    
+    (define the-main-axis-layer : (GLayerof Geo) (geo-own-layer main-axis))
+    (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend the-main-axis-layer layers))
     
     (if (or translated-layers)
         (let* ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))]
@@ -325,5 +328,6 @@
         (create-geometry-group plot:line id #false #false
                                #:border bdr #:background bg
                                #:margin margin #:padding padding
-                               (geo-own-layers main-axis) flc-origin actual-tick-values
+                               (geo-layers-merge (cons the-main-axis-layer layers))
+                               flc-origin actual-tick-values
                                dot->pos))))

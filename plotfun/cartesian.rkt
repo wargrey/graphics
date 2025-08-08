@@ -309,12 +309,7 @@
           (+ Origin (geo-layer-position (car (glayer-group-layers translated-layers))))
           Origin))
 
-    (if (not translated-layers) ; just in case. say, infinite width
-        (create-geometry-group plot:cartesian id #false #false
-                               #:border bdr #:background bg
-                               #:margin margin #:padding padding
-                               (geo-own-layers zero) delta-origin null null
-                               origin-dot->pos)
+    (if (or translated-layers)
         (create-geometry-group plot:cartesian id #false #false
                                #:border bdr #:background bg
                                #:margin margin #:padding padding
@@ -325,5 +320,13 @@
                                                  (+ delta-origin (* x xunit) (* (- y) yunit)))])
                                  (case-lambda
                                    [(x y) (dot->pos x y)]
-                                   [(dot) (dot->pos (real-part dot) (imag-part dot))]))))))
+                                   [(dot) (dot->pos (real-part dot) (imag-part dot))])))
+        
+        ; just in case. say, infinite width
+        ; WARNING: this would be also true, if rotation is supported.
+        (create-geometry-group plot:cartesian id #false #false
+                               #:border bdr #:background bg
+                               #:margin margin #:padding padding
+                               (geo-own-layers zero) delta-origin null null
+                               origin-dot->pos))))
   

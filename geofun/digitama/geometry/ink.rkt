@@ -60,5 +60,17 @@
                     (max (- rx lx) 0.0)
                     (max (- by ty) 0.0))))
 
+;;; TODO: this might not be correct.
+(define geo-ink-shear : (-> Geo-Ink Flonum Flonum Geo-Ink)
+  (lambda [self shx shy]
+    (define-values (ox oy) (values (real-part (geo-ink-pos self)) (imag-part (geo-ink-pos self))))
+    (define-values (ow oh) (values (geo-ink-width self) (geo-ink-height self)))
+    (define-values (dx dy) (values (* shx oh) (* shy ow)))
+
+    (unsafe-geo-ink (make-rectangular (- ox (min dx 0.0))
+                                      (- oy (min dy 0.0)))
+                    (+ ow (abs dx))
+                    (+ oh (abs dy)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-null-ink : Geo-Ink (make-geo-ink 0.0 0.0 0.0 0.0))

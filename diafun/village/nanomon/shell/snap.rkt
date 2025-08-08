@@ -8,7 +8,7 @@
 (require geofun/vector)
 (require diafun/memory)
 
-(require diafun/digitama/memory/style)
+(require diafun/digitama/ram/style)
 (require geofun/village/wisemon/save)
 
 (require digimon/digivice/nanomon/shell)
@@ -18,7 +18,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define the-shell : Symbol 'snap)
-(define the-desc : String "run and take memory snapshots of a C/C++ program")
+(define the-desc : String "run and take RAM snapshots of a C/C++ program")
 
 (define snap-output-pdf? : (Parameterof Boolean) (make-parameter #false))
 (define snap-output-svg? : (Parameterof Boolean) (make-parameter #false))
@@ -36,36 +36,36 @@
   #:usage-help the-desc
   #:once-each
   [[(entry main)              #:=> cmdopt-string->symbol entry #: Symbol
-                              ["use ~1 as the default entry function (default: ~a)" (default-memory-entry)]]
+                              ["use ~1 as the default entry function (default: ~a)" (default-ram-entry)]]
    [(ahead)                   #:=> cmdopt-string->index size #: Index
-                              ["take ~1-byte more ahead for each segment (default: ~a)" (default-memory-lookahead-size)]]
+                              ["take ~1-byte more ahead for each segment (default: ~a)" (default-ram-lookahead-size)]]
    [(behind)                  #:=> cmdopt-string->index size #: Index
-                              ["take ~1-byte more behind for each segment (default: ~a)" (default-memory-lookbehind-size)]]
+                              ["take ~1-byte more behind for each segment (default: ~a)" (default-ram-lookbehind-size)]]
    [(body-limit)              #:=> cmdopt-string->index size #: Index
-                              ["restricted the body size upto ~1 bytes for each segment (default: ~a)" (default-memory-body-limit)]]
-   [(#\O O2)                  #:=> default-memory-optimize?
+                              ["restricted the body size upto ~1 bytes for each segment (default: ~a)" (default-ram-body-limit)]]
+   [(#\O O2)                  #:=> default-ram-optimize?
                               "run optimized program"]
 
-   [(#\h human-readable)      #:=> default-memory-human-readable?
+   [(#\h human-readable)      #:=> default-ram-human-readable?
                               "display values for humen to read"]
-   [(no-padding no-pad)       #:=> default-memory-no-padding?
+   [(no-padding no-pad)       #:=> default-ram-no-padding?
                               "ignore all padding locations"]
    [(padding-limit pad-limit) #:=> cmdopt-string->index size #: Index
-                              ["cascade consecutive padding locations when exceeding ~1 bytes (default: ~a)" (default-memory-padding-limit)]]
+                              ["cascade consecutive padding locations when exceeding ~1 bytes (default: ~a)" (default-ram-padding-limit)]]
    [(mask)                    #:=> cmdopt-string->natural F #: Natural
-                              ["use ~1 as the mask of address (default: #x~a)" (~r (default-memory-address-mask) #:base '(up 16))]]
+                              ["use ~1 as the mask of address (default: #x~a)" (~r (default-ram-address-mask) #:base '(up 16))]]
 
    [(rd-radix rd-base)        #:=> cmdopt-string+>radix N #: Positive-Byte
-                              ["display raw data in base-~1 (default: ~a)" (default-memory-raw-data-radix)]]
+                              ["display raw data in base-~1 (default: ~a)" (default-ram-raw-data-radix)]]
    [(fx-radix fx-base)        #:=> cmdopt-string+>radix N #: Positive-Byte
-                              ["display integer values in base-~1 (default: ~a)" (default-memory-fixnum-radix)]]
+                              ["display integer values in base-~1 (default: ~a)" (default-ram-fixnum-radix)]]
    [(pad-radix pad-base)      #:=> cmdopt-string+>radix N #: Positive-Byte
-                              ["display padding in base-~1 (default: ~a)" (default-memory-padding-radix)]]
+                              ["display padding in base-~1 (default: ~a)" (default-ram-padding-radix)]]
 
    [(segment-gap seg-gap)     #:=> cmdopt-string+>flonum size #: Nonnegative-Flonum
-                              ["use ~1 as the gapsize of segments (default: ~a)" (default-memory-segment-gapsize)]]
+                              ["use ~1 as the gapsize of segments (default: ~a)" (default-ram-segment-gapsize)]]
    [(snapshot-gap snap-gap)   #:=> cmdopt-string+>flonum size #: Nonnegative-Flonum
-                              ["use ~1 as the gapsize of snapshots (default: ~a)" (default-memory-snapshot-gapsize)]]
+                              ["use ~1 as the gapsize of snapshots (default: ~a)" (default-ram-snapshot-gapsize)]]
 
    [(no-segment hide-segment) #:=> snap-no-segment?                "hide segment names"]
    [(no-state hide-state)     #:=> snap-no-states?                 "hide states"]
@@ -80,20 +80,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define shell-snap : (-> Path Snap-Flags (Listof String) Any)
   (lambda [src.c options argv]
-    (define entry : Symbol (or (snap-flags-entry options) (default-memory-entry)))
+    (define entry : Symbol (or (snap-flags-entry options) (default-ram-entry)))
     (define destdir : (Option Path) (snap-flags-dest options))
     
     (define snapshots
-      (parameterize ([default-memory-padding-limit (or (snap-flags-padding-limit options) (default-memory-padding-limit))]
-                     [default-memory-address-mask (or (snap-flags-mask options) (default-memory-address-mask))]
-                     [default-memory-raw-data-radix (or (snap-flags-rd-radix options) (default-memory-raw-data-radix))]
-                     [default-memory-fixnum-radix (or (snap-flags-fx-radix options) (default-memory-fixnum-radix))]
-                     [default-memory-padding-radix (or (snap-flags-pad-radix options) (default-memory-padding-radix))])
-        (dia-memory-snapshots #:main entry #:c-argv argv
-                              #:lookahead-size (or (snap-flags-ahead options) (default-memory-lookahead-size))
-                              #:lookbehind-size (or (snap-flags-behind options) (default-memory-lookbehind-size))
-                              #:body-limit (or (snap-flags-body-limit options) (default-memory-body-limit))
-                              src.c)))
+      (parameterize ([default-ram-padding-limit (or (snap-flags-padding-limit options) (default-ram-padding-limit))]
+                     [default-ram-address-mask (or (snap-flags-mask options) (default-ram-address-mask))]
+                     [default-ram-raw-data-radix (or (snap-flags-rd-radix options) (default-ram-raw-data-radix))]
+                     [default-ram-fixnum-radix (or (snap-flags-fx-radix options) (default-ram-fixnum-radix))]
+                     [default-ram-padding-radix (or (snap-flags-pad-radix options) (default-ram-padding-radix))])
+        (dia-ram-snapshots #:main entry #:c-argv argv
+                           #:lookahead-size (or (snap-flags-ahead options) (default-ram-lookahead-size))
+                           #:lookbehind-size (or (snap-flags-behind options) (default-ram-lookbehind-size))
+                           #:body-limit (or (snap-flags-body-limit options) (default-ram-body-limit))
+                           src.c)))
 
     (when (snap-split-table?)
       (for ([(segment subsnaps) (in-hash snapshots)])
@@ -102,7 +102,7 @@
           (shell-snap-save src.c entry destdir snapshot (string-replace (format "~a-~a" segment idx) "." "_")))))
 
     (define snapshot-table
-      (dia-memory-snapshots->table #:hide-segment-names? (snap-no-segment?)
+      (dia-ram-snapshots->table #:hide-segment-names? (snap-no-segment?)
                                    #:hide-states? (snap-no-states?)
                                    snapshots))
     

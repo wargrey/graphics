@@ -46,7 +46,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-procedure
   (lambda [#:min-width [min-width : Real 0.0] #:min-height [min-height : Real 0.0]
-           #:io-width [io-width : Real -1.618] #:io-datum-width [iov-width : Real -0.95]
+           #:io-width [io-width : Real+% '(161.8 %)] #:io-datum-width [iov-width : Real+% '(95 %)]
            #:label-font [label-font : Font (default-procedure-label-font)]
            #:datum-font [datum-font : Font (default-procedure-datum-font)]
            #:text-color [text-color : Color (default-procedure-text-color)]
@@ -61,14 +61,15 @@
            #:body-fill [b:fill : Fill-Paint (default-procedure-body-fill)]
            #:body-position [body-pos : Complex 0.5]
            #:corner-radius [cr : Real+% '(12.5 %)]
+           #:variables [vars : (Option (Listof Symbol)) #false]
            [desc : Dia-Procedure-Label]
            [is : (U (Listof Dia-Procedure-Label) (Immutable-Vectorof Dia-Procedure-Label)) null]
            [opt-os : (U Null Dia-Procedure-Label (Immutable-Vectorof Dia-Procedure-Label)) null]
            [args : (U (Listof Any) (Vectorof Any)) null]
            . [results : Any *]] : Geo
     (define em : Nonnegative-Flonum (font-metrics-ref label-font 'em))
-    (define io:width : Nonnegative-Flonum (let ([w (real->double-flonum io-width)]) (cond [(> w 0.0) w] [(< w 0.0) (* em (- w))] [else (* em 1.618)])))
-    (define v:width : Nonnegative-Flonum (let ([w (real->double-flonum iov-width)]) (cond [(> w 0.0) w] [(< w 0.0) (* io:width (- w))] [else io:width])))
+    (define io:width : Nonnegative-Flonum (~length io-width em (λ [] (* em 1.618))))
+    (define v:width : Nonnegative-Flonum (~length iov-width io:width (λ [] io:width)))
     (define b:height : Nonnegative-Flonum (stroke-width border))
     (define io:height : Nonnegative-Flonum (* io:width 1.618))
     (define io:gapsize : Nonnegative-Flonum (* em 0.618))

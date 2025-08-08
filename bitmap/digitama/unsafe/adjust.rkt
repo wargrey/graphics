@@ -11,7 +11,8 @@
   (provide (all-defined-out))
   
   (require geofun/digitama/geometry/affine)
-
+  (require (submod geofun/digitama/unsafe/typed/affine unsafe))
+  
   (require racket/draw/unsafe/cairo)
   (require racket/unsafe/ops)
   
@@ -54,6 +55,17 @@
     (cairo_paint cr)
     img)
 
+  (define (bitmap_shear src shx shy density)
+    (define-values (ow oh) (bitmap-surface-rendered-size src density))
+    (define-values (xshift yshift) (values (* shx oh) (* shy ow)))
+    (define-values (shw shh) (values (+ (abs xshift) ow) (+ yshift oh)))
+    (define-values (img cr) (create-argb-bitmap shw shh density #false))
+    
+    (cairo-transform cr 1.0 shy shx 1.0 (- (min xshift 0.0)) (- (min yshift 0.0)))
+    (cairo_set_source_surface cr src 0.0 0.0)
+    (cairo_paint cr)
+    img)
+
   (define (bitmap_bounding_box src just-alpha?)
     (define-values (pixels total stride w h) (bitmap-surface-metrics src 4))
     (define-values (zero-dot? dotoff) (if just-alpha? (values pixel-alpha-zero? A) (values pixel-zero? 0)))
@@ -85,6 +97,7 @@
  [bitmap_section (-> Bitmap-Surface Flonum Flonum Flonum Flonum Positive-Flonum Bitmap)]
  [bitmap_scale (-> Bitmap-Surface Flonum Flonum Positive-Flonum Bitmap)]
  [bitmap_rotate (-> Bitmap-Surface Flonum Positive-Flonum Bitmap)]
+ [bitmap_shear (-> Bitmap-Surface Flonum Flonum Positive-Flonum Bitmap)]
  [bitmap_bounding_box (-> Bitmap-Surface Boolean (Values Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum))]
  [bitmap_bounding_box* (-> Bitmap-Surface Boolean Flonum
                            (Values Nonnegative-Flonum Nonnegative-Flonum

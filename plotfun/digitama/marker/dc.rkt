@@ -65,7 +65,7 @@
                              fallback-pin fallback-gap
                              (real->double-flonum rotate)))
     
-    (define path : Geo:Path:Self
+    (define master : Geo:Path:Self
       (geo-path* #:id id
                  #:stroke (cond [(not debug?) pin-stroke]
                                 [(stroke? maybe-debugger) maybe-debugger]
@@ -79,13 +79,12 @@
       (for/list : (Listof (GLayerof Geo)) ([label (in-list labels)])
         (geo-sticker->layer #:default-anchor (or (plot:mark-anchor self)
                                                  (fallback-anchor location angle))
-                            label (- location (geo:path:self-origin path)))))
+                            label (- location (geo-path-self-pin-position master)))))
     
     (create-geometry-group plot:marker id #false #false
-                           (cond [(null? label-layers) (geo-own-layers path)]
-                                 [else (geo-layers-merge (geo-own-layers path)
-                                                         label-layers)])
-                           path self)))
+                           (cond [(null? label-layers) (geo-own-layers master)]
+                                 [else (geo-layers-merge (geo-own-layers master) label-layers)])
+                           master self)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; WARNING: It's better for callers to ensure valid inputs as specifications vary across visualizers. 

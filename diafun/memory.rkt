@@ -1,9 +1,9 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide dia:memory? Dia:Memory)
-(provide (all-from-out "digitama/memory/style.rkt"))
-(provide (all-from-out "digitama/memory/interface.rkt"))
+(provide dia:ram? Dia:RAM)
+(provide (all-from-out "digitama/ram/style.rkt"))
+(provide (all-from-out "digitama/ram/interface.rkt"))
 
 (require digimon/filesystem)
 
@@ -14,38 +14,38 @@
 (require geofun/constructor)
 (require geofun/digitama/convert)
 
-(require "digitama/memory/dc.rkt")
-(require "digitama/memory/exec.rkt")
-(require "digitama/memory/self.rkt")
-(require "digitama/memory/style.rkt")
-(require "digitama/memory/interface.rkt")
-(require "digitama/memory/identifier.rkt")
+(require "digitama/ram/dc.rkt")
+(require "digitama/ram/exec.rkt")
+(require "digitama/ram/self.rkt")
+(require "digitama/ram/style.rkt")
+(require "digitama/ram/interface.rkt")
+(require "digitama/ram/identifier.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Reversed-Variables C-Variables)
-(define-type Dia-Memory-Snapshot (-> Dia-Reversed-Variables Symbol String Geo))
-(define-type Dia-Memory-Snapshots (Immutable-HashTable Symbol (Listof Geo)))
+(define-type Dia-RAM-Snapshot (-> Dia-Reversed-Variables Symbol String Geo))
+(define-type Dia-RAM-Snapshots (Immutable-HashTable Symbol (Listof Geo)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-memory-snapshot
+(define dia-ram-snapshot
   (lambda [#:id [id : (Option Symbol) #false] #:ignore-variable? [ignore-variable? : Boolean #false]
-           #:gapsize [gapsize : Real (default-memory-location-gapsize)]
-           #:reverse-address? [reverse? : Boolean (default-memory-reverse-address?)]
-           #:address-mask [addr-mask : Natural (default-memory-address-mask)]
-           #:padding-limit [padding-limit : (Option Index) (default-memory-padding-limit)]
-           #:no-padding? [no-padding? : Boolean (default-memory-no-padding?)]
-           #:human-readable? [human-readable? (default-memory-human-readable?)]
-           #:padding-radix [p-radix : Positive-Byte (default-memory-padding-radix)]
-           #:fixnum-radix [fx-radix : Positive-Byte (default-memory-fixnum-radix)]
-           #:raw-data-radix [rd-radix : Positive-Byte (default-memory-raw-data-radix)]
+           #:gapsize [gapsize : Real (default-ram-location-gapsize)]
+           #:reverse-address? [reverse? : Boolean (default-ram-reverse-address?)]
+           #:address-mask [addr-mask : Natural (default-ram-address-mask)]
+           #:padding-limit [padding-limit : (Option Index) (default-ram-padding-limit)]
+           #:no-padding? [no-padding? : Boolean (default-ram-no-padding?)]
+           #:human-readable? [human-readable? (default-ram-human-readable?)]
+           #:padding-radix [p-radix : Positive-Byte (default-ram-padding-radix)]
+           #:fixnum-radix [fx-radix : Positive-Byte (default-ram-fixnum-radix)]
+           #:raw-data-radix [rd-radix : Positive-Byte (default-ram-raw-data-radix)]
            [variables : Dia-Reversed-Variables] [segment : Symbol 'stack] [state : String ""]] : Geo
-    (parameterize ([default-dia-node-base-style make-memory-location-fallback-style])
+    (parameterize ([default-dia-node-base-style make-ram-location-fallback-style])
       (let make-placeholder ([vars : (Listof C-Variable-Datum) variables]
                              [swor : (Listof (List Geo Geo)) null])
         (if (pair? vars)
             (let*-values ([(self rest) (values (car vars) (cdr vars))]
                           [(address raw) (values (c-placeholder-addr self) (c-placeholder-raw self))]
-                          [(vname style) (memory-identify self segment)])
+                          [(vname style) (ram-identify self segment)])
               (cond [(not style) (make-placeholder rest swor)]
                     [(or (c-padding? self) ignore-variable?)
                      (if (or no-padding?)
@@ -73,20 +73,20 @@
               (cond [(null? rows) cont]
                     [else (let ([addr1 (c-placeholder-addr (car variables))]
                                 [addr2 (c-placeholder-addr (last variables))])
-                            (make-dia:memory rows id '(rc lc) 'cc gapsize segment state
+                            (make-dia:ram rows id '(rc lc) 'cc gapsize segment state
                                              (if (<= addr1 addr2) (cons addr1 addr2) (cons addr2 addr1))))])))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-memory-snapshots
-  (lambda [#:main [cfun-name : Symbol (default-memory-entry)] #:c-argv [cargv : (Listof Any) null]
+(define dia-ram-snapshots
+  (lambda [#:main [cfun-name : Symbol (default-ram-entry)] #:c-argv [cargv : (Listof Any) null]
            #:take_snapshot [take : Symbol 'take_snapshot]
            #:register_variable [register-variable : Symbol 'register_variable]
            #:register_array [register-array : Symbol 'register_array]
-           #:optimize? [optimize? : Boolean (default-memory-optimize?)]
-           #:lookahead-size [ahead : Index (default-memory-lookahead-size)]
-           #:lookbehind-size [behind : Index (default-memory-lookbehind-size)]
-           #:body-limit [limit : Index (default-memory-body-limit)]
-           [crkt : Module-Path] [take-snapshot : Dia-Memory-Snapshot dia-memory-snapshot]] : Dia-Memory-Snapshots
+           #:optimize? [optimize? : Boolean (default-ram-optimize?)]
+           #:lookahead-size [ahead : Index (default-ram-lookahead-size)]
+           #:lookbehind-size [behind : Index (default-ram-lookbehind-size)]
+           #:body-limit [limit : Index (default-ram-body-limit)]
+           [crkt : Module-Path] [take-snapshot : Dia-RAM-Snapshot dia-ram-snapshot]] : Dia-RAM-Snapshots
     (define modpath : Module-Path
       (cond [(not (or (path? crkt) (string? crkt))) crkt]
             [(not (regexp-match? #px"\\.rkt$" crkt)) (path->smart-absolute-path crkt)]
@@ -94,7 +94,7 @@
             [(string? crkt) `(file ,crkt)]
             [else crkt]))
 
-    (define ghostcat (dynamic-place 'diafun/digitama/unsafe/memory (if (path? modpath) 'c-run 'c-rkt-run)))
+    (define ghostcat (dynamic-place 'diafun/digitama/unsafe/ram (if (path? modpath) 'c-run 'c-rkt-run)))
 
     (place-channel-put ghostcat (if (path? modpath) (c-build modpath optimize?) modpath))
     (place-channel-put ghostcat cfun-name)
@@ -106,24 +106,24 @@
       (let wsl ([snapshots : (Immutable-HashTable Symbol (Listof Geo)) (hasheq)])
         (define message (sync/enable-break ghostcat))
         
-        (cond [(c-memory-segment-snapshot? message)
+        (cond [(c-ram-segment-snapshot? message)
                (wsl (hash-set snapshots (car message)
                               (cons (take-snapshot (cddr message) (car message) (cadr message))
                                     (hash-ref snapshots (car message) (inst list Geo)))))]
               [(not (string? message))
                (for/hasheq : (Immutable-HashTable Symbol (Listof Geo)) ([(segment geos) (in-hash snapshots)])
                  (values segment (reverse geos)))]
-              [else (error 'dia-memory-snapshots "~a" message)])))))
+              [else (error 'dia-ram-snapshots "~a" message)])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-memory-snapshots->table
+(define dia-ram-snapshots->table
   (lambda [#:id [id : (Option Symbol) #false]
-           #:segments [specific-segments : (Listof Symbol) null] #:reverse-address? [reverse? : Boolean (default-memory-reverse-address?)]
-           #:make-row-label [make-row-label : (-> Symbol Geo) dia-memory-table-label] #:hide-segment-names? [no-col-name? : Boolean #false]
-           #:make-column-label [make-col-label : (-> String Geo) dia-memory-table-label] #:hide-states? [no-row-name? : Boolean #false]
-           #:segment-gapsize [segment-gapsize : Real (default-memory-segment-gapsize)]
-           #:gapsize [gapsize : Real (default-memory-snapshot-gapsize)]
-           [all-snapshots : Dia-Memory-Snapshots]] : Geo
+           #:segments [specific-segments : (Listof Symbol) null] #:reverse-address? [reverse? : Boolean (default-ram-reverse-address?)]
+           #:make-row-label [make-row-label : (-> Symbol Geo) dia-ram-table-label] #:hide-segment-names? [no-col-name? : Boolean #false]
+           #:make-column-label [make-col-label : (-> String Geo) dia-ram-table-label] #:hide-states? [no-row-name? : Boolean #false]
+           #:segment-gapsize [segment-gapsize : Real (default-ram-segment-gapsize)]
+           #:gapsize [gapsize : Real (default-ram-snapshot-gapsize)]
+           [all-snapshots : Dia-RAM-Snapshots]] : Geo
     (define segments : (Listof Symbol)
       (for/list ([seg (in-list specific-segments)]
                  #:when (hash-has-key? all-snapshots seg))
@@ -146,9 +146,9 @@
     (define headers : (Option (Listof (Option Geo)))
       (and (not no-col-name?)
            (not (hash-empty? all-snapshots))
-           (for/list : (Listof (Option Geo)) ([memory (in-list (car (hash-values all-snapshots)))])
-             (and (dia:memory? memory)
-                  (make-col-label (dia:memory-state memory))))))
+           (for/list : (Listof (Option Geo)) ([ram (in-list (car (hash-values all-snapshots)))])
+             (and (dia:ram? ram)
+                  (make-col-label (dia:ram-state ram))))))
 
     (define has-stack? (hash-has-key? all-snapshots 'stack))
     (define col-gaps (if (and no-row-name?) (list gapsize) (list segment-gapsize gapsize)))

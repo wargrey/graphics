@@ -60,16 +60,16 @@
 
     (define (guard [guarded-len : Flonum] [rad : Flonum]) : (Values (Option Float-Complex) (Option Flonum))
       (define guarded-rad
-        (cond [(rational? rad) rad]
-              [(procedure? fb.rad) (real->double-flonum (or (fb.rad x) +nan.0))]
-              [else (real->double-flonum fb.rad)]))
+        (cond [(rational? rad) (+ rad rotate)]
+              [(procedure? fb.rad) (+ (real->double-flonum (or (fb.rad x) +nan.0)) rotate)]
+              [else (+ (real->double-flonum fb.rad) rotate)]))
 
       (values (and (rational? guarded-len)
                    (> guarded-len 0.0)
                    (rational? guarded-rad)
-                   (make-polar guarded-len (+ guarded-rad rotate)))
+                   (make-polar guarded-len guarded-rad))
               (and (rational? guarded-rad)
-                   (angle (make-polar 1.0 (+ guarded-rad rotate))))))
+                   (angle (make-polar 1.0 guarded-rad)))))
     
     (cond [(list? self)
            (let* ([len (car self)]

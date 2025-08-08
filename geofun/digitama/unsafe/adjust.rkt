@@ -4,6 +4,7 @@
 
 (require "paint.rkt")
 (require "typed/cairo.rkt")
+(require "typed/affine.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (Master) geo_section : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum
@@ -40,4 +41,15 @@
     (cairo_translate cr (+ x0 ow) (+ y0 oh))
     (cairo_rotate cr theta.rad)
     (draw! master cr (* owidth -0.5) (* oheight -0.5) owidth oheight)
+    (cairo_restore cr)))
+
+(define #:forall (Master) geo_shear : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum
+                                          (Cairo-Surface-Draw! Master) Master Nonnegative-Flonum Nonnegative-Flonum
+                                          Any)
+  (lambda [cr x0 y0 width height shx shy draw! master owidth oheight]
+    (define-values (dx dy) (values (* shx oheight) (* shy owidth)))
+    
+    (cairo_save cr)
+    (cairo-transform cr 1.0 shy shx 1.0 (- x0 (min dx 0.0)) (- y0 (min dy 0.0)))
+    (draw! master cr 0.0 0.0 owidth oheight)
     (cairo_restore cr)))

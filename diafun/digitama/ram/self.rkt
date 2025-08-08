@@ -11,24 +11,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-c-source : (Parameterof (Option Path)) (make-parameter #false))
 
-(struct dia:memory geo:table
+(struct dia:ram geo:table
   ([source : (Option Path)]
    [segment : Symbol]
    [range : (Pairof Index Index)]
    [state : String])
-  #:type-name Dia:Memory
+  #:type-name Dia:RAM
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-dia:memory : (-> (Pairof (List Geo Geo) (Listof (List Geo Geo))) (Option Symbol)
-                              (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real)
-                              Symbol String (Pairof Index Index)
-                              Dia:Memory)
+(define make-dia:ram : (-> (Pairof (List Geo Geo) (Listof (List Geo Geo))) (Option Symbol)
+                           (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real)
+                           Symbol String (Pairof Index Index)
+                           Dia:RAM)
   (lambda [siblings id col-anchors row-anchors col-gaps segment state range]
     (define ncols : Positive-Index 2)
     (define nrows : Positive-Index (max (length siblings) 1))
     
-    (create-geometry-table dia:memory id #false #false
+    (create-geometry-table dia:ram id #false #false
                            (for/vector : (Vectorof (GLayerof Geo)) ([g (in-list (apply append siblings))])
                              (geo-own-layer g))
                            ncols nrows col-anchors row-anchors col-gaps 0.0
@@ -40,6 +40,6 @@
   (lambda [snapshots]
     (or (and (pair? snapshots)
              (let ([lucky-guy (car snapshots)])
-               (and (dia:memory? lucky-guy)
-                    (car (dia:memory-range lucky-guy)))))
+               (and (dia:ram? lucky-guy)
+                    (car (dia:ram-range lucky-guy)))))
         0)))

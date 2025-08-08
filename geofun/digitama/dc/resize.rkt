@@ -24,15 +24,21 @@
   #:type-name Geo:Region
   #:transparent)
 
-(struct geo:scaling geo:transform
+(struct geo:scale geo:transform
   ([sx : Flonum]
    [sy : Flonum])
-  #:type-name Geo:Scaling
+  #:type-name Geo:Scale
   #:transparent)
 
 (struct geo:rotation geo:transform
   ([theta : Flonum])
   #:type-name Geo:Rotation
+  #:transparent)
+
+(struct geo:shear geo:transform
+  ([shx : Flonum]
+   [shy : Flonum])
+  #:type-name Geo:Shear
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -42,12 +48,12 @@
     [(self sx0 sy0)
      (let-values ([(sx sy) (values (real->double-flonum sx0) (real->double-flonum sy0))])
        (cond [(and (= sx 1.0) (= sy 1.0)) self]
-             [(not (geo:scaling? self))
-              (create-geometry-object geo:scaling
-                                      #:with [(geo-id self) geo-draw/scaling! geo-scaling-extent
+             [(not (geo:scale? self))
+              (create-geometry-object geo:scale
+                                      #:with [(geo-id self) geo-draw/scale! geo-scale-extent
                                                             (geo-pad-scale (geo-outline self) sx sy)]
                                       self sx sy)]
-             [else (geo-scale (geo:transform-source self) (* sx (geo:scaling-sx self)) (* sy (geo:scaling-sy self)))]))]))
+             [else (geo-scale (geo:transform-source self) (* sx (geo:scale-sx self)) (* sy (geo:scale-sy self)))]))]))
 
 (define geo-rotate : (->* (Geo Real) (Boolean) Geo)
   (lambda [self theta [radian? #true]]
@@ -57,6 +63,23 @@
           [else (create-geometry-object geo:rotation
                                         #:with [(geo-id self) geo-draw/rotation! geo-rotation-extent (geo-outline self)]
                                         self fltheta)])))
+
+(define geo-shear : (-> Geo Real Real Geo)
+  (lambda [self shx shy]
+    (define fx : Flonum (real->double-flonum shx))
+    (define fy : Flonum (real->double-flonum shy))
+    
+    (cond [(and (= fx 0.0) (= fy 0.0)) self]
+          [(geo:shear? self) (geo-shear (geo:transform-source self) (+ fx (geo:shear-shx self)) (+ fy (geo:shear-shy self)))]
+          [else (create-geometry-object geo:shear
+                                        #:with [(geo-id self) geo-draw/shear! geo-shear-extent (geo-outline self)]
+                                        self fx fy)])))
+
+(define geo-skew : (->* (Geo Real Real) (Boolean) Geo)
+  (lambda [self skx sky [radian? #true]]
+    (geo-shear self
+               (tan (~radian skx radian?))
+               (tan (~radian sky radian?)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-geo:region : (-> Geo Real Real Nonnegative-Real Nonnegative-Real Geo:Region)
@@ -80,22 +103,24 @@
                    (geo:region-x self) (geo:region-y self)
                    (geo<%>-draw! master) master src-width src-height))))
 
-(define geo-draw/scaling! : Geo-Surface-Draw!
+(define geo-draw/scale! : Geo-Surface-Draw!
   (lambda [self dc x0 y0 width height]
-    (with-asserts ([self geo:scaling?])
+    (with-asserts ([self geo:scale?])
       (define master : Geo<%> (geo:transform-source self))
       (define-values (src-width src-height) (geo-intrinsic-size master))
 
       (geo_scale dc x0 y0 width height
-                 (geo:scaling-sx self) (geo:scaling-sy self)
+                 (geo:scale-sx self) (geo:scale-sy self)
                  (geo<%>-draw! master) master src-width src-height))))
 
-(define geo-scaling-extent : Geo-Calculate-Extent
+(define geo-scale-extent : Geo-Calculate-Extent
   (lambda [self]
-    (with-asserts ([self geo:scaling?])
-      (define-values (sx sy) (values (geo:scaling-sx self) (geo:scaling-sy self)))
+    (with-asserts ([self geo:scale?])
+      (define-values (sx sy) (values (geo:scale-sx self) (geo:scale-sy self)))
       (define-values (owidth oheight ?oink) (geo-extent (geo:transform-source self)))
-      (values (* (abs sx) owidth) (* (abs sy) oheight)
+
+      (values (* (abs sx) owidth)
+              (* (abs sy) oheight)
               (and ?oink (geo-ink-scale ?oink sx sy))))))
 
 (define geo-draw/rotation! : Geo-Surface-Draw!
@@ -113,4 +138,25 @@
     (with-asserts ([self geo:rotation?])
       (define-values (owidth oheight ?oink) (geo-extent (geo:transform-source self)))
       (define-values (rw rh) (geo-size-rotate owidth oheight (geo:rotation-theta self)))
-      (values rw rh (and ?oink (geo-ink-rotate ?oink (geo:rotation-theta self)))))))
+      (values rw rh
+              (and ?oink (geo-ink-rotate ?oink (geo:rotation-theta self)))))))
+
+(define geo-draw/shear! : Geo-Surface-Draw!
+  (lambda [self dc x0 y0 width height]
+    (with-asserts ([self geo:shear?])
+      (define master : Geo<%> (geo:transform-source self))
+      (define-values (src-width src-height) (geo-intrinsic-size master))
+
+      (geo_shear dc x0 y0 width height
+                 (geo:shear-shx self) (geo:shear-shy self)
+                 (geo<%>-draw! master) master src-width src-height))))
+
+(define geo-shear-extent : Geo-Calculate-Extent
+  (lambda [self]
+    (with-asserts ([self geo:shear?])
+      (define-values (shx shy) (values (geo:shear-shx self) (geo:shear-shy self)))
+      (define-values (owidth oheight ?oink) (geo-extent (geo:transform-source self)))
+
+      (values (+ (* (abs shx) oheight) owidth)
+              (+ (* (abs shy) owidth)  oheight)
+              (and ?oink (geo-ink-shear ?oink shx shy))))))

@@ -85,6 +85,20 @@
     (cond [(= rad 0.0) bmp]
           [else (bitmap_rotate (bitmap-surface bmp) rad (bitmap-density bmp))])))
 
+(define bitmap-shear : (-> Bitmap Real Real Bitmap)
+  (lambda [bmp shx shy [radian? #true]]
+    (cond [(and (zero? shx) (zero? shy)) bmp]
+          [else (bitmap_shear (bitmap-surface bmp)
+                              (real->double-flonum shx)
+                              (real->double-flonum shy)
+                              (bitmap-density bmp))])))
+
+(define bitmap-skew : (->* (Bitmap Real Real) (Boolean) Bitmap)
+  (lambda [bmp skx sky [radian? #true]]
+    (bitmap-shear bmp
+                  (tan (~radian skx radian?))
+                  (tan (~radian sky radian?)))))
+
 (define bitmap-scale : (->* (Bitmap Real) (Real) Bitmap)
   (case-lambda
     [(bmp scale)

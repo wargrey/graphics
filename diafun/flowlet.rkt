@@ -363,7 +363,7 @@
   (lambda [#:id [id : (Option Symbol) #false]
            #:block-width [block-width : Real+% (default-diaflowlet-block-width)]
            #:block-height [block-height : Real+% (default-diaflowlet-block-height)]
-           #:grid-width [grid-width : Real+% '(1.00 %)] #:grid-height [grid-height : Real+% '(85 %)]
+           #:grid-width [grid-width : Real+% '(100 %)] #:grid-height [grid-height : Real+% '(85 %)]
            #:xstep [xstep : Real 1.00] #:ystep [ystep : Real 0.618]
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
            #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
