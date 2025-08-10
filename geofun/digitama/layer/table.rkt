@@ -21,28 +21,45 @@
     (vector-set! gcols (- ncols 1) 0.0)
     (vector-set! grows (- nrows 1) 0.0)
 
-    (let compose-row ([width : Nonnegative-Flonum 0.0]
-                      [height : Nonnegative-Flonum 0.0]
+    (let compose-row ([width : Flonum 0.0]
+                      [height : Flonum 0.0]
                       [row : Nonnegative-Fixnum 0]
                       [layers : (Listof (Listof (GLayerof G))) null])
-      (if (< row nrows)
-          (let ([hrow (vector-ref rheights row)]
-                [hgap (max (vector-ref grows row) 0.0)]
-                [ridx (* row ncols)])
-            (let compose-col ([xoff : Nonnegative-Flonum 0.0]
-                              [col : Nonnegative-Fixnum 0]
-                              [rlayers : (Listof (GLayerof G)) null])
-              (if (< col ncols)
-                  (let ([cell (vector-ref table (+ ridx col))]
-                        [wcol (vector-ref cwidths col)]
-                        [wgap (max (vector-ref gcols col) 0.0)]
-                        [anchor (geo-anchor-merge (vector-ref prows row) (vector-ref pcols col))])
-                    (compose-col (+ xoff wcol wgap) (+ col 1)
-                                 (cons (geo-superimpose-layer anchor wcol hrow cell xoff height 'placeholder)
-                                       rlayers)))
-                  (compose-row xoff (+ height hrow hgap) (+ row 1) (cons (reverse rlayers) layers)))))
+      (cond [(< row nrows)
+             (let ([hrow (vector-ref rheights row)]
+                   [hgap (vector-ref grows row)]
+                   [ridx (* row ncols)])
+               (let compose-col ([xoff : Flonum 0.0]
+                                 [col : Nonnegative-Fixnum 0]
+                                 [rlayers : (Listof (GLayerof G)) null])
+                 (if (< col ncols)
+                     (let ([cell (vector-ref table (+ ridx col))]
+                           [wcol (vector-ref cwidths col)]
+                           [wgap (vector-ref gcols col)]
+                           [anchor (geo-anchor-merge (vector-ref prows row) (vector-ref pcols col))])
+                       (compose-col (+ xoff wcol wgap) (+ col 1)
+                                    (cons (geo-superimpose-layer anchor wcol hrow cell xoff height 'placeholder)
+                                          rlayers)))
+                     (compose-row xoff (+ height hrow hgap) (+ row 1) (cons (reverse rlayers) layers)))))]
 
-          (glayer-group width height (assert (apply append (reverse layers)) pair?))))))
+            [(not (and (>= width 0.0) (>= height 0.0)))
+             (let ([xoff (if (< width  0.0) (- width)  0.0)]
+                   [yoff (if (< height 0.0) (- height) 0.0)])
+               (let translate ([sreyal : (Listof (GLayerof G)) (apply append layers)]
+                               [layers : (Listof (GLayerof G)) null]
+                               [rx : Flonum 0.0]
+                               [by : Flonum 0.0])
+                 (if (pair? sreyal)
+                     (let*-values ([(layer) (car sreyal)]
+                                   [(lrx lby) (geo-layer-position-values layer 1.0 1.0)])
+                       (translate (cdr sreyal)
+                                  (cons (geo-layer-translate layer xoff yoff) layers)
+                                  (max rx lrx) (max by lby)))
+                     ((inst glayer-group G) (max 0.0 (+ rx xoff))
+                                            (max 0.0 (+ by yoff))
+                                            (assert layers pair?)))))]
+            
+            [else (glayer-group width height (assert (apply append (reverse layers)) pair?))]))))
 
 (define #:forall (G) geo-table-column-widths : (-> (Vectorof (GLayerof G)) Positive-Index Positive-Index Index (Vectorof Nonnegative-Flonum))
   (lambda [table row col max-index]

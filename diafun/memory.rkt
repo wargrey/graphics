@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 (provide dia:ram? Dia:RAM)
+(provide Dia-RAM-Variable-Layout dia-ram-variable-layout)
 (provide (all-from-out "digitama/ram/style.rkt"))
 (provide (all-from-out "digitama/ram/interface.rkt"))
 
@@ -23,8 +24,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Reversed-Variables C-Variables)
-(define-type Dia-RAM-Snapshot (-> Dia-Reversed-Variables Symbol String Geo))
-(define-type Dia-RAM-Snapshots (Immutable-HashTable Symbol (Listof Geo)))
+(define-type Dia-RAM-Snapshot (-> Dia-Reversed-Variables Symbol String [#:layout Dia-RAM-Variable-Layout] (U Dia:RAM Geo:Blank)))
+(define-type Dia-RAM-Snapshots (Immutable-HashTable Symbol (Listof (U Dia:RAM Geo:Blank))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-ram-snapshot
@@ -38,26 +39,31 @@
            #:padding-radix [p-radix : Positive-Byte (default-ram-padding-radix)]
            #:fixnum-radix [fx-radix : Positive-Byte (default-ram-fixnum-radix)]
            #:raw-data-radix [rd-radix : Positive-Byte (default-ram-raw-data-radix)]
-           [variables : Dia-Reversed-Variables] [segment : Symbol 'stack] [state : String ""]] : Geo
+           #:layout [layout : Dia-RAM-Variable-Layout dia-ram-variable-layout]
+           [variables : Dia-Reversed-Variables] [segment : Symbol 'stack] [state : String ""]] : (U Dia:RAM Geo:Blank)
     (parameterize ([default-dia-node-base-style make-ram-location-fallback-style])
-      (let make-placeholder ([vars : (Listof C-Variable-Datum) variables]
-                             [swor : (Listof (List Geo Geo)) null])
+      (define (realize [self : RAM-Variable]) : (Pairof Geo (Listof Geo))
+        (layout (ram-variable-name self) (ram-variable-address self)
+                (ram-variable-datum self) (ram-variable-shape self)))
+      
+      (let var->cell ([vars : (Listof C-Variable-Datum) variables]
+                      [swor : (Listof (Pairof Geo (Listof Geo))) null])
         (if (pair? vars)
             (let*-values ([(self rest) (values (car vars) (cdr vars))]
                           [(address raw) (values (c-placeholder-addr self) (c-placeholder-raw self))]
                           [(vname style) (ram-identify self segment)])
-              (cond [(not style) (make-placeholder rest swor)]
+              (cond [(not style) (var->cell rest swor)]
                     [(or (c-padding? self) ignore-variable?)
                      (if (or no-padding?)
-                         (make-placeholder rest swor)
-                         (make-placeholder rest (append swor (dia-padding-raw style address addr-mask raw p-radix padding-limit))))]
+                         (var->cell rest swor)
+                         (var->cell rest (append swor (map realize (dia-padding-raw style address addr-mask raw p-radix padding-limit)))))]
                     [(c-variable? self)
                      (let ([rows (if (not human-readable?)
                                      (dia-variable-raw #:segment (c-variable-segment self) #:rendering-segment segment
                                                        style vname address addr-mask raw rd-radix)
                                      (dia-variable-datum #:segment (c-variable-segment self) #:rendering-segment segment
                                                          style vname address addr-mask (unbox (c-variable-datum self)) fx-radix))])
-                       (make-placeholder rest (append swor rows)))]
+                       (var->cell rest (append swor (map realize rows))))]
                     [(c-vector? self)
                      (let ([rows (if (not human-readable?)
                                      (dia-vector-raw #:segment (c-vector-segment self) #:rendering-segment segment
@@ -65,16 +71,15 @@
                                      (dia-variable-data #:segment (c-vector-segment self) #:rendering-segment segment
                                                         style vname address (c-vector-type-size self) addr-mask
                                                         (c-vector-data self) fx-radix))])
-                       (make-placeholder rest (append swor rows)))]
-                    [else (make-placeholder rest swor)]))
+                       (var->cell rest (append swor (map realize rows))))]
+                    [else (var->cell rest swor)]))
             
-            (let ([rows (if reverse? swor (reverse swor))]
-                  [cont (geo-blank)])
-              (cond [(null? rows) cont]
+            (let ([rows (if reverse? swor (reverse swor))])
+              (cond [(null? rows) (geo-blank)]
                     [else (let ([addr1 (c-placeholder-addr (car variables))]
                                 [addr2 (c-placeholder-addr (last variables))])
                             (make-dia:ram rows id '(rc lc) 'cc gapsize segment state
-                                             (if (<= addr1 addr2) (cons addr1 addr2) (cons addr2 addr1))))])))))))
+                                          (if (<= addr1 addr2) (cons addr1 addr2) (cons addr2 addr1))))])))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-ram-snapshots
@@ -86,6 +91,7 @@
            #:lookahead-size [ahead : Index (default-ram-lookahead-size)]
            #:lookbehind-size [behind : Index (default-ram-lookbehind-size)]
            #:body-limit [limit : Index (default-ram-body-limit)]
+           #:layout [layout : Dia-RAM-Variable-Layout dia-ram-variable-layout]
            [crkt : Module-Path] [take-snapshot : Dia-RAM-Snapshot dia-ram-snapshot]] : Dia-RAM-Snapshots
     (define modpath : Module-Path
       (cond [(not (or (path? crkt) (string? crkt))) crkt]
@@ -103,15 +109,15 @@
     (place-channel-put ghostcat (list ahead behind limit))
 
     (parameterize ([default-c-source (and (path? modpath) modpath)])
-      (let wsl ([snapshots : (Immutable-HashTable Symbol (Listof Geo)) (hasheq)])
+      (let wsl ([snapshots : (Immutable-HashTable Symbol (Listof (U Dia:RAM Geo:Blank))) (hasheq)])
         (define message (sync/enable-break ghostcat))
         
         (cond [(c-ram-segment-snapshot? message)
                (wsl (hash-set snapshots (car message)
-                              (cons (take-snapshot (cddr message) (car message) (cadr message))
-                                    (hash-ref snapshots (car message) (inst list Geo)))))]
+                              (cons (take-snapshot (cddr message) (car message) (cadr message) #:layout layout)
+                                    (hash-ref snapshots (car message) (inst list (U Dia:RAM Geo:Blank))))))]
               [(not (string? message))
-               (for/hasheq : (Immutable-HashTable Symbol (Listof Geo)) ([(segment geos) (in-hash snapshots)])
+               (for/hasheq : (Immutable-HashTable Symbol (Listof (U Dia:RAM Geo:Blank))) ([(segment geos) (in-hash snapshots)])
                  (values segment (reverse geos)))]
               [else (error 'dia-ram-snapshots "~a" message)])))))
 

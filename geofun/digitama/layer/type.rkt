@@ -28,24 +28,22 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (G) geo-layer-position-values : (-> (GLayerof G) (Values Flonum Flonum))
-  (lambda [self]
-    (values (glayer-x self) (glayer-y self))))
+(define #:forall (G) geo-layer-position-values : (case-> [(GLayerof G) -> (Values Flonum Flonum)]
+                                                         [(GLayerof G) Flonum Flonum -> (Values Flonum Flonum)])
+  (case-lambda
+    [(self) (values (glayer-x self) (glayer-y self))]
+    [(self fx fy) (values (+ (glayer-x self) (* (glayer-width self)  fx))
+                          (+ (glayer-y self) (* (glayer-height self) fy)))]))
 
-(define #:forall (G) geo-layer-position : (-> (GLayerof G) Float-Complex)
-  (lambda [self]
-    (define-values (x y) (geo-layer-position-values self))
-    (make-rectangular x y)))
-
-(define #:forall (G) geo-layer-center-position-values : (-> (GLayerof G) (Values Flonum Flonum))
-  (lambda [self]
-    (values (+ (glayer-x self) (* (glayer-width self) 0.5))
-            (+ (glayer-y self) (* (glayer-height self) 0.5)))))
-
-(define #:forall (G) geo-layer-center-position : (-> (GLayerof G) Float-Complex)
-  (lambda [self]
-    (define-values (x y) (geo-layer-center-position-values self))
-    (make-rectangular x y)))
+(define #:forall (G) geo-layer-position : (case-> [(GLayerof G) -> Float-Complex]
+                                                  [(GLayerof G) Flonum Flonum -> Float-Complex])
+  (case-lambda
+    [(self)
+     (let-values ([(x y) (geo-layer-position-values self)])
+       (make-rectangular x y))]
+    [(self fx fy)
+     (let-values ([(x y) (geo-layer-position-values self fx fy)])
+       (make-rectangular x y))]))
 
 (define #:forall (G) geo-layer-size : (case-> [(GLayerof G) -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
                                               [(GLayerof G) Nonnegative-Flonum -> (Values Nonnegative-Flonum Nonnegative-Flonum)]

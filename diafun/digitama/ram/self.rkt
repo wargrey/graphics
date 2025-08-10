@@ -20,12 +20,12 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-dia:ram : (-> (Pairof (List Geo Geo) (Listof (List Geo Geo))) (Option Symbol)
+(define make-dia:ram : (-> (Pairof (Pairof Geo (Listof Geo)) (Listof (Pairof Geo (Listof Geo)))) (Option Symbol)
                            (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real)
                            Symbol String (Pairof Index Index)
                            Dia:RAM)
   (lambda [siblings id col-anchors row-anchors col-gaps segment state range]
-    (define ncols : Positive-Index 2)
+    (define ncols : Positive-Index (max (length (car siblings)) 1))
     (define nrows : Positive-Index (max (length siblings) 1))
     
     (create-geometry-table dia:ram id #false #false

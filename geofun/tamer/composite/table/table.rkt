@@ -11,9 +11,10 @@
 (define monospace : Font (desc-font #:family 'monospace))
 (define geobjs : (Listof Geo)
   (time (build-list 1350 (λ _ (let ([rc (random #xFFFFFF)])
-                                (geo-text #:color (rgb* rc)
-                                          (string-upcase (format "~x" rc))
-                                          monospace))))))
+                                (geo-shear (geo-text #:color (rgb* rc)
+                                                     (string-upcase (format "~x" rc))
+                                                     monospace)
+                                           0.0 -0.4))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -22,11 +23,11 @@
   
   (collect-garbage)
   (collect-garbage)
-  (collect-garbage) ; 36ms
-  (geo-flsize (time (geo-vl-append* geobjs)))
+  (collect-garbage)
+  (geo-flsize (time (geo-vl-append* geobjs))) #; 38ms
   
   (collect-garbage)
   (collect-garbage)
-  (collect-garbage) ; 112ms
-  (time (geo-freeze (geo-table 26 geobjs '(rc) '(cc) '(10) '(10)))))
+  (collect-garbage)
+  (time (geo-freeze (geo-table 26 geobjs '(rc) '(cc) '(10) '(10)))) #; 237ms)
   
