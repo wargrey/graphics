@@ -167,9 +167,9 @@
         (pango_attr_list_unref attrs)))
 
     (case/eq align
-             [(center) (pango_layout_set_alignment layout 1)]
-             [(right)  (pango_layout_set_alignment layout 2)]
-             [(left)   (pango_layout_set_alignment layout 0)])
+      [(center) (pango_layout_set_alignment layout 1)]
+      [(right)  (pango_layout_set_alignment layout 2)]
+      [(left)   (pango_layout_set_alignment layout 0)])
 
     (pango_layout_set_font_description layout font-desc))
 

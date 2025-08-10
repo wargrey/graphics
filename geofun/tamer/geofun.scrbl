@@ -3,14 +3,15 @@
 @(require digimon/tamer)
 @(require geofun/version)
 
-@(define the-name (racketmodname bitmap))
+@(define the-name (racketmodname geofun))
 
 @handbook-title/pkg-desc[]
 
-@defmodule*/no-declare[(bitmap/base bitmap)]
+@defmodule*/no-declare[(geofun/vector)]
 
 The @the-name is a typed functional picture library which employs @cite{Cairo} and @cite{Pango} via
-@racketmodname[ffi/unsafe] directly. The initial motivation is to provide efficient, professional,
+@racketmodname[ffi/unsafe] directly.
+The initial motivation is to provide efficient, professional,
 yet handy graphics APIs that lay the foundation for my @racketmodname[css] engine and @racketmodname[svg]
 engine as well as to be used standalone for developers and artists.
 

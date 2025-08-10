@@ -6,7 +6,7 @@
 @(require (for-label typed/racket/base))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@handbook-typed-module-story[bitmap/misc]{Miscellaneous}
+@handbook-typed-module-story[geofun/version]{Miscellaneous}
 
 @handbook-scenario{Versions}
 

@@ -1,13 +1,13 @@
 #lang typed/racket/base
 
 (require geofun/vector)
-(require geofun/bitmap)
+(require bitmap)
 
 (require (only-in geofun/digitama/convert geo-object->stream-bytes))
 (require (only-in bitmap/digitama/convert bitmap->stream-bytes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define cell.bmp (bitmap-square 20))
+(define cell.bmp (bitmap-solid 'royalblue 20))
 (define cell.geo (geo-square 20))
 
 cell.bmp

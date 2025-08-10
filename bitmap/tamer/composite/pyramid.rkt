@@ -2,16 +2,17 @@
 
 (require math/number-theory)
 
+(require geofun/vector)
 (require bitmap)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define number->node
   (λ [i]
-    (define datum (bitmap-text (number->string i)))
-    (define sidelength (* (bitmap-intrinsic-height datum) 1.0))
-    (define frame (bitmap-square sidelength))
+    (define datum (geo-text (number->string i)))
+    (define sidelength (* (geo-height datum) 2.0))
+    (define frame (geo-square sidelength))
     
-    (bitmap-cc-superimpose frame datum)))
+    (geo-freeze (geo-cc-superimpose frame datum))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main

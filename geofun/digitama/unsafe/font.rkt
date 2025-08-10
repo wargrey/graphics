@@ -4,7 +4,7 @@
 
 (require typed/racket/unsafe)
 
-(define-type Font-Unit (U 'em 'ex 'ch 'lh))
+(define-type Font-Unit (U 'em 'ex 'cap 'ch 'ic 'lh))
 
 (module unsafe racket/base
   (provide (all-defined-out))
@@ -59,8 +59,10 @@
     (define ex  (unsafe-fx- baseline xy))
     (define cap (unsafe-fx- baseline Oy))
     (list (cons 'em (~pango-metric (pango_font_description_get_size font-desc)))
-          (cons 'ex (~pango-metric ex)) (cons 'cap (~pango-metric cap))
-          (cons 'ch (~pango-metric ch)) (cons 'ic (~pango-metric ic))
+          (cons 'ex (~pango-metric ex))
+          (cons 'cap (~pango-metric cap))
+          (cons 'ch (~pango-metric ch))
+          (cons 'ic (~pango-metric ic))
           (cons 'lh #|useless outside css engine|# (~pango-metric wH))))
 
   (define (font_get_metrics_lines font-desc content)

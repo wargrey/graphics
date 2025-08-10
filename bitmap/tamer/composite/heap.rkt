@@ -1,15 +1,16 @@
 #lang racket
 
+(require geofun/vector)
 (require bitmap)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define index->node
   (λ [i]
-    (define datum (bitmap-text (number->string (add1 i))))
-    (define r (* (bitmap-intrinsic-height datum) 0.4))
-    (define frame (bitmap-circle r))
+    (define datum (geo-text (number->string (add1 i))))
+    (define r (geo-intrinsic-height datum))
+    (define frame (geo-circle r))
     
-    (bitmap-cc-superimpose frame datum)))
+    (geo-freeze (geo-cc-superimpose frame datum))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main

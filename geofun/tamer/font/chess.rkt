@@ -1,11 +1,9 @@
 #lang typed/racket
 
-(require bitmap)
+(require geofun/vector)
 (require geofun/digitama/font)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(default-border (desc-stroke #:color 'gray #:width 1 #:dash 'long-dash))
-
 (define chesses : String "♔♕♖♗♘♙♚♛♜♝♞♟︎")
 
 (define font-okay? : (-> String Font Boolean)
@@ -13,17 +11,19 @@
     (and (text-descender-exist? text font)
          (text-glyphs-exist? text font))))
 
-(define bitmap-text* : (-> String Font Bitmap)
+(define geo-text* : (-> String Font Geo)
   (lambda [text font]
     (define large-font (desc-font (desc-font font #:size 'xx-large) #:size -4.0))
 
-    (bitmap-vl-append (bitmap-text (font-face font) large-font)
-                      (bitmap-frame (bitmap-text #:meanline 'green #:baseline 'red #:descent 'blue 
-                                                 text large-font)))))
+    (geo-vl-append (geo-text (font-face font) large-font)
+                   (geo-frame (geo-text #:meanline 'green #:baseline 'red #:descent 'blue 
+                                        text large-font)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (for/list : (Listof Bitmap)
+  (default-border (desc-stroke #:color 'gray #:width 1 #:dash 'long-dash))
+  
+  (for/list : (Listof Geo)
     ([font (in-list (map (λ [[family : String]] : Font (desc-font #:family family)) (list-font-families)))]
      #:when (font-okay? chesses font))
-    (bitmap-text* chesses font)))
+    (geo-text* chesses font)))

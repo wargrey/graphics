@@ -59,7 +59,7 @@
 (module+ main
   (require geofun/digitama/dc/track)
   (require geofun/vector)
-  (require geofun/bitmap)
+  (require bitmap)
 
   (default-stroke-paint (desc-stroke #:color 'Crimson #:width 4.0))
   (default-border-paint (desc-border #:color (rgb* 'RoyalBlue 0.618)))
@@ -84,7 +84,7 @@
   (geo-frame (geo-track-stick goma make-anchor-sticker #:truncate? #false))
   (geo-freeze goma #:stroke 'ForestGreen #:fill (rgb* 'RoyalBlue 0.618))
 
-  (let ([bmp (bitmap-square 512)])
+  (let ([bmp (bitmap-solid 'azure 512)])
     (geo-freeze! bmp goma -32 -32 #:stroke (desc-stroke #:color 'Orange #:dash 'long-dash))
     bmp)
   

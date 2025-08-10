@@ -1,19 +1,20 @@
 #lang typed/racket
 
 (require bitmap)
+(require geofun/vector)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define examples : (Listof Bitmap)
-  (list (bitmap-text "Field Name: ")    (bitmap-text "Testcase for (bitmap-table)")
-        (bitmap-text "Specification: ") (bitmap-paragraph "* Shown in a table of 2 rows;\n* This Field has no examples." #:max-width 300)
-        (bitmap-text "Examples: ")))
+  (list (geo-freeze (geo-text "Field Name: "))    (geo-freeze (geo-text "Testcase for (bitmap-table)"))
+        (geo-freeze (geo-text "Specification: ")) (geo-freeze (geo-paragraph "* Shown in a table of 2 rows;\n* This Field has no examples." #:max-width 300))
+        (geo-freeze (geo-text "Examples: "))))
 
 (define monospace : Font (desc-font #:family 'monospace))
 (define bitmaps : (Listof Bitmap)
   (time (build-list 1350 (λ _ (let ([rc (random #xFFFFFF)])
-                                (bitmap-text #:color (rgb* rc)
-                                             (string-upcase (format "~x" rc))
-                                             monospace))))))
+                                (geo-freeze (geo-text #:color (rgb* rc)
+                                                      (string-upcase (format "~x" rc))
+                                                      monospace)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -8,8 +8,6 @@
 (require racket/format)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define exgap (geo-blank))
-
 (define (font-style-table exfont ex-chars options update-font)
   (define hgapsize (font-size exfont))
   
@@ -18,7 +16,7 @@
      (cons (geo-text (~a property) exfont #:color 'green)
            (apply append
                   (for/list ([exchar (in-list ex-chars)])
-                    (cons exgap
+                    (cons (geo-blank)
                           (for/list ([style (in-list css-font-style-options)])
                             (cond [(eq? property '||) (geo-text (~a style) exfont)]
                                   [else (geo-text (~a " " exchar " ")

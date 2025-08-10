@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (require geofun/vector)
-(require geofun/bitmap)
+(require bitmap)
 
 (require "flomap.rkt")
 

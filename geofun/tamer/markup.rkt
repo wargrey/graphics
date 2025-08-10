@@ -3,10 +3,9 @@
 ;;; https://docs.gtk.org/Pango/pango_markup.html
 
 (require geofun/vector)
-(require geofun/bitmap)
+(require geofun/markup)
 
 (require geofun/digitama/markup)
-(require geofun/markup)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define font (desc-font #:family 'math #:size 'xx-large))
@@ -27,14 +26,14 @@
 (define raw-markups : (Listof Geo)
   (list (geo-markup #:color 'ForestGreen
                     #"<markup><span foreground=\"blue\" size=\"xx-large\">Blue text</span> is <i>cool</i>!</markup>")
-        (geo-bitmap (bitmap-markup #:background 'WhiteSmoke #:lines '(line-through)
-                                   (string->bytes/utf-8
-                                    (string-append "<span foreground=\"purple\">ا</span>"
-                                                   "<span foreground=\"red\">َ</span>ل<span foreground=\"blue\">ْ</span>"
-                                                   "ع<span foreground=\"red\">َ</span>ر<span foreground=\"red\">َ</span>"
-                                                   "ب<span foreground=\"red\">ِ</span>ي<span foreground=\"green\">ّ</span>"
-                                                   "<span foreground=\"red\">َ</span>ة<span foreground=\"blue\">ُ</span>"))
-                                   font))
+        (geo-markup #:background 'WhiteSmoke #:lines '(line-through)
+                    (string->bytes/utf-8
+                     (string-append "<span foreground=\"purple\">ا</span>"
+                                    "<span foreground=\"red\">َ</span>ل<span foreground=\"blue\">ْ</span>"
+                                    "ع<span foreground=\"red\">َ</span>ر<span foreground=\"red\">َ</span>"
+                                    "ب<span foreground=\"red\">ِ</span>ي<span foreground=\"green\">ّ</span>"
+                                    "<span foreground=\"red\">َ</span>ة<span foreground=\"blue\">ُ</span>"))
+                    font)
         (geo-markup #:background 'GhostWhite #:alignment 'center #:lines '(undercurl)
                     (string->bytes/utf-8
                      (string-append "x<sub>n</sub> = x<sub>n<span style=\"normal\">-<span size=\"smaller\">1</span></span></sub><span style=\"normal\"> + 1</span>\n"

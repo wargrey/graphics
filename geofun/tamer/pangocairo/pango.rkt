@@ -2,8 +2,7 @@
 
 (provide (all-defined-out))
 
-(require geofun/font)
-(require bitmap/constructor)
+(require geofun/vector)
 (require bitmap/digitama/convert)
 ;(require bitmap/digitama/stdio)
 
@@ -49,8 +48,8 @@
   (cairo_fill cr)
 
   (define desc (geo_create_font_desc font-face (* radius 0.16) font-weight 0 4 0))
-  (define layout (text_create_layout font-attr-lines))
-  (pango_layout_set_font_description layout desc)
+  (define layout (text_create_empty_layout))
+  (text_setup_layout! layout desc font-attr-lines 'center)
 
   ; Center coordinates on the middle of the region we are drawing
   (cairo_translate cr radius radius)
@@ -76,13 +75,15 @@
   (cairo_pattern_add_color_stop_rgba pattern 0.0 1.0 0.0 0.0 1.0)
   (cairo_pattern_add_color_stop_rgba pattern 0.5 0.0 1.0 0.0 1.0)
   (cairo_pattern_add_color_stop_rgba pattern 1.0 0.0 0.0 1.0 1.0)
-  (bitmap-paragraph (list (format "Layout Box(~a, ~a):" width height)
-                          "Here is some text that should wrap suitably to demonstrate PangoLayout's features."
-                          "This paragraph should be ellipsized or truncated.")
-                    (desc-font #:family "Trebuchet MS" #:size 16.0 #:weight 'medium #:style 'normal #:stretch 'normal)
-                    #:max-width width #:max-height height #:indent indent #:spacing spacing
-                    #:wrap-mode 'word-char #:ellipsize-mode 'end #:lines '(undercurl)
-                    #:color pattern #:background (rgba (random) (random) (random) 0.2) #:density density))
+
+  (geo-freeze #:density density
+              (geo-paragraph (list (format "Layout Box(~a, ~a):" width height)
+                                   "Here is some text that should wrap suitably to demonstrate PangoLayout's features."
+                                   "This paragraph should be ellipsized or truncated.")
+                             (desc-font #:family "Trebuchet MS" #:size 16.0 #:weight 'medium #:style 'normal #:stretch 'normal)
+                             #:max-width width #:max-height height #:indent indent #:spacing spacing
+                             #:wrap-mode 'word-char #:ellipsize-mode 'end #:lines '(undercurl)
+                             #:color pattern #:background (rgba (random) (random) (random) 0.2))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (benchmark make-image . args)

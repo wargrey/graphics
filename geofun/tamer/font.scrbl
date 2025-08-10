@@ -10,7 +10,7 @@
 @(require "../constructor.rkt")
 @(require "../composite.rkt")
 
-@(require "bitmap/bridge/font.rkt")
+@(require "geofun/bridge/font.rkt")
 
 @(require (for-label typed/racket/base))
 
@@ -26,7 +26,7 @@
    #:author (org-author-name "W3C"))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@(define (font-weigth-element weight)
+@(define (font-weight-element weight)
    (define indexed-elem (tamer-indexed-keyword-element weight))
    (cond [(or (eq? weight 'bolder) (eq? weight 'lighter)) indexed-elem]
          [else (list indexed-elem
@@ -35,7 +35,7 @@
                      (racketparenfont ")"))]))
 
 @;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@handbook-typed-module-story[#:requires [bitmap/base geofun/digitama/font] geofun/font]{Font}
+@handbook-typed-module-story[#:requires [geofun/vector geofun/digitama/font] geofun/font]{Font}
 
 A @deftech{font} provides a resource containing the visual representation of characters. At the
 simplest level it contains information that maps character codes to shapes (called @deftech{glyphs})
@@ -134,7 +134,7 @@ but will not be displayed as expected.
            @item{@racket[weight] argument accepts datum of any type of
 
              @itemlist[@item{@racket[Symbol]: One of the predefined keywords in
-                                     @tamer-make-keywords[font-weigth-element
+                                     @tamer-make-keywords[font-weight-element
                                                           (append css-font-weight-options
                                                                   (list 'bolder 'lighter))].
                                      Otherwise, inherited from @racket[basefont].
@@ -182,7 +182,7 @@ but will not be displayed as expected.
 
    A font @tech{family} is found when @racket[pred?] applied to the family name returns a true value.}
 
- @item{@racket[Symbol] of predefined @racket[Procedure]s in @tamer-indexed-keywords['(mono all)],
+ @item{@racket[Symbol] that in @tamer-indexed-keywords['(mono all)],
    same as invoking @racket[list-monospace-font-families], and @racket[list-font-families],
    respectively. Otherwise, fall back to @racket[list-font-families].}
  ]
@@ -243,7 +243,7 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
  @margin-note{Be careful this figure is somehow misleading.}
  
  @centered{
-  @image[(build-path (digimon-path 'tamer) "stone" "Sphinx.svg")]{Common Typographic Metrics}
+  @image[(build-path (digimon-path 'tamer) "font" "Sphinx.svg")]{Common Typographic Metrics}
    
   Common Typographic Metrics}
  
@@ -275,8 +275,8 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
    the minimum distance between the line and the character is zero.}
  ]
  
- @tamer-repl[(require bitmap/constructor)
-             (require bitmap/composite)
+ @tamer-repl[(require geofun/constructor)
+             (require geofun/composite)
              (define exfont (desc-font (desc-font #:family 'cursive #:size 'xx-large) #:size -1.618))
              (define sphinx "Sphinx 0123456789")
              
@@ -286,12 +286,12 @@ The @deftech{metrics} correspond to the font-relative @deftech{units} defined in
   and fonts in Linux might not be well selected.}
  
  @tamer-repl[(default-border (desc-stroke #:dash 'long-dash #:color 'gray #:width 1))
-             (define (frame-text [family : (U String Symbol)] [text : String sphinx]) : Bitmap
-               (bitmap-frame (bitmap-text #:ascent 'magenta #:descent 'blue #:capline 'orange #:meanline 'green #:baseline 'red
-                                          (format "~a: ~a" family text)
-                                          (desc-font #:family family exfont))))
+             (define (frame-text [family : (U String Symbol)] [text : String sphinx]) : Geo
+               (geo-frame (geo-text #:ascent 'magenta #:descent 'blue #:capline 'orange #:meanline 'green #:baseline 'red
+                                    (format "~a: ~a" family text)
+                                    (desc-font #:family family exfont))))
              
-             @(bitmap-vl-append* #:gapsize 16 (map frame-text css-font-generic-families))]
+             @(geo-vl-append* #:gapsize 16 (map frame-text css-font-generic-families))]
 }
 
 @handbook-scenario{Glyphs Utilities}
@@ -331,7 +331,7 @@ cross platform. These utilities are therefore at your service.
                (and (text-descender-exist? chesses font)
                     (text-glyphs-exist? chesses font)))
              
-             (bitmap-vl-append*
+             (geo-vl-append*
               #:gapsize 16
               (map (λ [[face : String]] (frame-text face chesses))
                    (find-font-families font-okay?)))]
