@@ -31,3 +31,14 @@
 (define #:forall (T) stroke-maybe-width : (->* (Any) (T) (U Nonnegative-Flonum T))
   (lambda [s [fallback-width 0.0]]
     (if (stroke? s) (stroke-width s) fallback-width)))
+
+(define #:forall (T) stroke-adjust-color : (-> Stroke (-> FlRGBA FlRGBA) Stroke)
+  (lambda [s adjust]
+    (define oc (stroke-color s))
+    (define ac (adjust oc))
+
+    (cond [(equal? ac oc) s]
+          [else (stroke ac (stroke-width s)
+                        (stroke-linecap s) (stroke-linejoin s) (stroke-miterlimit s)
+                        (stroke-dash s) (stroke-offset s)
+                        (stroke-opacity s))])))

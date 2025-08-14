@@ -13,10 +13,10 @@
 (define-type Plot-Ticks (Listof Plot-Tick))
 (define-type Plot-Ticks-Generate
   (->* (Plot-Tick-Engine (Option (Pairof Real Real)))
-       ((Option Plot-Tick-Format))
+       ((Option Plot-Tick-Format) (Option Index))
        (Values Plot-Ticks (Option Real) Index)))
 
-(define-type Plot-Ticks-Layout (-> Real Real (Values (Listof Real) (Option Real) Index)))
+(define-type Plot-Ticks-Layout (-> Real Real (Values (Listof Real) (Option Real))))
 (define-type Plot-Tick-Format (-> Real Integer String))
 ;(define-type (Plot-Ticks-Layout* Arg) (-> Real Real (Values (Listof Plot-Tick) Arg)))
 ;(define-type (Plot-Ticks-Format* Arg) (-> Real Real Plot-Tick Arg String))
@@ -27,7 +27,8 @@
 (struct plot-tick-engine
   ([layout : Plot-Ticks-Layout]
    [format : Plot-Tick-Format]
-   [range : (Option (Pairof Real Real))])
+   [range : (Option (Pairof Real Real))]
+   [minor-count : Index])
   #:constructor-name unsafe-plot-tick-engine
   #:type-name Plot-Tick-Engine
   #:transparent)
@@ -39,15 +40,9 @@
   #:type-name Plot-Tick
   #:transparent)
 
-(define plot-tick-value* : (-> (U Plot-Tick (Pairof Plot-Tick String)) Real)
-  (lambda [self]
-    (if (pair? self)
-        (plot-tick-value* (car self))
-        (plot-tick-value self))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-ticks-generate : Plot-Ticks-Generate
-  (lambda [self range [alt-format #false]]
+  (lambda [self range [alt-format #false] [alt-minor-count #false]]
     (define rng (or (plot-tick-engine-range self) range))
     
     (if (pair? rng)
@@ -55,7 +50,8 @@
                       [(f) (or alt-format (plot-tick-engine-format self))]
                       [(tmin tmax) (values (car rng) (cdr rng))]
                       [(precision) (tick-precision tmin tmax)]
-                      [(ticks maybe-stable-step minor-count) (g tmin tmax)])
+                      [(ticks maybe-stable-step) (g tmin tmax)]
+                      [(minor-count) (or alt-minor-count (plot-tick-engine-minor-count self))])
           (values (if (or (= minor-count 0)
                           (null? ticks) (null? (cdr ticks)))
                       (for/list ([val (in-list ticks)])
@@ -83,7 +79,7 @@
      
      (if (pair? ordered-ticks)
          (let ([rng (and #;(pair? (cdr ordered-ticks)) (cons (car ordered-ticks) (last ordered-ticks)))]
-               [layout (λ [tmin tmax] (values ticks #false 0))])
+               [layout (λ [tmin tmax] (values ticks #false))])
            (cond [(and (list? labels) (pair? (filter values labels)))
                   (let* ([lbls (for/hasheqv : (HashTable Real (Option String)) ([t (in-list ticks)]
                                                                                 [s (in-list labels)]
@@ -92,9 +88,9 @@
                          [predefine-labels (lambda [[tval : Real] [para : Integer]]
                                              (or (hash-ref lbls tval (λ [] #false))
                                                  (plot-tick->label-string tval para)))])
-                    (unsafe-plot-tick-engine layout predefine-labels rng))]
-                 [(procedure? labels) (unsafe-plot-tick-engine layout labels rng)]
-                 [else (unsafe-plot-tick-engine layout plot-tick->label-string rng)]))
+                    (unsafe-plot-tick-engine layout predefine-labels rng 0))]
+                 [(procedure? labels) (unsafe-plot-tick-engine layout labels rng 0)]
+                 [else (unsafe-plot-tick-engine layout plot-tick->label-string rng 0)]))
          plot-no-ticks)]
     [(ticks) (plot-fixed-ticks ticks plot-tick->label-string)]
     [(tmin tmax step) (plot-fixed-ticks (range tmin tmax step) plot-tick->label-string)]
@@ -109,10 +105,11 @@
     (unsafe-plot-tick-engine
      (λ [[tmin : Real] [tmax : Real]]
        (if (positive? step)
-           (values (range tmin (+ tmax (* step 0.5)) step) step minor-counts)
-           (values (list tmin) #false minor-counts)))
+           (values (range tmin (+ tmax (* step 0.5)) step) step)
+           (values (list tmin) #false)))
      (or format plot-tick->label-string)
-     #false)))
+     #false
+     minor-counts)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-tick->label-string : Plot-Tick-Format
@@ -125,6 +122,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-no-ticks : Plot-Tick-Engine
   (unsafe-plot-tick-engine
-   (λ [[tmin : Real] [tmax : Real]] (values null #false 0))
+   (λ [[tmin : Real] [tmax : Real]] (values null #false))
    plot-tick->label-string
-   #false))
+   #false
+   0))

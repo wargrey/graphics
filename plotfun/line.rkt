@@ -85,7 +85,7 @@
                          maybe-origin used-length maybe-unit))
 
     (define-values (actual-ticks maybe-stable-step minor-count) (plot-ticks-generate ticks-engine tick-range alt-format))
-    (define actual-tick-values (map plot-tick-value* actual-ticks))
+    (define actual-tick-values (map plot-tick-value actual-ticks))
 
     (define α : Flonum (real->double-flonum rotate))
     (define e^αi : Float-Complex (make-polar 1.0 α))
@@ -232,7 +232,7 @@
                          maybe-origin used-length maybe-unit))
     
     (define-values (actual-ticks maybe-stable-step minor-count) (plot-ticks-generate ticks-engine tick-range alt-format))
-    (define actual-tick-values (filter exact-integer? (map plot-tick-value* actual-ticks)))
+    (define actual-tick-values (filter exact-integer? (map plot-tick-value actual-ticks)))
 
     (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
     (define-values (digit-position digit-anchor miror-anchor) (plot-axis-digit-position-values axis-style 'x))

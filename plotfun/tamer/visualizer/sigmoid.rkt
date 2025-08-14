@@ -129,6 +129,7 @@
      #:x-range (cons 0.0 360) #:y-range (cons 0.0 0.4) #:height 200.0
      #:x-label "Hue" #:y-label "Chroma"
      #:mark-style (make-plot-mark-style #:pin-angle 0.0 #:gap-angle 0.0)
+     #:y-grid-style (make-plot-grid-style #:minor-count 0)
      (function (chroma 1/4 0.0 0.0))
      (function (chroma 1/4 0.5 0.0))
      (function (chroma 1/4 1.0 0.0))

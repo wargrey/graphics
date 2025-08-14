@@ -24,7 +24,7 @@
         (if (pair? tip) (cdr tip) tip))))
 
 (define plot-axis-visual-values : (case-> [Plot-Axis-Style -> (Values Font Font Font Font Stroke Nonnegative-Flonum Color Color Color Color)]
-                                          [Plot-Axis-Style (-> Color FlRGBA) -> (Values Font Font Font Font Stroke Nonnegative-Flonum FlRGBA FlRGBA FlRGBA FlRGBA)])
+                                          [Plot-Axis-Style (-> FlRGBA FlRGBA) -> (Values Font Font Font Font Stroke Nonnegative-Flonum FlRGBA FlRGBA FlRGBA FlRGBA)])
   (case-lambda
     [(self)
      (let* ([axis-pen (plot-axis-style-stroke self)]
@@ -46,7 +46,7 @@
             [adjusted-color (adjust axis-color)]
             [digit-color (plot-axis-style-digit-color self)]
             [tick-color (plot-axis-style-tick-color self)]
-            [label-color (if (plot-axis-style-label-color self) (adjust (plot-axis-style-label-color self)) adjusted-color)]
+            [label-color (let ([lc (plot-axis-style-label-color self)]) (if (not lc) adjusted-color (adjust (rgb* lc))))]
             [desc-color (plot-axis-style-label-color self)]
             [axis-font (plot-axis-style-font self)])    
        (values axis-font
@@ -55,10 +55,10 @@
                (or (plot-axis-style-desc-font self) axis-font)
                (if (equal? adjusted-color axis-color) axis-pen (desc-stroke axis-pen #:color adjusted-color))
                (stroke-width axis-pen)
-               (if (not digit-color) adjusted-color (adjust digit-color))
-               (if (not tick-color) adjusted-color (adjust tick-color))
+               (if (not digit-color) adjusted-color (adjust (rgb* digit-color)))
+               (if (not tick-color) adjusted-color (adjust (rgb* tick-color)))
                label-color
-               (if (not desc-color) label-color (adjust desc-color))))]))
+               (if (not desc-color) label-color (adjust (rgb* desc-color)))))]))
 
 (define plot-axis-digit-position-values : (-> Plot-Axis-Style Symbol (Values Flonum Geo-Pin-Anchor Geo-Pin-Anchor))
   (lambda [self direction]
@@ -87,7 +87,7 @@
                                       (Values Nonnegative-Flonum Nonnegative-Flonum
                                               Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self tip view-width ratio]
-    (define view-height : Nonnegative-Flonum (max (real->double-flonum (* view-width ratio)) 1.0))
+    (define view-height : Nonnegative-Flonum (max (real->double-flonum (* view-width ratio)) 0.0))
     (define-values (neg-margin pos-margin) (plot-axis-margin-values tip view-width))
 
     (values (+ view-height neg-margin pos-margin (stroke-width (plot-axis-style-stroke self)))
@@ -106,11 +106,11 @@
                                                Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self tip fllength]
     (define-values (neg-margin pos-margin) (plot-axis-margin-values tip fllength))
-    
+
     (values fllength
             (max (- fllength neg-margin pos-margin
                     (~length (plot-axis-style-tick-thickness self)
-                             (stroke-width (plot-axis-style-stroke self)))) 1.0)
+                             (stroke-width (plot-axis-style-stroke self)))) 0.0)
             neg-margin pos-margin)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

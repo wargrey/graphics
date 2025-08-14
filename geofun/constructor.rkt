@@ -14,6 +14,7 @@
 
 (provide geo-blank geo-ghost geo-solid geo:blank? Geo:Blank Geo:Solid)
 (provide geo-bitmap geo-rectangular geo:bitmap? Geo:Bitmap)
+(provide geo-grid geo:grid? Geo:Grid)
 (provide geo-text geo:text? Geo:Text Geo-Text-Line geo-text-line?)
 (provide geo-art-text geo:art-text? Geo:Art-Text)
 (provide geo-paragraph geo:para? Geo:Paragraph)
@@ -62,6 +63,7 @@
 (require "digitama/dc/arrow.rkt")
 (require "digitama/dc/gear.rkt")
 (require "digitama/dc/stickman.rkt")
+(require "digitama/dc/grid.rkt")
 (require "digitama/dc/more.rkt")
 
 (require "digitama/dc/polycurve.rkt")
@@ -78,4 +80,3 @@
 (require "digitama/skeleton/stickman/interface.rkt")
 
 (require "digitama/unsafe/dc/text-layout.rkt")
-

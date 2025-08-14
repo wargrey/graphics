@@ -28,12 +28,12 @@
       (- (+ (* x x) (* 2 x) 0))
       (|f(x)=f(x-2)| (- x 2))))
 
-(define (|f(x)| [x : Real]) : Real
+(define (|±x²+2x+1| [x : Real]) : Real
   (abs (if (>= x 0)
            (+ (* x x +1) (* 2 x) 1)
            (+ (* x x -1) (* 2 x) 1))))
 
-(define (|x^4-2x^2+2| [x : Real]) : Real
+(define (|x⁴-2x²+2| [x : Real]) : Real
   (+ (* x x x x) (* -2 x x) 2))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,7 +48,7 @@
 
 (plot-cartesian
  #:width 800.0
- #:height 400.0
+ #:height 800.0
  #:x-range (cons -3 6)
  (list (function |f(x)=f(x-2)|)))
 
@@ -57,11 +57,5 @@
  #:height 400.0
  #:x-range (cons -2 2)
  #:y-range (cons 0 9)
- (list (function |f(x)|)))
-
-(plot-cartesian
- #:width 400.0
- #:height 400.0
- #:x-range (cons -2 2)
- #:y-range (cons 0 9)
- (list (function |x^4-2x^2+2| #:label #false)))
+ (list (function |±x²+2x+1|)
+       (function |x⁴-2x²+2|)))

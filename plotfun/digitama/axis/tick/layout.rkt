@@ -8,8 +8,8 @@
 (require "../../arithmetics.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-real-tick-layout : (-> Real Real Positive-Byte Positive-Index (Listof Positive-Index) Index (Values (Listof Real) (Option Real) Index))
-  (lambda [tmin tmax base desired-ticks divisors minor-count]
+(define plot-real-tick-layout : (-> Real Real Positive-Byte Positive-Index (Listof Positive-Index) (Values (Listof Real) (Option Real)))
+  (lambda [tmin tmax base desired-ticks divisors]
     (define R : Real (- tmax tmin))
     (define order : Positive-Exact-Rational (magnitude-order R base))
     (define epsilon : Positive-Exact-Rational (expt base (- (tick-precision tmin tmax))))
@@ -36,11 +36,10 @@
 
     (let ([step (or step0 (/ R desired-ticks))])
       (values (range tmin (+ tmax (* step 0.5)) step)
-              step
-              minor-count))))
+              step))))
 
-(define plot-integer-tick-layout : (-> Integer Integer Positive-Byte Positive-Index Index (Values (Listof Integer) (Option Natural) Index))
-  (lambda [tmin tmax base desired-ticks minor-count]
+(define plot-integer-tick-layout : (-> Integer Integer Positive-Byte Positive-Index (Values (Listof Integer) (Option Natural)))
+  (lambda [tmin tmax base desired-ticks]
     (define R : Integer (- tmax tmin))
     (define Δinitialized : Exact-Rational (/ R desired-ticks))
     (define order : Positive-Exact-Rational (magnitude-order Δinitialized base))
@@ -55,5 +54,4 @@
           1))
     
     (values (range tmin (+ tmax 1) step)
-            step
-            minor-count)))
+            step)))

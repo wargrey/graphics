@@ -6,7 +6,6 @@
 
 (require "../geometry/ink.rkt")
 (require "../unsafe/dc/plain.rkt")
-
 (require "../convert.rkt")
 (require "../../color.rkt")
 
@@ -26,7 +25,6 @@
   (let ([blank-db : (Weak-HashTable Any Geo:Blank) (make-weak-hash)])
     (lambda [[width 0.0] [height #false] #:id [id #false]]
       (define-values (flwidth flheight) (~extent* width height))
-
       (hash-ref! blank-db (cons flwidth flheight)
                  (λ [] (create-geometry-object geo:blank
                                                #:with [id void (geo-blank-extent flwidth flheight) geo-zero-pads]
@@ -43,7 +41,7 @@
   (lambda [[color transparent] [size 1] #:id [id #false]]
     (define edge-size : Nonnegative-Flonum (~length size))
     (create-geometry-object geo:solid
-                            #:with [id geo-draw-solid (geo-shape-extent (~length size)) geo-zero-pads]
+                            #:with [id geo-draw-solid (geo-shape-extent edge-size) geo-zero-pads]
                             (rgb* color))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
