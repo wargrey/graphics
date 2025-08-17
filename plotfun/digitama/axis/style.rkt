@@ -15,7 +15,7 @@
 (require "singleton.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Plot-Axis-Label-Placement (U 'axis 'digit 'mirror))
+(define-type Plot-Axis-Label-Placement (U 'axis 'digit 'mirror 'digit-mirror 'mirror-digit))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter plot-axis-tip-style : Plot-Axis-Tip-Style

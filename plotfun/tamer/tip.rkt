@@ -16,5 +16,5 @@
                      #:style (make-plot-axis-style #:tip plot-bi-tip))
 
   (plot-cartesian #:x-range (cons -5 5) #:y-range (cons -5 5)
-                  #:x-label (cons "n" "x") #:y-label (cons "m" "y")
+                  #:x-label (cons "n" "x") #:y-label (cons "f" "y")
                   #:style (make-plot-axis-style #:tip plot-bi-tip)))

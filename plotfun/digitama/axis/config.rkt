@@ -154,19 +154,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-label-settings : (case-> [(U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
                                             (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
-                                            Flonum Flonum Flonum
+                                            Flonum Flonum Flonum Symbol
                                             -> (Listof (List (Option DC-Markup-Text) Flonum (Option DC-Markup-Text) Geo-Pin-Anchor))]
                                            [(U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
                                             (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
                                             Float-Complex Float-Complex
                                             -> (Listof (List (Option DC-Markup-Text) Float-Complex (Option DC-Markup-Text) Boolean))])
   (case-lambda
-    [(label desc flmin flmax offset)
+    [(label desc flmin flmax offset which)
      (let ([descs (if (pair? desc) desc (cons #false desc))])
        (if (pair? label)
-           (list (list (car label) (- flmin offset) (car descs) 'rc)
-                 (list (cdr label) (+ flmax offset) (cdr descs) 'lc))
-           (list (list label (+ flmax offset) (cdr descs) 'lc))))]
+           (list (list (car label) (- flmin offset) (car descs) (if (eq? which 'x) 'rc 'cc))
+                 (list (cdr label) (+ flmax offset) (cdr descs) (if (eq? which 'x) 'lc 'cc)))
+           (list (list label (+ flmax offset) (cdr descs) (if (eq? which 'x) 'lc 'cc)))))]
     [(label desc src tgt)
      (let ([descs (if (pair? desc) desc (cons #false desc))])
        (if (pair? label)

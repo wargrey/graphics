@@ -177,9 +177,9 @@
     (define-values (xsoff xeoff) (geo-path-endpoint-offsets xaxis))
     (define-values (ysoff yeoff) (geo-path-endpoint-offsets yaxis))
     (define label-at-axis? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'axis))
-    (define xaxis-min : Flonum (- xtick-min x-neg-margin (real-part xsoff)))
+    (define xaxis-min : Flonum (+ (- xtick-min x-neg-margin) (real-part xsoff)))
     (define xaxis-max : Flonum (+ xtick-max x-pos-margin (real-part xeoff)))
-    (define yaxis-min : Flonum (- ytick-min y-neg-margin (imag-part ysoff)))
+    (define yaxis-min : Flonum (+ (- ytick-min y-neg-margin) (imag-part ysoff)))
     (define yaxis-max : Flonum (+ ytick-max y-pos-margin (imag-part yeoff)))
 
     (define origin-dot->pos : Plot-Position-Transform
@@ -232,12 +232,12 @@
 
        ; x-axis's labels
        (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                 ([lbl (in-list (plot-axis-label-settings x-label x-desc xaxis-min xaxis-max (if (not label-at-axis?) 0.0 (* em 0.6))))])
+                 ([lbl (in-list (plot-axis-label-settings x-label x-desc xaxis-min xaxis-max (if (or label-at-axis?) (* em 0.618) 0.0) 'x))])
          (if (car lbl)
-             (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color (* em 0.4))])
+             (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color (* em 0.382))])
                (case/eq (plot-axis-style-label-placement axis-style)
-                 [(digit)  (plot-axis-sticker-cons* lbl.geo xdigit-anchor (+ (cadr lbl) xdigit-offset) 0.0+0.0i labels)]
-                 [(mirror) (plot-axis-sticker-cons* lbl.geo xmiror-anchor (+ (cadr lbl) xmiror-offset) 0.0+0.0i labels)]
+                 [(digit  digit-mirror) (plot-axis-sticker-cons* lbl.geo xdigit-anchor (+ (cadr lbl) xdigit-offset) 0.0+0.0i labels)]
+                 [(mirror mirror-digit) (plot-axis-sticker-cons* lbl.geo xmiror-anchor (+ (cadr lbl) xmiror-offset) 0.0+0.0i labels)]
                  [else (plot-axis-sticker-cons* lbl.geo (cadddr lbl) (make-rectangular (cadr lbl) +0.0) 0.0+0.0i labels)]))
              labels))
 
@@ -262,13 +262,13 @@
        
        ; y-axis's labels
        (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                 ([lbl (in-list (plot-axis-label-settings y-label y-desc yaxis-min yaxis-max (if (not label-at-axis?) 0.0 (* em 1.5))))])
+                 ([lbl (in-list (plot-axis-label-settings y-label y-desc yaxis-min yaxis-max (if (or label-at-axis?) (* em 0.618) (* em -0.5)) 'y))])
          (if (car lbl)
              (let ([lbl.geo (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)])
                (case/eq (plot-axis-style-label-placement axis-style)
-                 [(digit)  (plot-axis-sticker-cons* lbl.geo ydigit-anchor (flc-ri (- (cadr lbl))) (+ Oshadow ydigit-offset) labels)]
-                 [(mirror) (plot-axis-sticker-cons* lbl.geo ymiror-anchor (flc-ri (- (cadr lbl))) (+ Oshadow ymiror-offset) labels)]
-                 [else (plot-axis-sticker-cons* lbl.geo 'ct (flc-ri (- (cadr lbl))) Oshadow labels)]))
+                 [(digit  mirror-digit) (plot-axis-sticker-cons* lbl.geo ydigit-anchor (flc-ri (- (cadr lbl))) (+ Oshadow ydigit-offset) labels)]
+                 [(mirror digit-mirror) (plot-axis-sticker-cons* lbl.geo ymiror-anchor (flc-ri (- (cadr lbl))) (+ Oshadow ymiror-offset) labels)]
+                 [else (plot-axis-sticker-cons* lbl.geo (cadddr lbl) (flc-ri (- (cadr lbl))) Oshadow labels)]))
              labels))
 
        ; y-axis's ticks

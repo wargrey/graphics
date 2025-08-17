@@ -12,6 +12,6 @@
 
   (plot-cartesian #:x-ticks (plot-fixed-ticks (list 0 1 3 5 7 9))
                   #:y-ticks (plot-fixed-ticks (list 0 2 4 6 8 9))
-                  #:style (make-plot-axis-style #:digit-position -1.2))
+                  #:style (make-plot-axis-style #:digit-position -1.2 #:label-placement 'digit-mirror))
 
   (plot-cartesian #:x-range (cons -5 +5) #:y-range (cons -1 16) #:unit-length '(10 %)))

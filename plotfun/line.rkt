@@ -17,6 +17,7 @@
 (require racket/case)
 (require racket/math)
 
+(require digimon/flonum)
 (require digimon/metrics)
 (require digimon/constant)
 
@@ -137,11 +138,11 @@
                 (if (car lbl)
                     (let ([lbl.geo (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)]
                           [angle.rad (case/eq (plot-axis-style-label-placement axis-style)
-                                       [(digit) (if (positive? (geo-dot-line-orientation-test digit-offset Vself))  pi/2 -pi/2)]
-                                       [(mirror) (if (positive? (geo-dot-line-orientation-test digit-offset Vself)) -pi/2  pi/2)]
+                                       [(digit  digit-mirror) (if (positive? (geo-dot-line-orientation-test digit-offset Vself))  pi/2 -pi/2)]
+                                       [(mirror mirror-digit) (if (positive? (geo-dot-line-orientation-test digit-offset Vself)) -pi/2  pi/2)]
                                        [else (if (cadddr lbl) 0.0 (- pi))])]
                           [length (cond [(not label-at-axis?) em]
-                                        [(zero? cosα) (* em 1.5)]
+                                        [(flnear? cosα 0.0) (* em 0.5)]
                                         [else (* em 0.618)])])
                       (cons (geo-path-self-pin-layer
                              (plot-marker #:rotate α
@@ -249,7 +250,7 @@
     (define tick-pen : Stroke (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
     (define-values (soff eoff) (geo-path-endpoint-offsets main-axis))
     (define label-at-axis? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'axis))
-    (define flaxis-min : Flonum (- fltick-min neg-margin (real-part soff)))
+    (define flaxis-min : Flonum (+ (- fltick-min neg-margin) (real-part soff)))
     (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
 
     (define dot->pos : Plot-Position-Transform
@@ -259,12 +260,12 @@
 
     (define layers : (Listof (GLayerof Geo))
       (append (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                        ([lbl (in-list (plot-axis-label-settings axis-label axis-desc flaxis-min flaxis-max (if (not label-at-axis?) 0.0 (* em 0.6))))])
+                        ([lbl (in-list (plot-axis-label-settings axis-label axis-desc flaxis-min flaxis-max (if (or label-at-axis?) (* em 0.618) 0.0) 'x))])
                 (if (car lbl)
-                    (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color (* em 0.4))])
+                    (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color (* em 0.382))])
                       (case/eq (plot-axis-style-label-placement axis-style)
-                        [(digit)  (plot-axis-sticker-cons* lbl.geo digit-anchor (+ (cadr lbl) digit-offset) view-offset labels)]
-                        [(mirror) (plot-axis-sticker-cons* lbl.geo miror-anchor (+ (cadr lbl) miror-offset) view-offset labels)]
+                        [(digit  digit-mirror) (plot-axis-sticker-cons* lbl.geo digit-anchor (+ (cadr lbl) digit-offset) view-offset labels)]
+                        [(mirror mirror-digit) (plot-axis-sticker-cons* lbl.geo miror-anchor (+ (cadr lbl) miror-offset) view-offset labels)]
                         [else (plot-axis-sticker-cons* lbl.geo (cadddr lbl) (make-rectangular (cadr lbl) 0.0) view-offset labels)]))
                     labels))
               
