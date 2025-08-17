@@ -17,9 +17,7 @@
     (unsafe-plot-tick-engine
      (λ [[tmin : Real] [tmax : Real]]
        (plot-integer-tick-layout (exact-floor tmin) (exact-ceiling tmax) base desired-ticks))
-     format
-     #false
-     0)))
+     format #false 0 1.0)))
 
 (define plot-real-ticks
   (lambda [#:format [format : Plot-Tick-Format plot-tick->label-string]
@@ -30,9 +28,7 @@
     (unsafe-plot-tick-engine
      (λ [[tmin : Real] [tmax : Real]]
        (plot-real-tick-layout tmin tmax base desired-ticks divisors))
-     format
-     #false
-     minor-count)))
+     format #false minor-count 1.0)))
 
 (define plot-real-ticks*
   (lambda [#:format [format : Plot-Tick-Format plot-tick->label-string]
@@ -43,8 +39,8 @@
     (unsafe-plot-tick-engine
      (λ [[tmin : Real] [tmax : Real]]
        (if (and (exact-integer? tmin) (exact-integer? tmax))
-           (plot-integer-tick-layout tmin tmax base desired-ticks)
+           (if (= (- tmax tmin) 1)
+               (plot-rational-tick-layout tmin tmax base desired-ticks 100 real->double-flonum)
+               (plot-integer-tick-layout tmin tmax base desired-ticks))
            (plot-real-tick-layout tmin tmax base desired-ticks divisors)))
-     format
-     #false
-     minor-count)))
+     format #false minor-count 1.0)))

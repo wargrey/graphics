@@ -5,6 +5,7 @@
 (provide Plot-Mark-Auto-Anchor)
 (provide (rename-out [plot-real-line plot-line]))
 (provide (all-from-out geofun/digitama/path/tips))
+(provide (all-from-out "digitama/axis/view.rkt"))
 (provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/singleton.rkt"))
@@ -40,6 +41,7 @@
 (require geofun/digitama/geometry/computation/line)
 
 (require "digitama/axis/self.rkt")
+(require "digitama/axis/view.rkt")
 (require "digitama/axis/real.rkt")
 (require "digitama/axis/sticker.rkt")
 (require "digitama/axis/interface.rkt")
@@ -124,19 +126,6 @@
     (define tick-bgn : Float-Complex (+ (make-polar (floor fltick-min) α)   view-offset))
     (define tick-end : Float-Complex (+ (make-polar (ceiling fltick-max) α) view-offset))
 
-    (define major-tick : (Option Geo-Path)
-      (and (> fltick-length 0.0)
-           (geo-path* #:stroke tick-pen
-                      (geo-xtick-footprints fltick-length α
-                                            (plot-axis-style-tick-placement axis-style)))))
-
-    (define minor-tick : (Option Geo-Path)
-      (and (> minor-count 0)
-           (> fltick-sublen 0.0)
-           (geo-path* #:stroke tick-pen
-                      (geo-xtick-footprints fltick-sublen α
-                                            (plot-axis-style-tick-placement axis-style)))))
-    
     (define dot->pos : Plot-Position-Transform
       (case-lambda
         [(x y) (+ flc-origin (make-polar (* x flunit) α))]
@@ -166,9 +155,11 @@
                         ([tick (in-list actual-ticks)])
                 (define-values (maybe-sticker gtick)
                   (if (plot-tick-major? tick)
-                      (values (tick->sticker id (plot-tick-desc tick) digit-font digit-color) major-tick)
-                      (values 'minor minor-tick)))
-                
+                      (values (tick->sticker id (plot-tick-desc tick) digit-font digit-color)
+                              (plot-axis-xtick-sticker fltick-length (plot-axis-style-tick-placement axis-style) tick-pen α))
+                      (values 'minor
+                              (plot-axis-xtick-sticker fltick-sublen (plot-axis-style-tick-placement axis-style) tick-pen α))))
+
                 (plot-axis-sticker-cons maybe-sticker digit-anchor (dot->pos (real->double-flonum (plot-tick-value tick)) 0.0)
                                         digit-offset ticks tick-bgn tick-end gtick))
               
@@ -261,18 +252,6 @@
     (define flaxis-min : Flonum (- fltick-min neg-margin (real-part soff)))
     (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
 
-    (define major-tick : (Option Geo-Path)
-      (and (> fltick-length 0.0)
-           (geo-path* #:stroke tick-pen
-                      (geo-xtick-footprints fltick-length 0.0
-                                            (plot-axis-style-tick-placement axis-style)))))
-    (define minor-tick : (Option Geo-Path)
-      (and (> minor-count 0)
-           (> fltick-length 0.0)
-           (geo-path* #:stroke tick-pen
-                      (geo-xtick-footprints fltick-sublen 0.0
-                                            (plot-axis-style-tick-placement axis-style)))))
-
     (define dot->pos : Plot-Position-Transform
       (case-lambda
         [(x y) (+ flc-origin (* x flunit))]
@@ -293,8 +272,10 @@
                         ([tick actual-ticks])
                 (define-values (maybe-sticker gtick)
                   (if (plot-tick-major? tick)
-                      (values (tick->sticker id (plot-tick-desc tick) digit-font digit-color) major-tick)
-                      (values 'minor minor-tick)))
+                      (values (tick->sticker id (plot-tick-desc tick) digit-font digit-color)
+                              (plot-axis-xtick-sticker fltick-length (plot-axis-style-tick-placement axis-style) tick-pen))
+                      (values 'minor
+                              (plot-axis-xtick-sticker fltick-sublen (plot-axis-style-tick-placement axis-style) tick-pen))))
                 
                 (plot-axis-sticker-cons maybe-sticker digit-anchor (dot->pos (real->double-flonum (plot-tick-value tick)) 0.0)
                                         digit-offset ticks fltick-min real-part fltick-max gtick))

@@ -4,11 +4,8 @@
 
 (require geofun/digitama/base)
 
-(require geofun/digitama/paint/self)
-(require geofun/stroke)
+(require "self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define current-visualizer-color-pool : (Parameterof (Option (HashTable Natural FlRGBA))) (make-parameter #false))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-function-stroke : Stroke (desc-stroke #:width 1.5 #:join 'round #:cap 'round #:opacity 0.75))
+(define current-visualizer-color-pool : (Parameterof (Option (HashTable Symbol FlRGBA))) (make-parameter #false))
+(define current-visualizer-polyline-pool : (Parameterof (Option (HashTable Symbol Plot-Visualizer))) (make-parameter #false))

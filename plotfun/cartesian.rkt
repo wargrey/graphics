@@ -3,6 +3,7 @@
 (provide (all-defined-out) Plot-Mark-Auto-Anchor)
 (provide Plot:Cartesian plot:cartesian?)
 (provide (all-from-out geofun/digitama/path/tips))
+(provide (all-from-out "digitama/axis/view.rkt"))
 (provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
 (provide (all-from-out "digitama/axis/singleton.rkt"))
@@ -42,6 +43,7 @@
 
 (require "digitama/visualizer.rkt")
 (require "digitama/axis/self.rkt")
+(require "digitama/axis/view.rkt")
 (require "digitama/axis/style.rkt")
 (require "digitama/axis/config.rkt")
 (require "digitama/axis/interface.rkt")
@@ -58,11 +60,12 @@
 (require "digitama/marker/anchor.rkt")
 
 (require "digitama/axis/grid/self.rkt")
+(require "digitama/axis/grid/tick.rkt")
 (require "digitama/axis/grid/config.rkt")
 
 (require "digitama/visualizer/self.rkt")
+(require "digitama/visualizer/realize.rkt")
 (require "digitama/visualizer/interface.rkt")
-(require "digitama/visualizer/reference.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-cartesian
@@ -102,6 +105,7 @@
                               (if (not ytick-hint) (plot-tick-engine-range yticks-engine) (plot-tick-range ytick-hint))
                               maybe-xivl maybe-yivl fallback-dom))
 
+    (define yrel-scale (real->double-flonum (/ (plot-tick-engine-unit-scale xticks-engine) (plot-tick-engine-unit-scale yticks-engine))))
     (define-values (maybe-xorig maybe-yorig) (plot-cartesian-maybe-settings maybe-origin))
     (define-values (maybe-xunit maybe-yunit) (plot-cartesian-maybe-settings maybe-unit))
     (define-values (x-tip y-tip) (values (plot-axis-tip axis-style 'x) (plot-axis-tip axis-style 'y)))
@@ -109,26 +113,23 @@
     (define-values (flheight view-height y-neg-margin y-pos-margin)
       (cond [(rational? height) (plot-axis-length-values axis-style y-tip height flwidth)]
             [else (plot-axis-height-values axis-style y-tip view-width
-                                           (/ (- (cdr yview) (car yview))
-                                              (- (cdr xview) (car xview))))]))
+                                           (* (/ (- (cdr yview) (car yview))
+                                                 (- (cdr xview) (car xview)))
+                                              yrel-scale))]))
     
     (define-values (xtick-range xO xunit) (plot-axis-metrics  xview maybe-xorig  view-width maybe-xunit))
-    (define-values (ytick-range yO yunit) (plot-axis-metrics* yview maybe-yorig view-height (if (rational? height) maybe-yunit xunit) flc-ri))
+    (define-values (ytick-range yO yunit) (plot-axis-metrics* yview maybe-yorig view-height (if (rational? height) maybe-yunit (* xunit yrel-scale)) flc-ri))
 
-    (define-values (actual-xticks maybe-xstep xminor-count)
-      (plot-ticks-generate xticks-engine xtick-range xtick-format
-                           (and xgrid-style (plot-grid-style-minor-count xgrid-style))))
-    
+    (define-values (actual-xticks maybe-xstep xminor-count) (plot-ticks-generate xticks-engine xtick-range xtick-format))
     (define-values (actual-yticks maybe-ystep yminor-count)
-      (let ([y-minor-count (and ygrid-style (plot-grid-style-minor-count ygrid-style))])
-        (cond [(rational? height)
-               (plot-ticks-generate yticks-engine ytick-range ytick-format y-minor-count)]
-              [(not (and (rational? maybe-xstep) (positive? maybe-xstep)))
-               (plot-ticks-generate yticks-engine ytick-range ytick-format y-minor-count)]
-              [else ; copied from the xtick engine
-               (plot-ticks-generate (plot-interval-ticks #:minor-count (or y-minor-count xminor-count)
-                                                         maybe-xstep (plot-tick-engine-format yticks-engine))
-                                    ytick-range ytick-format)])))
+      (cond [(rational? height)
+             (plot-ticks-generate yticks-engine ytick-range ytick-format)]
+            [(not (and (rational? maybe-xstep) (positive? maybe-xstep)))
+             (plot-ticks-generate yticks-engine ytick-range ytick-format)]
+            [else ; copied from the xtick engine
+             (plot-ticks-generate (plot-interval-ticks #:minor-count xminor-count
+                                                       maybe-xstep (plot-tick-engine-format yticks-engine))
+                                  ytick-range ytick-format)]))
       
     (define bg-color : (Option FlRGBA) (brush-maybe-rgba bg))
     (define adjust-color (λ [[c : FlRGBA]] (plot-adjust-pen-color palette c bg-color)))
@@ -146,56 +147,33 @@
     (define ytick-max : Nonnegative-Flonum (+ ytick-min view-height))
 
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
-    (define zero : Geo (geo-text (string chO) digit-font #:color digit-color))
+    (define zero : Geo (geo-text (string chO) label-font #:color label-color))
     (define Oshadow : Float-Complex (make-rectangular (+ (* view-width xO) xtick-min) (+ (* view-height yO) ytick-min)))
     (define Origin : Float-Complex (make-rectangular (real-part Oshadow) 0.0))
 
     (define-values (xdigit-position xdigit-anchor xmiror-anchor) (plot-axis-digit-position-values axis-style 'x))
     (define-values (ydigit-position ydigit-anchor ymiror-anchor) (plot-axis-digit-position-values axis-style 'y))
     (define tick-pen : Stroke (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
-    (define-values (xmajor-pen xminor-pen) (plot-grid-visual-values xgrid-style adjust-color))
-    (define-values (ymajor-pen yminor-pen) (plot-grid-visual-values ygrid-style adjust-color))
+    (define-values (xmajor-pen xminor-pen xg-minor-count) (plot-grid-visual-values xgrid-style xminor-count adjust-color))
+    (define-values (ymajor-pen yminor-pen yg-minor-count) (plot-grid-visual-values ygrid-style yminor-count adjust-color))
     
     (define xaxis : Geo:Path:Self
       (geo-path* #:stroke axis-pen #:tip-placement 'inside
                  #:source-tip (plot-axis-tip-style-negative-shape x-tip)
                  #:target-tip (plot-axis-tip-style-positive-shape x-tip)
                  (list the-M0 (gpp:point #\L (make-rectangular flwidth 0.0)))))
-    
-    (define xdigit-offset : Float-Complex (flc-ri (* xdigit-position em -1.0)))
-    (define xmiror-offset :  Float-Complex (flc-ri (* xdigit-position em +1.0)))
-    (define xmajor-tick : (Option Geo-Path)
-      (and (> fltick-length 0.0)
-           (geo-path* #:stroke tick-pen
-                      (geo-xtick-footprints fltick-length 0.0
-                                            (plot-axis-style-tick-placement axis-style)))))
-    (define xminor-tick : (Option Geo-Path)
-      (and (> xminor-count 0)
-           (> fltick-length 0.0)
-           (geo-path* #:stroke tick-pen
-                      (geo-xtick-footprints fltick-sublen 0.0
-                                            (plot-axis-style-tick-placement axis-style)))))
-
+   
     (define yaxis : Geo:Path:Self
       (geo-path* #:stroke axis-pen #:tip-placement 'inside
                  #:source-tip (plot-axis-tip-style-negative-shape (or y-tip x-tip))
                  #:target-tip (plot-axis-tip-style-positive-shape (or y-tip x-tip))
                  (list the-M0 (gpp:point #\L (flc-ri (- flheight))))))
-    
+
+    (define xdigit-offset : Float-Complex (flc-ri (* xdigit-position em -1.0)))
+    (define xmiror-offset : Float-Complex (flc-ri (* xdigit-position em +1.0)))
     (define ydigit-offset : Float-Complex (make-rectangular (* ydigit-position em) 0.0))
     (define ymiror-offset : Float-Complex (make-rectangular (* ydigit-position (- em)) 0.0))
-    (define ymajor-tick : (Option Geo-Path)
-      (and (> fltick-length 0.0)
-           (geo-path* #:stroke tick-pen
-                      (geo-ytick-footprints fltick-length 0.0
-                                            (plot-axis-style-tick-placement axis-style)))))
-    (define yminor-tick : (Option Geo-Path)
-      (and (> yminor-count 0)
-           (> fltick-length 0.0)
-           (geo-path* #:stroke tick-pen
-                      (geo-ytick-footprints fltick-sublen 0.0
-                                            (plot-axis-style-tick-placement axis-style)))))
-
+    
     (define-values (xsoff xeoff) (geo-path-endpoint-offsets xaxis))
     (define-values (ysoff yeoff) (geo-path-endpoint-offsets yaxis))
     (define label-at-axis? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'axis))
@@ -214,50 +192,25 @@
            (negative? (car xview))
            #;(null? actual-yticks)))
 
-    (define color-pool : (HashTable Natural FlRGBA) (make-hasheq))
-    (define plots : (Listof Geo:Visualizer)
-      (parameterize ([default-plot-palette palette]
-                     [current-visualizer-color-pool color-pool])
-        (let ([N (length visualizers)])
-          (if (> N 0)
-              (let realize ([visualizers : (Listof Plot-Visualizer) visualizers]
-                            [idx : Nonnegative-Fixnum 0]
-                            [sreyalv : (Listof Geo:Visualizer) null])
-                (if (and (pair? visualizers) (<= idx N))
-                    (let ([self (car visualizers)])
-                      (define visualizer (plot-realize self idx N xview yview origin-dot->pos bg-color))
-                      (unless (plot-visualizer-skip-palette? self)
-                        (hash-set! color-pool idx (geo:visualizer-color visualizer)))
-                      (realize (cdr visualizers)
-                               (if (plot-visualizer-skip-palette? self) idx (+ idx 1))
-                               (cons visualizer sreyalv)))
-                    (reverse sreyalv)))
-              null))))
-
-    (define grid-pos : Float-Complex
-      (origin-dot->pos (real->double-flonum (car xview))
-                       (real->double-flonum (cdr yview))))
+    (define plots : (Listof Geo:Visualizer) (plot-realize-all visualizers xview yview origin-dot->pos palette bg-color))
+    (define grid-pos : Float-Complex (plot-lt-position origin-dot->pos xview yview))
     
     (define xgrid : (Option Geo:Grid)
       (and (or xmajor-pen xminor-pen)
            (> view-width 0.0) (> view-height 0.0)
-           (let ([x-pos (λ [[T : Plot-Tick]] (real-part (- (origin-dot->pos (real->double-flonum (plot-tick-value T)) 0.0) grid-pos)))])
+           (let-values ([(majors minors) (plot-grid-values actual-xticks xminor-count xg-minor-count
+                                                           (λ [[v : Flonum]] (real-part (- (origin-dot->pos v 0.0) grid-pos))))])
              (geo-grid #:major-stroke xmajor-pen #:minor-stroke xminor-pen
-                       #:extra-major-xs (for/list : (Listof Flonum) ([xtick (in-list actual-xticks)] #:when (plot-tick-major? xtick))
-                                          (x-pos xtick))
-                       #:extra-minor-xs (for/list : (Listof Flonum) ([xtick (in-list actual-xticks)] #:unless (plot-tick-major? xtick))
-                                          (x-pos xtick))
+                       #:extra-major-xs majors #:extra-minor-xs minors
                        view-width view-height))))
     
     (define ygrid : (Option Geo:Grid)
       (and (or ymajor-pen yminor-pen)
            (> view-width 0.0) (> view-height 0.0)
-           (let ([y-pos (λ [[T : Plot-Tick]] (imag-part (- (origin-dot->pos 0.0 (real->double-flonum (plot-tick-value T))) grid-pos)))])
+           (let-values ([(majors minors) (plot-grid-values actual-yticks yminor-count yg-minor-count
+                                                           (λ [[v : Flonum]] (imag-part (- (origin-dot->pos 0.0 v) grid-pos))))])
              (geo-grid #:major-stroke ymajor-pen #:minor-stroke yminor-pen
-                       #:extra-major-ys (for/list : (Listof Flonum) ([ytick (in-list actual-yticks)] #:when (plot-tick-major? ytick))
-                                          (y-pos ytick))
-                       #:extra-minor-ys (for/list : (Listof Flonum) ([ytick (in-list actual-yticks)] #:unless (plot-tick-major? ytick))
-                                          (y-pos ytick))
+                       #:extra-major-ys majors #:extra-minor-ys minors
                        view-width view-height))))
     
     (define layers : (Listof (GLayerof Geo))
@@ -294,8 +247,10 @@
          (define xval : Flonum (real->double-flonum (plot-tick-value xtick)))
          (define-values (maybe-sticker gtick)
            (if (plot-tick-major? xtick)
-               (values (xdigit->sticker id (plot-tick-desc xtick) digit-font digit-color) xmajor-tick)
-               (values 'minor xminor-tick)))
+               (values (xdigit->sticker id (plot-tick-desc xtick) digit-font digit-color)
+                       (plot-axis-xtick-sticker fltick-length (plot-axis-style-tick-placement axis-style) tick-pen))
+               (values 'minor
+                       (plot-axis-xtick-sticker fltick-sublen (plot-axis-style-tick-placement axis-style) tick-pen))))
 
          (cond [(not (flnear? xval 0.0))
                 (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
@@ -313,7 +268,7 @@
                (case/eq (plot-axis-style-label-placement axis-style)
                  [(digit)  (plot-axis-sticker-cons* lbl.geo ydigit-anchor (flc-ri (- (cadr lbl))) (+ Oshadow ydigit-offset) labels)]
                  [(mirror) (plot-axis-sticker-cons* lbl.geo ymiror-anchor (flc-ri (- (cadr lbl))) (+ Oshadow ymiror-offset) labels)]
-                 [else (plot-axis-sticker-cons* lbl.geo 'cc (flc-ri (- (cadr lbl))) Oshadow labels)]))
+                 [else (plot-axis-sticker-cons* lbl.geo 'ct (flc-ri (- (cadr lbl))) Oshadow labels)]))
              labels))
 
        ; y-axis's ticks
@@ -322,8 +277,10 @@
          (define yval : Flonum (real->double-flonum (plot-tick-value ytick)))
          (define-values (maybe-sticker gtick)
            (if (plot-tick-major? ytick)
-               (values (ydigit->sticker id (plot-tick-desc ytick) digit-font digit-color) ymajor-tick)
-               (values 'minor yminor-tick)))
+               (values (ydigit->sticker id (plot-tick-desc ytick) digit-font digit-color)
+                       (plot-axis-ytick-sticker fltick-length (plot-axis-style-tick-placement axis-style) tick-pen))
+               (values 'minor
+                       (plot-axis-ytick-sticker fltick-sublen (plot-axis-style-tick-placement axis-style) tick-pen))))
 
          (if (not (flnear? yval 0.0))
              (plot-axis-sticker-cons* maybe-sticker ydigit-anchor (origin-dot->pos 0.0 yval) ydigit-offset yticks gtick)

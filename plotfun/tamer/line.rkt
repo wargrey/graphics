@@ -22,7 +22,7 @@
 (define fib-desc : Plot-Mark->Description
   (lambda [pt datum font color transform]
     (define n (real->double-flonum (real-part pt)))
-    (define unit (max (real-part (- (transform (+ n 1.0) 0.0) (transform n 0.0))) 0.0))
+    (define unit (plot-xunit transform n))
     (define c (rgb* color (/ (+ n 1.0) 10.0)))
     (define arrow (geo-arrow 4.0 (* unit 0.5) (* pi 0.5) #:fill c #:stroke #false))
     (define label (geo-text datum font #:color c))
@@ -72,12 +72,15 @@
   seq-line
   time-line
 
+  (plot-real-line #:range (cons 0 1) #:label "Q%")
+  (plot-real-line #:range (cons 0.0 1.0) #:label "R%")
+  
   (plot-integer-line #:range (cons -5 5) #:label "N")
   (plot-integer-line #:range (cons 0 10) #:label "N")
-  (plot-real-line #:range (cons 0 10) #:label "R")
+  (plot-real-line #:range (cons 0 10) #:label "R" #:ticks (plot-real-ticks))
   (plot-real-line #:range (cons +1 +7/2) #:label "R")
   (plot-real-line #:range (cons -7 -5/2) #:label "R")
   (plot-real-line #:range (cons -70 +30) #:label "R")
   (plot-real-line #:range (cons -0.001 +0.007) #:label "R")
   (plot-real-line #:range (cons -0.618 +0.618) #:label "R")
-  (plot-real-line #:ticks (plot-fixed-ticks -6.28 +6.29 3.14) #:label "R"))
+  (plot-real-line #:ticks (plot-symbol-ticks* -2 2 1 1) #:label "R"))

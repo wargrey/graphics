@@ -30,11 +30,12 @@
      (let* ([axis-pen (plot-axis-style-stroke self)]
             [axis-color (stroke-color axis-pen)]
             [label-color (plot-axis-style-label-color self)]
-            [axis-font (plot-axis-style-font self)])    
+            [axis-font (plot-axis-style-font self)]
+            [label-font (or (plot-axis-style-label-font self) axis-font)])    
        (values axis-font
                (or (plot-axis-style-digit-font self) axis-font)
-               (or (plot-axis-style-label-font self) axis-font)
-               (or (plot-axis-style-desc-font self) axis-font)
+               label-font
+               (or (plot-axis-style-desc-font self) label-font)
                axis-pen (stroke-width axis-pen)
                (or (plot-axis-style-digit-color self) axis-color)
                (or (plot-axis-style-tick-color self) axis-color)
@@ -48,11 +49,12 @@
             [tick-color (plot-axis-style-tick-color self)]
             [label-color (let ([lc (plot-axis-style-label-color self)]) (if (not lc) adjusted-color (adjust (rgb* lc))))]
             [desc-color (plot-axis-style-label-color self)]
-            [axis-font (plot-axis-style-font self)])    
+            [axis-font (plot-axis-style-font self)]
+            [label-font (or (plot-axis-style-label-font self) axis-font)])    
        (values axis-font
                (or (plot-axis-style-digit-font self) axis-font)
-               (or (plot-axis-style-label-font self) axis-font)
-               (or (plot-axis-style-desc-font self) axis-font)
+               label-font
+               (or (plot-axis-style-desc-font self) label-font)
                (if (equal? adjusted-color axis-color) axis-pen (desc-stroke axis-pen #:color adjusted-color))
                (stroke-width axis-pen)
                (if (not digit-color) adjusted-color (adjust (rgb* digit-color)))

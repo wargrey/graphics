@@ -7,8 +7,6 @@
 
 (require "../marker/self.rkt")
 
-(require (for-syntax racket/base))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Visualizer-Tree (Listof (U Plot-Visualizer Plot-Visualizer-Tree)))
 
@@ -17,14 +15,6 @@
 (define-type Plot-Visualizer-Realize (-> Index Positive-Index Real Real Real Real
                                          (-> Flonum Flonum Float-Complex) (Option FlRGBA)
                                          Geo:Visualizer))
-
-(define-syntax (plot-realize stx)
-  (syntax-case stx []
-    [(_ self idx total xview yview args ...)
-     (syntax/loc stx
-       (let-values ([(xmin xmax) (plot-range-select (plot-visualizer-xrng self) xview)]
-                    [(ymin ymax) (plot-range-select (plot-visualizer-yrng self) yview)])
-         ((plot-visualizer-realize self) idx total xmin xmax ymin ymax args ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot-visualizer
@@ -36,8 +26,10 @@
   #:type-name Plot-Visualizer
   #:transparent)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:visualizer geo
-  ([position : Float-Complex]
+  ([realize : (Option (-> Geo:Visualizer))]
+   [position : Float-Complex]
    [color : FlRGBA]
    [label : (Option Plot:Mark)]
    [legend : (Option Geo)]

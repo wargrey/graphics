@@ -11,6 +11,7 @@
 
 (require colorspace/palette)
 
+(require "style.rkt")
 (require "reference.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -44,26 +45,26 @@
                  baseline)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; For the sake of simplicity
+;  the color source referred to should already be defined before the referring one.
 (define plot-select-pen-color : (-> (Option Color) Natural (Option FlRGBA) FlRGBA)
   (lambda [alt-color idx bg-color]
     (cond [(not alt-color) (car ((default-plot-palette) idx bg-color))]
-          [(and (exact-integer? alt-color) (< alt-color 0))
-           (let* ([cidx (max (+ idx alt-color) 0)]
-                  [cpool (current-visualizer-color-pool)]
-                  [prev-c (and cpool (hash-ref cpool cidx (λ _ #false)))])
+          [(symbol? alt-color)
+           (let* ([cpool (current-visualizer-color-pool)]
+                  [prev-c (and cpool (hash-ref cpool alt-color (λ _ #false)))])
              (cond [(or prev-c) prev-c]
-                   [else '#:deadcode (car ((default-plot-palette) cidx bg-color))]))]
+                   [else ((default-plot-palette) (rgb* alt-color) bg-color)]))]
           [else ((default-plot-palette) (rgb* alt-color) bg-color)])))
 
 (define plot-select-brush-color : (-> (Option Color) Natural (Option FlRGBA) FlRGBA)
   (lambda [alt-color idx bg-color]
     (cond [(not alt-color) (cdr ((default-plot-palette) idx bg-color))]
-          [(and (exact-integer? alt-color) (< alt-color 0))
-           (let* ([cidx (max (+ idx alt-color) 0)]
-                  [cpool (current-visualizer-color-pool)] ; TODO: set another pool for brush colors
-                  [prev-c (and cpool (hash-ref cpool cidx (λ _ #false)))])
+          [(symbol? alt-color)
+           (let* ([cpool (current-visualizer-color-pool)] ; TODO: set another pool for brush colors
+                  [prev-c (and cpool (hash-ref cpool alt-color (λ _ #false)))])
              (cond [(or prev-c) prev-c]
-                   [else '#:deadcode (car ((default-plot-palette) cidx bg-color))]))]
+                   [else ((default-plot-palette) (rgb* alt-color) bg-color)]))]
           [else ((default-plot-palette) (rgb* alt-color) bg-color)])))
 
 (define plot-adjust-pen-color : (-> Palette-Index->Pen+Brush-Colors Color (Option FlRGBA) FlRGBA)

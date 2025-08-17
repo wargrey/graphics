@@ -39,17 +39,17 @@
     (list (function #:color 'grey #:dash 'long-dash values #:label #false)
           (function -1/x +0   +4 #:fast-range (λ [[xmin : Real] [xmax : Real]] (cons xmin xmax)) #:label "1/x")
           (function discrete-floor -3.0 #:label "floor(x)")
-          (function discrete-ceiling #:label "ceiling(x)")
-          (function normal-dist #:label "N(x)")
+          (function discrete-ceiling    #:label "ceiling(x)")
+          (function normal-dist         #:label "N(x)")
           (function tan  -3   -1.8)
-          (function exp  -3   +1.2 #:label (<span> null "e" (<sup> "x")))
-          (function sqr  -2   +2 #:label (<span> null "x" (<sup> "2")))
+          (function exp  -3   +1.2      #:label (<span> null "e" (<sup> "x")))
+          (function sqr  -2   +2        #:label (<span> null "x" (<sup> "2")))
           (function sqrt -3   +4)
           (function log  +1/4 #f)))
 
 (define white-cart (plot-cartesian #:background white vtree))
-(define  grey-cart (plot-cartesian #:background grey  vtree))
-(define black-cart (plot-cartesian #:background black vtree))
+(define  grey-cart (plot-cartesian #:x-grid-style #false #:background grey  vtree))
+(define black-cart (plot-cartesian #:x-grid-style #false #:background black vtree))
 
 (define carts (geo-hb-append #:gapsize 32.0 white-cart grey-cart black-cart))
 
@@ -58,6 +58,8 @@
   carts
 
   (plot-cartesian
+   #:x-ticks (plot-symbol-ticks* -3/2 3/2 1/2 1)
+   #:y-ticks (plot-real-ticks*)
    #:x-label "f"
    (for/list : (Listof Plot-Visualizer) ([i (in-range 10)])
-     (function (sin+n i) -4 +4 -1 +1))))
+     (function (sin+n i) #false #false -1 +1))))

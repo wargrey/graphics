@@ -8,18 +8,26 @@
 (require "self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-grid-visual-values : (case-> [(Option Plot-Grid-Style) (-> FlRGBA FlRGBA) -> (Values (Option Stroke) (Option Stroke))]
-                                          [(Option Plot-Grid-Style) -> (Values (Option Stroke) (Option Stroke))])
+(define plot-grid-visual-values : (case-> [(Option Plot-Grid-Style) (U Index (-> Real Real Index)) (-> FlRGBA FlRGBA)
+                                                                    -> (Values (Option Stroke) (Option Stroke)
+                                                                               (U Index (-> Real Real Index)))]
+                                          [(Option Plot-Grid-Style) (U Index (-> Real Real Index))
+                                                                    -> (Values (Option Stroke) (Option Stroke)
+                                                                               (U Index (-> Real Real Index)))])
   (case-lambda
-    [(self)
+    [(self minor-count)
      (if (or self)
          (values (plot-grid-style-major-stroke self)
-                 (plot-grid-style-minor-stroke self))
-         (values #false #false))]
-    [(self adjust)
+                 (plot-grid-style-minor-stroke self)
+                 (or (plot-grid-style-minor-count self)
+                     minor-count))
+         (values #false #false minor-count))]
+    [(self minor-count adjust)
      (if (or self)
          (let ([major-pen (plot-grid-style-major-stroke self)]
                [minor-pen (plot-grid-style-minor-stroke self)])
            (values (and major-pen (stroke-adjust-color major-pen adjust))
-                   (and minor-pen (stroke-adjust-color minor-pen adjust))))
-         (values #false #false))]))
+                   (and minor-pen (stroke-adjust-color minor-pen adjust))
+                   (or (plot-grid-style-minor-count self)
+                       minor-count)))
+         (values #false #false minor-count))]))

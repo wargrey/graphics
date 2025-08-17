@@ -60,6 +60,7 @@
                                 #:with [id (geo-draw-lines pen)
                                            (geo-shape-extent width height 0.0 0.0)
                                            (geo-shape-outline pen #true #true)]
+                                #false
                                 (make-rectangular x y) (stroke-color pen)
                                 (plot-function-mark-guard safe-f label (+ idx 1) total xmin xmax ymin ymax at-frac rng-frac)
                                 #false dynamic-angle dynamic-angle

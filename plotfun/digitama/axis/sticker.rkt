@@ -6,12 +6,14 @@
 
 (require geofun/font)
 (require geofun/color)
+(require geofun/paint)
 (require geofun/composite)
 
 (require geofun/digitama/markup)
 (require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
 (require geofun/digitama/dc/path)
+(require geofun/digitama/path/tick)
 
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/position)
@@ -47,6 +49,25 @@
         (geo-markup name font #:color color))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define plot-tick-db : (Weak-HashTable Any Geo:Path:Self) (make-weak-hash))
+
+(define plot-axis-xtick-sticker : (->* (Flonum Geo-Tick-Placement Maybe-Stroke-Paint) (Flonum) (Option Geo:Path:Self))
+  (lambda [size placement pen [α 0.0]]
+    (and (> size 0.0)
+         (hash-ref plot-tick-db (list 'x pen size α placement)
+                    (λ [] (geo-path* #:stroke pen
+                                     (geo-xtick-footprints size α
+                                                           placement)))))))
+
+(define plot-axis-ytick-sticker : (->* (Flonum Geo-Tick-Placement Maybe-Stroke-Paint) (Flonum) (Option Geo:Path:Self))
+  (lambda [size placement pen [α 0.0]]
+    (and (> size 0.0)
+         (hash-ref! plot-tick-db (list 'y pen size α placement)
+                    (λ [] (geo-path* #:stroke pen
+                                     (geo-ytick-footprints size α
+                                                           placement)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-sticker-cons
   : (case-> [(GLayerof Geo) Float-Complex (Listof (GLayerof Geo)) Flonum (-> Float-Complex Flonum) Flonum -> (Listof (GLayerof Geo))]
             [Plot:Marker (Listof (GLayerof Geo)) Flonum (-> Float-Complex Flonum) Flonum -> (Listof (GLayerof Geo))]
@@ -60,16 +81,16 @@
                                        -> (Listof (GLayerof Geo))])
   (case-lambda
     [(self anchor pos offset stickers tick-min part tick-max maybe-tick)
-     (if (flbetween-inclusive? tick-min (part pos) tick-max)
+     (if (sfl<= tick-min (part pos) tick-max)
          (plot-axis-sticker-cons* self anchor pos offset stickers maybe-tick)
          stickers)]
     [(self pos stickers tick-min part tick-max)
-     (if (flbetween-inclusive? tick-min (part pos) tick-max)
+     (if (sfl<= tick-min (part pos) tick-max)
          (plot-axis-sticker-cons* self pos stickers)
          stickers)]
     [(self stickers tick-min part tick-max)
      (let-values ([(src-pos end-pos) (geo-path-endpoints self)])
-       (if (flbetween-inclusive? tick-min (part src-pos) tick-max)
+       (if (sfl<= tick-min (part src-pos) tick-max)
            (cons (geo-path-self-pin-layer self) stickers)
            stickers))]
     [(self anchor pos offset stickers tick-start tick-end maybe-tick)

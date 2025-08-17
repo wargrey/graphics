@@ -8,7 +8,7 @@
 (require "../../arithmetics.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-real-tick-layout : (-> Real Real Positive-Byte Positive-Index (Listof Positive-Index) (Values (Listof Real) (Option Real)))
+(define plot-real-tick-layout : (-> Real Real Positive-Byte Positive-Index (Listof Positive-Index) (Values (Listof Real) Real))
   (lambda [tmin tmax base desired-ticks divisors]
     (define R : Real (- tmax tmin))
     (define order : Positive-Exact-Rational (magnitude-order R base))
@@ -38,20 +38,29 @@
       (values (range tmin (+ tmax (* step 0.5)) step)
               step))))
 
-(define plot-integer-tick-layout : (-> Integer Integer Positive-Byte Positive-Index (Values (Listof Integer) (Option Natural)))
+(define plot-integer-tick-layout : (-> Integer Integer Positive-Byte Positive-Index (Values (Listof Integer) Natural))
   (lambda [tmin tmax base desired-ticks]
-    (define R : Integer (- tmax tmin))
-    (define Δinitialized : Exact-Rational (/ R desired-ticks))
-    (define order : Positive-Exact-Rational (magnitude-order Δinitialized base))
+     (define R : Integer (- tmax tmin))
+     (define Δinitialized : Exact-Rational (/ R desired-ticks))
+     (define order : Positive-Exact-Rational (magnitude-order Δinitialized base))
+
+     (define step : Natural
+       (if (exact-integer? order)
+           (let ([normalized (/ Δinitialized order)])
+             (cond [(< normalized 3/2)  order]
+                   [(< normalized 3) (* order 2)]
+                   [(< normalized 7) (* order (if (= (remainder R 3) 0) 3 5))]
+                   [else             (* order (if (= (remainder R 7) 0) 7 10))]))
+           1))
+     
+     (values (range tmin (+ tmax 1) step)
+             step)))
+
+(define #:forall (R) plot-rational-tick-layout : (-> Integer Integer Positive-Byte Positive-Index Positive-Integer (-> Exact-Rational R)
+                                                     (Values (Listof R) Nonnegative-Exact-Rational))
+  (lambda [tmin tmax base desired-ticks scale ->real]
+    (define-values (vals step) (plot-integer-tick-layout (* tmin scale) (* tmax scale) base desired-ticks))
     
-    (define step : Natural
-      (if (exact-integer? order)
-          (let ([normalized (/ Δinitialized order)])
-            (cond [(< normalized 3/2)  order]
-                  [(< normalized 3) (* order 2)]
-                  [(< normalized 7) (* order (if (= (remainder R 3) 0) 3 5))]
-                  [else             (* order (if (= (remainder R 7) 0) 7 10))]))
-          1))
-    
-    (values (range tmin (+ tmax 1) step)
-            step)))
+    (values (for/list ([v (in-list vals)])
+              (->real (/ v scale)))
+            (/ step scale))))

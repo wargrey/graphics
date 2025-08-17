@@ -32,7 +32,7 @@
     (define t (/ (- z A) (- B A)))
 
     (and (flnear? (imag-part t) 0.0)
-         (flbetween-inclusive? 0.0 (real-part t) 1.0))))
+         (flbetween-inclusive? (real-part t) 0.0 1.0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-line-line-intersect : (-> Float-Complex Float-Complex Float-Complex Float-Complex (Option Geo-Intersection))
