@@ -33,10 +33,11 @@ __ffi__ const char* const const_gstr = "string";
 
 /*************************************************************************************************/
 __ffi__ int main(int argc, char* argv[]) {
-    const uint8_t src [] = { 0x2, 0x4 };
+#define STUPID_MSVC 0x2
+    const uint8_t src [] = { STUPID_MSVC, 0x4 };
     define_bss(uint8_t, unset_fsv);
     define_const(uint8_t, const_fv, 0x30);
-    define_array(uint8_t, ab, src[0]);
+    define_array(uint8_t, ab, STUPID_MSVC);
     
     watch_text(uintptr_t, const_gstr);
     watch_text(uint8_t, const_gsv);
