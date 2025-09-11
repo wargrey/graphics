@@ -12,4 +12,4 @@
 (define pango-version : (-> Index) (λ [] (pango_version)))
 
 (define cairo-version-string : (-> String) (λ [] (cairo_version_string)))
-(define pango-version-string : (-> String) (λ [] (cairo_version_string)))
+(define pango-version-string : (-> String) (λ [] (pango_version_string)))

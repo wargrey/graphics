@@ -20,16 +20,28 @@
   #:transparent
   #:type-name Font)
 
+(struct font-feature
+  ([face : String]
+   [size : Nonnegative-Flonum]
+   [weight : Font-Weight]
+   [style : Font-Style]
+   [stretch : Font-Stretch]
+   [variant : Font-Variant])
+  #:transparent
+  #:type-name Font-Feature)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-font : (Parameterof Font) (make-parameter (font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal 'normal)))
 (define default-art-font : (Parameterof Font) (make-parameter (font (font-family->face 'fantasy) 24.0 'normal 'normal 'normal 'normal)))
 
-(define desc-font : (->* ()
-                         (Font #:family (U String Symbol (Listof (U String Symbol)) False) #:size (U Symbol Real False)
-                               #:style (Option Symbol) #:weight (U Symbol Integer False) #:stretch (Option Symbol) #:variant (Option Symbol))
-                         Font)
-  (lambda [[basefont (default-font)] #:family [face null] #:size [size +nan.0] #:weight [weight #false] #:style [style #false]
-                                     #:stretch [stretch #false] #:variant [variant #false]]
+(define desc-font
+  (lambda [#:family [face : (U String Symbol (Listof (U String Symbol)) False) null]
+           #:size [size : (U Symbol Real False) +nan.0]
+           #:weight [weight : (U Symbol Integer False) #false]
+           #:style [style : (Option Symbol) #false]
+           #:stretch [stretch : (Option Symbol) #false]
+           #:variant [variant : (Option Symbol) #false]
+           [basefont : Font (default-font)]] : Font
     (font (cond [(string? face) (or (face-filter face) (font-face basefont))]
                 [(symbol? face) (or (font-family->face face) (font-face basefont))]
                 [(pair? face) (or (select-font-face face) (font-face basefont))]
@@ -43,9 +55,7 @@
                 [(eq? weight 'lighter) (memcadr (reverse css-font-weight-options) (font-weight basefont))]
                 [(integer? weight) (integer->font-weight weight)]
                 [else (font-weight basefont)])
-          (cond [(css-font-style-option? style) style]
-                [(eq? face 'math) 'italic]
-                [else (font-style basefont)])
+          (if (css-font-style-option? style) style (font-style basefont))
           (if (css-font-stretch-option? stretch) stretch (font-stretch basefont))
           (if (css-font-variant-option? variant) variant (font-variant basefont)))))
 
@@ -62,33 +72,25 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define font-description : (-> Font Font-Description)
-  (let ([&fonts : (HashTable Any (Ephemeronof Font-Description)) (make-weak-hash)])
+  (let ([&fonts : (Weak-HashTable Any Font-Description) (make-weak-hash)])
     (lambda [font]
-      (define &font (hash-ref &fonts font (λ _ #false)))
-      (or (and &font (ephemeron-value &font))
-          (let ([weight (font-weight font)]
-                [style (font-style font)]
-                [stretch (font-stretch font)]
-                [variant (font-variant font)])
-            (define desc : Font-Description
-              (geo_create_font_desc (font-face font)
-                                    (font-size font)
-                                    (and (not (eq? weight 'normal)) (font-weight->integer weight))
-                                    (and (not (eq? style 'normal)) (font-style->integer style))
-                                    (and (not (eq? stretch 'normal)) (font-stretch->integer stretch))
-                                    (and (not (eq? variant 'normal)) (font-variant->integer variant))))
-            (hash-set! &fonts font (make-ephemeron font desc))
-            desc)))))
+      (hash-ref! &fonts font
+                 (λ [] (let ([weight (font-weight font)]
+                             [style (font-style font)]
+                             [stretch (font-stretch font)]
+                             [variant (font-variant font)])
+                         (geo_create_font_desc (font-face font)
+                                                 (font-size font)
+                                                 (and (not (eq? weight 'normal)) (font-weight->integer weight))
+                                                 (and (not (eq? style 'normal)) (font-style->integer style))
+                                                 (and (not (eq? stretch 'normal)) (font-stretch->integer stretch))
+                                                 (and (not (eq? variant 'normal)) (font-variant->integer variant)))))))))
 
 (define font-metrics : (->* (Font) ((Listof Font-Unit)) (Listof (Pairof Font-Unit Nonnegative-Flonum)))
-  (let ([&metrics : (HashTable Any (Ephemeronof (Listof (Pairof Font-Unit Nonnegative-Flonum)))) (make-weak-hash)])
+  (let ([&metrics : (Weak-HashTable Any (Listof (Pairof Font-Unit Nonnegative-Flonum))) (make-weak-hash)])
     (lambda [font [units null]]
-      (define &m (hash-ref &metrics font (λ _ #false)))
       (define metrics : (Listof (Pairof Font-Unit Nonnegative-Flonum))
-        (or (and &m (ephemeron-value &m))
-            (let ([metrics (font_get_metrics (font-description font))])
-              (hash-set! &metrics font (make-ephemeron font metrics))
-              metrics)))
+        (hash-ref! &metrics font (λ [] (font_get_metrics (font-description font)))))
       (cond [(null? units) metrics]
             [else (for/list : (Listof (Pairof Font-Unit Nonnegative-Flonum))
                     ([m (in-list metrics)] #:when (memq (car m) units))

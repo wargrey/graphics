@@ -34,15 +34,17 @@
   [(larger)   (* 6/5 inheritsize)] ; http://style.cleverchimp.com/font_size_intervals/altintervals.html#bbs
   [#:else     inheritsize])
 
+(define-enumeration* css-font-style-option #:+> Font-Style ; order matters
+  font-style->integer integer->font-style
+  [0 normal oblique italic])
+
+; corresponds to the width axis
 (define-enumeration* css-font-stretch-option #:+> Font-Stretch ; order matters
   font-stretch->integer integer->font-stretch
   [0 ultra-condensed extra-condensed condensed semi-condensed normal
      semi-expanded expanded extra-expanded ultra-expanded])
 
-(define-enumeration* css-font-style-option #:+> Font-Style ; order matters
-  font-style->integer integer->font-style
-  [0 normal oblique italic])
-
+; corresponds to the weight axis
 (define-enumeration* css-font-weight-option #:+> Font-Weight ; order matters
   font-weight->integer integer->font-weight
   #:range
@@ -73,7 +75,8 @@
     (let families++ ([fobjects : (Listof Font-Raw-Family) (font_list_families)]
                      [families : (Listof String) null])
       (cond [(null? fobjects) (sort families string<?)]
-            [else (families++ (cdr fobjects) (cons (pango_font_family_get_name (car fobjects)) families))]))))
+            [else (families++ (cdr fobjects)
+                              (cons (pango_font_family_get_name (car fobjects)) families))]))))
 
 (define list-monospace-font-families : (-> (Listof String))
   (lambda []
@@ -118,14 +121,19 @@
     (let select ([families value])
       (and (pair? families)
            (let ([family (car families)])
-             (or (if (symbol? family) (font-family->face family) (face-filter family))
+             (or (if (symbol? family)
+                     (font-family->face family)
+                     (face-filter family))
                  (select (cdr families))))))))
 
 (define face-filter : (-> String (Option String))
   (let ([&families : (Boxof (Option (HashTable String String))) (box #false)]
         [&faces : (Boxof (Option (HashTable String String))) (box #false)])
     (lambda [face]
-      (define-values (&pool ls) (if (regexp-match? #rx"," face) (values &faces list-font-faces) (values &families list-font-families)))
+      (define-values (&pool ls)
+        (if (regexp-match? #rx"," face)
+            (values &faces list-font-faces)
+            (values &families list-font-families)))
       (define the-face-set : (HashTable String String)
         (or (unbox &pool)
             (let ([the-set (for/hash : (HashTable String String) ([face (in-list (ls))])

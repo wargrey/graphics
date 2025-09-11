@@ -37,11 +37,6 @@
 (define-cairo cairo_mesh_pattern_set_corner_color_rgba (_cfun _cairo_pattern_t _uint _double* _double* _double* _double* -> _void))
 (define-cairo cairo_mesh_pattern_end_patch (_cfun _cairo_pattern_t -> _void))
 
-(define-cairo cairo_recording_surface_ink_extents
-  (_cfun _cairo_surface_t
-         [lx : (_ptr o _double)] [ty : (_ptr o _double)] [w : (_ptr o _double)] [h : (_ptr o _double)]
-         -> _void -> (values lx ty w h)))
-
 ; it only works for recording surfaces that already have an extent set
 ;   in which case those surfaces have limited boundary to clip resulting shapes
 (define-cairo cairo_recording_surface_get_extents

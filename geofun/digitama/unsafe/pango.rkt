@@ -26,6 +26,7 @@
 
 (define PangoContext (_cpointer 'PangoContext))
 (define PangoLayout (_cpointer 'PangoLayout))
+(define PangoFont (_cpointer 'PangoFont))
 (define PangoFontDescription (_cpointer 'PangoFontDescription))
 (define PangoAttribute (_cpointer 'PangoAttribute))
 (define PangoAttrList (_cpointer/null 'PangoAttrList))
@@ -41,9 +42,10 @@
 (define-pango pango_font_description_get_variant (_pfun PangoFontDescription -> _int))
 (define-pango pango_font_description_set_stretch (_pfun PangoFontDescription _int -> _void))
 (define-pango pango_font_description_set_variant (_pfun PangoFontDescription _int -> _void))
-(define-pango pango_attr_strikethrough_new (_pfun _bool -> PangoAttribute))
-(define-pango pango_attr_underline_new (_pfun _int -> PangoAttribute))
-;(define-pango pango_attr_overline_new (_pfun _int -> PangoAttribute)) ; since Pango 1.46
+
+(define-pango pango_attr_strikethrough_new (_pfun _bool -> PangoAttribute) #:wrap (allocator pango_attribute_destroy))
+(define-pango pango_attr_underline_new (_pfun _int -> PangoAttribute) #:wrap (allocator pango_attribute_destroy))
+;(define-pango pango_attr_overline_new (_pfun _int -> PangoAttribute) #:wrap (allocator pango_attribute_destroy)) ; since Pango 1.46
 
 (define-pango pango_layout_get_size (_pfun PangoLayout [w : (_ptr o _int)] [h : (_ptr o _int)] -> _void -> (values w h)))
 (define-pango pango_layout_get_line_count (_pfun PangoLayout -> _int))
@@ -55,7 +57,7 @@
 (define-pango pango_layout_set_ellipsize (_pfun PangoLayout _int -> _void))
 (define-pango pango_layout_set_alignment (_pfun PangoLayout _int -> _void))
 
-;;; The returned attrlist is owned bu the layout, so don't need to release it
+;;; The returned attrlist is owned by the layout, so don't need to release it
 (define-pango pango_layout_get_attributes (_pfun PangoLayout -> PangoAttrList))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

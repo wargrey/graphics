@@ -12,7 +12,7 @@
 (provide (all-from-out "digitama/marker/self.rkt"))
 (provide (all-from-out "digitama/marker/style.rkt"))
 (provide (all-from-out "digitama/axis/tick/self.rkt"))
-(provide (all-from-out "digitama/axis/tick/real.rkt"))
+(provide (all-from-out "digitama/axis/tick/engine.rkt"))
 
 (require racket/case)
 (require racket/math)
@@ -51,7 +51,7 @@
 (require "digitama/axis/config.rkt")
 (require "digitama/axis/tick.rkt")
 (require "digitama/axis/tick/self.rkt")
-(require "digitama/axis/tick/real.rkt")
+(require "digitama/axis/tick/engine.rkt")
 
 (require "digitama/marker/dc.rkt")
 (require "digitama/marker/self.rkt")

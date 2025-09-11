@@ -4,8 +4,8 @@
 
 (require racket/list)
 
-(require "shared.rkt")
-(require "../../arithmetics.rkt")
+(require "../shared.rkt")
+(require "../../../arithmetics.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-real-tick-layout : (-> Real Real Positive-Byte Positive-Index (Listof Positive-Index) (Values (Listof Real) Real))

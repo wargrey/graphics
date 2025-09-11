@@ -10,7 +10,7 @@
 (provide (all-from-out "digitama/marker/self.rkt"))
 (provide (all-from-out "digitama/marker/style.rkt"))
 (provide (all-from-out "digitama/axis/tick/self.rkt"))
-(provide (all-from-out "digitama/axis/tick/real.rkt"))
+(provide (all-from-out "digitama/axis/tick/engine.rkt"))
 (provide (all-from-out "digitama/axis/grid/self.rkt"))
 (provide (all-from-out "digitama/visualizer.rkt"))
 
@@ -51,7 +51,7 @@
 (require "digitama/axis/sticker.rkt")
 (require "digitama/axis/tick.rkt")
 (require "digitama/axis/tick/self.rkt")
-(require "digitama/axis/tick/real.rkt")
+(require "digitama/axis/tick/engine.rkt")
 
 (require "digitama/marker/dc.rkt")
 (require "digitama/marker/self.rkt")
@@ -79,10 +79,12 @@
            #:mark-style [mark-style : (Option Plot-Mark-Style) #false]
            #:x-label [x-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "x"]
            #:y-label [y-label : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) "y"]
+           #:x-unit-desc [x-unit-desc : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
+           #:y-unit-desc [y-unit-desc : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
            #:x-desc [x-desc : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
            #:y-desc [y-desc : (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) #false]
-           #:x-range [xtick-hint : (U Real (Pairof Real Real) False) #false]
-           #:y-range [ytick-hint : (U Real (Pairof Real Real) False) #false]
+           #:x-range [xtick-hint : (U Real Plot-Visualizer-View-Range False) #false]
+           #:y-range [ytick-hint : (U Real Plot-Visualizer-View-Range False) #false]
            #:x-ticks [xticks-engine : Plot-Tick-Engine (plot-real-ticks*)]
            #:y-ticks [yticks-engine : Plot-Tick-Engine xticks-engine]
            #:x-tick-format [xtick-format : (Option Plot-Tick-Format) #false]
@@ -101,8 +103,12 @@
     (define-values (visualizers maybe-xivl maybe-yivl) (plot-visualizer-tree-flatten tree))
     (define-values (xview yview)
       (plot-visualizer-ranges visualizers
-                              (if (not xtick-hint) (plot-tick-engine-range xticks-engine) (plot-tick-range xtick-hint))
-                              (if (not ytick-hint) (plot-tick-engine-range yticks-engine) (plot-tick-range ytick-hint))
+                              (cond [(procedure? xtick-hint) xtick-hint]
+                                    [(or xtick-hint) (plot-tick-range xtick-hint)]
+                                    [else (plot-tick-engine-range xticks-engine)])
+                              (cond [(procedure? ytick-hint) ytick-hint]
+                                    [(or ytick-hint) (plot-tick-range ytick-hint)]
+                                    [else (plot-tick-engine-range yticks-engine)])
                               maybe-xivl maybe-yivl fallback-dom))
 
     (define yrel-scale (real->double-flonum (/ (plot-tick-engine-unit-scale xticks-engine) (plot-tick-engine-unit-scale yticks-engine))))

@@ -9,7 +9,7 @@
 (require "../color.rkt")
 
 ;;; WARNING
-; Meanwhile Racket's Pango is of version 1.16, which is too low.
+; Meanwhile Racket's Pango is of version 1.42, which is too low.
 ;   So that `size` related attributes are in 1024ths of a point,
 ;   and other dimensional values are unavaliable.
 ; Thus,

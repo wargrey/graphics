@@ -5,8 +5,9 @@
 (require racket/math)
 
 (require "self.rkt")
-(require "layout.rkt")
+(require "format.rkt")
 
+(require "layout/real.rkt")
 (require "../interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

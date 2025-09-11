@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (require bitmap)
+(require geofun/vector)
 (require geofun/tamer/flomap)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -22,7 +23,7 @@
 (printf "====== ~a =====~n" 'LB-CROP)
 (bitmap-lb-crop plane 64 64)
 
-(define text (bitmap-text (string-append "memory: " (number->string (current-memory-use))) #:color plane))
+(define text (geo-freeze (geo-text (string-append "memory: " (number->string (current-memory-use))) #:color plane)))
 (define trimed-text (time (bitmap-trim text #false)))
 (bitmap-frame text)
 (bitmap-bounding-box text)

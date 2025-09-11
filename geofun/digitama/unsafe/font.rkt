@@ -18,13 +18,14 @@
   
   (require ffi/unsafe)
   (require ffi/unsafe/atomic)
+  (require racket/draw/unsafe/cairo)
   
   (require "pango.rkt")
   (require (submod "surface/image.rkt" unsafe))
 
   (define &ink (make-PangoRectangle 0 0 0 0))
   (define &logical (make-PangoRectangle 0 0 0 0))
-  
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (geo_create_font_desc font-face font-size weight style stretch variant)
     (define font-desc (pango_font_description_from_string font-face))
@@ -63,7 +64,7 @@
           (cons 'cap (~pango-metric cap))
           (cons 'ch (~pango-metric ch))
           (cons 'ic (~pango-metric ic))
-          (cons 'lh #|useless outside css engine|# (~pango-metric wH))))
+          (cons 'lh #;#:|useless outside a css engine| (~pango-metric wH))))
 
   (define (font_get_metrics_lines font-desc content)
     (start-atomic)
@@ -117,6 +118,19 @@
             (let ([layout (pango_cairo_create_layout the-image-cairo)])
               (set-box! &layout layout)
               layout)))))
+
+  (define the-context
+    (let ([&context (box #false)])
+      (lambda []
+        (or (unbox &context)
+            (let ([fontmap (pango_cairo_font_map_get_default)])
+              (define context (pango_font_map_create_context fontmap))
+              (define options (cairo_font_options_create))
+              
+              (cairo_font_options_set_antialias options CAIRO_ANTIALIAS_DEFAULT)
+              (pango_cairo_context_set_font_options context options)
+              (set-box! &context context)
+              (unbox &context))))))
   
   (define (font-desc->get-extent font-desc)
     (define layout (the-layout))

@@ -16,6 +16,8 @@
                                          (-> Flonum Flonum Float-Complex) (Option FlRGBA)
                                          Geo:Visualizer))
 
+(define-type Plot-Visualizer-View-Range (U (Pairof Real Real) (-> (Pairof Real Real) (Pairof Real Real))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot-visualizer
   ([realize : Plot-Visualizer-Realize]
@@ -72,29 +74,30 @@
             (plot-range-normalize xmin xmax)
             (plot-range-normalize ymin ymax))))
 
-(define plot-visualizer-ranges : (-> (Listof Plot-Visualizer) (Option (Pairof Real Real)) (Option (Pairof Real Real))
+(define plot-visualizer-ranges : (-> (Listof Plot-Visualizer)
+                                     (Option Plot-Visualizer-View-Range) (Option Plot-Visualizer-View-Range)
                                      Plot-Visualizer-Tick-Range Plot-Visualizer-Tick-Range (Pairof Real Real)
                                      (Values (Pairof Real Real) (Pairof Real Real)))
   (lambda [selves xtick-rng ytick-rng maybe-xrng maybe-yrng fallback-dom]
-    (if (not (and xtick-rng ytick-rng))
-        (let*-values ([(xmin xmax) (if (or xtick-rng) (plot-range-values xtick-rng) (plot-range-values maybe-xrng))]
-                      [(ymin ymax) (if (or ytick-rng) (plot-range-values ytick-rng) (plot-range-values maybe-yrng))]
-                      [(left rght) (values (or xmin (car fallback-dom)) (or xmax (cdr fallback-dom)))])
-          (if (not (and ymin ymax))
-              (let bounds ([top : Real (or ymin +inf.0)]
-                           [btm : Real (or ymax -inf.0)]
-                           [rs : (Listof Plot-Visualizer) selves])
-                (cond [(null? rs) (values (cons left rght) (cons top btm))]
-                      [else (let* ([self (car rs)]
-                                   [xrng (plot-visualizer-xrng self)]
-                                   [yrng ((plot-visualizer-λrange self) (or (car xrng) left) (or (cdr xrng) rght))]
-                                   [ymin (car yrng)]
-                                   [ymax (cdr yrng)])
-                              (bounds (if (rational? ymin) (min top ymin) top)
-                                      (if (rational? ymax) (max btm ymax) btm)
-                                      (cdr rs)))]))
-              (values (cons left rght) (cons ymin ymax))))
-        (values xtick-rng ytick-rng))))
+    (cond [(and (pair? xtick-rng) (pair? ytick-rng)) (values xtick-rng ytick-rng)]
+          [else (let*-values ([(xmin xmax) (if (pair? xtick-rng) (plot-range-values xtick-rng) (plot-range-values maybe-xrng))]
+                              [(ymin ymax) (if (pair? ytick-rng) (plot-range-values ytick-rng) (plot-range-values maybe-yrng))]
+                              [(left rght) (values (or xmin (car fallback-dom)) (or xmax (cdr fallback-dom)))])
+                  (if (not (and ymin ymax))
+                      (let bounds ([top : Real (or ymin +inf.0)]
+                                   [btm : Real (or ymax -inf.0)]
+                                   [rs : (Listof Plot-Visualizer) selves])
+                        (cond [(null? rs) (values (cons left rght) (cons top btm))]
+                              [else (let* ([self (car rs)]
+                                           [xrng (plot-visualizer-xrng self)]
+                                           [yrng ((plot-visualizer-λrange self) (or (car xrng) left) (or (cdr xrng) rght))]
+                                           [ymin (car yrng)]
+                                           [ymax (cdr yrng)])
+                                      (bounds (if (rational? ymin) (min top ymin) top)
+                                              (if (rational? ymax) (max btm ymax) btm)
+                                              (cdr rs)))]))
+                      (values ((if (procedure? xtick-rng) xtick-rng values) (cons left rght))
+                              ((if (procedure? ytick-rng) ytick-rng values) (cons ymin ymax)))))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-visualizer-real-filter : (-> (Option Real) (Option Real))

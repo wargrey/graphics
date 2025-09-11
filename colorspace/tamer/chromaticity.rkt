@@ -1,9 +1,7 @@
 #lang typed/racket
 
-(require bitmap/constructor)
-(require bitmap/composite)
-(require bitmap/pixel)
-(require geofun/color)
+(require bitmap)
+(require geofun/vector)
 
 (require math/flonum)
 
@@ -135,7 +133,7 @@
     (define dots (CIE-XYZ-matching-curves->dots curves))
     (define window-size (make-rectangular chromaticity-diagram-size chromaticity-diagram-size))
     
-    (bitmap-map (bitmap-polygon dots #:fill 'black #:scale window-size #:window window-size)
+    (bitmap-map (geo-freeze (geo-polygon dots #:fill 'black #:scale window-size #:window window-size))
                 (make-gamut-generator transpose-matrix))))
 
 (define bitmap-XYZ-matching-curves : (-> CIE-Observer Bitmap)

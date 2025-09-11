@@ -153,6 +153,7 @@
 
   (define (text_setup_layout! layout font-desc lines align)
     (when (pair? lines)
+      ; pre-attrs comes from markup, and might be reset by inserted attributes
       (define pre-attrs (pango_layout_get_attributes layout))
       (define attrs (or pre-attrs (pango_attr_list_new)))
       
@@ -178,20 +179,7 @@
       (cairo-set-stroke cr color)
       (cairo_move_to cr x (unsafe-fl+ y yoff))
       (cairo_rel_line_to cr width 0.0)
-      (cairo_stroke cr)))
-
-  (define the-context
-    (let ([&context (box #false)])
-      (lambda []
-        (or (unbox &context)
-            (let ([fontmap (pango_cairo_font_map_get_default)])
-              (define context (pango_font_map_create_context fontmap))
-              (define options (cairo_font_options_create))
-              
-              (cairo_font_options_set_antialias options CAIRO_ANTIALIAS_DEFAULT)
-              (pango_cairo_context_set_font_options context options)
-              (set-box! &context context)
-              (unbox &context)))))))
+      (cairo_stroke cr))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
