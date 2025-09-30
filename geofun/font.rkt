@@ -9,6 +9,7 @@
 
 (require "digitama/font.rkt")
 (require "digitama/unsafe/font.rkt")
+(require "digitama/unsafe/math.rkt")
 
 (struct font
   ([face : String]
@@ -146,3 +147,12 @@
     (cond [(procedure? pred?) (filter-font-families pred?)]
           [(eq? pred? 'mono) (list-monospace-font-families)]
           [else (list-font-families)])))
+
+(define list-math-font-families : (->* () (String) (Listof String))
+  (lambda [[math-text "ₖₗₘₙ"]]
+    (list_math_font_families math-text)))
+
+(define list-math-font-faces : (->* () (String) (Listof String))
+  (lambda [[math-text "ₖₗₘₙ"]]
+    (list_math_font_faces math-text)))
+

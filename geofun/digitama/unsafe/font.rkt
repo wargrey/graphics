@@ -102,6 +102,12 @@
   (define (font_list_families)
     (pango_font_map_list_families (pango_cairo_font_map_get_default)))
 
+  (define (font_list_faces)
+    (let face++ ([fobjects (font_list_families)]
+                 [faces null])
+      (cond [(null? fobjects) faces]
+            [else (face++ (cdr fobjects) (family-faces++ (car fobjects) faces))])))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define system-ui
     (let ([facebase (make-hasheq)])
@@ -174,6 +180,7 @@
  [font_get_text_extent (-> Font-Description String (Values Nonnegative-Flonum Nonnegative-Flonum))]
  [font_get_text_extent* (-> Font-Description String (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum))]
  [font_list_families (-> (Listof Font-Raw-Family))]
+ [font_list_faces (-> (Listof String))]
  [pango_font_family_is_monospace (-> Font-Raw-Family Boolean)]
  [pango_font_family_get_name (-> Font-Raw-Family String)]
  [family-faces++ (-> Font-Raw-Family (Listof String) (Listof String))])

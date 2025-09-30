@@ -11,15 +11,20 @@
 
 (define-enumeration* [css-font-generic-family css-font-generic-families] #:as Font-Family 
   font-family->face #:-> String
-  [(sans-serif) (case os [(macosx) "Lucida Grande"] [(windows) "Microsoft YaHei"] [else "Nimbus Sans"])]
-  [(serif)      (case os [(macosx) "Times New Roman"] [(windows) "Times New Roman"] [else "DejaVu Serif"])]
-  [(monospace)  (case os [(macosx) "Menlo"] [(windows) "KaiTi"] [else "Monospace"])]
-  [(fantasy)    (case os [(macosx) "Comic Sans MS"] [(windows) "Comic Sans MS"] [else "Helvetica"])]
-  [(cursive)    (case os [(macosx) "Kokonor"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
-  [(system-ui)  (system-ui 'normal-control-font (λ [] (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"])))]
-  [(emoji)      (case os [(macosx) "GB18030 Bitmap"] [(windows) "Algerian"] [else "Symbol"])]
-  [(math)       (case os [(macosx) "Bodoni 72, Book"] [(windows) "Bodoni MT"] [else "URW Bookman"])]
-  [(fangsong)   (case os [(macosx) "ST FangSong"] [(windows) "FangSong"] [else "FangSong"])])
+  [(sans-serif)    (case os [(macosx) "Lucida Grande"] [(windows) "Microsoft YaHei"] [else "Nimbus Sans"])]
+  [(serif)         (case os [(macosx) "Times New Roman"] [(windows) "Times New Roman"] [else "DejaVu Serif"])]
+  [(monospace)     (case os [(macosx) "Menlo"] [(windows) "Consolas"] [else "DejaVu Sans Mono"])]
+  [(fantasy)       (case os [(macosx) "Comic Sans MS"] [(windows) "Comic Sans MS"] [else "Impact"])]
+  [(cursive)       (case os [(macosx) "Kokonor"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
+  [(system-ui)     (system-ui 'normal-control-font (λ [] (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"])))]
+  [(math)          (case os [(macosx) "Bodoni 72, Book"] [(windows) "Cambria Math"] [else "DejaVu Math"])]
+  [(fangsong)      (case os [(macosx) "ST FangSong"] [(windows) "FangSong"] [else "FangSong"])]
+  [(kai)           (case os [(macosx) "STKaiti"] [(windows) "KaiTi"] [else "AR PL UKai CN"])]
+  [(ui-sans-serif) (case os [(macosx) "San Francisco"] [(windows) "Microsoft YaHei"] [else "Nimbus Sans"])]
+  [(ui-serif)      (case os [(macosx) "New York"] [(windows) "Georgia"] [else "DejaVu Serif"])]
+  [(ui-monospace)  (case os [(macosx) "SF Mono"] [(windows) "Cascadia Code"] [else "DejaVu Sans Mono"])]
+  [(ui-rounded)    (case os [(macosx) "SF Rounded"] [(windows) "Segoe UI"] [else "DejaVu Sans"])]
+  [#:else          (error "IMPOSSIBLE: dead code reached in font-family->face")])
 
 (define-enumeration* css-font-size-option #:as Font-Size
   generic-font-size-filter #:-> [inheritsize Nonnegative-Flonum] [font-medium Nonnegative-Flonum] Nonnegative-Flonum
@@ -90,10 +95,7 @@
 
 (define list-font-faces : (-> (Listof String))
   (lambda []
-    (let face++ ([fobjects : (Listof Font-Raw-Family) (font_list_families)]
-                 [faces : (Listof String) null])
-      (cond [(null? fobjects) (sort faces string<?)]
-            [else (face++ (cdr fobjects) (family-faces++ (car fobjects) faces))]))))
+    (sort (font_list_faces) string<?)))
 
 (define list-monospace-font-faces : (-> (Listof String))
   (lambda []
