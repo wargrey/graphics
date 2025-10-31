@@ -8,4 +8,4 @@
  for whoever are implementing their own color libraries, otherwise, the @racketmodname[bitmap] library
  should be used instead.}
 
-@handbook-appendix[#:index-section? #true]
+@handbook-bonus-appendix[#:index-section? #true]

@@ -30,6 +30,18 @@
                                              (for/list : (Listof (GLayerof Geo)) ([sticker (in-list (cdr stickers))])
                                                (geo-layer-translate sticker xoff yoff)))))))]))
 
+(define geo-layers-try-push-back : (-> (GLayerof Geo) (Listof (GLayerof Geo)) (Option (GLayer-Groupof Geo)))
+  (lambda [master stickers]
+    (define maybe-group (geo-layers-try-extend master stickers))
+
+    (and maybe-group
+         (let* ([layers (glayer-group-layers maybe-group)]
+                [layers (append (cdr layers) (list (car layers)))])
+           (and (pair? layers)
+                (glayer-group (glayer-group-width maybe-group)
+                              (glayer-group-height maybe-group)
+                              layers))))))
+
 (define geo-layers-merge : (case-> [(GLayer-Groupof Geo) (Listof (GLayerof Geo)) -> (GLayer-Groupof Geo)]
                                    [(Pairof (GLayerof Geo) (Listof (GLayerof Geo))) -> (GLayer-Groupof Geo)])
   (case-lambda

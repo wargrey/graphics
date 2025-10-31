@@ -173,3 +173,10 @@
            (list (list (car label) src (car descs) #false)
                  (list (cdr label) tgt (cdr descs) #true))
            (list (list label tgt (cdr descs) #true))))]))
+
+(define plot-screen-axis-label-adjust : (-> (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) Boolean
+                                            (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))))
+  (lambda [label screen?]
+    (cond [(or (not screen?) (not label)) label]
+          [(pair? label) (cons (cdr label) (cdr label))]
+          [else (cons label #false)])))

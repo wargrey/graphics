@@ -23,8 +23,7 @@
   [(ui-sans-serif) (case os [(macosx) "San Francisco"] [(windows) "Microsoft YaHei"] [else "Nimbus Sans"])]
   [(ui-serif)      (case os [(macosx) "New York"] [(windows) "Georgia"] [else "DejaVu Serif"])]
   [(ui-monospace)  (case os [(macosx) "SF Mono"] [(windows) "Cascadia Code"] [else "DejaVu Sans Mono"])]
-  [(ui-rounded)    (case os [(macosx) "SF Rounded"] [(windows) "Segoe UI"] [else "DejaVu Sans"])]
-  [#:else          (error "IMPOSSIBLE: dead code reached in font-family->face")])
+  [(ui-rounded)    (case os [(macosx) "SF Rounded"] [(windows) "Segoe UI"] [else "DejaVu Sans"])])
 
 (define-enumeration* css-font-size-option #:as Font-Size
   generic-font-size-filter #:-> [inheritsize Nonnegative-Flonum] [font-medium Nonnegative-Flonum] Nonnegative-Flonum

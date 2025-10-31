@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/convert)
+(require geofun/digitama/markup)
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/track/self)
@@ -20,10 +21,10 @@
 (define-type Dia-Path-Block-Identifier (-> Geo-Anchor-Name (Option Dia-Path-Block-Datum)))
 (define-type Dia-Path-Arrow-Identifier (-> Dia:Node (Option Dia:Node) (Listof Geo-Path-Labels) (Listof Geo-Track-Info-Datum) (Option Dia-Edge-Style)))
 (define-type Dia-Path-Block-Create (-> Symbol (Option Geo) Dia-Node-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol) Dia:Node))
-(define-type Dia-Path-Id->Label-String (U (HashTable Geo-Anchor-Name String) (-> Geo-Anchor-Name String (U String Void False))))
+(define-type Dia-Path-Id->Label-String (U (HashTable Geo-Anchor-Name DC-Markup-Text) (-> Geo-Anchor-Name String (U DC-Markup-Text Void False))))
 
 (define-type Dia-Path-Id->Node-Label
-  (-> Symbol String Dia-Node-Style (Option Symbol)
+  (-> Symbol DC-Markup-Text Dia-Node-Style (Option Symbol)
       (Option Geo)))
 
 (define-type Dia-Path-Id->Node-Shape

@@ -6,6 +6,7 @@
 (require digimon/digitama/unsafe/ops)
 
 (require geofun/digitama/convert)
+(require geofun/digitama/markup)
 (require geofun/digitama/geometry/trail)
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/geometry/footprint)
@@ -237,13 +238,13 @@
     (and blk-datum
          (let-values ([(id) (geo-anchor->symbol anchor)]
                       [(style hint) (values (cadr blk-datum) (caddr blk-datum))])
-           (define maybe-desc : (U String Void False)
+           (define maybe-desc : (U DC-Markup-Text Void False)
              (and node-desc
                   (if (hash? node-desc)
                       (hash-ref node-desc anchor (λ [] #false))
                       (node-desc anchor (car blk-datum)))))
            
-           (define label : (Option Geo) (make-node-label id (if (string? maybe-desc) maybe-desc (car blk-datum)) style hint))
+           (define label : (Option Geo) (make-node-label id (if (dc-markup-text? maybe-desc) maybe-desc (car blk-datum)) style hint))
            (define-values (width height) (dia-node-smart-size label style))
            (define node : (U Dia:Node Void False)
              (cond [(memq id ignore) #false]

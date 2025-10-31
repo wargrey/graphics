@@ -10,6 +10,7 @@
 
 (require digimon/dtrace)
 (require digimon/digitama/system)
+(require digimon/digivice/wisemon/display)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define graphics.ext : (->* (Path Symbol String) ((Option Path-String) (Option Path)) Path)
@@ -18,12 +19,12 @@
           [(digimon-stone-path? module.rkt) (graphics-target-path (or (path-only module.rkt) (current-directory)) sym .ext subid)]
           [else (graphics-target-path/compiled module.rkt sym .ext subid)])))
 
-(define graphics-save-as : (-> Symbol Path Symbol Path Visual-Object<%> Symbol Void)
-  (lambda [the-name module.rkt id symbol.ext vobj gformat]
+(define graphics-save-as : (-> Path Symbol Path Visual-Object<%> Symbol Void)
+  (lambda [module.rkt id symbol.ext vobj gformat]
     (make-parent-directory* symbol.ext)
-    
-    (dtrace-note "~a: ~a: ~a: save-as: ~a" the-name
-                 (file-name-from-path module.rkt) id (path->string symbol.ext))
+    (wisemon-note 'save-as (file-name-from-path module.rkt)
+                  "~a => ~a"
+                  id (path->string symbol.ext))
     
     (call-with-output-file* symbol.ext #:exists 'truncate/replace
       (λ [[/dev/stdout : Output-Port]] : Void

@@ -9,6 +9,7 @@
 (require geofun/digitama/unsafe/dc/text-layout)
 
 (require geofun/digitama/base)
+(require geofun/digitama/markup)
 (require geofun/digitama/convert)
 
 (require geofun/digitama/paint/self)
@@ -56,7 +57,7 @@
 (define default-dia-node-base-style : (Parameterof (-> Dia-Node-Base-Style)) (make-parameter make-null-node-style))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-node-text-label : (->* (Geo-Anchor-Name String Dia-Node-Style)
+(define dia-node-text-label : (->* (Geo-Anchor-Name DC-Markup-Text Dia-Node-Style)
                                    (#:id (Option Symbol) #:color Option-Fill-Paint #:font (Option Font))
                                    (Option Geo))
   (lambda [anchor desc s #:id [alt-id #false] #:color [alt-color #false] #:font [alt-font #false]]
@@ -70,10 +71,15 @@
 
     (define font : (Option Font) (or maybe-font (dia-node-base-style-font fallback-style)))
     (define paint : Option-Fill-Paint (or maybe-paint (dia-node-base-style-font-paint fallback-style)))
-    (define text : String (if (default-dia-node-text-trim?) (string-trim desc) desc))
     (define text-id : Symbol (or alt-id (dia-node-label-id anchor)))
+    (define text : DC-Markup-Text
+      (cond [(string? desc) (if (default-dia-node-text-trim?) (string-trim desc) desc)]
+            [(bytes? desc) (if (default-dia-node-text-trim?) (regexp-replace* #px"((^\\s*)|(\\s*$))" desc #"") desc)]
+            [else desc]))
     
-    (and (non-empty-string? text)
+    (and (cond [(string? text) (> (string-length text) 0)]
+               [(bytes? text) (> (bytes-length text) 0)]
+               [else #true])
          (geo-markup #:id text-id #:color paint #:alignment (default-dia-node-text-alignment)
                      #:error-color 'GhostWhite #:error-background 'Firebrick
                      text font))))

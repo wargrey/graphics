@@ -33,14 +33,14 @@
                      (let ([deps.rkt (racket-smart-dependencies module.rkt)]
                            [sym.ext (graphics.ext module.rkt id .ext #false)])
                        (list (wisemon-spec sym.ext #:^ (cons module.rkt deps.rkt) #:-
-                                           (graphics-save-as the-name module.rkt id sym.ext datum gformat))))]
+                                           (graphics-save-as module.rkt id sym.ext datum gformat))))]
                     [(and (list? datum) (pair? datum) (andmap visual-object<%>? datum))
                      (let ([deps.rkt (racket-smart-dependencies module.rkt)])
                        (for/list : (Listof Wisemon-Spec) ([subdatum (in-list datum)]
                                                           [idx (in-naturals 1)])
                          (define sym.ext (graphics.ext module.rkt id .ext (number->string idx)))
                          (wisemon-spec sym.ext #:^ (cons module.rkt deps.rkt) #:-
-                                       (graphics-save-as the-name module.rkt id sym.ext subdatum gformat))))]
+                                       (graphics-save-as module.rkt id sym.ext subdatum gformat))))]
                     [(and (hash? datum) (immutable? datum))
                      (or (let ([content (hash-values datum)])
                            (cond [(andmap visual-object<%>? content)
@@ -50,7 +50,7 @@
                                         (graphics.ext module.rkt id .ext
                                                       (string-replace (format "~a" key) "." "_")))
                                       (wisemon-spec sym.ext #:^ (cons module.rkt deps.rkt) #:-
-                                                    (graphics-save-as the-name module.rkt id sym.ext (assert subdatum visual-object<%>?) gformat))))]
+                                                    (graphics-save-as module.rkt id sym.ext (assert subdatum visual-object<%>?) gformat))))]
                                  [(andmap listof-visual-object<%>? content)
                                   (let ([deps.rkt (racket-smart-dependencies module.rkt)])
                                     (apply append
@@ -62,7 +62,7 @@
                                                  (graphics.ext module.rkt id .ext
                                                                (string-replace (format "~a-~a" key idx) "." "_")))
                                                (wisemon-spec sym.ext #:^ (cons module.rkt deps.rkt) #:-
-                                                             (graphics-save-as the-name module.rkt id sym.ext subdatum gformat))))))]
+                                                             (graphics-save-as module.rkt id sym.ext subdatum gformat))))))]
                                  [else null]))
                          null)]
                     [else null])))))

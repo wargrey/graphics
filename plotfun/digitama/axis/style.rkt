@@ -17,6 +17,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Axis-Label-Placement (U 'axis 'digit 'mirror 'digit-mirror 'mirror-digit))
 
+(define plot-axis-style-xtick-placement : (-> Plot-Axis-Style Boolean Geo-Tick-Placement)
+  (lambda [this screen?]
+    (define placement (plot-axis-style-tick-placement this))
+
+    (cond [(not screen?) placement]
+          [(eq? placement 'positive) 'negative]
+          [(eq? placement 'negative) 'positive]
+          [else placement])))
+
+(define plot-axis-style-xlabel-placement : (-> Plot-Axis-Style Boolean Plot-Axis-Label-Placement)
+  (lambda [this screen?]
+    (define placement (plot-axis-style-label-placement this))
+
+    (cond [(not screen?) placement]
+          [(eq? placement 'digit) 'mirror]
+          [(eq? placement 'mirror) 'digit]
+          [(eq? placement 'digit-mirror) 'mirror]
+          [(eq? placement 'mirror-digit) 'digit]
+          [else placement])))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter plot-axis-tip-style : Plot-Axis-Tip-Style
   ([positive-shape : (Option Geo-Tip) default-axis-arrow]

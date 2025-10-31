@@ -70,6 +70,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-cartesian
   (lambda [#:id [id : (Option Symbol) #false]
+           #:screen? [screen? : Boolean #false]
            #:O [chO : Char #\O]
            #:origin [maybe-origin : (Option Complex) #false]
            #:unit-length [maybe-unit : (Option Complex+%) #false]
@@ -116,13 +117,14 @@
     (define-values (maybe-xunit maybe-yunit) (plot-cartesian-maybe-settings maybe-unit))
     (define-values (x-tip y-tip) (values (plot-axis-tip axis-style 'x) (plot-axis-tip axis-style 'y)))
     (define-values ( flwidth  view-width x-neg-margin x-pos-margin) (plot-axis-length-values axis-style x-tip width))
-    (define-values (flheight view-height y-neg-margin y-pos-margin)
+    (define-values (flheight view-height y-neg-margin0 y-pos-margin0)
       (cond [(rational? height) (plot-axis-length-values axis-style y-tip height flwidth)]
             [else (plot-axis-height-values axis-style y-tip view-width
                                            (* (/ (- (cdr yview) (car yview))
                                                  (- (cdr xview) (car xview)))
                                               yrel-scale))]))
-    
+
+    (define-values (y-neg-margin y-pos-margin) (if (not screen?) (values y-neg-margin0 y-pos-margin0) (values y-pos-margin0 y-neg-margin0)))
     (define-values (xtick-range xO xunit) (plot-axis-metrics  xview maybe-xorig  view-width maybe-xunit))
     (define-values (ytick-range yO yunit) (plot-axis-metrics* yview maybe-yorig view-height (if (rational? height) maybe-yunit (* xunit yrel-scale)) flc-ri))
 
@@ -154,12 +156,19 @@
 
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
     (define zero : Geo (geo-text (string chO) label-font #:color label-color))
-    (define Oshadow : Float-Complex (make-rectangular (+ (* view-width xO) xtick-min) (+ (* view-height yO) ytick-min)))
-    (define Origin : Float-Complex (make-rectangular (real-part Oshadow) 0.0))
 
+    ; The x-axis is the major axis, which is placed at screen (0, 0)
+    ; So, `Oview` is used to adjust the place of the y-axis,
+    ;   instead of calculating vertical positions of real points on screen.
+    ; Whereas the `Origin` is the math concept, along with `xunit` and `yunit`,
+    ;   make the actual transformation be simplified and elegant.
+    (define y-cart-transform : (-> Flonum Flonum) (if (not screen?) - values))
+    (define Origin : Float-Complex (make-rectangular (+ (* view-width xO) xtick-min) 0.0))
+    (define Oview : Float-Complex (+ Origin (flc-ri (+ (* view-height (if (not screen?) yO (- 1.0 yO))) ytick-min))))
+
+    (define tick-pen : Stroke (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
     (define-values (xdigit-position xdigit-anchor xmiror-anchor) (plot-axis-digit-position-values axis-style 'x))
     (define-values (ydigit-position ydigit-anchor ymiror-anchor) (plot-axis-digit-position-values axis-style 'y))
-    (define tick-pen : Stroke (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
     (define-values (xmajor-pen xminor-pen xg-minor-count) (plot-grid-visual-values xgrid-style xminor-count adjust-color))
     (define-values (ymajor-pen yminor-pen yg-minor-count) (plot-grid-visual-values ygrid-style yminor-count adjust-color))
     
@@ -173,10 +182,10 @@
       (geo-path* #:stroke axis-pen #:tip-placement 'inside
                  #:source-tip (plot-axis-tip-style-negative-shape (or y-tip x-tip))
                  #:target-tip (plot-axis-tip-style-positive-shape (or y-tip x-tip))
-                 (list the-M0 (gpp:point #\L (flc-ri (- flheight))))))
+                 (list the-M0 (gpp:point #\L (flc-ri (y-cart-transform flheight))))))
 
-    (define xdigit-offset : Float-Complex (flc-ri (* xdigit-position em -1.0)))
-    (define xmiror-offset : Float-Complex (flc-ri (* xdigit-position em +1.0)))
+    (define xdigit-offset : Float-Complex (flc-ri (* xdigit-position em (if (not screen?) -1.0 +1.0))))
+    (define xmiror-offset : Float-Complex (flc-ri (* xdigit-position em (if (not screen?) +1.0 -1.0))))
     (define ydigit-offset : Float-Complex (make-rectangular (* ydigit-position em) 0.0))
     (define ymiror-offset : Float-Complex (make-rectangular (* ydigit-position (- em)) 0.0))
     
@@ -190,16 +199,17 @@
 
     (define origin-dot->pos : Plot-Position-Transform
       (case-lambda
-        [(x y) (+ Origin (* x xunit) (* (- y) yunit))]
+        [(x y) (+ Origin (* x xunit) (* (y-cart-transform y) yunit))]
         [(dot) (origin-dot->pos (real-part dot) (imag-part dot))]))
 
     (define 0-as-xdigit? : Boolean
-      (and (< (imag-part Oshadow) (imag-part xdigit-offset))
-           (negative? (car xview))
+      (and (negative? (car xview))
+           (< (+ (* view-height yO) fltick-min y-neg-margin0)
+              (* xdigit-position em -1.0))
            #;(null? actual-yticks)))
 
     (define plots : (Listof Geo:Visualizer) (plot-realize-all visualizers xview yview origin-dot->pos palette bg-color))
-    (define grid-pos : Float-Complex (plot-lt-position origin-dot->pos xview yview))
+    (define grid-pos : Float-Complex (plot-lt-position origin-dot->pos xview yview screen?))
     
     (define xgrid : (Option Geo:Grid)
       (and (or xmajor-pen xminor-pen)
@@ -230,7 +240,7 @@
 
        ; arrows
        (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
-             (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oshadow))
+             (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oview))
        
        ; visualizers
        (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)])
@@ -254,9 +264,9 @@
          (define-values (maybe-sticker gtick)
            (if (plot-tick-major? xtick)
                (values (xdigit->sticker id (plot-tick-desc xtick) digit-font digit-color)
-                       (plot-axis-xtick-sticker fltick-length (plot-axis-style-tick-placement axis-style) tick-pen))
+                       (plot-axis-xtick-sticker fltick-length (plot-axis-style-xtick-placement axis-style screen?) tick-pen))
                (values 'minor
-                       (plot-axis-xtick-sticker fltick-sublen (plot-axis-style-tick-placement axis-style) tick-pen))))
+                       (plot-axis-xtick-sticker fltick-sublen (plot-axis-style-xtick-placement axis-style screen?) tick-pen))))
 
          (cond [(not (flnear? xval 0.0))
                 (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
@@ -268,13 +278,15 @@
        
        ; y-axis's labels
        (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                 ([lbl (in-list (plot-axis-label-settings y-label y-desc yaxis-min yaxis-max (if (or label-at-axis?) (* em 0.618) (* em -0.5)) 'y))])
+                 ([lbl (in-list (plot-axis-label-settings (plot-screen-axis-label-adjust y-label screen?)
+                                                          (plot-screen-axis-label-adjust y-desc screen?)
+                                                          yaxis-min yaxis-max (if (or label-at-axis?) (* em 0.618) (* em -0.5)) 'y))])
          (if (car lbl)
              (let ([lbl.geo (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)])
                (case/eq (plot-axis-style-label-placement axis-style)
-                 [(digit  mirror-digit) (plot-axis-sticker-cons* lbl.geo ydigit-anchor (flc-ri (- (cadr lbl))) (+ Oshadow ydigit-offset) labels)]
-                 [(mirror digit-mirror) (plot-axis-sticker-cons* lbl.geo ymiror-anchor (flc-ri (- (cadr lbl))) (+ Oshadow ymiror-offset) labels)]
-                 [else (plot-axis-sticker-cons* lbl.geo (cadddr lbl) (flc-ri (- (cadr lbl))) Oshadow labels)]))
+                 [(digit  mirror-digit) (plot-axis-sticker-cons* lbl.geo ydigit-anchor (flc-ri (- (cadr lbl))) (+ Oview ydigit-offset) labels)]
+                 [(mirror digit-mirror) (plot-axis-sticker-cons* lbl.geo ymiror-anchor (flc-ri (- (cadr lbl))) (+ Oview ymiror-offset) labels)]
+                 [else (plot-axis-sticker-cons* lbl.geo (cadddr lbl) (flc-ri (- (cadr lbl))) Oview labels)]))
              labels))
 
        ; y-axis's ticks
@@ -309,9 +321,9 @@
     
     (define translated-layers : (Option (GLayer-Groupof Geo))
       (if (not 0-as-xdigit?)
-          (geo-layers-try-extend (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)
-                                                    Origin zero (+ ydigit-offset xdigit-offset))
-                                 layers)
+          (geo-layers-try-push-back (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)
+                                                       Origin zero (+ ydigit-offset xdigit-offset))
+                                    layers)
           (and (pair? layers)
                (geo-layers-try-extend layers 0.0 0.0))))
     
@@ -328,7 +340,7 @@
                                (map plot-tick-value actual-xticks)
                                (map plot-tick-value actual-yticks)
                                (let ([dot->pos (λ [[x : Flonum] [y : Flonum]] : Float-Complex
-                                                 (+ delta-origin (* x xunit) (* (- y) yunit)))])
+                                                 (+ delta-origin (* x xunit) (* (y-cart-transform y) yunit)))])
                                  (case-lambda
                                    [(x y) (dot->pos x y)]
                                    [(dot) (dot->pos (real-part dot) (imag-part dot))])))
