@@ -5,7 +5,15 @@
 (require geofun/digitama/base)
 (require geofun/digitama/convert)
 
+(require geofun/digitama/layer/sticker)
+
 (require "../marker/self.rkt")
+
+(require (for-syntax racket/base))
+(require (for-syntax racket/syntax))
+(require (for-syntax racket/symbol))
+(require (for-syntax racket/sequence))
+(require (for-syntax syntax/parse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Visualizer-Tree (Listof (U Plot-Visualizer Plot-Visualizer-Tree)))
@@ -13,10 +21,56 @@
 (define-type Plot-Visualizer-Tick-Range (Pairof (Option Real) (Option Real)))
 (define-type Plot-Visualizer-Data-Range (-> Real Real (Pairof Real Real)))
 (define-type Plot-Visualizer-Realize (-> Index Positive-Index Real Real Real Real
-                                         (-> Flonum Flonum Float-Complex) (Option FlRGBA)
-                                         Geo:Visualizer))
+                                         (case-> [Flonum Flonum -> Float-Complex]
+                                                 [Float-Complex -> Float-Complex])
+                                         (Option FlRGBA)
+                                         (Option Geo-Visualizer)))
 
 (define-type Plot-Visualizer-View-Range (U (Pairof Real Real) (-> (Pairof Real Real) (Pairof Real Real))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-syntax (define-visualizer stx)
+  (syntax-parse stx #:literals [:]
+    [(_ id : ID #:for GID ([field : FieldType defval ...] ...))
+     (with-syntax* ([ID<%> (format-id #'ID "~a<%>" (syntax-e #'ID))]
+                    [id<%> (format-id #'id "~a<%>" (syntax-e #'id))]
+                    [id-abs (format-id #'id "~a-interface" (syntax-e #'id))]
+                    [desc-id (format-id #'id "desc-~a" (syntax-e #'id))]
+                    [(kw-args ...)
+                     (for/fold ([args null])
+                               ([<field> (in-syntax #'(field ...))]
+                                [<Argument> (in-syntax #'([field : FieldType defval ...] ...))])
+                       (cons (datum->syntax <field> (string->keyword (symbol->immutable-string (syntax-e <field>))))
+                             (cons <Argument> args)))]
+                    [([id-field ...] [id<%>-field ...])
+                     (for/fold ([id-fields null] [abs-fields null] #:result (list id-fields abs-fields))
+                               ([<field> (in-list (reverse (syntax->list #'(field ...))))])
+                       (define <id-field> (datum->syntax <field> (string->symbol (format "~a-~a" (syntax-e #'id) (syntax-e <field>)))))
+                       (define <abs-field> (datum->syntax <field> (string->symbol (format "~a-~a" (syntax-e #'id<%>) (syntax-e <field>)))))
+                       (values (cons <id-field> id-fields) (cons <abs-field> abs-fields)))])
+       (syntax/loc stx
+         (begin (define-type GID (U ID (Pairof Geo-Sticker-Datum ID<%>)))
+
+                (struct id<%> ([field : FieldType] ...) #:transparent #:type-name ID<%>)
+                (struct id geo ([interface : ID<%>]) #:type-name ID)
+
+                (define (desc-id kw-args ...) : ID<%>
+                  (id<%> field ...))
+
+                (define (id-field [self : GID]) : FieldType
+                  (id<%>-field (if (pair? self) (cdr self) (id-abs self))))
+                ...)))]))
+
+(define-syntax (create-visualizer stx)
+  (syntax-parse stx #:datum-literals [:]
+    [(_ Geo
+        (~seq #:with [name draw!:expr extent:expr insets:expr
+                           desc ...])
+        argl ...)
+     (syntax/loc stx
+       (create-geometry-object Geo #:with [name draw! extent insets]
+                               (desc-geo:visualizer desc ...)
+                               argl ...))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot-visualizer
@@ -29,16 +83,15 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct geo:visualizer geo
-  ([realize : (Option (-> Geo:Visualizer))]
+(define-visualizer geo:visualizer : Geo:Visualizer #:for Geo-Visualizer
+  ([realize : (Option (-> Geo-Visualizer)) #false]
    [position : Float-Complex]
    [color : FlRGBA]
-   [label : (Option Plot:Mark)]
-   [legend : (Option Geo)]
-   [pin-angle : (Option (-> Real (Option Real)))]
-   [gap-angle : (Option (-> Real (Option Real)))])
-  #:type-name Geo:Visualizer
-  #:transparent)
+   [label : (Option Plot:Mark) #false]
+   [legend : (Option Geo) #false]
+   [pin-angle : (Option (-> Real (Option Real))) #false]
+   [gap-angle : (Option (-> Real (Option Real))) #false]
+   [projection-lines : (Listof Float-Complex) null]))
 
 (struct geo:line:visualizer geo:visualizer
   ([dots : (Listof Float-Complex)])
@@ -69,7 +122,7 @@
                              (if (rational? symax) (max ymax symax) ymax)
                              (cons self sreredner)))))
             (values sreredner xmin xmax ymin ymax))))
-    
+
     (values (reverse sreredner)
             (plot-range-normalize xmin xmax)
             (plot-range-normalize ymin ymax))))

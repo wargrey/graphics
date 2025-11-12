@@ -27,7 +27,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-realize-all : (-> (Listof Plot-Visualizer) (Pairof Real Real) (Pairof Real Real)
                                Plot-Position-Transform Palette-Index->Pen+Brush-Colors (Option FlRGBA)
-                               (Listof Geo:Visualizer))
+                               (Listof Geo-Visualizer))
   (lambda [visualizers xview yview origin-dot->pos palette bg-color]
     (define color-pool ((inst make-hasheq Symbol FlRGBA)))
     (define polyline-pool ((inst make-hasheq Symbol Plot-Visualizer)))
@@ -47,16 +47,19 @@
         (if (> N 0)
             (let realize ([visualizers : (Listof Plot-Visualizer) visualizers]
                           [idx : Nonnegative-Fixnum 0]
-                          [sreyalv : (Listof Geo:Visualizer) null])
+                          [sreyalv : (Listof Geo-Visualizer) null])
               (if (and (pair? visualizers) (<= idx N))
-                  (let ([self (car visualizers)])
+                  (let-values ([(self rest) (values (car visualizers) (cdr visualizers))])
                     (define vself (plot-realize self idx N xview yview origin-dot->pos bg-color))
-                    (update-pool! self vself)
-                    (realize (cdr visualizers)
-                             (if (plot-visualizer-skip-palette? self) idx (+ idx 1))
-                             (cons vself sreyalv)))
-                  (let 2nd-stage-realize ([sreyalv : (Listof Geo:Visualizer) sreyalv]
-                                          [vlayers : (Listof Geo:Visualizer) null])
+
+                    (if (or vself)
+                        (let ([idx++ (if (plot-visualizer-skip-palette? self) idx (+ idx 1))])
+                          (when (geo:visualizer? vself)
+                            (update-pool! self vself))
+                          (realize rest idx++ (cons vself sreyalv)))
+                        (realize rest idx sreyalv)))
+                  (let 2nd-stage-realize ([sreyalv : (Listof Geo-Visualizer) sreyalv]
+                                          [vlayers : (Listof Geo-Visualizer) null])
                     (if (pair? sreyalv)
                         (let* ([self (car sreyalv)]
                                [nested-realize (geo:visualizer-realize self)])

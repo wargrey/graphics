@@ -13,6 +13,7 @@
 (provide (all-from-out "digitama/skeleton/stickman/interface.rkt"))
 
 (provide geo-blank geo-ghost geo-solid geo:blank? Geo:Blank Geo:Solid)
+(provide geo-try-repaint geo:adjuster? Geo:Adjuster)
 (provide geo-bitmap geo-rectangular geo:bitmap? Geo:Bitmap)
 (provide geo-grid geo:grid? Geo:Grid)
 (provide geo-text geo:text? Geo:Text Geo-Text-Line geo-text-line?)
@@ -62,6 +63,7 @@
 (require "digitama/dc/line.rkt")
 (require "digitama/dc/arrow.rkt")
 (require "digitama/dc/gear.rkt")
+(require "digitama/dc/adjuster.rkt")
 (require "digitama/dc/stickman.rkt")
 (require "digitama/dc/grid.rkt")
 (require "digitama/dc/more.rkt")

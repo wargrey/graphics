@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) Plot-Mark-Auto-Anchor)
+(provide (all-defined-out) Plot-Mark-Auto-Anchor Plot-Cartesian-Layer)
 (provide Plot:Cartesian plot:cartesian?)
+(provide default-plot-cartesian-layer-order)
 (provide (all-from-out geofun/digitama/path/tips))
 (provide (all-from-out "digitama/axis/view.rkt"))
 (provide (all-from-out "digitama/axis/style.rkt"))
@@ -15,7 +16,6 @@
 (provide (all-from-out "digitama/visualizer.rkt"))
 
 (require racket/case)
-(require racket/math)
 
 (require digimon/metrics)
 (require digimon/complex)
@@ -38,7 +38,6 @@
 (require geofun/digitama/layer/position)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/path/tips)
-(require geofun/digitama/path/tick)
 (require geofun/digitama/geometry/footprint)
 
 (require "digitama/visualizer.rkt")
@@ -64,6 +63,7 @@
 (require "digitama/axis/grid/config.rkt")
 
 (require "digitama/visualizer/self.rkt")
+(require "digitama/visualizer/layer.rkt")
 (require "digitama/visualizer/realize.rkt")
 (require "digitama/visualizer/interface.rkt")
 
@@ -95,6 +95,7 @@
            #:x-grid-style [xgrid-style : (Option Plot-Grid-Style) (default-plot-grid-style)]
            #:y-grid-style [ygrid-style : (Option Plot-Grid-Style) xgrid-style]
            #:palette [palette : Plot-Palette (default-plot-palette)]
+           #:layer-order [layer-order : (Listof Plot-Cartesian-Layer) (default-plot-cartesian-layer-order)]
            #:fallback-range [fallback-dom : (Pairof Real Real) (default-plot-visualizer-domain-range)]
            #:border [bdr : Maybe-Stroke-Paint #false]
            #:background [bg : Maybe-Fill-Paint #false]
@@ -102,7 +103,7 @@
            #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            . [tree : (U Plot-Visualizer Plot-Visualizer-Tree) *]] : Plot:Cartesian
     (define-values (visualizers maybe-xivl maybe-yivl) (plot-visualizer-tree-flatten tree))
-    (define-values (xview yview)
+    (define-values (xview0 yview0)
       (plot-visualizer-ranges visualizers
                               (cond [(procedure? xtick-hint) xtick-hint]
                                     [(or xtick-hint) (plot-tick-range xtick-hint)]
@@ -111,6 +112,9 @@
                                     [(or ytick-hint) (plot-tick-range ytick-hint)]
                                     [else (plot-tick-engine-range yticks-engine)])
                               maybe-xivl maybe-yivl fallback-dom))
+    (define-values (xview yview)
+      (values (or (plot-tick-range xview0) xview0)
+              (or (plot-tick-range yview0) yview0)))
 
     (define yrel-scale (real->double-flonum (/ (plot-tick-engine-unit-scale xticks-engine) (plot-tick-engine-unit-scale yticks-engine))))
     (define-values (maybe-xorig maybe-yorig) (plot-cartesian-maybe-settings maybe-origin))
@@ -126,7 +130,7 @@
 
     (define-values (y-neg-margin y-pos-margin) (if (not screen?) (values y-neg-margin0 y-pos-margin0) (values y-pos-margin0 y-neg-margin0)))
     (define-values (xtick-range xO xunit) (plot-axis-metrics  xview maybe-xorig  view-width maybe-xunit))
-    (define-values (ytick-range yO yunit) (plot-axis-metrics* yview maybe-yorig view-height (if (rational? height) maybe-yunit (* xunit yrel-scale)) flc-ri))
+    (define-values (ytick-range yO yU yunit) (plot-axis-metrics* yview maybe-yorig view-height (if (rational? height) maybe-yunit (* xunit yrel-scale)) flc-ri))
 
     (define-values (actual-xticks maybe-xstep xminor-count) (plot-ticks-generate xticks-engine xtick-range xtick-format))
     (define-values (actual-yticks maybe-ystep yminor-count)
@@ -138,7 +142,7 @@
              (plot-ticks-generate (plot-interval-ticks #:minor-count xminor-count
                                                        maybe-xstep (plot-tick-engine-format yticks-engine))
                                   ytick-range ytick-format)]))
-      
+    
     (define bg-color : (Option FlRGBA) (brush-maybe-rgba bg))
     (define adjust-color (λ [[c : FlRGBA]] (plot-adjust-pen-color palette c bg-color)))
     (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color)
@@ -202,50 +206,37 @@
         [(x y) (+ Origin (* x xunit) (* (y-cart-transform y) yunit))]
         [(dot) (origin-dot->pos (real-part dot) (imag-part dot))]))
 
+    (define-values (visible-xticks visible-xview) (plot-ticks-trim actual-xticks xO xunit  view-width xview))
+    (define-values (visible-yticks visible-yview) (plot-ticks-trim actual-yticks yO yU    view-height yview))
+    
     (define 0-as-xdigit? : Boolean
-      (and (negative? (car xview))
+      (and (negative? (car visible-xview))
            (< (+ (* view-height yO) fltick-min y-neg-margin0)
               (* xdigit-position em -1.0))
            #;(null? actual-yticks)))
 
-    (define plots : (Listof Geo:Visualizer) (plot-realize-all visualizers xview yview origin-dot->pos palette bg-color))
-    (define grid-pos : Float-Complex (plot-lt-position origin-dot->pos xview yview screen?))
+    (define plots : (Listof Geo-Visualizer) (plot-realize-all visualizers visible-xview visible-yview origin-dot->pos palette bg-color))
+    (define-values (visible-pos visible-diag) (plot-diagonal* origin-dot->pos visible-xview visible-yview screen?))
+    (define-values (visible-width visible-height) (values (abs (real-part visible-diag)) (abs (imag-part visible-diag))))
     
     (define xgrid : (Option Geo:Grid)
       (and (or xmajor-pen xminor-pen)
-           (> view-width 0.0) (> view-height 0.0)
-           (let-values ([(majors minors) (plot-grid-values actual-xticks xminor-count xg-minor-count
-                                                           (λ [[v : Flonum]] (real-part (- (origin-dot->pos v 0.0) grid-pos))))])
+           (> visible-width 0.0) (> visible-height 0.0)
+           (let-values ([(majors minors) (plot-grid-values visible-xticks xminor-count xg-minor-count (plot-x-transform origin-dot->pos visible-pos))])
              (geo-grid #:major-stroke xmajor-pen #:minor-stroke xminor-pen
                        #:extra-major-xs majors #:extra-minor-xs minors
-                       view-width view-height))))
+                       visible-width visible-height))))
     
     (define ygrid : (Option Geo:Grid)
       (and (or ymajor-pen yminor-pen)
-           (> view-width 0.0) (> view-height 0.0)
-           (let-values ([(majors minors) (plot-grid-values actual-yticks yminor-count yg-minor-count
-                                                           (λ [[v : Flonum]] (imag-part (- (origin-dot->pos 0.0 v) grid-pos))))])
+           (> visible-width 0.0) (> visible-height 0.0)
+           (let-values ([(majors minors) (plot-grid-values visible-yticks yminor-count yg-minor-count (plot-y-transform origin-dot->pos visible-pos))])
              (geo-grid #:major-stroke ymajor-pen #:minor-stroke yminor-pen
                        #:extra-major-ys majors #:extra-minor-ys minors
-                       view-width view-height))))
-    
-    (define layers : (Listof (GLayerof Geo))
+                       visible-width visible-height))))
+
+    (define x-tick-layers : (Listof (GLayerof Geo))
       (append
-       ; grid
-       (cond [(and xgrid ygrid) (list (geo-own-pin-layer 'lt grid-pos xgrid 0.0+0.0i)
-                                      (geo-own-pin-layer 'lt grid-pos ygrid 0.0+0.0i))]
-             [(or xgrid) (list (geo-own-pin-layer 'lt grid-pos xgrid 0.0+0.0i))]
-             [(or ygrid) (list (geo-own-pin-layer 'lt grid-pos ygrid 0.0+0.0i))]
-             [else null])
-
-       ; arrows
-       (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
-             (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oview))
-       
-       ; visualizers
-       (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)])
-         (geo-own-pin-layer 'lt (geo:visualizer-position self) self 0.0+0.0i))
-
        ; x-axis's labels
        (for/fold ([labels : (Listof (GLayerof Geo)) null])
                  ([lbl (in-list (plot-axis-label-settings x-label x-desc xaxis-min xaxis-max (if (or label-at-axis?) (* em 0.618) 0.0) 'x))])
@@ -259,7 +250,7 @@
 
        ; x-axis's ticks
        (for/fold ([xticks : (Listof (GLayerof Geo)) null])
-                 ([xtick (in-list actual-xticks)])
+                 ([xtick (in-list visible-xticks)])
          (define xval : Flonum (real->double-flonum (plot-tick-value xtick)))
          (define-values (maybe-sticker gtick)
            (if (plot-tick-major? xtick)
@@ -274,9 +265,16 @@
                [(or 0-as-xdigit?)
                 (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
                                         xdigit-offset xticks xtick-min real-part xtick-max #false)]
-               [else xticks]))
-       
-       ; y-axis's labels
+               [else xticks]))))
+
+    (define y-tick-layers : (Listof (GLayerof Geo))
+      ;;; WARNING
+      ; bacause of the complicated translation on the y-axis,
+      ; the `ytick-min` and `ytick-max` are not reliable for filtering out visualizers that are out of the view.
+      ;
+      ; Besides, visualizer implementors should ensure their plots actually be located in visible region.
+      (append
+       ; y-axis's labels.
        (for/fold ([labels : (Listof (GLayerof Geo)) null])
                  ([lbl (in-list (plot-axis-label-settings (plot-screen-axis-label-adjust y-label screen?)
                                                           (plot-screen-axis-label-adjust y-desc screen?)
@@ -291,7 +289,7 @@
 
        ; y-axis's ticks
        (for/fold ([yticks : (Listof (GLayerof Geo)) null])
-                 ([ytick (in-list actual-yticks)])
+                 ([ytick (in-list visible-yticks)])
          (define yval : Flonum (real->double-flonum (plot-tick-value ytick)))
          (define-values (maybe-sticker gtick)
            (if (plot-tick-major? ytick)
@@ -302,23 +300,41 @@
 
          (if (not (flnear? yval 0.0))
              (plot-axis-sticker-cons* maybe-sticker ydigit-anchor (origin-dot->pos 0.0 yval) ydigit-offset yticks gtick)
-             yticks))
+             yticks))))
 
-       ; visualizers' labels
-       (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)]
-                                            #:when (geo:visualizer-label self))
-         (define-values (real-pin real-gap)
-           (plot-mark-vector-values mark-style
-                                    (or (geo:visualizer-pin-angle self) 0.0)
-                                    (or (geo:visualizer-gap-angle self) 0.0)))
-         
-         ;; visualizer should ensure its label being pinned at visible point 
-         (geo-path-self-pin-layer
-          (plot-marker #:color (geo:visualizer-color self) #:font mark-font #:pin-stroke pin-pen
-                       #:fallback-pin real-pin #:fallback-gap real-gap
-                       #:fallback-anchor mark-anchor #:length-base em
-                       (geo:visualizer-label self) origin-dot->pos)))))
+    (define annotation-layers
+      ; visualizers' data labels
+      (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)] #:when (geo:visualizer-label self))
+        (define-values (real-pin real-gap)
+          (plot-mark-vector-values mark-style
+                                   (or (geo:visualizer-pin-angle self) 0.0)
+                                   (or (geo:visualizer-gap-angle self) 0.0)))
+        
+        ;; visualizer should ensure its label being pinned at visible point
+        (geo-path-self-pin-layer
+         (plot-marker #:color (geo:visualizer-color self) #:font mark-font #:pin-stroke pin-pen
+                      #:fallback-pin real-pin #:fallback-gap real-gap
+                      #:fallback-anchor mark-anchor #:length-base em
+                      (assert (geo:visualizer-label self)) origin-dot->pos))))
+
+    (define layer-groups : (Immutable-HashTable Plot-Cartesian-Layer (Listof (GLayerof Geo)))
+      ((inst make-immutable-hasheq Plot-Cartesian-Layer (Listof (GLayerof Geo)))
+       (list (cons 'grid (cond [(and xgrid ygrid) (list (geo-own-pin-layer 'lt visible-pos xgrid 0.0+0.0i)
+                                                        (geo-own-pin-layer 'lt visible-pos ygrid 0.0+0.0i))]
+                               [(or xgrid) (list (geo-own-pin-layer 'lt visible-pos xgrid 0.0+0.0i))]
+                               [(or ygrid) (list (geo-own-pin-layer 'lt visible-pos ygrid 0.0+0.0i))]
+                               [else null]))
+             (cons 'axes (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
+                               (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oview)))
+             
+             (cons 'tick (append x-tick-layers y-tick-layers))
+
+             (cons 'projection
+                   null)
+
+             (cons 'annotation annotation-layers))))
     
+    (define layers : (Listof (GLayerof Geo)) (plot-cartesian-layers layer-groups plots layer-order))
     (define translated-layers : (Option (GLayer-Groupof Geo))
       (if (not 0-as-xdigit?)
           (geo-layers-try-push-back (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)
@@ -337,8 +353,8 @@
                                #:border bdr #:background bg
                                #:margin margin #:padding padding
                                translated-layers delta-origin
-                               (map plot-tick-value actual-xticks)
-                               (map plot-tick-value actual-yticks)
+                               (map plot-tick-value visible-xticks)
+                               (map plot-tick-value visible-yticks)
                                (let ([dot->pos (λ [[x : Flonum] [y : Flonum]] : Float-Complex
                                                  (+ delta-origin (* x xunit) (* (y-cart-transform y) yunit)))])
                                  (case-lambda

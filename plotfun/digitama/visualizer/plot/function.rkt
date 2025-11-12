@@ -14,16 +14,16 @@
 
 (require geofun/digitama/paint/self)
 
-(require "dot.rkt")
-(require "self.rkt")
-(require "guard.rkt")
-(require "interface.rkt")
+(require "../dot.rkt")
+(require "../self.rkt")
+(require "../guard.rkt")
+(require "../interface.rkt")
 
-(require "../sample.rkt")
-(require "../calculus.rkt")
+(require "../../sample.rkt")
+(require "../../calculus.rkt")
 
-(require "../marker/self.rkt")
-(require "../unsafe/line.rkt")
+(require "../../marker/self.rkt")
+(require "../../unsafe/line.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot:function geo:line:visualizer ()
@@ -66,19 +66,20 @@
                                    placement))
 
         (define pen : Stroke
-          (plot-desc-pen #:width pen-width #:dash pen-dash
-                         #:color (rgb* (plot-select-pen-color pen-color idx bg-color)
-                                       opacity)))
+          (plot-desc-pen #:width pen-width #:dash pen-dash #:opacity opacity
+                         #:color (plot-select-pen-color pen-color idx bg-color)))
         
-        (create-geometry-object plot:function
-                                #:with [id (geo-draw-function pen)
-                                           (geo-shape-extent width height 0.0 0.0)
-                                           (geo-shape-outline pen #true #true)]
-                                #false
-                                (make-rectangular x y) (stroke-color pen)
-                                (plot-function-mark-guard safe-f label (+ idx 1) total xmin xmax ymin ymax at-frac rng-frac)
-                                #false dynamic-angle dynamic-angle
-                                dots)))
+        (create-visualizer plot:function
+                           #:with [id (geo-draw-function pen)
+                                      (geo-shape-extent width height 0.0 0.0)
+                                      (geo-shape-outline pen #true #true)
+
+                                      #:position (make-rectangular x y)
+                                      #:color (stroke-color pen)
+                                      #:label (plot-function-mark-guard safe-f label (+ idx 1) total xmin xmax ymin ymax at-frac rng-frac)
+                                      #:pin-angle dynamic-angle
+                                      #:gap-angle dynamic-angle]
+                           dots)))
 
     (plot-visualizer function-realize xrange yrange
                      (or fast-range (plot-function-range safe-f 500))
@@ -130,17 +131,18 @@
           (plot-desc-pen #:width pen-width #:dash pen-dash
                          #:color (plot-select-pen-color pen-color idx bg-color)))
         
-        (create-geometry-object plot:function
-                                #:with [id (geo-draw-function pen)
-                                           (geo-shape-extent width height 0.0 0.0)
-                                           (geo-shape-outline pen #true #true)]
-                                #false
-                                (make-rectangular (min (real-part lft) (real-part rgt))
-                                                  (min (imag-part lft) (imag-part rgt)))
-                                (stroke-color pen)
-                                (plot-function-mark-guard f label (+ idx 1) total x1 x2 y1 y2 at-frac rng-frac)
-                                #false dynamic-angle dynamic-angle
-                                (list lft rgt))))
+        (create-visualizer plot:function
+                           #:with [id (geo-draw-function pen)
+                                      (geo-shape-extent width height 0.0 0.0)
+                                      (geo-shape-outline pen #true #true)
+
+                                      #:position (make-rectangular (min (real-part lft) (real-part rgt))
+                                                                   (min (imag-part lft) (imag-part rgt)))
+                                      #:color (stroke-color pen)
+                                      #:label (plot-function-mark-guard f label (+ idx 1) total x1 x2 y1 y2 at-frac rng-frac)
+                                      #:pin-angle dynamic-angle
+                                      #:gap-angle dynamic-angle]
+                           (list lft rgt))))
     
     (plot-visualizer linear-realize xrange yrange
                      linear-range (and pen-color #true))))

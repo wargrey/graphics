@@ -55,19 +55,19 @@
 
 (define geo-zero-pads : Geo-Pad (geo-pad 0.0 0.0 0.0 0.0))
 (define geo-pad-scale : (case-> [Geo-Pad Flonum Flonum -> Geo-Pad]
-                                [Geo-Outline-Datum Flonum Flonum -> Geo-Outline-Datum])
-  (lambda [self sx0 sy0]
-    (if (geo-pad? self)
-
-        (let-values ([(sx sy) (values (abs sx0) (abs sy0))])
-          (geo-pad (* (geo-pad-top self)    sy)
-                   (* (geo-pad-right self)  sx)
-                   (* (geo-pad-bottom self) sy)
-                   (* (geo-pad-left self)   sx)))
-
-        (and self
-             (λ [[master : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Pad
-               (geo-pad-scale (self master stroke border) sx0 sy0))))))
+                                [Geo-Outline-Datum Geo Flonum Flonum -> Geo-Outline-Datum])
+  (case-lambda
+    [(self sx0 sy0)
+     (let-values ([(sx sy) (values (abs sx0) (abs sy0))])
+       (geo-pad (* (geo-pad-top self)    sy)
+                (* (geo-pad-right self)  sx)
+                (* (geo-pad-bottom self) sy)
+                (* (geo-pad-left self)   sx)))]
+    [(self target sx0 sy0)
+     (cond [(geo-pad? self) (geo-pad-scale self sx0 sy0)]
+           [else (and self
+                      (λ [[master : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Pad
+                        (geo-pad-scale (self target stroke border) sx0 sy0)))])]))
 
 (define geo-pad-expand : (-> Geo-Pad Nonnegative-Flonum Nonnegative-Flonum (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self width height]
@@ -218,7 +218,7 @@
 
 (define geo-shape-outline : (case-> [Maybe-Stroke-Paint -> (Option Geo-Pad)]
                                     [Maybe-Stroke-Paint Boolean Boolean -> (Option Geo-Pad)])
-  (let ([insets : (HashTable Flonum Geo-Pad) (make-hasheq)])
+  (let ([insets : (HashTable Flonum Geo-Pad) (make-weak-hasheq)])
     (case-lambda
       [(stroke)
        (cond [(void? stroke) #false]
@@ -239,7 +239,7 @@
              [else geo-zero-pads])])))
 
 (define geo-stroke->outline : (-> Stroke Geo-Pad)
-  (let ([insets : (HashTable Flonum Geo-Pad) (make-hasheq)])
+  (let ([insets : (HashTable Flonum Geo-Pad) (make-weak-hasheq)])
     (lambda [stroke]
       (define thickness (stroke-width stroke))
 

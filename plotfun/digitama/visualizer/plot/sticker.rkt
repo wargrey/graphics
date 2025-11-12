@@ -1,0 +1,85 @@
+#lang typed/racket/base
+
+(provide (all-defined-out))
+
+(require geofun/color)
+
+(require geofun/digitama/base)
+(require geofun/digitama/paint)
+(require geofun/digitama/convert)
+
+(require geofun/digitama/paint/self)
+(require geofun/digitama/layer/type)
+(require geofun/digitama/layer/sticker)
+
+(require geofun/digitama/dc/resize)
+(require geofun/digitama/dc/adjuster)
+
+(require "../self.rkt")
+(require "../interface.rkt")
+(require "../../axis/view.rkt")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define sticker
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:color [pen-color : (Option Color) #false]
+           #:width [pen-width : (Option Real) #false]
+           #:dash [pen-dash : (Option Stroke-Dash+Offset) #false]
+           #:stroke-opacity [stroke-opacity : Real 1.0]
+           #:fill-opacity [brush-opacity : Real 0.618]
+           #:scale? [scale? : Boolean #false]
+           #:skip-palette? [skip-palette? : Boolean #false]
+           #:offset [offset : Complex 0.0+0.0i]
+           [self : Geo] [pos : Complex] [anchor : Geo-Pin-Anchor 'cc]] : Plot-Visualizer
+    (define-values (width height) (geo-flsize self))
+    (define-values (px py) (values (real-part pos) (imag-part pos)))
+    (define-values (xrange yrange)
+      (cond [(not scale?) (plot-range-normalize px px py py)]
+            [else (plot-range-normalize px (+ px width)
+                                        py (+ py height))]))
+
+    (define flpos  (make-rectangular (real->double-flonum px) (real->double-flonum py)))
+    (define-values (xoff yoff) (values (real->double-flonum (real-part offset)) (real->double-flonum (imag-part offset))))
+
+    (define lines-realize : Plot-Visualizer-Realize
+      (λ [idx total xmin xmax ymin ymax transform bg-color]
+        (define brush : FlRGBA (rgb* (plot-select-brush-color pen-color idx bg-color) brush-opacity))
+        (define pen : Stroke
+          (plot-desc-pen #:dash pen-dash #:width pen-width #:opacity stroke-opacity
+                         #:color (plot-select-pen-color pen-color idx bg-color)))
+
+        (and (<= xmin px xmax) (<= ymin py ymax)
+             (let ([the-sticker (geo-try-repaint self #:stroke pen #:fill brush)])
+               (if (or scale?)      
+                   (let ([xunit (real-part (plot-vxunit transform))]
+                         [yunit (imag-part (plot-vyunit transform))])
+                     (cons (make-sticker (geo-scale the-sticker xunit yunit)
+                                         anchor
+                                         (make-rectangular (* xoff xunit) (* yoff yunit)))
+                           (desc-geo:visualizer #:position (transform flpos)
+                                                #:color (stroke-color pen)
+                                                #:projection-lines (list flpos))))
+                   (cons (make-sticker the-sticker anchor (make-rectangular xoff yoff))
+                         (desc-geo:visualizer #:position (transform flpos)
+                                              #:color (stroke-color pen)
+                                              #:projection-lines (list flpos))))))))
+      
+    (plot-visualizer lines-realize xrange yrange
+                     (cond [(not scale?) (sticker-range px py)]
+                           [else (sticker-range px py width height)])
+                     (and (or pen-color skip-palette?) #true))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define sticker-range : (case-> [Real Real -> Plot-Visualizer-Data-Range]
+                                [Real Real Nonnegative-Flonum Nonnegative-Flonum -> Plot-Visualizer-Data-Range])
+  (case-lambda
+    [(px py)
+     (λ [xmin xmax]
+       (if (<= xmin px xmax)
+           (cons py py)
+           (cons -nan.0 +nan.0)))]
+    [(px py width height)
+     (λ [xmin xmax]
+       (if (<= xmin px xmax)
+           (cons py (+ py height))
+           (cons -nan.0 +nan.0)))]))

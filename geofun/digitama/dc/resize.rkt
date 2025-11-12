@@ -50,8 +50,9 @@
        (cond [(and (= sx 1.0) (= sy 1.0)) self]
              [(not (geo:scale? self))
               (create-geometry-object geo:scale
-                                      #:with [(geo-id self) geo-draw/scale! geo-scale-extent
-                                                            (geo-pad-scale (geo-outline self) sx sy)]
+                                      #:with [(geo-id self) geo-draw/scale!
+                                                            geo-scale-extent
+                                                            (geo-pad-scale (geo-outline self) self sx sy)]
                                       self sx sy)]
              [else (geo-scale (geo:transform-source self) (* sx (geo:scale-sx self)) (* sy (geo:scale-sy self)))]))]))
 
@@ -122,7 +123,7 @@
       (values (* (abs sx) owidth)
               (* (abs sy) oheight)
               (and ?oink (geo-ink-scale ?oink sx sy))))))
-
+  
 (define geo-draw/rotation! : Geo-Surface-Draw!
   (lambda [self dc x0 y0 width height]
     (with-asserts ([self geo:rotation?])

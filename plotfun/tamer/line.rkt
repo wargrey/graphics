@@ -48,7 +48,7 @@
                   #:range (cons 0 6)
                   #:unit-length '(24 %)
                   #:label "R"
-                  '(0 55/89 89/55 19/7 22/7)))
+                  '(0 55/89 89/55 19/7 22/7 5)))
 
 (define seq-line
   (plot-integer-line #:mark-template succ-desc

@@ -11,10 +11,10 @@
 (require geofun/digitama/base)
 (require geofun/digitama/markup)
 (require geofun/digitama/dc/text)
-(require geofun/digitama/path/tip/self)
+(require geofun/digitama/paint/self)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/sticker)
-(require geofun/digitama/paint/self)
+(require geofun/digitama/path/tip/self)
 
 (require "../axis/self.rkt")
 (require "guard.rkt")

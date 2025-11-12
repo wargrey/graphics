@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/list)
+(require digimon/flonum)
 
 (require "../../arithmetics.rkt")
 
@@ -67,3 +68,29 @@
                   maybe-stable-step
                   minor-count))
         (values null #false 1))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define plot-ticks-trim : (-> Plot-Ticks Flonum Nonnegative-Flonum Nonnegative-Flonum (Pairof Real Real) (Values Plot-Ticks (Pairof Real Real)))
+  (lambda [ticks origin unit-length total-length fallback-view]
+    (define O : Flonum (* origin total-length))
+    (define trimmed-ticks : Plot-Ticks
+      (for/list : Plot-Ticks ([self (in-list ticks)]
+                              #:when (sfl<= 0.0 (+ (* (plot-tick-value self) unit-length) O) total-length))
+        self))
+
+    (values trimmed-ticks
+            (if (and (pair? trimmed-ticks) (pair? (cdr trimmed-ticks)))
+                (cons (plot-tick-value (car trimmed-ticks))
+                      (plot-tick-value (last trimmed-ticks)))
+                fallback-view))))
+
+(define plot-xtick-filter : (-> (-> Flonum Flonum Float-Complex) Nonnegative-Flonum Nonnegative-Flonum (-> Plot-Tick Boolean))
+  (lambda [transform flmin flmax]
+    (λ [[t : Plot-Tick]]
+      (sfl<= flmin (real-part (transform (real->double-flonum (plot-tick-value t)) 0.0)) flmax))))
+
+(define plot-ytick-filter : (-> (-> Flonum Flonum Float-Complex) Nonnegative-Flonum Nonnegative-Flonum (-> Plot-Tick Boolean))
+  (lambda [transform flmin flmax]
+    (displayln (list 'y flmin flmax))
+    (λ [[t : Plot-Tick]]
+      (sfl<= flmin (imag-part (transform 0.0 (real->double-flonum (plot-tick-value t)))) flmax))))

@@ -12,13 +12,13 @@
 (require geofun/digitama/paint/self)
 (require geofun/digitama/geometry/dot)
 
-(require "dot.rkt")
-(require "self.rkt")
-(require "guard.rkt")
-(require "interface.rkt")
+(require "../dot.rkt")
+(require "../self.rkt")
+(require "../guard.rkt")
+(require "../interface.rkt")
 
-(require "../marker/self.rkt")
-(require "../unsafe/line.rkt")
+(require "../../marker/self.rkt")
+(require "../../unsafe/line.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot:lines geo:line:visualizer ()
@@ -36,6 +36,7 @@
            #:offset [offset : Complex 0.0+0.0i]
            #:color [pen-color : (Option Color) #false]
            #:width [pen-width : (Option Real) #false]
+           #:opacity [opacity : Real 1.0]
            #:dash [pen-dash : (Option Stroke-Dash+Offset) #false]
            [pts : (Listof Point2D)]
            [maybe-xmin : (Option Real) #false] [maybe-xmax : (Option Real) #false]
@@ -53,18 +54,20 @@
           (plot-function-pin-angle df/dx 0 placement))
 
         (define pen : Stroke
-          (plot-desc-pen #:width pen-width #:dash pen-dash
+          (plot-desc-pen #:width pen-width #:dash pen-dash #:opacity opacity
                          #:color (plot-select-pen-color pen-color idx bg-color)))
         
-        (create-geometry-object plot:lines
-                                #:with [id (geo-draw-lines pen)
-                                           (geo-shape-extent width height 0.0 0.0)
-                                           (geo-shape-outline pen #true #true)]
-                                #false
-                                (make-rectangular x y) (stroke-color pen)
-                                (plot-function-mark-guard safe-f label (+ idx 1) total xmin xmax ymin ymax at-frac rng-frac)
-                                #false dynamic-angle dynamic-angle
-                                dots)))
+        (create-visualizer plot:lines
+                           #:with [id (geo-draw-lines pen)
+                                      (geo-shape-extent width height 0.0 0.0)
+                                      (geo-shape-outline pen #true #true)
+
+                                      #:position (make-rectangular x y)
+                                      #:color (stroke-color pen)
+                                      #:label (plot-function-mark-guard safe-f label (+ idx 1) total xmin xmax ymin ymax at-frac rng-frac)
+                                      #:pin-angle dynamic-angle
+                                      #:gap-angle dynamic-angle]
+                           dots)))
 
     (plot-visualizer lines-realize xrange yrange
                      (plot-lines-range points)
