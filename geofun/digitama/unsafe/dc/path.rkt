@@ -15,12 +15,12 @@
 (require "../typed/more.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc_path : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Stroke) (Option Fill-Source) Fill-Rule Any)
+(define dc_path : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Pen) (Option Fill-Source) Fill-Rule Any)
   (lambda [cr x0 y0 width height footprints stroke fill-color fill-rule]
     (cairo_path cr footprints x0 y0 #false)
     (cairo-render cr stroke fill-color fill-rule)))
 
-(define dc_polyline : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) Stroke Boolean Any)
+(define dc_polyline : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) Pen Boolean Any)
   (lambda [cr x0 y0 flwidth flheight vertices stroke close?]
     (cairo_new_path cr)
     (cairo_simple_path cr vertices x0 y0 #false)
@@ -30,14 +30,14 @@
     
     (cairo-render cr stroke #false)))
 
-(define dc_polygon : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) (Option Stroke) (Option Fill-Source) Fill-Rule Any)
+(define dc_polygon : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) (Option Pen) (Option Fill-Source) Fill-Rule Any)
   (lambda [cr x0 y0 flwidth flheight vertices stroke background fill-rule]
     (cairo_new_path cr)
     (cairo_simple_path cr vertices x0 y0 #true)
     (cairo_close_path cr)
     (cairo-render cr stroke background fill-rule)))
 
-(define dc_polyline* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Stroke) (Option Fill-Source) Fill-Rule Boolean Any)
+(define dc_polyline* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Pen) (Option Fill-Source) Fill-Rule Boolean Any)
   (lambda [cr x0 y0 flwidth flheight footprints stroke background fill-rule close?]
     (cairo_new_path cr)
 
@@ -59,7 +59,7 @@
 
       (cairo-render-with-stroke cr stroke))))
 
-(define dc_polygon* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Stroke) (Option Fill-Source) Fill-Rule Any)
+(define dc_polygon* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Pen) (Option Fill-Source) Fill-Rule Any)
   (lambda [cr x0 y0 flwidth flheight footprints stroke background fill-rule]
     (cairo_new_path cr)
     (cairo_path cr footprints x0 y0 #false)

@@ -15,10 +15,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_stickman : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                           Geo-Stickman-Skeleton Nonnegative-Flonum Nonnegative-Flonum
-                          (Option Stroke) (Option Fill-Source) (Option Fill-Source) (Option Fill-Source)
+                          (Option Pen) (Option Fill-Source) (Option Fill-Source) (Option Fill-Source)
                           Any)
   (lambda [cr x0 y0 flwidth flheight self scale fallback-thickness stroke head-fill body-fill arm-fill]
-    (define thickness (* (stroke-maybe-width stroke fallback-thickness) scale))
+    (define thickness (* (pen-maybe-width stroke fallback-thickness) scale))
     (define rhead : Nonnegative-Flonum (* (geo-stickman-skeleton-head-radius self) scale))
     (define torso-width : Nonnegative-Flonum (* (geo-stickman-skeleton-torso-width self) scale))
     (define leg-width : Nonnegative-Flonum (* (geo-stickman-skeleton-leg-width self) scale))
@@ -36,7 +36,7 @@
     (define lft-leg-pts : (Listof Float-Complex) (stickman-leg-points (geo-stickman-skeleton-left-leg self) transform))
     (define rgt-leg-pts : (Listof Float-Complex) (stickman-leg-points (geo-stickman-skeleton-right-leg self) transform))
 
-    (define (draw-body [thickness : Nonnegative-Flonum] [scale : Nonnegative-Flonum] [pen : (Option Stroke)]) : Void
+    (define (draw-body [thickness : Nonnegative-Flonum] [scale : Nonnegative-Flonum] [pen : (Option Pen)]) : Void
       (cairo_new_path cr)
       (cairo-set-thickline-stroke cr pen body-fill (+ torso-width thickness) scale #true)
       (cairo-add-line cr neck hip)
@@ -47,7 +47,7 @@
       (cairo-add-lines cr hip rgt-leg-pts)
       (cairo_stroke cr))
 
-    (define (draw-arm [pts : (Listof Float-Complex)] [thickness : Nonnegative-Flonum] [scale : Nonnegative-Flonum] [pen : (Option Stroke)]) : Void
+    (define (draw-arm [pts : (Listof Float-Complex)] [thickness : Nonnegative-Flonum] [scale : Nonnegative-Flonum] [pen : (Option Pen)]) : Void
       (cairo_new_path cr)
       (cairo-set-thickline-stroke cr pen arm-fill (+ arm-width thickness) scale #true)
       (cairo-add-lines cr pts)

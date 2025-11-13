@@ -125,9 +125,9 @@
                   #false
                   #false)))
     
-    (when (and maybe.pdf) (graphics-save-as the-name src.c entry maybe.pdf snapshot 'pdf-bytes))
-    (when (and maybe.svg) (graphics-save-as the-name src.c entry maybe.svg snapshot 'svg-bytes))
-    (when (and maybe.png) (graphics-save-as the-name src.c entry maybe.png snapshot 'png-bytes))
+    (when (and maybe.pdf) (graphics-save-as src.c entry maybe.pdf snapshot 'pdf-bytes))
+    (when (and maybe.svg) (graphics-save-as src.c entry maybe.svg snapshot 'svg-bytes))
+    (when (and maybe.png) (graphics-save-as src.c entry maybe.png snapshot 'png-bytes))
 
     (list maybe.pdf maybe.svg maybe.png)))
 

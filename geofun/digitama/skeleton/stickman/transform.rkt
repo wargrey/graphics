@@ -58,10 +58,10 @@
                            hip lft-leg rgt-leg)))
 
 (define geo-standing-stickman-size : (->* (Geo-Stickman-Skeleton)
-                                          (Nonnegative-Flonum #:stroke (Option Stroke))
+                                          (Nonnegative-Flonum #:stroke (Option Pen))
                                           (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self [fallback-thickness 0.0] #:stroke [stroke #false]]
-    (define thick-ext : Nonnegative-Flonum (* (stroke-maybe-width stroke fallback-thickness) 2.0))
+    (define thick-ext : Nonnegative-Flonum (* (pen-maybe-width stroke fallback-thickness) 2.0))
     (define leg-width : Nonnegative-Flonum (geo-stickman-skeleton-leg-width self))
     (define arm-width : Nonnegative-Flonum (geo-stickman-skeleton-arm-width self))
     (define bbox : Geo-BBox (make-geo-bbox (cons 0.0+0.0i (geo-stickman-skeleton-points self))))

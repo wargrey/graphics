@@ -170,7 +170,7 @@
     (define Origin : Float-Complex (make-rectangular (+ (* view-width xO) xtick-min) 0.0))
     (define Oview : Float-Complex (+ Origin (flc-ri (+ (* view-height (if (not screen?) yO (- 1.0 yO))) ytick-min))))
 
-    (define tick-pen : Stroke (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
+    (define tick-pen : Pen (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
     (define-values (xdigit-position xdigit-anchor xmiror-anchor) (plot-axis-digit-position-values axis-style 'x))
     (define-values (ydigit-position ydigit-anchor ymiror-anchor) (plot-axis-digit-position-values axis-style 'y))
     (define-values (xmajor-pen xminor-pen xg-minor-count) (plot-grid-visual-values xgrid-style xminor-count adjust-color))

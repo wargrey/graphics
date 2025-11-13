@@ -14,22 +14,22 @@
 (require "../unsafe/typed/c.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define stroke-paint->source : (->* (Maybe-Stroke-Paint) (Stroke) Stroke)
+(define stroke-paint->source : (->* (Maybe-Stroke-Paint) (Pen) Pen)
   (lambda [paint [fallback-stroke (default-stroke)]]
-    (cond [(stroke? paint) paint]
+    (cond [(pen? paint) paint]
           [(or (not paint) (void? paint)) fallback-stroke]
           [else (desc-stroke fallback-stroke #:color paint)])))
 
-(define border-paint->source : (-> Maybe-Stroke-Paint Stroke)
+(define border-paint->source : (-> Maybe-Stroke-Paint Pen)
   (lambda [paint]
     (stroke-paint->source paint (default-border))))
 
-(define stroke-paint->source* : (-> Maybe-Stroke-Paint (Option Stroke))
+(define stroke-paint->source* : (-> Maybe-Stroke-Paint (Option Pen))
   (lambda [paint]
     (cond [(not paint) #false]
           [else (stroke-paint->source paint)])))
 
-(define border-paint->source* : (-> Maybe-Stroke-Paint (Option Stroke))
+(define border-paint->source* : (-> Maybe-Stroke-Paint (Option Pen))
   (lambda [paint]
     (cond [(not paint) #false]
           [else (stroke-paint->source paint (default-border))])))

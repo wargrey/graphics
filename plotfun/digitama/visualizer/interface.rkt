@@ -26,14 +26,14 @@
 (define default-plot-visualizer-label-position-range : (Parameterof (Pairof Real Real)) (make-parameter (cons 0.0 1.0)))
 (define default-plot-visualizer-label-placement : (Parameterof Plot-Visualizer-Label-Placement) (make-parameter 'auto))
 
-(define default-plot-function-stroke : (Parameterof Stroke) (make-parameter default-function-stroke))
+(define default-plot-function-stroke : (Parameterof Pen) (make-parameter default-function-stroke))
 (define default-plot-palette : (Parameterof Palette-Index->Pen+Brush-Colors) (make-parameter the-oklch-palette))
 (define plot-sampling? : (Parameterof Boolean) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-desc-pen : (->* ()
-                             (Stroke #:color (Option Color) #:opacity (Option Real) #:width (Option Real) #:dash (Option Stroke-Dash+Offset))
-                             Stroke)
+                             (Pen #:color (Option Color) #:opacity (Option Real) #:width (Option Real) #:dash (Option Stroke-Dash+Offset))
+                             Pen)
   (lambda [#:color [color #false] #:opacity [opacity #false] #:width [width #false] #:dash [dash+offset #false]
            [baseline (default-plot-function-stroke)]]
     (define-values (dash offset)

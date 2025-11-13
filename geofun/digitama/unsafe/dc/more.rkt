@@ -12,7 +12,7 @@
 (require "../typed/cairo.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc_stadium : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Stroke) (Option Fill-Source) Any)
+(define dc_stadium : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Fill-Source) Any)
   (lambda [cr x0 y0 flwidth flheight stroke background]
     (define flradius (* flheight 0.5))
     (define fllength (- flwidth flheight))
@@ -26,7 +26,7 @@
     (cairo_close_path cr)
     (cairo-render cr stroke background)))
 
-(define dc_half_stadium : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Stroke) (Option Fill-Source) Boolean Any)
+(define dc_half_stadium : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Fill-Source) Boolean Any)
   (lambda [cr x0 y0 flwidth flheight stroke background left?]
     (define flradius (* flheight 0.5))
     (define fllength (- flwidth flradius))
@@ -47,7 +47,7 @@
     (cairo_close_path cr)
     (cairo-render cr stroke background)))
 
-(define dc_bullet : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Stroke) (Option Fill-Source) Any)
+(define dc_bullet : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Fill-Source) Any)
   (lambda [cr x0 y0 flwidth flheight flogive stroke background]
     (define flradius (* flheight 0.5))
     (define aradius (* flradius 0.384))
@@ -67,7 +67,7 @@
 
 (define dc_sandglass : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                            Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
-                           (Option Stroke) (Option Fill-Source) Any)
+                           (Option Pen) (Option Fill-Source) Any)
   (lambda [cr x0 y0 flwidth flheight neck-width neck-height tube-height stroke background]
     (define-values (cy neck-a neck-b) (values (+ y0 (* flheight 0.5)) (* neck-width 0.25) (* neck-height 0.5)))
     (define bulb-a (* (max 0.0 (- flwidth neck-width)) 0.5))
@@ -101,7 +101,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_document : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                          Nonnegative-Flonum Nonnegative-Flonum Index (Option Stroke) (Option Fill-Source) Any)
+                          Nonnegative-Flonum Nonnegative-Flonum Index (Option Pen) (Option Fill-Source) Any)
   (lambda [cr x0 y0 flwidth flheight flhwave gapsize extra-n stroke background]
     (define ngap (* (real->double-flonum extra-n) gapsize))
     (define ctrl-xoff (* (- flwidth ngap) 0.25))
@@ -131,7 +131,7 @@
                    (+ i 1))))))
   
 (define dc_database : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                          Nonnegative-Flonum Nonnegative-Flonum Index (Option Stroke) (Option Fill-Source) Any)
+                          Nonnegative-Flonum Nonnegative-Flonum Index (Option Pen) (Option Fill-Source) Any)
   (lambda [cr x0 y0 flwidth flheight bradius gapsize extra-n stroke background]
     (define rx (+ x0 flwidth))
     (define ty (+ y0 bradius))
@@ -156,7 +156,7 @@
     
     (cairo-render cr stroke background)))
 
-(define dc_general_storage : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Stroke) (Option Fill-Source) Any)
+(define dc_general_storage : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Fill-Source) Any)
   (lambda [cr x0 y0 flwidth flheight aradius stroke background]
     (define bradius (* flheight 0.5))
     (define cy (+ y0 bradius))

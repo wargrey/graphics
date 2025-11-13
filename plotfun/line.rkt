@@ -116,7 +116,7 @@
     (define view-offset : Float-Complex (- (geo:path:self-origin main-axis)))
     (define flc-origin : Float-Complex (+ (make-polar (+ (* used-length origin) fltick-min) α) view-offset))
     
-    (define tick-pen : Stroke (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
+    (define tick-pen : Pen (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
     (define label-at-axis? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'axis))
 
     ;;; NOTE
@@ -247,7 +247,7 @@
     (define miror-offset :  Float-Complex (make-rectangular 0.0 (* digit-position (+ em))))
     (define flc-origin : Float-Complex (+ (make-rectangular (+ (* used-length origin) fltick-min) 0.0) view-offset))
 
-    (define tick-pen : Stroke (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
+    (define tick-pen : Pen (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
     (define-values (soff eoff) (geo-path-endpoint-offsets main-axis))
     (define label-at-axis? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'axis))
     (define flaxis-min : Flonum (+ (- fltick-min neg-margin) (real-part soff)))

@@ -14,6 +14,6 @@
 (define default-number-font : Font (desc-font #:family 'monospace))
 (define default-table-header-font : Font (desc-font #:size 'large #:weight 'bold))
 
-(define default-edge-stroke : Stroke (desc-stroke #:width 2.0 #:color 'DimGrey #:join 'round #:cap 'round))
-(define default-node-stroke : Stroke (desc-stroke #:width 2.0 #:color 'DarkGrey))
-(define default-black-stroke : Stroke (desc-stroke #:width 2.0 #:color 'Black))
+(define default-edge-stroke : Pen (desc-stroke #:width 2.0 #:color 'DimGrey #:join 'round #:cap 'round))
+(define default-node-stroke : Pen (desc-stroke #:width 2.0 #:color 'DarkGrey))
+(define default-black-stroke : Pen (desc-stroke #:width 2.0 #:color 'Black))

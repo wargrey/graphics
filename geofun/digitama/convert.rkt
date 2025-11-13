@@ -111,7 +111,7 @@
 
     (cond [(geo-pad? outline) outline]
           [(procedure? outline) (outline self stroke border)]
-          [(stroke? stroke) (geo-stroke->outline stroke)]
+          [(pen? stroke) (geo-pen->outline stroke)]
           [else geo-zero-pads])))
 
 (define geo-intrinsic-size : (-> Geo<%> (Values Nonnegative-Flonum Nonnegative-Flonum))
@@ -223,25 +223,25 @@
       [(stroke)
        (cond [(void? stroke) #false]
              [(not stroke) geo-zero-pads]
-             [(stroke? stroke) (geo-stroke->outline stroke)]
+             [(pen? stroke) (geo-pen->outline stroke)]
              [else #false])]
       [(stroke x? y?)
        (cond [(void? stroke) #false]
              [(not stroke) geo-zero-pads]
-             [(not (stroke? stroke)) #false]
-             [(and x? y?) (geo-stroke->outline stroke)]
+             [(not (pen? stroke)) #false]
+             [(and x? y?) (geo-pen->outline stroke)]
              [(or x? y?)
-              (let* ([thickness (stroke-width stroke)]
+              (let* ([thickness (pen-width stroke)]
                      [offset (* thickness 0.5)]
                      [hoff (if (and x?) offset 0.0)]
                      [voff (if (and y?) offset 0.0)])
                 (geo-pad voff hoff voff hoff))]
              [else geo-zero-pads])])))
 
-(define geo-stroke->outline : (-> Stroke Geo-Pad)
+(define geo-pen->outline : (-> Pen Geo-Pad)
   (let ([insets : (HashTable Flonum Geo-Pad) (make-weak-hasheq)])
     (lambda [stroke]
-      (define thickness (stroke-width stroke))
+      (define thickness (pen-width stroke))
 
       (hash-ref! insets thickness
                  (λ [] (let ([offset (* thickness 0.5)])

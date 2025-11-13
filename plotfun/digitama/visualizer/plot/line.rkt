@@ -34,10 +34,10 @@
            #:label-placement [placement : Plot-Visualizer-Label-Placement (default-plot-visualizer-label-placement)]
            #:scale [scale : Point2D 1.0]
            #:offset [offset : Complex 0.0+0.0i]
-           #:color [pen-color : (Option Color) #false]
-           #:width [pen-width : (Option Real) #false]
+           #:color [strk-color : (Option Color) #false]
+           #:width [strk-width : (Option Real) #false]
            #:opacity [opacity : Real 1.0]
-           #:dash [pen-dash : (Option Stroke-Dash+Offset) #false]
+           #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
            [pts : (Listof Point2D)]
            [maybe-xmin : (Option Real) #false] [maybe-xmax : (Option Real) #false]
            [maybe-ymin : (Option Real) #false] [maybe-ymax : (Option Real) #false]] : Plot-Visualizer
@@ -53,9 +53,9 @@
         (define dynamic-angle : (-> Real (Option Real))
           (plot-function-pin-angle df/dx 0 placement))
 
-        (define pen : Stroke
-          (plot-desc-pen #:width pen-width #:dash pen-dash #:opacity opacity
-                         #:color (plot-select-pen-color pen-color idx bg-color)))
+        (define pen : Pen
+          (plot-desc-pen #:width strk-width #:dash strk-dash #:opacity opacity
+                         #:color (plot-select-pen-color strk-color idx bg-color)))
         
         (create-visualizer plot:lines
                            #:with [id (geo-draw-lines pen)
@@ -63,7 +63,7 @@
                                       (geo-shape-outline pen #true #true)
 
                                       #:position (make-rectangular x y)
-                                      #:color (stroke-color pen)
+                                      #:color (pen-color pen)
                                       #:label (plot-function-mark-guard safe-f label (+ idx 1) total xmin xmax ymin ymax at-frac rng-frac)
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
@@ -71,7 +71,7 @@
 
     (plot-visualizer lines-realize xrange yrange
                      (plot-lines-range points)
-                     (and pen-color #true))))
+                     (and strk-color #true))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-lines-range : (-> (Listof Complex) Plot-Visualizer-Data-Range)

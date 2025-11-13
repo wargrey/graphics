@@ -25,8 +25,8 @@
            #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [self : Geo<%>]] : Bitmap
-    (define s : (Option Stroke) (stroke-paint->source* stroke))
-    (define b : (Option Stroke) (border-paint->source* border))
+    (define s : (Option Pen) (stroke-paint->source* stroke))
+    (define b : (Option Pen) (border-paint->source* border))
     (parameterize ([default-stroke-source s]
                    [default-border-source b]
                    [default-font-source (font-paint->source fgc)]

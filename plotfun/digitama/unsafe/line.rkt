@@ -15,6 +15,6 @@
 (require geofun/digitama/unsafe/dc/path)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc_line : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) Stroke Any)
+(define dc_line : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) Pen Any)
   (lambda [cr x0 y0 flwidth flheight vertices stroke]
     (dc_polyline cr x0 y0 flwidth flheight vertices stroke #false)))

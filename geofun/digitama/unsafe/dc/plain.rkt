@@ -24,7 +24,7 @@
 (define dc_frame : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Bitmap-Surface
                        Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                        Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
-                       (Option Stroke) (Option Fill-Source) Byte Positive-Flonum Any)
+                       (Option Pen) (Option Fill-Source) Byte Positive-Flonum Any)
   (lambda [cr x0 y0 width height src
               border-x border-y border-width border-height dest-x dest-y dest-width dest-height
               border background filter density]
@@ -35,7 +35,7 @@
     (cairo-composite cr src (+ x0 dest-x) (+ y0 dest-y) dest-width dest-height filter s s)))
 
 (define dc_grid : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                      (Listof Nonnegative-Flonum) (Listof Nonnegative-Flonum) (Option Stroke)
+                      (Listof Nonnegative-Flonum) (Listof Nonnegative-Flonum) (Option Pen)
                       Any)
   (lambda [cr x0 y0 width height xs ys stroke]
     (unless (not stroke)

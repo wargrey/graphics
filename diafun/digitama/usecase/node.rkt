@@ -36,7 +36,7 @@
 (define diauc-block-ucase : Dia-Path-Block-Create
   (lambda [node-key label style width height direction hint]
     (define pen (dia-node-select-stroke-paint style))
-    (define thickness (stroke-maybe-width pen))
+    (define thickness (pen-maybe-width pen))
     
     (create-dia-node #:node dia:node:ellipse
                      #:id node-key #:type 'UseCase hint

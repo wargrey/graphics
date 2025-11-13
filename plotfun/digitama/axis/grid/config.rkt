@@ -9,10 +9,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-grid-visual-values : (case-> [(Option Plot-Grid-Style) (U Index (-> Real Real Index)) (-> FlRGBA FlRGBA)
-                                                                    -> (Values (Option Stroke) (Option Stroke)
+                                                                    -> (Values (Option Pen) (Option Pen)
                                                                                (U Index (-> Real Real Index)))]
                                           [(Option Plot-Grid-Style) (U Index (-> Real Real Index))
-                                                                    -> (Values (Option Stroke) (Option Stroke)
+                                                                    -> (Values (Option Pen) (Option Pen)
                                                                                (U Index (-> Real Real Index)))])
   (case-lambda
     [(self minor-count)
@@ -26,8 +26,8 @@
      (if (or self)
          (let ([major-pen (plot-grid-style-major-stroke self)]
                [minor-pen (plot-grid-style-minor-stroke self)])
-           (values (and major-pen (stroke-adjust-color major-pen adjust))
-                   (and minor-pen (stroke-adjust-color minor-pen adjust))
+           (values (and major-pen (pen-adjust-color major-pen adjust))
+                   (and minor-pen (pen-adjust-color minor-pen adjust))
                    (or (plot-grid-style-minor-count self)
                        minor-count)))
          (values #false #false minor-count))]))

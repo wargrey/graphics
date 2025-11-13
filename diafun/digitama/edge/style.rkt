@@ -72,10 +72,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-edge-select-line-paint : (-> (U Dia-Edge-Style Maybe-Stroke-Paint) Option-Stroke-Paint)
   (lambda [s]
-    (define fallback-paint : (Option Stroke) (stroke-paint->source* (dia-edge-base-style-line-paint ((default-dia-edge-base-style)))))
+    (define fallback-paint : (Option Pen) (stroke-paint->source* (dia-edge-base-style-line-paint ((default-dia-edge-base-style)))))
     
     (cond [(void? s) fallback-paint]
-          [(or (not s) (stroke? s)) s]
+          [(or (not s) (pen? s)) s]
           [(dia-edge-style? s)
            (let*-values ([(c) (dia-edge-style-color s)]
                          [(d+o) (dia-edge-style-dash s)]
@@ -83,8 +83,8 @@
              (desc-stroke #:color (and (not (void? c)) c)
                           #:width (dia-edge-style-width s)
                           #:dash dash #:offset offset
-                          (if (stroke? fallback-paint) fallback-paint (default-stroke))))]
-          [(stroke? fallback-paint) (desc-stroke fallback-paint #:color s)]
+                          (if (pen? fallback-paint) fallback-paint (default-stroke))))]
+          [(pen? fallback-paint) (desc-stroke fallback-paint #:color s)]
           [else s])))
 
 (define dia-edge-select-source-tip : (-> Dia-Edge-Style Option-Geo-Tip)

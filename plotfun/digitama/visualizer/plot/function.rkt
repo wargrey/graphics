@@ -38,9 +38,9 @@
            #:label-position-range [rng-frac : (Pairof Real Real) (default-plot-visualizer-label-position-range)]
            #:label-placement [placement : Plot-Visualizer-Label-Placement (default-plot-visualizer-label-placement)]
            #:density [density : Byte (default-plot-visualizer-sample-density)]
-           #:color [pen-color : (Option Color) #false]
-           #:width [pen-width : (Option Real) #false]
-           #:dash [pen-dash : (Option Stroke-Dash+Offset) #false]
+           #:color [strk-color : (Option Color) #false]
+           #:width [strk-width : (Option Real) #false]
+           #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
            #:opacity [opacity : Real 1.0]
            #:fast-range [fast-range : (Option Plot-Visualizer-Data-Range) #false]
            #:safe-df/dx [alt-df/dx : (Option (-> Real Real)) #false]
@@ -65,9 +65,9 @@
                                    (or alt-ddf/dxx (λ [[x : Real]] (ddf/dxx safe-f x)))
                                    placement))
 
-        (define pen : Stroke
-          (plot-desc-pen #:width pen-width #:dash pen-dash #:opacity opacity
-                         #:color (plot-select-pen-color pen-color idx bg-color)))
+        (define pen : Pen
+          (plot-desc-pen #:width strk-width #:dash strk-dash #:opacity opacity
+                         #:color (plot-select-pen-color strk-color idx bg-color)))
         
         (create-visualizer plot:function
                            #:with [id (geo-draw-function pen)
@@ -75,7 +75,7 @@
                                       (geo-shape-outline pen #true #true)
 
                                       #:position (make-rectangular x y)
-                                      #:color (stroke-color pen)
+                                      #:color (pen-color pen)
                                       #:label (plot-function-mark-guard safe-f label (+ idx 1) total xmin xmax ymin ymax at-frac rng-frac)
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
@@ -83,7 +83,7 @@
 
     (plot-visualizer function-realize xrange yrange
                      (or fast-range (plot-function-range safe-f 500))
-                     (and pen-color #true))))
+                     (and strk-color #true))))
 
 (define f:linear
   (lambda [#:id [id : (Option Symbol) #false]
@@ -91,9 +91,9 @@
            #:label-position [at-frac : Real (default-plot-visualizer-label-position)]
            #:label-position-range [rng-frac : (Pairof Real Real) (default-plot-visualizer-label-position-range)]
            #:label-placement [placement : Plot-Visualizer-Label-Placement (default-plot-visualizer-label-placement)]
-           #:color [pen-color : (Option Color) #false]
-           #:width [pen-width : (Option Real) #false]
-           #:dash [pen-dash : (Option Stroke-Dash+Offset) #false]
+           #:color [strk-color : (Option Color) #false]
+           #:width [strk-width : (Option Real) #false]
+           #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
            #:%.lf [%.lf : Natural 2]
            [k : Real] [b : Real]
            [maybe-xmin : (Option Real) #false] [maybe-xmax : (Option Real) #false]
@@ -127,9 +127,9 @@
         (define height (abs (imag-part (- rgt lft))))
         (define dynamic-angle : (-> Real (Option Real)) (plot-function-pin-angle k 0 placement))
 
-        (define pen : Stroke
-          (plot-desc-pen #:width pen-width #:dash pen-dash
-                         #:color (plot-select-pen-color pen-color idx bg-color)))
+        (define pen : Pen
+          (plot-desc-pen #:width strk-width #:dash strk-dash
+                         #:color (plot-select-pen-color strk-color idx bg-color)))
         
         (create-visualizer plot:function
                            #:with [id (geo-draw-function pen)
@@ -138,14 +138,14 @@
 
                                       #:position (make-rectangular (min (real-part lft) (real-part rgt))
                                                                    (min (imag-part lft) (imag-part rgt)))
-                                      #:color (stroke-color pen)
+                                      #:color (pen-color pen)
                                       #:label (plot-function-mark-guard f label (+ idx 1) total x1 x2 y1 y2 at-frac rng-frac)
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
                            (list lft rgt))))
     
     (plot-visualizer linear-realize xrange yrange
-                     linear-range (and pen-color #true))))
+                     linear-range (and strk-color #true))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-function-range : (-> (-> Real (Option Number)) Positive-Index Plot-Visualizer-Data-Range)

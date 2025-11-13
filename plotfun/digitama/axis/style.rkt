@@ -45,7 +45,7 @@
    [negative-margin : Real+% 0.0]))
 
 (define-struct/parameter plot-axis-style : Plot-Axis-Style
-  ([stroke : Stroke default-axis-stroke]
+  ([stroke : Pen default-axis-stroke]
    [font : Font default-axis-font]
    [tick-thickness : Real+% 1.0]
    [tick-length : Real+% '(300 %)]

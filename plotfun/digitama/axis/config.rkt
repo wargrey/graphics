@@ -23,12 +23,12 @@
         (if (pair? tip) (car tip) tip)
         (if (pair? tip) (cdr tip) tip))))
 
-(define plot-axis-visual-values : (case-> [Plot-Axis-Style -> (Values Font Font Font Font Stroke Nonnegative-Flonum Color Color Color Color)]
-                                          [Plot-Axis-Style (-> FlRGBA FlRGBA) -> (Values Font Font Font Font Stroke Nonnegative-Flonum FlRGBA FlRGBA FlRGBA FlRGBA)])
+(define plot-axis-visual-values : (case-> [Plot-Axis-Style -> (Values Font Font Font Font Pen Nonnegative-Flonum Color Color Color Color)]
+                                          [Plot-Axis-Style (-> FlRGBA FlRGBA) -> (Values Font Font Font Font Pen Nonnegative-Flonum FlRGBA FlRGBA FlRGBA FlRGBA)])
   (case-lambda
     [(self)
      (let* ([axis-pen (plot-axis-style-stroke self)]
-            [axis-color (stroke-color axis-pen)]
+            [axis-color (pen-color axis-pen)]
             [label-color (plot-axis-style-label-color self)]
             [axis-font (plot-axis-style-font self)]
             [label-font (or (plot-axis-style-label-font self) axis-font)])    
@@ -36,14 +36,14 @@
                (or (plot-axis-style-digit-font self) axis-font)
                label-font
                (or (plot-axis-style-desc-font self) label-font)
-               axis-pen (stroke-width axis-pen)
+               axis-pen (pen-width axis-pen)
                (or (plot-axis-style-digit-color self) axis-color)
                (or (plot-axis-style-tick-color self) axis-color)
                (or label-color axis-color)
                (or (plot-axis-style-desc-color self) label-color axis-color)))]
     [(self adjust)
      (let* ([axis-pen (plot-axis-style-stroke self)]
-            [axis-color (stroke-color axis-pen)]
+            [axis-color (pen-color axis-pen)]
             [adjusted-color (adjust axis-color)]
             [digit-color (plot-axis-style-digit-color self)]
             [tick-color (plot-axis-style-tick-color self)]
@@ -56,7 +56,7 @@
                label-font
                (or (plot-axis-style-desc-font self) label-font)
                (if (equal? adjusted-color axis-color) axis-pen (desc-stroke axis-pen #:color adjusted-color))
-               (stroke-width axis-pen)
+               (pen-width axis-pen)
                (if (not digit-color) adjusted-color (adjust (rgb* digit-color)))
                (if (not tick-color) adjusted-color (adjust (rgb* tick-color)))
                label-color
@@ -92,7 +92,7 @@
     (define view-height : Nonnegative-Flonum (max (real->double-flonum (* view-width ratio)) 0.0))
     (define-values (neg-margin pos-margin) (plot-axis-margin-values tip view-width))
 
-    (values (+ view-height neg-margin pos-margin (stroke-width (plot-axis-style-stroke self)))
+    (values (+ view-height neg-margin pos-margin (pen-width (plot-axis-style-stroke self)))
             view-height neg-margin pos-margin)))
 
 (define plot-axis-margin-values : (-> Plot-Axis-Tip-Style Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
@@ -112,7 +112,7 @@
     (values fllength
             (max (- fllength neg-margin pos-margin
                     (~length (plot-axis-style-tick-thickness self)
-                             (stroke-width (plot-axis-style-stroke self)))) 0.0)
+                             (pen-width (plot-axis-style-stroke self)))) 0.0)
             neg-margin pos-margin)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -13,9 +13,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_edge : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                      Geo-Path-Clean-Prints Float-Complex (Option Stroke)
-                      Geo-Path-Prints (Option Stroke) (Option Fill-Source) Float-Complex
-                      Geo-Path-Prints (Option Stroke) (Option Fill-Source) Float-Complex
+                      Geo-Path-Clean-Prints Float-Complex (Option Pen)
+                      Geo-Path-Prints (Option Pen) (Option Fill-Source) Float-Complex
+                      Geo-Path-Prints (Option Pen) (Option Fill-Source) Float-Complex
                       (Pairof (Option Float-Complex) (Option Float-Complex))
                       Any)
   (lambda [cr x0 y0 flwidth flheight footprints offset stroke
@@ -33,7 +33,7 @@
     (dc-edge-draw-shape cr tgt-mkr-prints tgt-mkr-pen tgt-mkr-brush tgt-pos)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc-edge-draw-shape : (-> Cairo-Ctx Geo-Path-Prints (Option Stroke) (Option Fill-Source) Float-Complex Void)
+(define dc-edge-draw-shape : (-> Cairo-Ctx Geo-Path-Prints (Option Pen) (Option Fill-Source) Float-Complex Void)
   (lambda [cr prints stroke brush position]
     (when (pair? prints)
       (define px (real-part position))

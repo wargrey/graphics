@@ -8,12 +8,12 @@
 (define dc_frame_size : (-> Nonnegative-Flonum Nonnegative-Flonum
                             Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                             Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
-                            (Option Stroke)
+                            (Option Pen)
                             (Values Nonnegative-Flonum Nonnegative-Flonum
                                     Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                                     Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [dest-width dest-height mtop mright mbottom mleft ptop pright pbottom pleft border]
-    (define line-width (stroke-maybe-width border))
+    (define line-width (pen-maybe-width border))
     (define line-inset (* line-width 0.5))
     (define-values (width  border-x border-width  dest-x) (frame-metrics line-width line-inset mleft mright pleft pright dest-width))
     (define-values (height border-y border-height dest-y) (frame-metrics line-width line-inset mtop mbottom ptop pbottom dest-height))

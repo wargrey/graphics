@@ -187,13 +187,13 @@
  [dc_art_text
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
       String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment
-      (Option Stroke) (Option Fill-Source) (Option Fill-Source)
+      (Option Pen) (Option Fill-Source) (Option Fill-Source)
       Any)]
  
  [dc_text
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
       String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Fill-Source (Option Fill-Source)
-      (Option Stroke) (Option Stroke) (Option Stroke) (Option Stroke) (Option Stroke)
+      (Option Pen) (Option Pen) (Option Pen) (Option Pen) (Option Pen)
       Any)]
  
  [dc_paragraph

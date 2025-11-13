@@ -5,9 +5,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define font : Font (desc-font #:family 'math #:size 'large))
-(define pen : Stroke (desc-stroke #:width 1.5))
-(define tick-pen : Stroke (desc-stroke #:width 1.0 #:color 'DimGray))
-(define aux-pen : Stroke (desc-stroke #:width 0.5 #:dash 'long-dash #:color 'DimGray))
+(define pen : Pen (desc-stroke #:width 1.5))
+(define tick-pen : Pen (desc-stroke #:width 1.0 #:color 'DimGray))
+(define aux-pen : Pen (desc-stroke #:width 0.5 #:dash 'long-dash #:color 'DimGray))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main

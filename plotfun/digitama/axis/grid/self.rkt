@@ -9,6 +9,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter plot-grid-style : Plot-Grid-Style
-  ([major-stroke : (Option Stroke) default-major-grid-stroke]
-   [minor-stroke : (Option Stroke) default-minor-grid-stroke]
+  ([major-stroke : (Option Pen) default-major-grid-stroke]
+   [minor-stroke : (Option Pen) default-minor-grid-stroke]
    [minor-count :  (U False Index (-> Real Real Index)) 9]))

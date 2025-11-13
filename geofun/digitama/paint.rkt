@@ -9,7 +9,7 @@
 (require "unsafe/source.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Maybe-Stroke-Source (U Stroke False Void))
+(define-type Maybe-Stroke-Source (U Pen False Void))
 (define-type Maybe-Fill-Source (U Fill-Source False Void))
 
 (define default-stroke-source : (Parameterof Maybe-Stroke-Source) (make-parameter (void)))
@@ -20,18 +20,18 @@
 (define default-font-source : (Parameterof (Option Fill-Source)) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define current-stroke-source* : (-> Stroke)
+(define current-stroke-source* : (-> Pen)
   (lambda []
     (define src (default-stroke-source))
-    (cond [(stroke? src) src]
+    (cond [(pen? src) src]
           [else (stroke-paint->source (default-stroke-paint))])))
 
-(define current-stroke-source : (-> (Option Stroke))
+(define current-stroke-source : (-> (Option Pen))
   (lambda []
     (define src (default-stroke-source))
     (if (void? src) (stroke-paint->source* (default-stroke-paint)) src)))
 
-(define current-border-source : (-> (Option Stroke))
+(define current-border-source : (-> (Option Pen))
   (lambda []
     (define src (default-border-source))
     (if (void? src) (border-paint->source* (default-border-paint)) src)))
@@ -65,19 +65,19 @@
         (current-fill-source)
         (fill-paint->source* alt-fill))))
 
-(define geo-select-border-paint : (-> Maybe-Stroke-Paint (Option Stroke))
+(define geo-select-border-paint : (-> Maybe-Stroke-Paint (Option Pen))
   (lambda [alt-bdr]
     (if (void? alt-bdr)
         (current-border-source)
         (border-paint->source* alt-bdr))))
 
-(define geo-select-stroke-paint : (-> Maybe-Stroke-Paint (Option Stroke))
+(define geo-select-stroke-paint : (-> Maybe-Stroke-Paint (Option Pen))
   (lambda [alt-strk]
     (if (void? alt-strk)
         (current-stroke-source)
         (stroke-paint->source* alt-strk))))
 
-(define geo-select-stroke-paint* : (-> Maybe-Stroke-Paint Stroke)
+(define geo-select-stroke-paint* : (-> Maybe-Stroke-Paint Pen)
   (lambda [alt-strk]
     (if (void? alt-strk)
         (current-stroke-source*)

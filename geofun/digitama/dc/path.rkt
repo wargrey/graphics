@@ -66,7 +66,7 @@
     (define-values (spt srad ept erad) (gpp-endpoint-vectors footprints))
     (define-values (ik.x ik.y ik.w ik.h) (gpp-ink-box footprints))
 
-    (define thickness : Nonnegative-Flonum (stroke-width (if (stroke? stroke) stroke (default-stroke))))
+    (define thickness : Nonnegative-Flonum (pen-width (if (pen? stroke) stroke (default-stroke))))
     (define-values (src-shape s.x0 s.y0 s.w s.h s.off s.cfg) (geo-tip-shape (geo-tip-filter src-tip) thickness srad #false (or src-plm tip-plm)))
     (define-values (tgt-shape t.x0 t.y0 t.w t.h t.off t.cfg) (geo-tip-shape (geo-tip-filter tgt-tip) thickness erad  #true (or tgt-plm tip-plm)))
     (define-values (s.x s.y) (values (+ (real-part spt) (real-part s.off) s.x0) (+ (imag-part spt) (imag-part s.off) s.y0)))
@@ -267,10 +267,10 @@
     (λ [self cr x0 y0 width height]
       (with-asserts ([self geo:path:self?])
         (define paint (geo-select-stroke-paint alt-stroke))
-        (define color (and paint (stroke-color paint)))
+        (define color (and paint (pen-color paint)))
         (define-values (sclr tclr) (values (or alt-srgba color) (or alt-trgba color)))
 
-        (define (tip-stroke [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Stroke)
+        (define (tip-stroke [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Pen)
           (if (geo-tip-config-fill? cfg)
               (desc-stroke #:width 1.0 #:color clr)
               (and paint (desc-stroke paint #:color clr #:dash 'solid #:width (geo-tip-config-thickness cfg)))))

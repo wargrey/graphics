@@ -36,7 +36,7 @@
    [gap : Plot-Mark-Vector plot-mark-null-vector]
    [anchor : (Option Geo-Pin-Anchor) #false]
    [datum : Any #false]
-   [debug? : (U Boolean Stroke) #false])
+   [debug? : (U Boolean Pen) #false])
   #:transparent)
 
 (define plot-mark-sync-with-template : (-> Plot:Mark (U False Plot:Mark Plot-Mark-Description) Plot:Mark)
@@ -55,7 +55,7 @@
            #:pin-length [p-length : (Option Real+%) #false] #:pin-angle [p-angle : (Option Real) -pi/2]
            #:gap-length [length : Real+% +nan.0] #:gap-angle [angle : Real +nan.0]
            #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
-           #:debug? [debug? : (U Boolean Stroke) #false]
+           #:debug? [debug? : (U Boolean Pen) #false]
            [x : Integer]] : Plot:Mark
     (make-plot:mark #:point x #:datum datum #:shape shape
                     #:desc desc #:anchor anchor
@@ -71,7 +71,7 @@
            #:pin-length [p-length : (Option Real+%) #false] #:pin-angle [p-angle : (Option Real) -pi/2]
            #:gap-length [length : Real+% +nan.0] #:gap-angle [angle : Real +nan.0]
            #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
-           #:debug? [debug? : (U Boolean Stroke) #false]
+           #:debug? [debug? : (U Boolean Pen) #false]
            [x : Real]] : Plot:Mark
     (make-plot:mark #:point x #:datum datum #:shape shape
                     #:desc desc #:anchor anchor
@@ -87,7 +87,7 @@
            #:pin-length [p-length : (Option Real+%) #false] #:pin-angle [p-angle : (Option Real) #false]
            #:gap-length [g-length : Real+% +nan.0] #:gap-angle [g-angle : Real +nan.0]
            #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
-           #:debug? [debug? : (U Boolean Stroke) #false]
+           #:debug? [debug? : (U Boolean Pen) #false]
            [x : Complex]] : Plot:Mark
     (make-plot:mark #:point x #:datum datum #:shape shape
                     #:desc desc #:anchor anchor
@@ -103,7 +103,7 @@
            #:pin-length [p-length : (Option Real+%) '(100 %)] #:pin-angle [p-angle : (Option Real) +nan.0]
            #:gap-length [g-length : Real+% '(42 %)] #:gap-angle [g-angle : Real +nan.0]
            #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
-           #:debug? [debug? : (U Boolean Stroke) #false]
+           #:debug? [debug? : (U Boolean Pen) #false]
            [desc : Plot-Mark-Static-Description]] : Plot:Mark
     (make-plot:mark #:point x #:datum datum #:shape shape
                     #:desc desc #:anchor anchor
@@ -118,7 +118,7 @@
            #:pin-angle [p-angle : (Option Real) #false]
            #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
            #:desc [desc : (Option Plot-Mark-Description) plot-desc-point]
-           #:debug? [debug? : (U Boolean Stroke) #false]
+           #:debug? [debug? : (U Boolean Pen) #false]
            [length : Real+%] [angle : Real 0.0]] : Plot:Mark
     (make-plot:mark #:shape shape
                     #:desc desc #:anchor anchor

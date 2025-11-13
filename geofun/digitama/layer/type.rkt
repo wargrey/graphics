@@ -81,6 +81,13 @@
           [(memq pcol '(?t ?c ?b ??)) (case/eq prow [(lt ct rt ?t) '?t] [(lc cc rc ?c) '?c] [(lb cb rb ?b) '?b] [else '??])]
           [else 'cc])))
 
+(define geo-anchor-vertical-flip : (-> Geo-Pin-Anchor Geo-Pin-Anchor)
+  (lambda [anchor]
+    (case/eq anchor
+      [(lt) 'lb] [(ct) 'cb] [(rt) 'rb]
+      [(lb) 'lt] [(cb) 'ct] [(rb) 'rt]
+      [else anchor])))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (G) geo-group-boundary : (->* ((Listof (GLayerof G)) Nonnegative-Flonum Nonnegative-Flonum)
                                                (Flonum Flonum)
@@ -115,18 +122,18 @@
 (define geo-pin-anchor? : (-> Any Boolean : Geo-Pin-Anchor)
   (lambda [v]
     (case/eq v
-             [(lt lc lb) #true]
-             [(ct cc cb) #true]
-             [(rt rc rb) #true]
-             [else (case/eq v
-                            [(l? c? r?) #true]
-                            [(?t ?c ?b) #true]
-                            [(??) #true]
-                            [else #false])])))
-    
+      [(lt lc lb) #true]
+      [(ct cc cb) #true]
+      [(rt rc rb) #true]
+      [else (case/eq v
+              [(l? c? r?) #true]
+              [(?t ?c ?b) #true]
+              [(??) #true]
+              [else #false])])))
+
 (define geo-append-align? : (-> Any Boolean : Geo-Append-Align)
   (lambda [v]
     (case/eq v
-             [(vl vc vr v?) #true]
-             [(ht hc hb h?) #true]
-             [else #false])))
+      [(vl vc vr v?) #true]
+      [(ht hc hb h?) #true]
+      [else #false])))

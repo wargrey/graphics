@@ -45,7 +45,7 @@
            #:rotate [rotate : Real 0.0] #:debug? [debug0? : Boolean #false]
            [self : Plot:Mark] [transform0 : (Option Plot-Position-Transform) #false]] : Plot:Marker
     (define transform : Plot-Position-Transform (or transform0 plot-mark-values))
-    (define maybe-debugger : (U Boolean Stroke) (plot:mark-debug? self))
+    (define maybe-debugger : (U Boolean Pen) (plot:mark-debug? self))
     (define debug? : Boolean (or debug0? (and maybe-debugger #true)))
     (define labels : (Listof Geo-Sticker-Datum)
       (let sticker-filter ([desc (plot:mark-desc self)])
@@ -68,7 +68,7 @@
     (define master : Geo:Path:Self
       (geo-path* #:id id
                  #:stroke (cond [(not debug?) pin-stroke]
-                                [(stroke? maybe-debugger) maybe-debugger]
+                                [(pen? maybe-debugger) maybe-debugger]
                                 [else plot-mark-debugger])
                  #:source-tip (or (plot:mark-shape self) (and debug? 'dot))
                  #:target-tip (and debug? 'arrow)
@@ -126,5 +126,5 @@
     [(x y) (make-rectangular x y)]
     [(pt) pt]))
 
-(define plot-mark-debugger : Stroke
+(define plot-mark-debugger : Pen
   (desc-stroke #:color 'firebrick))

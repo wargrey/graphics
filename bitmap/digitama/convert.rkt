@@ -26,7 +26,7 @@
     [(_ dc #:with [width height density scale? outline] [args ...] [paint-args ...])
      (syntax/loc stx
        (let*-values ([(s) (values outline)]
-                     [(linewidth) (stroke-maybe-width s)]
+                     [(linewidth) (pen-maybe-width s)]
                      [(offset) (* linewidth 0.5)]
                      [(sfc png-cr fxwidth fxheight) (cairo-create-argb-image-surface* (+ linewidth width) (+ linewidth height) density scale?)])
          (dc png-cr offset offset width height args ... s paint-args ...)

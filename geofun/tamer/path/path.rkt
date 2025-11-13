@@ -4,10 +4,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define path : (Listof PolyCurve2D) (list 100.0 200.0 (list 175+75i 125+25i 100+50i) 100-64i (list 121-72i 142-64i) 142))
-(define pen : Stroke (desc-stroke #:width 2.0))
-(define bezier-pen : Stroke (desc-stroke #:width 1.5 #:dash 'long-dash #:color 'Orange))
+(define pen : Pen (desc-stroke #:width 2.0))
+(define bezier-pen : Pen (desc-stroke #:width 1.5 #:dash 'long-dash #:color 'Orange))
 
-(define path-examplify : (->* ((Listof PolyCurve2D) Option-Geo-Tip Option-Geo-Tip Stroke) ((Option String) Boolean) Geo)
+(define path-examplify : (->* ((Listof PolyCurve2D) Option-Geo-Tip Option-Geo-Tip Pen) ((Option String) Boolean) Geo)
   (lambda [path smkr emkr pen [label #false] [reverse? #false]]
     (define glabels
       (and label

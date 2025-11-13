@@ -172,15 +172,15 @@
  [cairo-clip (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Void)]
 
  [cairo-set-source-as-stroke (-> Cairo-Ctx Fill-Source Flonum Flonum Boolean Void)]
- [cairo-set-thickline-stroke (-> Cairo-Ctx (Option Stroke) (Option Fill-Source) Flonum Flonum Boolean Void)]
+ [cairo-set-thickline-stroke (-> Cairo-Ctx (Option Pen) (Option Fill-Source) Flonum Flonum Boolean Void)]
  [cairo-set-source (case-> [Cairo-Ctx Fill-Source -> Void]
                            [Cairo-Ctx Fill-Source Flonum -> Void])]
  
- [cairo-set-stroke (case-> [Cairo-Ctx Stroke -> Void]
-                           [Cairo-Ctx Stroke (Option Flonum) Flonum Boolean -> Void])]
+ [cairo-set-stroke (case-> [Cairo-Ctx Pen -> Void]
+                           [Cairo-Ctx Pen (Option Flonum) Flonum Boolean -> Void])]
  
- [cairo-render-with-stroke (case-> [Cairo-Ctx Stroke -> Void]
-                                   [Cairo-Ctx Stroke (Option Flonum) Flonum Boolean -> Void])]
+ [cairo-render-with-stroke (case-> [Cairo-Ctx Pen -> Void]
+                                   [Cairo-Ctx Pen (Option Flonum) Flonum Boolean -> Void])]
  
  [cairo-composite
   (-> Cairo-Ctx Cairo-Surface
@@ -199,6 +199,6 @@
           [Cairo-Ctx Fill-Source Fill-Rule -> Void])]
 
  [cairo-render
-  (case-> [Cairo-Ctx (Option Stroke) -> Void]
-          [Cairo-Ctx (Option Stroke) (Option Fill-Source) -> Void]
-          [Cairo-Ctx (Option Stroke) (Option Fill-Source) Fill-Rule -> Void])])
+  (case-> [Cairo-Ctx (Option Pen) -> Void]
+          [Cairo-Ctx (Option Pen) (Option Fill-Source) -> Void]
+          [Cairo-Ctx (Option Pen) (Option Fill-Source) Fill-Rule -> Void])])

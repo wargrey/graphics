@@ -49,7 +49,7 @@
             [else (let ([fl (real->double-flonum inset)]) (values fl fl fl fl))]))
     (define-values (bmpw bmph) (bitmap-flsize bmp))
     (define-values (sfc density) (values (bitmap-surface bmp) (bitmap-density bmp)))
-    (define s : (Option Stroke) (border-paint->source* border))
+    (define s : (Option Pen) (border-paint->source* border))
     (define-values (W H bdx bdy bdw bdh bmpx bmpy)
       (dc_frame_size bmpw bmph mtop mright mbottom mleft ptop pright pbottom pleft s))
 

@@ -16,7 +16,7 @@
 (require "digitama/unsafe/visual.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Stroke-Paint (U Color Stroke))
+(define-type Stroke-Paint (U Color Pen))
 (define-type Fill-Paint (U Color Visual-Object<%> Fill-Pattern))
 
 (define-type Option-Stroke-Paint (Option Stroke-Paint))
@@ -39,7 +39,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stroke-maybe-rgba : (-> Any (Option FlRGBA))
   (lambda [s]
-    (cond [(stroke? s) (stroke-color s)]
+    (cond [(pen? s) (pen-color s)]
           [(color? s) (rgb* s)]
           [else #false])))
 

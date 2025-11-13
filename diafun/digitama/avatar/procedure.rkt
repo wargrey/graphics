@@ -24,7 +24,7 @@
 (define default-procedure-input-format : (Parameterof String) (make-parameter "~a"))
 (define default-procedure-output-format : (Parameterof String) (make-parameter "~a"))
 
-(define default-procedure-border : (Parameterof Stroke) (make-parameter (desc-stroke #:color 'GhostWhite #:width 2.0)))
+(define default-procedure-border : (Parameterof Pen) (make-parameter (desc-stroke #:color 'GhostWhite #:width 2.0)))
 (define default-procedure-body-fill : (Parameterof Fill-Paint) (make-parameter 'DimGrey))
 (define default-procedure-text-color : (Parameterof Color) (make-parameter 'LightCyan))
 (define default-procedure-datum-color : (Parameterof Color) (make-parameter 'DimGrey))
@@ -56,7 +56,7 @@
            #:input-format [input-format : String (default-procedure-input-format)]
            #:output-format [output-format : String (default-procedure-output-format)]
            #:iofill [iofill-color : Dia-Procedure-IO-Fill (default-procedure-iofill)]
-           #:border [border : Stroke (default-procedure-border)]
+           #:border [border : Pen (default-procedure-border)]
            #:body-operator [body-op : (Option Geo-Pin-Operator) 'over]
            #:body-fill [b:fill : Fill-Paint (default-procedure-body-fill)]
            #:body-position [body-pos : Complex 0.5]
@@ -70,7 +70,7 @@
     (define em : Nonnegative-Flonum (font-metrics-ref label-font 'em))
     (define io:width : Nonnegative-Flonum (~length io-width em (λ [] (* em 1.618))))
     (define v:width : Nonnegative-Flonum (~length iov-width io:width (λ [] io:width)))
-    (define b:height : Nonnegative-Flonum (stroke-width border))
+    (define b:height : Nonnegative-Flonum (pen-width border))
     (define io:height : Nonnegative-Flonum (* io:width 1.618))
     (define io:gapsize : Nonnegative-Flonum (* em 0.618))
     (define v:gapsize : Nonnegative-Flonum (* em 0.0618))

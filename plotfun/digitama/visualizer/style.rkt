@@ -6,4 +6,4 @@
 (require geofun/stroke)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-function-stroke : Stroke (desc-stroke #:width 1.5 #:join 'round #:cap 'round #:opacity 0.75))
+(define default-function-stroke : Pen (desc-stroke #:width 1.5 #:join 'round #:cap 'round #:opacity 0.75))
