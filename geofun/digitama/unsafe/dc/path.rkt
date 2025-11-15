@@ -9,16 +9,14 @@
 (require "../../geometry/bezier.rkt")
 
 (require "../paint.rkt")
-(require "../source.rkt")
-
 (require "../typed/cairo.rkt")
 (require "../typed/more.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc_path : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Pen) (Option Fill-Source) Fill-Rule Any)
-  (lambda [cr x0 y0 width height footprints stroke fill-color fill-rule]
+(define dc_path : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Pen) (Option Brush) Any)
+  (lambda [cr x0 y0 width height footprints stroke brush]
     (cairo_path cr footprints x0 y0 #false)
-    (cairo-render cr stroke fill-color fill-rule)))
+    (cairo-render cr stroke brush)))
 
 (define dc_polyline : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) Pen Boolean Any)
   (lambda [cr x0 y0 flwidth flheight vertices stroke close?]
@@ -30,21 +28,21 @@
     
     (cairo-render cr stroke #false)))
 
-(define dc_polygon : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) (Option Pen) (Option Fill-Source) Fill-Rule Any)
-  (lambda [cr x0 y0 flwidth flheight vertices stroke background fill-rule]
+(define dc_polygon : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) (Option Pen) (Option Brush) Any)
+  (lambda [cr x0 y0 flwidth flheight vertices stroke background]
     (cairo_new_path cr)
     (cairo_simple_path cr vertices x0 y0 #true)
     (cairo_close_path cr)
-    (cairo-render cr stroke background fill-rule)))
+    (cairo-render cr stroke background)))
 
-(define dc_polyline* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Pen) (Option Fill-Source) Fill-Rule Boolean Any)
-  (lambda [cr x0 y0 flwidth flheight footprints stroke background fill-rule close?]
+(define dc_polyline* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Pen) (Option Brush) Boolean Any)
+  (lambda [cr x0 y0 flwidth flheight footprints stroke background close?]
     (cairo_new_path cr)
 
     (define M : Natural
       (if (or background)
           (let ([M (cairo_path cr footprints x0 y0 #true)])
-            (cairo-render-with-fill cr background fill-rule)
+            (cairo-render-with-fill cr background)
             (cairo_translate cr (- x0) (- y0))
             M)
           2))
@@ -59,12 +57,12 @@
 
       (cairo-render-with-stroke cr stroke))))
 
-(define dc_polygon* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Pen) (Option Fill-Source) Fill-Rule Any)
-  (lambda [cr x0 y0 flwidth flheight footprints stroke background fill-rule]
+(define dc_polygon* : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Geo-Path-Prints (Option Pen) (Option Brush) Any)
+  (lambda [cr x0 y0 flwidth flheight footprints stroke background]
     (cairo_new_path cr)
     (cairo_path cr footprints x0 y0 #false)
     (cairo_close_path cr)
-    (cairo-render cr stroke background fill-rule)))
+    (cairo-render cr stroke background)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cairo_simple_path : (-> Cairo-Ctx (Listof Float-Complex) Flonum Flonum Boolean Void)

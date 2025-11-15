@@ -216,6 +216,17 @@
     [(width height x y) (λ [self] (values width height (make-geo-ink x y width height)))]
     [(width height x y w h) (λ [self] (values width height (make-geo-ink x y w h)))]))
 
+(define geo-delegate-expand : (case-> [Geo -> Geo-Calculate-Extent]
+                                      [Geo Flonum Flonum -> Geo-Calculate-Extent])
+  (case-lambda
+    [(self) (λ [who-cares] (geo-extent self))]
+    [(self sx sy)
+     (λ [who-cares]
+       (let-values ([(owidth oheight ?oink) (geo-extent self)])
+         (values (* (abs sx) owidth)
+                 (* (abs sy) oheight)
+                 (and ?oink (geo-ink-scale ?oink sx sy)))))]))
+
 (define geo-shape-outline : (case-> [Maybe-Stroke-Paint -> (Option Geo-Pad)]
                                     [Maybe-Stroke-Paint Boolean Boolean -> (Option Geo-Pad)])
   (let ([insets : (HashTable Flonum Geo-Pad) (make-weak-hasheq)])

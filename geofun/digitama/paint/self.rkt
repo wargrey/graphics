@@ -5,16 +5,20 @@
 (require "../base.rkt")
 (require "stroke.rkt")
 
+(require "../unsafe/typed/c.rkt")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://svgwg.org/svg2-draft/painting.html
 (define-type CSS-Gradient-Stop-Color (Pairof Real FlRGBA))
 (define-type CSS-Linear-Gradient (Vector Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 (define-type CSS-Radial-Gradient (Vector Real Real Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 
+(define-type Fill-Rule (U 'winding 'even-odd))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Don't forget unsafe/paint.rkt if changing the Pen
-;;; No need to cache the instances of Pen
-;;    as it has already implemented as a struct rather than a class 
+;;; Don't forget unsafe/paint.rkt whenever the Pen or Brush are changed
+;;; No need to cache the instances of Pen or Brush
+;;    as they've already been implemented as structs rather than classes 
 (struct pen
   ([color : FlRGBA]
    [width : Nonnegative-Flonum]
@@ -27,18 +31,34 @@
   #:type-name Pen
   #:transparent)
 
+(struct brush
+  ([color : FlRGBA]
+   [pattern : (Option Cairo-Surface)]
+   [opacity : Flonum]
+   [rule : Fill-Rule])
+  #:type-name Brush
+  #:transparent)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (T) pen-maybe-width : (->* (Any) (T) (U Nonnegative-Flonum T))
-  (lambda [s [fallback-width 0.0]]
-    (if (pen? s) (pen-width s) fallback-width)))
+  (lambda [self [fallback-width 0.0]]
+    (if (pen? self) (pen-width self) fallback-width)))
 
 (define #:forall (T) pen-adjust-color : (-> Pen (-> FlRGBA FlRGBA) Pen)
-  (lambda [s adjust]
-    (define oc (pen-color s))
+  (lambda [self adjust]
+    (define oc (pen-color self))
     (define ac (adjust oc))
 
-    (cond [(equal? ac oc) s]
-          [else (pen ac (pen-width s)
-                     (pen-linecap s) (pen-linejoin s) (pen-miterlimit s)
-                     (pen-dash s) (pen-offset s)
-                     (pen-opacity s))])))
+    (cond [(equal? ac oc) self]
+          [else (pen ac (pen-width self)
+                     (pen-linecap self) (pen-linejoin self) (pen-miterlimit self)
+                     (pen-dash self) (pen-offset self)
+                     (pen-opacity self))])))
+
+(define #:forall (T) brush-adjust-color : (-> Brush (-> FlRGBA FlRGBA) Brush)
+  (lambda [self adjust]
+    (define oc (brush-color self))
+    (define ac (adjust oc))
+
+    (cond [(equal? ac oc) self]
+          [else (brush ac (brush-pattern self) (brush-opacity self) (brush-rule self))])))

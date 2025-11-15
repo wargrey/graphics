@@ -19,7 +19,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-freeze
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)] #:border [border : Maybe-Stroke-Paint (default-border-paint)]
-           #:fill [fill : Option-Fill-Paint (default-fill-paint)] #:fill-rule [rule : Fill-Rule (default-fill-rule)]
+           #:fill [fill : Option-Fill-Paint (default-fill-paint)]
            #:font [font : Font (default-font)] #:font-paint [fgc : Option-Fill-Paint (default-font-paint)]
            #:background [bgc : Option-Fill-Paint (default-background-paint)]
            #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
@@ -32,7 +32,6 @@
                    [default-font-source (font-paint->source fgc)]
                    [default-background-source (fill-paint->source* bgc)]
                    [default-fill-source (fill-paint->source* fill)]
-                   [default-fill-rule rule]
                    [default-pattern-filter filter]
                    [default-font font])
       (define-values (xoff yoff width height Width Height) (geo-surface-region self))
@@ -44,7 +43,7 @@
 
 (define geo-freeze!
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)] #:border [border : Maybe-Stroke-Paint (default-border-paint)]
-           #:fill [fill : Option-Fill-Paint (default-fill-paint)] #:fill-rule [rule : Fill-Rule (default-fill-rule)]
+           #:fill [fill : Option-Fill-Paint (default-fill-paint)]
            #:font [font : Font (default-font)] #:font-paint [fgc : Option-Fill-Paint (default-font-paint)]
            #:background [bgc : Option-Fill-Paint (default-background-paint)]
            #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
@@ -55,7 +54,6 @@
                    [default-font-source (font-paint->source fgc)]
                    [default-background-source (fill-paint->source* bgc)]
                    [default-fill-source (fill-paint->source* fill)]
-                   [default-fill-rule rule]
                    [default-pattern-filter filter]
                    [default-font font])
       (define-values (flwidth flheight _ink) ((geo<%>-extent self) self))

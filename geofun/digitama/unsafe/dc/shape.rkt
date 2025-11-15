@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require "../paint.rkt")
-(require "../source.rkt")
 (require "../typed/cairo.rkt")
 
 (require "../../paint/self.rkt")
@@ -20,7 +19,7 @@
     
     (cairo-render cr stroke #false)))
 
-(define dc_ellipse : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Fill-Source) (Listof Flonum) Any)
+(define dc_ellipse : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) Any)
   (lambda [cr x0 y0 flwidth flheight stroke background diameters]
     (define-values (aradius bradius) (values (* flwidth 0.5) (* flheight 0.5)))
     
@@ -37,7 +36,7 @@
     
     (cairo-render cr stroke background)))
 
-(define dc_arc : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (Option Pen) (Option Fill-Source) Boolean Any)
+(define dc_arc : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (Option Pen) (Option Brush) Boolean Any)
   (lambda [cr x0 y0 flwidth flheight rstart rend stroke background sector?]
     (define-values (aradius bradius) (values (* flwidth 0.5) (* flheight 0.5)))
 
@@ -50,7 +49,7 @@
     
     (cairo-render cr stroke background)))
 
-(define dc_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Fill-Source) (Listof Flonum) (Listof Flonum) Any)
+(define dc_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) (Listof Flonum) Any)
   (lambda [cr x0 y0 flwidth flheight stroke background vlines hlines]
     (cairo_rectangle cr x0 y0 flwidth flheight)
     
@@ -69,7 +68,7 @@
     (cairo-render cr stroke background)))
 
 (define dc_rounded_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                                   Nonnegative-Flonum (Option Pen) (Option Fill-Source) (Listof Flonum) (Listof Flonum) Any)
+                                   Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) (Listof Flonum) Any)
   (lambda [cr x0 y0 flwidth flheight corner-radius stroke background vlines hlines]
     (define flradius (min corner-radius (* (min flwidth flheight) 0.5)))
     (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
@@ -114,7 +113,7 @@
     (cairo-render cr stroke background)))
 
 (define dc_regular_polygon : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                                 Positive-Index Positive-Index Flonum (Option Pen) (Option Fill-Source)
+                                 Positive-Index Positive-Index Flonum (Option Pen) (Option Brush)
                                  Any)
   (lambda [cr x0 y0 width height n k rotation stroke background]
     (define-values (aradius bradius) (values (* width 0.5) (* height 0.5)))

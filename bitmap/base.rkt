@@ -12,7 +12,7 @@
 (require "digitama/misc.rkt")
 
 (require/provide geofun/digitama/base)
-(require/provide geofun/font geofun/color geofun/stroke geofun/paint)
+(require/provide geofun/font geofun/color geofun/stroke geofun/fill geofun/paint)
 (require/provide "digitama/stdio.rkt" "digitama/convert.rkt")
 (require/provide "constructor.rkt" "pixel.rkt" "composite.rkt" "resize.rkt")
 (require/provide "invalid.rkt" "misc.rkt")

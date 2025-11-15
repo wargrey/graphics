@@ -2,10 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "path.rkt")
-
 (require "../paint.rkt")
-(require "../source.rkt")
 (require "../typed/cairo.rkt")
 (require "../typed/more.rkt")
 
@@ -15,9 +12,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_gear : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                       Positive-Index Flonum Nonnegative-Flonum Nonnegative-Flonum
-                      Nonnegative-Flonum Flonum (Option Pen) (Option Fill-Source)
+                      Nonnegative-Flonum Flonum (Option Pen) (Option Brush)
                       Any)
-  (lambda [cr x0 y0 width height z pressure-angle root-ratio ref-ratio inner-ratio rotation stroke background]
+  (lambda [cr x0 y0 width height z pressure-angle root-ratio ref-ratio inner-ratio rotation pen brush]
     (define rTip (* width 0.5))
     (define rRoot (* rTip root-ratio))
     (define teeth-depth (- rTip rRoot))
@@ -59,4 +56,4 @@
       (cairo_arc cr 0.0 0.0 (* rTip inner-ratio) 0.0 2pi))
 
     (cairo_scale cr 1.0 (/ width height))
-    (cairo-render cr stroke background 'even-odd)))
+    (cairo-render/evenodd cr pen brush)))

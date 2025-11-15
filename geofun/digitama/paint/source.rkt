@@ -7,6 +7,7 @@
 (require "../../paint.rkt")
 (require "../../color.rkt")
 (require "../../stroke.rkt")
+(require "../../fill.rkt")
 
 (require "../base.rkt")
 (require "../unsafe/source.rkt")
@@ -15,10 +16,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stroke-paint->source : (->* (Maybe-Stroke-Paint) (Pen) Pen)
-  (lambda [paint [fallback-stroke (default-stroke)]]
+  (lambda [paint [base-stroke (default-stroke)]]
     (cond [(pen? paint) paint]
-          [(or (not paint) (void? paint)) fallback-stroke]
-          [else (desc-stroke fallback-stroke #:color paint)])))
+          [(or (not paint) (void? paint)) base-stroke]
+          [else (desc-stroke base-stroke #:color paint)])))
 
 (define border-paint->source : (-> Maybe-Stroke-Paint Pen)
   (lambda [paint]
@@ -35,24 +36,21 @@
           [else (stroke-paint->source paint (default-border))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) fill-paint->source : (case-> [Fill-Paint -> Fill-Source]
-                                                  [Fill-Paint S -> (U Fill-Source S)])
-  (lambda [paint [fallback transparent]]
-    (cond [(color? paint) (rgb* paint)]
-          [(visual-object<%>? paint)
-           (let ([maybe-surface (vobject-convert paint 'cairo-surface #false)])
-             (cond [(cairo-surface? maybe-surface) maybe-surface]
-                   [else fallback]))]
-          [else paint])))
+(define fill-paint->source : (->* (Maybe-Fill-Paint) (Brush) Brush)
+  (lambda [paint [base-brush (default-winding-brush)]]
+    (cond [(brush? paint) paint]
+          [(or (not paint) (void? paint)) base-brush]
+          [(color? paint) (desc-brush base-brush #:color paint)]
+          [else (desc-brush base-brush #:pattern paint)])))
 
-(define font-paint->source : (-> Option-Fill-Paint Fill-Source)
+(define fill-paint->source* : (->* (Maybe-Fill-Paint) (Brush) (Option Brush))
+  (lambda [paint [base-brush (default-winding-brush)]]
+    (cond [(brush? paint) paint]
+          [(not paint) #false]
+          [else (fill-paint->source paint base-brush)])))
+
+(define font-paint->source : (-> Option-Fill-Paint Brush)
   (lambda [paint]
     (fill-paint->source
-     (if (not paint)
-         (default-font-paint)
-         paint))))
-
-(define fill-paint->source* : (-> Option-Fill-Paint (Option Fill-Source))
-  (lambda [paint]
-    (cond [(not paint) #false]
-          [else (fill-paint->source paint #false)])))
+     (if (not paint) (default-font-paint) paint)
+     (default-winding-brush))))

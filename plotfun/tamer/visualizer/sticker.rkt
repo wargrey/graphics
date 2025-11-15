@@ -6,10 +6,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define vtree : (Listof Plot-Visualizer)
-  (list (sticker #:scale? #f (geo-gear 16 32)  200+300i 'lt)
+  (list (sticker #:scale? #f (geo-gear 16 32)  100+300i 'lt)
         (sticker #:scale? #t (geo-gear  8 32)  600+100i 'lt)
         (sticker #:scale? #t (geo-star-polygon 5 2 32 -1.57) 600+500i)
-        #;(sticker #:scale? #f (geo-text "text") 400+300i)))
+        (sticker #:scale? #f (geo-art-text "Art Text") 400+300i)))
 
 (define sticker-screen
   (plot-cartesian #:x-range (cons 0 800)

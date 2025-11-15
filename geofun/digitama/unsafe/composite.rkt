@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require "paint.rkt")
-(require "source.rkt")
 (require "typed/cairo.rkt")
 (require "typed/more.rkt")
 
@@ -36,7 +35,7 @@
 (define geo_framed_composite : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                                    (Option Byte) (Option Byte) Geo-Layer-Group Flonum Flonum
                                    Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                                   (Option Pen) (Option Fill-Source) Any)
+                                   (Option Pen) (Option Brush) Any)
   (lambda [cr x0 y0 width height base-op sibs-op group dest-x dest-y border-x border-y border-width border-height border background]
     (define geo-objects (glayer-group-layers group))
     (define-values (dest-width dest-height) (values (glayer-group-width group) (glayer-group-height group)))

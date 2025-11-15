@@ -7,7 +7,6 @@
 
 (require "../../paint/self.rkt")
 (require "../typed/c.rkt")
-(require "../source.rkt")
 (require "../font.rkt")
 
 (module unsafe racket/base
@@ -187,19 +186,19 @@
  [dc_art_text
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
       String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment
-      (Option Pen) (Option Fill-Source) (Option Fill-Source)
+      (Option Pen) (Option Brush) (Option Brush)
       Any)]
  
  [dc_text
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-      String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Fill-Source (Option Fill-Source)
+      String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Brush (Option Brush)
       (Option Pen) (Option Pen) (Option Pen) (Option Pen) (Option Pen)
       Any)]
  
  [dc_paragraph
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
       String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment (Option Flonum) (U Flonum Nonpositive-Integer)
-      Flonum Flonum Integer Integer Fill-Source (Option Fill-Source)
+      Flonum Flonum Integer Integer Brush (Option Brush)
       Any)]
 
  [dc_paragraph_size
@@ -207,7 +206,7 @@
       (Values Nonnegative-Flonum Nonnegative-Flonum))]
 
  [dc_markup (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                Bytes Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Fill-Source (Option Fill-Source)
+                Bytes Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Brush (Option Brush)
                 Any)]
  
  [dc_markup_parse (-> Bytes Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment (Values Nonnegative-Flonum Nonnegative-Flonum (U String Bytes)))]

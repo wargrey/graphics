@@ -84,7 +84,6 @@
 (define geo-polygon
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:fill-rule [rule : Fill-Rule (default-fill-rule)]
            #:id [id : (Option Symbol) #false]
            #:scale [scale : Point2D 1.0]
            #:offset [offset : Complex 0.0+0.0i]
@@ -94,7 +93,7 @@
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
     (create-geometry-object geo:polygon
-                            #:with [id (geo-draw-polygon stroke pattern rule)
+                            #:with [id (geo-draw-polygon stroke pattern)
                                        (geo-shape-extent width height 0.0 0.0)
                                        (geo-shape-outline stroke x-stroke? y-stroke?)]
                             prints xoff yoff)))
@@ -131,14 +130,14 @@
                         (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
                         null))))))
 
-(define geo-draw-polygon : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Fill-Rule Geo-Surface-Draw!)
-  (lambda [alt-stroke alt-fill alt-rule]
+(define geo-draw-polygon : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
     (λ [self cr x0 y0 width height]
       (when (geo:polygon? self)
         (dc_polygon cr (+ x0 (geo:polygon-tx self)) (+ y0 (geo:polygon-ty self)) width height
                     (geo:polygon-prints self)
-                    (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
-                    alt-rule)))))
+                    (geo-select-stroke-paint alt-stroke)
+                    (geo-select-fill-source alt-fill))))))
 
 (define geo-draw-polyline : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)
   (lambda [alt-stroke]
@@ -146,4 +145,5 @@
       (when (geo:polyline? self)
         (dc_polyline cr (+ x0 (geo:polyline-tx self)) (+ y0 (geo:polyline-ty self)) width height
                      (geo:polyline-prints self)
-                     (geo-select-stroke-paint* alt-stroke) (geo:polyline-closed? self))))))
+                     (geo-select-stroke-paint* alt-stroke)
+                     (geo:polyline-closed? self))))))

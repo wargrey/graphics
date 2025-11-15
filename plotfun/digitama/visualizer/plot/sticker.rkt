@@ -5,6 +5,7 @@
 (require racket/math)
 
 (require geofun/color)
+(require geofun/fill)
 
 (require geofun/digitama/base)
 (require geofun/digitama/paint)
@@ -24,7 +25,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define sticker
   (lambda [#:id [id : (Option Symbol) #false]
-           #:color [strk-color : (Option Color) #false]
+           #:color [color : (Option Color) #false]
            #:width [strk-width : (Option Real) #false]
            #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
            #:stroke-opacity [strk-opacity : Real 1.0]
@@ -43,12 +44,13 @@
     (define flpos  (make-rectangular (real->double-flonum px) (real->double-flonum py)))
     (define-values (xoff yoff) (values (real->double-flonum (real-part offset)) (real->double-flonum (imag-part offset))))
 
-    (define lines-realize : Plot-Visualizer-Realize
+    (define sticker-realize : Plot-Visualizer-Realize
       (λ [idx total xmin xmax ymin ymax transform bg-color]
-        (define brush : FlRGBA (rgb* (plot-select-brush-color strk-color idx bg-color) fll-opacity))
+        (define brush : Brush
+          (desc-brush #:color (plot-select-brush-color color idx bg-color) #:opacity fll-opacity))
         (define pen : Pen
           (plot-desc-pen #:dash strk-dash #:width strk-width #:opacity strk-opacity
-                         #:color (plot-select-pen-color strk-color idx bg-color)))
+                         #:color (plot-select-pen-color color idx bg-color)))
 
         (define xunit (real-part (plot-vxunit transform)))
         (define yunit (imag-part (plot-vyunit transform)))
@@ -69,10 +71,10 @@
                                        (make-rectangular xoff (* yoff (sgn yunit))))
                          descriptor))))))
       
-    (plot-visualizer lines-realize xrange yrange
+    (plot-visualizer sticker-realize xrange yrange
                      (cond [(not scale?) (sticker-range px py)]
                            [else (sticker-range px py width height)])
-                     (and (or pen-color skip-palette?) #true))))
+                     (and (or color skip-palette?) #true))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define sticker-range : (case-> [Real Real -> Plot-Visualizer-Data-Range]

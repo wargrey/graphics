@@ -4,18 +4,16 @@
 
 (require digimon/constant)
 
-(require "../source.rkt")
 (require "../paint.rkt")
+(require "../typed/cairo.rkt")
 
 (require "../../paint/self.rkt")
 (require "../../skeleton/stickman/self.rkt")
 
-(require "../typed/cairo.rkt")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_stickman : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                           Geo-Stickman-Skeleton Nonnegative-Flonum Nonnegative-Flonum
-                          (Option Pen) (Option Fill-Source) (Option Fill-Source) (Option Fill-Source)
+                          (Option Pen) (Option Brush) (Option Brush) (Option Brush)
                           Any)
   (lambda [cr x0 y0 flwidth flheight self scale fallback-thickness stroke head-fill body-fill arm-fill]
     (define thickness (* (pen-maybe-width stroke fallback-thickness) scale))

@@ -14,6 +14,7 @@
 (require "../../paint.rkt")
 (require "../../color.rkt")
 (require "../../stroke.rkt")
+(require "../../fill.rkt")
 
 (require "../base.rkt")
 (require "../paint.rkt")
@@ -268,15 +269,20 @@
       (with-asserts ([self geo:path:self?])
         (define paint (geo-select-stroke-paint alt-stroke))
         (define color (and paint (pen-color paint)))
-        (define-values (sclr tclr) (values (or alt-srgba color) (or alt-trgba color)))
+        (define sclr (or alt-srgba color))
+        (define tclr (or alt-trgba color))
 
-        (define (tip-stroke [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Pen)
+        (define (tip-pen [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Pen)
           (if (geo-tip-config-fill? cfg)
               (desc-stroke #:width 1.0 #:color clr)
               (and paint (desc-stroke paint #:color clr #:dash 'solid #:width (geo-tip-config-thickness cfg)))))
 
+        (define (tip-brush [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Brush)
+          (and (geo-tip-config-fill? cfg)
+               (desc-brush #:color clr)))
+
         (dc_edge cr x0 y0 width height
                  (geo:path:self-footprints self) (geo:path:self-bbox-offset self) paint
-                 (geo:path:self-source-tip self) (tip-stroke scfg sclr) (and (geo-tip-config-fill? scfg) sclr) (car (geo:path:self-source self))
-                 (geo:path:self-target-tip self) (tip-stroke tcfg tclr) (and (geo-tip-config-fill? tcfg) tclr) (car (geo:path:self-target self))
+                 (geo:path:self-source-tip self) (tip-pen scfg sclr) (tip-brush scfg sclr) (car (geo:path:self-source self))
+                 (geo:path:self-target-tip self) (tip-pen tcfg tclr) (tip-brush tcfg tclr) (car (geo:path:self-target self))
                  (geo:path:self-adjust-offset self))))))

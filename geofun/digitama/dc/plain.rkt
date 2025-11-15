@@ -6,7 +6,10 @@
 
 (require "../geometry/ink.rkt")
 (require "../unsafe/dc/plain.rkt")
+(require "../paint/self.rkt")
 (require "../convert.rkt")
+
+(require "../../fill.rkt")
 (require "../../color.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -16,7 +19,7 @@
   #:transparent)
 
 (struct geo:solid geo
-  ([pattern : FlRGBA])
+  ([pattern : Brush])
   #:type-name Geo:Solid
   #:transparent)
 
@@ -42,7 +45,7 @@
     (define edge-size : Nonnegative-Flonum (~length size))
     (create-geometry-object geo:solid
                             #:with [id geo-draw-solid (geo-shape-extent edge-size) geo-zero-pads]
-                            (rgb* color))))
+                            (desc-brush #:color color))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; the size of target geometry might be affected by stroke and border

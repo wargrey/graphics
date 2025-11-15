@@ -5,11 +5,10 @@
 (require geofun/digitama/paint/self)
 
 (require "../paint.rkt")
-(require "../source.rkt")
 (require "../typed/cairo.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc_pattern : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Fill-Source Any)
+(define dc_pattern : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Brush Any)
   (lambda [cr x0 y0 width height background]
     (cairo-render-background cr background x0 y0 width height)))
 
@@ -24,7 +23,7 @@
 (define dc_frame : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Bitmap-Surface
                        Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                        Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
-                       (Option Pen) (Option Fill-Source) Byte Positive-Flonum Any)
+                       (Option Pen) (Option Brush) Byte Positive-Flonum Any)
   (lambda [cr x0 y0 width height src
               border-x border-y border-width border-height dest-x dest-y dest-width dest-height
               border background filter density]

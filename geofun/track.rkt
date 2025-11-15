@@ -73,11 +73,11 @@
 (define make-gomamon : (->* (Real)
                             (Real+% #:T-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
                                     #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
-                                    #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:fill-rule Fill-Rule)
+                                    #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                             Gomamon)
   (lambda [#:T-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
-           #:stroke [stroke (void)] #:fill [fill (void)] #:fill-rule [frule (default-fill-rule)]
+           #:stroke [stroke (void)] #:fill [fill (void)]
            xstepsize [ystepsize '(100.0 %)]]
     (define xstep : Nonnegative-Flonum
       (cond [(<= xstepsize 0.0) 1.0]
@@ -91,7 +91,7 @@
     (define-values (usx usy) (geo-track-turn-scales u-scale 0.25))
     
     (create-geometry-object gomamon
-                            #:with [name (geo-draw-track! stroke fill frule) geo-track-extent (geo-shape-outline stroke)]
+                            #:with [name (geo-draw-track! stroke fill) geo-track-extent (geo-shape-outline stroke)]
                             (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             (list (gpp:point #\M home-pos)) (make-hash)

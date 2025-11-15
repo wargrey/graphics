@@ -5,11 +5,6 @@
 (require typed/racket/unsafe)
 
 (require "../base.rkt")
-(require "typed/c.rkt")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
-(define-type Fill-Source (U Cairo-Surface Fill-Pattern FlRGBA))
-(define-type Fill-Rule (U 'winding 'even-odd))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module unsafe racket/base

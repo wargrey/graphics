@@ -60,7 +60,8 @@
         
         (if (and (> z 0) (< Ri Rr 1.0) (> Rr 0.0) (>= Ri 0.0))
             (dc_gear cr x0 y0 width height z (geo:gear-pressure-angle self) Rr (geo:gear-reference-ratio self)
-                     Ri (geo:gear-rotation self) (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))
+                     Ri (geo:gear-rotation self) (geo-select-stroke-paint alt-stroke)
+                     (geo-select-fill-source alt-fill))
             (dc_ellipse cr x0 y0 width height
                         (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
                         null))))))

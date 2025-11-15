@@ -3,8 +3,6 @@
 (require typed/racket/unsafe)
 
 (require "../paint/self.rkt")
-
-(require "source.rkt")
 (require "typed/c.rkt")
 
 (module unsafe racket/base
@@ -12,12 +10,17 @@
   
   (require racket/math)
   (require racket/unsafe/ops)
-  (require ffi/unsafe)
   
   (require "../paint/stroke.rkt")
   (require "cairo.rkt")
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define cairo-set-fill-rule
+    (lambda [cr fill-rule]
+      (if (eq? fill-rule 'even-odd)
+          (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD)
+          (cairo_set_fill_rule cr CAIRO_FILL_RULE_WINDING))))
+  
   (define cairo-set-rgba
     (case-lambda
       [(cr src opacity)
@@ -32,17 +35,38 @@
                               (unsafe-fl* (unsafe-struct*-ref src 1) scale)
                               (unsafe-fl* (unsafe-struct*-ref src 2) scale)
                               (unsafe-fl* (unsafe-struct*-ref src 3) opacity))]))
+
+  (define cairo-select-source
+    ;;; TODO: deal with patterns
+    (case-lambda
+      [(cr brush)
+       (define pattern (unsafe-struct*-ref brush 1))
+
+       (cond [(not pattern) (cairo-set-rgba cr (unsafe-struct*-ref brush 0) (unsafe-struct*-ref brush 2))]
+             [else (cairo_set_source_surface cr pattern 0.0 0.0)])]
+      [(cr brush color-scale)
+       (define pattern (unsafe-struct*-ref brush 1))
+       
+       (cond [(not pattern) (cairo-set-rgba cr (unsafe-struct*-ref brush 0) (unsafe-struct*-ref brush 2) color-scale)]
+             [else (cairo_set_source_surface cr pattern 0.0 0.0)])]))
   
   (define cairo-set-source
     (case-lambda
-      [(cr src)
-       (cond [(struct? src) #;(rgba? src) (cairo-set-rgba cr src 1.0)]
-             [(eq? (cpointer-tag src) 'cairo_pattern_t) (cairo_set_source cr src)]
-             [else (cairo_set_source_surface cr src 0.0 0.0)])]
-      [(cr src scale)
-       (cond [(struct? src) #;(rgba? src) (cairo-set-rgba cr src 1.0 scale)]
-             [(eq? (cpointer-tag src) 'cairo_pattern_t) (cairo_set_source cr src)]
-             [else (cairo_set_source_surface cr src 0.0 0.0)])]))
+      [(cr brush)
+       (cairo-select-source cr brush)
+       (cairo-set-fill-rule cr (unsafe-struct*-ref brush 3))]
+      [(cr brush color-scale)
+       (cairo-select-source cr brush color-scale)
+       (cairo-set-fill-rule cr (unsafe-struct*-ref brush 3))]))
+
+  (define cairo-set-evenodd-source
+    (case-lambda
+      [(cr brush)
+       (cairo-select-source cr brush)
+       (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD)]
+      [(cr brush color-scale)
+       (cairo-select-source cr brush color-scale)
+       (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD)]))
 
   (define cairo-set-stroke
     (case-lambda
@@ -91,12 +115,18 @@
 
   (define cairo-render-with-fill
     (case-lambda
-      [(cr pattern)
-       (cairo-set-source cr pattern)
-       (cairo_fill_preserve cr)]
-      [(cr pattern rule)
-       (cairo-set-fill-rule cr rule)
-       (cairo-render-with-fill cr pattern)]))
+      [(cr brush)
+       (cairo-set-source cr brush)
+       (cairo_fill_preserve cr)]))
+
+  (define cairo-render/evenodd
+    (case-lambda
+      [(cr border brush)
+       (unless (not brush)
+         (cairo-set-evenodd-source cr brush)
+         (cairo_fill_preserve cr))
+       (unless (not border)
+         (cairo-render-with-stroke cr border))]))
   
   (define cairo-render-background
     (lambda [cr bg x y w h]
@@ -112,22 +142,11 @@
       [(cr border)
        (unless (not border)
          (cairo-render-with-stroke cr border))]
-      [(cr border pattern)
-       (unless (not pattern)
-         (cairo-render-with-fill cr pattern))
-       (unless (not border)
-         (cairo-render-with-stroke cr border))]
-      [(cr border pattern rule)
-       (unless (not pattern)
-         (cairo-render-with-fill cr pattern rule))
+      [(cr border brush)
+       (unless (not brush)
+         (cairo-render-with-fill cr brush))
        (unless (not border)
          (cairo-render-with-stroke cr border))]))
-  
-  (define cairo-set-fill-rule
-    (lambda [cr fill-rule]
-      (if (eq? fill-rule 'winding)
-          (cairo_set_fill_rule cr CAIRO_FILL_RULE_WINDING)
-          (cairo_set_fill_rule cr CAIRO_FILL_RULE_EVEN_ODD))))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define cairo-composite
@@ -166,21 +185,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [cairo-render-background (-> Cairo-Ctx (Option Fill-Source) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Void)]
- [cairo-render-with-source-as-stroke (-> Cairo-Ctx Fill-Source Flonum Flonum Boolean Void)]
- [cairo-set-fill-rule (-> Cairo-Ctx Symbol Void)]
+ [cairo-render (->* (Cairo-Ctx (Option Pen)) ((Option Brush)) Void)]
+ [cairo-render/evenodd (-> Cairo-Ctx (Option Pen) (Option Brush) Void)]
+
+ [cairo-render-background (-> Cairo-Ctx (Option Brush) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Void)]
+ [cairo-render-with-source-as-stroke (-> Cairo-Ctx Brush Flonum Flonum Boolean Void)]
+ [cairo-render-with-fill (-> Cairo-Ctx Brush Void)]
  [cairo-clip (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Void)]
 
- [cairo-set-source-as-stroke (-> Cairo-Ctx Fill-Source Flonum Flonum Boolean Void)]
- [cairo-set-thickline-stroke (-> Cairo-Ctx (Option Pen) (Option Fill-Source) Flonum Flonum Boolean Void)]
- [cairo-set-source (case-> [Cairo-Ctx Fill-Source -> Void]
-                           [Cairo-Ctx Fill-Source Flonum -> Void])]
- 
- [cairo-set-stroke (case-> [Cairo-Ctx Pen -> Void]
-                           [Cairo-Ctx Pen (Option Flonum) Flonum Boolean -> Void])]
- 
- [cairo-render-with-stroke (case-> [Cairo-Ctx Pen -> Void]
-                                   [Cairo-Ctx Pen (Option Flonum) Flonum Boolean -> Void])]
+ [cairo-set-source-as-stroke (-> Cairo-Ctx Brush Flonum Flonum Boolean Void)]
+ [cairo-set-thickline-stroke (-> Cairo-Ctx (Option Pen) (Option Brush) Flonum Flonum Boolean Void)]
+ [cairo-set-source (->* (Cairo-Ctx Brush) (Flonum) Void)]
+ [cairo-set-stroke (->* (Cairo-Ctx Pen) ((Option Flonum) Flonum Boolean) Void)]
+ [cairo-render-with-stroke (->* (Cairo-Ctx Pen) ((Option Flonum) Flonum Boolean) Void)]
  
  [cairo-composite
   (-> Cairo-Ctx Cairo-Surface
@@ -192,13 +209,4 @@
   (All (Master)
        (-> Master Cairo-Ctx (Cairo-Surface-Draw! Master)
            Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-           Void))]
-
- [cairo-render-with-fill
-  (case-> [Cairo-Ctx Fill-Source -> Void]
-          [Cairo-Ctx Fill-Source Fill-Rule -> Void])]
-
- [cairo-render
-  (case-> [Cairo-Ctx (Option Pen) -> Void]
-          [Cairo-Ctx (Option Pen) (Option Fill-Source) -> Void]
-          [Cairo-Ctx (Option Pen) (Option Fill-Source) Fill-Rule -> Void])])
+           Void))])

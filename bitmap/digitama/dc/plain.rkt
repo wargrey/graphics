@@ -4,6 +4,7 @@
 
 (require geofun/color)
 (require geofun/paint)
+(require geofun/fill)
 
 (require geofun/digitama/base)
 (require geofun/digitama/paint/self)
@@ -32,7 +33,7 @@
   (lambda [[color transparent] [size 1] #:density [density (default-bitmap-density)]]
     (define side : Nonnegative-Flonum (~length size))
     (draw-bitmap dc_pattern #:with [side side density #true]
-                 (rgb* color))))
+                 (desc-brush #:color color))))
 
 (define bitmap-frame
   (lambda [#:margin [margin : (U Nonnegative-Real (Listof Nonnegative-Real)) 0.0]

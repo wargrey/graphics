@@ -76,8 +76,8 @@
                             (geo:dart-wing.rad self)))
         
         (dc_polygon* cr (+ x0 tx) (+ y0 ty) width height prints
-                     (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
-                     (default-fill-rule))))))
+                     (geo-select-stroke-paint alt-stroke)
+                     (geo-select-fill-source alt-fill))))))
 
 (define geo-arrow-extent : Geo-Calculate-Extent
   (lambda [self]
@@ -98,5 +98,5 @@
                             (geo:arrow-wing.rad self)))
        
        (dc_polygon* cr (+ x0 tx) (+ y0 ty) width height prints
-                    (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
-                    (default-fill-rule))))))
+                    (geo-select-stroke-paint alt-stroke)
+                    (geo-select-fill-source alt-fill))))))

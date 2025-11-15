@@ -132,9 +132,9 @@
                                                           [Maybe-Fill-Paint (-> Any Boolean : T) (-> T Maybe-Fill-Paint) -> Maybe-Fill-Paint])
   (case-lambda
     [(self)
-    (let ([paint (dia-node-style-fill-paint self)])
-      (cond [(not (void? paint)) paint]
-            [else (dia-node-base-style-fill-paint ((default-dia-node-base-style)))]))]
+     (let ([paint (dia-node-style-fill-paint self)])
+       (cond [(not (void? paint)) paint]
+             [else (dia-node-base-style-fill-paint ((default-dia-node-base-style)))]))]
     [(self style-fill-paint)
      (cond [(not (void? self)) self]
            [else (style-fill-paint ((default-dia-node-base-style)))])]
