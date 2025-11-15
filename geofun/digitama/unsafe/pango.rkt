@@ -8,22 +8,48 @@
 (require ffi/unsafe/alloc)
 
 (require racket/unsafe/ops)
+(require racket/draw/unsafe/glib)
 (require racket/draw/unsafe/pango)
 (require racket/draw/unsafe/cairo)
+(require racket/draw/private/libs)
 
 (require (for-syntax racket/base))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax-rule (_pfun spec ...) (_fun #:lock-name (or cairo-lock-name "pango-lock") spec ...))
 
-(define pango-lib
-  (case (system-type)
-    [(unix) (ffi-lib "libpango-1.0" '("0" ""))]
-    [(macosx) (ffi-lib "libpango-1.0.0.dylib")]
-    [(windows) (ffi-lib "libpango-1.0-0.dll")]))
+(define-runtime-lib pango-lib
+  [(unix) (ffi-lib "libpango-1.0" '("0" ""))]
+  [(macosx)
+   (ffi-lib "libfribidi.0.dylib")
+   (ffi-lib "libpango-1.0.0.dylib")]
+  [(windows)
+   (ffi-lib "libfribidi-0.dll")
+   (ffi-lib "libpango-1.0-0.dll")])
+
+(define-runtime-lib glib-lib
+  [(unix) (ffi-lib "libglib-2.0" '("0" ""))]
+  [(macosx)
+   (ffi-lib "libintl.9.dylib")
+   (ffi-lib "libglib-2.0.0.dylib")]
+  [(windows)
+   (ffi-lib "libiconv-2.dll")
+   (ffi-lib "libintl-9.dll")
+   (ffi-lib "libglib-2.0-0.dll")])
 
 (define-ffi-definer define-pango pango-lib #:provide provide)
+(define-ffi-definer define-glib glib-lib)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-cstruct _GError
+  ([domain  _uint32]
+   [code    _int]
+   [message _bytes]))
+
+(define-glib g_error_free (_pfun _GError-pointer -> _void)
+  #:wrap (deallocator))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define PangoContext (_cpointer 'PangoContext))
 (define PangoLayout (_cpointer 'PangoLayout))
 (define PangoFont (_cpointer 'PangoFont))
@@ -61,14 +87,6 @@
 (define-pango pango_layout_get_attributes (_pfun PangoLayout -> PangoAttrList))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-cstruct _GError
-  ([domain  _uint32]
-   [code    _int]
-   [message _bytes]))
-
-(define-pango g_error_free (_pfun _GError-pointer -> _void)
-  #:wrap (deallocator))
-
 (define-pango pango_attr_iterator_destroy (_pfun PangoAttrIterator -> _void)
   #:wrap (deallocator))
 

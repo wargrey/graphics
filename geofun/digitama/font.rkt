@@ -17,7 +17,7 @@
   [(fantasy)       (case os [(macosx) "Comic Sans MS"] [(windows) "Comic Sans MS"] [else "Impact"])]
   [(cursive)       (case os [(macosx) "Kokonor"] [(windows) "Palatino Linotype, Italic"] [else "Chancery"])]
   [(system-ui)     (system-ui 'normal-control-font (λ [] (case os [(macosx) "Helvetica Neue"] [(windows) "Verdana"] [else "Sans"])))]
-  [(math)          (case os [(macosx) "Bodoni 72, Book"] [(windows) "Cambria Math"] [else "DejaVu Math"])]
+  [(math)          (case os [(macosx) "Bodoni 72, Book"] [(windows) "Century Schoolbook, Bold Italic"] [else "DejaVu Math"])]
   [(fangsong)      (case os [(macosx) "ST FangSong"] [(windows) "FangSong"] [else "FangSong"])]
   [(kai)           (case os [(macosx) "STKaiti"] [(windows) "KaiTi"] [else "AR PL UKai CN"])]
   [(ui-sans-serif) (case os [(macosx) "San Francisco"] [(windows) "Microsoft YaHei"] [else "Nimbus Sans"])]
