@@ -49,7 +49,6 @@
 (require "digitama/track/sticker.rkt")
 
 (require (for-syntax racket/base))
-(require (for-syntax))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-gomamon! stx)
